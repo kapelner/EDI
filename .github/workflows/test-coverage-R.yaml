@@ -1,150 +1,97 @@
-on:
-  push:
-    branches: [main, master]
-    paths: &r-coverage-paths
-      - 'R/EDI/**/*.R'
-      - 'R/EDI/**/*.cpp'
-      - 'R/EDI/**/*.h'
-      - 'R/EDI/**/*.hpp'
-      - 'R/EDI/DESCRIPTION'
-      - 'R/EDI/tests/**'
-      - '.github/workflows/test-coverage-R.yaml'
-  pull_request:
-    branches: [main, master]
-    paths: *r-coverage-paths
-
 name: test-coverage
 
-# Standard r-lib/covr coverage run for the EDI R package (see
-# R-CMD-check.yaml's identical working-directory: R/EDI note -- this repo
-# also holds an unrelated Python-bindings subproject checked by
-# python-tests.yml/test-coverage-python.yml). Runs the testthat suite once under covr instrumentation
-# and uploads the result to Codecov, tagged with the `r` flag so it doesn't
-# get averaged together with the Python coverage number under the same
-# project (see codecov.yml).
+# Full instrumented coverage is scheduled separately from PR correctness.
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
 
 jobs:
-  test-coverage:
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Plan runtime-balanced shards
+        id: plan
+        run: |
+          python3 R/package_tests/ci/plan_shards.py coverage --output shard-plan
+          echo "matrix=$(cat shard-plan/matrix.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-shard-plan
+          path: shard-plan
 
+  shards:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
       EDI_PORTABLE: 1
-      # This build is compiled with -O0 --coverage (gcov instrumentation) for
-      # line coverage, not -fopenmp's normal optimized codegen. Pin every
-      # thread-pool env var EDI's own make_configured_fork_cluster() resets in
-      # forked children (see R/EDI/R/globals.R) to 1 here too, so no OpenMP
-      # thread pool is ever alive in the *parent* process either -- forking a
-      # multi-threaded process (parallel::makeForkCluster(), used by several
-      # tests) is a known hang/crash hazard, and this instrumented build's
-      # subprocess died silently mid-suite (readRDS "error reading from
-      # connection" merging coverage, i.e. a truncated trace file from an
-      # abnormal exit) on 2026-08-10, see
-      # https://github.com/kapelner/EDI/actions/runs/31406650101/job/93514519023.
+      NOT_CRAN: true
+      CI: true
       OMP_NUM_THREADS: 1
       MKL_NUM_THREADS: 1
       OPENBLAS_NUM_THREADS: 1
       GOTO_NUM_THREADS: 1
       VECLIB_MAXIMUM_THREADS: 1
       NUMEXPR_NUM_THREADS: 1
-
     steps:
       - uses: actions/checkout@v7
-
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage-shard-plan
+          path: shard-plan
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
-
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           working-directory: R/EDI
-          extra-packages: any::covr
-          needs: coverage
-
-      - name: Test coverage
-        working-directory: R/EDI
-        run: |
-          # relative_path = "../.." makes covr report file paths relative to
-          # the repo root (R/EDI/R/foo.R), not to the package dir (R/foo.R,
-          # covr's default when relative_path = TRUE). codecov.yml's
-          # flags.r.paths ([R/EDI/R/, R/EDI/src/]) is repo-root-relative --
-          # without this, covr's uploaded paths never matched that filter,
-          # so the r flag silently carried zero files/coverage (badge stuck
-          # on "unknown" even on a fully green run; found 2026-08-26 via
-          # https://api.codecov.io/api/v2/github/kapelner/repos/EDI/flags/
-          # showing flag "r" at 0.0 while "python" -- uploaded via
-          # codecov-action, which path-corrects automatically -- was fine).
-          #
-          # type = "tests" (the default) only exercises R/EDI/tests/testthat/
-          # -- the small platform-sensitive subset left there after
-          # test-bulk-non-cran.yml split the other ~267 files out into
-          # R/package_tests/testthat_bulk/ (see that workflow's header
-          # comment) so they don't re-run on every R-CMD-check matrix leg.
-          # covr never sees that split -- without `code=` below, coverage
-          # only reflects those ~20 files, which is why the Codecov badge
-          # reads far lower than the bulk suite's real exercised coverage.
-          # `code` runs ADDITIONAL test code, and combine_types = TRUE (the
-          # default) sums its coverage into the same report -- this restores
-          # whole-suite coverage without touching test-bulk-non-cran.yml's
-          # separate, CI-matrix-avoiding job at all. Path is resolved to an
-          # absolute path before calling codecov(): `code` expressions run
-          # inside covr's own subprocess, whose working directory isn't
-          # guaranteed to still be R/EDI.
-          # stop_on_failure = FALSE (not testthat's own default TRUE): this
-          # job exists to MEASURE coverage, not gate correctness -- that
-          # already happens in test-bulk-non-cran.yml. With TRUE, a single
-          # failing/flaky test anywhere in this ~59-file bulk suite throws,
-          # which aborts the *entire* covr::codecov() call (this code= block
-          # and the package's own type="tests" pass share one call) before
-          # it ever uploads -- so the badge silently keeps showing whatever
-          # the last all-green run reported. That's exactly what happened
-          # 2026-08-27 through 2026-08-28: every run since this code= block
-          # was added failed for this reason, and Codecov never moved off
-          # its pre-change ~19% figure. FALSE tallies pass/fail and moves on,
-          # same as run_bulk_tests.R already does for this same directory.
-          bulk_dir = normalizePath(file.path(getwd(), "..", "package_tests", "testthat_bulk"), mustWork = TRUE)
-          covr::codecov(
-            quiet = FALSE,
-            token = Sys.getenv("CODECOV_TOKEN"),
-            flags = "r",
-            relative_path = "../..",
-            code = sprintf(
-              "library(testthat); library(EDI); testthat::test_dir(%s, stop_on_failure = FALSE)",
-              deparse(bulk_dir)
-            )
-          )
-        shell: Rscript {0}
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Show testthat output
+          dependencies: '"all"'
+          extra-packages: any::jsonlite, any::covr
+      - name: Run coverage shard
+        timeout-minutes: 45
+        run: Rscript R/package_tests/ci/run_shard.R "$GITHUB_WORKSPACE" "shard-plan/shard-${{ matrix.shard }}.json" coverage "shard-results/${{ matrix.shard }}"
+      - name: Upload timings and reports
         if: always()
-        # covr::codecov() doesn't run tests against R/EDI directly -- it
-        # builds and installs an instrumented copy of the package into an R
-        # tempdir() scratch location (/tmp/Rtmp*/... on this runner) and runs
-        # testthat.R from there, so testthat.Rout(.fail) never lands under
-        # R/EDI at all. `find R/EDI -name 'testthat.Rout*'` above always found
-        # nothing and printed silently -- the one place a failing coverage
-        # run's actual test output could be seen was never shown in CI logs
-        # (see the 2026-08-17 runs that failed with "Error: running the tests
-        # in 'testthat.R' failed" and no further detail). Search /tmp too,
-        # where covr's scratch install actually lives. Also matches
-        # '*-commands.Rout*': the `code=` argument on covr::codecov() above
-        # (added to fold R/package_tests/testthat_bulk/ into coverage) runs
-        # through a *different* covr code path than the package's own
-        # tests/testthat.R, writing its output to <pkg>-commands.Rout(.fail)
-        # instead -- a run failing there printed only the opaque top-level
-        # "Error: Failure in .../EDI-commands.Rout.fail" with no detail
-        # visible anywhere in the CI log until this was widened to catch it
-        # too (see the 2026-08-28 run this was written to fix).
-        run: |
-          found=0
-          for f in $(find /tmp R/EDI -name 'testthat.Rout*' -o -name '*-commands.Rout*' 2>/dev/null); do
-            found=1
-            echo "--- $f ---"
-            cat "$f"
-          done
-          if [ "$found" = "0" ]; then
-            echo "Show testthat output: no testthat.Rout*/*-commands.Rout* file found under /tmp or R/EDI."
-          fi
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: shard-results/${{ matrix.shard }}
+          if-no-files-found: error
+
+  merge:
+    needs: [plan, shards]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-shard-*
+          path: coverage-artifacts
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::covr, any::jsonlite
+          needs: coverage
+      - name: Merge all shards and upload one report
+        run: Rscript R/package_tests/ci/merge_coverage.R coverage-artifacts coverage-artifacts/coverage-shard-plan/matrix.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-merged
+          path: coverage-artifacts/merged-coverage.rds

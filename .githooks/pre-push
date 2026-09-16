@@ -92,6 +92,19 @@ abort_push() {
 	exit 1
 }
 
+# Catch stale shard inventories before any builds or R checks. The planner
+# only reads filenames and CSV estimates; it never loads R or writes files.
+if grep -qE '^R/EDI/tests/testthat/|^R/package_tests/testthat_bulk/|^R/package_tests/ci/|^\.githooks/pre-push$|^\.github/workflows/test-(bulk-non-cran\.yml|coverage-R\.yaml)$' "$changed_files_file"; then
+	echo "pre-push: checking R CI shard inventories and runtime budgets ..."
+	if ! python3 R/package_tests/ci/plan_shards.py correctness --check-only \
+		|| ! python3 R/package_tests/ci/plan_shards.py coverage --check-only; then
+		echo "pre-push: shard check FAILED. For inventory drift, run 'python3 R/package_tests/ci/refresh_manifest.py' and commit R/package_tests/ci/test_runtimes.csv with the test changes. For oversized estimates, split the test or review its timing estimate." >&2
+		abort_push
+	fi
+else
+	echo "pre-push: no shard-relevant files changed, skipping shard inventory check."
+fi
+
 # Only the USER-FACING docs are link-checked (see check_doc_links.py's
 # docstring): READMEs, python/CHANGELOG.md, R/EDI/REFERENCES.md, and the
 # roxygen comments in R/EDI/R/*.R. Internal plan documents

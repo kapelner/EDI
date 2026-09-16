@@ -53,7 +53,8 @@ decision batch still records the yes/no for each.
   treatment×time / unstructured-covariance (MMRM) items should be promoted
   to its first wave (inference audit #7).
 - `multivariate_response_type_report.md` — K endpoints per subject;
-  `InferenceMultiEndpointComposite` (Holm; Fisher/O'Brien global test),
+  `InferenceMultiEndpointComposite` (per-outcome CCT via `InferenceSuite`;
+  Holm/max-IUT across outcomes),
   extended with Romano-Wolf, Anderson q-values and summary indices
   (inference audit #8); hierarchical win ratio, cost-effectiveness ICER,
   and the nominal joint-K-vector test all ride here.

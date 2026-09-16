@@ -270,18 +270,29 @@ Consistent with the "Short Answer" above, the pragmatic first wave is
 entirely the composite path:
 
 1. `InferenceMultiEndpointComposite` — a thin R6 orchestration class that
-   takes K `(Design, Inference class, ctor args)` tuples sharing the same
-   assignment vector `w`, runs each independently, and returns a summary
-   table of K estimates plus multiplicity-adjusted p-values (Holm as the
-   default, since it strictly dominates Bonferroni and needs no
-   distributional assumption beyond what each endpoint's own p-value already
-   has).
-2. A global combined test (e.g. Fisher's combination of the K per-endpoint
-   p-values, or an O'Brien-type combined-rank test if the endpoints share a
-   common direction-of-benefit convention) as a second, optional output of
-   the same class — this gives the "is there a signal anywhere" answer
-   without requiring a joint covariance estimate.
-3. Defer true joint/vector-valued modeling (SUR-style regression, a
+   takes K outcomes sharing the same assignment vector `w`.
+2. Per-outcome p-value: by default, run a full `InferenceSuite` on each
+   outcome's `Design` and take its `combined_evidence$pval` (the Cauchy
+   combination test already implemented and calibrated across every
+   applicable method for that one outcome, `cct_combine_pvalues()`) as the
+   outcome's representative p-value — no new combination math, this reuses
+   the existing within-outcome CCT exactly as-is. If the caller has already
+   pinned one specific `(Inference class, method, action)` for a given
+   outcome (e.g. a pre-registered analysis plan that commits to one model
+   per endpoint), skip the InferenceSuite/CCT step for that outcome and use
+   that single model's raw `pval` directly instead — combining across
+   methods only makes sense when the method itself hasn't been committed to.
+3. Cross-outcome decision: apply Holm's step-down procedure (default; FWER
+   control, valid under arbitrary dependence, needs no distributional
+   assumption beyond what each outcome's own p-value already has; answers
+   "which specific outcome(s) are significant") and/or a max-p
+   intersection-union test (opt-in; Berger's IUT; answers "are ALL K
+   outcomes significant," for co-primary designs whose success criterion
+   requires simultaneous significance) to the K per-outcome p-values from
+   step 2. Both procedures — and no new combination-math layer — are all
+   that's needed here; there is no second, cross-outcome Cauchy combination
+   in this design.
+4. Defer true joint/vector-valued modeling (SUR-style regression, a
    Hotelling-type joint Wald test, or joint bootstrap over a response
    matrix) to a second-generation project, gated on whether a concrete user
    need for a *joint* covariance estimate (as opposed to per-endpoint
@@ -314,17 +325,22 @@ the hardest integration point for nominal.
 
 ## Recommended Implementation Plan
 
-### Stage 1: Composite orchestration layer
+### Stage 1: Per-outcome orchestration
 
-Add `InferenceMultiEndpointComposite` as a wrapper over existing single-
-endpoint `Inference*` classes, with a Holm-adjusted p-value table. Requires
-no `Design` changes.
+Add `InferenceMultiEndpointComposite` as a wrapper that, for each of the K
+outcomes, either (a) runs a full `InferenceSuite` and takes
+`combined_evidence$pval` as that outcome's representative p-value, or (b),
+if the caller has pinned one specific `(Inference class, method, action)`
+for that outcome, fits it directly and uses its raw `pval`. Requires no
+`Design` changes and no new combination math (reuses `cct_combine_pvalues()`
+as-is).
 
-### Stage 2: Combined global test
+### Stage 2: Cross-outcome decision rule
 
-Add one combined-test option (Fisher combination or O'Brien-type rank
-combination) to the same wrapper, giving a scalar "any endpoint affected"
-answer without a joint covariance estimate.
+Apply Holm's step-down procedure (default; FWER-controlling, "which
+outcome(s)") and/or a max-p intersection-union test (opt-in; "are all K
+outcomes significant") to the K per-outcome p-values from Stage 1. No new
+p-value-combination layer is introduced at this stage.
 
 ### Stage 3: `SimulationFramework` composite support
 
@@ -369,7 +385,7 @@ Added 2026-08-14, derived from this report's own recommendation sections
 (restated for the completed shallow-hierarchy/component architecture).
 
 - [ ] TODO-1: **Make a decision about whether to implement this at all — ask the user.** Do not start the items below until that decision is recorded here.
-- [ ] TODO-2: Stage 1 — composite orchestration layer over existing scalar `Inference*` objects (no `Design` storage change; the report recommends this over native joint modeling).
-- [ ] TODO-3: Stage 2 — combined global test (e.g. Bonferroni/Westfall-Young over the orchestrated components).
+- [ ] TODO-2: Stage 1 — per-outcome orchestration: run `InferenceSuite` on each outcome's `Design` and take `combined_evidence$pval` (or a caller-pinned single model's raw `pval`, when one method was already committed for that outcome) as that outcome's representative p-value. No `Design` storage change; no new combination math.
+- [ ] TODO-3: Stage 2 — cross-outcome decision rule: apply Holm's step-down procedure (default) and/or a max-p intersection-union test to the K per-outcome p-values from TODO-2.
 - [ ] TODO-4: Stage 3 — `SimulationFramework` composite support.
 - [ ] TODO-5: Do NOT pursue the native joint-modeling path without a separate decision — the report's verdict is that `Design`'s single-scalar-response storage makes it a rewrite.
