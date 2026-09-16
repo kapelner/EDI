@@ -80,6 +80,30 @@ bayesian_bootstrap_methods = c(
   "compute_bayesian_bootstrap_two_sided_pval_studentized",
   "compute_bayesian_bootstrap_confidence_interval_studentized"
 )
+# Incidence randomization CI: NTS -> NI (2026-09-16, user decision). Every
+# incidence class's rci_resp="" currently renders "unsupported" (NTS,
+# white) via cell_rand_c()/cell_brt_c() -- correct while
+# compute_rand_confidence_interval() hard-stop()s for every incidence
+# response (incidence_randomization_cis.md, 2026-08-27 emergency stopgap
+# after a real scale-mismatch bug), but wrong now that a concrete fix path
+# exists for every incidence estimand family: risk-difference via Rigdon &
+# Hudgens (2015) (new_feature_plans/rand_ci_for_incidence.md, v2.0.0), and
+# every other estimand family via that sibling plan's own estimand-aware
+# Zhang TODO-17k (v1.1.0). "Not yet implemented, known concrete fix" is NI,
+# not "theoretically impossible" (NTS). Applied via not_implemented_methods
+# in the overlay below, scoped to exactly the classes where the rand PVAL
+# already works (rand_resp != "") but CI was disabled by the stopgap -- the
+# three exact-only classes (ExactFisher/ExactBinomial/ExactZhang,
+# rand_resp="") have no randomization capability at all (confirmed live,
+# 2026-09-16: EDI:::get_effective_capabilities() returns FALSE for both
+# randomization_test and randomization_ci) and correctly stay NTS.
+incidence_rand_ci_not_implemented_methods = c(
+  "compute_rand_confidence_interval",
+  "compute_rand_bootstrap_confidence_interval",
+  "compute_rand_bootstrap_confidence_interval_studentized",
+  "compute_rand_bootstrap_confidence_interval_symmetric-percentile-t",
+  "compute_rand_bootstrap_confidence_interval_smoothed"
+)
 
 audit_classes = list(
 
@@ -712,6 +736,9 @@ audit_classes = lapply(audit_classes, function(r) {
   })
   if (is.null(derived)) return(r)
   derived$unsupported_methods = unique(c(r$unsupported_methods, derived$unsupported_methods))
+  if (identical(r$resp, "incid") && nchar(r$rand_resp %||% "") > 0L && identical(r$rci_resp, "")) {
+    derived$not_implemented_methods = unique(c(r$not_implemented_methods, incidence_rand_ci_not_implemented_methods))
+  }
   slow_derived = tryCatch(derive_slow_methods(r$name, r$resp), error = function(e) {
     warning(sprintf("path_audits: could not derive slow paths for %s (%s); using hand values", r$name, conditionMessage(e)), call. = FALSE)
     character()
@@ -1466,12 +1493,34 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
   }
 
   # ── Exact inference (Fisher/Binomial/Zhang: pval+CI; Jonckheer: pval only) ───
+  # Same bespoke-column shape as "other" under Model-Based (is_log_rank_other()
+  # above): compute_exact_two_sided_pval_for_treatment_effect()/compute_exact_
+  # confidence_interval() are narrow, design-specific exact-combinatorics
+  # methods (matched-pair/2x2-table Fisher-Binomial-Zhang, or JonckheereTerpstra's
+  # exact rank pval) that only this small, fixed class family was ever a
+  # candidate for -- not a generic concept every class is evaluated against
+  # the way Wald/Score/LR are. Every exact_p/exact_c hand value in
+  # audit_classes is TRUE (2026-09-16 grep, no class sets an explicit FALSE),
+  # confirming there is no real "candidate but structurally lacks it" case
+  # among non-family classes -- they were simply never candidates, so NTS for
+  # them was the same over-claiming bug the log-rank "other" column's own
+  # comment already documents (a negative claim this column never made).
+  # JonckheereTerpstraTest IS a family member with only exact_p set (its own
+  # notes: "only exact pval + estimate called") -- unlike every non-family
+  # class, it stays NTS on exact_c specifically, a genuine claim about one
+  # family member lacking the CI variant.
+  is_exact_family = function(r) {
+    r$name %in% c("InferenceIncidExactFisher", "InferenceIncidExactBinomial",
+      "InferenceIncidExactZhang", "InferenceOrdinalJonckheereTerpstraTest")
+  }
   cell_exact_p = function(r) {
     method_id = "compute_exact_two_sided_pval_for_treatment_effect"
+    if (!is_exact_family(r)) return(status_cell("blank"))
     if (isTRUE(r$exact_p)) method_cell(r, method_id, "always_numeric") else method_cell(r, method_id, "unsupported")
   }
   cell_exact_c = function(r) {
     method_id = "compute_exact_confidence_interval"
+    if (!is_exact_family(r)) return(status_cell("blank"))
     if (isTRUE(r$exact_c)) method_cell(r, method_id, "always_numeric") else method_cell(r, method_id, "unsupported")
   }
 
@@ -1633,7 +1682,16 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
   # an integer >= 2 renders it with rowspan=<that> (first row of a merged
   # group); 0L omits it entirely (later rows of a merged group -- the
   # browser slots the first row's spanned cell into that visual position).
-  row_html = function(r, name_rowspan = NULL) {
+  # leaf_html_vec()/row_html_from_cells() split what used to be one function
+  # (row_html()) into "compute this row's per-column cell HTML" and "wrap
+  # given per-column cell HTML into a <tr>", so the merge_nts branch below
+  # can inspect and edit individual columns *before* concatenation --
+  # required for it to compare cells positionally instead of via a blind
+  # whole-row gsub() (see that branch's own comment for why the previous
+  # blind version was wrong). row_html() (still used by the non-merge_nts
+  # path and any single-row case) is now just their composition.
+  leaf_html_vec = function(r) vapply(leaf_fns, function(fn) fn(r), character(1))
+  row_html_from_cells = function(r, cells_vec, name_rowspan = NULL) {
       nm = sub("^Inference", "", r$name)
       name_cell = if (is.null(name_rowspan)) {
         sprintf('<td style="font-family:monospace;padding:2px 8px;white-space:nowrap">%s</td>', nm)
@@ -1645,9 +1703,10 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
       paste0("<tr>",
         name_cell,
         if (has_extra) sprintf('<td class="formula-col" style="text-align:center;white-space:nowrap">%s</td>', extra_col$cell_fn(r)) else '',
-        paste(vapply(leaf_fns, function(fn) fn(r), character(1)), collapse = ""),
+        paste(cells_vec, collapse = ""),
         "</tr>\n")
   }
+  row_html = function(r, name_rowspan = NULL) row_html_from_cells(r, leaf_html_vec(r), name_rowspan)
 
   sections = unique(vapply(classes, `[[`, "", "section"))
   body = ""
@@ -1663,25 +1722,64 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
     sec_classes = classes[vapply(classes, function(x) x$section == sec, logical(1))]
     if (has_extra && isTRUE(extra_col$merge_nts)) {
       # sec_classes is pre-ordered as adjacent (class, "~1")/(class, "~.")
-      # pairs by the row-expansion code below -- merge each pair's NTS cells
-      # via the fixed-string replace described above build_table_html(),
+      # pairs by the row-expansion code below -- merge each pair's NTS cells,
       # and merge the class-name cell the same way (one vertically-merged
       # name cell per class instead of the name repeated on every
-      # formula-row) via row_html()'s name_rowspan argument. The merged
-      # name cell spans however many rows the group actually has (the last
-      # group in a section can be short if the count isn't a multiple of
-      # group_size).
+      # formula-row) via row_html_from_cells()'s name_rowspan argument. The
+      # merged name cell spans however many rows the group actually has (the
+      # last group in a section can be short if the count isn't a multiple
+      # of group_size).
+      #
+      # Fixed 2026-09-16: this used to do a blind whole-row gsub(NTS_CELL_
+      # HTML, ...) -- add rowspan="2" to every literal NTS cell in row 1,
+      # strip every literal NTS cell from row 2 -- which assumed NTS is
+      # always identical, column-for-column, across a class's two formula
+      # rows (this function's own header comment above NTS_CELL_HTML made
+      # that assumption explicit). It doesn't hold: per-formula overrides
+      # (e.g. the count-response rand_ci_count_allowed allowlist; a
+      # class/formula-scoped ADDITIONAL_TEST_SLOW_PATHS/EDI_COMPREHENSIVE_
+      # SLOW_PATHS entry landing a method in slow_methods on one formula but
+      # not the other, which method_status() checks *before* falling back to
+      # a cell function's own "unsupported" default) can make one formula's
+      # rand/BRT-CI cell genuinely "unsupported" while the other is
+      # "slow"/attempted for the exact same method. The blind version still
+      # converted every row-1 NTS occurrence to rowspan and stripped every
+      # row-2 NTS occurrence *by content, not by column position* -- so a
+      # row-2-only NTS cell got deleted with nothing covering the gap
+      # (row too narrow), and a row-1-only NTS cell got rowspan-extended
+      # over a row-2 cell that was never deleted (row too wide) -- found via
+      # a user report of the regression table rendering content past its
+      # last column, confirmed identical in the last-committed HTML (a
+      # pre-existing bug, not a regression from same-day edits) via a
+      # colspan/rowspan-aware grid-width check across every row: table 0
+      # (merge_nts=FALSE) was clean, table 1 had 7 malformed rows, all
+      # matching cross-formula "unsupported"-vs-not discrepancies. Now
+      # positional: build each row's per-column cell vector first
+      # (leaf_html_vec()) and only rowspan/strip a column when *every* row
+      # in the group has the identical NTS cell at that exact position;
+      # anything that differs is left as an ordinary, independently-correct
+      # cell on every row (no merge attempted), which is always safe even
+      # though it means occasional visual duplication instead of a share.
       group_size = extra_col$group_size %||% 2L
       i = 1L
       while (i <= length(sec_classes)) {
         j_last = min(i + group_size - 1L, length(sec_classes))
-        n_in_group = j_last - i + 1L
-        row1 = row_html(sec_classes[[i]], name_rowspan = if (n_in_group >= 2L) n_in_group else NULL)
-        row1 = gsub(NTS_CELL_HTML, NTS_CELL_HTML_ROWSPAN, row1, fixed = TRUE)
+        group_idx = i:j_last
+        n_in_group = length(group_idx)
+        group_rows = sec_classes[group_idx]
+        group_cells = lapply(group_rows, leaf_html_vec)
+        mergeable = vapply(seq_along(leaf_fns), function(col) {
+          all(vapply(group_cells, `[[`, "", col) == NTS_CELL_HTML)
+        }, logical(1))
+        cells1 = group_cells[[1L]]
+        cells1[mergeable] = NTS_CELL_HTML_ROWSPAN
+        row1 = row_html_from_cells(group_rows[[1L]], cells1, name_rowspan = if (n_in_group >= 2L) n_in_group else NULL)
         rest = ""
-        if (i + 1L <= length(sec_classes)) {
-          for (j in (i + 1L):j_last) {
-            rest = paste0(rest, gsub(NTS_CELL_HTML, "", row_html(sec_classes[[j]], name_rowspan = 0L), fixed = TRUE))
+        if (n_in_group >= 2L) {
+          for (k in 2L:n_in_group) {
+            cellsk = group_cells[[k]]
+            cellsk[mergeable] = ""
+            rest = paste0(rest, row_html_from_cells(group_rows[[k]], cellsk, name_rowspan = 0L))
           }
         }
         body = paste0(body, row1, rest)
@@ -1878,6 +1976,33 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
 # next within a class (that's the reason this split exists).
 ALL_RESPONSE_TYPES_ORDERED = c("continuous", "incidence", "proportion", "count", "survival", "ordinal")
 resp_code_for_response_type = stats::setNames(names(edi_resp_code_to_response_type), edi_resp_code_to_response_type)
+
+# Single-response-type classes that ignore covariates/model_formula entirely
+# (2026-09-16, user question + live verification): each documents a
+# model_formula constructor argument for interface parity, but the actual
+# computation only ever touches w/y (or the raw 2x2/group counts derived
+# from them), never a design matrix -- confirmed by reading each kernel call
+# site, and each class's own roxygen says so explicitly (e.g.
+# InferenceIncidWald: "the reservoir/covariate structure is ignored, unlike
+# InferenceIncidRiskDiff's covariate-adjusted linear-probability model";
+# InferenceIncidMiettinenNurminenRiskDiff/NewcombeRiskDiff: "intentionally
+# unadjusted... operates on the 2x2 table"; InferenceOrdinalJonckheereTerpstraTest/
+# Ridit: rank/ridit statistics computed from y and w alone). Testing these
+# under both "~w" and "~w+." in the regression table was therefore purely
+# cosmetic -- the two rows are mathematically identical, since the formula
+# is accepted but never consulted -- unlike every other non-Global class,
+# where "~w+." is a genuinely different fitting procedure. Moved to the
+# non-regression table instead: one row each (their own single response
+# type; no per-response-type expansion needed the way the Global section's
+# genuinely multi-response-type classes get, since these were never
+# multi-response to begin with), keeping their existing section label
+# (Incidence/Ordinal) so they still group with their peers rather than
+# folding into "Global".
+no_covariate_adjustment_classes = c(
+  "InferenceOrdinalRidit", "InferenceOrdinalJonckheereTerpstraTest",
+  "InferenceIncidWald", "InferenceIncidMiettinenNurminenRiskDiff",
+  "InferenceIncidNewcombeRiskDiff"
+)
 audit_classes_nonregression_hand = Filter(function(r) identical(r$section, "Global"), audit_classes)
 audit_classes_nonregression = unlist(lapply(audit_classes_nonregression_hand, function(r) {
   hand_slow = audit_classes_hand_slow_methods[[r$name]]
@@ -1901,7 +2026,21 @@ audit_classes_nonregression = unlist(lapply(audit_classes_nonregression_hand, fu
     ))
   })
 }), recursive = FALSE)
-audit_classes_regression_hand = Filter(function(r) !identical(r$section, "Global"), audit_classes)
+audit_classes_no_covariate_adjustment_hand = Filter(function(r) r$name %in% no_covariate_adjustment_classes, audit_classes)
+audit_classes_nonregression = c(audit_classes_nonregression, lapply(audit_classes_no_covariate_adjustment_hand, function(r) {
+  hand_slow = audit_classes_hand_slow_methods[[r$name]]
+  if (is.null(hand_slow)) hand_slow = character()
+  slow_derived = c(
+    tryCatch(derive_slow_methods(r$name, r$resp), error = function(e) character()),
+    tryCatch(derive_additional_slow_methods(r$name, additional_test_slow_paths_live), error = function(e) character())
+  )
+  modifyList(r, list(
+    response_type = unname(edi_resp_code_to_response_type[r$resp]),
+    resp_type_excluded = FALSE,
+    slow_methods = unique(c(hand_slow, slow_derived))
+  ))
+}))
+audit_classes_regression_hand = Filter(function(r) !identical(r$section, "Global") && !(r$name %in% no_covariate_adjustment_classes), audit_classes)
 audit_classes_regression = unlist(lapply(audit_classes_regression_hand, function(r) {
   hand_slow = audit_classes_hand_slow_methods[[r$name]]
   if (is.null(hand_slow)) hand_slow = character()

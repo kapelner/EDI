@@ -195,6 +195,18 @@ against; they are additive on the design factory but are treated as a
   and Bayesian posterior diagnostics. This is new statistical functionality,
   not a replacement for the existing scalar coefficient classes.
 
+### Incidence randomization CI (risk-difference estimand family)
+
+- `rand_ci_for_incidence.md` — implement Rigdon & Hudgens (2015)'s
+  attributable-effects Bonferroni construction for the risk-difference-scale
+  incidence classes, replacing the hard `stop()` stopgap
+  (`incidence_randomization_cis.md`) with a real, exact, assumption-light
+  randomization CI for that estimand family; other incidence estimand
+  families (log-odds-ratio, risk-ratio) remain owned by
+  `incidence_randomization_cis.md → TODO-17k`. Not architectural like the
+  rest of this release's scope (user decision, 2026-09-16, slated here
+  anyway) — no core contract changes, purely additive.
+
 ### Shared inference backend and language boundaries
 
 - `migrate_EDI_into_shared_cpp_backend.md` — staged C++ inference ABI and
@@ -367,6 +379,10 @@ against; they are additive on the design factory but are treated as a
   coverage alone still merits a 2.0.0 slot, or belongs in v1.4.0's
   response-and-data-extensions theme instead — see
   `model_selection_framework.md`'s header.
+- [ ] TODO-6l (added 2026-09-16, user decision): **Incidence randomization
+  CI, risk-difference estimand family** — `rand_ci_for_incidence.md →
+  TODO-1..7`. Independent of every other TODO in this list; additive, no
+  ordering dependency.
 - [ ] TODO-7: **Breaking changes** — greedy-class deletion; any contract
   breaks accumulated from TODO-3/4, each with a documented deprecation
   path from 1.x.

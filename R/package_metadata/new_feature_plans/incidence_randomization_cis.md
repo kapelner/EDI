@@ -7,9 +7,17 @@
 > bisection's Monte Carlo precision -- this one is about a completely
 > different dispatch path, Zhang's exact combined test for incidence
 > responses, that never reaches the generic bisection at all). Slated for
-> **v1.1.0** (user decision, 2026-08-27) -- `release_v1_1_0.md` should pick
-> this up as an additional TODO; not yet cross-referenced there as of this
-> writing.
+> **v1.1.0** (user decision, 2026-08-27) -- `release_v1_1_0.md → TODO-17k`.
+>
+> **2026-09-16, user decision:** for the risk-difference-scale estimand
+> family specifically (`mean_difference`-tagged classes below), the chosen
+> real fix is no longer this plan's own Option 2 (estimand-aware Zhang) --
+> see the new sibling `rand_ci_for_incidence.md` (v2.0.0), which implements
+> Rigdon & Hudgens (2015)'s attributable-effects construction instead, a
+> self-contained method that does not reuse Zhang's machinery at all. This
+> plan's TODO-17k / Option 2 remains the owning path for every other
+> incidence estimand family (log-odds-ratio, risk-ratio) not covered by
+> that paper's risk-difference scope.
 
 ## Status
 

@@ -908,6 +908,17 @@ already stated there:**
   `Suggests`-gated with a bit-for-bit-identical static default. Initially
   targeted at v1.2.0, corrected same day to v2.0.0 since v1.2.0's own
   theme is explicitly "no new statistical functionality."
+- **(new, added 2026-09-16, user decision, no Phase letter, same
+  precedent): Incidence randomization CI, risk-difference estimand
+  family** → `release_v2_0_0.md → TODO-6l`. `rand_ci_for_incidence.md`.
+  Implements Rigdon & Hudgens (2015)'s attributable-effects Bonferroni
+  construction to replace the hard `stop()` stopgap
+  (`incidence_randomization_cis.md`) for the risk-difference-scale
+  incidence estimand family; other incidence estimand families
+  (log-odds-ratio, risk-ratio) remain owned by
+  `incidence_randomization_cis.md → TODO-17k` (v1.1.0). Not architectural
+  like the rest of v2.0.0's scope — purely additive — but slated here per
+  explicit user decision.
 - **5AI. `ModelSelection` — comparative fit over the model × formula
   grid** (added 2026-09-02, user decision; the *relative* half of the
   same split; **split into two release phases on 2026-09-05, user

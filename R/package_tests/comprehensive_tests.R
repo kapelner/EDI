@@ -1817,7 +1817,6 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_zhang_incidence_randomization(), error = function(e) FALSE)) ||
 		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_design_randomization_for_incidence(), error = function(e) FALSE))
 	skip_rand      = !force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand)
-	skip_mle_pval  = FALSE
 	skip_rand_pval = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_pval)
 	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
 	# Decoupled from skip_regular_rand_pval 2026-09-13
@@ -1831,10 +1830,6 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_ci_rand   = (!force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci)) ||
 		(!force_run_slow_paths && response_type == "count" && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_count_allowed)) ||
 		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleAverageDiff"))
-	# rand_ci_custom's exclusion list removed 2026-09-13 (fix_custom_
-	# randomization_statistic.md TODO-10) -- see the removal comment above
-	# ADDITIONAL_TEST_SLOW_PATHS's rand_ci_custom entry.
-	skip_ci_rand_custom = FALSE
 	supports_jackknife = is(seq_des_inf, "InferenceJackknife") ||
 		(
 			"compute_jackknife_wald_two_sided_pval" %in% names(seq_des_inf) &&
@@ -2441,7 +2436,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		!is(seq_des_inf, "InferenceAsympLik")
 
 	safe_call_family("estimate", "compute_estimate", seq_des_inf$compute_estimate())
-	if (should_run_test_family("asymp") && !skip_asymp && !skip_mle_pval){
+	if (should_run_test_family("asymp") && !skip_asymp){
 		if ("compute_asymp_log_rank_two_sided_pval_for_treatment_effect" %in% names(seq_des_inf)) {
 			safe_call_family("asymp", "compute_asymp_log_rank_two_sided_pval_for_treatment_effect", seq_des_inf$compute_asymp_log_rank_two_sided_pval_for_treatment_effect())
 		}
@@ -2452,7 +2447,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 	if (should_run_test_family("asymp") && !skip_asymp){
 		safe_call_family("asymp", "compute_asymp_confidence_interval", seq_des_inf$compute_asymp_confidence_interval(0.05))
 	}
-	if (!skip_asymp && !skip_mle_pval){
+	if (!skip_asymp){
 			call_direct_asymp("compute_wald_two_sided_pval", "wald")
 			call_direct_asymp("compute_score_two_sided_pval", "score")
 			call_direct_asymp("compute_lik_ratio_two_sided_pval", "lik_ratio")
@@ -2855,11 +2850,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		# "conservative bound" warning every response type can get, not an
 		# error) -- there was never a structural reason to exclude count here.
 		if (supports_randomization_ci && !skip_slow && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
-			if (!skip_ci_rand_custom){
-				safe_call("compute_rand_confidence_interval(custom)", custom_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
-			} else {
-				message("    Skipping compute_rand_confidence_interval(custom) (too slow)")
-			}
+			safe_call("compute_rand_confidence_interval(custom)", custom_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 		}
 	}
 }

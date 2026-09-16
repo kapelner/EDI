@@ -386,7 +386,7 @@ Three observations follow.
 
 ## 8. Summary tables
 
-Table A is the measurement scale of the primary outcome — one type applies per outcome, so each column sums to approximately 100%. It is presented as an overall estimate (8.1) plus one subtable per field category (8.2–8.5), because the between-field variation is larger than any overall number. Table B (8.6) covers structural features, which overlap and do not sum.
+Table A is the measurement scale of the primary outcome — one type applies per outcome, so each column sums to approximately 100%. It is presented as an overall estimate (8.1) plus one subtable per field category (8.2–8.5), because the between-field variation is larger than any overall number. Table B (8.6) covers structural features, which overlap and do not sum. Tables G–G4 (8.11–8.15) give the matching overall and field-specific summaries for EDI design types, with explicit qualifications where audits identify a broader family rather than an exact class.
 
 All values are judgment-based syntheses of the evidence in Sections 3–6, not measured global rates. Percentages are rounded, and the ranges matter more than the point values.
 
@@ -559,6 +559,99 @@ This is **EDI's own `fixed` / `one-by-one` / `many-by-many` question: when and h
 | Sociology, audit studies | not applicable | simple, paired within posting by construction |
 
 **Four findings cut across these tables.** First, wherever a funder or platform states a default covariate policy, it converges on exactly **one** covariate — the pre-period or baseline value of the outcome itself — in clinical trials, online experimentation, and education alike, each independently justified by diminishing returns or a documented "researcher degrees of freedom" concern. Second, on interim monitoring (Table E), scheduled-batch cadences dominate wherever sequential testing is used at all, for field-specific reasons: clinical trials because per-subject monitoring was judged operationally impractical as early as the 1970s, online platforms because the underlying data pipeline is itself batched. Third, on allocation (Table F), `fixed` allocation is the dominant real-world mechanism in both clinical trials and online experimentation; `many-by-many` allocation is explicitly named and evidenced in economics (phased cluster rollout) and structurally implied in education, while genuinely adaptive `one-by-one` allocation — minimization, response-adaptive randomization, bandits — remains a real but consistently small minority everywhere it has been measured so far. Fourth, sample size spans roughly **five orders of magnitude** across Table D, from ~10 per condition in cognitive psychology to several million per experiment in large-scale online platforms — the single largest source of variation in this entire report, and the strongest argument for why a package like EDI needs both exact/permutation-based inference (valid at every scale) and asymptotic shortcuts (efficient at the largest scales).
+
+### 8.11 Table G — EDI design types, all fields at a glance
+
+Tables G–G4 mirror the overall and field-specific response-type tables (A–A4), but organize the allocation evidence by **EDI design class or family**. They summarize the existing evidence in Sections 3.5, 4.5, 5.4, and 6.8; they do not estimate a new worldwide distribution. **No defensible overall percentage by EDI class is available.** Most audits name a balancing method without specifying whether assignments were generated upfront or live, and cluster, stratification, matching, and factorial structure can overlap. These columns therefore **do not sum to 100%**.
+
+Class names below omit the `Design` prefix: `SeqOneByOneBernoulli` means `DesignSeqOneByOneBernoulli`. **A family match is not evidence that a trial used EDI or its exact algorithm.** Confidence: **M** = quantified method-family evidence, with class mapping sometimes conditional; **L** = qualitative adoption evidence or a related-method example; **VL** = no usable adoption estimate. “Not quantified” means unknown, not zero.
+
+| EDI design type / family | Clinical trials | Online experiments | Economics / political science | Psychology / education / criminology | Confidence |
+|---|---|---|---|---|---|
+| `FixedBernoulli` / `FixediBCRD` — simple allocation upfront | Simple/complete 3–6% in top-journal audits; Bernoulli vs exact arm totals not separated | Hash-based user splits dominate; analogous to Bernoulli allocation, not proof of this class | Pure randomization 4–17% in development-RCT samples | Simple/complete 20% of UK school-based health cluster RCTs; psychology not audited | M / L |
+| `SeqOneByOneBernoulli` / `SeqOneByOneiBCRD` — simple allocation live | Live central randomization documented; share distinct from upfront schedules not quantified | Per-user arrival alone does not establish live randomization; hash assignment can implement a fixed rule | Only two simple sequential examples identified in a 2015 review; no contemporary share | Not quantified | L |
+| `FixedBlocking` — allocation within predefined blocks/strata upfront | Block-stratified 47%; broader stratified categories 47–64%, with timing not separately audited | No adoption share located | Stratification 61–72%; closest mapping where block assignments are drawn upfront | Stratified 45% of UK school-based health cluster RCTs; blocked designs established in criminology | M |
+| `SeqOneByOneRandomBlockSize` / `SeqOneByOneSPBR` — sequential blocking family | Permuted-block methods common; live vs pre-generated and exact algorithm shares not separated | Not quantified | Not quantified | Not quantified | L |
+| `SeqOneByOnePocockSimon` — minimization family | 15% in top-journal audits; <2% literature-wide; related live methods confirmed in ESCAPE and platform trials | Not quantified | No family-specific share located | Minimisation 13% of UK school-based health cluster RCTs; exact algorithm unspecified | M |
+| `SeqOneByOneEfron` / `SeqOneByOneUrn` / `SeqOneByOneAtkinson` — other sequential balancing rules | No separate adoption shares; review found no field use of the particular optimal sequential method studied in 2015 | No separate adoption shares | Same historical finding for that optimal method; not a census of all three classes | Not quantified | VL |
+| `SeqOneByOneKK14` / `SeqOneByOneKK21` / `SeqOneByOneKK21stepwise` — matching on the fly | No evidenced real-trial adoption of these specific algorithms; related live balancing and batch matching do have real-trial use | Not quantified | Not quantified | Not quantified | L |
+| `FixedBinaryMatch` / `FixedMatchingGreedyPairSwitching` — fixed matching family | No clean trial-level share located | No clean share located | Matched pairs 11–35% in development samples; roughly 1% in broader AEA registry reporting | Matched 13% of UK school-based health cluster RCTs; historical criminology tradition | M |
+| `FixedRerandomization` — fixed redraw-until-balanced family | No clean adoption share located | Not quantified | 32–46% of surveyed practitioners had ever rerandomized; not a percentage of trials | Constrained allocation 9% of UK school-based health cluster RCTs; exact rerandomization rule unspecified | M / L |
+| `FixedGreedy` / `FixedGreedyDOptimal` / `FixedOptimal` / `FixedOptimalBlocks` — optimization families | No algorithm-specific adoption shares located | Not quantified | Best-of-many draws reported by 24–38% of surveyed practitioners; not evidence of these exact algorithms | Constrained allocation does not identify a particular optimizer | VL |
+| `FixedCluster` / `FixedBlockedCluster` — cluster allocation, optionally blocked | Overall share unquantifiable from registry fields | Real at marketplaces; company-wide/industry-wide share unknown | ~50% of modern AEA field RCTs cluster/multilevel | Established in education; the school-health audit includes cluster RCTs only | M / L |
+| `FixedFactorial` — factorial treatment structure | Not quantified in this audit | Not quantified in this audit | Not quantified in this audit | Not quantified in this audit | VL |
+| Batch allocation / switchback / phased rollout — broader families, no exported `DesignSeqManyByMany*` class in the current inventory | REACH weekly matching confirmed; stepped-wedge may instead use an upfront schedule | DoorDash switchback confirmed; described as occasional | Simultaneous allocation within arriving villages documented; rollout timing alone does not prove live batch assignment | Multiple education cohorts documented; assignment timing remains unquantified | L |
+
+**Two mapping cautions matter more than any point estimate.** Bernoulli allocation uses independent assignments and leaves realized arm totals random; iBCRD fixes arm totals. Audits that combine “simple/complete” cannot distinguish them. Likewise, a permuted-block list generated before enrollment is not evidence for an EDI sequential-block class, and a covariate-stratified design can use either an upfront schedule or live allocation. Enrollment over time, interim analyses, and staggered treatment delivery do not by themselves resolve assignment timing.
+
+### 8.12 Table G1 — clinical trials
+
+The percentages below retain their original sampling frames. The two top-journal cohorts and the literature-wide minimization estimate are not interchangeable denominators; broader stratified and block-stratified categories overlap.
+
+| Design family | Reported prevalence / evidence | Closest EDI type and qualification | Confidence |
+|---|---|---|---|
+| Simple / complete | 3% of 152 phase III trials; 6% in the 2019 audit | `FixedBernoulli` or `FixediBCRD` if upfront; `SeqOneByOneBernoulli` or `SeqOneByOneiBCRD` if live; audit does not distinguish | M |
+| Block-stratified / stratified | Block-stratified 47%; broader stratified extraction 64% | `FixedBlocking` for upfront block allocation; sequential-block family only where live allocation is confirmed | M |
+| Minimization | 15% in top-journal audit; <2% literature-wide | `SeqOneByOnePocockSimon` family; Minimal Sufficient Balance examples are related methods, not the exact algorithm | M |
+| Other sequential balancing | No separate shares for biased coin, urn, or Atkinson rules | `SeqOneByOneEfron`, `SeqOneByOneUrn`, `SeqOneByOneAtkinson`; prevalence unknown | VL |
+| Matching on the fly | No evidenced real-trial adoption of specific KK algorithms | `SeqOneByOneKK14`, `SeqOneByOneKK21`, `SeqOneByOneKK21stepwise`; ESCAPE and REACH establish related families only | L |
+| Live batch matching | REACH: 506 participants, weekly batch randomization | Broader batch-matching family; not fixed matching or KK matching on the fly | L |
+| Cluster / matched / rerandomized / optimized / factorial | No clean overall adoption shares in the sources reviewed | Corresponding fixed families in Table G; cluster structure and balancing method can co-occur | VL |
+| Response-adaptive | 65 planned/conducted trials worldwide, 1985–2023; no all-trials denominator | Outcome-adaptive family; not interchangeable with covariate minimization or a named EDI urn class | L |
+| Stepped-wedge | 25 trials by ~2010; 60 by ~2014 | Staggered cluster rollout; upfront vs live schedule not conclusively verified, so no automatic sequential-class mapping | L |
+
+Evidence and source links: **Section 3.5**. No row supports a clinical-trial percentage for a specific EDI implementation.
+
+### 8.13 Table G2 — online experiments
+
+Unlike the response-type split between web/CRO and big-tech OCE, no comparable quantitative design-method audit exists. These entries describe documented practices, not estimated percentages.
+
+| Design family | Web/CRO | Big-tech / marketplaces | Closest EDI type and qualification | Confidence |
+|---|---|---|---|---|
+| Hash-based user assignment | Default simple per-user split | Dominant; directly documented at LinkedIn | Bernoulli-like fixed allocation rule; not automatically `SeqOneByOneBernoulli` because users arrive individually | L |
+| Exact-total complete randomization | No separate share | No separate share | `FixediBCRD` / `SeqOneByOneiBCRD` require evidence of fixed arm totals | VL |
+| Blocking / minimization / matching / rerandomization / optimization / factorial | No separate shares | No separate shares in this audit | Corresponding Table G families; unknown prevalence | VL |
+| Cluster / switchback | No separate share | Real in two-sided marketplaces; DoorDash calls switchback occasional | `FixedCluster` for upfront cluster assignment; switchback is a distinct time-varying family, with live batch implementation documented at DoorDash | L |
+| Bandit / response-adaptive | Available as a specialist practice; no adoption share | Real at scale at Microsoft and Yahoo; minority niche, no adoption share | Outcome-adaptive allocation; does not identify any of the listed EDI covariate-balancing classes | L |
+| Staged / ramped rollout | No separate share | Established deployment practice | Increasing exposure alone does not establish a sequential experimental-allocation class | L |
+
+Evidence and source links: **Section 4.5**. Sequential/always-valid significance testing belongs in Table E, not in a design-allocation prevalence row.
+
+### 8.14 Table G3 — economics and political science
+
+Quantitative allocation evidence here is primarily **development economics**, not political science or laboratory economics. The 18-study review, most-recent-experiment practitioner survey, broader registry, and “ever used” survey questions have different denominators.
+
+| Design family | Economics evidence | Political science / lab economics | Closest EDI type and qualification | Confidence |
+|---|---|---|---|---|
+| Pure randomization | 17% of 18 reviewed development experiments; ~4% in most-recent-experiment survey | No separate allocation-method census located | `FixedBernoulli` / `FixediBCRD` if upfront; exact rule not separated | M / VL |
+| Stratification | 72% of 18 reviewed experiments; ~61% in most-recent-experiment survey | No separate share located | `FixedBlocking` where allocations are drawn upfront within strata | M / VL |
+| Matched pairs | 11% of reviewed experiments; ~35% in most-recent-experiment survey; roughly 1% in broader AEA reporting | No separate share located | `FixedBinaryMatch` / `FixedMatchingGreedyPairSwitching` family; exact matching algorithm unspecified | M / VL |
+| Rerandomization | 32–46% of surveyed practitioners had ever used it | No separate share located | `FixedRerandomization` family; not a trial-level prevalence estimate | M / VL |
+| Best-of-many balance search | 24–38% of surveyed practitioners had ever used it | No separate share located | Related to balance-search families; does not establish greedy, D-optimal, or MILP algorithm adoption | L / VL |
+| Cluster / multilevel | ~50% of 898 modern AEA field RCTs | No separate share located | `FixedCluster` / `FixedBlockedCluster` where allocation is upfront; overlaps with stratification and matching | M / VL |
+| Live simple / covariate-adaptive allocation | Two simple sequential examples in 2015 review; no shares for individual balancing rules or KK algorithms | No separate share located | `SeqOneByOneBernoulli` or other sequential class only after verifying the actual assignment rule | L / VL |
+| Batch allocation / randomized phase-in | Allocation simultaneously within arriving villages documented; phased-school rollout example available | No separate share located | Live village batches match the broader batch family; a pre-drawn phase-in schedule remains fixed | L / VL |
+| Response-adaptive / factorial | Adaptive allocation described as “not yet common”; factorial share not quantified | No separate share located | Distinct design properties; no exact exported-class adoption estimate | L / VL |
+
+Evidence and source links: **Section 5.4**. The three-category development-study and most-recent-experiment splits each total approximately 100%; the remaining rows describe overlapping properties or different denominators.
+
+### 8.15 Table G4 — psychology, education, criminology, and sociology
+
+The only numerical method split in this field cluster is **64 UK school-based cluster RCTs for health outcomes**, not a census of achievement trials or all education experiments. Its five balancing-method percentages total 100%; cluster structure and cohort timing are separate properties.
+
+| Design family | Education: school-health cluster RCTs | Psychology / criminology / sociology | Closest EDI type and qualification | Confidence |
+|---|---|---|---|---|
+| Simple / complete | 20% | Psychology presumed simple by convention, not audited; sociology audit studies use within-posting pairing | `FixedBernoulli` / `FixediBCRD` if upfront; exact rule and timing unspecified | M / L |
+| Stratified | 45% | Blocking historically established in criminology; no share | `FixedBlocking` family where assignment is upfront within strata | M / L |
+| Matched | 13% | Matched-pair criminology tradition; sociology paired within job postings | `FixedBinaryMatch` / `FixedMatchingGreedyPairSwitching` family; exact algorithm unspecified | M / L |
+| Minimisation | 13% | No separate shares | `SeqOneByOnePocockSimon` family; specific rule not identified | M / VL |
+| Constrained | 9% | No separate shares | Related to `FixedRerandomization` / optimization families; audit category does not distinguish algorithms | M / VL |
+| Cluster unit | 88% schools, 9% classes, 3% year groups **within this cluster-only sample** | No overall cluster share | `FixedCluster` / `FixedBlockedCluster` if upfront; these are unit-of-allocation percentages, not cluster prevalence | M / VL |
+| Sequential simple / blocking / other balancing / KK matching | No separate shares | No separate shares | Listed `SeqOneByOne*` classes remain unquantified | VL |
+| Multiple cohorts / batch allocation | Multiple cohorts explicitly recognized in EEF guidance; no assignment-timing share | No separate shares | Cohort enrollment supports possible batch allocation, but does not prove live `many-by-many` assignment | L / VL |
+| Factorial | Not quantified in this audit | Not quantified in this audit | `FixedFactorial` where the treatment structure and fixed allocation match | VL |
+
+Evidence and source links: **Section 6.8** (method split: Parker et al. 2021). Informal optional stopping by psychologists concerns outcome monitoring and provides no evidence for a sequential allocation class.
 
 ## 9. Implications for EDI
 
