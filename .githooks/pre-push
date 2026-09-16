@@ -123,9 +123,8 @@ if [ "$run_doc_link_check" = "1" ]; then
 	# Internal (relative-path) links block on new breakage only -- pre-existing
 	# debt is tracked in scripts/check_doc_links_baseline.csv (regenerate via
 	# --write-baseline) so this doesn't retroactively block every push on the
-	# existing backlog. External link failures block too; the checker already
-	# filters out the systematic bot-blocking-403 false positive (see
-	# check_external() in the script), so what remains is real breakage.
+	# existing backlog. External HTTP failures block too; network failures
+	# warn after retry, and automated-client refusals are filtered by the checker.
 	if ! python3 scripts/check_doc_links.py; then
 		echo "pre-push: documentation link check FAILED (see output above)." >&2
 		abort_push

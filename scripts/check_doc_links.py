@@ -13,6 +13,8 @@ For each link found it verifies the target is alive:
   - internal (relative/absolute repo paths, markdown files only): the file
     exists on disk.
   - external (http(s)://): a HEAD/GET request returns a non-error status.
+    Network failures warn after one retry; HTTP errors remain blocking
+    except automated-client refusals and rate limiting handled below.
     Roxygen comments contribute external links only ([text](url), \\url{},
     \\href{}); Rd cross-references like \\link[pkg]{fn} are not checked.
 
@@ -58,6 +60,7 @@ EXTERNAL_MAX_WORKERS = 16
 # dead link -- retry once with a short backoff before reporting it as
 # broken, mirroring the existing 403/405 retry-before-giving-up pattern.
 EXTERNAL_TRANSIENT_RETRY_DELAY_SECS = 3
+NETWORK_ERROR_PREFIX = "Network error: "
 
 
 def strip_code(text: str) -> str:
@@ -201,9 +204,13 @@ def _check_external_once(url: str) -> str | None:
                     # 404/410 -- so don't report it as broken.
                     return None
                 return f"HTTP {e2.code}"
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as e2:
+                return f"{NETWORK_ERROR_PREFIX}{e2}"
             except Exception as e2:
                 return f"{e2}"
         return f"HTTP {e.code}"
+    except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+        return f"{NETWORK_ERROR_PREFIX}{e}"
     except Exception as e:
         return f"{e}"
 
@@ -233,6 +240,11 @@ def check_external(url: str) -> str | None:
     if _is_transient_result(result):
         time.sleep(EXTERNAL_TRANSIENT_RETRY_DELAY_SECS)
         result = _check_external_once(url)
+    if result is not None and result.startswith(NETWORK_ERROR_PREFIX):
+        # A timeout or transport failure cannot tell us whether the target
+        # exists. Keep it visible without making external uptime a push gate.
+        print(f"check_doc_links: could not verify {url} after retry (non-blocking): {result}", file=sys.stderr)
+        return None
     return result
 
 
@@ -285,11 +297,7 @@ def main() -> int:
         print(msg + ".")
         return 0
 
-    # External link failures block the push too. check_external() already
-    # tolerates the one systematic false positive (publishers that 403 every
-    # automated client regardless of whether the page exists), so anything
-    # reported here is a real 4xx/5xx or an unreachable host -- worth
-    # stopping on rather than scrolling past.
+    # HTTP failures block; transport failures have already emitted warnings.
     if external_broken:
         print(f"check_doc_links: {len(external_broken)} external link(s) did not respond (blocking):")
         for md_file, target, err in sorted(external_broken, key=lambda t: str(t[0])):

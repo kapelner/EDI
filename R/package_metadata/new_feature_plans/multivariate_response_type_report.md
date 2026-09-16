@@ -282,16 +282,32 @@ entirely the composite path:
    per endpoint), skip the InferenceSuite/CCT step for that outcome and use
    that single model's raw `pval` directly instead — combining across
    methods only makes sense when the method itself hasn't been committed to.
-3. Cross-outcome decision: apply Holm's step-down procedure (default; FWER
-   control, valid under arbitrary dependence, needs no distributional
-   assumption beyond what each outcome's own p-value already has; answers
-   "which specific outcome(s) are significant") and/or a max-p
-   intersection-union test (opt-in; Berger's IUT; answers "are ALL K
-   outcomes significant," for co-primary designs whose success criterion
-   requires simultaneous significance) to the K per-outcome p-values from
-   step 2. Both procedures — and no new combination-math layer — are all
-   that's needed here; there is no second, cross-outcome Cauchy combination
-   in this design.
+3. Cross-outcome decision: apply one or more of the following to the K
+   per-outcome p-values from step 2, each answering a different question a
+   trial's actual pre-registered success criterion might ask for:
+   - **Holm's step-down procedure** (default; FWER control, valid under
+     arbitrary dependence, needs no distributional assumption beyond what
+     each outcome's own p-value already has; answers "which specific
+     outcome(s) are significant").
+   - **A max-p intersection-union test** (opt-in; Berger's IUT; answers
+     "are ALL K outcomes significant," for co-primary designs whose success
+     criterion requires simultaneous significance).
+   - **A Cauchy combination across the same K p-values** (opt-in, reusing
+     `cct_combine_pvalues()` exactly as-is on a different input vector than
+     its within-outcome use in step 2; answers "is at least one outcome
+     significant" — the same union-intersection question
+     `combined_evidence$pval` already answers within one outcome, now asked
+     across outcomes). This is still a legitimate, real question — it's the
+     natural global/gatekeeping test some designs use to license a look at
+     individual endpoints — but it is *not* the question most users actually
+     want answered (that's Holm's "which one(s)," or max-IUT's "all of
+     them"), so it should ship as a third, clearly-labeled output, never as
+     the default or sole summary.
+
+   No new combination math is needed for any of the three: Holm and the
+   Cauchy combination both reuse existing/already-planned code
+   (`cct_combine_pvalues()`, the planned Holm wrapper over
+   `stats::p.adjust()`); max-p is a one-line `max()` over the same vector.
 4. Defer true joint/vector-valued modeling (SUR-style regression, a
    Hotelling-type joint Wald test, or joint bootstrap over a response
    matrix) to a second-generation project, gated on whether a concrete user
@@ -337,10 +353,15 @@ as-is).
 
 ### Stage 2: Cross-outcome decision rule
 
-Apply Holm's step-down procedure (default; FWER-controlling, "which
-outcome(s)") and/or a max-p intersection-union test (opt-in; "are all K
-outcomes significant") to the K per-outcome p-values from Stage 1. No new
-p-value-combination layer is introduced at this stage.
+Apply one or more of: Holm's step-down procedure (default; "which
+outcome(s)"), a max-p intersection-union test (opt-in; "are all K outcomes
+significant"), and a Cauchy combination across the K per-outcome p-values
+from Stage 1 (opt-in; "is at least one outcome significant" — reuses
+`cct_combine_pvalues()` unchanged, just on a different input vector than
+its within-outcome use in Stage 1). The three answer different questions
+and should be reported as distinct, labeled outputs rather than collapsed
+into one — the Cauchy-combined answer is real but is not the one most users
+actually want (that's Holm's or max-IUT's).
 
 ### Stage 3: `SimulationFramework` composite support
 
@@ -386,6 +407,6 @@ Added 2026-08-14, derived from this report's own recommendation sections
 
 - [ ] TODO-1: **Make a decision about whether to implement this at all — ask the user.** Do not start the items below until that decision is recorded here.
 - [ ] TODO-2: Stage 1 — per-outcome orchestration: run `InferenceSuite` on each outcome's `Design` and take `combined_evidence$pval` (or a caller-pinned single model's raw `pval`, when one method was already committed for that outcome) as that outcome's representative p-value. No `Design` storage change; no new combination math.
-- [ ] TODO-3: Stage 2 — cross-outcome decision rule: apply Holm's step-down procedure (default) and/or a max-p intersection-union test to the K per-outcome p-values from TODO-2.
+- [ ] TODO-3: Stage 2 — cross-outcome decision rule: apply Holm's step-down procedure (default), a max-p intersection-union test (opt-in), and/or a Cauchy combination across the K per-outcome p-values from TODO-2 (opt-in, reusing `cct_combine_pvalues()` unchanged) — three distinct, separately labeled answers ("which," "all," "any").
 - [ ] TODO-4: Stage 3 — `SimulationFramework` composite support.
 - [ ] TODO-5: Do NOT pursue the native joint-modeling path without a separate decision — the report's verdict is that `Design`'s single-scalar-response storage makes it a rewrite.

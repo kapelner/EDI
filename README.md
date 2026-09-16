@@ -618,7 +618,7 @@ working with or on EDI, start here — in this order:
    [`capability_matrix.csv`](R/package_tests/capability_matrix.csv) /
    [`design_matrix.csv`](R/package_tests/design_matrix.csv)).
 4. **Cookbooks** — one complete, runnable design → assign → record → infer
-   script per response type: [`vignette("cookbook-continuous")`](https://kapelner.github.io/EDI/articles/cookbook-continuous.html)
+   script per response type: [`vignette("cookbook-continuous")`](R/EDI/vignettes/cookbook-continuous.Rmd)
    and its `-incidence`, `-count`, `-proportion`, `-survival`, `-ordinal`
    siblings.
 5. **Devcontainer** (`.devcontainer/`) — R, Python, every dependency,

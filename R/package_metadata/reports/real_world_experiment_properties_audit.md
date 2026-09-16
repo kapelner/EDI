@@ -197,7 +197,7 @@ Ratio metrics — where the analysis unit differs from the randomization unit �
 
 Estimates for both populations are tabulated in **Section 8.3**.
 
-One corpus runs against the commercial grain and is worth noting because it is the largest public academic A/B dataset: the Upworthy archive's **32,487 experiments** use clicks over impressions — an aggregated binomial proportion — with a derived **~4.64 arms per test**, unlike the two-arm commercial norm ([Matias et al. 2021, Scientific Data](https://upworthy.natematias.com/about-the-archive.html)).
+One corpus runs against the commercial grain and is worth noting because it is the largest public academic A/B dataset: the Upworthy archive's **32,487 experiments** use clicks over impressions — an aggregated binomial proportion — with a derived **~4.64 arms per test**, compared with the commercial sample's 64% two-arm majority (Table H2) ([Matias et al. 2021, Scientific Data](https://upworthy.natematias.com/about-the-archive.html)).
 
 ### 4.5 Sample size, covariate adjustment, and design timing in online experiments
 
@@ -386,7 +386,7 @@ Three observations follow.
 
 ## 8. Summary tables
 
-Table A is the measurement scale of the primary outcome — one type applies per outcome, so each column sums to approximately 100%. It is presented as an overall estimate (8.1) plus one subtable per field category (8.2–8.5), because the between-field variation is larger than any overall number. Table B (8.6) covers structural features, which overlap and do not sum. Tables G–G4 (8.11–8.15) give the matching overall and field-specific summaries for EDI design types, with explicit qualifications where audits identify a broader family rather than an exact class.
+Table A is the measurement scale of the primary outcome — one type applies per outcome, so each column sums to approximately 100%. It is presented as an overall estimate (8.1) plus one subtable per field category (8.2–8.5), because the between-field variation is larger than any overall number. Table B (8.6) covers structural features, which overlap and do not sum. Tables G–G4 (8.11–8.15) give the matching overall and field-specific summaries for EDI design types, with explicit qualifications where audits identify a broader family rather than an exact class. Tables H–H4 (8.16–8.20) summarize two-arm versus multi-arm experiments using verified sample-specific arm counts and explicit gaps.
 
 All values are judgment-based syntheses of the evidence in Sections 3–6, not measured global rates. Percentages are rounded, and the ranges matter more than the point values.
 
@@ -652,6 +652,73 @@ The only numerical method split in this field cluster is **64 UK school-based cl
 | Factorial | Not quantified in this audit | Not quantified in this audit | `FixedFactorial` where the treatment structure and fixed allocation match | VL |
 
 Evidence and source links: **Section 6.8** (method split: Parker et al. 2021). Informal optional stopping by psychologists concerns outcome monitoring and provides no evidence for a sequential allocation class.
+
+### 8.16 Table H — two-arm versus multi-arm experiments, all fields at a glance
+
+Tables H–H4 mirror the overall and field-specific response-type and design-type summaries. **Two-arm means exactly two randomized treatment conditions in the experiment; multi-arm means three or more, including any control condition.** Two active treatments plus a control is three-arm. A between-subjects 2×2 factorial has four randomized cells even if each main effect is a binary contrast. Multiple outcomes, enrollment cohorts, countries, analysis subgroups, or pairwise comparisons do not create extra arms. Within-subjects conditions and conjoint attributes require separate coding rather than automatic conversion into parallel treatment arms.
+
+This is a targeted arm-count follow-up to the existing audit, checked September 16, 2026. **No measured worldwide split or defensible working overall percentage was located.** Quantified samples below are retained separately rather than averaged across fields. Confidence: **M** = direct arm-count evidence in a defined sample, not evidence of field-wide representativeness; **L** = examples or indirect structural evidence; **VL** = no verified prevalence split. Unknown does not mean zero.
+
+| Field / sampling frame | Two-arm | Multi-arm (≥3) | Evidence / qualification | Confidence |
+|---|---:|---:|---|---|
+| Clinical: four leading journals, 2009 and 2014 | **79%** | **~21% by complement**, conditional on complete arm-count classification | 298 reviewed RCT articles; reported two-arm share, not a registry-wide distribution ([Ciolino et al. 2019](https://pmc.ncbi.nlm.nih.gov/articles/PMC6610785/)) | M |
+| Clinical: NIHR publication screening, 1997–2024 | **82.1% of screened RCT reports** | **≥14.4% explicitly labelled multi-arm** | Derived from 692/843 and (97+19+5)/843; remaining 30 reports are factorial/crossover, not arm-count classified here; report counts are not necessarily independent experiments ([Lee et al. 2026, Fig. 1](https://eprints.whiterose.ac.uk/id/eprint/235906/8/s13063-025-09324-5.pdf)) | M |
+| Online: commercial web/CRO, Optimizely sample | **64%** | **36%** | 2,766 experiments, April 2014; baseline plus one versus multiple nonbaseline variants ([Berman & Van den Bulte, Section 4.2](https://ron-berman.com/papers/fdr.pdf)) | M |
+| Online: Upworthy headline/image tests | Not quantified here | Not quantified here | 150,817 arms / 32,487 experiments = **4.64 mean arms** (derived); a mean does not identify the two-arm/multi-arm split ([Matias et al. 2021](https://www.nature.com/articles/s41597-021-00934-7)) | M for mean; VL for split |
+| Online: big-tech OCE / marketplaces | Unknown | Unknown | Examples and platform support do not establish adoption shares | VL |
+| Economics: field / laboratory | Unknown | Unknown | Existing registry and sample-size summaries do not establish the arm-count split | VL |
+| Political science | Unknown | Unknown | Survey/conjoint/repeated-measures categories are not arm-count categories | VL |
+| Psychology / education / criminology / sociology | Unknown | Unknown | Available design audits and examples below do not give a comparable complete split | L / VL |
+
+**The strongest quantified conclusion is local:** two-arm experiments are the majority in the clinical-journal and commercial-web samples, but multi-arm experiments are a substantial minority. Neither the clinical percentages nor the 64/36 web split should be exported to the unmeasured fields. Dynamic platforms also require an explicit counting rule: arms simultaneously available to a particular participant can differ from all arms ever evaluated under a protocol.
+
+### 8.17 Table H1 — clinical trials
+
+| Sampling frame / design | Two-arm evidence | Multi-arm evidence | Interpretation |
+|---|---|---|---|
+| NEJM / JAMA / BMJ / Lancet, 2009 and 2014 | 79% of 298 reviewed articles | ~21% complement, subject to complete classification | Direct two-arm prevalence anchor; top-journal frame ([Ciolino et al. 2019](https://pmc.ncbi.nlm.nih.gov/articles/PMC6610785/)) |
+| NIHR screened RCT reports, 1997–2024 | 692/843 = 82.1% (derived) | 121/843 = 14.4% explicitly multi-arm (derived); 30/843 = 3.6% factorial/crossover reports remain separately classified | Report-screening breakdown, not an independent-trial census ([Lee et al. 2026, Fig. 1](https://eprints.whiterose.ac.uk/id/eprint/235906/8/s13063-025-09324-5.pdf)) |
+| Eligible NIHR parallel multi-arm subset | Excluded by selection | 97 reports: 86 three-arm, 7 four-arm, 4 five-arm | Conditional distribution within selected multi-arm reports, not prevalence among all trials ([Lee et al. 2026, Table 1](https://eprints.whiterose.ac.uk/id/eprint/235906/8/s13063-025-09324-5.pdf)) |
+| Charles et al. response-type audit | All 215 trials two-arm by inclusion rule | Excluded by selection | Cannot estimate how common two-arm trials are ([Charles et al. 2009](https://pmc.ncbi.nlm.nih.gov/articles/PMC2680945/)) |
+| Adaptive / platform / factorial trials | No comparable complete split verified | Documented design families; protocol-wide arm totals need not equal concurrently randomized options | Adaptivity, interim monitoring, and arm count are distinct properties; no prevalence inferred from their names |
+
+The NIHR screen is shown for transparency rather than treated as a global experiment-level estimate. Restricting its denominator to 692 two-arm plus 97 eligible multi-arm reports would discard other multi-arm designs and artificially increase the apparent two-arm share.
+
+### 8.18 Table H2 — online experiments
+
+| Population / practice | Two-arm | Multi-arm (≥3) | Arm-count detail / limitation |
+|---|---:|---:|---|
+| Optimizely commercial-web sample, April 2014 | 64% | 36% | 2,766 experiments; mean 1.83 nonbaseline variants implies **2.83 total arms** (derived), median two total arms ([Berman & Van den Bulte, Sections 4.2–4.3](https://ron-berman.com/papers/fdr.pdf)) |
+| Upworthy, January 2013–April 2015 | Unknown here | Unknown here | **4.64 mean arms**, derived from published totals; do not infer a majority-multi-arm share from the mean ([Matias et al. 2021](https://www.nature.com/articles/s41597-021-00934-7)) |
+| Big-tech product OCE | Unknown | Unknown | “A/B” terminology and thousands of metrics per experiment do not establish an arm-count distribution |
+| Marketplace cluster / switchback | Unknown | Unknown | Regions and time windows are randomization units; counting them as treatment arms would be incorrect |
+| Bandit / adaptive allocation | Unknown | Unknown | “Multi-armed bandit” is a method-family name, not a count of experiments with ≥3 conditions; two-action bandits are possible |
+
+**Correction to the shorthand in Section 4.3:** “two-arm commercial norm” means a majority in the measured commercial sample, not near-universality. Its directly observed multi-arm share is 36%, while Upworthy's larger mean highlights an additional sampling-frame difference.
+
+### 8.19 Table H3 — economics and political science
+
+| Subfield / evidence base | Two-arm share | Multi-arm share | What the existing evidence can establish |
+|---|---|---|---|
+| Economics field RCTs: 898 AEA registrations | Not verified | Not verified | The cited summary establishes sample size and cluster/multilevel structure, not an arm-count prevalence split ([Leight, Asri & Imai 2025](https://www.jessicaleight.com/uploads/1/3/2/3/13234647/rct_registry_merged.pdf)) |
+| Development economics: stratification / matching surveys | Not verified | Not verified | Allocation-balancing categories do not identify the number of randomized conditions (Section 5.4) |
+| Laboratory economics | Not verified | Not verified | The ≥30-subjects-per-cell convention sets cell size, not the number of arms; dictator/trust-game observations are not arm counts (Sections 5.1 and 5.4) |
+| Political-science survey experiments | Not verified | Not verified | Post-only, pre-post, within-subjects, and conjoint percentages measure a different dimension (Section 5.2) |
+| Phased rollout / multi-country trials | Not verified | Not verified | Waves and countries must be distinguished from treatment conditions; an experiment can remain two-arm across several waves or sites |
+
+These cells remain unknown rather than borrowing clinical or online proportions. A quantitative split would require a dedicated extraction of randomized conditions at the experiment level; counting published regressions, contrasts, or pre-analysis-plan documents would not supply that denominator.
+
+### 8.20 Table H4 — psychology, education, criminology, and sociology
+
+| Subfield / sampling frame | Two-arm share | Multi-arm evidence | Qualification |
+|---|---|---|---|
+| Education: 64 UK school-based health cluster RCTs | Not established by the published summary | Two studies had two control groups; three studies used factorial designs | Evidence that multi-condition designs occur, not a complete arm-count distribution; these categories may overlap ([Parker et al. 2021, Results](https://link.springer.com/article/10.1186/s12874-021-01348-0)) |
+| Education: 141 EEF / NCEE achievement trials | Not verified | Not verified | The cited sample-size/outcome audit is not used here to infer arm-count shares (Sections 6.1 and 6.8) |
+| Cognitive / social psychology | Not verified | Not verified | Per-condition sample sizes do not establish the number of conditions; within-subjects manipulations need separate coding (Section 6.8) |
+| Criminology | Not verified | Not verified | Matched pairs describe randomization blocks; 13 matched pairs are not 26 treatment arms (Section 6.8) |
+| Sociology: hiring-discrimination audits | Not verified | Not verified | Applicants and job postings are observational/randomization units, not automatically separate conditions; the treatment profiles must be counted (Section 6.8) |
+
+For EDI planning, the evidence supports treating multi-arm work as a potentially material extension: it is directly measured at 36% in one commercial-web sample and is a substantial clinical minority. It does **not** support a precise worldwide coverage gain, or a claim about current EDI multi-arm capabilities based solely on class names.
 
 ## 9. Implications for EDI
 

@@ -54,7 +54,8 @@ decision batch still records the yes/no for each.
   to its first wave (inference audit #7).
 - `multivariate_response_type_report.md` — K endpoints per subject;
   `InferenceMultiEndpointComposite` (per-outcome CCT via `InferenceSuite`;
-  Holm/max-IUT across outcomes),
+  Holm/max-IUT/CCT across outcomes — "which"/"all"/"any," reported
+  separately),
   extended with Romano-Wolf, Anderson q-values and summary indices
   (inference audit #8); hierarchical win ratio, cost-effectiveness ICER,
   and the nominal joint-K-vector test all ride here.
