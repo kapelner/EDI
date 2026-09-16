@@ -32,8 +32,10 @@ that 1.1.0 only soft-deprecates).
   shipped in 1.0.0.)
 - Rides on it: factorial contrasts as named estimands (inference audit
   #13); 2^K factorial and multi-arm rerandomization (theoretical audit
-  #47); K-arm Atkinson / ARM / online balancing walk / bandits (#48);
-  rank-based k-sample tests (inference audit 4C #24).
+  #47); K-arm Atkinson / ARM / online balancing walk / bandits (#48,
+  now owned by `response_adaptive_randomization.md`'s K-arm-generalization
+  sections, amended 2026-09-16 — see its TODO-7..10); rank-based k-sample
+  tests (inference audit 4C #24).
 
 ### New response shapes — the scalar-`y` contract change
 
@@ -225,9 +227,12 @@ against; they are additive on the design factory but are treated as a
     after TODO-4's longitudinal Stage 1 extraction.
   - [ ] TODO-2b: `mediation_analysis.md → TODO-1..5` — after 1.4.0's
     `treatment_received` plumbing pattern.
-  - [ ] TODO-2c: `response_adaptive_randomization.md → TODO-1..5` — after
+  - [ ] TODO-2c: `response_adaptive_randomization.md → TODO-1..10` — after
     TODO-5 (sequential inference); TODO-4 there is the replay-contract
-    change.
+    change. TODO-7..10 (added 2026-09-16) are the K-arm generalization —
+    fulfilling theoretical-audit item #48 — and additionally depend on
+    TODO-3's multi-arm track (specifically `multi_arm_designs.md →
+    TODO-1c, 2`).
 - [ ] TODO-3: **Multi-arm track** `multi_arm_designs.md → TODO-1b, 1c, 2,
   3, 4, 5` in that order.
 - [ ] TODO-4: **Longitudinal response type** (first, because it is the
