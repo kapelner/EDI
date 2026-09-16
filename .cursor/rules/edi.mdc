@@ -1,0 +1,31 @@
+---
+description: EDI repo conventions for AI agents — canonical guide is AGENTS.md
+globs:
+alwaysApply: true
+---
+
+# EDI (Experimental Design and Inference)
+
+The canonical agent guide is `AGENTS.md` at the repo root — read it before
+doing anything; this file only repeats the rule that bites fastest.
+
+## Never compile `R/EDI` without being asked
+
+`R/EDI/src/` has 100+ C++ files. `R CMD INSTALL`, `R CMD build`,
+`pkgbuild::compile_dll()`, and `devtools::load_all()` / `pkgload::load_all()`
+without an explicit `compile = FALSE` all trigger a full multi-minute rebuild
+that can race the maintainer's own build. Don't run them unless the user asks
+in the current conversation. Load with `pkgload::load_all("R/EDI", compile =
+FALSE)`; compile a touched `.cpp` alone and relink (see `CONTRIBUTING.md` §1).
+If unsure whether a command compiles, treat it as if it does and ask.
+
+## Where things are
+
+- Procedure (pre-work/pre-push checks, PR checklist, change-type
+  protocols): `CONTRIBUTING.md`.
+- Repo map and plan-file convention: `AGENTS.md`;
+  `R/package_metadata/new_feature_plans/`.
+- One test file while iterating:
+  `Rscript -e 'testthat::test_file("R/EDI/tests/testthat/test-<name>.R")'`.
+- House style: `=` assignment and tab indentation (see
+  `R/package_metadata/new_feature_plans/implement_a_lintr.md`).

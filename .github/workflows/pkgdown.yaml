@@ -78,6 +78,16 @@ jobs:
         run: pkgdown::build_site_github_pages(pkg = "R/EDI", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
+      # llms-full.txt = the whole built documentation (every article + every
+      # reference page) as one plain-text file, per the llms.txt convention's
+      # "full" variant. pkgdown copies the hand-written stub from
+      # pkgdown/assets/ into the site root above; this replaces that stub
+      # with the real generated file. Needs only pandoc (set up above) and
+      # the built HTML -- no R, no install. See the script's header.
+      - name: Generate llms-full.txt from the built site
+        shell: bash
+        run: bash .github/scripts/build_llms_full.sh R/EDI/docs
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: R/EDI/docs

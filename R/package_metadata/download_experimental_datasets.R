@@ -330,7 +330,20 @@ download_zip_member_as_csv <- function(doi, zip_filename, member_basename, dest_
 #' @param dest_csv Output CSV path.
 #' @param work_dir Scratch directory for the tarball/extraction (cleaned
 #'   up before returning).
-cran_download_dataset_as_csv <- function(pkg, version, rda_name, dest_csv, work_dir) {
+#' @param list_element For a data object that's a named list of several
+#'   data.frames (e.g. `stevedata::mm_randhie`, which bundles a
+#'   "RAND Baseline" and a "RAND Outcomes" table), the name of the one
+#'   element to use. NULL (default) expects the loaded object to already
+#'   be a plain data.frame/matrix.
+#' @param obj_name For a `.rda` FILE that bundles several independent
+#'   top-level objects together (e.g. `survival`'s `data/cancer.rda`,
+#'   which loads 21 separate datasets including `veteran`/`ovarian`/
+#'   `colon`/`bladder1` at once), the name of the one object to keep.
+#'   NULL (default) just takes the first object `load()` produces, which
+#'   is correct whenever `rda_name` and the object name coincide (the
+#'   common case).
+cran_download_dataset_as_csv <- function(pkg, version, rda_name, dest_csv, work_dir,
+                                          list_element = NULL, obj_name = NULL) {
   # CRAN's plain src/contrib/ listing only ever holds the CURRENT version
   # of a package; anything superseded moves to src/contrib/Archive/<pkg>/.
   # The version pinned in our manifest is whatever was current when a
@@ -395,16 +408,85 @@ cran_download_dataset_as_csv <- function(pkg, version, rda_name, dest_csv, work_
     load(src_path, envir = e)
     obj_names <- ls(e)
     if (length(obj_names) == 0L) stop("No objects loaded from ", src_path, call. = FALSE)
-    obj <- get(obj_names[[1L]], envir = e)
+    want <- if (!is.null(obj_name)) obj_name else obj_names[[1L]]
+    if (!want %in% obj_names) {
+      stop("obj_name '", want, "' not found in ", pkg, "::", rda_name,
+           " (available: ", paste(obj_names, collapse = ", "), ")", call. = FALSE)
+    }
+    obj <- get(want, envir = e)
+    if (is.list(obj) && !is.data.frame(obj) && !is.null(list_element)) {
+      if (!list_element %in% names(obj)) {
+        stop("list_element '", list_element, "' not found in ", pkg, "::", rda_name,
+             " (available: ", paste(names(obj), collapse = ", "), ")", call. = FALSE)
+      }
+      obj <- obj[[list_element]]
+    }
     if (!(is.data.frame(obj) || is.matrix(obj))) {
       stop("Object '", obj_names[[1L]], "' in ", pkg, "::", rda_name,
            " is not a data.frame/matrix (class: ", class(obj)[1L], ") -- needs a bespoke conversion",
            call. = FALSE)
     }
     data.table::fwrite(as.data.frame(obj), dest_csv)
+  } else if (ext == "txt") {
+    df <- data.table::fread(src_path, data.table = FALSE)
+    data.table::fwrite(df, dest_csv)
   } else {
     convert_to_csv(src_path, dest_csv)
   }
+
+  unlink(tar_path)
+  unlink(extract_dir, recursive = TRUE)
+  invisible(dest_csv)
+}
+
+# ---------------------------------------------------------------------------
+# Mechanism 4: GitHub-only R packages -- same install-free approach as
+# CRAN, just a different tarball source. Needed for `experimentdatar`
+# (GitHub-only, no CRAN listing at all -- see "Required R packages" in
+# experimental_datasets.md for why).
+# ---------------------------------------------------------------------------
+
+#' Download one GitHub repo at a pinned commit (source tarball, no
+#' `devtools::install_github()`), pull out one named data object, convert
+#' to CSV. Same structure/rationale as `cran_download_dataset_as_csv()`.
+#'
+#' @param repo "owner/name" GitHub repo spec.
+#' @param commit_sha Pinned commit SHA (full or abbreviated).
+github_download_dataset_as_csv <- function(repo, commit_sha, rda_name, dest_csv, work_dir) {
+  owner_repo <- strsplit(repo, "/", fixed = TRUE)[[1L]]
+  url <- sprintf("https://github.com/%s/archive/%s.tar.gz", repo, commit_sha)
+  tar_path <- file.path(work_dir, paste0(".raw_", owner_repo[[2L]], ".tar.gz"))
+  httr2::request(url) |> httr2::req_perform(path = tar_path)
+  if (!file.exists(tar_path) || file.size(tar_path) == 0L) {
+    stop("GitHub download failed or empty: ", url, call. = FALSE)
+  }
+
+  extract_dir <- file.path(work_dir, paste0(".extract_", owner_repo[[2L]]))
+  unlink(extract_dir, recursive = TRUE)
+  utils::untar(tar_path, exdir = extract_dir)
+  # GitHub tarballs extract to "<repo>-<sha>/", not "<repo>/"
+  pkg_dir <- list.files(extract_dir, full.names = TRUE)[[1L]]
+  if (is.na(pkg_dir) || !dir.exists(pkg_dir)) {
+    stop("GitHub tarball for ", repo, " did not extract as expected", call. = FALSE)
+  }
+
+  data_files <- list.files(file.path(pkg_dir, "data"))
+  hit <- data_files[tools::file_path_sans_ext(data_files) == rda_name]
+  if (length(hit) == 0L) {
+    stop("Data object '", rda_name, "' not found in ", repo, "@", commit_sha,
+         "'s data/ directory (found: ", paste(data_files, collapse = ", "), ")", call. = FALSE)
+  }
+  src_path <- file.path(pkg_dir, "data", hit[[1L]])
+  e <- new.env()
+  load(src_path, envir = e)
+  obj_names <- ls(e)
+  if (length(obj_names) == 0L) stop("No objects loaded from ", src_path, call. = FALSE)
+  obj <- get(obj_names[[1L]], envir = e)
+  if (!(is.data.frame(obj) || is.matrix(obj))) {
+    stop("Object '", obj_names[[1L]], "' in ", repo, "::", rda_name,
+         " is not a data.frame/matrix (class: ", class(obj)[1L], ")", call. = FALSE)
+  }
+  data.table::fwrite(as.data.frame(obj), dest_csv)
 
   unlink(tar_path)
   unlink(extract_dir, recursive = TRUE)
@@ -416,6 +498,40 @@ cran_download_dataset_as_csv <- function(pkg, version, rda_name, dest_csv, work_
 # ---------------------------------------------------------------------------
 
 DATASET_MANIFEST <- list(
+  # ---- Core tier, CRAN-sourced -- migrated from install.packages()+data()
+  # to the install-free mechanism for consistency with every Expanded-tier
+  # CRAN dataset. Versions here match the exact installed versions recorded
+  # in the table (real pins, not the round-5-sweep's best-effort ones).
+  veteran = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cancer", obj_name = "veteran", out_csv = "core_veteran.csv")),
+  ovarian = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cancer", obj_name = "ovarian", out_csv = "core_ovarian.csv")),
+  colon = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cancer", obj_name = "colon", out_csv = "core_colon.csv")),
+  pbc = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "pbc", out_csv = "core_pbc.csv")),
+  respdis = list(cran = list(pkg = "geepack", version = "1.3.13", rda_name = "respdis", out_csv = "core_respdis.csv")),
+  respiratory = list(cran = list(pkg = "geepack", version = "1.3.13", rda_name = "respiratory", out_csv = "core_respiratory.csv")),
+  strep_tb = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "strep_tb", out_csv = "core_strep_tb.csv")),
+  licorice_gargle = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "licorice_gargle", out_csv = "core_licorice_gargle.csv")),
+  polyps = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "polyps", out_csv = "core_polyps.csv")),
+  indo_rct = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "indo_rct", out_csv = "core_indo_rct.csv")),
+  laryngoscope = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "laryngoscope", out_csv = "core_laryngoscope.csv")),
+  lalonde.exp = list(cran = list(pkg = "qte", version = "2.0.0", rda_name = "lalonde", out_csv = "core_lalonde_exp.csv")),
+  STAR = list(cran = list(pkg = "AER", version = "1.2-17", rda_name = "STAR", out_csv = "core_STAR.csv")),
+  ResumeNames = list(cran = list(pkg = "AER", version = "1.2-17", rda_name = "ResumeNames", out_csv = "core_ResumeNames.csv")),
+  mm_randhie = list(cran = list(pkg = "stevedata", version = "1.8.0", rda_name = "mm_randhie", out_csv = "core_mm_randhie.csv", list_element = "RAND Outcomes")),
+  diabetic = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "diabetic", out_csv = "core_diabetic.csv")),
+  bladder1 = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cancer", obj_name = "bladder1", out_csv = "core_bladder1.csv")),
+  rhDNase = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "rhDNase", out_csv = "core_rhDNase.csv")),
+  cgd = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cgd", out_csv = "core_cgd.csv")),
+  udca = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "udca", out_csv = "core_udca.csv")),
+  solder = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "solder", out_csv = "core_solder.csv")),
+
+  # ---- Core tier, GitHub-sourced (experimentdatar, no CRAN listing) ----
+  charitable = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "charitable", out_csv = "core_charitable.csv")),
+  mobilization = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "mobilization", out_csv = "core_mobilization.csv")),
+  social = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "social", out_csv = "core_social.csv")),
+  secrecy = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "secrecy", out_csv = "core_secrecy.csv")),
+  vouchers = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "vouchers", out_csv = "core_vouchers.csv")),
+  welfare = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "welfare", out_csv = "core_welfare.csv")),
+
   monitoring_works = list(
     doi = "doi:10.7910/DVN/LRDXHX",
     files = list(
@@ -804,7 +920,20 @@ download_all_datasets <- function(download_dir = "R/package_metadata/randomized_
         message("  downloading CRAN ", spec$cran$pkg, " ", spec$cran$version,
                 " (", spec$cran$rda_name, ", no install.packages()) ...")
         cran_download_dataset_as_csv(spec$cran$pkg, spec$cran$version, spec$cran$rda_name,
-                                      out_csv, download_dir)
+                                      out_csv, download_dir, list_element = spec$cran$list_element,
+                                      obj_name = spec$cran$obj_name)
+        message("  -> ", out_csv)
+      }
+    }
+
+    if (!is.null(spec$github)) {
+      out_csv <- file.path(download_dir, spec$github$out_csv)
+      out_csvs <- c(out_csvs, out_csv)
+      if (!file.exists(out_csv)) {
+        message("  downloading GitHub ", spec$github$repo, "@", spec$github$commit_sha,
+                " (", spec$github$rda_name, ", no install_github()) ...")
+        github_download_dataset_as_csv(spec$github$repo, spec$github$commit_sha, spec$github$rda_name,
+                                        out_csv, download_dir)
         message("  -> ", out_csv)
       }
     }

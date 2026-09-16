@@ -1,0 +1,140 @@
+---
+title: "Cookbook: Survival Outcome with Censoring, End to End"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cookbook: Survival Outcome with Censoring, End to End}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+One complete, runnable script for a time-to-event outcome with
+right-censoring. Same four steps as every cookbook (see
+`vignette("cookbook-continuous")`); what changes is **how a response is
+recorded** — a survival response is either an exact event time or a
+censoring interval — and the estimand, here a log hazard ratio from the
+`InferenceSurvival*` family (Cox, Weibull AFT, log-rank, RMST, …).
+
+## Setup
+
+EDI is not on CRAN yet, so `install.packages("EDI")` fails — install from
+R-universe (fallback: GitHub, `subdir = "R/EDI"`). Not evaluated here.
+
+```{r install, eval = FALSE, purl = FALSE}
+install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
+# or: remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+```{r setup}
+library(EDI)
+set.seed(20260916)
+
+n = 100
+X = data.frame(
+  age   = round(rnorm(n, 60, 10)),
+  stage = sample(1:3, n, replace = TRUE)
+)
+true_log_hr = -0.5   # treatment lowers the hazard
+```
+
+## Fixed design, recording events and censoring
+
+Event times come from an exponential model; each subject is independently
+right-censored (lost to follow-up) with probability 0.3. EDI records a
+survival response as an **interval** `(y_L, y_R]`: an exact event at time
+`t` is `y = t`; right-censoring at `t` is `y_L = t, y_R = Inf` ("known
+event-free through `t`"). Left- and interval-censoring use the same
+representation (see `Design$add_one_subject_response()`); this cookbook
+uses the per-subject method so each case is explicit.
+
+```{r fixed}
+des = DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+
+rate       = exp(-2 + true_log_hr * w + 0.02 * (X$age - 60) + 0.3 * (X$stage - 2))
+event_time = rexp(n, rate)
+censored   = rbinom(n, 1, 0.3) == 1
+follow_up  = pmin(event_time, runif(n, 0, 2 * median(event_time)))  # observed time
+
+for (i in seq_len(n)) {
+  if (censored[i]) {
+    des$add_one_subject_response(i, y_L = follow_up[i], y_R = Inf)   # right-censored at follow_up
+  } else {
+    des$add_one_subject_response(i, y = event_time[i])               # exact event
+  }
+}
+table(censored = censored)
+```
+
+## Inference: Cox proportional hazards
+
+```{r cox}
+inf = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
+inf$num_cores = 1L
+inf$compute_estimate()                         # log hazard ratio for treatment
+inf$compute_asymp_confidence_interval(alpha = 0.05)
+inf$compute_asymp_two_sided_pval()
+```
+
+The randomization test replays the design's assignment mechanism; the
+bootstrap resamples subjects carrying their `(w, time, censoring)` along.
+Note that a *randomization confidence interval* is deliberately not offered
+for the Cox-family (log-hazard-ratio) classes — the generic randomization
+CI inverts an accelerated-failure-time null on a log-*time* scale, which is
+not the same axis as a log *hazard* ratio (see `NEWS.md`, 1.0.1). The
+randomization p-value and the bootstrap CI are the right tools here.
+
+```{r cox-resampling}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+inf$set_seed(1)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+```
+
+## Everything at once
+
+```{r suite}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
+                              methods = c("wald", "score", "lik_ratio"), max_secs_per_class = 15)
+```
+
+## Sequential design
+
+Recording is identical per subject; the design decides each arrival's
+treatment on the covariates before the outcome is known — as in a real
+trial, where events accrue after enrolment.
+
+```{r seq}
+des_seq = DesignSeqOneByOneKK14$new(n = n, response_type = "survival", verbose = FALSE)
+for (i in seq_len(n)) {
+  w_i  = des_seq$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+  t_i  = rexp(1, exp(-2 + true_log_hr * w_i + 0.02 * (X$age[i] - 60) + 0.3 * (X$stage[i] - 2)))
+  if (rbinom(1, 1, 0.3) == 1) {
+    des_seq$add_one_subject_response(i, y_L = min(t_i, 3), y_R = Inf)
+  } else {
+    des_seq$add_one_subject_response(i, y = t_i)
+  }
+}
+
+inf_seq = InferenceSurvivalCoxPHRegr$new(des_seq, verbose = FALSE)
+inf_seq$num_cores = 1L
+inf_seq$compute_estimate()
+inf_seq$set_seed(1)
+inf_seq$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+## Where to go next
+
+- Accelerated-failure-time alternative with a time-ratio estimand and a
+  randomization CI: `InferenceSurvivalWeibullRegr`.
+- Nonparametric: `InferenceSurvivalLogRank`, `InferenceSurvivalGehanWilcox`,
+  `InferenceSurvivalRestrictedMeanDiff`.
+- Interval-censored data and which classes accept it:
+  `Design$add_one_subject_response()`'s documentation.
+- `vignette("validation-evidence")`: checked against `survival::coxph`.

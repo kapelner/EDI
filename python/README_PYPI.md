@@ -26,6 +26,16 @@ See the full design spec
 ([`python_bindings_package_spec.md`](https://github.com/kapelner/EDI/blob/main/R/package_metadata/finished_features/python_bindings_package_spec.md))
 for kernel-by-kernel scope and baseline-benchmarking methodology.
 
+**For AI agents:** the repo's agent guide is
+[`AGENTS.md`](https://github.com/kapelner/EDI/blob/main/AGENTS.md); the whole
+R-side documentation is one plain-text fetch at
+[`llms-full.txt`](https://kapelner.github.io/EDI/llms-full.txt) (summary:
+[`llms.txt`](https://kapelner.github.io/EDI/llms.txt)); and which kernel
+backs which model is in the generated
+[`capability_matrix.json`](https://github.com/kapelner/EDI/blob/main/R/package_tests/capability_matrix.json).
+The kernels this package exposes are the `fast_*` functions listed under
+"Backend" on the [reference index](https://kapelner.github.io/EDI/reference/index.html).
+
 ## Install
 
 ```bash

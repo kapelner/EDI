@@ -34,6 +34,20 @@ articles:
   - backend-contracts
   - validation-evidence
   - extending-edi
+- title: Cookbooks
+  navbar: Cookbooks
+  desc: >
+    One complete, runnable design → assign → record → infer script per
+    response type. Every chunk executes at build time; copy any one into a
+    session and it works. Start with the continuous one, which narrates the
+    shared four-step pattern the others follow.
+  contents:
+  - cookbook-continuous
+  - cookbook-incidence
+  - cookbook-count
+  - cookbook-proportion
+  - cookbook-survival
+  - cookbook-ordinal
 - title: Ecosystem
   navbar: Ecosystem
   desc: >

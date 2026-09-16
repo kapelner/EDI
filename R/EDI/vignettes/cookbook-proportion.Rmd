@@ -1,0 +1,119 @@
+---
+title: "Cookbook: Proportion Outcome, End to End"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cookbook: Proportion Outcome, End to End}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+One complete, runnable script for a **proportion** outcome — a response
+that is itself a fraction in (0, 1) per subject (adherence rate, fraction
+of tissue affected, score normalized to a 0–1 scale). This is distinct
+from the incidence cookbook, where each subject contributes a single 0/1.
+Same four steps as every cookbook (see `vignette("cookbook-continuous")`);
+the inference classes are the `InferenceProp*` family — fractional logit
+(quasi-binomial), Beta regression, and zero/one-inflated Beta for data
+with exact 0s and 1s.
+
+## Setup
+
+EDI is not on CRAN yet, so `install.packages("EDI")` fails — install from
+R-universe (fallback: GitHub, `subdir = "R/EDI"`). Not evaluated here.
+
+```{r install, eval = FALSE, purl = FALSE}
+install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
+# or: remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+```{r setup}
+library(EDI)
+set.seed(20260916)
+
+n = 80
+X = data.frame(
+  severity = round(runif(n, 1, 10), 1),
+  prior    = rbinom(n, 1, 0.4)
+)
+true_logit_shift = 0.7
+```
+
+## Fixed design, fractional logit
+
+The response is generated from a Beta distribution whose mean follows a
+logistic model in treatment and covariates, then kept strictly inside
+(0, 1) — fractional logit and Beta regression require open-interval data;
+the zero/one-inflated class handles exact boundary values.
+
+```{r fixed}
+des = DesignFixedBernoulli$new(n = n, response_type = "proportion", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+
+mu  = plogis(-0.5 + true_logit_shift * w - 0.1 * X$severity + 0.4 * X$prior)
+phi = 15                                  # Beta precision
+y   = rbeta(n, mu * phi, (1 - mu) * phi)
+y   = pmin(pmax(y, 1e-4), 1 - 1e-4)       # keep strictly inside (0, 1)
+des$add_all_subject_responses(y)
+
+inf = InferencePropFractionalLogit$new(des, verbose = FALSE)
+inf$num_cores = 1L
+inf$compute_estimate()                    # treatment effect on the logit scale
+inf$compute_asymp_confidence_interval(alpha = 0.05)
+inf$compute_asymp_two_sided_pval()
+```
+
+```{r fixed-resampling}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+inf$set_seed(1)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+```
+
+## Beta regression on the same design
+
+```{r beta}
+inf_beta = InferencePropBetaRegr$new(des, verbose = FALSE)
+inf_beta$num_cores = 1L
+inf_beta$compute_estimate()
+inf_beta$compute_asymp_confidence_interval(alpha = 0.05)
+```
+
+## Everything at once
+
+```{r suite}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
+                              methods = c("wald", "score", "lik_ratio"), max_secs_per_class = 15)
+```
+
+## Sequential design
+
+```{r seq}
+des_seq = DesignSeqOneByOneKK14$new(n = n, response_type = "proportion", verbose = FALSE)
+for (i in seq_len(n)) {
+  w_i  = des_seq$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+  mu_i = plogis(-0.5 + true_logit_shift * w_i - 0.1 * X$severity[i] + 0.4 * X$prior[i])
+  y_i  = rbeta(1, mu_i * phi, (1 - mu_i) * phi)
+  des_seq$add_one_subject_response(i, min(max(y_i, 1e-4), 1 - 1e-4))
+}
+
+inf_seq = InferencePropFractionalLogit$new(des_seq, verbose = FALSE)
+inf_seq$num_cores = 1L
+inf_seq$compute_estimate()
+inf_seq$set_seed(1)
+inf_seq$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+## Where to go next
+
+- Exact 0s and 1s in the data: `InferencePropZeroOneInflatedBetaRegr`.
+- A marginal mean difference on the original 0–1 scale rather than a
+  logit coefficient: `InferencePropGCompMeanDiff`.
+- `vignette("validation-evidence")`: checked against `betareg::betareg`
+  and `stats::glm(family = quasibinomial)`.

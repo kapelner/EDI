@@ -31,17 +31,26 @@ install.packages(
 )
 ```
 
-Or build the development version from a clone of the repository (requires a
-C++ compiler toolchain for R packages, e.g. Rtools on Windows, Xcode command
-line tools on macOS, or `r-base-dev` on Debian/Ubuntu):
+> **Not on CRAN yet.** A plain `install.packages("EDI")` fails today — that
+> does not mean the package doesn't exist; use the R-universe call above.
+> `EDI` has been submitted to CRAN and plain `install.packages("EDI")` will
+> work once accepted.
+
+Or install the development version straight from GitHub without cloning
+(requires a C++ compiler toolchain for R packages, e.g. Rtools on Windows,
+Xcode command line tools on macOS, or `r-base-dev` on Debian/Ubuntu — this
+package lives in the `R/EDI` subdirectory of the repository):
+
+```r
+remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+Or from a local clone:
 
 ```r
 # from the repository root
 install.packages("R/EDI", repos = NULL, type = "source")
 ```
-
-`EDI` has been submitted to CRAN; once accepted, plain
-`install.packages("EDI")` will work too.
 
 ## Getting started
 

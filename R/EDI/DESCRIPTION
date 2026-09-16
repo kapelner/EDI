@@ -31,6 +31,7 @@ Description: Implements a comprehensive suite of experimental designs, both
     included.
 License: GPL-3
 Encoding: UTF-8
+Language: en-US
 Depends:
     R (>= 3.5.0)
 LinkingTo:

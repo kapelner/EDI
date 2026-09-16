@@ -1,0 +1,115 @@
+---
+title: "Cookbook: Ordinal Outcome, End to End"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cookbook: Ordinal Outcome, End to End}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+One complete, runnable script for an **ordinal** outcome — ordered
+categories such as a 4-point severity scale or a Likert response. Same
+four steps as every cookbook (see `vignette("cookbook-continuous")`).
+Responses are recorded as integer levels `1, 2, …, K`; the default
+estimand is the treatment coefficient of a proportional-odds (cumulative
+logit) model, and the `InferenceOrdinal*` family also offers adjacent-
+category, continuation-ratio, probit, cauchit and cloglog links plus
+matched-design (KK) variants.
+
+## Setup
+
+EDI is not on CRAN yet, so `install.packages("EDI")` fails — install from
+R-universe (fallback: GitHub, `subdir = "R/EDI"`). Not evaluated here.
+
+```{r install, eval = FALSE, purl = FALSE}
+install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
+# or: remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+```{r setup}
+library(EDI)
+set.seed(20260916)
+
+n = 100
+X = data.frame(
+  baseline_score = round(rnorm(n, 5, 1.5), 1),
+  female         = rbinom(n, 1, 0.5)
+)
+true_effect = 0.8   # shift on the latent logistic scale
+```
+
+## Fixed design, proportional odds
+
+Outcomes are drawn from a latent-variable model: a linear predictor plus
+logistic noise, cut at three thresholds into four ordered levels.
+
+```{r fixed}
+des = DesignFixedBernoulli$new(n = n, response_type = "ordinal", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+
+eta = true_effect * w + 0.3 * (X$baseline_score - 5) - 0.2 * X$female
+u   = runif(n)
+y   = ifelse(u <= plogis(-1.0 - eta), 1L,
+      ifelse(u <= plogis( 0.2 - eta), 2L,
+      ifelse(u <= plogis( 1.1 - eta), 3L, 4L)))
+des$add_all_subject_responses(y)
+table(level = y, treatment = w)
+
+inf = InferenceOrdinalPropOddsRegr$new(des, verbose = FALSE)
+inf$num_cores = 1L
+inf$compute_estimate()                         # treatment log-odds shift
+inf$compute_asymp_confidence_interval(alpha = 0.05)
+inf$compute_asymp_two_sided_pval()
+```
+
+```{r fixed-resampling}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+inf$set_seed(1)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+```
+
+## Everything at once
+
+```{r suite}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
+                              methods = c("wald", "score", "lik_ratio"), max_secs_per_class = 15)
+```
+
+## Sequential design
+
+```{r seq}
+des_seq = DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)
+for (i in seq_len(n)) {
+  w_i   = des_seq$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+  eta_i = true_effect * w_i + 0.3 * (X$baseline_score[i] - 5) - 0.2 * X$female[i]
+  u_i   = runif(1)
+  y_i   = if (u_i <= plogis(-1.0 - eta_i)) 1L else if (u_i <= plogis(0.2 - eta_i)) 2L else
+          if (u_i <= plogis(1.1 - eta_i)) 3L else 4L
+  des_seq$add_one_subject_response(i, y_i)
+}
+
+inf_seq = InferenceOrdinalPropOddsRegr$new(des_seq, verbose = FALSE)
+inf_seq$num_cores = 1L
+inf_seq$compute_estimate()
+inf_seq$set_seed(1)
+inf_seq$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+## Where to go next
+
+- Other links on the same design: `InferenceOrdinalAdjCatLogitRegr`,
+  `InferenceOrdinalContRatioRegr`, `InferenceOrdinalOrderedProbitRegr`,
+  `InferenceOrdinalCauchitRegr`, `InferenceOrdinalCloglogRegr`.
+- A distribution-free alternative when the proportional-odds assumption
+  is doubtful: the Wilcoxon-family classes `InferenceSuite` includes for
+  ordinal data.
+- `vignette("validation-evidence")`: checked against `ordinal::clm`,
+  `VGAM::vglm`, `MASS::polr`.

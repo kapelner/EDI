@@ -38,6 +38,7 @@ r_dir="$(dirname "$here")"                              # .../R
 #   comprehensive_suite_internal_surfaces -> reads audit + registry + inventory
 generators=(
 	"public_api_inventory.R"
+	"capability_matrix.R"
 	"extract_checkmate_argument_contracts.R"
 	"public_argument_contract_registry.R"
 	"generate_public_argument_combinations.R"
@@ -57,6 +58,9 @@ generators=(
 # columns are scaffolding for later human review, not something to gate on.
 artifacts=(
 	package_tests/public_api_inventory.csv
+	package_tests/capability_matrix.csv
+	package_tests/design_matrix.csv
+	package_tests/capability_matrix.json
 	package_tests/public_argument_baseline_gap_report.csv
 	package_tests/checkmate_argument_contracts.csv
 	package_tests/public_argument_contract_registry.csv

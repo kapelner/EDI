@@ -98,17 +98,26 @@ install.packages("EDI",
   repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
 ```
 
-Or build the development version from this repo (requires a C++ compiler
-toolchain for R packages, e.g. Rtools on Windows, Xcode command line tools
-on macOS, or `r-base-dev` on Debian/Ubuntu):
+> **Not on CRAN yet.** A plain `install.packages("EDI")` fails today — that
+> does not mean the package doesn't exist; use the R-universe line above.
+> `EDI` has been submitted to CRAN and plain `install.packages("EDI")` will
+> work once accepted.
+
+Or install the development version straight from GitHub without cloning
+(requires a C++ compiler toolchain for R packages, e.g. Rtools on Windows,
+Xcode command line tools on macOS, or `r-base-dev` on Debian/Ubuntu — the R
+package lives in the `R/EDI` subdirectory of this repo):
+
+```r
+remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+Or from a local clone:
 
 ```r
 # from the repository root
 install.packages("R/EDI", repos = NULL, type = "source")
 ```
-
-`EDI` has been submitted to CRAN; once accepted, plain
-`install.packages("EDI")` will work too.
 
 ### Getting Started
 
@@ -591,12 +600,41 @@ microseconds either way — but it is free speed if your R already has one. At
 designed-experiment scale, the CPU is the right hardware target, and driving
 it to its ceiling is the route to speed.
 
+## For AI agents
+
+If you are an AI agent (Claude Code, Copilot, Codex, Cursor, Gemini, …)
+working with or on EDI, start here — in this order:
+
+1. **[`AGENTS.md`](AGENTS.md)** — repo map, entry points, how to install
+   before CRAN acceptance, and the one hard rule (never rebuild `R/EDI`
+   without being asked). `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`
+   and `.cursor/rules/` all point here.
+2. **[`llms.txt`](https://kapelner.github.io/EDI/llms.txt)** / **[`llms-full.txt`](https://kapelner.github.io/EDI/llms-full.txt)** —
+   a summary of the package, and the entire built documentation as one
+   plain-text file for a single fetch.
+3. **[`capability_matrix.json`](R/package_tests/capability_matrix.json)** —
+   which inference class supports which design family × response type ×
+   method, generated from the class registries (also as
+   [`capability_matrix.csv`](R/package_tests/capability_matrix.csv) /
+   [`design_matrix.csv`](R/package_tests/design_matrix.csv)).
+4. **Cookbooks** — one complete, runnable design → assign → record → infer
+   script per response type: [`vignette("cookbook-continuous")`](https://kapelner.github.io/EDI/articles/cookbook-continuous.html)
+   and its `-incidence`, `-count`, `-proportion`, `-survival`, `-ordinal`
+   siblings.
+5. **Devcontainer** (`.devcontainer/`) — R, Python, every dependency,
+   LaTeX, profilers and `ccache`, with both packages built; also
+   `.github/workflows/copilot-setup-steps.yml` for Copilot's coding agent.
+6. **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — the checks required before
+   starting and before pushing, the PR checklist, and the per-change-type
+   protocols (new class, kernel, seeded code).
+
 ## Contributing
 
 Issues and pull requests are welcome at
-[github.com/kapelner/EDI](https://github.com/kapelner/EDI). See
-[`CLAUDE.md`](CLAUDE.md) for repo-specific conventions (e.g. never running a
-full package rebuild without being asked).
+[github.com/kapelner/EDI](https://github.com/kapelner/EDI). Start with
+[`CONTRIBUTING.md`](CONTRIBUTING.md) (procedure) and [`AGENTS.md`](AGENTS.md)
+(repo map and conventions, e.g. never running a full package rebuild without
+being asked).
 
 Adding a new `Inference*` model (a new estimation/testing procedure for an
 existing design/response-type combination) touches capability metadata,

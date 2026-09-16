@@ -1,0 +1,117 @@
+---
+title: "Cookbook: Count Outcome, End to End"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cookbook: Count Outcome, End to End}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+One complete, runnable script for a count outcome — number of events per
+subject (visits, relapses, defects). Same four steps as every cookbook
+(design → assign → record → infer; see `vignette("cookbook-continuous")`).
+The natural estimand is a log rate ratio; the inference classes are the
+`InferenceCount*` family, covering Poisson, negative binomial, hurdle and
+zero-inflated variants for over-dispersed or zero-heavy counts.
+
+## Setup
+
+EDI is not on CRAN yet, so `install.packages("EDI")` fails — install from
+R-universe (fallback: GitHub, `subdir = "R/EDI"`). Not evaluated here.
+
+```{r install, eval = FALSE, purl = FALSE}
+install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
+# or: remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+```{r setup}
+library(EDI)
+set.seed(20260916)
+
+n = 80
+X = data.frame(
+  baseline_rate = round(rgamma(n, 4, 1), 1),
+  urban         = rbinom(n, 1, 0.5)
+)
+true_log_rr = -0.4   # treatment reduces the event rate by ~33%
+```
+
+## Fixed design, Poisson regression
+
+```{r fixed}
+des = DesignFixedBernoulli$new(n = n, response_type = "count", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+
+mu = exp(0.5 + true_log_rr * w + 0.15 * X$baseline_rate + 0.3 * X$urban)
+y = rpois(n, mu)
+des$add_all_subject_responses(y)
+
+inf = InferenceCountPoisson$new(des, verbose = FALSE)
+inf$num_cores = 1L
+inf$compute_estimate()                         # log rate ratio for treatment
+inf$compute_asymp_confidence_interval(alpha = 0.05)
+inf$compute_asymp_two_sided_pval()
+```
+
+```{r fixed-resampling}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+inf$set_seed(1)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+```
+
+## Over-dispersion: negative binomial on the same design
+
+Real counts are usually over-dispersed relative to Poisson. Swap the
+class; the design object is unchanged.
+
+```{r negbin}
+inf_nb = InferenceCountNegBin$new(des, verbose = FALSE)
+inf_nb$num_cores = 1L
+inf_nb$compute_estimate()
+inf_nb$compute_asymp_confidence_interval(alpha = 0.05)
+```
+
+## Everything at once
+
+```{r suite}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
+                              methods = c("wald", "score", "lik_ratio"), max_secs_per_class = 15)
+```
+
+## Sequential design
+
+The one-by-one API is identical across response types — only the
+generated response changes. Randomization inference is the tool for
+sequential designs whose assignments depend on earlier subjects.
+
+```{r seq}
+des_seq = DesignSeqOneByOneKK14$new(n = n, response_type = "count", verbose = FALSE)
+for (i in seq_len(n)) {
+  w_i = des_seq$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+  mu_i = exp(0.5 + true_log_rr * w_i + 0.15 * X$baseline_rate[i] + 0.3 * X$urban[i])
+  des_seq$add_one_subject_response(i, rpois(1, mu_i))
+}
+
+inf_seq = InferenceCountPoisson$new(des_seq, verbose = FALSE)
+inf_seq$num_cores = 1L
+inf_seq$compute_estimate()
+inf_seq$set_seed(1)
+inf_seq$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+## Where to go next
+
+- Zero-heavy data: `InferenceCountHurdlePoisson`, `InferenceCountHurdleNegBin`,
+  `InferenceCountZeroInflatedPoisson`, `InferenceCountZeroInflatedNegBin`.
+- Exposure/offset (rates per unit time) is a planned addition — see
+  `ROADMAP.md`.
+- `vignette("validation-evidence")`: each kernel is checked against
+  `stats::glm`, `MASS::glm.nb`, or `pscl`.

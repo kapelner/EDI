@@ -1,0 +1,124 @@
+---
+title: "Cookbook: Incidence (Binary) Outcome, End to End"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cookbook: Incidence (Binary) Outcome, End to End}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+One complete, runnable script for a binary ("incidence") outcome — did the
+event happen or not. Same four steps as every cookbook (design → assign →
+record → infer); see `vignette("cookbook-continuous")` for the narrated
+version of the pattern. Here the response is 0/1, the natural estimand is
+a log odds ratio (or a risk difference / risk ratio via the g-computation
+classes), and the inference classes are the `InferenceIncid*` family.
+
+## Setup
+
+EDI is not on CRAN yet, so `install.packages("EDI")` fails — install from
+R-universe (fallback: GitHub, `subdir = "R/EDI"`). Not evaluated here.
+
+```{r install, eval = FALSE, purl = FALSE}
+install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
+# or: remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+```
+
+```{r setup}
+library(EDI)
+set.seed(20260916)
+
+n = 80
+X = data.frame(
+  age    = round(rnorm(n, 50, 10)),
+  smoker = rbinom(n, 1, 0.3)
+)
+true_log_or = 0.9
+```
+
+## Fixed design, logistic regression
+
+```{r fixed}
+des = DesignFixedBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
+des$add_all_subjects_to_experiment(X)
+des$assign_w_to_all_subjects()
+w = des$get_w()
+
+p = plogis(-1.2 + true_log_or * w + 0.03 * (X$age - 50) + 0.6 * X$smoker)
+y = rbinom(n, 1, p)
+des$add_all_subject_responses(y)
+
+inf = InferenceIncidLogRegr$new(des, verbose = FALSE)
+inf$num_cores = 1L
+inf$compute_estimate()                         # log odds ratio for treatment
+inf$compute_asymp_confidence_interval(alpha = 0.05)
+inf$compute_asymp_two_sided_pval()
+```
+
+Randomization test and bootstrap, as in the continuous cookbook:
+
+```{r fixed-resampling}
+inf$set_seed(1)
+inf$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+inf$set_seed(1)
+inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 200, show_progress = FALSE)
+```
+
+## A risk difference instead of an odds ratio
+
+The g-computation classes estimate a marginal risk difference or risk
+ratio by standardizing over the covariates — often the estimand a trial
+actually reports. Same design object, different class:
+
+```{r gcomp}
+inf_rd = InferenceIncidGCompRiskDiff$new(des, verbose = FALSE)
+inf_rd$num_cores = 1L
+inf_rd$compute_estimate()
+inf_rd$compute_asymp_confidence_interval(alpha = 0.05)
+```
+
+## Everything at once
+
+```{r suite}
+suite = InferenceSuite$new(des)
+res = suite$run_all_inference(screen = TRUE, plots = FALSE, num_cores = 1L,
+                              methods = c("wald", "score", "lik_ratio"), max_secs_per_class = 15)
+```
+
+## Sequential design: matching on the fly
+
+`DesignSeqOneByOneKK14` matches each arrival to an earlier unmatched
+subject when a close enough match exists. Its matched inference class for
+a binary outcome, `InferenceIncidKKGCompRiskDiff`, uses the pair/reservoir
+structure directly. As on every sequential design whose assignments
+depend on earlier subjects, the nonparametric bootstrap is not offered;
+randomization inference replays the design's own mechanism instead.
+
+```{r seq}
+des_seq = DesignSeqOneByOneKK14$new(n = n, response_type = "incidence", verbose = FALSE)
+for (i in seq_len(n)) {
+  w_i = des_seq$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+  p_i = plogis(-1.2 + true_log_or * w_i + 0.03 * (X$age[i] - 50) + 0.6 * X$smoker[i])
+  des_seq$add_one_subject_response(i, rbinom(1, 1, p_i))
+}
+
+inf_seq = InferenceIncidKKGCompRiskDiff$new(des_seq, verbose = FALSE)
+inf_seq$num_cores = 1L
+inf_seq$compute_estimate()
+inf_seq$compute_asymp_confidence_interval(alpha = 0.05)
+inf_seq$set_seed(1)
+inf_seq$compute_rand_two_sided_pval(r = 200, show_progress = FALSE)
+```
+
+## Where to go next
+
+- Every incidence class: the reference index, section *Inference:
+  Incidence (Binary) Outcomes*.
+- Exact (Fisher-style) and CMH procedures for stratified/blocked designs
+  are in the same family — `InferenceSuite` will run whichever apply to
+  your design.
+- `vignette("validation-evidence")` lists how each was checked.

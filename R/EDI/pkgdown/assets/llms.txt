@@ -23,6 +23,42 @@ Key facts:
 - The distinct Python package `edi_kernels` (PyPI) exposes the same C++
   model-fitting kernels with no R dependency.
 
+## Installation (not on CRAN yet)
+
+`install.packages("EDI")` fails today — the package exists but is awaiting
+CRAN acceptance. Install prebuilt binaries from R-universe (Linux, macOS,
+Windows; no compiler needed):
+
+    install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
+
+Fallback from GitHub (needs a C++ toolchain; the R package is the `R/EDI`
+subdirectory, so `subdir` is required):
+
+    remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+
+Python bindings: `pip install edi_kernels` (on PyPI).
+
+## Machine-readable capability matrix (read this first)
+
+"Which inference class supports which design family x response type x
+method?" is answered by one generated file, exported straight from the
+package's class registries (never hand-maintained; drift-checked on every
+push):
+
+- JSON, everything in one object:
+  https://github.com/kapelner/EDI/blob/main/R/package_tests/capability_matrix.json
+- CSV, one row per inference class (response_types, design_families,
+  estimand, likelihood_tier, capabilities, public_methods, requires_*):
+  https://github.com/kapelner/EDI/blob/main/R/package_tests/capability_matrix.csv
+- CSV, one row per design class (timing_family, randomization_family,
+  seed_reproducible_draw):
+  https://github.com/kapelner/EDI/blob/main/R/package_tests/design_matrix.csv
+
+`design_families` is the static compatibility declaration;
+`design_level_exclusions` in the JSON is the per-instance rule applied on
+top (currently: sequential DesignSeqOneByOne designs lose
+nonparametric_bootstrap, except DesignSeqOneByOneBernoulli).
+
 ## Documentation
 
 - [Function and class reference](https://kapelner.github.io/EDI/reference/index.html):

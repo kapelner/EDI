@@ -29,27 +29,19 @@ observational census data analyzed via an instrumental-variable strategy
 (quarter-of-birth as instrument for schooling), not a randomized experiment
 — no real `W` exists to replay.
 
-## Required R packages
+## Required R packages: none
 
-All of the following are free and installable without a data-use agreement
-or application process.
-
-```r
-# CRAN packages
-install.packages(c("medicaldata", "qte", "AER", "stevedata",
-                    "whatifbandit", "cjoint", "WSCdata", "DigestiveDataSets",
-                    "NeuroDataSets", "CardioDataSets", "rpsftm", "ForCausality",
-                    "experiment", "GK2011", "endorse", "ecoteach", "epifitter",
-                    "callback"))
-
-# survival and geepack are common dependencies and may already be installed;
-# install explicitly if not:
-install.packages(c("survival", "geepack"))
-
-# experimentdatar is GitHub-only, NOT on CRAN -- install.packages() will fail
-install.packages("devtools")
-devtools::install_github("itamarcaspi/experimentdatar")
-```
+**No dataset in this table -- Core or Expanded, all 262 rows -- requires
+`install.packages()` of anything.** Every one is fetched by
+`download_experimental_datasets.R` install-free: CRAN-sourced datasets
+(Core and Expanded alike) via `cran_download_dataset_as_csv()`, which
+downloads just the package's source tarball and reads the one needed
+`data/*` object directly (`load()`/`fread()` don't care whether the
+surrounding package is actually installed); the handful of GitHub-only
+Core datasets via `github_download_dataset_as_csv()`, which downloads the
+repo's tarball at a pinned commit the same way, no `devtools::
+install_github()` needed. See "Downloading everything" below for the full
+mechanism list.
 
 Notes on packages that looked like they should be on CRAN but are not:
 - **`lalonde`** as a standalone package name does not exist on CRAN (GitHub-
@@ -57,16 +49,29 @@ Notes on packages that looked like they should be on CRAN but are not:
   CRAN `qte` package instead (`lalonde.exp`), which keeps the experimental
   and observational (PSID) comparison arms as separate, clearly labeled
   data frames.
-- **`experimentdatar`** is GitHub-only; there is no CRAN fallback for it.
+- **`experimentdatar`** (charitable, mobilization, social, secrecy,
+  vouchers, welfare) is GitHub-only, pinned at commit `f71a9d0`; there is
+  no CRAN fallback for it. Its GitHub-tarball structure is close enough to
+  the CRAN one (a `data/*.rda` directory) that the same install-free
+  approach applies, just against `github.com/<repo>/archive/<sha>.tar.gz`
+  instead of `cran.r-project.org/src/contrib/`.
 
 ## Downloading everything: `R/package_metadata/download_experimental_datasets.R`
 
-**As of 2026-09-15 this one script downloads and normalizes every
-Dataverse-sourced dataset in the table below** (everything not already
-covered by an installed CRAN/GitHub R package — see "Required R packages"
-above for those). Clone the repo, optionally set guestbook-identity
-options (see below — sensible defaults exist, so this is optional), and
-run:
+**This one script downloads and normalizes every dataset in the table
+below, Core and Expanded tier alike (262 datasets total), through four
+mechanisms, all without vendoring any raw data into the repo and without
+`install.packages()`-ing anything:** CRAN packages fetched by source
+tarball only (`cran_download_dataset_as_csv()` — download the tarball,
+extract just the one needed `data/*` object, convert to CSV, discard
+everything else; the large majority of the table, Core and Expanded
+alike), GitHub-only packages fetched the same tarball-only way at a
+pinned commit (`github_download_dataset_as_csv()`, the 6 Core-tier
+`experimentdatar` datasets), Harvard Dataverse (guestbook or direct
+download, the 15 original Dataverse-sourced Expanded entries), and a
+handful of legacy ICPSR-proper downloads. Clone the repo, optionally set
+guestbook-identity options (see below — sensible defaults exist, so this
+is optional), and run:
 
 ```r
 Rscript R/package_metadata/download_experimental_datasets.R
@@ -81,16 +86,21 @@ download_all_datasets(datasets = c("sanitation", "student_test_data"))
 
 **Every downloaded file is normalized to plain CSV** (`.tab` retabbed,
 `.dta` read via `haven` and stripped of value/variable labels via
-`zap_labels()`, zip-bundled files unzipped and the target member located
-recursively) **and the whole output directory is packed into one
-`R/package_metadata/randomized_experiment_datasets.tar.bz2`** — uniform format, and
-compressed CSV text is small, so this keeps disk usage low compared to
-the previous mix of `.zip`/`.tab`/`.dta`/`.csv` files sitting loose
-(two of the source zips alone are 99MB and 221MB; only one small member
-file is kept from each, the rest is discarded after conversion). By
-default the loose CSVs are deleted after archiving; call
-`extract_experimental_datasets()` to unpack them again when you actually need to
-read one.
+`zap_labels()`, zip-bundled/CRAN-tarball files extracted and the target
+member located directly, `.rda`/`.RData` loaded and coerced to a plain
+data frame) — uniform format, and compressed CSV text is small, so this
+keeps disk usage low compared to a mix of `.zip`/`.tab`/`.dta`/`.rda`/
+`.csv` files sitting loose (two of the Dataverse source zips alone are
+99MB and 221MB; only one small member file is kept from each, the rest
+is discarded after conversion). **Each dataset is packed into its own
+`R/package_metadata/randomized_experiment_datasets/<name>.tar.bz2`** —
+one archive per table row, not one combined archive for the whole
+collection, so a consumer that wants a single dataset extracts only
+that one file, and "already downloaded" is a plain existence check on
+`<name>.tar.bz2` (no extraction needed to resume a partial run). By
+default the loose CSV is deleted right after its archive is written;
+call `extract_experimental_datasets("<name>")` to unpack it again when
+you actually need to read it.
 
 The CRAN package `icpsrdata` was evaluated and **dropped from the plan**:
 it's confirmed broken, unfixable by credential/option changes. It POSTs to
@@ -101,12 +111,47 @@ a structurally different flow the old package cannot perform at all. It
 is not listed in "Required R packages" above and should not be installed
 for this purpose.
 
-`download_experimental_datasets.R` implements **two distinct mechanisms**, used per
+`download_experimental_datasets.R` implements **four distinct mechanisms**, used per
 dataset:
 
-1. **Harvard Dataverse guestbook/direct download** — confirmed working
-   end-to-end 2026-09-14/15, and what every dataset in the manifest
-   actually uses. No ICPSR account or login of any kind: Dataverse's own
+1. **CRAN source tarball, no install** (`cran_download_dataset_as_csv()`)
+   — this script's primary mechanism, used by both tiers: 21 of the 32
+   Core-tier entries (everything except the 6 GitHub-only ones and the
+   Dataverse-sourced ones below), plus 218 of the 234 Expanded-tier
+   manifest entries as of the round-5 exhaustive sweep. Downloads
+   just the package's `.tar.gz` from CRAN (no `install.packages()`, no
+   dependency resolution, no compilation), extracts only the one needed
+   `data/*.rda`/`.txt` object, and `load()`s/`fread()`s it directly — R's
+   data-loading doesn't care whether the surrounding package is actually
+   installed. Two extra parameters handle packages that bundle several
+   datasets together: `obj_name` picks one top-level object out of an
+   `.rda` file that `load()`s several at once (e.g. `survival`'s
+   `data/cancer.rda` holds 21 datasets including `veteran`/`ovarian`/
+   `colon`/`bladder1`), and `list_element` picks one data frame out of a
+   single loaded object that is itself a named list of tables (e.g.
+   `stevedata::mm_randhie` loads as a list with a "RAND Outcomes" table).
+   **Version fallback, confirmed necessary in practice:** the exact CRAN
+   version recorded for a dataset (captured by whichever review pass
+   checked it, across a multi-hour sweep) is often no longer CRAN's
+   current release by the time this runs — CRAN keeps only the current
+   version at the plain `src/contrib/` URL, moving anything superseded to
+   `src/contrib/Archive/<pkg>/`. The function tries the pinned version's
+   direct URL first, falls back to the `Archive/` copy of that exact
+   version, and falls back to whatever is current on CRAN right now as a
+   last resort (logged, not silent) — safe because a package that exists
+   mainly to ship one classic dataset essentially never changes that
+   dataset's content across version bumps.
+2. **GitHub source tarball at a pinned commit, no install**
+   (`github_download_dataset_as_csv()`) — the 6 Core-tier `experimentdatar`
+   datasets (charitable/mobilization/social/secrecy/vouchers/welfare),
+   which are GitHub-only with no CRAN release. Downloads
+   `https://github.com/<repo>/archive/<commit_sha>.tar.gz` (note: GitHub's
+   tarball extracts to `<repo>-<sha>/`, not `<repo>/`), then the same
+   `data/*.rda` extraction as mechanism 1. No `devtools::
+   install_github()` involved.
+3. **Harvard Dataverse guestbook/direct download** — confirmed working
+   end-to-end 2026-09-14/15, and what the original 15 Dataverse-sourced
+   entries use. No ICPSR account or login of any kind: Dataverse's own
    "Guestbook" (a usage-tracking questionnaire some depositors require,
    unrelated to the file's license) is satisfied with plain identity
    fields, not credentials. Functions: `dataverse_dataset_files()`,
@@ -116,7 +161,7 @@ dataset:
    2026-09-15: guestbook "options"-type answers must be submitted as the
    option's **string text**, not its numeric id — the numeric form looks
    plausible but 500s server-side with an opaque `ClassCastException`.
-2. **Classic ICPSR archive proper** (`icpsr_download_simple()`, kept for
+4. **Classic ICPSR archive proper** (`icpsr_download_simple()`, kept for
    any future dataset that's on ICPSR but has no Dataverse mirror — none
    currently in the manifest need it). **Known limitation, not yet proven
    reliable end-to-end:** diagnosed and fixed two real bugs versus the
@@ -504,8 +549,8 @@ fetched this session (2026-09-14), not assumed.
 
 ## Two tiers: Core (GCP) vs. Expanded (AWS)
 
-The 32 originally-sourced datasets (2026-09-14) are **Core**. Twenty-seven
-more, added 2026-09-15 across four rounds, are **Expanded**:
+The 32 originally-sourced datasets (2026-09-14) are **Core**. Two hundred
+thirty more, added 2026-09-15/16 across five rounds, are **Expanded**:
 1. `student_test_data`, `PES_analysis_science` (2 datasets).
 2. `ghana_bednet`, `laviiswa`, `mkvtrial`, `mwanza_stdtrial`, `pneumovac`,
    `share`, `thrio`, `zamstar` (8 datasets) — the Hayes & Moulton
@@ -517,31 +562,61 @@ more, added 2026-09-15 across four rounds, are **Expanded**:
 4. `epilepsy_RCT_tbl_df`, `sulphinpyrazone_tbl_df`, `immdef`, `Gbsg_df`,
    `seguro`, `ajps`, `pakistan`, `berberis_treatment`, `PowderyMildew`,
    `train1`, `opt`, `supraclavicular` (12 datasets) — a **deep CRAN scan**
-   run after the user pointed out round 3's limitation: a metadata-keyword
-   search misses packages that ship real experimental data without
-   describing it that way. Round 4 instead pre-filtered to CRAN's ~9,700
-   `LazyData`-true packages (i.e. packages that ship a `/data` directory at
-   all), scored ~2,420 of those against a broad domain keyword set, and
-   for the top 692 actually installed and inspected each package's real
-   shipped datasets and help-page documentation — not just title text.
-   **Coverage caveat, reported honestly, across the three parallel
-   ~231-package batches this was split into:** batch A never got past a
-   ~12-package title-triaged slice (bulk-install attempts across the full
-   231 repeatedly stalled and were abandoned); batch B read all 231
-   packages' descriptions in full (avoiding another bulk-install stall)
-   and installed/deep-inspected the ~6 that survived that read; batch C
-   completed all 229 packages via a background install-and-check scan
-   (423 datasets inspected, 120 install failures, 12 with no datasets at
-   all, 34 flagged for explicit "random" language in their help pages).
-   One real, verified-but-unintegrated lead surfaced in batch C:
+   pre-filtered to CRAN's ~9,700 `LazyData`-true packages, scored against
+   a broad domain keyword set, with the top 692 actually inspected —
+   genuinely more thorough than round 3's title/description-only search,
+   but still bounded (only ~289 of those 692 were actually opened, per
+   its own honestly-reported coverage tally).
+5. **203 more datasets** (2026-09-16) — a **true exhaustive CRAN sweep**,
+   run after the user pointed out round 4's remaining limitation: even
+   the `LazyData` pre-filter and keyword scoring could still miss real
+   candidates. Round 5 instead checked **all 25,043 scanned CRAN packages'
+   actual source tarballs for a real `/data` directory** — no title,
+   description, or `LazyData`-field filtering of any kind, just "does the
+   tarball contain one." **11,173 of 25,043 packages (44.6%) had a real
+   `/data` directory**; excluding the 630 already covered by earlier
+   rounds left **10,543 genuinely new candidates**. Every dataset each of
+   those packages ships was mechanically harvested (tarball download +
+   extract + `load()`/`fread()` the data directly + parse the `.Rd` help
+   page, all without `install.packages()`) into a evidence file, then
+   every entry was reviewed by 5 parallel Haiku-model forks against the
+   same rigor bar used throughout this table (explicit textual
+   confirmation of random assignment to a real completed study; excludes
+   synthetic/simulated data, random *sampling* language, aggregate/
+   meta-analysis tables, and duplicates). **Coverage: all 10,543
+   candidates' `/data` contents were harvested; of the resulting ~13,150
+   dataset-level rows, every one flagged for a "random"-language match
+   (2,607) was reviewed in full, plus a ~600-row random spot-check of the
+   non-flagged rows (0 additional confirms found there, validating the
+   flag as a reliable — not just convenient — prioritization signal).**
+   236 candidates were confirmed before cross-batch/existing-table
+   deduplication; **203 survived** as genuinely new, non-duplicate
+   entries (many real studies turned up repackaged across 2-4 different
+   CRAN packages — e.g. the Freireich 1963 leukemia trial, the NIMH
+   schizophrenia trial, several Yates agricultural field trials, the
+   HF-ACTION cardiology trial — only one canonical copy of each was kept,
+   noted in that row's Description). One real, flagged-but-excluded lead
+   from round 4 remains open for a future pass:
    `public.ctn0094data`/`ctn0094extra` (NIDA CTN-0027/CTN-0030 opioid-use-
-   disorder trial, n=4,691, real 6-level randomized `treatment` column) —
-   its outcome lives in a separate weekly urine-drug-screen "pattern"
-   table that needs real decoding into a clean response variable before
-   it's table-ready; flagged for a future pass, not silently included.
-   **Net: genuinely more thorough than round 3's pure keyword search, but
-   still a bounded, uneven pass** — not literally exhaustive over all
-   25,038 CRAN packages or even the full 9,700 `LazyData` pool.
+   disorder trial, n=4,691, real randomized `treatment` column, but its
+   outcome lives in a separate weekly-urine-screen "pattern" table needing
+   real decoding before it's table-ready).
+   **Version-number caveat:** each new CRAN dataset's recorded package
+   version reflects whatever a review fork observed at the moment it
+   checked (a multi-hour sweep run by many parallel workers) — CRAN
+   packages get updated continuously, so several of these version strings
+   no longer match the package's current release, and a few appear to
+   have been mis-transcribed outright (values that never existed on CRAN
+   at all). This does not affect actually fetching the data:
+   `download_experimental_datasets.R`'s `cran_download_dataset_as_csv()`
+   tries the pinned version first, falls back to CRAN's `Archive/` for
+   that exact version if superseded, and falls back to the current
+   release as a last resort — safe because a package that exists mainly
+   to ship one classic dataset essentially never changes that dataset's
+   content across version bumps, only its surrounding code/docs. Treat
+   the **Version** column for round-5 entries as "approximately when
+   verified," not a hard-pinned guarantee, unlike the exact-installed-
+   version pinning used elsewhere in this table.
 
 This split exists specifically so the two cloud-credit grant applications
 can scope independently: **GCP's application is scoped to Core only** (its
@@ -556,18 +631,22 @@ near-final scope should grow too.
 
 ## Response-type coverage against EDI's 6 supported types
 
-Recomputed 2026-09-15 directly from the table above (each dataset counted
+Recomputed 2026-09-16 directly from the table above (each dataset counted
 once per type it covers; most cover more than one). Core counts are the
-2026-09-14 baseline; Expanded adds all 27 2026-09-15 datasets on top.
+2026-09-14 baseline; Expanded adds all 230 2026-09-15/16 datasets on top
+(rounds 1-4: 27 datasets; round 5, the exhaustive CRAN sweep: 203 more).
 
-| Response Type | # Core | # Expanded (Core+new) | Independent new sources this round (4) |
+| Response Type | # Core | # Expanded (Core+new) | Notes |
 |---|---|---|---|
-| incidence | 16 | 27 | `sulphinpyrazone_tbl_df`, `seguro`, `train1`, `opt` |
-| survival | 9 | 15 | `immdef`, `Gbsg_df`, `supraclavicular` |
-| continuous | 8 | 14 | `ajps`, `opt` |
-| count | 7 | 9 | `epilepsy_RCT_tbl_df` |
-| ordinal | 3 | 6 | `pakistan` (5-level), `berberis_treatment` (3-level) |
-| proportion | 2 | 4 | `PowderyMildew` |
+| incidence | 16 | 43 | Round 5 alone added 16 more (e.g. `Matching::GerberGreenImai`, `mediation::jobs`, `mice::toenail`, `Stat2Data::TipJoke`) |
+| survival | 9 | 47 | Round 5 alone added 32 more — the largest single-type gain, mostly classic oncology/cardiology RCTs (e.g. `LongCART::ACTG175`, `stepp::bigCI`, `BGPhazard::gehan`) |
+| continuous | 8 | 129 | Round 5 alone added 115 more, dominated by textbook-companion packages (Sleuth2/Sleuth3, Stat2Data, smbdata, SMPracticals — dozens of small classic DOE/RCBD field and lab experiments) |
+| count | 7 | 26 | Round 5 alone added 17 more (mostly agricultural/entomological CRD/RCBD trials, e.g. `hnp`'s 7 datasets) |
+| ordinal | 3 | 17 | Round 5 alone added 11 more independent sources (e.g. `sanon`'s 3 datasets, `mixor::schizophrenia`) — Core's 3 ordinal sources traced to just 2 packages; this is now a genuinely well-populated type |
+| proportion | 2 | 16 | Round 5 alone added 12 more independent sources (e.g. `DoseFinding::migraine`, `Sleuth2::case1301`, `hnp`'s proportion-type datasets) — was the thinnest Core gap, now the best-diversified relative to its Core baseline |
+
+**Expanded-tier total: 262 datasets (32 Core + 230 new), 278
+dataset×response-type pairs.**
 
 Full Core datasets-by-type listing:
 
@@ -582,25 +661,25 @@ Full Core datasets-by-type listing:
 
 `proportion` and `ordinal` were the thinnest Core gaps (2 and 3 datasets,
 with all 3 Core ordinal sources tracing back to just two CRAN packages,
-`geepack`/`medicaldata`). The Expanded rounds add **4 more independent
-ordinal sources** (`laviiswa`, `pakistan`, `berberis_treatment` — none
-sharing a package/collection with each other or with Core) and **2 more
-independent proportion sources** (`zamstar`, `PowderyMildew`) — response
-types that were previously each traceable to essentially one origin are
-now covered from several unrelated studies/domains.
+`geepack`/`medicaldata`). Rounds 1-4 alone had already added 4 more
+independent ordinal sources and 2 more independent proportion sources;
+round 5's exhaustive sweep added 11 and 12 more respectively — both
+response types went from "traceable to essentially one origin" to
+genuinely well-diversified across dozens of unrelated studies/domains.
 
-**Expanded-tier total: 32 Core + 27 new = 59 datasets, 45 + 30 = 75
-dataset×response-type pairs.** Beyond closing the ordinal/proportion gaps,
-the Expanded rounds introduce: a **stepped-wedge cluster-randomized
-design** (`thrio`) and a **randomized-conjoint/factorial design**
-(`immigrationconjoint`, `train1`) not otherwise represented in this
-table's Design column; a real **time-varying-covariate** survival
-structure (`liver_cirrhosis_prednisone_df`); a real **treatment-crossover**
-survival structure (`immdef`, the Concorde AZT trial); and several new
-domains (education psychology, environmental economics, public-benefits
-policy, political science, ecology, plant pathology/agriculture,
-anesthesiology, obstetrics) alongside the Core table's existing medicine/
-economics/sociology coverage.
+Beyond closing the ordinal/proportion gaps, the Expanded rounds introduce:
+a **stepped-wedge cluster-randomized design** (`thrio`) and a
+**randomized-conjoint/factorial design** (`immigrationconjoint`, `train1`)
+not otherwise represented in this table's Design column; a real
+**time-varying-covariate** survival structure
+(`liver_cirrhosis_prednisone_df`); a real **treatment-crossover** survival
+structure (`immdef`, the Concorde AZT trial); and a large expansion of
+domains beyond the Core table's medicine/economics/sociology coverage —
+education psychology, environmental economics, public-benefits policy,
+political science, ecology, plant pathology/agriculture, anesthesiology,
+obstetrics, and (via round 5's textbook-companion veins) a wide swath of
+classic agricultural DOE/RCBD experiments spanning entomology, plant
+breeding, and food science.
 
 ## Notable extremes for grid-design purposes
 
