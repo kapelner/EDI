@@ -148,6 +148,7 @@ R/package_tests/testthat_bulk/test-simple-mean-difference-migration-golden.R,cor
 R/package_tests/testthat_bulk/test-simple-wilcox-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-data-and-tuning-policy-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-simulation-report-completed-state-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-report-finite-calibration-reference.R,correctness,1.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-spbr-integer-key.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-spbr-interleaved-redraw-contracts.R,correctness,1,measured_with_30_percent_headroom
@@ -548,6 +549,7 @@ R/package_tests/testthat_bulk/test-simple-mean-difference-migration-golden.R,cov
 R/package_tests/testthat_bulk/test-simple-wilcox-migration-golden.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-data-and-tuning-policy-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-simulation-report-completed-state-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-report-finite-calibration-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-spbr-integer-key.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-spbr-interleaved-redraw-contracts.R,coverage,240,bootstrap
