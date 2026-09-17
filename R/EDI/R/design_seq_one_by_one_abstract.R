@@ -84,7 +84,9 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 			}
 			j_with_NAs = is.na(unlist(x_new))
 			if (any(j_with_NAs) & private$t == 0){
-				x_new = x_new[which(!j_with_NAs)]
+				# Drop missing attributes, not subject rows: data.table's single
+				# bracket argument selects rows even when these are column indices.
+				x_new = x_new[, which(!j_with_NAs), with = FALSE]
 				if (!allow_new_cols){
 					warning("There is missing data in the first subject's covariate value(s). Setting the flag allow_new_cols = FALSE will disallow additional subjects")
 				}
@@ -103,6 +105,9 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 				colnames_Xraw = names(private$Xraw)
 				colnames_xnew = names(x_new)
 				if (setequal(colnames_Xraw, colnames_xnew)){
+					# Type checks describe attributes by name, even when the incoming
+					# subject supplies the established columns in a different order.
+					xnew_data_types = xnew_data_types[colnames_Xraw]
 					if (should_run_asserts()) {
 						idx_data_types_that_changed = which(xnew_data_types != Xraw_data_types)
 						if (length(idx_data_types_that_changed) > 0){
@@ -151,7 +156,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 				}
 			}
 			#add new subject's measurements to the raw data frame (there should be the same exact columns even if there are new ones introduced)
-			private$Xraw = rbindlist(list(private$Xraw, x_new))
+			private$Xraw = rbindlist(list(private$Xraw, x_new), use.names = TRUE)
 			private$p_raw_t = ncol(private$Xraw)
 			#iterate t
 			private$t = private$t + 1L #t must be an integer for data.table's fast "set" function below to work

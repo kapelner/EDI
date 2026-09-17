@@ -660,8 +660,12 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 						formula = private$main_formula(main_terms),
 						data = dat,
 						method = "logistic",
-						weights = dat$.bootstrap_weight__,
-						Hess = FALSE
+						# model.frame evaluates weights in the data and formula
+						# environments; dat is local to this method, but the
+						# weight column is present in the supplied data frame.
+						weights = .bootstrap_weight__,
+						Hess = FALSE,
+						control = list(reltol = 1e-10)
 					)
 				),
 				error = function(e) NULL

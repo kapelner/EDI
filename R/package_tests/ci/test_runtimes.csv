@@ -8,6 +8,7 @@ R/package_tests/testthat_bulk/test-bartlett-lr-approx-smoke-families.R,correctne
 R/package_tests/testthat_bulk/test-bartlett-lr-logit.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-bartlett-lr-plumbing.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-beta-helper-safeguard-references.R,correctness,2.2,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-bisection-tail-and-discontinuity-regressions.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-brt-smoothed-wilcox-ci-perf.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ci-rand.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-coin-cross-validation-location.R,correctness,120,bootstrap
@@ -112,7 +113,7 @@ R/package_tests/testthat_bulk/test-negative-binomial-empty-and-dispersion-refere
 R/package_tests/testthat_bulk/test-optimal-search-runtime-references.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-clmm-integrated-likelihood.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-gcomp-and-conditional-setup-contracts.R,correctness,120,bootstrap
-R/package_tests/testthat_bulk/test-ordinal-kk-clmm-boundaries-coverage.R,correctness,7.5,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-ordinal-kk-clmm-boundaries-coverage.R,correctness,1.7,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-cond-adj-cat-logit-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-superiority-and-model-contracts.R,correctness,120,bootstrap
@@ -132,7 +133,7 @@ R/package_tests/testthat_bulk/test-random-block-unbalanced-allocation.R,correctn
 R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-resampling-callback-recovery-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-extension-contracts.R,correctness,120,bootstrap
-R/package_tests/testthat_bulk/test-resampling-kernel-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-resampling-kernel-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-numerical-inversion.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-resampling-parallel-threshold-contracts.R,correctness,1.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-reservoir-statistic-boundary-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -141,18 +142,19 @@ R/package_tests/testthat_bulk/test-save-load-design.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-seed-determinism.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-sequential-design-branches.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-sequential-design-validation-contracts.R,correctness,120,bootstrap
-R/package_tests/testthat_bulk/test-sequential-evolving-schema-contracts.R,correctness,1.2,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-sequential-evolving-schema-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-estimator-migration-baseline.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simple-mean-difference-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simple-wilcox-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-data-and-tuning-policy-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-simulation-report-finite-calibration-reference.R,correctness,1.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-spbr-integer-key.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-spbr-interleaved-redraw-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-statistical-helper-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-stepwise-survival-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-stereotype-binary-and-empty-reference.R,correctness,1,measured_with_30_percent_headroom
-R/package_tests/testthat_bulk/test-stereotype-profile-and-randomization-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-stereotype-profile-and-randomization-reference.R,correctness,4.0,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-survival-glmm-weibull-frailty-loggamma-ivwc-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-survival-glmm-weibull-frailty-loggamma-onelik-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-survival-glmm-weibull-frailty-normal-ivwc-migration-golden.R,correctness,120,bootstrap
@@ -168,7 +170,8 @@ R/package_tests/testthat_bulk/test-survival-likelihood-and-baseline-hazard-contr
 R/package_tests/testthat_bulk/test-turnbull-disjoint-interval-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-utility-kernel-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-weibull-frailty-empty-and-censored-reference.R,correctness,2.0,measured_with_30_percent_headroom
-R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,correctness,1.2,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-weighted-ordinal-surrogate-cold-start-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,correctness,7.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,correctness,120,bootstrap
 R/EDI/tests/testthat/test-aa-fork-cluster-seed-determinism.R,coverage,30,bootstrap
@@ -405,6 +408,7 @@ R/package_tests/testthat_bulk/test-bartlett-lr-approx-smoke-families.R,coverage,
 R/package_tests/testthat_bulk/test-bartlett-lr-logit.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bartlett-lr-plumbing.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-helper-safeguard-references.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-bisection-tail-and-discontinuity-regressions.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-brt-smoothed-wilcox-ci-perf.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ci-rand.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coin-cross-validation-location.R,coverage,240,bootstrap
@@ -544,6 +548,7 @@ R/package_tests/testthat_bulk/test-simple-mean-difference-migration-golden.R,cov
 R/package_tests/testthat_bulk/test-simple-wilcox-migration-golden.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-data-and-tuning-policy-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-simulation-report-finite-calibration-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-spbr-integer-key.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-spbr-interleaved-redraw-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-statistical-helper-contracts.R,coverage,240,bootstrap
@@ -565,6 +570,7 @@ R/package_tests/testthat_bulk/test-survival-likelihood-and-baseline-hazard-contr
 R/package_tests/testthat_bulk/test-turnbull-disjoint-interval-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-utility-kernel-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-frailty-empty-and-censored-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-weighted-ordinal-surrogate-cold-start-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,coverage,240,bootstrap

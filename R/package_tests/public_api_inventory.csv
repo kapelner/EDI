@@ -7832,8 +7832,8 @@
 "InferenceRandCustom","r6_public_method","InferenceRandCustom","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceRandCustom","r6_public_method","InferenceRandCustom","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceRandCustom","r6_public_method","InferenceRandCustom","supports_rand_pval_for_incidence","InferenceCustomRand","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSuite","r6_class","InferenceSuite","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSuite","r6_public_method","InferenceSuite","clone","InferenceSuite","class_local",1,"deep",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceSuite","r6_class","InferenceSuite","","","",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceSuite","r6_public_method","InferenceSuite","clone","InferenceSuite","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSuite","r6_public_method","InferenceSuite","initialize","InferenceSuite","class_local",3,"des_obj;inference_params;model_formula",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSuite","r6_public_method","InferenceSuite","run_all_inference","InferenceSuite","class_local",18,"alpha;basic_bootstrap;classes;combined_evidence_estimands;combined_evidence_weighting;combined_evidence_weights;compute_conf_intervals;exclude_classes;formulas;html;max_secs_per_class;methods;num_cores;output_dir;pdf;plots;save_results_as_JSON;screen",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalCoxPHRegr","r6_class","InferenceSurvivalCoxPHRegr","","","",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE

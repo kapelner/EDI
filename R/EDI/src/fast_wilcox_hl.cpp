@@ -28,6 +28,12 @@ constexpr size_t kExactMedianMaterializeLimit = 4096;
 
 inline void check_user_interrupt() {
 #ifndef EDI_CORE_ONLY
+#ifdef _OPENMP
+    // R's interrupt machinery is restricted to the main R thread. Even
+    // OpenMP's primary thread must avoid R while other workers are active.
+    // A serialized one-thread region still polls normally, as do point fits.
+    if (omp_in_parallel()) return;
+#endif
     Rcpp::checkUserInterrupt();
 #endif
 }
@@ -402,6 +408,7 @@ NumericVector compute_wilcox_hl_bootstrap_parallel_cpp(SEXP w, SEXP y, const Eig
     omp_set_num_threads(num_cores);
 #endif
 
+    check_user_interrupt();
 #pragma omp parallel for schedule(dynamic)
     for (int b = 0; b < B; ++b) {
         const int* idx_col = idx_ptr + (size_t)b * n;
@@ -429,6 +436,7 @@ NumericVector compute_wilcox_hl_bootstrap_parallel_cpp(SEXP w, SEXP y, const Eig
         res_ptr[b] = hl_from_groups(std::move(y_t), std::move(y_c));
     }
 
+    check_user_interrupt();
     return wrap(results_vec);
 }
 
@@ -471,6 +479,7 @@ NumericVector compute_wilcox_hl_distr_parallel_cpp(const Eigen::Map<Eigen::Matri
     omp_set_num_threads(num_cores);
 #endif
 
+    check_user_interrupt();
 #pragma omp parallel for schedule(dynamic)
     for (int b = 0; b < nsim; ++b) {
         const int* w_col = w_ptr + (size_t)b * n;
@@ -492,6 +501,7 @@ NumericVector compute_wilcox_hl_distr_parallel_cpp(const Eigen::Map<Eigen::Matri
         res_ptr[b] = hl_from_groups(std::move(y_t), std::move(y_c));
     }
 
+    check_user_interrupt();
     return wrap(results_vec);
 }
 
@@ -526,6 +536,7 @@ NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(SEXP w, SEXP y
     omp_set_num_threads(num_cores);
 #endif
 
+    check_user_interrupt();
 #pragma omp parallel for schedule(dynamic)
     for (int b = 0; b < B; ++b) {
         const int* idx_col = idx_ptr + (size_t)b * n;
@@ -576,6 +587,7 @@ NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(SEXP w, SEXP y
         }
     }
 
+    check_user_interrupt();
     return wrap(results_vec);
 }
 
@@ -619,6 +631,7 @@ NumericVector compute_wilcox_hl_rand_bootstrap_parallel_cpp( const Eigen::Map<Ei
     omp_set_num_threads(num_cores);
 #endif
 
+    check_user_interrupt();
 #pragma omp parallel for schedule(dynamic)
     for (int b = 0; b < nsim; ++b) {
         const int* i_col = i_ptr + (size_t)b * n;
@@ -642,6 +655,7 @@ NumericVector compute_wilcox_hl_rand_bootstrap_parallel_cpp( const Eigen::Map<Ei
         res_ptr[b] = hl_from_groups(std::move(y_t), std::move(y_c));
     }
 
+    check_user_interrupt();
     return wrap(results_vec);
 }
 #endif // EDI_CORE_ONLY

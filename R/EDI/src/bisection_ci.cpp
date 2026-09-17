@@ -1,5 +1,6 @@
 #include <RcppEigen.h>
 #include <cmath>
+#include "bisection_ci_search.h"
 
 // [[Rcpp::depends(RcppEigen)]]
 
@@ -39,57 +40,13 @@ NumericVector bisection_ci_parallel_cpp(
 	std::string transform_responses,
 	int num_cores = 1
 ) {
-	NumericVector ci_bounds(2);
-
-	// --- Lower CI bound ---
-	{
-	double l = l_lower;
-	double u = u_lower;
-
-	Rcpp::checkUserInterrupt();
-	double pval_l = as<double>(pval_fn(r, l, transform_responses, num_cores));
-	Rcpp::checkUserInterrupt();
-	double pval_u = as<double>(pval_fn(r, u, transform_responses, num_cores));
-	Rcpp::checkUserInterrupt();
-
-	while (R_finite(pval_l) && R_finite(pval_u) && (pval_u - pval_l) > tol) {
-		Rcpp::checkUserInterrupt();
-		double m = (l + u) / 2.0;
-		double pval_m = as<double>(pval_fn(r, m, transform_responses, num_cores));
-		Rcpp::checkUserInterrupt();
-
-		if (!R_finite(pval_m)) { l = m; pval_l = 0.0; }
-		else if (pval_m >= pval_th) { u = m; pval_u = pval_m; }
-		else                        { l = m; pval_l = pval_m; }
-	}
-	ci_bounds[0] = l;
-	}
-
-	// --- Upper CI bound ---
-	{
-	double l = l_upper;
-	double u = u_upper;
-
-	Rcpp::checkUserInterrupt();
-	double pval_l = as<double>(pval_fn(r, l, transform_responses, num_cores));
-	Rcpp::checkUserInterrupt();
-	double pval_u = as<double>(pval_fn(r, u, transform_responses, num_cores));
-	Rcpp::checkUserInterrupt();
-
-	while (R_finite(pval_l) && R_finite(pval_u) && (pval_u - pval_l) > tol) {
-		Rcpp::checkUserInterrupt();
-		double m = (l + u) / 2.0;
-		double pval_m = as<double>(pval_fn(r, m, transform_responses, num_cores));
-		Rcpp::checkUserInterrupt();
-
-		if (!R_finite(pval_m)) { u = m; pval_u = 0.0; }
-		else if (pval_m >= pval_th) { l = m; pval_l = pval_m; }
-		else                        { u = m; pval_u = pval_m; }
-	}
-	ci_bounds[1] = u;
-	}
-
-	return ci_bounds;
+	auto pvalue = [&](double delta) {
+		return as<double>(pval_fn(r, delta, transform_responses, num_cores));
+	};
+	NumericVector bounds(2);
+	bounds[0] = edi::bisection_ci_search(pvalue, l_lower, u_lower, pval_th, tol, true);
+	bounds[1] = edi::bisection_ci_search(pvalue, l_upper, u_upper, pval_th, tol, false);
+	return bounds;
 }
 
 
@@ -108,26 +65,8 @@ double bisection_ci_single_bound_cpp(
 	bool lower,
 	int num_cores = 1
 ) {
-	Rcpp::checkUserInterrupt();
-	double pval_l = as<double>(pval_fn(r, l, transform_responses, num_cores));
-	Rcpp::checkUserInterrupt();
-	double pval_u = as<double>(pval_fn(r, u, transform_responses, num_cores));
-	Rcpp::checkUserInterrupt();
-
-	while (R_finite(pval_l) && R_finite(pval_u) && (pval_u - pval_l) > tol) {
-	Rcpp::checkUserInterrupt();
-	double m = (l + u) / 2.0;
-	double pval_m = as<double>(pval_fn(r, m, transform_responses, num_cores));
-	Rcpp::checkUserInterrupt();
-
-	if (!R_finite(pval_m)) {
-		if (lower) { l = m; pval_l = 0.0; }
-		else       { u = m; pval_u = 0.0; }
-	} else if (pval_m >= pval_th && lower)  { u = m; pval_u = pval_m; }
-	else if   (pval_m >= pval_th && !lower) { l = m; pval_l = pval_m; }
-	else if   (lower)                       { l = m; pval_l = pval_m; }
-	else                                    { u = m; pval_u = pval_m; }
-	}
-
-	return lower ? l : u;
+	auto pvalue = [&](double delta) {
+		return as<double>(pval_fn(r, delta, transform_responses, num_cores));
+	};
+	return edi::bisection_ci_search(pvalue, l, u, pval_th, tol, lower);
 }

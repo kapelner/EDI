@@ -36,7 +36,7 @@ already-installed package, without compilation:
   reservoir and Fisher-combined p-values, bracketing fallbacks, failed estimates,
   validation and a completed KK quantile inference workflow.
 
-**Continued batches (2026-09-16):** the first 30 added files now pass 494
+**Continued batches (2026-09-16):** the first 34 added files now pass 608
 assertions through the shard runner. Further tests cover callback recovery and
 joint survival-field resampling, R bootstrap CI missing-value recovery/deadlines,
 KK compound inverse-variance weighting, independently calculated KK Wilcoxon
@@ -60,7 +60,12 @@ Local continuation adds binary/no-covariate adjacent-category and stereotype
 likelihood references, disjoint-interval Turnbull statistics, independently
 integrated Weibull frailty likelihood derivatives, weighted Poisson estimates
 and uncertainty, interleaved SPBR redraws, partial-odds backend diagnostics,
-reservoir variance boundaries, and negative-binomial dispersion profiling.
+reservoir variance boundaries, negative-binomial dispersion profiling,
+Cauchy combined-evidence grouping, adjacent-category randomization against
+independent multinomial fits, and binary stereotype profile/randomization
+likelihoods against logistic regression, plus simulation-report finite-value
+denominators, exact calibration p-values, custom-null classification, compressed
+result imports and empty-file handling.
 The partial-odds weighted MASS fallback exposed another data-environment defect;
 its failing statistical regression is also preserved in the findings report.
 

@@ -775,13 +775,15 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
     stats_env = new.env(parent = emptyenv())
     required = c("base_class", "function_run", "n", "nonestimable", "rate")
     if (is.null(rates) || !all(required %in% names(rates))) return(stats_env)
+    has_design_refused = "design_refused" %in% names(rates)
     for (i in seq_len(nrow(rates))) {
       assign(
         paste(rates$base_class[i], rates$function_run[i], sep = "||"),
         list(
           n = as.integer(rates$n[i]),
           nonestimable = as.integer(rates$nonestimable[i]),
-          rate = as.numeric(rates$rate[i])
+          rate = as.numeric(rates$rate[i]),
+          design_refused = if (has_design_refused) isTRUE(rates$design_refused[i]) else FALSE
         ),
         envir = stats_env
       )
@@ -827,11 +829,40 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
   if (!all(required %in% names(dt))) return(load_default_stats())
   dt[, base_class := sub(" [\\(\\[].*$", "", inference_class)]
   dt[, explicit_nonestimable := grepl("^Explicitly non-estimable", error_message)]
+  # Two DIFFERENT reasons a row can carry status == "error", conflated until
+  # 2026-09-17 (found via a comprehensive_tests results audit): (1) a
+  # structural design/method incompatibility -- apply_inference_design_
+  # restrictions()'s DesignSeqOneByOne stub (inference_class_registry.R),
+  # which stop()s with this exact literal message for every nonparametric-
+  # bootstrap-family call on a non-Bernoulli DesignSeqOneByOne-family design
+  # -- and (2) everything else (a genuine bug, or a legitimate but
+  # non-design "Explicitly non-estimable" self-report). Neither used to be
+  # distinguished from a clean "ok" row: this metric only ever subtracted
+  # the "Explicitly non-estimable" self-report from the numerator, so (1)
+  # and any OTHER kind of error (e.g. a missing composition hook throwing
+  # "attempt to apply non-function") both silently counted as if they were
+  # successful attempts, showing 100% estimable/green regardless of how
+  # badly a path was actually failing. Design-refused rows (1) are now
+  # excluded from `n` entirely (they were never really "attempted" for
+  # estimability purposes) -- a cell where EVERY observed row was this
+  # exact refusal collapses to n == 0, flagged via `design_refused` below
+  # and rendered as unsupported/NTS by maybe_status() rather than "unknown"
+  # or a misleadingly-inflated percentage. Every other error (2), self-
+  # reported or not, now counts against the numerator -- "estimability"
+  # means "produced a usable result," and an uncaught exception did not.
+  dt[, design_refused_row := !is.na(status) & status == "error" &
+    !is.na(error_message) & error_message == "This method is not supported for DesignSeqOneByOne designs."]
+  dt[, failed_row := if ("status" %in% names(dt)) {
+    !design_refused_row & (explicit_nonestimable | (!is.na(status) & status == "error"))
+  } else {
+    explicit_nonestimable
+  }]
   rates = dt[, .(
-    n = .N,
-    nonestimable = sum(explicit_nonestimable, na.rm = TRUE)
+    n = sum(!design_refused_row),
+    nonestimable = sum(failed_row, na.rm = TRUE)
   ), by = .(base_class, function_run)]
   rates[, rate := data.table::fifelse(n > 0L, nonestimable / n, NA_real_)]
+  rates[, design_refused := n == 0L]
   data.table::setorder(rates, base_class, function_run)
   maybe_update_default_stats(rates)
   stats_env = stats_env_from_rates(rates)
@@ -855,18 +886,20 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
     )
   )]
   rates_by_formula = dt[!is.na(formula_w), .(
-    n = .N,
-    nonestimable = sum(explicit_nonestimable, na.rm = TRUE)
+    n = sum(!design_refused_row),
+    nonestimable = sum(failed_row, na.rm = TRUE)
   ), by = .(base_class, formula_w, function_run)]
   if (nrow(rates_by_formula)) {
     rates_by_formula[, rate := data.table::fifelse(n > 0L, nonestimable / n, NA_real_)]
+    rates_by_formula[, design_refused := n == 0L]
     for (i in seq_len(nrow(rates_by_formula))) {
       assign(
         paste(rates_by_formula$base_class[i], rates_by_formula$formula_w[i], rates_by_formula$function_run[i], sep = "||"),
         list(
           n = as.integer(rates_by_formula$n[i]),
           nonestimable = as.integer(rates_by_formula$nonestimable[i]),
-          rate = as.numeric(rates_by_formula$rate[i])
+          rate = as.numeric(rates_by_formula$rate[i]),
+          design_refused = isTRUE(rates_by_formula$design_refused[i])
         ),
         envir = stats_env
       )
@@ -1130,6 +1163,7 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
     NULL
   }
   maybe_status = function(info) {
+    if (!is.null(info) && isTRUE(info$design_refused)) return("unsupported")
     if (is.null(info) || !is.finite(info$rate)) return("maybe_unknown")
     if (info$rate <= 0) return("maybe_0")
     if (info$rate <= 0.05) return("maybe_low")

@@ -173,6 +173,16 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
           inference_type = character(), MSE = numeric(),
           n_est = integer(), power = numeric(), n_pow = integer()
         )
+        # A completed run can have valid cells whose every worker failed.
+        # Retain the requested metric schema so their missing values can be
+        # joined onto the reference grid just like partially observed cells.
+        if (report_cov) {
+          agg[, `:=`(coverage = numeric(), n_cov = integer(),
+                     ci_length = numeric(), coverage_pval = numeric())]
+        }
+        if (report_pow) {
+          agg[, `:=`(size = numeric(), n_size = integer(), size_pval = numeric())]
+        }
       }
       # ── Right-join: every valid combo appears, NA for those with no data ──────
       data.table::setkeyv(agg,      by_cols)
@@ -184,6 +194,7 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
       result[is.na(n_est),  n_est  := 0L]
       result[is.na(n_pow),  n_pow  := 0L]
       result[is.na(n_size), n_size := 0L]
+      if ("n_cov" %in% names(result)) result[is.na(n_cov), n_cov := 0L]
       result[order(cond_exp_func_model, n, p, betaT, design, inference, inference_type)]
     },
     #' @description Print a concise summary of the report.

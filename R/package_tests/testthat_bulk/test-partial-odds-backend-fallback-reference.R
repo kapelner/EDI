@@ -57,3 +57,17 @@ test_that("partial odds retains a point estimate when every standard error is un
   expect_true(all(is.na(fixture$inf$compute_asymp_confidence_interval())))
   expect_true(is.na(fixture$inf$compute_asymp_two_sided_pval()))
 })
+
+test_that("weighted partial odds MASS fallback preserves a common armwise odds shift", {
+  fixture <- partial_odds_fallback_fixture()
+  p <- fixture$private
+  p$current_bayesian_bootstrap_context <- p$build_bayesian_bootstrap_context()
+  # Each arm's category proportions stay fixed when its subjects share a weight.
+  # Both cumulative-logit treatment shifts therefore remain exactly log(3).
+  weights <- rep(c(2, 3), each = 20L)
+  expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(weights),
+               log(3), tolerance = 5e-4)
+  expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(5 * weights),
+               log(3), tolerance = 5e-4)
+  expect_true(is.na(p$cached_values$s_beta_hat_T))
+})

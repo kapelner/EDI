@@ -167,6 +167,10 @@ weighted_ordinal_bootstrap_surrogate_fit = function(X, y, row_weights, method = 
   X_fit = X[ok, , drop = FALSE]
   y_fit = y_num[ok]
   w_fit = row_weights[ok]
+  # A common weight factor does not change the coefficient likelihood optimum.
+  # Normalize it so polr's initial GLM and stopping rule see the same problem
+  # after a Bayesian-bootstrap draw is multiplied by an arbitrary scale.
+  w_fit = w_fit / mean(w_fit)
   if (is.null(colnames(X_fit))) {
     colnames(X_fit) = paste0("x", seq_len(ncol(X_fit)))
   }
@@ -177,16 +181,22 @@ weighted_ordinal_bootstrap_surrogate_fit = function(X, y, row_weights, method = 
   y_levels = sort(unique(y_fit))
   dat$y_ord = ordered(y_fit, levels = y_levels)
   fit_polr = function(start = NULL) {
+    args = list(
+      formula = y_ord ~ .,
+      data = dat,
+      weights = w_fit,
+      method = method,
+      Hess = FALSE,
+      # Keep the restored ordinal fit close to its likelihood optimum even
+      # for the flatter cauchit link under unequal bootstrap weights.
+      control = list(reltol = 1e-10)
+    )
+    # polr uses missing(start) to select its cold-start initialization;
+    # explicitly passing NULL instead rejects the starting-vector length.
+    if (!is.null(start)) args$start = start
     tryCatch(
       suppressWarnings(
-        MASS::polr(
-          y_ord ~ .,
-          data = dat,
-          weights = w_fit,
-          method = method,
-          Hess = FALSE,
-          start = start
-        )
+        do.call(MASS::polr, args)
       ),
       error = function(e) NULL
     )

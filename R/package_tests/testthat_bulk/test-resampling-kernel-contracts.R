@@ -149,16 +149,17 @@ test_that("bisection kernels call the requested interfaces and return bounded va
 		delta
 	}
 	expect_equal(EDI:::bisection_ci_loop_cpp(pval3, 7L, 0, 1, 0.5, 0.01, "none", TRUE), 0.5, tolerance = 0.02)
-	expect_equal(EDI:::bisection_ci_loop_cpp(pval3, 7L, 0, 1, 0.5, 0.01, "none", FALSE), 1, tolerance = 0.02)
+	pval3_upper = function(r, delta, transform_responses) pval3(r, 1 - delta, transform_responses)
+	expect_equal(EDI:::bisection_ci_loop_cpp(pval3_upper, 7L, 0, 1, 0.5, 0.01, "none", FALSE), 0.5, tolerance = 0.02)
 
 	pval4 = function(r, delta, transform_responses, num_cores) {
 		expect_identical(c(r, num_cores), c(9L, 3L))
 		expect_identical(transform_responses, "log")
-		delta
+		1 - abs(delta)
 	}
-	parallel = EDI:::bisection_ci_parallel_cpp(pval4, 9L, 0, 1, 0, 1, 0.5, 0.01, "log", 3L)
-	expect_equal(parallel, c(0.5, 1), tolerance = 0.02)
-	expect_equal(EDI:::bisection_ci_single_bound_cpp(pval4, 9L, 0, 1, 0.5, 0.01, "log", TRUE, 3L), 0.5, tolerance = 0.02)
+	parallel = EDI:::bisection_ci_parallel_cpp(pval4, 9L, -1, 0, 0, 1, 0.5, 0.01, "log", 3L)
+	expect_equal(parallel, c(-0.5, 0.5), tolerance = 0.02)
+	expect_equal(EDI:::bisection_ci_single_bound_cpp(pval4, 9L, -1, 0, 0.5, 0.01, "log", TRUE, 3L), -0.5, tolerance = 0.02)
 
 	nonfinite_endpoint = function(r, delta, transform_responses, num_cores) NA_real_
 	expect_equal(EDI:::bisection_ci_single_bound_cpp(nonfinite_endpoint, 1L, 0, 1, 0.5, 0.01, "none", TRUE, 1L), 0)
