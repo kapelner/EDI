@@ -15,7 +15,7 @@ default_output = file.path(package_tests_dir, "coverage_gap_registry.csv")
 registry_columns = c(
 	"file", "coverage_percent", "covered_lines", "coverable_lines",
 	"weighted_opportunity", "category", "owning_todo", "status",
-	"baseline_commit", "measured_at", "notes"
+	"baseline_commit", "measured_commit", "measured_at", "notes"
 )
 
 empty_registry = function() {
@@ -29,24 +29,39 @@ empty_registry = function() {
 
 read_coverage_rows = function(path) {
 	if (!file.exists(path)) stop("Coverage input does not exist: ", path, call. = FALSE)
+	provenance = list()
 	if (grepl("\\.rds$", path, ignore.case = TRUE)) {
 		coverage = readRDS(path)
-		rows = tryCatch(as.data.frame(coverage), error = function(e) {
-			stop("Could not convert the saved coverage object with as.data.frame(): ", conditionMessage(e), call. = FALSE)
-		})
+		# CI shard/merged reports wrap the covr object with measurement metadata.
+		if (is.list(coverage) && !inherits(coverage, "coverage") && "coverage" %in% names(coverage)) {
+			provenance = coverage[intersect(c("commit", "measured_at"), names(coverage))]
+			coverage = coverage$coverage
+		}
+		rows = covr::tally_coverage(coverage, by = "line")
 	} else {
 		rows = read.csv(path, stringsAsFactors = FALSE, na.strings = c("NA"))
+		if (!"filename" %in% names(rows) && "file" %in% names(rows)) rows$filename = rows$file
+		if (!"value" %in% names(rows)) {
+			value_col = intersect(c("hits", "count"), names(rows))
+			if (length(value_col)) rows$value = rows[[value_col[[1L]]]]
+		}
+		if (nrow(rows) && !"line" %in% names(rows) && !all(c("first_line", "last_line", "functions") %in% names(rows))) {
+			stop("Coverage CSV needs line or covr expression source spans; counter rows are not source lines.", call. = FALSE)
+		}
+		rows = covr::tally_coverage(rows, by = "line")
 	}
-	filename_col = intersect(c("filename", "file"), names(rows))
-	value_col = intersect(c("value", "hits", "count"), names(rows))
-	if (!length(filename_col) || !length(value_col)) {
-		stop("Coverage rows need filename/file and value/hits/count columns.", call. = FALSE)
+	if (!nrow(rows)) {
+		out = data.frame(file = character(), line = integer(), value = numeric())
+	} else {
+		if (!all(c("filename", "line", "value") %in% names(rows))) stop("Coverage rows need filename, line and value.", call. = FALSE)
+		rows$file = normalize_coverage_path(as.character(rows$filename))
+		rows$value = suppressWarnings(as.numeric(rows$value))
+		rows = rows[!is.na(rows$value) & !is.na(rows$file) & nzchar(rows$file) & !is.na(rows$line), , drop = FALSE]
+		# Multiple functions/counters can share a physical source line.
+		out = if (nrow(rows)) aggregate(value ~ file + line, rows, max) else data.frame(file = character(), line = integer(), value = numeric())
 	}
-	rows$file = as.character(rows[[filename_col[[1L]]]])
-	rows$value = suppressWarnings(as.numeric(rows[[value_col[[1L]]]]))
-	rows = rows[!is.na(rows$value) & nzchar(rows$file), c("file", "value"), drop = FALSE]
-	rows$file = normalize_coverage_path(rows$file)
-	rows[nzchar(rows$file), , drop = FALSE]
+	attr(out, "provenance") = provenance
+	out
 }
 
 normalize_coverage_path = function(path) {
@@ -57,7 +72,8 @@ normalize_coverage_path = function(path) {
 	path
 }
 
-summarize_coverage = function(rows, threshold = 80) {
+summarize_coverage = function(rows) {
+	if (!nrow(rows)) return(empty_registry()[, registry_columns[1:5], drop = FALSE])
 	by_file = split(rows$value, rows$file)
 	out = do.call(rbind, lapply(names(by_file), function(file) {
 		values = by_file[[file]]
@@ -73,7 +89,6 @@ summarize_coverage = function(rows, threshold = 80) {
 			stringsAsFactors = FALSE
 		)
 	}))
-	out = out[is.na(out$coverage_percent) | out$coverage_percent < threshold, , drop = FALSE]
 	out[order(-out$weighted_opportunity, out$file), , drop = FALSE]
 }
 
@@ -111,23 +126,34 @@ default_triage = function(file, coverage_percent) {
 	c(category = "unclassified", owning_todo = "TODO-1", status = "triage_needed", notes = "")
 }
 
-merge_triage = function(summary, prior = empty_registry()) {
-	triage = t(vapply(seq_len(nrow(summary)), function(i) {
-		default_triage(summary$file[[i]], summary$coverage_percent[[i]])
-	}, character(4L)))
-	registry = cbind(summary, as.data.frame(triage, stringsAsFactors = FALSE))
-	registry$baseline_commit = ""
-	registry$measured_at = ""
-	if (nrow(prior)) {
+merge_triage = function(summary, prior = empty_registry(), threshold = 80,
+	measured_commit = "", measured_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")) {
+	# Keep tracked files when they reach the threshold; newly well-covered files
+	# do not need backlog entries. Unmeasured historical rows stay unchanged.
+	summary = summary[summary$coverage_percent < threshold | summary$file %in% prior$file, , drop = FALSE]
+	registry = empty_registry()
+	if (nrow(summary)) {
+		triage = t(vapply(seq_len(nrow(summary)), function(i) {
+			default_triage(summary$file[[i]], summary$coverage_percent[[i]])
+		}, character(4L)))
+		registry = cbind(summary, as.data.frame(triage, stringsAsFactors = FALSE))
+		registry$baseline_commit = rep(measured_commit, nrow(registry))
+		registry$measured_commit = rep(measured_commit, nrow(registry))
+		registry$measured_at = rep(measured_at, nrow(registry))
 		matched = match(registry$file, prior$file)
 		keep = !is.na(matched)
-		for (column in c("category", "owning_todo", "status", "baseline_commit", "measured_at", "notes")) {
+		for (column in intersect(c("category", "owning_todo", "status", "baseline_commit", "notes"), names(prior))) {
 			old = as.character(prior[[column]][matched[keep]])
 			nonblank = !is.na(old) & nzchar(old)
 			registry[[column]][which(keep)[nonblank]] = old[nonblank]
 		}
+		registry$status[registry$coverage_percent >= threshold & registry$status != "excluded"] = "addressed"
+		registry$status[registry$coverage_percent < threshold & registry$status == "addressed"] = "pending"
 	}
-	registry[, registry_columns, drop = FALSE]
+	missing = prior[!prior$file %in% summary$file, , drop = FALSE]
+	for (column in setdiff(registry_columns, names(missing))) missing[[column]] = rep("", nrow(missing))
+	registry = rbind(registry[, registry_columns, drop = FALSE], missing[, registry_columns, drop = FALSE])
+	registry[order(-registry$weighted_opportunity, registry$file, na.last = TRUE), , drop = FALSE]
 }
 
 validate_registry = function(registry) {
@@ -144,15 +170,19 @@ validate_registry = function(registry) {
 
 main = function(args = commandArgs(TRUE)) {
 	if (!length(args)) {
-		stop("Usage: Rscript coverage_gap_registry.R <coverage.rds|coverage.csv> [output.csv] [threshold]", call. = FALSE)
+		stop("Usage: Rscript coverage_gap_registry.R <coverage.rds|coverage.csv> [output.csv] [threshold] [measured_commit] [measured_at]", call. = FALSE)
 	}
 	input = args[[1L]]
-	output = args[[2L]] %||% default_output
-	threshold = as.numeric(args[[3L]] %||% "80")
+	arg = function(i, default) if (length(args) >= i) args[[i]] else default
+	output = arg(2L, default_output)
+	threshold = as.numeric(arg(3L, "80"))
 	if (!is.finite(threshold) || threshold <= 0 || threshold > 100) stop("threshold must be in (0, 100].", call. = FALSE)
 	prior = if (file.exists(output)) read.csv(output, stringsAsFactors = FALSE, na.strings = character()) else empty_registry()
-	registry = merge_triage(summarize_coverage(read_coverage_rows(input), threshold), prior)
-	registry$measured_at[!nzchar(registry$measured_at)] = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+	rows = read_coverage_rows(input)
+	provenance = attr(rows, "provenance")
+	registry = merge_triage(summarize_coverage(rows), prior, threshold,
+		measured_commit = arg(4L, provenance$commit %||% ""),
+		measured_at = arg(5L, provenance$measured_at %||% format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")))
 	validate_registry(registry)
 	write.csv(registry, output, row.names = FALSE, na = "")
 	message("Wrote ", nrow(registry), " coverage-gap rows to ", output)

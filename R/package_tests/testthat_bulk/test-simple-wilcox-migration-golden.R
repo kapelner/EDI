@@ -266,28 +266,16 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		list(delta = 0, r = 9L, show_progress = FALSE),
 		NA_real_
 	)
-	expect_kk_wilcox_golden(
-		"bootstrap distribution",
-		"approximate_bootstrap_distribution_beta_hat_T",
-		list(B = 9L, show_progress = FALSE),
-		c(
-			0.162770443726146, 0.168268815719947, 0.162770443726146,
-			0.233661806927101, 0.163126525345601, 0.168268815719947, NA_real_,
-			-0.070932487658478, 0.162770443726146
-		)
-	)
-	expect_kk_wilcox_golden(
-		"bootstrap confidence interval",
-		"compute_bootstrap_confidence_interval",
-		list(alpha = 0.2, B = 9L, show_progress = FALSE),
-		c(`10%` = 0.157787853101872, `90%` = 0.167753034350421)
-	)
-	expect_kk_wilcox_golden(
-		"bootstrap p-value",
-		"compute_bootstrap_two_sided_pval",
-		list(delta = 0, B = 9L, show_progress = FALSE),
-		NA_real_
-	)
+	# Ordinary nonparametric bootstrap was intentionally disabled for adaptive
+	# sequential designs; randomization/bootstrap-randomization remain supported.
+	obj = InferenceAllKKWilcoxIVWC$new(kk_wilcox_golden_design())
+	expect_false(obj$supports("nonparametric_bootstrap"))
+	expect_error(obj$approximate_bootstrap_distribution_beta_hat_T(B = 9L, show_progress = FALSE),
+		"This method is not supported for DesignSeqOneByOne designs.", fixed = TRUE)
+	expect_error(obj$compute_bootstrap_confidence_interval(alpha = 0.2, B = 9L, show_progress = FALSE),
+		"This method is not supported for DesignSeqOneByOne designs.", fixed = TRUE)
+	expect_error(obj$compute_bootstrap_two_sided_pval(delta = 0, B = 9L, show_progress = FALSE),
+		"This method is not supported for DesignSeqOneByOne designs.", fixed = TRUE)
 	expect_kk_wilcox_golden(
 		"randomization bootstrap distribution",
 		"approximate_rand_bootstrap_distribution_beta_hat_T",

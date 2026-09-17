@@ -14,9 +14,68 @@
 ## Status
 
 **Current coverage: 64.79%** (run against commit `d41880c1`, 2026-08-28 --
-the first successful upload after the pipeline fixes above). Not yet
-started: this plan is triage + a phased backlog, no implementation has
-landed yet.
+the first successful upload after the pipeline fixes above). This remains
+the historical measured baseline; new tests do not establish a new percentage
+until the instrumented coverage workflow runs.
+
+**First test-writing batch (2026-09-16):** five focused bulk files add 99 passing
+assertions, validated together through `ci/run_selected_tests.R` against the
+already-installed package, without compilation:
+
+- `test-resampling-parallel-threshold-contracts.R`: cross the real parallel
+  work thresholds for OLS, ridit and Wilcoxon kernels; check bootstrap indexing,
+  noisy random-bootstrap fits, degenerate resamples and nonfinite bisection
+  midpoints against independent R references.
+- `test-jonckheere-exact-enumeration.R`: exact ordinal tails against exhaustive
+  individual allocations, including ties, unequal arms and repeated calls.
+- `test-matching-ols-degenerate-geometry.R`: pair-only, reservoir-only and
+  zero-covariate combined OLS designs, with an independent treatment estimate.
+- `test-random-block-unbalanced-allocation.R`: interleaved strata, rounded
+  treatment probability, reproducibility, all-control and empty streams.
+- `test-quantile-rand-ci-coverage.R`: analytic inversion references for matched,
+  reservoir and Fisher-combined p-values, bracketing fallbacks, failed estimates,
+  validation and a completed KK quantile inference workflow.
+
+**Continued batches (2026-09-16):** the first 30 added files now pass 494
+assertions through the shard runner. Further tests cover callback recovery and
+joint survival-field resampling, R bootstrap CI missing-value recovery/deadlines,
+KK compound inverse-variance weighting, independently calculated KK Wilcoxon
+statistics and sharp-null transformations, survival stepwise OLS fallback,
+beta boundary safeguards, ordinal CLMM integrated likelihood/score/curvature,
+sparse matching data and invariant-column filtering, sequential covariate
+schema changes, gcomp risk-ratio log-scale resampling and weighted RMST with
+Greenwood-to-bootstrap fallback. Local timings continue to feed the correctness
+manifest; coverage runtimes remain unmeasured conservative defaults.
+
+The latest batch adds endpoint-only zero-one-inflated beta score/Hessian
+references, weighted hurdle Poisson GLMM likelihood/score/Hessian references,
+KK CLMM response-cardinality diagnostics, and serial Hodges-Lehmann bootstrap
+pairwise-median references. An unfinished nonlogit weighted CLMM comparison
+exposed a cold-start fitting defect; its failing regression is preserved in the
+findings report rather than weakening its statistical reference or leaving the
+bulk suite failing. The three delegated agents subsequently hit the account
+usage limit; the remaining written files were reviewed and validated locally.
+
+Local continuation adds binary/no-covariate adjacent-category and stereotype
+likelihood references, disjoint-interval Turnbull statistics, independently
+integrated Weibull frailty likelihood derivatives, weighted Poisson estimates
+and uncertainty, interleaved SPBR redraws, partial-odds backend diagnostics,
+reservoir variance boundaries, and negative-binomial dispersion profiling.
+The partial-odds weighted MASS fallback exposed another data-environment defect;
+its failing statistical regression is also preserved in the findings report.
+
+Separate defects and historical triage corrections are recorded in
+[`coverage_gap_findings_20260916.md`](../reports/coverage_gap_findings_20260916.md).
+No production fixes or exclusions are included in these test-writing batches.
+
+The runtime manifest includes every new file in both correctness and coverage
+tiers. Correctness estimates use measured local timings with 30% headroom;
+coverage estimates remain conservative, unmeasured defaults. Both shard planners
+validate. The TODO-4 Bai classes already have migration goldens under their current
+names, `InferenceBaiAdjustedTKK14` and `InferenceBaiAdjustedTKK21`; ordinary mixed
+quantile CI workflows also already have migration tests. The additions target
+missing branches rather than duplicating those goldens. Registry entries remain
+`in_progress` until a real coverage measurement confirms movement.
 
 ## Investigation summary (2026-08-29)
 
@@ -84,6 +143,39 @@ is explicitly not the target** -- see Non-goals below.
   (a `package_tests/*.R` script reading the covr output), so it can be
   drift-checked in CI the same way, rather than hand-maintained and going
   stale.
+
+
+  **TODO-2 progress (2026-09-16):** The generator now tallies unique source
+  lines with `covr::tally_coverage(..., by = "line")`, handles omitted CLI
+  arguments and empty reports, reads bare covr objects and CI report wrappers,
+  refreshes `measured_commit`/`measured_at`, and preserves baseline provenance
+  and manual triage. Tracked files reaching the threshold remain `addressed`;
+  a later regression reopens them as `pending`. Files absent from a measurement
+  retain their previous numbers and provenance. `excluded` remains a manual
+  decision. A new report's measured commit never inherits the previous commit;
+  it stays blank if the input provides no commit and no override is supplied.
+
+  Usage from the repository root (report processing does not compile):
+  `Rscript R/package_tests/coverage_gap_registry.R <report.rds|report.csv> [output.csv] [threshold=80] [measured_commit] [measured_at]`.
+  For CSV, provide either `filename,line,value` line rows or covr's expression
+  source-span columns. Bare reports/CSVs default to the processing time in UTC;
+  supply the actual measurement time and commit explicitly when known.
+
+  The scheduled coverage workflow regenerates a candidate CSV from all merged
+  shards, compares backlog fields against the tracked CSV (excluding changing
+  measurement provenance), warns on drift in the job summary, and uploads the
+  candidate plus `coverage-registry-drift.txt` as the `coverage-registry`
+  artifact. It does not automatically commit measurements. Standalone
+  regression checks run in CI and locally with
+  `Rscript R/package_tests/ci/test_coverage_gap_registry.R`.
+
+  **Still pending:** replace the 31 historical seed rows with the full backlog
+  from a complete, provenance-bearing coverage run, including measured line
+  counts and all files below 80%, then review the new files' categories/owners
+  (TODO-1). The available local full report has no measured-commit provenance;
+  the corrected local report inspected is only one shard. Neither establishes
+  a verified full refresh. TODO-2 remains in progress until that candidate is
+  reviewed and committed.
 
 ### Phase 2: Zero-coverage files (highest ROI -- 31 whole files)
 

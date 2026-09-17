@@ -22,6 +22,7 @@ if (tier == "correctness") {
 	coverage = covr::package_coverage(file.path(root, "R/EDI"), type = "none",
 		code = code, relative_path = root, quiet = FALSE)
 	saveRDS(list(commit = Sys.getenv("GITHUB_SHA"), covr_version = as.character(packageVersion("covr")),
-		shard = jsonlite::fromJSON(shard_file)$shard, coverage = coverage),
+		shard = jsonlite::fromJSON(shard_file)$shard,
+		measured_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), coverage = coverage),
 		file.path(artifact_dir, "coverage.rds"))
 }

@@ -63,7 +63,7 @@ needs.
 - **[Heteroskedasticity-robust standard errors](R/package_metadata/new_feature_plans/heteroskedasticity_robust_standard_errors.md)** —
   `se_type = HC0..HC3` on the OLS and risk-difference classes.
 
-### Ordinal, incidence, and count fixes
+### Ordinal, incidence, count, and quantile-regression fixes
 
 - **[Ordinal model-coefficient randomization CIs](R/package_metadata/new_feature_plans/ordinal_model_coefficient_randomization_confidence_intervals.md)** —
   randomization-based confidence intervals (not just p-values) for the
@@ -71,6 +71,10 @@ needs.
 - **[Incidence randomization CIs](R/package_metadata/new_feature_plans/incidence_randomization_cis.md)** —
   exact (Zhang) randomization intervals on each estimand scale, removing
   the temporary incidence CI disable.
+- **[`KKQuantileRegrOneLik` randomization CI](R/package_metadata/new_feature_plans/fix_KKQuantileRegrOneLik_rand_ci.md)** —
+  the continuous and proportion one-likelihood quantile-regression
+  classes' randomization CI silently collapsed to a zero-width interval
+  instead of erroring; temporarily disabled pending a real fix.
 - **[Negative-binomial dispersion reparameterization](R/package_metadata/new_feature_plans/negbin_dispersion_convergence.md)** —
   more reliable convergence near the Poisson boundary for NegBin,
   zero-inflated NegBin, and hurdle-NegBin fits.

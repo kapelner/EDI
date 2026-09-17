@@ -174,3 +174,6 @@ R/bulk_test_timings.csv
 R/EDI/tests/.prepush_errors
 R/EDI/tests/.prepush_test_stdout.log
 marketing_plans/
+
+# Local instrumented coverage run artifacts
+/.coverage-run-20260917/

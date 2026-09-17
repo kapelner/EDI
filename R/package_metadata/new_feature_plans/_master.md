@@ -1072,6 +1072,27 @@ for the statistical vocabulary, `Language: en-US` in `DESCRIPTION`, and
 Release index: `release_v1_1_0.md → TODO-23` (lintr), `→ TODO-24`
 (spelling).
 
+**`KKQuantileRegrOneLik` randomization CI** (added 2026-09-17, found via a
+raw `comprehensive_tests_results_nc_1_*.csv` audit, not a user report; no
+dependency on any phase above — schedule anywhere in v1.1.0):
+`fix_KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
+`InferenceContinKKQuantileRegrOneLik`/`InferencePropKKQuantileRegrOneLik`
+compose `QuantileRandomizationCI` (Zhang test-inversion bisection) without
+their `KKQuantileRegrOneLik` component ever supplying the
+`compute_rand_pval_matched_pairs`/`compute_rand_pval_reservoir` hooks that
+bisection requires from its host — every call silently collapsed to a
+zero-width interval at the point estimate instead of erroring (~0-1%
+empirical coverage vs. ~95% nominal, confirmed over ~1,644 audited rows).
+Same symptom family as `incidence_randomization_cis.md` (a randomization
+CI silently reporting a wrong-but-plausible answer instead of failing) but
+a different mechanism (missing composition hooks, not a scale mismatch); a
+`stop()` stopgap landed 2026-09-17, same pattern as that plan's own. The
+likely-cheap real fix (route through the already-correctly-wired generic
+`InferenceRandCI` bisection instead of Zhang, since the stacked-model
+estimator already supplies that path's own hooks) is unverified and needs
+its own decision before implementing. Release index:
+`release_v1_1_0.md → TODO-25`.
+
 ## Phase 6 — Exploratory / later
 
 1. `sequential_inference.md` — after Phase 1E.4 delivers the public accessors

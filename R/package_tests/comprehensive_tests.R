@@ -558,6 +558,78 @@ ADDITIONAL_TEST_SLOW_PATHS = list(
 	jackknife_exclude = c(
 		"InferenceOrdinalKKGEE||~.",
 		"InferenceOrdinalStereotypeLogitRegr||~."
+	),
+	# Harness-local counterpart of EDI_COMPREHENSIVE_SLOW_PATHS$exact_operations
+	# (comprehensive_slow_paths.R's own @format doc), added 2026-09-17 (user
+	# decision): every other key above gates by CLASS (optionally formula-
+	# restricted) via is_any_inference_class_for_formula(), so skipping one
+	# specific *operation* without also skipping every other operation in
+	# whichever category happens to contain it isn't expressible here -- the
+	# package registry's exact_operations existed for exactly that reason, but
+	# using it for a purely test-harness-cost finding conflates two different
+	# concepts: EDI_COMPREHENSIVE_SLOW_PATHS is the package's own public
+	# judgment about what's too slow for InferenceSuite$run_all_inference()'s
+	# default output (a statement about the package, read by ordinary users'
+	# single-call runs); ADDITIONAL_TEST_SLOW_PATHS is this exhaustive
+	# thousands-of-reps test harness' own private cost-control list (a
+	# statement about this test suite's runtime budget, irrelevant to anyone
+	# just calling the class directly). A finding from a comprehensive_tests
+	# results audit is the second kind by construction, regardless of whether
+	# exact-operation granularity happens to be needed to express it -- same
+	# `response_type||InferenceClass||function_run` key format, optionally
+	# suffixed `||model_formula` to restrict to one formula (see
+	# EDI_COMPREHENSIVE_SLOW_PATHS' @format for the exact grammar), consumed
+	# by is_slow_operation() below alongside the package registry's own list.
+	# The 15 entries below were found the same way as the package registry's
+	# own exact_operations entries (a raw comprehensive_tests_results_nc_1_
+	# *.csv audit, 2026-09-16/17, mean-duration-by-(response_type, class,
+	# function_run), collapsed across design, model_formula kept split where
+	# the data showed a clear fast/slow split) and were briefly added to
+	# EDI_COMPREHENSIVE_SLOW_PATHS before this key existed to hold them
+	# properly -- relocated here 2026-09-17, same data, no re-audit. 6 are
+	# among rows pegged at the 120s FUNCTION_TIMEOUT_SEC cap rather than a
+	# graded slow time. No existing category bucket (in either registry)
+	# covers the Bartlett confidence-interval variants at all (only
+	# bartlett_pval, for the two_sided_pval operation, gates anything
+	# Bartlett-shaped) -- these are the first entries anywhere for
+	# compute_lik_ratio_bartlett_confidence_interval / compute_lik_ratio_
+	# bartlett_approx_confidence_interval. Two of these (InferenceCountKKGLMM's
+	# rand_bootstrap_confidence_interval_studentized/_symmetric-percentile-t)
+	# already have partial coverage via brt_ci_typed above (unrestricted
+	# there too) -- left in rather than pulled, since the two mechanisms are
+	# independent and redundant coverage is harmless; worth reconciling
+	# alongside the general revisit these two lists are due for.
+	exact_operations = c(
+		"count||InferenceCountKKGLMM||compute_lik_ratio_bartlett_confidence_interval",
+		"count||InferenceCountKKGLMM||compute_lik_ratio_bartlett_approx_confidence_interval",
+		"count||InferenceCountKKGLMM||compute_rand_confidence_interval",
+		"count||InferenceCountKKGLMM||compute_rand_bootstrap_confidence_interval",
+		"count||InferenceCountKKGLMM||compute_rand_bootstrap_confidence_interval_studentized",
+		"count||InferenceCountKKGLMM||compute_rand_bootstrap_confidence_interval_symmetric-percentile-t",
+		# ~1 aggregate 18.0s (fast), ~. aggregate 32.7s (slow) -- formula-restricted.
+		"count||InferenceCountKKGLMM||compute_lik_ratio_bootstrap_confidence_interval||~.",
+		# ~1 aggregate 26.1s (fast), ~. aggregate 113.5s (pegged at timeout) -- formula-restricted.
+		"count||InferenceCountKKGLMM||compute_rand_bootstrap_confidence_interval_smoothed||~.",
+		# Only ~1 model_formula observed in the 2026-09-16 data; mean 33.1s over 194 runs.
+		"count||InferenceCountHurdlePoisson||compute_rand_bootstrap_confidence_interval_smoothed",
+		# ~1 aggregate 13.8-13.5s (fast), ~. aggregate 42.1s (slow) -- formula-restricted.
+		"count||InferenceCountZeroInflatedPoisson||compute_lik_ratio_bartlett_confidence_interval||~.",
+		"count||InferenceCountZeroInflatedPoisson||compute_lik_ratio_bartlett_approx_confidence_interval||~.",
+		# ~1 aggregate 36.2-36.6s (slow), ~. aggregate 24.0s (fast) -- formula-restricted (opposite direction from ZeroInflatedPoisson above).
+		"count||InferenceCountZeroInflatedNegBin||compute_lik_ratio_bartlett_confidence_interval||~1",
+		"count||InferenceCountZeroInflatedNegBin||compute_lik_ratio_bartlett_approx_confidence_interval||~1",
+		"proportion||InferencePropKKGLMM||compute_lik_ratio_bartlett_confidence_interval",
+		"proportion||InferencePropKKGLMM||compute_lik_ratio_bartlett_approx_confidence_interval"
+		# Same audit also looked at survival/InferenceSurvivalKKLWACoxPHOneLik
+		# (both Bartlett CI variants and compute_rand_bootstrap_confidence_
+		# interval_symmetric-percentile-t) but left them out: the Bartlett CI
+		# aggregate is only 15.1s once both designs are pooled (one design
+		# ~0.1s, the other ~30s -- the same design-dilutes-the-mean pattern
+		# EDI_COMPREHENSIVE_SLOW_PATHS' own header calls out for
+		# InferenceOrdinalGCompMeanDiff, not confirmed slow at this collapsed
+		# granularity), and the symmetric-percentile-t entry is a single thin
+		# sample (n=15) right at the 30s line (mean 30.5s). Worth re-checking
+		# if they reappear with more data rather than added speculatively now.
 	)
 	# always_run_parametric_bootstrap_ci (used to hardcode InferenceIncidLogBinomial
 	# as the one exception to the COMPREHENSIVE_PARAM_BOOT_CI opt-in gate) removed
@@ -1638,11 +1710,14 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	is_slow_operation = function(function_run){
 		if (force_run_slow_paths) return(FALSE)
 		key_base = paste(response_type, inference_class_label, function_run, sep = "||")
+		key_with_formula = if (!is.na(inference_model_formula_str)) paste(key_base, inference_model_formula_str, sep = "||") else NA_character_
 		if (key_base %in% slow_skip_rules$exact_operations) return(TRUE)
-		if (!is.na(inference_model_formula_str)) {
-			key_with_formula = paste(key_base, inference_model_formula_str, sep = "||")
-			if (key_with_formula %in% slow_skip_rules$exact_operations) return(TRUE)
-		}
+		if (!is.na(key_with_formula) && key_with_formula %in% slow_skip_rules$exact_operations) return(TRUE)
+		# Harness-local counterpart -- see ADDITIONAL_TEST_SLOW_PATHS$exact_operations'
+		# own header comment for why this is a second, independent list rather
+		# than more entries in the package registry above.
+		if (key_base %in% ADDITIONAL_TEST_SLOW_PATHS$exact_operations) return(TRUE)
+		if (!is.na(key_with_formula) && key_with_formula %in% ADDITIONAL_TEST_SLOW_PATHS$exact_operations) return(TRUE)
 		FALSE
 	}
 	skip_bootstrap_slow = is_slow_class_rule("bootstrap")

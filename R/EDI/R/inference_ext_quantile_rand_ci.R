@@ -27,6 +27,38 @@ InferenceExtQuantileRandCI = list(
 				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)
 				assertCount(r, positive = TRUE)
 			}
+			# Emergency stopgap (2026-09-17, user decision), same pattern as
+			# compute_rand_confidence_interval()'s incidence-response stop()
+			# in inference_all_abstract_rand_ci.R: this Zhang test-inversion
+			# bisection requires private$compute_rand_pval_matched_pairs()/
+			# compute_rand_pval_reservoir() from its host. KKQuantileRegrIVWC
+			# supplies both (inference_all_KK_quantile_regr_ivwc_abstract.R);
+			# KKQuantileRegrOneLik never does, so on
+			# InferenceContinKKQuantileRegrOneLik/InferencePropKKQuantileRegrOneLik
+			# p_fn() threw "attempt to apply non-function" on every bisection
+			# step, silently caught by zhang_bisect_ci_boundary()'s tryCatch and
+			# coerced to p_mid = 0 (always <= pval_th), which collapsed both
+			# bounds onto the point estimate instead of erroring -- a raw
+			# comprehensive_tests results audit (2026-09-16/17) found this
+			# 100% zero-width across every affected row (~1644), ~0-1%
+			# empirical coverage vs. the ~95% nominal target. Checked
+			# structurally (not by class name) so any future host missing
+			# these hooks fails the same way instead of silently returning a
+			# wrong answer. See
+			# R/package_metadata/new_feature_plans/fix_KKQuantileRegrOneLik_rand_ci.md.
+			if (!is.function(private$compute_rand_pval_matched_pairs) || !is.function(private$compute_rand_pval_reservoir)) {
+				stop(
+					"Randomization confidence intervals are temporarily disabled for ",
+					class(self)[1], " (2026-09-17): the Zhang test-inversion bisection this ",
+					"class's compute_rand_confidence_interval() dispatches to requires ",
+					"compute_rand_pval_matched_pairs()/compute_rand_pval_reservoir() from its ",
+					"host, which this class's composition never supplies -- the bisection was ",
+					"silently converging to a zero-width interval at the point estimate instead ",
+					"of erroring. See R/package_metadata/new_feature_plans/",
+					"fix_KKQuantileRegrOneLik_rand_ci.md.",
+					call. = FALSE
+				)
+			}
 			private$nsim_rand = as.integer(r)
 			tryCatch(
 				private$ci_exact_zhang_combined(alpha, pval_epsilon),

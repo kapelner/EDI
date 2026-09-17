@@ -109,7 +109,8 @@ test_that("ordinal CLMM dispatches all supported links and validates bad links",
 test_that("stepwise survival weights return a complete covariate ordering", {
   set.seed(411)
   n <- 40
-  X <- cbind(signal = rnorm(n), noise = rnorm(n), duplicate = 1)
+  # The full-rank contract does not apply to a column aliased with the intercept.
+  X <- cbind(signal = rnorm(n), noise = rnorm(n))
   w <- rep(c(0, 1), length.out = n)
   y <- exp(1 + 0.7 * X[, 1] + 0.2 * w + rnorm(n, sd = 0.25))
   delta <- rep(c(1, 1, 0, 1), length.out = n)
@@ -119,6 +120,13 @@ test_that("stepwise survival weights return a complete covariate ordering", {
   expect_true(all(is.finite(weights)))
   expect_true(all(weights >= 0))
   expect_equal(length(unique(weights)), ncol(X))
+
+  # Force the OLS fallback: an intercept-alias candidate must remain unselected.
+  deficient <- EDI:::kk21_stepwise_survival_weights_cpp(
+    cbind(X, constant = 1), y, rep(0, n), w
+  )
+  expect_true(all(is.finite(deficient[seq_len(ncol(X))])))
+  expect_true(is.na(deficient[ncol(X) + 1L]))
 
   expect_true(all(is.na(EDI:::kk21_stepwise_survival_weights_cpp(
     matrix(numeric(), nrow = 0, ncol = 2), numeric(), numeric(), numeric()

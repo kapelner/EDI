@@ -1,5 +1,7 @@
 "gate","severity","tier","target","arg","value_expr","detail","exemption_type","exemption_reason","exempted"
+"multi_arg_without_argument_dependency_coverage","report","",".normalize_optimizer_algorithm","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","report","","build_cox_data_cache_cpp","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
+"multi_arg_without_argument_dependency_coverage","report","","create_model_matrix_from_features","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","hard_later","","DesignFixedBernoulli::add_one_subject_response","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","hard_later","","DesignFixedBernoulli::initialize","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","hard_later","","DesignFixedBernoulli::transform_y","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
@@ -159,6 +161,7 @@
 "multi_arg_without_argument_dependency_coverage","report","","fast_zinb_cpp","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","report","","gcomp_logistic_post_fit_cpp","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","report","","gcomp_ordinal_proportional_odds_post_fit_cpp","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
+"multi_arg_without_argument_dependency_coverage","report","","generate_covariate_dataset","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","hard_later","","get_beta_regression_score_cpp","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","report","","get_negbin_regression_hessian_cpp","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","hard_later","","get_negbin_regression_score_cpp","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
@@ -1286,4 +1289,6 @@
 "multi_arg_without_argument_dependency_coverage","report","","set_warm_start_dispatch_policy","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","hard_later","","SimulationFramework::initialize","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","hard_later","","SimulationFrameworkReport::initialize","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
+"multi_arg_without_argument_dependency_coverage","report","","summary_glm_lean","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
+"multi_arg_without_argument_dependency_coverage","hard_later","","transform_cont_y_based_on_response_type","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE
 "multi_arg_without_argument_dependency_coverage","report","","tune_EDI_for_this_machine","","","Public API has multiple configurable arguments but no imported argument-combination coverage and no exemption.","NA","NA",FALSE

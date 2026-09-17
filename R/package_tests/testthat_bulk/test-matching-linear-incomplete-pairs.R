@@ -1,0 +1,36 @@
+library(testthat)
+library(EDI)
+
+# TODO-3: sparse match identifiers and incomplete pairs preserve missing outcomes.
+test_that("linear matching data retain sparse pair slots and incomplete differences", {
+  X <- matrix(c(2, 7, 11, 13, 17, 19), ncol = 1)
+  y <- c(10, 4, 20, 30, 12, 15)
+  w <- c(1L, 0L, 1L, 1L, 0L, 0L)
+  matches <- c(1L, 1L, 3L, -1L, 0L, NA_integer_)
+  got <- EDI:::compute_matching_lin_match_data_cpp(X, y, w, matches)
+  expect_identical(got$m, 3L)
+  expect_equal(got$yTs_matched, c(10, NA, 20))
+  expect_equal(got$yCs_matched, c(4, NA, NA))
+  expect_equal(got$y_matched_diffs, c(6, NA, NA))
+  expect_equal(got$X_matched_diffs_full, matrix(c(-5, 0, 11), ncol = 1))
+  expect_equal(got$X_matched_means_full, matrix(c(4.5, 0, 5.5), ncol = 1))
+  expect_equal(got$X_reservoir, X[4:6, , drop = FALSE])
+  expect_equal(got$y_reservoir, y[4:6])
+  expect_identical(got$w_reservoir, w[4:6])
+  expect_identical(c(got$nRT, got$nRC), c(1L, 2L))
+})
+
+test_that("linear matching data preserve shapes when there are no pairs or covariates", {
+  y <- c(3, 7, 2)
+  w <- c(0L, 1L, 0L)
+  got <- EDI:::compute_matching_lin_match_data_cpp(
+    matrix(numeric(), 3, 0), y, w, c(0L, NA_integer_, -2L))
+  expect_identical(got$m, 0L)
+  expect_identical(got$y_matched_diffs, numeric())
+  expect_equal(dim(got$X_matched_diffs_full), c(0L, 0L))
+  expect_equal(dim(got$X_matched_means_full), c(0L, 0L))
+  expect_equal(dim(got$X_reservoir), c(3L, 0L))
+  expect_equal(got$y_reservoir, y)
+  expect_identical(got$w_reservoir, w)
+  expect_identical(c(got$nRT, got$nRC), c(1L, 2L))
+})

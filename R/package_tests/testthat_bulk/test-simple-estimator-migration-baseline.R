@@ -9,12 +9,14 @@ simple_estimator_expected_classes = c(
 	"InferenceAllKKWilcoxIVWC"
 )
 
+# add_rand_bootstrap_smooth_noise is now a shared private implementation hook.
+# Keep the exact structural snapshots, including that intentional new binding.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 305L,
+		private_owner_count = 306L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -27,7 +29,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 308L,
+		private_owner_count = 309L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -40,7 +42,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 322L,
+		private_owner_count = 323L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -54,7 +56,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 58L,
-		private_owner_count = 290L,
+		private_owner_count = 291L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -66,7 +68,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 58L,
-		private_owner_count = 310L,
+		private_owner_count = 311L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -119,6 +121,7 @@ test_that("simple estimator migration manifest records current structure", {
 		expect_identical(record$current_parent, expected$parent, info = class_name)
 		expect_identical(length(record$current_public_methods), expected$public_count, info = class_name)
 		expect_identical(length(record$private_owner_names), expected$private_owner_count, info = class_name)
+		expect_true("add_rand_bootstrap_smooth_noise" %in% record$private_owner_names, info = class_name)
 		if (is.na(expected$duplicate_private_owner_count)) {
 			expect_true(length(record$duplicate_private_owner_names) > 0L, info = class_name)
 		} else {

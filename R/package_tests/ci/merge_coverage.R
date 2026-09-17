@@ -10,5 +10,8 @@ if (any(vapply(reports, function(x) x$commit != Sys.getenv("GITHUB_SHA") ||
 	x$covr_version != as.character(packageVersion("covr")), logical(1)))) stop("Coverage provenance mismatch")
 # covr's own merge retains source references and adds counters for matching paths.
 coverage = getFromNamespace("merge_coverage", "covr")(lapply(reports, `[[`, "coverage"))
-saveRDS(coverage, file.path(args[[1]], "merged-coverage.rds"))
+saveRDS(list(coverage = coverage, commit = Sys.getenv("GITHUB_SHA"),
+	measured_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+	covr_version = as.character(packageVersion("covr")), shards = ids),
+	file.path(args[[1]], "merged-coverage.rds"))
 covr::codecov(coverage = coverage, flags = "r", token = Sys.getenv("CODECOV_TOKEN"), quiet = FALSE)

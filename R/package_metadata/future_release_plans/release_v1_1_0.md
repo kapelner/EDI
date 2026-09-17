@@ -1175,6 +1175,22 @@ ticked in their **owning plans**; this list is the release index.
   content-gated on the same roxygen-edit trigger `fast_roxygenize` already
   uses, plus vignette/`NEWS.md` changes. One-time triage cost, then ~zero.
   Depends on nothing.
+- **`TODO-25`** (added 2026-09-17, found via a raw `comprehensive_tests`
+  results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
+  randomization CI** —
+  `fix_KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
+  `InferenceContinKKQuantileRegrOneLik`/`InferencePropKKQuantileRegrOneLik`
+  compose `QuantileRandomizationCI` (Zhang test-inversion) without ever
+  supplying the `compute_rand_pval_matched_pairs`/`compute_rand_pval_reservoir`
+  hooks it needs — the bisection silently collapsed to a zero-width interval
+  at the point estimate instead of erroring (100% zero-width across ~1,644
+  audited rows, ~0-1% empirical coverage vs. ~95% nominal). Stopgap
+  `stop()` landed 2026-09-17 (same pattern as
+  `incidence_randomization_cis.md`'s incidence stopgap); the real fix is
+  most likely cheap (route through the already-correctly-wired generic
+  `InferenceRandCI` bisection instead of Zhang) but is unverified and needs
+  its own decision + regression test before it ships. Independent of every
+  other 1.1.0 item.
 
 ## Standing constraints
 
