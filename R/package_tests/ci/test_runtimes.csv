@@ -46,6 +46,7 @@ R/package_tests/testthat_bulk/test-design-registry-extension-contracts.R,correct
 R/package_tests/testthat_bulk/test-ext-information-matrix.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-observational-design-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-fractional-logit-weighted-coefficient-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-full-likelihood-migration-baseline.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-gcomp-risk-ratio-resampling-coverage.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-gcomp-rmst-ordinal-clmm-contracts.R,correctness,120,bootstrap
@@ -120,6 +121,7 @@ R/package_tests/testthat_bulk/test-mixin-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-model-kernel-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-model-numerics-and-count-regression-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-negative-binomial-empty-and-dispersion-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-negbin-weighted-constrained-fit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-optimal-search-runtime-references.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-clmm-integrated-likelihood.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-gcomp-and-conditional-setup-contracts.R,correctness,120,bootstrap
@@ -161,6 +163,7 @@ R/package_tests/testthat_bulk/test-simple-wilcox-migration-golden.R,correctness,
 R/package_tests/testthat_bulk/test-simulation-custom-noise-heterogeneous-estimand-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-data-and-tuning-policy-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-simulation-grid-legacy-hook-estimand-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-report-completed-state-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-report-finite-calibration-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-serial-custom-dgp-resume-reference.R,correctness,1.4,measured_with_30_percent_headroom
@@ -468,6 +471,7 @@ R/package_tests/testthat_bulk/test-design-registry-extension-contracts.R,coverag
 R/package_tests/testthat_bulk/test-ext-information-matrix.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-observational-design-contracts.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-fractional-logit-weighted-coefficient-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-full-likelihood-migration-baseline.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-gcomp-risk-ratio-resampling-coverage.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-gcomp-rmst-ordinal-clmm-contracts.R,coverage,240,bootstrap
@@ -542,6 +546,7 @@ R/package_tests/testthat_bulk/test-mixin-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-model-kernel-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-model-numerics-and-count-regression-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-negative-binomial-empty-and-dispersion-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-negbin-weighted-constrained-fit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-optimal-search-runtime-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-clmm-integrated-likelihood.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-gcomp-and-conditional-setup-contracts.R,coverage,240,bootstrap
@@ -583,6 +588,7 @@ R/package_tests/testthat_bulk/test-simple-wilcox-migration-golden.R,coverage,240
 R/package_tests/testthat_bulk/test-simulation-custom-noise-heterogeneous-estimand-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-data-and-tuning-policy-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-simulation-grid-legacy-hook-estimand-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-report-completed-state-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-report-finite-calibration-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-serial-custom-dgp-resume-reference.R,coverage,240,bootstrap
