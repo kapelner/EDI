@@ -466,15 +466,6 @@ public:
     }
 };
 
-static MatrixXd numeric_hessian_from_gradient(
-    const StereotypeLogitRegression& model,
-    const Eigen::Ref<const VectorXd>& params,
-    double h = 1e-5
-) {
-    (void)h;
-    return model.loglik_hessian(params);
-}
-
 static MatrixXd pseudo_inverse_symmetric(const Eigen::Ref<const MatrixXd>& A, double tol = 1e-8) {
     JacobiSVD<MatrixXd> svd(A, ComputeThinU | ComputeThinV);
     VectorXd sing = svd.singularValues();
@@ -672,88 +663,6 @@ static double profile_loglik_for_beta(
     );
     VectorXd params = set_beta_and_pack_nuisance(nuisance, beta_fixed, n_alpha, p, n_gamma, beta_index);
     return model.loglik_grad(params, NULL);
-}
-
-static VectorXd stereotype_newton_fit(
-    const StereotypeLogitRegression& model,
-    int maxit,
-    double tol,
-    bool* converged = NULL
-) {
-    VectorXd params = model.initialize_params();
-    const int d = params.size();
-    VectorXd grad(d);
-    bool did_converge = false;
-    const double score_tol = std::max(tol, std::sqrt(std::max(tol, 0.0)));
-
-    auto score_is_small = [&](const VectorXd& g) {
-        return g.allFinite() && (g.norm() / std::sqrt((double)std::max(1, d))) <= score_tol;
-    };
-
-    if (converged != NULL) {
-        *converged = false;
-    }
-
-    for (int iter = 0; iter < maxit; ++iter) {
-        edi_check_R_user_interrupt_every(iter);
-        double current_ll = model.loglik_grad(params, &grad);
-        if (!std::isfinite(current_ll) || !grad.allFinite()) {
-            break;
-        }
-        if (score_is_small(grad)) {
-            did_converge = true;
-            break;
-        }
-
-        MatrixXd H = numeric_hessian_from_gradient(model, params);
-        FullPivLU<MatrixXd> lu(H);
-        if (!lu.isInvertible()) {
-            break;
-        }
-
-        VectorXd step = lu.solve(grad);
-        double scale = 1.0;
-        bool accepted = false;
-        int step_iter = 0;
-
-        while (scale > 1e-8) {
-            edi_check_R_user_interrupt_every(step_iter++);
-            VectorXd next_params = params - scale * step;
-            double next_ll = model.loglik_grad(next_params, NULL);
-            if (std::isfinite(next_ll) && next_ll > current_ll) {
-                params = next_params;
-                accepted = true;
-                break;
-            }
-            scale *= 0.5;
-        }
-
-        if (!accepted) {
-            model.loglik_grad(params, &grad);
-            did_converge = score_is_small(grad);
-            break;
-        }
-
-        model.loglik_grad(params, &grad);
-        if (score_is_small(grad)) {
-            did_converge = true;
-            break;
-        }
-
-        if ((scale * step).norm() < tol) {
-            break;
-        }
-    }
-
-    if (!did_converge) {
-        model.loglik_grad(params, &grad);
-        did_converge = score_is_small(grad);
-    }
-    if (converged != NULL) {
-        *converged = did_converge;
-    }
-
-    return params;
 }
 
 struct StereotypeObjective {
@@ -1339,8 +1248,13 @@ NumericVector compute_stereotype_logit_distr_parallel_cpp(
 		StereotypeLogitRegression model(X_full, y_shifted);
 		if (model.num_categories() < 2) continue;
 
-		bool converged = false;
-		Eigen::VectorXd params = stereotype_newton_fit(model, 100, 1e-8, &converged);
+		// At the empirical cold start beta is zero, so the score-parameter
+		// Hessian can be singular. The legacy Newton fit then returns that
+		// unoptimized zero coefficient. Use the shared gradient optimizer,
+		// which can leave the cold start without inverting this Hessian.
+		LikelihoodFitResult fit = fast_stereotype_logit_internal(
+			model, 200, 1e-10, std::nullopt, std::nullopt, "lbfgs");
+		const Eigen::VectorXd& params = fit.params;
 
 		int n_alpha = model.num_alpha();
 		// accept result even if not formally converged, matching R generate_mod behaviour

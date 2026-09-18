@@ -56,10 +56,17 @@ conditional_logit_weighted_combined_estimate = function(private_env, KKstats, ro
 		return(NA_real_)
 	}
 	kk_w = kk_pair_and_reservoir_bootstrap_weights(private_env, row_weights)
+	# The combined design contains only discordant pairs, ordered by when
+	# their second member occurs. Match weights to those rows, not all pairs.
+	pair_rows = lapply(kk_w$pair_ids, function(pid) which(private_env$m == pid))
+	pair_rows = Filter(function(rows) length(rows) == 2L &&
+		private_env$y[rows[1L]] != private_env$y[rows[2L]], pair_rows)
+	if (length(pair_rows)) pair_rows = pair_rows[order(vapply(pair_rows, max, integer(1)))]
+	discordant_weights = vapply(pair_rows, function(rows) mean(row_weights[rows]), numeric(1))
 	w_comb = if (isTRUE(design$has_reservoir) && KKstats$m > 0) {
-		c(kk_w$pair_weights, kk_w$reservoir_weights)
+		c(discordant_weights, kk_w$reservoir_weights)
 	} else if (KKstats$m > 0) {
-		kk_w$pair_weights[seq_len(nrow(design$X))]
+		discordant_weights
 	} else {
 		kk_w$reservoir_weights
 	}
@@ -71,6 +78,8 @@ conditional_logit_weighted_combined_estimate = function(private_env, KKstats, ro
 	X_comb = design$X[ok, , drop = FALSE]
 	y_comb = design$y[ok]
 	w_comb = w_comb[ok]
+	weight_scale = max(w_comb)
+	w_comb = w_comb / weight_scale
 	mod = tryCatch(
 		fast_logistic_regression_weighted_cpp(
 			X = X_comb,
@@ -96,7 +105,7 @@ conditional_logit_weighted_combined_estimate = function(private_env, KKstats, ro
 		as.numeric(mod$b), "beta",
 		fisher = mod$fisher_information %||% mod$XtWX
 	)
-	private_env$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(assessment$variance)
+	private_env$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(assessment$variance) / sqrt(weight_scale)
 	private_env$clear_nonestimable_state()
 	as.numeric(mod$b[j_beta_fit])
 }

@@ -369,7 +369,12 @@ edi::ResultMap fast_weibull_regression_internal(
     Eigen::MatrixXd hess = fun.hessian(fit.params);
     Eigen::VectorXd score = -likelihood_score(fun, fit.params);
     Eigen::MatrixXd neg_hess = -hess;
-    Eigen::MatrixXd vcov = covariance_from_information(hess);
+    // Fixed coefficients have no estimated covariance. Keep full information
+    // for likelihood tests, but invert only the free-parameter block here.
+    Eigen::MatrixXd vcov = fixed_spec.has_fixed
+        ? expand_free_covariance(p + 1, fixed_spec,
+            covariance_from_information(subset_matrix(hess, fixed_spec.free_idx, fixed_spec.free_idx)), true)
+        : covariance_from_information(hess);
     return edi::ResultMap()
         .set("params", fit.params)
         .set("neg_loglik", fit.value)
@@ -559,7 +564,11 @@ edi::ResultMap fast_weibull_regression_left_interval_censoring_internal(
     Eigen::MatrixXd hess = fun.hessian(fit.params);
     Eigen::VectorXd score = -likelihood_score(fun, fit.params);
     Eigen::MatrixXd neg_hess = -hess;
-    Eigen::MatrixXd vcov = covariance_from_information(hess);
+    // Match the standard Weibull path's covariance conditional on fixed values.
+    Eigen::MatrixXd vcov = fixed_spec.has_fixed
+        ? expand_free_covariance(p + 1, fixed_spec,
+            covariance_from_information(subset_matrix(hess, fixed_spec.free_idx, fixed_spec.free_idx)), true)
+        : covariance_from_information(hess);
     return edi::ResultMap()
         .set("params", fit.params)
         .set("neg_loglik", fit.value)

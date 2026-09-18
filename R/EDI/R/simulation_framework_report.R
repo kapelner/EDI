@@ -145,7 +145,7 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
             # For custom DGPs, use mean(true_estimand) to classify null vs alternative;
             # fall back to betaT for the standard DGP path.
             uses_custom_estimand = has_sim_mode &&
-              length(simulation_mode) > 0L && simulation_mode[1L] != "standard"
+              length(simulation_mode) > 0L && isTRUE(simulation_mode[1L] != "standard")
             is_zero = if (uses_custom_estimand) {
               abs(mean(true_estimand[is.finite(true_estimand)])) < 1e-12
             } else {

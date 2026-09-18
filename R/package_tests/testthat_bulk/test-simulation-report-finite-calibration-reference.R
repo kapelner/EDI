@@ -66,6 +66,19 @@ test_that("custom simulation calibration uses the true estimand to identify the 
   expect_true(all(is.na(alt$size_pval)))
 })
 
+test_that("missing simulation modes retain legacy null classification", {
+  for (beta in c(0, 1)) {
+    rows <- simulation_calibration_rows("asymp_pval", beta = beta, truth = 2 - beta)
+    rows$pval <- c(.01, .1, NA_real_, Inf, .05)
+    legacy <- simulation_calibration_report(rows)$summarize()
+    rows$simulation_mode <- NA_character_
+    missing_mode <- simulation_calibration_report(rows)$summarize()
+    for (metric in c("MSE", "n_est", "power", "n_pow", "size", "n_size", "size_pval")) {
+      expect_equal(missing_mode[[metric]], legacy[[metric]], info = metric)
+    }
+  }
+})
+
 test_that("simulation summaries retain nonestimable cells without fabricating counts", {
   rows <- simulation_calibration_rows("asymp_pval", beta = 1)
   rows$estimate <- NA_real_

@@ -176,4 +176,5 @@ R/EDI/tests/.prepush_test_stdout.log
 marketing_plans/
 
 # Local instrumented coverage run artifacts
+/.coverage-run-20260917-restart/
 /.coverage-run-20260917/

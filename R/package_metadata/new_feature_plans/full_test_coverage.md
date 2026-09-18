@@ -36,7 +36,7 @@ already-installed package, without compilation:
   reservoir and Fisher-combined p-values, bracketing fallbacks, failed estimates,
   validation and a completed KK quantile inference workflow.
 
-**Continued batches (2026-09-16):** the first 34 added files now pass 608
+**Continued batches (2026-09-16):** the initial 34-file batch passed 608
 assertions through the shard runner. Further tests cover callback recovery and
 joint survival-field resampling, R bootstrap CI missing-value recovery/deadlines,
 KK compound inverse-variance weighting, independently calculated KK Wilcoxon
@@ -71,7 +71,54 @@ its failing statistical regression is also preserved in the findings report.
 
 Separate defects and historical triage corrections are recorded in
 [`coverage_gap_findings_20260916.md`](../reports/coverage_gap_findings_20260916.md).
-No production fixes or exclusions are included in these test-writing batches.
+Those initial batches contained no production fixes or exclusions.
+
+**Authorized fix-and-regression continuation (2026-09-17):** source fixes now
+accompany active regressions for the six original defects and additional
+first-arrival, empty-report, worker-error, multinomial-sampler and uniform-weight
+cases. Eight additional files bring this session's additions to 42 bulk files.
+After the user rebuilt the package, eight verification files pass 341
+assertions through the shard runner against the installed package, including
+the latest tiny-interval and multicategory sampler regressions. No checkout
+R definitions are substituted in this verification. The broader shipped Bayesian
+bootstrap suite also passes (its mirai case is skipped under the default CRAN
+flag), after correcting a separated finite-MLE smoke fixture.
+All 42 added files now pass together against the user's rebuilt package
+(887 assertions). The earlier parallel-threshold bisection test now checks
+actual two-sided crossings rather than preserving the former upper-tail bug.
+No compilation has been run by this team.
+Sharding continues to include every new file in correctness and coverage tiers.
+
+Further continuation adds independent weighted constrained-binomial fits (58
+passing assertions) and simulation worker stage/recovery/cache contracts (128
+passing assertions), both verified against the rebuilt installed package.
+Weighted beta fitting adds 47 passing assertions against independent density
+and Hessian references; worker inference dispatch adds another 64. An
+independently profiled conditional-Poisson reference adds 18 assertions and
+exposes a point-estimate weight-scale defect. Its later R-only normalization
+fix is verified by temporary method substitution and is not yet installed.
+Mixed-endpoint/interior ZOIB likelihoods add 31 installed-package assertions.
+Conditional-logistic weighted references add 35 assertions and expose discarded
+concordant-pair weight misalignment. That shared R helper now aligns retained
+pairs, normalizes fitting weights and restores uncertainty scale; its later
+fix also passes only through temporary source-helper substitution.
+Further tests cover general Weibull exact/left/right/interval censoring (47
+assertions), actual serial custom-data resume with Welch statistical references,
+and proportion g-computation standardization (35 assertions). The serial run
+exposes dropped simulation-mode metadata; the R loader now preserves the mode
+and infers it for legacy schemas, while reports safely classify missing modes.
+The g-computation point-estimate fit now normalizes tiny bootstrap weights.
+These later R-only fixes pass through isolated method substitution and await
+the next installed-package refresh.
+
+The continuation now totals 53 added bulk files. The constrained-Weibull
+review exposes unrestricted covariance under fixed parameters in both native
+fitting cores. Source now inverts only the free information block and marks
+fixed covariance entries NA. Independent mixed/right-censoring references
+pass 79 assertions on the installed pre-fix binary and reproduce 11 covariance
+failures; those enabled regressions require the next user-managed rebuild.
+Runtime inventory and sharding include this file while native verification
+is explicitly pending.
 
 The runtime manifest includes every new file in both correctness and coverage
 tiers. Correctness estimates use measured local timings with 30% headroom;

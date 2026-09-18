@@ -2427,7 +2427,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         ci_lo = numeric(),
         ci_hi = numeric(),
         pval = numeric(),
-        true_estimand = numeric()
+        true_estimand = numeric(),
+        simulation_mode = character()
       )
       if (!isTRUE(private$continue_from_last_result_row) || !file.exists(private$results_filename))
         return(private$.load_existing_results_from_staging_or_empty(empty_dt))
@@ -2440,6 +2441,11 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       if (!"response_type" %in% names(dt))
         dt[, response_type := private$response_type_values[[1L]]]
       dt = dt[response_type %in% private$response_type_values]
+      if (!"simulation_mode" %in% names(dt)) {
+        dt[, simulation_mode := compute_simulation_mode(
+          private$custom_dgp, private$custom_replication_data_generator,
+          private$custom_apply_treatment_and_noise, private$make_estimand_fn)]
+      }
       for (nm in names(empty_dt)) {
         if (!nm %in% names(dt))
           dt[, (nm) := empty_dt[[nm]]]
@@ -2458,6 +2464,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       dt[, ci_hi := as.numeric(ci_hi)]
       dt[, pval := as.numeric(pval)]
       dt[, true_estimand := as.numeric(true_estimand)]
+      dt[, simulation_mode := as.character(simulation_mode)]
       dt[, names(empty_dt), with = FALSE]
     },
     .load_existing_results_from_staging_or_empty = function(empty_dt) {
@@ -2968,6 +2975,11 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       # y-rep loop to (w_rep_i - 1) * Nrep_Y_w + y_rep.
       current_rep_i = w_rep_i
 
+      # Data generation can fail before any design or inference is created.
+      # Its fatal error must still return an empty, initialized worker state.
+      results = list()
+      result_keys = character()
+      skipped_count = 0L
       error_records = list()
       make_error = function(stage, design = NA_character_, design_params = NULL,
                             inference = NA_character_, inference_params = NULL,
@@ -3127,9 +3139,6 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         },
         NA_real_
       )
-      results = list()
-      result_keys = character()
-      skipped_count = 0L
       # 2. Design and Inference loop
       for (di in seq_along(state$design_classes)) {
         design_gen   = state$design_classes[[di]]

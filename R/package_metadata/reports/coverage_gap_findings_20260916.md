@@ -1,8 +1,32 @@
 # Findings from the coverage test audit (2026-09-16)
 
-These findings are separate from the test-only coverage work. No production
-behavior was changed, and the new bulk tests do not encode the defects as
-expected behavior. Validation used already-installed EDI 1.0.1.
+The initial audit used already-installed EDI 1.0.1 and preserved failing
+statistical references separately from the passing coverage tests. On
+2026-09-17 the user authorized production fixes and active regression tests.
+The descriptions below retain the original reproductions.
+
+## Fix and verification status (2026-09-17)
+
+The original six defects now have source fixes and active bulk regressions.
+The rebuilt installed package passes the main bisection, two-core
+Hodges-Lehmann, sequential name-matching, partial-odds MASS, and nonlogit
+weighted ordinal checks. Subsequent fixes also remove phantom first-arrival
+rows, retain requested metrics/counts in empty simulation reports, preserve
+fatal data-generation diagnostics, and reject invalid uniform-weight shortcuts.
+Transient R-only verification replaces definitions only in the verification
+process; committed tests contain no source replacement or compilation.
+
+The newest bisection precision policy and multinomial stereotype sampler fix
+now pass against the user's freshly rebuilt installed package (2026-09-17). An incremental install
+did not pick up a header-only bisection change, so the shared search is now
+defined in `bisection_ci.cpp`; its header contains only the declaration.
+
+The MASS cauchit backend caps CDF arguments at +/-100, including endpoints.
+Its fitted likelihood therefore differs from `ordinal::clm` at appreciable
+Cauchy tail mass. The new cauchit oracle independently optimizes that capped-CDF
+likelihood; other links retain `ordinal::clm` references. Positive weights are
+normalized to mean one in the point-estimate-only surrogate: the coefficient
+optimum is unchanged, while MASS initialization remains invariant to scaling.
 
 ## C++ bisection can stop making progress
 
@@ -174,3 +198,173 @@ expect_equal(EDI:::bisection_ci_loop_cpp(
   function(r, delta, transform_responses) 1 - delta,
   1L, 0, 1, .25, .001, "none", FALSE), .75, tolerance = .002)
 ```
+
+
+## Multicategory stereotype sampler exits at a singular cold start
+
+Source: `R/EDI/src/fast_stereotype_logit.cpp`,
+`compute_stereotype_logit_distr_parallel_cpp()`.
+
+The old sampler initialized all slopes to zero. Category-score nuisance
+parameters then have a zero Hessian block; with enough categories the full
+Hessian is singular. Its legacy Newton routine exits and accepts an unoptimized
+zero treatment coefficient. An interior five-category fixture with positive
+counts in both arms has independently fitted coefficients +/-log(5), while the
+installed old sampler returns zero. The sampler now uses the shared LBFGS
+likelihood optimizer; its unused Newton-only helpers were removed.
+`test-stereotype-multicategory-sampler-reference.R` checks independent BFGS
+references, shifted/merged levels, row permutations and one/two cores.
+The rebuilt native sampler passes all 11 assertions against the independent
+reference, including one/two-core execution.
+
+## Uniform bootstrap shortcut loses valid weighting on small scales
+
+Source: `R/EDI/R/globals.R`, `weights_are_effectively_constant()`.
+
+The old helper ignored nonfinite entries and used an absolute weight
+difference. All-zero draws returned an unweighted estimate, and multiplying a
+nonuniform draw by a tiny positive scale made it appear uniform. The helper
+now requires every weight to be finite and positive and compares the spread
+relative to the maximum weight. Independent weighted normal equations in
+`test-bootstrap-uniform-weight-scale-regressions.R` verify KK OLS under
+ordinary, 1e-12 and 1e-200 scales and require NA for all-zero draws.
+
+## Simulation worker fatal errors referenced uninitialized state
+
+Source: `R/EDI/R/simulations_framework.R`,
+`.run_single_replication_in_worker()`.
+
+Fatal custom-data errors invoked the error handler before its results and
+skip-count state existed, replacing the original condition with
+`object 'results' not found`. State initialization now precedes data
+generation. `test-simulation-worker-data-error-contracts.R` checks invalid
+custom data and preserves condition class, stage, replication and cell metadata
+under both stopping modes. Sixty-eight assertions pass against the rebuilt installed package.
+
+## Empty simulation summaries omitted requested metrics
+
+Source: `R/EDI/R/simulation_framework_report.R`, `summarize()`.
+
+Completed runs with no successful rows previously omitted requested coverage,
+size and calibration columns. Missing cells in partially observed grids also
+reported NA coverage counts. Typed empty metric columns and zero coverage
+counts now preserve every valid cell without inventing observations.
+`test-simulation-report-completed-state-contracts.R` adds 44 assertions,
+including parameter annotations and framework alpha inheritance/override.
+
+
+## Weighted ordinal all-zero shortcut and finite-MLE smoke fixture
+
+The actual logistic KK CLMM path now requires positive finite weights before
+taking its unweighted shortcut. Its new independent `ordinal::clm` references
+check paired-unit expansion, coefficient and standard error, uncertainty scaling,
+zero-weight pair/singleton omissions, and warm starts (19 passing assertions).
+A small native stopping-rule coefficient difference after omissions is checked
+against both a 3e-4 coefficient tolerance and independent likelihood loss <1e-6.
+
+The broader shipped Bayesian-bootstrap suite already failed on the installed
+baseline for an ordinal fixture perfectly ordered by its adjustment covariate.
+Finite estimates were not a valid expectation for that separated fixture.
+The smoke test now has every category in both arms and covariate overlap, and
+reports the failing class name. The suite passes with the updated R definitions;
+the mirai parity block remains skipped under the default CRAN flag.
+
+Final verification against the user's rebuilt package passes all eight selected
+files (341 assertions), including the tiny-response-scale bisection change and
+four multicategory sampler coefficient assertions, without substituting R definitions.
+
+
+## Conditional-Poisson combined point estimate loses tiny bootstrap weights
+
+Source: `R/EDI/R/inference_count_KK_cond_poisson.R`,
+`compute_weighted_combined_estimate()`.
+
+The rebuilt baseline returns 0.6174581 for weights (1, 2, 4, 7), but
+0.6419020 for the same relative weights scaled by 1e-12 or 1e-200. The
+absolute optimization stopping threshold accepts its initial unweighted fit.
+All-zero weights also return that initial coefficient. The R-only fix rejects
+zero positive mass and normalizes weights by their maximum before point-estimate
+optimization. Uncertainty calculations retain their original weights.
+
+`test-count-kk-poisson-weighted-profile-reference.R` compares the fit with an
+independently profiled conditional-binomial plus reservoir-Poisson likelihood,
+including objective loss, omitted units, tiny scales and zero-mass cache clearing.
+Eighteen assertions pass with only this checkout method substituted in an
+isolated verification process. This later R-only fix is not yet installed.
+
+
+## Conditional-logistic weights retained discarded concordant pairs
+
+Source: `R/EDI/R/inference_incidence_KK_cond_logit.R`,
+`conditional_logit_weighted_combined_estimate()`.
+
+The combined conditional-logistic design omits concordant pairs, while the
+old weighting code retained all matched-pair weights. With a reservoir this
+caused a logical-subscript length error; without a reservoir it silently
+used prefix weights belonging to other pairs. The helper now selects
+discordant pairs and orders their weights by pair completion, matching the
+native design. It normalizes weights before fitting and restores the original
+scale in the standard error.
+
+`test-kk-logistic-discordant-weight-reference.R` passes 35 assertions against
+independent weighted logistic likelihood, coefficient and Fisher-information
+references: pair-only and reservoir designs, concordant pairs, reversed pair
+IDs, omitted units, tiny scales, zero draws, and warm cache reuse. This later
+R-only fix passes through isolated source-helper substitution and is not yet
+installed. Committed tests contain no namespace replacement.
+
+
+## Serial resume discarded simulation-mode metadata
+
+Source: `R/EDI/R/simulations_framework.R`, `.load_existing_results()`,
+and `R/EDI/R/simulation_framework_report.R`, `summarize()`.
+
+The resume loader selected a fixed schema without `simulation_mode`. Combining
+loaded and new rows introduced missing modes, lost disk/report agreement and
+made summary null classification fail with `missing value where TRUE/FALSE
+needed`. The schema now preserves the mode and infers it from the configured
+framework when loading older files without that column. Summary classification
+with an explicitly missing mode uses the legacy betaT rule.
+
+The real serial custom-data regression checks CSV and compressed CSV resumes
+that add CI methods and replications, against independent Welch estimates,
+p-values and intervals. It also checks RNG restoration, disk agreement,
+summary counts and complete resume deduplication. A legacy-schema regression
+and 14 missing-mode summary assertions cover compatibility. These R-only
+changes pass with the source methods temporarily substituted; they are later
+than the user's build and are not yet installed.
+
+## Proportion g-computation stopped early under tiny weights
+
+Source: `R/EDI/R/inference_proportion_gcomp.R`, `weighted_gcomp_fit()`.
+
+The rebuilt baseline gives 0.180383 under ordinary weights but zero when
+those weights are scaled by 1e-12 or 1e-200. The point-estimate-only weighted
+logistic fit now normalizes valid weights before optimization. Independent
+weighted GLM coefficients and standardization over the full original cohort
+verify fitted treatment/control means, omitted subjects and zero-mass cache
+clearing in 35 assertions. This later R-only fix passes via source-method
+substitution and is not yet installed.
+
+
+## Fixed Weibull parameters retained unrestricted covariance
+
+Source: `R/EDI/src/fast_weibull_regression.cpp`, both standard right-censoring
+and general left/interval-censoring fitting cores.
+
+Both kernels inverted the entire observed information even when parameters
+were fixed. In one fixture the reported intercept variance is 0.101847335;
+the inverse free-parameter information block gives 0.046833218, and a fixed
+coefficient incorrectly receives variance 0.192842. Sibling likelihood
+kernels instead invert the free block and fill fixed covariance entries
+with NA. Public constrained Weibull inference currently discards raw covariance,
+so this correction affects the raw native result contract.
+
+Both cores now use the existing free-block covariance and expansion helpers;
+unrestricted covariance, full score and information outputs are retained.
+`test-weibull-mixed-censoring-constrained-reference.R` has 54 assertions and
+`test-weibull-right-censoring-fixed-covariance-reference.R` adds 36, using
+independent Weibull likelihood and observed-Hessian references. The installed
+pre-fix binary passes 79 and fails precisely 11 covariance assertions. The
+new native source has not been compiled by this team and awaits the user's
+next rebuild. The active regressions remain enabled.

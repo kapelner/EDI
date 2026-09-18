@@ -370,7 +370,9 @@ test_that("selected ordinal and survival second-wave hooks return finite weighte
 })
 
 test_that("ordinal likelihood-gap weighted hooks are finite and exact empirical ordinal hooks recover equal weights", {
-	des_ord = make_seq_design_for_bayes_boot("ordinal", c(1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L))
+	# Every category occurs in both arms, with overlap across the adjustment
+	# covariate. A separated fixture cannot require a finite ordinal MLE.
+	des_ord = make_seq_design_for_bayes_boot("ordinal", c(1L, 3L, 2L, 4L, 4L, 2L, 3L, 1L))
 	n_ord = des_ord$get_n()
 	ctx_ord = list(
 		row_to_unit = seq_len(n_ord),
@@ -389,7 +391,8 @@ test_that("ordinal likelihood-gap weighted hooks are finite and exact empirical 
 	)
 	for (inf in ordinal_classes) {
 		inf$.__enclos_env__$private$current_bayesian_bootstrap_context = ctx_ord
-		expect_true(is.finite(as.numeric(inf$compute_estimate_with_bootstrap_weights(rep(1, n_ord)))))
+		expect_true(is.finite(as.numeric(inf$compute_estimate_with_bootstrap_weights(rep(1, n_ord)))),
+			info = class(inf)[1L])
 	}
 
 	# compute_estimate() captured before the bootstrap-weights call in both cases below --

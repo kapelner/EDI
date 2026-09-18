@@ -236,10 +236,10 @@ weighted_ordinal_bootstrap_surrogate_fit = function(X, y, row_weights, method = 
 
 weights_are_effectively_constant = function(weights, tol = sqrt(.Machine$double.eps)) {
   weights = as.numeric(weights)
-  ok = is.finite(weights)
-  if (!any(ok)) return(FALSE)
-  weights = weights[ok]
-  (max(weights) - min(weights)) <= tol
+  # Only positive finite uniform weights are equivalent to an unweighted fit.
+  # Compare relatively so scaling a nonuniform draw cannot trigger the shortcut.
+  if (!length(weights) || any(!is.finite(weights) | weights <= 0)) return(FALSE)
+  (max(weights) - min(weights)) / max(weights) <= tol
 }
 
 kk_pair_and_reservoir_bootstrap_weights = function(private_env, row_weights) {

@@ -1979,6 +1979,12 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			score
 		},
 		compute_weighted_combined_estimate = function(row_weights){
+			row_weights = as.numeric(row_weights)
+			row_weights[!is.finite(row_weights) | row_weights < 0] = 0
+			if (!any(row_weights > 0)) return(NA_real_)
+			# The estimate depends on relative weights; normalize before BFGS so
+			# tiny bootstrap scales cannot satisfy its absolute stopping threshold.
+			row_weights = row_weights / max(row_weights)
 			X_full = private$build_model_matrix()
 			reduced = private$reduce_design_matrix_preserving_treatment(X_full)
 			X_fit = reduced$X

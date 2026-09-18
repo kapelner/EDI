@@ -802,11 +802,15 @@ InferencePropGCompMeanDiff = define_inference_class(
 					}
 					ok = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
 					if (sum(ok) <= ncol(X_fit)) return(NULL)
+					# Only relative weights determine this bootstrap point estimate.
+					# Normalize so small scales cannot trigger premature convergence.
+					fit_weights = as.numeric(row_weights[ok])
+					fit_weights = fit_weights / max(fit_weights)
 					mod = tryCatch(
 						fast_logistic_regression_weighted_cpp(
 							X = X_fit[ok, , drop = FALSE],
 							y = as.numeric(private$y[ok]),
-							weights = as.numeric(row_weights[ok]),
+							weights = fit_weights,
 							warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
 							warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit))
 						),

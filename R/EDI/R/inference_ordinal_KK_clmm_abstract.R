@@ -63,7 +63,8 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			if (weights_are_effectively_constant(row_weights)) {
+			if (all(is.finite(row_weights) & row_weights > 0) &&
+					weights_are_effectively_constant(row_weights)) {
 				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
 				if (is.finite(beta_hat_T)) {
 					private$cached_values$beta_hat_T = beta_hat_T
