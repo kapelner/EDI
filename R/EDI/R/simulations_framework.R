@@ -480,8 +480,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'
     #' @param custom_apply_treatment_and_noise Optional function for custom
     #'   response generation. Signature: \code{fn(y_linear_model, w, rep_data, state)}.
-    #'   \code{w} is in \{-1, +1\} format; convert with \code{(w+1)/2} for \{0,1\}
-    #'   semantics. \code{rep_data} is the full list returned by
+    #'   \code{w} uses \{0, 1\} encoding, with 1 for treatment and 0 for control.
+    #'   \code{rep_data} is the full list returned by
     #'   \code{custom_replication_data_generator} (or \code{NULL} for the standard
     #'   path). Must return a list with components \code{y} and \code{dead}.
     #'   Three-argument functions \code{fn(y_linear_model, w, state)} are still
@@ -494,7 +494,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'   function is always tied to the right effect size (important when
     #'   \code{betaT} is a vector of multiple values). The returned function is
     #'   invoked once per design class per replication \emph{after} the design
-    #'   completes, so \code{w} (in \{-1, +1\} format) and \code{X} reflect the
+    #'   completes, so \code{w} (in \{0, 1\} encoding) and \code{X} reflect the
     #'   realized assignment. Must return a numeric scalar. When supplied, its
     #'   return value is used as the ground truth for \emph{all} inference classes
     #'   (overriding the \code{is_mean_diff} gate). Three-argument functions

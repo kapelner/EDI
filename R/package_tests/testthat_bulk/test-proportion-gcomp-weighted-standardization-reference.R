@@ -59,3 +59,14 @@ test_that("empty weighted proportion draws clear the standardized fit cache", {
   expect_true(is.na(private$cached_values$beta_hat_T))
   expect_true(is.na(private$cached_values$se_md))
 })
+
+test_that("empty proportion draws cannot retain a treatment-only model for the next fit", {
+  fixture <- proportion_gcomp_weighted_fixture()
+  weights <- rep(c(1, 2, 4, 7), 8)
+  expected <- proportion_gcomp_weighted_reference(fixture, weights)
+  expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(0 * weights)))
+  actual <- fixture$inf$compute_estimate_with_bootstrap_weights(1e-200 * weights)
+  expect_equal(actual, expected$md, tolerance = 1e-7)
+  expect_equal(unname(fixture$inf$.__enclos_env__$private$cached_values$full_coefficients),
+               unname(expected$coefficients), tolerance = 1e-6)
+})

@@ -214,7 +214,8 @@ skipped.
    runs the doc-link and `@references`/`REFERENCES.md` sync checks,
    `fast_roxygenize`, an install, the R suite (fast tier — with
    `EDI_PREPUSH_NO_PARALLEL=true`, i.e. the real multi-worker tests
-   skipped), the Python suite, and — if `R/package_tests/` is affected —
+   skipped), the Python suite (gated on not regressing the coverage floor —
+   see §4.8), and — if `R/package_tests/` is affected —
    the comprehensive-suite smoke tier plus the drift-artifact regeneration
    (`bash R/package_tests/drift_artifacts.sh regenerate` then `check`).
    **It does not run the tiers in §4.7** (bulk, exhaustive sweeps,
@@ -266,10 +267,19 @@ skipped.
      Rscript package_tests/check_comprehensive_suite_quality_gates.R ci
      bash package_tests/drift_artifacts.sh check     # regenerated CSVs committed, no diff
      ```
-8. **Coverage must not drop.** Codecov gates every PR at `target: auto`
-   with a patch check (`codecov.yml`): new or changed lines need tests, and
-   the repo's coverage may not go down. Check the `codecov` status on the
-   PR; a drop is a blocker, not a note.
+8. **Coverage must not drop.** Two independent gates enforce this. Codecov's
+   `target: auto` patch check (`codecov.yml`) requires new/changed lines to
+   have tests and the aggregate not to go down — check the `codecov` status
+   on the PR; a drop is a blocker, not a note. Separately, this repo's own
+   hard gate (`R/package_tests/ci/check_coverage_floor.R`/`.py`, TODO-9 in
+   `full_test_coverage.md`) fails `test-coverage-R`/`test-coverage-python`
+   outright if aggregate coverage drops below the best-ever figure recorded
+   in `R/package_tests/ci/coverage_baseline.json`. On a new high, the job
+   log/summary says so — bump that file's entry by hand and commit it; the
+   CI job never writes it itself. The pre-push hook also runs the Python
+   half of this check locally (cheap, no rebuild — `pytest-cov`, not
+   `covr`) before any push that touches Python/kernel code, so a regression
+   is caught before it's even pushed, not just after.
 
 ## 5. Opening the pull request
 

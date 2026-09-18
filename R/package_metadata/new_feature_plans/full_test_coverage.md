@@ -96,29 +96,52 @@ Weighted beta fitting adds 47 passing assertions against independent density
 and Hessian references; worker inference dispatch adds another 64. An
 independently profiled conditional-Poisson reference adds 18 assertions and
 exposes a point-estimate weight-scale defect. Its later R-only normalization
-fix is verified by temporary method substitution and is not yet installed.
+fix is verified against the user's rebuilt installed package (2026-09-18).
 Mixed-endpoint/interior ZOIB likelihoods add 31 installed-package assertions.
 Conditional-logistic weighted references add 35 assertions and expose discarded
 concordant-pair weight misalignment. That shared R helper now aligns retained
 pairs, normalizes fitting weights and restores uncertainty scale; its later
-fix also passes only through temporary source-helper substitution.
+fix also passes against the rebuilt installed package.
 Further tests cover general Weibull exact/left/right/interval censoring (47
 assertions), actual serial custom-data resume with Welch statistical references,
 and proportion g-computation standardization (35 assertions). The serial run
 exposes dropped simulation-mode metadata; the R loader now preserves the mode
 and infers it for legacy schemas, while reports safely classify missing modes.
 The g-computation point-estimate fit now normalizes tiny bootstrap weights.
-These later R-only fixes pass through isolated method substitution and await
-the next installed-package refresh.
+These later R-only fixes now pass against the rebuilt installed package,
+without method substitution.
 
-The continuation now totals 53 added bulk files. The constrained-Weibull
+Before the following batch, the continuation totalled 53 added bulk files. The constrained-Weibull
 review exposes unrestricted covariance under fixed parameters in both native
 fitting cores. Source now inverts only the free information block and marks
 fixed covariance entries NA. Independent mixed/right-censoring references
-pass 79 assertions on the installed pre-fix binary and reproduce 11 covariance
-failures; those enabled regressions require the next user-managed rebuild.
-Runtime inventory and sharding include this file while native verification
-is explicitly pending.
+reproduced 11 covariance failures on the pre-fix binary. The user's latest
+rebuild passes all 90 assertions in those two files. Eight verification files
+pass together against the installed package, covering native covariance and
+the latest weighting/resume/report fixes without source-method substitution.
+
+**Further continuation (2026-09-18):** InferenceSuite method selection/error
+contracts add 32 passing assertions; independent Cox tied/stratified risk-set
+references add 186; actual custom-noise/heterogeneous-estimand simulation
+references add 56. Callback documentation now states the observed 0/1
+assignment encoding. Incidence g-computation tests expose another shared
+point-estimate tiny-weight convergence defect, with a later R-only weight
+normalization fix verified against independent weighted GLM fits for actual
+risk-difference and risk-ratio classes (91 assertions). Empty draws also
+expose fallback reduction-cache poisoning in incidence and proportion
+g-computation; scoped cache restoration lets subsequent valid draws retain
+their full covariate model (the proportion file now has 38 assertions).
+These later R-only fixes pass through isolated source-method substitution
+and are not yet installed.
+Constrained Cox cluster covariance also propagates fixed-parameter NA values
+into free standard errors. A free-block sandwich correction and enabled
+independent regressions reproduce 12 failures on the current native binary;
+that later C++ fix requires another user-managed rebuild. The continuation
+now totals 58 added bulk files, all registered in both runtime tiers.
+A broader 57-file verification batch passes 1845 assertions against the
+installed native package with only the latest incidence/proportion R methods
+temporarily substituted. The remaining Cox sandwich file intentionally
+reproduces 12 native covariance failures until the next rebuild.
 
 The runtime manifest includes every new file in both correctness and coverage
 tiers. Correctness estimates use measured local timings with 30% headroom;
@@ -299,6 +322,19 @@ is explicitly not the target** -- see Non-goals below.
   and move on. Needs a decision on hard-gate-vs-advisory, consistent with
   this repo's existing tiered quality-gate philosophy elsewhere
   (`comprehensive_suite_quality_gates.csv`'s hard/soft split).
+
+  **TODO-9 done (2026-09-18):** hard gate, both languages. New
+  `R/package_tests/ci/coverage_baseline.json` (seeded from this doc's
+  64.79% figure) plus `check_coverage_floor.R`/`.py`, wired into
+  `test-coverage-R.yaml`'s `merge` job and `test-coverage-python.yml` —
+  either fails the job outright on a regression vs. the recorded best-ever
+  percentage. A new high prints instructions rather than auto-committing
+  (mirrors `check_coverage_registry.R`'s existing measure-then-human-commits
+  pattern). The Python half also runs from `.githooks/pre-push` (pytest-cov
+  is cheap; R stays CI-only since covr needs an instrumented rebuild). See
+  `R/package_tests/ci/README.md`'s "Coverage floor" section and
+  `CONTRIBUTING.md` §4.8. No GitHub branch protection changes were bundled
+  into this TODO; that was handled as a separate decision.
 - **TODO-10.** Once Phases 2-3's backlog is substantially cleared, re-run
   the same 0%/low-% triage once more before declaring this plan done --
   this is an actively-developed codebase and new files/functions land

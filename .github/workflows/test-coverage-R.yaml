@@ -91,8 +91,12 @@ jobs:
           needs: coverage
       - name: Check coverage registry generator
         run: Rscript R/package_tests/ci/test_coverage_gap_registry.R
+      - name: Check coverage floor script
+        run: Rscript R/package_tests/ci/test_check_coverage_floor.R
       - name: Merge all shards and upload one report
         run: Rscript R/package_tests/ci/merge_coverage.R coverage-artifacts coverage-artifacts/coverage-shard-plan/matrix.json
+      - name: Check coverage floor (must not drop below best-ever, TODO-9)
+        run: Rscript R/package_tests/ci/check_coverage_floor.R coverage-artifacts/merged-coverage.rds R/package_tests/ci/coverage_baseline.json r
       - name: Regenerate coverage backlog and report drift
         if: always()
         run: Rscript R/package_tests/ci/check_coverage_registry.R coverage-artifacts/merged-coverage.rds R/package_tests/coverage_gap_registry.csv coverage-registry

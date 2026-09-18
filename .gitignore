@@ -29,6 +29,7 @@ python/**/*.so
 python/**/*.egg-info/
 python/.pytest_cache/
 python/.venv/
+python/coverage.xml
 __pycache__/
 *.pyc
 *.pyo

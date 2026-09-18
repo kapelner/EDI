@@ -167,6 +167,17 @@ InferencePropFractionalLogit = define_inference_class(
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
+			row_weights = as.numeric(row_weights)
+			row_weights[!is.finite(row_weights) | row_weights < 0] = 0
+			if (!any(row_weights > 0)) {
+				private$cached_mod = NULL
+				private$cached_values$beta_hat_T = NA_real_
+				private$cached_values$s_beta_hat_T = NA_real_
+				return(NA_real_)
+			}
+			# This path reports a point estimate only, which depends on relative
+			# weights. Normalize to avoid tiny-scale premature convergence.
+			row_weights = row_weights / max(row_weights)
 			X_full = private$build_design_matrix()
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_full,

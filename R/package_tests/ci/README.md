@@ -47,7 +47,11 @@ preserving the bulk runner's access to internal functions; CI first compiles
 the current commit into an isolated scratch library and the source tree. Coverage
 uses covr's instrumented scratch install, explicit selected test code, and
 repository-relative source paths. Per-shard RDS reports carry commit, covr
-version, and shard ID. The merge job requires every expected shard and matching
+version, compiler flags, and shard ID. Coverage builds override covr's `-O0`
+default with `-O2 --coverage` through `configure_coverage_compiler.R` so Eigen
+kernels remain practical to test. Optimization can change native line attribution;
+compare coverage measurements made with the same compiler settings.
+The merge job requires every expected shard and matching
 provenance, uses covr's internal `merge_coverage` implementation to add counters,
 and uploads one combined report under the Codecov `r` flag. Keep all coverage
 jobs on the same covr version; changes to its internal merger need validation.
@@ -56,3 +60,16 @@ correctness shards fail on failed expectations and test errors.
 
 Local compilation/installation still requires explicit user permission.
 The CI workflow installation steps do not authorize local compilation.
+
+## Coverage floor (TODO-9)
+
+`coverage_baseline.json` tracks the best-ever aggregate coverage percentage
+for each language. `check_coverage_floor.R`/`.py` compare a freshly measured
+percentage against it and fail loudly on a regression (a hard gate, run in
+the `merge` job of `test-coverage-R.yaml` and in `test-coverage-python.yml`).
+On a new high, they print instructions instead of writing the file — like
+`check_coverage_registry.R`, this is measure-then-a-human-commits, not an
+auto-committing CI step. The Python half also runs from `.githooks/pre-push`
+(pytest-cov is cheap; covr needs an instrumented rebuild, so R coverage
+stays CI-only). Self-tests (`test_check_coverage_floor.R`/`.py`) build
+synthetic coverage reports rather than real instrumentation.

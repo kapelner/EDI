@@ -131,7 +131,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=7.0", "scipy>=1.10"]
+# pytest-cov is here (not just a one-off CI install) so the pre-push hook's
+# local `pip install -e ".[test]"` also gets it -- the coverage-floor gate
+# (R/package_tests/ci/check_coverage_floor.py, TODO-9) needs `--cov` output
+# both locally and in test-coverage-python.yml.
+test = ["pytest>=7.0", "scipy>=1.10", "pytest-cov>=4.0"]
 
 [tool.scikit-build]
 minimum-version = "1.0"

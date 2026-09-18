@@ -836,6 +836,10 @@ InferencePropGCompMeanDiff = define_inference_class(
 				}
 			},
 			weighted_gcomp_effects_from_row_weights = function(row_weights){
+				# Keep a draw-specific reduced-model fallback from determining
+				# the covariates retained by later weighted draws.
+				original_keep = private$reduced_design_keep_cache
+				on.exit(private$reduced_design_keep_cache <- original_keep, add = TRUE)
 				X_full = private$build_named_design_matrix()
 				fit = private$weighted_gcomp_fit(X_full, row_weights)
 				if (is.null(fit) && private$harden && ncol(X_full) > 2L) {

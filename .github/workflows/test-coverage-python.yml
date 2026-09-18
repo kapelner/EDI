@@ -39,11 +39,17 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
 
       - name: Install edi_kernels (editable) + test deps
-        run: pip install -e "./python[test]" pytest-cov
+        run: pip install -e "./python[test]"
 
       - name: Run tests with coverage
         working-directory: python
         run: python -m pytest tests -q --cov=edi_kernels --cov-report=xml
+
+      - name: Check coverage floor script
+        run: python3 R/package_tests/ci/test_check_coverage_floor.py
+
+      - name: Check coverage floor (must not drop below best-ever, TODO-9)
+        run: python3 R/package_tests/ci/check_coverage_floor.py python/coverage.xml R/package_tests/ci/coverage_baseline.json python
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6

@@ -289,8 +289,8 @@ optimization. Uncertainty calculations retain their original weights.
 `test-count-kk-poisson-weighted-profile-reference.R` compares the fit with an
 independently profiled conditional-binomial plus reservoir-Poisson likelihood,
 including objective loss, omitted units, tiny scales and zero-mass cache clearing.
-Eighteen assertions pass with only this checkout method substituted in an
-isolated verification process. This later R-only fix is not yet installed.
+Eighteen assertions now pass against the rebuilt installed package (2026-09-18),
+without source-method substitution.
 
 
 ## Conditional-logistic weights retained discarded concordant pairs
@@ -309,9 +309,9 @@ scale in the standard error.
 `test-kk-logistic-discordant-weight-reference.R` passes 35 assertions against
 independent weighted logistic likelihood, coefficient and Fisher-information
 references: pair-only and reservoir designs, concordant pairs, reversed pair
-IDs, omitted units, tiny scales, zero draws, and warm cache reuse. This later
-R-only fix passes through isolated source-helper substitution and is not yet
-installed. Committed tests contain no namespace replacement.
+IDs, omitted units, tiny scales, zero draws, and warm cache reuse. This fix
+now passes against the rebuilt installed package (2026-09-18). Committed tests
+contain no namespace replacement.
 
 
 ## Serial resume discarded simulation-mode metadata
@@ -331,8 +331,7 @@ that add CI methods and replications, against independent Welch estimates,
 p-values and intervals. It also checks RNG restoration, disk agreement,
 summary counts and complete resume deduplication. A legacy-schema regression
 and 14 missing-mode summary assertions cover compatibility. These R-only
-changes pass with the source methods temporarily substituted; they are later
-than the user's build and are not yet installed.
+changes now pass against the rebuilt installed package (2026-09-18).
 
 ## Proportion g-computation stopped early under tiny weights
 
@@ -343,8 +342,8 @@ those weights are scaled by 1e-12 or 1e-200. The point-estimate-only weighted
 logistic fit now normalizes valid weights before optimization. Independent
 weighted GLM coefficients and standardization over the full original cohort
 verify fitted treatment/control means, omitted subjects and zero-mass cache
-clearing in 35 assertions. This later R-only fix passes via source-method
-substitution and is not yet installed.
+clearing in 35 assertions. This fix now passes against the rebuilt installed
+package (2026-09-18), without source-method substitution.
 
 
 ## Fixed Weibull parameters retained unrestricted covariance
@@ -366,5 +365,55 @@ unrestricted covariance, full score and information outputs are retained.
 `test-weibull-right-censoring-fixed-covariance-reference.R` adds 36, using
 independent Weibull likelihood and observed-Hessian references. The installed
 pre-fix binary passes 79 and fails precisely 11 covariance assertions. The
-new native source has not been compiled by this team and awaits the user's
-next rebuild. The active regressions remain enabled.
+user's rebuilt installed package (2026-09-18) passes all 90 assertions. No
+compilation has been run by this team; the active regressions remain enabled.
+
+
+## Constrained Cox cluster covariance contaminated free parameters with NA
+
+Source: `R/EDI/src/fast_coxph_regression.cpp`, `compute_robust_vcov()`.
+
+The model covariance already marks fixed parameters NA. Multiplying this full
+matrix by the full cluster score covariance propagates those NA values into
+otherwise estimable free standard errors. The helper now forms the sandwich
+on the free block before expanding fixed entries to NA. The unrestricted
+calculation, fitted coefficients, score and information remain unchanged.
+
+`test-cox-cluster-constrained-sandwich-reference.R` derives individual Breslow
+score contributions and sums them by independently specified clusters. The
+current installed binary passes 56 assertions and reproduces 12 failures on
+fixed-parameter covariance under both solvers. The later native source fix
+has not been compiled by this team and requires the user's next rebuild.
+
+## Simulation hook documentation misstated treatment encoding
+
+The custom response-noise and estimand hooks receive `des_obj$get_w()` in
+0/1 encoding. Roxygen and checked-in Rd documentation incorrectly described
+-1/+1 encoding and an unnecessary conversion. Both now describe actual
+callback behavior. A real serial heterogeneous-estimand/noise integration
+checks passed assignments, extra replication fields, repeated response draws
+and independent Welch estimates, p-values and intervals (56 assertions).
+
+
+## Incidence g-computation tiny weights and reduced-fallback cache poisoning
+
+Source: `R/EDI/R/inference_incidence_gcomp_abstract.R`, `weighted_gcomp_fit()`
+and `weighted_gcomp_effects_from_row_weights()`; the latter method also in
+`R/EDI/R/inference_proportion_gcomp.R`.
+
+Actual incidence risk-difference fitting returns 0.2134636 under ordinary
+weights but zero when scaled by 1e-12 or 1e-200. The shared point-estimate fit
+now normalizes positive weights before calling the native optimizer.
+An empty draw can additionally invoke a reduced-model fallback that overwrites
+the shared column-reduction cache. Subsequent valid incidence and proportion
+draws then omit their covariate. Scoped save/restore of that cache isolates
+replicate-specific fallback choices without changing design data.
+
+`test-incidence-gcomp-weighted-risk-difference-reference.R` checks actual
+risk-difference and risk-ratio classes against independent weighted GLM
+coefficients and standardization over the original cohort, including tiny
+scales, omitted subjects, empty draws and valid-draw recovery. Its 91 assertions
+and the expanded proportion file's 38 assertions pass through isolated
+source-method substitution. These later R-only fixes are not yet installed.
+The installed-only broad run reproduces precisely two newly added proportion
+recovery failures, confirming the previously missed cache defect.

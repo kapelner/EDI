@@ -422,8 +422,20 @@ if [ "$run_python_tests" = "1" ]; then
 	# run so a freshly recreated venv gets it too. Gitignored along with the
 	# rest of python/.venv/.
 	printf '[global]\ncache-dir = %s\n' "$py_venv/pip-cache" > "$py_venv/pip.conf"
-	if ! ( cd python && "$py_venv/bin/pip" install -q -e ".[test]" && "$py_venv/bin/python" -m pytest tests -q ); then
+	if ! ( cd python && "$py_venv/bin/pip" install -q -e ".[test]" && "$py_venv/bin/python" -m pytest tests -q --cov=edi_kernels --cov-report=xml ); then
 		echo "pre-push: python tests FAILED." >&2
+		abort_push
+	fi
+
+	echo
+	echo "pre-push: checking python coverage against the best-ever baseline ..."
+	# Read-only: unlike drift-artifact regeneration above, a local run never
+	# writes coverage_baseline.json itself -- only a human bumping it after
+	# reviewing a real CI run (see check_coverage_floor.py's own header) is
+	# allowed to raise the floor. Runs with the system python3, not the venv
+	# above: the script is stdlib-only, same as check_doc_links.py.
+	if ! python3 R/package_tests/ci/check_coverage_floor.py python/coverage.xml R/package_tests/ci/coverage_baseline.json python; then
+		echo "pre-push: python coverage regressed below the best-ever baseline (see above)." >&2
 		abort_push
 	fi
 else

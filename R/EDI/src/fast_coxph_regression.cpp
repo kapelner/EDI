@@ -524,7 +524,8 @@ Eigen::MatrixXd compute_robust_vcov(
     const std::vector<CoxData>& strata_data,
     const std::vector<double>& beta,
     const Eigen::MatrixXd& H_inv,
-    const std::vector<int>& cluster)
+    const std::vector<int>& cluster,
+    const FixedParamSpec& fixed_spec)
 {
     int n_total = 0;
     for (const CoxData& sd : strata_data) n_total += sd.n;
@@ -618,6 +619,13 @@ Eigen::MatrixXd compute_robust_vcov(
 
     Eigen::MatrixXd B = Eigen::MatrixXd::Zero(p, p);
     for (auto& kv : cluster_scores) B += kv.second * kv.second.transpose();
+    if (fixed_spec.has_fixed) {
+        // Fixed rows of H_inv are NaN by convention. Restrict the sandwich
+        // to estimated parameters so those NaNs cannot contaminate free SEs.
+        Eigen::MatrixXd H_inv_free = subset_matrix(H_inv, fixed_spec.free_idx, fixed_spec.free_idx);
+        Eigen::MatrixXd B_free = subset_matrix(B, fixed_spec.free_idx, fixed_spec.free_idx);
+        return expand_free_covariance(p, fixed_spec, H_inv_free * B_free * H_inv_free, true);
+    }
     return H_inv * B * H_inv;
 }
 
@@ -865,7 +873,7 @@ List fast_coxph_regression_cpp(const Eigen::MatrixXd& X, const Eigen::VectorXd& 
             .set("gradient_norm", fit.gradient_norm)
             .set("min_eigenvalue_information", fit.min_eigenvalue_information));
     }
-    Eigen::MatrixXd vcov_mat = (cluster.isNotNull()) ? compute_robust_vcov(strata_data, fit.beta, fit.vcov, std::vector<int>(IntegerVector(cluster).begin(), IntegerVector(cluster).end())) : fit.vcov;
+    Eigen::MatrixXd vcov_mat = (cluster.isNotNull()) ? compute_robust_vcov(strata_data, fit.beta, fit.vcov, std::vector<int>(IntegerVector(cluster).begin(), IntegerVector(cluster).end()), fixed_spec) : fit.vcov;
     return edi::to_rcpp_list(edi::ResultMap()
         .set("coefficients", coef_r)
         .set("vcov", vcov_mat)

@@ -516,6 +516,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 				}
 				ok = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
 				if (sum(ok) <= ncol(X_fit)) return(NULL)
+				# These bootstrap fits estimate coefficients only. Keep their
+				# optimization independent of the arbitrary overall weight scale.
+				fit_weights = as.numeric(row_weights[ok])
+				fit_weights = fit_weights / max(fit_weights)
 				p_fit = ncol(X_fit)
 				boot_ws = if (!is.null(private$gcomp_boot_beta) && length(private$gcomp_boot_beta) == p_fit) {
 					private$gcomp_boot_beta
@@ -526,7 +530,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 					fast_logistic_regression_weighted_cpp(
 						X = X_fit[ok, , drop = FALSE],
 						y = as.numeric(private$y[ok]),
-						weights = as.numeric(row_weights[ok]),
+						weights = fit_weights,
 						warm_start_beta = boot_ws,
 						warm_start_fisher_info = private$get_fit_warm_start_fisher(p_fit)
 					),
@@ -567,6 +571,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			}
 		},
 		weighted_gcomp_effects_from_row_weights = function(row_weights){
+			# A replicate-specific reduced-model fallback must not determine
+			# which covariates are retained by the next weighted draw.
+			original_keep = private$reduced_design_keep_cache
+			on.exit(private$reduced_design_keep_cache <- original_keep, add = TRUE)
 			X_full = gcomp_normalize_treatment_design_matrix(
 				private$build_design_matrix(),
 				covariate_names = private$get_covariate_names
