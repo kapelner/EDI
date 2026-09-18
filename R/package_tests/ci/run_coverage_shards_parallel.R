@@ -61,6 +61,9 @@ launch = function(shard_id) {
 	dir.create(shard_dir, recursive = TRUE, showWarnings = FALSE)
 	proc = processx::process$new("Rscript",
 		c(runner, root, file.path(plan_dir, sprintf("shard-%d.json", shard_id)), tier, shard_dir),
+		# Each shard's own compile must stay single-threaded (-j 1): num_cores concurrent
+		# multi-threaded builds would oversubscribe the machine's cores far beyond num_cores.
+		env = c("current", MAKEFLAGS = "-j 1"),
 		stdout = file.path(shard_dir, "run.log"), stderr = "2>&1", cwd = root)
 	list(process = proc, start = Sys.time(), id = shard_id)
 }

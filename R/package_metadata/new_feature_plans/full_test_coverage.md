@@ -168,7 +168,8 @@ here for this plan's own workflow):
    `bootstrap` (initial-estimate) `estimated_seconds`, tagged into one of two
    `runtime_tier`s: `correctness` (bulk suite, runs on every PR/push via
    `test-bulk-non-cran.yml`) and `coverage` (package + bulk tests under
-   `covr`, nightly/on-demand via `test-coverage-R.yaml`). Every new file in
+   `covr`, on every push to main plus nightly/on-demand backstop via
+   `test-coverage-R.yaml`, 2026-09-18). Every new file in
    this plan is registered in **both** tiers.
 2. **Plan shards deterministically.** `plan_shards.py` packs manifest rows
    longest-first into buckets capped at 2,400 estimated seconds each (6

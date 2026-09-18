@@ -1,7 +1,24 @@
 name: test-coverage
 
-# Full instrumented coverage is scheduled separately from PR correctness.
+# Full instrumented coverage runs on every push to main that touches R
+# code -- not on pull_request: covr needs an instrumented rebuild and this
+# takes ~40min even sharded across 6 parallel runners, which is too slow for
+# the PR feedback loop. The nightly schedule + workflow_dispatch stay on as
+# a backstop for a day with no matching push, or a push whose run failed.
 on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'R/EDI/**/*.R'
+      - 'R/EDI/**/*.Rd'
+      - 'R/EDI/**/*.cpp'
+      - 'R/EDI/**/*.h'
+      - 'R/EDI/**/*.hpp'
+      - 'R/EDI/DESCRIPTION'
+      - 'R/EDI/NAMESPACE'
+      - 'R/EDI/tests/**'
+      - 'R/package_tests/**'
+      - '.github/workflows/test-coverage-R.yaml'
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch: {}

@@ -10,6 +10,7 @@ R/package_tests/testthat_bulk/test-bartlett-lr-plumbing.R,correctness,120,bootst
 R/package_tests/testthat_bulk/test-beta-helper-safeguard-references.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-beta-weighted-constrained-likelihood-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bisection-tail-and-discontinuity-regressions.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-bootstrap-index-fillin-and-bisection-loop.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-bootstrap-uniform-weight-scale-regressions.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-brt-smoothed-wilcox-ci-perf.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ci-rand.R,correctness,120,bootstrap
@@ -435,6 +436,7 @@ R/package_tests/testthat_bulk/test-bartlett-lr-plumbing.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-helper-safeguard-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-weighted-constrained-likelihood-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bisection-tail-and-discontinuity-regressions.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-bootstrap-index-fillin-and-bisection-loop.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bootstrap-uniform-weight-scale-regressions.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-brt-smoothed-wilcox-ci-perf.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ci-rand.R,coverage,240,bootstrap

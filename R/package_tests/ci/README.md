@@ -1,8 +1,11 @@
 # Runtime-balanced R CI
 
 `test-bulk-non-cran.yml` runs all bulk correctness tests on PRs and pushes.
-`test-coverage-R.yaml` runs all package and bulk tests under covr nightly
-and on demand. The advanced smoke/gate workflow remains separate.
+`test-coverage-R.yaml` runs all package and bulk tests under covr on every
+push to main touching R code (2026-09-18 -- previously nightly/on-demand
+only), plus a nightly backstop and on-demand via workflow_dispatch; not on
+PRs, since covr's instrumented rebuild is too slow for that feedback loop.
+The advanced smoke/gate workflow remains separate.
 Quarantined tests remain outside these inventories.
 
 Each matrix is generated deterministically from `test_runtimes.csv`, packing
