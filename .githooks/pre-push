@@ -92,6 +92,23 @@ abort_push() {
 	exit 1
 }
 
+# Keep the CI runtime manifest in sync with the actual test-file inventory
+# before anything downstream reads it (the shard-inventory check right
+# below, and CI's own planners) -- this is exactly the fix the check-only
+# failure message below tells a developer to run by hand; running it
+# proactively here means routine "added/removed a test file" drift never
+# needs a manual step at all. No compilation, no R -- pure Python file
+# listing. Regenerates test_runtimes.csv in place; like fast_roxygenize.R's
+# regeneration further down, this hook does not auto-commit the result (a
+# hook-made commit can't be included in the push that's already resolving --
+# see gitpush_with_hooks_safe.sh's header comment) -- review/include it in
+# your next commit if `git status` shows it changed.
+echo "pre-push: refreshing the CI test-runtime manifest ..."
+if ! python3 R/package_tests/ci/refresh_manifest.py; then
+	echo "pre-push: refresh_manifest.py FAILED (see output above)." >&2
+	abort_push
+fi
+
 # Catch stale shard inventories before any builds or R checks. The planner
 # only reads filenames and CSV estimates; it never loads R or writes files.
 if grep -qE '^R/EDI/tests/testthat/|^R/package_tests/testthat_bulk/|^R/package_tests/ci/|^\.githooks/pre-push$|^\.github/workflows/test-(bulk-non-cran\.yml|coverage-R\.yaml)$' "$changed_files_file"; then

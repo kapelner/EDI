@@ -283,6 +283,14 @@ skipped.
 
 ## 5. Opening the pull request
 
+- `main` has branch protection: a PR needs 1 approving review and the
+  `test` (`python-tests.yml`) and `coverage` (`test-coverage-python.yml`)
+  checks green before it can merge — these are the only two workflows that
+  actually run on `pull_request` events, so they're the only ones GitHub
+  can enforce this way. Repo admins bypass this (`enforce_admins: false`)
+  and can still push directly to `main`; everyone else goes through a PR.
+  Every other job below is still required by policy, just not by GitHub —
+  self-verify it the same as before.
 - Fill in the [PR template](.github/PULL_REQUEST_TEMPLATE.md) completely —
   every checkbox is one of the steps above.
 - **All on-push CI must be green** before requesting review — not just the

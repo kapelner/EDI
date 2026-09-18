@@ -30,6 +30,7 @@ python/**/*.egg-info/
 python/.pytest_cache/
 python/.venv/
 python/coverage.xml
+python/.coverage
 __pycache__/
 *.pyc
 *.pyo

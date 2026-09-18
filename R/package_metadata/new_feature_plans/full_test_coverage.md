@@ -152,6 +152,69 @@ quantile CI workflows also already have migration tests. The additions target
 missing branches rather than duplicating those goldens. Registry entries remain
 `in_progress` until a real coverage measurement confirms movement.
 
+## Sharding procedure (in active use since 2026-09-16/17)
+
+New bulk test files added under this plan are packed into CI's existing
+runtime-balanced shard system (`R/package_tests/ci/`), not run ad hoc. The
+mechanics (fully documented in `R/package_tests/ci/README.md`; summarized
+here for this plan's own workflow):
+
+1. **Register the file in the runtime manifest.** After adding/removing a
+   `testthat_bulk/test-*.R` file, run (no compilation):
+   ```sh
+   python3 R/package_tests/ci/refresh_manifest.py
+   ```
+   This adds the new file to `R/package_tests/ci/test_runtimes.csv` with a
+   `bootstrap` (initial-estimate) `estimated_seconds`, tagged into one of two
+   `runtime_tier`s: `correctness` (bulk suite, runs on every PR/push via
+   `test-bulk-non-cran.yml`) and `coverage` (package + bulk tests under
+   `covr`, nightly/on-demand via `test-coverage-R.yaml`). Every new file in
+   this plan is registered in **both** tiers.
+2. **Plan shards deterministically.** `plan_shards.py` packs manifest rows
+   longest-first into buckets capped at 2,400 estimated seconds each (6
+   concurrent jobs, 60-minute job timeout, 45-minute test-step timeout):
+   ```sh
+   python3 R/package_tests/ci/plan_shards.py correctness --output /tmp/edi-plan
+   python3 R/package_tests/ci/plan_shards.py coverage --output /tmp/edi-coverage-plan
+   ```
+   Planning fails loudly on inventory drift (files present but unregistered,
+   or registered but deleted), duplicate entries, or any single file's
+   estimate exceeding the bucket budget -- so a new test can't silently fall
+   out of CI or silently blow a shard's time budget.
+3. **Each shard runs via `run_shard.R`.** Correctness shards
+   `pkgload::load_all(compile = FALSE)` the already-built checkout and call
+   `run_selected_tests()` against just that shard's file list. Coverage
+   shards additionally run under `covr::package_coverage()` with
+   `configure_coverage_compiler.R`'s `-O2 --coverage` override (covr's
+   default `-O0` would make Eigen-heavy kernels impractically slow to
+   exercise), and each shard's `.rds` output carries commit, covr version,
+   compiler flags, and shard ID for later merge-time verification.
+4. **Merge job.** Requires every expected shard to have reported with
+   matching provenance, merges coverage counts via covr's internal
+   `merge_coverage`, and uploads one combined report under the Codecov `r`
+   flag. Correctness shards fail CI on any failed expectation/error;
+   coverage shards record failures in the log without aborting measurement.
+5. **Import real timings, replacing bootstrap estimates.** Once CI has run,
+   download the per-shard `timings.csv` artifacts and import them
+   (largest completed runtime per file + 30% headroom), separately per tier:
+   ```sh
+   python3 R/package_tests/ci/refresh_manifest.py --timings downloaded/*/timings.csv
+   ```
+   Commit the refreshed manifest. In-progress rows from a file that hit a
+   timeout are not imported as completed measurements.
+6. **Local pre-push guardrail.** The pre-push hook runs both planners with
+   `--check-only` whenever test directories, CI sharding files, the hook
+   itself, or the two shard workflows change -- catching a stale/drifted
+   manifest locally before it reaches CI. It never regenerates or commits
+   the manifest itself; that's always the explicit `refresh_manifest.py`
+   step above.
+
+This session's added files (58 as of 2026-09-18, see Status below) are all
+registered in both tiers per this procedure; their `estimated_seconds` are
+still local-timing-derived `bootstrap` values with 30% headroom (correctness)
+or conservative unmeasured defaults (coverage) until a real CI run's
+`timings.csv` is imported per step 5.
+
 ## Investigation summary (2026-08-29)
 
 Before writing this plan, the coverage pipeline itself was audited to rule

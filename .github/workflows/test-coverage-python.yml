@@ -22,7 +22,10 @@ on:
       - '.github/workflows/build-wheels.yml'
 
 jobs:
-  test:
+  # Named distinctly from python-tests.yml's "test" job: both run on
+  # pull_request, and an identically-named check from two different
+  # workflows is ambiguous for branch-protection required status checks.
+  coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

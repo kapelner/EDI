@@ -661,6 +661,18 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 				wald = {
 					private$shared_combined_hurdle()
 					if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+						# 2026-09-18: the bootstrap fallback below is itself
+						# unavailable on a KK21stepwise/SPBR design
+						# (apply_inference_design_restrictions() stubs
+						# compute_bootstrap_confidence_interval() to stop() on any
+						# non-Bernoulli DesignSeqOneByOne design) -- checking first
+						# avoids that unrelated design-restriction error leaking
+						# through and being misread as "asymp itself is
+						# unsupported" (found via a comprehensive_tests results
+						# audit).
+						if (!("nonparametric_bootstrap" %in% self$capabilities())) {
+							return(c(NA_real_, NA_real_))
+						}
 						return(self$compute_bootstrap_confidence_interval(alpha = alpha))
 					}
 					private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -726,6 +738,12 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 				wald = {
 					private$shared_combined_hurdle()
 					if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+						# See compute_asymp_confidence_interval()'s matching
+						# comment: the bootstrap fallback is itself unavailable
+						# on this design.
+						if (!("nonparametric_bootstrap" %in% self$capabilities())) {
+							return(NA_real_)
+						}
 						return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
 					}
 					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -788,6 +806,16 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_hurdle()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+				# 2026-09-18: the bootstrap fallback below is itself unavailable
+				# on a KK21stepwise/SPBR design (apply_inference_design_
+				# restrictions() stubs compute_bootstrap_confidence_interval() to
+				# stop() on any non-Bernoulli DesignSeqOneByOne design) --
+				# checking first avoids that unrelated design-restriction error
+				# leaking through and being misread as "wald itself is
+				# unsupported" (found via a comprehensive_tests results audit).
+				if (!("nonparametric_bootstrap" %in% self$capabilities())) {
+					return(c(NA_real_, NA_real_))
+				}
 				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -800,6 +828,11 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		compute_wald_two_sided_pval = function(delta = 0){
 			private$shared_combined_hurdle()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+				# See compute_wald_confidence_interval()'s matching comment: the
+				# bootstrap fallback is itself unavailable on this design.
+				if (!("nonparametric_bootstrap" %in% self$capabilities())) {
+					return(NA_real_)
+				}
 				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)

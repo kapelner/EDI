@@ -165,6 +165,16 @@ InferenceCountHurdlePoisson = define_inference_class(
 				private$cached_values$s_beta_hat_T = se
 			}
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+				# 2026-09-18: the bootstrap fallback below is itself unavailable on a
+				# KK21stepwise/SPBR design (apply_inference_design_restrictions()
+				# stubs compute_bootstrap_confidence_interval() to stop() on any
+				# non-Bernoulli DesignSeqOneByOne design) -- checking first avoids
+				# that unrelated design-restriction error leaking through and being
+				# misread as "asymp itself is unsupported" (found via a
+				# comprehensive_tests results audit: 38 rows, dataset=abalone).
+				if (!("nonparametric_bootstrap" %in% self$capabilities())) {
+					return(private$count_likelihood_missing_ci(alpha))
+				}
 				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
 				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
 			}
@@ -192,6 +202,11 @@ InferenceCountHurdlePoisson = define_inference_class(
 				private$cached_values$s_beta_hat_T = se
 			}
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+				# See compute_asymp_confidence_interval()'s matching comment: the
+				# bootstrap fallback is itself unavailable on this design.
+				if (!("nonparametric_bootstrap" %in% self$capabilities())) {
+					return(NA_real_)
+				}
 				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
 				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
 			}

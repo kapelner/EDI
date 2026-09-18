@@ -28,6 +28,21 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_root"
 
+# Same manifest refresh .githooks/pre-push runs, but pre-committed here --
+# unlike the hook, this wrapper runs BEFORE the real `git push` resolves what
+# to send, so a fix committed here is naturally included (see this file's
+# own header comment on why the hook itself can't do that).
+echo "gitpush_with_hooks_safe: refreshing the CI test-runtime manifest ..."
+if ! python3 R/package_tests/ci/refresh_manifest.py; then
+	echo "gitpush_with_hooks_safe: refresh_manifest.py FAILED (see output above) -- not pushing." >&2
+	exit 1
+fi
+if ! git diff --exit-code -- R/package_tests/ci/test_runtimes.csv >/dev/null 2>&1; then
+	echo "gitpush_with_hooks_safe: test_runtimes.csv drifted -- committing the fix ..."
+	git add -- R/package_tests/ci/test_runtimes.csv
+	git commit --quiet -m "pre-push: refresh CI test-runtime manifest" -- R/package_tests/ci/test_runtimes.csv
+fi
+
 echo "gitpush_with_hooks_safe: regenerating package_tests/ drift CSVs (this runs the full generator suite -- can take a few minutes) ..."
 
 # Generator sequence + artifact list come from R/package_tests/drift_artifacts.sh,
