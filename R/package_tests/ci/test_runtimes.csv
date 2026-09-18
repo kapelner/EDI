@@ -152,6 +152,7 @@ R/package_tests/testthat_bulk/test-resampling-kernel-contracts.R,correctness,1,m
 R/package_tests/testthat_bulk/test-resampling-numerical-inversion.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-resampling-parallel-threshold-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-reservoir-statistic-boundary-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rmst-asymptotic-wald-and-general-censoring.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rmst-weighted-and-fallback-coverage.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-save-load-design.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-seed-determinism.R,correctness,120,bootstrap
@@ -578,6 +579,7 @@ R/package_tests/testthat_bulk/test-resampling-kernel-contracts.R,coverage,240,bo
 R/package_tests/testthat_bulk/test-resampling-numerical-inversion.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-resampling-parallel-threshold-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-reservoir-statistic-boundary-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rmst-asymptotic-wald-and-general-censoring.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rmst-weighted-and-fallback-coverage.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-save-load-design.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-seed-determinism.R,coverage,240,bootstrap
