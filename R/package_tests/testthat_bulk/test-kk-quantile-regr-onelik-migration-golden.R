@@ -166,11 +166,15 @@ test_that("InferenceContinKKQuantileRegrOneLik randomization CI matches", {
 	des = kk_quantile_regr_one_lik_golden_design("continuous")
 	legacy = Legacy$new(des)
 	migrated = InferenceContinKKQuantileRegrOneLik$new(des)
+	# Randomization CIs are hard-disabled for this class (2026-09-17 stopgap;
+	# see fix_KKQuantileRegrOneLik_rand_ci.md): the Zhang bisection this class
+	# routes to requires host hooks KKQuantileRegrOneLikSource never supplies.
+	# Legacy shares that same source, so both sides must fail identically --
+	# "migration matches" now means matching errors, not matching intervals.
 	legacy$set_seed(20260817L)
-	legacy_ci = inference_migration_with_seed(20260817L, legacy$compute_rand_confidence_interval(r = 51L))
+	expect_error(legacy$compute_rand_confidence_interval(r = 51L), "temporarily disabled")
 	migrated$set_seed(20260817L)
-	migrated_ci = inference_migration_with_seed(20260817L, migrated$compute_rand_confidence_interval(r = 51L))
-	expect_equal(migrated_ci, legacy_ci, tolerance = 1e-6)
+	expect_error(migrated$compute_rand_confidence_interval(r = 51L), "temporarily disabled")
 })
 
 test_that("InferencePropKKQuantileRegrOneLik migration produces identical outputs", {
