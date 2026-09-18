@@ -4,7 +4,7 @@
 [![R-CMD-check](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml)
 [![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://app.codecov.io/gh/kapelner/EDI/flags/r)\
 [![PyPI](https://img.shields.io/pypi/v/edi_kernels.svg)](https://pypi.org/project/edi_kernels/)
-[![Python tests](https://github.com/kapelner/EDI/actions/workflows/python-tests.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/python-tests.yml)
+[![Python tests](https://github.com/kapelner/EDI/actions/workflows/test-coverage-python.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/test-coverage-python.yml)
 [![Python coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=python)](https://app.codecov.io/gh/kapelner/EDI/flags/python)\
 ![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
 [![Last commit](https://img.shields.io/github/last-commit/kapelner/EDI)](https://github.com/kapelner/EDI/commits/main)

@@ -1,10 +1,15 @@
 name: test-coverage-python
 
-# Coverage run for edi_kernels: re-runs the pytest suite under pytest-cov and
-# uploads the result to Codecov, tagged with the `python` flag (see
-# codecov.yml). It is called by build-wheels.yml on main/release pushes so a
-# test failure blocks publishing, and also runs directly on relevant pull
-# requests. Upload failure remains non-blocking; test failure is blocking.
+# The sole Python correctness + coverage signal for edi_kernels: runs the
+# pytest suite under pytest-cov and uploads the result to Codecov, tagged
+# with the `python` flag (see codecov.yml). A plain (non-coverage) pytest
+# job used to run alongside this one in python-tests.yml, but --cov reports
+# the identical pass/fail signal on top of the coverage data, so that
+# separate job was folded into this one (2026-09-18) rather than paying for
+# the same test run twice. Called by build-wheels.yml on main/release
+# pushes so a test failure blocks publishing, and also runs directly on
+# relevant pull requests. Upload failure remains non-blocking; test failure
+# is blocking.
 #
 # Package root is python/ (pyproject.toml lives there), since this repo
 # also holds the unrelated R package (R/EDI/) and paper-reproduction code.
@@ -22,9 +27,6 @@ on:
       - '.github/workflows/build-wheels.yml'
 
 jobs:
-  # Named distinctly from python-tests.yml's "test" job: both run on
-  # pull_request, and an identically-named check from two different
-  # workflows is ambiguous for branch-protection required status checks.
   coverage:
     runs-on: ubuntu-latest
     steps:

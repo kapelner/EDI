@@ -67,7 +67,7 @@ if grep -qE '^R/EDI/(.*\.(R|Rd|cpp|h|hpp)|DESCRIPTION|NAMESPACE|configure|config
 	run_r_tests=1
 fi
 
-# Mirrors python-tests.yml's path filter: python/** plus R/EDI/src/**/*.{cpp,h,hpp}
+# Mirrors test-coverage-python.yml's path filter: python/** plus R/EDI/src/**/*.{cpp,h,hpp}
 # -- R/EDI/src is the single source of truth the Python C++ extension compiles
 # directly (see python/CMakeLists.txt), so a kernel change affects both sides.
 run_python_tests=0

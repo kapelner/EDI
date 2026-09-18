@@ -55,15 +55,10 @@ on:
       - "R/EDI/src/**/*.hpp"
       - "**/*.py"
       - ".github/workflows/build-wheels.yml"
-      - ".github/workflows/python-tests.yml"
       - ".github/workflows/test-coverage-python.yml"
   workflow_dispatch: {}
 
 jobs:
-  python_tests:
-    name: Python tests
-    uses: ./.github/workflows/python-tests.yml
-
   python_coverage:
     name: Python coverage
     uses: ./.github/workflows/test-coverage-python.yml
@@ -197,7 +192,7 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    needs: [python_tests, python_coverage, build_wheels, build_sdist, arm_sdist_build]
+    needs: [python_coverage, build_wheels, build_sdist, arm_sdist_build]
     runs-on: ubuntu-latest
     # Only an actual tag push publishes -- a workflow_dispatch run (e.g. to
     # test the build matrix) never uploads anywhere.

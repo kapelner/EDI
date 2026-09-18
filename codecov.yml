@@ -1,7 +1,7 @@
 # Two independent packages (R/EDI and python/) share this repo, so coverage
 # is split by flag rather than merged into one number -- see
-# .github/workflows/test-coverage-R.yaml (flag: r) and python-tests.yml
-# (flag: python).
+# .github/workflows/test-coverage-R.yaml (flag: r) and
+# test-coverage-python.yml (flag: python).
 
 coverage:
   status:

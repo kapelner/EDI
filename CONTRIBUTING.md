@@ -284,13 +284,12 @@ skipped.
 ## 5. Opening the pull request
 
 - `main` has branch protection: a PR needs 1 approving review and the
-  `test` (`python-tests.yml`) and `coverage` (`test-coverage-python.yml`)
-  checks green before it can merge — these are the only two workflows that
-  actually run on `pull_request` events, so they're the only ones GitHub
-  can enforce this way. Repo admins bypass this (`enforce_admins: false`)
-  and can still push directly to `main`; everyone else goes through a PR.
-  Every other job below is still required by policy, just not by GitHub —
-  self-verify it the same as before.
+  `coverage` (`test-coverage-python.yml`) check green before it can merge —
+  it's the only workflow that actually runs on `pull_request` events, so
+  it's the only one GitHub can enforce this way. Repo admins bypass this
+  (`enforce_admins: false`) and can still push directly to `main`; everyone
+  else goes through a PR. Every other job below is still required by
+  policy, just not by GitHub — self-verify it the same as before.
 - Fill in the [PR template](.github/PULL_REQUEST_TEMPLATE.md) completely —
   every checkbox is one of the steps above.
 - **All on-push CI must be green** before requesting review — not just the
@@ -298,7 +297,7 @@ skipped.
   `R-CMD-check` (10-job matrix: macOS/Windows/Ubuntu × release/devel/
   oldrel-1, no-Suggests, ASAN/UBSAN, valgrind, CRAN-incoming),
   `test-bulk-non-cran`, `test-coverage-R`, `test-coverage-R-advanced`,
-  `python-tests`, `test-coverage-python`, `build-wheels` (on `main`/tags),
+  `test-coverage-python`, `build-wheels` (on `main`/tags),
   `pkgdown`, `loc-badge`. A red job you believe is a pre-existing flake
   (the Windows `--run-donttest` stall is a known one — see
   `R-CMD-check.yaml`'s comments) still needs to be called out in the PR

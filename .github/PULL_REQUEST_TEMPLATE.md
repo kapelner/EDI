@@ -56,7 +56,7 @@ Closes #
 
 ## After opening this PR (CONTRIBUTING.md §5)
 
-- [ ] **All** on-push CI workflows are green: `R-CMD-check` (all 10 matrix jobs), `test-bulk-non-cran`, `test-coverage-R`, `test-coverage-R-advanced`, `python-tests`, `test-coverage-python`, `pkgdown`, `loc-badge` (and `build-wheels` if applicable).
+- [ ] **All** on-push CI workflows are green: `R-CMD-check` (all 10 matrix jobs), `test-bulk-non-cran`, `test-coverage-R`, `test-coverage-R-advanced`, `test-coverage-python`, `pkgdown`, `loc-badge` (and `build-wheels` if applicable).
 - [ ] Any red job I believe is a pre-existing flake is linked below with the run URL, not ignored.
 
 **CI notes:** <!-- run links for anything red, or "all green" -->

@@ -6,8 +6,9 @@
 # runs it to prepare the agent's firewalled container -- see
 # https://docs.github.com/en/copilot/how-tos/agents/copilot-coding-agent/customizing-the-development-environment-for-copilot-coding-agent
 #
-# Mirrors R-CMD-check.yaml's dependency-install step and python-tests.yml's
-# setup exactly, so this doesn't drift into its own, unverified environment
+# Mirrors R-CMD-check.yaml's dependency-install step and
+# test-coverage-python.yml's setup exactly, so this doesn't drift into its
+# own, unverified environment
 # definition. Deliberately does NOT install/build R/EDI itself (unlike
 # .devcontainer/post-create.sh) -- Copilot's coding agent starts a fresh
 # container per task from this same prepared image, so paying that cost
@@ -49,8 +50,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      # See python-tests.yml's identical step for why this is needed on a
-      # plain ubuntu-latest runner (CMakeLists.txt's find_package(BLAS)).
+      # See test-coverage-python.yml's identical step for why this is needed
+      # on a plain ubuntu-latest runner (CMakeLists.txt's find_package(BLAS)).
       - name: Install system BLAS
         run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
 
