@@ -214,6 +214,9 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 				for (j in covs_to_try){
 					abs_approx_zs[j] = abs_z_compute_fun(response_obj, cbind(X[, j], X_sw_current, ws))
 				}
+				if (all(is.na(abs_approx_zs[covs_to_try]))){
+					break
+				}
 				j_max = which.max(abs_approx_zs)
 				weights[j_max] = abs_approx_zs[j_max]
 				j_droppeds = c(j_droppeds, j_max)
@@ -249,7 +252,7 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 			#				mod = fast_negbin_regression_with_var(cbind(1, covariate_data_matrix), response_obj)
 			#				abs(mod$b[2] / sqrt(mod$ssq_b_2))
 						})
-				if (!is.na(weight)){
+				if (!anyNA(weight)){
 					return(weight)
 				}
 			}
@@ -262,7 +265,7 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 									mod = fast_beta_regression_with_var(X = cbind(1, covariate_data_matrix), y = response_obj)
 									abs(mod$b[2] / sqrt(mod$ssq_b_2))
 								})
-					if (!is.na(weight)){
+					if (!anyNA(weight)){
 						return(weight)
 					}
 				}, error = function(e){})
@@ -305,7 +308,7 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 						summary_ordinal_mod = stats::coef(summary(ordinal_mod))
 						abs(summary_ordinal_mod[1, 3])
 					})
-					if (!is.na(weight)){
+					if (!anyNA(weight)){
 						return(weight)
 					}
 				}, error = function(e){})

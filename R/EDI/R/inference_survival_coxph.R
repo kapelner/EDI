@@ -274,7 +274,23 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 	# win over StandardModelCache's Cox-aware version (which correctly threads
 	# through private$shared()/generate_mod()), breaking every resampling-based
 	# method without erroring anywhere.
-	components = c("BayesianBootstrap", "CoxPartialLikelihood"),
+	# ParametricLikelihoodBootstrap added 2026-09-19 (found via a comprehensive_tests
+	# results audit): this class's own private overrides below
+	# (supports_lik_ratio_param_bootstrap/simulate_under_lik_null/
+	# get_likelihood_test_spec) are written specifically to plug into that
+	# component's compute_lik_ratio_bootstrap_two_sided_pval()/
+	# compute_lik_ratio_bootstrap_confidence_interval() and their private
+	# machinery (use_deterministic_param_bootstrap, compute_param_bootstrap_lr_impl,
+	# create_param_bootstrap_worker_state, etc.) -- but the component itself was
+	# never listed here, so none of that public+private surface existed on this
+	# class at all (supports_lik_ratio_param_bootstrap() = isTRUE(private$use_rcpp)
+	# unconditionally claimed support anyway, so every call errored with "attempt
+	# to apply non-function" instead of the intended "does not support" message).
+	# Listed before CoxPartialLikelihood, same relative position as the working
+	# InferenceSurvivalWeibullRegr template (inference_survival_weibull.R), so
+	# CoxPartialLikelihood's own dependency subtree still resolves/merges last
+	# per this class's pre-existing ordering comment below.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}. Deliberately pulled from
@@ -452,6 +468,17 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			isTRUE(private$use_rcpp)
 		},
 		supports_lik_ratio_param_bootstrap = function() isTRUE(private$use_rcpp),
+		# Explicit FALSE (not just the collision declaration above): without a
+		# body here, ParametricLikelihoodBootstrap's delegating version
+		# (supports_bartlett_likelihood_ratio_approx() = supports_lik_ratio_
+		# param_bootstrap()) wins the merge over LikelihoodTests' hardcoded-
+		# FALSE default -- silently turning TRUE now that use_rcpp defaults
+		# TRUE, a previously-inert, unvalidated Monte-Carlo Bartlett-correction
+		# code path this fix was never meant to newly enable. Matches
+		# path_audits_source.R's InferenceSurvivalCoxPHRegr row
+		# (bartlett_approx_override=FALSE), which documents FALSE as this
+		# class's real, confirmed-live behavior.
+		supports_bartlett_likelihood_ratio_approx = function() FALSE,
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			b_null = as.numeric(null_fit$b)
 			if (!all(is.finite(b_null))) return(NULL)
@@ -760,7 +787,18 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			)
 		}
 	),
-	metadata = list(likelihood_tier = "partial"),
+	# capabilities = "likelihood_ratio" added 2026-09-19 alongside the
+	# ParametricLikelihoodBootstrap component above: that component's own
+	# registered requirement (EDI_CAPABILITY_REQUIREMENTS' parametric_likelihood_
+	# bootstrap entry, contracts_mixins.R) is capabilities = "likelihood_ratio",
+	# which this class was never explicitly declaring even though
+	# compute_lik_ratio_two_sided_pval()/compute_lik_ratio_confidence_interval()
+	# already work today (private$get_likelihood_test_spec() override present,
+	# likelihood_tier = "partial" satisfies that capability's own tier
+	# requirement) -- this makes an already-real capability explicit, matching
+	# the working InferenceSurvivalWeibullRegr template
+	# (inference_survival_weibull.R), not a new behavior.
+	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(
 			"compute_estimate",
@@ -783,6 +821,23 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 		private = c(
 			"supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap",
+			# 2026-09-19, surfaced by adding ParametricLikelihoodBootstrap above:
+			# LikelihoodTests (source InferenceAsympLik) already provides both of
+			# these (hardcoded FALSE default -- "Default FALSE; InferenceParamBootstrap
+			# overrides this to delegate to supports_lik_ratio_param_bootstrap()",
+			# see that default's own comment), and ParametricLikelihoodBootstrap now
+			# provides its own (delegating) version too -- an undeclared collision
+			# the framework correctly refused to silently resolve. Declared here
+			# rather than given a host body: LikelihoodTests' chain (via
+			# CoxPartialLikelihood) still resolves last in this class's component
+			# order, so its FALSE default keeps winning, preserving the exact
+			# behavior path_audits_source.R's InferenceSurvivalCoxPHRegr row already
+			# documents and depends on (bartlett_approx_override=FALSE) -- letting
+			# ParametricLikelihoodBootstrap's delegating version win instead would
+			# newly enable a Bartlett-approx code path for this class that has never
+			# been exercised or validated; out of scope for this fix.
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
 			"simulate_under_lik_null",
 			"get_likelihood_test_spec",
 			"generate_mod",

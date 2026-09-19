@@ -417,3 +417,118 @@ and the expanded proportion file's 38 assertions pass through isolated
 source-method substitution. These later R-only fixes are not yet installed.
 The installed-only broad run reproduces precisely two newly added proportion
 recovery failures, confirming the previously missed cache defect.
+
+## TODO-1 triage candidates (2026-09-19, surfaced not fixed)
+
+The first complete, provenance-bearing coverage run (73.57%, commit
+`f72b8fdb`, see `full_test_coverage.md`) fed 58 newly-discovered sub-80%
+files into `coverage_gap_registry.csv` triage. Per the plan's own non-goals
+("if a gap investigation surfaces what looks like an actual bug... that
+becomes its own separate plan/fix, not folded into this one"), the following
+were noticed while classifying coverage, not fixed, and are unverified beyond
+a source read + `grep` for callers. A maintainer should confirm each before
+acting on it; see the registry CSV's per-file `notes` column for the full
+reasoning.
+
+- `inference_ordinal_KK_cond_logit_abstract.R`: `ordinal_cond_clogit_assert_finite_se()`
+  (lines 35-39) appears to be a no-op -- both the finite and non-finite SE
+  branches fall through to an identical implicit `NULL` return, with no
+  `stop()`/warning/cache-nonestimable call, so the assertion it is named for
+  never fires.
+- `inference_mixin_kk_passthrough.R`: the entire "reused worker" bootstrap
+  branch (`create_kk_bootstrap_worker_state`,
+  `load_kk_bootstrap_sample_into_worker`,
+  `compute_kk_bootstrap_worker_estimate`,
+  `compute_kk_bootstrap_debug_with_reused_worker`,
+  `compute_kk_bootstrap_distribution_with_reused_workers`, ~145 lines) is
+  unreachable by construction: its only gate,
+  `private$use_reusable_kk_bootstrap_worker()`, is hardcoded `FALSE` and is
+  never overridden by any class in the codebase.
+- `helper_matching.R`: `.init_kk_bootstrap_structure()`/
+  `.draw_kk_bootstrap_indices()` (lines 174-210) have zero callers anywhere;
+  the identical algorithm is independently implemented as private methods
+  directly inside `design_matching_abstract.R` (lines 56-86, operating on
+  `private$boot_*` instead of `des_priv$boot_*`), which is what every real
+  caller actually uses. Looks like an orphaned duplicate from a refactor.
+- `inference_incidence_KK_combined.R`: `InferenceAbstractKKCondLogitGLMMOneLik`
+  has zero concrete subclasses anywhere (`grep` for
+  `inherit = InferenceAbstractKKCondLogitGLMMOneLik` finds none). Easily
+  confused by name with the real, heavily-tested
+  `InferenceIncidKKCondLogitGLMMOneLik` (no "Abstract"), defined in a
+  different file and inheriting from a different abstract class. Looks like
+  orphaned refactor scaffolding.
+- `helper_package_checks.R`: `print_progress()` looks dead -- every other
+  module calls `utils::setTxtProgressBar()` inline instead; its only caller
+  anywhere is a direct unit test with `pb=NULL`.
+- `inference_all_abstract_KK_passthrough_compound.R`: 0% coverage traced to
+  being structural, not merely undertested -- every real concrete class
+  overrides both `initialize()` and
+  `compute_estimate_with_bootstrap_weights()`, fully shadowing this base's
+  methods. Candidate for a documented `covr` exclusion rather than a test;
+  kept only for migration golden-test generators and as an inherit target.
+
+### Coverage-measurement discrepancies (resolved 2026-09-19 -- not source gaps)
+
+Three files were initially left `unclassified` rather than guessed. Spot-checks
+resolved all three the same way: **the code is exercised by existing tests;
+the coverage measurement is wrong.** These are candidate defects in the
+coverage pipeline itself, not test-writing backlog items, and each registry
+row is now `excluded` with a note saying so (no new tests needed).
+
+- `inference_incidence_gcomp_abstract.R` (0.15% measured) and
+  `inference_incidence_KK_gcomp_abstract.R` (0.17% measured) are "harvest
+  source" files whose R6 class methods are extracted at file scope via
+  `inference_component_source_parts()` and composed into concrete classes
+  (`define_inference_class()`) -- closure composition, not plain R6
+  inheritance. A first attempt to detect execution by monkey-patching
+  `gen$public_methods` (on both the abstract and the concrete generators)
+  reported no hits at all; that turned out to be a false negative from the
+  method (R6 does not re-read the exposed `public_methods` list when
+  `$new()` runs), not evidence of dead code. The reliable check was a
+  temporary `cat()` inserted at the top of `initialize()` and
+  `compute_estimate()` in each source file, reloaded via
+  `pkgload::load_all(compile = FALSE)`, run against four existing bulk test
+  files, then reverted (`git diff` clean, files byte-identical to backups).
+  Both methods fired dozens of times per file (non-KK: two test files; KK:
+  two test files). So `covr::package_coverage()`'s line attribution back to
+  these source files is broken for the harvested-composition pattern. The
+  root cause of the mis-attribution is **not** determined here -- it needs a
+  `covr` internals investigation.
+- `local_machine_tuning_harness.R` (21.21% measured): a literal
+  `covr::file_coverage()` against its dedicated bulk test file gives
+  **98.99%** (98 of 99 coverable lines; only line 32 of
+  `edi_tuning_default_seed()` is not hit), contradicting the merged 35-shard
+  run on the same commit. A skip-condition explanation was checked and ruled
+  out: the test has no `skip*()`/`Sys.getenv()` logic, the shard's
+  `timings.csv` records status `complete`, and locally it runs 14 tests / 68
+  passing assertions / 0 skipped. Cause of the discrepancy is unresolved.
+
+Implication for the plan: the 73.57% aggregate (R code only; the report
+contains no C++ files at all, see `full_test_coverage.md`) is probably an
+**under**-estimate of R coverage. The two gcomp abstract files alone account for 1,265
+coverable lines counted as ~0% (668 + 597 uncovered), and the harness file
+another 78 uncovered lines that a direct check says are covered. Any other
+file built on the same harvested-composition pattern may be similarly
+under-counted. This is worth investigating before treating the remaining
+sub-80% backlog as ground truth.
+
+### Dead-code cleanup outcome (2026-09-19)
+
+Each `dead_or_unreachable` candidate was checked against every release and feature
+plan and every reference in the repo before any deletion.
+
+- **Deleted** (no plan references; 430 lines removed; 521 assertions across 16
+  wiring/registry/contract/migration/KK/ordinal test files pass with `compile = FALSE`):
+  the KK "reused worker" bootstrap branch in `inference_mixin_kk_passthrough.R`;
+  the orphaned `InferenceAbstractKKCondLogitGLMMOneLik` class (plus its man page and
+  `_pkgdown.yml` entry); and `ordinal_cond_clogit_shared_univ` (plus its wrapper,
+  contract entry and baseline-test expectation).
+- **Kept**: `helper_matching.R`'s two functions, because
+  `full_glmm_for_weibull_frailty.md` (release v1.4.0, TODO-5) names them (that plan
+  looks stale and should point at `design_matching_abstract.R`);
+  `inference_all_abstract_KK_passthrough_compound.R`, a deliberate hierarchy base;
+  and `inference_count_composite_likelihood.R`, whose `stop()` stubs are guardrails.
+- **Process note**: my first deletion pass wrongly removed
+  `clear_kk_bootstrap_worker_design_caches`, which the live bootstrap path still
+  calls (my reference search had excluded the file itself). It was caught before
+  any test ran and restored.

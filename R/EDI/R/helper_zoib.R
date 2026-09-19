@@ -126,7 +126,7 @@
 			fast_zero_one_inflated_beta_cpp(X, X_zero_one, y, warm_start_params = start_par, optimization_alg = optimization_alg),
 			error = function(e) NULL
 		)
-		if (is.null(fit) || !is.finite(fit$neg_loglik)) next
+		if (is.null(fit) || !is.finite(fit$neg_loglik) || length(fit$coefficients) == 0L) next
 		if (is.null(best) || fit$neg_loglik < best_val){
 			best = fit
 			best_val = fit$neg_loglik

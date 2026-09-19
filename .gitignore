@@ -80,6 +80,7 @@ vignettes/*.pdf
 local_R_lib/*
 R/package_tests/comprehensive_tests_results_nc_*.csv
 R/package_tests/comprehensive_tests_results_nc_1_*.csv.pre_anomaly_fix_removal.bak
+R/package_tests/.comprehensive_results_audit_stamp
 .codex
 R/package_tests/.~lock*
 benchmark_lrt_ci_nr.R

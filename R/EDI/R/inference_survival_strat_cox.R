@@ -166,7 +166,17 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 	# StandardModelCache's Cox-aware
 	# compute_treatment_estimate_during_randomization_inference() win over
 	# InferenceRand's generic version.
-	components = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
+	# ParametricLikelihoodBootstrap added 2026-09-19, same bug/fix shape as the
+	# BayesianBootstrap addition above and the identical fix just made to
+	# InferenceSurvivalCoxPHRegr (see that factory call's comment): this
+	# class's own supports_lik_ratio_param_bootstrap()/simulate_under_lik_null()
+	# private overrides expect that component's machinery, which was never
+	# actually composed -- compute_lik_ratio_bootstrap_two_sided_pval()/
+	# compute_lik_ratio_bootstrap_confidence_interval() and their private
+	# helpers were literal NULLs, "attempt to apply non-function" on every
+	# call. Listed before StratifiedCoxPartialLikelihood, preserving the same
+	# "Cox component resolves/merges last" ordering.
+	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}. Pinned from
@@ -321,6 +331,11 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			isTRUE(private$use_rcpp)
 		},
 		supports_lik_ratio_param_bootstrap = function() isTRUE(private$use_rcpp),
+		# See InferenceSurvivalCoxPHRegr's matching comment: explicit FALSE, not
+		# just the collision declaration, to keep this class from silently
+		# picking up ParametricLikelihoodBootstrap's delegating (now-TRUE)
+		# version via the component merge.
+		supports_bartlett_likelihood_ratio_approx = function() FALSE,
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			b_null = as.numeric(null_fit$coefficients %||% null_fit$b)
 			if (!all(is.finite(b_null))) return(NULL)
@@ -835,7 +850,9 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			list(b = c(NA_real_, NA_real_), ssq_b_2 = NA_real_, neg_log_lik = NA_real_)
 		}
 	),
-	metadata = list(likelihood_tier = "partial"),
+	# capabilities = "likelihood_ratio" added 2026-09-19: see the identical
+	# addition and its comment in InferenceSurvivalCoxPHRegr.
+	metadata = list(likelihood_tier = "partial", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(
 			"compute_estimate",
@@ -859,6 +876,19 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			"cached_mod",
 			"supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap",
+			# See InferenceSurvivalCoxPHRegr's matching comment: same undeclared
+			# collision between LikelihoodTests' hardcoded-FALSE default and
+			# ParametricLikelihoodBootstrap's delegating version, surfaced by
+			# adding that component above. LikelihoodTests' chain still resolves
+			# last, so FALSE keeps winning -- preserving existing behavior, not
+			# newly enabling an unvalidated Bartlett-approx path.
+			"supports_bartlett_likelihood_ratio_approx",
+			"get_bartlett_factor_approx",
+			# This class's own tuned threshold (0.5, on the Cox beta scale) must
+			# win over ParametricLikelihoodBootstrap's generic
+			# EDI_SEPARATION_THRESHOLD default -- an owns_state field of that
+			# component, so also needs declaring here now that it's composed.
+			"param_bootstrap_extreme_estimate_threshold",
 			"simulate_under_lik_null",
 			"get_likelihood_test_spec",
 			"generate_mod",

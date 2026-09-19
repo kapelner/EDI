@@ -1057,7 +1057,6 @@ EDI_COMPONENT_SPECS = list(
 		provides_private_methods = c(
 			"ordinal_cond_clogit_compute_setup",
 			"ordinal_cond_clogit_assert_finite_se",
-			"ordinal_cond_clogit_shared_univ",
 			"ordinal_cond_clogit_shared_multi"
 		),
 		provides_capabilities = character(),

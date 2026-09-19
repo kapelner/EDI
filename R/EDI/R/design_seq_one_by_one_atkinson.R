@@ -96,8 +96,8 @@ DesignSeqOneByOneAtkinson = define_design_class(
 			if (private$t <= ncol(private$Xraw) + 2 + 1){
 				rbinom(1, 1, private$prob_T)
 			} else {
-				all_subject_data = private$compute_all_subject_data()
 				tryCatch({
+					all_subject_data = private$compute_all_subject_data()
 					atkinson_assign_weight_cpp(
 						private$w[1 : (private$t - 1)],
 						all_subject_data$X_prev,

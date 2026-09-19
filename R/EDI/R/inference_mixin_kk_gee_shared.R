@@ -628,7 +628,7 @@ InferenceMixinKKGEEShared = list(
 						weights = weights_kept,
 						id     = id_sorted,
 						corstr = "exchangeable",
-						std.err = "none",
+						std.err = "san.se",
 						start  = ws_args$warm_start_beta
 					)
 				)))

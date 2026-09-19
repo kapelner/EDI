@@ -144,7 +144,8 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			if (is.null(private$cached_values$s_beta_hat_T)){
 				private$compute_s_beta_hat_T()
 			}
-			if (is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0) {
+			if (!is.finite(private$cached_values$beta_hat_T) ||
+					is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0) {
 				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -165,10 +166,14 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				assertNumeric(delta)
 			}
 			if (delta == 0){
+				if (is.null(private$cached_values$beta_hat_T)){
+					self$compute_estimate()
+				}
 				if (is.null(private$cached_values$s_beta_hat_T)){
 					private$compute_s_beta_hat_T()
 				}
-				if (is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0) {
+				if (!is.finite(private$cached_values$beta_hat_T) ||
+						is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0) {
 					return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
 				}
 				z_beta_hat_T = private$cached_values$beta_hat_T / private$cached_values$s_beta_hat_T

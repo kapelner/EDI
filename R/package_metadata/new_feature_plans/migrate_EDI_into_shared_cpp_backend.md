@@ -5,6 +5,10 @@ Date: 2026-08-27
 Status: architecture, feasibility, and phased implementation report. Effort
 estimates are planning ranges, not delivery commitments.
 
+Release: **v4.0.0 (tentative, low priority)** — moved from v2.0.0 on
+2026-09-19 by user decision; see
+`../future_release_plans/release_v4_0_0.md`.
+
 > **Related plans:** `more_language_bindings.md` defines the language demand
 > and packaging strategy. This report defines the deeper migration required
 > to make statistical inference—not only model-fitting kernels—available from
@@ -50,7 +54,12 @@ The recommended boundary is incremental:
 3. expose a **draws-in, inference-out** batch API in which callers provide
    bootstrap indices, Bayesian weights, or randomized assignments;
 4. move only broadly reusable draw generation and execution policy into C++;
-5. treat adaptive designs, arbitrary user statistics, and complete R6
+5. add a native **design handle** (see "Native design protocol (Phase D)"
+   below) so that assignment generation, sequential allocation, and
+   design-aware resampling also come from the shared core rather than from
+   host-supplied matrices; this runs alongside step 3 and is not deferred
+   behind native draw generation;
+6. treat arbitrary user statistics, R-package-backed solvers, and complete R6
    workflow parity as a later and separately justified scope.
 
 This yields a useful cross-language inference library without first porting
@@ -79,7 +88,8 @@ uncertainty from model-family coverage and advanced resampling variants.
 ## Non-goals for the first release
 
 - Reimplementing all R6 design, response, and inference classes in every
-  language.
+  language. (Designs are handled once, natively, in the core through the
+  design protocol below; each host language does not re-port them.)
 - Calling R from `libedi_core`.
 - Allowing foreign-language callbacks to execute inside OpenMP workers.
 - Guaranteeing arbitrary user-defined statistics across the C ABI.
@@ -652,7 +662,7 @@ accidental property of thread scheduling.
 | Randomization CI | batch + inversion | Medium-low initially | nested evaluations and stable boundary search | Very high |
 | Bootstrap-randomization test/CI | paired draw plan | Medium-low | compound resampling semantics | Very high |
 | Parametric LR bootstrap | evaluator + simulators | Medium | per-family null simulator coverage | Very high |
-| Adaptive/sequential design replay | workflow engine | Low for first release | mutable design state and stopping policy | Very high |
+| Adaptive/sequential design replay | design handle (Phase D) | Low until Phase D3; Medium after | serializable/cloneable design state, versioned RNG | High |
 
 ### Score and LR tests
 
@@ -954,8 +964,247 @@ Gate: every native generator can export its realized draws, replay them, and
 match serial and parallel execution under its declared reproducibility
 version.
 
-Adaptive/sequential workflow migration is not included in this estimate. It
-requires its own design-state protocol and plan.
+Adaptive/sequential workflow migration is not included in this estimate. It is
+covered by the design-state protocol in "Native design protocol (Phase D)"
+below, which absorbs `CPPABI-701` and `CPPABI-702` for the design classes it
+covers.
+
+## Native design protocol (Phase D)
+
+Date added: 2026-09-19. Status: proposal from a read-only audit of
+`R/EDI/R/design_*.R`; nothing here has been prototyped.
+
+### Why designs belong in the core
+
+The phases above make inference native but leave the *design* with the host:
+callers supply assignment matrices, bootstrap indices, and sequential
+allocations. That gives a Stata or MATLAB user an inference engine without
+EDI's defining feature, the coupling of a known randomization mechanism to
+the analysis. Randomization tests and CIs are valid only against the null
+distribution of the design that actually produced the data, so a host that
+cannot draw from that design cannot run them honestly.
+
+The design layer is also much smaller and more native than the inference
+layer:
+
+| Measure (2026-09-19) | Design | Inference |
+|---|---:|---:|
+| R files | 36 | 138 |
+| R lines | 8,694 | 67,239 |
+
+Roughly 27 of the 36 design files already reference `*_cpp` kernels (some
+only in documentation comments; verify in D0). Native kernels already exist
+for rerandomization search, complete randomization, greedy and pair-switching
+matching, D-optimal greedy search, annealing-based optimal designs, Atkinson
+assignment, binary matching, KK14/KK21 weights, and stratified/group
+bootstrap indices (`design_fixed_greedy.cpp`,
+`design_optimal_annealing_search.cpp`, `atkinson_assign.cpp`,
+`binary_match_search.cpp`, `kk21_weights.cpp`, `bootstrap_match_indices.cpp`,
+and others under `R/EDI/src`).
+
+### What the audit found (the design surface, by portability tier)
+
+**Tier A: RNG and bookkeeping only (portable once a versioned RNG exists).**
+Fixed: IBCRD, Bernoulli, factorial, blocking, cluster, blocked cluster.
+Sequential: Bernoulli, IBCRD, Efron biased coin, urn, SPBR, random block size.
+About 54 lines across the design files call R's `sample`/`runif`/`rnorm`/
+`rbinom`/`set.seed`; these are the reproducibility contract to replace.
+`randomizr` is used in four files for blocked/clustered sampling and must be
+reimplemented natively (small).
+
+**Tier B: native kernels already exist; the R class is orchestration.**
+Fixed: rerandomization, greedy, greedy D-optimal, greedy pair-switching,
+binary match. Sequential: Pocock-Simon, Atkinson, KK14. Work is defining the
+spec structs and moving parameter validation and state handling to C++.
+
+**Tier C: needs additional native capability.**
+- KK21 and KK21-stepwise call `MASS::glm.nb`, `MASS::polr`, and
+  `survival::Surv/coxph` *inside the design* to compute covariate weights. They
+  therefore depend on the same native fit kernels/evaluators as the inference
+  phases (Phase 2–3) for the negative binomial, ordinal, and survival cases.
+- `DesignFixedOptimal` and optimal blocks use `ompr`/`ROI` (MIP solvers) and,
+  for blocks, `blockTools`. The native path is the existing annealing search;
+  exact MIP solving stays **R-backed** and is reported as such in the
+  capability matrix.
+
+**Observational designs** (`ObservationalDesign`, matching, blocks) carry no
+randomization mechanism. They need only a structure description (pairs,
+blocks, clusters) as `AnalysisSpec` input and are already covered by the
+supplied-draws bootstrap and Bayesian bootstrap APIs.
+
+**Stays R-only:** `design_custom_extensions.R` (user-defined design classes),
+class-registry reflection helpers, and reporting.
+
+### The base-class contract to preserve
+
+The audit shows the abstract classes already expose a small, handle-shaped
+protocol, which is why this is feasible rather than a rewrite:
+
+- Fixed designs: `add_all_subjects_to_experiment(X)`,
+  `assign_w_to_all_subjects()`, `add_all_subject_responses(...)`,
+  `overwrite_all_subject_assignments(w)`.
+- Sequential designs: `add_one_subject_to_experiment_and_assign(x_new)`,
+  `add_one_subject_response(t, y, ...)`.
+- Shared: `draw_ws_according_to_design(r)` (the randomization-inference
+  entry point), `capabilities()`/`supports()`, `randomization_family()`,
+  `supports_randomization_draw()`, `supports_resampling_replay()`,
+  `prepare_for_resampling_replay()`, `duplicate()`.
+
+Each maps onto a handle operation below. The R6 classes remain the public
+R interface and become thin adapters, consistent with Phase 6.
+
+### Proposed ABI additions
+
+```c
+typedef struct edi_design edi_design;
+
+edi_status edi_design_create(
+    const edi_design_spec* spec,     /* class id, params, RNG, response type */
+    edi_design** out_design);
+
+edi_status edi_design_clone(const edi_design*, edi_design** out);  /* duplicate() */
+void       edi_design_destroy(edi_design*);
+
+/* fixed designs */
+edi_status edi_design_add_subjects(edi_design*, const edi_data_view* X);
+edi_status edi_design_assign_all(edi_design*, edi_array_view_out* w);
+
+/* sequential designs */
+edi_status edi_design_add_subject_and_assign(
+    edi_design*, const edi_data_view* x_new, int32_t* out_w);
+edi_status edi_design_record_response(
+    edi_design*, uint64_t t, const edi_response* y);
+
+/* randomization inference: r draws from the design's own mechanism */
+edi_status edi_design_draw_assignments(
+    edi_design*, uint64_t r, const edi_rng_spec* rng,
+    edi_array_view_out* w_matrix);
+
+/* replay, persistence, introspection */
+edi_status edi_design_export_state(const edi_design*, edi_blob_out*);
+edi_status edi_design_import_state(const edi_blob*, edi_design** out);
+edi_status edi_design_capabilities(const edi_design*, edi_capabilities*);
+```
+
+Requirements that follow from the audit:
+
+1. **Serializable, versioned state.** Sequential designs are functions of the
+   history of covariates and prior assignments. `export_state`/`import_state`
+   must round-trip exactly, including RNG position, so replay and the
+   bootstrap-randomization workflow work without re-running history.
+2. **Cloneable in O(state).** Randomization and resampling replay need many
+   independent copies (today `duplicate()`); clones must share no mutable
+   state and must be safe on separate threads.
+3. **One declared RNG.** Algorithm, algorithm version, master seed, and
+   per-draw stream-splitting rule are part of `edi_rng_spec` and of exported
+   state (see "Randomness and reproducibility"). Draw `i` must not depend on
+   thread count.
+4. **Capabilities are per instance**, as in R (`is_blocking_design()` depends
+   on construction-time state). The capability query returns the instance's
+   flags, not the class's.
+5. **No callbacks.** Custom design classes are not representable; they
+   remain R-only and are reported `R-backed`/`unavailable`.
+
+The design handle composes with the analysis handle: a native randomization
+test takes an `edi_analysis` and an `edi_design`, draws assignments, applies
+the null transform, refits, and returns the p-value with no host callback.
+This removes the "native design sampler" and "native randomization
+generation" blockers in the feasibility table.
+
+### RNG parity with existing R results
+
+Moving generation into C++ changes the random stream, so existing R users
+will not reproduce old `set.seed` results bit for bit. Mitigation: (a) the R
+adapter keeps a selectable R-RNG path for one release cycle, (b) native
+generation is opt-in until the dual-backend tests pass, and (c) statistical
+equivalence tests compare distributions (allocation balance, p-value
+uniformity under the null, rerandomization acceptance rates) rather than
+streams. This is a deliberate, documented compatibility break, not an
+accident to discover later.
+
+### Delivery phases
+
+- [ ] **Phase D0: audit and contracts (2–3 engineer-weeks).**
+  - [ ] `CPPABI-D001` Verify the tier assignment per class by reading each
+    file (this plan's audit used file names, line counts, and grep only).
+  - [ ] `CPPABI-D002` Specify `edi_design_spec`, state blob format, RNG spec,
+    and the per-instance capability flags.
+  - [ ] `CPPABI-D003` Decide the RNG (counter-based, e.g. Philox, is
+    preferred for thread-count-independent draws) and its versioning rule.
+  - [ ] `CPPABI-D004` Golden fixtures: realized assignment matrices and
+    state blobs for one design per tier.
+
+  Gate: every design class is classified `native`, `R-backed`, or
+  `unavailable` in the manifest with a stated reason.
+
+- [ ] **Phase D1: Tier A designs (4–6 engineer-weeks).** Native RNG, IBCRD,
+  Bernoulli, blocking, cluster, blocked cluster, factorial; sequential
+  Bernoulli, IBCRD, Efron, urn, SPBR, random block size; `draw_assignments`;
+  state export/import; clone.
+
+  Gate: distributional-equivalence tests vs. R pass; serial and parallel draws
+  are identical under one seed; the supplied-assignments randomization test
+  from Phase 4 runs with core-generated draws.
+
+- [ ] **Phase D2: Tier B designs (6–10 engineer-weeks).** Rerandomization,
+  greedy, greedy D-optimal, pair-switching, binary match; Pocock-Simon,
+  Atkinson, KK14. Wrap existing kernels behind the handle; move parameter
+  validation from R.
+
+  Gate: identical objective values/balance to the R path on shared realized
+  assignments; sequential replay from exported state reproduces the
+  original allocation sequence.
+
+- [ ] **Phase D3: Tier C designs (6–12 engineer-weeks).** KK21 and
+  KK21-stepwise on top of the native fit kernels for negative binomial,
+  ordinal, and survival weights; native annealing optimal and optimal-blocks
+  designs; MIP-solver paths marked `R-backed`.
+
+  Gate: KK21 weights match the R path within declared tolerance on shared
+  data, including failed-fit fallbacks; capability matrix lists exactly which
+  optimal-design solvers are native.
+
+- [ ] **Phase D4: wire designs into resampling and consumers (4–8
+  engineer-weeks).** Randomization test/CI and bootstrap-randomization using
+  design handles (`CPPABI-704`, `CPPABI-706` prerequisites); R adapters that
+  construct design handles from R6 objects (extends `CPPABI-601`); one
+  non-R binding (recommended: Python, then Julia or MATLAB) exposing
+  designs.
+
+  Gate: the same serialized design fixture runs in C++, R, Python, and one
+  more host, and produces identical realized draws under one seed.
+
+Sequencing: D0 with Phase 0; D1 with Phase 4 (so the first randomization
+test is end to end); D2–D3 in parallel with Phases 5–6; D4 last. D3 depends
+on Phase 2–3 fit coverage for the affected families.
+
+Estimate: 22–39 engineer-weeks, of which roughly 6–10 overlap
+`CPPABI-701`/`CPPABI-702`. The range is wide because Tier C depends on
+family coverage from earlier phases and the audit has not read the class
+bodies.
+
+### Risks specific to designs
+
+| Risk | Consequence | Mitigation |
+|---|---|---|
+| Tier assignment based on grep, not reading | Hidden R state (options, environments) inflates Tier B/C | D001 reads every class before scheduling D2/D3. |
+| RNG change breaks published seeds | Users cannot reproduce old results | Opt-in native path, retained R-RNG path for one release, documented break. |
+| KK21 in-design fits diverge from inference fits | Same model fit two ways | Share the evaluator/fit kernel between design and inference. |
+| MIP solver dependency | "Optimal" designs appear native but are not | Capability matrix distinguishes annealing (native) from MIP (R-backed). |
+| State blob becomes an accidental public format | Frozen internals | Versioned, opaque blob; documented only as round-trippable within a version. |
+| Custom design classes | Users expect extensibility everywhere | Explicitly R-only; manifest says so. |
+
+### Definition of done for Phase D
+
+- Every registered design class has a manifest entry: `native`, `R-backed`,
+  or `unavailable`, with reason.
+- Tier A and Tier B designs generate assignments, run sequentially, export
+  and import state, and clone natively, with no host callback.
+- A native randomization test runs from an `edi_design` plus `edi_analysis`
+  with no caller-supplied assignments.
+- Serial and parallel generation agree under the declared RNG version.
+- R, Python, and one additional binding pass the shared design fixtures.
+- Documentation states the RNG compatibility break and the R-only surfaces.
 
 ## Language priority and expected consumers
 
@@ -1106,6 +1355,7 @@ contract stabilizes. Approximate marginal effort:
 | Python C-ABI migration | 4–8 engineer-weeks |
 | R shared-backend migration | 6–12 engineer-weeks |
 | Native draw generation | 15–30 engineer-weeks |
+| Native design protocol (Phase D; overlaps `CPPABI-701/702` by ~6–10) | 22–39 engineer-weeks |
 | Advanced bootstrap/randomization/parametric variants | 15–30 engineer-weeks |
 
 The **20–35 week practical first release** includes common-family score/LR
@@ -1127,8 +1377,10 @@ parallel only after the ABI has passed both R and Python use.
 ## Decision checkpoints
 
 1. **After Phase 0:** Is the desired product Level K inference or full Level W
-   workflow parity? If Level W, create a separate workflow/state protocol
-   plan before expanding this scope.
+   workflow parity? Recommended answer: Level K inference **plus a native
+   design handle** (Phase D), with R-package-backed solvers, custom
+   extension classes, and reporting explicitly outside the native scope. Full
+   Level W parity still needs its own plan.
 2. **After the evaluator vertical slice:** Can all required model-specific R
    closures be represented without weakening inference semantics?
 3. **After draws-in bootstrap/randomization:** Does observed use justify

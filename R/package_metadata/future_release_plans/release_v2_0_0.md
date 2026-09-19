@@ -209,15 +209,12 @@ against; they are additive on the design factory but are treated as a
   rest of this release's scope (user decision, 2026-09-16, slated here
   anyway) — no core contract changes, purely additive.
 
-### Shared inference backend and language boundaries
+### Shared inference backend and language boundaries — MOVED to v4.0.0
 
-- `migrate_EDI_into_shared_cpp_backend.md` — staged C++ inference ABI and
-  native-core migration, dependent on the completed standalone-core work and
-  existing Python package; preserve R/Python behavior through a dual-backend
-  release window.
-- `more_language_bindings.md` — additional language bindings and coordinated
-  packaging, sequenced after the shared backend rather than creating separate
-  handwritten kernel implementations.
+Moved out of this release 2026-09-19 (user decision: the full C++ migration,
+including the native design protocol, "is not a priority whatsoever").
+`migrate_EDI_into_shared_cpp_backend.md` and `more_language_bindings.md` now
+live in `release_v4_0_0.md`. Nothing else in this release depends on them.
 
 ### Deferred breaking changes
 
@@ -274,13 +271,10 @@ against; they are additive on the design factory but are treated as a
   `causal_forest_inference.md → Phase 0..6` — stabilize the HTE estimand and
   capability contract, ship the randomized-design forest path, then add
   design-aware randomization/bootstrap modes and BART/BCF posterior adapters.
-- [ ] TODO-6c: **Shared C++ inference backend**
-  `migrate_EDI_into_shared_cpp_backend.md → CPPABI-601..` — land the ABI and
-  dual-backend compatibility window before enabling downstream language
-  bindings.
-- [ ] TODO-6d: **Additional language bindings**
-  `more_language_bindings.md → TODO-1..` — execute only after TODO-6c's ABI,
-  release, and ownership decisions are complete.
+- ~~TODO-6c: Shared C++ inference backend~~ — **moved to v4.0.0**
+  (2026-09-19); see `release_v4_0_0.md`.
+- ~~TODO-6d: Additional language bindings~~ — **moved to v4.0.0**
+  (2026-09-19); see `release_v4_0_0.md`.
 - [ ] TODO-6e: **Sample-splitting / data-carving model selection for
   `InferenceSuite`** (added 2026-08-30): `sample_splitting_model_selection.md
   → TODO-1..6` — an honest-by-construction alternative to the

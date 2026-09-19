@@ -277,7 +277,8 @@ InferenceContinRobustRegr = define_inference_class(
 				)
 			} else {
 				tryCatch(
-					suppressWarnings(MASS::rlm(x = X_fit, y = as.numeric(private$y), method = private$rlm_method, init = ws_args$start_beta)),
+					suppressWarnings(MASS::rlm(x = X_fit, y = as.numeric(private$y), method = private$rlm_method,
+						init = if (is.null(ws_args$start_beta)) "ls" else ws_args$start_beta)),
 					error = function(e) NULL
 				)
 			}

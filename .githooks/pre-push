@@ -257,6 +257,28 @@ fi
 echo
 
 if [ "$run_r_tests" = "1" ]; then
+	# Fast structural gate BEFORE the ~10 min suite below: (1) every
+	# constructible inference class has the methods its component composition
+	# and capability set promise, and every private$x() call resolves; (2) the
+	# registry's hand-maintained component lists still match the real
+	# define_inference_class(components=) calls. Together these catch the
+	# "silently NULL method -> 'attempt to apply non-function'" bug family
+	# (found 2026-09-19 by a raw comprehensive_tests results audit -- see the
+	# header of test-inference-class-wiring-completeness.R). Also (3) pathological
+	# data + injected SE faults must give a clean NA/error, never a wrong-looking
+	# number, and (4) estimates/SEs must match survival/quantreg/pscl/glm/... on
+	# fixed data. ~1.5 minutes. The same files run again inside the full suite --
+	# this pass only buys fast feedback.
+	echo "pre-push: R-relevant files changed -- structural wiring/drift/adversarial/parity audit ..."
+	if ! ( cd R/EDI/tests && NOT_CRAN=true Rscript "$repo_root/scripts/run_structural_checks.R" ); then
+		echo "pre-push: structural wiring/drift/adversarial/parity audit FAILED (details above)." >&2
+		echo "pre-push: an unlisted gap means a method/hook is missing on an assembled class; a drift means inference_class_registry.R disagrees with a define_inference_class() call." >&2
+		abort_push
+	fi
+	echo
+fi
+
+if [ "$run_r_tests" = "1" ]; then
 	echo "pre-push: R-relevant files changed -- running R's test suite ..."
 	# Same script + NOT_CRAN gate R CMD check's own "checking tests" phase
 	# runs internally, just invoked directly against the already-installed

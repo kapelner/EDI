@@ -5,6 +5,12 @@
 push to main touching R code (2026-09-18 -- previously nightly/on-demand
 only), plus a nightly backstop and on-demand via workflow_dispatch; not on
 PRs, since covr's instrumented rebuild is too slow for that feedback loop.
+The nightly backstop's `check` job (2026-09-19) re-applies the push
+trigger's own path filters against the last successful run's commit, so an
+idle repo doesn't pay for a full coverage run every night -- it only
+actually runs when a relevant path changed since that commit (or there is no
+prior successful run to compare against). `workflow_dispatch` always runs
+regardless.
 The advanced smoke/gate workflow remains separate.
 Quarantined tests remain outside these inventories.
 

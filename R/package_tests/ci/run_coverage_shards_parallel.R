@@ -63,8 +63,18 @@ launch = function(shard_id) {
 		c(runner, root, file.path(plan_dir, sprintf("shard-%d.json", shard_id)), tier, shard_dir),
 		# Each shard's own compile must stay single-threaded (-j 1): num_cores concurrent
 		# multi-threaded builds would oversubscribe the machine's cores far beyond num_cores.
-		env = c("current", MAKEFLAGS = "-j 1"),
-		stdout = file.path(shard_dir, "run.log"), stderr = "2>&1", cwd = root)
+		# EDI's native kernels (fast_coxph_regression.cpp, fast_kk_wilcox_parallel.cpp, etc.)
+		# call omp_set_num_threads() at runtime once a test crosses their parallel-dispatch
+		# threshold -- exactly what these coverage tests are written to do -- so without
+		# capping these, a single shard can fan out across every core on its own, independent
+		# of MAKEFLAGS and num_cores. Mirrors test-coverage-R.yaml's job-level env exactly.
+		# ~/.R/Makevars may set MAKEFLAGS (-j10 here), and that overrides the MAKEFLAGS
+		# environment variable, so R_MAKEVARS_USER must point at a serial Makevars instead.
+		env = c("current", MAKEFLAGS = "-j 1", OMP_NUM_THREADS = "1",
+			R_MAKEVARS_USER = file.path(root, "R/package_tests/ci/makevars_serial"), MKL_NUM_THREADS = "1",
+			OPENBLAS_NUM_THREADS = "1", GOTO_NUM_THREADS = "1", VECLIB_MAXIMUM_THREADS = "1",
+			NUMEXPR_NUM_THREADS = "1"),
+		stdout = file.path(shard_dir, "run.log"), stderr = "2>&1", wd = root)
 	list(process = proc, start = Sys.time(), id = shard_id)
 }
 

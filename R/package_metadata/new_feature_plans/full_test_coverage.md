@@ -152,6 +152,71 @@ quantile CI workflows also already have migration tests. The additions target
 missing branches rather than duplicating those goldens. Registry entries remain
 `in_progress` until a real coverage measurement confirms movement.
 
+**First complete, provenance-bearing coverage run (2026-09-18/19):** run locally
+via the new `run_coverage_shards_parallel.R` (see "Sharding procedure" below)
+at `num_cores = 1` against commit `f72b8fdb` (current `HEAD` at the time), after
+`refresh_manifest.py` picked up one previously-unregistered bulk file. All 35
+coverage shards passed; actual per-shard runtimes (390s-1396s, one outlier at
+4519s) came in far below the 2,400s bootstrap estimate, so the whole run
+finished in under 7 hours wall-clock against a ~23-hour serial estimate. The
+per-shard reports were merged into one commit-stamped report
+(`covr::percent_coverage()` = **73.57%**, **R code only** -- see the
+correction below; this is not comparable to the 64.79% historical baseline,
+which included C++) and fed into `coverage_gap_registry.R` against the live
+`coverage_gap_registry.csv`, which merges new measurements with prior manual
+triage rather than overwriting it. The registry grew from the original 31
+seed rows to **89 rows**: the 31 pre-existing rows kept their categories,
+owning TODOs and notes (matched by file path), and **58 new files below the
+80% threshold were added as `unclassified`/`triage_needed`** -- this is
+TODO-1's actual missing deliverable, now unblocked. Classifying those 58 into
+(a)/(b)/(c)/(d) per TODO-1's scheme is the next step; none of them have been
+triaged yet. Real per-file timings from this run were also imported into
+`test_runtimes.csv` via `refresh_manifest.py --timings` (690 -> 263 files
+still on `bootstrap` estimates; 59 -> 486 files now `measured_with_30_percent_headroom`),
+which drops the coverage-tier shard count from 35 to 12 for future runs.
+`coverage_baseline.json` (the TODO-9 floor gate) was deliberately left
+untouched -- promoting a local ad hoc measurement to the enforced floor is a
+separate decision, not an automatic side effect of running this script.
+
+**Correction -- the 2026-09-19 report contains no C++ coverage.** The merged
+report has 178 files, all `.R`; none of the ~124 `src/` files (`.cpp`/`.h`) are
+present, although every shard's library was built and linked with
+`--coverage` (`-lgcov`) and `gcov` 15.2.0 is installed. The 73.57% is therefore
+R-only and cannot be compared with the 64.79% baseline (which averaged R at
+66.3% and C++ at 64.7%); "up from 64.79%" was wrong and has been removed.
+Consequences: (1) all 31 pre-existing registry rows (mostly C++ TODO-3 kernels)
+were absent from this measurement, so they keep their old 0% figures and
+`in_progress` status -- the tests written for them are still unconfirmed, not
+disproven; (2) the C++ half of the codebase has no current measurement. The
+cause is undetermined (the shard logs show the instrumented build but not the
+gcov-collection step); finding it needs another instrumented run, which has not
+been started. Do not update `coverage_baseline.json` from this report.
+
+**TODO-1 backlog triage (2026-09-19):** the 58 newly-discovered files were
+classified: 46 `dispatch_threshold`, 6 `dead_or_unreachable`, 2
+`diagnostic_smoke`, 1 `straightforward_test`, and 3 that turned out **not to
+be coverage gaps at all**. Direct spot-checks (a literal `covr::file_coverage()`
+for `local_machine_tuning_harness.R`, which gives 98.99% vs. 21.21% in the
+merged run; temporary-then-reverted `cat()` probes for the two
+`inference_incidence*_gcomp_abstract.R` files, whose core methods fire
+dozens of times under existing tests despite ~0.15% measured) show the
+existing tests already exercise that code and the *measurement* is wrong.
+Those three rows stay `category = unclassified` (none of the four test-writing
+categories describe "the code is fine, the number is wrong") but are marked
+`status = excluded` with explanatory notes -- a judgment call, revisit if a
+different status is preferred. The likely consequence is that 73.57% is an
+under-estimate (the two gcomp files alone are 1,265 coverable lines counted as
+~0%), and other files using the same harvested-composition pattern may be
+under-counted too; investigating why `covr` mis-attributes that pattern is a
+separate tooling task, not test-writing. Six candidate bugs/dead-code
+findings surfaced during triage (not fixed, per this plan's own non-goals)
+are recorded in
+[`coverage_gap_findings_20260916.md`](../reports/coverage_gap_findings_20260916.md)'s
+"TODO-1 triage candidates (2026-09-19)" section -- most notably a no-op
+assertion function in `inference_ordinal_KK_cond_logit_abstract.R` and a
+~145-line unreachable-by-construction bootstrap branch in
+`inference_mixin_kk_passthrough.R`.
+
 ## Sharding procedure (in active use since 2026-09-16/17)
 
 New bulk test files added under this plan are packed into CI's existing
@@ -216,6 +281,36 @@ still local-timing-derived `bootstrap` values with 30% headroom (correctness)
 or conservative unmeasured defaults (coverage) until a real CI run's
 `timings.csv` is imported per step 5.
 
+**Local variant: `run_coverage_shards_parallel.R` (2026-09-18).** Steps 2-3
+above assume CI's one-shard-per-runner matrix. `R/package_tests/ci/run_coverage_shards_parallel.R`
+drives the same `plan_shards.py` + `run_shard.R` machinery from a single
+local machine instead, through a bounded worker pool (`NUM_CORES = 6L`
+default, overridable via a CLI arg or `EDI_SHARD_POOL_CORES`; the first real
+run used 1). Usage:
+```sh
+Rscript R/package_tests/ci/run_coverage_shards_parallel.R <root> <artifact_dir> [tier=coverage] [num_cores] [target_seconds=2400]
+```
+Each shard still does its own fresh instrumented `covr` build (native gcov
+counters can't be shared safely across concurrently-running processes, so
+this is inherent to covr's design, not a CI-only convention) -- the local
+pool only changes how many of those independent shard processes run at once.
+Two things had to be added beyond CI's own env, both discovered the hard way
+by oversubscribing this machine's 12 cores mid-run:
+- **`MAKEFLAGS=-j 1`** per shard subprocess, so `num_cores` concurrent
+  shards don't each *also* run a multi-threaded `make`.
+- **`OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1`,
+  `GOTO_NUM_THREADS=1`, `VECLIB_MAXIMUM_THREADS=1`, `NUMEXPR_NUM_THREADS=1`**
+  per shard subprocess -- mirroring `test-coverage-R.yaml`'s job-level env
+  exactly. Without these, a single shard process running one of the TODO-3
+  bulk tests that deliberately crosses a parallel-dispatch threshold (the
+  whole point of those tests) calls `omp_set_num_threads()` internally and
+  fans out across every core on the box on its own, independent of
+  `num_cores` or `MAKEFLAGS`. This is a runtime cap, unrelated to and not
+  fixed by the build-time `-j 1` flag above.
+On success it also merges all shard `coverage.rds` outputs into one
+commit-stamped `merged-coverage.rds`, ready to feed directly into
+`coverage_gap_registry.R`.
+
 ## Investigation summary (2026-08-29)
 
 Before writing this plan, the coverage pipeline itself was audited to rule
@@ -272,6 +367,21 @@ is explicitly not the target** -- see Non-goals below.
     documented `covr` exclusion, not a test;
   - (d) diagnostic/introspection-only code -- needs only a trivial smoke
     test.
+
+  **TODO-1 done (2026-09-19):** regenerated from the first complete,
+  provenance-bearing run (commit `f72b8fdb`, 73.57%, **R code only** -- no
+  C++ coverage was captured, see the correction in Status); all 89 registry
+  rows now carry a category and a note, but the 31 C++-heavy seed rows carry
+  their old unmeasured figures. 58 were newly classified (46
+  `dispatch_threshold`, 6 `dead_or_unreachable`, 2 `diagnostic_smoke`, 1
+  `straightforward_test`) and 3 were resolved as measurement artifacts rather
+  than gaps (`unclassified`/`excluded`). See "First complete,
+  provenance-bearing coverage run" and "TODO-1 backlog triage" in Status.
+  Caveats: the classifications rest on a measurement that is known to
+  undercount harvested-composition files, so the backlog should be re-triaged
+  after that `covr` attribution issue is understood (TODO-10's re-run is the
+  natural point); and the registry CSV is still an uncommitted working-tree
+  change (TODO-2).
 - **TODO-2.** Produce a tracked artifact,
   `R/package_tests/coverage_gap_registry.csv`, mapping
   `file -> category -> owning TODO -> status`, mirroring this repo's
@@ -308,13 +418,10 @@ is explicitly not the target** -- see Non-goals below.
   regression checks run in CI and locally with
   `Rscript R/package_tests/ci/test_coverage_gap_registry.R`.
 
-  **Still pending:** replace the 31 historical seed rows with the full backlog
-  from a complete, provenance-bearing coverage run, including measured line
-  counts and all files below 80%, then review the new files' categories/owners
-  (TODO-1). The available local full report has no measured-commit provenance;
-  the corrected local report inspected is only one shard. Neither establishes
-  a verified full refresh. TODO-2 remains in progress until that candidate is
-  reviewed and committed.
+  **Still pending:** the 31 historical seed rows were replaced on 2026-09-19
+  with the full 89-row backlog from a complete, provenance-bearing run
+  (commit `f72b8fdb`) and reviewed under TODO-1. TODO-2 remains in progress
+  only until that registry CSV is reviewed and committed.
 
 ### Phase 2: Zero-coverage files (highest ROI -- 31 whole files)
 

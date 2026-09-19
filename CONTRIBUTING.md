@@ -285,18 +285,22 @@ skipped.
 
 - `main` has branch protection: a PR needs 1 approving review and these
   checks green before it can merge — `coverage` (`test-coverage-python.yml`),
-  `test-coverage-R-advanced`, and all 10 `R-CMD-check` matrix legs
+  `test-coverage-R-advanced`, all 10 `R-CMD-check` matrix legs
   (`macos-latest (release)`, `windows-latest (release)`/`(devel)`,
   `ubuntu-latest (devel)`/`(release)`/`(oldrel-1)`/`(release, no Suggests)`/
-  `(release, CRAN incoming checks)`, `R-devel (ASAN/UBSAN)`/`(valgrind)`).
-  Repo admins bypass this (`enforce_admins: false`) and can still push
-  directly to `main`; everyone else goes through a PR.
-  **`test-bulk-non-cran` is deliberately excluded**: its shard count is
-  planned dynamically per run (`plan_shards.py`), not a fixed matrix, so
-  hardcoding today's shard names as required checks would break the moment
-  that count changes — either leaving new shards ungated, or permanently
-  blocking every PR if the count ever drops. It stays required by policy,
-  not by GitHub, until it gets a stable aggregator check to require instead.
+  `(release, CRAN incoming checks)`, `R-devel (ASAN/UBSAN)`/`(valgrind)`),
+  and `bulk tests passed` (`test-bulk-non-cran.yml`'s `gate` job). Repo
+  admins bypass this (`enforce_admins: false`) and can still push directly
+  to `main`; everyone else goes through a PR.
+  **Why `test-bulk-non-cran` needs its own gate job rather than requiring a
+  shard check directly**: its shard count is planned dynamically per run
+  (`plan_shards.py`), not a fixed matrix, so hardcoding a specific
+  `shards (N)` name as a required check would break the moment that count
+  changes — either leaving new shards ungated, or permanently blocking
+  every PR if that shard number stops existing. `gate` (`needs: [plan,
+  shards]`, `if: always()`) reports one fixed check name regardless of how
+  many shards ran, and reports failure (not "skipped") if either upstream
+  job didn't fully succeed.
 - Fill in the [PR template](.github/PULL_REQUEST_TEMPLATE.md) completely —
   every checkbox is one of the steps above.
 - **All on-push CI must be green** before requesting review — not just the

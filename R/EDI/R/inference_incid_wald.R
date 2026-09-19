@@ -47,6 +47,23 @@ InferenceIncidWald = define_inference_class(
 		#'   found via \code{test-incid-wald-migration-golden.R}'s
 		#'   \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
+		#' @description Pins asymptotic CI dispatch to the composed \code{Wald}
+		#'   component's implementation (\code{InferenceAsymp}), which uses
+		#'   \code{private$get_standard_error()} (this class's two-proportion
+		#'   Wald SE) and \code{private$get_degrees_of_freedom()}. Without this
+		#'   explicit pin, the \code{SimpleMeanDifference} component -- composed
+		#'   after \code{Wald} in this class's \code{components} list -- silently
+		#'   wins the assembly-order collision and dispatches its own Welch's
+		#'   t-test on raw \code{y} instead, making the documented Wald formula
+		#'   dead code. See class documentation.
+		#' @param alpha The confidence level in the computed confidence
+		#'   interval is 1 - \code{alpha}. The default is 0.05.
+		compute_asymp_confidence_interval = InferenceAsymp$public_methods$compute_asymp_confidence_interval,
+		#' @description Pins asymptotic p-value dispatch to the composed
+		#'   \code{Wald} component's implementation; see
+		#'   \code{$compute_asymp_confidence_interval()} for the rationale.
+		#' @param delta Null treatment effect value.
+		compute_asymp_two_sided_pval = InferenceAsymp$public_methods$compute_asymp_two_sided_pval,
 		#' @description Initialize Wald risk-difference incidence inference and
 		#'   prepare the treatment/control binomial summaries used by
 		#'   \code{\link[EDI:InferenceIncidWald]{InferenceIncidWald}} and related

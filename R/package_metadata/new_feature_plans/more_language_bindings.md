@@ -100,7 +100,7 @@ This level is **not maintainable as independent native bindings**. If it is
 ever required, expose one language-neutral workflow/session protocol from the
 R implementation or move the orchestration contract into a standalone core.
 Possible transports are an in-process opaque-handle C API, a local process
-with Arrow/JSON-RPC, or a service API. Choosing among them is a separate 2.0.0
+with Arrow/JSON-RPC, or a service API. Choosing among them is a separate 4.0.0
 architecture decision. No language in this plan may market kernel coverage as
 full parity with the R package.
 

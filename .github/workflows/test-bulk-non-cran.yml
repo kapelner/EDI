@@ -85,3 +85,25 @@ jobs:
           name: correctness-shard-${{ matrix.shard }}
           path: shard-results/${{ matrix.shard }}
           if-no-files-found: error
+
+  # Single, fixed check name for branch protection to require -- the shard
+  # count above is planned dynamically per run (plan_shards.py bin-packs the
+  # current test manifest), so it isn't safe to hardcode individual
+  # "shards (N)" names as required checks: that count changes as the test
+  # suite grows or shrinks, which would either leave new shards ungated or,
+  # worse, permanently block every future PR if a shard number stops
+  # existing. if: always() so this still runs (and reports failure, not
+  # "skipped") when plan or shards failed, rather than being skipped itself.
+  gate:
+    name: bulk tests passed
+    needs: [plan, shards]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check plan and every shard succeeded
+        run: |
+          echo "plan: ${{ needs.plan.result }}"
+          echo "shards: ${{ needs.shards.result }}"
+          if [ "${{ needs.plan.result }}" != "success" ] || [ "${{ needs.shards.result }}" != "success" ]; then
+            exit 1
+          fi

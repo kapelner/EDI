@@ -98,23 +98,38 @@ partial_likelihood_expected_component_families = list(
 # 2026-08-17, fix_inference_hierarchy.md Follow-Ups). The registry
 # direct-components mappings were updated to match the factory reality in the
 # same change, so these expectations carry the full resolved chain.
+# ParametricLikelihoodBootstrap added 2026-09-19, same bug/fix shape as
+# TODO-13 above but for a different component: found via a comprehensive_tests
+# results audit that compute_lik_ratio_bootstrap_two_sided_pval()/
+# compute_lik_ratio_bootstrap_confidence_interval() were literal NULLs on both
+# classes despite each already implementing supports_lik_ratio_param_bootstrap()/
+# simulate_under_lik_null() (real Cox-specific Breslow-hazard simulation logic,
+# not stubs) -- TODO-13's own fix never touched this component, and neither
+# mentions nor considers it anywhere in its resolution. Listed second (after
+# BayesianBootstrap, before the Cox partial-likelihood component), same
+# resolution-order reasoning. supports_bartlett_likelihood_ratio_approx() is
+# explicitly forced back to FALSE on both classes (see the factory-call
+# comments) since composing this component would otherwise also silently flip
+# it to TRUE via ParametricLikelihoodBootstrap's delegating default -- out of
+# scope for this fix, so param_bootstrap_public below deliberately excludes
+# the two Bartlett-approx private methods, not just checking public surface.
 partial_likelihood_expected_extracted_cox_targets = list(
 	InferenceSurvivalCoxPHRegr = list(
-		target_direct_components = c("BayesianBootstrap", "CoxPartialLikelihood"),
+		target_direct_components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
 			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"Jackknife", "Wald", "LikelihoodTests", "StandardModelCache",
-			"CoxPartialLikelihood"
+			"Jackknife", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap",
+			"StandardModelCache", "CoxPartialLikelihood"
 		)
 	),
 	InferenceSurvivalStratCoxPHRegr = list(
-		target_direct_components = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
+		target_direct_components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
 			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"Jackknife", "Wald", "LikelihoodTests", "StandardModelCache",
-			"CoxPartialLikelihood", "StratifiedCoxPartialLikelihood"
+			"Jackknife", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap",
+			"StandardModelCache", "CoxPartialLikelihood", "StratifiedCoxPartialLikelihood"
 		)
 	)
 )
@@ -331,7 +346,6 @@ test_that("conditional-logit partial-likelihood components expose extracted help
 		c(
 			"ordinal_cond_clogit_compute_setup",
 			"ordinal_cond_clogit_assert_finite_se",
-			"ordinal_cond_clogit_shared_univ",
 			"ordinal_cond_clogit_shared_multi"
 		)
 	)
@@ -585,7 +599,10 @@ test_that("non-KK Cox partial-likelihood classes are migrated to root plus compo
 			"compute_asymp_two_sided_pval",
 			"compute_lik_ratio_two_sided_pval"
 		) %in% public_methods), info = class_name)
-		expect_false(any(param_bootstrap_public %in% public_methods), info = class_name)
+		# Flipped 2026-09-19 from expect_false: both classes now correctly
+		# compose ParametricLikelihoodBootstrap (see target_components above),
+		# so all seven of these public methods are present, not absent.
+		expect_true(all(param_bootstrap_public %in% public_methods), info = class_name)
 		expect_silent(EDI:::mark_inference_class_migrated(
 			class_name,
 			public_method_names = public_methods

@@ -200,7 +200,6 @@ reference:
   - InferenceMLEorKMSummaryTable
   - InferenceAbstractQuantileRandCI
   - InferenceAbstractKKCondLogitGLMM
-  - InferenceAbstractKKCondLogitGLMMOneLik
   - InferenceAbstractKKMarginalIncid
   - InferenceAbstractKKModifiedPoisson
   - InferenceAbstractKKOrdinalCLMM

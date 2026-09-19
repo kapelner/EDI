@@ -98,32 +98,6 @@ InferenceMixinKKPassThrough = list(
 						des_priv$draw_bootstrap_indices(),
 						simplify = FALSE
 					)
-					if (isTRUE(private$use_reusable_kk_bootstrap_worker())) {
-						if (isTRUE(debug)) {
-							return(private$compute_kk_bootstrap_debug_with_reused_worker(kk_boot_draws, kk_boot_context))
-						}
-						actual_cores = private$effective_parallel_cores("bootstrap", self$num_cores)
-						if (actual_cores > 1L) {
-							do_warmup_iter = function() {
-								worker_state = private$create_kk_bootstrap_worker_state(kk_boot_context)
-								sample_info = kk_boot_draws[[1L]]
-								private$load_kk_bootstrap_sample_into_worker(worker_state, sample_info)
-								tryCatch(private$compute_kk_bootstrap_worker_estimate(worker_state), error = function(e) NA_real_)
-							}
-							system.time(do_warmup_iter())
-							t_boot_warmup = system.time(do_warmup_iter())[[3]]
-							fork_overhead_estimate = if (!is.null(get_global_fork_cluster())) 0.01 else 0.5
-							if (!(t_boot_warmup * B > fork_overhead_estimate * actual_cores)) {
-								actual_cores = 1L
-							}
-						}
-						return(private$compute_kk_bootstrap_distribution_with_reused_workers(
-							kk_boot_draws = kk_boot_draws,
-							kk_boot_context = kk_boot_context,
-							actual_cores = actual_cores,
-							show_progress = show_progress
-						))
-					}
 					if (isTRUE(debug)) {
 						debug_results = vector("list", B)
 						has_res_stat_debug = private$has_private_method("compute_reservoir_and_match_statistics")
@@ -299,9 +273,6 @@ InferenceMixinKKPassThrough = list(
 		get_supported_information_preferences_impl = function(){
 			if (isTRUE(private$supports_likelihood_tests())) c("auto", "observed") else "auto"
 		},
-		use_reusable_kk_bootstrap_worker = function(){
-			FALSE
-		},
 		init_kk_passthrough = function(des_obj){
 			# Root-owned state is never redeclared by this component (fix_inference_
 			# hierarchy.md, Source Invariant 15): the optimizer default the KK
@@ -345,120 +316,18 @@ InferenceMixinKKPassThrough = list(
 				n_reservoir = as.integer(n_reservoir)
 			)
 		},
-		create_kk_bootstrap_worker_state = function(kk_boot_context){
-			worker = self$duplicate(verbose = FALSE, make_fork_cluster = FALSE)
-			worker$num_cores = 1L
-			worker_priv = worker$.__enclos_env__$private
-			list(
-				worker = worker,
-				worker_priv = worker_priv,
-				base_y = kk_boot_context$y,
-				base_dead = kk_boot_context$dead,
-				base_w = kk_boot_context$w,
-				base_X = kk_boot_context$X,
-				n_reservoir = kk_boot_context$n_reservoir,
-				has_res_stat = private$object_has_private_method(worker, "compute_reservoir_and_match_statistics")
-			)
-		},
-			load_kk_bootstrap_sample_into_worker = function(worker_state, sample_info){
-				worker_priv = worker_state$worker_priv
-				i_b = sample_info$i_b
-			worker_priv$y = worker_state$base_y[i_b]
-			worker_priv$y_temp = worker_priv$y
-				worker_priv$dead = worker_state$base_dead[i_b]
-				worker_priv$w = worker_state$base_w[i_b]
-				worker_priv$X = worker_state$base_X[i_b, , drop = FALSE]
-				private$clear_kk_bootstrap_worker_design_caches(worker_priv)
-				worker_priv$cached_values = list(
-				KKstats = compute_bootstrap_matching_stats_cpp(
-					X = worker_state$base_X,
-					y = worker_state$base_y,
-					w = worker_state$base_w,
-					i_b = i_b,
-					n_reservoir = worker_state$n_reservoir
-				)
-			)
-			worker_priv$best_X_colnames = NULL
-			worker_priv$best_Xmm_colnames = NULL
-			worker_priv$fit_warm_coefficients = NULL
-			worker_priv$cached_mod = NULL
-			worker_priv$m = sample_info$m_vec_b
-				if (isTRUE(worker_state$has_res_stat)) {
-					worker_priv$compute_reservoir_and_match_statistics()
-				}
-			},
-			clear_kk_bootstrap_worker_design_caches = function(worker_priv){
-				worker_priv$cached_design_matrix = NULL
-				worker_priv$cached_w_for_design_matrix = NULL
-				worker_priv$cached_harden_for_design_matrix = NULL
-				worker_priv$cached_hardened_X_cov = NULL
-				worker_priv$cached_reduced_X = NULL
-				worker_priv$cached_X_full_for_reduced = NULL
-				worker_priv$cached_keep_for_reduced = NULL
-				worker_priv$cached_j_treat_for_reduced = NULL
-				worker_priv$reduced_design_keep_cache = NULL
-				worker_priv$fixed_covariate_keep_cache = NULL
-				invisible(NULL)
-			},
-			compute_kk_bootstrap_worker_estimate = function(worker_state){
-				as.numeric(worker_state$worker$compute_estimate(estimate_only = TRUE))[1L]
-			},
-		compute_kk_bootstrap_debug_with_reused_worker = function(kk_boot_draws, kk_boot_context){
-			B = length(kk_boot_draws)
-			worker_state = private$create_kk_bootstrap_worker_state(kk_boot_context)
-			debug_results = vector("list", B)
-			for (b in seq_len(B)) {
-				sample_info = kk_boot_draws[[b]]
-				iter_warns = character(0)
-				iter_val = withCallingHandlers(
-					tryCatch({
-						private$load_kk_bootstrap_sample_into_worker(worker_state, sample_info)
-						private$compute_kk_bootstrap_worker_estimate(worker_state)
-					}, error = function(e) list(val = NA_real_, error = conditionMessage(e))),
-					warning = function(w) {
-						iter_warns <<- c(iter_warns, conditionMessage(w))
-						invokeRestart("muffleWarning")
-					}
-				)
-				res_val = if (is.list(iter_val)) iter_val$val else iter_val
-				res_err = if (is.list(iter_val)) iter_val$error else NULL
-				debug_results[[b]] = list(
-					val = res_val,
-					error = res_err,
-					warnings = iter_warns
-				)
-			}
-			debug_results
-		},
-		compute_kk_bootstrap_distribution_with_reused_workers = function(kk_boot_draws, kk_boot_context, actual_cores, show_progress){
-			B = length(kk_boot_draws)
-			if (actual_cores > 1L) {
-				unlist(private$par_lapply(
-					as.list(seq_len(B)),
-					function(idx) {
-						b = as.integer(idx)[1L]
-						# In a fork, we can't easily reuse state across indices without complicated orchestration.
-						# Re-creating a fresh state is safer and the worker state setup is cheap.
-						worker_state = private$create_kk_bootstrap_worker_state(kk_boot_context)
-						private$load_kk_bootstrap_sample_into_worker(worker_state, kk_boot_draws[[b]])
-						tryCatch(private$compute_kk_bootstrap_worker_estimate(worker_state), error = function(e) NA_real_)
-					},
-					n_cores = actual_cores,
-					budget = 1L,
-					show_progress = show_progress
-				), recursive = FALSE, use.names = FALSE)
-			} else {
-				worker_state = private$create_kk_bootstrap_worker_state(kk_boot_context)
-				pbar = if (show_progress) utils::txtProgressBar(min = 0, max = B, style = 3) else NULL
-				res = vapply(seq_len(B), function(b) {
-					private$load_kk_bootstrap_sample_into_worker(worker_state, kk_boot_draws[[b]])
-					val = tryCatch(private$compute_kk_bootstrap_worker_estimate(worker_state), error = function(e) NA_real_)
-					if (show_progress) utils::setTxtProgressBar(pbar, b)
-					val
-				}, numeric(1L))
-				if (show_progress) close(pbar)
-				res
-			}
+		clear_kk_bootstrap_worker_design_caches = function(worker_priv){
+			worker_priv$cached_design_matrix = NULL
+			worker_priv$cached_w_for_design_matrix = NULL
+			worker_priv$cached_harden_for_design_matrix = NULL
+			worker_priv$cached_hardened_X_cov = NULL
+			worker_priv$cached_reduced_X = NULL
+			worker_priv$cached_X_full_for_reduced = NULL
+			worker_priv$cached_keep_for_reduced = NULL
+			worker_priv$cached_j_treat_for_reduced = NULL
+			worker_priv$reduced_design_keep_cache = NULL
+			worker_priv$fixed_covariate_keep_cache = NULL
+			invisible(NULL)
 		},
 		compute_basic_kk_match_data_impl = function(){
 			if (!isTRUE(private$has_match_structure)) {

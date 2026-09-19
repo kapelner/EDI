@@ -39,33 +39,6 @@ ordinal_cond_clogit_assert_finite_se = function(private_env, model_label){
 }
 
 
-ordinal_cond_clogit_shared_univ = function(private_env, expand_fun){
-	if (!is.null(private_env$cached_values$beta_hat_T)) return(invisible(NULL))
-
-	setup = ordinal_cond_clogit_compute_setup(private_env)
-	if (setup$K < 2L){
-		private_env$cache_nonestimable_estimate("ordinal_cond_clogit_too_few_categories")
-		return(invisible(NULL))
-	}
-
-	expanded = expand_fun(
-		as.integer(setup$y_ord),
-		as.integer(private_env$w),
-		as.integer(setup$strata_ids),
-		as.integer(setup$K)
-	)
-
-	mod = clogit_helper(expanded$y, data.frame(), expanded$w, expanded$strata)
-	if (is.null(mod) || !is.finite(mod$b[1]) || !is.finite(mod$ssq_b_j) || mod$ssq_b_j <= 0){
-		private_env$cache_nonestimable_estimate("ordinal_cond_clogit_fit_unavailable")
-		return(invisible(NULL))
-	}
-
-	private_env$cached_values$beta_hat_T   = as.numeric(mod$b[1])
-	private_env$cached_values$s_beta_hat_T = sqrt(as.numeric(mod$ssq_b_j))
-}
-
-
 ordinal_cond_clogit_shared_multi = function(private_env, expand_fun, trials_fun){
 	if (!is.null(private_env$cached_values$beta_hat_T)) return(invisible(NULL))
 
@@ -136,9 +109,6 @@ OrdinalConditionalLogitPartialLikelihoodSource = list(
 		},
 		ordinal_cond_clogit_assert_finite_se = function(model_label) {
 			ordinal_cond_clogit_assert_finite_se(private, model_label)
-		},
-		ordinal_cond_clogit_shared_univ = function(expand_fun) {
-			ordinal_cond_clogit_shared_univ(private, expand_fun)
 		},
 		ordinal_cond_clogit_shared_multi = function(expand_fun, trials_fun) {
 			ordinal_cond_clogit_shared_multi(private, expand_fun, trials_fun)

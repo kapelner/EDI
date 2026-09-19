@@ -1,0 +1,3 @@
+# Serial builds for local coverage runs. R reads MAKEFLAGS from ~/.R/Makevars (-j10 on this
+# machine), which overrides a MAKEFLAGS environment variable; R_MAKEVARS_USER replaces that file.
+MAKEFLAGS = -j1

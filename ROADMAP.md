@@ -1,6 +1,6 @@
 # EDI Roadmap
 
-**Where things stand (last updated 2026-09-10):** v1.0.0 is released
+**Where things stand (last updated 2026-09-19):** v1.0.0 is released
 ([Zenodo DOI](https://doi.org/10.5281/zenodo.22170036)) and has been
 submitted to CRAN; the `edi_kernels` Python package is on PyPI. Everything
 below is planned, not shipped.
@@ -595,12 +595,8 @@ own report.
   both are optional accelerators for specific workloads, not the fitting
   path), then an optional
   [NPU graph/runtime adapter](R/package_metadata/new_feature_plans/npu_ai_engine_optimizations.md).
-- **[Shared C++ inference backend](R/package_metadata/new_feature_plans/migrate_EDI_into_shared_cpp_backend.md)** —
-  a stable ABI with a dual-backend compatibility window, the substrate
-  for bindings beyond R and Python.
-- **[Additional language bindings](R/package_metadata/new_feature_plans/more_language_bindings.md)** —
-  only after the shared backend's ABI, release, and ownership decisions
-  are complete.
+- *The shared C++ inference backend and additional language bindings moved
+  to v4.0.0 on 2026-09-19; see below.*
 
 ### Breaking changes
 
@@ -674,3 +670,22 @@ simulation benchmark added 2026-09-11; see
   per-row timing, and full hardware/EDI-build provenance, with an
   enforced privacy scrub for identifying fields. Tentative; release
   placement assigned 2026-09-11.
+
+---
+
+## v4.0.0 — Tentative
+
+Opened 2026-09-19 as a low-priority home for the full C++ migration, moved
+out of v2.0.0 by user decision ("not a priority whatsoever"). No committed
+scope or decision batch yet; nothing in v2.0.0 or v3.0.0 depends on it. See
+[`release_v4_0_0.md`](R/package_metadata/future_release_plans/release_v4_0_0.md).
+
+- **[Shared C++ inference and design backend](R/package_metadata/new_feature_plans/migrate_EDI_into_shared_cpp_backend.md)** —
+  a stable, versioned C ABI (`libedi_core`) that makes model fitting,
+  score/likelihood-ratio tests and intervals, bootstrap and randomization
+  inference, and (Phase D) the design classes themselves native, with R and
+  Python becoming thin adapters and a dual-backend compatibility window.
+  The substrate for bindings beyond R and Python.
+- **[Additional language bindings](R/package_metadata/new_feature_plans/more_language_bindings.md)** —
+  MATLAB, JVM, Stata, .NET, Julia and others over that ABI, only after the
+  shared backend's ABI, release, and ownership decisions are complete.

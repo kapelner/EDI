@@ -449,14 +449,19 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			# BayesianBootstrap is a real direct component: the factory composes
 			# c("BayesianBootstrap", "CoxPartialLikelihood") because the bootstrap
 			# layer is not in the Cox chain (TODO-13; StratCox twin fixed 2026-08-17).
-			target_direct_components = c("BayesianBootstrap", "CoxPartialLikelihood"),
+			# ParametricLikelihoodBootstrap added 2026-09-19, same bug/fix shape as
+			# TODO-13 but for a different component -- see the factory call's own
+			# comment in inference_survival_coxph.R.
+			target_direct_components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
 			notes = "Non-KK Cox proportional-hazards estimator currently inherits standard-model-cache likelihood behavior."
 		),
 		InferenceSurvivalStratCoxPHRegr = list(
 			behavior = c("cox", "stratified_cox", "standard_model_cache"),
 			estimator_family = "survival_stratified_cox_ph",
 			component_family = "CoxPartialLikelihood",
-			target_direct_components = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
+			# ParametricLikelihoodBootstrap added 2026-09-19: see the matching
+			# InferenceSurvivalCoxPHRegr entry's comment above.
+			target_direct_components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
 			notes = "Non-KK stratified Cox PH estimator should share the Cox partial-likelihood component family while preserving stratification-specific caches."
 		),
 		InferenceSurvivalKKLWACoxPHIVWC = list(
@@ -1166,8 +1171,12 @@ infer_inference_direct_components = function(name) {
 		# NOT in the Cox components' dependency chains -- see the 2026-08-17
 		# StratCox NULL-bootstrap-privates fix), so the registry mapping must say
 		# so or effective/target components drift from the assembled reality.
-		InferenceSurvivalCoxPHRegr = c("BayesianBootstrap", "CoxPartialLikelihood"),
-		InferenceSurvivalStratCoxPHRegr = c("BayesianBootstrap", "StratifiedCoxPartialLikelihood"),
+		# ParametricLikelihoodBootstrap added 2026-09-19 -- see the factory
+		# call's own comment in inference_survival_coxph.R.
+		InferenceSurvivalCoxPHRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
+		# ParametricLikelihoodBootstrap added 2026-09-19 -- see the matching
+		# InferenceSurvivalCoxPHRegr comment above.
+		InferenceSurvivalStratCoxPHRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
 		# The following classes compose components directly via their own
 		# define_inference_class(components = ...) call (no intermediate
 		# algorithmic abstract base), so their direct_components here must
