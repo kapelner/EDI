@@ -661,6 +661,8 @@
 "registry_target_missing_generated_case","InferenceIncidRiskDiff::initialize","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceIncidRiskDiff::set_testing_type","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceIncidWald::approximate_randomization_distribution_beta_hat_T","","registry target has no generated case in current case table"
+"registry_target_missing_generated_case","InferenceIncidWald::compute_asymp_confidence_interval","","registry target has no generated case in current case table"
+"registry_target_missing_generated_case","InferenceIncidWald::compute_asymp_two_sided_pval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceIncidWald::compute_jackknife_wald_confidence_interval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceIncidWald::compute_jackknife_wald_two_sided_pval","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","InferenceIncidWald::compute_rand_confidence_interval","","registry target has no generated case in current case table"
