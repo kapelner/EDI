@@ -9,6 +9,10 @@ R/EDI/src/*.o
 R/EDI/src/*.d
 R/EDI/src/*.dll
 R/EDI/src/*.so
+R/EDI/src/*.gcda
+R/EDI/src/*.gcno
+R/EDI/src/*.gcov
+R/EDI/covr/
 *.rds
 *.RDS
 R/EDI/src/edi_build_flags.h

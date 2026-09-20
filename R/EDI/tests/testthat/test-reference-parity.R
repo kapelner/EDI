@@ -70,13 +70,15 @@ parity_cases = function() {
 			oracle = function() coef_se(MASS::glm.nb(yp ~ w + x1 + x2, D))),
 		list(cls = "InferenceCountZeroInflatedPoisson", pkg = "pscl", rt = "count", y = P$yp,
 			oracle = function() {
+				skip_if_not_installed("sandwich")
 				m = pscl::zeroinfl(yp ~ w + x1 + x2 | w + x1 + x2, data = D)
-				unname(summary(m)$coef$count["w", 1:2])
+				c(unname(coef(m)["count_w"]), unname(sqrt(diag(sandwich::sandwich(m)))["count_w"]))
 			}),
 		list(cls = "InferenceCountHurdlePoisson", pkg = "pscl", rt = "count", y = P$yp,
 			oracle = function() {
+				skip_if_not_installed("sandwich")
 				m = pscl::hurdle(yp ~ w + x1 + x2 | w + x1 + x2, data = D)
-				unname(summary(m)$coef$count["w", 1:2])
+				c(unname(coef(m)["count_w"]), unname(sqrt(diag(sandwich::sandwich(m)))["count_w"]))
 			}),
 		list(cls = "InferenceContinQuantileRegr", pkg = "quantreg", rt = "continuous", y = P$yc,
 			oracle = function() {
@@ -109,16 +111,10 @@ parity_cases = function() {
 	)
 }
 
-# Genuine, currently-open discrepancies (see the note on each).
-EDI_PARITY_KNOWN_SE_MISMATCH = c(
-	# compute_estimate() takes the SE from mod$ssq_b_j, which is ~14% larger
-	# than pscl's (and than EDI's own summary_table SE for the same fit, which
-	# matches pscl exactly), so asymp CIs/p-values use a different variance than
-	# the model reports. Estimates agree to 4e-5.
-	"InferenceCountZeroInflatedPoisson",
-	# Same mechanism, ~3% larger than pscl / summary_table.
-	"InferenceCountHurdlePoisson"
-)
+# Genuine, currently-open discrepancies. Empty today. (ZeroInflatedPoisson and
+# HurdlePoisson use a deliberate sandwich SE, so their oracle is
+# sandwich::sandwich() on the pscl fit, not the model-based summary SE.)
+EDI_PARITY_KNOWN_SE_MISMATCH = character()
 
 parity_rel = function(a, b) abs(a - b) / pmax(abs(b), 1e-8)
 

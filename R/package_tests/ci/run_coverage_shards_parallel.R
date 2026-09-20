@@ -53,14 +53,52 @@ log_line("%d %s shards queued across a %d-worker pool (~%.1fh total estimated te
 runner = file.path(root, "R/package_tests/ci/run_shard.R")
 workers = list()  # keyed by shard id (as character): list(process=, start=, id=)
 
-cleanup = function() for (w in workers) if (!is.null(w$process) && w$process$is_alive()) w$process$kill()
+cleanup = function() for (w in workers) {
+	if (!is.null(w$process) && w$process$is_alive()) w$process$kill()
+	if (!is.null(w$root) && dir.exists(w$root)) remove_shard_root(w$root)
+}
 on.exit(cleanup(), add = TRUE)
+
+# covr compiles in place, which would litter the working tree with .o/.gcda/.gcno files
+# and let configure rewrite tracked Makevars, so each shard builds in a private copy of the
+# package under build_base. Everything else in the checkout is symlinked so tests still
+# resolve repo-relative paths exactly as they do in CI.
+build_base = normalizePath(Sys.getenv("EDI_COVERAGE_BUILD_DIR", "/tmp/edi-coverage-builds"), mustWork = FALSE)
+dir.create(build_base, recursive = TRUE, showWarnings = FALSE)
+build_base = normalizePath(build_base, mustWork = TRUE)
+head_sha = tryCatch(system2("git", c("-C", root, "rev-parse", "HEAD"), stdout = TRUE), error = function(e) "")
+
+prepare_shard_root = function(shard_id) {
+	shard_root = file.path(build_base, sprintf("shard-%d", shard_id))
+	if (dir.exists(shard_root)) remove_shard_root(shard_root)
+	dir.create(file.path(shard_root, "R", "EDI"), recursive = TRUE)
+	copy_status = system(sprintf("tar -C %s --exclude='*.o' --exclude='*.so' --exclude='*.gcda' --exclude='*.gcno' --exclude='*.gcov' -cf - . | tar -C %s -xf -",
+		shQuote(file.path(root, "R", "EDI")), shQuote(file.path(shard_root, "R", "EDI"))))
+	if (copy_status != 0L) stop("Could not copy the package for shard ", shard_id)
+	for (entry in setdiff(list.files(root, all.files = TRUE, no.. = TRUE), c("R", ".git")))
+		file.symlink(file.path(root, entry), file.path(shard_root, entry))
+	for (entry in setdiff(list.files(file.path(root, "R"), all.files = TRUE, no.. = TRUE), "EDI"))
+		file.symlink(file.path(root, "R", entry), file.path(shard_root, "R", entry))
+	shard_root
+}
+
+remove_shard_root = function(shard_root) {
+	# Only ever delete inside build_base, and drop symlinks first so nothing in the real checkout is touched.
+	stopifnot(startsWith(shard_root, paste0(build_base, "/")))
+	for (path in list.files(shard_root, all.files = TRUE, no.. = TRUE, full.names = TRUE))
+		if (nzchar(Sys.readlink(path))) file.remove(path)
+	for (path in list.files(file.path(shard_root, "R"), all.files = TRUE, no.. = TRUE, full.names = TRUE))
+		if (nzchar(Sys.readlink(path))) file.remove(path)
+	unlink(shard_root, recursive = TRUE)
+}
 
 launch = function(shard_id) {
 	shard_dir = file.path(artifact_dir, sprintf("shard-%d", shard_id))
 	dir.create(shard_dir, recursive = TRUE, showWarnings = FALSE)
+	shard_root = prepare_shard_root(shard_id)
 	proc = processx::process$new("Rscript",
-		c(runner, root, file.path(plan_dir, sprintf("shard-%d.json", shard_id)), tier, shard_dir),
+		c(file.path(shard_root, "R/package_tests/ci/run_shard.R"), shard_root,
+			file.path(plan_dir, sprintf("shard-%d.json", shard_id)), tier, shard_dir),
 		# Each shard's own compile must stay single-threaded (-j 1): num_cores concurrent
 		# multi-threaded builds would oversubscribe the machine's cores far beyond num_cores.
 		# EDI's native kernels (fast_coxph_regression.cpp, fast_kk_wilcox_parallel.cpp, etc.)
@@ -70,12 +108,17 @@ launch = function(shard_id) {
 		# of MAKEFLAGS and num_cores. Mirrors test-coverage-R.yaml's job-level env exactly.
 		# ~/.R/Makevars may set MAKEFLAGS (-j10 here), and that overrides the MAKEFLAGS
 		# environment variable, so R_MAKEVARS_USER must point at a serial Makevars instead.
+		# EDI_PORTABLE=1 is required for native coverage: without it configure emits
+		# `override CXXFLAGS += -O3 -g0`, which discards covr's --coverage, so no C++ is
+		# instrumented and covr silently reports R files only. NOT_CRAN/CI/R_KEEP_PKG_SOURCE
+		# mirror test-coverage-R.yaml so local numbers are comparable with CI's.
 		env = c("current", MAKEFLAGS = "-j 1", OMP_NUM_THREADS = "1",
-			R_MAKEVARS_USER = file.path(root, "R/package_tests/ci/makevars_serial"), MKL_NUM_THREADS = "1",
+			EDI_PORTABLE = "1", NOT_CRAN = "true", CI = "true", R_KEEP_PKG_SOURCE = "yes",
+			R_MAKEVARS_USER = file.path(shard_root, "R/package_tests/ci/makevars_serial"), GITHUB_SHA = head_sha, MKL_NUM_THREADS = "1",
 			OPENBLAS_NUM_THREADS = "1", GOTO_NUM_THREADS = "1", VECLIB_MAXIMUM_THREADS = "1",
 			NUMEXPR_NUM_THREADS = "1"),
-		stdout = file.path(shard_dir, "run.log"), stderr = "2>&1", wd = root)
-	list(process = proc, start = Sys.time(), id = shard_id)
+		stdout = file.path(shard_dir, "run.log"), stderr = "2>&1", wd = shard_root)
+	list(process = proc, start = Sys.time(), id = shard_id, root = shard_root)
 }
 
 poll_interval_seconds = 15
@@ -103,6 +146,7 @@ repeat {
 			status = w$process$get_exit_status()
 			results = rbind(results, data.frame(shard = w$id, estimated_seconds = shard_seconds[[key]],
 				elapsed_seconds = elapsed, exit_status = status))
+			remove_shard_root(w$root)
 			log_line("shard %d finished (exit %d) in %.0fs (est %.0fs)", w$id, status, elapsed, shard_seconds[[key]])
 			finished = c(finished, key)
 		} else if (elapsed > slow_warn_multiplier * shard_seconds[[key]]) {

@@ -16,7 +16,17 @@ make_incid_wald_legacy_generator = function() {
 		parent_env = asNamespace("EDI"),
 		inherit = EDI:::InferenceAllSimpleAverageDiff,
 		public = list(
-			initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
+			# The pre-migration class's get_standard_error()/get_degrees_of_freedom()
+				# overrides below are consumed only by InferenceAsymp's generic
+				# asymptotic CI/p-value methods, so the legacy body necessarily
+				# dispatched to them. InferenceAllSimpleAverageDiff (the parent
+				# above) has since been re-composed with the SimpleMeanDifference
+				# component, whose Welch-t versions would otherwise win and silently
+				# ignore those overrides -- the same collision the migrated class
+				# pins away (see InferenceIncidWald's own documentation).
+				compute_asymp_confidence_interval = EDI:::InferenceAsymp$public_methods$compute_asymp_confidence_interval,
+				compute_asymp_two_sided_pval = EDI:::InferenceAsymp$public_methods$compute_asymp_two_sided_pval,
+				initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
 				if (EDI:::should_run_asserts()) {
 					EDI:::assertResponseType(des_obj$get_response_type(), "incidence")
 				}
@@ -110,6 +120,32 @@ test_that("InferenceIncidWald migration produces identical stochastic (bootstrap
 			expect_equal(migrated_result$value, legacy_result$value, tolerance = 1e-7, info = label)
 		}
 	}
+})
+
+test_that("InferenceIncidWald asymptotic CI and p-value are the documented unpooled Wald z formulas", {
+	# Independent of the legacy comparison above: both classes once agreed while
+	# both silently returned Welch's t (SimpleMeanDifference winning the
+	# assembly-order collision), so equality alone cannot prove the documented
+	# normal-approximation Wald formula is what runs.
+	des = inference_migration_complete_design("incidence", n = 20L, seed = 20260817L)
+	y = des$get_y()
+	w = des$get_w()
+	p_t = mean(y[w == 1])
+	p_c = mean(y[w == 0])
+	estimate = p_t - p_c
+	se = sqrt(p_t * (1 - p_t) / sum(w == 1) + p_c * (1 - p_c) / sum(w == 0))
+	inf = InferenceIncidWald$new(des)
+	expect_equal(
+		unname(inf$compute_asymp_confidence_interval(alpha = 0.2)),
+		estimate + c(-1, 1) * stats::qnorm(0.9) * se,
+		tolerance = 1e-9
+	)
+	# Log scale: the p-value here is ~1e-17, below any absolute tolerance.
+	expect_equal(
+		log(unname(inf$compute_asymp_two_sided_pval(delta = 0))),
+		log(2 * stats::pnorm(-abs(estimate / se))),
+		tolerance = 1e-9
+	)
 })
 
 test_that("InferenceIncidWald retains the same public method surface and no new private-owner duplicates", {

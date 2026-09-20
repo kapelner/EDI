@@ -187,10 +187,21 @@ R-only and cannot be compared with the 64.79% baseline (which averaged R at
 Consequences: (1) all 31 pre-existing registry rows (mostly C++ TODO-3 kernels)
 were absent from this measurement, so they keep their old 0% figures and
 `in_progress` status -- the tests written for them are still unconfirmed, not
-disproven; (2) the C++ half of the codebase has no current measurement. The
-cause is undetermined (the shard logs show the instrumented build but not the
-gcov-collection step); finding it needs another instrumented run, which has not
-been started. Do not update `coverage_baseline.json` from this report.
+disproven; (2) the C++ half of the codebase has no current measurement.
+**Cause (found 2026-09-20):** the local runner did not set `EDI_PORTABLE=1`, which
+CI does. Without it, `configure` writes `override CXXFLAGS += -O3 -g0` into
+`src/Makevars`, which discards the `--coverage` flag `covr` supplies (only
+`CPPFLAGS` survives), so no C++ object was instrumented, no `.gcno` files existed,
+and `covr` silently returned R files only. CI sets `EDI_PORTABLE: 1` and is
+therefore expected to be unaffected. Verified: a rebuild with CI-parity
+environment (`EDI_PORTABLE`, `NOT_CRAN`, `CI`, `R_KEEP_PKG_SOURCE`) reports 302
+files, 178 R plus 124 native, matching the plan's original counts.
+`run_coverage_shards_parallel.R` now sets those variables. A separate finding from
+the same session: `~/.R/Makevars` sets `MAKEFLAGS = -j10`, which overrides a
+`MAKEFLAGS` environment variable, so local serial builds need
+`R_MAKEVARS_USER=R/package_tests/ci/makevars_serial` (also now set by the runner).
+The full run must be repeated with the fixed runner to get real C++ numbers; do not
+update `coverage_baseline.json` from the 2026-09-19 R-only report.
 
 **TODO-1 backlog triage (2026-09-19):** the 58 newly-discovered files were
 classified: 46 `dispatch_threshold`, 6 `dead_or_unreachable`, 2
