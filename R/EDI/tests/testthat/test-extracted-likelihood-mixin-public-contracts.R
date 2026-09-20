@@ -23,6 +23,26 @@ make_public_contract_poisson_inference <- function(seed = 1L, n = 100L){
 	InferenceCountPoisson$new(des, verbose = FALSE)
 }
 
+# A count-Poisson variant with no Fisher information: keeps the "explicit fisher
+# preference is rejected" branch covered now that classes that DO have Fisher
+# information accept "fisher" (get_supported_information_preferences_impl).
+make_no_fisher_poisson_inference <- function(seed = 12L, n = 100L){
+	set.seed(seed)
+	x = rnorm(n)
+	w = rep(c(1, 0), length.out = n)
+	des = DesignFixedTestFixture$new(n = n, response_type = "count", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = x))
+	des$overwrite_all_subject_assignments(w)
+	des$add_all_subject_responses(rpois(n, exp(0.2 + 0.4 * w + 0.2 * x)))
+	inf = InferenceCountPoisson$new(des, verbose = FALSE)
+	# Override on the instance: a derived R6 class cannot add the private
+	# fields this class family sets at runtime (locked private environment).
+	priv = inf$.__enclos_env__$private
+	if (bindingIsLocked("supports_fisher_information", priv)) unlockBinding("supports_fisher_information", priv)
+	priv$supports_fisher_information = function() FALSE
+	inf
+}
+
 make_constant_score_pval_logit_inference <- function(des){
 	ext_env = new.env(parent = globalenv())
 	ext_env$R6Class = R6::R6Class
@@ -82,8 +102,19 @@ test_that("public information preferences select available score-test informatio
 	p_auto = inf$compute_score_two_sided_pval(delta = 0.1)
 	expect_true(is.finite(p_auto))
 	expect_equal(inf$get_information_source_used(), "fisher")
-	expect_error(inf$set_information_preference("fisher"), "does not support information_preference")
+	# Poisson has Fisher information, so an explicit "fisher" preference is
+	# supported (previously only "auto" could reach it) and is the source used.
+	expect_true("fisher" %in% inf$get_supported_information_preferences())
+	inf$set_information_preference("fisher")
+	p_fisher = inf$compute_score_two_sided_pval(delta = 0.1)
+	expect_true(is.finite(p_fisher))
+	expect_equal(inf$get_information_source_used(), "fisher")
 	expect_error(inf$set_information_preference("invalid"), "information_preference must be one of")
+
+	no_fisher = make_no_fisher_poisson_inference(seed = 12L)
+	expect_false("fisher" %in% no_fisher$get_supported_information_preferences())
+	no_fisher$set_information_preference("observed")
+	expect_error(no_fisher$set_information_preference("fisher"), "does not support information_preference")
 })
 
 test_that("public likelihood tests report an unavailable specification as non-estimable", {

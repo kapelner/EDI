@@ -82,6 +82,7 @@ R/package_tests/testthat_bulk/test-design-response-recording-validation-referenc
 R/package_tests/testthat_bulk/test-design-transform-y-accessors-and-assertions-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-dispatch-policy-resolution-core-count-hierarchy-and-dead-pattern-audit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-nonzero-delta-pval-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-exact-fisher-incidence-tables-strata-and-htest-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-exact-test-source-type-resolution-arg-normalization-and-weighted-estimate-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-exact-zhang-combined-pval-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-exchangeable-resampling-cluster-block-units.R,correctness,120,bootstrap
@@ -362,10 +363,12 @@ R/package_tests/testthat_bulk/test-weighted-ordinal-surrogate-cold-start-referen
 R/package_tests/testthat_bulk/test-weighted-refit-does-not-leak-into-unweighted-cache-all-classes.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wilcox-jackknife-always-nonestimable-and-suite-task-filter-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-zero-augmented-poisson-hurdle-likelihood-frames-and-safe-se-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-estimand-delta-method.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-asymp-se-fallback-branches-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,correctness,120,bootstrap
@@ -684,6 +687,7 @@ R/package_tests/testthat_bulk/test-design-response-recording-validation-referenc
 R/package_tests/testthat_bulk/test-design-transform-y-accessors-and-assertions-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dispatch-policy-resolution-core-count-hierarchy-and-dead-pattern-audit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-nonzero-delta-pval-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-exact-fisher-incidence-tables-strata-and-htest-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-test-source-type-resolution-arg-normalization-and-weighted-estimate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-zhang-combined-pval-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exchangeable-resampling-cluster-block-units.R,coverage,240,bootstrap
@@ -964,10 +968,12 @@ R/package_tests/testthat_bulk/test-weighted-ordinal-surrogate-cold-start-referen
 R/package_tests/testthat_bulk/test-weighted-refit-does-not-leak-into-unweighted-cache-all-classes.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wilcox-jackknife-always-nonestimable-and-suite-task-filter-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zero-augmented-poisson-hurdle-likelihood-frames-and-safe-se-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-estimand-delta-method.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-asymp-se-fallback-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,coverage,4.8,measured_with_30_percent_headroom
