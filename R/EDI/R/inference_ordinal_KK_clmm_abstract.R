@@ -87,9 +87,6 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the ordinal CLMM asymptotic two-sided p-value for the
@@ -101,9 +98,6 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				assertNumeric(delta)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			if (delta == 0){
 				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 			} else {
@@ -393,10 +387,6 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				return(invisible(NULL))
 			}
 			private$clear_nonestimable_state()
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T))
-				return(invisible(NULL))
 		},
 		fit_clmm = function(full_X = private$create_design_matrix()){
 			group_id = private$clmm_group_id()

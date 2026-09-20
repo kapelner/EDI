@@ -603,8 +603,7 @@ EDI_COMPONENT_SPECS = list(
 		),
 		provides_private_methods = c(
 			"compute_fast_randomization_distr", "resolve_rlm_control",
-			"is_rlm_nonconvergence_warning", "shared", "assert_finite_se",
-			"fit_rlm_with_treatment", "robust_for_matched_pairs", "robust_for_reservoir",
+			"is_rlm_nonconvergence_warning", "shared",			"fit_rlm_with_treatment", "robust_for_matched_pairs", "robust_for_reservoir",
 			"rlm_method", "rlm_maxit", "rlm_acc", "rlm_start_with_ols",
 			"use_rcpp", "rlm_force_M"
 		),
@@ -732,7 +731,7 @@ EDI_COMPONENT_SPECS = list(
 			"tau", "transform_y_fn_list",
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_fast_randomization_distr", "compute_basic_match_data",
-			"assert_finite_se", "get_standard_error", "shared_combined_likelihood",
+ "get_standard_error", "shared_combined_likelihood",
 			"extract_se_from_rq", "compute_weighted_combined_estimate"
 		),
 		provides_capabilities = character(),
@@ -772,7 +771,7 @@ EDI_COMPONENT_SPECS = list(
 		provides_private_methods = c(
 			"get_standard_error", "compute_basic_match_data",
 			"cox_design_candidates", "rcpp_cox_fit_is_usable", "shared",
-			"assert_finite_se", "max_abs_reasonable_coef"
+ "max_abs_reasonable_coef"
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "partial",
@@ -811,8 +810,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_asymp_two_sided_pval"
 		),
 		provides_private_methods = c(
-			"compute_fast_randomization_distr", "shared", "assert_finite_se",
-			"satterthwaite_df", "fit_ols_with_treatment", "ols_for_matched_pairs",
+			"compute_fast_randomization_distr", "shared",			"satterthwaite_df", "fit_ols_with_treatment", "ols_for_matched_pairs",
 			"ols_for_reservoir"
 		),
 		provides_capabilities = character(),
@@ -836,7 +834,7 @@ EDI_COMPONENT_SPECS = list(
 			"build_model_matrix", "shared", "build_glmm_formula",
 			"fit_hurdle_for_matched_pairs", "fit_hurdle_for_matched_pairs_rcpp",
 			"fit_hurdle_for_matched_pairs_glmm_tmb", "fit_poisson_for_reservoir",
-			"assert_finite_se", "supports_likelihood_tests",
+ "supports_likelihood_tests",
 			"use_rcpp", "max_abs_reasonable_coef"
 		),
 		provides_capabilities = character(),
@@ -1056,7 +1054,6 @@ EDI_COMPONENT_SPECS = list(
 		provides_public_methods = character(),
 		provides_private_methods = c(
 			"ordinal_cond_clogit_compute_setup",
-			"ordinal_cond_clogit_assert_finite_se",
 			"ordinal_cond_clogit_shared_multi"
 		),
 		provides_capabilities = character(),
@@ -1080,12 +1077,10 @@ EDI_COMPONENT_SPECS = list(
 		),
 		provides_private_methods = c(
 			"is_a_kk_lwa_cox_ivwc", "get_standard_error",
-			"compute_basic_match_data", "shared", "assert_finite_se",
-			"cox_design_candidates", "fit_cox_model",
+			"compute_basic_match_data", "shared",			"cox_design_candidates", "fit_cox_model",
 			"lwa_cox_for_matched_pairs", "cox_for_reservoir",
 			"max_abs_reasonable_coef",
 			"kk_lwa_cox_ivwc_shared",
-			"kk_lwa_cox_ivwc_assert_finite_se",
 			"kk_lwa_cox_design_candidates",
 			"kk_lwa_cox_fit_model",
 			"kk_lwa_cox_for_matched_pairs",
@@ -1114,15 +1109,13 @@ EDI_COMPONENT_SPECS = list(
 		),
 		provides_private_methods = c(
 			"is_a_kk_lwa_cox_one_lik", "compute_basic_match_data",
-			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
-			"supports_likelihood_tests", "supports_lik_ratio_param_bootstrap",
+			"get_standard_error", "get_degrees_of_freedom",			"supports_likelihood_tests", "supports_lik_ratio_param_bootstrap",
 			"simulate_under_lik_null", "get_likelihood_test_spec",
 			"compute_treatment_estimate_during_randomization_inference",
 			"design_matrix_candidates", "shared_combined_likelihood",
 			"max_abs_reasonable_coef",
 			"kk_lwa_cox_one_lik_get_standard_error",
 			"kk_lwa_cox_one_lik_get_degrees_of_freedom",
-			"kk_lwa_cox_one_lik_assert_finite_se",
 			"kk_lwa_cox_one_lik_supports_likelihood_tests",
 			"kk_lwa_cox_one_lik_supports_lik_ratio_param_bootstrap",
 			"kk_lwa_cox_one_lik_simulate_under_lik_null",
@@ -1292,8 +1285,7 @@ EDI_COMPONENT_SPECS = list(
 			"max_abs_reasonable_coef", "best_X_colnames",
 			"design_matrix_candidates", "shared_combined_likelihood",
 			"supports_likelihood_tests", "get_likelihood_test_spec",
-			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
-			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null"
+			"get_standard_error", "get_degrees_of_freedom",			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null"
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "partial",
@@ -1327,7 +1319,7 @@ EDI_COMPONENT_SPECS = list(
 			"get_score_test_information_matrix", "compute_score_two_sided_pval_impl",
 			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
 			"get_likelihood_test_spec", "compute_likelihood_test_two_sided_pval",
-			"assert_finite_se", "fit_ols", "fit_combined", "fit_weighted_combined"
+ "fit_ols", "fit_combined", "fit_weighted_combined"
 		),
 		provides_capabilities = character(),
 		allowed_likelihood_tiers = "full",
@@ -1355,8 +1347,7 @@ EDI_COMPONENT_SPECS = list(
 		provides_private_methods = c(
 			"rlm_method", "rlm_maxit", "rlm_acc", "rlm_start_with_ols", "use_rcpp",
 			"compute_fast_randomization_distr", "rlm_force_M",
-			"resolve_rlm_control", "is_rlm_nonconvergence_warning", "assert_finite_se",
-			"get_standard_error", "get_degrees_of_freedom", "fit_rlm", "fit_combined",
+			"resolve_rlm_control", "is_rlm_nonconvergence_warning",			"get_standard_error", "get_degrees_of_freedom", "fit_rlm", "fit_combined",
 			"fit_weighted_combined"
 		),
 		provides_capabilities = character(),
@@ -1378,7 +1369,7 @@ EDI_COMPONENT_SPECS = list(
 			"is_a_kk_survival_rank_regr_ivwc", "build_design_matrix",
 			"compute_basic_match_data", "aft_design_candidates",
 			"extract_term_estimate", "extract_term_se", "shared",
-			"assert_finite_se", "get_standard_error",
+ "get_standard_error",
 			"aftsrr_for_matched_pairs", "aftsrr_for_reservoir",
 			"best_X_colnames_matched", "best_X_colnames_reservoir",
 			"max_abs_reasonable_coef"
@@ -1399,7 +1390,6 @@ EDI_COMPONENT_SPECS = list(
 			"kk_survival_rank_extract_term_estimate",
 			"kk_survival_rank_extract_term_se",
 			"kk_survival_rank_shared",
-			"kk_survival_rank_assert_finite_se",
 			"kk_survival_rank_aftsrr_for_matched_pairs",
 			"kk_survival_rank_aftsrr_for_reservoir"
 		),
@@ -1434,7 +1424,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_lik_ratio_confidence_interval_impl",
 			"count_likelihood_block_asymp_unsupported",
 			"mark_count_likelihood_block_asymp_nonestimable",
-			"count_likelihood_missing_ci", "count_bootstrap_fallback_ci", "is_a_count_likelihood",
+			"count_likelihood_missing_ci", "count_bootstrap_fallback_ci", "count_bootstrap_fallback_pval", "is_a_count_likelihood",
 			"cl_plumbing_asymp_lik_compute_asymp_confidence_interval",
 			"cl_plumbing_asymp_lik_compute_asymp_two_sided_pval",
 			"cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval",
@@ -1533,7 +1523,6 @@ EDI_COMPONENT_SPECS = list(
 					"predictors_df",
 					"fit_zero_augmented_model",
 					"generate_mod",
-					"assert_finite_se",
 					"supports_lik_ratio_param_bootstrap",
 					"supports_lik_ratio_param_bootstrap_confidence_interval",
 					"simulate_under_lik_null",
@@ -2078,7 +2067,7 @@ EDI_COMPONENT_SPECS = list(
 					provides_private_methods = c(
 						"compute_basic_match_data", "supports_likelihood_tests", "get_cluster_ids",
 						"fit_weibull_marginal_cpp", "fit_weibull_marginal_survreg", "shared",
-						"assert_finite_se", "get_standard_error", "get_degrees_of_freedom",
+ "get_standard_error", "get_degrees_of_freedom",
 						"compute_treatment_estimate_during_randomization_inference",
 						"compute_fast_rand_bootstrap_distr",
 						"max_abs_reasonable_coef"
@@ -2108,7 +2097,7 @@ EDI_COMPONENT_SPECS = list(
 					),
 					provides_private_methods = c(
 						"compute_basic_match_data", "compute_treatment_estimate_during_randomization_inference",
-						"assert_finite_se", "filtered_covariate_candidates", "design_matrix_candidates",
+ "filtered_covariate_candidates", "design_matrix_candidates",
 						"shared", "clayton_copula_for_matched_pairs", "weibull_for_reservoir",
 						"best_par", "best_X_colnames", "cached_mod",
 						"best_X_colnames_matched", "best_X_colnames_reservoir",
@@ -2139,7 +2128,7 @@ EDI_COMPONENT_SPECS = list(
 					),
 					provides_private_methods = c(
 						"compute_treatment_estimate_during_randomization_inference", "get_standard_error",
-						"get_degrees_of_freedom", "assert_finite_se", "supports_likelihood_tests",
+						"get_degrees_of_freedom", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "filtered_covariate_candidates", "shared",
 						"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
 						"max_abs_reasonable_coef"
@@ -2175,7 +2164,7 @@ EDI_COMPONENT_SPECS = list(
 						"supports_lik_ratio_param_bootstrap",
 						"compute_treatment_estimate_during_randomization_inference",
 						"frailty_for_matched_pairs", "weibull_for_reservoir", "shared",
-						"assert_finite_se", "best_par", "best_X_colnames",
+ "best_par", "best_X_colnames",
 						"cached_mod", "best_X_colnames_matched",
 						"best_X_colnames_reservoir", "max_abs_reasonable_coef",
 						"cached_vc_params_matched", "cached_vc_params_reservoir"
@@ -2210,7 +2199,7 @@ EDI_COMPONENT_SPECS = list(
 					provides_private_methods = c(
 						"is_a_kk_weibull_frailty_one_lik", "shared_combined_likelihood",
 						"supports_likelihood_tests", "get_likelihood_test_spec", "get_standard_error",
-						"get_degrees_of_freedom", "assert_finite_se", "supports_lik_ratio_param_bootstrap",
+						"get_degrees_of_freedom", "supports_lik_ratio_param_bootstrap",
 						"simulate_under_lik_null", "compute_treatment_estimate_during_randomization_inference",
 						"use_rcpp", "max_abs_reasonable_coef"
 					),
@@ -2343,8 +2332,7 @@ EDI_COMPONENT_SPECS = list(
 			"max_abs_reasonable_coef", "kk_glmm_engine",
 			"is_a_glmm_family", "init_kk_glmm_shared", "glmm_predictors_df",
 			"glmm_predictors_df_candidates", "get_standard_error",
-			"get_degrees_of_freedom", "shared_glmm_tmb", "assert_finite_se",
-			"fit_glmm_on_data", "fit_weighted_glmm_on_data", "fit_glmm",
+			"get_degrees_of_freedom", "shared_glmm_tmb",			"fit_glmm_on_data", "fit_weighted_glmm_on_data", "fit_glmm",
 			"compute_weighted_glmm_bootstrap_estimate", ".is_usable_glmm_fit"
 		),
 		requires_state = c("any_censoring", "cached_values", "harden", "n", "y", "m", "optimization_alg"),

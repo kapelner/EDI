@@ -75,7 +75,6 @@ InferenceSurvivalKKLWACoxPHIVWC = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"shared",
-			"assert_finite_se",
 			# MLEorKM's graceful-NA version wins over the Wald component's
 			# stop()-on-missing-SE fallback (Lesson 5, see the Source comment).
 			"get_standard_error"
@@ -158,7 +157,6 @@ InferenceSurvivalKKLWACoxPHOneLik = define_inference_class(
 			"compute_basic_match_data",
 			"get_standard_error",
 			"get_degrees_of_freedom",
-			"assert_finite_se",
 			"supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap",
 			"simulate_under_lik_null",

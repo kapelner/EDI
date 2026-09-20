@@ -127,9 +127,6 @@ KKQuantileRegrOneLikSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute an asymptotic two-sided p-value for the treatment effect.
@@ -140,9 +137,6 @@ KKQuantileRegrOneLikSource = list(
 				assertNumeric(delta)
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
@@ -166,8 +160,6 @@ KKQuantileRegrOneLikSource = list(
 				w = private$w,
 				m_vec = private$m
 			)
-		},
-		assert_finite_se = function(){
 		},
 		get_standard_error = function(){
 			private$shared_combined_likelihood(estimate_only = FALSE)

@@ -99,9 +99,6 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the Weibull-frailty asymptotic p-value for the
@@ -113,9 +110,6 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 				assertNumeric(delta)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
@@ -402,11 +396,6 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 				private$cached_values$beta_hat_T = NA_real_
 				private$cached_values$s_beta_hat_T = NA_real_
 			}
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
 		}
 	)
 )
@@ -658,11 +647,6 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 			as.numeric(private$cached_values$s_beta_hat_T)
 		},
 		get_degrees_of_freedom = function() Inf,
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
-		},
 		supports_lik_ratio_param_bootstrap = function() isTRUE(private$use_rcpp),
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			p = ncol(spec$X)
@@ -832,7 +816,6 @@ InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"shared",
-			"assert_finite_se",
 			"supports_lik_ratio_param_bootstrap",
 			# MLEorKM's graceful-NA version wins over the Wald component's
 			# stop()-on-missing-SE fallback (Lesson 5, see the Source comment).
@@ -939,7 +922,6 @@ InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = define_inference_class(
 			"compute_basic_match_data",
 			"get_standard_error",
 			"get_degrees_of_freedom",
-			"assert_finite_se",
 			"supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap",
 			"supports_information_preference",

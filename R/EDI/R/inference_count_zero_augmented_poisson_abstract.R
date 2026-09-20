@@ -115,7 +115,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					return(NA_real_)
 				}
 				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
-				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				return(private$count_bootstrap_fallback_pval(delta))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
@@ -333,7 +333,9 @@ ZeroAugmentedCountLikelihoodSource = list(
 			v = tryCatch({
 				vc = fit$vcov
 				if (is.null(vc) || length(dim(vc)) != 2L ||
-						nrow(vc) < j_treat || ncol(vc) < j_treat) {
+						nrow(vc) < j_treat || ncol(vc) < j_treat ||
+						zero_augmented_fit_is_degenerate(as.matrix(vc), as.numeric(fit$params %||% NA_real_))) {
+					private$cached_values$fit_degenerate = TRUE
 					NA_real_
 				} else {
 					as.numeric(vc[j_treat, j_treat])
@@ -452,6 +454,10 @@ ZeroAugmentedCountLikelihoodSource = list(
 			total_p = ncol(X_fit) + ncol(Xzi_fit)
 			if (length(params) != total_p || nrow(bread) != total_p || ncol(bread) != total_p ||
 					any(!is.finite(bread))) {
+				return(NULL)
+			}
+			if (zero_augmented_fit_is_degenerate(bread, params)) {
+				private$cached_values$fit_degenerate = TRUE
 				return(NULL)
 			}
 			X_fit = as.matrix(X_fit)
@@ -1185,11 +1191,6 @@ ZeroAugmentedCountLikelihoodSource = list(
 			}
 			out
 		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
-		},
 		supports_lik_ratio_param_bootstrap = function(){
 			isTRUE(private$use_rcpp) && private$za_description() %in% c(
 				"Zero-Inflated Negative Binomial",
@@ -1358,3 +1359,19 @@ InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(
 		)
 	)
 )
+
+# TRUE when a zero-augmented Poisson fit is degenerate and no SE derived from it
+# can be trusted: e.g. every y == 1 under a hurdle, where the zero-truncated
+# Poisson likelihood only improves as lambda -> 0 (no MLE; the optimizer stops at
+# an arbitrary boundary point with absurd coefficient SEs). Judged on the fit's
+# own model-based covariance: it must have a strictly positive diagonal and be
+# well conditioned, and the conditional intercept must not sit at the
+# lambda ~ 0 boundary.
+zero_augmented_fit_is_degenerate = function(vcov, params) {
+	vcov = as.matrix(vcov)
+	if (!length(vcov) || any(!is.finite(vcov))) return(TRUE)
+	if (any(diag(vcov) <= .Machine$double.eps)) return(TRUE)
+	rc = tryCatch(rcond(vcov), error = function(e) NA_real_)
+	if (!is.finite(rc) || rc < 1e-10) return(TRUE)
+	length(params) >= 1L && is.finite(params[1L]) && params[1L] < -15
+}

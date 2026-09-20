@@ -63,9 +63,6 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the KK marginal incidence asymptotic two-sided
@@ -77,9 +74,6 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 				assertNumeric(delta)
 			}
 			private$shared(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
@@ -116,11 +110,6 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 			as.numeric(fit$beta_hat)
 		},
 		build_design_matrix = function() stop(class(self)[1], " must implement build_design_matrix()."),
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				return(invisible(NULL))
-			}
-		},
 		set_failed_fit_cache = function(){
 			private$cache_nonestimable_estimate("kk_modified_poisson_fit_unavailable")
 			private$cached_values$full_coefficients = NULL

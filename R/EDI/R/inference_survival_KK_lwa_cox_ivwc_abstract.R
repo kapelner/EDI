@@ -69,9 +69,6 @@ KKLWACoxIVWCPartialLikelihoodSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the LWA Cox asymptotic p-value for the treatment
@@ -84,9 +81,6 @@ KKLWACoxIVWCPartialLikelihoodSource = list(
 				assertNumeric(delta)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			if (delta == 0){
 				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 			} else {
@@ -164,11 +158,6 @@ KKLWACoxIVWCPartialLikelihoodSource = list(
 				return(invisible(NULL))
 			}
 			private$clear_nonestimable_state()
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
 		},
 		cox_design_candidates = function(w, X){
 			X_full = matrix(w, ncol = 1)
@@ -265,9 +254,6 @@ KKLWACoxIVWCPartialLikelihoodSource = list(
 		# real machinery lives in this same source.
 		kk_lwa_cox_ivwc_shared = function(estimate_only = FALSE) {
 			private$shared(estimate_only = estimate_only)
-		},
-		kk_lwa_cox_ivwc_assert_finite_se = function() {
-			private$assert_finite_se()
 		},
 		kk_lwa_cox_design_candidates = function(w, X) {
 			private$cox_design_candidates(w, X)

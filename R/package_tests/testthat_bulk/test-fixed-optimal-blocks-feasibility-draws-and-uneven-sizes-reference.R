@@ -53,11 +53,21 @@ test_that("ompr blocks handle n not divisible by B: every subject is assigned an
 	expect_equal(sum(sizes), 9L)
 })
 
-test_that("K-way blocks cannot handle n not divisible by B (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): the feasibility check only requires floor(n / B) >= 2, but
-	# anticlust::balanced_clustering() requires equal-sized groups, so K-way blocks error for n = 9, B = 2.
-	f <- mk("K-way")
-	expect_error(f$p$get_or_compute_block_ids(), "equal-sized groups")
+test_that("K-way blocks handle n not divisible by B: outlying subjects are held out and join the nearest cluster", {
+	ids <- mk("K-way")$p$get_or_compute_block_ids()
+	expect_length(ids, 9L)
+	expect_false(anyNA(ids))
+	expect_equal(levels(ids), c("1", "2"))
+	# The fixture has two obvious groups (five with x1 < 0, four with x1 > 0); the held-out subject
+	# does not distort them, whichever labels the clustering picks.
+	expect_equal(length(unique(ids[X9$x1 < 0])), 1L)
+	expect_equal(length(unique(ids[X9$x1 > 0])), 1L)
+	expect_false(ids[1] == ids[9])
+	expect_equal(sort(as.integer(table(ids))), c(4L, 5L))
+	expect_gte(min(table(ids)), 2L)
+	# Divisible n still uses the plain balanced clustering (equal groups).
+	ids8 <- mk("K-way", X = X9[1:8, ])$p$get_or_compute_block_ids()
+	expect_equal(as.integer(table(ids8)), c(4L, 4L))
 })
 
 test_that("greedy blocks are complete when n is a multiple of the block size", {
@@ -67,15 +77,17 @@ test_that("greedy blocks are complete when n is a multiple of the block size", {
 	expect_equal(as.integer(table(ids)), c(4L, 4L))
 })
 
-test_that("greedy blocks leave the trailing subject unassigned when n is not a multiple of the block size (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): blockTools::assignment() returns a third, incomplete row holding the
-	# leftover subject; solve_greedy_blocks() labels it block 3, which is outside factor(levels = 1:B), so the
-	# subject's block id is NA and the intended nearest-neighbour fallback (for block_ids == 0) never runs.
-	f <- mk("greedy")
-	ids <- f$p$get_or_compute_block_ids()
+test_that("greedy blocks assign the leftover subject to its nearest assigned neighbour's block when n is not a multiple of the block size", {
+	ids <- mk("greedy")$p$get_or_compute_block_ids()
 	expect_length(ids, 9L)
-	expect_equal(sum(is.na(ids)), 1L)
-	expect_true(is.na(ids[3]))
+	expect_false(anyNA(ids))
 	expect_equal(levels(ids), c("1", "2"))
+	# blockTools leaves subject 3 unassigned (blocks {1,2,4,5} and {6,7,8,9}); its nearest assigned
+	# neighbour (brute force over the eight) decides its block.
+	X <- as.matrix(X9)
+	assigned <- setdiff(1:9, 3L)
+	nearest <- assigned[which.min(rowSums(sweep(X[assigned, ], 2, X[3, ])^2))]
+	expect_equal(ids[3], ids[nearest])
 	expect_equal(as.integer(ids[-3]), c(1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L))
+	expect_equal(as.integer(ids[3]), 1L)
 })

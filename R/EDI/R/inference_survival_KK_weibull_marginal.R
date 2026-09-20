@@ -87,9 +87,6 @@ SurvivalKKWeibullMarginalSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Computes the asymptotic (cluster-robust) two-sided p-value.
@@ -99,9 +96,6 @@ SurvivalKKWeibullMarginalSource = list(
 				assertNumeric(delta)
 			}
 			private$shared(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		# The old evaluated-body override of the mixin's
@@ -308,11 +302,6 @@ SurvivalKKWeibullMarginalSource = list(
 				private$cached_values$df = Inf
 			}
 			invisible(NULL)
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
 		},
 		get_standard_error = function(){
 			private$shared(estimate_only = FALSE)

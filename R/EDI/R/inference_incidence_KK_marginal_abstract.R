@@ -132,7 +132,6 @@ InferenceAbstractKKMarginalIncid = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"get_standard_error",
 			"get_degrees_of_freedom",
-			"assert_finite_se",
 			"supports_lik_ratio_param_bootstrap",
 			"supports_information_preference",
 			"supports_observed_information",

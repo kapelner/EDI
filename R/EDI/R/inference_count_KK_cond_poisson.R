@@ -113,9 +113,6 @@ CountKKHurdlePoissonIVWCSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the IVWC hurdle-Poisson asymptotic two-sided p-value
@@ -128,9 +125,6 @@ CountKKHurdlePoissonIVWCSource = list(
 				assertNumeric(delta)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			if (delta == 0){
 				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 			} else {
@@ -475,11 +469,6 @@ CountKKHurdlePoissonIVWCSource = list(
 			ssq_hat = as.numeric(mod$ssq_b_j)
 			if (!is.finite(beta_hat) || !is.finite(ssq_hat) || ssq_hat <= 0) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
 			list(beta_hat = beta_hat, ssq_hat = ssq_hat)
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
 		}
 	)
 )
@@ -527,7 +516,6 @@ InferenceCountKKHurdlePoissonIVWC = define_inference_class(
 			"compute_basic_match_data",
 			"compute_fast_randomization_distr",
 			"shared",
-			"assert_finite_se",
 			"max_abs_reasonable_coef"
 		)
 	)

@@ -331,9 +331,11 @@ DesignFixedOptimalBlocks = define_design_class(
 			assg_df   = blockTools::assignment(block_out)$assg[[1L]]
 			id_cols   = grep("^Treatment", colnames(assg_df), value = TRUE)
 			block_ids = integer(n)
-			for (b in seq_len(nrow(assg_df))) {
+			# Only complete rows become blocks 1..B; blockTools' trailing incomplete row (and any
+			# row beyond B) is left at 0 for the nearest-neighbour fallback below.
+			for (b in seq_len(min(nrow(assg_df), B))) {
 				ids = as.integer(unlist(assg_df[b, id_cols]))
-				ids = ids[!is.na(ids)]
+				if (length(ids) != n_tr || anyNA(ids)) next
 				block_ids[ids] = b
 			}
 			# Assign any leftover subjects (n not divisible by n_tr) to nearest assigned neighbour
@@ -348,8 +350,28 @@ DesignFixedOptimalBlocks = define_design_class(
 			factor(block_ids, levels = seq_len(B))
 		},
 		solve_kway_blocks = function(X) {
-			assignments = anticlust::balanced_clustering(X, K = private$B)
-			factor(assignments, levels = seq_len(private$B))
+			n = nrow(X)
+			B = private$B
+			# balanced_clustering() needs equal-sized groups: hold out the r = n mod B subjects
+			# that sit farthest from their (deterministic Ward) cluster centroid, cluster the rest
+			# in equal groups, then attach each held-out subject to the nearest group centroid.
+			r = n %% B
+			assignments = integer(n)
+			if (r == 0L) {
+				assignments[] = anticlust::balanced_clustering(X, K = B)
+			} else {
+				rough = stats::cutree(stats::hclust(stats::dist(X), method = "ward.D2"), k = B)
+				rough_cen = do.call(rbind, lapply(seq_len(B), function(k) colMeans(X[rough == k, , drop = FALSE])))
+				d_own = rowSums((X - rough_cen[rough, , drop = FALSE])^2)
+				held = order(d_own, decreasing = TRUE)[seq_len(r)]
+				keep = setdiff(seq_len(n), held)
+				assignments[keep] = anticlust::balanced_clustering(X[keep, , drop = FALSE], K = B)
+				centroids = do.call(rbind, lapply(seq_len(B), function(k) colMeans(X[keep[assignments[keep] == k], , drop = FALSE])))
+				for (i in held) {
+					assignments[i] = which.min(rowSums(sweep(centroids, 2, X[i, ])^2))
+				}
+			}
+			factor(assignments, levels = seq_len(B))
 		},
 		solve_optimal_blocks = function(D){
 			assert_optimal_roi_solver(private$roi_solver)

@@ -135,9 +135,6 @@ ContinKKRobustRegrIVWCSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Two-sided Wald p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
@@ -153,9 +150,6 @@ ContinKKRobustRegrIVWCSource = list(
 				assertNumeric(delta)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Duplicate the robust-regression inference object while
@@ -238,11 +232,6 @@ ContinKKRobustRegrIVWCSource = list(
 			} else {
 				private$cached_values$beta_hat_T   = NA_real_
 				if (!estimate_only) private$cached_values$s_beta_hat_T = NA_real_
-			}
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
 			}
 		},
 		# estimate_only = TRUE forces "M" (fast, no LQS phase) for the point estimate.
@@ -474,8 +463,7 @@ InferenceContinKKRobustRegrIVWC = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"compute_fast_randomization_distr",
-			"shared",
-			"assert_finite_se"
+			"shared"
 		)
 	)
 )

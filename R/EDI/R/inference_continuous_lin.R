@@ -173,9 +173,6 @@ InferenceContinLin = define_inference_class(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
@@ -189,9 +186,6 @@ InferenceContinLin = define_inference_class(
 				assertNumeric(delta)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
@@ -287,11 +281,6 @@ InferenceContinLin = define_inference_class(
 			result = list(Xc = Xc)
 			des_priv$lin_centered_covariates = result
 			result
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				return(invisible(NULL))
-			}
 		},
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && isTRUE(private$cached_values$lin_estimate_only_complete)) return(invisible(NULL))

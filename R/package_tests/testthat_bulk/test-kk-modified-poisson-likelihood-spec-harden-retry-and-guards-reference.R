@@ -148,11 +148,3 @@ test_that("get_standard_error and get_degrees_of_freedom read the fitted SE and 
 	f$priv$cached_values$df <- NULL
 	expect_equal(f$priv$get_degrees_of_freedom(), Inf)
 })
-
-test_that("assert_finite_se never signals for finite, non-finite or non-positive SEs (source quirk, not fixed)", {
-	f <- modpois_fixture()
-	for (se in list(0.4, NA_real_, 0, -1)) {
-		f$priv$cached_values$s_beta_hat_T <- se
-		expect_null(f$priv$assert_finite_se())
-	}
-})

@@ -124,9 +124,6 @@ ContinKKRobustRegrOneLikSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$fit_combined()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Two-sided Wald p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
@@ -142,9 +139,6 @@ ContinKKRobustRegrOneLikSource = list(
 				assertNumeric(delta)
 			}
 			private$fit_combined()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Wald confidence interval for the treatment coefficient; identical
@@ -160,9 +154,6 @@ ContinKKRobustRegrOneLikSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$fit_combined()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Two-sided Wald p-value for the treatment coefficient; identical
@@ -177,9 +168,6 @@ ContinKKRobustRegrOneLikSource = list(
 				assertNumeric(delta)
 			}
 			private$fit_combined()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Duplicate the one-likelihood robust-regression inference
@@ -226,11 +214,6 @@ ContinKKRobustRegrOneLikSource = list(
 			msg = conditionMessage(w)
 			grepl("'rlm' failed to converge", msg, fixed = TRUE) ||
 				grepl("alternation limit reached", msg, fixed = TRUE)
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
 		},
 		get_standard_error = function(){
 			private$fit_combined(estimate_only = FALSE)
@@ -635,8 +618,7 @@ InferenceContinKKRobustRegrOneLik = define_inference_class(
 			"compute_basic_match_data",
 			"compute_fast_randomization_distr",
 			"get_standard_error",
-			"get_degrees_of_freedom",
-			"assert_finite_se"
+			"get_degrees_of_freedom"
 		)
 	)
 )

@@ -135,11 +135,6 @@ ContinKKOLSIVWCSource = list(
 				}
 			}
 		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
-		},
 		satterthwaite_df = function(var_terms, dfs){
 			ok = is.finite(var_terms) & var_terms > 0 & is.finite(dfs) & dfs > 0
 			if (!any(ok)) return(NA_real_)
@@ -295,8 +290,7 @@ InferenceContinKKOLSIVWC = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"compute_fast_randomization_distr",
-			"shared",
-			"assert_finite_se"
+			"shared"
 		)
 	)
 )

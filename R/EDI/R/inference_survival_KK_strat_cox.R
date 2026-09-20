@@ -42,9 +42,6 @@ SurvivalKKStratCoxIVWCSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the stratified-Cox asymptotic p-value for the
@@ -57,9 +54,6 @@ SurvivalKKStratCoxIVWCSource = list(
 				assertNumeric(delta)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			if (delta == 0){
 				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 			} else {
@@ -263,17 +257,6 @@ SurvivalKKStratCoxIVWCSource = list(
 			} else {
 				private$cache_nonestimable_estimate("kk_strat_cox_ivwc_both_failed")
 			}
-		},
-		# InferenceAsymp's compute_asymp_confidence_interval()/compute_asymp_two_sided_pval()
-		# contract requires a concrete assert_finite_se() hook (no default exists on the base
-		# class); this class had none, so those two methods crashed with "attempt to apply
-		# non-function" as soon as shared() could actually produce an estimate (TODO-16).
-		# Matches the same no-op-both-ways stub already used by sibling classes, e.g.
-		# inference_survival_KK_lwa_cox_ivwc_abstract.R's assert_finite_se().
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
 		}
 	)
 )
@@ -346,7 +329,6 @@ InferenceSurvivalKKStratCoxPHIVWC = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"shared",
-			"assert_finite_se",
 			# MLEorKM's graceful-NA version wins over the Wald component's
 			# stop()-on-missing-SE fallback (Lesson 5, see the Source comment).
 			"get_standard_error"
@@ -446,9 +428,6 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Returns a 2-sided p-value for H0: beta_T = delta.
@@ -458,9 +437,6 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 				assertNumeric(delta)
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
@@ -585,11 +561,6 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 			as.numeric(private$cached_values$s_beta_hat_T)
 		},
 		get_degrees_of_freedom = function() Inf,
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
-		},
 		supports_lik_ratio_param_bootstrap = function() TRUE,
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			b_null = as.numeric(null_fit$coefficients %||% null_fit$b)
@@ -699,7 +670,6 @@ InferenceSurvivalKKStratCoxPHOneLik = define_inference_class(
 			"compute_basic_match_data",
 			"get_standard_error",
 			"get_degrees_of_freedom",
-			"assert_finite_se",
 			"supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap",
 			"simulate_under_lik_null",

@@ -6,7 +6,7 @@ library(EDI)
 # "Bayesian bootstrap not implemented" stoppers, the assertion switch
 # (toggle_asserts() / should_run_asserts() / the internal .assert_manager flag),
 # kk_pair_and_reservoir_bootstrap_weights() edge cases against a hand-written
-# split, weights_are_effectively_constant() thresholds, and .create_match_dummies().
+# split, weights_are_effectively_constant() thresholds.
 
 E <- function(x) get(x, envir = asNamespace("EDI"))
 
@@ -91,18 +91,4 @@ test_that("weights_are_effectively_constant is a relative, positive-finite-only 
 	expect_false(f(c(1, Inf)))
 	expect_false(f(numeric(0)))
 	expect_true(f(3))                                                   # a single positive weight
-})
-
-test_that(".create_match_dummies builds one indicator column per observed id, NA -> 0, NULL without matches", {
-	f <- E(".create_match_dummies")
-	expect_null(f(c(0L, NA, 0L)))
-	expect_null(f(integer(0)))
-	m <- f(c(1L, 2L, NA, 1L))
-	expect_equal(colnames(m), c("match_0", "match_1", "match_2"))
-	expect_equal(matrix(as.numeric(m), nrow(m)), cbind(c(0, 0, 1, 0), c(1, 0, 0, 1), c(0, 1, 0, 0)))
-	expect_equal(unname(rowSums(m)), rep(1, 4))
-	# Non-contiguous ids: one column per OBSERVED id, labelled by that id.
-	m2 <- f(c(3L, 1L, 3L))
-	expect_equal(colnames(m2), c("match_1", "match_3"))
-	expect_equal(matrix(as.numeric(m2), nrow(m2)), cbind(c(0, 1, 0), c(1, 0, 1)))
 })

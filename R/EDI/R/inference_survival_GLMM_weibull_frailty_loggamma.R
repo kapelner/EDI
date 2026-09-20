@@ -61,9 +61,6 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the Clayton-copula survival asymptotic p-value for
@@ -76,9 +73,6 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 				assertNumeric(delta)
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 		# The old evaluated-body override of the mixin's
@@ -211,11 +205,6 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 				return(beta_r)
 			}
 			NA_real_
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
 		},
 		filtered_covariate_candidates = function(X = as.matrix(private$X)){
 			if (ncol(X) == 0L) return(list(matrix(nrow = nrow(X), ncol = 0L)))
@@ -487,7 +476,6 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"shared",
-			"assert_finite_se",
 			"supports_likelihood_tests",
 			"max_abs_reasonable_coef",
 			"optimization_alg",
@@ -654,11 +642,6 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 			as.numeric(private$cached_values$s_beta_hat_T)
 		},
 		get_degrees_of_freedom = function() Inf,
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
-		},
 		supports_likelihood_tests = function(){
 			TRUE
 		},
@@ -1016,7 +999,6 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = define_inference_class(
 			"compute_basic_match_data",
 			"get_standard_error",
 			"get_degrees_of_freedom",
-			"assert_finite_se",
 			"supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap",
 			"supports_information_preference",

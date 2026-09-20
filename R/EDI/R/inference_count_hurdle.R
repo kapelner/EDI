@@ -208,7 +208,7 @@ InferenceCountHurdlePoisson = define_inference_class(
 					return(NA_real_)
 				}
 				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
-				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				return(private$count_bootstrap_fallback_pval(delta))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
@@ -347,9 +347,6 @@ InferenceCountHurdleNegBin = define_inference_class(
 				return(private$count_likelihood_missing_ci(alpha))
 			}
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute the hurdle negative-binomial asymptotic two-sided
@@ -363,9 +360,6 @@ InferenceCountHurdleNegBin = define_inference_class(
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			private$shared()
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Gradient test of \eqn{H_0: \beta_T = \code{delta}} on the
@@ -763,11 +757,6 @@ InferenceCountHurdleNegBin = define_inference_class(
 			as.numeric(private$cached_values$s_beta_hat_T)
 		},
 		get_degrees_of_freedom = function() Inf,
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
-		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			X       = spec$X
 			X_hurdle = spec$X_hurdle

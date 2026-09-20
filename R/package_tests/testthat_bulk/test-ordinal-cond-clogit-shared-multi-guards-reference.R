@@ -123,17 +123,3 @@ test_that("fit_ok rejects divergent, non-finite and zero-variance conditional-lo
 		}
 	}
 })
-
-test_that("ordinal_cond_clogit_assert_finite_se is a no-op for finite and non-finite SEs (source quirk, not fixed)", {
-	# SOURCE QUIRK (noted, not fixed): both branches return an invisible NULL and
-	# neither stops, warns nor caches a nonestimable state, so the assertion the
-	# name promises never fires.
-	f <- adj_cat_fixture()
-	for (se in list(0.4, NA_real_, Inf)) {
-		e <- new.env()
-		e$cached_values <- list(s_beta_hat_T = se)
-		expect_null(EDI:::ordinal_cond_clogit_assert_finite_se(e, "X"))
-		expect_no_warning(EDI:::ordinal_cond_clogit_assert_finite_se(e, "X"))
-		expect_identical(e$cached_values$s_beta_hat_T, se)
-	}
-})

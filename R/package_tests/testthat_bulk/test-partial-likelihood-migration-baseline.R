@@ -345,7 +345,6 @@ test_that("conditional-logit partial-likelihood components expose extracted help
 		EDI:::component_private_names(ordinal_component),
 		c(
 			"ordinal_cond_clogit_compute_setup",
-			"ordinal_cond_clogit_assert_finite_se",
 			"ordinal_cond_clogit_shared_multi"
 		)
 	)
@@ -375,12 +374,10 @@ test_that("LWA Cox and survival rank-regression components expose extracted help
 		EDI:::component_private_names(ivwc_component),
 		c(
 			"is_a_kk_lwa_cox_ivwc", "get_standard_error",
-			"compute_basic_match_data", "shared", "assert_finite_se",
-			"cox_design_candidates", "fit_cox_model",
+			"compute_basic_match_data", "shared", "cox_design_candidates", "fit_cox_model",
 			"lwa_cox_for_matched_pairs", "cox_for_reservoir",
 			"max_abs_reasonable_coef",
 			"kk_lwa_cox_ivwc_shared",
-			"kk_lwa_cox_ivwc_assert_finite_se",
 			"kk_lwa_cox_design_candidates",
 			"kk_lwa_cox_fit_model",
 			"kk_lwa_cox_for_matched_pairs",
@@ -407,15 +404,13 @@ test_that("LWA Cox and survival rank-regression components expose extracted help
 		EDI:::component_private_names(one_lik_component),
 		c(
 			"is_a_kk_lwa_cox_one_lik", "compute_basic_match_data",
-			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
-			"supports_likelihood_tests", "supports_lik_ratio_param_bootstrap",
+			"get_standard_error", "get_degrees_of_freedom", "supports_likelihood_tests", "supports_lik_ratio_param_bootstrap",
 			"simulate_under_lik_null", "get_likelihood_test_spec",
 			"compute_treatment_estimate_during_randomization_inference",
 			"design_matrix_candidates", "shared_combined_likelihood",
 			"max_abs_reasonable_coef",
 			"kk_lwa_cox_one_lik_get_standard_error",
 			"kk_lwa_cox_one_lik_get_degrees_of_freedom",
-			"kk_lwa_cox_one_lik_assert_finite_se",
 			"kk_lwa_cox_one_lik_supports_likelihood_tests",
 			"kk_lwa_cox_one_lik_supports_lik_ratio_param_bootstrap",
 			"kk_lwa_cox_one_lik_simulate_under_lik_null",
@@ -437,7 +432,6 @@ test_that("LWA Cox and survival rank-regression components expose extracted help
 			"kk_survival_rank_extract_term_estimate",
 			"kk_survival_rank_extract_term_se",
 			"kk_survival_rank_shared",
-			"kk_survival_rank_assert_finite_se",
 			"kk_survival_rank_aftsrr_for_matched_pairs",
 			"kk_survival_rank_aftsrr_for_reservoir"
 		)
@@ -519,8 +513,7 @@ test_that("KK stratified Cox one-likelihood component exposes extracted helper c
 			"max_abs_reasonable_coef", "best_X_colnames",
 			"design_matrix_candidates", "shared_combined_likelihood",
 			"supports_likelihood_tests", "get_likelihood_test_spec",
-			"get_standard_error", "get_degrees_of_freedom", "assert_finite_se",
-			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null"
+			"get_standard_error", "get_degrees_of_freedom", "supports_lik_ratio_param_bootstrap", "simulate_under_lik_null"
 		)
 	)
 })

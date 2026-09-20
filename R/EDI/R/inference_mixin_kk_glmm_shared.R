@@ -49,9 +49,6 @@ InferenceMixinKKGLMMShared = list(
 				return(super$compute_asymp_confidence_interval(alpha = alpha))
 			}
 			private$shared(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		compute_asymp_two_sided_pval = function(delta = 0){
@@ -62,9 +59,6 @@ InferenceMixinKKGLMMShared = list(
 				return(super$compute_asymp_two_sided_pval(delta = delta))
 			}
 			private$shared(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
@@ -179,10 +173,6 @@ InferenceMixinKKGLMMShared = list(
 			}
 			private$cached_values$df = Inf
 			private$cached_values$summary_table = coef_table
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T))
-				return(invisible(NULL))
 		},
 		fit_glmm_on_data = function(predictors_df, se = TRUE){
 			m_vec = private$m

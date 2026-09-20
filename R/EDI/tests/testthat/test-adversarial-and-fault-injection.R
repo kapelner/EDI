@@ -51,6 +51,7 @@ adv_scenarios = function() {
 		separation_incid = function() adv_design("incidence", w, X, w),
 		constant_continuous = function() adv_design("continuous", rep(3, n), X),
 		constant_count = function() adv_design("count", rep(3, n), X),
+		constant_count_ones = function() adv_design("count", rep(1, n), X),
 		saturated_count = function() adv_design("count", ifelse(w == 1, 5, 2), X, w),
 		collinear_continuous = function() adv_design("continuous", rnorm(n), Xc),
 		collinear_count = function() adv_design("count", rpois(n, 2), Xc),
@@ -208,4 +209,14 @@ test_that("the invariant checker itself flags each class of wrong-looking output
 	expect_true("non-finite (Inf) estimate" %in% adv_violations(Inf, c(NA_real_, NA_real_), NA_real_))
 	expect_length(adv_violations(0.3, c(-1, 1), 0.4), 0L)
 	expect_length(adv_violations(NA_real_, c(NA_real_, NA_real_), NA_real_), 0L)
+})
+
+test_that("a hurdle fit with no MLE (every y == 1) is reported non-estimable, not as a confident effect", {
+	des = adv_scenarios()$constant_count_ones()
+	inst = InferenceCountHurdlePoisson$new(des)
+	suppressWarnings(inst$compute_estimate())
+	ci = suppressWarnings(inst$compute_asymp_confidence_interval())
+	p = suppressWarnings(inst$compute_asymp_two_sided_pval())
+	expect_true(all(is.na(ci)))
+	expect_true(is.na(p))
 })

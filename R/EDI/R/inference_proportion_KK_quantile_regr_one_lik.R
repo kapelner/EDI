@@ -65,7 +65,6 @@ InferencePropKKQuantileRegrOneLik = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"compute_fast_randomization_distr",
-			"assert_finite_se",
 			"get_standard_error"
 		)
 	),

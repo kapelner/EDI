@@ -5,7 +5,7 @@ library(EDI)
 # checks (already covered): solver failure, coefficient/SE plausibility guards
 # (max_abs_reasonable_coef), estimate_only vs full caching, warm-start storage,
 # compute_ri_estimate_rcpp() (agrees with the fitted estimate, NA on failure),
-# the abstract clmm_link() stop and the no-op assert_finite_se().
+# and the abstract clmm_link() stop.
 
 fx <- function(seed = 11L, n = 60L, effect = 0.5) {
 	set.seed(seed)
@@ -86,15 +86,12 @@ test_that("compute_ri_estimate_rcpp reproduces the fitted treatment estimate and
 	expect_true(is.na(g$p$compute_ri_estimate_rcpp()))
 })
 
-test_that("clmm_link() is abstract on the base class and assert_finite_se() never signals", {
+test_that("clmm_link() is abstract on the base class", {
 	base <- get("InferenceAbstractKKOrdinalCLMM", envir = asNamespace("EDI"))
 	hook <- base$private_methods$clmm_link
 	env <- new.env(); env$self <- structure(list(), class = "SomeLeaf")
 	environment(hook) <- env
 	expect_error(hook(), "SomeLeaf must implement clmm_link\\(\\)")
 	f <- fx()
-	f$p$cached_values$s_beta_hat_T <- NA_real_
-	expect_silent(f$p$assert_finite_se())
-	f$p$cached_values$s_beta_hat_T <- 0.3
-	expect_silent(f$p$assert_finite_se())
+	expect_false(f$p$has_private_method("assert_finite_se"))                          # the never-firing SE assertion stub was removed
 })

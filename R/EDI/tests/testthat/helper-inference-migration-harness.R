@@ -6,6 +6,15 @@
 # Everything below still calls them unqualified -- they resolve via the
 # package namespace once EDI is loaded (load_all()/library()).
 
+# Under library(EDI) (as opposed to load_all()) the package-internal fixtures are
+# not attached, so forward to the namespace when they are not already visible.
+for (.nm in c("inference_migration_with_seed", "inference_migration_add_subjects", "inference_migration_complete_design")) {
+	if (!exists(.nm, mode = "function")) {
+		assign(.nm, get(.nm, envir = asNamespace("EDI")))
+	}
+}
+rm(.nm)
+
 inference_migration_golden_design_builders = function() {
 	response_types = c("continuous", "incidence", "count", "proportion", "ordinal", "survival")
 	stats::setNames(lapply(response_types, function(response_type) {

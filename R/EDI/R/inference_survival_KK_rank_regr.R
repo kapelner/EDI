@@ -63,7 +63,6 @@ InferenceSurvivalKKRankRegrIVWC = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"shared",
-			"assert_finite_se",
 			# MLEorKM's graceful-NA version wins over the Wald component's
 			# stop()-on-missing-SE fallback (see the Source comment).
 			"get_standard_error",

@@ -21,11 +21,7 @@ ordinal_cond_clogit_compute_setup = function(private_env){
 }
 
 
-ordinal_cond_clogit_assert_finite_se = function(private_env, model_label){
-	if (!is.finite(private_env$cached_values$s_beta_hat_T)){
-		return(invisible(NULL))
-	}
-}
+
 
 
 ordinal_cond_clogit_shared_multi = function(private_env, expand_fun, trials_fun){
@@ -95,9 +91,6 @@ OrdinalConditionalLogitPartialLikelihoodSource = list(
 	private = list(
 		ordinal_cond_clogit_compute_setup = function() {
 			ordinal_cond_clogit_compute_setup(private)
-		},
-		ordinal_cond_clogit_assert_finite_se = function(model_label) {
-			ordinal_cond_clogit_assert_finite_se(private, model_label)
 		},
 		ordinal_cond_clogit_shared_multi = function(expand_fun, trials_fun) {
 			ordinal_cond_clogit_shared_multi(private, expand_fun, trials_fun)

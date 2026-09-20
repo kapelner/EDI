@@ -232,6 +232,7 @@ CountLikelihoodPlumbingSource = list(
 		# degenerate fit (e.g. an all-zero response) every replicate is ~identical,
 		# so the percentile CI has ~zero width -- non-estimability, not precision.
 		count_bootstrap_fallback_ci = function(alpha = 0.05){
+			if (isTRUE(private$cached_values$fit_degenerate)) return(private$count_likelihood_missing_ci(alpha))
 			ci = self$compute_bootstrap_confidence_interval(alpha = alpha)
 			est = suppressWarnings(as.numeric(private$cached_values$beta_hat_T)[1L])
 			if (length(ci) == 2L && all(is.finite(ci)) &&
@@ -239,6 +240,12 @@ CountLikelihoodPlumbingSource = list(
 				return(private$count_likelihood_missing_ci(alpha))
 			}
 			ci
+		},
+		# p-value counterpart: a degenerate fit (no MLE) has no meaningful
+		# bootstrap distribution either, so skip it and report NA.
+		count_bootstrap_fallback_pval = function(delta = 0){
+			if (isTRUE(private$cached_values$fit_degenerate)) return(NA_real_)
+			self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE)
 		},
 		is_a_count_likelihood = function() TRUE,
 		cl_plumbing_asymp_lik_compute_asymp_confidence_interval = InferenceAsympLik$public_methods$compute_asymp_confidence_interval,

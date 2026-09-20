@@ -218,7 +218,7 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 					return(NA_real_)
 				}
 				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
-				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
+				return(private$count_bootstrap_fallback_pval(delta))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}

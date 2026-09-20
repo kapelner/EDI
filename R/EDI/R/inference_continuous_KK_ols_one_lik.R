@@ -119,9 +119,6 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				private$testing_type,
 				wald = {
 					private$fit_combined()
-					if (should_run_asserts()) {
-						private$assert_finite_se()
-					}
 					private$compute_z_or_t_ci_from_s_and_df(alpha)
 				},
 				score = private$invert_test_pval_confidence_interval(alpha),
@@ -150,9 +147,6 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				private$testing_type,
 				wald = {
 					private$fit_combined()
-					if (should_run_asserts()) {
-						private$assert_finite_se()
-					}
 					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 				},
 				score = private$compute_score_two_sided_pval_impl(delta),
@@ -351,12 +345,6 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
 			}
 			p_value
-		},
-		# reduce_design_matrix_once() is inherited from InferenceMixinKKPassThroughCompound.
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
 		},
 		fit_ols = function(X, y, j_treat, estimate_only = FALSE){
 			if (nrow(X) <= ncol(X)) return(NULL)
@@ -643,7 +631,6 @@ InferenceContinKKOLSOneLik = define_inference_class(
 			"compute_fast_randomization_distr",
 			"get_standard_error",
 			"get_degrees_of_freedom",
-			"assert_finite_se",
 			"supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap",
 			"supports_bartlett_likelihood_ratio_exact",

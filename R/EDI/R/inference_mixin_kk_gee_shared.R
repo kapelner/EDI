@@ -88,9 +88,6 @@ InferenceMixinKKGEEShared = list(
 				return(private$compute_kk_gee_jackknife_wald_confidence_interval(alpha = alpha))
 			}
 			private$shared(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
@@ -111,9 +108,6 @@ InferenceMixinKKGEEShared = list(
 				return(private$compute_kk_gee_jackknife_wald_two_sided_pval(delta = delta))
 			}
 			private$shared(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			if (delta == 0){
 				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 			} else {
@@ -485,10 +479,6 @@ InferenceMixinKKGEEShared = list(
 				return(invisible(NULL))
 			}
 			private$clear_nonestimable_state()
-		},
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T))
-				return(invisible(NULL))
 		},
 		gee_has_reservoir = function(){
 			m_vec = private$m

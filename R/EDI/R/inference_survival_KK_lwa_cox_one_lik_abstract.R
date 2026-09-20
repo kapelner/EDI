@@ -105,9 +105,6 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Compute an asymptotic two-sided p-value.
@@ -117,9 +114,6 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 				assertNumeric(delta)
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
-			if (should_run_asserts()) {
-				private$assert_finite_se()
-			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
@@ -132,11 +126,6 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 			as.numeric(private$cached_values$s_beta_hat_T)
 		},
 		get_degrees_of_freedom = function() Inf,
-		assert_finite_se = function(){
-			if (!is.finite(private$cached_values$s_beta_hat_T)){
-				return(invisible(NULL))
-			}
-		},
 		supports_likelihood_tests = function() TRUE,
 		supports_lik_ratio_param_bootstrap = function() TRUE,
 		simulate_under_lik_null = function(spec, delta, null_fit){
@@ -379,9 +368,6 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 		},
 		kk_lwa_cox_one_lik_get_degrees_of_freedom = function() {
 			private$get_degrees_of_freedom()
-		},
-		kk_lwa_cox_one_lik_assert_finite_se = function() {
-			private$assert_finite_se()
 		},
 		kk_lwa_cox_one_lik_supports_likelihood_tests = function() {
 			private$supports_likelihood_tests()
