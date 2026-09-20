@@ -173,11 +173,7 @@ adv_collect = function() {
 
 # Pre-existing findings. Each is a real defect (or a documented limitation)
 # that this test surfaced when it was written; fix it and delete the entry.
-EDI_ADVERSARIAL_KNOWN = c(
-	# Wald on perfectly separated 2x2 data: zero variance is reported as a
-	# [1, 1] interval with p = 0 instead of NA.
-	"InferenceIncidRiskDiff|data:separation_incid|zero-width CI with a finite p-value"
-)
+EDI_ADVERSARIAL_KNOWN = character()
 
 adv_result = adv_collect()
 

@@ -259,7 +259,11 @@ Design = R6::R6Class("Design",
 				if (t > private$t){
 					stop(paste("You cannot add response for subject", t, "when the most recent subjects' record added is", private$t))
 				}
-				assertNumeric(y, len = 1, null.ok = TRUE)
+				if (private$response_type == "ordinal" && is.factor(y)) {
+					assertFactor(y, len = 1, ordered = TRUE, any.missing = FALSE)
+				} else {
+					assertNumeric(y, len = 1, null.ok = TRUE)
+				}
 				assertNumeric(y_L, len = 1, null.ok = TRUE)
 				assertNumeric(y_R, len = 1, null.ok = TRUE)
 			}
@@ -396,10 +400,6 @@ Design = R6::R6Class("Design",
 					stop("y_R must be strictly greater than y_L for every censored subject.")
 				}
 			}
-			if (should_run_asserts()) {
-				private$assert_y(ys[has_y], private$response_type)
-			}
-
 			if (private$response_type == "ordinal" && is.factor(ys)){
 				levs = levels(ys)
 				private$ordinal_levels = levs
@@ -407,6 +407,9 @@ Design = R6::R6Class("Design",
 					private$original_ordinal_levels = levs
 				}
 				ys = as.integer(ys)
+			}
+			if (should_run_asserts()) {
+				private$assert_y(ys[has_y], private$response_type)
 			}
 			private$y = as.numeric(ys)
 			private$y_original = as.numeric(ys)
@@ -1121,16 +1124,16 @@ Design = R6::R6Class("Design",
 				X_names = colnames(private$X)
 				if (length(cpp_result$cols_prev) > 0) {
 					nms = X_names[cpp_result$cols_prev]
-					colnames(cpp_result$X_prev) = nms
-					names(cpp_result$xt_prev) = nms
+					if (NCOL(cpp_result$X_prev) == length(nms)) colnames(cpp_result$X_prev) = nms
+					if (length(cpp_result$xt_prev) == length(nms)) names(cpp_result$xt_prev) = nms
 				}
 				if (length(cpp_result$cols_all) > 0) {
 					colnames(cpp_result$X_all) = X_names[cpp_result$cols_all]
 				}
 				if (length(cpp_result$cols_all_scaled) > 0) {
 					nms = X_names[cpp_result$cols_all_scaled]
-					colnames(cpp_result$X_all_scaled) = nms
-					names(cpp_result$xt_all_scaled) = nms
+					if (NCOL(cpp_result$X_all_scaled) == length(nms)) colnames(cpp_result$X_all_scaled) = nms
+					if (length(cpp_result$xt_all_scaled) == length(nms)) names(cpp_result$xt_all_scaled) = nms
 				}
 				if (length(cpp_result$cols_all_with_y_scaled) > 0) {
 					colnames(cpp_result$X_all_with_y_scaled) = X_names[cpp_result$cols_all_with_y_scaled]

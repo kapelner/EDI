@@ -90,15 +90,7 @@ test_that("an empty treatment arm makes both shared() paths nonestimable", {
 	expect_true(f2$inf$is_nonestimable("estimate"))
 })
 
-test_that("compute_fast_bootstrap_distr passes a stale argument list to the C++ kernel (dead helper, not fixed)", {
-	# SOURCE NOTE (not fixed): the only caller of compute_fast_bootstrap_distr() is
-	# the dead KK passthrough mixin; its final call to
-	# compute_wilcox_hl_distr_parallel_cpp(y, w, indices, threads) no longer
-	# matches the kernel's (w_mat, y, delta, transform_code, zero_one_logit_clamp,
-	# num_cores) signature, so a direct call errors after the resample loop.
+test_that("compute_fast_bootstrap_distr opts out (NULL) instead of inheriting the mean-difference kernel", {
 	f <- wilcox_fixture()
-	expect_error(
-		f$priv$compute_fast_bootstrap_distr(3, 10L, rnorm(10), rep(1, 10), c(1, rep(0, 9))),
-		"zero_one_logit_clamp"
-	)
+	expect_null(f$priv$compute_fast_bootstrap_distr(3, 10L, rnorm(10), rep(1, 10), c(1, rep(0, 9))))
 })

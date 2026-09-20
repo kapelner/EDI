@@ -157,25 +157,16 @@ test_that("GLS kernel matches hand-coded GLS for singleton groups and for sigma_
 	expect_equal(kern(g, 0, -0.3), unname(hand_gls(X, y, g, 0, -0.3)), tolerance = 1e-8)
 })
 
-test_that("GLS kernel with multi-row groups and sigma_e != 1 omits a 1/sigma_e^2 scaling (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): fast_gaussian_lmm_gls_cpp() builds the normal equations as
-	# X'X - c_g * sx sx' with c_g = v_b / (v_e * a_g), but the exact GLS matrix is (1/v_e)(X'X - (v_b / a_g) sx sx').
-	# The two agree only when v_e = 1 or every group is a singleton, so the opt-in GLS fast paths
-	# (estimate_only randomization draws and use_gls_fast_path_bootstrap) are not exact GLS otherwise.
+test_that("GLS kernel with multi-row groups and sigma_e != 1 equals hand-coded GLS, including group weights", {
 	set.seed(1); n <- 40
 	w <- rbinom(n, 1, 0.5); X <- cbind(a = 1, w = w, x = rnorm(n)); y <- rnorm(n); g <- rep(1:20, each = 2)
-	le <- -0.5; lb <- 0
-	got <- unname(EDI:::fast_gaussian_lmm_gls_cpp(X = X, y = y, group_id = as.integer(g), log_sigma_e = le, log_sigma_b = lb))
-	exact <- unname(hand_gls(X, y, g, le, lb))
-	expect_false(isTRUE(all.equal(got, exact, tolerance = 1e-3)))
-	v_e <- exp(2 * le); v_b <- exp(2 * lb); A <- 0; B <- 0
-	for (k in unique(g)) {
-		i <- which(g == k); a_g <- v_e + length(i) * v_b; c_g <- v_b / (v_e * a_g)
-		sx <- colSums(X[i, , drop = FALSE]); sy <- sum(y[i])
-		A <- A + crossprod(X[i, , drop = FALSE]) - c_g * tcrossprod(sx)
-		B <- B + crossprod(X[i, , drop = FALSE], y[i]) - c_g * sx * sy
+	for (le in c(-0.5, 0.7)) for (lb in c(-1, 0, 0.4)) {
+		got <- unname(EDI:::fast_gaussian_lmm_gls_cpp(X = X, y = y, group_id = as.integer(g), log_sigma_e = le, log_sigma_b = lb))
+		expect_equal(got, unname(hand_gls(X, y, g, le, lb)), tolerance = 1e-8)
 	}
-	expect_equal(got, unname(drop(solve(A, B))), tolerance = 1e-8)
+	wts <- rep(runif(20, 0.5, 2), each = 2)
+	gotw <- unname(EDI:::fast_gaussian_lmm_gls_cpp(X = X, y = y, group_id = as.integer(g), log_sigma_e = -0.5, log_sigma_b = 0.2, weights = wts))
+	expect_equal(gotw, unname(hand_gls(X, y, g, -0.5, 0.2, wts)), tolerance = 1e-8)
 })
 
 test_that("GLS bootstrap fast path (opt-in) needs cached variance components and returns the kernel's treatment coefficient", {

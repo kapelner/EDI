@@ -452,8 +452,9 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 				summary_ordinal_mod = stats::coef(summary(ordinal_mod))
 				return(ifelse(nrow(summary_ordinal_mod) >= 1, abs(summary_ordinal_mod[1, 3]), .Machine$double.eps))
 			}, error = function(e){})
-			#if that didn't work, default to OLS
-			private$compute_weight_KK21_continuous(xs_to_date, ys_to_date, deaths_to_date, j)
+			#if that didn't work, default to OLS; a covariate with no usable signal (e.g. constant response) gets the minimal weight
+			weight = private$compute_weight_KK21_continuous(xs_to_date, ys_to_date, deaths_to_date, j)
+			if (!is.finite(weight)) .Machine$double.eps else weight
 		}
 	)
 )

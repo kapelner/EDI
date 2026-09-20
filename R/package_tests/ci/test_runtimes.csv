@@ -22,6 +22,7 @@ R/package_tests/testthat_bulk/test-beta-helper-safeguard-references.R,correctnes
 R/package_tests/testthat_bulk/test-beta-regr-marginal-estimand-delta-method.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-beta-weighted-constrained-likelihood-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-likelihood-spec-and-fit-predicate-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-binomial-identity-marginal-functional-and-failure-branches-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-bisection-tail-and-discontinuity-regressions.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-blocking-strata-key-construction-reference.R,correctness,120,bootstrap
@@ -44,6 +45,7 @@ R/package_tests/testthat_bulk/test-continuous-estimator-contracts.R,correctness,
 R/package_tests/testthat_bulk/test-continuous-quantile-regr-reference-and-weighted-refit.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-continuous-robust-regr-weighted-bootstrap-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-continuous-survival-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-count-composite-likelihood-guards-shared-cache-and-null-simulation-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-count-composite-weighted-arm-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-kk-cond-poisson-onelik-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-count-kk-glmm-migration-golden.R,correctness,120,bootstrap
@@ -79,6 +81,7 @@ R/package_tests/testthat_bulk/test-design-transform-y-accessors-and-assertions-r
 R/package_tests/testthat_bulk/test-exact-binomial-nonzero-delta-pval-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-exact-zhang-combined-pval-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-exchangeable-resampling-cluster-block-units.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-exchangeable-resampling-stratum-allocation-size-rules-and-draw-generation-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ext-information-matrix.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-extract-se-from-rq-fit-fallback-contract.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fast-glm-direct-helper-reference.R,correctness,120,bootstrap
@@ -96,6 +99,7 @@ R/package_tests/testthat_bulk/test-gcomp-rmst-ordinal-clmm-contracts.R,correctne
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-ivwc-weighted-bootstrap-cluster.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-weighted-bootstrap-cluster.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-globals-small-helpers-control-conditions-assert-toggle-kk-weights-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-helper-matching-kk-match-data-caches-and-bootstrap-structure-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-glmmtmb-weighted-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,correctness,120,bootstrap
@@ -200,6 +204,7 @@ R/package_tests/testthat_bulk/test-local-tuning-policy-diff-assembly-and-skip-en
 R/package_tests/testthat_bulk/test-log-binomial-bayesian-bootstrap-boundary.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-harden-false-extreme-coef-and-weighted-fit-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-logit-marginal-functional-delta-method-and-failure-branches-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logrank-gehan-weighted-martingale-residual-refit.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-m-out-of-n-prw-subsampling.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-marginal-estimand-mixin-normalization-and-rejection.R,correctness,120,bootstrap
@@ -219,7 +224,10 @@ R/package_tests/testthat_bulk/test-modified-poisson-weighted-refit-reference.R,c
 R/package_tests/testthat_bulk/test-negative-binomial-empty-and-dispersion-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-negbin-jackknife-and-likelihood-spec-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-negbin-weighted-constrained-fit-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-non-param-boot-distribution-ci-smoothed-and-calibrated-drivers-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-extreme-guards-and-replication-stats-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-non-param-boot-reusable-worker-distribution-driver-and-worker-estimate-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-non-param-boot-statistics-driver-fast-and-replication-paths-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-optimal-search-runtime-references.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-cauchit-cloglog-adjcat-weighted-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-clmm-integrated-likelihood.R,correctness,1,measured_with_30_percent_headroom
@@ -235,6 +243,7 @@ R/package_tests/testthat_bulk/test-ordinal-kk-clmm-weighted-logit-reference.R,co
 R/package_tests/testthat_bulk/test-ordinal-kk-cond-adj-cat-logit-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-cond-adj-cat-logit-weighted-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-gee-weighted-refit-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-weighted-bootstrap-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-stereotype-contratio-weighted-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-superiority-and-model-contracts.R,correctness,120,bootstrap
@@ -328,6 +337,7 @@ R/package_tests/testthat_bulk/test-survival-kk-strat-cox-onelik-migration-golden
 R/package_tests/testthat_bulk/test-survival-kk-weibull-marginal-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-survival-likelihood-and-baseline-hazard-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-tuning-axes-engine-seed-contract-and-family-filters-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-tuning-persistence-config-path-and-parallel-blocklist-regex-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-turnbull-disjoint-interval-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-utility-kernel-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-weibull-bootstrap-surrogate-fit-shared-helper.R,correctness,120,bootstrap
@@ -338,12 +348,14 @@ R/package_tests/testthat_bulk/test-weibull-right-censoring-fixed-covariance-refe
 R/package_tests/testthat_bulk/test-weighted-ordinal-surrogate-cold-start-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-estimand-delta-method.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-asymp-se-fallback-branches-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-mixed-likelihood-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zoib-softmax-and-negloglik-closed-form-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-start-value-construction-reference.R,correctness,120,bootstrap
 R/EDI/tests/testthat/test-aa-fork-cluster-seed-determinism.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-adj-cat-exp-batch.R,coverage,1,measured_with_30_percent_headroom
@@ -597,6 +609,7 @@ R/package_tests/testthat_bulk/test-beta-helper-safeguard-references.R,coverage,1
 R/package_tests/testthat_bulk/test-beta-regr-marginal-estimand-delta-method.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-weighted-constrained-likelihood-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-likelihood-spec-and-fit-predicate-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-binomial-identity-marginal-functional-and-failure-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bisection-tail-and-discontinuity-regressions.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-blocking-strata-key-construction-reference.R,coverage,240,bootstrap
@@ -619,6 +632,7 @@ R/package_tests/testthat_bulk/test-continuous-estimator-contracts.R,coverage,1,m
 R/package_tests/testthat_bulk/test-continuous-quantile-regr-reference-and-weighted-refit.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-robust-regr-weighted-bootstrap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-survival-contracts.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-count-composite-likelihood-guards-shared-cache-and-null-simulation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-composite-weighted-arm-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-kk-cond-poisson-onelik-migration-golden.R,coverage,1.5,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-kk-glmm-migration-golden.R,coverage,1.7,measured_with_30_percent_headroom
@@ -654,6 +668,7 @@ R/package_tests/testthat_bulk/test-design-transform-y-accessors-and-assertions-r
 R/package_tests/testthat_bulk/test-exact-binomial-nonzero-delta-pval-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-zhang-combined-pval-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exchangeable-resampling-cluster-block-units.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-exchangeable-resampling-stratum-allocation-size-rules-and-draw-generation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ext-information-matrix.R,coverage,9.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-extract-se-from-rq-fit-fallback-contract.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-glm-direct-helper-reference.R,coverage,240,bootstrap
@@ -671,6 +686,7 @@ R/package_tests/testthat_bulk/test-gcomp-rmst-ordinal-clmm-contracts.R,coverage,
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-loggamma-ivwc-weighted-bootstrap-cluster.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-glmm-weibull-frailty-normal-onelik-weighted-bootstrap-cluster.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-globals-small-helpers-control-conditions-assert-toggle-kk-weights-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-helper-matching-kk-match-data-caches-and-bootstrap-structure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
@@ -775,6 +791,7 @@ R/package_tests/testthat_bulk/test-local-tuning-policy-diff-assembly-and-skip-en
 R/package_tests/testthat_bulk/test-log-binomial-bayesian-bootstrap-boundary.R,coverage,8.7,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-harden-false-extreme-coef-and-weighted-fit-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-logit-marginal-functional-delta-method-and-failure-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logrank-gehan-weighted-martingale-residual-refit.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-m-out-of-n-prw-subsampling.R,coverage,24.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-marginal-estimand-mixin-normalization-and-rejection.R,coverage,240,bootstrap
@@ -794,7 +811,10 @@ R/package_tests/testthat_bulk/test-modified-poisson-weighted-refit-reference.R,c
 R/package_tests/testthat_bulk/test-negative-binomial-empty-and-dispersion-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-negbin-jackknife-and-likelihood-spec-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-negbin-weighted-constrained-fit-reference.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-non-param-boot-distribution-ci-smoothed-and-calibrated-drivers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-extreme-guards-and-replication-stats-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-non-param-boot-reusable-worker-distribution-driver-and-worker-estimate-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-non-param-boot-statistics-driver-fast-and-replication-paths-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-optimal-search-runtime-references.R,coverage,1.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-cauchit-cloglog-adjcat-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-clmm-integrated-likelihood.R,coverage,1,measured_with_30_percent_headroom
@@ -810,6 +830,7 @@ R/package_tests/testthat_bulk/test-ordinal-kk-clmm-weighted-logit-reference.R,co
 R/package_tests/testthat_bulk/test-ordinal-kk-cond-adj-cat-logit-migration-golden.R,coverage,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-kk-cond-adj-cat-logit-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-gee-weighted-refit-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-weighted-bootstrap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-stereotype-contratio-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-superiority-and-model-contracts.R,coverage,1,measured_with_30_percent_headroom
@@ -903,6 +924,7 @@ R/package_tests/testthat_bulk/test-survival-kk-strat-cox-onelik-migration-golden
 R/package_tests/testthat_bulk/test-survival-kk-weibull-marginal-migration-golden.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-survival-likelihood-and-baseline-hazard-contracts.R,coverage,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-tuning-axes-engine-seed-contract-and-family-filters-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-tuning-persistence-config-path-and-parallel-blocklist-regex-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-turnbull-disjoint-interval-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-utility-kernel-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weibull-bootstrap-surrogate-fit-shared-helper.R,coverage,240,bootstrap
@@ -913,10 +935,12 @@ R/package_tests/testthat_bulk/test-weibull-right-censoring-fixed-covariance-refe
 R/package_tests/testthat_bulk/test-weighted-ordinal-surrogate-cold-start-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-estimand-delta-method.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-asymp-se-fallback-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,coverage,4.8,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-mixed-likelihood-reference.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zoib-softmax-and-negloglik-closed-form-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-start-value-construction-reference.R,coverage,240,bootstrap

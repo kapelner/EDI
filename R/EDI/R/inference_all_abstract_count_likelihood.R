@@ -202,15 +202,15 @@ CountLikelihoodPlumbingSource = list(
 		},
 		compute_score_confidence_interval_impl = function(alpha){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			private$invert_test_pval_confidence_interval(alpha)
+			private$invert_test_pval_confidence_interval(alpha, testing_type = "score")
 		},
 		compute_gradient_confidence_interval_impl = function(alpha){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			private$invert_test_pval_confidence_interval(alpha)
+			private$invert_test_pval_confidence_interval(alpha, testing_type = "gradient")
 		},
 		compute_lik_ratio_confidence_interval_impl = function(alpha){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			private$invert_test_pval_confidence_interval(alpha)
+			private$invert_test_pval_confidence_interval(alpha, testing_type = "lik_ratio")
 		},
 		count_likelihood_block_asymp_unsupported = function(){
 			private$jackknife_block_size_gt_one_unsupported(unit = "auto")

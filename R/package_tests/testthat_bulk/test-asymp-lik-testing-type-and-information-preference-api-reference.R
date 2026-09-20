@@ -91,7 +91,7 @@ test_that("information preference: supported list, validation, side effects, and
 	f <- lik_priv()
 	p <- f$priv
 	expect_equal(f$inf$get_information_preference(), "auto")
-	expect_equal(f$inf$get_supported_information_preferences(), c("auto", "observed"))
+	expect_equal(f$inf$get_supported_information_preferences(), c("auto", "fisher", "observed"))
 
 	p$information_source_used <- "fisher"
 	p$cached_values$likelihood_test_eval_cache <- list(stale = 1)
@@ -107,16 +107,16 @@ test_that("information preference: supported list, validation, side effects, and
 	expect_equal(f$inf$get_information_preference(), "auto")
 })
 
-test_that("'fisher' cannot be selected even for a class that exposes Fisher information (real source quirk, not fixed)", {
-	# SOURCE QUIRK (noted, not fixed): get_supported_information_preferences_impl()
-	# only ever lists c("auto", "observed") (or just "auto"), never "fisher" -- even
-	# when supports_fisher_information() is TRUE and the default source is Fisher.
-	# set_information_preference("fisher") therefore always errors, although
-	# get_information_matrix() fully implements a "fisher" preference and the
-	# argument's own choice list advertises it.
+test_that("'fisher' can be selected for a class that exposes Fisher information, and is rejected otherwise", {
 	f <- lik_priv()
 	expect_true(f$priv$supports_fisher_information())
 	expect_equal(f$priv$get_default_information_source(), "fisher")
+	f$inf$set_information_preference("fisher")
+	expect_equal(f$inf$get_information_preference(), "fisher")
+	unlockBinding("supports_fisher_information", f$priv)
+	f$priv$supports_fisher_information <- function() FALSE
+	expect_error(f$inf$set_information_preference("observed"), NA)
+	f$inf$set_information_preference("auto")
 	expect_error(f$inf$set_information_preference("fisher"),
 		"does not support information_preference = \"fisher\". Supported values are: auto, observed")
 })
@@ -137,6 +137,7 @@ test_that("capability predicates and the default information source cascade fish
 	p$supports_information_preference <- function() TRUE
 	expect_equal(p$get_supported_information_preferences_impl(), c("auto", "observed"))
 	p$supports_fisher_information <- function() TRUE
+	expect_equal(p$get_supported_information_preferences_impl(), c("auto", "fisher", "observed"))
 	expect_equal(p$get_default_information_source(), "fisher")
 })
 

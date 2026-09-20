@@ -494,7 +494,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 
 		get_supported_information_preferences_impl = function(){
 			if (isTRUE(private$supports_information_preference())) {
-				c("auto", "observed")
+				if (isTRUE(private$supports_fisher_information())) c("auto", "fisher", "observed") else c("auto", "observed")
 			} else {
 				"auto"
 			}

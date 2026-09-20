@@ -321,6 +321,13 @@ InferenceIncidRiskDiff = define_inference_class(
 						ssq_robust = robust_sandwich_variance_from_xtwx(
 							X = X_fit, residuals = resid, XtWX = res$XtX, j = j_treat
 						)
+						# A perfect linear fit (e.g. y fully separated by w) makes every
+						# residual ~0, so HC0 collapses to a numerically-zero variance
+						# that still passes `> 0` and would yield a [b, b] CI with p = 0.
+						# That is not precision, it is non-estimability: report NA.
+						if (max(abs(resid)) <= sqrt(.Machine$double.eps) * max(1, stats::sd(as.numeric(private$y)))) {
+							ssq_robust = NA_real_
+						}
 						res$ssq_b_j = ssq_robust
 						res$ssq_b_2 = ssq_robust
 						res

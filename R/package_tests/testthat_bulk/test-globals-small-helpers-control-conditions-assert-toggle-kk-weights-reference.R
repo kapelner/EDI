@@ -93,7 +93,7 @@ test_that("weights_are_effectively_constant is a relative, positive-finite-only 
 	expect_true(f(3))                                                   # a single positive weight
 })
 
-test_that(".create_match_dummies builds one indicator column per id 0..max, NA -> 0, NULL without matches", {
+test_that(".create_match_dummies builds one indicator column per observed id, NA -> 0, NULL without matches", {
 	f <- E(".create_match_dummies")
 	expect_null(f(c(0L, NA, 0L)))
 	expect_null(f(integer(0)))
@@ -101,7 +101,8 @@ test_that(".create_match_dummies builds one indicator column per id 0..max, NA -
 	expect_equal(colnames(m), c("match_0", "match_1", "match_2"))
 	expect_equal(matrix(as.numeric(m), nrow(m)), cbind(c(0, 0, 1, 0), c(1, 0, 0, 1), c(0, 1, 0, 0)))
 	expect_equal(unname(rowSums(m)), rep(1, 4))
-	# SOURCE BUG (noted, not fixed; the function has no callers): with non-contiguous ids the
-	# model matrix has fewer columns than 0..max, so the positional colnames<- errors.
-	expect_error(f(c(3L, 1L, 3L)), "dimnames")
+	# Non-contiguous ids: one column per OBSERVED id, labelled by that id.
+	m2 <- f(c(3L, 1L, 3L))
+	expect_equal(colnames(m2), c("match_1", "match_3"))
+	expect_equal(matrix(as.numeric(m2), nrow(m2)), cbind(c(0, 1, 0), c(1, 0, 1)))
 })

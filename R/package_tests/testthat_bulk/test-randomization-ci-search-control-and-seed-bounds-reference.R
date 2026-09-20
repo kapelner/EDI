@@ -166,21 +166,16 @@ test_that("search bounds bracket the estimate and expose the Wald fallback inter
 	expect_equal(b$fallback_ci, ref_ci, tolerance = 1e-10)
 })
 
-test_that("a randomization p-value taken before any asymptotic call poisons the cached SE (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): on a fresh InferenceAllSimpleAverageDiff, the
-	# randomization p-value path caches beta_hat_T but not the arm vectors yTs / yCs.
-	# shared() then skips compute_estimate() (beta is already cached), sees empty arms
-	# (length(yTs) = 0 <= 1) and caches s_beta_hat_T / df as NA -- so every later
-	# compute_asymp_confidence_interval() returns c(NA, NA). The same call order
-	# inside build_randomization_ci_search_bounds() therefore loses the Wald seed /
-	# fallback interval unless the estimate or asymptotic CI was computed earlier.
+test_that("a randomization p-value taken before any asymptotic call does not poison the cached SE", {
 	poisoned <- ci_priv()
 	set.seed(1)
 	poisoned$inf$compute_rand_two_sided_pval(r = 201, show_progress = FALSE)
 	expect_true(is.finite(poisoned$priv$cached_values$beta_hat_T))
-	expect_null(poisoned$priv$cached_values$yTs)
-	expect_true(all(is.na(poisoned$inf$compute_asymp_confidence_interval())))
-	expect_true(is.na(poisoned$priv$cached_values$s_beta_hat_T))
+	ci_after <- poisoned$inf$compute_asymp_confidence_interval()
+	expect_true(all(is.finite(ci_after)))
+	expect_true(is.finite(poisoned$priv$cached_values$s_beta_hat_T))
+	healthy0 <- ci_priv(); healthy0$inf$compute_estimate()
+	expect_equal(ci_after, healthy0$inf$compute_asymp_confidence_interval(), tolerance = 1e-10)
 
 	healthy <- ci_priv()
 	healthy$inf$compute_estimate()
@@ -193,5 +188,7 @@ test_that("a randomization p-value taken before any asymptotic call poisons the 
 	set.seed(2)
 	b <- fresh$priv$build_randomization_ci_search_bounds(fresh$inf, r = 201L, alpha = 0.05, transform_arg = "none",
 		permutations = NULL, ci_search_control = ctrl, ci_pval_cache = new.env())
-	expect_equal(b$fallback_ci, c(NA_real_, NA_real_))
+	expect_true(all(is.finite(b$fallback_ci)))
+	ref_fresh <- ci_priv()
+	expect_equal(b$fallback_ci, sort(as.numeric(ref_fresh$inf$compute_asymp_confidence_interval(alpha = 0.1))), tolerance = 1e-10)
 })

@@ -164,7 +164,8 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				private$strata_level_rows = vector("list", length(private$strata_cols))
 			}
 			names(private$strata_level_rows) = private$strata_cols
-			next_row = 1L
+			used_rows = unlist(private$strata_level_rows, use.names = FALSE)
+			next_row = if (length(used_rows) > 0L) max(used_rows) + 1L else 1L
 			for (col in private$strata_cols) {
 				row_map = private$strata_level_rows[[col]]
 				if (is.null(row_map)) row_map = integer(0)
@@ -175,9 +176,9 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 					new_rows = seq.int(next_row, length.out = length(new_levels))
 					names(new_rows) = new_levels
 					row_map = c(row_map, new_rows)
+					next_row = next_row + length(new_levels)
 				}
 				private$strata_level_rows[[col]] = row_map
-				if (length(row_map) > 0L) next_row = max(unname(row_map)) + 1L
 			}
 			private$num_levels_total = max(0L, next_row - 1L)
 			if (!is.null(private$counts) && nrow(private$counts) < private$num_levels_total) {
@@ -190,9 +191,9 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 			private$ensure_factor_metadata()
 			vapply(private$strata_cols, function(col) {
 				key = if (is.na(x_row[[col]])) "NA" else as.character(x_row[[col]])
-				row_idx = private$strata_level_rows[[col]][[key]]
+				row_idx = unname(private$strata_level_rows[[col]][key])
 				if (should_run_asserts()) {
-					if (is.null(row_idx) || !is.finite(row_idx)) {
+					if (length(row_idx) != 1L || is.na(row_idx)) {
 						stop("Unknown strata level encountered for Pocock-Simon column ", col, ": ", key)
 					}
 				}

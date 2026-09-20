@@ -368,7 +368,7 @@ DesignFixedOptimalBlocks = define_design_class(
 			model = ompr::add_constraint(model, ompr::sum_expr(x[i, k], k = 1:B) == 1, i = 1:n)
 			model = ompr::add_constraint(model, ompr::sum_expr(x[i, k], i = 1:n) >= lower_size, k = 1:B)
 			model = ompr::add_constraint(model, ompr::sum_expr(x[i, k], i = 1:n) <= upper_size, k = 1:B)
-			model = ompr::add_constraint(model, x[k, k] == 1, k = 1:B)
+			model = ompr::add_constraint(model, x[1, 1] == 1)
 			model = ompr::add_constraint(model, z[i, j, k] <= x[i, k], i = 1:n, j = 1:n, k = 1:B, i < j)
 			model = ompr::add_constraint(model, z[i, j, k] <= x[j, k], i = 1:n, j = 1:n, k = 1:B, i < j)
 			model = ompr::add_constraint(model, z[i, j, k] >= x[i, k] + x[j, k] - 1, i = 1:n, j = 1:n, k = 1:B, i < j)

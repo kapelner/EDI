@@ -228,6 +228,10 @@ List fast_ordinal_clmm_cpp(
     Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
     Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue
 ) {
+    if (X.nrow() != y.size() || X.nrow() != group_id.size()) {
+        Rcpp::stop("Dimension mismatch: X has %d rows, y has %d elements, group_id has %d elements",
+                   X.nrow(), (int)y.size(), (int)group_id.size());
+    }
     Eigen::Map<const Eigen::MatrixXd> map_X(X.begin(), X.rows(), X.cols());
     Eigen::Map<const Eigen::VectorXi> map_y(y.begin(), y.size());
     Eigen::Map<const Eigen::VectorXi> map_group_id(group_id.begin(), group_id.size());

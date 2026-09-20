@@ -50,27 +50,18 @@ test_that("weighted polr backend matches an independent weighted fit and drops t
 	expect_true(is.na(got_polr$se))
 })
 
-test_that("fit_clm_weighted silently returns NULL unless a global `dat` happens to exist (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): fit_clm_weighted() passes
-	# `weights = dat$.bootstrap_weight__` to ordinal::clm(). clm evaluates
-	# `weights` via model.frame() in the data/formula environment, not the
-	# calling frame, so the method-local `dat` is invisible and clm errors with
-	# "object 'dat' not found". The method's tryCatch swallows that and returns
-	# NULL, so in real use (no global `dat`) the weighted clm backend never
-	# succeeds and the weighted cascade always falls through to polr. It only
-	# "works" when some unrelated global object named `dat` exists. fit_polr_weighted
-	# avoids this by naming the column (`weights = .bootstrap_weight__`).
-	skip_if(exists("dat", envir = globalenv()), "a global `dat` masks the bug")
+test_that("fit_clm_weighted fits without relying on a global `dat` and matches an independent weighted clm", {
+	skip_if(exists("dat", envir = globalenv()), "a global `dat` would mask a regression")
 	f <- ppo_direct_fixture()
 	dat <- f$dat
-	dat$.bootstrap_weight__ <- rep(1, f$n)
-	expect_null(f$priv$fit_clm_weighted(dat, "x1", character(0)))
-	expect_null(f$priv$fit_clm_weighted(dat, character(0), "x1"))
-
-	# The clm error is real and independent of the wrapper: naming the weight
-	# column (the fit_polr_weighted convention) fits fine.
+	set.seed(3)
+	dat$.bootstrap_weight__ <- rexp(f$n)
 	ref <- ordinal::clm(y ~ treatment + x1, data = dat, weights = .bootstrap_weight__, link = "logit")
-	expect_true(is.finite(unname(coef(ref)["treatment"])))
+	got <- f$priv$fit_clm_weighted(dat, "x1", character(0))
+	expect_false(is.null(got))
+	expect_equal(got$beta, unname(coef(ref)["treatment"]), tolerance = 1e-6)
+	expect_true(is.na(got$se))
+	expect_false(is.null(f$priv$fit_clm_weighted(dat, character(0), "x1")))
 })
 
 test_that("nonparallel covariates make both polr backends decline", {

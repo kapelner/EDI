@@ -92,7 +92,7 @@ test_that("distance-matrix conventions match independent references and the matr
 	expect_identical(e$priv$get_or_compute_distance_matrix(e$X * 100), e$D)
 })
 
-test_that("ompr blocks attain the constrained optimum of an independent brute-force search (and expose the x[k,k] seed constraint)", {
+test_that("ompr blocks attain the constrained optimum of an independent brute-force search (only subject 1 is pinned, as symmetry breaking)", {
 	skip_if_not_installed("ompr")
 	skip_if_not_installed("ompr.roi")
 	skip_if_not_installed("ROI.plugin.glpk")
@@ -112,15 +112,7 @@ test_that("ompr blocks attain the constrained optimum of an independent brute-fo
 
 	subsets <- utils::combn(8, 4)
 	costs <- apply(subsets, 2, function(s) { a <- rep(2L, 8); a[s] <- 1L; within_cost(a) })
-	seed_sep <- apply(subsets, 2, function(s) xor(1L %in% s, 2L %in% s))
-
-	# SOURCE QUIRK (noted, not fixed): solve_optimal_blocks() adds
-	# `x[k, k] == 1`, pinning subject k to block k for k = 1..B. That is not a
-	# valid symmetry-breaking rule -- it forces subjects 1..B into DIFFERENT
-	# blocks -- so the solve attains only the optimum among partitions that
-	# separate subjects 1 and 2, not the true optimum (the two clusters here,
-	# whose first two subjects are neighbors).
-	expect_equal(within_cost(ids), min(costs[seed_sep]), tolerance = 1e-8)
-	expect_lt(min(costs), within_cost(ids))
-	expect_false(same_partition(ids, two_cluster_truth))
+	expect_equal(ids[1], 1L)
+	expect_equal(within_cost(ids), min(costs), tolerance = 1e-8)
+	expect_true(same_partition(ids, two_cluster_truth))
 })

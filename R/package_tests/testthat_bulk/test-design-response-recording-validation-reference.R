@@ -84,28 +84,24 @@ test_that("add_all_subject_responses enforces the same contract vector-wise", {
 	expect_true(des$check_experiment_completed())
 })
 
-test_that("ordinal factor responses are rejected while assertions are on and recorded as integer codes with them off (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): both add_one_subject_response() and
-	# add_all_subject_responses() have a branch that converts an ordered factor to
-	# integer codes and remembers its levels, but each runs an assertion on the
-	# still-uncoded factor first (assertNumeric(y, ...) for the single-subject
-	# method, private$assert_y(ys[has_y], ...) requiring integerish for the bulk
-	# one), so the factor branch is only reachable with assertions disabled.
+test_that("ordered-factor ordinal responses are recorded as integer codes with their levels, with assertions on or off", {
 	ys <- factor(c("lo", "mid", "hi", "mid", "lo", "hi"), levels = c("lo", "mid", "hi"), ordered = TRUE)
-	expect_error(response_design("ordinal")$add_all_subject_responses(ys), "integerish")
-	expect_error(response_design("ordinal")$add_one_subject_response(1, y = ys[2]), "numeric")
+	for (asserts in c(TRUE, FALSE)) {
+		old <- options(edi.run_asserts = asserts)
+		des_all <- response_design("ordinal")
+		des_all$add_all_subject_responses(ys)
+		expect_equal(des_all$get_y(), as.numeric(as.integer(ys)))
+		expect_equal(des_all$.__enclos_env__$private$ordinal_levels, c("lo", "mid", "hi"))
 
-	old <- options(edi.run_asserts = FALSE)
-	on.exit(options(old), add = TRUE)
-	des_all <- response_design("ordinal")
-	des_all$add_all_subject_responses(ys)
-	expect_equal(des_all$get_y(), as.numeric(as.integer(ys)))
-	expect_equal(des_all$.__enclos_env__$private$ordinal_levels, c("lo", "mid", "hi"))
-
-	des_one <- response_design("ordinal")
-	des_one$add_one_subject_response(1, y = ys[2])
-	expect_equal(des_one$get_y()[1], 2)
-	expect_equal(des_one$.__enclos_env__$private$ordinal_levels, c("lo", "mid", "hi"))
+		des_one <- response_design("ordinal")
+		des_one$add_one_subject_response(1, y = ys[2])
+		expect_equal(des_one$get_y()[1], 2)
+		expect_equal(des_one$.__enclos_env__$private$ordinal_levels, c("lo", "mid", "hi"))
+		options(old)
+	}
+	# Unordered factors and out-of-range codes are still rejected under assertions.
+	expect_error(response_design("ordinal")$add_all_subject_responses(factor(c("a", "b", "a", "b", "a", "b"))))
+	expect_error(response_design("ordinal")$add_one_subject_response(1, y = factor("a")))
 })
 
 test_that("check_experiment_completed needs every subject and every response", {

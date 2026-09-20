@@ -146,10 +146,6 @@ DesignFixed = R6::R6Class("DesignFixed",
 					stop("y_R must be strictly greater than y_L for every censored subject.")
 				}
 			}
-			if (should_run_asserts()) {
-				private$assert_y(ys[has_y], private$response_type)
-			}
-
 			if (private$response_type == "ordinal" && is.factor(ys)){
 				levs = levels(ys)
 				private$ordinal_levels = levs
@@ -157,6 +153,9 @@ DesignFixed = R6::R6Class("DesignFixed",
 					private$original_ordinal_levels = levs
 				}
 				ys = as.integer(ys)
+			}
+			if (should_run_asserts()) {
+				private$assert_y(ys[has_y], private$response_type)
 			}
 			private$y = as.numeric(ys)
 			private$y_original = as.numeric(ys)

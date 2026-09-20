@@ -103,7 +103,7 @@ test_that("assertion helpers signal only when their condition is violated", {
 	expect_silent(partial$assert_all_subjects_arrived())
 })
 
-test_that("warm_all_subject_data_cache does nothing without covariates; on a covariate design it errors at t = 1 (real source bug, not fixed)", {
+test_that("warm_all_subject_data_cache does nothing without covariates; on a covariate design it warms one cache entry per subject and restores t", {
 	set.seed(3)
 	n <- 10L
 	plain <- DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
@@ -121,15 +121,9 @@ test_that("warm_all_subject_data_cache does nothing without covariates; on a cov
 	priv <- des$.__enclos_env__$private
 	expect_true(isTRUE(priv$uses_covariates))
 	before <- names(priv$all_subject_data_cache)
-	# SOURCE BUG (noted, not fixed): the warm-up loops t = 1..n and compute_all_
-	# subject_data() names xt_prev with the kept-column names even though at very
-	# small t the C++ result has no previous-row data, so the very first iteration
-	# throws ("'names' attribute [2] must be the same length as the vector [0]").
-	# Its only caller (the randomization setup) wraps the call in tryCatch and
-	# ignores the failure, so the cache is never warmed for covariate designs.
-	expect_error(des$warm_all_subject_data_cache(), "'names' attribute")
+	expect_true(des$warm_all_subject_data_cache())
 	expect_equal(priv$t, n)                         # on.exit restores the subject counter
-	expect_equal(names(priv$all_subject_data_cache), before)
+	expect_equal(length(priv$all_subject_data_cache), n)          # one entry per subject (sequential adds may already have cached some)
 })
 
 test_that("supports_resampling_by_registry_abstract_check is TRUE for concrete and unregistered classes", {

@@ -259,6 +259,9 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 				nore = warm_fn(X_fit, as.numeric(y) - 1L)
 				alpha_direct = as.numeric(nore$alpha)
 				beta_nore    = as.numeric(nore$b)
+				# The fixed-effects cloglog kernel reports coefficients with the opposite sign to
+				# MASS::polr / ordinal::clm (thresholds agree); the CLMM uses the polr/clm convention.
+				if (identical(private$clmm_link(), "cloglog")) beta_nore = -beta_nore
 				alpha_par = numeric(n_alpha)
 				if (n_alpha >= 1L) alpha_par[1L] = alpha_direct[1L]
 				if (n_alpha >= 2L) {

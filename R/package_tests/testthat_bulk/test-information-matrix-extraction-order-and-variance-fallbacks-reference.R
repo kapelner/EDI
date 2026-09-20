@@ -118,12 +118,13 @@ test_that("variance from information: 1x1, PD, invalid index, non-square and non
 	expect_true(is.na(v(matrix(c(1, NaN, NaN, 1), 2), 1L)))      # non-finite entries
 })
 
-test_that("a singular information matrix still returns a finite variance from the C++ inverse (source quirk, not fixed)", {
-	# SOURCE QUIRK (noted, not fixed): for the exactly singular [[1, 1], [1, 1]] the
-	# C++ single-entry inverse returns a positive finite value (1), so the variance
-	# is reported as 1 instead of the NA the R solve()/qr.solve() fallback would give.
+test_that("a singular (or non-finite) information matrix has no variance", {
 	f <- im_priv()
-	expect_equal(f$priv$compute_variance_from_information_matrix(matrix(1, 2, 2), 1L), 1)
+	expect_true(is.na(f$priv$compute_variance_from_information_matrix(matrix(1, 2, 2), 1L)))
+	expect_true(is.na(f$priv$compute_variance_from_information_matrix(matrix(c(1, 2, 2, 4), 2), 2L)))
+	expect_true(is.na(f$priv$compute_variance_from_information_matrix(cbind(c(1, 0, 1), c(0, 1, 1), c(1, 1, 2)), 3L)))
+	expect_true(is.na(f$priv$compute_standard_error_from_information_matrix(
+		spec = list(full_fit = list(fisher_information = matrix(1, 2, 2)), j = 1L))))
 })
 
 test_that("SE from information uses spec$j by default, square-roots non-negative variances and NA otherwise", {

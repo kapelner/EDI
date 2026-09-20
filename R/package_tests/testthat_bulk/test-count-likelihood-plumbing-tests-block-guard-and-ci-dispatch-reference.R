@@ -6,8 +6,8 @@ library(EDI)
 # matrix SE, Wald / score / gradient / likelihood-ratio p-values against
 # classical glm() statistics, the block-size guard
 # (count_likelihood_block_asymp_unsupported / mark_..._nonestimable) and the
-# missing-CI helper. Also pins how the dedicated *_confidence_interval methods
-# dispatch. References: stats::glm(family = poisson()) and its offset-based null fits.
+# missing-CI helper. Also checks that the dedicated *_confidence_interval methods
+# invert their own test. References: stats::glm(family = poisson()) and its offset-based null fits.
 
 pois_fixture <- function(n = 80L, seed = 3L) {
 	set.seed(seed)
@@ -92,24 +92,22 @@ test_that("with the configured test set explicitly, the asymptotic interval is t
 	}
 })
 
-test_that("dedicated *_confidence_interval methods invert the CURRENTLY configured test, not the one named (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): compute_score_/gradient_/lik_ratio_confidence_
-	# interval_impl() call invert_test_pval_confidence_interval(alpha) without passing
-	# their own testing_type, so it defaults to private$testing_type. With the
-	# default configured test ("wald") all three return the WALD interval; after
-	# set_testing_type("score"), compute_lik_ratio_confidence_interval() returns the
-	# SCORE interval. (The matching *_two_sided_pval methods do pass their type.)
-	f <- pois_fixture()
-	wald <- as.numeric(f$inf$compute_wald_confidence_interval(alpha = 0.05))
+test_that("dedicated *_confidence_interval methods invert the test they are named for, regardless of the configured type", {
+	f <- pois_fixture(); r <- ref_stats(f)
 	expect_equal(f$inf$get_testing_type(), "wald")
-	for (m in c("compute_score_confidence_interval", "compute_gradient_confidence_interval", "compute_lik_ratio_confidence_interval")) {
-		expect_equal(as.numeric(f$inf[[m]](alpha = 0.05)), wald, tolerance = 1e-5, info = m)
+	cr <- qchisq(0.95, 1)
+	roots <- function(stat) c(uniroot(function(d) stat(d) - cr, c(r$bhat - 6 * r$se, r$bhat), tol = 1e-9)$root,
+		uniroot(function(d) stat(d) - cr, c(r$bhat, r$bhat + 6 * r$se), tol = 1e-9)$root)
+	wald <- as.numeric(f$inf$compute_wald_confidence_interval(alpha = 0.05))
+	for (spec in list(c("compute_score_confidence_interval", "score"), c("compute_gradient_confidence_interval", "gradient"),
+			c("compute_lik_ratio_confidence_interval", "lr"))) {
+		ci <- as.numeric(f$inf[[spec[1]]](alpha = 0.05))
+		expect_equal(ci, roots(r[[spec[2]]]), tolerance = 3e-3, info = spec[1])
+		expect_false(isTRUE(all.equal(ci, wald, tolerance = 1e-5)), info = spec[1])
 	}
-
+	# The configured type no longer leaks into the dedicated methods.
 	f$inf$set_testing_type("score")
-	score_ci <- as.numeric(f$inf$compute_asymp_confidence_interval(alpha = 0.05))
-	expect_false(isTRUE(all.equal(score_ci, wald, tolerance = 1e-5)))
-	expect_equal(as.numeric(f$inf$compute_lik_ratio_confidence_interval(alpha = 0.05)), score_ci, tolerance = 1e-8)
+	expect_equal(as.numeric(f$inf$compute_lik_ratio_confidence_interval(alpha = 0.05)), roots(r$lr), tolerance = 3e-3)
 })
 
 test_that("the block-size guard makes every asymptotic output unavailable and records why", {

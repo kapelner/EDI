@@ -228,7 +228,7 @@ InferenceOrdinalRidit = define_inference_class(
 			private$cached_values$mean_ridit_t = res$mean_ridit_t
 			private$cached_values$mean_ridit_c = res$mean_ridit_c
 			private$cached_values$beta_hat_T   = res$estimate
-			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else res$se
+			if (!estimate_only) private$cached_values$s_beta_hat_T = res$se
 			private$cached_values$scores       = res$scores
 		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
@@ -252,14 +252,15 @@ InferenceOrdinalRidit = define_inference_class(
 			dead = args[[3]]
 			w = args[[4]]
 			# Generate bootstrap indices
-			indices_mat = matrix(NA_integer_, nrow = n, ncol = B)
+			# compute_ridit_bootstrap_parallel_cpp() takes 1-based rows; a leading -1 marks a failed replicate.
+			indices_mat = matrix(-1L, nrow = n, ncol = B)
 			for (b in 1:B) {
 				attempt = 1
 				repeat {
 					i_b = sample(n, n, replace = TRUE)
 					w_b = w[i_b]
 					if (any(w_b == 1, na.rm = TRUE) && any(w_b == 0, na.rm = TRUE)) {
-						indices_mat[, b] = i_b - 1L
+						indices_mat[, b] = i_b
 						break
 					}
 					attempt = attempt + 1

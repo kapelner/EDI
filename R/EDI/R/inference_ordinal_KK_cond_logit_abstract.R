@@ -1,14 +1,3 @@
-ordinal_cond_clogit_initialize = function(super_obj, private_env, des_obj, model_formula = NULL,  verbose = FALSE, harden = TRUE){
-	if (should_run_asserts()) {
-		assertResponseType(des_obj$get_response_type(), "ordinal")
-	}
-	super_obj$initialize(des_obj, verbose = verbose, harden = harden)
-	if (should_run_asserts()) {
-		assertNoCensoring(private_env$any_censoring)
-	}
-}
-
-
 ordinal_cond_clogit_compute_setup = function(private_env){
 	m_vec = private_env$m
 	if (is.null(m_vec)) m_vec = rep(NA_integer_, private_env$n)

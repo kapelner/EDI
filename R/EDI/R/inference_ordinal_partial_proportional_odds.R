@@ -616,7 +616,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 						nominal = nominal_form,
 						data = dat,
 						link = "logit",
-						weights = dat$.bootstrap_weight__,
+						weights = .bootstrap_weight__,
 						Hess = FALSE
 					)
 				),

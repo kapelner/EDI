@@ -59,14 +59,7 @@ test_that("clmm_warm_start maps the fixed-effects ordinal MLE for every link", {
 		ws <- priv$clmm_warm_start(Xf, y, 2L)
 		m <- suppressWarnings(MASS::polr(factor(y) ~ Xf, method = clmm_leaves[[cls]][["method"]]))
 		z <- unname(m$zeta)
-		# SOURCE QUIRK (noted, not fixed): the fixed-effects cloglog kernel
-		# (fast_ordinal_cloglog_regression_cpp) returns coefficients with the
-		# OPPOSITE sign of MASS::polr / ordinal::clm (thresholds agree), and the
-		# warm start passes that beta through unchanged, while the fitted CLMM
-		# estimate itself uses the polr/clm sign. The warm-start beta for the
-		# cloglog leaf is therefore -coef(polr); every other link matches polr.
-		beta_ref <- unname(coef(m))
-		if (identical(clmm_leaves[[cls]][["link"]], "cloglog")) beta_ref <- -beta_ref
+		beta_ref <- unname(coef(m))                      # every link (cloglog included) uses the polr/clm sign
 		ref <- c(z[1], log(z[2] - z[1]), beta_ref, -3)
 		expect_length(ws, 5L)
 		expect_equal(ws, ref, tolerance = as.numeric(clmm_leaves[[cls]][["tol"]]), info = cls)
@@ -102,7 +95,7 @@ test_that("weighted estimate with all-zero weights is unavailable for the surrog
 	expect_true(is.na(res$ssq_b_j))
 })
 
-test_that("cloglog leaf's fitted estimate uses the polr/clm sign convention despite its warm-start sign", {
+test_that("cloglog leaf's fitted estimate uses the polr/clm sign convention (warm start now agrees)", {
 	des <- clmm_fixture()
 	inf <- InferenceOrdinalKKCLMMCloglog$new(des, verbose = FALSE)
 	priv <- inf$.__enclos_env__$private

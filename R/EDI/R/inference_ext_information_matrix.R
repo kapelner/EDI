@@ -114,6 +114,7 @@ InferenceExtInformationMatrix = list(
 				val = as.numeric(information[1L, 1L])
 				return(if (is.finite(val) && val > 0) 1 / val else NA_real_)
 			}
+			if (any(!is.finite(information)) || qr(information)$rank < nrow(information)) return(NA_real_)
 			res = tryCatch(eigen_compute_single_entry_on_diagonal_of_inverse_matrix_cpp(information, as.integer(j)), error = function(e) NA_real_)
 			if (is.finite(res) && res > 0) return(res)
 

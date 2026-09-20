@@ -1628,6 +1628,6 @@ set_package_threads = function(num_cores) {
   max_m = max(m_vec, 0L)
   if (max_m == 0L) return(NULL)
   mm = stats::model.matrix(~ factor(m_vec) + 0)
-  colnames(mm) = paste0("match_", 0:max_m)
+  colnames(mm) = paste0("match_", sort(unique(m_vec)))
   mm
 }

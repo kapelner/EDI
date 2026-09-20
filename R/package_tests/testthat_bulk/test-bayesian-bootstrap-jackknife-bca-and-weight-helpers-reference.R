@@ -109,10 +109,7 @@ test_that("BCa returns unavailable results when the jackknife is unusable", {
 	expect_true(is.na(f$priv$pval_bayesian_bca(boot, 0, 0)))
 })
 
-test_that("compute_estimate() after a weighted refit returns the stale weighted value (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): compute_estimate_with_bootstrap_weights()
-	# overwrites cached_values$beta_hat_T, so a later compute_estimate() on the
-	# same object returns the last weighted estimate instead of the unweighted one.
+test_that("compute_estimate() after a weighted refit recomputes the unweighted estimate", {
 	f <- bb_fixture()
 	f$priv$current_bayesian_bootstrap_context <- list(
 		row_to_unit = seq_len(f$n), unit_group_id = rep(1L, f$n), n_units = f$n
@@ -121,6 +118,9 @@ test_that("compute_estimate() after a weighted refit returns the stale weighted 
 	ww <- runif(f$n, 0.2, 3)
 	weighted <- f$inf$compute_estimate_with_bootstrap_weights(ww)
 	expect_equal(weighted, mean_diff(f$y, f$w, ww), tolerance = 1e-10)
-	expect_equal(f$inf$compute_estimate(), weighted, tolerance = 1e-12)
-	expect_false(isTRUE(all.equal(f$inf$compute_estimate(), mean_diff(f$y, f$w))))
+	expect_equal(f$inf$compute_estimate(), mean_diff(f$y, f$w), tolerance = 1e-12)
+	expect_false(isTRUE(all.equal(f$inf$compute_estimate(), weighted)))
+	# The SE is likewise restored to the unweighted Welch value.
+	yT <- f$y[f$w == 1]; yC <- f$y[f$w == 0]
+	expect_equal(f$priv$get_standard_error(), sqrt(var(yT) / length(yT) + var(yC) / length(yC)), tolerance = 1e-10)
 })

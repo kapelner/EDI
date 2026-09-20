@@ -63,6 +63,7 @@ SimpleMeanDifferenceSource = list(
 		#'
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
+			private$discard_weighted_refit_cache()
 			if (is.null(private$cached_values$beta_hat_T)){
 				private$cached_values$yTs = private$y[private$w == 1]
 				private$cached_values$yCs = private$y[private$w == 0]
@@ -98,6 +99,7 @@ SimpleMeanDifferenceSource = list(
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			keep = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
+			private$cached_values$weighted_refit_active = TRUE
 			if (!any(keep)) {
 				private$cached_values$beta_hat_T = NA_real_
 				private$cached_values$s_beta_hat_T = NA_real_
@@ -144,6 +146,17 @@ SimpleMeanDifferenceSource = list(
 			private$cached_values$beta_hat_T
 		},
 		max_resample_attempts = 50L,
+		# A weighted refit overwrites the cached estimate/SE/df; drop them (once) so the next
+		# unweighted request recomputes instead of returning the last bootstrap replicate.
+		discard_weighted_refit_cache = function(){
+			if (isTRUE(private$cached_values$weighted_refit_active)) {
+				private$cached_values$beta_hat_T = NULL
+				private$cached_values$s_beta_hat_T = NULL
+				private$cached_values$df = NULL
+				private$cached_values$weighted_refit_active = FALSE
+			}
+			invisible(NULL)
+		},
 		get_standard_error = function(){
 			if (is.null(private$cached_values$s_beta_hat_T)) private$shared()
 			private$cached_values$s_beta_hat_T
@@ -234,6 +247,11 @@ SimpleMeanDifferenceSource = list(
 			
 			if (is.null(private$cached_values$beta_hat_T)){
 				self$compute_estimate()
+			}
+			# The randomization path can cache beta_hat_T without the per-arm responses.
+			if (is.null(private$cached_values$yTs) || is.null(private$cached_values$yCs)) {
+				private$cached_values$yTs = private$y[private$w == 1]
+				private$cached_values$yCs = private$y[private$w == 0]
 			}
 			nT = length(private$cached_values$yTs)
 			nC = length(private$cached_values$yCs)

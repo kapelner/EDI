@@ -46,15 +46,12 @@ test_that("compute_weight_KK21_ordinal matches an independent MASS::polr |t| for
 	}
 })
 
-test_that("compute_weight_KK21_ordinal on a constant response does not yield a finite weight (source quirk, not fixed)", {
-	# With a single response level the polr summary has no usable z-statistic; the
-	# method returns NaN rather than taking its OLS fallback. Pinned only as
-	# "not a finite weight" so the exact NaN/fallback outcome is not over-fixed.
+test_that("compute_weight_KK21_ordinal on a constant response falls back to the minimal finite weight", {
 	x <- kk21_covariates()
 	priv <- kk21_private("ordinal")
 	w <- priv$compute_weight_KK21_ordinal(x, rep(2L, nrow(x)), rep(1, nrow(x)), 1)
 	expect_length(w, 1L)
-	expect_false(is.finite(w))
+	expect_equal(w, .Machine$double.eps)
 })
 
 test_that("compute_weight_KK21_count's speedup path equals the OLS |t| on log(y + 1)", {

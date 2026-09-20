@@ -549,9 +549,9 @@ List fast_gaussian_lmm_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, con
 // exchangeability) and for non-studentised bootstrap (VC approximated).
 //
 // GLS normal equations with V_g = v_e*I + v_b*J:
-//   A     = sum_g gw * [ X_g'X_g - c_g * sx_g sx_g' ]   (v_e cancels)
+//   A     = sum_g gw * [ X_g'X_g - c_g * sx_g sx_g' ]   (common 1/v_e factor dropped; it cancels in A^{-1} b)
 //   b_rhs = sum_g gw * [ X_g'y_g - c_g * sx_g sy_g  ]
-// where a_g = v_e + m_g*v_b,  c_g = v_b/(v_e*a_g),
+// where a_g = v_e + m_g*v_b,  c_g = v_b/a_g,
 //       sx_g = X_g'1_m,  sy_g = 1_m'y_g.
 // [[Rcpp::export]]
 Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, double log_sigma_e, double log_sigma_b, Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue) {
@@ -595,7 +595,7 @@ Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(const Eigen::Map<Eigen::MatrixXd>&
         const int m = g.size, s = g.warm_start_params;
         const double gw = g.w;
         const double a_g = v_e + m * v_b;
-        const double c_g = v_b / (v_e * a_g);
+        const double c_g = v_b / a_g;
 
         sx.noalias() = dat.X_s.middleRows(s, m).colwise().sum().transpose();
         const double sy = dat.y_s.segment(s, m).sum();

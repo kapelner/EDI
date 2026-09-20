@@ -271,26 +271,7 @@ SimpleWilcoxSource = list(
 			if (!is.finite(idx) || is.na(idx)) return(NA_real_)
 			as.numeric(diffs[idx])
 		},
-		compute_fast_bootstrap_distr = function(B, ...) {
-			if (private$is_KK) return(NULL)
-			args = list(...)
-			n = args[[1]]; y = args[[2]]; dead = args[[3]]; w = args[[4]]
-			indices_mat = matrix(-1L, nrow = n, ncol = B)
-			for (b in seq_len(B)) {
-				attempt = 1L
-				repeat {
-					i_b = sample_int_replace_cpp(n, n)
-					w_b = w[i_b]
-					if (any(w_b == 1, na.rm = TRUE) && any(w_b == 0, na.rm = TRUE)) {
-						indices_mat[, b] = i_b - 1L
-						break
-					}
-					attempt = attempt + 1L
-					if (attempt > private$max_resample_attempts) break
-				}
-			}
-			compute_wilcox_hl_distr_parallel_cpp(as.numeric(y), as.integer(w), matrix(as.integer(indices_mat), nrow=n), private$n_cpp_threads(B))
-		},
+		compute_fast_bootstrap_distr = function(B, ...) NULL,
 		get_standard_error = function(){
 			if (is.null(private$cached_values$s_beta_hat_T)) private$shared()
 			private$cached_values$s_beta_hat_T
@@ -472,9 +453,9 @@ InferenceAllSimpleWilcox = define_inference_class(
 			"create_bootstrap_worker_state",
 			"load_bootstrap_sample_into_worker",
 			"compute_bootstrap_worker_estimate",
-			"compute_fast_bootstrap_distr",
 			"get_standard_error",
 			"get_degrees_of_freedom",
+			"compute_fast_bootstrap_distr",
 			"compute_fast_randomization_distr",
 			"shared",
 			"supports_lik_ratio_param_bootstrap",
