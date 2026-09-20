@@ -80,11 +80,11 @@ test_that("KK GEE weighted-bootstrap refit (use_rcpp=TRUE) matches an independen
 	install_subject_bayesian_bootstrap_context(inf_z, f$n)
 	est_z <- inf_z$compute_estimate_with_bootstrap_weights(rep(0, f$n))
 	expect_true(is.na(est_z))
-	expect_true(inf_z$is_nonestimable("estimate"))
+	expect_true(inf_z$.__enclos_env__$private$weighted_refit_is_nonestimable("estimate"))
 
 	# The documented no-variance contract: SE/df are always left NA/Inf.
-	expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
-	expect_equal(inf$.__enclos_env__$private$cached_values$df, Inf)
+	expect_true(is.na(inf$.__enclos_env__$private$weighted_refit_se()))
+	expect_equal(inf$.__enclos_env__$private$last_weighted_refit$df, Inf)
 })
 
 test_that("KK GEE weighted-bootstrap refit's use_rcpp=FALSE geepack fallback now matches an independent weighted geepack fit (bug fixed)", {

@@ -37,14 +37,14 @@ test_that("KK CLMM logit expands matched-unit weights and retains replicate unce
   se <- sqrt(unname(vcov(reference)["w", "w"]))
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(fixture$weights),
                beta, tolerance = 2e-5)
-  expect_equal(fixture$private$cached_values$s_beta_hat_T, se, tolerance = 2e-5)
+  expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T, se, tolerance = 2e-5)
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(5 * fixture$weights),
                beta, tolerance = 2e-5)
-  expect_equal(fixture$private$cached_values$s_beta_hat_T, se / sqrt(5),
+  expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T, se / sqrt(5),
                tolerance = 2e-5)
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(
     fixture$weights, estimate_only = TRUE), beta, tolerance = 2e-5)
-  expect_true(is.na(fixture$private$cached_values$s_beta_hat_T))
+  expect_true(is.na(fixture$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("KK CLMM logit excludes whole zero-weight pairs and reservoir subjects", {
@@ -68,10 +68,10 @@ test_that("KK CLMM logit excludes whole zero-weight pairs and reservoir subjects
     -sum(row_weights * log(probability))
   }
   expect_lt(nll(beta) - nll(unname(coef(reference)["w"])), 1e-6)
-  expect_equal(fixture$private$cached_values$s_beta_hat_T,
+  expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T,
                sqrt(unname(vcov(reference)["w", "w"])), tolerance = 2e-5)
   expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(weights * 0)))
-  expect_true(is.na(fixture$private$cached_values$s_beta_hat_T))
+  expect_true(is.na(fixture$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("KK CLMM logit can reuse an ordinal coefficient and information warm start", {
@@ -84,7 +84,7 @@ test_that("KK CLMM logit can reuse an ordinal coefficient and information warm s
   expect_equal(fixture$private$get_fit_warm_start_for_length("params", 3L), params)
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(fixture$weights),
                unname(coef(reference)["w"]), tolerance = 2e-5)
-  expect_equal(fixture$private$cached_values$s_beta_hat_T,
+  expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T,
                sqrt(unname(vcov(reference)["w", "w"])), tolerance = 2e-5)
   expect_equal(fixture$private$get_fit_warm_start_for_length("params", 3L), params)
 })

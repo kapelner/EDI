@@ -49,11 +49,11 @@ test_that("KK modified-Poisson weighted-bootstrap refit matches an independent w
 	expect_equal(est, ref_beta_T, tolerance = 1e-4)
 
 	# SE/df are never populated on this path, regardless of estimate_only
-	expect_true(is.na(priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(priv$last_weighted_refit$s_beta_hat_T))
 	inf2 <- InferenceIncidKKModifiedPoisson$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
 	install_bb_context(inf2, n)
 	inf2$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
-	expect_true(is.na(inf2$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(inf2$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("unit weights reproduce compute_estimate() via the effectively-constant shortcut", {

@@ -60,7 +60,7 @@ test_that("weighted refit matches an independent MASS::polr fit under the row-ex
 
 	expect_equal(est, est_ref, tolerance = 1e-3)
 
-	se_after <- priv$cached_values$s_beta_hat_T
+	se_after <- priv$weighted_refit_se()
 	expect_true(is.na(se_after))
 })
 
@@ -72,8 +72,10 @@ test_that("effectively-constant weights short-circuit to the unweighted multgee 
 	inf <- InferenceOrdinalKKGEE$new(fx$des, verbose = FALSE)
 	ctx <- install_bb_context(inf)
 
-	est_unit <- inf$compute_estimate_with_bootstrap_weights(rep(1, ctx$n_units))
+	# The unweighted fit is cached first: the short-circuit returns that cached estimate exactly
+	# (the weighted call no longer leaves its own fit behind for compute_estimate() to reuse).
 	est_plain <- inf$compute_estimate(estimate_only = TRUE)
+	est_unit <- inf$compute_estimate_with_bootstrap_weights(rep(1, ctx$n_units))
 	expect_equal(est_unit, as.numeric(est_plain)[1], tolerance = 1e-8)
 
 	est_scaled <- inf$compute_estimate_with_bootstrap_weights(rep(2.5, ctx$n_units))
@@ -94,10 +96,10 @@ test_that("all-zero weights are treated as effectively constant, not filtered ou
 	priv <- inf$.__enclos_env__$private
 	ctx <- install_bb_context(inf)
 
-	est_zero <- inf$compute_estimate_with_bootstrap_weights(rep(0, ctx$n_units))
 	est_plain <- inf$compute_estimate(estimate_only = TRUE)
+	est_zero <- inf$compute_estimate_with_bootstrap_weights(rep(0, ctx$n_units))
 	expect_equal(est_zero, as.numeric(est_plain)[1], tolerance = 1e-8)
-	expect_true(is.na(priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(priv$weighted_refit_se()))
 })
 
 test_that("nonfinite weights are rejected by the input validator before reaching the fit", {

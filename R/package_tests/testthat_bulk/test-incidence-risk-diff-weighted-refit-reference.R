@@ -35,7 +35,7 @@ test_that("weighted linear-probability refit matches an independent lm.wfit() re
 	expect_equal(est_pkg, est_ref, tolerance = 1e-8)
 
 	# Documented contract: no SE is ever cached for a single bootstrap replicate.
-	expect_true(is.na(f$inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$inf$.__enclos_env__$private$weighted_refit_se()))
 })
 
 test_that("unit weights reproduce the unweighted compute_estimate()", {

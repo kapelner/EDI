@@ -51,14 +51,14 @@ test_that("harden = FALSE estimate_only caches the value and reuses it", {
 	expect_equal(f$inf$compute_estimate(estimate_only = TRUE), 42)
 })
 
-test_that("weighted refit: all-zero weights give NA and clear the cached model; zero weights drop rows", {
+test_that("weighted refit: all-zero weights give NA without touching the ordinary fit; zero weights drop rows", {
 	f <- frac_fixture(TRUE)
 	f$inf$compute_estimate()
 	expect_false(is.null(f$priv$cached_mod))
 	expect_true(is.na(f$inf$compute_estimate_with_bootstrap_weights(rep(0, f$n))))
-	expect_null(f$priv$cached_mod)
-	expect_true(is.na(f$priv$cached_values$beta_hat_T))
-	expect_true(is.na(f$priv$cached_values$s_beta_hat_T))
+	expect_false(is.null(f$priv$cached_mod))                       # the ordinary fit is retained
+	expect_true(is.na(f$priv$last_weighted_refit$beta_hat_T))
+	expect_true(is.na(f$priv$last_weighted_refit$s_beta_hat_T))
 
 	f2 <- frac_fixture(TRUE)
 	set.seed(5)
@@ -67,5 +67,5 @@ test_that("weighted refit: all-zero weights give NA and clear the cached model; 
 	est <- f2$inf$compute_estimate_with_bootstrap_weights(ww)
 	ref <- unname(coef(suppressWarnings(glm(f2$y ~ f2$w + f2$x, family = quasibinomial(), weights = ww / max(ww))))[2])
 	expect_equal(est, ref, tolerance = 1e-5)
-	expect_true(is.na(f2$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(f2$priv$last_weighted_refit$s_beta_hat_T))
 })

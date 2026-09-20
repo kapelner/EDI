@@ -42,11 +42,14 @@ test_that("weighted hurdle negbin refit matches an independent glmmTMB truncated
 	expected <- unname(glmmTMB::fixef(ref_mod)$cond["w"])
 	expect_equal(actual, expected, tolerance = 1e-6)
 
-	# Documented contract: no SE/df computed, cached_mod/full_coefficients populated, state cleared.
-	expect_true(is.na(fixture$private$cached_values$s_beta_hat_T))
-	expect_true(is.na(fixture$private$cached_values$df))
-	expect_s3_class(fixture$private$cached_mod, "glmmTMB")
-	expect_true("w" %in% names(fixture$private$cached_values$full_coefficients))
+	# Documented contract: no SE/df computed; the weighted call's outcome lives in last_weighted_refit and
+	# the ordinary cache (cached_mod, coefficients, likelihood context) is left untouched.
+	lw <- fixture$private$last_weighted_refit
+	expect_true(is.na(lw$s_beta_hat_T))
+	expect_true(is.na(lw$df))
+	expect_false(isTRUE(lw$nonestimable))
+	expect_null(fixture$private$cached_mod)
+	expect_null(fixture$private$cached_values$full_coefficients)
 	expect_null(fixture$private$cached_values$count_likelihood_context)
 	expect_false(isTRUE(fixture$private$cached_values$nonestimable))
 })

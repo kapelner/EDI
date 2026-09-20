@@ -40,11 +40,10 @@ test_that("weighted proportion g-computation matches independent fractional logi
                                                                   estimate_only = TRUE)
       private <- fixture$inf$.__enclos_env__$private
       expect_equal(actual, expected$md, tolerance = 1e-7)
-      expect_equal(private$cached_values$mean0, expected$mean0, tolerance = 1e-7)
-      expect_equal(private$cached_values$mean1, expected$mean1, tolerance = 1e-7)
-      expect_equal(unname(private$cached_values$full_coefficients),
-                   unname(expected$coefficients), tolerance = 1e-6)
-      expect_true(is.na(private$cached_values$se_md))
+      # The standardized means / coefficients are internal to the (now rolled-back) weighted fit;
+      # the returned md = mean1 - mean0 checks both against the independent reference.
+      expect_equal(private$last_weighted_refit$beta_hat_T, expected$md, tolerance = 1e-7)
+      expect_true(is.na(private$weighted_refit_se()))
     }
   }
 })
@@ -55,9 +54,9 @@ test_that("empty weighted proportion draws clear the standardized fit cache", {
   expect_true(is.finite(fixture$inf$compute_estimate_with_bootstrap_weights(weights)))
   expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(0 * weights)))
   private <- fixture$inf$.__enclos_env__$private
-  expect_true(is.na(private$cached_values$md))
-  expect_true(is.na(private$cached_values$beta_hat_T))
-  expect_true(is.na(private$cached_values$se_md))
+  expect_true(is.na(private$last_weighted_refit$beta_hat_T))
+  expect_true(is.na(private$weighted_refit_se()))
+  expect_true(is.null(private$cached_values$md) || is.finite(private$cached_values$md))   # ordinary cache untouched by the empty draw
 })
 
 test_that("empty proportion draws cannot retain a treatment-only model for the next fit", {
@@ -67,6 +66,5 @@ test_that("empty proportion draws cannot retain a treatment-only model for the n
   expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(0 * weights)))
   actual <- fixture$inf$compute_estimate_with_bootstrap_weights(1e-200 * weights)
   expect_equal(actual, expected$md, tolerance = 1e-7)
-  expect_equal(unname(fixture$inf$.__enclos_env__$private$cached_values$full_coefficients),
-               unname(expected$coefficients), tolerance = 1e-6)
+  expect_equal(fixture$inf$.__enclos_env__$private$last_weighted_refit$beta_hat_T, expected$md, tolerance = 1e-7)
 })

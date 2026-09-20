@@ -84,13 +84,14 @@ test_that("weighted refit matches a weighted glm with model-based SE, and extrem
 	est <- f$inf$compute_estimate_with_bootstrap_weights(ww)
 	g <- suppressWarnings(glm(f$y ~ f$w + f$x, family = binomial(), weights = ww))
 	expect_equal(est, unname(coef(g)[2]), tolerance = 1e-5)
-	expect_equal(f$priv$cached_values$s_beta_hat_T, unname(summary(g)$coefficients[2, 2]), tolerance = 1e-3)
+	expect_equal(f$priv$last_weighted_refit$s_beta_hat_T, unname(summary(g)$coefficients[2, 2]), tolerance = 1e-3)
 
 	f_est_only <- logit_fixture(TRUE, ordinary_y)
 	f_est_only$inf$compute_estimate_with_bootstrap_weights(ww, estimate_only = TRUE)
-	expect_true(is.na(f_est_only$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(f_est_only$priv$last_weighted_refit$s_beta_hat_T))
 
 	fs <- logit_fixture(TRUE, separated_y, max_abs = 5)
 	expect_true(is.na(fs$inf$compute_estimate_with_bootstrap_weights(rep(1, fs$n))))
-	expect_true(fs$inf$is_nonestimable("estimate"))
+	expect_true(fs$priv$weighted_refit_is_nonestimable("estimate"))
+	expect_false(fs$inf$is_nonestimable("any"))                       # the ordinary cache is not flagged by the weighted refit
 })

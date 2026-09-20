@@ -146,6 +146,7 @@ Inference = R6::R6Class("Inference",
 			private$cached_values$rand_distr_cache = list()
 			private$cached_values$m_cache = list()
 			private$cached_values$likelihood_test_eval_cache = list()
+			private$install_weighted_refit_isolation()
 			if (private$verbose){
 				cat(paste0(
 					"Initialized inference methods for a ",
@@ -485,6 +486,67 @@ Inference = R6::R6Class("Inference",
 		any_censoring = NULL,
 		has_general_censoring = FALSE,
 		warned_no_parallel = FALSE,
+		weighted_refit_impl = NULL,
+		weighted_refit_depth = 0L,
+		last_weighted_refit = NULL,
+		# Weighted (bootstrap-weight) refits reuse the same cache slots as the ordinary
+		# unweighted fit. To keep the two apart for every class at once, the instance's
+		# compute_estimate_with_bootstrap_weights() is replaced (once, at construction) by a
+		# wrapper that rolls the cached results back after each call and records the weighted
+		# call's own outcome in private$last_weighted_refit.
+		install_weighted_refit_isolation = function(){
+			if (!is.null(private$weighted_refit_impl)) return(invisible(NULL))
+			orig = self[["compute_estimate_with_bootstrap_weights"]]
+			# A lazy-component stub is not the real method yet; install_lazy_inference_component() calls back
+			# here once the component (and so the real method) has been installed.
+			if (!is.function(orig) || !is.null(attr(orig, "inference_lazy_component_stub", exact = TRUE))) return(invisible(NULL))
+			private$weighted_refit_impl = orig
+			wrapper = function(...) private$run_isolated_weighted_refit(...)
+			environment(wrapper) = environment(orig)
+			unlock = get("unlockBinding", envir = asNamespace("base"))
+			if (bindingIsLocked("compute_estimate_with_bootstrap_weights", self)) {
+				unlock("compute_estimate_with_bootstrap_weights", self)
+			}
+			self[["compute_estimate_with_bootstrap_weights"]] = wrapper
+			invisible(NULL)
+		},
+		run_isolated_weighted_refit = function(...){
+			if (private$weighted_refit_depth > 0L) return(private$weighted_refit_impl(...))
+			saved_values = private$cached_values
+			has_mod = exists("cached_mod", envir = private, inherits = FALSE)
+			saved_mod = if (has_mod) private$cached_mod else NULL
+			private$weighted_refit_depth = private$weighted_refit_depth + 1L
+			on.exit({
+				cv = private$cached_values
+				private$last_weighted_refit = list(
+					beta_hat_T = cv$beta_hat_T,
+					s_beta_hat_T = cv$s_beta_hat_T,
+					df = cv$df,
+					nonestimable = isTRUE(cv$nonestimable),
+					nonestimable_stage = cv$nonestimable_stage,
+					nonestimable_reason = cv$nonestimable_reason,
+					cached_values = cv,
+					cached_mod = if (exists("cached_mod", envir = private, inherits = FALSE)) private$cached_mod else NULL
+				)
+				private$cached_values = saved_values
+				if (has_mod) {
+					private$cached_mod = saved_mod
+				} else if (exists("cached_mod", envir = private, inherits = FALSE)) {
+					try(rm("cached_mod", envir = private), silent = TRUE)
+				}
+				private$weighted_refit_depth = private$weighted_refit_depth - 1L
+			}, add = TRUE)
+			private$weighted_refit_impl(...)
+		},
+		# Outcome of the most recent weighted refit (its standard error, non-estimability).
+		weighted_refit_se = function(){
+			as.numeric(private$last_weighted_refit$s_beta_hat_T %||% NA_real_)[1L]
+		},
+		weighted_refit_is_nonestimable = function(type = "any"){
+			r = private$last_weighted_refit
+			if (is.null(r) || !isTRUE(r$nonestimable)) return(FALSE)
+			identical(type, "any") || identical(r$nonestimable_stage, type)
+		},
 		fork_cluster = NULL,
 		verbose = FALSE,
 		n = NULL,

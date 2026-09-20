@@ -43,7 +43,7 @@ test_that("weighted-bootstrap refit matches an independent weighted identity-lin
 	ref <- weighted_binomial_identity_reference(f, weights)
 	inf <- make_binomial_identity_inf(f)
 	est <- inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
-	se <- inf$.__enclos_env__$private$cached_values$s_beta_hat_T
+	se <- inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T
 	expect_equal(as.numeric(est), ref$est, tolerance = 1e-5)
 	expect_equal(se, ref$se, tolerance = 1e-5)
 })
@@ -61,7 +61,7 @@ test_that("estimate_only = TRUE skips the SE computation", {
 	f <- binomial_identity_fixture()
 	inf <- make_binomial_identity_inf(f)
 	inf$compute_estimate_with_bootstrap_weights(runif(f$n, 0.5, 1.5), estimate_only = TRUE)
-	expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("the weighted-fit estimate is invariant to a common weight scale factor", {

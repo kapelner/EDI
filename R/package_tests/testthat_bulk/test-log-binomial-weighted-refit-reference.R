@@ -62,7 +62,7 @@ test_that("estimate_only=FALSE populates a finite SE matching the reference sand
 	f <- log_binomial_fixture(30014)
 	weights <- runif(f$n, 0.6, 1.8)
 	est <- as.numeric(f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE))
-	se <- f$inf$.__enclos_env__$private$cached_values$s_beta_hat_T
+	se <- f$inf$.__enclos_env__$private$weighted_refit_se()
 	expect_true(is.finite(se))
 	expect_true(se > 0)
 

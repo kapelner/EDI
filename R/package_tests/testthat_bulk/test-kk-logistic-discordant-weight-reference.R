@@ -64,7 +64,7 @@ test_that("KK logistic weights follow discordant rows despite concordance and pa
       expected <- kk_logistic_discordant_reference(fixture, weights)
       actual <- fixture$inf$compute_estimate_with_bootstrap_weights(scale * weights)
       expect_equal(actual, expected$estimate, tolerance = 1e-6)
-      expect_equal(fixture$inf$.__enclos_env__$private$cached_values$s_beta_hat_T * sqrt(scale),
+      expect_equal(fixture$inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T * sqrt(scale),
                    expected$se, tolerance = 1e-6)
     }
   }
@@ -79,10 +79,10 @@ test_that("KK logistic omitted units and empty draws preserve estimate and uncer
     expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE),
                  expected$estimate, tolerance = 1e-6)
     private <- fixture$inf$.__enclos_env__$private
-    expect_true(is.na(private$cached_values$s_beta_hat_T))
+    expect_true(is.na(private$last_weighted_refit$s_beta_hat_T))
     expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(0 * weights)))
-    expect_true(is.na(private$cached_values$beta_hat_T))
-    expect_true(is.na(private$cached_values$s_beta_hat_T))
+    expect_true(is.na(private$last_weighted_refit$beta_hat_T))
+    expect_true(is.na(private$last_weighted_refit$s_beta_hat_T))
   }
 })
 
@@ -95,7 +95,7 @@ test_that("KK logistic Fisher warm starts retain weighted uncertainty across sca
     actual <- fixture$inf$compute_estimate_with_bootstrap_weights(scale * weights)
     expect_equal(actual, expected$estimate, tolerance = 1e-5)
     expect_lt(expected$loss(actual) - expected$loss(expected$estimate), 1e-8)
-    expect_equal(fixture$inf$.__enclos_env__$private$cached_values$s_beta_hat_T * sqrt(scale),
+    expect_equal(fixture$inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T * sqrt(scale),
                  expected$se, tolerance = 1e-6)
   }
 })

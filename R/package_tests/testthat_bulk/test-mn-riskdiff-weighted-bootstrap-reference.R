@@ -53,8 +53,8 @@ test_that("Miettinen-Nurminen weighted-bootstrap point estimate matches an indep
 	# Documented contract: this weighted path never computes the score-based
 	# variance/df, regardless of estimate_only.
 	priv <- inf$.__enclos_env__$private
-	expect_true(is.na(priv$cached_values$s_beta_hat_T))
-	expect_true(is.na(priv$cached_values$df))
+	expect_true(is.na(priv$last_weighted_refit$s_beta_hat_T))
+	expect_true(is.na(priv$last_weighted_refit$df))
 
 	est_only <- as.numeric(inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE))
 	expect_equal(est_only, est, tolerance = 1e-10)

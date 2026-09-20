@@ -138,7 +138,7 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 				if (!estimate_only) {
 					ssq = mod$ssq_b_j
 					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
-					if (is.finite(ssq) && ssq > 0) {
+					if (is.finite(ssq) && ssq > .Machine$double.eps) {
 						private$cached_values$s_beta_hat_T = sqrt(ssq)
 						private$clear_nonestimable_state()
 					} else {
@@ -186,7 +186,7 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 					return(private$count_likelihood_missing_ci(alpha))
 				}
 				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+				return(private$count_bootstrap_fallback_ci(alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},

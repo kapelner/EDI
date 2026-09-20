@@ -76,5 +76,5 @@ test_that("effectively-constant nonzero bootstrap weights take the fast identica
 	fast_est <- inf$compute_estimate_with_bootstrap_weights(constant_weights, estimate_only = TRUE)
 	expect_equal(fast_est, direct_est)
 	# The fast path explicitly skips variance-component work.
-	expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })

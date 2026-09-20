@@ -108,8 +108,8 @@ test_that("weighted-bootstrap point estimate matches independent weighted propor
 
 	est = inf$compute_estimate_with_bootstrap_weights(weights)
 	expect_equal(est, p_t_w - p_c_w, tolerance = 1e-10)
-	expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
-	expect_true(is.na(inf$.__enclos_env__$private$cached_values$df))
+	expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
+	expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$df))
 
 	# Unit weights reproduce the unweighted estimate
 	inf2 = InferenceIncidNewcombeRiskDiff$new(f$des)

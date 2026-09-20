@@ -55,7 +55,7 @@ test_that("weighted bootstrap wrapper matches a direct call to the shared surrog
 	direct <- EDI:::weighted_ordinal_bootstrap_surrogate_fit(X, priv$y, row_weights, method = "logistic")
 
 	expect_equal(beta, as.numeric(direct$beta_hat))
-	expect_true(is.na(priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(priv$weighted_refit_se()))
 })
 
 test_that("effectively-constant weights short-circuit to the unweighted estimate", {
@@ -87,7 +87,7 @@ test_that("all-zero weights are treated as effectively constant, not filtered ou
 	est_zero <- inf$compute_estimate_with_bootstrap_weights(rep(0, ctx$n_units))
 	est_plain <- inf$compute_estimate(estimate_only = TRUE)
 	expect_equal(est_zero, as.numeric(est_plain)[1], tolerance = 1e-8)
-	expect_true(is.na(priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(priv$weighted_refit_se()))
 })
 
 test_that("genuinely varying weights diverge from the unweighted estimate", {
@@ -96,14 +96,8 @@ test_that("genuinely varying weights diverge from the unweighted estimate", {
 	inf <- InferenceOrdinalKKCondAdjCatLogitRegr$new(fx$des, verbose = FALSE)
 	ctx <- install_bb_context(inf)
 
-	# The unweighted estimate must be captured BEFORE the weighted call: both
-	# methods cache into the same private$cached_values$beta_hat_T slot, and
-	# compute_estimate()'s shared() helper skips refitting once that slot is
-	# non-NULL -- so calling compute_estimate() after
-	# compute_estimate_with_bootstrap_weights() on the same object silently
-	# returns the stale weighted value instead of recomputing (confirmed by
-	# reading ordinal_cond_clogit_shared_multi()'s cache check; not a bug in
-	# scope to fix here, just a real call-order-dependent quirk).
+	# The unweighted estimate is captured before the weighted call so it can be compared with
+	# what compute_estimate() returns afterwards (weighted refits no longer leak into it).
 	est_plain <- as.numeric(inf$compute_estimate(estimate_only = TRUE))[1]
 
 	set.seed(2)
@@ -112,8 +106,7 @@ test_that("genuinely varying weights diverge from the unweighted estimate", {
 
 	expect_true(abs(est_weighted - est_plain) > 1e-6)
 
-	# Pin the stale-cache quirk itself: a compute_estimate() call issued after
-	# the weighted call returns the weighted value, not a fresh unweighted fit.
+	# A compute_estimate() call issued after the weighted call still returns the unweighted estimate.
 	est_plain_after_weighted_call <- as.numeric(inf$compute_estimate(estimate_only = TRUE))[1]
-	expect_equal(est_plain_after_weighted_call, est_weighted)
+	expect_equal(est_plain_after_weighted_call, est_plain)
 })

@@ -44,13 +44,15 @@ test_that("weighted hurdle poisson refit matches an independent glmmTMB truncate
 	expected <- unname(glmmTMB::fixef(ref_mod)$cond["w"])
 	expect_equal(actual, expected, tolerance = 1e-6)
 
-	# Documented contract: point-estimate-only fit clears nonestimable state and populates
-	# cached_mod/full_coefficients, but leaves SE/df unset (the fix noted in the abstract's
-	# 2026-09-07 comment only applies when estimate_only = FALSE).
-	expect_true(is.na(fixture$private$cached_values$s_beta_hat_T))
-	expect_true(is.na(fixture$private$cached_values$df))
-	expect_s3_class(fixture$private$cached_mod, "glmmTMB")
-	expect_true("w" %in% names(fixture$private$cached_values$full_coefficients))
+	# Documented contract: point-estimate-only fit clears nonestimable state and leaves SE/df unset
+	# (the fix noted in the abstract's 2026-09-07 comment only applies when estimate_only = FALSE).
+	# The weighted call's outcome lives in last_weighted_refit; the ordinary cache stays untouched.
+	lw <- fixture$private$last_weighted_refit
+	expect_true(is.na(lw$s_beta_hat_T))
+	expect_true(is.na(lw$df))
+	expect_false(isTRUE(lw$nonestimable))
+	expect_null(fixture$private$cached_mod)
+	expect_null(fixture$private$cached_values$full_coefficients)
 	expect_null(fixture$private$cached_values$likelihood_test_context)
 	expect_false(isTRUE(fixture$private$cached_values$nonestimable))
 })
@@ -75,8 +77,8 @@ test_that("estimate_only = FALSE populates a finite weighted SE from glmmTMB's s
 	expected_se <- unname(summary(ref_mod)$coefficients$cond["w", "Std. Error"])
 
 	expect_equal(actual, expected, tolerance = 1e-6)
-	expect_true(is.finite(fixture$private$cached_values$s_beta_hat_T))
-	expect_equal(fixture$private$cached_values$s_beta_hat_T, expected_se, tolerance = 1e-6)
+	expect_true(is.finite(fixture$private$last_weighted_refit$s_beta_hat_T))
+	expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T, expected_se, tolerance = 1e-6)
 })
 
 test_that("weighted hurdle poisson refit is scale-invariant to a common weight multiplier", {
@@ -129,6 +131,7 @@ test_that("a treatment coefficient dropped from the weighted refit is cached as 
 	result <- fixture$inf$compute_estimate_with_bootstrap_weights(weights)
 
 	expect_true(is.na(result))
-	expect_true(isTRUE(fixture$private$cached_values$nonestimable))
-	expect_identical(fixture$private$cached_values$nonestimable_reason, "zero_augmented_poisson_weighted_treatment_missing")
+	expect_true(fixture$private$weighted_refit_is_nonestimable("estimate"))
+	expect_identical(fixture$private$last_weighted_refit$nonestimable_reason, "zero_augmented_poisson_weighted_treatment_missing")
+	expect_false(fixture$inf$is_nonestimable("any"))                    # the ordinary state is not flagged
 })

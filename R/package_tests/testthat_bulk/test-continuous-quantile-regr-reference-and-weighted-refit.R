@@ -68,7 +68,7 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent weight
 
 	# estimate_only=FALSE additionally populates a weighted-fit SE matching the independent reference
 	actual_est_full <- inf$compute_estimate_with_bootstrap_weights(wts, estimate_only = FALSE)
-	se_actual <- private$cached_values$s_beta_hat_T
+	se_actual <- private$last_weighted_refit$s_beta_hat_T
 	ref_w_summ <- suppressWarnings(summary(ref_w, se = "nid"))
 	expect_equal(actual_est_full, actual_est, tolerance = 1e-6)
 	expect_equal(se_actual, unname(ref_w_summ$coefficients["w", "Std. Error"]), tolerance = 1e-6)

@@ -87,8 +87,8 @@ test_that("weighted refit drops covariates when positive rows are too few for th
 	wt1[1:2] <- 1
 	est1 <- f1$inf$compute_estimate_with_bootstrap_weights(wt1)
 	expect_false(isTRUE(is.finite(est1)))
-	expect_false(isTRUE(is.finite(f1$priv$cached_values$beta_hat_T)))
-	expect_true(is.na(f1$priv$cached_values$s_beta_hat_T))
+	expect_false(isTRUE(is.finite(f1$priv$last_weighted_refit$beta_hat_T)))
+	expect_true(is.na(f1$priv$last_weighted_refit$s_beta_hat_T))
 
 	# One more positive-weight row than columns keeps the full design and matches lm.wfit.
 	f2 <- risk_diff_sparse_fixture()

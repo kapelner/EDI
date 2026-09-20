@@ -612,8 +612,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				subject_or_block_weights = worker_priv$current_bayesian_bootstrap_subject_or_block_weights,
 				estimate_only = TRUE
 			))[1L]
-			if (is.function(worker_state$worker$is_nonestimable) &&
-			    isTRUE(worker_state$worker$is_nonestimable("estimate"))) {
+			if (isTRUE(worker_priv$weighted_refit_is_nonestimable("estimate"))) {
 				return(NA_real_)
 			}
 			theta
@@ -663,7 +662,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 						subject_or_block_weights = draw$subject_or_block_weights,
 						estimate_only = FALSE
 					))[1L]
-					se_b = as.numeric(inf_work$.__enclos_env__$private$cached_values$s_beta_hat_T)[1L]
+					se_b = inf_work$.__enclos_env__$private$weighted_refit_se()
 					if (is.finite(theta_b)) stats_mat[b, 1L] = theta_b
 					if (is.finite(se_b) && se_b > 0) stats_mat[b, 2L] = se_b
 				}, error = function(e) NULL)

@@ -42,8 +42,8 @@ test_that("weighted refit matches an independent MASS::polr fit, including the f
 	ref <- prop_odds_polr_reference(f$y, f$w, f$x1, weights)
 
 	expect_equal(est, ref$est, tolerance = 1e-4)
-	expect_equal(f$private$cached_values$beta_hat_T, ref$est, tolerance = 1e-4)
-	expect_equal(f$private$cached_values$s_beta_hat_T, ref$se, tolerance = 1e-4)
+	expect_equal(f$private$last_weighted_refit$beta_hat_T, ref$est, tolerance = 1e-4)
+	expect_equal(f$private$last_weighted_refit$s_beta_hat_T, ref$se, tolerance = 1e-4)
 })
 
 test_that("estimate_only = TRUE skips the SE computation but keeps the point estimate", {
@@ -54,7 +54,7 @@ test_that("estimate_only = TRUE skips the SE computation but keeps the point est
 	ref <- prop_odds_polr_reference(f$y, f$w, f$x1, weights)
 
 	expect_equal(est_only, ref$est, tolerance = 1e-4)
-	expect_true(is.na(f$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("unit weights reproduce the unweighted compute_estimate() value", {

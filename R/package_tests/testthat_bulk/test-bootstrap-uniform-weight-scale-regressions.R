@@ -42,5 +42,5 @@ test_that("KK weighted OLS retains nonuniform treatment effects on tiny weight s
   expect_equal(inf$compute_estimate_with_bootstrap_weights(1e-12 * weights, estimate_only = TRUE), expected, tolerance = 1e-10)
   expect_equal(inf$compute_estimate_with_bootstrap_weights(1e-200 * weights, estimate_only = TRUE), expected, tolerance = 1e-10)
   expect_true(is.na(inf$compute_estimate_with_bootstrap_weights(0 * weights)))
-  expect_true(is.na(private$cached_values$s_beta_hat_T))
+  expect_true(is.na(private$weighted_refit_se()))
 })

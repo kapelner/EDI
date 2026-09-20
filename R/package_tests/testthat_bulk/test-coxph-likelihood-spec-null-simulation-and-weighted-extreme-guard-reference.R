@@ -99,12 +99,12 @@ test_that("weighted estimate tracks coxph(weights=), drops the SE, and flags ext
 	est <- f$inf$compute_estimate_with_bootstrap_weights(wts)
 	ref <- coxph(Surv(f$t, f$d) ~ f$w + f$x, weights = wts)
 	expect_equal(est, unname(coef(ref))[1], tolerance = 1e-3)
-	expect_true(is.na(f$p$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$p$weighted_refit_se()))
 
 	g <- cox_fx()
 	g$p$current_bayesian_bootstrap_context <- g$p$build_bayesian_bootstrap_context()
 	g$p$cox_extreme_coef_threshold <- 1e-6
 	expect_true(is.na(g$inf$compute_estimate_with_bootstrap_weights(wts)))
-	expect_true(g$inf$is_nonestimable("estimate"))
-	expect_identical(g$inf$get_nonestimable_reason(), "coxph_weighted_extreme_coefficients")
+	expect_true(g$p$weighted_refit_is_nonestimable("estimate"))
+	expect_identical(g$p$last_weighted_refit$nonestimable_reason, "coxph_weighted_extreme_coefficients")
 })

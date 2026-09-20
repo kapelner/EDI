@@ -106,7 +106,7 @@ test_that("weighted VGAM primary backend matches an independent weighted vglm fi
 	)
 	expect_equal(actual_w, ref_w$beta, tolerance = 1e-6)
 	# Documented contract: the weighted path never computes a standard error.
-	expect_true(is.na(fixture$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(fixture$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("effectively-constant bootstrap weights short-circuit to the unweighted estimate", {

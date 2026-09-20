@@ -48,7 +48,7 @@ test_that("continuation-ratio weighted bootstrap refit matches an independent we
 	beta <- fx$inf$compute_estimate_with_bootstrap_weights(weights)
 	expect_equal(beta, beta_ref, tolerance = 1e-4)
 	# No standard error is computed on this weighted path, by design.
-	expect_true(is.na(fx$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(fx$priv$weighted_refit_se()))
 
 	# Unit weights reproduce the plain unweighted MLE.
 	fx_unit <- make_bootstrap_context_inf(InferenceOrdinalContRatioRegr, fixture)
@@ -82,12 +82,12 @@ test_that("stereotype-logit weighted bootstrap wrapper matches the already-teste
 	direct <- EDI:::weighted_ordinal_bootstrap_surrogate_fit(X_fit, fx$priv$y, weights, method = "logistic")
 	expect_equal(beta, as.numeric(direct$beta_hat))
 	# The surrogate never estimates a standard error for this wrapper.
-	expect_true(is.na(fx$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(fx$priv$weighted_refit_se()))
 
 	# Zero weights make the surrogate fail, which the wrapper reports as NA
 	# and marks nonestimable, matching the documented contract.
 	fx_zero <- make_bootstrap_context_inf(InferenceOrdinalStereotypeLogitRegr, fixture)
 	result_zero <- fx_zero$inf$compute_estimate_with_bootstrap_weights(weights * 0)
 	expect_true(is.na(result_zero))
-	expect_true(fx_zero$inf$is_nonestimable())
+	expect_true(fx_zero$priv$weighted_refit_is_nonestimable())
 })

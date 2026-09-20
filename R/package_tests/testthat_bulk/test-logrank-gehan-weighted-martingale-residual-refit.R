@@ -56,9 +56,10 @@ test_that("log-rank weighted refit matches an independent weighted-coxph marting
 
 	# estimate_only leaves the variance-component caches unset/NA.
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE), actual)
-	expect_true(is.na(f$private$cached_values$s_beta_hat_T))
-	expect_true(is.na(f$private$cached_values$logrank_score))
-	expect_true(is.na(f$private$cached_values$logrank_var))
+	expect_true(is.na(f$private$last_weighted_refit$s_beta_hat_T))
+	# class-specific variance caches are rolled back with the ordinary cache: never populated by a weighted draw
+	expect_true(is.null(f$private$cached_values$logrank_score) || is.na(f$private$cached_values$logrank_score))
+	expect_true(is.null(f$private$cached_values$logrank_var) || is.na(f$private$cached_values$logrank_var))
 })
 
 test_that("log-rank weighted refit is scale-invariant and reproduces the unweighted estimate under unit weights", {

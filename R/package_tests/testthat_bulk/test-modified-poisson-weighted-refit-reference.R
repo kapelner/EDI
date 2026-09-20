@@ -66,7 +66,7 @@ test_that("estimate_only=FALSE reproduces the same point estimate as TRUE (SE is
 	f <- modified_poisson_fixture(30024)
 	weights <- runif(f$n, 0.6, 1.8)
 	est_false <- as.numeric(f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE))
-	se <- f$inf$.__enclos_env__$private$cached_values$s_beta_hat_T
+	se <- f$inf$.__enclos_env__$private$weighted_refit_se()
 	expect_true(is.na(se))
 
 	f2 <- modified_poisson_fixture(30024)
@@ -84,5 +84,5 @@ test_that("an all-zero-weight refit degenerates to a finite zero estimate rather
 	f <- modified_poisson_fixture(30025)
 	est <- f$inf$compute_estimate_with_bootstrap_weights(rep(0, f$n), estimate_only = TRUE)
 	expect_equal(as.numeric(est), 0, tolerance = 1e-8)
-	expect_false(f$inf$is_nonestimable())
+	expect_false(f$inf$.__enclos_env__$private$weighted_refit_is_nonestimable())
 })

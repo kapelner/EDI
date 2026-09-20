@@ -361,6 +361,15 @@ InferenceContinRobustRegr = define_inference_class(
 				private$cached_values$s_beta_hat_T = as.numeric(st$coefficients[j_treat, "Std. Error"])
 			}
 			private$cached_values$df = nrow(X_fit) - ncol(X_fit)
+			# A perfect/constant-response fit collapses the SE to ~0 (e.g. 1e-17), which
+			# would give a zero-width CI with a finite p. The SE is in the response's
+			# units, so the floor is relative to sd(y) (absolute when y is constant).
+			y_sd = stats::sd(as.numeric(private$y))
+			se_floor = sqrt(.Machine$double.eps) * (if (is.finite(y_sd) && y_sd > 0) y_sd else 1)
+			se_now = private$cached_values$s_beta_hat_T
+			if (is.finite(se_now) && se_now <= se_floor) {
+				private$cache_nonestimable_se("model_standard_error_unavailable")
+			}
 		},
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)

@@ -42,7 +42,7 @@ test_that("weighted incidence RD matches independent logistic fitting and cohort
       expected <- incid_weighted_rd_reference(fixture, weights)
       actual <- fixture$inf$compute_estimate_with_bootstrap_weights(scale * weights,
                                                                   estimate_only = TRUE)
-      cache <- fixture$inf$.__enclos_env__$private$cached_values
+      cache <- fixture$inf$.__enclos_env__$private$last_weighted_refit$cached_values
       expect_equal(actual, expected$rd, tolerance = 1e-7)
       expect_equal(cache$risk0, expected$risk0, tolerance = 1e-7)
       expect_equal(cache$risk1, expected$risk1, tolerance = 1e-7)
@@ -61,7 +61,7 @@ test_that("weighted incidence RD warm starts adapt to new relative weights", {
     scale <- c(1, 1e-200, 3)[iteration]
     actual <- fixture$inf$compute_estimate_with_bootstrap_weights(scale * weights)
     expect_equal(actual, expected$rd, tolerance = 1e-6)
-    cache <- fixture$inf$.__enclos_env__$private$cached_values
+    cache <- fixture$inf$.__enclos_env__$private$last_weighted_refit$cached_values
     expect_lt(expected$loss(cache$full_coefficients) - expected$loss(expected$coefficients), 1e-8)
     expect_true(is.na(cache$se_rd))
   }
@@ -72,7 +72,7 @@ test_that("empty incidence RD draws clear the prior standardized treatment effec
   weights <- rep(c(1, 2, 4, 7), 20)
   expect_true(is.finite(fixture$inf$compute_estimate_with_bootstrap_weights(weights)))
   expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(0 * weights)))
-  cache <- fixture$inf$.__enclos_env__$private$cached_values
+  cache <- fixture$inf$.__enclos_env__$private$last_weighted_refit$cached_values
   expect_true(is.na(cache$beta_hat_T))
   expect_true(is.na(cache$rd))
   expect_true(is.na(cache$se_rd))
@@ -86,7 +86,7 @@ test_that("incidence RD refits a valid draw after an empty weighted fit", {
   expected <- incid_weighted_rd_reference(fixture, weights)
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(1e-200 * weights),
                expected$rd, tolerance = 1e-7)
-  cache <- fixture$inf$.__enclos_env__$private$cached_values
+  cache <- fixture$inf$.__enclos_env__$private$last_weighted_refit$cached_values
   expect_equal(cache$risk1 - cache$risk0, expected$rd, tolerance = 1e-7)
 })
 
@@ -99,7 +99,7 @@ test_that("actual incidence risk-ratio weighted fits share scale-invariant stand
       expected <- incid_weighted_rd_reference(fixture, weights)
       expected_rr <- expected$risk1 / expected$risk0
       actual <- fixture$inf$compute_estimate_with_bootstrap_weights(scale * weights)
-      cache <- fixture$inf$.__enclos_env__$private$cached_values
+      cache <- fixture$inf$.__enclos_env__$private$last_weighted_refit$cached_values
       expect_equal(actual, expected_rr, tolerance = 1e-6)
       expect_equal(cache$rr, expected_rr, tolerance = 1e-6)
       expect_equal(cache$log_rr, log(expected_rr), tolerance = 1e-6)
@@ -115,12 +115,12 @@ test_that("risk-ratio empty draws cannot poison subsequent full-model weighted f
   expected <- incid_weighted_rd_reference(fixture, weights)
   expect_true(is.finite(fixture$inf$compute_estimate_with_bootstrap_weights(weights)))
   expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(0 * weights)))
-  cache <- fixture$inf$.__enclos_env__$private$cached_values
+  cache <- fixture$inf$.__enclos_env__$private$last_weighted_refit$cached_values
   expect_true(is.na(cache$rr))
   expect_true(is.na(cache$log_rr))
   expect_true(is.na(cache$beta_hat_T))
   actual <- fixture$inf$compute_estimate_with_bootstrap_weights(1e-200 * weights)
   expect_equal(actual, expected$risk1 / expected$risk0, tolerance = 1e-6)
-  expect_equal(unname(fixture$inf$.__enclos_env__$private$cached_values$full_coefficients),
+  expect_equal(unname(fixture$inf$.__enclos_env__$private$last_weighted_refit$cached_values$full_coefficients),
                expected$coefficients, tolerance = 1e-6)
 })

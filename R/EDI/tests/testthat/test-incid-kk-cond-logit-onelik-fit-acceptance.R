@@ -139,9 +139,10 @@ test_that("weighted combined-logit refits use the same separation guard", {
 		n_units = length(weights)
 	)
 	expect_true(is.na(inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE)))
-	expect_true(inf$is_nonestimable("estimate"))
+	weighted_priv = inf$.__enclos_env__$private
+	expect_true(weighted_priv$weighted_refit_is_nonestimable("estimate"))
 	expect_identical(
-		inf$get_nonestimable_reason(),
+		weighted_priv$last_weighted_refit$nonestimable_reason,
 		"kk_clogit_combined_weighted_extreme_treatment_coefficient"
 	)
 })

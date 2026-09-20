@@ -89,7 +89,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					return(private$count_likelihood_missing_ci(alpha))
 				}
 				warning(private$za_description(), ": falling back to bootstrap because standard error is unavailable.")
-				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+				return(private$count_bootstrap_fallback_ci(alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
@@ -339,7 +339,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					as.numeric(vc[j_treat, j_treat])
 				}
 			}, error = function(e) NA_real_)
-			if (is.finite(v) && v > 0) sqrt(v) else NA_real_
+			if (is.finite(v) && v > .Machine$double.eps) sqrt(v) else NA_real_
 		},
 		best_X_colnames = NULL,
 		best_Xzi_colnames = NULL,
@@ -500,7 +500,9 @@ ZeroAugmentedCountLikelihoodSource = list(
 			vcov_robust = private$zero_augmented_poisson_sandwich_vcov_full(fit, X_fit, Xzi_fit, is_hurdle = is_hurdle)
 			if (is.null(vcov_robust) || nrow(vcov_robust) < j_treat) return(NA_real_)
 			se = sqrt(as.numeric(vcov_robust[j_treat, j_treat]))
-			if (is.finite(se) && se > 0) se else NA_real_
+			# sqrt(eps) floor: a perfect fit collapses the sandwich to ~0 (see
+			# robust_sandwich_variance()), which is non-estimability, not precision.
+			if (is.finite(se) && se > sqrt(.Machine$double.eps)) se else NA_real_
 		},
 			# 2026-08-23 (marginal_estimand_report.md TODO-5): model-implied
 			# unconditional mean E[Y | x, w] for the zero-augmented Poisson

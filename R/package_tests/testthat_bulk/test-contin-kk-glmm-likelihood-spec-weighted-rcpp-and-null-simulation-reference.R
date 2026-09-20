@@ -118,13 +118,13 @@ test_that("weighted Rcpp estimate: unit weights reproduce the unweighted fit (es
 	expect_equal(full$se, se, tolerance = 2e-2)
 })
 
-test_that("bootstrap-weight entry point: constant weights short-circuit, non-constant weights refit and reset the SE cache", {
+test_that("bootstrap-weight entry point: constant weights short-circuit, non-constant weights refit; the ordinary cache is untouched", {
 	f <- lmm_fx()
 	est <- f$inf$compute_estimate()
 	f$p$current_bayesian_bootstrap_context <- f$p$build_bayesian_bootstrap_context()
 	K <- f$p$current_bayesian_bootstrap_context$n_units
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(rep(3, K)), est, tolerance = 1e-8)
-	expect_equal(f$p$cached_values$df, Inf)
+	expect_equal(f$p$last_weighted_refit$df, Inf)
 	expect_null(f$p$cached_values$summary_table)
 
 	set.seed(6)
@@ -132,11 +132,12 @@ test_that("bootstrap-weight entry point: constant weights short-circuit, non-con
 	b1 <- f$inf$compute_estimate_with_bootstrap_weights(wts, estimate_only = TRUE)
 	expect_true(is.finite(b1))
 	expect_false(isTRUE(all.equal(b1, est, tolerance = 1e-6)))
-	expect_true(is.na(f$p$cached_values$s_beta_hat_T))
-	expect_equal(f$p$cached_values$beta_hat_T, b1)
+	expect_true(is.na(f$p$last_weighted_refit$s_beta_hat_T))
+	expect_equal(f$p$last_weighted_refit$beta_hat_T, b1)
+	expect_equal(f$p$cached_values$beta_hat_T, est)                       # the ordinary estimate is not overwritten
 	b2 <- f$inf$compute_estimate_with_bootstrap_weights(wts, estimate_only = FALSE)
 	expect_equal(b2, b1, tolerance = 1e-3)
-	expect_true(is.finite(f$p$cached_values$s_beta_hat_T))
+	expect_true(is.finite(f$p$last_weighted_refit$s_beta_hat_T))
 })
 
 hand_gls <- function(X, y, g, le, lb, wts = rep(1, length(y))) {

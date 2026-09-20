@@ -27,8 +27,10 @@ test_that("weighted RMST integrates the censored Kaplan-Meier steps", {
   weights <- c(1, 2, 1, 2, 1, 1)
   expect_equal(inf$compute_estimate_with_bootstrap_weights(weights), -0.5, tolerance = 1e-12)
   expect_equal(inf$compute_estimate_with_bootstrap_weights(7 * weights), -0.5, tolerance = 1e-12)
-  expect_equal(inf$compute_estimate(estimate_only = TRUE), -0.5, tolerance = 1e-12)
-  expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+  # A weighted refit must not leak into the ordinary estimate.
+  expect_equal(inf$compute_estimate(estimate_only = TRUE),
+               rmst_weighted_coverage_fit()$compute_estimate(estimate_only = TRUE), tolerance = 1e-12)
+  expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("uncensored weighted RMST equals the weighted arm-mean contrast", {

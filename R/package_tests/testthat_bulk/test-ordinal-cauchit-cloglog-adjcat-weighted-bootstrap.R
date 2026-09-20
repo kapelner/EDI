@@ -49,7 +49,7 @@ test_that("cauchit weighted bootstrap wrapper matches the shared surrogate helpe
 	X_fit <- fx$priv$build_design_matrix()
 	direct <- EDI:::weighted_ordinal_bootstrap_surrogate_fit(X_fit, fx$priv$y, weights, method = "cauchit")
 	expect_equal(beta, as.numeric(direct$beta_hat))
-	expect_true(is.na(fx$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(fx$priv$last_weighted_refit$s_beta_hat_T))
 
 	fx_zero <- make_bootstrap_context_inf(InferenceOrdinalCauchitRegr, fixture)
 	result_zero <- fx_zero$inf$compute_estimate_with_bootstrap_weights(weights * 0)
@@ -67,7 +67,7 @@ test_that("cloglog weighted bootstrap wrapper matches the shared surrogate helpe
 	X_fit <- fx$priv$build_design_matrix()
 	direct <- EDI:::weighted_ordinal_bootstrap_surrogate_fit(X_fit, fx$priv$y, weights, method = "cloglog")
 	expect_equal(beta, as.numeric(direct$beta_hat))
-	expect_true(is.na(fx$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(fx$priv$last_weighted_refit$s_beta_hat_T))
 
 	# estimate_only is accepted but does not change behavior (interface parity only).
 	fx_eo <- make_bootstrap_context_inf(InferenceOrdinalCloglogRegr, fixture)
@@ -86,7 +86,7 @@ test_that("adjacent-category logit weighted bootstrap wrapper matches the shared
 	X_fit <- fx$priv$build_design_matrix()
 	direct <- EDI:::weighted_ordinal_bootstrap_surrogate_fit(X_fit, fx$priv$y, weights, method = "logistic")
 	expect_equal(beta, as.numeric(direct$beta_hat))
-	expect_true(is.na(fx$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(fx$priv$last_weighted_refit$s_beta_hat_T))
 
 	fx_zero <- make_bootstrap_context_inf(InferenceOrdinalAdjCatLogitRegr, fixture)
 	result_zero <- fx_zero$inf$compute_estimate_with_bootstrap_weights(weights * 0)

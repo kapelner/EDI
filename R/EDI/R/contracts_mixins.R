@@ -1434,7 +1434,7 @@ EDI_COMPONENT_SPECS = list(
 			"compute_lik_ratio_confidence_interval_impl",
 			"count_likelihood_block_asymp_unsupported",
 			"mark_count_likelihood_block_asymp_nonestimable",
-			"count_likelihood_missing_ci", "is_a_count_likelihood",
+			"count_likelihood_missing_ci", "count_bootstrap_fallback_ci", "is_a_count_likelihood",
 			"cl_plumbing_asymp_lik_compute_asymp_confidence_interval",
 			"cl_plumbing_asymp_lik_compute_asymp_two_sided_pval",
 			"cl_plumbing_param_boot_compute_lik_ratio_bootstrap_two_sided_pval",
@@ -2917,6 +2917,10 @@ edi_rebind_lazy_components_after_clone = function(i, source_private = NULL) {
 			rebind_fn_env(i_priv, name)
 		}
 	}
+	# The weighted-refit isolation wrapper and the method it wraps are not component-provided names,
+	# so clone() leaves them bound to the SOURCE object's environment on lazy-component classes.
+	rebind_fn_env(i, "compute_estimate_with_bootstrap_weights")
+	rebind_fn_env(i_priv, "weighted_refit_impl")
 	# Re-record the marker on the clone itself (as a binding if its private
 	# env isn't locked, else as the same attribute fallback
 	# install_lazy_inference_component() uses) so a clone-of-this-clone
@@ -2968,6 +2972,10 @@ install_lazy_inference_component = function(self, private, class_name, component
 	}
 	for (name in names(dispatch$public) %||% character()) {
 		assign_method(self, name, dispatch$public[[name]])
+	}
+	if ("compute_estimate_with_bootstrap_weights" %in% names(dispatch$public) &&
+			is.function(private$install_weighted_refit_isolation)) {
+		private$install_weighted_refit_isolation()
 	}
 	loaded = unique(c(loaded, component_name))
 	if (exists(loaded_marker_name, envir = private, inherits = FALSE)) {

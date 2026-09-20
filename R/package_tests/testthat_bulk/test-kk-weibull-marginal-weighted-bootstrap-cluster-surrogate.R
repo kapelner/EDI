@@ -58,7 +58,7 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent survre
 	# estimate_only doesn't change the point estimate for this fast surrogate path
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = TRUE), est)
 	# this fast surrogate path never populates an SE
-	expect_true(is.na(f$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$priv$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("effectively-constant unit weights shortcut to the primary MLE rather than the cluster surrogate", {

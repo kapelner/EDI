@@ -72,14 +72,17 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent weight
 
 	# estimate_only=FALSE additionally populates a weighted-fit SE matching the independent reference
 	actual_est_full <- inf$compute_estimate_with_bootstrap_weights(wts, estimate_only = FALSE)
-	se_actual <- private$cached_values$s_beta_hat_T
+	se_actual <- private$last_weighted_refit$s_beta_hat_T
 	ref_w_summ <- suppressWarnings(summary(ref_w, se = "nid"))
 	expect_equal(actual_est_full, actual_est, tolerance = 1e-6)
 	expect_equal(se_actual, unname(ref_w_summ$coefficients["w", "Std. Error"]), tolerance = 1e-6)
 
-	# unit weights reproduce the unweighted point estimate exactly (same underlying solver call)
-	expect_equal(inf$compute_estimate_with_bootstrap_weights(rep(1, length(y))),
-		inf$compute_estimate(estimate_only = TRUE), tolerance = 1e-8)
+	# unit weights reproduce an independent unit-weight rq fit (the weighted path uses rq's default solver)
+	ref_unit <- suppressWarnings(quantreg::rq(y_logit ~ w + x1, tau = 0.5, weights = rep(1, length(y))))
+	expect_equal(inf$compute_estimate_with_bootstrap_weights(rep(1, length(y))), unname(coef(ref_unit)["w"]), tolerance = 1e-6)
+	# the weighted calls above did not disturb the ordinary estimate, which matches the ordinary (fn) reference
+	ref_fn <- suppressWarnings(quantreg::rq(y_logit ~ w + x1, tau = 0.5, method = "fn"))
+	expect_equal(inf$compute_estimate(estimate_only = TRUE), unname(coef(ref_fn)["w"]), tolerance = 1e-8)
 })
 
 test_that("rank-deficient covariates are dropped before fitting, matching a manually-reduced quantreg fit", {

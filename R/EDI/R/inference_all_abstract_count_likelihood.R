@@ -228,6 +228,18 @@ CountLikelihoodPlumbingSource = list(
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				ci
 			},
+		# Bootstrap fallback used when the asymptotic SE is unavailable. On a
+		# degenerate fit (e.g. an all-zero response) every replicate is ~identical,
+		# so the percentile CI has ~zero width -- non-estimability, not precision.
+		count_bootstrap_fallback_ci = function(alpha = 0.05){
+			ci = self$compute_bootstrap_confidence_interval(alpha = alpha)
+			est = suppressWarnings(as.numeric(private$cached_values$beta_hat_T)[1L])
+			if (length(ci) == 2L && all(is.finite(ci)) &&
+					(ci[2L] - ci[1L]) <= sqrt(.Machine$double.eps) * max(1, abs(est), na.rm = TRUE)) {
+				return(private$count_likelihood_missing_ci(alpha))
+			}
+			ci
+		},
 		is_a_count_likelihood = function() TRUE,
 		cl_plumbing_asymp_lik_compute_asymp_confidence_interval = InferenceAsympLik$public_methods$compute_asymp_confidence_interval,
 		cl_plumbing_asymp_lik_compute_asymp_two_sided_pval = InferenceAsympLik$public_methods$compute_asymp_two_sided_pval,

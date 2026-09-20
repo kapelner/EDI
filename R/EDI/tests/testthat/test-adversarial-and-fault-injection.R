@@ -14,7 +14,7 @@ library(EDI)
 #   * CI is c(NA, NA) or two finite numbers with lower <= upper
 #   * a finite CI contains the estimate (numerical tolerance)
 #   * p-value is NA or within [0, 1]
-#   * a zero-width finite CI never comes with a finite p-value (a degenerate
+#   * a (numerically) zero-width finite CI never comes with a finite p-value (a degenerate
 #     interval reported as if it were real precision)
 #   * no error message is a code defect ("attempt to apply non-function" ...)
 # Same tolerated-findings discipline as the wiring audit: EDI_ADVERSARIAL_KNOWN
@@ -50,6 +50,8 @@ adv_scenarios = function() {
 		zero_count = function() adv_design("count", rep(0, n), X),
 		separation_incid = function() adv_design("incidence", w, X, w),
 		constant_continuous = function() adv_design("continuous", rep(3, n), X),
+		constant_count = function() adv_design("count", rep(3, n), X),
+		saturated_count = function() adv_design("count", ifelse(w == 1, 5, 2), X, w),
 		collinear_continuous = function() adv_design("continuous", rnorm(n), Xc),
 		collinear_count = function() adv_design("count", rpois(n, 2), Xc),
 		collinear_incid = function() adv_design("incidence", rbinom(n, 1, 0.5), Xc),
@@ -77,7 +79,7 @@ adv_violations = function(est, ci, p, tol = 1e-8) {
 			else {
 				if (ci[1L] > ci[2L]) v = c(v, "reversed CI")
 				if (is.finite(est) && (est < ci[1L] - tol * (1 + abs(est)) || est > ci[2L] + tol * (1 + abs(est)))) v = c(v, "CI excludes its own estimate")
-				if (ci[1L] == ci[2L] && is.numeric(p) && length(p) == 1L && is.finite(p)) v = c(v, "zero-width CI with a finite p-value")
+				if ((ci[2L] - ci[1L]) <= sqrt(.Machine$double.eps) * max(1, abs(est), na.rm = TRUE) && is.numeric(p) && length(p) == 1L && is.finite(p)) v = c(v, "zero-width CI with a finite p-value")
 			}
 		}
 	}

@@ -45,7 +45,7 @@ test_that("KK count bootstrap estimates match independently profiled mixed likel
     actual <- fixture$inf$compute_estimate_with_bootstrap_weights(weights)
     expect_equal(actual, expected$estimate, tolerance = 5e-5)
     expect_lt(expected$loss(actual) - expected$loss(expected$estimate), 1e-7)
-    expect_true(is.na(fixture$inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+    expect_true(is.na(fixture$inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
   }
 })
 
@@ -67,8 +67,8 @@ test_that("empty KK count bootstrap draws cannot reuse a warm fitted treatment e
   expect_true(is.finite(fixture$inf$compute_estimate_with_bootstrap_weights(weights)))
   expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(0 * weights)))
   private <- fixture$inf$.__enclos_env__$private
-  expect_true(is.na(private$cached_values$beta_hat_T))
-  expect_true(is.na(private$cached_values$s_beta_hat_T))
+  expect_true(is.na(private$last_weighted_refit$beta_hat_T))
+  expect_true(is.na(private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("positive uniform KK count draws retain the unweighted mixed-likelihood estimate", {
@@ -79,6 +79,6 @@ test_that("positive uniform KK count draws retain the unweighted mixed-likelihoo
     actual <- fixture$inf$compute_estimate_with_bootstrap_weights(scale * weights,
                                                                 estimate_only = TRUE)
     expect_equal(actual, expected$estimate, tolerance = 5e-5)
-    expect_true(is.na(fixture$inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+    expect_true(is.na(fixture$inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
   }
 })

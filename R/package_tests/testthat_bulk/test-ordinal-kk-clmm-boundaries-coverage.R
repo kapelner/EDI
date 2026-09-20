@@ -64,7 +64,7 @@ test_that("nonlogit KK CLMM weighted surrogates agree with cumulative-link likel
     expect_true(is.finite(estimate), info = class_name)
     expect_equal(estimate, unname(reference_beta), tolerance = 2e-4,
                  info = class_name)
-    expect_true(is.na(private$cached_values$s_beta_hat_T), info = class_name)
+    expect_true(is.na(private$weighted_refit_se()), info = class_name)
     expect_equal(inf$compute_estimate_with_bootstrap_weights(5 * weights, estimate_only = TRUE),
                  estimate, tolerance = 2e-4, info = class_name)
   }

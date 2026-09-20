@@ -75,8 +75,8 @@ test_that("weighted-bootstrap refit (rlm backend) matches an independent weighte
 
 	# This variant is documented as estimate-only by construction: SE/df stay NA.
 	priv <- inf$.__enclos_env__$private
-	expect_true(is.na(priv$cached_values$s_beta_hat_T))
-	expect_true(is.na(priv$cached_values$df))
+	expect_true(is.na(priv$weighted_refit_se()))
+	expect_true(is.na(priv$last_weighted_refit$df))
 })
 
 test_that("weighted-bootstrap refit (rcpp backend) reproduces rlm's sqrt(weight)-transform scheme", {

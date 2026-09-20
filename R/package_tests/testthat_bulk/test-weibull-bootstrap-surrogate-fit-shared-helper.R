@@ -50,18 +50,19 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent weight
 	# estimate_only doesn't change the point estimate; both flags return the same value
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(rw, estimate_only = TRUE), est)
 	# s_beta_hat_T is never populated by this fast surrogate path
-	expect_true(is.na(f$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$priv$weighted_refit_se()))
 })
 
 test_that("effectively-constant weights shortcut to the primary MLE fit rather than the survreg surrogate", {
 	f <- make_weibull_bootstrap_fixture()
 	shortcut <- f$inf$compute_estimate_with_bootstrap_weights(rep(1, 20L))
 	direct <- f$inf$compute_estimate(estimate_only = TRUE)
-	expect_equal(shortcut, direct)
+	# Two separate primary-MLE optimizer runs (the shortcut's result is no longer cached and reused).
+	expect_equal(shortcut, direct, tolerance = 1e-5)
 
 	# a scaled-but-still-constant weight vector takes the same shortcut
 	scaled <- f$inf$compute_estimate_with_bootstrap_weights(rep(3.5, 20L))
-	expect_equal(scaled, direct)
+	expect_equal(scaled, direct, tolerance = 1e-5)
 
 	# genuinely varying weights do NOT take the shortcut and differ from the primary fit
 	rw <- runif(20L, 0.5, 2)

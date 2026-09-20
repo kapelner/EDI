@@ -107,7 +107,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 						df_resid = nrow(X_fit) - ncol(X_fit)
 						if (df_resid > 0 && all(mu_hat > 0)) {
 							dispersion = sum(row_weights * (as.numeric(private$y) - mu_hat)^2 / mu_hat) / df_resid
-							if (is.finite(dispersion) && dispersion > 0) {
+							if (is.finite(dispersion) && dispersion > .Machine$double.eps) {
 								inv_jj = tryCatch(solve(res$XtWX)[j_treat, j_treat], error = function(e) NA_real_)
 								if (is.finite(inv_jj) && inv_jj > 0) ssq_b_j = dispersion * inv_jj
 							}
@@ -129,7 +129,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 			}
 			private$cached_values$beta_hat_T = as.numeric(attempt$fit$b[2L])
 			ssq = attempt$fit$ssq_b_j
-			private$cached_values$s_beta_hat_T = if (!is.null(ssq) && is.finite(ssq) && ssq > 0) sqrt(ssq) else NA_real_
+			private$cached_values$s_beta_hat_T = if (!is.null(ssq) && is.finite(ssq) && ssq > .Machine$double.eps) sqrt(ssq) else NA_real_
 			private$cached_values$df = NA_real_
 			private$set_fit_warm_start(as.numeric(attempt$fit$b), "beta", fisher = attempt$fit$XtWX)
 			private$cached_values$beta_hat_T
@@ -225,7 +225,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 					j_treat = mod$j_treat
 					if (is.null(mod) || length(mod$b) < j_treat || !is.finite(mod$b[j_treat])) return(FALSE)
 					if (estimate_only) return(TRUE)
-					is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0
+					is.finite(mod$ssq_b_j) && mod$ssq_b_j > .Machine$double.eps
 				}
 			)
 			if (!is.null(attempt$fit)){

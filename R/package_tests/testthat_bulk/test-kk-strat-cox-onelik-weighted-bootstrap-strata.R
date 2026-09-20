@@ -81,7 +81,7 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent strati
 	expect_false(isTRUE(all.equal(est, unname(coef(ref_no_strata)["treatment"]), tolerance = 1e-4)))
 
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = TRUE), est)
-	expect_true(is.na(f$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$priv$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("effectively-constant unit weights shortcut to the primary MLE rather than the strata surrogate", {

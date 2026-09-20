@@ -149,7 +149,7 @@ test_that("weighted estimate: constant weights reuse the unweighted estimate wit
 	f$p$current_bayesian_bootstrap_context <- f$p$build_bayesian_bootstrap_context()
 	K <- f$p$current_bayesian_bootstrap_context$n_units
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(rep(2, K)), est, tolerance = 1e-8)
-	expect_true(is.na(f$p$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$p$weighted_refit_se()))
 	unlockBinding("fit_partial_proportional_odds_from_covariates_weighted", f$p)
 	got <- NULL
 	f$p$fit_partial_proportional_odds_from_covariates_weighted <- function(X_cov, row_weights) { got <<- list(X_cov, row_weights); list(beta = 9.5) }
@@ -157,7 +157,7 @@ test_that("weighted estimate: constant weights reuse the unweighted estimate wit
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(wts), 9.5)
 	expect_equal(got[[2]], wts)
 	expect_equal(colnames(got[[1]]), "x1")
-	expect_true(is.na(f$p$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$p$weighted_refit_se()))
 	f$p$fit_partial_proportional_odds_from_covariates_weighted <- function(X_cov, row_weights) NULL
 	expect_true(is.na(f$inf$compute_estimate_with_bootstrap_weights(wts)))
 })

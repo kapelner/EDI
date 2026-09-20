@@ -39,7 +39,7 @@ test_that("weighted logistic refit matches an independent glm.fit(family=binomia
 	est_ref <- unname(ref$coefficients[2])
 	expect_equal(est_pkg, est_ref, tolerance = 1e-5)
 
-	se_pkg <- as.numeric(f$inf$.__enclos_env__$private$cached_values$s_beta_hat_T)
+	se_pkg <- as.numeric(f$inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T)
 	fi <- crossprod(f$X, weights * ref$weights / ref$prior.weights * f$X)
 	# ref$weights are the IRLS working weights at convergence; recompute the
 	# standard Fisher information (X' W X) directly from the fitted probabilities
@@ -54,7 +54,7 @@ test_that("estimate_only=TRUE skips the SE computation", {
 	f <- logit_fixture(41012)
 	weights <- runif(f$n, 0.5, 2)
 	f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE)
-	expect_true(is.na(f$inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(f$inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("unit-weight refit reproduces compute_estimate()", {
@@ -92,5 +92,5 @@ test_that("near-perfect separation under resampled weights is caught as nonestim
 	)
 	est <- inf$compute_estimate_with_bootstrap_weights(rep(1, n), estimate_only = TRUE)
 	expect_true(is.na(est))
-	expect_true(inf$is_nonestimable())
+	expect_true(inf$.__enclos_env__$private$weighted_refit_is_nonestimable())
 })

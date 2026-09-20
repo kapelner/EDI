@@ -72,9 +72,8 @@ test_that("weighted zero-inflated Poisson refit matches an independent glmmTMB f
 	expected_se <- unname(summary(ref_mod)$coefficients$cond["w", "Std. Error"])
 
 	expect_equal(actual, expected, tolerance = 1e-6)
-	expect_equal(fixture$private$cached_values$s_beta_hat_T, expected_se, tolerance = 1e-6)
-	expect_s3_class(fixture$private$cached_mod, "glmmTMB")
-	expect_false(isTRUE(fixture$private$cached_values$nonestimable))
+	expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T, expected_se, tolerance = 1e-6)
+	expect_false(isTRUE(fixture$private$last_weighted_refit$nonestimable))
 
 	# ziformula = ~1 alone (ignoring the force-included treatment) gives a different fit --
 	# confirms the force-inclusion is real, not a no-op.
@@ -100,7 +99,7 @@ test_that("weighted zero-inflated NegBin refit matches an independent glmmTMB nb
 	expected_se <- unname(summary(ref_mod)$coefficients$cond["w", "Std. Error"])
 
 	expect_equal(actual, expected, tolerance = 1e-6)
-	expect_equal(fixture$private$cached_values$s_beta_hat_T, expected_se, tolerance = 1e-6)
+	expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T, expected_se, tolerance = 1e-6)
 })
 
 test_that("weighted zero-inflated Poisson refit is scale-invariant to a common weight multiplier", {
@@ -147,6 +146,6 @@ test_that("a treatment coefficient dropped from the weighted zero-inflated refit
 	result <- fixture$inf$compute_estimate_with_bootstrap_weights(weights)
 
 	expect_true(is.na(result))
-	expect_true(isTRUE(fixture$private$cached_values$nonestimable))
-	expect_identical(fixture$private$cached_values$nonestimable_reason, "zero_augmented_poisson_weighted_treatment_missing")
+	expect_true(isTRUE(fixture$private$last_weighted_refit$nonestimable))
+	expect_identical(fixture$private$last_weighted_refit$nonestimable_reason, "zero_augmented_poisson_weighted_treatment_missing")
 })

@@ -14,8 +14,8 @@ test_that("InferenceCountRobustPoisson wires a weighted sandwich SE through its 
 	inf$.__enclos_env__$private$current_bayesian_bootstrap_context <- draw$context
 	est <- inf$compute_estimate_with_bootstrap_weights(draw$subject_or_block_weights, estimate_only = FALSE)
 	expect_true(is.finite(est))
-	expect_true(is.finite(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
-	expect_gt(inf$.__enclos_env__$private$cached_values$s_beta_hat_T, 0)
+	expect_true(is.finite(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
+	expect_gt(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T, 0)
 })
 
 test_that("InferenceCountQuasiPoisson wires a weighted dispersion-scaled SE through its bootstrap-weight refit", {
@@ -31,8 +31,8 @@ test_that("InferenceCountQuasiPoisson wires a weighted dispersion-scaled SE thro
 	inf$.__enclos_env__$private$current_bayesian_bootstrap_context <- draw$context
 	est <- inf$compute_estimate_with_bootstrap_weights(draw$subject_or_block_weights, estimate_only = FALSE)
 	expect_true(is.finite(est))
-	expect_true(is.finite(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
-	expect_gt(inf$.__enclos_env__$private$cached_values$s_beta_hat_T, 0)
+	expect_true(is.finite(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
+	expect_gt(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T, 0)
 })
 
 test_that("InferenceOrdinalPropOddsRegr reads the treatment coefficient from the correct index and wires its SE", {
@@ -56,8 +56,8 @@ test_that("InferenceOrdinalPropOddsRegr reads the treatment coefficient from the
 	# wildly different in scale/sign pattern from the asymptotic estimate.
 	asymp_est <- inf$compute_estimate()
 	expect_true(is.finite(asymp_est))
-	expect_true(is.finite(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
-	expect_gt(inf$.__enclos_env__$private$cached_values$s_beta_hat_T, 0)
+	expect_true(is.finite(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
+	expect_gt(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T, 0)
 })
 
 test_that("InferenceOrdinalKKCLMM (logit link) wires the already-computed weighted SE through", {
@@ -72,8 +72,8 @@ test_that("InferenceOrdinalKKCLMM (logit link) wires the already-computed weight
 	inf$.__enclos_env__$private$current_bayesian_bootstrap_context <- draw$context
 	est <- inf$compute_estimate_with_bootstrap_weights(draw$subject_or_block_weights, estimate_only = FALSE)
 	expect_true(is.finite(est))
-	expect_true(is.finite(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
-	expect_gt(inf$.__enclos_env__$private$cached_values$s_beta_hat_T, 0)
+	expect_true(is.finite(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
+	expect_gt(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T, 0)
 })
 
 test_that("Studentized Bayesian bootstrap NA rate drops for the four fixed classes", {

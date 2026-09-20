@@ -58,14 +58,17 @@ test_that("InferencePropKKGLMM weighted-bootstrap refit matches an independent w
 	# estimate_only = FALSE reports the same point estimate but never a real SE.
 	full <- suppressWarnings(fx$inf$compute_estimate_with_bootstrap_weights(block_w, estimate_only = FALSE))
 	expect_equal(full, actual, tolerance = 1e-8)
-	expect_true(is.na(fx$priv$cached_values$s_beta_hat_T))
+	expect_true(is.na(fx$priv$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("unit block weights reproduce compute_estimate() via the effectively-constant shortcut", {
 	fx <- make_prop_kk_glmm_fixture()
-	unit_est <- fx$inf$compute_estimate_with_bootstrap_weights(rep(1, fx$n_blocks), estimate_only = TRUE)
+	# The ordinary estimate is fitted first: the weighted call no longer leaves a cached fit behind, so the
+	# constant-weight shortcut reuses the ordinary cache rather than triggering a second, slightly different GLMM fit.
 	plain_est <- fx$inf$compute_estimate(estimate_only = TRUE)
+	unit_est <- fx$inf$compute_estimate_with_bootstrap_weights(rep(1, fx$n_blocks), estimate_only = TRUE)
 	expect_equal(unit_est, plain_est, tolerance = 1e-10)
+	expect_equal(fx$inf$compute_estimate(estimate_only = TRUE), plain_est, tolerance = 1e-10)   # and the ordinary cache is intact
 })
 
 test_that("genuinely varying block weights diverge from the unit-weight estimate", {

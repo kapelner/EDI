@@ -63,8 +63,8 @@ test_that("SimpleMeanDifference weighted-bootstrap estimate/SE/df match an indep
 	expect_equal(est, ref$est, tolerance = 1e-10)
 
 	priv <- inf$.__enclos_env__$private
-	expect_equal(priv$cached_values$s_beta_hat_T, ref$se, tolerance = 1e-10)
-	expect_equal(priv$cached_values$df, ref$df, tolerance = 1e-8)
+	expect_equal(priv$last_weighted_refit$s_beta_hat_T, ref$se, tolerance = 1e-10)
+	expect_equal(priv$last_weighted_refit$df, ref$df, tolerance = 1e-8)
 })
 
 test_that("SimpleMeanDifference weighted-bootstrap estimate_only skips variance and reproduces compute_estimate() at unit weight", {
@@ -86,7 +86,7 @@ test_that("SimpleMeanDifference weighted-bootstrap estimate_only skips variance 
 	est_full <- as.numeric(inf2$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE))
 	est_only <- as.numeric(inf2$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE))
 	expect_equal(est_only, est_full, tolerance = 1e-10)
-	expect_true(is.na(inf2$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(inf2$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("InferenceIncidCMH and InferenceIncidExtendedRobins dispatch to the identical shared weighted implementation", {
@@ -108,7 +108,7 @@ test_that("InferenceIncidCMH and InferenceIncidExtendedRobins dispatch to the id
 	install_unit_bayes_boot_context(inf_cmh, n)
 	est_cmh <- as.numeric(inf_cmh$compute_estimate_with_bootstrap_weights(weights))
 	expect_equal(est_cmh, ref$est, tolerance = 1e-10)
-	expect_equal(inf_cmh$.__enclos_env__$private$cached_values$s_beta_hat_T, ref$se, tolerance = 1e-10)
+	expect_equal(inf_cmh$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T, ref$se, tolerance = 1e-10)
 
 	# InferenceIncidExtendedRobins requires a blocking design with equal block
 	# sizes and even allocation, so it needs its own fixture; the actual
@@ -127,7 +127,7 @@ test_that("InferenceIncidCMH and InferenceIncidExtendedRobins dispatch to the id
 	install_unit_bayes_boot_context(inf_er, n)
 	est_er <- as.numeric(inf_er$compute_estimate_with_bootstrap_weights(weights))
 	expect_equal(est_er, ref_er$est, tolerance = 1e-10)
-	expect_equal(inf_er$.__enclos_env__$private$cached_values$s_beta_hat_T, ref_er$se, tolerance = 1e-10)
+	expect_equal(inf_er$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T, ref_er$se, tolerance = 1e-10)
 })
 
 test_that("SimpleMeanDifference weighted-bootstrap returns NA when all rows are dropped", {
@@ -141,5 +141,5 @@ test_that("SimpleMeanDifference weighted-bootstrap returns NA when all rows are 
 	weights <- rep(0, n)
 	est <- as.numeric(inf$compute_estimate_with_bootstrap_weights(weights))
 	expect_true(is.na(est))
-	expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })

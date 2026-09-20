@@ -67,12 +67,15 @@ test_that("weighted path leaves SE/df NA and caches the weighted mean ridit and 
 	wt <- runif(f$n, 0.2, 3)
 	inf <- weighted_inf(f, "control")
 	est <- inf$compute_estimate_with_bootstrap_weights(wt)
-	cv <- inf$.__enclos_env__$private$cached_values
-	expect_true(is.na(cv$s_beta_hat_T))
-	expect_true(is.na(cv$df))
-	expect_equal(cv$beta_hat_T, est)
-	expect_equal(cv$mean_ridit_t - 0.5, est, tolerance = 1e-12)
-	expect_length(cv$scores, f$n)
+	lw <- inf$.__enclos_env__$private$last_weighted_refit
+	expect_true(is.na(lw$s_beta_hat_T))
+	expect_true(is.na(lw$df))
+	expect_equal(lw$beta_hat_T, est)
+	# mean_ridit_t / scores are ridit-specific derived values that are not part of the recorded outcome:
+	# they must not leak into the object's ordinary cache, and the weighted estimate is 0.5 + ... by construction.
+	expect_null(inf$.__enclos_env__$private$cached_values$mean_ridit_t)
+	expect_null(inf$.__enclos_env__$private$cached_values$scores)
+	expect_equal(ref_weighted_ridit(f$y, f$w, wt, "control"), est, tolerance = 1e-12)
 })
 
 test_that("early-NA branches: all-zero weights, empty reference group, and an arm emptied by zero weights", {
@@ -80,7 +83,7 @@ test_that("early-NA branches: all-zero weights, empty reference group, and an ar
 
 	inf0 <- weighted_inf(f, "control")
 	expect_true(is.na(inf0$compute_estimate_with_bootstrap_weights(rep(0, f$n))))
-	expect_true(is.na(inf0$.__enclos_env__$private$cached_values$beta_hat_T))
+	expect_true(is.na(inf0$.__enclos_env__$private$last_weighted_refit$beta_hat_T))
 
 	wt_no_control <- ifelse(f$w == 0, 0, 1)
 	expect_true(is.na(weighted_inf(f, "control")$compute_estimate_with_bootstrap_weights(wt_no_control)))

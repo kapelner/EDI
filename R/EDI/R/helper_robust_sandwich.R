@@ -47,6 +47,15 @@ robust_sandwich_variance = function(vcov, j) {
 	if (!is.finite(ssq) || ssq < 0) {
 		return(NA_real_)
 	}
+	# A perfect fit (all residuals ~0, e.g. y exactly determined by w) collapses
+	# HC0 to a numerically-zero variance that still passes `> 0` and yields a
+	# zero-width CI with p = 0. Not estimable. The floor is on the variance
+	# (ssq < eps, i.e. SE < sqrt(eps)) and is absolute, appropriate for the
+	# probability/log-scale coefficients this is used on; a response in tiny
+	# units would need a scale-relative floor instead.
+	if (ssq < .Machine$double.eps) {
+		return(NA_real_)
+	}
 	ssq
 }
 

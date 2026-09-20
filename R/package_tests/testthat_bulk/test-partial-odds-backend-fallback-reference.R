@@ -69,5 +69,5 @@ test_that("weighted partial odds MASS fallback preserves a common armwise odds s
                log(3), tolerance = 5e-4)
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(5 * weights),
                log(3), tolerance = 5e-4)
-  expect_true(is.na(p$cached_values$s_beta_hat_T))
+  expect_true(is.na(p$last_weighted_refit$s_beta_hat_T))
 })

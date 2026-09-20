@@ -38,12 +38,14 @@ test_that("weighted quasi and robust Poisson estimates equal weighted arm log ra
                       weighted.mean(fixture$y[1:6], weights[1:6]))
     robust <- identical(generator, InferenceCountRobustPoisson)
     expect_equal(inf$compute_estimate_with_bootstrap_weights(weights), expected, tolerance = 1e-7)
-    expect_equal(inf$.__enclos_env__$private$cached_values$s_beta_hat_T,
+    expect_equal(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T,
                  count_composite_arm_se_reference(fixture$y, weights, robust), tolerance = 1e-7)
     expect_equal(inf$compute_estimate_with_bootstrap_weights(5 * weights), expected, tolerance = 1e-7)
-    expect_equal(inf$.__enclos_env__$private$cached_values$s_beta_hat_T,
+    expect_equal(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T,
                  count_composite_arm_se_reference(fixture$y, 5 * weights, robust), tolerance = 1e-7)
-    expect_equal(inf$compute_estimate(estimate_only = TRUE), expected, tolerance = 1e-7)
+    # A weighted refit must not leak into the ordinary estimate.
+    expect_equal(unname(inf$compute_estimate(estimate_only = TRUE)),
+                 log(mean(fixture$y[7:12]) / mean(fixture$y[1:6])), tolerance = 1e-7)
   }
 })
 
@@ -65,6 +67,7 @@ test_that("estimate-only weighted count fits retain the estimate and clear uncer
     expect_true(is.finite(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
     expect_equal(inf$compute_estimate_with_bootstrap_weights(rep(3, 12), estimate_only = TRUE),
                  as.numeric(original), tolerance = 1e-7)
-    expect_true(is.na(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))
+    expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
+    expect_true(is.finite(inf$.__enclos_env__$private$cached_values$s_beta_hat_T))   # the ordinary SE is untouched
   }
 })

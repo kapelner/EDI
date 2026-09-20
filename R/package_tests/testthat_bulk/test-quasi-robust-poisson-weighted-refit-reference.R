@@ -39,7 +39,7 @@ test_that("InferenceCountQuasiPoisson weighted refit matches an independent weig
 
 	weights <- sample(c(0.5, 1, 1.5, 2), n, replace = TRUE)
 	est <- inf$compute_estimate_with_bootstrap_weights(weights)
-	se <- inf$.__enclos_env__$private$cached_values$s_beta_hat_T
+	se <- inf$.__enclos_env__$private$weighted_refit_se()
 
 	fit <- glm.fit(f$X, f$y, weights = weights, family = poisson())
 	mu_hat <- fit$fitted.values
@@ -54,13 +54,13 @@ test_that("InferenceCountQuasiPoisson weighted refit matches an independent weig
 	# Unit weights reproduce the unweighted estimate.
 	inf2 <- InferenceCountQuasiPoisson$new(f$des, model_formula = ~x, verbose = FALSE)
 	prime_bootstrap_context(inf2, n)
-	expect_equal(inf2$compute_estimate_with_bootstrap_weights(rep(1, n)), inf2$compute_estimate(), tolerance = 1e-8)
+	expect_equal(unname(inf2$compute_estimate_with_bootstrap_weights(rep(1, n))), unname(inf2$compute_estimate()), tolerance = 1e-8)
 
 	# estimate_only skips the dispersion-correction computation.
 	inf3 <- InferenceCountQuasiPoisson$new(f$des, model_formula = ~x, verbose = FALSE)
 	prime_bootstrap_context(inf3, n)
 	inf3$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE)
-	expect_true(is.na(inf3$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(inf3$.__enclos_env__$private$weighted_refit_se()))
 
 	# The point estimate (not its dispersion-scaled SE) is invariant to a common weight scale.
 	inf4 <- InferenceCountQuasiPoisson$new(f$des, model_formula = ~x, verbose = FALSE)
@@ -77,7 +77,7 @@ test_that("InferenceCountRobustPoisson weighted refit matches an independent wei
 
 	weights <- sample(c(0.5, 1, 1.5, 2), n, replace = TRUE)
 	est <- inf$compute_estimate_with_bootstrap_weights(weights)
-	se <- inf$.__enclos_env__$private$cached_values$s_beta_hat_T
+	se <- inf$.__enclos_env__$private$weighted_refit_se()
 
 	fit <- glm.fit(f$X, f$y, weights = weights, family = poisson())
 	mu_hat <- fit$fitted.values
@@ -93,13 +93,13 @@ test_that("InferenceCountRobustPoisson weighted refit matches an independent wei
 	# Unit weights reproduce the unweighted estimate.
 	inf2 <- InferenceCountRobustPoisson$new(f$des, model_formula = ~x, verbose = FALSE)
 	prime_bootstrap_context(inf2, n)
-	expect_equal(inf2$compute_estimate_with_bootstrap_weights(rep(1, n)), inf2$compute_estimate(), tolerance = 1e-8)
+	expect_equal(unname(inf2$compute_estimate_with_bootstrap_weights(rep(1, n))), unname(inf2$compute_estimate()), tolerance = 1e-8)
 
 	# estimate_only skips the sandwich-variance computation.
 	inf3 <- InferenceCountRobustPoisson$new(f$des, model_formula = ~x, verbose = FALSE)
 	prime_bootstrap_context(inf3, n)
 	inf3$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE)
-	expect_true(is.na(inf3$.__enclos_env__$private$cached_values$s_beta_hat_T))
+	expect_true(is.na(inf3$.__enclos_env__$private$weighted_refit_se()))
 
 	# All-zero weights degenerate to a zero treatment coefficient rather than
 	# NA -- fast_poisson_regression_weighted_cpp's IRLS still "converges"
