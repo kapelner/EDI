@@ -203,49 +203,49 @@ incompatible_inference_classes_due_to_design_structure_for_design = function(des
 #'
 #' @keywords internal
 #' @noRd
-#' Covers every testing-procedure capability declared in
-#' `contracts_mixins.R`'s `public_methods_for_capability` (2026-08-19 audit,
-#' after user feedback that the original four-sentinel list omitted most of
-#' the package's actual inference machinery): asymptotic Wald, exact,
-#' randomization (test-statistic and randomization-bootstrap variants),
-#' jackknife, the three `likelihood_tests` sub-procedures (score/
-#' likelihood-ratio/gradient -- one capability, three independent tests),
-#' parametric-likelihood-bootstrap, and Bayesian-bootstrap. Deliberately
-#' excludes `likelihood_ratio`/`estimating_equation_likelihood_ratio` as
-#' separate sentinels -- both capabilities gate the exact same
-#' `compute_lik_ratio_*` method pair as `likelihood_tests`'s `lik_ratio`
-#' sub-procedure already covers, so they'd be a duplicate row, not a
-#' distinct test.
-#'
-#' TODO-23 (inference_suite_plan.md, unblocked 2026-08-19 once
-#' `fix_inference_hierarchy.md`'s `public_methods_for_capability`
-#' completeness audit landed a permanent regression test guaranteeing that
-#' registry is exhaustive): derives the CI-side/p-value-side method-priority
-#' specs by reading `contracts_mixins.R`'s `public_methods_for_capability`
-#' registry directly and asserting (via `stopifnot`, at package-load time)
-#' that every listed `(capability, method)` pair genuinely exists there --
-#' rather than a hand-typed literal with no connection to the registry.
-#' If a capability/method pair is ever renamed or removed from
-#' `contracts_mixins.R`, the package now fails to load with a clear error
-#' instead of `run_all_inference()` silently keeping a stale sentinel.
-#'
-#' The `(capability, method) -> label` mapping itself is still an explicit
-#' table -- this is deliberate, not a shortcoming: `contracts_mixins.R`'s
-#' registry is keyed by *capability*, and several capabilities intentionally
-#' contribute more than one sentinel (`likelihood_tests` -> `score`/
-#' `lik_ratio`/`gradient`/`lik_ratio_bartlett_approx`/
-#' `lik_ratio_bartlett_exact`) or a non-canonical method pair (`wald`
-#' capability's canonical pair is `compute_asymp_*`, not the duplicate-alias
-#' `compute_wald_*` pair also registered under the same capability) -- so
-#' "one sentinel per capability key" is not a valid auto-derivation rule on
-#' its own. `run_all_inference_check_sentinel_completeness()` below is the
-#' actual completeness guarantee: it walks every `compute_*_confidence_
-#' interval`/`compute_*_two_sided_pval*` method in the live registry and
-#' fails loudly if any of them is neither covered by this spec nor in the
-#' small, documented `EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS`
-#' allowlist -- so a *new* capability/method pair added later cannot go
-#' silently unrepresented the way the original hand-maintained list could.
-#'
+# Covers every testing-procedure capability declared in
+# `contracts_mixins.R`'s `public_methods_for_capability` (2026-08-19 audit,
+# after user feedback that the original four-sentinel list omitted most of
+# the package's actual inference machinery): asymptotic Wald, exact,
+# randomization (test-statistic and randomization-bootstrap variants),
+# jackknife, the three `likelihood_tests` sub-procedures (score/
+# likelihood-ratio/gradient -- one capability, three independent tests),
+# parametric-likelihood-bootstrap, and Bayesian-bootstrap. Deliberately
+# excludes `likelihood_ratio`/`estimating_equation_likelihood_ratio` as
+# separate sentinels -- both capabilities gate the exact same
+# `compute_lik_ratio_*` method pair as `likelihood_tests`'s `lik_ratio`
+# sub-procedure already covers, so they'd be a duplicate row, not a
+# distinct test.
+#
+# TODO-23 (inference_suite_plan.md, unblocked 2026-08-19 once
+# `fix_inference_hierarchy.md`'s `public_methods_for_capability`
+# completeness audit landed a permanent regression test guaranteeing that
+# registry is exhaustive): derives the CI-side/p-value-side method-priority
+# specs by reading `contracts_mixins.R`'s `public_methods_for_capability`
+# registry directly and asserting (via `stopifnot`, at package-load time)
+# that every listed `(capability, method)` pair genuinely exists there --
+# rather than a hand-typed literal with no connection to the registry.
+# If a capability/method pair is ever renamed or removed from
+# `contracts_mixins.R`, the package now fails to load with a clear error
+# instead of `run_all_inference()` silently keeping a stale sentinel.
+#
+# The `(capability, method) -> label` mapping itself is still an explicit
+# table -- this is deliberate, not a shortcoming: `contracts_mixins.R`'s
+# registry is keyed by *capability*, and several capabilities intentionally
+# contribute more than one sentinel (`likelihood_tests` -> `score`/
+# `lik_ratio`/`gradient`/`lik_ratio_bartlett_approx`/
+# `lik_ratio_bartlett_exact`) or a non-canonical method pair (`wald`
+# capability's canonical pair is `compute_asymp_*`, not the duplicate-alias
+# `compute_wald_*` pair also registered under the same capability) -- so
+# "one sentinel per capability key" is not a valid auto-derivation rule on
+# its own. `run_all_inference_check_sentinel_completeness()` below is the
+# actual completeness guarantee: it walks every `compute_*_confidence_
+# interval`/`compute_*_two_sided_pval*` method in the live registry and
+# fails loudly if any of them is neither covered by this spec nor in the
+# small, documented `EDI_INFERENCE_SUITE_DELIBERATELY_UNSENTINELED_METHODS`
+# allowlist -- so a *new* capability/method pair added later cannot go
+# silently unrepresented the way the original hand-maintained list could.
+#
 #' @keywords internal
 #' @noRd
 run_all_inference_derive_method_priority = function(spec) {
@@ -985,30 +985,30 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 #'
 #' @keywords internal
 #' @noRd
-#' Estimand tags (the raw `EDI_INFERENCE_ESTIMAND_TAGS` values) that are
-#' genuinely on a **raw multiplicative** scale -- positive support, null
-#' effect at 1, e.g. `"RR"` (risk ratio) -- as opposed to every other
-#' estimand tag in the registry, which is either already a *difference*
-#' (`"RD"`, `"mean_difference"`, ...) or already **log-transformed** by the
-#' estimator itself (`"log_odds_ratio_*"`, `"log_rate_ratio_*"`,
-#' `"log_time_ratio"`, `"log_hazard_ratio"`, ...) -- for those, the reported
-#' number is already an additive effect on the log scale, so a *further*
-#' log10 transform of that number would be nonsensical (and can be
-#' negative, which log10 can't even display). Per user request, 2026-08-20
-#' ("for each estimand, decide if it makes sense to display on a log10
-#' scale") -- used by `run_all_inference_plot_ci_forest()` to pick
-#' `scale_x_log10()` (null
-#' reference line at 1) vs. linear (null at 0) per estimand, closing the
-#' "ratio-scale nulls would need a per-class scale declaration" known
-#' limitation those two functions previously documented. Cox-PH-family
-#' classes were tagged `"hazard_ratio"` here until 2026-08-26 despite their
-#' own `compute_estimate()` always returning the log-hazard-ratio
-#' (`beta_hat_T`, per their own roxygen) -- a raw-scale tag on a log-scale
-#' value, causing negative "hazard ratio" point estimates in suite output
-#' and a wrong (positive-support, null-at-1) log10-axis/null-value
-#' assumption downstream. Retagged `"log_hazard_ratio"`, consistent with the
-#' `"log_time_ratio"`/`"log_odds_ratio_*"` family, and removed from this set.
-#'
+# Estimand tags (the raw `EDI_INFERENCE_ESTIMAND_TAGS` values) that are
+# genuinely on a **raw multiplicative** scale -- positive support, null
+# effect at 1, e.g. `"RR"` (risk ratio) -- as opposed to every other
+# estimand tag in the registry, which is either already a *difference*
+# (`"RD"`, `"mean_difference"`, ...) or already **log-transformed** by the
+# estimator itself (`"log_odds_ratio_*"`, `"log_rate_ratio_*"`,
+# `"log_time_ratio"`, `"log_hazard_ratio"`, ...) -- for those, the reported
+# number is already an additive effect on the log scale, so a *further*
+# log10 transform of that number would be nonsensical (and can be
+# negative, which log10 can't even display). Per user request, 2026-08-20
+# ("for each estimand, decide if it makes sense to display on a log10
+# scale") -- used by `run_all_inference_plot_ci_forest()` to pick
+# `scale_x_log10()` (null
+# reference line at 1) vs. linear (null at 0) per estimand, closing the
+# "ratio-scale nulls would need a per-class scale declaration" known
+# limitation those two functions previously documented. Cox-PH-family
+# classes were tagged `"hazard_ratio"` here until 2026-08-26 despite their
+# own `compute_estimate()` always returning the log-hazard-ratio
+# (`beta_hat_T`, per their own roxygen) -- a raw-scale tag on a log-scale
+# value, causing negative "hazard ratio" point estimates in suite output
+# and a wrong (positive-support, null-at-1) log10-axis/null-value
+# assumption downstream. Retagged `"log_hazard_ratio"`, consistent with the
+# `"log_time_ratio"`/`"log_odds_ratio_*"` family, and removed from this set.
+#
 #' @keywords internal
 #' @noRd
 EDI_INFERENCE_LOG_SCALE_ESTIMANDS = c("RR")
@@ -1675,20 +1675,20 @@ run_all_inference_fmt_completed_secs = function(secs) {
 #'
 #' @keywords internal
 #' @noRd
-#' `"method"` is deliberately not a display column here (never was in
-#' `print()`'s pretty table either) -- per user request, 2026-08-20:
-#' "it's not in the print table. Let's drop." `results_table$method` (the
-#' *requested* sentinel, as opposed to `ci_method`/`pval_method`'s
-#' *actually-used-per-side* outcome) remains a real column for programmatic
-#' use, just not rendered.
-#' Deliberately omits `"weight"` (unlike `run_all_inference_build_display_
-#' table()`'s `display` data.frame, `print()`'s pretty table, which does
-#' show it) -- per user request, 2026-08-23 ("you can remove weight column
-#' for live printing"): `weight` is only ever known once every row has fit
-#' (`run_all_inference_compute_combined_evidence_weights()` runs over the
-#' whole table), so it can never be more than a blank placeholder cell live
-#' anyway. Briefly included as a blank column for exact visual parity with
-#' `print()` (2026-08-22), reverted per this later, more specific request.
+# `"method"` is deliberately not a display column here (never was in
+# `print()`'s pretty table either) -- per user request, 2026-08-20:
+# "it's not in the print table. Let's drop." `results_table$method` (the
+# *requested* sentinel, as opposed to `ci_method`/`pval_method`'s
+# *actually-used-per-side* outcome) remains a real column for programmatic
+# use, just not rendered.
+# Deliberately omits `"weight"` (unlike `run_all_inference_build_display_
+# table()`'s `display` data.frame, `print()`'s pretty table, which does
+# show it) -- per user request, 2026-08-23 ("you can remove weight column
+# for live printing"): `weight` is only ever known once every row has fit
+# (`run_all_inference_compute_combined_evidence_weights()` runs over the
+# whole table), so it can never be more than a blank placeholder cell live
+# anyway. Briefly included as a blank column for exact visual parity with
+# `print()` (2026-08-22), reverted per this later, more specific request.
 EDI_INFERENCE_SUITE_LIVE_TABLE_HEADERS = c(
 	"inference class", "cov mod", "estimand", "est", "se",
 	"ci_a", "ci_b", "pval", "pval method", "ci method (if different)", "status"
@@ -1746,13 +1746,13 @@ EDI_INFERENCE_SUITE_TABLE_COL_WIDTH_CAPS = c(
 #'
 #' @keywords internal
 #' @noRd
-#' Truncates `text` to fit in one physical line of `width` characters,
-#' ellipsis-marking the cut (`…`) rather than silently dropping the
-#' overflow -- the single-line counterpart of
-#' `run_all_inference_wrap_cell_2lines()`'s 2-line wrap, used by
-#' `run_all_inference_fmt_wrapped_row(single_line = TRUE)`. `NA` displays as
-#' `"NA"`, matching the 2-line wrapper's convention.
-#'
+# Truncates `text` to fit in one physical line of `width` characters,
+# ellipsis-marking the cut (`…`) rather than silently dropping the
+# overflow -- the single-line counterpart of
+# `run_all_inference_wrap_cell_2lines()`'s 2-line wrap, used by
+# `run_all_inference_fmt_wrapped_row(single_line = TRUE)`. `NA` displays as
+# `"NA"`, matching the 2-line wrapper's convention.
+#
 #' @keywords internal
 #' @noRd
 run_all_inference_truncate_1line = function(text, width) {
@@ -1953,16 +1953,16 @@ method_short_label = function(m) {
 #'
 #' @keywords internal
 #' @noRd
-#' Display abbreviation for a bootstrap-family `type` value, shown inside
-#' the parentheses appended by `method_with_type_short_label()` (e.g.
-#' `"boot (%ile)"`, `"bayes boot (bayes-wald)"`). `bayes_boot`'s `type`
-#' values get their own `bayes-`-prefixed abbreviations since that family
-#' alone distinguishes `"basic"` from `"wald"`; every other typed sentinel
-#' (`bootstrap`, `rand_bootstrap`) shares the plain abbreviations. Falls
-#' back to the raw `type` string for any value not in this table (e.g.
-#' `"bootstrap-t"`, `"prepivoted"`, `"double-bootstrap"`, `"calibrated"`,
-#' `"smoothed"`).
-#'
+# Display abbreviation for a bootstrap-family `type` value, shown inside
+# the parentheses appended by `method_with_type_short_label()` (e.g.
+# `"boot (%ile)"`, `"bayes boot (bayes-wald)"`). `bayes_boot`'s `type`
+# values get their own `bayes-`-prefixed abbreviations since that family
+# alone distinguishes `"basic"` from `"wald"`; every other typed sentinel
+# (`bootstrap`, `rand_bootstrap`) shares the plain abbreviations. Falls
+# back to the raw `type` string for any value not in this table (e.g.
+# `"bootstrap-t"`, `"prepivoted"`, `"double-bootstrap"`, `"calibrated"`,
+# `"smoothed"`).
+#
 #' @keywords internal
 #' @noRd
 type_short_label = function(method, type) {
@@ -2463,21 +2463,21 @@ htmltools_escape_or_identity = function(x) {
 #'
 #' @keywords internal
 #' @noRd
-#' Substitutes non-ASCII glyphs the PDF device's default font can't render
-#' back to plain ASCII, for any text that ends up in a `ggplot2` plot --
-#' per user request, 2026-08-20/21: `"\u0394"` (used by `inference_class_short_
-#' label()`/`estimand_short_label()`, e.g. `"Mean \u0394"`, `"risk \u0394"`) was
-#' rendering as `"mean ."`, and `"\u2248"` (`method_short_label()`'s
-#' `"LR \u2248Bartlett"`) triggered an explicit `grid.Call.graphics()`
-#' `"conversion failure ... in 'mbcsToSbcs'"` warning -- both because the
-#' PDF device's default font has no glyph for either character, so it
-#' either drops to a `.`-shaped tofu box or warns outright. Both render
-#' fine in the console/HTML table (real UTF-8 text contexts), so this is
-#' applied only at plot-label call sites, never inside
-#' `inference_class_short_label()`/`estimand_short_label()`/`method_short_
-#' label()` themselves -- those stay the single source of truth for the
-#' table's own display text.
-#'
+# Substitutes non-ASCII glyphs the PDF device's default font can't render
+# back to plain ASCII, for any text that ends up in a `ggplot2` plot --
+# per user request, 2026-08-20/21: `"\u0394"` (used by `inference_class_short_
+# label()`/`estimand_short_label()`, e.g. `"Mean \u0394"`, `"risk \u0394"`) was
+# rendering as `"mean ."`, and `"\u2248"` (`method_short_label()`'s
+# `"LR \u2248Bartlett"`) triggered an explicit `grid.Call.graphics()`
+# `"conversion failure ... in 'mbcsToSbcs'"` warning -- both because the
+# PDF device's default font has no glyph for either character, so it
+# either drops to a `.`-shaped tofu box or warns outright. Both render
+# fine in the console/HTML table (real UTF-8 text contexts), so this is
+# applied only at plot-label call sites, never inside
+# `inference_class_short_label()`/`estimand_short_label()`/`method_short_
+# label()` themselves -- those stay the single source of truth for the
+# table's own display text.
+#
 #' @keywords internal
 #' @noRd
 run_all_inference_plot_safe_text = function(x) {
@@ -2549,32 +2549,32 @@ run_all_inference_plot_safe_text = function(x) {
 #'
 #' @keywords internal
 #' @noRd
-#' Fixed, absolute (not `ggplot2`/`grid` `"null"`-relative) row height for
-#' one CI forest row, and fixed panel height for the "Estimates"
-#' box-and-whisker subplot -- both in inches, both used directly as the
-#' forest/box panels' own row heights by `run_all_inference_stack_forest_
-#' and_box()`, per user request, 2026-08-22/23 ("the CI's should have the
-#' same vertical space between them for all estimands ... uniform vertical
-#' distances"; "the ci vertical space should be the same for all images in
-#' the html"). Absolute units guarantee this by construction: two panels
-#' set to the same number of inches per row are the same number of inches
-#' per row, regardless of how many rows either estimand has or whether its
-#' plot stacks a box subplot underneath -- no calibration against a
-#' separately-estimated total page height (the earlier, `"null"`-unit
-#' design) can drift out of sync with the actual rendered layout.
-#'
-#' Bumped from `0.20` to `0.32` (per user request, 2026-08-24) to fit the
-#' combined "pval = ..., width = ..." label now sitting *above* each row's
-#' own line (`label_above`, `y + 0.32` -- see `run_all_inference_plot_ci_
-#' forest()`) without crowding the row above it; then brought back down to
-#' `0.22` (per a later user request the same day, "reduce ... further
-#' without running over the text") -- empirically verified via direct
-#' rendering: `0.22` still leaves clear separation between a row's label
-#' and the row above it, `0.19` visibly touches it (tested both directly,
-#' not guessed). Still one constant, so uniform-spacing-across-estimands
-#' (the 2026-08-22/23 requests above) holds at the new height exactly as
-#' it did at the old one.
-#'
+# Fixed, absolute (not `ggplot2`/`grid` `"null"`-relative) row height for
+# one CI forest row, and fixed panel height for the "Estimates"
+# box-and-whisker subplot -- both in inches, both used directly as the
+# forest/box panels' own row heights by `run_all_inference_stack_forest_
+# and_box()`, per user request, 2026-08-22/23 ("the CI's should have the
+# same vertical space between them for all estimands ... uniform vertical
+# distances"; "the ci vertical space should be the same for all images in
+# the html"). Absolute units guarantee this by construction: two panels
+# set to the same number of inches per row are the same number of inches
+# per row, regardless of how many rows either estimand has or whether its
+# plot stacks a box subplot underneath -- no calibration against a
+# separately-estimated total page height (the earlier, `"null"`-unit
+# design) can drift out of sync with the actual rendered layout.
+#
+# Bumped from `0.20` to `0.32` (per user request, 2026-08-24) to fit the
+# combined "pval = ..., width = ..." label now sitting *above* each row's
+# own line (`label_above`, `y + 0.32` -- see `run_all_inference_plot_ci_
+# forest()`) without crowding the row above it; then brought back down to
+# `0.22` (per a later user request the same day, "reduce ... further
+# without running over the text") -- empirically verified via direct
+# rendering: `0.22` still leaves clear separation between a row's label
+# and the row above it, `0.19` visibly touches it (tested both directly,
+# not guessed). Still one constant, so uniform-spacing-across-estimands
+# (the 2026-08-22/23 requests above) holds at the new height exactly as
+# it did at the old one.
+#
 #' @keywords internal
 #' @noRd
 EDI_INFERENCE_SUITE_CI_ROW_HEIGHT_IN = 0.22
@@ -3385,17 +3385,17 @@ inference_class_wordify = function(label) {
 #'
 #' @keywords internal
 #' @noRd
-#' Short display form of a `Design` class name (`class(des_obj)[[1L]]`,
-#' e.g. `"DesignSeqOneByOneKK21"`), used wherever `run_all_inference()`
-#' reports the design being fit (`print.EDIInferenceSuiteResults()`'s
-#' summary line, the HTML report header) -- per user request, 2026-08-19:
-#' `"DesignSeqOneByOneKK21"` -> `"KK21 Seq (one by one)"`, not the raw class
-#' name. Only the `"SeqOneByOne"`/`"Fixed"` family prefixes are recognized
-#' (the two design families this package actually has); anything else falls
-#' back to the class name with just `"Design"` stripped, matching this
-#' file's established "unknown input degrades gracefully, never errors"
-#' convention rather than guessing at an unfamiliar naming scheme.
-#'
+# Short display form of a `Design` class name (`class(des_obj)[[1L]]`,
+# e.g. `"DesignSeqOneByOneKK21"`), used wherever `run_all_inference()`
+# reports the design being fit (`print.EDIInferenceSuiteResults()`'s
+# summary line, the HTML report header) -- per user request, 2026-08-19:
+# `"DesignSeqOneByOneKK21"` -> `"KK21 Seq (one by one)"`, not the raw class
+# name. Only the `"SeqOneByOne"`/`"Fixed"` family prefixes are recognized
+# (the two design families this package actually has); anything else falls
+# back to the class name with just `"Design"` stripped, matching this
+# file's established "unknown input degrades gracefully, never errors"
+# convention rather than guessing at an unfamiliar naming scheme.
+#
 #' @keywords internal
 #' @noRd
 design_class_short_label = function(name) {

@@ -1,3 +1,8 @@
+#' Exact Fisher incidence component source
+#'
+#' Source list for the exact Fisher incidence component.
+#'
+#' @keywords internal
 ExactFisherIncidenceSource = list(
 	public = list(
 		#' @description Initialize exact Fisher inference for incidence outcomes.

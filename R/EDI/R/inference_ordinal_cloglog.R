@@ -1,35 +1,18 @@
-#' Cumulative Cloglog Inference for Ordinal Responses
-#'
-#' Complementary log-log cumulative-odds ordinal regression:
-#' \eqn{P(Y \le k \mid w, x) = 1 - \exp\{-\exp(\alpha_k - \beta_T w -
-#' \beta_X^\top x)\}}, where \eqn{\alpha_k} are category-specific cutpoints and
-#' \eqn{\beta_T} is the treatment coefficient on the cloglog scale. Fit by
-#' maximum likelihood. The cloglog link is asymmetric (unlike logit/probit) and
-#' is the natural ordinal generalization of a proportional-hazards/grouped
-#' survival-time model, so it is preferred when the underlying process is
-#' plausibly a discretized time-to-event or extreme-value mechanism.
-#' \code{likelihood_tier = "full"}: exposes likelihood-ratio, score, gradient,
-#' and parametric-likelihood-bootstrap inference in addition to Wald/asymptotic
-#' and Bayesian-bootstrap paths.
-#'
-#' @references Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
-#'   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models); McCullagh, P. (1980).
-#'   "Regression Models for Ordinal Data." \emph{JRSS-B}, 42(2), 109-142.
-#' @seealso \url{https://en.wikipedia.org/wiki/Ordinal_regression}
-#'
-#' @export
+# Interim class (documentation demoted to plain comments): only consumed via
+# inference_component_source_parts() below; the composed class is documented on the
+# final define_inference_class() assignment.
 InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLikStdModCache,
 	public = list(
-		#' @description Initialize a cumulative cloglog inference object.
-		#' @param des_obj A completed \code{Design} object with an ordinal response.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose Whether to print progress messages.
-		#' @param smart_cold_start_default Whether to use smart cold start values by default.
+		# @description Initialize a cumulative cloglog inference object.
+		# @param des_obj A completed \code{Design} object with an ordinal response.
+		# @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
+		#   the formula from the design object is used and its pre-computed design matrix is
+		#   reused. If a formula is provided, a new design matrix is constructed from the
+		#   design's imputed covariates.
+		# @param verbose Whether to print progress messages.
+		# @param smart_cold_start_default Whether to use smart cold start values by default.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "ordinal")
@@ -40,19 +23,19 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Refits the cloglog cumulative-link model under subject/block
-		#'   resampling weights via \code{weighted_ordinal_bootstrap_surrogate_fit()}
-		#'   (a weighted-likelihood surrogate fit, not full IRLS re-optimization from
-		#'   cold start) and returns the re-estimated treatment coefficient
-		#'   \eqn{\hat\beta_T} on the cloglog-link scale. Used to build the
-		#'   nonparametric- and Bayesian-bootstrap distributions of \eqn{\hat\beta_T}.
-		#'   If the surrogate fit fails or yields a non-finite estimate, the
-		#'   replicate's estimate, standard error, and degrees of freedom are all set
-		#'   to \code{NA}.
-		#' @param subject_or_block_weights Numeric vector of resampling weights, one
-		#'   per subject or resampling block.
-		#' @param estimate_only Accepted for interface compatibility; standard errors
-		#'   are never computed for a single bootstrap replicate regardless of this flag.
+		# @description Refits the cloglog cumulative-link model under subject/block
+		#   resampling weights via \code{weighted_ordinal_bootstrap_surrogate_fit()}
+		#   (a weighted-likelihood surrogate fit, not full IRLS re-optimization from
+		#   cold start) and returns the re-estimated treatment coefficient
+		#   \eqn{\hat\beta_T} on the cloglog-link scale. Used to build the
+		#   nonparametric- and Bayesian-bootstrap distributions of \eqn{\hat\beta_T}.
+		#   If the surrogate fit fails or yields a non-finite estimate, the
+		#   replicate's estimate, standard error, and degrees of freedom are all set
+		#   to \code{NA}.
+		# @param subject_or_block_weights Numeric vector of resampling weights, one
+		#   per subject or resampling block.
+		# @param estimate_only Accepted for interface compatibility; standard errors
+		#   are never computed for a single bootstrap replicate regardless of this flag.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X_fit = private$build_design_matrix()
@@ -284,6 +267,26 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 
 OrdinalCloglogLikelihoodSource = inference_component_source_parts(InferenceOrdinalCloglogRegr)
 
+#' Cumulative Cloglog Inference for Ordinal Responses
+#'
+#' Complementary log-log cumulative-odds ordinal regression:
+#' \eqn{P(Y \le k \mid w, x) = 1 - \exp\{-\exp(\alpha_k - \beta_T w -
+#' \beta_X^\top x)\}}, where \eqn{\alpha_k} are category-specific cutpoints and
+#' \eqn{\beta_T} is the treatment coefficient on the cloglog scale. Fit by
+#' maximum likelihood. The cloglog link is asymmetric (unlike logit/probit) and
+#' is the natural ordinal generalization of a proportional-hazards/grouped
+#' survival-time model, so it is preferred when the underlying process is
+#' plausibly a discretized time-to-event or extreme-value mechanism.
+#' \code{likelihood_tier = "full"}: exposes likelihood-ratio, score, gradient,
+#' and parametric-likelihood-bootstrap inference in addition to Wald/asymptotic
+#' and Bayesian-bootstrap paths.
+#'
+#' @references Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
+#'   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models); McCullagh, P. (1980).
+#'   "Regression Models for Ordinal Data." \emph{JRSS-B}, 42(2), 109-142.
+#' @seealso \url{https://en.wikipedia.org/wiki/Ordinal_regression}
+#'
+#' @export
 InferenceOrdinalCloglogRegr = define_inference_class(
 	classname = "InferenceOrdinalCloglogRegr",
 	inherit = Inference,

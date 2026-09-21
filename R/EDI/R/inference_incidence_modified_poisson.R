@@ -1,3 +1,8 @@
+#' Modified-Poisson likelihood component source
+#'
+#' Source list for the \code{IncidenceModifiedPoissonLikelihood} component composed by \code{InferenceIncidModifiedPoisson}.
+#'
+#' @keywords internal
 IncidenceModifiedPoissonLikelihoodSource = list(
 	public = list(
 

@@ -8,6 +8,11 @@
 # inline public list never overrode that method, so the ladder inherited
 # exactly that body anyway). The factory call is below the source. The OneLik
 # sibling later in this file is untouched (one-likelihood phase).
+#' KK stratified Cox IVWC component source
+#'
+#' Source list for the KK stratified Cox inverse-variance-weighted-combination (IVWC) survival component.
+#'
+#' @keywords internal
 SurvivalKKStratCoxIVWCSource = list(
 	public = list(
 		#' @description Initialize KK stratified Cox IVWC inference and prepare the

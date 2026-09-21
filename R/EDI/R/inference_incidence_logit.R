@@ -1,3 +1,8 @@
+#' Logistic likelihood component source
+#'
+#' Source list for the \code{IncidenceLogisticLikelihood} component composed by \code{InferenceIncidLogRegr}.
+#'
+#' @keywords internal
 IncidenceLogisticLikelihoodSource = list(
 	public = list(
 

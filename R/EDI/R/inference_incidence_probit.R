@@ -1,3 +1,8 @@
+#' Probit likelihood component source
+#'
+#' Source list for the \code{IncidenceProbitLikelihood} component composed by \code{InferenceIncidProbitRegr}.
+#'
+#' @keywords internal
 IncidenceProbitLikelihoodSource = list(
 	public = list(
 		#' @description Initialize inference for the probit regression model

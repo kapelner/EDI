@@ -93,6 +93,7 @@ R/package_tests/testthat_bulk/test-cox-cluster-constrained-sandwich-reference.R,
 R/package_tests/testthat_bulk/test-cox-component-composition.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-coxph-general-censoring-icenreg-dispatch.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-coxph-icen-fit-failure-nonfinite-variance-and-bootstrap-budget-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-coxph-kernel-tied-times-breslow-cluster-robust-vcov-optimizers-and-fixed-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-coxph-kernels-fixed-fit-and-breslow-derivatives-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-coxph-likelihood-spec-null-simulation-and-weighted-extreme-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-coxph-rand-bootstrap-parallel-kernel-with-covariates-survival-coxph-reference.R,correctness,120,bootstrap
@@ -503,6 +504,7 @@ R/package_tests/testthat_bulk/test-stereotype-multicategory-sampler-reference.R,
 R/package_tests/testthat_bulk/test-stereotype-profile-and-randomization-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-strat-cox-partial-likelihood-degenerate-fallback-references.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-strat-cox-weighted-bootstrap-and-rand-ci-block.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-stratified-coxph-kernel-survival-coxph-strata-reference-optimizers-fixed-and-fields.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-suite-cct-combination-labels-and-class-discovery-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-summary-glm-lean-dispersion-branches-aliasing-and-correlation-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-supported-testing-types-with-bartlett-estimand-gating-and-unsupported-stop-reference.R,correctness,120,bootstrap
@@ -896,6 +898,7 @@ R/package_tests/testthat_bulk/test-cox-cluster-constrained-sandwich-reference.R,
 R/package_tests/testthat_bulk/test-cox-component-composition.R,coverage,5.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-coxph-general-censoring-icenreg-dispatch.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-icen-fit-failure-nonfinite-variance-and-bootstrap-budget-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-coxph-kernel-tied-times-breslow-cluster-robust-vcov-optimizers-and-fixed-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-kernels-fixed-fit-and-breslow-derivatives-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-likelihood-spec-null-simulation-and-weighted-extreme-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-rand-bootstrap-parallel-kernel-with-covariates-survival-coxph-reference.R,coverage,240,bootstrap
@@ -1306,6 +1309,7 @@ R/package_tests/testthat_bulk/test-stereotype-multicategory-sampler-reference.R,
 R/package_tests/testthat_bulk/test-stereotype-profile-and-randomization-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-strat-cox-partial-likelihood-degenerate-fallback-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-strat-cox-weighted-bootstrap-and-rand-ci-block.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-stratified-coxph-kernel-survival-coxph-strata-reference-optimizers-fixed-and-fields.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-suite-cct-combination-labels-and-class-discovery-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-summary-glm-lean-dispersion-branches-aliasing-and-correlation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-supported-testing-types-with-bartlett-estimand-gating-and-unsupported-stop-reference.R,coverage,240,bootstrap

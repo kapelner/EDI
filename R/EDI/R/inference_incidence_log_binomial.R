@@ -1,3 +1,8 @@
+#' Log-binomial likelihood component source
+#'
+#' Source list for the \code{IncidenceLogBinomialLikelihood} component composed by \code{InferenceIncidLogBinomial}.
+#'
+#' @keywords internal
 IncidenceLogBinomialLikelihoodSource = list(
 	public = list(
 

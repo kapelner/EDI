@@ -5,6 +5,11 @@
 # Shared verbatim by `InferenceIncidGCompRiskDiff` and
 # `InferenceIncidGCompRiskRatio` -- the RD/RR branching happens inside these
 # bodies via `private$get_estimand_type()`, not via which class composes them.
+#' Generic aliased overrides for the incidence g-computation component
+#'
+#' Shared \code{self$}-aliased public overrides for methods of the \code{IncidenceGComputation} component whose bodies call \code{super$...}; composed by \code{InferenceIncidGCompRiskDiff} and \code{InferenceIncidGCompRiskRatio}.
+#'
+#' @keywords internal
 incidence_gcomp_generic_alias_overrides = list(
 	#' @description Uses the shared randomization two-sided p-value contract; see
 	#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.

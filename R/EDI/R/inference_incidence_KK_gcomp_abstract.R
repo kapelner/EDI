@@ -995,6 +995,11 @@ incidence_kk_gcomp_marginal_incid_overrides = list(
 	}
 )
 
+#' KK incidence g-computation component source
+#'
+#' Source list for the \code{IncidenceKKGComputation} component shared by the KK g-computation incidence classes.
+#'
+#' @keywords internal
 IncidenceKKGComputationSource = local({
 	parts = inference_component_source_parts(InferenceIncidKKGCompAbstract)
 	list(

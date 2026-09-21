@@ -1,14 +1,14 @@
 OrdinalStereotypeLikelihoodSource = list(
 	public = list(
-		#' @description Initialize inference for the stereotype logit model; see
-		#'   \code{\link[EDI:InferenceOrdinalStereotypeLogitRegr]{InferenceOrdinalStereotypeLogitRegr}}
-		#'   for the model form. Does not fit the model; the fit is deferred to the
-		#'   first call to \code{compute_estimate()} or a method that requires it.
-		#' @param des_obj A completed \code{Design} object with an ordinal response.
-		#' @param model_formula   Optional formula for covariate adjustment.
-		#' @param verbose Whether to print progress messages.
-		#' @param harden Whether to apply robustness measures.
-		#' @param smart_cold_start_default Whether to use smart cold starts.
+		# @description Initialize inference for the stereotype logit model; see
+		#   \code{\link[EDI:InferenceOrdinalStereotypeLogitRegr]{InferenceOrdinalStereotypeLogitRegr}}
+		#   for the model form. Does not fit the model; the fit is deferred to the
+		#   first call to \code{compute_estimate()} or a method that requires it.
+		# @param des_obj A completed \code{Design} object with an ordinal response.
+		# @param model_formula   Optional formula for covariate adjustment.
+		# @param verbose Whether to print progress messages.
+		# @param harden Whether to apply robustness measures.
+		# @param smart_cold_start_default Whether to use smart cold starts.
 		initialize = function(des_obj, verbose = FALSE, harden = TRUE, model_formula = NULL, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "ordinal")
@@ -18,19 +18,19 @@ OrdinalStereotypeLikelihoodSource = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the treatment estimate under subject/block-level
-		#'   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
-		#'   weights). Rather than refitting the full reduced-rank stereotype model
-		#'   under weights, calls \code{weighted_ordinal_bootstrap_surrogate_fit()}
-		#'   — a fast weighted ordinal-logistic surrogate fit on the raw design
-		#'   matrix — as an approximation to the weighted stereotype likelihood; the
-		#'   surrogate does not re-estimate the \eqn{\phi_k} category scores. No
-		#'   standard error is computed (\code{s_beta_hat_T} is always \code{NA});
-		#'   the surrogate returns \code{NA} if the fit fails.
-		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
-		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		# @description Recomputes the treatment estimate under subject/block-level
+		#   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+		#   weights). Rather than refitting the full reduced-rank stereotype model
+		#   under weights, calls \code{weighted_ordinal_bootstrap_surrogate_fit()}
+		#   — a fast weighted ordinal-logistic surrogate fit on the raw design
+		#   matrix — as an approximation to the weighted stereotype likelihood; the
+		#   surrogate does not re-estimate the \eqn{\phi_k} category scores. No
+		#   standard error is computed (\code{s_beta_hat_T} is always \code{NA});
+		#   the surrogate returns \code{NA} if the fit fails.
+		# @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
+		#   bootstrap weights.
+		# @param estimate_only If \code{TRUE}, compute only the weighted point
+		#   estimate.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X_fit = private$build_design_matrix()
@@ -468,24 +468,38 @@ OrdinalStereotypeLikelihoodSource = list(
 #' available when the model converges, plus parametric-likelihood-bootstrap
 #' calibration of the likelihood-ratio test.
 #'
-#' \strong{\code{compute_lik_ratio_two_sided_pval()} is inflated for this
-#' class specifically} (confirmed empirically: ~18-23\% Type-I error against
-#' a nominal 5\%): the stereotype model's category-score parameters
-#' \eqn{\phi_k} are a textbook Davies (1977) non-regular case, not identified
+#' \strong{\code{compute_lik_ratio_two_sided_pval()} can be
+#' anti-conservative at small \eqn{n}.} The stereotype model's category-score
+#' parameters \eqn{\phi_k} are a Davies (1977) non-regular case, not identified
 #' when \eqn{\beta_T} is at/near zero -- exactly the neighborhood every null
-#' hypothesis test sits in -- so the LR statistic's true null distribution is
-#' not the standard chi-square(1) this method assumes. Two already-working,
-#' better-calibrated alternatives exist on this class and should be preferred
-#' when a properly-sized likelihood-ratio-family test is needed:
+#' hypothesis test sits in -- so the LR statistic's null distribution need not
+#' be the chi-square(1) this method assumes. The size of the problem depends
+#' on the constrained refit: before 2026-09-21 the delta-constrained refit
+#' started cold and could stall in a much worse local optimum (e.g.
+#' neg-log-likelihood 131.3 vs the full fit's 118.9 at \eqn{\delta} equal to
+#' the MLE itself), which inflated the LR statistic and produced ~18-23\%
+#' Type-I error at \eqn{n = 100}; it also collapsed the bootstrap and
+#' inverted-LR confidence intervals to zero width. The refit now also starts
+#' from the full-fit parameters and keeps the better fit. Measured after that
+#' change (400 simulated null datasets, 5 response categories, a continuous
+#' covariate): about 6.5\% Type-I error and 0.93 confidence-interval coverage
+#' at \eqn{n = 100}, with no zero-width intervals, and about 13\% Type-I error
+#' at \eqn{n = 50} with 3 categories (169 converged fits). Part of the
+#' small-sample excess comes from the likelihood being multimodal: in a few
+#' percent of \eqn{n = 50} fits the reported point estimate sits at a local
+#' optimum whose likelihood is below that of another optimum, which makes the
+#' LR statistic at the estimate positive rather than zero. For small samples,
+#' prefer the better-calibrated alternatives on this class:
 #' \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap
-#' calibration via the class's own null simulation; confirmed ~6-7\% Type-I
-#' error) and the cheaper \code{compute_lik_ratio_bartlett_two_sided_pval()}
-#' (Monte-Carlo Bartlett correction; confirmed ~4\% Type-I error). Both are
+#' calibration via the class's own null simulation; ~6-7\% Type-I error) and
+#' the cheaper \code{compute_lik_ratio_bartlett_two_sided_pval()}
+#' (Monte-Carlo Bartlett correction; ~4\% Type-I error); those two figures
+#' predate the refit change and were not re-measured. Both are
 #' roughly 20-40x slower per call than the raw chi-square test (a fresh
 #' bootstrap/Monte-Carlo refit at every delta candidate), which is why they
 #' are excluded from this package's own routine comprehensive test suite
-#' (see \code{comprehensive_slow_paths.R}) despite being the statistically
-#' correct choice for this class. \code{compute_lik_ratio_two_sided_pval()}
+#' (see \code{comprehensive_slow_paths.R}).
+#' \code{compute_lik_ratio_two_sided_pval()}
 #' itself is left unchanged (not silently recalibrated) to avoid an
 #' undocumented behavior change to an existing method's contract.
 #' Bayesian-bootstrap inference is temporarily unavailable because the current
@@ -540,16 +554,16 @@ InferenceOrdinalStereotypeLogitRegr = define_inference_class(
 
 OrdinalContinuationRatioLikelihoodSource = list(
 	public = list(
-		#' @description Initialize inference for the continuation-ratio ordinal
-		#'   regression model; see
-		#'   \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}
-		#'   for the model form. Does not fit the model; the fit is deferred to the
-		#'   first call to \code{compute_estimate()} or a method that requires it.
-		#' @param des_obj A completed \code{Design} object with an ordinal response.
-		#' @param model_formula   Optional formula for covariate adjustment.
-		#' @param verbose Whether to print progress messages.
-		#' @param harden Whether to apply robustness measures.
-		#' @param smart_cold_start_default Whether to use smart cold starts.
+		# @description Initialize inference for the continuation-ratio ordinal
+		#   regression model; see
+		#   \code{\link[EDI:InferenceOrdinalContRatioRegr]{InferenceOrdinalContRatioRegr}}
+		#   for the model form. Does not fit the model; the fit is deferred to the
+		#   first call to \code{compute_estimate()} or a method that requires it.
+		# @param des_obj A completed \code{Design} object with an ordinal response.
+		# @param model_formula   Optional formula for covariate adjustment.
+		# @param verbose Whether to print progress messages.
+		# @param harden Whether to apply robustness measures.
+		# @param smart_cold_start_default Whether to use smart cold starts.
 		initialize = function(des_obj, verbose = FALSE, harden = TRUE, model_formula = NULL, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "ordinal")
@@ -559,17 +573,17 @@ OrdinalContinuationRatioLikelihoodSource = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the treatment estimate under subject/block-level
-		#'   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
-		#'   weights). Refits the same continuation-ratio likelihood used by the
-		#'   unweighted estimator, copying each subject's weight onto all of that
-		#'   subject's augmented binary rows. No standard error is computed
-		#'   (\code{s_beta_hat_T} is always \code{NA}); returns \code{NA} if the
-		#'   weighted fit fails.
-		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
-		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		# @description Recomputes the treatment estimate under subject/block-level
+		#   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+		#   weights). Refits the same continuation-ratio likelihood used by the
+		#   unweighted estimator, copying each subject's weight onto all of that
+		#   subject's augmented binary rows. No standard error is computed
+		#   (\code{s_beta_hat_T} is always \code{NA}); returns \code{NA} if the
+		#   weighted fit fails.
+		# @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
+		#   bootstrap weights.
+		# @param estimate_only If \code{TRUE}, compute only the weighted point
+		#   estimate.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X_fit = private$build_design_matrix()

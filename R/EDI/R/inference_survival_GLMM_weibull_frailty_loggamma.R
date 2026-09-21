@@ -3,6 +3,11 @@
 # compound layer arrives through the registered KKCompound component (this
 # component's declared dependency); this source holds only the class's own
 # estimator overrides.
+#' GLMM Weibull log-gamma-frailty IVWC component source
+#'
+#' Source list for the KK inverse-variance-weighted-combination (IVWC) Weibull log-gamma-frailty survival component.
+#'
+#' @keywords internal
 SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 	public = list(
 		#' @description Initialize KK Clayton-copula survival inference and prepare

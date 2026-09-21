@@ -1,3 +1,8 @@
+#' Identity-link binomial regression component source
+#'
+#' Source list for the \code{IncidenceBinomialIdentityLikelihood} component composed by \code{InferenceIncidBinomialIdentityRiskDiff}.
+#'
+#' @keywords internal
 IncidenceBinomialIdentityLikelihoodSource = list(
 	public = list(
 

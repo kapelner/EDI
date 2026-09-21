@@ -1,3 +1,8 @@
+#' Exact binomial incidence component source
+#'
+#' Source list for the exact-binomial incidence component.
+#'
+#' @keywords internal
 ExactBinomialIncidenceSource = list(
 	public = list(
 		#' @description Initialize exact matched-pair binomial inference for

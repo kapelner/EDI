@@ -1,44 +1,20 @@
-#' Adjacent Category Logit Regression Inference for Ordinal Responses
-#'
-#' Fits an adjacent-category logit regression for ordinal responses (via
-#' \code{\link{fast_adjacent_category_logit_cpp}} — see that page for the full
-#' model, an alternative ordinal parameterization to the cumulative-logit
-#' proportional-odds model) using the treatment indicator and, optionally, all
-#' recorded covariates as predictors. This is a full-likelihood class
-#' (\code{likelihood_tier = "full"}) supporting score, gradient, and
-#' likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
-#' calibration, in addition to Wald and resampling-based inference.
-#' Bayesian-bootstrap inference is temporarily unavailable because the current
-#' non-uniform weighted hook fits a cumulative-logit surrogate rather than the
-#' adjacent-category likelihood. It will remain disabled until the native
-#' weighted adjacent-category backend described in the package implementation
-#' plan lands.
-#'
-#' @examples
-#' \donttest{
-#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')
-#' for (i in 1:10) {
-#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
-#' seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
-#' inf = InferenceOrdinalAdjCatLogitRegr$new(seq_des)
-#' inf$compute_estimate()
-#' }
-#' @export
+# Interim class (documentation demoted to plain comments): only consumed via
+# inference_component_source_parts() below; the composed class is documented on the
+# final define_inference_class() assignment.
 InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLikStdModCache,
 	public = list(
-		#' @description Initialize an adjacent-category-logit inference object for a
-		#'   completed design with an ordinal, uncensored response.
-		#' @param des_obj A completed \code{Design} object with an ordinal response.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose Whether to print progress messages.
-		#' @param harden Whether to apply robustness measures.
-		#' @param smart_cold_start_default Whether to use smart cold starts.
+		# @description Initialize an adjacent-category-logit inference object for a
+		#   completed design with an ordinal, uncensored response.
+		# @param des_obj A completed \code{Design} object with an ordinal response.
+		# @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
+		#   the formula from the design object is used and its pre-computed design matrix is
+		#   reused. If a formula is provided, a new design matrix is constructed from the
+		#   design's imputed covariates.
+		# @param verbose Whether to print progress messages.
+		# @param harden Whether to apply robustness measures.
+		# @param smart_cold_start_default Whether to use smart cold starts.
 		initialize = function(des_obj, verbose = FALSE, harden = TRUE, model_formula = NULL, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "ordinal")
@@ -49,21 +25,21 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the ordinal treatment estimate under
-		#'   subject/block bootstrap weights, used by the Bayesian bootstrap and
-		#'   related weighted-resampling machinery; see
-		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
-		#'   Rather than refitting the full adjacent-category logit model with
-		#'   weights, this uses a cheaper \strong{surrogate} fit
-		#'   (\code{weighted_ordinal_bootstrap_surrogate_fit(..., method =
-		#'   "logistic")}) on the (possibly rank-reduced, reusing
-		#'   \code{private$best_Xmm_colnames} from a prior full fit if available)
-		#'   design matrix. Always leaves the standard error and degrees of freedom
-		#'   unavailable (\code{NA}) regardless of \code{estimate_only} — this
-		#'   surrogate path never computes a variance.
-		#' @param subject_or_block_weights Numeric vector. Row weights for bootstrap.
-		#' @param estimate_only Present for interface parity; this method never
-		#'   computes variance components regardless of its value.
+		# @description Recomputes the ordinal treatment estimate under
+		#   subject/block bootstrap weights, used by the Bayesian bootstrap and
+		#   related weighted-resampling machinery; see
+		#   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+		#   Rather than refitting the full adjacent-category logit model with
+		#   weights, this uses a cheaper \strong{surrogate} fit
+		#   (\code{weighted_ordinal_bootstrap_surrogate_fit(..., method =
+		#   "logistic")}) on the (possibly rank-reduced, reusing
+		#   \code{private$best_Xmm_colnames} from a prior full fit if available)
+		#   design matrix. Always leaves the standard error and degrees of freedom
+		#   unavailable (\code{NA}) regardless of \code{estimate_only} — this
+		#   surrogate path never computes a variance.
+		# @param subject_or_block_weights Numeric vector. Row weights for bootstrap.
+		# @param estimate_only Present for interface parity; this method never
+		#   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X_fit = private$build_design_matrix()
@@ -336,6 +312,33 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 
 	OrdinalAdjacentCategoryLikelihoodSource = inference_component_source_parts(InferenceOrdinalAdjCatLogitRegr)
 
+#' Adjacent Category Logit Regression Inference for Ordinal Responses
+#'
+#' Fits an adjacent-category logit regression for ordinal responses (via
+#' \code{\link{fast_adjacent_category_logit_cpp}} — see that page for the full
+#' model, an alternative ordinal parameterization to the cumulative-logit
+#' proportional-odds model) using the treatment indicator and, optionally, all
+#' recorded covariates as predictors. This is a full-likelihood class
+#' (\code{likelihood_tier = "full"}) supporting score, gradient, and
+#' likelihood-ratio tests, plus parametric likelihood-ratio bootstrap
+#' calibration, in addition to Wald and resampling-based inference.
+#' Bayesian-bootstrap inference is temporarily unavailable because the current
+#' non-uniform weighted hook fits a cumulative-logit surrogate rather than the
+#' adjacent-category likelihood. It will remain disabled until the native
+#' weighted adjacent-category backend described in the package implementation
+#' plan lands.
+#'
+#' @examples
+#' \donttest{
+#' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')
+#' for (i in 1:10) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+#' }
+#' seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
+#' inf = InferenceOrdinalAdjCatLogitRegr$new(seq_des)
+#' inf$compute_estimate()
+#' }
+#' @export
 	InferenceOrdinalAdjCatLogitRegr = define_inference_class(
 		classname = "InferenceOrdinalAdjCatLogitRegr",
 		inherit = Inference,

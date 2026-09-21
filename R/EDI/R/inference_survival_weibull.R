@@ -1,3 +1,8 @@
+#' Weibull likelihood component source
+#'
+#' Source list for the \code{SurvivalWeibullLikelihood} component composed by \code{InferenceSurvivalWeibullRegr}.
+#'
+#' @keywords internal
 SurvivalWeibullLikelihoodSource = list(
 	public = list(
 		#' @description Initialize inference for the Weibull AFT model

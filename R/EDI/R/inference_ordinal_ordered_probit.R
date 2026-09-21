@@ -1,16 +1,16 @@
 OrdinalOrderedProbitLikelihoodSource = list(
 	public = list(
-		#' @description Initialize inference for the ordered probit model; see
-		#'   \code{\link[EDI:InferenceOrdinalOrderedProbitRegr]{InferenceOrdinalOrderedProbitRegr}}
-		#'   for the model form. Does not fit the model; the fit is deferred to the
-		#'   first call to \code{compute_estimate()} or a method that requires it.
-		#' @param des_obj A completed \code{Design} object with an ordinal response.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose Whether to print progress messages.
-		#' @param smart_cold_start_default Whether to use smart cold start values by default.
+		# @description Initialize inference for the ordered probit model; see
+		#   \code{\link[EDI:InferenceOrdinalOrderedProbitRegr]{InferenceOrdinalOrderedProbitRegr}}
+		#   for the model form. Does not fit the model; the fit is deferred to the
+		#   first call to \code{compute_estimate()} or a method that requires it.
+		# @param des_obj A completed \code{Design} object with an ordinal response.
+		# @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
+		#   the formula from the design object is used and its pre-computed design matrix is
+		#   reused. If a formula is provided, a new design matrix is constructed from the
+		#   design's imputed covariates.
+		# @param verbose Whether to print progress messages.
+		# @param smart_cold_start_default Whether to use smart cold start values by default.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "ordinal")
@@ -21,17 +21,17 @@ OrdinalOrderedProbitLikelihoodSource = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Recomputes the treatment estimate under subject/block-level
-		#'   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
-		#'   weights) via \code{weighted_ordinal_bootstrap_surrogate_fit()}, a fast
-		#'   weighted ordinal-probit surrogate fit on the raw design matrix, as an
-		#'   approximation to the weighted ordered-probit likelihood. No standard
-		#'   error is computed (\code{s_beta_hat_T} is always \code{NA}); the
-		#'   surrogate returns \code{NA} if the fit fails.
-		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
-		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		# @description Recomputes the treatment estimate under subject/block-level
+		#   bootstrap weights (Bayesian-bootstrap or nonparametric-bootstrap draw
+		#   weights) via \code{weighted_ordinal_bootstrap_surrogate_fit()}, a fast
+		#   weighted ordinal-probit surrogate fit on the raw design matrix, as an
+		#   approximation to the weighted ordered-probit likelihood. No standard
+		#   error is computed (\code{s_beta_hat_T} is always \code{NA}); the
+		#   surrogate returns \code{NA} if the fit fails.
+		# @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
+		#   bootstrap weights.
+		# @param estimate_only If \code{TRUE}, compute only the weighted point
+		#   estimate.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X_fit = private$build_design_matrix()

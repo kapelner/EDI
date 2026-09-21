@@ -1,3 +1,8 @@
+#' Exact Zhang incidence component source
+#'
+#' Source list for the exact Zhang incidence component.
+#'
+#' @keywords internal
 ExactZhangIncidenceSource = list(
 	public = list(
 		#' @description Initialize exact Zhang combined-test incidence inference.

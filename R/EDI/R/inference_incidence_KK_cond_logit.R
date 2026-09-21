@@ -734,6 +734,11 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 # no-op (same argument as SurvivalKKRankRegrIVWCSource). The factory call is
 # below the source. The OneLik sibling earlier in this file is untouched
 # (one-likelihood phase).
+#' KK conditional-logit IVWC component source
+#'
+#' Source list for the KK conditional-logit inverse-variance-weighted-combination (IVWC) incidence component.
+#'
+#' @keywords internal
 IncidKKCondLogitIVWCSource = list(
 	public = list(
 		#' @description Initialize conditional-logistic IVWC inference for KK binary

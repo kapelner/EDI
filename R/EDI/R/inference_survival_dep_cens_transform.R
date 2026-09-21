@@ -1,3 +1,8 @@
+#' Dependent-censoring transformation component source
+#'
+#' Source list for the dependent-censoring transformation survival component.
+#'
+#' @keywords internal
 SurvivalDepCensTransformSource = list(
 	public = list(
 		#' @description Initialize inference for the bivariate log-normal
