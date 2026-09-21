@@ -1168,7 +1168,7 @@ Inference = R6::R6Class("Inference",
 		reduce_design_matrix_preserving_treatment_matrix = function(X_full){
 			private$reduce_design_matrix_preserving_treatment(X_full)$X
 		},
-		fit_with_hardened_qr_column_dropping = function(X_full, fit_fun, fit_ok, required_cols = 1L){
+		fit_with_hardened_qr_column_dropping = function(X_full, fit_fun, fit_ok, required_cols = 1L, implicit_intercept = FALSE){
 			X_mat = as.matrix(X_full)
 			if (is.null(dim(X_mat))){
 				X_mat = matrix(X_mat, ncol = 1L)
@@ -1202,10 +1202,24 @@ Inference = R6::R6Class("Inference",
 			if (!private$harden || ncol(X_mat) <= length(required_cols)){
 				return(attempt_fit(seq_len(ncol(X_mat))))
 			}
-			qr_X = qr(X_mat)
-			keep = sort(unique(c(required_cols, qr_X$pivot[seq_len(qr_X$rank)])))
+			# Threshold models (ordinal cumulative-link / continuation-ratio / stereotype) have no
+			# intercept column in X but an implicit one per stage: a set of columns that sums to a
+			# constant (e.g. both dummies of a two-level factor) is collinear with it even though
+			# qr(X) alone calls it full rank, and the fit then starts from garbage (~1e13 thresholds)
+			# and stops after one iteration. `implicit_intercept = TRUE` adds a constant column to the
+			# rank check.
+			if (isTRUE(implicit_intercept)) {
+				qr_X = qr(cbind(1, X_mat))
+				pivot = qr_X$pivot[qr_X$pivot != 1L] - 1L
+				rank_cols = pivot[seq_len(max(0L, qr_X$rank - 1L))]
+			} else {
+				qr_X = qr(X_mat)
+				pivot = qr_X$pivot
+				rank_cols = pivot[seq_len(qr_X$rank)]
+			}
+			keep = sort(unique(c(required_cols, rank_cols)))
 			if (!length(keep)) keep = seq_len(ncol(X_mat))
-			removable = rev(setdiff(qr_X$pivot[qr_X$pivot %in% keep], required_cols))
+			removable = rev(setdiff(pivot[pivot %in% keep], required_cols))
 			best_attempt = attempt_fit(keep)
 			if (isTRUE(fit_ok(best_attempt$fit, best_attempt$X, best_attempt$keep))){
 				return(best_attempt)

@@ -1082,7 +1082,7 @@ infer_inference_direct_components = function(name) {
 			# InferenceSurvivalGLMMWeibullFrailtyNormalOneLik, was a false
 			# positive from the audit script's own regex choking on parentheses
 			# inside a code comment, not a real discrepancy).
-			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood", "BayesianBootstrap"),
+			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood", "BayesianBootstrap", "MarginalEstimand"),
 			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich", "BayesianBootstrap"),
 			InferenceOrdinalPropOddsRegr = c(
 				"BayesianBootstrap",

@@ -338,7 +338,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			full_X = private$create_design_matrix()
-			attempt = private$fit_with_hardened_qr_column_dropping(
+			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE, 
 				X_full = full_X,
 				required_cols = c(1L, 2L),
 				fit_fun = function(X_fit){

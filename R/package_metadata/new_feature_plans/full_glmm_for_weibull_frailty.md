@@ -105,7 +105,7 @@ for any k. What is *not* yet general:
 - `R/EDI/src/fast_survival_models_optim.cpp:743` —
   `fast_clayton_weibull_aft_optim_cpp()` — the optimizer entry point, same
   signature.
-- `R/EDI/R/helper_matching.R:232` — `.complete_pair_index_matrix()`:
+- `R/EDI/R/helper_matching.R:192` — `.complete_pair_index_matrix()`:
   ```r
   pair_rows = split(which(valid), pair_id[valid])
   pair_rows = pair_rows[lengths(pair_rows) == 2L]   # drops everything != 2
@@ -124,9 +124,11 @@ for any k. What is *not* yet general:
 
 ### Shared bootstrap layer — hard-coded to pairs, used by both families
 
-- `R/EDI/R/helper_matching.R:172-198` — `.init_kk_bootstrap_structure()`:
+- `R/EDI/R/design_matching_abstract.R` — private method `init_matching_bootstrap_structure()`
+  (2026-09-21: the same-named `.init_kk_bootstrap_structure()` in `helper_matching.R` was a dead
+  duplicate with no callers and was deleted; this is the live copy):
   `pr = matrix(integer(0), nrow = m_max, ncol = 2L)` then
-  `pr[pid, ] = which(m_vec_int == pid)` (line 190). For any group of size
+  `pr[pid, ] = which(m_vec_int == pid)`. For any group of size
   ≠ 2 this is a **hard R error** ("number of items to replace is not a
   multiple of replacement length"), not silently wrong behavior — but it
   does mean the Bayesian-bootstrap path (used by both `IVWC` classes, per
@@ -140,8 +142,8 @@ for any k. What is *not* yet general:
   touching it; it may be a superseded sibling of the function below.)
 - `R/EDI/src/bootstrap_match_indices.cpp:91` —
   `draw_matching_bootstrap_sample_cpp()`: `const int out_n = n_reservoir + 2
-  * m` (line 97) — the function this package's `.draw_kk_bootstrap_indices()`
-  (`helper_matching.R:203`) actually calls. Same width-2 assumption.
+  * m` (line 97) — the function that `draw_matching_bootstrap_indices()` in
+  `design_matching_abstract.R` actually calls. Same width-2 assumption.
 
 A reusable primitive already exists for exactly this kind of ragged
 grouping and is used by three other kernels:
@@ -262,24 +264,24 @@ Files:
   `bootstrap_m_indices_internal`/`bootstrap_m_indices_cpp`, lines 27-84, are
   still called anywhere — if not, delete them in the same commit rather
   than generalizing dead code).
-- Modify: `R/EDI/R/helper_matching.R:172-210`
-  (`.init_kk_bootstrap_structure()`, `.draw_kk_bootstrap_indices()`).
+- Modify: `R/EDI/R/design_matching_abstract.R`
+  (`init_matching_bootstrap_structure()`, `draw_matching_bootstrap_indices()`).
 
 Steps:
 - [ ] Write a failing R test in a new
   `R/EDI/tests/testthat/test-kk-bootstrap-ragged-groups.R`: build
   `m_vec = c(1,1,1, 2,2, 0,0)` (one triple, one pair, two reservoir), call
-  `.draw_kk_bootstrap_indices()` on a stub `des_priv` environment with that
-  `m`/`n`, and assert it does not error and returns `i_b`/`m_vec_b` where
+  `draw_matching_bootstrap_indices()` on a matching design (or its private
+  environment, set up with that `m`/`n`), and assert it does not error and returns `i_b`/`m_vec_b` where
   every resampled group in the output preserves its original member's group
   size (a resampled triple contributes 3 rows sharing one new group id).
 - [ ] Run it, confirm it fails with the current "not a multiple of
-  replacement length" error from `helper_matching.R:190`.
-- [ ] In `helper_matching.R:.init_kk_bootstrap_structure()`, replace the
+  replacement length" error from `init_matching_bootstrap_structure()`.
+- [ ] In `design_matching_abstract.R`'s `init_matching_bootstrap_structure()`, replace the
   fixed `ncol = 2L` matrix with a ragged structure: `group_rows =
   split(which(m_vec_int > 0L), m_vec_int[m_vec_int > 0L])` (a named list,
   one integer vector per group, any length), stored as
-  `des_priv$boot_group_rows`.
+  `private$boot_group_rows`.
 - [ ] In `bootstrap_match_indices.cpp`, replace `IntegerMatrix pair_rows`
   with a CSR-style pair of vectors — `IntegerVector group_starts` and
   `IntegerVector group_members` (flattened, ragged) — mirroring
@@ -289,10 +291,10 @@ Steps:
   as units** (draw a random group index, copy all its members, assign them
   one new shared group id in the output) exactly as today, just for
   variable-width groups; `out_n = n_reservoir + sum(group sizes drawn)`.
-- [ ] Update `.draw_kk_bootstrap_indices()` to pass the new CSR vectors.
+- [ ] Update `draw_matching_bootstrap_indices()` to pass the new CSR vectors.
 - [ ] Run the failing test; confirm it passes.
 - [ ] Run the existing pairs-only bootstrap tests (`grep -rl
-  "draw_matching_bootstrap_sample_cpp\|\.draw_kk_bootstrap_indices"
+  "draw_matching_bootstrap_sample_cpp\|draw_matching_bootstrap_indices"
   R/EDI/tests/testthat/`) unmodified — they must still pass bit-for-bit
   (k=2 is the existing behavior, not a new code path).
 - [ ] Commit.
@@ -433,7 +435,7 @@ Steps:
 group layout.**
 
 Files:
-- Modify: `R/EDI/R/helper_matching.R:232-242` — either repurpose this
+- Modify: `R/EDI/R/helper_matching.R:192-202` — either repurpose this
   function to return the new CSR layout (rename to
   `.complete_group_index_layout()` — a public rename, so grep the whole
   tree for the old name after) or add a sibling function and delete this

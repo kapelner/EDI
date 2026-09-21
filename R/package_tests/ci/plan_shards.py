@@ -1,12 +1,38 @@
 #!/usr/bin/env python3
-"""Deterministic longest-first packing; no R loading or compilation."""
+"""Deterministic, evenly balanced longest-first packing; no R loading or compilation."""
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "R/package_tests/ci/test_runtimes.csv"
+
+
+def pack_balanced(ordered_rows, target):
+    """Longest-first packing into the fewest shards that fit `target`, evenly loaded.
+
+    The shard count starts at ceil(total / target) and each file goes to the currently
+    least-loaded shard (ties: lowest shard id), so shards come out near total / count
+    instead of full shards plus one short tail. If a placement would exceed `target`
+    the count is increased and packing restarts, so no shard ever exceeds the budget."""
+    total = sum(float(r["estimated_seconds"]) for r in ordered_rows)
+    count = max(1, math.ceil(total / target))
+    while True:
+        buckets = [dict(shard=i + 1, estimated_seconds=0, test_files=[]) for i in range(count)]
+        fits = True
+        for row in ordered_rows:
+            seconds = float(row["estimated_seconds"])
+            bucket = min(buckets, key=lambda b: (b["estimated_seconds"], b["shard"]))
+            if bucket["estimated_seconds"] + seconds > target:
+                fits = False
+                break
+            bucket["estimated_seconds"] += seconds
+            bucket["test_files"].append(row["test_file"])
+        if fits:
+            return [b for b in buckets if b["test_files"]]
+        count += 1
 
 
 def plan(tier, target, output=None):
@@ -20,18 +46,12 @@ def plan(tier, target, output=None):
     if len(recorded) != len(set(recorded)) or set(recorded) != actual:
         raise ValueError(f"Manifest inventory mismatch: missing={actual - set(recorded)}, "
                          f"obsolete={set(recorded) - actual}; run refresh_manifest.py")
-    buckets = []
-    for row in sorted(rows, key=lambda r: (-float(r["estimated_seconds"]), r["test_file"])):
+    ordered = sorted(rows, key=lambda r: (-float(r["estimated_seconds"]), r["test_file"]))
+    for row in ordered:
         seconds = float(row["estimated_seconds"])
         if not 0 < seconds <= target:
             raise ValueError(f"Split oversized test before CI: {row['test_file']} ({seconds}s)")
-        candidates = [b for b in buckets if b["estimated_seconds"] + seconds <= target]
-        bucket = min(candidates, key=lambda b: (b["estimated_seconds"], b["shard"])) if candidates else None
-        if bucket is None:
-            bucket = dict(shard=len(buckets) + 1, estimated_seconds=0, test_files=[])
-            buckets.append(bucket)
-        bucket["estimated_seconds"] += seconds
-        bucket["test_files"].append(row["test_file"])
+    buckets = pack_balanced(ordered, target)
     if not buckets or len(buckets) > 256:
         raise ValueError("Invalid GitHub matrix size")
     if output is None:

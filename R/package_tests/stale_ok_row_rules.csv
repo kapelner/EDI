@@ -1,0 +1,8 @@
+response_type,class,function_run,before_timestamp,reason
+continuous,ContinLin,compute_rand_confidence_interval,2026-09-07,"pre-2026-09-06 conservative-bound fix in inference_all_abstract_rand_ci.R: rows cover 0.52; every row from 2026-09-10 on covers 1.00"
+continuous,ContinQuantileRegr,compute_rand_confidence_interval,2026-09-07,"pre-2026-09-06 conservative-bound fix in inference_all_abstract_rand_ci.R: rows cover 0.55; every row from 2026-09-10 on covers 1.00"
+continuous,ContinKKOLSOneLik,compute_rand_confidence_interval,2026-09-07,"pre-2026-09-06 conservative-bound fix in inference_all_abstract_rand_ci.R: rows cover 0.57; every row from 2026-09-10 on covers 1.00"
+continuous,ContinKKRobustRegrOneLik,compute_rand_confidence_interval,2026-09-07,"pre-2026-09-06 conservative-bound fix in inference_all_abstract_rand_ci.R: rows cover 0.58; every row from 2026-09-10 on covers 1.00"
+survival,SurvivalGLMMWeibullFrailtyLoggammaOneLik,compute_score_confidence_interval,2026-08-27,"commit ec003b7e (2026-08-26) predates finalize_inverted_ci's [est,est] sentinel handling: 24 of 29 rows zero-width; 0 of 313 later rows"
+continuous,ContinKKQuantileRegrOneLik,compute_rand_confidence_interval,2026-09-18,"QuantileRandomizationCI zero-width bug (100% of rows zero-width): compute_rand_confidence_interval now fails loudly (2026-09-17 stopgap); real fix is TODO-25 (fix_KKQuantileRegrOneLik_rand_ci.md, v1.1.0)"
+proportion,PropKKQuantileRegrOneLik,compute_rand_confidence_interval,2026-09-18,"QuantileRandomizationCI zero-width bug (100% of rows zero-width): compute_rand_confidence_interval now fails loudly (2026-09-17 stopgap); real fix is TODO-25 (fix_KKQuantileRegrOneLik_rand_ci.md, v1.1.0)"

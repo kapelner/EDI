@@ -6,6 +6,7 @@ R/package_tests/testthat_bulk/test-abstract-reduce-design-matrix-fixed-covariate
 R/package_tests/testthat_bulk/test-abstract-signature-dollar-path-and-null-warm-state-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-adaptive-weighting-and-fixture-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-adjacent-category-empty-and-binary-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-adjacent-category-logit-kernel-vglm-acat-reference-score-hessian-and-fixed-coefficients.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-adjacent-category-randomization-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-annealing-solve-kernel-brute-force-optimum-metadata-and-argument-plumbing-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-asymp-inference-paths.R,correctness,120,bootstrap
@@ -94,6 +95,7 @@ R/package_tests/testthat_bulk/test-coxph-general-censoring-icenreg-dispatch.R,co
 R/package_tests/testthat_bulk/test-coxph-icen-fit-failure-nonfinite-variance-and-bootstrap-budget-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-coxph-kernels-fixed-fit-and-breslow-derivatives-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-coxph-likelihood-spec-null-simulation-and-weighted-extreme-guard-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-coxph-rand-bootstrap-parallel-kernel-with-covariates-survival-coxph-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-cpoisson-combined-and-beta-regression-score-hessian-fit-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-custom-extension-contract.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-custom-extension-fit-contract-validation-and-caching.R,correctness,120,bootstrap
@@ -392,6 +394,7 @@ R/package_tests/testthat_bulk/test-partial-proportional-odds-fast-proportional-o
 R/package_tests/testthat_bulk/test-pocock-simon-assign-kernels-imbalance-score-biased-coin-and-in-place-update-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-level-rows-and-binary-match-structure-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-permutation-kernel-marginal-balance-rule-replay-and-tie-handling-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-poisson-family-marginal-estimand-shared-helper.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-fit-kernels-xtwx-field-availability-and-marginal-vcov-root-cause-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-glmm-and-probit-family-score-hessian-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-glmm-fit-quadrature-convergence-and-glmer-agreement-reference.R,correctness,120,bootstrap
@@ -421,6 +424,7 @@ R/package_tests/testthat_bulk/test-quantile-rand-ci-coverage.R,correctness,2.9,m
 R/package_tests/testthat_bulk/test-quantile-regr-private-fit-wrapper-design-reduction-warm-keep-and-ci-controls-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-quasi-robust-migration-baseline.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-quasi-robust-poisson-weighted-refit-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-quasipoisson-marginal-estimand-delta-method-glm-quasipoisson-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-ci-recovery-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-bootstrap-statistic-kernels-coxph-jt-and-km-diff-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-studentized-pval-and-iteration-with-se-reference.R,correctness,120,bootstrap
@@ -720,6 +724,7 @@ R/EDI/tests/testthat/test-ordinal-cloglog-migration-golden.R,coverage,1.3,measur
 R/EDI/tests/testthat/test-ordinal-gcomp-post-fit.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ordinal-glmm-alpha-buf.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ordinal-glmm-optimizer-robustness.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-ordinal-implicit-intercept-collinearity.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-ordinal-information-reuse.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ordinal-kk-gee-bayesian-bootstrap-disabled.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ordinal-kk-gee-rank-deficient-fallback.R,coverage,1,measured_with_30_percent_headroom
@@ -731,6 +736,7 @@ R/EDI/tests/testthat/test-ordinal-prop-odds-migration-golden.R,coverage,1.2,meas
 R/EDI/tests/testthat/test-pair-dist-helpers-cpp.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-param-bootstrap-estimate.R,coverage,1.4,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-param-bootstrap-method-availability.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-param-bootstrap-replicate-coefficient-field.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-parametric-bootstrap-lr-smoke-families.R,coverage,5.1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-permutations.R,coverage,2.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-pocock-simon-permutation-buffers.R,coverage,1,measured_with_30_percent_headroom
@@ -803,6 +809,7 @@ R/package_tests/testthat_bulk/test-abstract-reduce-design-matrix-fixed-covariate
 R/package_tests/testthat_bulk/test-abstract-signature-dollar-path-and-null-warm-state-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-adaptive-weighting-and-fixture-contracts.R,coverage,4.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-adjacent-category-empty-and-binary-reference.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-adjacent-category-logit-kernel-vglm-acat-reference-score-hessian-and-fixed-coefficients.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-adjacent-category-randomization-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-annealing-solve-kernel-brute-force-optimum-metadata-and-argument-plumbing-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-asymp-inference-paths.R,coverage,15.2,measured_with_30_percent_headroom
@@ -891,6 +898,7 @@ R/package_tests/testthat_bulk/test-coxph-general-censoring-icenreg-dispatch.R,co
 R/package_tests/testthat_bulk/test-coxph-icen-fit-failure-nonfinite-variance-and-bootstrap-budget-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-kernels-fixed-fit-and-breslow-derivatives-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-coxph-likelihood-spec-null-simulation-and-weighted-extreme-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-coxph-rand-bootstrap-parallel-kernel-with-covariates-survival-coxph-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-cpoisson-combined-and-beta-regression-score-hessian-fit-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-custom-extension-contract.R,coverage,11.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-custom-extension-fit-contract-validation-and-caching.R,coverage,240,bootstrap
@@ -1189,6 +1197,7 @@ R/package_tests/testthat_bulk/test-partial-proportional-odds-fast-proportional-o
 R/package_tests/testthat_bulk/test-pocock-simon-assign-kernels-imbalance-score-biased-coin-and-in-place-update-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-level-rows-and-binary-match-structure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-permutation-kernel-marginal-balance-rule-replay-and-tie-handling-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-poisson-family-marginal-estimand-shared-helper.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-fit-kernels-xtwx-field-availability-and-marginal-vcov-root-cause-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-glmm-and-probit-family-score-hessian-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-glmm-fit-quadrature-convergence-and-glmer-agreement-reference.R,coverage,240,bootstrap
@@ -1218,6 +1227,7 @@ R/package_tests/testthat_bulk/test-quantile-rand-ci-coverage.R,coverage,1.1,meas
 R/package_tests/testthat_bulk/test-quantile-regr-private-fit-wrapper-design-reduction-warm-keep-and-ci-controls-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-quasi-robust-migration-baseline.R,coverage,2.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-quasi-robust-poisson-weighted-refit-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-quasipoisson-marginal-estimand-delta-method-glm-quasipoisson-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-ci-recovery-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-bootstrap-statistic-kernels-coxph-jt-and-km-diff-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-studentized-pval-and-iteration-with-se-reference.R,coverage,240,bootstrap

@@ -355,7 +355,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			fit_partial_proportional_odds = function(require_se = FALSE){
 				X_cov = private$ppo_covariate_matrix()
 				X_full = cbind(treatment = private$w, X_cov)
-				attempt = private$fit_with_hardened_qr_column_dropping(
+				attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE, 
 					X_full = X_full,
 					required_cols = 1L,
 					fit_fun = function(X_fit){

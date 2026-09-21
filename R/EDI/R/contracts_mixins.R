@@ -902,7 +902,7 @@ EDI_COMPONENT_SPECS = list(
 		dependencies = character(),
 		owns_state = "estimand",
 		provides_capabilities = "marginal_estimand",
-		allowed_likelihood_tiers = c("partial", "full"),
+		allowed_likelihood_tiers = c("quasi", "partial", "full"),
 		declare_body_references_optional = TRUE
 	),
 	ParametricLikelihoodBootstrap = list(

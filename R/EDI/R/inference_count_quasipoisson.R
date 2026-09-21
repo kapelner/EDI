@@ -15,6 +15,25 @@
 #' Rank-deficient covariate columns are dropped automatically before fitting
 #' (via \code{private$fit_with_hardened_qr_column_dropping()}).
 #'
+#' \strong{Estimand.} Composes
+#' \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+#' (\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+#' Under the default \code{estimand = "conditional"}, \eqn{\hat\beta_T} is the
+#' treatment log-rate-ratio. Under \code{"marginal_mean_diff"} it is the
+#' g-computed difference in the average fitted count under treatment vs. control,
+#' \eqn{\frac{1}{n}\sum_i \{\exp(x_{i1}^\top\hat\beta) -
+#' \exp(x_{i0}^\top\hat\beta)\}}, with every subject plugged in at treatment 1
+#' and 0. \code{"marginal_ratio"} is the log of the corresponding ratio, which for
+#' this log-link family equals the conditional \eqn{\hat\beta_T} exactly (there is
+#' no treatment-by-covariate term), so it is offered for estimand-API consistency;
+#' its delta-method SE equals the conditional SE. Under a marginal estimand the
+#' standard error is the delta-method SE against the dispersion-scaled coefficient
+#' covariance \eqn{\hat\phi (X^\top \hat W X)^{-1}}, i.e. the plain-Poisson
+#' marginal SE inflated by \eqn{\sqrt{\hat\phi}}, with a normal reference
+#' (degrees of freedom \code{Inf}). Switching the estimand is a pure post-fit
+#' transform of the cached fit, never a refit. The Bayesian-bootstrap weighted
+#' refit is not estimand-aware: it always targets the conditional coefficient.
+#'
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'count')
@@ -29,7 +48,7 @@
 InferenceCountQuasiPoisson = define_inference_class(
 	classname = "InferenceCountQuasiPoisson",
 	inherit = Inference,
-	components = c("CountCompositeLikelihood", "BayesianBootstrap", "Wald"),
+	components = c("CountCompositeLikelihood", "BayesianBootstrap", "Wald", "MarginalEstimand"),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
@@ -54,13 +73,39 @@ InferenceCountQuasiPoisson = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the quasi-Poisson treatment coefficient
-		#'   \eqn{\hat\beta_T} via \code{\link{fast_quasipoisson_regression_with_var_cpp}}
-		#'   (see class documentation for the full model). Rank-deficient covariate
+		#' @description Computes the quasi-Poisson point estimate via
+		#'   \code{\link{fast_quasipoisson_regression_with_var_cpp}} (see class
+		#'   documentation for the full model). Under the default
+		#'   \code{estimand = "conditional"} this is the treatment coefficient
+		#'   \eqn{\hat\beta_T}; under \code{"marginal_mean_diff"} or
+		#'   \code{"marginal_ratio"} (set via \code{set_estimand()}) it is the
+		#'   g-computed marginal mean difference / log ratio, a pure post-fit
+		#'   transform of the same cached fit (no refit). Rank-deficient covariate
 		#'   columns are dropped before fitting.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
+			estimand = self$get_estimand()
+			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
+				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
+			}
+			# Re-derive the conditional beta/SE from the estimand-invariant cached fit on every call, so switching back from a
+			# marginal estimand never returns stale marginal numbers (same pattern as InferenceCountPoisson).
+			mod = private$cached_mod
+			if (!is.null(mod) && !is.null(mod$b)) {
+				j_treat = mod$j_treat %||% 2L
+				private$cached_values$beta_hat_T = as.numeric(mod$b[j_treat])
+				if (!estimate_only) {
+					ssq = mod$ssq_b_j %||% mod$ssq_b_2
+					if (!is.null(ssq) && is.finite(ssq) && ssq > 0) {
+						private$cached_values$s_beta_hat_T = sqrt(ssq)
+						private$cached_values$df = mod$df %||% Inf
+						private$clear_nonestimable_state()
+					} else {
+						private$cache_nonestimable_se("model_standard_error_unavailable")
+					}
+				}
+			}
 			private$cached_values$beta_hat_T
 		},
 		#' @description Recomputes the Poisson-mean-model treatment estimate under
@@ -73,6 +118,8 @@ InferenceCountQuasiPoisson = define_inference_class(
 		#'   previously always \code{NA} regardless of \code{estimate_only},
 		#'   which starved the Bayesian-bootstrap studentized/BCa variants of a
 		#'   per-replicate SE and left them NA on the large majority of calls).
+		#'   The weighted refit always targets the conditional treatment
+		#'   coefficient, whatever the active estimand (it is not estimand-aware).
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
 		#' @param estimate_only If TRUE, skip the dispersion-correction computation.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -134,30 +181,66 @@ InferenceCountQuasiPoisson = define_inference_class(
 			private$set_fit_warm_start(as.numeric(attempt$fit$b), "beta", fisher = attempt$fit$XtWX)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
-		#'   quasi-Poisson treatment coefficient \eqn{\hat\beta_T}, using the
+		#' @description Computes a \eqn{1-\alpha} level Wald confidence interval for the
+		#'   active estimand. Under the default conditional estimand this is the
+		#'   quasi-Poisson treatment coefficient \eqn{\hat\beta_T} with the
 		#'   Pearson-dispersion-scaled standard error from
 		#'   \code{\link{fast_quasipoisson_regression_with_var_cpp}} (see class
-		#'   documentation). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
-		#'   for the shared asymptotic confidence-interval contract this delegates to.
+		#'   documentation); under a marginal estimand it is the g-computed functional
+		#'   with its delta-method standard error. Both use a normal reference. See
+		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   asymptotic confidence-interval contract this delegates to.
 		#' @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			private$shared(estimate_only = FALSE)
+			self$compute_estimate(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
-		#'   \beta_T = \code{delta}}, from the same dispersion-scaled standard
-		#'   error used by \code{$compute_asymp_confidence_interval()}. See
+		#'   \beta_T = \code{delta}} under the conditional estimand, or that the
+		#'   active marginal functional equals \code{delta} under a marginal
+		#'   estimand, from the same standard error used by
+		#'   \code{$compute_asymp_confidence_interval()} (normal reference). See
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
 		#'   asymptotic two-sided p-value contract this delegates to.
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
-			private$shared(estimate_only = FALSE)
+			self$compute_estimate(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
 	private = list(
 		best_X_colnames = NULL,
+		# Conditional plus the g-computed marginal mean difference / log-ratio of the average fitted count.
+		get_supported_estimands_impl = function(){
+			c("conditional", "marginal_mean_diff", "marginal_ratio")
+		},
+		# Estimand-aware SE / df: under a marginal estimand the dispersion-scaled coefficient SE is NOT the functional's SE, so
+		# return the delta-method SE cached by compute_estimate() (calling it first keeps the cache current regardless of call order).
+		get_standard_error = function(){
+			self$compute_estimate(estimate_only = FALSE)
+			private$cached_values$s_beta_hat_T
+		},
+		get_degrees_of_freedom = function(){
+			self$compute_estimate(estimate_only = FALSE)
+			private$cached_values$df %||% Inf
+		},
+		# Shared with InferenceCountPoisson (helper_marginal_estimand.R); thin wrappers keep the private API.
+		quasipoisson_mean_from_coefs = function(beta, X){
+			poisson_family_mean_from_coefs(beta, X)
+		},
+		quasipoisson_marginal_functional = function(beta, X, estimand){
+			poisson_family_marginal_functional(beta, X, estimand)
+		},
+		# Pure post-fit transform of the cached quasi-Poisson fit (no refit): delta-method SE against the dispersion-scaled
+		# covariance phi * (X'WX)^-1 that generate_mod() stores as mod$vcov. df = Inf, as for every other delta-method Wald path.
+		compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
+			if (!estimate_only && !is.null(private$cached_mod) && is.null(private$cached_mod$vcov)) {
+				# the cached fit came from an estimate-only pass (no dispersion / covariance): refit with variance
+				private$cached_values$s_beta_hat_T = NULL
+				private$shared(estimate_only = FALSE)
+			}
+			poisson_family_marginal_estimand_estimate(private, private$cached_mod, estimand, estimate_only, reason_prefix = "quasipoisson")
+		},
 		build_design_matrix = function(){
 			X_cov = private$X
 			if (is.null(X_cov) || ncol(X_cov) == 0) {
@@ -229,6 +312,13 @@ InferenceCountQuasiPoisson = define_inference_class(
 				}
 			)
 			if (!is.null(attempt$fit)){
+				# Stash the fitting design and the dispersion-scaled coefficient covariance so the marginal-estimand path is a
+				# post-fit transform (the with_var kernel returns dispersion and mu but no information matrix).
+				attempt$fit$X = attempt$X
+				if (!is.null(attempt$fit$dispersion) && !is.null(attempt$fit$mu)) {
+					info = crossprod(attempt$X * sqrt(as.numeric(attempt$fit$mu)))
+					attempt$fit$vcov = tryCatch(as.numeric(attempt$fit$dispersion) * solve(info), error = function(e) NULL)
+				}
 				private$cached_values$likelihood_test_context = list(
 					X = attempt$X,
 					j_treat = which(attempt$keep == 2L)
@@ -252,7 +342,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 				"compute_treatment_estimate_during_randomization_inference",
 				"supports_reusable_bootstrap_worker", "generate_mod",
 				"get_standard_error", "get_degrees_of_freedom",
-				"get_supported_testing_types_impl",
+				"get_supported_testing_types_impl", "get_supported_estimands_impl",
 				"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
 				"mark_jackknife_nonestimable_if_block_unsupported",
 				"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",

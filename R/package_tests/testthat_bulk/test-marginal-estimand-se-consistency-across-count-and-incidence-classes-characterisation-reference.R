@@ -7,8 +7,8 @@ skip_if_not_installed("numDeriv")
 # mean difference with V = glm's model-based covariance). Fixed bugs: InferenceIncidLogRegr returned the CONDITIONAL log-odds SE;
 # InferenceCountPoisson returned NA (its with_var kernel returns fisher_information, not XtWX, so the stored vcov was NULL);
 # InferenceCountZeroInflatedPoisson returned the conditional information SE while its marginal CI / p-value were NA on a fit
-# with no zero inflation (degenerate zero-augmented fit), it now reports NA consistently there. InferenceCountQuasiPoisson has
-# no MarginalEstimand component at all (set_estimand does not exist), so it is out of scope here.
+# with no zero inflation (degenerate zero-augmented fit), it now reports NA consistently there. InferenceCountQuasiPoisson used to have
+# no MarginalEstimand component (set_estimand did not exist); it now has one, covered in its own quasipoisson marginal file.
 
 set.seed(5); n <- 150L
 mkd <- function(rt, yfun) {

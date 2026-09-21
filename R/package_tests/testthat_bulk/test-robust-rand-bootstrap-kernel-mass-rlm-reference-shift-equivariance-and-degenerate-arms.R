@@ -3,7 +3,8 @@ library(EDI)
 
 # compute_robust_rand_bootstrap_parallel_cpp(y0, Xc, i_mat, w_mat, delta, method, noise_mat, num_cores): each column fits an M-estimator of
 # y0[i_b] (+ noise) + delta * w_b on [1, w_b, Xc[i_b, ]] and returns the treatment coefficient. method = "M" is Huber (k = 1.345); ANY
-# other string (including "huber" / "bisquare") silently falls through to the MM estimator. References: MASS::rlm(psi.huber) for "M" and
+# "MM" is the MM estimator; any other string (e.g. "huber" / "bisquare") is rejected with an error (it used to fall through silently to
+# MM). References: MASS::rlm(psi.huber) for "M" and
 # MASS::rlm(method = "MM") for the rest, exact additive equivariance in delta (coefficient shifts by delta), thread-count invariance,
 # no-covariate designs, and NA for a resample with fewer than 2 treated or 2 control rows.
 
@@ -23,17 +24,18 @@ ref_rlm <- function(method, delta = 0, X = Xc) vapply(seq_len(B), function(b) {
 	unname(coef(fit)["w"])
 }, numeric(1))
 
-test_that("method = 'M' agrees with MASS::rlm Huber; every other method name falls through to the MM estimator (rlm MM)", {
-	# The kernel's scale estimate differs from rlm's MAD (single-fit scale 1.81 vs rlm 1.70 on this data), so the Huber
-	# coefficient agrees with rlm only loosely; the exact check is against the single-fit kernel on the assembled data.
+test_that("method = 'M' agrees with MASS::rlm Huber, 'MM' with rlm MM; any other method name is rejected", {
+	# The kernel's scale is the MAD of the INITIAL OLS residuals, held fixed through the IRLS (single-fit scale 1.81 here); rlm
+	# re-estimates the MAD every iteration (1.70). The Huber coefficient therefore agrees with rlm only loosely; the exact checks are
+	# against the single-fit kernel on the assembled data and the fixed-scale reference IRLS in the next test.
 	oneM <- vapply(seq_len(B), function(b) { i <- i_mat[, b]; w <- w_mat[, b]
 		unname(fast1(cbind(1, w, Xc[i, ]), y0[i], method = "M")$coefficients[2]) }, numeric(1))
 	expect_equal(K(y0, Xc, i_mat, w_mat, 0, "M", NULL, 1L), oneM, tolerance = 1e-8)
 	expect_equal(K(y0, Xc, i_mat, w_mat, 0, "M", NULL, 1L), ref_rlm("M"), tolerance = 0.15, scale = 1)
 	mm <- K(y0, Xc, i_mat, w_mat, 0, "MM", NULL, 1L)
 	expect_equal(mm, ref_rlm("MM"), tolerance = 5e-2)
-	expect_identical(K(y0, Xc, i_mat, w_mat, 0, "huber", NULL, 1L), mm)          # "huber" is NOT Huber here
-	expect_identical(K(y0, Xc, i_mat, w_mat, 0, "bisquare", NULL, 1L), mm)
+	for (bad in c("huber", "bisquare", "m", "", "OLS")) expect_error(K(y0, Xc, i_mat, w_mat, 0, bad, NULL, 1L), "method must be", info = bad)
+	expect_error(fast1(cbind(1, w_mat[, 1], Xc), y0, method = "huber"), "method must be")
 })
 
 test_that("the robust estimate differs from OLS on outlier data (so the reference is discriminating)", {
@@ -59,4 +61,22 @@ test_that("resamples with fewer than two treated or two control rows return NA",
 	w2[, 2] <- 1L; w2[1, 2] <- 0L                                    # one control
 	out <- K(y0, Xc, i_mat, w2, 0, "M", NULL, 1L)
 	expect_true(is.na(out[1])); expect_true(is.na(out[2])); expect_true(all(is.finite(out[-(1:2)])))
+})
+
+test_that("investigation: kernel M is Huber IRLS with the scale FIXED at the OLS-residual MAD; kernel MM is bisquare IRLS from the OLS start with that same fixed scale", {
+	i <- i_mat[, 1]; w <- w_mat[, 1]; X <- cbind(1, w, Xc[i, ]); y <- y0[i]
+	b_ols <- qr.solve(X, y); s0 <- median(abs(y - X %*% b_ols)) / 0.6745
+	irls <- function(wfun, it = 1000) { b <- b_ols; for (k in seq_len(it)) { u <- abs(as.numeric(y - X %*% b)) / s0; wt <- wfun(u)
+		b <- solve(crossprod(X, X * wt), crossprod(X, y * wt)) }; as.numeric(b) }
+	kM <- fast1(X, y, method = "M", tol = 1e-12, maxit = 1000L)
+	expect_equal(kM$scale, s0, tolerance = 1e-12)
+	expect_equal(as.numeric(kM$coefficients), irls(function(u) ifelse(u <= 1.345, 1, 1.345 / u)), tolerance = 1e-7)
+	kMM <- fast1(X, y, method = "MM", tol = 1e-12, maxit = 1000L)
+	expect_equal(as.numeric(kMM$coefficients), irls(function(u) ifelse(u <= 4.685, (1 - (u / 4.685)^2)^2, 0)), tolerance = 1e-6)
+	# rlm re-estimates the scale each iteration; a reference that does so reproduces rlm exactly, so the loose agreement above is
+	# entirely the fixed-vs-re-estimated scale.
+	b <- b_ols; for (k in 1:1000) { r <- as.numeric(y - X %*% b); sc <- median(abs(r)) / 0.6745; u <- abs(r) / sc; wt <- ifelse(u <= 1.345, 1, 1.345 / u)
+		b <- solve(crossprod(X, X * wt), crossprod(X, y * wt)) }
+	ref <- MASS::rlm(y ~ X - 1, psi = MASS::psi.huber, maxit = 500, acc = 1e-10)
+	expect_equal(as.numeric(b), unname(coef(ref)), tolerance = 1e-6)
 })

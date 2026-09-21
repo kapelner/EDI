@@ -75,6 +75,9 @@ RobustModelResult fast_robust_regression_internal(
     bool estimate_only = false,
     int variance_j = 0
 ) {
+    if (method != "M" && method != "MM") {
+        throw std::invalid_argument("method must be \"M\" (Huber) or \"MM\", got \"" + method + "\"");
+    }
     int n = X.rows();
     int p = X.cols();
     FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);
@@ -420,6 +423,10 @@ NumericVector compute_robust_rand_bootstrap_parallel_cpp(
     Rcpp::Nullable<Rcpp::NumericMatrix> noise_mat,
     int num_cores)
 {
+    // Validated here, before the OpenMP region: an exception thrown inside a parallel region would terminate R.
+    if (method != "M" && method != "MM") {
+        Rcpp::stop("method must be \"M\" (Huber) or \"MM\", got \"%s\"", method.c_str());
+    }
     const int n      = i_mat.nrow();
     const int nsim   = i_mat.ncol();
     const int n_full = y0.size();

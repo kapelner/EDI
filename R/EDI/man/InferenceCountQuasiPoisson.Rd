@@ -18,6 +18,25 @@ likelihood-ratio/score/gradient testing capability
 not a normalized model likelihood, so only Wald inference is available.
 Rank-deficient covariate columns are dropped automatically before fitting
 (via \code{private$fit_with_hardened_qr_column_dropping()}).
+
+\strong{Estimand.} Composes
+\code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
+(\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).
+Under the default \code{estimand = "conditional"}, \eqn{\hat\beta_T} is the
+treatment log-rate-ratio. Under \code{"marginal_mean_diff"} it is the
+g-computed difference in the average fitted count under treatment vs. control,
+\eqn{\frac{1}{n}\sum_i \{\exp(x_{i1}^\top\hat\beta) -
+\exp(x_{i0}^\top\hat\beta)\}}, with every subject plugged in at treatment 1
+and 0. \code{"marginal_ratio"} is the log of the corresponding ratio, which for
+this log-link family equals the conditional \eqn{\hat\beta_T} exactly (there is
+no treatment-by-covariate term), so it is offered for estimand-API consistency;
+its delta-method SE equals the conditional SE. Under a marginal estimand the
+standard error is the delta-method SE against the dispersion-scaled coefficient
+covariance \eqn{\hat\phi (X^\top \hat W X)^{-1}}, i.e. the plain-Poisson
+marginal SE inflated by \eqn{\sqrt{\hat\phi}}, with a normal reference
+(degrees of freedom \code{Inf}). Switching the estimand is a pure post-fit
+transform of the cached fit, never a refit. The Bayesian-bootstrap weighted
+refit is not estimand-aware: it always targets the conditional coefficient.
 }
 \examples{
 \donttest{
@@ -107,9 +126,14 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountQuasiPoisson-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountQuasiPoisson-compute_estimate}{}}}
 \subsection{\code{InferenceCountQuasiPoisson$compute_estimate()}}{
-  Computes the quasi-Poisson treatment coefficient
-  \eqn{\hat\beta_T} via \code{\link{fast_quasipoisson_regression_with_var_cpp}}
-  (see class documentation for the full model). Rank-deficient covariate
+  Computes the quasi-Poisson point estimate via
+  \code{\link{fast_quasipoisson_regression_with_var_cpp}} (see class
+  documentation for the full model). Under the default
+  \code{estimand = "conditional"} this is the treatment coefficient
+  \eqn{\hat\beta_T}; under \code{"marginal_mean_diff"} or
+  \code{"marginal_ratio"} (set via \code{set_estimand()}) it is the
+  g-computed marginal mean difference / log ratio, a pure post-fit
+  transform of the same cached fit (no refit). Rank-deficient covariate
   columns are dropped before fitting.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -139,6 +163,8 @@ design's imputed covariates.}
   previously always \code{NA} regardless of \code{estimate_only},
   which starved the Bayesian-bootstrap studentized/BCa variants of a
   per-replicate SE and left them NA on the large majority of calls).
+  The weighted refit always targets the conditional treatment
+  coefficient, whatever the active estimand (it is not estimand-aware).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountQuasiPoisson$compute_estimate_with_bootstrap_weights(
@@ -161,12 +187,15 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceCountQuasiPoisson-compute_asymp_confidence_interval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountQuasiPoisson-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceCountQuasiPoisson$compute_asymp_confidence_interval()}}{
-  Computes a \eqn{1-\alpha} level confidence interval for the
-  quasi-Poisson treatment coefficient \eqn{\hat\beta_T}, using the
+  Computes a \eqn{1-\alpha} level Wald confidence interval for the
+  active estimand. Under the default conditional estimand this is the
+  quasi-Poisson treatment coefficient \eqn{\hat\beta_T} with the
   Pearson-dispersion-scaled standard error from
   \code{\link{fast_quasipoisson_regression_with_var_cpp}} (see class
-  documentation). See \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}
-  for the shared asymptotic confidence-interval contract this delegates to.
+  documentation); under a marginal estimand it is the g-computed functional
+  with its delta-method standard error. Both use a normal reference. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  asymptotic confidence-interval contract this delegates to.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountQuasiPoisson$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -186,8 +215,10 @@ design's imputed covariates.}
 \if{latex}{\out{\hypertarget{method-InferenceCountQuasiPoisson-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceCountQuasiPoisson$compute_asymp_two_sided_pval()}}{
   Computes a two-sided Wald p-value testing \eqn{H_0:
-  \beta_T = \code{delta}}, from the same dispersion-scaled standard
-  error used by \code{$compute_asymp_confidence_interval()}. See
+  \beta_T = \code{delta}} under the conditional estimand, or that the
+  active marginal functional equals \code{delta} under a marginal
+  estimand, from the same standard error used by
+  \code{$compute_asymp_confidence_interval()} (normal reference). See
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
   asymptotic two-sided p-value contract this delegates to.
   \subsection{Usage}{

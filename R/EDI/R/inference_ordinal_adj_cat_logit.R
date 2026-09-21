@@ -172,7 +172,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 		},
 		generate_mod = function(estimate_only = FALSE){
 			X_full = private$build_design_matrix()
-			attempt = private$fit_with_hardened_qr_column_dropping(
+			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE, 
 				X_full = X_full,
 				required_cols = 1L,
 				fit_fun = function(X_fit){

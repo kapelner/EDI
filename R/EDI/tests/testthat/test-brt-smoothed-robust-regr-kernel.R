@@ -10,7 +10,7 @@ test_that("compute_robust_rand_bootstrap_parallel_cpp adds noise before the shar
 	for (b in seq_len(B)) { w_mat[1, b] = 1L; w_mat[2, b] = 0L }
 	noise_mat = matrix(rnorm(n * B, sd = 0.5), nrow = n, ncol = B)
 	delta = 0.25
-	method = "huber"
+	method = "MM"
 
 	res_noisy = EDI:::compute_robust_rand_bootstrap_parallel_cpp(
 		as.numeric(y0), Xc, i_mat, w_mat, delta, method, noise_mat, 1L

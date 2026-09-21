@@ -37,9 +37,13 @@
 InferenceExtParamBootstrapEstimate = list(
 	public = list(),
 	private = list(
-		extract_param_bootstrap_estimate_coef = function(fit, j){
+		extract_param_bootstrap_estimate_coef = function(fit, j, field = NULL){
 			if (is.null(fit)) return(NA_real_)
-			coef = fit$b %||% fit$params %||% fit$coefficients
+			# `field` pins WHICH coefficient vector j indexes. spec$j indexes the vector of the ANCHOR
+			# fit; a refit can expose several (e.g. adjacent-category logit returns `b` = slopes only
+			# AND `params` = thresholds + slopes), and reading `b[j]` on a refit when j indexes
+			# `params` returned NA (few covariates) or a different covariate's slope (many).
+			coef = if (!is.null(field) && !is.na(field) && !is.null(fit[[field]])) fit[[field]] else fit$b %||% fit$params %||% fit$coefficients
 			coef = suppressWarnings(as.numeric(coef))
 			j = as.integer(j)
 			if (!length(coef) || length(j) != 1L || !is.finite(j) || j < 1L || length(coef) < j) return(NA_real_)
@@ -195,6 +199,12 @@ InferenceExtParamBootstrapEstimate = list(
 		# return the refit's coefficient vector (not an LR statistic).
 		compute_param_bootstrap_estimate_impl = function(spec, full_fit, seed = NULL, max_attempts_per_replicate = 1L){
 			j = as.integer(spec$j)
+			# The anchor fit decides which coefficient vector j indexes; use that same field on every refit.
+			coef_field = NULL
+			for (nm in c("b", "params", "coefficients")) {
+				v = suppressWarnings(as.numeric(full_fit[[nm]]))
+				if (length(v) >= j && j >= 1L) { coef_field = nm; break }
+			}
 			private$with_param_bootstrap_seed(seed, {
 				last_result = list(success = FALSE, b = NA_real_, reason = "simulated_data_failure", attempts = 0L)
 				for (attempt in seq_len(max(1L, as.integer(max_attempts_per_replicate)))) {
@@ -205,13 +215,13 @@ InferenceExtParamBootstrapEstimate = list(
 					boot_coef = if (is.null(boot_spec) || is.null(boot_spec$full_fit)) {
 						NA_real_
 					} else {
-						private$extract_param_bootstrap_estimate_coef(boot_spec$full_fit, j)
+						private$extract_param_bootstrap_estimate_coef(boot_spec$full_fit, j, field = coef_field)
 					}
 					if (!is.finite(boot_coef)) {
 						last_result = list(success = FALSE, b = NA_real_, reason = "simulated_refit_failure", attempts = as.integer(attempt))
 						next
 					}
-					if (private$param_bootstrap_estimate_extreme(boot_coef, est = private$extract_param_bootstrap_estimate_coef(full_fit, j))) {
+					if (private$param_bootstrap_estimate_extreme(boot_coef, est = private$extract_param_bootstrap_estimate_coef(full_fit, j, field = coef_field))) {
 						last_result = list(success = FALSE, b = NA_real_, reason = "simulated_refit_extreme_estimate", attempts = as.integer(attempt))
 						next
 					}

@@ -55,7 +55,17 @@ and return only \code{params}, \code{converged}, \code{neg_ll}/\code{neg_loglik}
 \item{warm_start_fisher_info}{Optional initial curvature (Fisher/observed information) matrix.}
 }
 \value{
-On optimizer failure: \code{list(converged = FALSE, gradient_norm = NA)}.
+On optimizer failure (an internal exception, never an R error), and
+  regardless of \code{estimate_only}: a list with \code{converged = FALSE},
+  \code{num_iter = 0}, \code{hit_iteration_cap = FALSE}, \code{params} (the
+  starting values the optimizer began from, after applying
+  \code{fixed_idx}/\code{fixed_values}), \code{neg_ll}/\code{neg_loglik},
+  \code{observed_information}/\code{fisher_information}/\code{information}
+  (all evaluated at those starting values), \code{information_type} (always
+  \code{"observed"}), \code{hessian}, \code{gradient_norm} (\code{NA} if not
+  finite), \code{min_eigenvalue_information} (\code{NA}), \code{params_origin}
+  (a message that terminal parameters are unavailable after the exception) and
+  \code{exception_message} (the caught exception text).
   Otherwise, if \code{estimate_only = TRUE}: a list with \code{params} (the joint
   fitted \eqn{[\hat\beta_{\mathrm{cond}}, \hat\beta_{\mathrm{zi}}]} vector),
   \code{converged}, \code{neg_ll}/\code{neg_loglik} (two aliases), and
@@ -89,7 +99,9 @@ implementation, switched at each observation by \code{is_hurdle}. Optimizes the
 joint parameter vector \eqn{[\beta_{\mathrm{cond}}, \beta_{\mathrm{zi}}]} via
 \code{optimization_alg} (default \code{"lbfgs"}). If the optimizer throws an
 exception internally, this function does \strong{not} propagate an R error:
-it returns \code{list(converged = FALSE, gradient_norm = NA)} with no other fields.
+it returns a diagnostic list with \code{converged = FALSE}, evaluated at the
+optimizer's starting values and including the caught \code{exception_message}
+(see Value), so callers must check \code{converged} before using the estimates.
 }
 \section{Fixed parameters, warm starts}{
 

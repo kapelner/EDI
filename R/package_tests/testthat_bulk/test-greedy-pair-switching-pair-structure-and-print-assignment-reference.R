@@ -6,10 +6,10 @@ library(EDI)
 # hook delegates to it) checked against a brute-force minimum-Mahalanobis perfect matching,
 # plus DesignSeqOneByOne$print_current_subject_assignment().
 
-mk <- function(n = 8L, seed = 4L, X = NULL) {
+mk <- function(n = 8L, seed = 4L, X = NULL, verbose = FALSE) {
 	set.seed(seed)
 	if (is.null(X)) X <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
-	des <- DesignFixedMatchingGreedyPairSwitching$new(response_type = "continuous", n = n, seed = 1L, verbose = FALSE)
+	des <- DesignFixedMatchingGreedyPairSwitching$new(response_type = "continuous", n = n, seed = 1L, verbose = verbose)
 	des$add_all_subjects_to_experiment(X)
 	list(des = des, p = des$.__enclos_env__$private, n = n)
 }
@@ -59,7 +59,10 @@ test_that("the structure is cached and the matching-structure hook delegates to 
 })
 
 test_that("a design with no usable (non-constant) covariate falls back to balanced complete randomization with a message", {
-	f <- mk(X = data.frame(x = rep(1, 8)))
+	# The fallback is reported only for verbose designs; a quiet design stays silent.
+	quiet <- mk(X = data.frame(x = rep(1, 8)))
+	expect_message(quiet$des$assign_w_to_all_subjects(), NA)
+	f <- mk(X = data.frame(x = rep(1, 8)), verbose = TRUE)
 	expect_message(f$des$assign_w_to_all_subjects(), "balanced complete randomization")
 	w <- f$des$get_w()
 	expect_length(w, 8L)

@@ -394,7 +394,9 @@ InferenceCountPoisson = define_inference_class(
 		#'   reweighted log-rate-ratio estimate \eqn{\hat\beta_T^{(w)}}. Uses the
 		#'   same QR column-dropping hardening as the unweighted fit; a hardened fit
 		#'   with a non-finite treatment coefficient is cached as nonestimable and
-		#'   returns \code{NA}.
+		#'   returns \code{NA}. The weighted refit always targets the conditional
+		#'   treatment coefficient, whatever the active estimand (it is not
+		#'   estimand-aware).
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
@@ -493,53 +495,22 @@ InferenceCountPoisson = define_inference_class(
 			self$compute_estimate(estimate_only = FALSE)
 			private$cached_values$df %||% Inf
 		},
+		# The marginal-estimand pieces below are shared with InferenceCountQuasiPoisson (see
+		# helper_marginal_estimand.R); they stay as thin wrappers so the class keeps its private API.
 		# Model-implied mean E[Y | w, x] = exp(X %*% beta).
 		poisson_mean_from_coefs = function(beta, X){
-			exp(as.numeric(X %*% beta))
+			poisson_family_mean_from_coefs(beta, X)
 		},
-		# G-computation average over the empirical covariate distribution,
-		# with every subject plugged in at treatment column (column 2, per
-		# generate_mod()'s fixed design-matrix convention) = 1 and = 0.
+		# G-computation average over the empirical covariate distribution, with every subject plugged in at
+		# treatment column (column 2, per generate_mod()'s fixed design-matrix convention) = 1 and = 0.
 		poisson_marginal_functional = function(beta, X, estimand){
-			X1 = X; X1[, 2L] = 1
-			X0 = X; X0[, 2L] = 0
-			mu1 = mean(private$poisson_mean_from_coefs(beta, X1))
-			mu0 = mean(private$poisson_mean_from_coefs(beta, X0))
-			if (identical(estimand, "marginal_ratio")) log(mu1 / mu0) else mu1 - mu0
+			poisson_family_marginal_functional(beta, X, estimand)
 		},
-		# Full-fit marginal path for compute_estimate(): reuses the single
-		# cached ML fit (private$cached_mod, populated by private$shared() via
-		# generate_mod()) -- a pure post-fit transform, no refit. SE via
-		# marginal_estimand_delta_se() against the fitted vcov generate_mod()
-		# now retains. Degrees of freedom: Inf, same convention as every other
-		# delta-method/sandwich Wald path in this package.
+		# Full-fit marginal path for compute_estimate(): a pure post-fit transform of the single cached ML fit
+		# (private$cached_mod, populated by private$shared() via generate_mod()); the delta-method SE uses the
+		# information-inverse vcov generate_mod() retains. Degrees of freedom: Inf.
 		compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
-			mod = private$cached_mod
-			if (is.null(mod) || is.null(mod$b) || is.null(mod$X)) {
-				private$cache_nonestimable_estimate("poisson_marginal_fit_unavailable")
-				return(NA_real_)
-			}
-			functional = function(theta) private$poisson_marginal_functional(theta, mod$X, estimand)
-			point = tryCatch(functional(mod$b), error = function(e) NA_real_)
-			if (!is.finite(point)) {
-				private$cache_nonestimable_estimate("poisson_marginal_point_unavailable")
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = point
-			if (estimate_only) return(point)
-			if (is.null(mod$vcov)) {
-				private$cache_nonestimable_se("poisson_marginal_vcov_unavailable")
-				return(point)
-			}
-			dm = marginal_estimand_delta_se(mod$b, mod$vcov, functional)
-			private$cached_values$df = Inf
-			if (is.finite(dm$se) && dm$se >= 0) {
-				private$cached_values$s_beta_hat_T = dm$se
-				private$clear_nonestimable_state()
-			} else {
-				private$cache_nonestimable_se("poisson_marginal_se_unavailable")
-			}
-			point
+			poisson_family_marginal_estimand_estimate(private, private$cached_mod, estimand, estimate_only, reason_prefix = "poisson")
 		},
 		# Pinned from InferenceParamBootstrap's own generator: composed
 		# classes have no real super$ chain, so the old ladder's

@@ -297,10 +297,11 @@ build_exemptions = function(audit, previous_exemptions = NULL) {
 		api_kind = uncovered$api_kind,
 		class_name = uncovered$class_name,
 		method_name = uncovered$method_name,
-		exemption_type = "phase0_uncovered_public_api",
-		reason = "Initial Phase 0 baseline exemption: no argument-combination, comprehensive-workflow, or focused testthat coverage detected in current artifacts.",
-		expiry_date = "",
-		owner = "",
+		# rep(): with no uncovered APIs (0 rows) a bare scalar cannot recycle and data.frame() errors.
+		exemption_type = rep("phase0_uncovered_public_api", nrow(uncovered)),
+		reason = rep("Initial Phase 0 baseline exemption: no argument-combination, comprehensive-workflow, or focused testthat coverage detected in current artifacts.", nrow(uncovered)),
+		expiry_date = rep("", nrow(uncovered)),
+		owner = rep("", nrow(uncovered)),
 		created_date = created_date,
 		stringsAsFactors = FALSE
 	)

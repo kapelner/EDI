@@ -549,3 +549,28 @@ plan and every reference in the repo before any deletion.
   `robust_post_fit_speedups` 71-113, `fast_wilcox_hl` 325-339, `fast_zero_augmented_poisson` 316-353,
   `fast_survival_stats` 163-192.
 
+### Follow-up verdicts (2026-09-21)
+
+- **The four "reachable only from Python" C++ blocks are live, not dead.** `robust_post_fit_speedups.cpp`
+  71-113 (`ols_hc2_post_fit_result`), `fast_wilcox_hl.cpp` 325-339 (`wilcox_hl_point_estimate_result`),
+  `fast_zero_augmented_poisson.cpp` 316-353 (`fast_zap_with_var_internal`) and `fast_survival_stats.cpp`
+  163-192 (`get_survival_stat_diff_result`) are called by the pybind11 package (`python/CMakeLists.txt` compiles
+  the `R/EDI/src` files directly; bindings in `bindings_continuous/count/survival.cpp`) and each has a Python
+  test. R never calls them, so they belong in a documented R-coverage exclusion (TODO-8), never deletion.
+- **Dead code removed (user decision):** `compose_inference_mixins()` and `EDI_LEGACY_MIXIN_COMPONENT_NAMES`
+  (`contracts_mixins.R`), the non-exported 5-argument overload in `rand_bootstrap_mean_diff_parallel.cpp`, two
+  provably unreachable checks in `simulation_dgp.cpp`, and the duplicated `.init_kk_bootstrap_structure()` /
+  `.draw_kk_bootstrap_indices()` in `helper_matching.R` (with their two tests; the v1.4.0 plan was repointed at
+  the live methods in `design_matching_abstract.R`). C++ edits were syntax-checked only (`-fsyntax-only`) and take
+  effect on the next rebuild. Possible follow-on orphans in `contracts_mixins.R`
+  (`assert_valid_mixin_composition`, `EDI_MIXIN_ALLOWED_COLLISIONS/OVERRIDES`) were not checked.
+- **Ordinal KK CLMM golden (peer reported 0.087 vs 0.0152): not reproducible.** All 13 `test-ordinal-kk-*` files
+  pass (about 370 assertions) with `load_all(compile = FALSE)`; the numbers appear in no test file. The peer had
+  tested a build installed at 20:20, older than the relinked `EDI.so` (20:38); most likely a stale binary. They
+  should rerun it against current source to close it.
+- **Zero-augmented-Poisson failed-fit docs are stale but harmless.** The roxygen (`fast_zero_augmented_poisson.cpp`
+  ~416, repeated in `RcppExports.R` and the Rd) says a caught optimizer exception returns only
+  `list(converged = FALSE, gradient_norm = NA)`; `failed_fit_result` actually returns a full diagnostic list
+  (params, converged, num_iter, neg_ll, information/Hessian, gradient_norm, params_origin, exception_message). The
+  seven R callers gate on `converged`, so nothing breaks. Fix: update the roxygen text and regenerate the docs.
+

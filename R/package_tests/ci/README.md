@@ -15,7 +15,7 @@ The advanced smoke/gate workflow remains separate.
 Quarantined tests remain outside these inventories.
 
 Each matrix is generated deterministically from `test_runtimes.csv`, packing
-the longest files first into buckets with at most 2,400 estimated seconds.
+the longest files first into the fewest evenly loaded buckets that each stay within 2,400 estimated seconds (shard count starts at ceil(total / 2400); each file goes to the least-loaded shard, so there is no short tail shard).
 Jobs have a 60-minute timeout, including dependency setup and compilation.
 The test step has a 45-minute timeout so timing uploads can still run when
 that step times out, provided the overall job budget has not expired.

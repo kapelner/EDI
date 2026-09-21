@@ -86,6 +86,22 @@ inf$compute_estimate()
   \code{randomization_pval} case going from `"ok"` to `"unsupported"`.
 
 
+  Pins asymptotic CI dispatch to the composed \code{Wald}
+  component's implementation (\code{InferenceAsymp}), which uses
+  \code{private$get_standard_error()} (this class's two-proportion
+  Wald SE) and \code{private$get_degrees_of_freedom()}. Without this
+  explicit pin, the \code{SimpleMeanDifference} component -- composed
+  after \code{Wald} in this class's \code{components} list -- silently
+  wins the assembly-order collision and dispatches its own Welch's
+  t-test on raw \code{y} instead, making the documented Wald formula
+  dead code. See class documentation.
+
+
+  Pins asymptotic p-value dispatch to the composed
+  \code{Wald} component's implementation; see
+  \code{$compute_asymp_confidence_interval()} for the rationale.
+
+
   Initialize Wald risk-difference incidence inference and
   prepare the treatment/control binomial summaries used by
   \code{\link[EDI:InferenceIncidWald]{InferenceIncidWald}} and related
@@ -105,6 +121,9 @@ the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
+      \item{\code{alpha}}{The confidence level in the computed confidence
+interval is 1 - \code{alpha}. The default is 0.05.}
+      \item{\code{delta}}{Null treatment effect value.}
     }
     \if{html}{\out{</div>}}
   }

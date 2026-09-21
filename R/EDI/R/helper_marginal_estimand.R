@@ -76,3 +76,94 @@ marginal_estimand_delta_se = function(theta_hat, vcov, functional, eps = 1e-5) {
 	se = if (is.finite(var_hat) && var_hat >= 0) sqrt(var_hat) else NA_real_
 	list(estimate = estimate, se = se, gradient = grad)
 }
+
+#' Model-implied mean for a log-link count model
+#'
+#' @description Shared by the Poisson-family classes (\code{InferenceCountPoisson},
+#' \code{InferenceCountQuasiPoisson}), whose mean model is \eqn{E[Y|w,x] = \exp(X\beta)}.
+#'
+#' @param beta Numeric coefficient vector.
+#' @param X Design matrix.
+#' @return Numeric vector of fitted means.
+#' @keywords internal
+#' @noRd
+poisson_family_mean_from_coefs = function(beta, X) {
+	exp(as.numeric(X %*% beta))
+}
+
+#' G-computation marginal functional for a log-link count model
+#'
+#' @description Average of the fitted mean over the empirical covariate
+#' distribution with every subject plugged in at treatment = 1 and = 0 (the
+#' treatment is column 2 of the fitting design matrix, per each class's
+#' \code{generate_mod()} convention), returned as the mean difference or, for
+#' \code{"marginal_ratio"}, the log ratio. Any other estimand name falls
+#' through to the mean difference.
+#'
+#' @param beta Numeric coefficient vector.
+#' @param X Design matrix with the treatment in column 2 (not modified).
+#' @param estimand \code{"marginal_mean_diff"} or \code{"marginal_ratio"}.
+#' @return A numeric scalar.
+#' @keywords internal
+#' @noRd
+poisson_family_marginal_functional = function(beta, X, estimand) {
+	X1 = X; X1[, 2L] = 1
+	X0 = X; X0[, 2L] = 0
+	mu1 = mean(poisson_family_mean_from_coefs(beta, X1))
+	mu0 = mean(poisson_family_mean_from_coefs(beta, X0))
+	if (identical(estimand, "marginal_ratio")) log(mu1 / mu0) else mu1 - mu0
+}
+
+#' Marginal-estimand estimate and delta-method SE from a cached log-link fit
+#'
+#' @description The \code{compute_marginal_estimand_estimate()} body shared by
+#' the Poisson-family classes: a pure post-fit transform of the single cached
+#' fit (no refit). The point estimate is the g-computed functional at the
+#' fitted coefficients; the SE is the delta-method SE against the fit's own
+#' coefficient covariance (\code{mod$vcov}), so a class controls its variance
+#' model (plain information inverse for Poisson, dispersion-scaled for
+#' quasi-Poisson) purely through what it stores in \code{mod$vcov}. Degrees of
+#' freedom are \code{Inf}, the convention of every delta-method Wald path here.
+#' Results and failure states are written to the caller's private environment.
+#'
+#' @param private_env The class's private environment (uses
+#'   \code{cached_values}, \code{cache_nonestimable_estimate()},
+#'   \code{cache_nonestimable_se()}, \code{clear_nonestimable_state()}).
+#' @param mod The cached fit: a list with \code{b}, \code{X} (the exact fitting
+#'   design) and, for an SE, \code{vcov}.
+#' @param estimand \code{"marginal_mean_diff"} or \code{"marginal_ratio"}.
+#' @param estimate_only If \code{TRUE}, cache and return only the point estimate.
+#' @param reason_prefix Prefix of the non-estimable reason codes
+#'   (\code{<prefix>_marginal_fit_unavailable}, \code{_point_unavailable},
+#'   \code{_vcov_unavailable}, \code{_se_unavailable}).
+#' @return The marginal point estimate (\code{NA_real_} if unavailable).
+#' @keywords internal
+#' @noRd
+poisson_family_marginal_estimand_estimate = function(private_env, mod, estimand, estimate_only = FALSE, reason_prefix = "poisson") {
+	reason = function(suffix) paste0(reason_prefix, "_marginal_", suffix)
+	if (is.null(mod) || is.null(mod$b) || is.null(mod$X)) {
+		private_env$cache_nonestimable_estimate(reason("fit_unavailable"))
+		return(NA_real_)
+	}
+	functional = function(theta) poisson_family_marginal_functional(theta, mod$X, estimand)
+	point = tryCatch(functional(mod$b), error = function(e) NA_real_)
+	if (!is.finite(point)) {
+		private_env$cache_nonestimable_estimate(reason("point_unavailable"))
+		return(NA_real_)
+	}
+	private_env$cached_values$beta_hat_T = point
+	if (estimate_only) return(point)
+	if (is.null(mod$vcov)) {
+		private_env$cache_nonestimable_se(reason("vcov_unavailable"))
+		return(point)
+	}
+	dm = marginal_estimand_delta_se(mod$b, mod$vcov, functional)
+	private_env$cached_values$df = Inf
+	if (is.finite(dm$se) && dm$se >= 0) {
+		private_env$cached_values$s_beta_hat_T = dm$se
+		private_env$clear_nonestimable_state()
+	} else {
+		private_env$cache_nonestimable_se(reason("se_unavailable"))
+	}
+	point
+}

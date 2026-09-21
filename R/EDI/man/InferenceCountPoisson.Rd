@@ -522,7 +522,9 @@ bootstrap resampling paths.}
   reweighted log-rate-ratio estimate \eqn{\hat\beta_T^{(w)}}. Uses the
   same QR column-dropping hardening as the unweighted fit; a hardened fit
   with a non-finite treatment coefficient is cached as nonestimable and
-  returns \code{NA}.
+  returns \code{NA}. The weighted refit always targets the conditional
+  treatment coefficient, whatever the active estimand (it is not
+  estimand-aware).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_estimate_with_bootstrap_weights(
