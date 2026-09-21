@@ -1,8 +1,8 @@
 {
   "r": {
-    "coverage_pct": 64.79,
-    "commit": "d41880c1",
-    "measured_at": "2026-08-28T00:00:00Z"
+    "coverage_pct": 82.79,
+    "commit": "a18354bc",
+    "measured_at": "2026-09-20T18:02:15Z"
   },
   "python": {
     "coverage_pct": null,

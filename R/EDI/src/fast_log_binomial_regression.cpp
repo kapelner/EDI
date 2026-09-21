@@ -74,6 +74,7 @@ double weighted_loglik_constrained_binomial(const Eigen::Ref<const Eigen::Matrix
   for (int i = 0; i < n; ++i) {
     const double wi = obs_weights[i];
     if (!std::isfinite(wi) || wi < 0.0) return (-std::numeric_limits<double>::infinity());
+    if (wi == 0.0) continue;  // zero-weight rows are absent from the likelihood: they must not constrain the [0, 1] mean support
     double ei = eta[i];
     if (link_type == BinomialConstrainedLink::kLog) {
       if (ei >= kMaxEtaLog) return (-std::numeric_limits<double>::infinity());
@@ -120,6 +121,7 @@ inline double weighted_loglik_from_eta(const Eigen::VectorXd& eta,
   for (int i = 0; i < n; ++i) {
     const double wi = obs_weights[i];
     if (!std::isfinite(wi) || wi < 0.0) return (-std::numeric_limits<double>::infinity());
+    if (wi == 0.0) continue;  // zero-weight rows are absent from the likelihood: they must not constrain the [0, 1] mean support
 
     const double ei = eta[i];
     if (link_type == BinomialConstrainedLink::kLog) {

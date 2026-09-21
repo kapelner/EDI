@@ -252,7 +252,11 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				return(ci)
 			}
 			if (p_est < alpha) {
-				ci = c(est, est)
+				# The LR statistic at the MLE is 0, so p(est) should be ~1. Rejecting at the
+				# estimate itself means the bootstrap/null-fit machinery failed (e.g. the
+				# constrained fit is stuck in a worse optimum on a flat likelihood) -- that is
+				# non-estimability, not a zero-width interval located at the point estimate.
+				ci = c(NA_real_, NA_real_)
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				return(ci)
 			}

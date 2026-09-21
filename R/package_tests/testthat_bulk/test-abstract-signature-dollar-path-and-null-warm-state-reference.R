@@ -18,7 +18,7 @@ make_min_inference <- function() {
 	InferenceAllSimpleAverageDiff$new(des)
 }
 
-test_that("stable_signature is deterministic, distinguishes differing objects, and reproduces its documented strided-hash formula", {
+test_that("stable_signature is deterministic, distinguishes differing objects, and reproduces its documented full-content hash formula", {
 	inf <- make_min_inference()
 	priv <- inf$.__enclos_env__$private
 
@@ -28,20 +28,11 @@ test_that("stable_signature is deterministic, distinguishes differing objects, a
 	expect_identical(priv$stable_signature(obj_a), priv$stable_signature(obj_a))
 	expect_false(identical(priv$stable_signature(obj_a), priv$stable_signature(obj_b)))
 
-	# Independently reproduce the documented strided-subsample hash formula
-	# from the source comment, byte for byte.
+	# Independently reproduce the documented formula: byte count and xxhash64 of the full serialization.
 	ref_stable_signature <- function(obj) {
 		raw_sig <- serialize(obj, NULL, xdr = FALSE)
-		ints <- as.integer(raw_sig)
-		n_ints <- length(ints)
-		if (n_ints == 0L) return("0:0:0")
-		modulus <- 2147483647
-		step <- max(1L, floor(n_ints / 256L))
-		idx <- unique(c(1L, seq.int(1L, n_ints, by = step), n_ints))
-		sampled <- as.numeric(ints[idx])
-		h1 <- as.integer(sum(sampled * (131 + idx %% 97)) %% modulus)
-		h2 <- as.integer(sum((sampled + idx) * 65599) %% modulus)
-		paste(n_ints, h1, h2, sep = ":")
+		if (length(raw_sig) == 0L) return("0:0")
+		paste(length(raw_sig), digest::digest(raw_sig, algo = "xxhash64", serialize = FALSE), sep = ":")
 	}
 
 	for (candidate in list(obj_a, obj_b, list(1:500), "a longer string object for a bigger byte stream", NULL)) {

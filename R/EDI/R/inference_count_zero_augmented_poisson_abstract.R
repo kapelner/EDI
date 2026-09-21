@@ -319,6 +319,16 @@ ZeroAugmentedCountLikelihoodSource = list(
 		get_standard_error = function(){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			private$shared(estimate_only = FALSE)
+			# Under a marginal estimand the information-matrix SE below is the
+			# CONDITIONAL coefficient's, not the g-computation functional's:
+			# report only the delta-method SE compute_estimate() cached (NA when
+			# that is unavailable, e.g. a degenerate zero-inflation fit), so the
+			# SE, CI and p-value agree on estimability.
+			if (is.function(self$get_estimand) && self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
+				self$compute_estimate(estimate_only = FALSE)
+				se_marg = private$cached_values$s_beta_hat_T
+				return(if (is.finite(se_marg) && se_marg > 0) se_marg else NA_real_)
+			}
 			se_cached = private$cached_values$s_beta_hat_T
 			if (is.finite(se_cached) && se_cached > 0) return(se_cached)
 			se = private$compute_standard_error_from_information_matrix()
@@ -334,6 +344,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				vc = fit$vcov
 				if (is.null(vc) || length(dim(vc)) != 2L ||
 						nrow(vc) < j_treat || ncol(vc) < j_treat ||
+						zero_augmented_data_has_no_mle(private$y, identical(private$za_description(), "Hurdle Poisson")) ||
 						zero_augmented_fit_is_degenerate(as.matrix(vc), as.numeric(fit$params %||% NA_real_))) {
 					private$cached_values$fit_degenerate = TRUE
 					NA_real_
@@ -448,6 +459,10 @@ ZeroAugmentedCountLikelihoodSource = list(
 		# only and leaves NegBin for a follow-up pass with its own,
 		# dispersion-aware score derivation.
 		zero_augmented_poisson_sandwich_vcov_full = function(fit, X_fit, Xzi_fit, is_hurdle = FALSE){
+			if (zero_augmented_data_has_no_mle(private$y, is_hurdle)) {
+				private$cached_values$fit_degenerate = TRUE
+				return(NULL)
+			}
 			params = as.numeric(fit$params %||% NA_real_)
 			bread = tryCatch(as.matrix(fit$vcov), error = function(e) NULL)
 			if (is.null(bread) || !length(params) || any(!is.finite(params))) return(NULL)
@@ -1374,4 +1389,14 @@ zero_augmented_fit_is_degenerate = function(vcov, params) {
 	rc = tryCatch(rcond(vcov), error = function(e) NA_real_)
 	if (!is.finite(rc) || rc < 1e-10) return(TRUE)
 	length(params) >= 1L && is.finite(params[1L]) && params[1L] < -15
+}
+
+# TRUE when a HURDLE fit has no MLE by construction: every positive count equals 1,
+# so the zero-truncated Poisson likelihood only improves as lambda -> 0. Decided from
+# the data alone, so the outcome cannot depend on what an optimizer/TMB build returns.
+zero_augmented_data_has_no_mle = function(y, is_hurdle) {
+	if (!isTRUE(is_hurdle)) return(FALSE)
+	pos = as.numeric(y)
+	pos = pos[is.finite(pos) & pos > 0]
+	length(pos) > 0L && all(pos == 1)
 }

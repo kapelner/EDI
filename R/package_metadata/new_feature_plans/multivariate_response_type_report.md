@@ -33,7 +33,8 @@ Two different features hide under "multivariate support":
    scalar machinery, then combined with a multiplicity rule** — the goal of
    this plan. Responses are independent named vectors; there is no `n × K`
    matrix and no joint covariance.
-2. **True joint modeling** (SUR-style regression, multivariate GLM, a joint
+2. **True joint modeling — now specified in `multivariate_response_modeling.md`**
+   (SUR-style regression, multivariate GLM, a joint
    Wald/Hotelling test, joint bootstrap over a response matrix, a vector-valued
    treatment effect with cross-endpoint covariance) — **out of scope; separate
    decision required.** It would need new C++ cores, vector-truth simulation
@@ -71,7 +72,10 @@ response name (string) => response type (string), e.g.
   Supplying neither is an error (today `response_type` is required). A
   `response_type` of length != 1 is an error.
 - Validation of `response_name_to_types`: non-empty named list; names
-  non-empty, non-`NA`, and unique; every value a single string from the
+  non-empty, non-`NA`, and **unique (two responses may not share a name;
+  duplicates are an error)**. `"default"` is an ordinary name, not reserved: a
+  user may name a response `"default"` in the multi form; it is only the name
+  the legacy scalar `response_type` path assigns. Every value a single string from the
   existing `assertChoice` set (`continuous`, `incidence`, `proportion`,
   `count`, `survival`, `ordinal`).
 - `ordinal_levels` becomes per-response (a named list keyed by response name in
@@ -97,14 +101,41 @@ single-response privates in [design_abstract.R](../EDI/R/design_abstract.R)
 ### Public API consequences
 
 - `add_one_subject_response()` / `add_all_subject_responses()` need to know
-  which response they write. Proposed: an optional `response_name` that
-  defaults to `"default"` when the design has exactly one response and is
-  **required (error if omitted) when there are several**.
+  which response they write. They take an optional `response_name`; **blank
+  means `"default"`** (owner decision 2026-09-21), and it is an error (listing
+  the available names) if the design has no response of that name.
+- **Both entry styles are supported (owner decision 2026-09-21).**
+  - *Per-response (primitive):* `add_one_subject_response(t, y, y_L, y_R,
+    response_name = NULL)` writes one response for subject `t`; each response
+    can arrive at a different time (e.g. a survival outcome long after a
+    biomarker). `add_all_subject_responses()` takes `response_name` for a
+    single response's vector. **If `response_name` is not passed it defaults to
+    `"default"`, so every existing call (`des$add_one_subject_response(t, y)`)
+    behaves exactly as before** on a legacy `response_type` design; on a design
+    without a response named `"default"` it errors with the available names.
+  - *Per-subject (convenience):* a `responses` argument taking a named list
+    `response_name => list(y =, y_L =, y_R =)` writes several of one subject's
+    responses in one call (bulk form: named list `response_name => vector`).
+    It is implemented as a loop over the primitive, so it adds no new storage
+    logic.
+  - Rules: `responses` is mutually exclusive with `y`/`y_L`/`y_R`/`response_name`
+    (error if mixed); every name in `responses` must exist in the design and
+    may not repeat; a per-subject call validates all entries **before writing
+    any**, so a bad entry never leaves a half-written subject; responses omitted
+    from a per-subject call stay missing for that subject (no error), consistent
+    with per-response missingness.
 - Accessors (`get_y()`, `get_response_type()`, `get_response_type_original()`,
-  `transform_y()`, ...) gain `response_name = NULL`: `NULL` resolves to the
-  sole response and errors clearly when there are several.
-- **`Inference` classes bind to one `(Design, response_name)` pair**
-  (constructor argument `response_name = NULL`, same resolution rule). The
+  `transform_y()`, ...) gain `response_name = NULL` with the same rule: blank
+  means `"default"`, error if absent. One uniform rule across `Design`
+  entry/accessors and `Inference`; a single-response design not named
+  `"default"` always needs an explicit name.
+- **`Inference` classes bind to exactly one `(Design, response_name)` pair**
+  (owner decision 2026-09-21). The constructor takes a single string
+  `response_name`, never a vector; a length != 1 value is an error. If left
+  blank, `"default"` is used; if the design has no response of that name, error
+  clearly (listing the available names). Multi-metric analysis is done by the
+  separate composite class (Stage 1), which constructs one `Inference` per
+  response name. The
   scalar-estimand math (`beta_hat_T`/`s_beta_hat_T` cache,
   `InferenceAsympLikStdModCache`, every concrete class) is unchanged; only data
   access changes.
@@ -117,8 +148,11 @@ single-response privates in [design_abstract.R](../EDI/R/design_abstract.R)
   is not attempted here.
 - `SimulationFramework` dispatches its `transform_cont_y_based_on_response_type()`
   and default-inference-class curation per response name.
-- Serialization (`save_load_api.md`) must version the `Design` layout and load
-  old single-response objects as `default`.
+- Serialization (`save_load_api.md`) must version the `Design` layout. Old
+  single-response objects load as one response named `"default"` with their
+  `response_type` migrated into the per-response structures; new saves store
+  every response's name, type, and values (owner decision 2026-09-21). Add a
+  test that loads a pre-refactor saved object.
 
 ### Blast radius (measured 2026-09-20; re-run `graft callers` before editing)
 
@@ -199,7 +233,8 @@ with a joint covariance (out of scope).
   package_tests wiring/drift/parity gates must pass **unchanged** before
   anything else ships. This is the riskiest step; do it in isolation.
 - **Stage 0.5 — multi-response `Design`.** Allow more than one entry;
-  per-response entry, missingness, ordinal levels, `transform_y`;
+  per-response entry plus the per-subject `responses` convenience (atomic
+  validate-then-write), missingness, ordinal levels, `transform_y`;
   `response_name` on accessors and `Inference` constructors;
   `primary_response_name` for response-adaptive designs; explicit errors on
   ambiguous access.
@@ -212,10 +247,10 @@ with a joint covariance (out of scope).
   multivariate normal draw with a user-specified correlation matrix, then
   `transform_cont_y_based_on_response_type()` per response; K fits per
   replication; per-metric scalar MSE/coverage/power plus family-wise summaries.
-- **Stage 4 — true joint modeling: not planned.** Gate on a concrete user need
-  for a joint covariance estimate; it would be a second-generation project
-  (matrix-valued response storage, SUR-style C++ cores, vector-truth
-  simulation).
+- **Stage 4 — joint modeling: moved to `multivariate_response_modeling.md`
+  (2026-09-21).** Level 1 (marginal models + joint sandwich covariance) and
+  Level 2 (randomization-based joint inference) target v2.0.0; Level 3 (fully
+  parametric joint models) targets v4.0.0.
 
 ## What exists today (checked against the code)
 
@@ -232,13 +267,17 @@ with a joint covariance (out of scope).
 
 ## Open questions for the owner
 
-1. Entry API: one call per response, or one call carrying all of a subject's
-   responses?
-2. Is `"default"` reserved (disallowed as a user name in the multi form)?
-   Recommendation: yes.
-3. Save/load compatibility policy for old single-response objects.
-4. Whether `Inference` should also accept a vector of response names and return
-   the composite directly, or whether the composite class is always separate.
+1. (Resolved 2026-09-21) Entry API: support both a per-response primitive and a
+   per-subject `responses` convenience built on it.
+2. (Resolved 2026-09-21) Save/load: old single-response saved objects load as
+   one response named `"default"`, with its `response_type` (and
+   `response_type_original`, ordinal levels, `y_L`/`y_R`) carried into the
+   per-response structures. Saving writes the new named-list layout, including
+   each response's type.
+3. (Resolved 2026-09-21) `Inference` accepts only one response name; blank
+   means `"default"`. The composite is always a separate class.
+4. (Resolved 2026-09-21) `Design` entry methods and accessors use the same
+   blank => `"default"` rule as `Inference`.
 
 ## Implementation TODOs
 
@@ -250,4 +289,4 @@ with a joint covariance (out of scope).
 - [ ] TODO-6: Multi-metric results table integrated with `multiplicity_adjusted_results_table.md` and the interactive reporting plan.
 - [ ] TODO-7: **Stage 3** — `SimulationFramework` composite support with family-wise power/type-I-error.
 - [ ] TODO-8: Update `save_load_api.md`, roxygen docs, README/vignette examples, and the Python binding surface for the new constructor.
-- [ ] TODO-9: Do NOT pursue native joint modeling (matrix response, joint covariance) without a separate decision.
+- [ ] TODO-9: Joint modeling (joint covariance, randomization-based joint tests, parametric joint models) is tracked in `multivariate_response_modeling.md` (Levels 1-2 v2.0.0, Level 3 v4.0.0); do not implement it from this plan.

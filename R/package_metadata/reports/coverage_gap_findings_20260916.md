@@ -532,3 +532,20 @@ plan and every reference in the repo before any deletion.
   `clear_kk_bootstrap_worker_design_caches`, which the live bootstrap path still
   calls (my reference search had excluded the file itself). It was caught before
   any test ran and restored.
+
+### Candidates from the 2026-09-21 triage of newly measured files (not fixed, unverified beyond reading)
+
+- `fast_probit_regression.cpp`: its own test header says `optimization_alg = "lbfgs"` gives
+  non-deterministic coefficients and sometimes a NaN `neg_ll` with `converged = TRUE`, and that
+  `min_eigenvalue_information` is NaN for the default IRLS fit. Worth confirming.
+- `fast_zero_augmented_poisson.cpp` ~line 414: the documentation says the failure return has no
+  other fields, but the code returns many.
+- Dead-code candidates for a TODO-8 decision (no release plan references them):
+  `compose_inference_mixins` and `EDI_LEGACY_MIXIN_COMPONENT_NAMES` (`contracts_mixins.R` 3752-3781); the
+  5-argument overload at `rand_bootstrap_mean_diff_parallel.cpp` 119-127 (already documented as unused in
+  `finished_features`); `simulation_dgp.cpp` lines 62 and 72 (unreachable because an earlier clamp maps
+  NaN into range).
+- C++ blocks with no R caller (only reachable from Python), which need exclusion decisions, not deletion:
+  `robust_post_fit_speedups` 71-113, `fast_wilcox_hl` 325-339, `fast_zero_augmented_poisson` 316-353,
+  `fast_survival_stats` 163-192.
+

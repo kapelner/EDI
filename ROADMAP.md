@@ -502,6 +502,15 @@ All produce identical results to today's code unless noted.
   multi-period designs; then **multivariate**, **compositional**, and
   **rank/choice** response types in that order (nominal only if its
   recorded "no" recommendation is overturned).
+- **[Multiple outcome metrics per experiment](R/package_metadata/new_feature_plans/multivariate_response_type_report.md)** —
+  one `Design` holding several named responses (`response_name_to_types`),
+  per-metric inference, and a composite class with Holm / max-p IUT / Cauchy
+  decision rules, metric roles, and simulation support.
+- **[Joint multivariate inference (Levels 1–2)](R/package_metadata/new_feature_plans/multivariate_response_modeling.md)** —
+  marginal models with a joint sandwich covariance (global Wald, O'Brien,
+  correlation-aware max-T adjusted p-values and simultaneous CIs) and
+  randomization-based joint inference (Westfall-Young step-down on a shared
+  assignment draw). Fully parametric joint models are in v4.0.0.
 
 ### Major tracks
 
@@ -689,3 +698,6 @@ scope or decision batch yet; nothing in v2.0.0 or v3.0.0 depends on it. See
 - **[Additional language bindings](R/package_metadata/new_feature_plans/more_language_bindings.md)** —
   MATLAB, JVM, Stata, .NET, Julia and others over that ABI, only after the
   shared backend's ABI, release, and ownership decisions are complete.
+- **[Parametric joint multivariate models (Level 3)](R/package_metadata/new_feature_plans/multivariate_response_modeling.md)** —
+  SUR/MANOVA, copula, and multivariate-GLMM joint models with new C++
+  likelihood cores; gated on a go/no-go after v2.0.0's Levels 1–2 ship.

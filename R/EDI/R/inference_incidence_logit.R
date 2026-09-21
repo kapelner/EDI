@@ -624,6 +624,27 @@ InferenceIncidLogRegr = define_inference_class(
 		get_supported_estimands_impl = function(){
 			c("conditional", "marginal_mean_diff", "marginal_ratio")
 		},
+		# Estimand-aware SE, mirroring InferenceCountPoisson: under a marginal
+		# estimand the information-matrix SE is for the conditional log-odds
+		# coefficient, not the g-computation functional, so return the
+		# delta-method SE cached by compute_estimate() instead. Calls
+		# self$compute_estimate() first so the cache is current regardless of
+		# call order.
+		get_standard_error = function(){
+			self$compute_estimate(estimate_only = FALSE)
+			if (!identical(self$get_estimand(), "conditional")) {
+				return(private$cached_values$s_beta_hat_T)
+			}
+			if (isTRUE(private$supports_information_preference())) {
+				se = tryCatch(private$compute_standard_error_from_information_matrix(), error = function(e) NA_real_)
+				if (is.finite(se)) return(se)
+			}
+			private$cached_values$s_beta_hat_T
+		},
+		get_degrees_of_freedom = function(){
+			self$compute_estimate(estimate_only = FALSE)
+			private$cached_values$df %||% Inf
+		},
 		# Model-implied mean E[Y | w, x] = plogis(X %*% beta).
 		logistic_mean_from_coefs = function(beta, X){
 			plogis(as.numeric(X %*% beta))

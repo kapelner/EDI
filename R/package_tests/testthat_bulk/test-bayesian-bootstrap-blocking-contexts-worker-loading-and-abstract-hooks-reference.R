@@ -99,6 +99,10 @@ test_that("worker estimate takes the first value of the weighted estimate, and r
 	wk <- list(.__enclos_env__ = list(private = w$priv))
 	wk <- c(fake(c(7, 8), FALSE), wk)
 	expect_equal(f$priv$compute_bayesian_bootstrap_worker_estimate(list(worker = wk)), 7)
+	# Non-estimability is read from the worker's own weighted-refit record
+	# (private$last_weighted_refit), not from its public is_nonestimable(), which
+	# describes the ordinary unweighted fit.
+	w$priv$last_weighted_refit <- list(nonestimable = TRUE, nonestimable_stage = "estimate")
 	wk2 <- c(fake(5, TRUE), list(.__enclos_env__ = list(private = w$priv)))
 	expect_true(is.na(f$priv$compute_bayesian_bootstrap_worker_estimate(list(worker = wk2))))
 })

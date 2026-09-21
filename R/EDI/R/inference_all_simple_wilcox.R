@@ -93,7 +93,9 @@ SimpleWilcoxSource = list(
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			ci = private$cached_values$wilcox_conf_int
-			if (!is.null(ci) && length(ci) == 2L && all(is.finite(ci))) return(as.numeric(ci))
+			# The cached interval is the 95% one computed in shared(); reusing it for any other
+			# alpha silently returned a 95% interval whatever level was requested.
+			if (isTRUE(all.equal(as.numeric(alpha), 0.05)) && !is.null(ci) && length(ci) == 2L && all(is.finite(ci))) return(as.numeric(ci))
 			yT = as.numeric(private$y[private$w == 1])
 			yC = as.numeric(private$y[private$w == 0])
 			if (length(yT) == 0L || length(yC) == 0L) return(c(NA_real_, NA_real_))

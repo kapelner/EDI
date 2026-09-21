@@ -114,19 +114,6 @@ NumericVector compute_rand_bootstrap_mean_diff_parallel_cpp(
 	return wrap(results_vec);
 }
 
-// Compatibility entry point for the generated Rcpp wrapper.  The R API still
-// uses the original five-argument additive-scale interface.
-NumericVector compute_rand_bootstrap_mean_diff_parallel_cpp(
-	const NumericVector& y0,
-	const IntegerMatrix& i_mat,
-	const IntegerMatrix& w_mat,
-	double delta,
-	int num_cores) {
-	return compute_rand_bootstrap_mean_diff_parallel_cpp(
-		y0, i_mat, w_mat, delta, 0, NA_REAL, R_NilValue, num_cores
-	);
-}
-
 // Batch kernel returning a 2-row matrix: row 0 = t0_b (mean diff), row 1 = se0_b (Welch SE).
 // Used by the studentized/symmetric-percentile-t BRT to get both statistics in one C++ pass.
 // [[Rcpp::export]]

@@ -189,7 +189,11 @@ test_that("no inference class has unresolved component, capability, or private-c
 	expect_identical(new_gaps, character(0), info = paste(
 		"Unlisted wiring gaps (a method a component/capability promises, or a private$x() call, resolves to NULL):",
 		paste(new_gaps, collapse = "\n  "), sep = "\n  "))
-	stale = setdiff(EDI_WIRING_KNOWN_GAPS, found)
+	# Only entries for classes this environment could instantiate can be judged
+	# stale: images without Suggests (the ASAN/UBSAN and valgrind jobs) cannot build
+	# some classes, so their known gaps legitimately never occur there.
+	known_here = EDI_WIRING_KNOWN_GAPS[sub("\\|.*", "", EDI_WIRING_KNOWN_GAPS) %in% wiring_result$instantiated]
+	stale = setdiff(known_here, found)
 	expect_identical(stale, character(0), info = paste(
 		"EDI_WIRING_KNOWN_GAPS entries that no longer occur -- delete them:",
 		paste(stale, collapse = "\n  "), sep = "\n  "))

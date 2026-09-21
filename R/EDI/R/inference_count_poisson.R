@@ -775,7 +775,8 @@ InferenceCountPoisson = define_inference_class(
 				# refit -- same convention as InferenceIncidLogRegr's mod$X/
 				# mod$vcov.
 				res$X = X_full
-				res$vcov = if (!is.null(res$XtWX)) tryCatch(solve(res$XtWX), error = function(e) NULL) else NULL
+				info_mat = res$XtWX %||% res$fisher_information   # the with_var kernel returns only fisher_information
+				res$vcov = if (!is.null(info_mat)) tryCatch(solve(info_mat), error = function(e) NULL) else NULL
 				return(res)
 			}
 			
@@ -830,7 +831,8 @@ InferenceCountPoisson = define_inference_class(
 				# survived hardening's column reduction -- required_cols = 2L
 				# above guarantees this.
 				attempt$fit$X = attempt$X
-				attempt$fit$vcov = if (!is.null(attempt$fit$XtWX)) tryCatch(solve(attempt$fit$XtWX), error = function(e) NULL) else NULL
+				info_mat = attempt$fit$XtWX %||% attempt$fit$fisher_information
+				attempt$fit$vcov = if (!is.null(info_mat)) tryCatch(solve(info_mat), error = function(e) NULL) else NULL
 			} else {
 				private$cached_values$likelihood_test_context = NULL
 			}

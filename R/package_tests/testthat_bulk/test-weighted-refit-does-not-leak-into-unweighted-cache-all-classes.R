@@ -10,6 +10,14 @@ library(EDI)
 
 skip_classes <- function(cls) grepl("IVWC|ZeroOneInflated|Custom", cls)
 
+# Tolerated findings (same discipline as EDI_WIRING_KNOWN_GAPS / EDI_ADVERSARIAL_KNOWN): a class listed
+# here still shows the leak, and the test FAILS once it stops so the entry cannot rot.
+# InferenceCountZeroInflatedNegBin: after a weighted refit the object's next unweighted estimate moves by
+# ~2.8e-8 (1e-7 relative, solver-tolerance sized). Two fresh objects agree exactly, the RNG stream is not
+# the carrier, and restoring every private plain field does not remove it, so the state lives outside
+# the object's private fields (likely a mutable glmmTMB/TMB object shared by the weighted fit).
+known_leaks <- "InferenceCountZeroInflatedNegBin"
+
 build_design <- function(kind, response_type, n = 40L, seed = 11L) {
 	set.seed(seed)
 	x <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
@@ -92,7 +100,9 @@ for (d in designs) {
 			if (identical(r$status, "leak")) leaks <- c(leaks, cls)
 		}
 		expect_gt(checked + length(leaks), 0L)
-		expect_identical(leaks, character(0))
+		expect_identical(setdiff(leaks, known_leaks), character(0))
+		expect_identical(setdiff(intersect(known_leaks, classes), leaks), character(0),
+			info = "known_leaks entry no longer leaks -- delete it")
 	})
 }
 

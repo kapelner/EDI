@@ -10,7 +10,7 @@
 # slices are pooled, matching path_audits.html's granularity:
 #   pval_out_of_range   ok p-value rows outside [0, 1]
 #   reversed_ci         ok CI rows with lower > upper
-#   degenerate_ci       >= 50% of >= 10 finite ok CI rows have lower == upper
+#   degenerate_ci       >= 2% (and >= 5 rows) of >= 10 finite ok CI rows are near-zero-width
 #                       (the zero-width-at-the-point-estimate signature of a
 #                       silently failed test inversion)
 #   low_coverage        >= 50 ok CI rows with a truth indicator and empirical
@@ -101,7 +101,11 @@ audit_one = function(path, rt) {
 	rev = fin[lo > hi, .(n = .N), by = .(class, function_run)]
 	if (nrow(rev)) out[[length(out) + 1L]] = rev[, finding("reversed_ci", rt, class, function_run, sprintf("%d rows", n))]
 
-	deg = fin[, .(n = .N, frac = mean(lo == hi)), by = .(class, function_run)][n >= 10L & frac >= 0.5]
+	# Near-zero width (< 1e-6), not exact equality, and a low share threshold: a failed
+	# inversion that collapses onto the estimate only some of the time (5.6% and 28% of
+	# OrdinalStereotypeLogitRegr's lik_ratio / lik_ratio_bootstrap rows) wrecks coverage
+	# without ever reaching the old 50% rule.
+	deg = fin[, .(n = .N, nz = sum((hi - lo) < 1e-6), frac = mean((hi - lo) < 1e-6)), by = .(class, function_run)][n >= 10L & nz >= 5L & frac >= 0.02]
 	if (nrow(deg)) out[[length(out) + 1L]] = deg[, finding("degenerate_ci", rt, class, function_run, sprintf("%.0f%% of %d rows zero-width", 100 * frac, n))]
 
 	cov = ci[!is.na(beta_T_in_confidence_interval), .(n = .N, coverage = mean(as.logical(beta_T_in_confidence_interval))), by = .(class, function_run)][n >= 50L & coverage < 0.75]

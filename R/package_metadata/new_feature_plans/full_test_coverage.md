@@ -408,8 +408,16 @@ is explicitly not the target** -- see Non-goals below.
   - (d) diagnostic/introspection-only code -- needs only a trivial smoke
     test.
 
-  **TODO-1 partly reopened (2026-09-20):** the first real C++ measurement added 20
-  `triage_needed` rows (17 C++, 3 R); classify them, then this is done again.
+  **TODO-1 partly reopened (2026-09-20), then re-closed except one row (2026-09-21):** the first
+  real C++ measurement added 20 `triage_needed` rows (17 C++, 3 R). 19 are now classified (14
+  `straightforward_test`, 5 `dispatch_threshold`); 1 is left `unclassified`/`triage_needed` on purpose:
+  `inference_continuous_KK_quantile_regr_one_lik.R`, whose two flagged lines are a comment and a closing
+  brace, i.e. a `covr` non-executable-line artifact (adjacent executable lines have 19 hits). Note that
+  `covr` also reports lines past end of file (`contracts_mixins.R` 3782-3792, `inference_continuous_lin.R`
+  429-439), so a small share of "missed" lines are measurement noise. The measurement predates about
+  214 test files created after the run started (2026-09-20 05:57; the manifest now lists 788 coverage-tier
+  files, the run executed the 574 that existed), so some of these gaps may already be closed; re-measure
+  before writing tests for them (several notes name an existing test that was written after the run).
 
   **TODO-1 done (2026-09-19):** regenerated from the first complete,
   provenance-bearing run (commit `f72b8fdb`, 73.57%, **R code only** -- no
@@ -536,6 +544,13 @@ is explicitly not the target** -- see Non-goals below.
   and move on. Needs a decision on hard-gate-vs-advisory, consistent with
   this repo's existing tiered quality-gate philosophy elsewhere
   (`comprehensive_suite_quality_gates.csv`'s hard/soft split).
+
+  **Floor raised (2026-09-21, user decision):** `coverage_baseline.json` `r` entry is now 82.79%
+  (commit `a18354bc`, measured 2026-09-20T18:02:15Z), up from the historical 64.79%. This figure came
+  from a local run (574 tests, 20 shards), not CI; the gate fails only below 82.79 - 0.05, so the first CI
+  coverage run after this is committed is the real test of whether it is achievable there (CI differs in
+  environment and in having ~214 more tests). If CI lands lower for environmental reasons, lower the entry
+  to the CI figure rather than weakening the gate.
 
   **TODO-9 done (2026-09-18):** hard gate, both languages. New
   `R/package_tests/ci/coverage_baseline.json` (seeded from this doc's

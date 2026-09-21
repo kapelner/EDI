@@ -58,7 +58,20 @@ decision batch still records the yes/no for each.
   separately),
   extended with Romano-Wolf, Anderson q-values and summary indices
   (inference audit #8); hierarchical win ratio, cost-effectiveness ICER,
-  and the nominal joint-K-vector test all ride here.
+  and the nominal joint-K-vector test all ride here. **Architecture
+  updated 2026-09-20:** one `Design` holds several named responses
+  (`response_name_to_types`; legacy `response_type` is stored as `"default"`;
+  `Inference` binds one `response_name`), so the composite runs over
+  response names of one `Design`, not K `Design` objects. Stage 0 (the
+  `Design` refactor) is the riskiest step and must land first.
+- `multivariate_response_modeling.md` (added 2026-09-21) — **joint**
+  multivariate inference: Level 1 marginal models plus a joint sandwich
+  covariance (global Wald, O'Brien, max-T adjusted p-values and simultaneous
+  CIs; needs per-subject influence functions from `Inference` classes) and
+  Level 2 randomization-based joint inference (same `w` draw across all
+  responses; Westfall-Young step-down, global joint test), plus vector-`betaT`
+  simulation support. Level 3 (fully parametric joint models) is in v4.0.0.
+  Builds on the multivariate report's Stages 0-2.
 - `compositional_response_type_report.md` — `compositional` (n×K simplex),
   ILR → OLS wrapper, ILR-Hotelling/permutation.
 - `rank_choice_response_type_report.md` — discrete choice on nominal
@@ -248,8 +261,10 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   3, 4, 5` in that order.
 - [ ] TODO-4: **Longitudinal response type** (first, because it is the
   substrate for cluster GLMM/GEE and the multi-period design tier), then
-  **multivariate**, then **compositional**, then **rank/choice**; nominal
-  only if its TODO-1 overturns the recorded recommendation.
+  **multivariate** (`multivariate_response_type_report.md` Stages 0-3, then
+  `multivariate_response_modeling.md` Levels 1-2 → TODO-2..4), then
+  **compositional**, then **rank/choice**; nominal only if its TODO-1
+  overturns the recorded recommendation.
 - [ ] TODO-5: **Sequential inference** implementation from the 1.1.0
   scoping output; then two-arm RAR on top.
 - [ ] TODO-5b: **Theoretical-design backlog** (two-arm; K-arm variants

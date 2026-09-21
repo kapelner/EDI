@@ -220,3 +220,33 @@ test_that("a hurdle fit with no MLE (every y == 1) is reported non-estimable, no
 	expect_true(all(is.na(ci)))
 	expect_true(is.na(p))
 })
+
+# A method that caches its interval and returns it for any alpha (InferenceAllSimpleWilcox did:
+# every request returned the 95% interval, found 2026-09-20) is invisible to coverage checks at the
+# default level. Cheap general invariant: a 50% interval must be strictly narrower than a 95% one.
+test_that("asymptotic CI width responds to alpha for every cheap class (no cached-at-default-level bug)", {
+	set.seed(20260921)
+	n = adv_n * 5L
+	X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
+	w = rep(0:1, length.out = n)
+	benign = list(
+		continuous = adv_design("continuous", rnorm(n) + 0.4 * w, X, w, n = n),
+		count = adv_design("count", rpois(n, exp(0.3 + 0.3 * w)), X, w, n = n),
+		incidence = adv_design("incidence", rbinom(n, 1, plogis(-0.2 + 0.5 * w)), X, w, n = n),
+		proportion = adv_design("proportion", pmin(pmax(rbeta(n, 2 + w, 2), 0.02), 0.98), X, w, n = n),
+		survival = adv_design("survival", rexp(n, 0.3 * exp(0.2 * w)), X, w, n = n)
+	)
+	insensitive = character()
+	for (rt in names(benign)) {
+		for (cls in benign[[rt]]$applicable_inference_class_names()) {
+			if (adv_skip_class(cls)) next
+			inst = tryCatch(get(cls, envir = asNamespace("EDI"))$new(benign[[rt]]), error = function(e) NULL)
+			if (is.null(inst)) next
+			wide = tryCatch(suppressWarnings(inst$compute_asymp_confidence_interval(alpha = 0.05)), error = function(e) c(NA, NA))
+			narrow = tryCatch(suppressWarnings(inst$compute_asymp_confidence_interval(alpha = 0.5)), error = function(e) c(NA, NA))
+			if (!all(is.finite(c(wide, narrow)))) next
+			if (!(diff(narrow) < diff(wide))) insensitive = c(insensitive, sprintf("%s (%s)", cls, rt))
+		}
+	}
+	expect_equal(insensitive, character())
+})

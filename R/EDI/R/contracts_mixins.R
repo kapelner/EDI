@@ -112,14 +112,6 @@ EDI_MIXIN_DEPENDENCIES = list(
 	InferenceMixinKKPassThroughCompound = "InferenceMixinKKPassThrough"
 )
 
-EDI_LEGACY_MIXIN_COMPONENT_NAMES = c(
-	InferenceMixinKKGEEShared = "KKGEE",
-	InferenceMixinKKGLMMShared = "KKGLMM",
-	InferenceMixinKKPassThrough = "KKPassThrough",
-	InferenceMixinKKPassThroughCompound = "KKCompound",
-	InferenceMixinOffOptimumLikelihoodEval = "OffOptimumLikelihoodEval"
-)
-
 EDI_INFERENCE_COMPONENTS = new.env(parent = emptyenv())
 
 EDI_COMPONENT_ALLOWED_STATUSES = c("active", "scaffold")
@@ -3747,35 +3739,4 @@ assert_valid_mixin_composition = function(target_name, mixin_names, public_overr
 		}
 	}
 	invisible(TRUE)
-}
-
-compose_inference_mixins = function(target_name, mixin_names, public = list(), private = list()) {
-	assert_valid_mixin_composition(
-		target_name = target_name,
-		mixin_names = mixin_names,
-		public_overrides = names(public),
-		private_overrides = names(private)
-	)
-	component_names = unname(EDI_LEGACY_MIXIN_COMPONENT_NAMES[mixin_names])
-	missing_component_names = mixin_names[is.na(component_names)]
-	if (length(missing_component_names) > 0L) {
-		stop(sprintf(
-			"%s uses mixin(s) without canonical component mapping: %s",
-			target_name,
-			paste(missing_component_names, collapse = ", ")
-		), call. = FALSE)
-	}
-	if (length(ls(EDI_INFERENCE_COMPONENTS)) == 0L) {
-		populate_inference_component_registry(ns = parent.frame(), component_names = component_names)
-	}
-	allowed_collisions = EDI_MIXIN_ALLOWED_COLLISIONS[[target_name]] %||% list(public = character(), private = character())
-	allowed_overrides = EDI_MIXIN_ALLOWED_OVERRIDES[[target_name]] %||% list(public = character(), private = character())
-	overrides = list(
-		public = unique(c(allowed_collisions$public, allowed_overrides$public, names(public))),
-		private = unique(c(allowed_collisions$private, allowed_overrides$private, names(private)))
-	)
-	list(
-		public = assemble_public(target_name, component_names, public, overrides = overrides, resolve = FALSE),
-		private = assemble_private(target_name, component_names, private, overrides = overrides, resolve = FALSE)
-	)
 }

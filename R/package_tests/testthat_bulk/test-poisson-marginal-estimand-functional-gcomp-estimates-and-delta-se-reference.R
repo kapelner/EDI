@@ -62,12 +62,15 @@ test_that("delta-method SE equals sqrt(grad' V grad) once the fit carries its vc
 	}
 })
 
-test_that("OBSERVATION: with the default cached fit (no vcov slot) the marginal SE is unavailable and flagged, while the asymptotic CI is still finite", {
+test_that("regression: the default cached fit carries a vcov, so the marginal SE is available, finite and matches the delta method", {
 	f <- mk(); f$inf$set_estimand("marginal_mean_diff"); f$inf$compute_estimate()
-	expect_null(f$p$cached_mod$vcov)
-	expect_true(is.na(f$p$get_standard_error()))
-	expect_true(isTRUE(f$inf$is_nonestimable("se")))
-	expect_true(all(is.finite(f$inf$compute_asymp_confidence_interval())))              # CI is produced by a different route than get_standard_error()
+	expect_false(is.null(f$p$cached_mod$vcov))                                          # solve(fisher_information) of the with_var kernel
+	se <- f$p$get_standard_error()
+	expect_true(is.finite(se) && se > 0)
+	expect_false(isTRUE(f$inf$is_nonestimable("se")))
+	g <- numDeriv::grad(function(th) gcomp(th, "marginal_mean_diff"), as.numeric(f$p$cached_mod$b))
+	expect_equal(se, sqrt(drop(t(g) %*% f$p$cached_mod$vcov %*% g)), tolerance = 1e-4)
+	expect_true(all(is.finite(f$inf$compute_asymp_confidence_interval())))
 })
 
 test_that("estimate-only path returns the point without a variance; missing fit is reported as nonestimable", {

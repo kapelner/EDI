@@ -231,6 +231,10 @@ InferenceAbstractKKOrdinalCLMMLegacyOrig = define_inference_class(
 				nore = warm_fn(X_fit, as.numeric(y) - 1L)
 				alpha_direct = as.numeric(nore$alpha)
 				beta_nore    = as.numeric(nore$b)
+				# Deliberate deviation from the verbatim pre-migration copy: 0ef9031c fixed the
+				# cloglog warm-start sign (the fixed-effects kernel reports the opposite sign to
+				# polr/clm). Applied here too so this golden test still compares like with like.
+				if (identical(private$clmm_link(), "cloglog")) beta_nore = -beta_nore
 				alpha_par = numeric(n_alpha)
 				if (n_alpha >= 1L) alpha_par[1L] = alpha_direct[1L]
 				if (n_alpha >= 2L) {

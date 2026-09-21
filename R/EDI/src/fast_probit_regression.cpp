@@ -39,7 +39,10 @@ inline double probit_gen_residual_optimized(double y, double phi, double Phi, do
 
 class ProbitLbfgsObjective {
 private:
-    const Eigen::Ref<const RowMajorMatrixXd> m_X;
+    // Owned copy, not a Ref: X_free is column-major, so Ref<const RowMajor> makes an internal temporary; the
+    // constructor's Ref parameter dies after construction and a member Ref copied from it would dangle
+    // (non-deterministic lbfgs results, NaN neg_ll).
+    const RowMajorMatrixXd m_X;
     const Eigen::Ref<const Eigen::VectorXd> m_y;
     const Eigen::Ref<const Eigen::VectorXd> m_weights;
     const Eigen::Ref<const Eigen::VectorXd> m_eta_fixed;

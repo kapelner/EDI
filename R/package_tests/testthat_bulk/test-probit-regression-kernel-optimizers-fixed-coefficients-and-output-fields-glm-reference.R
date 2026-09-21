@@ -5,9 +5,9 @@ library(EDI)
 # the returned coefficients; irls/newton/bfgs reach the glm
 # probit MLE; fixed_idx/fixed_values (1-based) equal the profile fit glm(offset = ...); estimate_only returns the
 # short field set. Reference: stats::glm(family = binomial("probit")).
-# NOTE (source issues, deliberately not pinned): optimization_alg = "lbfgs" returned different
-# coefficients (up to ~0.14 off the MLE, ~0.015 even when warm-started at the MLE) on repeated identical calls, sometimes with NaN neg_ll / gradient_norm and
-# converged = TRUE; and min_eigenvalue_information is NaN for the default irls fit.
+# Regression: optimization_alg = "lbfgs" used to return different (up to ~0.14 off) coefficients on identical calls and
+# NaN neg_ll / gradient_norm because its objective held a dangling Eigen::Ref to a temporary row-major copy of X; the
+# objective now owns its matrix. min_eigenvalue_information is NaN by design (the diagnostic is disabled in v1.0.0).
 
 f <- get("fast_probit_regression_cpp", envir = asNamespace("EDI"))
 set.seed(1); n <- 200L
@@ -31,8 +31,18 @@ test_that("default fit matches glm and its reported fields are consistent with t
 	expect_true(r$converged); expect_false(r$hit_iteration_cap)
 })
 
-test_that("irls, newton and bfgs agree with the glm MLE", {
+test_that("irls, newton, bfgs and lbfgs (cold, no smart start, warm) agree with the glm MLE and lbfgs is deterministic", {
 	for (alg in c("irls", "newton", "bfgs")) expect_equal(f(X, y, optimization_alg = alg)$b, b_ref, tolerance = 1e-4, info = alg)
+	for (i in 1:15) {
+		expect_equal(f(X, y, optimization_alg = "lbfgs")$b, b_ref, tolerance = 1e-4)
+		expect_equal(f(X, y, optimization_alg = "lbfgs", smart_cold_start = FALSE)$b, b_ref, tolerance = 1e-4)
+		expect_equal(f(X, y, optimization_alg = "lbfgs", warm_start_beta = b_ref)$b, b_ref, tolerance = 1e-4)
+	}
+	r <- f(X, y, optimization_alg = "lbfgs")
+	expect_true(is.finite(r$neg_ll)); expect_true(is.finite(r$gradient_norm))
+	expect_equal(r$neg_ll, -as.numeric(logLik(g)), tolerance = 1e-6)
+	expect_identical(f(X, y, optimization_alg = "lbfgs")$b, f(X, y, optimization_alg = "lbfgs")$b)
+	expect_true(is.nan(f(X, y)$min_eigenvalue_information))       # documented: diagnostic disabled, not computed
 })
 
 test_that("fixed coefficients reproduce the profile fit with the fixed term as an offset", {

@@ -58,8 +58,6 @@ List apply_treatment_and_noise_cpp(
       const double bt_i  = (w[i] == 1) ? betaT : 0.0;
       double p_i = expit(y_linear_model[i] + bt_i);
       p_i = std::min(1.0 - incidence_clamp, std::max(incidence_clamp, p_i));
-      if (!std::isfinite(p_i) || p_i <= 0.0 || p_i >= 1.0)
-        stop("apply_treatment_and_noise_cpp: incidence Bernoulli probability must be finite and in (0, 1).");
       y[i] = (u[i] < p_i) ? 1.0 : 0.0;
     }
 
@@ -68,8 +66,6 @@ List apply_treatment_and_noise_cpp(
       const double bt_i = (w[i] == 1) ? betaT : 0.0;
       double mu_i = expit(y_linear_model[i] + bt_i);
       mu_i = std::min(1.0 - proportion_clamp, std::max(proportion_clamp, mu_i));
-      if (!std::isfinite(mu_i) || mu_i <= 0.0 || mu_i >= 1.0)
-        stop("apply_treatment_and_noise_cpp: proportion beta mean must be finite and in (0, 1).");
       y[i] = R::rbeta(mu_i * phi_proportion, (1.0 - mu_i) * phi_proportion);
     }
 

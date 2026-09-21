@@ -527,6 +527,9 @@ test_that("studentized BRT CI returns NA (harden mode) when SE is 0 by degenerat
 })
 
 test_that("percentile type still uses fast affine shortcut and studentized does not", {
+	# The data and assignment are simulated; unseeded, "each 95% CI contains the
+	# truth" below fails on a few percent of runs by construction.
+	set.seed(20260921)
 	des = build_brt_design(function() DesignFixedBernoulli$new(n = n_brt, response_type = "continuous"), effect = 2)
 	inf_v = new_brt_inference(des)
 	inf_s = new_brt_inference(des)

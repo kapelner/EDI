@@ -225,9 +225,10 @@ Eigen::MatrixXi generate_permutations_efron_internal(
 		int n_T = 0, n_C = 0;
 		for (int i = 0; i < n; ++i) {
 			double p;
-			double sT = n_T * prob_T, sC = n_C * (1.0 - prob_T);
-			if (sT > sC) p = 1.0 - weighted_coin_prob;
-			else if (sT < sC) p = weighted_coin_prob;
+			// Raw arm counts, exactly as DesignSeqOneByOneEfron::assign_wt() compares them, so the randomization
+			// null draws follow the design's own assignment rule for every prob_T (ties use prob_T).
+			if (n_T > n_C) p = 1.0 - weighted_coin_prob;
+			else if (n_T < n_C) p = weighted_coin_prob;
 			else p = prob_T;
 			if (rng.unif_rand() < p) { w_col[i] = 1; n_T++; }
 			else { w_col[i] = 0; n_C++; }

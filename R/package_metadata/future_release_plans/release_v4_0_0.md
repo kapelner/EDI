@@ -33,6 +33,15 @@ depends on it.
   implementation. Level K (kernels and inference) is the supported scope;
   Level W (full R6 workflow parity) is not promised.
 
+### Fully parametric joint multivariate models
+
+- `multivariate_response_modeling.md` Level 3 (added 2026-09-21) — SUR /
+  MANOVA, copula, and multivariate-GLMM joint models with new C++ likelihood
+  cores and a vector-valued treatment-effect cache contract. Levels 1-2
+  (marginal + joint sandwich covariance, randomization-based joint
+  inference) ship in v2.0.0; this level is gated on a separate go/no-go and
+  should reuse the shared C++ backend above if it lands first.
+
 ## Implementation TODOs (dependency order)
 
 - [ ] TODO-1: **Shared C++ inference and design backend**
@@ -43,6 +52,10 @@ depends on it.
 - [ ] TODO-2: **Additional language bindings**
   `more_language_bindings.md → TODO-1..` — execute only after TODO-1's ABI,
   release, and ownership decisions are complete.
+- [ ] TODO-3: **Parametric joint multivariate models**
+  `multivariate_response_modeling.md → TODO-5` — go/no-go decision first;
+  requires v2.0.0's Levels 1-2 (`→ TODO-2..4`) and one-`Design`
+  named-response architecture to have shipped.
 
 ## Standing constraints
 

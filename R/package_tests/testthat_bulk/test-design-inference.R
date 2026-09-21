@@ -571,6 +571,10 @@ test_that("ordinal hardening drops QR-ranked covariates only when enabled", {
 		des
 	}
 
+	# KK14 assigns treatment at random per subject; unseeded, the raw (unhardened)
+	# fit below lands on a different arbitrary point of the unidentified model on
+	# every run.
+	set.seed(20260921)
 	kk_des <- build_cars93_ordinal_design(DesignSeqOneByOneKK14$new)
 
 	adj_hardened <- InferenceOrdinalAdjCatLogitRegr$new(kk_des, verbose = FALSE, harden = TRUE)
@@ -578,8 +582,12 @@ test_that("ordinal hardening drops QR-ranked covariates only when enabled", {
 	expect_true(is.finite(adj_hardened$compute_estimate()))
 	expect_true(is.finite(adj_hardened$compute_asymp_two_sided_pval()))
 	expect_true(all(is.finite(adj_hardened$compute_asymp_confidence_interval())))
-	expect_true(is.finite(adj_raw$compute_asymp_two_sided_pval()))
-	expect_true(all(is.finite(adj_raw$compute_asymp_confidence_interval())))
+	# The unhardened fit keeps the QR-rank-deficient columns, so its coefficients are
+	# not identified and whether its SE/p-value/CI come out finite is arbitrary. Only
+	# assert that it runs and returns well-formed scalars; hardening is what
+	# guarantees finiteness (asserted above).
+	expect_true(is.numeric(adj_raw$compute_asymp_two_sided_pval()) && length(adj_raw$compute_asymp_two_sided_pval()) == 1L)
+	expect_length(adj_raw$compute_asymp_confidence_interval(), 2L)
 
 	# InferenceOrdinalKKCondAdjCatLogitRegr derives all of its information from
 	# within-stratum (matched-pair) discordance, so it needs a design that

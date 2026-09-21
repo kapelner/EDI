@@ -37,24 +37,27 @@ test_that("unit weights reproduce the unweighted fit", {
 	}
 })
 
-test_that("zero-weight rows drop out of the fit for the unconstrained-link families (Poisson, logistic, probit)", {
+test_that("zero-weight rows drop out of the fit for every family, including the support-constrained identity and log links", {
 	keep <- seq_len(n) > 20; w0 <- as.numeric(keep)
-	for (nm in c("poisson", "logistic", "probit")) {
+	for (nm in c("poisson", "logistic", "probit", "log_binomial", "identity_binomial")) {
 		f <- fams[[nm]]
 		a <- K(f$w)(X, f$y, w0); b <- K(f$u)(X[keep, ], f$y[keep])
+		expect_true(isTRUE(a$converged), info = nm)
 		expect_equal(as.numeric(a$b), as.numeric(b$b), tolerance = 10 * f$tol, info = nm)
 	}
 })
 
-test_that("OBSERVATION: for the support-constrained links, zero-weight rows still take part in the feasibility constraint", {
+test_that("regression: zero-weight rows no longer constrain the [0, 1] mean support of the identity / log binomial fits", {
+	# Previously the omitted rows still had to satisfy 0 < X b < 1 (identity) / X b < 0 (log), so the weighted fit differed from
+	# the subset fit and the log-binomial weighted fit reported non-convergence.
 	keep <- seq_len(n) > 20; w0 <- as.numeric(keep)
-	# identity link: mu = X b must stay in [0, 1] on EVERY row, including rows with zero weight, so the estimate differs from the subset fit
-	a <- K(fams$identity_binomial$w)(X, yb, w0); b <- K(fams$identity_binomial$u)(X[keep, ], yb[keep])
-	expect_true(isTRUE(a$converged)); expect_lte(max(X %*% a$b), 1 + 1e-6); expect_gt(max(X %*% b$b), 1)              # the subset fit alone would leave [0, 1] on the omitted rows
-	expect_gt(max(abs(as.numeric(a$b) - as.numeric(b$b))), 1e-3)
-	# log link: the weighted fit reports non-convergence (one iteration) and its mean exceeds 1 on some rows
+	b_sub <- K(fams$identity_binomial$u)(X[keep, ], yb[keep])
+	expect_gt(max(X %*% b_sub$b), 1)                       # the subset optimum leaves [0, 1] on the omitted rows ...
+	a <- K(fams$identity_binomial$w)(X, yb, w0)
+	expect_true(isTRUE(a$converged))
+	expect_equal(as.numeric(a$b), as.numeric(b_sub$b), tolerance = 1e-3)   # ... and the weighted fit no longer cares
 	l <- K(fams$log_binomial$w)(X, yb, w0)
-	expect_false(isTRUE(l$converged))
+	expect_true(isTRUE(l$converged))
 })
 
 test_that("weighted negative binomial: coefficients match the replicated-row fit (theta is checked to be positive and finite)", {

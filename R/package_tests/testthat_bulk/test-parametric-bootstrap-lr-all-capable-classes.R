@@ -122,7 +122,9 @@ all_param_boot_smoke_cases <- list(
 	InferenceSurvivalKKLWACoxPHOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceSurvivalKKStratCoxPHOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = all_param_boot_case("survival", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, use_rcpp = TRUE, verbose = FALSE)),
-	InferenceSurvivalWeibullRegr = all_param_boot_case("survival", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE))
+	InferenceSurvivalWeibullRegr = all_param_boot_case("survival", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
+	InferenceSurvivalCoxPHRegr = all_param_boot_case("survival", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
+	InferenceSurvivalStratCoxPHRegr = all_param_boot_case("survival", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE))
 )
 
 test_that("every concrete parametric-likelihood-bootstrap class has a finite smoke case", {

@@ -11,7 +11,9 @@ skip_if_not_installed("survival")
 G <- get("get_survival_stat_for_group", envir = asNamespace("EDI"))
 D <- get("get_survival_stat_diff", envir = asNamespace("EDI"))
 set.seed(51)
-mk <- function(n) { t <- round(rexp(n, 0.3), 1) + 0.1; c <- round(runif(n, 1, 8), 1); list(y = pmin(t, c), dead = as.integer(t <= c)) }
+# times are integer multiples of 0.1 built as k / 10 so that ties are bit-identical (survfit merges times within a
+# floating-point tolerance, the kernel compares exact doubles; round(x, 1) + 0.1 produced 1.9 vs 1.9000000000000001)
+mk <- function(n) { t <- (round(rexp(n, 0.3) * 10) + 1) / 10; c <- round(runif(n, 10, 80)) / 10; list(y = pmin(t, c), dead = as.integer(t <= c)) }
 km_rmst <- function(y, dead) {
 	fit <- survival::survfit(survival::Surv(y, dead) ~ 1)
 	tau <- max(y)
@@ -26,9 +28,7 @@ hand_rmst <- function(y, dead) {
 test_that("restricted mean equals survfit's rmean truncated at the largest observed time and a hand-integrated KM curve", {
 	for (i in 1:5) {
 		d <- mk(30 + 5 * i)
-		# survfit's rmean agrees to ~3e-3 only (it differed by up to 0.003 when the last observation is censored);
-		# the hand-integrated KM area below is the exact reference.
-		expect_equal(G(d$y, d$dead, "restricted_mean"), km_rmst(d$y, d$dead), tolerance = 2e-3, info = as.character(i))
+		expect_equal(G(d$y, d$dead, "restricted_mean"), km_rmst(d$y, d$dead), tolerance = 1e-9, info = as.character(i))
 		expect_equal(G(d$y, d$dead, "restricted_mean"), hand_rmst(d$y, d$dead), tolerance = 1e-10, info = as.character(i))
 	}
 })

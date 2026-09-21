@@ -6,18 +6,17 @@ library(EDI)
 # (weighted_coin_prob = 1 forces the underrepresented arm, 0 forces the overrepresented arm, prob_T in {0, 1} on
 # ties), transition frequencies for the interior rule, reproducibility under set.seed, and the design-level
 # draw_ws_raw() wiring.
-# NOTE (source inconsistency, not pinned): the kernel's imbalance state is prob_T-weighted (nT*prob_T vs nC*(1-prob_T))
-# whereas DesignSeqOneByOneEfron$assign_wt() compares raw nT with nC, so for prob_T != 0.5 the randomization
-# null draws do not follow the sequential design's own assignment rule. (uses the design's prob_T / weighted_coin_prob).
+# Regression: the kernel used to compare nT * prob_T with nC * (1 - prob_T), so for prob_T != 0.5 the randomization null draws
+# did not follow the sequential design's own raw-count rule; both now use raw arm counts (ties use prob_T).
 
 K <- get("generate_permutations_efron_cpp", envir = asNamespace("EDI"))
-# The kernel's imbalance state is nT * prob_T - nC * (1 - prob_T) (sign only); it equals nT - nC when prob_T = 0.5.
+# Imbalance state = sign(nT - nC) before each step, the same raw-count rule DesignSeqOneByOneEfron$assign_wt() uses.
 trans <- function(W, pt = 0.5) {
 	# returns data.frame(imb = sign of the state before step t, w = assignment at t) pooled over columns and steps
 	n <- nrow(W); out <- list()
 	for (b in seq_len(ncol(W))) {
 		nT <- c(0, cumsum(W[, b] == 1L))[seq_len(n)]; nC <- (seq_len(n) - 1) - nT
-		out[[b]] <- data.frame(imb = sign(nT * pt - nC * (1 - pt)), w = W[, b], nd = nT - nC)
+		out[[b]] <- data.frame(imb = sign(nT - nC), w = W[, b], nd = nT - nC)
 	}
 	do.call(rbind, out)
 }
@@ -58,6 +57,14 @@ test_that("interior rule: P(T | nT > nC) = 1 - p, P(T | nT < nC) = p and P(T | t
 		idx <- spec[[1]]; q <- spec[[2]]
 		expect_equal(mean(tr$w[idx]), q, tolerance = se(q, sum(idx)) / q)
 	}
+})
+
+test_that("for prob_T != 0.5 the kernel follows the sequential design's raw-count assignment rule (interior and forced corners)", {
+	set.seed(8); W <- K(31L, 300L, 0.25, 1)$w_mat                       # forced coin: |nT - nC| <= 1 needs the raw-count state
+	expect_true(all(abs(trans(W, 0.25)$nd) <= 1L))
+	des <- DesignSeqOneByOneEfron$new(response_type = "continuous", n = 12L, prob_T = 0.25, weighted_coin_prob = 1, verbose = FALSE)
+	p <- des$.__enclos_env__$private
+	expect_true(all(abs(trans(p$draw_ws_raw(r = 100L), 0.25)$nd) <= 1L))
 })
 
 test_that("DesignSeqOneByOneEfron$draw_ws_raw draws with the design's own coin probabilities", {

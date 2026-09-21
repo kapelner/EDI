@@ -180,6 +180,8 @@ R/EDI/tests/prepush_test_timings.csv
 R/bulk_test_timings.csv
 R/EDI/tests/.prepush_errors
 R/EDI/tests/.prepush_test_stdout.log
+# testthat writes a reprex here for every failing expectation; never commit them.
+_problems/
 marketing_plans/
 
 # Local instrumented coverage run artifacts

@@ -285,29 +285,53 @@ OrdinalStereotypeLikelihoodSource = list(
 				full_fit = full_fit,
 				fit_null = function(delta, start = NULL){
 					n_params = length(ctx$full_params)
-					res = tryCatch(
-						fast_stereotype_logit_cpp(
-							X_fit, y,
-							fixed_idx = j_treat, fixed_values = delta,
-							warm_start_params = start %||% private$get_fit_warm_start_for_length("params", n_params),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
-							smart_cold_start = private$smart_cold_start_default
-						),
-						error = function(e) NULL
+					fit_from = function(st){
+						res = tryCatch(
+							fast_stereotype_logit_cpp(
+								X_fit, y,
+								fixed_idx = j_treat, fixed_values = delta,
+								warm_start_params = st,
+								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+								smart_cold_start = private$smart_cold_start_default
+							),
+							error = function(e) NULL
+						)
+						# require_information_pd = FALSE: this null refit, like the
+						# parametric-bootstrap null refit below, is only ever
+						# consumed for its neg_loglik (see the returned list) --
+						# never a variance/SE. Same Davies-type non-identification
+						# near beta_T=0 documented on stereotype_fit_is_usable()
+						# applies equally here on real data, not just simulated
+						# bootstrap replicates. Before this fix the PD gate
+						# defaulted to TRUE here (inconsistent with the bootstrap
+						# path), spuriously marking this refit unusable and
+						# returning NA for compute_lik_ratio_two_sided_pval on
+						# ~2/3 of real fits (200/300 in a direct reproduction).
+						if (!private$stereotype_fit_is_usable(res, check_treatment = FALSE, fixed_idx = j_treat, require_information_pd = FALSE)) return(NULL)
+						list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
+					}
+					# Multi-start: the delta-constrained refit is multimodal. A
+					# cold (or otherwise poor) start can stall in a much worse local
+					# optimum -- e.g. neg_loglik 131.3 vs the full fit's 118.9 even at
+					# delta = the MLE itself -- which inflates the LR statistic at the
+					# point estimate, drives the bootstrap p-value there below alpha,
+					# and makes compute_lik_ratio_bootstrap_confidence_interval()
+					# collapse to the zero-width c(est, est). Also start from the
+					# full-fit parameters with the treatment coordinate set to delta,
+					# and keep whichever refit reaches the lower neg_loglik.
+					# The 1e-3 nudge is deliberate: started at exactly the optimum
+					# (delta == the MLE), fast_stereotype_logit_cpp() takes no
+					# improving step, reports converged = FALSE despite a ~1e-8
+					# gradient norm, and stereotype_fit_is_usable() would discard it.
+					full_start = as.numeric(ctx$full_params) + 1e-3
+					full_start[j_treat] = delta
+					fits = list(
+						fit_from(start %||% private$get_fit_warm_start_for_length("params", n_params)),
+						fit_from(full_start)
 					)
-					# require_information_pd = FALSE: this null refit, like the
-					# parametric-bootstrap null refit below, is only ever
-					# consumed for its neg_loglik (see the returned list) --
-					# never a variance/SE. Same Davies-type non-identification
-					# near beta_T=0 documented on stereotype_fit_is_usable()
-					# applies equally here on real data, not just simulated
-					# bootstrap replicates. Before this fix the PD gate
-					# defaulted to TRUE here (inconsistent with the bootstrap
-					# path), spuriously marking this refit unusable and
-					# returning NA for compute_lik_ratio_two_sided_pval on
-					# ~2/3 of real fits (200/300 in a direct reproduction).
-					if (!private$stereotype_fit_is_usable(res, check_treatment = FALSE, fixed_idx = j_treat, require_information_pd = FALSE)) return(NULL)
-					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
+					fits = Filter(Negate(is.null), fits)
+					if (length(fits) == 0L) return(NULL)
+					fits[[which.min(vapply(fits, function(f) f$neg_loglik, numeric(1)))]]
 				},
 				extract_start = function(fit){ as.numeric(fit$params) },
 				score = function(fit){
@@ -377,19 +401,35 @@ OrdinalStereotypeLikelihoodSource = list(
 			list(
 				full_fit = full,
 				fit_null = function(d, start = NULL){
-					ws2 = start %||% private$get_fit_warm_start_for_length("params", n_params) %||% params_null
-					f2  = tryCatch(
-						fast_stereotype_logit_cpp(
-							X = X_fit, y = y_sim,
-							estimate_only = FALSE,
-							warm_start_params = ws2,
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
-							fixed_idx = j, fixed_values = d
-						),
-						error = function(e) NULL
+					fit_from = function(ws2){
+						f2 = tryCatch(
+							fast_stereotype_logit_cpp(
+								X = X_fit, y = y_sim,
+								estimate_only = FALSE,
+								warm_start_params = ws2,
+								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+								fixed_idx = j, fixed_values = d
+							),
+							error = function(e) NULL
+						)
+						if (!private$stereotype_fit_is_usable(f2, check_treatment = FALSE, fixed_idx = j, require_information_pd = FALSE)) return(NULL)
+						f2
+					}
+					# Multi-start, same reason as get_likelihood_test_spec()'s
+					# fit_null(): also start from this replicate's own full fit
+					# (treatment coordinate set to d) and keep the lower neg_loglik,
+					# so a stalled constrained refit can't inflate the replicate's
+					# LR statistic.
+					# 1e-3 nudge: see get_likelihood_test_spec()'s fit_null().
+					full_start = as.numeric(full$params) + 1e-3
+					full_start[j] = d
+					fits = list(
+						fit_from(start %||% private$get_fit_warm_start_for_length("params", n_params) %||% params_null),
+						fit_from(full_start)
 					)
-					if (!private$stereotype_fit_is_usable(f2, check_treatment = FALSE, fixed_idx = j, require_information_pd = FALSE)) return(NULL)
-					f2
+					fits = Filter(Negate(is.null), fits)
+					if (length(fits) == 0L) return(NULL)
+					fits[[which.min(vapply(fits, function(f) as.numeric(f$neg_loglik %||% f$neg_ll), numeric(1)))]]
 				},
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik %||% fit$neg_ll)
 			)

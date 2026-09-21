@@ -41,7 +41,15 @@ InferenceExtCIInversion = list(
 			# `est`. Route it through the same fallback-to-Wald-or-give-up policy as
 			# any other unusable inversion instead of reporting a confident point
 			# estimate as a "confidence interval".
-			degenerate = length(ci) == 2L && all(is.finite(ci[1:2])) && ci[1L] == ci[2L]
+			# Tolerance, not exact equality: both Newton/bisection ends can converge onto the
+			# estimate to within ~1e-4..1e-6 without being bit-identical (observed on flat
+			# likelihoods, e.g. stereotype logit), which is the same "test rejects at its own
+			# estimate" failure. A real LR interval is comparable in width to the Wald one, so
+			# a width below 0.1% of it (or of the estimate's scale, absent a Wald width) is not
+			# a genuine interval.
+			wald_width = if (length(wald_ci) >= 2L && all(is.finite(wald_ci[1:2]))) abs(diff(as.numeric(wald_ci[1:2]))) else NA_real_
+			width_floor = if (is.finite(wald_width) && wald_width > 0) 1e-3 * wald_width else sqrt(.Machine$double.eps) * max(1, abs(est))
+			degenerate = length(ci) == 2L && all(is.finite(ci[1:2])) && (ci[2L] - ci[1L]) <= width_floor
 			if (length(ci) < 2L || !all(is.finite(ci[1:2])) || degenerate || ci[1L] > est || ci[2L] < est || any(abs(ci[1:2]) > private$likelihood_ci_max_abs)) {
 				fallback = sort(as.numeric(wald_ci[1:2]), na.last = TRUE)
 				if (length(fallback) >= 2L && all(is.finite(fallback)) && fallback[1L] <= est && fallback[2L] >= est && all(abs(fallback[1:2]) <= private$likelihood_ci_max_abs)) {

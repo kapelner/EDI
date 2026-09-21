@@ -515,11 +515,20 @@ Inference = R6::R6Class("Inference",
 			saved_values = private$cached_values
 			has_mod = exists("cached_mod", envir = private, inherits = FALSE)
 			saved_mod = if (has_mod) private$cached_mod else NULL
+			# The weighted fit also leaves its solution in the warm-start slots; without rolling those back the
+			# next unweighted fit starts from it and stops at a different point within solver tolerance.
+			saved_warm = list(
+				start = private$fit_warm_start, type = private$fit_warm_start_type,
+				fisher = private$fit_warm_start_fisher, weights = private$fit_warm_start_weights
+			)
 			private$weighted_refit_depth = private$weighted_refit_depth + 1L
+			# Some classes return the weighted estimate without storing it in cached_values$beta_hat_T
+			# (leaving the unweighted value there), so record what the call actually returned.
+			weighted_value = NULL
 			on.exit({
 				cv = private$cached_values
 				private$last_weighted_refit = list(
-					beta_hat_T = cv$beta_hat_T,
+					beta_hat_T = weighted_value %||% cv$beta_hat_T,
 					s_beta_hat_T = cv$s_beta_hat_T,
 					df = cv$df,
 					nonestimable = isTRUE(cv$nonestimable),
@@ -529,6 +538,10 @@ Inference = R6::R6Class("Inference",
 					cached_mod = if (exists("cached_mod", envir = private, inherits = FALSE)) private$cached_mod else NULL
 				)
 				private$cached_values = saved_values
+				private$fit_warm_start = saved_warm$start
+				private$fit_warm_start_type = saved_warm$type
+				private$fit_warm_start_fisher = saved_warm$fisher
+				private$fit_warm_start_weights = saved_warm$weights
 				if (has_mod) {
 					private$cached_mod = saved_mod
 				} else if (exists("cached_mod", envir = private, inherits = FALSE)) {
@@ -536,7 +549,10 @@ Inference = R6::R6Class("Inference",
 				}
 				private$weighted_refit_depth = private$weighted_refit_depth - 1L
 			}, add = TRUE)
-			private$weighted_refit_impl(...)
+			out = private$weighted_refit_impl(...)
+			v = suppressWarnings(as.numeric(out)[1L])
+			if (length(v) == 1L && is.finite(v)) weighted_value = v
+			out
 		},
 		# Outcome of the most recent weighted refit (its standard error, non-estimability).
 		weighted_refit_se = function(){
@@ -932,30 +948,18 @@ Inference = R6::R6Class("Inference",
 			invisible(NULL)
 		},
 		stable_signature = function(obj){
-			# Memoization cache key, not a cryptographic hash -- callers combine
-			# this with other cache-key components (r, delta, design metadata,
-			# ...), so it only needs to distinguish the objects that actually get
-			# hashed side by side, not be collision-free in general. Hashing
-			# every serialized int via a sequential R `for` loop was O(length(obj))
-			# with per-element modulo arithmetic in interpreted R -- for a large
-			# permutation matrix (`build_randomization_distribution_cache_key()`
-			# hashes the whole `r`-by-`n` `w_mat`), and re-invoked on every
-			# CI-search bisection step (`compute_rand_confidence_interval()`'s
-			# root-finding calls `compute_rand_two_sided_pval()`, which rebuilds
-			# this cache key, dozens of times per call), this dominated runtime.
-			# A fixed-size strided subsample (same idea as the old h2 term, just
-			# applied to both terms) is vectorized and O(1) in the object size.
+			# Memoization cache key over the FULL serialized content. An earlier
+			# strided ~258-byte subsample was O(1) but collided for distinct
+			# 0/1 integer permutation matrices of the same shape (differing
+			# only at unsampled bytes), so a cached randomization distribution
+			# could be served for a different permutation set. digest's
+			# xxhash64 over the raw serialization is a single C pass, cheap
+			# enough for the r-by-n w_mat that is re-hashed on every CI-search
+			# bisection step.
 			raw_sig = serialize(obj, NULL, xdr = FALSE)
-			ints = as.integer(raw_sig)
-			n_ints = length(ints)
-			if (n_ints == 0L) return("0:0:0")
-			modulus = 2147483647
-			step = max(1L, floor(n_ints / 256L))
-			idx = unique(c(1L, seq.int(1L, n_ints, by = step), n_ints))
-			sampled = as.numeric(ints[idx])
-			h1 = as.integer(sum(sampled * (131 + idx %% 97)) %% modulus)
-			h2 = as.integer(sum((sampled + idx) * 65599) %% modulus)
-			paste(n_ints, h1, h2, sep = ":")
+			n_bytes = length(raw_sig)
+			if (n_bytes == 0L) return("0:0")
+			paste(n_bytes, digest::digest(raw_sig, algo = "xxhash64", serialize = FALSE), sep = ":")
 		},
 		extract_dollar_paths = function(expr){
 			paths = list()

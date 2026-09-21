@@ -171,7 +171,9 @@ spliced into one step and marked **[spliced]**.
 >   inference *scoping* (Phase 6 item 1).
 > - **v2.0.0 — Architecture** (`release_v2_0_0.md`): 5B's remaining
 >   response-type reports (nominal — recorded "no" —, rank/choice,
->   multivariate, compositional, longitudinal), 5D multi-arm, 5E GPU, Phase
+>   multivariate [now one `Design` with named responses, plus
+>   `multivariate_response_modeling.md` Levels 1-2: joint sandwich covariance
+>   and randomization-based joint inference], compositional, longitudinal), 5D multi-arm, 5E GPU, Phase
 >   6 item 6 quantum backend, sequential-inference *implementation*, 5Y
 >   (cluster-robust GLMM/GEE), 5Z (mediation), 5AA (response-adaptive
 >   randomization), **the theoretical-design backlog 5P (classical
@@ -1268,6 +1270,21 @@ items), none sharing a TODO-1 decision gate with the others.
    structural dependency on, or from, items 1–5 above — shares this
    tentative release purely by scoping-day coincidence. Release index:
    `release_v3_0_0.md → TODO-16..23`.
+
+---
+
+## Phase 8 — Post-3.0.0 (tentative; opened 2026-09-21)
+
+Indexes `release_v4_0_0.md`. Nothing here is committed.
+
+1. `multivariate_response_modeling.md` **Level 3** (added 2026-09-21, user
+   decision) — fully parametric joint multivariate models (SUR/MANOVA,
+   copula, multivariate GLMM). Its Levels 1-2 (marginal models with a joint
+   sandwich covariance; randomization-based joint inference) are v2.0.0 and
+   are the prerequisite. Release index: `release_v4_0_0.md → TODO-3`.
+
+(`release_v4_0_0.md` also holds the shared C++ backend and language-bindings
+plans, indexed under their own phases.)
 
 ---
 
