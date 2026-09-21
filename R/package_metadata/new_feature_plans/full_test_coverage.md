@@ -203,6 +203,35 @@ the same session: `~/.R/Makevars` sets `MAKEFLAGS = -j10`, which overrides a
 The full run must be repeated with the fixed runner to get real C++ numbers; do not
 update `coverage_baseline.json` from the 2026-09-19 R-only report.
 
+**First complete R + C++ measurement (2026-09-20).** With the fixed runner (`EDI_PORTABLE=1`,
+serial Makevars, builds in private `/tmp` copies), all 20 coverage shards passed (exit 0) at
+commit `a18354bc`, working tree including the dead-code deletions. Merged at line level with
+normalized paths (`ci/merge_coverage_lines.R`; covr's own merge cannot be used because shard
+copies record absolute per-shard paths for some files): 302 files, 178 R and 124 native.
+**Line coverage: 82.79% overall, 80.41% R, 88.39% native.** This is comparable to the 64.79%
+baseline (both include C++), but not exactly: compiler flags differ (`-O2` + `--coverage`) and the
+line tally is covr's, so treat the ~18-point gain as approximate.
+- **Native code:** 107 of 124 files are at or above 80%, none is at 0%. All 31 historical
+  zero-coverage seed files moved: 28 of the 31 in-progress registry rows are now `addressed`
+  (3 `in_progress` rows are R files, see below).
+- **Parallel kernels are counted.** The OpenMP dispatch kernels report 93-100% (`fast_bai_parallel`
+  100, `rand_bootstrap_ols_parallel` 100, `fast_wilcox_parallel` 98.7, `fast_kk_wilcox_parallel`
+  97.9, `ridit_distr_parallel` 95.3, `ols_distr_parallel` 95.0), so in-process OpenMP regions do not
+  lose counts. The one low parallel file, `rand_bootstrap_mean_diff_parallel.cpp` (47%), misses the
+  logit-shift and count-rounding branches (`transform_code` 2 and 4) and edge branches -- a real
+  gap, not lost counts. Not verified: native code that only runs inside forked workers or mirai
+  daemons could still lose counts.
+- **R attribution is still imperfect.** `inference_incidence_gcomp_abstract.R` is still 0.1%
+  (669 lines) although its methods demonstrably run; the KK sibling rose to 47.7% and
+  `local_machine_tuning_harness.R` to 65.7% (a direct `covr::file_coverage()` gave 98.99%).
+- **Registry:** regenerated to 109 rows (54 `addressed`, 3 `excluded`, 6 `in_progress`, 26
+  `pending`, 20 `triage_needed`). The 20 new rows are files newly measured below 80% (17 C++, 3 R)
+  and **need classification, so TODO-1 is reopened for them.** The largest C++ gaps are
+  `kk21_weights.cpp` (71%, 184 lines missed), `bootstrap_match_indices.cpp` (40%, 102),
+  `robust_post_fit_speedups.cpp` (58%, 68) and `fast_wilcox_hl.cpp` (71%, 65).
+- **Not done:** `coverage_baseline.json` is untouched; promoting this local number to the enforced
+  floor is your decision. The number was produced locally, not by CI.
+
 **TODO-1 backlog triage (2026-09-19):** the 58 newly-discovered files were
 classified: 46 `dispatch_threshold`, 6 `dead_or_unreachable`, 2
 `diagnostic_smoke`, 1 `straightforward_test`, and 3 that turned out **not to
@@ -378,6 +407,9 @@ is explicitly not the target** -- see Non-goals below.
     documented `covr` exclusion, not a test;
   - (d) diagnostic/introspection-only code -- needs only a trivial smoke
     test.
+
+  **TODO-1 partly reopened (2026-09-20):** the first real C++ measurement added 20
+  `triage_needed` rows (17 C++, 3 R); classify them, then this is done again.
 
   **TODO-1 done (2026-09-19):** regenerated from the first complete,
   provenance-bearing run (commit `f72b8fdb`, 73.57%, **R code only** -- no

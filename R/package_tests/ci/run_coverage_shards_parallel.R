@@ -168,14 +168,12 @@ if (any(results$exit_status != 0L)) {
 }
 
 if (tier == "coverage") {
-	log_line("merging %d coverage shards into one provenance-bearing report...", length(shard_ids))
-	reports = lapply(shard_ids, function(id) readRDS(file.path(artifact_dir, sprintf("shard-%d", id), "coverage.rds")))
-	versions = vapply(reports, `[[`, character(1), "covr_version")
-	if (length(unique(versions)) > 1L) stop("Mixed covr versions across shards; re-run with a consistent covr install.")
-	commit = tryCatch(system2("git", c("-C", root, "rev-parse", "HEAD"), stdout = TRUE), error = function(e) NA_character_)
-	coverage = getFromNamespace("merge_coverage", "covr")(lapply(reports, `[[`, "coverage"))
-	merged_path = file.path(artifact_dir, "merged-coverage.rds")
-	saveRDS(list(coverage = coverage, commit = commit, covr_version = unique(versions),
-		measured_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), shards = shard_ids), merged_path)
-	log_line("merged report written to %s (commit %s)", merged_path, commit)
+	# covr's own merge_coverage() is unusable here: shards built in /tmp copies record some files under
+	# absolute per-shard paths, so it never merges them (and took ~3 hours). Merge at line level with
+	# normalized repo-relative names instead; the CSV feeds coverage_gap_registry.R directly.
+	log_line("merging %d coverage shards at line level...", length(shard_ids))
+	merged_csv = file.path(artifact_dir, "merged-lines.csv")
+	merge_status = system2("Rscript", c(file.path(root, "R/package_tests/ci/merge_coverage_lines.R"), artifact_dir, merged_csv))
+	if (merge_status != 0L) stop("Line-level merge failed.")
+	log_line("merged line coverage written to %s (commit %s)", merged_csv, head_sha)
 }

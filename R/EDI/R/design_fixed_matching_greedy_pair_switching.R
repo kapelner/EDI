@@ -182,6 +182,14 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 				}
 			}
 			private$covariate_impute_if_necessary_and_then_create_model_matrix()
+			if (is.null(private$X) || ncol(private$X) == 0L) {
+				# No usable covariate: nothing to match or balance on, so fall back to balanced
+				# complete randomization (the base case of the pair-switching design).
+				message("DesignFixedMatchingGreedyPairSwitching has no non-constant covariate to match or balance on; using balanced complete randomization.")
+				w_mat = replicate(r, sample(c(rep(1, n / 2), rep(0, n / 2))))
+				storage.mode(w_mat) = "numeric"
+				return(matrix(w_mat, nrow = n, ncol = r))
+			}
 			X = private$X[1:n, , drop = FALSE]
 			private$ensure_pair_structure_computed()
 			pairs_mat = private$bms$indicies_pairs

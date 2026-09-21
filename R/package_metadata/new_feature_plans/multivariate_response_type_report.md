@@ -1,412 +1,253 @@
-# Multivariate / Vector-Valued Response Type Report
+# Multiple Outcome Metrics per Experiment — One `Design`, Many Named Responses
 
-> **Depends on:** gated decision; orchestration layer needs the stable scalar `Inference` surface (`fix_inference_hierarchy.md` migrations settled for the classes it composes). (Global ordering: see `_master.md`.)
+> **Depends on:** the stable scalar `Inference` surface (`fix_inference_hierarchy.md`, DONE 2026-08-23). Stage 0 below is a `Design` refactor and should land before anything else in this plan. (Global ordering: see `_master.md`.)
 
-> **Update (2026-08-14).** This report predates the completed
-> `fix_inference_hierarchy.md` shallow-hierarchy migration (and, where cited
-> below, the completed `fix_design_hierarchy.md`, SEXP-removal, and
-> interval-censored-survival plans). `InferenceAsympLikStdModCache` is now the `StandardModelCache`
-> component (composed via `define_inference_class()`, not inherited), and the
-> response-entry API cited below gained interval-censoring bounds
-> (`add_one_subject_response(t, y, y_L, y_R)` — the `(t, y, dead)` signature
-> described below is the pre-migration form). Neither changes the verdict:
-> the single-scalar-response assumption this report identifies as the blocker
-> is still baked into `Design`'s storage.
+> **Rewritten 2026-09-20 (owner decision).** The earlier version of this report
+> proposed K separate `Design` objects, one per outcome, and claimed "zero
+> `Design` changes." That is withdrawn. The architecture is now **one `Design`
+> holding several named responses**: covariates, assignment, and design state
+> are stored once. The earlier pre-2026-08-14 notes about the completed
+> hierarchy/interval-censoring migrations still apply: `InferenceAsympLikStdModCache`
+> is the composed `StandardModelCache` component, and the response-entry API is
+> `add_one_subject_response(t, y, y_L, y_R)`.
 
-## Scope
+## Why this plan matters
 
-This report evaluates how difficult it would be to add first-class support to
-the package for **multivariate / vector-valued outcomes**: experiments where
-each subject contributes more than one outcome measurement that should be
-analyzed jointly rather than one-at-a-time, for example:
+Most real experiments track more than one outcome metric:
+- **Clinical trials**: co-primary endpoints, key secondary endpoints, safety
+  endpoints beside efficacy.
+- **Online / A-B experiments**: one primary metric plus guardrail and
+  diagnostic metrics (conversion, revenue, latency, retention, ...).
+- **Field and social-science experiments**: several outcome scales or
+  behavioral measures per subject.
 
-- co-primary clinical endpoints
-- a biomarker panel measured once per subject
-- a bundle of educational or social outcomes
-- a joint physics or chemistry response surface
+Today a user must build one `Design` per metric, run each analysis, and
+correct for multiplicity by hand (or not at all). Multi-metric experiments
+should be a first-class workflow.
 
-This report was commissioned by
-[response_types_landscape_report.md](references/response_types_landscape_report.md)'s
-TODO-4, which flagged this family as `very hard` based on the "Clinical
-trials" field section's co-primary-endpoint and biomarker-panel examples. That
-document only motivates the gap qualitatively; this report does the concrete
-architectural assessment.
+## Scope: composite analysis, not joint modeling
 
-This is a fundamentally different kind of extension than adding one more
-`response_type` value (e.g. the `nominal` case covered in
-[nominal_response_type_report.md](nominal_response_type_report.md)). Adding
-`nominal` still fits one scalar response per subject into the existing
-per-subject storage; multivariate does not.
+Two different features hide under "multivariate support":
 
-## Short Answer
+1. **Multiple named responses per subject, each analyzed with the existing
+   scalar machinery, then combined with a multiplicity rule** — the goal of
+   this plan. Responses are independent named vectors; there is no `n × K`
+   matrix and no joint covariance.
+2. **True joint modeling** (SUR-style regression, multivariate GLM, a joint
+   Wald/Hotelling test, joint bootstrap over a response matrix, a vector-valued
+   treatment effect with cross-endpoint covariance) — **out of scope; separate
+   decision required.** It would need new C++ cores, vector-truth simulation
+   machinery, and a cache contract that holds a vector `beta_hat_T`.
 
-The verdict depends entirely on which of two very different features is
-meant by "multivariate support," and the landscape survey's single `very
-hard` label does not distinguish them:
+Applied practice is dominated by (1): per-endpoint estimates plus a
+multiplicity-controlled decision rule. Joint parametric models are rarer
+because they are harder to interpret and need larger n to estimate the
+cross-endpoint covariance.
 
-1. **Composite/multiplicity-adjusted analysis of several existing univariate
-   outcomes fit independently, then combined** — **moderate**. This requires
-   no change to the one-scalar-response-per-subject core; it is a new
-   orchestration layer on top of what already exists.
-2. **True joint/multivariate modeling** (a single model that estimates a
-   vector-valued treatment effect with a joint covariance, e.g. seemingly
-   unrelated regression, multivariate GLM, or a global rank-sum-type test on
-   a response vector) — **very hard**, and correctly so. This requires new
-   per-subject response storage, new C++ numerical cores, and a redesign of
-   every layer that currently assumes one scalar estimand.
+## Architecture: one `Design`, many named responses
 
-So `very hard` is the right verdict for genuine joint modeling, but it
-overstates the cost of the composite/multiplicity path, which is the
-practical way most applied co-primary-endpoint analyses are actually done
-(run each endpoint's own model, then control the family-wise error rate
-across the K tests).
+### Why one `Design` (and not K)
 
-## How Common Are Multivariate/Co-Primary Outcomes In Experimental Literatures?
+- **Covariates, assignment `w`, and design state (matching, blocks,
+  rerandomization draws, sequential allocation history) are stored once**, not
+  K times.
+- **No drift risk**: K copies of `w`/`X` can silently diverge; one copy cannot.
+- **Sequential/adaptive designs are incoherent with K designs**: allocation is
+  a single decision as each subject arrives.
+- **Shared-`w` randomization inference** (see Stage 2) needs the same draw of
+  `w` across all metrics, which is natural in one object.
 
-- **Clinical trials**: co-primary endpoints and biomarker panels are common
-  enough that ICH E9 and FDA multiplicity guidance both address them
-  explicitly; regulatory trials frequently pre-specify 2-4 co-primary or key
-  secondary endpoints with a formal multiplicity-control plan (e.g.
-  hierarchical testing, Bonferroni/Holm, or a global test) rather than a true
-  joint parametric model.
-- **Education and social science**: outcome "bundles" (e.g. multiple test
-  subscales, or several behavioral measures) are common, and applied
-  practice there also leans heavily on per-outcome testing with a
-  multiple-comparisons correction, or an index/composite score computed
-  before the analysis (which then re-enters the package as an ordinary
-  scalar `continuous` outcome — no new machinery needed).
-- **True joint parametric multivariate modeling** (vector-valued treatment
-  effects with an explicit cross-endpoint covariance, e.g. SUR-style
-  regression) is comparatively rare in the applied RCT/field-experiment
-  literature relative to the composite/multiplicity-adjusted approach, largely
-  *because* it is harder to interpret, harder to communicate to
-  non-statistician stakeholders, and requires larger samples to estimate the
-  cross-endpoint covariance well.
+### Constructor contract
 
-Practical conclusion: the dominant applied need is composite/multiplicity
-analysis of several already-supported scalar outcomes, not full joint
-modeling. This should reorder the package's priorities relative to a naive
-reading of the landscape survey's "very hard" tag.
+`Design` gains a new argument `response_name_to_types`: a named list mapping
+response name (string) => response type (string), e.g.
+`list(sbp = "continuous", responder = "incidence", os = "survival")`.
 
-## What Already Exists
+- The existing `response_type` argument is kept for backward compatibility and
+  **must be a scalar string**. When used, the single response is stored under
+  the internal name `"default"`, equivalent to
+  `response_name_to_types = list(default = response_type)`.
+- **Supplying both `response_type` and `response_name_to_types` is an error.**
+  Supplying neither is an error (today `response_type` is required). A
+  `response_type` of length != 1 is an error.
+- Validation of `response_name_to_types`: non-empty named list; names
+  non-empty, non-`NA`, and unique; every value a single string from the
+  existing `assertChoice` set (`continuous`, `incidence`, `proportion`,
+  `count`, `survival`, `ordinal`).
+- `ordinal_levels` becomes per-response (a named list keyed by response name in
+  the multi form; the scalar form keeps working unchanged).
 
-Confirmed via grep of `EDI/R/*.R`:
+### Internal storage
 
-- There is **no multiplicity-correction infrastructure anywhere in the
-  package** (`grep -rn "multiplicity\|multiple_testing\|holm\|bonferroni\|p\.adjust" EDI/R/*.R`
-  returns nothing except one unrelated docstring mention of
-  "multiplicity-corrected" in
+Responses are kept as a **named list, response name => vector**, replacing the
+single-response privates in [design_abstract.R](../EDI/R/design_abstract.R)
+(constructor ~L170-223, `add_one_subject_response` ~L255-335,
+`add_all_subject_responses` ~L367-417, `get_response_type` ~L822,
+`transform_y` ~L872, `assert_y` ~L1008):
+- `private$y`, `private$y_L`, `private$y_R`, and the survival censoring
+  bookkeeping become named lists keyed by response name.
+- `private$response_type` and `private$response_type_original` become named
+  character vectors keyed the same way; ordinal-level state is per response.
+- The "observed responses == length(w)" completeness checks (~L450, ~L461)
+  become **per-response**: a subject may have some responses observed and
+  others missing/censored.
+- The legacy scalar path is the one-element case `list(default = ...)` and must
+  reproduce all existing behavior bit-for-bit.
+
+### Public API consequences
+
+- `add_one_subject_response()` / `add_all_subject_responses()` need to know
+  which response they write. Proposed: an optional `response_name` that
+  defaults to `"default"` when the design has exactly one response and is
+  **required (error if omitted) when there are several**.
+- Accessors (`get_y()`, `get_response_type()`, `get_response_type_original()`,
+  `transform_y()`, ...) gain `response_name = NULL`: `NULL` resolves to the
+  sole response and errors clearly when there are several.
+- **`Inference` classes bind to one `(Design, response_name)` pair**
+  (constructor argument `response_name = NULL`, same resolution rule). The
+  scalar-estimand math (`beta_hat_T`/`s_beta_hat_T` cache,
+  `InferenceAsympLikStdModCache`, every concrete class) is unchanged; only data
+  access changes.
+- **Response-adaptive designs** (KK21 weighting and similar, with
+  per-`response_type` branches at
+  [design_seq_one_by_one_KK21.R:253-281](../EDI/R/design_seq_one_by_one_KK21.R:253))
+  take a `primary_response_name` naming the one response that drives
+  allocation; required when there are several responses. Fusing several
+  responses into one allocation weight is an unresolved research question and
+  is not attempted here.
+- `SimulationFramework` dispatches its `transform_cont_y_based_on_response_type()`
+  and default-inference-class curation per response name.
+- Serialization (`save_load_api.md`) must version the `Design` layout and load
+  old single-response objects as `default`.
+
+### Blast radius (measured 2026-09-20; re-run `graft callers` before editing)
+
+- `get_response_type()` is referenced in ~78 files under `R/EDI/R/`; the
+  `Design` hierarchy is 36 `design_*.R` files that read the response through
+  base-class privates. Inference classes, the simulation framework, save/load,
+  print/summary methods, plots, and the Python bindings (if they wrap `Design`)
+  are all affected by the accessor changes.
+- No C++ change is expected if kernels keep receiving plain numeric vectors
+  (the accessor just selects one). Any C++ verification follows the project
+  rule: compile only touched `.cpp` files; never a full `R CMD INSTALL` or
+  `load_all(compile = TRUE)`.
+
+## Requirements for the composite layer
+
+1. **Mixed response types per metric** via `response_name_to_types`, all
+   sharing the one `Design`'s `w` and covariates.
+2. **Metric roles and testing hierarchy.** Each metric is labeled
+   `primary`/`co-primary`, `secondary`, or `guardrail`, with a decision rule
+   per role: Holm or max-p IUT across co-primaries; fixed-sequence or
+   gatekeeping for secondaries; non-inferiority for guardrails (a different
+   hypothesis, not a multiplicity-adjusted superiority test). One-/two-sided
+   alternatives are per metric.
+3. **Per-metric estimand and direction.** Each metric reports estimate, CI,
+   and p-value on its own scale; never a pooled effect size across
+   incomparable scales.
+4. **Multiplicity-adjusted intervals** where a valid construction exists, and
+   an explicit statement where it does not.
+5. **Per-metric missingness and unequal n.** Report per-metric n; never
+   silently intersect subjects (see `missing_outcome_handling.md`).
+6. **Reporting.** A multi-metric results table (per-metric estimate, CI, raw
+   p, adjusted p, decision, role), integrated with
+   `multiplicity_adjusted_results_table.md` and
+   `inference_suite_interactive_reporting.md`, not a parallel path.
+7. **Simulation.** K correlated metrics with mixed response types; power for
+   the *family* of decisions (e.g. all co-primaries significant) and
+   family-wise type-I error.
+
+## Cross-metric decision rules (Stage 2)
+
+For the K per-metric p-values, three distinct, separately labeled answers:
+- **Holm's step-down** (default; FWER control under arbitrary dependence;
+  answers "which outcome(s) are significant"). No multiplicity code exists in
+  the package today; this is a thin wrapper over `stats::p.adjust()`.
+- **Max-p intersection-union test** (opt-in; Berger's IUT; "are ALL K
+  significant," for co-primary designs). A one-line `max()`.
+- **Cauchy combination** (opt-in; reuses `cct_combine_pvalues()` unchanged on
+  the K-vector; "is at least one significant"). A real question (a global
+  gatekeeping test) but not what most users want, so it ships as a labeled
+  third output, never the default or sole summary.
+
+Proposed, to be validated: because EDI's randomization inference permutes or
+redraws `w`, applying the *same* draw across all K metrics preserves their joint
+dependence, enabling **Westfall-Young min-p / max-T step-down** FWER control
+under the sharp null, typically more powerful than Holm when metrics are
+positively correlated. Needs a careful check of the null it controls and its
+interaction with the design's own scheme (matching, blocking, rerandomization).
+
+Per-metric representative p-value: by default a full `InferenceSuite` per
+response with `combined_evidence$pval` (existing Cauchy combination within the
+metric). If the caller pinned a specific `(Inference class, method, action)` for
+a metric (pre-registered analysis plan), use that model's raw `pval` instead.
+
+## Estimand question
+
+The ambiguity here is whether there should be one number at all: a global test
+(Hotelling/O'Brien-type; evidence somewhere, no CI for a quantity), K
+per-endpoint scalar estimates with a multiplicity-adjusted decision rule (best
+fit for the scalar-estimand architecture; this plan), or a joint vector effect
+with a joint covariance (out of scope).
+
+## Implementation stages
+
+- **Stage 0 — `Design` refactor, no behavior change.** Constructor contract,
+  named-list storage, legacy scalar path routed through `list(default = ...)`,
+  error tests (both supplied / neither supplied / bad or duplicate names /
+  non-scalar `response_type`). The full existing test suite and the
+  package_tests wiring/drift/parity gates must pass **unchanged** before
+  anything else ships. This is the riskiest step; do it in isolation.
+- **Stage 0.5 — multi-response `Design`.** Allow more than one entry;
+  per-response entry, missingness, ordinal levels, `transform_y`;
+  `response_name` on accessors and `Inference` constructors;
+  `primary_response_name` for response-adaptive designs; explicit errors on
+  ambiguous access.
+- **Stage 1 — per-metric orchestration.** `InferenceMultiEndpointComposite`
+  (new R6 class) loops over response names of one `Design` and collects the K
+  `(beta_hat_T, s_beta_hat_T, pval)` results.
+- **Stage 2 — cross-metric decision rules** (above), plus roles/gatekeeping,
+  adjusted intervals, and evaluation of the shared-`w` Westfall-Young rule.
+- **Stage 3 — `SimulationFramework`.** Correlated latent signals via a
+  multivariate normal draw with a user-specified correlation matrix, then
+  `transform_cont_y_based_on_response_type()` per response; K fits per
+  replication; per-metric scalar MSE/coverage/power plus family-wise summaries.
+- **Stage 4 — true joint modeling: not planned.** Gate on a concrete user need
+  for a joint covariance estimate; it would be a second-generation project
+  (matrix-valued response storage, SUR-style C++ cores, vector-truth
+  simulation).
+
+## What exists today (checked against the code)
+
+- No multiplicity-correction infrastructure anywhere in the package (one
+  unrelated docstring mention at
   [simulation_framework_report.R:83](../EDI/R/simulation_framework_report.R:83)).
-  So even the "easier" composite path (#1 above) requires new code, not
-  reuse of an existing correction layer — it is just much less new code than
-  #2.
-- There is **no multi-column response storage** anywhere in `Design`. The
-  response is stored as a single numeric vector `private$y`, written by
-  `add_one_subject_response(t, y, y_L, y_R)` (previously `(t, y, dead)`; `y` is asserted `len = 1`
-  numeric — [design_abstract.R:145-148](../EDI/R/design_abstract.R:145)) and
-  `add_all_subject_responses(ys, deads)` (`private$y = as.numeric(ys)` —
-  [design_abstract.R:200-229](../EDI/R/design_abstract.R:200)). This is the
-  central architectural fact this report is built around: every experiment
-  currently has exactly one `Design` object holding exactly one outcome
-  vector.
-- `response_type` validation is a fixed `assertChoice()` over six values —
-  `continuous`, `incidence`, `proportion`, `count`, `survival`, `ordinal`
-  ([design_abstract.R:94](../EDI/R/design_abstract.R:94)) — with no vector or
-  matrix-valued option, and no `nominal` either (confirming that report's own
-  premise that nominal hasn't landed yet).
-- `SimulationFramework`'s `betaT` parameter accepts "a numeric scalar or
-  vector" ([simulations_framework.R:329](../EDI/R/simulations_framework.R:329)),
-  but this is a **sweep of scalar effect-size values across separate DGP
-  cells** (`betaT_values = unique(as.numeric(betaT))` at
-  [simulations_framework.R:625](../EDI/R/simulations_framework.R:625)), not a
-  single vector-valued treatment effect applied jointly to several outcomes
-  in one replication. Each cell still simulates and fits one scalar outcome.
-  This is worth flagging explicitly because it is easy to misread as
-  existing multivariate support — it is not.
+- Single-response storage in `Design`: `add_one_subject_response(t, y, y_L,
+  y_R)` asserts a length-1 numeric `y`; `add_all_subject_responses` sets
+  `private$y = as.numeric(ys)`. `response_type` is a fixed `assertChoice` over
+  six values.
+- `SimulationFramework`'s `betaT` accepts a vector but sweeps scalar effect
+  sizes across separate DGP cells; it is not a vector-valued joint effect and
+  should not be mistaken for multivariate support.
 
-## Difficulty By Layer
+## Open questions for the owner
 
-### 1. Design base class: hard for joint modeling, unnecessary for composite path
-
-For the composite path (#1), no `Design`-layer change is needed at all: each
-of the K endpoints is simply its own `Design` object (or the same covariates
-threaded through K parallel `Design` objects, one per outcome), fit with the
-existing single-response machinery K times.
-
-For true joint modeling (#2), `Design` would need:
-- storage for a response **matrix** (`n × K`) instead of a response vector
-- a `response_type` per column (endpoints can have different families —
-  e.g. one continuous biomarker and one binary responder-status endpoint)
-- assertion/validation logic for partial missingness per endpoint (a subject
-  present in the trial but missing one of several co-primary measurements)
-
-This is a genuine breaking change to the `Design` contract, not an additive
-field, since `add_one_subject_response`/`add_all_subject_responses` are typed
-around a single scalar `y` throughout.
-
-### 2. Most design classes: unaffected for composite path, hard for joint path
-
-Design classes that are response-type agnostic (assignments, covariates,
-timing) are untouched by the composite path — they are simply instantiated
-K times, once per endpoint. For the joint path, any design class with
-response-adaptive logic (see next point) would need matrix-aware treatment.
-
-### 3. KK21 / response-adaptive weighting designs: moderate for composite (reuse per-endpoint), hard for joint
-
-`DesignSeqOneByOneKK21` computes covariate weights from the observed response
-family with explicit per-`response_type` branches
-([design_seq_one_by_one_KK21.R:253-281](../EDI/R/design_seq_one_by_one_KK21.R:253)).
-For composite analysis this is unaffected (each endpoint's design/weighting
-is independent). For joint modeling, response-adaptive weighting would need
-to either pick one "primary" endpoint to drive allocation (a reasonable and
-common simplification) or genuinely fuse multiple endpoints into one weight
-— the latter is a substantial, unresolved design question, not just an
-implementation task.
-
-### 4. `SimulationFramework`: moderate for composite, hard for joint
-
-`SimulationFramework` currently transforms one latent continuous signal
-`y_cont` to one response-family scale via a single
-`switch(response_type, ...)` dispatcher
-([simulations_framework.R:126](../EDI/R/simulations_framework.R:126)) and
-defines response-type-specific treatment-effect semantics and curated
-default inference classes per response type
-([simulations_framework.R:3106](../EDI/R/simulations_framework.R:3106)).
-
-For the composite path, `SimulationFramework` could run K independent
-single-outcome simulations (potentially with correlated latent draws across
-endpoints, which is a moderate addition: draw a correlated multivariate
-normal latent vector, then apply the existing per-endpoint
-`transform_cont_y_based_on_response_type()` column-wise — this function
-already exists standalone at
-[simulations_framework.R:105-124](../EDI/R/simulations_framework.R:105) and
-is reusable as-is per endpoint).
-
-For joint modeling, `SimulationFramework` would need a vector-valued `betaT`
-applied *within* one replication (not swept across cells), a
-vector/matrix-valued truth object, and vector-valued MSE/coverage/power
-summaries — none of which the current scalar-truth summary machinery
-supports.
-
-## The Main Conceptual Problem: What Is The Multivariate Estimand?
-
-Exactly as with nominal outcomes, this is the crux. Unlike nominal (where the
-ambiguity is about *which contrast*), here the ambiguity is about *whether
-there should be one number at all*:
-
-- **One global test statistic** (e.g. Hotelling-type or O'Brien-type combined
-  test): answers "is there evidence of a treatment effect somewhere across
-  the endpoint panel," but is not, by itself, an effect estimate with a CI
-  for any specific quantity.
-- **K per-endpoint scalar estimates with a multiplicity-adjusted decision
-  rule**: gives K familiar scalar estimates (reusing 100% of the existing
-  per-endpoint machinery), with a shared correction layer (Holm/Bonferroni,
-  or a hierarchical/gatekeeping procedure) deciding which are declared
-  significant. This is by far the best fit for the package's current
-  one-scalar-estimand architecture.
-- **A single joint vector-valued treatment effect with a joint covariance
-  matrix**: statistically the "purest" version, but breaks essentially every
-  scalar-estimand assumption described below.
-
-## How The Existing `inference_all_*` Paths Would Respond
-
-### The scalar-treatment-effect assumption is pervasive
-
-`InferenceMLEorKMSummaryTable` and `InferenceAsympLikStdModCache`, the shared
-abstract layers underneath most likelihood-based inference paths, both
-assume a single scalar treatment coefficient (`generate_mod()` returning an
-object with `b[2]` as the treatment effect —
-[inference_all_abstract_asymp_lik_std_mod_cache.R:6](../EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:6)),
-and the base caching layer in `inference_all_abstract.R` stores exactly one
-`beta_hat_T` / `s_beta_hat_T` pair per fitted object
-([inference_all_abstract.R:592-602](../EDI/R/inference_all_abstract.R:592)).
-None of this can hold a vector-valued treatment effect without a structural
-change to the cache contract that essentially every concrete `Inference*`
-class relies on.
-
-### The composite path needs none of that changed
-
-Because the composite path fits K independent scalar models (one call into
-the existing `Inference*` machinery per endpoint), it needs zero changes to
-`inference_all_abstract.R`, `InferenceAsympLikStdModCache`, or any concrete
-inference class. The only new code is a thin orchestration wrapper that:
-1. runs the same (or different) `Inference*` class once per endpoint column,
-2. collects the K `(beta_hat_T, s_beta_hat_T, pval)` triples,
-3. applies a multiplicity correction across the K p-values,
-4. optionally computes a combined global-test statistic from the K results.
-
-### `InferenceSuite`: works for the composite path, not applicable to joint modeling
-
-`InferenceSuite` discovers applicable classes by trying to instantiate each
-one against a `Design` and reading off compatibility
-([inference_suite.R:110](../EDI/R/inference_suite.R:110)). For the composite
-path, `InferenceSuite` is unaffected: it would simply be invoked K times,
-once per per-endpoint `Design`. For joint modeling, `InferenceSuite`'s
-per-class discovery model would need to understand multi-endpoint `Design`
-objects, which it currently has no concept of.
-
-## Package Areas That Need Explicit Guards (Joint-Modeling Path Only)
-
-If a matrix-valued `Design` were ever introduced for true joint modeling, the
-following would need explicit new-response-shape assertions, mirroring the
-nominal report's "fence off generic paths" recommendation:
-- `InferenceAllSimpleAverageDiff` / `InferenceAllSimpleMeanDiffPooledVar` /
-  `InferenceAllSimpleWilcox` — all currently assume `private$y` is a plain
-  numeric vector; a matrix response would silently break their internal
-  arithmetic (mean of a matrix column vs. mean of the whole matrix) rather
-  than erroring cleanly, which is worse than nominal's failure mode (nominal
-  at least produces a runnable-but-meaningless numeric answer; a matrix `y`
-  passed into code written for a vector could error unpredictably deep
-  inside `mean()`/`var()` calls, or silently vectorize incorrectly).
-- `Design$assert_y()` ([design_abstract.R:495](../EDI/R/design_abstract.R:495))
-  would need a whole new branch for matrix-shaped `y`.
-
-The composite path needs no guards anywhere, since it never constructs a
-matrix-valued `Design`.
-
-## Recommended First-Wave Multivariate Support
-
-Consistent with the "Short Answer" above, the pragmatic first wave is
-entirely the composite path:
-
-1. `InferenceMultiEndpointComposite` — a thin R6 orchestration class that
-   takes K outcomes sharing the same assignment vector `w`.
-2. Per-outcome p-value: by default, run a full `InferenceSuite` on each
-   outcome's `Design` and take its `combined_evidence$pval` (the Cauchy
-   combination test already implemented and calibrated across every
-   applicable method for that one outcome, `cct_combine_pvalues()`) as the
-   outcome's representative p-value — no new combination math, this reuses
-   the existing within-outcome CCT exactly as-is. If the caller has already
-   pinned one specific `(Inference class, method, action)` for a given
-   outcome (e.g. a pre-registered analysis plan that commits to one model
-   per endpoint), skip the InferenceSuite/CCT step for that outcome and use
-   that single model's raw `pval` directly instead — combining across
-   methods only makes sense when the method itself hasn't been committed to.
-3. Cross-outcome decision: apply one or more of the following to the K
-   per-outcome p-values from step 2, each answering a different question a
-   trial's actual pre-registered success criterion might ask for:
-   - **Holm's step-down procedure** (default; FWER control, valid under
-     arbitrary dependence, needs no distributional assumption beyond what
-     each outcome's own p-value already has; answers "which specific
-     outcome(s) are significant").
-   - **A max-p intersection-union test** (opt-in; Berger's IUT; answers
-     "are ALL K outcomes significant," for co-primary designs whose success
-     criterion requires simultaneous significance).
-   - **A Cauchy combination across the same K p-values** (opt-in, reusing
-     `cct_combine_pvalues()` exactly as-is on a different input vector than
-     its within-outcome use in step 2; answers "is at least one outcome
-     significant" — the same union-intersection question
-     `combined_evidence$pval` already answers within one outcome, now asked
-     across outcomes). This is still a legitimate, real question — it's the
-     natural global/gatekeeping test some designs use to license a look at
-     individual endpoints — but it is *not* the question most users actually
-     want answered (that's Holm's "which one(s)," or max-IUT's "all of
-     them"), so it should ship as a third, clearly-labeled output, never as
-     the default or sole summary.
-
-   No new combination math is needed for any of the three: Holm and the
-   Cauchy combination both reuse existing/already-planned code
-   (`cct_combine_pvalues()`, the planned Holm wrapper over
-   `stats::p.adjust()`); max-p is a one-line `max()` over the same vector.
-4. Defer true joint/vector-valued modeling (SUR-style regression, a
-   Hotelling-type joint Wald test, or joint bootstrap over a response
-   matrix) to a second-generation project, gated on whether a concrete user
-   need for a *joint* covariance estimate (as opposed to per-endpoint
-   estimates plus a combined test) actually arises. Most applied
-   co-primary-endpoint practice does not require it.
-
-## `SimulationFramework` Implications
-
-### Composite path
-
-Feasible without breaking any existing scalar-truth contract:
-- generate K correlated latent signals (a multivariate normal draw with a
-  user-specified cross-endpoint correlation matrix, reusing
-  `transform_cont_y_based_on_response_type()` column-wise, per endpoint),
-- run K independent fits per replication via the composite wrapper above,
-- report K sets of the existing scalar MSE/coverage/power summaries, plus
-  one new family-wise power/type-I-error summary across the K decisions
-  (whether the multiplicity-adjusted procedure correctly detects/rejects).
-
-### Joint-modeling path
-
-Would require a genuinely new truth object (`betaT` as a vector, applied
-within one replication), a new vector/matrix-valued MSE-analogue (e.g.
-Mahalanobis-distance-based), and new curated default inference classes keyed
-on "multivariate" the same way
-[simulations_framework.R:3106](../EDI/R/simulations_framework.R:3106) keys
-scalar defaults on `response_type` today. This is the single most expensive
-integration point for the joint path, exactly as `SimulationFramework` was
-the hardest integration point for nominal.
-
-## Recommended Implementation Plan
-
-### Stage 1: Per-outcome orchestration
-
-Add `InferenceMultiEndpointComposite` as a wrapper that, for each of the K
-outcomes, either (a) runs a full `InferenceSuite` and takes
-`combined_evidence$pval` as that outcome's representative p-value, or (b),
-if the caller has pinned one specific `(Inference class, method, action)`
-for that outcome, fits it directly and uses its raw `pval`. Requires no
-`Design` changes and no new combination math (reuses `cct_combine_pvalues()`
-as-is).
-
-### Stage 2: Cross-outcome decision rule
-
-Apply one or more of: Holm's step-down procedure (default; "which
-outcome(s)"), a max-p intersection-union test (opt-in; "are all K outcomes
-significant"), and a Cauchy combination across the K per-outcome p-values
-from Stage 1 (opt-in; "is at least one outcome significant" — reuses
-`cct_combine_pvalues()` unchanged, just on a different input vector than
-its within-outcome use in Stage 1). The three answer different questions
-and should be reported as distinct, labeled outputs rather than collapsed
-into one — the Cauchy-combined answer is real but is not the one most users
-actually want (that's Holm's or max-IUT's).
-
-### Stage 3: `SimulationFramework` composite support
-
-Extend `SimulationFramework` to generate K correlated latent outcomes and
-drive the Stage 1/2 wrapper, with family-wise power/type-I-error summaries.
-
-### Stage 4 (only if a concrete need emerges): true joint modeling
-
-Introduce a matrix-valued `Design` variant, new C++ numerical cores for
-joint/SUR-style estimation, and the accompanying `SimulationFramework`
-vector-truth machinery. This stage should not be started speculatively —
-gate it on an actual user request for a joint covariance estimate, since the
-composite path already serves the dominant applied use case at a fraction of
-the cost.
-
-## Bottom Line
-
-The landscape survey's single `very hard` verdict is correct only for **true
-joint/vector-valued modeling**, which does require breaking the package's
-one-scalar-response-per-subject `Design` contract, new C++ numerical cores,
-and a redesign of `SimulationFramework`'s truth/summary machinery — a
-second-generation architectural project on par with (or larger than) the
-`SimulationFramework` cost identified in the nominal-response-type report.
-
-But the dominant applied version of "multivariate support" — composite
-analysis of several co-primary endpoints with a multiplicity-adjusted
-decision rule, which is how most real clinical and field-experiment
-co-primary-endpoint analyses are actually run — is **moderate**, requires
-zero changes to `Design`, `inference_all_abstract.R`, or any concrete
-`Inference*` class, and can be built entirely as a new orchestration layer
-plus one new multiplicity-correction utility (which does not exist anywhere
-in the package today).
-
-Recommendation: implement the composite path first (Stages 1-3). Do not
-commission a `Design`-matrix / joint-modeling project (Stage 4) until a
-concrete use case demands a genuine joint covariance estimate rather than
-per-endpoint estimates plus a combined decision rule.
+1. Entry API: one call per response, or one call carrying all of a subject's
+   responses?
+2. Is `"default"` reserved (disallowed as a user name in the multi form)?
+   Recommendation: yes.
+3. Save/load compatibility policy for old single-response objects.
+4. Whether `Inference` should also accept a vector of response names and return
+   the composite directly, or whether the composite class is always separate.
 
 ## Implementation TODOs
 
-Added 2026-08-14, derived from this report's own recommendation sections
-(restated for the completed shallow-hierarchy/component architecture).
-
-- [ ] TODO-1: **Make a decision about whether to implement this at all — ask the user.** Do not start the items below until that decision is recorded here.
-- [ ] TODO-2: Stage 1 — per-outcome orchestration: run `InferenceSuite` on each outcome's `Design` and take `combined_evidence$pval` (or a caller-pinned single model's raw `pval`, when one method was already committed for that outcome) as that outcome's representative p-value. No `Design` storage change; no new combination math.
-- [ ] TODO-3: Stage 2 — cross-outcome decision rule: apply Holm's step-down procedure (default), a max-p intersection-union test (opt-in), and/or a Cauchy combination across the K per-outcome p-values from TODO-2 (opt-in, reusing `cct_combine_pvalues()` unchanged) — three distinct, separately labeled answers ("which," "all," "any").
-- [ ] TODO-4: Stage 3 — `SimulationFramework` composite support.
-- [ ] TODO-5: Do NOT pursue the native joint-modeling path without a separate decision — the report's verdict is that `Design`'s single-scalar-response storage makes it a rewrite.
+- [ ] TODO-1: **Confirm go-ahead to implement.** The owner has flagged this as an important plan (2026-09-20) and chosen the one-`Design` architecture, but has not yet explicitly authorized implementation. Do not start the items below until recorded here.
+- [ ] TODO-2: **Stage 0** — `Design` constructor + storage refactor with zero legacy behavior change (see "Implementation stages"). Run `graft callers` on the response accessors first; resolve the open questions above.
+- [ ] TODO-3: **Stage 0.5** — multi-response `Design`, `response_name` on accessors/`Inference`, `primary_response_name` for adaptive designs, mixed-type tests.
+- [ ] TODO-4: **Stage 1** — `InferenceMultiEndpointComposite` per-metric orchestration (`InferenceSuite` per response or a caller-pinned model's raw `pval`).
+- [ ] TODO-5: **Stage 2** — Holm (default), max-p IUT, Cauchy across metrics as three separately labeled answers; metric roles, gatekeeping, non-inferiority guardrails; multiplicity-adjusted intervals; evaluate shared-`w` Westfall-Young.
+- [ ] TODO-6: Multi-metric results table integrated with `multiplicity_adjusted_results_table.md` and the interactive reporting plan.
+- [ ] TODO-7: **Stage 3** — `SimulationFramework` composite support with family-wise power/type-I-error.
+- [ ] TODO-8: Update `save_load_api.md`, roxygen docs, README/vignette examples, and the Python binding surface for the new constructor.
+- [ ] TODO-9: Do NOT pursue native joint modeling (matrix response, joint covariance) without a separate decision.

@@ -152,7 +152,17 @@ InferenceRandCustom = define_inference_class(
 				.src = private$compiled_cpp_stat_src; .fn = NULL
 				function(){ if (is.null(.fn)) .fn <<- Rcpp::cppFunction(.src); .fn }
 			})() else NULL
-			vapply(seq_len(ncol(w_mat)), function(j) private$evaluate_stat(y, w_mat[, j], dead, cpp_fn_override), numeric(1L))
+			# `y` arrives already shifted to the delta-null (treated responses minus
+			# delta, see setup_randomization_template_and_shifts()); each permuted
+			# assignment must add delta back onto its own treated units, exactly as
+			# the built-in fast paths do (e.g. compute_simple_mean_diff_parallel_cpp).
+			# Ignoring delta made the null distribution identical for every delta, so
+			# the CI inversion returned garbage for any non-zero effect.
+			delta = as.numeric(delta)[1L]
+			vapply(seq_len(ncol(w_mat)), function(j) {
+				wj = w_mat[, j]
+				private$evaluate_stat(if (isTRUE(delta != 0)) y + delta * wj else y, wj, dead, cpp_fn_override)
+			}, numeric(1L))
 		}
 		# Deliberately NOT implementing compute_fast_rand_bootstrap_distr,
 		# compute_brt_null_statistics_with_se, or compute_rand_bootstrap_ci_

@@ -667,6 +667,23 @@ welch_t_stat_cpp = '
 	}
 '
 
+# Translation-equivariant statistic (T(y + delta*w, w) = T(y, w) + delta) for the
+# custom randomization CI: the CI search is seeded from the observed statistic and
+# inverts on the response-shift axis, so a scale-free statistic such as the Welch t
+# above yields an interval in t-units (centred on the observed t), not in y-units.
+mean_diff_stat_cpp = '
+	double mean_diff_stat(NumericVector y, IntegerVector w) {
+		int n = y.size();
+		double sum_t = 0, sum_c = 0;
+		int n_t = 0, n_c = 0;
+		for (int i = 0; i < n; i++) {
+			if (w[i] == 1) { sum_t += y[i]; n_t++; }
+			else           { sum_c += y[i]; n_c++; }
+		}
+		return sum_t / n_t - sum_c / n_c;
+	}
+'
+
 source(repo_path("EDI", "tests", "testthat", "helper-likelihood-method-smoke.R"))
 
 supports_exact_inference = function(inf_obj) {
@@ -2925,7 +2942,12 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		# "conservative bound" warning every response type can get, not an
 		# error) -- there was never a structural reason to exclude count here.
 		if (supports_randomization_ci && !skip_slow && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
-			safe_call("compute_rand_confidence_interval(custom)", custom_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
+			custom_inf_ci = InferenceRandCustom$new(
+				seq_des_inf$get_design_object(),
+				custom_randomization_statistic_cpp = mean_diff_stat_cpp,
+				verbose = FALSE
+			)
+			safe_call("compute_rand_confidence_interval(custom)", custom_inf_ci$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 		}
 	}
 }

@@ -58,7 +58,22 @@ test_that("the structure is cached and the matching-structure hook delegates to 
 	expect_identical(f$p$bms, bms1)
 })
 
-test_that("with no usable covariates no structure is built", {
+test_that("a design with no usable (non-constant) covariate falls back to balanced complete randomization with a message", {
+	f <- mk(X = data.frame(x = rep(1, 8)))
+	expect_message(f$des$assign_w_to_all_subjects(), "balanced complete randomization")
+	w <- f$des$get_w()
+	expect_length(w, 8L)
+	expect_equal(sum(w), 4)
+	expect_true(all(w %in% c(0, 1)))
+	expect_null(f$p$bms)
+	# Multiple draws are balanced, valid and not all identical.
+	W <- suppressMessages(f$p$draw_ws_raw(r = 30L))
+	expect_equal(dim(W), c(8L, 30L))
+	expect_true(all(colSums(W) == 4))
+	expect_gt(length(unique(apply(W, 2, paste, collapse = ""))), 1L)
+})
+
+test_that("with no usable covariates the pair-structure helper itself builds nothing", {
 	f <- mk(X = data.frame(x = rep(1, 8)))
 	unlockBinding("covariate_impute_if_necessary_and_then_create_model_matrix", f$p)
 	f$p$covariate_impute_if_necessary_and_then_create_model_matrix <- function() { f$p$X <- matrix(numeric(0), 8, 0); invisible(NULL) }
