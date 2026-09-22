@@ -17,7 +17,14 @@ NULL
 	.edi_onload_step = function(label) {
 		if (!.edi_onload_trace) return(invisible(NULL))
 		cat("EDI .onLoad trace: ", label, "\n", sep = "")
-		flush.console()
+		# flush.console() (Windows-only, lives in utils) is NOT available here: R
+		# CMD check's "checking whether the namespace can be loaded with stated
+		# dependencies" test loads the package with only the base namespace
+		# attached, and an unqualified flush.console() call then fails .onLoad()
+		# itself outright ("could not find function") -- confirmed 2026-09-22,
+		# run 35755226765 job 106839182746. flush(stdout()) is base R, always
+		# available, and does the same job.
+		flush(stdout())
 	}
 	.edi_onload_step("start")
 	if (is.null(getOption("datatable.quiet"))) {

@@ -1,7 +1,10 @@
 # Fix: Stale Worker-Cache in Reused-Worker Resampling — Degenerate Randomization/Bootstrap Distributions
 
-> **Depends on:** none. (Global ordering: see `_master.md`.) Slated for
-> `release_v1_1_0.md → TODO-31`.
+> **Depends on:** none. (Global ordering: see `_master.md`.) TODO-1..6
+> shipped 2026-09-22 (see `Status` below), out of band ahead of
+> `release_v1_1_0.md → TODO-31` as an urgent correctness fix. TODO-9 (the
+> latent `cached_mod` gap found during this plan's final review) is slated
+> for `release_v1_1_0.md → TODO-34`.
 
 Found 2026-09-22, following up on three new checks added to
 `audit_comprehensive_results.R` this session (`biased_estimate`,
@@ -177,7 +180,7 @@ written to eliminate elsewhere in this codebase.
 
 ## TODOs
 
-- [ ] TODO-1: Exhaustive sweep — grep every `shared()` (and
+- [x] TODO-1: Exhaustive sweep — grep every `shared()` (and
   equivalently-named per-class estimate-caching function, e.g.
   `compute_shared()`, `shared_gee_dispatch()`) in `R/EDI/R/inference_*.R`
   for any cache-guard key outside
@@ -192,7 +195,7 @@ written to eliminate elsewhere in this codebase.
   `gcomp_standardized_effect_cache_is_ready()`) — a mixin fix covers every
   class that composes it, don't patch each concrete class separately if the
   root cache-key lives in a shared helper.
-- [ ] TODO-2: Read the three sibling loaders
+- [x] TODO-2: Read the three sibling loaders
   (`load_non_param_bootstrap_draw_into_worker`,
   `load_m_out_of_n_bootstrap_draw_into_worker`,
   `load_rand_bootstrap_draw_into_worker`) and confirm whether they share
@@ -201,19 +204,19 @@ written to eliminate elsewhere in this codebase.
   believed out of scope (different estimator function entirely) — confirm
   this holds for every Bayesian-bootstrap-capable class, not just
   `InferenceOrdinalGCompMeanDiff`.
-- [ ] TODO-3: Audit what every currently-passing (non-buggy) class's
+- [x] TODO-3: Audit what every currently-passing (non-buggy) class's
   `cached_values` actually needs to survive across resampling draws within
   one call (warm-start fields, anything performance-motivated) to build
   Option A's keep-list; confirm nothing legitimate breaks.
-- [ ] TODO-4: Implement Option A (or B if TODO-3 surfaces a reason
+- [x] TODO-4: Implement Option A (or B if TODO-3 surfaces a reason
   A is unsafe) across the four affected loaders.
-- [ ] TODO-5: Re-run the reproduction from this plan
+- [x] TODO-5: Re-run the reproduction from this plan
   (`InferenceOrdinalGCompMeanDiff`, `r=201`, 20+ reps at `beta_T=0`) and
   confirm reject-rate returns to ~0.05; extend to every class TODO-1 found,
   confirming the randomization/bootstrap distribution is no longer constant
   across draws (a direct, cheap check: `sd(distribution) > 0`) and Type-I
   error/coverage return to nominal.
-- [ ] TODO-6: Add a permanent regression test to the structural gate suite
+- [x] TODO-6: Add a permanent regression test to the structural gate suite
   (`R/EDI/tests/testthat/`, alongside
   `test-adversarial-and-fault-injection.R` per
   `project_prepush_structural_and_results_gates_20260919`) that checks,
@@ -232,6 +235,146 @@ written to eliminate elsewhere in this codebase.
   whether any already-published example, vignette, or documentation output
   used an affected class's resampling p-value/CI and needs correction —
   separate from the code fix itself.
+
+  **Investigated 2026-09-23** (published-material audit: vignettes, `.Rd`
+  examples, README/NEWS, `python/` docs, JSS paper draft). Exactly one
+  genuine correction candidate found:
+  `R/EDI/vignettes/cookbook-incidence.Rmd:109-114` —
+  `InferenceIncidKKGCompRiskDiff$compute_rand_two_sided_pval(r=200)`, a
+  live-executed chunk (not `eval=FALSE`) that renders a real computed
+  p-value in the built vignette. `InferenceIncidKKGCompRiskDiff` is a named
+  plan suspect (`gcomp_standardized_effect_cache_is_ready()` guard
+  mechanism) but its presence on the FINAL affected-class list needs
+  cross-check against TODO-7's rebuilt list before treating this as
+  confirmed. If confirmed: no manual number-editing needed — the vignette's
+  surrounding prose doesn't assert a specific p-value/significance claim,
+  it just prints the object's default output, so simply rebuilding the
+  vignette against the fixed package regenerates a correct number
+  automatically.
+
+  Everything else that superficially matched (grep hits on resampling
+  method names or suspect class names) was a false positive: roxygen2's
+  auto-generated "Methods" listing in `.Rd` files (not real `\examples{}`
+  content — the actual example blocks for every suspect class call only
+  `compute_estimate()`, and two suspect classes have no `\examples{}`
+  section at all); non-suspect classes in README/NEWS/other vignettes;
+  `python/README*.md`'s benchmark table (fit-time/speedup columns, not
+  resampling p-values — confirmed by reading the underlying benchmark HTML,
+  no `compute_rand_*`/`compute_bootstrap_*` calls anywhere in it); and the
+  JSS paper draft (prose only, no worked numeric example tied to this bug,
+  also not yet submitted/published).
+- [ ] TODO-9 (added 2026-09-22, found during this plan's own final
+  whole-branch review — see `Status` below): **latent `cached_mod` reset
+  gap, same bug shape, no concrete class reaches it yet.** The systemic fix
+  (TODO-4) reset `cached_values` down to a `duplicate()`-derived keep-list,
+  but the randomization loader (`load_randomization_perm_into_worker()`,
+  `R/EDI/R/inference_all_abstract_rand.R:970-978`) still resets a
+  hand-maintained *allowlist* of **private fields** (`cached_design_matrix`,
+  `cached_w_for_design_matrix`, `cached_harden_for_design_matrix`,
+  `cached_reduced_X`, `cached_X_full_for_reduced`, `cached_keep_for_reduced`,
+  `cached_j_treat_for_reduced`) — the exact allowlist shape this plan exists
+  to eliminate, one level up from `cached_values`. That list is strictly
+  narrower than the bootstrap-family loader's reset
+  (`load_bootstrap_sample_into_design_backed_worker()`,
+  `R/EDI/R/inference_all_abstract_non_param_boot.R:1216-1225`, which
+  additionally clears `reduced_design_keep_cache`, `fixed_covariate_keep_cache`,
+  `best_X_colnames`, `best_Xmm_colnames`, and **`cached_mod`**) and
+  `inference_all_abstract_param_boot.R:913-917` (also clears `cached_mod`).
+  `cached_mod` matters because it is read as an early-return guard — the
+  same bug shape TODO-4 fixed:
+  ```r
+  # R/EDI/R/inference_all_abstract_mle_or_KM_summary_table.R:92-100
+  shared = function(estimate_only = FALSE){
+    if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
+    if (!estimate_only && !is.null(private$cached_values$summary_table)) return(invisible(NULL))
+    if (is.null(private$cached_mod)) {
+      private$cached_mod = private$generate_mod()
+    }
+    model_output = private$cached_mod
+  ```
+  With `beta_hat_T` correctly cleared, draw 2 passes the line-93 guard but
+  hits line 97 with draw 1's stale `cached_mod` still live and re-derives
+  draw 1's `beta_hat_T` from it — a degenerate distribution again, via the
+  private-field door instead of the `cached_values` door.
+
+  **Not fixed in this plan's branch (deliberately, per the final review's
+  own risk assessment):** no concrete class currently reaches this guard —
+  every `generate_mod()`-taking class in the package belongs to the
+  `InferenceAsympLikStdModCache` ladder, whose own `shared()`
+  (`inference_all_abstract_asymp_lik_std_mod_cache.R:177-191`) *writes*
+  `cached_mod` unconditionally rather than reading it stale, and the last
+  concrete class that inherited the vulnerable `InferenceAsympLik` path was
+  already migrated away (`inference_ordinal_paired_sign_test.R:63`). The
+  240-class non-degeneracy sweep (this plan's TODO-6 test, extended to KK
+  and blocking designs) forced every concrete class through the reused
+  worker and found no additional degenerate class — empirical
+  corroboration that this is a landmine, not a live defect.
+
+  **Fix, when picked up:** reconcile the three separately-maintained
+  private-field reset lists (`inference_all_abstract_rand.R:970-978`,
+  `inference_all_abstract_non_param_boot.R:1216-1225`,
+  `inference_all_abstract_param_boot.R:913-917`, plus
+  `inference_mixin_kk_passthrough.R:319-330`, a third differently-scoped
+  list) the same way TODO-4 reconciled `cached_values` — a single
+  keep-list-driven reset shared by all reused-worker loaders, so the three
+  lists can't drift apart the way the original bug's `cached_values` reset
+  did. Minimum: add `cached_mod` (+ `best_X_colnames`/`best_Xmm_colnames`)
+  to the rand loader's private-field reset, matching the bootstrap loader.
+  Should be a no-op for every currently-correct class (nothing reads
+  `cached_mod` before `shared()` writes it), but changes the reset surface,
+  so it needs a re-run of `scripts/reused_worker_bitforbit_sweep.R` (added
+  by this plan) before shipping, same standing-constraint discipline as
+  TODO-3/TODO-5 used for `cached_values`.
+
+## Status
+
+TODO-1 through TODO-6 **shipped** 2026-09-22 (commits `811e0683`,
+`1c0c295e`, `db0d3f96`, `d6aa4505`, merged to `main`). Scope corrected
+during implementation/review: only `load_randomization_perm_into_worker()`
+needed the `cached_values` fix — the three bootstrap-family loaders already
+fully wiped `cached_values` via `load_bootstrap_sample_into_design_backed_worker()`,
+confirmed by reading all ten concrete implementations. Verified via a
+240-distribution bit-for-bit sweep across three design families (Bernoulli,
+KK-matching, blocking): 222 bit-identical (no change to already-correct
+classes beyond documented ~1e-16 float noise in 5 KK compound-kernel
+entries, independently reproduced by re-recording the unchanged package
+twice), 13 newly non-degenerate, 0 moved to a different non-degenerate
+value. A permanent regression test
+(`R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R`) and
+durable sweep script (`scripts/reused_worker_bitforbit_sweep.R`) now guard
+against this bug class recurring. Slated for `release_v1_1_0.md → TODO-31`
+(shipped ahead of that release as an out-of-band correctness fix, per that
+TODO's own "may warrant revisiting ahead of the rest of 1.1.0" note).
+
+TODO-9 (latent `cached_mod` gap, above) is open, not yet fixed, tracked
+separately at `release_v1_1_0.md → TODO-34`.
+
+TODO-7 (CSV regen) and TODO-8 (published-output audit) remain open,
+deferred until an install is available — the fix's own final review notes
+the package has since been reinstalled by the user
+(2026-09-22), so TODO-7 is now unblocked whenever the user chooses to run
+it; TODO-8 is an editorial decision, still outstanding.
+
+Two pre-existing, unrelated defects were discovered by this plan's expanded
+test coverage (NOT the `cached_values`/`cached_mod` mechanism — two
+different, distinct bugs) and are now root-caused and tracked separately as
+of 2026-09-22:
+- `InferencePropGCompMeanDiff` — randomization distribution all-NA in
+  production. Root cause: worker-state gating (`sample_usable` flag only
+  set by the bootstrap loader, never the randomization loader). Tracked at
+  `fix_prop_gcomp_sample_usable_gating.md` /
+  `release_v1_1_0.md → TODO-35`.
+- `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` — same NA symptom.
+  Root cause: plain NA-propagation in an inverse-variance pooling step
+  (`shared()` uses `ssq_m`/`ssq_r`, which are deliberately `NA` under
+  `estimate_only = TRUE`), unguarded despite the file already containing a
+  correct reference implementation of the guard elsewhere. Tracked at
+  `fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md` /
+  `release_v1_1_0.md → TODO-36`.
+
+Both are carried as self-retiring `KNOWN_BROKEN` entries in the new
+regression test (they fail loudly via `expect_identical` once fixed) so
+they cannot silently stay broken forever.
 
 ## Standing constraints
 

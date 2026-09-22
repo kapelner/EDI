@@ -1587,7 +1587,10 @@ set_package_threads = function(num_cores) {
   .edi_spt_step = function(label) {
     if (!.edi_spt_trace) return(invisible(NULL))
     cat("EDI set_package_threads trace: ", label, "\n", sep = "")
-    flush.console()
+    # See zzz.R's .onLoad() trace helper for why this is flush(stdout()), not
+    # the Windows-only flush.console() (unavailable during R CMD check's
+    # base-namespace-only load test; broke .onLoad() itself outright).
+    flush(stdout())
   }
   .edi_spt_step("start")
   # R packages with global thread setters

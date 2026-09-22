@@ -1283,6 +1283,92 @@ ticked in their **owning plans**; this list is the release index.
   validate-before-shipping treatment as `TODO-30`'s multi-start fix before
   flipping the switch. Independent of every other 1.1.0 item; depends on
   nothing else in this release.
+- **`TODO-34`** (added 2026-09-22, found during `TODO-31`'s own final
+  whole-branch review, not a new audit finding): **latent `cached_mod`
+  reset gap, same bug shape as `TODO-31`, no concrete class reaches it
+  yet** — `fix_stale_worker_cache_resampling.md → TODO-9`. `TODO-31`'s fix
+  reset the reused-worker loader's `cached_values` down to a
+  `duplicate()`-derived keep-list, closing the bug for that cache. One
+  level up, the same loader
+  (`load_randomization_perm_into_worker()`,
+  `inference_all_abstract_rand.R:970-978`) still resets a hand-maintained
+  *allowlist* of **private fields**, missing `cached_mod` — which the
+  bootstrap-family loader already clears
+  (`inference_all_abstract_non_param_boot.R:1216-1225`) and which is read
+  as a stale-early-return guard in
+  `inference_all_abstract_mle_or_KM_summary_table.R:92-100`, the identical
+  failure shape `TODO-31` fixed, just one field over. No concrete class
+  currently reaches this guard (traced: every `generate_mod()`-taking
+  class writes `cached_mod` unconditionally rather than reading it stale;
+  confirmed empirically too — `TODO-31`'s 240-class non-degeneracy sweep
+  found no additional degenerate class), so this is a landmine, not a
+  live defect — deliberately left out of `TODO-31`'s branch rather than
+  expanding its already-large review scope further. Fix: reconcile the
+  three separately-maintained private-field reset lists
+  (`inference_all_abstract_rand.R:970-978`,
+  `inference_all_abstract_non_param_boot.R:1216-1225`,
+  `inference_all_abstract_param_boot.R:913-917`, plus a fourth,
+  differently-scoped list in `inference_mixin_kk_passthrough.R:319-330`)
+  into one keep-list-driven reset the same way `TODO-31` reconciled
+  `cached_values`, verified with `TODO-31`'s own
+  `scripts/reused_worker_bitforbit_sweep.R` before shipping (same
+  bit-for-bit standing-constraint discipline). Independent of every other
+  1.1.0 item; depends on nothing else in this release.
+- **`TODO-35`** (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
+  `TODO-31`'s new regression test, root-caused same day on user request):
+  **`InferencePropGCompMeanDiff` randomization distribution all-NA in
+  production** — `fix_prop_gcomp_sample_usable_gating.md → TODO-1..6`. An
+  error-shaped bug (`NA_real_` every draw), not silently-wrong like
+  `TODO-31`/`TODO-34`, and a different mechanism entirely — worker-state
+  gating, not stale caching. Root cause, fully traced: the class's reused-
+  worker fast-path estimator (`compute_bootstrap_worker_estimate()`,
+  `inference_proportion_gcomp.R:458-464`) gates on
+  `worker_state$runtime$sample_usable`, which only the *bootstrap*
+  row-sample loader ever sets true
+  (`load_bootstrap_sample_into_worker()`, `:434-457`); the class never
+  overrides the randomization path's estimator
+  (`compute_randomization_worker_estimate`), so it falls through to the
+  generic delegate that reuses the bootstrap estimator
+  (`inference_all_abstract_rand.R:839-845`) — on the `rand` path that flag
+  is permanently stuck at its init value `FALSE`
+  (`inference_proportion_gcomp.R:429`), so every draw returns NA. The class
+  already has a correct, working randomization-path estimator on the
+  *standard* (non-reused-worker) path
+  (`compute_treatment_estimate_during_randomization_inference()`, `:414-417`)
+  — the fast path just never adopted the same logic. `grep`-confirmed
+  isolated to this one class (`sample_usable` appears nowhere else in
+  `R/EDI/R/`). Recommended fix: a class-specific
+  `compute_randomization_worker_estimate()` override reusing the standard
+  path's `shared()` → `cached_values$md` logic against the worker clone,
+  rather than a shared-loader branch. Independent of every other 1.1.0
+  item; depends on nothing else in this release.
+- **`TODO-36`** (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
+  `TODO-31`'s new regression test — the new KK-design fixture arm was the
+  first thing to exercise `estimate_only = TRUE` on this class with both
+  components simultaneously usable — root-caused same day on user
+  request): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`
+  randomization distribution all-NA in production** —
+  `fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md → TODO-1..7`.
+  A plain arithmetic NA-propagation bug, unrelated to `TODO-31`/`TODO-34`
+  (no caching) or `TODO-35` (no worker-state gating). Root cause, fully
+  traced and reproduced: `shared()`
+  (`inference_survival_GLMM_weibull_frailty_loggamma.R:296-300`) pools a
+  matched-pair estimate and a reservoir estimate via inverse-variance
+  weighting (`w_star = ssq_r / (ssq_r + ssq_m)`), but `ssq_m`/`ssq_r` are
+  *deliberately* `NA` under `estimate_only = TRUE` (the flag every
+  resampling draw uses for speed) — so `w_star` becomes `NA` and the final
+  `beta_hat_T` is `NA` on every draw, even though the two underlying point
+  estimates (`beta_m`, `beta_r`) are both finite. Confirmed by direct
+  reproduction on the class's own golden fixture: `estimate_only = FALSE`
+  gives `-0.2164` (correct), `estimate_only = TRUE` on the same data gives
+  `NA`. Isolated to the IVWC variant — the sibling `...OneLik` class uses a
+  single joint-likelihood fit with no such pooling step, confirmed
+  unaffected. **Already has a reference implementation for the fix in the
+  same file**: `compute_treatment_estimate_during_randomization_inference()`
+  already guards this exact pooling step with an equal-weight
+  (`0.5 * beta_m + 0.5 * beta_r`) fallback when `ssq_m`/`ssq_r` aren't both
+  finite — `shared()` just never adopted the same guard. Independent of
+  every other 1.1.0 item; depends on nothing else in this release.
 
 ## Standing constraints
 

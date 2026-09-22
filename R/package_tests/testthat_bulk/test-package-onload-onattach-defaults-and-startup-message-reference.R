@@ -47,12 +47,22 @@ test_that(".onLoad never errors, even when local tuning is disabled or no saved 
 })
 
 test_that(".onAttach announces the installed version through a startup message", {
-	# lib.loc matches .onAttach()'s own explicit libname argument below: default
-	# lib.loc = NULL searches .libPaths(), which doesn't reliably include an
-	# isolated per-shard scratch install library (CI's install path), producing
-	# a spurious "no package 'EDI' was found" warning and an NA-based "ver" here
-	# even though .onAttach() itself resolves correctly.
-	ver <- as.character(utils::packageDescription("EDI", lib.loc = dirname(system.file(package = "EDI")), fields = "Version"))
+	# Recomputes the expected version with the EXACT same tryCatch + fallback
+	# logic .onAttach() itself uses (zzz.R), not a bare packageDescription()
+	# call -- that stayed correct under a real CI install (lib.loc matches
+	# .onAttach()'s own explicit libname argument) but broke identically to
+	# how .onAttach() itself never breaks under the bulk-suite shards, which
+	# load the package via pkgload::load_all(compile = FALSE) rather than a
+	# real install: with no Meta/package.rds cache, packageDescription() can't
+	# resolve a version under either mechanism, so both sides must fall back
+	# to "unknown" together (confirmed 2026-09-22, run 35755226654 shard 20).
+	ver <- suppressWarnings(tryCatch(
+		as.character(utils::packageDescription("EDI", lib.loc = dirname(system.file(package = "EDI")), fields = "Version")),
+		error = function(e) NA_character_
+	))
+	if (!is.character(ver) || length(ver) != 1L || is.na(ver) || ver == "") {
+		ver <- "unknown"
+	}
 	expect_message(Z(".onAttach")(dirname(system.file(package = "EDI")), "EDI"), paste0("^Welcome to EDI v", gsub(".", "\\.", ver, fixed = TRUE), "\\s*$"))
 	expect_true(inherits(tryCatch(Z(".onAttach")(dirname(system.file(package = "EDI")), "EDI"), message = function(m) m), "packageStartupMessage"))
 })
