@@ -12,8 +12,9 @@
 #     fit to the same data (~10 s);
 #   * reused-worker resampling non-degeneracy -- a per-draw cache the loader
 #     forgets to reset turns a randomization distribution into r copies of
-#     draw 1 (fix_stale_worker_cache_resampling.md, ~10 s).
-# ~1.5 minutes total, so a break fails the push early instead of after the full
+#     draw 1; sweeps every concrete class across the Bernoulli, KK-matching and
+#     blocked design families (fix_stale_worker_cache_resampling.md, ~25 s).
+# ~2 minutes total, so a break fails the push early instead of after the full
 # ~10 minute suite. They also run again inside the full suite (they live in
 # R/EDI/tests/testthat/), which is intentional: this pass exists purely for
 # fast feedback.
