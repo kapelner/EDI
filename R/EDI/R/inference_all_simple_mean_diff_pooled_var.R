@@ -1,3 +1,6 @@
+#' Simple pooled-variance mean-difference inference component source.
+#'
+#' @noRd
 SimpleMeanDifferencePooledVarSource = list(
 	public = list(
 		#' @description Initialize simple pooled-variance mean-difference inference

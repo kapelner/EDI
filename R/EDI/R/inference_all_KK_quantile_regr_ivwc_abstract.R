@@ -66,6 +66,9 @@
 	invisible(NULL)
 }
 
+#' KK inverse-variance-weighted-combined quantile-regression inference component source.
+#'
+#' @noRd
 KKQuantileRegrIVWCSource = list(
 	public = list(
 		#' @description Initialize KK inverse-variance combined quantile-regression

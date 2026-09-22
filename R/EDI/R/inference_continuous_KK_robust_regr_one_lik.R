@@ -9,6 +9,9 @@
 # `ContinKKRobustRegrOneLik` (`dependencies = "KKCompound"` -- no
 # `ParametricLikelihoodBootstrap`, since this is a robust/quasi estimator
 # with no normalized likelihood-ratio surface, same as the IVWC sibling).
+#' KK combined-likelihood robust-regression inference component source.
+#'
+#' @noRd
 ContinKKRobustRegrOneLikSource = list(
 	public = list(
 

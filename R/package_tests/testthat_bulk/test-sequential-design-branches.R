@@ -19,16 +19,15 @@ test_that("Efron assignment takes balanced and both imbalanced branches", {
 	expect_identical(des$assign_wt(), 1L)
 })
 
-test_that("Wei urn assignment responds deterministically at zero-alpha extremes", {
-	des = DesignSeqOneByOneUrn$new(
-		alpha = 0, beta = 1, response_type = "continuous", n = 4L, seed = 102
+test_that("Wei urn assignment: alpha must be strictly positive; beta may be zero or negative is rejected", {
+	# REGRESSION (fixed 2026-09-22): alpha = 0 used to be accepted (its first-step assignment probability
+	# is 0 / 0 = NaN, producing an NA assignment with an "NAs produced" warning); construction now rejects
+	# it outright, so the "deterministic at zero-alpha extremes" behavior this test previously exercised
+	# past the degenerate first state is no longer reachable through the public constructor.
+	expect_error(
+		DesignSeqOneByOneUrn$new(alpha = 0, beta = 1, response_type = "continuous", n = 4L, seed = 102),
+		"alpha"
 	)
-	p = private_env(des)
-	p$w = c(1, NA, NA, NA)
-	expect_identical(des$assign_wt(), 0L)
-	p$w = c(0, NA, NA, NA)
-	expect_identical(des$assign_wt(), 1L)
-
 	expect_error(
 		DesignSeqOneByOneUrn$new(alpha = -1, beta = 1, response_type = "continuous", n = 4L),
 		"alpha"
@@ -37,6 +36,8 @@ test_that("Wei urn assignment responds deterministically at zero-alpha extremes"
 		DesignSeqOneByOneUrn$new(alpha = 1, beta = -1, response_type = "continuous", n = 4L),
 		"beta"
 	)
+	des = DesignSeqOneByOneUrn$new(alpha = 1, beta = 0, response_type = "continuous", n = 4L, seed = 102)
+	expect_true(is.numeric(des$assign_wt()))
 })
 
 test_that("Atkinson early assignment uses the configured fallback coin", {

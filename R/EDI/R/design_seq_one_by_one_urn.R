@@ -70,7 +70,10 @@ DesignSeqOneByOneUrn = define_design_class(
 				seed = NULL
 			) {
 			if (should_run_asserts()) {
-				assertNumber(alpha, lower = 0)
+				# alpha = 0 passes a lower = 0 bound but makes the very first assignment's
+				# probability 0/0 (NaN), producing an NA assignment with an "NAs produced"
+				# warning instead of a validation error -- gated at +epsilon instead of 0.
+				assertNumber(alpha, lower = .Machine$double.eps)
 				assertNumber(beta, lower = 0)
 			}
 

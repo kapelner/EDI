@@ -1,9 +1,6 @@
-#' Randomization-based Confidence Intervals
-#'
-#' Abstract class for randomization-based confidence interval inference.
-#'
-#' @keywords internal
-
+# Whether a class's fast randomization/bootstrap path already operates on the model
+# (link) scale rather than the raw response scale, so compute_rand_two_sided_pval()
+# knows not to double-apply a response-scale transform.
 inference_uses_model_scale_randomization_transform = function(inf_obj) {
 	model_scale_capabilities = c(
 		"standard_model_cache",
@@ -19,6 +16,11 @@ inference_uses_model_scale_randomization_transform = function(inf_obj) {
 		inherits(inf_obj, "InferenceCountHurdleNegBin")
 }
 
+#' Randomization-based Confidence Intervals
+#'
+#' Abstract class for randomization-based confidence interval inference.
+#'
+#' @keywords internal
 InferenceRandCI = R6::R6Class("InferenceRandCI",
 	lock_objects = FALSE,
 	inherit = InferenceRand,

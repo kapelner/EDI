@@ -535,7 +535,15 @@ Inference = R6::R6Class("Inference",
 					nonestimable_stage = cv$nonestimable_stage,
 					nonestimable_reason = cv$nonestimable_reason,
 					cached_values = cv,
-					cached_mod = if (exists("cached_mod", envir = private, inherits = FALSE)) private$cached_mod else NULL
+					cached_mod = if (exists("cached_mod", envir = private, inherits = FALSE)) private$cached_mod else NULL,
+					# The weighted fit's own warm start, captured before it's rolled back below so
+					# a subsequent unweighted fit doesn't inherit it. Read this (not
+					# get_fit_warm_start(), which reflects the rolled-back state) to inspect what
+					# the weighted call itself converged to.
+					fit_warm_start = list(
+						start = private$fit_warm_start, type = private$fit_warm_start_type,
+						fisher = private$fit_warm_start_fisher, weights = private$fit_warm_start_weights
+					)
 				)
 				private$cached_values = saved_values
 				private$fit_warm_start = saved_warm$start

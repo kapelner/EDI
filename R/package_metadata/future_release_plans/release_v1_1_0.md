@@ -1191,6 +1191,23 @@ ticked in their **owning plans**; this list is the release index.
   `InferenceRandCI` bisection instead of Zhang) but is unverified and needs
   its own decision + regression test before it ships. Independent of every
   other 1.1.0 item.
+- **`TODO-30`** (added 2026-09-22, found the same way as `TODO-25` — a raw
+  `comprehensive_tests` results-CSV audit, not a user report): **Stereotype-
+  logit multimodal likelihood** — `fix_multimodal_log_liks.md → TODO-1..8`.
+  The 2026-09-21 fix to `InferenceOrdinalStereotypeLogitRegr`'s
+  delta-constrained null refit (multi-start, closed the zero-width-CI bug)
+  left a residual: the likelihood is multimodal and `compute_estimate()`'s
+  own **unconstrained** fit is single-start, so it can silently return a
+  non-global optimum (~3% of `n=50` fits in a 400-simulation measurement;
+  `neg_loglik` 42.22 vs. a reachable 40.05 in one worked example). This
+  explains the residual ~13% Type-I error at `n=50` (vs. 6.5% at `n=100`,
+  0% zero-width CIs either way — the refit fix itself holds). Proposed fix
+  is multi-start `generate_mod()` the same way the null refit was
+  multi-started, but this one **changes reported point estimates** in the
+  affected fits (not just an internal refit that never reached a public
+  return value), so it needs golden/reference-parity re-derivation and a
+  cost/benchmark pass before it ships — see the plan's TODO-5/6. Independent
+  of every other 1.1.0 item; depends on nothing else in this release.
 
 ## Standing constraints
 

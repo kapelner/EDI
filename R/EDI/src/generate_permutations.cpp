@@ -434,7 +434,9 @@ Eigen::MatrixXi generate_permutations_spbr_internal(
 }
 
 #ifndef EDI_CORE_ONLY
-//' @description Every generate_permutations_*_cpp function below is seeded
+//' Generate matched-pair randomization permutations
+//'
+//' Every generate_permutations_*_cpp function in this file is seeded
 //'   from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a portable
 //'   re-implementation of R's own Mersenne-Twister generator -- a given
 //'   seed therefore produces identical draws in R and in any future binding
@@ -446,7 +448,9 @@ List generate_permutations_matching_cpp(const IntegerVector& m_vec, int nsim, do
 	return List::create(_["w_mat"] = w_mat, _["m_mat"] = R_NilValue); // Assume m_vec is fixed for KK randomization test
 }
 
-//' @description See generate_permutations_matching_cpp for the reproducibility
+//' Generate Bernoulli randomization permutations
+//'
+//' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
 // [[Rcpp::export]]
 List generate_permutations_bernoulli_cpp(int n, int nsim, double prob_T) {
@@ -454,7 +458,9 @@ List generate_permutations_bernoulli_cpp(int n, int nsim, double prob_T) {
 	return List::create(_["w_mat"] = w_mat, _["m_mat"] = R_NilValue);
 }
 
-//' @description See generate_permutations_matching_cpp for the reproducibility
+//' Generate IBCRD randomization permutations
+//'
+//' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
 // [[Rcpp::export]]
 List generate_permutations_ibcrd_cpp(int n, int nsim, double prob_T) {
@@ -462,7 +468,9 @@ List generate_permutations_ibcrd_cpp(int n, int nsim, double prob_T) {
 	return List::create(_["w_mat"] = w_mat, _["m_mat"] = R_NilValue);
 }
 
-//' @description See generate_permutations_matching_cpp for the reproducibility
+//' Generate blocked randomization permutations
+//'
+//' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
 // [[Rcpp::export]]
 List generate_permutations_blocking_cpp(int n, int nsim, double prob_T, List strata_indices) {
@@ -475,7 +483,9 @@ List generate_permutations_blocking_cpp(int n, int nsim, double prob_T, List str
 	return List::create(_["w_mat"] = w_mat, _["m_mat"] = R_NilValue);
 }
 
-//' @description See generate_permutations_matching_cpp for the reproducibility
+//' Generate Efron biased-coin randomization permutations
+//'
+//' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
 // [[Rcpp::export]]
 List generate_permutations_efron_cpp(int n, int nsim, double prob_T, double weighted_coin_prob) {
@@ -483,7 +493,9 @@ List generate_permutations_efron_cpp(int n, int nsim, double prob_T, double weig
 	return List::create(_["w_mat"] = w_mat, _["m_mat"] = R_NilValue);
 }
 
-//' @description See generate_permutations_matching_cpp for the reproducibility
+//' Generate Atkinson optimal-design randomization permutations
+//'
+//' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
 // [[Rcpp::export]]
 List generate_permutations_atkinson_cpp(SEXP X_sexp, int n, int p_raw, double prob_T, int nsim) {
@@ -493,7 +505,9 @@ List generate_permutations_atkinson_cpp(SEXP X_sexp, int n, int p_raw, double pr
 	return List::create(_["w_mat"] = w_mat, _["m_mat"] = R_NilValue);
 }
 
-//' @description See generate_permutations_matching_cpp for the reproducibility
+//' Generate Pocock-Simon minimization randomization permutations
+//'
+//' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
 // [[Rcpp::export]]
 List generate_permutations_pocock_simon_cpp(const IntegerMatrix& x_levels_matrix, int num_levels_total, const NumericVector& weights, double p_best, double prob_T, int nsim) {
@@ -508,7 +522,9 @@ List generate_permutations_pocock_simon_cpp(const IntegerMatrix& x_levels_matrix
 	}
 }
 
-//' @description See generate_permutations_matching_cpp for the reproducibility
+//' Generate cluster randomization permutations
+//'
+//' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
 // [[Rcpp::export]]
 List generate_permutations_cluster_cpp(int n, int nsim, double prob_T, List cluster_indices) {
@@ -525,7 +541,9 @@ List generate_permutations_cluster_cpp(int n, int nsim, double prob_T, List clus
 	}
 }
 
-//' @description See generate_permutations_matching_cpp for the reproducibility
+//' Generate stratified permuted-block randomization (SPBR) permutations
+//'
+//' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
 // [[Rcpp::export]]
 List generate_permutations_spbr_cpp(const CharacterVector& strata_keys, int block_size, double prob_T, int nsim) {

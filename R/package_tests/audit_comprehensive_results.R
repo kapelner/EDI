@@ -15,6 +15,31 @@
 #                       silently failed test inversion)
 #   low_coverage        >= 50 ok CI rows with a truth indicator and empirical
 #                       coverage of beta_T below 0.75
+#   biased_estimate     >= 30 ok compute_estimate/compute_jackknife_estimate
+#                       rows whose mean (estimate - truth) is >4 Monte Carlo
+#                       standard errors from 0 (one-sample t-test on the
+#                       per-row error; truth is `coverage_truth` when present
+#                       -- the harness's own truth-scale value, e.g. 1 for a
+#                       risk ratio's null, not raw beta_T -- falling back to
+#                       beta_T otherwise). Pooled across beta_T/design like
+#                       every other check here, so a bias present at either
+#                       beta_T=0 or beta_T!=0 shows up; a class whose truth
+#                       scale differs from beta_T but has no coverage_truth
+#                       override will false-positive here -- if that's the
+#                       cause, the fix is adding the override, not accepting
+#                       an unrelated estimator bug into the baseline.
+#   bad_type1_error     >= 30 ok *_two_sided_pval rows at beta_T=0 (a true
+#                       null on any scale) whose rejection rate at alpha=.05
+#                       differs from .05 by >4 SEs of a Binomial(n, .05)
+#                       (two-sided: catches both inflated and deflated size)
+#   low_power           >= 30 ok *_two_sided_pval rows at beta_T!=0 whose
+#                       rejection rate at alpha=.05 is <10% -- informational,
+#                       not necessarily a defect (power is a function of n/
+#                       effect size/method, not a fixed target like Type-I
+#                       error), but at this harness's fixed signal strength a
+#                       near-zero rejection rate across many replicates is
+#                       usually either a broken test or a badly underpowered
+#                       one worth knowing about either way
 #   programming_error   error_message text that can only be a code defect
 #                       ("attempt to apply non-function", "could not find
 #                       function", "object 'x' not found", "subscript out of
@@ -84,8 +109,8 @@ finding = function(check, rt, cls, fn, detail) {
 }
 
 audit_one = function(path, rt) {
-	need = c("inference_class", "function_run", "status", "result_1", "result_2",
-		"beta_T_in_confidence_interval", "error_message")
+	need = c("inference_class", "function_run", "status", "result", "result_1", "result_2",
+		"beta_T", "coverage_truth", "beta_T_in_confidence_interval", "error_message")
 	dt = fread(path, select = need, showProgress = FALSE)
 	dt[, class := bare_class(inference_class)]
 	out = list()
@@ -94,6 +119,25 @@ audit_one = function(path, rt) {
 	pv[, v := suppressWarnings(as.numeric(result_1))]
 	bad = pv[is.finite(v) & (v < 0 | v > 1), .(n = .N), by = .(class, function_run)]
 	if (nrow(bad)) out[[length(out) + 1L]] = bad[, finding("pval_out_of_range", rt, class, function_run, sprintf("%d rows", n))]
+
+	# Exclude delta-shifted pval variants (function_run containing
+	# "(delta=...)", e.g. compute_rand_two_sided_pval(delta=0.5)) from the
+	# two beta_T-partitioned checks below: those test H0: beta_T == <delta>,
+	# not H0: beta_T == 0, so at beta_T == 0 rows a high rejection rate is
+	# correct POWER against a false null (delta != 0), not inflated Type-I
+	# error, and the reverse partitioning problem holds for beta_T ==
+	# <delta> rows. Confirmed empirically 2026-09-22: including them here
+	# produced z up to 89 driven entirely by this scale confound.
+	pvf = pv[is.finite(v) & v >= 0 & v <= 1 & !grepl("(delta=", function_run, fixed = TRUE)]
+	t1 = pvf[beta_T == 0, .(n = .N, reject05 = mean(v < 0.05)), by = .(class, function_run)][n >= 30L]
+	if (nrow(t1)) {
+		t1[, `:=`(se = sqrt(0.05 * 0.95 / n))]
+		t1[, z := (reject05 - 0.05) / se]
+		t1 = t1[abs(z) > 4]
+		if (nrow(t1)) out[[length(out) + 1L]] = t1[, finding("bad_type1_error", rt, class, function_run, sprintf("reject-rate %.3f at alpha=.05 over %d beta_T=0 rows (z=%.1f)", reject05, n, z))]
+	}
+	lp = pvf[beta_T != 0, .(n = .N, reject05 = mean(v < 0.05)), by = .(class, function_run)][n >= 30L & reject05 < 0.10]
+	if (nrow(lp)) out[[length(out) + 1L]] = lp[, finding("low_power", rt, class, function_run, sprintf("reject-rate %.3f at alpha=.05 over %d beta_T!=0 rows", reject05, n))]
 
 	ci = dt[grepl("confidence_interval", function_run, fixed = TRUE) & status == "ok"]
 	ci[, `:=`(lo = suppressWarnings(as.numeric(result_1)), hi = suppressWarnings(as.numeric(result_2)))]
@@ -110,6 +154,19 @@ audit_one = function(path, rt) {
 
 	cov = ci[!is.na(beta_T_in_confidence_interval), .(n = .N, coverage = mean(as.logical(beta_T_in_confidence_interval))), by = .(class, function_run)][n >= 50L & coverage < 0.75]
 	if (nrow(cov)) out[[length(out) + 1L]] = cov[, finding("low_coverage", rt, class, function_run, sprintf("coverage %.3f over %d rows", coverage, n))]
+
+	est = dt[status == "ok" & function_run %in% c("compute_estimate", "compute_jackknife_estimate")]
+	est[, `:=`(est_val = suppressWarnings(as.numeric(result)), truth = fifelse(is.na(coverage_truth), beta_T, coverage_truth))]
+	est = est[is.finite(est_val) & is.finite(truth)]
+	if (nrow(est)) {
+		bias_tbl = est[, {
+			d = est_val - truth
+			n = .N; b = mean(d); s = sd(d)
+			se = if (is.finite(s) && s > 0) s / sqrt(n) else NA_real_
+			list(n = n, bias = b, rmse = sqrt(mean(d^2)), tstat = if (is.finite(se) && se > 0) b / se else NA_real_)
+		}, by = .(class, function_run)][n >= 30L & is.finite(tstat) & abs(tstat) > 4]
+		if (nrow(bias_tbl)) out[[length(out) + 1L]] = bias_tbl[, finding("biased_estimate", rt, class, function_run, sprintf("mean bias %+.4f (rmse %.4f) over %d rows, t=%.1f", bias, rmse, n, tstat))]
+	}
 
 	er = dt[status == "error" & !is.na(error_message) & grepl(programming_error_regex, error_message, perl = TRUE)]
 	if (nrow(er)) {

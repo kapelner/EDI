@@ -151,6 +151,9 @@ InferencePropGCompMeanDiff = define_inference_class(
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$md
 		},
+		#' @description Returns the standard error of the g-computation mean-difference
+		#'   estimate (\code{NA} if it is unavailable).
+		#' @return A single numeric standard error, or \code{NA_real_}.
 		get_standard_error = function(){
 			private$shared(estimate_only = FALSE)
 			se = private$cached_values$se_md
@@ -159,6 +162,13 @@ InferencePropGCompMeanDiff = define_inference_class(
 			}
 			as.numeric(se)[1L]
 		},
+		#' @description Recomputes the g-computation mean-difference estimate under
+		#'   the supplied subject- or block-level bootstrap weights and caches it;
+		#'   used by the Bayesian-bootstrap and resampling paths.
+		#' @param subject_or_block_weights Numeric vector of bootstrap weights, one per subject
+		#'   (or per block when the design is blocked).
+		#' @param estimate_only If TRUE, only the point estimate is required (no variance).
+		#' @return The weighted mean-difference estimate, or \code{NA_real_} if the weighted fit is unusable.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			effects = private$weighted_gcomp_effects_from_row_weights(row_weights)
@@ -233,6 +243,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @param sep_tol Separation tolerance used to reject nearly perfectly separated resamples.
 		#' @param min_group_n Minimum number of observations required in each treatment arm.
 		#' @param type Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
+		#' @param show_progress Whether to show a progress bar.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
 		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = "symmetric", na.rm = FALSE,
 			boundary_tol = 0.02, max_boundary_mass = 0.95, sep_tol = 0.02, min_group_n = 5L,
@@ -296,6 +307,8 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @param max_boundary_mass Reject a resample when at least this fraction is near the boundary.
 		#' @param sep_tol Separation tolerance used to reject nearly perfectly separated resamples.
 		#' @param min_group_n Minimum number of observations required in each treatment arm.
+		#' @param debug If TRUE, return per-replicate diagnostics (values, errors,
+		#'   warnings) instead of just the bootstrap values.
 		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, max_resample_attempts = NULL,
 			boundary_tol = 0.02, max_boundary_mass = 0.95, sep_tol = 0.02, min_group_n = 5L, debug = FALSE){
 			if (should_run_asserts()) {

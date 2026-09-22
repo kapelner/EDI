@@ -656,6 +656,24 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 		# before RandCI can take its incidence-specific Zhang shortcut: an exact
 		# p-value must not be reported for a class whose declared primary
 		# treatment statistic is nonestimable.
+		#' @description Computes a randomization-based two-sided p-value for the
+		#'   treatment effect, preflighting the observed combined-likelihood
+		#'   treatment statistic (see the class-header note above) before
+		#'   delegating to \code{\link[EDI:InferenceRandCI]{InferenceRandCI}}'s
+		#'   Zhang-dispatch-aware implementation.
+		#' @param r Number of randomization (permutation) draws.
+		#' @param delta The null treatment effect. Default 0.
+		#' @param transform_responses Optional response transform applied before
+		#'   the randomization statistic is computed. Default \code{"none"}.
+		#' @param na.rm Whether to remove non-finite permutation replicates.
+		#' @param show_progress Whether to show a progress bar.
+		#' @param permutations Optional pre-generated permutation matrix/list to
+		#'   reuse instead of drawing new permutations.
+		#' @param type Optional randomization-statistic type override.
+		#' @param args_for_type Optional list of extra arguments for \code{type}.
+		#' @param zero_one_logit_clamp Clamp applied to responses at the 0/1
+		#'   boundary before a logit-scale transform, to avoid infinite values.
+		#'   Default \code{.Machine$double.eps}.
 		compute_rand_two_sided_pval = function(
 				r = 501, delta = 0, transform_responses = "none", na.rm = TRUE,
 				show_progress = TRUE, permutations = NULL, type = NULL,

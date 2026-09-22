@@ -45,6 +45,9 @@
 # SurvivalKKWeibullMarginalSource): mixin content arrives through the
 # registered KKPassThrough component (this component's declared dependency);
 # this source holds only the class's own estimator overrides.
+#' KK inverse-variance-weighted-combined hurdle-Poisson inference component source.
+#'
+#' @noRd
 CountKKHurdlePoissonIVWCSource = list(
 	public = list(
 		#' @description Initialize KK hurdle-Poisson IVWC inference for count

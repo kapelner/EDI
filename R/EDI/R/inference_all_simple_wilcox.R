@@ -1,3 +1,6 @@
+#' Simple Wilcoxon inference component source.
+#'
+#' @noRd
 SimpleWilcoxSource = list(
 	public = list(
 		#' @description Initialize simple Wilcoxon inference and prepare the

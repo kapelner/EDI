@@ -1,3 +1,6 @@
+#' KK inverse-variance-weighted-combined mean-difference inference component source.
+#'
+#' @noRd
 KKMeanDifferenceIVWCSource = list(
 	public = list(
 		#' @description Initialize KK IVWC mean-difference inference.

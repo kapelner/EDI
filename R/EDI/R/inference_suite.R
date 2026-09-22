@@ -1828,9 +1828,20 @@ run_all_inference_wrap_cell_2lines = function(text, width) {
 	words = strsplit(text, " ", fixed = TRUE)[[1]]
 	if (length(words) < 2L) {
 		# One un-splittable "word" longer than the column -- hard-wrap at
-		# `width` (rare; only very long single tokens hit this).
-		lines = strwrap(text, width = max(1L, width))
-		return(c(lines[1L], if (length(lines) > 1L) substr(paste(lines[-1L], collapse = " "), 1L, width) else ""))
+		# `width` (rare; only very long single tokens hit this). REGRESSION
+		# (fixed 2026-09-22): this used to call strwrap(), which never breaks
+		# mid-word, so for a single space-free token it always returned the
+		# whole (overflowing) text as one line with line 2 left empty --
+		# documented as "hard-wrapping at width" but never actually doing so.
+		# Breaks directly at the character boundary instead, with a trailing
+		# hyphen marking the break when there's room for one -- the same
+		# hyphenated-compound convention this function already uses for
+		# "Kaplan-Meier" above.
+		break_at = if (width > 1L) width - 1L else width
+		line1 = substr(text, 1L, break_at)
+		if (width > 1L) line1 = paste0(line1, "-")
+		line2 = substr(text, break_at + 1L, break_at + width)
+		return(c(line1, line2))
 	}
 	# Split into two halves by word count (per user request, 2026-08-20:
 	# "Mean \u0394 Pooled Var" -> "Mean \u0394" / "Pooled Var", not `strwrap()`'s
@@ -3424,6 +3435,8 @@ design_class_short_label = function(name) {
 	label
 }
 
+#' Short display label for an inference class
+#'
 #' @param tau Quantile level for a quantile-regression class's display label
 #'   (e.g. `"InferenceContinQuantileRegr"`, `"InferenceContinKKQuantileRegrOneLik"`
 #'   -- every concrete class whose wordified label contains the bare word

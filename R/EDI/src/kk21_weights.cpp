@@ -1238,7 +1238,7 @@ static double multivariate_ordinal_tstat(
     Function f("fast_ordinal_regression_with_var_cpp");
     List res = f(wrap(X), wrap(y));
     NumericVector b = res["b"];
-    double ssq = res["ssq_b_2"];
+    double ssq = res["ssq_b_j"];
     return std::fabs(b[coef_idx - 1] / std::sqrt(ssq));
 }
 

@@ -1574,6 +1574,8 @@ apply_inference_design_restrictions = function(self, des_obj) {
 	invisible(NULL)
 }
 
+#' Effective capabilities for an inference class or instance
+#'
 #' @param name Either a class name (character), or an already-constructed
 #'   inference object. Passing an object additionally refines the static
 #'   answer with that object's own live-checkable capability gates (see

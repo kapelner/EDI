@@ -40,8 +40,11 @@ test_that("weighted fractional logit treatment coefficients match independent qu
         expect_equal(actual, expected$coefficient, tolerance = 1e-6)
         # QR hardening must leave only the independent intercept, treatment,
         # and x columns from the deliberately duplicated fixture.
-        # The weighted fit's coefficients live in the fit warm start (cached_mod is restored after a weighted refit).
-        b_weighted <- private$get_fit_warm_start("beta")
+        # The weighted fit's own coefficients are captured in last_weighted_refit$fit_warm_start
+        # (a snapshot taken before the isolation wrapper rolls fit_warm_start back to its
+        # pre-call value, so a later unweighted refit isn't warm-started from the weighted fit).
+        b_weighted <- private$last_weighted_refit$fit_warm_start$start
+        expect_identical(private$last_weighted_refit$fit_warm_start$type, "beta")
         expect_length(b_weighted, 3)
         expect_lt(expected$loss(b_weighted) - expected$loss(expected$coefficients), 1e-8)
         expect_true(is.na(private$last_weighted_refit$s_beta_hat_T))
@@ -64,6 +67,6 @@ test_that("fractional logit weighted warm starts recover from empty draws with c
     expected <- fractional_weighted_coefficient_reference(fixture, weights)
     actual <- fixture$inf$compute_estimate_with_bootstrap_weights(1e-200 * weights, estimate_only = TRUE)
     expect_equal(actual, expected$coefficient, tolerance = 1e-6)
-    expect_lt(expected$loss(private$get_fit_warm_start("beta")) - expected$loss(expected$coefficients), 1e-8)
+    expect_lt(expected$loss(private$last_weighted_refit$fit_warm_start$start) - expected$loss(expected$coefficients), 1e-8)
   }
 })

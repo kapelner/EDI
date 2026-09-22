@@ -14,6 +14,9 @@
 # "full"` (real Gaussian likelihood with an exact, not merely
 # higher-order-accurate, Bartlett factor) -- first full (non-Cox-partial)
 # one-likelihood KK class migrated this stretch.
+#' KK combined-likelihood OLS inference component source.
+#'
+#' @noRd
 ContinKKOLSOneLikLikelihoodSource = list(
 	public = list(
 		#' @description Initialize the KK one-likelihood OLS inference object and

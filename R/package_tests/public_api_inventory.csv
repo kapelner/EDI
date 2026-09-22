@@ -3657,6 +3657,7 @@
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_covariates","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_design_object","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_estimand","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_mod","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_model_formula","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_nonestimable_reason","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3669,6 +3670,7 @@
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_supported_bayesian_bootstrap_pval_types","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_supported_bootstrap_ci_types","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_supported_bootstrap_pval_types","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_supported_estimands","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",FALSE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_supported_rand_bootstrap_ci_types","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_supported_rand_bootstrap_pval_types","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","get_supported_testing_types","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -3677,6 +3679,7 @@
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","is_nonestimable","Inference","inherited",1,"type",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","select_optimal_b_subsampling","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","select_optimal_m_out_of_n_bootstrap","InferenceCountQuasiPoisson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_estimand","InferenceCountQuasiPoisson","class_local",1,"estimand",FALSE,FALSE,TRUE,FALSE,"",FALSE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_optimization_alg","Inference","inherited",3,"allow_irls;default;optimization_alg",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_seed","Inference","inherited",1,"seed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceCountQuasiPoisson","r6_public_method","InferenceCountQuasiPoisson","set_testing_type","InferenceCountQuasiPoisson","class_local",1,"testing_type",TRUE,FALSE,TRUE,FALSE,"",TRUE

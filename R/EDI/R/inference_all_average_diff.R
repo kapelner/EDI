@@ -1,3 +1,6 @@
+#' Simple (unadjusted) mean-difference inference component source.
+#'
+#' @noRd
 SimpleMeanDifferenceSource = list(
 	public = list(
 		#' @description Initialize a simple mean-difference inference object.

@@ -6,6 +6,9 @@
 # table.R) via the old ladder. Those generic versions are hand-copied into
 # this Source's public list below (private$shared(); private$compute_z_or_t_*)
 # since that ancestor is not part of the composed chain post-migration.
+#' KK inverse-variance-weighted-combined OLS inference component source.
+#'
+#' @noRd
 ContinKKOLSIVWCSource = list(
 	public = list(
 		#' @description Initialize KK inverse-variance combined OLS inference and

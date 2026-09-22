@@ -60,6 +60,9 @@
 	invisible(NULL)
 }
 
+#' KK combined-likelihood quantile-regression inference component source.
+#'
+#' @noRd
 KKQuantileRegrOneLikSource = list(
 	public = list(
 		#' @description Initialize KK quantile-regression combined-likelihood inference.
