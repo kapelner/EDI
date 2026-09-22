@@ -1208,6 +1208,42 @@ ticked in their **owning plans**; this list is the release index.
   return value), so it needs golden/reference-parity re-derivation and a
   cost/benchmark pass before it ships — see the plan's TODO-5/6. Independent
   of every other 1.1.0 item; depends on nothing else in this release.
+- **`TODO-31`** (added 2026-09-22, found the same way as `TODO-25`/`TODO-30`
+  — a raw `comprehensive_tests` results-CSV audit, not a user report; three
+  new checks — `biased_estimate`, `bad_type1_error`, `low_power` — added to
+  `audit_comprehensive_results.R` itself this session): **Stale worker-cache
+  in reused-worker resampling** — `fix_stale_worker_cache_resampling.md →
+  TODO-1..8`. A correctness bug, not a performance/coverage nuance: for any
+  class whose point-estimate cache guard uses a key outside the reused
+  randomization/bootstrap worker's narrow, hardcoded reset list (`KKstats`,
+  `beta_hat_T`, `s_beta_hat_T`, `likelihood_null_warm_cache`), every
+  permutation/bootstrap draw after the first silently reuses the first
+  draw's stale fit instead of refitting — collapsing the entire resampling
+  distribution to a single constant value, unrelated to which draw was
+  used. Proven by direct repro on `InferenceOrdinalGCompMeanDiff`
+  (`compute_rand_two_sided_pval` rejects a true null 100% of the time
+  instead of 5%, 20/20 reps; feeding two opposite treatment-assignment
+  vectors into the worker's estimator gives bit-identical output). Same
+  code shape found in `InferencePropGCompMeanDiff` and the four
+  Incid(KK)GComp classes (not yet directly repro'd); independently
+  corroborated on `InferenceContinLin` via a different custom-cache
+  mechanism, flagged simultaneously on three unrelated bootstrap-family
+  p-value methods by the new audit checks — exactly the cross-method
+  signature this bug's mechanism predicts. Affects `rand`,
+  `non_param_boot`, `m_out_of_n_boot`, and `rand_bootstrap` (everything
+  that reaches `compute_bootstrap_worker_estimate()`); Bayesian bootstrap is
+  not affected (separate, already side-effect-free estimator path). Full
+  affected-class list is not yet known — the plan's TODO-1 is an exhaustive
+  sweep of every `shared()`-style cache guard across `R/EDI/R/inference_*.R`
+  needed before scoping the fix, which the plan recommends as a systemic
+  allowlist-to-denylist change to the reset logic (TODO-3/4) rather than a
+  per-class patch list, plus a permanent regression test (TODO-6:
+  resampling distributions must not be degenerate) so this class of bug
+  can't recur silently. Given `project_cran_status`'s imminent-submission
+  note and that this is silently-wrong output (not an error/NA) on shipped
+  inference methods, its release placement/urgency may warrant revisiting
+  ahead of the rest of 1.1.0 — flagged here, not decided here. Independent
+  of every other 1.1.0 item; depends on nothing else in this release.
 
 ## Standing constraints
 

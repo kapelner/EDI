@@ -102,12 +102,7 @@ patched_extract_r6_methods = function(x) {
 	# `block$file` is an absolute path, but `methods$file` (from
 	# `extract_r6_methods`) only stores the basename -- match on basename,
 	# same as roxygen2's own `find_method_for_tag()` does.
-	# Trust the class's own roxygen-block file whenever it is known. Classes built by
-	# define_inference_class() have every own method replaced by a lazy stub (stripped above), so
-	# no remaining method may come from the block's file; falling back to the first method's file
-	# then picks a shared base file (e.g. inference_all_abstract_rand.R) and keeps ITS methods,
-	# which the class never documents (undocumented-method and per-argument warnings).
-	class_file = if (!is.na(block_file)) {
+	class_file = if (!is.na(block_file) && any(methods$file == basename(block_file), na.rm = TRUE)) {
 		basename(block_file)
 	} else if (!("initialize" %in% methods$name)) {
 		methods$file[1]
