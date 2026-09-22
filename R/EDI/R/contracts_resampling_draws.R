@@ -57,6 +57,53 @@ EDI_RESAMPLING_DRAW_CONTRACTS = list(
 	)
 )
 
+#' Cache keys a reused resampling worker keeps between draws.
+#'
+#' The reused-worker resampling loaders must leave a worker in the same state a
+#' freshly duplicated worker would be in, because every class's
+#' \code{shared()}-style estimate cache is guarded on \emph{its own} cache key
+#' (\code{beta_hat_T} for most classes, but also \code{md}, \code{rd}/\code{rr},
+#' \code{lin_estimate_only_complete}, ...). Resetting a hand-maintained
+#' allowlist of keys silently skips the refit for any class whose guard key is
+#' not on that list, so the loaders reset \emph{everything} except the keys
+#' listed here (plus whatever a class declares via its own
+#' \code{reused_worker_preserved_cache_keys()} hook).
+#'
+#' These two keys match what \code{Inference$duplicate()} carries over into a
+#' fresh worker, and are the only ones that are independent of the treatment
+#' assignment and responses a draw installs:
+#' \describe{
+#'   \item{\code{m_cache}}{matched-set bookkeeping derived from the design's
+#'     \code{m} vector, which no reused-worker draw changes.}
+#'   \item{\code{t0s_rand}}{the delta-zero randomization statistics reused by
+#'     the affine-shift fast path; keyed to the original data, never written by
+#'     a per-draw refit.}
+#' }
+#'
+#' @keywords internal
+#' @noRd
+EDI_REUSED_WORKER_CACHE_KEEP_KEYS = c("m_cache", "t0s_rand")
+
+#' Rebuilds a reused resampling worker's `cached_values` for the next draw.
+#'
+#' Keeps \code{EDI_REUSED_WORKER_CACHE_KEEP_KEYS} plus any class-declared
+#' \code{preserve_cache_keys} (structural caches such as the
+#' \code{reduce_design_matrix_once()} column selections, which are deliberately
+#' computed once per worker), and drops everything else so the next draw refits
+#' from scratch.
+#'
+#' @keywords internal
+#' @noRd
+reused_worker_cached_values_for_next_draw = function(cached_values, preserve_cache_keys = character()){
+	keep = unique(c(EDI_REUSED_WORKER_CACHE_KEEP_KEYS, as.character(preserve_cache_keys)))
+	fresh = list()
+	for (nm in keep) {
+		value = cached_values[[nm]]
+		if (!is.null(value)) fresh[[nm]] = value
+	}
+	fresh
+}
+
 #' Returns a resampling draw-loader/cache contract.
 #'
 #' @keywords internal

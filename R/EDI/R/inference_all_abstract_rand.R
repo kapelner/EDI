@@ -504,16 +504,19 @@ InferenceRand = R6::R6Class("InferenceRand",
 				show_progress = show_progress
 			), use.names = FALSE))
 		},
+		# Cache keys this class needs carried across reused-worker resampling draws
+		# (on top of EDI_REUSED_WORKER_CACHE_KEEP_KEYS). Classes that compute a
+		# structural, assignment-independent cache once per worker -- e.g. the
+		# `reduce_design_matrix_once()` column selections -- override this to name
+		# those keys; everything else is dropped between draws so each draw refits.
+		reused_worker_preserved_cache_keys = function(){
+			character()
+		},
 		build_fast_randomization_worker_cache = function(prev_cache = NULL, preserve_cache_keys = character()){
-			cache = list()
 			if (is.null(prev_cache)) {
-				cache$rand_distr_cache = list()
-				return(cache)
+				return(list(rand_distr_cache = list()))
 			}
-			always_keep = c("m_cache", "t0s_rand")
-			for (nm in unique(c(always_keep, preserve_cache_keys))) {
-				if (!is.null(prev_cache[[nm]])) cache[[nm]] = prev_cache[[nm]]
-			}
+			cache = reused_worker_cached_values_for_next_draw(prev_cache, preserve_cache_keys)
 			cache$rand_distr_cache = list()
 			cache
 		},
@@ -947,9 +950,20 @@ InferenceRand = R6::R6Class("InferenceRand",
 			inf_priv$y = y_sim
 			inf_priv$y_temp = y_sim
 			inf_priv$dead = if (!is.null(des_priv)) des_priv$dead else base_template_dead
-			inf_priv$cached_values$KKstats = NULL # reset
-			inf_priv$cached_values$beta_hat_T = NULL
-			inf_priv$cached_values$s_beta_hat_T = NULL
+			# Reset the whole per-class estimate cache rather than an allowlist of
+			# named keys. Each class guards its own `shared()` early-return on its
+			# own key -- `beta_hat_T`/`s_beta_hat_T` for most, but `md` for the
+			# G-computation mean-difference classes, `rd`/`rr` for the incidence
+			# G-computation mixins, `lin_*_complete` for Lin, ... -- so an
+			# allowlist silently skips the refit for every class not on it, and
+			# draws 2..r then return draw 1's estimate (a degenerate, r-times
+			# repeated "randomization distribution" and a p-value pinned at its
+			# floor). Denylisting instead cannot miss a class; see
+			# `EDI_REUSED_WORKER_CACHE_KEEP_KEYS` for what legitimately survives.
+			inf_priv$cached_values = reused_worker_cached_values_for_next_draw(
+				inf_priv$cached_values,
+				preserve_cache_keys = private$reused_worker_preserved_cache_keys()
+			)
 			inf_priv$likelihood_null_warm_cache = list()
 			
 			# Reset all private design matrix and covariate caches

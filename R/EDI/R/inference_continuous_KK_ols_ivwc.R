@@ -79,8 +79,14 @@ ContinKKOLSIVWCSource = list(
 		}
 	),
 	private = list(
+		# The reduce_design_matrix_once() column selections are keyed on ncol(X)
+		# and are deliberately computed once per worker, so they must survive the
+		# per-draw cache reset in the reused-worker randomization path.
+		reused_worker_preserved_cache_keys = function(){
+			c("kk_ols_ivwc_matched_reduced_design", "kk_ols_ivwc_reservoir_reduced_design")
+		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			preserve = if (is.null(permutations$m_mat)) c("kk_ols_ivwc_matched_reduced_design", "kk_ols_ivwc_reservoir_reduced_design") else character()
+			preserve = if (is.null(permutations$m_mat)) private$reused_worker_preserved_cache_keys() else character()
 			private$compute_fast_randomization_distr_via_reused_worker(y, permutations, delta, transform_responses, preserve_cache_keys = preserve, zero_one_logit_clamp = zero_one_logit_clamp)
 		},
 		# reduce_design_matrix_once() is inherited from InferenceMixinKKPassThroughCompound.
@@ -293,6 +299,7 @@ InferenceContinKKOLSIVWC = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"compute_fast_randomization_distr",
+			"reused_worker_preserved_cache_keys",
 			"shared"
 		)
 	)
