@@ -192,7 +192,7 @@ ContinKKRobustRegrOneLikSource = list(
 		use_rcpp = TRUE,
 		# The reduce_design_matrix_once() column selection is keyed on ncol(X) and
 		# is deliberately computed once per worker, so it must survive the
-		# per-draw cache reset in every reused-worker resampling path.
+		# per-draw cache reset in the reused-worker randomization path.
 		reused_worker_preserved_cache_keys = function(){
 			c("kk_robust_combined_reduced_design")
 		},

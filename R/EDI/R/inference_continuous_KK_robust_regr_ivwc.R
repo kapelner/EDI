@@ -171,7 +171,7 @@ ContinKKRobustRegrIVWCSource = list(
 		use_rcpp = TRUE,
 		# The reduce_design_matrix_once() column selections are keyed on ncol(X)
 		# and are deliberately computed once per worker, so they must survive the
-		# per-draw cache reset in every reused-worker resampling path.
+		# per-draw cache reset in the reused-worker randomization path.
 		reused_worker_preserved_cache_keys = function(){
 			c("kk_robust_ivwc_matched_reduced_design", "kk_robust_ivwc_reservoir_reduced_design")
 		},
