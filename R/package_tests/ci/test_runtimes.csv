@@ -323,6 +323,7 @@ R/package_tests/testthat_bulk/test-local-tuning-policy-diff-assembly-and-skip-en
 R/package_tests/testthat_bulk/test-locked-binding-kernel-unlock-semantics-and-error-cases-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-and-identity-binomial-kernels-glm-fixed-coefficients-working-weights-and-iteration-cap-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-bayesian-bootstrap-boundary.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-error-catching-wrapper-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-fit-glmer-agreement-and-cold-start-variance-collapse-reference.R,correctness,120,bootstrap
@@ -1179,6 +1180,7 @@ R/package_tests/testthat_bulk/test-local-tuning-policy-diff-assembly-and-skip-en
 R/package_tests/testthat_bulk/test-locked-binding-kernel-unlock-semantics-and-error-cases-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-and-identity-binomial-kernels-glm-fixed-coefficients-working-weights-and-iteration-cap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-bayesian-bootstrap-boundary.R,coverage,8.7,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-fit-glmer-agreement-and-cold-start-variance-collapse-reference.R,coverage,240,bootstrap
