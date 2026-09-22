@@ -745,3 +745,8 @@ InferenceSurvivalDepCensTransformRegr = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceSurvivalDepCensTransformRegr$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+

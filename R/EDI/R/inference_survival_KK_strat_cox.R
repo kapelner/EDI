@@ -341,6 +341,18 @@ InferenceSurvivalKKStratCoxPHIVWC = define_inference_class(
 	)
 )
 
+#' @R6method InferenceSurvivalKKStratCoxPHIVWC$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalKKStratCoxPHIVWC$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalKKStratCoxPHIVWC$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+
 #' Stratified Cox Combined-Likelihood Compound Inference for KK Designs
 #'
 #' @keywords internal
@@ -691,3 +703,16 @@ InferenceSurvivalKKStratCoxPHOneLik = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceSurvivalKKStratCoxPHOneLik$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalKKStratCoxPHOneLik$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalKKStratCoxPHOneLik$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+

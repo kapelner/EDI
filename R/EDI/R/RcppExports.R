@@ -4428,7 +4428,9 @@ gcomp_ordinal_proportional_odds_post_fit_cpp <- function(X_fit, coef_hat, alpha_
     .Call(`_EDI_gcomp_ordinal_proportional_odds_post_fit_cpp`, X_fit, coef_hat, alpha_hat, j_treat)
 }
 
-#' @description Every generate_permutations_*_cpp function below is seeded
+#' Generate matched-pair randomization permutations
+#'
+#' Every generate_permutations_*_cpp function in this file is seeded
 #'   from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a portable
 #'   re-implementation of R's own Mersenne-Twister generator -- a given
 #'   seed therefore produces identical draws in R and in any future binding
@@ -4437,49 +4439,65 @@ generate_permutations_matching_cpp <- function(m_vec, nsim, prob_T) {
     .Call(`_EDI_generate_permutations_matching_cpp`, m_vec, nsim, prob_T)
 }
 
-#' @description See generate_permutations_matching_cpp for the reproducibility
+#' Generate Bernoulli randomization permutations
+#'
+#' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
 generate_permutations_bernoulli_cpp <- function(n, nsim, prob_T) {
     .Call(`_EDI_generate_permutations_bernoulli_cpp`, n, nsim, prob_T)
 }
 
-#' @description See generate_permutations_matching_cpp for the reproducibility
+#' Generate IBCRD randomization permutations
+#'
+#' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
 generate_permutations_ibcrd_cpp <- function(n, nsim, prob_T) {
     .Call(`_EDI_generate_permutations_ibcrd_cpp`, n, nsim, prob_T)
 }
 
-#' @description See generate_permutations_matching_cpp for the reproducibility
+#' Generate blocked randomization permutations
+#'
+#' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
 generate_permutations_blocking_cpp <- function(n, nsim, prob_T, strata_indices) {
     .Call(`_EDI_generate_permutations_blocking_cpp`, n, nsim, prob_T, strata_indices)
 }
 
-#' @description See generate_permutations_matching_cpp for the reproducibility
+#' Generate Efron biased-coin randomization permutations
+#'
+#' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
 generate_permutations_efron_cpp <- function(n, nsim, prob_T, weighted_coin_prob) {
     .Call(`_EDI_generate_permutations_efron_cpp`, n, nsim, prob_T, weighted_coin_prob)
 }
 
-#' @description See generate_permutations_matching_cpp for the reproducibility
+#' Generate Atkinson optimal-design randomization permutations
+#'
+#' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
 generate_permutations_atkinson_cpp <- function(X_sexp, n, p_raw, prob_T, nsim) {
     .Call(`_EDI_generate_permutations_atkinson_cpp`, X_sexp, n, p_raw, prob_T, nsim)
 }
 
-#' @description See generate_permutations_matching_cpp for the reproducibility
+#' Generate Pocock-Simon minimization randomization permutations
+#'
+#' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
 generate_permutations_pocock_simon_cpp <- function(x_levels_matrix, num_levels_total, weights, p_best, prob_T, nsim) {
     .Call(`_EDI_generate_permutations_pocock_simon_cpp`, x_levels_matrix, num_levels_total, weights, p_best, prob_T, nsim)
 }
 
-#' @description See generate_permutations_matching_cpp for the reproducibility
+#' Generate cluster randomization permutations
+#'
+#' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
 generate_permutations_cluster_cpp <- function(n, nsim, prob_T, cluster_indices) {
     .Call(`_EDI_generate_permutations_cluster_cpp`, n, nsim, prob_T, cluster_indices)
 }
 
-#' @description See generate_permutations_matching_cpp for the reproducibility
+#' Generate stratified permuted-block randomization (SPBR) permutations
+#'
+#' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
 generate_permutations_spbr_cpp <- function(strata_keys, block_size, prob_T, nsim) {
     .Call(`_EDI_generate_permutations_spbr_cpp`, strata_keys, block_size, prob_T, nsim)

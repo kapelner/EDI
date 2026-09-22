@@ -656,3 +656,15 @@ InferenceContinKKOLSOneLik = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceContinKKOLSOneLik$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceContinKKOLSOneLik$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceContinKKOLSOneLik$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL

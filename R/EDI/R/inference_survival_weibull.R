@@ -555,3 +555,12 @@ InferenceSurvivalWeibullRegr = define_inference_class(
 		supports_interval_or_left_censored_data = function() TRUE
 	)
 )
+
+#' @R6method InferenceSurvivalWeibullRegr$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalWeibullRegr$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+

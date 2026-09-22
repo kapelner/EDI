@@ -12,6 +12,8 @@ load_source_with_filenames = function(path) {
 	env
 }
 
+.fast_roxygenize_package_name = desc::desc_get("Package", file = file.path("EDI", "DESCRIPTION"))[[1]]
+
 # `methods$file[1]` (the old heuristic below) picks whichever method happens to
 # be first in the merged public/private list. When a class composes in mixin
 # methods via `c(SomeMixin$public, list(...))`, the mixin's methods (sourced
@@ -25,7 +27,6 @@ load_source_with_filenames = function(path) {
 # it from `object_defaults.r6class` (which has the block in scope) and prefer
 # it in `extract_r6_methods` (which only receives the class generator).
 .fast_roxygenize_current_block_file = new.env(parent = emptyenv())
-.fast_roxygenize_package_name = desc::desc_get("Package", file = file.path("EDI", "DESCRIPTION"))[[1]]
 
 original_object_defaults_r6class = roxygen2:::object_defaults.r6class
 patched_object_defaults_r6class = function(x, block) {
@@ -44,6 +45,39 @@ s3_methods_table = get(".__S3MethodsTable__.", envir = asNamespace("roxygen2"))
 unlockBinding("object_defaults.r6class", s3_methods_table)
 assign("object_defaults.r6class", patched_object_defaults_r6class, envir = s3_methods_table)
 lockBinding("object_defaults.r6class", s3_methods_table)
+
+# `@R6method Class$method` blocks (see rd-r6-external.R) intentionally match by
+# NAME ONLY, regardless of which file the target method's srcref points to --
+# that's the whole point for methods composed via define_inference_class() or
+# pinned via `Source$public_methods$x`, whose srcref stays wherever they were
+# originally defined (routinely a different file than the composing class).
+# The file-scoping exclusion below would otherwise strip those methods out of
+# methods_df before @R6method's name lookup ever runs. So before the exclusion
+# runs, pre-scan every source file under EDI/R for `#' @R6method Class$method`
+# tags and build a lookup of exactly which (class, method-name) pairs are
+# explicitly targeted -- those specific methods are exempted from the file
+# filter, without opening it up package-wide (which produced ~7900 warnings:
+# nearly every harvested-component method that has genuinely never been
+# documented for ANY composing class became visible as "Undocumented R6
+# method" for EVERY class that composes it, not just the one(s) actually
+# converted to @R6method).
+.fast_roxygenize_r6method_targets = local({
+	files = list.files(file.path("EDI", "R"), pattern = "\\.R$", full.names = TRUE)
+	targets = new.env(parent = emptyenv())
+	tag_re = "^\\s*#'\\s*@R6method\\s+([A-Za-z0-9._]+)\\$([A-Za-z0-9._]+)\\s*$"
+	for (f in files) {
+		lines = readLines(f, warn = FALSE)
+		hits = grep(tag_re, lines, value = TRUE)
+		if (!length(hits)) next
+		m = regmatches(hits, regexec(tag_re, hits))
+		for (parts in m) {
+			cls = parts[2]; meth = parts[3]
+			existing = if (exists(cls, envir = targets, inherits = FALSE)) get(cls, envir = targets, inherits = FALSE) else character(0)
+			assign(cls, union(existing, meth), envir = targets)
+		}
+	}
+	targets
+})
 
 # Lazy-loaded inference mixin components (see `combine_component_slot()` /
 # `lazy_component_public_stub()` / `lazy_component_private_stub()` in
@@ -112,8 +146,13 @@ patched_extract_r6_methods = function(x) {
 	if (is.na(class_file)) {
 		return(methods)
 	}
-	keep_files = class_file
-	methods[is.na(methods$file) | methods$file %in% keep_files, , drop = FALSE]
+	classname = x$classname
+	r6method_names = if (!is.null(classname) && exists(classname, envir = .fast_roxygenize_r6method_targets, inherits = FALSE)) {
+		get(classname, envir = .fast_roxygenize_r6method_targets, inherits = FALSE)
+	} else {
+		character(0)
+	}
+	methods[is.na(methods$file) | methods$file == class_file | methods$name %in% r6method_names, , drop = FALSE]
 }
 unlockBinding("extract_r6_methods", asNamespace("roxygen2"))
 assign("extract_r6_methods", patched_extract_r6_methods, envir = asNamespace("roxygen2"))

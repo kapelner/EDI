@@ -5,18 +5,8 @@
 #' @keywords internal
 ExactFisherIncidenceSource = list(
 	public = list(
-		#' @description Initialize exact Fisher inference for incidence outcomes.
-		#'   Requires an uncensored incidence response; the design's structure
-		#'   (unstructured, blocked, or matched) determines the stratification used
-		#'   at estimation time (see class documentation).
-		#' @param des_obj A completed design object.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose Whether to print progress messages.
-		#' @param smart_cold_start_default Whether to use smart cold start values by default.
-		#' @return A new \code{InferenceIncidExactFisher} object.
+		# Initialize exact Fisher inference for incidence outcomes.
+		# Documented via @R6method below (see InferenceIncidExactFisher$initialize).
 		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
@@ -29,13 +19,8 @@ ExactFisherIncidenceSource = list(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Computes the log of the (conditional MLE, or common-odds-ratio
-		#'   if stratified) odds ratio from \code{\link[stats]{fisher.test}} or
-		#'   \code{\link[stats]{mantelhaen.test}} (see class documentation for which
-		#'   applies and why).
-		#' @param estimate_only Ignored for this estimator (the exact statistic is
-		#'   always cheap to compute; there is no separate variance step to skip).
-		#' @return The treatment estimate.
+		# Computes the exact-Fisher estimate. Documented via @R6method
+		# below (see InferenceIncidExactFisher$compute_estimate).
 		compute_estimate = function(estimate_only = FALSE){
 			private$get_exact_fisher_log_or_estimate()
 		}
@@ -311,3 +296,11 @@ InferenceIncidExactFisher = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceIncidExactFisher$initialize
+#' @template exact-fisher-initialize
+NULL
+
+#' @R6method InferenceIncidExactFisher$compute_estimate
+#' @template exact-fisher-compute-estimate
+NULL

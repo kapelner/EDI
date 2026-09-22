@@ -31,23 +31,14 @@ incidence_gcomp_generic_alias_overrides = list(
 	compute_bayesian_bootstrap_confidence_interval_generic = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_confidence_interval,
 	compute_jackknife_wald_two_sided_pval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_two_sided_pval,
 	compute_jackknife_wald_confidence_interval_generic = InferenceJackknife$public_methods$compute_jackknife_wald_confidence_interval,
-	#' @description Uses the shared nonparametric bootstrap distribution contract; see
-	#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
-	#' @param B  					Number of bootstrap samples.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param debug         Whether to return diagnostics.
-	#' @param bootstrap_type Optional resampling scheme.
-	#' @return A numeric vector of bootstrap estimates.
+	# Uses the shared nonparametric bootstrap distribution contract; see
+	# InferenceNonParamBootstrap. Documented via @R6method (see
+	# gcomp-bootstrap-distribution-beta-hat-t template).
 	approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
 		self$approximate_bootstrap_distribution_beta_hat_T_generic(B, show_progress, debug, bootstrap_type)
 	},
-	#' @description Computes a bootstrap confidence interval for the treatment effect.
-	#' @param alpha Significance level. Default 0.05.
-	#' @param B Number of bootstrap samples.
-	#' @param type Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
-	#' @param na.rm Whether to remove non-finite bootstrap replicates.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
+	# Computes a bootstrap confidence interval for the treatment effect.
+	# Documented via @R6method (see gcomp-bootstrap-confidence-interval template).
 	compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
 		type_resolved = tolower(type %||% "percentile")
 		if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "basic")) {
@@ -55,41 +46,24 @@ incidence_gcomp_generic_alias_overrides = list(
 		}
 		self$compute_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 	},
-	#' @description Computes a bootstrap two-sided p-value for the treatment effect.
-	#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
-	#' @param B Number of bootstrap samples.
-	#' @param type Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
-	#' @param na.rm Whether to remove non-finite bootstrap replicates.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
+	# Computes a bootstrap two-sided p-value for the treatment effect.
+	# Documented via @R6method (see gcomp-bootstrap-two-sided-pval template).
 	compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L){
 		if (is.null(delta)){
 			delta = private$default_null_value()
 		}
 		self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 	},
-	#' @description Computes a Bayesian-bootstrap two-sided p-value for the treatment effect.
-	#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
-	#' @param B Number of Bayesian-bootstrap samples.
-	#' @param type Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.
-	#' @param na.rm Whether to remove non-finite bootstrap replicates.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
-	#' @param weighting_unit_type Optional resampling unit override.
+	# Computes a Bayesian-bootstrap two-sided p-value for the treatment effect.
+	# Documented via @R6method (see gcomp-bayesian-bootstrap-two-sided-pval template).
 	compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 		if (is.null(delta)){
 			delta = private$default_null_value()
 		}
 		self$compute_bayesian_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 	},
-	#' @description Computes a Bayesian-bootstrap confidence interval for the treatment effect.
-	#' @param alpha Significance level. Default 0.05.
-	#' @param B Number of Bayesian-bootstrap samples.
-	#' @param type Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.
-	#' @param na.rm Whether to remove non-finite bootstrap replicates.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
-	#' @param weighting_unit_type Optional resampling unit override.
+	# Computes a Bayesian-bootstrap confidence interval for the treatment effect.
+	# Documented via @R6method (see gcomp-bayesian-bootstrap-confidence-interval template).
 	compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 		type_resolved = tolower(type %||% "percentile")
 		if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
@@ -97,9 +71,8 @@ incidence_gcomp_generic_alias_overrides = list(
 		}
 		self$compute_bayesian_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 	},
-	#' @description Computes a jackknife-Wald two-sided p-value for the treatment effect.
-	#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
-	#' @param unit Deletion unit. Default \code{"auto"}.
+	# Computes a jackknife-Wald two-sided p-value for the treatment effect.
+	# Documented via @R6method (see gcomp-jackknife-wald-two-sided-pval template).
 	compute_jackknife_wald_two_sided_pval = function(delta = NULL, unit = "auto"){
 		if (is.null(delta)){
 			delta = private$default_null_value()
@@ -109,23 +82,16 @@ incidence_gcomp_generic_alias_overrides = list(
 		}
 		self$compute_jackknife_wald_two_sided_pval_generic(delta = delta, unit = unit)
 	},
-	#' @description Computes a jackknife-Wald confidence interval for the treatment effect.
-	#' @param alpha Significance level. Default \code{0.05}.
-	#' @param unit Deletion unit. Default \code{"auto"}.
+	# Computes a jackknife-Wald confidence interval for the treatment effect.
+	# Documented via @R6method (see gcomp-jackknife-wald-confidence-interval template).
 	compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
 		if (identical(private$get_estimand_type(), "RR")) {
 			return(private$compute_rr_jackknife_wald_confidence_interval(alpha = alpha, unit = unit))
 		}
 		self$compute_jackknife_wald_confidence_interval_generic(alpha = alpha, unit = unit)
 	},
-	#' @description Computes a PRW subsampling two-sided p-value for the treatment effect.
-	#' @param delta Null treatment effect. Defaults to 0 for RD and 1 for RR.
-	#' @param B Number of subsamples.
-	#' @param b Subsample size. See \code{InferenceNonParamBootstrap$compute_subsampling_two_sided_pval}.
-	#' @param type P-value type.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param min_number_usable_samples Minimum number of finite subsampled estimates required.
-	#' @param subsampling_type Optional empirical-resampling scheme.
+	# Computes a PRW subsampling two-sided p-value for the treatment effect.
+	# Documented via @R6method (see gcomp-subsampling-two-sided-pval template).
 	compute_subsampling_two_sided_pval = function(delta = NULL, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
 		if (is.null(delta)){
 			delta = private$default_null_value()
@@ -135,28 +101,16 @@ incidence_gcomp_generic_alias_overrides = list(
 		}
 		self$compute_subsampling_two_sided_pval_generic(delta = delta, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type)
 	},
-	#' @description Computes a PRW subsampling confidence interval for the treatment effect.
-	#' @param alpha Significance level. Default 0.05.
-	#' @param B Number of subsamples.
-	#' @param b Subsample size. See \code{InferenceNonParamBootstrap$compute_subsampling_confidence_interval}.
-	#' @param type Confidence-interval type.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param min_number_usable_samples Minimum number of finite subsampled estimates required.
-	#' @param subsampling_type Optional empirical-resampling scheme.
+	# Computes a PRW subsampling confidence interval for the treatment effect.
+	# Documented via @R6method (see gcomp-subsampling-confidence-interval template).
 	compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
 		if (identical(private$get_estimand_type(), "RR")) {
 			return(private$compute_rr_subsampling_confidence_interval(alpha = alpha, B = B, b = b, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type))
 		}
 		self$compute_subsampling_confidence_interval_generic(alpha = alpha, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type)
 	},
-	#' @description Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
-	#' @param delta Null treatment effect. Defaults to 0 for RD and 1 for RR.
-	#' @param B Number of resamples.
-	#' @param m Resample size. See \code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval}.
-	#' @param type P-value type.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param min_number_usable_samples Minimum number of finite resampled estimates required.
-	#' @param bootstrap_type Optional empirical-resampling scheme.
+	# Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
+	# Documented via @R6method (see gcomp-m-out-of-n-bootstrap-two-sided-pval template).
 	compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = NULL, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
 		if (is.null(delta)){
 			delta = private$default_null_value()
@@ -166,14 +120,8 @@ incidence_gcomp_generic_alias_overrides = list(
 		}
 		self$compute_m_out_of_n_bootstrap_two_sided_pval_generic(delta = delta, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type)
 	},
-	#' @description Computes an m-out-of-n bootstrap confidence interval for the treatment effect.
-	#' @param alpha Significance level. Default 0.05.
-	#' @param B Number of resamples.
-	#' @param m Resample size. See \code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval}.
-	#' @param type Confidence-interval type.
-	#' @param show_progress Whether to show a progress bar.
-	#' @param min_number_usable_samples Minimum number of finite resampled estimates required.
-	#' @param bootstrap_type Optional empirical-resampling scheme.
+	# Computes an m-out-of-n bootstrap confidence interval for the treatment effect.
+	# Documented via @R6method (see gcomp-m-out-of-n-bootstrap-confidence-interval template).
 	compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
 		if (identical(private$get_estimand_type(), "RR")) {
 			return(private$compute_rr_m_out_of_n_bootstrap_confidence_interval(alpha = alpha, B = B, m = m, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type))
@@ -284,6 +232,50 @@ InferenceIncidGCompRiskDiff = define_inference_class(
 	metadata = list(likelihood_tier = "none")
 )
 
+#' @R6method InferenceIncidGCompRiskDiff$approximate_bootstrap_distribution_beta_hat_T
+#' @template gcomp-bootstrap-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_bootstrap_confidence_interval
+#' @template gcomp-bootstrap-confidence-interval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_bootstrap_two_sided_pval
+#' @template gcomp-bootstrap-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_bayesian_bootstrap_two_sided_pval
+#' @template gcomp-bayesian-bootstrap-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_bayesian_bootstrap_confidence_interval
+#' @template gcomp-bayesian-bootstrap-confidence-interval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_jackknife_wald_two_sided_pval
+#' @template gcomp-jackknife-wald-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_jackknife_wald_confidence_interval
+#' @template gcomp-jackknife-wald-confidence-interval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_subsampling_two_sided_pval
+#' @template gcomp-subsampling-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_subsampling_confidence_interval
+#' @template gcomp-subsampling-confidence-interval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_m_out_of_n_bootstrap_two_sided_pval
+#' @template gcomp-m-out-of-n-bootstrap-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskDiff$compute_m_out_of_n_bootstrap_confidence_interval
+#' @template gcomp-m-out-of-n-bootstrap-confidence-interval
+NULL
+
 #' G-Computation Risk-Ratio Inference for Binary Responses
 #'
 #' Fits a logistic working model, \eqn{\mathrm{logit}\,\Pr(Y_i=1\mid x_i) =
@@ -335,3 +327,47 @@ InferenceIncidGCompRiskRatio = define_inference_class(
 	overrides = incidence_gcomp_overrides,
 	metadata = list(likelihood_tier = "none")
 )
+
+#' @R6method InferenceIncidGCompRiskRatio$approximate_bootstrap_distribution_beta_hat_T
+#' @template gcomp-bootstrap-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_bootstrap_confidence_interval
+#' @template gcomp-bootstrap-confidence-interval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_bootstrap_two_sided_pval
+#' @template gcomp-bootstrap-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_two_sided_pval
+#' @template gcomp-bayesian-bootstrap-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_bayesian_bootstrap_confidence_interval
+#' @template gcomp-bayesian-bootstrap-confidence-interval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_jackknife_wald_two_sided_pval
+#' @template gcomp-jackknife-wald-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_jackknife_wald_confidence_interval
+#' @template gcomp-jackknife-wald-confidence-interval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_subsampling_two_sided_pval
+#' @template gcomp-subsampling-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_subsampling_confidence_interval
+#' @template gcomp-subsampling-confidence-interval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_m_out_of_n_bootstrap_two_sided_pval
+#' @template gcomp-m-out-of-n-bootstrap-two-sided-pval
+NULL
+
+#' @R6method InferenceIncidGCompRiskRatio$compute_m_out_of_n_bootstrap_confidence_interval
+#' @template gcomp-m-out-of-n-bootstrap-confidence-interval
+NULL

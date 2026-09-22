@@ -671,4 +671,4 @@ Zenodo: [10.5281/zenodo.22170036](https://doi.org/10.5281/zenodo.22170036).
 
 ## Lines of Code
 
-[![Lines of code](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a/raw/loc-badge.json)](https://gist.github.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a#file-loc-md) (click for per-language breakdown)
+[![Lines of code](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a/raw/loc-badge.json)](https://gist.github.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a#file-loc-md) [![Tests, diagnostics, etc](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a/raw/loc-badge-tests.json)](https://gist.github.com/kapelner/3d96a820d6b5d6fba041fc31bc9bf36a#file-loc-md) (click either for the full per-language breakdown)

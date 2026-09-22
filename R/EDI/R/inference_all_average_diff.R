@@ -3,19 +3,19 @@
 #' @noRd
 SimpleMeanDifferenceSource = list(
 	public = list(
-		#' @description Initialize a simple mean-difference inference object.
-		#' @param des_obj A DesignSeqOneByOne object whose entire n subjects are assigned
-		#'   and response y is recorded within.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose Whether to print progress messages. Default \code{FALSE}.
-		#' @param max_resample_attempts Maximum number of times a single bootstrap replicate
-		#'   may be redrawn when the drawn sample fails validity screening. If all attempts
-		#'   fail the replicate is recorded as \code{NA}, silently reducing the effective \code{B}.
-		#'   Must be a positive integer. Default \code{50L}.
-		#' @param smart_cold_start_default Whether to use smart cold start values.
+		# @description Initialize a simple mean-difference inference object.
+		# @param des_obj A DesignSeqOneByOne object whose entire n subjects are assigned
+		#   and response y is recorded within.
+		# @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
+		#   the formula from the design object is used and its pre-computed design matrix is
+		#   reused. If a formula is provided, a new design matrix is constructed from the
+		#   design's imputed covariates.
+		# @param verbose Whether to print progress messages. Default \code{FALSE}.
+		# @param max_resample_attempts Maximum number of times a single bootstrap replicate
+		#   may be redrawn when the drawn sample fails validity screening. If all attempts
+		#   fail the replicate is recorded as \code{NA}, silently reducing the effective \code{B}.
+		#   Must be a positive integer. Default \code{50L}.
+		# @param smart_cold_start_default Whether to use smart cold start values.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, max_resample_attempts = 50L, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertCount(max_resample_attempts, positive = TRUE)
@@ -24,47 +24,47 @@ SimpleMeanDifferenceSource = list(
 			private$fit_warm_start_enabled = FALSE
 			private$max_resample_attempts = max_resample_attempts
 		},
-		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
-		#'   simple (unadjusted) mean-difference treatment effect
-		#'   \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using \strong{Welch's
-		#'   unequal-variance} formula: standard error
-		#'   \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) = \sqrt{s_T^2/n_T + s_C^2/n_C}}
-		#'   (sample variances \eqn{s_T^2}, \eqn{s_C^2} computed separately per arm,
-		#'   not pooled) with Satterthwaite-Welch degrees of freedom
-		#'   \eqn{\mathrm{df} = (s_T^2/n_T + s_C^2/n_C)^2 \big/ \left(\frac{(s_T^2/n_T)^2}{n_T-1}
-		#'   + \frac{(s_C^2/n_C)^2}{n_C-1}\right)}; the interval is
-		#'   \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,\widehat{\mathrm{SE}}(\hat\beta_T)}.
-		#'   Requires at least 2 observations per arm; otherwise the standard error
-		#'   and interval are \code{NA}. See
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
-		#'   asymptotic confidence-interval contract this delegates to.
-		#' @param alpha Confidence level.
+		# @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#   simple (unadjusted) mean-difference treatment effect
+		#   \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using \strong{Welch's
+		#   unequal-variance} formula: standard error
+		#   \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) = \sqrt{s_T^2/n_T + s_C^2/n_C}}
+		#   (sample variances \eqn{s_T^2}, \eqn{s_C^2} computed separately per arm,
+		#   not pooled) with Satterthwaite-Welch degrees of freedom
+		#   \eqn{\mathrm{df} = (s_T^2/n_T + s_C^2/n_C)^2 \big/ \left(\frac{(s_T^2/n_T)^2}{n_T-1}
+		#   + \frac{(s_C^2/n_C)^2}{n_C-1}\right)}; the interval is
+		#   \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,\widehat{\mathrm{SE}}(\hat\beta_T)}.
+		#   Requires at least 2 observations per arm; otherwise the standard error
+		#   and interval are \code{NA}. See
+		#   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#   asymptotic confidence-interval contract this delegates to.
+		# @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes a two-sided Welch's t-test p-value testing
-		#'   \eqn{H_0: \beta_T = \code{delta}}, from the same Welch
-		#'   unequal-variance standard error and Satterthwaite-Welch degrees of
-		#'   freedom used by \code{$compute_asymp_confidence_interval()} — see that
-		#'   method's documentation for the full formula. See
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
-		#'   asymptotic two-sided p-value contract this delegates to.
-		#' @param delta Null treatment effect value.
+		# @description Computes a two-sided Welch's t-test p-value testing
+		#   \eqn{H_0: \beta_T = \code{delta}}, from the same Welch
+		#   unequal-variance standard error and Satterthwaite-Welch degrees of
+		#   freedom used by \code{$compute_asymp_confidence_interval()} — see that
+		#   method's documentation for the full formula. See
+		#   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#   asymptotic two-sided p-value contract this delegates to.
+		# @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared()
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Computes the simple (unadjusted) mean-difference point
-		#'   estimate \eqn{\hat\beta_T = \bar y_T - \bar y_C}, the difference in
-		#'   sample means between the treated and control arms. \code{NA} if
-		#'   either arm has zero observations. See
-		#'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}
-		#'   for the shared estimate-contract this participates in.
-		#'
-		#' @return    The setting-appropriate (see description) numeric estimate of the treatment effect
-		#'
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		# @description Computes the simple (unadjusted) mean-difference point
+		#   estimate \eqn{\hat\beta_T = \bar y_T - \bar y_C}, the difference in
+		#   sample means between the treated and control arms. \code{NA} if
+		#   either arm has zero observations. See
+		#   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}
+		#   for the shared estimate-contract this participates in.
+		#
+		# @return    The setting-appropriate (see description) numeric estimate of the treatment effect
+		#
+		# @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			if (is.null(private$cached_values$beta_hat_T)){
 				private$cached_values$yTs = private$y[private$w == 1]
@@ -79,25 +79,25 @@ SimpleMeanDifferenceSource = list(
 			}
 			private$cached_values$beta_hat_T
 		},
-		#' @description Recomputes the simple mean-difference estimate under
-		#'   subject/block bootstrap weights (used by the Bayesian bootstrap and
-		#'   related weighted-resampling machinery — see
-		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}).
-		#'   The weighted point estimate is \eqn{\hat\beta_T = \bar y_T^w - \bar
-		#'   y_C^w}, weighted arm means \eqn{\bar y_T^w = \sum_i r_i y_i \mathbb{1}[w_i=1]
-		#'   / \sum_i r_i \mathbb{1}[w_i=1]} (and analogously for control), where
-		#'   \eqn{r_i} are the expanded row weights. Unless \code{estimate_only =
-		#'   TRUE}, the standard error uses a \strong{weighted, effective-sample-size}
-		#'   Welch formula: \eqn{n_{\mathrm{eff}} = (\sum r_i)^2 / \sum r_i^2}
-		#'   (the usual Kish effective-sample-size correction for unequal weights)
-		#'   in place of the raw \eqn{n} in both the per-arm weighted variance
-		#'   denominator and the Satterthwaite-Welch degrees-of-freedom formula (see
-		#'   \code{$compute_asymp_confidence_interval()} for the unweighted version
-		#'   of the same formula). Rows with non-finite or non-positive weight, or a
-		#'   non-finite response, are dropped before computing; if no rows survive,
-		#'   returns \code{NA} with all cached variance components set to \code{NA}.
-		#' @param subject_or_block_weights Row weights for the bootstrap sample.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		# @description Recomputes the simple mean-difference estimate under
+		#   subject/block bootstrap weights (used by the Bayesian bootstrap and
+		#   related weighted-resampling machinery — see
+		#   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}).
+		#   The weighted point estimate is \eqn{\hat\beta_T = \bar y_T^w - \bar
+		#   y_C^w}, weighted arm means \eqn{\bar y_T^w = \sum_i r_i y_i \mathbb{1}[w_i=1]
+		#   / \sum_i r_i \mathbb{1}[w_i=1]} (and analogously for control), where
+		#   \eqn{r_i} are the expanded row weights. Unless \code{estimate_only =
+		#   TRUE}, the standard error uses a \strong{weighted, effective-sample-size}
+		#   Welch formula: \eqn{n_{\mathrm{eff}} = (\sum r_i)^2 / \sum r_i^2}
+		#   (the usual Kish effective-sample-size correction for unequal weights)
+		#   in place of the raw \eqn{n} in both the per-arm weighted variance
+		#   denominator and the Satterthwaite-Welch degrees-of-freedom formula (see
+		#   \code{$compute_asymp_confidence_interval()} for the unweighted version
+		#   of the same formula). Rows with non-finite or non-positive weight, or a
+		#   non-finite response, are dropped before computing; if no rows survive,
+		#   returns \code{NA} with all cached variance components set to \code{NA}.
+		# @param subject_or_block_weights Row weights for the bootstrap sample.
+		# @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			keep = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
@@ -381,17 +381,20 @@ InferenceAllSimpleAverageDiff = define_inference_class(
 	inherit = Inference,
 	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
 	public = list(
-		#' @description Uses the randomization-CI layer's two-sided p-value contract
-		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
-		#'   incidence responses this dispatches to the Zhang exact randomization
-		#'   test where applicable rather than refusing outright, matching this
-		#'   class's pre-migration old-ladder behavior (see
-		#'   \code{InferenceIncidRiskDiff}'s identical rationale). Previously bound
-		#'   to \code{InferenceRand}'s version instead, which silently regressed
-		#'   Zhang dispatch after migration -- see
-		#'   \code{inference_all_abstract_rand_ci.R}'s
-		#'   \code{compute_rand_two_sided_pval} for why it's now safe to splice
-		#'   this in outside the old inheritance chain.
+		# Uses the randomization-CI layer's two-sided p-value contract
+		# (InferenceRandCI's version, not InferenceRand's): for
+		# incidence responses this dispatches to the Zhang exact randomization
+		# test where applicable rather than refusing outright, matching this
+		# class's pre-migration old-ladder behavior (see
+		# InferenceIncidRiskDiff's identical rationale). Previously bound
+		# to InferenceRand's version instead, which silently regressed
+		# Zhang dispatch after migration -- see
+		# inference_all_abstract_rand_ci.R's
+		# compute_rand_two_sided_pval for why it's now safe to splice
+		# this in outside the old inheritance chain. Documented via @R6method
+		# below (see InferenceAllSimpleAverageDiff$compute_rand_two_sided_pval)
+		# since this value is pinned by reference from another class's own
+		# public_methods list, not defined here.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
 	metadata = list(likelihood_tier = "none"),
@@ -428,3 +431,39 @@ InferenceAllSimpleAverageDiff = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceAllSimpleAverageDiff$compute_rand_two_sided_pval
+#' @description Uses the randomization-CI layer's two-sided p-value contract
+#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+#'   incidence responses this dispatches to the Zhang exact randomization
+#'   test where applicable rather than refusing outright, matching this
+#'   class's pre-migration old-ladder behavior (see
+#'   \code{InferenceIncidRiskDiff}'s identical rationale). Previously bound
+#'   to \code{InferenceRand}'s version instead, which silently regressed
+#'   Zhang dispatch after migration -- see
+#'   \code{inference_all_abstract_rand_ci.R}'s
+#'   \code{compute_rand_two_sided_pval} for why it's now safe to splice
+#'   this in outside the old inheritance chain.
+#' @template randci-compute-rand-two-sided-pval-params
+NULL
+
+#' @R6method InferenceAllSimpleAverageDiff$initialize
+#' @template simple-mean-diff-initialize
+NULL
+
+#' @R6method InferenceAllSimpleAverageDiff$compute_asymp_confidence_interval
+#' @template simple-mean-diff-asymp-ci
+NULL
+
+#' @R6method InferenceAllSimpleAverageDiff$compute_asymp_two_sided_pval
+#' @template simple-mean-diff-asymp-pval
+NULL
+
+#' @R6method InferenceAllSimpleAverageDiff$compute_estimate
+#' @template simple-mean-diff-compute-estimate
+NULL
+
+#' @R6method InferenceAllSimpleAverageDiff$compute_estimate_with_bootstrap_weights
+#' @template simple-mean-diff-bootstrap-weights
+NULL
+

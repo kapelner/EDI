@@ -5,18 +5,8 @@
 #' @keywords internal
 ExactBinomialIncidenceSource = list(
 	public = list(
-		#' @description Initialize exact matched-pair binomial inference for
-		#'   incidence outcomes. Requires \code{des_obj} to be
-		#'   \code{DesignFixedBinaryMatch} or a KK matching-on-the-fly-capable
-		#'   design; errors otherwise. Requires an uncensored incidence response.
-		#' @param des_obj A completed design object.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose Whether to print progress messages.
-		#' @param smart_cold_start_default Whether to use smart cold start values by default.
-		#' @return A new \code{InferenceIncidExactBinomial} object.
+		# Initialize exact matched-pair binomial inference. Documented via
+		# @R6method below (see InferenceIncidExactBinomial$initialize).
 		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
@@ -38,13 +28,8 @@ ExactBinomialIncidenceSource = list(
 			# check (fix_design_hierarchy.md, "Class-Identity Dispatch Replacement").
 			private$des_obj_priv_int$ensure_matching_structure_computed()
 		},
-		#' @description Computes the Haldane-Anscombe continuity-corrected
-		#'   matched-pair log odds ratio \eqn{\log\left((d_+ + 0.5)/(d_- + 0.5)\right)}
-		#'   from the discordant matched-pair counts (see class documentation for
-		#'   the full model). \code{NA} if there are no matched pairs.
-		#' @param estimate_only Ignored for this estimator (the exact statistic is
-		#'   always cheap to compute; there is no separate variance step to skip).
-		#' @return The treatment estimate.
+		# Computes the exact-binomial estimate. Documented via @R6method
+		# below (see InferenceIncidExactBinomial$compute_estimate).
 		compute_estimate = function(estimate_only = FALSE){
 			private$get_exact_binomial_log_or_estimate()
 		}
@@ -236,3 +221,11 @@ InferenceIncidExactBinomial = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceIncidExactBinomial$initialize
+#' @template exact-binomial-initialize
+NULL
+
+#' @R6method InferenceIncidExactBinomial$compute_estimate
+#' @template exact-binomial-compute-estimate
+NULL

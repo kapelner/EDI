@@ -238,6 +238,12 @@ jobs:
         run: |
           echo "OMP_NUM_THREADS=1" >> "$GITHUB_ENV"
           echo "OPENBLAS_NUM_THREADS=2" >> "$GITHUB_ENV"
+          # Diagnostic-only, see zzz.R's .onLoad() comment: watchdog evidence from
+          # run 35716080449 points at package-load time for the still-unexplained
+          # windows-latest hang, not deep inside a specific example. No-op cost
+          # everywhere else -- only read by .onLoad()/set_package_threads() when
+          # this env var is "1".
+          echo "EDI_ONLOAD_TRACE=1" >> "$GITHUB_ENV"
 
       - uses: r-lib/actions/setup-pandoc@v2
 

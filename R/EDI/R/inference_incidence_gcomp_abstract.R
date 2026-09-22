@@ -152,7 +152,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		#' @param B Number of Bayesian-bootstrap samples.
 		#' @param type Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
+		#' @param show_progress Whether to show a progress bar.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
+		#' @param weighting_unit_type Optional Bayesian-bootstrap weighting-unit scheme. See
+		#'   \code{InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T}.
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			if (is.null(delta)){
 				delta = private$default_null_value()
@@ -164,7 +167,10 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		#' @param B Number of Bayesian-bootstrap samples.
 		#' @param type Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
+		#' @param show_progress Whether to show a progress bar.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
+		#' @param weighting_unit_type Optional Bayesian-bootstrap weighting-unit scheme. See
+		#'   \code{InferenceBayesianBootstrap$approximate_bayesian_bootstrap_distribution_beta_hat_T}.
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			type_resolved = tolower(type %||% "percentile")
 			if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {

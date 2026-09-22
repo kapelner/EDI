@@ -962,3 +962,12 @@ InferenceIncidKKCondLogitIVWC = define_inference_class(
 		)
 	)
 )
+
+
+#' @R6method InferenceIncidKKCondLogitIVWC$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceIncidKKCondLogitIVWC$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL

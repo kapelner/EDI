@@ -2,6 +2,64 @@
 
 ## Bug fixes
 
+* `InferenceIncidRiskDiff`, `InferenceCountRobustPoisson`, and the
+  zero-inflated/hurdle Poisson classes reported a confident (often
+  zero-width) confidence interval and `p`-value on a perfectly or
+  near-perfectly fit response (e.g. `y` fully separated by `w`, or
+  constant), because the Huber-White/model-based standard error collapses
+  to a numerically-zero-but-positive value there. Found via a raw
+  `comprehensive_tests` results audit's new adversarial-data/fault-injection
+  sweep. `robust_sandwich_variance()` and the affected classes' standard-error
+  paths now treat a variance below `.Machine$double.eps` as non-estimable
+  (`NA`), not as precision.
+* `InferenceCountHurdlePoisson`/`InferenceCountZeroInflatedPoisson` reported
+  a confident estimate and `p`-value on a hurdle fit that has no MLE by
+  construction (every positive count equal to 1, so the zero-truncated
+  Poisson likelihood only improves as `lambda -> 0`). Non-estimability is
+  now decided from the data alone (not from what the optimizer/glmmTMB
+  happens to return), so the result is `NA` on every platform.
+* `InferenceRandCustom$compute_rand_confidence_interval()`'s fast path
+  ignored the trial `delta` shift during the randomization search, so the
+  returned interval was in the custom statistic's own scale (e.g. centred
+  on a Welch-t value of ~2-4) rather than the response's scale. The
+  `comprehensive_tests` harness's own custom-statistic randomization-CI
+  check also fed it a non-translation-equivariant statistic (Welch t),
+  which cannot give a meaningful CI under this or any correct
+  implementation; it now uses a difference-in-means statistic for that
+  check.
+* `InferenceAllSimpleWilcox$compute_asymp_confidence_interval(alpha)`
+  cached and returned the 95% Wilcoxon interval for every `alpha`, so a
+  90% or 99% interval silently came back at the wrong nominal level.
+* `InferenceOrdinalAdjCatLogitRegr`'s parametric-bootstrap confidence
+  interval could be wildly wrong (e.g. `[-30, -11]` around an estimate of
+  `-0.09`) because each simulated replicate's treatment coefficient was
+  read from the wrong field of the refit object (`fit$b`, slopes only)
+  when the anchor fit's index into its own coefficient vector (`fit$params`,
+  thresholds + slopes) pointed somewhere else entirely on `fit$b`. Every
+  parametric-bootstrap replicate now reads the same field the anchor fit
+  used.
+* `InferenceOrdinalContRatioRegr` (and, via the same hardened
+  QR-column-dropping helper, 8 other ordinal threshold-model classes)
+  could silently fit from a garbage cold start and "converge" after one
+  iteration when the design matrix contained columns collinear with the
+  model's *implicit* per-stage intercept (e.g. a stratified design's two
+  complementary factor dummies) — `qr()` alone, with no intercept column
+  to check against, reported the matrix as full rank. The column-dropping
+  helper now optionally includes that implicit intercept in its rank
+  check.
+* A likelihood-ratio confidence interval whose Newton/bisection inversion
+  converges to within a small tolerance of the point estimate — without
+  landing on it exactly — was reported as a zero-width interval instead of
+  falling back to the Wald interval (or `NA`), because the "failed
+  inversion" sentinel check required bit-identical bounds.
+  `InferenceOrdinalStereotypeLogitRegr`'s `compute_lik_ratio_confidence_interval()`
+  hit this on ~6% of one audited sample. Its
+  `compute_lik_ratio_bootstrap_confidence_interval()` had a related bug: a
+  bootstrap `p`-value below `alpha` *at the point estimate itself* (which
+  should be ~1, since the LR statistic there is 0) was silently treated as
+  a legitimate zero-width interval rather than a failed constrained-fit
+  refit; it now reports `NA`.
+
 * `compute_rand_bootstrap_confidence_interval(type = "smoothed")` and
   `compute_rand_bootstrap_two_sided_pval(type = "smoothed")` added
   raw-scale Gaussian kernel noise to count responses, so a resampled zero

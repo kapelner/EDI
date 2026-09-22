@@ -81,6 +81,19 @@ InferenceSurvivalKKLWACoxPHIVWC = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceSurvivalKKLWACoxPHIVWC$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalKKLWACoxPHIVWC$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalKKLWACoxPHIVWC$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+
 #' LWA-style Marginal Cox Combined-Likelihood Inference for KK Designs
 #'
 #' Fits a single combined Cox partial likelihood
@@ -173,3 +186,16 @@ InferenceSurvivalKKLWACoxPHOneLik = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceSurvivalKKLWACoxPHOneLik$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalKKLWACoxPHOneLik$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalKKLWACoxPHOneLik$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+

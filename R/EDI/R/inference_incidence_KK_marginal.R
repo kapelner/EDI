@@ -418,6 +418,15 @@ InferenceIncidKKGCompRiskDiff = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+
+#' @R6method InferenceIncidKKGCompRiskDiff$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceIncidKKGCompRiskDiff$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
 #' G-Computation Risk-Ratio Inference for KK Designs with Binary Responses
 #'
 #' Fits the same all-subject logistic working model as
@@ -494,6 +503,15 @@ InferenceIncidKKGCompRiskRatio = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+
+#' @R6method InferenceIncidKKGCompRiskRatio$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceIncidKKGCompRiskRatio$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
 #' Modified-Poisson Inference for KK Designs with Binary Responses
 #'
 #' Fits Zou's (2004) modified-Poisson working model for binary incidence

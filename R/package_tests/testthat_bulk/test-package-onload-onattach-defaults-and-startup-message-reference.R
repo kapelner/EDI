@@ -23,6 +23,14 @@ test_that(".onLoad pins the package to one thread and keeps get_num_cores() in s
 	withr::local_envvar(EDI_SKIP_LOCAL_TUNING = "1")
 	old <- Z("get_num_cores")()
 	on.exit(try(Z("set_num_cores")(old), silent = TRUE), add = TRUE)
+	# set_package_threads() skips its actual OMP/BLAS syscalls when its own
+	# ".edi_last_set_threads" bookkeeping option already equals the target --
+	# a real bulk-suite run executes many test files in one R session, and
+	# anything upstream that touches OpenMP threads directly (bypassing
+	# set_package_threads()) leaves that bookkeeping stale relative to the
+	# actual thread count. Clearing it forces .onLoad() below to always take
+	# the real code path instead of possibly no-op'ing on stale state.
+	withr::local_options(.edi_last_set_threads = NULL)
 	Z(".onLoad")("lib", "EDI")
 	expect_equal(Z("get_num_cores")(), 1L)
 	if (requireNamespace("RhpcBLASctl", quietly = TRUE)) expect_equal(RhpcBLASctl::omp_get_max_threads(), 1L)
@@ -39,7 +47,12 @@ test_that(".onLoad never errors, even when local tuning is disabled or no saved 
 })
 
 test_that(".onAttach announces the installed version through a startup message", {
-	ver <- as.character(utils::packageDescription("EDI", fields = "Version"))
+	# lib.loc matches .onAttach()'s own explicit libname argument below: default
+	# lib.loc = NULL searches .libPaths(), which doesn't reliably include an
+	# isolated per-shard scratch install library (CI's install path), producing
+	# a spurious "no package 'EDI' was found" warning and an NA-based "ver" here
+	# even though .onAttach() itself resolves correctly.
+	ver <- as.character(utils::packageDescription("EDI", lib.loc = dirname(system.file(package = "EDI")), fields = "Version"))
 	expect_message(Z(".onAttach")(dirname(system.file(package = "EDI")), "EDI"), paste0("^Welcome to EDI v", gsub(".", "\\.", ver, fixed = TRUE), "\\s*$"))
 	expect_true(inherits(tryCatch(Z(".onAttach")(dirname(system.file(package = "EDI")), "EDI"), message = function(m) m), "packageStartupMessage"))
 })

@@ -3303,7 +3303,26 @@ COVERAGE_MC_SPEC = list(
 	# coverage across essentially every CI method at once (found 2026-09-06;
 	# reproduced directly: a true log-odds effect of 0.6 gave a Ridit point
 	# estimate/CI of about -0.09, nowhere near 0.6, at n=20000).
-	InferenceOrdinalRidit                = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalRidit),               mc_n = 20000L)
+	InferenceOrdinalRidit                = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalRidit),               mc_n = 20000L),
+	# InferenceOrdinalKKGLMM/InferenceOrdinalKKCLMMCauchit have the same
+	# missing-MC-truth problem as Ridit/LogRank above, found 2026-09-22
+	# (comprehensive_results CSV audit's biased_estimate check). Both are
+	# mixed models (random-effects GLMM / cumulative-link mixed model); a
+	# mixed model's fixed-effect coefficient is the conditional
+	# (subject-specific) effect, not the marginal/population-averaged
+	# additive shift beta_T used to generate the data -- the classic
+	# GLMM conditional-vs-marginal divergence. Reproduced directly at large
+	# n, two independent seeds: with a true additive shift of 0.6, KKGLMM's
+	# estimate holds at ~1.02-1.06 (not shrinking toward 0.6) from n=2000 to
+	# n=6000; KKCLMMCauchit holds at ~0.93-1.02 over the same range. Their
+	# sibling InferenceOrdinalKKCLMMCloglog does NOT have this problem --
+	# same repro converges cleanly to the true 0.6 (diff +0.02 at n=6000,
+	# shrinking monotonically from n=2000) -- so it is deliberately NOT
+	# added here; its own comprehensive_results "biased_estimate" flag is
+	# ordinary small-sample noise at the harness's actual (much smaller) n,
+	# not a truth-scale mismatch.
+	InferenceOrdinalKKGLMM               = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKGLMM),              mc_n = 3000L),
+	InferenceOrdinalKKCLMMCauchit        = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKCLMMCauchit),       mc_n = 3000L)
 )
 
 get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
@@ -3329,16 +3348,48 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 		if (exists(key, envir = .coverage_truth_cache, inherits = FALSE)) {
 			return(get(key, envir = .coverage_truth_cache, inherits = FALSE))
 		}
-		# Only cache a genuinely-finite MC-fitted truth. A failed or degenerate MC
-		# attempt (e.g. an empty result set) must NOT be cached -- otherwise the
-		# fallback beta_T_val gets permanently mistaken for the "least false" truth
-		# for the rest of the run, and every subsequent call retries the MC fit.
-		truth = tryCatch(
-			compute_mc_coverage_truth_simframe(
-				eval(spec$gen), eval(spec$design), spec$rt, dataset_name, beta_T_val, spec$mc_n
-			),
-			error = function(e) NA_real_
-		)
+		# Only cache a genuinely-finite, plausible MC-fitted truth. A failed or
+		# degenerate MC attempt (e.g. an empty result set, or an implausible
+		# one-shot fit) must NOT be cached -- otherwise a bad value gets
+		# permanently mistaken for the "least false" truth for the rest of the
+		# run. Found 2026-09-22 (comprehensive_results CSV audit): a single
+		# mc_n-sized fit of InferencePropQuantileRegr/InferencePropKKQuantileRegrOneLik
+		# on the diamonds/abalone datasets occasionally lands in a degenerate
+		# quantile-regression optimum, producing a truth of ~36 (vs. <2.5 across
+		# every other proportion/incidence MC_SPEC class on the same datasets --
+		# a treatment-effect truth of 36 on a response bounded in [0, 1] is not
+		# physically plausible). Since that one bad-but-finite draw got cached,
+		# every comprehensive_tests row recorded against it that run inherited
+		# the wrong truth (the ~8-10% "biased_estimate"/degenerate-looking rows
+		# were this, not an estimator bug -- the actual per-replicate estimates
+		# were ordinary). Retry a small, bounded number of times with a fresh MC
+		# draw (the RNG state advances between calls, so a retry is a genuinely
+		# different fit, not a repeat) before giving up and returning NA
+		# (matching the existing "don't cache a bad value" contract) rather than
+		# silently caching an implausible truth. Bound is response-type-specific
+		# (proportion/incidence responses are in [0, 1], so a treatment-effect
+		# truth this large is definitionally broken) and deliberately generous
+		# relative to every other MC_SPEC class's observed range on these two
+		# response types (<2.5) -- scoped narrowly to the confirmed failure mode,
+		# not a universal bound, since survival/continuous MC_SPEC classes may
+		# have legitimately larger natural truth scales that were not audited
+		# here.
+		mc_truth_is_plausible = function(truth, rt){
+			if (!(rt %in% c("proportion", "incidence"))) return(TRUE)
+			is.finite(truth) && abs(truth) <= 5
+		}
+		max_mc_attempts = 5L
+		truth = NA_real_
+		for (attempt in seq_len(max_mc_attempts)) {
+			truth = tryCatch(
+				compute_mc_coverage_truth_simframe(
+					eval(spec$gen), eval(spec$design), spec$rt, dataset_name, beta_T_val, spec$mc_n
+				),
+				error = function(e) NA_real_
+			)
+			if (length(truth) && is.finite(truth) && mc_truth_is_plausible(truth, spec$rt)) break
+			truth = NA_real_
+		}
 		if (!length(truth) || !is.finite(truth)) {
 			return(NA_real_)
 		}

@@ -338,3 +338,16 @@ InferenceOrdinalOrderedProbitRegr = define_inference_class(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	)
 )
+
+
+#' @R6method InferenceOrdinalOrderedProbitRegr$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceOrdinalOrderedProbitRegr$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceOrdinalOrderedProbitRegr$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL

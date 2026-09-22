@@ -230,8 +230,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   the \code{stop()} being silently swallowed into a \code{pval = NA}
 		#'   "ok" row -- the single source of truth for both this check and
 		#'   \code{compute_rand_two_sided_pval()}'s own guard, so the two can
-		#'   never drift apart (\code{fix_inference_hierarchy.md}'s
-		#'   method-level-`stop()` TODO, 2026-08-21).
+		#'   never drift apart.
 		#' @return A single logical.
 		supports_rand_pval_for_incidence = function(){
 			# Zhang-eligible incidence designs (matched-pair or Bernoulli, no

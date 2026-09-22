@@ -3,21 +3,21 @@
 #' @noRd
 SimpleMeanDifferencePooledVarSource = list(
 	public = list(
-		#' @description Initialize simple pooled-variance mean-difference inference
-		#'   for continuous responses and prepare the pooled standard-error
-		#'   calculation used by
-		#'   \code{\link[EDI:InferenceAllSimpleMeanDiffPooledVar]{InferenceAllSimpleMeanDiffPooledVar}}.
-		#'   Disables warm starts (closed-form estimator) and asserts
-		#'   \code{des_obj} has no censored observations (unsupported by this
-		#'   class).
-		#' @param des_obj A completed design object.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose Whether to print progress messages.
-		#' @param smart_cold_start_default Whether to use smart cold start values.
-		#' @return A new \code{InferenceAllSimpleMeanDiffPooledVar} object.
+		# @description Initialize simple pooled-variance mean-difference inference
+		#   for continuous responses and prepare the pooled standard-error
+		#   calculation used by
+		#   \code{\link[EDI:InferenceAllSimpleMeanDiffPooledVar]{InferenceAllSimpleMeanDiffPooledVar}}.
+		#   Disables warm starts (closed-form estimator) and asserts
+		#   \code{des_obj} has no censored observations (unsupported by this
+		#   class).
+		# @param des_obj A completed design object.
+		# @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
+		#   the formula from the design object is used and its pre-computed design matrix is
+		#   reused. If a formula is provided, a new design matrix is constructed from the
+		#   design's imputed covariates.
+		# @param verbose Whether to print progress messages.
+		# @param smart_cold_start_default Whether to use smart cold start values.
+		# @return A new \code{InferenceAllSimpleMeanDiffPooledVar} object.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
@@ -33,24 +33,24 @@ SimpleMeanDifferencePooledVarSource = list(
 			)
 			private$fit_warm_start_enabled = FALSE
 		},
-		#' @description Computes a \eqn{1-\alpha} level confidence interval for the
-		#'   simple (unadjusted) mean-difference treatment effect
-		#'   \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using the classical
-		#'   \strong{pooled equal-variance} Student's t-test formula (unlike
-		#'   \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}'s
-		#'   Welch unequal-variance version): the pooled variance estimate
-		#'   \eqn{s_p^2 = \left((n_T-1)s_T^2 + (n_C-1)s_C^2\right) / (n_T+n_C-2)}
-		#'   gives standard error \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) =
-		#'   s_p\sqrt{1/n_T + 1/n_C}} with exact degrees of freedom \eqn{n_T + n_C -
-		#'   2}; the interval is \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,
-		#'   \widehat{\mathrm{SE}}(\hat\beta_T)}. Assumes equal population
-		#'   variances in the two arms — use
-		#'   \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
-		#'   instead when that assumption is doubtful. Requires at least 2
-		#'   observations per arm; otherwise returns \code{c(NA, NA)}. See
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
-		#'   asymptotic confidence-interval contract this participates in.
-		#' @param alpha Confidence level.
+		# @description Computes a \eqn{1-\alpha} level confidence interval for the
+		#   simple (unadjusted) mean-difference treatment effect
+		#   \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using the classical
+		#   \strong{pooled equal-variance} Student's t-test formula (unlike
+		#   \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}'s
+		#   Welch unequal-variance version): the pooled variance estimate
+		#   \eqn{s_p^2 = \left((n_T-1)s_T^2 + (n_C-1)s_C^2\right) / (n_T+n_C-2)}
+		#   gives standard error \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) =
+		#   s_p\sqrt{1/n_T + 1/n_C}} with exact degrees of freedom \eqn{n_T + n_C -
+		#   2}; the interval is \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,
+		#   \widehat{\mathrm{SE}}(\hat\beta_T)}. Assumes equal population
+		#   variances in the two arms — use
+		#   \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
+		#   instead when that assumption is doubtful. Requires at least 2
+		#   observations per arm; otherwise returns \code{c(NA, NA)}. See
+		#   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#   asymptotic confidence-interval contract this participates in.
+		# @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
@@ -62,14 +62,14 @@ SimpleMeanDifferencePooledVarSource = list(
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
-		#' @description Computes a two-sided pooled-variance Student's t-test
-		#'   p-value testing \eqn{H_0: \beta_T = \code{delta}}, from the same
-		#'   pooled standard error and exact \eqn{n_T+n_C-2} degrees of freedom
-		#'   used by \code{$compute_asymp_confidence_interval()} — see that
-		#'   method's documentation for the full formula. See
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
-		#'   asymptotic two-sided p-value contract this participates in.
-		#' @param delta Null treatment effect value.
+		# @description Computes a two-sided pooled-variance Student's t-test
+		#   p-value testing \eqn{H_0: \beta_T = \code{delta}}, from the same
+		#   pooled standard error and exact \eqn{n_T+n_C-2} degrees of freedom
+		#   used by \code{$compute_asymp_confidence_interval()} — see that
+		#   method's documentation for the full formula. See
+		#   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#   asymptotic two-sided p-value contract this participates in.
+		# @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
@@ -225,3 +225,15 @@ InferenceAllSimpleMeanDiffPooledVar = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceAllSimpleMeanDiffPooledVar$initialize
+#' @template simple-mean-diff-pooled-var-initialize
+NULL
+
+#' @R6method InferenceAllSimpleMeanDiffPooledVar$compute_asymp_confidence_interval
+#' @template simple-mean-diff-pooled-var-asymp-confidence-interval
+NULL
+
+#' @R6method InferenceAllSimpleMeanDiffPooledVar$compute_asymp_two_sided_pval
+#' @template simple-mean-diff-pooled-var-asymp-two-sided-pval
+NULL

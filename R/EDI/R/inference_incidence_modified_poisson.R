@@ -411,6 +411,15 @@ InferenceIncidModifiedPoisson = define_inference_class(
 	)
 )
 
+
+#' @R6method InferenceIncidModifiedPoisson$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceIncidModifiedPoisson$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
 #' Multi-subject Modified Poisson Inference for Incidence Responses
 #'
 #' Historical public alias for the modified Poisson implementation.

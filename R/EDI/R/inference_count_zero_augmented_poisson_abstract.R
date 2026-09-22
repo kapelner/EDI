@@ -1381,7 +1381,13 @@ InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(
 # an arbitrary boundary point with absurd coefficient SEs). Judged on the fit's
 # own model-based covariance: it must have a strictly positive diagonal and be
 # well conditioned, and the conditional intercept must not sit at the
-# lambda ~ 0 boundary.
+# lambda ~ 0 boundary. Calibrated 2026-09-22
+# (test-degenerate-fit-threshold-calibration.R): across a spectrum of
+# increasing hurdle-side separation, legitimate fits' rcond clustered at
+# 1e-3..1e-2 and degenerate fits' at 1e-11..1e-15 with no observed case in
+# between (a 6-8 order-of-magnitude gap around the 1e-10 threshold); a
+# rare-but-real fit (few positive counts, both treatment arms represented)
+# stayed >= 6e-4/-1.2 respectively, far from either threshold.
 zero_augmented_fit_is_degenerate = function(vcov, params) {
 	vcov = as.matrix(vcov)
 	if (!length(vcov) || any(!is.finite(vcov))) return(TRUE)

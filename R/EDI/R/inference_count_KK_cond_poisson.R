@@ -524,6 +524,18 @@ InferenceCountKKHurdlePoissonIVWC = define_inference_class(
 	)
 )
 
+#' @R6method InferenceCountKKHurdlePoissonIVWC$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceCountKKHurdlePoissonIVWC$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceCountKKHurdlePoissonIVWC$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+
 #' KK Hurdle Poisson Combined-Likelihood Inference for Count Responses
 #'
 #' @keywords internal
@@ -1534,6 +1546,18 @@ InferenceCountKKHurdlePoissonOneLik = define_inference_class(
 	)
 )
 
+#' @R6method InferenceCountKKHurdlePoissonOneLik$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceCountKKHurdlePoissonOneLik$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceCountKKHurdlePoissonOneLik$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+
 #' Conditional-Poisson Inference for KK Designs with Combined Likelihood
 #' @keywords internal
 # Static leaf source (2026-08-19 migration, fix_inference_hierarchy.md
@@ -2337,3 +2361,15 @@ InferenceCountKKCondPoissonOneLik = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceCountKKCondPoissonOneLik$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceCountKKCondPoissonOneLik$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceCountKKCondPoissonOneLik$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL

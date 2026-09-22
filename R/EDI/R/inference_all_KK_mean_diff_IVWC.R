@@ -3,12 +3,12 @@
 #' @noRd
 KKMeanDifferenceIVWCSource = list(
 	public = list(
-		#' @description Initialize KK IVWC mean-difference inference.
-		#' @param des_obj A KK matching-on-the-fly design object.
-		#' @param verbose Whether to print progress messages.
-		#' @param harden Whether to use hardened model-matrix fitting.
-		#' @param model_formula Optional formula for covariate adjustment.
-		#' @param smart_cold_start_default Whether to use smart cold start values.
+		# @description Initialize KK IVWC mean-difference inference.
+		# @param des_obj A KK matching-on-the-fly design object.
+		# @param verbose Whether to print progress messages.
+		# @param harden Whether to use hardened model-matrix fitting.
+		# @param model_formula Optional formula for covariate adjustment.
+		# @param smart_cold_start_default Whether to use smart cold start values.
 		initialize = function(des_obj, verbose = FALSE, harden = TRUE, model_formula = NULL, smart_cold_start_default = NULL){
 			super$initialize(
 				des_obj = des_obj,
@@ -19,62 +19,62 @@ KKMeanDifferenceIVWCSource = list(
 			)
 			private$init_kk_passthrough(des_obj)
 		},
-		#'
-		#' @description Computes the compound IVWC (inverse-variance-weighted
-		#' compound) mean-difference point estimate \eqn{\hat\beta_T}: the
-		#' inverse-variance-weighted combination \eqn{w^* \bar d + (1-w^*)\, \bar
-		#' r} of the matched-pair mean within-pair difference \eqn{\bar d} and the
-		#' reservoir treated-minus-control mean difference \eqn{\bar r}, falling
-		#' back to whichever of the two is usable if the other is not (see
-		#' \code{$compute_asymp_confidence_interval()} for the full weighting
-		#' formula and usability conditions).
-		#'
-		#' @return  The setting-appropriate (see description) numeric estimate of the treatment effect
-		#'
-		#' @param estimate_only If \code{TRUE}, compute only the point estimate
-		#'   \eqn{\hat\beta_T} and skip the variance-component computations needed
-		#'   for confidence intervals or p-values (faster when only the point
-		#'   estimate is needed).
+		#
+		# @description Computes the compound IVWC (inverse-variance-weighted
+		# compound) mean-difference point estimate \eqn{\hat\beta_T}: the
+		# inverse-variance-weighted combination \eqn{w^* \bar d + (1-w^*)\, \bar
+		# r} of the matched-pair mean within-pair difference \eqn{\bar d} and the
+		# reservoir treated-minus-control mean difference \eqn{\bar r}, falling
+		# back to whichever of the two is usable if the other is not (see
+		# \code{$compute_asymp_confidence_interval()} for the full weighting
+		# formula and usability conditions).
+		#
+		# @return  The setting-appropriate (see description) numeric estimate of the treatment effect
+		#
+		# @param estimate_only If \code{TRUE}, compute only the point estimate
+		#   \eqn{\hat\beta_T} and skip the variance-component computations needed
+		#   for confidence intervals or p-values (faster when only the point
+		#   estimate is needed).
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a \eqn{1-\alpha} level frequentist confidence interval
-		#' for the compound IVWC (inverse-variance-weighted compound) mean-difference
-		#' estimator \eqn{\hat\beta_T}.
-		#'
-		#' @details
-		#' The point estimate combines two sub-estimates depending on which are
-		#' usable: the mean within-pair difference among matched subjects,
-		#' \eqn{\bar d}, with estimated variance \eqn{\widehat{\mathrm{Var}}(\bar
-		#' d)}, and the treated-minus-control difference in means among reservoir
-		#' (unmatched) subjects, \eqn{\bar r}, with estimated variance
-		#' \eqn{\widehat{\mathrm{Var}}(\bar r)}. When both are usable (at least 2
-		#' matched pairs and at least 2 treated/2 control reservoir subjects, with
-		#' finite positive variance estimates), they are combined by classical
-		#' inverse-variance weighting,
-		#' \deqn{\hat\beta_T = w^* \bar d + (1 - w^*)\, \bar r, \qquad w^* =
-		#'   \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) +
-		#'   \widehat{\mathrm{Var}}(\bar d)},}
-		#' with combined variance the standard inverse-variance-pooled form
-		#' \eqn{\widehat{\mathrm{Var}}(\hat\beta_T) = \left(\widehat{\mathrm{Var}}(\bar
-		#' r)^{-1} + \widehat{\mathrm{Var}}(\bar d)^{-1}\right)^{-1} =
-		#' \widehat{\mathrm{Var}}(\bar r)\,\widehat{\mathrm{Var}}(\bar d) \big/
-		#' \left(\widehat{\mathrm{Var}}(\bar r) + \widehat{\mathrm{Var}}(\bar
-		#' d)\right)}. If only one of the two sub-estimates is usable (e.g. the
-		#' reservoir is empty or degenerate, or no pairs matched), \eqn{\hat\beta_T}
-		#' and its variance fall back to that sub-estimate alone. The compound
-		#' estimator is treated as asymptotically normal, so the interval is
-		#' \eqn{\hat\beta_T \pm z_{1-\alpha/2}\sqrt{\widehat{\mathrm{Var}}(\hat\beta_T)}}
-		#' (or a \eqn{t}-based critical value, depending on
-		#' \code{private$compute_z_or_t_ci_from_s_and_df}'s degrees-of-freedom
-		#' resolution).
-		#'
-		#' @param alpha The confidence level in the computed confidence
-		#'   interval is 1 - \code{alpha}. The default is 0.05.
-		#'
-		#' @return  A (1 - alpha)-sized frequentist confidence interval for the treatment effect
-		#'
+		# @description Computes a \eqn{1-\alpha} level frequentist confidence interval
+		# for the compound IVWC (inverse-variance-weighted compound) mean-difference
+		# estimator \eqn{\hat\beta_T}.
+		#
+		# @details
+		# The point estimate combines two sub-estimates depending on which are
+		# usable: the mean within-pair difference among matched subjects,
+		# \eqn{\bar d}, with estimated variance \eqn{\widehat{\mathrm{Var}}(\bar
+		# d)}, and the treated-minus-control difference in means among reservoir
+		# (unmatched) subjects, \eqn{\bar r}, with estimated variance
+		# \eqn{\widehat{\mathrm{Var}}(\bar r)}. When both are usable (at least 2
+		# matched pairs and at least 2 treated/2 control reservoir subjects, with
+		# finite positive variance estimates), they are combined by classical
+		# inverse-variance weighting,
+		# \deqn{\hat\beta_T = w^* \bar d + (1 - w^*)\, \bar r, \qquad w^* =
+		#   \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) +
+		#   \widehat{\mathrm{Var}}(\bar d)},}
+		# with combined variance the standard inverse-variance-pooled form
+		# \eqn{\widehat{\mathrm{Var}}(\hat\beta_T) = \left(\widehat{\mathrm{Var}}(\bar
+		# r)^{-1} + \widehat{\mathrm{Var}}(\bar d)^{-1}\right)^{-1} =
+		# \widehat{\mathrm{Var}}(\bar r)\,\widehat{\mathrm{Var}}(\bar d) \big/
+		# \left(\widehat{\mathrm{Var}}(\bar r) + \widehat{\mathrm{Var}}(\bar
+		# d)\right)}. If only one of the two sub-estimates is usable (e.g. the
+		# reservoir is empty or degenerate, or no pairs matched), \eqn{\hat\beta_T}
+		# and its variance fall back to that sub-estimate alone. The compound
+		# estimator is treated as asymptotically normal, so the interval is
+		# \eqn{\hat\beta_T \pm z_{1-\alpha/2}\sqrt{\widehat{\mathrm{Var}}(\hat\beta_T)}}
+		# (or a \eqn{t}-based critical value, depending on
+		# \code{private$compute_z_or_t_ci_from_s_and_df}'s degrees-of-freedom
+		# resolution).
+		#
+		# @param alpha The confidence level in the computed confidence
+		#   interval is 1 - \code{alpha}. The default is 0.05.
+		#
+		# @return  A (1 - alpha)-sized frequentist confidence interval for the treatment effect
+		#
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
@@ -84,23 +84,23 @@ KKMeanDifferenceIVWCSource = list(
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes a two-sided \strong{Wald} p-value for the compound
-		#' IVWC mean-difference estimator \eqn{\hat\beta_T} testing
-		#' \eqn{H_0: \beta_T = \code{delta}}, using the same asymptotically-normal
-		#' point estimate and standard error (\eqn{z = (\hat\beta_T -
-		#' \code{delta})/\widehat{\mathrm{SE}}(\hat\beta_T)}) that
-		#' \code{$compute_asymp_confidence_interval()} inverts to form its interval
-		#' — see that method's documentation for the full inverse-variance-weighted
-		#' combination formula. This class has no likelihood tier
-		#' (\code{likelihood_tier = "none"}), so no score, likelihood-ratio, or
-		#' gradient test is available here; this is a plain Wald test, not a
-		#' likelihood-backed one.
-		#'
-		#' @param delta   The null difference to test against. For any treatment effect at all this is
-		#'   set to zero (the default).
-		#'
-		#' @return  The approximate frequentist p-value
-		#'
+		# @description Computes a two-sided \strong{Wald} p-value for the compound
+		# IVWC mean-difference estimator \eqn{\hat\beta_T} testing
+		# \eqn{H_0: \beta_T = \code{delta}}, using the same asymptotically-normal
+		# point estimate and standard error (\eqn{z = (\hat\beta_T -
+		# \code{delta})/\widehat{\mathrm{SE}}(\hat\beta_T)}) that
+		# \code{$compute_asymp_confidence_interval()} inverts to form its interval
+		# — see that method's documentation for the full inverse-variance-weighted
+		# combination formula. This class has no likelihood tier
+		# (\code{likelihood_tier = "none"}), so no score, likelihood-ratio, or
+		# gradient test is available here; this is a plain Wald test, not a
+		# likelihood-backed one.
+		#
+		# @param delta   The null difference to test against. For any treatment effect at all this is
+		#   set to zero (the default).
+		#
+		# @return  The approximate frequentist p-value
+		#
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
@@ -324,3 +324,19 @@ InferenceAllKKMeanDiffIVWC = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceAllKKMeanDiffIVWC$initialize
+#' @template kk-mean-diff-ivwc-initialize
+NULL
+
+#' @R6method InferenceAllKKMeanDiffIVWC$compute_estimate
+#' @template kk-mean-diff-ivwc-compute-estimate
+NULL
+
+#' @R6method InferenceAllKKMeanDiffIVWC$compute_asymp_confidence_interval
+#' @template kk-mean-diff-ivwc-asymp-confidence-interval
+NULL
+
+#' @R6method InferenceAllKKMeanDiffIVWC$compute_asymp_two_sided_pval
+#' @template kk-mean-diff-ivwc-asymp-two-sided-pval
+NULL

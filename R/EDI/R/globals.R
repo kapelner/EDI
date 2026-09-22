@@ -1580,13 +1580,25 @@ set_package_threads = function(num_cores) {
   # every serial replication causes a visible pause between reps.
   last = getOption(".edi_last_set_threads")
   if (identical(last, num_cores)) return(invisible(NULL))
+  # 2026-09-22: diagnostic-only opt-in tracing, see zzz.R's .onLoad() for the
+  # windows-latest R-CMD-check hang this is chasing. No-op unless
+  # EDI_ONLOAD_TRACE=1.
+  .edi_spt_trace = identical(Sys.getenv("EDI_ONLOAD_TRACE"), "1")
+  .edi_spt_step = function(label) {
+    if (!.edi_spt_trace) return(invisible(NULL))
+    cat("EDI set_package_threads trace: ", label, "\n", sep = "")
+    flush.console()
+  }
+  .edi_spt_step("start")
   # R packages with global thread setters
 	  if (check_package_installed("data.table")) {
 	    data.table::setDTthreads(num_cores)
 	  }
+	  .edi_spt_step("after data.table::setDTthreads")
 	  if (check_package_installed("fixest")) {
 	    suppressWarnings(try(fixest::setFixest_nthreads(num_cores), silent = TRUE))
 	  }
+	  .edi_spt_step("after fixest::setFixest_nthreads")
   # Environment variables for OpenMP and BLAS/LAPACK
   # This helps prevent thread explosion in child processes
   # that call multi-threaded native libraries.
@@ -1606,18 +1618,23 @@ set_package_threads = function(num_cores) {
     OMP_DYNAMIC            = "FALSE",
     OMP_NESTED             = "FALSE"
   )
-  
+  .edi_spt_step("after Sys.setenv")
+
   # Direct C++ control for OpenMP and Eigen (more robust than env vars after startup)
   try(set_omp_num_threads_cpp(num_cores), silent = TRUE)
+  .edi_spt_step("after set_omp_num_threads_cpp")
   # BLAS and OpenMP control via RhpcBLASctl (now a required dependency)
   try({
     RhpcBLASctl::blas_set_num_threads(num_cores)
+    .edi_spt_step("after RhpcBLASctl::blas_set_num_threads")
     RhpcBLASctl::omp_set_num_threads(num_cores)
+    .edi_spt_step("after RhpcBLASctl::omp_set_num_threads")
   }, silent = TRUE)
-  
+
   # Also set R options for parallel/pbmcapply
   options(mc.cores = num_cores)
-  
+
   options(".edi_last_set_threads" =   num_cores)
+  .edi_spt_step("end")
   invisible(NULL)
 }

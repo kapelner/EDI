@@ -22,13 +22,19 @@
 # hang can then be triaged from instead of starting blind again.
 #
 # Started detached (Start-Process, not a job tied to this step's process
-# tree) right after checkout and left running for the whole job. Every 5
+# tree) right after checkout and left running for the whole job. Every 2
 # minutes it appends to $env:RUNNER_TEMP\hang-watch.log: a timestamp, the
 # tail of every *.Rout*/*.Rout.fail under the check dir (R CMD check's
 # combined --run-donttest pass writes <pkg>-Ex.Rout incrementally), and a
 # snapshot of every R/Rscript/Rterm process with elapsed time and CPU time.
 # The companion "Dump test-hang watchdog log" step (if: always()) prints the
 # log even when the job is cancelled by timeout.
+#
+# 2026-09-22: also snapshots gs*/qpdf processes and shortened the poll
+# interval from 5 minutes to 2. build_args runs --compact-vignettes=gs+qpdf
+# at the BUILD step, before checking (and before any *.Rout file exists) --
+# an unaudited hang candidate the original Rout-tailing design couldn't see
+# at all. Ghostscript's Windows binary is gswin64c(.exe)/gswin32c(.exe).
 
 $ErrorActionPreference = "Continue"
 
@@ -46,7 +52,7 @@ if (-not $workspace) { $workspace = "." }
 	Out-File -FilePath $logPath -Append -Encoding utf8
 
 while ($true) {
-	Start-Sleep -Seconds 300
+	Start-Sleep -Seconds 120
 
 	$routFiles = Get-ChildItem -Path $workspace -Recurse -File -ErrorAction SilentlyContinue |
 		Where-Object { $_.FullName -match '\.Rcheck[\\/]' -and $_.Name -match '\.Rout(\.fail)?$' }
@@ -72,6 +78,25 @@ while ($true) {
 		$lines.Add("(none)")
 	} else {
 		foreach ($p in $procs) {
+			try {
+				$elapsed = (Get-Date) - $p.StartTime
+				$lines.Add(("pid={0} name={1} elapsed={2:hh\:mm\:ss} cpu_time={3:hh\:mm\:ss} working_set_mb={4:N0}" -f `
+					$p.Id, $p.ProcessName, $elapsed, $p.TotalProcessorTime, ($p.WorkingSet64 / 1MB)))
+			} catch {
+				$lines.Add("pid=$($p.Id) name=$($p.ProcessName) (could not read timing: $($_.Exception.Message))")
+			}
+		}
+	}
+
+	# --compact-vignettes=gs+qpdf runs at the build step, before checking (and
+	# before any *.Rout file exists) -- a hang here would otherwise show up as
+	# "(no *.Rout* under check dir yet)" above with no further evidence.
+	$lines.Add("--- gs/qpdf processes ---")
+	$gsProcs = Get-Process -Name "gswin64c", "gswin32c", "gswin64", "gswin32", "qpdf" -ErrorAction SilentlyContinue
+	if (-not $gsProcs) {
+		$lines.Add("(none)")
+	} else {
+		foreach ($p in $gsProcs) {
 			try {
 				$elapsed = (Get-Date) - $p.StartTime
 				$lines.Add(("pid={0} name={1} elapsed={2:hh\:mm\:ss} cpu_time={3:hh\:mm\:ss} working_set_mb={4:N0}" -f `

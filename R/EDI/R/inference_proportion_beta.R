@@ -631,8 +631,22 @@ InferencePropBetaRegr = define_inference_class(
 						# b/log_phi correlation) and then take only the
 						# length(b) x length(b) leading block, matching mod$b's
 						# order/length exactly.
+						fi = attempt$fit$fisher_information
+						# rcond() is a portable, BLAS/LAPACK-build-independent proxy
+						# for "too close to singular to trust the inverse" --
+						# relying on solve() alone to throw is not: whether a
+						# near-singular matrix throws or silently returns a
+						# finite-but-meaningless inverse depends on the LAPACK
+						# backend (observed 2026-09-22: this class's own degenerate
+						# fixture -- constant response, constant covariate --
+						# solves cleanly on one R build and throws on another).
 						p_b = length(attempt$fit$b)
-						solve(attempt$fit$fisher_information)[seq_len(p_b), seq_len(p_b), drop = FALSE]
+						if (!is.finite(rcond(fi)) || rcond(fi) < sqrt(.Machine$double.eps)) {
+							NULL
+						} else {
+							v = solve(fi)[seq_len(p_b), seq_len(p_b), drop = FALSE]
+							if (all(is.finite(v))) v else NULL
+						}
 					}, error = function(e) NULL)
 				} else NULL
 			} else {

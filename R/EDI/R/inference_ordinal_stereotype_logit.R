@@ -552,6 +552,19 @@ InferenceOrdinalStereotypeLogitRegr = define_inference_class(
 	)
 )
 
+
+#' @R6method InferenceOrdinalStereotypeLogitRegr$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceOrdinalStereotypeLogitRegr$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceOrdinalStereotypeLogitRegr$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+
 OrdinalContinuationRatioLikelihoodSource = list(
 	public = list(
 		# @description Initialize inference for the continuation-ratio ordinal
@@ -914,3 +927,16 @@ InferenceOrdinalContRatioRegr = define_inference_class(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	)
 )
+
+
+#' @R6method InferenceOrdinalContRatioRegr$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceOrdinalContRatioRegr$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceOrdinalContRatioRegr$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL

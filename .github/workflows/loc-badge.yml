@@ -47,9 +47,9 @@ jobs:
       - name: Generate lines-of-code badge data
         run: |
           bash scripts/generate_loc_badge_data.sh \
-            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc.md"
+            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc-badge-tests.json" "$RUNNER_TEMP/loc.md"
 
       - name: Publish to gist
         run: |
           bash scripts/publish_loc_badge_gist.sh \
-            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc.md"
+            "$RUNNER_TEMP/loc-badge.json" "$RUNNER_TEMP/loc-badge-tests.json" "$RUNNER_TEMP/loc.md"

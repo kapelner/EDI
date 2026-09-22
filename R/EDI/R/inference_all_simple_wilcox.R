@@ -3,26 +3,26 @@
 #' @noRd
 SimpleWilcoxSource = list(
 	public = list(
-		#' @description Initialize simple Wilcoxon inference and prepare the
-		#'   rank-based treatment statistic used by
-		#'   \code{\link[EDI:InferenceAllSimpleWilcox]{InferenceAllSimpleWilcox}}.
-		#'   Rejects \code{response_type = "incidence"} (Hodges-Lehmann degenerates
-		#'   on binary data) and rejects censored survival data at construction; see
-		#'   the class-level documentation for recommended alternatives in both
-		#'   cases. Legal \code{response_type} values are \code{"continuous"},
-		#'   \code{"count"}, \code{"proportion"}, \code{"survival"} (uncensored
-		#'   only), and \code{"ordinal"}.
-		#' @param des_obj  A completed \code{DesignSeqOneByOne} object.
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
-		#' @param verbose      Whether to print progress messages. Default \code{FALSE}.
-		#' @param max_resample_attempts Maximum number of times a single bootstrap replicate
-		#'   may be redrawn when the drawn sample fails validity screening. If all attempts
-		#'   fail the replicate is recorded as \code{NA}, silently reducing the effective \code{B}.
-		#'   Must be a positive integer. Default \code{50L}.
-		#' @param smart_cold_start_default Flag for consistent API.
+		# @description Initialize simple Wilcoxon inference and prepare the
+		#   rank-based treatment statistic used by
+		#   \code{\link[EDI:InferenceAllSimpleWilcox]{InferenceAllSimpleWilcox}}.
+		#   Rejects \code{response_type = "incidence"} (Hodges-Lehmann degenerates
+		#   on binary data) and rejects censored survival data at construction; see
+		#   the class-level documentation for recommended alternatives in both
+		#   cases. Legal \code{response_type} values are \code{"continuous"},
+		#   \code{"count"}, \code{"proportion"}, \code{"survival"} (uncensored
+		#   only), and \code{"ordinal"}.
+		# @param des_obj  A completed \code{DesignSeqOneByOne} object.
+		# @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
+		#   the formula from the design object is used and its pre-computed design matrix is
+		#   reused. If a formula is provided, a new design matrix is constructed from the
+		#   design's imputed covariates.
+		# @param verbose      Whether to print progress messages. Default \code{FALSE}.
+		# @param max_resample_attempts Maximum number of times a single bootstrap replicate
+		#   may be redrawn when the drawn sample fails validity screening. If all attempts
+		#   fail the replicate is recorded as \code{NA}, silently reducing the effective \code{B}.
+		#   Must be a positive integer. Default \code{50L}.
+		# @param smart_cold_start_default Flag for consistent API.
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, max_resample_attempts = 50L, smart_cold_start_default = NULL){
 			if (should_run_asserts()) {
 				assertCount(max_resample_attempts, positive = TRUE)
@@ -47,27 +47,27 @@ SimpleWilcoxSource = list(
 			super$initialize(des_obj = des_obj, verbose = verbose, harden = TRUE, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$max_resample_attempts = max_resample_attempts
 		},
-		#' @description Returns the \strong{Hodges-Lehmann} estimate of location
-		#'   shift: the median of all pairwise treatment-minus-control differences
-		#'   \eqn{y_{T,i} - y_{C,j}} (via \code{wilcox_hl_point_estimate_cpp()}), the
-		#'   standard point estimate associated with the Wilcoxon rank-sum test.
-		#'   Robust to outliers and does not assume normality or equal variances.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		# @description Returns the \strong{Hodges-Lehmann} estimate of location
+		#   shift: the median of all pairwise treatment-minus-control differences
+		#   \eqn{y_{T,i} - y_{C,j}} (via \code{wilcox_hl_point_estimate_cpp()}), the
+		#   standard point estimate associated with the Wilcoxon rank-sum test.
+		#   Robust to outliers and does not assume normality or equal variances.
+		# @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Wilcoxon rank-sum test two-sided p-value testing
-		#'   \eqn{H_0: \beta_T = \code{delta}} (via \code{stats::wilcox.test(yT, yC -
-		#'   delta, exact = FALSE)$p.value}, the normal approximation with
-		#'   continuity correction) — a genuine rank-based test, \strong{not} a
-		#'   Wald test built from the Hodges-Lehmann estimate and its standard
-		#'   error, despite living alongside \code{$compute_asymp_confidence_interval()}
-		#'   in this class's "asymptotic" method family. For \code{delta != 0}, the
-		#'   control arm's values are shifted by \code{delta} before testing, so the
-		#'   test checks whether \eqn{y_T} and \eqn{y_C + \code{delta}} come from
-		#'   the same distribution.
-		#' @param delta Null treatment effect. Default 0.
+		# @description Wilcoxon rank-sum test two-sided p-value testing
+		#   \eqn{H_0: \beta_T = \code{delta}} (via \code{stats::wilcox.test(yT, yC -
+		#   delta, exact = FALSE)$p.value}, the normal approximation with
+		#   continuity correction) — a genuine rank-based test, \strong{not} a
+		#   Wald test built from the Hodges-Lehmann estimate and its standard
+		#   error, despite living alongside \code{$compute_asymp_confidence_interval()}
+		#   in this class's "asymptotic" method family. For \code{delta != 0}, the
+		#   control arm's values are shifted by \code{delta} before testing, so the
+		#   test checks whether \eqn{y_T} and \eqn{y_C + \code{delta}} come from
+		#   the same distribution.
+		# @param delta Null treatment effect. Default 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
 			yT = as.numeric(private$y[private$w == 1])
@@ -85,14 +85,14 @@ SimpleWilcoxSource = list(
 				)
 			as.numeric(pv)
 		},
-		#' @description Returns the Hodges-Lehmann confidence interval directly from
-		#'   \code{stats::wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE,
-		#'   conf.level = 1 - alpha)} — the standard nonparametric interval
-		#'   associated with the Wilcoxon rank-sum test, based on inverting the
-		#'   rank-sum test statistic rather than a Wald normal-approximation
-		#'   interval around \code{$compute_estimate()}'s point estimate (though the
-		#'   two coincide asymptotically).
-		#' @param alpha Significance level. Default 0.05.
+		# @description Returns the Hodges-Lehmann confidence interval directly from
+		#   \code{stats::wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE,
+		#   conf.level = 1 - alpha)} — the standard nonparametric interval
+		#   associated with the Wilcoxon rank-sum test, based on inverting the
+		#   rank-sum test statistic rather than a Wald normal-approximation
+		#   interval around \code{$compute_estimate()}'s point estimate (though the
+		#   two coincide asymptotically).
+		# @param alpha Significance level. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			private$shared(estimate_only = FALSE)
 			ci = private$cached_values$wilcox_conf_int
@@ -112,98 +112,98 @@ SimpleWilcoxSource = list(
 			if (is.null(mod)) return(c(NA_real_, NA_real_))
 			as.numeric(mod$conf.int)
 		},
-		#' @description Delegates to the genuine rank-based
-		#'   \code{$compute_asymp_two_sided_pval()} rather than the generic
-		#'   Wald-component z/t formula.
-		#'
-		#'   Fixed 2026-09-06: this class did not override
-		#'   \code{compute_wald_two_sided_pval}, so it fell through to the
-		#'   composed \code{Wald} component's generic
-		#'   \code{(estimate - delta) / se} formula built from
-		#'   \code{compute_estimate()} (the Hodges-Lehmann median-of-pairwise-
-		#'   differences) and \code{get_standard_error()}. On heavily tied,
-		#'   small-integer count/ordinal data the Hodges-Lehmann estimate lands
-		#'   on exactly 0 far more often than a continuous estimator would, so
-		#'   the Wald statistic came out exactly \code{0/se = 0} regardless of
-		#'   \code{se}, forcing \code{p = 1} deterministically (observed:
-		#'   pinned at 1 in ~75-98% of runs). The rank-based
-		#'   \code{compute_asymp_two_sided_pval()} does not have this failure
-		#'   mode.
-		#' @param delta Null treatment effect. Default 0.
+		# @description Delegates to the genuine rank-based
+		#   \code{$compute_asymp_two_sided_pval()} rather than the generic
+		#   Wald-component z/t formula.
+		#
+		#   Fixed 2026-09-06: this class did not override
+		#   \code{compute_wald_two_sided_pval}, so it fell through to the
+		#   composed \code{Wald} component's generic
+		#   \code{(estimate - delta) / se} formula built from
+		#   \code{compute_estimate()} (the Hodges-Lehmann median-of-pairwise-
+		#   differences) and \code{get_standard_error()}. On heavily tied,
+		#   small-integer count/ordinal data the Hodges-Lehmann estimate lands
+		#   on exactly 0 far more often than a continuous estimator would, so
+		#   the Wald statistic came out exactly \code{0/se = 0} regardless of
+		#   \code{se}, forcing \code{p = 1} deterministically (observed:
+		#   pinned at 1 in ~75-98% of runs). The rank-based
+		#   \code{compute_asymp_two_sided_pval()} does not have this failure
+		#   mode.
+		# @param delta Null treatment effect. Default 0.
 		compute_wald_two_sided_pval = function(delta = 0){
 			self$compute_asymp_two_sided_pval(delta = delta)
 		},
-		#' @description Delegates to the genuine rank-based
-		#'   \code{$compute_asymp_confidence_interval()} rather than the
-		#'   generic Wald normal-approximation interval, for the same reason
-		#'   as \code{compute_wald_two_sided_pval} above.
-		#'
-		#'   Fixed 2026-09-06: the generic Wald component's normal-approximation
-		#'   interval is built from \code{get_standard_error()}, which this
-		#'   class derives by back-solving \code{se = (ci[2]-ci[1]) /
-		#'   (2*1.96)} from \code{stats::wilcox.test()}'s own asymptotic CI
-		#'   width. Under heavy ties, that root search can converge to a
-		#'   numerically near-zero-width interval as a search artifact, not a
-		#'   real sampling-uncertainty statement; that spurious near-zero SE
-		#'   then produced a near-\code{[0,0]} Wald interval (observed in
-		#'   over 1,200 rows of comprehensive-results data). The rank-based
-		#'   \code{compute_asymp_confidence_interval()} inverts the rank-sum
-		#'   test directly and does not go through this derived SE at all.
-		#' @param alpha Significance level. Default 0.05.
+		# @description Delegates to the genuine rank-based
+		#   \code{$compute_asymp_confidence_interval()} rather than the
+		#   generic Wald normal-approximation interval, for the same reason
+		#   as \code{compute_wald_two_sided_pval} above.
+		#
+		#   Fixed 2026-09-06: the generic Wald component's normal-approximation
+		#   interval is built from \code{get_standard_error()}, which this
+		#   class derives by back-solving \code{se = (ci[2]-ci[1]) /
+		#   (2*1.96)} from \code{stats::wilcox.test()}'s own asymptotic CI
+		#   width. Under heavy ties, that root search can converge to a
+		#   numerically near-zero-width interval as a search artifact, not a
+		#   real sampling-uncertainty statement; that spurious near-zero SE
+		#   then produced a near-\code{[0,0]} Wald interval (observed in
+		#   over 1,200 rows of comprehensive-results data). The rank-based
+		#   \code{compute_asymp_confidence_interval()} inverts the rank-sum
+		#   test directly and does not go through this derived SE at all.
+		# @param alpha Significance level. Default 0.05.
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			self$compute_asymp_confidence_interval(alpha = alpha)
 		},
-		#' @description Reports the jackknife point-estimate as explicitly
-		#'   non-estimable for this Hodges-Lehmann estimator, rather than computing
-		#'   a leave-one-out jackknife: the median-of-pairwise-differences
-		#'   functional is not smooth enough for the delete-1 jackknife's
-		#'   linear-approximation machinery to be reliable. This method exists
-		#'   purely to record that unavailability (via
-		#'   \code{private$cache_nonestimable_estimate()}) rather than silently
-		#'   returning a misleading number; see
-		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
-		#'   jackknife contract this method participates in.
-		#' @param unit Deletion unit. Default \code{"auto"}.
+		# @description Reports the jackknife point-estimate as explicitly
+		#   non-estimable for this Hodges-Lehmann estimator, rather than computing
+		#   a leave-one-out jackknife: the median-of-pairwise-differences
+		#   functional is not smooth enough for the delete-1 jackknife's
+		#   linear-approximation machinery to be reliable. This method exists
+		#   purely to record that unavailability (via
+		#   \code{private$cache_nonestimable_estimate()}) rather than silently
+		#   returning a misleading number; see
+		#   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+		#   jackknife contract this method participates in.
+		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_estimate = function(unit = "auto"){
 			private$cache_nonestimable_estimate("wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
-		#' @description Reports the jackknife bias-correction estimate as
-		#'   non-estimable for this simple Wilcoxon estimator, for the same reason
-		#'   as \code{$compute_jackknife_estimate()} (the Hodges-Lehmann functional
-		#'   is not smooth enough for the delete-1 jackknife); see
-		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
-		#'   jackknife contract.
-		#' @param unit Deletion unit. Default \code{"auto"}.
+		# @description Reports the jackknife bias-correction estimate as
+		#   non-estimable for this simple Wilcoxon estimator, for the same reason
+		#   as \code{$compute_jackknife_estimate()} (the Hodges-Lehmann functional
+		#   is not smooth enough for the delete-1 jackknife); see
+		#   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+		#   jackknife contract.
+		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_bias_estimate = function(unit = "auto"){
 			private$cache_nonestimable_estimate("wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
-		#' @description Reports the jackknife standard error as non-estimable for
-		#'   this simple Wilcoxon estimator, for the same reason as
-		#'   \code{$compute_jackknife_estimate()}; see
-		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
-		#'   jackknife contract.
-		#' @param unit Deletion unit. Default \code{"auto"}.
+		# @description Reports the jackknife standard error as non-estimable for
+		#   this simple Wilcoxon estimator, for the same reason as
+		#   \code{$compute_jackknife_estimate()}; see
+		#   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+		#   jackknife contract.
+		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_std_error = function(unit = "auto"){
 			private$cache_nonestimable_se("wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
-		#' @description Reports the jackknife-Wald p-value as non-estimable here,
-		#'   for the same reason as \code{$compute_jackknife_estimate()}; see
-		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
-		#' @param delta Null treatment-effect value. Default 0.
-		#' @param unit Deletion unit. Default \code{"auto"}.
+		# @description Reports the jackknife-Wald p-value as non-estimable here,
+		#   for the same reason as \code{$compute_jackknife_estimate()}; see
+		#   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+		# @param delta Null treatment-effect value. Default 0.
+		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
 			private$cache_nonestimable_se("wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
-		#' @description Reports the jackknife-Wald confidence interval as
-		#'   non-estimable here, for the same reason as
-		#'   \code{$compute_jackknife_estimate()}; see
-		#'   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
-		#' @param alpha Significance level. Default 0.05.
-		#' @param unit Deletion unit. Default \code{"auto"}.
+		# @description Reports the jackknife-Wald confidence interval as
+		#   non-estimable here, for the same reason as
+		#   \code{$compute_jackknife_estimate()}; see
+		#   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+		# @param alpha Significance level. Default 0.05.
+		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
 			private$cache_nonestimable_se("wilcox_hl_jackknife_not_supported")
 			c(NA_real_, NA_real_)
@@ -471,3 +471,47 @@ InferenceAllSimpleWilcox = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceAllSimpleWilcox$initialize
+#' @template simple-wilcox-initialize
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_estimate
+#' @template simple-wilcox-compute-estimate
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_asymp_two_sided_pval
+#' @template simple-wilcox-asymp-two-sided-pval
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_asymp_confidence_interval
+#' @template simple-wilcox-asymp-confidence-interval
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_wald_two_sided_pval
+#' @template simple-wilcox-wald-two-sided-pval
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_wald_confidence_interval
+#' @template simple-wilcox-wald-confidence-interval
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_jackknife_estimate
+#' @template simple-wilcox-jackknife-estimate
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_jackknife_bias_estimate
+#' @template simple-wilcox-jackknife-bias-estimate
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_jackknife_std_error
+#' @template simple-wilcox-jackknife-std-error
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_jackknife_wald_two_sided_pval
+#' @template simple-wilcox-jackknife-wald-two-sided-pval
+NULL
+
+#' @R6method InferenceAllSimpleWilcox$compute_jackknife_wald_confidence_interval
+#' @template simple-wilcox-jackknife-wald-confidence-interval
+NULL

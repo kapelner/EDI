@@ -2,14 +2,34 @@
 NULL
 
 .onLoad = function(libname, pkgname) {
+	# 2026-09-22: diagnostic-only, opt-in tracing for the still-unexplained
+	# windows-latest R-CMD-check hang (R-CMD-check.yaml's timeout-minutes
+	# comment). Watchdog evidence from run 35716080449 (job 106707787789):
+	# the combined EDI-Ex.Rout examples file stayed at 0 bytes for 3+ hours
+	# and the Rterm process accumulated only ~5 minutes of CPU time total --
+	# a blocked wait, not a compute loop, and early enough that not a single
+	# byte of example output was ever written. That points at package LOAD
+	# time (this function), not deep inside some specific \donttest{}
+	# example as a 2026-08-17 static audit assumed. No-op unless
+	# EDI_ONLOAD_TRACE=1 (set only on the Windows R-CMD-check leg) --
+	# completely silent for every normal library(EDI) call.
+	.edi_onload_trace = identical(Sys.getenv("EDI_ONLOAD_TRACE"), "1")
+	.edi_onload_step = function(label) {
+		if (!.edi_onload_trace) return(invisible(NULL))
+		cat("EDI .onLoad trace: ", label, "\n", sep = "")
+		flush.console()
+	}
+	.edi_onload_step("start")
 	if (is.null(getOption("datatable.quiet"))) {
 		options(datatable.quiet = TRUE)
 	}
+	.edi_onload_step("after datatable.quiet option")
 
 	# Set default for assertion execution
 	if (is.null(getOption("edi.run_asserts"))) {
 		options(edi.run_asserts = TRUE)
 	}
+	.edi_onload_step("after edi.run_asserts option")
 
 	# Pin OpenMP/BLAS threads to 1 at load time so the package is actually
 	# single-threaded by default, matching get_num_cores()'s own default belief
@@ -29,6 +49,7 @@ NULL
 	# OpenMP/BLAS thread count in sync from the start, until/unless the user
 	# explicitly opts into more via set_num_cores().
 	set_package_threads(1L)
+	.edi_onload_step("after set_package_threads")
 
 	# Import this machine's saved performance-policy tuning, if any
 	# (local_machine_optimization.md TODO-9). Fail-open by construction:
@@ -38,6 +59,8 @@ NULL
 	# re-run. Never errors at load, and never touches the active core count
 	# (the parallel diff is recorded-only). EDI_SKIP_LOCAL_TUNING=1 disables it.
 	edi_tuning_import_saved_policies(quiet = FALSE)
+	.edi_onload_step("after edi_tuning_import_saved_policies")
+	.edi_onload_step("end")
 }
 
 .onAttach = function(libname, pkgname){

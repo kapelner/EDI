@@ -831,6 +831,18 @@ InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = define_inference_class(
 	)
 )
 
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyNormalIVWC$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyNormalIVWC$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyNormalIVWC$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+
 #' Weibull Frailty Combined-Likelihood Inference for KK Designs
 #'
 #' Log-normal (Gaussian random-intercept) frailty Weibull AFT estimator; see
@@ -934,3 +946,16 @@ InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyNormalOneLik$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+

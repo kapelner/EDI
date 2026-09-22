@@ -1244,6 +1244,45 @@ ticked in their **owning plans**; this list is the release index.
   inference methods, its release placement/urgency may warrant revisiting
   ahead of the rest of 1.1.0 — flagged here, not decided here. Independent
   of every other 1.1.0 item; depends on nothing else in this release.
+- **`TODO-32`** (added 2026-09-22, found the same way as `TODO-25`/`TODO-30`/
+  `TODO-31` — a raw `comprehensive_tests` results-CSV `low_coverage` audit,
+  not a user report): **MC coverage-truth uses the wrong covariate set** —
+  `fix_mc_coverage_truth_covariate_mismatch.md → TODO-1..5`. A harness bug,
+  not an inference-code bug. `get_coverage_truth()`'s Monte-Carlo path
+  (`COVERAGE_MC_SPEC`, ~25 non-collapsible link-scale classes: Cox,
+  logit/probit, GLMM/GEE) fits the class's own estimator against a
+  **synthetic single Gaussian covariate** to compute the "least false"
+  coverage target, but the actual per-row results being graded were
+  generated with `design_formula = ~.` over the **real dataset's full,
+  multi-column covariate matrix**. For a non-collapsible coefficient the
+  adjustment set changes the target itself, so the two are truths for
+  different fitted models. Confirmed directly on
+  `InferenceSurvivalKKStratCoxPHOneLik`: coverage is 0.93-1.00 at
+  `beta_T=0` (where the mismatch doesn't matter — both adjustment sets give
+  ~0) and collapses to 0.04-0.65 at `beta_T=0.5`, uniformly across all ~14
+  of its CI methods at once — the signature of a wrong reference value, not
+  independently broken CIs (same signature as `TODO-25`'s and the
+  2026-09-06 `InferenceAllSimpleMeanDiffPooledVar` fix's harness truth-scale
+  bugs). This same mechanism plausibly explains most of the audit's
+  previously-unexplained `low_coverage` baseline entries across
+  survival/ordinal/incidence/proportion (not yet individually confirmed per
+  class — the plan's TODO-1). Independent of every other 1.1.0 item;
+  depends on nothing else in this release.
+- **`TODO-33`** (added 2026-09-22, user-requested investigation of a prior
+  fix's explicit out-of-scope note): **Cox Bartlett-approx likelihood-ratio
+  correction, currently forced off** — `enable_cox_bartlett_approx.md →
+  TODO-1..3`. `InferenceSurvivalCoxPHRegr`/`InferenceSurvivalStratCoxPHRegr`
+  explicitly force `supports_bartlett_likelihood_ratio_approx() = FALSE` to
+  stop `ParametricLikelihoodBootstrap`'s delegating default from silently
+  enabling an "unvalidated" Monte-Carlo Bartlett-correction path. A smoke
+  test (20 simulated datasets, monkey-patched to `TRUE`, no source change)
+  shows the machinery runs cleanly — it reuses Cox's already-shipped,
+  already-exercised Breslow-hazard `simulate_under_lik_null()`, not new
+  code — and gives finite CIs close to Wald in width/location. Not a
+  statistical validation (coverage/Type-I error unmeasured); needs the same
+  validate-before-shipping treatment as `TODO-30`'s multi-start fix before
+  flipping the switch. Independent of every other 1.1.0 item; depends on
+  nothing else in this release.
 
 ## Standing constraints
 

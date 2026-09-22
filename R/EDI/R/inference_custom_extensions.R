@@ -69,11 +69,11 @@ InferenceCustomAsymp = define_inference_class(
 			private$run_custom_fit(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Computes a randomization two-sided p-value. Delegates to
-		#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
-		#'   type/args_for_type) since `NonparametricBootstrap` pulls in both
-		#'   `RandomizationTest` and `RandomizationCI`, and the two provide
-		#'   conflicting `compute_rand_two_sided_pval` implementations.
+		# @description Computes a randomization two-sided p-value. Delegates to
+		#   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+		#   type/args_for_type) since `NonparametricBootstrap` pulls in both
+		#   `RandomizationTest` and `RandomizationCI`, and the two provide
+		#   conflicting `compute_rand_two_sided_pval` implementations.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
@@ -136,6 +136,16 @@ InferenceCustomAsymp = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+#' @R6method InferenceCustomAsymp$compute_rand_two_sided_pval
+#' @description Computes a randomization two-sided p-value. Delegates to
+#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+#'   type/args_for_type) since `NonparametricBootstrap` pulls in both
+#'   `RandomizationTest` and `RandomizationCI`, and the two provide
+#'   conflicting `compute_rand_two_sided_pval` implementations.
+#' @template randci-compute-rand-two-sided-pval-params
+NULL
+
 #' Internal base for user-defined randomization inference extensions
 #'
 #' This class uses the same \code{fit()} result contract as
@@ -175,12 +185,12 @@ InferenceCustomRand = define_inference_class(
 			}
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a randomization two-sided p-value. Delegates to
-		#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
-		#'   type/args_for_type) since `RandomizationCI` pulls in `RandomizationTest`,
-		#'   and the two provide conflicting `compute_rand_two_sided_pval`
-		#'   implementations -- the same conflict `InferenceCustomAsymp` and
-		#'   `InferenceCustomBoot` resolve the same way.
+		# @description Computes a randomization two-sided p-value. Delegates to
+		#   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+		#   type/args_for_type) since `RandomizationCI` pulls in `RandomizationTest`,
+		#   and the two provide conflicting `compute_rand_two_sided_pval`
+		#   implementations -- the same conflict `InferenceCustomAsymp` and
+		#   `InferenceCustomBoot` resolve the same way.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
@@ -191,6 +201,17 @@ InferenceCustomRand = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+#' @R6method InferenceCustomRand$compute_rand_two_sided_pval
+#' @description Computes a randomization two-sided p-value. Delegates to
+#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+#'   type/args_for_type) since `RandomizationCI` pulls in `RandomizationTest`,
+#'   and the two provide conflicting `compute_rand_two_sided_pval`
+#'   implementations -- the same conflict `InferenceCustomAsymp` and
+#'   `InferenceCustomBoot` resolve the same way.
+#' @template randci-compute-rand-two-sided-pval-params
+NULL
+
 #' Internal base for user-defined bootstrap inference extensions
 #'
 #' This class uses the same \code{fit()} result contract as
@@ -229,11 +250,11 @@ InferenceCustomBoot = define_inference_class(
 			}
 			private$cached_values$beta_hat_T
 		},
-		#' @description Computes a randomization two-sided p-value. Delegates to
-		#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
-		#'   type/args_for_type) since `NonparametricBootstrap` pulls in both
-		#'   `RandomizationTest` and `RandomizationCI`, and the two provide
-		#'   conflicting `compute_rand_two_sided_pval` implementations.
+		# @description Computes a randomization two-sided p-value. Delegates to
+		#   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+		#   type/args_for_type) since `NonparametricBootstrap` pulls in both
+		#   `RandomizationTest` and `RandomizationCI`, and the two provide
+		#   conflicting `compute_rand_two_sided_pval` implementations.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
@@ -244,3 +265,13 @@ InferenceCustomBoot = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+#' @R6method InferenceCustomBoot$compute_rand_two_sided_pval
+#' @description Computes a randomization two-sided p-value. Delegates to
+#'   the `RandomizationCI`-provided dispatch (Zhang incidence support,
+#'   type/args_for_type) since `NonparametricBootstrap` pulls in both
+#'   `RandomizationTest` and `RandomizationCI`, and the two provide
+#'   conflicting `compute_rand_two_sided_pval` implementations.
+#' @template randci-compute-rand-two-sided-pval-params
+NULL
+

@@ -31,7 +31,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#' @param transform_responses Response transformation to apply during the test. For
 		#'   survival responses the default \code{"log"} multiplies the recorded times of the
 		#'   units treated under each reference allocation by \eqn{e^\delta}, event and
-		#'   censoring times alike, with censoring indicators unchanged — the rank-based
+		#'   censoring times alike, with censoring indicators unchanged -- the rank-based
 		#'   AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
 		#'   and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.
 		#' @param na.rm Whether to remove non-finite simulated statistics.
@@ -40,10 +40,6 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#' @param type Optional incidence-specific exact randomization type.
 		#' @param args_for_type Optional arguments keyed by \code{type}.
 		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
-		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
-		#'   the formula from the design object is used and its pre-computed design matrix is
-		#'   reused. If a formula is provided, a new design matrix is constructed from the
-		#'   design's imputed covariates.
 		#' @return A two-sided p-value.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
 			# message("In InferenceRandCI$compute_rand_two_sided_pval")

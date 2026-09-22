@@ -491,6 +491,18 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = define_inference_class(
 	)
 )
 
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+
 #' Clayton Copula Combined-Likelihood Inference for KK Designs
 #'
 #' Gamma-frailty (Clayton copula) Weibull estimator; see
@@ -1016,3 +1028,16 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = define_inference_class(
 		)
 	)
 )
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$approximate_randomization_distribution_beta_hat_T
+#' @template rand-approx-distribution-beta-hat-t
+NULL
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$supports_rand_pval_for_incidence
+#' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$compute_rand_two_sided_pval
+#' @template rand-compute-rand-two-sided-pval-params
+NULL
+

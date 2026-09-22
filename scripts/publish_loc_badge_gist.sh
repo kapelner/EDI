@@ -15,23 +15,25 @@
 # safe to hardcode in the workflow) and GIST_PAT (a repo secret: a classic
 # PAT scoped to just "gist") in the environment.
 #
-# Usage: scripts/publish_loc_badge_gist.sh <badge-json-path> <md-path>
+# Usage: scripts/publish_loc_badge_gist.sh <code-badge-json-path> <tests-badge-json-path> <md-path>
 set -euo pipefail
 
-if [ "$#" -ne 2 ]; then
-	echo "usage: $0 <badge-json-path> <md-path>" >&2
+if [ "$#" -ne 3 ]; then
+	echo "usage: $0 <code-badge-json-path> <tests-badge-json-path> <md-path>" >&2
 	exit 1
 fi
-badge_path="$1"
-md_path="$2"
+code_badge_path="$1"
+tests_badge_path="$2"
+md_path="$3"
 
 : "${GIST_ID:?GIST_ID is required}"
 : "${GIST_PAT:?GIST_PAT is required}"
 
 payload="$(jq -n \
-	--rawfile badge "$badge_path" \
+	--rawfile code_badge "$code_badge_path" \
+	--rawfile tests_badge "$tests_badge_path" \
 	--rawfile md "$md_path" \
-	'{files: {"loc-badge.json": {content: $badge}, "loc.md": {content: $md}}}')"
+	'{files: {"loc-badge.json": {content: $code_badge}, "loc-badge-tests.json": {content: $tests_badge}, "loc.md": {content: $md}}}')"
 
 response_body="$(mktemp)"
 trap 'rm -f "$response_body"' EXIT
