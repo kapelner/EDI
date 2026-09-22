@@ -190,8 +190,14 @@ ContinKKRobustRegrOneLikSource = list(
 		rlm_acc = NULL,
 		rlm_start_with_ols = TRUE,
 		use_rcpp = TRUE,
+		# The reduce_design_matrix_once() column selection is keyed on ncol(X) and
+		# is deliberately computed once per worker, so it must survive the
+		# per-draw cache reset in every reused-worker resampling path.
+		reused_worker_preserved_cache_keys = function(){
+			c("kk_robust_combined_reduced_design")
+		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			preserve = if (is.null(permutations$m_mat)) c("kk_robust_combined_reduced_design") else character()
+			preserve = if (is.null(permutations$m_mat)) private$reused_worker_preserved_cache_keys() else character()
 			private$compute_fast_randomization_distr_via_reused_worker(y, permutations, delta, transform_responses, zero_one_logit_clamp = zero_one_logit_clamp, preserve_cache_keys = preserve)
 		},
 		rlm_force_M = FALSE,
@@ -620,6 +626,7 @@ InferenceContinKKRobustRegrOneLik = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"compute_basic_match_data",
 			"compute_fast_randomization_distr",
+			"reused_worker_preserved_cache_keys",
 			"get_standard_error",
 			"get_degrees_of_freedom"
 		)

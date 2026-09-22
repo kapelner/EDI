@@ -594,7 +594,8 @@ EDI_COMPONENT_SPECS = list(
 			"compute_asymp_two_sided_pval", "duplicate"
 		),
 		provides_private_methods = c(
-			"compute_fast_randomization_distr", "resolve_rlm_control",
+			"compute_fast_randomization_distr", "reused_worker_preserved_cache_keys",
+			"resolve_rlm_control",
 			"is_rlm_nonconvergence_warning", "shared",			"fit_rlm_with_treatment", "robust_for_matched_pairs", "robust_for_reservoir",
 			"rlm_method", "rlm_maxit", "rlm_acc", "rlm_start_with_ols",
 			"use_rcpp", "rlm_force_M"
@@ -802,7 +803,8 @@ EDI_COMPONENT_SPECS = list(
 			"compute_asymp_two_sided_pval"
 		),
 		provides_private_methods = c(
-			"compute_fast_randomization_distr", "shared",			"satterthwaite_df", "fit_ols_with_treatment", "ols_for_matched_pairs",
+			"compute_fast_randomization_distr", "reused_worker_preserved_cache_keys",
+			"shared",			"satterthwaite_df", "fit_ols_with_treatment", "ols_for_matched_pairs",
 			"ols_for_reservoir"
 		),
 		provides_capabilities = character(),
@@ -1303,7 +1305,8 @@ EDI_COMPONENT_SPECS = list(
 			"get_likelihood_components"
 		),
 		provides_private_methods = c(
-			"compute_fast_randomization_distr", "get_standard_error",
+			"compute_fast_randomization_distr", "reused_worker_preserved_cache_keys",
+			"get_standard_error",
 			"get_degrees_of_freedom", "supports_likelihood_tests",
 			"supports_lik_ratio_param_bootstrap",
 			"supports_bartlett_likelihood_ratio_exact", "get_bartlett_factor_exact",
@@ -1338,7 +1341,8 @@ EDI_COMPONENT_SPECS = list(
 		),
 		provides_private_methods = c(
 			"rlm_method", "rlm_maxit", "rlm_acc", "rlm_start_with_ols", "use_rcpp",
-			"compute_fast_randomization_distr", "rlm_force_M",
+			"compute_fast_randomization_distr", "reused_worker_preserved_cache_keys",
+			"rlm_force_M",
 			"resolve_rlm_control", "is_rlm_nonconvergence_warning",			"get_standard_error", "get_degrees_of_freedom", "fit_rlm", "fit_combined",
 			"fit_weighted_combined"
 		),
