@@ -59,6 +59,7 @@ R/package_tests/testthat_bulk/test-coin-cross-validation-survival.R,correctness,
 R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-collisions-and-host-override-rules-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-derivative-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-fit-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -115,6 +116,8 @@ R/package_tests/testthat_bulk/test-custom-extension-fit-contract-validation-and-
 R/package_tests/testthat_bulk/test-custom-extension-is-a-custom-type-predicates-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-custom-extension-rand-boot-fit-validation.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-custom-fixed-and-sequential-design-bases-assignment-validation-and-abstract-guards-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-custom-inference-fit-contract-validation-guards-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-custom-rand-and-boot-fit-contract-validation-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-custom-statistic-and-resampling-edge-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-and-fallback-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-zero-exclusion-width-guard-and-wald-fallback-reference.R,correctness,120,bootstrap
@@ -181,6 +184,7 @@ R/package_tests/testthat_bulk/test-fast-glm-direct-helper-reference.R,correctnes
 R/package_tests/testthat_bulk/test-fast-randomization-worker-cache-carryover-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fast-weibull-regression-r-fallback-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-fixed-design-add-all-subjects-wrong-row-count-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-observational-design-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-optimal-blocks-feasibility-draws-and-uneven-sizes-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-optimal-blocks-method-branches-reference.R,correctness,120,bootstrap
@@ -311,6 +315,7 @@ R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likeliho
 R/package_tests/testthat_bulk/test-kk-gcomp-abstract-build-design-matrix-and-get-estimand-type-not-implemented-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-cluster-id-cache-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-weighted-estimate-fit-with-sandwich-and-usability-predicates-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk-gcomp-risk-ratio-effect-ci-log-scale-overflow-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-count-weighted-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-parity.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-shared-extractors-fit-data-and-jackknife-calibration-reference.R,correctness,120,bootstrap
@@ -396,6 +401,8 @@ R/package_tests/testthat_bulk/test-matching-ibcrd-and-bernoulli-permutation-kern
 R/package_tests/testthat_bulk/test-matching-linear-incomplete-pairs.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-matching-ols-degenerate-geometry.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-matching-structure-bootstrap-draws-and-cluster-ids-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-metadata-and-migration-record-name-field-guards-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-metadata-validators-field-type-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-mirai-plumbing-no-daemon-safe-branches.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-mixin-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-mn-riskdiff-asymp-pval-nonfinite-score-statistic-guard-reference.R,correctness,120,bootstrap
@@ -423,6 +430,7 @@ R/package_tests/testthat_bulk/test-non-param-boot-studentized-ci-nonfinite-se-gu
 R/package_tests/testthat_bulk/test-nonparam-bootstrap-original-estimate-unavailable-guard-pval-and-ci-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ols-with-var-kernel-sigma2-ssq-fixed-coefficients-and-rank-deficient-fallback-lm-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-omp-control-kernels-thread-count-roundtrip-and-eigen-sync-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-optimal-design-prior-precision-matrix-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-optimal-interest-column-resolution-and-formula-strata-assertion-helpers-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-optimal-milp-status-check-and-solution-extraction-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-optimal-search-runtime-references.R,correctness,120,bootstrap
@@ -534,6 +542,7 @@ R/package_tests/testthat_bulk/test-randomization-mc-band-cache-key-and-prefix-he
 R/package_tests/testthat_bulk/test-randomization-sequential-mc-pval-stopping-rule-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-randomization-worker-loading-sync-and-iteration-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-rerandomization-obj-val-cutoff-and-prop-acceptable-mutually-exclusive-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-objective-and-draw-paths-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-resampling-callback-recovery-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-centered-pivots-cache-keys-and-size-evaluation-reference.R,correctness,120,bootstrap
@@ -983,6 +992,7 @@ R/package_tests/testthat_bulk/test-coin-cross-validation-survival.R,coverage,39.
 R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-collisions-and-host-override-rules-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-derivative-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-fit-reference.R,coverage,1,measured_with_30_percent_headroom
@@ -1039,6 +1049,8 @@ R/package_tests/testthat_bulk/test-custom-extension-fit-contract-validation-and-
 R/package_tests/testthat_bulk/test-custom-extension-is-a-custom-type-predicates-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-custom-extension-rand-boot-fit-validation.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-custom-fixed-and-sequential-design-bases-assignment-validation-and-abstract-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-custom-inference-fit-contract-validation-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-custom-rand-and-boot-fit-contract-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-custom-statistic-and-resampling-edge-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-and-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dep-cens-transform-bootstrap-ci-validation-zero-exclusion-width-guard-and-wald-fallback-reference.R,coverage,240,bootstrap
@@ -1105,6 +1117,7 @@ R/package_tests/testthat_bulk/test-fast-glm-direct-helper-reference.R,coverage,2
 R/package_tests/testthat_bulk/test-fast-randomization-worker-cache-carryover-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-weibull-regression-r-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,coverage,1.4,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-fixed-design-add-all-subjects-wrong-row-count-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-observational-design-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fixed-optimal-blocks-feasibility-draws-and-uneven-sizes-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-optimal-blocks-method-branches-reference.R,coverage,240,bootstrap
@@ -1235,6 +1248,7 @@ R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likeliho
 R/package_tests/testthat_bulk/test-kk-gcomp-abstract-build-design-matrix-and-get-estimand-type-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-cluster-id-cache-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-weighted-estimate-fit-with-sandwich-and-usability-predicates-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-gcomp-risk-ratio-effect-ci-log-scale-overflow-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-count-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-parity.R,coverage,11.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-gee-shared-extractors-fit-data-and-jackknife-calibration-reference.R,coverage,240,bootstrap
@@ -1320,6 +1334,8 @@ R/package_tests/testthat_bulk/test-matching-ibcrd-and-bernoulli-permutation-kern
 R/package_tests/testthat_bulk/test-matching-linear-incomplete-pairs.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-matching-ols-degenerate-geometry.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-matching-structure-bootstrap-draws-and-cluster-ids-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-metadata-and-migration-record-name-field-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-metadata-validators-field-type-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mirai-plumbing-no-daemon-safe-branches.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mixin-contracts.R,coverage,11.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-mn-riskdiff-asymp-pval-nonfinite-score-statistic-guard-reference.R,coverage,240,bootstrap
@@ -1347,6 +1363,7 @@ R/package_tests/testthat_bulk/test-non-param-boot-studentized-ci-nonfinite-se-gu
 R/package_tests/testthat_bulk/test-nonparam-bootstrap-original-estimate-unavailable-guard-pval-and-ci-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ols-with-var-kernel-sigma2-ssq-fixed-coefficients-and-rank-deficient-fallback-lm-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-omp-control-kernels-thread-count-roundtrip-and-eigen-sync-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-optimal-design-prior-precision-matrix-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-optimal-interest-column-resolution-and-formula-strata-assertion-helpers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-optimal-milp-status-check-and-solution-extraction-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-optimal-search-runtime-references.R,coverage,1.2,measured_with_30_percent_headroom
@@ -1458,6 +1475,7 @@ R/package_tests/testthat_bulk/test-randomization-mc-band-cache-key-and-prefix-he
 R/package_tests/testthat_bulk/test-randomization-sequential-mc-pval-stopping-rule-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-randomization-worker-loading-sync-and-iteration-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rerandomization-obj-val-cutoff-and-prop-acceptable-mutually-exclusive-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-objective-and-draw-paths-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-resampling-callback-recovery-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-centered-pivots-cache-keys-and-size-evaluation-reference.R,coverage,240,bootstrap

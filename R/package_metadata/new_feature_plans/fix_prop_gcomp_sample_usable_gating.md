@@ -100,9 +100,26 @@ per-class branch" argument).
 
 Recommend Option A. Not yet decided/reviewed — flagged here, not fixed.
 
+## Status
+
+Fixed 2026-09-23 (Option A, as recommended). Added a class-specific
+`compute_randomization_worker_estimate()` override to
+`InferencePropGCompMeanDiff` (`inference_proportion_gcomp.R`) — declared in
+`define_inference_class()`'s `overrides$private` (required; R6/the
+component system rejects an undeclared override with "overrides component
+private member(s) without declaration"). Verified via direct repro: rand
+distribution now 99/99 finite (`sd = 0.0162`, previously all-NA); Type-I
+error at the true null measured at 0.05 over 20 reps (`r = 99`); bootstrap-
+family distribution unaffected (unchanged code path, confirmed same
+finite/sd behavior before and after). Removed from
+`RESAMPLING_NONDEGENERATE_KNOWN_BROKEN` in
+`test-reused-worker-resampling-nondegenerate.R`; full suite re-run passes
+(13/13). TODO-6 (CSV regeneration) still open, deferred to the same
+regeneration pass as `fix_stale_worker_cache_resampling.md → TODO-7`.
+
 ## TODOs
 
-- [ ] TODO-1: Confirm the trace above with a direct repro:
+- [x] TODO-1: Confirm the trace above with a direct repro:
   `pkgload::load_all(".", compile = FALSE)` only (never `R CMD INSTALL`/
   `R CMD build`/`pkgbuild::compile_dll()`/`load_all(compile = TRUE)` or
   unspecified `compile=` — hard project rule, see top-level `CLAUDE.md`).
@@ -112,20 +129,20 @@ Recommend Option A. Not yet decided/reviewed — flagged here, not fixed.
   *unpermuted* point estimate and the *standard-path* (non-reused-worker)
   randomization distribution both work correctly — isolating the defect to
   specifically the reused-worker fast path, not the class in general.
-- [ ] TODO-2: Implement Option A (add a class-specific
+- [x] TODO-2: Implement Option A (add a class-specific
   `compute_randomization_worker_estimate()` override) unless TODO-1's repro
   surfaces a reason Option B is preferable — if so, that's a ruling for
   whoever picks this up, not a default.
-- [ ] TODO-3: Verify the fix doesn't change the *bootstrap*-family
+- [x] TODO-3: Verify the fix doesn't change the *bootstrap*-family
   distributions for this class (they were already correct — confirm
   bit-for-bit, reusing `scripts/reused_worker_bitforbit_sweep.R` from
   `fix_stale_worker_cache_resampling.md` if it still applies, or a
   narrower ad hoc check).
-- [ ] TODO-4: Re-run the true-null repro (analogous to
+- [x] TODO-4: Re-run the true-null repro (analogous to
   `fix_stale_worker_cache_resampling.md`'s TODO-5): confirm the fixed
   randomization distribution is non-degenerate and has correctly-calibrated
   Type-I error, not just "not NA."
-- [ ] TODO-5: Remove `InferencePropGCompMeanDiff` from
+- [x] TODO-5: Remove `InferencePropGCompMeanDiff` from
   `RESAMPLING_NONDEGENERATE_KNOWN_BROKEN` in
   `R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R` once
   fixed — the test's `expect_identical` against that list will fail loudly

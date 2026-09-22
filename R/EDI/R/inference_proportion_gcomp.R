@@ -462,6 +462,34 @@ InferencePropGCompMeanDiff = define_inference_class(
 				worker_state$runtime$current_y
 			)
 		},
+		# The generic default (inference_all_abstract_rand.R's
+		# compute_randomization_worker_estimate()) delegates to
+		# compute_bootstrap_worker_estimate() above, which reads
+		# worker_state$runtime$sample_usable/current_X_full/current_y -- fields
+		# only load_bootstrap_sample_into_worker() (the BOOTSTRAP row-sample
+		# loader) ever populates. load_randomization_perm_into_worker() (the
+		# generic, shared-by-every-class randomization loader) has no concept
+		# of this class's private `runtime` env and never touches it, so on
+		# the rand path `sample_usable` stays stuck at its
+		# create_bootstrap_worker_state() init value FALSE forever -- every
+		# randomization draw returned NA_real_ (found 2026-09-22; see
+		# fix_prop_gcomp_sample_usable_gating.md). Override with a
+		# randomization-specific estimator that instead mirrors
+		# compute_treatment_estimate_during_randomization_inference()'s
+		# (correct, standard-path) logic -- shared() + cached_values$md --
+		# applied to the worker clone that load_randomization_perm_into_worker()
+		# actually populates (permuted w/y), not self.
+		compute_randomization_worker_estimate = function(worker_state){
+			inf_priv = if (!is.null(worker_state$worker_inf)) {
+				worker_state$worker_inf$.__enclos_env__$private
+			} else if (!is.null(worker_state$worker_priv)) {
+				worker_state$worker_priv
+			} else {
+				worker_state$worker$.__enclos_env__$private
+			}
+			inf_priv$shared(estimate_only = TRUE)
+			inf_priv$cached_values$md
+		},
 		max_resample_attempts = 50L,
 		prob_clip_eps = 1e-6,
 		prob_clip_strong_eps = 1e-4,
@@ -980,6 +1008,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 			"compute_treatment_estimate_during_randomization_inference",
 			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
 			"load_bootstrap_sample_into_worker", "compute_bootstrap_worker_estimate",
+			"compute_randomization_worker_estimate",
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported"
 		)

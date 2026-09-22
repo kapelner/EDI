@@ -294,7 +294,19 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 			r_ok = !is.null(beta_r) && is.finite(beta_r) &&
 			       (!estimate_only && !is.null(ssq_r) && is.finite(ssq_r) && ssq_r > 0 || estimate_only)
 			if (m_ok && r_ok){
-				w_star = ssq_r / (ssq_r + ssq_m)
+				# estimate_only = TRUE deliberately leaves ssq_m/ssq_r as NA
+				# (variance components skipped for speed -- see
+				# clayton_copula_for_matched_pairs()/weibull_for_reservoir()'s
+				# own estimate_only docstrings), so the inverse-variance weight
+				# below is only computable when both are finite; otherwise fall
+				# back to equal weighting, exactly matching the already-correct
+				# pattern in compute_treatment_estimate_during_randomization_
+				# inference() a few functions above. Before this fix, w_star
+				# was NA/NA = NA under estimate_only = TRUE even though beta_m
+				# and beta_r were both finite, making beta_hat_T unconditionally
+				# NA on every resampling draw (found 2026-09-22; see
+				# fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md).
+				w_star = if (is.finite(ssq_m) && is.finite(ssq_r)) ssq_r / (ssq_r + ssq_m) else 0.5
 				private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
 			if (estimate_only) return(invisible(NULL))
 				private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))

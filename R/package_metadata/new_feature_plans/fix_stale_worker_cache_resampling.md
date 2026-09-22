@@ -231,7 +231,7 @@ written to eliminate elsewhere in this codebase.
   drop the now-stale findings. Do this only after TODO-1's list is
   believed complete — writing the baseline against a partial fix would
   accept the remainder as debt.
-- [ ] TODO-8: Once the affected-class list is final (TODO-1), decide
+- [x] TODO-8: Once the affected-class list is final (TODO-1), decide
   whether any already-published example, vignette, or documentation output
   used an affected class's resampling p-value/CI and needs correction —
   separate from the code fix itself.
@@ -242,15 +242,24 @@ written to eliminate elsewhere in this codebase.
   `R/EDI/vignettes/cookbook-incidence.Rmd:109-114` —
   `InferenceIncidKKGCompRiskDiff$compute_rand_two_sided_pval(r=200)`, a
   live-executed chunk (not `eval=FALSE`) that renders a real computed
-  p-value in the built vignette. `InferenceIncidKKGCompRiskDiff` is a named
-  plan suspect (`gcomp_standardized_effect_cache_is_ready()` guard
-  mechanism) but its presence on the FINAL affected-class list needs
-  cross-check against TODO-7's rebuilt list before treating this as
-  confirmed. If confirmed: no manual number-editing needed — the vignette's
-  surrounding prose doesn't assert a specific p-value/significance claim,
-  it just prints the object's default output, so simply rebuilding the
-  vignette against the fixed package regenerates a correct number
-  automatically.
+  p-value in the built vignette. **Confirmed** (2026-09-23) —
+  `InferenceIncidKKGCompRiskDiff` is on TODO-7's rebuilt, empirically-
+  verified 7-class affected list. No manual number-editing needed — the
+  vignette's surrounding prose doesn't assert a specific p-value/
+  significance claim, it just prints the object's default output.
+
+  **Also discovered while closing this out:** this package has a CI
+  workflow (`.github/workflows/pkgdown.yaml`) that auto-deploys a pkgdown
+  site to `https://kapelner.github.io/EDI/` on every push to `main`
+  touching `R/EDI/R/**`/`R/EDI/vignettes/**`/etc., and it *executes*
+  vignette code at build time — not a static copy. Of 107 historical
+  commits touching those paths, only 11 used `[skip ci]`, so the live site
+  has almost certainly been showing this vignette's wrong (bug-signature:
+  pinned near its floor, `~2/(r+1)`) p-value for some time. Local `main`
+  held the fix unpushed as of this finding. **Resolved 2026-09-23: user
+  pushed `main` to `origin`**, which triggers the path-matched CI to
+  rebuild and redeploy the site with the fix automatically — no separate
+  manual vignette-fix commit or manual pkgdown rebuild needed. Loop closed.
 
   Everything else that superficially matched (grep hits on resampling
   method names or suspect class names) was a false positive: roxygen2's
@@ -357,20 +366,45 @@ it; TODO-8 is an editorial decision, still outstanding.
 
 Two pre-existing, unrelated defects were discovered by this plan's expanded
 test coverage (NOT the `cached_values`/`cached_mod` mechanism — two
-different, distinct bugs) and are now root-caused and tracked separately as
-of 2026-09-22:
+different, distinct bugs), root-caused 2026-09-22 and **both fixed
+2026-09-23**:
 - `InferencePropGCompMeanDiff` — randomization distribution all-NA in
   production. Root cause: worker-state gating (`sample_usable` flag only
-  set by the bootstrap loader, never the randomization loader). Tracked at
+  set by the bootstrap loader, never the randomization loader). **Fixed**
+  (class-specific `compute_randomization_worker_estimate()` override,
+  verified 99/99 finite draws, Type-I error nominal). Tracked at
   `fix_prop_gcomp_sample_usable_gating.md` /
-  `release_v1_1_0.md → TODO-35`.
+  `release_v1_1_0.md → TODO-35`. CSV regeneration still open there.
 - `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` — same NA symptom.
   Root cause: plain NA-propagation in an inverse-variance pooling step
   (`shared()` uses `ssq_m`/`ssq_r`, which are deliberately `NA` under
   `estimate_only = TRUE`), unguarded despite the file already containing a
-  correct reference implementation of the guard elsewhere. Tracked at
+  correct reference implementation of the guard elsewhere. **Fixed**
+  (equal-weight fallback added, matching the existing reference pattern;
+  verified `estimate_only = FALSE` unchanged bit-for-bit, `TRUE` now
+  finite, reused-worker `rand` distribution 99/99 finite). Tracked at
   `fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md` /
-  `release_v1_1_0.md → TODO-36`.
+  `release_v1_1_0.md → TODO-36`. CSV regeneration still open there.
+
+Both fixed classes have been removed from
+`RESAMPLING_NONDEGENERATE_KNOWN_BROKEN` in
+`test-reused-worker-resampling-nondegenerate.R` (per those plans' Status
+sections) — check whether that test file's list is now empty, since an
+empty `KNOWN_BROKEN` list changes the vacuity-canary behavior noted as
+Minor finding #3 in this plan's final review (the guard against a global
+test breakage silently passing relied on that list staying non-empty).
+
+A third, separate defect (also from the same original `bad_type1_error`
+audit wave, also originally miscategorized as this bug's mechanism) was
+investigated 2026-09-23 and remains open, NOT fixed: `InferenceContinLin`'s
+parametric-bootstrap/likelihood-ratio methods
+(`compute_lik_ratio_bootstrap_two_sided_pval`,
+`compute_param_bootstrap_pval`,
+`compute_lik_ratio_bartlett_approx_two_sided_pval`) have inflated,
+design-dependent Type-I error via a separate mechanism (not the reused-
+worker `rand` path, which IS fixed for this class). Tracked at
+`fix_contin_lin_param_bootstrap_bad_type1_error.md` /
+`release_v1_1_0.md → TODO-37`.
 
 Both are carried as self-retiring `KNOWN_BROKEN` entries in the new
 regression test (they fail loudly via `expect_identical` once fixed) so

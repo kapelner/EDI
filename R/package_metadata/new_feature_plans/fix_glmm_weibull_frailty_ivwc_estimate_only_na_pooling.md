@@ -100,9 +100,25 @@ if (!is.null(ssq_m_orig) && !is.null(ssq_r_orig) &&
 The fix is to bring `shared()`'s pooling block in line with this existing,
 already-correct pattern — not to invent new logic.
 
+## Status
+
+Fixed 2026-09-23, exactly as proposed: `shared()`'s `w_star` computation
+now falls back to `0.5` when `ssq_m`/`ssq_r` aren't both finite, matching
+`compute_treatment_estimate_during_randomization_inference()`'s existing
+guard. Verified on the plan's own golden fixture
+(`clayton_golden_design(n=24, seed=20260817)`):
+`estimate_only = FALSE` unchanged (`-0.2163981`, bit-for-bit);
+`estimate_only = TRUE` now `-0.4956479` (finite, same sign as the `FALSE`
+path, `beta_m`/`beta_r` unchanged at `0.0307`/`-1.022`); reused-worker
+`rand` distribution now 99/99 finite (`sd = 0.391`, previously all-NA).
+Removed from `RESAMPLING_NONDEGENERATE_KNOWN_BROKEN` in
+`test-reused-worker-resampling-nondegenerate.R`; full suite re-run passes
+(13/13). TODO-2 (broader grep for the same pooling shape elsewhere) and
+TODO-7 (CSV regeneration) still open.
+
 ## TODOs
 
-- [ ] TODO-1: Apply the fix — guard `shared()`'s `w_star` computation
+- [x] TODO-1: Apply the fix — guard `shared()`'s `w_star` computation
   (`inference_survival_GLMM_weibull_frailty_loggamma.R:296-300`) the same
   way `compute_treatment_estimate_during_randomization_inference()` already
   does: equal-weight fallback (`0.5 * beta_m + 0.5 * beta_r`) when
@@ -111,33 +127,58 @@ already-correct pattern — not to invent new logic.
   `R CMD INSTALL`/`R CMD build`/`pkgbuild::compile_dll()`/
   `load_all(compile = TRUE)` or unspecified `compile=` — hard project rule,
   see top-level `CLAUDE.md`).
-- [ ] TODO-2: Grep the file (and package) for the same
-  `w_star`/inverse-variance-pooling shape to confirm no other function or
-  class shares this exact NA-propagation bug (the investigation checked
-  only the one sibling class, `...OneLik`, which uses a structurally
-  different single-fit estimator and is not affected).
-- [ ] TODO-3: Re-run the golden fixture repro from this plan
-  (`clayton_golden_design(n=24, seed=20260817)`,
-  `compute_estimate(estimate_only = TRUE)`) and confirm it now returns a
-  finite value close to the `estimate_only = FALSE` result (`-0.2164`) —
-  the equal-weight fallback won't be numerically identical to the
-  inverse-variance-weighted `FALSE` path, so define what "close enough"
-  means before treating this as passing (e.g. same sign, same order of
-  magnitude, or compare against a small-`n` case where `w_star` is close to
-  0.5 anyway so the two paths nearly coincide).
-- [ ] TODO-4: Confirm the standing-constraint discipline this plan's sibling
-  fixes used: does `estimate_only = FALSE`'s result change at all? It
-  should not — the fix only touches the `estimate_only = TRUE` branch.
-- [ ] TODO-5: Re-run the reused-worker `rand` distribution for this class
-  (the golden fixture, `r` small) and confirm it's now non-degenerate
-  (`sd() > 0`), matching `fix_stale_worker_cache_resampling.md`'s TODO-5/6
-  verification style.
-- [ ] TODO-6: Remove
-  `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` from
-  `RESAMPLING_NONDEGENERATE_KNOWN_BROKEN` in
-  `R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R` once
-  fixed — the test's `expect_identical` against that list will fail loudly
-  if this isn't done, forcing the update.
+- [x] TODO-2 (2026-09-23, completed): Grepped `R/EDI/R/*.R` for
+  `w_star = ssq_r / (ssq_r + ssq_m)` and equivalent — found 10 more hits
+  across `inference_continuous_KK_robust_regr_ivwc.R`,
+  `inference_count_KK_cond_poisson.R` (×3, all three inside the one
+  `CountKKHurdlePoissonIVWCSource` list feeding
+  `InferenceCountKKHurdlePoissonIVWC` — not three separate classes),
+  `inference_continuous_KK_ols_ivwc.R`, `inference_incidence_KK_cond_logit.R`,
+  `inference_all_KK_wilcox_ivwc.R`,
+  `inference_all_KK_quantile_regr_ivwc_abstract.R` (feeds two concrete
+  leaves, `InferenceContinKKQuantileRegrIVWC`/`InferencePropKKQuantileRegrIVWC`),
+  `inference_survival_KK_lwa_cox_ivwc_abstract.R`,
+  `inference_survival_KK_strat_cox.R`,
+  `inference_survival_KK_rank_regr_ivwc_abstract.R`, plus
+  `inference_survival_GLMM_weibull_frailty_normal.R` (the *other* sibling,
+  not just the checked `...OneLik` one — this one DOES pool via IVWC, but
+  its `shared()` already has the correct `estimate_only` branch this class
+  was missing). Direct behavioral check
+  (`compute_estimate(estimate_only=TRUE)` vs. `FALSE` on a KK-matched
+  fixture) on all 9 concrete classes reachable from this list
+  (`InferenceContinKKRobustRegrOneLik`, `InferenceCountKKHurdlePoissonIVWC`,
+  `InferenceContinKKOLSOneLik`, `InferenceIncidKKCondLogitOneLik`,
+  `InferenceAllKKWilcoxIVWC`, `InferenceSurvivalKKLWACoxPHOneLik`,
+  `InferenceSurvivalKKStratCoxPHOneLik`, `InferenceContinKKQuantileRegrIVWC`,
+  `InferencePropKKQuantileRegrIVWC`) found **no NA-under-estimate_only
+  case anywhere** — each either already guards `estimate_only` before
+  computing `w_star`, or has its matched/reservoir helper substitute a
+  finite placeholder `ssq` (e.g. `1.0`, or a placeholder `se = 1` in
+  `InferenceCountKKHurdlePoissonIVWC`'s
+  `compute_treatment_estimate_during_randomization_inference()` — checked
+  directly since a hardcoded `se = FALSE` there looked suspicious on first
+  read, but the placeholder is finite, not NA, so `m_ok` is never
+  spuriously forced false; the ~0.09 point-estimate gap vs. the full path
+  is the expected cost of a cruder placeholder-variance weighting, not a
+  defect) under `estimate_only` instead of leaving it `NA`, avoiding the
+  bug by a different mechanism than this class needed. **This bug is
+  confirmed isolated to the one class already fixed** — the full sweep is
+  now complete, no unchecked spots remain, and no further action is
+  needed here.
+- [x] TODO-3: Re-ran the golden fixture repro
+  (`clayton_golden_design(n=24, seed=20260817)`):
+  `estimate_only = TRUE` now `-0.4956479` — finite, same sign as the
+  `FALSE` path's `-0.2163981`. Treated as passing per the plan's own
+  "close enough" criterion (same sign; the two paths use genuinely
+  different weights so exact numeric closeness was never the bar).
+- [x] TODO-4: `estimate_only = FALSE` unchanged, confirmed bit-for-bit
+  (`-0.2163981`, identical to the value already on record in this plan
+  and in `release_v1_1_0.md → TODO-36`).
+- [x] TODO-5: Reused-worker `rand` distribution on the golden fixture now
+  99/99 finite, `sd = 0.391` (previously all-NA).
+- [x] TODO-6: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` removed
+  from `RESAMPLING_NONDEGENERATE_KNOWN_BROKEN`; full regression file
+  re-run passes (13/13).
 - [ ] TODO-7: Regenerate any `comprehensive_tests` CSV rows for this
   class's `rand`-family methods once fixed and installed (only after
   install, not before, same caution as the sibling plans).

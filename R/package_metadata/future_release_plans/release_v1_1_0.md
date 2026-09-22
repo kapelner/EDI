@@ -1247,7 +1247,7 @@ ticked in their **owning plans**; this list is the release index.
 - **`TODO-32`** (added 2026-09-22, found the same way as `TODO-25`/`TODO-30`/
   `TODO-31` — a raw `comprehensive_tests` results-CSV `low_coverage` audit,
   not a user report): **MC coverage-truth uses the wrong covariate set** —
-  `fix_mc_coverage_truth_covariate_mismatch.md → TODO-1..5`. A harness bug,
+  `fix_mc_coverage_truth_covariate_mismatch.md → TODO-1..6`. A harness bug,
   not an inference-code bug. `get_coverage_truth()`'s Monte-Carlo path
   (`COVERAGE_MC_SPEC`, ~25 non-collapsible link-scale classes: Cox,
   logit/probit, GLMM/GEE) fits the class's own estimator against a
@@ -1265,9 +1265,37 @@ ticked in their **owning plans**; this list is the release index.
   2026-09-06 `InferenceAllSimpleMeanDiffPooledVar` fix's harness truth-scale
   bugs). This same mechanism plausibly explains most of the audit's
   previously-unexplained `low_coverage` baseline entries across
-  survival/ordinal/incidence/proportion (not yet individually confirmed per
-  class — the plan's TODO-1). Independent of every other 1.1.0 item;
-  depends on nothing else in this release.
+  survival/ordinal/incidence/proportion. **Update 2026-09-23:** the sweep
+  (plan's TODO-1) confirmed 13 of the 25 `COVERAGE_MC_SPEC` classes show
+  this exact signature, and the fix (TODO-2/3) is implemented — a shared
+  `coverage_truth_uses_real_covariates()`/`coverage_truth_cache_key()`
+  helper (also fixing a same-day regression where a second cache reader,
+  `get_estimate_logging_theta()`, drifted out of sync with the first, and a
+  malformed regex character class that silently matched nothing).
+  Verified trustworthy for the classes without a matched-design +
+  many-real-covariates combination (e.g. `SurvivalWeibullRegr`, unaffected
+  as expected). **`KKStratCoxPHOneLik`/`KKLWACoxPHOneLik` are NOT yet
+  trustworthy under this fix**, and should not be re-run until TODO-6 below
+  is resolved: their MC truth is sensitive to the resampling scheme used to
+  reach a large `mc_n` (deterministic block-recycling gives ~-6.0,
+  bootstrap-with-replacement gives ~-4.5 — an 18% disagreement, meaning
+  neither has converged), and both are far outside the REAL per-row
+  estimate distribution at `n=148` (-1.7 to -2.5, SD ~0.5-0.6). The likely
+  cause is a real, separately-known phenomenon — finite-sample attenuation
+  bias in matched/conditional partial-likelihood models with many
+  covariates relative to matched pairs (24 covariates vs. ~74 pairs here),
+  the same family of problem this release's planned Firth-type correction
+  targets — not a further harness bug, but this plan can't currently
+  distinguish that from an ill-posed MC construction without more work.
+  Options recorded in the plan (TODO-6): confirm true convergence, cap the
+  covariate count for these specific classes (a fresh, statistical reason
+  to do so, distinct from `KK21stepwise`'s existing runtime-driven
+  truncation), or wait on Firth-type correction to land first. The actual
+  harness re-run for the OTHER 11 confirmed classes (TODO-4/5) can proceed
+  independently, but needs an explicit go-ahead given cost (minutes, not
+  under a second, per cell with real covariates) and that it touches
+  shared result CSVs other sessions/CI also read. Independent of every
+  other 1.1.0 item; depends on nothing else in this release.
 - **`TODO-33`** (added 2026-09-22, user-requested investigation of a prior
   fix's explicit out-of-scope note): **Cox Bartlett-approx likelihood-ratio
   correction, currently forced off** — `enable_cox_bartlett_approx.md →
@@ -1341,7 +1369,8 @@ ticked in their **owning plans**; this list is the release index.
   `compute_randomization_worker_estimate()` override reusing the standard
   path's `shared()` → `cached_values$md` logic against the worker clone,
   rather than a shared-loader branch. Independent of every other 1.1.0
-  item; depends on nothing else in this release.
+  item; depends on nothing else in this release. **Fixed 2026-09-23** —
+  see the plan's `Status` section; CSV regeneration (TODO-6) still open.
 - **`TODO-36`** (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
   `TODO-31`'s new regression test — the new KK-design fixture arm was the
   first thing to exercise `estimate_only = TRUE` on this class with both
@@ -1369,6 +1398,39 @@ ticked in their **owning plans**; this list is the release index.
   (`0.5 * beta_m + 0.5 * beta_r`) fallback when `ssq_m`/`ssq_r` aren't both
   finite — `shared()` just never adopted the same guard. Independent of
   every other 1.1.0 item; depends on nothing else in this release.
+  **Fixed 2026-09-23** — see the plan's `Status`/TODO checkmarks; CSV
+  regeneration (TODO-7) still open.
+- **`TODO-37`** (added 2026-09-23, from the same `bad_type1_error` audit
+  wave as `TODO-31`, originally hypothesized to be the same mechanism —
+  confirmed separate and still unfixed): **`InferenceContinLin` parametric-
+  bootstrap / likelihood-ratio methods have inflated Type-I error, design-
+  dependent** — `fix_contin_lin_param_bootstrap_bad_type1_error.md →
+  TODO-1..7`. Three methods flagged simultaneously by the audit
+  (`compute_lik_ratio_bootstrap_two_sided_pval` z=19.4,
+  `compute_param_bootstrap_pval` z=18.8,
+  `compute_lik_ratio_bartlett_approx_two_sided_pval` z=16.4) — NOT the
+  reused-worker `rand` path `TODO-31` fixed (that path is confirmed fixed
+  for this class, part of `TODO-31`'s 7-class list), but a separate
+  parametric-bootstrap/likelihood-ratio-simulation mechanism. Confirmed by
+  direct comparison against `InferenceContinOLS` (same generic
+  `ParametricLikelihoodBootstrap` machinery, near-nominal rejection rates)
+  that the bug is isolated to `InferenceContinLin`'s own overrides
+  (`inference_continuous_lin.R:285-429`), not shared machinery. Confirmed
+  design-dependent from historical `comprehensive_tests` CSV data: rejection
+  rate at a true null ranges from 0.059 (SPBR, near nominal) to 0.406
+  (`FixedMatchingGreedy`, 8× nominal), tracking how strongly each design
+  structurally links treatment assignment to covariates — but NOT
+  reproduced with a plain Bernoulli design plus a merely-correlated (even
+  interaction-term) covariate, meaning the bug needs the actual structured
+  `Design` subclass's block/match machinery to bite, not just statistical
+  correlation. One unconfirmed lead: `get_centered_covariates()`
+  (`:262-284`) caches on the *design object's* private state rather than
+  the inference object's own cache, an unusual location not yet ruled in
+  or out. Root cause not yet pinned to a specific line — needs a repro
+  built with the actual flagged design classes
+  (`DesignFixedBlocking`/`DesignFixedMatchingGreedy`), which the
+  investigation didn't reach. Independent of every other 1.1.0 item;
+  depends on nothing else in this release.
 
 ## Standing constraints
 

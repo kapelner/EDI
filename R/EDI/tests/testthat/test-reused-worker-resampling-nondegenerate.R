@@ -57,25 +57,24 @@ RESAMPLING_NONDEGENERATE_RESPONSE_TYPES = c(
 # possible: the expectation below fails if an entry is fixed (so the entry gets
 # removed) or if a new class regresses into degeneracy (so it gets fixed).
 #
+# Both prior entries fixed 2026-09-23:
 #   * InferencePropGCompMeanDiff -- its `compute_bootstrap_worker_estimate()`
-#     returns NA unless `worker_state$runtime$sample_usable` is TRUE, and only
-#     the *bootstrap* row-sample loader ever sets that field. The randomization
-#     loader installs a permuted assignment without touching `runtime`, so every
-#     randomization draw returns NA. A worker-state defect, not a
-#     `cached_values` one: fixing it means rebuilding `runtime$current_X_full`
-#     from the permuted assignment, which is a decision about that class's
-#     estimator. Verified identical before and after
-#     fix_stale_worker_cache_resampling.md, i.e. pre-existing.
-#   * InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC -- every reused-worker
-#     draw is NA while the standard path varies. Also pre-existing (identical
-#     before and after that fix) and not diagnosed: note that this class cannot
-#     compute a finite point estimate on the unpermuted fixture either, at any
-#     n or censoring level tried, so the fixture may simply be unusable for it
-#     rather than the machinery being at fault.
-RESAMPLING_NONDEGENERATE_KNOWN_BROKEN = c(
-	"InferencePropGCompMeanDiff",
-	"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC"
-)
+#     returned NA unless `worker_state$runtime$sample_usable` was TRUE, a field
+#     only the *bootstrap* row-sample loader ever set. Fixed with a dedicated
+#     `compute_randomization_worker_estimate()` override that mirrors the
+#     already-correct standard-path logic
+#     (`compute_treatment_estimate_during_randomization_inference()`'s
+#     `shared()` + `cached_values$md`) on the worker clone instead of `self`;
+#     see fix_prop_gcomp_sample_usable_gating.md.
+#   * InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC -- `shared()`'s
+#     inverse-variance pooling weight (`w_star = ssq_r / (ssq_r + ssq_m)`) used
+#     `ssq_m`/`ssq_r` unconditionally, both deliberately `NA` under
+#     `estimate_only = TRUE` (every resampling draw), making `beta_hat_T`
+#     unconditionally NA. Fixed with the same equal-weight fallback already
+#     correct elsewhere in the file
+#     (`compute_treatment_estimate_during_randomization_inference()`); see
+#     fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md.
+RESAMPLING_NONDEGENERATE_KNOWN_BROKEN = character(0)
 
 # Responses for the structured-design arms, mirroring the recipe
 # `inference_migration_complete_design()` uses for the Bernoulli arm. It is

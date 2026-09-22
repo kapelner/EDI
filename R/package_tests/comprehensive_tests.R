@@ -3208,12 +3208,28 @@ COVERAGE_CLOSED_FORM = list(
 
 # Monte Carlo via SimulationFramework: reuses its design-building (incl. auto strata/cluster
 # injection for KK-matched designs) rather than hand-rolling that logic here.
-compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_type, dataset_name, beta_T_val, mc_n){
+#
+# `real_X`: when supplied (a per-row test used the real dataset's full covariate
+# set, i.e. NOT an explicit `~1` label -- see get_coverage_truth()'s
+# use_real_covariates), its rows are recycled to length mc_n exactly like
+# y_base below, so the MC fit adjusts for the SAME covariate set the real
+# per-row results were fit against (TODO-32,
+# fix_mc_coverage_truth_covariate_mismatch.md). NULL keeps the original single
+# synthetic-covariate behavior, which is already correct for an `~1`
+# (no-adjustment) per-row fit.
+compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_type, dataset_name, beta_T_val, mc_n, real_X = NULL){
 	y_base = datasets_and_response_models[[dataset_name]]$y_original[[response_type]]
+	p_mc = if (is.null(real_X)) 1L else ncol(real_X)
 	custom_data = function(state, rep){
 		n0 = length(y_base)
 		y_rep = rep(y_base, ceiling(state$n / n0))[seq_len(state$n)]
-		list(X = data.frame(x1 = stats::rnorm(state$n)), y_linear_model = y_rep)
+		X_rep = if (is.null(real_X)) {
+			data.frame(x1 = stats::rnorm(state$n))
+		} else {
+			n0_X = nrow(real_X)
+			real_X[rep(seq_len(n0_X), ceiling(state$n / n0_X))[seq_len(state$n)], , drop = FALSE]
+		}
+		list(X = X_rep, y_linear_model = y_rep)
 	}
 	custom_apply = function(y_linear_model, w, state){
 		n = length(y_linear_model)
@@ -3235,7 +3251,7 @@ compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_ty
 		design_classes_and_params = list(design_gen),
 		inference_classes_and_params = list(class_gen),
 		inference_types_and_params = list(rand_pval = list()),
-		n = mc_n, p = 1L, Nrep_W = 1L, Nrep_Y_w = 1L,
+		n = mc_n, p = p_mc, Nrep_W = 1L, Nrep_Y_w = 1L,
 		betaT = beta_T_val,
 		custom_replication_data_generator = custom_data,
 		custom_apply_treatment_and_noise = custom_apply,
@@ -3325,6 +3341,23 @@ COVERAGE_MC_SPEC = list(
 	InferenceOrdinalKKCLMMCauchit        = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKCLMMCauchit),       mc_n = 3000L)
 )
 
+# TODO-32 (fix_mc_coverage_truth_covariate_mismatch.md): shared by
+# get_coverage_truth() and get_estimate_logging_theta() so their
+# .coverage_truth_cache keys can never drift apart again -- they did once
+# (2026-09-22 fix), silently breaking get_estimate_logging_theta()'s
+# diagnostic-annotation lookup (cosmetic only: it degrades console logging,
+# it is never read for the recorded coverage_truth column) without erroring.
+coverage_truth_uses_real_covariates = function(inference_class){
+	# NOT a POSIX bracket expression ([\)\]] doesn't do what it looks like it
+	# does -- R's default ERE engine doesn't support backslash escapes inside
+	# [...], so that silently matched nothing at all; caught 2026-09-23 by a
+	# direct unit check, not by comprehensive_tests itself). Plain alternation.
+	!grepl("~1\\)|~1\\]", inference_class)
+}
+coverage_truth_cache_key = function(base_class, dataset_name, beta_T_val, use_real_covariates){
+	paste(base_class, dataset_name, beta_T_val, use_real_covariates, sep = "||")
+}
+
 get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
 	base_class = sub(" [\\(\\[].*$", "", inference_class)
 	closed_form_fn = COVERAGE_CLOSED_FORM[[base_class]]
@@ -3344,7 +3377,21 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 	}
 	spec = COVERAGE_MC_SPEC[[base_class]]
 	if (!is.null(spec)) {
-		key = paste(base_class, dataset_name, beta_T_val, sep = "||")
+		# TODO-32 (fix_mc_coverage_truth_covariate_mismatch.md): the MC fit below
+		# used to always simulate against ONE synthetic covariate, while a
+		# `(model_formula=~.)`/`[design_formula=~.]` per-row test adjusts for the
+		# real dataset's FULL covariate matrix -- two different fitted models for
+		# a non-collapsible coefficient, not two draws of the same one (confirmed
+		# 2026-09-22 on InferenceSurvivalKKStratCoxPHOneLik: coverage 0.91 at
+		# beta_T=0, 0.30 at beta_T=0.5, uniformly across every CI method -- the
+		# signature of a wrong reference value). An explicit `~1` suffix is the
+		# ONLY case with no real adjustment set (matches the old synthetic-x1
+		# behavior, which never used the formula anyway); everything else,
+		# including a bare label with no suffix (a fixed-formula class, always
+		# fit as `~.` per run_tests_for_response()'s own default), adjusts for
+		# the real covariates and must be matched here.
+		use_real_covariates = coverage_truth_uses_real_covariates(inference_class)
+		key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, use_real_covariates)
 		if (exists(key, envir = .coverage_truth_cache, inherits = FALSE)) {
 			return(get(key, envir = .coverage_truth_cache, inherits = FALSE))
 		}
@@ -3383,7 +3430,8 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 		for (attempt in seq_len(max_mc_attempts)) {
 			truth = tryCatch(
 				compute_mc_coverage_truth_simframe(
-					eval(spec$gen), eval(spec$design), spec$rt, dataset_name, beta_T_val, spec$mc_n
+					eval(spec$gen), eval(spec$design), spec$rt, dataset_name, beta_T_val, spec$mc_n,
+					real_X = if (use_real_covariates) datasets_and_response_models[[dataset_name]]$X else NULL
 				),
 				error = function(e) NA_real_
 			)
@@ -3498,7 +3546,7 @@ get_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val,
 	if (exists(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE)) {
 		return(get(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE))
 	}
-	coverage_key = paste(base_class, dataset_name, beta_T_val, sep = "||")
+	coverage_key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, coverage_truth_uses_real_covariates(inference_class))
 	if (exists(coverage_key, envir = .coverage_truth_cache, inherits = FALSE)) {
 		return(get(coverage_key, envir = .coverage_truth_cache, inherits = FALSE))
 	}
