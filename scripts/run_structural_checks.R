@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # Fast structural gate run by .githooks/pre-push BEFORE the full R test suite.
-# Four cheap checks for the bug families behind the 2026-09-19
+# Five cheap checks for the bug families behind the 2026-09-19
 # comprehensive_tests results audit:
 #   * wiring completeness -- a method a component/capability promises is
 #     silently NULL on the assembled class;
@@ -9,7 +9,10 @@
 #   * adversarial data + injected SE faults -- pathological inputs must yield a
 #     clean NA/error, never a wrong-looking number (~15 s);
 #   * reference parity -- estimates/SEs match survival/quantreg/pscl/glm/...
-#     fit to the same data (~10 s).
+#     fit to the same data (~10 s);
+#   * reused-worker resampling non-degeneracy -- a per-draw cache the loader
+#     forgets to reset turns a randomization distribution into r copies of
+#     draw 1 (fix_stale_worker_cache_resampling.md, ~10 s).
 # ~1.5 minutes total, so a break fails the push early instead of after the full
 # ~10 minute suite. They also run again inside the full suite (they live in
 # R/EDI/tests/testthat/), which is intentional: this pass exists purely for
@@ -27,7 +30,8 @@ files <- c(
 	"testthat/test-inference-class-wiring-completeness.R",
 	"testthat/test-registry-component-drift.R",
 	"testthat/test-adversarial-and-fault-injection.R",
-	"testthat/test-reference-parity.R"
+	"testthat/test-reference-parity.R",
+	"testthat/test-reused-worker-resampling-nondegenerate.R"
 )
 
 failed <- FALSE

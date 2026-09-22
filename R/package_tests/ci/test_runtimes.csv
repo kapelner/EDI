@@ -820,6 +820,7 @@ R/EDI/tests/testthat/test-registry-component-drift.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rerandomization-objective-contiguous-indicts.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rerandomization-search-early-stop.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-resampling-draw-contracts.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-robust-regression-mad.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-robust-regression-xtx-cache.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-runtime-argument-combination-assertions.R,coverage,1,measured_with_30_percent_headroom
