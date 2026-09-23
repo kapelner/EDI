@@ -27,21 +27,59 @@
 #   degenerate_ci        >= 2% (and >= 5 rows) of >= 10 finite ok CI rows are near-zero-width
 #                        (the zero-width-at-the-point-estimate signature of a
 #                        silently failed test inversion)
-#   low_coverage         >= 50 ok CI rows with a truth indicator and empirical
-#                        coverage of beta_T below 0.75
+#   low_coverage         >= 50 ok CI rows with a truth indicator, tested via
+#                        a two-sided exact binomial test of H0: true
+#                        coverage = COVERAGE_TARGET (0.95) -- replaces a
+#                        blunt "coverage < 0.75" heuristic (retired
+#                        2026-09-24) that had no notion of how surprising a
+#                        given deviation was for the sample size, and could
+#                        only ever catch severe UNDER-coverage. Two-sided
+#                        catches OVER-coverage too (a CI too conservative/
+#                        wide to be useful -- the CI analogue of low_power,
+#                        technically "safe" but uninformative). Coverage is
+#                        a single Bernoulli proportion per row, not a full
+#                        distribution the way a p-value is, so the exact
+#                        binomial test is already the sufficient, most
+#                        powerful test for this hypothesis -- no AD/KS/
+#                        Fisher/ACAT needed, unlike pval_miscalibration.
+#                        FDR-controlled (Benjamini-Hochberg, q=0.05) across
+#                        every cell in the run, its own family (this tests
+#                        CI coverage, not p-value calibration or power, on
+#                        a third data slice again). `detail` reports which
+#                        direction (under/over) plus the raw coverage and
+#                        p-value.
 #   biased_estimate      >= 30 ok compute_estimate/compute_jackknife_estimate
-#                        rows whose mean (estimate - truth) is >4 Monte Carlo
-#                        standard errors from 0 (one-sample t-test on the
-#                        per-row error; truth is `coverage_truth` when present
-#                        -- the harness's own truth-scale value, e.g. 1 for a
-#                        risk ratio's null, not raw beta_T -- falling back to
-#                        beta_T otherwise). Pooled across beta_T/design like
-#                        every other check here, so a bias present at either
-#                        beta_T=0 or beta_T!=0 shows up; a class whose truth
-#                        scale differs from beta_T but has no coverage_truth
+#                        rows, tested two ways on the SAME per-row error
+#                        vector (estimate - truth): (a) a one-sample
+#                        t-distribution test (df=n-1, exact not normal-
+#                        approximated) of H0: mean error = 0, (b) a
+#                        Wilcoxon signed-rank test of H0: the error
+#                        distribution is symmetric about 0 -- far more
+#                        robust to a handful of numerical-blowup outliers
+#                        (e.g. an unguarded near-singular matrix inverse)
+#                        than (a): such outliers inflate the t-test's own
+#                        denominator, which MASKS a real bias rather than
+#                        falsely flagging one, and can threaten the large-n
+#                        CLT approximation (a) actually leans on for
+#                        validity (individual errors need not be Gaussian,
+#                        but the t-test's exactness assumes it -- at these
+#                        row counts what really holds it up is CLT-based
+#                        asymptotic normality of the MEAN, which itself
+#                        degrades under heavy contamination). Combined into
+#                        ONE p-value per cell via ACAT (ref: pval_miscalibration
+#                        below), FDR-controlled (Benjamini-Hochberg, q=0.05)
+#                        across every cell, its own family. Truth is
+#                        `coverage_truth` when present -- the harness's own
+#                        truth-scale value, e.g. 1 for a risk ratio's null,
+#                        not raw beta_T -- falling back to beta_T otherwise.
+#                        Pooled across beta_T/design like every other check
+#                        here, so a bias present at either beta_T=0 or
+#                        beta_T!=0 shows up; a class whose truth scale
+#                        differs from beta_T but has no coverage_truth
 #                        override will false-positive here -- if that's the
-#                        cause, the fix is adding the override, not accepting
-#                        an unrelated estimator bug into the baseline.
+#                        cause, the fix is adding the override, not
+#                        accepting an unrelated estimator bug into the
+#                        baseline.
 #   pval_miscalibration  >= 30 ok *_two_sided_pval rows at beta_T=0 (a true
 #                        null on any scale), tested four ways on the SAME
 #                        per-cell p-value vector: (a) rejection rate at
@@ -172,9 +210,13 @@ programming_error_regex = paste(sprintf("(%s)", PROGRAMMING_ERROR_PATTERNS), col
 
 PVAL_CLAMP_EPS = 1e-10 # see note at first use, below
 LOW_POWER_TARGET = 0.10
+COVERAGE_TARGET = 0.95
 PVAL_MISCALIBRATION_FDR_Q = 0.05
 LOW_POWER_FDR_Q = 0.05
+COVERAGE_FDR_Q = 0.05
+BIAS_FDR_Q = 0.05
 AD_MIN_N = 30L # below the row-count floor every sub-test in this family already uses
+COVERAGE_MIN_N = 50L # unchanged from the retired heuristic's own floor
 
 bare_class = function(x) trimws(sub("^([^ (\\[]+).*$", "\\1", x))
 # Extracts the "(model_formula=~X)" tag `inference_class` carries for classes
@@ -358,20 +400,51 @@ audit_one = function(path, rt) {
 	deg = fin[, .(n = .N, nz = sum((hi - lo) < 1e-6), frac = mean((hi - lo) < 1e-6)), by = .(class, formula, function_run)][n >= 10L & nz >= 5L & frac >= 0.02]
 	if (nrow(deg)) out[[length(out) + 1L]] = deg[, finding("degenerate_ci", rt, class, formula, function_run, sprintf("%.0f%% of %d rows zero-width", 100 * frac, n))]
 
-	cov = ci[!is.na(beta_T_in_confidence_interval), .(n = .N, coverage = mean(as.logical(beta_T_in_confidence_interval))), by = .(class, formula, function_run)][n >= 50L & coverage < 0.75]
-	if (nrow(cov)) out[[length(out) + 1L]] = cov[, finding("low_coverage", rt, class, formula, function_run, sprintf("coverage %.3f over %d rows", coverage, n))]
+	# --- coverage candidates ---
+	cov = ci[!is.na(beta_T_in_confidence_interval), {
+		n = .N
+		k = sum(as.logical(beta_T_in_confidence_interval))
+		coverage = k / n
+		p_cov = stats::binom.test(k, n, p = COVERAGE_TARGET, alternative = "two.sided")$p.value
+		list(n = n, coverage = coverage, p_cov = p_cov)
+	}, by = .(class, formula, function_run)][n >= COVERAGE_MIN_N]
+	if (nrow(cov)) {
+		cov[, p_combined := vapply(p_cov, function(p) acat_combine(p), numeric(1))]
+		cov[, response_type := rt]
+	}
 
+	# --- bias candidates ---
 	est = dt[status == "ok" & function_run %in% c("compute_estimate", "compute_jackknife_estimate")]
 	est[, `:=`(est_val = suppressWarnings(as.numeric(result)), truth = fifelse(is.na(coverage_truth), beta_T, coverage_truth))]
 	est = est[is.finite(est_val) & is.finite(truth)]
+	bias_tbl = data.table()
 	if (nrow(est)) {
 		bias_tbl = est[, {
 			d = est_val - truth
 			n = .N; b = mean(d); s = sd(d)
 			se = if (is.finite(s) && s > 0) s / sqrt(n) else NA_real_
-			list(n = n, bias = b, rmse = sqrt(mean(d^2)), tstat = if (is.finite(se) && se > 0) b / se else NA_real_)
-		}, by = .(class, formula, function_run)][n >= 30L & is.finite(tstat) & abs(tstat) > 4]
-		if (nrow(bias_tbl)) out[[length(out) + 1L]] = bias_tbl[, finding("biased_estimate", rt, class, formula, function_run, sprintf("mean bias %+.4f (rmse %.4f) over %d rows, t=%.1f", bias, rmse, n, tstat))]
+			tstat = if (is.finite(se) && se > 0) b / se else NA_real_
+			# Two-sided exact t-distribution p-value (df = n-1), not a normal
+			# approximation -- marginally better small-sample calibration,
+			# free to compute.
+			p_t = if (is.finite(tstat)) 2 * stats::pt(-abs(tstat), df = n - 1) else NA_real_
+			# Wilcoxon signed-rank, H0: the distribution of d is symmetric about
+			# 0 (a location test, not exactly "mean = 0", but far more robust
+			# to the outlier/heavy-tail contamination the t-test is vulnerable
+			# to -- see PVAL_CLAMP_EPS-adjacent discussion: a handful of
+			# numerical-blowup outliers inflate the t-test's own denominator
+			# (masking bias, not falsely flagging it) and can threaten the
+			# CLT approximation the t-test's large-n validity actually rests
+			# on; Wilcoxon needs neither. Suppressed ties/zeroes warning:
+			# resampling-based/rounded estimates routinely tie at these row
+			# counts, same rationale as ks.test() above.
+			p_w = if (n >= 2L) suppressWarnings(stats::wilcox.test(d, mu = 0, alternative = "two.sided")$p.value) else NA_real_
+			list(n = n, bias = b, rmse = sqrt(mean(d^2)), tstat = tstat, p_t = p_t, p_w = p_w)
+		}, by = .(class, formula, function_run)][n >= 30L & is.finite(p_t) & is.finite(p_w)]
+		if (nrow(bias_tbl)) {
+			bias_tbl[, p_combined := mapply(function(a, b) acat_combine(c(a, b)), p_t, p_w)]
+			bias_tbl[, response_type := rt]
+		}
 	}
 
 	er = dt[status == "error" & !is.na(error_message) & grepl(programming_error_regex, error_message, perl = TRUE)]
@@ -384,7 +457,9 @@ audit_one = function(path, rt) {
 	list(
 		findings = if (length(out)) rbindlist(out) else data.table(),
 		pval_candidates = if (nrow(pm)) pm else data.table(),
-		power_candidates = if (nrow(lp)) lp else data.table()
+		power_candidates = if (nrow(lp)) lp else data.table(),
+		coverage_candidates = if (nrow(cov)) cov else data.table(),
+		bias_candidates = if (nrow(bias_tbl)) bias_tbl else data.table()
 	)
 }
 
@@ -423,7 +498,35 @@ if (nrow(power_candidates)) {
 	}
 }
 
-all_findings = rbindlist(list(rule_findings, pval_findings, power_findings), fill = TRUE)
+coverage_candidates = rbindlist(lapply(per_file, `[[`, "coverage_candidates"), fill = TRUE)
+coverage_findings = data.table()
+if (nrow(coverage_candidates)) {
+	coverage_candidates[, pass := bh_reject(p_combined, COVERAGE_FDR_Q)]
+	flagged = coverage_candidates[pass == TRUE]
+	if (nrow(flagged)) {
+		flagged[, detail := sprintf(
+			"coverage %.3f over %d rows, %s (target %.2f), p=%.2e; FDR q=%.2f",
+			coverage, n, fifelse(coverage < COVERAGE_TARGET, "UNDER", "OVER"), COVERAGE_TARGET, p_cov, COVERAGE_FDR_Q
+		)]
+		coverage_findings = flagged[, finding("low_coverage", response_type, class, formula, function_run, detail)]
+	}
+}
+
+bias_candidates = rbindlist(lapply(per_file, `[[`, "bias_candidates"), fill = TRUE)
+bias_findings = data.table()
+if (nrow(bias_candidates)) {
+	bias_candidates[, pass := bh_reject(p_combined, BIAS_FDR_Q)]
+	flagged = bias_candidates[pass == TRUE]
+	if (nrow(flagged)) {
+		flagged[, detail := sprintf(
+			"ACAT-combined p=%.2e over %d rows (t-test: mean bias %+.4f, rmse %.4f, t=%.1f, p=%.2e; Wilcoxon signed-rank p=%.2e); FDR q=%.2f",
+			p_combined, n, bias, rmse, tstat, p_t, p_w, BIAS_FDR_Q
+		)]
+		bias_findings = flagged[, finding("biased_estimate", response_type, class, formula, function_run, detail)]
+	}
+}
+
+all_findings = rbindlist(list(rule_findings, pval_findings, power_findings, coverage_findings, bias_findings), fill = TRUE)
 if (!nrow(all_findings)) all_findings = data.table(check = character(), response_type = character(), class = character(), formula = character(), function_run = character(), detail = character())
 # formula is frequently NA (classes with no model_formula concept); paste()
 # on an NA column turns it into the literal string "NA", which is fine as a

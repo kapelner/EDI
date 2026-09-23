@@ -375,6 +375,7 @@ R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-data-split-reference.R,cor
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-nonestimable-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-weighted-refit-extreme-coefficient-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likelihood-and-fit-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-fit-cascade-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-abstract-build-design-matrix-and-get-estimand-type-not-implemented-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-cluster-id-cache-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-weighted-estimate-fit-with-sandwich-and-usability-predicates-reference.R,correctness,120,bootstrap
@@ -382,12 +383,15 @@ R/package_tests/testthat_bulk/test-kk-gcomp-risk-ratio-effect-ci-log-scale-overf
 R/package_tests/testthat_bulk/test-kk-gee-count-weighted-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-fit-failed-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-parity.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk-gee-predictors-df-candidates-hardening-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-shared-extractors-fit-data-and-jackknife-calibration-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-weighted-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-glmm-count-randomization-estimate-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-glmm-fit-failed-guard-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk-glmm-predictors-df-candidates-hardening-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-hurdle-poisson-onelik-combined-fit-constraints-and-covariate-reduction-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-hurdle-poisson-onelik-combined-likelihood-derivatives-and-conservative-helpers-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk-hurdle-poisson-onelik-weighted-estimate-and-fit-summary-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-incidence-gcomp-risk-diff-resampling.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-incidence-gcomp-risk-ratio-resampling.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-inference-family-is-a-type-marker-predicates-reference.R,correctness,120,bootstrap
@@ -1462,6 +1466,7 @@ R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-data-split-reference.R,cov
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-nonestimable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-weighted-refit-extreme-coefficient-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likelihood-and-fit-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-fit-cascade-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-abstract-build-design-matrix-and-get-estimand-type-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-cluster-id-cache-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-weighted-estimate-fit-with-sandwich-and-usability-predicates-reference.R,coverage,240,bootstrap
@@ -1469,12 +1474,15 @@ R/package_tests/testthat_bulk/test-kk-gcomp-risk-ratio-effect-ci-log-scale-overf
 R/package_tests/testthat_bulk/test-kk-gee-count-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-fit-failed-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-parity.R,coverage,11.9,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk-gee-predictors-df-candidates-hardening-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-shared-extractors-fit-data-and-jackknife-calibration-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gee-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-glmm-count-randomization-estimate-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-glmm-fit-failed-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-glmm-predictors-df-candidates-hardening-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-hurdle-poisson-onelik-combined-fit-constraints-and-covariate-reduction-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-hurdle-poisson-onelik-combined-likelihood-derivatives-and-conservative-helpers-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-hurdle-poisson-onelik-weighted-estimate-and-fit-summary-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-incidence-gcomp-risk-diff-resampling.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-incidence-gcomp-risk-ratio-resampling.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-inference-family-is-a-type-marker-predicates-reference.R,coverage,240,bootstrap

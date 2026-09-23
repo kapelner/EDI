@@ -378,8 +378,10 @@ plan files' internal numbering did not change.
   release; depends on nothing else.
 - [ ] TODO-19 (added 2026-09-23, same audit-triage wave as TODO-17/18, a
   secondary lead the investigating fork did not have budget to fully
-  confirm — **medium confidence, needs more work before its own plan
-  file**): possible over-estimated standard error causing chronic
+  confirm — **medium confidence**; tracked as an open investigation, not
+  a fix plan, in
+  `new_feature_plans/investigate_incid_kk_modified_poisson_se_quality.md`):
+  possible over-estimated standard error causing chronic
   under-rejection (reject-rate 0.000) across MULTIPLE unrelated test-
   statistic families simultaneously (Wald, score, gradient, likelihood-
   ratio, Bartlett all zero-reject at the same cell) for
@@ -440,11 +442,12 @@ plan files' internal numbering did not change.
   simultaneously through that one shared field — over-estimated SE →
   conservative/under-reject, under-estimated SE → anti-conservative/
   over-reject, both directions genuinely observed. Not yet confirmed by a
-  multi-rep calibration repro (medium confidence). No plan file written
-  yet; whoever picks this up should write one once the empirical-SD-vs-
-  reported-SE check confirms the hypothesis for at least one class (or
-  finds the real cause), and should treat this as a potential
-  cross-class SE-quality audit, not a single-class fix.
+  multi-rep calibration repro (medium confidence). Tracked as an open
+  investigation (see the plan-link above); should be upgraded to a proper
+  fix plan only once the empirical-SD-vs-reported-SE check confirms the
+  hypothesis for at least one class (or finds the real cause), and should
+  be treated as a potential cross-class SE-quality audit, not a
+  single-class fix.
 
   **Tension to note 2026-09-23**: this "broadened" reasoning partly leaned
   on this TODO's original ~4× SE-overestimation number for
@@ -462,7 +465,9 @@ plan files' internal numbering did not change.
 - [ ] TODO-20 (added 2026-09-23, same audit-triage wave; original
   `fit_warm_keep` hypothesis **REFUTED 2026-09-23 by direct code trace,
   high confidence** — new alternative lead, medium confidence, not yet
-  reproduced): `InferenceContinQuantileRegr` shows CONSISTENT-direction
+  reproduced; tracked as an open investigation, not a fix plan, in
+  `new_feature_plans/investigate_contin_quantile_regr_bootstrap_family_inflation.md`):
+  `InferenceContinQuantileRegr` shows CONSISTENT-direction
   (not mixed, unlike TODO-19) severe Type-I error inflation across
   multiple bootstrap-family p-value methods
   (`compute_rand_bootstrap_two_sided_pval` 0.185 vs. nominal 0.05,
@@ -514,7 +519,9 @@ plan files' internal numbering did not change.
   singleton hypothesis **REFUTED 2026-09-23 by code trace AND direct
   reproduction, high confidence on the code being correct — but the
   historical inflation finding itself is now UNCONFIRMED, not
-  reproduced**): `InferenceIncidKKGEE` shows the same consistent-direction
+  reproduced**; tracked as an open investigation, not a fix plan, in
+  `new_feature_plans/investigate_incid_kk_gee_bootstrap_family_inflation.md`):
+  `InferenceIncidKKGEE` shows the same consistent-direction
   bootstrap-family inflation shape as TODO-20
   (`compute_bayesian_bootstrap_two_sided_pval_wald` 0.314,
   `compute_bayesian_bootstrap_two_sided_pval` 0.306,
@@ -584,13 +591,43 @@ plan files' internal numbering did not change.
   the same way `Design$get_effective_time()`/`$get_effective_dead()` do,
   matching `InferenceAll`'s own `initialize()` exactly. Not independently
   re-verified by this file's own investigation (no fresh repro run here —
-  taken on the fix author's own before/after numbers). **Open follow-up,
-  not yet done by anyone**: whether any *other* class shares "the
-  identical buggy snippet" — the fix was applied to the three classes
-  found so far, not from an exhaustive `grep`-and-check sweep of every
-  survival class's `compute_treatment_estimate_during_randomization_inference()`
-  override; that sweep is still needed before this can be considered fully
-  closed.
+  taken on the fix author's own before/after numbers).
+
+  **Follow-up sweep completed 2026-09-23/24 — no other class affected,
+  closed**: checked every `inference_survival_*.R` file's own
+  `compute_treatment_estimate_during_randomization_inference()`/`shared()`/
+  `generate_mod()` override (16 files) for whether it re-reads raw
+  `des_obj_priv_int$y`/`$dead` instead of the already-correct
+  `private$y`/`private$dead` set once by `Inference$initialize()`
+  (`inference_all_abstract.R:92`: `private$y = if
+  (private$has_general_censoring) des_obj$get_y() else
+  des_obj$get_effective_time()`). Every class besides the three already
+  named above — `inference_survival_coxph.R`, `inference_survival_strat_cox.R`,
+  `inference_survival_KK_strat_cox.R` (flows through the base
+  `InferenceRand`/`StandardModelCache` generic, which just calls
+  `self$compute_estimate()`/`private$shared()`), `inference_survival_weibull.R`,
+  `inference_survival_dep_cens_transform.R`,
+  `inference_survival_KK_weibull_marginal.R`,
+  `inference_survival_KK_lwa_cox_ivwc_abstract.R` — reads `private$y`/
+  `private$dead` directly, never the raw design field. A 4th site with the
+  buggy re-derivation pattern was found and confirmed already fixed while
+  sweeping (`InferenceSurvivalGLMMWeibullFrailtyNormalIVWC`,
+  `inference_survival_GLMM_weibull_frailty_normal.R` — same fix comment/
+  pattern as the other three). No unfixed occurrences remain. This TODO is
+  now fully closed.
+
+  **Unrelated tangent noticed while sweeping, not investigated further
+  (flagging only)**: `inference_survival_KK_lwa_cox_ivwc_abstract.R`'s
+  `shared()` (lines ~109-138) has the same *shape* as TODO-14's
+  estimate-only-NA-pooling bug (unconditional
+  `w_star = ssq_r / (ssq_r + ssq_m)` inverse-variance pooling) — but unlike
+  the Weibull-frailty case, its `fit_cox_model()`'s `ssq` doesn't appear to
+  be gated on `estimate_only` at all, so it may not share the failure mode.
+  `fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md`'s TODO-2 sweep
+  checked the sibling `InferenceSurvivalKKLWACoxPHOneLik` but does not
+  appear to have explicitly checked this IVWC class. Not confirmed either
+  way; would need the same direct `estimate_only=TRUE` vs. `FALSE`
+  behavioral check that plan used elsewhere.
 
 ## Standing constraints
 
