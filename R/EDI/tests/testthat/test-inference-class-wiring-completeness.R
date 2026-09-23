@@ -77,7 +77,16 @@ wiring_unguarded_private_calls = function(f) {
 		if (is_private_member(fn) && identical(as.character(fn[[3L]]), "has_private_method") && length(e) >= 2L && is.character(e[[2L]])) {
 			guarded <<- c(guarded, e[[2L]])
 		}
-		for (i in seq_along(e)) try(walk(e[[i]]), silent = TRUE)
+		# 2026-09-23: no per-node try() here -- profiling showed 95%+ of this
+		# test's ~74s runtime was tryCatch/try setup overhead paid on every
+		# single AST node visit across every method of every instantiated
+		# class. The outer try(walk(body(f)), ...) below already isolates one
+		# malformed function body from crashing the whole audit; per-node
+		# isolation within a single function body was never load-bearing (a
+		# genuinely malformed parsed body is not expected here, and if one
+		# ever occurs, losing the rest of that one function's findings is an
+		# acceptable tradeoff against a ~10x slowdown on every run).
+		for (i in seq_along(e)) walk(e[[i]])
 	}
 	try(walk(body(f)), silent = TRUE)
 	setdiff(unique(called), unique(guarded))

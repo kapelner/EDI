@@ -46,9 +46,16 @@ drift_factory_components = function(src_dir) {
 					out[[cn]] <<- list(components = vals, file = basename(f))
 				}
 			}
-			for (i in seq_along(e)) try(walk(e[[i]]), silent = TRUE)
+			# 2026-09-23: no per-node try() here -- same fix and rationale as
+			# test-inference-class-wiring-completeness.R's identical pattern
+			# (profiling showed try()/tryCatch() setup overhead, paid once per
+			# AST node visited, dominates this walker's cost). Isolation moves
+			# to the per-top-level-expression try() below instead, which is
+			# the actual granularity that matters (one malformed statement in
+			# a source file shouldn't lose every other statement in it).
+			for (i in seq_along(e)) walk(e[[i]])
 		}
-		for (ex in exprs) walk(ex)
+		for (ex in exprs) try(walk(ex), silent = TRUE)
 	}
 	out
 }

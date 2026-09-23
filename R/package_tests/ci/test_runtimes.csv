@@ -198,6 +198,7 @@ R/package_tests/testthat_bulk/test-design-transform-y-accessors-and-assertions-r
 R/package_tests/testthat_bulk/test-dispatch-policy-resolution-core-count-hierarchy-and-dead-pattern-audit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-drop-highly-correlated-cols-greedy-order-threshold-and-index-mapping-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-drop-linearly-dependent-cols-and-create-model-matrix-rank-cleanup-and-passthrough-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-edi-rebind-lazy-components-after-clone-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-efron-permutation-kernel-biased-coin-transition-rule-and-degenerate-coin-probabilities-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-and-fisher-matching-structure-unavailable-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-incidence-private-stats-estimate-ci-and-pval-guards-reference.R,correctness,120,bootstrap
@@ -523,6 +524,7 @@ R/package_tests/testthat_bulk/test-non-param-boot-reusable-worker-state-validati
 R/package_tests/testthat_bulk/test-non-param-boot-statistics-driver-fast-and-replication-paths-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-studentized-ci-nonfinite-se-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-nonparam-bootstrap-original-estimate-unavailable-guard-pval-and-ci-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-off-optimum-likelihood-eval-mixin-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ols-with-var-kernel-sigma2-ssq-fixed-coefficients-and-rank-deficient-fallback-lm-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-omp-control-kernels-thread-count-roundtrip-and-eigen-sync-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-optimal-design-prior-precision-matrix-guards-reference.R,correctness,120,bootstrap
@@ -567,6 +569,7 @@ R/package_tests/testthat_bulk/test-ordinal-logit-kernel-polr-fit-covariance-fixe
 R/package_tests/testthat_bulk/test-ordinal-ordered-probit-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-no-discordant-pairs-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-nonzero-delta-guard-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-partial-proportional-odds-randomization-estimate-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-probit-with-var-kernel-polr-covariance-fixed-coefficients-and-iteration-cap-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-proportional-odds-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-fit-unavailable-guard-reference.R,correctness,120,bootstrap
@@ -844,6 +847,7 @@ R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-mean-diff-nonestimable-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-mixed-likelihood-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zoib-randomization-estimate-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-softmax-and-negloglik-closed-form-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-start-value-construction-reference.R,correctness,120,bootstrap
 R/EDI/tests/testthat/test-aa-fork-cluster-seed-determinism.R,coverage,1,measured_with_30_percent_headroom
@@ -1280,6 +1284,7 @@ R/package_tests/testthat_bulk/test-design-transform-y-accessors-and-assertions-r
 R/package_tests/testthat_bulk/test-dispatch-policy-resolution-core-count-hierarchy-and-dead-pattern-audit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-drop-highly-correlated-cols-greedy-order-threshold-and-index-mapping-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-drop-linearly-dependent-cols-and-create-model-matrix-rank-cleanup-and-passthrough-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-edi-rebind-lazy-components-after-clone-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-efron-permutation-kernel-biased-coin-transition-rule-and-degenerate-coin-probabilities-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-and-fisher-matching-structure-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-exact-binomial-incidence-private-stats-estimate-ci-and-pval-guards-reference.R,coverage,240,bootstrap
@@ -1605,6 +1610,7 @@ R/package_tests/testthat_bulk/test-non-param-boot-reusable-worker-state-validati
 R/package_tests/testthat_bulk/test-non-param-boot-statistics-driver-fast-and-replication-paths-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-studentized-ci-nonfinite-se-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-nonparam-bootstrap-original-estimate-unavailable-guard-pval-and-ci-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-off-optimum-likelihood-eval-mixin-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ols-with-var-kernel-sigma2-ssq-fixed-coefficients-and-rank-deficient-fallback-lm-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-omp-control-kernels-thread-count-roundtrip-and-eigen-sync-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-optimal-design-prior-precision-matrix-guards-reference.R,coverage,240,bootstrap
@@ -1649,6 +1655,7 @@ R/package_tests/testthat_bulk/test-ordinal-logit-kernel-polr-fit-covariance-fixe
 R/package_tests/testthat_bulk/test-ordinal-ordered-probit-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-no-discordant-pairs-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-nonzero-delta-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-partial-proportional-odds-randomization-estimate-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-probit-with-var-kernel-polr-covariance-fixed-coefficients-and-iteration-cap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-proportional-odds-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-fit-unavailable-guard-reference.R,coverage,240,bootstrap
@@ -1926,5 +1933,6 @@ R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,coverage,4.8,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-mean-diff-nonestimable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-mixed-likelihood-reference.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zoib-randomization-estimate-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-softmax-and-negloglik-closed-form-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-start-value-construction-reference.R,coverage,240,bootstrap
