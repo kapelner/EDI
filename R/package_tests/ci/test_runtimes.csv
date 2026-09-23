@@ -497,6 +497,7 @@ R/package_tests/testthat_bulk/test-metadata-validators-field-type-guards-referen
 R/package_tests/testthat_bulk/test-milp-solve-a-dinkelbach-degenerate-ratio-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-mirai-plumbing-no-daemon-safe-branches.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-mixin-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-mle-or-km-summary-table-shared-and-extract-vcov-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-mn-riskdiff-asymp-pval-nonfinite-score-statistic-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-mn-riskdiff-get-counts-empty-arm-nonestimable-reason-and-mn-eps-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-mn-riskdiff-score-ci-pval-reference.R,correctness,120,bootstrap
@@ -1583,6 +1584,7 @@ R/package_tests/testthat_bulk/test-metadata-validators-field-type-guards-referen
 R/package_tests/testthat_bulk/test-milp-solve-a-dinkelbach-degenerate-ratio-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mirai-plumbing-no-daemon-safe-branches.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mixin-contracts.R,coverage,11.1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-mle-or-km-summary-table-shared-and-extract-vcov-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mn-riskdiff-asymp-pval-nonfinite-score-statistic-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mn-riskdiff-get-counts-empty-arm-nonestimable-reason-and-mn-eps-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mn-riskdiff-score-ci-pval-reference.R,coverage,240,bootstrap
