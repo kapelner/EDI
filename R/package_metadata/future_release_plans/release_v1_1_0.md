@@ -1267,7 +1267,12 @@ ticked in their **owning plans**; this list is the release index.
   previously-unexplained `low_coverage` baseline entries across
   survival/ordinal/incidence/proportion. **Update 2026-09-23:** the sweep
   (plan's TODO-1) confirmed 13 of the 25 `COVERAGE_MC_SPEC` classes show
-  this exact signature, and the fix (TODO-2/3) is implemented — a shared
+  this exact signature pooled across datasets; a 14th, `PropQuantileRegr`,
+  was found 2026-09-24 checking per-dataset instead of pooled (0.84 alt
+  coverage looked clean pooled but is 0.40 on `diamonds` specifically,
+  masked by 0.89-0.98 on every other dataset) — a reminder that a pooled
+  check can hide a per-dataset signature; the fix (TODO-2/3) is
+  implemented — a shared
   `coverage_truth_uses_real_covariates()`/`coverage_truth_cache_key()`
   helper (also fixing a same-day regression where a second cache reader,
   `get_estimate_logging_theta()`, drifted out of sync with the first, and a
@@ -1291,25 +1296,35 @@ ticked in their **owning plans**; this list is the release index.
   covariate count for these specific classes (a fresh, statistical reason
   to do so, distinct from `KK21stepwise`'s existing runtime-driven
   truncation), or wait on Firth-type correction to land first. The actual
-  harness re-run for the OTHER 11 confirmed classes (TODO-4/5) can proceed
-  independently, but needs an explicit go-ahead given cost (minutes, not
-  under a second, per cell with real covariates) and that it touches
+  harness re-run for the OTHER 13 confirmed classes (TODO-4/5) can proceed
+  independently — their stale raw-CSV rows (490,430 across
+  proportion/survival/ordinal, plus `PropQuantileRegr`'s own rows) are
+  already pruned via `stale_ok_row_rules.csv` — but needs an explicit
+  go-ahead given cost (minutes, not under a second, per cell with real
+  covariates) and that it touches
   shared result CSVs other sessions/CI also read. Independent of every
   other 1.1.0 item; depends on nothing else in this release.
 - **`TODO-33`** (added 2026-09-22, user-requested investigation of a prior
-  fix's explicit out-of-scope note): **Cox Bartlett-approx likelihood-ratio
-  correction, currently forced off** — `enable_cox_bartlett_approx.md →
-  TODO-1..3`. `InferenceSurvivalCoxPHRegr`/`InferenceSurvivalStratCoxPHRegr`
+  fix's explicit out-of-scope note; **resolved 2026-09-24 — do not
+  enable**): **Cox Bartlett-approx likelihood-ratio correction, forced
+  off** — `enable_cox_bartlett_approx.md`.
+  `InferenceSurvivalCoxPHRegr`/`InferenceSurvivalStratCoxPHRegr`
   explicitly force `supports_bartlett_likelihood_ratio_approx() = FALSE` to
   stop `ParametricLikelihoodBootstrap`'s delegating default from silently
-  enabling an "unvalidated" Monte-Carlo Bartlett-correction path. A smoke
-  test (20 simulated datasets, monkey-patched to `TRUE`, no source change)
-  shows the machinery runs cleanly — it reuses Cox's already-shipped,
-  already-exercised Breslow-hazard `simulate_under_lik_null()`, not new
-  code — and gives finite CIs close to Wald in width/location. Not a
-  statistical validation (coverage/Type-I error unmeasured); needs the same
-  validate-before-shipping treatment as `TODO-30`'s multi-start fix before
-  flipping the switch. Independent of every other 1.1.0 item; depends on
+  enabling an "unvalidated" Monte-Carlo Bartlett-correction path. A 20-rep
+  smoke test (2026-09-22) showed the machinery runs mechanically cleanly —
+  reuses Cox's already-shipped Breslow-hazard `simulate_under_lik_null()`,
+  no new code. The proper validation this called for (2026-09-24, 300 null
+  + 300 alt reps, `n=100`, `B=49`, ~1.4h runtime, `InferenceSurvivalCoxPHRegr`
+  only) came back unfavorable: Type-I error 0.077 vs. Wald's 0.057
+  (nominal 0.05), CI coverage 0.937 vs. Wald's 0.947 (nominal 0.95) — no
+  sign of the improvement a Bartlett correction should provide over plain
+  Wald, mild over-rejection/under-coverage if anything (within ~1-2
+  simulation SEs of nominal, not decisively broken, but not supporting
+  enabling it either). **Decision: leave both classes' explicit FALSE as
+  they are.** Revisiting would need its own budgeted multi-scenario/
+  multi-class simulation (each such run costs over an hour), not something
+  to do speculatively. Independent of every other 1.1.0 item; depends on
   nothing else in this release.
 - **`TODO-34`** (added 2026-09-22, found during `TODO-31`'s own final
   whole-branch review, not a new audit finding): **latent `cached_mod`

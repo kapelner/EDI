@@ -135,17 +135,36 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 				worker_data = list(y = y_sim),
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
-					res = tryCatch(
-						fast_ordinal_cloglog_regression_cpp(
-							X_fit, y_sim,
-							warm_start_params = start %||% full_fit_boot$params,
-							fixed_idx = j, fixed_values = -d,
-							smart_cold_start = TRUE
-						),
-						error = function(e) NULL
-					)
-					if (is.null(res) || length(res) == 0L) return(NULL)
-					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
+					fit_from = function(ws){
+						res = tryCatch(
+							fast_ordinal_cloglog_regression_cpp(
+								X_fit, y_sim,
+								warm_start_params = ws,
+								fixed_idx = j, fixed_values = -d,
+								smart_cold_start = TRUE
+							),
+							error = function(e) NULL
+						)
+						if (is.null(res) || length(res) == 0L) return(NULL)
+						list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
+					}
+					# Multi-start: a single-start constrained refit here can stall
+					# in a bad local optimum relative to the unconstrained
+					# full_fit_boot, inflating the parametric-bootstrap LR
+					# statistic and producing an anti-conservative p-value at the
+					# true null -- same mechanism, same fix, as
+					# InferenceOrdinalStereotypeLogitRegr's null-refit (found
+					# 2026-09-23; see
+					# fix_ordinal_cumulative_link_null_refit_multistart.md).
+					# Also start from the unconstrained fit with the treatment
+					# coordinate set to -d (nudged +1e-3: the solver reports
+					# converged = FALSE when started exactly at an optimum), and
+					# keep whichever reaches the lower neg_loglik.
+					full_start = as.numeric(full_fit_boot$params) + 1e-3
+					full_start[j] = -d
+					fits = Filter(Negate(is.null), list(fit_from(start %||% full_fit_boot$params), fit_from(full_start)))
+					if (!length(fits)) return(NULL)
+					fits[[which.min(vapply(fits, function(f) f$neg_loglik, numeric(1)))]]
 				},
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik)
 			)
@@ -162,18 +181,32 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 				X = X_fit, y = y, j = j_treat,
 				full_fit = full_fit,
 				fit_null = function(delta, start = NULL){
-					res = tryCatch(
-						fast_ordinal_cloglog_regression_cpp(
-							X_fit, y,
-							fixed_idx = j_treat, fixed_values = -delta,
-							warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$full_params)),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(length(ctx$full_params)),
-							smart_cold_start = private$smart_cold_start_default
-						),
-						error = function(e) NULL
-					)
-					if (is.null(res) || length(res) == 0) return(NULL)
-					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), fisher_information = res$fisher_information)
+					n_params = length(ctx$full_params)
+					fit_from = function(ws){
+						res = tryCatch(
+							fast_ordinal_cloglog_regression_cpp(
+								X_fit, y,
+								fixed_idx = j_treat, fixed_values = -delta,
+								warm_start_params = ws,
+								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+								smart_cold_start = private$smart_cold_start_default
+							),
+							error = function(e) NULL
+						)
+						if (is.null(res) || length(res) == 0) return(NULL)
+						list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), fisher_information = res$fisher_information)
+					}
+					# Multi-start: see simulate_under_lik_null()'s fit_null()
+					# above for the mechanism (same stale-local-optimum risk on
+					# this real-data null refit).
+					full_start = as.numeric(ctx$full_params) + 1e-3
+					full_start[j_treat] = -delta
+					fits = Filter(Negate(is.null), list(
+						fit_from(start %||% private$get_fit_warm_start_for_length("params", n_params)),
+						fit_from(full_start)
+					))
+					if (!length(fits)) return(NULL)
+					fits[[which.min(vapply(fits, function(f) f$neg_loglik, numeric(1)))]]
 				},
 				extract_start = function(fit){
 					as.numeric(fit$params)

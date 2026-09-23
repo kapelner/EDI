@@ -79,11 +79,11 @@ code_message="$(to_message "$code_total")"
 other_message="$(to_message "$other_total")"
 
 jq -n --arg message "$code_message" \
-	'{schemaVersion: 1, label: "lines of code", message: $message, color: "blue"}' \
+	'{schemaVersion: 1, label: "core functionality", message: $message, color: "blue"}' \
 	> "$code_badge_out"
 
 jq -n --arg message "$other_message" \
-	'{schemaVersion: 1, label: "tests, diagnostics, etc", message: $message, color: "lightgrey"}' \
+	'{schemaVersion: 1, label: "tests, diagnostics, benchmarks, etc", message: $message, color: "lightgrey"}' \
 	> "$tests_badge_out"
 
 # to_entries preserves the source object's key order, which for cloc's JSON

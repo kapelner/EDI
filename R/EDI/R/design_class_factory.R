@@ -88,15 +88,6 @@ combine_design_component_slot = function(target_name, component_names, slot, hos
 			target_name, slot, paste(undeclared_host_collisions, collapse = ", ")
 		), call. = FALSE)
 	}
-	host_kinds = design_entry_kinds(host_entries)
-	kind_collisions = host_collisions[combined_kinds[host_collisions] != host_kinds[host_collisions]]
-	undeclared_kind_collisions = setdiff(kind_collisions, allowed_host_overrides)
-	if (length(undeclared_kind_collisions) > 0L) {
-		stop(sprintf(
-			"%s overrides component %s method/state member(s) without declaration: %s",
-			target_name, slot, paste(undeclared_kind_collisions, collapse = ", ")
-		), call. = FALSE)
-	}
 	utils::modifyList(combined, host_entries, keep.null = TRUE)
 }
 

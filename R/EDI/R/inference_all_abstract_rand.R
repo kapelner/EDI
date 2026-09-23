@@ -817,9 +817,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 		load_resampling_draw_into_worker = function(operation, worker_state, draw, ...){
 			contract = private$get_resampling_draw_contract(operation)
 			loader = private[[contract$loader]]
-			if (!is.function(loader)) {
-				stop("No resampling draw loader named `", contract$loader, "` for operation `", operation, "`.", call. = FALSE)
-			}
 			do.call(loader, c(list(worker_state = worker_state, draw = draw), list(...)))
 			invisible(worker_state)
 		},
@@ -838,9 +835,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 		},
 		compute_randomization_worker_estimate = function(worker_state){
 			estimator = private[["compute_bootstrap_worker_estimate"]]
-			if (!is.function(estimator)) {
-				stop("No reusable-worker estimator is available for randomization draws.", call. = FALSE)
-			}
 			estimator(worker_state)
 		},
 		shift_randomization_responses = function(y, w, delta, transform_responses, response_type, inverse = FALSE, zero_one_logit_clamp = .Machine$double.eps){

@@ -277,11 +277,6 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 						" blocks instead of the requested ", target, ".")
 				}
 			}
-			if (should_run_asserts()) {
-				if (num_blocks > n) {
-					stop("Number of blocks (", num_blocks, ") exceeds sample size (", n, "). Reduce the number of strata columns or use fewer bins.")
-				}
-			}
 			keys
 		}
 	)

@@ -91,18 +91,30 @@ match this shape.
 TODO-1 and TODO-2/3 are done. TODO-4/5 are not: they require an actual
 `comprehensive_tests` re-run, which this session did not do (see below).
 
-**TODO-1 (sweep, done).** Coverage at `beta_T = 0` vs. `beta_T != 0` was
-compared for all 25 `COVERAGE_MC_SPEC` classes from the existing raw result
-CSVs (no simulation needed). 13 classes confirm the "clean at 0, collapses
-at non-zero, uniform across CI methods" signature: `OrdinalKKCLMMCauchit`,
-`OrdinalKKGLMM`, `OrdinalRidit`, `PropBetaRegr`, `PropFractionalLogit`,
-`PropKKGEE`, `PropKKQuantileRegrOneLik`, `PropZeroOneInflatedBetaRegr`,
+**TODO-1 (sweep, done; revised 2026-09-24).** Coverage at `beta_T = 0` vs.
+`beta_T != 0` was compared for all 25 `COVERAGE_MC_SPEC` classes from the
+existing raw result CSVs (no simulation needed). Pooling across datasets,
+13 classes confirm the "clean at 0, collapses at non-zero, uniform across
+CI methods" signature: `OrdinalKKCLMMCauchit`, `OrdinalKKGLMM`,
+`OrdinalRidit`, `PropBetaRegr`, `PropFractionalLogit`, `PropKKGEE`,
+`PropKKQuantileRegrOneLik`, `PropZeroOneInflatedBetaRegr`,
 `SurvivalGehanWilcox`, `SurvivalKKLWACoxPHOneLik`,
 `SurvivalKKStratCoxPHOneLik`, `SurvivalLogRank`, `SurvivalStratCoxPHRegr`.
-The other 12 (including plain `SurvivalCoxPHRegr`/`SurvivalWeibullRegr`) do
-not show it clearly in the current data -- their truth is apparently close
-enough in practice that the mismatch doesn't manifest as a coverage
-failure, even though the same code path is in principle exposed to it.
+
+**A pooled check can hide a per-dataset signature.** Re-checked the
+remaining 12 by `(class, dataset)` rather than pooled: `PropQuantileRegr`
+looked clean pooled (0.84 coverage at `beta_T != 0`, just above the 0.85
+cutoff) but splits sharply by dataset -- `diamonds` alone is 0.93 at
+`beta_T=0` vs. **0.40** at `beta_T=0.5` (n=744), while every other dataset
+(`abalone`, `boston`, `ionosphere`, `pte_example`) covers 0.89-0.98. That is
+the same signature, just diluted by averaging across datasets that happen
+to be fine. Added to the confirmed list -- **14 classes total**, all now
+covered by `stale_ok_row_rules.csv`. The other 11 (including plain
+`SurvivalCoxPHRegr`/`SurvivalWeibullRegr`) were re-checked the same
+per-dataset way and genuinely don't show it in any dataset slice -- their
+truth is apparently close enough in practice that the mismatch doesn't
+manifest as a coverage failure, even though the same code path is in
+principle exposed to it.
 
 **TODO-2 (decision).** Option 1 (match the real adjustment set), narrowed:
 the per-row label already distinguishes `(model_formula=~1)` /
@@ -218,11 +230,14 @@ combination, not to the fix's general approach.
 
 4. Re-run `comprehensive_tests` for the confirmed classes and confirm
    coverage returns to nominal at `beta_T != 0`. **Split by TODO-6's
-   finding:** the 12 non-KK-matched/high-`p` classes (e.g.
-   `PropBetaRegr`, `SurvivalLogRank`, `SurvivalGehanWilcox`,
-   `SurvivalStratCoxPHRegr`, ordinal `KKGLMM`/`KKCLMMCauchit`/`Ridit`,
-   proportion `KKGEE`/`KKQuantileRegrOneLik`/`ZeroOneInflatedBetaRegr`)
-   can proceed now -- the fix is trustworthy for them. `KKStratCoxPHOneLik`
+   finding:** the 13 non-KK-matched/high-`p` classes (e.g.
+   `PropBetaRegr`, `PropQuantileRegr`, `SurvivalLogRank`,
+   `SurvivalGehanWilcox`, `SurvivalStratCoxPHRegr`, ordinal
+   `KKGLMM`/`KKCLMMCauchit`/`Ridit`, proportion
+   `KKGEE`/`KKQuantileRegrOneLik`/`ZeroOneInflatedBetaRegr`)
+   can proceed now -- the fix is trustworthy for them (their raw-CSV rows
+   are already pruned, see `stale_ok_row_rules.csv`; only running the
+   harness remains). `KKStratCoxPHOneLik`
    and `KKLWACoxPHOneLik` (KK-matched, many real covariates) must wait on
    TODO-6's own resolution (item 6 below) first, or they'll re-record a
    truth that hasn't actually been shown to be correct. **Cost note:** the

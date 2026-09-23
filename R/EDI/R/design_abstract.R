@@ -423,9 +423,6 @@ Design = R6::R6Class("Design",
 		overwrite_all_subject_assignments = function(w) {
 			if (should_run_asserts()) {
 				assertIntegerish(w, lower = 0, upper = 1, any.missing = FALSE, len = private$t)
-				if (any(!(w %in% c(0L, 1L)))) {
-					stop("overwrite_all_subject_assignments: w must contain only 0 (control) or 1 (treated).")
-				}
 			}
 			private$w = as.numeric(w)
 		},

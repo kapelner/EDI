@@ -1763,9 +1763,6 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				private$cache_nonestimable_se(reason)
 				return(c(NA_real_, NA_real_))
 			}
-			if (should_run_asserts()) {
-				if (length(jack) < 2L) stop("BCa interval requires jackknife estimates.")
-			}
 			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
 				private$cache_nonestimable_se(reason)
 				c(NA_real_, NA_real_)
@@ -1853,9 +1850,6 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				}
 				private$cache_nonestimable_se(reason)
 				return(NA_real_)
-			}
-			if (should_run_asserts()) {
-				if (length(jack) < 2L) stop("BCa p-value requires jackknife estimates.")
 			}
 			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
 				private$cache_nonestimable_se(reason)

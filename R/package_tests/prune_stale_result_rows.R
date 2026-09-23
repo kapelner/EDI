@@ -22,6 +22,11 @@
 # function_run) cell, a timestamp cutoff, and the reason the older rows are known-stale (a fix
 # landed after they were recorded). Rows in that cell recorded BEFORE the cutoff are removed;
 # the harness recomputes them on its next run. Add a rule only with evidence (the reason column).
+# A blank function_run cell matches EVERY function_run for that (response_type, class) -- for a
+# bug whose staleness isn't confined to one method, e.g. TODO-32's coverage_truth mismatch: every
+# function_run's recorded coverage_truth column was wrong for a COVERAGE_MC_SPEC class, not just
+# its confidence_interval/pval rows (get_coverage_truth() is called for every function_run once a
+# class has an MC-spec truth -- see comprehensive_tests.R).
 #
 # Caveat: rows carry the commit id of HEAD at run time, so a run made with
 # uncommitted source edits is attributed to HEAD.
@@ -110,6 +115,15 @@ check_tracked_in = function(ti) {
 	list(ok = FALSE, detail = sprintf("unrecognized tracked_in scheme (want commit:<sha> or todo:<path>:<id>): %s", ti))
 }
 
+# An empty/NA function_run cell matches every function_run for that (response_type, class) --
+# a class-wide rule, for a bug that isn't confined to one method (e.g. a wrong per-row
+# coverage_truth affects every function_run's recorded column, not just the CI ones).
+rule_matches_function_run = function(probe_function_run, rule_function_run) {
+	if (is.na(rule_function_run) || !nzchar(rule_function_run)) return(rep(TRUE, length(probe_function_run)))
+	probe_function_run == rule_function_run
+}
+rule_function_run_label = function(rule_function_run) if (is.na(rule_function_run) || !nzchar(rule_function_run)) "<any function_run>" else rule_function_run
+
 if (check_rules) {
 	if (!nrow(rules)) {
 		cat("prune_stale_result_rows: no rules to check.\n")
@@ -119,7 +133,7 @@ if (check_rules) {
 	for (k in seq_len(nrow(rules))) {
 		res = check_tracked_in(rules$tracked_in[k])
 		status_str = if (res$ok) "OK  " else "FAIL"
-		cat(sprintf("%s %-20s %-42s %-50s %s\n", status_str, rules$response_type[k], rules$class[k], rules$function_run[k], res$detail))
+		cat(sprintf("%s %-20s %-42s %-50s %s\n", status_str, rules$response_type[k], rules$class[k], rule_function_run_label(rules$function_run[k]), res$detail))
 		if (!res$ok) failed = failed + 1L
 	}
 	if (length(files)) {
@@ -129,8 +143,8 @@ if (check_rules) {
 			probe = fread(f, select = c("status", "inference_class", "function_run", "timestamp"), showProgress = FALSE)
 			cls = bare_class(probe$inference_class)
 			for (k in which(rules$response_type == rt)) {
-				n = sum(probe$status == "ok" & cls == rules$class[k] & probe$function_run == rules$function_run[k] & substr(probe$timestamp, 1L, 10L) < rules$before_timestamp[k])
-				cat(sprintf("  %-20s %-42s %-50s %6d row(s)\n", rt, rules$class[k], rules$function_run[k], n))
+				n = sum(probe$status == "ok" & cls == rules$class[k] & rule_matches_function_run(probe$function_run, rules$function_run[k]) & substr(probe$timestamp, 1L, 10L) < rules$before_timestamp[k])
+				cat(sprintf("  %-20s %-42s %-50s %6d row(s)\n", rt, rules$class[k], rule_function_run_label(rules$function_run[k]), n))
 			}
 		}
 	}
@@ -155,8 +169,8 @@ for (f in files) {
 	if (nrow(rules)) {
 		cls = bare_class(probe$inference_class)
 		for (k in which(rules$response_type == rt)) {
-			hit = probe$status == "ok" & cls == rules$class[k] & probe$function_run == rules$function_run[k] & substr(probe$timestamp, 1L, 10L) < rules$before_timestamp[k]
-			rule_counts[paste(rules$class[k], rules$function_run[k])] = sum(hit)
+			hit = probe$status == "ok" & cls == rules$class[k] & rule_matches_function_run(probe$function_run, rules$function_run[k]) & substr(probe$timestamp, 1L, 10L) < rules$before_timestamp[k]
+			rule_counts[paste(rules$class[k], rule_function_run_label(rules$function_run[k]))] = sum(hit)
 			is_rule = is_rule | hit
 		}
 	}

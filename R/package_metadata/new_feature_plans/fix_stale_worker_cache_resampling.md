@@ -231,6 +231,49 @@ written to eliminate elsewhere in this codebase.
   drop the now-stale findings. Do this only after TODO-1's list is
   believed complete — writing the baseline against a partial fix would
   accept the remainder as debt.
+
+  **Partially done 2026-09-23, blocked short of `--write-baseline`.**
+  Affected-class list re-confirmed empirically (pre-fix-vs-post-fix
+  bit-for-bit sweep at commit `d5f1d679`, zero compilation): the same 7
+  classes as TODO-1/TODO-5. `InferenceContinLin`'s 3 originally-flagged
+  bootstrap methods reconfirmed as a separate `param_boot` mechanism, out
+  of scope here (see `fix_contin_lin_param_bootstrap_bad_type1_error.md`).
+  Scoped regen ran clean for all 7 classes (2400+ calls, 0 errors) and was
+  merged into the real result CSVs the audit reads.
+
+  **Blocker:** `audit_comprehensive_results.R` pools every historical row
+  ever recorded for a `(class, function_run)` cell — not time-aware. A few
+  hundred fresh "ok" rows are swamped by hundreds of leftover pre-fix rows
+  in these 300-600MB files: `InferenceOrdinalGCompMeanDiff`'s `rand`
+  p-value still shows reject-rate 0.952 (z=114.8), nearly identical to the
+  original bug report, purely from old rows still mixed in. The correct
+  tool exists (`R/package_tests/prune_stale_result_rows.R` +
+  `stale_ok_row_rules.csv`, which expires pre-fix rows for a cell before a
+  given commit timestamp) but was NOT used: `stale_ok_row_rules.csv` was
+  under active concurrent edit by another session at the time (12 new
+  TODO-32-related rules staged), and bulk-rewriting shared CI-gating
+  result files plus the project-wide audit baseline is consequential and
+  hard to reverse — not a unilateral mid-task call.
+
+  **Two new findings surfaced by the regen, need a look before assuming
+  "just needs pruning":**
+  - `InferenceIncidKKGCompRiskDiff`/`RiskRatio` now show a **deflated**
+    Type-I error (reject=0.0047, z=-4.3) — opposite direction from the
+    stale-cache symptom, unexplained.
+  - `InferenceIncidGCompRiskDiff`/`RiskRatio` show a new `low_power` flag
+    at `beta_T≠0`.
+
+  **Next steps, not yet executed:** add `stale_ok_row_rules.csv` rules for
+  these 7 classes' `rand`/`rand_custom` two-sided-pval functions,
+  `before_timestamp` just before commit `811e0683` (2026-09-22 13:45 IDT),
+  `tracked_in = commit:811e0683`; run `prune_stale_result_rows.R --apply`;
+  re-run `audit_comprehensive_results.R --write-baseline`. Hold until the
+  other session's `stale_ok_row_rules.csv` edits settle and the two new
+  findings above are triaged.
+
+  New rows are already live in the 3 main result CSVs (harmless — this is
+  what the harness would produce on its next unfiltered run regardless).
+  No compile/install command was run at any point.
 - [x] TODO-8: Once the affected-class list is final (TODO-1), decide
   whether any already-published example, vignette, or documentation output
   used an affected class's resampling p-value/CI and needs correction —

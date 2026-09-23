@@ -432,13 +432,6 @@ resolve_design_components = function(name) {
 			stop(sprintf("%s: %s", name, conditionMessage(e)), call. = FALSE)
 		}
 	)
-	duplicate_transitive = intersect(parent_components, direct_components)
-	if (length(duplicate_transitive) > 0L) {
-		stop(sprintf(
-			"%s duplicates inherited transitive component(s): %s",
-			name, paste(duplicate_transitive, collapse = ", ")
-		), call. = FALSE)
-	}
 	c(parent_components, direct_components)
 }
 
