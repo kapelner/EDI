@@ -257,6 +257,43 @@ assertion function in `inference_ordinal_KK_cond_logit_abstract.R` and a
 ~145-line unreachable-by-construction bootstrap branch in
 `inference_mixin_kk_passthrough.R`.
 
+**`covr`/composition-attribution gap: accepted as unfixable, not a covr PR
+target (2026-09-23).** Root-caused further via direct experiment (not just
+the two gcomp files above): (1) `covr::file_coverage()` on an ordinary,
+directly-written `R6::R6Class(...)` works correctly (100%, verified). (2) A
+thin per-class "leaf" file built via `define_inference_class(classname=...,
+components=c(...), overrides=list(...))` (e.g. `inference_continuous_KK14_bai.R`)
+genuinely contains almost no local code -- its own comment says as much --
+so near-0% there is *correct*, not a measurement bug; the real logic lives in
+the composed component/abstract files instead, by design. (3) Trying to measure
+those component files in isolation via `file_coverage()` finds *zero*
+coverable expressions, because `file_coverage()` re-sources just the given
+file(s) into a scratch environment; the actually-running test code resolves
+classes through the already-loaded `EDI` namespace instead, so the isolated
+instrumented copy is never touched by anything -- `file_coverage()` cannot
+measure any file that participates in this registry/composition system,
+which is much of the codebase, not just the already-`excluded` gcomp files.
+(4) Even a full, correctly-configured `covr::package_coverage()` run (the
+kind that produces the real 2026-09-20 measurement and the Codecov badge)
+still under-measures the pattern, per the gcomp findings above -- the
+working theory is that `assemble_public()`/`assemble_private()`'s
+environment rebinding (needed for `self`/`private`/`super` to resolve
+correctly for a method spliced in from a different original inheritance
+context) severs whatever internal linkage `covr`'s counters depend on, even
+in a from-scratch instrumented build.
+**Decision (user, 2026-09-23): not worth a `covr` upstream PR.** This is a
+narrow, unusual architecture (harvested composition + deliberate
+environment rebinding); asking `covr`'s maintainers to support it is not a
+reasonable ask. The published Codecov badge percentage is therefore treated
+as a known **floor, not the true number** -- real coverage for
+`define_inference_class()`-built files is higher than what's displayed, and
+the gap is permanent, not a to-do. Practical consequence for the backlog:
+any open registry row for a file built this way should be verified via the
+same lightweight probe method as the three existing `excluded` rows (not
+chased with new tests, which cannot move a number that isn't really
+measuring that file), then marked `excluded` if the probe confirms the code
+already fires under existing tests.
+
 ## Sharding procedure (in active use since 2026-09-16/17)
 
 New bulk test files added under this plan are packed into CI's existing

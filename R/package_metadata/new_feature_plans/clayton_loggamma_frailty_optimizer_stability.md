@@ -2,8 +2,9 @@
 
 > **Depends on:** nothing architectural. Two small, additive changes inside
 > the existing Clayton-copula/loggamma-frailty C++ optimizer and its R
-> fallback cascade; no public API change. **Release target: v1.1.0**
-> (`release_v1_1_0.md → TODO-22`).
+> fallback cascade; no public API change. **Release target: v1.0.5**
+> (`release_v1_0_5.md → TODO-6`, moved 2026-09-23 from
+> `release_v1_1_0.md → TODO-22`, bug-fix/feature split).
 
 Written 2026-09-11, from a comprehensive-test-harness timing investigation
 (not a user report). Owning plan for the bimodal-slowness finding

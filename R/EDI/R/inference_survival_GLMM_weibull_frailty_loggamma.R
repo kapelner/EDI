@@ -96,17 +96,23 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		max_abs_reasonable_coef = 1e4,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			# Re-read w, y, dead because they might have been transformed for
-			# randomization. `dead` is NOT read from `private$des_obj_priv_int$dead`
-			# here: post y/y_L/y_R migration, Design no longer stores a raw `dead`
-			# field, so that read is always NULL and clobbers the correctly-set
-			# `private$dead` -- see fix_inference_hierarchy.md Follow-Ups (found
-			# 2026-08-19, same root cause as the InferenceSurvivalKKLWACoxPHOneLik
-			# segfault fixed the same day). Re-derive `dead` the same way
-			# Design$get_effective_dead() does instead.
+			# Re-read w, y, dead because they might have been transformed for randomization.
+			# `y`/`dead` are NOT read from `private$des_obj_priv_int$y`/`$dead` directly: post
+			# y/y_L/y_R migration, the Design's own `y` field uses NA to encode a censored
+			# observation (the true time lives in y_L/y_R instead), whereas `private$y` on this
+			# class -- like every other inference class, see InferenceAll's initialize() -- holds
+			# the fully-observed time (event or censoring time, never NA) with `dead` as a separate
+			# 0/1 indicator. Re-reading `des_obj_priv_int$y` directly (as a previous version of this
+			# method did, then deriving `dead = as.numeric(!is.na(y))`) silently fed real NAs into
+			# the fitter for every censored subject on every call -- found 2026-09-23 on the sibling
+			# InferenceSurvivalKKLWACoxPHOneLik via a before/after randomization-pval contrast on
+			# simulated data with a strong known effect (0.02, correct, with no censoring vs. 0.97,
+			# silently wrong, with ~20% censoring on otherwise identical data); this class shares the
+			# identical buggy snippet. Re-derive `y`/`dead` the same way Design$get_effective_time()/
+			# $get_effective_dead() do instead (matching InferenceAll's own initialize() exactly).
 			private$w = private$des_obj_priv_int$w
-			private$y = private$des_obj_priv_int$y
-			private$dead = as.numeric(!is.na(private$y))
+			private$y = if (private$has_general_censoring) private$des_obj$get_y() else private$des_obj$get_effective_time()
+			private$dead = private$des_obj$get_effective_dead()
 			private$compute_basic_match_data()
 			if (is.null(private$best_X_colnames_matched) && is.null(private$best_X_colnames_reservoir)){
 				private$shared()
@@ -610,17 +616,23 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 	private = list(
 		max_abs_reasonable_coef = 1e4,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			# Re-read w, y, dead because they might have been transformed for
-			# randomization. `dead` is NOT read from `private$des_obj_priv_int$dead`
-			# here: post y/y_L/y_R migration, Design no longer stores a raw `dead`
-			# field, so that read is always NULL and clobbers the correctly-set
-			# `private$dead` -- see fix_inference_hierarchy.md Follow-Ups (found
-			# 2026-08-19, same root cause as the InferenceSurvivalKKLWACoxPHOneLik
-			# segfault fixed the same day). Re-derive `dead` the same way
-			# Design$get_effective_dead() does instead.
+			# Re-read w, y, dead because they might have been transformed for randomization.
+			# `y`/`dead` are NOT read from `private$des_obj_priv_int$y`/`$dead` directly: post
+			# y/y_L/y_R migration, the Design's own `y` field uses NA to encode a censored
+			# observation (the true time lives in y_L/y_R instead), whereas `private$y` on this
+			# class -- like every other inference class, see InferenceAll's initialize() -- holds
+			# the fully-observed time (event or censoring time, never NA) with `dead` as a separate
+			# 0/1 indicator. Re-reading `des_obj_priv_int$y` directly (as a previous version of this
+			# method did, then deriving `dead = as.numeric(!is.na(y))`) silently fed real NAs into
+			# the fitter for every censored subject on every call -- found 2026-09-23 on the sibling
+			# InferenceSurvivalKKLWACoxPHOneLik via a before/after randomization-pval contrast on
+			# simulated data with a strong known effect (0.02, correct, with no censoring vs. 0.97,
+			# silently wrong, with ~20% censoring on otherwise identical data); this class shares the
+			# identical buggy snippet. Re-derive `y`/`dead` the same way Design$get_effective_time()/
+			# $get_effective_dead() do instead (matching InferenceAll's own initialize() exactly).
 			private$w = private$des_obj_priv_int$w
-			private$y = private$des_obj_priv_int$y
-			private$dead = as.numeric(!is.na(private$y))
+			private$y = if (private$has_general_censoring) private$des_obj$get_y() else private$des_obj$get_effective_time()
+			private$dead = private$des_obj$get_effective_dead()
 			private$compute_basic_match_data()
 			# Fixed-VC fast path: private$best_par and private$best_X_colnames survive duplicate()
 			if (!is.null(private$best_par) && length(private$best_par) >= 3L &&

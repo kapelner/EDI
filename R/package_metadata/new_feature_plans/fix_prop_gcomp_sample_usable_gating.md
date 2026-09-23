@@ -1,7 +1,8 @@
 # Fix: `InferencePropGCompMeanDiff` Randomization Distribution All-NA — Reused-Worker Fast Path Never Adapted for the `rand` Operation
 
 > **Depends on:** none. (Global ordering: see `_master.md`.) Slated for
-> `release_v1_1_0.md → TODO-35`. Found 2026-09-22, surfaced as a side-finding
+> `release_v1_0_5.md → TODO-13` (moved 2026-09-23 from
+> `release_v1_1_0.md → TODO-35`, bug-fix/feature split). Found 2026-09-22, surfaced as a side-finding
 > during `fix_stale_worker_cache_resampling.md`'s TODO-6 regression test
 > (carried there as a self-retiring `KNOWN_BROKEN` entry); this plan is the
 > dedicated fix for it.

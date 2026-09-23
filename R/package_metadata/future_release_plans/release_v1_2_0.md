@@ -134,8 +134,9 @@ Ticked in owning plans; this list is the index.
   changes its residual), then `num/den + δ`. O(np + p³) with pivoted QR and
   six heap allocations → O(np + p²) with none. Same estimator to floating
   point; rank guard on `w_bᵀMw_b ≈ 0` replaces ColPivQR's `rank()`.
-  Expected 5–10× on the kernel. **Depends on** v1.1.0's
-  `ols_randomization_distr_cpp_wiring.md` (`release_v1_1_0.md → TODO-17p`)
+  Expected 5–10× on the kernel. **Depends on**
+  `ols_randomization_distr_cpp_wiring.md` (`release_v1_0_5.md → TODO-3`,
+  moved 2026-09-23 from `release_v1_1_0.md → TODO-17p`)
   — the kernel is never executed until that lands. Optional TODO-4/5 cover
   the bootstrap sibling (multinomial-weight form) and Lin.
 - [ ] TODO-10: **Sequential KK14 incremental covariance** (added 2026-08-30,
@@ -288,7 +289,8 @@ Ticked in owning plans; this list is the index.
   changes without a human reading the report. Then, gated on it:
   `garthwaite_buckland_ci_search.md → TODO-1..4` (Robbins–Monro CI search
   — opt-in alternative to bisection for randomization/bootstrap CI
-  bounds; not offered for `release_v1_1_0.md → TODO-17o`'s tier-1
+  bounds; not offered for `release_v1_0_5.md → TODO-2`'s (moved 2026-09-23
+  from `release_v1_1_0.md → TODO-17o`) tier-1
   classes, whose `p(δ)` is O(r) arithmetic after that item lands and
   cannot be beaten by a stochastic-approximation driver; A/B corpus
   stratified on `supports_additive_delta_shift()`) and

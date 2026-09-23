@@ -20,6 +20,93 @@ family of matching designs and estimators.
 
 ---
 
+## v1.0.5 — Bug Fixes and Hardening
+
+Split out of v1.1.0 on 2026-09-23 (user decision): every correctness bug,
+dead/misfiring performance path, and unguarded numerical edge case in the
+v1.1.0 backlog, with no new capability of its own — so these ship without
+waiting on v1.1.0's Phase 0 decisions. See
+[`release_v1_0_5.md`](R/package_metadata/future_release_plans/release_v1_0_5.md)
+for the full index.
+
+- **[`KKQuantileRegrOneLik` randomization CI](R/package_metadata/new_feature_plans/fix_KKQuantileRegrOneLik_rand_ci.md)** —
+  the continuous and proportion one-likelihood quantile-regression
+  classes' randomization CI silently collapsed to a zero-width interval
+  instead of erroring; temporarily disabled pending a real fix.
+- **[Faster zero-one-inflated Beta resampling](R/package_metadata/new_feature_plans/fix_reusable_bootstrap.md)** —
+  the jackknife/bootstrap for this class stops rebuilding its model from
+  scratch per fold, with bit-identical results.
+- **[Much faster randomization CIs for linear statistics](R/package_metadata/new_feature_plans/randomization_ci_affine_shift_reuse.md)** —
+  ~20–30× on `compute_confidence_interval_rand()` for mean-difference,
+  OLS, and Lin-adjusted analyses: an exact shift identity lets one null
+  distribution serve the entire CI search instead of ~20–35 of them.
+- **[Much faster OLS randomization distributions](R/package_metadata/new_feature_plans/ols_randomization_distr_cpp_wiring.md)** —
+  ~20–50×: OLS randomization tests move from an R-level per-replicate
+  loop onto an existing C++ batch kernel; multiplicative with the item
+  above. Eight dead kernel exports get wired in or deleted in the same
+  pass.
+- **[No more silent garbage standard errors](R/package_metadata/new_feature_plans/guard_unguarded_information_inverse.md)** —
+  five `with_var` kernels (NegBin, ZINB, zero-augmented Poisson ×2, Beta)
+  currently return a finite but meaningless SE on a near-singular design;
+  they gain the invertibility guard their siblings already have and
+  return `NA` instead. Bit-for-bit on all healthy fits.
+- **[Randomization CI construction audit](R/package_metadata/new_feature_plans/randomization_ci_construction_audit.md)** —
+  fixed: six Cox-family classes' randomization CI shifted responses on
+  the log-time scale but seeded, bracketed, and reported on the
+  log-hazard-ratio scale, producing a CI whose lower bound equaled the
+  point estimate; those classes now refuse the capability with an
+  explanation. A second, unrelated question about the null construction
+  was investigated and closed with no code change.
+- **[`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer stability](R/package_metadata/new_feature_plans/clayton_loggamma_frailty_optimizer_stability.md)** —
+  fixed a ~200× bimodal slowdown (found via a comprehensive-test-harness
+  timing investigation) traced to an unbounded C++ optimizer parameter
+  plus a stale-gradient mismatch that could leave the optimizer thrashing
+  toward its iteration cap.
+- **[Stereotype-logit multimodal likelihood](R/package_metadata/new_feature_plans/fix_multimodal_log_liks.md)** —
+  the ordinal stereotype-logit class's own unconstrained fit can silently
+  land on a non-global optimum in a small share of small-sample fits;
+  needs a multi-start fit plus golden/reference-parity re-derivation,
+  since it changes reported estimates.
+- **[Stale worker-cache in reused-worker resampling](R/package_metadata/new_feature_plans/fix_stale_worker_cache_resampling.md)** —
+  fixed: several classes' randomization/bootstrap tests silently reused
+  the first resampling draw's fit for every subsequent draw, collapsing
+  the whole resampling distribution to a constant (one class rejected a
+  true null 100% of the time instead of 5%). Fixed systemically with a
+  permanent regression test guarding against recurrence. A related latent
+  gap one field over (a stale `cached_mod` reset, same shape, no class
+  currently reaches it — a landmine, not a live defect) is tracked in the
+  same plan's `TODO-9`.
+- **[MC coverage-truth wrong covariate set](R/package_metadata/new_feature_plans/fix_mc_coverage_truth_covariate_mismatch.md)** —
+  fixed: the test harness's Monte-Carlo "true" coverage target for ~25
+  non-collapsible classes (Cox, logit/probit, GLMM/GEE) was computed
+  against a synthetic single covariate while the graded results used the
+  real dataset's full covariate matrix — a harness bug, not an inference
+  bug. Two Cox classes' truth remains unresolved pending further work.
+- **[Cox Bartlett-approx likelihood-ratio correction](R/package_metadata/new_feature_plans/enable_cox_bartlett_approx.md)** —
+  resolved: a full validation run showed no calibration benefit over
+  plain Wald for the Cox proportional-hazards class; decision is to leave
+  this path disabled.
+- **[`InferencePropGCompMeanDiff`/`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` randomization NA bugs](R/package_metadata/new_feature_plans/fix_prop_gcomp_sample_usable_gating.md)** —
+  fixed: two unrelated classes' randomization-based inference returned
+  `NA` on every resampling draw in production (a worker-state gating gap
+  and an arithmetic NA-propagation gap, respectively — see also
+  [the IVWC pooling fix](R/package_metadata/new_feature_plans/fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md)).
+- **[`InferenceContinLin` parametric-bootstrap Type-I error](R/package_metadata/new_feature_plans/fix_contin_lin_param_bootstrap_bad_type1_error.md)** —
+  this class's parametric-bootstrap/likelihood-ratio methods over-reject a
+  true null in a design-dependent way (nominal on some designs, 8× nominal
+  on others); root cause not yet pinned down.
+- **[Ordinal cumulative-link parametric-bootstrap inference](R/package_metadata/new_feature_plans/fix_ordinal_cumulative_link_null_refit_multistart.md)** —
+  found investigating the cumulative-log-log (cloglog) ordinal class's
+  60% false-positive rate on its parametric-bootstrap p-value: a
+  single-start null refit (fixed — the same mechanism as a sibling fix to
+  the stereotype-logit class's estimator) and a sign error in the shared
+  bootstrap data simulator (root-caused, not yet fixed) that generates
+  every replicate under the negated true treatment effect. Confirmed
+  isolated to this one class after auditing five superficially similar
+  ordinal classes.
+
+---
+
 ## v1.1.0 — Inference Quality and CPU Performance
 
 Lightened 2026-09-06: exploratory/measurement-first work, new estimator
@@ -71,16 +158,9 @@ needs.
 - **[Incidence randomization CIs](R/package_metadata/new_feature_plans/incidence_randomization_cis.md)** —
   exact (Zhang) randomization intervals on each estimand scale, removing
   the temporary incidence CI disable.
-- **[`KKQuantileRegrOneLik` randomization CI](R/package_metadata/new_feature_plans/fix_KKQuantileRegrOneLik_rand_ci.md)** —
-  the continuous and proportion one-likelihood quantile-regression
-  classes' randomization CI silently collapsed to a zero-width interval
-  instead of erroring; temporarily disabled pending a real fix.
 - **[Negative-binomial dispersion reparameterization](R/package_metadata/new_feature_plans/negbin_dispersion_convergence.md)** —
   more reliable convergence near the Poisson boundary for NegBin,
   zero-inflated NegBin, and hurdle-NegBin fits.
-- **[Faster zero-one-inflated Beta resampling](R/package_metadata/new_feature_plans/fix_reusable_bootstrap.md)** —
-  the jackknife/bootstrap for this class stops rebuilding its model from
-  scratch per fold, with bit-identical results.
 
 ### Repository hygiene *(maintenance)*
 
@@ -169,20 +249,6 @@ pieces below never did.
 
 ### Performance and correctness (CPU)
 
-- **[Much faster randomization CIs for linear statistics](R/package_metadata/new_feature_plans/randomization_ci_affine_shift_reuse.md)** —
-  ~20–30× on `compute_confidence_interval_rand()` for mean-difference,
-  OLS, and Lin-adjusted analyses: an exact shift identity lets one null
-  distribution serve the entire CI search instead of ~20–35 of them.
-- **[Much faster OLS randomization distributions](R/package_metadata/new_feature_plans/ols_randomization_distr_cpp_wiring.md)** —
-  ~20–50×: OLS randomization tests move from an R-level per-replicate
-  loop onto an existing C++ batch kernel; multiplicative with the item
-  above. Eight dead kernel exports get wired in or deleted in the same
-  pass.
-- **[No more silent garbage standard errors](R/package_metadata/new_feature_plans/guard_unguarded_information_inverse.md)** —
-  five `with_var` kernels (NegBin, ZINB, zero-augmented Poisson ×2, Beta)
-  currently return a finite but meaningless SE on a near-singular design;
-  they gain the invertibility guard their siblings already have and
-  return `NA` instead. Bit-for-bit on all healthy fits.
 - **[Multistart for the nonconcave likelihoods, documented-failure tranche](R/package_metadata/new_feature_plans/multistart_nonconcave_likelihoods.md)** —
   the kernels with a documented failure mode (ZINB/ZIP/hurdle-NegBin in
   `(β, log θ)`, Beta) gain family-specific deterministic starts plus a

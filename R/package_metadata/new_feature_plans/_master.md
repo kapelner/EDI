@@ -535,9 +535,11 @@ scale is small or nil for all four — the plans exist to replace
 estimates with numbers and to record the thresholds where each *would*
 matter.
 
-**Algorithmic lane (added 2026-08-30, user decision; v1.1.0):**
+**Algorithmic lane (added 2026-08-30, user decision; moved 2026-09-23 to
+v1.0.5, bug-fix/feature split):**
 `randomization_ci_affine_shift_reuse.md` → TODO-1..7, plus a decision-gated
-TODO-8 (`release_v1_1_0.md → TODO-17o`). Unlike the build-level lanes above,
+TODO-8 (`release_v1_0_5.md → TODO-2`, was `release_v1_1_0.md → TODO-17o`).
+Unlike the build-level lanes above,
 this one is expected to be
 large: it revives the dead `t0s_rand` fast path so a randomization CI for a
 linear-in-`y` statistic reuses one null distribution across every bisection
@@ -548,12 +550,14 @@ does not apply to it, Robbins–Monro (`→ TODO-17u`) is not offered on it,
 and a direct order-statistic inversion with no search at all becomes
 possible (TODO-8, gated: exactness, not speed).
 Two siblings added the same day: `ols_randomization_distr_cpp_wiring.md`
-→ TODO-1..6 (v1.1.0, `→ TODO-17p`; wire the never-called
+→ TODO-1..6 (moved 2026-09-23 to `release_v1_0_5.md → TODO-3`, was
+`release_v1_1_0.md → TODO-17p`; wire the never-called
 `compute_ols_distr_parallel_cpp`, delete eight other dead exports; 20–50×
 on the OLS null distribution, multiplicative with TODO-17o) and
 `ols_distr_kernel_fwl.md` → TODO-1..5 (v1.2.0, `release_v1_2_0.md →
 TODO-9`; FWL rewrite inside that kernel, 5–10×, depends on the wiring).
-Hardening item from the same audit (v1.1.0, `→ TODO-17q`):
+Hardening item from the same audit (moved 2026-09-23 to
+`release_v1_0_5.md → TODO-4`, was `release_v1_1_0.md → TODO-17q`):
 `guard_unguarded_information_inverse.md` → TODO-1..5 — five bare
 `.inverse()` sites on the free information block get the `isInvertible()`
 guard Cox/ordinal/ZOIB already use; bit-for-bit on invertible fits.
@@ -1093,7 +1097,129 @@ likely-cheap real fix (route through the already-correctly-wired generic
 `InferenceRandCI` bisection instead of Zhang, since the stacked-model
 estimator already supplies that path's own hooks) is unverified and needs
 its own decision before implementing. Release index:
-`release_v1_1_0.md → TODO-25`.
+`release_v1_0_5.md → TODO-7` (was `release_v1_1_0.md → TODO-25`).
+
+**Stereotype-logit multimodal likelihood** (added 2026-09-22, found the
+same way as `TODO-25`; no dependency on any phase above): `fix_multimodal_
+log_liks.md → TODO-1..8`. The 2026-09-21 fix to
+`InferenceOrdinalStereotypeLogitRegr`'s delta-constrained null refit
+(multi-start) left a residual: the likelihood is multimodal and
+`compute_estimate()`'s own unconstrained fit is single-start, so it can
+silently return a non-global optimum (~3% of `n=50` fits). Explains a
+residual ~13% Type-I error at `n=50` (vs. 6.5% at `n=100`). The fix
+(multi-start `generate_mod()`) changes reported point estimates in the
+affected fits, so it needs golden/reference-parity re-derivation before it
+ships. Release index: `release_v1_0_5.md → TODO-8` (was `release_v1_1_0.md → TODO-30`).
+
+**Stale worker-cache in reused-worker resampling** (added 2026-09-22,
+found the same way as `TODO-25`/`TODO-30`; three new checks —
+`biased_estimate`, `bad_type1_error`, `low_power` — added to
+`audit_comprehensive_results.R` itself this wave; **fixed and merged**):
+`fix_stale_worker_cache_resampling.md → TODO-1..8`. A correctness bug: any
+class whose point-estimate cache guard used a key outside the reused
+randomization/bootstrap worker's narrow, hardcoded reset list had every
+permutation/bootstrap draw after the first silently reuse the first
+draw's stale fit — collapsing the resampling distribution to a constant,
+regardless of which draw was used (proven: `InferenceOrdinalGCompMeanDiff`
+rejected a true null 100% of the time instead of 5%). Fixed systemically
+(allowlist → denylist reset, `cached_values` reconciled to a
+`duplicate()`-derived keep-list) plus a permanent non-degeneracy
+regression test. Release index: `release_v1_0_5.md → TODO-9` (was `release_v1_1_0.md → TODO-31`).
+
+**MC coverage-truth uses the wrong covariate set** (added 2026-09-22,
+found the same way; a harness bug, not an inference-code bug): `fix_mc_
+coverage_truth_covariate_mismatch.md → TODO-1..6`. `get_coverage_truth()`'s
+Monte-Carlo path fits the class's own estimator against a synthetic
+single-covariate dataset to compute the coverage target, but the graded
+rows were generated with the real dataset's full multi-column covariate
+matrix — for a non-collapsible coefficient the adjustment set changes the
+target itself. Confirmed on 13 of 25 `COVERAGE_MC_SPEC` classes (a 14th,
+`PropQuantileRegr`, found via a per-dataset check after the pooled check
+looked clean). Fixed via a shared `coverage_truth_uses_real_covariates()`
+helper. `KKStratCoxPHOneLik`/`KKLWACoxPHOneLik` remain untrustworthy under
+the fix (their MC truth hasn't converged, likely genuine finite-sample
+attenuation bias, not a further harness bug) — do not re-run those two
+pending further work. Release index: `release_v1_0_5.md → TODO-10` (was `release_v1_1_0.md → TODO-32`).
+
+**Cox Bartlett-approx likelihood-ratio correction** (added 2026-09-22,
+user-requested investigation; **resolved — do not enable**):
+`enable_cox_bartlett_approx.md`. A 300+300-rep validation of the
+currently-forced-off Bartlett-approx path on `InferenceSurvivalCoxPHRegr`
+showed no improvement over plain Wald (Type-I 0.077 vs. Wald's 0.057, CI
+coverage 0.937 vs. 0.947) — mild over-rejection/under-coverage if
+anything. Decision: leave both Cox classes' explicit `FALSE` as they are.
+Release index: `release_v1_0_5.md → TODO-11` (was `release_v1_1_0.md → TODO-33`).
+
+**Latent `cached_mod` reset gap** (added 2026-09-22, found during
+`TODO-31`'s own final review, not a new audit finding; no concrete class
+reaches it yet): `fix_stale_worker_cache_resampling.md → TODO-9`. One
+level up from the `cached_values` gap `TODO-31` fixed, the same
+randomization loader still resets a hand-maintained private-field
+allowlist that's missing `cached_mod` — the identical failure shape,
+just one field over. Confirmed a landmine, not a live defect (every
+concrete class writes `cached_mod` unconditionally rather than reading it
+stale). Release index: `release_v1_0_5.md → TODO-12` (was `release_v1_1_0.md → TODO-34`).
+
+**`InferencePropGCompMeanDiff` randomization distribution all-NA** (added
+2026-09-22, surfaced as a `KNOWN_BROKEN` entry in `TODO-31`'s regression
+test; **fixed 2026-09-23**): `fix_prop_gcomp_sample_usable_gating.md →
+TODO-1..6`. An error-shaped bug (not silently-wrong like `TODO-31`), and a
+different mechanism — worker-state gating, not stale caching: the class's
+reused-worker randomization path fell through to a bootstrap-shaped
+estimator gated on a flag only the bootstrap loader ever set, permanently
+stuck `FALSE` on the `rand` path. Fixed with a class-specific
+`compute_randomization_worker_estimate()` override. CSV regeneration still
+open. Release index: `release_v1_0_5.md → TODO-13` (was `release_v1_1_0.md → TODO-35`).
+
+**`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` randomization
+distribution all-NA** (added 2026-09-22, surfaced the same way as
+`TODO-35`; **fixed 2026-09-23**): `fix_glmm_weibull_frailty_ivwc_
+estimate_only_na_pooling.md → TODO-1..7`. A plain arithmetic NA-propagation
+bug, unrelated to `TODO-31`/`TODO-34`/`TODO-35`: `shared()`'s
+inverse-variance pooling weight used two variance components
+unconditionally, even though they're deliberately `NA` under
+`estimate_only = TRUE` (every resampling draw). Fixed with the equal-weight
+fallback already correct elsewhere in the same file. CSV regeneration
+still open. Release index: `release_v1_0_5.md → TODO-14` (was `release_v1_1_0.md → TODO-36`).
+
+**`InferenceContinLin` parametric-bootstrap Type-I error, design-dependent**
+(added 2026-09-23, from the same `bad_type1_error` audit wave as `TODO-31`,
+originally hypothesized to be the same mechanism — confirmed separate,
+still unfixed): `fix_contin_lin_param_bootstrap_bad_type1_error.md →
+TODO-1..7`. Three parametric-bootstrap/likelihood-ratio methods flagged
+simultaneously; confirmed NOT the `TODO-31` reused-worker path (already
+fixed for this class) and isolated to this class's own overrides, not
+shared machinery. Rejection rate at a true null ranges from 0.059 (SPBR,
+near nominal) to 0.406 (`FixedMatchingGreedy`, 8× nominal) — design-
+dependent, but not reproduced with a plain Bernoulli design plus a
+correlated covariate, so the actual structured `Design` subclass's
+block/match machinery is needed to trigger it. Root cause not yet pinned
+down. Release index: `release_v1_0_5.md → TODO-15` (was `release_v1_1_0.md → TODO-37`).
+
+**Ordinal cumulative-link parametric-bootstrap inference** (added
+2026-09-23, from the same raw `comprehensive_tests` CSV audit wave as
+`TODO-31`/`TODO-37`; no dependency on any phase above — schedule anywhere
+in v1.1.0): `fix_ordinal_cumulative_link_null_refit_multistart.md →
+TODO-1..7`. Two distinct bugs found investigating
+`InferenceOrdinalCloglogRegr`'s 60% Type-I error on
+`compute_param_bootstrap_pval()`. Fixed: a single-start delta-constrained
+refit in `get_likelihood_test_spec()`/`simulate_under_lik_null()` — the
+same vulnerability already found and fixed in
+`InferenceOrdinalStereotypeLogitRegr` (`TODO-30`); same multi-start fix
+applied. Root-caused but not fixed, and the actual cause of the reproduced
+Type-I inflation: the shared `simulate_param_boot_ordinal_y()` helper
+generates bootstrap replicates using the model's native fitted parameters,
+but this class's own `compute_estimate()` negates that native coefficient
+for public use — the helper's generative formula has the wrong sign for
+this class's fit convention, so every bootstrap replicate is generated
+under the *negated* true value. A per-class audit found this does not
+affect the five sibling classes the same audit wave flagged (`Cauchit`,
+`PropOddsRegr`, `KKCondAdjCatLogitRegr`, `AdjCatLogitRegr`,
+`OrderedProbitRegr`) — none negate their native coefficient the same way,
+or don't use the shared helper at all; their own flags are on unrelated
+mechanisms, out of scope here. A package-wide sweep for any other class
+sharing both the helper and the negation pattern is still open. Release
+index: `release_v1_0_5.md → TODO-16` (was `release_v1_1_0.md → TODO-38`).
 
 ## Phase 6 — Exploratory / later
 

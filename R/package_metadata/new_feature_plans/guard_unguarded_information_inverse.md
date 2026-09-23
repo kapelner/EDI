@@ -1,7 +1,8 @@
 # Guard the Unguarded Information-Matrix Inverses (NegBin, ZINB, ZAP, Beta)
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-17q`;
-> 2026-08-30, user decision). Correctness / hardening, not performance:
+> **Release:** v1.0.5 (`../future_release_plans/release_v1_0_5.md → TODO-4`,
+> moved 2026-09-23 from `release_v1_1_0.md → TODO-17q`, bug-fix/feature
+> split; 2026-08-30, user decision). Correctness / hardening, not performance:
 > five `with_var` kernels invert the free-parameter information matrix with a
 > bare `.inverse()` and no invertibility check, while their siblings (Cox,
 > ordinal, ZOIB) check `FullPivLU::isInvertible()` and return a `NaN`

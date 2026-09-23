@@ -228,24 +228,22 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			# Re-read w, y, dead because they might have been transformed for randomization.
-			# `dead` is NOT read from `private$des_obj_priv_int$dead` here: post
-			# y/y_L/y_R migration (interval_censored_survival_response.md TODO-1),
-			# Design no longer stores a raw `dead` field at all, so
-			# `des_obj_priv_int$dead` is always NULL -- reading it directly used to
-			# clobber `private$dead` (correctly set at init time via
-			# `des_obj$get_effective_dead()`, see InferenceAll's initialize()) with
-			# NULL. That NULL then persisted on the live object after this method
-			# returned, and a later reusable-bootstrap-worker call reading the same
-			# live `private$dead` (`load_rand_bootstrap_assignment_into_worker()`'s
-			# `dead_sim = as.numeric(private$dead[draw$i_b])`) turned it into a
-			# zero-length vector fed straight into `fast_coxph_regression_cpp()`,
-			# segfaulting on the length mismatch (found 2026-08-19, see
-			# fix_inference_hierarchy.md Follow-Ups). Re-derive `dead` the same way
-			# Design$get_effective_dead() does instead of reading a field that no
-			# longer exists.
+			# `y`/`dead` are NOT read from `private$des_obj_priv_int$y`/`$dead` directly: post
+			# y/y_L/y_R migration (interval_censored_survival_response.md TODO-1), the Design's own
+			# `y` field uses NA to encode a censored observation (the true time lives in y_L/y_R
+			# instead), whereas `private$y` on this class -- like every other inference class, see
+			# InferenceAll's initialize() -- holds the fully-observed time (event or censoring time,
+			# never NA) with `dead` as a separate 0/1 indicator. Re-reading `des_obj_priv_int$y`
+			# directly (as a previous version of this method did, then deriving
+			# `dead = as.numeric(!is.na(y))`) silently fed real NAs into fast_coxph_regression_cpp()
+			# for every censored subject on every call -- found 2026-09-23 via a before/after
+			# randomization-pval contrast on simulated data with a strong known effect: 0.02
+			# (correct) with no censoring vs. 0.97 (silently wrong) with ~20% censoring on otherwise
+			# identical data. Re-derive `y`/`dead` the same way Design$get_effective_time()/
+			# $get_effective_dead() do instead (matching InferenceAll's own initialize() exactly).
 			private$w = private$des_obj_priv_int$w
-			private$y = private$des_obj_priv_int$y
-			private$dead = as.numeric(!is.na(private$y))
+			private$y = if (private$has_general_censoring) private$des_obj$get_y() else private$des_obj$get_effective_time()
+			private$dead = private$des_obj$get_effective_dead()
 			
 			# Recompute basic match data for the new w/y/dead
 			private$compute_basic_match_data()

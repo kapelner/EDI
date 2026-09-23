@@ -14,13 +14,15 @@ simple_estimator_expected_classes = c(
 # weighted_refit_se, weighted_refit_is_nonestimable); the KK IVWC class nets +1 because the
 # dead reused-worker KK bootstrap methods (6) were deleted in a18354bc.
 # add_rand_bootstrap_smooth_noise is now a shared private implementation hook.
+# 2026-09-23: +1 more on every class for reused_worker_preserved_cache_keys, the new
+# shared private field from fix_stale_worker_cache_resampling.md's cache-reset fix.
 # Keep the exact structural snapshots, including that intentional new binding.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 313L,
+		private_owner_count = 314L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -33,7 +35,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 316L,
+		private_owner_count = 317L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -46,7 +48,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 324L,
+		private_owner_count = 325L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -60,7 +62,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 58L,
-		private_owner_count = 298L,
+		private_owner_count = 299L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -72,7 +74,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 58L,
-		private_owner_count = 311L,
+		private_owner_count = 312L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

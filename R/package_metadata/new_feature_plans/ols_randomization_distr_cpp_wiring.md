@@ -1,7 +1,8 @@
 # Wire the Unused OLS Randomization-Distribution Kernel (and Triage Eight Other Dead Kernels)
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-17p`;
-> 2026-08-30, user decision). R-side wiring of an existing, exported C++
+> **Release:** v1.0.5 (`../future_release_plans/release_v1_0_5.md → TODO-3`,
+> moved 2026-09-23 from `release_v1_1_0.md → TODO-17p`, bug-fix/feature
+> split; 2026-08-30, user decision). R-side wiring of an existing, exported C++
 > kernel plus a dead-code triage in `src/`; no new algorithm. No Phase 0
 > dependency. Independent of, but multiplicative with,
 > `randomization_ci_affine_shift_reuse.md` (`→ TODO-17o`): that plan cuts

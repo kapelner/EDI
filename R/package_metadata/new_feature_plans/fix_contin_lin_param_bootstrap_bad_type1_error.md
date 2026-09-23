@@ -1,7 +1,8 @@
 # Fix: `InferenceContinLin` Parametric-Bootstrap / Likelihood-Ratio Methods — Inflated Type-I Error, Design-Dependent
 
 > **Depends on:** none. (Global ordering: see `_master.md`.) Slated for
-> `release_v1_1_0.md → TODO-37`. Found via the original
+> `release_v1_0_5.md → TODO-15` (moved 2026-09-23 from
+> `release_v1_1_0.md → TODO-37`, bug-fix/feature split). Found via the original
 > `fix_stale_worker_cache_resampling.md` bug hunt's `bad_type1_error` audit
 > hit on `InferenceContinLin`; originally hypothesized to be the same
 > stale-worker-cache mechanism as that plan's primary bug, but confirmed

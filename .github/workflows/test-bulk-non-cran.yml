@@ -36,13 +36,79 @@ jobs:
           name: correctness-shard-plan
           path: shard-plan
 
+  # 2026-09-23: compile EDI exactly once and share the result with every shard
+  # below, instead of each of the (currently ~40) shard jobs independently
+  # running its own from-scratch `R CMD INSTALL` of the same commit in
+  # parallel -- that redundant recompilation (not test execution time) was
+  # the dominant cost of this workflow's ~2h20m wall-clock (run 35855652901:
+  # every shard job took 15-20 minutes even though its own test budget is
+  # capped at 2400s/40min). One build + N downloads of a ~40MB artifact is
+  # far cheaper than N full compiles of ~120 .cpp files. MAKEFLAGS=-j$(nproc)
+  # parallelizes this one remaining compile across the runner's cores --
+  # matters more now that there is only one to wait on.
+  #
+  # Assumes every shard job's own setup-r-dependencies resolves the same
+  # Rcpp/RcppEigen versions this job compiled EDI against (true in practice:
+  # use-public-rspm pins a consistent binary snapshot for jobs in the same
+  # run). If that ever isn't true, the shared .so could mismatch a shard's
+  # own Rcpp -- watch for load/runtime errors on pkgload::load_all() if
+  # dependency resolution ever changes mid-run.
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Required, not optional, for a build-once-share-with-every-shard
+      # artifact: EDI_PORTABLE=1 disables configure's default -march=native/
+      # -mtune=native tuning (see R/EDI/configure), which bakes in whatever
+      # instruction-set extensions THIS job's specific runner host happens to
+      # support. Every shards job below runs the resulting .so on a
+      # potentially different physical runner host; a -march=native build
+      # would risk an illegal-instruction crash there. The old per-shard
+      # install already set this (each shard compiled for itself, so this
+      # was for R-CMD-check-style portability, not cross-host safety) --
+      # carrying it here is what actually matters now that one build feeds
+      # every shard.
+      EDI_PORTABLE: 1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+          extra-packages: any::jsonlite, any::covr
+      - name: Install current commit into an isolated library
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.edi-install-scratch"
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
+      - name: Archive the installed library and the source tree's compiled objects
+        # The installed library alone isn't enough: run_shard.R's correctness
+        # tier uses pkgload::load_all(R/EDI, compile = FALSE) to preserve
+        # access to internal (non-exported) functions, and that reads the
+        # compiled .o/.so files sitting in the checked-out R/EDI/src/
+        # directory itself (a side effect of the R CMD INSTALL above), not
+        # from --library=. Both pieces have to travel together.
+        run: tar -czf edi-build.tar.gz .edi-install-scratch R/EDI/src/*.o R/EDI/src/*.so
+      - uses: actions/upload-artifact@v7
+        with:
+          name: edi-build
+          path: edi-build.tar.gz
+
   shards:
-    needs: plan
+    needs: [plan, build]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 6
+      # 2026-09-23: raised from 6 -- Pro account, 40 concurrent jobs cap
+      # account-wide across every workflow. GitHub queues (never errors on)
+      # anything past the real cap, so this just removes our own artificial
+      # throttle and lets GitHub's own scheduler arbitrate against whatever
+      # else this push triggers (R-CMD-check's 10 legs, test-coverage-R's own
+      # shards, etc.). Not "40 for this job alone" -- the account-wide 40 is
+      # shared, so this number is a ceiling, not a guarantee.
+      max-parallel: 40
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -56,6 +122,15 @@ jobs:
       GOTO_NUM_THREADS: 1
       VECLIB_MAXIMUM_THREADS: 1
       NUMEXPR_NUM_THREADS: 1
+      # 2026-09-23: opt-in runtime tracing (fast_zinb.cpp's zinb_debug_enabled())
+      # for the CI-only InferenceCountZeroInflatedNegBin non-convergence that has
+      # never reproduced locally (run 35855652901 shard 27). Read at runtime, not
+      # a compile-time flag, so no special build is needed here -- printed lines
+      # only appear in this job's own "Run correctness shard" log output when a
+      # ZINB fit actually hits the traced paths, and are silent no-ops for every
+      # library(EDI) call elsewhere (local dev, other workflows). Remove once the
+      # boundary-fallback gap is root-caused and fixed.
+      EDI_ZINB_DEBUG: 1
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -70,11 +145,14 @@ jobs:
           working-directory: R/EDI
           dependencies: '"all"'
           extra-packages: any::jsonlite, any::covr
-      - name: Install current commit into an isolated library
+      - uses: actions/download-artifact@v8
+        with:
+          name: edi-build
+          path: .
+      - name: Restore the pre-built library and compiled objects from the build job
         run: |
-          mkdir -p "${{ runner.temp }}/edi-install-scratch"
-          R CMD INSTALL --library="${{ runner.temp }}/edi-install-scratch" R/EDI
-          echo "R_LIBS=${{ runner.temp }}/edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+          tar -xzf edi-build.tar.gz
+          echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
       - name: Run correctness shard
         timeout-minutes: 45
         run: Rscript R/package_tests/ci/run_shard.R "$GITHUB_WORKSPACE" "shard-plan/shard-${{ matrix.shard }}.json" correctness "shard-results/${{ matrix.shard }}"
@@ -96,14 +174,15 @@ jobs:
   # "skipped") when plan or shards failed, rather than being skipped itself.
   gate:
     name: bulk tests passed
-    needs: [plan, shards]
+    needs: [plan, build, shards]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Check plan and every shard succeeded
+      - name: Check plan, build, and every shard succeeded
         run: |
           echo "plan: ${{ needs.plan.result }}"
+          echo "build: ${{ needs.build.result }}"
           echo "shards: ${{ needs.shards.result }}"
-          if [ "${{ needs.plan.result }}" != "success" ] || [ "${{ needs.shards.result }}" != "success" ]; then
+          if [ "${{ needs.plan.result }}" != "success" ] || [ "${{ needs.build.result }}" != "success" ] || [ "${{ needs.shards.result }}" != "success" ]; then
             exit 1
           fi

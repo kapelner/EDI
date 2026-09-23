@@ -2,9 +2,11 @@
 
 > **Depends on:** none. (Global ordering: see `_master.md`.) TODO-1..6
 > shipped 2026-09-22 (see `Status` below), out of band ahead of
-> `release_v1_1_0.md → TODO-31` as an urgent correctness fix. TODO-9 (the
-> latent `cached_mod` gap found during this plan's final review) is slated
-> for `release_v1_1_0.md → TODO-34`.
+> `release_v1_1_0.md → TODO-31` as an urgent correctness fix; moved
+> 2026-09-23 to `release_v1_0_5.md → TODO-9` (bug-fix/feature split).
+> TODO-9 (the latent `cached_mod` gap found during this plan's final
+> review) is slated for `release_v1_0_5.md → TODO-12` (was
+> `release_v1_1_0.md → TODO-34`).
 
 Found 2026-09-22, following up on three new checks added to
 `audit_comprehensive_results.R` this session (`biased_estimate`,
@@ -394,12 +396,15 @@ twice), 13 newly non-degenerate, 0 moved to a different non-degenerate
 value. A permanent regression test
 (`R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R`) and
 durable sweep script (`scripts/reused_worker_bitforbit_sweep.R`) now guard
-against this bug class recurring. Slated for `release_v1_1_0.md → TODO-31`
-(shipped ahead of that release as an out-of-band correctness fix, per that
-TODO's own "may warrant revisiting ahead of the rest of 1.1.0" note).
+against this bug class recurring. Slated for `release_v1_0_5.md → TODO-9`
+(moved 2026-09-23 from `release_v1_1_0.md → TODO-31`, bug-fix/feature
+split; originally shipped ahead of v1.1.0 as an out-of-band correctness
+fix, per that TODO's own "may warrant revisiting ahead of the rest of
+1.1.0" note — the split resolves that note by giving it its own release).
 
 TODO-9 (latent `cached_mod` gap, above) is open, not yet fixed, tracked
-separately at `release_v1_1_0.md → TODO-34`.
+separately at `release_v1_0_5.md → TODO-12` (was
+`release_v1_1_0.md → TODO-34`).
 
 TODO-7 (CSV regen) and TODO-8 (published-output audit) remain open,
 deferred until an install is available — the fix's own final review notes
@@ -417,7 +422,8 @@ different, distinct bugs), root-caused 2026-09-22 and **both fixed
   (class-specific `compute_randomization_worker_estimate()` override,
   verified 99/99 finite draws, Type-I error nominal). Tracked at
   `fix_prop_gcomp_sample_usable_gating.md` /
-  `release_v1_1_0.md → TODO-35`. CSV regeneration still open there.
+  `release_v1_0_5.md → TODO-13` (was `release_v1_1_0.md → TODO-35`). CSV
+  regeneration still open there.
 - `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` — same NA symptom.
   Root cause: plain NA-propagation in an inverse-variance pooling step
   (`shared()` uses `ssq_m`/`ssq_r`, which are deliberately `NA` under
@@ -427,7 +433,8 @@ different, distinct bugs), root-caused 2026-09-22 and **both fixed
   verified `estimate_only = FALSE` unchanged bit-for-bit, `TRUE` now
   finite, reused-worker `rand` distribution 99/99 finite). Tracked at
   `fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md` /
-  `release_v1_1_0.md → TODO-36`. CSV regeneration still open there.
+  `release_v1_0_5.md → TODO-14` (was `release_v1_1_0.md → TODO-36`). CSV
+  regeneration still open there.
 
 Both fixed classes have been removed from
 `RESAMPLING_NONDEGENERATE_KNOWN_BROKEN` in
@@ -447,7 +454,7 @@ parametric-bootstrap/likelihood-ratio methods
 design-dependent Type-I error via a separate mechanism (not the reused-
 worker `rand` path, which IS fixed for this class). Tracked at
 `fix_contin_lin_param_bootstrap_bad_type1_error.md` /
-`release_v1_1_0.md → TODO-37`.
+`release_v1_0_5.md → TODO-15` (was `release_v1_1_0.md → TODO-37`).
 
 Both are carried as self-retiring `KNOWN_BROKEN` entries in the new
 regression test (they fail loudly via `expect_identical` once fixed) so

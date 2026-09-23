@@ -8,15 +8,23 @@ library(EDI)
 # covariate-weight-reference.R and its survival/ordinal/count sibling) only exercise the beta-
 # regression SUCCESS path; the fallback branch itself had no test reference anywhere.
 #
-# A single-row design makes fast_beta_regression_with_var() return ssq_b_2 = -Inf (as verified
-# directly below), so sqrt(ssq_b_2) is NaN and the resulting weight is NaN -- is.na(NaN) is TRUE in
-# R, so `!is.na(weight)` is FALSE and the function falls through to the continuous-logit fallback,
-# which itself has its own already-tested single-row degenerate branch returning
+# A single-row design makes fast_beta_regression_with_var() return a hugely negative ssq_b_2 (-Inf
+# locally; verified below), so sqrt(ssq_b_2) is NaN and the resulting weight is NaN -- is.na(NaN) is
+# TRUE in R, so `!is.na(weight)` is FALSE and the function falls through to the continuous-logit
+# fallback, which itself has its own already-tested single-row degenerate branch returning
 # .Machine$double.eps.
+#
+# 2026-09-23: this single-row fit sits on a genuine numerical knife-edge (phi ~ 7.9e14 locally) --
+# whether the kernel's variance blows up to exactly -Inf or "merely" some enormous negative finite
+# value is BLAS/LAPACK-build-dependent (confirmed: reproduces as -Inf on every local run, but CI
+# run 35855652901 shard 26 got a large finite negative value instead). Either way sqrt() of it is
+# still NaN and the fallback still fires identically, so both are treated as the same degenerate
+# outcome here rather than pinning the exact magnitude.
+degenerate_ssq_threshold <- -1e12
 
-test_that("fast_beta_regression_with_var on a single-row design gives a non-finite weight (ssq_b_2 = -Inf)", {
+test_that("fast_beta_regression_with_var on a single-row design gives a non-finite weight (ssq_b_2 = -Inf or huge negative)", {
 	br <- EDI:::fast_beta_regression_with_var(X = matrix(c(1, 1), 1, 2), y = 0.5)
-	expect_true(is.infinite(br$ssq_b_2) && br$ssq_b_2 < 0)
+	expect_true(br$ssq_b_2 < degenerate_ssq_threshold || (is.infinite(br$ssq_b_2) && br$ssq_b_2 < 0))
 	expect_true(is.nan(suppressWarnings(sqrt(br$ssq_b_2))))
 })
 

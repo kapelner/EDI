@@ -1,7 +1,8 @@
 # Fix: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` Randomization Distribution All-NA — `estimate_only` Pooling-Weight NA Propagation
 
 > **Depends on:** none. (Global ordering: see `_master.md`.) Slated for
-> `release_v1_1_0.md → TODO-36`. Found 2026-09-22, surfaced as a
+> `release_v1_0_5.md → TODO-14` (moved 2026-09-23 from
+> `release_v1_1_0.md → TODO-36`, bug-fix/feature split). Found 2026-09-22, surfaced as a
 > `KNOWN_BROKEN` entry in `fix_stale_worker_cache_resampling.md`'s TODO-6
 > regression test (the new KK-design fixture arm was the first thing to
 > exercise `estimate_only = TRUE` on this class with both matched and
@@ -173,7 +174,8 @@ TODO-7 (CSV regeneration) still open.
   different weights so exact numeric closeness was never the bar).
 - [x] TODO-4: `estimate_only = FALSE` unchanged, confirmed bit-for-bit
   (`-0.2163981`, identical to the value already on record in this plan
-  and in `release_v1_1_0.md → TODO-36`).
+  and in `release_v1_0_5.md → TODO-14` (was `release_v1_1_0.md →
+  TODO-36`)).
 - [x] TODO-5: Reused-worker `rand` distribution on the golden fixture now
   99/99 finite, `sd = 0.391` (previously all-NA).
 - [x] TODO-6: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` removed

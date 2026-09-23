@@ -19,6 +19,7 @@
 #include <Rmath.h>
 #endif
 #include <cmath>
+#include <cstdlib>
 #include <unordered_map>
 #include <stdexcept>
 #include "_negbin_boundary_convergence.h"
@@ -332,6 +333,21 @@ public:
 // the ordinary finite-parameter fit path.
 constexpr double kZinbZiBoundaryLogitEta = 10.0;
 
+#ifndef EDI_CORE_ONLY
+// Opt-in runtime diagnostic tracing for the CI-only ZINB non-convergence
+// investigated 2026-09-23 (run 35855652901 shard 27, InferenceCountZeroInflatedNegBin
+// under no true zero-inflation): the primary optimizer's own final iterate and
+// which (if any) boundary fallback below accepts/rejects it are otherwise
+// invisible outside a local debugger, and this failure has never reproduced
+// locally. No-op unless EDI_ZINB_DEBUG=1 is set in the environment at
+// runtime -- no special compile flag or rebuild needed, same opt-in pattern
+// as zzz.R's EDI_ONLOAD_TRACE.
+inline bool zinb_debug_enabled() {
+    static const bool enabled = (std::getenv("EDI_ZINB_DEBUG") != nullptr);
+    return enabled;
+}
+#endif
+
 // Drops the entire zero-inflation coefficient block (p_zi contiguous
 // indices) from the free-parameter set used to build the information
 // matrix, mirroring negbin_information_spec()'s single-index version for
@@ -381,25 +397,34 @@ bool fit_zinb_zi_boundary_fallback(
 
     const int p_cond = static_cast<int>(Xc.cols());
     const int p_zi   = static_cast<int>(Xz.cols());
-#ifdef EDI_ZI_BOUNDARY_DEBUG
-    Rcpp::Rcout << "DEBUG entry: params_size=" << fit.params.size() << " expected=" << (p_cond+p_zi+1)
-                << " finite=" << fit.params.allFinite() << std::endl;
+#ifndef EDI_CORE_ONLY
+    if (zinb_debug_enabled()) {
+        Rcpp::Rcout << "DEBUG entry: params_size=" << fit.params.size() << " expected=" << (p_cond+p_zi+1)
+                    << " finite=" << fit.params.allFinite()
+                    << " converged=" << fit.converged << " hit_cap=" << fit.hit_iteration_cap
+                    << " gnorm=" << fit.gradient_norm
+                    << " params=" << fit.params.transpose() << std::endl;
+    }
 #endif
     if (fit.params.size() != p_cond + p_zi + 1 || !fit.params.allFinite()) return false;
 
     const Eigen::VectorXd eta_z = Xz * fit.params.segment(p_cond, p_zi);
-#ifdef EDI_ZI_BOUNDARY_DEBUG
-    Rcpp::Rcout << "DEBUG eta_z: size=" << eta_z.size() << " finite=" << eta_z.allFinite()
-                << " max=" << (eta_z.size() ? eta_z.maxCoeff() : std::numeric_limits<double>::quiet_NaN())
-                << " threshold=" << (-kZinbZiBoundaryLogitEta) << std::endl;
+#ifndef EDI_CORE_ONLY
+    if (zinb_debug_enabled()) {
+        Rcpp::Rcout << "DEBUG eta_z: size=" << eta_z.size() << " finite=" << eta_z.allFinite()
+                    << " max=" << (eta_z.size() ? eta_z.maxCoeff() : std::numeric_limits<double>::quiet_NaN())
+                    << " threshold=" << (-kZinbZiBoundaryLogitEta) << std::endl;
+    }
 #endif
     if (eta_z.size() == 0 || !eta_z.allFinite() || eta_z.maxCoeff() > -kZinbZiBoundaryLogitEta) return false;
 
     Eigen::VectorXd raw_gradient(fit.params.size());
     const double raw_value = obj(fit.params, raw_gradient);
-#ifdef EDI_ZI_BOUNDARY_DEBUG
-    Rcpp::Rcout << "DEBUG raw: value=" << raw_value << " grad_finite=" << raw_gradient.allFinite()
-                << " grad=" << raw_gradient.transpose() << std::endl;
+#ifndef EDI_CORE_ONLY
+    if (zinb_debug_enabled()) {
+        Rcpp::Rcout << "DEBUG raw: value=" << raw_value << " grad_finite=" << raw_gradient.allFinite()
+                    << " grad=" << raw_gradient.transpose() << std::endl;
+    }
 #endif
     if (!std::isfinite(raw_value) || !raw_gradient.allFinite()) return false;
     double non_zi_gradient_sq = 0.0;
@@ -422,9 +447,11 @@ bool fit_zinb_zi_boundary_fallback(
     // negative eta_z.
     const double reference_gradient_norm = std::isfinite(fit.gradient_norm) ? fit.gradient_norm : 0.0;
     const double coefficient_tol = std::max({10.0 * tol, 1e-6, 5.0 * reference_gradient_norm});
-#ifdef EDI_ZI_BOUNDARY_DEBUG
-    Rcpp::Rcout << "DEBUG grad_check: non_zi_grad=" << std::sqrt(non_zi_gradient_sq)
-                << " tol=" << coefficient_tol << " fit.gradient_norm=" << fit.gradient_norm << std::endl;
+#ifndef EDI_CORE_ONLY
+    if (zinb_debug_enabled()) {
+        Rcpp::Rcout << "DEBUG grad_check: non_zi_grad=" << std::sqrt(non_zi_gradient_sq)
+                    << " tol=" << coefficient_tol << " fit.gradient_norm=" << fit.gradient_norm << std::endl;
+    }
 #endif
     if (std::sqrt(non_zi_gradient_sq) > coefficient_tol) return false;
 
@@ -463,14 +490,16 @@ bool fit_zinb_zi_boundary_fallback(
     NegBinNoZiLikelihood reduced(y_vec, Xc);
     LikelihoodFitResult reduced_fit = optimize_fixed_likelihood(
         reduced, start, reduced_spec, maxit, tol, optimization_alg, "lbfgs", 0, nullptr);
-#ifdef EDI_ZI_BOUNDARY_DEBUG
-    Rcpp::Rcout << "DEBUG zi-boundary: eta_z_max=" << eta_z.maxCoeff()
-                << " non_zi_grad=" << std::sqrt(non_zi_gradient_sq)
-                << " reduced_converged=" << reduced_fit.converged
-                << " reduced_hit_cap=" << reduced_fit.hit_iteration_cap
-                << " reduced_gnorm=" << reduced_fit.gradient_norm
-                << " reduced_params_size=" << reduced_fit.params.size()
-                << " reduced_finite=" << reduced_fit.params.allFinite() << std::endl;
+#ifndef EDI_CORE_ONLY
+    if (zinb_debug_enabled()) {
+        Rcpp::Rcout << "DEBUG zi-boundary: eta_z_max=" << eta_z.maxCoeff()
+                    << " non_zi_grad=" << std::sqrt(non_zi_gradient_sq)
+                    << " reduced_converged=" << reduced_fit.converged
+                    << " reduced_hit_cap=" << reduced_fit.hit_iteration_cap
+                    << " reduced_gnorm=" << reduced_fit.gradient_norm
+                    << " reduced_params_size=" << reduced_fit.params.size()
+                    << " reduced_finite=" << reduced_fit.params.allFinite() << std::endl;
+    }
 #endif
     if (!reduced_fit.converged || reduced_fit.params.size() != reduced_n || !reduced_fit.params.allFinite())
         return false;
@@ -643,17 +672,42 @@ LikelihoodFitResult fast_zinb_internal(const Eigen::Ref<const Eigen::MatrixXd>& 
 
     LikelihoodFitResult fit = optimize_fixed_likelihood(
         obj, par, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_ptr);
-    if (!accept_zinb_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit)) {
+#ifndef EDI_CORE_ONLY
+    if (zinb_debug_enabled()) {
+        Rcpp::Rcout << "DEBUG primary fit: converged=" << fit.converged
+                    << " hit_cap=" << fit.hit_iteration_cap
+                    << " gnorm=" << fit.gradient_norm
+                    << " finite=" << fit.params.allFinite()
+                    << " value=" << fit.value
+                    << " params=" << fit.params.transpose() << std::endl;
+    }
+#endif
+    const bool primary_accepted = accept_zinb_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit);
+    bool zip_fallback_used = false;
+    bool negbin_boundary_used = false;
+    if (!primary_accepted) {
         // Prefer a direct stable ZIP fit whenever the finite-theta ZINB
         // predicates fail.  Retain the generic boundary acceptance only as a
         // final compatibility path if the reduced fit itself cannot run.
-        if (!fit_zip_reduced_fallback(obj, fixed_spec, n_par - 1, maxit, tol, optimization_alg, fit))
-            accept_negbin_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit);
+        zip_fallback_used = fit_zip_reduced_fallback(obj, fixed_spec, n_par - 1, maxit, tol, optimization_alg, fit);
+        if (!zip_fallback_used)
+            negbin_boundary_used = accept_negbin_poisson_boundary_convergence(obj, fixed_spec, n_par - 1, tol, fit);
     }
     // Attempted regardless of fit.converged -- see fit_zinb_zi_boundary_fallback's
     // own comment for why the primary solver's convergence flag does not
     // reliably flag this particular boundary.
-    fit_zinb_zi_boundary_fallback(Xc, Xz, y_vec, obj, fixed_spec, maxit, tol, optimization_alg, fit);
+    const bool zi_boundary_used = fit_zinb_zi_boundary_fallback(Xc, Xz, y_vec, obj, fixed_spec, maxit, tol, optimization_alg, fit);
+#ifndef EDI_CORE_ONLY
+    if (zinb_debug_enabled()) {
+        Rcpp::Rcout << "DEBUG final fit: primary_accepted=" << primary_accepted
+                    << " zip_fallback_used=" << zip_fallback_used
+                    << " negbin_boundary_used=" << negbin_boundary_used
+                    << " zi_boundary_used=" << zi_boundary_used
+                    << " converged=" << fit.converged
+                    << " finite=" << fit.params.allFinite()
+                    << " params=" << fit.params.transpose() << std::endl;
+    }
+#endif
     return fit;
 }
 

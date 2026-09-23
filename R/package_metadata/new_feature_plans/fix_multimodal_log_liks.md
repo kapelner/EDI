@@ -1,7 +1,8 @@
 # Fix: Stereotype-Logit Likelihood Is Multimodal — `compute_estimate()` Can Return a Non-Global Optimum
 
 > **Depends on:** none. (Global ordering: see `_master.md`.) Slated for
-> `release_v1_1_0.md → TODO-30`.
+> `release_v1_0_5.md → TODO-8` (moved 2026-09-23 from
+> `release_v1_1_0.md → TODO-30`, bug-fix/feature split).
 
 Found 2026-09-21, following up on the `comprehensive_tests` results-CSV audit
 (`audit_comprehensive_results.R`) finding that fixed

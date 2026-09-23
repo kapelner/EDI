@@ -7,7 +7,9 @@
 > same *symptom family* (a randomization CI silently reporting a wrong-but-
 > plausible-looking answer instead of erroring) but a different *mechanism*
 > (missing component hooks, not a scale/parameterization mismatch). Slated for
-> **v1.1.0** (user decision, 2026-09-17) -- `release_v1_1_0.md → TODO-25`.
+> **v1.0.5** (`release_v1_0_5.md → TODO-7`, moved 2026-09-23 from
+> `release_v1_1_0.md → TODO-25`, bug-fix/feature split; user decision,
+> 2026-09-17).
 
 ## Status
 

@@ -1,8 +1,9 @@
 # Fix plan: `comprehensive_tests`' Monte-Carlo coverage-truth uses the wrong covariate set
 
 Found 2026-09-22, via a raw `comprehensive_tests` results-CSV audit's `low_coverage`
-check (`audit_comprehensive_results.R`), not a user report. Slated for v1.1.0
-(`release_v1_1_0.md → TODO-32`).
+check (`audit_comprehensive_results.R`), not a user report. Slated for v1.0.5
+(`release_v1_0_5.md → TODO-10`, moved 2026-09-23 from
+`release_v1_1_0.md → TODO-32`, bug-fix/feature split).
 
 ## Symptom
 

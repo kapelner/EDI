@@ -315,10 +315,6 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 				private$cache_nonestimable_estimate("strat_cox_fit_unavailable")
 				return(invisible(NULL))
 			}
-			if (abs(private$cached_values$beta_hat_T) > private$max_abs_reasonable_coef) {
-				private$cache_nonestimable_estimate("strat_cox_extreme_estimate")
-				return(invisible(NULL))
-			}
 			if (estimate_only) return(invisible(NULL))
 			se = if (is.finite(mod$ssq_b_2 %||% NA_real_) && mod$ssq_b_2 > 0) sqrt(mod$ssq_b_2) else NA_real_
 			private$cached_values$s_beta_hat_T = se

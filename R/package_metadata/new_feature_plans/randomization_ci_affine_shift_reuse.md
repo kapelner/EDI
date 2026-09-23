@@ -1,7 +1,8 @@
 # Randomization CI: Reuse One Null Distribution Across the Whole Search (Affine-Shift Shortcut)
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-17o`;
-> 2026-08-30, user decision). R-level inference change with no new kernel;
+> **Release:** v1.0.5 (`../future_release_plans/release_v1_0_5.md → TODO-2`,
+> moved 2026-09-23 from `release_v1_1_0.md → TODO-17o`, bug-fix/feature
+> split; 2026-08-30, user decision). R-level inference change with no new kernel;
 > no Phase 0 dependency. Bit-for-bit on the default path is **not** the goal
 > here — the goal is the *same estimator and the same p-value to floating
 > point* at 20–30× less work; see "Equivalence contract" below for exactly

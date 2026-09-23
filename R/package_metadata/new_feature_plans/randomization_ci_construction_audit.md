@@ -4,7 +4,9 @@
 > bug family: a randomization CI reported on a scale other than the class's
 > estimand) and `randomization_ci_affine_shift_reuse.md` (whose shift
 > identity must match the construction verified in §B — it did not, and was
-> corrected 2026-09-05). Release: v1.1.0 (`release_v1_1_0.md → TODO-17x`).
+> corrected 2026-09-05). Release: v1.0.5 (`release_v1_0_5.md → TODO-5`,
+> moved 2026-09-23 from `release_v1_1_0.md → TODO-17x`, bug-fix/feature
+> split).
 > **§A ends in a user decision** (Phase 0 style); §B is closed.
 
 Date: 2026-09-04; §B rewritten 2026-09-05 after the construction was
