@@ -64,6 +64,13 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			private$active_resampling_operation = "param_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			if (!isTRUE(private$supports_lik_ratio_param_bootstrap())){
+				stop(
+					class(self)[1], " does not support parametric-bootstrap LR calibration. ",
+					"Override private$supports_lik_ratio_param_bootstrap() and simulate_under_lik_null().",
+					call. = FALSE
+				)
+			}
 			if (should_run_asserts()){
 				assertNumeric(delta, len = 1)
 				assertCount(B, positive = TRUE)
@@ -199,6 +206,12 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
 			private$active_resampling_operation = "param_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			if (!isTRUE(private$supports_lik_ratio_param_bootstrap_confidence_interval())){
+				stop(
+					class(self)[1], " does not support parametric-bootstrap LR confidence intervals.",
+					call. = FALSE
+				)
+			}
 			if (should_run_asserts()){
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 				assertCount(B, positive = TRUE)

@@ -199,8 +199,10 @@ R/package_tests/testthat_bulk/test-extract-se-from-rq-fit-fallback-contract.R,co
 R/package_tests/testthat_bulk/test-factorial-design-two-arm-mapping-balance-and-factor-validation-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fast-coxph-regression-wrapper-and-optimizer-name-normalization-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fast-glm-direct-helper-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-fast-probit-regression-warm-start-beta-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fast-randomization-worker-cache-carryover-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fast-weibull-regression-r-fallback-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-fast-zero-augmented-poisson-failed-fit-diagnostic-result-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-design-add-all-subjects-wrong-row-count-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-fixed-observational-design-contracts.R,correctness,120,bootstrap
@@ -233,6 +235,7 @@ R/package_tests/testthat_bulk/test-hurdle-negbin-kernel-pscl-agreement-and-varia
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-ivwc-weighted-bootstrap-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-imputation-helpers-logical-and-unknown-type-column-branches-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-incid-gcomp-abstract-get-estimand-type-not-implemented-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-incid-gcomp-effects-and-coefficients-usable-predicates-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-incid-gcomp-get-covariate-names-fallback-reference.R,correctness,120,bootstrap
@@ -336,6 +339,7 @@ R/package_tests/testthat_bulk/test-jonckheere-terpstra-ordinal-components-u-stat
 R/package_tests/testthat_bulk/test-kk-compound-bootstrap-variance-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-abstract-combine-reservoir-not-implemented-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-data-split-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-weighted-refit-extreme-coefficient-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likelihood-and-fit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-abstract-build-design-matrix-and-get-estimand-type-not-implemented-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-cluster-id-cache-reference.R,correctness,120,bootstrap
@@ -451,6 +455,7 @@ R/package_tests/testthat_bulk/test-negbin-jackknife-methods-all-report-explicit-
 R/package_tests/testthat_bulk/test-negbin-randomization-estimate-descriptors-and-null-simulation-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-negbin-regression-kernel-glm-nb-coefficients-theta-loglik-fixed-and-poisson-boundary-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-negbin-weighted-constrained-fit-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-negbin-weighted-refit-poisson-fallback-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-debug-diagnostics-serial-path-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-distribution-ci-smoothed-and-calibrated-drivers-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-extreme-guards-and-replication-stats-reference.R,correctness,120,bootstrap
@@ -558,6 +563,8 @@ R/package_tests/testthat_bulk/test-quasi-robust-poisson-weighted-refit-reference
 R/package_tests/testthat_bulk/test-quasipoisson-marginal-estimand-delta-method-glm-quasipoisson-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-quasipoisson-with-var-kernel-glm-dispersion-ssq-fixed-coefficients-and-df-convention-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-ci-recovery-contracts.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-logit-and-count-shift-transform-codes-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-se-logit-and-count-shift-transform-codes-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-statistic-kernels-coxph-jt-and-km-diff-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-studentized-pval-and-iteration-with-se-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap.R,correctness,120,bootstrap
@@ -645,6 +652,7 @@ R/package_tests/testthat_bulk/test-simple-wilcox-weighted-hl-and-shared-se-refer
 R/package_tests/testthat_bulk/test-simulation-custom-noise-heterogeneous-estimand-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-data-and-tuning-policy-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-dgp-apply-treatment-and-noise-kernel-r-rng-stream-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-simulation-dgp-survival-nonfinite-weibull-shape-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-cache-and-error-record-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simulation-grid-legacy-hook-estimand-reference.R,correctness,120,bootstrap
@@ -687,6 +695,7 @@ R/package_tests/testthat_bulk/test-survival-kk-weibull-marginal-migration-golden
 R/package_tests/testthat_bulk/test-survival-kk-weibull-normal-frailty-class-matches-frailty-kernel-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-survival-likelihood-and-baseline-hazard-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-survival-logrank-gehan-interval-censored-compute-shared-icen-vs-ictest-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-survival-stat-group-and-diff-nan-event-time-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-survival-strata-ids-kernel-column-selection-mixed-radix-ids-and-degenerate-cases-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-tuning-apply-policy-diffs-merge-precedence-and-warm-start-catch-all-conversion-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-tuning-axes-engine-seed-contract-and-family-filters-reference.R,correctness,120,bootstrap
@@ -725,6 +734,7 @@ R/package_tests/testthat_bulk/test-weighted-refit-does-not-leak-into-unweighted-
 R/package_tests/testthat_bulk/test-weighted-regression-kernels-frequency-weight-row-replication-equivalence-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wilcox-hl-distr-kernel-delta-shift-transform-codes-and-nonfinite-handling-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-wilcox-hl-signed-rank-bisection-walsh-average-path-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-wilcox-jackknife-always-nonestimable-and-suite-task-filter-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-with-var-regression-kernels-fisher-information-and-ssq-b-j-cross-family-contract-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-fit-degeneracy-predicate-vcov-conditioning-and-boundary-intercept-reference.R,correctness,120,bootstrap
@@ -1184,8 +1194,10 @@ R/package_tests/testthat_bulk/test-extract-se-from-rq-fit-fallback-contract.R,co
 R/package_tests/testthat_bulk/test-factorial-design-two-arm-mapping-balance-and-factor-validation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-coxph-regression-wrapper-and-optimizer-name-normalization-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-glm-direct-helper-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-fast-probit-regression-warm-start-beta-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-randomization-worker-cache-carryover-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-weibull-regression-r-fallback-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-fast-zero-augmented-poisson-failed-fit-diagnostic-result-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-and-adaptive-design-contracts.R,coverage,1.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fixed-design-add-all-subjects-wrong-row-count-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fixed-observational-design-contracts.R,coverage,1,measured_with_30_percent_headroom
@@ -1218,6 +1230,7 @@ R/package_tests/testthat_bulk/test-hurdle-negbin-kernel-pscl-agreement-and-varia
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-ivwc-weighted-bootstrap-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-imputation-helpers-logical-and-unknown-type-column-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-incid-gcomp-abstract-get-estimand-type-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-incid-gcomp-effects-and-coefficients-usable-predicates-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-incid-gcomp-get-covariate-names-fallback-reference.R,coverage,240,bootstrap
@@ -1321,6 +1334,7 @@ R/package_tests/testthat_bulk/test-jonckheere-terpstra-ordinal-components-u-stat
 R/package_tests/testthat_bulk/test-kk-compound-bootstrap-variance-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-abstract-combine-reservoir-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-data-split-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-weighted-refit-extreme-coefficient-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likelihood-and-fit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-abstract-build-design-matrix-and-get-estimand-type-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-gcomp-incidence-cluster-id-cache-reference.R,coverage,240,bootstrap
@@ -1436,6 +1450,7 @@ R/package_tests/testthat_bulk/test-negbin-jackknife-methods-all-report-explicit-
 R/package_tests/testthat_bulk/test-negbin-randomization-estimate-descriptors-and-null-simulation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-negbin-regression-kernel-glm-nb-coefficients-theta-loglik-fixed-and-poisson-boundary-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-negbin-weighted-constrained-fit-reference.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-negbin-weighted-refit-poisson-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-debug-diagnostics-serial-path-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-distribution-ci-smoothed-and-calibrated-drivers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-non-param-boot-extreme-guards-and-replication-stats-reference.R,coverage,240,bootstrap
@@ -1543,6 +1558,8 @@ R/package_tests/testthat_bulk/test-quasi-robust-poisson-weighted-refit-reference
 R/package_tests/testthat_bulk/test-quasipoisson-marginal-estimand-delta-method-glm-quasipoisson-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-quasipoisson-with-var-kernel-glm-dispersion-ssq-fixed-coefficients-and-df-convention-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-ci-recovery-contracts.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-logit-and-count-shift-transform-codes-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rand-bootstrap-mean-diff-se-logit-and-count-shift-transform-codes-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-statistic-kernels-coxph-jt-and-km-diff-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap-studentized-pval-and-iteration-with-se-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-bootstrap.R,coverage,17.7,measured_with_30_percent_headroom
@@ -1630,6 +1647,7 @@ R/package_tests/testthat_bulk/test-simple-wilcox-weighted-hl-and-shared-se-refer
 R/package_tests/testthat_bulk/test-simulation-custom-noise-heterogeneous-estimand-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-data-and-tuning-policy-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-dgp-apply-treatment-and-noise-kernel-r-rng-stream-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-simulation-dgp-survival-nonfinite-weibull-shape-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework-cache-and-error-record-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simulation-framework.R,coverage,7.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simulation-grid-legacy-hook-estimand-reference.R,coverage,1,measured_with_30_percent_headroom
@@ -1672,6 +1690,7 @@ R/package_tests/testthat_bulk/test-survival-kk-weibull-marginal-migration-golden
 R/package_tests/testthat_bulk/test-survival-kk-weibull-normal-frailty-class-matches-frailty-kernel-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-survival-likelihood-and-baseline-hazard-contracts.R,coverage,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-survival-logrank-gehan-interval-censored-compute-shared-icen-vs-ictest-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-survival-stat-group-and-diff-nan-event-time-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-survival-strata-ids-kernel-column-selection-mixed-radix-ids-and-degenerate-cases-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-tuning-apply-policy-diffs-merge-precedence-and-warm-start-catch-all-conversion-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-tuning-axes-engine-seed-contract-and-family-filters-reference.R,coverage,240,bootstrap
@@ -1710,6 +1729,7 @@ R/package_tests/testthat_bulk/test-weighted-refit-does-not-leak-into-unweighted-
 R/package_tests/testthat_bulk/test-weighted-regression-kernels-frequency-weight-row-replication-equivalence-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-wilcox-hl-bootstrap-reference-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-wilcox-hl-distr-kernel-delta-shift-transform-codes-and-nonfinite-handling-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-wilcox-hl-signed-rank-bisection-walsh-average-path-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-wilcox-jackknife-always-nonestimable-and-suite-task-filter-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-with-var-regression-kernels-fisher-information-and-ssq-b-j-cross-family-contract-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-fit-degeneracy-predicate-vcov-conditioning-and-boundary-intercept-reference.R,coverage,240,bootstrap

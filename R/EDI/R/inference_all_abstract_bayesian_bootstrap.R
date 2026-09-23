@@ -80,6 +80,8 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		#'   \code{prop_iterations_with_warnings}, and
 		#'   \code{prop_illegal_values}.
 		approximate_bayesian_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, weighting_unit_type = NULL){
+			if (!isTRUE(private$supports_bayesian_bootstrap()))
+				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
 			private$active_resampling_operation = "bayesian_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (should_run_asserts()) {
@@ -270,6 +272,8 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		#' @return A numeric two-sided p-value, or \code{NA_real_} if too few usable
 		#'   replicates remain or the estimate is non-finite.
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+			if (!isTRUE(private$supports_bayesian_bootstrap()))
+				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1)
 				assertCount(B, positive = TRUE)
@@ -398,6 +402,8 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		#'   \code{c(NA_real_, NA_real_)} when the estimate is non-finite or too few
 		#'   usable replicates remain.
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+			if (!isTRUE(private$supports_bayesian_bootstrap()))
+				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 				assertCount(B, positive = TRUE)
