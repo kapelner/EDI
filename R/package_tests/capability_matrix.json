@@ -1,6 +1,6 @@
 {
-  "_about": "EDI capability matrix, generated from the package's class registries by R/package_tests/capability_matrix.R (EDI 1.0.1). inference_classes[].design_families lists the registry's static design compatibility; design_level_exclusions is the per-instance rule applied on top. public_methods are the R6 methods each capability exposes. Docs: https://kapelner.github.io/EDI/",
-  "package_version": "1.0.1",
+  "_about": "EDI capability matrix, generated from the package's class registries by R/package_tests/capability_matrix.R (EDI 1.0.2). inference_classes[].design_families lists the registry's static design compatibility; design_level_exclusions is the per-instance rule applied on top. public_methods are the R6 methods each capability exposes. Docs: https://kapelner.github.io/EDI/",
+  "package_version": "1.0.2",
   "response_types": ["continuous", "count", "incidence", "ordinal", "proportion", "survival"],
   "design_families": ["atkinson", "bernoulli", "binary_match", "blocked", "blocked_cluster", "clustered", "complete_randomization", "deterministic_optimal", "efron", "factorial", "greedy", "greedy_d_optimal", "kk14", "kk21", "kk21_stepwise", "matching_greedy_pair_switching", "none", "optimal_blocks", "pocock_simon", "random_block_size", "rerandomization", "spbr", "urn"],
   "capability_to_public_methods": {
