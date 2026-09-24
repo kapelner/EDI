@@ -677,7 +677,7 @@ into other formats (APA, BibTeX, EndNote, ...). As BibTeX:
   author  = {Kapelner, Adam},
   title   = {{edi\_kernels}: {P}ython bindings for {EDI}'s {C}++ model-fitting kernels},
   year    = {2026},
-  version = {1.0.1},
+  version = {1.0.2},
   url     = {https://pypi.org/project/edi_kernels/},
   note    = {Part of the EDI project, \url{https://github.com/kapelner/EDI}}
 }

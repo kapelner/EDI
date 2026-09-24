@@ -15,19 +15,19 @@ library(EDI)
 # compute_treatment_estimate_during_randomization_inference()'s OWN independent fit_clmm()/fit_clm_
 # fallback() call site (a different code path, use_rcpp = FALSE only) gets the same treatment.
 #
-# NOTE (real source bug, not fixed here): shared_clmm()'s own "private$best_X_colnames = setdiff(
-# colnames(attempt$X_fit), ...)" line reads a field named `X_fit` off fit_with_hardened_qr_column_
+# NOTE (real source bug, FIXED 2026-09-24): shared_clmm()'s own "private$best_X_colnames = setdiff(
+# colnames(attempt$X_fit), ...)" line read a field named `X_fit` off fit_with_hardened_qr_column_
 # dropping()'s return value, but that function's actual return shape (inference_all_abstract.R) is
 # always list(fit=, X=, keep=) -- there is no `X_fit` field. colnames(NULL) is NULL and setdiff(NULL,
-# ...) is NULL (not character(0)), so private$best_X_colnames is silently left NULL after every
-# shared_clmm() call, regardless of fit success. This means compute_treatment_estimate_during_
-# randomization_inference()'s own "is.null(private$best_X_colnames)" check is always TRUE, so its
-# fast reuse-the-original-design-columns path (the whole point of caching best_X_colnames) is
-# unreachable in practice for use_rcpp = FALSE classes -- it always falls through to the slower
-# self$compute_estimate(estimate_only=...) branch instead. The second test below manually sets
-# private$best_X_colnames to isolate and verify the fit_clmm()/fit_clm_fallback() dispatch logic on
-# its own merits, bypassing this unrelated bug rather than asserting the (currently unreachable)
-# fast path actually gets used.
+# ...) is NULL (not character(0)), so private$best_X_colnames was silently left NULL after every
+# shared_clmm() call, regardless of fit success. This meant compute_treatment_estimate_during_
+# randomization_inference()'s own "is.null(private$best_X_colnames)" check was always TRUE, so its
+# fast reuse-the-original-design-columns path (the whole point of caching best_X_colnames) was
+# unreachable in practice for use_rcpp = FALSE classes -- it always fell through to the slower
+# self$compute_estimate(estimate_only=...) branch instead. Fixed by changing attempt$X_fit ->
+# attempt$X. The second test below still manually sets private$best_X_colnames beforehand -- now
+# redundant (shared_clmm() correctly populates it) but harmless, kept to isolate the fit_clmm()/
+# fit_clm_fallback() dispatch logic from the population step.
 
 clmm_shared_fixture <- function(seed, n = 40L) {
 	set.seed(seed)

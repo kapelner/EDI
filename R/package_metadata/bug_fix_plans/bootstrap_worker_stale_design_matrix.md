@@ -260,6 +260,19 @@ reused-worker loaders, rather than three separate per-loader patches.
   or partially resolves each of the four classes' findings.
 - [ ] TODO-9: Regenerate affected `comprehensive_tests` CSV rows once
   fixed and installed (only after install, not before).
+- [ ] TODO-10 (added 2026-09-24, closing a gap where the "Unresolved, not
+  traced to a conclusion" section above named three classes with no
+  explicit action item tracking them): confirm or rule out this bug for
+  `InferenceContinKKQuantileRegrOneLik` (read its actual
+  `compute_estimate_with_bootstrap_weights()` body in the
+  `KKQuantileRegrOneLik` component source — not yet read by any fork so
+  far; check `TODO-20`'s tie-sensitivity lead first, since it's an
+  independent pre-existing candidate for this same class),
+  `InferenceOrdinalGCompMeanDiff` (GComp-family staleness check never done
+  for this class specifically), and the other GComp-family siblings
+  (`InferenceIncidGCompRiskDiff`/`RiskRatio` and their KK variants —
+  currently only "plausible by architectural similarity," not
+  call-graph-confirmed either way).
 
 ## Standing constraints
 

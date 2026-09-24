@@ -1226,7 +1226,7 @@ index: `release_v1_0_5.md → TODO-16` (was `release_v1_1_0.md → TODO-38`).
 `../bug_fix_plans/cox_risk_set_cache_staleness.md → TODO-1..5`. The
 `InferenceCoxPH`/`InferenceStratifiedCoxPH` risk-set caches are guarded only
 on `w` while embedding `y`/`dead`. No confirmed wrong result yet (plan
-TODO-1 is the exposure audit). Release index: `release_v1_0_5.md → TODO-29`.
+TODO-1 is the exposure audit). Release index: `release_v1_0_5.md → TODO-30`.
 
 **Incidence identity-link risk-difference subsampling inflation** (added
 2026-09-24, same audit-triage wave; no dependency on any phase above):
@@ -1236,6 +1236,20 @@ Type-I error on subsampling and m-out-of-n bootstrap p-values, formula-
 independent; leading (unconfirmed) hypothesis is boundary-rejected subsample
 fits biasing the pivot distribution. Investigation-first. Release index:
 `release_v1_0_5.md → TODO-27`.
+
+**Test-comment audit findings** (added 2026-09-24; no dependency on any
+phase above): five plans from defects that test authors recorded but did not
+fix. `../bug_fix_plans/glmm_variance_component_sigma_collapse.md →
+TODO-1..6` (`release_v1_0_5.md → TODO-31`; the targeted, observed-wrong-answer
+subset of the multistart problem in Phase 1E/`multistart_nonconcave_likelihoods.md`);
+`../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
+TODO-1..5` (`→ TODO-32`; decide before `ridit_kernel_level_slots.md`);
+`../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md →
+TODO-1..4` (`→ TODO-33`; touches the randomization-CI search-precision area);
+`../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
+TODO-1..4` (`→ TODO-34`); and the batch
+`../bug_fix_plans/test_comment_audit_small_defects.md → TODO-1..12`
+(`→ TODO-35..46`, one release TODO per plan item).
 
 ## Phase 6 — Exploratory / later
 

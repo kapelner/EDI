@@ -6,6 +6,47 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 "Versioning" checklist item) — a `.postN` suffix is used for
 Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
+## [1.0.2] - 2026-09-24
+
+Kernel-level changes in `R/EDI/src/*.cpp` since the `v1.0.1` tag, so per the
+versioning rule above this release is not a `.postN`; it tracks
+`R/EDI/DESCRIPTION`'s own `1.0.1` -> `1.0.2` bump. The Python bindings
+compile the same sources and inherit these fixes verbatim. Fixes that live
+only in the R layer (randomization worker caches, `stable_signature`,
+class-level standard-error logic) are described in `R/EDI/NEWS.md` and do
+not apply here.
+
+### Fixed
+
+- `fast_probit_regression`: the L-BFGS objective held a dangling
+  `Eigen::Ref` to a temporary (its constructor argument), producing
+  non-deterministic optimizer results and `NaN` negative log-likelihoods.
+  The objective now owns a row-major copy of the design matrix.
+- `fast_log_binomial_regression`: zero-weight rows no longer constrain the
+  `[0, 1]` mean support (they are absent from the likelihood), so valid fits
+  are no longer rejected because of them.
+- `fast_robust_regression`: `method` other than `"M"`/`"MM"` is rejected up
+  front (including before the OpenMP region of the bootstrap kernel, where
+  an exception would terminate the process).
+- `generate_permutations_*` (Efron biased-coin): the assignment probability
+  compares raw arm counts, as `DesignSeqOneByOneEfron::assign_wt()` does, so
+  permutations follow the design's rule for every `prob_T` (ties use
+  `prob_T`); previously weighted counts were compared, which differs for
+  `prob_T != 0.5`.
+- `fast_weibull_regression` and `fast_coxph_regression`: with fixed
+  (held) coefficients, the covariance is computed from the free-parameter
+  information block only and expanded back, so the fixed rows' `NaN`s cannot
+  contaminate the free standard errors (the Cox robust sandwich too).
+- `fast_wilcox_hl`: the interrupt poll is skipped whenever an OpenMP
+  parallel region is active, since R's interrupt machinery is restricted to
+  the main R thread.
+- `fast_ordinal_clmm`: mismatched `X`/`y`/`group_id` lengths now raise a
+  clear error instead of reading out of bounds.
+- `fast_zero_augmented_poisson`: on an internal optimizer exception the
+  documented return is a full diagnostic list (`converged = FALSE`,
+  starting-value `params`/information, `exception_message`), not a bare
+  two-field list; documentation corrected to match.
+
 ## [1.0.1] - 2026-09-14
 
 Kernel-level changes in `R/EDI/src/*.cpp` (commits `831be080`, `c289adfa`,

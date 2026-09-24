@@ -7,14 +7,13 @@ library(EDI)
 # the same technique already used for the sibling InferenceSurvivalGLMMWeibullFrailtyNormalOneLik's
 # analogous 'kk_weibull_frailty_combined_fit_failed' guard, closed in test-kk-weibull-frailty-onelik-
 # no-events-and-fit-failed-guards-reference.R) -- had no test reference anywhere for this class.
-# Unlike its normal-frailty sibling, this class's fallback does NOT call cache_nonestimable_estimate()
-# with a reason string; it only sets beta_hat_T/s_beta_hat_T to NA_real_ directly (confirmed via a
-# zero-hit grep for cache_nonestimable in this file). This test documents the CURRENT observable
-# contract (NA estimate/CI, no nonestimable reason recorded) rather than asserting it matches the
-# sibling class's richer contract -- noted as a minor cross-class inconsistency, not fixed here.
+# Previously (until 2026-09-24), unlike its normal-frailty sibling, this class's fallback did NOT call
+# cache_nonestimable_estimate() with a reason string; it only set beta_hat_T/s_beta_hat_T to NA_real_
+# directly. FIXED 2026-09-24 to call cache_nonestimable_estimate("kk_weibull_frailty_loggamma_fit_failed"),
+# matching the sibling's richer contract.
 #   1. compute_estimate() returns NA_real_ when every fit attempt fails.
-#   2. get_nonestimable_reason()/is_nonestimable("estimate") do NOT flag this failure (the documented
-#      divergence from the normal-frailty sibling).
+#   2. get_nonestimable_reason()/is_nonestimable("estimate") now DO flag this failure, matching the
+#      normal-frailty sibling's contract.
 #   3. compute_asymp_confidence_interval() also degrades to c(NA, NA) rather than erroring.
 #   4. get_likelihood_test_spec() returns NULL (its own guard on cached_mod/likelihood_test_context
 #      being unset) rather than erroring.
@@ -42,12 +41,12 @@ test_that("compute_estimate() returns NA_real_ when every covariate-candidate fi
 	expect_type(est, "double")
 })
 
-test_that("the failure is NOT recorded via the nonestimable-reason API, unlike the normal-frailty sibling", {
+test_that("the failure IS recorded via the nonestimable-reason API, matching the normal-frailty sibling", {
 	inf <- fit_failed_loggamma_fixture(102L)
 	local_mocked_bindings(.fit_clayton_weibull_aft = function(...) NULL, .package = "EDI")
 	inf$compute_estimate()
-	expect_false(inf$is_nonestimable("estimate"))
-	expect_null(inf$get_nonestimable_reason())
+	expect_true(inf$is_nonestimable("estimate"))
+	expect_equal(inf$get_nonestimable_reason(), "kk_weibull_frailty_loggamma_fit_failed")
 })
 
 test_that("compute_asymp_confidence_interval() degrades to c(NA, NA) without erroring", {

@@ -182,6 +182,11 @@ InferenceIncidNewcombeRiskDiff = define_inference_class(
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
 			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			counts = private$get_counts()
+			if (counts$n_t == 0 || counts$n_c == 0 || !is.finite(counts$p_t) || !is.finite(counts$p_c)){
+				private$cached_values$counts = counts
+				private$cache_nonestimable_estimate("newcombe_riskdiff_empty_arm")
+				return(invisible(NULL))
+			}
 			private$cached_values$counts = counts
 			private$cached_values$beta_hat_T = counts$p_t - counts$p_c
 			if (estimate_only) return(invisible(NULL))

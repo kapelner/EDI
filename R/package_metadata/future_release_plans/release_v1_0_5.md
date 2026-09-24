@@ -112,14 +112,18 @@ plan files' internal numbering did not change.
   with `harden = FALSE` still returns a finite SE (0.236), not `NA`.
   Plan's own checklist: 0/5 checked.
 
-  **Requirement (added 2026-09-24, user decision):** the guard's
-  rejections must be surfaced through the existing typed
-  `cache_nonestimable_estimate()`/`cache_nonestimable_se()` reason strings
-  (a standard reason such as `information_singular`, following the naming
-  the other kernels already use), not a new ad-hoc flag, so the v1.1.0
-  `SolverDiagnostics` component
+  **Requirement (added 2026-09-24, user decision; reason naming checked
+  same day):** the guard's rejections must be surfaced as typed SE
+  nonestimability through the existing `cache_nonestimable_se()` (R-side,
+  using each class's `<prefix>_standard_error_unavailable` string, default
+  `standard_error_unavailable`), not a new ad-hoc flag. The C++ helper must
+  also return an invertible/not status alongside the `NaN` inverse, so the
+  v1.1.0 `SolverDiagnostics` component
   (`../new_feature_plans/optimizer_diagnostics_report.md → TODO-3`) can
-  absorb them without rework. The diagnostics chain itself stays in v1.1.0.
+  classify "singular information" later without rework. No shared
+  "singular information" reason exists in the code today; see the plan's
+  "Diagnostics coordination" section. The diagnostics chain itself stays in
+  v1.1.0.
 
   **Cross-confirmed 2026-09-24** by the new `pval_miscalibration`/
   `low_coverage` audit checks, independently of the direct-repro check
@@ -1010,7 +1014,7 @@ other `low_power` findings this session resolved. No plan file, no
 further investigation warranted; recommend accepting into the audit
 baseline as expected/benign.
 
-- [ ] TODO-29 (added 2026-09-24, user decision: slotted into v1.0.5 from
+- [ ] TODO-30 (added 2026-09-24, user decision: slotted into v1.0.5 from
   "unassigned"; found 2026-08-30 in the research-plan verification audit):
   **Cox risk-set cache staleness guard** —
   `../bug_fix_plans/cox_risk_set_cache_staleness.md → TODO-1..5`.
@@ -1025,6 +1029,88 @@ baseline as expected/benign.
   and cheap to close (guard fix in both classes, same-pattern sweep of
   other `*_w_cache` guards, tests, contract doc touch-up). Plan's own
   checklist: 0/5 checked.
+- [ ] TODO-31 (added 2026-09-24, promoted from asides inside TODO-4's and
+  TODO-29's prose — user flagged that un-homed findings in this file risk
+  getting lost; tracked as an open investigation, not a fix plan, in
+  `bug_fix_plans/investigate_count_family_unexplained_miscalibration_cluster.md`):
+  **four count-family classes show real, audit-flagged miscalibration with
+  no confirmed root cause** — `InferenceCountPoisson` (16 families
+  flagged), `InferenceCountQuasiPoisson` (9 families uniformity + 4
+  coverage), `InferenceCountKKGLMM` (part of the cluster ruled out from
+  TODO-28/29's stale-design-matrix mechanism), and
+  `InferenceCountKKHurdlePoissonOneLik`. Each was checked against a specific
+  candidate mechanism from a different investigation (TODO-4's unguarded-
+  information-inverse bug, TODO-28/29's stale-`cached_design_matrix` bug)
+  and confirmed to NOT share it — but none has been root-caused on its own
+  terms. No plan file existed for any of the four before this TODO.
+- [ ] TODO-32 (added 2026-09-24, promoted from a one-line dead-code aside
+  inside TODO-4's prose, same reason as TODO-31 — user flagged that un-homed
+  findings risk getting lost; trivial, no plan file needed): **dead code in
+  `_helper_functions_core.h`** — `set_min_eigenvalue_if_suspect()`
+  (`:210-219`) is entirely commented out, so `min_eigenvalue_information` is
+  never populated by any caller. Found while checking `InferenceCountPoisson`
+  against TODO-4's unguarded-information-inverse bug (unrelated — there was
+  no live caller to implicate either way). Fix is either delete the dead
+  function and the now-unused `min_eigenvalue_information` field, or
+  actually wire it in if it was meant to be live — a decision, not
+  investigation work; not yet decided.
+
+- [ ] TODO-31 (added 2026-09-24, from an audit of test-file comments; four
+  tests pin it as `SUSPECTED SOURCE BUG (pinned, not fixed)`): **Random-effect
+  variance collapse in GLMM/CLMM fits** —
+  `../bug_fix_plans/glmm_variance_component_sigma_collapse.md → TODO-1..6`.
+  `fast_ordinal_clmm_cpp` (started at `log sigma = -3`, the KK CLMM classes'
+  warm start), `fast_logistic_glmm_cpp` (default cold start) and the KK count
+  GLMM (Newton) slide `log sigma` to about `-3`, report `converged = TRUE`,
+  and return a worse likelihood and biased estimate (6/12, 12/30 simulated
+  datasets in the probes); `InferenceOrdinalKKCLMM` returned the fixed-effects
+  `polr` estimate (0.4101 vs 0.4228 from `clmm`/`InferenceOrdinalKKGLMM`).
+  Also a wrong-signed log-sigma entry in `get_logistic_glmm_hessian_cpp`.
+  Reproduced by the pinned fixtures only; extent and fix undecided.
+- [ ] TODO-32 (added 2026-09-24, same audit; pinned test): **`InferenceOrdinalRidit(
+  reference = "treatment")` reports estimate 0 and `p = 1` always** —
+  `../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
+  TODO-1..5`. The treated group's mean ridit is `0.5` by construction, so
+  `mean_ridit_t - 0.5` is identically zero while the SE is positive. Needs a
+  semantics decision (redefine, refuse, or document) before the ridit
+  performance plan builds on this path.
+- [ ] TODO-33 (added 2026-09-24, same audit; pinned test): **Randomization-CI
+  high-precision refinement ignores `lower`** —
+  `../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md →
+  TODO-1..4`. `high_precision_confirm_and_refine_ci_bound()` always sets
+  `u2 <- m` on acceptance, right for a lower bound and wrong for an upper
+  bound, which then converges to the wrong end of its bracket. Real-path
+  reach not yet established.
+- [ ] TODO-34 (added 2026-09-24, same audit; "confirmed source bug, NOT
+  fixed"): **Interval-censored `compute_shared_icen()` blanket cache guard**
+  — `../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
+  TODO-1..4`. After `compute_estimate(estimate_only = TRUE)`, a later full
+  call on `InferenceSurvivalLogRank`/`GehanWilcox` under general censoring
+  never computes `s_beta_hat_T`, and `compute_asymp_confidence_interval()`
+  crashes. Same family as the stale-cache fixes.
+- [ ] TODO-35 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **`delta = NA` crash in the incidence g-computation risk ratio** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-1`. `InferenceIncidGCompRiskRatio`'s asymptotic/Wald p-value: `assertNumeric(delta, len = 1)` lets `NA` through, then `if (delta <= 0)` errors with "missing value where TRUE/FALSE needed" instead of the intended validation message. Fix with `any.missing = FALSE` and sweep the same pattern across all p-value methods.
+
+- [ ] TODO-36 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Exact-test classes cannot use the shared weighted estimate** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-2`. `ExactTestSource$compute_estimate_with_bootstrap_weights()` needs `expand_subject_or_block_weights_to_row_weights()`, which only the BayesianBootstrap component provides, so it errors on the exact Fisher class. Decide: unsupported (clear reason) or supported.
+
+- [ ] TODO-37 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **`inference_class_accepts_model_formula()` is always FALSE** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-3`. It inspects `formals(<R6 generator>$new)`, which is just `...`, so it is FALSE for every class. Find its callers and what they do with the wrong answer.
+
+- [ ] TODO-38 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Fresh-process crash in `fast_zero_one_inflated_beta_cpp()`** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-4`. In a fresh Rscript the kernel returned `neg_loglik = NaN` and `coefficients = NULL` on ordinary data (8/8 seeds) but not inside testthat, suggesting undefined behavior in the C++ kernel; the R-level guard was fixed, the kernel was not. Check whether `InferencePropZeroOneInflatedBetaRegr` can hit it; run under the ASan/valgrind CI jobs.
+
+- [ ] TODO-39 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Trailing incomplete block in one optimal-blocks design path** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-5`. `DesignFixedOptimalBlocks` (greedy/blockTools path) with `n` not a multiple of `B` leaves a trailing incomplete block that its own nearest-neighbour fallback never sees. Effect on balance and on block-assuming inference unknown.
+
+- [ ] TODO-40 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Zero-length estimate instead of `NA` on sparse weights** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-6`. In the incidence risk-difference weighted refit with only two positive-weight rows, the hardened retry drops the treatment column and `which(attempt$keep == 2L)` is `integer(0)`, so the cached estimate is a zero-length numeric instead of `NA_real_`.
+
+- [ ] TODO-41 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Unchecked callback result in the randomization loop** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-7`. `result[0]` on a length-0 vector is read without a length check; Rcpp only warns and the loop continues, leaving the entry undefined instead of failing.
+
+- [ ] TODO-42 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Is the stale Bayesian-bootstrap worker workaround still needed?** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-8`. `test-cox-component-composition.R` uses a fresh object per capability to avoid a stale Bayesian-bootstrap worker context after a randomization or bootstrap call (also on `InferenceSurvivalKMDiff`). The stale-worker fix may have resolved it: remove the workaround and either delete the comment or plan a fix.
+
+- [ ] TODO-43 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **RNG-state sensitivity in the IVWC frailty optimizer** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-9`. `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`: a freshly constructed `compute_estimate(estimate_only = TRUE)` reproducibly returns `NA` on the test fixture while the identical fit via the constant-weights shortcut converges. Suggests a start-value or seeding dependence.
+
+- [ ] TODO-44 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Silent `NA` results with no recorded reason** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-10`. Jackknife summary with fewer than 2 replicates returns all-`NA` with no reason; subsampling and m-out-of-n b/m-list selection failures cache a reason only under `harden = TRUE`. Give them typed nonestimable reasons (feeds the v1.1.0 diagnostics plans).
+
+- [ ] TODO-45 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Weighted-refit SEs never populated** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-11`. The Weibull fast surrogate, `InferenceIncidKKModifiedPoisson` and the modified-Poisson class return `NA` from the base `weighted_refit_se()` even with `estimate_only = FALSE`, contradicting a `@param` that implies a variance is computed. Implement the SE or correct the docs.
+
+- [ ] TODO-46 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Cosmetic / minor list** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-12`. Dead "Continuous covariates are not allowed for stratification" `stop()` in `add_one_subject()`; `extract_dollar_paths()` also returns nested sub-chains; `fast_weibull_regression(use_rcpp = FALSE)` ignores `estimate_only`; `with_var` kernel field sets differ across families. Record each as fix / document / accept.
 
 ## Standing constraints
 

@@ -524,6 +524,43 @@ bool fit_zinb_zi_boundary_fallback(
     return true;
 }
 
+// 2026-09-24: generic near-stationary-point acceptance, added after tracing
+// (EDI_ZINB_DEBUG) pinned down a specific, deterministic CI-only failure
+// (runs 35921934011/35954909878, InferenceCountZeroInflatedNegBin, no true
+// zero-inflation, always the exact same params to 6 decimal places): a
+// treatment-covariate-conditional separation in the zi submodel (beta_zi's
+// intercept and w coefficient nearly cancel for the w=1 subgroup, ~-2.5,
+// while driving w=0's implied eta_z to ~-30.5) makes the Newton step's
+// Hessian numerically singular right at that boundary -- the log-
+// likelihood's curvature vanishes there for the same reason its score does
+// (sigmoid'(x) -> 0 as x -> -infinity, see kZinbZiBoundaryLogitEta's comment
+// above). Newton breaks early with gradient_norm ~1e-6 (not exactly
+// converged by the strict `tol`, but unambiguously near-stationary); the
+// LBFGS restart from that same flat point cannot improve on it either
+// (optimize_likelihood_newton_then_lbfgs falls back to Newton's own struct).
+// None of the three shape-specific fallbacks above catch this because they
+// all pattern-match a UNIFORM boundary shape (every observation's eta_z, or
+// the dispersion parameter, walking the same direction) -- this one is
+// split by a covariate level instead, so eta_z.maxCoeff() (driven by the
+// well-identified w=1 subgroup) never crosses fit_zinb_zi_boundary_fallback's
+// own threshold. Rather than enumerate more parameter-shape patterns, accept
+// the primary optimizer's own (unmodified) point directly whenever its
+// overall gradient is already this small -- the same "close enough" order
+// of magnitude (1e-6) already established by fit_zinb_zi_boundary_fallback's
+// own coefficient_tol above, just applied to the whole gradient instead of a
+// reduced-model comparison.
+bool accept_zinb_near_stationary_gradient(double tol, LikelihoodFitResult& fit) {
+	if (fit.converged) return false;
+	const double gradient_floor = std::max(100.0 * tol, 1e-5);
+	if (!fit.params.allFinite() || !std::isfinite(fit.value) ||
+			!std::isfinite(fit.gradient_norm) || fit.gradient_norm >= gradient_floor) {
+		return false;
+	}
+	fit.converged = true;
+	fit.hit_iteration_cap = false;
+	return true;
+}
+
 bool fit_zip_reduced_fallback(ZeroInflatedNegBin& zinb, const FixedParamSpec& zinb_spec,
                               int dispersion_index, int maxit, double tol,
                               const std::string& optimization_alg, LikelihoodFitResult& fit) {
@@ -697,12 +734,20 @@ LikelihoodFitResult fast_zinb_internal(const Eigen::Ref<const Eigen::MatrixXd>& 
     // own comment for why the primary solver's convergence flag does not
     // reliably flag this particular boundary.
     const bool zi_boundary_used = fit_zinb_zi_boundary_fallback(Xc, Xz, y_vec, obj, fixed_spec, maxit, tol, optimization_alg, fit);
+    // Last resort, after every shape-specific fallback above has had its
+    // chance: accept the primary fit's own point if it's already
+    // unambiguously near-stationary (see accept_zinb_near_stationary_gradient's
+    // comment). Never overrides a fit any earlier step already fixed up
+    // (accept_zinb_near_stationary_gradient no-ops when fit.converged is
+    // already true).
+    const bool near_stationary_accepted = accept_zinb_near_stationary_gradient(tol, fit);
 #ifndef EDI_CORE_ONLY
     if (zinb_debug_enabled()) {
         Rcpp::Rcout << "DEBUG final fit: primary_accepted=" << primary_accepted
                     << " zip_fallback_used=" << zip_fallback_used
                     << " negbin_boundary_used=" << negbin_boundary_used
                     << " zi_boundary_used=" << zi_boundary_used
+                    << " near_stationary_accepted=" << near_stationary_accepted
                     << " converged=" << fit.converged
                     << " finite=" << fit.params.allFinite()
                     << " params=" << fit.params.transpose() << std::endl;

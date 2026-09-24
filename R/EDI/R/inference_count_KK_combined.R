@@ -230,9 +230,16 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		use_rcpp = TRUE,
 		cached_vc_params = NULL,
 		glmm_response_type = function() "count",
+		# Aliased so the use_rcpp = FALSE branch below can reach the component's
+		# original glmmTMB-only implementation, which this class's own
+		# compute_weighted_glmm_bootstrap_estimate() override (same name)
+		# otherwise shadows -- there is no callSuper()/super$ under the flattened
+		# component-composition model (same rationale as the compute_lik_ratio_*_generic
+		# aliases above).
+		compute_weighted_glmm_bootstrap_estimate_generic = InferenceMixinKKGLMMShared$private$compute_weighted_glmm_bootstrap_estimate,
 		compute_weighted_glmm_bootstrap_estimate = function(row_weights){
 			if (!isTRUE(private$use_rcpp)) {
-				return(callSuper())
+				return(private$compute_weighted_glmm_bootstrap_estimate_generic(row_weights))
 			}
 			m_vec = private$m
 			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)

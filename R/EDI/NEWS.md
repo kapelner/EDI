@@ -1,6 +1,74 @@
-# EDI (development version)
+# EDI 1.0.2
 
 ## Bug fixes
+
+* Reused-worker resampling reused a stale cached fit across draws for
+  classes whose fit is cached under a custom guard key (first found in
+  `InferenceOrdinalGCompMeanDiff`, whose `cached_values$md` guard survived
+  the loader's narrow reset list). Every draw then returned the same
+  number, the resampling distribution collapsed to a point mass, and
+  `compute_rand_two_sided_pval()` sat at its floor regardless of the true
+  effect (reject rate 1.0 at a true null). The worker loaders for
+  randomization, non-parametric bootstrap, m-out-of-n bootstrap and
+  randomization-bootstrap draws now reset the cached fit state between
+  draws, and a structural regression test asserts that every class exposing
+  a reusable-worker method returns a non-degenerate distribution.
+* `InferencePropGCompMeanDiff` and
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` returned `NA` (or a
+  stale value) in randomization inference: the first from a
+  sample-usability gate applied to the wrong resampling context, the second
+  from its estimate-only `w_star` pooling. Both are fixed and no longer
+  listed as known-broken.
+* The KK survival compound classes `InferenceSurvivalKKLWACoxPHOneLik`,
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` and
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` fed real `NA`s into the
+  fitter for every censored subject during randomization inference:
+  `compute_treatment_estimate_during_randomization_inference()` re-read `y`
+  from the design and derived `dead = as.numeric(!is.na(y))`, but since the
+  `y`/`y_L`/`y_R` migration the design's `y` uses `NA` to mark a censored
+  observation. On simulated data with a strong effect the randomization
+  `p`-value was 0.02 with no censoring and 0.97 with about 20% censoring.
+  `y`/`dead` are now derived as `Design$get_effective_time()` /
+  `$get_effective_dead()` do. A sweep of the other 16 survival classes found
+  no further instance.
+* `InferenceOrdinalCloglogRegr`'s parametric-bootstrap `p`-value was
+  badly over-rejecting (60% at a true null). One cause is fixed: the
+  delta-constrained null refit started from a single cold start and could
+  stall; it is now multi-start (the same fix `InferenceOrdinalStereotypeLogitRegr`
+  received earlier). *A second cause, a sign mismatch in the shared
+  bootstrap-data simulator, is root-caused but not fixed here.*
+* The Efron biased-coin randomization null draws (`generate_permutations`)
+  compared weighted arm counts (`n_T * prob_T` vs `n_C * (1 - prob_T)`)
+  instead of the raw arm counts `DesignSeqOneByOneEfron` actually compares,
+  so for any `prob_T != 0.5` the randomization null did not follow the
+  design's own assignment rule. It now uses the raw counts.
+* `fast_probit_regression`'s L-BFGS objective held a dangling
+  `Eigen::Ref` to a temporary, giving non-deterministic fits and `NaN`
+  negative log-likelihoods. The objective now owns its design matrix.
+* `fast_log_binomial_regression`'s weighted log-likelihood let zero-weight
+  rows constrain the `[0, 1]` mean support although they are absent from
+  the likelihood; zero-weight rows are now skipped, so the identity- and
+  log-link binomial fits no longer reject valid data because of them.
+* The robust-regression bootstrap kernel accepted any `method` string and
+  would throw inside an OpenMP region, terminating R; `method` is now
+  validated (`"M"` or `"MM"`) before the parallel region.
+* `stable_signature()` (used to key cached randomization state) hashed a
+  strided sample of the serialized object, which collided on 0/1 integer
+  permutation matrices; it now hashes the full serialization.
+* `InferenceCountPoisson`'s covariance falls back to the Fisher information
+  when the kernel returns no `X'WX`; `InferenceIncidLogRegr` gained an
+  estimand-aware standard error and degrees of freedom.
+* Weibull and Cox fits with fixed (held) coefficients invert only the
+  free-parameter information block, so `NaN` rows for the fixed parameters
+  can no longer contaminate the free standard errors; the Cox robust
+  sandwich does the same.
+* OpenMP's primary thread no longer polls R's interrupt machinery while
+  worker threads are active in the Wilcoxon-Hodges-Lehmann kernels.
+* `fast_ordinal_clmm` now errors on mismatched `X`/`y`/`group_id` lengths
+  instead of reading out of bounds.
+* Hangs in the parallel test/inference paths that traced to an unbounded
+  wait inside `nanonext` (an upstream defect that cannot be fixed from R)
+  are bounded by EDI-side wait limits.
 
 * `InferenceIncidRiskDiff`, `InferenceCountRobustPoisson`, and the
   zero-inflated/hurdle Poisson classes reported a confident (often

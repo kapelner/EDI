@@ -396,6 +396,7 @@ R/package_tests/testthat_bulk/test-kk-clogit-onelik-weighted-combined-informativ
 R/package_tests/testthat_bulk/test-kk-compound-bootstrap-variance-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-abstract-combine-reservoir-not-implemented-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-data-split-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-discordant-only-j-t-index-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-nonestimable-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-weighted-refit-extreme-coefficient-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likelihood-and-fit-reference.R,correctness,120,bootstrap
@@ -509,6 +510,7 @@ R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-error-catching-wrapp
 R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-log-identity-binomial-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-extreme-coefficients-exact-nonestimable-reason-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-fit-glmer-agreement-and-cold-start-variance-collapse-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-neg-loglik-score-hessian-kernels-reference.R,correctness,120,bootstrap
@@ -561,6 +563,7 @@ R/package_tests/testthat_bulk/test-negbin-jackknife-methods-all-report-explicit-
 R/package_tests/testthat_bulk/test-negbin-randomization-estimate-descriptors-and-null-simulation-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-negbin-randomization-estimate-no-covariates-and-fixed-variance-component-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-negbin-regression-kernel-glm-nb-coefficients-theta-loglik-fixed-and-poisson-boundary-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-negbin-regression-kernel-warm-start-params-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-negbin-weighted-constrained-fit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-negbin-weighted-refit-poisson-fallback-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-newcombe-riskdiff-get-counts-and-empty-arm-behavior-reference.R,correctness,120,bootstrap
@@ -623,8 +626,10 @@ R/package_tests/testthat_bulk/test-ordinal-ordered-probit-randomization-estimate
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-no-discordant-pairs-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-nonzero-delta-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-partial-proportional-odds-randomization-estimate-refit-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-probit-cauchit-cloglog-kernel-warm-start-params-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-probit-with-var-kernel-polr-covariance-fixed-coefficients-and-iteration-cap-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-proportional-odds-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-regression-kernel-warm-start-params-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-fit-unavailable-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-weighted-bootstrap-reference.R,correctness,120,bootstrap
@@ -670,6 +675,7 @@ R/package_tests/testthat_bulk/test-pooled-var-mean-diff-pooled-ttest-reference.R
 R/package_tests/testthat_bulk/test-print-progress-non-null-progress-bar-update-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-probit-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-probit-regression-kernel-optimizers-fixed-coefficients-and-output-fields-glm-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-probit-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-prop-fractional-logit-quasibinomial-dispersion-and-weighted-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-prop-kk-glmm-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-prop-kk-glmm-weighted-refit-reference.R,correctness,120,bootstrap
@@ -890,6 +896,7 @@ R/package_tests/testthat_bulk/test-weibull-frailty-kernel-marginal-likelihood-an
 R/package_tests/testthat_bulk/test-weibull-general-censoring-unsupported-operations-rejected-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-weibull-kernel-dispatch-fit-score-hessian-references.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-weibull-mixed-censoring-constrained-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-weibull-regression-kernel-warm-start-params-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-weibull-regression-score-and-hessian-kernels-numderiv-and-survreg-information-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-weibull-right-censoring-fixed-covariance-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weighted-cox-bootstrap-surrogate-fit-coxph-reference-filtering-strata-and-warm-start.R,correctness,120,bootstrap
@@ -1561,6 +1568,7 @@ R/package_tests/testthat_bulk/test-kk-clogit-onelik-weighted-combined-informativ
 R/package_tests/testthat_bulk/test-kk-compound-bootstrap-variance-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-abstract-combine-reservoir-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-data-split-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-discordant-only-j-t-index-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-shared-nonestimable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-logit-glmm-weighted-refit-extreme-coefficient-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-cond-poisson-onelik-combined-data-likelihood-and-fit-reference.R,coverage,240,bootstrap
@@ -1674,6 +1682,7 @@ R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-error-catching-wrapp
 R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-log-identity-binomial-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-extreme-coefficients-exact-nonestimable-reason-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-fit-glmer-agreement-and-cold-start-variance-collapse-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-neg-loglik-score-hessian-kernels-reference.R,coverage,240,bootstrap
@@ -1726,6 +1735,7 @@ R/package_tests/testthat_bulk/test-negbin-jackknife-methods-all-report-explicit-
 R/package_tests/testthat_bulk/test-negbin-randomization-estimate-descriptors-and-null-simulation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-negbin-randomization-estimate-no-covariates-and-fixed-variance-component-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-negbin-regression-kernel-glm-nb-coefficients-theta-loglik-fixed-and-poisson-boundary-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-negbin-regression-kernel-warm-start-params-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-negbin-weighted-constrained-fit-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-negbin-weighted-refit-poisson-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-newcombe-riskdiff-get-counts-and-empty-arm-behavior-reference.R,coverage,240,bootstrap
@@ -1788,8 +1798,10 @@ R/package_tests/testthat_bulk/test-ordinal-ordered-probit-randomization-estimate
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-no-discordant-pairs-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-paired-sign-test-nonzero-delta-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-partial-proportional-odds-randomization-estimate-refit-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-probit-cauchit-cloglog-kernel-warm-start-params-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-probit-with-var-kernel-polr-covariance-fixed-coefficients-and-iteration-cap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-proportional-odds-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-regression-kernel-warm-start-params-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-fit-unavailable-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-weighted-bootstrap-reference.R,coverage,240,bootstrap
@@ -1835,6 +1847,7 @@ R/package_tests/testthat_bulk/test-pooled-var-mean-diff-pooled-ttest-reference.R
 R/package_tests/testthat_bulk/test-print-progress-non-null-progress-bar-update-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-probit-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-probit-regression-kernel-optimizers-fixed-coefficients-and-output-fields-glm-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-probit-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prop-fractional-logit-quasibinomial-dispersion-and-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prop-kk-glmm-migration-golden.R,coverage,1.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-prop-kk-glmm-weighted-refit-reference.R,coverage,240,bootstrap
@@ -2055,6 +2068,7 @@ R/package_tests/testthat_bulk/test-weibull-frailty-kernel-marginal-likelihood-an
 R/package_tests/testthat_bulk/test-weibull-general-censoring-unsupported-operations-rejected-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-kernel-dispatch-fit-score-hessian-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-mixed-censoring-constrained-reference.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-weibull-regression-kernel-warm-start-params-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-regression-score-and-hessian-kernels-numderiv-and-survreg-information-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-right-censoring-fixed-covariance-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weighted-cox-bootstrap-surrogate-fit-coxph-reference-filtering-strata-and-warm-start.R,coverage,240,bootstrap

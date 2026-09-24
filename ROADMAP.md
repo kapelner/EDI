@@ -122,6 +122,31 @@ for the full index.
   biasing the reference distribution. An investigation comes first; any fix
   waits on confirming the cause.
 
+- **[Random-effect variance collapse in mixed-model fits](R/package_metadata/bug_fix_plans/glmm_variance_component_sigma_collapse.md)** —
+  Several random-intercept fitters (the KK ordinal CLMM classes, the
+  logistic GLMM, the KK count GLMM under Newton) can slide the
+  random-effect scale to its lower boundary, report convergence, and return a
+  worse fit and a biased treatment effect; in one pinned case the KK ordinal
+  CLMM class returned the fixed-effects estimate. Found from test-author
+  notes; extent still to be measured.
+- **[Ridit `reference = "treatment"` degeneracy](R/package_metadata/bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md)** —
+  With the treated group as the reference, the ridit estimate is identically
+  zero regardless of the data. The plan decides whether to redefine,
+  refuse, or document the option.
+- **[Randomization-CI upper-bound refinement](R/package_metadata/bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md)** —
+  The optional high-precision refinement step treats an upper bound like a
+  lower bound and can settle at the wrong end of its bracket. Reach on real
+  calls is to be established.
+- **[Interval-censored log-rank/Gehan cache guard](R/package_metadata/bug_fix_plans/interval_censored_compute_shared_cache_guard.md)** —
+  Under general censoring, asking for the estimate alone and then a full fit
+  leaves the standard error unset and crashes the asymptotic interval.
+- **[Small defects from test-author notes](R/package_metadata/bug_fix_plans/test_comment_audit_small_defects.md)** —
+  A batch of smaller defects and open questions that tests pinned but did not
+  fix: a crash on `delta = NA`, exact-test resampling, a fresh-process crash
+  in the zero-one-inflated Beta kernel, a trailing incomplete block in one
+  optimal-blocks design path, and silent `NA` results without recorded
+  reasons.
+
 ---
 
 ## v1.1.0 — Inference Quality and CPU Performance

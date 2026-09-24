@@ -15,14 +15,13 @@ library(EDI)
 #   4. When the Rcpp fit converges but with too-extreme a coefficient (> max_abs_reasonable_coef),
 #      the same glmmTMB fallback engages instead of returning the extreme value.
 #   5. When BOTH the Rcpp fit and every glmmTMB fallback candidate fail, the result is NA_real_.
-#   6. BUG FOUND, NOT FIXED (out of scope for this job): the use_rcpp = FALSE branch is
-#      `return(callSuper())` -- callSuper() is an R5/Reference-Classes construct, not part of R6's
-#      API (R6 uses `super$method()`), and no such function is defined anywhere in this package. Any
-#      call to this method on an InferenceCountKKGLMM instance constructed with use_rcpp = FALSE
-#      throws "could not find function \"callSuper\"" -- this branch is completely unreachable by any
-#      currently-passing test in the suite (confirmed: the whole class is constructed with the
-#      use_rcpp = TRUE default everywhere else). This test documents the current (broken) behavior
-#      rather than silently skipping it.
+#   6. FIXED 2026-09-24 (was: BUG, use_rcpp = FALSE branch called the undefined callSuper() -- an
+#      R5/Reference-Classes construct, not part of R6's API, and there is no `super$` reachable
+#      either under this package's flattened component-composition model). The component's original
+#      glmmTMB-only implementation (InferenceMixinKKGLMMShared$private$compute_weighted_glmm_
+#      bootstrap_estimate) is now aliased as compute_weighted_glmm_bootstrap_estimate_generic and
+#      called directly on the use_rcpp = FALSE branch, matching the compute_lik_ratio_*_generic
+#      alias pattern already used elsewhere in this class.
 
 kk_glmm_count_fixture <- function(seed, n = 40L, use_rcpp = TRUE) {
 	set.seed(seed)
@@ -89,10 +88,10 @@ test_that("when both the Rcpp fit and every glmmTMB fallback candidate fail, the
 	expect_true(is.na(res))
 })
 
-test_that("BUG (not fixed): use_rcpp = FALSE hits the undefined callSuper() and errors", {
+test_that("use_rcpp = FALSE dispatches to the glmmTMB-only generic implementation and returns a finite estimate", {
 	priv <- kk_glmm_count_fixture(7L, use_rcpp = FALSE)
-	expect_error(
-		priv$compute_weighted_glmm_bootstrap_estimate(rep(1, priv$n)),
-		"could not find function \"callSuper\""
-	)
+	set.seed(8L); row_weights <- runif(priv$n, 0.3, 2)
+	res <- priv$compute_weighted_glmm_bootstrap_estimate(row_weights)
+	expect_true(is.finite(res))
+	expect_equal(res, priv$compute_weighted_glmm_bootstrap_estimate_generic(row_weights))
 })

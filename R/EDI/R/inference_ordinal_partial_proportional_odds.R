@@ -368,7 +368,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 				)
 				if (!private$ppo_fit_is_usable(attempt$fit, require_se = require_se)) return(NULL)
 				if (!is.null(attempt$fit)){
-					private$best_X_colnames = setdiff(colnames(attempt$X_fit), "treatment")
+					private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
 				}
 				attempt$fit
 			},

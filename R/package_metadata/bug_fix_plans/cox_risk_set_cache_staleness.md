@@ -1,6 +1,6 @@
 # Cox Risk-Set Cache: Guard Keys Only on `w` While the Cache Embeds `y`/`dead` (Staleness Fix)
 
-> **Release:** v1.0.5 (`../future_release_plans/release_v1_0_5.md → TODO-29`,
+> **Release:** v1.0.5 (`../future_release_plans/release_v1_0_5.md → TODO-30`,
 > slotted 2026-09-24, user decision) — a *correctness* fix. Found 2026-08-30 during the
 > research-plan verification audit
 > (`../new_research_ideas/paper/fast_randomization_inference/fast_randomization_inference.md`, work item

@@ -143,8 +143,8 @@ negligible.
 
 A rejected (singular) information block must be reported through the
 existing typed `cache_nonestimable_estimate()`/`cache_nonestimable_se()`
-reason strings, using a standard reason name consistent with the sibling
-kernels (Cox, ordinal, ZOIB), not a new ad-hoc flag. This is what lets the
+reason strings (the existing `<class-prefix>_standard_error_unavailable`
+convention; see the convention paragraph below), not a new ad-hoc flag. This is what lets the
 v1.1.0 `SolverDiagnostics` component
 (`../new_feature_plans/optimizer_diagnostics_report.md → TODO-3`) and the
 public diagnostics API's `information_condition_number` /
@@ -153,6 +153,26 @@ ill-conditioned-information warnings
 rejections later without migrating them. TODO-2 and TODO-3 above must
 include this: the tests assert the reason string, not just `NA`. The
 diagnostics chain itself is out of scope here.
+
+**Reason-name convention, checked 2026-09-24 (supersedes the earlier
+`information_singular` suggestion, which matches nothing in the code):**
+- The C++ kernels that already guard (Cox, ordinal, ZOIB, stereotype) signal
+  a singular information block only by returning a `NaN` covariance; none
+  sets a reason in C++. The reason is assigned R-side.
+- R-side reasons are `cache_nonestimable_se(reason)` strings
+  (`inference_all_abstract.R:815`, default `"standard_error_unavailable"`),
+  named `<class-prefix>_standard_error_unavailable` where a class sets one
+  (`ppor_`, `kk_clmm_`, `cmh_`, `strat_cox_`, `extended_robins_`; the Beta
+  class uses `model_standard_error_unavailable`, `inference_proportion_beta.R:169`).
+  No shared "singular information" reason exists anywhere today.
+- Therefore TODO-2 should not invent a new global taxonomy: when the helper
+  returns `NaN`, the R wrapper for each of the five classes caches SE
+  nonestimability with `<prefix>_standard_error_unavailable` (default
+  string if the class has no prefix convention). Any finer
+  "singular vs. other" distinction is the v1.1.0 `SolverDiagnostics`
+  taxonomy's job, which reads the `NaN` + the new `invert_free_information()`
+  status; so the helper should also expose a status flag (invertible /
+  not) alongside the inverse, not just `NaN`.
 
 ## Explicitly out of scope
 

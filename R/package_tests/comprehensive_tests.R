@@ -905,6 +905,24 @@ current_github_commit_id = function(){
 
 GITHUB_COMMIT_ID = current_github_commit_id()
 
+# One-line startup reminder only -- never mutates the result CSVs (dry run,
+# no --apply), so it's safe to run even while another process is appending
+# rows to the same files. Pruning itself stays a deliberate manual step
+# (see prune_stale_result_rows.R's own header) -- this just keeps staleness
+# drift visible on every run instead of silently accumulating between manual
+# prunes. Never blocks the actual test run if it fails for any reason.
+tryCatch({
+	prune_check_output = system2(
+		"Rscript",
+		c(shQuote(repo_path("package_tests", "prune_stale_result_rows.R"))),
+		stdout = TRUE, stderr = TRUE
+	)
+	prune_summary_line = grep("stale row\\(s\\)", prune_check_output, value = TRUE)
+	if (length(prune_summary_line)) {
+		message("[prune-check] ", prune_summary_line[1], " (run `Rscript package_tests/prune_stale_result_rows.R --apply` to clean up)")
+	}
+}, error = function(e) invisible(NULL))
+
 stable_text_checksum = function(value){
 	text = paste(as.character(value), collapse = "\r")
 	raw_vals = as.integer(charToRaw(enc2utf8(text)))

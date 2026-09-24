@@ -763,8 +763,44 @@ bench_specs = c(bench_specs, no_r_support_specs)
 # --- Benchmark Runner ---
 results = list()
 
+# Per-class deterministic seed: a single global set.seed(42) makes each class's
+# dataset depend on how many rows/draws precede it, so adding or reordering
+# benchmark rows silently changes every later dataset. ZIP/Hurdle fit time in
+# particular swings ~6x with the draw (33-259 LBFGS iterations), which
+# previously showed up as phantom regressions between report regenerations.
+seed_for_class = function(cls_name) {
+    codes = utf8ToInt(cls_name)
+    as.integer(sum(codes * seq_along(codes)) %% 2147483647)
+}
+
+# Best-effort optimizer iteration count from a fit result (NA when the result
+# exposes none). `env` is the bare-metal env whose `res` holds the fit when the
+# timed expression only returns a p-value (Wald benchmarks).
+extract_iters = function(res, env = NULL) {
+    pick = function(x) {
+        if (!is.list(x) && !isS4(x)) return(NA_real_)
+        for (nm in c("num_iter", "iter", "iterations", "niter", "n_iter", "nit")) {
+            v = tryCatch(if (isS4(x)) methods::slot(x, nm) else x[[nm]], error = function(e) NULL)
+            if (length(v) >= 1L && is.numeric(v) && is.finite(v[1L])) return(as.numeric(v[1L]))
+        }
+        cnt = tryCatch(x$optim$counts, error = function(e) NULL)
+        if (is.numeric(cnt) && length(cnt) >= 1L) {
+            g = if ("gradient" %in% names(cnt)) cnt[["gradient"]] else cnt[[1L]]
+            if (is.finite(g)) return(as.numeric(g))
+        }
+        NA_real_
+    }
+    out = tryCatch(pick(res), error = function(e) NA_real_)
+    if (is.na(out) && !is.null(env) && exists("res", envir = env, inherits = FALSE)) {
+        out = tryCatch(pick(get("res", envir = env)), error = function(e) NA_real_)
+    }
+    out
+}
+format_iters = function(x) ifelse(is.na(x), "NA", format(round(x), trim = TRUE))
+
 run_one = function(spec) {
     cls_name = spec$cls
+    set.seed(seed_for_class(cls_name))
     cat(sprintf("Benchmarking %s...\n", cls_name))
 
     # Improved heuristic mapping: Ordinal MUST come before Prop/PropOdds
@@ -795,11 +831,13 @@ run_one = function(spec) {
         }
     }
 
+    edi_iters = NA_real_; can_iters = NA_real_
     # Timing EDI (bare metal: call exported C++ functions directly with pre-built inputs)
     timing_edi = tryCatch({
         bm = if (no_r_support) make_edi_bm_no_canonical(cls_name, d) else make_edi_bm(cls_name, d)
         if (is.null(bm) || is.null(bm$expr)) stop("no bare metal mapping for this class")
-        eval(bm$expr, envir = bm$env)  # validation run
+        edi_val = eval(bm$expr, envir = bm$env)  # validation run
+        edi_iters = extract_iters(edi_val, bm$env)
         collect_timing_ms(bm$expr, times = b_time, env = bm$env, fast_path_microbenchmark_reps = fast_path_microbenchmark_reps)
     }, error = function(e) {
         cat("  EDI Error:", e$message, "\n")
@@ -824,7 +862,8 @@ run_one = function(spec) {
             strata_can = strat_inputs$strata
         }
 
-        tryCatch(eval(spec$expr), error = function(e) NULL)  # validation run (mirrors EDI's pre-timing warm-up call)
+        can_val = tryCatch(eval(spec$expr), error = function(e) NULL)  # validation run (mirrors EDI's pre-timing warm-up call)
+        can_iters = extract_iters(can_val)
         timing_can = tryCatch(
             collect_timing_ms(spec$expr, times = b_time, fast_path_microbenchmark_reps = fast_path_microbenchmark_reps),
             error = function(e) {
@@ -839,7 +878,8 @@ run_one = function(spec) {
         Canonical_Pkg = spec$pkg, Canonical_Func = spec$func, Canonical_Time_ms = timing_can$median_ms,
         Speedup = if (!is.na(timing_can$median_ms) && !is.na(timing_edi$median_ms) && timing_edi$median_ms > 0) timing_can$median_ms / timing_edi$median_ms else NA_real_,
         Timing_Pval = timing_ttest_pval(timing_edi$samples_ms, timing_can$samples_ms),
-        No_Canonical = no_r_support
+        No_Canonical = no_r_support,
+        EDI_Iterations = edi_iters, Canonical_Iterations = can_iters
     )
 }
 
@@ -1333,6 +1373,7 @@ wald_results = list()
 
 run_one_wald = function(spec) {
     cls_name = spec$cls
+    set.seed(seed_for_class(cls_name))
     cat(sprintf("Wald [%d/%d] %s...\n", match(cls_name, sapply(wald_unique_specs, `[[`, "cls")), length(wald_unique_specs), cls_name))
 
     resp_type = "continuous"; family = "continuous"
@@ -1354,10 +1395,12 @@ run_one_wald = function(spec) {
         if (identical(cls_name, "InferenceSurvivalStratCoxPHRegr")) d = make_true_stratified_survival_data(d)
     }
 
+    edi_iters = NA_real_; can_iters = NA_real_
     timing_edi = tryCatch({
         bm = if (no_r_support) make_edi_wald_bm_no_canonical(cls_name, d) else make_edi_wald_bm(cls_name, d)
         if (is.null(bm$expr)) stop("no Wald mapping for this class")
-        eval(bm$expr, envir = bm$env)  # validation
+        edi_val = eval(bm$expr, envir = bm$env)  # validation
+        edi_iters = extract_iters(edi_val, bm$env)
         collect_timing_ms(bm$expr, env = bm$env)
     }, error = function(e) { cat("  EDI Error:", e$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
 
@@ -1369,7 +1412,8 @@ run_one_wald = function(spec) {
             df = data.frame(y = d$y, treatment = d$w, dead = if (!is.null(d$dead)) d$dead else 1L)
             df = cbind(df, X_cols)
             X_can = cbind(`(Intercept)` = 1, treatment = d$w, as.matrix(X_cols))
-            eval(spec$expr)  # validation
+            can_val = eval(spec$expr)  # validation
+            can_iters = extract_iters(can_val)
             collect_timing_ms(spec$expr)
         }, error = function(e) { cat("  Canonical Error:", e$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
     }
@@ -1381,7 +1425,8 @@ run_one_wald = function(spec) {
         Canonical_Time_ms = timing_can$median_ms,
         Speedup = if (!is.na(timing_can$median_ms) && !is.na(timing_edi$median_ms) && timing_edi$median_ms > 0) timing_can$median_ms / timing_edi$median_ms else NA_real_,
         Timing_Pval = timing_ttest_pval(timing_edi$samples_ms, timing_can$samples_ms),
-        No_Canonical = no_r_support
+        No_Canonical = no_r_support,
+        EDI_Iterations = edi_iters, Canonical_Iterations = can_iters
     )
 }
 
@@ -1400,20 +1445,22 @@ dt_wald[, Canonical_Time_ms := format_ms(Canonical_Time_ms)]
 dt_wald[, Timing_Row_Color := mapply(row_bg_color, Speedup_Num, Timing_Pval, No_Canonical, USE.NAMES = FALSE)]
 dt_wald[, Timing_Pval_Stars := format_pval_stars(Timing_Pval)]
 dt_wald[, Timing_Pval := format_pval(Timing_Pval)]
+dt_wald[, EDI_Iterations := format_iters(EDI_Iterations)]
+dt_wald[, Canonical_Iterations := format_iters(Canonical_Iterations)]
 dt_wald[, Response := as.character(Response)]
 
 wald_table_lines = c(
   "<table>",
   "  <thead>",
-  "    <tr><th>Class</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr>",
+  "    <tr><th>Class</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th><th>EDI Iterations</th><th>Canonical Iterations</th></tr>",
   "  </thead>",
   "  <tbody>"
 )
-wald_table_rows = mapply(function(cls, resp, edi, pkg, func, can, speed, pval, stars, bg) {
+wald_table_rows = mapply(function(cls, resp, edi, pkg, func, can, speed, pval, stars, bg, edi_it, can_it) {
   style = if (nzchar(bg)) paste0(" style=\"background-color: ", bg, ";\"") else ""
-  paste0("    <tr", style, "><td>", cls, "</td><td>", resp, "</td><td>", edi, "</td><td>", pkg, "</td><td>", func, "</td><td>", can, "</td><td>", speed, "</td><td>", pval, "</td><td>", stars, "</td></tr>")
+  paste0("    <tr", style, "><td>", cls, "</td><td>", resp, "</td><td>", edi, "</td><td>", pkg, "</td><td>", func, "</td><td>", can, "</td><td>", speed, "</td><td>", pval, "</td><td>", stars, "</td><td>", edi_it, "</td><td>", can_it, "</td></tr>")
 }, dt_wald$Class, dt_wald$Response, dt_wald$EDI_Time_ms, dt_wald$Canonical_Pkg, dt_wald$Canonical_Func,
-dt_wald$Canonical_Time_ms, dt_wald$Speedup, dt_wald$Timing_Pval, dt_wald$Timing_Pval_Stars, dt_wald$Timing_Row_Color,
+dt_wald$Canonical_Time_ms, dt_wald$Speedup, dt_wald$Timing_Pval, dt_wald$Timing_Pval_Stars, dt_wald$Timing_Row_Color, dt_wald$EDI_Iterations, dt_wald$Canonical_Iterations,
 SIMPLIFY = TRUE, USE.NAMES = FALSE)
 wald_table_lines = c(wald_table_lines, wald_table_rows, "  </tbody>", "</table>")
 
@@ -1565,23 +1612,25 @@ dt[, Canonical_Time_ms := format_ms(Canonical_Time_ms)]
 dt[, Timing_Row_Color := mapply(row_bg_color, Speedup_Num, Timing_Pval, No_Canonical, USE.NAMES = FALSE)]
 dt[, Timing_Pval_Stars := format_pval_stars(Timing_Pval)]
 dt[, Timing_Pval := format_pval(Timing_Pval)]
+dt[, EDI_Iterations := format_iters(EDI_Iterations)]
+dt[, Canonical_Iterations := format_iters(Canonical_Iterations)]
 dt[, Response := as.character(Response)]
 
 table_lines = c(
   "<table>",
   "  <thead>",
-  "    <tr><th>Class</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr>",
+  "    <tr><th>Class</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th><th>EDI Iterations</th><th>Canonical Iterations</th></tr>",
   "  </thead>",
   "  <tbody>"
 )
-table_rows = mapply(function(cls, resp, edi, pkg, func, can, speed, pval, stars, bg) {
+table_rows = mapply(function(cls, resp, edi, pkg, func, can, speed, pval, stars, bg, edi_it, can_it) {
   style = if (nzchar(bg)) paste0(" style=\"background-color: ", bg, ";\"") else ""
   paste0(
     "    <tr", style, "><td>", cls, "</td><td>", resp, "</td><td>", edi, "</td><td>", pkg,
-    "</td><td>", func, "</td><td>", can, "</td><td>", speed, "</td><td>", pval, "</td><td>", stars, "</td></tr>"
+    "</td><td>", func, "</td><td>", can, "</td><td>", speed, "</td><td>", pval, "</td><td>", stars, "</td><td>", edi_it, "</td><td>", can_it, "</td></tr>"
   )
 }, dt$Class, dt$Response, dt$EDI_Time_ms, dt$Canonical_Pkg, dt$Canonical_Func,
-dt$Canonical_Time_ms, dt$Speedup, dt$Timing_Pval, dt$Timing_Pval_Stars, dt$Timing_Row_Color,
+dt$Canonical_Time_ms, dt$Speedup, dt$Timing_Pval, dt$Timing_Pval_Stars, dt$Timing_Row_Color, dt$EDI_Iterations, dt$Canonical_Iterations,
 SIMPLIFY = TRUE, USE.NAMES = FALSE)
 table_lines = c(table_lines, table_rows, "  </tbody>", "</table>")
 

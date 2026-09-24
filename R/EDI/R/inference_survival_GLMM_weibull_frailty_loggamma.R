@@ -857,8 +857,7 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 					return(invisible(NULL))
 				}
 			}
-			private$cached_values$beta_hat_T = NA_real_
-			private$cached_values$s_beta_hat_T = NA_real_
+			private$cache_nonestimable_estimate("kk_weibull_frailty_loggamma_fit_failed")
 		},
 		supports_lik_ratio_param_bootstrap = function() TRUE,
 		simulate_under_lik_null = function(spec, delta, null_fit){
