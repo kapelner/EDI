@@ -1,6 +1,6 @@
 # Shared internal machinery for the model-based optimal designs
 # (DesignFixedGreedyDOptimal today; DesignFixedOptimal per
-# package_metadata/new_feature_plans/design_fixed_optimal.md TODO-1b): the
+# package_metadata/finished_features/design_fixed_optimal.md TODO-1b): the
 # objective/interest/prior_precision argument surface and the P/H
 # criterion-matrix construction. Non-exported. Extracted verbatim from
 # DesignFixedGreedyDOptimal so allocations remain bit-identical

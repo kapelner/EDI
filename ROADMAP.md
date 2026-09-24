@@ -10,7 +10,8 @@ to its owning plan; the authoritative scope, dependency ordering, and work
 breakdowns live in
 [`R/package_metadata/future_release_plans/`](R/package_metadata/future_release_plans/)
 (one index file per release) and the per-feature plans in
-[`R/package_metadata/new_feature_plans/`](R/package_metadata/new_feature_plans/).
+[`R/package_metadata/new_feature_plans/`](R/package_metadata/new_feature_plans/) (new features) and
+[`R/package_metadata/bug_fix_plans/`](R/package_metadata/bug_fix_plans/) (bug fixes and bug investigations).
 Within each release, items that gate or feed other items come first; the
 rest are grouped by theme. No dates are attached — each release ships when
 its scope is done. Plans are statements of intent, not promises;
@@ -29,11 +30,11 @@ waiting on v1.1.0's Phase 0 decisions. See
 [`release_v1_0_5.md`](R/package_metadata/future_release_plans/release_v1_0_5.md)
 for the full index.
 
-- **[`KKQuantileRegrOneLik` randomization CI](R/package_metadata/new_feature_plans/fix_KKQuantileRegrOneLik_rand_ci.md)** —
+- **[`KKQuantileRegrOneLik` randomization CI](R/package_metadata/bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md)** —
   the continuous and proportion one-likelihood quantile-regression
   classes' randomization CI silently collapsed to a zero-width interval
   instead of erroring; temporarily disabled pending a real fix.
-- **[Faster zero-one-inflated Beta resampling](R/package_metadata/new_feature_plans/fix_reusable_bootstrap.md)** —
+- **[Faster zero-one-inflated Beta resampling](R/package_metadata/bug_fix_plans/reusable_bootstrap.md)** —
   the jackknife/bootstrap for this class stops rebuilding its model from
   scratch per fold, with bit-identical results.
 - **[Much faster randomization CIs for linear statistics](R/package_metadata/new_feature_plans/randomization_ci_affine_shift_reuse.md)** —
@@ -45,7 +46,7 @@ for the full index.
   loop onto an existing C++ batch kernel; multiplicative with the item
   above. Eight dead kernel exports get wired in or deleted in the same
   pass.
-- **[No more silent garbage standard errors](R/package_metadata/new_feature_plans/guard_unguarded_information_inverse.md)** —
+- **[No more silent garbage standard errors](R/package_metadata/bug_fix_plans/guard_unguarded_information_inverse.md)** —
   five `with_var` kernels (NegBin, ZINB, zero-augmented Poisson ×2, Beta)
   currently return a finite but meaningless SE on a near-singular design;
   they gain the invertibility guard their siblings already have and
@@ -57,17 +58,17 @@ for the full index.
   point estimate; those classes now refuse the capability with an
   explanation. A second, unrelated question about the null construction
   was investigated and closed with no code change.
-- **[`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer stability](R/package_metadata/new_feature_plans/clayton_loggamma_frailty_optimizer_stability.md)** —
+- **[`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer stability](R/package_metadata/bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md)** —
   fixed a ~200× bimodal slowdown (found via a comprehensive-test-harness
   timing investigation) traced to an unbounded C++ optimizer parameter
   plus a stale-gradient mismatch that could leave the optimizer thrashing
   toward its iteration cap.
-- **[Stereotype-logit multimodal likelihood](R/package_metadata/new_feature_plans/fix_multimodal_log_liks.md)** —
+- **[Stereotype-logit multimodal likelihood](R/package_metadata/bug_fix_plans/multimodal_log_liks.md)** —
   the ordinal stereotype-logit class's own unconstrained fit can silently
   land on a non-global optimum in a small share of small-sample fits;
   needs a multi-start fit plus golden/reference-parity re-derivation,
   since it changes reported estimates.
-- **[Stale worker-cache in reused-worker resampling](R/package_metadata/new_feature_plans/fix_stale_worker_cache_resampling.md)** —
+- **[Stale worker-cache in reused-worker resampling](R/package_metadata/bug_fix_plans/stale_worker_cache_resampling.md)** —
   fixed: several classes' randomization/bootstrap tests silently reused
   the first resampling draw's fit for every subsequent draw, collapsing
   the whole resampling distribution to a constant (one class rejected a
@@ -76,7 +77,7 @@ for the full index.
   gap one field over (a stale `cached_mod` reset, same shape, no class
   currently reaches it — a landmine, not a live defect) is tracked in the
   same plan's `TODO-9`.
-- **[MC coverage-truth wrong covariate set](R/package_metadata/new_feature_plans/fix_mc_coverage_truth_covariate_mismatch.md)** —
+- **[MC coverage-truth wrong covariate set](R/package_metadata/bug_fix_plans/mc_coverage_truth_covariate_mismatch.md)** —
   fixed: the test harness's Monte-Carlo "true" coverage target for ~25
   non-collapsible classes (Cox, logit/probit, GLMM/GEE) was computed
   against a synthetic single covariate while the graded results used the
@@ -86,16 +87,16 @@ for the full index.
   resolved: a full validation run showed no calibration benefit over
   plain Wald for the Cox proportional-hazards class; decision is to leave
   this path disabled.
-- **[`InferencePropGCompMeanDiff`/`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` randomization NA bugs](R/package_metadata/new_feature_plans/fix_prop_gcomp_sample_usable_gating.md)** —
+- **[`InferencePropGCompMeanDiff`/`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` randomization NA bugs](R/package_metadata/bug_fix_plans/prop_gcomp_sample_usable_gating.md)** —
   fixed: two unrelated classes' randomization-based inference returned
   `NA` on every resampling draw in production (a worker-state gating gap
   and an arithmetic NA-propagation gap, respectively — see also
-  [the IVWC pooling fix](R/package_metadata/new_feature_plans/fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md)).
-- **[`InferenceContinLin` parametric-bootstrap Type-I error](R/package_metadata/new_feature_plans/fix_contin_lin_param_bootstrap_bad_type1_error.md)** —
+  [the IVWC pooling fix](R/package_metadata/bug_fix_plans/glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md)).
+- **[`InferenceContinLin` parametric-bootstrap Type-I error](R/package_metadata/bug_fix_plans/contin_lin_param_bootstrap_bad_type1_error.md)** —
   this class's parametric-bootstrap/likelihood-ratio methods over-reject a
   true null in a design-dependent way (nominal on some designs, 8× nominal
   on others); root cause not yet pinned down.
-- **[Ordinal cumulative-link parametric-bootstrap inference](R/package_metadata/new_feature_plans/fix_ordinal_cumulative_link_null_refit_multistart.md)** —
+- **[Ordinal cumulative-link parametric-bootstrap inference](R/package_metadata/bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md)** —
   found investigating the cumulative-log-log (cloglog) ordinal class's
   60% false-positive rate on its parametric-bootstrap p-value: a
   single-start null refit (fixed — the same mechanism as a sibling fix to
@@ -104,6 +105,22 @@ for the full index.
   every replicate under the negated true treatment effect. Confirmed
   isolated to this one class after auditing five superficially similar
   ordinal classes.
+
+- **[Cox risk-set cache staleness guard](R/package_metadata/bug_fix_plans/cox_risk_set_cache_staleness.md)** —
+  `InferenceCoxPH` and `InferenceStratifiedCoxPH` cache their prebuilt
+  risk sets but invalidate only when the treatment vector changes, while
+  the cache also embeds the response and event indicator. No wrong result
+  has been observed yet; the plan starts with an exposure audit, then
+  closes the guard in both classes and sweeps for the same pattern
+  elsewhere.
+
+- **[Identity-link risk-difference subsampling inflation](R/package_metadata/bug_fix_plans/investigate_incid_binomial_identity_subsampling_inflation.md)** —
+  `InferenceIncidBinomialIdentityRiskDiff` rejects about 2.6 times too often
+  on its subsampling and m-out-of-n bootstrap p-values, regardless of the
+  covariate formula. The leading hypothesis is that fits on small
+  subsamples are rejected when fitted probabilities leave the valid range,
+  biasing the reference distribution. An investigation comes first; any fix
+  waits on confirming the cause.
 
 ---
 
@@ -158,7 +175,7 @@ needs.
 - **[Incidence randomization CIs](R/package_metadata/new_feature_plans/incidence_randomization_cis.md)** —
   exact (Zhang) randomization intervals on each estimand scale, removing
   the temporary incidence CI disable.
-- **[Negative-binomial dispersion reparameterization](R/package_metadata/new_feature_plans/negbin_dispersion_convergence.md)** —
+- **[Negative-binomial dispersion reparameterization](R/package_metadata/bug_fix_plans/negbin_dispersion_convergence.md)** —
   more reliable convergence near the Poisson boundary for NegBin,
   zero-inflated NegBin, and hurdle-NegBin fits.
 

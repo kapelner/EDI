@@ -97,7 +97,7 @@ not this file's) and *linear-algebra micro-choices within one Newton step*
 
 | kernel(s) | current algorithm | complexity | best-known alternative | verdict |
 |---|---|---|---|---|
-| `fast_zinb.cpp:412`, `fast_zero_augmented_poisson.cpp:303` (ZIP branch), `fast_zero_one_inflated_beta.cpp:467` | joint Newton/L-BFGS on the full parameter vector (all `β`, `log θ`, ZI coefficients at once), from a multistart set of cold starts (`multistart_nonconcave_likelihoods.md`) | `O(np)` per eval, superlinear but **no monotone-ascent guarantee**; can diverge toward a boundary (exactly `negbin_dispersion_convergence.md`'s finding) | **EM algorithm** (Dempster, Laird & Rubin 1977, *JRSS-B*; Lambert 1992, *Technometrics*, "Zero-Inflated Poisson Regression … " — the founding EM derivation for exactly this model; McLachlan & Peel 2000, *Finite Mixture Models*, ch. 2–3) | **Prototype** — `em_algorithm_zero_inflated_mixtures.md` |
+| `fast_zinb.cpp:412`, `fast_zero_augmented_poisson.cpp:303` (ZIP branch), `fast_zero_one_inflated_beta.cpp:467` | joint Newton/L-BFGS on the full parameter vector (all `β`, `log θ`, ZI coefficients at once), from a multistart set of cold starts (`multistart_nonconcave_likelihoods.md`) | `O(np)` per eval, superlinear but **no monotone-ascent guarantee**; can diverge toward a boundary (exactly `../bug_fix_plans/negbin_dispersion_convergence.md`'s finding) | **EM algorithm** (Dempster, Laird & Rubin 1977, *JRSS-B*; Lambert 1992, *Technometrics*, "Zero-Inflated Poisson Regression … " — the founding EM derivation for exactly this model; McLachlan & Peel 2000, *Finite Mixture Models*, ch. 2–3) | **Prototype** — `em_algorithm_zero_inflated_mixtures.md` |
 
 The zero-inflation indicator (structural zero vs. sampling zero) is a
 textbook latent class. EM's E-step computes each observation's posterior
@@ -114,7 +114,7 @@ still needed for that. EM is also only linearly convergent near the optimum
 (vs. Newton's quadratic), so a pure-EM run can be *slower* in wall-clock on
 well-behaved data than the current L-BFGS path. The candidate win is
 **robustness, not raw speed**: EM cannot produce the failure mode
-`negbin_dispersion_convergence.md` exists to patch (an unconstrained
+`../bug_fix_plans/negbin_dispersion_convergence.md` exists to patch (an unconstrained
 Newton/L-BFGS step running the dispersion parameter off to a numerical
 boundary on data with no real overdispersion) because every EM step is a
 likelihood increase, never an overshoot. The standard production recipe —
@@ -126,7 +126,7 @@ helper `multistart_nonconcave_likelihoods.md` already built — this item
 composes with that plan rather than competing with it.
 
 **Expected win at EDI's sizes.** Not a speed claim without data: the A/B
-harness must measure (i) the fraction of `negbin_dispersion_convergence.md`
+harness must measure (i) the fraction of `../bug_fix_plans/negbin_dispersion_convergence.md`
 -style non-convergent fits that EM-then-Newton rescues that pure multistart
 does not, and (ii) wall-clock relative to the current path, on the same
 corpus. See `em_algorithm_zero_inflated_mixtures.md`.
@@ -454,7 +454,7 @@ none of these numbers should be quoted as a measured result.
 | # | problem | current | alternative | regime | estimated multiple | basis |
 |---|---|---|---|---|---|---|
 | B | ZINB/ZIP/ZOIB mixtures | joint Newton/L-BFGS + multistart | EM-then-Newton hybrid | fits that already converge fine | ~0.8–1.0× (can be *slightly slower* — EM's linear-rate warm-up is overhead when Newton alone would've worked) | theoretical: EM is linearly convergent, Newton superlinear |
-| B | (same) | (same) | (same) | fits the joint optimizer currently fails on (`negbin_dispersion_convergence.md`'s fixture) | not a wall-clock ratio — converts a failed/`nonest` fit to a converged one | theoretical: EM's monotone-ascent guarantee |
+| B | (same) | (same) | (same) | fits the joint optimizer currently fails on (`../bug_fix_plans/negbin_dispersion_convergence.md`'s fixture) | not a wall-clock ratio — converts a failed/`nonest` fit to a converged one | theoretical: EM's monotone-ascent guarantee |
 | C | GLMM/LMM/frailty quadrature | fixed 20-node GH | adaptive GH (5–9 nodes) | every GLMM objective call | 1.5–2.5× per call; 1.2–2× end-to-end on GLMM-heavy workflows | **already estimated elsewhere** — `performance_profiling_and_upgrades.md §8.8`, not this audit |
 | D | randomization/bootstrap CI search | bisection (~20–35 full-precision steps) | Robbins–Monro (Garthwaite–Buckland) | any CI search | ~3–20× | structural: ratio derives from the bisection step count, unmeasured |
 | D | (composed) | bisection + affine-shift-reuse (shipped) | + Robbins–Monro | any CI search | multiplicative with the ~20–30× `randomization_ci_affine_shift_reuse.md` already shipped | structural |

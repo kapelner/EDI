@@ -112,7 +112,7 @@ default covariate set downstream inference adjusts for
 \code{interest} affects the allocation criterion only. General \emph{contrast
 matrices} (D_A), and interest sets excluding the treatment coefficient, arrive
 with Stage 2 of the merge plan (the generalized-criterion kernel; see
-\code{package_metadata/new_feature_plans/fix_design_hierarchy.md}).
+\code{package_metadata/finished_features/fix_design_hierarchy.md}).
 
 \strong{Constraints and fallbacks.} \code{prob_T} may be any value in \eqn{(0, 1)}
 for which \eqn{1 \le \mathrm{round}(n \cdot \mathrm{prob}_T) \le n - 1}. If no

@@ -21,6 +21,11 @@ library(EDI)
 #      covered elsewhere) is correct.
 #   5. When the full-covariate weighted fit fails to converge and ncol(X_fit) > 2, it falls back to a
 #      treatment-only 2-column refit, matching that reduced fit's own coefficient exactly.
+#   5b. When BOTH the full-covariate fit and the 2-column fallback fail, the result is NA with the
+#      documented reason "kk_hurdle_poisson_onelik_weighted_fit_failed" (the third and last of this
+#      method's three nonestimable reasons -- the other two, "..._design_unusable" and
+#      "..._length_mismatch", are already checked above; this one previously only had its NA return
+#      value checked, never its exact reason string).
 #
 # record_combined_hurdle_fit_summary():
 #   6. The coefficient/SE/z/p-value table matches an independently hand-computed
@@ -116,6 +121,17 @@ test_that("when the full-covariate weighted fit fails, and ncol(X_fit) > 2, it f
 	dat_2col <- priv$build_weighted_combined_hurdle_data(X_fit_2col, j_treat_2col, row_weights = row_weights)
 	fit_2col_ref <- orig_fit_combined_hurdle(dat_2col, estimate_only = TRUE)
 	expect_equal(res, as.numeric(fit_2col_ref$b[j_treat_2col]), tolerance = 1e-10)
+})
+
+test_that("when both the full-covariate fit and the 2-column fallback fail, the result is NA with the documented reason", {
+	f <- hurdle_onelik_fixture(8L, 60L, data.frame(x1 = rnorm(60L), x2 = rnorm(60L)))
+	f$inf$compute_estimate()
+	unlockBinding("fit_combined_hurdle", f$priv)
+	f$priv$fit_combined_hurdle <- function(...) NULL                                # every attempt fails, full and 2-column alike
+	set.seed(9L); row_weights <- runif(60L, 0.3, 2)
+	res <- f$priv$compute_weighted_combined_hurdle_estimate(row_weights, estimate_only = TRUE)
+	expect_true(is.na(res))
+	expect_equal(f$inf$get_nonestimable_reason(), "kk_hurdle_poisson_onelik_weighted_fit_failed")
 })
 
 test_that("record_combined_hurdle_fit_summary(): the coefficient/SE/z/p table matches an independent hand computation from the inverted Fisher information", {

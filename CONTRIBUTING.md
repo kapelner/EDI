@@ -134,7 +134,8 @@ that anything you break or slow down is unambiguously yours.
 ## 3. Doing the work
 
 - **Plan first for anything non-trivial.** Feature/fix plans live in
-  `R/package_metadata/new_feature_plans/` (one `.md` per feature; completed
+  `R/package_metadata/new_feature_plans/` (one `.md` per feature; bug-fix and investigation plans live in
+  `R/package_metadata/bug_fix_plans/`; completed
   ones move to `finished_features/`; release scoping in
   `future_release_plans/`, summarized in [`ROADMAP.md`](ROADMAP.md)). If
   your change implements a plan, link it; if it's new, add one. Plans
@@ -326,7 +327,7 @@ inference class and a minimal reproducer, which is what a fix actually
 needs. Good first contributions are labeled
 [`good first issue`](https://github.com/kapelner/EDI/labels/good%20first%20issue)
 and [`help wanted`](https://github.com/kapelner/EDI/labels/help%20wanted);
-the [`ROADMAP.md`](ROADMAP.md) and `new_feature_plans/` are the longer
+the [`ROADMAP.md`](ROADMAP.md) and `new_feature_plans/`/`bug_fix_plans/` are the longer
 backlog. Questions go to
 [Discussions](https://github.com/kapelner/EDI/discussions).
 

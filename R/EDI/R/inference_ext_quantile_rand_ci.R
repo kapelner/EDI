@@ -45,7 +45,7 @@ InferenceExtQuantileRandCI = list(
 			# structurally (not by class name) so any future host missing
 			# these hooks fails the same way instead of silently returning a
 			# wrong answer. See
-			# R/package_metadata/new_feature_plans/fix_KKQuantileRegrOneLik_rand_ci.md.
+			# R/package_metadata/bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md.
 			if (!is.function(private$compute_rand_pval_matched_pairs) || !is.function(private$compute_rand_pval_reservoir)) {
 				stop(
 					"Randomization confidence intervals are temporarily disabled for ",
@@ -55,7 +55,7 @@ InferenceExtQuantileRandCI = list(
 					"host, which this class's composition never supplies -- the bisection was ",
 					"silently converging to a zero-width interval at the point estimate instead ",
 					"of erroring. See R/package_metadata/new_feature_plans/",
-					"fix_KKQuantileRegrOneLik_rand_ci.md.",
+					"KKQuantileRegrOneLik_rand_ci.md.",
 					call. = FALSE
 				)
 			}

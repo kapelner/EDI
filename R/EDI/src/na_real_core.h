@@ -16,7 +16,7 @@
 // translation unit, but is a hard redefinition error the moment any two of
 // them are merged into one translation unit (as CMake's UNITY_BUILD does
 // for the Python extension -- see python/CMakeLists.txt and
-// package_metadata/new_feature_plans/unity_build_collision_audit.md, whose
+// package_metadata/finished_features/unity_build_collision_audit.md, whose
 // R-side mega-TU check never caught this because it only compiles the
 // non-EDI_CORE_ONLY branch).
 #include <limits>

@@ -167,7 +167,7 @@ test_that("InferenceContinKKQuantileRegrOneLik randomization CI matches", {
 	legacy = Legacy$new(des)
 	migrated = InferenceContinKKQuantileRegrOneLik$new(des)
 	# Randomization CIs are hard-disabled for this class (2026-09-17 stopgap;
-	# see fix_KKQuantileRegrOneLik_rand_ci.md): the Zhang bisection this class
+	# see KKQuantileRegrOneLik_rand_ci.md): the Zhang bisection this class
 	# routes to requires host hooks KKQuantileRegrOneLikSource never supplies.
 	# Legacy shares that same source, so both sides must fail identically --
 	# "migration matches" now means matching errors, not matching intervals.

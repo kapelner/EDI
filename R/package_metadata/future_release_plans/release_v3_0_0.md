@@ -1,7 +1,7 @@
 # Release Scope: v3.0.0 (Tentative)
 
 > **Depends on:** `release_v2_0_0.md` (the last currently-scoped release;
-> ships first). Release index over plans in `../new_feature_plans/`; not
+> ships first). Release index over plans in `../new_feature_plans/` and `../bug_fix_plans/`; not
 > new work of its own. (Global ordering: see
 > `../new_feature_plans/_master.md`.)
 

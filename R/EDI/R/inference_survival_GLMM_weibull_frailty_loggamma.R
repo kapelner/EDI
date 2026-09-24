@@ -311,7 +311,7 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 				# was NA/NA = NA under estimate_only = TRUE even though beta_m
 				# and beta_r were both finite, making beta_hat_T unconditionally
 				# NA on every resampling draw (found 2026-09-22; see
-				# fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md).
+				# glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md).
 				w_star = if (is.finite(ssq_m) && is.finite(ssq_r)) ssq_r / (ssq_r + ssq_m) else 0.5
 				private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
 			if (estimate_only) return(invisible(NULL))

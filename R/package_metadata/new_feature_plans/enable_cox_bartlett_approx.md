@@ -44,7 +44,7 @@ This is a mechanical smoke test, not a statistical validation: it does not
 establish empirical coverage or Type-I error calibration, which needs a
 proper repeated-sampling simulation (hundreds of reps at several `n`,
 censoring rates, and effect sizes) — the same kind of validation
-`fix_multimodal_log_liks.md`/`TODO-30` and the other audit-driven plans in
+`../bug_fix_plans/multimodal_log_liks.md`/`TODO-30` and the other audit-driven plans in
 this release are held to before shipping a previously-off statistical
 method.
 

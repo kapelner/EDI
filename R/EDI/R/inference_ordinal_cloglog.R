@@ -155,7 +155,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 					# true null -- same mechanism, same fix, as
 					# InferenceOrdinalStereotypeLogitRegr's null-refit (found
 					# 2026-09-23; see
-					# fix_ordinal_cumulative_link_null_refit_multistart.md).
+					# ordinal_cumulative_link_null_refit_multistart.md).
 					# Also start from the unconstrained fit with the treatment
 					# coordinate set to -d (nudged +1e-3: the solver reports
 					# converged = FALSE when started exactly at an optimum), and

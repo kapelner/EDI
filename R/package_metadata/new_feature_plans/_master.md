@@ -1,7 +1,7 @@
 # Master TODO Ordering
 
 Generated 2026-08-14. This document orders **every open TODO across every plan
-in `new_feature_plans/`** into one dependency-respecting execution sequence.
+in `new_feature_plans/` and `bug_fix_plans/`** into one dependency-respecting execution sequence.
 Each plan carries a `> **Depends on:**` header stating its upstream plans; this
 file is the transitive ordering of those edges. TODO references are written
 `<plan file> → <TODO id or section>`. Where work from different plans belongs
@@ -558,7 +558,7 @@ on the OLS null distribution, multiplicative with TODO-17o) and
 TODO-9`; FWL rewrite inside that kernel, 5–10×, depends on the wiring).
 Hardening item from the same audit (moved 2026-09-23 to
 `release_v1_0_5.md → TODO-4`, was `release_v1_1_0.md → TODO-17q`):
-`guard_unguarded_information_inverse.md` → TODO-1..5 — five bare
+`../bug_fix_plans/guard_unguarded_information_inverse.md` → TODO-1..5 — five bare
 `.inverse()` sites on the free information block get the `isInvertible()`
 guard Cox/ordinal/ZOIB already use; bit-for-bit on invertible fits.
 Second hardening item, 2026-09-03 (v1.1.0, `→ TODO-17s`, **narrowed
@@ -571,7 +571,7 @@ reproducible-random multistart through one new leaf header
 already has; bit-for-bit whenever the primary start was already best, on
 every replicate fit, and on every concave kernel. **v1.1.0 keeps only the
 documented-failure tranche** (ZINB/ZIP/hurdle-NegBin, beta regression —
-the boundary-runaway failure `negbin_dispersion_convergence.md` and
+the boundary-runaway failure `../bug_fix_plans/negbin_dispersion_convergence.md` and
 `em_algorithm_zero_inflated_mixtures.md` exist to patch); the remainder
 (GLMM/LMM/frailty, ZOIB, stereotype, copula survival, cauchit, bisquare)
 moved to `release_v1_2_0.md → TODO-20`.
@@ -596,7 +596,7 @@ the live R-level search driver, not the caller-less
 `em_algorithm_zero_inflated_mixtures.md → TODO-1..5` (an EM-then-Newton
 hybrid start for ZINB/ZIP, feeding `multistart_nonconcave_likelihoods.md`
 as one more deterministic start; targets the failure mode
-`negbin_dispersion_convergence.md` patches). Both gated on the harness.
+`../bug_fix_plans/negbin_dispersion_convergence.md` patches). Both gated on the harness.
 One audit row is an outright Adopt with no harness gate (v1.1.0, `→
 TODO-17w`): `brent_ci_inversion.md` → TODO-1..3 — the score / gradient /
 Bartlett-LR CI inverter (`pval_invert_ci_cpp`) polishes by pure bisection
@@ -1081,7 +1081,7 @@ Release index: `release_v1_1_0.md → TODO-23` (lintr), `→ TODO-24`
 **`KKQuantileRegrOneLik` randomization CI** (added 2026-09-17, found via a
 raw `comprehensive_tests_results_nc_1_*.csv` audit, not a user report; no
 dependency on any phase above — schedule anywhere in v1.1.0):
-`fix_KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
+`../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
 `InferenceContinKKQuantileRegrOneLik`/`InferencePropKKQuantileRegrOneLik`
 compose `QuantileRandomizationCI` (Zhang test-inversion bisection) without
 their `KKQuantileRegrOneLik` component ever supplying the
@@ -1115,7 +1115,7 @@ ships. Release index: `release_v1_0_5.md → TODO-8` (was `release_v1_1_0.md →
 found the same way as `TODO-25`/`TODO-30`; three new checks —
 `biased_estimate`, `bad_type1_error`, `low_power` — added to
 `audit_comprehensive_results.R` itself this wave; **fixed and merged**):
-`fix_stale_worker_cache_resampling.md → TODO-1..8`. A correctness bug: any
+`../bug_fix_plans/stale_worker_cache_resampling.md → TODO-1..8`. A correctness bug: any
 class whose point-estimate cache guard used a key outside the reused
 randomization/bootstrap worker's narrow, hardcoded reset list had every
 permutation/bootstrap draw after the first silently reuse the first
@@ -1152,7 +1152,7 @@ Release index: `release_v1_0_5.md → TODO-11` (was `release_v1_1_0.md → TODO-
 
 **Latent `cached_mod` reset gap** (added 2026-09-22, found during
 `TODO-31`'s own final review, not a new audit finding; no concrete class
-reaches it yet): `fix_stale_worker_cache_resampling.md → TODO-9`. One
+reaches it yet): `../bug_fix_plans/stale_worker_cache_resampling.md → TODO-9`. One
 level up from the `cached_values` gap `TODO-31` fixed, the same
 randomization loader still resets a hand-maintained private-field
 allowlist that's missing `cached_mod` — the identical failure shape,
@@ -1162,7 +1162,7 @@ stale). Release index: `release_v1_0_5.md → TODO-12` (was `release_v1_1_0.md �
 
 **`InferencePropGCompMeanDiff` randomization distribution all-NA** (added
 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in `TODO-31`'s regression
-test; **fixed 2026-09-23**): `fix_prop_gcomp_sample_usable_gating.md →
+test; **fixed 2026-09-23**): `../bug_fix_plans/prop_gcomp_sample_usable_gating.md →
 TODO-1..6`. An error-shaped bug (not silently-wrong like `TODO-31`), and a
 different mechanism — worker-state gating, not stale caching: the class's
 reused-worker randomization path fell through to a bootstrap-shaped
@@ -1185,7 +1185,7 @@ still open. Release index: `release_v1_0_5.md → TODO-14` (was `release_v1_1_0.
 **`InferenceContinLin` parametric-bootstrap Type-I error, design-dependent**
 (added 2026-09-23, from the same `bad_type1_error` audit wave as `TODO-31`,
 originally hypothesized to be the same mechanism — confirmed separate,
-still unfixed): `fix_contin_lin_param_bootstrap_bad_type1_error.md →
+still unfixed): `../bug_fix_plans/contin_lin_param_bootstrap_bad_type1_error.md →
 TODO-1..7`. Three parametric-bootstrap/likelihood-ratio methods flagged
 simultaneously; confirmed NOT the `TODO-31` reused-worker path (already
 fixed for this class) and isolated to this class's own overrides, not
@@ -1199,7 +1199,7 @@ down. Release index: `release_v1_0_5.md → TODO-15` (was `release_v1_1_0.md →
 **Ordinal cumulative-link parametric-bootstrap inference** (added
 2026-09-23, from the same raw `comprehensive_tests` CSV audit wave as
 `TODO-31`/`TODO-37`; no dependency on any phase above — schedule anywhere
-in v1.1.0): `fix_ordinal_cumulative_link_null_refit_multistart.md →
+in v1.1.0): `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md →
 TODO-1..7`. Two distinct bugs found investigating
 `InferenceOrdinalCloglogRegr`'s 60% Type-I error on
 `compute_param_bootstrap_pval()`. Fixed: a single-start delta-constrained
@@ -1220,6 +1220,22 @@ or don't use the shared helper at all; their own flags are on unrelated
 mechanisms, out of scope here. A package-wide sweep for any other class
 sharing both the helper and the negation pattern is still open. Release
 index: `release_v1_0_5.md → TODO-16` (was `release_v1_1_0.md → TODO-38`).
+
+**Cox risk-set cache staleness** (found 2026-08-30, slotted into v1.0.5
+2026-09-24 from "unassigned"; no dependency on any phase above):
+`../bug_fix_plans/cox_risk_set_cache_staleness.md → TODO-1..5`. The
+`InferenceCoxPH`/`InferenceStratifiedCoxPH` risk-set caches are guarded only
+on `w` while embedding `y`/`dead`. No confirmed wrong result yet (plan
+TODO-1 is the exposure audit). Release index: `release_v1_0_5.md → TODO-29`.
+
+**Incidence identity-link risk-difference subsampling inflation** (added
+2026-09-24, same audit-triage wave; no dependency on any phase above):
+`../bug_fix_plans/investigate_incid_binomial_identity_subsampling_inflation.md
+→ TODO-1..6`. `InferenceIncidBinomialIdentityRiskDiff` shows ~2.6× nominal
+Type-I error on subsampling and m-out-of-n bootstrap p-values, formula-
+independent; leading (unconfirmed) hypothesis is boundary-rejected subsample
+fits biasing the pivot distribution. Investigation-first. Release index:
+`release_v1_0_5.md → TODO-27`.
 
 ## Phase 6 — Exploratory / later
 

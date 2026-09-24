@@ -8,7 +8,7 @@
 > this plan's Design section, is a new *deterministic start* for that
 > plan's `optimize_fixed_likelihood_multistart()` — this plan composes with
 > it, not around it). **Relevant, not blocking:**
-> `negbin_dispersion_convergence.md` (the failure mode this plan targets:
+> `../bug_fix_plans/negbin_dispersion_convergence.md` (the failure mode this plan targets:
 > unconstrained joint Newton/L-BFGS running the dispersion parameter off to
 > a numerical boundary on non-overdispersed data — already patched with a
 > boundary-acceptance mitigation there; this plan is a structurally
@@ -295,14 +295,14 @@ Same recipe as TODO-2, with two differences worth calling out:
   theta)` helper (or a trivial one-liner) to reuse rather than
   reimplementing the NegBin PMF at zero.
 - [ ] **Step 2 (the important test):** reuse
-  `negbin_dispersion_convergence.md`'s own repro fixture (a plain Poisson
+  `../bug_fix_plans/negbin_dispersion_convergence.md`'s own repro fixture (a plain Poisson
   draw with no injected overdispersion or excess zeros — the exact data
   shape that makes the direct joint optimizer's dispersion parameter run
   away) and assert the EM-then-Newton hybrid **converges** on it, unlike
   (or in addition to) the existing boundary-acceptance mitigation:
 
 ```r
-test_that("EM-then-Newton converges on the negbin_dispersion_convergence.md repro fixture", {
+test_that("EM-then-Newton converges on the ../bug_fix_plans/negbin_dispersion_convergence.md repro fixture", {
 	set.seed(1)
 	n = 100L; w = rep(c(0,1), length.out = n); x1 = rnorm(n)
 	y = rpois(n, exp(0.5 + 0.3 * w + 0.1 * x1))  # plain Poisson, no real overdispersion, no ZI
@@ -345,7 +345,7 @@ test_that("EM-then-Newton converges on the negbin_dispersion_convergence.md repr
   <use_em_start = FALSE>, candidate = <use_em_start = TRUE>,
   equivalence_metric = <neg-loglik never worse, per
   algorithm_choice_audit.md's row-B metric>, ...)`** across the corpus
-  (which already includes the `negbin_dispersion_convergence.md`
+  (which already includes the `../bug_fix_plans/negbin_dispersion_convergence.md`
   adversarial-trap entry per the framework plan's D1).
 - [ ] **Step 2: Add a second metric beyond speed** — **convergence rate**:
   fraction of corpus entries where `converged` flips from `FALSE` to

@@ -1,6 +1,10 @@
 # Public Diagnostics API Implementation Spec
 
 > **Depends on:** `optimizer_diagnostics_report.md` (TODO-9..12 consume its layer); `fix_inference_hierarchy.md` (core-path phases run across migrated families). Hosts the re-homed diagnostics TODOs of the finished m-out-of-n spec and `prw_subsampling_implementation_spec.md`. (Global ordering: see `_master.md`.)
+> **Fed by (v1.0.5):** `../bug_fix_plans/guard_unguarded_information_inverse.md` — its
+> singular-information rejections are emitted as typed nonestimable reasons so
+> the information-conditioning fields and warnings here can consume them
+> without migration. (`release_v1_0_5.md → TODO-4`.)
 
 Generated: 2026-07-27
 

@@ -4,7 +4,7 @@
 
 Implemented as a conservative interim mitigation on 2026-08-27. The eventual
 fix is the Option 1 reparameterization project in
-`../new_feature_plans/negbin_dispersion_convergence.md`, catalogued for
+`../bug_fix_plans/negbin_dispersion_convergence.md`, catalogued for
 v1.1.0. This document preserves the completed Option 2 work; it is not the
 long-term convergence design.
 

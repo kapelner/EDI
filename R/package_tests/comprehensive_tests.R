@@ -3214,7 +3214,7 @@ COVERAGE_CLOSED_FORM = list(
 # use_real_covariates), its rows are recycled to length mc_n exactly like
 # y_base below, so the MC fit adjusts for the SAME covariate set the real
 # per-row results were fit against (TODO-32,
-# fix_mc_coverage_truth_covariate_mismatch.md). NULL keeps the original single
+# mc_coverage_truth_covariate_mismatch.md). NULL keeps the original single
 # synthetic-covariate behavior, which is already correct for an `~1`
 # (no-adjustment) per-row fit.
 compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_type, dataset_name, beta_T_val, mc_n, real_X = NULL){
@@ -3341,7 +3341,7 @@ COVERAGE_MC_SPEC = list(
 	InferenceOrdinalKKCLMMCauchit        = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKCLMMCauchit),       mc_n = 3000L)
 )
 
-# TODO-32 (fix_mc_coverage_truth_covariate_mismatch.md): shared by
+# TODO-32 (mc_coverage_truth_covariate_mismatch.md): shared by
 # get_coverage_truth() and get_estimate_logging_theta() so their
 # .coverage_truth_cache keys can never drift apart again -- they did once
 # (2026-09-22 fix), silently breaking get_estimate_logging_theta()'s
@@ -3377,7 +3377,7 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 	}
 	spec = COVERAGE_MC_SPEC[[base_class]]
 	if (!is.null(spec)) {
-		# TODO-32 (fix_mc_coverage_truth_covariate_mismatch.md): the MC fit below
+		# TODO-32 (mc_coverage_truth_covariate_mismatch.md): the MC fit below
 		# used to always simulate against ONE synthetic covariate, while a
 		# `(model_formula=~.)`/`[design_formula=~.]` per-row test adjusts for the
 		# real dataset's FULL covariate matrix -- two different fitted models for

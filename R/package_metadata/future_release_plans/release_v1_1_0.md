@@ -80,7 +80,7 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > `ordinal_model_coefficient_randomization_confidence_intervals.md` and
 > `randomization_ci_search_precision.md` (its three Bayesian-bootstrap
 > siblings moved to 1.2.0, see above).
-> **Added 2026-08-27:** `fix_reusable_bootstrap.md` (**TODO-17e** below) —
+> **Added 2026-08-27:** `../bug_fix_plans/reusable_bootstrap.md` (**TODO-17e** below) —
 > a small fix to already-shipped `tune_EDI_for_this_machine()` functionality
 > (`local_machine_optimization.md`, closed in the v1.0.0 line), not new
 > scope of its own.
@@ -194,7 +194,7 @@ following the temporary hard-disable and independent of the generic CI-search
 precision plan.
 
 The negative-binomial convergence correction:
-`negbin_dispersion_convergence.md` — the selected eventual Option 1
+`../bug_fix_plans/negbin_dispersion_convergence.md` — the selected eventual Option 1
 reparameterization of the dispersion coordinate, with the completed boundary
 acceptance mitigation retained as a compatibility bridge.
 
@@ -227,7 +227,7 @@ on triggers, flip rule written down), and `memory_layout_row_major_irls.md`
 (cache threshold for column-major `X` under row-wise IRLS; policy for
 kernel authors).
 
-`guard_unguarded_information_inverse.md` (added 2026-08-30; `→ TODO-1..5`;
+`../bug_fix_plans/guard_unguarded_information_inverse.md` (added 2026-08-30; `→ TODO-1..5`;
 see `TODO-17q` below) — hardening: five `with_var` kernels get the same
 `isInvertible()` guard their siblings already have; bit-for-bit on
 invertible fits.
@@ -257,7 +257,7 @@ the full pipeline, embarrassingly parallel over `set_num_cores()`'s
 pool.) Phase B is now response-type coverage only (narrowed 2026-09-06);
 the design-family extension moved into Phase A the same day.
 
-`fix_reusable_bootstrap.md` (added 2026-08-27; `→ TODO-1..6`; see `TODO-17e`
+`../bug_fix_plans/reusable_bootstrap.md` (added 2026-08-27; `→ TODO-1..6`; see `TODO-17e`
 below) is a small, additive follow-on fix to that shipped feature, not a new
 track.
 
@@ -687,7 +687,7 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] ~~TODO-17e~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-1`**
   (2026-09-23 bug-fix/feature split, user decision): **Reusable-bootstrap-
   worker support for `InferencePropZeroOneInflatedBetaRegr`** —
-  `fix_reusable_bootstrap.md → TODO-1..6`. A fix to already-shipped
+  `../bug_fix_plans/reusable_bootstrap.md → TODO-1..6`. A fix to already-shipped
   functionality, not new v1.1.0 capability — moved with the rest of this
   release's audit-found/correctness items to the new patch release so it
   isn't gated on v1.1.0's Phase 0 decisions.
@@ -724,7 +724,7 @@ ticked in their **owning plans**; this list is the release index.
   intervals and remove the temporary incidence CI disable only after tests
   demonstrate that bounds no longer reuse a log-odds-ratio scale incorrectly.
 - [ ] TODO-17l: **Negative-binomial dispersion reparameterization**
-  `negbin_dispersion_convergence.md → TODO-1..4` — replace the unbounded
+  `../bug_fix_plans/negbin_dispersion_convergence.md → TODO-1..4` — replace the unbounded
   `log_theta` coordinate with an attainable Poisson-boundary parameterization
   (`phi = 1/theta` or `log(phi)`) across ZINB, plain NegBin, and hurdle-NegBin;
   rederive score/Hessian and downstream covariance/warm-start consumers;
@@ -779,7 +779,7 @@ ticked in their **owning plans**; this list is the release index.
   Multiplicative with the moved TODO-17o.
 - [ ] ~~TODO-17q~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-4`**
   (same split): **Guard the unguarded information-matrix inverses** —
-  `guard_unguarded_information_inverse.md → TODO-1..5`. Correctness, not
+  `../bug_fix_plans/guard_unguarded_information_inverse.md → TODO-1..5`. Correctness, not
   performance: five kernels invert a free-parameter information block with
   a bare `.inverse()` and no invertibility check, unlike their siblings —
   a near-singular fit today yields a finite, wildly wrong SE with no
@@ -1075,7 +1075,7 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] ~~TODO-22~~ **→ moved 2026-09-23 to `release_v1_0_5.md → TODO-6`**
   (2026-09-23 bug-fix/feature split, user decision):
   **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer
-  stability** — `clayton_loggamma_frailty_optimizer_stability.md →
+  stability** — `../bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md →
   TODO-1..4`. A ~200× bimodal slowdown found via a comprehensive-test-
   harness timing investigation, traced to an unbounded C++ optimizer
   parameter plus a stale-gradient mismatch. A performance/correctness fix

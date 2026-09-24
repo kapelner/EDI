@@ -2,7 +2,7 @@ library(testthat)
 library(EDI)
 
 # Structural gate for the bug family behind
-# `fix_stale_worker_cache_resampling.md`: the reused-worker resampling loaders
+# `stale_worker_cache_resampling.md`: the reused-worker resampling loaders
 # reset a worker's per-class estimate cache between draws, and for years they
 # reset only a hardcoded allowlist of four keys
 # (`KKstats`/`beta_hat_T`/`s_beta_hat_T`/`likelihood_null_warm_cache`). Every
@@ -65,7 +65,7 @@ RESAMPLING_NONDEGENERATE_RESPONSE_TYPES = c(
 #     already-correct standard-path logic
 #     (`compute_treatment_estimate_during_randomization_inference()`'s
 #     `shared()` + `cached_values$md`) on the worker clone instead of `self`;
-#     see fix_prop_gcomp_sample_usable_gating.md.
+#     see prop_gcomp_sample_usable_gating.md.
 #   * InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC -- `shared()`'s
 #     inverse-variance pooling weight (`w_star = ssq_r / (ssq_r + ssq_m)`) used
 #     `ssq_m`/`ssq_r` unconditionally, both deliberately `NA` under
@@ -73,7 +73,7 @@ RESAMPLING_NONDEGENERATE_RESPONSE_TYPES = c(
 #     unconditionally NA. Fixed with the same equal-weight fallback already
 #     correct elsewhere in the file
 #     (`compute_treatment_estimate_during_randomization_inference()`); see
-#     fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md.
+#     glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md.
 RESAMPLING_NONDEGENERATE_KNOWN_BROKEN = character(0)
 
 # Responses for the structured-design arms, mirroring the recipe
@@ -309,7 +309,7 @@ test_that("reused-worker randomization distributions are not degenerate point ma
 		info = paste0(
 			"Reused-worker randomization distribution is a point mass while the ",
 			"standard path varies, for: ", paste(degenerate, collapse = ", "),
-			". See fix_stale_worker_cache_resampling.md -- a class caching its ",
+			". See stale_worker_cache_resampling.md -- a class caching its ",
 			"point estimate under a key the per-draw loader does not reset will ",
 			"return draw 1's value for every later draw."
 		)

@@ -1,7 +1,7 @@
 # Release Scope: v2.0.0
 
 > **Depends on:** `release_v1_4_0.md` (the last 1.x release; ships
-> first). Release index over plans in `../new_feature_plans/`; not new work
+> first). Release index over plans in `../new_feature_plans/` and `../bug_fix_plans/`; not new work
 > of its own. (Global ordering: see `../new_feature_plans/_master.md`.)
 
 Written 2026-08-27 (user decision: thematic split of the open backlog into

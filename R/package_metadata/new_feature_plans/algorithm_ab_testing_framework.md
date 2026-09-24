@@ -105,7 +105,7 @@ Axes, by problem class (extend as new Prototype rows are added):
 Every problem class also gets **two adversarial entries by construction**,
 not swept from the axes above: one designed to trap the *current* algorithm
 (reusing the known failure fixtures already in the repo where they exist —
-e.g. `negbin_dispersion_convergence.md`'s no-overdispersion fixture for row
+e.g. `../bug_fix_plans/negbin_dispersion_convergence.md`'s no-overdispersion fixture for row
 B, the ordinal-GLMM near-zero-variance fixture at
 `fast_ordinal_glmm.cpp:337-359`'s comment for anything variance-component
 related), and one designed to be easy for both (a sanity check that the
@@ -236,7 +236,7 @@ test_that("the corpus is reproducible from its seed alone", {
 
 - [ ] **Step 2: Run to confirm failure** — `could not find function "generate_algorithm_ab_corpus"`.
 
-- [ ] **Step 3: Implement `corpus.R`.** `generate_algorithm_ab_corpus()` dispatches on `problem_class` to a per-class generator (`.generate_mixture_likelihood_corpus(axes, seed)` first; others added by later rows' plans). Each generator sweeps the axis table in D1 restricted to the axes that apply to its problem class (mixture likelihoods: `n`, zero-inflation fraction, contamination — not censoring or imbalance), builds `X`, `y` via `withr::with_seed(seed + offset, ...)` per entry so entries are independent and reproducible, and adds the two adversarial entries by construction (for `mixture_likelihood`: `adversarial_trap_current` = a Poisson-only draw with no injected excess zeros or overdispersion, mirroring `negbin_dispersion_convergence.md`'s repro fixture; `adversarial_easy` = strong zero-inflation, strong signal, `n = 500`).
+- [ ] **Step 3: Implement `corpus.R`.** `generate_algorithm_ab_corpus()` dispatches on `problem_class` to a per-class generator (`.generate_mixture_likelihood_corpus(axes, seed)` first; others added by later rows' plans). Each generator sweeps the axis table in D1 restricted to the axes that apply to its problem class (mixture likelihoods: `n`, zero-inflation fraction, contamination — not censoring or imbalance), builds `X`, `y` via `withr::with_seed(seed + offset, ...)` per entry so entries are independent and reproducible, and adds the two adversarial entries by construction (for `mixture_likelihood`: `adversarial_trap_current` = a Poisson-only draw with no injected excess zeros or overdispersion, mirroring `../bug_fix_plans/negbin_dispersion_convergence.md`'s repro fixture; `adversarial_easy` = strong zero-inflation, strong signal, `n = 500`).
 
 - [ ] **Step 4: Run the test to confirm it passes.**
 

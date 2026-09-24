@@ -364,7 +364,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			summ = attempt$fit$summ
 			se = attempt$fit$se
 			if (!is.null(mod)){
-				private$best_X_colnames = setdiff(colnames(attempt$X_fit), c("(Intercept)", "treatment"))
+				private$best_X_colnames = setdiff(colnames(attempt$X), c("(Intercept)", "treatment"))
 			}
 			if (is.null(mod) || is.null(summ)){
 				private$cache_nonestimable_estimate("kk_clmm_fit_unavailable")

@@ -84,6 +84,20 @@ jobs:
 
   shards:
     needs: plan
+    # 2026-09-24: without this, `shards` inherited GitHub Actions' implicit
+    # default job condition (bare success()), which is poisoned by ANY
+    # skipped job earlier in the dependency graph -- not just its own direct
+    # `needs`. `check` above is unconditionally present in the graph but
+    # deliberately skipped on every push (if: github.event_name == 'schedule'),
+    # which silently killed `shards` (and `merge`) on every single push-
+    # triggered run, going back through every recent commit checked
+    # (2026-09-24 investigation into a stale Codecov badge -- coverage had
+    # not actually been re-measured/uploaded on any push in that window,
+    # despite the workflow itself reporting overall success, since a skipped
+    # job doesn't fail a run by default). `plan` already had this same fix
+    # via its own `if: always() && ...`; this gives `shards` an equivalent
+    # explicit condition that only looks at its own direct dependency.
+    if: needs.plan.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
@@ -133,6 +147,10 @@ jobs:
 
   merge:
     needs: [plan, shards]
+    # 2026-09-24: same fix as `shards` above -- an explicit condition on this
+    # job's own direct dependencies, bypassing the implicit default success()
+    # that a skipped `check` elsewhere in the graph poisons.
+    if: needs.plan.result == 'success' && needs.shards.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

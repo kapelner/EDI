@@ -1,7 +1,7 @@
 # Release Scope: v1.3.0 — Design Extensions from Practice
 
 > **Depends on:** `release_v1_2_0.md` (the merged greedy engine with
-> general `prob_T`). Release index over plans in `../new_feature_plans/`.
+> general `prob_T`). Release index over plans in `../new_feature_plans/` and `../bug_fix_plans/`.
 > (Global ordering: see `../new_feature_plans/_master.md`.)
 
 Written 2026-08-27 (thematic 1.x split); **amended the same day (user

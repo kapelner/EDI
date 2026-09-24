@@ -473,7 +473,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		# the rand path `sample_usable` stays stuck at its
 		# create_bootstrap_worker_state() init value FALSE forever -- every
 		# randomization draw returned NA_real_ (found 2026-09-22; see
-		# fix_prop_gcomp_sample_usable_gating.md). Override with a
+		# prop_gcomp_sample_usable_gating.md). Override with a
 		# randomization-specific estimator that instead mirrors
 		# compute_treatment_estimate_during_randomization_inference()'s
 		# (correct, standard-path) logic -- shared() + cached_values$md --

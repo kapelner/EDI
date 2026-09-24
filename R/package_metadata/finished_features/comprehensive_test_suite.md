@@ -4,11 +4,11 @@
 
 Implement a professionally comprehensive test suite for the EDI package. The suite must cover public API behavior, legal argument combinations, statistical workflow paths, high-fan-in internal safety nets, runtime tiers, coverage reporting, and quality gates.
 
-This spec is intentionally broader than `package_metadata/new_feature_plans/comprehensive_argument_checking.md`, but it depends on that spec.
+This spec is intentionally broader than `package_metadata/finished_features/comprehensive_argument_checking.md`, but it depends on that spec.
 
 ## Strict Dependency
 
-`package_metadata/new_feature_plans/comprehensive_argument_checking.md` is a hard prerequisite.
+`package_metadata/finished_features/comprehensive_argument_checking.md` is a hard prerequisite.
 
 Do not begin implementation of this comprehensive suite spec until the argument-checking spec is fully implemented and accepted. In particular, the following must already exist and be working:
 

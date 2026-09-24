@@ -714,7 +714,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# below (`load_bootstrap_sample_into_worker()` -> `load_bootstrap_sample_into_design_
 		# backed_worker()`) already replaces the worker's whole `cached_values` with a fresh
 		# list, so this operation never had the stale-per-class-cache-key defect that
-		# `load_randomization_perm_into_worker()` did (fix_stale_worker_cache_resampling.md
+		# `load_randomization_perm_into_worker()` did (stale_worker_cache_resampling.md
 		# TODO-2); the named resets in `load_rand_bootstrap_assignment_into_worker()` below
 		# are redundant belt-and-braces kept for readers of that function in isolation.
 		load_rand_bootstrap_draw_into_worker = function(worker_state, draw, delta, transform_responses, y0_full, zero_one_logit_clamp = .Machine$double.eps){

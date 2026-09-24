@@ -70,7 +70,7 @@ actually preparing a submission-candidate tarball, not on every push.
    **separate explicit go-ahead**. No release plan authorizes them by itself;
    ask before doing any of the three, every release.
 8. **On acceptance:** move every closed in-scope plan from
-   `new_feature_plans/` to `../finished_features/`, per the standing
+   `new_feature_plans/` or `../bug_fix_plans/` to `../finished_features/`, per the standing
    constraint.
 
 ## Coordination with the Python package

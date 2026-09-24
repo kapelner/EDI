@@ -15,7 +15,7 @@ simple_estimator_expected_classes = c(
 # dead reused-worker KK bootstrap methods (6) were deleted in a18354bc.
 # add_rand_bootstrap_smooth_noise is now a shared private implementation hook.
 # 2026-09-23: +1 more on every class for reused_worker_preserved_cache_keys, the new
-# shared private field from fix_stale_worker_cache_resampling.md's cache-reset fix.
+# shared private field from stale_worker_cache_resampling.md's cache-reset fix.
 # Keep the exact structural snapshots, including that intentional new binding.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(

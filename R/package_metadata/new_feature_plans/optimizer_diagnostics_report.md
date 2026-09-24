@@ -1,6 +1,9 @@
 # An Advanced Optimizer Diagnostics Layer
 
 > **Depends on:** `sexp_removal_rcppeigen_conversion_spec.md` (diagnostics must thread through `edi::ResultMap` as flat fields — see update note). Blocks `public_diagnostics_api_spec.md` Phases 3+ and is a prerequisite for `firth_penalties_report.md` (SolverDiagnostics wraps the optim callers Firth needs). (Global ordering: see `_master.md`.)
+> **Fed by (v1.0.5):** `../bug_fix_plans/guard_unguarded_information_inverse.md` — the
+> `SolverDiagnostics` component (TODO-3) should absorb its typed singular-
+> information reasons rather than re-derive them.
 
 > **Update (2026-08-14).** This report predates two completed migrations; read
 > its proposals through them. (1) `fix_inference_hierarchy.md`: the proposed

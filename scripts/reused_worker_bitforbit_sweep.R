@@ -2,7 +2,7 @@
 # Bit-for-bit sweep of every reused-worker randomization distribution in the
 # package, for verifying the standing "a class that was already correct must not
 # move" constraint when the reused-worker resampling machinery is changed
-# (fix_stale_worker_cache_resampling.md, TODO-5).
+# (stale_worker_cache_resampling.md, TODO-5).
 #
 # It records one randomization distribution per (class, response type, design
 # family, path), where "path" is both the production path and the path with the

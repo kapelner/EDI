@@ -28,7 +28,7 @@ plan files' internal numbering did not change.
 ## Implementation TODOs
 
 - [ ] TODO-1 (added 2026-08-27): **Reusable-bootstrap-worker support for
-  `InferencePropZeroOneInflatedBetaRegr`** — `fix_reusable_bootstrap.md →
+  `InferencePropZeroOneInflatedBetaRegr`** — `../bug_fix_plans/reusable_bootstrap.md →
   TODO-1..6`. The one class (of 51 live inference families, audited)
   missing the `get_bootstrap_worker_spec()` fast path
   `local_machine_optimization.md`'s shipped `tune_EDI_for_this_machine()`
@@ -94,7 +94,7 @@ plan files' internal numbering did not change.
   generic dispatcher catches the error, so calls don't crash, they're just
   never actually fast). Plan's own checklist: 0/6 checked.
 - [ ] TODO-4 (added 2026-08-30, user decision): **Guard the unguarded
-  information-matrix inverses** — `guard_unguarded_information_inverse.md
+  information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
   → TODO-1..5`. Correctness, not performance. `fast_negbin_regression.cpp:485`
   inverts the free-parameter information block with a bare `.inverse()`
   and no invertibility check (its own roxygen admits it); the same pattern
@@ -111,6 +111,48 @@ plan files' internal numbering did not change.
   design (guaranteed-singular information block) on `InferenceCountNegBin`
   with `harden = FALSE` still returns a finite SE (0.236), not `NA`.
   Plan's own checklist: 0/5 checked.
+
+  **Requirement (added 2026-09-24, user decision):** the guard's
+  rejections must be surfaced through the existing typed
+  `cache_nonestimable_estimate()`/`cache_nonestimable_se()` reason strings
+  (a standard reason such as `information_singular`, following the naming
+  the other kernels already use), not a new ad-hoc flag, so the v1.1.0
+  `SolverDiagnostics` component
+  (`../new_feature_plans/optimizer_diagnostics_report.md → TODO-3`) can
+  absorb them without rework. The diagnostics chain itself stays in v1.1.0.
+
+  **Cross-confirmed 2026-09-24** by the new `pval_miscalibration`/
+  `low_coverage` audit checks, independently of the direct-repro check
+  above: `InferenceCountNegBin` and all four zero-inflated/hurdle variants
+  (`InferenceCountZeroInflatedNegBin`, `InferenceCountZeroInflatedPoisson`,
+  `InferenceCountHurdleNegBin`, `InferenceCountHurdlePoisson` — all inherit
+  `InferenceCountZeroAugmentedPoissonAbstract`, confirmed to call
+  `fast_zinb_cpp`/`fast_zero_augmented_poisson_cpp`, i.e. exactly the two
+  other files this TODO already names) show broad, multi-family
+  miscalibration in the audit data — real-world statistical evidence the
+  unguarded-inverse defect actually manifests at scale, not just in a
+  constructed duplicate-column repro. No new investigation needed; this
+  strengthens the existing finding.
+
+  **Also checked and RULED OUT, same day**: `InferenceCountPoisson`,
+  despite also showing broad audit-flagged miscalibration (16 families),
+  does NOT share this mechanism — confirmed it uses a different, already
+  well-guarded kernel, `compute_diagonal_inverse_entry()`
+  (`_helper_functions_core.h:222-245`, LDLT-first with a rank-revealing
+  `ColPivHouseholderQR` fallback, returns `NaN` not a wrong finite value on
+  a singular system) — exactly the pattern this TODO wants added
+  elsewhere, already present here. Its own broad miscalibration has a
+  different, unidentified cause — tracked separately, not part of this
+  TODO (see the count-family investigation note below). `InferenceCountRobustPoisson`,
+  `InferenceCountQuasiPoisson`, `InferenceCountKKGLMM` (inherit `Inference`
+  directly, confirmed independent implementations) and
+  `InferenceCountKKHurdlePoissonOneLik` (separate file) are similarly
+  confirmed NOT to share this TODO's specific kernels — also broadly
+  flagged, also unexplained, also not part of this TODO. One unrelated
+  dead-code note surfaced while checking `InferenceCountPoisson`:
+  `set_min_eigenvalue_if_suspect()` (`_helper_functions_core.h:210-219`)
+  is entirely commented out, so `min_eigenvalue_information` is never
+  populated — minor, unrelated cleanup, not investigated further.
 - [ ] TODO-5 (added 2026-09-04, found empirically): **Randomization CI
   construction audit** — `randomization_ci_construction_audit.md →
   TODO-1..4`. Two findings. **§A (bug):** the Cox-family classes
@@ -136,7 +178,7 @@ plan files' internal numbering did not change.
   substantively complete item among TODO-1..6.
 - [ ] TODO-6 (added 2026-09-11, found via a comprehensive-test-harness
   timing investigation, not a user report): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
-  optimizer stability** — `clayton_loggamma_frailty_optimizer_stability.md
+  optimizer stability** — `../bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md
   → TODO-1..4`. A ~200× bimodal slowdown (0.5-1s vs. 150-180s, same
   scenario, only the data realization differs) in
   `compute_lik_ratio_bartlett_approx_two_sided_pval()`'s B=99 Monte-Carlo
@@ -154,7 +196,7 @@ plan files' internal numbering did not change.
   and the stale-gradient fix have not been applied.
 - [ ] TODO-7 (added 2026-09-17, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
-  randomization CI** — `fix_KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
+  randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
   `InferenceContinKKQuantileRegrOneLik`/`InferencePropKKQuantileRegrOneLik`
   compose `QuantileRandomizationCI` (Zhang test-inversion) without ever
   supplying the `compute_rand_pval_matched_pairs`/`compute_rand_pval_reservoir`
@@ -166,7 +208,7 @@ plan files' internal numbering did not change.
   Zhang) is unverified and needs its own decision before implementing.
 - [ ] TODO-8 (added 2026-09-22, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **Stereotype-logit multimodal
-  likelihood** — `fix_multimodal_log_liks.md → TODO-1..8`. The 2026-09-21
+  likelihood** — `../bug_fix_plans/multimodal_log_liks.md → TODO-1..8`. The 2026-09-21
   fix to `InferenceOrdinalStereotypeLogitRegr`'s delta-constrained null
   refit (multi-start, closed a zero-width-CI bug) left a residual: the
   likelihood is multimodal and `compute_estimate()`'s own unconstrained fit
@@ -180,7 +222,7 @@ plan files' internal numbering did not change.
   results-CSV audit, not a user report; three new checks —
   `biased_estimate`, `bad_type1_error`, `low_power` — added to
   `audit_comprehensive_results.R` itself this wave): **Stale worker-cache
-  in reused-worker resampling** — `fix_stale_worker_cache_resampling.md →
+  in reused-worker resampling** — `../bug_fix_plans/stale_worker_cache_resampling.md →
   TODO-1..8`. **Fixed and merged.** A correctness bug: any class whose
   point-estimate cache guard used a key outside the reused
   randomization/bootstrap worker's narrow, hardcoded reset list had every
@@ -193,7 +235,7 @@ plan files' internal numbering did not change.
   permanent non-degeneracy regression test.
 - [ ] TODO-10 (added 2026-09-22, found the same way; a harness bug, not an
   inference-code bug): **MC coverage-truth uses the wrong covariate set** —
-  `fix_mc_coverage_truth_covariate_mismatch.md → TODO-1..6`. **Fixed.**
+  `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md → TODO-1..6`. **Fixed.**
   `get_coverage_truth()`'s Monte-Carlo path (`COVERAGE_MC_SPEC`, ~25
   non-collapsible link-scale classes: Cox, logit/probit, GLMM/GEE) fit the
   class's own estimator against a synthetic single Gaussian covariate to
@@ -208,6 +250,16 @@ plan files' internal numbering did not change.
   under the fix (their MC truth hasn't converged, likely genuine
   finite-sample attenuation bias, not a further harness bug) — do not
   re-run those two pending further work (plan's TODO-6).
+
+  **New class found 2026-09-24** (plan's new TODO-7, this one NOT yet
+  fixed): `InferenceSurvivalKMDiff` was missed by the original 25-class
+  `COVERAGE_MC_SPEC` sweep — surfaced instead by this session's new
+  `biased_estimate` audit check as apparent large bias, confirmed on
+  investigation to be the same truth-scale-mismatch mechanism (estimator
+  itself is unbiased at the null; `coverage_truth` is identical to raw
+  `beta_T` for 100% of rows despite KM-difference being a non-collapsible,
+  different-scale quantity). Needs adding to `COVERAGE_MC_SPEC` and the
+  same fix applied.
 - [ ] TODO-11 (added 2026-09-22, user-requested investigation of a prior
   fix's explicit out-of-scope note; **resolved — do not enable**): **Cox
   Bartlett-approx likelihood-ratio correction, forced off** —
@@ -223,7 +275,7 @@ plan files' internal numbering did not change.
 - [ ] TODO-12 (added 2026-09-22, found during TODO-9's own final review,
   not a new audit finding; no concrete class reaches it yet): **Latent
   `cached_mod` reset gap, same bug shape as TODO-9** —
-  `fix_stale_worker_cache_resampling.md → TODO-9`. One level up from the
+  `../bug_fix_plans/stale_worker_cache_resampling.md → TODO-9`. One level up from the
   `cached_values` gap TODO-9 fixed, the same randomization loader still
   resets a hand-maintained private-field allowlist that's missing
   `cached_mod` — the identical failure shape, just one field over.
@@ -236,7 +288,7 @@ plan files' internal numbering did not change.
 - [ ] TODO-13 (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
   TODO-9's regression test, root-caused same day on user request):
   **`InferencePropGCompMeanDiff` randomization distribution all-NA in
-  production** — `fix_prop_gcomp_sample_usable_gating.md → TODO-1..6`.
+  production** — `../bug_fix_plans/prop_gcomp_sample_usable_gating.md → TODO-1..6`.
   **Fixed 2026-09-23.** An error-shaped bug (`NA_real_` every draw), not
   silently-wrong like TODO-9/TODO-12, and a different mechanism entirely —
   worker-state gating, not stale caching. The class's reused-worker
@@ -254,7 +306,7 @@ plan files' internal numbering did not change.
   `estimate_only = TRUE` on this class with both components simultaneously
   usable — root-caused same day on user request): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`
   randomization distribution all-NA in production** —
-  `fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md → TODO-1..7`.
+  `../bug_fix_plans/glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md → TODO-1..7`.
   **Fixed 2026-09-23.** A plain arithmetic NA-propagation bug, unrelated to
   TODO-9/TODO-12 (no caching) or TODO-13 (no worker-state gating):
   `shared()`'s inverse-variance pooling weight (`w_star = ssq_r / (ssq_r +
@@ -269,9 +321,17 @@ plan files' internal numbering did not change.
   same file. CSV regeneration still open (plan's TODO-7).
 - [ ] TODO-15 (added 2026-09-23, from the same `bad_type1_error` audit wave
   as TODO-9, originally hypothesized to be the same mechanism — confirmed
-  separate and still unfixed): **`InferenceContinLin` parametric-bootstrap
+  separate and still unfixed; **see also TODO-28**, added 2026-09-24 — a
+  confirmed shared `cached_design_matrix` staleness bug affecting this
+  class's `compute_estimate_with_bootstrap_weights()` path, but NOT
+  confirmed to be the same code path as the parametric-bootstrap/
+  likelihood-ratio methods this TODO documents below, which route through
+  the separate `ParametricLikelihoodBootstrap` component — treat as a
+  second, possibly-unrelated finding for this same class until TODO-28's
+  own TODO-8 verifies the overlap, not an explanation of this TODO's
+  finding): **`InferenceContinLin` parametric-bootstrap
   / likelihood-ratio methods have inflated Type-I error, design-dependent**
-  — `fix_contin_lin_param_bootstrap_bad_type1_error.md → TODO-1..7`. Three
+  — `../bug_fix_plans/contin_lin_param_bootstrap_bad_type1_error.md → TODO-1..7`. Three
   methods flagged simultaneously by the audit
   (`compute_lik_ratio_bootstrap_two_sided_pval` z=19.4,
   `compute_param_bootstrap_pval` z=18.8,
@@ -291,7 +351,12 @@ plan files' internal numbering did not change.
   wave as TODO-9/TODO-15): **Ordinal cumulative-link parametric-bootstrap
   inference — two distinct bugs found investigating
   `InferenceOrdinalCloglogRegr`'s 60% Type-I error** —
-  `fix_ordinal_cumulative_link_null_refit_multistart.md → TODO-1..7`.
+  `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md → TODO-1..12`
+  (now including **TODO-12**, added 2026-09-24: `InferenceOrdinalContRatioRegr`'s
+  `fit_null` is still single-start — the exact same unfixed Bug-1
+  vulnerability, found by direct code comparison; high confidence, not yet
+  reproduced — candidate explanation for this class's own 9-family
+  `pval_miscalibration` audit finding).
   (1) **Fixed**: `get_likelihood_test_spec()`/`simulate_under_lik_null()`'s
   `fit_null` closures were single-start constrained refits — the identical
   vulnerability found and fixed in `InferenceOrdinalStereotypeLogitRegr`
@@ -319,7 +384,7 @@ plan files' internal numbering did not change.
   audit check's extreme-violation triage — ACAT-combined p as low as
   2.5e-300 — root-caused same day): **`InferenceAllSimpleWilcox`
   resampling-family p-values collapse to exactly 1** —
-  `fix_simple_wilcox_hl_degenerate_pval_boundary.md → TODO-1..7`. A
+  `../bug_fix_plans/simple_wilcox_hl_degenerate_pval_boundary.md → TODO-1..7`. A
   resurfacing of an already-partially-fixed bug: the Wald-family variant
   of this exact mechanism, in this same file, was already found and fixed
   2026-09-06 — the resampling-family methods (`rand`, `bootstrap*`,
@@ -344,6 +409,23 @@ plan files' internal numbering did not change.
   patch, since any other class with a discrete/tie-prone statistic could
   hit the same boundary-collapse pattern (plan's TODO-2 checks this).
   Independent of every other item in this release; depends on nothing else.
+
+  **Updated 2026-09-24** (plan's TODO-1..7 now cover CI coverage too, plan's
+  new TODO-8/9 added): the new `low_coverage` audit check found the SAME
+  HL-ties-at-zero mechanism also breaks this class's resampling-family CI
+  coverage (~48-57%, target 95%), via the identical degenerate
+  `boot_distr` feeding `bootstrap_ci_from_distribution()`'s `"basic"`
+  quantile formula — confirmed, not a separate bug, no new plan file
+  needed. Separately, `InferenceAllSimpleMeanDiffPooledVar` (previously
+  confirmed unaffected by the p-value mechanism) also shows CI
+  undercoverage (~55%) — a genuine, independently-confirmed bug was found
+  (its Bayesian-bootstrap estimator silently uses `AverageDiff`'s Welch
+  formula instead of its own documented pooled-variance formula, despite
+  `overrides$public` declaring an override that doesn't exist) but does
+  NOT explain the specific flagged symptom (the flagged CI type never
+  reads the SE the Welch/pooled bug affects) — real bug, unconfirmed
+  cause of the coverage finding, both tracked in the same plan's new
+  TODO-8/9.
 - [ ] TODO-18 (added 2026-09-23, surfaced by the new `pval_miscalibration`
   audit check — one function_run variant appeared across ~85 distinct
   (class, response_type) cells with wildly inconsistent miscalibration
@@ -351,7 +433,7 @@ plan files' internal numbering did not change.
   breaking differently depending on data shape, not 85 per-class bugs;
   root-caused same day): **`smoothed` randomization-bootstrap p-value adds
   unclamped continuous noise to binary/ordinal responses** —
-  `fix_rand_bootstrap_smoothed_noise_unclamped.md → TODO-1..8`. Confirmed
+  `../bug_fix_plans/rand_bootstrap_smoothed_noise_unclamped.md → TODO-1..8`. Confirmed
   shared: `add_rand_bootstrap_smooth_noise()`
   (`inference_all_abstract_rand_bootstrap.R:613-618`), one function, three
   call sites in the abstract base class, no per-class override. Root
@@ -380,7 +462,7 @@ plan files' internal numbering did not change.
   secondary lead the investigating fork did not have budget to fully
   confirm — **medium confidence**; tracked as an open investigation, not
   a fix plan, in
-  `new_feature_plans/investigate_incid_kk_modified_poisson_se_quality.md`):
+  `bug_fix_plans/investigate_incid_kk_modified_poisson_se_quality.md`):
   possible over-estimated standard error causing chronic
   under-rejection (reject-rate 0.000) across MULTIPLE unrelated test-
   statistic families simultaneously (Wald, score, gradient, likelihood-
@@ -466,7 +548,7 @@ plan files' internal numbering did not change.
   `fit_warm_keep` hypothesis **REFUTED 2026-09-23 by direct code trace,
   high confidence** — new alternative lead, medium confidence, not yet
   reproduced; tracked as an open investigation, not a fix plan, in
-  `new_feature_plans/investigate_contin_quantile_regr_bootstrap_family_inflation.md`):
+  `bug_fix_plans/investigate_contin_quantile_regr_bootstrap_family_inflation.md`):
   `InferenceContinQuantileRegr` shows CONSISTENT-direction
   (not mixed, unlike TODO-19) severe Type-I error inflation across
   multiple bootstrap-family p-value methods
@@ -520,7 +602,7 @@ plan files' internal numbering did not change.
   reproduction, high confidence on the code being correct — but the
   historical inflation finding itself is now UNCONFIRMED, not
   reproduced**; tracked as an open investigation, not a fix plan, in
-  `new_feature_plans/investigate_incid_kk_gee_bootstrap_family_inflation.md`):
+  `bug_fix_plans/investigate_incid_kk_gee_bootstrap_family_inflation.md`):
   `InferenceIncidKKGEE` shows the same consistent-direction
   bootstrap-family inflation shape as TODO-20
   (`compute_bayesian_bootstrap_two_sided_pval_wald` 0.314,
@@ -616,18 +698,333 @@ plan files' internal numbering did not change.
   pattern as the other three). No unfixed occurrences remain. This TODO is
   now fully closed.
 
-  **Unrelated tangent noticed while sweeping, not investigated further
-  (flagging only)**: `inference_survival_KK_lwa_cox_ivwc_abstract.R`'s
-  `shared()` (lines ~109-138) has the same *shape* as TODO-14's
-  estimate-only-NA-pooling bug (unconditional
-  `w_star = ssq_r / (ssq_r + ssq_m)` inverse-variance pooling) — but unlike
-  the Weibull-frailty case, its `fit_cox_model()`'s `ssq` doesn't appear to
-  be gated on `estimate_only` at all, so it may not share the failure mode.
-  `fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md`'s TODO-2 sweep
-  checked the sibling `InferenceSurvivalKKLWACoxPHOneLik` but does not
-  appear to have explicitly checked this IVWC class. Not confirmed either
-  way; would need the same direct `estimate_only=TRUE` vs. `FALSE`
-  behavioral check that plan used elsewhere.
+  **Unrelated tangent noticed while sweeping, checked and closed
+  2026-09-24**: `inference_survival_KK_lwa_cox_ivwc_abstract.R`'s `shared()`
+  (lines ~109-138) has the same *shape* as TODO-14's estimate-only-NA-
+  pooling bug (unconditional `w_star = ssq_r / (ssq_r + ssq_m)`
+  inverse-variance pooling), which `../bug_fix_plans/glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md`'s
+  TODO-2 sweep hadn't explicitly checked for this IVWC class (only its
+  `...OneLik` sibling). Code-read first: unlike the Weibull-frailty case,
+  this class's `fit_cox_model()` (`:205-221`) calls
+  `fast_coxph_regression_cpp()` with no `estimate_only` argument at all and
+  always computes `se`/`ssq` from `res$vcov`, regardless of the outer
+  `shared(estimate_only=...)` value — so `ssq_m`/`ssq_r` are never
+  deliberately `NA` the way the Weibull-frailty helpers make them. **Direct
+  behavioral confirmation**, using the golden fixture from
+  `test-survival-kk-lwa-cox-ivwc-migration-golden.R`
+  (`DesignSeqOneByOneKK14`, sequential KK assignment,
+  `InferenceSurvivalKKLWACoxPHIVWC`), via `pkgload::load_all(".", compile =
+  FALSE)`: `compute_estimate(estimate_only = TRUE)` vs. `FALSE` gave
+  bit-identical, finite results on 6 independent fixtures (n=24 seed 20260817,
+  plus n=40 seeds 1-5; e.g. `0.8151751` / `0.8151751`, `0.9487012` /
+  `0.9487012`, `-0.4883716` / `-0.4883716`) — no NA under `estimate_only`
+  anywhere. **Confirmed NOT affected; no action needed.**
+- [ ] TODO-23 (added 2026-09-24, surfaced by the new `low_coverage` audit
+  check — two-sided exact-binomial test, H0: coverage=0.95 — root-caused
+  same day, high confidence): **`InferenceSurvivalRestrictedMeanDiff`
+  computes RMST to a different truncation horizon τ per treatment arm** —
+  `../bug_fix_plans/rmst_mismatched_truncation_horizon.md → TODO-1..7`. Near-universal
+  severe undercoverage (0.53-0.65, target 0.95) across almost every CI
+  method family this class supports. Root cause, confirmed at three code
+  sites (`inference_survival_rmst.R:239`,
+  `fast_survival_stats.cpp:158`/`:290`/`:400`): τ is derived independently
+  per arm as that arm's own max observed/censored time, when the RMST
+  literature requires a shared τ across arms for the difference to be a
+  coherent estimand. Two consequences: the point estimate itself may not
+  estimate a single well-defined quantity, AND the classical Greenwood-
+  based SE (assumes fixed τ) structurally under-estimates sampling
+  variance since τ varies per bootstrap draw — either alone would produce
+  the observed undercoverage. Fix is a scoped 3-site code change (shared
+  τ, conventionally the min of both arms' max time), not a redesign, but
+  is an intentional, documented DEFAULT CHANGE to the point estimate for
+  mismatched-follow-up cases (not bit-for-bit preserving, unlike most of
+  this session's other fixes). A second, narrower, unconfirmed finding
+  (`InferenceSurvivalDepCensTransformRegr`, one isolated method
+  undercovering, not class-wide) is tracked in the same plan file
+  (TODO-8/9), separate mechanism, low confidence, not yet root-caused.
+  Independent of every other item in this release; depends on nothing
+  else.
+- [ ] TODO-24 (added 2026-09-24, same audit-triage wave, root-caused
+  same day, medium-high confidence for one sub-class, low for the other):
+  **KK-matched Cox proportional-hazards classes — severe CI undercoverage,
+  isolated to the KK-matching/reservoir-split mechanism** —
+  `../bug_fix_plans/survival_kk_cox_coverage_variance.md → TODO-1..8`. Confirmed
+  distinct from `TODO-5 §A` (that's about `compute_confidence_interval_rand()`,
+  already fixed by excluding these classes from the `randomization_ci`
+  capability entirely — this new finding is on Wald/asymp/score/gradient/
+  bootstrap/lik-ratio, a different code path). Confirmed KK-matching-
+  specific, not Cox-general: plain siblings `InferenceSurvivalCoxPHRegr`
+  (0.94-1.00) and `InferenceSurvivalStratCoxPHRegr` (0.90-1.00) are fine.
+  `InferenceSurvivalKKStratCoxPHOneLik` (0.47-0.94, varying by method):
+  medium-high confidence root cause — `shared()`
+  (`inference_survival_KK_strat_cox.R:176-265`) inverse-variance-pools two
+  SEPARATELY-fit matched-pair and reservoir estimates assuming
+  independence; the matched/reservoir split comes from the same KK-
+  matching allocation process, so the two may be correlated, which would
+  make the standard pooling variance formula an underestimate — not yet
+  empirically confirmed (needs a direct `Cov(beta_m, beta_r)` estimate).
+  `InferenceSurvivalKKLWACoxPHOneLik` (0.50-1.00, similar shape): does NOT
+  share the pooling pattern (uses a single joint cluster-robust Cox fit,
+  which reads as textbook-correct) — root cause NOT found, needs the
+  C++ cluster-robust vcov kernel read directly. Independent of every other
+  item in this release; depends on nothing else.
+- [ ] TODO-25 (added 2026-09-24, same audit-triage wave, **low-medium
+  confidence, not reproduced**; tracked as an open investigation, not a
+  fix plan, in
+  `bug_fix_plans/investigate_contin_ols_weighted_bootstrap_se.md`;
+  **superseded/explained by `TODO-28`, added the same day** — a confirmed,
+  high-confidence shared `cached_design_matrix` staleness bug with an
+  EXACT mechanistic match to this class's worst-affected families —
+  this TODO's own `solve()`-guard hypothesis below is likely NOT the real
+  cause; see TODO-28 first):
+  `InferenceContinOLS` — one of the most fundamental classes in the
+  package — shows severe `model_formula=~.`-specific miscalibration
+  across resampling-family methods that reweight rather than permute
+  (`subsampling` reject=0.19 vs nominal 0.05, `m_out_of_n_bootstrap`
+  reject=0.16, several `bayesian_bootstrap` variants reject=0.13,
+  `rand_bootstrap` reject=0.14; coverage as low as 0.80 on
+  `bayesian_bootstrap`-family CIs). Confirmed NOT related to `TODO-15`
+  (`InferenceContinLin`, different method-family group entirely — no
+  overlap) or `TODO-3` (different code path). Candidate mechanism,
+  unconfirmed by reproduction: `compute_estimate_with_bootstrap_weights()`
+  (`inference_continuous_ols.R:121-159`) computes its SE via an unguarded
+  `solve(crossprod(...))[2,2]` with no rank/conditioning check, unlike the
+  observed-fit path which applies an adaptive QR-based hardening layer —
+  a near-singular reweighted design under a particular bootstrap draw
+  could produce an unstable, too-small SE. Two synthetic reproduction
+  attempts both failed (same "needs the real harness DGP" lesson several
+  other findings this session hit). This is the same surface signature
+  (severe, `~.`-specific) now seen in FOUR classes total
+  (`InferenceContinOLS`, `InferenceContinLin`/TODO-15,
+  `InferenceIncidLogBinomial`, `InferenceSurvivalWeibullRegr`) with no
+  confirmed shared mechanism between any of them yet — a dedicated
+  cross-class investigation (plan's own next-step list) may be
+  higher-leverage than four separate per-class fixes.
+- [ ] TODO-26 (added 2026-09-24, found independently TWICE the same day —
+  by a survival-class cluster investigation and separately by a
+  dedicated `biased_estimate` audit sweep, both converging on the same
+  raw outlier values — high confidence this is real): **`InferenceSurvivalKKWeibullMarginal`
+  jackknife estimate has catastrophic single-fold outliers** —
+  `../bug_fix_plans/kk_weibull_marginal_jackknife_outliers.md → TODO-1..8`. Apparent
+  "bias" (mean −0.080) is actually RMSE (2.154) ~27× the bias magnitude —
+  not a mean shift, a small number of individual jackknife replicates
+  with catastrophic errors (raw values of −38.0 and +17.5 found directly,
+  for an estimand whose typical scale is ~0.2-0.3) dominating the RMSE.
+  Root cause not yet pinned to a line — hypothesized as a leave-one-out
+  fold landing on a degenerate/non-identifiable configuration (small
+  matched-cluster counts + one held-out observation), a numerical-
+  robustness gap analogous in shape (different location) to `TODO-4`'s
+  unguarded-information-inverse pattern: an unstable fit silently
+  producing a wild-but-finite number instead of failing loudly. Also a
+  clean real-data validation of this session's `biased_estimate` check
+  redesign (t-test alone would miss this — p=0.47 — Wilcoxon signed-rank
+  catches it, p=5.7e-11 — exactly the outlier-robustness gap discussed
+  when the check was designed). Independent of every other item in this
+  release; depends on nothing else.
+- [ ] TODO-27 (added 2026-09-24, same audit-triage wave, **medium
+  confidence, not yet root-caused, plan file now written**):
+  `InferenceIncidBinomialIdentityRiskDiff` shows real, moderate Type-I
+  error inflation (~2.6× nominal, reject rate ~0.13) specifically on
+  `compute_subsampling_two_sided_pval`/`compute_m_out_of_n_bootstrap_two_sided_pval`,
+  consistent at BOTH `model_formula=~1` and `~.` (NOT the formula-
+  dependent pattern TODO-25/TODO-15 and friends show — a different
+  mechanism). Found during a broader incidence-class-cluster triage that
+  characterized most of that cluster (`InferenceIncidLogRegr`,
+  `InferenceIncidProbitRegr`, plain `InferenceIncidModifiedPoisson`) as
+  mild, conservative, consistent with ordinary finite-sample asymptotic
+  imprecision — NOT worth chasing further — and confirmed
+  `InferenceIncidKKCondLogitOneLik`'s worst cell is already explained by
+  `TODO-18` (unclamped smoothed-noise injection), with only a small,
+  low-priority residual left. `InferenceIncidBinomialIdentityRiskDiff` is
+  the one clear exception worth a dedicated look — not yet investigated
+  beyond confirming the pattern is real and consistent.
+
+  **Plan written 2026-09-24:**
+  `../bug_fix_plans/investigate_incid_binomial_identity_subsampling_inflation.md
+  → TODO-1..6` (investigation-first; fix gated on TODO-3 confirming).
+
+  **Investigated further 2026-09-24 — low-medium confidence, not
+  confirmed.** Confirmed the exact pattern directly (`m_out_of_n_bootstrap`
+  reject=0.117/0.116, `subsampling` reject=0.131/0.123 at `~1`/`~.`
+  respectively). Both methods dispatch through fully generic, package-wide
+  shared subsampling/m-out-of-n code
+  (`inference_all_abstract_non_param_boot.R:190`/`:309` →
+  `inference_ext_prw_subsampling.R:135`, textbook Politis/Romano/Wolf
+  centered-pivot subsampling) — since this is 100% shared/generic, a bug
+  in the pivot math itself would plausibly hit many other classes too, so
+  the concentration on this one class more likely implicates something
+  specific to how ITS estimator behaves under a subsample, not the
+  generic formula. Candidate mechanism: this class's identity-link
+  binomial fit has a hard, intentional rejection boundary
+  (`is_identity_binomial_fit_reasonable()`,
+  `inference_incidence_binomial_identity.R:133-146` — marks a fit
+  non-estimable if any fitted probability falls outside `[-1e-8,
+  1+1e-8]`, a documented limitation of the identity link, not a bug in
+  itself). A subsample of size `b < n` (Politis/Romano/Wolf `b` typically
+  `floor(n^0.7)`) is mechanically more likely to produce a treatment-arm
+  split extreme enough to push an identity-link fit outside `[0,1]` than
+  the full-sample fit would. IF boundary-rejected subsample draws are
+  disproportionately the ones with large `|beta_hat_subsample -
+  beta_hat_full|`, and the centered-pivot p-value formula drops/filters
+  them in a way that's not statistically neutral, that would artificially
+  narrow the empirical pivot reference distribution — inflating rejection
+  when the full-sample statistic is compared against it, independent of
+  `model_formula`, exactly matching what's observed. **Not confirmed**:
+  `subsampling_centered_pivot()`/`resampling_centered_pval()` themselves
+  (in `inference_ext_prw_subsampling.R`) were not read to verify the
+  actual filtering behavior, and no empirical reproduction was run.
+  Recommended fix direction if confirmed: either make the centered-pivot
+  formula's treatment of dropped/non-finite subsample draws statistically
+  neutral, or relax/soften the hard `[0,1]` boundary for the resampling-
+  distribution context specifically (a design decision, not a one-line
+  fix) — distinct from the observed-fit context, where hard rejection is
+  more defensible.
+- [ ] TODO-28 (added 2026-09-24, found via a dedicated cross-class
+  investigation into TODO-15/TODO-25's shared-mechanism question — **high
+  confidence, confirmed by direct code reading, not hypothesized**): **the
+  reused bootstrap worker never resets `cached_design_matrix` — likely
+  the single shared root cause behind FOUR classes' `~.`-specific
+  miscalibration at once** — `../bug_fix_plans/bootstrap_worker_stale_design_matrix.md
+  → TODO-1..9`. `load_bootstrap_sample_into_design_backed_worker()`
+  (`inference_all_abstract_non_param_boot.R:1191-1235` — the loader for
+  `subsampling`/`m_out_of_n_bootstrap`/plain `bootstrap`, and the exact
+  loader this session's ORIGINAL stale-cache fix already confirmed "fully
+  wipes `cached_values`" and treated as the correctly-behaving reference)
+  resets `cached_mod` and several sibling caches between draws but **never
+  resets `w_priv$cached_design_matrix`** — even though it correctly resets
+  `w_priv$w`/`w_priv$X` to the current draw's resampled rows.
+  `create_design_matrix()` (`inference_all_abstract.R:1032-1034`)
+  unconditionally returns the cached matrix if one exists, so every draw
+  after the first silently reuses draw 1's design matrix while the
+  weights applied to it are correctly the current draw's — a scrambled
+  data/weight correspondence, repeating every draw. Same allowlist-not-
+  denylist shape as this session's original bug and as the still-open
+  `TODO-12` (`cached_mod` gap in a DIFFERENT loader) — this time in the
+  loader previously believed to already be fully correct. Confirmed all
+  four of `InferenceContinOLS` (`TODO-25`), `InferenceContinLin`
+  (`TODO-15`), `InferenceIncidLogBinomial`, and `InferenceSurvivalWeibullRegr`
+  declare `compute_estimate_with_bootstrap_weights()` overrides calling
+  the same shared, unguarded-cache code path; exact mechanistic match
+  confirmed for `InferenceContinOLS` (its worst-affected families,
+  `subsampling`/`m_out_of_n_bootstrap`, are literally the two families
+  that call this exact loader). Not yet confirmed whether this fully or
+  only partially resolves each of the four classes' independent
+  investigations (`TODO-15`/`TODO-25` each already found their own
+  candidate per-class mechanism, not yet confirmed to be the same bug or
+  a compounding second bug) — TODO-4 of the new plan settles this.
+  Highest-leverage fix candidate found across this whole `~.`-pattern
+  investigation thread. Independent of every other item in this release;
+  depends on nothing else.
+  **Scope update 2026-09-24 (same day, later forks):** confirmed to reach
+  at least 2 more classes via direct call-chain reads —
+  `InferenceContinRobustRegr`, `InferencePropFractionalLogit` — plus
+  `InferencePropGCompMeanDiff` (confirmed call-graph match) and, per the
+  separate scope-widening note below, `InferenceCountRobustPoisson` —
+  total confirmed scope now the original 4 + these 4 = 8 classes. **The
+  whole "KKGLMM"-named cluster (`InferenceContinKKGLMM`,
+  `InferenceCountKKGLMM`, `InferenceOrdinalKKGLMM`, `InferenceOrdinalKKCLMM`
+  + its 3 link-function subclasses) was initially miscategorized as
+  "confirmed" by an earlier fork that checked only the call chain, not
+  whether the class actually reaches the reused-worker path — a later,
+  more careful re-check ruled all 7 of these OUT** (see "Also explicitly
+  ruled out, same day" below for the full reasoning: none of them override
+  `supports_reusable_bootstrap_worker()`, so each draw gets a fresh
+  worker and `cached_design_matrix` cannot go stale). Also **refuted**
+  (does not call `create_design_matrix()`, needs independent
+  root-causing) for `InferenceContinKKOLSOneLik`,
+  `InferenceContinKKRobustRegrOneLik`, `InferencePropBetaRegr`,
+  `InferencePropZeroOneInflatedBetaRegr`, and `InferencePropKKGLMM` — see
+  plan file's "Scope update 2026-09-24" section for the full per-class
+  table and unresolved cases (`InferenceContinKKQuantileRegrOneLik`,
+  `InferenceOrdinalGCompMeanDiff`, other GComp siblings).
+- [ ] TODO-29 (added 2026-09-24, found via a dedicated cross-class
+  investigation fork — medium-low confidence, pattern confirmed real and
+  response-type-independent but mechanism unconfirmed): `InferenceAllSimpleAverageDiff`'s
+  `bayesian_bootstrap_studentized`/`jackknife_wald` families are
+  consistently the worst-covering across all 5 response types this class
+  supports, while other families are fine — `../bug_fix_plans/investigate_average_diff_bayesian_jackknife_se_quality.md`.
+  **Not TODO-28** — this class builds no design matrix in this path,
+  confirmed a distinct mechanism. Candidate cause (unconfirmed, not yet
+  traced to an exact line): a Kish effective-sample-size approximation
+  used asymmetrically vs. the raw-`n` Welch SE formula elsewhere in the
+  same class. `jackknife_wald`'s involvement is entirely unexplained —
+  may share a cause with the Bayesian-bootstrap finding or be a separate,
+  co-occurring bug. Independent of TODO-28 and everything else in this
+  release.
+
+  **Scope widened 2026-09-24**: a 5th class, `InferenceCountRobustPoisson`
+  (9 families uniformity, 2 coverage, previously unexplained), is an EXACT
+  mechanistic match — `build_design_matrix()`
+  (`inference_count_robust_poisson.R:205-207`) delegates directly to
+  `private$create_design_matrix()`, the exact broken cached path, and
+  `supports_reusable_bootstrap_worker()` returns `TRUE`
+  (`:202-204`), confirming it uses the reused-worker path this bug
+  requires. **Explicitly ruled out, same check**: `InferenceCountQuasiPoisson`
+  (also 9 families uniformity, 4 coverage, also previously unexplained)
+  does NOT share this mechanism — its `build_design_matrix()`
+  (`inference_count_quasipoisson.R:244-252`) reads `private$w`/`private$X`
+  directly on every call with no caching at all, genuinely immune to a
+  stale-cache bug. `InferenceCountQuasiPoisson`'s broad miscalibration
+  remains real and completely unexplained — a fresh investigation, not
+  covered by this TODO.
+
+  **Also explicitly ruled out, same day**: the whole "KKGLMM"-named class
+  cluster — `InferenceContinKKGLMM`, `InferenceCountKKGLMM`,
+  `InferenceOrdinalKKGLMM` (all three compose the `KKGLMM` mixin component,
+  `inference_mixin_kk_glmm_shared.R`, whose `glmm_predictors_df()` calls
+  `private$create_design_matrix()` directly — same broken cached path) and
+  the separately-implemented `InferencePropKKGLMM` /
+  `InferenceIncidKKCondLogitGLMMIVWC` / `InferenceIncidKKCondLogitGLMMOneLik`
+  (all three inherit `InferenceAbstractKKCondLogitGLMM`, whose
+  `compute_estimate_with_bootstrap_weights()` also calls
+  `private$create_design_matrix()` directly at
+  `inference_incidence_KK_cond_logit_glmm_abstract.R:99`). All 6 classes
+  were checked for `supports_reusable_bootstrap_worker()`: none of them
+  (nor the `KKGLMM`/`BayesianBootstrap`/`ParametricLikelihoodBootstrap`
+  components they compose) override it, so all 6 inherit the base default
+  `FALSE` (`inference_all_abstract_non_param_boot.R:1090-1092`). Confirmed
+  via the Bayesian-bootstrap driver
+  (`inference_all_abstract_bayesian_bootstrap.R:192-246`): when
+  `supports_reusable_bootstrap_worker()` is `FALSE`, every draw gets a
+  **fresh** `worker_inf = inf_template$duplicate(...)` (line 201/230) before
+  calling `compute_estimate_with_bootstrap_weights()` — so
+  `cached_design_matrix` starts `NULL` on every draw and cannot go stale
+  across draws. This whole cluster genuinely does not use the reused-worker
+  path this bug requires, unlike `InferenceCountRobustPoisson` above. If any
+  of these 6 classes show real miscalibration in the audit, it is a
+  different, not-yet-investigated mechanism.
+
+**Investigated and CLOSED, not a bug (2026-09-24):** classical incidence
+risk-difference `low_power` audit findings for `InferenceIncidNewcombeRiskDiff`,
+`InferenceIncidRiskDiff`, `InferenceIncidMiettinenNurminenRiskDiff`,
+`InferenceIncidKKNewcombeRiskDiff` (moderate-low reject rates, 3-20%, at
+`beta_T=0.5`, no near-zero/catastrophic cells). Compared directly against
+an independently-implemented GComp baseline (`InferenceIncidGCompRiskDiff`)
+at the identical effect size: reject rates cluster in the SAME 0.02-0.20
+band across all five classes, no meaningful gap between the "conservative-
+by-design" classical methods and the GComp comparator. High confidence
+this is a genuinely underpowered benchmark scenario at this harness's
+default effect size for the whole risk-difference estimand family, not a
+defect in any one method's implementation — consistent with how several
+other `low_power` findings this session resolved. No plan file, no
+further investigation warranted; recommend accepting into the audit
+baseline as expected/benign.
+
+- [ ] TODO-29 (added 2026-09-24, user decision: slotted into v1.0.5 from
+  "unassigned"; found 2026-08-30 in the research-plan verification audit):
+  **Cox risk-set cache staleness guard** —
+  `../bug_fix_plans/cox_risk_set_cache_staleness.md → TODO-1..5`.
+  `InferenceCoxPH` (`cox_*` caches) and `InferenceStratifiedCoxPH`
+  (`strat_cox_*` caches) rebuild their prebuilt risk-set cache only when
+  the cache is `NULL` or `w` changed, while the cache also embeds
+  `y`/`dead`; a change to `y`/`dead` with unchanged `w` would serve a stale
+  cache. The C++ builders are correct; the R-side cache owners must honor
+  the invalidation contract at `helper_glm_fit.R:2274`. **No confirmed
+  wrong result yet** — plan TODO-1 (exposure audit) determines whether any
+  released path can realize the stale hit; the invariant violation is real
+  and cheap to close (guard fix in both classes, same-pattern sweep of
+  other `*_w_cache` guards, tests, contract doc touch-up). Plan's own
+  checklist: 0/5 checked.
 
 ## Standing constraints
 
