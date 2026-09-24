@@ -1,5 +1,9 @@
 # Release Scope: v1.0.0 (CRAN)
 
+> **Update (2026-09-24, user decision):** the first CRAN submission is
+> **v1.0.2** (see `../../EDI/cran-comments.md`); 1.0.0 and 1.0.1 were GitHub-only
+> releases. The "CRAN" framing below describes the original v1.0.0 intent.
+
 > **Depends on:** the in-scope plans listed below — this document is the
 > release index that batches them, not new work of its own. (Global ordering:
 > see `_master.md`; this file does not reorder anything there, it draws the

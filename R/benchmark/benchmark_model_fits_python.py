@@ -1768,6 +1768,15 @@ def row_bg_color(speedup, pval, no_canonical=False):
 
 
 # ── Runner ───────────────────────────────────────────────────────────────
+def seed_for_class(cls_name):
+    """Same per-class seed formula as benchmark_model_fits.R's seed_for_class():
+    a single global RNG stream makes each class's dataset depend on how many
+    rows precede it, so adding/reordering rows silently changes every later
+    dataset (and iterative fits like ZIP/Hurdle swing several-fold with the
+    draw)."""
+    return sum(ord(c) * (i + 1) for i, c in enumerate(cls_name)) % 2147483647
+
+
 def run_one(response, cls, pkg, func, edi_kernel, build, no_canonical):
     """`build()` returns either a single zero-arg canonical closure (legacy
     rows: no EDI binding wired) or a `(canonical_closure_or_None,
@@ -1780,6 +1789,9 @@ def run_one(response, cls, pkg, func, edi_kernel, build, no_canonical):
     logit) and "no EDI kernel wired" are independent axes: a Baseline Gap
     row can still show a real EDI time once a binding exists for it."""
     print(f"Benchmarking {cls}...")
+
+    global rng
+    rng = np.random.default_rng(seed_for_class(cls))
 
     canonical_fn, edi_fn = None, None
     if build is not None:

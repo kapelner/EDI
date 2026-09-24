@@ -1,4 +1,12 @@
-# CRAN comments — EDI 1.0.1
+# CRAN comments — EDI 1.0.2
+
+> **Version plan (2026-09-24, user decision, superseding an earlier same-day
+> note that named 1.1.0):** the first CRAN submission is **v1.0.2**. Versions
+> 1.0.0 and 1.0.1 were GitHub-only releases. The test-environment and
+> check-result details below were recorded for the 1.0.1 content and must be
+> re-run and refreshed for 1.0.2 (a clean `R CMD check --as-cran`, a fresh
+> win-builder run, and a fresh ASAN/UBSAN and valgrind confirmation) before
+> submission.
 
 ## Submission
 
@@ -31,9 +39,11 @@ normally.
 
 The package compiles a large C++ kernel tree (RcppEigen/RcppNumerical).
 ASAN/UBSAN and valgrind runs are part of continuous CI (see Test
-environments below); the most recent run predating this exact 1.0.1 content
-was green, and a fresh confirmation for this release is in progress as of
-this writing.
+environments below); the most recent run predating this exact 1.0.2 content
+was green (recorded for 1.0.1); a fresh confirmation for 1.0.2 is still to be
+run. Note that 1.0.2 fixes a heap overflow in `fast_zero_one_inflated_beta_cpp()`
+(an unchecked warm-start length), found with valgrind after the last recorded
+valgrind run, so the valgrind job should be rerun on the 1.0.2 tree.
 
 
 ## Test environments
@@ -53,7 +63,7 @@ this writing.
     NOTE is unavoidable here
   * R-devel with ASAN/UBSAN (rocker/r-devel-san)
   * R-devel under valgrind memcheck
-* win-builder (2026-09-14): uploaded to all three sections (R-devel,
+* win-builder (2026-09-14, on the 1.0.1 content; to be repeated for 1.0.2): uploaded to all three sections (R-devel,
   R-release, R-oldrelease). Status: clean on all three — no WARNINGs or
   ERRORs, and no NOTEs beyond the expected "New submission".
 * mac-builder: not used for this submission — the builder on

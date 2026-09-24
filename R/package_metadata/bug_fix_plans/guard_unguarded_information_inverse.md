@@ -150,6 +150,21 @@ negligible.
   here, make the helper return an invertible/not status alongside the `NaN`
   inverse, and have TODO-3's tests assert the reason string, not just `NA`.
   See "Diagnostics coordination" below for the reasoning.
+  **Checked 2026-09-24 (R wrappers as they stand):** no consistent
+  "singular information" reason exists for these five classes today.
+  `InferenceCountHurdleNegBin`/`Poisson` (`inference_count_hurdle.R:135`) and
+  `InferencePropBetaRegr` (`inference_proportion_beta.R:169`) already use
+  `model_standard_error_unavailable`; `InferenceCountNegBin` sets only
+  `negbin_jackknife_not_supported`; the zero-augmented abstract sets only the
+  estimate-stage `zero_augmented_poisson_design_unusable`
+  (`inference_count_zero_augmented_poisson_abstract.R:133`), and its SE path
+  (line 334) calls `compute_standard_error_from_information_matrix()` without a
+  wrapper-level reason; `inference_count_zero_inflated.R` sets none. So the
+  earlier "`<prefix>_standard_error_unavailable`" wording overstated the
+  convention. **Recommendation:** use `model_standard_error_unavailable` for
+  all five (two of them already do), via the shared
+  `cache_nonestimable_se()`, rather than five class-specific strings; TODO-6 is
+  complete when that is decided and recorded per class here.
 
 ## Diagnostics coordination (2026-09-24, user decision)
 

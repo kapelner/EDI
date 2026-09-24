@@ -1,5 +1,18 @@
 # EDI 1.0.2
 
+This is the first version submitted to CRAN. Versions 1.0.0 and 1.0.1 were
+GitHub-only releases; their entries below record what changed in each. Most of
+1.0.2 is correctness work found by the extended comprehensive test suite and
+by writing unit tests: resampling and randomization results that were silently
+wrong in specific classes, a few kernel defects (including one memory-safety
+bug), and standard-error and confidence-interval fixes.
+
+## New features
+
+* `InferenceCountQuasiPoisson` now composes the marginal-estimand component
+  (`MarginalEstimand`), like `InferenceCountPoisson`, so marginal (standardized)
+  effect estimands are available for the quasi-Poisson class as well.
+
 ## Bug fixes
 
 * Reused-worker resampling reused a stale cached fit across draws for
@@ -65,6 +78,24 @@
   sandwich does the same.
 * OpenMP's primary thread no longer polls R's interrupt machinery while
   worker threads are active in the Wilcoxon-Hodges-Lehmann kernels.
+* `fast_gaussian_lmm_gls_cpp()` (the fixed-variance-component GLS solve used by
+  the randomization and non-studentised bootstrap fast paths of
+  `InferenceContinKKGLMM`) mixed `X'X` with a cross-term scaled by an extra
+  `1/sigma_e^2`, so it returned the wrong coefficient whenever the residual
+  standard deviation was not exactly 1 (on a paired-plus-singleton fixture
+  with `sigma_e = 0.4` the slope was -0.53 instead of the correct 0.63; at
+  `sigma_e = 1` the two agreed). It now matches an explicit GLS to machine
+  precision at every `sigma_e`.
+* The KK21 stepwise weight selection for ordinal responses read a
+  nonexistent field (`ssq_b_2`) from `fast_ordinal_regression_with_var_cpp()`;
+  it now reads the returned `ssq_b_j`.
+* `fast_zero_one_inflated_beta_cpp()` did not check the length of a supplied
+  `warm_start_params` (or `warm_start_fisher_info`, or the row counts of `X`,
+  `X_zero_one` and `y`), so a mis-sized start let the optimizer read and write
+  past its parameter buffer (heap corruption, found under valgrind; it aborted
+  R with `free(): invalid next size`). It now raises an ordinary error.
+  `InferencePropZeroOneInflatedBetaRegr` always passed a correctly sized start
+  and was not affected.
 * `fast_ordinal_clmm` now errors on mismatched `X`/`y`/`group_id` lengths
   instead of reading out of bounds.
 * `InferenceIncidRiskDiff`, `InferenceCountRobustPoisson`, and the

@@ -289,8 +289,9 @@ they're uniform.
   investigation, not a natural fit for this plan's existing TODOs — could
   become its own plan file once someone reads that class-specific
   override.
-- [ ] TODO-10 (added 2026-09-24, from this session's new `biased_estimate`
-  audit check, medium-high confidence, not yet root-caused): `InferenceOrdinalCloglogRegr`'s
+- [x] TODO-10 (added 2026-09-24, from this session's new `biased_estimate`
+  audit check; **CONFIRMED 2026-09-24, high confidence, root cause
+  found, not yet fixed**): `InferenceOrdinalCloglogRegr`'s
   MAIN (observed) fit — `compute_estimate()` itself, not the null-refit
   Bug 1/2 already fixed inside the parametric-bootstrap machinery — shows
   outlier/non-convergence contamination at `model_formula=~.`. At
@@ -299,15 +300,21 @@ they're uniform.
   for what should be a coefficient near 0 — a right-skewed contamination
   pattern (a fraction of fits hitting quasi-separation/boundary
   non-convergence under the larger `~.` design matrix), not a uniform
-  shift. **Possible connection to Bug 1/2, not yet verified**: those bugs
-  were fixed specifically inside the *null-refit* call site
-  (`simulate_under_lik_null()`'s `fit_null` closures); this finding is in
-  a *different* call site, the main/observed fit via `generate_mod()`.
-  Concrete next step: check directly whether `generate_mod()`'s main fit
-  uses single-start optimization the same way the null-refit did before
-  this session's multi-start fix — if so, this may be the same
-  vulnerability at a second call site that never received the fix, rather
-  than a new bug.
+  shift.
+
+  **Root cause CONFIRMED**: `generate_mod()`
+  (`inference_ordinal_cloglog.R:229-286`) — the MAIN/observed fit — makes
+  exactly one call to `fast_ordinal_cloglog_regression_with_var_cpp()`
+  with one warm-start, wrapped only in QR column-dropping retries, no
+  multi-start logic at all. Contrast with the two already-fixed `fit_null`
+  closures (lines 137-168, 183-210, Bug 1 above), which now try two starts
+  (prior warm-start + unconstrained-fit-perturbed start) and keep
+  whichever converged fit reaches the lower `neg_loglik`. `generate_mod()`
+  never received this fix — the same single-start-stalls-in-a-bad-local-
+  optimum vulnerability sits unpatched at this second call site, exactly
+  as hypothesized. **Concrete, scoped, easily fixable**: apply the same
+  two-start-keep-lower-`neg_loglik` pattern to `generate_mod()`'s fit
+  call. Slated `release_v1_5_0.md → TODO-11`.
 - [ ] TODO-11 (added 2026-09-24, from a dedicated cross-class ordinal
   re-audit fork, medium confidence — pattern confirmed real, shared
   mechanism NOT confirmed): `InferenceOrdinalContRatioRegr` and
@@ -604,20 +611,134 @@ they're uniform.
   correctly-sized CI naturally undercovers. Not confirmed, but a more
   parsimonious explanation than treating this as a third bug.
 
-- [ ] TODO-18 (added 2026-09-24, from the TODO-13 design-pooling
-  follow-up — confirmed real, mechanism unresolved, NOT explained by the
-  truth-mismatch fix above): `InferenceOrdinalPartialProportionalOddsRegr`'s
-  asymptotic-family `low_coverage` findings (0.817-0.868). Unlike its 3
-  siblings above, this class uses `VGAM::cumulative(link = "logitlink",
-  parallel = ...)` — the SAME logit link as the harness's cumulative-logit
-  DGP, and a strict generalization of proportional-odds that nests the
-  true model, so raw `beta_T` should be a consistent target here (not a
-  truth-registry problem). Needs independent root-causing: read its
-  actual SE extraction from the `VGAM::cumulative` fit (does it correctly
-  extract/aggregate the parallel-vs-non-parallel coefficient structure's
-  variance for the treatment covariate specifically?), or check whether
-  the partial-PO relaxation itself introduces extra estimation variance
-  the asymptotic SE under-accounts for.
+- [x] TODO-18 (added 2026-09-24, from the TODO-13 design-pooling
+  follow-up; **RESOLVED 2026-09-24, high confidence, test-harness gap,
+  NOT a package bug**): `InferenceOrdinalPartialProportionalOddsRegr`'s
+  asymptotic-family `low_coverage` findings (pooled: 0.817-0.868).
+
+  **The VGAM SE-extraction hypothesis is moot, not just refuted**:
+  `comprehensive_tests.R:3920` never passes a `nonparallel` argument when
+  instantiating this class, so `private$nonparallel` is always its default
+  `character(0)` in every harness run — confirmed by reading
+  `initialize()` (`inference_ordinal_partial_proportional_odds.R:56,65`)
+  and `fit_partial_proportional_odds_from_covariates()` (`:382-411`),
+  which takes the `fit_fast_proportional_odds()` branch whenever
+  `nonparallel_covars` is empty and never reaches the `VGAM::vglm` path at
+  all in this harness. So this class is, in every tested case, fitting
+  via the exact same shared kernel (`fast_ordinal_regression_with_var_cpp()`,
+  `res$ssq_b_j`) as `InferenceOrdinalPropOddsRegr` (confirmed by grep —
+  same function call, same variance field, in
+  `inference_ordinal_proportional_odds.R:243,251`) — there is no
+  partial/VGAM-specific extraction bug to find.
+
+  **Real mechanism, found by `beta_T`-stratifying instead of pooling**
+  (the file's own established "pooling hides the signal" lesson, applied
+  here): queried `comprehensive_tests_results_nc_1_ordinal.csv` directly
+  for `compute_asymp_confidence_interval`/`compute_wald_confidence_interval`,
+  split by `design_formula` tag AND `beta_T`:
+
+  | formula | beta_T | coverage | n |
+  |---|---|---|---|
+  | `~1` | 0 | 0.954 | 504 |
+  | `~1` | 0.5 | 0.948 | 250 |
+  | `~.` | 0 | 0.949 | 649 |
+  | `~.` | 0.5 | **0.283** | 350 |
+
+  Coverage is nominal in every cell except `(~., beta_T=0.5)`, where it
+  collapses catastrophically. This is the textbook signature of
+  **non-collapsibility of a cumulative-logit treatment coefficient under
+  covariate adjustment**: adding covariates to a nonlinear-link (logit)
+  model changes the conditional log-odds treatment effect relative to the
+  marginal one, even for a correctly-specified, correctly-fitted model —
+  raw `beta_T` (the value used to *generate* the data) is only the exact
+  correct truth at `beta_T=0` (0 is invariant to conditioning) or under
+  `~1` (no covariates to condition on); at nonzero `beta_T` under `~.` it
+  is not. This is the SAME class of harness-truth-registry gap as
+  `TODO-13`'s resolution above (and `InferenceOrdinalRidit`'s original
+  2026-09-06 fix) — this class needs `COVERAGE_MC_SPEC` treatment too
+  (MC-refit truth at nonzero `beta_T` under `~.`), not a source-code fix.
+  The pooled 0.817-0.868 figures from the original finding were simply a
+  blend of the near-nominal `beta_T=0` rows and the catastrophic
+  `beta_T=0.5`-under-`~.` rows.
+
+  Filed with `mc_coverage_truth_covariate_mismatch.md`'s TODO-10 (which
+  already covers `TODO-13`'s 3 sibling classes) and `release_v1_0_5.md`'s
+  TODO-16 cross-reference — **not added to `release_v1_5_0.md`**, per
+  that file's scope (confirmed EDI source bugs only).
+
+- **`InferenceOrdinalOrderedProbitRegr`'s 0.760 outlier
+  (`compute_bayesian_bootstrap_confidence_interval_basic`, `TODO-14`)
+  re-examined 2026-09-24**: the deferral to a "shared basic-CI-formula
+  defect" was stale — that hypothesis was refuted for a *different* class
+  (`InferenceSurvivalDepCensTransformRegr`, `rmst_mismatched_truncation_horizon.md`
+  TODO-9) on the grounds that its *unsuffixed* `compute_bayesian_bootstrap_confidence_interval`
+  call defaults to `type="percentile"`, not `"basic"`. Checked whether
+  that refutation actually transfers here: `comprehensive_tests.R:2700-2701`
+  explicitly calls `compute_bayesian_bootstrap_confidence_interval(type =
+  bayes_ci_type)` and labels the `function_run` `..._basic` specifically
+  when `bayes_ci_type == "basic"` — so `OrderedProbitRegr`'s finding *does*
+  genuinely hit the "basic"/reflection formula, a different code path from
+  `DepCensTransformRegr`'s. Since that formula was independently confirmed
+  textbook-correct (`helper_bootstrap_ci.R:5-22`, read by the
+  `DepCensTransformRegr` fork), this outlier is most plausibly the same
+  known weakness — the reflection/basic bootstrap method underperforming
+  under a skewed/asymmetric bootstrap sampling distribution — applied to
+  this class's own bootstrap distribution, not a code defect. **Not
+  independently confirmed via direct skewness measurement of this
+  specific bootstrap distribution** (out of scope this pass); closing as
+  "same known methodological weakness, consistent conclusion," medium
+  confidence, no `release_v1_5_0.md` entry (matches the
+  `DepCensTransformRegr` closure precedent — a design-choice enhancement
+  candidate, not a bug).
+
+- **`TODO-9`, `InferenceOrdinalKKCondAdjCatLogitRegr`, root-caused
+  2026-09-24 (medium confidence, mechanism identified, not fully traced)**:
+  read `compute_estimate_with_bootstrap_weights()`
+  (`inference_ordinal_KK_cond_adj_cat_logit.R:127-142`) directly. It
+  **does** call `private$create_design_matrix()` (`:137`) — contradicting
+  this TODO's original framing ("no `generate_mod()` at all... real cause
+  likely elsewhere"), so `TODO-28` applicability had to be re-checked
+  properly (both conditions, not just the call-site match). Checked
+  condition 2: the class's own `overrides$private` list
+  (`:184-194`) *declares* `supports_reusable_bootstrap_worker`,
+  `create_bootstrap_worker_state`, `load_bootstrap_sample_into_worker`,
+  and `compute_bootstrap_worker_estimate` as overridden — but none of
+  these names have an actual function body anywhere in this file, and
+  none of the 4 composed components (`BayesianBootstrap`, `Wald`,
+  `OrdinalConditionalLogitPartialLikelihood`, `KKPassThrough`, or
+  `KKPassThrough`'s `ConditionalLogitPartialLikelihood` dependency)
+  provide them either (checked each component's `provides_private_methods`
+  list in `contracts_mixins.R`). **Same pattern already found for
+  `InferencePropKKGLMM`**: an `overrides` declaration with no matching
+  body falls through to the fully generic base default, which is
+  `supports_reusable_bootstrap_worker() = FALSE`
+  (`inference_all_abstract_non_param_boot.R:1090-1092`). So this class
+  gets a fresh `duplicate()`-based worker every bootstrap draw — `TODO-28`
+  is **cleanly ruled out** here too, confirming (not contradicting) the
+  original TODO-9 note's conclusion, just via the correct two-condition
+  check rather than the (correct, but under-justified) assumption that no
+  `create_design_matrix()` call existed.
+
+  **New leading candidate**: when weights aren't effectively constant,
+  `compute_estimate_with_bootstrap_weights()` doesn't refit the true
+  weighted conditional-logit model — it calls
+  `weighted_ordinal_bootstrap_surrogate_fit()` (`:138`), which the
+  method's own docstring (`:110-122`) describes as "a fast weighted
+  ordinal-logistic surrogate fit... as an approximation to the weighted
+  adjacent-category likelihood... trades exact reweighted refitting for
+  speed." An approximate (not exact) weighted refit used across every
+  bootstrap replicate is a plausible source of systematic distortion in
+  the resulting bootstrap distribution's center/spread, which would
+  directly corrupt Bayesian-bootstrap and nonparametric-bootstrap CI
+  coverage — consistent with this class's severe, resampling-CI-specific
+  coverage collapse. **Not confirmed**: the surrogate's specific bias
+  direction/magnitude wasn't traced, and it's not yet checked whether
+  other classes sharing `weighted_ordinal_bootstrap_surrogate_fit()` show
+  the same severity (which would implicate the surrogate itself) or not
+  (which would implicate something specific to this class's usage of it,
+  e.g. the adjacent-category expansion interacting badly with the
+  surrogate's assumptions). Needs its own follow-up investigation before
+  this could go in `release_v1_5_0.md`.
 
 ## Standing constraints
 

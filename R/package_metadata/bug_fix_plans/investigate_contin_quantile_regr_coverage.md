@@ -274,6 +274,59 @@ Kept as `investigate_*.md`. **Not added to `release_v1_5_0.md`** — two
 refuted hypotheses in a row is real progress (narrows the search space) but
 is not a confirmed, fixable bug.
 
+## Follow-up investigation, 2026-09-24 (fourth pass): tie/duplicate-rate hypothesis REFUTED
+
+Computed actual duplicate/tied-value rates for each dataset's resampled
+(harness-actual, `n=148`) response draw:
+
+| dataset | mechanism | native distinct/n | resampled duplicate fraction (at `n=148`) | asymp/wald coverage (`beta_T=0`, `~1`, fresh data) |
+|---|---|---|---|---|
+| `diamonds` | `slice_sample(n=148, replace=TRUE)` from N=53940, 11602 distinct `log(price)` | 21.5% | **0.026** (simulated, 200 reps) | **0.910** (n=3114) |
+| `pte_example` | no resampling — native `continuous_example$y`, n=154, only 50 distinct | 32.5% | **0.675** (exact, native) | **0.937** (n=3000) |
+| `ionosphere` | `slice_sample(n=148, replace=TRUE)` from N=351, 219 distinct `V3` | 62.4% | **0.479** (simulated, 200 reps) | 0.982 (n=868) |
+| `iris` | no resampling — native `Sepal.Width`, n=150, only 23 distinct | 15.3% | **0.847** (exact, native) | 1.000 (n=16, thin) |
+
+(`diamonds`/`ionosphere` go through `_dataset_load.R`'s
+`slice_sample(n = max_n_dataset, replace = TRUE)`; `pte_example`/`iris`
+are used directly with no resampling step at all — confirmed by reading
+`_dataset_load.R` in full, `iris`/`continuous_example` never appear in
+the `slice_sample(...)` block.)
+
+**Directly contradicts the hypothesis.** `diamonds` — by far the
+*worst*-covering dataset — has the *lowest* duplicate rate of the four
+(2.6%). `iris` — the *best*-covering — has the *highest* duplicate rate
+(84.7%, driven by `Sepal.Width`'s coarse 0.1-unit native precision, not
+resampling). The ranking is the *exact opposite* of what tie-driven
+`"nid"`-sparsity-estimator breakdown would predict. Re-pulled the live
+per-dataset coverage numbers fresh (the CSV has since repopulated with
+120,982 rows for this class) and confirmed the same qualitative ranking
+the earlier fork's numbers showed — this isn't an artifact of stale data.
+
+**Root cause remains genuinely elusive after THREE independent, well-
+evidenced refutations in a row** (design-pooling, dataset-shape/skewness,
+tie-rate). Each was a real, testable hypothesis, tested with real data
+(not simulation guesses), and cleanly refuted rather than left
+ambiguous — this is honest progress (three plausible explanations
+eliminated), not a dead end from lack of trying, but the actual driver
+of `diamonds`/`pte_example` under-covering vs. `ionosphere`/`iris` is
+still unidentified. Candidate directions NOT yet tried: `dataset_n_cols`
+differences (the design randomization mechanism may see different
+covariate-space geometry even though the `~1` quantile fit itself
+ignores covariates); the interaction between `beta_T`'s fixed magnitude
+(0.2, identical across all four datasets for `continuous`) and each
+dataset's *residual scale after `scale()`* (all nominally unit-variance,
+but the *tail* behavior of the standardized residual, not just its raw
+skew/kurtosis, could still differ in a way this session's kurtosis check
+didn't capture, e.g. multimodality); or something specific to how
+`quantreg::rq()`'s `"nid"` bandwidth selection interacts with `diamonds`'s
+categorical-dummy-heavy design matrix even at `~1` (if the *design*
+randomization step, not the quantile fit, is where `X` re-enters).
+
+**Not fixable/inherent determination possible.** Kept as
+`investigate_*.md`. **Not added to `release_v1_5_0.md`** — three refuted
+hypotheses narrow the search space further but this is still not a
+confirmed, fixable bug.
+
 ## TODOs
 
 - [x] TODO-1 (RESOLVED 2026-09-24, REFUTED): design-pooling is not the
@@ -289,14 +342,14 @@ is not a confirmed, fixable bug.
   above. New candidate directions (tie/duplicate density from
   with-replacement resampling to n=148, not yet checked per-dataset) noted
   there — TODO-5 below.
-- [ ] TODO-5 (added 2026-09-24): check each dataset's actual duplicate/tied-
-  value rate in the harness's resampled (`n=148`, with replacement) draw of
-  the continuous response — `ionosphere`'s native n=351 means resampling to
-  148 creates real duplicates at a different rate than `diamonds`'s n=53940
-  (near-zero duplicate rate even after resampling). Given this class's
-  established tie-sensitivity (`TODO-20`, `TODO-3` above), a tie-driven
-  mechanism plausibly explains the dataset-level pattern where a pure
-  response-shape mechanism does not — untested.
+- [x] TODO-5 (RESOLVED 2026-09-24, REFUTED): checked each dataset's actual
+  duplicate/tied-value rate under the harness's real resampling mechanism —
+  `diamonds` 2.6%, `pte_example` 67.5%, `ionosphere` 47.9%, `iris` 84.7%.
+  Directly contradicts the hypothesis: `diamonds` (worst coverage, 0.910)
+  has the LOWEST tie rate; `iris` (best coverage, 1.000) has the HIGHEST.
+  Opposite of the predicted ranking. See "Follow-up investigation, fourth
+  pass" above. Three hypotheses (design-pooling, dataset-shape, tie-rate)
+  now refuted in a row; root cause remains genuinely open.
 - [ ] TODO-3 (RESOLVED 2026-09-24, see above): confirmed the resampling
   `studentized`/`symmetric-percentile-t` methods share the exact same
   `"nid"`-based SE machinery as `asymp`/`wald`, via

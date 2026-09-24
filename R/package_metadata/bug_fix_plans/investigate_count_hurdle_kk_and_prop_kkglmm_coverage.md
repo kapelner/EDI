@@ -195,6 +195,53 @@ hypothesis is now ruled out for this class specifically.
   (bypassing the harness's fixed 148) or a closer read of
   `fast_clogit_plus_glmm_cpp`'s discordant/concordant split logic to
   settle definitively.
+
+  **Follow-up 2026-09-24, still genuinely undetermined (neither
+  EDI-specific defect nor general benign phenomenon confirmed):**
+
+  Read `fast_clogit_plus_glmm.cpp`'s indexing directly
+  (`fast_clogit_plus_glmm.cpp:150,195-197`): when `has_concordant`, the
+  shared parameter vector `par = [intercept, treatment, cov1, cov2, ...]`,
+  and the discordant conditional-logit likelihood correctly slices
+  `beta_no_intercept = par.segment(1, q)` (0-based, skipping the
+  intercept) to align with `X_disc`'s own column order
+  `[treatment, cov1, cov2, ...]` (`inference_incidence_KK_cond_logit_glmm_abstract.R:316-320`,
+  no intercept column). This indexing is internally consistent — no
+  off-by-one or misalignment found on direct read. The model IS a
+  legitimate hybrid: the discordant part uses matched-pair-DIFFERENCED
+  covariates (conditional-logit theory), the concordant/reservoir GLMM
+  part uses RAW per-subject covariates, sharing one `beta` vector across
+  both — a real, deliberate joint-likelihood construction, not an
+  obvious bug on its face.
+
+  Tested the "general conditional-logit phenomenon" hypothesis directly
+  via a standalone simulation using `survival::clogit` (independently,
+  unambiguously correct implementation) — matched pairs, null treatment
+  effect, comparing a model with vs. without a covariate, `n_pairs=37`,
+  800 reps each: unadjusted mean bias `-0.009` (SE `0.019`), adjusted
+  mean bias `+0.022` (SE `0.036`) — **both well within 1 SE of zero, no
+  robust sign-flip reproduced**. This is evidence AGAINST the "well-known
+  general conditional-logit phenomenon" explanation, at least for the
+  pure-discordant-pairs mechanism in isolation — a standard package does
+  not show a comparably robust bias flip from covariate adjustment alone
+  at this scale. Caveat: this simulation does NOT replicate EDI's actual
+  hybrid clogit+GLMM joint estimation (no standard R package implements
+  that exact combined model), so it only rules out the simpler
+  explanation, not the full mechanism.
+
+  **Revised conclusion**: the sign-flip is more likely NOT explained by
+  ordinary matched-pair conditional-logit finite-sample bias alone (that
+  mechanism, tested in isolation via a standard implementation, doesn't
+  reproduce anything this robust). This shifts weight (not proof) toward
+  the hybrid clogit+GLMM combination itself as the more likely locus, if
+  a real defect exists — but no concrete line-level bug was found in
+  either the R-level design-matrix construction or the C++ indexing.
+  **Still not confirmed either way** — genuinely undetermined, still not
+  promoted to `release_v1_5_0.md`. Next step, if pursued further: a
+  bespoke standalone simulation of the FULL hybrid model (discordant
+  clogit contribution + concordant/reservoir GLMM contribution, jointly
+  optimized with shared coefficients, matching `fast_clogit_plus_glmm.cpp`'s
+  actual likelihood) rather than pure `clogit` alone.
 - [ ] TODO-5: `InferenceCountQuasiPoisson`'s isolated
   `compute_subsampling_confidence_interval ~. ` perfect-1.000
   over-coverage outlier (164 rows) — not investigated, may be unrelated

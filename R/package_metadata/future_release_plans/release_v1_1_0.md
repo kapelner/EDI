@@ -1,5 +1,9 @@
 # Release Scope: v1.1.0
 
+> **CRAN (2026-09-24, user decision):** the first CRAN submission is **v1.0.2**,
+> not v1.1.0; 1.0.0 and 1.0.1 were GitHub-only. This release follows the CRAN
+> submission. `R/EDI/cran-comments.md` describes 1.0.2.
+
 > **Depends on:** `release_v1_0_0.md` (the contract freeze ships first; every
 > plan below is additive on top of the frozen substrate), plus the in-scope
 > plans listed below — like the 1.0.0 file, this document is the release

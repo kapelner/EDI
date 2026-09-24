@@ -283,6 +283,27 @@ threads feeding this release.)
   binomial test may simply be very sensitive at these sample sizes) —
   but per-class, this one specific finding is closed, not added here.
 
+- [ ] TODO-11 (added 2026-09-24, confirmed by direct code reading — high
+  confidence, concrete and easily fixable): `InferenceOrdinalCloglogRegr`'s
+  MAIN (observed) fit has the same unpatched single-start optimizer
+  vulnerability already found and fixed at two OTHER call sites in this
+  same class — `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md
+  → TODO-10`. `generate_mod()` (`R/EDI/R/inference_ordinal_cloglog.R:229-286`)
+  makes exactly one call to `fast_ordinal_cloglog_regression_with_var_cpp()`
+  with a single warm-start, wrapped only in QR column-dropping retries —
+  no multi-start logic. The two `fit_null` closures in the same file
+  (already fixed this session, "Bug 1") now try a second start and keep
+  whichever converged fit reaches the lower `neg_loglik`; `generate_mod()`
+  never received the identical treatment. Symptom: 16.6% of null-truth
+  rows at `model_formula=~.` show `|estimate|>1` for what should be a
+  coefficient near 0 (right-skewed quasi-separation/boundary-
+  non-convergence contamination), directly explaining `TODO-10`'s
+  `biased_estimate` finding and plausibly most of the class's own
+  `asymp`/`wald`/`score`/`gradient`/`lik_ratio` `low_coverage` findings
+  too (`TODO-17` in the linked plan). Fix: apply the same two-start-
+  keep-lower-`neg_loglik` pattern to `generate_mod()`'s fit call. **Not
+  yet implemented.**
+
 ## Standing constraints
 
 Same as every release in this series: no `R CMD INSTALL`/`R CMD build`/

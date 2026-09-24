@@ -100,8 +100,8 @@ install.packages("EDI",
 
 > **Not on CRAN yet.** A plain `install.packages("EDI")` fails today — that
 > does not mean the package doesn't exist; use the R-universe line above.
-> `EDI` has been submitted to CRAN and plain `install.packages("EDI")` will
-> work once accepted.
+> Version 1.0.2 is the version prepared for CRAN; plain
+> `install.packages("EDI")` will work once it is accepted.
 
 Or install the development version straight from GitHub without cloning
 (requires a C++ compiler toolchain for R packages, e.g. Rtools on Windows,

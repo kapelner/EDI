@@ -1,8 +1,9 @@
 # EDI Roadmap
 
-**Where things stand (last updated 2026-09-19):** v1.0.0 is released
-([Zenodo DOI](https://doi.org/10.5281/zenodo.22170036)) and has been
-submitted to CRAN; the `edi_kernels` Python package is on PyPI. Everything
+**Where things stand (last updated 2026-09-24):** v1.0.0 is released
+([Zenodo DOI](https://doi.org/10.5281/zenodo.22170036)); v1.0.1 is a
+GitHub-only release, and **v1.0.2 is the version prepared for CRAN** (the
+first CRAN submission); the `edi_kernels` Python package is on PyPI. Everything
 below is planned, not shipped.
 
 Each bullet summarizes one planned feature in at most a paragraph and links
@@ -152,6 +153,12 @@ for the full index.
   worst-covering methods for this class across all five response types.
   An open investigation; the leading, unconfirmed hypothesis is an
   effective-sample-size asymmetry in the standard error.
+
+- **[KK21stepwise randomization p-values are conservative](R/package_metadata/bug_fix_plans/investigate_kk21stepwise_incidence_randomization_pval_conservative.md)** —
+  Under a true null and the KK21stepwise design, randomization p-values for
+  incidence responses are too large on average (no rejections in 60 simulated
+  nulls), which costs power but not validity. The cause is shared design-replay
+  or randomization machinery; an investigation comes first.
 
 ---
 

@@ -1,7 +1,7 @@
 Package: EDI
 Type: Package
 Title: Experimental Design and Inference
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: c(person(given = "Adam",
                   family = "Kapelner",
                   role = c("aut", "cre", "cph"),

@@ -254,13 +254,26 @@ written to eliminate elsewhere in this codebase.
   is the last step, `audit_comprehensive_results.R --write-baseline`, plus
   the two findings below.
 
-  **Two findings surfaced by the regen, still to triage before the baseline
-  is written (not re-checked 2026-09-24):**
-  - `InferenceIncidKKGCompRiskDiff`/`RiskRatio` showed a **deflated**
-    Type-I error (reject=0.0047, z=-4.3) -- opposite direction from the
-    stale-cache symptom, unexplained.
-  - `InferenceIncidGCompRiskDiff`/`RiskRatio` showed a new `low_power` flag
-    at `beta_T≠0`.
+  **Two findings surfaced by the regen, triaged 2026-09-24:**
+  - `InferenceIncidGCompRiskDiff`/`RiskRatio` `low_power` at `beta_T = 0.5`:
+    **benign.** The post-fix rows (diamonds, n = 148, Bernoulli design, 80
+    rows per cell) reject 0.075 at the null and 0.200 at `beta_T = 0.5`. A
+    fresh simulation (n = 148, 60 reps, `r = 151`) gives 0.033 / 0.217 for the
+    g-computation randomization test, and exactly the same for
+    `InferenceAllSimpleAverageDiff` (the randomization p-value is the same
+    test) versus 0.317 for the logistic-regression Wald test. The effect is
+    simply small for this sample size; nothing is wrong with the class.
+  - `InferenceIncidKKGCompRiskDiff`/`RiskRatio` deflated Type-I error:
+    **reproduced from scratch, but not specific to this class.** Post-fix
+    rows: 0/80 null rejections (median p 0.62). Fresh simulation under
+    `DesignSeqOneByOneKK21stepwise` (n = 148, 60 reps, `r = 151`): 0/60
+    rejections, median p 0.71, mean p 0.66 (expected 0.5). The
+    `InferenceAllSimpleAverageDiff` randomization p-value on the same data is
+    identical (0.71 / 0.66), so the conservatism is in the shared
+    randomization machinery or the KK21stepwise design replay, not in the
+    g-computation code. Tracked as
+    `investigate_kk21stepwise_incidence_randomization_pval_conservative.md`
+    (release TODO-53); it is not a blocker for the stale-cache work.
 
   New rows are already live in the 3 main result CSVs (harmless — this is
   what the harness would produce on its next unfiltered run regardless).

@@ -343,16 +343,29 @@ via direct empirical stratification (Bernoulli coverage 0.832 ≈
 non-Bernoulli pooled average 0.820), eliminating the alternative
 hypothesis before landing on this one.
 
-**`InferenceOrdinalPartialProportionalOddsRegr` is explicitly NOT covered
-by this fix** — it uses `VGAM::cumulative(link = "logitlink", ...)`, the
-same link as the DGP, and correctly nests the true model; its coverage
-problem needs separate root-causing (tracked as
-`ordinal_cumulative_link_null_refit_multistart.md`'s new TODO-18).
+**`InferenceOrdinalPartialProportionalOddsRegr` was initially thought NOT
+covered by this fix** (uses `VGAM::cumulative(link = "logitlink", ...)`,
+same link as the DGP, correctly nests the true model) — **correction,
+2026-09-24: it IS a 4th instance of this same class of harness gap, via a
+different specific mechanism.** `TODO-18` (in the linked ordinal plan)
+resolved this: `comprehensive_tests.R` never passes `nonparallel` to this
+class, so it always fits via the plain full-proportional-odds fast path
+(same kernel as `InferenceOrdinalPropOddsRegr`), ruling out a VGAM/partial-
+model-specific bug. `beta_T`-stratified querying (not pooled) showed
+coverage is nominal (~0.95) in every cell EXCEPT `(model_formula=~.,
+beta_T=0.5)`, where it collapses to **0.283** — the textbook signature of
+**non-collapsibility**: a correctly-specified cumulative-logit treatment
+coefficient under covariate adjustment is NOT equal to the raw DGP
+parameter used to generate the data, except when that parameter is 0
+(invariant to conditioning) or there are no covariates to condition on.
+Same fix category as the other 3 (MC-refit truth), just needed at
+nonzero `beta_T` specifically rather than for the whole class uniformly.
 
 **Fix**: add `InferenceOrdinalCauchitRegr`/`InferenceOrdinalAdjCatLogitRegr`/
-`InferenceOrdinalContRatioRegr` to `COVERAGE_MC_SPEC` in
-`comprehensive_tests.R`, mirroring the existing `InferenceOrdinalRidit`
-entry (MC-refit truth via simulation under the class's own fitted model,
-not the raw DGP parameter). Test-harness-only change; does not touch
-`R/EDI` source. Not yet implemented — this is a real, confirmed, low-risk
-fix but was out of scope for the investigating fork to also apply.
+`InferenceOrdinalContRatioRegr`/`InferenceOrdinalPartialProportionalOddsRegr`
+(4 classes total) to `COVERAGE_MC_SPEC` in `comprehensive_tests.R`,
+mirroring the existing `InferenceOrdinalRidit` entry (MC-refit truth via
+simulation under the class's own fitted model, not the raw DGP
+parameter). Test-harness-only change; does not touch `R/EDI` source. Not
+yet implemented — this is a real, confirmed, low-risk fix but was out of
+scope for the investigating fork to also apply.

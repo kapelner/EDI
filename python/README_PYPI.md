@@ -55,29 +55,29 @@ below for those instead.
 
 | Speed<br>Up | Response<br>type | Function | Canonical package<br>and function | EDI<br>(ms) | Canonical<br>(ms) |
 |---:|---|---|---|---:|---:|
-| **77.8x** | continuous | `fast_robust_regression` | statsmodels `RLM` | 0.100 | 8.13 |
-| **4.44x** | continuous | `fast_ols` | numpy `linalg.lstsq` | 0.0200 | 0.0800 |
-| **4.00x** | continuous | `wilcox_hl_point_estimate` | numpy `median(HL pairwise diff)` | 0.150 | 0.610 |
-| **48.1x** | incidence | `fast_identity_binomial_regression` | statsmodels `GLM(Binomial, identity link)` | 0.120 | 5.83 |
-| **14.4x** | incidence | `fast_probit_regression` | statsmodels `GLM(Binomial, probit link)` | 0.360 | 5.23 |
-| **13.7x** | incidence | `fast_logistic_regression` | statsmodels `GLM(Binomial)` | 0.180 | 2.52 |
-| **11.8x** | incidence | `fast_log_binomial_regression` | statsmodels `GLM(Binomial, log link)` | 0.890 | 10.5 |
-| **1600x** | survival | `get_survival_stat_diff` (restricted_mean) | lifelines `utils.restricted_mean_survival_time` | 0.0100 | 17.6 |
-| **1370x** | survival | `get_survival_stat_diff` (median) | lifelines `KaplanMeierFitter(median)` | 0.0100 | 14.8 |
-| **1170x** | survival | `fast_weibull_regression_general` | lifelines `WeibullAFTFitter.fit()` (right-censored only) | 0.120 | 136 |
-| **519x** | survival | `fast_weibull_regression_general` (interval-censored) | lifelines `WeibullAFTFitter.fit_interval_censoring()` | 0.370 | 193 |
-| **433x** | survival | `fast_stratified_coxph_regression` | lifelines `CoxPHFitter(strata=)` | 0.350 | 153 |
-| **209x** | survival | `fast_logrank_stats` | lifelines `statistics.logrank_test` | 0.0800 | 16.2 |
-| **90.4x** | survival | `fast_coxph_regression` | scikit-survival `CoxPHSurvivalAnalysis` | 0.380 | 34.8 |
-| **56.3x** | count | `fast_hurdle_negbin` | statsmodels `HurdleCountModel(negbin)` | 1.59 | 89.6 |
-| **28.2x** | count | `fast_zero_augmented_poisson` (is_hurdle=True) | statsmodels `HurdleCountModel(poisson)` | 0.980 | 27.7 |
-| **24.7x** | count | `fast_poisson_regression` | statsmodels `GLM(Poisson)` | 0.110 | 2.67 |
-| **23.1x** | count | `fast_zinb` | statsmodels `ZeroInflatedNegativeBinomialP` | 9.45 | 218 |
-| **18.9x** | count | `fast_neg_bin` | statsmodels `NegativeBinomial` | 0.640 | 12.0 |
-| **5.00x** | count | `fast_zero_augmented_poisson` (is_hurdle=False) | statsmodels `ZeroInflatedPoisson` | 7.93 | 39.6 |
-| **10.7x** | proportion | `fast_beta_regression` | statsmodels `BetaModel` | 1.06 | 11.4 |
-| **111x** | ordinal | `fast_ordinal_regression` | statsmodels `OrderedModel(logit)` | 0.700 | 77.9 |
-| **109x** | ordinal | `fast_ordinal_probit_regression` | statsmodels `OrderedModel(probit)` | 0.570 | 62.3 |
+| **84.8x** | continuous | `fast_robust_regression` | statsmodels `RLM` | 0.150 | 12.8 |
+| **6.19x** | continuous | `fast_ols` | numpy `linalg.lstsq` | 0.0200 | 0.110 |
+| **4.56x** | continuous | `wilcox_hl_point_estimate` | numpy `median(HL pairwise diff)` | 0.300 | 1.37 |
+| **256x** | incidence | `fast_log_binomial_regression` | statsmodels `GLM(Binomial, log link)` | 0.590 | 150 |
+| **185x** | incidence | `fast_identity_binomial_regression` | statsmodels `GLM(Binomial, identity link)` | 0.0800 | 14.6 |
+| **15.8x** | incidence | `fast_logistic_regression` | statsmodels `GLM(Binomial)` | 0.240 | 3.72 |
+| **15.2x** | incidence | `fast_probit_regression` | statsmodels `GLM(Binomial, probit link)` | 0.470 | 7.19 |
+| **1920x** | survival | `get_survival_stat_diff` (restricted_mean) | lifelines `utils.restricted_mean_survival_time` | 0.0100 | 27.4 |
+| **1550x** | survival | `fast_weibull_regression_general` | lifelines `WeibullAFTFitter.fit()` (right-censored only) | 0.130 | 198 |
+| **1530x** | survival | `get_survival_stat_diff` (median) | lifelines `KaplanMeierFitter(median)` | 0.0100 | 20.8 |
+| **666x** | survival | `fast_weibull_regression_general` (interval-censored) | lifelines `WeibullAFTFitter.fit_interval_censoring()` | 0.430 | 289 |
+| **571x** | survival | `fast_stratified_coxph_regression` | lifelines `CoxPHFitter(strata=)` | 0.440 | 252 |
+| **219x** | survival | `fast_logrank_stats` | lifelines `statistics.logrank_test` | 0.150 | 32.6 |
+| **96.1x** | survival | `fast_coxph_regression` | scikit-survival `CoxPHSurvivalAnalysis` | 0.450 | 43.5 |
+| **222x** | count | `fast_zinb` | statsmodels `ZeroInflatedNegativeBinomialP` | 1.41 | 313 |
+| **58.4x** | count | `fast_neg_bin` | statsmodels `NegativeBinomial` | 0.300 | 17.6 |
+| **47.2x** | count | `fast_hurdle_negbin` | statsmodels `HurdleCountModel(negbin)` | 1.43 | 67.2 |
+| **28.6x** | count | `fast_zero_augmented_poisson` (is_hurdle=True) | statsmodels `HurdleCountModel(poisson)` | 1.63 | 46.6 |
+| **25.6x** | count | `fast_poisson_regression` | statsmodels `GLM(Poisson)` | 0.150 | 3.76 |
+| **11.6x** | count | `fast_zero_augmented_poisson` (is_hurdle=False) | statsmodels `ZeroInflatedPoisson` | 4.60 | 53.2 |
+| **15.4x** | proportion | `fast_beta_regression` | statsmodels `BetaModel` | 1.03 | 15.8 |
+| **151x** | ordinal | `fast_ordinal_regression` | statsmodels `OrderedModel(logit)` | 0.750 | 113 |
+| **113x** | ordinal | `fast_ordinal_probit_regression` | statsmodels `OrderedModel(probit)` | 0.910 | 103 |
 
 Three additional response-family rows in the underlying benchmark
 (`InferenceIncidGCompRiskDiff`/`RiskRatio`, `InferencePropGCompMeanDiff`,
@@ -105,20 +105,20 @@ baseline, so there's no separate "no baseline" table for this group.
 
 | Speed<br>Up | Function | Canonical package<br>and function | EDI<br>(ms) | Canonical<br>(ms) |
 |---:|---|---|---:|---:|
-| **75.0x** | `fast_log_dnorm` | scipy `stats.norm.logpdf` | 0.00179 | 0.130 |
-| **69.2x** | `fast_trigamma` | scipy `special.polygamma(1,.)` | 0.0200 | 1.33 |
-| **8.60x** | `fast_qnorm` | scipy `stats.norm.ppf` | 0.0300 | 0.220 |
-| **4.60x** | `dnorm_fast` | scipy `stats.norm.pdf` | 0.0300 | 0.150 |
-| **2.85x** | `pnorm_fast` | scipy `stats.norm.cdf` | 0.0700 | 0.200 |
-| **2.44x** | `fast_atan` | numpy `arctan` | 0.0200 | 0.0600 |
-| **2.30x** | `fast_log_pnorm` | scipy `stats.norm.logcdf` | 0.120 | 0.270 |
-| **2.29x** | `fast_lbeta` | scipy `special.betaln` | 0.220 | 0.510 |
-| **1.63x** | `fast_log1pexp` | numpy `logaddexp(0,.)` | 0.0600 | 0.100 |
-| **1.52x** | `fast_digamma` | scipy `special.digamma` | 0.0600 | 0.0900 |
-| **1.42x** | `fast_pchisq_upper` | scipy `stats.chi2.sf` | 0.550 | 0.770 |
-| **1.27x** | `fast_lgamma` | scipy `special.gammaln` | 0.0700 | 0.0900 |
-| **1.21x** | `fast_erfc` | scipy `special.erfc` | 0.0800 | 0.0900 |
-| **1.15x** | `fast_dnbinom_mu` | scipy `stats.nbinom.logpmf` | 0.400 | 0.470 |
+| **77.0x** | `fast_log_dnorm` | scipy `stats.norm.logpdf` | 0.00266 | 0.200 |
+| **72.7x** | `fast_trigamma` | scipy `special.polygamma(1,.)` | 0.0200 | 1.73 |
+| **9.71x** | `fast_qnorm` | scipy `stats.norm.ppf` | 0.0300 | 0.310 |
+| **4.99x** | `dnorm_fast` | scipy `stats.norm.pdf` | 0.0500 | 0.230 |
+| **3.26x** | `pnorm_fast` | scipy `stats.norm.cdf` | 0.100 | 0.310 |
+| **3.10x** | `fast_atan` | numpy `arctan` | 0.0300 | 0.100 |
+| **2.63x** | `fast_log_pnorm` | scipy `stats.norm.logcdf` | 0.150 | 0.390 |
+| **2.05x** | `fast_lbeta` | scipy `special.betaln` | 0.310 | 0.630 |
+| **1.59x** | `fast_lgamma` | scipy `special.gammaln` | 0.0800 | 0.120 |
+| **1.54x** | `fast_digamma` | scipy `special.digamma` | 0.0700 | 0.110 |
+| **1.48x** | `fast_pchisq_upper` | scipy `stats.chi2.sf` | 0.710 | 1.06 |
+| **1.45x** | `fast_log1pexp` | numpy `logaddexp(0,.)` | 0.0900 | 0.140 |
+| **1.18x** | `fast_dnbinom_mu` | scipy `stats.nbinom.logpmf` | 0.590 | 0.690 |
+| **1.14x** | `fast_erfc` | scipy `special.erfc` | 0.120 | 0.130 |
 
 ## Kernels with no Python canonical baseline
 

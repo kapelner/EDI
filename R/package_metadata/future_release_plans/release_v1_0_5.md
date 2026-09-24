@@ -370,8 +370,27 @@ plan files' internal numbering did not change.
   `InferenceOrdinalRidit` bug; confirmed high confidence, fix tracked at
   `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md → TODO-10`,
   not yet implemented, harness-only change). `PartialProportionalOddsRegr`
-  is correctly specified (same logit link as the DGP) and its coverage
-  problem remains genuinely open — `TODO-18` in the linked plan.
+  was initially thought correctly specified and separately open (`TODO-18`
+  in the linked plan) — **resolved same day**: it's a 4th instance of the
+  same harness-truth-registry gap via a different mechanism
+  (non-collapsibility of the treatment coefficient under covariate
+  adjustment — coverage is nominal everywhere except `model_formula=~.`
+  at nonzero `beta_T`, where it collapses to 0.283 — confirmed by
+  `beta_T`-stratified querying, high confidence). Now folded into the
+  same `mc_coverage_truth_covariate_mismatch.md → TODO-10` fix, 4 classes
+  total. Also this same pass: `InferenceOrdinalOrderedProbitRegr`'s 0.760
+  `compute_bayesian_bootstrap_confidence_interval_basic` outlier
+  confirmed to genuinely hit the "basic"/reflection CI formula (not the
+  "percentile" default), closed as the same known skew-sensitivity
+  weakness already found benign for `InferenceSurvivalDepCensTransformRegr`
+  — no source defect, no v1.5.0 entry. `TODO-9`
+  (`InferenceOrdinalKKCondAdjCatLogitRegr`) root-caused to medium
+  confidence: `TODO-28` cleanly ruled out (declared-but-bodiless
+  `overrides`, same pattern as `InferencePropKKGLMM`, falls through to
+  the generic `supports_reusable_bootstrap_worker()=FALSE` default); new
+  leading candidate is `weighted_ordinal_bootstrap_surrogate_fit()`'s
+  approximate (non-exact) weighted refit distorting the bootstrap
+  distribution — not yet confirmed or traced to a fix.
   (1) **Fixed**: `get_likelihood_test_spec()`/`simulate_under_lik_null()`'s
   `fit_null` closures were single-start constrained refits — the identical
   vulnerability found and fixed in `InferenceOrdinalStereotypeLogitRegr`
@@ -1138,7 +1157,7 @@ baseline as expected/benign.
 
 - [ ] TODO-37 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **`inference_class_accepts_model_formula()` is always FALSE** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-3`. It inspects `formals(<R6 generator>$new)`, which is just `...`, so it is FALSE for every class. Find its callers and what they do with the wrong answer.
 
-- [ ] TODO-38 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Fresh-process crash in `fast_zero_one_inflated_beta_cpp()`** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-4`. In a fresh Rscript the kernel returned `neg_loglik = NaN` and `coefficients = NULL` on ordinary data (8/8 seeds) but not inside testthat, suggesting undefined behavior in the C++ kernel; the R-level guard was fixed, the kernel was not. Check whether `InferencePropZeroOneInflatedBetaRegr` can hit it; run under the ASan/valgrind CI jobs.
+- [ ] TODO-38 (added 2026-09-24, test-comment audit; **reproduced 2026-09-24 under valgrind: heap overflow from an unvalidated `warm_start_params` length**, see plan TODO-4; **ZOIB kernel length checks implemented and verified 2026-09-24**, sibling-kernel sweep of 9 other unchecked warm-start sites still open): **Fresh-process crash in `fast_zero_one_inflated_beta_cpp()`** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-4`. In a fresh Rscript the kernel returned `neg_loglik = NaN` and `coefficients = NULL` on ordinary data (8/8 seeds) but not inside testthat, suggesting undefined behavior in the C++ kernel; the R-level guard was fixed, the kernel was not. Check whether `InferencePropZeroOneInflatedBetaRegr` can hit it; run under the ASan/valgrind CI jobs.
 
 - [ ] TODO-39 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Trailing incomplete block in one optimal-blocks design path** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-5`. `DesignFixedOptimalBlocks` (greedy/blockTools path) with `n` not a multiple of `B` leaves a trailing incomplete block that its own nearest-neighbour fallback never sees. Effect on balance and on block-assuming inference unknown.
 
@@ -1146,7 +1165,7 @@ baseline as expected/benign.
 
 - [ ] TODO-41 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Unchecked callback result in the randomization loop** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-7`. `result[0]` on a length-0 vector is read without a length check; Rcpp only warns and the loop continues, leaving the entry undefined instead of failing.
 
-- [ ] TODO-42 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Is the stale Bayesian-bootstrap worker workaround still needed?** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-8`. `test-cox-component-composition.R` uses a fresh object per capability to avoid a stale Bayesian-bootstrap worker context after a randomization or bootstrap call (also on `InferenceSurvivalKMDiff`). The stale-worker fix may have resolved it: remove the workaround and either delete the comment or plan a fix.
+- [ ] TODO-42 (added 2026-09-24, test-comment audit; **investigated 2026-09-24: stale worker not reproduced in 240 same-object runs, workaround appears unnecessary**, see plan TODO-8): **Is the stale Bayesian-bootstrap worker workaround still needed?** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-8`. `test-cox-component-composition.R` uses a fresh object per capability to avoid a stale Bayesian-bootstrap worker context after a randomization or bootstrap call (also on `InferenceSurvivalKMDiff`). The stale-worker fix may have resolved it: remove the workaround and either delete the comment or plan a fix.
 
 - [ ] TODO-43 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **RNG-state sensitivity in the IVWC frailty optimizer** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-9`. `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`: a freshly constructed `compute_estimate(estimate_only = TRUE)` reproducibly returns `NA` on the test fixture while the identical fit via the constant-weights shortcut converges. Suggests a start-value or seeding dependence.
 
@@ -1216,6 +1235,25 @@ baseline as expected/benign.
   the harness's small/near-noiseless noise scale, or compounding with the
   pre-existing `TODO-20` tie-sensitivity hypothesis for resampling-family
   methods specifically.
+
+- [ ] TODO-53 (added 2026-09-24, from triaging the stale-cache regeneration
+  findings; reproduced from scratch, mechanism unknown): **Randomization
+  p-values are conservative at the null under
+  `DesignSeqOneByOneKK21stepwise` (incidence)** —
+  `../bug_fix_plans/investigate_kk21stepwise_incidence_randomization_pval_conservative.md →
+  TODO-1..4`. 60 simulated nulls: 0 rejections, median p 0.71, mean p 0.66;
+  `InferenceAllSimpleAverageDiff` gives identical p-values, so it is shared
+  design-replay/randomization machinery, not the g-computation class. Costs
+  power (0.183 vs 0.317 for the Wald test at `beta_T = 0.5`); not a validity
+  failure.
+
+- [ ] TODO-54 (added 2026-09-24, found investigating TODO-42; reproduced on a
+  fresh object): **`InferenceSurvivalKMDiff` Bayesian-bootstrap p-value is
+  `NA` for about 30% of RNG states on heavily censored data** —
+  `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-13`. 12 of 40
+  RNG seeds, reason `bayesian_bootstrap_nonfinite_estimates`. One non-finite
+  replicate makes the whole p-value `NA`, unlike the non-parametric bootstrap
+  on the same data. Not caused by object reuse (TODO-42).
 
 ## Standing constraints
 

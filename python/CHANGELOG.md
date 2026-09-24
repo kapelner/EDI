@@ -40,6 +40,12 @@ not apply here.
 - `fast_wilcox_hl`: the interrupt poll is skipped whenever an OpenMP
   parallel region is active, since R's interrupt machinery is restricted to
   the main R thread.
+- `fast_zero_one_inflated_beta`: a `warm_start_params` vector whose length is not
+  `p + 1 + 2 * p_zero_one` (or a mis-sized `warm_start_fisher_info`, or `X`,
+  `X_zero_one` and `y` with different row counts) is now rejected with an
+  ordinary error. Previously the optimizer read and wrote past the parameter
+  buffer (heap corruption found under valgrind, which could abort the process
+  later).
 - `fast_ordinal_clmm`: mismatched `X`/`y`/`group_id` lengths now raise a
   clear error instead of reading out of bounds.
 
@@ -50,6 +56,13 @@ not apply here.
   diagnostic list with `converged = FALSE`, starting-value `params` and
   information, and `exception_message`, not a bare two-field list). No
   behavior change.
+
+### Changed
+
+- README (PyPI page) benchmark tables refreshed from a fresh
+  `benchmark_model_fits_python.py` run (single core, fixed per-class RNG seeds
+  so datasets no longer shift when benchmark rows are added or reordered).
+  Absolute timings are not comparable to earlier releases' tables.
 
 ## [1.0.1] - 2026-09-14
 

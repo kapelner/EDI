@@ -422,9 +422,18 @@ LikelihoodFitResult fast_zero_one_inflated_beta_internal(
 	int p = X.cols();
 	int p_zero_one = X_zero_one.cols();
 	int total = p + 1 + 2 * p_zero_one;
+	// Validate caller-supplied sizes before any solver touches them: an unchecked
+	// warm start of the wrong length let L-BFGS read and write past the parameter
+	// buffer (heap corruption, found under valgrind).
+	if (X.rows() != y_eigen.size() || X_zero_one.rows() != y_eigen.size()) {
+		throw std::invalid_argument("X, X_zero_one and y must have the same number of rows");
+	}
 	Eigen::VectorXd params(total);
 
 	if (warm_start_params.has_value()) {
+		if (warm_start_params->size() != total) {
+			throw std::invalid_argument("warm_start_params must have length p + 1 + 2 * p_zero_one (the number of model parameters)");
+		}
 		params = *warm_start_params;
 	} else if (smart_cold_start) {
 		// Beta component: OLS on logit(y) for entries in (0, 1)
@@ -460,6 +469,9 @@ LikelihoodFitResult fast_zero_one_inflated_beta_internal(
     Eigen::MatrixXd info_start;
     const Eigen::MatrixXd* info_start_ptr = nullptr;
     if (warm_start_fisher_info.has_value()) {
+        if (warm_start_fisher_info->rows() != total || warm_start_fisher_info->cols() != total) {
+            throw std::invalid_argument("warm_start_fisher_info must be a square matrix with one row per model parameter");
+        }
         info_start = *warm_start_fisher_info;
         info_start_ptr = &info_start;
     }
