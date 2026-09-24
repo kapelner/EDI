@@ -366,6 +366,259 @@ they're uniform.
   in scope here). Then reproduce and confirm against this class's audit
   CSVs the same way TODO-1 verified Bug 1's fix.
 
+- [ ] TODO-13 (added 2026-09-24, cross-class reconciliation fork against
+  a fresh full-package audit re-run — high confidence pattern, mechanism
+  NOT yet pinned): **TODO-11's "asymptotic-SE-broken, resampling-fine"
+  shape now confirmed across 5 classes, not 2** — strong evidence of a
+  SHARED mechanism, contradicting TODO-11's original "no shared mechanism
+  confirmed" caveat. Fresh numbers: `InferenceOrdinalContRatioRegr`
+  asymp/wald/score/gradient/lik_ratio all 0.821-0.832 (matches TODO-11's
+  original ~0.82); `InferenceOrdinalPartialProportionalOddsRegr` 0.817-0.868
+  (matches); `InferenceOrdinalCauchitRegr` asymp/wald/gradient/lik_ratio/score
+  0.798-0.825 (same magnitude, same shape — NEWLY confirmed as a cluster
+  member); `InferenceOrdinalAdjCatLogitRegr` asymp/wald/gradient/lik_ratio/score
+  0.823-0.836 (same magnitude — NEWLY confirmed cluster member). All four
+  classes' resampling-family CIs are fine-to-over (0.90-1.00) in the same
+  data. Given 4 independently-implemented classes (per TODO-2's audit:
+  `ContRatioRegr` and `PartialProportionalOddsRegr` in one file,
+  `Cauchit`/`AdjCatLogitRegr` elsewhere, no shared intermediate base
+  class) show the IDENTICAL 0.80-0.84 magnitude on the IDENTICAL family
+  of methods (`asymp`/`wald`/`score`/`gradient`/`lik_ratio` — i.e. every
+  method built on the class's own information-matrix-based SE, as opposed
+  to a resampled SE), the most likely explanation is a shared **package-
+  level** SE/CI-construction routine common to ordinal cumulative-link
+  classes' non-resampling inference (e.g. a shared Fisher-information
+  extraction or shared asymp/wald/score/gradient CI dispatcher used by
+  `Inference`'s ordinal base machinery) — not 4 coincidentally-identical
+  independent bugs. **Next step, not yet done**: find the shared function
+  these 5 function_run families actually route through for ordinal
+  cumulative-link classes (likely something in `inference_all_abstract.R`
+  or an ordinal-specific shared SE helper) and check it directly for a
+  concrete defect (wrong information-matrix term, wrong link
+  second-derivative, wrong critical value, etc.) — this is now the
+  single most promising unexplained lead in the whole ordinal cluster.
+  `InferenceOrdinalRidit` (previously in TODO-11's cluster at ~0.87) could
+  not be re-checked this pass — its raw result rows were pruned by this
+  session's `prune_stale_result_rows.R --apply` run (9188 stale ok-rows
+  removed) and need a fresh `comprehensive_tests.R` run to regenerate
+  before re-auditing. `InferenceOrdinalKKCLMM` remains separately mild
+  (~0.91, `TODO-28` already ruled out) and is NOT folded into this
+  cluster (different, milder magnitude, no evidence of the same
+  mechanism).
+  **Follow-up 2026-09-24 (leading hypothesis found, NOT empirically
+  confirmed — medium confidence):** traced all four classes' asymp/wald/
+  score/gradient/lik_ratio dispatch to the shared machinery in
+  `inference_all_abstract_asymp_lik.R` (`compute_asymp_confidence_interval`'s
+  `switch(private$testing_type, ...)`) and `inference_ext_information_matrix.R`
+  (`compute_standard_error_from_information_matrix`/
+  `compute_variance_from_information_matrix`). Both read as mathematically
+  standard (diagonal-of-inverse-information variance, with a positive-
+  definiteness guard and a `solve()`/`qr.solve()` fallback) — no wrong
+  information-matrix term, wrong link second-derivative, or wrong critical
+  value found. `Cauchit`/`AdjCatLogitRegr` inherit the shared
+  `InferenceAsympLikStdModCache` component and set `df = NA_real_`
+  (normal-quantile CI); `ContRatioRegr` (in `inference_ordinal_stereotype_logit.R`)
+  also sets `df = NA_real_`; `PartialProportionalOddsRegr` sets
+  `df = private$n - 1`. On samples in the thousands (TODO-13's rows are
+  1718-1753), t-vs-normal is negligible — **the df/critical-value
+  difference cannot explain a ~13-15 percentage-point coverage gap**, so a
+  df bug is ruled out as the (sole) mechanism.
+  **Magnitude analysis**: to produce 0.80/0.82/0.84 observed coverage
+  from a nominal-95%-target CI with a correctly-centered estimate implies
+  the true SE is **~1.40-1.53× the nominal (computed) SE** — i.e. the
+  computed information-matrix-based SE is undersized by roughly a third
+  to a half, not a small rounding-level defect.
+  **Leading hypothesis**: these are all pure model-based (Fisher-
+  information) Wald/likelihood SEs, which are asymptotically valid under
+  iid/completely-randomized sampling but have no mechanism to account for
+  EDI's actual randomization design (matched-pair, blocked, KK-family,
+  etc.) when the audit pools results across all tested designs — the
+  model SE reflects only within-model sampling variability, not any
+  extra variance (or covariance structure) the randomization mechanism
+  itself induces. This would explain uniform undercoverage across
+  wald/score/gradient/lik_ratio simultaneously (all four route through
+  the same underlying Fisher-information/likelihood machinery, unlike
+  the resampling-family methods which empirically incorporate whatever
+  variance the actual resampling exhibits). **Correction, not corroboration**:
+  a parallel investigation (`investigate_contin_quantile_regr_coverage.md`)
+  looked at the exact same design-pooling hypothesis for
+  `InferenceContinQuantileRegr`'s `"nid"` sandwich SE and **directly
+  REFUTED it** via real design-stratified data — plain `Bernoulli` design
+  showed essentially the same undercoverage magnitude (0.908-0.924) as
+  structured designs (`FixedBlocking` 0.875-0.920,
+  `FixedMatchingGreedy` 0.891-0.942), which a design-incompatibility
+  mechanism cannot produce (Bernoulli should have been near-nominal if
+  the SE only breaks under non-iid designs). That fork's revised leading
+  candidate is dataset-shape/skewness sensitivity instead. **This
+  earlier note's claim of corroboration was written before that
+  refutation was available and is wrong as stated** — the design-pooling
+  hypothesis for THIS (ordinal) cluster remains an open, independently-
+  standing hypothesis, not one with cross-class support. Do not cite the
+  ContinQuantileRegr finding as supporting evidence for it going forward;
+  if anything it's a data point against the design-pooling mechanism
+  being a general explanation across response types.
+  **RESOLVED 2026-09-24 (follow-up fork, high confidence): design-pooling
+  hypothesis definitively REFUTED, and the real mechanism found — a
+  harness truth-registry gap, not a package SE bug, for 3 of the 4
+  classes.**
+
+  The result CSVs stabilized enough for a direct design-stratified query
+  this pass. Filtering to the 5 asymp-family CI methods across all 4
+  classes (29,748 rows): `Bernoulli` design shows **0.832** coverage,
+  essentially identical to the pooled non-Bernoulli average (**0.820**),
+  and sits mid-pack among individual structured designs (range
+  0.746-0.864 across `FixedBinaryMatch`/`FixedBlocking`/
+  `FixedMatchingGreedy`/`FixediBCRD`/`KK21stepwise`/`SPBR`). A design-
+  incompatibility mechanism predicts Bernoulli should be near-nominal
+  (~0.95) while structured designs undercover — that is not what the
+  data shows. **Design-pooling is ruled out**, matching (not
+  "corroborating" — see the correction two paragraphs up) the same
+  refutation already found for `InferenceContinQuantileRegr`.
+
+  **Real mechanism**: none of `InferenceOrdinalContRatioRegr`,
+  `InferenceOrdinalCauchitRegr`, `InferenceOrdinalAdjCatLogitRegr`, or
+  `InferenceOrdinalPartialProportionalOddsRegr` appear in
+  `comprehensive_tests.R`'s `COVERAGE_CLOSED_FORM`/`COVERAGE_MC_SPEC`
+  truth registries, so all 4 fall back to raw `beta_T_val` as ground
+  truth. The harness's ordinal DGP (`comprehensive_tests.R:3107/3129`,
+  `p_t = plogis(qlogis(p_base) + bt + eps)`) generates outcomes under a
+  **cumulative-logit (proportional-odds) shift model** — this is the
+  EXACT same mechanism already confirmed responsible for
+  `InferenceOrdinalRidit`'s coverage bug (see the comment immediately
+  above this entry in the registry, "found 2026-09-06"): raw `beta_T` is
+  only the correct truth for an estimator whose target parameter is
+  literally the cumulative-logit log-odds shift.
+
+  Checked each of the 4 classes' actual generative model against this:
+  - **`InferenceOrdinalCauchitRegr`**: uses `stats::pcauchy` as its link
+    (confirmed at `inference_ordinal_cauchit.R:114`, and its own docstring
+    at `:266-273` states the model explicitly as a cauchit-link cumulative
+    model) — genuinely misspecified relative to the logit-link DGP. Under
+    model misspecification the MLE converges to a KL-divergence-minimizing
+    pseudo-true value, not `beta_T` — **CONFIRMED same class of bug as
+    Ridit.**
+  - **`InferenceOrdinalAdjCatLogitRegr`**: adjacent-category logit is a
+    genuinely different ordinal model family from proportional-odds/
+    cumulative-logit despite the shared word "logit" in the name — the
+    package's own documentation (`inference_ordinal_stereotype_logit.R:463`)
+    explicitly groups "proportional-odds/adjacent-category/continuation-
+    ratio" as three *distinct* families. **CONFIRMED same class of bug.**
+  - **`InferenceOrdinalContRatioRegr`**: continuation-ratio is likewise a
+    distinct sequential/hazard-style model, not cumulative-logit
+    (`fast_continuation_ratio_regression_cpp`,
+    `inference_ordinal_stereotype_logit.R:570-693`). **CONFIRMED same
+    class of bug.**
+  - **`InferenceOrdinalPartialProportionalOddsRegr`**: uses
+    `VGAM::cumulative(link = "logitlink", parallel = ...)`
+    (`inference_ordinal_partial_proportional_odds.R:536,562,594`) — the
+    **SAME logit link as the DGP**, and a strict generalization of the
+    proportional-odds model (relaxes the parallel-lines constraint for
+    specific covariates) that nests the true PO-logit model as a special
+    case. **This class is correctly specified, NOT explained by the
+    truth-mismatch mechanism** — its coverage problem is a genuinely
+    separate, still-open issue (new TODO-18, appended at the end of this
+    file's TODO list).
+
+  **Fix, and where it belongs**: like the Ridit precedent, the fix is
+  adding `InferenceOrdinalCauchitRegr`/`AdjCatLogitRegr`/`ContRatioRegr`
+  to `COVERAGE_MC_SPEC` with MC-refit truth (a test-harness change, not
+  an EDI package source-code fix — these classes' actual inference is
+  not necessarily wrong, only the audit's comparison target was wrong).
+  Following this session's established convention for this exact class
+  of finding (Ridit, `InferenceSurvivalKMDiff`, `KKGLMM`/`KKCLMMCauchit`
+  all filed under `mc_coverage_truth_covariate_mismatch.md` and tracked
+  in `release_v1_0_5.md`, not `release_v1_5_0.md`, since `release_v1_5_0.md`
+  is scoped to confirmed EDI *source* bugs), this is filed the same way
+  — see `mc_coverage_truth_covariate_mismatch.md`'s new TODO-10 and
+  `release_v1_0_5.md`'s updated TODO-16 cross-reference, not added to
+  `release_v1_5_0.md`.
+  **Also checked**: `InferenceOrdinalGCompMeanDiff`'s `TODO-28` candidacy —
+  **cleanly REFUTED**. Read `inference_ordinal_gcomp.R` in full:
+  `compute_estimate_with_bootstrap_weights()` calls
+  `weighted_gcomp_md_from_row_weights()`, which never calls
+  `create_design_matrix()` anywhere in the file, and the class has no
+  `supports_reusable_bootstrap_worker()` override (inherits the base
+  `FALSE`). Not a `TODO-28` candidate at all; its `low_coverage`/
+  `biased_estimate` findings need independent root-causing, not
+  cross-referencing to `bootstrap_worker_stale_design_matrix.md`.
+- [ ] TODO-14 (added 2026-09-24, same reconciliation pass — new, no
+  prior coverage in this file): `InferenceOrdinalOrderedProbitRegr` (12
+  new findings). Milder broad undercoverage on the asymp/wald/gradient/
+  jackknife_wald/lik_ratio/score family (0.914-0.918, less severe than
+  TODO-13's cluster) plus resampling-family mostly fine-to-over
+  (`m_out_of_n_bootstrap`/`subsampling` 0.978-0.981), BUT one sharp
+  outlier: `compute_bayesian_bootstrap_confidence_interval_basic` at
+  **0.760** (n=705) — much worse than the rest of this class's own
+  findings and worth investigating on its own rather than folding into
+  the broader mild pattern. A small `biased_estimate` finding also flags
+  `compute_estimate` (+0.0192 bias, ACAT p=3.26e-04) — plausibly ordinary
+  finite-sample probit-MLE bias, not separately investigated. Per TODO-2's
+  audit, `OrderedProbitRegr` does not negate its native coefficient, so
+  `Bug 2` does not apply. Not root-caused; light priority given the milder
+  magnitude on the main cluster, but the 0.760 outlier deserves a direct
+  look.
+- [ ] TODO-15 (added 2026-09-24, same reconciliation pass — reconciles
+  `TODO-9`'s pre-pruning numbers against fresh data): `InferenceOrdinalKKCondAdjCatLogitRegr`'s
+  exact previously-cited cell (`compute_bayesian_bootstrap_confidence_interval_basic`
+  at 0.083, n=109) no longer appears in a fresh audit run — the closest
+  current findings are `compute_bayesian_bootstrap_confidence_interval`
+  (unsuffixed, 0.890, n=109) and `compute_bootstrap_confidence_interval_studentized`
+  (0.830, n=53), both meaningfully less severe than the original 0.083.
+  Likely explanation: this session's `prune_stale_result_rows.R --apply`
+  run removed old degenerate rows for other classes broadly, and/or the
+  underlying result CSVs have simply accumulated more (differently
+  distributed) rows since TODO-9 was written — not confirmed which. TODO-9
+  itself remains open and its root-cause investigation (this class's own
+  `compute_estimate_with_bootstrap_weights()` override, not yet read) is
+  still the right next step; treat the new, less-severe numbers as an
+  update, not a resolution.
+- [ ] TODO-16 (added 2026-09-24, same reconciliation pass — likely
+  benign): `InferenceOrdinalPropOddsRegr`'s 3 new findings
+  (`compute_bootstrap_confidence_interval_basic` 0.982,
+  `compute_m_out_of_n_bootstrap_confidence_interval` 0.986,
+  `compute_subsampling_confidence_interval` 0.983) are all mild
+  OVER-coverage on resampling-family methods only — same shape as this
+  session's other closed-as-benign findings (RiskDiff/RiskRatio
+  low_power, IncidLogRegr/ProbitRegr low_coverage). Likely not a bug;
+  not investigated further given the low severity.
+- [ ] TODO-17 (added 2026-09-24, same reconciliation pass — connects an
+  existing TODO to fresh data, not new): `InferenceOrdinalCloglogRegr`'s
+  10 new `low_coverage` findings span `asymp`/`wald`/`score`/`gradient`/
+  `lik_ratio`/`jackknife_wald` (0.860-0.912, undercoverage) plus 3
+  resampling methods (`bootstrap_basic`/`m_out_of_n_bootstrap`/
+  `subsampling`, all mild OVER-coverage 0.981-0.986) and
+  `bayesian_bootstrap_confidence_interval_wald` (0.807). Notably,
+  `compute_param_bootstrap_confidence_interval` — the method `TODO-8`
+  already flagged at severe 0.46 undercoverage, directly tied to `Bug 2`'s
+  sign mismatch — does NOT appear in this fresh new-findings list at all;
+  not confirmed whether that means it's been resolved, its rows were
+  pruned, or it simply didn't regenerate fresh rows this run. Given
+  `Bug 2` is confirmed but NOT YET FIXED, `compute_param_bootstrap_confidence_interval`
+  should still be badly undercovering — this needs a direct fresh check,
+  not an assumption either way. Separately, most of these 10 new findings
+  (the `asymp`/`wald`/`score`/`gradient`/`lik_ratio` family specifically)
+  more plausibly connect to `TODO-10`'s already-flagged MAIN-fit outlier
+  contamination (quasi-separation/boundary non-convergence under `~.`) —
+  those methods use the observed fit directly, not the null-refit `Bug 1`/
+  `Bug 2` touch — so a badly-estimated point estimate with an otherwise
+  correctly-sized CI naturally undercovers. Not confirmed, but a more
+  parsimonious explanation than treating this as a third bug.
+
+- [ ] TODO-18 (added 2026-09-24, from the TODO-13 design-pooling
+  follow-up — confirmed real, mechanism unresolved, NOT explained by the
+  truth-mismatch fix above): `InferenceOrdinalPartialProportionalOddsRegr`'s
+  asymptotic-family `low_coverage` findings (0.817-0.868). Unlike its 3
+  siblings above, this class uses `VGAM::cumulative(link = "logitlink",
+  parallel = ...)` — the SAME logit link as the harness's cumulative-logit
+  DGP, and a strict generalization of proportional-odds that nests the
+  true model, so raw `beta_T` should be a consistent target here (not a
+  truth-registry problem). Needs independent root-causing: read its
+  actual SE extraction from the `VGAM::cumulative` fit (does it correctly
+  extract/aggregate the parallel-vs-non-parallel coefficient structure's
+  variance for the treatment covariate specifically?), or check whether
+  the partial-PO relaxation itself introduces extra estimation variance
+  the asymptotic SE under-accounts for.
+
 ## Standing constraints
 
 Same as `multimodal_log_liks.md`/`stale_worker_cache_resampling.md`:

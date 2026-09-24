@@ -82,6 +82,7 @@ Suggests:
     pscl,
     qpdf,
     quantreg,
+    R.utils,
     RcppXPtrUtils,
     Rfit,
     rmarkdown,

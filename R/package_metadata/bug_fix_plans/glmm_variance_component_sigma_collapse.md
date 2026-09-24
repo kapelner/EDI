@@ -70,6 +70,15 @@ worse likelihood.
 - [ ] **TODO-6: Comprehensive-test regeneration** for the affected KK
   classes after the fix, per the standing pruning workflow.
 
+## Cross-links (kept in sync 2026-09-24)
+
+Each of these carries a matching "Fed by"/"Related" note pointing back here:
+`../new_feature_plans/multistart_nonconcave_likelihoods.md` (v1.2.0),
+`../new_feature_plans/optimizer_diagnostics_report.md` and
+`../new_feature_plans/public_diagnostics_api_spec.md` (v1.1.0, boundary vs.
+failure classification), `../new_feature_plans/cold_starts.md`, and
+`multimodal_log_liks.md` (same v1.0.5 wave, stereotype logit).
+
 ## Explicitly out of scope
 
 - The general multistart infrastructure (`multistart_nonconcave_likelihoods.md`).

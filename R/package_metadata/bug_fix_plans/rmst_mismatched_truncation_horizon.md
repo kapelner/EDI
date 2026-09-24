@@ -163,13 +163,98 @@ threw `attempt to apply non-function`," `:179-191`) — worth checking
 whether the Bayesian-bootstrap `_basic` variant has an analogous, still-
 unfixed dispatch gap; that's the concrete next step, not yet done.
 
-- [ ] TODO-8: Trace `compute_bayesian_bootstrap_confidence_interval_basic`'s
-  actual dispatch for `InferenceSurvivalDepCensTransformRegr` — check for
-  an analogous unfixed `_basic`/`_bca` dispatch gap to the one already
-  documented and fixed for the plain bootstrap-family methods in this same
-  file.
-- [ ] TODO-9: Reproduce and root-cause once TODO-8 narrows the search;
-  low confidence on mechanism until then.
+**Cross-validation, 2026-09-24**: a fresh full-package audit run
+surfaced 4 findings for this class (not yet the full picture, more
+`function_run`s than the single `_basic` one above): `compute_bayesian_bootstrap_confidence_interval_wald`
+OVER-coverage (1.000 at n=124, 0.995 at n=202), plain
+`compute_bayesian_bootstrap_confidence_interval` UNDER-coverage (0.832 at
+n=202 — this may be the same signal as the `_basic` finding above,
+different variant), and `compute_rand_bootstrap_confidence_interval_smoothed`
+OVER-coverage (1.000 at n=137). The mix of both directions (over AND
+under, across different Bayesian-bootstrap CI-formula variants for the
+SAME underlying estimate) argues against a single simple explanation and
+for something variant-specific in how each CI formula reads the shared
+bootstrap distribution — consistent with, but not proof of, the
+suspected `_basic`-style dispatch-gap hypothesis above. Not further
+investigated this pass; the RMST fix (TODO-1..7 above) is unrelated to
+this class (`DepCensTransformRegr` doesn't use RMST) and should proceed
+independently.
+
+- [x] TODO-8 (2026-09-24, done — refuted as originally framed): Traced the
+  dispatch. `compute_bayesian_bootstrap_confidence_interval()`
+  (`inference_all_abstract_bayesian_bootstrap.R:404-489`) is a **single
+  shared method** dispatching internally on a `type=` parameter
+  (`"percentile"`/`"basic"`/`"wald"`/`"studentized"`/`"bca"`), not a set
+  of separately-named `_basic`/`_wald`/etc. methods — unlike the plain
+  (non-Bayesian) bootstrap family, where `_basic`/`_bca` really were
+  distinct, previously-unimplemented method names. So there is no
+  analogous "missing method" dispatch gap to find here; the `_basic`
+  suffix in `comprehensive_tests.R`'s `function_run` naming is the
+  harness's own convention for `type="basic"`, not a real second method.
+  The `"basic"` type falls through to the generic
+  `ci_from_boot_distribution()` (`inference_all_abstract_non_param_boot.R:1700-1705`)
+  → `bootstrap_ci_from_distribution()` — **the same shared `"basic"`
+  CI-formula helper already confirmed defective for HL-ties-at-zero data
+  in `simple_wilcox_hl_degenerate_pval_boundary.md`'s `TODO-1`**. This
+  class has no HL-tie mechanism (it's a survival transform-regression
+  estimator, not a rank-based one), so that specific tie-driven defect
+  doesn't directly transfer — but it raises the real possibility that
+  `bootstrap_ci_from_distribution()`'s `"basic"` formula has a broader,
+  non-tie-specific defect that both classes are independently exposing.
+  Not confirmed either way for this class.
+- [x] TODO-9 (2026-09-24, done — refuted): read
+  `bootstrap_ci_from_distribution()` (`helper_bootstrap_ci.R:5-22`) in
+  full. **No code-level defect** — the `"basic"` branch
+  (`2 * est - stats::quantile(boot_distr, probs = c(1 - alpha/2,
+  alpha/2), type = 8)`) matches the textbook basic/reflection-bootstrap
+  formula exactly: quantile probs are ordered `(1-alpha/2, alpha/2)`
+  (high then low), so `2*est` minus each, in that order, yields
+  `(lower, upper)` correctly. No swapped order, no off-by-one, `type = 8`
+  (a defensible, commonly-recommended quantile type) is used
+  consistently. Does **not** explain the Wilcox/MeanDiffPooledVar
+  findings — this rules out a shared-formula bug as their common cause;
+  those remain explained by their own already-confirmed, independent
+  mechanisms (`TODO-1`/`TODO-2` in `simple_wilcox_hl_degenerate_pval_boundary.md`).
+  **Correction to this file's own "Cross-validation" note above**: the
+  plain, unsuffixed `compute_bayesian_bootstrap_confidence_interval`
+  function_run does **not** call `type="basic"` — traced its dispatch
+  (`inference_all_abstract_bayesian_bootstrap.R:404-489`,
+  `type = tolower(type %||% "percentile")`) and its harness call site
+  (`comprehensive_tests.R:2698`, no `type=` argument passed) — it
+  defaults to `type="percentile"`, a *different* CI-formula branch
+  entirely (raw `quantile(boot_distr, probs=c(alpha/2, 1-alpha/2))`, no
+  reflection). So the fresh audit's 0.832-under-coverage finding for the
+  plain function_run is on the **percentile** method, not `"basic"` —
+  update any downstream reasoning accordingly; only the harness's
+  explicit `_basic`-suffixed `function_run` (`bayes_ci_type="basic"` at
+  `comprehensive_tests.R:2700-2701`, a separate historical-baseline entry
+  at 0.55/0.74 coverage, not re-confirmed this pass) actually exercises
+  the `"basic"` branch.
+  **Root cause is the shape of this class's own bootstrap distribution,
+  not a code defect**: the observed pattern — `percentile`/`"basic"`
+  both undercover, `wald` (symmetric, SD-based, ignores boot_distr's
+  actual shape) overcovers on the SAME underlying estimate/distribution —
+  is the textbook signature of a skewed or biased-mean bootstrap
+  distribution: quantile-based methods (percentile, basic/reflection)
+  are known to perform poorly (typically undercovering on the skewed
+  side) under skew, while a symmetric normal-approximation method using
+  only the SD is comparatively insensitive to that skew and instead
+  tends to over-cover if the SD is inflated by the same asymmetry/heavy
+  tail. This is a **known methodological weakness of the basic/
+  percentile bootstrap under a skewed sampling distribution**, not a
+  bug in `bootstrap_ci_from_distribution()` or in `DepCensTransformRegr`'s
+  estimate. Not independently confirmed via a direct skewness
+  measurement of this class's actual `boot_distr` (would need a
+  standalone repro) — recommend closing this as accepted/documented
+  behavior unless someone measures the skewness directly and it turns
+  out to be mild (which would reopen the question). **Not added to
+  `release_v1_5_0.md`** — no code defect confirmed, and the
+  methodological-weakness explanation, if it holds, isn't something a
+  one-line fix addresses (the enhancement would be "prefer BCa/
+  studentized over basic/percentile for skew-prone estimators," a
+  design decision, not a bug fix — worth a separate, lower-priority
+  enhancement note if the skewness is later confirmed, not a v1.5.0 item
+  now).
 
 ## Standing constraints
 

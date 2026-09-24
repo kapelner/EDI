@@ -162,8 +162,8 @@ R/package_metadata/new_research_ideas
 
 # Belt-and-suspenders: already covered by the blanket rule above, named
 # explicitly in case that rule ever narrows
-R/package_metadata/new_research_ideas/grants/RcISC/isc_grant.pdf
-R/package_metadata/new_research_ideas/grants/RcISC/isc_grant.html
+R/package_metadata/new_research_ideas/grants/26_10_01_RcISC/isc_grant.pdf
+R/package_metadata/new_research_ideas/grants/26_10_01_RcISC/isc_grant.html
 
 # Local shell, Git, and editor configuration
 .bash_profile

@@ -171,6 +171,62 @@ bootstrap-weight generation itself, shared with the whole
 `BayesianBootstrap` component — if buggy there, a much broader
 shared-machinery finding, not PooledVar-specific), or a live reproduction.
 
+## Cross-validation against the fresh full-package audit run, 2026-09-24
+
+A fresh `audit_comprehensive_results.R` run (first pass against the
+`low_coverage` check since it was added, post stale-row-pruning) surfaced
+39 combined new findings for these two classes (22 Wilcox, 17
+MeanDiffPooledVar) never before baselined. Cross-checked against this
+file's existing analysis:
+
+**Confirms the existing findings (same mechanism, still real):**
+- `InferenceAllSimpleWilcox`'s bootstrap-family CIs (`compute_bootstrap_confidence_interval`/`_basic`/`_studentized`/`_bca`,
+  `compute_m_out_of_n_bootstrap_confidence_interval`,
+  `compute_subsampling_confidence_interval`) show UNDER-coverage
+  (0.84-0.93 across continuous/count/proportion) — same direction, same
+  HL-ties-at-zero mechanism already root-caused above. Magnitude is less
+  severe than the ~48-57% cited above (likely because this run is against
+  a larger/different post-pruning row set — direction and mechanism
+  match, not a discrepancy worth chasing).
+- `InferenceAllSimpleMeanDiffPooledVar`'s `compute_bayesian_bootstrap_confidence_interval_studentized`
+  shows UNDER-coverage (0.850, continuous, n=2346) — same component
+  (`BayesianBootstrap`) as the already-flagged `_basic` finding (TODO-9,
+  still open/unexplained), consistent with a shared-machinery issue in
+  that component, not resolving TODO-9 but confirming it's still live.
+
+**NOT explained by the existing writeup — genuinely new, unconfirmed:**
+- Both classes show mild but real OVER-coverage (0.96-0.995) on
+  `compute_asymp_confidence_interval`/`compute_wald_confidence_interval`/
+  `compute_rand_confidence_interval`/the `compute_rand_bootstrap_confidence_interval*`
+  family. These are NOT with-replacement-bootstrap-of-tied-data paths (asymp/wald
+  are closed-form; `rand`/`rand_bootstrap` permute rather than resample
+  with replacement) — the HL-ties-at-zero mechanism explains
+  under-coverage from an artificially narrow `boot_distr`, not
+  over-coverage from a different code path entirely. This is a
+  genuinely separate, unexplained pattern, not investigated further here.
+- `InferenceAllSimpleMeanDiffPooledVar`'s `compute_wald_confidence_interval`
+  shows a striking response-type-dependent DIRECTION FLIP: OVER-coverage
+  (0.962) on `continuous`, but UNDER-coverage (0.862) on `count` — same
+  function, opposite miscalibration direction depending on response type.
+  Not explained by anything in this file; worth its own look.
+- `InferenceAllSimpleMeanDiffPooledVar ~ compute_jackknife_wald_confidence_interval`
+  shows UNDER-coverage (0.892, continuous) — raises a possible connection
+  to `release_v1_0_5.md`'s `TODO-29` (`InferenceAllSimpleAverageDiff`'s
+  separate, also-unexplained `jackknife_wald` coverage finding) — two
+  sibling "AllSimple" classes both showing `jackknife_wald` problems is
+  suggestive of a shared mechanism in whatever jackknife-Wald machinery
+  they share, but NOT confirmed — flagging the connection, not claiming it.
+
+**Net**: roughly half of the 39 new findings (the bootstrap-family/
+Bayesian-bootstrap-studentized undercoverage, ~18-20 of 39) are explained
+by mechanisms already documented in this file. The other half — the
+asymp/wald/rand-family over-coverage, the count-response wald direction
+flip, and the jackknife_wald under-coverage — are NEW, unexplained, and
+not covered by TODO-1..9. Do not treat this file as closing out all 39
+findings; only the originally-documented HL-ties bug (Wilcox) and the
+Welch/pooled-variance override gap (MeanDiffPooledVar TODO-8) are
+confirmed, fixable bugs as of this cross-validation.
+
 ## TODOs
 
 - [ ] TODO-1: Confirm the trace above with a direct repro:

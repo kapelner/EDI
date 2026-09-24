@@ -98,6 +98,26 @@ place) not yet decided — needs the root-cause trace below first.
 - [ ] TODO-8: Regenerate affected `comprehensive_tests` CSV rows once
   fixed and installed (only after install, not before).
 
+## Scope widened 2026-09-24: broad CI undercoverage, not just the jackknife estimate
+
+A fresh full-package audit run cross-validated the `biased_estimate`
+finding above (exact match) and ALSO surfaced 8 `low_coverage` findings
+for this class not previously tracked here: `compute_asymp_confidence_interval`,
+`compute_bayesian_bootstrap_confidence_interval` (plain/`_basic`/`_bca`/`_wald`),
+`compute_bootstrap_confidence_interval_studentized`,
+`compute_subsampling_confidence_interval`, `compute_wald_confidence_interval`
+— all UNDER-coverage, 0.87-0.91, over 237-390 rows each (all firmly
+FDR-significant, not borderline). This spans asymptotic AND every
+resampling family at once, which argues for a shared cause upstream of
+any one estimation method — plausibly the same root mechanism as the
+jackknife outliers (a degenerate/near-singular configuration in the
+underlying marginal-Weibull fit that inflates variance broadly, not just
+in leave-one-out folds), but NOT CONFIRMED to be the same bug — could
+also be independent. TODO-1/TODO-2's root-cause trace should check
+whether the degenerate-configuration mechanism it finds for the jackknife
+loop also explains the general SE/CI machinery's undercoverage, or
+whether this needs separate root-causing.
+
 ## Standing constraints
 
 Same as `stale_worker_cache_resampling.md`: no `R CMD INSTALL`/rebuild

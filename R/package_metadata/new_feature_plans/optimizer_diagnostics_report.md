@@ -4,6 +4,7 @@
 > **Fed by (v1.0.5):** `../bug_fix_plans/guard_unguarded_information_inverse.md` — the
 > `SolverDiagnostics` component (TODO-3) should absorb its SE-nonestimable reasons and the shared helper's invertible/not
 > status rather than re-derive them.
+> **Fed by (v1.0.5):** `../bug_fix_plans/glmm_variance_component_sigma_collapse.md` — its fix must not let a non-stationary `log sigma` boundary stop be reported as `converged = TRUE`; the `SolverDiagnostics` boundary-vs-failure classification should key on the gradient norm at the stop, not on the boundary alone. (`release_v1_0_5.md → TODO-31`.)
 
 > **Update (2026-08-14).** This report predates two completed migrations; read
 > its proposals through them. (1) `fix_inference_hierarchy.md`: the proposed

@@ -918,7 +918,7 @@ ticked in their **owning plans**; this list is the release index.
   assumption gates once both exist (the gate is optional for the pilot;
   the assumption-light fallback class is mandatory regardless).
   Externally: this is the scoped deliverable of the R Consortium ISC
-  proposal (`new_research_ideas/grants/RcISC/isc_grant.qmd`; the
+  proposal (`new_research_ideas/grants/26_10_01_RcISC/isc_grant.qmd`; the
   earlier LaTeX draft was deleted 2026-09-07), re-scoped 2026-09-06 to
   this widened Phase A and carrying no blinding claims.
 - [ ] TODO-17z: **`ModelDiagnostics` — declaration contract + pilot

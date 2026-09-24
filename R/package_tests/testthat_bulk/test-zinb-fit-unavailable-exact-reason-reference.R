@@ -1,14 +1,22 @@
 library(testthat)
 library(EDI)
 
-# InferenceCountZeroInflatedNegBin's "no genuine excess zeros" nonestimable path is already covered as
-# a pinned OBSERVATION in test-count-classes-estimates-match-glm-nb-and-pscl-and-zinb-kernel-reference.R
-# -- that test's own header comment even NAMES the reason ("zinb_fit_unavailable") but never actually
-# asserts it via get_nonestimable_reason()/is_nonestimable(), only that the estimate becomes NA and the
-# CI is all-NA. This closes that gap directly, matching the same "boolean/NA checked, exact reason
-# string never asserted" pattern already closed for InferenceIncidLogRegr and InferenceIncidKKModified
-# Poisson in earlier iterations. Same fixture (seed = 4, n = 200, no injected zero inflation) as the
-# pinned-observation test, so the reason is reached exactly the same way.
+# 2026-09-24: this file originally pinned a "zinb_fit_unavailable" nonestimable
+# reason for this fixture (no genuine excess zeros), mirroring the sibling
+# OBSERVATION in test-count-classes-estimates-match-glm-nb-and-pscl-and-zinb-
+# kernel-reference.R. That reason is no longer reached here: fast_zinb.cpp's
+# accept_zinb_near_stationary_gradient() (added after tracing a deterministic
+# CI-only non-convergence -- runs 35921934011/35954909878/35960688203, always
+# the exact same optimizer iterate) now accepts this fixture's fit as
+# converged instead of failing it, since it was already unambiguously near-
+# stationary. Verified locally (independent of that fix, since this fixture
+# converges cleanly without needing the new fallback in every local
+# environment tried): both the point estimate AND a second compute_estimate()
+# call stay finite and the fit is never marked nonestimable("estimate") here.
+# The asymptotic CI/p-value do still come back NA -- a separate, narrower SE-
+# specific gap this fixture also happens to hit, unrelated to the fit-
+# convergence fix and NOT flagged via is_nonestimable()/get_nonestimable_
+# reason() at all, so nothing here asserts an exact reason string anymore.
 
 skip_if_not_installed("pscl")
 
@@ -26,15 +34,16 @@ zinb_no_excess_zeros_fixture <- function(seed = 4L, n = 200L) {
 	inf
 }
 
-test_that("with no genuine excess zeros, the full-fit failure caches the exact reason 'zinb_fit_unavailable'", {
+test_that("with no genuine excess zeros, the point estimate is finite and stable even though the asymptotic CI is not", {
 	inf <- zinb_no_excess_zeros_fixture()
 	e1 <- inf$compute_estimate()
-	expect_true(is.finite(e1))                                             # estimate-only value still exists
+	expect_true(is.finite(e1))
 
 	ci <- suppressWarnings(inf$compute_asymp_confidence_interval())
 	expect_true(all(is.na(ci)))
 
-	expect_true(is.na(inf$compute_estimate()))                             # the full fit having failed now poisons the cached estimate
-	expect_true(inf$is_nonestimable("estimate"))
-	expect_identical(inf$get_nonestimable_reason(), "zinb_fit_unavailable")
+	e2 <- inf$compute_estimate()
+	expect_true(is.finite(e2))
+	expect_equal(e2, e1)
+	expect_false(inf$is_nonestimable("estimate"))
 })

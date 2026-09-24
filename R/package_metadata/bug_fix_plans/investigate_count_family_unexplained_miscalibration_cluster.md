@@ -1,7 +1,9 @@
 # Investigation: Count-Family Classes With Confirmed-Real, Unexplained Miscalibration — Ruled Out From Every Known Mechanism So Far
 
 > **Depends on:** none. (Global ordering: see `_master.md`.) Slated for
-> `release_v1_0_5.md → TODO-31`. Surfaced 2026-09-24 as a byproduct of three
+> `release_v1_0_5.md → TODO-50` (renumbered 2026-09-24 from TODO-31 — a
+> concurrent session's unrelated TODO-31/32 pair collided with this one;
+> see that file's TODO-50 entry). Surfaced 2026-09-24 as a byproduct of three
 > other investigations (`guard_unguarded_information_inverse.md`/TODO-4,
 > `bootstrap_worker_stale_design_matrix.md`/TODO-28-29) that each explicitly
 > ruled these classes OUT from the mechanism they were chasing, leaving the
@@ -92,7 +94,8 @@ out, so `min_eigenvalue_information` is never populated. This looked like
 dead code, not a cause of the miscalibration above (there was no live
 caller to rule in or out) — noted as "minor, unrelated cleanup, not
 investigated further" in `release_v1_0_5.md → TODO-4`'s own text. Tracked
-separately as `release_v1_0_5.md → TODO-32` (a one-line cleanup item, not
+separately as `release_v1_0_5.md → TODO-51` (renumbered from TODO-32 for
+the same collision noted above; a one-line cleanup item, not
 part of this investigation) — mentioned here only so a reader of this file
 doesn't also lose track of it.
 

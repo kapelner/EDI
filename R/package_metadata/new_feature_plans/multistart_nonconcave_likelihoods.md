@@ -21,6 +21,7 @@
 > `optimizer_diagnostics_report.md` (the `LikelihoodFitResult` fields the new
 > provenance sits beside), `quantum_upgrade.md → §II.6.1` (the audit that
 > found the gap).
+> **Fed by (v1.0.5):** `../bug_fix_plans/glmm_variance_component_sigma_collapse.md` — observed-wrong-answer instances of this problem (GLMM/CLMM `log sigma` boundary collapse with a false `converged = TRUE`), fixed narrowly first; this plan should reuse that fix's start values/multistart as its first application rather than compete with it. (`release_v1_0_5.md → TODO-31`.)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

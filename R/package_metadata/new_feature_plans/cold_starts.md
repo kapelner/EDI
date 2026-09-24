@@ -8,6 +8,7 @@
 > layer); for the concave kernels a single start is provably sufficient and
 > nothing here changes. That plan's TODO-8 adds a "Multistart" section to
 > this file.
+> **Related (v1.0.5):** `../bug_fix_plans/glmm_variance_component_sigma_collapse.md` — the ordinal CLMM `log sigma = -3` warm start and the logistic GLMM default cold start are concrete bad cold starts; this plan's smart-start work should adopt that fix. (`release_v1_0_5.md → TODO-31`.)
 
 This report summarizes how the "smart cold start" (initial parameter selection from no prior knowledge) is performed for each likelihood path in the `EDI` package. 
 

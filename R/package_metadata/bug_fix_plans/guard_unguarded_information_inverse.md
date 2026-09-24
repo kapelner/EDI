@@ -138,6 +138,18 @@ negligible.
   design-side sites for the same guard), and `fast_gamma_functions.h:98`
   (an elementwise array reciprocal, not a matrix inverse — fine). Record
   the disposition of each in this file.
+- [ ] **TODO-6: Confirm and standardize the rejection reason names.** Before
+  implementing TODO-2, list, for each of the five classes
+  (`InferenceCountNegBin`, `InferenceCountZeroInflatedNegBin`,
+  `InferenceCountZeroInflatedPoisson`/`Hurdle*` via the zero-augmented
+  abstract, `InferencePropBetaRegr`), the `cache_nonestimable_se()` reason its
+  R wrapper would use when the helper reports a non-invertible block, and
+  confirm it follows the existing `<class-prefix>_standard_error_unavailable`
+  convention (default `standard_error_unavailable`; Beta uses
+  `model_standard_error_unavailable`). Record the chosen string per class
+  here, make the helper return an invertible/not status alongside the `NaN`
+  inverse, and have TODO-3's tests assert the reason string, not just `NA`.
+  See "Diagnostics coordination" below for the reasoning.
 
 ## Diagnostics coordination (2026-09-24, user decision)
 

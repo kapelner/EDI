@@ -147,6 +147,12 @@ for the full index.
   optimal-blocks design path, and silent `NA` results without recorded
   reasons.
 
+- **[`InferenceAllSimpleAverageDiff` bootstrap/jackknife standard-error quality](R/package_metadata/bug_fix_plans/investigate_average_diff_bayesian_jackknife_se_quality.md)** —
+  The studentized Bayesian-bootstrap and jackknife-Wald intervals are the
+  worst-covering methods for this class across all five response types.
+  An open investigation; the leading, unconfirmed hypothesis is an
+  effective-sample-size asymmetry in the standard error.
+
 ---
 
 ## v1.1.0 — Inference Quality and CPU Performance

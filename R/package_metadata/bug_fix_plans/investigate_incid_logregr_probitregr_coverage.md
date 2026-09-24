@@ -2,9 +2,11 @@
 
 > **Depends on:** none. Found 2026-09-24, via a dedicated cross-class fork
 > triaging the 650 new `audit_comprehensive_results.R` findings surfaced
-> after this session's `prune_stale_result_rows.R --apply` run. **Medium
-> confidence lean toward "likely benign finite-sample conservativeness,
-> not a bug"** — evidence and reasoning below; not fully resolved.
+> after this session's `prune_stale_result_rows.R --apply` run. **CLOSED
+> 2026-09-24 (same day, follow-up fork)** for the broad over-coverage
+> pattern — confirmed benign, see "Resolution" below. One real,
+> confirmed-mechanism bug candidate spun off separately: the
+> jackknife-Wald CI-centering issue, slated `release_v1_5_0.md`.
 
 ## The finding
 
@@ -106,34 +108,126 @@ worsens with more covariates relative to effective sample size,
 uncorrected here — no Firth/bias-reduction applied) — likely benign, but
 not confirmed against this specific harness's covariate count/n ratio.
 
+## Resolution 2026-09-24 (follow-up fork)
+
+**Explanation (A) is mechanistically CONFIRMED for `InferenceIncidLogRegr`**
+(code-read, not hypothesis): `estimand = "conditional"` is the class's
+documented default (`inference_incidence_logit.R:429`), `comprehensive_tests.R`
+never calls `set_estimand()` for this class (`grep` confirms zero hits), so
+`compute_estimate()` genuinely returns the conditional log-odds coefficient
+by default in this harness — while `compute_incid_logit_coverage_truth()`
+(`comprehensive_tests.R:3207`) computes the marginal contrast. This is a
+real truth/estimand mismatch, the same bug family as
+`fix_mc_coverage_truth_covariate_mismatch.md`. **However**, per that
+file's own reasoning, a truth/estimand mismatch more naturally predicts
+under- not over-coverage, and `InferenceIncidProbitRegr` (MC-refit truth,
+immune to this specific mismatch — it refits the model's own estimand,
+not a closed form) shows the **identical** over-coverage magnitude/breadth.
+That parity is decisive: explanation (A) is real but is **not** the driver
+of the observed over-coverage — it's a separate, lower-priority
+truth-definition-accuracy issue in the audit harness. Cross-linked into
+`fix_mc_coverage_truth_covariate_mismatch.md` as a new TODO per this
+file's original TODO-4 (see that file).
+
+**The broad over-coverage itself is CLOSED as benign (explanation B)** —
+Probit's parity with LogRegr under an estimand-consistent truth is strong
+evidence this is ordinary finite-sample Wald/LR conservativeness for
+binary-outcome GLMs on real (non-synthetic-Gaussian) covariate structure,
+matching the RiskDiff/RiskRatio "not a bug" precedent from earlier this
+session. Not going to `release_v1_5_0.md`. `TODO-1`'s proposed
+homogeneous-baseline-risk simulation would make this airtight but isn't
+necessary to close it at current confidence.
+
+**The `jackknife_wald` under-coverage outlier is a CONFIRMED, concrete bug
+candidate, and IS a real finding** — not closed as benign. Read
+`compute_jackknife_wald_confidence_interval()`/`compute_jackknife_summary()`
+directly (`R/EDI/R/inference_all_abstract_jackknife.R:118-145`/`229-287` —
+shared, generic machinery used by every class composing the `Jackknife`
+component, not specific to Probit): the CI is centered at the **raw**
+point estimate `theta_hat = self$compute_estimate()`, while its half-width
+uses `se_j`, the jackknife SE computed around the **delete-1 mean**
+`jack_bar` (`var_j = ((n-1)/n) * sum((jack_i - jack_bar)^2)`). The
+bias-corrected jackknife estimate `theta_j = theta_hat - bias_j` is
+computed and available but **never used to center the CI**. The
+acceptance guard only rejects cells where `abs(bias_j) > 2 * se_j`
+(`:278`) — a loose threshold that lets substantial uncorrected bias
+(up to ~2 SE) through into a CI that is only `±1.96 se_j` wide at
+`alpha=0.05`. A biased-but-accepted cell would show exactly this kind of
+coverage distortion. This is shared/generic code, not class-specific —
+plausibly also explains `TODO-2`'s (in `release_v1_0_5.md`, now `TODO-29`)
+independent `jackknife_wald` finding for `InferenceAllSimpleAverageDiff`.
+**Slated `release_v1_5_0.md → TODO-5`** (renumbered from `TODO-3`
+during a later cleanup pass; this file's own TODOs below were not
+retroactively updated at the time and referenced the stale number).
+
+### Third confirmed-affected class, 2026-09-24: `InferencePropKKGLMM`
+
+A separate investigation fork (`investigate_count_hurdle_kk_and_prop_kkglmm_coverage.md`)
+flagged `InferencePropKKGLMM`'s `compute_jackknife_wald_confidence_interval
+~1` under-coverage outlier (0.779, 136 rows, p=5.94e-12) as a candidate
+match for this same bug, hypothesizing it might instead be a *separate*
+degenerate-leave-one-out-fold issue specific to its matched-pair/clustered
+structure (by analogy to the already-confirmed `InferenceSurvivalKKWeibullMarginal`
+jackknife bug). **Checked directly — it is the SAME bug, not a separate
+one.** `InferencePropKKGLMM` (via `inference_proportion_KK_combined.R`
+and its `InferenceAbstractKKCondLogitGLMM` base) declares
+`resolve_jackknife_unit`/`jackknife_block_size_gt_one_unsupported`/
+`mark_jackknife_nonestimable_if_block_unsupported` in its component
+"overrides" list, but grepping for actual function bodies named
+`resolve_jackknife_unit = function` across `R/EDI/R/` finds them ONLY in
+the generic base (`inference_all_abstract_jackknife.R`) — these three
+names are being *kept from* the generic implementation during component
+composition, not overridden with class-specific logic. The generic
+`resolve_jackknife_unit()` already handles matched-pair designs
+design-agnostically (`private$is_KK` → `"matched_set"` unit,
+`inference_all_abstract_jackknife.R:170-185`) — there is no
+class-specific fold code for `InferencePropKKGLMM` to have a bug in.
+`compute_jackknife_summary()` and `compute_jackknife_wald_confidence_interval()`
+themselves are fully generic too (not touched by any override). This
+class therefore inherits the CI-centering bug unmodified — same
+mechanism as `InferenceIncidProbitRegr`'s outlier, just a larger observed
+coverage drop (0.779 vs. 0.926), plausibly because `InferencePropKKGLMM`'s
+matched-pair conditional-logit-style estimator has larger finite-sample
+`bias_j` than Probit's, so more bias slips past the loose
+`abs(bias_j) > 2*se_j` guard. **Third confirmed-affected class for
+`release_v1_5_0.md → TODO-5`** — no new release entry needed, this is
+the same fix. The `biased_estimate`/broad-over-coverage cluster for
+`InferencePropKKGLMM` (separate from this outlier) remains unconfirmed,
+not investigated further in this pass — see the other plan file's
+TODO-4.
+
 ## TODOs
 
-- [ ] TODO-1: Distinguish explanation (A) vs (B) directly: run a
-  synthetic simulation with a HOMOGENEOUS baseline risk (constant
-  `p_base`, removing the non-collapsibility gap of explanation A) through
-  the same `InferenceIncidLogRegr`/`asymp`/`wald` pipeline. If
-  over-coverage vanishes, (A) (or something correlated with
-  heterogeneous `p_base`) is implicated after all; if it persists, (B)
-  (benign conservativeness) is confirmed and this can likely be closed as
-  not-a-bug, matching the RiskDiff/RiskRatio precedent.
-- [ ] TODO-2: If (B) is confirmed, close this as "not a bug, documented
-  finite-sample conservativeness" and add a note to
-  `audit_comprehensive_results.R`'s baseline acceptance (or a
-  known-conservative-methods allowlist, if one gets built) rather than
-  leaving 42 individual findings unexplained forever.
-- [ ] TODO-3: Investigate `InferenceIncidProbitRegr`'s lone
-  `jackknife_wald` UNDER-coverage outlier (`~1`, 0.926) separately — check
-  whether its SE computation shares machinery with
-  `InferenceAllSimpleAverageDiff`'s `TODO-29` `jackknife_wald` finding.
-- [ ] TODO-4: If (A) is confirmed relevant (even partially), cross-link
-  this finding into `fix_mc_coverage_truth_covariate_mismatch.md` as a
-  new TODO for `InferenceIncidLogRegr`'s closed-form truth definition —
-  do not duplicate that plan's tracking structure here.
+- [x] TODO-1 (2026-09-24, superseded): resolved by direct code-level
+  argument (Probit's parity under estimand-consistent MC truth) rather
+  than the proposed simulation — see "Resolution" above. The simulation
+  remains a good idea if anyone wants airtight confirmation later, but
+  isn't blocking closure at current confidence.
+- [x] TODO-2 (2026-09-24, done): closed as benign — see "Resolution"
+  above. Not added to any release; the 42 over-coverage findings should
+  be accepted into `audit_comprehensive_results.R`'s baseline via
+  `--write-baseline` next time that's run.
+- [x] TODO-3 (2026-09-24, done): root-caused — see "Resolution" above
+  (CI-centering bug in shared jackknife machinery). Slated
+  `release_v1_5_0.md → TODO-3`.
+- [x] TODO-4 (2026-09-24, done): cross-linked — see "Resolution" above.
+  Add the actual new TODO entry to `fix_mc_coverage_truth_covariate_mismatch.md`
+  itself (not done in this pass; that file wasn't touched — do it next).
 - [ ] TODO-5: Investigate the `biased_estimate` finding for
   `InferenceIncidLogRegr ~.` (`compute_estimate`/`compute_jackknife_estimate`)
   — confirm or refute ordinary uncorrected finite-sample MLE bias as the
   explanation (e.g. by checking bias magnitude scales with
-  covariate-count/n ratio as textbook theory predicts).
+  covariate-count/n ratio as textbook theory predicts). Still open, not
+  investigated in this pass.
+- [ ] TODO-6 (new): implement the jackknife-Wald CI-centering fix in
+  `R/EDI/R/inference_all_abstract_jackknife.R` — either center the CI at
+  the bias-corrected `theta_j` instead of raw `theta_hat`, or tighten the
+  `abs(bias_j) > 2 * se_j` acceptance guard so less-biased-but-still-
+  distorting cells get excluded instead of silently miscovering. Reproduce
+  the `InferenceIncidProbitRegr ~1` outlier and `InferenceAllSimpleAverageDiff`'s
+  `TODO-29` finding first to confirm both share this mechanism before
+  picking a fix direction — they may want different fixes if the bias
+  magnitude differs qualitatively.
 
 ## Standing constraints
 

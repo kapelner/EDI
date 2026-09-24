@@ -58,18 +58,15 @@
 * `InferenceCountPoisson`'s covariance falls back to the Fisher information
   when the kernel returns no `X'WX`; `InferenceIncidLogRegr` gained an
   estimand-aware standard error and degrees of freedom.
-* Weibull and Cox fits with fixed (held) coefficients invert only the
-  free-parameter information block, so `NaN` rows for the fixed parameters
-  can no longer contaminate the free standard errors; the Cox robust
+* Weibull and Cox fits with fixed (held) coefficients now compute the
+  covariance from the free-parameter information block only and expand it
+  back, so the free coefficients' variances are finite and the fixed
+  parameters' rows and columns are `NaN` by convention; the Cox cluster-robust
   sandwich does the same.
 * OpenMP's primary thread no longer polls R's interrupt machinery while
   worker threads are active in the Wilcoxon-Hodges-Lehmann kernels.
 * `fast_ordinal_clmm` now errors on mismatched `X`/`y`/`group_id` lengths
   instead of reading out of bounds.
-* Hangs in the parallel test/inference paths that traced to an unbounded
-  wait inside `nanonext` (an upstream defect that cannot be fixed from R)
-  are bounded by EDI-side wait limits.
-
 * `InferenceIncidRiskDiff`, `InferenceCountRobustPoisson`, and the
   zero-inflated/hurdle Poisson classes reported a confident (often
   zero-width) confidence interval and `p`-value on a perfectly or

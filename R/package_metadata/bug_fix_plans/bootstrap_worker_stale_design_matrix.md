@@ -167,23 +167,46 @@ so needs independent root-causing) — confirmed by direct code read:**
   siblings above, likely NOT this bug, but unconfirmed. Independently has
   its own pre-existing lead at `TODO-20` (with-replacement bootstrap +
   quantile-regression tie sensitivity) worth checking first.
-- `InferenceOrdinalGCompMeanDiff` — GComp-family staleness check not
-  done for this class specifically.
-- The other GComp-family siblings (`InferenceIncidGCompRiskDiff`/
-  `RiskRatio` and their KK variants) — plausible-but-unverified TODO-28
-  candidates by architectural similarity to `InferencePropGCompMeanDiff`,
-  not individually call-graph-confirmed.
+
+**GComp-family verification, 2026-09-24 (settled):**
+- **CONFIRMED — 4 more classes**: `InferenceIncidGCompRiskDiff`,
+  `InferenceIncidGCompRiskRatio` (`inference_incidence_gcomp.R`) and
+  `InferenceIncidKKGCompRiskDiff`, `InferenceIncidKKGCompRiskRatio`
+  (`inference_incidence_KK_marginal.R`) all have `build_design_matrix()`
+  → `create_design_matrix()` AND `supports_reusable_bootstrap_worker() =
+  TRUE` (via the shared `incidence_gcomp_worker_overrides`/
+  `incidence_kk_gcomp_worker_overrides` lists in
+  `inference_incidence_gcomp.R`/`inference_incidence_KK_gcomp_abstract.R`),
+  and both conditions route through `create_bootstrap_worker_state()` →
+  `create_design_backed_bootstrap_worker_state()` and
+  `load_bootstrap_sample_into_worker()` →
+  `load_bootstrap_sample_into_design_backed_worker()` — the literal same
+  buggy loader function this whole plan is about. Direct code read, both
+  conditions independently verified per class, no naming-similarity
+  shortcut taken.
+- **RULED OUT**: `InferenceOrdinalGCompMeanDiff`
+  (`inference_ordinal_gcomp.R:223-228`) — its `build_design_matrix()` is a
+  custom, uncached implementation (`X_cov = private$X; cbind(...)`) that
+  never calls `create_design_matrix()` at all. Condition (1) fails
+  outright; `supports_reusable_bootstrap_worker()` status is moot. Its
+  `low_coverage`/`biased_estimate` findings are genuinely unexplained by
+  this bug.
 
 **Net effect:** this bug's confirmed scope has grown from 4 classes to
 **6** (the original 4, plus `InferenceContinRobustRegr` and
 `InferencePropFractionalLogit`; separately, `InferenceCountRobustPoisson`
 was confirmed via `release_v1_0_5.md → TODO-28`, bringing the total to
 **7**), plus `InferencePropGCompMeanDiff` (call-graph match, unconfirmed
-`supports_reusable_bootstrap_worker()` status). The entire "KKGLMM"/
-"KKCLMM"-named cluster (7 classes) and the `InferenceAbstractKKCondLogitGLMM`
-cluster (3 classes) were investigated and **ruled out** — 10 classes total,
-none susceptible, all use the fresh-per-draw-`duplicate()` path instead of
-the reused worker this bug requires. Still making this very
+`supports_reusable_bootstrap_worker()` status) and now **4 more
+confirmed GComp-family classes** (`InferenceIncidGCompRiskDiff`/
+`RiskRatio`/`KKGCompRiskDiff`/`KKGCompRiskRatio`), bringing the total
+confirmed count to **12**. The entire "KKGLMM"/
+"KKCLMM"-named cluster (7 classes), the `InferenceAbstractKKCondLogitGLMM`
+cluster (3 classes), and now `InferenceOrdinalGCompMeanDiff` were
+investigated and **ruled out** — 11 classes total,
+none susceptible, either using the fresh-per-draw-`duplicate()` path
+instead of the reused worker this bug requires, or never calling
+`create_design_matrix()` at all. Still making this very
 likely the single highest-impact fix this whole audit arc has surfaced.
 TODO-4's reproduction step must now be re-scoped to check this full
 expanded class list, not just the original 4, once the fix lands.
@@ -262,17 +285,19 @@ reused-worker loaders, rather than three separate per-loader patches.
   fixed and installed (only after install, not before).
 - [ ] TODO-10 (added 2026-09-24, closing a gap where the "Unresolved, not
   traced to a conclusion" section above named three classes with no
-  explicit action item tracking them): confirm or rule out this bug for
-  `InferenceContinKKQuantileRegrOneLik` (read its actual
+  explicit action item tracking them; **narrowed 2026-09-24 — 2 of 3
+  now settled by the "GComp-family verification (settled)" section
+  above, added by a later fork**): confirm or rule out this bug for
+  `InferenceContinKKQuantileRegrOneLik` — the one name from the original
+  three still genuinely open (read its actual
   `compute_estimate_with_bootstrap_weights()` body in the
   `KKQuantileRegrOneLik` component source — not yet read by any fork so
   far; check `TODO-20`'s tie-sensitivity lead first, since it's an
-  independent pre-existing candidate for this same class),
-  `InferenceOrdinalGCompMeanDiff` (GComp-family staleness check never done
-  for this class specifically), and the other GComp-family siblings
-  (`InferenceIncidGCompRiskDiff`/`RiskRatio` and their KK variants —
-  currently only "plausible by architectural similarity," not
-  call-graph-confirmed either way).
+  independent pre-existing candidate for this same class).
+  `InferenceOrdinalGCompMeanDiff` (ruled out) and the four
+  `InferenceIncidGCompRiskDiff`/`RiskRatio`/KK-variant classes (confirmed)
+  are done — see the settled section above, no further action needed on
+  those two.
 
 ## Standing constraints
 

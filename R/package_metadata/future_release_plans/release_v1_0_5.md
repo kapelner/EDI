@@ -95,7 +95,7 @@ plan files' internal numbering did not change.
   never actually fast). Plan's own checklist: 0/6 checked.
 - [ ] TODO-4 (added 2026-08-30, user decision): **Guard the unguarded
   information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
-  → TODO-1..5`. Correctness, not performance. `fast_negbin_regression.cpp:485`
+  → TODO-1..6`. Correctness, not performance. `fast_negbin_regression.cpp:485`
   inverts the free-parameter information block with a bare `.inverse()`
   and no invertibility check (its own roxygen admits it); the same pattern
   is at `fast_zinb.cpp:457`, `fast_zero_augmented_poisson.cpp:340`/`:566`,
@@ -110,7 +110,7 @@ plan files' internal numbering did not change.
   **Verified NOT implemented, 2026-09-24**: an exact-duplicate-column
   design (guaranteed-singular information block) on `InferenceCountNegBin`
   with `harden = FALSE` still returns a finite SE (0.236), not `NA`.
-  Plan's own checklist: 0/5 checked.
+  Plan's own checklist: 0/6 checked (TODO-6, confirming the rejection reason names, added 2026-09-24).
 
   **Requirement (added 2026-09-24, user decision; reason naming checked
   same day):** the guard's rejections must be surfaced as typed SE
@@ -355,12 +355,23 @@ plan files' internal numbering did not change.
   wave as TODO-9/TODO-15): **Ordinal cumulative-link parametric-bootstrap
   inference — two distinct bugs found investigating
   `InferenceOrdinalCloglogRegr`'s 60% Type-I error** —
-  `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md → TODO-1..12`
+  `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md → TODO-1..18`
   (now including **TODO-12**, added 2026-09-24: `InferenceOrdinalContRatioRegr`'s
   `fit_null` is still single-start — the exact same unfixed Bug-1
   vulnerability, found by direct code comparison; high confidence, not yet
   reproduced — candidate explanation for this class's own 9-family
-  `pval_miscalibration` audit finding).
+  `pval_miscalibration` audit finding; and **TODO-13/18**, added 2026-09-24,
+  resolved the same day: TODO-13's suspected shared package-level SE bug
+  across `ContRatioRegr`/`PartialProportionalOddsRegr`/`Cauchit`/
+  `AdjCatLogitRegr` turned out to be a **harness truth-registry gap**,
+  not a package bug, for 3 of the 4 classes (`Cauchit`/`AdjCatLogitRegr`/
+  `ContRatioRegr` are genuinely misspecified relative to the harness's
+  cumulative-logit DGP — same mechanism as the already-fixed
+  `InferenceOrdinalRidit` bug; confirmed high confidence, fix tracked at
+  `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md → TODO-10`,
+  not yet implemented, harness-only change). `PartialProportionalOddsRegr`
+  is correctly specified (same logit link as the DGP) and its coverage
+  problem remains genuinely open — `TODO-18` in the linked plan.
   (1) **Fixed**: `get_likelihood_test_spec()`/`simulate_under_lik_null()`'s
   `fit_null` closures were single-start constrained refits — the identical
   vulnerability found and fixed in `InferenceOrdinalStereotypeLogitRegr`
@@ -924,7 +935,16 @@ plan files' internal numbering did not change.
   `InferenceContinRobustRegr`, `InferencePropFractionalLogit` — plus
   `InferencePropGCompMeanDiff` (confirmed call-graph match) and, per the
   separate scope-widening note below, `InferenceCountRobustPoisson` —
-  total confirmed scope now the original 4 + these 4 = 8 classes. **The
+  total confirmed scope now the original 4 + these 4 = 8 classes.
+  **Further scope update, same day**: 4 more GComp-family classes
+  independently confirmed (both conditions verified directly, not by
+  naming similarity) — `InferenceIncidGCompRiskDiff`,
+  `InferenceIncidGCompRiskRatio`, `InferenceIncidKKGCompRiskDiff`,
+  `InferenceIncidKKGCompRiskRatio` — bringing confirmed scope to 12
+  classes. `InferenceOrdinalGCompMeanDiff` was checked and **ruled out**
+  (its `build_design_matrix()` is a custom, uncached implementation that
+  never calls `create_design_matrix()` at all). See plan file's GComp
+  verification section for detail. **The
   whole "KKGLMM"-named cluster (`InferenceContinKKGLMM`,
   `InferenceCountKKGLMM`, `InferenceOrdinalKKGLMM`, `InferenceOrdinalKKCLMM`
   + its 3 link-function subclasses) was initially miscategorized as
@@ -1029,7 +1049,13 @@ baseline as expected/benign.
   and cheap to close (guard fix in both classes, same-pattern sweep of
   other `*_w_cache` guards, tests, contract doc touch-up). Plan's own
   checklist: 0/5 checked.
-- [ ] TODO-31 (added 2026-09-24, promoted from asides inside TODO-4's and
+- [ ] TODO-50 (added 2026-09-24 as TODO-31, **renumbered 2026-09-24** — a
+  concurrent session independently added an unrelated TODO-31/TODO-32 pair
+  the same day, colliding with this one and the next; this pair was moved
+  to 50/51 rather than the other, larger, contiguous batch, since only two
+  files needed updating; nothing else in this repo referenced these two
+  numbers under their old numbers besides those two files, both fixed in
+  the same pass): promoted from asides inside TODO-4's and
   TODO-29's prose — user flagged that un-homed findings in this file risk
   getting lost; tracked as an open investigation, not a fix plan, in
   `bug_fix_plans/investigate_count_family_unexplained_miscalibration_cluster.md`):
@@ -1043,8 +1069,9 @@ baseline as expected/benign.
   information-inverse bug, TODO-28/29's stale-`cached_design_matrix` bug)
   and confirmed to NOT share it — but none has been root-caused on its own
   terms. No plan file existed for any of the four before this TODO.
-- [ ] TODO-32 (added 2026-09-24, promoted from a one-line dead-code aside
-  inside TODO-4's prose, same reason as TODO-31 — user flagged that un-homed
+- [ ] TODO-51 (added 2026-09-24 as TODO-32, renumbered 2026-09-24 for the
+  same collision as TODO-50 above): promoted from a one-line dead-code aside
+  inside TODO-4's prose, same reason as TODO-50 — user flagged that un-homed
   findings risk getting lost; trivial, no plan file needed): **dead code in
   `_helper_functions_core.h`** — `set_min_eigenvalue_if_suspect()`
   (`:210-219`) is entirely commented out, so `min_eigenvalue_information` is
@@ -1054,6 +1081,23 @@ baseline as expected/benign.
   function and the now-unused `min_eigenvalue_information` field, or
   actually wire it in if it was meant to be live — a decision, not
   investigation work; not yet decided.
+- [ ] TODO-52 (added 2026-09-24, promoted from asides inside
+  `bootstrap_worker_stale_design_matrix.md`'s (TODO-28) cross-class sweep,
+  same reason and same pattern as TODO-50/51 — user asked for a double-check
+  sweep of this file for orphans and buried secrets; tracked as an open
+  investigation, not a fix plan, in
+  `bug_fix_plans/investigate_beta_ols_kkglmm_low_coverage_orphans.md`):
+  **six classes show real, audit-flagged `low_coverage`/unexplained
+  findings, each checked only against the stale-`cached_design_matrix`
+  bug and confirmed not to share it, with no other investigation opened**
+  — `InferencePropBetaRegr`, `InferencePropZeroOneInflatedBetaRegr`,
+  `InferenceContinKKOLSOneLik`, `InferenceContinKKRobustRegrOneLik`,
+  `InferencePropKKGLMM`, `InferenceIncidKKCondLogitGLMMIVWC`/
+  `InferenceIncidKKCondLogitGLMMOneLik` (grouped as one finding, all three
+  inherit `InferenceAbstractKKCondLogitGLMM`). Lower-priority, not-yet-
+  confirmed-real addendum: the 7-class KKGLMM/KKCLMM cluster was also ruled
+  out from TODO-28's mechanism, but it's not yet confirmed whether that
+  cluster even has real audit-flagged findings — check that first.
 
 - [ ] TODO-31 (added 2026-09-24, from an audit of test-file comments; four
   tests pin it as `SUSPECTED SOURCE BUG (pinned, not fixed)`): **Random-effect
@@ -1123,8 +1167,11 @@ baseline as expected/benign.
   with zero resampling involved, same magnitude as bootstrap-family
   methods, which a resampling-cache bug can't explain. Two candidate
   explanations, not fully distinguished: (1) a non-collapsibility
-  truth-mismatch for `LogRegr` specifically (same family as `TODO-32`'s
-  fix), or (2) ordinary benign Wald/LR-type CI conservativeness for
+  truth-mismatch for `LogRegr` specifically (same family as `TODO-10`'s
+  fix — written using this file's *old*, pre-split `release_v1_1_0.md`
+  numbering where that fix was `TODO-32`; corrected 2026-09-24, see
+  `_master.md`'s still-outstanding old-numbering references for the same
+  drift elsewhere), or (2) ordinary benign Wald/LR-type CI conservativeness for
   binary-outcome GLMs — favored, since `InferenceIncidProbitRegr` uses
   MC-refit truth (immune to (1)) yet shows the identical pattern,
   matching this session's earlier RiskDiff/RiskRatio "not a bug"
@@ -1147,8 +1194,8 @@ baseline as expected/benign.
   of these 3 classes appears in `comprehensive_tests.R`'s
   `COVERAGE_CLOSED_FORM`/`COVERAGE_MC_SPEC` tables, so coverage checking
   falls back to raw `beta_T` as ground truth — same harness-gap shape as
-  `InferenceAllSimpleMeanDiffPooledVar`'s prior coverage bug and `TODO-32`'s
-  fix — but in tension with the fact that nonparametric resampling
+  `InferenceAllSimpleMeanDiffPooledVar`'s prior coverage bug and `TODO-10`'s
+  fix (same old-numbering correction as TODO-47 above) — but in tension with the fact that nonparametric resampling
   methods (which should be immune to a truth-value mismatch) show the
   same undercoverage; flagged as an open tension, not resolved either
   way. Secondary candidate: genuine DGP overdispersion NegBin's dispersion

@@ -82,6 +82,7 @@ R/package_tests/testthat_bulk/test-component-validator-name-field-guards-referen
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-compute-binary-match-structure-odd-rows-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-compute-objective-vals-kernel-guards-and-abs-mahal-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-compute-variance-from-information-matrix-cpp-to-solve-fallback-cascade-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-derivative-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-fit-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -93,6 +94,7 @@ R/package_tests/testthat_bulk/test-contin-kk-quantreg-onelik-pairs-and-reservoir
 R/package_tests/testthat_bulk/test-contin-kk-quantreg-onelik-stacked-weighted-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-continuation-ratio-expansion-blocking-permutations-and-clogit-pair-design-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-continuation-ratio-kernel-stacked-glm-reference-score-hessian-and-augmented-design.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-continuation-ratio-regression-weighted-kernel-weights-validation-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-continuous-classes-estimates-and-intervals-match-lm-rq-and-rlm-references.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-continuous-estimator-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-continuous-kk-glmm-class-matches-lmer-across-simulated-datasets-reference.R,correctness,120,bootstrap
@@ -271,10 +273,12 @@ R/package_tests/testthat_bulk/test-greedy-design-search-kernel-local-optimality-
 R/package_tests/testthat_bulk/test-greedy-pair-switching-pair-structure-and-print-assignment-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-helper-matching-kk-match-data-caches-and-bootstrap-structure-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-aux-design-and-weighted-treatment-missing-guards-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-hurdle-negbin-count-score-hessian-input-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-fit-and-design-unusable-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-glmmtmb-weighted-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-jackknife-methods-all-report-explicit-nonestimability-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-kernel-pscl-agreement-and-variances-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-score-hessian-neg-loglik-unweighted-input-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-ivwc-weighted-bootstrap-reference.R,correctness,120,bootstrap
@@ -608,6 +612,7 @@ R/package_tests/testthat_bulk/test-ordinal-gcomp-mean-diff-randomization-estimat
 R/package_tests/testthat_bulk/test-ordinal-gcomp-post-fit-kernel-delta-method-and-polr-vcov-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-glmm-kernel-clmm-agreement-score-hessian-and-polish-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-glmm-kernel-minus-three-start-newton-polish-rescue-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-glmm-score-hessian-neg-loglik-input-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-boundaries-coverage.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-link-helpers-and-weighted-estimate-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-migration-golden.R,correctness,120,bootstrap
@@ -666,10 +671,12 @@ R/package_tests/testthat_bulk/test-partial-proportional-odds-fast-proportional-o
 R/package_tests/testthat_bulk/test-pocock-simon-assign-kernels-imbalance-score-biased-coin-and-in-place-update-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-level-rows-and-binary-match-structure-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-permutation-kernel-marginal-balance-rule-replay-and-tie-handling-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-pocock-simon-redraw-w-kernel-input-guards-and-output-contract-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-family-marginal-estimand-shared-helper.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-fit-kernels-xtwx-field-availability-and-marginal-vcov-root-cause-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-glmm-and-probit-family-score-hessian-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-glmm-fit-quadrature-convergence-and-glmer-agreement-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-poisson-glmm-score-hessian-input-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-marginal-estimand-functional-gcomp-estimates-and-delta-se-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-probit-kernels-hodges-lehmann-and-missingness-utility-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-poisson-regression-kernel-optimizers-fixed-coefficients-and-output-fields-glm-reference.R,correctness,120,bootstrap
@@ -735,6 +742,7 @@ R/package_tests/testthat_bulk/test-register-design-and-inference-class-already-r
 R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-obj-val-cutoff-and-prop-acceptable-mutually-exclusive-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-objective-and-draw-paths-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-resample-group-rows-kernel-input-guards-and-block-structure-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-resampling-callback-recovery-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-centered-pivots-cache-keys-and-size-evaluation-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-resampling-draw-distribution-cache-and-debug-reference.R,correctness,120,bootstrap
@@ -782,6 +790,7 @@ R/package_tests/testthat_bulk/test-run-all-inference-print-live-cov-key-referenc
 R/package_tests/testthat_bulk/test-run-all-inference-print-row-value-formatting-ci-method-blanking-and-single-line-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-static-row-fields-precomputed-before-fitting-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-typed-task-type-fanout-union-basic-only-and-requested-subset-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-sample-int-replace-kernel-contract-and-uniformity-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-sample-mode-kernel-first-occurrence-tie-break-and-na-handling-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-sandwich-hc2-qr-reduction-pval-inversion-and-small-utility-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-save-load-design.R,correctness,120,bootstrap
@@ -1259,6 +1268,7 @@ R/package_tests/testthat_bulk/test-component-validator-name-field-guards-referen
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-binary-match-structure-odd-rows-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-compute-objective-vals-kernel-guards-and-abs-mahal-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-variance-from-information-matrix-cpp-to-solve-fallback-cascade-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-derivative-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-constrained-binomial-weighted-fit-reference.R,coverage,1,measured_with_30_percent_headroom
@@ -1270,6 +1280,7 @@ R/package_tests/testthat_bulk/test-contin-kk-quantreg-onelik-pairs-and-reservoir
 R/package_tests/testthat_bulk/test-contin-kk-quantreg-onelik-stacked-weighted-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuation-ratio-expansion-blocking-permutations-and-clogit-pair-design-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuation-ratio-kernel-stacked-glm-reference-score-hessian-and-augmented-design.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-continuation-ratio-regression-weighted-kernel-weights-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-classes-estimates-and-intervals-match-lm-rq-and-rlm-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-estimator-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-continuous-kk-glmm-class-matches-lmer-across-simulated-datasets-reference.R,coverage,240,bootstrap
@@ -1448,10 +1459,12 @@ R/package_tests/testthat_bulk/test-greedy-design-search-kernel-local-optimality-
 R/package_tests/testthat_bulk/test-greedy-pair-switching-pair-structure-and-print-assignment-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-helper-matching-kk-match-data-caches-and-bootstrap-structure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-aux-design-and-weighted-treatment-missing-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-hurdle-negbin-count-score-hessian-input-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-fit-and-design-unusable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-jackknife-methods-all-report-explicit-nonestimability-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-negbin-kernel-pscl-agreement-and-variances-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-score-hessian-neg-loglik-unweighted-input-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmm-weighted-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-hurdle-poisson-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-hurdle-poisson-ivwc-weighted-bootstrap-reference.R,coverage,240,bootstrap
@@ -1785,6 +1798,7 @@ R/package_tests/testthat_bulk/test-ordinal-gcomp-mean-diff-randomization-estimat
 R/package_tests/testthat_bulk/test-ordinal-gcomp-post-fit-kernel-delta-method-and-polr-vcov-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-glmm-kernel-clmm-agreement-score-hessian-and-polish-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-glmm-kernel-minus-three-start-newton-polish-rescue-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-glmm-score-hessian-neg-loglik-input-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-boundaries-coverage.R,coverage,1.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-link-helpers-and-weighted-estimate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-kk-clmm-migration-golden.R,coverage,1.8,measured_with_30_percent_headroom
@@ -1843,10 +1857,12 @@ R/package_tests/testthat_bulk/test-partial-proportional-odds-fast-proportional-o
 R/package_tests/testthat_bulk/test-pocock-simon-assign-kernels-imbalance-score-biased-coin-and-in-place-update-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-level-rows-and-binary-match-structure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-pocock-simon-permutation-kernel-marginal-balance-rule-replay-and-tie-handling-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-pocock-simon-redraw-w-kernel-input-guards-and-output-contract-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-family-marginal-estimand-shared-helper.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-fit-kernels-xtwx-field-availability-and-marginal-vcov-root-cause-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-glmm-and-probit-family-score-hessian-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-glmm-fit-quadrature-convergence-and-glmer-agreement-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-poisson-glmm-score-hessian-input-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-marginal-estimand-functional-gcomp-estimates-and-delta-se-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-probit-kernels-hodges-lehmann-and-missingness-utility-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-poisson-regression-kernel-optimizers-fixed-coefficients-and-output-fields-glm-reference.R,coverage,240,bootstrap
@@ -1912,6 +1928,7 @@ R/package_tests/testthat_bulk/test-register-design-and-inference-class-already-r
 R/package_tests/testthat_bulk/test-regression-rank-and-stratified-cox-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rerandomization-obj-val-cutoff-and-prop-acceptable-mutually-exclusive-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rerandomization-objective-and-draw-paths-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-resample-group-rows-kernel-input-guards-and-block-structure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-resampling-callback-recovery-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-centered-pivots-cache-keys-and-size-evaluation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-resampling-draw-distribution-cache-and-debug-reference.R,coverage,240,bootstrap
@@ -1959,6 +1976,7 @@ R/package_tests/testthat_bulk/test-run-all-inference-print-live-cov-key-referenc
 R/package_tests/testthat_bulk/test-run-all-inference-print-row-value-formatting-ci-method-blanking-and-single-line-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-static-row-fields-precomputed-before-fitting-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-typed-task-type-fanout-union-basic-only-and-requested-subset-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-sample-int-replace-kernel-contract-and-uniformity-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-sample-mode-kernel-first-occurrence-tie-break-and-na-handling-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-sandwich-hc2-qr-reduction-pval-inversion-and-small-utility-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-save-load-design.R,coverage,209.9,measured_with_30_percent_headroom

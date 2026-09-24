@@ -275,3 +275,84 @@ combination, not to the fix's general approach.
 
 Independent of every other 1.1.0 item; depends on nothing else in this
 release.
+
+8. **New class found 2026-09-24**, via a follow-up fork closing out
+   `investigate_incid_logregr_probitregr_coverage.md`'s `low_coverage`
+   cluster: `InferenceIncidLogRegr`'s closed-form truth
+   (`compute_incid_logit_coverage_truth()`, `comprehensive_tests.R:3207`)
+   computes the **marginal** log-odds-ratio contrast
+   (`qlogis(mean(p_t)) - qlogis(mean(p_c))`), while `compute_estimate()`
+   defaults to `estimand = "conditional"`
+   (`inference_incidence_logit.R:429`) and `comprehensive_tests.R` never
+   calls `set_estimand()` for this class (confirmed via grep — zero
+   hits). This is a genuine truth/estimand scale mismatch, same shape as
+   this plan's other entries — **but confirmed NOT to be the primary
+   driver of the class's actual audit findings**: `InferenceIncidProbitRegr`
+   (MC-refit truth, immune to this specific closed-form mismatch) shows
+   the identical broad over-coverage pattern, so the dominant symptom is
+   separately explained as benign finite-sample GLM-CI conservativeness
+   (closed as not-a-bug in the linked investigation file). This entry is
+   tracked here purely as a **harness truth-definition accuracy issue**
+   worth fixing independently of any symptom it does or doesn't explain —
+   either make `compute_incid_logit_coverage_truth()` compute the
+   conditional log-odds truth to match the estimator's actual default
+   estimand, or have the harness call `set_estimand("marginal_mean_diff")`
+   explicitly so the estimate and truth are provably on the same scale by
+   construction. Low priority relative to this plan's other items, since
+   it isn't gating any currently-open coverage finding.
+
+## Cross-validation, 2026-09-24: fresh full-package audit confirms this plan already explains the new findings
+
+A fresh `low_coverage` audit run surfaced new findings for
+`InferenceSurvivalKKStratCoxPHOneLik` (5), `InferenceSurvivalKKLWACoxPHOneLik`
+(3), and `InferenceSurvivalKMDiff` (8) — all three already on this plan's
+confirmed-affected-class list (TODO-1's 14-class sweep for the first two;
+TODO-7 for KMDiff). Checked each against this plan's own numbers:
+`KKStratCoxPHOneLik`'s new findings (`bayesian_bootstrap`/`_basic`
+0.81-0.87, `bootstrap_basic` 0.90, `m_out_of_n_bootstrap` 0.88,
+`subsampling` 0.86) land inside the ranges `survival_kk_cox_coverage_variance.md`
+already documented for this class. `KKLWACoxPHOneLik`'s new findings
+(`bayesian_bootstrap_basic` 0.87, `param_bootstrap` 0.79,
+`rand_bootstrap_smoothed` 0.80) likewise match that same plan's numbers
+closely. `KMDiff`'s 8 new findings (all bootstrap/jackknife-family, under
+0.77-0.89) are consistent with this plan's TODO-7 truth-scale-mismatch
+finding. **No new information from any of these three — pure
+confirmation, still blocked on the same open items (TODO-4/5/6 above).**
+
+## TODO-10 (added 2026-09-24, high confidence for the mechanism, fix not implemented): 3 more classes with the same missing-MC-truth pattern as Ridit
+
+A follow-up fork investigating `ordinal_cumulative_link_null_refit_multistart.md`'s
+TODO-13 (a suspected shared package-level SE bug across 4 ordinal
+cumulative-link classes) found the real mechanism is a **harness gap**,
+not a package bug — the exact same shape as `InferenceOrdinalRidit`'s
+already-fixed truth mismatch (see this file's registry-comment precedent
+in `comprehensive_tests.R`, "found 2026-09-06"). None of
+`InferenceOrdinalCauchitRegr`, `InferenceOrdinalAdjCatLogitRegr`,
+`InferenceOrdinalContRatioRegr` appear in `COVERAGE_CLOSED_FORM`/
+`COVERAGE_MC_SPEC`, so all fall back to raw `beta_T` — but the harness's
+ordinal DGP generates data under a cumulative-**logit** (proportional-
+odds) shift model, and all 3 of these classes fit a **different, genuinely
+misspecified link/model family**: Cauchit uses `pcauchy`; adjacent-
+category logit and continuation-ratio are documented (package's own
+`inference_ordinal_stereotype_logit.R:463`) as distinct ordinal families
+from proportional-odds/cumulative-logit despite naming similarity. Under
+model misspecification the MLE targets a KL-divergence-minimizing
+pseudo-true value, not `beta_T` — confirmed by direct code reading, not
+just analogy to Ridit. Design-pooling was independently ruled out first
+via direct empirical stratification (Bernoulli coverage 0.832 ≈
+non-Bernoulli pooled average 0.820), eliminating the alternative
+hypothesis before landing on this one.
+
+**`InferenceOrdinalPartialProportionalOddsRegr` is explicitly NOT covered
+by this fix** — it uses `VGAM::cumulative(link = "logitlink", ...)`, the
+same link as the DGP, and correctly nests the true model; its coverage
+problem needs separate root-causing (tracked as
+`ordinal_cumulative_link_null_refit_multistart.md`'s new TODO-18).
+
+**Fix**: add `InferenceOrdinalCauchitRegr`/`InferenceOrdinalAdjCatLogitRegr`/
+`InferenceOrdinalContRatioRegr` to `COVERAGE_MC_SPEC` in
+`comprehensive_tests.R`, mirroring the existing `InferenceOrdinalRidit`
+entry (MC-refit truth via simulation under the class's own fitted model,
+not the raw DGP parameter). Test-harness-only change; does not touch
+`R/EDI` source. Not yet implemented — this is a real, confirmed, low-risk
+fix but was out of scope for the investigating fork to also apply.

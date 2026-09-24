@@ -3,6 +3,7 @@
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-8` (moved 2026-09-23 from
 > `release_v1_1_0.md → TODO-30`, bug-fix/feature split).
+> **Related (v1.0.5):** `glmm_variance_component_sigma_collapse.md` — the targeted, observed-wrong-answer subset for the random-intercept kernels (`log sigma` boundary collapse); coordinate start values with this plan. (`release_v1_0_5.md → TODO-31`.)
 
 Found 2026-09-21, following up on the `comprehensive_tests` results-CSV audit
 (`audit_comprehensive_results.R`) finding that fixed

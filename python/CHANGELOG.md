@@ -42,10 +42,14 @@ not apply here.
   the main R thread.
 - `fast_ordinal_clmm`: mismatched `X`/`y`/`group_id` lengths now raise a
   clear error instead of reading out of bounds.
-- `fast_zero_augmented_poisson`: on an internal optimizer exception the
-  documented return is a full diagnostic list (`converged = FALSE`,
-  starting-value `params`/information, `exception_message`), not a bare
-  two-field list; documentation corrected to match.
+
+### Documentation
+
+- `fast_zero_augmented_poisson`: the documented return on an internal optimizer
+  exception now matches what the kernel already returned in 1.0.1 (a full
+  diagnostic list with `converged = FALSE`, starting-value `params` and
+  information, and `exception_message`, not a bare two-field list). No
+  behavior change.
 
 ## [1.0.1] - 2026-09-14
 

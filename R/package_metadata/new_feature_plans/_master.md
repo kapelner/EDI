@@ -968,7 +968,7 @@ already stated there:**
   incidence, the workflow + the test + provenance + CI inversion
   (post-grant, paired with the Garthwaite–Buckland driver — 2026-09-07) +
   simulation study) is v1.1.0 — and the scoped deliverable of the R
-  Consortium ISC proposal (`new_research_ideas/grants/RcISC/isc_grant.qmd`,
+  Consortium ISC proposal (`new_research_ideas/grants/26_10_01_RcISC/isc_grant.qmd`,
   re-scoped 2026-09-06 to this widened Phase A, no blinding claims) — while Phase B
   narrows to just the remaining response types, with an open question
   (not yet resolved) whether that remainder still belongs in 2.0.0 or
@@ -1236,6 +1236,13 @@ Type-I error on subsampling and m-out-of-n bootstrap p-values, formula-
 independent; leading (unconfirmed) hypothesis is boundary-rejected subsample
 fits biasing the pivot distribution. Investigation-first. Release index:
 `release_v1_0_5.md → TODO-27`.
+
+**`InferenceAllSimpleAverageDiff` studentized-bootstrap / jackknife-Wald SE
+quality** (added 2026-09-24, cross-class audit-triage fork; no dependency on
+any phase above): `../bug_fix_plans/investigate_average_diff_bayesian_jackknife_se_quality.md
+→ TODO-1..4`. An open investigation (medium-low confidence; a Kish
+effective-n vs. raw-n Welch asymmetry is the unconfirmed hypothesis). Release
+index: `release_v1_0_5.md → TODO-29`.
 
 **Test-comment audit findings** (added 2026-09-24; no dependency on any
 phase above): five plans from defects that test authors recorded but did not

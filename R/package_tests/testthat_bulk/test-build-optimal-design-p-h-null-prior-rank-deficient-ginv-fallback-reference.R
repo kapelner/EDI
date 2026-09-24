@@ -22,7 +22,14 @@ test_that("with an exactly collinear covariate pair, solve(t(R) %*% R) genuinely
 	X[, 2] <- 2 * X[, 1]                                                            # exactly collinear
 	Z0 <- cbind(1, X)
 	R <- qr.R(qr(Z0))
-	expect_error(solve(t(R) %*% R), "computationally singular")
+	# 2026-09-24: the exact wording ("computationally singular" vs "system is
+	# exactly singular: U[i,j] = 0") depends on which LAPACK backend base R's
+	# solve() is linked against -- confirmed to differ between this session's
+	# local environment and CI (run 35960688203 shard 45), an environment
+	# detail entirely outside EDI's own code (the actual fast-optimal-design
+	# fallback only cares that solve() throws SOME error, not its text).
+	# Matching either known variant instead of pinning one exact message.
+	expect_error(solve(t(R) %*% R), "computationally singular|exactly singular")
 })
 
 test_that("MASS::ginv() is invoked exactly once for a rank-deficient X, and P/H exactly match an independent pseudoinverse reconstruction", {

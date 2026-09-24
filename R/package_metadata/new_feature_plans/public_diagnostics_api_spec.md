@@ -5,6 +5,7 @@
 > singular-information rejections are emitted as typed SE-nonestimable reasons plus an invertible/not status from the shared helper so
 > the information-conditioning fields and warnings here can consume them
 > without migration. (`release_v1_0_5.md → TODO-4`.)
+> **Fed by (v1.0.5):** `../bug_fix_plans/glmm_variance_component_sigma_collapse.md` — its fix must not let a non-stationary `log sigma` boundary stop be reported as `converged = TRUE`; the `SolverDiagnostics` boundary-vs-failure classification should key on the gradient norm at the stop, not on the boundary alone. (`release_v1_0_5.md → TODO-31`.)
 
 Generated: 2026-07-27
 
