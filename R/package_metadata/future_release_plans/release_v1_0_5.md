@@ -1112,6 +1112,64 @@ baseline as expected/benign.
 
 - [ ] TODO-46 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Cosmetic / minor list** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-12`. Dead "Continuous covariates are not allowed for stratification" `stop()` in `add_one_subject()`; `extract_dollar_paths()` also returns nested sub-chains; `fast_weibull_regression(use_rcpp = FALSE)` ignores `estimate_only`; `with_var` kernel field sets differ across families. Record each as fix / document / accept.
 
+- [ ] TODO-47 (added 2026-09-24, found via a dedicated cross-class
+  investigation fork re-running `audit_comprehensive_results.R`'s
+  `low_coverage` check for the first time against real data — medium
+  confidence, likely NOT a bug): `InferenceIncidLogRegr` (21 findings) and
+  `InferenceIncidProbitRegr` (21 findings) both show broad, mild, uniform
+  OVER-coverage (0.97-0.998 vs. 0.95 target) across nearly every
+  `function_run` family, both formulas — `../bug_fix_plans/investigate_incid_logregr_probitregr_coverage.md`.
+  **`TODO-28` ruled out** — the pattern hits purely asymptotic methods
+  with zero resampling involved, same magnitude as bootstrap-family
+  methods, which a resampling-cache bug can't explain. Two candidate
+  explanations, not fully distinguished: (1) a non-collapsibility
+  truth-mismatch for `LogRegr` specifically (same family as `TODO-32`'s
+  fix), or (2) ordinary benign Wald/LR-type CI conservativeness for
+  binary-outcome GLMs — favored, since `InferenceIncidProbitRegr` uses
+  MC-refit truth (immune to (1)) yet shows the identical pattern,
+  matching this session's earlier RiskDiff/RiskRatio "not a bug"
+  precedent. One outlier noted separately: `InferenceIncidProbitRegr ~1
+  compute_jackknife_wald_confidence_interval` is UNDER-coverage (0.926),
+  opposite direction, possibly connected to `TODO-29`'s `jackknife_wald`
+  finding. Also a smaller, unconfirmed `biased_estimate` finding for
+  `InferenceIncidLogRegr ~.` (plausibly ordinary uncorrected finite-sample
+  logistic-MLE bias).
+- [ ] TODO-48 (added 2026-09-24, same source — medium-low confidence,
+  root cause genuinely unresolved): the count-family GLM `low_coverage`
+  cluster — `InferenceCountPoisson`, `InferenceCountNegBin` (broad
+  ~0.85-0.93 undercoverage across both asymptotic AND most resampling
+  methods simultaneously), `InferenceCountZeroInflatedPoisson`
+  (asymptotic-only, no bootstrap-family components) — 50 findings total —
+  `../bug_fix_plans/investigate_count_glm_family_coverage.md`. **`TODO-28`
+  cleanly ruled out for all 3** — `InferenceCountPoisson`/`InferenceCountNegBin`
+  build their design matrix inline from `private$get_X()`, never touching
+  `create_design_matrix()`'s cache. Most promising unconfirmed lead: none
+  of these 3 classes appears in `comprehensive_tests.R`'s
+  `COVERAGE_CLOSED_FORM`/`COVERAGE_MC_SPEC` tables, so coverage checking
+  falls back to raw `beta_T` as ground truth — same harness-gap shape as
+  `InferenceAllSimpleMeanDiffPooledVar`'s prior coverage bug and `TODO-32`'s
+  fix — but in tension with the fact that nonparametric resampling
+  methods (which should be immune to a truth-value mismatch) show the
+  same undercoverage; flagged as an open tension, not resolved either
+  way. Secondary candidate: genuine DGP overdispersion NegBin's dispersion
+  parameter may not fully absorb (benign DGP-mismatch, not a package
+  bug).
+- [ ] TODO-49 (added 2026-09-24, same source — medium confidence, root
+  cause open): `InferenceContinQuantileRegr`'s 33 `low_coverage`
+  findings, the single largest uninvestigated cluster in this audit
+  wave — `../bug_fix_plans/investigate_contin_quantile_regr_coverage.md`.
+  Ruled out the obvious hypothesis (missing `COVERAGE_MC_SPEC` truth
+  entry, the pattern that already explained `LogRank`/`GehanWilcox`/`Ridit`) —
+  confirmed absent from the registry, but a direct distributional argument
+  shows the raw-`beta_T` fallback is actually CORRECT here (the harness's
+  continuous DGP is a deterministic additive shift, so the true median
+  effect equals `beta_T` exactly, marginally and covariate-conditionally;
+  no estimand-scale mismatch). Root cause remains open: two unconfirmed
+  candidates — `quantreg`'s `"nid"` sandwich SE possibly misbehaving under
+  the harness's small/near-noiseless noise scale, or compounding with the
+  pre-existing `TODO-20` tie-sensitivity hypothesis for resampling-family
+  methods specifically.
+
 ## Standing constraints
 
 Same as `release_v1_1_0.md`'s standing constraints: default behavior with

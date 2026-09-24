@@ -511,9 +511,11 @@ R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-identity-binomial-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-log-identity-binomial-weighted-kernel-warm-start-weights-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-extreme-coefficients-exact-nonestimable-reason-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-fit-glmer-agreement-and-cold-start-variance-collapse-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-neg-loglik-score-hessian-kernels-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-logistic-glmm-score-hessian-neg-loglik-input-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-harden-false-extreme-coef-and-weighted-fit-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-ols-and-ordinal-cloglog-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-logistic-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,correctness,120,bootstrap
@@ -630,6 +632,7 @@ R/package_tests/testthat_bulk/test-ordinal-probit-cauchit-cloglog-kernel-warm-st
 R/package_tests/testthat_bulk/test-ordinal-probit-with-var-kernel-polr-covariance-fixed-coefficients-and-iteration-cap-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-proportional-odds-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-regression-kernel-warm-start-params-wrong-length-guard-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-regression-weighted-kernel-weights-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-fit-unavailable-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-weighted-bootstrap-reference.R,correctness,120,bootstrap
@@ -760,6 +763,7 @@ R/package_tests/testthat_bulk/test-robust-poisson-randomization-estimate-refit-n
 R/package_tests/testthat_bulk/test-robust-rand-bootstrap-kernel-mass-rlm-reference-shift-equivariance-and-degenerate-arms.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-robust-regr-get-backend-warm-start-args-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-robust-regr-private-fit-rlm-model-backends-ci-controls-and-failed-cache-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-robust-regression-kernel-warm-start-weights-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-robust-sandwich-helpers-hc0-meat-bread-vcov-and-variance-floor-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-robust-survreg-warm-start-collinearity-and-restart-loop-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-build-display-table-sorting-column-selection-and-ci-method-column-dropping-reference.R,correctness,120,bootstrap
@@ -927,6 +931,7 @@ R/package_tests/testthat_bulk/test-zhang-exact-ci-nonfinite-point-estimate-guard
 R/package_tests/testthat_bulk/test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zhang-match-data-and-wy-stats-kernels-pairs-reservoir-and-error-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zinb-fit-unavailable-exact-reason-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-zinb-kernel-warm-start-params-wrong-length-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-fit-input-validation-guards-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference.R,correctness,120,bootstrap
@@ -1683,9 +1688,11 @@ R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-identity-binomial-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-log-identity-binomial-weighted-kernel-warm-start-weights-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-extreme-coefficients-exact-nonestimable-reason-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-fit-glmer-agreement-and-cold-start-variance-collapse-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-glmm-neg-loglik-score-hessian-kernels-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-logistic-glmm-score-hessian-neg-loglik-input-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-harden-false-extreme-coef-and-weighted-fit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-ols-and-ordinal-cloglog-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-logistic-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,coverage,240,bootstrap
@@ -1802,6 +1809,7 @@ R/package_tests/testthat_bulk/test-ordinal-probit-cauchit-cloglog-kernel-warm-st
 R/package_tests/testthat_bulk/test-ordinal-probit-with-var-kernel-polr-covariance-fixed-coefficients-and-iteration-cap-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-proportional-odds-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-regression-kernel-warm-start-params-wrong-length-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-ordinal-regression-weighted-kernel-weights-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-fit-unavailable-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ordinal-ridit-weighted-bootstrap-reference.R,coverage,240,bootstrap
@@ -1932,6 +1940,7 @@ R/package_tests/testthat_bulk/test-robust-poisson-randomization-estimate-refit-n
 R/package_tests/testthat_bulk/test-robust-rand-bootstrap-kernel-mass-rlm-reference-shift-equivariance-and-degenerate-arms.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-robust-regr-get-backend-warm-start-args-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-robust-regr-private-fit-rlm-model-backends-ci-controls-and-failed-cache-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-robust-regression-kernel-warm-start-weights-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-robust-sandwich-helpers-hc0-meat-bread-vcov-and-variance-floor-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-robust-survreg-warm-start-collinearity-and-restart-loop-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-build-display-table-sorting-column-selection-and-ci-method-column-dropping-reference.R,coverage,240,bootstrap
@@ -2099,6 +2108,7 @@ R/package_tests/testthat_bulk/test-zhang-exact-ci-nonfinite-point-estimate-guard
 R/package_tests/testthat_bulk/test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zhang-match-data-and-wy-stats-kernels-pairs-reservoir-and-error-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zinb-fit-unavailable-exact-reason-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zinb-kernel-warm-start-params-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-fit-input-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference.R,coverage,240,bootstrap
