@@ -97,7 +97,7 @@ jobs:
     # job doesn't fail a run by default). `plan` already had this same fix
     # via its own `if: always() && ...`; this gives `shards` an equivalent
     # explicit condition that only looks at its own direct dependency.
-    if: needs.plan.result == 'success'
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
@@ -150,7 +150,7 @@ jobs:
     # 2026-09-24: same fix as `shards` above -- an explicit condition on this
     # job's own direct dependencies, bypassing the implicit default success()
     # that a skipped `check` elsewhere in the graph poisons.
-    if: needs.plan.result == 'success' && needs.shards.result == 'success'
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
