@@ -5,13 +5,11 @@
 #'
 #' @keywords internal
 #' @examples
-#' \dontrun{
 #' # DesignFixed is abstract and cannot be instantiated directly; construct a
 #' # concrete subclass instead, e.g.:
 #' des = DesignFixedBernoulli$new(n = 10, response_type = 'continuous')
 #' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 #' des$assign_w_to_all_subjects()
-#' }
 DesignFixed = R6::R6Class("DesignFixed",
 	lock_objects = FALSE,
 	inherit = Design,

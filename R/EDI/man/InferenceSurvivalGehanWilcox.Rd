@@ -54,7 +54,6 @@ seq_des_inf$compute_estimate()
 ## Method `InferenceSurvivalGehanWilcox$compute_asymp_confidence_interval()`
 ## ------------------------------------------------
 
-\dontrun{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "survival")
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2:10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2:10])
@@ -70,13 +69,11 @@ seq_des$add_all_subject_responses(
 
 seq_des_inf = InferenceSurvivalGehanWilcox$new(seq_des)
 seq_des_inf$compute_asymp_confidence_interval()
-}
 
 ## ------------------------------------------------
 ## Method `InferenceSurvivalGehanWilcox$compute_asymp_two_sided_pval()`
 ## ------------------------------------------------
 
-\dontrun{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "survival")
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2:10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2:10])
@@ -92,7 +89,6 @@ seq_des$add_all_subject_responses(
 
 seq_des_inf = InferenceSurvivalGehanWilcox$new(seq_des)
 seq_des_inf$compute_asymp_two_sided_pval()
-}
 }
 \references{
 Gehan, E. A. (1965). "A generalized Wilcoxon test for

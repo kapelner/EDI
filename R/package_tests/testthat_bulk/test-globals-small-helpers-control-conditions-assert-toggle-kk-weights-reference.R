@@ -36,7 +36,7 @@ test_that("assert switching needs both the option and the internal flag", {
 	sra <- E("should_run_asserts")
 	expect_true(sra())                                                # option unset -> default TRUE
 	expect_false(toggle_asserts(FALSE))
-	expect_identical(getOption("edi.run_asserts"), FALSE)
+	expect_null(getOption("edi.run_asserts"))                         # CRAN: user's options untouched
 	expect_false(sra())
 	expect_true(toggle_asserts(TRUE))
 	expect_true(sra())

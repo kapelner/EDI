@@ -169,6 +169,24 @@ bug), and standard-error and confidence-interval fixes.
   responses is now rounded and floored at zero so the resampled draw stays
   on the non-negative integer support (the same convention the count shift
   already uses); other response types are unchanged.
+* `InferenceCountHurdlePoisson`/`InferenceCountHurdleNegBin`/
+  `InferenceCountZeroInflatedPoisson`/`InferenceCountZeroInflatedNegBin`'s
+  standard error could fall through to the generic information-matrix-inverse
+  fallback on a hurdle fit with no MLE by construction (every positive count
+  equal to 1), and whether that generic inversion happened to return a
+  spurious finite value or correctly fail depended on the LAPACK/BLAS
+  backend (confirmed via CI to differ between this environment, where it
+  correctly returned non-estimable, and Windows). The data-driven
+  non-estimability check that already gated the estimate and `p`-value now
+  also runs before this generic fallback, so the standard error is `NA` on
+  every platform.
+* `SimulationFramework`'s internal design/inference-combination builder
+  unconditionally disabled package assertions and never restored them; a
+  caller running with `turn_off_asserts_for_speed = FALSE` (assertions
+  intentionally kept on) had assertions silently disabled for the rest of
+  the R session after this method ran once, which could mask unrelated
+  argument-validation bugs in later, unrelated code in the same session. It
+  now restores whatever assert state was in effect on entry.
 
 # EDI 1.0.1
 

@@ -7,8 +7,6 @@
 #' and is not comprehensively tested by the package comprehensive-test harness.
 #'
 #' @examples
-#' \dontrun{
-#' \donttest{
 #' seq_des = DesignSeqOneByOneRandomBlockSize$new(n = 20, response_type = 'incidence',
 #'   strata_cols = 'x1')
 #' for (i in 1:20) {
@@ -18,8 +16,6 @@
 #' seq_des$add_all_subject_responses(rbinom(20, 1, 0.5))
 #' inf = InferenceIncidExtendedRobins$new(seq_des)
 #' inf$compute_estimate()
-#' }
-#' }
 #' @export
 InferenceIncidExtendedRobins = define_inference_class(
 	classname = "InferenceIncidExtendedRobins",

@@ -272,7 +272,6 @@ KKMeanDifferenceIVWCSource$public = Filter(Negate(is.null), KKMeanDifferenceIVWC
 #'   required.
 #' @export
 #' @examples
-#' \dontrun{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 6, response_type = "continuous")
 #' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
 #' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
@@ -287,7 +286,6 @@ KKMeanDifferenceIVWCSource$public = Filter(Negate(is.null), KKMeanDifferenceIVWC
 #' seq_des_inf$compute_estimate()
 #' seq_des_inf$compute_asymp_confidence_interval()
 #' seq_des_inf$compute_asymp_two_sided_pval()
-#' }
 #' @name InferenceAllKKMeanDiffIVWC
 InferenceAllKKMeanDiffIVWC = define_inference_class(
 	classname = "InferenceAllKKMeanDiffIVWC",

@@ -18,20 +18,33 @@ library(EDI)
 # scoped to the count-side rescue fields only, not the hurdle-side ones.)
 
 test_that("a deliberately capped maxit on near-Poisson intercept-only count data triggers the count-side Poisson-boundary rescue: converged is forced TRUE, dispersion_at_poisson_boundary is TRUE, and log(theta_hat) exceeds the boundary constant", {
+	# 2026-09-25: the exact maxit at which the raw optimizer's own convergence
+	# criterion is NOT yet satisfied (so accept_negbin_poisson_boundary_convergence()'s
+	# override is what actually fires) is a hard cliff, not a margin -- a local sweep of
+	# maxit in 3:100 on this exact fixture found dispersion_at_poisson_boundary TRUE at
+	# maxit=8 only; maxit=9+ already converges normally (without needing the rescue) even
+	# though theta is still huge. That single-step transition point is BLAS/compiler-path
+	# dependent (confirmed: this fixture passes locally at maxit=8, but CI run 36101666047
+	# shard 37 got FALSE there). Trying a small band of nearby maxit values and requiring
+	# the rescue to fire for at least one tests the same real mechanism without pinning an
+	# exact transition point that can shift by +/-1 across environments.
 	f <- get("fast_hurdle_negbin_cpp", envir = asNamespace("EDI"))
 	set.seed(4L); n <- 50L
 	X <- matrix(1, n, 1)
 	y <- rpois(n, 10)
 
-	r <- f(X, y, X_hurdle_r = X, maxit = 8L)
-
-	expect_true(isTRUE(r$dispersion_at_poisson_boundary))
+	r <- NULL
+	for (m in 6L:12L) {
+		candidate <- f(X, y, X_hurdle_r = X, maxit = m)
+		if (isTRUE(candidate$dispersion_at_poisson_boundary)) { r <- candidate; maxit_used <- m; break }
+	}
+	expect_false(is.null(r), info = "no maxit in 6:12 triggered the Poisson-boundary rescue")
 	expect_true(r$converged)
 	expect_gt(log(r$theta_hat), log(1e4))   # kNegBinPoissonBoundaryLogTheta
 	expect_true(is.finite(r$b))
 
 	# the boundary rescue is deterministic given the same warm start / data, not RNG-driven
-	r2 <- f(X, y, X_hurdle_r = X, maxit = 8L)
+	r2 <- f(X, y, X_hurdle_r = X, maxit = maxit_used)
 	expect_identical(r$theta_hat, r2$theta_hat)
 	expect_identical(r$b, r2$b)
 })

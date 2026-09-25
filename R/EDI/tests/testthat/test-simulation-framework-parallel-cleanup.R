@@ -19,7 +19,7 @@ test_that("SimulationFramework restores parallelism settings", {
 	# Setup initial state
 	set_num_cores(2L, force_mirai = isTRUE(EDI:::edi_env$mirai_has_been_used))
 	initial_cores = EDI:::get_num_cores()
-	initial_threads = getOption(".edi_last_set_threads")
+	initial_threads = EDI:::edi_env$last_set_threads
 	
 	sim <- SimulationFramework$new(
 		response_type = "continuous",
@@ -35,7 +35,7 @@ test_that("SimulationFramework restores parallelism settings", {
 	sim$run()
 	
 	expect_equal(EDI:::get_num_cores(), initial_cores)
-	expect_equal(getOption(".edi_last_set_threads"), initial_threads)
+	expect_equal(EDI:::edi_env$last_set_threads, initial_threads)
 	
 	# Cleanup
 	set_num_cores(1L)

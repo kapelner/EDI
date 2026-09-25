@@ -44,46 +44,43 @@ and is not installed automatically with \pkg{EDI}. Install it manually with
 \code{install.packages("nbpMatching")} before using this class.
 }
 \examples{
-\dontrun{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
-seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
-
-seq_des_inf = InferenceAllKKMeanDiffIVWC$new(seq_des)
-seq_des_inf$compute_estimate()
+\donttest{
+# (loading the nbpMatching package alone takes a few seconds)
+if (requireNamespace("nbpMatching", quietly = TRUE)) {
+  seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = "continuous")
+  for (i in 1:20) {
+    seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
+  }
+  seq_des$add_all_subject_responses(rnorm(20))
+  seq_des_inf = InferenceBaiAdjustedTKK14$new(seq_des)
+  seq_des_inf$compute_estimate()
+}
 }
 
-\dontrun{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
-seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
-
-seq_des_inf = InferenceAllKKMeanDiffIVWC$new(seq_des)
-seq_des_inf$compute_asymp_confidence_interval()
+\donttest{
+# (loading the nbpMatching package alone takes a few seconds)
+if (requireNamespace("nbpMatching", quietly = TRUE)) {
+  seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = "continuous")
+  for (i in 1:20) {
+    seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
+  }
+  seq_des$add_all_subject_responses(rnorm(20))
+  seq_des_inf = InferenceBaiAdjustedTKK14$new(seq_des)
+  seq_des_inf$compute_asymp_confidence_interval()
+}
 }
 
-\dontrun{
-seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[3, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[4, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
-seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
-seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
-
-seq_des_inf = InferenceAllKKMeanDiffIVWC$new(seq_des)
-seq_des_inf$compute_asymp_two_sided_pval()
+\donttest{
+# (loading the nbpMatching package alone takes a few seconds)
+if (requireNamespace("nbpMatching", quietly = TRUE)) {
+  seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = "continuous")
+  for (i in 1:20) {
+    seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
+  }
+  seq_des$add_all_subject_responses(rnorm(20))
+  seq_des_inf = InferenceBaiAdjustedTKK14$new(seq_des)
+  seq_des_inf$compute_asymp_two_sided_pval()
+}
 }
 
 }

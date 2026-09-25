@@ -27,8 +27,6 @@ than folded into the same likelihood.
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 }
 \examples{
-\dontrun{
-\donttest{
 seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'incidence')
 for (i in 1:10) {
   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
@@ -36,8 +34,6 @@ for (i in 1:10) {
 seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
 inf = InferenceIncidKKCondLogitGLMMIVWC$new(seq_des)
 inf$compute_estimate()
-}
-}
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}} -> \code{InferenceIncidKKCondLogitGLMMIVWC}

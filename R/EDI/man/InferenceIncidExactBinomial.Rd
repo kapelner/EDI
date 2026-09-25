@@ -3,6 +3,11 @@
 \name{InferenceIncidExactBinomial}
 \alias{InferenceIncidExactBinomial}
 \title{Exact Binomial (McNemar-Type) Incidence Inference for Matched-Pair Designs}
+\value{
+A new \code{InferenceIncidExactBinomial} object.
+
+The treatment estimate.
+}
 \description{
 Performs exact matched-pair inference for binary (incidence) outcomes using
 only \strong{discordant} matched pairs — pairs where the treated and control
@@ -20,6 +25,16 @@ null log odds ratio. This class is available for
 designs, only the matched-pair data are used and the reservoir is ignored.
 If there are no matched pairs, or no discordant pairs, the relevant
 quantities are reported as non-estimable rather than as \code{NaN}/\code{Inf}.
+
+Initialize exact matched-pair binomial inference for
+  incidence outcomes. Requires \code{des_obj} to be
+  \code{DesignFixedBinaryMatch} or a KK matching-on-the-fly-capable
+  design; errors otherwise. Requires an uncensored incidence response.
+
+Computes the Haldane-Anscombe continuity-corrected
+  matched-pair log odds ratio \eqn{\log\left((d_+ + 0.5)/(d_- + 0.5)\right)}
+  from the discordant matched-pair counts (see class documentation for
+  the full model). \code{NA} if there are no matched pairs.
 }
 \examples{
 \donttest{
@@ -84,16 +99,13 @@ inf$compute_estimate()
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
-assigned and response y is recorded within.}
+      \item{\code{des_obj}}{A completed design object.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
-likelihood-based models. Explicit starts always override this object-level policy.
-\code{NULL} (default) consults the global cold-start dispatch policy.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
     }
     \if{html}{\out{</div>}}
   }
@@ -111,7 +123,8 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{Ignored for this estimator (the exact statistic is
+always cheap to compute; there is no separate variance step to skip).}
     }
     \if{html}{\out{</div>}}
   }

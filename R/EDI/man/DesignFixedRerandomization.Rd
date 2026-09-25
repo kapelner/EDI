@@ -84,9 +84,7 @@ covariate structure, this loop can run for a very long time (in principle
 indefinitely) before finding an acceptable draw.
 }
 \examples{
-\dontrun{
 des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous')
-}
 }
 \references{
 Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve

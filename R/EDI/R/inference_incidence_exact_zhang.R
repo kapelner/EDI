@@ -136,9 +136,14 @@ ExactZhangIncidenceSource = list(
 #' Requires a Bernoulli-capable or matching-capable design.
 #'
 #' @examples
-#' \dontrun{
-#' # Example for InferenceIncidExactZhang
+#' seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = 'incidence')
+#' for (i in 1:20) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 #' }
+#' seq_des$add_all_subject_responses(rbinom(20, 1, 0.5))
+#' inf = InferenceIncidExactZhang$new(seq_des)
+#' inf$compute_estimate()
+#' inf$compute_exact_two_sided_pval_for_treatment_effect()
 #' @name InferenceIncidExactZhang
 #' @export
 InferenceIncidExactZhang = define_inference_class(

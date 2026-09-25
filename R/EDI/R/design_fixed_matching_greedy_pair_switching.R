@@ -56,9 +56,7 @@
 #'   \emph{Biostatistics}, 5(2), 263-275, \doi{10.1093/biostatistics/5.2.263}, for the
 #'   matched-pair design this class refines.
 #' @examples
-#' \dontrun{
 #' des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'continuous')
-#' }
 #' @export
 DesignFixedMatchingGreedyPairSwitching = define_design_class(
 	classname = "DesignFixedMatchingGreedyPairSwitching",

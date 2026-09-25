@@ -847,7 +847,7 @@ Inference = R6::R6Class("Inference",
 					ns = asNamespace("EDI")
 					edi_env = ns$edi_env
 					prev_override = edi_env$num_cores_override
-					prev_threads = getOption(".edi_last_set_threads")
+					prev_threads = edi_env$last_set_threads
 					if (is.null(prev_threads) || length(prev_threads) != 1L || !is.finite(prev_threads)) {
 						prev_threads = 1L
 					}

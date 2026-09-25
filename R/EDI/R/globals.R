@@ -75,23 +75,26 @@ is_edi_control_condition = function(e){
     grepl("reached CPU time limit", msg, fixed = TRUE)
 }
 
-# Closure to encapsulate the internal assertion override flag (used by SimulationFramework)
-.assert_manager = (function() {
-  internal_run_asserts = TRUE
-  list(
-    toggle = function(on = TRUE) {
-      internal_run_asserts <<- isTRUE(on)
-      invisible(internal_run_asserts)
-    },
-    should_run = function() {
-      internal_run_asserts && isTRUE(getOption("edi.run_asserts", TRUE))
-    }
-  )
-})()
+# Assertion switches live in the package's own state environment, never in the
+# user's options() (CRAN policy): `asserts_user` is what toggle_asserts() sets,
+# `asserts_internal` is SimulationFramework's internal override. A user-set
+# options(edi.run_asserts = FALSE) is still honored, but only ever read.
+edi_env$asserts_user = TRUE
+edi_env$asserts_internal = TRUE
+.assert_manager = list(
+  toggle = function(on = TRUE) {
+    edi_env$asserts_internal = isTRUE(on)
+    invisible(edi_env$asserts_internal)
+  },
+  should_run = function() {
+    edi_env$asserts_internal && edi_env$asserts_user && isTRUE(getOption("edi.run_asserts", TRUE))
+  }
+)
 #' Toggle the execution of assertions throughout the package
 #' 
 #' @description This function enables or disables the internal input validation checks (assertions)
-#' by setting the \code{options(edi.run_asserts = ...)} value.
+#' for the rest of the R session. It does not modify \code{options()}; setting
+#' \code{options(edi.run_asserts = FALSE)} yourself also disables them.
 #' Disabling assertions can provide a significant performance boost in heavy
 #' simulations (often 10x-20x speedup), but it removes the safety rails that
 #' prevent invalid data from reaching the internal algorithms.
@@ -106,8 +109,8 @@ is_edi_control_condition = function(e){
 #' @keywords internal
 #' @export
 toggle_asserts = function(on = TRUE) {
-  options(edi.run_asserts = isTRUE(on))
-  invisible(isTRUE(on))
+  edi_env$asserts_user = isTRUE(on)
+  invisible(edi_env$asserts_user)
 }
 # private method
 should_run_asserts = .assert_manager$should_run
@@ -398,23 +401,19 @@ make_configured_fork_cluster = function(n_cores) {
   last_error = NULL
   cl = NULL
   for (port in candidate_ports) {
-    cl = tryCatch(
-      parallel::makeForkCluster(n_cores, port = port),
-      error = function(e) {
-        last_error <<- e
-        NULL
-      }
-    )
+    cl = tryCatch(parallel::makeForkCluster(n_cores, port = port), error = function(e) e)
+    if (inherits(cl, "error")) {
+      last_error = cl
+      cl = NULL
+    }
     if (!is.null(cl)) break
   }
   if (is.null(cl)) {
-    cl = tryCatch(
-      parallel::makeCluster(n_cores),
-      error = function(e) {
-        last_error <<- e
-        NULL
-      }
-    )
+    cl = tryCatch(parallel::makeCluster(n_cores), error = function(e) e)
+    if (inherits(cl, "error")) {
+      last_error = cl
+      cl = NULL
+    }
   }
   if (is.null(cl)) {
     stop(
@@ -427,6 +426,8 @@ make_configured_fork_cluster = function(n_cores) {
   }
   tryCatch(
     parallel::clusterCall(cl, function() {
+      # Runs in the worker process only (not the user's session); these settings
+      # are meant to persist there for the worker's lifetime.
       Sys.setenv(
         OMP_NUM_THREADS        = 1L,
         MKL_NUM_THREADS        = 1L,
@@ -594,6 +595,8 @@ set_num_cores = function(num_cores, force_mirai = FALSE) {
     # use omp_set_num_threads() explicitly and are unaffected by this reset.
     tryCatch(
       mirai::everywhere({
+        # Runs in the worker process only (not the user's session); these settings
+        # are meant to persist there for the worker's lifetime.
         Sys.setenv(
           OMP_NUM_THREADS        = 1L,
           MKL_NUM_THREADS        = 1L,
@@ -1578,7 +1581,7 @@ set_package_threads = function(num_cores) {
   # Skip all expensive syscalls if threads are already set to this value.
   # Sys.setenv and the BLAS/OMP setters are relatively slow; calling them on
   # every serial replication causes a visible pause between reps.
-  last = getOption(".edi_last_set_threads")
+  last = edi_env$last_set_threads
   if (identical(last, num_cores)) return(invisible(NULL))
   # 2026-09-22: diagnostic-only opt-in tracing, see zzz.R's .onLoad() for the
   # windows-latest R-CMD-check hang this is chasing. No-op unless
@@ -1598,10 +1601,9 @@ set_package_threads = function(num_cores) {
 	    data.table::setDTthreads(num_cores)
 	  }
 	  .edi_spt_step("after data.table::setDTthreads")
-	  if (check_package_installed("fixest")) {
-	    suppressWarnings(try(fixest::setFixest_nthreads(num_cores), silent = TRUE))
-	  }
-	  .edi_spt_step("after fixest::setFixest_nthreads")
+	  # (No fixest::setFixest_nthreads() here: it works by setting
+	  # options(fixest_nthreads), i.e. the user's options, and EDI does not call
+	  # fixest itself.)
   # Environment variables for OpenMP and BLAS/LAPACK
   # This helps prevent thread explosion in child processes
   # that call multi-threaded native libraries.
@@ -1634,10 +1636,10 @@ set_package_threads = function(num_cores) {
     .edi_spt_step("after RhpcBLASctl::omp_set_num_threads")
   }, silent = TRUE)
 
-  # Also set R options for parallel/pbmcapply
-  options(mc.cores = num_cores)
-
-  options(".edi_last_set_threads" =   num_cores)
+  # Bookkeeping lives in the package's own state environment -- never in the
+  # user's options() (CRAN policy). options(mc.cores) is deliberately not set
+  # either: nothing in EDI reads it, and it is the user's option.
+  edi_env$last_set_threads = num_cores
   .edi_spt_step("end")
   invisible(NULL)
 }

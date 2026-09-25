@@ -15,12 +15,10 @@
 #'
 #' @keywords internal
 #' @examples
-#' \dontrun{
 #' # DesignSeqOneByOne is abstract and cannot be instantiated directly;
 #' # construct a concrete subclass instead, e.g.:
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = 'continuous')
 #' seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
-#' }
 DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 	lock_objects = FALSE,
 	inherit = Design,

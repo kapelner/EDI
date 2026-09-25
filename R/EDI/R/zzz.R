@@ -27,16 +27,9 @@ NULL
 		flush(stdout())
 	}
 	.edi_onload_step("start")
-	if (is.null(getOption("datatable.quiet"))) {
-		options(datatable.quiet = TRUE)
-	}
-	.edi_onload_step("after datatable.quiet option")
-
-	# Set default for assertion execution
-	if (is.null(getOption("edi.run_asserts"))) {
-		options(edi.run_asserts = TRUE)
-	}
-	.edi_onload_step("after edi.run_asserts option")
+	# No options() are set here: loading EDI must not change the user's options
+	# (CRAN policy). Assertions default to on via should_run_asserts()'s own
+	# getOption("edi.run_asserts", TRUE) default and edi_env state.
 
 	# Pin OpenMP/BLAS threads to 1 at load time so the package is actually
 	# single-threaded by default, matching get_num_cores()'s own default belief

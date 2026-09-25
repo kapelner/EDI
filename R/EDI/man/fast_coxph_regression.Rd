@@ -93,7 +93,7 @@ which is listed in Suggests and is not installed automatically with \pkg{EDI}; i
 X = matrix(rnorm(500), 100, 5)
 y = runif(100)
 dead = rbinom(100, 1, 0.5)
-fast_coxph_regression(y, dead, X)
+fast_coxph_regression(X, y, dead)
 }
 \seealso{
 \code{\link{build_cox_data_cache_cpp}} for the full Cox partial-likelihood

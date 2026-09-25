@@ -18,8 +18,6 @@ test_that(".onLoad() emits its trace lines to stdout when EDI_ONLOAD_TRACE=1, an
 	out <- capture.output(Z(".onLoad")("lib", "EDI"))
 	expect_true("EDI .onLoad trace: start" %in% out)
 	expect_true("EDI .onLoad trace: end" %in% out)
-	expect_true("EDI .onLoad trace: after datatable.quiet option" %in% out)
-	expect_true("EDI .onLoad trace: after edi.run_asserts option" %in% out)
 	expect_true("EDI .onLoad trace: after set_package_threads" %in% out)
 	expect_true("EDI .onLoad trace: after edi_tuning_import_saved_policies" %in% out)
 

@@ -106,8 +106,7 @@ values. Runs serially. Default \code{FALSE}.}
   the \code{stop()} being silently swallowed into a \code{pval = NA}
   "ok" row -- the single source of truth for both this check and
   \code{compute_rand_two_sided_pval()}'s own guard, so the two can
-  never drift apart (\code{fix_inference_hierarchy.md}'s
-  method-level-`stop()` TODO, 2026-08-21).
+  never drift apart.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceRand$supports_rand_pval_for_incidence()}

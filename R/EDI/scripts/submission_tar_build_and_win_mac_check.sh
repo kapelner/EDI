@@ -38,6 +38,17 @@
 #      the real repo file keep the native-tuned default unchanged. Nothing
 #      needs reverting: the scratch copy is discarded with the rest of
 #      $SCRATCH_DIR.
+#   1b. Fails fast, before the slow build, if any Rd example uses \dontrun{}
+#      or has unparseable example code (e.g. a \donttest{} nested inside a
+#      \dontrun{} -- CRAN's "Unexecutable code in man/X.Rd" warning), via
+#      scripts/check_examples_for_cran.R --static-only. CRAN reviewers reject
+#      \dontrun{} on code that can actually run (confirmed 2026-09-25 review).
+#   1c. Fails fast, before the slow build, if the R sources write to the
+#      global environment: an assign()/rm()/`$<-` into .GlobalEnv (other than
+#      restoring .Random.seed), an attach(), or a `<<-` whose target is not a
+#      variable of an enclosing function (only those can reach .GlobalEnv), via
+#      scripts/check_global_state_for_cran.R --static-only. CRAN rejected the
+#      2026-09-25 submission for modifying .GlobalEnv and the user's options().
 #   2. Runs `R CMD check --as-cran` on the built tarball (NOT_CRAN=false) and
 #      prints the full output to screen -- this is the same check CRAN's own
 #      submission queue runs first, so seeing it clean here before uploading
@@ -48,6 +59,21 @@
 #      ERROR; WARNINGs/NOTEs are shown but don't block (win-builder/
 #      mac-builder exist specifically to catch platform-specific issues this
 #      local run can't, and the "New submission" NOTE is unavoidable).
+#   2a. (Printed as step 3a.) Runs every Rd file's examples against the build R CMD check just
+#      installed (scripts/check_examples_for_cran.R --lib EDI.Rcheck) and
+#      aborts if any errors, or if any Rd file's examples (without their
+#      \donttest{} code) take longer than EDI_EXAMPLE_TIME_LIMIT seconds
+#      (default 2.5 -- well under CRAN's 5 s, since CRAN's machines are
+#      slower). R CMD check only NOTEs slow examples; CRAN's reviewers then
+#      reject them. \donttest{} code is also run and must not error, but is
+#      not time-limited.
+#   2b. (Printed as step 3b.) Loads the build R CMD check just installed and
+#      runs EDI's load, parallel (set_num_cores), SimulationFramework and
+#      InferenceSuite entry points, aborting if any of them leaves options(),
+#      the working directory, the objects in .GlobalEnv or (for seeded runs)
+#      .Random.seed changed (scripts/check_global_state_for_cran.R --lib
+#      EDI.Rcheck). Step 3a's example run also fails any Rd example that
+#      changes options(), the working directory or .GlobalEnv.
 #   3. Prints instructions for win-builder. Submission is via a web form at
 #      https://win-builder.r-project.org/upload.aspx -- an ASP.NET webform
 #      (dynamic viewstate tokens per page load), not a stable curl/FTP
@@ -98,6 +124,20 @@ CONFIGURE_DEFAULT_LINE="$CONFIGURE_DEFAULT_LINE" CONFIGURE_PATCHED_LINE="$CONFIG
   perl -i -pe 's/\Q$ENV{CONFIGURE_DEFAULT_LINE}\E/$ENV{CONFIGURE_PATCHED_LINE}/' "$CLEAN_PKG_DIR/configure"
 if ! grep -qF "$CONFIGURE_PATCHED_LINE" "$CLEAN_PKG_DIR/configure"; then
   echo "ERROR: patch of $CLEAN_PKG_DIR/configure did not take effect." >&2
+  exit 1
+fi
+
+EXAMPLES_CHECK="$PKG_DIR/scripts/check_examples_for_cran.R"
+echo "== 1b. Static example checks: no \\dontrun{}, all example code parses =="
+if ! Rscript "$EXAMPLES_CHECK" "$CLEAN_PKG_DIR" --static-only; then
+  echo "ERROR: Rd examples have problems CRAN will reject (listed above) -- not building. Fix the roxygen @examples in R/, regenerate man/ (Rscript R/fast_roxygenize.R) and re-run this script." >&2
+  exit 1
+fi
+
+GLOBAL_STATE_CHECK="$PKG_DIR/scripts/check_global_state_for_cran.R"
+echo "== 1c. Static global-environment checks: no .GlobalEnv writes, no unsafe <<-, no attach() =="
+if ! Rscript "$GLOBAL_STATE_CHECK" "$CLEAN_PKG_DIR" --static-only; then
+  echo "ERROR: the R sources modify the global environment in ways CRAN rejects (listed above) -- not building. Use a local environment instead (see https://contributor.r-project.org/cran-cookbook/code_issues.html#writing-to-the-.globalenv) and re-run this script." >&2
   exit 1
 fi
 
@@ -177,6 +217,22 @@ if [[ "$CHECK_EXIT" -ne 0 ]] || grep -qE '^Status:.*ERROR' "$CHECK_LOG"; then
   exit 1
 fi
 echo "R CMD check --as-cran completed with no ERROR (WARNINGs/NOTEs, if any, are shown above -- review them, but they don't block upload)."
+
+echo ""
+echo "== 3a. Timing every Rd file's examples against the build R CMD check installed (limit ${EDI_EXAMPLE_TIME_LIMIT:-2.5}s each, excluding \\donttest{}) =="
+if ! NOT_CRAN=false EDI_SKIP_LOCAL_TUNING=1 _R_CHECK_LIMIT_CORES_=true OMP_THREAD_LIMIT=2 \
+    Rscript "$EXAMPLES_CHECK" "$CLEAN_PKG_DIR" --lib "$CHECK_DIR"; then
+  echo "ERROR: Rd examples fail or are too slow for CRAN (listed above) -- not uploading. Unwrap/shrink them, or move the slow part into \\donttest{}, then regenerate man/ and re-run this script." >&2
+  exit 1
+fi
+
+echo ""
+echo "== 3b. Runtime global-state check: loading EDI and running its entry points must leave options(), the working directory, .GlobalEnv and .Random.seed unchanged =="
+if ! NOT_CRAN=false EDI_SKIP_LOCAL_TUNING=1 _R_CHECK_LIMIT_CORES_=true OMP_THREAD_LIMIT=2 \
+    Rscript "$GLOBAL_STATE_CHECK" "$CLEAN_PKG_DIR" --lib "$CHECK_DIR"; then
+  echo "ERROR: EDI changes the user's global state (listed above) -- not uploading. CRAN requires options()/par()/setwd() changes inside functions to be undone with an immediate on.exit(), and forbids writing to .GlobalEnv or changing .Random.seed. Fix and re-run this script." >&2
+  exit 1
+fi
 
 echo ""
 echo "== 4. win-builder: NO SCRIPTABLE UPLOAD PATH -- web form only =="

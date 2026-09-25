@@ -4,6 +4,18 @@
 \name{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}
 \alias{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}
 \title{One-Likelihood Clayton-Copula Weibull AFT Inference for KK Survival Designs}
+\value{
+When \code{debug = FALSE} (default), a numeric vector of length \code{r}. When
+  \code{debug = TRUE}, a list with: \code{values}, \code{errors} (list of character
+  vectors, one per iteration), \code{warnings} (list of character vectors, one per
+  iteration), \code{num_errors}, \code{num_warnings},
+  \code{prop_iterations_with_errors}, \code{prop_iterations_with_warnings}, and
+  \code{prop_illegal_values}.
+
+A single logical.
+
+Randomization p-value.
+}
 \description{
 Estimates a treatment log-time-ratio \eqn{\beta_T} for right-censored
 survival outcomes collected under a KK matching-on-the-fly design
@@ -15,6 +27,25 @@ to account for within-pair correlation induced by shared matching
 covariates, while unmatched reservoir subjects are modeled by the same
 Weibull AFT margin marginally (no dependence term). All subjects share
 one treatment coefficient, estimated jointly.
+
+Computes the randomization distribution of the treatment effect estimate under the sharp null.
+
+Whether \code{compute_rand_two_sided_pval()} is actually
+  usable on this instance right now -- \code{FALSE} exactly when it
+  would \code{stop()}: an \code{incidence}-response instance with no
+  custom randomization statistic and a design not eligible for
+  design-randomization-based incidence inference (see
+  \code{private$should_use_design_randomization_for_incidence()}).
+  \code{TRUE} for every other case, including every non-incidence
+  response type. Public, self-contained (only reads already-set
+  instance state, no side effects), so \code{InferenceSuite} can
+  check this before attempting the sentinel instead of relying on
+  the \code{stop()} being silently swallowed into a \code{pval = NA}
+  "ok" row -- the single source of truth for both this check and
+  \code{compute_rand_two_sided_pval()}'s own guard, so the two can
+  never drift apart.
+
+Computes a randomization-based p-value.
 }
 \details{
 \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient of a Weibull
@@ -114,6 +145,28 @@ Analogous Python API for AFT/copula survival models:
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors. Default 501.}
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{The null difference. Default 0.}
+      \item{\code{delta}}{Null difference.}
+      \item{\code{transform_responses}}{Type of transformation. Default "none".}
+      \item{\code{transform_responses}}{Transformation.}
+      \item{\code{show_progress}}{Show progress bar. Default TRUE.}
+      \item{\code{show_progress}}{Show progress.}
+      \item{\code{permutations}}{Pre-computed permutations. Default NULL.}
+      \item{\code{permutations}}{Pre-computed permutations.}
+      \item{\code{debug}}{If \code{TRUE}, return a list with the distribution values and
+per-iteration diagnostics including error messages, warning messages, counts of each,
+and summary proportions for iterations with errors, warnings, and illegal (non-finite)
+values. Runs serially. Default \code{FALSE}.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -144,6 +197,25 @@ Analogous Python API for AFT/copula survival models:
   permutations = NULL,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors. Default 501.}
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{The null difference. Default 0.}
+      \item{\code{delta}}{Null difference.}
+      \item{\code{transform_responses}}{Type of transformation. Default "none".}
+      \item{\code{transform_responses}}{Transformation.}
+      \item{\code{na.rm}}{Remove NAs.}
+      \item{\code{show_progress}}{Show progress bar. Default TRUE.}
+      \item{\code{show_progress}}{Show progress.}
+      \item{\code{permutations}}{Pre-computed permutations. Default NULL.}
+      \item{\code{permutations}}{Pre-computed permutations.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+    }
     \if{html}{\out{</div>}}
   }
 }

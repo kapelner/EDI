@@ -201,10 +201,15 @@ An empty vector always returns \code{NA} variance.}
 \if{html}{\out{<a id="method-InferencePropGCompMeanDiff-get_standard_error"></a>}}
 \if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-get_standard_error}{}}}
 \subsection{\code{InferencePropGCompMeanDiff$get_standard_error()}}{
+  Returns the standard error of the g-computation mean-difference
+  estimate (\code{NA} if it is unavailable).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropGCompMeanDiff$get_standard_error()}
     \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A single numeric standard error, or \code{NA_real_}.
   }
 }
 
@@ -212,6 +217,9 @@ An empty vector always returns \code{NA} variance.}
 \if{html}{\out{<a id="method-InferencePropGCompMeanDiff-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferencePropGCompMeanDiff-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferencePropGCompMeanDiff$compute_estimate_with_bootstrap_weights()}}{
+  Recomputes the g-computation mean-difference estimate under
+  the supplied subject- or block-level bootstrap weights and caches it;
+  used by the Bayesian-bootstrap and resampling paths.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferencePropGCompMeanDiff$compute_estimate_with_bootstrap_weights(
@@ -219,6 +227,18 @@ An empty vector always returns \code{NA} variance.}
   estimate_only = FALSE
 )}
     \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{subject_or_block_weights}}{Numeric vector of bootstrap weights, one per subject
+(or per block when the design is blocked).}
+      \item{\code{estimate_only}}{If TRUE, only the point estimate is required (no variance).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The weighted mean-difference estimate, or \code{NA_real_} if the weighted fit is unusable.
   }
 }
 
@@ -331,6 +351,7 @@ An empty vector always returns \code{NA} variance.}
       \item{\code{max_boundary_mass}}{Reject a resample when at least this fraction is near the boundary.}
       \item{\code{sep_tol}}{Separation tolerance used to reject nearly perfectly separated resamples.}
       \item{\code{min_group_n}}{Minimum number of observations required in each treatment arm.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
     }
     \if{html}{\out{</div>}}
@@ -418,6 +439,8 @@ at construction time.}
       \item{\code{max_boundary_mass}}{Reject a resample when at least this fraction is near the boundary.}
       \item{\code{sep_tol}}{Separation tolerance used to reject nearly perfectly separated resamples.}
       \item{\code{min_group_n}}{Minimum number of observations required in each treatment arm.}
+      \item{\code{debug}}{If TRUE, return per-replicate diagnostics (values, errors,
+warnings) instead of just the bootstrap values.}
     }
     \if{html}{\out{</div>}}
   }

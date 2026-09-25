@@ -275,9 +275,13 @@ ExactFisherIncidenceSource = list(
 #'   provides multiple strata.
 #'
 #' @examples
-#' \dontrun{
-#' # Example for InferenceIncidExactFisher
-#' }
+#' des = DesignFixediBCRD$new(n = 20, response_type = 'incidence')
+#' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(20)))
+#' des$assign_w_to_all_subjects()
+#' des$add_all_subject_responses(rbinom(20, 1, 0.5))
+#' inf = InferenceIncidExactFisher$new(des)
+#' inf$compute_estimate()
+#' inf$compute_exact_two_sided_pval_for_treatment_effect()
 #' @name InferenceIncidExactFisher
 #' @export
 InferenceIncidExactFisher = define_inference_class(

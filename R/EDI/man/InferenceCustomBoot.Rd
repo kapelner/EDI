@@ -3,6 +3,9 @@
 \name{InferenceCustomBoot}
 \alias{InferenceCustomBoot}
 \title{Internal base for user-defined bootstrap inference extensions}
+\value{
+A two-sided p-value.
+}
 \description{
 This class uses the same \code{fit()} result contract as
 \code{InferenceCustomAsymp}, but only promises estimate/bootstrap behavior.
@@ -14,6 +17,7 @@ This class uses the same \code{fit()} result contract as
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceCustomBoot-compute_rand_two_sided_pval}{\code{InferenceCustomBoot$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceCustomBoot-fit}{\code{InferenceCustomBoot$fit()}}
     \item \href{#method-InferenceCustomBoot-compute_estimate}{\code{InferenceCustomBoot$compute_estimate()}}
     \item \href{#method-InferenceCustomBoot-clone}{\code{InferenceCustomBoot$clone()}}
@@ -44,6 +48,52 @@ This class uses the same \code{fit()} result contract as
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCustomBoot-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCustomBoot-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceCustomBoot$compute_rand_two_sided_pval()}}{
+  Computes a randomization two-sided p-value. Delegates to
+  the `RandomizationCI`-provided dispatch (Zhang incidence support,
+  type/args_for_type) since `NonparametricBootstrap` pulls in both
+  `RandomizationTest` and `RandomizationCI`, and the two provide
+  conflicting `compute_rand_two_sided_pval` implementations.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCustomBoot$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  type = NULL,
+  args_for_type = NULL,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{transform_responses}}{Response transformation to apply during the test. For
+survival responses the default \code{"log"} multiplies the recorded times of the
+units treated under each reference allocation by \eqn{e^\delta}, event and
+censoring times alike, with censoring indicators unchanged -- the rank-based
+AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
+and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.}
+      \item{\code{na.rm}}{Whether to remove non-finite simulated statistics.}
+      \item{\code{show_progress}}{Whether to show progress.}
+      \item{\code{permutations}}{Optional pre-generated assignment draws.}
+      \item{\code{type}}{Optional incidence-specific exact randomization type.}
+      \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceCustomBoot-fit"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCustomBoot-fit}{}}}

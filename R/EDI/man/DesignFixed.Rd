@@ -8,13 +8,11 @@ An abstract R6 Class encapsulating the data and functionality for a fixed experi
 This class takes care of whole-experiment randomization.
 }
 \examples{
-\dontrun{
 # DesignFixed is abstract and cannot be instantiated directly; construct a
 # concrete subclass instead, e.g.:
 des = DesignFixedBernoulli$new(n = 10, response_type = 'continuous')
 des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 des$assign_w_to_all_subjects()
-}
 }
 \keyword{internal}
 \section{Super class}{

@@ -29,6 +29,113 @@ survival data or incidence (binary) responses (see \code{$initialize()}), and
 its jackknife methods all report explicit non-estimability rather than
 computing a (statistically unreliable) delete-1 jackknife of the
 Hodges-Lehmann functional.
+
+Override to avoid O(n^2) per-resample HL computation during the bootstrap warm-start
+inside compute_rand_confidence_interval. The asymptotic MLE CI is a perfectly
+adequate starting bound for the bisection and is computed in O(1).
+
+Initialize KK inverse-variance combined Wilcoxon inference
+  and prepare matched/reservoir rank-based components used by
+  \code{\link[EDI:InferenceAllKKWilcoxIVWC]{InferenceAllKKWilcoxIVWC}}.
+  Requires \code{des_obj} to be a KK matching-on-the-fly-capable design
+  (\code{des_obj$is_a_kk_matching_capable()}); errors otherwise. Also
+  rejects \code{response_type = "incidence"} (a message-and-error
+  recommends a compound mean-difference or conditional-logistic estimator
+  instead — rank-based methods are not well suited to binary outcomes)
+  and rejects censored survival data (recommends a restricted-mean or
+  Cox-based method instead, since this estimator has no censoring
+  handling). Legal \code{response_type} values are \code{"continuous"},
+  \code{"count"}, \code{"proportion"}, \code{"survival"} (uncensored
+  only), and \code{"ordinal"}.
+
+Returns the estimated treatment effect: an inverse-variance-weighted
+  compound (IVWC) of two Hodges-Lehmann median-shift estimates.
+
+Computes a \eqn{1-\alpha} level confidence interval for the
+  compound Hodges-Lehmann treatment effect estimator. Although each
+  sub-estimate is itself derived from a non-parametric rank test, the
+  inverse-variance-weighted \strong{combination} \eqn{\hat\beta_T} (see
+  \code{$compute_estimate()} for the full formula) is treated as
+  asymptotically normal, so the interval is
+  \eqn{\hat\beta_T \pm z_{1-\alpha/2}\sqrt{\widehat{\mathrm{Var}}(\hat\beta_T)}}
+  (or a \eqn{t}-based critical value, depending on
+  \code{private$compute_z_or_t_ci_from_s_and_df}'s degrees-of-freedom
+  resolution).
+
+Compute the KK Wilcoxon compound two-sided p-value testing
+  \eqn{H_0: \beta_T = \code{delta}}, from the same asymptotically-normal
+  compound estimate/variance (\eqn{z = (\hat\beta_T -
+  \code{delta})/\widehat{\mathrm{SE}}(\hat\beta_T)}) that
+  \code{$compute_asymp_confidence_interval()} inverts to form its
+  interval — see that method's documentation, and
+  \code{$compute_estimate()}, for the compound Hodges-Lehmann estimator's
+  full formula. Only \code{delta = 0} is currently supported: a non-zero
+  null shift raises an error (when assertions are enabled) rather than
+  testing it, because the underlying Wilcoxon tests' null-shift handling
+  has not been extended to the compound combined estimator. See related
+  simple Wilcoxon behavior in
+  \code{\link[EDI:InferenceAllSimpleWilcox]{InferenceAllSimpleWilcox}}.
+
+Reports the jackknife point-estimate as explicitly
+  non-estimable for this compound Hodges-Lehmann estimator, rather than
+  computing a leave-one-out jackknife. Deletion-based (jackknife)
+  resampling of a Hodges-Lehmann/Wilcoxon-derived statistic is known to
+  behave poorly — the median-of-Walsh-averages functional is not smooth
+  enough for the delete-1 jackknife's linear-approximation machinery to
+  be reliable at the small matched-pair/reservoir sample sizes typical of
+  KK designs, and combining two already-jackknife-unstable sub-estimates
+  compounds the problem. This method exists purely to record that
+  unavailability (via \code{private$cache_nonestimable_estimate()}) rather
+  than silently returning a misleading number; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+  jackknife contract this method participates in.
+
+Reports the jackknife bias-correction estimate as
+  non-estimable for this Wilcoxon compound estimator, for the same
+  reason as \code{$compute_jackknife_estimate()} (the Hodges-Lehmann
+  functional is not smooth enough for the delete-1 jackknife); see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+  jackknife contract.
+
+Reports the jackknife standard error as non-estimable for
+  this Wilcoxon compound estimator, for the same reason as
+  \code{$compute_jackknife_estimate()}; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+  jackknife contract.
+
+Reports the jackknife-Wald p-value as non-estimable here,
+  for the same reason as \code{$compute_jackknife_estimate()}; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+
+Reports the jackknife-Wald confidence interval as
+  non-estimable here, for the same reason as
+  \code{$compute_jackknife_estimate()}; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+}
+\details{
+For matched pairs, \eqn{\hat\beta_m} is the Hodges-Lehmann
+  estimate from a Wilcoxon \strong{signed-rank} test on the within-pair
+  differences (\code{stats::wilcox.test(diffs, conf.int = TRUE)}'s
+  \code{estimate}, the median of the Walsh averages
+  \eqn{(d_i + d_j)/2}), with variance estimated as the sample variance of
+  those Walsh averages divided by the number of pairs \eqn{m}. For
+  reservoir (unmatched) subjects, \eqn{\hat\beta_r} is the
+  Hodges-Lehmann estimate from a Wilcoxon \strong{rank-sum} test between
+  treated and control reservoir responses (median of all pairwise
+  differences \eqn{y_{T,i} - y_{C,j}}), with an analogous
+  pairwise-difference-variance-based estimate. When both sub-estimates
+  are usable, the compound estimate is the inverse-variance-weighted
+  combination
+  \deqn{\hat\beta_T = w^* \hat\beta_m + (1-w^*)\, \hat\beta_r, \qquad
+  w^* = \frac{\widehat{\mathrm{Var}}(\hat\beta_r)}{\widehat{\mathrm{Var}}(\hat\beta_r)
+  + \widehat{\mathrm{Var}}(\hat\beta_m)},}
+  with combined variance \eqn{\widehat{\mathrm{Var}}(\hat\beta_r)\,
+  \widehat{\mathrm{Var}}(\hat\beta_m) / (\widehat{\mathrm{Var}}(\hat\beta_r) +
+  \widehat{\mathrm{Var}}(\hat\beta_m))} — the same combination scheme as
+  \code{\link[EDI:InferenceAllKKMeanDiffIVWC]{InferenceAllKKMeanDiffIVWC}},
+  but applied to rank-based rather than mean-based sub-estimates. If
+  only one sub-estimate is usable (e.g. no matched pairs, or a degenerate
+  reservoir), \eqn{\hat\beta_T} falls back to that sub-estimate alone.
 }
 \examples{
 \donttest{
@@ -106,6 +213,17 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{The confidence level. Default is 0.05.}
+      \item{\code{alpha}}{The confidence level in the computed confidence
+interval is 1 - \code{alpha}. The default is 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{...}}{Additional arguments passed to super.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -125,16 +243,13 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
-assigned and response y is recorded within.}
+      \item{\code{des_obj}}{A DesignSeqOneByOne object (must be a KK design).}
       \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
-likelihood-based models. Explicit starts always override this object-level policy.
-\code{NULL} (default) consults the global cold-start dispatch policy.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
     }
     \if{html}{\out{</div>}}
   }
@@ -170,7 +285,10 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Significance level.}
+      \item{\code{alpha}}{The confidence level. Default is 0.05.}
+      \item{\code{alpha}}{The confidence level in the computed confidence
+interval is 1 - \code{alpha}. The default is 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
     }
     \if{html}{\out{</div>}}
   }
@@ -188,7 +306,9 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect.}
+      \item{\code{delta}}{The null difference to test against. For any
+treatment effect at all this is set to zero (the default).}
+      \item{\code{delta}}{Null treatment-effect value. Default 0.}
     }
     \if{html}{\out{</div>}}
   }
@@ -203,6 +323,17 @@ likelihood-based models. Explicit starts always override this object-level polic
     \preformatted{InferenceAllKKWilcoxIVWC$compute_jackknife_estimate(unit = "auto")}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -214,6 +345,17 @@ likelihood-based models. Explicit starts always override this object-level polic
     \preformatted{InferenceAllKKWilcoxIVWC$compute_jackknife_bias_estimate(unit = "auto")}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -223,6 +365,17 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllKKWilcoxIVWC$compute_jackknife_std_error(unit = "auto")}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
     \if{html}{\out{</div>}}
   }
 }
@@ -239,6 +392,20 @@ likelihood-based models. Explicit starts always override this object-level polic
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null difference to test against. For any
+treatment effect at all this is set to zero (the default).}
+      \item{\code{delta}}{Null treatment-effect value. Default 0.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -251,6 +418,21 @@ likelihood-based models. Explicit starts always override this object-level polic
   alpha = 0.05,
   unit = "auto"
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{The confidence level. Default is 0.05.}
+      \item{\code{alpha}}{The confidence level in the computed confidence
+interval is 1 - \code{alpha}. The default is 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
     \if{html}{\out{</div>}}
   }
 }

@@ -83,26 +83,29 @@ unbiasedness -- at zero cost to balance. A mirror that evaluates strictly
 better than the solver's answer raises an error (it would be a solver bug).
 }
 \examples{
-\dontrun{
 des = DesignFixedOptimal$new(n = 14, response_type = 'continuous', objective = "mahal_dist")
 des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(14)))
 des$assign_w_to_all_subjects()
 des$get_optimization_diagnostics()
 
+\donttest{
 # A custom compiled objective (the user_compiled_fns.h calling convention),
 # built with RcppXPtrUtils::cppXPtr() -- here, squared imbalance of the
-# centered covariate sums:
-fobj = RcppXPtrUtils::cppXPtr(
-  "double f(const Eigen::MatrixXd& X, const Eigen::VectorXd& w) {
-    Eigen::RowVectorXd mu = X.colwise().mean();
-    Eigen::MatrixXd Xc = X.rowwise() - mu;
-    Eigen::VectorXd s = 2.0 * w - Eigen::VectorXd::Ones(X.rows());
-    return (Xc.transpose() * s).squaredNorm();
-  }", depends = "RcppEigen")
-des2 = DesignFixedOptimal$new(n = 14, response_type = 'continuous',
-  objective = "custom", custom_objective = fobj)
-des2$add_all_subjects_to_experiment(data.frame(x1 = rnorm(14)))
-des2$assign_w_to_all_subjects()
+# centered covariate sums. Compiling it needs a C++ toolchain and takes
+# several seconds:
+if (requireNamespace("RcppXPtrUtils", quietly = TRUE)) {
+  fobj = RcppXPtrUtils::cppXPtr(
+    "double f(const Eigen::MatrixXd& X, const Eigen::VectorXd& w) {
+      Eigen::RowVectorXd mu = X.colwise().mean();
+      Eigen::MatrixXd Xc = X.rowwise() - mu;
+      Eigen::VectorXd s = 2.0 * w - Eigen::VectorXd::Ones(X.rows());
+      return (Xc.transpose() * s).squaredNorm();
+    }", depends = "RcppEigen")
+  des2 = DesignFixedOptimal$new(n = 14, response_type = 'continuous',
+    objective = "custom", custom_objective = fobj)
+  des2$add_all_subjects_to_experiment(data.frame(x1 = rnorm(14)))
+  des2$assign_w_to_all_subjects()
+}
 }
 }
 \references{

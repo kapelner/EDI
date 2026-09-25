@@ -8,9 +8,6 @@ CountCompositeLikelihoodSource
 }
 \description{
 Computes the treatment estimate.
-
-Recomputes the count-model treatment estimate under
-  Bayesian-bootstrap weights.
 }
 \details{
 Shared branch for count models whose reported estimator is robust or

@@ -1,22 +1,24 @@
 library(testthat)
 library(EDI)
 
-# zzz.R: .onLoad() option defaults (set only when unset, never overriding a user value),
+# zzz.R: .onLoad() leaves the user's options() alone (CRAN policy),
 # the load-time single-thread pin, EDI_SKIP_LOCAL_TUNING, and .onAttach()'s startup
 # message with its "unknown" version fallback.
 
 Z <- function(x) get(x, envir = asNamespace("EDI"))
 
-test_that(".onLoad sets datatable.quiet and edi.run_asserts only when they are unset", {
+test_that(".onLoad never changes the user's options(), and asserts default to on", {
 	withr::local_envvar(EDI_SKIP_LOCAL_TUNING = "1")
-	withr::local_options(datatable.quiet = NULL, edi.run_asserts = NULL)
+	withr::local_options(datatable.quiet = NULL, edi.run_asserts = NULL, mc.cores = NULL)
+	options_before <- options()
 	Z(".onLoad")("lib", "EDI")
-	expect_true(getOption("datatable.quiet"))
-	expect_true(getOption("edi.run_asserts"))
+	expect_identical(options(), options_before)
+	expect_true(Z("should_run_asserts")())
 	withr::local_options(datatable.quiet = FALSE, edi.run_asserts = FALSE)
 	Z(".onLoad")("lib", "EDI")
 	expect_false(getOption("datatable.quiet"))                               # user choices survive
 	expect_false(getOption("edi.run_asserts"))
+	expect_false(Z("should_run_asserts")())                                   # and are honored
 })
 
 test_that(".onLoad pins the package to one thread and keeps get_num_cores() in sync", {
@@ -24,13 +26,14 @@ test_that(".onLoad pins the package to one thread and keeps get_num_cores() in s
 	old <- Z("get_num_cores")()
 	on.exit(try(Z("set_num_cores")(old), silent = TRUE), add = TRUE)
 	# set_package_threads() skips its actual OMP/BLAS syscalls when its own
-	# ".edi_last_set_threads" bookkeeping option already equals the target --
+	# edi_env$last_set_threads bookkeeping already equals the target --
 	# a real bulk-suite run executes many test files in one R session, and
 	# anything upstream that touches OpenMP threads directly (bypassing
 	# set_package_threads()) leaves that bookkeeping stale relative to the
 	# actual thread count. Clearing it forces .onLoad() below to always take
 	# the real code path instead of possibly no-op'ing on stale state.
-	withr::local_options(.edi_last_set_threads = NULL)
+	edi_env <- Z("edi_env")
+	edi_env$last_set_threads <- NULL
 	Z(".onLoad")("lib", "EDI")
 	expect_equal(Z("get_num_cores")(), 1L)
 	if (requireNamespace("RhpcBLASctl", quietly = TRUE)) expect_equal(RhpcBLASctl::omp_get_max_threads(), 1L)

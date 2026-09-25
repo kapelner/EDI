@@ -21,16 +21,17 @@ Abstract class implementing confidence intervals by inverting the bootstrap
 randomization test of \code{InferenceRandBootstrap} over the null effect \code{delta}.
 }
 \examples{
-\dontrun{
-seq_des = DesignSeqOneByOneKK14$new(n = 100, response_type = "continuous")
-# ... run the experiment: add subjects and responses ...
-seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
-seq_des_inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 501)
+seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = "continuous")
+for (i in 1:20) {
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 }
+seq_des$add_all_subject_responses(rnorm(20))
+seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
+seq_des_inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 101)
 }
 \keyword{internal}
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{InferenceRandBootstrapCI}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{InferenceRandBootstrapCI}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -67,8 +68,8 @@ seq_des_inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 501)
 </details>
 <details><summary>+ inherited public methods from InferenceRandCI</summary>
 <ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
+  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRand</summary>

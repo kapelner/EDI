@@ -14,7 +14,6 @@ InferenceMLEorKMSummaryTable = R6::R6Class("InferenceMLEorKMSummaryTable",
 		#' @return 	The setting-appropriate (see description) numeric estimate of the treatment effect
 		#'
 		#' @examples
-		#' \dontrun{
 		#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
@@ -24,9 +23,8 @@ InferenceMLEorKMSummaryTable = R6::R6Class("InferenceMLEorKMSummaryTable",
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 		#' seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 		#'
-		#' seq_des_inf = InferenceContinMultOLS$new(seq_des)
+		#' seq_des_inf = InferenceContinOLS$new(seq_des)
 		#' seq_des_inf$compute_estimate()
-		#' }
 		#'
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){

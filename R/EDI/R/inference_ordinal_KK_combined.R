@@ -159,6 +159,11 @@ InferenceOrdinalKKGEE = define_inference_class(
 			fixed_terms = setdiff(colnames(dat), c("y", "group_id"))
 			formula_gee = stats::as.formula(paste("y ~", paste(fixed_terms, collapse = " + ")))
 
+			# multgee::ordLORgee() calls options(contrasts = ...) and never restores
+			# it (upstream); put the user's option back so this fit leaves the
+			# user's options() untouched (CRAN policy).
+			old_contrasts = options("contrasts")
+			on.exit(options(old_contrasts), add = TRUE)
 			tryCatch({
 				utils::capture.output(m <- suppressMessages(suppressWarnings(
 					multgee::ordLORgee(

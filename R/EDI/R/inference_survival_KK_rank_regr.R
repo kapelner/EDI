@@ -7,8 +7,6 @@
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
 #' @examples
-#' \dontrun{
-#' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'survival')
 #' for (i in 1:10) {
 #'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
@@ -16,8 +14,6 @@
 #' seq_des$add_all_subject_responses(runif(10))
 #' inf = InferenceSurvivalKKRankRegrIVWC$new(seq_des)
 #' inf$compute_estimate()
-#' }
-#' }
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
 # formerly a thin R6 leaf on the abstract base

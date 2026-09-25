@@ -3,6 +3,18 @@
 \name{InferenceOrdinalStereotypeLogitRegr}
 \alias{InferenceOrdinalStereotypeLogitRegr}
 \title{Stereotype Logit Regression Inference for Ordinal Responses}
+\value{
+When \code{debug = FALSE} (default), a numeric vector of length \code{r}. When
+  \code{debug = TRUE}, a list with: \code{values}, \code{errors} (list of character
+  vectors, one per iteration), \code{warnings} (list of character vectors, one per
+  iteration), \code{num_errors}, \code{num_warnings},
+  \code{prop_iterations_with_errors}, \code{prop_iterations_with_warnings}, and
+  \code{prop_illegal_values}.
+
+A single logical.
+
+Randomization p-value.
+}
 \description{
 Fits Anderson's (1984) stereotype logit model for ordinal responses (see
 \code{\link{fast_stereotype_logit_cpp}} for the full reduced-rank
@@ -22,26 +34,59 @@ rather than as a single additive log-odds-ratio). \code{likelihood_tier =
 "full"}: likelihood-ratio, score, gradient, and Wald tests are all
 available when the model converges, plus parametric-likelihood-bootstrap
 calibration of the likelihood-ratio test.
+
+Computes the randomization distribution of the treatment effect estimate under the sharp null.
+
+Whether \code{compute_rand_two_sided_pval()} is actually
+  usable on this instance right now -- \code{FALSE} exactly when it
+  would \code{stop()}: an \code{incidence}-response instance with no
+  custom randomization statistic and a design not eligible for
+  design-randomization-based incidence inference (see
+  \code{private$should_use_design_randomization_for_incidence()}).
+  \code{TRUE} for every other case, including every non-incidence
+  response type. Public, self-contained (only reads already-set
+  instance state, no side effects), so \code{InferenceSuite} can
+  check this before attempting the sentinel instead of relying on
+  the \code{stop()} being silently swallowed into a \code{pval = NA}
+  "ok" row -- the single source of truth for both this check and
+  \code{compute_rand_two_sided_pval()}'s own guard, so the two can
+  never drift apart.
+
+Computes a randomization-based p-value.
 }
 \details{
-\strong{\code{compute_lik_ratio_two_sided_pval()} is inflated for this
-class specifically} (confirmed empirically: ~18-23\% Type-I error against
-a nominal 5\%): the stereotype model's category-score parameters
-\eqn{\phi_k} are a textbook Davies (1977) non-regular case, not identified
+\strong{\code{compute_lik_ratio_two_sided_pval()} can be
+anti-conservative at small \eqn{n}.} The stereotype model's category-score
+parameters \eqn{\phi_k} are a Davies (1977) non-regular case, not identified
 when \eqn{\beta_T} is at/near zero -- exactly the neighborhood every null
-hypothesis test sits in -- so the LR statistic's true null distribution is
-not the standard chi-square(1) this method assumes. Two already-working,
-better-calibrated alternatives exist on this class and should be preferred
-when a properly-sized likelihood-ratio-family test is needed:
+hypothesis test sits in -- so the LR statistic's null distribution need not
+be the chi-square(1) this method assumes. The size of the problem depends
+on the constrained refit: before 2026-09-21 the delta-constrained refit
+started cold and could stall in a much worse local optimum (e.g.
+neg-log-likelihood 131.3 vs the full fit's 118.9 at \eqn{\delta} equal to
+the MLE itself), which inflated the LR statistic and produced ~18-23\%
+Type-I error at \eqn{n = 100}; it also collapsed the bootstrap and
+inverted-LR confidence intervals to zero width. The refit now also starts
+from the full-fit parameters and keeps the better fit. Measured after that
+change (400 simulated null datasets, 5 response categories, a continuous
+covariate): about 6.5\% Type-I error and 0.93 confidence-interval coverage
+at \eqn{n = 100}, with no zero-width intervals, and about 13\% Type-I error
+at \eqn{n = 50} with 3 categories (169 converged fits). Part of the
+small-sample excess comes from the likelihood being multimodal: in a few
+percent of \eqn{n = 50} fits the reported point estimate sits at a local
+optimum whose likelihood is below that of another optimum, which makes the
+LR statistic at the estimate positive rather than zero. For small samples,
+prefer the better-calibrated alternatives on this class:
 \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap
-calibration via the class's own null simulation; confirmed ~6-7\% Type-I
-error) and the cheaper \code{compute_lik_ratio_bartlett_two_sided_pval()}
-(Monte-Carlo Bartlett correction; confirmed ~4\% Type-I error). Both are
+calibration via the class's own null simulation; ~6-7\% Type-I error) and
+the cheaper \code{compute_lik_ratio_bartlett_two_sided_pval()}
+(Monte-Carlo Bartlett correction; ~4\% Type-I error); those two figures
+predate the refit change and were not re-measured. Both are
 roughly 20-40x slower per call than the raw chi-square test (a fresh
 bootstrap/Monte-Carlo refit at every delta candidate), which is why they
 are excluded from this package's own routine comprehensive test suite
-(see \code{comprehensive_slow_paths.R}) despite being the statistically
-correct choice for this class. \code{compute_lik_ratio_two_sided_pval()}
+(see \code{comprehensive_slow_paths.R}).
+\code{compute_lik_ratio_two_sided_pval()}
 itself is left unchanged (not silently recalibrated) to avoid an
 undocumented behavior change to an existing method's contract.
 Bayesian-bootstrap inference is temporarily unavailable because the current
@@ -116,6 +161,28 @@ Anderson, J. A. (1984). "Regression and Ordered Categorical
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors. Default 501.}
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{The null difference. Default 0.}
+      \item{\code{delta}}{Null difference.}
+      \item{\code{transform_responses}}{Type of transformation. Default "none".}
+      \item{\code{transform_responses}}{Transformation.}
+      \item{\code{show_progress}}{Show progress bar. Default TRUE.}
+      \item{\code{show_progress}}{Show progress.}
+      \item{\code{permutations}}{Pre-computed permutations. Default NULL.}
+      \item{\code{permutations}}{Pre-computed permutations.}
+      \item{\code{debug}}{If \code{TRUE}, return a list with the distribution values and
+per-iteration diagnostics including error messages, warning messages, counts of each,
+and summary proportions for iterations with errors, warnings, and illegal (non-finite)
+values. Runs serially. Default \code{FALSE}.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -144,6 +211,25 @@ Anderson, J. A. (1984). "Regression and Ordered Categorical
   permutations = NULL,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors. Default 501.}
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{The null difference. Default 0.}
+      \item{\code{delta}}{Null difference.}
+      \item{\code{transform_responses}}{Type of transformation. Default "none".}
+      \item{\code{transform_responses}}{Transformation.}
+      \item{\code{na.rm}}{Remove NAs.}
+      \item{\code{show_progress}}{Show progress bar. Default TRUE.}
+      \item{\code{show_progress}}{Show progress.}
+      \item{\code{permutations}}{Pre-computed permutations. Default NULL.}
+      \item{\code{permutations}}{Pre-computed permutations.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+    }
     \if{html}{\out{</div>}}
   }
 }

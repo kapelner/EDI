@@ -48,9 +48,7 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 ## Method `DesignSeqOneByOneKK21stepwise$new()`
 ## ------------------------------------------------
 
-\dontrun{
 seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = "continuous")
-}
 
 }
 \references{

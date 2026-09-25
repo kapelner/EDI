@@ -3,6 +3,9 @@
 \name{InferenceIncidGCompRiskDiff}
 \alias{InferenceIncidGCompRiskDiff}
 \title{G-Computation Risk-Difference Inference for Binary Responses}
+\value{
+A numeric vector of bootstrap estimates.
+}
 \description{
 Fits a logistic working model, \eqn{\mathrm{logit}\,\Pr(Y_i=1\mid x_i) =
 x_i^\top\hat\beta}, for an incidence outcome using treatment and, optionally,
@@ -16,6 +19,29 @@ covariate distribution under each counterfactual, and differencing — see
 formula. Inference is nonparametric-bootstrap/randomization/jackknife-based
 (\code{likelihood_tier = "none"}): no closed-form asymptotic standard error
 is used.
+
+Uses the shared nonparametric bootstrap distribution contract; see
+  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
+
+Computes a bootstrap confidence interval for the treatment effect.
+
+Computes a bootstrap two-sided p-value for the treatment effect.
+
+Computes a Bayesian-bootstrap two-sided p-value for the treatment effect.
+
+Computes a Bayesian-bootstrap confidence interval for the treatment effect.
+
+Computes a jackknife-Wald two-sided p-value for the treatment effect.
+
+Computes a jackknife-Wald confidence interval for the treatment effect.
+
+Computes a PRW subsampling two-sided p-value for the treatment effect.
+
+Computes a PRW subsampling confidence interval for the treatment effect.
+
+Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
+
+Computes an m-out-of-n bootstrap confidence interval for the treatment effect.
 }
 \examples{
 \donttest{
@@ -92,6 +118,34 @@ inf$compute_estimate()
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{debug}}{Whether to return diagnostics.}
+      \item{\code{bootstrap_type}}{Optional resampling scheme.}
+      \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
+      \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -110,6 +164,55 @@ inf$compute_estimate()
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default \code{0.05}.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{type}}{Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -126,6 +229,55 @@ inf$compute_estimate()
   show_progress = TRUE,
   min_number_usable_samples = 5L
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{type}}{Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+    }
     \if{html}{\out{</div>}}
   }
 }
@@ -147,6 +299,57 @@ inf$compute_estimate()
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{type}}{Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{weighting_unit_type}}{Optional resampling unit override.}
+      \item{\code{weighting_unit_type}}{Optional resampling unit override.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -166,6 +369,57 @@ inf$compute_estimate()
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default \code{0.05}.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{type}}{Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{weighting_unit_type}}{Optional resampling unit override.}
+      \item{\code{weighting_unit_type}}{Optional resampling unit override.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -180,6 +434,19 @@ inf$compute_estimate()
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -192,6 +459,19 @@ inf$compute_estimate()
   alpha = 0.05,
   unit = "auto"
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default \code{0.05}.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
     \if{html}{\out{</div>}}
   }
 }
@@ -213,6 +493,55 @@ inf$compute_estimate()
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{b}}{Subsample size. See \code{InferenceNonParamBootstrap$compute_subsampling_two_sided_pval}.}
+      \item{\code{b}}{Subsample size. See \code{InferenceNonParamBootstrap$compute_subsampling_confidence_interval}.}
+      \item{\code{type}}{Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{subsampling_type}}{Optional empirical-resampling scheme.}
+      \item{\code{subsampling_type}}{Optional empirical-resampling scheme.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -230,6 +559,55 @@ inf$compute_estimate()
   min_number_usable_samples = 5L,
   subsampling_type = NULL
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default \code{0.05}.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{b}}{Subsample size. See \code{InferenceNonParamBootstrap$compute_subsampling_two_sided_pval}.}
+      \item{\code{b}}{Subsample size. See \code{InferenceNonParamBootstrap$compute_subsampling_confidence_interval}.}
+      \item{\code{type}}{Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{subsampling_type}}{Optional empirical-resampling scheme.}
+      \item{\code{subsampling_type}}{Optional empirical-resampling scheme.}
+    }
     \if{html}{\out{</div>}}
   }
 }
@@ -251,6 +629,56 @@ inf$compute_estimate()
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{The null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{delta}}{Null treatment effect. Defaults to 0 for RD and 1 for RR.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{m}}{Resample size. See \code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval}.}
+      \item{\code{m}}{Resample size. See \code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{bootstrap_type}}{Optional resampling scheme.}
+      \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
+      \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -268,6 +696,56 @@ inf$compute_estimate()
   min_number_usable_samples = 5L,
   bootstrap_type = NULL
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default \code{0.05}.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of Bayesian-bootstrap samples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of subsamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{B}}{Number of resamples.}
+      \item{\code{m}}{Resample size. See \code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_two_sided_pval}.}
+      \item{\code{m}}{Resample size. See \code{InferenceNonParamBootstrap$compute_m_out_of_n_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap CI type. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.}
+      \item{\code{type}}{Bayesian-bootstrap CI type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_confidence_interval}.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{type}}{P-value type.}
+      \item{\code{type}}{Confidence-interval type.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{bootstrap_type}}{Optional resampling scheme.}
+      \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
+      \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
+    }
     \if{html}{\out{</div>}}
   }
 }

@@ -3,6 +3,13 @@
 \name{InferenceAllKKMeanDiffIVWC}
 \alias{InferenceAllKKMeanDiffIVWC}
 \title{Mean-Difference IVWC Inference for KK Matching-on-the-Fly Designs}
+\value{
+The setting-appropriate (see description) numeric estimate of the treatment effect
+
+A (1 - alpha)-sized frequentist confidence interval for the treatment effect
+
+The approximate frequentist p-value
+}
 \description{
 Fits a compound (inverse-variance-weighted combination, "IVWC") mean-difference
 estimator of the treatment effect for continuous responses under a
@@ -24,6 +31,60 @@ sub-estimates is usable). Inference is Wald-only: this class has no
 likelihood tier (\code{likelihood_tier = "none"}) and provides asymptotic
 Wald, randomization, and bootstrap (including Bayesian bootstrap) confidence
 intervals and p-values, but no score/likelihood-ratio/gradient tests.
+
+Initialize KK IVWC mean-difference inference.
+
+Computes the compound IVWC (inverse-variance-weighted
+compound) mean-difference point estimate \eqn{\hat\beta_T}: the
+inverse-variance-weighted combination \eqn{w^* \bar d + (1-w^*)\, \bar
+r} of the matched-pair mean within-pair difference \eqn{\bar d} and the
+reservoir treated-minus-control mean difference \eqn{\bar r}, falling
+back to whichever of the two is usable if the other is not (see
+\code{$compute_asymp_confidence_interval()} for the full weighting
+formula and usability conditions).
+
+Computes a \eqn{1-\alpha} level frequentist confidence interval
+for the compound IVWC (inverse-variance-weighted compound) mean-difference
+estimator \eqn{\hat\beta_T}.
+
+Computes a two-sided \strong{Wald} p-value for the compound
+IVWC mean-difference estimator \eqn{\hat\beta_T} testing
+\eqn{H_0: \beta_T = \code{delta}}, using the same asymptotically-normal
+point estimate and standard error (\eqn{z = (\hat\beta_T -
+\code{delta})/\widehat{\mathrm{SE}}(\hat\beta_T)}) that
+\code{$compute_asymp_confidence_interval()} inverts to form its interval
+— see that method's documentation for the full inverse-variance-weighted
+combination formula. This class has no likelihood tier
+(\code{likelihood_tier = "none"}), so no score, likelihood-ratio, or
+gradient test is available here; this is a plain Wald test, not a
+likelihood-backed one.
+}
+\details{
+The point estimate combines two sub-estimates depending on which are
+usable: the mean within-pair difference among matched subjects,
+\eqn{\bar d}, with estimated variance \eqn{\widehat{\mathrm{Var}}(\bar
+d)}, and the treated-minus-control difference in means among reservoir
+(unmatched) subjects, \eqn{\bar r}, with estimated variance
+\eqn{\widehat{\mathrm{Var}}(\bar r)}. When both are usable (at least 2
+matched pairs and at least 2 treated/2 control reservoir subjects, with
+finite positive variance estimates), they are combined by classical
+inverse-variance weighting,
+\deqn{\hat\beta_T = w^* \bar d + (1 - w^*)\, \bar r, \qquad w^* =
+  \frac{\widehat{\mathrm{Var}}(\bar r)}{\widehat{\mathrm{Var}}(\bar r) +
+  \widehat{\mathrm{Var}}(\bar d)},}
+with combined variance the standard inverse-variance-pooled form
+\eqn{\widehat{\mathrm{Var}}(\hat\beta_T) = \left(\widehat{\mathrm{Var}}(\bar
+r)^{-1} + \widehat{\mathrm{Var}}(\bar d)^{-1}\right)^{-1} =
+\widehat{\mathrm{Var}}(\bar r)\,\widehat{\mathrm{Var}}(\bar d) \big/
+\left(\widehat{\mathrm{Var}}(\bar r) + \widehat{\mathrm{Var}}(\bar
+d)\right)}. If only one of the two sub-estimates is usable (e.g. the
+reservoir is empty or degenerate, or no pairs matched), \eqn{\hat\beta_T}
+and its variance fall back to that sub-estimate alone. The compound
+estimator is treated as asymptotically normal, so the interval is
+\eqn{\hat\beta_T \pm z_{1-\alpha/2}\sqrt{\widehat{\mathrm{Var}}(\hat\beta_T)}}
+(or a \eqn{t}-based critical value, depending on
+\code{private$compute_z_or_t_ci_from_s_and_df}'s degrees-of-freedom
+resolution).
 }
 \section{Legacy status}{
  \strong{Legacy class.} Not fully tested in
@@ -35,7 +96,6 @@ intervals and p-values, but no score/likelihood-ratio/gradient tests.
 }
 
 \examples{
-\dontrun{
 seq_des = DesignSeqOneByOneKK14$new(n = 6, response_type = "continuous")
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
@@ -50,7 +110,6 @@ seq_des_inf = InferenceAllKKMeanDiffIVWC$
 seq_des_inf$compute_estimate()
 seq_des_inf$compute_asymp_confidence_interval()
 seq_des_inf$compute_asymp_two_sided_pval()
-}
 }
 \references{
 Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly:
@@ -112,25 +171,11 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly:
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
-assigned and response y is recorded within.}
+      \item{\code{des_obj}}{A KK matching-on-the-fly design object.}
       \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{harden}}{Whether to apply robustness measures (default \code{TRUE}). When
-\code{TRUE}, the inference methods employ defensive strategies including QR-based
-rank reduction of the design matrix, progressive correlation-threshold dropping,
-and fallback fits (e.g.\ robust survival regression, treatment-only models) to
-avoid crashes on ill-conditioned data. When \code{FALSE}, the vanilla algorithm
-runs on the full design matrix as supplied; any rank deficiency or convergence
-failure will surface as an error rather than being silently worked around. Set to
-\code{FALSE} when you want to verify that the raw model converges without
-intervention.}
-      \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
-the formula from the design object is used and its pre-computed design matrix is
-reused. If a formula is provided, a new design matrix is constructed from the
-design's imputed covariates.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
-likelihood-based models. Explicit starts always override this object-level policy.
-\code{NULL} (default) consults the global cold-start dispatch policy.}
+      \item{\code{harden}}{Whether to use hardened model-matrix fitting.}
+      \item{\code{model_formula}}{Optional formula for covariate adjustment.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
     }
     \if{html}{\out{</div>}}
   }
@@ -148,7 +193,10 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If \code{TRUE}, compute only the point estimate
+\eqn{\hat\beta_T} and skip the variance-component computations needed
+for confidence intervals or p-values (faster when only the point
+estimate is needed).}
     }
     \if{html}{\out{</div>}}
   }
@@ -166,7 +214,8 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Significance level.}
+      \item{\code{alpha}}{The confidence level in the computed confidence
+interval is 1 - \code{alpha}. The default is 0.05.}
     }
     \if{html}{\out{</div>}}
   }
@@ -184,7 +233,8 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect.}
+      \item{\code{delta}}{The null difference to test against. For any treatment effect at all this is
+set to zero (the default).}
     }
     \if{html}{\out{</div>}}
   }

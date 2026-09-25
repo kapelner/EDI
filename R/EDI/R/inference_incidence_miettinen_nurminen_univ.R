@@ -61,7 +61,6 @@ InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 		#' @param verbose Whether to print progress messages.
 		#'
 		#' @examples
-		#' \dontrun{
 		#' seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = "incidence")
 		#' for (i in 1:20) {
 		#' 	x_i = data.frame(x1 = rnorm(1), x2 = rnorm(1))
@@ -71,7 +70,6 @@ InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 		#' }
 		#' seq_des_inf = InferenceIncidMiettinenNurminenRiskDiff$new(seq_des)
 		#' seq_des_inf$compute_estimate()
-		#' }
 		initialize = function(des_obj, model_formula = NULL,  verbose = FALSE){
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")

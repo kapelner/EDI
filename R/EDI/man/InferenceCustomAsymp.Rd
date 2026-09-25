@@ -3,6 +3,9 @@
 \name{InferenceCustomAsymp}
 \alias{InferenceCustomAsymp}
 \title{Internal base for user-defined asymptotic inference extensions}
+\value{
+A two-sided p-value.
+}
 \description{
 \code{InferenceCustomAsymp} is intentionally not exported. Extension packages
 may retrieve it with \code{getFromNamespace("InferenceCustomAsymp", "EDI")}
@@ -35,6 +38,7 @@ rather than EDI private fields.
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceCustomAsymp-compute_rand_two_sided_pval}{\code{InferenceCustomAsymp$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceCustomAsymp-fit}{\code{InferenceCustomAsymp$fit()}}
     \item \href{#method-InferenceCustomAsymp-compute_estimate}{\code{InferenceCustomAsymp$compute_estimate()}}
     \item \href{#method-InferenceCustomAsymp-compute_asymp_confidence_interval}{\code{InferenceCustomAsymp$compute_asymp_confidence_interval()}}
@@ -65,6 +69,52 @@ rather than EDI private fields.
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCustomAsymp-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCustomAsymp-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceCustomAsymp$compute_rand_two_sided_pval()}}{
+  Computes a randomization two-sided p-value. Delegates to
+  the `RandomizationCI`-provided dispatch (Zhang incidence support,
+  type/args_for_type) since `NonparametricBootstrap` pulls in both
+  `RandomizationTest` and `RandomizationCI`, and the two provide
+  conflicting `compute_rand_two_sided_pval` implementations.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCustomAsymp$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  type = NULL,
+  args_for_type = NULL,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{transform_responses}}{Response transformation to apply during the test. For
+survival responses the default \code{"log"} multiplies the recorded times of the
+units treated under each reference allocation by \eqn{e^\delta}, event and
+censoring times alike, with censoring indicators unchanged -- the rank-based
+AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
+and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.}
+      \item{\code{na.rm}}{Whether to remove non-finite simulated statistics.}
+      \item{\code{show_progress}}{Whether to show progress.}
+      \item{\code{permutations}}{Optional pre-generated assignment draws.}
+      \item{\code{type}}{Optional incidence-specific exact randomization type.}
+      \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceCustomAsymp-fit"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCustomAsymp-fit}{}}}

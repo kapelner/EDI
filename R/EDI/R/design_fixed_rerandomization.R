@@ -86,9 +86,7 @@
 #'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
 #'   the default objective.
 #' @examples
-#' \dontrun{
 #' des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous')
-#' }
 #' @export
 DesignFixedRerandomization = define_design_class(
 	classname = "DesignFixedRerandomization",

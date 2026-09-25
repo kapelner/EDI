@@ -54,9 +54,7 @@ additional divisible-by-4 requirement is enforced by this class specifically (un
 even \code{n}).
 }
 \examples{
-\dontrun{
 des = DesignFixedMatchingGreedyPairSwitching$new(n = 10, response_type = 'continuous')
-}
 }
 \references{
 Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random

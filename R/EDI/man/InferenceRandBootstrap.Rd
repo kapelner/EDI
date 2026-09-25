@@ -137,12 +137,13 @@ inference object. See \code{\link{InferenceRandBootstrapCI}} for the companion
 confidence interval.
 }
 \examples{
-\dontrun{
-seq_des = DesignSeqOneByOneKK14$new(n = 100, response_type = "continuous")
-# ... run the experiment: add subjects and responses ...
-seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
-seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 501)
+seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = "continuous")
+for (i in 1:20) {
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 }
+seq_des$add_all_subject_responses(rnorm(20))
+seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
+seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 101)
 }
 \references{
 Kallus, N. (2018), "Optimal a priori balance in the design of controlled
@@ -167,7 +168,7 @@ Kallus, N. (2018), "Optimal a priori balance in the design of controlled
 }
 \keyword{internal}
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{InferenceRandBootstrap}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{InferenceRandBootstrap}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -198,8 +199,8 @@ Kallus, N. (2018), "Optimal a priori balance in the design of controlled
 </details>
 <details><summary>+ inherited public methods from InferenceRandCI</summary>
 <ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
+  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRand</summary>

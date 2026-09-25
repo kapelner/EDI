@@ -3,6 +3,13 @@
 \name{InferenceIncidExactZhang}
 \alias{InferenceIncidExactZhang}
 \title{Exact Zhang Combined-Test Incidence Inference}
+\value{
+A new \code{InferenceIncidExactZhang} object.
+
+The treatment estimate.
+
+A confidence interval.
+}
 \description{
 Performs exact inference for a binary (incidence) outcome that
 \strong{combines} two exact component tests when the design has both
@@ -29,11 +36,31 @@ intervals are obtained by numerically inverting (bisection) the combined
 p-value as a function of the hypothesized log odds ratio, starting from a
 normal-approximation (Haldane-Anscombe MLE) interval as the search bracket.
 Requires a Bernoulli-capable or matching-capable design.
+
+Initialize exact Zhang combined-test incidence inference.
+  Requires \code{des_obj} to be Bernoulli-capable or
+  matching-capable, an uncensored incidence response.
+
+Computes the Haldane-Anscombe continuity-corrected log odds
+  ratio \eqn{\log\left((n_{11}+0.5)(n_{00}+0.5) /
+  \left((n_{10}+0.5)(n_{01}+0.5)\right)\right)} from the pooled
+  \eqn{2\times2} table across all subjects (matched and reservoir
+  combined) — see class documentation for the full combined-test model.
+
+Computes an exact confidence interval for the log odds
+  ratio by bisection-inverting the combined matched-pairs +
+  Fisher-exact p-value (see class documentation for the full
+  combination methodology).
 }
 \examples{
-\dontrun{
-# Example for InferenceIncidExactZhang
+seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = 'incidence')
+for (i in 1:20) {
+  seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 }
+seq_des$add_all_subject_responses(rbinom(20, 1, 0.5))
+inf = InferenceIncidExactZhang$new(seq_des)
+inf$compute_estimate()
+inf$compute_exact_two_sided_pval_for_treatment_effect()
 }
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidExactZhang}
@@ -87,16 +114,13 @@ Requires a Bernoulli-capable or matching-capable design.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
-assigned and response y is recorded within.}
+      \item{\code{des_obj}}{A completed design object.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
-likelihood-based models. Explicit starts always override this object-level policy.
-\code{NULL} (default) consults the global cold-start dispatch policy.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
     }
     \if{html}{\out{</div>}}
   }
@@ -114,7 +138,8 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{Ignored for this estimator (the exact statistic is
+always cheap to compute; there is no separate variance step to skip).}
     }
     \if{html}{\out{</div>}}
   }
@@ -132,6 +157,18 @@ likelihood-based models. Explicit starts always override this object-level polic
   type = NULL,
   args_for_type = NULL
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level.}
+      \item{\code{pval_epsilon}}{Bisection tolerance for the inversion routine.}
+      \item{\code{type}}{Exact inference type; only \code{"Zhang"} (the default) is supported.}
+      \item{\code{args_for_type}}{Optional arguments keyed by exact type; recognizes
+\code{combination_method} (\code{"Fisher"} (default), \code{"Stouffer"},
+or \code{"min_p"}) inside the \code{"Zhang"} entry.}
+    }
     \if{html}{\out{</div>}}
   }
 }

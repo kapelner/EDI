@@ -44,7 +44,6 @@ inf$compute_estimate()
 ## Method `InferenceIncidMiettinenNurminenRiskDiff$new()`
 ## ------------------------------------------------
 
-\dontrun{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 20, response_type = "incidence")
 for (i in 1:20) {
 	x_i = data.frame(x1 = rnorm(1), x2 = rnorm(1))
@@ -54,7 +53,6 @@ for (i in 1:20) {
 }
 seq_des_inf = InferenceIncidMiettinenNurminenRiskDiff$new(seq_des)
 seq_des_inf$compute_estimate()
-}
 }
 \references{
 Miettinen, O., and Nurminen, M. (1985). "Comparative Analysis of

@@ -874,8 +874,9 @@ run_all_inference_call_ci_for_method = function(inf_obj, alpha, method, type = N
 	# and this `tryCatch` swallowed it into a bare `NA`, indistinguishable
 	# from "ran fine, returned NA"). Reported back as `error` so the fit row
 	# can surface it in its `message` column.
-	err = NULL
-	ci = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) { err <<- conditionMessage(e); NULL })
+	ci = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) e)
+	err = if (inherits(ci, "error")) conditionMessage(ci) else NULL
+	if (!is.null(err)) ci = NULL
 	if (!is.null(ci) && length(ci) == 2L && all(is.finite(ci))) {
 		return(list(lower = ci[[1L]], upper = ci[[2L]], method = entry$label))
 	}
@@ -962,8 +963,9 @@ run_all_inference_call_pval_for_method = function(inf_obj, method, type = NA_cha
 		call_args$show_progress = FALSE
 	}
 	# Keep the error text -- see the matching CI-side comment.
-	err = NULL
-	pv = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) { err <<- conditionMessage(e); NULL })
+	pv = tryCatch(do.call(inf_obj[[entry$method]], call_args), error = function(e) e)
+	err = if (inherits(pv, "error")) conditionMessage(pv) else NULL
+	if (!is.null(err)) pv = NULL
 	if (!is.null(pv) && length(pv) == 1L && is.finite(pv)) {
 		return(list(pval = pv, method = entry$label))
 	}
@@ -1322,8 +1324,11 @@ run_all_inference_fork_timeout_row = function(cls_name, design_family, response_
 #' @noRd
 run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs_per_class, design_family, response_type) {
 	n_total = length(tasks)
-	results = vector("list", n_total)
-	names(results) = vapply(tasks, `[[`, character(1L), "result_name")
+	# results/jobs are updated by the drain_finished()/kill_timed_out() helpers
+	# below, so they live in this call's own environment object
+	state = new.env(parent = emptyenv())
+	state$results = vector("list", n_total)
+	names(state$results) = vapply(tasks, `[[`, character(1L), "result_name")
 
 	configured_worker_fn = function(task) {
 		# Runs inside the forked child only -- see @details above.
@@ -1335,7 +1340,8 @@ run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs
 			VECLIB_MAXIMUM_THREADS = 1L,
 			NUMEXPR_NUM_THREADS    = 1L
 		)
-		options(mc.cores = 1L)
+		old_options = options(mc.cores = 1L)
+		on.exit(options(old_options), add = TRUE)
 		if (requireNamespace("data.table", quietly = TRUE)) data.table::setDTthreads(1L)
 		if (requireNamespace("fixest", quietly = TRUE)) suppressWarnings(try(fixest::setFixest_nthreads(1L), silent = TRUE))
 		worker_fn(task)
@@ -1343,12 +1349,12 @@ run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs
 
 	pending = seq_len(n_total)
 	# Each live entry: list(job = <mcparallel job>, start = <POSIXct>, idx = <task index>).
-	jobs = list()
+	state$jobs = list()
 	poll_secs = 0.2
 
 	drain_finished = function() {
-		if (length(jobs) == 0L) return(invisible(NULL))
-		job_objs = lapply(jobs, `[[`, "job")
+		if (length(state$jobs) == 0L) return(invisible(NULL))
+		job_objs = lapply(state$jobs, `[[`, "job")
 		done = tryCatch(
 			parallel::mccollect(job_objs, wait = FALSE, timeout = poll_secs),
 			error = function(e) NULL
@@ -1357,14 +1363,14 @@ run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs
 		finished_pids = names(done)
 		drained_pids = character()
 		for (pid in finished_pids) {
-			slot = which(vapply(jobs, function(j) identical(as.character(j$job$pid), pid), logical(1L)))
+			slot = which(vapply(state$jobs, function(j) identical(as.character(j$job$pid), pid), logical(1L)))
 			if (length(slot) != 1L) next
-			idx = jobs[[slot]]$idx
+			idx = state$jobs[[slot]]$idx
 			val = done[[pid]]
 			# mccollect() wraps a child-side error/condition as a "try-error"-like
 			# object rather than propagating it -- normalize to a proper error row
 			# instead of letting a malformed value corrupt results_table's rbind.
-			results[[idx]] <<- if (is.list(val) && !is.null(val$status)) {
+			state$results[[idx]] = if (is.list(val) && !is.null(val$status)) {
 				val
 			} else {
 				list(
@@ -1379,18 +1385,18 @@ run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs
 					diagnostics = list(converged = NA, hit_iteration_cap = NA, iterations = NA_integer_, optimizer = NA_character_)
 				)
 			}
-			drained_pids = c(drained_pids, names(jobs)[slot])
+			drained_pids = c(drained_pids, names(state$jobs)[slot])
 		}
-		for (pid in drained_pids) jobs[[pid]] <<- NULL
+		for (pid in drained_pids) state$jobs[[pid]] = NULL
 		invisible(NULL)
 	}
 
 	kill_timed_out = function() {
-		if (length(jobs) == 0L || is.null(max_secs_per_class)) return(invisible(NULL))
+		if (length(state$jobs) == 0L || is.null(max_secs_per_class)) return(invisible(NULL))
 		now = Sys.time()
 		timed_out_pids = character()
-		for (pid_chr in names(jobs)) {
-			j = jobs[[pid_chr]]
+		for (pid_chr in names(state$jobs)) {
+			j = state$jobs[[pid_chr]]
 			if (as.numeric(difftime(now, j$start, units = "secs")) <= max_secs_per_class) next
 			# Raw OS signal by PID -- needs no cooperation from the (possibly
 			# deadlocked) child, unlike stopCluster()'s protocol handshake.
@@ -1399,29 +1405,29 @@ run_all_inference_fork_dispatch = function(tasks, worker_fn, num_cores, max_secs
 			# timeout since SIGKILL is immediate once delivered.
 			try(parallel::mccollect(j$job, wait = TRUE, timeout = 5), silent = TRUE)
 			idx = j$idx
-			results[[idx]] <<- run_all_inference_fork_timeout_row(
+			state$results[[idx]] = run_all_inference_fork_timeout_row(
 				tasks[[idx]]$cls_name, design_family, response_type, max_secs_per_class,
 				tasks[[idx]]$method, tasks[[idx]]$type
 			)
 			timed_out_pids = c(timed_out_pids, pid_chr)
 		}
-		for (pid_chr in timed_out_pids) jobs[[pid_chr]] <<- NULL
+		for (pid_chr in timed_out_pids) state$jobs[[pid_chr]] = NULL
 		invisible(NULL)
 	}
 
-	while (length(pending) > 0L || length(jobs) > 0L) {
-		while (length(pending) > 0L && length(jobs) < num_cores) {
+	while (length(pending) > 0L || length(state$jobs) > 0L) {
+		while (length(pending) > 0L && length(state$jobs) < num_cores) {
 			i = pending[1L]
 			pending = pending[-1L]
 			task_i = tasks[[i]]
 			job = parallel::mcparallel(configured_worker_fn(task_i), silent = TRUE)
-			jobs[[as.character(job$pid)]] = list(job = job, start = Sys.time(), idx = i)
+			state$jobs[[as.character(job$pid)]] = list(job = job, start = Sys.time(), idx = i)
 		}
-		if (length(jobs) == 0L) break
+		if (length(state$jobs) == 0L) break
 		drain_finished()
 		kill_timed_out()
 	}
-	results
+	state$results
 }
 
 #' @keywords internal
@@ -1475,7 +1481,9 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 			iterations = NA_integer_, optimizer = NA_character_
 		)
 	)
-	collected_warnings = character()
+	# appended to by the calling handlers below
+	collected = new.env(parent = emptyenv())
+	collected$warnings = character()
 	outcome = withCallingHandlers(
 		tryCatch({
 			if (!is.null(max_secs_per_class)) {
@@ -1588,7 +1596,7 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 			}
 		}),
 		warning = function(w) {
-			collected_warnings <<- c(collected_warnings, conditionMessage(w))
+			collected$warnings = c(collected$warnings, conditionMessage(w))
 			invokeRestart("muffleWarning")
 		},
 		# Some fit paths use `message()` (not `warning()`) for legitimate
@@ -1604,7 +1612,7 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 		# silently dropped -- the information isn't lost, just moved out of
 		# the live table's way and into the row's own `warnings` column.
 		message = function(m) {
-			collected_warnings <<- c(collected_warnings, trimws(conditionMessage(m)))
+			collected$warnings = c(collected$warnings, trimws(conditionMessage(m)))
 			invokeRestart("muffleMessage")
 		}
 	)
@@ -1624,7 +1632,7 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 		if (is.na(row$ci_method)) row$ci_method = method
 		if (is.na(row$pval_method)) row$pval_method = method
 	}
-	row$warnings  = if (length(collected_warnings) > 0L) paste(collected_warnings, collapse = "; ") else NA_character_
+	row$warnings  = if (length(collected$warnings) > 0L) paste(collected$warnings, collapse = "; ") else NA_character_
 	row$fit_secs  = as.numeric(difftime(Sys.time(), t0, units = "secs"))
 	row
 }
@@ -3874,10 +3882,11 @@ run_all_inference_format_html_table = function(results_table) {
 	# constraint, so every cell just renders on one line unconditionally.
 	wrap_html = esc
 	header_html = paste0("<th>", wrap_html(names(display)), "</th>", collapse = "")
-	prev_estimand = NULL
+	group_starts = vapply(seq_len(nrow(display)), function(i) {
+		i > 1L && !identical(tbl$estimand[[i]], tbl$estimand[[i - 1L]])
+	}, logical(1L))
 	row_html = vapply(seq_len(nrow(display)), function(i) {
-		group_start = !is.null(prev_estimand) && !identical(tbl$estimand[[i]], prev_estimand)
-		prev_estimand <<- tbl$estimand[[i]]
+		group_start = group_starts[[i]]
 		cls = paste(c(
 			paste0("status-", tbl$status[[i]]),
 			if (group_start) "group-start"

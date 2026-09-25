@@ -1402,7 +1402,7 @@ fast_beta_regression_with_var = function(X, y, start_phi = 10, j = 2, optimizati
 #' X = matrix(rnorm(500), 100, 5)
 #' y = runif(100)
 #' dead = rbinom(100, 1, 0.5)
-#' fast_coxph_regression(y, dead, X)
+#' fast_coxph_regression(X, y, dead)
 #' @export
 fast_coxph_regression = function(X, y, dead, use_rcpp = TRUE, estimate_only = FALSE, optimization_alg = "lbfgs", warm_start_beta = NULL, warm_start_fisher_info = NULL, smart_cold_start = TRUE){
 	optimization_alg = .normalize_optimizer_algorithm(optimization_alg, allow_irls = FALSE, default = "lbfgs")

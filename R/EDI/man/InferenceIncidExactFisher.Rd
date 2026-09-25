@@ -3,6 +3,11 @@
 \name{InferenceIncidExactFisher}
 \alias{InferenceIncidExactFisher}
 \title{Exact Fisher (Conditional Hypergeometric) Incidence Inference}
+\value{
+A new \code{InferenceIncidExactFisher} object.
+
+The treatment estimate.
+}
 \description{
 Performs exact conditional inference for binary (incidence) outcomes via
 Fisher's exact test on one or more 2x2 (treated/control by case/noncase)
@@ -23,11 +28,25 @@ ratio 0) — a non-zero null shift is rejected with an error. Strata with no
 cases or no noncases in either arm are dropped before analysis; if no
 informative strata remain, this errors rather than returning a degenerate
 result.
+
+Initialize exact Fisher inference for incidence outcomes.
+  Requires an uncensored incidence response; the design's structure
+  (unstructured, blocked, or matched) determines the stratification used
+  at estimation time (see class documentation).
+
+Computes the log of the (conditional MLE, or common-odds-ratio
+  if stratified) odds ratio from \code{\link[stats]{fisher.test}} or
+  \code{\link[stats]{mantelhaen.test}} (see class documentation for which
+  applies and why).
 }
 \examples{
-\dontrun{
-# Example for InferenceIncidExactFisher
-}
+des = DesignFixediBCRD$new(n = 20, response_type = 'incidence')
+des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(20)))
+des$assign_w_to_all_subjects()
+des$add_all_subject_responses(rbinom(20, 1, 0.5))
+inf = InferenceIncidExactFisher$new(des)
+inf$compute_estimate()
+inf$compute_exact_two_sided_pval_for_treatment_effect()
 }
 \references{
 Fisher, R. A. (1935). "The Logic of Inductive Inference."
@@ -91,16 +110,13 @@ Fisher, R. A. (1935). "The Logic of Inductive Inference."
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
-assigned and response y is recorded within.}
+      \item{\code{des_obj}}{A completed design object.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
-likelihood-based models. Explicit starts always override this object-level policy.
-\code{NULL} (default) consults the global cold-start dispatch policy.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
     }
     \if{html}{\out{</div>}}
   }
@@ -118,7 +134,8 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{Ignored for this estimator (the exact statistic is
+always cheap to compute; there is no separate variance step to skip).}
     }
     \if{html}{\out{</div>}}
   }

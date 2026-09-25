@@ -54,9 +54,7 @@
 #'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
 #'   orientation on the default objective.
 #' @examples
-#' \dontrun{
 #' des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
-#' }
 #' @export
 DesignFixedGreedy = define_design_class(
 	classname = "DesignFixedGreedy",

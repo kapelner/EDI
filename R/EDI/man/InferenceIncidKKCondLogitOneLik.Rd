@@ -18,8 +18,7 @@ pools them by inverse-variance weighting; here the treatment coefficient
 is a single joint MLE, and \code{likelihood_tier = "full"} exposes
 likelihood-ratio, score, and gradient inference plus a parametric
 likelihood bootstrap in addition to Wald.
-}
-\details{
+
 \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient of a
 logistic mean model \eqn{\mathrm{logit}(P(Y=1 \mid w,x)) = \beta_0 +
 \beta_T w + x\beta}; \eqn{\exp(\hat\beta_T)} is the treatment-vs-control
@@ -96,6 +95,11 @@ Analogous Python API for conditional logistic regression:
 \if{html}{\out{<a id="method-InferenceIncidKKCondLogitOneLik-compute_rand_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceIncidKKCondLogitOneLik-compute_rand_two_sided_pval}{}}}
 \subsection{\code{InferenceIncidKKCondLogitOneLik$compute_rand_two_sided_pval()}}{
+  Computes a randomization-based two-sided p-value for the
+  treatment effect, preflighting the observed combined-likelihood
+  treatment statistic (see the class-header note above) before
+  delegating to \code{\link[EDI:InferenceRandCI]{InferenceRandCI}}'s
+  Zhang-dispatch-aware implementation.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidKKCondLogitOneLik$compute_rand_two_sided_pval(
@@ -109,6 +113,25 @@ Analogous Python API for conditional logistic regression:
   args_for_type = NULL,
   zero_one_logit_clamp = .Machine$double.eps
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization (permutation) draws.}
+      \item{\code{delta}}{The null treatment effect. Default 0.}
+      \item{\code{transform_responses}}{Optional response transform applied before
+the randomization statistic is computed. Default \code{"none"}.}
+      \item{\code{na.rm}}{Whether to remove non-finite permutation replicates.}
+      \item{\code{show_progress}}{Whether to show a progress bar.}
+      \item{\code{permutations}}{Optional pre-generated permutation matrix/list to
+reuse instead of drawing new permutations.}
+      \item{\code{type}}{Optional randomization-statistic type override.}
+      \item{\code{args_for_type}}{Optional list of extra arguments for \code{type}.}
+      \item{\code{zero_one_logit_clamp}}{Clamp applied to responses at the 0/1
+boundary before a logit-scale transform, to avoid infinite values.
+Default \code{.Machine$double.eps}.}
+    }
     \if{html}{\out{</div>}}
   }
 }

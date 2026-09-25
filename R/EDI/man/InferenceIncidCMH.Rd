@@ -41,8 +41,6 @@ designs entirely; the warning tells the caller the reported standard error
 may be miscalibrated.
 }
 \examples{
-\dontrun{
-\donttest{
 seq_des = DesignSeqOneByOneRandomBlockSize$new(n = 20, response_type = 'incidence',
   strata_cols = 'x1')
 for (i in 1:20) {
@@ -52,8 +50,6 @@ for (i in 1:20) {
 seq_des$add_all_subject_responses(rbinom(20, 1, 0.5))
 inf = InferenceIncidCMH$new(seq_des)
 inf$compute_estimate()
-}
-}
 }
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidCMH}

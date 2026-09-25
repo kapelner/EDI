@@ -119,9 +119,7 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 		#' @return  A new `DesignSeqOneByOneKK21stepwise` object
 		#'
 		#' @examples
-		#' \dontrun{
 		#' seq_des = DesignSeqOneByOneKK21stepwise$new(n = 6, response_type = "continuous")
-		#' }
 		#'
 		initialize = function(
 			response_type,

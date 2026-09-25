@@ -153,12 +153,13 @@
 #'   validity question.
 #'
 #' @examples
-#' \dontrun{
-#' seq_des = DesignSeqOneByOneKK14$new(n = 100, response_type = "continuous")
-#' # ... run the experiment: add subjects and responses ...
-#' seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
-#' seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 501)
+#' seq_des = DesignSeqOneByOneKK14$new(n = 20, response_type = "continuous")
+#' for (i in 1:20) {
+#'   seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1), x2 = rnorm(1)))
 #' }
+#' seq_des$add_all_subject_responses(rnorm(20))
+#' seq_des_inf = InferenceAllSimpleAverageDiff$new(seq_des)
+#' seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = 101)
 #' @keywords internal
 InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 	lock_objects = FALSE,

@@ -15,7 +15,6 @@ where the common denominator is a summary table from a glm.
 ## Method `InferenceMLEorKMSummaryTable$compute_estimate()`
 ## ------------------------------------------------
 
-\dontrun{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
@@ -25,14 +24,13 @@ seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 
-seq_des_inf = InferenceContinMultOLS$new(seq_des)
+seq_des_inf = InferenceContinOLS$new(seq_des)
 seq_des_inf$compute_estimate()
-}
 
 }
 \keyword{internal}
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceMLEorKMSummaryTable}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{\link[EDI:InferenceRandBootstrapCI]{InferenceRandBootstrapCI}} -> \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}} -> \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} -> \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} -> \code{InferenceMLEorKMSummaryTable}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -106,8 +104,8 @@ seq_des_inf$compute_estimate()
 </details>
 <details><summary>+ inherited public methods from InferenceRandCI</summary>
 <ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
+  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRand</summary>
@@ -170,7 +168,7 @@ seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[5, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[6, 2 : 10])
 seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 
-seq_des_inf = InferenceContinMultOLS$new(seq_des)
+seq_des_inf = InferenceContinOLS$new(seq_des)
 seq_des_inf$compute_estimate()
 }
     \if{html}{\out{</div>}}

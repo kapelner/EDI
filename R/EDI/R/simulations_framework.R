@@ -831,6 +831,9 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'
     #' @return The \code{SimulationFramework} object itself (invisibly).
     run = function() {
+      # Closures defined below update run()'s own locals through this explicit
+      # environment reference (never super-assignment, which could reach .GlobalEnv).
+      run_env = environment()
       if (!is.null(private$seed)) {
         had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
         if (had_seed) {
@@ -843,14 +846,15 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       }
       # Disable assertions for the duration of the simulation for speed
       if (private$turn_off_asserts_for_speed){
+        asserts_on_entry = edi_env$asserts_user
         toggle_asserts(FALSE)
-        on.exit(toggle_asserts(TRUE), add = TRUE)        
+        on.exit(toggle_asserts(asserts_on_entry), add = TRUE)
       }
       
       # ── Parallelism management ─────────────────────────────────────────────
       # Save state to restore on exit
       ns = asNamespace("EDI")
-      prev_threads = getOption(".edi_last_set_threads")
+      prev_threads = ns$edi_env$last_set_threads
       if (is.null(prev_threads)) prev_threads = 1L
       prev_global_cores = get_num_cores()
       prev_global_mirai_cores = get_global_mirai_cores()
@@ -1313,7 +1317,6 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             private$design_params[[job$design_idx]],
             job$cache_type,
             reps_needing = job$reps_needing,
-            restore_rng = FALSE,
             cache_file = job$cache_file
           )
           if (is.null(obj)) return(FALSE)
@@ -1326,12 +1329,12 @@ SimulationFramework = R6::R6Class("SimulationFramework",
               cs$design_w_cache[[dl]] = obj
             }
           }
-          all_cell_states[[job$cell_idx]] <<- cs
+          run_env$all_cell_states[[job$cell_idx]] = cs
           TRUE
         }
         mark_cache_job_done = function(job) {
           attached = attach_cache_job(job)
-          cache_jobs_done <<- cache_jobs_done + 1L
+          run_env$cache_jobs_done = cache_jobs_done + 1L
           if (isTRUE(private$verbose)) private$.draw_labeled_progress_bar(
             "caching design/SE data",
             cache_jobs_done / max(1L, n_cache_jobs)
@@ -1503,10 +1506,12 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       }
 
       # ── Push cell state to mirai daemons (AFTER cell states + caches are populated) ──
-      # Daemons keep all_cell_states and the run function in their global env for
-      # the whole run — the mirai analogue of the fork path's copy-on-write
-      # globals — so per-job payloads are tiny (rep_i + ci + rep_seed) and cell
-      # states (design matrices, w caches) are not re-serialized on every dispatch.
+      # Daemons keep all_cell_states and the run function in EDI's internal
+      # edi_env for the whole run — the mirai analogue of the fork path's
+      # copy-on-write state — so per-job payloads are tiny (rep_i + ci + rep_seed)
+      # and cell states (design matrices, w caches) are not re-serialized on every
+      # dispatch. They are passed via .args, not `...`, so nothing is written to
+      # the daemons' global environments.
       if (use_mirai_backend) {
         RUN_REP_DETACHED_G = private$.run_single_replication_in_worker
         environment(RUN_REP_DETACHED_G) = asNamespace("EDI")
@@ -1515,7 +1520,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             assign(".edi_sim_cell_states", CELL_STATES__, envir = EDI:::edi_env)
             assign(".edi_sim_run_fn",      RUN_FN__,      envir = EDI:::edi_env)
             invisible(NULL)
-          }, CELL_STATES__ = all_cell_states, RUN_FN__ = RUN_REP_DETACHED_G),
+          }, .args = list(CELL_STATES__ = all_cell_states, RUN_FN__ = RUN_REP_DETACHED_G)),
           error = function(e) NULL
         )
         if (!is.null(push_tasks) && !private$.settle_mirai_tasks(push_tasks)) {
@@ -1531,10 +1536,6 @@ SimulationFramework = R6::R6Class("SimulationFramework",
                 c(".edi_sim_cell_states", ".edi_sim_run_fn"),
                 ls(envir = EDI:::edi_env, all.names = TRUE)
               ), envir = EDI:::edi_env))
-              suppressWarnings(rm(list = intersect(
-                c("CELL_STATES__", "RUN_FN__"),
-                ls(envir = globalenv(), all.names = TRUE)
-              ), envir = globalenv()))
               invisible(NULL)
             }),
             error = function(e) NULL
@@ -1792,7 +1793,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             nxt = frontier_rep + 1L
             if (active_cells_per_rep[[nxt]] > 0L &&
                 cells_done_per_rep[[nxt]] < active_cells_per_rep[[nxt]]) break
-            frontier_rep <<- nxt
+            run_env$frontier_rep = nxt
           }
         }
         advance_frontier()
@@ -2152,6 +2153,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         # submitting real tasks.
         setup_tasks = tryCatch(
           mirai::everywhere({
+            # Runs in the worker process only (not the user's session); these settings
+            # are meant to persist there for the worker's lifetime.
             Sys.setenv(
               OMP_NUM_THREADS        = 1L,
               MKL_NUM_THREADS        = 1L,
@@ -2551,7 +2554,6 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     },
     .load_simulation_cache_object = function(cs, design_label, design_params,
                                              cache_type, reps_needing,
-                                             restore_rng = FALSE,
                                              cache_file = NULL) {
       if (is.null(cache_file)) {
         cache_file = private$.simulation_cache_file(cs, design_label, design_params, cache_type)
@@ -2575,12 +2577,6 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         if (!is.matrix(obj$ws) || nrow(obj$ws) != as.integer(cs$n)) return(NULL)
       } else {
         return(NULL)
-      }
-      if (isTRUE(restore_rng) &&
-          is.list(cache_record) &&
-          identical(cache_record$cache_format_version, 1L) &&
-          !is.null(cache_record$rng_after)) {
-        assign(".Random.seed", cache_record$rng_after, envir = .GlobalEnv)
       }
       obj
     },
@@ -2911,7 +2907,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       # silently disabled every should_run_asserts()-gated validation in every later test file in that
       # shard's shared R session, e.g. test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R's
       # argument-validation tests).
-      assert_state_on_entry = isTRUE(getOption("edi.run_asserts", TRUE))
+      assert_state_on_entry = edi_env$asserts_user
       on.exit(toggle_asserts(assert_state_on_entry), add = TRUE)
       for (di in seq_along(private$design_classes)) {
         design_gen   = private$design_classes[[di]]
@@ -2973,6 +2969,9 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       combos
     },
     .run_single_replication_in_worker = function(w_rep_i, state, progress_cb = NULL, is_forked = FALSE) {
+      # Closures defined below append to this function's own results/error
+      # records through this explicit environment reference (never super-assignment).
+      worker_env = environment()
       # This runs in a worker process. It must be self-contained.
       # 1. Cap threads and nested parallelism to avoid N*M oversubscription.
       # Use loadNamespace to ensure EDI is loaded and functions are accessible,
@@ -3018,7 +3017,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         )
       }
       handle_error = function(err) {
-        error_records[[length(error_records) + 1L]] <<- err
+        worker_env$error_records[[length(error_records) + 1L]] = err
         if (isTRUE(state$stop_on_error)) {
           return(list(
             results_dt = if (length(results) > 0L) data.table::rbindlist(results) else NULL,
@@ -3422,7 +3421,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
               state$custom_dgp, state$custom_replication_data_generator,
               state$custom_apply_treatment_and_noise, state$make_estimand_fn
             )
-            results[[length(results) + 1L]] <<- list(
+            worker_env$results[[length(results) + 1L]] = list(
               response_type = state$response_type,
               rep           = current_rep_i,
               cond_exp_func_model = state$cond_exp_func_model,

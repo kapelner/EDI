@@ -169,7 +169,7 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 }
 \keyword{internal}
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI} -> \code{InferenceNonParamBootstrap}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{InferenceNonParamBootstrap}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -193,8 +193,8 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 }
 \if{html}{\out{<details><summary>+ inherited public methods from InferenceRandCI</summary>
 <ul>
-  <li><code>InferenceRandCI$compute_rand_confidence_interval()</code></li>
-  <li><code>InferenceRandCI$compute_rand_two_sided_pval()</code></li>
+  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_confidence_interval'><code>InferenceRandCI$compute_rand_confidence_interval()</code></a></li>
+  <li><a href='../../EDI/html/InferenceRandCI.html#method-InferenceRandCI-compute_rand_two_sided_pval'><code>InferenceRandCI$compute_rand_two_sided_pval()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from InferenceRand</summary>

@@ -3,6 +3,9 @@
 \name{InferenceSurvivalDepCensTransformRegr}
 \alias{InferenceSurvivalDepCensTransformRegr}
 \title{Dependent-Censoring Transformation Inference for Survival Responses}
+\value{
+A single logical.
+}
 \description{
 Fits a joint bivariate log-normal transformation model for a latent event
 time \eqn{T^E_i} and a latent censoring time \eqn{T^C_i} that are allowed
@@ -39,6 +42,21 @@ zero-excluding-by-construction intervals are treated as unstable and
 replaced with \code{NA}), and Bayesian-bootstrap weighted re-estimation
 uses a fast Cox-model surrogate fit (\code{weighted_cox_bootstrap_surrogate_fit()})
 as an approximation rather than a full weighted joint-likelihood refit.
+
+Whether \code{compute_rand_two_sided_pval()} is actually
+  usable on this instance right now -- \code{FALSE} exactly when it
+  would \code{stop()}: an \code{incidence}-response instance with no
+  custom randomization statistic and a design not eligible for
+  design-randomization-based incidence inference (see
+  \code{private$should_use_design_randomization_for_incidence()}).
+  \code{TRUE} for every other case, including every non-incidence
+  response type. Public, self-contained (only reads already-set
+  instance state, no side effects), so \code{InferenceSuite} can
+  check this before attempting the sentinel instead of relying on
+  the \code{stop()} being silently swallowed into a \code{pval = NA}
+  "ok" row -- the single source of truth for both this check and
+  \code{compute_rand_two_sided_pval()}'s own guard, so the two can
+  never drift apart.
 }
 \examples{
 \donttest{

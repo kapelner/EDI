@@ -116,7 +116,6 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		#' @return  A numeric vector of length 2: (lower, upper) confidence bounds.
 		#'
 		#' @examples
-		#' \dontrun{
 		#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "survival")
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2:10])
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2:10])
@@ -132,7 +131,6 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		#'
 		#' seq_des_inf = InferenceSurvivalGehanWilcox$new(seq_des)
 		#' seq_des_inf$compute_asymp_confidence_interval()
-		#' }
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
@@ -153,7 +151,6 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		#' @return  A p-value in [0, 1].
 		#'
 		#' @examples
-		#' \dontrun{
 		#' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "survival")
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2:10])
 		#' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2:10])
@@ -169,7 +166,6 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		#'
 		#' seq_des_inf = InferenceSurvivalGehanWilcox$new(seq_des)
 		#' seq_des_inf$compute_asymp_two_sided_pval()
-		#' }
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)

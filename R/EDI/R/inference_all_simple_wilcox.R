@@ -410,7 +410,6 @@ SimpleWilcoxSource = list(
 #'   underlying rank-sum test.
 #'
 #' @examples
-#' \dontrun{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
 #' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
 #' seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
@@ -422,7 +421,6 @@ SimpleWilcoxSource = list(
 #'
 #' seq_des_inf = InferenceAllSimpleWilcox$new(seq_des)
 #' seq_des_inf$compute_estimate()
-#' }
 #' @name InferenceAllSimpleWilcox
 #' @export
 InferenceAllSimpleWilcox = define_inference_class(

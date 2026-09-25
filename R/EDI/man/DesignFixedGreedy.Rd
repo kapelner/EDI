@@ -52,9 +52,7 @@ exactly \code{n x r} valid \eqn{\{0,1\}} columns with \eqn{n/2} treated subjects
 column by construction (see fix_design_hierarchy.md, "AllocationMatrixValidation").
 }
 \examples{
-\dontrun{
 des = DesignFixedGreedy$new(n = 10, response_type = 'continuous')
-}
 }
 \references{
 Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random

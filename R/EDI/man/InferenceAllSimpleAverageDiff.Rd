@@ -3,6 +3,11 @@
 \name{InferenceAllSimpleAverageDiff}
 \alias{InferenceAllSimpleAverageDiff}
 \title{Simple Mean-Difference Inference for Continuous Responses}
+\value{
+A two-sided p-value.
+
+The setting-appropriate (see description) numeric estimate of the treatment effect
+}
 \description{
 Fits the simplest possible treatment-effect estimator for a continuous
 response: the unadjusted difference in sample means between the treated and
@@ -16,9 +21,58 @@ asymptotic Wald, randomization, and bootstrap (including Bayesian bootstrap)
 confidence intervals and p-values. Warm starts are disabled for this class,
 since the simple mean difference is a closed-form estimator (no iterative fit
 to warm-start).
+
+Initialize a simple mean-difference inference object.
+
+Computes a \eqn{1-\alpha} level confidence interval for the
+  simple (unadjusted) mean-difference treatment effect
+  \eqn{\hat\beta_T = \bar y_T - \bar y_C}, using \strong{Welch's
+  unequal-variance} formula: standard error
+  \eqn{\widehat{\mathrm{SE}}(\hat\beta_T) = \sqrt{s_T^2/n_T + s_C^2/n_C}}
+  (sample variances \eqn{s_T^2}, \eqn{s_C^2} computed separately per arm,
+  not pooled) with Satterthwaite-Welch degrees of freedom
+  \eqn{\mathrm{df} = (s_T^2/n_T + s_C^2/n_C)^2 \big/ \left(\frac{(s_T^2/n_T)^2}{n_T-1}
+  + \frac{(s_C^2/n_C)^2}{n_C-1}\right)}; the interval is
+  \eqn{\hat\beta_T \pm t_{\mathrm{df}, 1-\alpha/2}\,\widehat{\mathrm{SE}}(\hat\beta_T)}.
+  Requires at least 2 observations per arm; otherwise the standard error
+  and interval are \code{NA}. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  asymptotic confidence-interval contract this delegates to.
+
+Computes a two-sided Welch's t-test p-value testing
+  \eqn{H_0: \beta_T = \code{delta}}, from the same Welch
+  unequal-variance standard error and Satterthwaite-Welch degrees of
+  freedom used by \code{$compute_asymp_confidence_interval()} — see that
+  method's documentation for the full formula. See
+  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  asymptotic two-sided p-value contract this delegates to.
+
+Computes the simple (unadjusted) mean-difference point
+  estimate \eqn{\hat\beta_T = \bar y_T - \bar y_C}, the difference in
+  sample means between the treated and control arms. \code{NA} if
+  either arm has zero observations. See
+  \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}
+  for the shared estimate-contract this participates in.
+
+Recomputes the simple mean-difference estimate under
+  subject/block bootstrap weights (used by the Bayesian bootstrap and
+  related weighted-resampling machinery — see
+  \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}).
+  The weighted point estimate is \eqn{\hat\beta_T = \bar y_T^w - \bar
+  y_C^w}, weighted arm means \eqn{\bar y_T^w = \sum_i r_i y_i \mathbb{1}[w_i=1]
+  / \sum_i r_i \mathbb{1}[w_i=1]} (and analogously for control), where
+  \eqn{r_i} are the expanded row weights. Unless \code{estimate_only =
+  TRUE}, the standard error uses a \strong{weighted, effective-sample-size}
+  Welch formula: \eqn{n_{\mathrm{eff}} = (\sum r_i)^2 / \sum r_i^2}
+  (the usual Kish effective-sample-size correction for unequal weights)
+  in place of the raw \eqn{n} in both the per-arm weighted variance
+  denominator and the Satterthwaite-Welch degrees-of-freedom formula (see
+  \code{$compute_asymp_confidence_interval()} for the unweighted version
+  of the same formula). Rows with non-finite or non-positive weight, or a
+  non-finite response, are dropped before computing; if no rows survive,
+  returns \code{NA} with all cached variance components set to \code{NA}.
 }
 \examples{
-\dontrun{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
@@ -33,7 +87,6 @@ seq_des_inf$compute_estimate()
 seq_des_inf$compute_asymp_confidence_interval()
 seq_des_inf$compute_asymp_two_sided_pval()
 }
-}
 \references{
 Welch, B. L. (1947). "The Generalization of 'Student's' Problem
   when Several Different Population Variances are Involved." \emph{Biometrika},
@@ -47,6 +100,7 @@ Welch, B. L. (1947). "The Generalization of 'Student's' Problem
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceAllSimpleAverageDiff-compute_rand_two_sided_pval}{\code{InferenceAllSimpleAverageDiff$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceAllSimpleAverageDiff-initialize}{\code{InferenceAllSimpleAverageDiff$new()}}
     \item \href{#method-InferenceAllSimpleAverageDiff-compute_asymp_confidence_interval}{\code{InferenceAllSimpleAverageDiff$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceAllSimpleAverageDiff-compute_asymp_two_sided_pval}{\code{InferenceAllSimpleAverageDiff$compute_asymp_two_sided_pval()}}
@@ -78,6 +132,59 @@ Welch, B. L. (1947). "The Generalization of 'Student's' Problem
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleAverageDiff-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleAverageDiff-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceAllSimpleAverageDiff$compute_rand_two_sided_pval()}}{
+  Uses the randomization-CI layer's two-sided p-value contract
+  (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for
+  incidence responses this dispatches to the Zhang exact randomization
+  test where applicable rather than refusing outright, matching this
+  class's pre-migration old-ladder behavior (see
+  \code{InferenceIncidRiskDiff}'s identical rationale). Previously bound
+  to \code{InferenceRand}'s version instead, which silently regressed
+  Zhang dispatch after migration -- see
+  \code{inference_all_abstract_rand_ci.R}'s
+  \code{compute_rand_two_sided_pval} for why it's now safe to splice
+  this in outside the old inheritance chain.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleAverageDiff$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  type = NULL,
+  args_for_type = NULL,
+  zero_one_logit_clamp = .Machine$double.eps
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization vectors.}
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{transform_responses}}{Response transformation to apply during the test. For
+survival responses the default \code{"log"} multiplies the recorded times of the
+units treated under each reference allocation by \eqn{e^\delta}, event and
+censoring times alike, with censoring indicators unchanged -- the rank-based
+AFT residual construction (Tsiatis 1990; Wei, Ying and Lin 1990; Jin, Lin, Wei
+and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumptions.}
+      \item{\code{na.rm}}{Whether to remove non-finite simulated statistics.}
+      \item{\code{show_progress}}{Whether to show progress.}
+      \item{\code{permutations}}{Optional pre-generated assignment draws.}
+      \item{\code{type}}{Optional incidence-specific exact randomization type.}
+      \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
+      \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceAllSimpleAverageDiff-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllSimpleAverageDiff-initialize}{}}}
 \subsection{\code{InferenceAllSimpleAverageDiff$new()}}{
@@ -95,16 +202,18 @@ Welch, B. L. (1947). "The Generalization of 'Student's' Problem
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
-assigned and response y is recorded within.}
+      \item{\code{des_obj}}{A DesignSeqOneByOne object whose entire n subjects are assigned
+and response y is recorded within.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
-      \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
-likelihood-based models. Explicit starts always override this object-level policy.
-\code{NULL} (default) consults the global cold-start dispatch policy.}
+      \item{\code{verbose}}{Whether to print progress messages. Default \code{FALSE}.}
+      \item{\code{max_resample_attempts}}{Maximum number of times a single bootstrap replicate
+may be redrawn when the drawn sample fails validity screening. If all attempts
+fail the replicate is recorded as \code{NA}, silently reducing the effective \code{B}.
+Must be a positive integer. Default \code{50L}.}
+      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values.}
     }
     \if{html}{\out{</div>}}
   }
@@ -122,7 +231,7 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Significance level.}
+      \item{\code{alpha}}{Confidence level.}
     }
     \if{html}{\out{</div>}}
   }
@@ -140,7 +249,8 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect.}
+      \item{\code{delta}}{Null treatment effect value.}
+      \item{\code{delta}}{Null treatment effect value.}
     }
     \if{html}{\out{</div>}}
   }
@@ -159,6 +269,7 @@ likelihood-based models. Explicit starts always override this object-level polic
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If TRUE, skip variance calculations.}
     }
     \if{html}{\out{</div>}}
   }
@@ -174,6 +285,15 @@ likelihood-based models. Explicit starts always override this object-level polic
   subject_or_block_weights,
   estimate_only = FALSE
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{subject_or_block_weights}}{Row weights for the bootstrap sample.}
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If TRUE, skip variance calculations.}
+    }
     \if{html}{\out{</div>}}
   }
 }

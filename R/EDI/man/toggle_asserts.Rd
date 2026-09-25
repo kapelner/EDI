@@ -11,7 +11,8 @@ toggle_asserts(on = TRUE)
 }
 \description{
 This function enables or disables the internal input validation checks (assertions)
-by setting the \code{options(edi.run_asserts = ...)} value.
+for the rest of the R session. It does not modify \code{options()}; setting
+\code{options(edi.run_asserts = FALSE)} yourself also disables them.
 Disabling assertions can provide a significant performance boost in heavy
 simulations (often 10x-20x speedup), but it removes the safety rails that
 prevent invalid data from reaching the internal algorithms.

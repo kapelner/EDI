@@ -21,9 +21,111 @@ instead). This class has no likelihood tier (\code{likelihood_tier = "none"})
 and does not support the Bayesian bootstrap; its jackknife methods all report
 explicit non-estimability rather than computing a (statistically unreliable)
 delete-1 jackknife of the Hodges-Lehmann functional.
+
+Initialize simple Wilcoxon inference and prepare the
+  rank-based treatment statistic used by
+  \code{\link[EDI:InferenceAllSimpleWilcox]{InferenceAllSimpleWilcox}}.
+  Rejects \code{response_type = "incidence"} (Hodges-Lehmann degenerates
+  on binary data) and rejects censored survival data at construction; see
+  the class-level documentation for recommended alternatives in both
+  cases. Legal \code{response_type} values are \code{"continuous"},
+  \code{"count"}, \code{"proportion"}, \code{"survival"} (uncensored
+  only), and \code{"ordinal"}.
+
+Returns the \strong{Hodges-Lehmann} estimate of location
+  shift: the median of all pairwise treatment-minus-control differences
+  \eqn{y_{T,i} - y_{C,j}} (via \code{wilcox_hl_point_estimate_cpp()}), the
+  standard point estimate associated with the Wilcoxon rank-sum test.
+  Robust to outliers and does not assume normality or equal variances.
+
+Wilcoxon rank-sum test two-sided p-value testing
+  \eqn{H_0: \beta_T = \code{delta}} (via \code{stats::wilcox.test(yT, yC -
+  delta, exact = FALSE)$p.value}, the normal approximation with
+  continuity correction) — a genuine rank-based test, \strong{not} a
+  Wald test built from the Hodges-Lehmann estimate and its standard
+  error, despite living alongside \code{$compute_asymp_confidence_interval()}
+  in this class's "asymptotic" method family. For \code{delta != 0}, the
+  control arm's values are shifted by \code{delta} before testing, so the
+  test checks whether \eqn{y_T} and \eqn{y_C + \code{delta}} come from
+  the same distribution.
+
+Returns the Hodges-Lehmann confidence interval directly from
+  \code{stats::wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE,
+  conf.level = 1 - alpha)} — the standard nonparametric interval
+  associated with the Wilcoxon rank-sum test, based on inverting the
+  rank-sum test statistic rather than a Wald normal-approximation
+  interval around \code{$compute_estimate()}'s point estimate (though the
+  two coincide asymptotically).
+
+Delegates to the genuine rank-based
+  \code{$compute_asymp_two_sided_pval()} rather than the generic
+  Wald-component z/t formula.
+
+  Fixed 2026-09-06: this class did not override
+  \code{compute_wald_two_sided_pval}, so it fell through to the
+  composed \code{Wald} component's generic
+  \code{(estimate - delta) / se} formula built from
+  \code{compute_estimate()} (the Hodges-Lehmann median-of-pairwise-
+  differences) and \code{get_standard_error()}. On heavily tied,
+  small-integer count/ordinal data the Hodges-Lehmann estimate lands
+  on exactly 0 far more often than a continuous estimator would, so
+  the Wald statistic came out exactly \code{0/se = 0} regardless of
+  \code{se}, forcing \code{p = 1} deterministically (observed:
+  pinned at 1 in ~75-98% of runs). The rank-based
+  \code{compute_asymp_two_sided_pval()} does not have this failure
+  mode.
+
+Delegates to the genuine rank-based
+  \code{$compute_asymp_confidence_interval()} rather than the
+  generic Wald normal-approximation interval, for the same reason
+  as \code{compute_wald_two_sided_pval} above.
+
+  Fixed 2026-09-06: the generic Wald component's normal-approximation
+  interval is built from \code{get_standard_error()}, which this
+  class derives by back-solving \code{se = (ci[2]-ci[1]) /
+  (2*1.96)} from \code{stats::wilcox.test()}'s own asymptotic CI
+  width. Under heavy ties, that root search can converge to a
+  numerically near-zero-width interval as a search artifact, not a
+  real sampling-uncertainty statement; that spurious near-zero SE
+  then produced a near-\code{[0,0]} Wald interval (observed in
+  over 1,200 rows of comprehensive-results data). The rank-based
+  \code{compute_asymp_confidence_interval()} inverts the rank-sum
+  test directly and does not go through this derived SE at all.
+
+Reports the jackknife point-estimate as explicitly
+  non-estimable for this Hodges-Lehmann estimator, rather than computing
+  a leave-one-out jackknife: the median-of-pairwise-differences
+  functional is not smooth enough for the delete-1 jackknife's
+  linear-approximation machinery to be reliable. This method exists
+  purely to record that unavailability (via
+  \code{private$cache_nonestimable_estimate()}) rather than silently
+  returning a misleading number; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+  jackknife contract this method participates in.
+
+Reports the jackknife bias-correction estimate as
+  non-estimable for this simple Wilcoxon estimator, for the same reason
+  as \code{$compute_jackknife_estimate()} (the Hodges-Lehmann functional
+  is not smooth enough for the delete-1 jackknife); see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+  jackknife contract.
+
+Reports the jackknife standard error as non-estimable for
+  this simple Wilcoxon estimator, for the same reason as
+  \code{$compute_jackknife_estimate()}; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}} for the shared
+  jackknife contract.
+
+Reports the jackknife-Wald p-value as non-estimable here,
+  for the same reason as \code{$compute_jackknife_estimate()}; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
+
+Reports the jackknife-Wald confidence interval as
+  non-estimable here, for the same reason as
+  \code{$compute_jackknife_estimate()}; see
+  \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 }
 \examples{
-\dontrun{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[2, 2 : 10])
@@ -35,7 +137,6 @@ seq_des$add_all_subject_responses(c(4.71, 1.23, 4.78, 6.11, 5.95, 8.43))
 
 seq_des_inf = InferenceAllSimpleWilcox$new(seq_des)
 seq_des_inf$compute_estimate()
-}
 }
 \references{
 Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
@@ -105,16 +206,17 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{des_obj}}{A completed \code{Design} object whose entire n subjects are
-assigned and response y is recorded within.}
+      \item{\code{des_obj}}{A completed \code{DesignSeqOneByOne} object.}
       \item{\code{model_formula}}{Optional formula for covariate adjustment. If \code{NULL} (default),
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
-      \item{\code{verbose}}{Whether to print progress messages.}
-      \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default for
-likelihood-based models. Explicit starts always override this object-level policy.
-\code{NULL} (default) consults the global cold-start dispatch policy.}
+      \item{\code{verbose}}{Whether to print progress messages. Default \code{FALSE}.}
+      \item{\code{max_resample_attempts}}{Maximum number of times a single bootstrap replicate
+may be redrawn when the drawn sample fails validity screening. If all attempts
+fail the replicate is recorded as \code{NA}, silently reducing the effective \code{B}.
+Must be a positive integer. Default \code{50L}.}
+      \item{\code{smart_cold_start_default}}{Flag for consistent API.}
     }
     \if{html}{\out{</div>}}
   }
@@ -150,7 +252,9 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{delta}}{Null treatment effect.}
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{delta}}{Null treatment-effect value. Default 0.}
     }
     \if{html}{\out{</div>}}
   }
@@ -168,7 +272,9 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{Significance level.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
     }
     \if{html}{\out{</div>}}
   }
@@ -183,6 +289,15 @@ likelihood-based models. Explicit starts always override this object-level polic
     \preformatted{InferenceAllSimpleWilcox$compute_wald_two_sided_pval(delta = 0)}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{delta}}{Null treatment-effect value. Default 0.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -192,6 +307,15 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllSimpleWilcox$compute_wald_confidence_interval(alpha = 0.05)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+    }
     \if{html}{\out{</div>}}
   }
 }
@@ -205,6 +329,17 @@ likelihood-based models. Explicit starts always override this object-level polic
     \preformatted{InferenceAllSimpleWilcox$compute_jackknife_estimate(unit = "auto")}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -216,6 +351,17 @@ likelihood-based models. Explicit starts always override this object-level polic
     \preformatted{InferenceAllSimpleWilcox$compute_jackknife_bias_estimate(unit = "auto")}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -225,6 +371,17 @@ likelihood-based models. Explicit starts always override this object-level polic
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllSimpleWilcox$compute_jackknife_std_error(unit = "auto")}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
     \if{html}{\out{</div>}}
   }
 }
@@ -241,6 +398,20 @@ likelihood-based models. Explicit starts always override this object-level polic
 )}
     \if{html}{\out{</div>}}
   }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{delta}}{Null treatment-effect value. Default 0.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
 \if{html}{\out{<hr>}}
@@ -253,6 +424,20 @@ likelihood-based models. Explicit starts always override this object-level polic
   alpha = 0.05,
   unit = "auto"
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+      \item{\code{unit}}{Deletion unit. Default \code{"auto"}.}
+    }
     \if{html}{\out{</div>}}
   }
 }
