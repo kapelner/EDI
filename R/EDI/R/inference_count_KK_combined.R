@@ -236,7 +236,9 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		# otherwise shadows -- there is no callSuper()/super$ under the flattened
 		# component-composition model (same rationale as the compute_lik_ratio_*_generic
 		# aliases above).
-		compute_weighted_glmm_bootstrap_estimate_generic = InferenceMixinKKGLMMShared$private$compute_weighted_glmm_bootstrap_estimate,
+		compute_weighted_glmm_bootstrap_estimate_generic = function(row_weights, estimate_only = TRUE){
+			kk_glmm_shared_compute_weighted_glmm_bootstrap_estimate(private, row_weights, estimate_only)
+		},
 		compute_weighted_glmm_bootstrap_estimate = function(row_weights){
 			if (!isTRUE(private$use_rcpp)) {
 				return(private$compute_weighted_glmm_bootstrap_estimate_generic(row_weights))

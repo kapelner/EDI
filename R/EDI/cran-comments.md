@@ -8,6 +8,54 @@
 > win-builder run, and a fresh ASAN/UBSAN and valgrind confirmation) before
 > submission.
 
+## Resubmission
+
+This is a resubmission. Thank you for the review. In this version we have
+addressed both points you raised:
+
+* **Examples in `\dontrun{}` / "Unexecutable code":** there is no `\dontrun{}`
+  left anywhere in the package. The five Rd files you flagged for
+  unexecutable code (`InferenceIncidCMH`, `InferenceIncidExtendedRobins`,
+  `InferenceIncidKKCondLogitGLMMIVWC`, `InferenceSurvivalKKRankRegrIVWC`,
+  `InferenceSurvivalStratCoxPHRegr`) had `\donttest{}` nested inside
+  `\dontrun{}`; those examples, and all the other examples previously in
+  `\dontrun{}`, are now unwrapped and run as normal examples, since they run in
+  well under 5 seconds. Examples that were only placeholders (in
+  `InferenceIncidExactFisher`, `InferenceIncidExactZhang`,
+  `InferenceRandBootstrap` and `InferenceRandBootstrapCI`) have been replaced
+  with complete, runnable ones. `\donttest{}` is used only where an example
+  genuinely takes longer: the part of the `DesignFixedOptimal` example that
+  compiles a custom C++ objective at run time with `RcppXPtrUtils` (about 8
+  seconds), and the `BaiAdjustedTSource` examples, where loading the suggested
+  package `nbpMatching` alone takes a few seconds. Both are also guarded with
+  `requireNamespace()`, since those packages are in Suggests. Every Rd file's
+  examples, excluding `\donttest{}` code, now run in under 2.5 seconds on our
+  machine.
+
+* **Modifying the global environment and the user's options:** the package no
+  longer writes to `.GlobalEnv` or changes the user's `options()`, `par()` or
+  working directory.
+  * Loading the package no longer sets any options, and `toggle_asserts()`,
+    `set_num_cores()` and `unset_num_cores()` no longer set any options either.
+    That internal state is now kept in an environment inside the package
+    namespace.
+  * Every `<<-` in `R/globals.R`, `R/inference_suite.R` and
+    `R/simulations_framework.R` has been replaced with explicit local
+    environments.
+  * A code path that could overwrite the user's `.Random.seed` has been
+    removed. Where a function sets a seed the user asked for, the user's
+    previous `.Random.seed` is restored with an immediate `on.exit()`.
+  * Data sent to parallel worker processes no longer goes into those workers'
+    global environments.
+  * A call to another package's function that changes `options(contrasts)`
+    without restoring it (`multgee::ordLORgee()`) is now wrapped so the user's
+    option is restored with an immediate `on.exit()`.
+
+  We verified this by checking that loading the package and running its
+  parallel, simulation and inference entry points leave `options()`, the
+  working directory, the contents of `.GlobalEnv` and (for seeded runs)
+  `.Random.seed` unchanged.
+
 ## Submission
 
 First submission of EDI to CRAN (new package).

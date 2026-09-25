@@ -12,6 +12,36 @@
 #'
 #' @keywords internal
 #' @noRd
+# 2026-09-25: extracted from the mixin's private$compute_weighted_glmm_bootstrap_estimate
+# closure so InferenceCountKKGLMM/InferenceCountKKCombined can alias it under a `_generic`
+# name (reachable after their own same-named override shadows it -- no callSuper()/super$
+# under this flattened component-composition model) WITHOUT splicing raw
+# `InferenceMixinKKGLMMShared$private$...` -- the static cleanup guardrail
+# (test-static-cleanup-guardrails.R) bans that pattern outside define_inference_class()
+# itself. `private` is an explicit parameter here (the real instance's private env, passed
+# through by both the mixin's own thin wrapper below and any daughter's `_generic` alias),
+# not lexical R6 scoping, so the body is otherwise unchanged.
+kk_glmm_shared_compute_weighted_glmm_bootstrap_estimate = function(private, row_weights, estimate_only = TRUE){
+	for (predictors_df in private$glmm_predictors_df_candidates()) {
+		mod = private$fit_weighted_glmm_on_data(predictors_df, row_weights = row_weights, se = !estimate_only)
+		if (!private$.is_usable_glmm_fit(mod, se = FALSE)) next
+		beta = tryCatch(glmmTMB::fixef(mod)$cond, error = function(e) NULL)
+		if (!is.null(beta) && "w" %in% names(beta) && is.finite(beta["w"])) {
+			beta_val = as.numeric(beta["w"])
+			if (estimate_only) return(beta_val)
+			se = tryCatch({
+				ct = summary(mod)$coefficients$cond
+				if (!is.null(ct) && "w" %in% rownames(ct)) {
+					se_val = suppressWarnings(as.numeric(ct["w", "Std. Error"]))
+					if (is.finite(se_val) && se_val > 0) se_val else NA_real_
+				} else NA_real_
+			}, error = function(e) NA_real_)
+			return(list(beta = beta_val, se = se))
+		}
+	}
+	if (estimate_only) NA_real_ else list(beta = NA_real_, se = NA_real_)
+}
+
 InferenceMixinKKGLMMShared = list(
 	public = list(
 		compute_estimate = function(estimate_only = FALSE){
@@ -263,24 +293,7 @@ InferenceMixinKKGLMMShared = list(
 			NULL
 		},
 		compute_weighted_glmm_bootstrap_estimate = function(row_weights, estimate_only = TRUE){
-			for (predictors_df in private$glmm_predictors_df_candidates()) {
-				mod = private$fit_weighted_glmm_on_data(predictors_df, row_weights = row_weights, se = !estimate_only)
-				if (!private$.is_usable_glmm_fit(mod, se = FALSE)) next
-				beta = tryCatch(glmmTMB::fixef(mod)$cond, error = function(e) NULL)
-				if (!is.null(beta) && "w" %in% names(beta) && is.finite(beta["w"])) {
-					beta_val = as.numeric(beta["w"])
-					if (estimate_only) return(beta_val)
-					se = tryCatch({
-						ct = summary(mod)$coefficients$cond
-						if (!is.null(ct) && "w" %in% rownames(ct)) {
-							se_val = suppressWarnings(as.numeric(ct["w", "Std. Error"]))
-							if (is.finite(se_val) && se_val > 0) se_val else NA_real_
-						} else NA_real_
-					}, error = function(e) NA_real_)
-					return(list(beta = beta_val, se = se))
-				}
-			}
-			if (estimate_only) NA_real_ else list(beta = NA_real_, se = NA_real_)
+			kk_glmm_shared_compute_weighted_glmm_bootstrap_estimate(private, row_weights, estimate_only)
 		},
 		.is_usable_glmm_fit = function(mod, se){
 			if (is.null(mod)) return(FALSE)
