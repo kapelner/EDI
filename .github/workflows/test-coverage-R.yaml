@@ -97,7 +97,20 @@ jobs:
     # job doesn't fail a run by default). `plan` already had this same fix
     # via its own `if: always() && ...`; this gives `shards` an equivalent
     # explicit condition that only looks at its own direct dependency.
-    if: always()
+    #
+    # 2026-09-25: a bare `if: needs.plan.result == 'success'` (no always())
+    # was NOT enough -- confirmed live via a diagnostic workflow_dispatch run
+    # (commit 83632ff5, runs 36108398435 vs 36108707186): with the bare
+    # comparison shards stayed skipped even though plan had genuinely
+    # succeeded; switching to `if: always()` alone made all 99 shards expand
+    # and start running. The real, generalizable rule: a job downstream of
+    # another job that itself needed always() to survive a skipped ancestor
+    # (here, plan surviving check's skip) must ALSO prefix its own condition
+    # with always() -- a bare explicit comparison still inherits the same
+    # whole-graph implicit-success() poisoning one level down. Matching
+    # plan's own `always() && (...)` style instead of always() alone keeps
+    # this job from running if plan genuinely fails.
+    if: always() && needs.plan.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
@@ -150,7 +163,9 @@ jobs:
     # 2026-09-24: same fix as `shards` above -- an explicit condition on this
     # job's own direct dependencies, bypassing the implicit default success()
     # that a skipped `check` elsewhere in the graph poisons.
-    if: always()
+    # 2026-09-25: needs its own always() prefix too -- see shards' comment
+    # above for why a bare comparison alone isn't enough.
+    if: always() && needs.plan.result == 'success' && needs.shards.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
