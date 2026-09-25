@@ -17,6 +17,7 @@ check_survfit.R
 ^inference_suite_results_.*$
 ^\.mcp\.json$
 ^\.claude$
+^man-roxygen$
 ^tests/\.prepush_errors$
 ^tests/\.prepush_test_stdout\.log$
 ^tests/prepush_test_timings\.csv$

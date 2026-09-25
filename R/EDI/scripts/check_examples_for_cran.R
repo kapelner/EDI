@@ -106,8 +106,19 @@ if (!static_only && !length(problems)) {
 		}, error = conditionMessage)
 		dt = proc.time() - t0
 		opts1 = options()
+		# 2026-09-25: options set as an unavoidable side effect of loading a Suggests
+		# package for the FIRST time in this session -- not something any example's own
+		# code sets or could clean up (confirmed: `requireNamespace("nbpMatching", quietly
+		# = TRUE)` alone, with no EDI code involved at all, sets callr.condition_handler_
+		# cli_message on first load, via nbpMatching's own dependency chain). Whichever
+		# Rd file happens to be the first alphabetically to touch such a package in this
+		# run's single R session is where the diff would otherwise land, which is a
+		# false positive about EDI's own example code, not a real CRAN global-state
+		# policy violation (that policy targets an example's own options(...) calls that
+		# it forgets to restore, not a dependency's internal namespace-load bootstrap).
+		known_benign_package_load_options = c("callr.condition_handler_cli_message")
 		changed = c(
-			union(setdiff(names(opts1), names(opts0)), names(opts0)[!mapply(identical, opts0, opts1[names(opts0)])]),
+			setdiff(union(setdiff(names(opts1), names(opts0)), names(opts0)[!mapply(identical, opts0, opts1[names(opts0)])]), known_benign_package_load_options),
 			if (!identical(getwd(), wd0)) "the working directory",
 			setdiff(union(globals0, ls(globalenv(), all.names = TRUE)), intersect(globals0, ls(globalenv(), all.names = TRUE)))
 		)
