@@ -1267,7 +1267,26 @@ TODO-1..4` (`→ TODO-33`; touches the randomization-CI search-precision area);
 `../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
 TODO-1..4` (`→ TODO-34`); and the batch
 `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-1..12`
-(`→ TODO-35..46`, one release TODO per plan item).
+(`→ TODO-35..46`, one release TODO per plan item). **Two items in this
+batch updated 2026-09-24 since first added:** `→ TODO-38` (the ZOIB kernel
+crash) escalated from "suspected undefined behavior" to **confirmed real**
+— reproduced under valgrind as a heap overflow from an unvalidated
+`warm_start_params` length; the ZOIB kernel's own length check is now
+implemented and verified, but a sweep of 9 other kernels with the same
+unchecked warm-start pattern is still open. `→ TODO-42` (the stale
+Bayesian-bootstrap worker workaround) investigated and found NOT
+reproducible in 240 same-object runs — the workaround appears unnecessary,
+safe to remove, not yet done.
+
+**`InferenceSurvivalKMDiff` Bayesian-bootstrap `NA` on heavily censored
+data** (added 2026-09-24, found investigating `TODO-42` above; reproduced
+on a fresh object; not part of the original test-comment-audit five, so
+listed separately): `../bug_fix_plans/test_comment_audit_small_defects.md
+→ TODO-13`. ~30% of RNG seeds (12/40) give `NA` (reason
+`bayesian_bootstrap_nonfinite_estimates`) on heavily censored data — one
+non-finite bootstrap replicate poisons the whole p-value, unlike the
+non-parametric bootstrap on the same data. Not caused by object reuse.
+Release index: `release_v1_0_5.md → TODO-54`.
 
 **Full `release_v1_0_5.md` reconciliation, 2026-09-24 (user-requested):** the
 20 items below had no entry anywhere in this file — found via a systematic

@@ -2900,6 +2900,19 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         private$custom_apply_treatment_and_noise, private$make_estimand_fn
       )
       combos = list()
+      # 2026-09-24: restore to the assert state this function was CALLED with, not a hardcoded
+      # FALSE -- the old unconditional toggle_asserts(FALSE) below assumed this always runs inside
+      # a turn_off_asserts_for_speed = TRUE simulation (where run()'s own on.exit(toggle_asserts(TRUE))
+      # would paper over it), but this method has no such guarantee: with turn_off_asserts_for_speed =
+      # FALSE (the user explicitly wanting asserts kept on), it silently left assertions disabled for
+      # the rest of the R session after every call -- caught as a real cross-test leak (CI run
+      # 36047859976 shard 37: test-simulation-framework-custom-apply-treatment-and-noise-malformed-
+      # return-guard-reference.R sets turn_off_asserts_for_speed = FALSE, and the leaked FALSE then
+      # silently disabled every should_run_asserts()-gated validation in every later test file in that
+      # shard's shared R session, e.g. test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R's
+      # argument-validation tests).
+      assert_state_on_entry = isTRUE(getOption("edi.run_asserts", TRUE))
+      on.exit(toggle_asserts(assert_state_on_entry), add = TRUE)
       for (di in seq_along(private$design_classes)) {
         design_gen   = private$design_classes[[di]]
         design_name  = private$design_labels[[di]]
@@ -2918,7 +2931,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             do.call(inf_gen$new, c(list(des_obj), inf_ctor_extra)),
             error = function(e) NULL
           )
-          toggle_asserts(FALSE)
+          toggle_asserts(assert_state_on_entry)
           if (is.null(inf_obj)) next
           valid_inference_types = private$.valid_inference_types(inf_obj)
           if (length(valid_inference_types) == 0L) next

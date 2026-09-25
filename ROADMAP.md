@@ -160,6 +160,88 @@ for the full index.
   nulls), which costs power but not validity. The cause is shared design-replay
   or randomization machinery; an investigation comes first.
 
+- **[Wilcoxon resampling p-values collapse to exactly 1](R/package_metadata/bug_fix_plans/simple_wilcox_hl_degenerate_pval_boundary.md)** —
+  the simple Wilcoxon class's Hodges-Lehmann estimate frequently lands on
+  exactly 0 on tied data, which saturates the resampling-family p-value
+  formula's upper clamp (and, by the same mechanism, its resampling CI
+  coverage). A Wald-family variant of this bug was already fixed; the
+  resampling-family methods were simply never touched by that fix.
+- **[Unclamped bootstrap noise on binary/ordinal responses](R/package_metadata/bug_fix_plans/rand_bootstrap_smoothed_noise_unclamped.md)** —
+  the `smoothed` randomization-bootstrap p-value's noise-injection step has a
+  rounding/clamping special case for count responses but none for
+  binary/ordinal ones, so continuous noise lands on 0/1 or integer-coded
+  data — one shared bug hitting dozens of (class, response type) cells with
+  wildly different severity.
+- **[`InferenceIncidKKModifiedPoisson` standard-error quality](R/package_metadata/bug_fix_plans/investigate_incid_kk_modified_poisson_se_quality.md)** —
+  open investigation into this class's chronic under-rejection across every
+  test-statistic family at once. The original over-estimated-SE magnitude
+  didn't hold up under a faithful replay, though the under-rejection itself
+  did reproduce; still unresolved.
+- **[Quantile-regression bootstrap tie-sensitivity](R/package_metadata/bug_fix_plans/investigate_contin_quantile_regr_bootstrap_family_inflation.md)** —
+  open investigation into why this class's bootstrap-family p-values
+  (but not its permutation p-value) are badly miscalibrated; the leading,
+  unreproduced idea is that with-replacement resampling creates exact row
+  ties that destabilize the quantile-regression fit — possibly a
+  documented limitation rather than a fixable bug.
+- **[KK-GEE bootstrap-family inflation](R/package_metadata/bug_fix_plans/investigate_incid_kk_gee_bootstrap_family_inflation.md)** —
+  open investigation, largely inconclusive: the leading hypothesis (a
+  cluster-bootstrap mishandling of singleton/matched-pair groups) was
+  refuted by both code reading and direct reproduction, and the original
+  historical finding itself could not be reproduced with a fresh fixture.
+- **[RMST inconsistent truncation horizon between arms](R/package_metadata/bug_fix_plans/rmst_mismatched_truncation_horizon.md)** —
+  the restricted-mean-survival-difference class computes each arm's
+  truncation point independently instead of sharing one across arms,
+  producing severe CI undercoverage; the fix intentionally changes the
+  point estimate for mismatched-follow-up data, unlike most other items
+  here.
+- **[KK-matched Cox proportional-hazards CI undercoverage](R/package_metadata/bug_fix_plans/survival_kk_cox_coverage_variance.md)** —
+  isolated to the KK-matching/reservoir-split mechanism (plain Cox and
+  stratified-Cox are unaffected); one sub-class's inverse-variance pooling
+  of matched-pair and reservoir estimates likely ignores their correlation,
+  the other's root cause is still unidentified.
+- **[Reused bootstrap worker never resets its cached design matrix](R/package_metadata/bug_fix_plans/bootstrap_worker_stale_design_matrix.md)** —
+  the single highest-leverage finding of this whole audit: a resampling
+  loader correctly refreshes the current draw's weights but not its design
+  matrix, so every draw after the first silently fits the current weights
+  against the *first* draw's data. Confirmed across 12+ classes so far;
+  investigation and scoping are done, the actual fix is not yet written.
+- **[`InferenceContinOLS` weighted-bootstrap standard error](R/package_metadata/bug_fix_plans/investigate_contin_ols_weighted_bootstrap_se.md)** —
+  likely explained by the stale design-matrix bug above rather than this
+  investigation's own unguarded-`solve()` hypothesis; kept open pending
+  confirmation.
+- **[`InferenceSurvivalKKWeibullMarginal` jackknife outliers](R/package_metadata/bug_fix_plans/kk_weibull_marginal_jackknife_outliers.md)** —
+  what looked like a biased estimate is actually a small number of
+  catastrophic single-fold jackknife outliers (individual values as extreme
+  as −38 and +17.5 for an estimand whose usual scale is ~0.2–0.3), not a
+  mean shift.
+- **[Incidence logistic/probit over-coverage — likely benign](R/package_metadata/bug_fix_plans/investigate_incid_logregr_probitregr_coverage.md)** —
+  both classes show broad, mild over-coverage; the leading explanation is
+  ordinary Wald/likelihood-ratio CI conservativeness for binary-outcome
+  models, not a defect, matching an earlier "not a bug" finding for the
+  risk-difference family.
+- **[Count-family GLM coverage cluster](R/package_metadata/bug_fix_plans/investigate_count_glm_family_coverage.md)** —
+  open investigation: three count classes show broad undercoverage across
+  both asymptotic and resampling methods at once; none share the stale
+  design-matrix mechanism above, and no confirmed cause yet.
+- **[`InferenceContinQuantileRegr`'s 33 coverage findings](R/package_metadata/bug_fix_plans/investigate_contin_quantile_regr_coverage.md)** —
+  the single largest uninvestigated coverage cluster from this audit wave;
+  the obvious harness-truth-mismatch explanation was ruled out, root cause
+  still open.
+- **[Count-family classes with unexplained miscalibration](R/package_metadata/bug_fix_plans/investigate_count_family_unexplained_miscalibration_cluster.md)** —
+  four count classes with real, audit-flagged miscalibration, each ruled
+  out from every specific mechanism checked so far but never root-caused on
+  its own terms.
+- **[Beta/OLS/KKGLMM coverage findings ruled out from the stale design-matrix bug](R/package_metadata/bug_fix_plans/investigate_beta_ols_kkglmm_low_coverage_orphans.md)** —
+  six more classes with real, unexplained coverage flags, confirmed not to
+  share the stale design-matrix mechanism above; not yet root-caused.
+- **Dead code in a shared numerical helper** — a variance-guard helper is
+  entirely commented out and never populates the field it's meant to;
+  needs a decision to delete it or wire it in, not more investigation.
+- **[`InferenceSurvivalKMDiff` Bayesian-bootstrap `NA` on heavily censored data](R/package_metadata/bug_fix_plans/test_comment_audit_small_defects.md)** —
+  about 30% of random seeds produce `NA` on heavily censored data because
+  one non-finite bootstrap replicate poisons the whole p-value, unlike the
+  non-parametric bootstrap on the same data.
+
 ---
 
 ## v1.1.0 — Inference Quality and CPU Performance

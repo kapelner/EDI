@@ -42,15 +42,45 @@ test_that("count_use_speedup = TRUE (the default) matches kk21_continuous_weight
 	expect_equal(as.numeric(w_out), as.numeric(ref))
 })
 
+# 2026-09-24: the negbin/beta dispatch tests below used to compare TWO separate kk21_negbin_weights_cpp/
+# kk21_beta_weights_cpp calls (one through the dispatcher, one direct) for equality. Both kernels'
+# univariate per-covariate fits are genuinely floating-point/BLAS-sensitive in a way that showed up on
+# CI (run 36047859976 shard 15) but never locally: kk21_negbin_weights_cpp's Newton-Raphson theta update
+# can drift by ~1e-5 in the final t-stat, and kk21_beta_weights_cpp's coarse log(phi) grid search (steps
+# of 0.5, i.e. phi differs by a factor of ~1.65 between adjacent points) can flip which grid cell wins a
+# near-tie under a tiny IRLS convergence difference, swinging the returned t-stat by several-fold -- not
+# a code bug (get_effective_time() was confirmed to return private$y unchanged for non-censored types,
+# so the dispatcher and a from-scratch reconstruction genuinely see identical X/y), just floating-point
+# noise in an inherently near-tie-sensitive statistic. Comparing two SEPARATE invocations was the wrong
+# test design regardless of environment: mocking the kernel to capture the dispatcher's own actual call
+# arguments (matching the ginv() call-count-probe pattern in test-build-optimal-design-p-h-null-prior-
+# rank-deficient-ginv-fallback-reference.R) verifies correct dispatch from a SINGLE invocation instead,
+# eliminating the cross-call fragility entirely rather than just tolerating it with a numeric slop.
 test_that("count_use_speedup = FALSE dispatches to kk21_negbin_weights_cpp instead", {
 	des <- kk21_past_burn_in(2L, "count", count_use_speedup = FALSE)
 	priv <- des$.__enclos_env__$private
 	asd <- priv$compute_all_subject_data()
 	i_present <- which(!(is.na(priv$y) & is.na(priv$y_L) & is.na(priv$y_R)))
 	ys <- priv$y[i_present]
-	set.seed(77); w_out <- priv$compute_weights(asd)
-	set.seed(77); ref <- EDI:::kk21_negbin_weights_cpp(as.matrix(asd$X_all_with_y_scaled), as.numeric(ys))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	expected_X <- as.matrix(asd$X_all_with_y_scaled)
+	expected_y <- as.numeric(ys)
+
+	orig <- EDI:::kk21_negbin_weights_cpp
+	captured <- NULL
+	local_mocked_bindings(
+		kk21_negbin_weights_cpp = function(X, y) {
+			result <- orig(X, y)
+			captured <<- list(X = X, y = y, result = result)
+			result
+		},
+		.package = "EDI"
+	)
+	w_out <- priv$compute_weights(asd)
+
+	expect_true(!is.null(captured))
+	expect_equal(captured$X, expected_X)
+	expect_equal(captured$y, expected_y)
+	expect_equal(as.numeric(w_out), as.numeric(captured$result))
 })
 
 test_that("proportion_use_speedup = TRUE (the default) matches kk21_continuous_weights_cpp on logit(y)", {
@@ -70,7 +100,23 @@ test_that("proportion_use_speedup = FALSE dispatches to kk21_beta_weights_cpp in
 	asd <- priv$compute_all_subject_data()
 	i_present <- which(!(is.na(priv$y) & is.na(priv$y_L) & is.na(priv$y_R)))
 	ys <- priv$y[i_present]
-	set.seed(88); w_out <- priv$compute_weights(asd)
-	set.seed(88); ref <- EDI:::kk21_beta_weights_cpp(as.matrix(asd$X_all_with_y_scaled), as.numeric(ys))
-	expect_equal(as.numeric(w_out), as.numeric(ref))
+	expected_X <- as.matrix(asd$X_all_with_y_scaled)
+	expected_y <- as.numeric(ys)
+
+	orig <- EDI:::kk21_beta_weights_cpp
+	captured <- NULL
+	local_mocked_bindings(
+		kk21_beta_weights_cpp = function(X, y) {
+			result <- orig(X, y)
+			captured <<- list(X = X, y = y, result = result)
+			result
+		},
+		.package = "EDI"
+	)
+	w_out <- priv$compute_weights(asd)
+
+	expect_true(!is.null(captured))
+	expect_equal(captured$X, expected_X)
+	expect_equal(captured$y, expected_y)
+	expect_equal(as.numeric(w_out), as.numeric(captured$result))
 })

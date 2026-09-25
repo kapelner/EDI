@@ -83,7 +83,7 @@ methods papers behind the KK-family designs and estimators (run
 installing is [Getting Started](#getting-started) below and the
 [vignettes](#vignettes).
 
-> **Benchmark report:** [`R/benchmark/benchmark_model_fits_R.html`](R/benchmark/benchmark_model_fits_R.html) — speed and correctness of every model-fitting kernel against its R canonical baseline. (GitHub shows raw HTML; clone and open it in a browser.)
+> **Benchmark report:** [Rendered model-fitting benchmark report](https://htmlpreview.github.io/?https://github.com/kapelner/EDI/blob/main/R/benchmark/benchmark_model_fits_R.html) — speed and correctness of every model-fitting kernel against its R canonical baseline.
 
 > **Inference path audit:** [Rendered comprehensive-tests coverage and estimability report](https://htmlpreview.github.io/?https://github.com/kapelner/EDI/blob/main/R/package_tests/path_audits.html) — supported inference paths and their latest observed percent estimability.
 
