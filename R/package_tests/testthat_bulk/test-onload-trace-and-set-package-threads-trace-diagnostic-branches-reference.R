@@ -13,9 +13,18 @@ library(EDI)
 
 Z <- function(x) get(x, envir = asNamespace("EDI"))
 
-test_that(".onLoad() emits its trace lines to stdout when EDI_ONLOAD_TRACE=1, and stays silent otherwise", {
+test_that(".onLoad() emits its trace lines via packageStartupMessage() when EDI_ONLOAD_TRACE=1, and stays silent otherwise", {
+	# 2026-09-25: .onLoad()'s trace helper (edi_onload_trace_step(), zzz.R) switched from
+	# cat() to packageStartupMessage() -- R CMD check's "checking R code for possible
+	# problems" flags a cat()/print() call found directly in .onLoad()'s own body (see
+	# "Good practice" in ?.onAttach), and moving the helper to a top-level function alone
+	# wasn't enough once its own body still used cat(). packageStartupMessage() writes to
+	# the message condition system, not stdout, so this now captures via
+	# capture_messages() instead of capture.output() -- confirmed empirically each
+	# captured message carries a trailing "\n" (message()'s own convention), stripped
+	# below before comparing.
 	withr::local_envvar(EDI_SKIP_LOCAL_TUNING = "1", EDI_ONLOAD_TRACE = "1")
-	out <- capture.output(Z(".onLoad")("lib", "EDI"))
+	out <- sub("\n$", "", testthat::capture_messages(Z(".onLoad")("lib", "EDI")))
 	expect_true("EDI .onLoad trace: start" %in% out)
 	expect_true("EDI .onLoad trace: end" %in% out)
 	expect_true("EDI .onLoad trace: after set_package_threads" %in% out)

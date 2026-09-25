@@ -6,7 +6,12 @@ library(EDI)
 # populate_inference_hierarchy_migration_manifest() fills it with one record per name in EDI_INFERENCE_CLASS_REGISTRY (returning the manifest environment
 # itself), get_inference_hierarchy_migration_record() looks up a cached record (erroring by name when absent), inference_hierarchy_migration_manifest_as_list()
 # snapshots the whole cache as a named list. The cached record for a class is identical to a fresh build_inference_hierarchy_migration_record() call.
-# The manifest is cleared and left empty at the end regardless of outcome, so this file cannot affect later tests that share the namespace-level cache.
+# The manifest is repopulated at the end regardless of outcome (2026-09-25: previously left
+# cleared via withr::defer(clear()), which starved every later file in the shard of migration
+# records -- get_inference_hierarchy_migration_record() is only ever refreshed by
+# populate_inference_class_registry(), not automatically, so an empty manifest here persisted
+# until some other test happened to repopulate it), so this file cannot affect later tests that
+# share the namespace-level cache.
 
 ns <- asNamespace("EDI")
 clear <- get("clear_inference_hierarchy_migration_manifest", envir = ns)
@@ -16,7 +21,7 @@ get_record <- get("get_inference_hierarchy_migration_record", envir = ns)
 build_record <- get("build_inference_hierarchy_migration_record", envir = ns)
 manifest_env <- get("EDI_INFERENCE_HIERARCHY_MIGRATION_MANIFEST", envir = ns)
 registry_names <- ls(get("EDI_INFERENCE_CLASS_REGISTRY", envir = ns))
-withr::defer(clear())
+withr::defer(populate())
 
 test_that("clear() empties the manifest; a lookup on the empty manifest errors by class name", {
 	clear()

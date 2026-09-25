@@ -25,3 +25,4 @@ user request, 2026-08-27: same rewording, now applied to the inference
 \description{
 Short display label for an inference class
 }
+\keyword{internal}

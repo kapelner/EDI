@@ -38,3 +38,4 @@ derives its own live_obj).}
 \description{
 Effective capabilities for an inference class or instance
 }
+\keyword{internal}

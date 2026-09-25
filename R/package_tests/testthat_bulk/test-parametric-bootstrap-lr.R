@@ -90,9 +90,15 @@ test_that("generic parametric bootstrap LR is serial-parallel deterministic unde
 		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
 	)
 	des <- make_param_boot_logit_design(seed = 20260521L, n = 100L)
+	# Always register cleanup, even when the set_num_cores() call below is skipped: setting
+	# inf_parallel$num_cores <- 2L further down makes a real multi-core call regardless, and
+	# when mirai hasn't been used yet, par_lapply()'s lazy-fork-cluster branch (see
+	# inference_all_abstract.R's par_lapply()) creates and permanently caches a real 2-worker
+	# fork cluster in edi_env$global_fork_cluster -- previously left uncleaned whenever this
+	# `if` was FALSE, leaking num_cores = 2 into every later test in the same session.
+	on.exit(unset_num_cores(), add = TRUE)
 	if (isTRUE(EDI:::edi_env$mirai_has_been_used)) {
 		set_num_cores(2L, force_mirai = TRUE)
-		on.exit(unset_num_cores(), add = TRUE)
 	}
 
 	inf_serial <- InferenceIncidLogRegr$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
@@ -128,9 +134,11 @@ test_that("parametric bootstrap LR keeps deterministic mode off when no seed is 
 		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
 	)
 	des <- make_param_boot_logit_design(seed = 20260522L, n = 90L)
+	# See the "generic parametric bootstrap LR is serial-parallel deterministic" test above for
+	# why this cleanup must be unconditional.
+	on.exit(unset_num_cores(), add = TRUE)
 	if (isTRUE(EDI:::edi_env$mirai_has_been_used)) {
 		set_num_cores(2L, force_mirai = TRUE)
-		on.exit(unset_num_cores(), add = TRUE)
 	}
 	inf <- InferenceIncidLogRegr$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
 	inf$num_cores <- 2L

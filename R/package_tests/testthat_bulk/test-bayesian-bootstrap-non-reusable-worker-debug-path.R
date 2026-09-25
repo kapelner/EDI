@@ -77,6 +77,15 @@ test_that("debug=TRUE reproduces the debug=FALSE distribution exactly on the non
 })
 
 test_that("multi-core dispatch on the non-reusable duplicate()-per-iteration branch reproduces the single-core distribution under the same seed", {
+	# num_cores = 2 below drives par_lapply() into its lazy-fork-cluster branch
+	# (inference_all_abstract.R's par_lapply(), "Unix with no pre-existing
+	# cluster: create one lazily and cache it"), which stores a real,
+	# persistent 2-worker cluster in edi_env$global_fork_cluster -- by design,
+	# for real callers this cluster is meant to outlive the call for reuse.
+	# In a bin-packed test shard that persistence leaks into every later test
+	# in the same session (get_num_cores() then reports 2, not 1), so this
+	# test must tear it down itself.
+	on.exit(unset_num_cores(), add = TRUE)
 	seq_des = simulate_zoib_design(3L)
 
 	inf_single = InferencePropZeroOneInflatedBetaRegr$new(seq_des)

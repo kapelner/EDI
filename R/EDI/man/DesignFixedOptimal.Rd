@@ -83,10 +83,20 @@ unbiasedness -- at zero cost to balance. A mirror that evaluates strictly
 better than the solver's answer raises an error (it would be a solver bug).
 }
 \examples{
-des = DesignFixedOptimal$new(n = 14, response_type = 'continuous', objective = "mahal_dist")
-des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(14)))
-des$assign_w_to_all_subjects()
-des$get_optimization_diagnostics()
+# objective = "mahal_dist" (the default MILP path) needs a MILP solver --
+# ompr + ompr.roi + a ROI plugin (ROI.plugin.glpk by default), all Suggests,
+# not installed automatically with EDI. Confirmed 2026-09-25: ungated, this
+# example errored outright on R CMD check's --no-suggests leg (and would do
+# the same for any real user without the optional MILP-solver stack), not
+# just a CI-specific issue.
+if (requireNamespace("ompr", quietly = TRUE) &&
+    requireNamespace("ompr.roi", quietly = TRUE) &&
+    requireNamespace("ROI.plugin.glpk", quietly = TRUE)) {
+  des = DesignFixedOptimal$new(n = 14, response_type = 'continuous', objective = "mahal_dist")
+  des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(14)))
+  des$assign_w_to_all_subjects()
+  des$get_optimization_diagnostics()
+}
 
 \donttest{
 # A custom compiled objective (the user_compiled_fns.h calling convention),

@@ -1593,6 +1593,7 @@ apply_inference_design_restrictions = function(self, des_obj) {
 #'   would silently look up the wrong (unregistered) key. Ignored if
 #'   \code{name} is itself a non-character object (that overload already
 #'   derives its own live_obj).
+#' @keywords internal
 get_effective_capabilities = function(name, des_obj = NULL, live_obj = NULL) {
 	if (!is.character(name)) {
 		live_obj = name

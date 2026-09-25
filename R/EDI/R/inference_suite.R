@@ -3458,6 +3458,7 @@ design_class_short_label = function(name) {
 #'   compared -- mirrors `estimand_short_label()`'s own tau handling (per
 #'   user request, 2026-08-27: same rewording, now applied to the inference
 #'   *class* name, not just the estimand label).
+#' @keywords internal
 inference_class_short_label = function(name, tau = NA_real_) {
 	rest = sub("^Inference", "", name)
 	for (p in EDI_INFERENCE_CLASS_PREFIXES) {
