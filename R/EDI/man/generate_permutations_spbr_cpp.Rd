@@ -6,7 +6,23 @@
 \usage{
 generate_permutations_spbr_cpp(strata_keys, block_size, prob_T, nsim)
 }
+\arguments{
+\item{strata_keys}{Character vector giving each subject's stratum label, in
+arrival order.}
+
+\item{block_size}{Size of the permuted blocks used within each stratum.}
+
+\item{prob_T}{Probability of assignment to treatment.}
+
+\item{nsim}{Number of randomization draws (columns of the returned matrix) to generate.}
+}
+\value{
+A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+  columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+  (always \code{NULL}).
+}
 \description{
 See generate_permutations_matching_cpp for the reproducibility
   note that applies to every function in this file.
 }
+\keyword{internal}

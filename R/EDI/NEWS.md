@@ -7,6 +7,23 @@ by writing unit tests: resampling and randomization results that were silently
 wrong in specific classes, a few kernel defects (including one memory-safety
 bug), and standard-error and confidence-interval fixes.
 
+## Breaking changes
+
+* `toggle_asserts()`, `set_num_cores()`, and the internal thread-count
+  bookkeeping it drives no longer set global `options()` as a side effect
+  (CRAN policy: a package must not modify and leave changed the user's
+  session options). `toggle_asserts()` now stores its flag in the package's
+  own internal state; calling it no longer changes what
+  `getOption("edi.run_asserts")` returns (a user's own
+  `options(edi.run_asserts = ...)` is still read and honored). Likewise,
+  `set_num_cores()`/`set_package_threads()` no longer set
+  `options(mc.cores = ...)` (nothing in EDI read it back; downstream code
+  relying on this package to set it for `parallel`/`pbmcapply` needs to set
+  it itself now) and no longer call `fixest::setFixest_nthreads()` (which
+  sets `options(fixest_nthreads)`, the user's own option, not EDI's to
+  change). No change to which thread counts are actually used internally —
+  only to these previously-observable `options()` side effects.
+
 ## New features
 
 * `InferenceCountQuasiPoisson` now composes the marginal-estimand component

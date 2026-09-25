@@ -7,6 +7,8 @@
 inference_class_short_label(name, tau = NA_real_)
 }
 \arguments{
+\item{name}{Inference class name (character), e.g. \code{"InferenceContinOLS"}.}
+
 \item{tau}{Quantile level for a quantile-regression class's display label
 (e.g. `"InferenceContinQuantileRegr"`, `"InferenceContinKKQuantileRegrOneLik"`
 -- every concrete class whose wordified label contains the bare word

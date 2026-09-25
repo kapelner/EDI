@@ -441,6 +441,16 @@ Eigen::MatrixXi generate_permutations_spbr_internal(
 //'   re-implementation of R's own Mersenne-Twister generator -- a given
 //'   seed therefore produces identical draws in R and in any future binding
 //'   (e.g. Python) using the same core and the same seed.
+//'
+//' @param m_vec Integer vector of match ids, one per subject: subjects sharing a
+//'   positive id form a matched pair (randomized within the pair); 0 marks an
+//'   unmatched (reservoir) subject, assigned by an independent coin flip.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @param prob_T Probability of assignment to treatment.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_matching_cpp(const IntegerVector& m_vec, int nsim, double prob_T) {
 	Eigen::Map<const Eigen::VectorXi> m_vec_map(m_vec.begin(), m_vec.size());
@@ -452,6 +462,14 @@ List generate_permutations_matching_cpp(const IntegerVector& m_vec, int nsim, do
 //'
 //' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
+//'
+//' @param n Number of subjects.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @param prob_T Probability of assignment to treatment.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_bernoulli_cpp(int n, int nsim, double prob_T) {
 	Eigen::MatrixXi w_mat = generate_permutations_bernoulli_internal(n, nsim, prob_T, edi_rng::draw_seed_from_r());
@@ -462,6 +480,14 @@ List generate_permutations_bernoulli_cpp(int n, int nsim, double prob_T) {
 //'
 //' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
+//'
+//' @param n Number of subjects.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @param prob_T Probability of assignment to treatment.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_ibcrd_cpp(int n, int nsim, double prob_T) {
 	Eigen::MatrixXi w_mat = generate_permutations_ibcrd_internal(n, nsim, prob_T, edi_rng::draw_seed_from_r());
@@ -472,6 +498,16 @@ List generate_permutations_ibcrd_cpp(int n, int nsim, double prob_T) {
 //'
 //' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
+//'
+//' @param n Number of subjects.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @param prob_T Probability of assignment to treatment.
+//' @param strata_indices List of integer vectors, one per stratum, holding the
+//'   (1-based) indices of the subjects in that stratum.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_blocking_cpp(int n, int nsim, double prob_T, List strata_indices) {
 	std::vector<std::vector<int>> strata(strata_indices.size());
@@ -487,6 +523,16 @@ List generate_permutations_blocking_cpp(int n, int nsim, double prob_T, List str
 //'
 //' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
+//'
+//' @param n Number of subjects.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @param prob_T Probability of assignment to treatment.
+//' @param weighted_coin_prob Efron's biased-coin probability: the chance of
+//'   assigning the currently under-represented arm.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_efron_cpp(int n, int nsim, double prob_T, double weighted_coin_prob) {
 	Eigen::MatrixXi w_mat = generate_permutations_efron_internal(n, nsim, prob_T, weighted_coin_prob, edi_rng::draw_seed_from_r());
@@ -497,6 +543,19 @@ List generate_permutations_efron_cpp(int n, int nsim, double prob_T, double weig
 //'
 //' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
+//'
+//' @param X_sexp Numeric matrix: the design's covariate model matrix for the first
+//'   \code{n} subjects, in arrival order.
+//' @param n Number of subjects.
+//' @param p_raw Number of raw covariate columns (before model-matrix expansion);
+//'   the first \code{p_raw + 3} subjects are assigned by coin flip before
+//'   Atkinson's rule applies.
+//' @param prob_T Probability of assignment to treatment.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_atkinson_cpp(SEXP X_sexp, int n, int p_raw, double prob_T, int nsim) {
 	Rcpp::NumericMatrix X_r(X_sexp);
@@ -509,6 +568,20 @@ List generate_permutations_atkinson_cpp(SEXP X_sexp, int n, int p_raw, double pr
 //'
 //' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
+//'
+//' @param x_levels_matrix Integer matrix with one row per subject and one column
+//'   per stratification covariate; each entry is the subject's level for that
+//'   covariate as a (1-based) index into 1..\code{num_levels_total}.
+//' @param num_levels_total Total number of levels across all stratification covariates.
+//' @param weights Numeric vector of per-covariate imbalance weights (one per column
+//'   of \code{x_levels_matrix}).
+//' @param p_best Probability of assigning the arm that minimizes the weighted imbalance.
+//' @param prob_T Probability of assignment to treatment.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_pocock_simon_cpp(const IntegerMatrix& x_levels_matrix, int num_levels_total, const NumericVector& weights, double p_best, double prob_T, int nsim) {
 	Eigen::Map<const Eigen::MatrixXi> x_levels_map(x_levels_matrix.begin(), x_levels_matrix.nrow(), x_levels_matrix.ncol());
@@ -526,6 +599,17 @@ List generate_permutations_pocock_simon_cpp(const IntegerMatrix& x_levels_matrix
 //'
 //' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
+//'
+//' @param n Number of subjects.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @param prob_T Probability of assignment to treatment.
+//' @param cluster_indices List of integer vectors, one per cluster, holding the
+//'   (1-based) indices of the subjects in that cluster; each cluster is assigned
+//'   to one arm as a whole.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_cluster_cpp(int n, int nsim, double prob_T, List cluster_indices) {
 	std::vector<std::vector<int>> clusters(cluster_indices.size());
@@ -545,6 +629,16 @@ List generate_permutations_cluster_cpp(int n, int nsim, double prob_T, List clus
 //'
 //' See generate_permutations_matching_cpp for the reproducibility
 //'   note that applies to every function in this file.
+//'
+//' @param strata_keys Character vector giving each subject's stratum label, in
+//'   arrival order.
+//' @param block_size Size of the permuted blocks used within each stratum.
+//' @param prob_T Probability of assignment to treatment.
+//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+//'   (always \code{NULL}).
+//' @keywords internal
 // [[Rcpp::export]]
 List generate_permutations_spbr_cpp(const CharacterVector& strata_keys, int block_size, double prob_T, int nsim) {
 	std::vector<std::string> keys(strata_keys.size());

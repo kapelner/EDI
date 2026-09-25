@@ -6,7 +6,20 @@
 \usage{
 generate_permutations_bernoulli_cpp(n, nsim, prob_T)
 }
+\arguments{
+\item{n}{Number of subjects.}
+
+\item{nsim}{Number of randomization draws (columns of the returned matrix) to generate.}
+
+\item{prob_T}{Probability of assignment to treatment.}
+}
+\value{
+A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+  columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+  (always \code{NULL}).
+}
 \description{
 See generate_permutations_matching_cpp for the reproducibility
   note that applies to every function in this file.
 }
+\keyword{internal}

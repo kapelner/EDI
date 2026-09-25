@@ -205,6 +205,55 @@ fi
 
 echo
 
+# The CRAN pre-submission static checks that R/EDI/scripts/
+# submission_tar_build_and_win_mac_check.sh runs as its steps 1b-1d, run here
+# too so a problem is caught at push time rather than at release time. All
+# three need only the source tree (no install, no build), take a few seconds
+# each, and run after fast_roxygenize.R above so they see the regenerated
+# man/. Each came from a real CRAN rejection (2026-09-25):
+#   - check_examples_for_cran.R --static-only: no \dontrun{}, all Rd example
+#     code parses ("Unexecutable code in man/X.Rd");
+#   - check_global_state_for_cran.R --static-only: no writes to .GlobalEnv, no
+#     `<<-` that could reach it, no attach();
+#   - check_rd_usage_for_cran.R: every Rd \usage argument documented.
+# Any non-zero exit OR any R warning in their output fails the push.
+run_cran_static_checks=0
+if [ "$run_r_tests" = "1" ] || grep -qE '^R/EDI/scripts/check_.*_for_cran\.R$|^\.githooks/pre-push$' "$changed_files_file"; then
+	run_cran_static_checks=1
+fi
+
+if [ "$run_cran_static_checks" = "1" ]; then
+	for cran_check in "check_examples_for_cran.R --static-only" "check_global_state_for_cran.R --static-only" "check_rd_usage_for_cran.R"; do
+		cran_script="${cran_check%% *}"
+		cran_flags=""
+		[ "$cran_script" != "$cran_check" ] && cran_flags="${cran_check#* }"
+		echo "pre-push: CRAN static check: $cran_script $cran_flags ..."
+		cran_out="$(mktemp)"
+		set +e
+		# shellcheck disable=SC2086
+		Rscript "R/EDI/scripts/$cran_script" R/EDI $cran_flags > "$cran_out" 2>&1
+		cran_status=$?
+		set -e
+		cat "$cran_out"
+		if [ "$cran_status" != "0" ]; then
+			echo "pre-push: CRAN static check $cran_script FAILED (see output above)." >&2
+			rm -f "$cran_out"
+			abort_push
+		elif grep -qE "^Warning" "$cran_out"; then
+			# R warnings don't change Rscript's exit code; the printed
+			# "Warning message(s):" block is the only signal.
+			echo "pre-push: CRAN static check $cran_script emitted an R warning (see output above)." >&2
+			rm -f "$cran_out"
+			abort_push
+		fi
+		rm -f "$cran_out"
+	done
+else
+	echo "pre-push: no R-package changes, skipping CRAN static checks."
+fi
+
+echo
+
 if [ "$run_r_tests" = "1" ]; then
 	# Standing regression gate for package_metadata/new_feature_plans/
 	# unity_build_collision_audit.md's fix: verifies every unity-build

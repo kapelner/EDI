@@ -49,6 +49,12 @@
 #      variable of an enclosing function (only those can reach .GlobalEnv), via
 #      scripts/check_global_state_for_cran.R --static-only. CRAN rejected the
 #      2026-09-25 submission for modifying .GlobalEnv and the user's options().
+#   1d. Fails fast, before the slow build, if any Rd file's \usage has an
+#      undocumented argument (or a documented one that isn't in \usage), via
+#      scripts/check_rd_usage_for_cran.R (tools::checkDocFiles()) -- the check behind R CMD check's "checking Rd
+#      \usage sections ... WARNING", which step 3 only reports as a WARNING and
+#      so would not stop the upload (the 2026-09-25 generate_permutations_*_cpp
+#      Rd files slipped through exactly that way).
 #   2. Runs `R CMD check --as-cran` on the built tarball (NOT_CRAN=false) and
 #      prints the full output to screen -- this is the same check CRAN's own
 #      submission queue runs first, so seeing it clean here before uploading
@@ -98,6 +104,12 @@
 
 set -euo pipefail
 
+# The whole body is one { ... } block so bash parses the entire file before
+# running any of it. Bash otherwise reads a script from disk incrementally, so
+# editing this file while it runs (the build/check steps take many minutes)
+# makes the running copy resume mid-line and die with a bogus "syntax error".
+{
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 PKG_DIR="$REPO_ROOT/R/EDI"
 SCRATCH_DIR="$(mktemp -d -t edi_release_build.XXXXXX)"
@@ -138,6 +150,12 @@ GLOBAL_STATE_CHECK="$PKG_DIR/scripts/check_global_state_for_cran.R"
 echo "== 1c. Static global-environment checks: no .GlobalEnv writes, no unsafe <<-, no attach() =="
 if ! Rscript "$GLOBAL_STATE_CHECK" "$CLEAN_PKG_DIR" --static-only; then
   echo "ERROR: the R sources modify the global environment in ways CRAN rejects (listed above) -- not building. Use a local environment instead (see https://contributor.r-project.org/cran-cookbook/code_issues.html#writing-to-the-.globalenv) and re-run this script." >&2
+  exit 1
+fi
+
+echo "== 1d. Rd \\usage checks: every function argument documented (tools::checkDocFiles) =="
+if ! Rscript "$PKG_DIR/scripts/check_rd_usage_for_cran.R" "$CLEAN_PKG_DIR"; then
+  echo "ERROR: Rd files have undocumented arguments (listed above) -- CRAN flags this as a WARNING. Add the missing @param entries in the roxygen source (R/ or //' comments in src/), regenerate man/ (Rscript R/fast_roxygenize.R) and re-run this script." >&2
   exit 1
 fi
 
@@ -253,3 +271,6 @@ echo "  3. Submit and wait for the results email."
 echo ""
 echo "Tarball retained at: $TARBALL"
 echo "(scratch build directory: $SCRATCH_DIR)"
+
+exit 0
+}

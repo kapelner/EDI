@@ -13,7 +13,29 @@ generate_permutations_pocock_simon_cpp(
   nsim
 )
 }
+\arguments{
+\item{x_levels_matrix}{Integer matrix with one row per subject and one column
+per stratification covariate; each entry is the subject's level for that
+covariate as a (1-based) index into 1..\code{num_levels_total}.}
+
+\item{num_levels_total}{Total number of levels across all stratification covariates.}
+
+\item{weights}{Numeric vector of per-covariate imbalance weights (one per column
+of \code{x_levels_matrix}).}
+
+\item{p_best}{Probability of assigning the arm that minimizes the weighted imbalance.}
+
+\item{prob_T}{Probability of assignment to treatment.}
+
+\item{nsim}{Number of randomization draws (columns of the returned matrix) to generate.}
+}
+\value{
+A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+  columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+  (always \code{NULL}).
+}
 \description{
 See generate_permutations_matching_cpp for the reproducibility
   note that applies to every function in this file.
 }
+\keyword{internal}

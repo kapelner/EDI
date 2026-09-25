@@ -4435,6 +4435,16 @@ gcomp_ordinal_proportional_odds_post_fit_cpp <- function(X_fit, coef_hat, alpha_
 #'   re-implementation of R's own Mersenne-Twister generator -- a given
 #'   seed therefore produces identical draws in R and in any future binding
 #'   (e.g. Python) using the same core and the same seed.
+#'
+#' @param m_vec Integer vector of match ids, one per subject: subjects sharing a
+#'   positive id form a matched pair (randomized within the pair); 0 marks an
+#'   unmatched (reservoir) subject, assigned by an independent coin flip.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @param prob_T Probability of assignment to treatment.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_matching_cpp <- function(m_vec, nsim, prob_T) {
     .Call(`_EDI_generate_permutations_matching_cpp`, m_vec, nsim, prob_T)
 }
@@ -4443,6 +4453,14 @@ generate_permutations_matching_cpp <- function(m_vec, nsim, prob_T) {
 #'
 #' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
+#'
+#' @param n Number of subjects.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @param prob_T Probability of assignment to treatment.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_bernoulli_cpp <- function(n, nsim, prob_T) {
     .Call(`_EDI_generate_permutations_bernoulli_cpp`, n, nsim, prob_T)
 }
@@ -4451,6 +4469,14 @@ generate_permutations_bernoulli_cpp <- function(n, nsim, prob_T) {
 #'
 #' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
+#'
+#' @param n Number of subjects.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @param prob_T Probability of assignment to treatment.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_ibcrd_cpp <- function(n, nsim, prob_T) {
     .Call(`_EDI_generate_permutations_ibcrd_cpp`, n, nsim, prob_T)
 }
@@ -4459,6 +4485,16 @@ generate_permutations_ibcrd_cpp <- function(n, nsim, prob_T) {
 #'
 #' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
+#'
+#' @param n Number of subjects.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @param prob_T Probability of assignment to treatment.
+#' @param strata_indices List of integer vectors, one per stratum, holding the
+#'   (1-based) indices of the subjects in that stratum.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_blocking_cpp <- function(n, nsim, prob_T, strata_indices) {
     .Call(`_EDI_generate_permutations_blocking_cpp`, n, nsim, prob_T, strata_indices)
 }
@@ -4467,6 +4503,16 @@ generate_permutations_blocking_cpp <- function(n, nsim, prob_T, strata_indices) 
 #'
 #' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
+#'
+#' @param n Number of subjects.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @param prob_T Probability of assignment to treatment.
+#' @param weighted_coin_prob Efron's biased-coin probability: the chance of
+#'   assigning the currently under-represented arm.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_efron_cpp <- function(n, nsim, prob_T, weighted_coin_prob) {
     .Call(`_EDI_generate_permutations_efron_cpp`, n, nsim, prob_T, weighted_coin_prob)
 }
@@ -4475,6 +4521,19 @@ generate_permutations_efron_cpp <- function(n, nsim, prob_T, weighted_coin_prob)
 #'
 #' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
+#'
+#' @param X_sexp Numeric matrix: the design's covariate model matrix for the first
+#'   \code{n} subjects, in arrival order.
+#' @param n Number of subjects.
+#' @param p_raw Number of raw covariate columns (before model-matrix expansion);
+#'   the first \code{p_raw + 3} subjects are assigned by coin flip before
+#'   Atkinson's rule applies.
+#' @param prob_T Probability of assignment to treatment.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_atkinson_cpp <- function(X_sexp, n, p_raw, prob_T, nsim) {
     .Call(`_EDI_generate_permutations_atkinson_cpp`, X_sexp, n, p_raw, prob_T, nsim)
 }
@@ -4483,6 +4542,20 @@ generate_permutations_atkinson_cpp <- function(X_sexp, n, p_raw, prob_T, nsim) {
 #'
 #' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
+#'
+#' @param x_levels_matrix Integer matrix with one row per subject and one column
+#'   per stratification covariate; each entry is the subject's level for that
+#'   covariate as a (1-based) index into 1..\code{num_levels_total}.
+#' @param num_levels_total Total number of levels across all stratification covariates.
+#' @param weights Numeric vector of per-covariate imbalance weights (one per column
+#'   of \code{x_levels_matrix}).
+#' @param p_best Probability of assigning the arm that minimizes the weighted imbalance.
+#' @param prob_T Probability of assignment to treatment.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_pocock_simon_cpp <- function(x_levels_matrix, num_levels_total, weights, p_best, prob_T, nsim) {
     .Call(`_EDI_generate_permutations_pocock_simon_cpp`, x_levels_matrix, num_levels_total, weights, p_best, prob_T, nsim)
 }
@@ -4491,6 +4564,17 @@ generate_permutations_pocock_simon_cpp <- function(x_levels_matrix, num_levels_t
 #'
 #' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
+#'
+#' @param n Number of subjects.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @param prob_T Probability of assignment to treatment.
+#' @param cluster_indices List of integer vectors, one per cluster, holding the
+#'   (1-based) indices of the subjects in that cluster; each cluster is assigned
+#'   to one arm as a whole.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_cluster_cpp <- function(n, nsim, prob_T, cluster_indices) {
     .Call(`_EDI_generate_permutations_cluster_cpp`, n, nsim, prob_T, cluster_indices)
 }
@@ -4499,6 +4583,16 @@ generate_permutations_cluster_cpp <- function(n, nsim, prob_T, cluster_indices) 
 #'
 #' See generate_permutations_matching_cpp for the reproducibility
 #'   note that applies to every function in this file.
+#'
+#' @param strata_keys Character vector giving each subject's stratum label, in
+#'   arrival order.
+#' @param block_size Size of the permuted blocks used within each stratum.
+#' @param prob_T Probability of assignment to treatment.
+#' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
+#' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+#'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+#'   (always \code{NULL}).
+#' @keywords internal
 generate_permutations_spbr_cpp <- function(strata_keys, block_size, prob_T, nsim) {
     .Call(`_EDI_generate_permutations_spbr_cpp`, strata_keys, block_size, prob_T, nsim)
 }

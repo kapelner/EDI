@@ -6,6 +6,20 @@
 \usage{
 generate_permutations_matching_cpp(m_vec, nsim, prob_T)
 }
+\arguments{
+\item{m_vec}{Integer vector of match ids, one per subject: subjects sharing a
+positive id form a matched pair (randomized within the pair); 0 marks an
+unmatched (reservoir) subject, assigned by an independent coin flip.}
+
+\item{nsim}{Number of randomization draws (columns of the returned matrix) to generate.}
+
+\item{prob_T}{Probability of assignment to treatment.}
+}
+\value{
+A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
+  columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
+  (always \code{NULL}).
+}
 \description{
 Every generate_permutations_*_cpp function in this file is seeded
   from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a portable
@@ -13,3 +27,4 @@ Every generate_permutations_*_cpp function in this file is seeded
   seed therefore produces identical draws in R and in any future binding
   (e.g. Python) using the same core and the same seed.
 }
+\keyword{internal}

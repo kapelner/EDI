@@ -3445,6 +3445,7 @@ design_class_short_label = function(name) {
 
 #' Short display label for an inference class
 #'
+#' @param name Inference class name (character), e.g. \code{"InferenceContinOLS"}.
 #' @param tau Quantile level for a quantile-regression class's display label
 #'   (e.g. `"InferenceContinQuantileRegr"`, `"InferenceContinKKQuantileRegrOneLik"`
 #'   -- every concrete class whose wordified label contains the bare word
