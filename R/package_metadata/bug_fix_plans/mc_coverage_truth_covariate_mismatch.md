@@ -369,3 +369,80 @@ simulation under the class's own fitted model, not the raw DGP
 parameter). Test-harness-only change; does not touch `R/EDI` source. Not
 yet implemented — this is a real, confirmed, low-risk fix but was out of
 scope for the investigating fork to also apply.
+
+## TODO-11 (added 2026-09-25, investigated at user request from the live TODO-4 re-run's first partial results): `PropBetaRegr`/`PropFractionalLogit` residual under-coverage on `ionosphere` is NOT TODO-6's mechanism -- a distinct, likely real, small-sample CI-calibration gap
+
+The TODO-4 re-run's first batch (proportion only so far, `ionosphere`
+dataset only so far, `n=128-177` at `beta_T=0.5`) showed `PropBetaRegr` at
+0.84 and `PropFractionalLogit` at 0.85 coverage (nominal 0.95) -- much
+better than the pre-fix near-collapse, but not yet at nominal, and
+`ionosphere` (33 real covariates after the design matrix expansion, more
+than `diamonds`' 24) was an obvious candidate for TODO-6's "many real
+covariates -> MC truth doesn't converge" mechanism recurring here.
+
+**Checked directly, same method as TODO-6's Cox investigation.** Re-ran
+`compute_mc_coverage_truth_simframe()` for `PropBetaRegr`/`ionosphere`
+under both the block-recycled (TODO-3's implementation) and
+bootstrap-resampled (TODO-6's alternative) constructions:
+
+| construction | truth |
+|---|---|
+| synthetic single covariate (old, pre-TODO-3) | 0.333 |
+| real covariates, block-recycled, seed 5 | 0.403 |
+| real covariates, block-recycled, seed 11 | 0.370 |
+| real covariates, bootstrap, seed 5 | 0.425 |
+| real covariates, bootstrap, seed 11 | 0.374 |
+
+Unlike Cox (`-6.0` vs. `-4.5`, an 18% disagreement on a value the real
+n=148 estimator never got within several SDs of), these four real-covariate
+values cluster in a modest 0.37-0.43 range, and the REAL per-row estimates
+at `n=148`/`ionosphere`/`beta_T=0.5` (33 reps so far) have mean 0.411,
+median 0.407, SD 0.143 -- **every one of the four MC-truth draws falls
+within about half an SD of the real estimator's own mean.** This construction
+has converged to something consistent with the actual estimator, in sharp
+contrast to TODO-6. **TODO-3's fix is doing its job correctly here.**
+
+**So why is coverage still ~0.79-0.88, not ~0.95?** Breaking down the
+current (partial, `ionosphere`-only) data by `function_run`: `asymp`,
+`wald`, `lik_ratio`, and `subsampling` all land at the *same* ~0.79-0.81
+(uniform across 4 independently-derived CI constructions -- not one
+method's quirk), while `jackknife_wald` and `lik_ratio_bootstrap` *over*-cover
+at 1.00. That pattern -- several asymptotic/model-based methods sharing one
+systematically-low coverage number, resampling-based methods over-covering
+-- is the signature of an asymptotic standard error that is too small
+(anti-conservative) at this `n`/covariate-count ratio (`ionosphere`: 33
+covariates, `n=148`, ~4.5 observations per parameter), not a wrong
+reference value. This is a plausible, known statistical phenomenon (model-based
+SEs under-stating uncertainty as `p/n` grows) rather than a harness truth
+bug -- but it has NOT been confirmed as such; it is a hypothesis consistent
+with the evidence available so far, not a proven root cause. Also
+`FixedMatchingGreedy` (0.77) is notably lower than `Bernoulli` (0.88) within
+this same `ionosphere` slice -- consistent with matching adding its own
+extra variance/bias on top, but again only one dataset's worth of data.
+
+**Status: open, not a TODO-6 duplicate, not yet resolved.** Only one of
+several datasets has produced `beta_T != 0` rows so far in the live
+re-run (`survival`, `ordinal`, and 3 of the 9 proportion classes had zero
+alt-beta rows at the time of this check); `PropZeroOneInflatedBetaRegr`, by
+contrast, already covers at 0.94 on the same `ionosphere` slice, so this is
+not a blanket harness problem, it is specific to at least
+`PropBetaRegr`/`PropFractionalLogit`.
+
+**TODO:**
+1. Wait for the re-run to produce more datasets (lower covariate counts,
+   e.g. `pima`/`boston`) for these two classes and re-check whether the
+   ~0.80 asymptotic-method coverage is `ionosphere`-specific (supporting
+   the high-`p/n` hypothesis) or appears everywhere (which would instead
+   point back toward a shared truth/SE bug, reopening this).
+2. If it is `ionosphere`-specific and reproducible: this becomes either (a)
+   an accepted, documented small-sample limitation of `PropBetaRegr`/
+   `PropFractionalLogit`'s asymptotic CIs at high `p/n` (no fix needed, just
+   an honest baseline-accepted finding), or (b) grounds to investigate
+   `fast_beta_regression`/`fast_fractional_logit`'s SE formula for a
+   known finite-sample correction (e.g. a sandwich/bias-corrected variance)
+   -- a package-code question, not a harness one, if pursued.
+3. Do not conflate with TODO-6: that item is about MC-truth
+   non-convergence for KK-matched Cox classes specifically; this item is
+   about real-estimator CI under-coverage at high covariate counts on a
+   *converged*, trustworthy truth. Different mechanism, different classes,
+   should be tracked and (if warranted) fixed independently.

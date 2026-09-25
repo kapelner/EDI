@@ -331,6 +331,24 @@ ZeroAugmentedCountLikelihoodSource = list(
 			}
 			se_cached = private$cached_values$s_beta_hat_T
 			if (is.finite(se_cached) && se_cached > 0) return(se_cached)
+			# 2026-09-24 (CI run 36047860251, R-CMD-check windows-latest release,
+			# test-adversarial-and-fault-injection.R's "every y == 1" hurdle scenario):
+			# zero_augmented_sandwich_se()/safe_zero_augmented_vcov_se() (already tried
+			# via se_cached above, through compute_estimate()'s own SE computation) both
+			# check zero_augmented_data_has_no_mle()/zero_augmented_fit_is_degenerate()
+			# before accepting a SE, but compute_standard_error_from_information_matrix()
+			# is a GENERIC fallback shared across unrelated inference classes with no
+			# knowledge of that hurdle/ZIP-specific degeneracy -- it inverts the raw
+			# information matrix directly, and whether that inversion happens to succeed
+			# or fail (returning a spurious finite SE vs. correctly NA) is a
+			# LAPACK/BLAS-backend detail confirmed to differ from this environment (this
+			# fixture correctly returns NA/nonestimable on every local run) to CI's
+			# Windows legs. zero_augmented_data_has_no_mle() is decided from the data
+			# alone (every positive count under a hurdle equals 1), so this check itself
+			# cannot vary by environment, unlike the generic fallback it now guards.
+			if (zero_augmented_data_has_no_mle(private$y, identical(private$za_description(), "Hurdle Poisson"))) {
+				return(NA_real_)
+			}
 			se = private$compute_standard_error_from_information_matrix()
 			if (is.finite(se)) return(se)
 			private$cached_values$s_beta_hat_T

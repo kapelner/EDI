@@ -413,7 +413,26 @@ plan files' internal numbering did not change.
   `OrderedProbitRegr`) found none of them share this bug — their own flags
   are on unrelated mechanisms, out of scope here. A package-wide sweep for
   any other class sharing both the helper and the negation pattern is
-  still open (plan's TODO-2b).
+  still open (plan's TODO-2b). **2026-09-25, investigated at user request
+  from the live TODO-4 re-run's first partial results:**
+  `PropBetaRegr`/`PropFractionalLogit` still cover at only 0.84/0.85
+  (nominal 0.95) on `ionosphere` (33 real covariates) after the
+  `mc_coverage_truth_covariate_mismatch.md` fix landed — checked whether
+  this is `TODO-6`'s MC-truth-non-convergence mechanism recurring (many
+  real covariates, like the Cox/`diamonds` case): it is **not**. The MC
+  truth here (0.37-0.43 across block-recycled/bootstrap constructions and
+  2 seeds) converges consistently and sits within half an SD of the real
+  per-row estimator's own distribution at `n=148` (mean 0.411, SD 0.143) —
+  unlike Cox's truth, which was 6-9 SDs outside it. Instead, coverage is
+  uniformly ~0.79-0.81 across 4 independently-derived asymptotic CI methods
+  (`asymp`/`wald`/`lik_ratio`/`subsampling`) while resampling-based methods
+  (`jackknife_wald`/`lik_ratio_bootstrap`) over-cover at 1.00 — the
+  signature of an anti-conservative model-based SE at high covariate count
+  relative to `n` (33 covariates, `n=148`), not a wrong truth. Root-caused
+  to medium confidence only (one dataset, 33-128 reps so far); full
+  write-up and TODO at `mc_coverage_truth_covariate_mismatch.md → TODO-11`.
+  Explicitly not the same bug as `TODO-6`; do not conflate when resolving
+  either.
 - [ ] TODO-17 (added 2026-09-23, surfaced by the new `pval_miscalibration`
   audit check's extreme-violation triage — ACAT-combined p as low as
   2.5e-300 — root-caused same day): **`InferenceAllSimpleWilcox`
@@ -1254,6 +1273,31 @@ baseline as expected/benign.
   RNG seeds, reason `bayesian_bootstrap_nonfinite_estimates`. One non-finite
   replicate makes the whole p-value `NA`, unlike the non-parametric bootstrap
   on the same data. Not caused by object reuse (TODO-42).
+- [ ] TODO-55 (added 2026-09-25, found checking other proportion classes for
+  `TODO-16`/plan `TODO-11`'s pattern; root-caused, high confidence, not the
+  same mechanism): **Proportion mean-diff closed-form coverage truth is
+  stale relative to the 2026-09-15 DGP fix** —
+  `../bug_fix_plans/prop_mean_diff_closed_form_truth_stale.md`.
+  `compute_prop_mean_diff_coverage_truth()` still computes the truth via a
+  raw additive shift clamped to `[0, 1]`, but the actual proportion DGP was
+  fixed 2026-09-15 to shift on the **logit scale** (baseline clamped to
+  `[0.05, 0.95]` first) specifically to avoid this exact boundary
+  distortion — the truth function was never updated to match (the sibling
+  incidence closed form, `incid_p_base_and_treated()`, already implements
+  the correct pattern; looks like an omission when the DGP fix landed).
+  Affects `InferenceAllSimpleAverageDiff`/`InferenceAllSimpleMeanDiffPooledVar`/
+  `InferencePropGCompMeanDiff`. Severe where it hits: 0.00 coverage on
+  `boston` (hundreds of rows, all post-fix), while `diamonds`/most `abalone`
+  rows happen to predate the DGP fix and so are self-consistently (but
+  separately) stale rather than mismatched. Verified directly: `boston`'s
+  real per-row estimate (mean 0.109, SD 0.021, n=122) matches the corrected
+  logit-scale truth (0.112) almost exactly, against the stale formula's
+  0.466 (17+ SDs off). Fix is a small, test-harness-only formula change
+  (mirror the incidence sibling); deliberately not applied yet because
+  `comprehensive_tests.R` was mid-run at investigation time. Independent of
+  `mc_coverage_truth_covariate_mismatch.md`'s TODO-6/TODO-11 — different
+  mechanism (closed-form path, not Monte-Carlo), different classes, do not
+  conflate when resolving either.
 
 ## Standing constraints
 
