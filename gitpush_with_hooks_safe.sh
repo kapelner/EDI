@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Safe wrapper around `git push`: pre-regenerates and commits every
-# generated file the pre-push hook (.githooks/pre-push) itself knows how to
+# generated file the pre-push hook (scripts/pre-push) itself knows how to
 # auto-fix (the package_tests/ drift CSVs) BEFORE invoking the real
 # `git push`, instead of letting the hook discover the drift mid-push.
 # (README.md's lines-of-code badge used to be handled here too, but it's now
@@ -28,7 +28,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_root"
 
-# Same manifest refresh .githooks/pre-push runs, but pre-committed here --
+# Same manifest refresh scripts/pre-push runs, but pre-committed here --
 # unlike the hook, this wrapper runs BEFORE the real `git push` resolves what
 # to send, so a fix committed here is naturally included (see this file's
 # own header comment on why the hook itself can't do that).
@@ -46,7 +46,7 @@ fi
 echo "gitpush_with_hooks_safe: regenerating package_tests/ drift CSVs (this runs the full generator suite -- can take a few minutes) ..."
 
 # Generator sequence + artifact list come from R/package_tests/drift_artifacts.sh,
-# the single copy shared with .githooks/pre-push and test-coverage-R-advanced.yml.
+# the single copy shared with scripts/pre-push and test-coverage-R-advanced.yml.
 mapfile -t drift_csvs < <(bash R/package_tests/drift_artifacts.sh list)
 
 max_drift_attempts=5

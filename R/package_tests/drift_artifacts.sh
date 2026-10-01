@@ -4,7 +4,7 @@
 # therefore be regenerated and committed whenever the source changes.
 #
 # Three places used to carry their own private copy of BOTH the generator
-# sequence and the CSV list -- .githooks/pre-push, gitpush_with_hooks_safe.sh
+# sequence and the CSV list -- scripts/pre-push, gitpush_with_hooks_safe.sh
 # and .github/workflows/test-coverage-R-advanced.yml -- and they drifted
 # apart (2026-09-07: the local copies lacked public_argument_contract_registry.R
 # and comprehensive_suite_internal_surfaces.R entirely, and ran the registry

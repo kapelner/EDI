@@ -48,7 +48,7 @@ repo_root="$(git rev-parse --show-toplevel)"
 # make the badge/table misleading about how big the shipped package is.
 other_dirs=(
 	R/package_tests R/EDI/tests python/tests
-	R/benchmark R/scripts R/EDI/scripts
+	R/benchmark
 	python/benchmark python/benchmarks
 	scripts
 )

@@ -10,9 +10,9 @@
 # simd_matrix_summary.csv.
 #
 # Usage:
-#   bash R/scripts/benchmark_simd_matrix.sh
-#   REPS=10 OUT_DIR=R/benchmark/simd_matrix bash R/scripts/benchmark_simd_matrix.sh
-#   KEEP_BUILDS=1 bash R/scripts/benchmark_simd_matrix.sh
+#   bash scripts/benchmark_simd_matrix.sh
+#   REPS=10 OUT_DIR=R/benchmark/simd_matrix bash scripts/benchmark_simd_matrix.sh
+#   KEEP_BUILDS=1 bash scripts/benchmark_simd_matrix.sh
 #
 # WARNING: three full installs of R/EDI (100+ .cpp files each) — several
 # minutes per build with the CPU fully loaded. Do not run alongside another
@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPS="${REPS:-5}"
 OUT_DIR="${OUT_DIR:-$repo_root/R/benchmark/simd_matrix}"
 keep_flag=()
@@ -29,4 +29,4 @@ if [ "${KEEP_BUILDS:-0}" = "1" ]; then
 fi
 
 cd "$repo_root"
-Rscript R/scripts/benchmark_simd_matrix.R --reps="${REPS}" --out_dir="${OUT_DIR}" "${keep_flag[@]}"
+Rscript scripts/benchmark_simd_matrix.R --reps="${REPS}" --out_dir="${OUT_DIR}" "${keep_flag[@]}"

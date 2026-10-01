@@ -15,7 +15,7 @@ and it is the part of the package that agents and users actually read
 first. Nothing checks it for spelling. Checked 2026-09-16: the `spelling`
 package is **not** installed on the maintainer's machine, there is **no
 `inst/WORDLIST`**, `DESCRIPTION` has `Encoding: UTF-8` but **no
-`Language:` field**, and neither `.githooks/pre-push` nor any workflow runs
+`Language:` field**, and neither `scripts/pre-push` nor any workflow runs
 a spell check.
 
 Unlike `lintr` (see `implement_a_lintr.md`), there is no style decision to
@@ -89,7 +89,7 @@ the only spelling gate needed in CI.
 
 1. `CONTRIBUTING.md` §4: one line — "`spelling::spell_check_package()`
    clean; new legitimate terms go in `inst/WORDLIST`, not `# nolint`".
-2. `.githooks/pre-push`: run `spell_check_package()` **content-gated** on
+2. `scripts/pre-push`: run `spell_check_package()` **content-gated** on
    the same trigger `fast_roxygenize` already uses (roxygen `#'` edits) plus
    `R/EDI/vignettes/**` and `R/EDI/NEWS.md` changes. Seconds per push.
 3. Devcontainer: add `spelling` to the Dockerfile's `install2.r` line.

@@ -5,7 +5,7 @@
 # valgrind). The goal is to catch the common break-CI cases (a C++ syntax
 # error, a failing test) before spending GitHub Actions minutes on them.
 #
-# Install with: git config core.hooksPath .githooks
+# Install with: git config core.hooksPath scripts
 #
 # Bypass for a single push (e.g. deliberate WIP): git push --no-verify
 set -euo pipefail
@@ -111,7 +111,7 @@ fi
 
 # Catch stale shard inventories before any builds or R checks. The planner
 # only reads filenames and CSV estimates; it never loads R or writes files.
-if grep -qE '^R/EDI/tests/testthat/|^R/package_tests/testthat_bulk/|^R/package_tests/ci/|^\.githooks/pre-push$|^\.github/workflows/test-(bulk-non-cran\.yml|coverage-R\.yaml)$' "$changed_files_file"; then
+if grep -qE '^R/EDI/tests/testthat/|^R/package_tests/testthat_bulk/|^R/package_tests/ci/|^scripts/pre-push$|^\.github/workflows/test-(bulk-non-cran\.yml|coverage-R\.yaml)$' "$changed_files_file"; then
 	echo "pre-push: checking R CI shard inventories and runtime budgets ..."
 	if ! python3 R/package_tests/ci/plan_shards.py correctness --check-only \
 		|| ! python3 R/package_tests/ci/plan_shards.py coverage --check-only; then
@@ -205,7 +205,7 @@ fi
 
 echo
 
-# The CRAN pre-submission static checks that R/EDI/scripts/
+# The CRAN pre-submission static checks that scripts/
 # submission_tar_build_and_win_mac_check.sh runs as its steps 1b-1d, run here
 # too so a problem is caught at push time rather than at release time. All
 # three need only the source tree (no install, no build), take a few seconds
@@ -218,7 +218,7 @@ echo
 #   - check_rd_usage_for_cran.R: every Rd \usage argument documented.
 # Any non-zero exit OR any R warning in their output fails the push.
 run_cran_static_checks=0
-if [ "$run_r_tests" = "1" ] || grep -qE '^R/EDI/scripts/check_.*_for_cran\.R$|^\.githooks/pre-push$' "$changed_files_file"; then
+if [ "$run_r_tests" = "1" ] || grep -qE '^scripts/check_.*_for_cran\.R$|^scripts/pre-push$' "$changed_files_file"; then
 	run_cran_static_checks=1
 fi
 
@@ -231,7 +231,7 @@ if [ "$run_cran_static_checks" = "1" ]; then
 		cran_out="$(mktemp)"
 		set +e
 		# shellcheck disable=SC2086
-		Rscript "R/EDI/scripts/$cran_script" R/EDI $cran_flags > "$cran_out" 2>&1
+		Rscript "scripts/$cran_script" R/EDI $cran_flags > "$cran_out" 2>&1
 		cran_status=$?
 		set -e
 		cat "$cran_out"

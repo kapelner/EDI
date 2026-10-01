@@ -11,9 +11,9 @@
 #   native+lto   EDI_NATIVE_LTO=1                     native flags + -flto
 #
 # Usage:
-#   bash R/scripts/benchmark_build_modes.sh                # all three modes
-#   EDI_BUILD_MODES="native native+lto" bash R/scripts/benchmark_build_modes.sh
-#   EDI_BENCH_SCRIPT=path/to/bench.R bash R/scripts/benchmark_build_modes.sh
+#   bash scripts/benchmark_build_modes.sh                # all three modes
+#   EDI_BUILD_MODES="native native+lto" bash scripts/benchmark_build_modes.sh
+#   EDI_BENCH_SCRIPT=path/to/bench.R bash scripts/benchmark_build_modes.sh
 #
 # Environment:
 #   R_BIN             R executable (default: R)
@@ -36,7 +36,7 @@
 
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 pkg_dir="$repo_root/R/EDI"
 r_bin="${R_BIN:-R}"
 modes="${EDI_BUILD_MODES:-portable native native+lto}"

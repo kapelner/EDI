@@ -10,8 +10,8 @@
 
 ## Resubmission
 
-This is a resubmission. Thank you for the review. In this version we have
-addressed both points you raised:
+Thank you for the review. This is a resubmission. In this version we have
+addressed both points you raised and fixed some other minor bugs hence we bumped the version to 1.0.2 (from 1.0.1).
 
 * **Examples in `\dontrun{}` / "Unexecutable code":** there is no `\dontrun{}`
   left anywhere in the package. The five Rd files you flagged for

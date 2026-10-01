@@ -121,7 +121,7 @@ jobs:
       #
       # The generator sequence (dependency-ordered) and the artifact list are
       # defined ONCE in R/package_tests/drift_artifacts.sh, which
-      # .githooks/pre-push and gitpush_with_hooks_safe.sh also call -- so the
+      # scripts/pre-push and gitpush_with_hooks_safe.sh also call -- so the
       # local pre-push loop regenerates exactly what this job regenerates.
       # Add a generator or a CSV there, not here.
       - name: Rebuild package_tests/ drift artifacts

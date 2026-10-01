@@ -453,7 +453,7 @@ make_configured_fork_cluster = function(n_cores) {
 # hangs forever inside a C-level condition-variable wait. Reproduced with
 # mirai 2.7.2 / nanonext 1.10.1 by no-op'ing mirai:::launch_daemon and
 # calling daemons(2); see CI runs 33437466317/33476039617/33521614693 and
-# .github/scripts/test-hang-watchdog.sh, whose gdb captures showed exactly
+# scripts/test-hang-watchdog.sh, whose gdb captures showed exactly
 # this state (main thread futex-parked, zero daemon processes alive).
 # The URL form skips that wait entirely: set up the listener
 # (non-blocking), launch the daemons fire-and-forget, then poll the

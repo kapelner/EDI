@@ -2131,7 +2131,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       # One silent relaunch, then a loud failure. Never wait unboundedly:
       # this method used to block forever in collect_mirai() when the
       # daemons died before running the setup tasks -- the exact silent
-      # multi-hour CI hang diagnosed via .github/scripts/test-hang-watchdog.sh
+      # multi-hour CI hang diagnosed via scripts/test-hang-watchdog.sh
       # (gdb: main thread parked on a nanonext condition variable, zero
       # daemon processes alive; see R-CMD-check.yaml's watchdog steps).
       for (attempt in 1:2) {

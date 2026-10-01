@@ -21,7 +21,7 @@ For each link found it verifies the target is alive:
 Runs over the whole corpus above (not just the diff) because a link can be
 broken by a change on the OTHER end -- e.g. renaming/moving the file a doc
 links to breaks every link pointing at the old path, none of which show up
-in a diff of the doc file itself. .githooks/pre-push gates whether to run
+in a diff of the doc file itself. scripts/pre-push gates whether to run
 this at all on "did any checked file change", not on narrowing which links
 get checked once it does run.
 

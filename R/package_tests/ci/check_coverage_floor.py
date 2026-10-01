@@ -6,7 +6,7 @@ instructions to bump the baseline by hand -- mirrors check_coverage_floor.R
 and check_coverage_registry.R's existing measure-then-human-commits pattern;
 this script never writes the baseline file itself.
 
-Used both by test-coverage-python.yml (CI, hard gate) and .githooks/pre-push
+Used both by test-coverage-python.yml (CI, hard gate) and scripts/pre-push
 (local -- like every other pre-push check, still skippable with
 `git push --no-verify`). Stdlib only: the pre-push hook calls this with the
 system python3, not the project's test venv.

@@ -1,4 +1,4 @@
-# Driver for R/scripts/benchmark_simd_matrix.sh. Installs three EDI builds
+# Driver for scripts/benchmark_simd_matrix.sh. Installs three EDI builds
 # into throwaway libraries under <out_dir>/builds, runs
 # benchmark_simd_matrix_worker.R against each, and writes raw + summary CSVs.
 # Run from the repository root (the .sh wrapper does this).
@@ -18,7 +18,7 @@ parse_args = function(args) {
 cfg = parse_args(args)
 repo_root = normalizePath(getwd())
 pkg_rel = "R/EDI"
-worker = file.path(repo_root, "R", "scripts", "benchmark_simd_matrix_worker.R")
+worker = file.path(repo_root, "scripts", "benchmark_simd_matrix_worker.R")
 if (!file.exists(file.path(repo_root, pkg_rel, "DESCRIPTION"))) {
   stop("run from the repository root: ", file.path(repo_root, pkg_rel, "DESCRIPTION"), " not found")
 }

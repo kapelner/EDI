@@ -3,7 +3,7 @@
 This file is GENERATED at site-build time. If you are reading this text,
 you have the source-tree stub, not the built artifact.
 
-The real llms-full.txt is written by .github/scripts/build_llms_full.sh
+The real llms-full.txt is written by scripts/build_llms_full.sh
 after pkgdown builds the site (see .github/workflows/pkgdown.yaml): it
 concatenates the short llms.txt summary with the ENTIRE built documentation
 — every article and every reference page (all design classes, inference

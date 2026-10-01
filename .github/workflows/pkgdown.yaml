@@ -86,7 +86,7 @@ jobs:
       # the built HTML -- no R, no install. See the script's header.
       - name: Generate llms-full.txt from the built site
         shell: bash
-        run: bash .github/scripts/build_llms_full.sh R/EDI/docs
+        run: bash scripts/build_llms_full.sh R/EDI/docs
 
       - uses: actions/upload-pages-artifact@v5
         with:

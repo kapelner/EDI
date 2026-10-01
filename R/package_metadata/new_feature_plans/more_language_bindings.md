@@ -119,7 +119,7 @@ full parity with the R package.
   (`python/cpp/bindings_module.cpp:10-31`).
 - `edi::ResultMap` is a portable result container. The Python-specific
   conversion is isolated in `python/cpp/result_map_pybind.h:4-31`.
-- `R/scripts/check_core_no_rcpp.py` statically enforces the R-free core
+- `scripts/check_core_no_rcpp.py` statically enforces the R-free core
   boundary.
 
 ### Gaps that must be closed once, centrally

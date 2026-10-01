@@ -348,7 +348,7 @@ based on.
   `Rcpp::List` — functionally identical (per this doc's own "cosmetic" note
   in Motivation) but not literally matching the pattern; folding this into
   Phase 4 cleanup is the cheapest way to close it out.
-- **`scripts/check_core_no_rcpp.sh` now exists** (`R/scripts/check_core_no_rcpp.sh`
+- **`scripts/check_core_no_rcpp.sh` now exists** (`scripts/check_core_no_rcpp.sh`
   + `check_core_no_rcpp.py`) and has been run. It doesn't do a naive whole-file
   grep — since this codebase's actual convention (documented in
   `fast_gamma_functions.h`, not anticipated by this doc when it was written)
@@ -545,7 +545,7 @@ based on.
 - [x] TODO-2: Add `EDI/src/result_map_rcpp.h` (`edi::to_rcpp_list`).
       Done — file exists as specified.
 - [x] TODO-3: Add `scripts/check_core_no_rcpp.sh`.
-      Done — `R/scripts/check_core_no_rcpp.sh` (+ companion `.py`). Tracks
+      Done — `scripts/check_core_no_rcpp.sh` (+ companion `.py`). Tracks
       `EDI_CORE_ONLY` conditional nesting rather than naive whole-file grep
       (see Status). Run against `R/EDI/src`: 49 migrated files checked, 0
       violations.

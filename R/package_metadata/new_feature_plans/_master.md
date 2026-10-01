@@ -1067,7 +1067,7 @@ linter on), then a triage of the correctness findings (the real payoff:
 `object_usage`, `equals_na`, `seq`, `vector_logic`), then one explicit
 user decision on the `<-`/space minority (recommended: freeze via
 per-file exclusions, migrate when touched — not a repo-wide reformat),
-then gating: content-gated in `.githooks/pre-push` on changed
+then gating: content-gated in `scripts/pre-push` on changed
 `R/EDI/R/*.R` plus a path-filtered CI step with inline PR annotations.
 `spellcheck.md` → TODO-1..3. The non-controversial sibling:
 `spelling::spell_check_package()` with a bootstrapped `inst/WORDLIST`

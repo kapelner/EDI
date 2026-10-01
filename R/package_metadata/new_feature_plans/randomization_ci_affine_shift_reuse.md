@@ -240,7 +240,7 @@ is O(r) arithmetic and MC is moot.
 - [ ] **TODO-6: Benchmark + doc.** Before/after wall time of
   `compute_confidence_interval_rand()` for OLS and mean-diff at
   `n ∈ {100, 500, 1000}`, `r ∈ {201, 1001, 2001}`, via
-  `R/scripts/benchmark_randomization_ci_ordinal_ppo.R`'s pattern with
+  `scripts/benchmark_randomization_ci_ordinal_ppo.R`'s pattern with
   `EDI_INFERENCE_CLASS` extended to accept the tier-1 classes. Expect
   20–30×. Add a sentence to the `compute_confidence_interval_rand()` roxygen
   and the README's CPU section noting that linear-statistic CIs cost one

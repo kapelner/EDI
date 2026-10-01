@@ -110,7 +110,7 @@ set -euo pipefail
 # makes the running copy resume mid-line and die with a bogus "syntax error".
 {
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PKG_DIR="$REPO_ROOT/R/EDI"
 SCRATCH_DIR="$(mktemp -d -t edi_release_build.XXXXXX)"
 CLEAN_PKG_DIR="$SCRATCH_DIR/EDI"
@@ -139,14 +139,14 @@ if ! grep -qF "$CONFIGURE_PATCHED_LINE" "$CLEAN_PKG_DIR/configure"; then
   exit 1
 fi
 
-EXAMPLES_CHECK="$PKG_DIR/scripts/check_examples_for_cran.R"
+EXAMPLES_CHECK="$REPO_ROOT/scripts/check_examples_for_cran.R"
 echo "== 1b. Static example checks: no \\dontrun{}, all example code parses =="
 if ! Rscript "$EXAMPLES_CHECK" "$CLEAN_PKG_DIR" --static-only; then
   echo "ERROR: Rd examples have problems CRAN will reject (listed above) -- not building. Fix the roxygen @examples in R/, regenerate man/ (Rscript R/fast_roxygenize.R) and re-run this script." >&2
   exit 1
 fi
 
-GLOBAL_STATE_CHECK="$PKG_DIR/scripts/check_global_state_for_cran.R"
+GLOBAL_STATE_CHECK="$REPO_ROOT/scripts/check_global_state_for_cran.R"
 echo "== 1c. Static global-environment checks: no .GlobalEnv writes, no unsafe <<-, no attach() =="
 if ! Rscript "$GLOBAL_STATE_CHECK" "$CLEAN_PKG_DIR" --static-only; then
   echo "ERROR: the R sources modify the global environment in ways CRAN rejects (listed above) -- not building. Use a local environment instead (see https://contributor.r-project.org/cran-cookbook/code_issues.html#writing-to-the-.globalenv) and re-run this script." >&2
@@ -154,7 +154,7 @@ if ! Rscript "$GLOBAL_STATE_CHECK" "$CLEAN_PKG_DIR" --static-only; then
 fi
 
 echo "== 1d. Rd \\usage checks: every function argument documented (tools::checkDocFiles) =="
-if ! Rscript "$PKG_DIR/scripts/check_rd_usage_for_cran.R" "$CLEAN_PKG_DIR"; then
+if ! Rscript "$REPO_ROOT/scripts/check_rd_usage_for_cran.R" "$CLEAN_PKG_DIR"; then
   echo "ERROR: Rd files have undocumented arguments (listed above) -- CRAN flags this as a WARNING. Add the missing @param entries in the roxygen source (R/ or //' comments in src/), regenerate man/ (Rscript R/fast_roxygenize.R) and re-run this script." >&2
   exit 1
 fi

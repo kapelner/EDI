@@ -11,7 +11,7 @@
 ## Motivation
 
 EDI has **no `.lintr` file anywhere** (checked: repo root and `R/EDI/`),
-and `lintr` is wired into neither `.githooks/pre-push` nor any
+and `lintr` is wired into neither `scripts/pre-push` nor any
 `.github/workflows/*` (checked 2026-09-16). It is installed on the
 maintainer's machine (`lintr` 3.3.0.1), so the only missing piece is a
 *policy*, not tooling.
@@ -122,7 +122,7 @@ to-do.
 1. `CONTRIBUTING.md` §3: one paragraph stating the house style and that
    `lintr::lint_package("R/EDI")` must be clean. Add
    `lintr::lint_package()` to §4's before-push list.
-2. `.githooks/pre-push`: run lintr **content-gated** on changed `R/EDI/R/*.R`
+2. `scripts/pre-push`: run lintr **content-gated** on changed `R/EDI/R/*.R`
    files only (mirror how `fast_roxygenize` is gated on roxygen edits), so
    it costs seconds, not a whole-package lint per push. Fail the push on
    any finding.

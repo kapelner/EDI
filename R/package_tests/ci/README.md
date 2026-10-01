@@ -78,7 +78,7 @@ percentage against it and fail loudly on a regression (a hard gate, run in
 the `merge` job of `test-coverage-R.yaml` and in `test-coverage-python.yml`).
 On a new high, they print instructions instead of writing the file — like
 `check_coverage_registry.R`, this is measure-then-a-human-commits, not an
-auto-committing CI step. The Python half also runs from `.githooks/pre-push`
+auto-committing CI step. The Python half also runs from `scripts/pre-push`
 (pytest-cov is cheap; covr needs an instrumented rebuild, so R coverage
 stays CI-only). Self-tests (`test_check_coverage_floor.R`/`.py`) build
 synthetic coverage reports rather than real instrumentation.

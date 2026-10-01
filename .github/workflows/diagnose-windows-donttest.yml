@@ -58,7 +58,7 @@ jobs:
 
       - name: Switch Windows R to OpenBLAS
         shell: pwsh
-        run: .github/scripts/switch-windows-r-to-openblas.ps1
+        run: scripts/switch-windows-r-to-openblas.ps1
 
       - name: Build tarball
         working-directory: R/EDI
@@ -126,7 +126,7 @@ jobs:
 
       - name: Switch Windows R to OpenBLAS
         shell: pwsh
-        run: .github/scripts/switch-windows-r-to-openblas.ps1
+        run: scripts/switch-windows-r-to-openblas.ps1
 
       - name: Install EDI
         working-directory: R/EDI

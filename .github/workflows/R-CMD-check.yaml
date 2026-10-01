@@ -144,7 +144,7 @@ jobs:
       # the suite ends) never reveals.
       EDI_TESTTHAT_PROGRESS: true
       # Skip the real-daemon/multi-worker tests in this matrix (the same
-      # guard .githooks/pre-push uses; see helper-prepush-no-parallel.R).
+      # guard scripts/pre-push uses; see helper-prepush-no-parallel.R).
       # Every multi-hour "checking tests" hang since 2026-08-28 traced to
       # exactly these tests: run 33599645202's uncapped gdb capture shows
       # the main R thread parked in pthread_cond_wait(abstime=0x0) INSIDE
@@ -169,7 +169,7 @@ jobs:
       # if: always() dump step after the check.
       - name: Start test-hang watchdog
         if: runner.os == 'Linux'
-        run: nohup bash .github/scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
+        run: nohup bash scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
 
       # Windows counterpart of the step above -- for the separate, still-
       # unexplained windows-latest-only hang in "checking examples with
@@ -284,7 +284,7 @@ jobs:
       - name: Switch Windows R to OpenBLAS
         if: matrix.config.os == 'windows-latest'
         shell: pwsh
-        run: .github/scripts/switch-windows-r-to-openblas.ps1
+        run: scripts/switch-windows-r-to-openblas.ps1
 
       - uses: r-lib/actions/check-r-package@v2
         with:
@@ -379,7 +379,7 @@ jobs:
 
       # Diagnostic only -- see the main R-CMD-check job's identical step.
       - name: Start test-hang watchdog
-        run: nohup bash .github/scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
+        run: nohup bash scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
 
       # See R-CMD-check's identical step/comment above -- same fix, same
       # reason (reference BLAS vs OpenBLAS), this job is Ubuntu-only so no
@@ -482,7 +482,7 @@ jobs:
       # This job hangs too (run 33457950194) despite having no OpenBLAS
       # swap, which is what disproved the BLAS-variant theory.
       - name: Start test-hang watchdog
-        run: nohup bash .github/scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
+        run: nohup bash scripts/test-hang-watchdog.sh >/dev/null 2>&1 &
 
       - uses: r-lib/actions/setup-pandoc@v2
 

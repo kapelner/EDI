@@ -34,7 +34,7 @@ library(EDI)
 # produces a varying distribution on the standard duplicate-per-iteration path,
 # which builds a fresh object per draw and so cannot carry a stale cache.
 #
-# Kept cheap enough for .githooks/pre-push (see scripts/run_structural_checks.R):
+# Kept cheap enough for scripts/pre-push (see scripts/run_structural_checks.R):
 # serial, r = 15 draws, small fixtures, and the (slower) reference path only
 # runs for the handful of classes whose fast check came back degenerate.
 #

@@ -1,4 +1,4 @@
-# Worker for R/scripts/benchmark_simd_matrix.R: loads EDI from --lib and times
+# Worker for scripts/benchmark_simd_matrix.R: loads EDI from --lib and times
 # six GLMM/ordinal/survival kernels, writing one row per (kernel, rep) to --out.
 
 args = commandArgs(trailingOnly = TRUE)
@@ -11,7 +11,7 @@ parse_args = function(args) {
     if (startsWith(arg, "--reps=")) out$reps = as.integer(sub("^--reps=", "", arg))
   }
   if (is.null(out$lib) || is.null(out$out)) {
-    stop("usage: Rscript R/scripts/benchmark_simd_matrix_worker.R --lib=/path/to/lib --out=/path/to/out.csv [--reps=5]")
+    stop("usage: Rscript scripts/benchmark_simd_matrix_worker.R --lib=/path/to/lib --out=/path/to/out.csv [--reps=5]")
   }
   out
 }

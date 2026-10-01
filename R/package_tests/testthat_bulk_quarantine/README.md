@@ -7,7 +7,7 @@ not-yet-root-caused cross-run RNG determinism gap). Moved here instead of
 staying in `testthat_bulk/` so a legitimate but rare numerical edge case
 doesn't block a push or fail CI for unrelated work.
 
-**This directory is never run by GitHub CI or the `.githooks/pre-push`
+**This directory is never run by GitHub CI or the `scripts/pre-push`
 hook.** Neither `.github/workflows/test-bulk-non-cran.yml` (which only
 scans `R/package_tests/testthat_bulk/`) nor the pre-push hook's R-test step
 (which only scans `R/EDI/tests/testthat/`) references this path, and it

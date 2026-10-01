@@ -565,7 +565,7 @@ respectively (`InferenceCountHurdleNegBin` was migrated separately, also
 
 When a new `@references` block is added anywhere in the package, add the
 corresponding entry here in the same commit/session — `Rscript
-R/package_tests/check_references_sync.R` (wired into `.githooks/pre-push`,
+R/package_tests/check_references_sync.R` (wired into `scripts/pre-push`,
 run before `fast_roxygenize.R`) checks that every `@references`-bearing
 file has at least one of its class/function names indexed somewhere in this
 file, and that every name this file cites under "Used by:" still exists in

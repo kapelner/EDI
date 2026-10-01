@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Local pre-push-only R test runner. R CMD check (CI) still uses
 # R/EDI/tests/testthat.R + testthat's CheckReporter unchanged -- this script
-# is a separate entry point used only by .githooks/pre-push, so that a local
+# is a separate entry point used only by scripts/pre-push, so that a local
 # push isn't stuck watching one line scroll by per test file (or, worse, one
 # line per failing expectation via testthat's _problems/ extraction). It
 # redraws a single status line in place instead, and diverts any other

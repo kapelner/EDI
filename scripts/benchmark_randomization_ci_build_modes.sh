@@ -2,12 +2,12 @@
 #
 # Build EDI in each of three modes (portable, native, native+LTO), each into
 # its own throwaway library, and time a randomization-CI workload
-# (R/scripts/benchmark_randomization_ci_ordinal_ppo.R) at num_cores = 3
+# (scripts/benchmark_randomization_ci_ordinal_ppo.R) at num_cores = 3
 # against each build.
 #
 # Usage:
-#   bash R/scripts/benchmark_randomization_ci_build_modes.sh
-#   EDI_BUILD_MODES="native native+lto" bash R/scripts/benchmark_randomization_ci_build_modes.sh
+#   bash scripts/benchmark_randomization_ci_build_modes.sh
+#   EDI_BUILD_MODES="native native+lto" bash scripts/benchmark_randomization_ci_build_modes.sh
 #
 # Environment:
 #   R_BIN             R executable (default: R)
@@ -25,9 +25,9 @@
 
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 pkg_dir="$repo_root/R/EDI"
-bench_r="$repo_root/R/scripts/benchmark_randomization_ci_ordinal_ppo.R"
+bench_r="$repo_root/scripts/benchmark_randomization_ci_ordinal_ppo.R"
 r_bin="${R_BIN:-R}"
 modes="${EDI_BUILD_MODES:-portable native native+lto}"
 keep_builds="${EDI_KEEP_BUILDS:-0}"

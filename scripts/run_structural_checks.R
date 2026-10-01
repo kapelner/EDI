@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# Fast structural gate run by .githooks/pre-push BEFORE the full R test suite.
+# Fast structural gate run by scripts/pre-push BEFORE the full R test suite.
 # Five cheap checks for the bug families behind the 2026-09-19
 # comprehensive_tests results audit:
 #   * wiring completeness -- a method a component/capability promises is

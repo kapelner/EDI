@@ -54,7 +54,7 @@ to_text() {
   printf '\n\n%s\n' "=================================================================="
   printf '%s\n' "FULL DOCUMENTATION"
   printf '%s\n' "Generated $(date -u '+%Y-%m-%d %H:%M UTC') from the built pkgdown site by"
-  printf '%s\n' ".github/scripts/build_llms_full.sh. Every article, then every reference"
+  printf '%s\n' "scripts/build_llms_full.sh. Every article, then every reference"
   printf '%s\n' "page (design classes, inference classes, kernels, utilities), in the"
   printf '%s\n' "order the site's index lists them. Source: https://github.com/kapelner/EDI"
   printf '%s\n\n' "=================================================================="

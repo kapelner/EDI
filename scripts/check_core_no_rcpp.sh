@@ -5,6 +5,6 @@
 # sexp_removal_rcppeigen_conversion_spec.md).
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC_DIR="${SCRIPT_DIR}/../EDI/src"
+SRC_DIR="${SCRIPT_DIR}/../R/EDI/src"
 
 exec python3 "${SCRIPT_DIR}/check_core_no_rcpp.py" "${SRC_DIR}"

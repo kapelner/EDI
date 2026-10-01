@@ -219,7 +219,7 @@ the obvious fix (compiler-generated `.d` dependency files + a Makevars
   wrappers in an isolated scratch copy — independent of whatever
   `EDI_UNITY` setting the working tree currently has configured — and
   `-fsyntax-only`-checks all 10 in parallel (~30-40s). Wired into
-  `.githooks/pre-push`, gated on the same C++-file-change condition as the
+  `scripts/pre-push`, gated on the same C++-file-change condition as the
   existing R install/test steps. Verified both the pass and (via a
   deliberately introduced, then reverted, syntax error) the fail path.
 - [x] **`EDI_CORE_ONLY`-only collision found and fixed (2026-08-16).** The R

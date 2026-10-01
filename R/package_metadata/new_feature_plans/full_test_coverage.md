@@ -596,7 +596,7 @@ is explicitly not the target** -- see Non-goals below.
   either fails the job outright on a regression vs. the recorded best-ever
   percentage. A new high prints instructions rather than auto-committing
   (mirrors `check_coverage_registry.R`'s existing measure-then-human-commits
-  pattern). The Python half also runs from `.githooks/pre-push` (pytest-cov
+  pattern). The Python half also runs from `scripts/pre-push` (pytest-cov
   is cheap; R stays CI-only since covr needs an instrumented rebuild). See
   `R/package_tests/ci/README.md`'s "Coverage floor" section and
   `CONTRIBUTING.md` §4.8. No GitHub branch protection changes were bundled

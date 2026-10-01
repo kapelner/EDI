@@ -539,7 +539,7 @@ them directly. Therefore:
   `_helper_functions_core.h` vs. `_helper_functions.h`);
 - random-number needs inside the core use the core-safe RNG plumbing, not
   `R::runif`/`unif_rand`;
-- verify with `R/scripts/check_core_no_rcpp.sh`, which fails if any
+- verify with `scripts/check_core_no_rcpp.sh`, which fails if any
   core-marked translation unit still references Rcpp/SEXP (see
   `sexp_removal_rcppeigen_conversion_spec.md` for what "core" means);
 - after adding exported C++ functions, regenerate `RcppExports` (via

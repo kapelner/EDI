@@ -467,7 +467,7 @@ EDI_NATIVE_LTO=1 R CMD INSTALL R/EDI
 To benchmark the three builds back-to-back, run:
 
 ```sh
-bash R/scripts/benchmark_build_modes.sh
+bash scripts/benchmark_build_modes.sh
 ```
 
 To compare the current working tree, the current tree with vectorization
@@ -475,7 +475,7 @@ disabled, and the last committed `HEAD` snapshot across several hot C++ kernels,
 run:
 
 ```sh
-bash R/scripts/benchmark_simd_matrix.sh
+bash scripts/benchmark_simd_matrix.sh
 ```
 
 This uses `EDI_DISABLE_VECTORIZATION=1` to add `-DEIGEN_DONT_VECTORIZE` and
@@ -485,7 +485,7 @@ To benchmark a randomization CI workload at `num_cores = 3` across the same
 three build modes, run:
 
 ```sh
-bash R/scripts/benchmark_randomization_ci_build_modes.sh
+bash scripts/benchmark_randomization_ci_build_modes.sh
 ```
 
 ## Local performance tuning

@@ -1,7 +1,7 @@
 library(testthat)
 
 # Shared skip guard for tests that spawn real multi-core/mirai parallel
-# workers. .githooks/pre-push sets EDI_PREPUSH_NO_PARALLEL=true before
+# workers. scripts/pre-push sets EDI_PREPUSH_NO_PARALLEL=true before
 # running the local test suite -- worker-spawning tests are exactly the ones
 # implicated in pre-push-specific problems traced in practice: Ctrl+C not
 # reaching an orphaned worker process, worker stdout/stderr bypassing the

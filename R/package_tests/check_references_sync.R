@@ -28,7 +28,7 @@
 #
 # Run manually via:
 #   Rscript R/package_tests/check_references_sync.R
-# Wired into .githooks/pre-push to run before fast_roxygenize.R, gated on the
+# Wired into scripts/pre-push to run before fast_roxygenize.R, gated on the
 # same "roxygen comments changed" signal that hook's own run already uses.
 
 repo_root = normalizePath(file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])), "..", ".."))

@@ -29,7 +29,7 @@ Closes #
 - [ ] `R CMD check --as-cran --no-manual` on that tarball: **zero errors, zero warnings, zero notes** (other than the documented `unlockBinding()` NOTE in `cran-comments.md`).
 - [ ] Re-ran both benchmarks against my §2 baseline: **no regressions** in any row this change touches. Regenerated reports committed if performance intentionally changed.
 - [ ] `fast_roxygenize.R` once more after the above: **zero errors, zero warnings**.
-- [ ] Pushed through the pre-push hook (`git config core.hooksPath .githooks`; `./gitpush_with_hooks_safe.sh`) — not `--no-verify`. Drift artifacts (`R/package_tests/drift_artifacts.sh check`) clean.
+- [ ] Pushed through the pre-push hook (`git config core.hooksPath scripts`; `./gitpush_with_hooks_safe.sh`) — not `--no-verify`. Drift artifacts (`R/package_tests/drift_artifacts.sh check`) clean.
 - [ ] Ran the tiers the hook skips (CONTRIBUTING.md §4.7) — **required, self-attested, verified by CI at review**: `EDI_EXHAUSTIVE_WORKER_TESTS=true` suite **and** the bulk suite (`package_tests/testthat_bulk/run_bulk_tests.R`) — zero failures.
 - [ ] If parallelism was touched: real multi-worker tests run with `EDI_PREPUSH_NO_PARALLEL=false` — zero failures. <!-- or "N/A: no parallel code touched" -->
 - [ ] If `R/package_tests/` or any inference/design class was touched: `run_comprehensive_suite.R smoke` → `analyze_comprehensive_suite.R` → `check_comprehensive_suite_quality_gates.R ci` all pass locally. <!-- or N/A -->
@@ -44,7 +44,7 @@ Closes #
 ## Change-type protocols (CONTRIBUTING.md §3b) — check the row(s) that apply
 
 - [ ] **New / changed inference or design class:** `R/package_metadata/contracts/new_model_creation.md` **§10 Definition of Done** fully satisfied; `vignette("extending-edi")` rules followed; `vignette("validation-evidence")`-style evidence added, including a **simulation/calibration check** (`SimulationFrameworkReport$summarize()` `coverage_pval` / `size_pval`) for any new inference procedure — results pasted below.
-- [ ] **C++ kernel / backend touched:** `vignette("backend-contracts")` honored; **perf profiled** via `R/profile/run_edi_perf.sh` (kernel registered in `edi_kernel_profiler.R`) with before/after numbers below; **valgrind memcheck clean** (zero definite leaks / invalid access / uninitialized jumps in EDI code); `R/scripts/check_core_no_rcpp.sh` passes (`EDI_CORE_ONLY` build); `clang-tidy performance-*` clean; both benchmark rows regenerated, not hand-edited.
+- [ ] **C++ kernel / backend touched:** `vignette("backend-contracts")` honored; **perf profiled** via `R/profile/run_edi_perf.sh` (kernel registered in `edi_kernel_profiler.R`) with before/after numbers below; **valgrind memcheck clean** (zero definite leaks / invalid access / uninitialized jumps in EDI code); `scripts/check_core_no_rcpp.sh` passes (`EDI_CORE_ONLY` build); `clang-tidy performance-*` clean; both benchmark rows regenerated, not hand-edited.
 - [ ] **Randomness / seeds / resampling / workers touched:** `vignette("reproducibility")` contract preserved (single-`seed` semantics, `edi_rng::RRng` stream, per-replication seeds, identical results across `num_cores`); any change to a seeded result is declared as breaking in `NEWS.md`.
 - [ ] None of the above apply.
 

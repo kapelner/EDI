@@ -518,7 +518,7 @@ longer blocks the Python side by itself.
 
 > **The generic parts of this checklist now live in `release.md`** (CI
 > coverage inventory, win-builder/mac-builder submission via
-> `R/EDI/scripts/submission_tar_build_and_win_mac_check.sh`, check-profile measurement,
+> `scripts/submission_tar_build_and_win_mac_check.sh`, check-profile measurement,
 > `cran-comments.md`/CHANGELOG/version-bump/tagging steps, post-acceptance
 > plan moves) — that file applies to every release, not just 1.0.0. What
 > remains here is the 1.0.0-specific work: the CRAN-incoming CI job and
@@ -843,7 +843,7 @@ longer blocks the Python side by itself.
     workaround for fast local targeted iteration: `EDI_UNITY=0`.
   - **Standing regression gate:** `scripts/check_unity_build_safety.sh`
     (isolated scratch-copy generation + parallel `-fsyntax-only` check,
-    ~30-40s) wired into `.githooks/pre-push`, independent of whatever
+    ~30-40s) wired into `scripts/pre-push`, independent of whatever
     `EDI_UNITY` the working tree currently has configured. Both the pass
     and fail paths verified.
   - **Python side: done (2026-08-16).** `python/CMakeLists.txt`'s `_core`
