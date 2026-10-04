@@ -105,6 +105,11 @@ R/package_metadata/gradient_method_comparison_outputs/*
 R/package_metadata/randomized_experiment_datasets/*
 !R/package_metadata/randomized_experiment_datasets/.gitkeep
 R/package_metadata/randomized_experiment_datasets.tar.bz2
+
+# Same, for the observational-dataset catalog (see
+# R/package_metadata/download_observational_datasets.R).
+R/package_metadata/observational_datasets_cache/*
+!R/package_metadata/observational_datasets_cache/.gitkeep
 R/benchmark/simd_matrix/*
 R/benchmark/benchmark_pb_high_load.R
 R/benchmark/benchmark_pb_precision.R

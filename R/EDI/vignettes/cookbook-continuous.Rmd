@@ -11,6 +11,9 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
+This cookbook is part of EDI (Experimental Design and Inference), an R package for
+randomized experimental designs with inference matched to the design and response type.
+
 One complete, runnable script: design a two-arm experiment with a
 continuous outcome, assign treatment, record responses, and run every
 matched inference procedure. Every chunk executes when the vignette is

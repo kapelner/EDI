@@ -18,13 +18,29 @@ saveRDS(list(coverage = coverage, commit = Sys.getenv("GITHUB_SHA"),
 # covr::codecov() has no built-in timeout: a slow/unresponsive codecov.io endpoint
 # hangs this call indefinitely with zero output, and the only symptom visible in CI
 # is the whole job eventually dying with "the runner has received a shutdown signal"
-# minutes later (observed twice, 2026-09-26, runs 36257223738/36257223636) -- an opaque
-# failure with no diagnosable R-level error. Bound each attempt and retry a few times
-# so a transient upload issue fails fast and loudly instead of silently stalling the job.
+# minutes later (observed three times now: 2026-09-26 runs 36257223738/36257223636,
+# 2026-10-01 run 36853610057) -- an opaque failure with no diagnosable R-level error.
+#
+# 2026-09-27's first fix wrapped this in setTimeLimit(elapsed = 120) -- that did
+# NOT work (run 36853610057 hung the full ~6 minutes with zero output again, no
+# "codecov upload attempt" message ever printed): setTimeLimit() only interrupts
+# at R-level bytecode-safe points (GC, certain instruction boundaries) and cannot
+# preempt a C-level call blocked in a kernel socket read/write, which is exactly
+# what a hung HTTP upload is. Using callr::r(..., timeout = ) instead runs the
+# upload in a real child OS process that callr forcibly kills (SIGKILL) when the
+# timeout elapses regardless of what that process is blocked on -- this actually
+# works for a hung network call. callr is already a transitive dependency here
+# (covr/testthat pull it in), confirmed installed in CI.
 upload_attempt = function() {
-	setTimeLimit(elapsed = 120, transient = TRUE)
-	on.exit(setTimeLimit(elapsed = Inf, transient = TRUE), add = TRUE)
-	covr::codecov(coverage = coverage, flags = "r", token = Sys.getenv("CODECOV_TOKEN"), quiet = FALSE)
+	callr::r(
+		function(coverage, token) {
+			covr::codecov(coverage = coverage, flags = "r", token = token, quiet = FALSE)
+		},
+		args = list(coverage = coverage, token = Sys.getenv("CODECOV_TOKEN")),
+		timeout = 120,
+		libpath = .libPaths(),
+		show = TRUE
+	)
 }
 uploaded = FALSE
 last_error = NULL

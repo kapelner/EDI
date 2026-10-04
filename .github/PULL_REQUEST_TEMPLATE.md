@@ -29,7 +29,7 @@ Closes #
 - [ ] `R CMD check --as-cran --no-manual` on that tarball: **zero errors, zero warnings, zero notes** (other than the documented `unlockBinding()` NOTE in `cran-comments.md`).
 - [ ] Re-ran both benchmarks against my §2 baseline: **no regressions** in any row this change touches. Regenerated reports committed if performance intentionally changed.
 - [ ] `fast_roxygenize.R` once more after the above: **zero errors, zero warnings**.
-- [ ] Pushed through the pre-push hook (`git config core.hooksPath scripts`; `./gitpush_with_hooks_safe.sh`) — not `--no-verify`. Drift artifacts (`R/package_tests/drift_artifacts.sh check`) clean.
+- [ ] Pushed through the pre-push hook (`git config core.hooksPath scripts`; `./scripts/gitpush_with_hooks_safe.sh`) — not `--no-verify`. Drift artifacts (`R/package_tests/drift_artifacts.sh check`) clean.
 - [ ] Ran the tiers the hook skips (CONTRIBUTING.md §4.7) — **required, self-attested, verified by CI at review**: `EDI_EXHAUSTIVE_WORKER_TESTS=true` suite **and** the bulk suite (`package_tests/testthat_bulk/run_bulk_tests.R`) — zero failures.
 - [ ] If parallelism was touched: real multi-worker tests run with `EDI_PREPUSH_NO_PARALLEL=false` — zero failures. <!-- or "N/A: no parallel code touched" -->
 - [ ] If `R/package_tests/` or any inference/design class was touched: `run_comprehensive_suite.R smoke` → `analyze_comprehensive_suite.R` → `check_comprehensive_suite_quality_gates.R ci` all pass locally. <!-- or N/A -->

@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-This page answers, for each important model family, "how do I know this
+This page is part of EDI (Experimental Design and Inference). It answers, for each important model family, "how do I know this
 implementation actually computes what its documentation claims?" It is an
 index into the test suite (`R/EDI/tests/testthat/`), not a restatement of it
 — every row below names the specific test file(s) that check the

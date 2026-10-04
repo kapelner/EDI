@@ -6,11 +6,11 @@
 \alias{EDI}
 \title{Experimental Design and Inference}
 \description{
-EDI
+EDI (Experimental Design and Inference)
 }
 \details{
 Provides comprehensive support for many fixed and sequential experimental designs and many
-infererential methods (parametric, nonparametric, exact) for response types continuous, 
+inferential methods (parametric, nonparametric, exact) for response types continuous, 
 incidence, count, proportion, survival  (with censoring) and ordinal. Supports automatic 
 missing data imputation, parallelization, provides robustness fallbacks and is
 optimized with C++.
@@ -31,7 +31,7 @@ Useful links:
 
 }
 \author{
-Adam Kapelner \email{kapelner@qc.cuny.edu}
+Adam Kapelner \email{adam.kapelner@mail.huji.ac.il}
 }
 \keyword{design}
 \keyword{pair-matching}

@@ -1,3 +1,14 @@
+"""edi_kernels: Python bindings for the C++ model-fitting kernels of EDI.
+
+EDI (Experimental Design and Inference) is an R and Python software project
+for fixed and sequential randomized experimental designs with inference
+(exact, asymptotic, and randomization-based) matched to each design and
+response type. This package exposes the same C++ solvers used by the EDI R
+package (GLM, GLMM, survival, count, ordinal, and proportion models) through
+pybind11, with no R or Rcpp dependency. Project home:
+https://github.com/kapelner/EDI
+"""
+
 from ._core import (
     fast_pchisq_upper,
     # continuous

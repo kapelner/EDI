@@ -1,4 +1,4 @@
-# EDI Roadmap
+# EDI (Experimental Design and Inference) Roadmap
 
 **Where things stand (last updated 2026-09-24):** v1.0.0 is released
 ([Zenodo DOI](https://doi.org/10.5281/zenodo.22170036)); v1.0.1 is a
@@ -738,6 +738,12 @@ All produce identical results to today's code unless noted.
   a heterogeneous-treatment-effect estimand and capability contract, a
   randomized-design forest path, then design-aware resampling modes and
   BART/BCF posterior adapters.
+- **[Censored ordinal responses](R/package_metadata/new_feature_plans/censored_ordinal_response_models.md)** —
+  ordinal outcomes known only up to a range of levels ("at least
+  moderate", "mild or moderate"): right-, left-, and interval-censored
+  rows, first for the cumulative-link models (proportional odds, probit,
+  cauchit, cloglog) and continuation-ratio, then the rank-based and
+  matched-pair classes. Decision-gated.
 
 ### Model-selection honesty
 

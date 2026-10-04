@@ -12,7 +12,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 set.seed(20260823)
 ```
 
-EDI is implemented with R6 classes. Advanced users can define their own R6
+EDI (Experimental Design and Inference) is implemented with R6 classes. Advanced users can define their own R6
 classes outside the package and reuse EDI's design storage, response handling,
 randomization, bootstrap, and summary methods. This page is the supported
 extension contract: which base classes to build on, the one method each asks

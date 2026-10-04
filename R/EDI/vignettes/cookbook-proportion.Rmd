@@ -11,6 +11,9 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
+This cookbook is part of EDI (Experimental Design and Inference), an R package for
+randomized experimental designs with inference matched to the design and response type.
+
 One complete, runnable script for a **proportion** outcome — a response
 that is itself a fraction in (0, 1) per subject (adherence rate, fraction
 of tissue affected, score normalized to a 0–1 scale). This is distinct

@@ -3,14 +3,12 @@ pacman::p_load(EDI, stringr, doParallel, PTE, datasets, qgam, mlbench, AppliedPr
 max_n_dataset = 150
 source("package_tests/_dataset_load.R")
 
-X = fread("package_tests/simple_tests_results_nc_2.csv")
-# Drop every row predating the current run for the zero/one-inflated beta multivariate class.
-# Current run cutoff is fixed as a magic number to avoid pulling historical repeats.
-# Drop every row predating the current run for the zero/one-inflated beta multivariate class.
-# Current run cutoff is fixed as a magic number to avoid pulling historical repeats.
-# magic_cutoff_run_row_id = 6324L
-# X = X[!(inference_class == "InferencePropZeroOneInflatedBetaRegr" & run_row_id < magic_cutoff_run_row_id)]
-# X = X[!(inference_class == "InferenceAllSimpleWilcox" & run_row_id < magic_cutoff_run_row_id)]
+result_files = Sys.glob("package_tests/comprehensive_tests_results_nc_*.csv")
+if (!length(result_files)) stop("No comprehensive_tests_results_nc_*.csv files found under package_tests/ -- run comprehensive_tests.R first.")
+X = data.table()
+for (result_file in result_files) {
+	X = rbindlist(list(X, fread(result_file)), fill = TRUE, use.names = TRUE)
+}
 table(X$rep)
 
 
@@ -49,20 +47,20 @@ table(X$inference_class)
 #set the correct value of beta as it's inference and response dependent - this default works for most
 X[, beta := as.numeric(beta_T)]
 
-e = exp(1)
 incid_p_control = function(dataset_name){
 	y_i = datasets_and_response_models[[dataset_name]]$y_original$incidence
 	ifelse(y_i > 0, 0.75, 0.25)
 }
 
-incid_p_treated = function(dataset_name){
+incid_p_treated = function(dataset_name, shift = 1){
 	p_c = incid_p_control(dataset_name)
-	plogis(qlogis(p_c) + 1)
+	plogis(qlogis(p_c) + shift)
 }
 
-prop_y_treated = function(dataset_name){
+prop_y_treated = function(dataset_name, shift = 1){
 	y_p = datasets_and_response_models[[dataset_name]]$y_original$proportion
-	e * y_p / (1 + (e - 1) * y_p)
+	shift_mult = exp(shift)
+	shift_mult * y_p / (1 + (shift_mult - 1) * y_p)
 }
 
 ordinal_expected_observed = function(y_ord, bt, sd_noise = 0.1){
@@ -77,8 +75,19 @@ ordinal_expected_observed = function(y_ord, bt, sd_noise = 0.1){
 	exp_vals
 }
 
+# NOTE: every block below was originally keyed to the literal beta_T == 1 (an
+# older generator's single alternative effect size). The current harness's
+# beta_T_values can be any nonzero set (currently c(0, 0.5)), so every block
+# below is gated on beta_T != 0 and uses the row's own beta_T as the shift
+# magnitude -- grouped by (dataset, beta_T), not just dataset, wherever the
+# formula needs that shift as a scalar (incid_p_treated()/prop_y_treated()'s
+# shift argument, the exp(shift)-1 odds-multiplier blocks, and
+# ordinal_expected_observed()'s bt argument). A flat `beta := 1` becomes
+# `beta := beta_T` directly, since that constant was always just "the shift
+# itself" for an additive-shift estimand.
+
 # continuous — additive-shift estimands remain on the raw outcome scale
-X[beta_T == 1 & response_type == "continuous" &
+X[beta_T != 0 & response_type == "continuous" &
 	inference_class %in% c(
 		"InferenceBaiAdjustedTKK14",
 		"InferenceBaiAdjustedTKK21",
@@ -94,10 +103,10 @@ X[beta_T == 1 & response_type == "continuous" &
 		"InferenceContinMultKKQuantileRegrIVWC",
 		"InferenceContinMultKKQuantileRegrCombinedLikelihood"
 	),
-	beta := 1]
+	beta := beta_T]
 
-# incidence — simple/KK mean diff: probability-scale estimand ≈ 0.183, not 1
-X[beta_T == 1 &
+# incidence — simple/KK mean diff: probability-scale estimand, shift-dependent, not beta_T itself
+X[beta_T != 0 &
 	response_type == "incidence" &
 	inference_class %in% c(
 		"InferenceAllSimpleAverageDiff",
@@ -117,20 +126,20 @@ X[beta_T == 1 &
 	),
 	beta := {
 		p_c = incid_p_control(dataset)
-		p_t = incid_p_treated(dataset)
+		p_t = incid_p_treated(dataset, shift = beta_T[1])
 		mean(p_t - p_c)
-	}, by = dataset]
+	}, by = c("dataset", "beta_T")]
 
-# incidence — univariate logistic: marginal log-OR ≈ 0.767, not 1
-X[beta_T == 1 & inference_class %in% c("InferenceIncidLogRegr", "InferenceIncidKKGEE"),
+# incidence — univariate logistic: marginal log-OR, shift-dependent
+X[beta_T != 0 & inference_class %in% c("InferenceIncidLogRegr", "InferenceIncidKKGEE"),
 	beta := {
 		p_c = mean(incid_p_control(dataset))
-		p_t = mean(incid_p_treated(dataset))
+		p_t = mean(incid_p_treated(dataset, shift = beta_T[1]))
 		qlogis(p_t) - qlogis(p_c)
-	}, by = dataset]
+	}, by = c("dataset", "beta_T")]
 
 # incidence — risk-ratio estimands
-X[beta_T == 1 & inference_class %in% c(
+X[beta_T != 0 & inference_class %in% c(
 	"InferenceIncidGCompRiskRatio",
 	"InferenceIncidGCompRiskRatio",
 	"InferenceIncidKKGCompRiskRatio",
@@ -138,25 +147,25 @@ X[beta_T == 1 & inference_class %in% c(
 ),
 beta := {
 	p_c = mean(incid_p_control(dataset))
-	p_t = mean(incid_p_treated(dataset))
+	p_t = mean(incid_p_treated(dataset, shift = beta_T[1]))
 	p_t / p_c
-}, by = dataset]
+}, by = c("dataset", "beta_T")]
 
 # incidence — modified Poisson estimands are on the log-risk-ratio scale
-X[beta_T == 1 & inference_class %in% c(
+X[beta_T != 0 & inference_class %in% c(
 	"InferenceIncidLogBinomial",
 	"InferenceIncidLogBinomial",
 	"InferenceIncidKKModifiedPoisson"
 ),
 beta := {
 	p_c = mean(incid_p_control(dataset))
-	p_t = mean(incid_p_treated(dataset))
+	p_t = mean(incid_p_treated(dataset, shift = beta_T[1]))
 	log(p_t / p_c)
-}, by = dataset]
+}, by = c("dataset", "beta_T")]
 
 
-# proportion — simple/KK mean diff: E[e*y/(1+(e-1)*y)] - E[y]
-X[beta_T == 1 & response_type == "proportion" &
+# proportion — simple/KK mean diff: E[shift_mult*y/(1+(shift_mult-1)*y)] - E[y]
+X[beta_T != 0 & response_type == "proportion" &
 	inference_class %in% c(
 		"InferenceAllSimpleAverageDiff",
 		"InferenceAllKKMeanDiffIVWC",
@@ -165,36 +174,36 @@ X[beta_T == 1 & response_type == "proportion" &
 	),
 	beta := {
 		y_p = datasets_and_response_models[[dataset]]$y_original$proportion
-		mean(e * y_p / (1 + (e - 1) * y_p)) - mean(y_p)
-	}, by = dataset]
+		mean(prop_y_treated(dataset, shift = beta_T[1])) - mean(y_p)
+	}, by = c("dataset", "beta_T")]
 
 # proportion — KK univ GEE (logit link): marginal log-OR = logit(E[Y_T]) - logit(E[Y_C])
-X[beta_T == 1 & response_type == "proportion" &
+X[beta_T != 0 & response_type == "proportion" &
 inference_class %in% c("InferencePropKKGEE", "InferencePropFractionalLogit"),
 	beta := {
-		y_t = prop_y_treated(dataset)
+		y_t = prop_y_treated(dataset, shift = beta_T[1])
 		y_p = datasets_and_response_models[[dataset]]$y_original$proportion
 		qlogis(mean(y_t)) - qlogis(mean(y_p))
-	}, by = dataset]
+	}, by = c("dataset", "beta_T")]
 
 # proportion — KK Wilcox: HL estimate ≈ median of within-pair differences
-X[beta_T == 1 & response_type == "proportion" &
+X[beta_T != 0 & response_type == "proportion" &
 inference_class %in% c("InferenceAllKKWilcoxIVWC"),
 	beta := {
 		y_p = datasets_and_response_models[[dataset]]$y_original$proportion
-		median(e * y_p / (1 + (e - 1) * y_p) - y_p)
-	}, by = dataset]
+		median(prop_y_treated(dataset, shift = beta_T[1]) - y_p)
+	}, by = c("dataset", "beta_T")]
 
-# count — simple/KK mean diff: E[Y_C] * (e - 1)
-X[beta_T == 1 & response_type == "count" &
+# count — simple/KK mean diff: E[Y_C] * (exp(shift) - 1)
+X[beta_T != 0 & response_type == "count" &
 	inference_class %in% c("InferenceAllSimpleAverageDiff", "InferenceAllKKMeanDiffIVWC"),
 	beta := {
 		y_c = datasets_and_response_models[[dataset]]$y_original$count
-		mean(y_c) * (e - 1)
-	}, by = dataset]
+		mean(y_c) * (exp(beta_T[1]) - 1)
+	}, by = c("dataset", "beta_T")]
 
 # count — log-link regression estimands target the log mean ratio under the DGP
-X[beta_T == 1 & response_type == "count" &
+X[beta_T != 0 & response_type == "count" &
 	inference_class %in% c(
 		"InferenceCountPoisson",
 		"InferenceCountPoisson",
@@ -207,40 +216,40 @@ X[beta_T == 1 & response_type == "count" &
 		"InferenceCountKKCondPoissonOneLik",
 		"InferenceCountKKGLMM"
 	),
-	beta := 1]
+	beta := beta_T]
 
-# count — KK Wilcox: HL estimate ≈ (e-1) * median(Y_C)
-X[beta_T == 1 & response_type == "count" &
+# count — KK Wilcox: HL estimate ≈ (exp(shift)-1) * median(Y_C)
+X[beta_T != 0 & response_type == "count" &
 inference_class %in% c("InferenceAllKKWilcoxIVWC"),
 	beta := {
 		y_c = datasets_and_response_models[[dataset]]$y_original$count
-		(e - 1) * median(y_c)
-	}, by = dataset]
+		(exp(beta_T[1]) - 1) * median(y_c)
+	}, by = c("dataset", "beta_T")]
 
-# survival — KM median diff: (e - 1) * median(Y_C)
-X[beta_T == 1 & inference_class == "InferenceSurvivalKMDiff",
+# survival — KM median diff: (exp(shift) - 1) * median(Y_C)
+X[beta_T != 0 & inference_class == "InferenceSurvivalKMDiff",
 	beta := {
 		y_s = datasets_and_response_models[[dataset]]$y_original$survival
-		(e - 1) * median(y_s)
-	}, by = dataset]
+		(exp(beta_T[1]) - 1) * median(y_s)
+	}, by = c("dataset", "beta_T")]
 
-X[beta_T == 1 & inference_class == "InferenceSurvivalRestrictedMeanDiff",
+X[beta_T != 0 & inference_class == "InferenceSurvivalRestrictedMeanDiff",
 	beta := {
 		y_s = datasets_and_response_models[[dataset]]$y_original$survival
 		tau = quantile(y_s, 0.95)
-		(e - 1) * mean(pmin(y_s, tau))
-	}, by = dataset]
+		(exp(beta_T[1]) - 1) * mean(pmin(y_s, tau))
+	}, by = c("dataset", "beta_T")]
 
-# survival — KK compound mean diff: (e-1) * mean(Y_C)
-X[beta_T == 1 & response_type == "survival" &
+# survival — KK compound mean diff: (exp(shift)-1) * mean(Y_C)
+X[beta_T != 0 & response_type == "survival" &
 	inference_class == "InferenceAllKKMeanDiffIVWC",
 	beta := {
 		y_s = datasets_and_response_models[[dataset]]$y_original$survival
-		(e - 1) * mean(y_s)
-	}, by = dataset]
+		(exp(beta_T[1]) - 1) * mean(y_s)
+	}, by = c("dataset", "beta_T")]
 
 # ordinal — observed-score mean difference under the rounding/flooring DGP
-X[beta_T == 1 & response_type == "ordinal" &
+X[beta_T != 0 & response_type == "ordinal" &
 	inference_class %in% c(
 		"InferenceAllSimpleAverageDiff",
 		"InferenceAllKKMeanDiffIVWC",
@@ -249,12 +258,12 @@ X[beta_T == 1 & response_type == "ordinal" &
 	),
 	beta := {
 		y_o = datasets_and_response_models[[dataset]]$y_original$ordinal
-		mean(ordinal_expected_observed(y_o, 1, SD_NOISE) - ordinal_expected_observed(y_o, 0, SD_NOISE))
-	}, by = dataset]
+		mean(ordinal_expected_observed(y_o, beta_T[1], SD_NOISE) - ordinal_expected_observed(y_o, 0, SD_NOISE))
+	}, by = c("dataset", "beta_T")]
 
 # ordinal — link-scale estimands are not identified from the observed-level
-# additive/rounding DGP used in simple_tests.R
-X[beta_T == 1 & response_type == "ordinal" &
+# additive/rounding DGP used by this harness
+X[beta_T != 0 & response_type == "ordinal" &
 	inference_class %in% c(
 	"InferenceOrdinalAdjCatLogitRegr",
 	"InferenceOrdinalAdjCatLogitRegr",
@@ -277,7 +286,7 @@ X[beta_T == 1 & response_type == "ordinal" &
 
 	# ordinal — rank/sign-style targets are not cleanly identified from the current
 	# observed-level DGP without a separate estimand convention
-	X[beta_T == 1 & response_type == "ordinal" &
+	X[beta_T != 0 & response_type == "ordinal" &
 	inference_class %in% c(
 		"InferenceAllSimpleWilcox",
 		"InferenceAllKKWilcoxIVWC",
@@ -290,7 +299,7 @@ X[beta_T == 1 & response_type == "ordinal" &
 
 
 #now some are impossible to calculate for real data due to the unknown f(x) model
-X[beta_T == 1 &
+X[beta_T != 0 &
 	inference_class %in% c(
 	"InferenceIncidLogRegr",
 	"InferenceIncidKKCondLogitOneLik",
@@ -336,7 +345,7 @@ X[beta_T == 1 &
 	beta := NA_real_]
 
 # survival — KK Wilcox: censored survival times bias the HL estimate
-X[beta_T == 1 & response_type == "survival" &
+X[beta_T != 0 & response_type == "survival" &
 inference_class %in% c("InferenceAllKKWilcoxIVWC"),
 	beta := NA_real_]
 table(X$beta, useNA = "always")
@@ -347,7 +356,7 @@ X[function_run == "est", sqerr := (result_1 - beta)^2]
 E = X[function_run == "est", .(mse = mean(sqerr, na.rm = TRUE), beta = first(beta)),
 	by = c("inference_class", "design", "response_type", "beta_T")][order(-mse)]
 E = E[!is.nan(mse)]
-E[beta_T == 1][1:100]
+E[beta_T != 0][1:100]
 E[beta_T == 0][1:100]
 
 #check coverage
@@ -355,15 +364,26 @@ X[str_detect(X$function_run, "ci"), ci_correct := ifelse(beta >= result_1 & beta
 table(X$ci_correct, useNA = "always")
 C = X[str_detect(X$function_run, "ci"), .(coverage = mean(ci_correct)),
 	by = c("inference_class", "function_run", "response_type", "beta_T")][order(coverage)]
-C[beta_T == 1][1:100]
+C[beta_T != 0][1:100]
 C[beta_T == 0][1:100]
 
 #check size
 X[beta_T == 0 & str_detect(X$function_run, "pval"), H0_rejected := ifelse(result_1 < 0.05, 1, 0)]
 #table(X[beta_T == 0]$H0_rejected, useNA = "always")
+#prop.test() errors (rather than returning NA) when a group has zero non-NA
+#H0_rejected values -- a real possibility once every file on disk is pooled,
+#since not every (inference_class, design, response_type, beta_T, function_run)
+#cell is populated in every file. Guard it the same way mean(na.rm=TRUE) already
+#degrades gracefully, instead of letting one empty cell halt the whole aggregation.
+safe_size_pval = function(h0_rejected) {
+	n = length(na.omit(h0_rejected))
+	if (n == 0L) return(NA_real_)
+	prop.test(sum(h0_rejected, na.rm = TRUE), n, p = 0.05)$p.value
+}
 S = X[beta_T == 0 & str_detect(X$function_run, "pval"), .(
 	size = mean(H0_rejected, na.rm = TRUE),
-	size_pval = prop.test(sum(H0_rejected, na.rm = TRUE), length(na.omit(H0_rejected)), p = 0.05)$p.value
+	n_size = sum(!is.na(H0_rejected)),
+	size_pval = safe_size_pval(H0_rejected)
 ), by = c("inference_class", "design", "response_type", "beta_T", "function_run")][order(-size)]
 S[, bonf_size_pval := pmin(1, size_pval * .N)][, size_pval := NULL]
 S[11:160]
@@ -379,10 +399,12 @@ S[11:160]
 #      rejects the true null hypothesis ($H_0: \beta_T = 0$) far too often, leading to the inflated ~20% Type I Error rates.
 
 #check power
-X[beta_T == 1 & str_detect(X$function_run, "pval"), H0_rejected := ifelse(result_1 < 0.05, 1, 0)]
-table(X[beta_T == 1]$H0_rejected, useNA = "always")
-P = X[beta_T == 1 & str_detect(X$function_run, "pval"), .(power = mean(H0_rejected)),
-	by = c("inference_class", "design", "response_type", "function_run")][order(-power)]
+X[beta_T != 0 & str_detect(X$function_run, "pval"), H0_rejected := ifelse(result_1 < 0.05, 1, 0)]
+table(X[beta_T != 0]$H0_rejected, useNA = "always")
+P = X[beta_T != 0 & str_detect(X$function_run, "pval"), .(
+	power = mean(H0_rejected, na.rm = TRUE),
+	n_power = sum(!is.na(H0_rejected))
+), by = c("inference_class", "design", "response_type", "beta_T", "function_run")][order(-power)]
 P[!is.na(power)][1:200]
 
 # 1. The Bootstrapped KK OLS (ContinMultOLSKK)
@@ -406,10 +428,10 @@ P[!is.na(power)][1:200]
 #   The rest of the low power entries (IncidMultiLogRegr, PropUniBetaRegr, AllSimpleMeanDiff on incidence/proportion) are
 #   simply struggling due to the mathematical limitations of the simulated effect size on bounded domains at low sample
 #   sizes.
-#    * In simple_tests.R, the data generation adds beta_T = 1 on the link scale (e.g. plogis(qlogis(p) + 1)).
-#    * For a baseline probability of $0.5$, shifting the log-odds by $1.0$ only moves the final probability to $0.73$ (an
-#      absolute difference of just $0.23$). For baseline probabilities nearer to the boundaries (like the $0.75$ and $0.25$
-#      base rates used in your Incidence test), the absolute shift in probability is even smaller ($\sim 0.18$).
+#    * The data generation adds beta_T on the link scale (e.g. plogis(qlogis(p) + beta_T); the current harness's nonzero
+#      value is 0.5, not the 1.0 this note originally described).
+#    * For a baseline probability of $0.5$, shifting the log-odds by $0.5$ moves the final probability to about $0.62$ (an
+#      absolute difference of about $0.12$, smaller than the $0.23$ this note originally described for a shift of 1.0).
 #    * Detecting a probability shift of $0.18$ between two groups with sample sizes frequently around $n=50$ (like the cars
 #      dataset) or $n=150$ is notoriously difficult. A standard two-sample proportion test for this effect size at $n=50$ has
 #      a theoretical mathematical power of exactly ~25% to ~40%.
@@ -419,3 +441,10 @@ P[!is.na(power)][1:200]
 #   designs and multivariate estimators are actually performing better than standard unadjusted statistical tests would! The
 #   ~50% power seen specifically on the pval_bootstrap for these GLMs just reflects the added volatility of bootstrapping
 #   logistic/beta regressions on tiny datasets, where perfect separation and boundary clamping often occur during resampling.
+
+#write the aggregated benchmark tables (small per-cell summaries, not raw per-replicate rows)
+#so they can be published/queried without re-running this whole analysis.
+fwrite(E, "package_tests/comprehensive_tests_mse.csv")
+fwrite(C, "package_tests/comprehensive_tests_coverage.csv")
+fwrite(S, "package_tests/comprehensive_tests_size.csv")
+fwrite(P, "package_tests/comprehensive_tests_power.csv")

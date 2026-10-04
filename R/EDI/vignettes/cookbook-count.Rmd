@@ -11,6 +11,9 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
+This cookbook is part of EDI (Experimental Design and Inference), an R package for
+randomized experimental designs with inference matched to the design and response type.
+
 One complete, runnable script for a count outcome — number of events per
 subject (visits, relapses, defects). Same four steps as every cookbook
 (design → assign → record → infer; see `vignette("cookbook-continuous")`).

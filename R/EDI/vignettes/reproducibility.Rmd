@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-EDI draws randomness in several different places — design allocation,
+EDI (Experimental Design and Inference) draws randomness in several different places — design allocation,
 non-parametric/Bayesian/parametric bootstrap, randomization-based inference,
 and Monte Carlo simulation — from several different RNG sources (R's own
 generator, a portable C++ reimplementation of it, and, in exactly two

@@ -1,4 +1,4 @@
-# EDI: Experimental Design and Inference <img src="man/figures/logo.png" align="right" height="139" alt="EDI hex logo" />
+# EDI: Experimental Design and Inference <img src="man/figures/logo.png" align="right" height="139" alt="EDI (Experimental Design and Inference) hex logo" />
 
 [![CRAN](https://img.shields.io/cran/v/EDI.svg)](https://CRAN.R-project.org/package=EDI)
 [![R-universe version](https://kapelner.r-universe.dev/EDI/badges/version)](https://kapelner.r-universe.dev/EDI)
@@ -14,6 +14,10 @@ incidence, count, proportion, survival with left/right censoring, and ordinal.
 Designs, inference, and Monte Carlo simulation are exposed as R6 classes; the
 core estimation and variance-computing kernels are written in C++ (Eigen +
 LBFGS++) for speed.
+
+EDI is not related to Electronic Data Interchange (the business-document
+exchange standard) or to equity, diversity, and inclusion; it is a statistics
+package for the design and analysis of randomized experiments.
 
 ## Installation
 

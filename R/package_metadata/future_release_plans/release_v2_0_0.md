@@ -222,6 +222,22 @@ against; they are additive on the design factory but are treated as a
   rest of this release's scope (user decision, 2026-09-16, slated here
   anyway) — no core contract changes, purely additive.
 
+### Censored ordinal responses (bounds on the `ordinal` type)
+
+- `censored_ordinal_response_models.md` — right-, left-, and
+  interval-censored ordinal responses ("at least `moderate`", "`mild` or
+  `moderate`") through the shipped `y`/`y_L`/`y_R` bounds schema, with a
+  closed-interval convention on level codes. First wave is the shared
+  fixed-link cumulative kernel (proportional odds, probit, cauchit, cloglog)
+  plus continuation-ratio right-censoring; G-computation, partial
+  proportional odds, adjacent-category/stereotype, the rank-based classes,
+  the paired sign test, and KK CLMM/GLMM follow; KK GEE and KK conditional
+  adjacent-category keep refusing. Changes every ordinal kernel's row
+  contract from one level to a level range, but no core `Design` contract
+  (user decision, 2026-10-03, slated here). Follows 1.4.0's censoring track,
+  which opens the `Design` gate to non-survival types first, and must land
+  after or with TODO-4's multivariate Stage 0 storage refactor.
+
 ### Shared inference backend and language boundaries — MOVED to v4.0.0
 
 Moved out of this release 2026-09-19 (user decision: the full C++ migration,
@@ -394,6 +410,15 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   CI, risk-difference estimand family** — `rand_ci_for_incidence.md →
   TODO-1..7`. Independent of every other TODO in this list; additive, no
   ordering dependency.
+- [ ] TODO-6m (added 2026-10-03, user decision): **Censored ordinal
+  responses** — `censored_ordinal_response_models.md → TODO-1..22`.
+  Decision-gated: its TODO-1 (go/no-go, the closed-interval bounds
+  convention, native kernels vs delegation, first-wave membership) joins
+  TODO-1's batch. Its TODO-3 (explicit censoring refusals on the ordinal
+  classes that have none) must merge before its TODO-2 opens the `Design`
+  gate. Depends on 1.4.0's censoring track (`release_v1_4_0.md`, "Censoring
+  on the other scalar types") and on TODO-4's multivariate Stage 0 storage
+  refactor; otherwise independent of this list.
 - [ ] TODO-7: **Breaking changes** — greedy-class deletion; any contract
   breaks accumulated from TODO-3/4, each with a documented deprecation
   path from 1.x.

@@ -494,6 +494,100 @@ github_download_dataset_as_csv <- function(repo, commit_sha, rda_name, dest_csv,
 }
 
 # ---------------------------------------------------------------------------
+# Post-download joins -- datasets published as several tables. A manifest
+# entry with `combine` (a function of the named list of its downloaded
+# tables) and `combined_csv` is packed as that single joined CSV instead of
+# its constituent files.
+# ---------------------------------------------------------------------------
+
+school_means <- function(df, cols) {
+  out <- stats::aggregate(df[cols], by = list(schid = df$schid), FUN = mean, na.rm = TRUE)
+  out[cols] <- lapply(out[cols], function(x) replace(x, is.nan(x), NA))
+  out
+}
+
+school_counts <- function(df, name) {
+  out <- as.data.frame(table(df$schid), stringsAsFactors = FALSE)
+  names(out) <- c("schid", name)
+  out$schid <- as.numeric(out$schid)
+  out
+}
+
+# Per-school counts over unannounced random checks, coded per the visit
+# checklist NFE_Random_Check.pdf (1 = yes, 2 = no; -999/-777 = missing). A
+# closed school (a1_1 != 1) skips the teacher questions, so it counts as no
+# teacher present. "Teaching" is first-teacher activity a2_3 codes 1-5:
+# reading to children, writing on the blackboard, writing in a book, talking
+# to a child, talking to the whole class (6-8 and 996 are playing, talking
+# to an adult, walking outside, other).
+random_check_summaries <- function(checks, suffix) {
+  open <- checks$a1_1 %in% 1
+  present <- open & checks$a2_0 %in% 1
+  per_visit <- data.frame(
+    n_checks = 1L,
+    n_open = as.integer(open),
+    n_teacher_present = as.integer(present),
+    n_teacher_teaching = as.integer(present & checks$a2_3 %in% 1:5),
+    n_second_teacher = as.integer(present & checks$a3_0 %in% 1),
+    n_blackboard_written = as.integer(open & checks$a6_2 %in% 1)
+  )
+  counts <- stats::aggregate(per_visit, by = list(schid = checks$schid), FUN = sum)
+  children <- replace(checks$a4_1, !open | checks$a4_1 < 0, NA)
+  kids <- school_means(data.frame(schid = checks$schid, children_present_mean = children), "children_present_mean")
+  out <- merge(counts, kids, by = "schid")
+  names(out)[-1] <- paste0(names(out)[-1], "_", suffix)
+  out
+}
+
+#' monitoring_works (Duflo, Hanna & Ryan): one row per post-tested child,
+#' with that child's scores and their school's data repeated on every row.
+#' Treatment is school membership in TreatmentSchools (the 60 schools
+#' originally assigned; randomization is by school). School-level columns:
+#' pretest means (child pretest and posttest records cannot be linked --
+#' `childno` repeats within schools and same-key pre/post scores correlate
+#' only ~0.1, so the numbering was reassigned between tests); random-check
+#' summaries before (`_baseline`) and from (`_program`) the September 2003
+#' start; camera valid-day counts, which exist for treated schools only and
+#' are NA for comparison schools; and months closed.
+combine_monitoring_works <- function(tables) {
+  treated <- tables$monitoring_works_TreatmentSchools$schid
+  pre <- tables$monitoring_works_Pretest
+  post <- tables$monitoring_works_Posttest
+  checks <- tables$monitoring_works_RandomCheck
+  closed <- tables$monitoring_works_Closed
+  camera <- tables$monitoring_works_ValidDay
+  is_baseline <- checks$year * 100 + checks$month < 200309
+
+  pre_cols <- c("pre_math_v", "pre_lang_v", "pre_total_v", "pre_math_w", "pre_lang_w", "pre_total_w", "pre_writ")
+  school_pre <- merge(school_counts(pre, "pre_n_children"), school_means(pre, pre_cols), by = "schid")
+  names(school_pre)[-1] <- paste0("school_", sub("pre_writ", "pre_share_written", names(school_pre)[-1]))
+  camera_days <- stats::aggregate(
+    data.frame(n_camera_days = 1L, n_camera_valid_days = as.integer(camera$validday == "Yes")),
+    by = list(schid = camera$schid), FUN = sum)
+
+  schools <- data.frame(schid = sort(unique(c(pre$schid, post$schid, checks$schid))))
+  pieces <- list(
+    school_pre,
+    random_check_summaries(checks[is_baseline, ], "baseline"),
+    random_check_summaries(checks[!is_baseline, ], "program"),
+    camera_days,
+    school_counts(closed, "n_months_closed")
+  )
+  for (p in pieces) schools <- merge(schools, p, by = "schid", all.x = TRUE)
+  count_cols <- grep("^(n_|school_pre_n_)", names(schools), value = TRUE)
+  count_cols <- setdiff(count_cols, c("n_camera_days", "n_camera_valid_days"))
+  schools[count_cols] <- lapply(schools[count_cols], function(x) replace(x, is.na(x), 0L))
+
+  children <- post
+  names(children)[names(children) == "post_writ"] <- "took_written_test"
+  children$treatment <- as.integer(children$schid %in% treated)
+  out <- merge(children, schools, by = "schid", all.x = TRUE)
+  out <- out[order(out$schid, out$childno), c("schid", "childno", "treatment", setdiff(names(out), c("schid", "childno", "treatment")))]
+  rownames(out) <- NULL
+  out
+}
+
+# ---------------------------------------------------------------------------
 # Dataset manifest -- every Dataverse-sourced row in experimental_datasets.md
 # ---------------------------------------------------------------------------
 
@@ -532,6 +626,8 @@ DATASET_MANIFEST <- list(
   vouchers = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "vouchers", out_csv = "core_vouchers.csv")),
   welfare = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "welfare", out_csv = "core_welfare.csv")),
 
+  # Roster.csv is not fetched: it is a variable-description sheet for a
+  # roster data file the deposit does not include.
   monitoring_works = list(
     doi = "doi:10.7910/DVN/LRDXHX",
     files = list(
@@ -540,9 +636,10 @@ DATASET_MANIFEST <- list(
       Pretest.tab          = "monitoring_works_Pretest.csv",
       Closed.tab           = "monitoring_works_Closed.csv",
       RandomCheck.tab      = "monitoring_works_RandomCheck.csv",
-      ValidDay.tab         = "monitoring_works_ValidDay.csv",
-      Roster.csv           = "monitoring_works_Roster.csv"
-    )
+      ValidDay.tab         = "monitoring_works_ValidDay.csv"
+    ),
+    combine = combine_monitoring_works,
+    combined_csv = "monitoring_works.csv"
   ),
   savings = list(
     doi = "doi:10.7910/DVN/UJD5OP",
@@ -851,15 +948,35 @@ DATASET_MANIFEST <- list(
   WWGbook_ratpup = list(cran = list(pkg = "WWGbook", version = "1.0.4", rda_name = "ratpup", out_csv = "WWGbook_ratpup.csv"))
 )
 
+# Every archive must hold exactly one CSV: an entry with several sources
+# must also define `combine` and `combined_csv` to join them.
+validate_manifest <- function(manifest) {
+  for (name in names(manifest)) {
+    spec <- manifest[[name]]
+    n_sources <- length(spec$files) + length(spec$zip_members) + (!is.null(spec$cran)) + (!is.null(spec$github))
+    if (n_sources == 0L) stop("Manifest entry '", name, "' has no source", call. = FALSE)
+    has_combine <- !is.null(spec$combine) && !is.null(spec$combined_csv)
+    if (n_sources > 1L && !has_combine) {
+      stop("Manifest entry '", name, "' has ", n_sources, " source files but no `combine` + ",
+           "`combined_csv` to join them; each archive must hold exactly one CSV", call. = FALSE)
+    }
+    if (xor(is.null(spec$combine), is.null(spec$combined_csv))) {
+      stop("Manifest entry '", name, "' must set both `combine` and `combined_csv`, or neither", call. = FALSE)
+    }
+  }
+  invisible(manifest)
+}
+validate_manifest(DATASET_MANIFEST)
+
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
 
 #' Download and normalize every dataset in DATASET_MANIFEST, packing each
-#' one's CSV(s) into its own `<name>.tar.bz2` -- one archive per manifest
-#' entry (a "dataset" in our table's sense, which can span several
-#' constituent CSVs, e.g. monitoring_works' 7 files), not one combined
-#' archive for the whole collection. This matches how `_dataset_load.R`
+#' one's CSV into its own `<name>.tar.bz2` -- one archive per manifest
+#' entry, not one combined archive for the whole collection. A dataset
+#' published as several tables is joined into one CSV first (see the
+#' `combine` field and "Post-download joins" above). This matches how `_dataset_load.R`
 #' already loads the 14 existing ML-benchmark datasets one at a time: a
 #' consumer extracts only the dataset it needs, and "already downloaded"
 #' is a plain file-existence check on `<name>.tar.bz2` -- no extraction
@@ -938,6 +1055,17 @@ download_all_datasets <- function(download_dir = "R/package_metadata/randomized_
       }
     }
 
+    if (!is.null(spec$combine)) {
+      tables <- lapply(out_csvs, data.table::fread, data.table = FALSE)
+      names(tables) <- tools::file_path_sans_ext(basename(out_csvs))
+      combined_csv <- file.path(download_dir, spec$combined_csv)
+      data.table::fwrite(spec$combine(tables), combined_csv)
+      message("  joined ", length(out_csvs), " tables -> ", combined_csv)
+      if (!keep_loose_csvs) unlink(out_csvs)
+      out_csvs <- combined_csv
+    }
+
+    stopifnot(length(out_csvs) == 1L)
     message("  packing -> ", archive_path)
     rel_csvs <- basename(out_csvs)
     old_wd <- setwd(download_dir)

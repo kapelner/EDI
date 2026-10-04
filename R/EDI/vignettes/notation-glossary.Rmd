@@ -12,7 +12,8 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
 This page collects the symbols and naming conventions used consistently across
-EDI's `Design*`/`Inference*` R6 classes and their C++/Python backends, so
+the `Design*`/`Inference*` R6 classes of EDI (Experimental Design and Inference) and
+their C++/Python backends, so
 individual `roxygen2`/docstring entries can link here instead of re-deriving
 notation locally. Where a symbol's meaning is genuinely family-specific (e.g.
 $\alpha$ means something different for a proportional-odds ordinal model than

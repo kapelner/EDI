@@ -135,7 +135,7 @@ jobs:
         working-directory: R
         run: |
           if ! bash package_tests/drift_artifacts.sh check; then
-            echo "::error::package_tests/ generated artifacts are stale relative to current source (diff above). Regenerate locally with 'bash R/package_tests/drift_artifacts.sh regenerate' (or push via ./gitpush_with_hooks_safe.sh, which does this and commits the result) and commit the updated CSVs."
+            echo "::error::package_tests/ generated artifacts are stale relative to current source (diff above). Regenerate locally with 'bash R/package_tests/drift_artifacts.sh regenerate' (or push via ./scripts/gitpush_with_hooks_safe.sh, which does this and commits the result) and commit the updated CSVs."
             exit 1
           fi
 

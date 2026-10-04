@@ -1,6 +1,6 @@
 # Security Policy
 
-EDI is a statistics package — an R package (`R/EDI/`) and a Python package
+EDI (Experimental Design and Inference) is a statistics package — an R package (`R/EDI/`) and a Python package
 (`python/`, `edi_kernels`) sharing one C++ kernel tree (`R/EDI/src/`). It
 does no networking, stores no credentials, and processes only data the
 caller passes in. The realistic security surface is therefore **memory

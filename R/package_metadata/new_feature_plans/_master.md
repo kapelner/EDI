@@ -925,6 +925,16 @@ already stated there:**
   `incidence_randomization_cis.md → TODO-17k` (v1.1.0). Not architectural
   like the rest of v2.0.0's scope — purely additive — but slated here per
   explicit user decision.
+- **(new, added 2026-10-03, user decision, no Phase letter, same
+  precedent): Censored ordinal responses** → `release_v2_0_0.md →
+  TODO-6m`. `censored_ordinal_response_models.md`. Right-, left-, and
+  interval-censored `ordinal` responses on the shipped `y`/`y_L`/`y_R`
+  schema (closed interval on level codes). The ordinal member of the
+  Phase 5C censored-response track, slated a release later than its
+  continuous and count siblings (v1.4.0): it follows their `Design`-gate
+  allow-list and v2.0.0's multivariate Stage 0 storage refactor. First
+  wave is the shared fixed-link cumulative kernel; decision-gated (its
+  TODO-1).
 - **5AI. `ModelSelection` — comparative fit over the model × formula
   grid** (added 2026-09-02, user decision; the *relative* half of the
   same split; **split into two release phases on 2026-09-05, user

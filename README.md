@@ -1,4 +1,4 @@
-# Experimental Design and Inference (EDI) Software <img src="R/EDI/man/figures/logo.png" align="right" height="139" alt="EDI hex logo" />
+# Experimental Design and Inference (EDI) Software <img src="R/EDI/man/figures/logo.png" align="right" height="139" alt="EDI (Experimental Design and Inference) hex logo" />
 
 [![CRAN](https://img.shields.io/cran/v/EDI.svg)](https://CRAN.R-project.org/package=EDI)
 [![R-CMD-check](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml)
@@ -17,6 +17,10 @@ designs (fixed and sequential) and inference procedures
 response type (continuous, incidence, count, proportion, survival with
 left/right/interval censoring, and ordinal). The core estimation and
 variance-computing kernels are written in C++ (Eigen + LBFGS++) for speed.
+
+EDI is not related to Electronic Data Interchange (the business-document
+exchange standard) or to equity, diversity, and inclusion; it is a statistics
+package for the design and analysis of randomized experiments.
 
 This repo hosts the eponymous R package `EDI` under [`R/EDI`](R/EDI), with R6
 classes for designs, inference, and simulation. It also hosts the distinct

@@ -1,4 +1,4 @@
-# Contributing to EDI
+# Contributing to EDI (Experimental Design and Inference)
 
 Thanks for contributing — human or agent. This document is the single
 contributor workflow for both packages in this repo: the `EDI` R package
@@ -225,7 +225,7 @@ skipped.
    Push through the wrapper so hook-regenerated files land in the same
    push instead of failing it:
    ```sh
-   ./gitpush_with_hooks_safe.sh
+   ./scripts/gitpush_with_hooks_safe.sh
    ```
    `git push --no-verify` is for deliberate WIP branches only, never for a
    PR.

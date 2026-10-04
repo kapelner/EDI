@@ -11,8 +11,8 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-EDI's statistical model-fitting is implemented once, in C++, under
-`R/EDI/src/`, and exposed twice: to R via Rcpp (`fast_*_cpp` exports) and to
+EDI (Experimental Design and Inference) implements its statistical model-fitting
+once, in C++, under `R/EDI/src/`, and exposes it twice: to R via Rcpp (`fast_*_cpp` exports) and to
 Python via pybind11 (`edi_kernels`, same argument names minus the `_cpp`
 suffix, and 0-based instead of 1-based indices — see below). This page
 documents the conventions and guarantees (and, just as importantly, the

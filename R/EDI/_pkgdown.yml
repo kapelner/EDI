@@ -1,5 +1,10 @@
 url: https://kapelner.github.io/EDI/
 
+# Site title: pkgdown uses this in every page's <title> tag and as the navbar
+# brand, instead of the bare package name "EDI" (which alone reads as
+# Electronic Data Interchange). See marketing_plans/llm_agent_optimization.md.
+title: "EDI: Experimental Design and Inference"
+
 template:
   bootstrap: 5
   math-rendering: mathjax

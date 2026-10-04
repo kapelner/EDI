@@ -1,0 +1,1378 @@
+inference_class,function_run,response_type,beta_T,coverage
+InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0
+InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0
+InferenceIncidKKGCompRiskRatio (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0
+InferenceIncidKKGCompRiskRatio (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0
+InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0,0
+InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0,0
+InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0
+InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0
+InferenceIncidKKGCompRiskRatio (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0
+InferenceIncidKKGCompRiskRatio (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0
+InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,0
+InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,0
+InferenceIncidKKGCompRiskRatio (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,0
+InferenceIncidKKGCompRiskRatio (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,0
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidWald [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidMiettinenNurminenRiskDiff [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidNewcombeRiskDiff [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidRiskDiff (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidRiskDiff (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidRiskDiff [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidKKNewcombeRiskDiff [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidKKGCompRiskDiff (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0
+InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0.5,0
+InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0.5,0
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0.5,0
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0.5,0
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidWald [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidMiettinenNurminenRiskDiff [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidNewcombeRiskDiff [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidRiskDiff (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidRiskDiff (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidRiskDiff [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidKKNewcombeRiskDiff [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidKKGCompRiskDiff (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0
+InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,0
+InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,0
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,0
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,0
+InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,0
+InferenceIncidKKGCompRiskDiff (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,0
+InferenceOrdinalRidit [design_formula=~1],ci_asymp,ordinal,0.5,0
+InferenceOrdinalRidit [design_formula=~.],ci_asymp,ordinal,0.5,0
+InferenceAllSimpleWilcox [design_formula=~.],ci_bootstrap,proportion,0.5,0
+InferencePropGCompMeanDiff [design_formula=~.],ci_asymp,proportion,0.5,0
+InferenceAllSimpleWilcox [design_formula=~1],ci_bootstrap,proportion,0.5,0
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand_custom,proportion,0.5,0
+InferencePropKKGLMM (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0.5,0
+InferencePropKKGLMM (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0.5,0
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~1],ci_rand,proportion,0.5,0
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~1],ci_rand,proportion,0.5,0
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~.],ci_rand,proportion,0.5,0
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~.],ci_rand,proportion,0.5,0
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~1],ci_rand,proportion,0.5,0
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~.],ci_rand,proportion,0.5,0
+InferenceSurvivalKKLWACoxPHOneLik [design_formula=~1],ci_asymp,survival,0.5,0
+InferenceSurvivalKKStratCoxPHOneLik [design_formula=~1],ci_asymp,survival,0.5,0
+InferenceSurvivalKKLWACoxPHOneLik [design_formula=~.],ci_asymp,survival,0.5,0
+InferenceSurvivalCoxPHRegr (model_formula=~1) [design_formula=~.],ci_asymp,survival,0.5,0
+InferenceSurvivalCoxPHRegr (model_formula=~1) [design_formula=~1],ci_asymp,survival,0.5,0
+InferenceSurvivalCoxPHRegr [design_formula=~1],ci_asymp,survival,0.5,0
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~1],ci_rand,proportion,0.5,0.00925925925925926
+InferenceIncidKKGCompRiskRatio (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.0196078431372549
+InferenceIncidKKGCompRiskRatio (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.0196078431372549
+InferenceIncidKKGCompRiskRatio (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.02
+InferenceIncidKKGCompRiskRatio (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,0.02
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~.],ci_rand,proportion,0.5,0.0220588235294118
+InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,0.024390243902439
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,proportion,0.5,0.0289855072463768
+InferenceIncidKKGCompRiskRatio (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0.03
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,proportion,0.5,0.0317460317460317
+InferencePropGCompMeanDiff [design_formula=~1],ci_asymp,proportion,0.5,0.0317460317460317
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,proportion,0.5,0.0388888888888889
+InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0.0398009950248756
+InferenceIncidKKGCompRiskRatio (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,0.04
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,proportion,0.5,0.0406976744186047
+InferenceSurvivalRestrictedMeanDiff [design_formula=~.],ci_asymp,survival,0.5,0.0569306930693069
+InferenceSurvivalRestrictedMeanDiff [design_formula=~1],ci_asymp,survival,0.5,0.0620689655172414
+InferenceAllSimpleWilcox [design_formula=~1],ci_asymp,proportion,0.5,0.062992125984252
+InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.0696517412935323
+InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.0751445086705202
+InferenceAllSimpleWilcox [design_formula=~.],ci_asymp,proportion,0.5,0.0804597701149425
+InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,0.0975609756097561
+InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.109195402298851
+InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0.5,0.115789473684211
+InferenceOrdinalKKCLMM (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0.5,0.125
+InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0.5,0.136842105263158
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,survival,0.5,0.200992555831266
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,survival,0.5,0.204152249134948
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,survival,0.5,0.244
+InferenceOrdinalAdjCatLogitRegr [design_formula=~.],ci_bootstrap,ordinal,0.5,0.255
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,survival,0.5,0.268571428571429
+InferenceOrdinalPartialProportionalOddsRegr [design_formula=~.],ci_asymp,ordinal,0.5,0.282857142857143
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand,proportion,0.5,0.296511627906977
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand,proportion,0.5,0.299145299145299
+InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0.314606741573034
+InferenceIncidKKModifiedPoisson (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.32
+InferenceOrdinalPropOddsRegr [design_formula=~.],ci_asymp,ordinal,0.5,0.326530612244898
+InferenceIncidKKModifiedPoisson (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0.35
+InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.351648351648352
+InferenceSurvivalKMDiff [design_formula=~1],ci_asymp,survival,0.5,0.352941176470588
+InferenceOrdinalContRatioRegr [design_formula=~.],ci_asymp,ordinal,0.5,0.354285714285714
+InferenceSurvivalKMDiff [design_formula=~.],ci_asymp,survival,0.5,0.371287128712871
+InferenceOrdinalKKCLMMCauchit (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0.5,0.384615384615385
+InferenceOrdinalCauchitRegr [design_formula=~.],ci_asymp,ordinal,0.5,0.42
+InferenceOrdinalKKGEE [design_formula=~.],ci_asymp,ordinal,0.5,0.428571428571429
+InferencePropKKGLMM (model_formula=~1) [design_formula=~.],ci_rand,proportion,0.5,0.487179487179487
+InferenceOrdinalKKCLMM (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0.5,0.5
+InferenceOrdinalKKCLMM [design_formula=~.],ci_asymp,ordinal,0.5,0.5
+InferencePropKKGLMM (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0.5,0.5
+InferencePropKKGLMM (model_formula=~1) [design_formula=~1],ci_rand,proportion,0.5,0.5
+InferencePropKKGLMM [design_formula=~1],ci_asymp,proportion,0.5,0.5
+InferenceIncidKKModifiedPoisson (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.509803921568627
+InferencePropKKGLMM (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0.5,0.512820512820513
+InferenceIncidProbitRegr (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.517412935323383
+InferenceIncidProbitRegr (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.52
+InferenceOrdinalAdjCatLogitRegr [design_formula=~.],ci_asymp,ordinal,0.5,0.531428571428572
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,count,0.5,0.542635658914729
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,count,0.5,0.546153846153846
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,count,0.5,0.561224489795918
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,count,0.5,0.567010309278351
+InferenceIncidKKModifiedPoisson (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.568627450980392
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand,count,0.5,0.592592592592593
+InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.595505617977528
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand,count,0.5,0.607142857142857
+InferenceOrdinalKKGLMM (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0.5,0.62
+InferenceOrdinalKKCLMM (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0.5,0.625
+InferenceOrdinalKKCLMM [design_formula=~1],ci_asymp,ordinal,0.5,0.625
+InferenceOrdinalCloglogRegr [design_formula=~.],ci_asymp,ordinal,0.5,0.64
+InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.652173913043478
+InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.659090909090909
+InferenceIncidProbitRegr (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.666666666666667
+InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0.696517412935323
+InferenceAllSimpleWilcox [design_formula=~.],ci_asymp,count,0.5,0.730769230769231
+InferenceOrdinalAdjCatLogitRegr [design_formula=~1],ci_asymp,ordinal,0.5,0.732558139534884
+InferenceCountPoissonKKGEE (model_formula=~.) [design_formula=~.],ci_rand,count,0,0.75
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~.],ci_rand,count,0.5,0.75
+InferenceOrdinalAdjCatLogitRegr [design_formula=~1],ci_bootstrap,ordinal,0.5,0.75
+InferencePropZeroOneInflatedBetaRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0,0.75
+InferenceAllSimpleWilcox [design_formula=~1],ci_asymp,count,0.5,0.755102040816326
+InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.786127167630058
+InferenceOrdinalKKCLMMProbit (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0.5,0.79
+InferenceOrdinalKKCLMMProbit [design_formula=~.],ci_asymp,ordinal,0.5,0.79
+InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.796019900497513
+InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.797687861271676
+InferencePropBetaRegr (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0.5,0.8
+InferencePropZeroOneInflatedBetaRegr (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0.5,0.8
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0.5,0.8
+InferenceOrdinalOrderedProbitRegr [design_formula=~.],ci_asymp,ordinal,0.5,0.808571428571429
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~1],ci_rand,count,0.5,0.816326530612245
+InferencePropBetaRegr (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0.5,0.818181818181818
+InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0.82089552238806
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~.],ci_rand,survival,0,0.821428571428571
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~1],ci_rand,proportion,0,0.827272727272727
+InferenceIncidKKGEE (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.833333333333333
+InferencePropBetaRegr (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0.5,0.833333333333333
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0,0.84
+InferencePropKKQuantileRegrOneLik [design_formula=~1],ci_asymp,proportion,0,0.84
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~1],ci_asymp,count,0.5,0.85
+InferenceCountKKCondPoissonOneLik (model_formula=~1) [design_formula=~1],ci_asymp,count,0.5,0.85
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0.5,0.85
+InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~1],ci_rand,count,0.5,0.851851851851852
+InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~.],ci_rand,count,0.5,0.857142857142857
+InferenceIncidLogRegr (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.858407079646018
+InferenceOrdinalKKCLMMCauchit (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0,0.86
+InferenceOrdinalKKCLMMCauchit [design_formula=~.],ci_asymp,ordinal,0,0.86
+InferenceIncidLogRegr (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.86046511627907
+InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0.863636363636364
+InferenceIncidKKGEE [design_formula=~.],ci_asymp,incidence,0.5,0.863636363636364
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~.],ci_rand,proportion,0,0.864285714285714
+InferenceIncidLogRegr (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.867256637168142
+InferenceCountNegBin (model_formula=~.) [design_formula=~.],ci_asymp,count,0.5,0.868217054263566
+InferenceCountNegBin [design_formula=~.],ci_asymp,count,0.5,0.868217054263566
+InferenceIncidKKGEE (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.875
+InferenceIncidKKGEE [design_formula=~1],ci_asymp,incidence,0.5,0.875
+InferenceSurvivalKKLWACoxPHOneLik [design_formula=~.],ci_asymp,survival,0,0.875
+InferenceOrdinalRidit [design_formula=~1],ci_asymp,ordinal,0,0.88
+InferencePropKKGEE (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0,0.88
+InferencePropKKGEE (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0,0.88
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0,0.88
+InferencePropKKGEE [design_formula=~1],ci_asymp,proportion,0,0.88
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.886363636363636
+InferenceIncidLogRegr (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,0.890365448504983
+InferenceIncidExactZhang [design_formula=~1],ci_exact,incidence,0.5,0.892156862745098
+InferencePropQuantileRegr [design_formula=~.],ci_asymp,proportion,0.5,0.892857142857143
+InferenceAllSimpleWilcox [design_formula=~1],ci_bootstrap,count,0.5,0.894736842105263
+InferenceIncidExactFisher [design_formula=~1],ci_exact,incidence,0.5,0.895424836601307
+InferenceContinLin [design_formula=~.],ci_asymp,continuous,0.5,0.895604395604396
+InferenceCountNegBin (model_formula=~.) [design_formula=~1],ci_asymp,count,0.5,0.896907216494845
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0.5,0.897435897435897
+InferenceContinKKQuantileRegrOneLik [design_formula=~.],ci_asymp,continuous,0.5,0.897435897435897
+InferenceCountPoissonKKGEE (model_formula=~1) [design_formula=~1],ci_asymp,count,0,0.897435897435897
+InferenceCountPoissonKKGEE [design_formula=~1],ci_asymp,count,0,0.897435897435897
+InferenceIncidExactZhang [design_formula=~.],ci_exact,incidence,0.5,0.9
+InferenceIncidKKGEE (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.9
+InferenceIncidKKGEE (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.9
+InferenceIncidKKGEE [design_formula=~1],ci_asymp,incidence,0,0.9
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~.],ci_rand,proportion,0,0.9
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0.5,0.9
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0.5,0.9
+InferenceCountQuasiPoisson (model_formula=~.) [design_formula=~1],ci_asymp,count,0,0.900523560209424
+InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,0.901960784313725
+InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,0.901960784313725
+InferenceSurvivalKKWeibullMarginal [design_formula=~.],ci_asymp,survival,0.5,0.904347826086956
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~1],ci_rand,survival,0,0.904761904761905
+InferenceIncidExactFisher [design_formula=~.],ci_exact,incidence,0.5,0.905
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0.5,0.905128205128205
+InferenceOrdinalRidit [design_formula=~.],ci_asymp,ordinal,0,0.905714285714286
+InferenceContinQuantileRegr [design_formula=~.],ci_asymp,continuous,0.5,0.906593406593407
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0.5,0.908309455587393
+InferencePropBetaRegr (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0.5,0.909090909090909
+InferencePropZeroOneInflatedBetaRegr (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0.5,0.909090909090909
+InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0.5,0.91
+InferenceContinKKGLMM (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0.5,0.91025641025641
+InferenceContinKKGLMM [design_formula=~.],ci_asymp,continuous,0.5,0.91025641025641
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0,0.910569105691057
+InferenceOrdinalCauchitRegr [design_formula=~1],ci_asymp,ordinal,0.5,0.910852713178295
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0,0.911149825783972
+InferencePropQuantileRegr [design_formula=~1],ci_asymp,proportion,0,0.912162162162162
+InferenceContinQuantileRegr [design_formula=~.],ci_asymp,continuous,0,0.91358024691358
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0,0.915254237288136
+InferenceOrdinalCauchitRegr [design_formula=~.],ci_asymp,ordinal,0,0.915254237288136
+InferenceContinOLS (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0.5,0.915384615384615
+InferenceCountRobustPoisson (model_formula=~.) [design_formula=~1],ci_asymp,count,0,0.916230366492147
+InferenceOrdinalPropOddsRegr [design_formula=~1],ci_asymp,ordinal,0.5,0.916666666666667
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0,0.916666666666667
+InferencePropKKGEE (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0,0.916666666666667
+InferencePropQuantileRegr [design_formula=~1],ci_asymp,proportion,0.5,0.916666666666667
+InferenceCountQuasiPoisson [design_formula=~.],ci_asymp,count,0,0.916981132075472
+InferenceContinOLS [design_formula=~.],ci_asymp,continuous,0.5,0.917582417582418
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~.],ci_asymp,count,0.5,0.918918918918919
+InferenceCountKKCondPoissonOneLik (model_formula=~1) [design_formula=~.],ci_asymp,count,0.5,0.918918918918919
+InferenceOrdinalKKCLMMCauchit (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0,0.92
+InferencePropKKGEE (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0,0.92
+InferencePropKKGEE (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0,0.92
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0,0.92
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0,0.92
+InferenceCountRobustPoisson [design_formula=~.],ci_asymp,count,0,0.920754716981132
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0,0.920792079207921
+InferenceContinLin [design_formula=~.],ci_asymp,continuous,0,0.920987654320988
+InferenceCountPoissonKKGEE (model_formula=~1) [design_formula=~.],ci_asymp,count,0,0.921052631578947
+InferenceCountNegBin (model_formula=~.) [design_formula=~1],ci_asymp,count,0,0.921311475409836
+InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~1],ci_asymp,count,0,0.921465968586387
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~.],ci_asymp,survival,0.5,0.921739130434783
+InferenceOrdinalCloglogRegr [design_formula=~1],ci_asymp,ordinal,0,0.922480620155039
+InferenceOrdinalCloglogRegr [design_formula=~.],ci_asymp,ordinal,0,0.922958397534669
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0.5,0.923076923076923
+InferenceContinKKGLMM (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0.5,0.923076923076923
+InferenceOrdinalKKCLMMCauchit (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0.5,0.923076923076923
+InferenceOrdinalKKCLMMCauchit [design_formula=~1],ci_asymp,ordinal,0.5,0.923076923076923
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0.5,0.924050632911392
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0.5,0.924050632911392
+InferenceContinKKQuantileRegrOneLik [design_formula=~1],ci_asymp,continuous,0.5,0.924050632911392
+InferenceCountPoisson (model_formula=~1) [design_formula=~.],ci_asymp,count,0.5,0.924731182795699
+InferenceContinOLS (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0,0.924956369982548
+InferenceOrdinalKKCLMM (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0,0.925
+InferenceOrdinalKKCLMM [design_formula=~.],ci_asymp,ordinal,0,0.925
+InferenceCountKKCondPoissonOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,0.925925925925926
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0,0.925925925925926
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0,0.926829268292683
+InferenceCountPoisson [design_formula=~1],ci_asymp,count,0.5,0.927835051546392
+InferencePropQuantileRegr [design_formula=~.],ci_asymp,proportion,0,0.928571428571429
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0.5,0.92948717948718
+InferenceContinQuantileRegr [design_formula=~1],ci_asymp,continuous,0.5,0.929742388758782
+InferenceOrdinalKKCLMMCloglog (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0.5,0.93
+InferenceCountPoisson [design_formula=~.],ci_asymp,count,0.5,0.930232558139535
+InferenceSurvivalKKWeibullMarginal [design_formula=~.],ci_asymp,survival,0,0.930555555555556
+InferenceIncidKKGCompRiskDiff (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.931034482758621
+InferenceContinLin (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0.5,0.931232091690544
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0.5,0.931428571428571
+InferenceCountQuasiPoisson (model_formula=~.) [design_formula=~.],ci_asymp,count,0,0.931578947368421
+InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,0.932515337423313
+InferenceOrdinalKKGEE [design_formula=~.],ci_asymp,ordinal,0,0.933333333333333
+InferenceIncidRiskDiff (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.933920704845815
+InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.933920704845815
+InferenceOrdinalCloglogRegr [design_formula=~1],ci_asymp,ordinal,0.5,0.934108527131783
+InferenceOrdinalKKCLMM (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0,0.934426229508197
+InferencePropGCompMeanDiff [design_formula=~.],ci_asymp,proportion,0,0.934624697336562
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~.],ci_asymp,count,0,0.935185185185185
+InferenceCountKKCondPoissonOneLik (model_formula=~1) [design_formula=~.],ci_asymp,count,0,0.935185185185185
+InferenceCountPoisson (model_formula=~.) [design_formula=~.],ci_asymp,count,0.5,0.935483870967742
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0.5,0.935897435897436
+InferenceCountNegBin (model_formula=~.) [design_formula=~.],ci_asymp,count,0,0.936339522546419
+InferenceCountNegBin [design_formula=~.],ci_asymp,count,0,0.936339522546419
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~1],ci_rand,proportion,0,0.936363636363636
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0.5,0.936708860759494
+InferenceOrdinalKKCLMMCloglog (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0,0.936842105263158
+InferenceOrdinalKKCLMMCloglog [design_formula=~1],ci_asymp,ordinal,0,0.936842105263158
+InferenceOrdinalKKCLMMProbit [design_formula=~1],ci_asymp,ordinal,0,0.936842105263158
+InferenceOrdinalKKCLMMProbit (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0,0.9375
+InferenceOrdinalKKCLMMProbit (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0,0.9375
+InferenceCountNegBin (model_formula=~1) [design_formula=~.],ci_asymp,count,0.5,0.937984496124031
+InferenceCountNegBin (model_formula=~1) [design_formula=~1],ci_asymp,count,0.5,0.938144329896907
+InferenceCountNegBin [design_formula=~1],ci_asymp,count,0.5,0.938144329896907
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,0.938650306748466
+InferenceOrdinalPropOddsRegr [design_formula=~.],ci_asymp,ordinal,0,0.938875305623472
+InferenceContinOLS [design_formula=~.],ci_asymp,continuous,0,0.939506172839506
+InferenceIncidExactBinomial [design_formula=~.],ci_exact,incidence,0.5,0.94
+InferenceOrdinalKKCLMMCloglog (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0.5,0.94
+InferenceOrdinalKKCLMMCloglog [design_formula=~1],ci_asymp,ordinal,0.5,0.94
+InferenceOrdinalKKGLMM (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0,0.94
+InferenceOrdinalKKGLMM (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0,0.94
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~.],ci_rand,proportion,0,0.94
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0,0.940677966101695
+InferenceContinKKQuantileRegrOneLik [design_formula=~1],ci_asymp,continuous,0,0.940677966101695
+InferenceOrdinalContRatioRegr [design_formula=~1],ci_asymp,ordinal,0,0.941860465116279
+InferenceOrdinalOrderedProbitRegr [design_formula=~1],ci_asymp,ordinal,0.5,0.941860465116279
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~1],ci_asymp,count,0,0.942307692307692
+InferenceContinOLS (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0.5,0.942528735632184
+InferenceContinLin (model_formula=~1) [design_formula=~1],ci_bootstrap,continuous,0.5,0.94273127753304
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~.],ci_asymp,survival,0.5,0.943069306930693
+InferenceContinLin (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0,0.943152454780362
+InferenceContinRobustRegr [design_formula=~.],ci_asymp,continuous,0.5,0.943223443223443
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~.],ci_asymp,survival,0,0.943359375
+InferenceOrdinalGCompMeanDiff [design_formula=~1],ci_asymp,ordinal,0,0.943462897526502
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0,0.944347826086956
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~1],ci_asymp,count,0,0.944444444444444
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~1],ci_asymp,count,0,0.944444444444444
+InferenceCountKKCondPoissonOneLik (model_formula=~1) [design_formula=~1],ci_asymp,count,0,0.944444444444444
+InferenceCountKKCondPoissonOneLik (model_formula=~.) [design_formula=~1],ci_asymp,count,0,0.944444444444444
+InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.],ci_bootstrap,survival,0,0.944444444444444
+InferenceOrdinalOrderedProbitRegr [design_formula=~.],ci_asymp,ordinal,0,0.944530046224962
+InferenceContinLin (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0,0.944554455445545
+InferencePropBetaRegr (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0,0.94478527607362
+InferenceAllSimpleWilcox [design_formula=~1],ci_asymp,ordinal,0.5,0.945736434108527
+InferenceOrdinalPartialProportionalOddsRegr [design_formula=~1],ci_asymp,ordinal,0.5,0.945736434108527
+InferenceContinLin (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0,0.945898778359511
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~.],ci_asymp,count,0.5,0.945945945945946
+InferenceOrdinalContRatioRegr [design_formula=~.],ci_asymp,ordinal,0,0.946070878274268
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0.5,0.946153846153846
+InferenceOrdinalKKCLMMProbit [design_formula=~.],ci_asymp,ordinal,0,0.946808510638298
+InferenceOrdinalKKCLMMProbit (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0,0.947089947089947
+InferenceCountPoisson [design_formula=~1],ci_asymp,count,0,0.947540983606557
+InferenceContinOLS (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0,0.947643979057592
+InferenceCountRobustPoisson (model_formula=~.) [design_formula=~.],ci_asymp,count,0,0.947643979057592
+InferenceOrdinalOrderedProbitRegr [design_formula=~1],ci_asymp,ordinal,0,0.947674418604651
+InferenceContinLin (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0,0.947735191637631
+InferenceCountHurdleNegBin [design_formula=~1],ci_asymp,count,0,0.947826086956522
+InferenceContinRobustRegr [design_formula=~.],ci_asymp,continuous,0,0.948148148148148
+InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.948275862068965
+InferenceIncidKKModifiedPoisson (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.948275862068965
+InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~1],ci_asymp,survival,0.5,0.948275862068965
+InferenceCountPoisson (model_formula=~1) [design_formula=~1],ci_asymp,count,0,0.948412698412698
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0.5,0.948717948717949
+InferenceCountPoisson (model_formula=~1) [design_formula=~1],ci_asymp,count,0.5,0.948717948717949
+InferenceCountPoisson (model_formula=~.) [design_formula=~1],ci_asymp,count,0.5,0.948717948717949
+InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0,0.949044585987261
+InferenceContinKKGLMM (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0,0.949152542372881
+InferenceOrdinalGCompMeanDiff [design_formula=~.],ci_asymp,ordinal,0.5,0.949238578680203
+InferenceContinKKGLMM [design_formula=~.],ci_asymp,continuous,0,0.949367088607595
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0.5,0.949367088607595
+InferenceContinKKGLMM (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0.5,0.949367088607595
+InferenceContinKKGLMM [design_formula=~1],ci_asymp,continuous,0.5,0.949367088607595
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0,0.949565217391304
+InferenceContinKKGLMM (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0,0.949579831932773
+InferenceOrdinalCauchitRegr [design_formula=~1],ci_asymp,ordinal,0,0.949612403100775
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,ordinal,0,0.949612403100775
+InferenceSurvivalKMDiff [design_formula=~1],ci_asymp,survival,0,0.949622166246851
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,ordinal,0,0.94980694980695
+InferenceAllSimpleWilcox [design_formula=~.],ci_bootstrap,continuous,0,0.95
+InferenceOrdinalKKCLMMProbit (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0.5,0.95
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0.5,0.95
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0.5,0.95
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,proportion,0.5,0.95
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,proportion,0.5,0.95
+InferenceIncidRiskDiff [design_formula=~.],ci_asymp,incidence,0,0.950146627565982
+InferenceContinQuantileRegr [design_formula=~1],ci_asymp,continuous,0,0.95024077046549
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0,0.95049504950495
+InferenceOrdinalAdjCatLogitRegr [design_formula=~.],ci_asymp,ordinal,0,0.950693374422188
+InferenceOrdinalPartialProportionalOddsRegr [design_formula=~.],ci_asymp,ordinal,0,0.950693374422188
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,0.950920245398773
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0,0.951219512195122
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0,0.951219512195122
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0,0.951304347826087
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~.],ci_asymp,survival,0,0.951388888888889
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.951541850220264
+InferenceOrdinalAdjCatLogitRegr [design_formula=~1],ci_asymp,ordinal,0,0.951550387596899
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~1],ci_asymp,survival,0.5,0.951557093425606
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],ci_rand,continuous,0,0.952
+InferenceCountQuasiPoisson [design_formula=~1],ci_asymp,count,0,0.952173913043478
+InferenceCountRobustPoisson [design_formula=~1],ci_asymp,count,0,0.952173913043478
+InferenceOrdinalGCompMeanDiff [design_formula=~1],ci_asymp,ordinal,0.5,0.95221843003413
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0,0.952475247524752
+InferenceAllSimpleWilcox [design_formula=~1],ci_asymp,continuous,0,0.952813067150635
+InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~1],ci_asymp,count,0,0.952879581151833
+InferenceOrdinalAdjCatLogitRegr [design_formula=~1],ci_bootstrap,ordinal,0,0.952941176470588
+InferenceOrdinalPropOddsRegr [design_formula=~1],ci_asymp,ordinal,0,0.953079178885631
+InferenceIncidLogRegr (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.953216374269006
+InferenceOrdinalPartialProportionalOddsRegr [design_formula=~1],ci_asymp,ordinal,0,0.953488372093023
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0,0.953781512605042
+InferenceContinLin (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0.5,0.953846153846154
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0.5,0.954285714285714
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~1],ci_rand_custom,count,0,0.954285714285714
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~1],ci_rand_custom,count,0,0.954285714285714
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~1],ci_rand_custom,count,0,0.954285714285714
+InferenceSurvivalStratCoxPHRegr [design_formula=~1],ci_asymp,survival,0,0.955223880597015
+InferenceContinLin (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0.5,0.955390334572491
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0,0.955414012738854
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0,0.955414012738854
+InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.955947136563877
+InferenceContinLin (model_formula=~1) [design_formula=~1],ci_bootstrap,continuous,0,0.956386292834891
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0.5,0.956410256410256
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0,0.956521739130435
+InferenceSurvivalLogRank [design_formula=~1],ci_asymp,survival,0,0.956730769230769
+InferenceSurvivalStratCoxPHRegr (model_formula=~1) [design_formula=~1],ci_asymp,survival,0,0.956937799043062
+InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,0.957055214723926
+InferencePropBetaRegr (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0,0.957055214723926
+InferenceIncidLogRegr (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.957142857142857
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,ordinal,0.5,0.957198443579767
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,ordinal,0.5,0.957364341085271
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0,0.957805907172996
+InferenceContinKKQuantileRegrOneLik [design_formula=~.],ci_asymp,continuous,0,0.957805907172996
+InferenceContinLin [design_formula=~1],ci_asymp,continuous,0.5,0.957845433255269
+InferenceContinOLS [design_formula=~1],ci_asymp,continuous,0.5,0.957845433255269
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~1],ci_asymp,survival,0,0.957920792079208
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0,0.957983193277311
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,continuous,0.5,0.958041958041958
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,continuous,0.5,0.958041958041958
+InferenceOrdinalAdjCatLogitRegr [design_formula=~.],ci_bootstrap,ordinal,0,0.958333333333333
+InferenceAllSimpleWilcox [design_formula=~.],ci_bootstrap,proportion,0,0.958333333333333
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0,0.958333333333333
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0,0.958333333333333
+InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.],ci_asymp,survival,0,0.958333333333333
+InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~.],ci_asymp,survival,0,0.958333333333333
+InferenceSurvivalKKWeibullMarginal [design_formula=~1],ci_asymp,survival,0,0.958904109589041
+InferenceSurvivalKKLWACoxPHOneLik [design_formula=~1],ci_asymp,survival,0,0.958904109589041
+InferenceSurvivalKKStratCoxPHOneLik [design_formula=~1],ci_asymp,survival,0,0.958904109589041
+InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~1],ci_asymp,survival,0,0.958904109589041
+InferenceCountPoisson (model_formula=~1) [design_formula=~.],ci_asymp,count,0,0.959259259259259
+InferenceIncidProbitRegr (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.959459459459459
+InferenceIncidRiskDiff (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.959459459459459
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.959459459459459
+InferencePropBetaRegr [design_formula=~1],ci_asymp,proportion,0,0.959459459459459
+InferencePropFractionalLogit [design_formula=~1],ci_asymp,proportion,0,0.959459459459459
+InferencePropZeroOneInflatedBetaRegr [design_formula=~1],ci_asymp,proportion,0,0.959459459459459
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,survival,0,0.95959595959596
+InferenceContinOLS (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0.5,0.959770114942529
+InferenceContinLin (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0.5,0.959885386819484
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0,0.96
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0,0.96
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0,0.96
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0,0.96
+InferenceContinKKGLMM (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0,0.96
+InferenceContinKKGLMM (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0,0.96
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0,0.96
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0,0.96
+InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.96
+InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.96
+InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.96
+InferenceIncidKKGEE [design_formula=~.],ci_asymp,incidence,0,0.96
+InferenceOrdinalKKCLMMCauchit (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0.5,0.96
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~.],ci_rand,proportion,0,0.96
+InferenceSurvivalCoxPHRegr [design_formula=~1],ci_asymp,survival,0,0.96
+InferenceSurvivalKMDiff [design_formula=~.],ci_asymp,survival,0,0.96031746031746
+InferenceCountNegBin (model_formula=~1) [design_formula=~1],ci_rand,count,0,0.96039603960396
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,continuous,0,0.960639606396064
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,continuous,0,0.960639606396064
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,count,0,0.96078431372549
+InferenceSurvivalCoxPHRegr (model_formula=~1) [design_formula=~1],ci_asymp,survival,0,0.961089494163424
+InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0,0.961783439490446
+InferenceContinKKGLMM (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0.5,0.962025316455696
+InferenceContinKKGLMM (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0,0.96218487394958
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0,0.96218487394958
+InferenceSurvivalRestrictedMeanDiff [design_formula=~1],ci_asymp,survival,0,0.962216624685139
+InferenceContinLin (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0,0.962376237623762
+InferenceContinOLS (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0,0.962376237623762
+InferenceContinRobustRegr [design_formula=~1],ci_asymp,continuous,0.5,0.962529274004684
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,count,0,0.962962962962963
+InferenceCountPoisson (model_formula=~1) [design_formula=~1],ci_rand,count,0,0.962962962962963
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand,count,0,0.962962962962963
+InferenceCountPoisson (model_formula=~1) [design_formula=~.],ci_rand,count,0,0.962962962962963
+InferenceContinLin [design_formula=~1],ci_asymp,continuous,0,0.963081861958267
+InferenceContinOLS [design_formula=~1],ci_asymp,continuous,0,0.963081861958267
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,continuous,0,0.963141025641026
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,continuous,0,0.963141025641026
+InferenceCountRobustPoisson (model_formula=~1) [design_formula=~1],ci_asymp,count,0,0.963350785340314
+InferenceCountQuasiPoisson (model_formula=~1) [design_formula=~1],ci_asymp,count,0,0.963350785340314
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,continuous,0.5,0.963369963369963
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_rand,continuous,0.5,0.963369963369963
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,continuous,0.5,0.963369963369963
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_rand,continuous,0.5,0.963369963369963
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,proportion,0,0.963746223564955
+InferencePropGCompMeanDiff [design_formula=~1],ci_asymp,proportion,0,0.963746223564955
+InferencePropZeroOneInflatedBetaRegr (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0,0.963768115942029
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,proportion,0,0.963855421686747
+InferenceAllSimpleWilcox [design_formula=~1],ci_asymp,proportion,0,0.963855421686747
+InferenceCountNegBin (model_formula=~1) [design_formula=~1],ci_asymp,count,0,0.963934426229508
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,count,0,0.963934426229508
+InferenceCountNegBin [design_formula=~1],ci_asymp,count,0,0.963934426229508
+InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.963963963963964
+InferenceContinOLS (model_formula=~.) [design_formula=~.],ci_rand,continuous,0.5,0.964102564102564
+InferenceAllSimpleWilcox [design_formula=~.],ci_asymp,continuous,0,0.964285714285714
+InferenceCountPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0.5,0.964285714285714
+InferencePropBetaRegr [design_formula=~.],ci_asymp,proportion,0,0.964285714285714
+InferenceIncidProbitRegr (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.964757709251101
+InferenceIncidRiskDiff (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.964757709251101
+InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.964757709251101
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.964757709251101
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~.],ci_rand_custom,count,0,0.964912280701754
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~.],ci_rand_custom,count,0,0.964912280701754
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~.],ci_rand_custom,count,0,0.964912280701754
+InferenceIncidKKGCompRiskDiff (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.964912280701754
+InferenceIncidKKModifiedPoisson (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.964912280701754
+InferenceAllSimpleWilcox [design_formula=~.],ci_bootstrap,continuous,0.5,0.965
+InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,0.965
+InferenceOrdinalContRatioRegr [design_formula=~1],ci_asymp,ordinal,0.5,0.965116279069768
+InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.96551724137931
+InferenceIncidKKNewcombeRiskDiff [design_formula=~1],ci_asymp,incidence,0,0.96551724137931
+InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.96551724137931
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0.5,0.965714285714286
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0.5,0.965714285714286
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0.5,0.965714285714286
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0.5,0.965714285714286
+InferenceContinLin (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0.5,0.965714285714286
+InferenceContinOLS (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0.5,0.965714285714286
+InferenceContinOLS (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0.5,0.965714285714286
+InferenceContinLin (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0.5,0.965714285714286
+InferencePropBetaRegr (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0,0.965909090909091
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0,0.966101694915254
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0,0.966101694915254
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0,0.966101694915254
+InferenceContinKKGLMM (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0,0.966101694915254
+InferenceContinKKGLMM [design_formula=~1],ci_asymp,continuous,0,0.966101694915254
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,survival,0,0.966269841269841
+InferenceContinOLS (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0,0.966336633663366
+InferenceContinLin (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0.5,0.966666666666667
+InferenceContinOLS (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0.5,0.966666666666667
+InferenceContinOLS (model_formula=~1) [design_formula=~.],ci_rand,continuous,0.5,0.966666666666667
+InferenceCountNegBin (model_formula=~1) [design_formula=~1],ci_rand_custom,count,0,0.966666666666667
+InferenceOrdinalKKCLMM [design_formula=~1],ci_asymp,ordinal,0,0.966666666666667
+InferenceContinOLS (model_formula=~1) [design_formula=~.],ci_rand,continuous,0,0.966841186736475
+InferenceOrdinalKKCLMM (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0,0.967213114754098
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_rand_custom,continuous,0.5,0.96734693877551
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_rand_custom,continuous,0.5,0.96734693877551
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand_custom,continuous,0.5,0.96734693877551
+InferenceAllSimpleWilcox [design_formula=~1],ci_asymp,continuous,0.5,0.967365967365967
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,survival,0,0.967455621301775
+InferenceCountNegBin (model_formula=~1) [design_formula=~.],ci_asymp,count,0,0.96816976127321
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,count,0,0.96816976127321
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand_custom,proportion,0,0.968468468468468
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0.5,0.968571428571429
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~.],ci_asymp,continuous,0.5,0.969230769230769
+InferenceAllSimpleWilcox [design_formula=~1],ci_bootstrap,continuous,0,0.969230769230769
+InferenceContinLin (model_formula=~1) [design_formula=~1],ci_rand,continuous,0,0.969359331476323
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,survival,0,0.969411764705882
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_rand,continuous,0.5,0.96969696969697
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_rand,continuous,0.5,0.96969696969697
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0,0.96969696969697
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0,0.96969696969697
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~.],ci_rand,continuous,0,0.97
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.97
+InferenceSurvivalRestrictedMeanDiff [design_formula=~.],ci_asymp,survival,0,0.970238095238095
+InferenceContinLin (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0.5,0.970260223048327
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_rand,continuous,0,0.970479704797048
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0,0.970588235294118
+InferenceContinRobustRegr [design_formula=~1],ci_asymp,continuous,0,0.971107544141252
+InferenceContinOLS (model_formula=~1) [design_formula=~1],ci_rand,continuous,0.5,0.971264367816092
+InferenceContinOLS (model_formula=~.) [design_formula=~1],ci_rand,continuous,0.5,0.971264367816092
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0.5,0.971428571428571
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0.5,0.971428571428571
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0.5,0.971428571428571
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0.5,0.971428571428571
+InferenceContinKKGLMM (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0.5,0.971428571428571
+InferenceContinKKGLMM (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0.5,0.971428571428571
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0.5,0.971428571428571
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0.5,0.971428571428571
+InferenceIncidRiskDiff [design_formula=~1],ci_asymp,incidence,0,0.971428571428571
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0.5,0.972222222222222
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0.5,0.972222222222222
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0.5,0.972222222222222
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0.5,0.972222222222222
+InferenceContinKKGLMM (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0.5,0.972222222222222
+InferenceContinKKGLMM (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0.5,0.972222222222222
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0.5,0.972222222222222
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0.5,0.972222222222222
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~1],ci_asymp,continuous,0,0.972277227722772
+InferenceAllSimpleWilcox [design_formula=~.],ci_asymp,continuous,0.5,0.972527472527472
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand,continuous,0,0.972776769509982
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand,continuous,0,0.972857142857143
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_rand,continuous,0,0.972939729397294
+InferenceIncidRiskDiff (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.972972972972973
+InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.972972972972973
+InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.972972972972973
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand_custom,proportion,0,0.972972972972973
+InferenceCountNegBin (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0.5,0.973333333333333
+InferenceCountPoisson (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0.5,0.973684210526316
+InferenceCountNegBin (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0.5,0.973684210526316
+InferenceIncidKKNewcombeRiskDiff [design_formula=~.],ci_asymp,incidence,0,0.973684210526316
+InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.973684210526316
+InferenceCountRobustPoisson (model_formula=~1) [design_formula=~.],ci_asymp,count,0,0.973821989528796
+InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~.],ci_asymp,survival,0.5,0.973913043478261
+InferenceSurvivalGehanWilcox [design_formula=~.],ci_rand_custom,survival,0,0.974025974025974
+InferenceSurvivalLogRank [design_formula=~.],ci_rand_custom,survival,0,0.974025974025974
+InferenceContinLin (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0,0.974160206718346
+InferenceContinOLS (model_formula=~1) [design_formula=~1],ci_rand,continuous,0,0.974257425742574
+InferenceAllSimpleWilcox [design_formula=~.],ci_asymp,ordinal,0.5,0.974285714285714
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_rand,continuous,0,0.974358974358974
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_rand,continuous,0,0.974358974358974
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand,proportion,0,0.974509803921569
+InferenceCountNegBin (model_formula=~1) [design_formula=~.],ci_rand_custom,count,0,0.974789915966386
+InferenceSurvivalLogRank [design_formula=~.],ci_asymp,survival,0,0.97489539748954
+InferenceSurvivalStratCoxPHRegr (model_formula=~1) [design_formula=~.],ci_asymp,survival,0,0.97489539748954
+InferenceContinLin (model_formula=~.) [design_formula=~1],ci_rand,continuous,0,0.974930362116992
+InferenceCountPoissonKKGEE (model_formula=~1) [design_formula=~.],ci_rand,count,0,0.975
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,proportion,0,0.975
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,proportion,0,0.975
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~1],ci_rand,proportion,0,0.975
+InferenceIncidWald [design_formula=~1],ci_asymp,incidence,0,0.97508896797153
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,proportion,0,0.975786924939467
+InferenceSurvivalRestrictedMeanDiff [design_formula=~1],ci_rand_custom,survival,0,0.975845410628019
+InferenceSurvivalKMDiff [design_formula=~1],ci_rand_custom,survival,0,0.975845410628019
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,survival,0,0.975845410628019
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,survival,0,0.975845410628019
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,proportion,0,0.975903614457831
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~1],ci_rand,continuous,0,0.976
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],ci_rand,continuous,0,0.976
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand,continuous,0.5,0.976190476190476
+InferenceCountNegBin (model_formula=~1) [design_formula=~.],ci_rand,count,0.5,0.976190476190476
+InferenceIncidExactZhang [design_formula=~.],ci_exact,incidence,0,0.976608187134503
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~1],ci_rand,continuous,0,0.976785714285714
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_rand_custom,continuous,0.5,0.976851851851852
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_rand_custom,continuous,0.5,0.976851851851852
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand_custom,continuous,0.5,0.976851851851852
+InferenceIncidProbitRegr (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.977477477477477
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0.5,0.977653631284916
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0.5,0.977653631284916
+InferenceContinLin (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0.5,0.977653631284916
+InferenceContinLin (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0.5,0.977653631284916
+InferenceContinOLS (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0.5,0.977653631284916
+InferenceContinOLS (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0.5,0.977653631284916
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0.5,0.977777777777778
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0.5,0.977777777777778
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,ordinal,0,0.978428351309707
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,ordinal,0,0.978560490045942
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~1],ci_rand,continuous,0,0.978571428571428
+InferenceIncidMiettinenNurminenRiskDiff [design_formula=~1],ci_asymp,incidence,0,0.978571428571428
+InferenceIncidNewcombeRiskDiff [design_formula=~1],ci_asymp,incidence,0,0.978571428571428
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_asymp,incidence,0,0.978571428571428
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_asymp,incidence,0,0.97864768683274
+InferenceIncidLogRegr (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.97864768683274
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,survival,0,0.978723404255319
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,survival,0,0.978723404255319
+InferenceSurvivalRestrictedMeanDiff [design_formula=~.],ci_rand_custom,survival,0,0.978813559322034
+InferenceSurvivalKMDiff [design_formula=~.],ci_rand_custom,survival,0,0.978813559322034
+InferenceOrdinalKKCLMMCloglog (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0,0.978835978835979
+InferenceCountQuasiPoisson (model_formula=~1) [design_formula=~.],ci_asymp,count,0,0.979057591623037
+InferencePropKKGEE (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0,0.979166666666667
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0,0.979166666666667
+InferencePropKKGEE [design_formula=~.],ci_asymp,proportion,0,0.979166666666667
+InferencePropKKQuantileRegrOneLik [design_formula=~.],ci_asymp,proportion,0,0.979166666666667
+InferenceAllSimpleWilcox [design_formula=~1],ci_bootstrap,proportion,0,0.979381443298969
+InferenceIncidMiettinenNurminenRiskDiff [design_formula=~.],ci_asymp,incidence,0,0.979472140762463
+InferenceIncidNewcombeRiskDiff [design_formula=~.],ci_asymp,incidence,0,0.979472140762463
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,incidence,0,0.979472140762463
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,incidence,0,0.97953216374269
+InferenceIncidWald [design_formula=~.],ci_asymp,incidence,0,0.97953216374269
+InferenceIncidLogRegr (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.97953216374269
+InferenceAllSimpleWilcox [design_formula=~1],ci_bootstrap,continuous,0.5,0.98
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0,0.98
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0,0.98
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0,0.98
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0,0.98
+InferenceContinLin (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0,0.98
+InferenceContinLin (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0,0.98
+InferenceContinOLS (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0,0.98
+InferenceContinOLS (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0,0.98
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~1],ci_rand,continuous,0,0.98
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_rand_custom,continuous,0,0.98
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_rand_custom,continuous,0,0.98
+InferenceAllSimpleWilcox [design_formula=~.],ci_rand_custom,continuous,0,0.98
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand,continuous,0,0.98
+InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.98
+InferenceOrdinalKKCLMMProbit (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0.5,0.98
+InferenceOrdinalKKCLMMProbit [design_formula=~1],ci_asymp,ordinal,0.5,0.98
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_asymp,ordinal,0.5,0.98
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_asymp,ordinal,0.5,0.98
+InferenceOrdinalKKCLMMCauchit (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0,0.98
+InferenceOrdinalKKCLMMCauchit [design_formula=~1],ci_asymp,ordinal,0,0.98
+InferenceAllSimpleWilcox [design_formula=~.],ci_asymp,proportion,0,0.980722891566265
+InferencePropKKGLMM (model_formula=~1) [design_formula=~.],ci_rand,proportion,0,0.981132075471698
+InferencePropKKGLMM (model_formula=~1) [design_formula=~1],ci_rand,proportion,0,0.981481481481481
+InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.982378854625551
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand,proportion,0,0.982412060301507
+InferenceIncidKKModifiedPoisson (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.982456140350877
+InferenceIncidKKGCompRiskDiff (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,0.982456140350877
+InferenceIncidExactZhang [design_formula=~1],ci_exact,incidence,0,0.982608695652174
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~1],ci_asymp,survival,0,0.982673267326733
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0,0.982683982683983
+InferenceIncidKKModifiedPoisson (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.982758620689655
+InferenceSurvivalKKWeibullMarginal [design_formula=~1],ci_asymp,survival,0.5,0.982758620689655
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~.],ci_rand,continuous,0,0.9828125
+InferenceContinLin (model_formula=~.) [design_formula=~.],ci_rand,continuous,0,0.983240223463687
+InferenceSurvivalGehanWilcox [design_formula=~.],ci_asymp,survival,0,0.98326359832636
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_rand_custom,continuous,0,0.983388704318937
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_rand_custom,continuous,0,0.983388704318937
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand_custom,continuous,0,0.983388704318937
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~.],ci_rand,continuous,0,0.984
+InferenceOrdinalKKCLMMProbit (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0,0.984126984126984
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~.],ci_rand,continuous,0,0.984375
+InferencePropZeroOneInflatedBetaRegr (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0,0.984375
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0,0.984375
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~.],ci_asymp,survival,0,0.984375
+InferenceContinLin (model_formula=~.) [design_formula=~1],ci_bootstrap,continuous,0,0.984423676012461
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~.],ci_rand_custom,survival,0,0.984848484848485
+InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.985
+InferenceSurvivalKKWeibullMarginal [design_formula=~.],ci_rand_custom,survival,0,0.985074626865672
+InferenceCountNegBin (model_formula=~1) [design_formula=~1],ci_rand,count,0.5,0.985507246376812
+InferenceCountNegBin (model_formula=~.) [design_formula=~1],ci_rand,count,0.5,0.985507246376812
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0,0.985507246376812
+InferenceSurvivalGehanWilcox [design_formula=~1],ci_asymp,survival,0,0.985576923076923
+InferencePropKKGLMM (model_formula=~1) [design_formula=~.],ci_rand_custom,proportion,0,0.986486486486486
+InferenceSurvivalCoxPHRegr (model_formula=~1) [design_formula=~.],ci_asymp,survival,0,0.986928104575163
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0.5,0.987341772151899
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0,0.988
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0,0.988
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0,0.988
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0,0.988
+InferenceContinLin (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0,0.988
+InferenceContinLin (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0,0.988
+InferenceContinOLS (model_formula=~1) [design_formula=~.],ci_rand_custom,continuous,0,0.988
+InferenceContinOLS (model_formula=~.) [design_formula=~.],ci_rand_custom,continuous,0,0.988
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand,continuous,0.5,0.988344988344988
+InferenceIncidExactFisher [design_formula=~1],ci_exact,incidence,0,0.988505747126437
+InferencePropBetaRegr (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0,0.988636363636364
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~.],ci_asymp,survival,0.5,0.99009900990099
+InferenceContinLin (model_formula=~.) [design_formula=~1],ci_bootstrap,continuous,0.5,0.991189427312775
+InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,0.991189427312775
+InferenceIncidExactFisher [design_formula=~.],ci_exact,incidence,0,0.991228070175439
+InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],ci_asymp,incidence,0,0.991228070175439
+InferenceContinLin (model_formula=~1) [design_formula=~.],ci_rand,continuous,0,0.991620111731844
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~1],ci_asymp,survival,0.5,0.993079584775086
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],ci_rand,continuous,0.5,0.994652406417112
+InferenceSurvivalGehanWilcox [design_formula=~1],ci_rand_custom,survival,0,0.995049504950495
+InferenceSurvivalLogRank [design_formula=~1],ci_rand_custom,survival,0,0.995049504950495
+InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,0.995495495495495
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~1],ci_rand,continuous,0.5,1
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~1],ci_rand,continuous,0.5,1
+InferenceContinRobustRegr (model_formula=~1) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinRobustRegr (model_formula=~.) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinLin (model_formula=~1) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~1],ci_rand,continuous,0.5,1
+InferenceContinLin (model_formula=~1) [design_formula=~1],ci_rand,continuous,0.5,1
+InferenceContinLin (model_formula=~.) [design_formula=~1],ci_rand,continuous,0.5,1
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinLin (model_formula=~.) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~.],ci_rand,continuous,0.5,1
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand,continuous,0.5,1
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~1],ci_rand,continuous,0.5,1
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~1],ci_rand,continuous,0.5,1
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0,1
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0,1
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0,1
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0,1
+InferenceContinKKGLMM (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0,1
+InferenceContinKKGLMM (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0,1
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,continuous,0,1
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand_custom,continuous,0,1
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand,continuous,0,1
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~1],ci_rand,continuous,0,1
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~.],ci_rand,continuous,0,1
+InferenceAllSimpleWilcox [design_formula=~1],ci_asymp,count,0,1
+InferenceAllSimpleWilcox [design_formula=~.],ci_asymp,count,0,1
+InferenceCountKKCondPoissonOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0.5,1
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~1],ci_asymp,count,0.5,1
+InferenceCountKKCondPoissonOneLik (model_formula=~.) [design_formula=~1],ci_asymp,count,0.5,1
+InferenceCountPoisson (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0.5,1
+InferenceCountNegBin (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0.5,1
+InferenceCountPoissonKKGEE (model_formula=~.) [design_formula=~1],ci_asymp,count,0,1
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~1],ci_rand,count,0,1
+InferenceCountPoissonKKGEE (model_formula=~1) [design_formula=~1],ci_rand,count,0,1
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~.],ci_rand,count,0,1
+InferenceCountPoissonKKGEE (model_formula=~1) [design_formula=~1],ci_rand_custom,count,0,1
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~1],ci_rand_custom,count,0,1
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~1],ci_rand_custom,count,0,1
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,count,0,1
+InferenceCountPoissonKKGEE (model_formula=~1) [design_formula=~.],ci_rand_custom,count,0,1
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~.],ci_rand_custom,count,0,1
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~.],ci_rand_custom,count,0,1
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,count,0,1
+InferenceCountPoissonKKGEE (model_formula=~.) [design_formula=~1],ci_rand,count,0,1
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~1],ci_rand,count,0.5,1
+InferenceCountPoissonKKGEE (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,1
+InferenceAllSimpleWilcox [design_formula=~1],ci_rand,count,0,1
+InferenceCountPoisson (model_formula=~.) [design_formula=~1],ci_rand,count,0,1
+InferenceCountPoisson (model_formula=~.) [design_formula=~.],ci_rand,count,0,1
+InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~.],ci_rand,count,0,1
+InferenceCountPoisson (model_formula=~1) [design_formula=~1],ci_rand,count,0.5,1
+InferenceCountPoisson (model_formula=~.) [design_formula=~1],ci_rand,count,0.5,1
+InferenceCountPoisson (model_formula=~1) [design_formula=~.],ci_rand,count,0.5,1
+InferenceCountPoisson (model_formula=~.) [design_formula=~.],ci_rand,count,0.5,1
+InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,1
+InferenceIncidExactBinomial [design_formula=~.],ci_exact,incidence,0,1
+InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,1
+InferenceAllSimpleWilcox [design_formula=~1],ci_asymp,ordinal,0,1
+InferenceAllSimpleWilcox [design_formula=~.],ci_asymp,ordinal,0,1
+InferenceOrdinalKKCLMM (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0,1
+InferenceOrdinalKKCLMM (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0.5,1
+InferenceOrdinalKKCLMMCauchit (model_formula=~1) [design_formula=~.],ci_asymp,ordinal,0,1
+InferencePropKKGLMM (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0,1
+InferencePropKKGLMM [design_formula=~1],ci_asymp,proportion,0,1
+InferencePropKKGLMM (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0,1
+InferencePropKKGLMM (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0,1
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0,1
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0.5,1
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0.5,1
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0.5,1
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0.5,1
+InferencePropFractionalLogit [design_formula=~.],ci_asymp,proportion,0,1
+InferencePropKKGEE (model_formula=~1) [design_formula=~.],ci_rand_custom,proportion,0,1
+InferencePropKKGEE (model_formula=~.) [design_formula=~.],ci_rand_custom,proportion,0,1
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,proportion,0,1
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand_custom,proportion,0,1
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~1],ci_rand,proportion,0,1
+InferencePropZeroOneInflatedBetaRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0,1
+InferencePropZeroOneInflatedBetaRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0,1
+InferencePropZeroOneInflatedBetaRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0,1
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik [design_formula=~1],ci_asymp,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand_custom,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand_custom,proportion,0.5,1
+InferencePropKKQuantileRegrOneLik [design_formula=~.],ci_asymp,proportion,0.5,1
+InferenceSurvivalKKWeibullMarginal [design_formula=~1],ci_rand_custom,survival,0,1
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~1],ci_rand_custom,survival,0,1
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~1],ci_bootstrap,survival,0,1
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~1],ci_rand,survival,0,1
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~.],ci_rand,survival,0,1
+InferenceContinOLS (model_formula=~.) [design_formula=~1],ci_rand,continuous,0,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,continuous,0,
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_bootstrap,continuous,0,
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,continuous,0,
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,continuous,0,
+InferenceContinOLS (model_formula=~1) [design_formula=~1],ci_bootstrap,continuous,0,
+InferenceContinOLS (model_formula=~.) [design_formula=~1],ci_bootstrap,continuous,0,
+InferenceContinOLS (model_formula=~.) [design_formula=~.],ci_rand,continuous,0,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinOLS (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinOLS (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~1],ci_asymp,continuous,0.5,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,continuous,0.5,
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~1],ci_bootstrap,continuous,0.5,
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,continuous,0.5,
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,continuous,0.5,
+InferenceContinOLS (model_formula=~1) [design_formula=~1],ci_bootstrap,continuous,0.5,
+InferenceContinOLS (model_formula=~.) [design_formula=~1],ci_bootstrap,continuous,0.5,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],ci_asymp,continuous,0.5,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinQuantileRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinOLS (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinOLS (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinKKRobustRegrOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinKKOLSOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinKKOLSOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,continuous,0.5,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand,continuous,0.5,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand,continuous,0.5,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand,continuous,0,
+InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand,continuous,0,
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand,continuous,0,
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand,continuous,0,
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand,continuous,0,
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand,continuous,0,
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand,continuous,0.5,
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand,continuous,0.5,
+InferenceContinKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand,continuous,0.5,
+InferenceContinKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand,continuous,0.5,
+InferenceCountPoisson (model_formula=~.) [design_formula=~1],ci_asymp,count,0,
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~1],ci_asymp,count,0,
+InferenceCountKKGLMM [design_formula=~1],ci_asymp,count,0,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,count,0,
+InferenceAllSimpleWilcox [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountPoisson (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountPoisson (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountNegBin (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountNegBin (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountPoisson (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountPoisson [design_formula=~.],ci_asymp,count,0,
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~.],ci_asymp,count,0,
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountKKCondPoissonOneLik (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountKKGLMM [design_formula=~.],ci_asymp,count,0,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,count,0,
+InferenceAllSimpleWilcox [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountNegBin (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountNegBin (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountKKCondPoissonOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,count,0.5,
+InferenceAllSimpleWilcox [design_formula=~.],ci_bootstrap,count,0.5,
+InferenceCountPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0.5,
+InferenceCountNegBin (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0.5,
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~.],ci_asymp,count,0.5,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0.5,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~.],ci_asymp,count,0.5,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0.5,
+InferenceCountKKCondPoissonOneLik (model_formula=~.) [design_formula=~.],ci_asymp,count,0.5,
+InferenceCountKKCondPoissonOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0.5,
+InferenceCountKKGLMM [design_formula=~.],ci_asymp,count,0.5,
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~1],ci_asymp,count,0.5,
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~1],ci_asymp,count,0.5,
+InferenceCountKKGLMM [design_formula=~1],ci_asymp,count,0.5,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,count,0.5,
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~1],ci_asymp,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~1],ci_asymp,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~1],ci_asymp,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~1],ci_asymp,count,0,
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~1],ci_asymp,count,0,
+InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~1],ci_asymp,count,0,
+InferenceCountHurdlePoisson [design_formula=~1],ci_asymp,count,0,
+InferenceCountZeroInflatedNegBin [design_formula=~1],ci_asymp,count,0,
+InferenceCountZeroInflatedPoisson [design_formula=~1],ci_asymp,count,0,
+InferenceCountRobustPoisson (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountRobustPoisson (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountQuasiPoisson (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountQuasiPoisson (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~.],ci_asymp,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~.],ci_asymp,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~.],ci_asymp,count,0,
+InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~.],ci_asymp,count,0,
+InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountHurdleNegBin [design_formula=~.],ci_asymp,count,0,
+InferenceCountHurdlePoisson [design_formula=~.],ci_asymp,count,0,
+InferenceCountZeroInflatedNegBin [design_formula=~.],ci_asymp,count,0,
+InferenceCountZeroInflatedPoisson [design_formula=~.],ci_asymp,count,0,
+InferenceCountPoissonKKGEE (model_formula=~.) [design_formula=~.],ci_asymp,count,0,
+InferenceCountPoissonKKGEE [design_formula=~.],ci_asymp,count,0,
+InferenceCountRobustPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountRobustPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountQuasiPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountQuasiPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~1],ci_rand,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~1],ci_rand,count,0,
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~1],ci_rand,count,0,
+InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~.],ci_rand,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~.],ci_rand,count,0,
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~.],ci_rand,count,0,
+InferenceCountNegBin (model_formula=~1) [design_formula=~.],ci_rand,count,0,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~.],ci_rand,count,0,
+InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountPoissonKKGEE (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountPoissonKKGEE (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~.],ci_bootstrap,count,0,
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~1],ci_rand,count,0,
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~1],ci_rand,count,0,
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~.],ci_rand,count,0,
+InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~1],ci_rand,count,0,
+InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~.],ci_rand,count,0,
+InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~1],ci_rand,count,0.5,
+InferenceCountHurdlePoisson (model_formula=~1) [design_formula=~.],ci_rand,count,0.5,
+InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~.],ci_rand,count,0.5,
+InferenceCountKKGLMM (model_formula=~1) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountKKGLMM (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~1],ci_rand,count,0,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~.],ci_rand,count,0,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~1],ci_rand,count,0.5,
+InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~.],ci_rand,count,0.5,
+InferenceCountNegBin (model_formula=~.) [design_formula=~1],ci_rand,count,0,
+InferenceCountNegBin (model_formula=~.) [design_formula=~.],ci_rand,count,0,
+InferenceCountNegBin (model_formula=~.) [design_formula=~.],ci_rand,count,0.5,
+InferenceCountPoissonKKGEE (model_formula=~.) [design_formula=~1],ci_bootstrap,count,0,
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~1],ci_rand,count,0.5,
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~1],ci_rand,count,0.5,
+InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~.],ci_rand,count,0.5,
+InferenceCountZeroInflatedPoisson (model_formula=~.) [design_formula=~.],ci_rand,count,0.5,
+InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~1],ci_rand,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~1],ci_rand,count,0,
+InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~1],ci_rand,count,0,
+InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~1],ci_rand,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~.],ci_rand,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~.],ci_rand,count,0,
+InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~.],ci_rand,count,0,
+InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~1],ci_rand,count,0.5,
+InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~1],ci_rand,count,0.5,
+InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~1],ci_rand,count,0.5,
+InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~.],ci_rand,count,0.5,
+InferenceCountZeroInflatedNegBin (model_formula=~.) [design_formula=~.],ci_rand,count,0.5,
+InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~.],ci_rand,count,0.5,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidWald [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidLogRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidLogRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidProbitRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidProbitRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidMiettinenNurminenRiskDiff [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidNewcombeRiskDiff [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidWald [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidLogRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidLogRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidProbitRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidMiettinenNurminenRiskDiff [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidNewcombeRiskDiff [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKNewcombeRiskDiff [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKModifiedPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKModifiedPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidWald [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidLogRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidLogRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidProbitRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidProbitRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidMiettinenNurminenRiskDiff [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidNewcombeRiskDiff [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidWald [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidLogRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidLogRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidProbitRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidMiettinenNurminenRiskDiff [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidNewcombeRiskDiff [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKNewcombeRiskDiff [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKModifiedPoisson (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKModifiedPoisson (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0,
+InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0,
+InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],ci_asymp,incidence,0.5,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],ci_asymp,incidence,0.5,
+InferenceIncidExactFisher [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidExactBinomial [design_formula=~1],ci_bootstrap,incidence,0,
+InferenceIncidExactFisher [design_formula=~.],ci_bootstrap,incidence,0,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],ci_asymp,incidence,0.5,
+InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],ci_bootstrap,incidence,0.5,
+InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],ci_bootstrap,incidence,0.5,
+InferenceOrdinalKKCLMMCloglog (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0,
+InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~1],ci_asymp,ordinal,0,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceAllSimpleWilcox [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalContRatioRegr [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalGCompMeanDiff [design_formula=~.],ci_asymp,ordinal,0,
+InferenceOrdinalKKCLMMCloglog (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0,
+InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~.],ci_asymp,ordinal,0,
+InferenceOrdinalKKCLMMCloglog [design_formula=~.],ci_asymp,ordinal,0,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceAllSimpleWilcox [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalContRatioRegr [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCLMMProbit (model_formula=~1) [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCLMMProbit (model_formula=~.) [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCLMMCloglog (model_formula=~1) [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCLMMCloglog (model_formula=~.) [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCLMMProbit (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKCLMMCloglog (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceAllSimpleWilcox [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalContRatioRegr [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKCLMMCloglog (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKCLMMCloglog [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceAllSimpleWilcox [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalContRatioRegr [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKCLMMProbit (model_formula=~1) [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKCLMMProbit (model_formula=~.) [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKCLMMCloglog (model_formula=~1) [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKCLMMCloglog (model_formula=~.) [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalStereotypeLogitRegr [design_formula=~1],ci_asymp,ordinal,0,
+InferenceOrdinalPairedSignTest [design_formula=~1],ci_asymp,ordinal,0,
+InferenceOrdinalKKGEE [design_formula=~1],ci_asymp,ordinal,0,
+InferenceOrdinalPropOddsRegr [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalStereotypeLogitRegr [design_formula=~.],ci_asymp,ordinal,0,
+InferenceOrdinalPairedSignTest [design_formula=~.],ci_asymp,ordinal,0,
+InferenceOrdinalPropOddsRegr [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCLMM (model_formula=~1) [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCLMM (model_formula=~.) [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalOrderedProbitRegr [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalPartialProportionalOddsRegr [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalCloglogRegr [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalGCompMeanDiff [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalCauchitRegr [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalOrderedProbitRegr [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalCloglogRegr [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalGCompMeanDiff [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalCauchitRegr [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalPairedSignTest [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalPairedSignTest [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalOrderedProbitRegr [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalStereotypeLogitRegr [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceOrdinalPropOddsRegr [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalPartialProportionalOddsRegr [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalCloglogRegr [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalGCompMeanDiff [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalCauchitRegr [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKGEE [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceOrdinalPairedSignTest [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceOrdinalOrderedProbitRegr [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalStereotypeLogitRegr [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceOrdinalPropOddsRegr [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalCloglogRegr [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalGCompMeanDiff [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalCauchitRegr [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalPairedSignTest [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKCLMM (model_formula=~1) [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKCLMM (model_formula=~.) [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalPairedSignTest [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKGLMM (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0,
+InferenceOrdinalKKCLMMCauchit (model_formula=~1) [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKCLMMCauchit (model_formula=~.) [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalRidit [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKGLMM [design_formula=~.],ci_asymp,ordinal,0,
+InferenceOrdinalRidit [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKGLMM (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0,
+InferenceOrdinalKKGLMM [design_formula=~1],ci_asymp,ordinal,0,
+InferenceOrdinalRidit [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKGLMM (model_formula=~1) [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKGLMM (model_formula=~.) [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKGLMM [design_formula=~1],ci_asymp,ordinal,0.5,
+InferenceOrdinalRidit [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKGLMM (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKCLMMCauchit (model_formula=~.) [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKCLMMCauchit [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKGLMM [design_formula=~.],ci_asymp,ordinal,0.5,
+InferenceOrdinalKKCLMMCauchit (model_formula=~1) [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKCLMMCauchit (model_formula=~.) [design_formula=~.],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalKKGEE [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalKKGEE [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalPairedSignTest [design_formula=~1],ci_bootstrap,ordinal,0.5,
+InferenceOrdinalPartialProportionalOddsRegr [design_formula=~.],ci_bootstrap,ordinal,0,
+InferenceOrdinalStereotypeLogitRegr [design_formula=~1],ci_bootstrap,ordinal,0,
+InferenceOrdinalStereotypeLogitRegr [design_formula=~.],ci_bootstrap,ordinal,0,
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0,
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,proportion,0,
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0,
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,proportion,0,
+InferenceAllSimpleAverageDiff [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~.],ci_asymp,proportion,0.5,
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0.5,
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~1],ci_asymp,proportion,0.5,
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0.5,
+InferenceAllSimpleAverageDiff [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropGCompMeanDiff (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropGCompMeanDiff (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~1],ci_rand,proportion,0,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~.],ci_rand,proportion,0,
+InferencePropKKGLMM [design_formula=~.],ci_asymp,proportion,0,
+InferencePropKKGLMM (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~.],ci_rand_custom,proportion,0,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0.5,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~1],ci_rand,proportion,0.5,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0.5,
+InferencePropKKGLMM (model_formula=~.) [design_formula=~.],ci_rand,proportion,0.5,
+InferencePropKKGLMM [design_formula=~.],ci_asymp,proportion,0.5,
+InferencePropZeroOneInflatedBetaRegr (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0,
+InferencePropZeroOneInflatedBetaRegr (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0,
+InferencePropBetaRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,proportion,0,
+InferencePropBetaRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropBetaRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,proportion,0,
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropBetaRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0,
+InferencePropBetaRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0,
+InferencePropBetaRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0,
+InferencePropBetaRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0,
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0,
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0,
+InferencePropBetaRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropBetaRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropBetaRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,proportion,0.5,
+InferencePropBetaRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropBetaRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,proportion,0.5,
+InferencePropZeroOneInflatedBetaRegr (model_formula=~.) [design_formula=~1],ci_asymp,proportion,0.5,
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropBetaRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropBetaRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,proportion,0.5,
+InferencePropBetaRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropBetaRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,proportion,0.5,
+InferencePropZeroOneInflatedBetaRegr (model_formula=~.) [design_formula=~.],ci_asymp,proportion,0.5,
+InferencePropFractionalLogit (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropFractionalLogit (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0,
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0,
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand,proportion,0,
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand,proportion,0,
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropZeroOneInflatedBetaRegr [design_formula=~.],ci_asymp,proportion,0,
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand,proportion,0,
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand,proportion,0,
+InferencePropKKGEE (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropKKGEE (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0,
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,proportion,0.5,
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~1],ci_rand,proportion,0.5,
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~1],ci_rand,proportion,0.5,
+InferencePropQuantileRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropQuantileRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_rand,proportion,0.5,
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_rand,proportion,0.5,
+InferencePropKKQuantileRegrOneLik (model_formula=~1) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferencePropKKQuantileRegrOneLik (model_formula=~.) [design_formula=~.],ci_bootstrap,proportion,0.5,
+InferenceSurvivalRestrictedMeanDiff [design_formula=~1],ci_rand,survival,0,
+InferenceSurvivalKMDiff [design_formula=~1],ci_rand,survival,0,
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~1],ci_asymp,survival,0,
+InferenceSurvivalRestrictedMeanDiff [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalKMDiff [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalRestrictedMeanDiff [design_formula=~.],ci_rand,survival,0,
+InferenceSurvivalKMDiff [design_formula=~.],ci_rand,survival,0,
+InferenceSurvivalRestrictedMeanDiff [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalKMDiff [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalKKWeibullMarginal [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalKKLWACoxPHOneLik [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalRestrictedMeanDiff [design_formula=~1],ci_rand,survival,0.5,
+InferenceSurvivalKMDiff [design_formula=~1],ci_rand,survival,0.5,
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~1],ci_asymp,survival,0.5,
+InferenceSurvivalRestrictedMeanDiff [design_formula=~1],ci_bootstrap,survival,0.5,
+InferenceSurvivalKMDiff [design_formula=~1],ci_bootstrap,survival,0.5,
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,survival,0.5,
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,survival,0.5,
+InferenceSurvivalRestrictedMeanDiff [design_formula=~.],ci_rand,survival,0.5,
+InferenceSurvivalKMDiff [design_formula=~.],ci_rand,survival,0.5,
+InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.],ci_asymp,survival,0.5,
+InferenceSurvivalRestrictedMeanDiff [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalKMDiff [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalWeibullRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalKKWeibullMarginal [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalKKLWACoxPHOneLik [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~1],ci_asymp,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~1],ci_rand,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~1],ci_asymp,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~1],ci_rand,survival,0,
+InferenceSurvivalCoxPHRegr (model_formula=~.) [design_formula=~1],ci_asymp,survival,0,
+InferenceSurvivalCoxPHRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalCoxPHRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~.],ci_asymp,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~.],ci_rand,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~.],ci_asymp,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~.],ci_rand,survival,0,
+InferenceSurvivalCoxPHRegr (model_formula=~.) [design_formula=~.],ci_asymp,survival,0,
+InferenceSurvivalCoxPHRegr [design_formula=~.],ci_asymp,survival,0,
+InferenceSurvivalCoxPHRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalCoxPHRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~1],ci_rand_custom,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~1],ci_rand_custom,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~.],ci_rand_custom,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~.],ci_rand_custom,survival,0,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~.],ci_asymp,survival,0.5,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~.],ci_rand,survival,0.5,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~.],ci_asymp,survival,0.5,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~.],ci_rand,survival,0.5,
+InferenceSurvivalCoxPHRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalCoxPHRegr (model_formula=~.) [design_formula=~.],ci_asymp,survival,0.5,
+InferenceSurvivalCoxPHRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,survival,0.5,
+InferenceSurvivalCoxPHRegr [design_formula=~.],ci_asymp,survival,0.5,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~1],ci_asymp,survival,0.5,
+InferenceSurvivalDepCensTransformRegr (model_formula=~1) [design_formula=~1],ci_rand,survival,0.5,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~1],ci_asymp,survival,0.5,
+InferenceSurvivalDepCensTransformRegr (model_formula=~.) [design_formula=~1],ci_rand,survival,0.5,
+InferenceSurvivalCoxPHRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,survival,0.5,
+InferenceSurvivalCoxPHRegr (model_formula=~.) [design_formula=~1],ci_asymp,survival,0.5,
+InferenceSurvivalCoxPHRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,survival,0.5,
+InferenceSurvivalGehanWilcox [design_formula=~.],ci_rand,survival,0,
+InferenceSurvivalLogRank [design_formula=~.],ci_rand,survival,0,
+InferenceSurvivalGehanWilcox [design_formula=~1],ci_rand,survival,0,
+InferenceSurvivalLogRank [design_formula=~1],ci_rand,survival,0,
+InferenceSurvivalGehanWilcox [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalLogRank [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalStratCoxPHRegr (model_formula=~1) [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalStratCoxPHRegr (model_formula=~.) [design_formula=~1],ci_asymp,survival,0,
+InferenceSurvivalStratCoxPHRegr (model_formula=~.) [design_formula=~1],ci_bootstrap,survival,0,
+InferenceSurvivalGehanWilcox [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalLogRank [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalStratCoxPHRegr (model_formula=~1) [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalStratCoxPHRegr (model_formula=~.) [design_formula=~.],ci_asymp,survival,0,
+InferenceSurvivalStratCoxPHRegr (model_formula=~.) [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalStratCoxPHRegr [design_formula=~.],ci_asymp,survival,0,
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~.],ci_bootstrap,survival,0,
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~1],ci_rand,survival,0,
+InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik [design_formula=~.],ci_rand,survival,0,
+InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~1],ci_rand,survival,0,
+InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~.],ci_rand,survival,0,
+InferenceSurvivalLogRank [design_formula=~1],ci_rand,survival,0.5,
+InferenceSurvivalLogRank [design_formula=~.],ci_rand,survival,0.5,
