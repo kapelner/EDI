@@ -1852,6 +1852,7 @@ EDI_COMPONENT_SPECS = list(
 						"supports_likelihood_tests",
 						"get_supported_testing_types_impl",
 						"is_modified_poisson_fit_reasonable",
+						"apply_robust_sandwich_variance",
 						"simulate_under_lik_null",
 						"get_likelihood_test_spec",
 						"generate_mod",

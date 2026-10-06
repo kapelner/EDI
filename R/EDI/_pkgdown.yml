@@ -1,16 +1,14 @@
 url: https://kapelner.github.io/EDI/
 
-# Site title: pkgdown uses this in every page's <title> tag and as the navbar
-# brand, instead of the bare package name "EDI" (which alone reads as
-# Electronic Data Interchange). See marketing_plans/llm_agent_optimization.md.
-title: "EDI: Experimental Design and Inference"
-
 template:
   bootstrap: 5
   math-rendering: mathjax
 
 home:
-  title: "EDI: Experimental Design and Inference"
+  # Home-page tab title. The template (pkgdown/templates/head.html) appends
+  # " • EDI: Experimental Design and Inference" to every page title, so this
+  # is a task phrase rather than the full name, to avoid showing it twice.
+  title: "Randomized experimental designs and inference in R and Python"
   # The meta description search engines (and AI agents' web retrieval) show
   # for the site -- co-locates the EDI acronym with the spelled-out name and
   # task phrases, since "EDI" alone reads as Electronic Data Interchange

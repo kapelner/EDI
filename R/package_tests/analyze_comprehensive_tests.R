@@ -353,7 +353,7 @@ table(X$beta, useNA = "always")
 
 #check MSE
 X[function_run == "est", sqerr := (result_1 - beta)^2]
-E = X[function_run == "est", .(mse = mean(sqerr, na.rm = TRUE), beta = first(beta)),
+E = X[function_run == "est", .(mse = mean(sqerr, na.rm = TRUE), n_mse = sum(!is.na(sqerr)), beta = first(beta)),
 	by = c("inference_class", "design", "response_type", "beta_T")][order(-mse)]
 E = E[!is.nan(mse)]
 E[beta_T != 0][1:100]
@@ -362,8 +362,8 @@ E[beta_T == 0][1:100]
 #check coverage
 X[str_detect(X$function_run, "ci"), ci_correct := ifelse(beta >= result_1 & beta <= result_2, 1, 0)]
 table(X$ci_correct, useNA = "always")
-C = X[str_detect(X$function_run, "ci"), .(coverage = mean(ci_correct)),
-	by = c("inference_class", "function_run", "response_type", "beta_T")][order(coverage)]
+C = X[str_detect(X$function_run, "ci"), .(coverage = mean(ci_correct, na.rm = TRUE), n_coverage = sum(!is.na(ci_correct))),
+	by = c("inference_class", "design", "function_run", "response_type", "beta_T")][order(coverage)]
 C[beta_T != 0][1:100]
 C[beta_T == 0][1:100]
 

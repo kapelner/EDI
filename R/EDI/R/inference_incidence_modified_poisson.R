@@ -10,8 +10,8 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 			#'   \eqn{\log E[Y_i \mid w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top
 			#'   \gamma}; see
 			#'   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}
-			#'   for the model form and the non-robust-SE caveat. Does not fit the
-			#'   model; the fit is deferred to the first call to
+			#'   for the model form and its robust/sandwich standard error. Does not
+			#'   fit the model; the fit is deferred to the first call to
 			#'   \code{compute_estimate()} or a method that requires it.
 			#' @param des_obj A completed \code{Design} object with an incidence response.
 			#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
@@ -44,12 +44,11 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
 		},
-		#' @description Wald confidence interval for \eqn{\beta_T} using the
-		#'   model-based (non-robust) Poisson-working-likelihood standard error; see
-		#'   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}'s
-		#'   non-robust-SE caveat and
-		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
-		#'   contract.
+		#' @description Wald confidence interval for \eqn{\beta_T} using Zou's
+		#'   (2004) robust/sandwich standard error; see
+		#'   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}
+		#'   and \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+		#'   Wald contract.
 		#' @param alpha Two-sided miscoverage rate; the returned interval targets
 		#'   \code{1 - alpha} coverage.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -57,10 +56,8 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
 		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
-		#'   using the model-based (non-robust) Poisson-working-likelihood standard
-		#'   error; see
-		#'   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}'s
-		#'   non-robust-SE caveat.
+		#'   using Zou's (2004) robust/sandwich standard error; see
+		#'   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}.
 		#' @param delta Log-risk-ratio value under the null hypothesis.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			private$shared(estimate_only = FALSE)
@@ -190,6 +187,44 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 				}
 				TRUE
 			},
+			# Zou's (2004) robust/sandwich correction for the modified-Poisson
+			# working model's standard error, replacing the model-based (naive)
+			# Poisson Fisher-information SE that fast_poisson_regression_with_var_cpp
+			# returns by default. The naive SE assumes Var(Y_i) = mu_i (the Poisson
+			# mean-variance link), but Y_i is actually Bernoulli with Var(Y_i) =
+			# p_i(1-p_i) <= mu_i -- a genuine, not merely cosmetic, variance
+			# misspecification whose effect on this class's calibration was
+			# measured directly (comprehensive_tests.R, 2026-10, incidence/
+			# Bernoulli/null): 4 rejections out of 1,560 at a true null, 0.26%
+			# against a nominal 5%, median p-value 0.63 instead of 0.5. All inputs
+			# are already returned by the existing C++ fit with no kernel changes:
+			# `mu` (fitted values, for the raw residual) and `fisher_information`
+			# (the unrestricted p x p information matrix X'WX, not yet inverted --
+			# this call site never passes fixed_idx/fixed_values, so it always
+			# spans every fitted coefficient). bread = (X'WX)^-1 is the naive
+			# covariance; meat = X' diag(resid^2) X is the standard HC0 sandwich
+			# correction; robust Var(b) = bread %*% meat %*% bread. Falls back to
+			# the already-computed naive ssq_b_j/ssq_b_2 (silently, matching this
+			# fit's own existing nonestimability contract) if the bread matrix
+			# can't be inverted -- this must never be the thing that turns an
+			# otherwise-estimable fit into a crash.
+			apply_robust_sandwich_variance = function(res, X_fit){
+				if (is.null(res) || is.null(res$mu) || is.null(res$fisher_information)) return(res)
+				mu = as.numeric(res$mu)
+				resid = as.numeric(private$y) - mu
+				if (length(resid) != nrow(X_fit) || any(!is.finite(resid))) return(res)
+				bread = tryCatch(solve(res$fisher_information), error = function(e) NULL)
+				if (is.null(bread)) return(res)
+				meat = crossprod(X_fit * resid)
+				var_robust = bread %*% meat %*% bread
+				j_treat = as.integer(res$j_treat %||% 2L)
+				if (j_treat < 1L || j_treat > ncol(var_robust)) return(res)
+				robust_ssq = var_robust[j_treat, j_treat]
+				if (!is.finite(robust_ssq) || robust_ssq <= 0) return(res)
+				res$ssq_b_j = robust_ssq
+				res$ssq_b_2 = robust_ssq
+				res
+			},
 			simulate_under_lik_null = function(spec, delta, null_fit){
 				b_null     = as.numeric(null_fit$b)
 				mu         = pmax(exp(as.numeric(spec$X %*% b_null)), 0)
@@ -294,6 +329,7 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 							warm_start_fisher_info = warm_fisher
 						)
 						res$j_treat = j_treat
+						res = private$apply_robust_sandwich_variance(res, X_fit)
 						res
 					}
 					},
@@ -338,14 +374,21 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 #' \code{\link[EDI:InferenceIncidLogBinomial]{InferenceIncidLogBinomial}}'s
 #' log-binomial model, but modified Poisson never produces a fit failure from
 #' the \eqn{[0,1]}-probability constraint that a genuine binomial log-link
-#' model can hit. \strong{Caveat:} this implementation's standard error comes
-#' from the ordinary (model-based) Poisson Fisher information
-#' (\code{\link{fast_poisson_regression_with_var_cpp}}'s \code{ssq_b_j}), not
-#' a robust/sandwich correction — Zou's (2004) original proposal specifically
-#' pairs the misspecified Poisson working model with a robust sandwich
-#' variance estimator to obtain valid standard errors under the resulting
-#' overdispersion; users needing the fully robust modified-Poisson variance
-#' should treat this class's standard errors/CIs/p-values as approximate.
+#' model can hit. Standard errors use Zou's (2004) robust/sandwich
+#' correction, not the ordinary (model-based) Poisson Fisher information: the
+#' misspecified Poisson working model assumes \eqn{\mathrm{Var}(Y_i) = \mu_i},
+#' but \eqn{Y_i} is actually Bernoulli with \eqn{\mathrm{Var}(Y_i) = p_i(1 -
+#' p_i) \le \mu_i}, so the naive Fisher-information SE materially
+#' overstates the true sampling variance. The sandwich correction is computed
+#' in R from quantities \code{\link{fast_poisson_regression_with_var_cpp}}
+#' already returns (\code{mu} and the unrestricted Fisher information
+#' \code{fisher_information}), not a change to the underlying kernel.
+#' \strong{Changed 2026-10:} earlier versions of this class used the naive
+#' Fisher-information SE directly, which measured at roughly 0.26% empirical
+#' Type-I error against a nominal 5% under a true null (incidence response,
+#' Bernoulli design, \code{model_formula = ~.}, asymptotic Wald test); every
+#' standard error, confidence interval, and p-value this class has ever
+#' returned differs from this version's.
 #' \code{likelihood_tier = "full"} metadata is set for component-composition
 #' purposes, but \code{private$supports_likelihood_tests()} is hard
 #' \code{FALSE} — only Wald inference is exposed
@@ -393,7 +436,7 @@ InferenceIncidModifiedPoisson = define_inference_class(
 		private = c(
 			"compute_treatment_estimate_during_randomization_inference",
 			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
-			"generate_mod", "get_likelihood_test_spec",
+			"generate_mod", "get_likelihood_test_spec", "apply_robust_sandwich_variance",
 			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

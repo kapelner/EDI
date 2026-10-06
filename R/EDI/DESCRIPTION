@@ -78,6 +78,7 @@ Suggests:
     nbpMatching,
     nlme,
     nnet,
+    optmatch,
     ordinal,
     pscl,
     qpdf,

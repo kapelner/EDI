@@ -110,6 +110,10 @@ R/package_metadata/randomized_experiment_datasets.tar.bz2
 # R/package_metadata/download_observational_datasets.R).
 R/package_metadata/observational_datasets_cache/*
 !R/package_metadata/observational_datasets_cache/.gitkeep
+
+# Raw ICPSR observational-design downloads (restricted redistribution; local use only).
+R/package_metadata/observational_design_datasets/*
+!R/package_metadata/observational_design_datasets/.gitkeep
 R/benchmark/simd_matrix/*
 R/benchmark/benchmark_pb_high_load.R
 R/benchmark/benchmark_pb_precision.R
@@ -194,3 +198,6 @@ marketing_plans/
 # Local instrumented coverage run artifacts
 /.coverage-run-20260917-restart/
 /.coverage-run-20260917/
+
+# Playwright MCP browser snapshots/logs
+.playwright-mcp/

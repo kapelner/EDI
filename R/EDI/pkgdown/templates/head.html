@@ -1,7 +1,10 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>{{{pagetitle}}} • {{#site}}{{title}}{{/site}}</title>
+{{! Full name hardcoded instead of using the site title, because the site title also
+    feeds the navbar brand, which should stay the short "EDI". "EDI" alone reads as Electronic
+    Data Interchange, so the tab title carries the expansion. }}
+<title>{{{pagetitle}}} • EDI: Experimental Design and Inference</title>
 
 {{#has_favicons}}
 <!-- favicons -->

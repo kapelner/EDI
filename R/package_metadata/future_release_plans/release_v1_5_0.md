@@ -304,6 +304,21 @@ threads feeding this release.)
   keep-lower-`neg_loglik` pattern to `generate_mod()`'s fit call. **Not
   yet implemented.**
 
+## Feature slate (added 2026-10-04, user decision)
+
+This release also carries one **additive feature** (1.x scope: simple
+addition on the existing architecture). It sits outside the calibration
+theme above and is listed separately so the two can ship independently:
+
+- [ ] TODO-F1 (`../new_feature_plans/demo_generator.md` → TODO-1..7):
+  `edi_inference_demo(class)` — recommends and emits runnable demo code that loads a
+  catalog dataset, builds the matching design, passes it into the Inference
+  class, and runs every applicable method. Uses the existing
+  `run_all_inference_class_applicable_methods()` and the
+  `experimental_datasets.csv` / `observational_datasets.csv` catalogs.
+  Respects the ICPSR redistribution flag (fetch step only, no embedded data).
+  **Not yet implemented.**
+
 ## Standing constraints
 
 Same as every release in this series: no `R CMD INSTALL`/`R CMD build`/

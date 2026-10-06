@@ -123,6 +123,150 @@ cran_fetch_object_auto <- function(pkg, version, obj_name, dest_csv, work_dir) {
   invisible(dest_csv)
 }
 
+# Same auto-discovery idea as cran_fetch_object_auto(), for a GitHub-only
+# (not-on-CRAN) repo pinned at a commit SHA. Repo's data/ files are plain
+# .csv here (rmcelreath/rethinking), not .rda -- data.table::fread()
+# auto-detects the delimiter (rethinking's CSVs use ";", not ",").
+github_fetch_object_auto <- function(repo, commit_sha, obj_name, dest_csv, work_dir) {
+  owner_repo <- strsplit(repo, "/", fixed = TRUE)[[1L]]
+  repo_dir <- file.path(work_dir, paste0(".extract_gh_", owner_repo[[2L]], "_", commit_sha))
+  if (!dir.exists(repo_dir)) {
+    tar_path <- file.path(work_dir, paste0(".raw_gh_", owner_repo[[2L]], ".tar.gz"))
+    url <- sprintf("https://github.com/%s/archive/%s.tar.gz", repo, commit_sha)
+    failed <- curl_fetch(url, tar_path)
+    if (failed || !file.exists(tar_path) || file.size(tar_path) == 0L) {
+      stop("GitHub download failed or empty: ", url, call. = FALSE)
+    }
+    utils::untar(tar_path, exdir = repo_dir)
+    unlink(tar_path)
+  }
+  # GitHub tarballs extract to "<repo>-<sha>/", not "<repo>/"
+  pkg_dir <- list.files(repo_dir, full.names = TRUE)[[1L]]
+  if (is.na(pkg_dir) || !dir.exists(pkg_dir)) stop("GitHub tarball for ", repo, " did not extract as expected", call. = FALSE)
+
+  data_files <- list.files(file.path(pkg_dir, "data"))
+  obj <- NULL
+  for (f in data_files) {
+    base_ext <- tolower(tools::file_ext(sub("\\.gz$", "", f, ignore.case = TRUE)))
+    full_path <- file.path(pkg_dir, "data", f)
+    if (base_ext %in% c("rda", "rdata")) {
+      e <- new.env()
+      ok2 <- tryCatch({ load(full_path, envir = e); TRUE }, error = function(e) FALSE)
+      if (ok2 && obj_name %in% ls(e)) { obj <- get(obj_name, envir = e); break }
+    } else if (base_ext %in% c("txt", "csv") &&
+               tools::file_path_sans_ext(f, compression = TRUE) == obj_name) {
+      obj <- tryCatch(data.table::fread(full_path, data.table = FALSE), error = function(e) NULL)
+      if (!is.null(obj)) break
+    }
+  }
+  if (is.null(obj)) stop(obj_name, " not found in any data/ file of ", repo, "@", commit_sha, " (checked: ", paste(data_files, collapse = ", "), ")", call. = FALSE)
+  if (!(is.data.frame(obj) || is.matrix(obj))) stop(obj_name, " in ", repo, " is not a data.frame/matrix (class ", class(obj)[1L], ")", call. = FALSE)
+  data.table::fwrite(as.data.frame(obj), dest_csv)
+  invisible(dest_csv)
+}
+
+# ---------------------------------------------------------------------------
+# Dataverse fetch: curl-based equivalents of download_experimental_datasets.R's
+# dataverse_dataset_files()/dataverse_download_file() (which use httr2 and so
+# hit the same sandbox-proxy failure as cran_fetch_object_auto() above).
+# Reuses that file's DATAVERSE_HOST/DATAVERSE_GUESTBOOK_ANSWERS/
+# dataverse_guestbook_identity() -- those are plain data/logic, not httr2
+# calls, so they're safe to reuse as-is (already in scope via the
+# download_experimental_datasets.R source() at the top of this file).
+# ---------------------------------------------------------------------------
+
+# Parses a Source cell of the form
+# "Dataverse: `doi:10.7910/DVN/XXXXX`; file `name.csv`" or, when the file is
+# bundled inside a zip, "...; file `name.csv` (inside `archive.zip`)".
+parse_dataverse_source <- function(cell) {
+  if (!grepl("^Dataverse:", cell)) return(NULL)
+  list(
+    doi = sub("^Dataverse: `doi:([^`]+)`.*$", "\\1", cell),
+    filename = sub("^.*; file `([^`]+)`.*$", "\\1", cell),
+    inside_zip = if (grepl("\\(inside `[^`]+`\\)", cell)) sub("^.*\\(inside `([^`]+)`\\).*$", "\\1", cell) else NA_character_
+  )
+}
+
+dataverse_list_files_curl <- function(doi) {
+  json_path <- tempfile(fileext = ".json")
+  url <- sprintf("%s/api/datasets/:persistentId/?persistentId=doi:%s", DATAVERSE_HOST, doi)
+  if (curl_fetch(url, json_path)) stop("Dataverse metadata fetch failed for ", doi, call. = FALSE)
+  dat <- jsonlite::fromJSON(json_path, simplifyVector = FALSE)$data
+  files <- lapply(dat$latestVersion$files, function(f) {
+    list(filename = f$dataFile$filename, id = f$dataFile$id)
+  })
+  list(guestbookId = dat$guestbookId, files = files)
+}
+
+dataverse_download_file_curl <- function(file_id, guestbook_id, dest_path) {
+  base_access_url <- sprintf("%s/api/access/datafile/%s", DATAVERSE_HOST, file_id)
+  if (is.null(guestbook_id)) {
+    if (curl_fetch(base_access_url, dest_path)) stop("Dataverse file download failed: ", base_access_url, call. = FALSE)
+    return(invisible(dest_path))
+  }
+  answers <- DATAVERSE_GUESTBOOK_ANSWERS[[as.character(guestbook_id)]]
+  if (is.null(answers)) {
+    stop("No DATAVERSE_GUESTBOOK_ANSWERS entry for guestbookId ", guestbook_id,
+         " -- inspect ", DATAVERSE_HOST, "/api/guestbooks/", guestbook_id,
+         " and add a matching entry (string-valued answers, not numeric ids).", call. = FALSE)
+  }
+  identity <- dataverse_guestbook_identity()
+  body <- list(guestbookResponse = c(identity, list(answers = answers)))
+  body_path <- tempfile(fileext = ".json")
+  writeLines(jsonlite::toJSON(body, auto_unbox = TRUE), body_path)
+  resp_path <- tempfile(fileext = ".json")
+  status <- suppressWarnings(system2("curl", c("-sL", "-X", "POST", "-H", shQuote("Content-Type: application/json"),
+                                                "--data-binary", paste0("@", body_path), "-o", shQuote(resp_path),
+                                                shQuote(base_access_url)), stdout = TRUE, stderr = TRUE))
+  exit_code <- attr(status, "status")
+  if (!is.null(exit_code) && exit_code != 0L) stop("Dataverse guestbook POST failed: ", base_access_url, call. = FALSE)
+  signed_url <- jsonlite::fromJSON(resp_path, simplifyVector = FALSE)$data$signedUrl
+  if (is.null(signed_url)) stop("Dataverse guestbook POST did not return a signedUrl for file ", file_id, call. = FALSE)
+  if (curl_fetch(signed_url, dest_path)) stop("Dataverse signed-URL download failed for file ", file_id, call. = FALSE)
+  invisible(dest_path)
+}
+
+# `filename` is the actual data file to read; if it lives inside a zip on
+# Dataverse (several deposits bundle data+code+results together), pass
+# `inside_zip` as that zip's own listed filename and `filename` as the member
+# to extract. Handles .csv/.txt directly, .xlsx via readxl, falls back to
+# convert_to_csv() (from download_experimental_datasets.R) for .dta/.sav/.tab.
+dataverse_fetch_object_auto <- function(doi, filename, dest_csv, work_dir, inside_zip = NULL) {
+  listing <- dataverse_list_files_curl(doi)
+  want <- if (!is.null(inside_zip)) inside_zip else filename
+  hit <- Filter(function(f) identical(f$filename, want), listing$files)
+  if (length(hit) == 0L) {
+    stop("'", want, "' not found in Dataverse dataset ", doi, " (found: ",
+         paste(vapply(listing$files, function(f) f$filename, character(1)), collapse = ", "), ")", call. = FALSE)
+  }
+  raw_path <- file.path(work_dir, paste0(".dv_raw_", hit[[1L]]$id, ".", tools::file_ext(want)))
+  dataverse_download_file_curl(hit[[1L]]$id, listing$guestbookId, raw_path)
+
+  src_path <- raw_path
+  if (!is.null(inside_zip)) {
+    extract_dir <- file.path(work_dir, paste0(".dv_extract_", hit[[1L]]$id))
+    unlink(extract_dir, recursive = TRUE)
+    utils::unzip(raw_path, exdir = extract_dir)
+    all_files <- list.files(extract_dir, recursive = TRUE, full.names = TRUE)
+    matches <- all_files[basename(all_files) == basename(filename)]
+    if (length(matches) == 0L) stop("'", filename, "' not found inside ", inside_zip, call. = FALSE)
+    src_path <- matches[[1L]]
+  }
+
+  ext <- tolower(tools::file_ext(src_path))
+  obj <- if (ext %in% c("csv", "txt", "tab")) {
+    data.table::fread(src_path, data.table = FALSE)
+  } else if (ext == "xlsx") {
+    as.data.frame(readxl::read_xlsx(src_path))
+  } else {
+    tmp_csv <- tempfile(fileext = ".csv")
+    convert_to_csv(src_path, tmp_csv)
+    data.table::fread(tmp_csv, data.table = FALSE)
+  }
+  data.table::fwrite(obj, dest_csv)
+  invisible(dest_csv)
+}
+
 # ---------------------------------------------------------------------------
 # Covariate-missingness core: given the data.frame and the raw column names
 # that are treatment/outcome, compute % of rows with >=1 NA among the rest.
@@ -216,10 +360,13 @@ compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "ob
   csv <- read.csv(csv_path, stringsAsFactors = FALSE, na.strings = "")
   md_tbl <- read_dataset_table(file.path(THIS_DIR, "observational_datasets.md"))
   treat_raw <- md_tbl[["w (group column)"]]
-  obj_names <- sapply(md_tbl$Dataset, function(x) extract_backtick_columns(x)[1])
-  pkgs <- sub("^(CRAN|base R): ", "", md_tbl$Source)
+  obj_names <- sub("^.*::", "", sapply(md_tbl$Dataset, function(x) extract_backtick_columns(x)[1]))
+  pkgs <- sub("^(CRAN|base R|GitHub): ", "", md_tbl$Source)
   is_base_r <- grepl("^base R:", md_tbl$Source)
-  versions <- md_tbl$Version
+  is_github <- grepl("^GitHub:", md_tbl$Source)
+  is_dataverse <- grepl("^Dataverse:", md_tbl$Source)
+  dv <- lapply(md_tbl$Source, parse_dataverse_source)
+  versions <- sub("^commit `(.*)`$", "\\1", md_tbl$Version)
   outcome_cols <- grep("^(primary|secondary|tertiary|outcome_[0-9]+)_outcome$", names(csv), value = TRUE)
 
   obs_cache_dir <- file.path(THIS_DIR, "observational_datasets_cache")
@@ -237,13 +384,27 @@ compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "ob
       # a throwaway tempdir() fetch, so a second run of this script is free.
       archive_path <- file.path(obs_cache_dir, paste0(name, ".tar.bz2"))
       dest_csv <- file.path(obs_cache_dir, paste0(name, ".csv"))
+      if (startsWith(md_tbl$Source[i], "ICPSR:")) {
+        note[i] <- "ICPSR restricted-terms data: not cached, missingness not computed"
+        next
+      }
       if (file.exists(archive_path) && !file.exists(dest_csv)) {
         utils::untar(archive_path, exdir = obs_cache_dir)
       }
       if (!file.exists(dest_csv)) {
         dest_csv <- file.path(WORK_DIR, paste0("obs_", gsub("[^A-Za-z0-9]", "_", name), ".csv"))
-        ok <- tryCatch({ cran_fetch_object_auto(pkgs[i], versions[i], obj_names[i], dest_csv, WORK_DIR); TRUE },
-                        error = function(e) { note[i] <<- paste("download failed:", conditionMessage(e)); FALSE })
+        ok <- tryCatch({
+          if (is_github[i]) {
+            github_fetch_object_auto(pkgs[i], versions[i], obj_names[i], dest_csv, WORK_DIR)
+          } else if (is_dataverse[i]) {
+            dv_i <- dv[[i]]
+            dataverse_fetch_object_auto(dv_i$doi, dv_i$filename, dest_csv, WORK_DIR,
+                                         inside_zip = if (is.na(dv_i$inside_zip)) NULL else dv_i$inside_zip)
+          } else {
+            cran_fetch_object_auto(pkgs[i], versions[i], obj_names[i], dest_csv, WORK_DIR)
+          }
+          TRUE
+        }, error = function(e) { note[i] <<- paste("download failed:", conditionMessage(e)); FALSE })
         if (!ok) next
       }
       df <- tryCatch(data.table::fread(dest_csv, data.table = FALSE), error = function(e) NULL)

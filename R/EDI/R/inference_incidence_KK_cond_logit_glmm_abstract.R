@@ -4,6 +4,29 @@
 #' matched pairs and a random-intercept logistic GLMM contribution from concordant
 #' matched pairs and reservoir subjects.
 #'
+#' \strong{Known estimability limitation at high covariate counts.} The
+#' treatment effect is identified from the discordant-pair conditional-logit
+#' term alone (the shared pair-level intercept cancels only for pairs that
+#' disagree on outcome), so that term alone must identify treatment plus
+#' every adjustment covariate from however many pairs happen to be
+#' discordant for a given incidence response, typically a modest fraction of
+#' \eqn{n}. With \code{model_formula = ~.} on a dataset with many covariates,
+#' the number of free parameters the discordant term must help identify can
+#' approach or exceed the number of discordant pairs, and the joint fit then
+#' frequently converges to an out-of-bounds coefficient or random-effect
+#' log-variance and is correctly reported as nonestimable rather than
+#' returned. This was measured directly (\code{comprehensive_tests.R} repro,
+#' 2026-10): the identical design/response/n was estimable in 39 of 40 null
+#' replicates with one covariate, but only 22 of 40 with ten covariates under
+#' \code{model_formula = ~.}. This is treated as an accepted property of this
+#' estimator in this regime, not a defect to be patched; when the cause is
+#' specifically this parameter-to-discordant-pair imbalance, the cached
+#' nonestimability reason names it explicitly
+#' (\code{joint_likelihood_nonestimable_high_dimensional_relative_to_discordant_pairs},
+#' with the actual counts) rather than the generic
+#' \code{joint_likelihood_nonestimable} that covers every other cause of the
+#' same two bound checks.
+#'
 #' @keywords internal
 InferenceAbstractKKCondLogitGLMM = define_inference_class(
 	classname = "InferenceAbstractKKCondLogitGLMM",
@@ -213,12 +236,12 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			params = as.numeric(fit$params)
 			coef_params = if (length(params) > 1L) params[-length(params)] else params
 			if (any(!is.finite(coef_params)) || any(abs(coef_params) > private$max_abs_reasonable_coef)) {
-				private$cache_nonestimable_estimate("joint_likelihood_nonestimable")
+				private$cache_nonestimable_estimate(private$joint_likelihood_nonestimable_reason(d))
 				return(invisible(NULL))
 			}
 			log_sigma = if (length(params) > 1L) params[length(params)] else NA_real_
 			if (!is.finite(log_sigma) || abs(log_sigma) > private$max_abs_log_sigma) {
-				private$cache_nonestimable_estimate("joint_likelihood_nonestimable")
+				private$cache_nonestimable_estimate(private$joint_likelihood_nonestimable_reason(d))
 				return(invisible(NULL))
 			}
 			beta_hat_T = as.numeric(params[j_T])
@@ -240,6 +263,34 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 				return(invisible(NULL))
 			}
 			private$cached_values$s_beta_hat_T = se
+		},
+		# `joint_likelihood_nonestimable` (both call sites above, an out-of-bounds
+		# beta coefficient or log_sigma) is a known, accepted property of this
+		# estimator at high covariate counts, not a defect: the treatment effect
+		# is identified only from discordant matched pairs (a conditional-logit
+		# likelihood that drops the pair's shared intercept), so with p covariates
+		# plus treatment, the discordant part alone must identify p+1 parameters
+		# from however many pairs actually disagree on outcome -- frequently a
+		# small fraction of n for a binary response. Confirmed directly
+		# (comprehensive_tests.R repro, 2026-10): the same design/response/n with
+		# 1 covariate was estimable in 39/40 null replicates; with 10 covariates
+		# and model_formula = ~., estimable in only 22/40. When that's the
+		# explanation -- discordant pairs exist but are already outnumbered by
+		# the discordant likelihood's own free parameters (treatment + covariates,
+		# no intercept) -- say so by name instead of the generic reason, which
+		# otherwise still covers every other cause unchanged (including the
+		# `has_discordant = FALSE` case, where this diagnosis does not apply).
+		joint_likelihood_nonestimable_reason = function(d){
+			n_disc_params = ncol(d$X_disc)
+			n_discordant_pairs = nrow(d$X_disc)
+			if (isTRUE(d$has_discordant) && is.finite(n_discordant_pairs) && n_discordant_pairs > 0L &&
+					is.finite(n_disc_params) && n_disc_params >= n_discordant_pairs) {
+				return(sprintf(
+					"joint_likelihood_nonestimable_high_dimensional_relative_to_discordant_pairs (n_disc_params=%d, n_discordant_pairs=%d)",
+					n_disc_params, n_discordant_pairs
+				))
+			}
+			"joint_likelihood_nonestimable"
 		},
 		get_likelihood_test_spec = function(){
 			private$shared(estimate_only = FALSE)

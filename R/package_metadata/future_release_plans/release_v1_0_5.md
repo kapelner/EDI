@@ -1298,16 +1298,36 @@ baseline as expected/benign.
   `mc_coverage_truth_covariate_mismatch.md`'s TODO-6/TODO-11 — different
   mechanism (closed-form path, not Monte-Carlo), different classes, do not
   conflate when resolving either.
+- [x] TODO-56 (added 2026-10, found investigating why incidence-response
+  power looked low across every design; **fixed and verified same
+  session**): **`InferenceIncidModifiedPoisson`'s non-robust SE was
+  severely over-conservative** —
+  `../bug_fix_plans/modified_poisson_naive_se_miscalibration.md`. The
+  model-based Poisson Fisher-information SE this class used overstates the
+  true sampling variance for a binary outcome (Poisson assumes
+  \(\mathrm{Var}(Y_i)=\mu_i\); the truth is Bernoulli,
+  \(\mathrm{Var}(Y_i)=p_i(1-p_i)\le\mu_i\)) — measured at 0.26% empirical
+  Type-I error against a nominal 5%, roughly 20x under nominal, the class's
+  own docstring had long flagged this as an approximation but nobody had
+  measured the severity. Fixed with Zou's (2004) robust/sandwich
+  correction, computed in pure R from quantities the existing C++ kernel
+  already returns (`mu`, `fisher_information`) — no kernel change, no
+  rebuild. Verified via a fresh 500-replicate null simulation: Type-I error
+  moved to 7.2%, median p-value from 0.63 to 0.46. **Result-changing**:
+  every SE/CI/p-value this class has ever returned differs from this
+  version's — a third exception alongside TODO-2/TODO-3 in the standing
+  constraint below. Historical `comprehensive_tests.R` CSVs were not
+  regenerated (plan's own TODO-6) and still reflect the pre-fix behavior.
 
 ## Standing constraints
 
 Same as `release_v1_1_0.md`'s standing constraints: default behavior with
 no new switches set must reproduce 1.0.0 results bit-for-bit, except where
-a TODO above explicitly documents a default change (TODO-2, TODO-3 — both
-document their equivalence tolerance). No `R CMD INSTALL`/rebuild of
-`R/EDI` without being asked in that turn (see top-level `CLAUDE.md`);
-verify any `.cpp`-adjacent change via targeted compile only, never a full
-build.
+a TODO above explicitly documents a default change (TODO-2, TODO-3, and
+TODO-56 — all three document their equivalence tolerance or verification).
+No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn (see
+top-level `CLAUDE.md`); verify any `.cpp`-adjacent change via targeted
+compile only, never a full build.
 
 **Verification pass, 2026-09-24** (checked against the installed package
 plus each plan's own checklist, at the user's request — see each TODO's

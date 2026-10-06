@@ -30,12 +30,20 @@ OBS_ARCHIVE_DIR <- file.path(THIS_DIR, "observational_datasets_cache")
 
 observational_manifest <- function(md_path = file.path(THIS_DIR, "observational_datasets.md")) {
   md_tbl <- read_dataset_table(md_path)
+  is_dataverse <- grepl("^Dataverse:", md_tbl$Source)
+  dv <- lapply(md_tbl$Source, parse_dataverse_source)  # NULL for non-Dataverse rows
   data.frame(
     name = strip_md(md_tbl$Dataset),
-    obj_name = sapply(md_tbl$Dataset, function(x) extract_backtick_columns(x)[1]),
-    pkg = sub("^(CRAN|base R): ", "", md_tbl$Source),
+    obj_name = sub("^.*::", "", sapply(md_tbl$Dataset, function(x) extract_backtick_columns(x)[1])),
+    pkg = sub("^(CRAN|base R|GitHub): ", "", md_tbl$Source),
     is_base_r = grepl("^base R:", md_tbl$Source),
-    version = md_tbl$Version,
+    is_github = grepl("^GitHub:", md_tbl$Source),
+    is_dataverse = is_dataverse,
+    version = sub("^commit `(.*)`$", "\\1", md_tbl$Version),
+    source = md_tbl$Source,
+    dv_doi = vapply(dv, function(x) if (is.null(x)) NA_character_ else x$doi, character(1)),
+    dv_filename = vapply(dv, function(x) if (is.null(x)) NA_character_ else x$filename, character(1)),
+    dv_inside_zip = vapply(dv, function(x) if (is.null(x)) NA_character_ else x$inside_zip, character(1)),
     stringsAsFactors = FALSE
   )
 }
@@ -53,17 +61,28 @@ download_all_observational_datasets <- function(download_dir = OBS_ARCHIVE_DIR,
   for (i in seq_len(nrow(manifest))) {
     row <- manifest[i, ]
     archive_path <- file.path(download_dir, paste0(row$name, ".tar.bz2"))
+    if (startsWith(row$source, "ICPSR:")) {
+      message("== ", row$name, " == ICPSR restricted-terms data: not cached (fetch manually into observational_design_datasets/)")
+      results <- rbind(results, data.frame(name = row$name, status = "skipped_icpsr", detail = NA_character_))
+      next
+    }
     if (file.exists(archive_path)) {
       message("== ", row$name, " == already have ", archive_path)
       results <- rbind(results, data.frame(name = row$name, status = "cached", detail = NA_character_))
       next
     }
-    message("== ", row$name, " (", row$pkg, (if (!row$is_base_r) paste0(" ", row$version) else ""), ") ==")
+    source_desc <- if (row$is_dataverse) paste0("Dataverse ", row$dv_doi) else paste0(row$pkg, if (!row$is_base_r) paste0(" ", row$version) else "")
+    message("== ", row$name, " (", source_desc, ") ==")
     out_csv <- file.path(download_dir, paste0(row$name, ".csv"))
     ok <- tryCatch({
       if (row$is_base_r) {
         df <- as.data.frame(get(row$obj_name, envir = asNamespace("datasets")))
         data.table::fwrite(df, out_csv)
+      } else if (row$is_github) {
+        github_fetch_object_auto(row$pkg, row$version, row$obj_name, out_csv, download_dir)
+      } else if (row$is_dataverse) {
+        dataverse_fetch_object_auto(row$dv_doi, row$dv_filename, out_csv, download_dir,
+                                     inside_zip = if (is.na(row$dv_inside_zip)) NULL else row$dv_inside_zip)
       } else {
         cran_fetch_object_auto(row$pkg, row$version, row$obj_name, out_csv, download_dir)
       }

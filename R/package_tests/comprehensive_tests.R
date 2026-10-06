@@ -3976,6 +3976,62 @@ for (dataset_name in names(datasets_and_response_models)){
 							run_tests_for_response(response_type, design_type = design_type, dataset_name = dataset_name, model_formula = model_formula),
 							error = function(e){
 								message("  FATAL ERROR in run_tests_for_response(", response_type, ", ", design_type, ", ", dataset_name, "): ", e$message)
+								# Previously this message was the ONLY record of the failure -- nothing
+								# was ever written to results_dt/the results CSV, so every case this
+								# (response_type, design_type, dataset, formula) call would have covered
+								# silently disappeared with no error row, no skip_reason, nothing to grep
+								# for later. Write one explicit status="error" row instead, using the
+								# schema's own error_message column, so a whole-call crash is as visible
+								# in the CSV as a single compute_*() call's failure already is. Built by
+								# hand rather than via record_result()/build_result_key()/
+								# build_comprehensive_case_id(), deliberately: those rely on per-replicate
+								# globals (beta_T, rep_curr) that have no meaningful value here (the crash
+								# happened before any replicate ran), and an error handler that itself
+								# errors would propagate uncaught and abort the whole script.
+								run_row_id <<- run_row_id + 1L
+								results_dt <<- data.table::rbindlist(list(
+									results_dt,
+									data.table(
+										function_run = "run_tests_for_response",
+										rep = NA_integer_,
+										beta_T = NA_real_,
+										dataset = dataset_name,
+										response_type = response_type,
+										design = design_type,
+										inference_class = NA_character_,
+										id = paste("run_tests_for_response_error", response_type, design_type, dataset_name, format(Sys.time(), "%Y%m%d%H%M%OS3"), sep = "||"),
+										case_id = paste("comprehensive_tests_response_level_error", response_type, design_type, sep = "__"),
+										coverage_scope = "comprehensive_workflow",
+										runner = "comprehensive_tests",
+										github_commit_id = GITHUB_COMMIT_ID,
+										method_family = NA_character_,
+										argument_coverage_kind = "not_argument_combination",
+										skip_reason = NA_character_,
+										timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+										duration_time_sec = NA_real_,
+										duration_time_sec_raw = NA_real_,
+										duration_time_sec_sleep_adjusted = NA_real_,
+										duration_sleep_adjustment_sec = NA_real_,
+										start_epoch = NA_real_,
+										end_epoch = round_duration_field(as.numeric(Sys.time())),
+										heartbeat_log = HEARTBEAT_LOG_FILE,
+										result_1 = NA_character_,
+										result_2 = NA_character_,
+										coverage_truth = NA_real_,
+										beta_T_in_confidence_interval = NA,
+										error_message = as.character(e$message),
+										run_row_id = run_row_id,
+										r = as.integer(r),
+										pval_epsilon = pval_epsilon,
+										prob_censoring = prob_censoring,
+										sd_noise = SD_NOISE,
+										num_cores = as.integer(NUM_CORES),
+										dataset_n_rows = NA_integer_,
+										dataset_n_cols = NA_integer_,
+										result = NA_character_,
+										status = "error"
+									)
+								), use.names = TRUE)
 							}
 						)
 						# Bound crash/interrupt loss to at most one design_type iteration's worth of buffered rows.

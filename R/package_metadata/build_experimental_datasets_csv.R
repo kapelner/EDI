@@ -151,7 +151,18 @@ build_csv <- function(md_path, csv_path) {
     ifelse(grepl("unknown", tbl$Design, ignore.case = TRUE), "unknown", "not_two_arm"))
   out$design <- strip_md(tbl$Design)
   out$description <- strip_md(tbl$Description)
+  # Real grouping column for designs that need clusters (reviewed by hand, not a heuristic).
+  # Cell form: `column` (N groups); empty when no real cluster column has been identified.
+  cluster_raw <- strip_md(tbl[["Cluster Column"]])
+  out$cluster_column <- sub("\\s*\\(.*$", "", cluster_raw)
+  out$cluster_groups <- suppressWarnings(as.integer(sub("^.*\\(([0-9]+) groups\\).*$", "\\1", cluster_raw)))
+  out$cluster_groups[!grepl("groups", cluster_raw)] <- NA_integer_
 
+  # Rows whose License cell records a redistribution bar (e.g. ICPSR terms of use) may be
+  # fetched and used locally, but must never be committed, bundled, or shared.
+  out$redistribution <- ifelse(
+    grepl("ICPSR terms|no redistribution|not redistributable", out$license, ignore.case = TRUE),
+    "not permitted (ICPSR terms of use)", "not flagged")
   write.csv(out, csv_path, row.names = FALSE, na = "", fileEncoding = "UTF-8")
   invisible(out)
 }
