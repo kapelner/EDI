@@ -1389,14 +1389,163 @@ baseline as expected/benign.
   row slower on 3 cores than on 1, and EDI ≥ 1x vs. `bayesboot` on every
   row.
 
+- [ ] TODO-58 (added 2026-10-07, user decision): **Nonparametric bootstrap
+  worker: per-draw data.frame subsetting, model-matrix rebuild and R-level
+  rank check** — `../bug_fix_plans/bootstrap_worker_dataframe_subsetting.md
+  → TODO-1..6`.
+
+  The 2026-10-07 benchmark extension found the R6 percentile bootstrap CIs
+  at 0.09x (OLS), 0.86x (logistic) and 0.42x (Cox) of `boot`, while the
+  kernels they call are far faster than `boot`'s refit. Per draw the OLS
+  worker spends 2.1 ms around a 0.02 ms `fast_ols_cpp` call:
+  - `[.data.frame` with duplicated indices runs `make.unique` on row names
+    (28% of the whole bootstrap);
+  - the model matrix is rebuilt from raw covariates (0.36 ms) instead of
+    row-subset;
+  - `fit_with_hardened_qr_column_dropping()` runs an R `qr()` (0.1 ms) and
+    a `tryCatch` per draw.
+  Fix order: subset without `make.unique` (bit-preserving); subset the
+  model matrix directly (tolerance-equal with a rebuild fallback — the
+  **result-changing exception** in the standing constraint below); skip
+  the per-draw `qr()` (the same change as TODO-57's plan → TODO-7,
+  implement once); add a non-parametric fast-path hook so TODO-3's
+  `compute_ols_bootstrap_parallel_cpp` wiring has somewhere to land.
+  Acceptance: all three rows ≥ 1x `boot`. Otherwise independent of every
+  other item here and of v1.1.0.
+
+- [ ] TODO-59 (added 2026-10-07, user decision): **Design construction
+  overhead: `packageVersion()` disk read and eager covariate ingestion** —
+  `../bug_fix_plans/design_construction_overhead.md → TODO-1..5`.
+
+  `DesignFixediBCRD` + one draw is 0.03x of `randomizr::complete_ra()` and
+  `DesignFixedBlocking` 0.12x of `block_ra()`, although the draws
+  themselves are microseconds (blocking delegates to `block_ra`, 0.7 ms).
+  The 5–8 ms is `Design$initialize()` (1.4 ms, including
+  `utils::packageVersion("EDI")` reading `DESCRIPTION` from disk on every
+  design, `design_abstract.R:233`) plus the covariate pipeline
+  (`as.data.table` copy, 2–3 data.table `[` calls at 0.125 ms each,
+  `model.matrix` 0.36 ms) run eagerly for rules that never read the model
+  matrix. Fix: cache the version at load; build the model matrix lazily
+  behind a staleness flag; trim the data.table round trips. All
+  bit-preserving (equality test on `X`, `Ximp`, draws). Acceptance: iBCRD
+  row ≤ 1.5 ms, blocking ≤ 2.5 ms. Touches the same builder as TODO-60;
+  independent in content, rebase the second onto the first.
+
+- [ ] TODO-60 (added 2026-10-07, user decision): **Pocock–Simon: O(t) work
+  per arrival (O(n²) per trial)** —
+  `../bug_fix_plans/pocock_simon_per_arrival_rebuild.md → TODO-1..5`.
+
+  0.0014x of `carat`, 0.3x of `Minirand`; per-arrival cost 3.0 → 3.7 ms
+  growing with t while the minimization kernel is O(k). Three O(t) steps
+  per arrival in `add_one_subject()` / `assign_wt()`: `rbindlist` copies
+  the whole table (L149); the full model matrix is rebuilt every arrival
+  once `t > ncol(Xraw) + 2` (L157) although the rule only reads raw strata
+  columns; `ensure_factor_metadata()` rescans every strata column in
+  full, twice per arrival. Fix: incremental level bookkeeping; a
+  class-level "rule reads the model matrix" flag that skips the rebuild
+  (default `TRUE`, Pocock–Simon `FALSE`); amortized append. All
+  bit-preserving (fixed-seed assignment sequence identical). Acceptance:
+  per-arrival cost flat in t and ≤ 0.5 ms; whole sequence within 10x of
+  `carat`. See TODO-59 for the shared builder.
+
+- [ ] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
+  `nonbimatch` squared distances with a `double.xmax` diagonal** —
+  `../bug_fix_plans/binary_match_nonbimatch_distance_input.md → TODO-1..3`.
+
+  `DesignFixedBinaryMatch` is 0.6–0.7x of `nbpMatching`'s own pipeline
+  although EDI's distance step is 2x faster than `gendistance()`; the
+  shared matcher runs 1.6x slower on EDI's input. Measured at n = 1000,
+  p = 4: a zero diagonal instead of `double.xmax` is 1.3x with **identical
+  pairs** (plan TODO-1, bit-preserving); unsquared distances (the
+  objective `nbpMatching` and Lu et al. 2011 minimize) are 2.2x in total
+  but change 22% of pairs (plan TODO-2, **decision-gated default change**,
+  listed in the standing constraint below; ships behind a
+  `match_objective` argument with baseline regeneration if accepted).
+  Acceptance: ≥ 1x of the `gendistance` + `nonbimatch` row after TODO-1.
+  Independent of every other item.
+
+- [ ] TODO-62 (added 2026-10-07, user decision): **Benchmark harness: R6
+  construction inside the timed region misreads sub-10 ms rows** —
+  `../bug_fix_plans/benchmark_r6_construction_timing.md → TODO-1..4`.
+
+  Measurement fix in `R/benchmark/benchmark_model_fits.R`, not a package
+  change. The Zhang exact-CI row reads 0.4x of `fisher.test(conf.int =
+  TRUE)`; profiled, the CI is 1 ms (parity) and the other 2 ms is
+  `InferenceIncidExactZhang$new()`, timed on purpose because results are
+  cached per object. Every R6 row in the two 2026-10-07 tables carries a
+  1.4–2 ms construction the comparators do not. Fix: time construction
+  separately and report total / construction / procedure columns, compute
+  `Speedup` on the procedure, color slower-than-canonical rows (today they
+  render white), and add a `sections=` filter so the two tables
+  regenerate in minutes rather than 90. Independent of every other item.
+
+- [ ] TODO-63 (added 2026-10-07, user decision): **C++ kernels accept a
+  `warm_start_beta` of the wrong length and corrupt the heap** —
+  `../bug_fix_plans/cpp_warm_start_length_checks.md → TODO-1..5`.
+
+  Reproduced on installed 1.0.2: a single
+  `fast_logistic_regression_cpp(X, y, TRUE)` (positional `TRUE` becomes a
+  length-1 warm start; `beta = *warm_start_beta` at
+  `fast_logistic_regression.cpp:91` has no length check) corrupts the heap
+  and the next `gc()` segfaults. Source audit of every `warm_start_beta`
+  dereference in `src/`: unguarded in logistic, Poisson (checks only
+  `size() > 0`), Cox (two sites, out-of-bounds read loop), beta regression
+  (block assignment, reached from all three exports) and robust
+  (`apply_fixed_values` indexes into it unchecked); the other eleven
+  kernels branch on the size. R6 callers are safe
+  (`get_fit_warm_start_for_length()`, `inference_all_abstract.R:725`);
+  direct callers (tests, benchmarks, the Python bindings, which pass
+  `warm_start_beta` in eight files) are not. Fix: one inline length-check
+  helper throwing `std::invalid_argument` outside any OpenMP region, at
+  every warm-start site (also `warm_start_weights` /
+  `warm_start_fisher_info`); a testthat contract test that every exported
+  kernel errors cleanly on wrong-length warm starts, run under the
+  `R-CMD-check-sanitizers` and `R-CMD-check-valgrind` jobs. Bit-preserving
+  (only rejects inputs that were undefined behavior). Targeted compile
+  only. Independent of every other item.
+
+- [ ] TODO-64 (added 2026-10-07, filed on the model's initiative under the
+  standing "add found bugs to v1.0.5" instruction; delete if unwanted):
+  **Dead randomization fast paths: a kernel that does not exist, two type
+  mismatches, and a dispatcher that hides both** —
+  `../bug_fix_plans/dead_randomization_fast_paths.md → TODO-1..5`.
+
+  Found by calling each class's `compute_fast_randomization_distr()`
+  directly on the dispatcher's own permutation object (installed 1.0.2).
+  - `InferenceCountPoisson` (`inference_count_poisson.R:821`) calls
+    `compute_poisson_distr_parallel_cpp`, which exists nowhere in the
+    package (no `src/` definition, no `RcppExports.R` wrapper) and never
+    has since the initial commit. The OLS wiring plan (TODO-3) cites this
+    method as its template.
+  - `InferenceAllSimpleWilcox` and `InferenceAllKKWilcoxIVWC` pass the
+    cached double `w_mat` to `Eigen::Map<Eigen::MatrixXi>` kernels: `Wrong
+    R type for mapped matrix`. Measured 891 ms through the fallback vs
+    404 ms for the kernel on an integer matrix (n = r = 1000).
+  - The dispatcher (`inference_all_abstract_rand.R:61–66`) wraps the fast
+    path in `tryCatch(..., error = function(e) NULL)` and falls back to the
+    per-permutation R loop silently; no test exercises any fast path
+    against the real permutation object.
+  Fix: coerce to integer at the two Wilcoxon sites (shared step with
+  v1.1.0's `TODO-42`, implement once); for Poisson either delete the dead
+  method (bit-preserving, recommended) or write the kernel (tolerance-
+  equal, the **result-changing exception** in the standing constraint
+  below); rethrow under `should_run_asserts()` and warn once otherwise;
+  a wiring test (fast path vs worker loop to 1e-10 per class, plus a
+  static `*_cpp`-exists check). Independent of every other item.
+
 ## Standing constraints
 
 Same as `release_v1_1_0.md`'s standing constraints: default behavior with
 no new switches set must reproduce 1.0.0 results bit-for-bit, except where
 a TODO above explicitly documents a default change (TODO-2, TODO-3,
-TODO-56, and TODO-57's native weighted refits — its owning plan's TODO-6
-(and TODO-8 if pursued); all document their equivalence tolerance or
-verification).
+TODO-56, TODO-57's native weighted refits — its owning plan's TODO-6
+(and TODO-8 if pursued), TODO-58's direct model-matrix subsetting (its
+plan's TODO-3, tolerance-equal with a bit-preserving rebuild fallback),
+TODO-61's unsquared matching objective (its plan's TODO-2,
+decision-gated, off until the user accepts it), and TODO-64's Poisson
+kernel only if its plan's TODO-3 chooses to write it rather than delete
+the dead method (tolerance-equal); all document their equivalence
+tolerance or verification).
 No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn (see
 top-level `CLAUDE.md`); verify any `.cpp`-adjacent change via targeted
 compile only, never a full build.

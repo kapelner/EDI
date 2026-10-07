@@ -168,6 +168,20 @@ day** (user decision) as `release_v1_0_5.md → TODO-57`, with its owning plan
 now in `../bug_fix_plans/`. It fixes a misfiring performance path that already
 shipped, so it falls under the 2026-09-23 split rule.
 
+Exact and closed-form randomization inference *(added 2026-10-07, user
+decision; from the `coin` comparison in the 2026-10-07 benchmark
+investigation)*: `exact_randomization_nulls_closed_form.md` (`TODO-40`:
+hypergeometric / binomial / convolution PMFs and Strasser–Weber exact
+moments as `type = "exact_null"` / `"asymptotic_null"`) and
+`exact_rank_tests_shift_algorithm.md` (`TODO-41`: Streitberg–Röhmel shift
+algorithm for exact Wilcoxon-family p-values and CIs with ties; depends on
+`TODO-40`'s hook). Both additive and opt-in; each has one decision-gated
+default switch (standing constraints below). Alongside them,
+`../bug_fix_plans/permutation_signature_once.md` (`TODO-42`) stops
+re-hashing and re-copying the cached permutation set on every call; kept
+in this release by user decision although the 2026-09-23 split rule would
+place it in v1.0.5.
+
 The corrections family — **core only** (**minus `marginal_estimand_report.md`,
 pulled into v1.0.0 — amended 2026-08-18, user decision; see
 `release_v1_0_0.md`'s item 14; and minus the L1/L2-and-beyond tail, moved
@@ -1158,6 +1172,94 @@ ticked in their **owning plans**; this list is the release index.
   add new v1.1.0 capability or depend on this release's Phase 0 decisions
   — see `release_v1_0_5.md` for full detail on each.
 
+- [ ] TODO-40 (added 2026-10-07, user decision): **Closed-form
+  randomization nulls: exact PMFs and exact conditional moments where they
+  exist** — `exact_randomization_nulls_closed_form.md → TODO-1..7`.
+
+  From the `coin` comparison in the 2026-10-07 benchmark investigation.
+  For statistics that are functions of the treated-arm sum, the
+  randomization null is closed-form on several designs: hypergeometric on
+  `DesignFixediBCRD` (fixed `n_T`, binary `y`), a convolution of
+  hypergeometrics on blocking designs, binomial on discordant matched
+  pairs, two independent binomials on Bernoulli designs; and for general
+  `y` the exact mean and finite-population variance of the statistic
+  (Strasser & Weber 1999). EDI draws `r` permutations for all of them
+  (14 ms generation + 0.7 ms kernel at n = r = 1000). The existing Zhang
+  exact dispatch (`should_use_zhang_incidence_randomization()`) covers
+  only Bernoulli/matched incidence designs and uses a "minlike" two-sided
+  ordering, not the doubled-tail ordering of the Monte Carlo path.
+  Delivers: a registry of (class, design) closed forms; an exact-null hook
+  next to the Zhang dispatch; `type = "exact_null"` (PMF) and
+  `"asymptotic_null"` (moments) on `compute_rand_two_sided_pval()`; a
+  closed-form bracket for the randomization CI search (feeds v1.0.5's
+  affine-shift plan). Default stays Monte Carlo; the default switch is the
+  plan's decision-gated TODO-7 (listed in the standing constraint below).
+  Independent of every other item; `TODO-41` depends on its hook.
+
+- [ ] TODO-41 (added 2026-10-07, user decision): **Exact small-sample
+  rank tests via the Streitberg–Röhmel shift algorithm** —
+  `exact_rank_tests_shift_algorithm.md → TODO-1..6`. Depends on
+  `TODO-40`'s hook (its plan's TODO-2).
+
+  `InferenceAllSimpleWilcox` has no exact inference: its asymptotic
+  p-value and Hodges–Lehmann CI call `stats::wilcox.test(exact = FALSE)`
+  (`inference_all_simple_wilcox.R:80,106`) and its randomization p-value is
+  Monte Carlo. `coin` gives exact p-values for any integer-scored linear
+  rank statistic, with ties, via the shift algorithm (Streitberg & Röhmel
+  1986): a dynamic program over subjects counting `k`-subsets by score
+  sum, `O(n · n_T · S)`. Delivers: one C++ kernel
+  `exact_linear_rank_pmf_cpp(scores, n_T)` (midranks × 2 for ties, size
+  rule `n_T · S ≤ 10^8`, overflow guard), the exact rank-sum p-value and
+  exact HL CI through `TODO-40`'s hook, block convolution and the
+  signed-rank subset-sum for matched designs, benchmark rows against
+  `wilcox.test(exact = TRUE)` and `coin`. `coin` and `exactRankTests` are
+  GPL-2 only against EDI's GPL-3: reimplemented from the papers, `coin`
+  used only as a test oracle. Default stays as is; the small-`n` exact
+  default is the plan's decision-gated TODO-6 (standing constraint below).
+
+  **References (roxygen-ready in the house `@references` style; rotate into
+  the kernel's and `InferenceAllSimpleWilcox`'s docs when implemented; use
+  `\enc{Röhmel}{Roehmel}` if `R CMD check` objects to the non-ASCII name):**
+
+  ```
+  #' @references Streitberg, B., and Röhmel, J. (1986). "Exact distributions for
+  #'   permutation and rank tests: An introduction to some recently published
+  #'   algorithms." \emph{Statistical Software Newsletter}, 12(1), 10-17, for the
+  #'   shift algorithm that computes the exact null distribution of an
+  #'   integer-scored linear rank statistic by a dynamic program over subjects.
+  #'   Streitberg, B., and Röhmel, J. (1987). "Exakte Verteilungen für Rang- und
+  #'   Randomisierungstests im allgemeinen c-Stichprobenproblem." \emph{EDV in
+  #'   Medizin und Biologie}, 18(1), 12-19, for the extension to tied scores and
+  #'   the general c-sample problem. See also Hothorn, T., Hornik, K., van de
+  #'   Wiel, M. A., and Zeileis, A. (2006). "A Lego system for conditional
+  #'   inference." \emph{The American Statistician}, 60(3), 257-263,
+  #'   \doi{10.1198/000313006X118430}, for the same algorithm as implemented in
+  #'   \pkg{coin} (GPL-2; used here only as a test oracle, no code reused).
+  ```
+
+
+- [ ] TODO-42 (added 2026-10-07, user decision; kept here although the
+  2026-09-23 split rule would place it in `release_v1_0_5.md`): **Sign the
+  permutation set once at generation; never re-hash or re-copy it per
+  call** — `../bug_fix_plans/permutation_signature_once.md → TODO-1..7`.
+
+  Root cause of the "R6 mean difference is 0.57x of `coin`" benchmark row.
+  `build_randomization_distribution_cache_key()` calls
+  `stable_signature(permutations)` on every p-value call and every CI
+  bisection step: `serialize()` + xxhash64 over the 8 MB double matrix
+  (7.5 ms + 1 ms) against a 0.7 ms kernel; `subset_permutations()` copies
+  the whole matrix even when nothing is subset (7.4 ms); and
+  `generate_permutations()` stores the kernel's integer matrix as double
+  (L755), doubling its size although 50 of 51 kernels want integers (16
+  cannot accept a double at all, see `release_v1_0_5.md → TODO-64`).
+  `stable_signature()` became a full-content hash on 2026-09-21 to fix a
+  real collision bug and was never re-timed. Fix: store the signature with
+  the cached set, no-op subset, integer storage end to end, an
+  immutability audit with a debug-mode recheck. Bit-preserving. Acceptance:
+  repeat p-value call ≤ 2 ms from 12 ms. Shares its integer-storage step
+  with v1.0.5's `TODO-64` and multiplies with v1.0.5's `TODO-2` and
+  `TODO-3`; otherwise independent.
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update
@@ -1169,7 +1271,9 @@ TODOs in owning plans). Additionally, everything in this release must be
 **additive**: default behavior with no new switches set must reproduce
 1.0.0 results bit-for-bit, except where a plan explicitly documents a
 default change (currently TODO-11's class deletion, pending its
-deprecation decision). TODO-4b is narrowed to measurement infrastructure
+deprecation decision; TODO-40's exact-null default switch, its plan's
+TODO-7, and TODO-41's small-n exact default, its plan's TODO-6, both
+decision-gated and off until the user accepts them). TODO-4b is narrowed to measurement infrastructure
 only in this release (`performance_profiling_and_upgrades.md →
 TODO-132..135, 175`, all infrastructure-only, no gate needed); the
 result-changing performance items formerly gated here

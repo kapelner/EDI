@@ -715,6 +715,37 @@ moves to v1.0.5 and lands first; its TODO-2..4 stay in v1.1.0. Release
 index:
 `release_v1_0_5.md → TODO-57` (was `release_v1_1_0.md → TODO-39`).
 
+**Permutation set signed once at generation (added 2026-10-07, user
+decision; root cause of the "R6 mean difference is 0.57x of `coin`" row in
+the 2026-10-07 benchmark extension):**
+`../bug_fix_plans/permutation_signature_once.md` → TODO-1..7. Kept in
+v1.1.0 by user decision although the 2026-09-23 split rule would place it
+in v1.0.5.
+
+`build_randomization_distribution_cache_key()` re-hashes the whole cached
+permutation matrix (`serialize()` + xxhash64, 8 MB, ~8.5 ms) on every
+p-value call and every CI bisection step, `subset_permutations()` copies it
+even when nothing is subset (7.4 ms), and `generate_permutations()` stores
+it as double although 50 of 51 kernels want integers; the kernel itself is
+0.7 ms. `stable_signature()` became a full-content hash on 2026-09-21 to
+fix a real collision bug and was never re-timed. Fix: store the signature
+with the cached set, no-op subset, integer storage, an immutability audit
+with a debug recheck. Bit-preserving. Release index:
+`release_v1_1_0.md → TODO-42`.
+
+**Dead randomization fast paths (added 2026-10-07, filed on the model's
+initiative while scoping the item above):**
+`../bug_fix_plans/dead_randomization_fast_paths.md` → TODO-1..5.
+`InferenceCountPoisson`'s fast path calls `compute_poisson_distr_parallel_cpp`,
+which exists nowhere in the package (dangling since the initial commit);
+`InferenceAllSimpleWilcox` and `InferenceAllKKWilcoxIVWC` hand a double
+matrix to `Eigen::Map<Eigen::MatrixXi>` kernels; the dispatcher's
+`tryCatch(..., error = function(e) NULL)` turns all three into a silent
+fallback to the per-permutation R loop. Fix: integer `w_mat` (shared with
+the item above), delete or write the Poisson kernel, rethrow under asserts,
+a fast-path-vs-worker wiring test. Release index: `release_v1_0_5.md →
+TODO-64`.
+
 ---
 
 ## Phase 5 — Post-decision feature tracks
@@ -1070,6 +1101,29 @@ already stated there:**
   extended to one class's own method fan-out. Fix: `combined_evidence`
   weighting takes at most one (highest-priority) row per `(class,
   estimand)`; `results_table` itself is untouched.
+- **5AK. Closed-form randomization nulls** (added 2026-10-07, user
+  decision; from the `coin` comparison in the 2026-10-07 benchmark
+  investigation) → `release_v1_1_0.md → TODO-40`.
+  `exact_randomization_nulls_closed_form.md`: a registry of (class, design)
+  pairs whose randomization null is closed-form (hypergeometric on
+  `DesignFixediBCRD` with binary `y`, convolution over blocks, binomial on
+  discordant pairs, two binomials on Bernoulli designs; Strasser–Weber
+  exact moments for any statistic linear in `y`), an exact-null hook beside
+  the existing Zhang dispatch, `type = "exact_null"` / `"asymptotic_null"`
+  on the randomization p-value, and a closed-form bracket for the
+  randomization CI search (feeds `randomization_ci_affine_shift_reuse.md`).
+  Default stays Monte Carlo; the default switch is decision-gated (plan
+  TODO-7). Depends on nothing; `5AL` depends on its hook.
+- **5AL. Exact small-sample rank tests, Streitberg–Röhmel shift algorithm**
+  (added 2026-10-07, user decision) → `release_v1_1_0.md → TODO-41`.
+  `exact_rank_tests_shift_algorithm.md`: one C++ kernel returning the exact
+  PMF of an integer-scored two-sample linear rank statistic with ties
+  (`O(n · n_T · S)`, size rule, overflow guard), wired through `5AK`'s hook
+  for `InferenceAllSimpleWilcox`'s p-value and Hodges–Lehmann CI, block
+  convolution, and the signed-rank subset-sum on matched designs. `coin` /
+  `exactRankTests` are GPL-2 only against EDI's GPL-3: reimplemented from
+  the 1986/1987 papers, `coin` as a test oracle only. Small-`n` exact
+  default is decision-gated (plan TODO-6).
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 
