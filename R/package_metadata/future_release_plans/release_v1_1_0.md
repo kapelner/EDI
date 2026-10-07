@@ -182,6 +182,17 @@ re-hashing and re-copying the cached permutation set on every call; kept
 in this release by user decision although the 2026-09-23 split rule would
 place it in v1.0.5.
 
+Canonical parity for the resampling rows *(added 2026-10-07, user
+decision)*: `canonical_parity_resampling_rows.md` (`TODO-43..46`) profiles
+both sides of the five procedure-table rows EDI loses (mean-difference
+randomization test vs `coin`; OLS / logistic / Cox percentile bootstrap vs
+`boot`; Zhang exact CI vs `fisher.test`), records what is borrowable under
+each package's license (nothing from GPL-2 `coin`; `boot`'s `norm.inter`;
+`fisher.test`'s log-density precompute), sets the parity gates on top of
+the v1.0.5 mechanical fixes, and adds the cross-cutting finding that R6's
+environment rebinding discards bytecode so every instance is recompiled by
+the JIT on first use.
+
 The corrections family — **core only** (**minus `marginal_estimand_report.md`,
 pulled into v1.0.0 — amended 2026-08-18, user decision; see
 `release_v1_0_0.md`'s item 14; and minus the L1/L2-and-beyond tail, moved
@@ -1260,6 +1271,74 @@ ticked in their **owning plans**; this list is the release index.
   with v1.0.5's `TODO-64` and multiplies with v1.0.5's `TODO-2` and
   `TODO-3`; otherwise independent.
 
+- [ ] TODO-43 (added 2026-10-07, user decision): **Mean-difference
+  randomization row at parity with `coin`** —
+  `canonical_parity_resampling_rows.md → TODO-1`.
+
+  Both sides profiled 2026-10-07. `coin::oneway_test(approximate)` spends
+  most of its time in its own S4 layer (92% under `new`/`initialize`; the
+  `libcoin` engine is a quarter to a third of the total). EDI's 23 ms row is
+  construction 3 + generation 12 (cached per design) + `stable_signature`
+  10.5 **per call** + `subset_permutations` copy 5.5 per call + a kernel
+  that costs 4.7 ms on the stored double matrix but 1.1 ms on an integer
+  one. Nothing is borrowable from `coin` (GPL-2 only; engine slower than
+  EDI's generation + kernel). Gate: after `TODO-42` and `TODO-40` land,
+  fresh-object row ≥ 1x `coin`, repeat call ≤ 2 ms, `"asymptotic_null"`
+  row ≥ 1x `coin`'s asymptotic default. Also fixes the two rand-CI rows'
+  comparators: `coin::oneway_test(conf.int = TRUE)` **errors** (coin has
+  CIs only for rank tests), so add a Wilcoxon rand-CI row against
+  `coin::wilcox_test(conf.int = TRUE, approximate)` (147 s vs EDI 17 s at
+  n = 1000) and state the near-misses in the methodology text.
+
+- [ ] TODO-44 (added 2026-10-07, user decision): **Bootstrap CI rows at
+  parity with `boot`** — `canonical_parity_resampling_rows.md → TODO-2`.
+
+  Per draw, EDI's kernels already beat `boot`'s statistics: `lm.fit` 0.305
+  vs `fast_ols_cpp` 0.275 ms, `glm.fit` 4.2 vs 0.39 (warm), `coxph.fit`
+  0.87 vs 0.75. The R6 worker adds 3.1–3.2 ms per draw on every row, and
+  that cost is **independent of the byte compiler** (3.49 ms/draw JIT on vs
+  3.51 off). Fixes are `release_v1_0_5.md → TODO-58`, `→ TODO-3` and
+  `→ TODO-57`'s plan TODO-7. New here: warm-start every per-draw logistic
+  and Cox refit from the full-data fit; adopt `boot`'s `norm.inter()`
+  percentile endpoints (`boot` is License: Unlimited) behind an argument so
+  EDI's percentile interval reproduces `boot.ci(type = "perc")` exactly.
+  Gate: all three rows ≥ 1x `boot`, logistic ≥ 3x (arithmetic: 275 vs 167–289
+  ms, 195 vs 755, 375 vs 260–510).
+
+- [ ] TODO-45 (added 2026-10-07, user decision): **Zhang exact CI at parity
+  with `fisher.test`** — `canonical_parity_resampling_rows.md → TODO-3`.
+
+  The inversion is already at parity (2.1 ms on an existing object vs 2.8
+  for `fisher.test(conf.int = TRUE)`; ~14 kernel calls at 0.155 ms); the row
+  loses on construction, which `release_v1_0_5.md → TODO-62` separates and
+  `TODO-46` reduces. Borrowable from `stats::fisher.test` (R core, GPL-2 |
+  GPL-3): precompute `logdc = dhyper(support, log = TRUE)` once per table
+  and evaluate each noncentrality as `exp(logdc + log(ncp) * support)`;
+  EDI's kernel recomputes four `lgamma` per support point per call.
+  Tolerance-equal to 1e-12 (standing constraint below). Also compare
+  `fisher.test`'s two `uniroot` calls on one-sided tails with EDI's
+  bisection on the two-sided p-value.
+
+- [ ] TODO-46 (added 2026-10-07, user decision; kept here although the
+  2026-09-23 split rule could place parts in `release_v1_0_5.md`): **R6
+  construction and the per-instance byte-compilation tax** —
+  `canonical_parity_resampling_rows.md → TODO-4`.
+
+  Measured 2026-10-07: an `InferenceContinOLS` instance carries 398 function
+  bindings; a synthetic R6 class with the same method count instantiates in
+  1.6 ms, EDI's classes in 1.4–4.7 ms. **R6's environment rebinding discards
+  bytecode** (verified: `environment<-` on a compiled closure returns an
+  uncompiled one), so every instance starts with none of its methods
+  compiled and R's JIT recompiles them on first use, per instance and per
+  duplicated worker; pre-compiling the generator does not help. Per fresh
+  object this is 60–150 ms in the bootstrap paths (JIT adds 50–90 ms), paid
+  ~90 times by `InferenceSuite$run_all_inference()`. Items: measure per
+  class; make `Inference$initialize()`'s checks per-class (60% of Zhang's
+  construction); *decision-gated* thin-method architecture
+  (`function(...) .impl(self, private, ...)` over compiled namespace
+  functions, emitted by `define_inference_class()`); persistent compiled
+  workers across resampling calls.
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update
@@ -1273,7 +1352,9 @@ TODOs in owning plans). Additionally, everything in this release must be
 default change (currently TODO-11's class deletion, pending its
 deprecation decision; TODO-40's exact-null default switch, its plan's
 TODO-7, and TODO-41's small-n exact default, its plan's TODO-6, both
-decision-gated and off until the user accepts them). TODO-4b is narrowed to measurement infrastructure
+decision-gated and off until the user accepts them; and TODO-45's
+precomputed hypergeometric log-densities in the Zhang exact kernel, its
+plan's TODO-3, tolerance-equal to 1e-12). TODO-4b is narrowed to measurement infrastructure
 only in this release (`performance_profiling_and_upgrades.md →
 TODO-132..135, 175`, all infrastructure-only, no gate needed); the
 result-changing performance items formerly gated here

@@ -29,7 +29,12 @@ on:
 jobs:
   test-coverage-R-advanced:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 2026-10-07: bumped from 45 -> 90. Historical runs took 16-37 minutes, but
+    # run 37676336621 hit the full 45-minute wall and got killed (started
+    # 19:41:04, cancelled at 20:26:17, exactly 45:13 later) as the test suite
+    # has grown. Doubling for headroom rather than tuning to the exact current
+    # runtime, which will keep growing.
+    timeout-minutes: 90
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}

@@ -146,6 +146,12 @@ item beyond the shared-machinery core that gates nothing else there.
   TODO-1..4`.
 - [ ] TODO-10: **Moderation** `treatment_covariate_moderation.md → TODO-1..5`.
 - [ ] TODO-11: **Missing outcomes** `missing_outcome_handling.md → TODO-1..5`.
+  When this ships, follow up on the CRAN Task View MissingData proposal
+  (#6 in `marketing_plans/cran_task_view_proposals.md`). That issue was to
+  be filed before this release, with the missing-outcomes limitation stated
+  up front (owner, 2026-10-07). Post a short comment on it saying what
+  outcome handling shipped and in which version. Posting is outward-facing,
+  so get the owner's go-ahead first.
 - [ ] TODO-11b: **Model-averaged point estimate/CI for `InferenceSuite`**
   (added 2026-08-30, moved here from v1.1.0 by user decision):
   `model_averaged_estimand_report.md → TODO-1..5` — a model-averaged point

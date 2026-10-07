@@ -1385,6 +1385,11 @@ baseline as expected/benign.
   - **Otherwise** TODO-18 stays whole in v1.1.0 and rebases onto this
     item.
 
+  CRAN Task View proposals #11 (HighPerformanceComputing) and #13
+  (Bayesian) are held until this ships (owner, 2026-10-07; see
+  `marketing_plans/cran_task_view_proposals.md`'s gate checklist and the
+  owning plan's TODO-9).
+
   Acceptance: `marketing_plans/bb_bench2.R` shows no
   row slower on 3 cores than on 1, and EDI ≥ 1x vs. `bayesboot` on every
   row.

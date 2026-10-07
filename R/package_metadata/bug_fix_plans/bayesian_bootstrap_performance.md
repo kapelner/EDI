@@ -282,6 +282,13 @@ default change.
   3. Update the table in `cran_task_view_proposals.md` draft #13 and its
      plan notes, and the performance section of the docs, if any claims
      changed.
+  4. Unblock the Task View holds. Task View drafts #11 (HighPerformanceComputing)
+     and #13 (Bayesian) are held until this ships (owner, 2026-10-07).
+     - Re-measure bootstrap and randomization-test scaling with cores for
+       #11's notes.
+     - Rewrite #13's "does not yet gain from extra cores" sentence.
+     - Ask the owner for the go-ahead to file both. Filing is outward-facing
+       and never happens without it.
 
 ## Out of scope
 

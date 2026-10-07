@@ -53,6 +53,15 @@ test_that("debug = TRUE reproduces the non-debug distribution and its full summa
 })
 
 test_that("debug = TRUE under multi-core dispatch reproduces the single-core distribution", {
+	# obj_parallel$num_cores <- 2L below drives par_lapply() into its lazy-fork-
+	# cluster branch (inference_all_abstract.R's par_lapply()), which stores a
+	# real, persistent 2-worker cluster in edi_env$global_fork_cluster -- by
+	# design, meant to outlive the call for reuse by real callers. In a
+	# bin-packed test shard that persistence leaks into every later test in the
+	# same session (get_num_cores() then reports 2, not 1; see the identical
+	# leak already fixed in test-bayesian-bootstrap-non-reusable-worker-debug-
+	# path.R), so this test must tear it down itself.
+	on.exit(unset_num_cores(), add = TRUE)
 	des = bbdebug_design()
 	obj_serial = InferenceAllSimpleAverageDiff$new(des)
 	obj_serial$num_cores = 1L

@@ -746,6 +746,24 @@ the item above), delete or write the Poisson kernel, rethrow under asserts,
 a fast-path-vs-worker wiring test. Release index: `release_v1_0_5.md →
 TODO-64`.
 
+**Canonical parity for the five slow procedure rows (added 2026-10-07, user
+decision):** `canonical_parity_resampling_rows.md` → TODO-1..4. Both sides
+profiled at the harness's settings. `coin`'s time is mostly its own S4
+layer; EDI's is per-call hashing and copying of the permutation set
+(`→ TODO-42`). `boot`'s statistics are slower per draw than EDI's kernels
+on every row; EDI's R6 worker adds 3.1–3.2 ms per draw regardless of the
+byte compiler (`release_v1_0_5.md → TODO-58`, `→ TODO-3`). `fisher.test`'s
+inversion is already matched; its once-per-table log-density precompute is
+borrowable (R core, GPL-2 | GPL-3). Cross-cutting: R6's environment
+rebinding discards bytecode, so each instance's ~400 methods are
+recompiled by the JIT on first use (60–150 ms per fresh object). Also
+settles the two "no canonical R implementation" rand-CI rows:
+`coin::oneway_test(conf.int = TRUE)` errors, `exactRankTests` is
+exact-only and infeasible at n = 1000, `ri2` has no grid inversion; a
+Wilcoxon rand-CI row against `coin::wilcox_test(conf.int = TRUE)` (147 s
+vs EDI 17 s) is the one fair addition. Release index:
+`release_v1_1_0.md → TODO-43..46`.
+
 ---
 
 ## Phase 5 — Post-decision feature tracks
