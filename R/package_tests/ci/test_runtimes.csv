@@ -99,6 +99,7 @@ R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-col
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -600,6 +601,7 @@ R/package_tests/testthat_bulk/test-kk21-stepwise-design-generic-weight-selection
 R/package_tests/testthat_bulk/test-kk21-stepwise-design-survival-weight-selection-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk21-survival-weight-kernel-ols-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk21-univariate-weight-kernels-continuous-logistic-ordinal-references-and-ordinal-ssq-key-bug.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-km-diff-bayesian-bootstrap-nonfinite-draw-policy-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-km-diff-general-censoring-bayesian-bootstrap-and-log-rank-convenience-method-rejected-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-km-diff-weighted-restricted-mean-stat.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-km-group-and-diff-kernels-restricted-mean-median-and-arm-split-survfit-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1475,6 +1477,7 @@ R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-col
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,coverage,240,bootstrap
@@ -1976,6 +1979,7 @@ R/package_tests/testthat_bulk/test-kk21-stepwise-design-generic-weight-selection
 R/package_tests/testthat_bulk/test-kk21-stepwise-design-survival-weight-selection-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk21-survival-weight-kernel-ols-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk21-univariate-weight-kernels-continuous-logistic-ordinal-references-and-ordinal-ssq-key-bug.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-km-diff-bayesian-bootstrap-nonfinite-draw-policy-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-diff-general-censoring-bayesian-bootstrap-and-log-rank-convenience-method-rejected-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-diff-weighted-restricted-mean-stat.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-group-and-diff-kernels-restricted-mean-median-and-arm-split-survfit-reference.R,coverage,240,bootstrap
