@@ -1,7 +1,7 @@
 "export_name","api_kind","class_name","method_name","method_origin_class","method_inheritance","configurable_arg_count","formal_args","has_assertion_calls","has_more_than_one_configurable_arg","reached_by_comprehensive_tests","reached_by_one_off_testthat","source_files","has_legal_combination_coverage"
 ".normalize_optimizer_algorithm","function","","","","",3,"allow_irls;default;optimization_alg",FALSE,TRUE,FALSE,FALSE,"",FALSE
 "build_cox_data_cache_cpp","function","","","","",3,"dead;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
-"build_stratified_cox_data_cache_cpp","function","","","","",4,"dead;strata;X;y",FALSE,TRUE,FALSE,FALSE,"",FALSE
+"build_stratified_cox_data_cache_cpp","function","","","","",4,"dead;strata;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "check_package_installed","function","","","","",1,"package_name",FALSE,FALSE,FALSE,FALSE,"",FALSE
 "clear_local_EDI_optimization","function","","","","",0,"",FALSE,FALSE,FALSE,FALSE,"",FALSE
 "compute_coxph_rand_bootstrap_cpp","function","","","","",6,"dead;delta;i_mat;num_cores;w_mat;y0",FALSE,TRUE,FALSE,FALSE,"",FALSE

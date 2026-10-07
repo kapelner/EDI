@@ -1,7 +1,7 @@
 "export_name","api_kind","class_name","method_name","method_origin_class","method_inheritance","configurable_arg_count","formal_args","has_assertion_calls","reached_by_comprehensive_tests","reached_by_one_off_testthat","has_legal_combination_coverage","gap_reason","source_files"
 ".normalize_optimizer_algorithm","function","","","","",3,"allow_irls;default;optimization_alg",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "build_cox_data_cache_cpp","function","","","","",3,"dead;X;y",FALSE,FALSE,TRUE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
-"build_stratified_cox_data_cache_cpp","function","","","","",4,"dead;strata;X;y",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
+"build_stratified_cox_data_cache_cpp","function","","","","",4,"dead;strata;X;y",FALSE,FALSE,TRUE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "compute_coxph_rand_bootstrap_cpp","function","","","","",6,"dead;delta;i_mat;num_cores;w_mat;y0",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "create_model_matrix_from_features","function","","","","",2,"data;formula",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "exact_jonckheere_terpstra_pval_cpp","function","","","","",2,"w;y",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
