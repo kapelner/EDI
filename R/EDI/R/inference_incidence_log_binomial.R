@@ -168,6 +168,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 		best_X_colnames = NULL,
 		logbin_X_full_cache = NULL,
 		logbin_w_cache = NULL,
+		logbin_X_cov_cache = NULL,
 		max_abs_reasonable_coef = 25,
 		is_log_binomial_fit_reasonable = function(mod, X_fit = NULL, j_treat = 2L, check_probability_boundary = TRUE){
 			if (is.null(mod) || is.null(mod$b)) return(FALSE)
@@ -354,14 +355,17 @@ IncidenceLogBinomialLikelihoodSource = list(
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
-			if (is.null(private$logbin_X_full_cache) || !identical(private$w, private$logbin_w_cache)) {
-				X_data = private$get_X()
+			X_data = private$get_X()
+			if (is.null(private$logbin_X_full_cache) ||
+					!identical(private$w, private$logbin_w_cache) ||
+					!identical(X_data, private$logbin_X_cov_cache)) {
 				private$logbin_X_full_cache = if (is.null(X_data) || ncol(X_data) == 0) {
 					cbind(`(Intercept)` = 1, treatment = private$w)
 				} else {
 					cbind(`(Intercept)` = 1, treatment = private$w, X_data)
 				}
 				private$logbin_w_cache = private$w
+				private$logbin_X_cov_cache = X_data
 			}
 			X_full = private$logbin_X_full_cache
 			

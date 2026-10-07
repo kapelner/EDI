@@ -162,6 +162,12 @@ and `spellcheck.md` (`spelling` + `inst/WORDLIST` + `tests/spelling.R` —
 `TODO-24`). Both depend on nothing and can land at any point in the
 release; neither changes runtime behavior.
 
+Resampling performance *(added 2026-10-07, user decision)*:
+`bayesian_bootstrap_performance.md` (`TODO-39`) **moved to v1.0.5 the same
+day** (user decision) as `release_v1_0_5.md → TODO-57`, with its owning plan
+now in `../bug_fix_plans/`. It fixes a misfiring performance path that already
+shipped, so it falls under the 2026-09-23 split rule.
+
 The corrections family — **core only** (**minus `marginal_estimand_report.md`,
 pulled into v1.0.0 — amended 2026-08-18, user decision; see
 `release_v1_0_0.md`'s item 14; and minus the L1/L2-and-beyond tail, moved
@@ -959,7 +965,18 @@ ticked in their **owning plans**; this list is the release index.
   and worker single-threading env-var setup (defined once for
   `clusterCall()`, hand-rederived once for `mcparallel` children).
   Independent of every other 1.1.0 item; no dependency on the decision
-  batch.
+  batch. It rebases onto `release_v1_0_5.md → TODO-57` (Bayesian bootstrap
+  performance), which ships first. The two meet only where `par_lapply`'s
+  mirai branch calls `ensure_mirai_daemons`.
+
+  **Conditional split** (2026-10-07, user decision): **if**
+  `bayesian_bootstrap_performance.md → TODO-2` ends up changing
+  `ensure_mirai_daemons` (for example, to send the inference object once
+  per mirai daemon), then this item's sub-step
+  `consolidate_parallelization_code.md → TODO-1` (unify the two
+  `ensure_mirai_daemons` copies) moves to v1.0.5 under TODO-57 and lands
+  before that change. Its TODO-2..4 stay here. Otherwise, all of TODO-18
+  stays here.
 - [ ] TODO-19: **"Lock-and-key" (Design/Inference) metaphor rotated into
   documentation** (added 2026-09-08, user decision; scope widened same day
   to every doc surface; went through several narrowing/refinement rounds
@@ -1084,6 +1101,17 @@ ticked in their **owning plans**; this list is the release index.
   harness timing investigation, traced to an unbounded C++ optimizer
   parameter plus a stale-gradient mismatch. A performance/correctness fix
   to an already-shipped class, not new v1.1.0 capability.
+- [ ] ~~TODO-39~~ **→ moved 2026-10-07 to `release_v1_0_5.md → TODO-57`**
+  (user decision, the same day it was added): **Bayesian bootstrap
+  performance: parallel scaling and native weighted refits** —
+  `../bug_fix_plans/bayesian_bootstrap_performance.md → TODO-1..9`. It fixes
+  already-shipped resampling dispatch that misfires (a serial blocklist with
+  no recorded reason, per-job shipping of every draw, and a gate that never
+  picks serial), plus R-side Cox, Weibull and OLS refits. That is a
+  v1.0.5-type fix under the 2026-09-23 split rule. TODO-18 below rebases
+  onto it. Their only contact point is `ensure_mirai_daemons`, and if
+  TODO-57 changes it, TODO-18's sub-step TODO-1 moves to v1.0.5 (see
+  TODO-18's conditional-split note).
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

@@ -1,4 +1,15 @@
-# Fix: Reused Bootstrap Worker Never Resets `cached_design_matrix` — Scrambled Data/Weight Correspondence Across Draws
+# Audit: Reused Bootstrap Worker Already Resets `cached_design_matrix`
+
+> **Status correction (2026-10-07):** The reported source bug is absent from
+> current HEAD. `load_bootstrap_sample_into_design_backed_worker()` has reset
+> `cached_design_matrix`, `cached_hardened_X_cov`, and related design caches
+> since commit `8aa321146` (2026-06-01), predating this plan. The historical
+> investigation below describes a risk that the current loader already
+> prevents; its class-specific calibration findings remain separate open
+> questions. A new two-draw `InferenceContinOLS(model_formula = ~.)` regression
+> confirms that a reused worker's second estimate matches both a fresh worker
+> and an independent `lm.fit()`. The focused loader suite passed 48 expectations
+> with `pkgload::load_all("R/EDI", compile = FALSE)` and no build.
 
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-28`. Found 2026-09-24, via a dedicated
@@ -8,10 +19,10 @@
 > specific severe miscalibration signature (tracked separately in
 > `investigate_contin_ols_weighted_bootstrap_se.md` / `release_v1_0_5.md →
 > TODO-25`, and `contin_lin_param_bootstrap_bad_type1_error.md` /
-> `TODO-15`). **High confidence — confirmed by direct code reading, not
-> hypothesized.**
+> `TODO-15`). The cache diagnosis in that investigation was refuted by
+> the 2026-10-07 source and history check above.
 
-## The bug
+## Historical finding (superseded by the status correction)
 
 `load_bootstrap_sample_into_design_backed_worker()`
 (`R/EDI/R/inference_all_abstract_non_param_boot.R:1191-1235` — the loader
@@ -24,30 +35,26 @@ confirmed "fully wipes `cached_values`" and treated as the *correctly-
 behaving* reference implementation the broken `rand` loader needed to
 match.
 
-**It is not fully correct either.** It never resets
-`w_priv$cached_design_matrix`, even though it DOES correctly reset
-`w_priv$w`/`w_priv$X` to the current draw's resampled rows (`:1200-1205`).
+The original report claimed it never reset `w_priv$cached_design_matrix`.
+That claim was wrong for current HEAD: the loader resets it at line 1239,
+immediately after updating `w_priv$w`/`w_priv$X` to the current draw.
 `create_design_matrix()` (`inference_all_abstract.R:1032-1034`)
 unconditionally returns the cached matrix if one already exists:
 ```r
 dm = private$cached_design_matrix
 if (!is.null(dm)) return(dm)
 ```
-So every draw after the first silently reuses **draw 1's** design matrix
-(draw 1's treatment column, draw 1's covariate rows) while the *weights*
-being applied to it are correctly the *current* draw's — a scrambled
-correspondence between the resampled/reweighted data and the design
-matrix it's supposedly built from, repeating on every draw after the
-first.
+Without the loader reset, draws after the first could reuse draw 1's
+design matrix. The current reset prevents this specific mismatch.
 
-This is the same allowlist-not-denylist shape as this session's original
-bug (`cached_values` reset), and the same category as the still-open
+The original report compared this to the allowlist-not-denylist shape of
+the earlier `cached_values` bug, and the category of the then-open
 `release_v1_0_5.md → TODO-12` (`cached_mod` gap in a *different* loader,
 `load_randomization_perm_into_worker()`) — just a different private field
 (`cached_design_matrix`, not named in TODO-12's list) in what was
 previously believed to be the one loader that already got this right.
 
-## Scope: confirmed shared across (at least) four classes
+## Historical scope hypotheses (do not attribute current calibration findings to this cache)
 
 All four classes declare their own `compute_estimate_with_bootstrap_weights()`
 override, and all four call `private$expand_subject_or_block_weights_to_row_weights()`
@@ -215,89 +222,52 @@ proportion/GComp families remain genuinely unexplained by this bug and
 need independent root-causing — do not assume they'll be fixed by this
 patch.
 
-## Related sibling cache possibly also affected — not yet checked
+## Related sibling cache — already reset
 
-`cached_hardened_X_cov` (set inside `create_design_matrix()` itself, per
-`inference_all_abstract.R:1036`/`:1049`) is also never invalidated by this
-loader — likely needs the same reset treatment, not yet confirmed.
+`cached_hardened_X_cov` (set inside `create_design_matrix()`, per
+`inference_all_abstract.R:1036`/`:1049`) is already invalidated by this
+loader at line 1242.
 
-## Proposed fix
+## Fix already present in HEAD
 
-Add `w_priv$cached_design_matrix = NULL` (and `cached_hardened_X_cov`,
-pending TODO-2 below) to `load_bootstrap_sample_into_design_backed_worker()`'s
-reset list. Per this session's own established direction (see
-`stale_worker_cache_resampling.md`'s TODO-9/TODO-12 discussion),
-prefer routing this through whatever shared keep-list/reset mechanism the
-earlier `cached_values` fix introduced (`EDI_REUSED_WORKER_CACHE_KEEP_KEYS`/
-`reused_worker_preserved_cache_keys()`) rather than another hand-maintained
-field list — this bug is a direct instance of exactly the pattern that
-mechanism was built to prevent, just for a field outside `cached_values`
-(private fields, the same category TODO-12 already covers for a different
-loader). Worth considering whether TODO-12's eventual fix and this one
-should be unified into one general private-field reset pass across all
-reused-worker loaders, rather than three separate per-loader patches.
+`w_priv$cached_design_matrix = NULL` and `cached_hardened_X_cov = NULL` are
+already in `load_bootstrap_sample_into_design_backed_worker()`'s reset list,
+along with the related design caches. The later TODO-12 implementation
+centralized this private-field reset surface in one context-aware helper
+shared by every reused-worker loader, so these fields no longer depend on
+separate hand-maintained lists.
 
 ## TODOs
 
-- [ ] TODO-1: Confirm the fix's scope precisely — for each of the 4
-  classes (`InferenceContinOLS`, `InferenceContinLin`,
-  `InferenceIncidLogBinomial`, `InferenceSurvivalWeibullRegr`), verify
-  their `compute_estimate_with_bootstrap_weights()` override actually
-  depends on `create_design_matrix()`'s cache the same way `InferenceContinOLS`'s
-  does (confirmed only for OLS so far).
-- [ ] TODO-2: Check whether `cached_hardened_X_cov` (and any other private
-  field `create_design_matrix()` sets internally) needs the same reset.
-- [ ] TODO-3: Implement the fix — add the missing reset(s) to
-  `load_bootstrap_sample_into_design_backed_worker()`, ideally unified
-  with `TODO-12`'s eventual private-field-reset mechanism rather than as
-  an independent patch.
-- [ ] TODO-4: Reproduce directly via `pkgload::load_all(".", compile = FALSE)`
-  only (never `R CMD INSTALL`/`R CMD build`/`pkgbuild::compile_dll()`/
-  `load_all(compile = TRUE)` or unspecified `compile=` — hard project
-  rule, top-level `CLAUDE.md`). Confirm the fix resolves
-  `InferenceContinOLS`'s `subsampling`/`m_out_of_n_bootstrap` inflation
-  first (the class/families with an exact, confirmed mechanistic match),
-  then check whether it also resolves `InferenceContinLin`,
-  `InferenceIncidLogBinomial`, and `InferenceSurvivalWeibullRegr`'s
-  `~.`-specific findings — this may fully close `TODO-15`/`TODO-25` and
-  the other two classes' open leads, or may only partially explain them
-  (each of those investigations found their own candidate mechanism too,
-  not yet confirmed to be the same bug or a compounding second bug).
-- [ ] TODO-5: Investigate the `bayesian_bootstrap`-family involvement for
-  `InferenceContinOLS` specifically — confirm or refute the
-  same-worker-persists-across-calls explanation.
-- [ ] TODO-6: Verify the fix doesn't change results for currently-correct
-  cases (e.g. `model_formula=~1`, or classes/methods not affected by this
-  bug) — bit-for-bit or floating-point tolerance, matching this session's
-  standing discipline for reused-worker cache fixes.
-- [ ] TODO-7: Add a permanent regression test analogous to
-  `stale_worker_cache_resampling.md`'s TODO-6 — a fixture with
-  `model_formula=~.` (multiple covariates) run through
-  `subsampling`/`m_out_of_n_bootstrap`, asserting the resampling
-  distribution is not degenerate/miscalibrated, specifically covering the
-  `compute_estimate_with_bootstrap_weights()` path this bug lives in
-  (the existing non-degeneracy test may not exercise this exact path —
-  confirm).
-- [ ] TODO-8: Once fixed, update `TODO-15`/`TODO-25` and the survival/
-  incidence cluster investigation notes to reflect whether this fix fully
-  or partially resolves each of the four classes' findings.
-- [ ] TODO-9: Regenerate affected `comprehensive_tests` CSV rows once
-  fixed and installed (only after install, not before).
-- [ ] TODO-10 (added 2026-09-24, closing a gap where the "Unresolved, not
-  traced to a conclusion" section above named three classes with no
-  explicit action item tracking them; **narrowed 2026-09-24 — 2 of 3
-  now settled by the "GComp-family verification (settled)" section
-  above, added by a later fork**): confirm or rule out this bug for
-  `InferenceContinKKQuantileRegrOneLik` — the one name from the original
-  three still genuinely open (read its actual
-  `compute_estimate_with_bootstrap_weights()` body in the
-  `KKQuantileRegrOneLik` component source — not yet read by any fork so
-  far; check `TODO-20`'s tie-sensitivity lead first, since it's an
-  independent pre-existing candidate for this same class).
-  `InferenceOrdinalGCompMeanDiff` (ruled out) and the four
-  `InferenceIncidGCompRiskDiff`/`RiskRatio`/KK-variant classes (confirmed)
-  are done — see the settled section above, no further action needed on
-  those two.
+**Disposition audit, 2026-10-07:** the source premise was false: the reset
+already existed before this plan. Every historical item below is therefore
+closed for this plan. Items about unexplained class calibration were
+transferred to their existing release TODOs (especially TODO-15, TODO-20,
+and TODO-25); `[x]` here means no action remains under the refuted
+`cached_design_matrix` hypothesis, not that those independent findings were
+resolved.
+
+- [x] TODO-1: Closed as inapplicable; there is no missing-reset fix whose
+  class scope needs enumeration. Class-specific calibration findings remain
+  in their own release TODOs.
+- [x] TODO-2: Confirmed that the existing loader clears
+  `cached_design_matrix`, `cached_hardened_X_cov`, and the related fields.
+- [x] TODO-3: No fix was required. The existing resets were later
+  centralized by release TODO-12.
+- [x] TODO-4: A source-loaded two-draw OLS regression refuted the premise:
+  the reused worker matches a fresh worker and `lm.fit()`.
+- [x] TODO-5: The independent OLS Bayesian-bootstrap question is owned by
+  release TODO-25; no work remains under this cache hypothesis.
+- [x] TODO-6: Inapplicable because closing the finding changed no source
+  behavior.
+- [x] TODO-7: Added the permanent multi-covariate, two-draw reused-worker
+  regression described above.
+- [x] TODO-8: TODO-15 and TODO-25 now state that this refuted hypothesis does
+  not explain their findings.
+- [x] TODO-9: Inapplicable; the nonexistent bug affected no historical rows.
+- [x] TODO-10: Ruled out for this cache hypothesis because the loader reset is
+  unconditional. The independent quantile-regression tie-sensitivity lead
+  remains release TODO-20.
 
 ## Standing constraints
 

@@ -8,21 +8,15 @@
 #' @keywords internal
 #' @noRd
 exact_test_public = list(
-		#' @description Recomputes the exact treatment estimate under bootstrap weights.
+		#' @description Reports that bootstrap-weighted estimation is unavailable
+		#'   for exact-only inference classes.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only If \code{TRUE}, compute only the weighted point
 		#'   estimate.
-		#' @return A numeric treatment-effect estimate.
+		#' @return Does not return; raises an unsupported-operation error.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			indices = rep(seq_along(row_weights), times = round(row_weights))
-			if (length(indices) == 0L) {
-				return(NA_real_)
-			}
-			sub_inf = private$bootstrap_subset_inference(indices, smooth = FALSE)
-			if (is.null(sub_inf)) return(NA_real_)
-			sub_inf$compute_estimate(estimate_only = estimate_only)
+			stop("Bootstrap-weighted estimates are not supported for exact-test inference classes.")
 		},
 		#' @description Computes an exact confidence interval for the requested exact method.
 		#' @param alpha            Significance level.

@@ -251,6 +251,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			jack = as.numeric(private$approximate_jackknife_distribution_beta_hat_T_private(unit = unit))
 			n_units = length(jack)
 			if (n_units <= 1L) {
+				private$cache_nonestimable_se("jackknife_too_few_replicate_estimates")
 				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = numeric(0))
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)

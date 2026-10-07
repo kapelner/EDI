@@ -148,8 +148,8 @@ InferenceExtPRWSubsampling = list(
 					show_progress = show_progress
 				), b[setdiff(names(b), c("method", "B", "alpha"))]))
 				b = selection$b_optimal
-				if (!is.finite(b)) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("subsampling_b_selection_failed")
+				if (!is.numeric(b) || length(b) != 1L || !is.finite(b)) {
+					private$cache_nonestimable_estimate("subsampling_b_selection_failed")
 					return(NA_real_)
 				}
 			}
@@ -214,9 +214,8 @@ InferenceExtPRWSubsampling = list(
 					show_progress = show_progress
 				), b[setdiff(names(b), c("method", "B", "alpha"))]))
 				b = selection$b_optimal
-				if (!is.finite(b)) {
-					if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "subsampling_b_selection_failed", stage = "estimate"))
-					return(c(NA_real_, NA_real_))
+				if (!is.numeric(b) || length(b) != 1L || !is.finite(b)) {
+					return(private$missing_bootstrap_ci(alpha, "subsampling_b_selection_failed", stage = "estimate"))
 				}
 			}
 			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = subsampling_type)

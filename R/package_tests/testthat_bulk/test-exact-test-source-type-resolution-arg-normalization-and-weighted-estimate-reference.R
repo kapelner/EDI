@@ -4,8 +4,8 @@ library(EDI)
 # ExactTestSource (inference_all_abstract_exact.R), the shared base of the exact-test
 # classes: resolve_exact_type() defaulting, normalize_exact_inference_args() merging,
 # assert_exact_inference_params() validation, the "not implemented" stops of the
-# by-type hooks, and compute_estimate_with_bootstrap_weights() (integer-rounded
-# replication of subjects) exercised through InferenceIncidExactFisher.
+# by-type hooks, and the explicit unsupported bootstrap-weighted estimate
+# shared by the exact-only incidence classes.
 
 src <- get("ExactTestSource", envir = asNamespace("EDI"))
 
@@ -83,14 +83,26 @@ test_that("the exact-Fisher class defaults its type and resolves it", {
 	expect_true(f$p$is_a_exact())
 })
 
-test_that("the shared weighted-estimate method is unusable on the exact Fisher class (real source bug, not fixed)", {
-	# SOURCE BUG (noted, not fixed): ExactTestSource$compute_estimate_with_bootstrap_weights() calls
-	# private$expand_subject_or_block_weights_to_row_weights(), which only the BayesianBootstrap component
-	# provides; the exact classes do not compose it, so the method errors instead of resampling.
+test_that("exact-only classes clearly reject bootstrap-weighted estimation without changing their ordinary fit", {
 	f <- fisher_fx()
 	est <- f$inf$compute_estimate()
-	expect_false(is.function(f$p$expand_subject_or_block_weights_to_row_weights))
-	expect_error(f$inf$compute_estimate_with_bootstrap_weights(rep(1, f$n)))
-	expect_equal(f$inf$compute_estimate(), est)                         # the failed call leaves the ordinary cache intact
+	expect_error(f$inf$compute_estimate_with_bootstrap_weights(rep(1, f$n)),
+		"Bootstrap-weighted estimates are not supported for exact-test inference classes")
+	expect_equal(f$inf$compute_estimate(), est)
 	expect_equal(f$p$weighted_refit_depth, 0L)
+
+	n <- 40L
+	des <- DesignFixedBinaryMatch$new(n = n, response_type = "incidence",
+		m = rep(seq_len(n / 2L), each = 2L), verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = seq_len(n)))
+	des$overwrite_all_subject_assignments(rep(c(0L, 1L), n / 2L))
+	des$add_all_subject_responses(rep(c(0L, 1L, 1L, 0L, 0L, 0L, 1L, 1L), length.out = n))
+	for (generator in list(InferenceIncidExactBinomial, InferenceIncidExactFisher, InferenceIncidExactZhang)) {
+		inf <- generator$new(des, verbose = FALSE)
+		before <- inf$compute_estimate()
+		expect_error(inf$compute_estimate_with_bootstrap_weights(rep(1, n), estimate_only = TRUE),
+			"Bootstrap-weighted estimates are not supported for exact-test inference classes")
+		expect_equal(inf$compute_estimate(), before)
+		expect_equal(inf$.__enclos_env__$private$weighted_refit_depth, 0L)
+	}
 })

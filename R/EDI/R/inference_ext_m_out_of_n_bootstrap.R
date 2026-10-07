@@ -157,8 +157,8 @@ InferenceExtMOutOfNBootstrap = list(
 					show_progress = show_progress
 				), m[setdiff(names(m), c("method", "B", "alpha"))]))
 				m = selection$m_optimal
-				if (!is.finite(m)) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("m_out_of_n_m_selection_failed")
+				if (!is.numeric(m) || length(m) != 1L || !is.finite(m)) {
+					private$cache_nonestimable_estimate("m_out_of_n_m_selection_failed")
 					return(NA_real_)
 				}
 			}
@@ -223,9 +223,8 @@ InferenceExtMOutOfNBootstrap = list(
 					show_progress = show_progress
 				), m[setdiff(names(m), c("method", "B", "alpha"))]))
 				m = selection$m_optimal
-				if (!is.finite(m)) {
-					if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, "m_out_of_n_m_selection_failed", stage = "estimate"))
-					return(c(NA_real_, NA_real_))
+				if (!is.numeric(m) || length(m) != 1L || !is.finite(m)) {
+					return(private$missing_bootstrap_ci(alpha, "m_out_of_n_m_selection_failed", stage = "estimate"))
 				}
 			}
 			unit_info = private$get_exchangeable_units(unit = "auto", resampling_type = bootstrap_type)

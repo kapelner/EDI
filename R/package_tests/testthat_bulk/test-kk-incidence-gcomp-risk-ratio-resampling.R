@@ -49,6 +49,13 @@ test_that("RR jackknife-Wald pval/CI match an independently derived log-scale ja
 	expect_true(is.na(inf$compute_jackknife_wald_two_sided_pval(delta = 0)))
 })
 
+test_that("KK risk-ratio p-values reject a missing null value", {
+	for (method in c("compute_asymp_two_sided_pval", "compute_wald_two_sided_pval")) {
+		inf <- kk_gcomp_rr_fixture(InferenceIncidKKGCompRiskRatio, 2026)
+		expect_error(inf[[method]](delta = NA_real_), "Contains missing values", info = method)
+	}
+})
+
 test_that("RR basic-bootstrap and Bayesian-bootstrap CIs reproduce the log-scale reflection formula", {
 	fixture_seed <- 4041
 	inf_est <- kk_gcomp_rr_fixture(InferenceIncidKKGCompRiskRatio, fixture_seed)

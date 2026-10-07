@@ -1057,9 +1057,9 @@ run_all_inference_estimand = function(cls_name) {
 #' call) but may not interrupt one very slow single native fit.
 #'
 #' Whether inference class `nm`'s constructor syntactically accepts a
-#' `model_formula` argument, checked via `formals()` on the R6 generator's
-#' `$new()` (auto-derived from `initialize()`'s own formals -- an R6
-#' generator's `$new` always mirrors its `initialize` method's signature).
+#' `model_formula` argument. Inspect the effective `initialize()` method:
+#' R6 generators expose only `...` on `$new()`, and some inference classes
+#' use a lazy `initialize(...)` stub whose real signature is in its component.
 #' Purely syntactic: `TRUE` does not mean the class's fit actually reads the
 #' formula, only that a caller may legally pass one at construction time --
 #' see the `adjusts_for_covariates` registry field (audited in full in
@@ -1070,7 +1070,18 @@ run_all_inference_estimand = function(cls_name) {
 #' @noRd
 inference_class_accepts_model_formula = function(nm) {
 	cls = get(nm, envir = getNamespace("EDI"))
-	"model_formula" %in% names(formals(cls$new))
+	repeat {
+		initializer = cls$public_methods$initialize
+		if (is.function(initializer)) {
+			lazy_component = attr(initializer, "inference_lazy_component_stub", exact = TRUE)
+			if (!is.null(lazy_component)) {
+				initializer = get_lazy_component_dispatch(lazy_component, nm)$public$initialize
+			}
+			return("model_formula" %in% names(formals(initializer)))
+		}
+		cls = cls$get_inherit()
+		if (is.null(cls)) return(FALSE)
+	}
 }
 
 #' Normalizes `InferenceSuite$run_all_inference()`'s `formulas` argument

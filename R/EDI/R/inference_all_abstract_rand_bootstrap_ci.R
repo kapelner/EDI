@@ -35,7 +35,14 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		#' @description Returns the \code{type} values
 		#'   \code{compute_rand_bootstrap_confidence_interval()} accepts.
 		get_supported_rand_bootstrap_ci_types = function(){
-			private$rand_bootstrap_ci_types
+			types = private$rand_bootstrap_ci_types
+			incidence_ci_blocked = identical(private$des_obj_priv_int$response_type, "incidence") &&
+				is.null(private$custom_randomization_statistic_function) &&
+				is.null(private[["compiled_cpp_stat_fn"]])
+			if (incidence_ci_blocked || !rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)) {
+				types = setdiff(types, "smoothed")
+			}
+			types
 		},
 		#' @description Computes a confidence interval by inverting the bootstrap randomization
 		#'   test over the null effect \code{delta}. For statistics that are affine in the
@@ -73,8 +80,11 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		#'   mode if unavailable.
 		#'   \code{"smoothed"} adds per-draw kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
 		#'   to the resampled responses before imposing the null shift, reducing discreteness.
-		#'   Only meaningful for continuous responses; count responses are rounded and floored at
-		#'   zero after the noise so the Poisson-family refits stay on the integer support. See
+		#'   Supported for real-valued statistics on coded responses, and for continuous,
+		#'   count, and survival responses. Categorical or bounded model refits and ordinal
+		#'   rank-score estimators reject this type because Gaussian noise leaves their response
+		#'   support. Count responses are rounded and floored at zero after the noise so
+		#'   Poisson-family refits stay on the integer support. See
 		#'   \code{\link{InferenceRandBootstrap}}'s \code{compute_rand_bootstrap_two_sided_pval} for
 		#'   the theoretical justification (Silverman 1981; Silverman & Young 1987; Hall, DiCiccio &
 		#'   Romano 1989), an explicit caveat that the bandwidth used here (\eqn{\hat{\sigma}/\sqrt{n}},
@@ -93,6 +103,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					call. = FALSE
 				)
 			}
+			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)

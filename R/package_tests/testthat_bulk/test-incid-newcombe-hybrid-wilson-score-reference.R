@@ -88,6 +88,12 @@ test_that("Newcombe two-sided p-value matches an independent CI-inversion refere
 	expect_equal(inf$compute_asymp_two_sided_pval(delta = far_delta), 1.0)
 })
 
+test_that("Newcombe p-value rejects a missing null value", {
+	f = make_newcombe_fixture(seed = 20261002)
+	inf = InferenceIncidNewcombeRiskDiff$new(f$des)
+	expect_error(inf$compute_asymp_two_sided_pval(delta = NA_real_), "Contains missing values")
+})
+
 install_bb_context = function(inf, n) {
 	inf$.__enclos_env__$private$current_bayesian_bootstrap_context = list(
 		row_to_unit = seq_len(n), unit_group_id = rep(1L, n), n_units = n

@@ -960,15 +960,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			)
 			inf_priv$likelihood_null_warm_cache = list()
 			
-			# Reset all private design matrix and covariate caches
-			inf_priv$cached_design_matrix = NULL
-			inf_priv$cached_w_for_design_matrix = NULL
-			inf_priv$cached_harden_for_design_matrix = NULL
-			# inf_priv$cached_hardened_X_cov = NULL  # Preserve covariate-only cache under randomization
-			inf_priv$cached_reduced_X = NULL
-			inf_priv$cached_X_full_for_reduced = NULL
-			inf_priv$cached_keep_for_reduced = NULL
-			inf_priv$cached_j_treat_for_reduced = NULL
+			reset_reused_worker_private_caches(inf_priv, changed = "assignment")
 			
 			inf_priv$fit_warm_start = worker_state$base_fit_warm_start
 			inf_priv$fit_warm_start_type = worker_state$base_fit_warm_start_type
@@ -1003,15 +995,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (private$has_match_structure) inf_priv$m = des_priv$m
 			if (!is.null(inf_priv$compute_basic_match_data)) inf_priv$compute_basic_match_data()
 			
-			# Reset all private design matrix and covariate caches
-			inf_priv$cached_design_matrix = NULL
-			inf_priv$cached_w_for_design_matrix = NULL
-			inf_priv$cached_harden_for_design_matrix = NULL
-			# inf_priv$cached_hardened_X_cov = NULL  # Preserve covariate-only cache under randomization
-			inf_priv$cached_reduced_X = NULL
-			inf_priv$cached_X_full_for_reduced = NULL
-			inf_priv$cached_keep_for_reduced = NULL
-			inf_priv$cached_j_treat_for_reduced = NULL
+			reset_reused_worker_private_caches(inf_priv, changed = "assignment")
 			
 			invisible(NULL)
 		},

@@ -251,6 +251,7 @@ InferenceCountNegBin = define_inference_class(
 		best_X_colnames = NULL,
 		negbin_X_full_cache = NULL,
 		negbin_w_cache = NULL,
+		negbin_X_cov_cache = NULL,
 		get_complexity_tier = function() "heavy",
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_X_colnames)){
@@ -409,14 +410,17 @@ InferenceCountNegBin = define_inference_class(
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
-			if (is.null(private$negbin_X_full_cache) || !identical(private$w, private$negbin_w_cache)) {
-				X_data = private$get_X()
+			X_data = private$get_X()
+			if (is.null(private$negbin_X_full_cache) ||
+					!identical(private$w, private$negbin_w_cache) ||
+					!identical(X_data, private$negbin_X_cov_cache)) {
 				private$negbin_X_full_cache = if (is.null(X_data) || ncol(X_data) == 0) {
 					cbind(`(Intercept)` = 1, treatment = private$w)
 				} else {
 					cbind(`(Intercept)` = 1, treatment = private$w, X_data)
 				}
 				private$negbin_w_cache = private$w
+				private$negbin_X_cov_cache = X_data
 			}
 			X_full = private$negbin_X_full_cache
 			

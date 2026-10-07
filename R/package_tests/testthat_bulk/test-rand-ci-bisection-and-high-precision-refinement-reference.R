@@ -27,7 +27,7 @@ fx <- function(pfun = pnorm_p) {
 		calls$controls[[length(calls$controls) + 1L]] <- ci_search_control
 		pfun(delta)
 	}
-	list(p = p, calls = calls)
+	list(inf = inf, p = p, calls = calls)
 }
 bisect <- function(f, l, u, lower, th = 0.05, tol = 1e-7, ctrl = list(high_precision_confirm = FALSE)) {
 	f$p$compute_ci_by_inverting_the_randomization_test_iteratively(r = 100L, l = l, u = u, pval_th = th, tol = tol,
@@ -85,17 +85,50 @@ test_that("with confirmation on, the bound is refined on a fresh un-early-stoppe
 	expect_true(all(vapply(f$calls$controls, function(cc) identical(cc$mc_enable, FALSE), logical(1))))
 })
 
-test_that("SOURCE BUG (pinned, not fixed): the high-precision refinement ignores `lower`, so an upper bound converges to the wrong end of its bracket", {
-	# The refinement loop always sets u2 <- m when p(m) >= threshold. That is right for a lower bound
-	# (accepted side is the upper end of the bracket) but for an upper bound the accepted side is the
-	# LOWER end, so it walks u2 down to l2 instead of up to the crossing.
+test_that("high-precision lower and upper refinements converge to mirrored crossings", {
 	z <- qnorm(0.975)
 	f <- fx()
 	ctrl <- list(high_precision_confirm = TRUE, mc_enable = TRUE)
-	l0 <- est + z * sdv - 0.3; u0 <- est + z * sdv + 0.3
-	out <- f$p$high_precision_confirm_and_refine_ci_bound(l0, u0, FALSE, 100L, "none", NULL, ctrl, 0.05, 1e-8)
-	expect_lt(abs(out - l0), 1e-3)                       # collapses to the accepted end
-	expect_gt(abs(out - (est + z * sdv)), 0.2)           # not the true crossing
+	lower_crossing <- est - z * sdv
+	upper_crossing <- est + z * sdv
+	lower <- f$p$high_precision_confirm_and_refine_ci_bound(
+		lower_crossing - 0.3, lower_crossing + 0.3, TRUE,
+		100L, "none", NULL, ctrl, 0.05, 1e-8
+	)
+	upper <- f$p$high_precision_confirm_and_refine_ci_bound(
+		upper_crossing - 0.3, upper_crossing + 0.3, FALSE,
+		100L, "none", NULL, ctrl, 0.05, 1e-8
+	)
+	expect_equal(lower, lower_crossing, tolerance = 1e-3)
+	expect_equal(upper, upper_crossing, tolerance = 1e-3)
+	expect_equal(lower + upper, 2 * est, tolerance = 1e-3)
+})
+
+test_that("public randomization CI reaches both refinement directions when cheap p-values hide a wide crossing", {
+	f <- fx()
+	center <- f$inf$compute_estimate()
+	threshold <- 0.05
+	entry_widths <- numeric(0)
+	f$p$compute_randomization_ci_pval_cached <- function(inf_obj, r, delta, transform_responses, permutations, ci_search_control, ci_pval_cache) {
+		full_p <- 2 * pnorm(-abs(delta - center) / sdv)
+		if (isTRUE(ci_search_control$mc_enable)) {
+			return(if (full_p >= threshold) threshold + 0.001 else threshold - 0.001)
+		}
+		full_p
+	}
+	original_refine <- f$p$high_precision_confirm_and_refine_ci_bound
+	unlockBinding("high_precision_confirm_and_refine_ci_bound", f$p)
+	f$p$high_precision_confirm_and_refine_ci_bound <- function(l, u, lower, r, transform_responses, permutations, ci_search_control, pval_th, tol) {
+		entry_widths <<- c(entry_widths, u - l)
+		original_refine(l, u, lower, r, transform_responses, permutations, ci_search_control, pval_th, tol)
+	}
+	ci <- f$inf$compute_rand_confidence_interval(
+		alpha = 0.10, r = 201L, pval_epsilon = 0.01, show_progress = FALSE,
+		ci_search_control = list(mc_enable = TRUE, high_precision_confirm = TRUE, seed = "none")
+	)
+	expect_length(entry_widths, 2L)
+	expect_true(all(entry_widths > 0.01))
+	expect_equal(as.numeric(ci), center + c(-1, 1) * qnorm(0.975) * sdv, tolerance = 1e-2)
 })
 
 test_that("same-side full-precision p-values return the conservative outer end; non-finite ones return the input end", {

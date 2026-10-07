@@ -114,8 +114,8 @@ path, `beta_m`/`beta_r` unchanged at `0.0307`/`-1.022`); reused-worker
 `rand` distribution now 99/99 finite (`sd = 0.391`, previously all-NA).
 Removed from `RESAMPLING_NONDEGENERATE_KNOWN_BROKEN` in
 `test-reused-worker-resampling-nondegenerate.R`; full suite re-run passes
-(13/13). TODO-2 (broader grep for the same pooling shape elsewhere) and
-TODO-7 (CSV regeneration) still open.
+(13/13). TODO-2's broader sweep is complete; TODO-7 (CSV regeneration)
+remains open under release TODO-14.
 
 ## TODOs
 

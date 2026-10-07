@@ -237,7 +237,6 @@ InferenceSurvivalLogRank = define_inference_class(
 		compute_shared_icen = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			assert_interval_installed(class(self)[1L])
 			L = ifelse(is.na(private$y), private$y_L, private$y)
 			R = ifelse(is.na(private$y), private$y_R, private$y)

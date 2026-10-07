@@ -757,7 +757,7 @@ longer blocks the Python side by itself.
   outside the package tree via `tools::R_user_dir()`, never in the tarball
   — otherwise prints a load-time startup message that would be local-only
   noise in a check log meant to be pasted into `cran-comments.md`.)
-- [ ] **Submission artifacts.** See `release.md`'s pre-submission checklist
+- [x] **Submission artifacts.** See `release.md`'s pre-submission checklist
   items 3-4 (`cran-comments.md`, no-reverse-deps statement) — generic across
   releases, tracked there now.
 

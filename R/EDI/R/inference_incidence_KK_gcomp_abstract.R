@@ -745,7 +745,7 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 				delta = private$default_null_value()
 			}
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, any.missing = FALSE)
 			}
 			if (identical(estimand, "RD")){
 				est = private$cached_values$rd

@@ -338,13 +338,20 @@ DesignFixedOptimalBlocks = define_design_class(
 				if (length(ids) != n_tr || anyNA(ids)) next
 				block_ids[ids] = b
 			}
-			# Assign any leftover subjects (n not divisible by n_tr) to nearest assigned neighbour
+			# Assign leftover subjects to the nearest block with room for one extra
+			# subject. Without the capacity check, several leftovers can join the
+			# same block and leave sizes differing by more than one.
 			unassigned = which(block_ids == 0L)
 			if (length(unassigned) > 0L) {
-				assigned = which(block_ids > 0L)
+				block_sizes = tabulate(block_ids, nbins = B)
+				max_size = ceiling(n / B)
 				for (i in unassigned) {
+					eligible_blocks = which(block_sizes < max_size)
+					assigned = which(block_ids %in% eligible_blocks)
 					dists = rowSums(sweep(X[assigned, , drop = FALSE], 2, X[i, ])^2)
-					block_ids[i] = block_ids[assigned[which.min(dists)]]
+					b = block_ids[assigned[which.min(dists)]]
+					block_ids[i] = b
+					block_sizes[b] = block_sizes[b] + 1L
 				}
 			}
 			factor(block_ids, levels = seq_len(B))

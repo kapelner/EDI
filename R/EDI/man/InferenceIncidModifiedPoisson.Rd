@@ -27,14 +27,13 @@ relative risk, the same estimand as
 \code{\link[EDI:InferenceIncidLogBinomial]{InferenceIncidLogBinomial}}'s
 log-binomial model, but modified Poisson never produces a fit failure from
 the \eqn{[0,1]}-probability constraint that a genuine binomial log-link
-model can hit. \strong{Caveat:} this implementation's standard error comes
-from the ordinary (model-based) Poisson Fisher information
-(\code{\link{fast_poisson_regression_with_var_cpp}}'s \code{ssq_b_j}), not
-a robust/sandwich correction — Zou's (2004) original proposal specifically
-pairs the misspecified Poisson working model with a robust sandwich
-variance estimator to obtain valid standard errors under the resulting
-overdispersion; users needing the fully robust modified-Poisson variance
-should treat this class's standard errors/CIs/p-values as approximate.
+model can hit. Standard errors use Zou's (2004) robust/sandwich correction,
+not the ordinary model-based Poisson Fisher information. The misspecified
+Poisson working model assumes \eqn{\mathrm{Var}(Y_i)=\mu_i}, while the binary
+outcome has \eqn{\mathrm{Var}(Y_i)=p_i(1-p_i)}. Earlier versions used the
+naive Fisher-information standard error directly; this result-changing fix
+therefore changes every Wald standard error, confidence interval, and
+\eqn{p}-value returned by this class.
 \code{likelihood_tier = "full"} metadata is set for component-composition
 purposes, but \code{private$supports_likelihood_tests()} is hard
 \code{FALSE} — only Wald inference is exposed

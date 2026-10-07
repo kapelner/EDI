@@ -38,11 +38,10 @@ test_that("a strictly positive delta does not trip the guard and returns a finit
 	expect_equal(pv2, pv, tolerance = 1e-10)
 })
 
-# Confirmed source bug, NOT fixed here (out of scope for this coverage-writing pass): delta = NA does NOT
-# reach the intended "delta must be strictly positive" validation message. assertNumeric(delta, len = 1) allows
-# NA through (checkmate's default is any.missing = TRUE), and `if (delta <= 0)` with delta = NA then crashes with
-# a generic, unhelpful R condition ("missing value where TRUE/FALSE needed") instead of a clear validation error.
-test_that("KNOWN BUG: delta = NA crashes with a generic R error instead of the intended validation message", {
-	inf <- rr_fx()
-	expect_error(inf$compute_asymp_two_sided_pval(delta = NA_real_), "missing value where TRUE/FALSE needed")
+# Missing null values must fail validation before the risk-ratio comparison.
+test_that("missing delta is rejected by both risk-ratio p-value wrappers", {
+	for (method in c("compute_asymp_two_sided_pval", "compute_wald_two_sided_pval")) {
+		inf <- rr_fx()
+		expect_error(inf[[method]](delta = NA_real_), "Contains missing values", info = method)
+	}
 })

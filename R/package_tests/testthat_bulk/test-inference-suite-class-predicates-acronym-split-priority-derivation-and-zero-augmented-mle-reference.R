@@ -5,8 +5,8 @@ library(EDI)
 #  * inference_class_split_caps_run: greedy left-to-right split of an all-caps run into the known class acronyms (longest table order), single letters otherwise
 #  * run_all_inference_derive_method_priority: passes valid sentinel specs through unchanged, errors naming the stale sentinel otherwise
 #  * zero_augmented_data_has_no_mle: TRUE only for HURDLE fits whose positive counts are all exactly 1 (NA / non-positive values ignored)
-#  * inference_class_accepts_model_formula: SUSPECTED SOURCE BUG (pinned, not fixed) -- it inspects formals(<R6 generator>$new), which is just `...`, so it is FALSE
-#    for every class even when the class's initialize() takes model_formula.
+#  * inference_class_accepts_model_formula: inspects the effective R6 initializer,
+#    including inherited methods and lazy component initializers.
 
 ns <- asNamespace("EDI"); G <- function(nm) get(nm, envir = ns)
 
@@ -47,13 +47,26 @@ test_that("zero_augmented_data_has_no_mle: hurdle fits whose positive counts are
 	expect_false(f(c(1, 1, 2.5), TRUE))
 })
 
-test_that("SUSPECTED BUG (pinned): inference_class_accepts_model_formula is FALSE for every class, including those whose initialize() has model_formula", {
+test_that("inference_class_accepts_model_formula recognizes direct, lazy, and inherited constructors", {
 	f <- G("inference_class_accepts_model_formula")
-	for (nm in c("InferenceContinOLS", "InferenceCountPoisson", "InferenceAllSimpleWilcox", "InferenceIncidLogRegr")) {
-		gen <- G(nm)
-		expect_identical(names(formals(gen$new)), "...")                                       # root cause: the generator's `new` has only `...`
-		expect_false(f(nm), info = nm)                                                         # actual behaviour
+	for (nm in c("InferenceContinOLS", "InferenceCountPoisson", "InferenceAllSimpleWilcox",
+	             "InferenceIncidLogRegr", "InferenceAsymp")) {
+		expect_true(f(nm), info = nm)
 	}
-	has_formal <- vapply(c("InferenceCountPoisson", "InferenceAllSimpleWilcox"), function(nm) "model_formula" %in% names(formals(G(nm)$public_methods$initialize)), NA)
-	expect_true(all(has_formal))                                                               # the intended answer is TRUE for these
+	expect_false(f("InferenceRandCustom"))
+})
+
+test_that("formula tasks fan out only for classes that accept model_formula", {
+	formulas <- list(~ 1, ~ x1)
+	tasks <- G("run_all_inference_build_tasks")(
+		c("InferenceContinOLS", "InferenceIncidLogRegr", "InferenceRandCustom"),
+		formulas = formulas, methods = character()
+	)
+	expect_length(tasks, 5L)
+	expect_identical(vapply(tasks, `[[`, character(1L), "result_name"),
+		c("InferenceContinOLS[~1]", "InferenceContinOLS[~x1]",
+		  "InferenceIncidLogRegr[~1]", "InferenceIncidLogRegr[~x1]",
+		  "InferenceRandCustom"))
+	expect_identical(lapply(tasks[1:4], `[[`, "model_formula"), rep(formulas, 2L))
+	expect_null(tasks[[5L]]$model_formula)
 })

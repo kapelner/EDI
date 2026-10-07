@@ -1,24 +1,30 @@
 #!/usr/bin/env Rscript
-# Progress tracing: four silent multi-minute hangs-then-externally-killed failures
-# so far (2026-09-26 runs 36257223738/36257223636, 2026-10-01 run 36853610057,
-# 2026-10-04 run 37184273859, 2026-10-06 run 37540750560), all killed by "the
-# runner has received a shutdown signal" a few minutes in. The 2026-10-06 run is
-# the first with per-stage logging in place (added after 2026-10-04's failure,
-# which still predated it), and it finally pinned the hang down: "found 99
-# coverage.rds files, reading ..." printed, then NOTHING for the remaining 6m24s
-# until the kill -- i.e. plain `reports = lapply(files, readRDS)` on 99 real
-# shard artifacts (totaling ~3.8 GB of covr coverage objects, each carrying full
-# per-expression srcrefs for the whole package) is itself the slow part, not
-# covr::merge_coverage() or the codecov upload (both already confirmed innocent
-# by the earlier instrumentation). RDS deserialization cost scales with object
-# *graph complexity* (number of nested list/environment nodes), not just raw
-# bytes, which is consistent with covr's deeply nested per-expression structure
-# being slow to unserialize at this shard count even though the raw byte volume
-# alone wouldn't justify minutes. Parallelized across the runner's cores (plain
-# `lapply` was using exactly one) to actually cut the wall-clock time, not just
-# time out faster on it; every stage still logs its own start/elapsed time with
-# an explicit flush so a new bottleneck surfaces immediately instead of as
-# another silent black box.
+# Progress tracing: five silent hangs-then-externally-killed failures so far
+# (2026-09-26 runs 36257223738/36257223636, 2026-10-01 run 36853610057,
+# 2026-10-04 run 37184273859, 2026-10-06 run 37540750560, 2026-10-07 runs
+# 37604972047/37618617132), all killed by "the runner has received a shutdown
+# signal". Per-stage logging (added 2026-10-06) pinned the hang down to plain
+# `reports = lapply(files, readRDS)` on the 99 real shard artifacts. Switching
+# to `parallel::mclapply()` (2026-10-07) cut the time-to-kill from ~6 minutes
+# to ~70-110 seconds -- real speedup -- but two more runs the SAME day still
+# hung and got killed mid-read, including one in complete isolation (verified
+# no other GitHub Actions run existed anywhere on the account at the time, so
+# this is not account-level concurrency eviction). A plain CPU-bound
+# deserialization slowdown should get uniformly faster with parallelism, not
+# still hang indefinitely with zero output after parallelizing -- that pattern
+# instead matches ONE corrupted/truncated coverage.rds (an artifact upload/
+# download hiccup, plausible at ~40 MB x 99 artifacts) that readRDS()'s
+# underlying gzip stream can block on forever rather than erroring, and
+# because mclapply() waits for every forked child to return before giving back
+# ANY result, a single stuck child blocks the whole batch -- explaining why
+# even the parallel version still goes fully silent rather than finishing 98
+# reads and erroring on the 99th.
+#
+# Replaced with a manual mcparallel()/mccollect() loop so each file read has
+# its own bounded timeout and a hung one is named and killed individually,
+# instead of silently blocking everything else. Every stage still logs its
+# own start/elapsed time with an explicit flush so a new bottleneck surfaces
+# immediately instead of as another silent black box.
 log_stage = function(msg) {
 	cat(sprintf("[merge_coverage %s] %s\n", format(Sys.time(), "%H:%M:%S"), msg))
 	flush(stdout())
@@ -29,16 +35,62 @@ if (length(args) != 2L) stop("Usage: merge_coverage.R ARTIFACT_DIR MATRIX_JSON")
 
 log_stage("start")
 files = list.files(args[[1]], pattern = "^coverage\\.rds$", recursive = TRUE, full.names = TRUE)
-log_stage(sprintf("found %d coverage.rds files, reading (parallelized across %d cores) ...",
+log_stage(sprintf("found %d coverage.rds files, reading (parallelized across %d cores, per-file timeout) ...",
 	length(files), parallel::detectCores()))
 read_t0 = proc.time()[["elapsed"]]
-reports = if (.Platform$OS.type == "unix" && length(files) > 1L) {
-	parallel::mclapply(files, readRDS, mc.cores = min(parallel::detectCores(), length(files)))
-} else {
-	lapply(files, readRDS)
+
+PER_FILE_TIMEOUT_SECS = 60
+read_files_with_timeout = function(files, timeout_secs) {
+	results = vector("list", length(files))
+	names(results) = files
+	pending = seq_along(files)
+	n_cores = min(parallel::detectCores(), length(files))
+	jobs = list() # pid (as character) -> file index
+	deadlines = list() # pid (as character) -> deadline
+	launch = function(idx) {
+		job = parallel::mcparallel(readRDS(files[[idx]]), silent = TRUE)
+		pid_chr = as.character(job$pid)
+		jobs[[pid_chr]] <<- idx
+		deadlines[[pid_chr]] <<- proc.time()[["elapsed"]] + timeout_secs
+		job
+	}
+	running = list()
+	next_idx = 1L
+	while (next_idx <= length(files) && length(running) < n_cores) {
+		running[[length(running) + 1L]] = launch(next_idx)
+		next_idx = next_idx + 1L
+	}
+	while (length(running) > 0L) {
+		done = parallel::mccollect(running, wait = FALSE, timeout = 1L)
+		for (pid_chr in names(done)) {
+			idx = jobs[[pid_chr]]
+			val = done[[pid_chr]]
+			results[[idx]] = if (inherits(val, "try-error")) {
+				structure(list(message = paste("readRDS failed:", conditionMessage(attr(val, "condition")))), class = c("error", "condition"))
+			} else val
+			running = running[vapply(running, function(j) as.character(j$pid) != pid_chr, logical(1))]
+		}
+		now = proc.time()[["elapsed"]]
+		still_running_pids = vapply(running, function(j) as.character(j$pid), character(1))
+		for (pid_chr in still_running_pids) {
+			if (now > deadlines[[pid_chr]]) {
+				idx = jobs[[pid_chr]]
+				log_stage(sprintf("TIMEOUT after %ds reading %s (pid %s) -- killing", timeout_secs, files[[idx]], pid_chr))
+				tryCatch(tools::pskill(as.integer(pid_chr), tools::SIGTERM), error = function(e) invisible(NULL))
+				results[[idx]] = structure(list(message = sprintf("readRDS timed out after %ds", timeout_secs)), class = c("error", "condition"))
+				running = running[vapply(running, function(j) as.character(j$pid) != pid_chr, logical(1))]
+			}
+		}
+		while (next_idx <= length(files) && length(running) < n_cores) {
+			running[[length(running) + 1L]] = launch(next_idx)
+			next_idx = next_idx + 1L
+		}
+	}
+	results
 }
+reports = read_files_with_timeout(files, PER_FILE_TIMEOUT_SECS)
 failed = vapply(reports, inherits, logical(1), what = "error")
-if (any(failed)) stop(sprintf("readRDS failed for: %s", paste(files[failed], collapse = ", ")))
+if (any(failed)) stop(sprintf("readRDS failed or timed out for: %s", paste(files[failed], collapse = ", ")))
 log_stage(sprintf("finished readRDS of all shards (%.1fs)", proc.time()[["elapsed"]] - read_t0))
 
 expected = jsonlite::fromJSON(args[[2]])$shard

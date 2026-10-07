@@ -35,7 +35,7 @@ fx <- function(seed, n = 24L) {
 	priv <- inf$.__enclos_env__$private
 	priv$compute_basic_match_data()
 	stopifnot(priv$cached_values$KKstats$m > 0, priv$cached_values$KKstats$nRT > 0, priv$cached_values$KKstats$nRC > 0)  # both components reachable
-	list(inf = inf, priv = priv)
+	list(inf = inf, priv = priv, des = des)
 }
 
 stub_components <- function(priv, beta_m, beta_r) {
@@ -73,4 +73,25 @@ test_that("estimate_only = TRUE with equal-weighting fallback averages symmetric
 	stub_components(f$priv, beta_m = 2.0, beta_r = -1.0)
 	est <- f$inf$compute_estimate(estimate_only = TRUE)
 	expect_equal(est, mean(c(2.0, -1.0)))
+})
+
+test_that("randomization refit refreshes IVWC survival data through the effective-time accessors", {
+	f <- fx(4L)
+	expect_true(any(f$des$get_effective_dead() == 0L))
+
+	# Stop immediately after the refresh/setup portion of the method. This
+	# isolates the y/dead contract from the fragile component optimizers.
+	n <- length(f$des$get_w())
+	f$priv$y <- rep(NA_real_, n)
+	f$priv$dead <- rep(1, n)
+	f$priv$best_X_colnames_matched <- character()
+	f$priv$best_X_colnames_reservoir <- character()
+	f$priv$cached_values$KKstats <- list(m = 0L, nRT = 0L, nRC = 0L)
+	unlockBinding("compute_basic_match_data", f$priv)
+	f$priv$compute_basic_match_data <- function() invisible(NULL)
+
+	expect_true(is.na(f$priv$compute_treatment_estimate_during_randomization_inference()))
+	expect_false(anyNA(f$priv$y))
+	expect_equal(f$priv$y, f$des$get_effective_time())
+	expect_equal(f$priv$dead, f$des$get_effective_dead())
 })

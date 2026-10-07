@@ -526,6 +526,7 @@ InferenceCountPoisson = define_inference_class(
 		best_X_colnames = NULL,
 		poisson_X_full_cache = NULL,
 		poisson_w_cache = NULL,
+		poisson_X_cov_cache = NULL,
 		get_complexity_tier = function() "medium",
 		design_jackknife_pval = function(delta = 0){
 			tryCatch({
@@ -703,14 +704,17 @@ InferenceCountPoisson = define_inference_class(
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
-			if (is.null(private$poisson_X_full_cache) || !identical(private$w, private$poisson_w_cache)) {
-				X_data = private$get_X()
+			X_data = private$get_X()
+			if (is.null(private$poisson_X_full_cache) ||
+					!identical(private$w, private$poisson_w_cache) ||
+					!identical(X_data, private$poisson_X_cov_cache)) {
 				private$poisson_X_full_cache = if (is.null(X_data) || ncol(X_data) == 0) {
 					cbind(`(Intercept)` = 1, treatment = private$w)
 				} else {
 					cbind(`(Intercept)` = 1, treatment = private$w, X_data)
 				}
 				private$poisson_w_cache = private$w
+				private$poisson_X_cov_cache = X_data
 			}
 			X_full = private$poisson_X_full_cache
 			

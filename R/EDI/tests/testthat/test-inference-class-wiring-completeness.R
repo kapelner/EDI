@@ -163,20 +163,6 @@ EDI_WIRING_KNOWN_GAPS = c(
 	"InferenceContinKKQuantileRegrOneLik|call: private::ci_exact_zhang_combined -> private$compute_rand_pval_reservoir missing",
 	"InferencePropKKQuantileRegrOneLik|call: private::ci_exact_zhang_combined -> private$compute_rand_pval_matched_pairs missing",
 	"InferencePropKKQuantileRegrOneLik|call: private::ci_exact_zhang_combined -> private$compute_rand_pval_reservoir missing",
-	# Exact-only incidence classes carry a compute_estimate_with_bootstrap_
-	# weights() body from a shared base whose bootstrap helpers they never
-	# compose. Tolerated because they advertise only exact_test + their own
-	# exact_*_incidence capability (no bayesian/nonparametric bootstrap), so
-	# discovery and run_all_inference() can never reach the method -- a dead
-	# stub, not a live NULL-call hazard. Since Inference$install_weighted_refit_
-	# isolation() the stub body is stored in private$weighted_refit_impl behind
-	# a wrapper, so the same findings are reported under that member.
-	"InferenceIncidExactZhang|call: private::weighted_refit_impl -> private$expand_subject_or_block_weights_to_row_weights missing",
-	"InferenceIncidExactZhang|call: private::weighted_refit_impl -> private$bootstrap_subset_inference missing",
-	"InferenceIncidExactBinomial|call: private::weighted_refit_impl -> private$expand_subject_or_block_weights_to_row_weights missing",
-	"InferenceIncidExactBinomial|call: private::weighted_refit_impl -> private$bootstrap_subset_inference missing",
-	"InferenceIncidExactFisher|call: private::weighted_refit_impl -> private$expand_subject_or_block_weights_to_row_weights missing",
-	"InferenceIncidExactFisher|call: private::weighted_refit_impl -> private$bootstrap_subset_inference missing",
 	# InferenceAllSimpleWilcox has no compute_estimate_with_bootstrap_weights
 	# (no bayesian_bootstrap capability), so install_weighted_refit_isolation()
 	# returns early, private$weighted_refit_impl stays NULL, and the wrapper

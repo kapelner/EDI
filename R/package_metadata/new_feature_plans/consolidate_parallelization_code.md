@@ -149,6 +149,14 @@ costing correctness risk by being copy-pasted.
   near-duplicates. No behavior change for either caller if (a) holds;
   document explicitly if (b) holds and the simpler behavior is kept
   instead.
+
+  **Conditional move to v1.0.5** (2026-10-07, user decision): **if**
+  `../bug_fix_plans/bayesian_bootstrap_performance.md → TODO-2`
+  (`release_v1_0_5.md → TODO-57`) ends up changing `ensure_mirai_daemons`
+  (for example, to send the inference object once per mirai daemon), then
+  this TODO alone moves to v1.0.5 and lands before that change.
+  TODO-2..4 stay in v1.1.0. Otherwise this TODO stays in v1.1.0 with the
+  rest.
 - [ ] TODO-2: **Locate every mirai poll/liveness/stop-on-death site, then
   extract one shared helper.** Start by confirming the full list via
   `graft grep` for the pattern's signature calls (`mirai::stop_mirai`,

@@ -317,16 +317,7 @@ InferenceMixinKKPassThrough = list(
 			)
 		},
 		clear_kk_bootstrap_worker_design_caches = function(worker_priv){
-			worker_priv$cached_design_matrix = NULL
-			worker_priv$cached_w_for_design_matrix = NULL
-			worker_priv$cached_harden_for_design_matrix = NULL
-			worker_priv$cached_hardened_X_cov = NULL
-			worker_priv$cached_reduced_X = NULL
-			worker_priv$cached_X_full_for_reduced = NULL
-			worker_priv$cached_keep_for_reduced = NULL
-			worker_priv$cached_j_treat_for_reduced = NULL
-			worker_priv$reduced_design_keep_cache = NULL
-			worker_priv$fixed_covariate_keep_cache = NULL
+			reset_reused_worker_private_caches(worker_priv, changed = "sample")
 			invisible(NULL)
 		},
 		compute_basic_kk_match_data_impl = function(){

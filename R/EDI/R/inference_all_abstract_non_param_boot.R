@@ -1215,14 +1215,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			w_priv$n = length(indices)
 			w_priv$cached_values = list()
 			w_priv$likelihood_null_warm_cache = list()
-			w_priv$reduced_design_keep_cache = NULL
-			w_priv$fixed_covariate_keep_cache = NULL
-			w_priv$best_X_colnames = NULL
-			w_priv$best_Xmm_colnames = NULL
 			w_priv$fit_warm_start = worker_state$base_fit_warm_start
 			w_priv$fit_warm_start_type = worker_state$base_fit_warm_start_type
 			w_priv$fit_warm_start_fisher = worker_state$base_fit_warm_start_fisher
-			w_priv$cached_mod = NULL
+			reset_reused_worker_private_caches(w_priv, changed = "sample")
 			
 			w_priv$za_X_cov_all = if (!is.null(worker_state$base_za_X_cov_all)) {
 				worker_state$base_za_X_cov_all[indices, , drop = FALSE]
@@ -1235,15 +1231,6 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				NULL
 			}
 			
-			# Reset all private design matrix and covariate caches
-			w_priv$cached_design_matrix = NULL
-			w_priv$cached_w_for_design_matrix = NULL
-			w_priv$cached_harden_for_design_matrix = NULL
-			w_priv$cached_hardened_X_cov = NULL
-			w_priv$cached_reduced_X = NULL
-			w_priv$cached_X_full_for_reduced = NULL
-			w_priv$cached_keep_for_reduced = NULL
-			w_priv$cached_j_treat_for_reduced = NULL
 			des_priv = worker_state$worker_des_priv
 			if (!is.null(des_priv)) {
 				des_priv$X = w_priv$X

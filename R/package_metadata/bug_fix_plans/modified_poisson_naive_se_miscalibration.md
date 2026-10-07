@@ -2,8 +2,8 @@
 
 > **Depends on:** nothing architectural. A pure R-side variance correction
 > computed from quantities `fast_poisson_regression_with_var_cpp` already
-> returns; no C++ change, no kernel change. **Status: FIXED, 2026-10
-> (same session that found it).**
+> returns; no C++ change, no kernel change. **Status: CORE FIX IMPLEMENTED,
+> 2026-10 (same session that found it); release follow-up open.**
 
 Found 2026-10, via a `comprehensive_tests.R`-based investigation into why
 incidence-response power looked unexpectedly low across every design, not a
@@ -92,6 +92,10 @@ version's.
   it exercises the bootstrap-weighted estimate path only, which
   `compute_estimate_with_bootstrap_weights` already sets SE to `NA` on
   regardless, so this fix doesn't touch it.
+- `test-incidence-modified-poisson-robust-sandwich.R` exercises the public
+  fit, independently reconstructs the HC0 sandwich from the fitted mean and
+  Fisher information, checks both stored variance aliases and the cached
+  standard error, and proves the result differs from the naive variance.
 - Deliberately **not** changed: `get_likelihood_test_spec()` and
   `simulate_under_lik_null()`, which back score/LR/gradient tests this
   class explicitly disables (`supports_likelihood_tests()` is hard
@@ -105,11 +109,10 @@ version's.
   them) were **not** regenerated. They still reflect the pre-fix behavior
   measured above; a fresh run is needed before this class's numbers in any
   published benchmark or coverage report can be trusted.
-- No full `R CMD check` or full package test-suite run.
-- No decision recorded on whether this needs its own CHANGELOG/NEWS entry
-  given it silently changes existing numeric output for every caller —
-  flagged in code and here, not yet reflected anywhere release-facing
-  beyond this file and the `release_v1_0_5.md` entry below.
+- No full `R CMD check` or full package test-suite run; those remain
+  release-wide gates rather than subtasks of this fix.
+- The release note, generated Rd synchronization, and direct deterministic
+  sandwich regression were completed by the 2026-10-07 finished-item audit.
 
 ## Files changed
 
@@ -133,6 +136,9 @@ version's.
   (and the derived `comprehensive_tests_size.csv`/`_coverage.csv`/
   `_mse.csv`/`_power.csv` aggregates) so this class's numbers reflect the
   fix rather than the pre-fix behavior.
-- [ ] TODO-7: Decide whether this needs a CHANGELOG/NEWS entry or other
-  release-facing note beyond this plan file, given it changes existing
-  numeric output for every past and future call to this class.
+- [x] TODO-7: Record the result-changing correction in `R/EDI/NEWS.md`.
+- [x] TODO-8: Synchronize both generated Rd files with the corrected roxygen
+  text without running a package build.
+- [x] TODO-9: Add a deterministic public-fit regression that independently
+  recomputes the HC0 sandwich variance and proves it differs from the naive
+  Fisher-information variance.

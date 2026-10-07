@@ -13,8 +13,8 @@ library(EDI)
 #      with the raw (non-finite-containing) distribution still recorded.
 #   2. A jackknife replicate whose magnitude exceeds bootstrap_extreme_estimate_threshold is
 #      nonestimable ("jackknife_extreme_finite_estimates").
-#   3. Fewer than 2 replicate estimates silently returns all-NA with no nonestimable reason recorded
-#      (distinct from the two guard branches above, which both DO record a reason).
+#   3. Fewer than 2 replicate estimates returns all-NA with a typed SE-stage
+#      nonestimable reason, including when hardening is disabled.
 #   4. On a well-behaved distribution, estimate/bias/std_error match the jackknife formula
 #      (bias-corrected estimate, delete-1 jackknife variance) computed independently by hand.
 #   5. Caching: a second call for the same unit returns the cached summary without re-invoking
@@ -59,14 +59,24 @@ test_that("a jackknife replicate exceeding bootstrap_extreme_estimate_threshold 
 	expect_equal(f$inf$get_nonestimable_reason(), "jackknife_extreme_finite_estimates")
 })
 
-test_that("fewer than 2 replicate estimates silently returns all-NA with no nonestimable reason recorded", {
-	f <- jackknife_fixture(3L)
-	mock_jackknife_distribution(f$priv, function(unit) numeric(0))
-
-	res <- f$priv$compute_jackknife_summary(unit = "auto")
-	expect_true(is.na(res$estimate))
-	expect_length(res$distribution, 0L)
-	expect_false(isTRUE(f$inf$is_nonestimable("se")))
+test_that("fewer than 2 replicate estimates records the SE-stage reason under both harden settings", {
+	for (harden in c(TRUE, FALSE)) {
+		for (jack in list(numeric(0), 0.25)) {
+			f <- jackknife_fixture(3L)
+			if (!harden) {
+				unlockBinding("harden", f$priv)
+				f$priv$harden <- FALSE
+			}
+			mock_jackknife_distribution(f$priv, function(unit) jack)
+			res <- f$priv$compute_jackknife_summary(unit = "auto")
+			expect_identical(res$estimate, NA_real_)
+			expect_identical(res$bias, NA_real_)
+			expect_identical(res$std_error, NA_real_)
+			expect_length(res$distribution, 0L)
+			expect_true(f$inf$is_nonestimable("se"))
+			expect_identical(f$inf$get_nonestimable_reason(), "jackknife_too_few_replicate_estimates")
+		}
+	}
 })
 
 test_that("on a well-behaved distribution, estimate/bias/std_error match the jackknife formula computed independently by hand", {

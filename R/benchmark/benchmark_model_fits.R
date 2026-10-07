@@ -169,8 +169,13 @@ generate_kk_weibull_frailty_data = function(n_pairs = 250, p = 4) {
     yC = rweibull(n_pairs, shape = 1.5, scale = exp(b_pair + X_cov %*% beta_x))
     yT = rweibull(n_pairs, shape = 1.5, scale = exp(b_pair + 0.4 + X_cov %*% beta_x))
 
+    # Column order [treatment, (Intercept), covariates] mirrors the R6 class's own
+    # .weibull_frailty_design_matrix() convention: fast_weibull_frailty_cpp()'s
+    # ssq_b_T is the variance of the FIRST column's coefficient, and the Weibull AFT
+    # location needs an explicit intercept. (Before 2026-10-07 the intercept was
+    # omitted here, so the row timed an intercept-free model the R6 class never fits.)
     list(
-        X = as.matrix(rbind(cbind(treatment = 1, X_cov), cbind(treatment = 0, X_cov))),
+        X = as.matrix(rbind(cbind(treatment = 1, `(Intercept)` = 1, X_cov), cbind(treatment = 0, `(Intercept)` = 1, X_cov))),
         y = as.numeric(c(yT, yC)),
         dead = as.integer(rbinom(2 * n_pairs, 1, 0.85)),
         group_id = as.integer(rep(seq_len(n_pairs), 2))
@@ -278,6 +283,81 @@ generate_kk_ordinal_pairs_data = function(n_pairs = 200, p = 4) {
         group_id = as.integer(group_id),
         K = 3L
     )
+}
+
+generate_kk_logistic_pairs_data = function(n_pairs = 200, p = 4) {
+    beta_x = rnorm(p) * 0.3
+    b_pair = rnorm(n_pairs, 0, 0.6)
+    X_cov = matrix(rnorm(2 * n_pairs * p), 2 * n_pairs, p)
+    w = rep(c(1, 0), n_pairs)
+    group_id = rep(seq_len(n_pairs), each = 2)
+    eta = 0.2 + 0.5 * w + X_cov %*% beta_x + b_pair[group_id]
+    y = rbinom(2 * n_pairs, 1, plogis(eta))
+    list(
+        X = as.matrix(cbind(`(Intercept)` = 1, w = w, X_cov)),
+        y = as.numeric(y),
+        group_id = as.integer(group_id)
+    )
+}
+
+# Interval-censored Weibull AFT data: every subject is observed only on a quarter-unit
+# inspection grid, so the response is the interval (y_L, y_R], with y_R = Inf for
+# subjects still event-free at the last inspection (right-censored at y_L). X carries
+# the intercept the Weibull AFT location needs -- the same [1, treatment, covariates]
+# layout InferenceSurvivalWeibullRegr builds internally.
+generate_interval_censored_weibull_data = function(n = 500, p = 4, grid = 0.25, last_inspection = 3) {
+    beta_x = rnorm(p) * 0.3
+    X_cov = matrix(rnorm(n * p), n, p)
+    n_treat = floor(n / 2)
+    w = sample(c(rep(1, n_treat), rep(0, n - n_treat)))
+    t_true = rweibull(n, shape = 1.5, scale = exp(0.3 + 0.5 * w + X_cov %*% beta_x))
+    y_L = floor(t_true / grid) * grid
+    y_R = y_L + grid
+    right_censored = y_R > last_inspection
+    y_R[right_censored] = Inf
+    y_L[right_censored] = last_inspection
+    list(
+        X = as.matrix(cbind(`(Intercept)` = 1, treatment = w, X_cov)),
+        y_L = as.numeric(y_L), y_R = as.numeric(y_R),
+        w = as.integer(w)
+    )
+}
+
+# --- Canonical-side environments for the custom-data_fn rows ---
+# Each returns the objects a spec's canonical `expr` is evaluated against (a formula-ready
+# data frame `df`), built from the SAME simulated dataset the EDI kernel sees. Formula
+# interfaces add their own intercept, so the intercept column is dropped; covariates are
+# named x1..xp; the matched-pair id is exposed as `g` for the (1 | g) random intercept.
+pairs_canonical_env = function(d) {
+    # Covariate columns are unnamed in the generators above, so select by a logical mask
+    # rather than by name.
+    keep = !(colnames(d$X) %in% c("(Intercept)", "w", "treatment"))
+    X_cov = d$X[, keep, drop = FALSE]
+    colnames(X_cov) = paste0("x", seq_len(ncol(X_cov)))
+    w_col = if ("w" %in% colnames(d$X)) d$X[, "w"] else d$X[, "treatment"]
+    df = data.frame(y = d$y, w = as.numeric(w_col), g = factor(d$group_id))
+    df = cbind(df, X_cov)
+    if (!is.null(d$K)) df$y_ord = factor(df$y, levels = seq_len(d$K), ordered = TRUE)
+    list(df = df)
+}
+frailty_canonical_env = function(d) {
+    e = pairs_canonical_env(d)
+    e$df$time = as.numeric(d$y)
+    e$df$status = as.integer(d$dead)
+    e$df$g = as.integer(d$group_id)
+    e
+}
+zoib_canonical_env = function(d) {
+    X_cov = d$X[, -(1:2), drop = FALSE]
+    colnames(X_cov) = paste0("x", seq_len(ncol(X_cov)))
+    list(df = cbind(data.frame(y = d$y, treatment = as.numeric(d$X[, "treatment"])), X_cov))
+}
+interval_censored_canonical_env = function(d) {
+    X_cov = d$X[, -(1:2), drop = FALSE]
+    colnames(X_cov) = paste0("x", seq_len(ncol(X_cov)))
+    # survreg(type = "interval2") codes right-censoring as R = NA; icenReg::ic_par as R = Inf.
+    df = data.frame(L = d$y_L, R = d$y_R, R_na = ifelse(is.infinite(d$y_R), NA_real_, d$y_R), treatment = as.numeric(d$w))
+    list(df = cbind(df, X_cov))
 }
 
 collect_timing_ms = function(expr, times = B_TIME, env = parent.frame(), target_batch_ms = TARGET_BATCH_MS, max_inner_reps = MAX_INNER_REPS, fast_path_microbenchmark_reps = FAST_PATH_MICROBENCH_REPS) {
@@ -424,8 +504,12 @@ make_edi_bm = function(cls_name, d) {
             }
             fast_coxph_regression_prebuilt_cpp(cache, estimate_only = TRUE)
         }),
+        # Weibull AFT needs the intercept column (X_bm, not the Cox-style X_ord): with
+        # [1, treatment, covariates] the kernel reproduces survreg()'s coefficients and
+        # log-likelihood exactly, which is also the layout the R6 class builds. (Fixed
+        # 2026-10-07; the no-intercept version timed a different model.)
         InferenceSurvivalWeibullRegr    = quote(fast_weibull_regression_general_cpp(
-            X_ord, ifelse(dead_bm != 0, y_bm, NA_real_),
+            X_bm, ifelse(dead_bm != 0, y_bm, NA_real_),
             ifelse(dead_bm == 0, y_bm, NA_real_), ifelse(dead_bm == 0, Inf, NA_real_),
             estimate_only = TRUE)),
         InferenceSurvivalLogRank        = quote(EDI:::fast_logrank_stats_cpp(w_bm, y_bm, dead_bm)),
@@ -495,6 +579,12 @@ make_edi_bm_no_canonical = function(cls_name, d) {
         InferencePropZeroOneInflatedBetaRegr = quote(EDI:::fast_zero_one_inflated_beta_cpp(
             X, X_zero_one, y, estimate_only = TRUE
         )),
+        "InferenceSurvivalWeibullRegr (interval-censored)" = quote(fast_weibull_regression_general_cpp(
+            X, rep(NA_real_, length(y_L)), y_L, y_R, estimate_only = TRUE
+        )),
+        "fast_logistic_glmm_cpp (pairs, kernel only)" = quote(EDI:::fast_logistic_glmm_cpp(
+            X_r = X, y_r = y, group_id_r = group_id, j_T = 1L, estimate_only = TRUE
+        )),
         "InferenceContinGLMM (pairs)" = quote(EDI:::fast_gaussian_lmm_cpp(
             X = X, y = y, group_id = group_id, estimate_only = TRUE
         )),
@@ -545,6 +635,16 @@ make_edi_wald_bm_no_canonical = function(cls_name, d) {
         InferencePropZeroOneInflatedBetaRegr = quote({
             fit = EDI:::fast_zero_one_inflated_beta_cpp(X, X_zero_one, y, estimate_only = FALSE)
             se = sqrt(fit$vcov[2, 2]); t_stat = as.numeric(fit$b)[2] / se
+            2 * stats::pnorm(-abs(t_stat))
+        }),
+        "InferenceSurvivalWeibullRegr (interval-censored)" = quote({
+            fit = fast_weibull_regression_general_cpp(X, rep(NA_real_, length(y_L)), y_L, y_R, estimate_only = FALSE)
+            se = sqrt(fit$vcov[2, 2]); t_stat = as.numeric(fit$params)[2] / se
+            2 * stats::pnorm(-abs(t_stat))
+        }),
+        "fast_logistic_glmm_cpp (pairs, kernel only)" = quote({
+            fit = EDI:::fast_logistic_glmm_cpp(X_r = X, y_r = y, group_id_r = group_id, j_T = 1L, estimate_only = FALSE)
+            se = sqrt(fit$ssq_b_T); t_stat = as.numeric(fit$b)[2] / se
             2 * stats::pnorm(-abs(t_stat))
         }),
         "InferenceContinGLMM (pairs)" = quote({
@@ -731,34 +831,90 @@ no_can_specs = list(
 )
 bench_specs = c(bench_specs, no_can_specs)
 
+# Additional canonical comparators for standard-generator rows (2026-10-07). Rows may
+# share a `cls` with an earlier spec: dedup below is on cls + pkg + func, so the same
+# EDI kernel is re-timed against each comparator on the same per-class dataset.
+extra_canonical_specs = list(
+    list(cls = "InferenceContinRobustRegr", pkg = "robustbase", func = "lmrob.fit(MM)",
+         expr = quote(robustbase::lmrob.fit(x = X_can, y = df$y, control = robustbase::lmrob.control())))
+)
+bench_specs = c(bench_specs, extra_canonical_specs)
+
 # Paths with genuinely no canonical R equivalent, documented in
 # package_metadata/python_bindings_package_spec.md as "Baseline Gap"/"no
 # canonical analog exists in either language": the KK combined
-# (matched-pair + reservoir) joint-likelihood estimators, Weibull frailty,
-# and zero-one-inflated beta regression. pkg = "None" tells run_one() to
-# skip canonical timing entirely (Canonical_Time_ms/Speedup/Timing_Pval stay
-# NA) while still timing the EDI bare-metal kernel via a custom data_fn.
+# (matched-pair + reservoir) joint-likelihood estimators. pkg = "None" tells
+# run_one() to skip canonical timing entirely (Canonical_Time_ms/Speedup/
+# Timing_Pval stay NA) while still timing the EDI bare-metal kernel via a
+# custom data_fn.
 no_r_support_specs = list(
     list(cls = "InferenceIncidKKCondLogitGLMMOneLik", pkg = "None", func = "no canonical R implementation",
          data_fn = function() generate_kk_incid_combined_data()),
     list(cls = "InferenceCountKKCondPoissonOneLik", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_count_combined_data()),
-    list(cls = "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_weibull_frailty_data()),
-    list(cls = "InferencePropZeroOneInflatedBetaRegr", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_zoib_data()),
-    list(cls = "InferenceContinGLMM (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_gaussian_pairs_data()),
-    list(cls = "InferenceCountGLMM (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_poisson_pairs_data()),
-    list(cls = "InferenceCountHurdlePoisson (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_hurdle_poisson_pairs_data()),
-    list(cls = "InferenceOrdinalCLMM (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_ordinal_pairs_data()),
-    list(cls = "InferenceOrdinalGLMM (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_ordinal_pairs_data())
+         data_fn = function() generate_kk_count_combined_data())
 )
 bench_specs = c(bench_specs, no_r_support_specs)
+
+# Custom-data_fn paths that DO have canonical comparators (added 2026-10-07; these rows
+# were "no canonical R implementation" before): the matched-pair random-intercept GLMM
+# family vs lme4 / glmmTMB / ordinal::clmm, Weibull lognormal frailty vs parfm,
+# zero-one-inflated beta vs gamlss(BEINF), and interval-censored Weibull AFT vs
+# survreg(interval2) / icenReg::ic_par. `can_env_fn(d)` builds the canonical evaluation
+# environment (a formula-ready data frame `df`) from the same simulated dataset the EDI
+# kernel sees, and `expr` is evaluated inside it.
+#   * lme4::glmer(nAGQ = 20) and ordinal::clmm(nAGQ = 20) match EDI's 20-node adaptive
+#     Gauss-Hermite marginal likelihood; glmmTMB is Laplace-only; lmer uses ML (REML = FALSE)
+#     because EDI's Gaussian LMM is ML.
+#   * parfm fits the proportional-hazards parameterization of the same Weibull model with
+#     a lognormal frailty; EDI's Normal random intercept on the AFT scale is the same
+#     model up to the Weibull AFT <-> PH reparameterization. parfm takes ~25 s per fit at
+#     250 pairs, hence b_time_override = 5.
+#   * gamlss(BEINF) has the same four-part structure as EDI's zero-one-inflated beta
+#     (mu/phi beta component plus logit zero- and one-inflation parts on `treatment`).
+#   * zoib (Bayesian, JAGS MCMC) is deliberately NOT timed: an MCMC sampler against an ML
+#     fit is not a like-for-like comparison.
+custom_data_canonical_specs = list(
+    list(cls = "InferenceContinGLMM (pairs)", pkg = "lme4", func = "lmer(ML)",
+         data_fn = function() generate_kk_gaussian_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(lme4::lmer(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, REML = FALSE))),
+    list(cls = "InferenceContinGLMM (pairs)", pkg = "glmmTMB", func = "glmmTMB(gaussian)",
+         data_fn = function() generate_kk_gaussian_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(glmmTMB::glmmTMB(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df))),
+    list(cls = "InferenceCountGLMM (pairs)", pkg = "lme4", func = "glmer(poisson, nAGQ=20)",
+         data_fn = function() generate_kk_poisson_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(lme4::glmer(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = poisson, nAGQ = 20))),
+    list(cls = "InferenceCountGLMM (pairs)", pkg = "glmmTMB", func = "glmmTMB(poisson)",
+         data_fn = function() generate_kk_poisson_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(glmmTMB::glmmTMB(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = poisson))),
+    list(cls = "InferenceCountHurdlePoisson (pairs)", pkg = "glmmTMB", func = "glmmTMB(truncated_poisson, zi RE)",
+         data_fn = function() generate_kk_hurdle_poisson_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(glmmTMB::glmmTMB(y ~ w + x1 + x2 + x3 + x4 + (1 | g), ziformula = ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = glmmTMB::truncated_poisson))),
+    list(cls = "fast_logistic_glmm_cpp (pairs, kernel only)", pkg = "lme4", func = "glmer(binomial, nAGQ=20)",
+         data_fn = function() generate_kk_logistic_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(lme4::glmer(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = binomial, nAGQ = 20))),
+    list(cls = "fast_logistic_glmm_cpp (pairs, kernel only)", pkg = "glmmTMB", func = "glmmTMB(binomial)",
+         data_fn = function() generate_kk_logistic_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(glmmTMB::glmmTMB(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = binomial))),
+    list(cls = "InferenceOrdinalCLMM (pairs)", pkg = "ordinal", func = "clmm(nAGQ=20)",
+         data_fn = function() generate_kk_ordinal_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(ordinal::clmm(y_ord ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, nAGQ = 20))),
+    list(cls = "InferenceOrdinalGLMM (pairs)", pkg = "ordinal", func = "clmm(nAGQ=20)",
+         data_fn = function() generate_kk_ordinal_pairs_data(), can_env_fn = pairs_canonical_env,
+         expr = quote(ordinal::clmm(y_ord ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, nAGQ = 20))),
+    list(cls = "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", pkg = "parfm", func = "parfm(weibull, lognormal)", b_time_override = 5L,
+         data_fn = function() generate_kk_weibull_frailty_data(), can_env_fn = frailty_canonical_env,
+         expr = quote(parfm::parfm(Surv(time, status) ~ w + x1 + x2 + x3 + x4, cluster = "g", data = df, dist = "weibull", frailty = "lognormal"))),
+    list(cls = "InferencePropZeroOneInflatedBetaRegr", pkg = "gamlss", func = "gamlss(BEINF)",
+         data_fn = function() generate_zoib_data(), can_env_fn = zoib_canonical_env,
+         expr = quote(gamlss::gamlss(y ~ treatment + x1 + x2 + x3 + x4, nu.formula = ~ treatment, tau.formula = ~ treatment, family = gamlss.dist::BEINF(), data = df, trace = FALSE))),
+    list(cls = "InferenceSurvivalWeibullRegr (interval-censored)", pkg = "survival", func = "survreg(interval2)",
+         data_fn = function() generate_interval_censored_weibull_data(n = N_SURV), can_env_fn = interval_censored_canonical_env,
+         expr = quote(survival::survreg(survival::Surv(L, R_na, type = "interval2") ~ treatment + x1 + x2 + x3 + x4, data = df, dist = "weibull"))),
+    list(cls = "InferenceSurvivalWeibullRegr (interval-censored)", pkg = "icenReg", func = "ic_par(aft, weibull)",
+         data_fn = function() generate_interval_censored_weibull_data(n = N_SURV), can_env_fn = interval_censored_canonical_env,
+         expr = quote(icenReg::ic_par(cbind(L, R) ~ treatment + x1 + x2 + x3 + x4, data = df, model = "aft", dist = "weibull")))
+)
+bench_specs = c(bench_specs, custom_data_canonical_specs)
 
 # --- Benchmark Runner ---
 results = list()
@@ -807,7 +963,7 @@ run_one = function(spec) {
     resp_type = "continuous"
     family = "continuous"
     if (grepl("Ordinal|AdjCat|ContRatio|Stereotype|Jonckheere|Ridit|Sign", cls_name)) { resp_type = "ordinal"; family = "ordinal" }
-    else if (grepl("Incid|Binomial|Wald|CMH|Fisher|Zhang|Robins|Newcombe|Nurminen", cls_name)) { resp_type = "incidence"; family = "logistic" }
+    else if (grepl("Incid|Binomial|Wald|CMH|Fisher|Zhang|Robins|Newcombe|Nurminen|logistic_glmm", cls_name)) { resp_type = "incidence"; family = "logistic" }
     else if (grepl("Count|Poisson|NegBin|ZINB|ZAP|Hurdle", cls_name)) { resp_type = "count"; family = "poisson" }
     else if (grepl("Prop|Beta|ZOIB|Fractional", cls_name)) { resp_type = "proportion"; family = "beta" }
     else if (grepl("Survival|Cox|Weibull|KM|Rank|LogRank|Gehan|RMST|RMDiff|LWACox|Clayton", cls_name)) { resp_type = "survival"; family = "cox" }
@@ -821,8 +977,15 @@ run_one = function(spec) {
     n = round(N_GLM * scale)
     if (grepl("Survival", cls_name)) n = round(N_SURV * scale)
 
-    no_r_support = !is.null(spec$data_fn)
-    if (no_r_support) {
+    # edi_cls: which EDI bare-metal mapping to time (defaults to the row label). custom_data:
+    # the row builds its dataset via spec$data_fn (KK/GLMM/frailty/ZOIB/interval-censored
+    # shapes) rather than generate_data(). no_r_support: no canonical comparator at all
+    # (light-blue row). The two are independent since 2026-10-07: custom-data rows may carry
+    # a canonical `expr` evaluated inside the environment spec$can_env_fn(d) builds.
+    edi_cls = if (!is.null(spec$edi_cls)) spec$edi_cls else cls_name
+    custom_data = !is.null(spec$data_fn)
+    no_r_support = is.null(spec$expr) || identical(spec$pkg, "None")
+    if (custom_data) {
         d = spec$data_fn()
     } else {
         d = generate_data(n = n, family = family)
@@ -834,7 +997,7 @@ run_one = function(spec) {
     edi_iters = NA_real_; can_iters = NA_real_
     # Timing EDI (bare metal: call exported C++ functions directly with pre-built inputs)
     timing_edi = tryCatch({
-        bm = if (no_r_support) make_edi_bm_no_canonical(cls_name, d) else make_edi_bm(cls_name, d)
+        bm = if (custom_data) make_edi_bm_no_canonical(edi_cls, d) else make_edi_bm(edi_cls, d)
         if (is.null(bm) || is.null(bm$expr)) stop("no bare metal mapping for this class")
         edi_val = eval(bm$expr, envir = bm$env)  # validation run
         edi_iters = extract_iters(edi_val, bm$env)
@@ -847,7 +1010,21 @@ run_one = function(spec) {
     # Timing Canonical (Crashes if pkg missing). Skipped entirely (stays NA)
     # when pkg == "None", i.e. no canonical R equivalent exists.
     timing_can = list(median_ms = NA_real_, samples_ms = numeric(0))
-    if (!no_r_support && !is.null(spec$expr) && spec$pkg != "None") {
+    if (!no_r_support && custom_data) {
+        library(spec$pkg, character.only = TRUE)
+        e_can = new.env(parent = globalenv())
+        can_objs = spec$can_env_fn(d)
+        for (nm_can in names(can_objs)) assign(nm_can, can_objs[[nm_can]], envir = e_can)
+        can_val = tryCatch(eval(spec$expr, envir = e_can), error = function(e) { cat("  Canonical Error:", e$message, "\n"); NULL })
+        can_iters = extract_iters(can_val)
+        timing_can = tryCatch(
+            collect_timing_ms(spec$expr, times = b_time, env = e_can, fast_path_microbenchmark_reps = fast_path_microbenchmark_reps),
+            error = function(e) {
+                cat("  Canonical Error:", e$message, "\n")
+                list(median_ms = NA_real_, samples_ms = numeric(0))
+            }
+        )
+    } else if (!no_r_support) {
         library(spec$pkg, character.only = TRUE)
         X_cols = d$X[,-1,drop=F]
         colnames(X_cols) = paste0("x", 1:ncol(X_cols))
@@ -903,9 +1080,10 @@ format_ms = function(x) {
            format(round(x, 2), nsmall = 2, trim = TRUE)))
 }
 
-# Run the requested list
-# First unique classes to avoid duplicates
-unique_specs = bench_specs[!duplicated(sapply(bench_specs, `[[`, "cls"))]
+# Run the requested list. Dedup is on cls + canonical pkg + canonical func (not cls
+# alone) so one EDI class can be timed against several comparators on the same dataset.
+spec_key = function(s) paste(s$cls, s$pkg, s$func, sep = " | ")
+unique_specs = bench_specs[!duplicated(vapply(bench_specs, spec_key, character(1)))]
 
 for (i in seq_along(unique_specs)) {
     cat(sprintf("[%d/%d] ", i, length(unique_specs)))
@@ -1141,8 +1319,10 @@ make_edi_wald_bm = function(cls_name, d) {
             se = sqrt(res$vcov[1, 1]); 2 * stats::pnorm(-abs(res$coefficients[1] / se))
         }),
         InferenceSurvivalWeibullRegr = quote({
+            # X_bm (with intercept): params[2]/vcov[2, 2] is then genuinely the treatment
+            # coefficient; with X_ord it was x1's. Fixed 2026-10-07, see make_edi_bm().
             res = fast_weibull_regression_general_cpp(
-                X_ord, ifelse(dead_bm != 0, y_bm, NA_real_),
+                X_bm, ifelse(dead_bm != 0, y_bm, NA_real_),
                 ifelse(dead_bm == 0, y_bm, NA_real_), ifelse(dead_bm == 0, Inf, NA_real_),
                 estimate_only = FALSE
             )
@@ -1164,6 +1344,14 @@ make_edi_wald_bm = function(cls_name, d) {
             z = stats::qnorm(0.975)
             se = sqrt(((q$upper[idx_T,1] - q$lower[idx_T,1])/(2*z))^2 + ((q$upper[idx_C,1] - q$lower[idx_C,1])/(2*z))^2)
             2 * stats::pnorm(-abs((q$quantile[idx_T,1] - q$quantile[idx_C,1]) / se))
+        }),
+        InferenceAllSimpleAverageDiff = quote({
+            y_t = y_bm[w_bm == 1]; y_c = y_bm[w_bm == 0]
+            n_t = length(y_t); n_c = length(y_c)
+            v_t = var(y_t) / n_t; v_c = var(y_c) / n_c
+            se = sqrt(v_t + v_c)
+            df_w = (v_t + v_c)^2 / (v_t^2 / (n_t - 1) + v_c^2 / (n_c - 1))
+            2 * stats::pt(-abs((mean(y_t) - mean(y_c)) / se), df_w)
         }),
         InferenceAllSimpleMeanDiffPooledVar = quote({
             y_t = y_bm[w_bm == 1]; y_c = y_bm[w_bm == 0]
@@ -1351,23 +1539,84 @@ no_r_support_wald_specs = list(
     list(cls = "InferenceIncidKKCondLogitGLMMOneLik", pkg = "None", func = "no canonical R implementation",
          data_fn = function() generate_kk_incid_combined_data(n_disc = 30, n_conc = 30, n_res = 80)),
     list(cls = "InferenceCountKKCondPoissonOneLik", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_count_combined_data(n_pairs = 60, n_res = 80)),
-    list(cls = "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_weibull_frailty_data(n_pairs = 50)),
-    list(cls = "InferencePropZeroOneInflatedBetaRegr", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_zoib_data(n = N_WALD)),
-    list(cls = "InferenceContinGLMM (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_gaussian_pairs_data(n_pairs = 60)),
-    list(cls = "InferenceCountGLMM (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_poisson_pairs_data(n_pairs = 60)),
-    list(cls = "InferenceCountHurdlePoisson (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_hurdle_poisson_pairs_data(n_pairs = 60)),
-    list(cls = "InferenceOrdinalCLMM (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_ordinal_pairs_data(n_pairs = 60)),
-    list(cls = "InferenceOrdinalGLMM (pairs)", pkg = "None", func = "no canonical R implementation",
-         data_fn = function() generate_kk_ordinal_pairs_data(n_pairs = 60))
+         data_fn = function() generate_kk_count_combined_data(n_pairs = 60, n_res = 80))
 )
 wald_specs = c(wald_specs, no_r_support_wald_specs)
+
+# Full-inference comparators for the custom-data_fn rows (same comparators as the
+# point-estimate table, each returning the treatment-effect Wald p-value), plus
+# estimatr's design-based estimators and robustbase's MM fit on the standard
+# generators. (2026-10-07)
+glmm_wald_p = function(fit) {
+    co = if (inherits(fit, "glmmTMB")) summary(fit)$coefficients$cond else summary(fit)$coefficients
+    2 * stats::pnorm(-abs(co["w", 1] / co["w", 2]))
+}
+custom_data_canonical_wald_specs = list(
+    list(cls = "InferenceContinGLMM (pairs)", pkg = "lme4", func = "lmer(ML)+Wald",
+         data_fn = function() generate_kk_gaussian_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(glmm_wald_p(lme4::lmer(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, REML = FALSE)))),
+    list(cls = "InferenceContinGLMM (pairs)", pkg = "glmmTMB", func = "glmmTMB(gaussian)+Wald",
+         data_fn = function() generate_kk_gaussian_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(glmm_wald_p(glmmTMB::glmmTMB(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df)))),
+    list(cls = "InferenceCountGLMM (pairs)", pkg = "lme4", func = "glmer(poisson, nAGQ=20)+Wald",
+         data_fn = function() generate_kk_poisson_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(glmm_wald_p(lme4::glmer(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = poisson, nAGQ = 20)))),
+    list(cls = "InferenceCountGLMM (pairs)", pkg = "glmmTMB", func = "glmmTMB(poisson)+Wald",
+         data_fn = function() generate_kk_poisson_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(glmm_wald_p(glmmTMB::glmmTMB(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = poisson)))),
+    list(cls = "InferenceCountHurdlePoisson (pairs)", pkg = "glmmTMB", func = "glmmTMB(truncated_poisson, zi RE)+Wald",
+         data_fn = function() generate_kk_hurdle_poisson_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(glmm_wald_p(glmmTMB::glmmTMB(y ~ w + x1 + x2 + x3 + x4 + (1 | g), ziformula = ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = glmmTMB::truncated_poisson)))),
+    list(cls = "fast_logistic_glmm_cpp (pairs, kernel only)", pkg = "lme4", func = "glmer(binomial, nAGQ=20)+Wald",
+         data_fn = function() generate_kk_logistic_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(glmm_wald_p(lme4::glmer(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = binomial, nAGQ = 20)))),
+    list(cls = "fast_logistic_glmm_cpp (pairs, kernel only)", pkg = "glmmTMB", func = "glmmTMB(binomial)+Wald",
+         data_fn = function() generate_kk_logistic_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(glmm_wald_p(glmmTMB::glmmTMB(y ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, family = binomial)))),
+    list(cls = "InferenceOrdinalCLMM (pairs)", pkg = "ordinal", func = "clmm(nAGQ=20)+Wald",
+         data_fn = function() generate_kk_ordinal_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(summary(ordinal::clmm(y_ord ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, nAGQ = 20))$coefficients["w", 4])),
+    list(cls = "InferenceOrdinalGLMM (pairs)", pkg = "ordinal", func = "clmm(nAGQ=20)+Wald",
+         data_fn = function() generate_kk_ordinal_pairs_data(n_pairs = 60), can_env_fn = pairs_canonical_env,
+         expr = quote(summary(ordinal::clmm(y_ord ~ w + x1 + x2 + x3 + x4 + (1 | g), data = df, nAGQ = 20))$coefficients["w", 4])),
+    list(cls = "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", pkg = "parfm", func = "parfm(weibull, lognormal)+Wald", b_time_override = 5L,
+         data_fn = function() generate_kk_weibull_frailty_data(n_pairs = 50), can_env_fn = frailty_canonical_env,
+         expr = quote({
+             fit = parfm::parfm(Surv(time, status) ~ w + x1 + x2 + x3 + x4, cluster = "g", data = df, dist = "weibull", frailty = "lognormal")
+             2 * stats::pnorm(-abs(fit["w", "ESTIMATE"] / fit["w", "SE"]))
+         })),
+    list(cls = "InferencePropZeroOneInflatedBetaRegr", pkg = "gamlss", func = "gamlss(BEINF)+Wald",
+         data_fn = function() generate_zoib_data(n = N_WALD), can_env_fn = zoib_canonical_env,
+         expr = quote({
+             fit = gamlss::gamlss(y ~ treatment + x1 + x2 + x3 + x4, nu.formula = ~ treatment, tau.formula = ~ treatment, family = gamlss.dist::BEINF(), data = df, trace = FALSE)
+             # mu-component coefficients lead vcov(); index 2 is `treatment` in the mean model
+             2 * stats::pnorm(-abs(coef(fit)[2] / sqrt(vcov(fit)[2, 2])))
+         })),
+    list(cls = "InferenceSurvivalWeibullRegr (interval-censored)", pkg = "survival", func = "survreg(interval2)+summary",
+         data_fn = function() generate_interval_censored_weibull_data(n = N_WALD), can_env_fn = interval_censored_canonical_env,
+         expr = quote(summary(survival::survreg(survival::Surv(L, R_na, type = "interval2") ~ treatment + x1 + x2 + x3 + x4, data = df, dist = "weibull"))$table["treatment", 4])),
+    list(cls = "InferenceSurvivalWeibullRegr (interval-censored)", pkg = "icenReg", func = "ic_par(aft)+Wald",
+         data_fn = function() generate_interval_censored_weibull_data(n = N_WALD), can_env_fn = interval_censored_canonical_env,
+         expr = quote({
+             fit = icenReg::ic_par(cbind(L, R) ~ treatment + x1 + x2 + x3 + x4, data = df, model = "aft", dist = "weibull")
+             2 * stats::pnorm(-abs(coef(fit)[["treatment"]] / sqrt(vcov(fit)["treatment", "treatment"])))
+         }))
+)
+# Design-based (Neyman / HC2) inference: estimatr is the reference implementation for
+# difference_in_means and Lin's (2013) covariate-adjusted estimator, so these rows back
+# EDI's own InferenceAllSimpleAverageDiff (Welch), InferenceContinOLS (classical OLS SE)
+# and InferenceContinLin (HC2 interaction regression) full-inference paths.
+estimatr_and_robust_wald_specs = list(
+    list(cls = "InferenceAllSimpleAverageDiff", pkg = "estimatr", func = "difference_in_means",
+         expr = quote(estimatr::difference_in_means(y ~ treatment, data = df)$p.value)),
+    list(cls = "InferenceContinOLS", pkg = "estimatr", func = "lm_robust(classical)",
+         expr = quote(estimatr::lm_robust(y ~ treatment + x1 + x2 + x3 + x4, data = df, se_type = "classical")$p.value[["treatment"]])),
+    list(cls = "InferenceContinLin", pkg = "estimatr", func = "lm_lin(HC2)",
+         expr = quote(estimatr::lm_lin(y ~ treatment, covariates = ~ x1 + x2 + x3 + x4, data = df)$p.value[["treatment"]])),
+    list(cls = "InferenceContinRobustRegr", pkg = "robustbase", func = "lmrob+summary",
+         expr = quote(summary(robustbase::lmrob(y ~ treatment + x1 + x2 + x3 + x4, data = df))$coefficients["treatment", 4]))
+)
+wald_specs = c(wald_specs, custom_data_canonical_wald_specs, estimatr_and_robust_wald_specs)
 
 wald_results = list()
 
@@ -1378,7 +1627,7 @@ run_one_wald = function(spec) {
 
     resp_type = "continuous"; family = "continuous"
     if (grepl("Ordinal|AdjCat|ContRatio|Ridit|Jonckheere", cls_name)) { resp_type = "ordinal"; family = "ordinal" }
-    else if (grepl("Incid|Binomial|Fisher|Newcombe|Nurminen", cls_name))  { resp_type = "incidence"; family = "logistic" }
+    else if (grepl("Incid|Binomial|Fisher|Newcombe|Nurminen|logistic_glmm", cls_name))  { resp_type = "incidence"; family = "logistic" }
     else if (grepl("Count|Poisson|NegBin|ZINB|ZAP|Hurdle", cls_name))    { resp_type = "count"; family = "poisson" }
     else if (grepl("Prop|Beta|ZOIB|Fractional", cls_name))                { resp_type = "proportion"; family = "beta" }
     else if (grepl("Survival|Cox|Weibull|KM|Rank|LogRank|Gehan", cls_name)) { resp_type = "survival"; family = "cox" }
@@ -1386,9 +1635,13 @@ run_one_wald = function(spec) {
     if (cls_name == "InferenceIncidProbitRegr")  family = "probit"
     if (cls_name %in% c("InferenceCountNegBin","InferenceCountZeroInflatedNegBin","InferenceCountHurdleNegBin")) family = "negbin"
 
-    no_r_support = !is.null(spec$data_fn)
+    # See run_one() for the edi_cls / custom_data / no_r_support split.
+    edi_cls = if (!is.null(spec$edi_cls)) spec$edi_cls else cls_name
+    custom_data = !is.null(spec$data_fn)
+    no_r_support = is.null(spec$expr) || identical(spec$pkg, "None")
+    b_time = if (!is.null(spec$b_time_override)) as.integer(spec$b_time_override) else B_TIME
     n = if (!is.null(spec$n_override)) spec$n_override else N_WALD
-    if (no_r_support) {
+    if (custom_data) {
         d = spec$data_fn()
     } else {
         d = generate_data(n = n, family = family)
@@ -1397,15 +1650,25 @@ run_one_wald = function(spec) {
 
     edi_iters = NA_real_; can_iters = NA_real_
     timing_edi = tryCatch({
-        bm = if (no_r_support) make_edi_wald_bm_no_canonical(cls_name, d) else make_edi_wald_bm(cls_name, d)
+        bm = if (custom_data) make_edi_wald_bm_no_canonical(edi_cls, d) else make_edi_wald_bm(edi_cls, d)
         if (is.null(bm$expr)) stop("no Wald mapping for this class")
         edi_val = eval(bm$expr, envir = bm$env)  # validation
         edi_iters = extract_iters(edi_val, bm$env)
-        collect_timing_ms(bm$expr, env = bm$env)
+        collect_timing_ms(bm$expr, times = b_time, env = bm$env)
     }, error = function(e) { cat("  EDI Error:", e$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
 
     timing_can = list(median_ms = NA_real_, samples_ms = numeric(0))
-    if (!no_r_support) {
+    if (!no_r_support && custom_data) {
+        timing_can = tryCatch({
+            library(spec$pkg, character.only = TRUE)
+            e_can = new.env(parent = globalenv())
+            can_objs = spec$can_env_fn(d)
+            for (nm_can in names(can_objs)) assign(nm_can, can_objs[[nm_can]], envir = e_can)
+            can_val = eval(spec$expr, envir = e_can)  # validation
+            can_iters = extract_iters(can_val)
+            collect_timing_ms(spec$expr, times = b_time, env = e_can)
+        }, error = function(e) { cat("  Canonical Error:", e$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
+    } else if (!no_r_support) {
         timing_can = tryCatch({
             library(spec$pkg, character.only = TRUE)
             X_cols = d$X[,-1,drop=FALSE]; colnames(X_cols) = paste0("x", seq_len(ncol(X_cols)))
@@ -1414,7 +1677,7 @@ run_one_wald = function(spec) {
             X_can = cbind(`(Intercept)` = 1, treatment = d$w, as.matrix(X_cols))
             can_val = eval(spec$expr)  # validation
             can_iters = extract_iters(can_val)
-            collect_timing_ms(spec$expr)
+            collect_timing_ms(spec$expr, times = b_time)
         }, error = function(e) { cat("  Canonical Error:", e$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
     }
 
@@ -1430,7 +1693,7 @@ run_one_wald = function(spec) {
     )
 }
 
-wald_unique_specs = wald_specs[!duplicated(sapply(wald_specs, `[[`, "cls"))]
+wald_unique_specs = wald_specs[!duplicated(vapply(wald_specs, spec_key, character(1)))]
 for (i in seq_along(wald_unique_specs)) run_one_wald(wald_unique_specs[[i]])
 
 # Format Wald table
@@ -1598,6 +1861,356 @@ UTILITY_HEADER = c(
   "**Row Highlighting**: Light green rows indicate `Speedup > 1` and `Timing Pval < 0.05`; light grey rows indicate `NA` timing comparisons from a failed evaluation.",
   "",
   utility_table_lines
+)
+
+# ── Resampling-Based Inference Procedure Benchmarks ─────────────────────────
+# (2026-10-07) End-to-end inference PROCEDURES rather than single model fits:
+# randomization-test p-values and randomization CIs (vs ri2 / coin / perm),
+# nonparametric bootstrap CIs (vs boot), and exact 2x2 inference (vs
+# stats::fisher.test). Two kinds of EDI rows:
+#   [R6]     the public user-facing path: InferenceXxx$new(des) + the method call,
+#            with the inference object constructed INSIDE the timed region because EDI
+#            caches resampling distributions per object (a second identical call would
+#            be a cache hit). The completed Design object itself is built once outside.
+#            Canonical rows likewise include their own object/model-frame construction.
+#   [kernel] the exported C++ kernel called directly on prebuilt matrices, including the
+#            permutation / bootstrap-index generation (coin, ri2 and boot draw theirs
+#            inside the timed call too). compute_simple_mean_diff_parallel_cpp IS the
+#            kernel InferenceAllSimpleAverageDiff's randomization test runs on; the two
+#            OLS kernels (compute_ols_distr_parallel_cpp, compute_ols_bootstrap_parallel_cpp)
+#            are compiled into the package but not currently called by any R6 class, so
+#            those rows show attainable rather than currently-delivered speed.
+# All rows are single-threaded on both sides (EDI num_cores = 1).
+N_PROC = 1000L
+N_PROC_SURV = 500L
+R_PERMS = 1000L
+B_BOOT = 1000L
+B_BOOT_GLM = 500L
+B_TIME_PROC = 10L
+
+two_sided_rand_pval = function(t0s, t) {
+    t0s = t0s[is.finite(t0s)]
+    min(1, max(2 / length(t0s), 2 * min(mean(t0s >= t), mean(t0s <= t))))
+}
+
+# Shared fixtures (built once, outside every timed region): a completed design with n
+# subjects, p = 4 covariates and a continuous / incidence / survival response, plus the
+# plain matrices the kernels and the canonical packages consume.
+build_procedure_fixture = function(response_type, design = "ibcrd") {
+    n = if (response_type == "survival") N_PROC_SURV else N_PROC
+    d = generate_data(n = n, family = switch(response_type, continuous = "continuous", incidence = "logistic", survival = "cox"))
+    X_cov = d$X[, -1, drop = FALSE]; colnames(X_cov) = paste0("x", seq_len(ncol(X_cov)))
+    des = if (design == "bernoulli") DesignFixedBernoulli$new(n = n, response_type = response_type) else DesignFixediBCRD$new(n = n, response_type = response_type)
+    des$add_all_subjects_to_experiment(as.data.frame(X_cov))
+    des$assign_w_to_all_subjects(as.numeric(d$w))
+    if (response_type == "survival") {
+        des$add_all_subject_responses(ifelse(d$dead == 1, d$y, NA_real_), y_Ls = ifelse(d$dead == 0, d$y, NA_real_), y_Rs = ifelse(d$dead == 0, Inf, NA_real_))
+    } else {
+        des$add_all_subject_responses(as.numeric(d$y))
+    }
+    e = new.env(parent = globalenv())
+    e$des = des
+    e$n = n
+    e$y = as.numeric(d$y)
+    e$w = as.integer(d$w)
+    e$dead = if (!is.null(d$dead)) as.integer(d$dead) else NULL
+    e$X_cov = as.matrix(X_cov)
+    e$X_ord = cbind(treatment = as.numeric(d$w), as.matrix(X_cov))
+    e$X_full = cbind(`(Intercept)` = 1, treatment = as.numeric(d$w), as.matrix(X_cov))
+    df = data.frame(y = e$y, treatment = e$w, Z = e$w, dead = if (!is.null(e$dead)) e$dead else 1L)
+    e$df = cbind(df, X_cov)
+    if (response_type == "incidence") {
+        e$n11 = sum(e$y[e$w == 1]); e$n10 = sum(e$w == 1) - e$n11
+        e$n01 = sum(e$y[e$w == 0]); e$n00 = sum(e$w == 0) - e$n01
+        e$tab = matrix(c(e$n11, e$n01, e$n10, e$n00), nrow = 2, dimnames = list(c("treated", "control"), c("case", "noncase")))
+    }
+    e
+}
+
+procedure_specs = list(
+    # -- randomization tests: difference in means --
+    list(name = sprintf("Randomization test p-value: mean difference (r = %d) [kernel]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "coin", func = "oneway_test(approximate)",
+         edi_expr = quote({
+             w_mat = EDI:::generate_permutations_ibcrd_cpp(n, R_PERMS, 0.5)$w_mat
+             two_sided_rand_pval(EDI:::compute_simple_mean_diff_parallel_cpp(y, w_mat, 0, 1L), mean(y[w == 1]) - mean(y[w == 0]))
+         }),
+         can_expr = quote(coin::pvalue(coin::oneway_test(y ~ factor(treatment), data = df, distribution = coin::approximate(nresample = R_PERMS))))),
+    list(name = sprintf("Randomization test p-value: mean difference (r = %d) [kernel]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "perm", func = "permTS(exact.mc)",
+         edi_expr = quote({
+             w_mat = EDI:::generate_permutations_ibcrd_cpp(n, R_PERMS, 0.5)$w_mat
+             two_sided_rand_pval(EDI:::compute_simple_mean_diff_parallel_cpp(y, w_mat, 0, 1L), mean(y[w == 1]) - mean(y[w == 0]))
+         }),
+         can_expr = quote(perm::permTS(df$y[df$treatment == 1], df$y[df$treatment == 0], method = "exact.mc", control = perm::permControl(nmc = R_PERMS))$p.value)),
+    list(name = sprintf("Randomization test p-value: mean difference (r = %d) [kernel]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "ri2", func = "conduct_ri(sims)",
+         edi_expr = quote({
+             w_mat = EDI:::generate_permutations_ibcrd_cpp(n, R_PERMS, 0.5)$w_mat
+             two_sided_rand_pval(EDI:::compute_simple_mean_diff_parallel_cpp(y, w_mat, 0, 1L), mean(y[w == 1]) - mean(y[w == 0]))
+         }),
+         can_expr = quote(summary(ri2::conduct_ri(y ~ Z, declaration = randomizr::declare_ra(N = n, m = n %/% 2L), assignment = "Z", data = df, sims = R_PERMS))$two_tailed_p_value)),
+    list(name = sprintf("Randomization test p-value: mean difference (r = %d) [R6 InferenceAllSimpleAverageDiff]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "coin", func = "oneway_test(approximate)",
+         edi_expr = quote({ inf = InferenceAllSimpleAverageDiff$new(des); inf$num_cores = 1L; inf$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE) }),
+         can_expr = quote(coin::pvalue(coin::oneway_test(y ~ factor(treatment), data = df, distribution = coin::approximate(nresample = R_PERMS))))),
+    list(name = sprintf("Randomization test p-value: mean difference (r = %d) [R6 InferenceAllSimpleAverageDiff]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "ri2", func = "conduct_ri(sims)",
+         edi_expr = quote({ inf = InferenceAllSimpleAverageDiff$new(des); inf$num_cores = 1L; inf$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE) }),
+         can_expr = quote(summary(ri2::conduct_ri(y ~ Z, declaration = randomizr::declare_ra(N = n, m = n %/% 2L), assignment = "Z", data = df, sims = R_PERMS))$two_tailed_p_value)),
+    # -- randomization tests: OLS covariate-adjusted --
+    list(name = sprintf("Randomization test p-value: OLS covariate-adjusted (r = %d) [kernel, not wired to an R6 class]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "ri2", func = "conduct_ri(y ~ Z + X, sims)",
+         edi_expr = quote({
+             w_mat = EDI:::generate_permutations_ibcrd_cpp(n, R_PERMS, 0.5)$w_mat
+             two_sided_rand_pval(EDI:::compute_ols_distr_parallel_cpp(X_cov, y, w_mat, 0, 1L), fast_ols_cpp(X_full, y)$b[2])
+         }),
+         can_expr = quote(summary(ri2::conduct_ri(y ~ Z + x1 + x2 + x3 + x4, declaration = randomizr::declare_ra(N = n, m = n %/% 2L), assignment = "Z", data = df, sims = R_PERMS))$two_tailed_p_value)),
+    list(name = sprintf("Randomization test p-value: OLS covariate-adjusted (r = %d) [R6 InferenceContinOLS]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "ri2", func = "conduct_ri(y ~ Z + X, sims)",
+         edi_expr = quote({ inf = InferenceContinOLS$new(des); inf$num_cores = 1L; inf$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE) }),
+         can_expr = quote(summary(ri2::conduct_ri(y ~ Z + x1 + x2 + x3 + x4, declaration = randomizr::declare_ra(N = n, m = n %/% 2L), assignment = "Z", data = df, sims = R_PERMS))$two_tailed_p_value)),
+    # -- randomization CIs (test inversion): no canonical R implementation --
+    list(name = sprintf("Randomization CI: mean difference (r = %d, test inversion) [R6 InferenceAllSimpleAverageDiff]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "None", func = "no canonical R implementation", b_time = 5L,
+         edi_expr = quote({ inf = InferenceAllSimpleAverageDiff$new(des); inf$num_cores = 1L; inf$compute_rand_confidence_interval(r = R_PERMS, show_progress = FALSE) }),
+         can_expr = NULL),
+    list(name = sprintf("Randomization CI: OLS covariate-adjusted (r = %d, test inversion) [R6 InferenceContinOLS]", R_PERMS), response = "continuous", fixture = "continuous",
+         pkg = "None", func = "no canonical R implementation", b_time = 5L,
+         edi_expr = quote({ inf = InferenceContinOLS$new(des); inf$num_cores = 1L; inf$compute_rand_confidence_interval(r = R_PERMS, show_progress = FALSE) }),
+         can_expr = NULL),
+    # -- nonparametric bootstrap CIs --
+    list(name = sprintf("Nonparametric bootstrap CI: OLS (B = %d) [kernel, not wired to an R6 class]", B_BOOT), response = "continuous", fixture = "continuous",
+         pkg = "boot", func = "boot(lm.fit)+boot.ci(perc)",
+         edi_expr = quote({
+             idx0 = t(EDI:::bootstrap_indices_cpp(n, B_BOOT)) - 1L
+             storage.mode(idx0) = "integer"
+             stats::quantile(EDI:::compute_ols_bootstrap_parallel_cpp(X_cov, y, w, idx0, 1L), c(0.025, 0.975), na.rm = TRUE)
+         }),
+         can_expr = quote({
+             bo = boot::boot(df, function(dd, i) lm.fit(X_full[i, , drop = FALSE], dd$y[i])$coefficients[2], R = B_BOOT)
+             boot::boot.ci(bo, type = "perc")$percent[4:5]
+         })),
+    list(name = sprintf("Nonparametric bootstrap CI: OLS (B = %d) [R6 InferenceContinOLS]", B_BOOT), response = "continuous", fixture = "continuous",
+         pkg = "boot", func = "boot(lm.fit)+boot.ci(perc)",
+         edi_expr = quote({ inf = InferenceContinOLS$new(des); inf$num_cores = 1L; inf$compute_bootstrap_confidence_interval(B = B_BOOT, type = "percentile", show_progress = FALSE) }),
+         can_expr = quote({
+             bo = boot::boot(df, function(dd, i) lm.fit(X_full[i, , drop = FALSE], dd$y[i])$coefficients[2], R = B_BOOT)
+             boot::boot.ci(bo, type = "perc")$percent[4:5]
+         })),
+    list(name = sprintf("Nonparametric bootstrap CI: logistic regression (B = %d) [R6 InferenceIncidLogRegr]", B_BOOT_GLM), response = "incidence", fixture = "incidence",
+         pkg = "boot", func = "boot(glm.fit)+boot.ci(perc)",
+         edi_expr = quote({ inf = InferenceIncidLogRegr$new(des); inf$num_cores = 1L; inf$compute_bootstrap_confidence_interval(B = B_BOOT_GLM, type = "percentile", show_progress = FALSE) }),
+         can_expr = quote({
+             bo = boot::boot(df, function(dd, i) glm.fit(X_full[i, , drop = FALSE], dd$y[i], family = binomial())$coefficients[2], R = B_BOOT_GLM)
+             boot::boot.ci(bo, type = "perc")$percent[4:5]
+         })),
+    list(name = sprintf("Nonparametric bootstrap CI: Cox PH (B = %d, n = %d) [R6 InferenceSurvivalCoxPHRegr]", B_BOOT_GLM, N_PROC_SURV), response = "survival", fixture = "survival",
+         pkg = "boot", func = "boot(coxph.fit)+boot.ci(perc)",
+         edi_expr = quote({ inf = InferenceSurvivalCoxPHRegr$new(des); inf$num_cores = 1L; inf$compute_bootstrap_confidence_interval(B = B_BOOT_GLM, type = "percentile", show_progress = FALSE) }),
+         can_expr = quote({
+             bo = boot::boot(df, function(dd, i) survival::coxph.fit(x = X_ord[i, , drop = FALSE], y = survival::Surv(dd$y[i], dd$dead[i]), strata = NULL, offset = NULL, init = NULL, control = survival::coxph.control(), weights = NULL, method = "breslow", rownames = as.character(seq_along(i)))$coefficients[1], R = B_BOOT_GLM)
+             boot::boot.ci(bo, type = "perc")$percent[4:5]
+         })),
+    # -- exact 2x2 inference --
+    list(name = sprintf("Exact Fisher 2x2 p-value (n = %d) [kernel zhang_exact_fisher_pval_cpp]", N_PROC), response = "incidence", fixture = "incidence",
+         pkg = "stats", func = "fisher.test",
+         edi_expr = quote(EDI:::zhang_exact_fisher_pval_cpp(n11, n10, n01, n00, 0)),
+         can_expr = quote(stats::fisher.test(tab)$p.value)),
+    list(name = sprintf("Exact CI for the log odds ratio (n = %d, test inversion) [R6 InferenceIncidExactZhang]", N_PROC), response = "incidence", fixture = "incidence_bernoulli",
+         pkg = "stats", func = "fisher.test(conf.int)",
+         edi_expr = quote({ inf = InferenceIncidExactZhang$new(des); inf$num_cores = 1L; inf$compute_exact_confidence_interval() }),
+         can_expr = quote(log(stats::fisher.test(tab)$conf.int)))
+)
+
+# ── Design Generation Benchmarks ────────────────────────────────────────────
+# (2026-10-07) Time to produce one complete treatment allocation for n = 1000 subjects,
+# including EDI's Design object construction and covariate ingestion (the user-facing
+# workflow), against the dedicated randomization packages. Honest-labelling notes:
+#   * DesignFixedBlocking derives the strata from the factor covariates itself and then
+#     delegates the within-block draw to randomizr::block_ra() when randomizr is
+#     installed, so that row measures EDI's strata construction + R6 overhead on top of
+#     the canonical draw (randomizr receives the block ids precomputed).
+#   * DesignFixedBinaryMatch computes Mahalanobis distances in-house and delegates the
+#     optimal nonbipartite matching to nbpMatching::nonbimatch(); the nbpMatching row is
+#     the same optimal matcher driven directly (gendistance + distancematrix +
+#     nonbimatch + within-pair coin flips), the blockTools row is its greedy
+#     (optGreedy) pairing alternative.
+#   * DesignSeqOneByOnePocockSimon processes the 1000 arrivals one R6 method call at a
+#     time (the sequential-trial use case); carat::PocSimMIN() receives the whole
+#     covariate table at once and runs the sequence in C++; Minirand is an R loop.
+N_DESIGN = 1000L
+
+build_design_fixture = function() {
+    n = N_DESIGN
+    e = new.env(parent = globalenv())
+    e$n = n
+    e$X_fac = data.frame(x1 = factor(sample(1:3, n, replace = TRUE)), x2 = factor(sample(1:2, n, replace = TRUE)))
+    e$X_cont = data.frame(x3 = rnorm(n), x4 = rnorm(n), x5 = rnorm(n), x6 = rnorm(n))
+    e$X_fac_rows = lapply(seq_len(n), function(i) e$X_fac[i, , drop = FALSE])
+    e$block_id = as.integer(interaction(e$X_fac$x1, e$X_fac$x2, drop = TRUE))
+    e$cov_codes = cbind(as.integer(e$X_fac$x1), as.integer(e$X_fac$x2))
+    e
+}
+
+design_specs = list(
+    list(name = sprintf("DesignFixediBCRD: complete randomization (n = %d)", N_DESIGN), response = "design", fixture = "design",
+         pkg = "randomizr", func = "complete_ra",
+         edi_expr = quote({ des_i = DesignFixediBCRD$new(n = n, response_type = "continuous"); des_i$add_all_subjects_to_experiment(X_cont); des_i$assign_w_to_all_subjects(); des_i$get_w() }),
+         can_expr = quote(randomizr::complete_ra(N = n, m = n %/% 2L))),
+    list(name = sprintf("DesignFixedBlocking: strata from 2 factor covariates (6 blocks), n = %d", N_DESIGN), response = "design", fixture = "design",
+         pkg = "randomizr", func = "block_ra(blocks precomputed)",
+         edi_expr = quote({ des_b = DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = c("x1", "x2"), equal_block_sizes = FALSE); des_b$add_all_subjects_to_experiment(X_fac); des_b$assign_w_to_all_subjects(); des_b$get_w() }),
+         can_expr = quote(randomizr::block_ra(blocks = block_id))),
+    list(name = sprintf("DesignFixedBinaryMatch: Mahalanobis optimal pairs + within-pair randomization (4 covariates, n = %d)", N_DESIGN), response = "design", fixture = "design",
+         pkg = "nbpMatching", func = "gendistance+nonbimatch+coin flips",
+         edi_expr = quote({ des_m = DesignFixedBinaryMatch$new(n = n, response_type = "continuous"); des_m$add_all_subjects_to_experiment(X_cont); des_m$assign_w_to_all_subjects(); des_m$get_w() }),
+         can_expr = quote({
+             halves = nbpMatching::nonbimatch(nbpMatching::distancematrix(nbpMatching::gendistance(X_cont)))$halves
+             w_m = integer(n); flips = rbinom(nrow(halves), 1, 0.5)
+             w_m[halves$Group1.Row] = flips; w_m[halves$Group2.Row] = 1L - flips
+             w_m
+         })),
+    list(name = sprintf("DesignFixedBinaryMatch: Mahalanobis optimal pairs + within-pair randomization (4 covariates, n = %d)", N_DESIGN), response = "design", fixture = "design",
+         pkg = "blockTools", func = "block(n.tr=2, optGreedy)+assignment",
+         edi_expr = quote({ des_m = DesignFixedBinaryMatch$new(n = n, response_type = "continuous"); des_m$add_all_subjects_to_experiment(X_cont); des_m$assign_w_to_all_subjects(); des_m$get_w() }),
+         can_expr = quote({
+             bt = blockTools::block(cbind(id = seq_len(n), X_cont), n.tr = 2, id.vars = "id", block.vars = names(X_cont))
+             blockTools::assignment(bt)
+         })),
+    list(name = sprintf("DesignSeqOneByOnePocockSimon: %d sequential arrivals, 2 factor covariates, p_best = 0.8", N_DESIGN), response = "design", fixture = "design",
+         pkg = "carat", func = "PocSimMIN(p = 0.8)",
+         edi_expr = quote({
+             des_p = DesignSeqOneByOnePocockSimon$new(n = n, response_type = "continuous", strata_cols = c("x1", "x2"), p_best = 0.8)
+             for (i in seq_len(n)) des_p$add_one_subject_to_experiment_and_assign(X_fac_rows[[i]])
+             des_p$get_w()
+         }),
+         can_expr = quote(carat::PocSimMIN(X_fac, p = 0.8)$assignments)),
+    list(name = sprintf("DesignSeqOneByOnePocockSimon: %d sequential arrivals, 2 factor covariates, p_best = 0.8", N_DESIGN), response = "design", fixture = "design",
+         pkg = "Minirand", func = "Minirand(Range, p = 0.8) loop",
+         edi_expr = quote({
+             des_p = DesignSeqOneByOnePocockSimon$new(n = n, response_type = "continuous", strata_cols = c("x1", "x2"), p_best = 0.8)
+             for (i in seq_len(n)) des_p$add_one_subject_to_experiment_and_assign(X_fac_rows[[i]])
+             des_p$get_w()
+         }),
+         can_expr = quote({
+             res = rep(NA_integer_, n); res[1] = sample(0:1, 1)
+             for (j in 2:n) res[j] = Minirand::Minirand(covmat = cov_codes, j = j, covwt = c(0.5, 0.5), ratio = c(1, 1), ntrt = 2, trtseq = c(0, 1), method = "Range", result = res, p = 0.8)
+             res
+         }))
+)
+
+# Generic EDI-vs-canonical runner for the procedure and design tables: both expressions
+# are evaluated in the shared fixture environment (same data, same n).
+run_one_generic = function(spec, e, label, idx, total) {
+    set.seed(seed_for_class(paste(spec$name, spec$pkg, spec$func)))
+    cat(sprintf("%s [%d/%d] %s  vs  %s::%s...\n", label, idx, total, spec$name, spec$pkg, spec$func))
+    b_time = if (!is.null(spec$b_time)) as.integer(spec$b_time) else B_TIME_PROC
+    timing_edi = tryCatch({
+        eval(spec$edi_expr, envir = e)  # validation / warm-up
+        collect_timing_ms(spec$edi_expr, times = b_time, env = e)
+    }, error = function(err) { cat("  EDI Error:", err$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
+    no_can = is.null(spec$can_expr) || identical(spec$pkg, "None")
+    timing_can = list(median_ms = NA_real_, samples_ms = numeric(0))
+    if (!no_can) {
+        timing_can = tryCatch({
+            suppressPackageStartupMessages(library(spec$pkg, character.only = TRUE))
+            eval(spec$can_expr, envir = e)  # validation / warm-up
+            collect_timing_ms(spec$can_expr, times = b_time, env = e)
+        }, error = function(err) { cat("  Canonical Error:", err$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
+    }
+    data.table(
+        Class = spec$name, Response = spec$response,
+        EDI_Time_ms = timing_edi$median_ms,
+        Canonical_Pkg = spec$pkg, Canonical_Func = spec$func,
+        Canonical_Time_ms = timing_can$median_ms,
+        Speedup = if (!is.na(timing_can$median_ms) && !is.na(timing_edi$median_ms) && timing_edi$median_ms > 0) timing_can$median_ms / timing_edi$median_ms else NA_real_,
+        Timing_Pval = timing_ttest_pval(timing_edi$samples_ms, timing_can$samples_ms),
+        No_Canonical = no_can
+    )
+}
+
+run_generic_table = function(specs, fixture_builder, label) {
+    fixtures = list()
+    out = list()
+    for (i in seq_along(specs)) {
+        spec = specs[[i]]
+        fx = spec$fixture
+        if (is.null(fixtures[[fx]])) {
+            set.seed(seed_for_class(paste(label, fx)))
+            fixtures[[fx]] = fixture_builder(fx)
+        }
+        out[[length(out) + 1L]] = run_one_generic(spec, fixtures[[fx]], label, i, length(specs))
+    }
+    rbindlist(out)
+}
+
+dt_proc = run_generic_table(procedure_specs, function(fx) {
+    switch(fx,
+        continuous = build_procedure_fixture("continuous"),
+        incidence = build_procedure_fixture("incidence"),
+        incidence_bernoulli = build_procedure_fixture("incidence", design = "bernoulli"),
+        survival = build_procedure_fixture("survival")
+    )
+}, "Procedure")
+dt_design = run_generic_table(design_specs, function(fx) build_design_fixture(), "Design")
+
+# Same shape/colouring as the utility table (no optimizer-iteration columns).
+build_generic_table_lines = function(dt_in, first_col_header) {
+    dt_x = copy(dt_in)
+    dt_x[, Speedup_Num := Speedup]
+    # Sub-0.1x ratios (EDI slower by 10x+) keep two significant digits instead of rounding to "0x".
+    dt_x[, Speedup := ifelse(!is.na(Speedup), paste0(ifelse(Speedup < 0.1, signif(Speedup, 2), round(Speedup, 2)), "x"), "NA")]
+    dt_x[, EDI_Time_ms := format_ms(EDI_Time_ms)]
+    dt_x[, Canonical_Time_ms := format_ms(Canonical_Time_ms)]
+    dt_x[, Timing_Row_Color := mapply(row_bg_color, Speedup_Num, Timing_Pval, No_Canonical, USE.NAMES = FALSE)]
+    dt_x[, Timing_Pval_Stars := format_pval_stars(Timing_Pval)]
+    dt_x[, Timing_Pval := format_pval(Timing_Pval)]
+    rows = mapply(function(cls, resp, edi, pkg, func, can, speed, pval, stars, bg) {
+        style = if (nzchar(bg)) paste0(" style=\"background-color: ", bg, ";\"") else ""
+        paste0("    <tr", style, "><td>", cls, "</td><td>", resp, "</td><td>", edi, "</td><td>", pkg, "</td><td>", func, "</td><td>", can, "</td><td>", speed, "</td><td>", pval, "</td><td>", stars, "</td></tr>")
+    }, dt_x$Class, dt_x$Response, dt_x$EDI_Time_ms, dt_x$Canonical_Pkg, dt_x$Canonical_Func,
+    dt_x$Canonical_Time_ms, dt_x$Speedup, dt_x$Timing_Pval, dt_x$Timing_Pval_Stars, dt_x$Timing_Row_Color,
+    SIMPLIFY = TRUE, USE.NAMES = FALSE)
+    c(
+      "<table>",
+      "  <thead>",
+      paste0("    <tr><th>", first_col_header, "</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr>"),
+      "  </thead>",
+      "  <tbody>",
+      rows,
+      "  </tbody>",
+      "</table>"
+    )
+}
+
+PROCEDURE_HEADER = c(
+  "## Resampling-Based Inference Procedure Performance",
+  "",
+  "This table times complete inference **procedures** rather than single model fits: randomization-test p-values and randomization confidence intervals, nonparametric bootstrap confidence intervals, and exact 2x2 inference, each against the dedicated R package for that procedure (`ri2`, `coin`, `perm`, `boot`, `stats::fisher.test`).",
+  paste0("**Data**: one completed `DesignFixediBCRD` design per response type with $N=", N_PROC, "$ subjects (", N_PROC_SURV, " for the Cox row), a balanced binary treatment and 4 standard-normal covariates, generated by the same `generate_data()` as the model-fit tables; the exact-CI row uses a `DesignFixedBernoulli` design because `InferenceIncidExactZhang` requires Bernoulli or matching designs. All resampling rows use $r=", R_PERMS, "$ randomizations or $B=", B_BOOT, "$ (OLS) / $B=", B_BOOT_GLM, "$ (logistic, Cox) bootstrap draws on both sides."),
+  "**`[R6 ...]` rows** time EDI's public, user-facing path: `InferenceXxx$new(des)` followed by the method call (`compute_rand_two_sided_pval()`, `compute_rand_confidence_interval()`, `compute_bootstrap_confidence_interval()`, `compute_exact_confidence_interval()`). The inference object is constructed *inside* the timed region because EDI caches resampling distributions per object, so a repeated identical call would be a cache hit rather than a recomputation; the completed Design object is built once outside the timed region. Canonical rows likewise include their own model-frame/object construction (`conduct_ri()`, `oneway_test()`, `boot()`), so both sides pay comparable setup. Both sides run single-threaded (`num_cores = 1`); EDI's resampling methods can additionally fan out across cores, which is not exercised here.",
+  "**`[kernel ...]` rows** call the exported C++ kernel directly on prebuilt matrices, including the permutation / bootstrap-index generation (`coin`, `ri2` and `boot` draw theirs inside the timed call too). `compute_simple_mean_diff_parallel_cpp` *is* the kernel `InferenceAllSimpleAverageDiff`'s randomization test runs on, so its `[kernel]` and `[R6]` rows bracket the R6 overhead. The two OLS kernels (`compute_ols_distr_parallel_cpp`, `compute_ols_bootstrap_parallel_cpp`) are compiled into the package but are **not currently called by any R6 class** (`InferenceContinOLS` resamples through the generic reused-worker path), so those rows show attainable rather than currently delivered speed; they are labelled accordingly.",
+  "**Bootstrap CIs** are percentile intervals on both sides (`type = \"percentile\"` in EDI, `boot.ci(type = \"perc\")`). EDI's default `type = \"bca\"` additionally runs a full leave-one-out jackknife for the acceleration constant, which roughly doubles its cost at these sizes and has no `boot` counterpart without a user-supplied jackknife.",
+  "**Randomization CIs** (test inversion by bisection over the sharp-null shift) have no canonical R implementation (`ri2`, `coin` and `perm` return p-values only), so those rows are light blue with EDI timed alone.",
+  "**Exact 2x2 inference**: EDI implements Fisher's conditional exact test only. `InferenceIncidExactFisher` wraps `stats::fisher.test()` directly (its full-inference row is in the Wald table above); `InferenceIncidExactZhang` evaluates the same conditional p-value through EDI's own C++ kernel `zhang_exact_fisher_pval_cpp` (timed here against `fisher.test()`) and inverts it for its exact confidence interval, which is compared against `fisher.test()`'s conditional-MLE interval. EDI has **no unconditional exact test** (Barnard / Boschloo), so `Exact::exact.test()` is deliberately not timed: a comparison would be between different tests.",
+  "**Not timed**: `zoib` (Bayesian zero-one-inflated beta via JAGS MCMC) in the model-fit tables, for the same like-for-like reason.",
+  paste0("**Timing Note**: medians over ", B_TIME_PROC, " warmed runs (5 for the two randomization-CI rows) with the same adaptive batched `system.time` harness as the tables above; Welch t-test `Timing Pval` and row colouring as above."),
+  "",
+  build_generic_table_lines(dt_proc, "Procedure")
+)
+
+DESIGN_HEADER = c(
+  "## Design Generation Performance",
+  "",
+  paste0("This table times the production of one complete treatment allocation for $N=", N_DESIGN, "$ subjects, from covariate ingestion to the assignment vector, against the dedicated randomization packages (`randomizr`, `nbpMatching`, `blockTools`, `carat`, `Minirand`). EDI rows include `Design$new()` construction and `add_all_subjects_to_experiment()` (or the 1000 per-arrival `add_one_subject_to_experiment_and_assign()` calls for the sequential design) because that is the user-facing workflow; canonical rows receive their covariate table or block ids prebuilt. Fixtures: two factor covariates (3 and 2 levels, i.e. 6 strata) for the blocking and Pocock-Simon rows, four standard-normal covariates for the matching rows."),
+  "**Honest labelling**:",
+  "*   `DesignFixedBlocking` derives the strata from the factor covariates itself and then **delegates the within-block draw to `randomizr::block_ra()`** whenever randomizr is installed, so that row measures EDI's strata construction and R6 overhead on top of the canonical draw.",
+  "*   `DesignFixedBinaryMatch` computes Mahalanobis distances in-house and **delegates the optimal nonbipartite matching to `nbpMatching::nonbimatch()`**; the nbpMatching row drives the same optimal matcher directly (`gendistance` + `distancematrix` + `nonbimatch` + within-pair coin flips) and the blockTools row is its greedy (`optGreedy`) pairing alternative, so the two rows bracket EDI's overhead and the greedy-vs-optimal cost.",
+  "*   `DesignSeqOneByOnePocockSimon` processes the 1000 arrivals one R6 method call at a time, the sequential-trial use case it exists for, while `carat::PocSimMIN()` receives the whole covariate table at once and runs the sequence in C++ and `Minirand` is an R loop. The imbalance criteria differ in detail (EDI's weighted marginal $G_k$ with `p_best = 0.8` vs carat's and Minirand's `Range` method at $p = 0.8$).",
+  paste0("**Timing Note**: medians over ", B_TIME_PROC, " warmed runs; Welch t-test `Timing Pval` and row colouring as above."),
+  "",
+  build_generic_table_lines(dt_design, "Design")
 )
 
 # ── Finalize
@@ -1773,7 +2386,9 @@ report = c(
   paste0("*   **Averaging:** All timings are medians over ", B_TIME, " cold estimate-only timing samples measured with adaptive batched `system.time`; paths below ", FAST_PATH_THRESHOLD_MS, " ms use `microbenchmark(times = ", FAST_PATH_MICROBENCH_REPS, ")` instead."),
   "*   **Timing P-Value:** `Timing Pval` reports a Welch two-sample t-test comparing the EDI and canonical timing replicate distributions for each row. The unlabeled final column marks thresholds with `***` for p < 0.001, `**` for p < 0.01, and `*` for p < 0.05.",
   "*   **Row Highlighting:** Light green rows indicate `Speedup > 1` and `Timing Pval < 0.05`; light grey rows indicate `NA` timing comparisons from a failed fit; light blue rows are estimators with no canonical R implementation at all (only EDI is timed, `Canonical Time`/`Speedup`/`Timing Pval` are `NA` by design).",
-  "*   **Constraints**: Most matched-pair/KK and highly custom paths are excluded as per user request; the exceptions are the four light-blue rows below, whose custom joint likelihood or estimator family (KK combined matched+reservoir, Weibull frailty, zero-one-inflated beta) has no canonical R implementation to compare against — see `package_metadata/python_bindings_package_spec.md` for the underlying baseline-gap analysis.",
+  "*   **Constraints**: Most matched-pair/KK and highly custom paths are excluded as per user request. The exceptions are the custom-data rows below: the two KK combined matched+reservoir joint-likelihood estimators remain light blue (no canonical R implementation at all — see `package_metadata/python_bindings_package_spec.md` for the baseline-gap analysis), while the matched-pair random-intercept GLMM family, Weibull lognormal frailty, zero-one-inflated beta and interval-censored Weibull AFT rows carry real canonical comparators since 2026-10-07 (`lme4`/`glmmTMB`/`ordinal::clmm`, `parfm`, `gamlss(BEINF)`, `survreg(interval2)`/`icenReg::ic_par`). `lme4::glmer(nAGQ = 20)` and `ordinal::clmm(nAGQ = 20)` match EDI's 20-node Gauss-Hermite marginal likelihood; `glmmTMB` is Laplace-only; `lmer` uses ML (`REML = FALSE`) like EDI. `parfm` fits the proportional-hazards parameterization of the same Weibull lognormal-frailty model (equivalent to EDI's AFT-scale Normal random intercept up to reparameterization) and takes ~25 s per fit, so its rows use 5 timing replicates. `zoib` (Bayesian MCMC) is deliberately not timed against EDI's ML fit.",
+  "*   **Repeated classes**: a class may appear more than once when it is timed against several comparators (e.g. `InferenceContinRobustRegr` vs `MASS::rlm` and `robustbase::lmrob.fit`; the GLMM rows vs `lme4` and `glmmTMB`); such rows share one dataset and re-time the same EDI kernel.",
+  "*   **Weibull design matrix**: the Weibull AFT rows pass `[1, treatment, covariates]` (with intercept) to `fast_weibull_regression_general_cpp`, the layout `InferenceSurvivalWeibullRegr` builds internally, under which the kernel reproduces `survreg()`'s coefficients and log-likelihood exactly. Reports generated before 2026-10-07 omitted the intercept on the EDI side of that row.",
   "",
   "## Results",
   "",
@@ -1800,14 +2415,20 @@ demote_markdown_headings = function(lines) {
   sub("^(#{2,5})([[:space:]])", "\\1#\\2", lines)
 }
 
-python_benchmark_markdown_lines = function(path = "package_metadata/benchmark_model_fits_python.html") {
-  if (!file.exists(path)) {
+python_benchmark_markdown_lines = function(path = c("package_metadata/benchmark_model_fits_python.html",
+                                                    "../python/benchmark/benchmark_model_fits_python.html")) {
+  # The Python report is generated into python/benchmark/ (one level above
+  # R/); a package_metadata copy is optional. Use the first candidate that
+  # exists so the markdown's Python section never silently drops out.
+  existing = path[file.exists(path)]
+  if (length(existing) == 0L) {
     return(c(
       "## Python Benchmarks",
       "",
-      paste0("_Python benchmark artifact not found: `", path, "`._")
+      paste0("_Python benchmark artifact not found: `", paste(path, collapse = "`, `"), "`._")
     ))
   }
+  path = existing[1]
 
   html = readLines(path, warn = FALSE)
   body_start = grep("<body>", html, fixed = TRUE)
@@ -1832,13 +2453,13 @@ python_benchmark_markdown_lines = function(path = "package_metadata/benchmark_mo
 r_benchmark_lines = c(
   "## R Benchmarks",
   "",
-  demote_markdown_headings(c(report[-1], "", WALD_HEADER, "", METHODOLOGY_BLOCK, "", UTILITY_HEADER))
+  demote_markdown_headings(c(report[-1], "", WALD_HEADER, "", METHODOLOGY_BLOCK, "", UTILITY_HEADER, "", PROCEDURE_HEADER, "", DESIGN_HEADER))
 )
 
 combined_report_lines = c(
   paste0("# EDI v", edi_version, " Exhaustive C++ Model Fit Benchmarks"),
   "",
-  "This report is the canonical benchmark artifact for both R and Python bindings. The R section is generated by `benchmark/benchmark_model_fits.R`; the Python section is copied from `package_metadata/benchmark_model_fits_python.html` so the markdown remains the single source of truth for side-by-side review.",
+  "This report is the canonical benchmark artifact for both R and Python bindings. The R section is generated by `benchmark/benchmark_model_fits.R`; the Python section is copied from `python/benchmark/benchmark_model_fits_python.html` so the markdown remains the single source of truth for side-by-side review.",
   "",
   r_benchmark_lines,
   "",
@@ -1850,7 +2471,7 @@ combined_report_lines = c(
 writeLines(combined_report_lines, "package_metadata/benchmark_model_fits.md")
 
 # ── HTML export ──────────────────────────────────────────────────────────
-# Styled to match package_metadata/benchmark_model_fits_python.html exactly
+# Styled to match python/benchmark/benchmark_model_fits_python.html exactly
 # (same CSS, same font stack, same light/dark handling, same nav bar) so the
 # two reports read as one consistent family rather than one being a generic
 # markdown-preview export and the other a hand-built page. Reuses the exact
@@ -1861,11 +2482,13 @@ writeLines(combined_report_lines, "package_metadata/benchmark_model_fits.md")
 # bold, lists) to HTML, so this is not a second, independently-maintained
 # copy of the report content.
 if (requireNamespace("commonmark", quietly = TRUE)) {
-  md_body = paste(c(report, "", WALD_HEADER, "", METHODOLOGY_BLOCK, "", UTILITY_HEADER), collapse = "\n")
+  md_body = paste(c(report, "", WALD_HEADER, "", METHODOLOGY_BLOCK, "", UTILITY_HEADER, "", PROCEDURE_HEADER, "", DESIGN_HEADER), collapse = "\n")
   body_html = commonmark::markdown_html(md_body)
   body_html = gsub("<h2>Results</h2>", '<h2 id="results">Results</h2>', body_html, fixed = TRUE)
   body_html = gsub("<h2>Wald Test Performance (Full Inference)</h2>", '<h2 id="wald">Wald Test Performance (Full Inference)</h2>', body_html, fixed = TRUE)
   body_html = gsub("<h2>Utility / Math Kernel Performance</h2>", '<h2 id="utility">Utility / Math Kernel Performance</h2>', body_html, fixed = TRUE)
+  body_html = gsub("<h2>Resampling-Based Inference Procedure Performance</h2>", '<h2 id="procedures">Resampling-Based Inference Procedure Performance</h2>', body_html, fixed = TRUE)
+  body_html = gsub("<h2>Design Generation Performance</h2>", '<h2 id="designs">Design Generation Performance</h2>', body_html, fixed = TRUE)
   legend_html = paste(
     '<p class="legend">',
     '<span style="background:#d9fdd3"></span>EDI faster, significant &nbsp;',
@@ -1878,8 +2501,8 @@ if (requireNamespace("commonmark", quietly = TRUE)) {
   # Nav bar goes below the title + generated-timestamp line (matching
   # benchmark_model_fits_python.html's layout exactly), not above it.
   nav_block = paste(
-    '<nav><a href="#results">Results</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a></nav>',
-    '<p>R analog of <a href="https://htmlpreview.github.io/?https://github.com/kapelner/EDI/blob/main/python/benchmark/benchmark_model_fits_python.html">benchmark_model_fits_python.html</a> — same three tables, same table shape, same three-color row coding.</p>',
+    '<nav><a href="#results">Results</a><a href="#wald">Wald (full inference)</a><a href="#utility">Utility / math kernels</a><a href="#procedures">Inference procedures</a><a href="#designs">Design generation</a></nav>',
+    '<p>R analog of <a href="https://htmlpreview.github.io/?https://github.com/kapelner/EDI/blob/main/python/benchmark/benchmark_model_fits_python.html">benchmark_model_fits_python.html</a> — the first three tables share its table shape and three-color row coding; the inference-procedure and design-generation tables are R-only.</p>',
     sep = "\n"
   )
   body_html = sub("(<h1>[^<]*</h1>\n<p><em>Generated:[^<]*</em></p>\n)", paste0("\\1", nav_block, "\n"), body_html)

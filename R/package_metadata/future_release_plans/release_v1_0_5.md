@@ -276,7 +276,9 @@ plan files' internal numbering did not change.
   are.** Revisiting would need its own budgeted multi-scenario/multi-class
   simulation (each such run costs over an hour), not something to do
   speculatively.
-- [ ] TODO-12 (added 2026-09-22, found during TODO-9's own final review,
+- [ ] TODO-12 (added 2026-09-22, core fix implemented 2026-10-07;
+  release verification still open; found during
+  TODO-9's own final review,
   not a new audit finding; no concrete class reaches it yet): **Latent
   `cached_mod` reset gap, same bug shape as TODO-9** —
   `../bug_fix_plans/stale_worker_cache_resampling.md → TODO-9`. One level up from the
@@ -286,9 +288,12 @@ plan files' internal numbering did not change.
   Confirmed a landmine, not a live defect (every concrete class writes
   `cached_mod` unconditionally rather than reading it stale; TODO-9's
   240-class non-degeneracy sweep found no additional degenerate class).
-  Fix: reconcile the three separately-maintained private-field reset lists
-  into one keep-list-driven reset the same way TODO-9 reconciled
-  `cached_values`.
+  Fixed by routing every reused-worker loader through one context-aware
+  private-cache reset helper. Structural and two-draw reused-versus-fresh
+  regressions cover randomization, bootstrap, and randomization-bootstrap;
+  focused source-loaded tests pass without compilation. The release-wide
+  pre/post bit-for-bit sweep remains a final verification item because a
+  comparable clean baseline is not currently available.
 - [ ] TODO-13 (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
   TODO-9's regression test, root-caused same day on user request):
   **`InferencePropGCompMeanDiff` randomization distribution all-NA in
@@ -325,15 +330,9 @@ plan files' internal numbering did not change.
   same file. CSV regeneration still open (plan's TODO-7).
 - [ ] TODO-15 (added 2026-09-23, from the same `bad_type1_error` audit wave
   as TODO-9, originally hypothesized to be the same mechanism — confirmed
-  separate and still unfixed; **see also TODO-28**, added 2026-09-24 — a
-  confirmed shared `cached_design_matrix` staleness bug affecting this
-  class's `compute_estimate_with_bootstrap_weights()` path, but NOT
-  confirmed to be the same code path as the parametric-bootstrap/
-  likelihood-ratio methods this TODO documents below, which route through
-  the separate `ParametricLikelihoodBootstrap` component — treat as a
-  second, possibly-unrelated finding for this same class until TODO-28's
-  own TODO-8 verifies the overlap, not an explanation of this TODO's
-  finding): **`InferenceContinLin` parametric-bootstrap
+  separate and still unfixed; the later TODO-28 cache hypothesis was
+  closed as stale on 2026-10-07 and does not explain this finding):
+  **`InferenceContinLin` parametric-bootstrap
   / likelihood-ratio methods have inflated Type-I error, design-dependent**
   — `../bug_fix_plans/contin_lin_param_bootstrap_bad_type1_error.md → TODO-1..7`. Three
   methods flagged simultaneously by the audit
@@ -486,7 +485,11 @@ plan files' internal numbering did not change.
   breaking differently depending on data shape, not 85 per-class bugs;
   root-caused same day): **`smoothed` randomization-bootstrap p-value adds
   unclamped continuous noise to binary/ordinal responses** —
-  `../bug_fix_plans/rand_bootstrap_smoothed_noise_unclamped.md → TODO-1..8`. Confirmed
+  `../bug_fix_plans/rand_bootstrap_smoothed_noise_unclamped.md → TODO-1..8`.
+  **Partial fix 2026-10-07:** categorical/bounded model refits now reject
+  `smoothed` explicitly, while fast real-valued statistics retain support;
+  focused noncompiling tests pass. Broad class calibration and CSV
+  regeneration remain open. The original investigation found this to be
   shared: `add_rand_bootstrap_smooth_noise()`
   (`inference_all_abstract_rand_bootstrap.R:613-618`), one function, three
   call sites in the abstract base class, no per-class override. Root
@@ -725,8 +728,9 @@ plan files' internal numbering did not change.
   source for all three classes named above: `y`/`dead` are now re-derived
   the same way `Design$get_effective_time()`/`$get_effective_dead()` do,
   matching `InferenceAll`'s own `initialize()` exactly. Not independently
-  re-verified by this file's own investigation (no fresh repro run here —
-  taken on the fix author's own before/after numbers).
+  re-verified by this file's original investigation. **Independently
+  re-verified 2026-10-07** with the focused effective-time/dead and
+  randomization-refit tests against the source checkout.
 
   **Follow-up sweep completed 2026-09-23/24 — no other class affected,
   closed**: checked every `inference_survival_*.R` file's own
@@ -825,11 +829,8 @@ plan files' internal numbering did not change.
   confidence, not reproduced**; tracked as an open investigation, not a
   fix plan, in
   `bug_fix_plans/investigate_contin_ols_weighted_bootstrap_se.md`;
-  **superseded/explained by `TODO-28`, added the same day** — a confirmed,
-  high-confidence shared `cached_design_matrix` staleness bug with an
-  EXACT mechanistic match to this class's worst-affected families —
-  this TODO's own `solve()`-guard hypothesis below is likely NOT the real
-  cause; see TODO-28 first):
+  the later TODO-28 cache hypothesis was closed as stale on 2026-10-07,
+  so the root cause here remains open):
   `InferenceContinOLS` — one of the most fundamental classes in the
   package — shows severe `model_formula=~.`-specific miscalibration
   across resampling-family methods that reweight rather than permute
@@ -932,13 +933,17 @@ plan files' internal numbering did not change.
   distribution context specifically (a design decision, not a one-line
   fix) — distinct from the observed-fit context, where hard rejection is
   more defensible.
-- [ ] TODO-28 (added 2026-09-24, found via a dedicated cross-class
-  investigation into TODO-15/TODO-25's shared-mechanism question — **high
-  confidence, confirmed by direct code reading, not hypothesized**): **the
-  reused bootstrap worker never resets `cached_design_matrix` — likely
-  the single shared root cause behind FOUR classes' `~.`-specific
-  miscalibration at once** — `../bug_fix_plans/bootstrap_worker_stale_design_matrix.md
-  → TODO-1..9`. `load_bootstrap_sample_into_design_backed_worker()`
+- [x] TODO-28 (added 2026-09-24; **closed as a stale source finding on
+  2026-10-07**): **Reused bootstrap worker `cached_design_matrix` reset
+  audit** — `../bug_fix_plans/bootstrap_worker_stale_design_matrix.md`.
+  The named loader already resets `cached_design_matrix` and
+  `cached_hardened_X_cov` in HEAD; blame traces those resets to commit
+  `8aa321146` on 2026-06-01, before this TODO was written. A new two-draw
+  OLS regression confirms that the reused worker's second estimate matches
+  a fresh worker and an independent `lm.fit`. Historical investigation notes
+  below are superseded; the original class-specific miscalibration findings
+  remain open under their own TODOs. The old hypothesis was that
+  `load_bootstrap_sample_into_design_backed_worker()`
   (`inference_all_abstract_non_param_boot.R:1191-1235` — the loader for
   `subsampling`/`m_out_of_n_bootstrap`/plain `bootstrap`, and the exact
   loader this session's ORIGINAL stale-cache fix already confirmed "fully
@@ -951,7 +956,7 @@ plan files' internal numbering did not change.
   after the first silently reuses draw 1's design matrix while the
   weights applied to it are correctly the current draw's — a scrambled
   data/weight correspondence, repeating every draw. Same allowlist-not-
-  denylist shape as this session's original bug and as the still-open
+  denylist shape as this session's original bug and as the then-open
   `TODO-12` (`cached_mod` gap in a DIFFERENT loader) — this time in the
   loader previously believed to already be fully correct. Confirmed all
   four of `InferenceContinOLS` (`TODO-25`), `InferenceContinLin`
@@ -1072,21 +1077,17 @@ other `low_power` findings this session resolved. No plan file, no
 further investigation warranted; recommend accepting into the audit
 baseline as expected/benign.
 
-- [ ] TODO-30 (added 2026-09-24, user decision: slotted into v1.0.5 from
-  "unassigned"; found 2026-08-30 in the research-plan verification audit):
+- [x] TODO-30 (added 2026-09-24, fixed 2026-10-07):
   **Cox risk-set cache staleness guard** —
   `../bug_fix_plans/cox_risk_set_cache_staleness.md → TODO-1..5`.
   `InferenceCoxPH` (`cox_*` caches) and `InferenceStratifiedCoxPH`
-  (`strat_cox_*` caches) rebuild their prebuilt risk-set cache only when
-  the cache is `NULL` or `w` changed, while the cache also embeds
-  `y`/`dead`; a change to `y`/`dead` with unchanged `w` would serve a stale
-  cache. The C++ builders are correct; the R-side cache owners must honor
-  the invalidation contract at `helper_glm_fit.R:2274`. **No confirmed
-  wrong result yet** — plan TODO-1 (exposure audit) determines whether any
-  released path can realize the stale hit; the invariant violation is real
-  and cheap to close (guard fix in both classes, same-pattern sweep of
-  other `*_w_cache` guards, tests, contract doc touch-up). Plan's own
-  checklist: 0/5 checked.
+  (`strat_cox_*` caches) now key on the full `w`/`y`/`dead`/`X` inputs.
+  The same-pattern sweep found and fixed four model-matrix caches that
+  reused stale `X` at fixed `w` (logit, log-binomial, Poisson, negative
+  binomial). Focused mutation, bootstrap, cache-reuse, and class-wiring
+  tests pass without compilation; the linked plan's 5 items are checked.
+  The tagged v1.0.0 source has old Cox guards, but no tagged binary was
+  tested for a released numerical failure.
 - [ ] TODO-50 (added 2026-09-24 as TODO-31, **renumbered 2026-09-24** — a
   concurrent session independently added an unrelated TODO-31/TODO-32 pair
   the same day, colliding with this one and the next; this pair was moved
@@ -1156,31 +1157,31 @@ baseline as expected/benign.
   `mean_ridit_t - 0.5` is identically zero while the SE is positive. Needs a
   semantics decision (redefine, refuse, or document) before the ridit
   performance plan builds on this path.
-- [ ] TODO-33 (added 2026-09-24, same audit; pinned test): **Randomization-CI
+- [ ] TODO-33 (added 2026-09-24, core fix and regression added 2026-10-07; real-data validation still open): **Randomization-CI
   high-precision refinement ignores `lower`** —
   `../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md →
-  TODO-1..4`. `high_precision_confirm_and_refine_ci_bound()` always sets
+  TODO-1..4`. Previously, `high_precision_confirm_and_refine_ci_bound()` set
   `u2 <- m` on acceptance, right for a lower bound and wrong for an upper
-  bound, which then converges to the wrong end of its bracket. Real-path
-  reach not yet established.
-- [ ] TODO-34 (added 2026-09-24, same audit; "confirmed source bug, NOT
-  fixed"): **Interval-censored `compute_shared_icen()` blanket cache guard**
+  bound. The loop now branches by bound direction, and a controlled public-API
+  regression exercises both directions. Real-data reproduction of the inner
+  loop and a standard coverage simulation remain open in the linked plan.
+- [x] TODO-34 (added 2026-09-24, same audit; fixed 2026-10-07): **Interval-censored `compute_shared_icen()` blanket cache guard**
   — `../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
   TODO-1..4`. After `compute_estimate(estimate_only = TRUE)`, a later full
   call on `InferenceSurvivalLogRank`/`GehanWilcox` under general censoring
   never computes `s_beta_hat_T`, and `compute_asymp_confidence_interval()`
-  crashes. Same family as the stale-cache fixes.
-- [ ] TODO-35 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **`delta = NA` crash in the incidence g-computation risk ratio** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-1`. `InferenceIncidGCompRiskRatio`'s asymptotic/Wald p-value: `assertNumeric(delta, len = 1)` lets `NA` through, then `if (delta <= 0)` errors with "missing value where TRUE/FALSE needed" instead of the intended validation message. Fix with `any.missing = FALSE` and sweep the same pattern across all p-value methods.
+  crashes. Fixed for both classes; focused ordering and interval-reference tests pass without compilation. Same family as the stale-cache fixes.
+- [x] TODO-35 (added 2026-09-24, fixed 2026-10-07): **`delta = NA` crash in the incidence g-computation risk ratio** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-1`. Added `any.missing = FALSE` to ordinary and KK g-computation p-values and the same vulnerable Newcombe risk-difference p-value. Focused regression tests pass without compilation.
 
-- [ ] TODO-36 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Exact-test classes cannot use the shared weighted estimate** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-2`. `ExactTestSource$compute_estimate_with_bootstrap_weights()` needs `expand_subject_or_block_weights_to_row_weights()`, which only the BayesianBootstrap component provides, so it errors on the exact Fisher class. Decide: unsupported (clear reason) or supported.
+- [x] TODO-36 (added 2026-09-24, fixed 2026-10-07): **Exact-test classes cannot use the shared weighted estimate** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-2`. Exact-only classes now report a clear unsupported error for bootstrap-weighted estimation; the dead helper calls and six wiring exceptions were removed. Focused exact-class and wiring tests pass without compilation.
 
-- [ ] TODO-37 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **`inference_class_accepts_model_formula()` is always FALSE** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-3`. It inspects `formals(<R6 generator>$new)`, which is just `...`, so it is FALSE for every class. Find its callers and what they do with the wrong answer.
+- [x] TODO-37 (added 2026-09-24, fixed 2026-10-07): **`inference_class_accepts_model_formula()` is always FALSE** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-3`. The predicate now inspects the effective R6 initializer, including inherited and lazy component methods. `run_all_inference_build_tasks()` now expands requested formulas for eligible classes; the focused regression test passes without compilation.
 
 - [ ] TODO-38 (added 2026-09-24, test-comment audit; **reproduced 2026-09-24 under valgrind: heap overflow from an unvalidated `warm_start_params` length**, see plan TODO-4; **ZOIB kernel length checks implemented and verified 2026-09-24**, sibling-kernel sweep of 9 other unchecked warm-start sites still open): **Fresh-process crash in `fast_zero_one_inflated_beta_cpp()`** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-4`. In a fresh Rscript the kernel returned `neg_loglik = NaN` and `coefficients = NULL` on ordinary data (8/8 seeds) but not inside testthat, suggesting undefined behavior in the C++ kernel; the R-level guard was fixed, the kernel was not. Check whether `InferencePropZeroOneInflatedBetaRegr` can hit it; run under the ASan/valgrind CI jobs.
 
-- [ ] TODO-39 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Trailing incomplete block in one optimal-blocks design path** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-5`. `DesignFixedOptimalBlocks` (greedy/blockTools path) with `n` not a multiple of `B` leaves a trailing incomplete block that its own nearest-neighbour fallback never sees. Effect on balance and on block-assuming inference unknown.
+- [x] TODO-39 (added 2026-09-24, fixed 2026-10-07): **Oversized greedy optimal block from multiple leftovers** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-5`. The fallback did see leftover subjects, but could assign several to one block (`n = 8`, `B = 3` yielded sizes `4,2,2`). It now chooses the nearest block below `ceiling(n / B)`, yielding `3,3,2`; focused allocation and randomization-inference tests pass without compilation.
 
-- [ ] TODO-40 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Zero-length estimate instead of `NA` on sparse weights** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-6`. In the incidence risk-difference weighted refit with only two positive-weight rows, the hardened retry drops the treatment column and `which(attempt$keep == 2L)` is `integer(0)`, so the cached estimate is a zero-length numeric instead of `NA_real_`.
+- [x] TODO-40 (added 2026-09-24, fixed 2026-10-07): **Zero-length estimate instead of `NA` on sparse weights** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-6`. The incidence risk-difference weighted refit now retains the treatment column or returns scalar `NA_real_` with a typed nonestimable reason. Sparse and ordinary weighted-refit tests pass without compilation.
 
 - [ ] TODO-41 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Unchecked callback result in the randomization loop** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-7`. `result[0]` on a length-0 vector is read without a length check; Rcpp only warns and the loop continues, leaving the entry undefined instead of failing.
 
@@ -1188,7 +1189,14 @@ baseline as expected/benign.
 
 - [ ] TODO-43 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **RNG-state sensitivity in the IVWC frailty optimizer** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-9`. `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`: a freshly constructed `compute_estimate(estimate_only = TRUE)` reproducibly returns `NA` on the test fixture while the identical fit via the constant-weights shortcut converges. Suggests a start-value or seeding dependence.
 
-- [ ] TODO-44 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Silent `NA` results with no recorded reason** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-10`. Jackknife summary with fewer than 2 replicates returns all-`NA` with no reason; subsampling and m-out-of-n b/m-list selection failures cache a reason only under `harden = TRUE`. Give them typed nonestimable reasons (feeds the v1.1.0 diagnostics plans).
+- [x] TODO-44 (added 2026-09-24, fixed 2026-10-07): **Silent `NA`
+  results with no recorded reason** —
+  `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-10`.
+  Jackknife summaries with fewer than two replicates now record
+  `jackknife_too_few_replicate_estimates`; subsampling and m-out-of-n
+  selection failures record their existing typed reason under either
+  hardening setting. Focused tests cover failure and successful-selector
+  paths without compilation.
 
 - [ ] TODO-45 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Weighted-refit SEs never populated** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-11`. The Weibull fast surrogate, `InferenceIncidKKModifiedPoisson` and the modified-Poisson class return `NA` from the base `weighted_refit_se()` even with `estimate_only = FALSE`, contradicting a `@param` that implies a variance is computed. Implement the SE or correct the docs.
 
@@ -1273,16 +1281,24 @@ baseline as expected/benign.
   RNG seeds, reason `bayesian_bootstrap_nonfinite_estimates`. One non-finite
   replicate makes the whole p-value `NA`, unlike the non-parametric bootstrap
   on the same data. Not caused by object reuse (TODO-42).
-- [ ] TODO-55 (added 2026-09-25, found checking other proportion classes for
+- [ ] TODO-55 (added 2026-09-25, core fix implemented 2026-10-07;
+  regeneration/re-audit still open; found checking other
+  proportion classes for
   `TODO-16`/plan `TODO-11`'s pattern; root-caused, high confidence, not the
   same mechanism): **Proportion mean-diff closed-form coverage truth is
   stale relative to the 2026-09-15 DGP fix** —
   `../bug_fix_plans/prop_mean_diff_closed_form_truth_stale.md`.
-  `compute_prop_mean_diff_coverage_truth()` still computes the truth via a
-  raw additive shift clamped to `[0, 1]`, but the actual proportion DGP was
-  fixed 2026-09-15 to shift on the **logit scale** (baseline clamped to
-  `[0.05, 0.95]` first) specifically to avoid this exact boundary
-  distortion — the truth function was never updated to match (the sibling
+  The closed form now matches the clamped-baseline logit DGP, and the audit
+  also gave proportion Wilcox a response-qualified Monte Carlo truth.
+  Eighteen focused assertions pass, and stale-row rules register every
+  affected historical row for regeneration. Re-auditing and pruning the
+  baseline remain after those rows regenerate.
+  Before this fix, `compute_prop_mean_diff_coverage_truth()` computed the
+  truth via a raw additive shift clamped to `[0, 1]`, but the actual
+  proportion DGP had been fixed 2026-09-15 to shift on the **logit scale**
+  (baseline clamped to `[0.05, 0.95]` first) specifically to avoid this
+  exact boundary distortion — the truth function had never been updated to
+  match (the sibling
   incidence closed form, `incid_p_base_and_treated()`, already implements
   the correct pattern; looks like an omission when the DGP fix landed).
   Affects `InferenceAllSimpleAverageDiff`/`InferenceAllSimpleMeanDiffPooledVar`/
@@ -1292,15 +1308,16 @@ baseline as expected/benign.
   separately) stale rather than mismatched. Verified directly: `boston`'s
   real per-row estimate (mean 0.109, SD 0.021, n=122) matches the corrected
   logit-scale truth (0.112) almost exactly, against the stale formula's
-  0.466 (17+ SDs off). Fix is a small, test-harness-only formula change
-  (mirror the incidence sibling); deliberately not applied yet because
-  `comprehensive_tests.R` was mid-run at investigation time. Independent of
+  0.466 (17+ SDs off). The small test-harness-only formula change now mirrors
+  the incidence sibling; the historical rows have not yet regenerated.
+  Independent of
   `mc_coverage_truth_covariate_mismatch.md`'s TODO-6/TODO-11 — different
   mechanism (closed-form path, not Monte-Carlo), different classes, do not
   conflate when resolving either.
-- [x] TODO-56 (added 2026-10, found investigating why incidence-response
-  power looked low across every design; **fixed and verified same
-  session**): **`InferenceIncidModifiedPoisson`'s non-robust SE was
+- [ ] TODO-56 (added 2026-10, found investigating why incidence-response
+  power looked low across every design; **core fix implemented and verified
+  same session; release follow-ups still open**):
+  **`InferenceIncidModifiedPoisson`'s non-robust SE was
   severely over-conservative** —
   `../bug_fix_plans/modified_poisson_naive_se_miscalibration.md`. The
   model-based Poisson Fisher-information SE this class used overstates the
@@ -1318,18 +1335,73 @@ baseline as expected/benign.
   version's — a third exception alongside TODO-2/TODO-3 in the standing
   constraint below. Historical `comprehensive_tests.R` CSVs were not
   regenerated (plan's own TODO-6) and still reflect the pre-fix behavior.
+  The audit added a direct deterministic sandwich regression, synchronized
+  both generated Rd topics, and recorded the result-changing fix in NEWS;
+  CSV regeneration is the only item-specific subtask left.
+- [ ] TODO-57 (added 2026-10-07, user decision; moved here from
+  `release_v1_1_0.md → TODO-39` the same day): **Bayesian bootstrap
+  performance: parallel scaling and native weighted refits** —
+  `../bug_fix_plans/bayesian_bootstrap_performance.md → TODO-1..9`.
+
+  A `bayesboot` comparison at n = 500, B = 1000 found two problems.
+  - **EDI's Bayesian bootstrap does not scale with cores.**
+    - The serial blocklist in `get_parallel_dispatch_policy()` pins
+      logistic, Cox, Weibull and every other non-KK survival class to one
+      core. No plan records why, and overriding it gave Cox 1.9–2.1x on 3
+      cores.
+    - Where parallel is allowed, it loses: OLS runs at 0.63x on 3 cores at
+      B = 5000. Each of the `4 × cores` jobs likely ships all B draws plus
+      the inference object.
+    - The warmup gate times worker creation rather than the refit, so it
+      never chooses serial.
+  - **Cox, Weibull and OLS refit through R**: `survival::coxph` and
+    `survreg` formula calls rebuilt per draw (including an unused
+    concordance), and `lm.wfit`. Even C++-kernel classes spend about 70%
+    of their time in R-side wrappers.
+
+  Fix order:
+  1. dispatch machinery (bit-preserving; also speeds up the nonparametric
+     bootstrap and the jackknife);
+  2. blocklist audit;
+  3. weighted Cox, Weibull and OLS kernels (tolerance-equal: the
+     **result-changing exception** in the standing constraint below);
+  4. hot-loop thinning.
+
+  Independent of every other item here and of v1.1.0.
+
+  **Conditional pull-in from v1.1.0's TODO-18** (decided 2026-10-07, user
+  decision). The overlap with `consolidate_parallelization_code.md` is
+  narrow. This item changes what `par_lapply` ships per job. TODO-18
+  touches `ensure_mirai_daemons`, the `SimulationFramework` mirai polling
+  loop and the worker env-var setup. They meet only where `par_lapply`'s
+  mirai branch calls `ensure_mirai_daemons`.
+  - **If** the owning plan's TODO-2 ends up changing `ensure_mirai_daemons`
+    (for example, to send the inference object once per mirai daemon),
+    then pull `consolidate_parallelization_code.md → TODO-1` (unify the two
+    `ensure_mirai_daemons` copies, including the
+    `SimulationFramework` copy's 2-attempt retry) into this release.
+    Land it before that change, and record it here as a sub-item.
+    That plan's TODO-2..4 stay in v1.1.0.
+  - **Otherwise** TODO-18 stays whole in v1.1.0 and rebases onto this
+    item.
+
+  Acceptance: `marketing_plans/bb_bench2.R` shows no
+  row slower on 3 cores than on 1, and EDI ≥ 1x vs. `bayesboot` on every
+  row.
 
 ## Standing constraints
 
 Same as `release_v1_1_0.md`'s standing constraints: default behavior with
 no new switches set must reproduce 1.0.0 results bit-for-bit, except where
-a TODO above explicitly documents a default change (TODO-2, TODO-3, and
-TODO-56 — all three document their equivalence tolerance or verification).
+a TODO above explicitly documents a default change (TODO-2, TODO-3,
+TODO-56, and TODO-57's native weighted refits — its owning plan's TODO-6
+(and TODO-8 if pursued); all document their equivalence tolerance or
+verification).
 No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn (see
 top-level `CLAUDE.md`); verify any `.cpp`-adjacent change via targeted
 compile only, never a full build.
 
-**Verification pass, 2026-09-24** (checked against the installed package
+**Historical verification snapshot, 2026-09-24** (checked against the installed package
 plus each plan's own checklist, at the user's request — see each TODO's
 own "Verified" note above for detail): only **TODO-5, 9, 10 (partial), 13,
 14** are actually done. **TODO-1, 2, 3, 4, 6 are NOT implemented** despite
@@ -1345,3 +1417,15 @@ session and confirmed present in source — but not independently
 re-verified here; TODO-17-21 are a separate, later triage wave with their
 own per-item confidence levels, also not covered by this verification
 pass.)
+
+**Completed-item audit, 2026-10-07:** every checked entry was re-read with
+its linked plan. TODO-12, TODO-55, and TODO-56 were reopened because their
+own plans still require, respectively, a release-wide bit-for-bit sweep;
+historical-row regeneration plus baseline re-audit; and regenerated results.
+TODO-56's stale generated documentation, missing direct regression, and NEWS
+decision were completed during this audit. The ten
+entries still checked are TODO-22, TODO-28, TODO-30, TODO-34, TODO-35,
+TODO-36, TODO-37, TODO-39, TODO-40, and TODO-44; their item-specific
+checklists have no unfinished work. Superseded TODO-28 checklist items are
+closed with explicit dispositions in its plan rather than left as apparent
+subtasks.

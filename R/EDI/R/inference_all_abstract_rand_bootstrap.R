@@ -1,3 +1,18 @@
+rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
+	if (!response_type %in% c("incidence", "ordinal", "proportion")) return(TRUE)
+	# Real-valued location statistics can smooth their statistic even when the
+	# recorded response is coded categorically. Categorical model refits cannot.
+	if (inherits(inf_obj, c("InferenceOrdinalRidit", "InferenceOrdinalJonckheereTerpstraTest"))) return(FALSE)
+	inf_obj$.__enclos_env__$private$has_private_method("compute_fast_rand_bootstrap_distr")
+}
+
+assert_rand_bootstrap_smoothing_supported <- function(inf_obj, response_type){
+	if (!rand_bootstrap_smoothing_supported(inf_obj, response_type)) {
+		stop("Smoothed randomization bootstrap is not supported for ", response_type,
+		     " responses in ", class(inf_obj)[1L], "; use type = 'percentile'.", call. = FALSE)
+	}
+}
+
 #' Bootstrap Randomization Test Inference
 #'
 #' Abstract class implementing the bootstrap randomization test (BRT), a hybrid of the
@@ -172,7 +187,9 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#' @description Returns the \code{type} values
 		#'   \code{compute_rand_bootstrap_two_sided_pval()} accepts.
 		get_supported_rand_bootstrap_pval_types = function(){
-			private$rand_bootstrap_pval_types
+			types = private$rand_bootstrap_pval_types
+			if (!rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)) types = setdiff(types, "smoothed")
+			types
 		},
 		#' @description Computes the bootstrap randomization null distribution of the test
 		#'   statistic under Fisher's sharp null (shifted by \code{delta}): each draw resamples
@@ -202,6 +219,11 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		approximate_rand_bootstrap_distribution_beta_hat_T = function(B = 501, delta = 0, transform_responses = "none", show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps){
 			private$active_resampling_operation = "rand_bootstrap"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
+			if (!is.null(rand_bootstrap_draws) &&
+			    !rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type) &&
+			    any(vapply(rand_bootstrap_draws, function(draw) !is.null(draw[["smooth_noise"]]), logical(1)))) {
+				assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
+			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				private$assert_valid_bootstrap_type(bootstrap_type)
@@ -389,10 +411,13 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   \code{"percentile"} if the SE is unavailable.
 		#'   \code{"smoothed"} adds kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
 		#'   to each resampled draw before imposing the null shift, reducing discreteness in the
-		#'   null distribution. Only meaningful for continuous responses. For count responses the
-		#'   noisy draw is rounded and floored at zero so it stays on the non-negative integer
-		#'   support the Poisson-family likelihoods require; at the default bandwidth this makes
-		#'   the smoothing nearly a no-op for low counts.
+		#'   null distribution. Supported for real-valued statistics on coded responses and
+		#'   for continuous, count, and survival responses. Categorical or bounded model
+		#'   refits and ordinal Ridit/Jonckheere-Terpstra estimators reject this type because Gaussian noise
+		#'   leaves their response support. For count responses the noisy draw is rounded and
+		#'   floored at zero so it stays on the non-negative integer support the Poisson-family
+		#'   likelihoods require; at the default bandwidth this makes smoothing nearly a no-op
+		#'   for low counts.
 		#'
 		#'   \strong{Theoretical justification.} Order-statistic/rank-based estimators (e.g. the
 		#'   Hodges-Lehmann pseudo-median) take only finitely many values, so their bootstrap/
@@ -442,6 +467,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   category codes is not statistically meaningful — see the response-type caveat above.
 		#' @return 	A two-sided p-value.
 		compute_rand_bootstrap_two_sided_pval = function(B = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile"){
+			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")
 				assertNumeric(delta); assertCount(B, positive = TRUE); assertLogical(na.rm)
@@ -608,10 +634,12 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# count became a large negative integer after a nonzero-delta shift, every
 		# Poisson/GLMM refit on that draw failed ("negative values not allowed for the
 		# 'Poisson' family", 2026-09-15 count suite), and the CI inversion degenerated.
-		# Every other response type keeps the raw additive noise. The C++ batch kernels
+		# Classes with real-valued statistics, plus continuous and survival model
+		# responses, keep raw additive noise. The C++ batch kernels
 		# (mean difference, Wilcoxon, survival) apply noise_mat themselves; none of them
 		# fits an integer-support likelihood, so they are unaffected.
 		add_rand_bootstrap_smooth_noise = function(y, noise, response_type){
+			assert_rand_bootstrap_smoothing_supported(self, response_type)
 			y_noisy = as.numeric(y) + as.numeric(noise)
 			if (identical(response_type, "count")) {
 				return(pmax(0L, as.integer(round(y_noisy))))
@@ -716,8 +744,8 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# backed_worker()`) already replaces the worker's whole `cached_values` with a fresh
 		# list, so this operation never had the stale-per-class-cache-key defect that
 		# `load_randomization_perm_into_worker()` did (stale_worker_cache_resampling.md
-		# TODO-2); the named resets in `load_rand_bootstrap_assignment_into_worker()` below
-		# are redundant belt-and-braces kept for readers of that function in isolation.
+		# TODO-2); the private-cache reset in `load_rand_bootstrap_assignment_into_worker()`
+		# also protects callers that invoke the assignment loader in isolation.
 		load_rand_bootstrap_draw_into_worker = function(worker_state, draw, delta, transform_responses, y0_full, zero_one_logit_clamp = .Machine$double.eps){
 			private$load_bootstrap_sample_into_worker(worker_state, list(i_b = draw$i_b, m_vec_b = draw$m_vec_b))
 			private$load_rand_bootstrap_assignment_into_worker(
@@ -793,13 +821,9 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			inf_priv$cached_values$nonestimable_reason = NULL
 			inf_priv$cached_values$nonestimable_stage = NULL
 			inf_priv$likelihood_null_warm_cache = list()
-			inf_priv$cached_design_matrix = NULL
-			inf_priv$cached_w_for_design_matrix = NULL
-			inf_priv$cached_harden_for_design_matrix = NULL
-			inf_priv$cached_reduced_X = NULL
-			inf_priv$cached_X_full_for_reduced = NULL
-			inf_priv$cached_keep_for_reduced = NULL
-			inf_priv$cached_j_treat_for_reduced = NULL
+			# The ordinary reused worker supplies an R6 private environment. A
+			# design-only direct call has no inference worker to reset.
+			if (is.environment(inf_priv)) reset_reused_worker_private_caches(inf_priv, changed = "sample")
 			if (!is.null(inf_priv$compute_basic_match_data)) inf_priv$compute_basic_match_data()
 			invisible(NULL)
 		},

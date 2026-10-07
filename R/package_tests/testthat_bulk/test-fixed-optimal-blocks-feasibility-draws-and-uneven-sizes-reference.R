@@ -3,8 +3,8 @@ library(EDI)
 
 # DesignFixedOptimalBlocks: assert_feasible_block_sizes() (floor(n / B) >= 2), draw_ws_raw()
 # (exact within-block balance from randomizr::block_ra), and block formation when n is not a
-# multiple of B for each solver. The greedy (blockTools) path leaves a trailing incomplete
-# block that its own nearest-neighbour fallback never sees (pinned below as a source bug).
+# multiple of B for each solver. Greedy leftovers must be spread across eligible blocks
+# so their sizes stay within one of each other.
 
 X9 <- data.frame(
 	x1 = c(-3, -2.9, -2.8, -2.7, -2.6, 2.7, 2.8, 2.9, 3),
@@ -90,4 +90,29 @@ test_that("greedy blocks assign the leftover subject to its nearest assigned nei
 	expect_equal(ids[3], ids[nearest])
 	expect_equal(as.integer(ids[-3]), c(1L, 1L, 1L, 1L, 2L, 2L, 2L, 2L))
 	expect_equal(as.integer(ids[3]), 1L)
+})
+
+test_that("greedy blocks distribute multiple leftovers and support balanced randomization inference", {
+	withr::local_seed(4L)
+	X8 <- data.frame(x1 = rnorm(8), x2 = rnorm(8))
+	f <- mk("greedy", B = 3L, X = X8)
+	ids <- f$p$get_or_compute_block_ids()
+	sizes <- as.integer(table(ids))
+	expect_false(anyNA(ids))
+	expect_equal(levels(ids), as.character(1:3))
+	expect_equal(sort(sizes), c(2L, 3L, 3L))
+
+	W <- f$p$draw_ws_raw(r = 20L)
+	expect_equal(dim(W), c(8L, 20L))
+	for (b in seq_len(3L)) {
+		counts <- colSums(W[ids == b, , drop = FALSE])
+		expect_true(all(counts %in% c(floor(sizes[b] / 2), ceiling(sizes[b] / 2))))
+	}
+
+	f$des$assign_w_to_all_subjects()
+	f$des$add_all_subject_responses(seq_len(8))
+	inf <- InferenceAllSimpleAverageDiff$new(f$des)
+	expect_true(is.finite(inf$compute_estimate()))
+	p <- inf$compute_rand_two_sided_pval(delta = 0, r = 19L, show_progress = FALSE)
+	expect_true(is.finite(p) && p >= 0 && p <= 1)
 })

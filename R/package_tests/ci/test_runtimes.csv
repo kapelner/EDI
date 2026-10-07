@@ -99,6 +99,7 @@ R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-col
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-binary-match-structure-odd-rows-guard-reference.R,correctness,1.1,measured_with_30_percent_headroom
@@ -1178,6 +1179,7 @@ R/EDI/tests/testthat/test-continuation-ratio-augmentation.R,coverage,1,measured_
 R/EDI/tests/testthat/test-continuation-ratio-objective-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-continuation-ratio-weighted.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-count-family-audit-excluded-bugs.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-cox-risk-set-cache-invalidation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-coxph-hessian-symmetric-writes.R,coverage,1.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-coxph-robust-vcov.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-custom-implementation-canonical-reductions.R,coverage,1.4,measured_with_30_percent_headroom
@@ -1236,6 +1238,7 @@ R/EDI/tests/testthat/test-incidence-blocking-family.R,coverage,1.1,measured_with
 R/EDI/tests/testthat/test-incidence-exact-binomial.R,coverage,1.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-incidence-logit-bootstrap-fast-path.R,coverage,2.5,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-incidence-modified-poisson-bootstrap-fast-path.R,coverage,1.1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-incidence-modified-poisson-robust-sandwich.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-incidence-probit.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-class-wiring-completeness.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-inference-dispatch-policy-structure.R,coverage,2.2,measured_with_30_percent_headroom
@@ -1268,6 +1271,7 @@ R/EDI/tests/testthat/test-logrank-gehan-wilcox-general-censoring.R,coverage,1,me
 R/EDI/tests/testthat/test-miettinen-nurminen-ci-dispatch.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-mixture-submodel-formulas.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-mle-km-summary-table.R,coverage,1.7,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-model-matrix-cache-covariate-invalidation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-negbin-distinct-y-hessian.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-negbin-expected-trigamma-recurrence.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-negbin-gemv-gradient.R,coverage,1,measured_with_30_percent_headroom
@@ -1322,6 +1326,7 @@ R/EDI/tests/testthat/test-registry-component-drift.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rerandomization-objective-contiguous-indicts.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rerandomization-search-early-stop.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-resampling-draw-contracts.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-reused-worker-private-cache-reset.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-robust-regression-mad.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-robust-regression-xtx-cache.R,coverage,1,measured_with_30_percent_headroom
@@ -1346,6 +1351,7 @@ R/EDI/tests/testthat/test-stereotype-logit-hessian-workspace.R,coverage,1,measur
 R/EDI/tests/testthat/test-stereotype-logit-null-refit-pd-gate.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-stratified-bootstrap-integer-ids.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-survival-kernel-na-guard.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-survival-score-cache-order.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-survival-strong-effect-fit-guards.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-todo98-new-kernel-smoke.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-truncated-negbin-hardening.R,coverage,1,measured_with_30_percent_headroom
@@ -1469,6 +1475,7 @@ R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-col
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-binary-match-structure-odd-rows-guard-reference.R,coverage,240,bootstrap

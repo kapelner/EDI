@@ -3147,7 +3147,7 @@ apply_treatment_effect_and_noise = function(y_t, w_t, response_type){
 
 # ── Model-specific coverage truth ───────────────────────────────────────────
 # beta_T is the treatment shift comprehensive_tests.R's own DGP (apply_treatment_effect_and_noise)
-# adds on each response's native scale. That IS the right coverage target for additive/collapsible
+# applies on each response's generation scale. That IS the right coverage target for additive/collapsible
 # estimators (continuous OLS-type, count log-rate classes — a constant multiplicative Poisson shift
 # is exactly collapsible: log(mean_i(lambda_i*exp(bt))) - log(mean_i(lambda_i)) = bt algebraically).
 # It is NOT the right target for:
@@ -3155,9 +3155,8 @@ apply_treatment_effect_and_noise = function(y_t, w_t, response_type){
 #      target is mean(p_t_i - p_c_i) or a ratio of means, not the logit-scale beta_T;
 #  (b) any class whose own coefficient is a marginal link-scale coefficient (logit/probit/Cox) —
 #      non-collapsibility makes the marginal coefficient differ from beta_T once baseline
-#      heterogeneity is present, and for proportion/survival the DGP here (additive-clamped shift;
-#      multiplicative time shift) doesn't even match the model's own assumed link, so there's no
-#      closed form at all for those.
+#      heterogeneity is present, and several fitted-model estimands do not match the DGP's
+#      marginal contrast, so there is no closed form for those.
 # (a) and InferenceIncidLogRegr (b, but exactly well-specified) get closed forms below. Everything
 # else in (b) is computed by Monte Carlo via SimulationFramework: simulate a very large sample from
 # this exact same DGP (custom_replication_data_generator/custom_apply_treatment_and_noise let us
@@ -3190,9 +3189,9 @@ compute_incid_log_risk_ratio_coverage_truth = function(dataset_name, beta_T_val)
 }
 compute_prop_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 	y_p = datasets_and_response_models[[dataset_name]]$y_original$proportion
-	mu_c = y_p
-	mu_t = pmin(1, pmax(0, y_p + beta_T_val))
-	mean(mu_t - mu_c)
+	p_base = pmin(0.95, pmax(0.05, y_p))
+	p_t = stats::plogis(stats::qlogis(p_base) + beta_T_val)
+	mean(p_t - p_base)
 }
 compute_survival_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 	# DGP is a multiplicative time shift (y_t = y_c * exp(bt)), not additive, so the naive
@@ -3300,6 +3299,14 @@ compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_ty
 # design_gen: plain DesignFixedBernoulli unless the class structurally requires a KK-matched
 # design (verified directly: these error with "requires a KK matching-on-the-fly design" otherwise).
 COVERAGE_MC_SPEC = list(
+	# The Hodges-Lehmann estimate is the median of all treated-minus-control
+	# pairwise differences, not a mean difference. Under the proportion DGP's
+	# heterogeneous baselines, logit shift, and Gaussian noise there is no
+	# corresponding closed form. It used to fall through to raw beta_T_val,
+	# which is on the logit scale and produced 0.12--0.33 coverage. Keep this
+	# response-qualified because InferenceAllSimpleWilcox is also run on other
+	# response families whose truth must not be replaced by a proportion fit.
+	InferenceAllSimpleWilcox__proportion = list(rt = "proportion", design = quote(DesignFixedBernoulli), gen = quote(InferenceAllSimpleWilcox), mc_n = 20000L),
 	InferencePropBetaRegr                = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropBetaRegr),                mc_n = 20000L),
 	InferencePropFractionalLogit         = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropFractionalLogit),         mc_n = 20000L),
 	InferencePropZeroOneInflatedBetaRegr = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropZeroOneInflatedBetaRegr), mc_n = 20000L),
@@ -3372,8 +3379,16 @@ coverage_truth_uses_real_covariates = function(inference_class){
 	# direct unit check, not by comprehensive_tests itself). Plain alternation.
 	!grepl("~1\\)|~1\\]", inference_class)
 }
-coverage_truth_cache_key = function(base_class, dataset_name, beta_T_val, use_real_covariates){
-	paste(base_class, dataset_name, beta_T_val, use_real_covariates, sep = "||")
+coverage_truth_cache_key = function(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint = NA_character_){
+	paste(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint, sep = "||")
+}
+
+get_coverage_mc_spec = function(base_class, response_type_hint = NA_character_){
+	spec = COVERAGE_MC_SPEC[[base_class]]
+	if (is.null(spec) && !is.na(response_type_hint)) {
+		spec = COVERAGE_MC_SPEC[[paste0(base_class, "__", response_type_hint)]]
+	}
+	spec
 }
 
 get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
@@ -3393,7 +3408,7 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 	if (!is.null(closed_form_fn)) {
 		return(tryCatch(closed_form_fn(dataset_name, beta_T_val), error = function(e) beta_T_val))
 	}
-	spec = COVERAGE_MC_SPEC[[base_class]]
+	spec = get_coverage_mc_spec(base_class, response_type_hint)
 	if (!is.null(spec)) {
 		# TODO-32 (mc_coverage_truth_covariate_mismatch.md): the MC fit below
 		# used to always simulate against ONE synthetic covariate, while a
@@ -3409,7 +3424,7 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 		# fit as `~.` per run_tests_for_response()'s own default), adjusts for
 		# the real covariates and must be matched here.
 		use_real_covariates = coverage_truth_uses_real_covariates(inference_class)
-		key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, use_real_covariates)
+		key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint)
 		if (exists(key, envir = .coverage_truth_cache, inherits = FALSE)) {
 			return(get(key, envir = .coverage_truth_cache, inherits = FALSE))
 		}
@@ -3564,11 +3579,11 @@ get_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val,
 	if (exists(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE)) {
 		return(get(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE))
 	}
-	coverage_key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, coverage_truth_uses_real_covariates(inference_class))
+	coverage_key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, coverage_truth_uses_real_covariates(inference_class), response_type_hint)
 	if (exists(coverage_key, envir = .coverage_truth_cache, inherits = FALSE)) {
 		return(get(coverage_key, envir = .coverage_truth_cache, inherits = FALSE))
 	}
-	if (!is.null(COVERAGE_MC_SPEC[[base_class]])) {
+	if (!is.null(get_coverage_mc_spec(base_class, response_type_hint))) {
 		return(NA_real_)
 	}
 	beta_T_val

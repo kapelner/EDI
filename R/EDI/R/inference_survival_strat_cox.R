@@ -292,6 +292,9 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 		strat_cox_strata_info_cache = NULL,
 		strat_cox_informative_rows_cache = NULL,
 		strat_cox_w_cache = NULL,
+		strat_cox_y_full_cache = NULL,
+		strat_cox_dead_full_cache = NULL,
+		strat_cox_X_cov_cache = NULL,
 		strat_cox_data_cache = NULL,
 		strat_cox_X_fit_cache = NULL,
 		strat_cox_y_cache = NULL,
@@ -564,7 +567,12 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			list(beta_hat_T = beta_w, b = c(0, beta_w), ssq_b_2 = ssq_w, neg_log_lik = as.numeric(fit$neg_ll %||% fit$neg_log_lik), fisher_information = fit$fisher_information)
 		},
 		generate_mod = function(estimate_only = FALSE){
-			if (is.null(private$strat_cox_X_linear_cache) || is.null(private$strat_cox_data_cache) || !identical(private$w, private$strat_cox_w_cache)) {
+			X_cov = private$get_X()
+			if (is.null(private$strat_cox_X_linear_cache) || is.null(private$strat_cox_data_cache) ||
+				!identical(private$w, private$strat_cox_w_cache) ||
+				!identical(private$y, private$strat_cox_y_full_cache) ||
+				!identical(private$dead, private$strat_cox_dead_full_cache) ||
+				!identical(X_cov, private$strat_cox_X_cov_cache)) {
 				X_full      = private$X
 				private$strat_cox_strata_info_cache = private$compute_strata_info(X_full)
 				private$strat_cox_X_linear_cache = matrix(numeric(0), nrow = length(private$y), ncol = 0)
@@ -604,6 +612,9 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 					private$strat_cox_data_cache = tryCatch(build_cox_data_cache_cpp(X_f, y_a, d_a), error = function(e) NULL)
 				}
 				private$strat_cox_w_cache = private$w
+				private$strat_cox_y_full_cache = private$y
+				private$strat_cox_dead_full_cache = private$dead
+				private$strat_cox_X_cov_cache = X_cov
 			}
 			
 			X_linear = private$strat_cox_X_linear_cache

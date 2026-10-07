@@ -257,14 +257,17 @@ needs. So coverage is computed, not assumed.
     `InferenceIncidCMH` (blocked incidence). Both run on covariate-built blocks
     with the imposed-design label. `InferenceIndicidenceExactFisher` accepts
     matching designs, so it is covered by imposed pairs, not blocks.
-  - **Classes covered by real cluster columns** (decided 2026-10-06, user
-    direction): classes that need clusters for resampling, jackknife, or
-    variance (the cluster-robust and frailty families listed in the class
-    survey) run only on catalog rows with a real cluster ID column recorded
-    by the TODO-9 scan. The KK classes are a special case: their clusters are
-    matched pairs plus the reservoir, which are constructed pairs and are
-    covered by the imposed-pairs rule. Coverage for the non-KK cluster classes
-    is zero until the scan populates the cluster column.
+  - **Classes covered by real or imposed cluster columns** (decided
+    2026-10-06, user direction): classes that need clusters for resampling,
+    jackknife, or variance (the cluster-robust and frailty families listed in
+    the class survey) run on catalog rows with a real cluster ID column, or,
+    failing that, an imposed cluster built from a nominal covariate under the
+    rule above. The TODO-9 scan has recorded a real cluster column for 46
+    catalog rows (44 experimental, 2 observational); the rest fall back to an
+    imposed cluster when a covariate qualifies, and otherwise stay uncovered.
+    The KK classes are a special case: their clusters are matched pairs plus
+    the reservoir, which are constructed pairs and are covered by the
+    imposed-pairs rule, not this one.
   - **Real cluster or block columns** in a catalog row (for example, a site or
     household ID the source paper used) are used as-is, with no construction
     label beyond the design provenance.
@@ -396,7 +399,15 @@ Open for the implementation step:
 - [ ] TODO-19: CI smoke run of a sample of generated demos (network allowed, a fixed small set of catalog rows covering each response type), so a broken catalog row fails CI instead of a user's session. Full-catalog runs stay out of CI.
 - [ ] TODO-20: Cache helper `edi_dataset_cache(action = c("info", "clear"))`: report location and size, and clear all or one dataset's cached archive. Named for what it caches (datasets), not the feature that triggers the download, so it also covers any future non-demo fetch.
 - [ ] TODO-21: Offline behavior. With no network and no cached copy, the demo stops before generating output and says where the cache directory is and which file to place there by hand.
-- [ ] TODO-22: Pinned-version defect. Resolve the 210 CRAN rows whose pinned versions use dots where CRAN uses dashes, and the 15 datasets the scan could not load, before any demo depends on them.
+- [x] TODO-22: Pinned-version defect (resolved 2026-10-07). Checked all 151 unique
+  CRAN package/version pairs in both catalogs against CRAN's Archive and current
+  index: most of the "dotted version" rows were never wrong (many packages use
+  dotted versions natively on CRAN). Only 4 pairs were real transcription bugs
+  (`survival 3.8.6`, `AER 1.2.17`, `granova 2.0.0`, `R4HCR 0.1.0` — 22 catalog
+  rows), fixed to the real CRAN strings (`3.8-6`, `1.2-17`, `2.0`, `0.1`). Both
+  catalog CSVs rebuilt; all 151 pairs now resolve exactly. Separately, the 15
+  datasets the earlier scan reported as unloaded all fetch fine on retest; that
+  was transient network failure during the scan, not a catalog defect.
 - [ ] TODO-23: Redistribution messaging. Restricted rows (ICPSR, Dataverse terms) print the required manual step and target path at the top of the summary, before any download is attempted.
 - [ ] TODO-24: Publish the class-to-dataset coverage table in the reference docs, generated from the registry from TODO-18, so users can see which classes have demos.
 - [ ] TODO-25: Decide Python parity for the demos (in scope for v1, or documented as R-only).
@@ -431,10 +442,17 @@ Resolved 2026-10-06: data-only CRAN fetch instead of install; CRAN and base R so
 1. **Output.** Default: print to console; `write_to` writes a file. Files are not
    stored under `R/demos/` in v1.
 2. **Speed.** Default: `fast = TRUE`. Full runs are opt-in.
-3. **Dataset choice.** Default: return the top-ranked match plus a list of the
-   others; `dataset =` overrides.
-4. **Mixed-design rows.** Default: excluded (`lalonde.psid`, `nsw_benchmark`
-   remain out of the catalog until decided).
+3. **Dataset choice.** Superseded 2026-10-06 by `demo_number`: candidates are
+   ranked, `demo_number = 1` (default) returns the top-ranked match, and
+   `demo_number = k` returns the k-th; `dataset =` overrides the ranking
+   outright. See "Demo number" above.
+4. **Mixed-design rows.** Still open. Default: excluded (`lalonde.psid`,
+   `nsw_benchmark` remain out of the catalog until decided).
+
+Also resolved since this section was first written, each covered in its own
+section above rather than repeated here: imposed clusters from a nominal
+covariate (2026-10-06), `demo_number` and "demo k of M" (2026-10-06), and demo
+registry regeneration via a builder script (2026-10-06).
 
 ## Out of scope for v1
 

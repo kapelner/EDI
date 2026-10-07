@@ -1730,7 +1730,7 @@ EDI_COMPONENT_SPECS = list(
 					file = "inference_incidence_logit.R",
 					dependencies = "StandardModelCache",
 					owns_state = c(
-						"best_X_colnames", "logit_X_full_cache", "logit_w_cache",
+						"best_X_colnames", "logit_X_full_cache", "logit_w_cache", "logit_X_cov_cache",
 						"max_abs_reasonable_coef",
 						# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" /
 						# per-class migration ladders): re-declared here to survive
@@ -1754,6 +1754,7 @@ EDI_COMPONENT_SPECS = list(
 						"best_X_colnames",
 						"logit_X_full_cache",
 						"logit_w_cache",
+						"logit_X_cov_cache",
 						"max_abs_reasonable_coef",
 						"cached_mod"
 					),
@@ -1796,7 +1797,7 @@ EDI_COMPONENT_SPECS = list(
 					file = "inference_incidence_log_binomial.R",
 					dependencies = "StandardModelCache",
 					owns_state = c(
-						"best_X_colnames", "logbin_X_full_cache", "logbin_w_cache",
+						"best_X_colnames", "logbin_X_full_cache", "logbin_w_cache", "logbin_X_cov_cache",
 						"max_abs_reasonable_coef", "cached_mod"
 					),
 					provides_public_methods = c(
@@ -1820,6 +1821,7 @@ EDI_COMPONENT_SPECS = list(
 						"best_X_colnames",
 						"logbin_X_full_cache",
 						"logbin_w_cache",
+						"logbin_X_cov_cache",
 						"max_abs_reasonable_coef",
 						"cached_mod"
 					),

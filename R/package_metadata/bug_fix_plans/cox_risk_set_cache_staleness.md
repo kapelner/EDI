@@ -4,9 +4,9 @@
 > slotted 2026-09-24, user decision) — a *correctness* fix. Found 2026-08-30 during the
 > research-plan verification audit
 > (`../new_research_ideas/paper/fast_randomization_inference/fast_randomization_inference.md`, work item
-> V2). No confirmed wrong result has been produced yet — TODO-1 below
-> determines whether any released path can actually realize the stale hit —
-> but the invariant violation is real and cheap to close.
+> V2). Reused workers in the current checkout can realize the stale hit;
+> the tagged v1.0.0 source has the same `w`-only Cox guards, but no tagged
+> binary was independently exercised in this audit.
 >
 > **Ownership:** the `cox_*` private caches of `InferenceCoxPH`
 > (`inference_survival_coxph.R:427-428, 516-531`) and the `strat_cox_*`
@@ -60,24 +60,23 @@ Within a single dataset at a single null value, equal `w` implies equal
 every cache hit is *correct*. The incorrect hits require `y` to move at
 fixed `w`, which only happens across a boundary the guard cannot see:
 
-1. **Parametric / LR bootstrap replicates (highest suspicion).** The
+1. **Parametric / LR bootstrap replicates.** The
    reusable-worker path (`inference_all_abstract_param_boot.R:582-695`,
    `create_param_bootstrap_worker_state` → `compute_param_bootstrap_worker_lrt`)
    resimulates `y` per replicate **at fixed `w`**. If the worker's per-
    replicate load writes `y` without nulling `cox_data_cache` (nothing
    does — see above), every replicate after the first fits against the
-   first replicate's risk sets. Whether `InferenceCoxPH` actually enables
-   `use_reusable_param_bootstrap_worker()` decides if this is live.
+   first replicate's risk sets. This path is live in the current checkout;
+   the v1.0.0 Cox classes did not yet compose the parametric-bootstrap
+   component.
 2. **Randomization inference across δ in a reused worker.** Plain Cox wires
    the generic rand contract (`inference_survival_coxph.R:283`) and the
    permutation matrix is memoized on the design and shared across δ
    (`inference_all_abstract_rand.R:922-947`), so the *same* `w_b` vector
-   recurs at different δ with different `y_sim`. Mitigations that may make
-   this unreachable in practice: the fast C++ kernel
+   recurs at different δ with different `y_sim`. The usual fast C++ kernel
    (`compute_fast_rand_bootstrap_distr`, `:728`) bypasses `generate_mod`
-   entirely, and survival's transform resolves to `"log"` which may route
-   elsewhere — but the slow fallback path (custom statistic, kernel
-   failure, `debug = TRUE`) re-dispatches through `generate_mod`.
+   entirely. A nonzero delta with the additive transform selects the slow
+   fallback, which re-dispatches through `generate_mod` on the reused worker.
 3. **Nonparametric bootstrap `w`-value collision.** A resample's `w` is a
    different vector that can *coincide in value* with the cached one
    (binary entries, small `n`, matched-pair designs with small `2^#pairs`
@@ -120,35 +119,50 @@ indices themselves depend on `y`/`dead` through `get_informative_rows`.
 
 ## Items
 
-- [ ] **TODO-1: Exposure audit.** Determine, with a failing-test attempt
-  for each, which of scenarios 1-4 is reachable in v1.0.0: (a) does
-  `InferenceCoxPH` take the reusable parametric-bootstrap worker path, and
-  does that path write `y` between replicates without a fresh object? (b)
-  can the slow randomization fallback re-enter `generate_mod` on a reused
-  worker across δ for survival? (c) construct a small-n matched-pair
-  bootstrap where a resample's `w` collides in value. Record the verdicts
-  here. If any scenario reproduces on a released version, note it in the
-  changelog with severity; if none does, the fix ships as hardening.
-- [ ] **TODO-2: Guard fix in both classes** as specified above
+- [x] **TODO-1: Exposure audit.** Verdicts from current source and the
+  local `v1.0.0` tag:
+  (a) Both current Cox classes take the reusable LR bootstrap path; a
+  public `compute_lik_ratio_bootstrap_two_sided_pval()` test compares its
+  replicate LR values with fresh-worker fits. The `v1.0.0` Cox classes
+  did **not** compose `ParametricLikelihoodBootstrap`, so this particular
+  exposure was absent then.
+  (b) Plain Cox reaches the slow randomization worker path for nonzero
+  `delta` with the additive transform. A public distribution call at two
+  deltas inside one worker-reuse session agrees with a fresh object at the
+  second delta. The tag contains the same cross-delta worker reuse logic.
+  (c) Reordering subjects within each treatment arm produces different
+  `y`/`X` with an exactly identical `w` vector. The nonparametric bootstrap
+  loader reuses the worker; a regression checks both Cox classes against a
+  fresh worker after this collision. The tag has the same loader and guards.
+  (d) Direct `y`, `dead`, `X`, and strata-only changes at fixed `w` rebuild
+  both classes' risk-set caches and match fresh fits. The tagged source
+  retains the old `w`-only guards. Tagged binaries were not run, so no
+  released wrong numerical result is claimed; this is a silent-correctness
+  risk rather than a measured released effect.
+- [x] **TODO-2: Guard fix in both classes** as specified above
   (`inference_survival_coxph.R:516`, `inference_survival_strat_cox.R:571`),
   new cache fields declared next to the existing ones
   (`inference_survival_coxph.R:427-428`,
   `inference_survival_strat_cox.R:285-294`).
-- [ ] **TODO-3: Same-pattern sweep.** Grep every `*_w_cache`-guarded cache
-  in the package and record, per cache, whether it embeds anything beyond
-  `w`/`X` (the design-matrix caches like `logit_X_full_cache` embed only
-  `w` and `X` columns and are safe under randomization but share scenario
-  3/4's `X`-row exposure under bootstrap — audit and record each verdict
-  here rather than assuming).
-- [ ] **TODO-4: Tests.** (a) Direct regression: fit, overwrite `private$y`
+- [x] **TODO-3: Same-pattern sweep.** The `cox_*` and `strat_cox_*`
+  risk-set caches embed `w`, `y`, `dead`, and `X`; both now use the full key.
+  Four other `w`-guarded caches embed only a model matrix, not responses:
+  `logit_X_full_cache`, `logbin_X_full_cache`, `poisson_X_full_cache`, and
+  `negbin_X_full_cache`. All four reproduced a stale hit when `X` changed
+  at fixed `w`, with no worker-loader invalidation; each now keys on its
+  covariate input as well. `SimulationFramework`'s `design_w_cache` is a
+  precomputed assignment cache by design name, not a fitted-data cache.
+- [x] **TODO-4: Tests.** (a) Direct regression: fit, overwrite `private$y`
   at fixed `w`, fit again; assert equality with a fresh object's fit (fails
   before the fix if the mutation path is reachable, passes after). Same for
   `dead` and for a permuted-rows `X` at colliding `w`. Both classes.
-  (b) One test per reachable scenario from TODO-1, at the public API level.
-  (c) A cache-effectiveness guard so the fix doesn't silently disable the
-  cache: spy that `build_cox_data_cache_cpp` is called exactly once across
-  two identical-input fits.
-- [ ] **TODO-5: Contract doc touch-up.** `helper_glm_fit.R:2274` and
+  (b) Public LR bootstrap and slow randomization tests, plus a deterministic
+  worker-loader resample collision. (c) A mocked builder spy asserts exactly
+  one cache build across two identical-input fits for each Cox class. The
+  four matrix caches have a changed-`X` regression; logit's changed-`X`
+  estimate also matches a fresh fit. Focused tests pass with
+  `pkgload::load_all(compile = FALSE)`; no package rebuild was run.
+- [x] **TODO-5: Contract doc touch-up.** `helper_glm_fit.R:2274` and
   `:2109-2177` describe the R-side owners' invalidation responsibility;
   add one sentence naming the complete key set (`w`, `y`, `dead`, `X`) so
   the next cache of this shape copies the right pattern.

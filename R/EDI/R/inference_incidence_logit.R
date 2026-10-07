@@ -109,6 +109,7 @@ IncidenceLogisticLikelihoodSource = list(
 		best_X_colnames = NULL,
 		logit_X_full_cache = NULL,
 		logit_w_cache = NULL,
+		logit_X_cov_cache = NULL,
 		max_abs_reasonable_coef = 50,
 		is_logistic_fit_reasonable = function(mod){
 			if (is.null(mod) || is.null(mod$b) || length(mod$b) < 2L) return(FALSE)
@@ -262,9 +263,13 @@ IncidenceLogisticLikelihoodSource = list(
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
-			if (is.null(private$logit_X_full_cache) || !identical(private$w, private$logit_w_cache)) {
+			X_cov = private$X
+			if (is.null(private$logit_X_full_cache) ||
+					!identical(private$w, private$logit_w_cache) ||
+					!identical(X_cov, private$logit_X_cov_cache)) {
 				private$logit_X_full_cache = private$build_design_matrix()
 				private$logit_w_cache = private$w
+				private$logit_X_cov_cache = X_cov
 			}
 			X_full = private$logit_X_full_cache
 			

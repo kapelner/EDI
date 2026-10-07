@@ -319,7 +319,8 @@ written to eliminate elsewhere in this codebase.
   no `compute_rand_*`/`compute_bootstrap_*` calls anywhere in it); and the
   JSS paper draft (prose only, no worked numeric example tied to this bug,
   also not yet submitted/published).
-- [ ] TODO-9 (added 2026-09-22, found during this plan's own final
+- [ ] TODO-9 (implementation complete 2026-10-07; release verification
+  remains; added 2026-09-22, found during this plan's own final
   whole-branch review — see `Status` below): **latent `cached_mod` reset
   gap, same bug shape, no concrete class reaches it yet.** The systemic fix
   (TODO-4) reset `cached_values` down to a `duplicate()`-derived keep-list,
@@ -353,8 +354,7 @@ written to eliminate elsewhere in this codebase.
   draw 1's `beta_hat_T` from it — a degenerate distribution again, via the
   private-field door instead of the `cached_values` door.
 
-  **Not fixed in this plan's branch (deliberately, per the final review's
-  own risk assessment):** no concrete class currently reaches this guard —
+  The original branch deferred this gap because no concrete class then reached this guard —
   every `generate_mod()`-taking class in the package belongs to the
   `InferenceAsympLikStdModCache` ladder, whose own `shared()`
   (`inference_all_abstract_asymp_lik_std_mod_cache.R:177-191`) *writes*
@@ -366,21 +366,21 @@ written to eliminate elsewhere in this codebase.
   worker and found no additional degenerate class — empirical
   corroboration that this is a landmine, not a live defect.
 
-  **Fix, when picked up:** reconcile the three separately-maintained
-  private-field reset lists (`inference_all_abstract_rand.R:970-978`,
-  `inference_all_abstract_non_param_boot.R:1216-1225`,
-  `inference_all_abstract_param_boot.R:913-917`, plus
-  `inference_mixin_kk_passthrough.R:319-330`, a third differently-scoped
-  list) the same way TODO-4 reconciled `cached_values` — a single
-  keep-list-driven reset shared by all reused-worker loaders, so the three
-  lists can't drift apart the way the original bug's `cached_values` reset
-  did. Minimum: add `cached_mod` (+ `best_X_colnames`/`best_Xmm_colnames`)
-  to the rand loader's private-field reset, matching the bootstrap loader.
-  Should be a no-op for every currently-correct class (nothing reads
-  `cached_mod` before `shared()` writes it), but changes the reset surface,
-  so it needs a re-run of `scripts/reused_worker_bitforbit_sweep.R` (added
-  by this plan) before shipping, same standing-constraint discipline as
-  TODO-3/TODO-5 used for `cached_values`.
+  **Fixed 2026-10-07:** all reused-worker loaders now call one helper for the
+  existing derived private fit-cache field set. The helper clears fit/model
+  state including `cached_mod` and best-column selections on every changed
+  draw, while preserving covariate-only caches when X is unchanged and design
+  caches when both X and w are unchanged. Randomization, nonparametric,
+  parametric, randomization-bootstrap, and KK pass-through paths use the same
+  policy; the helper is registered in DESCRIPTION's explicit Collate list.
+  The reset surface contains only fields previously reset by one of those
+  loaders; unrelated model data and warm-start state are untouched. Structural
+  tests assert the field set and per-context preservation, and three two-draw
+  tests compare reused randomization, bootstrap, and randomization-bootstrap
+  estimates to fresh workers. These and adjacent loader/warm-start tests pass
+  with `pkgload::load_all(compile = FALSE)`. A full
+  `scripts/reused_worker_bitforbit_sweep.R` pre/post comparison still needs a
+  comparable clean baseline before release; no checkout build was run.
 
 ## Status
 
@@ -404,15 +404,16 @@ split; originally shipped ahead of v1.1.0 as an out-of-band correctness
 fix, per that TODO's own "may warrant revisiting ahead of the rest of
 1.1.0" note — the split resolves that note by giving it its own release).
 
-TODO-9 (latent `cached_mod` gap, above) is open, not yet fixed, tracked
-separately at `release_v1_0_5.md → TODO-12` (was
-`release_v1_1_0.md → TODO-34`).
+TODO-9's implementation (latent `cached_mod` gap, above) landed 2026-10-07
+and is tracked at `release_v1_0_5.md → TODO-12` (was
+`release_v1_1_0.md → TODO-34`). Its focused regressions pass. The item stays
+open until the release-wide pre/post bit-for-bit sweep can use a comparable
+clean baseline.
 
-TODO-7 (CSV regen) and TODO-8 (published-output audit) remain open,
-deferred until an install is available — the fix's own final review notes
-the package has since been reinstalled by the user
-(2026-09-22), so TODO-7 is now unblocked whenever the user chooses to run
-it; TODO-8 is an editorial decision, still outstanding.
+TODO-7 (CSV regeneration and baseline rewrite) remains open and is owned by
+the earlier release TODO-9. TODO-8's published-output audit is complete:
+the codebase and public site needed no numeric correction, and the site was
+redeployed to remove the obsolete caveat.
 
 Two pre-existing, unrelated defects were discovered by this plan's expanded
 test coverage (NOT the `cached_values`/`cached_mod` mechanism — two

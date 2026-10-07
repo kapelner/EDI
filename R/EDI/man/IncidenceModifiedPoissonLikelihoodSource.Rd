@@ -11,7 +11,7 @@ Initialize inference for the modified Poisson model
   \eqn{\log E[Y_i \mid w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top
   \gamma}; see
   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}
-  for the model form and the non-robust-SE caveat. Does not fit the
+  for the model form and its robust/sandwich standard error. Does not fit the
   model; the fit is deferred to the first call to
   \code{compute_estimate()} or a method that requires it.
 
@@ -19,18 +19,15 @@ Fits the modified Poisson model by maximizing the Poisson
   working log-likelihood on the binary response and returns the
   log-risk-ratio estimate \eqn{\hat\beta_T}.
 
-Wald confidence interval for \eqn{\beta_T} using the
-  model-based (non-robust) Poisson-working-likelihood standard error; see
-  \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}'s
-  non-robust-SE caveat and
+Wald confidence interval for \eqn{\beta_T} using Zou's
+  (2004) robust/sandwich standard error; see
+  \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}} and
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
   contract.
 
 Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
-  using the model-based (non-robust) Poisson-working-likelihood standard
-  error; see
-  \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}'s
-  non-robust-SE caveat.
+  using Zou's (2004) robust/sandwich standard error; see
+  \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}.
 
 Refits the modified Poisson model with subject/block-level
   weights applied to the working log-likelihood (Bayesian-bootstrap or

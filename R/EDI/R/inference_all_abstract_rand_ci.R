@@ -669,7 +669,12 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				m = (l2 + u2) / 2
 				pval_m = evaluate_full(m)
 				if (!is.finite(pval_m)) break
-				if (pval_m >= pval_th) { u2 = m; pval_u2 = pval_m } else { l2 = m; pval_l2 = pval_m }
+				# The accepted side is above the lower bound and below the upper bound.
+				if (pval_m >= pval_th) {
+					if (lower) { u2 = m; pval_u2 = pval_m } else { l2 = m; pval_l2 = pval_m }
+				} else {
+					if (lower) { l2 = m; pval_l2 = pval_m } else { u2 = m; pval_u2 = pval_m }
+				}
 			}
 			if (lower) l2 else u2
 		},

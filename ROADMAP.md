@@ -613,8 +613,11 @@ measurement work with no v1.1.0 consumer.
 - **[Treatment–covariate moderation](R/package_metadata/new_feature_plans/treatment_covariate_moderation.md)** —
   moderation analysis on the existing classes.
 - **[Missing outcomes](R/package_metadata/new_feature_plans/missing_outcome_handling.md)** —
-  principled handling of missing responses beyond the current
-  NA-filtering.
+  principled handling of missing responses (attrition / loss to follow-up):
+  Lee bounds, multiple imputation of outcomes, and inverse-probability
+  weighting. Today every inference class requires all outcomes to be
+  recorded, so subjects with a missing outcome must be dropped by the user
+  before analysis.
 
 ### Moved in from v1.1.0's lightening pass (2026-09-06)
 

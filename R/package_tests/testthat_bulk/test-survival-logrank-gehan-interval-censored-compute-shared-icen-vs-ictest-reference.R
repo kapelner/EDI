@@ -76,20 +76,22 @@ test_that("a mix of left-, right- and interval-censored rows within one design s
 	expect_equal(est, as.numeric(ref$estimate), tolerance = 1e-6)
 })
 
-# Confirmed source bug, NOT fixed here (out of scope for this coverage-writing pass):
-# compute_shared_icen()'s third cache guard, `if (!is.null(private$cached_values$beta_hat_T))
-# return(invisible(NULL))`, fires unconditionally whenever beta_hat_T is already cached --
-# regardless of the estimate_only flag -- unlike the right-censoring compute_shared(), which has
-# no such blanket guard. So once compute_estimate(estimate_only = TRUE) has cached beta_hat_T
-# under general censoring, a later full call never computes s_beta_hat_T, and
-# compute_asymp_confidence_interval() then crashes ("missing value where TRUE/FALSE needed") on
-# `!is.finite(private$cached_values$s_beta_hat_T)` seeing a NULL/unset value instead of a logical.
-# Pinned here as current (buggy) behavior.
-test_that("KNOWN BUG: an estimate_only=TRUE call first leaves s_beta_hat_T permanently uncomputed under interval censoring, crashing a later CI request", {
-	f <- ic_fx(3L)
-	suppressWarnings(f$inf$compute_estimate(estimate_only = TRUE))
-	expect_error(
-		suppressWarnings(f$inf$compute_asymp_confidence_interval(0.05)),
-		"missing value where TRUE/FALSE needed"
-	)
+test_that("an estimate-only interval-censored call can be followed by a full call in both score classes", {
+	for (class in list(InferenceSurvivalLogRank, InferenceSurvivalGehanWilcox)) {
+		f <- ic_fx(3L, class = class)
+		p <- f$inf$.__enclos_env__$private
+		scores <- if (identical(class, InferenceSurvivalLogRank)) "logrank1" else "wmw"
+		ref <- suppressWarnings(interval::ictest(f$yL, f$yR, f$w, scores = scores))
+		est <- suppressWarnings(f$inf$compute_estimate(estimate_only = TRUE))
+		expect_equal(est, as.numeric(ref$estimate), tolerance = 1e-6)
+		expect_null(p$cached_values$s_beta_hat_T)
+		ci <- suppressWarnings(f$inf$compute_asymp_confidence_interval(0.05))
+		expect_equal(p$cached_values$s_beta_hat_T,
+		             abs(as.numeric(ref$estimate) / as.numeric(ref$statistic)), tolerance = 1e-6)
+		expect_true(is.finite(p$cached_values$s_beta_hat_T))
+		expect_equal(as.numeric(ci), ref_wald_ci(ref), tolerance = 1e-6)
+		expect_equal(suppressWarnings(f$inf$compute_estimate()), est, tolerance = 1e-6)
+		expect_equal(as.numeric(suppressWarnings(f$inf$compute_asymp_confidence_interval(0.05))),
+		             as.numeric(ci), tolerance = 1e-6)
+	}
 })

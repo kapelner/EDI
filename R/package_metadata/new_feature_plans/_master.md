@@ -654,7 +654,9 @@ children). No dependency on the Phase 0 decision batch. Explicitly does
 TODO-6 note (a future fork-after-OpenMP-lock safety pass for
 `SimulationFramework$run()`'s fork-cluster path) — that is a separate,
 larger project, deferred there on purpose. Release index:
-`release_v1_1_0.md → TODO-18`.
+`release_v1_1_0.md → TODO-18`. Its TODO-1 (unify `ensure_mirai_daemons`)
+moves to v1.0.5 only if the Bayesian bootstrap performance plan below
+changes that function (2026-10-07, user decision).
 
 **Capability/slow-path registry hardening (added 2026-09-08, user
 decision; grew out of a `comprehensive_tests.R`/`path_audits.html`
@@ -689,6 +691,29 @@ TODO can be written), and a recheck of the ~82 already-registry-backed
 mechanism as this session's already-completed `exact_operations` recheck,
 just larger scope, no new engineering needed). No dependencies. Release
 index: `release_v1_1_0.md → TODO-20`.
+
+**Bayesian bootstrap performance (added 2026-10-07, user decision; grew
+out of the `bayesboot` comparison for the Bayesian CRAN Task View
+proposal):** `../bug_fix_plans/bayesian_bootstrap_performance.md` →
+TODO-1..9. Moved to v1.0.5 the same day (user decision): it fixes a
+misfiring performance path that already shipped.
+
+The Bayesian bootstrap has a parallel branch, but it does not scale:
+- the bootstrap serial blocklist pins incidence and non-KK survival
+  classes to one core, with no recorded reason;
+- parallel dispatch ships every draw to every job, so it loses on cheap
+  refits;
+- the warmup gate never picks serial.
+
+Cox, Weibull and OLS refits go through R formula calls rather than
+weighted C++ kernels.
+
+The parallelization consolidation above rebases onto this one because
+v1.0.5 ships first. The two meet only at `ensure_mirai_daemons`. If this
+plan's TODO-2 changes that function, the consolidation's TODO-1 alone
+moves to v1.0.5 and lands first; its TODO-2..4 stay in v1.1.0. Release
+index:
+`release_v1_0_5.md → TODO-57` (was `release_v1_1_0.md → TODO-39`).
 
 ---
 

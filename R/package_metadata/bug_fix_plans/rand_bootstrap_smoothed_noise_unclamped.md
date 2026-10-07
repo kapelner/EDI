@@ -1,5 +1,17 @@
 # Fix: `smoothed` Randomization-Bootstrap p-Value Adds Unclamped Continuous Noise to Binary/Ordinal Responses — Shared Machinery, ~85 Cells Wildly Miscalibrated
 
+> **Implementation status (2026-10-07):** Smoothed BRT now rejects categorical
+> or bounded model refits for incidence, ordinal, and proportion responses
+> with a clear error directing callers to `type = "percentile"`. The p-value
+> and CI type accessors omit `smoothed` for those classes, and lower-level
+> supplied noisy draws are guarded before C++ or R refits. Real-valued
+> location statistics such as `InferenceAllSimpleAverageDiff` remain supported
+> on coded responses; its incidence p-value stays available, while the existing
+> incidence CI guard keeps its CI unadvertised. Count, continuous, and survival
+> behavior is unchanged. Focused CRAN tests passed 58 expectations with `pkgload::load_all(compile =
+> FALSE)`. The historical audit findings below have not yet been rerun for
+> calibration; do not interpret all ~85 cells as fixed by this support guard.
+
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-18`. Found 2026-09-23, surfaced by the new
 > `pval_miscalibration` audit check — a `_smoothed` function-run variant
@@ -86,7 +98,7 @@ favored. Not yet independently reproduced via a repeated-trial calibration
 check (the investigating fork's time budget didn't cover it) — TODO-1
 covers this.
 
-## Proposed fix — not yet decided, two directions
+## Historical options and implemented policy
 
 **Option A — response-type-aware clamping, mirroring the `count` case.**
 Add `incidence`/`ordinal` (and check `proportion`, which is also
@@ -112,6 +124,31 @@ Recommend investigating Option A's statistical validity first (does
 clamped/rounded noise still deliver the discreteness-reduction benefit
 `smoothed` exists for?) before falling back to Option B.
 
+The implemented policy is an explicit unsupported error for categorical or
+bounded model refits on incidence, ordinal, and proportion responses. It
+avoids silently reporting an ordinary percentile result as `smoothed` and
+avoids inventing a categorical transition kernel without calibration evidence.
+Simple real-valued location statistics remain available because their
+estimators accept the perturbed numeric response and the fast batch kernels
+operate on that scale. Ordinal Ridit and Jonckheere-Terpstra remain unsupported:
+their fast kernels already decline noisy draws, and the R fallback casts
+continuous noise to integer category codes.
+
+The actual dispatch is conditional: a concrete fast method runs only when it
+accepts the draw and returns a distribution; otherwise the reusable or standard
+R worker reaches `add_rand_bootstrap_smooth_noise()`. The source inventory shows
+mean-difference and Wilcoxon kernels on real-valued statistics, plus continuous
+OLS/robust and survival kernels. For categorical/bounded responses, the model
+refit examples `InferenceIncidKKCondLogitOneLik`, `InferenceIncidProbitRegr`,
+`InferenceOrdinalGCompMeanDiff`, and `InferencePropFractionalLogit` have no
+accepted smoothed fast path; Ridit/Jonckheere have fast methods but explicitly
+return `NULL` for noise. Mean difference on coded incidence/ordinal/proportion
+remains supported, and ordinal SimpleWilcox has a numeric Wilcoxon path.
+The checked-in `comprehensive_results_audit_baseline.csv` currently contains
+25 smoothed p-value miscalibration rows (6 incidence, 3 ordinal, 0 proportion,
+9 continuous, 7 count); this is only a subset of the historical ~85 cells, so
+the full audit-to-dispatch cross-reference is still open.
+
 ## TODOs
 
 - [ ] TODO-1: Confirm the exact boundary of affected classes — which
@@ -135,14 +172,26 @@ clamped/rounded noise still deliver the discreteness-reduction benefit
   confirm the wild miscalibration reproduces. Compare against the plain
   (non-smoothed) variant on the same draws to isolate the smoothing step
   specifically.
-- [ ] TODO-4: Decide Option A vs. B (per response type, possibly a mix —
+  Bounded fixtures for the historical incidence KK conditional-logit and
+  ordinal GComp classes now confirm their smoothed p-values reject before any
+  refit. The historical continuous KK robust OneLik class remains supported
+  and returned a finite smoothed p-value (B = 21). These are dispatch checks,
+  not repeated-trial calibration or reproduction of the reported rates.
+- [x] TODO-4: Decide Option A vs. B (per response type, possibly a mix —
   e.g. Option A for `incidence`/`ordinal`, investigate `proportion`
   separately, Option B only if A proves statistically unsound for a given
   type) and implement.
-- [ ] TODO-5: Verify the fix doesn't change `smoothed` results for
+- [x] TODO-5: Verify the fix doesn't change `smoothed` results for
   response types that were already correctly handled (`count`, and
   whichever of `continuous`/`survival` turn out fine) — bit-for-bit or
   within floating-point tolerance for those.
+  The numeric noise transformation and estimator paths for these response
+  types have no code changes; the new guard returns immediately for all three.
+  Focused tests verified count rounding/flooring and a finite smoothed Poisson
+  GLMM p-value, continuous raw additive noise and a finite KK robust OneLik
+  smoothed p-value, plus survival raw additive noise and a finite CoxPH
+  smoothed p-value (all with `compile = FALSE`). This establishes path
+  preservation, not calibration of the continuous outlier.
 - [ ] TODO-6: Re-run true-null calibration checks across all affected
   classes/response-types and confirm rejection rates return to nominal
   ~5%.
@@ -152,6 +201,9 @@ clamped/rounded noise still deliver the discreteness-reduction benefit
   stays within a reasonable band of nominal — this general shape
   (response-type-dependent noise validity) isn't caught by the existing
   non-degeneracy test either.
+  A focused support regression now covers the public p-value and CI guards,
+  advertised types, lower-level draws, and the preserved real-valued/count
+  paths; repeated-trial calibration remains open.
 - [ ] TODO-8: Regenerate the affected `comprehensive_tests` CSV rows for
   the confirmed affected classes' `smoothed` variant once fixed and
   installed (only after install, not before, same caution as the sibling

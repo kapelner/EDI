@@ -167,7 +167,7 @@ graft/
 .gemini/*
 
 # Private research notes — not for public repo history
-R/package_metadata/new_research_ideas
+/private/
 
 # Belt-and-suspenders: already covered by the blanket rule above, named
 # explicitly in case that rule ever narrows

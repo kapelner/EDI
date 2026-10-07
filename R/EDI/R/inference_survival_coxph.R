@@ -453,6 +453,9 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 		cox_X_fit_cache = NULL,
 		cox_data_cache = NULL,
 		cox_w_cache = NULL,
+		cox_y_cache = NULL,
+		cox_dead_cache = NULL,
+		cox_X_cov_cache = NULL,
 		# Bootstrap replicates icenReg::ic_sp() uses for its covariance
 		# matrix when dispatching on left-/interval-censored data (see
 		# generate_mod_icen below); the semi-parametric NPMLE fit has no
@@ -551,8 +554,12 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			if (isTRUE(private$has_general_censoring)) {
 				return(private$generate_mod_icen(estimate_only))
 			}
-			if (is.null(private$cox_X_fit_cache) || is.null(private$cox_data_cache) || !identical(private$w, private$cox_w_cache)) {
-				X_cov = private$get_X()
+			X_cov = private$get_X()
+			if (is.null(private$cox_X_fit_cache) || is.null(private$cox_data_cache) ||
+				!identical(private$w, private$cox_w_cache) ||
+				!identical(private$y, private$cox_y_cache) ||
+				!identical(private$dead, private$cox_dead_cache) ||
+				!identical(X_cov, private$cox_X_cov_cache)) {
 				private$cox_X_fit_cache = if (!is.null(X_cov) && ncol(X_cov) > 0){
 					cbind(treatment = private$w, X_cov)
 				} else {
@@ -566,6 +573,9 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 				}
 				private$cox_data_cache = build_cox_data_cache_cpp(private$cox_X_fit_cache, private$y, private$dead)
 				private$cox_w_cache = private$w
+				private$cox_y_cache = private$y
+				private$cox_dead_cache = private$dead
+				private$cox_X_cov_cache = X_cov
 			}
 			X_fit = private$cox_X_fit_cache
 

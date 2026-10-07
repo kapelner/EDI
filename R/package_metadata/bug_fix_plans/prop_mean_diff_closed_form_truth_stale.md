@@ -1,5 +1,14 @@
 # Fix plan: proportion mean-diff closed-form coverage truth is stale relative to the 2026-09-15 DGP fix
 
+> **TODO-55 status: core fix implemented 2026-10-07; release follow-up open.**
+> The closed-form mean-difference
+> truth now uses the same clamped-baseline logit shift as the proportion DGP.
+> The audit also confirmed a separate truth mismatch for proportion
+> `InferenceAllSimpleWilcox`; it now uses a response-qualified Monte Carlo
+> fitted truth because its Hodges-Lehmann estimand has no mean-difference
+> closed form. Targeted reference tests and stale-row rules were added. Raw
+> result CSVs were deliberately left untouched for the next harness run.
+
 Found 2026-09-25, investigated at user request while checking other proportion
 classes for the pattern behind `mc_coverage_truth_covariate_mismatch.md`'s
 TODO-11. Not the same bug -- this one uses the `COVERAGE_CLOSED_FORM` path,
@@ -18,7 +27,7 @@ rows, not ~0.80).
 consistently -- so the CIs are not independently broken; they're all being
 graded against the same wrong reference value.
 
-## Root cause
+## Root cause (before the 2026-10-07 fix)
 
 `compute_prop_mean_diff_coverage_truth()` (`comprehensive_tests.R:3191`):
 
@@ -31,7 +40,7 @@ compute_prop_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 }
 ```
 
-computes the truth as a **raw additive shift clamped to [0, 1]**. But the
+computed the truth as a **raw additive shift clamped to [0, 1]**. But the
 actual proportion DGP, `apply_treatment_effect_and_noise()`
 (`comprehensive_tests.R:3128-3130`), was fixed on 2026-09-15 (per its own
 code comment) to shift on the **logit scale**, with the baseline clamped to
@@ -43,8 +52,8 @@ p_t = plogis(qlogis(p_base) + bt + eps)
 ```
 
 specifically to avoid the boundary-clamping distortion a raw additive shift
-causes. The truth function was never updated to match -- it still implements
-the pre-fix formula. The sibling incidence function,
+causes. The truth function had never been updated to match and still
+implemented the pre-fix formula. The sibling incidence function,
 `incid_p_base_and_treated()` (`comprehensive_tests.R:3170-3174`), already
 implements the *correct* pattern (`pmin(0.95, pmax(0.05, ...))` +
 `plogis(qlogis(...) + beta_T_val)`); this looks like an omission when the
@@ -72,17 +81,16 @@ Directly recomputed the truth both ways for `boston` (`beta_T=0.5`):
 
 | formula | truth |
 |---|---|
-| stale (raw additive, current code) | 0.466 |
+| stale (raw additive, pre-fix code) | 0.466 |
 | corrected (logit-scale, matching the actual DGP) | 0.112 |
 | real per-row estimate (n=122) | mean 0.109, median 0.108, SD 0.021 |
 
 The corrected formula matches the real estimator's behavior almost exactly;
 the stale one is 17+ SDs off.
 
-## Fix (not yet implemented -- comprehensive_tests.R was live/running at
-investigation time, deliberately not edited)
+## Fix (implemented 2026-10-07)
 
-Replace `compute_prop_mean_diff_coverage_truth()`'s body with the same
+Replaced `compute_prop_mean_diff_coverage_truth()`'s body with the same
 pattern `incid_p_base_and_treated()` already uses:
 
 ```r
@@ -96,28 +104,66 @@ compute_prop_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 
 Test-harness-only change; does not touch `R/EDI` source.
 
+The implementation also qualifies MC truth specifications by response type.
+This lets `InferenceAllSimpleWilcox__proportion` use the existing
+`compute_mc_coverage_truth_simframe()` route while its continuous, incidence,
+count, survival, and ordinal runs retain their existing native-scale truth.
+The coverage-truth cache key now includes the response type so a generic class
+can never reuse a truth fit from another response family.
+
+## Completed audit
+
+- `InferenceAllSimpleAverageDiff` on proportion and
+  `InferencePropGCompMeanDiff` directly reference
+  `compute_prop_mean_diff_coverage_truth()`.
+- `InferenceAllSimpleMeanDiffPooledVar` reaches the same function through
+  `get_coverage_truth()`'s response-family fallback. All three therefore use
+  the corrected closed form.
+- `InferenceAllSimpleWilcox` did not share the function. It fell through to
+  raw `beta_T_val`, which is also wrong for the logit-scale proportion DGP:
+  its Hodges-Lehmann estimand is a median of pairwise treated-minus-control
+  differences. Because heterogeneous baselines and Gaussian DGP noise leave
+  no suitable mean-difference closed form, only the proportion variant now
+  uses an MC-refitted truth.
+- `InferenceIncidGCompRiskDiff` and `InferenceIncidKKGCompRiskDiff` already
+  route through `incid_p_base_and_treated()` and
+  `compute_incid_risk_diff_coverage_truth()`. That path clamps baseline risk
+  to `[0.05, 0.95]`, applies the logit shift, and averages the risk
+  difference, matching the incidence DGP. No incidence change or stale-row
+  rule is justified by TODO-55.
+- The other direct mean-difference mapping is the survival AverageDiff
+  closed form. It uses the survival DGP's multiplicative time shift and is
+  unrelated.
+
+`test-comprehensive-proportion-coverage-truth-reference.R` independently
+constructs the treated probability through an odds multiplication (rather
+than copying the implementation's `qlogis`/`plogis` expression), verifies
+all three mean-difference dispatch paths, checks both incidence GComp
+siblings, and proves the Wilcox MC route is proportion-only.
+
 ## TODO
 
-1. Apply the fix above once it's safe to edit `comprehensive_tests.R`
+1. [x] Apply the fix above once it's safe to edit `comprehensive_tests.R`
    (not mid-run).
-2. Add `stale_ok_row_rules.csv` rules to expire the affected pre-fix rows
+2. [x] Add `stale_ok_row_rules.csv` rules to expire the affected pre-fix rows
    for `AllSimpleAverageDiff`/`AllSimpleMeanDiffPooledVar`/`PropGCompMeanDiff`
    on every dataset (they were generated under the wrong DGP, not just
    graded with the wrong truth -- unlike TODO-11's classes, these need
    full regeneration, not just a re-audit, since the raw response values
    themselves came from the old DGP).
-3. Check whether `InferenceAllSimpleWilcox` (also showing low coverage on
+3. [x] Check whether `InferenceAllSimpleWilcox` (also showing low coverage on
    `boston`/`abalone`/`diamonds`, e.g. 0.12-0.33) shares this bug or has an
    unrelated cause -- Wilcox's estimand is rank/median-based, not a mean
    difference, so `compute_prop_mean_diff_coverage_truth` may never have
-   been the right truth for it even before this bug; not yet investigated.
-4. Check `InferenceIncidGCompRiskDiff`/`InferenceIncidKKGCompRiskDiff` and
+   been the right truth for it even before this bug. Confirmed as a separate
+   raw-`beta_T_val` truth mismatch and routed through proportion-only MC
+   truth; its pre-fix rows are included in the stale-row rules.
+4. [x] Check `InferenceIncidGCompRiskDiff`/`InferenceIncidKKGCompRiskDiff` and
    any other class sharing `compute_prop_mean_diff_coverage_truth` or a
    similarly-shaped closed form for the same "DGP changed, truth function
-   didn't" pattern -- this investigation only checked the proportion
-   mean-diff family, not a full sweep.
-5. Re-audit and prune `comprehensive_results_audit_baseline.csv` for
-   findings this closes.
+   didn't" pattern. The incidence paths already match their DGP; no change.
+5. [ ] Re-audit and prune `comprehensive_results_audit_baseline.csv` for
+   findings this closes after the comprehensive rows regenerate.
 
 Independent of `mc_coverage_truth_covariate_mismatch.md`'s TODO-6/TODO-11
 (different mechanism, different classes) -- do not conflate when resolving

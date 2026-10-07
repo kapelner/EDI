@@ -2175,8 +2175,9 @@ NULL
 #' built and safe to reuse across repeated fits as long as \code{X},
 #' \code{y}, \code{dead}, and \code{strata} have not changed; callers (e.g.
 #' \code{InferenceStratifiedCoxPH$private$strat_cox_data_cache}) are
-#' responsible for invalidating and rebuilding it when the treatment
-#' assignment, covariates, or stratification changes.
+#' responsible for invalidating and rebuilding it when any of the full
+#' \code{w}, \code{y}, \code{dead}, or \code{X} inputs changes (including
+#' covariates that determine strata).
 #'
 #' \strong{Complexity.} \eqn{O(n \log(n/S))} for the per-stratum sorts plus
 #' \eqn{O(n)} for the tabulation passes, where \eqn{n} is the number of
@@ -2272,8 +2273,8 @@ NULL
 #' \code{fast_coxph_regression_prebuilt_cpp} as long as \code{X}, \code{y},
 #' and \code{dead} have not changed; callers (e.g.
 #' \code{InferenceCoxPH$private$cox_data_cache}) are responsible for
-#' invalidating and rebuilding the cache when the treatment assignment or
-#' covariates change.
+#' invalidating and rebuilding the cache when any of the full
+#' \code{w}, \code{y}, \code{dead}, or \code{X} inputs changes.
 #'
 #' \strong{Complexity.} \eqn{O(n \log n)} for the sort plus \eqn{O(n)} for
 #' the tabulation pass, where \eqn{n} is the number of subjects; memory use

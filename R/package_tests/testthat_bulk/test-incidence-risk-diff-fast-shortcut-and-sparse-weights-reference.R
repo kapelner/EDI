@@ -76,19 +76,18 @@ test_that("weighted refit drops covariates when positive rows are too few for th
 	expect_equal(est, ref, tolerance = 1e-10)
 	expect_equal(f$priv$best_X_colnames, character(0))
 
-	# Only two positive-weight rows cannot identify intercept + treatment. SOURCE
-	# QUIRK (noted, not fixed): the hardened retry here uses the default
-	# required_cols = 1L (intercept only), so it drops the treatment column too,
-	# after which `which(attempt$keep == 2L)` is integer(0) and the cached
-	# estimate is a zero-length numeric rather than the intended NA_real_. Either
-	# way no finite treatment estimate is produced, which is what is pinned.
+	# Only two positive-weight rows cannot identify intercept + treatment.
+	# The retry must retain treatment and return a scalar non-estimable result.
 	f1 <- risk_diff_sparse_fixture()
 	wt1 <- rep(0, f1$n)
 	wt1[1:2] <- 1
 	est1 <- f1$inf$compute_estimate_with_bootstrap_weights(wt1)
-	expect_false(isTRUE(is.finite(est1)))
-	expect_false(isTRUE(is.finite(f1$priv$last_weighted_refit$beta_hat_T)))
-	expect_true(is.na(f1$priv$last_weighted_refit$s_beta_hat_T))
+	expect_identical(est1, NA_real_)
+	expect_identical(f1$priv$last_weighted_refit$beta_hat_T, NA_real_)
+	expect_identical(f1$priv$last_weighted_refit$s_beta_hat_T, NA_real_)
+	expect_true(f1$priv$last_weighted_refit$nonestimable)
+	expect_identical(f1$priv$last_weighted_refit$nonestimable_stage, "estimate")
+	expect_identical(f1$priv$last_weighted_refit$nonestimable_reason, "risk_diff_weighted_fit_unavailable")
 
 	# One more positive-weight row than columns keeps the full design and matches lm.wfit.
 	f2 <- risk_diff_sparse_fixture()
@@ -100,4 +99,7 @@ test_that("weighted refit drops covariates when positive rows are too few for th
 	X <- cbind(1, f2$w, f2$x)[idx, , drop = FALSE]
 	ref2 <- unname(stats::lm.wfit(X, f2$y[idx], wt2[idx])$coefficients[2])
 	expect_equal(est2, ref2, tolerance = 1e-10)
+	expect_length(est2, 1L)
+	expect_true(is.finite(est2))
+	expect_false(f2$priv$last_weighted_refit$nonestimable)
 })

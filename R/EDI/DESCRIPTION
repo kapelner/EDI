@@ -155,6 +155,7 @@ Collate:
     'inference_mixin_lemonte_gradient_approx.R'
     'inference_mixin_kk_gee_shared.R'
     'inference_mixin_kk_glmm_shared.R'
+    'helper_reused_worker_private_cache.R'
     'inference_mixin_kk_passthrough.R'
     'inference_mixin_kk_passthrough_compound.R'
     'helper_bootstrap_ci.R'

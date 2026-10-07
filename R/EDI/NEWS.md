@@ -61,6 +61,12 @@ bug), and standard-error and confidence-interval fixes.
   `y`/`dead` are now derived as `Design$get_effective_time()` /
   `$get_effective_dead()` do. A sweep of the other 16 survival classes found
   no further instance.
+* `InferenceIncidModifiedPoisson` now uses Zou's robust sandwich variance
+  for its Wald standard errors, confidence intervals, and p-values. Earlier
+  versions used the model-based Poisson Fisher information even though the
+  outcome is Bernoulli; a null simulation measured 0.26% rejection at a
+  nominal 5%. This is a result-changing correction for all Wald inference
+  from this class.
 * `InferenceOrdinalCloglogRegr`'s parametric-bootstrap `p`-value was
   badly over-rejecting (60% at a true null). One cause is fixed: the
   delta-constrained null refit started from a single cold start and could

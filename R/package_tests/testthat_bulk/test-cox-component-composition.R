@@ -36,42 +36,32 @@ make_right_censored_design = function(seed, n = 90L){
 
 test_that("InferenceSurvivalCoxPHRegr's randomization/bootstrap/jackknife family is present and functional", {
 	des = make_right_censored_design(seed = 5001L)
-
-	# Each capability tested on its own fresh object: a separate, pre-existing
-	# bug in the shared reusable-worker infrastructure (reproduces identically
-	# on InferenceSurvivalKMDiff, confirmed unrelated to this fix -- tracked
-	# separately, not fixed here) leaves a stale Bayesian-bootstrap worker
-	# context after a randomization or nonparametric-bootstrap call on the
-	# *same* object, which is a distinct, out-of-scope issue from what this
-	# test verifies (that the methods exist and work in isolation).
-	inf_rand = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
-	inf_rand$num_cores = 1L
-	expect_true(is.function(inf_rand$compute_rand_two_sided_pval))
-	rand_pv = inf_rand$compute_rand_two_sided_pval(r = 31, show_progress = FALSE)
+	inf = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
+	inf$num_cores = 1L
+	inf$set_seed(5001L)
+	expect_true(is.function(inf$compute_rand_two_sided_pval))
+	rand_pv = inf$compute_rand_two_sided_pval(r = 31, show_progress = FALSE)
 	expect_true(is.finite(rand_pv) && rand_pv >= 0 && rand_pv <= 1)
 
-	inf_boot = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
-	inf_boot$num_cores = 1L
-	boot_distr = inf_boot$approximate_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
+	boot_distr = inf$approximate_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
 	expect_gt(mean(is.finite(boot_distr)), 0.8)
 	expect_gt(sd(boot_distr[is.finite(boot_distr)]), 0)
 
-	inf_bboot = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
-	inf_bboot$num_cores = 1L
-	bboot_distr = inf_bboot$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
+	bboot_distr = inf$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
 	expect_gt(mean(is.finite(bboot_distr)), 0.8)
 	expect_gt(sd(bboot_distr[is.finite(bboot_distr)]), 0)
-	bboot_pv = inf_bboot$compute_bayesian_bootstrap_two_sided_pval(B = 31, type = "percentile", show_progress = FALSE)
+	bboot_pv = inf$compute_bayesian_bootstrap_two_sided_pval(B = 31, type = "percentile", show_progress = FALSE)
 	expect_true(is.finite(bboot_pv))
+	fresh_bboot = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
+	fresh_bboot$num_cores = 1L
+	fresh_bboot$set_seed(5001L)
+	expect_equal(bboot_distr, fresh_bboot$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE))
+	expect_equal(bboot_pv, fresh_bboot$compute_bayesian_bootstrap_two_sided_pval(B = 31, type = "percentile", show_progress = FALSE))
 
-	inf_brt = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
-	inf_brt$num_cores = 1L
-	brt_pv = inf_brt$compute_rand_bootstrap_two_sided_pval(B = 31, show_progress = FALSE)
+	brt_pv = inf$compute_rand_bootstrap_two_sided_pval(B = 31, show_progress = FALSE)
 	expect_true(is.finite(brt_pv))
 
-	inf_jack = InferenceSurvivalCoxPHRegr$new(des, verbose = FALSE)
-	inf_jack$num_cores = 1L
-	jack_est = as.numeric(inf_jack$compute_jackknife_estimate())[1L]
+	jack_est = as.numeric(inf$compute_jackknife_estimate())[1L]
 	expect_true(is.finite(jack_est))
 })
 

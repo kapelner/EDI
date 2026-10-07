@@ -141,6 +141,7 @@ InferenceIncidRiskDiff = define_inference_class(
 			X_full = private$build_design_matrix()
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_full,
+				required_cols = 1:2,
 				fit_fun = function(X_fit, keep){
 					w_fit = row_weights
 					ok = is.finite(w_fit) & w_fit > 0 & is.finite(private$y)
@@ -152,19 +153,20 @@ InferenceIncidRiskDiff = define_inference_class(
 					)
 				},
 				fit_ok = function(mod, X_fit, keep){
-					j_treat = which(keep == 2L)
+					j_treat = match(2L, keep)
 					!is.null(mod) &&
-						is.finite(j_treat) &&
+						!is.na(j_treat) &&
 						length(mod$coefficients) >= j_treat &&
 						is.finite(mod$coefficients[j_treat])
 				}
 			)
-			if (is.null(attempt$fit)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
+			j_treat = match(2L, attempt$keep)
+			if (is.null(attempt$fit) || is.na(j_treat) ||
+					length(attempt$fit$coefficients) < j_treat ||
+					!is.finite(attempt$fit$coefficients[j_treat])) {
+				private$cache_nonestimable_estimate("risk_diff_weighted_fit_unavailable")
 				return(NA_real_)
 			}
-			j_treat = which(attempt$keep == 2L)
 			private$best_X_colnames = setdiff(colnames(attempt$X), c("(Intercept)", "treatment"))
 			private$cached_values$beta_hat_T = as.numeric(attempt$fit$coefficients[j_treat])
 			private$cached_values$s_beta_hat_T = NA_real_

@@ -141,7 +141,7 @@ InferenceIncidNewcombeRiskDiff = define_inference_class(
 		#' @param delta The null risk difference.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1)
+				assertNumeric(delta, len = 1, any.missing = FALSE)
 			}
 			private$shared()
 			counts = private$cached_values$counts

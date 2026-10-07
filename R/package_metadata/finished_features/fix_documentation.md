@@ -1167,12 +1167,12 @@ for the merge and the now-seed-reproducible kernels.)
 
 ### `InferenceIncidModifiedPoisson.Rd`
 
-- [x] TODO #456: Method `InferenceIncidModifiedPoisson$compute_asymp_confidence_interval()` (current description `60` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); documented Wald CI + non-robust-SE caveat.
-- [x] TODO #457: Method `InferenceIncidModifiedPoisson$compute_asymp_two_sided_pval()` (current description `58` chars). Documented Wald test + non-robust-SE caveat.
+- [x] TODO #456: Method `InferenceIncidModifiedPoisson$compute_asymp_confidence_interval()` (current description `60` chars). Newly ungated 2026-08-21 (class migrated to `inherit = Inference`); originally documented the then-current non-robust SE. Superseded 2026-10 by the robust-sandwich correction and synchronized generated Rd.
+- [x] TODO #457: Method `InferenceIncidModifiedPoisson$compute_asymp_two_sided_pval()` (current description `58` chars). Originally documented the then-current non-robust SE; superseded 2026-10 by the robust-sandwich correction.
 - [x] TODO #458: Method `InferenceIncidModifiedPoisson$compute_estimate_with_bootstrap_weights()` (current description `76` chars). Documented weighted refit + hardening behavior.
 - [x] TODO #459: Method `InferenceIncidModifiedPoisson$compute_estimate()` (current description `58` chars). Documented Poisson-working-likelihood fit.
 - [x] TODO #460: Method `InferenceIncidModifiedPoisson$new()` (current description `58` chars). Documented model form; also fixed a duplicate/misplaced `@description`/`@param` roxygen block left over from the class's original doc-block-above-bare-list bug.
-- [x] TODO #461: Topic `InferenceIncidModifiedPoisson` (current description `316` chars). Full model doc added, with an explicit statistical-validity caveat: this implementation uses model-based (non-robust) Poisson Fisher information for the SE rather than Zou's canonical sandwich correction — flagged as an approximate-inference caveat, not fixed (out of scope). Fixed the misplaced-doc-block bug (same pattern as prior classes this session). `REFERENCES.md` updated (new `[Zou2004]` entry).
+- [x] TODO #461: Topic `InferenceIncidModifiedPoisson` (current description `316` chars). Full model doc added. Its original non-robust-SE caveat was accurate at the time and was superseded 2026-10 when Zou's sandwich correction was implemented; source and generated Rd now describe the corrected behavior. Fixed the misplaced-doc-block bug (same pattern as prior classes this session). `REFERENCES.md` updated (new `[Zou2004]` entry).
 
 ### `InferenceIncidNewcombeRiskDiff.Rd`
 
