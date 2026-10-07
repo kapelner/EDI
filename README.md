@@ -93,19 +93,21 @@ installing is [Getting Started](#getting-started) below and the
 
 ### Installation
 
-Requires R ≥ 3.5.0. The quickest route today is prebuilt binaries (Linux,
-macOS, and Windows — no compiler toolchain needed) from
+Requires R ≥ 3.5.0. Install the released version from
+[CRAN](https://CRAN.R-project.org/package=EDI):
+
+```r
+install.packages("EDI")
+```
+
+Prebuilt binaries of the latest tagged release (Linux, macOS, and Windows — no
+compiler toolchain needed) are also available from
 [R-universe](https://kapelner.r-universe.dev):
 
 ```r
 install.packages("EDI",
   repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
 ```
-
-> **Not on CRAN yet.** A plain `install.packages("EDI")` fails today — that
-> does not mean the package doesn't exist; use the R-universe line above.
-> Version 1.0.2 is the version prepared for CRAN; plain
-> `install.packages("EDI")` will work once it is accepted.
 
 Or install the development version straight from GitHub without cloning
 (requires a C++ compiler toolchain for R packages, e.g. Rtools on Windows,
@@ -610,7 +612,7 @@ If you are an AI agent (Claude Code, Copilot, Codex, Cursor, Gemini, …)
 working with or on EDI, start here — in this order:
 
 1. **[`AGENTS.md`](AGENTS.md)** — repo map, entry points, how to install
-   before CRAN acceptance, and the one hard rule (never rebuild `R/EDI`
+   (CRAN, R-universe, GitHub), and the one hard rule (never rebuild `R/EDI`
    without being asked). `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`
    and `.cursor/rules/` all point here.
 2. **[`llms.txt`](https://kapelner.github.io/EDI/llms.txt)** / **[`llms-full.txt`](https://kapelner.github.io/EDI/llms-full.txt)** —

@@ -56,6 +56,12 @@ not apply here.
   diagnostic list with `converged = FALSE`, starting-value `params` and
   information, and `exception_message`, not a bare two-field list). No
   behavior change.
+- `edi_kernels/__init__.py` gained a module-level docstring spelling out
+  "EDI (Experimental Design and Inference)" (same name-collision rationale as
+  the `1.0.0.post5` metadata rewrite -- "EDI" alone reads as Electronic Data
+  Interchange to a search engine) and summarizing what the package binds, so
+  `help(edi_kernels)` and `python -c "import edi_kernels; help(edi_kernels)"`
+  now describe the project instead of returning nothing.
 
 ### Changed
 

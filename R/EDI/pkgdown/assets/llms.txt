@@ -23,11 +23,14 @@ Key facts:
 - The distinct Python package `edi_kernels` (PyPI) exposes the same C++
   model-fitting kernels with no R dependency.
 
-## Installation (not on CRAN yet)
+## Installation
 
-`install.packages("EDI")` fails today — the package exists but is awaiting
-CRAN acceptance. Install prebuilt binaries from R-universe (Linux, macOS,
-Windows; no compiler needed):
+EDI is on CRAN (https://CRAN.R-project.org/package=EDI):
+
+    install.packages("EDI")
+
+Prebuilt binaries of the latest tagged release are also on R-universe (Linux,
+macOS, Windows; no compiler needed):
 
     install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
 

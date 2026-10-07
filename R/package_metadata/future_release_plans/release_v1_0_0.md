@@ -3,6 +3,11 @@
 > **Update (2026-09-24, user decision):** the first CRAN submission is
 > **v1.0.2** (see `../../EDI/cran-comments.md`); 1.0.0 and 1.0.1 were GitHub-only
 > releases. The "CRAN" framing below describes the original v1.0.0 intent.
+>
+> **Update (2026-10-07):** v1.0.2 is accepted and live on CRAN:
+> https://CRAN.R-project.org/package=EDI. Post-acceptance work (stale
+> "not on CRAN yet" text, Task View proposals, launch posts) is tracked in
+> `marketing_plans/`.
 
 > **Depends on:** the in-scope plans listed below — this document is the
 > release index that batches them, not new work of its own. (Global ordering:

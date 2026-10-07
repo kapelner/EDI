@@ -55,6 +55,7 @@ the API does not attempt to bound.
 
 PyPI releases are published via Trusted Publishing (OIDC) from
 `.github/workflows/build-wheels.yml` with digital attestations; R releases
-are tagged `v<version>` in this repository and mirrored on
+are tagged `v<version>` in this repository, published on
+[CRAN](https://CRAN.R-project.org/package=EDI), and mirrored on
 [R-universe](https://kapelner.r-universe.dev/EDI). Build from the tag if
 you need to verify an artifact.

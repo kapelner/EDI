@@ -21,8 +21,15 @@ package for the design and analysis of randomized experiments.
 
 ## Installation
 
-Requires R >= 3.5.0. The quickest route is prebuilt binaries (Linux, macOS,
-and Windows, no compiler toolchain needed) from Adam Kapelner's
+Requires R >= 3.5.0. Install the released version from
+[CRAN](https://CRAN.R-project.org/package=EDI):
+
+```r
+install.packages("EDI")
+```
+
+Prebuilt binaries of the latest tagged release (Linux, macOS, and Windows, no
+compiler toolchain needed) are also available from Adam Kapelner's
 [R-universe](https://kapelner.r-universe.dev):
 
 ```r
@@ -34,11 +41,6 @@ install.packages(
   )
 )
 ```
-
-> **Not on CRAN yet.** A plain `install.packages("EDI")` fails today — that
-> does not mean the package doesn't exist; use the R-universe call above.
-> `EDI` has been submitted to CRAN and plain `install.packages("EDI")` will
-> work once accepted.
 
 Or install the development version straight from GitHub without cloning
 (requires a C++ compiler toolchain for R packages, e.g. Rtools on Windows,

@@ -25,12 +25,12 @@ matched-design (KK) variants.
 
 ## Setup
 
-EDI is not on CRAN yet, so `install.packages("EDI")` fails — install from
-R-universe (fallback: GitHub, `subdir = "R/EDI"`). Not evaluated here.
+EDI is on [CRAN](https://CRAN.R-project.org/package=EDI). Not evaluated here: the
+vignette builds inside an already-installed package.
 
 ```{r install, eval = FALSE, purl = FALSE}
-install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
-# or: remotes::install_github("kapelner/EDI", subdir = "R/EDI")
+install.packages("EDI")
+# or the development version: remotes::install_github("kapelner/EDI", subdir = "R/EDI")
 ```
 
 ```{r setup}

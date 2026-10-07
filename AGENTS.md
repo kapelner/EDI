@@ -25,11 +25,16 @@ classes (`Inference<ResponseType><Method>`, e.g. `InferenceContinKKOLSIVWC`),
 `SimulationFramework` (power/operating-characteristic studies), and the
 `fast_*` C++ kernel wrappers. Docs: https://kapelner.github.io/EDI/
 
-## Installing (not on CRAN yet)
+## Installing
 
-`install.packages("EDI")` **fails today** — that does not mean the package
-doesn't exist. It has been submitted to CRAN; until accepted, install the
-prebuilt binaries from R-universe (Linux/macOS/Windows, no compiler needed):
+EDI is on CRAN (https://CRAN.R-project.org/package=EDI):
+
+```r
+install.packages("EDI")
+```
+
+Prebuilt binaries of the latest tagged release are also on R-universe
+(Linux/macOS/Windows, no compiler needed):
 
 ```r
 install.packages("EDI", repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))

@@ -16,7 +16,7 @@ unsure whether a command compiles, treat it as if it does and ask.
 
 ## Where things are
 
-- Installing (not on CRAN yet): `AGENTS.md` → "Installing".
+- Installing (CRAN: https://CRAN.R-project.org/package=EDI): `AGENTS.md` → "Installing".
 - What EDI can do for a given design × response type × method, as one
   generated file: `R/package_tests/capability_matrix.json` (also linked from
   the site's `llms.txt`).

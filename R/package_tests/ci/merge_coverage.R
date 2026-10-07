@@ -1,18 +1,24 @@
 #!/usr/bin/env Rscript
-# Progress tracing: three silent ~5-6 minute hangs-then-externally-killed failures
+# Progress tracing: four silent multi-minute hangs-then-externally-killed failures
 # so far (2026-09-26 runs 36257223738/36257223636, 2026-10-01 run 36853610057,
-# 2026-10-04 run 37184273859), all with ZERO R-level output before the runner
-# killed the job. The 2026-09-27 fix assumed the hang was in covr::codecov()'s
-# network upload and wrapped only that in a timeout (first setTimeLimit(), which
-# doesn't preempt a blocked C-level socket call and never fired; then callr::r(),
-# which does forcibly kill a hung child) -- but 2026-10-04's failure still showed
-# zero output and killed at ~5 minutes, well inside the callr-wrapped retry
-# loop's own timeline, meaning that loop was likely never reached at all: the
-# hang is plausibly in merge_coverage()'s large-object merge over 99 shards
-# instead, upstream of where any timeout existed. Since this is still unconfirmed,
-# every stage below now logs its own start/elapsed time with an explicit flush,
-# so whichever stage is actually hanging will be visible as the LAST line printed
-# before the next failure, instead of another silent black box.
+# 2026-10-04 run 37184273859, 2026-10-06 run 37540750560), all killed by "the
+# runner has received a shutdown signal" a few minutes in. The 2026-10-06 run is
+# the first with per-stage logging in place (added after 2026-10-04's failure,
+# which still predated it), and it finally pinned the hang down: "found 99
+# coverage.rds files, reading ..." printed, then NOTHING for the remaining 6m24s
+# until the kill -- i.e. plain `reports = lapply(files, readRDS)` on 99 real
+# shard artifacts (totaling ~3.8 GB of covr coverage objects, each carrying full
+# per-expression srcrefs for the whole package) is itself the slow part, not
+# covr::merge_coverage() or the codecov upload (both already confirmed innocent
+# by the earlier instrumentation). RDS deserialization cost scales with object
+# *graph complexity* (number of nested list/environment nodes), not just raw
+# bytes, which is consistent with covr's deeply nested per-expression structure
+# being slow to unserialize at this shard count even though the raw byte volume
+# alone wouldn't justify minutes. Parallelized across the runner's cores (plain
+# `lapply` was using exactly one) to actually cut the wall-clock time, not just
+# time out faster on it; every stage still logs its own start/elapsed time with
+# an explicit flush so a new bottleneck surfaces immediately instead of as
+# another silent black box.
 log_stage = function(msg) {
 	cat(sprintf("[merge_coverage %s] %s\n", format(Sys.time(), "%H:%M:%S"), msg))
 	flush(stdout())
@@ -23,9 +29,17 @@ if (length(args) != 2L) stop("Usage: merge_coverage.R ARTIFACT_DIR MATRIX_JSON")
 
 log_stage("start")
 files = list.files(args[[1]], pattern = "^coverage\\.rds$", recursive = TRUE, full.names = TRUE)
-log_stage(sprintf("found %d coverage.rds files, reading ...", length(files)))
-reports = lapply(files, readRDS)
-log_stage("finished readRDS of all shards")
+log_stage(sprintf("found %d coverage.rds files, reading (parallelized across %d cores) ...",
+	length(files), parallel::detectCores()))
+read_t0 = proc.time()[["elapsed"]]
+reports = if (.Platform$OS.type == "unix" && length(files) > 1L) {
+	parallel::mclapply(files, readRDS, mc.cores = min(parallel::detectCores(), length(files)))
+} else {
+	lapply(files, readRDS)
+}
+failed = vapply(reports, inherits, logical(1), what = "error")
+if (any(failed)) stop(sprintf("readRDS failed for: %s", paste(files[failed], collapse = ", ")))
+log_stage(sprintf("finished readRDS of all shards (%.1fs)", proc.time()[["elapsed"]] - read_t0))
 
 expected = jsonlite::fromJSON(args[[2]])$shard
 ids = vapply(reports, function(x) as.integer(x$shard), integer(1))

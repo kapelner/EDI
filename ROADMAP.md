@@ -2,8 +2,7 @@
 
 **Where things stand (last updated 2026-09-24):** v1.0.0 is released
 ([Zenodo DOI](https://doi.org/10.5281/zenodo.22170036)); v1.0.1 is a
-GitHub-only release, and **v1.0.2 is the version prepared for CRAN** (the
-first CRAN submission); the `edi_kernels` Python package is on PyPI. Everything
+GitHub-only release, and **v1.0.2 is the first version on [CRAN](https://CRAN.R-project.org/package=EDI)**; the `edi_kernels` Python package is on PyPI. Everything
 below is planned, not shipped.
 
 Each bullet summarizes one planned feature in at most a paragraph and links
