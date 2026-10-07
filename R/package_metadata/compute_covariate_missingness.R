@@ -115,6 +115,12 @@ cran_fetch_object_auto <- function(pkg, version, obj_name, dest_csv, work_dir) {
                tools::file_path_sans_ext(f, compression = TRUE) == obj_name) {
       obj <- tryCatch(data.table::fread(full_path, data.table = FALSE), error = function(e) NULL)
       if (!is.null(obj)) break
+    } else if (base_ext == "r" && tools::file_path_sans_ext(f, compression = TRUE) == obj_name) {
+      # data/<obj>.R: an R script that builds the object, sourced the way data() does.
+      # Old releases only, e.g. Epi 1.1.10's thoro.R -- pinned for its GPL (>= 2) license.
+      e <- new.env()
+      ok2 <- tryCatch({ sys.source(full_path, envir = e, chdir = TRUE); TRUE }, error = function(e) FALSE)
+      if (ok2 && obj_name %in% ls(e)) { obj <- get(obj_name, envir = e); break }
     }
   }
   if (is.null(obj)) stop(obj_name, " not found in any data/ file of ", pkg, " (checked: ", paste(data_files, collapse = ", "), ")", call. = FALSE)

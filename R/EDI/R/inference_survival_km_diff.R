@@ -118,6 +118,40 @@ InferenceSurvivalKMDiff = define_inference_class(
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$beta_hat_T
 		},
+		#' @description Computes a Bayesian-bootstrap two-sided p-value for the
+		#'   difference in Kaplan-Meier medians.
+		#'
+		#' A weighted Kaplan-Meier curve can fail to reach 0.5 even when the
+		#' original sample has finite medians in both arms. Such a draw has no
+		#' finite median-difference estimate. This class therefore drops non-finite
+		#' weighted-median draws by default and requires at least
+		#' \code{min_number_usable_samples} finite draws. If too few remain, the
+		#' result is \code{NA_real_} with nonestimability reason
+		#' \code{"bayesian_bootstrap_too_few_finite_estimates"}. Set
+		#' \code{na.rm = FALSE} to retain the generic fail-on-any-nonfinite policy.
+		#'
+		#' @param delta Null median difference. Default 0.
+		#' @param B Number of Bayesian-bootstrap replicates. Default 501.
+		#' @param type Bayesian-bootstrap p-value type.
+		#' @param na.rm Whether to discard non-finite weighted-median draws. Defaults
+		#'   to \code{TRUE} for this estimator.
+		#' @param show_progress Whether to display a progress bar.
+		#' @param min_number_usable_samples Minimum number of finite draws required.
+		#' @param weighting_unit_type Optional Bayesian-bootstrap weighting-unit
+		#'   scheme.
+		#' @return A numeric two-sided p-value, or \code{NA_real_} when too few
+		#'   finite draws remain.
+		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
+			private$bayesian_boot_compute_two_sided_pval(
+				delta = delta,
+				B = B,
+				type = type,
+				na.rm = na.rm,
+				show_progress = show_progress,
+				min_number_usable_samples = min_number_usable_samples,
+				weighting_unit_type = weighting_unit_type
+			)
+		},
 		#' @description Computes a (1 - alpha)-level confidence interval for the difference in Kaplan-Meier
 		#' median survival times (treatment minus control).
 		#'
@@ -205,6 +239,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		}
 	),
 	private = list(
+		bayesian_boot_compute_two_sided_pval = InferenceBayesianBootstrap$public_methods$compute_bayesian_bootstrap_two_sided_pval,
 		supports_interval_or_left_censored_data = function() TRUE,
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 			# compute_survival_stat_diff_rand_bootstrap_parallel_cpp() assumes
@@ -378,6 +413,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",
+			"compute_bayesian_bootstrap_two_sided_pval",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"compute_rand_confidence_interval", "compute_rand_two_sided_pval"
 		),

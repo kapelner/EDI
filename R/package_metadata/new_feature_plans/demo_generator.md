@@ -47,8 +47,8 @@ recommender. No estimator changes.
    - design construction;
    - `inf <- <Class>$new(des)`;
    - `run_all_inference_class_applicable_methods(...)` and `print(summary)`.
-   For `redistribution == "not permitted"` rows, emit a fetch step with a
-   comment and never embed data.
+   For rows whose `redistribution` is not plain `yes` (`no: …`, `unclear: …`,
+   `conditional: …`), emit a fetch step with a comment and never embed data.
 5. **Entry point.** `edi_inference_demo(class, dataset = NULL, demo_number = 1, fast = TRUE, write_to = NULL)`.
    Prints the script, or writes it to `write_to`. `demo_number` selects one of the
    candidate demos for that class (see "Demo number" below).
@@ -79,14 +79,20 @@ must ship with the installed package, not only live in the repository:
 ### Eligible sources for v1
 
 A demo may use only rows whose source is CRAN or base R and whose
-`redistribution` flag is "not flagged". Before the redistribution filter, that is 340 of the 373 catalog
-rows (249 + 90 CRAN, 1 base R). Excluded for v1:
+`redistribution` value starts with `yes`. (The column was re-valued 2026-10-08 — see
+`dataset_license_audit.md`: `yes` / `yes, with attribution (…)` / `conditional: …` /
+`unclear: …` / `no: <reason>`; the old "not flagged" / "not permitted" values are gone.)
+Before the redistribution filter, that is 338 of the 371 catalog rows (248 + 89 CRAN,
+1 base R); the filter then removes 37 (31 `no:`, 5 `unclear:`, 1 `conditional:`),
+leaving 301. Excluded for v1:
 
 - **Dataverse** (15 experimental, 2 observational): needs a guestbook form.
 - **GitHub** (6 experimental, 7 observational): pinned commits can disappear.
 - **ICPSR** (2 experimental, 1 observational): account and terms of use.
-- Any row with a redistribution flag, even if packaged on CRAN. Example:
-  `causaldrf::nmes_data` is ICPSR 9280.
+- Any CRAN row whose `redistribution` is not `yes`. Examples: `surrosurv::gastadv`
+  (research-only conditions), `coxphw::biofeedback` (non-commercial), `mediation::jobs`
+  (ICPSR-derived). 29 of the 31 `no:` rows are `no: GPL-2 only`, which bars *embedding*
+  the data in a GPL-3 package but not fetching it at run time — see Open decisions.
 
 The index builder rejects a spec that points to an ineligible row and says why.
 Dataverse and GitHub can be added later as separate steps.
@@ -217,7 +223,7 @@ class also depends on design, structure, censoring, covariates, and model
 needs. So coverage is computed, not assumed.
 
 - The index builder checks every exported Inference class against the
-  eligible catalog rows (CRAN or base R, redistribution not flagged).
+  eligible catalog rows (CRAN or base R, `redistribution` starts with `yes`).
 - For each class it lists the matching datasets, or reports why none match:
   missing response type, wrong design (randomized vs observational), missing
   ID or cluster column, censoring type not present, no covariates, or no
@@ -389,8 +395,8 @@ Open for the implementation step:
   scripts onto it. Test: fetch and load one object from each format (`.rda`,
   `.RData`, `.csv`, `.R`), and a pinned archive version.
 - [ ] TODO-12: Eligibility filter in the index builder (CRAN or base R only,
-  redistribution flag not set). Test: an ICPSR row, a Dataverse row, a GitHub
-  row, and a redistribution-flagged CRAN row are each rejected with a reason.
+  `redistribution` starts with `yes`). Test: an ICPSR row, a Dataverse row, a GitHub
+  row, and a `no:`/`unclear:` CRAN row (e.g. `surrosurv::gastadv`) are each rejected with a reason.
 - [ ] TODO-14: Summary renderer prints design provenance (actual vs imposed) from the spec and catalog. Test: a documented randomized row prints the actual case; a KK demo on observational data prints the imposed case with the warning.
 - [ ] TODO-15: `prop_reservoir` argument (default 0.2, KK only). Caliper calibration via `caliper_for_reservoir()`, printing the caliper and achieved share. Tests: achieved share within 2/n of target across targets 0.1, 0.2, 0.4; an unreachable target gives a clear message; a non-KK spec with `prop_reservoir` is rejected.
 - [ ] TODO-16: `seed` argument (default 1), passed to every design and inference constructor, plus `with_demo_seed()` for other draws. No bare `set.seed()` in the demo. Tests: two runs with the same seed give identical output; the user's `.Random.seed` is identical before and after `edi_inference_demo()` runs; `seed = NULL` leaves the RNG untouched and passes `NULL` to constructors; the seed appears in the summary and header.
@@ -437,6 +443,12 @@ Open for the implementation step:
 ## Open decisions (defaults chosen; confirm before implementing)
 
 Resolved 2026-10-06: data-only CRAN fetch instead of install; CRAN and base R sources only in v1; ICPSR and redistribution-flagged rows excluded.
+
+Open (2026-10-08, after the `redistribution` column was re-valued): demos fetch data at
+run time and never embed it, so the 29 `no: GPL-2 only` rows (HSAUR3, PASWR2, COUNT,
+ISLR, vegan, …) are not actually barred from a demo — only from being bundled. Default
+kept as "starts with `yes`" (301 rows) for simplicity; relaxing the filter to
+"`yes` or `no: GPL-2 only`" would add those 29.
 
 
 1. **Output.** Default: print to console; `write_to` writes a file. Files are not

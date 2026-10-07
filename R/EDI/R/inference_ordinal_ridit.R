@@ -9,12 +9,16 @@
 #' point probabilities. The \code{reference} distribution — controlled by the
 #' \code{reference} constructor argument — may be the \strong{control} arm
 #' (default), the \strong{treatment} arm, or the \strong{pooled} sample. The
-#' treatment effect is the mean ridit score among treated subjects minus
-#' \eqn{0.5} (the value it would take under the null of no group difference,
-#' since a group's own ridit scores against itself as reference always average
-#' to 0.5); this mean ridit score also has a direct interpretation as (an
+#' treatment effect is oriented as treated-versus-control stochastic superiority:
+#' with a control or pooled reference it is the treated mean ridit minus
+#' \eqn{0.5}; with a treatment reference it is \eqn{0.5} minus the control
+#' mean ridit. The latter orientation is essential because the reference
+#' group's own mean ridit is \eqn{0.5} by construction. For a two-arm sample,
+#' the control- and treatment-reference formulas are the same empirical
+#' Mann-Whitney contrast, while retaining the requested group's scores for
+#' inspection. The mean ridit has a direct interpretation as (an
 #' estimate of) the probability that a randomly selected treated subject's
-#' outcome exceeds a randomly selected reference-distribution subject's outcome
+#' outcome exceeds a randomly selected control subject's outcome
 #' (a Mann-Whitney-type stochastic superiority probability), similar in spirit
 #' to \code{\link[EDI:InferenceOrdinalJonckheereTerpstraTest]{InferenceOrdinalJonckheereTerpstraTest}}'s
 #' superiority measure but referenced against a chosen distribution rather than
@@ -56,8 +60,11 @@ InferenceOrdinalRidit = define_inference_class(
 		#'   completed design with an ordinal, uncensored response.
 		#' @param des_obj A DesignSeqOneByOne object whose entire n subjects are assigned and
 		#'   response y is recorded within.
-		#' @param reference The group to use as the "Identified Distribution" (reference).
-		#'   Must be one of "control", "treatment", or "pooled". Default is "control".
+		#' @param reference The group to use as the "Identified Distribution"
+		#'   when constructing ridit scores. Must be one of "control", "treatment",
+		#'   or "pooled". The reported contrast is always oriented so positive values
+		#'   mean higher treated outcomes: treated mean minus 0.5 for control/pooled,
+		#'   and 0.5 minus control mean for treatment. Default is "control".
 		#' @param model_formula   Optional formula for covariate adjustment. If \code{NULL} (default),
 		#'   the formula from the design object is used and its pre-computed design matrix is
 		#'   reused. If a formula is provided, a new design matrix is constructed from the
@@ -80,9 +87,10 @@ InferenceOrdinalRidit = define_inference_class(
 				assertNoCensoring(private$any_censoring)
 			}
 		},
-		#' @description Returns the estimated treatment effect: the mean ridit
-		#'   score among treated subjects minus 0.5 (see class documentation for
-		#'   the full ridit-score definition and reference-distribution choice).
+		#' @description Returns the estimated treated-versus-control stochastic
+		#'   superiority contrast. This is treated mean ridit minus 0.5 for a
+		#'   control/pooled reference and 0.5 minus control mean ridit for a treatment
+		#'   reference (see class documentation).
 		#' @return The numeric estimate.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
@@ -92,8 +100,7 @@ InferenceOrdinalRidit = define_inference_class(
 		#' @description Recomputes the ridit treatment estimate under subject/block
 		#'   bootstrap weights: the reference distribution's category proportions
 		#'   and every subject's ridit score are recomputed using the weights, then
-		#'   the weighted mean ridit score among treated subjects (minus 0.5) is
-		#'   returned. Used by the Bayesian bootstrap and related
+		#'   the oriented weighted ridit contrast is returned. Used by the Bayesian bootstrap and related
 		#'   weighted-resampling machinery. Always leaves the standard error and
 		#'   degrees of freedom unavailable (\code{NA}) regardless of
 		#'   \code{estimate_only} — this weighted path never computes the
@@ -151,14 +158,18 @@ InferenceOrdinalRidit = define_inference_class(
 			private$cached_values$mean_ridit_t = mean_t
 			private$cached_values$mean_ridit_c = mean_c
 			private$cached_values$scores = scores
-			private$cached_values$beta_hat_T = as.numeric(mean_t - 0.5)
+			private$cached_values$beta_hat_T = if (identical(private$reference, "treatment")) {
+				as.numeric(0.5 - mean_c)
+			} else {
+				as.numeric(mean_t - 0.5)
+			}
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		},
 		#' @description Returns the mean ridit score among treated subjects (not
-		#'   centered — this is the raw mean, unlike \code{$compute_estimate()}
-		#'   which subtracts 0.5).
+		#'   centered). With a treatment reference this is 0.5 by construction;
+		#'   \code{$compute_estimate()} therefore uses the control mean instead.
 		#' @return The numeric Mean Ridit.
 		get_mean_ridit_treatment = function(){
 			private$shared()
@@ -172,7 +183,7 @@ InferenceOrdinalRidit = define_inference_class(
 			private$cached_values$scores
 		},
 		#' @description Computes the asymptotic confidence interval for the
-		#'   treatment effect (mean ridit \eqn{- 0.5}), using
+		#'   oriented ridit treatment effect, using
 		#'   \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
 		#' @param alpha Significance level.
 		#' @return A numeric vector of length 2.
@@ -180,9 +191,8 @@ InferenceOrdinalRidit = define_inference_class(
 			private$shared()
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
-		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
-		#'   \text{mean ridit} - 0.5 = \code{delta}} (i.e. \code{delta = 0} tests
-		#'   the null of no group difference, mean ridit \eqn{= 0.5}), using
+		#' @description Computes a two-sided Wald p-value for the oriented ridit
+		#'   contrast (i.e. \code{delta = 0} tests the null of no group difference), using
 		#'   \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
 		#' @param delta The null value (centered at 0, so delta=0 means Ridit=0.5).
 		#' @return The p-value.
@@ -205,7 +215,8 @@ InferenceOrdinalRidit = define_inference_class(
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
 			if (is.null(mats)) return(NULL)
 			compute_ridit_rand_bootstrap_parallel_cpp(
-				as.integer(y0_full), mats$i_mat, mats$w_mat, private$reference,
+				as.integer(y0_full), mats$i_mat, mats$w_mat,
+				if (identical(private$reference, "treatment")) "control" else private$reference,
 				private$n_cpp_threads(ncol(mats$w_mat))
 			)
 		},
@@ -227,8 +238,21 @@ InferenceOrdinalRidit = define_inference_class(
 			}
 			private$cached_values$mean_ridit_t = res$mean_ridit_t
 			private$cached_values$mean_ridit_c = res$mean_ridit_c
-			private$cached_values$beta_hat_T   = res$estimate
-			if (!estimate_only) private$cached_values$s_beta_hat_T = res$se
+			if (identical(private$reference, "treatment")) {
+				# A reference population's own mean ridit is exactly 0.5. Compare
+				# controls against the treated reference and reverse the sign so the
+				# estimand keeps the package-wide positive-treatment orientation.
+				private$cached_values$beta_hat_T = as.numeric(0.5 - res$mean_ridit_c)
+				if (!estimate_only) {
+					control_scores = as.numeric(res$scores)[as.integer(private$w) == 0L]
+					private$cached_values$s_beta_hat_T = if (length(control_scores) > 1L) {
+						stats::sd(control_scores) / sqrt(length(control_scores))
+					} else if (length(control_scores) == 1L) 0 else NA_real_
+				}
+			} else {
+				private$cached_values$beta_hat_T = res$estimate
+				if (!estimate_only) private$cached_values$s_beta_hat_T = res$se
+			}
 			private$cached_values$scores       = res$scores
 		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
@@ -236,7 +260,7 @@ InferenceOrdinalRidit = define_inference_class(
 			compute_ridit_distr_parallel_cpp(
 			        as.integer(y),
 			        matrix(as.integer(permutations$w_mat), nrow = nrow(permutations$w_mat)),
-			        private$reference,
+			        if (identical(private$reference, "treatment")) "control" else private$reference,
 			        private$n_cpp_threads(ncol(permutations$w_mat))
 			)
 
@@ -271,7 +295,7 @@ InferenceOrdinalRidit = define_inference_class(
 				as.integer(w),
 				as.integer(y),
 				indices_mat,
-				private$reference,
+				if (identical(private$reference, "treatment")) "control" else private$reference,
 				private$n_cpp_threads(B)
 			)
 		}

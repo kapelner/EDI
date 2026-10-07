@@ -41,18 +41,23 @@ test_that("KK modified-Poisson weighted-bootstrap refit matches an independent w
 	set.seed(1L)
 	weights <- runif(n, 0.2, 3)
 
-	est <- inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE)
+	est <- inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
 
 	ref_fit <- glm.fit(X, y, weights = weights, family = poisson())
 	ref_beta_T <- unname(ref_fit$coefficients[2L])
 
 	expect_equal(est, ref_beta_T, tolerance = 1e-4)
+	mu <- exp(drop(X %*% ref_fit$coefficients))
+	bread <- solve(crossprod(X, X * (weights * mu)))
+	cluster_id <- priv$get_cluster_ids()
+	cluster_score <- rowsum(X * ((y - mu) * sqrt(weights)), cluster_id, reorder = FALSE)
+	meat <- crossprod(cluster_score)
+	se_ref <- sqrt((bread %*% meat %*% bread)[2L, 2L])
+	expect_equal(priv$last_weighted_refit$s_beta_hat_T, se_ref, tolerance = 1e-6)
 
-	# SE/df are never populated on this path, regardless of estimate_only
-	expect_true(is.na(priv$last_weighted_refit$s_beta_hat_T))
 	inf2 <- InferenceIncidKKModifiedPoisson$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
 	install_bb_context(inf2, n)
-	inf2$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
+	inf2$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE)
 	expect_true(is.na(inf2$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
 })
 

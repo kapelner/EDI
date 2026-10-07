@@ -120,6 +120,7 @@ build_csv <- function(md_path, csv_path) {
     source = strip_md(tbl$Source),
     version = strip_md(tbl$Version),
     license = strip_md(tbl$License),
+    redistribution = strip_md(tbl$Redistribution),
     n = first_number(tbl$n),
     n_raw = strip_md(tbl$n),
     p = first_number(tbl[["p (covariates)"]]),
@@ -158,11 +159,12 @@ build_csv <- function(md_path, csv_path) {
   out$cluster_groups <- suppressWarnings(as.integer(sub("^.*\\(([0-9]+) groups\\).*$", "\\1", cluster_raw)))
   out$cluster_groups[!grepl("groups", cluster_raw)] <- NA_integer_
 
-  # Rows whose License cell records a redistribution bar (e.g. ICPSR terms of use) may be
-  # fetched and used locally, but must never be committed, bundled, or shared.
-  out$redistribution <- ifelse(
-    grepl("ICPSR terms|no redistribution|not redistributable", out$license, ignore.case = TRUE),
-    "not permitted (ICPSR terms of use)", "not flagged")
+  # "Redistribution" is hand-maintained in the md (see dataset_license_audit.md): may EDI, a
+  # GPL-3 package, bundle or share this dataset? "yes" / "yes, with attribution (...)" /
+  # "conditional: ..." / "unclear: ..." / "no: <reason>". Any row that is not plain "yes" may
+  # be fetched and used locally but must not be committed or bundled without a decision.
+  bad <- !grepl("^(yes|conditional: |unclear: |no: )", out$redistribution)
+  if (any(bad)) stop("unrecognised Redistribution cell(s): ", paste(out$dataset[bad], collapse = ", "))
   write.csv(out, csv_path, row.names = FALSE, na = "", fileEncoding = "UTF-8")
   invisible(out)
 }

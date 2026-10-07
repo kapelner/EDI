@@ -77,8 +77,11 @@ double compute_single_ridit_estimate_cpp(const int* y_b,
     y_ref.clear();
     y_t.clear();
 
+    const bool treatment_reference = (reference == "treatment");
     for (int i = 0; i < n; ++i) {
-        if (w_b[i] == 1) y_t.push_back(y_b[i]);
+        if ((!treatment_reference && w_b[i] == 1) || (treatment_reference && w_b[i] == 0)) {
+            y_t.push_back(y_b[i]);
+        }
         
         if (reference == "control") {
             if (w_b[i] == 0) y_ref.push_back(y_b[i]);
@@ -93,7 +96,8 @@ double compute_single_ridit_estimate_cpp(const int* y_b,
     
     get_ridit_map_cpp(y_ref, levels, ridit_scores, counts);
     
-    return compute_mean_ridit_with_map_cpp(y_t, ridit_scores, levels) - 0.5;
+    const double target_mean = compute_mean_ridit_with_map_cpp(y_t, ridit_scores, levels);
+    return treatment_reference ? 0.5 - target_mean : target_mean - 0.5;
 }
 
 } // namespace

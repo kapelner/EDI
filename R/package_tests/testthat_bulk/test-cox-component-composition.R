@@ -65,6 +65,40 @@ test_that("InferenceSurvivalCoxPHRegr's randomization/bootstrap/jackknife family
 	expect_true(is.finite(jack_est))
 })
 
+test_that("InferenceSurvivalKMDiff Bayesian bootstrap is unchanged after randomization and nonparametric bootstrap on the same object", {
+	# TODO-42's alleged stale-worker failure was specifically reported for this
+	# class as well as Cox.  Keep the fixture fully observed so this checks object
+	# reuse rather than TODO-54's separate non-estimable-median behavior under
+	# heavy censoring.
+	set.seed(5042L)
+	n = 90L
+	X = data.frame(x1 = rnorm(n))
+	des = DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w = des$get_w()
+	y = rexp(n, rate = 0.15 * exp(0.4 * w))
+	des$add_all_subject_responses(y)
+
+	fresh = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
+	fresh$num_cores = 1L
+	fresh$set_seed(5042L)
+	expected_distr = fresh$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
+	expected_pval = fresh$compute_bayesian_bootstrap_two_sided_pval(B = 31, type = "percentile", show_progress = FALSE)
+
+	reused = InferenceSurvivalKMDiff$new(des, verbose = FALSE)
+	reused$num_cores = 1L
+	reused$set_seed(5042L)
+	expect_true(is.finite(reused$compute_rand_two_sided_pval(r = 31, show_progress = FALSE)))
+	boot_distr = reused$approximate_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
+	expect_gt(mean(is.finite(boot_distr)), 0.8)
+	observed_distr = reused$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 31, show_progress = FALSE)
+	observed_pval = reused$compute_bayesian_bootstrap_two_sided_pval(B = 31, type = "percentile", show_progress = FALSE)
+
+	expect_identical(observed_distr, expected_distr)
+	expect_identical(observed_pval, expected_pval)
+})
+
 test_that("Cox's TODO-6 icenReg dispatch is unaffected by the component-composition fix", {
 	skip_if_not_installed("icenReg")
 	set.seed(5002L)

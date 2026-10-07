@@ -66,9 +66,17 @@ def test_reference_group_mean_ridit_is_half_by_construction():
     assert res_treatment["mean_ridit_t"] == pytest.approx(0.5, abs=ATOL)
 
 
-def test_estimate_is_treatment_mean_ridit_minus_half():
+def test_estimate_orientation_depends_on_reference_group_without_degenerating():
     res = fast_ridit_analysis(W, Y, "control")
     assert res["estimate"] == pytest.approx(res["mean_ridit_t"] - 0.5, abs=ATOL, rel=RTOL)
+
+    res_treatment = fast_ridit_analysis(W, Y, "treatment")
+    assert res_treatment["estimate"] == pytest.approx(0.5 - res_treatment["mean_ridit_c"], abs=ATOL, rel=RTOL)
+    assert res_treatment["estimate"] == pytest.approx(res["estimate"], abs=ATOL, rel=RTOL)
+    control_scores = np.asarray(res_treatment["scores"])[W == 0]
+    expected_se = np.std(control_scores, ddof=1) / math.sqrt(control_scores.size)
+    assert res_treatment["se"] == pytest.approx(expected_se, abs=ATOL, rel=RTOL)
+    assert abs(res_treatment["estimate"]) > ATOL
 
 
 def test_empty_reference_group_returns_nan_fields():

@@ -3203,7 +3203,6 @@ compute_survival_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 }
 
 COVERAGE_CLOSED_FORM = list(
-	InferenceIncidLogRegr                 = compute_incid_logit_coverage_truth,
 	InferenceAllSimpleAverageDiff__incidence = compute_incid_risk_diff_coverage_truth,
 	InferenceIncidWald                    = compute_incid_risk_diff_coverage_truth,
 	InferenceIncidRiskDiff                = compute_incid_risk_diff_coverage_truth,
@@ -3315,6 +3314,11 @@ COVERAGE_MC_SPEC = list(
 	InferencePropKKGLMM                  = list(rt = "proportion", design = quote(DesignFixedBinaryMatch), gen = quote(InferencePropKKGLMM),                  mc_n = 3000L),
 	InferencePropKKQuantileRegrOneLik    = list(rt = "proportion", design = quote(DesignFixedBinaryMatch), gen = quote(InferencePropKKQuantileRegrOneLik),    mc_n = 3000L),
 	InferenceIncidProbitRegr             = list(rt = "incidence",  design = quote(DesignFixedBernoulli),  gen = quote(InferenceIncidProbitRegr),             mc_n = 20000L),
+	# The incidence DGP's closed-form marginal log-odds contrast does not
+	# match InferenceIncidLogRegr's default conditional estimand. Fit the
+	# estimator against the same adjustment set instead of grading it against
+	# a different estimand.
+	InferenceIncidLogRegr                = list(rt = "incidence",  design = quote(DesignFixedBernoulli),  gen = quote(InferenceIncidLogRegr),                mc_n = 20000L),
 	InferenceIncidKKGEE                  = list(rt = "incidence",  design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKGEE),                  mc_n = 3000L),
 	InferenceIncidKKCondLogitOneLik      = list(rt = "incidence",  design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKCondLogitOneLik),      mc_n = 3000L),
 	InferenceIncidKKCondLogitGLMMOneLik = list(rt = "incidence", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKCondLogitGLMMOneLik), mc_n = 3000L),
@@ -3328,6 +3332,10 @@ COVERAGE_MC_SPEC = list(
 	# broken CI) (found 2026-09-06).
 	InferenceSurvivalLogRank             = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalLogRank),             mc_n = 20000L),
 	InferenceSurvivalGehanWilcox         = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalGehanWilcox),         mc_n = 20000L),
+	# The KM median difference is on the observed-time scale, whereas beta_T
+	# is the DGP's multiplicative-time parameter. Its least-false target also
+	# depends on censoring and the fitted adjustment set.
+	InferenceSurvivalKMDiff              = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalKMDiff),              mc_n = 20000L),
 	InferenceSurvivalCoxPHRegr           = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalCoxPHRegr),           mc_n = 20000L),
 	InferenceSurvivalStratCoxPHRegr      = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalStratCoxPHRegr),      mc_n = 20000L),
 	InferenceSurvivalWeibullRegr         = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalWeibullRegr),         mc_n = 20000L),
@@ -3345,6 +3353,14 @@ COVERAGE_MC_SPEC = list(
 	# reproduced directly: a true log-odds effect of 0.6 gave a Ridit point
 	# estimate/CI of about -0.09, nowhere near 0.6, at n=20000).
 	InferenceOrdinalRidit                = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalRidit),               mc_n = 20000L),
+	# These estimators fit different ordinal likelihood/link families from the
+	# cumulative-logit DGP (or, for PartialProportionalOdds, a conditional
+	# coefficient under covariate adjustment). Raw beta_T is therefore not
+	# their coverage target.
+	InferenceOrdinalCauchitRegr          = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalCauchitRegr),          mc_n = 20000L),
+	InferenceOrdinalAdjCatLogitRegr      = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalAdjCatLogitRegr),      mc_n = 20000L),
+	InferenceOrdinalContRatioRegr        = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalContRatioRegr),        mc_n = 20000L),
+	InferenceOrdinalPartialProportionalOddsRegr = list(rt = "ordinal", design = quote(DesignFixedBernoulli), gen = quote(InferenceOrdinalPartialProportionalOddsRegr), mc_n = 20000L),
 	# InferenceOrdinalKKGLMM/InferenceOrdinalKKCLMMCauchit have the same
 	# missing-MC-truth problem as Ridit/LogRank above, found 2026-09-22
 	# (comprehensive_results CSV audit's biased_estimate check). Both are
@@ -3364,6 +3380,17 @@ COVERAGE_MC_SPEC = list(
 	# not a truth-scale mismatch.
 	InferenceOrdinalKKGLMM               = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKGLMM),              mc_n = 3000L),
 	InferenceOrdinalKKCLMMCauchit        = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKCLMMCauchit),       mc_n = 3000L)
+)
+
+# These matched Cox classes do not yet have a defensible numeric coverage
+# target in the high-covariate scenarios used by the harness. Block-recycled
+# and bootstrap-resampled real-X constructions converge to materially
+# different values, both far from the finite-sample estimator distribution.
+# Returning NA prevents the harness from silently grading intervals against
+# either an unconverged MC value or the known-wrong raw beta_T fallback.
+COVERAGE_TRUTH_UNAVAILABLE = c(
+	"InferenceSurvivalKKLWACoxPHOneLik",
+	"InferenceSurvivalKKStratCoxPHOneLik"
 )
 
 # TODO-32 (mc_coverage_truth_covariate_mismatch.md): shared by
@@ -3393,6 +3420,7 @@ get_coverage_mc_spec = function(base_class, response_type_hint = NA_character_){
 
 get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
 	base_class = sub(" [\\(\\[].*$", "", inference_class)
+	if (base_class %in% COVERAGE_TRUTH_UNAVAILABLE) return(NA_real_)
 	closed_form_fn = COVERAGE_CLOSED_FORM[[base_class]]
 	# InferenceAllSimpleMeanDiffPooledVar computes the identical mean-
 	# difference estimand (yT_bar - yC_bar) as InferenceAllSimpleAverageDiff
@@ -3575,6 +3603,7 @@ precompute_screen_estimate_theta_cache = function(){
 
 get_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val, response_type_hint){
 	base_class = estimate_logging_theta_base_class(inference_class)
+	if (base_class %in% COVERAGE_TRUTH_UNAVAILABLE) return(NA_real_)
 	screen_key = screen_estimate_theta_key(base_class, dataset_name, beta_T_val, response_type_hint)
 	if (exists(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE)) {
 		return(get(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE))

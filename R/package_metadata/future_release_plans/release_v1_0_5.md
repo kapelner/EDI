@@ -1185,9 +1185,9 @@ baseline as expected/benign.
 
 - [ ] TODO-41 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Unchecked callback result in the randomization loop** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-7`. `result[0]` on a length-0 vector is read without a length check; Rcpp only warns and the loop continues, leaving the entry undefined instead of failing.
 
-- [ ] TODO-42 (added 2026-09-24, test-comment audit; **investigated 2026-09-24: stale worker not reproduced in 240 same-object runs, workaround appears unnecessary**, see plan TODO-8): **Is the stale Bayesian-bootstrap worker workaround still needed?** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-8`. `test-cox-component-composition.R` uses a fresh object per capability to avoid a stale Bayesian-bootstrap worker context after a randomization or bootstrap call (also on `InferenceSurvivalKMDiff`). The stale-worker fix may have resolved it: remove the workaround and either delete the comment or plan a fix.
+- [x] TODO-42 (added 2026-09-24, closed 2026-10-08): **Stale Bayesian-bootstrap worker workaround is no longer needed** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-8`. The Cox regression already exercises randomization, nonparametric bootstrap and Bayesian bootstrap on one object. A matching `InferenceSurvivalKMDiff` regression now compares the reused object's Bayesian distribution and p-value bit-for-bit with a fresh object after both earlier resampling calls. Eighteen focused assertions pass without compilation; no stale worker was reproduced.
 
-- [ ] TODO-43 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **RNG-state sensitivity in the IVWC frailty optimizer** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-9`. `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`: a freshly constructed `compute_estimate(estimate_only = TRUE)` reproducibly returns `NA` on the test fixture while the identical fit via the constant-weights shortcut converges. Suggests a start-value or seeding dependence.
+- [x] TODO-43 (added 2026-09-24, closed 2026-10-08): **The reported IVWC frailty RNG sensitivity was a mismatched-estimator fallback** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-9`. Direct fits were finite and RNG-invariant on the exact fixture and a 100-seed sweep. Previously, a nonfinite direct Clayton/Weibull result on the constant-weight path fell through to a different marginal-Weibull surrogate, creating the appearance that the same fit had changed. Constant weights now return the direct estimator's result, including `NA`; varying weights retain the surrogate. Forty-nine focused assertions pass without compilation.
 
 - [x] TODO-44 (added 2026-09-24, fixed 2026-10-07): **Silent `NA`
   results with no recorded reason** —
@@ -1198,9 +1198,9 @@ baseline as expected/benign.
   hardening setting. Focused tests cover failure and successful-selector
   paths without compilation.
 
-- [ ] TODO-45 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Weighted-refit SEs never populated** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-11`. The Weibull fast surrogate, `InferenceIncidKKModifiedPoisson` and the modified-Poisson class return `NA` from the base `weighted_refit_se()` even with `estimate_only = FALSE`, contradicting a `@param` that implies a variance is computed. Implement the SE or correct the docs.
+- [x] TODO-45 (added 2026-09-24, fixed 2026-10-08): **Weighted-refit SEs are populated when requested** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-11`. Plain modified Poisson now caches a weighted HC0 SE, `InferenceIncidKKModifiedPoisson` caches a weighted cluster-sandwich SE, and all four Weibull surrogate callers cache the model or cluster-robust `survreg` SE. `estimate_only = TRUE` still skips variance work, and constant-weight shortcuts honor the flag. Six focused suites pass 105 assertions without compilation; studentized Bayesian-bootstrap smoke checks return finite p-values.
 
-- [ ] TODO-46 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Cosmetic / minor list** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-12`. Dead "Continuous covariates are not allowed for stratification" `stop()` in `add_one_subject()`; `extract_dollar_paths()` also returns nested sub-chains; `fast_weibull_regression(use_rcpp = FALSE)` ignores `estimate_only`; `with_var` kernel field sets differ across families. Record each as fix / document / accept.
+- [x] TODO-46 (added 2026-09-24, closed 2026-10-08): **Cosmetic / minor list audited** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-12`. The dead stratification stop was already absent; stale test commentary was removed and the shared categorical-strata guard gained a direct numeric-stratum regression. Nested `$` prefixes are now documented as an intentional conservative contract. The R Weibull fallback's `estimate_only` limitation and the cross-family `with_var` field differences are explicitly documented and pinned, with `fisher_information` retained as the common contract. Across TODO-42 and this batch, 184 focused assertions pass without compilation.
 
 - [ ] TODO-47 (added 2026-09-24, found via a dedicated cross-class
   investigation fork re-running `audit_comprehensive_results.R`'s
@@ -1274,13 +1274,16 @@ baseline as expected/benign.
   power (0.183 vs 0.317 for the Wald test at `beta_T = 0.5`); not a validity
   failure.
 
-- [ ] TODO-54 (added 2026-09-24, found investigating TODO-42; reproduced on a
-  fresh object): **`InferenceSurvivalKMDiff` Bayesian-bootstrap p-value is
-  `NA` for about 30% of RNG states on heavily censored data** —
-  `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-13`. 12 of 40
-  RNG seeds, reason `bayesian_bootstrap_nonfinite_estimates`. One non-finite
-  replicate makes the whole p-value `NA`, unlike the non-parametric bootstrap
-  on the same data. Not caused by object reuse (TODO-42).
+- [x] TODO-54 (added 2026-09-24, fixed 2026-10-08):
+  **`InferenceSurvivalKMDiff` Bayesian-bootstrap p-values tolerate occasional
+  undefined weighted medians** —
+  `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-13`. The
+  class-specific wrapper now defaults to dropping non-finite draws and uses
+  the existing minimum-finite-draw guard and typed
+  `bayesian_bootstrap_too_few_finite_estimates` reason. Callers can still set
+  `na.rm = FALSE` to retain fail-on-any-nonfinite behavior. Forty-one focused
+  assertions pass without compilation, including the censored reproduction,
+  generic guard contract and same-object composition regression.
 - [ ] TODO-55 (added 2026-09-25, core fix implemented 2026-10-07;
   regeneration/re-audit still open; found checking other
   proportion classes for

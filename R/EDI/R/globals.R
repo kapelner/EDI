@@ -358,13 +358,25 @@ weighted_weibull_bootstrap_surrogate_fit = function(time, dead, X, row_weights, 
   fit_survreg = function(init = NULL) {
     tryCatch(
       suppressWarnings(
-        survival::survreg(
-          stats::as.formula(paste0("survival::Surv(.time__, .dead__) ~ ", paste(rhs_terms, collapse = " + "))),
-          data = dat,
-          weights = .wgt__,
-          dist = "weibull",
-          init = init
-        )
+        if (is.null(cluster)) {
+          survival::survreg(
+            stats::as.formula(paste0("survival::Surv(.time__, .dead__) ~ ", paste(rhs_terms, collapse = " + "))),
+            data = dat,
+            weights = .wgt__,
+            dist = "weibull",
+            init = init
+          )
+        } else {
+          survival::survreg(
+            stats::as.formula(paste0("survival::Surv(.time__, .dead__) ~ ", paste(rhs_terms, collapse = " + "))),
+            data = dat,
+            weights = .wgt__,
+            dist = "weibull",
+            init = init,
+            robust = TRUE,
+            cluster = .cluster__
+          )
+        }
       ),
       error = function(e) NULL
     )
@@ -376,7 +388,14 @@ weighted_weibull_bootstrap_surrogate_fit = function(time, dead, X, row_weights, 
   coef_vec = tryCatch(stats::coef(fit), error = function(e) NULL)
   beta_hat = if (!is.null(coef_vec) && ("treatment" %in% names(coef_vec))) as.numeric(coef_vec[["treatment"]]) else NA_real_
   if (!is.finite(beta_hat)) return(NULL)
-  list(beta_hat = beta_hat, coefficients = coef_vec, fit = fit)
+  vcov_mat = tryCatch(stats::vcov(fit), error = function(e) NULL)
+  se = if (!is.null(vcov_mat) && "treatment" %in% rownames(vcov_mat)) {
+    sqrt(as.numeric(vcov_mat["treatment", "treatment"]))
+  } else {
+    NA_real_
+  }
+  if (!is.finite(se) || se <= 0) se = NA_real_
+  list(beta_hat = beta_hat, se = se, coefficients = coef_vec, fit = fit)
 }
 
 # Creates a fork cluster and caps OMP/BLAS threads on each worker to 1.

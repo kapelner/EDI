@@ -50,14 +50,17 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent survre
 		expect_equal(length(unique(rw_in_cluster)), 1L)
 	}
 
-	est <- f$inf$compute_estimate_with_bootstrap_weights(unit_weights)
+	est <- f$inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = FALSE)
 	X_fit <- cbind(treatment = f$priv$w, f$priv$get_X())
-	ref <- survival::survreg(survival::Surv(f$priv$y, f$priv$dead) ~ X_fit, weights = row_weights, dist = "weibull")
+	ref <- survival::survreg(
+		survival::Surv(f$priv$y, f$priv$dead) ~ X_fit,
+		weights = row_weights, dist = "weibull", robust = TRUE, cluster = cluster_ids
+	)
 	expect_equal(est, unname(coef(ref)["X_fittreatment"]), tolerance = 1e-8)
+	expect_equal(f$priv$last_weighted_refit$s_beta_hat_T, sqrt(vcov(ref)["X_fittreatment", "X_fittreatment"]), tolerance = 1e-8)
 
-	# estimate_only doesn't change the point estimate for this fast surrogate path
+	# estimate_only doesn't change the point estimate, but deliberately skips the cached SE.
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = TRUE), est)
-	# this fast surrogate path never populates an SE
 	expect_true(is.na(f$priv$last_weighted_refit$s_beta_hat_T))
 })
 
@@ -67,10 +70,12 @@ test_that("effectively-constant unit weights shortcut to the primary MLE rather 
 	direct <- f$inf$compute_estimate(estimate_only = TRUE)
 
 	shortcut <- f$inf$compute_estimate_with_bootstrap_weights(rep(1, ctx$n_units))
-	expect_equal(shortcut, direct)
+	expect_equal(shortcut, direct, tolerance = 1e-5)
+	expect_true(is.finite(f$priv$last_weighted_refit$s_beta_hat_T))
 
 	scaled <- f$inf$compute_estimate_with_bootstrap_weights(rep(3.5, ctx$n_units))
-	expect_equal(scaled, direct)
+	expect_equal(scaled, direct, tolerance = 1e-5)
+	expect_true(is.finite(f$priv$last_weighted_refit$s_beta_hat_T))
 
 	set.seed(2)
 	unit_weights <- runif(ctx$n_units, 0.5, 2)

@@ -255,25 +255,39 @@ pybind11_add_module(_core
 )
 
 # piwheels' 32-bit ARM workers exhausted memory when Ninja compiled six
-# ten-source unity translation units concurrently. Keep the normal batch size
-# elsewhere, but use smaller translation units and a single-slot Ninja compile
-# pool on 32-bit ARM. JOB_POOL_COMPILE is intentionally target-scoped and is
-# ignored by generators without job-pool support.
-set(EDI_PY_UNITY_BATCH_SIZE 10)
+# ten-source unity translation units concurrently. A single-slot Ninja compile
+# pool plus a smaller (4-source) unity batch size (2026-08-31, 1.0.0.post6)
+# fixed that concurrency-driven OOM, but 1.0.2's piwheels build (2026-10-07,
+# cp311-cp311-linux_armv7l) still hit "virtual memory exhausted: Cannot
+# allocate memory" -- on unity unit 11/14, with the log showing every prior
+# unit compiled strictly one at a time (the pool is working), so this is no
+# longer a concurrency problem: a single 4-file unity translation unit is now,
+# by itself, too much peak memory (Eigen + pybind11 template instantiation)
+# for this worker as the source has grown since 1.0.0.post6. Disabling unity
+# builds entirely on 32-bit ARM (one real .cpp per translation unit) trades
+# build time for memory safety, which is the right tradeoff on a worker where
+# OOM is a hard failure either way. JOB_POOL_COMPILE is intentionally
+# target-scoped and is ignored by generators without job-pool support.
 set(EDI_PY_32BIT_ARM FALSE)
 if(CMAKE_SIZEOF_VOID_P EQUAL 4 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^[Aa][Rr][Mm]")
     set(EDI_PY_32BIT_ARM TRUE)
-    set(EDI_PY_UNITY_BATCH_SIZE 4)
     set_property(GLOBAL APPEND PROPERTY JOB_POOLS edi_arm_compile_pool=1)
     set_property(TARGET _core PROPERTY JOB_POOL_COMPILE edi_arm_compile_pool)
-    message(STATUS "32-bit ARM build: serializing compilation and using unity batch size ${EDI_PY_UNITY_BATCH_SIZE}.")
+    message(STATUS "32-bit ARM build: serializing compilation and disabling unity builds (one source file per translation unit).")
 endif()
 
-set_target_properties(_core PROPERTIES
-    INTERPROCEDURAL_OPTIMIZATION OFF
-    UNITY_BUILD ON
-    UNITY_BUILD_BATCH_SIZE ${EDI_PY_UNITY_BATCH_SIZE}
-)
+if(EDI_PY_32BIT_ARM)
+    set_target_properties(_core PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION OFF
+        UNITY_BUILD OFF
+    )
+else()
+    set_target_properties(_core PROPERTIES
+        INTERPROCEDURAL_OPTIMIZATION OFF
+        UNITY_BUILD ON
+        UNITY_BUILD_BATCH_SIZE 10
+    )
+endif()
 
 target_include_directories(_core PRIVATE ${EDI_SRC_DIR} cpp ${EDI_LBFGSPP_SHIM_DIR} ${lbfgspp_SOURCE_DIR}/include)
 if(Eigen3_FOUND)

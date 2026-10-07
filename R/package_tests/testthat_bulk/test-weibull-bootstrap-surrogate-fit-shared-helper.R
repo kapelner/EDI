@@ -44,12 +44,12 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent weight
 	f <- make_weibull_bootstrap_fixture()
 	rw <- runif(20L, 0.5, 2)
 
-	est <- f$inf$compute_estimate_with_bootstrap_weights(rw)
+	est <- f$inf$compute_estimate_with_bootstrap_weights(rw, estimate_only = FALSE)
 	ref <- survival::survreg(survival::Surv(f$y, f$dead) ~ f$w + f$x1, weights = rw, dist = "weibull")
 	expect_equal(est, unname(coef(ref)["f$w"]), tolerance = 1e-8)
-	# estimate_only doesn't change the point estimate; both flags return the same value
+	expect_equal(f$priv$weighted_refit_se(), sqrt(vcov(ref)["f$w", "f$w"]), tolerance = 1e-8)
+	# estimate_only doesn't change the point estimate, but deliberately skips the cached SE.
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(rw, estimate_only = TRUE), est)
-	# s_beta_hat_T is never populated by this fast surrogate path
 	expect_true(is.na(f$priv$weighted_refit_se()))
 })
 
@@ -79,6 +79,7 @@ test_that("unit weights via the surrogate fit reproduce an independent unweighte
 	fit_unit <- EDI:::weighted_weibull_bootstrap_surrogate_fit(f$y, f$dead, X, rep(1, 20L))
 	ref_unweighted <- survival::survreg(survival::Surv(f$y, f$dead) ~ f$w + f$x1, dist = "weibull")
 	expect_equal(fit_unit$beta_hat, unname(coef(ref_unweighted)["f$w"]), tolerance = 1e-8)
+	expect_equal(fit_unit$se, sqrt(vcov(ref_unweighted)["f$w", "f$w"]), tolerance = 1e-8)
 })
 
 test_that("left-/interval-censored data is rejected outright before reaching the surrogate fit", {

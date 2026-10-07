@@ -13,12 +13,16 @@ converted to a \strong{ridit score} — its relative rank position within the
 point probabilities. The \code{reference} distribution — controlled by the
 \code{reference} constructor argument — may be the \strong{control} arm
 (default), the \strong{treatment} arm, or the \strong{pooled} sample. The
-treatment effect is the mean ridit score among treated subjects minus
-\eqn{0.5} (the value it would take under the null of no group difference,
-since a group's own ridit scores against itself as reference always average
-to 0.5); this mean ridit score also has a direct interpretation as (an
+treatment effect is oriented as treated-versus-control stochastic superiority:
+with a control or pooled reference it is the treated mean ridit minus
+\eqn{0.5}; with a treatment reference it is \eqn{0.5} minus the control
+mean ridit. The latter orientation is essential because the reference
+group's own mean ridit is \eqn{0.5} by construction. For a two-arm sample,
+the control- and treatment-reference formulas are the same empirical
+Mann-Whitney contrast, while retaining the requested group's scores for
+inspection. The mean ridit has a direct interpretation as (an
 estimate of) the probability that a randomly selected treated subject's
-outcome exceeds a randomly selected reference-distribution subject's outcome
+outcome exceeds a randomly selected control subject's outcome
 (a Mann-Whitney-type stochastic superiority probability), similar in spirit
 to \code{\link[EDI:InferenceOrdinalJonckheereTerpstraTest]{InferenceOrdinalJonckheereTerpstraTest}}'s
 superiority measure but referenced against a chosen distribution rather than
@@ -117,8 +121,11 @@ response y is recorded within.}
 the formula from the design object is used and its pre-computed design matrix is
 reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
-      \item{\code{reference}}{The group to use as the "Identified Distribution" (reference).
-Must be one of "control", "treatment", or "pooled". Default is "control".}
+      \item{\code{reference}}{The group to use as the "Identified Distribution"
+when constructing ridit scores. Must be one of "control", "treatment",
+or "pooled". The reported contrast is always oriented so positive values
+mean higher treated outcomes: treated mean minus 0.5 for control/pooled,
+and 0.5 minus control mean for treatment. Default is "control".}
       \item{\code{verbose}}{A flag indicating whether messages should be displayed.}
       \item{\code{max_resample_attempts}}{Maximum number of times a single bootstrap replicate
 may be redrawn when the drawn sample fails validity screening. If all attempts
@@ -133,9 +140,10 @@ Must be a positive integer. Default \code{50L}.}
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-compute_estimate}{}}}
 \subsection{\code{InferenceOrdinalRidit$compute_estimate()}}{
-  Returns the estimated treatment effect: the mean ridit
-  score among treated subjects minus 0.5 (see class documentation for
-  the full ridit-score definition and reference-distribution choice).
+  Returns the estimated treated-versus-control stochastic
+  superiority contrast. This is treated mean ridit minus 0.5 for a
+  control/pooled reference and 0.5 minus control mean ridit for a treatment
+  reference (see class documentation).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$compute_estimate(estimate_only = FALSE)}
@@ -160,8 +168,7 @@ Must be a positive integer. Default \code{50L}.}
   Recomputes the ridit treatment estimate under subject/block
   bootstrap weights: the reference distribution's category proportions
   and every subject's ridit score are recomputed using the weights, then
-  the weighted mean ridit score among treated subjects (minus 0.5) is
-  returned. Used by the Bayesian bootstrap and related
+  the oriented weighted ridit contrast is returned. Used by the Bayesian bootstrap and related
   weighted-resampling machinery. Always leaves the standard error and
   degrees of freedom unavailable (\code{NA}) regardless of
   \code{estimate_only} — this weighted path never computes the
@@ -191,8 +198,8 @@ computes variance components regardless of its value.}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-get_mean_ridit_treatment}{}}}
 \subsection{\code{InferenceOrdinalRidit$get_mean_ridit_treatment()}}{
   Returns the mean ridit score among treated subjects (not
-  centered — this is the raw mean, unlike \code{$compute_estimate()}
-  which subtracts 0.5).
+  centered). With a treatment reference this is 0.5 by construction;
+  \code{$compute_estimate()} therefore uses the control mean instead.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$get_mean_ridit_treatment()}
@@ -224,7 +231,7 @@ computes variance components regardless of its value.}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-compute_asymp_confidence_interval}{}}}
 \subsection{\code{InferenceOrdinalRidit$compute_asymp_confidence_interval()}}{
   Computes the asymptotic confidence interval for the
-  treatment effect (mean ridit \eqn{- 0.5}), using
+  oriented ridit treatment effect, using
   \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -247,9 +254,8 @@ computes variance components regardless of its value.}
 \if{html}{\out{<a id="method-InferenceOrdinalRidit-compute_asymp_two_sided_pval"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalRidit-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceOrdinalRidit$compute_asymp_two_sided_pval()}}{
-  Computes a two-sided Wald p-value testing \eqn{H_0:
-  \text{mean ridit} - 0.5 = \code{delta}} (i.e. \code{delta = 0} tests
-  the null of no group difference, mean ridit \eqn{= 0.5}), using
+  Computes a two-sided Wald p-value for the oriented ridit
+  contrast (i.e. \code{delta = 0} tests the null of no group difference), using
   \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}

@@ -36,7 +36,12 @@ ref_weighted_ridit <- function(y, w, wt, reference) {
 	ridit <- cumsum(p) - p / 2
 	score <- ridit[match(y, cats)]
 	t_idx <- ok & w == 1
-	sum(wt[t_idx] * score[t_idx]) / sum(wt[t_idx]) - 0.5
+	c_idx <- ok & w == 0
+	if (reference == "treatment") {
+		0.5 - sum(wt[c_idx] * score[c_idx]) / sum(wt[c_idx])
+	} else {
+		sum(wt[t_idx] * score[t_idx]) / sum(wt[t_idx]) - 0.5
+	}
 }
 
 test_that("weighted ridit estimate matches an independent weighted-ridit reference for every reference distribution", {

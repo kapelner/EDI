@@ -970,6 +970,10 @@ Inference = R6::R6Class("Inference",
 			paste(n_bytes, digest::digest(raw_sig, algo = "xxhash64", serialize = FALSE), sep = ":")
 		},
 		extract_dollar_paths = function(expr){
+			# Deliberately retain both a complete `$` chain and the prefix chains
+			# encountered while walking its parent expression (for example a$b$c
+			# yields c("a", "b", "c") and c("a", "b")).  This conservative,
+			# documented contract is pinned by the focused helper regression.
 			paths = list()
 			if (is.call(expr)) {
 				if (identical(expr[[1]], as.name("$")) && length(expr) == 3L) {

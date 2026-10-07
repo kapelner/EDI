@@ -1082,7 +1082,7 @@ def fast_qnorm(p: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"
     """
 def fast_ridit_analysis(w: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], y: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], reference: str = 'control') -> dict:
     """
-    Ridit analysis (Bross 1958): assigns each subject a ridit score relative to the empirical distribution of the reference group ('control', 'treatment', or 'pooled'), then compares treatment/control mean ridits. estimate = mean_ridit_t - 0.5 (centered at 0 under the null); se is the sample-variance-based SE of the treatment-arm mean ridit. No R-side roxygen documents this raw kernel directly (fast_ridit_analysis.cpp has none); parameters are named for their role in the algorithm above.
+    Ridit analysis (Bross 1958): assigns each subject a ridit score relative to the empirical distribution of the reference group ('control', 'treatment', or 'pooled'), then compares treatment/control mean ridits. The estimate is mean_ridit_t - 0.5 for control/pooled references and 0.5 - mean_ridit_c for a treatment reference, so positive values always mean higher treated outcomes. The SE uses the corresponding comparison arm's ridit scores. No R-side roxygen documents this raw kernel directly (fast_ridit_analysis.cpp has none); parameters are named for their role in the algorithm above.
     
     Parameters
     ----------
@@ -1091,7 +1091,7 @@ def fast_ridit_analysis(w: typing.Annotated[numpy.typing.NDArray[numpy.int32], "
     y : ndarray of int
         Ordinal category (1, 2, ...) for each subject.
     reference : str, default "control"
-        Which group's empirical distribution defines the ridit scores: "control", "treatment", or "pooled".
+        Which group's empirical distribution defines the ridit scores: "control", "treatment", or "pooled". The reported estimate keeps the treated-minus-control orientation for every choice.
     """
 def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_beta: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, method: str = 'MM', j: typing.SupportsInt | typing.SupportsIndex = 2, c: typing.SupportsFloat | typing.SupportsIndex = 1.345, maxit: typing.SupportsInt | typing.SupportsIndex = 50, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-07, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_weights: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None, estimate_only: bool = False) -> dict:
     """

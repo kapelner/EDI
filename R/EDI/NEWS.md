@@ -32,6 +32,14 @@ bug), and standard-error and confidence-interval fixes.
 
 ## Bug fixes
 
+* `InferenceOrdinalRidit(reference = "treatment")` now reports the
+  treated-versus-control ridit contrast as `0.5 - mean_control_ridit`, with
+  its standard error computed from control-arm ridit scores. Previously it
+  used the treated reference group's own mean ridit minus 0.5, which is zero
+  by construction and consequently returned an estimate of 0 and `p = 1`
+  for every dataset. The raw R and Python kernels and all resampling paths use
+  the same positive-treatment orientation; the default `reference =
+  "control"` and the pooled-reference path are unchanged.
 * Reused-worker resampling reused a stale cached fit across draws for
   classes whose fit is cached under a custom guard key (first found in
   `InferenceOrdinalGCompMeanDiff`, whose `cached_values$md` guard survived

@@ -59,11 +59,12 @@ SurvivalKKWeibullMarginalSource = list(
 		},
 		#' @description Recomputes the treatment estimate under Bayesian-bootstrap weights.
 		#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
-		#' @param estimate_only If TRUE, compute only the weighted point estimate.
+		#' @param estimate_only If TRUE, cache only the weighted point estimate.
+		#'   Otherwise, also cache the cluster-robust surrogate-fit standard error.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (weights_are_effectively_constant(row_weights)) {
-				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
+				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = estimate_only))[1L]
 				if (is.finite(beta_hat_T)) return(beta_hat_T)
 			}
 			X_cov = private$get_X()
@@ -77,7 +78,7 @@ SurvivalKKWeibullMarginalSource = list(
 				warm_start_params = private$get_fit_warm_start_for_length("params", ncol(X_fit) + 2L)
 			)
 			private$cached_values$beta_hat_T = if (is.null(fit)) NA_real_ else as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = NA_real_
+			private$cached_values$s_beta_hat_T = if (!estimate_only && !is.null(fit)) as.numeric(fit$se) else NA_real_
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes the asymptotic (cluster-robust) confidence interval.

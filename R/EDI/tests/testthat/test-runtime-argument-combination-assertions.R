@@ -78,6 +78,6 @@ test_that("public design paths use promoted strata and cluster runtime checks", 
 	des_seq = DesignSeqOneByOneSPBR$new(strata_cols = "stratum", response_type = "continuous", n = 4)
 	expect_error(
 		des_seq$add_one_subject_to_experiment_and_assign(data.frame(stratum = 1)),
-		"non-categorical|Continuous covariates are not allowed"
+		"strata_cols.*non-categorical"
 	)
 })

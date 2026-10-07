@@ -5,7 +5,7 @@
 [![R-CMD-check](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml)
 [![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://app.codecov.io/gh/kapelner/EDI/flags/r)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22170036.svg)](https://doi.org/10.5281/zenodo.22170036)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22170035.svg)](https://doi.org/10.5281/zenodo.22170035)
 
 `EDI` (Experimental Design and Inference) marries experimental designs (fixed
 and sequential) with inference procedures (exact, asymptotic, and
@@ -21,8 +21,9 @@ package for the design and analysis of randomized experiments.
 
 ## Installation
 
-Requires R >= 3.5.0. Install the released version from
-[CRAN](https://CRAN.R-project.org/package=EDI):
+Requires R >= 3.5.0 (R >= 4.0.0 recommended for best performance — newer
+Rtools toolchain on Windows, interpreter-side speedups). Install the
+released version from [CRAN](https://CRAN.R-project.org/package=EDI):
 
 ```r
 install.packages("EDI")
@@ -45,7 +46,12 @@ install.packages(
 Or install the development version straight from GitHub without cloning
 (requires a C++ compiler toolchain for R packages, e.g. Rtools on Windows,
 Xcode command line tools on macOS, or `r-base-dev` on Debian/Ubuntu — this
-package lives in the `R/EDI` subdirectory of the repository):
+package lives in the `R/EDI` subdirectory of the repository). Building from
+source like this (or from a local clone, below) automatically compiles with
+your machine's native CPU optimizations (`-march=native`, `-O3`) for extra
+speed — no flags to set yourself. The CRAN and R-universe installs above use
+a portable build instead, since those binaries have to run on hardware they
+were never compiled on:
 
 ```r
 remotes::install_github("kapelner/EDI", subdir = "R/EDI")

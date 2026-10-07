@@ -52,38 +52,78 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent survre
 		expect_equal(length(unique(rw_in_cluster)), 1L)
 	}
 
-	est <- f$inf$compute_estimate_with_bootstrap_weights(unit_weights)
+	est <- f$inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = FALSE)
 	X_fit <- cbind(treatment = f$priv$w, f$priv$get_X())
 	ref <- survival::survreg(survival::Surv(f$priv$y, f$priv$dead) ~ X_fit, weights = row_weights, dist = "weibull")
 	expect_equal(est, unname(coef(ref)["X_fittreatment"]), tolerance = 1e-8)
+	expect_equal(f$priv$last_weighted_refit$s_beta_hat_T, sqrt(vcov(ref)["X_fittreatment", "X_fittreatment"]), tolerance = 1e-8)
 
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = TRUE), est)
 	expect_true(is.na(f$priv$last_weighted_refit$s_beta_hat_T))
 })
 
 test_that("effectively-constant unit weights shortcut is scale-invariant and bypasses the cluster surrogate", {
-	# Note: this class's frailty MLE optimizer's convergence is sensitive to
-	# the RNG state at call time (a directly-called, freshly-constructed
-	# compute_estimate(estimate_only = TRUE) reproducibly returns NA on this
-	# fixture, while the identical call reached via the shortcut inside
-	# compute_estimate_with_bootstrap_weights() reproducibly converges) --
-	# a real quirk of this specific class's optimizer, not something to
-	# fix here. So this test checks the shortcut's own internal consistency
-	# (scale-invariance, and divergence under real weights) rather than
-	# comparing against a separately-invoked compute_estimate() call.
+	# The old comment here attributed a direct/shortcut discrepancy to RNG
+	# sensitivity. The shortcut actually fell through to a different marginal-
+	# Weibull surrogate whenever the direct IVWC fit was non-finite. Constant
+	# weights must represent the original estimating problem exactly.
+	direct_f <- make_kk_weibull_frailty_loggamma_fixture()
+	direct <- direct_f$inf$compute_estimate(estimate_only = TRUE)
+	expect_true(is.finite(direct))
+
 	f <- make_kk_weibull_frailty_loggamma_fixture()
 	ctx <- f$priv$current_bayesian_bootstrap_context
 
-	shortcut <- f$inf$compute_estimate_with_bootstrap_weights(rep(1, ctx$n_units))
+	shortcut <- f$inf$compute_estimate_with_bootstrap_weights(
+		rep(1, ctx$n_units), estimate_only = TRUE
+	)
 	expect_true(is.finite(shortcut))
+	expect_equal(shortcut, direct, tolerance = 1e-12)
 
-	scaled <- f$inf$compute_estimate_with_bootstrap_weights(rep(3.5, ctx$n_units))
+	scaled <- f$inf$compute_estimate_with_bootstrap_weights(
+		rep(3.5, ctx$n_units), estimate_only = TRUE
+	)
 	expect_equal(scaled, shortcut)
 
 	set.seed(2)
 	unit_weights <- runif(ctx$n_units, 0.5, 2)
 	weighted <- f$inf$compute_estimate_with_bootstrap_weights(unit_weights)
 	expect_false(isTRUE(all.equal(weighted, shortcut)))
+})
+
+test_that("a failed direct IVWC fit is not replaced by the varying-weight surrogate at constant weights", {
+	f <- make_kk_weibull_frailty_loggamma_fixture()
+	ctx <- f$priv$current_bayesian_bootstrap_context
+
+	# Deterministically exercise the historical failure branch without relying
+	# on optimizer/platform-specific convergence. Before the fix, this NA fell
+	# through to weighted_weibull_bootstrap_surrogate_fit() and became finite,
+	# creating the false appearance that RNG or start state changed the same fit.
+	unlockBinding("compute_estimate", f$inf)
+	f$inf$compute_estimate <- function(estimate_only = FALSE) NA_real_
+
+	expect_true(is.na(f$inf$compute_estimate_with_bootstrap_weights(
+		rep(1, ctx$n_units), estimate_only = TRUE
+	)))
+})
+
+test_that("direct and constant-weight IVWC estimates are invariant to ambient RNG state", {
+	for (rng_seed in c(1L, 17L, 901L)) {
+		direct_f <- make_kk_weibull_frailty_loggamma_fixture()
+		set.seed(rng_seed)
+		direct <- direct_f$inf$compute_estimate(estimate_only = TRUE)
+
+		shortcut_f <- make_kk_weibull_frailty_loggamma_fixture()
+		ctx <- shortcut_f$priv$current_bayesian_bootstrap_context
+		set.seed(rng_seed + 1000L)
+		shortcut <- shortcut_f$inf$compute_estimate_with_bootstrap_weights(
+			rep(1, ctx$n_units), estimate_only = TRUE
+		)
+
+		expect_true(is.finite(direct), info = paste("direct RNG seed", rng_seed))
+		expect_equal(shortcut, direct, tolerance = 1e-12,
+			info = paste("shortcut RNG seed", rng_seed))
+	}
 })
 
 test_that("all-filtered-out weights return NA rather than erroring", {

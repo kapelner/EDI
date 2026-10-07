@@ -145,19 +145,24 @@ RiditAnalysisResult fast_ridit_analysis_result(const Eigen::Ref<const Eigen::Vec
     double mean_ridit_t = (n_t > 0) ? sum_t / n_t : NA_REAL;
     double mean_ridit_c = (n_c > 0) ? sum_c / n_c : NA_REAL;
 
-    double var_t = 0.0;
-    if (n_t > 1) {
+    const bool treatment_reference = (reference == "treatment");
+    const double target_mean = treatment_reference ? mean_ridit_c : mean_ridit_t;
+    const int target_n = treatment_reference ? n_c : n_t;
+    double target_var = 0.0;
+    if (target_n > 1) {
         for (int i = 0; i < n; ++i) {
-            if (w[i] == 1) {
-                const double diff = scores[static_cast<std::size_t>(i)] - mean_ridit_t;
-                var_t += diff * diff;
+            if ((treatment_reference && w[i] == 0) || (!treatment_reference && w[i] == 1)) {
+                const double diff = scores[static_cast<std::size_t>(i)] - target_mean;
+                target_var += diff * diff;
             }
         }
-        var_t /= (n_t - 1);
+        target_var /= (target_n - 1);
     }
 
     return RiditAnalysisResult{
-        mean_ridit_t, mean_ridit_c, mean_ridit_t - 0.5, std::sqrt(var_t / n_t),
+        mean_ridit_t, mean_ridit_c,
+        treatment_reference ? 0.5 - mean_ridit_c : mean_ridit_t - 0.5,
+        target_n > 0 ? std::sqrt(target_var / target_n) : NA_REAL,
         ridit_data.scores, ridit_data.levels, ridit_data.ref_p
     };
 }

@@ -83,7 +83,7 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 		private = c(
 			"compute_treatment_estimate_during_randomization_inference",
 			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
-			"generate_mod", "get_likelihood_test_spec",
+			"generate_mod", "get_likelihood_test_spec", "get_bootstrap_worker_spec",
 			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",
@@ -502,7 +502,104 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			as.numeric(res$b[2])
 		},
 		supports_reusable_bootstrap_worker = function(){
-			FALSE
+			TRUE
+		},
+		# Freeze the two independently screened design matrices once per resampling
+		# run.  Rebuilding an inference object for every draw previously repeated
+		# both QR/column-selection searches and made jackknife inference orders of
+		# magnitude slower than the underlying ZOIB fit.
+		get_bootstrap_worker_spec = function(){
+			# Resampling callers first obtain the original estimate with
+			# estimate_only=TRUE. Preserve that exact fit/warm state; upgrading it
+			# to a variance fit here can move the optimizer by solver tolerance and
+			# would make a performance-only worker change alter later Wald calls.
+			private$shared(estimate_only = TRUE)
+			X_full = private$build_component_matrix(
+				private$model_formula,
+				private$best_X_colnames
+			)
+			X_zero_one_full = private$build_component_matrix(
+				private$model_formula_zero_one,
+				private$best_X_zero_one_colnames
+			)
+			list(
+				X_full = X_full,
+				X_zero_one_full = X_zero_one_full,
+				best_X_colnames = private$best_X_colnames,
+				best_X_zero_one_colnames = private$best_X_zero_one_colnames,
+				j_treat = 2L,
+				valid = ncol(X_full) >= 2L && ncol(X_zero_one_full) >= 2L &&
+					identical(colnames(X_full)[2L], "treatment") &&
+					identical(colnames(X_zero_one_full)[2L], "treatment")
+			)
+		},
+		create_bootstrap_worker_state = function(){
+			spec = private$get_bootstrap_worker_spec()
+			state = private$create_design_backed_bootstrap_worker_state()
+			state$spec = spec
+			state$runtime = new.env(parent = emptyenv())
+			state$runtime$X = NULL
+			state$runtime$X_zero_one = NULL
+			state$runtime$fast_path_ready = FALSE
+			state
+		},
+		load_bootstrap_sample_into_worker = function(worker_state, indices){
+			private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
+			indices_int = if (is.list(indices)) as.integer(indices$i_b) else as.integer(indices)
+			spec = worker_state$spec
+			X = spec$X_full[indices_int, , drop = FALSE]
+			X_zero_one = spec$X_zero_one_full[indices_int, , drop = FALSE]
+			worker_state$runtime$X = X
+			worker_state$runtime$X_zero_one = X_zero_one
+			# Removing rows can, in unusual fixtures, reduce rank even though it
+			# cannot change the columns.  Preserve correctness by falling back to
+			# the ordinary hardened fit for such a draw.
+			worker_state$runtime$fast_path_ready = isTRUE(spec$valid) &&
+				nrow(X) >= ncol(X) && nrow(X_zero_one) >= ncol(X_zero_one) &&
+				qr(X)$rank == ncol(X) && qr(X_zero_one)$rank == ncol(X_zero_one)
+			invisible(worker_state)
+		},
+		compute_bootstrap_worker_estimate = function(worker_state){
+			fallback = function(){
+				as.numeric(worker_state$worker$compute_estimate(estimate_only = TRUE))[1L]
+			}
+			if (!isTRUE(worker_state$runtime$fast_path_ready)) return(fallback())
+			X = worker_state$runtime$X
+			X_zero_one = worker_state$runtime$X_zero_one
+			y = as.numeric(worker_state$worker_priv$y)
+			start_len = ncol(X) + 1L + 2L * ncol(X_zero_one)
+			res = tryCatch(
+				fast_zero_one_inflated_beta_cpp(
+					X, X_zero_one, y,
+					# The slow path duplicates the fitted parent for every fold, so each
+					# fold starts from the same full-sample warm state. The design-backed
+					# loader restores that base state before every reused-worker draw.
+					warm_start_params = worker_state$worker_priv$get_fit_warm_start_for_length("params", start_len) %||% rep(0, start_len),
+					smart_cold_start = worker_state$worker_priv$smart_cold_start_default,
+					warm_start_fisher_info = worker_state$worker_priv$get_fit_warm_start_fisher(start_len)
+				),
+				error = function(e) NULL
+			)
+			j_treat = worker_state$spec$j_treat
+			if (is.null(res) || length(res$b) < j_treat || !is.finite(res$b[j_treat])) {
+				return(fallback())
+			}
+			if (!identical(worker_state$worker$get_estimand(), "marginal_mean_diff")) {
+				return(as.numeric(res$b[j_treat]))
+			}
+			p = ncol(X)
+			q = ncol(X_zero_one)
+			params = as.numeric(res$params)
+			if (length(params) != p + 1L + 2L * q) return(fallback())
+			b_zero = params[(p + 2L):(p + 1L + q)]
+			b_one = params[(p + 2L + q):(p + 1L + 2L * q)]
+			point = tryCatch(
+				worker_state$worker_priv$zoib_marginal_mean_diff_from_coefs(
+					as.numeric(res$b), b_zero, b_one, X, X_zero_one
+				),
+				error = function(e) NA_real_
+			)
+			if (is.finite(point)) as.numeric(point) else fallback()
 		},
 		supports_likelihood_tests = function(){
 			TRUE

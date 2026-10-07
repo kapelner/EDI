@@ -38,23 +38,26 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 		#'   Bayesian-bootstrap weights.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
-		#' @param estimate_only If \code{TRUE}, compute only the weighted point
-		#'   estimate.
+		#' @param estimate_only If \code{TRUE}, cache only the weighted point
+		#'   estimate. Otherwise, also cache the surrogate fit's treatment-coefficient
+		#'   standard error for studentized Bayesian-bootstrap inference.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			if (weights_are_effectively_constant(row_weights)) {
-				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-				if (is.finite(beta_hat_T)) {
-					private$cached_values$beta_hat_T = beta_hat_T
-					private$cached_values$s_beta_hat_T = NA_real_
-					return(private$cached_values$beta_hat_T)
-				}
+				# Constant weights define the original, unweighted estimating
+				# problem. Return that result even when it is non-finite: falling
+				# through would replace a failed Clayton/Weibull IVWC fit with the
+				# different marginal-Weibull surrogate used for genuinely varying
+				# weights, making the apparent "shortcut" disagree with a direct fit.
+				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = estimate_only))[1L]
+				private$cached_values$beta_hat_T = beta_hat_T
+				return(private$cached_values$beta_hat_T)
 			}
 			X_cov = private$get_X()
 			X_fit = if (ncol(as.matrix(X_cov)) > 0) cbind(treatment = private$w, X_cov) else matrix(private$w, ncol = 1, dimnames = list(NULL, "treatment"))
 			fit = weighted_weibull_bootstrap_surrogate_fit(private$y, private$dead, X_fit, row_weights)
 			private$cached_values$beta_hat_T = if (is.null(fit)) NA_real_ else as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = NA_real_
+			private$cached_values$s_beta_hat_T = if (!estimate_only && !is.null(fit)) as.numeric(fit$se) else NA_real_
 			private$cached_values$beta_hat_T
 		},
 		#' @description Uses the shared asymptotic confidence-interval contract; see
@@ -1063,4 +1066,3 @@ NULL
 #' @R6method InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$compute_rand_two_sided_pval
 #' @template rand-compute-rand-two-sided-pval-params
 NULL
-

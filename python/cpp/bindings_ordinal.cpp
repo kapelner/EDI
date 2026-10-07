@@ -836,8 +836,10 @@ void bind_ordinal(py::module_& m) {
     "Ridit analysis (Bross 1958): assigns each subject a ridit score relative "
     "to the empirical distribution of the reference group ('control', "
     "'treatment', or 'pooled'), then compares treatment/control mean ridits. "
-    "estimate = mean_ridit_t - 0.5 (centered at 0 under the null); se is the "
-    "sample-variance-based SE of the treatment-arm mean ridit. No R-side roxygen "
+    "The estimate is mean_ridit_t - 0.5 for control/pooled references and "
+    "0.5 - mean_ridit_c for a treatment reference, so positive values always "
+    "mean higher treated outcomes. The SE uses the corresponding comparison "
+    "arm's ridit scores. No R-side roxygen "
     "documents this raw kernel directly (fast_ridit_analysis.cpp has none); "
     "parameters are named for their role in the algorithm above.\n\n"
     "Parameters\n"
@@ -848,5 +850,6 @@ void bind_ordinal(py::module_& m) {
     "    Ordinal category (1, 2, ...) for each subject.\n"
     "reference : str, default \"control\"\n"
     "    Which group's empirical distribution defines the ridit scores: "
-    "\"control\", \"treatment\", or \"pooled\".");
+    "\"control\", \"treatment\", or \"pooled\". The reported estimate keeps "
+    "the treated-minus-control orientation for every choice.");
 }

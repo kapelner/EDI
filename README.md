@@ -9,7 +9,7 @@
 ![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
 [![Last commit](https://img.shields.io/github/last-commit/kapelner/EDI)](https://github.com/kapelner/EDI/commits/main)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22170036.svg)](https://doi.org/10.5281/zenodo.22170036)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22170035.svg)](https://doi.org/10.5281/zenodo.22170035)
 
 **EDI** (Experimental Design and Inference) is software that marries experimental
 designs (fixed and sequential) and inference procedures
@@ -93,8 +93,8 @@ installing is [Getting Started](#getting-started) below and the
 
 ### Installation
 
-Requires R ≥ 3.5.0. Install the released version from
-[CRAN](https://CRAN.R-project.org/package=EDI):
+Requires R ≥ 3.5.0 (≥ 4.0.0 is recommended for best performance). Install the
+released version from [CRAN](https://CRAN.R-project.org/package=EDI):
 
 ```r
 install.packages("EDI")
@@ -109,10 +109,15 @@ install.packages("EDI",
   repos = c("https://kapelner.r-universe.dev", "https://cloud.r-project.org"))
 ```
 
-Or install the development version straight from GitHub without cloning
+RECOMMENDED: install the development version straight from GitHub without cloning
 (requires a C++ compiler toolchain for R packages, e.g. Rtools on Windows,
 Xcode command line tools on macOS, or `r-base-dev` on Debian/Ubuntu — the R
-package lives in the `R/EDI` subdirectory of this repo):
+package lives in the `R/EDI` subdirectory of this repo). Building from
+source like this (or from a local clone, below) automatically compiles with
+your machine's native CPU optimizations (`-march=native`, `-O3`) for extra
+speed — no flags to set yourself. The CRAN and R-universe installs above use
+a portable build instead, since those binaries have to run on hardware they
+were never compiled on:
 
 ```r
 remotes::install_github("kapelner/EDI", subdir = "R/EDI")
@@ -420,10 +425,10 @@ parent's.
 See the following for more information:
 
 ```r
-vignette("reproducibility", package = "EDI")      # RNG/seed conventions across designs, bootstrap, and simulation
-vignette("extending-edi", package = "EDI")        # writing your own Design/Inference R6 subclasses
-vignette("backend-contracts", package = "EDI")    # how the C++ core is shared between the R (Rcpp) and Python (pybind11) bindings
-vignette("notation-glossary", package = "EDI")    # symbols/naming conventions shared across Design*/Inference* classes and docs
+vignette("reproducibility",     package = "EDI")  # RNG/seed conventions across designs, bootstrap, and simulation
+vignette("extending-edi",       package = "EDI")  # writing your own Design/Inference R6 subclasses
+vignette("backend-contracts",   package = "EDI")  # how the C++ core is shared between the R (Rcpp) and Python (pybind11) bindings
+vignette("notation-glossary",   package = "EDI")  # symbols/naming conventions shared across Design*/Inference* classes and docs
 vignette("validation-evidence", package = "EDI")  # index into the test suite showing each model family computes what it claims
 ```
 
@@ -672,8 +677,9 @@ GPL-3 — see [`LICENSE`](LICENSE).
 ## Citation
 
 If you use this software, please cite it — see [`CITATION.cff`](CITATION.cff)
-or, from R, run `citation("EDI")`. A DOI for this release is available via
-Zenodo: [10.5281/zenodo.22170036](https://doi.org/10.5281/zenodo.22170036).
+or, from R, run `citation("EDI")`. Every release is archived on Zenodo; the
+DOI below always resolves to the latest version:
+[10.5281/zenodo.22170035](https://doi.org/10.5281/zenodo.22170035).
 
 ## Lines of Code
 

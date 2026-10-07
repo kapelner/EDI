@@ -276,6 +276,30 @@ combination, not to the fix's general approach.
 Independent of every other 1.1.0 item; depends on nothing else in this
 release.
 
+## Implementation audit, 2026-10-08
+
+The remaining registry gaps are now closed in the harness:
+
+- `InferenceSurvivalKMDiff` uses a survival MC-refit truth rather than raw
+  `beta_T` (TODO-7).
+- `InferenceIncidLogRegr` moved from the marginal closed-form odds contrast
+  to an MC-refit truth matching its default conditional estimand (TODO-8).
+- `InferenceOrdinalCauchitRegr`, `InferenceOrdinalAdjCatLogitRegr`,
+  `InferenceOrdinalContRatioRegr`, and
+  `InferenceOrdinalPartialProportionalOddsRegr` now have MC-refit registry
+  entries (TODO-10).
+- The unresolved TODO-6 matched-Cox cells now return an explicitly unavailable
+  (`NA`) coverage truth. This prevents both known-bad alternatives: caching an
+  unconverged real-X MC target or silently falling back to raw `beta_T`.
+  Coverage for these two classes remains intentionally ungraded until a
+  converged target or a revised test scenario exists.
+
+Focused source-loaded tests exercise all six new MC dispatches, cache/logging
+lookup, real-covariate forwarding, and the two unavailable matched-Cox cases.
+The prior proportion-truth regression remains green. The multi-hour TODO-4
+result regeneration and TODO-5 baseline re-audit are still release-validation
+work; no shared result CSV or audit baseline was rewritten in this change.
+
 8. **New class found 2026-09-24**, via a follow-up fork closing out
    `investigate_incid_logregr_probitregr_coverage.md`'s `low_coverage`
    cluster: `InferenceIncidLogRegr`'s closed-form truth

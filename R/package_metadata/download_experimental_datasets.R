@@ -396,16 +396,24 @@ cran_download_dataset_as_csv <- function(pkg, version, rda_name, dest_csv, work_
   }
 
   data_files <- list.files(file.path(pkg_dir, "data"))
-  hit <- data_files[tools::file_path_sans_ext(data_files) == rda_name]
+  # compression = TRUE: older releases may ship e.g. teach.df.txt.gz (s20x 3.1-10,
+  # pinned deliberately for its GPL (>= 2) license); fread reads .gz directly.
+  hit <- data_files[tools::file_path_sans_ext(data_files, compression = TRUE) == rda_name]
   if (length(hit) == 0L) {
     stop("Data object '", rda_name, "' not found in ", pkg, " ", version,
          "'s data/ directory (found: ", paste(data_files, collapse = ", "), ")", call. = FALSE)
   }
   src_path <- file.path(pkg_dir, "data", hit[[1L]])
-  ext <- tolower(tools::file_ext(src_path))
-  if (ext %in% c("rda", "rdata")) {
+  ext <- tolower(tools::file_ext(sub("\\.(gz|bz2|xz)$", "", src_path)))
+  if (ext %in% c("rda", "rdata", "r")) {
     e <- new.env()
-    load(src_path, envir = e)
+    if (ext == "r") {
+      # data/<obj>.R builds the object when sourced, the way data() handles it (old
+      # releases only, e.g. Epi 1.1.10's thoro.R); same as cran_fetch_object_auto().
+      sys.source(src_path, envir = e, chdir = TRUE)
+    } else {
+      load(src_path, envir = e)
+    }
     obj_names <- ls(e)
     if (length(obj_names) == 0L) stop("No objects loaded from ", src_path, call. = FALSE)
     want <- if (!is.null(obj_name)) obj_name else obj_names[[1L]]
@@ -730,7 +738,6 @@ DATASET_MANIFEST <- list(
   immigrationconjoint = list(cran = list(pkg = "cjoint", version = "2.1.3", rda_name = "immigrationconjoint", out_csv = "immigrationconjoint.csv")),
   epilepsy_RCT_tbl_df = list(cran = list(pkg = "NeuroDataSets", version = "0.3.1", rda_name = "epilepsy_RCT_tbl_df", out_csv = "epilepsy_RCT_tbl_df.csv")),
   sulphinpyrazone_tbl_df = list(cran = list(pkg = "CardioDataSets", version = "0.2.0", rda_name = "sulphinpyrazone_tbl_df", out_csv = "sulphinpyrazone_tbl_df.csv")),
-  immdef = list(cran = list(pkg = "rpsftm", version = "1.2.9", rda_name = "immdef", out_csv = "immdef.csv")),
   Gbsg_df = list(cran = list(pkg = "ForCausality", version = "0.1.0", rda_name = "Gbsg_df", out_csv = "Gbsg_df.csv")),
   seguro = list(cran = list(pkg = "experiment", version = "1.2.1", rda_name = "seguro", out_csv = "seguro.csv")),
   ajps = list(cran = list(pkg = "GK2011", version = "0.1.3", rda_name = "ajps", out_csv = "ajps.csv")),
@@ -777,7 +784,7 @@ DATASET_MANIFEST <- list(
   esci_data_rattanmotivation = list(cran = list(pkg = "esci", version = "1.0.4", rda_name = "data_rattanmotivation", out_csv = "esci_rattanmotivation.csv")),
   esci_data_selfexplain = list(cran = list(pkg = "esci", version = "1.0.4", rda_name = "data_selfexplain", out_csv = "esci_selfexplain.csv")),
   EstimationTools_head_neck_cancer = list(cran = list(pkg = "EstimationTools", version = "4.3.1", rda_name = "head_neck_cancer", out_csv = "EstimationTools_headneck.csv")),
-  coin_rotarod = list(cran = list(pkg = "coin", version = "1.4-5", rda_name = "rotarod", out_csv = "coin_rotarod.csv")),
+  coin_rotarod = list(cran = list(pkg = "coin", version = "0.6-4", rda_name = "rotarod", out_csv = "coin_rotarod.csv")),  # deliberate old pin (last unversioned-GPL coin), see PASWR note
   experimentr_mcgrath = list(cran = list(pkg = "experimentr", version = "0.1.0", rda_name = "mcgrath", out_csv = "experimentr_mcgrath.csv")),
   experimentr_sherman = list(cran = list(pkg = "experimentr", version = "0.1.0", rda_name = "sherman", out_csv = "experimentr_sherman.csv")),
   faraway_coagulation = list(cran = list(pkg = "faraway", version = "1.0.9", rda_name = "coagulation", out_csv = "faraway_coagulation.csv")),
@@ -853,11 +860,15 @@ DATASET_MANIFEST <- list(
   multiDimBio_Nuclei = list(cran = list(pkg = "multiDimBio", version = "1.2.5", rda_name = "Nuclei", out_csv = "multiDimBio_Nuclei.csv")),
   nlme_Alfalfa = list(cran = list(pkg = "nlme", version = "3.1-171", rda_name = "Alfalfa", out_csv = "nlme_Alfalfa.csv")),
   nlme_Assay = list(cran = list(pkg = "nlme", version = "3.1-171", rda_name = "Assay", out_csv = "nlme_Assay.csv")),
-  nlmeU_armd0 = list(cran = list(pkg = "nlmeU", version = "0.71.7", rda_name = "armd0", out_csv = "nlmeU_armd0.csv")),
-  nlmeU_prt_subjects = list(cran = list(pkg = "nlmeU", version = "0.71.7", rda_name = "prt.subjects", out_csv = "nlmeU_prt.csv")),
-  PASWR_Aggression = list(cran = list(pkg = "PASWR", version = "1.3", rda_name = "Aggression", out_csv = "PASWR_Aggression.csv")),
-  PASWR_Ratbp = list(cran = list(pkg = "PASWR", version = "1.3", rda_name = "Ratbp", out_csv = "PASWR_Ratbp.csv")),
-  PASWR_Swimtimes = list(cran = list(pkg = "PASWR", version = "1.3", rda_name = "Swimtimes", out_csv = "PASWR_Swimtimes.csv")),
+  nlmeU_armd0 = list(cran = list(pkg = "nlmeU", version = "0.70-9", rda_name = "armd0", out_csv = "nlmeU_armd0.csv")),  # deliberate old pin (GPL (>= 2)), see PASWR note
+  nlmeU_prt_subjects = list(cran = list(pkg = "nlmeU", version = "0.70-9", rda_name = "prt.subjects", out_csv = "nlmeU_prt.csv")),
+  # PASWR 1.1 and s20x 3.1-10 below (and coin 0.6-4, nlmeU 0.70-9 above) are pinned on
+  # purpose, NOT stale: those releases are GPL (>= 2) / unversioned GPL (GPL-3-compatible)
+  # while current ones are GPL-2 only, and the data objects are identical. Do not
+  # "update" them to current (see dataset_license_audit.md).
+  PASWR_Aggression = list(cran = list(pkg = "PASWR", version = "1.1", rda_name = "Aggression", out_csv = "PASWR_Aggression.csv")),
+  PASWR_Ratbp = list(cran = list(pkg = "PASWR", version = "1.1", rda_name = "Ratbp", out_csv = "PASWR_Ratbp.csv")),
+  PASWR_Swimtimes = list(cran = list(pkg = "PASWR", version = "1.1", rda_name = "Swimtimes", out_csv = "PASWR_Swimtimes.csv")),
   PASWR2_EPIDURALF = list(cran = list(pkg = "PASWR2", version = "1.0.5", rda_name = "EPIDURALF", out_csv = "PASWR2_Epidural.csv")),
   R4HCR_Acupuncture = list(cran = list(pkg = "R4HCR", version = "0.1", rda_name = "Acupuncture", out_csv = "R4HCR_Acupuncture.csv")),
   R4HCR_Facemasks = list(cran = list(pkg = "R4HCR", version = "0.1", rda_name = "Facemasks", out_csv = "R4HCR_Facemasks.csv")),
@@ -873,8 +884,8 @@ DATASET_MANIFEST <- list(
   randomizationInference_reading = list(cran = list(pkg = "randomizationInference", version = "1.0.4", rda_name = "reading", out_csv = "randinf_reading.csv")),
   RPEXE_RPEXT_data2 = list(cran = list(pkg = "RPEXE.RPEXT", version = "0.0.2", rda_name = "data2", out_csv = "RPEXE_data2.csv")),
   rqlm_mch = list(cran = list(pkg = "rqlm", version = "4.5-1", rda_name = "mch", out_csv = "rqlm_mch.csv")),
-  s20x_teach_df = list(cran = list(pkg = "s20x", version = "3.3.0", rda_name = "teach.df", out_csv = "s20x_teach.csv")),
-  s20x_thyroid_df = list(cran = list(pkg = "s20x", version = "3.3.0", rda_name = "thyroid.df", out_csv = "s20x_thyroid.csv")),
+  s20x_teach_df = list(cran = list(pkg = "s20x", version = "3.1-10", rda_name = "teach.df", out_csv = "s20x_teach.csv")),  # deliberate old pin, see PASWR note
+  s20x_thyroid_df = list(cran = list(pkg = "s20x", version = "3.1-10", rda_name = "thyroid.df", out_csv = "s20x_thyroid.csv")),
   sanon_cpain = list(cran = list(pkg = "sanon", version = "1.6", rda_name = "cpain", out_csv = "sanon_cpain.csv")),
   sanon_sebor = list(cran = list(pkg = "sanon", version = "1.6", rda_name = "sebor", out_csv = "sanon_sebor.csv")),
   sanon_skin = list(cran = list(pkg = "sanon", version = "1.6", rda_name = "skin", out_csv = "sanon_skin.csv")),

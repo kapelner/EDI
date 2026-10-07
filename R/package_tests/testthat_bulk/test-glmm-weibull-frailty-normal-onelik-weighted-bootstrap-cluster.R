@@ -42,7 +42,7 @@ build_reference_cluster_ids <- function(priv) {
 	cluster_ids
 }
 
-test_that("compute_estimate_with_bootstrap_weights matches an independent survreg fit; the cluster argument only filters NA ids, doesn't change the estimate", {
+test_that("compute_estimate_with_bootstrap_weights matches an independent cluster-robust survreg fit", {
 	f <- make_glmm_weibull_frailty_normal_onelik_fixture()
 	ctx <- f$priv$current_bayesian_bootstrap_context
 
@@ -50,25 +50,25 @@ test_that("compute_estimate_with_bootstrap_weights matches an independent survre
 	unit_weights <- runif(ctx$n_units, 0.5, 2)
 	row_weights <- f$priv$expand_subject_or_block_weights_to_row_weights(unit_weights)
 
-	est <- f$inf$compute_estimate_with_bootstrap_weights(unit_weights)
+	est <- f$inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = FALSE)
 
 	X_cov <- f$priv$get_X()
 	X_fit <- cbind(treatment = f$priv$w, X_cov)
-	ref <- survival::survreg(survival::Surv(f$priv$y, f$priv$dead) ~ X_fit, weights = row_weights, dist = "weibull")
-	expect_equal(est, unname(coef(ref)["X_fittreatment"]), tolerance = 1e-8)
-
-	# The `cluster` id vector passed internally is only used to build the
-	# `ok` filter (all finite here, so nothing is dropped); it is never
-	# referenced in the survreg formula/robust-SE machinery, so a fit with
-	# no cluster argument at all reproduces the identical point estimate.
 	cluster_ids <- build_reference_cluster_ids(f$priv)
+	ref <- survival::survreg(
+		survival::Surv(f$priv$y, f$priv$dead) ~ X_fit,
+		weights = row_weights, dist = "weibull", robust = TRUE, cluster = cluster_ids
+	)
+	expect_equal(est, unname(coef(ref)["X_fittreatment"]), tolerance = 1e-8)
+	expect_equal(f$priv$last_weighted_refit$s_beta_hat_T, sqrt(vcov(ref)["X_fittreatment", "X_fittreatment"]), tolerance = 1e-8)
+
+	# Cluster-robust covariance changes the SE, while leaving the point estimate intact.
 	expect_false(anyNA(cluster_ids))
 	ref_no_cluster <- survival::survreg(survival::Surv(f$priv$y, f$priv$dead) ~ X_fit, weights = row_weights, dist = "weibull")
 	expect_equal(unname(coef(ref)["X_fittreatment"]), unname(coef(ref_no_cluster)["X_fittreatment"]))
 
-	# estimate_only doesn't change the point estimate for this fast surrogate path
+	# estimate_only doesn't change the point estimate, but skips the cached SE.
 	expect_equal(f$inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = TRUE), est)
-	# this fast surrogate path never populates an SE
 	expect_true(is.na(f$priv$last_weighted_refit$s_beta_hat_T))
 })
 

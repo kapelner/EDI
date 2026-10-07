@@ -4,10 +4,9 @@ library(EDI)
 # fast_ridit_scores_cpp / fast_ridit_analysis_cpp / compute_ridit_rand_bootstrap_parallel_cpp:
 # ridit scores r_k = P(Y < k) + P(Y = k) / 2 in a reference group, the estimate (mean treated ridit - 0.5)
 # and its SE (sd(treated scores) / sqrt(n_T)), for reference = "control" and "pooled" against hand
-# computations; the bootstrap kernel against the same statistic per replicate. SUSPECTED SOURCE BUG
-# (pinned, not fixed): with reference = "treatment" the treated group's mean ridit is exactly 0.5 by
-# construction, and the estimate is defined as mean_ridit_t - 0.5, so it is identically 0 (up to rounding)
-# whatever the data -- InferenceOrdinalRidit(reference = "treatment") would report no effect.
+# computations; the bootstrap kernel against the same statistic per replicate. A treatment reference
+# uses 0.5 - mean control ridit, preserving the treated-minus-control orientation while avoiding the
+# reference group's own identically-0.5 mean.
 
 K <- function(x) get(x, envir = asNamespace("EDI"))
 
@@ -71,21 +70,25 @@ test_that("bootstrap kernel equals the per-replicate control / pooled ridit esti
 	}
 })
 
-test_that("SUSPECTED SOURCE BUG (pinned): reference = 'treatment' makes the estimate identically zero, for the analysis and the bootstrap kernel", {
+test_that("treatment-reference analysis uses the control comparison mean and preserves effect orientation", {
 	f <- fx()
 	r <- K("fast_ridit_analysis_cpp")(f$w, f$y, "treatment")
+	r_control <- K("fast_ridit_analysis_cpp")(f$w, f$y, "control")
 	expect_equal(r$mean_ridit_t, 0.5, tolerance = 1e-12)
-	expect_equal(r$estimate, 0, tolerance = 1e-12)
-	expect_gt(r$se, 0.01)                                                   # yet the SE is positive: z = 0 whatever the data
-	expect_gt(K("fast_ridit_analysis_cpp")(f$w, f$y, "control")$estimate, 0.05)
+	expect_equal(r$estimate, 0.5 - r$mean_ridit_c, tolerance = 1e-12)
+	expect_equal(r$estimate, r_control$estimate, tolerance = 1e-12)
+	expect_equal(r$se, sd(r$scores[f$w == 0]) / sqrt(sum(f$w == 0)), tolerance = 1e-12)
+	expect_gt(r$estimate, 0.05)
 	set.seed(9)
 	i_mat <- vapply(1:4, function(b) sample(f$n, f$n, TRUE), integer(f$n))
 	w_mat <- vapply(1:4, function(b) sample(f$w), numeric(f$n)); storage.mode(w_mat) <- "integer"
 	got <- K("compute_ridit_rand_bootstrap_parallel_cpp")(f$y, i_mat, w_mat, "treatment", 1L)
-	expect_equal(as.numeric(got), rep(0, 4), tolerance = 1e-12)
+	control <- K("compute_ridit_rand_bootstrap_parallel_cpp")(f$y, i_mat, w_mat, "control", 1L)
+	expect_equal(as.numeric(got), as.numeric(control), tolerance = 1e-12)
+	expect_true(any(abs(got) > 0.01))
 })
 
-test_that("SUSPECTED SOURCE BUG (pinned) at the class level: InferenceOrdinalRidit(reference = 'treatment') reports estimate 0 and p = 1 even with a strong effect", {
+test_that("class treatment reference reports the same non-degenerate effect orientation as control", {
 	set.seed(4)
 	n <- 80L
 	des <- DesignFixediBCRD$new(n = n, response_type = "ordinal", verbose = FALSE)
@@ -97,6 +100,6 @@ test_that("SUSPECTED SOURCE BUG (pinned) at the class level: InferenceOrdinalRid
 	trt <- InferenceOrdinalRidit$new(des, reference = "treatment", verbose = FALSE)
 	expect_gt(ctrl$compute_estimate(), 0.1)
 	expect_lt(ctrl$compute_asymp_two_sided_pval(0), 0.01)
-	expect_equal(trt$compute_estimate(), 0, tolerance = 1e-12)
-	expect_gt(trt$compute_asymp_two_sided_pval(0), 0.99)
+	expect_equal(trt$compute_estimate(), ctrl$compute_estimate(), tolerance = 1e-12)
+	expect_lt(trt$compute_asymp_two_sided_pval(0), 0.01)
 })

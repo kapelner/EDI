@@ -44,6 +44,7 @@ truth_fixture <- function() {
 		"compute_survival_mean_diff_coverage_truth",
 		"COVERAGE_CLOSED_FORM",
 		"COVERAGE_MC_SPEC",
+		"COVERAGE_TRUTH_UNAVAILABLE",
 		"coverage_truth_uses_real_covariates",
 		"coverage_truth_cache_key",
 		"get_coverage_mc_spec",

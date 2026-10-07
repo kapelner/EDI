@@ -72,7 +72,9 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 		#'   \code{compute_estimate()}; a hardened-but-still-unreasonable fit is
 		#'   cached as nonestimable and returns \code{NA}.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @param estimate_only If TRUE, skip the weighted robust/sandwich
+		#'   variance calculation. Otherwise, cache a weighted HC0 standard error
+		#'   for studentized Bayesian-bootstrap inference.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 				attempt = private$fit_with_hardened_qr_column_dropping(
@@ -88,7 +90,17 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 						smart_cold_start = private$smart_cold_start_default,
 						warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit))
 					)
-					list(b = res$b, ssq_b_j = NA_real_, j_treat = j_treat, mod = res, XtWX = res$XtWX)
+					ssq_b_j = NA_real_
+					if (!estimate_only && !is.null(res$mu) && !is.null(res$XtWX)) {
+						weighted_resid = (as.numeric(private$y) - as.numeric(res$mu)) * sqrt(row_weights)
+						ssq_b_j = robust_sandwich_variance_from_xtwx(
+							X = X_fit,
+							residuals = weighted_resid,
+							XtWX = res$XtWX,
+							j = j_treat
+						)
+					}
+					list(b = res$b, ssq_b_j = ssq_b_j, j_treat = j_treat, mod = res, XtWX = res$XtWX)
 					},
 					fit_ok = function(mod, X_fit, keep){
 						private$is_modified_poisson_fit_reasonable(mod, X_fit, match(2L, keep))
@@ -102,8 +114,9 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 					private$cached_values$s_beta_hat_T = NA_real_
 					return(NA_real_)
 				}
-				private$cached_values$beta_hat_T = as.numeric(attempt$fit$b[j_treat])
-				private$cached_values$s_beta_hat_T = NA_real_
+			private$cached_values$beta_hat_T = as.numeric(attempt$fit$b[j_treat])
+			ssq = attempt$fit$ssq_b_j
+			private$cached_values$s_beta_hat_T = if (!is.null(ssq) && is.finite(ssq) && ssq > 0) sqrt(ssq) else NA_real_
 				private$set_fit_warm_start(
 				as.numeric(attempt$fit$b),
 				"beta",

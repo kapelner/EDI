@@ -120,7 +120,7 @@
   `result[0]` on a length-0 vector is read without a length check; Rcpp only
   warns and the loop continues, leaving the entry undefined instead of failing.
   Test: `test-randomization-loop-kernel-callback-contract-...-reference.R`.
-- [ ] **TODO-8: Is the stale Bayesian-bootstrap worker still there?**
+- [x] **TODO-8: The stale Bayesian-bootstrap worker is no longer present.**
   `test-cox-component-composition.R` works around a "pre-existing bug in the
   shared reusable-worker infrastructure" that leaves a stale
   Bayesian-bootstrap worker context after a randomization or non-parametric
@@ -138,17 +138,19 @@
   (`stale_worker_cache_resampling.md`, Option A) is the likely reason. The
   one `NA` seen earlier on `InferenceSurvivalKMDiff` was a *different*,
   stochastic issue (release TODO-54 / plan TODO-13), independent of object
-  reuse. Next: remove the fresh-object-per-capability workaround in
-  `test-cox-component-composition.R` (keep the assertions), rerun, and delete
-  the comment.
-- [ ] **TODO-9: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` optimizer is
-  RNG-state sensitive.** A directly called, freshly constructed
-  `compute_estimate(estimate_only = TRUE)` reproducibly returns `NA` on the
-  test fixture while the identical fit reached via the constant-weights
-  shortcut inside `compute_estimate_with_bootstrap_weights()` converges.
-  Suggests a start-value or seeding dependence; related to
-  `clayton_loggamma_frailty_optimizer_stability.md` and TODO-31's family.
-  Test: `test-glmm-weibull-frailty-loggamma-ivwc-weighted-bootstrap-cluster.R`.
+  reuse. Closed 2026-10-08: the Cox test already used one object across the
+  three resampling families, and a new KMDiff regression now does the same and
+  compares Bayesian results bit-for-bit with a fresh object. Eighteen focused
+  assertions pass without compilation.
+- [x] **TODO-9: The reported `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`
+  RNG sensitivity was a mismatched-estimator fallback.** The exact fixture and
+  a 100-seed sweep produced finite, RNG-invariant direct estimates. The old
+  constant-weight path fell through to a different marginal-Weibull surrogate
+  when the direct Clayton/Weibull fit was nonfinite, so its success did not
+  establish RNG or start-value sensitivity. Constant weights now return the
+  direct result, including `NA`, while genuinely varying weights retain the
+  surrogate. Forty-nine focused assertions cover direct/shortcut equality,
+  deterministic direct failure, scale invariance and ambient RNG states.
 - [x] **TODO-10: Silent NA with no nonestimable reason (harden = FALSE or
   short paths).** Jackknife summaries with zero or one replicate now record
   SE-stage `jackknife_too_few_replicate_estimates`. Subsampling b-list and
@@ -160,23 +162,20 @@
   `test-jackknife-summary-nonfinite-and-extreme-guards-reference.R`,
   `test-prw-subsampling-pval-and-ci-b-list-selection-failure-guard-reference.R`,
   `test-m-out-of-n-bootstrap-pval-and-ci-m-list-selection-failure-guard-reference.R`.
-- [ ] **TODO-11: Weighted-refit SEs never populated.** The Weibull fast
-  surrogate, `InferenceIncidKKModifiedPoisson` and the modified-Poisson class
-  return `NA` from the base `weighted_refit_se()` (`inference_all_abstract.R:566`) even with
-  `estimate_only = FALSE`, contradicting a `@param` that implies `FALSE`
-  computes a variance. Either implement the SE or correct the docs (see
-  `test-modified-poisson-weighted-refit-reference.R`,
-  `test-incid-kk-modified-poisson-weighted-refit-reference.R`,
-  `test-weibull-bootstrap-surrogate-fit-shared-helper.R`).
-- [ ] **TODO-12: Minor / cosmetic (batch).** Dead "Continuous covariates are
-  not allowed for stratification" `stop()` in `add_one_subject()` (shadowed by
-  `assertStrataClusterArgs()`); `extract_dollar_paths()` also returns nested
-  sub-chains (pinned as documented behavior); `fast_weibull_regression(use_rcpp
-  = FALSE)` ignores `estimate_only`; `with_var` kernel field sets differ across
-  families (`XtWX` only on some), pinned so the inconsistency is visible.
-  Record each as fix / document / accept.
+- [x] **TODO-11: Weighted-refit SEs are populated when requested.** Plain
+  modified Poisson now caches a weighted HC0 SE, the KK modified-Poisson path
+  caches a weighted cluster-sandwich SE, and all four Weibull surrogate callers
+  cache model or cluster-robust `survreg` SEs. `estimate_only = TRUE` skips the
+  variance calculation. Six focused suites pass 105 assertions, and
+  studentized Bayesian-bootstrap smoke checks return finite p-values.
+- [x] **TODO-12: Minor / cosmetic batch audited.** The unreachable
+  stratification stop was already absent; stale commentary was removed and a
+  direct regression pins the shared categorical-strata guard. Nested `$`
+  prefixes are an intentional conservative contract. The R Weibull fallback's
+  `estimate_only` limitation and cross-family `with_var` field differences are
+  explicitly accepted and pinned; `fisher_information` is the common field.
 
-- [ ] **TODO-13: `InferenceSurvivalKMDiff` Bayesian-bootstrap p-value is
+- [x] **TODO-13: `InferenceSurvivalKMDiff` Bayesian-bootstrap p-value is
   `NA` for about 30% of RNG states on heavily censored data (found 2026-09-24
   while investigating TODO-8).** With right-censored data (n = 100, event
   rate 0.5, censoring rate 0.3) a **fresh** object returned a non-finite
@@ -189,7 +188,12 @@
   both arms). Decide whether one non-finite replicate should make the whole
   p-value `NA` (the non-parametric bootstrap on the same data does not) or
   whether non-finite replicates should be dropped subject to a minimum count,
-  as other bootstrap p-values do; document what the statistic is.
+  as other bootstrap p-values do; document what the statistic is. Fixed
+  2026-10-08: KMDiff now defaults to dropping undefined weighted-median draws,
+  requires the generic minimum usable count, records
+  `bayesian_bootstrap_too_few_finite_estimates` when that count is not met, and
+  preserves explicit `na.rm = FALSE` fail-on-any-nonfinite behavior. Forty-one
+  focused assertions pass without compilation.
 
 ## Explicitly out of scope
 

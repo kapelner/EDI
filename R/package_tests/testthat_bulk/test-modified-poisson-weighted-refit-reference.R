@@ -56,22 +56,21 @@ test_that("weighted refit is scale-invariant to a common weight multiplier", {
 	expect_equal(est2, est1, tolerance = 1e-4)
 })
 
-test_that("estimate_only=FALSE reproduces the same point estimate as TRUE (SE is documented-NA regardless)", {
-	# Unlike the sibling log-binomial class, compute_estimate_with_bootstrap_weights
-	# here unconditionally sets s_beta_hat_T = NA_real_ -- the estimate_only=FALSE
-	# branch never actually computes a variance, despite the @param doc comment
-	# reading "If TRUE, skip variance calculations" (implying FALSE computes one).
-	# Not fixed here (test-writing/triage scope only); pinned as the documented
-	# current behavior so a future doc or behavior change shows up as a diff.
+test_that("estimate_only=FALSE computes the weighted robust SE and TRUE skips it", {
 	f <- modified_poisson_fixture(30024)
 	weights <- runif(f$n, 0.6, 1.8)
 	est_false <- as.numeric(f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE))
 	se <- f$inf$.__enclos_env__$private$weighted_refit_se()
-	expect_true(is.na(se))
+	mu <- exp(drop(f$X %*% coef(glm.fit(f$X, f$y, weights = weights, family = poisson(link = "log")))))
+	bread <- solve(crossprod(f$X, f$X * (weights * mu)))
+	meat <- crossprod(f$X, f$X * (weights * (f$y - mu)^2))
+	se_ref <- sqrt((bread %*% meat %*% bread)[2L, 2L])
+	expect_equal(se, se_ref, tolerance = 1e-6)
 
 	f2 <- modified_poisson_fixture(30024)
 	est_true <- as.numeric(f2$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = TRUE))
 	expect_equal(est_false, est_true, tolerance = 1e-8)
+	expect_true(is.na(f2$inf$.__enclos_env__$private$weighted_refit_se()))
 
 	est_ref <- modified_poisson_weighted_ref(f, weights)
 	expect_equal(est_false, est_ref, tolerance = 1e-4)
