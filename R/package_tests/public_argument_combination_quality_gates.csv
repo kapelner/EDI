@@ -1291,6 +1291,7 @@
 "multi_arg_without_combination_coverage","report","InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC::set_optimization_alg","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceSurvivalGLMMWeibullFrailtyNormalIVWC::duplicate","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","robust_survreg_with_surv_object","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
+"multi_arg_without_combination_coverage","hard_later","InferenceSurvivalKMDiff::compute_bayesian_bootstrap_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","hard_later","InferenceSurvivalStratCoxPHRegr::compute_lik_ratio_bartlett_two_sided_pval","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","logit","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE
 "multi_arg_without_combination_coverage","report","InferenceSurvivalKKStratCoxPHOneLik::duplicate","","","Public API has multiple configurable arguments and no generated legal-combination case.",FALSE

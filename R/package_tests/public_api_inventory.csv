@@ -8847,7 +8847,7 @@
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","compute_asymp_log_rank_two_sided_pval_for_treatment_effect","InferenceSurvivalKMDiff","class_local",1,"delta",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","compute_asymp_two_sided_pval","InferenceSurvivalKMDiff","class_local",1,"delta",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","compute_bayesian_bootstrap_confidence_interval","InferenceSurvivalKMDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","compute_bayesian_bootstrap_two_sided_pval","InferenceSurvivalKMDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","compute_bayesian_bootstrap_two_sided_pval","InferenceSurvivalKMDiff","class_local",7,"B;delta;min_number_usable_samples;na.rm;show_progress;type;weighting_unit_type",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","compute_bootstrap_confidence_interval","InferenceSurvivalKMDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","compute_bootstrap_two_sided_pval","InferenceSurvivalKMDiff","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKMDiff","r6_public_method","InferenceSurvivalKMDiff","compute_estimate","InferenceSurvivalKMDiff","class_local",1,"estimate_only",FALSE,FALSE,TRUE,FALSE,"",TRUE
