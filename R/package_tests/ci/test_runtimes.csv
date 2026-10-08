@@ -1175,6 +1175,7 @@ R/EDI/tests/testthat/test-cct-combine-pvalues.R,coverage,1,measured_with_30_perc
 R/EDI/tests/testthat/test-clayton-logtheta-optimizer-bound.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-clogit-glmm-buffer-reuse.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-clogit-plus-glmm-cpp-equivalence.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-cloglog-parametric-bootstrap-native-sign.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-cluster-permutation-flat-indices.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-cmh-flat-vector.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-comprehensive-slow-path-registry.R,coverage,1,measured_with_30_percent_headroom
@@ -1183,6 +1184,7 @@ R/EDI/tests/testthat/test-contin-kk-ols-onelik-migration-golden.R,coverage,1.5,m
 R/EDI/tests/testthat/test-contin-kk-robust-regr-ivwc-migration-golden.R,coverage,1.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-contin-kk-robust-regr-onelik-migration-golden.R,coverage,1.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-continuation-ratio-augmentation.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-continuation-ratio-null-refit-multistart.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-continuation-ratio-objective-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-continuation-ratio-weighted.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-count-family-audit-excluded-bugs.R,coverage,1,measured_with_30_percent_headroom
