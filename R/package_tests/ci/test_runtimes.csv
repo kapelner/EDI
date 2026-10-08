@@ -1354,6 +1354,7 @@ R/EDI/tests/testthat/test-smart-start-inference-policies.R,coverage,1,measured_w
 R/EDI/tests/testthat/test-smart-start-warm-paths.R,coverage,2.7,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-static-cleanup-guardrails.R,coverage,1.5,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-stereotype-logit-fit-hardening.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-stereotype-logit-full-fit-multistart.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-stereotype-logit-gemv-gradient.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-stereotype-logit-hessian-allocs.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-stereotype-logit-hessian-workspace.R,coverage,1,measured_with_30_percent_headroom
