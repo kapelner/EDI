@@ -88,8 +88,13 @@ test_that("compute_jackknife_summary matches the delete-1 jackknife formulas and
 	expect_equal(f$inf$compute_jackknife_estimate(), s$estimate, tolerance = 1e-10)
 	expect_equal(f$inf$compute_jackknife_bias_estimate(), s$bias, tolerance = 1e-10)
 	expect_equal(f$inf$compute_jackknife_std_error(), s$std_error, tolerance = 1e-10)
-	z <- (theta - 0.1) / s$std_error
+	z <- (s$estimate - 0.1) / s$std_error
 	expect_equal(f$inf$compute_jackknife_wald_two_sided_pval(delta = 0.1), 2 * pnorm(-abs(z)), tolerance = 1e-10)
+	expect_equal(
+		unname(f$inf$compute_jackknife_wald_confidence_interval(alpha = 0.05)),
+		s$estimate + c(-1, 1) * qnorm(0.975) * s$std_error,
+		tolerance = 1e-10
+	)
 
 	f$priv$cached_values$jackknife_summary[["observation"]]$estimate <- 999
 	expect_equal(f$priv$compute_jackknife_summary("observation")$estimate, 999)

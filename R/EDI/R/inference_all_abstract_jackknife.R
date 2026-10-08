@@ -95,9 +95,8 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				if (isTRUE(private$harden)) private$cache_nonestimable_se("jackknife_standard_error_unavailable")
 				return(NA_real_)
 			}
-			theta_hat = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-			if (!is.finite(theta_hat)) return(NA_real_)
-			2 * stats::pnorm(-abs((theta_hat - delta) / se_j))
+			theta_j = as.numeric(jack_summary$estimate)[1L]
+			2 * stats::pnorm(-abs((theta_j - delta) / se_j))
 		},
 		#' @description Computes a normal-approximation confidence interval using the
 		#'   jackknife estimate and jackknife standard error.
@@ -135,10 +134,9 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				if (isTRUE(private$harden)) private$cache_nonestimable_se("jackknife_standard_error_unavailable")
 				return(ci)
 			}
-			theta_hat = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
-			if (!is.finite(theta_hat)) return(ci)
+			theta_j = as.numeric(jack_summary$estimate)[1L]
 			z = stats::qnorm(1 - alpha / 2)
-			ci[] = c(theta_hat - z * se_j, theta_hat + z * se_j)
+			ci[] = c(theta_j - z * se_j, theta_j + z * se_j)
 			ci
 		}
 	),

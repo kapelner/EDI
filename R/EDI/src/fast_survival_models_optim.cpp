@@ -117,62 +117,80 @@ public:
                 double d2 = m_dead[i2];
                 
                 double logA = log_sum_exp_clayton(theta * h1, theta * h2);
-                double A = std::exp(logA);
-                
-                // Common terms for derivatives
-                double dA_d_h1 = theta * std::exp(theta * h1);
-                double dA_d_h2 = theta * std::exp(theta * h2);
-                double dA_d_theta = h1 * std::exp(theta * h1) + h2 * std::exp(theta * h2);
+                // Numerically stable ratios, used in place of raw A/dA_d_h1/
+                // dA_d_h2/dA_d_theta below. The only quantities every branch
+                // actually needs are dA_d_h1/A, dA_d_h2/A and dA_d_theta/A
+                // (loglik itself only ever uses logA, never A directly) -- so
+                // rewriting them this way avoids ever forming A or dA_* as
+                // standalone values. That matters because log_sum_exp_clayton
+                // keeps logA itself overflow-safe, but the previous code
+                // re-exponentiated it (A = std::exp(logA)) and separately
+                // formed dA_d_h1/dA_d_h2/dA_d_theta via raw std::exp(theta*h),
+                // both of which overflow to Inf once theta is large (e.g.
+                // clamped at the CLAYTON_MAX_LOG_THETA boundary, theta =
+                // exp(6) ~= 403, with any reasonable h). The flat-gradient
+                // fix (d_theta_d_log_theta = 0 in that region) does not save
+                // this: NaN * 0 is NaN, not 0, so the Inf-driven NaN still
+                // corrupted every gradient component. theta*h1 - logA and
+                // theta*h2 - logA are always <= 0 by construction of
+                // log_sum_exp_clayton (logA >= max(theta*h1, theta*h2)), so
+                // these ratios are always in (0, 1] and never overflow.
+                double r1 = std::exp(theta * h1 - logA);
+                double r2 = std::exp(theta * h2 - logA);
+                double dA_d_h1_over_A = theta * r1;
+                double dA_d_h2_over_A = theta * r2;
+                double dA_d_theta_over_A = h1 * r1 + h2 * r2;
 
                 if (d1 < 0.5 && d2 < 0.5) { // mask00
                     loglik -= (1.0 / theta) * logA;
                     // d/d_theta (-1/theta * logA) = 1/theta^2 * logA - 1/theta * 1/A * dA_d_theta
-                    d_loglik_d_log_theta += (logA / (theta * theta) - dA_d_theta / (theta * A)) * d_theta_d_log_theta;
-                    
-                    double d_ll_d_A = -1.0 / (theta * A);
-                    d_loglik_d_eta[i1] += d_ll_d_A * dA_d_h1 * (-H[i1] / sigma);
-                    d_loglik_d_eta[i2] += d_ll_d_A * dA_d_h2 * (-H[i2] / sigma);
-                    d_loglik_d_log_sigma += (d_ll_d_A * dA_d_h1 * (-H[i1] * log_H[i1]) + 
-                                             d_ll_d_A * dA_d_h2 * (-H[i2] * log_H[i2]));
+                    d_loglik_d_log_theta += (logA / (theta * theta) - dA_d_theta_over_A / theta) * d_theta_d_log_theta;
+
+                    double term1 = -dA_d_h1_over_A / theta; // was d_ll_d_A * dA_d_h1
+                    double term2 = -dA_d_h2_over_A / theta; // was d_ll_d_A * dA_d_h2
+                    d_loglik_d_eta[i1] += term1 * (-H[i1] / sigma);
+                    d_loglik_d_eta[i2] += term2 * (-H[i2] / sigma);
+                    d_loglik_d_log_sigma += (term1 * (-H[i1] * log_H[i1]) +
+                                             term2 * (-H[i2] * log_H[i2]));
                 } else if (d1 > 0.5 && d2 < 0.5) { // mask10
                     loglik += log_f[i1] + (-1.0/theta - 1.0) * logA + (theta + 1.0) * h1;
-                    
-                    d_loglik_d_log_theta += (logA / (theta * theta) + (-1.0/theta - 1.0) * dA_d_theta / A + h1) * d_theta_d_log_theta;
-                    
-                    double d_ll_d_h1 = (theta + 1.0) + (-1.0/theta - 1.0) * dA_d_h1 / A;
-                    double d_ll_d_h2 = (-1.0/theta - 1.0) * dA_d_h2 / A;
-                    
+
+                    d_loglik_d_log_theta += (logA / (theta * theta) + (-1.0/theta - 1.0) * dA_d_theta_over_A + h1) * d_theta_d_log_theta;
+
+                    double d_ll_d_h1 = (theta + 1.0) + (-1.0/theta - 1.0) * dA_d_h1_over_A;
+                    double d_ll_d_h2 = (-1.0/theta - 1.0) * dA_d_h2_over_A;
+
                     // From log_f[i1]: d/d_eta = (H[i1] - 1)/sigma, d/d_log_sigma = -1 + (H[i1] - 1)*log_H[i1]
                     d_loglik_d_eta[i1] += (H[i1] - 1.0) / sigma + d_ll_d_h1 * (-H[i1] / sigma);
                     d_loglik_d_eta[i2] += d_ll_d_h2 * (-H[i2] / sigma);
-                    d_loglik_d_log_sigma += -1.0 + (H[i1] - 1.0) * log_H[i1] + 
-                                            d_ll_d_h1 * (-H[i1] * log_H[i1]) + 
+                    d_loglik_d_log_sigma += -1.0 + (H[i1] - 1.0) * log_H[i1] +
+                                            d_ll_d_h1 * (-H[i1] * log_H[i1]) +
                                             d_ll_d_h2 * (-H[i2] * log_H[i2]);
                 } else if (d1 < 0.5 && d2 > 0.5) { // mask01
                     loglik += log_f[i2] + (-1.0/theta - 1.0) * logA + (theta + 1.0) * h2;
-                    
-                    d_loglik_d_log_theta += (logA / (theta * theta) + (-1.0/theta - 1.0) * dA_d_theta / A + h2) * d_theta_d_log_theta;
-                    
-                    double d_ll_d_h1 = (-1.0/theta - 1.0) * dA_d_h1 / A;
-                    double d_ll_d_h2 = (theta + 1.0) + (-1.0/theta - 1.0) * dA_d_h2 / A;
-                    
+
+                    d_loglik_d_log_theta += (logA / (theta * theta) + (-1.0/theta - 1.0) * dA_d_theta_over_A + h2) * d_theta_d_log_theta;
+
+                    double d_ll_d_h1 = (-1.0/theta - 1.0) * dA_d_h1_over_A;
+                    double d_ll_d_h2 = (theta + 1.0) + (-1.0/theta - 1.0) * dA_d_h2_over_A;
+
                     d_loglik_d_eta[i1] += d_ll_d_h1 * (-H[i1] / sigma);
                     d_loglik_d_eta[i2] += (H[i2] - 1.0) / sigma + d_ll_d_h2 * (-H[i2] / sigma);
-                    d_loglik_d_log_sigma += -1.0 + (H[i2] - 1.0) * log_H[i2] + 
-                                            d_ll_d_h1 * (-H[i1] * log_H[i1]) + 
+                    d_loglik_d_log_sigma += -1.0 + (H[i2] - 1.0) * log_H[i2] +
+                                            d_ll_d_h1 * (-H[i1] * log_H[i1]) +
                                             d_ll_d_h2 * (-H[i2] * log_H[i2]);
                 } else { // mask11
                     loglik += std::log(theta + 1.0) + log_f[i1] + log_f[i2] + (-1.0/theta - 2.0) * logA + (theta + 1.0) * (h1 + h2);
-                    
-                    d_loglik_d_log_theta += (1.0/(theta + 1.0) + (1.0/(theta*theta)) * logA + (-1.0/theta - 2.0) * dA_d_theta / A + h1 + h2) * d_theta_d_log_theta;
-                    
-                    double d_ll_d_h1 = (theta + 1.0) + (-1.0/theta - 2.0) * dA_d_h1 / A;
-                    double d_ll_d_h2 = (theta + 1.0) + (-1.0/theta - 2.0) * dA_d_h2 / A;
-                    
+
+                    d_loglik_d_log_theta += (1.0/(theta + 1.0) + (1.0/(theta*theta)) * logA + (-1.0/theta - 2.0) * dA_d_theta_over_A + h1 + h2) * d_theta_d_log_theta;
+
+                    double d_ll_d_h1 = (theta + 1.0) + (-1.0/theta - 2.0) * dA_d_h1_over_A;
+                    double d_ll_d_h2 = (theta + 1.0) + (-1.0/theta - 2.0) * dA_d_h2_over_A;
+
                     d_loglik_d_eta[i1] += (H[i1] - 1.0) / sigma + d_ll_d_h1 * (-H[i1] / sigma);
                     d_loglik_d_eta[i2] += (H[i2] - 1.0) / sigma + d_ll_d_h2 * (-H[i2] / sigma);
-                    d_loglik_d_log_sigma += -2.0 + (H[i1] - 1.0) * log_H[i1] + (H[i2] - 1.0) * log_H[i2] + 
-                                            d_ll_d_h1 * (-H[i1] * log_H[i1]) + 
+                    d_loglik_d_log_sigma += -2.0 + (H[i1] - 1.0) * log_H[i1] + (H[i2] - 1.0) * log_H[i2] +
+                                            d_ll_d_h1 * (-H[i1] * log_H[i1]) +
                                             d_ll_d_h2 * (-H[i2] * log_H[i2]);
                 }
             }

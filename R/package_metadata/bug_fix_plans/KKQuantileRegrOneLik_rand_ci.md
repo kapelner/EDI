@@ -13,16 +13,14 @@
 
 ## Status
 
-**Randomization confidence intervals are hard-disabled for
-`InferenceContinKKQuantileRegrOneLik` and `InferencePropKKQuantileRegrOneLik`**
-(`compute_rand_confidence_interval()` throws immediately for these two classes,
-per user decision 2026-09-17) as an emergency stopgap, same pattern as
-`../new_feature_plans/incidence_randomization_cis.md`'s stopgap. `compute_rand_two_sided_pval()` is
-untouched and still works -- it uses a completely different, unrelated code
-path (see Root cause) and was already confirmed correct by the audit that
-found this bug (zero p-value-range anomalies across ~3.97M audited rows).
-`compute_estimate()` and every other CI/pval method on these two classes are
-unaffected.
+**Fixed 2026-10-08.** `InferenceContinKKQuantileRegrOneLik` and
+`InferencePropKKQuantileRegrOneLik` now use the generic `RandomizationCI`
+test-inversion path, which refits each class's own single stacked quantile
+regression under randomized assignments. The incompatible split-sample Zhang
+component remains on the IVWC sibling, whose estimand it actually matches.
+The emergency stop, wiring exemptions, and path-audit "not implemented"
+entries have been removed. `compute_rand_two_sided_pval()`, point estimation,
+and every non-randomization CI remain unchanged.
 
 ## Symptom (2026-09-16/17, found via a raw `comprehensive_tests_results_nc_1_*.csv`
 results audit, not a user report)
@@ -197,22 +195,21 @@ randomization-CI pattern to copy either.
    considering if option 1 turns out not to check out empirically and
    option 2's cost isn't justified by demand.
 
-**No option has been chosen yet.** Option 1 is the natural first thing to try
-given how much machinery is already in place -- if it validates cleanly, it
-may make option 2 unnecessary.
+**Decision:** option 1 validated cleanly and shipped. Option 2 is unnecessary;
+option 3 is superseded.
 
 ## Implementation TODOs
 
-1. **Decision:** try option 1 first (cheap validation of already-composed
+1. [x] **Decision:** try option 1 first (cheap validation of already-composed
    machinery); fall back to option 2 or 3 depending on what that validation
    shows.
-2. If option 1: make the composition change, then verify end-to-end --
+2. [x] If option 1: make the composition change, then verify end-to-end --
    `compute_rand_confidence_interval()` returns a non-degenerate interval,
    roughly overlapping that class's own Wald CI on a handful of datasets, and
    a coverage simulation (many reps, one design/formula) lands near the
    nominal 95% (not just "not exactly 0%"). Add the regression test from
    TODO-3 either way.
-3. **Regression test that would have caught this bug** (applies to any
+3. [x] **Regression test that would have caught this bug** (applies to any
    option chosen): assert `compute_rand_confidence_interval()` returns a
    *non-degenerate* interval (`result[2] > result[1]` beyond floating-point
    tolerance) for both classes, and that a small coverage simulation (e.g.
@@ -223,18 +220,38 @@ may make option 2 unnecessary.
    revisited: it will keep passing unless its own "Legacy" reconstruction
    stops sharing the same underlying (fixed) engine, so it's not a
    substitute for this new test.
-4. If option 2: derive the stacked-model exact/permutation shift model and
+4. [x] If option 2: derive the stacked-model exact/permutation shift model and
    validate it against a brute-force check for a small `n` before trusting
    any C++ kernel, same caveat as `../new_feature_plans/incidence_randomization_cis.md`'s TODO-3.
-5. Once a real fix ships: remove this plan's stopgap `stop()` in
+   **Not applicable:** option 1 validated, so no bespoke kernel was added.
+5. [x] Once a real fix ships: remove this plan's stopgap `stop()` in
    `InferenceExtQuantileRandCI$compute_rand_confidence_interval()`
    (`inference_ext_quantile_rand_ci.R`), remove the two
    `not_implemented_methods` entries in `path_audits_source.R`'s
    `InferenceContinKKQuantileRegrOneLik`/`InferencePropKKQuantileRegrOneLik`
    rows, and regenerate `path_audits.html`. Re-run the TODO-3 regression test
    to confirm it now passes for real.
-6. Cross-reference this plan from `release_v1_1_0.md`/`../new_feature_plans/_master.md` (done,
+6. [x] Cross-reference this plan from `release_v1_1_0.md`/`../new_feature_plans/_master.md` (done,
    `TODO-25`).
+
+## Implementation record (2026-10-08)
+
+- `KKQuantileRegrOneLik` now depends on `RandomizationCI` rather than
+  `QuantileRandomizationCI`; both concrete leaves inherit the generic method
+  without an override collision. The IVWC component still depends on
+  `QuantileRandomizationCI`.
+- Seeded continuous and proportion fixtures return finite, ordered,
+  non-degenerate intervals that contain the point estimate and overlap their
+  Wald intervals. A 50-repetition continuous-response audit at nominal 95%
+  passed the wide coverage sanity bound and every interval had positive width.
+- The permanent focused regression runs 20 seeded coverage repetitions by
+  default (50 when the audit option is enabled), plus both concrete response
+  types and the composition/IVWC separation. The migration golden excludes the
+  deliberately changed legacy CI path and checks the new interval directly.
+- The class-wiring audit passes after deleting all four missing-Zhang-hook
+  exemptions. `path_audits_source.R` no longer labels either method as not
+  implemented, and `path_audits.html` was regenerated from the source-loaded
+  checkout. All validation used `pkgload::load_all(..., compile = FALSE)`.
 
 ## Testing/verification plan
 

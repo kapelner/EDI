@@ -52,6 +52,7 @@ R/package_tests/testthat_bulk/test-beta-regr-randomization-estimate-refit-no-cov
 R/package_tests/testthat_bulk/test-beta-regression-with-var-kernel-betareg-vcov-information-fixed-coefficients-and-flags-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-beta-weighted-constrained-likelihood-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binary-match-structure-singular-covariance-mahalanobis-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-binomial-identity-intercept-only-resampling-boundary-hypothesis-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-lik-ratio-ci-root-finding-failure-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-likelihood-spec-and-fit-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-marginal-functional-and-failure-branches-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -573,6 +574,7 @@ R/package_tests/testthat_bulk/test-kk-weibull-frailty-onelik-no-events-and-fit-f
 R/package_tests/testthat_bulk/test-kk-weibull-frailty-onelik-randomization-estimate-refit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-cluster-id-cache-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-cpp-and-survreg-fits-cluster-robust-se-agreement-and-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk-weibull-marginal-jackknife-arm-event-guard-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-no-events-and-fit-failed-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-randomization-estimate-refit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-weighted-bootstrap-cluster-surrogate.R,correctness,1,measured_with_30_percent_headroom
@@ -962,9 +964,9 @@ R/package_tests/testthat_bulk/test-shift-randomization-responses-all-transform-b
 R/package_tests/testthat_bulk/test-should-use-zhang-incidence-randomization-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-average-diff-fast-bootstrap-censored-resample-loop-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-average-diff-fast-bootstrap-resample-loop-and-randomization-estimate-cache-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-simple-average-diff-studentized-and-jackknife-wald-se-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-simple-estimator-migration-baseline.R,correctness,1.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-mean-diff-affine-coefs-guards-and-small-arm-shared-reference.R,correctness,1,measured_with_30_percent_headroom
-R/package_tests/testthat_bulk/test-simple-mean-diff-weighted-kish-welch-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-mean-difference-migration-golden.R,correctness,2.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-wilcox-empty-arm-and-fit-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-wilcox-hl-point-estimate-weighted-branch-and-fast-randomization-distribution-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1170,6 +1172,7 @@ R/EDI/tests/testthat/test-brt-weibull-kernel-matches-reference.R,coverage,2.7,me
 R/EDI/tests/testthat/test-build-info.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-capability-tables.R,coverage,1.9,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-cct-combine-pvalues.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-clayton-logtheta-optimizer-bound.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-clogit-glmm-buffer-reuse.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-clogit-plus-glmm-cpp-equivalence.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-cluster-permutation-flat-indices.R,coverage,1,measured_with_30_percent_headroom
@@ -1256,6 +1259,7 @@ R/EDI/tests/testthat/test-kk-compound-merged-pass.R,coverage,1,measured_with_30_
 R/EDI/tests/testthat/test-kk-gee-fallback.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-ivwc-compound-focused-regression.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-ols-se.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-kk-quantile-onelik-randomization-ci.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-robust-fallbacks.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R,coverage,1.8,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-beta-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
@@ -1433,6 +1437,7 @@ R/package_tests/testthat_bulk/test-beta-regr-randomization-estimate-refit-no-cov
 R/package_tests/testthat_bulk/test-beta-regression-with-var-kernel-betareg-vcov-information-fixed-coefficients-and-flags-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-weighted-constrained-likelihood-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binary-match-structure-singular-covariance-mahalanobis-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-binomial-identity-intercept-only-resampling-boundary-hypothesis-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-lik-ratio-ci-root-finding-failure-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-likelihood-spec-and-fit-predicate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-marginal-functional-and-failure-branches-reference.R,coverage,240,bootstrap
@@ -1954,6 +1959,7 @@ R/package_tests/testthat_bulk/test-kk-weibull-frailty-onelik-no-events-and-fit-f
 R/package_tests/testthat_bulk/test-kk-weibull-frailty-onelik-randomization-estimate-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-cluster-id-cache-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-cpp-and-survreg-fits-cluster-robust-se-agreement-and-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-weibull-marginal-jackknife-arm-event-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-no-events-and-fit-failed-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-randomization-estimate-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-weibull-marginal-weighted-bootstrap-cluster-surrogate.R,coverage,240,bootstrap
@@ -2343,9 +2349,9 @@ R/package_tests/testthat_bulk/test-shift-randomization-responses-all-transform-b
 R/package_tests/testthat_bulk/test-should-use-zhang-incidence-randomization-predicate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simple-average-diff-fast-bootstrap-censored-resample-loop-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simple-average-diff-fast-bootstrap-resample-loop-and-randomization-estimate-cache-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-simple-average-diff-studentized-and-jackknife-wald-se-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simple-estimator-migration-baseline.R,coverage,5.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-mean-diff-affine-coefs-guards-and-small-arm-shared-reference.R,coverage,240,bootstrap
-R/package_tests/testthat_bulk/test-simple-mean-diff-weighted-kish-welch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simple-mean-difference-migration-golden.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-simple-wilcox-empty-arm-and-fit-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-simple-wilcox-hl-point-estimate-weighted-branch-and-fast-randomization-distribution-reference.R,coverage,240,bootstrap

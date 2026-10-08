@@ -214,7 +214,7 @@ plan files' internal numbering did not change.
   focused source-loaded/reference assertions pass. Rebuilt-native execution
   and the exact diamonds reps 1/13 timing rerun remain release-build
   validation under the repository's no-compilation rule.
-- [ ] TODO-7 (added 2026-09-17, found via a raw `comprehensive_tests`
+- [x] TODO-7 (added 2026-09-17, fixed 2026-10-08; found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
   randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
   `InferenceContinKKQuantileRegrOneLik`/`InferencePropKKQuantileRegrOneLik`
@@ -226,6 +226,12 @@ plan files' internal numbering did not change.
   Stopgap `stop()` landed 2026-09-17; the real fix (route through the
   already-correctly-wired generic `InferenceRandCI` bisection instead of
   Zhang) is unverified and needs its own decision before implementing.
+  **Implemented:** both continuous and proportion OneLik leaves now inherit
+  the generic stacked-estimator inversion, while IVWC retains Zhang. The
+  emergency stop, leaf override collisions, four wiring exemptions and stale
+  path-audit entries were removed. Focused finite-width/Wald-overlap and
+  50-repetition coverage checks pass without compilation; the wiring audit is
+  10/10 and migration golden is 72/72. All six linked-plan items are closed.
 - [ ] TODO-8 (added 2026-09-22, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **Stereotype-logit multimodal
   likelihood** — `../bug_fix_plans/multimodal_log_liks.md → TODO-1..8`. The 2026-09-21
@@ -900,8 +906,7 @@ plan files' internal numbering did not change.
   catches it, p=5.7e-11 — exactly the outlier-robustness gap discussed
   when the check was designed). Independent of every other item in this
   release; depends on nothing else.
-- [ ] TODO-27 (added 2026-09-24, same audit-triage wave, **medium
-  confidence, not yet root-caused, plan file now written**):
+- [x] TODO-27 (added 2026-09-24, conclusively refuted 2026-10-08):
   `InferenceIncidBinomialIdentityRiskDiff` shows real, moderate Type-I
   error inflation (~2.6× nominal, reject rate ~0.13) specifically on
   `compute_subsampling_two_sided_pval`/`compute_m_out_of_n_bootstrap_two_sided_pval`,
@@ -958,6 +963,15 @@ plan files' internal numbering did not change.
   distribution context specifically (a design decision, not a one-line
   fix) — distinct from the observed-fit context, where hard rejection is
   more defensible.
+  **Resolution:** for the reported `model_formula = ~1` cells, the
+  intercept-plus-treatment identity fit is algebraically equal to the two arm
+  proportions and cannot cross `[0,1]`. Source-loaded checks saw zero dropout;
+  independent exact-pivot simulations at `n=150` and `n=60` were near nominal,
+  and a fresh focused CSV did not reproduce the historical inflation. The
+  filtering path remains correctly gated, but no filtering occurred here. A
+  deterministic regression pins finite, bounded resampling draws; all six
+  linked-plan items are closed and 133 focused/related assertions pass without
+  compilation. No production change is warranted.
 - [x] TODO-28 (added 2026-09-24; **closed as a stale source finding on
   2026-10-07**): **Reused bootstrap worker `cached_design_matrix` reset
   audit** — `../bug_fix_plans/bootstrap_worker_stale_design_matrix.md`.
@@ -1029,7 +1043,7 @@ plan files' internal numbering did not change.
   plan file's "Scope update 2026-09-24" section for the full per-class
   table and unresolved cases (`InferenceContinKKQuantileRegrOneLik`,
   `InferenceOrdinalGCompMeanDiff`, other GComp siblings).
-- [ ] TODO-29 (added 2026-09-24, found via a dedicated cross-class
+- [x] TODO-29 (added 2026-09-24, fixed and audited 2026-10-08; found via a dedicated cross-class
   investigation fork — medium-low confidence, pattern confirmed real and
   response-type-independent but mechanism unconfirmed): `InferenceAllSimpleAverageDiff`'s
   `bayesian_bootstrap_studentized`/`jackknife_wald` families are
@@ -1043,6 +1057,17 @@ plan files' internal numbering did not change.
   may share a cause with the Bayesian-bootstrap finding or be a separate,
   co-occurring bug. Independent of TODO-28 and everything else in this
   release.
+
+  **Resolution:** Bayesian-bootstrap studentization incorrectly applied Kish
+  effective sample size to normalized Dirichlet frequency weights, inflating
+  replicate SEs by about `sqrt(2)`. It now uses frequency-weight Welch
+  contributions `Q/[W(W-1)]` and matching `W-1` Satterthwaite degrees of
+  freedom. Independent coverage improved from 0.820–0.840 to 0.944–0.953;
+  source-loaded coverage was 0.960 with 300/300 finite runs. The separate
+  `jackknife_wald` path never uses this hook, matches a hand delete-one/qnorm
+  calculation, and approaches nominal coverage with sample size, so its audit
+  flags are finite-sample Wald behavior. All four linked-plan items and 163
+  focused assertions pass without compilation.
 
   **Scope widened 2026-09-24**: a 5th class, `InferenceCountRobustPoisson`
   (9 families uniformity, 2 coverage, previously unexplained), is an EXACT

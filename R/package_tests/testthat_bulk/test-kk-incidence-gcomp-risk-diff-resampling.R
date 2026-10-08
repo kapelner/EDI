@@ -31,9 +31,10 @@ test_that("RD jackknife-Wald pval/CI match an independently derived linear-scale
 	expect_gt(n_units, 1L)
 	var_j <- ((n_units - 1) / n_units) * sum((jack_f - mean(jack_f))^2)
 	se_j <- sqrt(var_j)
+	jack_est <- est - (n_units - 1) * (mean(jack_f) - est)
 	z <- qnorm(0.975)
-	expected_pval <- 2 * pnorm(-abs(est / se_j))
-	expected_ci <- est + c(-1, 1) * z * se_j
+	expected_pval <- 2 * pnorm(-abs(jack_est / se_j))
+	expected_ci <- jack_est + c(-1, 1) * z * se_j
 
 	expect_equal(inf$compute_jackknife_wald_two_sided_pval(), expected_pval, tolerance = 1e-8)
 	expect_equal(unname(inf$compute_jackknife_wald_confidence_interval()), expected_ci, tolerance = 1e-8)

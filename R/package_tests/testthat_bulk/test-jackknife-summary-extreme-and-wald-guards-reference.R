@@ -87,3 +87,21 @@ test_that("compute_jackknife_wald_two_sided_pval/CI cache 'jackknife_standard_er
 		}
 	}
 })
+
+test_that("jackknife Wald p-values and intervals center on the bias-corrected jackknife estimate", {
+	f <- smd_boot_fixture()
+	f$priv$cached_values$jackknife_summary <- list(
+		observation = list(estimate = 0.25, bias = 0.5, std_error = 0.1, distribution = c(0.1, 0.2, 0.3))
+	)
+
+	expect_equal(
+		f$inf$compute_jackknife_wald_two_sided_pval(delta = 0, unit = "observation"),
+		2 * pnorm(-2.5),
+		tolerance = 1e-12
+	)
+	expect_equal(
+		unname(f$inf$compute_jackknife_wald_confidence_interval(alpha = 0.05, unit = "observation")),
+		0.25 + c(-1, 1) * qnorm(0.975) * 0.1,
+		tolerance = 1e-12
+	)
+})

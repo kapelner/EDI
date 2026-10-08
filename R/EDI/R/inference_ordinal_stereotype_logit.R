@@ -1,3 +1,166 @@
+.stereotype_multistart_data_seed = function(X, y){
+	# A small, platform-stable hash supplies local pseudo-random starts without
+	# reading or changing R's global RNG state. Keep the arithmetic below 2^53
+	# so doubles represent every intermediate integer exactly.
+	modulus = 2147483647
+	state = 104729
+	values = c(as.numeric(y), as.numeric(X))
+	values[!is.finite(values)] = 0
+	for (i in seq_along(values)) {
+		term = abs(round(values[i] * 1e6)) %% modulus
+		state = (state * 48271 + term + (i %% 65521)) %% modulus
+	}
+	as.numeric(max(1, state))
+}
+
+.stereotype_multistart_normals = function(seed, n){
+	if (n <= 0L) return(numeric())
+	modulus = 2147483647
+	state = as.numeric(max(1, seed %% modulus))
+	uniforms = numeric(2L * ceiling(n / 2L))
+	for (i in seq_along(uniforms)) {
+		state = (state * 48271) %% modulus
+		uniforms[i] = max(state / modulus, .Machine$double.eps)
+	}
+	pairs = matrix(uniforms, ncol = 2L, byrow = TRUE)
+	z = c(
+		sqrt(-2 * log(pairs[, 1L])) * cos(2 * pi * pairs[, 2L]),
+		sqrt(-2 * log(pairs[, 1L])) * sin(2 * pi * pairs[, 2L])
+	)
+	z[seq_len(n)]
+}
+
+.stereotype_multistart_candidates = function(primary_params, X, y){
+	K = length(sort(unique(y)))
+	n_alpha = K - 1L
+	p = ncol(X)
+	n_gamma = K - 2L
+	n_params = n_alpha + p + max(0L, n_gamma)
+	primary_params = as.numeric(primary_params)
+	if (K < 3L || length(primary_params) != n_params || any(!is.finite(primary_params))) {
+		return(list())
+	}
+
+	gamma_idx = (n_alpha + p + 1L):n_params
+	candidates = list()
+	add_gamma = function(label, offsets){
+		start = primary_params
+		start[gamma_idx] = start[gamma_idx] + offsets
+		candidates[[label]] <<- start
+	}
+	for (offset in c(-3, -1.5, 1.5, 3)) {
+		add_gamma(paste0("gamma_joint_", format(offset, trim = TRUE)), rep(offset, n_gamma))
+	}
+	if (n_gamma > 1L) {
+		alternating = rep(c(-2, 2), length.out = n_gamma)
+		add_gamma("gamma_alternating", alternating)
+		add_gamma("gamma_alternating_reverse", -alternating)
+	}
+
+	# Two data-seeded starts broaden the search beyond the hand-picked loading
+	# directions. This generator is deliberately local; it never calls
+	# set.seed(), runif(), or rnorm().
+	seed = .stereotype_multistart_data_seed(X, y)
+	for (j in seq_len(2L)) {
+		z = .stereotype_multistart_normals(seed + j * 104729, n_params)
+		start = primary_params
+		start[seq_len(n_alpha)] = start[seq_len(n_alpha)] + .35 * z[seq_len(n_alpha)]
+		beta_idx = n_alpha + seq_len(p)
+		start[beta_idx] = start[beta_idx] + .5 * z[beta_idx]
+		start[gamma_idx] = start[gamma_idx] + 1.5 * z[gamma_idx]
+		candidates[[paste0("data_seeded_", j)]] = start
+	}
+	candidates
+}
+
+.stereotype_multistart_nll = function(fit){
+	value = suppressWarnings(as.numeric(fit$neg_loglik %||% fit$neg_ll)[1L])
+	if (length(value) != 1L || !is.finite(value)) Inf else value
+}
+
+.stereotype_full_data_multistart = function(
+	X, y, primary_fit, estimate_only, fit_is_usable,
+	fit_cpp = fast_stereotype_logit_cpp,
+	fit_with_var_cpp = fast_stereotype_logit_with_var_cpp,
+	improvement_tol = 1e-6
+){
+	primary_nll = .stereotype_multistart_nll(primary_fit)
+	candidates = .stereotype_multistart_candidates(primary_fit$params, X, y)
+	best_screen = NULL
+	best_label = "primary"
+	best_start = NULL
+	best_nll = primary_nll
+	n_tried = 1L
+
+	for (label in names(candidates)) {
+		n_tried = n_tried + 1L
+		candidate = tryCatch(
+			fit_cpp(
+				X, y,
+				smart_cold_start = FALSE,
+				warm_start_params = candidates[[label]],
+				warm_start_fisher_info = NULL,
+				estimate_only = TRUE
+			),
+			error = function(e) NULL
+		)
+		if (is.null(candidate) || !fit_is_usable(candidate, require_standard_error = FALSE)) next
+		candidate_nll = .stereotype_multistart_nll(candidate)
+		if (candidate_nll < best_nll - improvement_tol) {
+			best_screen = candidate
+			best_label = label
+			best_start = candidates[[label]]
+			best_nll = candidate_nll
+		}
+	}
+
+	selected = primary_fit
+	selected_label = "primary"
+	if (!is.null(best_screen)) {
+		if (estimate_only) {
+			best_screen$ssq_b_j = NA_real_
+			selected = best_screen
+			selected_label = best_label
+		} else {
+			candidate_full = tryCatch(
+				fit_with_var_cpp(
+					X, y,
+					smart_cold_start = FALSE,
+					warm_start_params = best_start,
+					warm_start_fisher_info = NULL
+				),
+				error = function(e) NULL
+			)
+			if (!is.null(candidate_full)) {
+				candidate_full$ssq_b_j = candidate_full$ssq_b_1
+				lik_fit = tryCatch(
+					fit_cpp(
+						X, y,
+						warm_start_params = candidate_full$params,
+						warm_start_fisher_info = candidate_full$fisher_information,
+						estimate_only = TRUE
+					),
+					error = function(e) NULL
+				)
+				candidate_full$neg_loglik = .stereotype_multistart_nll(lik_fit)
+				if (
+					fit_is_usable(candidate_full, require_standard_error = TRUE) &&
+					.stereotype_multistart_nll(candidate_full) < primary_nll - improvement_tol
+				) {
+					selected = candidate_full
+					selected_label = best_label
+				}
+			}
+		}
+	}
+
+	selected$multistart_n_tried = n_tried
+	selected$multistart_selected_start = selected_label
+	selected$multistart_primary_neg_loglik = primary_nll
+	selected$multistart_improvement = max(0, primary_nll - .stereotype_multistart_nll(selected))
+	selected
+}
+
 OrdinalStereotypeLikelihoodSource = list(
 	public = list(
 		# @description Initialize inference for the stereotype logit model; see
@@ -215,7 +378,6 @@ OrdinalStereotypeLikelihoodSource = list(
 							warm_start_fisher_info = ws_args$warm_start_fisher_info
 						)
 						res$ssq_b_j = NA_real_
-						res
 					} else {
 						res = fast_stereotype_logit_with_var_cpp(
 							X_fit, private$y,
@@ -234,8 +396,14 @@ OrdinalStereotypeLikelihoodSource = list(
 						}
 						res$ssq_b_j = res$ssq_b_1
 						res$neg_loglik = neg_loglik
-						res
 					}
+					.stereotype_full_data_multistart(
+						X = X_fit,
+						y = private$y,
+						primary_fit = res,
+						estimate_only = estimate_only,
+						fit_is_usable = private$stereotype_fit_is_usable
+					)
 				},
 				fit_ok = function(mod, X_fit, keep){
 					private$stereotype_fit_is_usable(mod, require_standard_error = !estimate_only)
@@ -265,7 +433,14 @@ OrdinalStereotypeLikelihoodSource = list(
 				} else {
 					private$cached_values$likelihood_test_context = NULL
 				}
-				list(b = c(0, attempt$fit$b[1]), ssq_b_2 = attempt$fit$ssq_b_j)
+				list(
+					b = c(0, attempt$fit$b[1]),
+					ssq_b_2 = attempt$fit$ssq_b_j,
+					multistart_n_tried = attempt$fit$multistart_n_tried,
+					multistart_selected_start = attempt$fit$multistart_selected_start,
+					multistart_primary_neg_loglik = attempt$fit$multistart_primary_neg_loglik,
+					multistart_improvement = attempt$fit$multistart_improvement
+				)
 			} else {
 				private$cached_values$likelihood_test_context = NULL
 				NULL

@@ -1,11 +1,10 @@
-# Investigation: `InferenceIncidBinomialIdentityRiskDiff` Subsampling / m-out-of-n Type-I Inflation — Boundary-Rejection Hypothesis (Not Yet Reproduced)
+# Investigation: `InferenceIncidBinomialIdentityRiskDiff` Subsampling / m-out-of-n Type-I Inflation — Historical Finding Not Reproduced, Boundary Hypothesis Refuted
 
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.)
 > Slated for `../future_release_plans/release_v1_0_5.md → TODO-27`. Added
-> 2026-09-24, same audit-triage wave as TODO-25/26. **This is an open
-> investigation, not a confirmed bug with a fix plan** — the mechanism below
-> is a hypothesis from code reading; no reproduction of the mechanism has
-> been run. Do not implement a fix before TODO-1..3 confirm it.
+> 2026-09-24, same audit-triage wave as TODO-25/26. The investigation was
+> closed on 2026-10-08 after the proposed mechanism was refuted and current
+> source-loaded results did not reproduce the reported inflation.
 
 ## The finding
 
@@ -54,39 +53,85 @@ that is not statistically neutral, the empirical pivot distribution is
 artificially narrowed and the full-sample statistic is rejected too often —
 independent of `model_formula`, matching the observation.
 
-**Not confirmed:** `subsampling_centered_pivot()` and
-`resampling_centered_pval()` were not read for their actual filtering
-behavior, and nothing was reproduced.
+## Resolution (2026-10-08)
+
+The boundary-rejection mechanism is impossible in the reported
+`model_formula = ~1` cells. With only an intercept and binary treatment, the
+identity model is saturated for the two arms: its fitted probabilities are
+exactly the two observed arm proportions and therefore remain in `[0,1]` for
+every estimable resample. A permanent regression pins that identity and
+confirms that 31 deterministic draws from each resampling family are all
+finite.
+
+The actual filtering path does condition on fit success, but only after a
+majority-success gate. `subsampling_centered_pivot()` and
+`m_out_of_n_bootstrap_centered_pivot()` retain finite estimates, fail the
+whole pivot when fewer than 50% of draws succeed, and otherwise center the
+survivors at the full estimate. The p-value call then requires at least
+`min_number_usable_samples` (default 5), and `resampling_centered_pval()`
+filters nonfinite values once more before computing the two empirical tails.
+That conditioning can matter for another estimator with material asymmetric
+fit failure, but it cannot cause the `~1` finding here because dropout is zero.
+
+Three independent checks support closure:
+
+- The actual package path, loaded with `compile = FALSE`, produced zero
+  nonfinite draws in five independent null datasets with 99 m-out-of-n and 99
+  subsampling draws per dataset. A representative adjusted (`~x1`) fixture
+  likewise had zero failures across 151 draws from each family.
+- An independent 1,000-dataset null simulation of the exact centered-pivot
+  formulas at the comprehensive-test scale (`n = 150`, `B = 501`, default
+  size 33) rejected at 0.056 for m-out-of-n and 0.046 for subsampling, with
+  100% usable draws. At `n = 60` (default size 17), rates were 0.055 and
+  0.039; minimum usable fractions were 0.998 and 1.000.
+- The fresh 2026-10-04 focused comprehensive CSV has 0/12 rejections for
+  each `~1` method and 1/12 for each `~.` method under `beta_T = 0`. These
+  small counts are not a calibration study by themselves, but they contradict
+  a persistent 0.12--0.13 failure mode.
+
+There is therefore no source change to make. Disabling the fitted-probability
+boundary cannot repair an effect that occurs in the algebraically boundary-safe
+`~1` case, and current null calibration is nominal at both moderate and larger
+sample sizes. The historical aggregate should be treated as a stale or
+non-reproducible audit finding rather than accepted as a package defect.
 
 ## Items
 
-- [ ] **TODO-1: Measure the dropout.** For the failing configuration,
+- [x] **TODO-1: Measure the dropout.** For the failing configuration,
   record per subsample draw whether the fit was boundary-rejected, and the
   dropped fraction per replicate of the p-value. Confirm or refute that
   dropped draws are a material fraction (rule the hypothesis out cheaply if
   the dropped fraction is ~0).
-- [ ] **TODO-2: Read the filtering path.** Read
+- [x] **TODO-2: Read the filtering path.** Read
   `subsampling_centered_pivot()` and `resampling_centered_pval()`; state
   exactly how non-finite draws are removed and whether the remaining
   distribution is conditioned on fit success.
-- [ ] **TODO-3: Confirm causation.** Rerun the null simulation with
+- [x] **TODO-3: Confirm causation.** Rerun the null simulation with
   boundary rejection artificially disabled for the resampling context only
   (or with a clamped fit) and see whether the reject rate returns to
   nominal. Also rerun with larger `n`/`b` to see whether the inflation
   shrinks as boundary hits become rarer. Record the result here.
-- [ ] **TODO-4: Fix, only if TODO-3 confirms.** Two directions, a design
-  decision rather than a one-liner: (a) make the centered-pivot treatment of
+- [x] **TODO-4: Fix, only if TODO-3 confirms.** No fix: TODO-3 refuted the
+  mechanism and current behavior is calibrated. The two previously proposed
+  directions therefore do not apply. They were: (a) make the centered-pivot treatment of
   dropped draws statistically neutral (e.g. treat a boundary-rejected draw
   as a failure of the whole p-value, or resample until enough valid draws),
   or (b) relax/soften the `[0,1]` boundary for the resampling-distribution
   context only, keeping hard rejection for the observed fit. Pick with the
   user; document the choice.
-- [ ] **TODO-5: Tests.** A regression test on the boundary-heavy scenario
-  (small `n`, extreme base rate) pinning the calibrated reject rate, plus a
-  test that the observed-fit rejection behavior is unchanged.
-- [ ] **TODO-6: If refuted,** record the finding here and recommend
+- [x] **TODO-5: Tests.** Added a deterministic regression proving the
+  intercept-only fitted probabilities equal the arm proportions and checking
+  that both default resampling families produce only finite, bounded risk
+  differences. The observed-fit boundary predicate remains covered by its
+  existing focused tests.
+- [x] **TODO-6: If refuted,** record the finding here and recommend
   accepting the two cells into the audit baseline as expected/benign
   small-sample behavior, as was done for the sibling investigation plans.
+
+Focused validation used `pkgload::load_all("R/EDI", compile = FALSE)` only.
+The new regression's 10 expectations and 123 related identity-fit/shared-pivot
+expectations passed with no failures, errors, or warnings. No compilation,
+build, or installation was performed.
 
 ## Explicitly out of scope
 

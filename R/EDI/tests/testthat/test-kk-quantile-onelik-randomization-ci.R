@@ -91,8 +91,9 @@ test_that("KK quantile OneLik randomization CI coverage no longer collapses near
 	# focused regression into a full simulation study. Both response classes use
 	# the same generic inversion; the test above exercises each concrete leaf.
 	truth = 0.4
-	covered = logical(20L)
-	width = numeric(20L)
+	n_reps = as.integer(getOption("EDI.test.kk_quantile_onelik_rand_ci_reps", 20L))
+	covered = logical(n_reps)
+	width = numeric(n_reps)
 	for (rep in seq_along(covered)) {
 		inf = make_kk_quantile_onelik_inference(
 			"continuous", seed = 9100L + rep, n = 18L, effect = truth

@@ -87,13 +87,13 @@ SimpleMeanDifferenceSource = list(
 		#   y_C^w}, weighted arm means \eqn{\bar y_T^w = \sum_i r_i y_i \mathbb{1}[w_i=1]
 		#   / \sum_i r_i \mathbb{1}[w_i=1]} (and analogously for control), where
 		#   \eqn{r_i} are the expanded row weights. Unless \code{estimate_only =
-		#   TRUE}, the standard error uses a \strong{weighted, effective-sample-size}
-		#   Welch formula: \eqn{n_{\mathrm{eff}} = (\sum r_i)^2 / \sum r_i^2}
-		#   (the usual Kish effective-sample-size correction for unequal weights)
-		#   in place of the raw \eqn{n} in both the per-arm weighted variance
-		#   denominator and the Satterthwaite-Welch degrees-of-freedom formula (see
-		#   \code{$compute_asymp_confidence_interval()} for the unweighted version
-		#   of the same formula). Rows with non-finite or non-positive weight, or a
+		#   TRUE}, the standard error treats the bootstrap weights as frequency
+		#   weights. Within each arm, with total weight \eqn{W = \sum r_i} and
+		#   weighted residual sum of squares \eqn{Q = \sum r_i(y_i - \bar y_w)^2},
+		#   the variance contribution is \eqn{Q / [W(W - 1)]}; the
+		#   Satterthwaite-Welch degrees of freedom likewise use \eqn{W - 1}.
+		#   This reduces exactly to the ordinary Welch formula for unit weights.
+		#   Rows with non-finite or non-positive weight, or a
 		#   non-finite response, are dropped before computing; if no rows survive,
 		#   returns \code{NA} with all cached variance components set to \code{NA}.
 		# @param subject_or_block_weights Row weights for the bootstrap sample.
@@ -116,13 +116,13 @@ SimpleMeanDifferenceSource = list(
 			mean_c = sum(y_C * rw_C) / sum(rw_C)
 			private$cached_values$beta_hat_T = mean_t - mean_c
 			if (!estimate_only) {
-				if (length(y_T) >= 2L && length(y_C) >= 2L) {
-					n_eff_T = sum(rw_T)^2 / sum(rw_T^2)
-					n_eff_C = sum(rw_C)^2 / sum(rw_C^2)
-					s_T_sq  = sum(rw_T * (y_T - mean_t)^2) / sum(rw_T) / (n_eff_T - 1)
-					s_C_sq  = sum(rw_C * (y_C - mean_c)^2) / sum(rw_C) / (n_eff_C - 1)
+				total_weight_T = sum(rw_T)
+				total_weight_C = sum(rw_C)
+				if (length(y_T) >= 2L && length(y_C) >= 2L && total_weight_T > 1 && total_weight_C > 1) {
+					s_T_sq  = sum(rw_T * (y_T - mean_t)^2) / total_weight_T / (total_weight_T - 1)
+					s_C_sq  = sum(rw_C * (y_C - mean_c)^2) / total_weight_C / (total_weight_C - 1)
 					se = sqrt(s_T_sq + s_C_sq)
-					df = (s_T_sq + s_C_sq)^2 / (s_T_sq^2 / (n_eff_T - 1) + s_C_sq^2 / (n_eff_C - 1))
+					df = (s_T_sq + s_C_sq)^2 / (s_T_sq^2 / (total_weight_T - 1) + s_C_sq^2 / (total_weight_C - 1))
 					private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
 					private$cached_values$df = if (is.finite(df) && df > 0) df else NA_real_
 				} else {
@@ -464,4 +464,3 @@ NULL
 #' @R6method InferenceAllSimpleAverageDiff$compute_estimate_with_bootstrap_weights
 #' @template simple-mean-diff-bootstrap-weights
 NULL
-
