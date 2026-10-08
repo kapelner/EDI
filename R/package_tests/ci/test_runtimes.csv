@@ -161,6 +161,7 @@ R/package_tests/testthat_bulk/test-count-poisson-randomization-estimate-refit-no
 R/package_tests/testthat_bulk/test-count-proportion-defensive-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-abstract-za-family-description-not-implemented-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-is-a-type-marker-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-cox-bartlett-approx-remains-disabled-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-cox-cached-constrained-risk-set-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-cox-cluster-constrained-sandwich-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-cox-component-composition.R,correctness,4.1,measured_with_30_percent_headroom
@@ -912,6 +913,7 @@ R/package_tests/testthat_bulk/test-rmst-diff-s-beta-hat-cache-nonpositive-se-war
 R/package_tests/testthat_bulk/test-rmst-se-mean-diff-kernel-and-complete-randomization-draw-kernels-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rmst-weighted-and-fallback-coverage.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rmst-weighted-median-stat-unreachable-branch-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rmst-weighted-shared-truncation-horizon-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-robust-negbinreg-column-drop-retry-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-robust-poisson-fit-count-model-with-var-sandwich-variance-rank-reduction-and-nonestimable-returns-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-robust-poisson-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1247,6 +1249,7 @@ R/EDI/tests/testthat/test-inference-dispatch-policy-structure.R,coverage,2.2,mea
 R/EDI/tests/testthat/test-inference-factory-transitive-inheritance.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-migration-harness.R,coverage,1.3,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-suite-discovery.R,coverage,3.9,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-information-inverse-guard.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-jackknife-api.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-bootstrap-method-inheritance.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-compound-merged-pass.R,coverage,1,measured_with_30_percent_headroom
@@ -1539,6 +1542,7 @@ R/package_tests/testthat_bulk/test-count-poisson-randomization-estimate-refit-no
 R/package_tests/testthat_bulk/test-count-proportion-defensive-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-abstract-za-family-description-not-implemented-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-count-zero-augmented-poisson-is-a-type-marker-predicate-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-cox-bartlett-approx-remains-disabled-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-cox-cached-constrained-risk-set-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-cox-cluster-constrained-sandwich-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-cox-component-composition.R,coverage,5.9,measured_with_30_percent_headroom
@@ -2290,6 +2294,7 @@ R/package_tests/testthat_bulk/test-rmst-diff-s-beta-hat-cache-nonpositive-se-war
 R/package_tests/testthat_bulk/test-rmst-se-mean-diff-kernel-and-complete-randomization-draw-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rmst-weighted-and-fallback-coverage.R,coverage,1.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rmst-weighted-median-stat-unreachable-branch-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rmst-weighted-shared-truncation-horizon-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-robust-negbinreg-column-drop-retry-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-robust-poisson-fit-count-model-with-var-sandwich-variance-rank-reduction-and-nonestimable-returns-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-robust-poisson-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
