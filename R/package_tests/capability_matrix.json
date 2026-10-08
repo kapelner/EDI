@@ -1,6 +1,6 @@
 {
-  "_about": "EDI capability matrix, generated from the package's class registries by R/package_tests/capability_matrix.R (EDI 1.0.2). inference_classes[].design_families lists the registry's static design compatibility; design_level_exclusions is the per-instance rule applied on top. public_methods are the R6 methods each capability exposes. Docs: https://kapelner.github.io/EDI/",
-  "package_version": "1.0.2",
+  "_about": "EDI capability matrix, generated from the package's class registries by R/package_tests/capability_matrix.R (EDI 1.0.3). inference_classes[].design_families lists the registry's static design compatibility; design_level_exclusions is the per-instance rule applied on top. public_methods are the R6 methods each capability exposes. Docs: https://kapelner.github.io/EDI/",
+  "package_version": "1.0.3",
   "response_types": ["continuous", "count", "incidence", "ordinal", "proportion", "survival"],
   "design_families": ["atkinson", "bernoulli", "binary_match", "blocked", "blocked_cluster", "clustered", "complete_randomization", "deterministic_optimal", "efron", "factorial", "greedy", "greedy_d_optimal", "kk14", "kk21", "kk21_stepwise", "matching_greedy_pair_switching", "none", "optimal_blocks", "pocock_simon", "random_block_size", "rerandomization", "spbr", "urn"],
   "capability_to_public_methods": {
@@ -409,7 +409,7 @@
       "requires_kk_matching_design": "TRUE",
       "requires_blocking_design": "FALSE",
       "supports_general_censoring": "FALSE",
-      "capabilities": "bayesian_bootstrap|jackknife|kk_compound|kk_passthrough|nonparametric_bootstrap|quantile_randomization_ci|randomization_bootstrap|randomization_bootstrap_ci|randomization_ci|randomization_test|wald",
+      "capabilities": "bayesian_bootstrap|jackknife|kk_compound|kk_passthrough|nonparametric_bootstrap|randomization_bootstrap|randomization_bootstrap_ci|randomization_ci|randomization_test|wald",
       "public_methods": "approximate_bayesian_bootstrap_distribution_beta_hat_T|approximate_bootstrap_distribution_beta_hat_T|approximate_jackknife_distribution_beta_hat_T|approximate_rand_bootstrap_distribution_beta_hat_T|approximate_randomization_distribution_beta_hat_T|compute_asymp_confidence_interval|compute_asymp_two_sided_pval|compute_bayesian_bootstrap_confidence_interval|compute_bayesian_bootstrap_two_sided_pval|compute_bootstrap_confidence_interval|compute_bootstrap_two_sided_pval|compute_jackknife_bias_estimate|compute_jackknife_estimate|compute_jackknife_std_error|compute_jackknife_wald_confidence_interval|compute_jackknife_wald_two_sided_pval|compute_m_out_of_n_bootstrap_confidence_interval|compute_m_out_of_n_bootstrap_two_sided_pval|compute_rand_bootstrap_confidence_interval|compute_rand_bootstrap_two_sided_pval|compute_rand_confidence_interval|compute_rand_two_sided_pval|compute_subsampling_confidence_interval|compute_subsampling_two_sided_pval|compute_wald_confidence_interval|compute_wald_two_sided_pval|get_supported_bayesian_bootstrap_ci_types|get_supported_bayesian_bootstrap_pval_types|get_supported_bootstrap_ci_types|get_supported_bootstrap_pval_types|get_supported_rand_bootstrap_ci_types|get_supported_rand_bootstrap_pval_types",
       "required_packages": ""
     },
@@ -1389,7 +1389,7 @@
       "requires_kk_matching_design": "TRUE",
       "requires_blocking_design": "FALSE",
       "supports_general_censoring": "FALSE",
-      "capabilities": "bayesian_bootstrap|jackknife|kk_compound|kk_passthrough|nonparametric_bootstrap|quantile_randomization_ci|randomization_bootstrap|randomization_bootstrap_ci|randomization_ci|randomization_test|wald",
+      "capabilities": "bayesian_bootstrap|jackknife|kk_compound|kk_passthrough|nonparametric_bootstrap|randomization_bootstrap|randomization_bootstrap_ci|randomization_ci|randomization_test|wald",
       "public_methods": "approximate_bayesian_bootstrap_distribution_beta_hat_T|approximate_bootstrap_distribution_beta_hat_T|approximate_jackknife_distribution_beta_hat_T|approximate_rand_bootstrap_distribution_beta_hat_T|approximate_randomization_distribution_beta_hat_T|compute_asymp_confidence_interval|compute_asymp_two_sided_pval|compute_bayesian_bootstrap_confidence_interval|compute_bayesian_bootstrap_two_sided_pval|compute_bootstrap_confidence_interval|compute_bootstrap_two_sided_pval|compute_jackknife_bias_estimate|compute_jackknife_estimate|compute_jackknife_std_error|compute_jackknife_wald_confidence_interval|compute_jackknife_wald_two_sided_pval|compute_m_out_of_n_bootstrap_confidence_interval|compute_m_out_of_n_bootstrap_two_sided_pval|compute_rand_bootstrap_confidence_interval|compute_rand_bootstrap_two_sided_pval|compute_rand_confidence_interval|compute_rand_two_sided_pval|compute_subsampling_confidence_interval|compute_subsampling_two_sided_pval|compute_wald_confidence_interval|compute_wald_two_sided_pval|get_supported_bayesian_bootstrap_ci_types|get_supported_bayesian_bootstrap_pval_types|get_supported_bootstrap_ci_types|get_supported_bootstrap_pval_types|get_supported_rand_bootstrap_ci_types|get_supported_rand_bootstrap_pval_types",
       "required_packages": ""
     },
