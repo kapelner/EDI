@@ -84,7 +84,7 @@ def fast_beta_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float64]
     """
 def fast_clayton_weibull_aft_optim(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], dead: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], pair_idx: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, n]", "flags.f_contiguous"], singleton_rows: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], estimate_only: bool = False, maxit: typing.SupportsInt | typing.SupportsIndex = 2000, reltol: typing.SupportsFloat | typing.SupportsIndex = 1e-09, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
-    Fast Clayton-copula Weibull AFT regression (matched pairs + singleton reservoir design) via L-BFGS. pair_idx: 0-based (n_pairs x 2) row indices into X/y/dead; singleton_rows: 0-based row indices of reservoir singletons. warm_start_params is required (no default cold start). No R-side roxygen documents this raw kernel directly (fast_survival_models_optim.cpp has none).
+    Fast Clayton-copula Weibull AFT regression (matched pairs + singleton reservoir design) via L-BFGS. pair_idx: 0-based (n_pairs x 2) row indices into X/y/dead; singleton_rows: 0-based row indices of reservoir singletons. warm_start_params is required (no default cold start). The dependence parameter is capped at log_theta=6; log_theta_at_upper_bound reports when the constrained optimum reaches that cap. No R-side roxygen documents this raw kernel directly (fast_survival_models_optim.cpp has none).
     
     Parameters
     ----------
@@ -111,7 +111,7 @@ def fast_clayton_weibull_aft_optim(X: typing.Annotated[numpy.typing.NDArray[nump
     reltol : float, default 1e-9
         Relative convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional indices of fixed parameters.
+        Optional one-based indices of fixed parameters.
     fixed_values : ndarray, optional
         Optional values for fixed parameters.
     optimization_alg : str, default "lbfgs"

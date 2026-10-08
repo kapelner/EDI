@@ -32,6 +32,18 @@ inline double log_sum_exp_clayton(double a, double b) {
     return m + std::log(inner);
 }
 
+// Match the upper limit already enforced by .fit_clayton_weibull_aft's R
+// fallback.  exp(6) corresponds to Kendall's tau > 0.995 for a Clayton
+// copula, so larger values are numerically indistinguishable from the
+// comonotone boundary for this fitter.  The lower tail is deliberately left
+// open: existing well-converged fixtures can legitimately approach the
+// independence boundary with log_theta below -12.
+constexpr double CLAYTON_MAX_LOG_THETA = 6.0;
+
+inline double clamp_clayton_log_theta(double log_theta) {
+    return std::min(log_theta, CLAYTON_MAX_LOG_THETA);
+}
+
 // -----------------------------------------------------------------------------
 // Clayton Copula Weibull AFT
 // -----------------------------------------------------------------------------
@@ -64,9 +76,16 @@ public:
 
     double operator()(const Eigen::Ref<const Eigen::VectorXd>& params, Eigen::Ref<Eigen::VectorXd> grad) {
         double log_sigma = params[m_p];
-        double log_theta = params[m_p + 1];
+        double log_theta_raw = params[m_p + 1];
+        double log_theta = clamp_clayton_log_theta(log_theta_raw);
         double sigma = std::exp(log_sigma);
-        double theta = std::exp(std::min(log_theta, 10.0));
+        double theta = std::exp(log_theta);
+        // The objective is flat once the constrained parameter reaches its
+        // upper boundary, so d(theta_clamped)/d(log_theta_raw) is zero there.
+        // Multiplying by theta unconditionally was the stale-gradient bug that
+        // kept LBFGS moving across a flat objective until maxit.
+        double d_theta_d_log_theta =
+            log_theta_raw < CLAYTON_MAX_LOG_THETA ? theta : 0.0;
         Eigen::VectorXd beta = params.head(m_p);
 
         Eigen::VectorXd eta = m_X * beta;
@@ -108,7 +127,7 @@ public:
                 if (d1 < 0.5 && d2 < 0.5) { // mask00
                     loglik -= (1.0 / theta) * logA;
                     // d/d_theta (-1/theta * logA) = 1/theta^2 * logA - 1/theta * 1/A * dA_d_theta
-                    d_loglik_d_log_theta += (logA / (theta * theta) - dA_d_theta / (theta * A)) * theta;
+                    d_loglik_d_log_theta += (logA / (theta * theta) - dA_d_theta / (theta * A)) * d_theta_d_log_theta;
                     
                     double d_ll_d_A = -1.0 / (theta * A);
                     d_loglik_d_eta[i1] += d_ll_d_A * dA_d_h1 * (-H[i1] / sigma);
@@ -118,7 +137,7 @@ public:
                 } else if (d1 > 0.5 && d2 < 0.5) { // mask10
                     loglik += log_f[i1] + (-1.0/theta - 1.0) * logA + (theta + 1.0) * h1;
                     
-                    d_loglik_d_log_theta += (logA / (theta * theta) + (-1.0/theta - 1.0) * dA_d_theta / A + h1) * theta;
+                    d_loglik_d_log_theta += (logA / (theta * theta) + (-1.0/theta - 1.0) * dA_d_theta / A + h1) * d_theta_d_log_theta;
                     
                     double d_ll_d_h1 = (theta + 1.0) + (-1.0/theta - 1.0) * dA_d_h1 / A;
                     double d_ll_d_h2 = (-1.0/theta - 1.0) * dA_d_h2 / A;
@@ -132,7 +151,7 @@ public:
                 } else if (d1 < 0.5 && d2 > 0.5) { // mask01
                     loglik += log_f[i2] + (-1.0/theta - 1.0) * logA + (theta + 1.0) * h2;
                     
-                    d_loglik_d_log_theta += (logA / (theta * theta) + (-1.0/theta - 1.0) * dA_d_theta / A + h2) * theta;
+                    d_loglik_d_log_theta += (logA / (theta * theta) + (-1.0/theta - 1.0) * dA_d_theta / A + h2) * d_theta_d_log_theta;
                     
                     double d_ll_d_h1 = (-1.0/theta - 1.0) * dA_d_h1 / A;
                     double d_ll_d_h2 = (theta + 1.0) + (-1.0/theta - 1.0) * dA_d_h2 / A;
@@ -145,7 +164,7 @@ public:
                 } else { // mask11
                     loglik += std::log(theta + 1.0) + log_f[i1] + log_f[i2] + (-1.0/theta - 2.0) * logA + (theta + 1.0) * (h1 + h2);
                     
-                    d_loglik_d_log_theta += (1.0/(theta + 1.0) + (1.0/(theta*theta)) * logA + (-1.0/theta - 2.0) * dA_d_theta / A + h1 + h2) * theta;
+                    d_loglik_d_log_theta += (1.0/(theta + 1.0) + (1.0/(theta*theta)) * logA + (-1.0/theta - 2.0) * dA_d_theta / A + h1 + h2) * d_theta_d_log_theta;
                     
                     double d_ll_d_h1 = (theta + 1.0) + (-1.0/theta - 2.0) * dA_d_h1 / A;
                     double d_ll_d_h2 = (theta + 1.0) + (-1.0/theta - 2.0) * dA_d_h2 / A;
@@ -613,6 +632,11 @@ edi::ResultMap fast_clayton_weibull_aft_optim_internal(
             .set("value", last_val).set("neg_loglik", last_val).set("neg_ll", last_val);
     }
     params = fit.params;
+    const int log_theta_idx = X.cols() + 1;
+    const bool log_theta_at_upper_bound =
+        params[log_theta_idx] >= CLAYTON_MAX_LOG_THETA;
+    params[log_theta_idx] = clamp_clayton_log_theta(params[log_theta_idx]);
+    fit.params = params;
 
     edi::ResultMap out;
     out.set("par", params)
@@ -626,6 +650,7 @@ edi::ResultMap fast_clayton_weibull_aft_optim_internal(
        .set("hit_iteration_cap", fit.hit_iteration_cap)
        .set("gradient_norm", fit.gradient_norm)
        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
+       .set("log_theta_at_upper_bound", log_theta_at_upper_bound)
        .set("converged", fit.converged);
 
     if (estimate_only) {

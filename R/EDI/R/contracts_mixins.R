@@ -707,13 +707,15 @@ EDI_COMPONENT_SPECS = list(
 		file = "inference_all_KK_quantile_regr_one_lik_abstract.R",
 		# 2026-08-18 migration (fix_inference_hierarchy.md "Full-Likelihood
 		# Estimators" / "KK And IVWC Estimators"): same reshaping as
-		# KKQuantileRegrIVWC above -- QuantileRandomizationCI is a dependency
-		# here rather than a separate direct component, shared by both
+		# KKQuantileRegrIVWC above. OneLik uses the generic RandomizationCI
+		# dependency because its single stacked fit must be inverted through its
+		# own randomization-estimate hooks; the split-sample Zhang component
+		# targets the IVWC sibling's different estimand. Shared by both
 		# InferenceContinKKQuantileRegrOneLik and
 		# InferencePropKKQuantileRegrOneLik. No ParametricLikelihoodBootstrap:
 		# despite the "OneLik" naming, this class has no real likelihood-test
 		# surface (quantreg::rq() sandwich SEs only).
-		dependencies = c("KKCompound", "QuantileRandomizationCI"),
+		dependencies = c("KKCompound", "RandomizationCI"),
 		owns_state = c("tau", "transform_y_fn_list"),
 		requires_state = "m",
 		provides_public_methods = c(
@@ -2064,7 +2066,8 @@ EDI_COMPONENT_SPECS = list(
 						"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval", "duplicate"
 					),
 					provides_private_methods = c(
-						"compute_basic_match_data", "supports_likelihood_tests", "get_cluster_ids",
+						"compute_basic_match_data", "treatment_arms_have_events",
+						"supports_likelihood_tests", "get_cluster_ids",
 						"fit_weibull_marginal_cpp", "fit_weibull_marginal_survreg", "shared",
  "get_standard_error", "get_degrees_of_freedom",
 						"compute_treatment_estimate_during_randomization_inference",

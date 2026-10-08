@@ -15,17 +15,27 @@ library(EDI)
 # variance, computed from survival::survfit() output rather than calling any
 # EDI internal, mirroring the variance formula documented in
 # fast_survival_stats.cpp (Var(RMST) = sum_j A(t_j)^2 * d_j / (n_j*(n_j-d_j))).
-km_rmst_and_se <- function(y, dead) {
+# 2026-10-08: tau is now a shared horizon across both arms (the smaller of
+# the two arms' own maxima), not each arm's own max(y) -- see
+# inference_survival_rmst.R's updated roxygen and fast_survival_stats.cpp's
+# rmst_from_km()/shared_tau plumbing (commit 288e6643). A per-arm-varying
+# truncation horizon makes the RMST difference biased/non-comparable; this
+# reference must use the same shared horizon the kernel now does.
+km_rmst_and_se <- function(y, dead, tau) {
   fit <- survival::survfit(survival::Surv(y, dead) ~ 1)
-  tau <- max(y)
   times <- c(0, fit$time)
   surv <- c(1, fit$surv)
+  # Mirrors fast_survival_stats.cpp's rmst_from_km(): stop once a knot
+  # reaches tau, clipping the final included interval at tau.
   area <- 0
-  for (i in seq_len(length(times) - 1L)) area <- area + surv[i] * (times[i + 1L] - times[i])
-  area <- area + surv[length(surv)] * (tau - times[length(times)])
+  for (i in seq_along(times)) {
+    if (times[i] >= tau) break
+    interval_end <- if (i < length(times)) min(times[i + 1L], tau) else tau
+    area <- area + surv[i] * (interval_end - times[i])
+  }
 
   ev <- data.frame(time = fit$time, n.risk = fit$n.risk, n.event = fit$n.event, surv = fit$surv)
-  ev <- ev[ev$n.event > 0, , drop = FALSE]
+  ev <- ev[ev$n.event > 0 & ev$time < tau, , drop = FALSE]
   K <- nrow(ev)
   if (K == 0L) return(list(rmst = area, se = 0))
   A <- numeric(K)
@@ -53,8 +63,9 @@ rmst_wald_fixture <- function() {
     ifelse(dead == 0, Inf, NA_real_)
   )
 
-  ref_c <- km_rmst_and_se(ctrl_y, ctrl_dead)
-  ref_t <- km_rmst_and_se(trt_y, trt_dead)
+  shared_tau <- min(max(ctrl_y), max(trt_y))
+  ref_c <- km_rmst_and_se(ctrl_y, ctrl_dead, shared_tau)
+  ref_t <- km_rmst_and_se(trt_y, trt_dead, shared_tau)
   list(
     inf = InferenceSurvivalRestrictedMeanDiff$new(des, verbose = FALSE),
     rmst_diff = ref_t$rmst - ref_c$rmst,

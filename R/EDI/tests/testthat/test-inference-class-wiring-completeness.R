@@ -157,12 +157,6 @@ wiring_collect_all = function() {
 # deleted from this list -- it cannot rot into a blanket exemption).
 # Format: "<Class>|<finding text>".
 EDI_WIRING_KNOWN_GAPS = c(
-	# rand-CI hard-stop()s for these two (2026-09-17 stopgap); real fix is
-	# bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md (v1.1.0, TODO-25).
-	"InferenceContinKKQuantileRegrOneLik|call: private::ci_exact_zhang_combined -> private$compute_rand_pval_matched_pairs missing",
-	"InferenceContinKKQuantileRegrOneLik|call: private::ci_exact_zhang_combined -> private$compute_rand_pval_reservoir missing",
-	"InferencePropKKQuantileRegrOneLik|call: private::ci_exact_zhang_combined -> private$compute_rand_pval_matched_pairs missing",
-	"InferencePropKKQuantileRegrOneLik|call: private::ci_exact_zhang_combined -> private$compute_rand_pval_reservoir missing",
 	# InferenceAllSimpleWilcox has no compute_estimate_with_bootstrap_weights
 	# (no bayesian_bootstrap capability), so install_weighted_refit_isolation()
 	# returns early, private$weighted_refit_impl stays NULL, and the wrapper

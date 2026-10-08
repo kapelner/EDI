@@ -50,7 +50,7 @@
 # Estimators" / "KK And IVWC Estimators"): formerly a thin R6 leaf on the
 # abstract base `InferenceAbstractKKQuantileRegrOneLik`; the machinery now
 # arrives via the registered `KKQuantileRegrOneLik` component (which itself
-# depends on `KKCompound` and `QuantileRandomizationCI` -- see
+# depends on `KKCompound` and the estimand-correct generic `RandomizationCI` -- see
 # inference_all_KK_quantile_regr_one_lik_abstract.R). `compute_rand_two_sided_
 # pval` is pinned from `InferenceRand`, same rationale as every other
 # continuous/survival KK migration this stretch.
@@ -67,7 +67,6 @@ InferenceContinKKQuantileRegrOneLik = define_inference_class(
 			"compute_estimate_with_bootstrap_weights",
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
-			"compute_rand_confidence_interval",
 			"approximate_bootstrap_distribution_beta_hat_T"
 		),
 		private = c(

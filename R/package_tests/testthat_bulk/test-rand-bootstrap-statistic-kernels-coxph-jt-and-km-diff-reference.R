@@ -53,7 +53,18 @@ test_that("KM median difference and RMST difference per resample match survfit; 
 	f <- fx()
 	km <- function(yy, dd, ww, stat) {
 		fit <- survival::survfit(survival::Surv(yy, dd) ~ ww)
-		if (stat == "rmst") { tb <- summary(fit, rmean = "common")$table; unname(tb["ww=1", "rmean"] - tb["ww=0", "rmean"]) }
+		if (stat == "rmst") {
+			# 2026-10-08: EDI's shared horizon is the SMALLER of the two arms'
+			# own maxima (no extrapolation beyond either arm's observed data).
+			# survival::summary.survfit's rmean = "common" is a DIFFERENT
+			# convention (it uses the LARGER of the two maxima, extrapolating
+			# the shorter-follow-up arm's flat KM tail) -- confirmed
+			# empirically to disagree numerically; see fast_survival_stats.cpp's
+			# shared_tau plumbing (commit 288e6643). Must pass the explicit
+			# numeric min-of-maxima tau, not the "common" string mode.
+			shared_tau <- min(max(yy[ww == 1]), max(yy[ww == 0]))
+			tb <- summary(fit, rmean = shared_tau)$table; unname(tb["ww=1", "rmean"] - tb["ww=0", "rmean"])
+		}
 		else { q <- unname(quantile(fit, 0.5)$quantile); q[2] - q[1] }
 	}
 	for (spec in list(c("median", "median"), c("restricted_mean", "rmst"))) {

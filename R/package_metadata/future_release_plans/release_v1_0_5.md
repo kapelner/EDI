@@ -189,7 +189,7 @@ plan files' internal numbering did not change.
   2026-09-24**: the plan's own checklist shows TODO-1, 2, 2b, 4, 5 checked
   `[x]`; only a cosmetic test-comment fix (TODO-3) remains. The one
   substantively complete item among TODO-1..6.
-- [ ] TODO-6 (added 2026-09-11, found via a comprehensive-test-harness
+- [x] TODO-6 (added 2026-09-11, fixed at source level 2026-10-08; found via a comprehensive-test-harness
   timing investigation, not a user report): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
   optimizer stability** — `../bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md
   → TODO-1..4`. A ~200× bimodal slowdown (0.5-1s vs. 150-180s, same
@@ -206,7 +206,14 @@ plan files' internal numbering did not change.
   bound doesn't move existing point estimates. **Verified NOT implemented,
   2026-09-24** (via the plan's own checklist — 0/4 checked; not
   independently re-timed this pass): the C++ dependence-parameter bound
-  and the stale-gradient fix have not been applied.
+  and the stale-gradient fix have not been applied. **Implemented
+  2026-10-08:** the native optimizer now caps `log_theta` at 6 like the R
+  fallback, keeps the valid independence tail open, uses a zero chain
+  derivative on the clipped flat surface, normalizes returned parameters, and
+  reports upper-bound contact. The four linked-plan items are checked; 26
+  focused source-loaded/reference assertions pass. Rebuilt-native execution
+  and the exact diamonds reps 1/13 timing rerun remain release-build
+  validation under the repository's no-compilation rule.
 - [ ] TODO-7 (added 2026-09-17, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
   randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.

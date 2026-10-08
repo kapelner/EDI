@@ -512,9 +512,9 @@ on identical synthetic data and their outputs compared; a disagreement
 discards the deviation rather than applying it):
 
 ```r
-tune_EDI_for_this_machine()                   # standard effort; run on an idle machine
-tune_EDI_for_this_machine(effort = "quick")   # coarser grid, fewer replicates
-tune_EDI_for_this_machine(effort = "thorough") # full grid, more replicates
+tune_EDI_for_this_machine()                    # standard effort; run on an idle machine
+tune_EDI_for_this_machine(effort = "quick")    # coarser grid, fewer replicates
+tune_EDI_for_this_machine(effort = "thorough") # full grid, more replicates (long duration)
 ```
 
 The result is saved to a per-user config file and applied automatically the

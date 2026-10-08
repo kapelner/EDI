@@ -67,6 +67,12 @@ SurvivalKKWeibullMarginalSource = list(
 				beta_hat_T = as.numeric(self$compute_estimate(estimate_only = estimate_only))[1L]
 				if (is.finite(beta_hat_T)) return(beta_hat_T)
 			}
+			if (!private$treatment_arms_have_events(row_weights)) {
+				private$cache_nonestimable_estimate("kk_weibull_marginal_treatment_arm_no_events")
+				private$cached_values$beta_hat_T = NA_real_
+				private$cached_values$s_beta_hat_T = NA_real_
+				return(NA_real_)
+			}
 			X_cov = private$get_X()
 			X_fit = if (!is.null(X_cov) && ncol(as.matrix(X_cov)) > 0L) {
 				cbind(treatment = private$w, X_cov)
@@ -117,6 +123,22 @@ SurvivalKKWeibullMarginalSource = list(
 		# KKPassThrough component; only leaf-specific state is declared here.
 		max_abs_reasonable_coef = 1e4,
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
+		treatment_arms_have_events = function(row_weights = NULL){
+			w = as.numeric(private$w)
+			dead = as.numeric(private$dead)
+			keep = is.finite(w) & is.finite(dead)
+			if (!is.null(row_weights)) {
+				row_weights = as.numeric(row_weights)
+				if (length(row_weights) != length(w)) return(FALSE)
+				keep = keep & is.finite(row_weights) & row_weights > 0
+			}
+			arms = sort(unique(w[keep]))
+			length(arms) == 2L && all(vapply(
+				arms,
+				function(arm) any(keep & w == arm & dead > 0),
+				logical(1L)
+			))
+		},
 		# Wald only: this class fits a working-independence AFT and corrects the SE post hoc,
 		# so the sandwich-corrected likelihood is not a true likelihood to test against. The
 		# KK passthrough mixin's get_supported_testing_types_impl() calls this, so it must be
@@ -259,6 +281,10 @@ SurvivalKKWeibullMarginalSource = list(
 
 			if (sum(private$dead) == 0L){
 				private$cache_nonestimable_estimate("kk_weibull_marginal_no_events")
+				return(invisible(NULL))
+			}
+			if (!private$treatment_arms_have_events()) {
+				private$cache_nonestimable_estimate("kk_weibull_marginal_treatment_arm_no_events")
 				return(invisible(NULL))
 			}
 

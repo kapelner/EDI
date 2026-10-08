@@ -21,7 +21,11 @@ test_that("with exact times the cached SE equals the kernel's SE of the RMST dif
 	f <- mk("exact"); f$p$compute_s_beta_hat_T()
 	se <- f$p$cached_values$s_beta_hat_T
 	expect_equal(se, EDI:::get_restricted_mean_se_diff(f$p$y, f$p$dead, f$p$w), tolerance = 1e-12)
-	arm_se <- function(a) { i <- f$p$w == a; summary(survival::survfit(survival::Surv(f$p$y[i], f$p$dead[i]) ~ 1), rmean = max(f$p$y[i]))$table[["se(rmean)"]] }
+	# 2026-10-08: both arms are truncated at one shared horizon (the smaller
+	# of their own maxima), not each arm's own max(y) -- see
+	# fast_survival_stats.cpp's shared_tau plumbing (commit 288e6643).
+	shared_tau <- min(max(f$p$y[f$p$w == 0]), max(f$p$y[f$p$w == 1]))
+	arm_se <- function(a) { i <- f$p$w == a; summary(survival::survfit(survival::Surv(f$p$y[i], f$p$dead[i]) ~ 1), rmean = shared_tau)$table[["se(rmean)"]] }
 	expect_equal(se, sqrt(arm_se(0)^2 + arm_se(1)^2), tolerance = 1e-8)
 	expect_gt(se, 0)
 })

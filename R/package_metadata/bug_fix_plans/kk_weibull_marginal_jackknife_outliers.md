@@ -24,19 +24,16 @@ absolute errors include values of **−38.0 and +17.5** — two orders of
 magnitude outside the estimand's normal range, not "large but plausible"
 outliers.
 
-## Root cause hypothesis (not yet traced to a specific line)
+## Root cause (confirmed 2026-10-08)
 
-Not a mean-shift/formula bug. Most plausibly a leave-one-out jackknife
-fold occasionally landing on a degenerate/non-identifiable configuration
-— small matched-cluster counts plus one held-out observation can produce
-this for marginal Weibull models (e.g. a fold that removes the only
-non-censored observation from a small cluster, or a fold that leaves a
-covariate pattern with no remaining variation). This is a **numerical
-robustness** bug in the jackknife resampling loop specifically, analogous
-in shape (though a different location) to `release_v1_0_5.md → TODO-4`'s
-already-tracked unguarded near-singular information-matrix inverse — a
-single unstable fit silently producing a wild-but-finite number rather
-than failing loudly or being excluded.
+A deterministic seed-1, 24-subject KK14 fixture reproduced the failure. The
+leave-matched-set-out fold for rows 2 and 17 removes the treatment arm's only
+observed event: the retained control arm has five events and the retained
+treatment arm has zero. The old fit nevertheless reported convergence and
+returned 17.1343525, while the other folds were 0.91--1.66. Thus the failure
+is an estimator-specific identifiability bug: a resampled marginal-Weibull
+fit with no observed event in one treatment arm silently produced a wild
+finite coefficient.
 
 ## Corroboration: caught by both the coverage/bias investigations AND validates the Wilcoxon-test design choice
 
@@ -50,45 +47,48 @@ session's `biased_estimate` check redesign (t-test + Wilcoxon
 signed-rank, ACAT-combined) was built to catch — worth keeping as a
 reference example if this check's design is ever questioned or revisited.
 
-## Proposed fix — not yet applied, not yet fully scoped
+## Implemented fix
 
-Add a sanity/guard check on jackknife-fold estimates: reject, flag, or
-exclude a fold whose estimate is many orders of magnitude outside the
-observed (full-sample) fit's own scale, rather than silently including it
-in the jackknife SE/estimate computation. Exact mechanism (a hard
-magnitude cutoff, a robust-scale-based outlier test, or fixing whatever
-specific degenerate configuration causes the fold to blow up in the first
-place) not yet decided — needs the root-cause trace below first.
+`InferenceSurvivalKKWeibullMarginal` now checks that both treatment arms have
+at least one positive-weight observed event before fitting. The check covers
+ordinary subset refits (including jackknife, nonparametric bootstrap, and
+subsampling) and weighted Bayesian-bootstrap refits. A failed check returns
+`NA_real_` with typed reason
+`kk_weibull_marginal_treatment_arm_no_events`; the shared jackknife summary
+then reports `jackknife_nonfinite_replicate_estimates`. The invalid fold is
+not dropped, because the delete-one jackknife formula requires every deletion.
+This is preferable to an arbitrary coefficient cutoff and leaves all
+well-identified folds unchanged.
 
 ## TODOs
 
-- [ ] TODO-1: Locate the jackknife loop for this class (likely in
+- [x] TODO-1: Locate the jackknife loop for this class (likely in
   `R/EDI/R/inference_survival_KK_weibull_marginal.R` or a shared
   jackknife-family helper — confirm exact location) and trace exactly
   which fold(s) produce the −38.0/+17.5-class outliers. Reproduce directly
   via `pkgload::load_all(".", compile = FALSE)` only (never `R CMD INSTALL`/
   `R CMD build`/`pkgbuild::compile_dll()`/`load_all(compile = TRUE)` or
   unspecified `compile=` — hard project rule, top-level `CLAUDE.md`).
-- [ ] TODO-2: Confirm the degenerate-configuration hypothesis (e.g. a
+- [x] TODO-2: Confirm the degenerate-configuration hypothesis (e.g. a
   cluster/covariate-pattern check on which specific held-out observation
   produces the outlier) or find the actual mechanism if different.
-- [ ] TODO-3: Design and implement the guard — likely following the same
+- [x] TODO-3: Design and implement the guard — following the same
   "detect near-singular/degenerate, return NA or exclude rather than a
   wild finite value" philosophy as TODO-4's fix, adapted for a
   per-fold jackknife context rather than a single information-matrix
   inverse.
-- [ ] TODO-4: Verify the fix doesn't change jackknife estimates for
+- [x] TODO-4: Verify the fix doesn't change jackknife estimates for
   well-behaved folds (bit-for-bit or floating-point tolerance) — only the
   degenerate folds' handling should change.
 - [ ] TODO-5: Re-run the bias check (t-test + Wilcoxon on estimate −
   truth) and confirm both the mean bias and RMSE return to reasonable
   values, and that RMSE is no longer wildly disproportionate to the bias
   magnitude.
-- [ ] TODO-6: Add a permanent regression test constructing a fixture
+- [x] TODO-6: Add a permanent regression test constructing a fixture
   likely to produce a degenerate jackknife fold (small clusters, as
   identified by TODO-2) and asserting no fold's estimate exceeds a
   sanity-scale bound relative to the full-sample fit.
-- [ ] TODO-7: Check whether other jackknife-based methods across the
+- [x] TODO-7: Check whether other jackknife-based methods across the
   package (not just this one class) share the same unguarded-fold
   vulnerability — this session's TODO-4 already found the same
   "unguarded numerical operation → wild finite value" shape recurring
@@ -97,6 +97,19 @@ place) not yet decided — needs the root-cause trace below first.
   class.
 - [ ] TODO-8: Regenerate affected `comprehensive_tests` CSV rows once
   fixed and installed (only after install, not before).
+
+TODO-5 and TODO-8 are release validation tasks and remain pending until the
+user's separately managed rebuilt package is available. The repository rule
+forbids building or installing the checkout during this audit.
+
+For TODO-7, every ordinary jackknife method reaches the same shared summary in
+`inference_all_abstract_jackknife.R`. That summary already treats any nonfinite
+fold as nonestimable and retains the raw distribution for diagnosis. No shared
+jackknife-loop correction is needed. The finite outlier here arose before that
+summary, inside this class's unidentified fit, so the narrow per-estimator
+identifiability check is the appropriate fix. Other likelihood families have
+different identification conditions and should not inherit this Weibull-arm
+event rule mechanically.
 
 ## Scope widened 2026-09-24: broad CI undercoverage, not just the jackknife estimate
 
@@ -117,6 +130,22 @@ also be independent. TODO-1/TODO-2's root-cause trace should check
 whether the degenerate-configuration mechanism it finds for the jackknife
 loop also explains the general SE/CI machinery's undercoverage, or
 whether this needs separate root-causing.
+
+The confirmed mechanism explains resampling draws that omit all events from
+one arm, including jackknife, nonparametric-bootstrap/subsampling, and weighted
+Bayesian-bootstrap refits. It cannot explain the full-sample asymptotic CI row,
+where no deletion or zero-weight draw occurs. That row therefore remains a
+separate calibration question rather than evidence for widening this fix.
+
+## Focused validation (2026-10-08)
+
+Using `pkgload::load_all("R/EDI", compile = FALSE)`, 171 focused expectations
+passed with no failures, errors, or warnings: the new deterministic regression
+(16); existing no-event/backend guards (4); weighted refits (28); shared
+jackknife guards (36); CRAN marginal-Weibull tests (9); migration golden tests
+(32); cluster-ID cache tests (15); C++/`survreg` agreement and guard tests (19);
+and randomization-refit tests (12). No compilation, build, or installation was
+performed.
 
 ## Standing constraints
 

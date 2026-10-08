@@ -22,7 +22,7 @@
 # previously defined `InferenceAbstractKKQuantileRegrOneLik` R6-inheriting
 # the hybrid `InferenceAbstractQuantileRandCI`. Registered as the
 # `KKQuantileRegrOneLik` component with `dependencies = c("KKCompound",
-# "QuantileRandomizationCI")` (no `ParametricLikelihoodBootstrap`: despite
+# "RandomizationCI")` (no `ParametricLikelihoodBootstrap`: despite
 # the "combined-likelihood"/"OneLik" naming, this class has no real
 # score/gradient/LR test surface -- `quantreg::rq()` sandwich SEs only,
 # `likelihood_tier = "none"`, same as the IVWC sibling). Same free-function-

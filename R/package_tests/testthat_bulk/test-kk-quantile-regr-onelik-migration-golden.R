@@ -107,7 +107,11 @@ kk_quantile_regr_one_lik_maybe_dropped_labels = c(
 )
 
 run_kk_quantile_regr_one_lik_golden = function(legacy, migrated) {
-	for (label in names(inference_migration_method_calls)) {
+	# The randomization CI deliberately no longer matches the legacy class:
+	# the legacy Zhang path targets split matched/reservoir fits, while the
+	# migrated OneLik class now inverts its own stacked-fit statistic. The
+	# dedicated regression below covers this intentional behavior change.
+	for (label in setdiff(names(inference_migration_method_calls), "randomization_ci")) {
 		spec = inference_migration_method_calls[[label]]
 		# Same isolation precaution as the IVWC sibling's golden: probe the
 		# maybe-dropped labels on a throwaway deep clone in case this legacy
@@ -159,22 +163,20 @@ test_that("InferenceContinKKQuantileRegrOneLik migration produces identical outp
 	run_kk_quantile_regr_one_lik_golden(Legacy$new(des), InferenceContinKKQuantileRegrOneLik$new(des))
 })
 
-test_that("InferenceContinKKQuantileRegrOneLik randomization CI matches", {
+test_that("InferenceContinKKQuantileRegrOneLik replaces the broken legacy randomization CI", {
 	skip_on_cran()
 	skip_if_not_installed("quantreg")
-	Legacy = make_contin_kk_quantile_regr_one_lik_legacy_generator()
 	des = kk_quantile_regr_one_lik_golden_design("continuous")
-	legacy = Legacy$new(des)
 	migrated = InferenceContinKKQuantileRegrOneLik$new(des)
-	# Randomization CIs are hard-disabled for this class (2026-09-17 stopgap;
-	# see KKQuantileRegrOneLik_rand_ci.md): the Zhang bisection this class
-	# routes to requires host hooks KKQuantileRegrOneLikSource never supplies.
-	# Legacy shares that same source, so both sides must fail identically --
-	# "migration matches" now means matching errors, not matching intervals.
-	legacy$set_seed(20260817L)
-	expect_error(legacy$compute_rand_confidence_interval(r = 51L), "temporarily disabled")
 	migrated$set_seed(20260817L)
-	expect_error(migrated$compute_rand_confidence_interval(r = 51L), "temporarily disabled")
+	ci = suppressMessages(migrated$compute_rand_confidence_interval(
+		alpha = 0.2, r = 51L, pval_epsilon = 0.05, show_progress = FALSE,
+		ci_search_control = list(mc_enable = FALSE, high_precision_confirm = FALSE)
+	))
+	expect_true(all(is.finite(ci)))
+	expect_gt(diff(ci), 1e-8)
+	expect_lte(ci[1L], migrated$compute_estimate())
+	expect_gte(ci[2L], migrated$compute_estimate())
 })
 
 test_that("InferencePropKKQuantileRegrOneLik migration produces identical outputs", {

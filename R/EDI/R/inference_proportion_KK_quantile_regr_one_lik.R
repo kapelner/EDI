@@ -50,7 +50,6 @@ InferencePropKKQuantileRegrOneLik = define_inference_class(
 			"compute_estimate_with_bootstrap_weights",
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
-			"compute_rand_confidence_interval",
 			"approximate_bootstrap_distribution_beta_hat_T"
 		),
 		private = c(

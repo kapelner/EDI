@@ -95,3 +95,27 @@ def test_estimate_only_still_returns_params():
     )
 
     assert res["params"] == pytest.approx(R_PARAMS, abs=1e-6, rel=1e-6)
+
+
+def test_log_theta_upper_bound_stops_a_flat_objective_start():
+    X, y, dead, pair_idx, singleton_rows, warm_start_params = _synthetic_data()
+    probe = fast_clayton_weibull_aft_optim(
+        X, y, dead, pair_idx, singleton_rows, warm_start_params,
+        estimate_only=True,
+    )
+    unsafe_start = probe["params"].copy()
+    unsafe_start[-1] = 20.0
+    # Native fixed-parameter indices follow the R kernel contract and are
+    # therefore one-based even at the Python binding boundary.
+    fixed_idx = np.arange(1, unsafe_start.size, dtype=np.int32)
+    res = fast_clayton_weibull_aft_optim(
+        X, y, dead, pair_idx, singleton_rows, unsafe_start,
+        estimate_only=True, maxit=20,
+        fixed_idx=fixed_idx, fixed_values=unsafe_start[:-1],
+    )
+
+    assert res["converged"] is True
+    assert res["hit_iteration_cap"] is False
+    assert res["niter"] < 20
+    assert res["log_theta_at_upper_bound"] is True
+    assert res["params"][-1] == pytest.approx(6.0, abs=0.0, rel=0.0)

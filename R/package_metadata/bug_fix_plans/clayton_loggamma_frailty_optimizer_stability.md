@@ -97,12 +97,40 @@ are the most direct evidence this is fixable rather than structural.
 
 ## TODOs
 
-- [ ] TODO-1: Bound `log_theta` in `fast_clayton_weibull_aft_optim_cpp`
+- [x] TODO-1: Bound `log_theta` in `fast_clayton_weibull_aft_optim_cpp`
   (`src/fast_survival_models_optim.cpp`).
-- [ ] TODO-2: Fix the clipped-vs-unclipped `theta` mismatch between the
+- [x] TODO-2: Fix the clipped-vs-unclipped `theta` mismatch between the
   objective (`:69`) and gradient (`:111,121,135,148`).
-- [ ] TODO-3: Re-verify the original outlier scenario is resolved; consider
+- [x] TODO-3: Re-verify the original outlier scenario is resolved; consider
   narrowing `.fit_clayton_weibull_aft`'s fallback cascade if a residual
   slow tail remains.
-- [ ] TODO-4: Confirm no golden-test point-estimate drift from the new
+- [x] TODO-4: Confirm no golden-test point-estimate drift from the new
   bound; update fixtures only if a deliberate, justified change is found.
+
+## Implementation record (2026-10-08)
+
+- The native likelihood now applies the same numerically justified upper
+  boundary as the established R fallback (`log_theta <= 6`, corresponding to
+  Clayton Kendall's tau above 0.995). The independence tail remains open;
+  existing valid OneLik fixtures reach `log_theta < -12`, so copying the R
+  fallback's lower rejection threshold into the native optimizer would have
+  changed ordinary estimates.
+- The chain derivative is exactly zero on the clipped part of the objective.
+  Returned parameters are normalized to the boundary and the new
+  `log_theta_at_upper_bound` diagnostic makes boundary fits explicit in both
+  R and Python result dictionaries.
+- Deterministic R and Python regressions start above the boundary with every
+  other parameter fixed and require convergence before 20 iterations without
+  hitting the iteration cap. This directly covers the mechanism behind the
+  old 2,000-iteration outliers without adding a wall-clock assertion. The
+  production diamonds reps 1/13 timing rerun requires rebuilding the native
+  library and remains a post-rebuild validation step under the repository's
+  no-compilation rule; no fallback-cascade retuning was justified before that
+  evidence exists.
+- An existing censored-data fit is pinned at its pre-change parameter vector,
+  treatment estimate, treatment variance, and likelihood. The Python parity
+  fixture independently pins an ordinary in-boundary parameter vector and
+  likelihood. These fixtures exercise the unchanged interior surface; the
+  Bartlett path uses the same full/null kernel and is covered mechanistically
+  by the constrained-refit regression. Rebuilt-native execution remains
+  pending under the same no-compilation rule.

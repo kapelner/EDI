@@ -39,9 +39,22 @@ test_that("KM-difference is the difference of Kaplan-Meier medians", {
 })
 
 test_that("RMST class: estimate and SE use one common truncation horizon", {
+	# 2026-10-08: survival::summary.survfit's rmean = "common" is NOT the
+	# same convention EDI implements. Confirmed empirically: "common" picks
+	# the LARGER of the two arms' own maxima and extrapolates the
+	# shorter-follow-up arm's flat KM tail out to it, whereas EDI
+	# deliberately uses the SMALLER of the two maxima (no extrapolation
+	# beyond either arm's own observed data) -- see inference_survival_
+	# rmst.R's roxygen ("chosen as the smaller of their maximum follow-up
+	# times") and fast_survival_stats.cpp's shared_tau plumbing (commit
+	# 288e6643). These are two different, both-legitimate "common horizon"
+	# definitions; the reference here must use EDI's own (the explicit
+	# numeric min-of-maxima tau), not the "common" string mode.
 	f <- fx()
 	km <- survival::survfit(f$S ~ f$w)
-	ind <- summary(km, rmean = "individual")$table; com <- summary(km, rmean = "common")$table
+	ind <- summary(km, rmean = "individual")$table
+	shared_tau <- min(max(f$y[f$w == 1]), max(f$y[f$w == 0]))
+	com <- summary(km, rmean = shared_tau)$table
 	d_ind <- unname(ind[2, "rmean"] - ind[1, "rmean"]); d_com <- unname(com[2, "rmean"] - com[1, "rmean"])
 	expect_gt(abs(d_ind - d_com), 0.01)                                     # the fixture distinguishes the two definitions
 	inf <- new_inf("InferenceSurvivalRestrictedMeanDiff", f$des)

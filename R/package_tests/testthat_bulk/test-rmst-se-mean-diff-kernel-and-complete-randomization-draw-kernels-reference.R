@@ -10,12 +10,19 @@ library(EDI)
 
 K <- function(x) get(x, envir = asNamespace("EDI"))
 
-test_that("RMST-difference SE equals sqrt(se1^2 + se0^2) of the Kaplan-Meier restricted means, each group truncated at its OWN last time", {
+test_that("RMST-difference SE equals sqrt(se1^2 + se0^2) of the Kaplan-Meier restricted means, both groups truncated at one shared horizon", {
+	# 2026-10-08: get_restricted_mean_se_diff now truncates both arms at a
+	# single shared horizon (the smaller of their own maxima), not each
+	# arm's own last time -- see fast_survival_stats.cpp's shared_tau
+	# plumbing (commit 288e6643). survival::summary.survfit's rmean must be
+	# passed that same numeric horizon (not "individual", which applies
+	# each stratum's own max) to match.
 	set.seed(3)
 	n <- 60L
 	w <- rep(0:1, each = 30L); y <- rexp(n, 1 / (5 + 2 * w)); dead <- rbinom(n, 1, 0.8)
+	shared_tau <- min(max(y[w == 0]), max(y[w == 1]))
 	km <- survival::survfit(survival::Surv(y, dead) ~ w)
-	tab <- summary(km, rmean = "individual")$table
+	tab <- summary(km, rmean = shared_tau)$table
 	expect_equal(K("get_restricted_mean_se_diff")(y, dead, w), sqrt(sum(tab[, "se(rmean)"]^2)), tolerance = 1e-6)
 	# Swapping arm labels leaves the SE unchanged.
 	expect_equal(K("get_restricted_mean_se_diff")(y, dead, 1 - w), K("get_restricted_mean_se_diff")(y, dead, w), tolerance = 1e-10)

@@ -112,7 +112,14 @@ jobs:
     # this job from running if plan genuinely fails.
     if: always() && needs.plan.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 2026-10-08: bumped from 60 -> 90 (and the "Run coverage shard" step
+    # below from 45 -> 75). Run 37770247146's shard 3 genuinely ran the full
+    # 60 minutes (started 11:28:27, cancelled 12:29:28 -- the job-level cap,
+    # not an infra hang: setup-r completed normally, unlike the separate
+    # apt-mirror-stall pattern seen on other runs) as the coverage test suite
+    # has grown. Doubling-ish for headroom rather than tuning to the exact
+    # current runtime, which will keep growing.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       # 2026-09-23: raised from 6, matching test-bulk-non-cran.yml's shards
@@ -148,7 +155,7 @@ jobs:
           dependencies: '"all"'
           extra-packages: any::jsonlite, any::covr
       - name: Run coverage shard
-        timeout-minutes: 45
+        timeout-minutes: 75
         run: Rscript R/package_tests/ci/run_shard.R "$GITHUB_WORKSPACE" "shard-plan/shard-${{ matrix.shard }}.json" coverage "shard-results/${{ matrix.shard }}"
       - name: Upload timings and reports
         if: always()
