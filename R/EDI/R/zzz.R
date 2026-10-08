@@ -44,6 +44,7 @@ edi_onload_trace_step = function(label) {
 
 .onLoad = function(libname, pkgname) {
 	edi_onload_trace_step("start")
+	edi_env$package_version = as.character(utils::packageVersion(pkgname, lib.loc = libname))
 	# No options() are set here: loading EDI must not change the user's options
 	# (CRAN policy). Assertions default to on via should_run_asserts()'s own
 	# getOption("edi.run_asserts", TRUE) default and edi_env state.

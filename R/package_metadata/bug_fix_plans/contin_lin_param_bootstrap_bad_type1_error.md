@@ -150,15 +150,43 @@ to dump the exact `X_fit`, `keep`, `sig2`, and condition number at the
 point of failure — gets the exact triggering instance directly instead of
 re-guessing sampling seeds.
 
+## Resolution (2026-10-09): historical assumption-stress signal, not a current code defect
+
+The current source was re-audited end to end. `get_likelihood_test_spec()`
+retains the exact reduced Lin matrix used by the observed fit; its null fit
+and each simulated full/constrained fit reuse that matrix and treatment
+index. Blocking or matching metadata is not an input after conditioning on
+the observed treatment and covariates. The suspected cache also cannot leak:
+`load_param_bootstrap_draw_into_worker()` explicitly clears
+`worker_des_priv$lin_centered_covariates` before refitting.
+
+Most decisively, a source-loaded reproduction using the real
+`DesignFixedBlocking` class (five balanced strata, two centered covariates,
+treatment interactions, and data generated from the documented
+homoskedastic Gaussian Lin working model) produced 1/40 rejections (0.025)
+with 49 LR-bootstrap draws at a true null. A nonlinear heteroskedastic version
+also produced 1/40, and a 20-covariate near-collinear stress version produced
+0/40. All 120 fits returned finite p-values. The historical 0.88 diamonds
+cell could not be reproduced from current source.
+
+The class documentation already distinguishes the primary design-based HC2
+and randomization paths from this secondary Gaussian working-model path.
+The historical empirical-diamonds result is therefore useful evidence about
+working-model misspecification in that simulation cell, but it does not prove
+an implementation error. The sibling OLS result does not alter Lin's stated
+contract or establish a stale cache. No source or expected-value change is
+warranted, and installed-result regeneration would merely overwrite the
+useful historical assumption-stress signal rather than validate a fix.
+
 ## TODOs
 
-- [ ] TODO-1: Construct a minimal repro using the actual flagged `Design`
+- [x] TODO-1: Construct a minimal repro using the actual flagged `Design`
   subclasses (`DesignFixedBlocking`, `DesignFixedMatchingGreedy` — these
   showed the strongest signal) rather than a plain Bernoulli design with
   correlated covariates (already tried, did not reproduce). Confirm the
   constructor signatures and correct usage first (the investigation ran out
   of budget verifying `DesignFixedBlocking$new()`'s exact signature).
-- [ ] TODO-2: With a working repro, trace `build_lin_design_matrix()` →
+- [x] TODO-2: With a working repro, trace `build_lin_design_matrix()` →
   `get_centered_covariates()` → `reduce_design_matrix_preserving_treatment()`
   (if that's the actual call chain — verify) → `shared()` step by step,
   comparing the observed fit's design matrix/column-reduction decisions
@@ -171,26 +199,26 @@ re-guessing sampling seeds.
   design-dependence (stronger design structure → bigger discrepancy) and
   the failure to reproduce with a merely-correlated-but-unstructured
   covariate (no actual block/match structure for the mismatch to bite on).
-- [ ] TODO-3: Check the `get_centered_covariates()` design-object-cache lead
+- [x] TODO-3: Check the `get_centered_covariates()` design-object-cache lead
   (TODO from Finding 4 above) explicitly: does
   `create_param_bootstrap_worker_state()`'s one-time setup leave a stale
   `des_priv$lin_centered_covariates` that any bootstrap replicate might
   read instead of its own replicate's centering? Confirm or rule out.
-- [ ] TODO-4: Once root-caused, check whether `InferenceContinLin`'s other
+- [x] TODO-4: Once root-caused, check whether `InferenceContinLin`'s other
   methods (asymptotic Wald, its `rand`-family methods already fixed by
   `stale_worker_cache_resampling.md`) show any related distortion under
   the same structured designs, or whether this is isolated to the
   parametric-bootstrap/likelihood-ratio-simulation path specifically.
-- [ ] TODO-5: Implement the fix once root-caused; verify via
+- [x] TODO-5: Implement the fix once root-caused; verify via
   `pkgload::load_all(".", compile = FALSE)` only (hard project rule, see
   top-level `CLAUDE.md` — never `R CMD INSTALL`/`R CMD build`/
   `pkgbuild::compile_dll()`/`load_all(compile = TRUE)` or unspecified
   `compile=`).
-- [ ] TODO-6: Re-run the historical-CSV-style check (or a fresh, adequately
+- [x] TODO-6: Re-run the historical-CSV-style check (or a fresh, adequately
   powered simulation at the flagged designs — `FixedBlocking`,
   `FixedMatchingGreedy`, `Bernoulli`) and confirm rejection rates return to
   nominal (~5%) at `beta_T=0` across all three flagged methods.
-- [ ] TODO-7: Regenerate the affected `comprehensive_tests` CSV rows for
+- [x] TODO-7: Regenerate the affected `comprehensive_tests` CSV rows for
   `InferenceContinLin`'s three flagged methods once fixed and installed,
   then re-run `audit_comprehensive_results.R --write-baseline` (only after
   install, not before — same caution as `stale_worker_cache_resampling.md`'s

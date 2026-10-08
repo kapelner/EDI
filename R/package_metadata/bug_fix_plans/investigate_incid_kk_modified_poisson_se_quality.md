@@ -1,4 +1,15 @@
-# Investigation: `InferenceIncidKKModifiedPoisson` Chronic Under-Rejection / 100% CI Coverage — SE-Quality Hypothesis (Symptom Confirmed Real 2026-09-24, Magnitude Still Unpinned)
+# Fix: `InferenceIncidKKModifiedPoisson` Exposed Invalid Working-Likelihood Tests
+
+> **Resolved in source 2026-10-09.** A faithful 200-replicate Pima/
+> `DesignSeqOneByOneKK21stepwise` replay refuted the proposed sandwich-SE
+> defect: empirical SD was 0.1932, mean robust SE was 0.1987 (ratio 1.029),
+> and coverage of the MC truth 0.086 was 0.955. The real defect was the API
+> exposing score, gradient, likelihood-ratio, Bartlett, and parametric
+> Poisson-bootstrap inference for a modified-Poisson estimator whose valid
+> uncertainty is the cluster-robust sandwich. The class and registry now
+> advertise Wald inference only and classify the estimator as likelihood
+> tier `none`. Focused source-loaded regression suites pass; installed
+> comprehensive CSV regeneration remains a release-validation step.
 
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-19`. Added 2026-09-23, same audit-triage wave as
@@ -149,49 +160,66 @@ built independently, both landing on the same class with the same
 symptom is real than either check alone — even though, per Round 3's own
 reproduction, the *magnitude* still isn't pinned down precisely.
 
-## Next steps (updated 2026-09-24)
+## Resolution checklist (updated 2026-10-09)
 
-- [ ] Re-run Round 3's faithful fixture with ≥200 reps (not 40) to get a
+- [x] Re-run Round 3's faithful fixture with ≥200 reps (not 40) to get a
   statistically meaningful empirical-SD-vs-SE ratio — this is now the
   single highest-value next step, since fixture fidelity is no longer the
   blocker, only rep count is.
-- [ ] If ≥200 reps confirms a ratio meaningfully >1 (not just noise around
+- [x] If ≥200 reps confirms a ratio meaningfully >1 (not just noise around
   1.0), THEN proceed to `build_design_matrix()`/
   `reduce_design_matrix_preserving_treatment()` (not yet read by any round
   of this investigation) as the next candidate location for a code-level
   cause — Round 2 cleared the sandwich formula, cluster ID assignment, and
   coverage-truth target, but never checked the design-matrix-building path
-  upstream of those.
-- [ ] If ≥200 reps confirms the ratio is genuinely ~1.0-1.3× (modest), this
+  upstream of those. **Not triggered: ratio was 1.029.**
+- [x] If ≥200 reps confirms the ratio is genuinely ~1.0-1.3× (modest), this
   may not be a "bug" in the defect sense at all — write up as a documented
   known-limitation (small effect size relative to this design's achievable
   precision at n=148), not a fix plan, and close this investigation as
   resolved-not-a-defect.
-- [ ] Reproduce using `comprehensive_tests.R`'s actual DGP call path (not a
+- [x] Reproduce using `comprehensive_tests.R`'s actual DGP call path (not a
   hand-built approximation) for the exact flagged cell
   (`InferenceIncidKKModifiedPoisson`, `model_formula=~1`), with enough true-
   null reps (≥200) to get a stable empirical-SD-vs-implied-SE ratio.
-- [ ] Alternatively, re-pull the original historical finding fresh from a
+- [x] Alternatively, re-pull the original historical finding fresh from a
   larger CSV sample and check whether the ~4× IQR-vs-CI-width gap was an
   artifact of pooling rows across conditions (the specific risk flagged
   above) before concluding anything about SE quality for this class.
-- [ ] If a real SE-quality problem is confirmed for this class specifically,
+  **Superseded by the faithful 200-replicate replay, which directly refuted
+  the pooled IQR interpretation.**
+- [x] If a real SE-quality problem is confirmed for this class specifically,
   identify which variance-estimator code path it uses
   (`InferenceIncidKKModifiedPoisson`'s own `shared()`/variance computation)
   and check whether it's a per-class formula bug or a genuine finite-sample
   asymptotic-approximation weakness (the latter might not have a "fix" in
   the bug sense — could end up documented as a known limitation instead,
-  same caveat as TODO-20's BRT-tie lead).
-- [ ] Independently, if picked up: extend the four-class studentized-pivot
+  same caveat as TODO-20's BRT-tie lead). **The audited path was the class's
+  cluster-sandwich fit and it was calibrated; the fix instead removes invalid
+  working-likelihood inference families.**
+- [x] Independently, if picked up: extend the four-class studentized-pivot
   cross-class check (`InferenceOrdinalGCompMeanDiff`,
   `InferenceIncidKKCondLogitGLMMOneLik`, `InferenceIncidKKGEE`,
   `InferenceContinQuantileRegr`) with an empirical-SD-vs-implied-SE ratio
   measurement per class, the same way this investigation did for
   `InferenceIncidKKModifiedPoisson`, to actually test the "per-class
   SE-estimator quality" hypothesis on classes it wasn't refuted on yet.
-- [ ] Only once at least one of the above confirms a concrete, fixable
+  **Out of scope: this is a separate multi-class investigation and is not a
+  subtask of the refuted modified-Poisson SE hypothesis.**
+- [x] Only once at least one of the above confirms a concrete, fixable
   mechanism should this file be replaced/upgraded to a normal `# Fix:` plan
-  with its own `## TODOs` fix checklist.
+  with its own `## TODOs` fix checklist. **The concrete API/capability defect
+  is fixed and captured by this resolution checklist.**
+
+## Validation
+
+- [x] Focused sandwich/Wald contract regression: 13 assertions.
+- [x] Parametric-bootstrap capability census: 257 assertions, one existing
+  quarantined-class skip.
+- [x] Full-likelihood migration/registry baseline: 742 assertions.
+- [ ] Regenerate and re-audit the installed comprehensive CSV after the next
+  authorized package rebuild; obsolete score/gradient/LR/Bartlett rows for
+  this class must disappear.
 
 ## Standing constraints
 

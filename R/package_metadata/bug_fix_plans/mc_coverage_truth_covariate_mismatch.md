@@ -288,6 +288,12 @@ The remaining registry gaps are now closed in the harness:
   `InferenceOrdinalContRatioRegr`, and
   `InferenceOrdinalPartialProportionalOddsRegr` now have MC-refit registry
   entries (TODO-10).
+- `InferenceOrdinalCloglogRegr` and `InferenceOrdinalOrderedProbitRegr`
+  now use the same MC-refit truth. Both fit a different cumulative-link
+  family from the harness's cumulative-logit DGP; grading either against raw
+  `beta_T` confounded link misspecification with interval coverage. This
+  closes the truth-scale portions of
+  `ordinal_cumulative_link_null_refit_multistart.md` TODO-14/17.
 - The unresolved TODO-6 matched-Cox cells now return an explicitly unavailable
   (`NA`) coverage truth. This prevents both known-bad alternatives: caching an
   unconverged real-X MC target or silently falling back to raw `beta_T`.

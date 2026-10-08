@@ -135,7 +135,7 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 		ensure_pair_structure_computed = function(){
 			if (is.null(private$bms)) {
 				n = self$get_n()
-				private$covariate_impute_if_necessary_and_then_create_model_matrix()
+				private$ensure_model_matrix_current()
 				if (is.null(private$X) || ncol(private$X) == 0) return(invisible(NULL))
 				X = private$X[1:n, , drop = FALSE]
 				private$bms = compute_binary_match_structure(X, mahal_match = (private$objective == "mahal_dist"))
@@ -179,7 +179,7 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 					stop("DesignFixedMatchingGreedyPairSwitching requires n divisible by 4.")
 				}
 			}
-			private$covariate_impute_if_necessary_and_then_create_model_matrix()
+			private$ensure_model_matrix_current()
 			if (is.null(private$X) || ncol(private$X) == 0L) {
 				# No usable covariate: nothing to match or balance on, so fall back to balanced
 				# complete randomization (the base case of the pair-switching design).

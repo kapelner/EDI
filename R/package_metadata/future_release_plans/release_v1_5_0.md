@@ -122,33 +122,15 @@ threads feeding this release.)
   `which.min(neg_loglik)` pattern, reusing the already-in-scope
   `full_start` construction. **Not yet implemented.**
 
-- [ ] TODO-5 (added 2026-09-24, confirmed by direct code reading — high
-  confidence mechanism, magnitude/reproduction not yet empirically
-  confirmed): **jackknife-Wald CI is centered at the raw point estimate,
-  not the bias-corrected jackknife estimate, and the acceptance guard
-  lets substantial uncorrected bias through** —
-  `../bug_fix_plans/investigate_incid_logregr_probitregr_coverage.md →
-  TODO-3/6`. `R/EDI/R/inference_all_abstract_jackknife.R`'s
-  `compute_jackknife_wald_confidence_interval()` (`:118-145`) builds the
-  CI as `theta_hat ± z*se_j`, where `theta_hat = self$compute_estimate()`
-  (the raw, uncorrected estimate) but `se_j` comes from
-  `compute_jackknife_summary()` (`:229-287`), whose variance is computed
-  around the delete-1 mean `jack_bar`, not `theta_hat`. The bias-corrected
-  jackknife estimate `theta_j = theta_hat - bias_j` is computed in the
-  same function but never used to center the CI. The only guard
-  (`abs(bias_j) > 2 * se_j`, `:278`) is loose enough to admit bias up to
-  ~2 SE into a CI that is only `±1.96 se_j` wide at `alpha=0.05`. This is
-  shared, generic machinery used by every class composing the
-  `Jackknife` component (not class-specific), and directly explains
-  `InferenceIncidProbitRegr ~1 compute_jackknife_wald_confidence_interval`'s
-  under-coverage outlier (0.926 vs. 0.95 target) — plausibly also
-  explains `TODO-29`'s (in `release_v1_0_5.md`) independent
-  `jackknife_wald` finding for `InferenceAllSimpleAverageDiff`, since it's
-  the same underlying code. Fix direction: center the CI at `theta_j`
-  instead of `theta_hat`, or tighten the acceptance guard — pick after
-  reproducing both affected classes' findings to confirm they share this
-  mechanism (they may want different fixes if the bias magnitude differs
-  qualitatively between them). **Not yet implemented.**
+- [x] TODO-5 (added 2026-09-24, fixed and audited 2026-10-09):
+  **jackknife-Wald inference is centered at the bias-corrected jackknife
+  estimate** — `../bug_fix_plans/investigate_incid_logregr_probitregr_coverage.md
+  → TODO-3/6`. The old shared code combined a raw-estimate center with a
+  delete-one jackknife SE, which could admit bias almost as wide as the
+  interval. Both the p-value and interval now use
+  `compute_jackknife_summary()$estimate` (`theta_j`). Focused
+  injected-summary and independent delete-one regressions pass 30
+  assertions without compilation.
 
 - [ ] TODO-6 (added 2026-09-24, confirmed by direct code reading — medium-high
   confidence, concrete and low-risk to fix): `InferenceCountPoisson`'s

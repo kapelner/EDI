@@ -230,7 +230,7 @@ Design = R6::R6Class("Design",
 				 ".\n"))
 			}
 			private$seed = seed
-			private$edi_version_created = as.character(utils::packageVersion("EDI"))
+			private$edi_version_created = edi_package_version()
 		},
 		#' @description For CARA designs, add a single subject response.
 		#'
@@ -510,12 +510,14 @@ Design = R6::R6Class("Design",
 		#'
 		#' @return 		Same as \code{Xraw} except with imputations.
 		get_X_imp = function(){
+			private$ensure_model_matrix_current()
 			private$Ximp
 		},
 		#' @description Get X matrix
 		#'
 		#' @return 			A numeric matrix of subject data.
 		get_X = function(){
+			private$ensure_model_matrix_current()
 			private$X
 		},
 		#' @description Get y
@@ -855,7 +857,7 @@ Design = R6::R6Class("Design",
 		#' @return 			A character string, e.g. \code{"1.0.0"}.
 		get_edi_version_created = function(){
 			if (is.null(private$edi_version_created)) {
-				private$edi_version_created = as.character(utils::packageVersion("EDI"))
+				private$edi_version_created = edi_package_version()
 			}
 			private$edi_version_created
 		},
@@ -912,6 +914,7 @@ Design = R6::R6Class("Design",
 	),
 	private = list(
 		edi_version_created = NULL,
+		model_matrix_stale = FALSE,
 		version_mismatch_checked = FALSE,
 		# See TODO "Decide version-mismatch behavior" in save_load_api.md:
 		# warn once, on the first post-reload call to a "resume the trial"
@@ -931,12 +934,13 @@ Design = R6::R6Class("Design",
 			if (private$version_mismatch_checked) return(invisible(NULL))
 			private$version_mismatch_checked = TRUE
 			stamped_major = as.integer(unlist(strsplit(self$get_edi_version_created(), "\\."))[1])
-			current_major = as.integer(unlist(strsplit(as.character(utils::packageVersion("EDI")), "\\."))[1])
+			current_version = edi_package_version()
+			current_major = as.integer(unlist(strsplit(current_version, "\\."))[1])
 			if (!is.na(stamped_major) && !is.na(current_major) && stamped_major != current_major) {
 				warning(
 					"This ", class(self)[1L], " object was created under EDI version ",
 					self$get_edi_version_created(), " but EDI version ",
-					as.character(utils::packageVersion("EDI")), " is currently loaded. ",
+					current_version, " is currently loaded. ",
 					"Major-version differences may include breaking schema changes; ",
 					"verify this object still behaves as expected before continuing.",
 					call. = FALSE
@@ -1023,8 +1027,11 @@ Design = R6::R6Class("Design",
 			#and this function's data.table `..` syntax below requires a data.table;
 			#as.data.table copies either way, so behavior is unchanged for the
 			#ordinary data.table path)
-			private$Ximp = as.data.table(private$Xraw)
 			column_has_missingness = columns_have_missingness_cpp(private$Xraw)
+			# Keep Ximp independent of Xraw. get_X_imp() exposes this data.table,
+			# so aliasing the no-missingness path would let a caller's := mutation
+			# silently rewrite the raw covariates as well.
+			private$Ximp = copy(as.data.table(private$Xraw))
 			if (any(column_has_missingness)){
 				if (private$missingness_method == "error"){
 					if (should_run_asserts()) {
@@ -1072,15 +1079,13 @@ Design = R6::R6Class("Design",
 									)
 				}
 			}
-			analysis_col_names = names(private$Ximp)[!startsWith(names(private$Ximp), ".assignment_only_")]
-			Ximp_for_model = if (length(analysis_col_names)) {
-				private$Ximp[, ..analysis_col_names]
-			} else {
-				private$Ximp[, .SD, .SDcols = integer(0)]
-			}
-			#now let's drop any columns that don't have any variation
-			num_unique_values_per_column = count_unique_values_cpp(Ximp_for_model)
-			Ximp_for_model = Ximp_for_model[, .SD, .SDcols = which(num_unique_values_per_column > 1)]
+			# Select analysis columns and discard constants in one data.table
+			# subset.  Counting all columns is cheap and avoids an intermediate
+			# data.table dispatch/copy solely for the count.
+			analysis_col = !startsWith(names(private$Ximp), ".assignment_only_")
+			num_unique_values_per_column = count_unique_values_cpp(private$Ximp)
+			cols_for_model = which(analysis_col & num_unique_values_per_column > 1)
+			Ximp_for_model = private$Ximp[, .SD, .SDcols = cols_for_model]
 			# now we need to update the numeric model matrix which may have expanded due to new factors, new missingness cols, etc
 			private$X = create_model_matrix_from_features(private$design_formula, Ximp_for_model)
 			# Ensure it is a numeric matrix (not character)
@@ -1096,8 +1101,16 @@ Design = R6::R6Class("Design",
 					}
 				}
 			}
+			private$model_matrix_stale = FALSE
+		},
+		ensure_model_matrix_current = function(){
+			if (isTRUE(private$model_matrix_stale) || is.null(private$X) || is.null(private$Ximp)) {
+				private$covariate_impute_if_necessary_and_then_create_model_matrix()
+			}
+			invisible(NULL)
 		},
 		compute_all_subject_data = function(){
+			private$ensure_model_matrix_current()
 			i_present_y = which(!(is.na(private$y) & is.na(private$y_L) & is.na(private$y_R)))
 			i_all = 1 : private$t
 			i_all_y_present = intersect(i_all, i_present_y)

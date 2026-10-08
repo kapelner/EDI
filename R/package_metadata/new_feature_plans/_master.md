@@ -782,6 +782,39 @@ Fix: hold the wrapped values in Rcpp objects first (bit-preserving), a
 check; optional direct C++ call to drop the R round-trip. Release index:
 `release_v1_0_5.md → TODO-65`.
 
+**Algorithm-catalog sweep correctness findings (added 2026-10-09, user
+decision):** the full per-kernel catalog
+(`algorithm_choice_audit.md` plus the `algorithm_choice_audit_catalog.md`
+appendix) surfaced three bugs, each verified by the coordinator. Its other 26 findings were then
+verified the same day (`algorithm_choice_audit.md → TODO-B4`; 21 confirmed, 3 partial, 2 refuted;
+evidence in `algorithm_choice_audit_catalog.md §13`).
+- (1) `../bug_fix_plans/kk21_weibull_irls_wrong_fixed_point.md`: KK21's two
+  hand-rolled Weibull fits solve `Σx(z−1)(eᶻ−δ) = 0` instead of the score
+  equation. A pure-R port reaches β₀ = −9.5, σ = 10 (clamp) where `survreg`
+  gives 1.006, 0.69. Release index: `release_v1_0_5.md → TODO-67`.
+- (2) `../bug_fix_plans/rand_ci_inverts_two_sided_pval_at_half_alpha.md`:
+  randomization and BRT CIs invert a two-sided p-value at α/2, so they are
+  97.5% intervals. Confirmed from existing comprehensive_tests output.
+  Release index: `→ TODO-68`.
+- (3) Two unpinned `coxph()` fallbacks use Efron while every other Cox path
+  is Breslow. Release index: `→ TODO-69`.
+- (4) The 24 confirmed or partial verification findings, in one owning plan:
+  `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-1..25`
+  (F18 cloglog was already `release_v1_0_5.md → TODO-16`). Highlights:
+  - RandomBlockSize redraws are wrong, and `sample(block_sizes, 1)` corrupts real
+    assignments with a single block size.
+  - Ridit misscoring; Newcombe p = 1 for strong effects; KK robust M/MM null mismatch.
+  - The dependent-censoring CI can never reject on its studentized path.
+  - Ordinal KK random-effects and KK clogit+GLMM Bayesian bootstraps fit a different model.
+  - Stratified-Cox simulator scaling; ZOIB softmax mismatch; Zhang CI truncation;
+    conservative `DesignFixedOptimal` BRT.
+  - Five legacy IVWC classes broken (one always NA).
+  - GEE α̂/φ̂.
+
+  Release index: `release_v1_0_5.md → TODO-70..94` (added 2026-10-09, user decision).
+The sweep's speed items (`algorithm_choice_audit.md → TODO-10..36`) are
+**not** scheduled into a release yet.
+
 ---
 
 ## Phase 5 — Post-decision feature tracks

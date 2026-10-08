@@ -33,12 +33,64 @@ run_build <- function(des) {
 }
 
 test_that("missingness_method = 'error' names every column with missing values", {
-	# The error is raised as soon as the covariates are added to the design.
-	expect_error(miss_design("error"), "Missing values detected in covariate\\(s\\): a, d")
+	# Fixed designs build lazily; the first matrix consumer raises the error.
+	des_error <- miss_design("error")
+	expect_error(des_error$get_X(), "Missing values detected in covariate\\(s\\): a, d")
 	clean <- miss_covariates(); clean$a[is.na(clean$a)] <- 0; clean$d[is.na(clean$d)] <- "u"
 	des <- miss_design("error", X = clean)
 	expect_equal(des$get_missingness_method(), "error")
 	expect_false(anyNA(run_build(des)$Ximp))
+})
+
+test_that("fixed design model matrices are lazy and preserve draws and inference inputs", {
+	n <- 24L
+	X <- data.frame(x = seq_len(n), z = factor(rep(c("a", "b"), n / 2L)))
+	y <- sin(seq_len(n))
+
+	make_pair <- function(factory) {
+		lazy <- factory()
+		eager <- factory()
+		lazy$add_all_subjects_to_experiment(X)
+		eager$add_all_subjects_to_experiment(X)
+
+		lazy_priv <- lazy$.__enclos_env__$private
+		expect_true(isTRUE(lazy_priv$model_matrix_stale))
+		expect_null(lazy_priv$X)
+		expect_null(lazy_priv$Ximp)
+
+		# Reproduce the pre-change timing for the comparison object.
+		eager_X <- eager$get_X()
+		expect_false(isTRUE(eager$.__enclos_env__$private$model_matrix_stale))
+		lazy$assign_w_to_all_subjects()
+		eager$assign_w_to_all_subjects()
+		expect_identical(lazy$get_w(), eager$get_w())
+		expect_identical(lazy$get_X(), eager_X)
+		expect_identical(lazy$get_X_imp(), eager$get_X_imp())
+
+		lazy$add_all_subject_responses(y)
+		eager$add_all_subject_responses(y)
+		list(lazy = lazy, eager = eager)
+	}
+
+	pairs <- list(
+		make_pair(function() DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = 91L)),
+		make_pair(function() DesignFixediBCRD$new(n = n, response_type = "continuous", seed = 92L)),
+		make_pair(function() DesignFixedBlocking$new(
+			n = n, response_type = "continuous", strata_cols = "z",
+			B_target = 2L, equal_block_sizes = TRUE, seed = 93L
+		))
+	)
+	for (p in pairs) {
+		fit_lazy <- InferenceContinOLS$new(p$lazy)
+		fit_eager <- InferenceContinOLS$new(p$eager)
+		expect_identical(fit_lazy$compute_estimate(), fit_eager$compute_estimate())
+	}
+})
+
+test_that("design version stamps use the session cache without changing the public value", {
+	des <- DesignFixedBernoulli$new(n = 4L, response_type = "continuous")
+	expect_identical(des$get_edi_version_created(), as.character(utils::packageVersion("EDI")))
+	expect_identical(EDI:::edi_env$package_version, des$get_edi_version_created())
 })
 
 test_that("drop_column removes exactly the columns with missing values, then constant columns leave the model matrix", {

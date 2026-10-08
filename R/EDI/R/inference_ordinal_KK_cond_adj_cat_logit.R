@@ -162,6 +162,15 @@ InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
 	),
 	private = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
+		# The weighted hook above is an ordinary ordinal-logistic surrogate,
+		# not a weighted refit of this class's expanded, pair-stratified
+		# conditional adjacent-category likelihood. A Bayesian-bootstrap
+		# distribution built from it targets a different estimator and produced
+		# the severe coverage failures recorded in the v1.0.5 ordinal audit.
+		# Keep the internal hook for diagnostics, but do not advertise public
+		# Bayesian-bootstrap inference until a native weighted conditional fit
+		# exists.
+		supports_bayesian_bootstrap = function() FALSE,
 		supports_likelihood_tests = function() FALSE,
 		shared = function(estimate_only = FALSE){
 			ordinal_cond_clogit_shared_multi(private, expand_adjacent_category_data_cpp, function(y_i, n_alpha) {
@@ -183,6 +192,7 @@ InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
 		),
 		private = c(
 			"compute_basic_match_data",
+			"supports_bayesian_bootstrap",
 			"resolve_jackknife_unit",
 			"jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",

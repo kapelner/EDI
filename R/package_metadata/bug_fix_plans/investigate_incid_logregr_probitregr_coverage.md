@@ -210,24 +210,25 @@ TODO-4.
 - [x] TODO-3 (2026-09-24, done): root-caused — see "Resolution" above
   (CI-centering bug in shared jackknife machinery). Slated
   `release_v1_5_0.md → TODO-3`.
-- [x] TODO-4 (2026-09-24, done): cross-linked — see "Resolution" above.
-  Add the actual new TODO entry to `fix_mc_coverage_truth_covariate_mismatch.md`
-  itself (not done in this pass; that file wasn't touched — do it next).
-- [ ] TODO-5: Investigate the `biased_estimate` finding for
-  `InferenceIncidLogRegr ~.` (`compute_estimate`/`compute_jackknife_estimate`)
-  — confirm or refute ordinary uncorrected finite-sample MLE bias as the
-  explanation (e.g. by checking bias magnitude scales with
-  covariate-count/n ratio as textbook theory predicts). Still open, not
-  investigated in this pass.
-- [ ] TODO-6 (new): implement the jackknife-Wald CI-centering fix in
-  `R/EDI/R/inference_all_abstract_jackknife.R` — either center the CI at
-  the bias-corrected `theta_j` instead of raw `theta_hat`, or tighten the
-  `abs(bias_j) > 2 * se_j` acceptance guard so less-biased-but-still-
-  distorting cells get excluded instead of silently miscovering. Reproduce
-  the `InferenceIncidProbitRegr ~1` outlier and `InferenceAllSimpleAverageDiff`'s
-  `TODO-29` finding first to confirm both share this mechanism before
-  picking a fix direction — they may want different fixes if the bias
-  magnitude differs qualitatively.
+- [x] TODO-4 (2026-09-24, done; audited 2026-10-09): cross-linked — see
+  "Resolution" above. The actual entry is present as item 8 in
+  `mc_coverage_truth_covariate_mismatch.md`, and that plan records the
+  completed switch to an MC-refit truth matching the conditional estimand.
+- [x] TODO-5 (investigated 2026-10-09): the `biased_estimate` finding for
+  `InferenceIncidLogRegr ~.` is confirmed as ordinary uncorrected
+  finite-sample logistic-MLE bias. A deterministic 3,000-replicate correctly
+  specified logistic simulation (`beta_T = 0.5`) gave treatment-coefficient
+  biases 0.0446 and 0.0977 at `n = 50` with 1 and 5 covariates,
+  respectively, falling to 0.0026 and 0.0240 at `n = 200`. The finding has
+  exactly the predicted covariate-count/sample-size scaling and does not
+  indicate a package bug.
+- [x] TODO-6 (implemented and audited 2026-10-09): the shared jackknife-Wald
+  implementation now centers both the interval and p-value on
+  `compute_jackknife_summary()$estimate`, the bias-corrected estimate.
+  Focused regressions inject a summary where the raw and corrected centers
+  differ and pin the corrected p-value and interval; the SimpleAverageDiff
+  suite also recomputes the delete-one SE independently. Both focused files
+  pass 30 assertions with `pkgload::load_all(..., compile = FALSE)`.
 
 ## Standing constraints
 

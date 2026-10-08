@@ -102,7 +102,6 @@ all_param_boot_smoke_cases <- list(
 	InferenceCountZeroInflatedPoisson = all_param_boot_case("count", constructor_args = list(model_formula = ~ x1 + x2, use_rcpp = TRUE, verbose = FALSE)),
 	InferenceIncidBinomialIdentityRiskDiff = all_param_boot_case("incidence", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceIncidKKCondLogitOneLik = all_param_boot_case("incidence", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
-	InferenceIncidKKModifiedPoisson = all_param_boot_case("incidence", kk = TRUE, constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceIncidLogBinomial = all_param_boot_case("incidence", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceIncidLogRegr = all_param_boot_case("incidence", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),
 	InferenceIncidProbitRegr = all_param_boot_case("incidence", constructor_args = list(model_formula = ~ x1 + x2, verbose = FALSE)),

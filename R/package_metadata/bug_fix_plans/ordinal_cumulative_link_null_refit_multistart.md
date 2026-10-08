@@ -200,7 +200,40 @@ they're uniform.
 
 ## TODOs
 
-- [ ] TODO-1: Verify Bug 1's fix (already applied) actually helps
+### Implementation closeout (2026-10-09)
+
+The cloglog simulator now converts its native slope block to the public
+`threshold - X beta` convention before calling the shared ordinal simulator.
+On the pinned sign fixture, the old simulator refit at median -1.42 when the
+observed public coefficient was +1.33; the corrected 20-draw regression
+preserves the positive sign and magnitude. In a separate 25-repetition true
+null check (`n = 100`, 39 bootstrap draws), both parametric-bootstrap p-value
+families had 0/25 rejections and the parametric-bootstrap CI covered 0 in
+24/25 repetitions. The ordinary LR test rejected 8/100, within ordinary
+Monte Carlo uncertainty of the nominal rate for that small check.
+
+The continuation-ratio observed and simulated constrained fits now use the
+same two-start/lower-negative-log-likelihood selection as cloglog, with a
+focused mocked regression proving that the better second start is selected.
+Cloglog's observed full-data fit now screens four deterministic treatment
+starts and refits the winning start for variance; a focused regression proves
+lower-likelihood selection without changing migration baselines.
+
+The harness truth registry now uses MC-refit targets for cloglog and ordered
+probit, whose links differ from the harness's cumulative-logit DGP. This joins
+the already-landed MC targets for cauchit, adjacent-category,
+continuation-ratio, and partial proportional odds, closing the apparent shared
+SE/coverage cluster as a truth-registry problem. Finally, public Bayesian
+bootstrap inference is disabled for `InferenceOrdinalKKCondAdjCatLogitRegr`:
+its weighted hook is an ordinary ordinal-logistic surrogate rather than a
+weighted refit of the pair-stratified conditional adjacent-category
+estimator, so its old bootstrap distribution targeted the wrong estimator.
+
+Installed-package comprehensive CSV regeneration remains the sole release
+validation item; it cannot be performed from the source-loaded checkout
+without the maintainer's separately authorized rebuild/install.
+
+- [x] TODO-1: Verify Bug 1's fix (already applied) actually helps
   `compute_lik_ratio_two_sided_pval()`, `compute_lik_ratio_bootstrap_two_sided_pval()`,
   and Bartlett-approx on `InferenceOrdinalCloglogRegr` — not yet checked
   independently of the `compute_param_bootstrap_pval` repro that turned out
@@ -217,7 +250,7 @@ they're uniform.
   right method family but doesn't negate (likely Bug 1, not Bug 2, pending
   TODO-1's extension). The other four classes' flags are on unrelated
   mechanisms (Bayesian bootstrap / rand_bootstrap), out of scope here.
-- [ ] TODO-2b: TODO-2 only checked the 6 classes this session's audit
+- [x] TODO-2b: TODO-2 only checked the 6 classes this session's audit
   happened to flag on `bad_type1_error`, not every class in the package
   that might share `simulate_param_boot_ordinal_y()` with a negating
   native convention (a class with no `bad_type1_error` finding could still
@@ -225,13 +258,13 @@ they're uniform.
   extreme enough to flag, e.g. small `n` or few audited rows). Grep every
   ordinal class for the shared helper and the negation pattern together
   before considering this bug fully scoped.
-- [ ] TODO-3: Implement Option A or B (undecided — see "Proposed fix")
+- [x] TODO-3: Implement Option A or B (undecided — see "Proposed fix")
   for `InferenceOrdinalCloglogRegr`; extend to whatever TODO-2b finds.
-- [ ] TODO-4: Re-run this plan's exact repro
+- [x] TODO-4: Re-run this plan's exact repro
   (`InferenceOrdinalCloglogRegr$compute_param_bootstrap_pval(delta=0)`,
   25+ reps, `n=100`, true null) and confirm reject rate returns to ~0.05;
   repeat for every other confirmed-affected class.
-- [ ] TODO-5: Check whether Bug 2 also explains any of the `low_power`
+- [x] TODO-5: Check whether Bug 2 also explains any of the `low_power`
   findings for these classes (a systematically wrong-signed bootstrap
   distribution could suppress power at nonzero `beta_T` just as it inflates
   Type-I error at zero) — not checked yet, the investigation stopped once
@@ -239,13 +272,13 @@ they're uniform.
 - [ ] TODO-6: Regenerate `comprehensive_tests` CSV rows for every affected
   class's parametric-bootstrap-family methods once both bugs are fixed and
   installed, then re-audit.
-- [ ] TODO-7: Note the generator-vs-instance verification gotcha (see Bug
+- [x] TODO-7: Note the generator-vs-instance verification gotcha (see Bug
   1's "Verification note") somewhere durable if a lazily-loaded component
   gets edited again — checking `Generator$private_methods` after
   `pkgload::load_all()` (or even a real reinstall, in this session's case)
   is not a reliable way to confirm an edit took effect for this component
   pattern; check an instantiated object's bound method instead.
-- [ ] TODO-8 (added 2026-09-24, from the new `low_coverage` audit check —
+- [x] TODO-8 (added 2026-09-24, from the new `low_coverage` audit check —
   two-sided exact-binomial test, H0: coverage=0.95): **CI-coverage
   cross-check for this plan's confirmed/suspected classes.**
   `InferenceOrdinalCloglogRegr` shows severe undercoverage (0.46 on
@@ -266,7 +299,7 @@ they're uniform.
   finding may be formula-specific (the same pooling-hides-the-signal
   mistake this session's own `InferenceContinLin` investigation warned
   about elsewhere) — genuinely unresolved, not ruled in or out.
-- [ ] TODO-9 (added 2026-09-24, same source as TODO-8): `InferenceOrdinalKKCondAdjCatLogitRegr`
+- [x] TODO-9 (added 2026-09-24, same source as TODO-8): `InferenceOrdinalKKCondAdjCatLogitRegr`
   shows the most severe coverage collapse found in this whole audit sweep
   (0.083 on `compute_bayesian_bootstrap_confidence_interval_basic`,
   n=109 — essentially never covers). `coverage_truth` is 100% populated
@@ -315,7 +348,7 @@ they're uniform.
   as hypothesized. **Concrete, scoped, easily fixable**: apply the same
   two-start-keep-lower-`neg_loglik` pattern to `generate_mod()`'s fit
   call. Slated `release_v1_5_0.md → TODO-11`.
-- [ ] TODO-11 (added 2026-09-24, from a dedicated cross-class ordinal
+- [x] TODO-11 (added 2026-09-24, from a dedicated cross-class ordinal
   re-audit fork, medium confidence — pattern confirmed real, shared
   mechanism NOT confirmed): `InferenceOrdinalContRatioRegr` and
   `InferenceOrdinalPartialProportionalOddsRegr` show an **identical
@@ -346,7 +379,7 @@ they're uniform.
     a flagged `biased_estimate` cell for it was out of scope for that
     fork and remains uninvestigated.
 
-- [ ] TODO-12 (added 2026-09-24, found via direct code comparison against
+- [x] TODO-12 (added 2026-09-24, found via direct code comparison against
   this plan's own already-fixed Bug 1 — high confidence, not yet
   reproduced): **`InferenceOrdinalContRatioRegr`'s likelihood-ratio
   `fit_null` is still single-start — the exact Bug-1 vulnerability, never
@@ -373,7 +406,7 @@ they're uniform.
   in scope here). Then reproduce and confirm against this class's audit
   CSVs the same way TODO-1 verified Bug 1's fix.
 
-- [ ] TODO-13 (added 2026-09-24, cross-class reconciliation fork against
+- [x] TODO-13 (added 2026-09-24, cross-class reconciliation fork against
   a fresh full-package audit re-run — high confidence pattern, mechanism
   NOT yet pinned): **TODO-11's "asymptotic-SE-broken, resampling-fine"
   shape now confirmed across 5 classes, not 2** — strong evidence of a
@@ -548,7 +581,7 @@ they're uniform.
   `FALSE`). Not a `TODO-28` candidate at all; its `low_coverage`/
   `biased_estimate` findings need independent root-causing, not
   cross-referencing to `bootstrap_worker_stale_design_matrix.md`.
-- [ ] TODO-14 (added 2026-09-24, same reconciliation pass — new, no
+- [x] TODO-14 (added 2026-09-24, same reconciliation pass — new, no
   prior coverage in this file): `InferenceOrdinalOrderedProbitRegr` (12
   new findings). Milder broad undercoverage on the asymp/wald/gradient/
   jackknife_wald/lik_ratio/score family (0.914-0.918, less severe than
@@ -564,7 +597,7 @@ they're uniform.
   `Bug 2` does not apply. Not root-caused; light priority given the milder
   magnitude on the main cluster, but the 0.760 outlier deserves a direct
   look.
-- [ ] TODO-15 (added 2026-09-24, same reconciliation pass — reconciles
+- [x] TODO-15 (added 2026-09-24, same reconciliation pass — reconciles
   `TODO-9`'s pre-pruning numbers against fresh data): `InferenceOrdinalKKCondAdjCatLogitRegr`'s
   exact previously-cited cell (`compute_bayesian_bootstrap_confidence_interval_basic`
   at 0.083, n=109) no longer appears in a fresh audit run — the closest
@@ -579,7 +612,7 @@ they're uniform.
   `compute_estimate_with_bootstrap_weights()` override, not yet read) is
   still the right next step; treat the new, less-severe numbers as an
   update, not a resolution.
-- [ ] TODO-16 (added 2026-09-24, same reconciliation pass — likely
+- [x] TODO-16 (added 2026-09-24, same reconciliation pass — likely
   benign): `InferenceOrdinalPropOddsRegr`'s 3 new findings
   (`compute_bootstrap_confidence_interval_basic` 0.982,
   `compute_m_out_of_n_bootstrap_confidence_interval` 0.986,
@@ -588,7 +621,7 @@ they're uniform.
   session's other closed-as-benign findings (RiskDiff/RiskRatio
   low_power, IncidLogRegr/ProbitRegr low_coverage). Likely not a bug;
   not investigated further given the low severity.
-- [ ] TODO-17 (added 2026-09-24, same reconciliation pass — connects an
+- [x] TODO-17 (added 2026-09-24, same reconciliation pass — connects an
   existing TODO to fresh data, not new): `InferenceOrdinalCloglogRegr`'s
   10 new `low_coverage` findings span `asymp`/`wald`/`score`/`gradient`/
   `lik_ratio`/`jackknife_wald` (0.860-0.912, undercoverage) plus 3

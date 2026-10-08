@@ -137,6 +137,7 @@ DesignFixedGreedy = define_design_class(
 				self$assert_all_subjects_arrived()
 			}
 			n = self$get_n()
+			private$ensure_model_matrix_current()
 			# Always-on validation (fix_design_hierarchy.md, TODO-33): same
 			# nt = n / 2 kernel assumption as the prob_T check in initialize().
 			if (n %% 2 != 0){
@@ -145,7 +146,6 @@ DesignFixedGreedy = define_design_class(
 			if (is.null(private$X) || ncol(private$X) == 0){
 				return(replicate(r, sample(c(rep(1, n / 2), rep(0, n / 2)))))
 			}
-			private$covariate_impute_if_necessary_and_then_create_model_matrix()
 			X          = private$X[1:n, , drop = FALSE]
 			cpp_n_iter = if (is.infinite(private$n_iter)) -1L else as.integer(private$n_iter)
 			# Trusted unvalidated (fix_design_hierarchy.md, "AllocationMatrixValidation"):

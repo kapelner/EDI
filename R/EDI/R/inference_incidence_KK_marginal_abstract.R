@@ -11,18 +11,13 @@ InferenceAbstractKKMarginalIncid = define_inference_class(
 	# `KKPassThrough` raw source under `inherit = InferenceParamBootstrap`,
 	# not even a `define_inference_class()` call) to composing the
 	# registered `KKPassThrough` component directly, plus
-	# `BayesianBootstrap`/`ParametricLikelihoodBootstrap` -- same
+	# `BayesianBootstrap`/`Wald` -- same
 	# hybrid-state fix as every other KK GLMM/GEE/partial-likelihood class
-	# migrated this stretch. `ParametricLikelihoodBootstrap` (not
-	# Wald-only) because this base's real concrete descendant,
-	# `InferenceAbstractKKModifiedPoisson`/`InferenceIncidKKModifiedPoisson`,
-	# overrides `supports_likelihood_tests()`/`supports_lik_ratio_param_
-	# bootstrap()` to `TRUE` with its own real `get_likelihood_test_spec()`/
-	# `simulate_under_lik_null()` -- unlike `InferenceOrdinalKKCondAdjCatLogitRegr`/
-	# `InferenceAbstractKKOrdinalCLMM` earlier this stretch, which both hard-
-	# disable likelihood tests. This base's OWN `supports_likelihood_tests()`
-	# stays `FALSE` (its default, overridden by the ModifiedPoisson
-	# descendant); `InferenceIncidKKGCompAbstract` (a sibling descendant,
+	# migrated this stretch. The modified-Poisson descendant estimates a
+	# binary-outcome log risk ratio with a cluster-robust sandwich variance;
+	# the Poisson objective is only a working likelihood, so score/LR and
+	# parametric-likelihood bootstrap inference are invalid and are not
+	# composed here. `InferenceIncidKKGCompAbstract` (a sibling descendant,
 	# `likelihood_tier = "none"`, already migrated to its own
 	# `define_inference_class()` composing `IncidenceKKGComputation`
 	# directly per the "KK And IVWC Estimators" section) is deliberately
@@ -31,11 +26,8 @@ InferenceAbstractKKMarginalIncid = define_inference_class(
 	# captures its own directly-defined layer, not anything inherited, so
 	# this migration does not affect it (verified: no `super$...()` calls
 	# anywhere in inference_incidence_KK_gcomp_abstract.R).
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
-	# capabilities = "likelihood_ratio" is required explicitly -- same
-	# rationale as every class composing ParametricLikelihoodBootstrap
-	# directly (bypassing StandardModelCache) this stretch.
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	components = c("BayesianBootstrap", "Wald", "KKPassThrough"),
+	metadata = list(likelihood_tier = "none"),
 	public = list(
 		# Pinned from InferenceRandCI (confirmed via the pre-migration R6
 		# ancestor walk documented in test-incid-kk-gcomp-migration-golden.R:

@@ -110,3 +110,14 @@ test_that("genuinely varying weights diverge from the unweighted estimate", {
 	est_plain_after_weighted_call <- as.numeric(inf$compute_estimate(estimate_only = TRUE))[1]
 	expect_equal(est_plain_after_weighted_call, est_plain)
 })
+
+test_that("public Bayesian bootstrap is disabled for the surrogate weighted refit", {
+	fx <- make_kk_cond_adj_cat_fixture()
+	inf <- InferenceOrdinalKKCondAdjCatLogitRegr$new(fx$des, verbose = FALSE)
+	expect_false(inf$.__enclos_env__$private$supports_bayesian_bootstrap())
+	expect_error(
+		inf$compute_bayesian_bootstrap_two_sided_pval(B = 10L),
+		"not available|does not support|unsupported",
+		ignore.case = TRUE
+	)
+})

@@ -651,6 +651,10 @@ infer_inference_response_types = function(name) {
 }
 
 infer_inference_likelihood_tier = function(name) {
+	# Zou modified Poisson uses a Poisson working likelihood only to estimate a
+	# log risk ratio. Its valid variance is the cluster-robust sandwich, so the
+	# Poisson score/LR families are not inference for the reported estimator.
+	if (identical(name, "InferenceIncidKKModifiedPoisson")) return("none")
 	if (grepl("GEE|Quasi|Robust|Composite", name)) return("quasi")
 	if (grepl("Cox|CondLogit|CondAdjCat|LWA", name)) return("partial")
 	# DepCensTransform: InferenceSurvivalDepCensTransformRegr fits a full
@@ -1248,7 +1252,7 @@ infer_inference_direct_components = function(name) {
 		# InferenceIncidKKModifiedPoisson and InferenceIncidKKGCompAbstract
 		# (both plain-R6 descendants) via resolve_inference_components()'s
 		# parent-chain walk.
-		InferenceAbstractKKMarginalIncid = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
+		InferenceAbstractKKMarginalIncid = c("BayesianBootstrap", "Wald", "KKPassThrough"),
 		InferenceIncidMiettinenNurminenRiskDiff = c("BayesianBootstrap", "Wald"),
 		InferenceIncidGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
 		InferenceIncidGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),

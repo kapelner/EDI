@@ -30,7 +30,8 @@ registry_fixture <- function() {
 	e$DesignFixedBernoulli <- "fixed-bernoulli-generator"
 	for (class_name in c(
 		"InferenceSurvivalKMDiff", "InferenceIncidLogRegr",
-		"InferenceOrdinalCauchitRegr", "InferenceOrdinalAdjCatLogitRegr",
+		"InferenceOrdinalCauchitRegr", "InferenceOrdinalCloglogRegr",
+		"InferenceOrdinalOrderedProbitRegr", "InferenceOrdinalAdjCatLogitRegr",
 		"InferenceOrdinalContRatioRegr", "InferenceOrdinalPartialProportionalOddsRegr"
 	)) assign(class_name, class_name, envir = e)
 	eval_comprehensive_assignments(c(
@@ -53,6 +54,8 @@ test_that("every newly audited truth-scale mismatch dispatches through MC truth"
 		InferenceSurvivalKMDiff = "survival",
 		InferenceIncidLogRegr = "incidence",
 		InferenceOrdinalCauchitRegr = "ordinal",
+		InferenceOrdinalCloglogRegr = "ordinal",
+		InferenceOrdinalOrderedProbitRegr = "ordinal",
 		InferenceOrdinalAdjCatLogitRegr = "ordinal",
 		InferenceOrdinalContRatioRegr = "ordinal",
 		InferenceOrdinalPartialProportionalOddsRegr = "ordinal"

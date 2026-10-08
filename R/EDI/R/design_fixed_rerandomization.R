@@ -153,6 +153,7 @@ DesignFixedRerandomization = define_design_class(
 				self$assert_all_subjects_arrived()
 			}
 			n = self$get_n()
+			private$ensure_model_matrix_current()
 			if (is.null(private$X) || ncol(private$X) == 0){
 				n_T = round(n * private$prob_T)
 				return(replicate(r, sample(c(rep(1, n_T), rep(0, n - n_T)))))
@@ -185,7 +186,6 @@ DesignFixedRerandomization = define_design_class(
 			}
 			# C++ parallel rejection sampler for balanced even-n case
 			if (private$prob_T == 0.5 && n %% 2 == 0) {
-				private$covariate_impute_if_necessary_and_then_create_model_matrix()
 				X = private$X[1:n, , drop = FALSE]
 				cutoff_user = if (is.null(private$obj_val_cutoff)) Inf else private$obj_val_cutoff
 				# The C++ function uses the M-matrix objective which is scaled relative to the

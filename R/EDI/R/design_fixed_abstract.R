@@ -76,10 +76,15 @@ DesignFixed = R6::R6Class("DesignFixed",
 					stop("Subjects have already been added to this design.")
 				}
 			}
-			private$Xraw = copy(as.data.table(X_all))
+			# as.data.table.data.frame() already allocates an independent table;
+			# only an incoming data.table needs an explicit copy to avoid aliasing
+			# the caller's object.
+			private$Xraw = if (is.data.table(X_all)) copy(X_all) else as.data.table(X_all)
 			private$p_raw_t = ncol(private$Xraw)
 			private$t = n_all
-			private$covariate_impute_if_necessary_and_then_create_model_matrix()
+			private$X = NULL
+			private$Ximp = NULL
+			private$model_matrix_stale = TRUE
 			invisible(self)
 		},
 		#' @description Add all subject responses for a fixed design.

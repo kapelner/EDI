@@ -636,6 +636,7 @@ DesignFixedOptimal = define_design_class(
 				self$assert_all_subjects_arrived()
 			}
 			n = self$get_n()
+			private$ensure_model_matrix_current()
 			if (is.null(private$X) || ncol(private$X) == 0){
 				# No covariates: nothing to optimize -- degenerate to a random
 				# allocation with the exact treated count (matching the sibling
@@ -643,7 +644,6 @@ DesignFixedOptimal = define_design_class(
 				n_T = as.integer(round(n * private$prob_T))
 				return(matrix(sample(c(rep(1, n_T), rep(0, n - n_T))), ncol = 1))
 			}
-			private$covariate_impute_if_necessary_and_then_create_model_matrix()
 			matrix(private$solve_optimal_w(), ncol = 1)
 		}
 	)

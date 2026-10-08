@@ -254,6 +254,7 @@ DesignFixedGreedyDOptimal = define_design_class(
 				self$assert_all_subjects_arrived()
 			}
 			n = self$get_n()
+			private$ensure_model_matrix_current()
 			n_T = as.integer(round(n * private$prob_T))
 			if (n_T < 1L || n_T > n - 1L) {
 				stop(sprintf("prob_T = %g with n = %d yields a treated count of %d; need at least one treated and one control subject.", private$prob_T, n, n_T))

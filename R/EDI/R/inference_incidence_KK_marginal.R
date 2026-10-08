@@ -226,87 +226,13 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 			private$cached_values$df %||% Inf
 		},
 		supports_likelihood_tests = function(){
-			TRUE
+			FALSE
 		},
 		supports_lik_ratio_param_bootstrap = function(){
-			TRUE
+			FALSE
 		},
-		simulate_under_lik_null = function(spec, delta, null_fit){
-			b_null     = as.numeric(null_fit$b)
-			mu         = pmax(exp(as.numeric(spec$X %*% b_null)), 0)
-			y_sim      = as.numeric(rpois(length(mu), mu))
-			X_fit      = spec$X
-			j          = spec$j
-			full_fit_b = tryCatch(
-				fast_poisson_regression_cpp(
-					X = X_fit, y = y_sim,
-					smart_cold_start = private$smart_cold_start_default
-				),
-				error = function(e) NULL
-			)
-			if (is.null(full_fit_b) || length(full_fit_b$b) < j || !is.finite(full_fit_b$b[j])) return(NULL)
-			list(
-				full_fit = full_fit_b,
-				fit_null = function(d, start = NULL){
-					tryCatch(
-						fast_poisson_regression_with_var_cpp(
-							X = X_fit, y = y_sim, j = j,
-							warm_start_beta = start %||% full_fit_b$b,
-							fixed_idx = j, fixed_values = d,
-							smart_cold_start = TRUE
-						),
-						error = function(e) NULL
-					)
-				},
-				neg_loglik = function(fit){
-					eta_f = as.numeric(X_fit %*% as.numeric(fit$b))
-					-sum(y_sim * eta_f - exp(eta_f) - lgamma(y_sim + 1))
-				}
-			)
-		},
-		get_likelihood_test_spec = function(){
-			private$shared(estimate_only = FALSE)
-			ctx = private$cached_values$likelihood_test_context
-			if (is.null(ctx) || is.null(private$cached_mod)) return(NULL)
-			X_fit = ctx$X
-			y = as.numeric(private$y)
-			j_treat = as.integer(ctx$j_treat)
-			list(
-				X = X_fit,
-				y = y,
-				j = j_treat,
-				full_fit = private$cached_mod,
-				fit_null = function(delta, start = NULL){
-					fast_poisson_regression_with_var_cpp(
-						X = X_fit,
-						y = y,
-						j = j_treat,
-						warm_start_beta = start %||% private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
-						fixed_idx = j_treat,
-						fixed_values = delta,
-						smart_cold_start = private$smart_cold_start_default
-					)
-				},
-				extract_start = function(fit){
-					as.numeric(fit$b)
-				},
-				score = function(fit){
-					as.numeric(fit$score %||% get_poisson_regression_score_cpp(X_fit, y, as.numeric(fit$b)))
-				},
-				observed_information = function(fit){
-					-get_poisson_regression_hessian_cpp(X_fit, as.numeric(fit$b))
-				},
-				fisher_information = function(fit){
-					-get_poisson_regression_hessian_cpp(X_fit, as.numeric(fit$b))
-				},
-				information = function(fit){
-					-get_poisson_regression_hessian_cpp(X_fit, as.numeric(fit$b))
-				},
-				neg_loglik = function(fit){
-					eta = as.numeric(X_fit %*% as.numeric(fit$b))
-					-sum(y * eta - exp(eta) - lgamma(y + 1))
-				}
-			)
+		get_supported_testing_types_impl = function(){
+			"wald"
 		},
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
@@ -345,7 +271,7 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 			# Save warm start
 			private$set_fit_warm_start(private$cached_mod$b, "beta", fisher = private$cached_mod$fisher_information)
 			
-			private$cached_values$likelihood_test_context = list(
+			private$cached_values$fit_context = list(
 				X = X_fit,
 				j_treat = j_treat
 			)

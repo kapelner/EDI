@@ -191,33 +191,42 @@ confirmed-bug `release_v1_5_0.md` entry.
   same shape as NegBin's open finding below.
 - [x] TODO-3 → superseded/refuted: `beta_T` is correct, no truth-registry
   entry needed for any of the 3 classes.
-- [ ] TODO-4 (still open): quantitatively compare `InferenceCountNegBin`
-  vs. `InferenceCountPoisson` coverage — done qualitatively above (NegBin
-  0.916 uniformly across its 5 unprotected asymptotic methods vs.
-  Poisson's same 5 methods all passing clean thanks to the jackknife
-  union) but the underlying question — does NegBin's dispersion
-  parameter genuinely help, or is its own variance estimate biased — is
-  still unresolved.
-- [ ] TODO-5 (new, added in the deep-dive pass — concrete, low-risk):
+- [x] TODO-4 (resolved 2026-10-09): the quantitative comparison was already
+  present in the accepted audit: NegBin covered 0.916 uniformly across five
+  asymptotic methods, while Poisson's corresponding five methods passed after
+  the jackknife union. The later TODO-7 investigation resolves the remaining
+  interpretation: the NegBin/ZIP behavior is standard small-sample joint-MLE
+  bias rather than an implementation defect. Independent MASS/pscl parity
+  regressions cover coefficients, dispersion/mixture parameters, and SEs.
+- [x] TODO-5 (implemented 2026-10-09):
   implement the item-1 fix — wire `compute_lik_ratio_bartlett_confidence_interval`/
   `compute_lik_ratio_bartlett_approx_confidence_interval` through
   `private$design_conservative_ci()`, matching
   `compute_lik_ratio_confidence_interval`'s existing pattern
-  (`inference_count_poisson.R`). Verify via `pkgload::load_all(".",
-  compile = FALSE)` that this doesn't change results for any currently-
-  passing method, then confirm it resolves the two flagged Bartlett
-  findings on a fresh `comprehensive_tests` regeneration.
-- [ ] TODO-6 (new): decide whether to extend the same union treatment to
+  (`inference_count_poisson.R`). Both the explicit approximate entry points
+  and the best-available Bartlett entry points now use the same conservative
+  p-value/CI combination. A focused regression injects distinct model and
+  jackknife results and verifies all four public methods select the larger
+  p-value and interval union. The full focused file passes 26 assertions via
+  `pkgload::load_all(..., compile = FALSE)`; no compiled regeneration is
+  needed for this R-only dispatch fix.
+- [x] TODO-6 (decided and documented 2026-10-09): do not extend the same union treatment to
   the resampling-family CI methods (`bayesian_bootstrap*`,
   `bootstrap_studentized`, `param_bootstrap`) or instead document them as
   not equidispersion-robust on this class — a design decision, not an
-  obvious bug (see "Item 2" in the deep-dive update).
-- [ ] TODO-7 (new): root-cause `InferenceCountNegBin`/`InferenceCountZeroInflatedPoisson`'s
+  obvious bug (see "Item 2" in the deep-dive update). Those methods estimate
+  intervals from their own resampling distributions, and silently unioning a
+  second interval would change their generic cross-class contract. The class
+  documentation now states the exact boundary: asymptotic likelihood,
+  Bartlett, and likelihood-ratio-bootstrap methods are design-conservative;
+  direct estimate-resampling intervals retain their standard definitions.
+- [x] TODO-7 (resolved in the follow-up section below): root-cause `InferenceCountNegBin`/`InferenceCountZeroInflatedPoisson`'s
   own undercoverage despite having no jackknife backstop and (for NegBin)
   an explicit dispersion parameter — distinguish "benign DGP/dispersion-
   family mismatch" from "NegBin's own variance estimate is downward-
-  biased in finite samples" (a real, separate SE bug if so). Not resolved
-  this pass; stays tracked at `release_v1_0_5.md → TODO-48`.
+  biased in finite samples" (a real, separate SE bug if so). The follow-up
+  code/reference audit below closed this as benign finite-sample joint-MLE
+  bias and found no package implementation defect.
 
 ## Second deep-dive update 2026-09-24: TODO-7's "missing backstop"
 hypothesis weakened by cross-class evidence, still not resolved

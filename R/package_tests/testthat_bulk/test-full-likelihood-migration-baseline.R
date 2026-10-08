@@ -19,7 +19,6 @@ full_likelihood_expected_classes = c(
 	"InferenceCountZeroInflatedNegBin",
 	"InferenceCountZeroInflatedPoisson",
 	"InferenceIncidBinomialIdentityRiskDiff",
-	"InferenceIncidKKModifiedPoisson",
 	"InferenceIncidLogBinomial",
 	"InferenceIncidLogRegr",
 	"InferenceIncidModifiedPoisson",
@@ -87,7 +86,6 @@ full_likelihood_expected_groups = list(
 	),
 	incidence = c(
 		"InferenceIncidBinomialIdentityRiskDiff",
-		"InferenceIncidKKModifiedPoisson",
 		"InferenceIncidLogBinomial",
 		"InferenceIncidLogRegr",
 		"InferenceIncidModifiedPoisson",
@@ -118,7 +116,6 @@ full_likelihood_expected_groups = list(
 		"InferenceCountKKGLMM",
 		"InferenceCountKKHurdlePoissonIVWC",
 		"InferenceCountKKHurdlePoissonOneLik",
-		"InferenceIncidKKModifiedPoisson",
 		"InferenceOrdinalKKCLMM",
 		"InferenceOrdinalKKCLMMCauchit",
 		"InferenceOrdinalKKCLMMCloglog",
@@ -269,8 +266,8 @@ test_that("full-likelihood migration baseline identifies and groups concrete cla
 	expect_setequal(names(manifest), full_likelihood_expected_classes)
 	expect_identical(EDI:::full_likelihood_concrete_class_names(), sort(full_likelihood_expected_classes))
 	expect_identical(groups, lapply(full_likelihood_expected_groups, sort))
-	expect_equal(sum(counts$class_count[counts$group %in% c("glm", "count", "ordinal", "incidence", "proportion", "survival")]), 46L)
-	expect_equal(sum(counts$class_count[counts$group %in% c("KK_or_IVWC", "non_KK")]), 46L)
+	expect_equal(sum(counts$class_count[counts$group %in% c("glm", "count", "ordinal", "incidence", "proportion", "survival")]), 45L)
+	expect_equal(sum(counts$class_count[counts$group %in% c("KK_or_IVWC", "non_KK")]), 45L)
 
 	for (record in manifest) {
 		expect_identical(record$current_likelihood_tier, "full")

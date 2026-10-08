@@ -277,9 +277,7 @@ DesignFixedOptimalBlocks = define_design_class(
 			if (should_run_asserts()) {
 				private$assert_feasible_block_sizes(n)
 			}
-			if (is.null(private$X)) {
-				private$covariate_impute_if_necessary_and_then_create_model_matrix()
-			}
+			private$ensure_model_matrix_current()
 			X = private$X[seq_len(n), , drop = FALSE]
 			if (ncol(X) == 0L) {
 				private$block_ids = factor(rep(seq_len(private$B), length.out = n))

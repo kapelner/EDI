@@ -97,3 +97,14 @@ test_that("get_degrees_of_freedom() reports n - ncol(X) after a full fit", {
 	X <- as.matrix(priv$build_design_matrix())
 	expect_equal(priv$get_degrees_of_freedom(), nrow(X) - ncol(X))
 })
+
+test_that("KK modified Poisson exposes robust Wald inference only", {
+	des <- make_kk_modpois_fixture(seed = 20261009L)
+	inf <- InferenceIncidKKModifiedPoisson$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	expect_false(priv$supports_likelihood_tests())
+	expect_false(priv$supports_lik_ratio_param_bootstrap())
+	expect_identical(inf$get_supported_testing_types(), "wald")
+	expect_error(inf$set_testing_type("score"), "does not support", ignore.case = TRUE)
+	expect_false(is.function(inf$compute_lik_ratio_bootstrap_two_sided_pval))
+})

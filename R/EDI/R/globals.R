@@ -1,6 +1,15 @@
 # Internal environment for the EDI package to store global state
 edi_env = new.env(parent = emptyenv())
 
+# Cached once during package load.  The fallback keeps source-only/test
+# contexts working when .onLoad() has not run yet.
+edi_package_version = function(){
+  if (is.null(edi_env$package_version)) {
+    edi_env$package_version = as.character(utils::packageVersion("EDI"))
+  }
+  edi_env$package_version
+}
+
 # .wgt__ is a data.table/formula column name used via non-standard evaluation
 # (e.g. `weights = .wgt__` inside a formula-fitting call), not a real object;
 # R CMD check's static analysis can't see that, so it must be declared here.

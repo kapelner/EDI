@@ -922,18 +922,28 @@ OrdinalContinuationRatioLikelihoodSource = list(
 				full_fit = full_fit,
 				fit_null = function(delta, start = NULL){
 					n_params = length(ctx$full_params)
-					res = tryCatch(
-						fast_continuation_ratio_regression_cpp(
-							X_fit, y,
-							fixed_idx = j_treat, fixed_values = delta,
-							warm_start_beta = start %||% private$get_fit_warm_start_for_length("beta", n_params),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
-							smart_cold_start = private$smart_cold_start_default
-						),
-						error = function(e) NULL
-					)
-					if (is.null(res) || length(res) == 0L) return(NULL)
-					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
+					fit_from = function(ws){
+						res = tryCatch(
+							fast_continuation_ratio_regression_cpp(
+								X_fit, y,
+								fixed_idx = j_treat, fixed_values = delta,
+								warm_start_beta = ws,
+								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+								smart_cold_start = private$smart_cold_start_default
+							),
+							error = function(e) NULL
+						)
+						if (is.null(res) || length(res) == 0L || !is.finite(res$neg_loglik)) return(NULL)
+						list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik))
+					}
+					full_start = as.numeric(ctx$full_params) + 1e-3
+					full_start[j_treat] = delta
+					fits = Filter(Negate(is.null), list(
+						fit_from(start %||% private$get_fit_warm_start_for_length("beta", n_params)),
+						fit_from(full_start)
+					))
+					if (!length(fits)) return(NULL)
+					fits[[which.min(vapply(fits, function(f) f$neg_loglik, numeric(1)))]]
 				},
 				extract_start = function(fit){ as.numeric(fit$params) },
 				score = function(fit){
@@ -1000,18 +1010,27 @@ OrdinalContinuationRatioLikelihoodSource = list(
 				worker_data = list(y = y_sim),
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
-					ws2 = start %||% private$get_fit_warm_start_for_length("beta", n_params) %||% params_null
-					f2  = tryCatch(
-						fast_continuation_ratio_regression_cpp(
-							X = X_fit, y = y_sim,
-							warm_start_beta = ws2,
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
-							fixed_idx = j, fixed_values = d
-						),
-						error = function(e) NULL
-					)
-					if (is.null(f2) || !isTRUE(f2$converged)) return(NULL)
-					list(b = as.numeric(f2$params), params = as.numeric(f2$params), neg_loglik = as.numeric(f2$neg_loglik))
+					fit_from = function(ws){
+						f2 = tryCatch(
+							fast_continuation_ratio_regression_cpp(
+								X = X_fit, y = y_sim,
+								warm_start_beta = ws,
+								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+								fixed_idx = j, fixed_values = d
+							),
+							error = function(e) NULL
+						)
+						if (is.null(f2) || !isTRUE(f2$converged) || !is.finite(f2$neg_loglik)) return(NULL)
+						list(b = as.numeric(f2$params), params = as.numeric(f2$params), neg_loglik = as.numeric(f2$neg_loglik))
+					}
+					full_start = as.numeric(full_fit_boot$params) + 1e-3
+					full_start[j] = d
+					fits = Filter(Negate(is.null), list(
+						fit_from(start %||% private$get_fit_warm_start_for_length("beta", n_params) %||% params_null),
+						fit_from(full_start)
+					))
+					if (!length(fits)) return(NULL)
+					fits[[which.min(vapply(fits, function(f) f$neg_loglik, numeric(1)))]]
 				},
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik %||% fit$neg_ll)
 			)

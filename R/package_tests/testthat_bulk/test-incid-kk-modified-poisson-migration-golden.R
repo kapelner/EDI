@@ -76,12 +76,16 @@ incid_kk_modified_poisson_golden_design = function(n = 60L, seed = 20260819L) {
 	})
 }
 
-test_that("InferenceIncidKKModifiedPoisson migration produces identical outputs", {
+test_that("InferenceIncidKKModifiedPoisson preserves valid outputs and removes working-likelihood inference", {
 	env = make_incid_kk_modified_poisson_legacy_env()
 	Legacy = get("InferenceIncidKKModifiedPoissonLegacyOrig", envir = env)
 	des = incid_kk_modified_poisson_golden_design()
 	legacy = Legacy$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
 	migrated = InferenceIncidKKModifiedPoisson$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
+	invalid_working_likelihood_labels = c(
+		"score_ci", "score_pval", "lik_ratio_ci", "lik_ratio_pval",
+		"gradient_ci", "gradient_pval", "param_boot_pval", "param_boot_ci"
+	)
 	for (label in names(inference_migration_method_calls)) {
 		spec = inference_migration_method_calls[[label]]
 		legacy$set_seed(20260819L)
@@ -90,6 +94,10 @@ test_that("InferenceIncidKKModifiedPoisson migration produces identical outputs"
 		migrated$set_seed(20260819L)
 		migrated_result = inference_migration_with_seed(20260819L,
 			inference_migration_call_optional_method(migrated, spec$method, spec$args))
+		if (label %in% invalid_working_likelihood_labels) {
+			expect_true(migrated_result$status %in% c("absent", "unsupported"), info = label)
+			next
+		}
 		if (legacy_result$status %in% c("absent", "unsupported") &&
 				migrated_result$status %in% c("absent", "unsupported")) {
 			next

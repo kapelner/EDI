@@ -96,6 +96,60 @@ test_that("Generated permutations support randomization p-values", {
 	expect_true(pval >= 0 && pval <= 1)
 })
 
+test_that("KK21 stepwise randomization draws replay outcome-adaptive matching", {
+	set.seed(5301)
+	n <- 48L
+	x <- data.frame(x1 = rnorm(n))
+	y_by_type <- list(
+		incidence = rbinom(n, 1, plogis(-0.3 + 0.5 * x$x1)),
+		continuous = 0.5 * x$x1 + rnorm(n),
+		count = rpois(n, exp(0.2 + 0.3 * x$x1))
+	)
+
+	for (response_type in names(y_by_type)) {
+		des <- DesignSeqOneByOneKK21stepwise$new(
+			n = n, response_type = response_type, num_boot = 20L, verbose = FALSE
+		)
+		for (i in seq_len(n)) {
+			des$add_one_subject_to_experiment_and_assign(x[i, , drop = FALSE])
+			des$add_one_subject_response(i, y = y_by_type[[response_type]][i])
+		}
+		priv <- des$.__enclos_env__$private
+		state <- list(
+			t = priv$t, w = priv$w, m = priv$m, y = priv$y,
+			y_L = priv$y_L, y_R = priv$y_R,
+			covariate_weights = priv$covariate_weights,
+			iteration_weights = priv$iteration_weights
+		)
+		observed_pairs <- split(which(priv$m > 0), priv$m[priv$m > 0])
+		expect_true(any(lengths(observed_pairs) == 2L), info = response_type)
+
+		set.seed(5302)
+		draws <- des$draw_ws_according_to_design(40L)
+		expect_equal(dim(draws), c(n, 40L), info = response_type)
+		expect_true(all(draws %in% 0:1), info = response_type)
+		# The inherited KK14 implementation conditioned every draw on the one
+		# realized pair structure, forcing each observed pair to remain opposite.
+		# KK21 weights depend on earlier outcomes/assignments, so faithful replay
+		# must allow at least one realized pair to cease being a pair in another draw.
+		pair_opposite_in_every_draw <- vapply(
+			observed_pairs[lengths(observed_pairs) == 2L],
+			function(ii) all(colSums(draws[ii, , drop = FALSE]) == 1),
+			logical(1)
+		)
+		expect_false(all(pair_opposite_in_every_draw), info = response_type)
+
+		expect_identical(priv$t, state$t, info = response_type)
+		expect_identical(priv$w, state$w, info = response_type)
+		expect_identical(priv$m, state$m, info = response_type)
+		expect_identical(priv$y, state$y, info = response_type)
+		expect_identical(priv$y_L, state$y_L, info = response_type)
+		expect_identical(priv$y_R, state$y_R, info = response_type)
+		expect_identical(priv$covariate_weights, state$covariate_weights, info = response_type)
+		expect_identical(priv$iteration_weights, state$iteration_weights, info = response_type)
+	}
+})
+
 test_that("KK designs with KK inference work", {
 	n <- 30
 	designs <- list(

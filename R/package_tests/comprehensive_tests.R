@@ -3358,6 +3358,8 @@ COVERAGE_MC_SPEC = list(
 	# coefficient under covariate adjustment). Raw beta_T is therefore not
 	# their coverage target.
 	InferenceOrdinalCauchitRegr          = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalCauchitRegr),          mc_n = 20000L),
+	InferenceOrdinalCloglogRegr          = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalCloglogRegr),          mc_n = 20000L),
+	InferenceOrdinalOrderedProbitRegr    = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalOrderedProbitRegr),    mc_n = 20000L),
 	InferenceOrdinalAdjCatLogitRegr      = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalAdjCatLogitRegr),      mc_n = 20000L),
 	InferenceOrdinalContRatioRegr        = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalContRatioRegr),        mc_n = 20000L),
 	InferenceOrdinalPartialProportionalOddsRegr = list(rt = "ordinal", design = quote(DesignFixedBernoulli), gen = quote(InferenceOrdinalPartialProportionalOddsRegr), mc_n = 20000L),

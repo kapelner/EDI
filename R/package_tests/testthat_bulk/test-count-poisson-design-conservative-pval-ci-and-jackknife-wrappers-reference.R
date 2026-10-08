@@ -84,3 +84,24 @@ test_that("end to end, the public Wald p-value and CI are the glm Wald result wi
 	# The conservative result is never narrower than plain glm inference.
 	expect_gte(f$inf$compute_asymp_two_sided_pval(0), glm_p - 1e-6)
 })
+
+test_that("Bartlett likelihood-ratio entry points use the same design-conservative combination", {
+	f <- fx()
+	stub(f$p, "design_jackknife_pval", function(delta = 0) 0.31)
+	stub(f$p, "design_jackknife_ci", function(alpha = 0.05) c(-0.7, 0.8))
+	stub(f$p, "compute_lik_ratio_bartlett_approx_two_sided_pval_impl", function(delta, B = 99) 0.04)
+	stub(f$p, "compute_lik_ratio_bartlett_approx_confidence_interval_impl", function(alpha, B = 99) c(-0.2, 0.4))
+	stub(f$p, "compute_lik_ratio_bartlett_two_sided_pval_impl", function(delta, B = 99, B_missing = TRUE) 0.09)
+	stub(f$p, "compute_lik_ratio_bartlett_confidence_interval_impl", function(alpha, B = 99, B_missing = TRUE) c(-0.1, 0.5))
+
+	expect_equal(f$inf$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = 0.2, B = 7), 0.31)
+	expect_equal(
+		unname(f$inf$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = 0.1, B = 7)),
+		c(-0.7, 0.8)
+	)
+	expect_equal(f$inf$compute_lik_ratio_bartlett_two_sided_pval(delta = 0.2, B = 7), 0.31)
+	expect_equal(
+		unname(f$inf$compute_lik_ratio_bartlett_confidence_interval(alpha = 0.1, B = 7)),
+		c(-0.7, 0.8)
+	)
+})

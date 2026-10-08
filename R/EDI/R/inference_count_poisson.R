@@ -30,6 +30,13 @@
 #' linear predictor on the log scale; unlike the raw Poisson likelihood
 #' alone, this class's actual reported inference degrades gracefully (rather
 #' than becoming anti-conservative) under mean-variance misspecification.
+#' This combination applies to the asymptotic likelihood methods, their
+#' Bartlett-corrected variants, and likelihood-ratio bootstrap calibration.
+#' Generic estimate-resampling intervals (Bayesian bootstrap, ordinary
+#' bootstrap, and the direct parametric-bootstrap estimate interval) retain
+#' their standard component definitions and are not unioned with a second
+#' jackknife interval; use one of the design-conservative likelihood methods
+#' when robustness to Poisson equidispersion failure is required.
 #'
 #' \strong{Estimand.} Composes
 #' \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
@@ -101,6 +108,8 @@ InferenceCountPoisson = define_inference_class(
 			"compute_wald_confidence_interval", "compute_wald_two_sided_pval",
 			"compute_score_confidence_interval", "compute_score_two_sided_pval",
 			"compute_lik_ratio_confidence_interval", "compute_lik_ratio_two_sided_pval",
+			"compute_lik_ratio_bartlett_approx_confidence_interval", "compute_lik_ratio_bartlett_approx_two_sided_pval",
+			"compute_lik_ratio_bartlett_confidence_interval", "compute_lik_ratio_bartlett_two_sided_pval",
 			"compute_gradient_confidence_interval", "compute_gradient_two_sided_pval",
 			"compute_lik_ratio_bootstrap_two_sided_pval", "compute_lik_ratio_bootstrap_confidence_interval",
 			"compute_rand_two_sided_pval", "get_supported_testing_types", "set_testing_type", "compute_estimate",
@@ -309,6 +318,48 @@ InferenceCountPoisson = define_inference_class(
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
 			p_model = private$compute_lik_ratio_two_sided_pval_impl(delta)
+			private$design_conservative_pval(p_model, delta = delta)
+		},
+		#' @description Approximate Bartlett-corrected likelihood-ratio confidence
+		#'   interval, unioned with the design-based jackknife-Wald interval.
+		#' @param alpha Significance level. Default 0.05.
+		#' @param B Number of Monte-Carlo replicates used for the Bartlett factor.
+		compute_lik_ratio_bartlett_approx_confidence_interval = function(alpha = 0.05, B = 99){
+			if (should_run_asserts()) {
+				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+			}
+			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+			ci_model = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha, B = B)
+			private$design_conservative_ci(ci_model, alpha = alpha)
+		},
+		#' @description Approximate Bartlett-corrected likelihood-ratio p-value,
+		#'   conservatively combined with the design-based jackknife-Wald p-value.
+		#' @param delta Null treatment effect. Default 0.
+		#' @param B Number of Monte-Carlo replicates used for the Bartlett factor.
+		compute_lik_ratio_bartlett_approx_two_sided_pval = function(delta = 0, B = 99){
+			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+			p_model = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta, B = B)
+			private$design_conservative_pval(p_model, delta = delta)
+		},
+		#' @description Best-available Bartlett-corrected likelihood-ratio confidence
+		#'   interval, unioned with the design-based jackknife-Wald interval.
+		#' @param alpha Significance level. Default 0.05.
+		#' @param B Number of Monte-Carlo replicates when the approximate correction is used.
+		compute_lik_ratio_bartlett_confidence_interval = function(alpha = 0.05, B = 99){
+			if (should_run_asserts()) {
+				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+			}
+			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+			ci_model = private$compute_lik_ratio_bartlett_confidence_interval_impl(alpha, B = B, B_missing = missing(B))
+			private$design_conservative_ci(ci_model, alpha = alpha)
+		},
+		#' @description Best-available Bartlett-corrected likelihood-ratio p-value,
+		#'   conservatively combined with the design-based jackknife-Wald p-value.
+		#' @param delta Null treatment effect. Default 0.
+		#' @param B Number of Monte-Carlo replicates when the approximate correction is used.
+		compute_lik_ratio_bartlett_two_sided_pval = function(delta = 0, B = 99){
+			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+			p_model = private$compute_lik_ratio_bartlett_two_sided_pval_impl(delta, B = B, B_missing = missing(B))
 			private$design_conservative_pval(p_model, delta = delta)
 		},
 		#' @description Gradient-test confidence interval for \eqn{\beta_T} (a

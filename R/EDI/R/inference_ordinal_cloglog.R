@@ -1,3 +1,50 @@
+.cloglog_full_data_multistart = function(X, y, primary_fit, estimate_only){
+	params = as.numeric(primary_fit$params)
+	n_alpha = length(sort(unique(as.numeric(y)))) - 1L
+	j_treat = n_alpha + 1L
+	primary_nll = suppressWarnings(as.numeric(primary_fit$neg_loglik)[1L])
+	if (!length(params) || j_treat > length(params) || !is.finite(primary_nll)) return(primary_fit)
+
+	starts = list(
+		treatment_zero = replace(params, j_treat, 0),
+		treatment_reflected = replace(params, j_treat, -params[j_treat]),
+		treatment_minus_one = replace(params, j_treat, params[j_treat] - 1),
+		treatment_plus_one = replace(params, j_treat, params[j_treat] + 1)
+	)
+	best = NULL
+	best_nll = primary_nll
+	for (start in starts) {
+		candidate = tryCatch(
+			fast_ordinal_cloglog_regression_cpp(
+				X, y, warm_start_params = start,
+				warm_start_fisher_info = NULL,
+				smart_cold_start = FALSE, estimate_only = TRUE
+			),
+			error = function(e) NULL
+		)
+		nll = suppressWarnings(as.numeric(candidate$neg_loglik)[1L])
+		if (!is.null(candidate) && length(candidate$b) && is.finite(candidate$b[1L]) &&
+			is.finite(nll) && nll < best_nll - 1e-6) {
+			best = candidate
+			best_nll = nll
+		}
+	}
+	if (is.null(best)) return(primary_fit)
+	if (estimate_only) return(best)
+
+	refit = tryCatch(
+		fast_ordinal_cloglog_regression_with_var_cpp(
+			X, y, warm_start_params = best$params,
+			warm_start_fisher_info = NULL, smart_cold_start = FALSE
+		),
+		error = function(e) NULL
+	)
+	refit_nll = suppressWarnings(as.numeric(refit$neg_loglik)[1L])
+	if (!is.null(refit) && length(refit$b) && is.finite(refit$b[1L]) &&
+		is.finite(refit$ssq_b_j) && refit$ssq_b_j > 0 &&
+		is.finite(refit_nll) && refit_nll < primary_nll - 1e-6) refit else primary_fit
+}
+
 # Interim class (documentation demoted to plain comments): only consumed via
 # inference_component_source_parts() below; the composed class is documented on the
 # final define_inference_class() assignment.
@@ -112,6 +159,15 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			params_null = as.numeric(null_fit$params)
+			# The cloglog kernel stores slopes with the opposite orientation from
+			# this class's public coefficients: compute_estimate() returns -b_native
+			# and constrained fits pin b_native to -delta. The shared ordinal
+			# simulator implements F(threshold - X beta), so convert the native
+			# slope block to that public/generative orientation before simulating.
+			n_alpha = length(sort(unique(as.numeric(spec$y)))) - 1L
+			if (n_alpha < 1L || length(params_null) <= n_alpha) return(NULL)
+			params_null[(n_alpha + 1L):length(params_null)] =
+				-params_null[(n_alpha + 1L):length(params_null)]
 			y_sim       = private$simulate_param_boot_ordinal_y(
 				spec$X,
 				params_null,
@@ -244,6 +300,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 							estimate_only = TRUE
 						)
 						if (is.null(res) || length(res) == 0) return(NULL)
+						res = .cloglog_full_data_multistart(X_fit, private$y, res, TRUE)
 						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = warm_fisher)
 					} else {
 						res = fast_ordinal_cloglog_regression_with_var_cpp(
@@ -253,6 +310,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 							smart_cold_start = private$smart_cold_start_default
 						)
 						if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
+						res = .cloglog_full_data_multistart(X_fit, private$y, res, FALSE)
 						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
 					}
 				},

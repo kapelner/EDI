@@ -204,6 +204,7 @@ DesignFixedBinaryMatch = define_design_class(
 		},
 			ensure_matching_structure_computed = function(){
 				n = self$get_n()
+				private$ensure_model_matrix_current()
 				if (is.null(private$bms)) {
 					if (is.null(private$X) || ncol(private$X) == 0) {
 						stop("no covariates provided to run the binary matching algorithm")

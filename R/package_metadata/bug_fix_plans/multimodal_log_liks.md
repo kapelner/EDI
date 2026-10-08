@@ -114,7 +114,7 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
 
 ## TODOs
 
-- [ ] TODO-1: Confirm scope — grep every call site in
+- [x] TODO-1: Confirm scope — grep every call site in
   `inference_ordinal_stereotype_logit.R` that invokes
   `fast_stereotype_logit_cpp()` / `fast_stereotype_logit_with_var_cpp()` with
   a single start (`generate_mod()`,
@@ -123,20 +123,34 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   call site, whether multi-start applies (the randomization-inference and
   bootstrap-weights paths run many times per replicate — a naive multi-start
   there may be too slow; may need a cheaper heuristic, e.g. only multi-start
-  when the single-start fit's `beta_T` is near 0).
-- [ ] TODO-2: Design the multi-start candidate set for `generate_mod()`
+  when the single-start fit's `beta_T` is near 0). **Closed 2026-10-08:**
+  only `generate_mod()` receives the multi-start search. The reusable
+  randomization worker remains a one-start warm refit, and the weighted
+  bootstrap path remains its documented ordinal-logistic surrogate (with
+  Bayesian bootstrap disabled for this class), so repeated resampling draws
+  do not pay the multi-start cost or silently change estimators.
+- [x] TODO-2: Design the multi-start candidate set for `generate_mod()`
   (deterministic perturbations + seeded random layer, per "Proposed fix"
   above); align with `../new_feature_plans/multistart_nonconcave_likelihoods.md`'s scheme if it
   exists by implementation time, otherwise write this class's own and note
-  the divergence there for future reconciliation.
-- [ ] TODO-3: Implement, keeping the lowest-`neg_loglik` converged fit;
-  preserve existing warm-start caching semantics.
+  the divergence there for future reconciliation. **Closed 2026-10-08:**
+  the primary fit is screened against four deterministic loading-direction
+  perturbations (plus alternating directions when `K > 3`) and two local,
+  data-hashed pseudo-random starts. The local generator neither reads nor
+  changes R's global RNG state.
+- [x] TODO-3: Implement, keeping the lowest-`neg_loglik` converged fit;
+  preserve existing warm-start caching semantics. **Closed 2026-10-08:**
+  `.stereotype_full_data_multistart()` screens with estimate-only fits,
+  recomputes variance only for the selected improvement, and hands the
+  selected parameters and Fisher information back to the existing cache.
+  The deterministic `n = 50`, `K = 3` regression improves negative
+  log-likelihood from 51.09410 to 49.85571 and remains usable for inference.
 - [ ] TODO-4: Re-run the 400-null-dataset measurement (both `n=100` and
   `n=50, K=3` configurations from this plan's table) post-fix; confirm the
   `n=50` non-global-optimum count drops to ~0 and Type-I/coverage improve
   accordingly. Extend to a few more `(n, K)` combinations to characterize
   where multimodality bites hardest.
-- [ ] TODO-5: Audit and, where estimates move, re-derive (not just
+- [x] TODO-5: Audit and, where estimates move, re-derive (not just
   re-record) every golden/reference value touching
   `InferenceOrdinalStereotypeLogitRegr` in
   `test-ordinal-kk-clmm-migration-golden` (if applicable — confirm this is
@@ -144,12 +158,23 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   `test-reference-parity.R`, `test-simple-estimator-migration-baseline`, and
   any `testthat_bulk/` stereotype-logit reference tests; document each
   change with the before/after `neg_loglik` showing the new value is the
-  genuine improvement.
-- [ ] TODO-6: Benchmark per-fit cost before/after (table format per
+  genuine improvement. **Closed 2026-10-08:** no existing golden required a
+  value change. The full-likelihood migration baseline, randomization-estimate
+  reference, and stereotype profile/randomization reference all pass against
+  the source-loaded package. The new regression records the before/after
+  likelihood for the one fixture intentionally changed by the fix.
+- [x] TODO-6: Benchmark per-fit cost before/after (table format per
   `../new_feature_plans/cold_starts.md`); if the slowdown is material, gate multi-start behind a
   cheap pre-check (e.g. only trigger extra starts when `|beta_T_hat|` is
   small, since that's the observed non-identified/multimodal region) rather
-  than always running the full candidate set.
+  than always running the full candidate set. **Closed 2026-10-08:** a
+  10-repetition source-loaded benchmark on the deterministic fixture measured
+  0.006 seconds for the old full fit and 0.035 seconds for the complete
+  multi-start selection (5.83x). The affected fixture's primary treatment
+  coefficient is about 0.85, so the proposed near-zero-coefficient gate would
+  miss the reproduced failure. The search therefore remains restricted by
+  call site (one full-data fit) rather than by an unsafe coefficient gate;
+  repeated randomization/bootstrap refits retain their one-start paths.
 - [ ] TODO-7: Update `inference_ordinal_stereotype_logit.R`'s class-level
   roxygen (rewritten 2026-09-21 with the post-refit-fix Type-I/coverage
   numbers) with the post-multi-start numbers from TODO-4, and regenerate
