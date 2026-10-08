@@ -1,5 +1,6 @@
 "source","tier","target","case_id","status","duration_time_sec"
 "comprehensive_tests","","InferencePropFractionalLogit","comprehensive_tests__proportion__Bernoulli__compute_bayesian_bootstrap_confidence_interval_bca_1cb60bf0","ok",3294.238
+"run_comprehensive_suite","smoke","","comprehensive_suite__smoke__all__internal_safety_nets","ok",3237.69666361809
 "comprehensive_tests","","InferenceCountZeroInflatedPoisson","comprehensive_tests__count__FixedMatchingGreedy__compute_lik_ratio_bartlett_approx_confidence_interval_897496ec","ok",3064.986
 "comprehensive_tests","","InferencePropBetaRegr","comprehensive_tests__proportion__Bernoulli__compute_bayesian_bootstrap_confidence_interval_basic_cd070928","ok",2996.968
 "comprehensive_tests","","InferenceIncidBinomialIdentityRiskDiff","comprehensive_tests__incidence__FixedBlocking__compute_bootstrap_two_sided_pval_studentized_82f5b720","ok",2996.874
@@ -14,7 +15,6 @@
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyNormalOneLik","comprehensive_tests__survival__FixedBinaryMatch__compute_lik_ratio_bootstrap_two_sided_pval_5db91f20","ok",232.893
 "run_comprehensive_suite","release","","comprehensive_suite__release__all__internal_safety_nets","ok",223.346725940704
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_score_confidence_interval_34e7849c","ok",222.988
-"run_comprehensive_suite","smoke","","comprehensive_suite__smoke__all__internal_safety_nets","ok",219.681223630905
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__FixedBinaryMatch__compute_lik_ratio_bartlett_approx_two_sided_pval_8dfc9c84","ok",213.06
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_lik_ratio_bootstrap_two_sided_pval_6a722824","ok",203.708
 "comprehensive_tests","","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","comprehensive_tests__survival__KK21stepwise__compute_lik_ratio_bootstrap_two_sided_pval_6a722824","ok",187.901

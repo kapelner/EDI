@@ -813,10 +813,9 @@ plan files' internal numbering did not change.
   (TODO-8/9), separate mechanism, low confidence, not yet root-caused.
   Independent of every other item in this release; depends on nothing
   else.
-- [ ] TODO-24 (added 2026-09-24, same audit-triage wave, root-caused
-  same day, medium-high confidence for one sub-class, low for the other):
-  **KK-matched Cox proportional-hazards classes — severe CI undercoverage,
-  isolated to the KK-matching/reservoir-split mechanism** —
+- [x] TODO-24 (added 2026-09-24, conclusively refuted 2026-10-08):
+  **KK-matched Cox proportional-hazards undercoverage was a coverage-truth
+  artifact, not a variance defect** —
   `../bug_fix_plans/survival_kk_cox_coverage_variance.md → TODO-1..8`. Confirmed
   distinct from `TODO-5 §A` (that's about `compute_confidence_interval_rand()`,
   already fixed by excluding these classes from the `randomization_ci`
@@ -835,8 +834,15 @@ plan files' internal numbering did not change.
   `InferenceSurvivalKKLWACoxPHOneLik` (0.50-1.00, similar shape): does NOT
   share the pooling pattern (uses a single joint cluster-robust Cox fit,
   which reads as textbook-correct) — root cause NOT found, needs the
-  C++ cluster-robust vcov kernel read directly. Independent of every other
-  item in this release; depends on nothing else.
+  C++ cluster-robust vcov kernel read directly. The completed audit found that
+  the plan had conflated OneLik with IVWC siblings: Strat OneLik already uses
+  one joint stratified partial likelihood, and LWA OneLik uses one joint
+  marginal Cox fit with a pair-clustered sandwich SE. The native meat/bread
+  formula matches independent scores and `survival::coxph`. The non-null
+  findings came from TODO-10's unconverged coverage truth and are now
+  explicitly ungraded; historical null coverage was 0.93–1.00. All eight
+  linked-plan items are closed and 112 focused assertions pass without
+  compilation. Independent of every other item in this release.
 - [ ] TODO-25 (added 2026-09-24, same audit-triage wave, **low-medium
   confidence, not reproduced**; tracked as an open investigation, not a
   fix plan, in
@@ -1580,6 +1586,37 @@ baseline as expected/benign.
   static check that no other `src/` callback passes inline `wrap()`
   temporaries. Optional TODO-4 bypasses the R round-trip entirely.
   Independent of every other item.
+
+- [ ] TODO-66 (added 2026-10-08, found while rewriting a stale test):
+  **`InferenceCountHurdleNegBin`'s non-reusable-worker multi-core Bayesian
+  bootstrap (`num_cores = 2`, `debug = TRUE`) hangs intermittently.**
+
+  Found 2026-10-08 while replacing `InferencePropZeroOneInflatedBetaRegr`
+  as the fixture in `test-bayesian-bootstrap-non-reusable-worker-debug-
+  path.R` (that class gained `supports_reusable_bootstrap_worker() = TRUE`
+  in TODO-1/commit `bca39750`, so it no longer exercises the duplicate()-
+  per-iteration branch that test is about; `InferenceCountHurdleNegBin` is
+  now the only class with an explicit `FALSE` override).
+  `approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 16L, debug =
+  TRUE)` with `num_cores = 2` on that class sometimes completes in ~1-2s
+  and sometimes never returns, confirmed directly (outside testthat, same
+  call, same seed, no other state changed) — not a timeout-tier slowness
+  issue, a genuine intermittent hang. Consistent with a fork-after-OpenMP-
+  threading race: `par_lapply()`'s lazy-fork-cluster path
+  (`inference_all_abstract.R`) forks real OS processes, and if the parent
+  still has live OMP worker threads at fork time, the child can inherit a
+  permanently-locked mutex. Single-core and multi-core-without-debug both
+  work reliably (confirmed repeatedly); only the `debug = TRUE` +
+  `num_cores = 2` combination hangs. Also noted in passing: single-core vs
+  multi-core values for this class are not bit-identical even when they do
+  complete (~1e-7 differences, consistent with OpenMP's non-associative
+  floating-point summation at different thread counts) — benign, but
+  worth confirming it's not symptomatic of the same underlying race.
+  Deliberately NOT exercised in the replacement test (would be a flaky CI
+  assertion); needs its own investigation under `gdb`/thread inspection
+  while reproducing, matching the diagnostic approach already used
+  successfully for the mirai/nanonext fork hang in
+  `project_ci_openblas_fork_hang.md`.
 
 ## Standing constraints
 
