@@ -74,6 +74,16 @@ def test_zero_diff_when_groups_identical():
     assert got == pytest.approx(0.0, abs=1e-9)
 
 
+def test_rmst_difference_uses_one_common_truncation_horizon():
+    # Control is followed through 4 and treatment through 10. At the shared
+    # horizon tau=4 their RMSTs are 2.5 and 10/3, respectively.
+    y = np.array([1.0, 4.0, 2.0, 3.0, 10.0])
+    dead = np.array([1, 0, 1, 0, 0], dtype=np.int32)
+    w = np.array([0, 0, 1, 1, 1], dtype=np.int32)
+    got = get_survival_stat_diff(y, dead, w, "restricted_mean")
+    assert got == pytest.approx(5.0 / 6.0, abs=ATOL, rel=RTOL)
+
+
 def test_empty_group_returns_nan():
     w_all_treat = np.ones_like(W)
     assert math.isnan(get_survival_stat_diff(Y, DEAD, w_all_treat, "median"))

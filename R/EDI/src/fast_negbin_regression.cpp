@@ -409,13 +409,11 @@ Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(const Eigen::Map<Eige
 //' @details
 //' \strong{Variance computation.} The working-weights curvature matrix
 //' \code{res.XtWX} (over all \code{p + 1} parameters) is restricted to the
-//' free (non-\code{fixed_idx}) parameters and inverted via a \strong{plain
-//' matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse as used
-//' by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
-//' being expanded back to the full \code{(p + 1) x (p + 1)} size as
-//' \code{vcov}. A rank-deficient or near-singular design (after restricting to
-//' free parameters) will therefore produce numerically unstable or \code{NaN}
-//' variances rather than a graceful fallback.
+//' free (non-\code{fixed_idx}) parameters. A \code{FullPivLU} invertibility
+//' check guards the same plain matrix inverse used previously, so invertible
+//' fits retain their existing covariance values while a singular or non-finite
+//' free block returns a \code{NaN} covariance. Callers should check
+//' \code{is.finite(vcov)} before using its entries.
 //'
 //' @param X A numeric matrix of predictors, \eqn{n \times p}.
 //' @param y A numeric (integer-valued) vector of non-negative observed
@@ -435,6 +433,8 @@ Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(const Eigen::Map<Eige
 //' @return A list with components \code{b} (\eqn{\hat\beta}),
 //'   \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{vcov} (the full
 //'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix),
+//'   \code{information_invertible} (whether its free information block passed
+//'   the invertibility check),
 //'   \code{converged}, \code{iterations}, and \code{hess_fisher_info_matrix}
 //'   (the working-weights curvature matrix \code{vcov} was inverted from).
 //' @seealso \code{\link{fast_neg_bin_cpp}} for the estimate-only variant and
@@ -482,7 +482,8 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
     FixedParamSpec information_spec = negbin_information_spec(
         fixed_spec, X.cols(), res.dispersion_at_poisson_boundary);
     Eigen::MatrixXd H_free = subset_matrix(res.XtWX, information_spec.free_idx, information_spec.free_idx);
-    Eigen::MatrixXd cov_free = H_free.inverse();
+    bool information_invertible = false;
+    Eigen::MatrixXd cov_free = invert_free_information(H_free, information_invertible);
     Eigen::MatrixXd vcov = expand_free_covariance(X.cols() + 1, information_spec, cov_free, true);
     return edi::to_rcpp_list(edi::ResultMap()
         .set("b", res.b)
@@ -494,6 +495,7 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
         .set("gradient_norm", res.gradient_norm)
         .set("min_eigenvalue_information", res.min_eigenvalue_information)
         .set("dispersion_at_poisson_boundary", res.dispersion_at_poisson_boundary)
+        .set("information_invertible", information_invertible)
         .set("hess_fisher_info_matrix", res.XtWX)
         .set("vcov", vcov));
 }

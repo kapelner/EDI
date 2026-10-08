@@ -641,6 +641,34 @@ inline Eigen::MatrixXd expand_free_covariance(int n_params,
     return cov;
 }
 
+// Invert a free-parameter information block without silently accepting a
+// singular or non-finite matrix.  FullPivLU is used only for the decision:
+// the value for every invertible input still comes from MatrixXd::inverse(),
+// preserving the pre-guard numerical result at the five migrated call sites.
+// The status is returned separately so bindings can expose the rejection to
+// later diagnostics instead of inferring it from the NaN covariance alone.
+inline Eigen::MatrixXd invert_free_information(const Eigen::MatrixXd& information,
+                                               bool& information_invertible) {
+    const int n = information.rows();
+    if (n == 0) {
+        information_invertible = true;
+        return Eigen::MatrixXd(0, 0);
+    }
+    if (information.cols() != n || !information.allFinite()) {
+        information_invertible = false;
+        return Eigen::MatrixXd::Constant(
+            information.rows(), information.cols(),
+            std::numeric_limits<double>::quiet_NaN());
+    }
+    Eigen::FullPivLU<Eigen::MatrixXd> lu(information);
+    information_invertible = lu.isInvertible();
+    if (!information_invertible) {
+        return Eigen::MatrixXd::Constant(
+            n, n, std::numeric_limits<double>::quiet_NaN());
+    }
+    return information.inverse();
+}
+
 inline Eigen::MatrixXd symmetric_pseudo_inverse(const Eigen::MatrixXd& M, double tol = 1e-10) {
     Eigen::MatrixXd Msym = (M + M.transpose()) / 2.0;
     if (!Msym.allFinite()) {

@@ -504,20 +504,19 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
 		},
-		# Freeze the two independently screened design matrices once per resampling
-		# run.  Rebuilding an inference object for every draw previously repeated
-		# both QR/column-selection searches and made jackknife inference orders of
-		# magnitude slower than the underlying ZOIB fit.
+		# Materialize the two design matrices once per resampling run. The primary
+		# matrix deliberately keeps all candidate columns: generate_mod() starts
+		# every fold from that full matrix and may accept a column that the
+		# full-sample fit dropped. Freezing its selected columns would therefore
+		# change jackknife values. The zero/one matrix follows generate_mod()'s
+		# existing contract and reuses its full-sample selected columns.
 		get_bootstrap_worker_spec = function(){
 			# Resampling callers first obtain the original estimate with
 			# estimate_only=TRUE. Preserve that exact fit/warm state; upgrading it
 			# to a variance fit here can move the optimizer by solver tolerance and
 			# would make a performance-only worker change alter later Wald calls.
 			private$shared(estimate_only = TRUE)
-			X_full = private$build_component_matrix(
-				private$model_formula,
-				private$best_X_colnames
-			)
+			X_full = private$build_component_matrix(private$model_formula)
 			X_zero_one_full = private$build_component_matrix(
 				private$model_formula_zero_one,
 				private$best_X_zero_one_colnames
@@ -576,7 +575,8 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 					# loader restores that base state before every reused-worker draw.
 					warm_start_params = worker_state$worker_priv$get_fit_warm_start_for_length("params", start_len) %||% rep(0, start_len),
 					smart_cold_start = worker_state$worker_priv$smart_cold_start_default,
-					warm_start_fisher_info = worker_state$worker_priv$get_fit_warm_start_fisher(start_len)
+					warm_start_fisher_info = worker_state$worker_priv$get_fit_warm_start_fisher(start_len),
+					estimate_only = TRUE
 				),
 				error = function(e) NULL
 			)

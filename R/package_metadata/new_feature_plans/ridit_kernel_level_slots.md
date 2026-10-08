@@ -11,6 +11,14 @@
 
 Date: 2026-08-30
 
+> **Treatment-reference semantics fixed 2026-10-08**
+> (`../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md`):
+> `reference = "treatment"` now estimates `0.5 - mean_control_ridit` and
+> uses the control-arm score variance. This is the same empirical
+> treated-versus-control Mann-Whitney contrast as the control-reference path;
+> it replaces the old identically-zero `mean_treatment_ridit - 0.5` result.
+> The optimized treatment branch must preserve the corrected orientation.
+
 ## Where the time goes today
 
 `InferenceOrdinalRidit` defaults to `reference = "control"`
@@ -96,9 +104,12 @@ benchmark shows the mean loop is still >20 % of the replicate.
 - [ ] **TODO-2: Replace `compute_single_ridit_estimate_cpp` for
   `"control"`/`"treatment"`.** Per-thread `cnt_ref[K]`, `score[K]` (and
   `present[K]`). Per replicate: count the reference arm (or subtract),
-  `n_ref`, `n_t`; early `NA_REAL` if either is 0 (matches `:79`); build
+  `n_ref`, and the non-reference comparison arm; early `NA_REAL` if either is
+  0 (matches the current helper); build
   present-level scores in ascending order (Tier A arithmetic); fill absent
-  levels by the `:44-52` rule; subject-order treated mean; `− 0.5`. Hoist
+  levels by the `:44-52` rule; subject-order comparison mean; use treated mean
+  `− 0.5` for control reference and `0.5 −` control mean for treatment
+  reference. Hoist
   the `reference` string comparison to one `enum` outside the loop
   (`:70-75` compares a `std::string` per element per replicate). Keep the
   pooled path as is (it is already O(n log K); optionally reuse `slot[]` to
@@ -113,8 +124,8 @@ benchmark shows the mean loop is still >20 % of the replicate.
   rule: below-lowest, above-highest, interior), (c) a level present only
   among controls, (d) K = 1, (e) K = n (all distinct — the ordinal-as-
   continuous edge), (f) unbalanced 5/95 `w`, and for `reference ∈
-  {"control", "treatment", "pooled"}`: new output `identical()` to the old
-  kernel's (retain the old body as a test-only reference). Also the
+  {"control", "treatment", "pooled"}`: new output `identical()` to the current
+  corrected kernel (retain the current body as a test-only reference). Also the
   bootstrap kernel with duplicated and missing (`−1`) indices.
 - [ ] **TODO-5: Benchmark.** Kernel-only, old vs. new, `n ∈ {100, 500,
   1000, 5000}`, `K ∈ {3, 5, 10}`, `B = 1000`, 1 and 4 threads, `→ TODO-135`

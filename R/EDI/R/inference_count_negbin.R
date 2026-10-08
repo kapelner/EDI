@@ -513,6 +513,7 @@ InferenceCountNegBin = define_inference_class(
 						list(b = as.numeric(res$b), ssq_b_j = ssq_b_j, j_treat = j_treat,
 						     theta_hat = res$theta_hat, neg_loglik = -as.numeric(res$logLik),
 						     fisher_information = res$hess_fisher_info_matrix,
+						     information_invertible = res$information_invertible %||% NA,
 						     dispersion_at_poisson_boundary = res$dispersion_at_poisson_boundary)
 					}
 				},

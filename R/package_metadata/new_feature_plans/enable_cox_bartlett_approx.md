@@ -110,5 +110,13 @@ simpler resolution now is:
 2. No further action planned unless a future decision (item 2 above)
    reopens this.
 
+Re-audited 2026-10-08: both Cox classes still carry their explicit
+`supports_bartlett_likelihood_ratio_approx() = FALSE` overrides, neither
+advertises the approximate Bartlett testing type, and the best-available
+Bartlett entry point rejects both with the typed unsupported error. A focused
+source-loaded regression now pins all four facts for both classes. The
+evidence-based decision above is fully implemented; there are no lingering
+release subtasks.
+
 Independent of every other 1.1.0 item; depends on nothing else in this
 release.

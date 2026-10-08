@@ -3,8 +3,10 @@
 #' Fits a non-parametric treatment-effect estimator for censored survival
 #' responses: the difference in \strong{restricted mean survival time} (RMST)
 #' between the treated and control arms, \eqn{\hat\mu_T(\tau) - \hat\mu_C(\tau)},
-#' where each arm's RMST is the area under its Kaplan-Meier survival curve up to
-#' a truncation horizon \eqn{\tau} (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
+#' where both arms use the same truncation horizon \eqn{\tau}, chosen as the
+#' smaller of their maximum follow-up times, and each RMST is the area under its
+#' Kaplan-Meier survival curve up to that horizon
+#' (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
 #' computed by trapezoidal integration of the step-function KM curve. The
 #' standard error of the difference comes from the Greenwood-type variance of
 #' each arm's RMST, combined across the two (independent) arms via
@@ -216,7 +218,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				as.numeric(delta), TRUE, mats$noise_mat, private$n_cpp_threads(ncol(mats$w_mat))
 			)
 		},
-		weighted_survival_stat_for_group = function(y, dead, row_weights, requested_stat = c("median", "restricted_mean")){
+		weighted_survival_stat_for_group = function(y, dead, row_weights, requested_stat = c("median", "restricted_mean"), tau = NULL){
 			requested_stat = match.arg(requested_stat)
 			keep = is.finite(y) & is.finite(dead) & is.finite(row_weights) & row_weights > 0
 			if (!any(keep)) return(NA_real_)
@@ -236,16 +238,15 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				med = if (!is.null(q)) as.numeric(q$quantile) else NA_real_
 				return(if (length(med)) med[1L] else NA_real_)
 			}
-			tau = max(y)
+			tau = if (is.null(tau)) max(y) else min(as.numeric(tau)[1L], max(y))
 			times = c(0, fit$time)
 			surv_vals = c(1, fit$surv)
 			if (!length(times) || !length(surv_vals)) return(NA_real_)
 			area = 0
-			for (i in seq_len(length(times) - 1L)) {
-				area = area + surv_vals[i] * (times[i + 1L] - times[i])
-			}
-			if (length(times) >= 1L) {
-				area = area + surv_vals[length(surv_vals)] * (tau - times[length(times)])
+			for (i in seq_along(times)) {
+				if (times[i] >= tau) break
+				interval_end = if (i < length(times)) min(times[i + 1L], tau) else tau
+				area = area + surv_vals[i] * (interval_end - times[i])
 			}
 			as.numeric(area)
 		},
@@ -254,11 +255,23 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			idx_t = private$w == 1
 			idx_c = private$w == 0
 			if (!any(idx_t) || !any(idx_c)) return(NA_real_)
+			shared_tau = NULL
+			if (requested_stat == "restricted_mean") {
+				valid = is.finite(private$y) & is.finite(private$dead) &
+					is.finite(row_weights) & row_weights > 0
+				if (!any(valid & idx_t) || !any(valid & idx_c)) return(NA_real_)
+				shared_tau = min(
+					max(private$y[valid & idx_t]),
+					max(private$y[valid & idx_c])
+				)
+			}
 			stat_t = private$weighted_survival_stat_for_group(
-				private$y[idx_t], private$dead[idx_t], row_weights[idx_t], requested_stat = requested_stat
+				private$y[idx_t], private$dead[idx_t], row_weights[idx_t],
+				requested_stat = requested_stat, tau = shared_tau
 			)
 			stat_c = private$weighted_survival_stat_for_group(
-				private$y[idx_c], private$dead[idx_c], row_weights[idx_c], requested_stat = requested_stat
+				private$y[idx_c], private$dead[idx_c], row_weights[idx_c],
+				requested_stat = requested_stat, tau = shared_tau
 			)
 			if (!is.finite(stat_t) || !is.finite(stat_c)) return(NA_real_)
 			as.numeric(stat_t - stat_c)

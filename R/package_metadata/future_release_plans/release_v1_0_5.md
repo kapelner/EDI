@@ -93,7 +93,7 @@ plan files' internal numbering did not change.
   faster) — it silently falls back to the slow R loop every time (the
   generic dispatcher catches the error, so calls don't crash, they're just
   never actually fast). Plan's own checklist: 0/6 checked.
-- [ ] TODO-4 (added 2026-08-30, user decision): **Guard the unguarded
+- [x] TODO-4 (added 2026-08-30, fixed 2026-10-08): **Guard the unguarded
   information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
   → TODO-1..6`. Correctness, not performance. `fast_negbin_regression.cpp:485`
   inverts the free-parameter information block with a bare `.inverse()`
@@ -124,6 +124,15 @@ plan files' internal numbering did not change.
   "singular information" reason exists in the code today; see the plan's
   "Diagnostics coordination" section. The diagnostics chain itself stays in
   v1.1.0.
+
+  **Implemented 2026-10-08:** a portable `invert_free_information()` uses
+  `FullPivLU` for the accept/reject decision while retaining the prior
+  `.inverse()` values for accepted inputs. All five bare sites and the evolved
+  R-facing ZINB covariance are guarded, kernels expose
+  `information_invertible`, and wrappers use the existing typed
+  `model_standard_error_unavailable` paths. All six linked-plan items are
+  closed and 18 focused source-loaded assertions pass without compilation;
+  native execution is staged for the next permitted rebuild.
 
   **Cross-confirmed 2026-09-24** by the new `pval_miscalibration`/
   `low_coverage` audit checks, independently of the direct-repro check
@@ -264,10 +273,10 @@ plan files' internal numbering did not change.
   `beta_T` for 100% of rows despite KM-difference being a non-collapsible,
   different-scale quantity). Needs adding to `COVERAGE_MC_SPEC` and the
   same fix applied.
-- [ ] TODO-11 (added 2026-09-22, user-requested investigation of a prior
-  fix's explicit out-of-scope note; **resolved — do not enable**): **Cox
+- [x] TODO-11 (added 2026-09-22, closed 2026-10-08 after re-audit;
+  **resolved — do not enable**): **Cox
   Bartlett-approx likelihood-ratio correction, forced off** —
-  `enable_cox_bartlett_approx.md`. A 300+300-rep validation of the
+  `../new_feature_plans/enable_cox_bartlett_approx.md`. A 300+300-rep validation of the
   currently-forced-off Bartlett-approx path on `InferenceSurvivalCoxPHRegr`
   (`n=100`, `B=49`, ~1.4h runtime) showed no improvement over plain Wald
   (Type-I error 0.077 vs. Wald's 0.057, nominal 0.05; CI coverage 0.937 vs.
@@ -275,7 +284,10 @@ plan files' internal numbering did not change.
   anything. **Decision: leave both Cox classes' explicit `FALSE` as they
   are.** Revisiting would need its own budgeted multi-scenario/multi-class
   simulation (each such run costs over an hour), not something to do
-  speculatively.
+  speculatively. Both Cox classes still explicitly decline approximate and
+  exact Bartlett support, omit the testing type, and reject the entry point;
+  an eight-assertion source-loaded regression pins that opt-out and the linked
+  plan confirms that no release subtasks remain.
 - [ ] TODO-12 (added 2026-09-22, core fix implemented 2026-10-07;
   release verification still open; found during
   TODO-9's own final review,
@@ -1150,13 +1162,17 @@ baseline as expected/benign.
   `polr` estimate (0.4101 vs 0.4228 from `clmm`/`InferenceOrdinalKKGLMM`).
   Also a wrong-signed log-sigma entry in `get_logistic_glmm_hessian_cpp`.
   Reproduced by the pinned fixtures only; extent and fix undecided.
-- [ ] TODO-32 (added 2026-09-24, same audit; pinned test): **`InferenceOrdinalRidit(
-  reference = "treatment")` reports estimate 0 and `p = 1` always** —
+- [x] TODO-32 (added 2026-09-24, fixed 2026-10-08): **`InferenceOrdinalRidit(
+  reference = "treatment")` now uses a non-degenerate symmetric estimand** —
   `../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
-  TODO-1..5`. The treated group's mean ridit is `0.5` by construction, so
-  `mean_ridit_t - 0.5` is identically zero while the SE is positive. Needs a
-  semantics decision (redefine, refuse, or document) before the ridit
-  performance plan builds on this path.
+  TODO-1..5`. Treatment reference now reports
+  `0.5 - mean_control_ridit` with the control-score SE. This is algebraically
+  the same empirical Mann–Whitney contrast as the control-reference path and
+  preserves the positive-treatment orientation; control and pooled behavior
+  remain unchanged. The R class, weighted and resampling hooks, native R and
+  Python kernels, docs, tests, NEWS and performance plan are aligned. Eighty-
+  three focused R assertions pass without compilation. Python sources parse;
+  binary Python validation remains part of the next permitted build/install.
 - [ ] TODO-33 (added 2026-09-24, core fix and regression added 2026-10-07; real-data validation still open): **Randomization-CI
   high-precision refinement ignores `lower`** —
   `../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md →
@@ -1540,6 +1556,30 @@ baseline as expected/benign.
   below); rethrow under `should_run_asserts()` and warn once otherwise;
   a wiring test (fast path vs worker loop to 1e-10 per class, plus a
   static `*_cpp`-exists check). Independent of every other item.
+
+- [ ] TODO-65 (added 2026-10-08, user decision): **KK21 ordinal weight
+  kernels: unprotected `wrap()` temporaries in the only R callback in
+  `src/` can be garbage-collected mid-call** —
+  `../bug_fix_plans/kk21_ordinal_weight_callback_unprotected_temporaries.md → TODO-1..4`.
+
+  Found 2026-10-08 while measuring the `*_use_speedup` approximation's cost
+  (installed 1.0.2): three of five 150-replication ordinal design runs with
+  `ordinal_use_speedup = FALSE` aborted ("Not compatible with requested
+  type: [type=NULL; target=double]" then a segfault inside
+  `kk21_ordinal_weights_cpp`); same-seed reruns completed, so it is GC
+  timing, not data. `multivariate_ordinal_tstat` (`kk21_weights.cpp`
+  ~L1239) does `List res = f(wrap(X), wrap(y));` — the second `wrap()`
+  can collect the first before Rcpp shields either. Proven with
+  `gctorture(TRUE)`: the kernel returns `NaN NaN NaN` where it returns
+  `2.357 0.857 0.181` normally, while the callee called directly from R is
+  GC-safe; a standalone sourceCpp demo of the identical pattern fails and
+  the protected variant does not. Affects both ordinal weight kernels
+  (plain and stepwise), only with the non-default flag. Fix: hold the
+  wrapped values in `NumericMatrix`/`NumericVector` before the call
+  (bit-preserving; three lines), a `gctorture` regression test, and a
+  static check that no other `src/` callback passes inline `wrap()`
+  temporaries. Optional TODO-4 bypasses the R round-trip entirely.
+  Independent of every other item.
 
 ## Standing constraints
 

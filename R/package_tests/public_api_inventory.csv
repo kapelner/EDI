@@ -1524,7 +1524,7 @@
 "fast_neg_bin_cpp","function","","","","",12,"eps_f;eps_g;estimate_only;fixed_idx;fixed_values;maxit;optimization_alg;smart_cold_start;warm_start_fisher_info;warm_start_params;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "fast_neg_bin_weighted_cpp","function","","","","",13,"eps_f;eps_g;estimate_only;fixed_idx;fixed_values;maxit;optimization_alg;smart_cold_start;warm_start_fisher_info;warm_start_params;weights;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "fast_neg_bin_with_var_cpp","function","","","","",12,"eps_f;eps_g;estimate_only;fixed_idx;fixed_values;maxit;optimization_alg;smart_cold_start;warm_start_fisher_info;warm_start_params;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
-"fast_negbin_regression","function","","","","",5,"optimization_alg;warm_start_fisher_info;warm_start_params;X;y",FALSE,TRUE,FALSE,FALSE,"",FALSE
+"fast_negbin_regression","function","","","","",5,"optimization_alg;warm_start_fisher_info;warm_start_params;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "fast_negbin_regression_with_var","function","","","","",4,"j;optimization_alg;X;y",FALSE,TRUE,FALSE,FALSE,"",FALSE
 "fast_ols_cpp","function","","","","",4,"fixed_idx;fixed_values;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "fast_ols_with_var_cpp","function","","","","",5,"fixed_idx;fixed_values;j;X;y",FALSE,TRUE,FALSE,TRUE,"",FALSE

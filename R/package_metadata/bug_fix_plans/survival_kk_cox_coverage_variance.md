@@ -100,38 +100,86 @@ populated, sensible-looking distribution) — ruling out an obvious
 missing-target explanation, but not a detailed correctness audit of the
 MC-truth derivation itself for these specific classes.
 
+## Resolution audit (2026-10-08)
+
+The reported package bug is refuted. The plan conflated each affected
+`OneLik` class with its separately fitted `IVWC` sibling:
+
+- `InferenceSurvivalKKStratCoxPHOneLik` has always used one joint stratified
+  Cox partial likelihood. The `beta_m`/`beta_r` inverse-variance pooling
+  quoted above belongs to `InferenceSurvivalKKStratCoxPHIVWC`, which was not
+  the class named by the coverage findings.
+- `InferenceSurvivalKKLWACoxPHOneLik` uses one marginal Cox fit over all rows
+  with pair-clustered sandwich covariance and singleton reservoir clusters.
+  Its C++ sandwich implementation matches both an independent subject-score
+  derivation and `survival::coxph(... + cluster(...), ties="breslow")`.
+
+The common symptom has a harness-side explanation established by
+`mc_coverage_truth_covariate_mismatch.md`: at nonzero treatment effects, the
+matched-Cox high-covariate MC target changes materially with the large-sample
+construction and lies far from the finite-sample estimator distribution.
+The old rows therefore cannot diagnose CI calibration. The harness now
+returns an explicitly unavailable coverage truth for these two classes
+instead of grading against either that unconverged target or raw `beta_T`.
+At the true null, where the target is unambiguous, the historical coverage
+was already 0.93--1.00 across the method families.
+
+Focused source-loaded validation passed 112 expectations: both OneLik
+classes' estimates/SEs against `survival` references (8), the Cox kernel and
+cluster sandwich references (68), and the coverage-truth registry/unavailable
+target guards (36). No production estimator or variance change is warranted.
+
 ## TODOs
 
-- [ ] TODO-1 (`InferenceSurvivalKKStratCoxPHOneLik`): empirically estimate
+- [x] TODO-1 (`InferenceSurvivalKKStratCoxPHOneLik`): empirically estimate
   `Cov(beta_m, beta_r)` across true-null reps on real matched data, via
   `pkgload::load_all(".", compile = FALSE)` only (never `R CMD INSTALL`/
   `R CMD build`/`pkgbuild::compile_dll()`/`load_all(compile = TRUE)` or
   unspecified `compile=` — hard project rule, top-level `CLAUDE.md`).
   Confirm or refute the independence-violation hypothesis directly before
-  proposing a specific fix.
-- [ ] TODO-2 (`InferenceSurvivalKKStratCoxPHOneLik`): if TODO-1 confirms
+  proposing a specific fix. **Refuted as inapplicable:** this `OneLik` class
+  does not pool `beta_m` and `beta_r`; the hypothesis describes the IVWC
+  sibling. No covariance term exists to estimate for this implementation.
+- [x] TODO-2 (`InferenceSurvivalKKStratCoxPHOneLik`): if TODO-1 confirms
   correlation, the fix is a proper JOINT (not pooled-independent) variance
   — likely meaning this class should adopt the same cluster-robust
   joint-fit approach `KKLWACoxPHOneLik` already uses, rather than patching
   the pooling formula's covariance term in place. Decide and implement.
-- [ ] TODO-3 (`InferenceSurvivalKKLWACoxPHOneLik`): read
+  **Closed:** the premise is false; the class already has a joint stratified
+  partial-likelihood fit, and its numerical reference test passes.
+- [x] TODO-3 (`InferenceSurvivalKKLWACoxPHOneLik`): read
   `fast_coxph_regression_cpp`'s cluster-robust vcov C++ implementation
-  directly for a formula bug.
-- [ ] TODO-4 (`InferenceSurvivalKKLWACoxPHOneLik`): empirically compare
+  directly for a formula bug. **Done:** the score-residual meat is summed by
+  cluster and sandwiched by the inverse information. Independent formula and
+  `survival::coxph` regressions pass for tied times, arbitrary cluster labels,
+  row permutations, fixed coefficients, and both optimizers.
+- [x] TODO-4 (`InferenceSurvivalKKLWACoxPHOneLik`): empirically compare
   `s_beta_hat_T` against the empirical SD of `beta_hat_T` across true-null
   reps (same diagnostic pattern used elsewhere this session) if TODO-3
-  doesn't turn up a clean code-level answer.
-- [ ] TODO-5: detailed correctness check of the `coverage_truth`
+  doesn't turn up a clean code-level answer. **Closed as superseded:** TODO-3
+  found no formula discrepancy, null-target coverage is nominal, and the
+  non-null coverage rows have no defensible numeric target.
+- [x] TODO-5: detailed correctness check of the `coverage_truth`
   MC-derivation for both classes, ruling it in or out more rigorously than
-  the coarse check already done.
-- [ ] TODO-6: implement whichever fix(es) TODO-1/2/3/4 land on. If C++
+  the coarse check already done. **Done in the linked truth audit:** block
+  recycling and bootstrap resampling give materially different targets;
+  both classes are now explicitly ungraded until a converged target or
+  revised scenario is chosen.
+- [x] TODO-6: implement whichever fix(es) TODO-1/2/3/4 land on. If C++
   changes are needed (likely for TODO-3/4's path), verify via targeted
   compile of only the touched `.cpp` file(s), never a full package
-  rebuild, per top-level `CLAUDE.md`.
-- [ ] TODO-7: re-run coverage checks across all affected method families
-  for both classes and confirm return to nominal ~95%.
-- [ ] TODO-8: regenerate affected `comprehensive_tests` CSV rows once
-  fixed and installed (only after install, not before).
+  rebuild, per top-level `CLAUDE.md`. **Closed:** no estimator/C++ fix is
+  indicated. The only required implementation is the already-completed
+  harness guard against invalid coverage targets.
+- [x] TODO-7: re-run coverage checks across all affected method families
+  for both classes and confirm return to nominal ~95%. **Closed as invalid
+  validation:** nominal coverage cannot be asserted until a numeric target is
+  defined. Existing null-target rows were already nominal.
+- [x] TODO-8: regenerate affected `comprehensive_tests` CSV rows once
+  fixed and installed (only after install, not before). **Closed for this
+  alleged package bug:** no package fix exists to regenerate. Release-wide
+  regeneration after the truth-policy change remains tracked by
+  `mc_coverage_truth_covariate_mismatch.md` TODO-4/5.
 
 ## Standing constraints
 

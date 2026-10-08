@@ -305,7 +305,8 @@ LikelihoodFitResult fast_zap_internal(const Eigen::Ref<const Eigen::MatrixXd>& X
 
 // Portable (EDI_CORE_ONLY-safe) sibling of fast_zero_augmented_poisson_cpp
 // below: fits via fast_zap_internal, then always takes the extra
-// ZeroAugmentedPoisson::hessian(params) call, inverted into vcov, returning
+// ZeroAugmentedPoisson::hessian(params) call, guarded against a singular or
+// non-finite free block and inverted into vcov, returning
 // edi::ResultMap directly instead of going through SEXP/Rcpp::List, so a
 // separate Python binding translation unit can call it. Covers both ZIP
 // (is_hurdle=false) and hurdle-Poisson (is_hurdle=true) since both share
@@ -337,12 +338,14 @@ edi::ResultMap fast_zap_with_var_internal(const Eigen::Ref<const Eigen::MatrixXd
 
     Eigen::MatrixXd observed_information = fun.hessian(params);
     Eigen::MatrixXd H_free = subset_matrix(observed_information, fixed_spec.free_idx, fixed_spec.free_idx);
-    Eigen::MatrixXd cov_free = H_free.inverse();
+    bool information_invertible = false;
+    Eigen::MatrixXd cov_free = invert_free_information(H_free, information_invertible);
     Eigen::MatrixXd vcov = expand_free_covariance(total_p, fixed_spec, cov_free, true);
 
     return edi::ResultMap()
         .set("params", params)
         .set("vcov", vcov)
+        .set("information_invertible", information_invertible)
         .set("converged", fit.converged)
         .set("num_iter", fit.niter)
         .set("hit_iteration_cap", fit.hit_iteration_cap)
@@ -468,7 +471,10 @@ Eigen::MatrixXd get_zero_augmented_poisson_hessian_cpp(const Eigen::Map<Eigen::M
 //'   \code{information} (three aliases for the same observed-information matrix;
 //'   \code{information_type} is always \code{"observed"}), \code{hessian} (the negative of
 //'   that same matrix), and \code{coefficients} (a list with \code{cond} and \code{zi}
-//'   sub-vectors splitting \code{params} back into its two components).
+//'   sub-vectors splitting \code{params} back into its two components). The free
+//'   information block is checked with \code{FullPivLU}; if it is singular or
+//'   non-finite, \code{information_invertible} is \code{FALSE} and \code{vcov}
+//'   contains \code{NaN} in its free-parameter block.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -575,13 +581,15 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::MatrixXd observed_information = fun.hessian(params);
 
     Eigen::MatrixXd H_free = subset_matrix(observed_information, fixed_spec.free_idx, fixed_spec.free_idx);
-    Eigen::MatrixXd cov_free = H_free.inverse();
+    bool information_invertible = false;
+    Eigen::MatrixXd cov_free = invert_free_information(H_free, information_invertible);
     Eigen::MatrixXd vcov = expand_free_covariance(total_p, fixed_spec, cov_free, true);
     Eigen::MatrixXd neg_observed_information = -observed_information;
 
     List out = edi::to_rcpp_list(edi::ResultMap()
         .set("params", params)
         .set("vcov", vcov)
+        .set("information_invertible", information_invertible)
         .set("converged", fit.converged)
         .set("num_iter", fit.niter)
         .set("hit_iteration_cap", fit.hit_iteration_cap)

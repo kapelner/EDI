@@ -758,7 +758,8 @@ LikelihoodFitResult fast_zinb_internal(const Eigen::Ref<const Eigen::MatrixXd>& 
 
 // Portable (EDI_CORE_ONLY-safe) sibling of fast_zinb_cpp below: fits via
 // fast_zinb_internal, then always takes the extra
-// ZeroInflatedNegBin::hessian(params) call, inverted into vcov, returning
+// ZeroInflatedNegBin::hessian(params) call, guarded against a singular or
+// non-finite free block and inverted into vcov, returning
 // edi::ResultMap directly instead of going through
 // make_uniform_likelihood_fit_result's Rcpp::List (that helper lives in the
 // Rcpp-only _helper_functions.h), so a separate Python binding translation
@@ -795,12 +796,14 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
     information_spec = zinb_zi_information_spec(
         information_spec, (int)Xc.cols(), (int)Xz.cols(), fit.zero_inflation_at_boundary);
     Eigen::MatrixXd H_free = subset_matrix(hess, information_spec.free_idx, information_spec.free_idx);
-    Eigen::MatrixXd cov_free = H_free.inverse();
+    bool information_invertible = false;
+    Eigen::MatrixXd cov_free = invert_free_information(H_free, information_invertible);
     Eigen::MatrixXd vcov = expand_free_covariance(n_par, information_spec, cov_free, true);
 
     return edi::ResultMap()
         .set("params", fit.params)
         .set("vcov", vcov)
+        .set("information_invertible", information_invertible)
         .set("converged", fit.converged)
         .set("neg_ll", fit.value)
         .set("fisher_information", hess)
@@ -828,7 +831,10 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
 //' @param smart_cold_start Logical. If TRUE, use a heuristic initial guess.
 //' @param warm_start_fisher_info Optional initial Fisher Information matrix.
 //' @param estimate_only Logical. If TRUE, skip variance computation and return only coefficients.
-//' @return A list containing coefficients and convergence status.
+//' @return A list containing coefficients, convergence status, and, when
+//'   \code{estimate_only = FALSE}, \code{information_invertible}. A singular or
+//'   non-finite free information block sets that field to \code{FALSE} and
+//'   returns a \code{NaN} free-parameter covariance block.
 //' @export
 //' @keywords internal
 // [[Rcpp::export]]
@@ -895,17 +901,26 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
     // likelihood_score(obj, params) already negates the raw grad the L-BFGS objective fills
     // (gradient of neg_loglik) to return the true (+loglik) score -- do not negate again here.
     Rcpp::List out = make_uniform_likelihood_fit_result(fit.params, fit.value, fit.converged, score, hess, false);
-    if (fit.dispersion_at_poisson_boundary || fit.zero_inflation_at_boundary) {
-        FixedParamSpec fixed_spec = make_fixed_param_spec(
-            p_cond + p_zi + 1,
-            nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-            nullable_to_optional<Eigen::VectorXd>(fixed_values));
-        FixedParamSpec information_spec = negbin_information_spec(
-            fixed_spec, p_cond + p_zi, fit.dispersion_at_poisson_boundary);
-        information_spec = zinb_zi_information_spec(
-            information_spec, p_cond, p_zi, fit.zero_inflation_at_boundary);
-        Eigen::MatrixXd information_free = subset_matrix(
-            hess, information_spec.free_idx, information_spec.free_idx);
+    FixedParamSpec fixed_spec = make_fixed_param_spec(
+        p_cond + p_zi + 1,
+        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
+        nullable_to_optional<Eigen::VectorXd>(fixed_values));
+    FixedParamSpec information_spec = negbin_information_spec(
+        fixed_spec, p_cond + p_zi, fit.dispersion_at_poisson_boundary);
+    information_spec = zinb_zi_information_spec(
+        information_spec, p_cond, p_zi, fit.zero_inflation_at_boundary);
+    Eigen::MatrixXd information_free = subset_matrix(
+        hess, information_spec.free_idx, information_spec.free_idx);
+    bool information_invertible = false;
+    Eigen::MatrixXd guarded_covariance = invert_free_information(
+        information_free, information_invertible);
+    if (!information_invertible) {
+        out["vcov"] = expand_free_covariance(
+            p_cond + p_zi + 1, information_spec, guarded_covariance, true);
+    } else if (fit.dispersion_at_poisson_boundary || fit.zero_inflation_at_boundary) {
+        // Keep the existing covariance calculation on accepted fits. The
+        // helper above is deliberately only the accept/reject gate here, so
+        // this R-facing path remains numerically unchanged when invertible.
         out["vcov"] = expand_free_covariance(
             p_cond + p_zi + 1, information_spec,
             covariance_from_information(information_free), true);
@@ -913,6 +928,7 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
             ? "observed_conditional_on_zero_inflation_boundary"
             : "observed_conditional_on_poisson_boundary";
     }
+    out["information_invertible"] = information_invertible;
     out["dispersion_at_poisson_boundary"] = fit.dispersion_at_poisson_boundary;
     out["zero_inflation_at_boundary"] = fit.zero_inflation_at_boundary;
     out["reduced_model"] = fit.reduced_model;

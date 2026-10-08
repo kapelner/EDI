@@ -86,7 +86,7 @@ This class has no `model_formula` concept (`formula` column is `NA`
 throughout — confirmed). `coverage_truth` is 100% populated, ruling out a
 missing-truth-target explanation for the pattern.
 
-## Proposed fix — not yet applied
+## Implemented fix (2026-10-08; compiled-kernel validation pending)
 
 Compute a single shared τ once per estimation call — the standard
 convention is the **minimum** of the two arms' max observed/censored time
@@ -98,10 +98,16 @@ sites: `weighted_survival_stat_for_group()`
 (`fast_survival_stats.cpp:158`/`:290` for the point estimate, `:400` for
 the SE). Not a "pick a more robust estimator" design decision — this is a
 concrete, scoped code fix, not an inherent statistical limitation of RMST.
+The implementation applies the convention consistently to the R
+weighted-bootstrap path, the R and portable/Python point-estimate kernels,
+the Greenwood SE-difference kernel, and both serial and parallel
+randomization-bootstrap kernels. The exported single-group point and SE
+helpers retain their own-maximum horizon because there is no second arm in
+those APIs.
 
 ## TODOs
 
-- [ ] TODO-1: Confirm the mechanism with a direct reproduction via
+- [x] TODO-1: Confirm the mechanism with a direct reproduction via
   `pkgload::load_all(".", compile = FALSE)` only (never `R CMD INSTALL`/
   `R CMD build`/`pkgbuild::compile_dll()`/`load_all(compile = TRUE)` or
   unspecified `compile=` — hard project rule, top-level `CLAUDE.md`).
@@ -109,8 +115,12 @@ concrete, scoped code fix, not an inherent statistical limitation of RMST.
   differ by a known amount, print each arm's independently-derived τ, and
   confirm they differ as predicted. This investigation traced the code but
   did not run it — this is the concrete next step before treating the
-  root cause as fully closed.
-- [ ] TODO-2: Implement the shared-τ fix at the three identified sites
+  root cause as fully closed. **Done 2026-10-08:** on the exact fixture
+  `y=c(1,4,2,3,10)`, `dead=c(1,0,1,0,0)`,
+  `w=c(0,0,1,1,1)`, the installed pre-fix kernel returned `4.8333333`,
+  exactly the independently truncated-arm reference, while the common
+  `tau=4` reference is `0.8333333`.
+- [x] TODO-2: Implement the shared-τ fix at the three identified sites
   (`weighted_survival_stat_for_group()`,
   `fast_survival_stats.cpp:158`/`:290`, `fast_survival_stats.cpp:400`).
   Since the point estimate itself changes (not just its SE), this is a
@@ -120,24 +130,37 @@ concrete, scoped code fix, not an inherent statistical limitation of RMST.
   should show no change; every other case will show a genuinely different
   point estimate, by design (the old value was not a well-defined
   estimand). Note this explicitly in the fix's commit message and any
-  migration-golden test updates.
+  migration-golden test updates. **Done 2026-10-08:** the audit also found
+  the same defect in the portable/Python and randomization-bootstrap paths,
+  so all RMST-difference paths now use the same horizon. The shared
+  integration helper also correctly returns `tau` for an all-censored
+  single group, rather than the previous zero area.
 - [ ] TODO-3: Requires C++ changes (`fast_survival_stats.cpp`) — per
   top-level `CLAUDE.md`, verify via targeted compile of only the touched
   `.cpp` file(s), never a full package rebuild. Confirm this rule applies
-  and follow it exactly when implementing TODO-2.
-- [ ] TODO-4: Decide the exact shared-τ convention (minimum of both arms'
+  and follow it exactly when implementing TODO-2. **Pending:** repository
+  instructions in the current session explicitly prohibit compiling,
+  building, or installing. The C++-backed regressions are written but must
+  run after the user's next authorized rebuild.
+- [x] TODO-4: Decide the exact shared-τ convention (minimum of both arms'
   max time is the standard literature default; confirm this is what's
   wanted here, or whether a pre-specified fixed horizon parameter should
   be exposed instead — check whether the class already has a `tau`/
   horizon argument that's simply unused, or whether one needs to be
-  added).
+  added). **Done 2026-10-08:** no existing horizon parameter exists; use
+  the standard minimum arm-level maximum. Adding a user horizon is a
+  separate API enhancement and is not needed to correct the default.
 - [ ] TODO-5: Re-run the historical-CSV-style coverage check (or a fresh
   simulation at this harness's censoring rate) across every affected
   method family and confirm coverage returns to nominal ~95%.
-- [ ] TODO-6: Add a permanent regression test constructing a fixture with
+- [x] TODO-6: Add a permanent regression test constructing a fixture with
   deliberately mismatched arm-level max follow-up times, asserting the
   point estimate and SE are computed against one shared τ, not two
-  different ones.
+  different ones. **Done 2026-10-08:** point estimate, SE, weighted
+  bootstrap, randomization-bootstrap, and Python portable-kernel references
+  now assert the common-horizon contract. The source-loaded weighted tests
+  pass (4 expectations); the shared-horizon Greenwood formula was also
+  checked against `survival::survfit` on 100 deterministic random fixtures.
 - [ ] TODO-7: Regenerate the affected `comprehensive_tests` CSV rows for
   this class's coverage-affected methods once fixed and installed (only
   after install, not before, same caution as the sibling plans this

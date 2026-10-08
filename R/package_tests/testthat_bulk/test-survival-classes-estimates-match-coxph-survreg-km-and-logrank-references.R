@@ -3,9 +3,9 @@ library(EDI)
 
 # Class-level survival results against independent references: the Cox class equals coxph's treatment
 # coefficient, the Weibull class equals survreg's AFT coefficient, KM-difference equals the difference
-# of Kaplan-Meier medians, the RMST class equals the difference of Kaplan-Meier restricted means with each
-# group truncated at its OWN last observation (survfit(rmean = "individual"), NOT the common-tau default)
-# together with the matching SE, and the log-rank class' estimate is the difference in mean null-model
+# of Kaplan-Meier medians, the RMST class equals the difference of Kaplan-Meier restricted means at the
+# common horizon supported by both groups (survfit(rmean = "common")) together with the matching SE,
+# and the log-rank class' estimate is the difference in mean null-model
 # (Breslow) martingale residuals whose dedicated log-rank p-value equals survival::survdiff's (the generic asymptotic p-value is a Wald-style one).
 
 skip_if_not_installed("survival")
@@ -38,16 +38,20 @@ test_that("KM-difference is the difference of Kaplan-Meier medians", {
 	expect_equal(unname(new_inf("InferenceSurvivalKMDiff", f$des)$compute_estimate()), q[2] - q[1], tolerance = 1e-8)
 })
 
-test_that("RMST class: estimate and SE use each group's own truncation time (individual), which differs from the common-tau default here", {
+test_that("RMST class: estimate and SE use one common truncation horizon", {
 	f <- fx()
 	km <- survival::survfit(f$S ~ f$w)
 	ind <- summary(km, rmean = "individual")$table; com <- summary(km, rmean = "common")$table
 	d_ind <- unname(ind[2, "rmean"] - ind[1, "rmean"]); d_com <- unname(com[2, "rmean"] - com[1, "rmean"])
 	expect_gt(abs(d_ind - d_com), 0.01)                                     # the fixture distinguishes the two definitions
 	inf <- new_inf("InferenceSurvivalRestrictedMeanDiff", f$des)
-	expect_equal(unname(inf$compute_estimate()), d_ind, tolerance = 1e-8)
-	expect_equal(K("get_restricted_mean_se_diff")(f$y, f$dead, f$w), sqrt(sum(ind[, "se(rmean)"]^2)), tolerance = 1e-6)
-	expect_equal(inf$.__enclos_env__$private$cached_values$s_beta_hat_T, sqrt(sum(ind[, "se(rmean)"]^2)), tolerance = 1e-6)
+	expect_equal(unname(inf$compute_estimate()), d_com, tolerance = 1e-8)
+	expect_equal(K("get_restricted_mean_se_diff")(f$y, f$dead, f$w), sqrt(sum(com[, "se(rmean)"]^2)), tolerance = 1e-6)
+	expect_equal(inf$.__enclos_env__$private$cached_values$s_beta_hat_T, sqrt(sum(com[, "se(rmean)"]^2)), tolerance = 1e-6)
+})
+
+test_that("single-group RMST integrates an all-censored curve through its horizon", {
+	expect_equal(K("get_survival_stat_for_group")(c(1, 2, 3), c(0L, 0L, 0L), "restricted_mean"), 3)
 })
 
 test_that("log-rank class: estimate = mean martingale-residual difference under the Breslow null; p-value equals survdiff's", {

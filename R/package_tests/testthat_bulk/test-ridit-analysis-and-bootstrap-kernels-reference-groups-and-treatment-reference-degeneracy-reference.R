@@ -102,4 +102,12 @@ test_that("class treatment reference reports the same non-degenerate effect orie
 	expect_lt(ctrl$compute_asymp_two_sided_pval(0), 0.01)
 	expect_equal(trt$compute_estimate(), ctrl$compute_estimate(), tolerance = 1e-12)
 	expect_lt(trt$compute_asymp_two_sided_pval(0), 0.01)
+	permutations <- ctrl$.__enclos_env__$private$generate_permutations(25L)
+	d_ctrl <- ctrl$.__enclos_env__$private$compute_fast_randomization_distr(
+		des$get_y(), permutations, delta = 0, transform_responses = "none"
+	)
+	d_trt <- trt$.__enclos_env__$private$compute_fast_randomization_distr(
+		des$get_y(), permutations, delta = 0, transform_responses = "none"
+	)
+	expect_equal(d_trt, d_ctrl, tolerance = 1e-12)
 })

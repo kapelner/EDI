@@ -42,8 +42,22 @@ inline bool any_nan_time(const double* x, int n) {
 }
 
 // Compute KM median or RMST for one sorted group; utimes/sprobs are reused across calls.
+inline double rmst_from_km(const std::vector<double>& times,
+                           const std::vector<double>& survival_probs,
+                           double tau) {
+    double rmst = 0.0;
+    for (size_t i = 0; i < times.size() && times[i] < tau; ++i) {
+        const double interval_end = (i + 1 < times.size())
+            ? std::min(times[i + 1], tau)
+            : tau;
+        rmst += survival_probs[i] * (interval_end - times[i]);
+    }
+    return rmst;
+}
+
 inline double km_stat_inline(SurvEntry* grp, int ng, bool do_rmst,
-                              std::vector<double>& utimes, std::vector<double>& sprobs) {
+                              std::vector<double>& utimes, std::vector<double>& sprobs,
+                              double rmst_tau = NA_REAL) {
     if (ng == 0) return NA_REAL;
     for (int i = 0; i < ng; ++i) if (std::isnan(grp[i].time)) return NA_REAL;
     std::sort(grp, grp + ng, [](const SurvEntry& a, const SurvEntry& b){ return a.time < b.time; });
@@ -71,14 +85,10 @@ inline double km_stat_inline(SurvEntry* grp, int ng, bool do_rmst,
         }
         return NA_REAL;
     } else {
-        // RMST: area under the KM curve (trapezoidal integration)
-        double rmst = 0.0;
-        const int sz = (int)utimes.size();
-        for (int i = 0; i + 1 < sz; ++i)
-            rmst += sprobs[i] * (utimes[i+1] - utimes[i]);
-        if (sz > 1)
-            rmst += sprobs.back() * (grp[ng-1].time - utimes.back());
-        return rmst;
+        const double tau = std::isfinite(rmst_tau)
+            ? std::min(rmst_tau, grp[ng - 1].time)
+            : grp[ng - 1].time;
+        return rmst_from_km(utimes, sprobs, tau);
     }
 }
 
@@ -89,9 +99,11 @@ inline double km_stat_inline(SurvEntry* grp, int ng, bool do_rmst,
 // of SEXP, so a separate Python binding translation unit can call it
 // (and get_survival_stat_diff_result below, in the same TU, avoiding that
 // function's wrap()/SEXP round-trip through get_survival_stat_for_group).
-double get_survival_stat_for_group_result(const Eigen::Ref<const Eigen::VectorXd>& y,
-                                          const Eigen::Ref<const Eigen::VectorXi>& dead,
-                                          const std::string& requested_stat) {
+static double get_survival_stat_for_group_result_at_tau(
+        const Eigen::Ref<const Eigen::VectorXd>& y,
+        const Eigen::Ref<const Eigen::VectorXi>& dead,
+        const std::string& requested_stat,
+        double rmst_tau) {
     int n = static_cast<int>(y.size());
     if (n == 0) return NA_REAL;
     // See any_nan_time() above: NaN times hang the group walk and break the
@@ -150,17 +162,19 @@ double get_survival_stat_for_group_result(const Eigen::Ref<const Eigen::VectorXd
         }
         return NA_REAL;
     } else if (requested_stat == "restricted_mean") {
-        double restricted_mean = 0.0;
-        for (size_t i = 0; i < unique_times.size() - 1; ++i) {
-            restricted_mean += survival_probs[i] * (unique_times[i + 1] - unique_times[i]);
-        }
-        if (unique_times.size() > 1) {
-            restricted_mean += survival_probs.back() * (subjects.back().time - unique_times.back());
-        }
-        return restricted_mean;
+        const double tau = std::isfinite(rmst_tau)
+            ? std::min(rmst_tau, subjects.back().time)
+            : subjects.back().time;
+        return rmst_from_km(unique_times, survival_probs, tau);
     }
 
     return NA_REAL;
+}
+
+double get_survival_stat_for_group_result(const Eigen::Ref<const Eigen::VectorXd>& y,
+                                          const Eigen::Ref<const Eigen::VectorXi>& dead,
+                                          const std::string& requested_stat) {
+    return get_survival_stat_for_group_result_at_tau(y, dead, requested_stat, NA_REAL);
 }
 
 // Portable (EDI_CORE_ONLY-safe) sibling of get_survival_stat_diff below.
@@ -185,8 +199,16 @@ double get_survival_stat_diff_result(const Eigen::Ref<const Eigen::VectorXd>& y,
     Eigen::Map<const Eigen::VectorXd> y_treatment(y_treatment_std.data(), y_treatment_std.size());
     Eigen::Map<const Eigen::VectorXi> dead_treatment(dead_treatment_std.data(), dead_treatment_std.size());
 
-    double stat_control = get_survival_stat_for_group_result(y_control, dead_control, requested_stat);
-    double stat_treatment = get_survival_stat_for_group_result(y_treatment, dead_treatment, requested_stat);
+    double shared_tau = NA_REAL;
+    if (requested_stat == "restricted_mean" && !y_control_std.empty() && !y_treatment_std.empty()) {
+        shared_tau = std::min(
+            *std::max_element(y_control_std.begin(), y_control_std.end()),
+            *std::max_element(y_treatment_std.begin(), y_treatment_std.end()));
+    }
+    double stat_control = get_survival_stat_for_group_result_at_tau(
+        y_control, dead_control, requested_stat, shared_tau);
+    double stat_treatment = get_survival_stat_for_group_result_at_tau(
+        y_treatment, dead_treatment, requested_stat, shared_tau);
 
     if (R_IsNA(stat_treatment) || R_IsNA(stat_control)) return NA_REAL;
     return stat_treatment - stat_control;
@@ -281,16 +303,7 @@ double get_survival_stat_for_group(SEXP y, SEXP dead, std::string requested_stat
         }
         return NA_REAL; // Median is not estimable before the last observation time
     } else if (requested_stat == "restricted_mean") {
-        double restricted_mean = 0.0;
-        for (size_t i = 0; i < unique_times.size() - 1; ++i) {
-            restricted_mean += survival_probs[i] * (unique_times[i+1] - unique_times[i]);
-        }
-        // Add the last interval
-        if (unique_times.size() > 1){
-             restricted_mean += survival_probs.back() * (subjects.back().time - unique_times.back());
-        }
-
-        return restricted_mean;
+        return rmst_from_km(unique_times, survival_probs, subjects.back().time);
     }
 
     return NA_REAL; // Should not be reached
@@ -343,14 +356,20 @@ double get_survival_stat_diff(SEXP y, SEXP dead, SEXP w, std::string requested_s
         dead_treatment_std.push_back(dead_vec_coerced[idx]);
     }
 
-    double stat_control = get_survival_stat_for_group_result(
+    double shared_tau = NA_REAL;
+    if (requested_stat == "restricted_mean" && !y_control_std.empty() && !y_treatment_std.empty()) {
+        shared_tau = std::min(
+            *std::max_element(y_control_std.begin(), y_control_std.end()),
+            *std::max_element(y_treatment_std.begin(), y_treatment_std.end()));
+    }
+    double stat_control = get_survival_stat_for_group_result_at_tau(
         Eigen::Map<const Eigen::VectorXd>(y_control_std.data(), y_control_std.size()),
         Eigen::Map<const Eigen::VectorXi>(dead_control_std.data(), dead_control_std.size()),
-        requested_stat);
-    double stat_treatment = get_survival_stat_for_group_result(
+        requested_stat, shared_tau);
+    double stat_treatment = get_survival_stat_for_group_result_at_tau(
         Eigen::Map<const Eigen::VectorXd>(y_treatment_std.data(), y_treatment_std.size()),
         Eigen::Map<const Eigen::VectorXi>(dead_treatment_std.data(), dead_treatment_std.size()),
-        requested_stat);
+        requested_stat, shared_tau);
 
     if (R_IsNA(stat_treatment) || R_IsNA(stat_control)) {
         return NA_REAL;
@@ -374,8 +393,7 @@ double get_survival_stat_diff(SEXP y, SEXP dead, SEXP w, std::string requested_s
 //' @param dead Integer vector of event indicators (1=event, 0=censored).
 //' @return The standard error of the restricted mean.
 //' @keywords internal
-// [[Rcpp::export]]
-double get_restricted_mean_se_for_group(SEXP y, SEXP dead) {
+static double get_restricted_mean_se_for_group_at_tau(SEXP y, SEXP dead, double rmst_tau) {
 	IntegerVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXi> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
@@ -397,7 +415,9 @@ double get_restricted_mean_se_for_group(SEXP y, SEXP dead) {
         return a.time < b.time;
     });
 
-    double tau = subjects.back().time;
+    const double tau = std::isfinite(rmst_tau)
+        ? std::min(rmst_tau, subjects.back().time)
+        : subjects.back().time;
 
     // Build KM event table: one entry per unique event time
     struct EventInfo { double time; double S_after; int n_j; int d_j; };
@@ -412,7 +432,7 @@ double get_restricted_mean_se_for_group(SEXP y, SEXP dead) {
             if (subjects[j].status == 1) d++;
             j++;
         }
-        if (d > 0) {
+        if (d > 0 && t < tau) {
             S *= (1.0 - (double)d / n_at_risk);
             events.push_back({t, S, n_at_risk, d});
         }
@@ -442,6 +462,11 @@ double get_restricted_mean_se_for_group(SEXP y, SEXP dead) {
     }
 
     return sqrt(rmst_var);
+}
+
+// [[Rcpp::export]]
+double get_restricted_mean_se_for_group(SEXP y, SEXP dead) {
+    return get_restricted_mean_se_for_group_at_tau(y, dead, NA_REAL);
 }
 
 //' Calculates the standard error of the difference in restricted mean survival times
@@ -484,10 +509,14 @@ double get_restricted_mean_se_diff(SEXP y, SEXP dead, SEXP w) {
         dead_treatment_std.push_back(dead_vec_coerced[idx]);
     }
 
-    double se_control = get_restricted_mean_se_for_group(
-        wrap(y_control_std), wrap(dead_control_std));
-    double se_treatment = get_restricted_mean_se_for_group(
-        wrap(y_treatment_std), wrap(dead_treatment_std));
+    if (y_control_std.empty() || y_treatment_std.empty()) return NA_REAL;
+    const double shared_tau = std::min(
+        *std::max_element(y_control_std.begin(), y_control_std.end()),
+        *std::max_element(y_treatment_std.begin(), y_treatment_std.end()));
+    double se_control = get_restricted_mean_se_for_group_at_tau(
+        wrap(y_control_std), wrap(dead_control_std), shared_tau);
+    double se_treatment = get_restricted_mean_se_for_group_at_tau(
+        wrap(y_treatment_std), wrap(dead_treatment_std), shared_tau);
 
     if (R_IsNA(se_treatment) || R_IsNA(se_control)) {
         return NA_REAL;
@@ -571,8 +600,17 @@ NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
         }
       }
       if (nt == 0 || nc == 0) continue;
-      double stat_t = km_stat_inline(y_t.data(), nt, do_rmst, utimes_t, sprobs_t);
-      double stat_c = km_stat_inline(y_c.data(), nc, do_rmst, utimes_c, sprobs_c);
+      double shared_tau = NA_REAL;
+      if (do_rmst) {
+        double max_t = y_t[0].time, max_c = y_c[0].time;
+        for (int i = 1; i < nt; ++i) max_t = std::max(max_t, y_t[i].time);
+        for (int i = 1; i < nc; ++i) max_c = std::max(max_c, y_c[i].time);
+        shared_tau = std::min(max_t, max_c);
+      }
+      double stat_t = km_stat_inline(
+        y_t.data(), nt, do_rmst, utimes_t, sprobs_t, shared_tau);
+      double stat_c = km_stat_inline(
+        y_c.data(), nc, do_rmst, utimes_c, sprobs_c, shared_tau);
       if (std::isfinite(stat_t) && std::isfinite(stat_c))
         res_ptr[b] = stat_t - stat_c;
     }
@@ -626,14 +664,20 @@ NumericVector compute_survival_stat_diff_rand_bootstrap_serial_cpp(
       }
     }
     if (y_t.empty() || y_c.empty()) continue;
-    const double stat_t = get_survival_stat_for_group_result(
+    double shared_tau = NA_REAL;
+    if (requested_stat == "restricted_mean") {
+      shared_tau = std::min(
+        *std::max_element(y_t.begin(), y_t.end()),
+        *std::max_element(y_c.begin(), y_c.end()));
+    }
+    const double stat_t = get_survival_stat_for_group_result_at_tau(
       Eigen::Map<const Eigen::VectorXd>(y_t.data(), y_t.size()),
       Eigen::Map<const Eigen::VectorXi>(d_t.data(), d_t.size()),
-      requested_stat);
-    const double stat_c = get_survival_stat_for_group_result(
+      requested_stat, shared_tau);
+    const double stat_c = get_survival_stat_for_group_result_at_tau(
       Eigen::Map<const Eigen::VectorXd>(y_c.data(), y_c.size()),
       Eigen::Map<const Eigen::VectorXi>(d_c.data(), d_c.size()),
-      requested_stat);
+      requested_stat, shared_tau);
     if (std::isfinite(stat_t) && std::isfinite(stat_c)) results[b] = stat_t - stat_c;
   }
 

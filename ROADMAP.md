@@ -58,6 +58,12 @@ for the full index.
   point estimate; those classes now refuse the capability with an
   explanation. A second, unrelated question about the null construction
   was investigated and closed with no code change.
+- **[KK21 ordinal weight callback can crash R](R/package_metadata/bug_fix_plans/kk21_ordinal_weight_callback_unprotected_temporaries.md)** —
+  with `ordinal_use_speedup = FALSE`, the one C++ kernel that calls back
+  into R hands it two unprotected temporaries, so a garbage collection at
+  the wrong moment yields NaN weights, an R error, or a segfault. Three-line
+  protection fix, bit-for-bit otherwise; the default speedup path is
+  unaffected.
 - **[`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer stability](R/package_metadata/bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md)** —
   fixed a ~200× bimodal slowdown (found via a comprehensive-test-harness
   timing investigation) traced to an unbounded C++ optimizer parameter

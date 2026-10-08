@@ -22,7 +22,7 @@ date/EDI version.
 import numpy as np
 import pytest
 
-from edi_kernels import fast_zinb
+from edi_kernels import fast_zinb, fast_zinb_with_var
 
 ATOL = 1e-9
 RTOL = 1e-9
@@ -78,3 +78,12 @@ def test_result_shape_and_types():
     assert isinstance(res["converged"], bool)
     assert isinstance(res["neg_loglik"], float)
     assert isinstance(res["dispersion_at_poisson_boundary"], bool)
+
+
+def test_with_var_rejects_a_duplicated_information_column():
+    Xc, Xz, y = _synthetic_data()
+    Xc_singular = np.column_stack([Xc, Xc[:, -1]])
+    res = fast_zinb_with_var(Xc_singular, Xz, y)
+
+    assert res["information_invertible"] is False
+    assert np.isnan(res["vcov"]).all()

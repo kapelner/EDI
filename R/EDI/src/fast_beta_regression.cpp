@@ -572,16 +572,11 @@ List fast_beta_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 //' @details
 //' \strong{Variance computation.} The fit's working-information matrix
 //' (\code{fit.XtWX}, over all \code{p + 1} parameters \code{c(beta, log(phi))}) is
-//' restricted to the free (non-\code{fixed_idx}) parameters and inverted via a
-//' \strong{plain matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse
-//' as used by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
-//' being expanded back to the full \code{(p + 1) x (p + 1)} size as \code{vcov};
-//' \code{std_errs} is \code{sqrt(diag(vcov))}. Because this uses a plain inverse, a
-//' rank-deficient or near-singular \code{X} (after restricting to free parameters)
-//' will produce numerically unstable or \code{NaN} standard errors rather than a
-//' graceful fallback — callers should ensure \code{X} is full rank on the free
-//' parameters (e.g. via the package's shared \code{drop_linearly_dependent_cols()}
-//' preprocessing) before calling this function if that is not already guaranteed.
+//' restricted to the free (non-\code{fixed_idx}) parameters. A \code{FullPivLU}
+//' invertibility check guards the same plain matrix inverse used previously, so
+//' invertible fits retain their existing covariance values. A singular or
+//' non-finite free block returns a \code{NaN} covariance and standard errors;
+//' callers should check \code{is.finite(vcov)} before using its entries.
 //'
 //' @param X A numeric matrix of predictors, \eqn{n \times p}.
 //' @param y A numeric vector of responses, strictly in \eqn{(0, 1)}.
@@ -600,6 +595,8 @@ List fast_beta_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 //'   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
 //'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
 //'   (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
+//'   \code{information_invertible} (whether the free information block passed
+//'   the invertibility check), and
 //'   \code{fisher_information} (the working-weights curvature matrix \code{vcov} was
 //'   inverted from).
 //' @seealso \code{\link{fast_beta_regression_cpp}} for the estimate-only variant and
@@ -640,7 +637,8 @@ List fast_beta_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
         nullable_to_optional<Eigen::VectorXi>(fixed_idx),
         nullable_to_optional<Eigen::VectorXd>(fixed_values));
     Eigen::MatrixXd H_free = subset_matrix(fit.XtWX, fixed_spec.free_idx, fixed_spec.free_idx);
-	Eigen::MatrixXd cov_free = H_free.inverse();
+    bool information_invertible = false;
+	Eigen::MatrixXd cov_free = invert_free_information(H_free, information_invertible);
     Eigen::MatrixXd cov_mat = expand_free_covariance(X.cols() + 1, fixed_spec, cov_free, true);
     Eigen::VectorXd se = cov_mat.diagonal().array().sqrt();
 
@@ -657,6 +655,7 @@ List fast_beta_regression_with_var_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
 		.set("neg_loglik", neg_loglik)
 		.set("vcov", cov_mat)
 		.set("std_errs", se)
+		.set("information_invertible", information_invertible)
 		.set("converged", fit.converged)
 		.set("num_iter", fit.num_iter)
 		.set("hit_iteration_cap", fit.hit_iteration_cap)

@@ -1106,6 +1106,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				out$params = as.numeric(fit$params)
 				out$neg_loglik = fit$neg_loglik %||% fit$neg_ll
 				out$fisher_information = fit$fisher_information
+				out$information_invertible = fit$information_invertible %||% NA
 				out$mod = fit
 			} else if (private$use_rcpp && !grepl("Negative Binomial", private$za_description())) {
 				is_hurdle = identical(private$za_description(), "Hurdle Poisson")
@@ -1198,6 +1199,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				}
 				out$params = full_params
 				out$fisher_information = fit$fisher_information
+				out$information_invertible = fit$information_invertible %||% NA
 				out$mod = fit
 			} else {
 				dat = private$build_component_frame(X_fit, Xzi_fit)

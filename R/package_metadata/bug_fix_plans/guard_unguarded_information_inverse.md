@@ -102,17 +102,17 @@ negligible.
 
 ## Items
 
-- [ ] **TODO-1: Helper.** `invert_free_information()` in
+- [x] **TODO-1: Helper.** `invert_free_information()` in
   `_helper_functions_core.h` (Rcpp-free, `EDI_CORE_ONLY`-compatible; use
   `std::numeric_limits<double>::quiet_NaN()`, not `NA_REAL`, since the
   header is shared with the Python core).
-- [ ] **TODO-2: Apply at the five sites.** Targeted compile of the five
+- [x] **TODO-2: Apply at the five sites.** Targeted compile of the five
   `.cpp` files only, per `CLAUDE.md`. Optionally refactor the four already-
   guarded sites to call the same helper **only if** they currently use
   `lu.inverse()` and the maintainer accepts the ulp-level change there;
   otherwise leave them (recommended for 1.1.0: leave them; note it as a
   1.2.0 tidy-up).
-- [ ] **TODO-3: Tests.** `test-information-inverse-guard.R`, per kernel: (a)
+- [x] **TODO-3: Tests.** `test-information-inverse-guard.R`, per kernel: (a)
   all existing `with_var` fixtures `identical()` before/after (the
   bit-for-bit claim); (b) a design with a duplicated covariate column and
   `harden = FALSE` (so the R side does not drop it) yields an all-`NaN`
@@ -124,21 +124,21 @@ negligible.
   overflows `exp(eta)`) returns `NaN` rather than throwing; (e) the
   `k = 0` free-parameter case (all fixed) returns a 0×0 block and the
   expanded `vcov` is the fixed-parameter fill only.
-- [ ] **TODO-4: Roxygen.** Replace the "will produce numerically unstable or
+- [x] **TODO-4: Roxygen.** Replace the "will produce numerically unstable or
   NaN variances" caveats at `fast_negbin_regression.cpp:411-418` and
   `fast_beta_regression.cpp:576` with a sentence describing the guard
   (`NaN` covariance when the free information block is singular; check
   `is.finite(vcov)`); add the same sentence to the ZINB/ZAP `with_var`
   docs. Per `fix_documentation.md` conventions, `parse()`-check only, no
   interim `roxygenize` (memory `feedback_no_interim_roxygenize`).
-- [ ] **TODO-5: Audit sweep.** `grep -n "\.inverse()" src/*.cpp src/*.h`
+- [x] **TODO-5: Audit sweep.** `grep -n "\.inverse()" src/*.cpp src/*.h`
   today lists the five sites above plus: `atkinson_assign.cpp:49` and
   `generate_permutations.cpp:107` (both `lu.inverse()` after a
   `FullPivLU` — check they test `isInvertible()` first; if not, they are
   design-side sites for the same guard), and `fast_gamma_functions.h:98`
   (an elementwise array reciprocal, not a matrix inverse — fine). Record
   the disposition of each in this file.
-- [ ] **TODO-6: Confirm and standardize the rejection reason names.** Before
+- [x] **TODO-6: Confirm and standardize the rejection reason names.** Before
   implementing TODO-2, list, for each of the five classes
   (`InferenceCountNegBin`, `InferenceCountZeroInflatedNegBin`,
   `InferenceCountZeroInflatedPoisson`/`Hurdle*` via the zero-augmented
@@ -210,3 +210,38 @@ diagnostics chain itself is out of scope here.
   and treat a singular free block in C++ as non-estimable. Keep it that way.
 - Surfacing `min_eigenvalue_information` (already returned by negbin) as a
   near-singularity warning on the R side — worth doing, separate plan.
+
+## Implementation record (2026-10-08)
+
+- `invert_free_information()` now lives beside `expand_free_covariance()` in
+  `_helper_functions_core.h`. It treats the zero-dimensional all-fixed block as
+  invertible, rejects non-square/non-finite input, uses
+  `FullPivLU::isInvertible()` only for the decision, and retains the original
+  `.inverse()` calculation for accepted matrices. Its `bool&` result is exposed
+  as `information_invertible` by each migrated kernel.
+- The five former bare sites now use the helper: NegBin, portable ZINB,
+  portable ZAP, R-facing ZAP, and Beta. The R-facing ZINB wrapper had meanwhile
+  moved to `covariance_from_information()`; it now uses the same helper as an
+  accept/reject gate while preserving that wrapper's existing covariance value
+  on accepted fits. This closes the class-level singular-information behavior
+  without changing invertible fits on that evolved path.
+- The full `.inverse()` sweep leaves the helper's intentional accepted-input
+  `.inverse()`; two Cox, two ordinal, and one ZOIB covariance sites already
+  gated by `FullPivLU::isInvertible()`; `atkinson_assign.cpp` and
+  `generate_permutations.cpp`, also already gated by that check; and
+  `fast_gamma_functions.h`'s elementwise array reciprocal. All guarded sites
+  remain unchanged to preserve their existing numerical paths.
+- All affected R inference families use
+  `model_standard_error_unavailable`: NegBin and Beta through
+  `InferenceAsympLikStdModCache`; ZINB, ZIP, and hurdle-Poisson through their
+  concrete `compute_estimate()` guards. Kernel status is retained on the R
+  model objects for later diagnostics.
+- `test-information-inverse-guard.R` statically verifies the helper, all five
+  migrations, the audit dispositions, and the typed rejection strings. Its
+  native duplicate-column cases cover NegBin, Beta, ZAP, and ZINB after the
+  shared library is rebuilt. Python duplicate-column coverage was added for
+  the portable ZINB and both ZAP variants. Source-loaded validation with
+  `compile = FALSE` passed 18 assertions; the rebuilt-native block skipped as
+  designed. R/Python parse checks and `git diff --check` passed. Per the repo's
+  compilation rule, native compilation and rebuilt-kernel execution remain for
+  the maintainer's next independent build.

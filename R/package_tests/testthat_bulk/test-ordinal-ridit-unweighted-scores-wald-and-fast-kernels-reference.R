@@ -25,7 +25,10 @@ ref_ridit <- function(y, w, reference) {
 	p <- vapply(cats, function(k) mean(y[ref_idx] == k), numeric(1))
 	r <- cumsum(p) - p / 2
 	score <- r[match(y, cats)]
-	list(scores = score, mean_t = mean(score[w == 1]), mean_c = mean(score[w == 0]), est = mean(score[w == 1]) - 0.5)
+	mean_t <- mean(score[w == 1])
+	mean_c <- mean(score[w == 0])
+	est <- if (reference == "treatment") 0.5 - mean_c else mean_t - 0.5
+	list(scores = score, mean_t = mean_t, mean_c = mean_c, est = est)
 }
 
 test_that("estimate, mean ridits and per-subject scores match the ridit definition for every reference group", {

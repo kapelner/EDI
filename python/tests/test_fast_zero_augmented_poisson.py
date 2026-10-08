@@ -24,7 +24,10 @@ date/EDI version.
 import numpy as np
 import pytest
 
-from edi_kernels import fast_zero_augmented_poisson
+from edi_kernels import (
+    fast_zero_augmented_poisson,
+    fast_zero_augmented_poisson_with_var,
+)
 
 ATOL = 1e-9
 RTOL = 1e-9
@@ -93,3 +96,15 @@ def test_result_shape_and_types():
     assert res["params"].shape == (6,)  # 3 + 3
     assert isinstance(res["converged"], bool)
     assert isinstance(res["neg_loglik"], float)
+
+
+@pytest.mark.parametrize("is_hurdle", [False, True])
+def test_with_var_rejects_a_duplicated_information_column(is_hurdle):
+    X, y, Xzi = _synthetic_data()
+    X_singular = np.column_stack([X, X[:, -1]])
+    res = fast_zero_augmented_poisson_with_var(
+        X_singular, y, Xzi, is_hurdle=is_hurdle
+    )
+
+    assert res["information_invertible"] is False
+    assert np.isnan(res["vcov"]).all()

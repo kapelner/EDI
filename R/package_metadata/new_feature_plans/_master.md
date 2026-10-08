@@ -764,6 +764,24 @@ Wilcoxon rand-CI row against `coin::wilcox_test(conf.int = TRUE)` (147 s
 vs EDI 17 s) is the one fair addition. Release index:
 `release_v1_1_0.md → TODO-43..46`.
 
+**KK21 ordinal weight callback: unprotected `wrap()` temporaries (added
+2026-10-08, user decision):**
+`../bug_fix_plans/kk21_ordinal_weight_callback_unprotected_temporaries.md`
+→ TODO-1..4. Found while measuring the `*_use_speedup` approximation's cost
+(negligible; recorded in the KK21 class's roxygen Details). With
+`ordinal_use_speedup = FALSE`, `multivariate_ordinal_tstat`
+(`kk21_weights.cpp`, the only `Rcpp::Function` callback in `src/`) does
+`f(wrap(X), wrap(y))`, so the second allocation can collect the first
+before Rcpp shields either; three of five 150-replication design runs
+segfaulted, same-seed reruns did not, and `gctorture(TRUE)` turns the
+kernel's `2.357 0.857 0.181` into `NaN NaN NaN` deterministically while
+the callee itself is GC-safe. Both ordinal weight kernels (plain and
+stepwise) route through the helper; the default speedup path never does.
+Fix: hold the wrapped values in Rcpp objects first (bit-preserving), a
+`gctorture` regression test, a static no-inline-`wrap()`-in-callbacks
+check; optional direct C++ call to drop the R round-trip. Release index:
+`release_v1_0_5.md → TODO-65`.
+
 ---
 
 ## Phase 5 — Post-decision feature tracks

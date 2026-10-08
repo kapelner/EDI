@@ -1353,7 +1353,7 @@ def fast_zero_augmented_poisson(X: typing.Annotated[numpy.typing.NDArray[numpy.f
     """
 def fast_zero_augmented_poisson_with_var(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], Xzi: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], is_hurdle: bool, warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, smart_cold_start: bool = True, maxit: typing.SupportsInt | typing.SupportsIndex = 1000, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
-    Fast zero-inflated (is_hurdle=False) or hurdle (is_hurdle=True) Poisson regression with full vcov (params order: [beta_cond, beta_zi]). Always computes the variance -- fast_zero_augmented_poisson is the dedicated point-estimate-only backend. Same argument meanings as fast_zero_augmented_poisson (see its docstring).
+    Fast zero-inflated (is_hurdle=False) or hurdle (is_hurdle=True) Poisson regression with full vcov (params order: [beta_cond, beta_zi]). Always computes the variance -- fast_zero_augmented_poisson is the dedicated point-estimate-only backend. The information_invertible result is False and vcov is NaN when the free information block is singular or non-finite. Same argument meanings as fast_zero_augmented_poisson (see its docstring).
     
     Parameters
     ----------
@@ -1446,7 +1446,7 @@ def fast_zinb(Xc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"
     """
 def fast_zinb_with_var(Xc: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], Xz: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], warm_start_params: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, maxit: typing.SupportsInt | typing.SupportsIndex = 1000, tol: typing.SupportsFloat | typing.SupportsIndex = 1e-08, fixed_idx: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] | None = None, fixed_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] | None = None, optimization_alg: str = 'lbfgs', smart_cold_start: bool = True, warm_start_fisher_info: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"] | None = None) -> dict:
     """
-    Fast zero-inflated negative binomial regression with full vcov (params order: [beta_cond, beta_zi, log_theta]). Always computes the variance -- fast_zinb is the dedicated point-estimate-only backend. Same argument meanings as fast_zinb (see its docstring); Xc/Xz correspond to R/EDI/man/'s fast_zinb_cpp X/Xzi.
+    Fast zero-inflated negative binomial regression with full vcov (params order: [beta_cond, beta_zi, log_theta]). Always computes the variance -- fast_zinb is the dedicated point-estimate-only backend. The information_invertible result is False and vcov is NaN when the free information block is singular or non-finite. Same argument meanings as fast_zinb (see its docstring); Xc/Xz correspond to R/EDI/man/'s fast_zinb_cpp X/Xzi.
     
     Parameters
     ----------

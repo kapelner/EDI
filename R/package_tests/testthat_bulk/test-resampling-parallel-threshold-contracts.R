@@ -17,8 +17,18 @@ make_threshold_resampling_fixture <- function() {
 }
 
 threshold_ridit_reference <- function(y, w, reference) {
-	target <- y[w == 1L]
-	ref <- switch(reference, pooled = y, control = y[w == 0L], treatment = target)
+	# Mirrors inference_ordinal_ridit.R's documented orientation: with a
+	# control or pooled reference, the TARGET is the treatment arm, evaluated
+	# against that reference's ridit map (treated mean ridit - 0.5). With a
+	# treatment reference, the roles swap -- the TARGET is the control arm,
+	# evaluated against the treatment arm's own ridit map, and the result is
+	# negated (0.5 - control mean ridit) -- "essential because the reference
+	# group's own mean ridit is 0.5 by construction" (a treatment-vs-itself
+	# self-comparison, which this function previously computed by mistake,
+	# always trivially ~0 instead of the documented mirror comparison).
+	treatment_reference <- identical(reference, "treatment")
+	target <- if (treatment_reference) y[w == 0L] else y[w == 1L]
+	ref <- switch(reference, pooled = y, control = y[w == 0L], treatment = y[w == 1L])
 	if (!length(target) || !length(ref)) return(NA_real_)
 	levels <- sort(unique(ref))
 	scores <- vapply(levels, function(z) mean(ref < z) + mean(ref == z) / 2, numeric(1))
@@ -26,7 +36,7 @@ threshold_ridit_reference <- function(y, w, reference) {
 	mapped <- approx(levels, scores, xout = target, rule = 1)$y
 	mapped[target < min(levels)] <- 0
 	mapped[target > max(levels)] <- 1
-	mean(mapped) - .5
+	if (treatment_reference) 0.5 - mean(mapped) else mean(mapped) - .5
 }
 
 test_that("OLS bootstrap parallel dispatch preserves zero-based sample indices", {

@@ -53,7 +53,7 @@ test_that("KM median difference and RMST difference per resample match survfit; 
 	f <- fx()
 	km <- function(yy, dd, ww, stat) {
 		fit <- survival::survfit(survival::Surv(yy, dd) ~ ww)
-		if (stat == "rmst") { tb <- summary(fit, rmean = "individual")$table; unname(tb["ww=1", "rmean"] - tb["ww=0", "rmean"]) }
+		if (stat == "rmst") { tb <- summary(fit, rmean = "common")$table; unname(tb["ww=1", "rmean"] - tb["ww=0", "rmean"]) }
 		else { q <- unname(quantile(fit, 0.5)$quantile); q[2] - q[1] }
 	}
 	for (spec in list(c("median", "median"), c("restricted_mean", "rmst"))) {
@@ -64,4 +64,7 @@ test_that("KM median difference and RMST difference per resample match survfit; 
 	par <- K("compute_survival_stat_diff_rand_bootstrap_parallel_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, FALSE, matrix(0, 0, 0), 1L)
 	ser <- K("compute_survival_stat_diff_rand_bootstrap_serial_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, "median")
 	expect_equal(as.numeric(par), as.numeric(ser), tolerance = 1e-12)
+	par_rmst <- K("compute_survival_stat_diff_rand_bootstrap_parallel_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, TRUE, matrix(0, 0, 0), 1L)
+	ser_rmst <- K("compute_survival_stat_diff_rand_bootstrap_serial_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, "restricted_mean")
+	expect_equal(as.numeric(par_rmst), as.numeric(ser_rmst), tolerance = 1e-12)
 })

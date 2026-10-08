@@ -34,6 +34,31 @@
 #' accuracy for speed by substituting a fast continuous-regression proxy for the
 #' response-type-appropriate GLM/AFT/ordinal fit on every single assignment call.
 #'
+#' \emph{How much weight accuracy do the speedups cost?} A weight-level simulation
+#' (October 2026; eight standard-normal covariates with decaying true coefficients,
+#' \eqn{n} from 15 to 250, count, proportion and ordinal responses) found the loss to be
+#' negligible. Across all three response types the fast OLS-on-transform weights were as
+#' close to the GLM's own large-sample target (its normalized weights at
+#' \eqn{n = 20000}) as the GLM's finite-sample weights themselves were: the
+#' total-variation distance between the normalized fast and GLM weight vectors was 0.02 to
+#' 0.16, versus 0.1 to 0.43 for each method's own sampling noise, and the two large-sample
+#' weight vectors differed by under 2\% of total weight mass. The two weight vectors
+#' selected the same nearest reservoir match 75 to 98\% of the time, and the disagreements
+#' were near-ties between two reservoir candidates. Running the full design end to end
+#' (\eqn{n = 200}, 150 replications per setting, with \code{DesignSeqOneByOneKK14} as the
+#' unweighted reference) confirmed this downstream: the share of the true linear
+#' predictor's variance remaining inside matched pairs was indistinguishable between the
+#' fast and GLM weights for count (0.192 vs 0.191), sparse count with about 70\% zeros
+#' (0.187 vs 0.188), proportion (0.147 vs 0.148) and four-level ordinal (0.181 vs 0.183)
+#' responses, with Monte Carlo standard errors near 0.004 and the same number of matched
+#' pairs (about 90 of 200) under both. That within-pair imbalance is the design-side term
+#' in the matched-pairs estimator's variance, so it is the channel through which the
+#' weights affect power; power itself was not simulated, because a gap this small (under
+#' 2\% of a term that is itself only part of the total variance) is far below what a
+#' direct power simulation of feasible size could resolve. The approximation error is
+#' therefore swamped by the estimation noise both methods share, which is why the
+#' \code{*_use_speedup} flags default to \code{TRUE}.
+#'
 #' \strong{Weighted matching test.} The weighted squared distance from the new subject
 #' to every reservoir subject is computed
 #' (\code{compute_weighted_sqd_distances_cpp()}), and the match is accepted only if the
@@ -112,10 +137,14 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#'                                                         instead of a negative binomial
 		#' regression each time? This is at the expense of the weights being less accurate. Default is
 		#' \code{TRUE}.
+		#'   See the \emph{How much weight accuracy do the speedups cost?} paragraph of the Details
+		#'   section for simulation evidence that the accuracy lost is negligible.
 		#' @param proportion_use_speedup  Should we speed up the estimation of the weights in the
 		#'   response = proportion case via a continuous regression on log(y / (1 - y))
 		#'                                                         instead of a beta regression each
 		#' time? This is at the expense of the weights being less accurate. Default is \code{TRUE}.
+		#'   See the \emph{How much weight accuracy do the speedups cost?} paragraph of the Details
+		#'   section for simulation evidence that the accuracy lost is negligible.
 		#' @param survival_use_speedup_for_no_censoring   Should we speed up the estimation of the
 		#'   weights in the response = survival case via a continuous regression on log(y)
 		#'                                                         instead of a Weibull AFT regression
@@ -128,6 +157,8 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#'                                                         instead of a proportional odds
 		#' model each time? This is at the expense of the weights being less accurate. Default is
 		#' \code{TRUE}.
+		#'   See the \emph{How much weight accuracy do the speedups cost?} paragraph of the Details
+		#'   section for simulation evidence that the accuracy lost is negligible.
 		#' @param missingness_method How to handle missing values in covariates.
 		#' @param design_formula A formula object.
 		#' @param seed Integer seed for reproducibility.

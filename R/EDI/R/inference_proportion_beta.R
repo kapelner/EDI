@@ -594,7 +594,8 @@ InferencePropBetaRegr = define_inference_class(
 						if (is.null(res)) return(NULL)
 						list(b = res$coefficients,
 						     ssq_b_2 = if (!is.null(res$vcov) && nrow(res$vcov) >= 2L) res$vcov[2L, 2L] else NA_real_,
-						     phi = res$phi, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
+						     phi = res$phi, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information,
+						     information_invertible = res$information_invertible %||% NA)
 					}
 				},
 
