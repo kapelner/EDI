@@ -131,6 +131,7 @@ R/package_tests/testthat_bulk/test-continuous-lin-design-matrix-and-centered-cov
 R/package_tests/testthat_bulk/test-continuous-lin-design-unusable-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-continuous-lin-shared-fit-failure-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-continuous-ols-shared-hardened-fit-failure-branch-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-continuous-ols-weighted-bootstrap-wls-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-continuous-ordinal-incidence-nonzero-delta-todo-stub-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-continuous-quantile-regr-external-subclass-locked-environment-field-survival-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-continuous-quantile-regr-reference-and-weighted-refit.R,correctness,1,measured_with_30_percent_headroom
@@ -1519,6 +1520,7 @@ R/package_tests/testthat_bulk/test-continuous-lin-design-matrix-and-centered-cov
 R/package_tests/testthat_bulk/test-continuous-lin-design-unusable-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-lin-shared-fit-failure-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-ols-shared-hardened-fit-failure-branch-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-continuous-ols-weighted-bootstrap-wls-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-ordinal-incidence-nonzero-delta-todo-stub-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-quantile-regr-external-subclass-locked-environment-field-survival-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-continuous-quantile-regr-reference-and-weighted-refit.R,coverage,240,bootstrap
