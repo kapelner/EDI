@@ -107,7 +107,7 @@
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","initialize","DesignFixedBinaryMatch","class_local",10,"design_formula;include_is_missing_as_a_new_feature;m;mahal_match;missingness_method;n;prob_T;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","initialize","DesignFixedBinaryMatch","class_local",11,"design_formula;include_is_missing_as_a_new_feature;m;mahal_match;match_objective;missingness_method;n;prob_T;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","inject_cmh_se_w_mat","DesignFixedBinaryMatch","class_local",1,"w_mat",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -591,7 +591,7 @@
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","initialize","DesignFixedMatchingGreedyPairSwitching","class_local",10,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;n_iter;objective;prob_T;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","initialize","DesignFixedMatchingGreedyPairSwitching","class_local",11,"design_formula;include_is_missing_as_a_new_feature;match_objective;missingness_method;n;n_iter;objective;prob_T;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","inject_cmh_se_w_mat","DesignFixedMatchingGreedyPairSwitching","class_local",1,"w_mat",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
