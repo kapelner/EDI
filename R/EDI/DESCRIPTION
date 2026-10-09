@@ -249,6 +249,7 @@ Collate:
     'inference_ordinal_cloglog.R'
     'inference_ordinal_gcomp.R'
     'inference_ordinal_jonckheere_terpstra_test.R'
+    'helper_ordinal_mixed_fit.R'
     'inference_ordinal_KK_clmm_abstract.R'
     'inference_ordinal_KK_combined.R'
     'inference_ordinal_KK_cond_adj_cat_logit.R'

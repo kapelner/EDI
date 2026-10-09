@@ -19,9 +19,9 @@
 #' \code{draw_ws_raw()}/\code{assign_w_to_all_subjects()}, via
 #' \code{private$ensure_matching_structure_computed()}) by
 #' \code{compute_binary_match_structure()}, which forms an \eqn{n \times n} pairwise
-#' distance matrix — squared Mahalanobis distance if \code{mahal_match = TRUE} (the
+#' distance matrix — Mahalanobis distance if \code{mahal_match = TRUE} (the
 #' default; using the sample covariance of the covariates, ridge-regularized if singular),
-#' or squared Euclidean distance otherwise — and solves the minimum-weight non-bipartite
+#' or Euclidean distance otherwise — and solves the minimum-weight non-bipartite
 #' perfect matching on that distance matrix via \code{\link[nbpMatching]{nonbimatch}}
 #' (\pkg{nbpMatching}, a Suggests-only dependency; loading is deferred until matching is
 #' actually needed, so pre-computed \code{w} vectors injected via \code{m} never require
@@ -102,9 +102,12 @@ DesignFixedBinaryMatch = define_design_class(
 		#' @param prob_T  The probability of the treatment assignment. Must be 0.5,
 		#'   since within-pair randomization only supports an even 1-treated/1-control
 		#'   split per pair.
-		#' @param mahal_match 	Match using squared Mahalanobis distance (accounting for
-		#'   covariate correlation/scale) if \code{TRUE} (default), else squared
+		#' @param mahal_match 	Match using Mahalanobis distance (accounting for
+		#'   covariate correlation/scale) if \code{TRUE} (default), else
 		#'   Euclidean distance on the raw covariate matrix.
+		#' @param match_objective Matching objective. \code{"distance"} (default)
+		#'   matches \pkg{nbpMatching}; \code{"squared_distance"} reproduces EDI
+		#'   through version 1.0.4.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param m Optional integer vector of explicit matched-pair identifiers, one per
@@ -122,6 +125,7 @@ DesignFixedBinaryMatch = define_design_class(
 				response_type,
 				prob_T = 0.5,
 				mahal_match = TRUE,
+				match_objective = c("distance", "squared_distance"),
 				include_is_missing_as_a_new_feature = TRUE,
 				n = NULL,
 				m = NULL,
@@ -130,6 +134,7 @@ DesignFixedBinaryMatch = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 				) {
+				match_objective = match.arg(match_objective)
 				if (should_run_asserts()) {
 					if (prob_T != 0.5){
 						stop("Binary match designs only support even treatment allocation (prob_T = 0.5)")
@@ -149,6 +154,7 @@ DesignFixedBinaryMatch = define_design_class(
 				private$blocking_capable = TRUE
 				private$matching_capable = TRUE
 				private$mahal_match = mahal_match
+				private$match_objective = match_objective
 				private$uses_covariates = TRUE
 				if (!is.null(m)) {
 					self$set_m(m)
@@ -173,6 +179,7 @@ DesignFixedBinaryMatch = define_design_class(
 	),
 	private = list(
 		mahal_match = NULL,
+		match_objective = NULL,
 		bms = NULL,
 		draw_ws_raw = function(r = 100){
 			private$maybe_set_seed()
@@ -210,7 +217,10 @@ DesignFixedBinaryMatch = define_design_class(
 						stop("no covariates provided to run the binary matching algorithm")
 					}
 					X = private$X[1:n, , drop = FALSE]
-					private$bms = compute_binary_match_structure(X, mahal_match = private$mahal_match)
+					private$bms = compute_binary_match_structure(
+						X, mahal_match = private$mahal_match,
+						match_objective = private$match_objective
+					)
 					# Build pair-ID vector m where m[i] = pair index for subject i
 					m_vec = integer(n)
 					pairs = private$bms$indicies_pairs

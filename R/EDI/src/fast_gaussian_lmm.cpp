@@ -422,8 +422,11 @@ edi::ResultMap fast_gaussian_lmm_internal(
     Eigen::VectorXd par = make_start(dat);
     if (warm_start_params.has_value()) {
         const Eigen::VectorXd& sp = *warm_start_params;
-        if (sp.size() == p + 2)
-            for (int i = 0; i < p + 2; ++i) par[i] = sp[i];
+        if (sp.size() != p + 2)
+            throw std::invalid_argument("warm_start_params must have length ncol(X) + 2");
+        if (!sp.allFinite())
+            throw std::invalid_argument("warm_start_params must contain only finite values");
+        par = sp;
     } else if (warm_start_beta.has_value()) {
         const Eigen::VectorXd& sb = *warm_start_beta;
         if (sb.size() == p + 2) {
@@ -438,6 +441,10 @@ edi::ResultMap fast_gaussian_lmm_internal(
     const Eigen::MatrixXd* info_start_ptr = nullptr;
     if (warm_start_fisher_info.has_value()) {
         info_start = *warm_start_fisher_info;
+        if (info_start.rows() != p + 2 || info_start.cols() != p + 2)
+            throw std::invalid_argument("warm_start_fisher_info must be square with ncol(X) + 2 rows");
+        if (!info_start.allFinite())
+            throw std::invalid_argument("warm_start_fisher_info must contain only finite values");
         info_start_ptr = &info_start;
     }
 

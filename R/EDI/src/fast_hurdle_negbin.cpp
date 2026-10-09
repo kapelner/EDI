@@ -554,6 +554,18 @@ edi::ResultMap fast_hurdle_negbin_internal(
 	const int n = (int)X.rows();
 	const int p = (int)X.cols();
 	const int p_hurdle = (int)X_hurdle.cols();
+	if (warm_start_params.has_value()) {
+		if (warm_start_params->size() != p + 1)
+			throw std::invalid_argument("warm_start_params must have length ncol(X) + 1");
+		if (!warm_start_params->allFinite())
+			throw std::invalid_argument("warm_start_params must contain only finite values");
+	}
+	if (warm_start_fisher_info.has_value()) {
+		if (warm_start_fisher_info->rows() != p + 1 || warm_start_fisher_info->cols() != p + 1)
+			throw std::invalid_argument("warm_start_fisher_info must be square with ncol(X) + 1 rows");
+		if (!warm_start_fisher_info->allFinite())
+			throw std::invalid_argument("warm_start_fisher_info must contain only finite values");
+	}
 	std::string alg = normalize_optimizer_algorithm(optimization_alg, "lbfgs", false);
 	FixedParamSpec count_fixed_spec = make_fixed_param_spec(p + 1, fixed_idx, fixed_values);
 

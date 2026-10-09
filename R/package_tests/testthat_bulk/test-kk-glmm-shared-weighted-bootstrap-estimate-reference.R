@@ -95,3 +95,35 @@ test_that("when the first candidate is unusable but a later one succeeds, the ca
 	expect_equal(call_count, 2L)
 	expect_equal(res, direct_res, tolerance = 1e-10)
 })
+
+test_that("ordinal KK GLMM weighted refits retain the random intercept", {
+	skip_if_not_installed("ordinal")
+	set.seed(712L)
+	n <- 80L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)
+	X <- data.frame(x1 = rnorm(n))
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	w <- des$get_w()
+	m <- des$.__enclos_env__$private$m[seq_len(n)]
+	u <- ifelse(m > 0, rnorm(max(m), sd = 0.9)[pmax(m, 1L)], 0)
+	y <- as.integer(cut(0.6 * w + 0.3 * X$x1 + u + rlogis(n), c(-Inf, -0.8, 0.7, Inf)))
+	des$add_all_subject_responses(y)
+	inf <- InferenceOrdinalKKGLMM$new(des, model_formula = ~ x1, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	context <- priv$build_bayesian_bootstrap_context()
+	priv$current_bayesian_bootstrap_context <- context
+	unit_weights <- seq(0.4, 1.6, length.out = context$n_units)
+	row_weights <- priv$expand_subject_or_block_weights_to_row_weights(unit_weights)
+	got <- inf$compute_estimate_with_bootstrap_weights(unit_weights, estimate_only = TRUE)
+	pdf <- priv$glmm_predictors_df()
+	g <- priv$glmm_group_id()
+	dat <- data.frame(y = ordered(priv$y), pdf, grp = factor(g), wt = row_weights)
+	ref <- suppressWarnings(ordinal::clmm(
+		y ~ w + x1 + (1 | grp), link = "logit", nAGQ = 20L,
+		weights = wt, data = dat, Hess = FALSE
+	))
+	expect_equal(got, unname(coef(ref)["w"]), tolerance = 1e-8)
+	expect_gt(sqrt(as.numeric(ordinal::VarCorr(ref)$grp)), 0.1)
+	fixed <- suppressWarnings(ordinal::clm(y ~ w + x1, weights = wt, data = dat, link = "logit"))
+	expect_gt(abs(got - unname(coef(fixed)["w"])), 0.01)
+})

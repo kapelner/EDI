@@ -349,6 +349,19 @@ latency part, two effects exposed through the shipped `estimand` axis;
 sequenced after competing risks. Both are univariate-`y` additions on an
 existing response type; no design-side change.
 
+Covariate coefficient table *(added 2026-10-09, user decision)*:
+`covariate_coefficient_table.md` (`TODO-47`) adds a public
+`get_coefficient_table()` (a `coef(summary(glm))`-style Wald table for the
+adjustment covariates, not just `w`), and has `get_summary()` print it instead
+of the raw fit list. It ships **only on classes that support it**: a single
+covariate regression whose full covariance can be formed with the same
+estimator as the class's own treatment SE. The full vcov is built lazily and
+never on a resampling hot path, so no existing result changes. **Hard
+constraint (2026-10-09, user decision):** all of this is a new, separate
+path. The treatment-variance path (`generate_mod()`, `shared()`, the kernels
+it calls, their outputs and caches) is untouched and gains no work, memory or
+kernel arguments.
+
 Audit reports (2026-08-26/27, reference documents, not work items — they
 commission the plans above and rank the remaining gaps):
 `missing_inference_classes_literature_audit.md`,
@@ -1338,6 +1351,29 @@ ticked in their **owning plans**; this list is the release index.
   (`function(...) .impl(self, private, ...)` over compiled namespace
   functions, emitted by `define_inference_class()`); persistent compiled
   workers across resampling calls.
+
+- [ ] TODO-47 (added 2026-10-09, user decision): **Covariate coefficient
+  table on the supporting likelihood classes** —
+  `covariate_coefficient_table.md → TODO-1..9`.
+
+  Today every public method reports only on `w`. `get_summary()` would print
+  a covariate table, but the `StandardModelCacheSource` `shared()` path caches
+  only the scalar treatment variance (`ssq_b_2`/`ssq_b_j`), so it dumps the
+  raw fit list instead. A 2026-10-09 sweep of all 102 exported classes sorts
+  the ~45 that have a covariate model into tiers. Tier 0 (7 classes) already
+  builds the table. Tier 1 (17) has a full vcov in the fit object. Tier 2
+  (~20) needs a vcov formed from information, `XtX`, or the class's own
+  sandwich. Tier 3 (~15) is include/exclude per class. Excluded:
+  unadjusted/nonparametric procedures, g-computation, all `*IVWC`. Gate: the
+  table's treatment row reproduces the class's own SE and CI for every
+  flagged class; registry-wide wiring test in pre-push; parity vs
+  `glm`/`glm.nb`/`betareg`/`coxph`/`survreg`/`polr`/`sandwich`/`pscl`/`lme4`;
+  existing results bit-for-bit unchanged. **The table is a separate path**:
+  no edits to `generate_mod()`/`shared()`/treatment-path kernels (any needed
+  C++ is a new kernel function). It has its own cache slot and is enforced by
+  a call-graph separation test, a builder call counter (0 across
+  estimate/CI/p-value/resampling), a kernel signature freeze, and a manual
+  hot-path timing check against the pre-feature baseline.
 
 ## Standing constraints
 

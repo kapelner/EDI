@@ -50,7 +50,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		#'   coefficient), the inversion is performed in closed form from the breakpoints of the
 		#'   p-value step function — exact given the draws and requiring no bisection. Otherwise,
 		#'   the generic bisection search is used. When the p-value does not drop below
-		#'   \code{alpha / 2} anywhere within the search radius, a conservative bound is returned
+		#'   \code{alpha} anywhere within the search radius, a conservative bound is returned
 		#'   at the search boundary rather than \code{NA}; each such event emits a
 		#'   \code{message()} and increments the private field
 		#'   \code{rand_bootstrap_ci_conservative_count}.
@@ -116,12 +116,12 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					stop("Bootstrap randomization confidence intervals are not supported for incidence.")
 				}
 			}
-			# The Monte Carlo p-value has floor 2/B; if that floor is >= alpha/2 the inversion
+			# The Monte Carlo p-value has floor 2/B; if that floor is >= alpha the inversion
 			# can never bracket and both bounds degrade to the conservative search boundary.
-			if (2 / as.integer(B) >= alpha / 2) {
+			if (2 / as.integer(B) >= alpha) {
 				message(sprintf(
-					"compute_rand_bootstrap_confidence_interval: B = %d is too small for alpha = %g (p-value floor 2/B = %.4g >= alpha/2 = %.4g); bounds will be conservative. Use B > %d.",
-					as.integer(B), alpha, 2 / as.integer(B), alpha / 2, ceiling(4 / alpha)))
+					"compute_rand_bootstrap_confidence_interval: B = %d is too small for alpha = %g (p-value floor 2/B = %.4g >= alpha = %.4g); bounds will be conservative. Use B > %d.",
+					as.integer(B), alpha, 2 / as.integer(B), alpha, ceiling(2 / alpha)))
 			}
 			transform_arg = switch(
 				private$des_obj_priv_int$response_type,
@@ -150,7 +150,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			}
 			draws = private$generate_rand_bootstrap_draws(B, bootstrap_type = bootstrap_type, materialize_w = TRUE)
 			# Enable SMC early-stopping during the CI bisection: each evaluate_pval(delta) call
-			# on the pre-materialized draws will stop once the Clopper-Pearson band clears alpha/2,
+			# on the pre-materialized draws will stop once the Clopper-Pearson band clears alpha,
 			# saving the bulk of the B worker fits for GLM-class CIs that cannot use a C++ kernel.
 			{
 				brt_mc_b = as.integer(B)
@@ -161,7 +161,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					mc_batch_size = brt_default_batch,
 					mc_min_draws = min(brt_mc_b, max(100L, 2L * brt_default_batch)),
 					mc_conf_level = 0.99,
-					mc_stop_threshold = alpha / 2
+					mc_stop_threshold = alpha
 				)
 				on.exit({ private$brt_mc_control = old_brt_mc_ctrl }, add = TRUE)
 			}
@@ -311,14 +311,14 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			z_target = stats::qnorm(1 - alpha / 2)
 			ci_timeout_deadline = private$rand_bootstrap_ci_timeout_deadline()
 			private$check_rand_bootstrap_ci_deadline(ci_timeout_deadline, "Bootstrap randomization CI setup")
-			l = private$expand_rand_bootstrap_bound(est - z_target * se_guess, est, alpha / 2, TRUE, max_radius, as.integer(max_expansions), evaluate_pval, ci_timeout_deadline)
-			u = private$expand_rand_bootstrap_bound(est + z_target * se_guess, est, alpha / 2, FALSE, max_radius, as.integer(max_expansions), evaluate_pval, ci_timeout_deadline)
+			l = private$expand_rand_bootstrap_bound(est - z_target * se_guess, est, alpha, TRUE, max_radius, as.integer(max_expansions), evaluate_pval, ci_timeout_deadline)
+			u = private$expand_rand_bootstrap_bound(est + z_target * se_guess, est, alpha, FALSE, max_radius, as.integer(max_expansions), evaluate_pval, ci_timeout_deadline)
 			if (!all(is.finite(c(l, u)))) {
 				return(missing_ci("rand_bootstrap_ci_search_bounds_failed"))
 			}
 			ci = c(
-				private$invert_rand_bootstrap_test_bisection(l, est, alpha / 2, pval_epsilon, TRUE, show_progress, evaluate_pval, ci_timeout_deadline),
-				private$invert_rand_bootstrap_test_bisection(est, u, alpha / 2, pval_epsilon, FALSE, show_progress, evaluate_pval, ci_timeout_deadline)
+				private$invert_rand_bootstrap_test_bisection(l, est, alpha, pval_epsilon, TRUE, show_progress, evaluate_pval, ci_timeout_deadline),
+				private$invert_rand_bootstrap_test_bisection(est, u, alpha, pval_epsilon, FALSE, show_progress, evaluate_pval, ci_timeout_deadline)
 			)
 			if (length(ci) != 2L || !all(is.finite(ci[1:2]))) {
 				private$cache_nonestimable_se("rand_bootstrap_ci_bisection_failed")
@@ -364,8 +364,8 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		# fall back to the generic bisection.
 		closed_form_ci_from_affine_null_draws = function(A, c_slopes, t_obs, alpha){
 			# Match the bisection path's threshold convention (inherited from InferenceRandCI):
-			# the two-sided p-value is inverted at alpha / 2.
-			pval_th = alpha / 2
+			# the two-sided p-value is inverted at alpha.
+			pval_th = alpha
 			ok = is.finite(A) & is.finite(c_slopes)
 			A = as.numeric(A[ok]); cs = as.numeric(c_slopes[ok])
 			B_valid = length(A)
@@ -458,7 +458,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 				private$check_rand_bootstrap_ci_deadline(timeout_deadline, "Bootstrap randomization CI bisection")
 			}
 			if (is.na(pval_l) || is.na(pval_u) || !all(is.finite(c(l, u)))) return(NA_real_)
-			# Conservative bound: the p-value at the search boundary is still >= alpha/2, so the
+			# Conservative bound: the p-value at the search boundary is still >= alpha, so the
 			# true CI bound lies beyond the search radius. Return the boundary as a valid
 			# (conservative) one-sided limit.
 			if (lower && is.finite(pval_l) && pval_l >= pval_th) {

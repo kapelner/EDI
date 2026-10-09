@@ -791,6 +791,8 @@ none of these numbers should be quoted as a measured result.
   (row M): `brent_ci_inversion.md → TODO-1..3`. Adopt, not Prototype —
   deterministic root-finder swap, bound identical within `tol`; gated on
   the existing CI tests, not the A/B harness. Independent of TODO-1..5.
+- TODO-37..41 (which choices users may make: auto / expose / dial) are in the
+  last section, "Which algorithm choices should users get to make?".
 
 ### TODOs added by the 2026-10-09 sweep
 
@@ -987,3 +989,148 @@ floating-point throughput, for its arithmetic intensity. For the package:
 when an end-to-end profile shows nearly all wall-clock time is spent inside
 kernels that are at that limit. Until both hold, at least one of the levers
 above still has room.
+
+---
+
+## Which algorithm choices should users get to make? (2026-10-09)
+
+**Question (2026-10-09, owner):** "Do you think a future will be that we can
+add all the algorithms and have the user choose which one to use? Because
+there are tradeoffs."
+
+**Answer: some of them, not all.** The tradeoffs in rows A–AC are of three
+different kinds, and each kind gets a different treatment. Every option row in
+this file and in `algorithm_choice_audit_catalog.md` should carry one of these
+three labels:
+
+| label | what the options differ in | treatment | examples |
+|---|---|---|---|
+| **auto** | speed only: same answer within tolerance (or within Monte Carlo error at the same `B`) | EDI picks; no user argument. If no option wins everywhere, EDI switches by size (n, K, ties). At most an `"auto"`-default override for debugging | Brent vs bisection (M), JT DP vs enumeration (R), presorting (Q), analytic vs FD derivatives (N) |
+| **expose** | the answer itself: a different estimand, model, test or interval | a named, documented argument; the default matches standard software unless there is a stated reason not to | Breslow vs Efron ties (L), Clopper–Pearson vs minlike (F26), M vs MM robust (X) |
+| **dial** | accuracy bought with time | one numeric control, not a menu of named algorithms (cf. lme4's `nAGQ`); default at the accurate end | GH nodes / Laplace (C), the KK21 `*_use_speedup` flags (T), `B` |
+
+**Why not expose everything.** The 2026-10-09 sweep shows where bugs collect:
+on the paths people rarely use. The legacy IVWC classes (F7, F11, F15, F22),
+the R `coxph()` fallbacks that silently switched to Efron (row L), and the
+`sample(block_sizes, 1)` edge case (F1b) were all off the main path. Each
+exposed option multiplies rows in the comprehensive_tests registry, needs its
+own Type-I error and coverage evidence, and needs docs that tell users when
+to pick it. An option tested less thoroughly than the default is a liability,
+and most users never change the default anyway, so defaults matter more than
+the menu.
+
+### Conventions EDI already has (reuse them; don't invent per-class names)
+
+Read from `R/EDI/R/` on 2026-10-09:
+
+- **Which inference procedure** is already chosen by method name:
+  `compute_score_*`, `compute_lik_ratio_*`, `compute_rand_*`,
+  `compute_exact_*`, `compute_bayesian_bootstrap_*`, and so on. This is the main
+  "expose" mechanism, and it already works.
+- **Which variant of a procedure** goes in a `type =` argument on that method,
+  `NULL` meaning "the class's default". Examples:
+  `compute_bootstrap_confidence_interval(type = NULL)`,
+  `compute_bayesian_bootstrap_confidence_interval(type = NULL)`,
+  `compute_exact_confidence_interval(type = NULL, args_for_type = NULL)`, and
+  the `"basic"` / `"centered"` types in `inference_all_abstract_non_param_boot.R`.
+- **Which model or estimand** goes in a constructor argument:
+  `reference = "control"` (`inference_ordinal_ridit.R:77`), `method = "MM"` (robust
+  classes), `link`, `corstr`.
+- **The "auto" pattern** already exists in one place:
+  `DesignFixedOptimal$new(solver = "auto")` (`design_fixed_optimal.R:238`) picks
+  MILP or annealing and lets the user override. This is the model for any
+  "auto" row that needs an escape hatch.
+- **Exposed implementation toggles:** `use_rcpp = TRUE` (constructor argument
+  in 19 files) and `smart_cold_start_default`. These are developer and parity
+  switches, not statistical choices. Row L shows the risk: the `use_rcpp = FALSE`
+  path fit a different likelihood (Efron) from the C++ path (Breslow). Any path
+  reachable through such a toggle must fit the same model as the default.
+
+**Rule:** if an option changes the model or estimand, it goes in the
+constructor. If it changes only how the test or interval is built, it goes in
+`type =` on the method. If it changes only speed, it gets no argument, or at
+most `"auto"` plus an override.
+
+### Gate before an option becomes public
+
+1. It has its own rows in `comprehensive_suite_registry.csv`. Type-I error and
+   coverage must meet the same standard as the default on the same datasets.
+2. Its roxygen says what it changes, when to prefer it, and what it costs.
+3. The fitted object records which algorithm actually ran, including the
+   result of any `"auto"` choice and any fallback that fired. Otherwise results
+   cannot be reproduced, and a silent fallback like row L's cannot be detected.
+4. Tests and fixtures pin the option explicitly, so a change of default cannot
+   silently change what a test checks (cf. the `ties` pinning in TODO-6(b)).
+
+### Labelling pass over rows A–AC
+
+"Exists" means the choice is already a user argument today.
+
+| row | choice | label | note |
+|---|---|---|---|
+| A | Newton vs IRLS vs L-BFGS | **auto** | same MLE. `use_rcpp` stays a developer toggle (see above) |
+| B | joint Newton vs EM-then-Newton | **auto** | same MLE when both converge; EM is a robustness start |
+| C | 20-node GH vs adaptive GH vs Laplace | **dial** | one `n_gh` / `nAGQ`-style control (today `n_gh = 20L` is internal); Laplace only as the explicit low end, never the default |
+| D | bisection vs Robbins–Monro CI search | **auto** | same target bound; `pval_epsilon` / `ci_search_control` on `compute_rand_confidence_interval` are already the precision dial |
+| E | Monte Carlo vs saddlepoint p-value | **expose**, opt-in | changes exactness; as an early-stop screen it is **auto** (MC answer still reported) |
+| F | MILP vs annealing (vs PT/tabu) | **auto** + override (exists: `solver`) | F23: BRT replicates must use the same solver as the observed allocation |
+| G | blossom vs geometric matching | **auto** | same exact matching |
+| H | brute-force vs tree nearest match | **auto** | same match |
+| I | rejection vs top-quantile acceptance | **expose** (exists: `prop_acceptable`) | changes the design |
+| J | i.i.d. vs balanced bootstrap | **auto** | same target, less MC noise; changes seed-pinned draws once |
+| K | GEE working correlation | **expose** (exists: `corstr`) | AR(1)/unstructured would be a scope addition |
+| L | Breslow vs Efron vs exact ties | **expose** (new `ties`, constructor) | the clearest case for this section. `survival::coxph` defaults to Efron; whether EDI's default follows is TODO-6(a) |
+| M | bisection vs Brent (deterministic) | **auto** | identical within `tol` |
+| N | FD vs analytic derivatives | **auto** | |
+| O | clamped vs exact-tail special functions | **auto** | accuracy fix; no reason to keep the inaccurate one |
+| P | generic optimizer vs closed form / separable fits | **auto** | exception: for Gaussian LR, exact F(1, n−p) vs asymptotic χ² changes the p-value. That is **expose**, as a `type` |
+| Q | re-sort vs presort | **auto** | bit-identical |
+| R | JT exact by enumeration vs DP | **auto** | exact vs MC JT is already a procedure choice (`compute_exact_*`) |
+| S | Atkinson draws, C++ draw kernels, Fisher–Yates | **auto** | Fisher–Yates changes seed-pinned draws once |
+| T | KK21 refit-every-candidate vs score-test stepwise; φ grid vs Brent | **dial** (exists: `count/ordinal/proportion_use_speedup`); φ search **auto** | the speedup flags can change which covariates get selected |
+| U | small dense linear algebra | **auto** | |
+| V | memoize / warm start / batch kernels | **auto** | early-stop and calibration changes must stay within MC error |
+| W | `rq` `"br"` vs `"fn"`; `rq()` vs `rq.fit` | **auto** | but use one method for both the point fit and the replicates |
+| X | bisquare-M vs true MM (S-start) | **expose** (exists: `method`) | today's `"MM"` is mislabeled (TODO-31); true MM becomes a new value of the same argument |
+| Y | self-consistency EM vs EMICM | **auto** | same NPMLE |
+| Z | start values, constrained solvers, NB parametrization | **auto** | same MLE where it exists |
+| AA | multistart / damped scoring for nonconcave fits | **auto** | the target is the global MLE |
+| AB | g-comp SE: conditional vs population target (F25, F16) | **expose** or document | an estimand choice; today it is implicit and inconsistent between KK and non-KK |
+| AC | scheduling, tuning harness | **auto** | |
+
+Statistical choices surfaced by the bug sweep (`release_v1_0_5.md →
+TODO-70..94`) that also belong under **expose**:
+
+- exact-binomial CI vs test construction (F26): Clopper–Pearson vs minlike, as
+  `type` on `compute_exact_*`;
+- the proportion-difference interval (Newcombe/Wilson, F9);
+- the dependent-censoring CI rule (F21). It currently picks the interval *from
+  the data*, which biases toward non-rejection. It should be a user-stated
+  `type`, not a data-dependent switch.
+
+**Net result.** Of rows A–AC, 21 are **auto**, 6 are **expose** (3 already
+exist as arguments: I, K, X), and 2 are **dial** (T exists). The new user-facing surface this policy implies is small: `ties`
+(L), a quadrature dial (C), an F-vs-χ² `type` (P), an explicit g-comp SE
+target (AB), and the three `type`s from the bug sweep.
+
+### TODOs
+
+- [ ] TODO-37: Add an `exposure` column (auto / expose / dial) to the summary
+  table and to each options table in `algorithm_choice_audit_catalog.md`,
+  starting from the labelling pass above. TODO-7's re-audit keeps it current.
+- [ ] TODO-38: **Algorithm provenance on fitted objects.** Record which
+  algorithm, `"auto"` choice and fallback actually ran (gate item 3). It is a
+  prerequisite for exposing anything new, and it would have caught row L's
+  silent Efron fallback. Design it once in the inference base classes, not
+  per class.
+- [ ] TODO-39: **`ties` for the Cox family** (row L). This is the owner decision
+  in TODO-6(a), now framed as "expose, and choose a default". It depends on
+  TODO-69 in `release_v1_0_5.md` (pin Breslow in the fallbacks first).
+- [ ] TODO-40: **Quadrature dial** for GLMM/LMM/frailty (row C), shipped with
+  adaptive GH (`performance_profiling_and_upgrades.md → TODO-153`). It should
+  not ship before adaptive GH: a dial whose only cheap setting is plain
+  low-node GH would invite inaccurate fits.
+- [ ] TODO-41: Audit the exposed implementation toggles (`use_rcpp`,
+  `smart_cold_start_default`): every reachable path must fit the same model as
+  the default, enforced by a parity test per toggle. Document them as
+  developer options.

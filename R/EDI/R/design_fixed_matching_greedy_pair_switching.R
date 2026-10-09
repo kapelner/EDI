@@ -83,6 +83,9 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 		#'   Mahalanobis distance between treated/control means, also used as the
 		#'   matching distance) or \code{"abs_sum_diff"} (sum of absolute standardized
 		#'   mean differences); see class documentation for the exact criteria.
+		#' @param match_objective Matching objective used to form pairs.
+		#'   \code{"distance"} (default) matches \pkg{nbpMatching};
+		#'   \code{"squared_distance"} reproduces EDI through version 1.0.4.
 		#' @param n_iter Number of swap iterations. \code{Inf} (default) uses exhaustive
 		#'   best-improvement search guaranteed to reach a strict local optimum. A positive
 		#'   integer runs that many stochastic random-pair iterations with patience-based
@@ -97,11 +100,13 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 				n,
 				verbose = FALSE,
 				objective = "mahal_dist",
+				match_objective = c("distance", "squared_distance"),
 				n_iter = Inf,
 				missingness_method = "impute",
 				design_formula = ~ .,
 				seed = NULL
 			) {
+			match_objective = match.arg(match_objective)
 			if (should_run_asserts()) {
 				if (prob_T != 0.5) {
 					stop("DesignFixedMatchingGreedyPairSwitching only supports balanced designs (prob_T = 0.5).")
@@ -113,6 +118,7 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 			}
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			private$objective = objective
+			private$match_objective = match_objective
 			private$n_iter    = n_iter
 			private$uses_covariates = TRUE
 			private$blocking_capable = TRUE
@@ -130,6 +136,7 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 	),
 	private = list(
 		objective = NULL,
+		match_objective = NULL,
 		n_iter    = NULL,
 		bms = NULL,
 		ensure_pair_structure_computed = function(){
@@ -138,7 +145,10 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 				private$ensure_model_matrix_current()
 				if (is.null(private$X) || ncol(private$X) == 0) return(invisible(NULL))
 				X = private$X[1:n, , drop = FALSE]
-				private$bms = compute_binary_match_structure(X, mahal_match = (private$objective == "mahal_dist"))
+				private$bms = compute_binary_match_structure(
+					X, mahal_match = (private$objective == "mahal_dist"),
+					match_objective = private$match_objective
+				)
 			}
 			if (!is.null(private$bms)) {
 				pair_rows = private$bms$indicies_pairs

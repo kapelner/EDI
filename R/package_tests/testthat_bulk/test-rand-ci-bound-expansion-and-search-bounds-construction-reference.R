@@ -96,11 +96,11 @@ test_that("search bounds bracket the estimate, seeded from the Wald / asymptotic
 	expect_equal(b$fallback_ci, c(-1, 2.5))
 	expect_lt(b$l, est); expect_gt(b$u, est)
 	expect_lt(b$l, b$u)
-	# Each end is either rejecting at alpha / 2 or the conservative outer radius.
+	# Each end is either rejecting at alpha or the conservative outer radius.
 	se_guess <- max(abs(c(-1, 2.5) - est)) / qnorm(1 - 0.05)
 	max_radius <- max(10 * se_guess, 5 * sd(f$p$y), 1)
-	expect_true(2 * pnorm(-abs(b$l)) < 0.025 || isTRUE(all.equal(b$l, est - max_radius)))
-	expect_true(2 * pnorm(-abs(b$u)) < 0.025 || isTRUE(all.equal(b$u, est + max_radius)))
+	expect_true(2 * pnorm(-abs(b$l)) < 0.05 || isTRUE(all.equal(b$l, est - max_radius)))
+	expect_true(2 * pnorm(-abs(b$u)) < 0.05 || isTRUE(all.equal(b$u, est + max_radius)))
 })
 
 test_that("with no seed candidates the default seed is est +/- 2 * se_guess and the seed policy `none` ignores candidates", {

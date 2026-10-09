@@ -107,7 +107,7 @@ test_that("high-precision lower and upper refinements converge to mirrored cross
 test_that("public randomization CI reaches both refinement directions when cheap p-values hide a wide crossing", {
 	f <- fx()
 	center <- f$inf$compute_estimate()
-	threshold <- 0.05
+	threshold <- 0.10
 	entry_widths <- numeric(0)
 	f$p$compute_randomization_ci_pval_cached <- function(inf_obj, r, delta, transform_responses, permutations, ci_search_control, ci_pval_cache) {
 		full_p <- 2 * pnorm(-abs(delta - center) / sdv)
@@ -128,7 +128,7 @@ test_that("public randomization CI reaches both refinement directions when cheap
 	)
 	expect_length(entry_widths, 2L)
 	expect_true(all(entry_widths > 0.01))
-	expect_equal(as.numeric(ci), center + c(-1, 1) * qnorm(0.975) * sdv, tolerance = 1e-2)
+	expect_equal(as.numeric(ci), center + c(-1, 1) * qnorm(0.95) * sdv, tolerance = 1e-2)
 })
 
 test_that("same-side full-precision p-values return the conservative outer end; non-finite ones return the input end", {
@@ -140,4 +140,35 @@ test_that("same-side full-precision p-values return the conservative outer end; 
 	expect_equal(g$p$high_precision_confirm_and_refine_ci_bound(1, 2, TRUE, 100L, "none", NULL, ctrl, 0.05, 1e-6), 1)
 	h <- fx(function(d) NA_real_)
 	expect_equal(h$p$high_precision_confirm_and_refine_ci_bound(1, 2, FALSE, 100L, "none", NULL, ctrl, 0.05, 1e-6), 2)
+})
+
+test_that("the public CI inverts the two-sided test at alpha on one shared fixed permutation set", {
+	set.seed(6801L)
+	n <- 18L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = 6801L, verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	des$add_all_subject_responses(1.5 * w + rnorm(n, sd = 0.45))
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	r <- 399L
+	perms <- p$generate_permutations(r)
+	unlockBinding("generate_permutations", p)
+	p$generate_permutations <- function(r) perms
+
+	alpha <- 0.2
+	ci <- suppressMessages(inf$compute_rand_confidence_interval(
+		alpha = alpha, r = r, pval_epsilon = 0.01, show_progress = FALSE,
+		ci_search_control = list(mc_enable = FALSE, high_precision_confirm = FALSE, seed = "none")
+	))
+	p_at_bounds <- vapply(as.numeric(ci), function(delta) {
+		inf$compute_rand_two_sided_pval(r = r, delta = delta, show_progress = FALSE, permutations = perms)
+	}, numeric(1))
+	p_at_zero <- inf$compute_rand_two_sided_pval(r = r, delta = 0, show_progress = FALSE, permutations = perms)
+
+	# Discrete p-values and the returned side of each final bracket permit one grid step.
+	expect_equal(p_at_bounds, rep(alpha, 2L), tolerance = 0.015)
+	expect_identical(!(ci[1] <= 0 && 0 <= ci[2]), p_at_zero < alpha)
 })

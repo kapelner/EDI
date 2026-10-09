@@ -60,14 +60,14 @@ test_that("clmm_warm_start maps the fixed-effects ordinal MLE for every link", {
 		m <- suppressWarnings(MASS::polr(factor(y) ~ Xf, method = clmm_leaves[[cls]][["method"]]))
 		z <- unname(m$zeta)
 		beta_ref <- unname(coef(m))                      # every link (cloglog included) uses the polr/clm sign
-		ref <- c(z[1], log(z[2] - z[1]), beta_ref, -3)
+		ref <- c(z[1], log(z[2] - z[1]), beta_ref, 0)
 		expect_length(ws, 5L)
 		expect_equal(ws, ref, tolerance = as.numeric(clmm_leaves[[cls]][["tol"]]), info = cls)
-		expect_equal(ws[5], -3)
+		expect_equal(ws[5], 0)
 	}
 })
 
-test_that("weighted estimate: logit uses the fast solver (with SE); other links use the surrogate (no SE); both track weighted polr", {
+test_that("weighted estimates retain the random intercept and track weighted clmm", {
 	des <- clmm_fixture()
 	n <- des$get_n()
 	set.seed(12)
@@ -76,18 +76,18 @@ test_that("weighted estimate: logit uses the fast solver (with SE); other links 
 		priv <- make_leaf(cls, des)
 		res <- suppressWarnings(priv$compute_weighted_clmm_estimate(wts))
 		Xf <- priv$clmm_X_for_rcpp()
-		method <- clmm_leaves[[cls]][["method"]]
-		ref <- unname(coef(suppressWarnings(MASS::polr(factor(priv$y) ~ Xf, weights = wts, method = method)))[1])
-		expect_equal(res$beta_hat_T, ref, tolerance = 2e-3, info = cls)
-		if (identical(method, "logistic")) {
-			expect_true(is.finite(res$ssq_b_j) && res$ssq_b_j > 0)
-		} else {
-			expect_true(is.na(res$ssq_b_j))
-		}
+		dat <- data.frame(y = ordered(priv$y), Xf,
+			group_id = factor(priv$clmm_group_id()), wt = wts)
+		ref <- suppressWarnings(ordinal::clmm(
+			y ~ w + x1 + (1 | group_id), data = dat, weights = wt,
+			link = clmm_leaves[[cls]][["link"]], nAGQ = 20L, Hess = TRUE
+		))
+		expect_equal(res$beta_hat_T, unname(coef(ref)["w"]), tolerance = 1e-6, info = cls)
+		expect_equal(res$ssq_b_j, unname(vcov(ref)["w", "w"]), tolerance = 1e-6, info = cls)
 	}
 })
 
-test_that("weighted estimate with all-zero weights is unavailable for the surrogate links", {
+test_that("weighted random-intercept estimate with all-zero weights is unavailable", {
 	des <- clmm_fixture()
 	priv <- make_leaf("InferenceOrdinalKKCLMMProbit", des)
 	res <- suppressWarnings(priv$compute_weighted_clmm_estimate(rep(0, des$get_n())))

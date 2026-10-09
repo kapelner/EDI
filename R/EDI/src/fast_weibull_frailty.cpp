@@ -330,6 +330,10 @@ edi::ResultMap fast_weibull_frailty_internal(
 
 	Eigen::VectorXd par(n_par);
 	if (warm_start_params.has_value()) {
+		if (warm_start_params->size() != n_par)
+			throw std::invalid_argument("warm_start_params must have length ncol(X) + 2");
+		if (!warm_start_params->allFinite())
+			throw std::invalid_argument("warm_start_params must contain only finite values");
 		par = *warm_start_params;
 	} else if (warm_start_beta.has_value()) {
 		const Eigen::VectorXd& sb = *warm_start_beta;
@@ -357,6 +361,10 @@ edi::ResultMap fast_weibull_frailty_internal(
 	Eigen::MatrixXd* info_start_ptr = nullptr;
 	if (warm_start_fisher_info.has_value()) {
 		info_start = *warm_start_fisher_info;
+		if (info_start.rows() != n_par || info_start.cols() != n_par)
+			throw std::invalid_argument("warm_start_fisher_info must be square with ncol(X) + 2 rows");
+		if (!info_start.allFinite())
+			throw std::invalid_argument("warm_start_fisher_info must contain only finite values");
 		info_start_ptr = &info_start;
 	}
 

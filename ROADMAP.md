@@ -291,6 +291,12 @@ needs.
   rate-ratio trial analysis.
 - **[Heteroskedasticity-robust standard errors](R/package_metadata/new_feature_plans/heteroskedasticity_robust_standard_errors.md)** —
   `se_type = HC0..HC3` on the OLS and risk-difference classes.
+- **[Covariate coefficient table](R/package_metadata/new_feature_plans/covariate_coefficient_table.md)** —
+  `get_coefficient_table()`: a `glm`-style model-based table for the
+  adjustment covariates, not just the treatment, on every likelihood class
+  that supports it. `get_summary()` prints it instead of the raw fit. It is
+  computed on a separate path, so the treatment estimate/SE/CI and
+  resampling paths get no slower.
 
 ### Ordinal, incidence, count, and quantile-regression fixes
 

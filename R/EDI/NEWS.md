@@ -9,6 +9,12 @@ bug), and standard-error and confidence-interval fixes.
 
 ## Breaking changes
 
+* Binary matching now minimizes ordinary Mahalanobis or Euclidean distance,
+  matching `nbpMatching::gendistance()`, instead of squared distance. This can
+  change the selected pairs. `match_objective = "squared_distance"` on
+  `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching`
+  reproduces the earlier objective.
+
 * `toggle_asserts()`, `set_num_cores()`, and the internal thread-count
   bookkeeping it drives no longer set global `options()` as a side effect
   (CRAN policy: a package must not modify and leave changed the user's

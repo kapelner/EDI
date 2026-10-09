@@ -437,17 +437,15 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Refits the mixed model with subject/block-level weights
-		#'   applied to each row's contribution to the marginal likelihood
-		#'   (Bayesian-bootstrap or nonparametric-bootstrap draw weights, expanded
-		#'   from subject/block level to individual rows via
-		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}) and
-		#'   returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. Uses
-		#'   \code{\link{fast_ordinal_regression_weighted_cpp}} — an ordinary
-		#'   (non-mixed-effects) weighted cumulative-logit fit, not a reweighted
-		#'   GLMM refit — as a fast approximation to the weighted marginal
-		#'   likelihood; this trades exact random-effects refitting for speed across
-		#'   many bootstrap replicates. When weights are effectively constant, this
+		#' @description Refits the ordinal random-intercept model with
+		#'   subject/block-level weights applied to each row's contribution to the
+		#'   marginal likelihood (Bayesian-bootstrap or nonparametric-bootstrap
+		#'   draw weights, expanded from subject/block level to individual rows via
+		#'   \code{private$expand_subject_or_block_weights_to_row_weights()}). The
+		#'   weighted refit uses \pkg{ordinal}'s cumulative-logit CLMM with 20-point
+		#'   adaptive Gauss-Hermite quadrature,
+		#'   preserving the conditional treatment-coefficient estimand reported by
+		#'   the unweighted fit. When weights are effectively constant, this
 		#'   collapses to the unweighted \code{compute_estimate()} call (returns
 		#'   \code{df = Inf} to signal a degenerate/skipped bootstrap replicate
 		#'   rather than refitting). Rows with non-finite or non-positive weight, or
@@ -468,37 +466,17 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 					return(private$cached_values$beta_hat_T)
 				}
 			}
-			pred_df = private$glmm_predictors_df()
-			ok = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
-			if (!any(ok)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				return(NA_real_)
-			}
-			X_fit = as.matrix(pred_df[ok, , drop = FALSE])
-			y_fit = as.numeric(private$y[ok])
-			n_params = ncol(X_fit) + length(sort(unique(y_fit))) - 1L
-			mod = tryCatch(
-				fast_ordinal_regression_weighted_cpp(
-					X = X_fit,
-					y = y_fit,
-					weights = as.numeric(row_weights[ok]),
-					warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
-					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
-					smart_cold_start = private$smart_cold_start_default
-				),
-				error = function(e) NULL
+			result = weighted_ordinal_random_intercept_fit(
+				y = private$y,
+				predictors_df = private$glmm_predictors_df(),
+				group_id = private$glmm_group_id(),
+				row_weights = row_weights,
+				link = "logit",
+				nAGQ = 20L,
+				estimate_only = estimate_only
 			)
-			mod_ok = !is.null(mod) && isTRUE(mod$converged) &&
-				!is.null(mod$params) && all(is.finite(as.numeric(mod$params))) &&
-				length(mod$b) >= 1L && is.finite(as.numeric(mod$b[1L])) &&
-				abs(as.numeric(mod$b[1L])) <= private$max_abs_reasonable_coef
-			if (mod_ok) {
-				private$set_fit_warm_start(as.numeric(mod$params), "params", fisher = mod$fisher_information)
-			}
-			beta_hat_T = if (mod_ok) as.numeric(mod$b[1L]) else NA_real_
-			private$cached_values$beta_hat_T = beta_hat_T
-			private$cached_values$s_beta_hat_T = NA_real_
+			private$cached_values$beta_hat_T = result$beta
+			private$cached_values$s_beta_hat_T = result$se
 			private$cached_values$df = Inf
 			private$cached_values$summary_table = NULL
 			private$cached_values$beta_hat_T
@@ -508,6 +486,16 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 		use_rcpp = TRUE,
 		glmm_response_type  = function() "ordinal",
 		glmm_family         = function() glmmTMB::cumulative(link = "logit"),
+		glmm_group_id = function(){
+			group_id = private$m
+			if (is.null(group_id)) group_id = rep(NA_integer_, private$n)
+			group_id[is.na(group_id)] = 0L
+			reservoir_idx = which(group_id == 0L)
+			if (length(reservoir_idx) > 0L) {
+				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
+			}
+			as.integer(group_id)
+		},
 		supports_likelihood_tests = function(){
 			isTRUE(private$use_rcpp)
 		},

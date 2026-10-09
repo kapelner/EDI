@@ -52,3 +52,43 @@ test_that("'rand_bootstrap_ci_bisection_failed' fires when bounds are finite but
 	expect_true(all(is.na(ci)))
 	expect_identical(f$inf$get_nonestimable_reason(), "rand_bootstrap_ci_bisection_failed")
 })
+
+test_that("the generic bootstrap-randomization search forwards alpha to expansion, stopping, and bisection", {
+	f <- smd_fixture(seed = 68L)
+	p <- f$priv
+	seen <- new.env(parent = emptyenv())
+	seen$expansion <- numeric(0)
+	seen$bisection <- numeric(0)
+	seen$mc <- numeric(0)
+	unlockBinding("compute_rand_bootstrap_ci_affine_coefs", p)
+	p$compute_rand_bootstrap_ci_affine_coefs <- function(...) NULL
+	unlockBinding("expand_rand_bootstrap_bound", p)
+	p$expand_rand_bootstrap_bound <- function(bound, est, target_pval, ...) {
+		seen$expansion <- c(seen$expansion, target_pval)
+		seen$mc <- c(seen$mc, p$brt_mc_control$mc_stop_threshold)
+		bound
+	}
+	unlockBinding("invert_rand_bootstrap_test_bisection", p)
+	p$invert_rand_bootstrap_test_bisection <- function(l, u, pval_th, ...) {
+		seen$bisection <- c(seen$bisection, pval_th)
+		if (length(seen$bisection) == 1L) l else u
+	}
+
+	ci <- f$inf$compute_rand_bootstrap_confidence_interval(
+		alpha = 0.2, B = 25L, pval_epsilon = 0.01, show_progress = FALSE, type = "percentile"
+	)
+	expect_true(all(is.finite(ci)))
+	expect_equal(seen$expansion, c(0.2, 0.2))
+	expect_equal(seen$bisection, c(0.2, 0.2))
+	expect_equal(seen$mc, c(0.2, 0.2))
+})
+
+test_that("the affine bootstrap-randomization shortcut inverts at alpha rather than alpha/2", {
+	f <- smd_fixture(seed = 69L)
+	A <- seq(-2, 2, length.out = 20L)
+	ci <- f$priv$closed_form_ci_from_affine_null_draws(
+		A = A, c_slopes = rep(1, length(A)), t_obs = 0, alpha = 0.2
+	)
+	# At alpha/2 the 2/B floor equals the threshold and the old path returned NULL.
+	expect_equal(ci, c(-1.78947368421053, 1.78947368421053), tolerance = 1e-12)
+})

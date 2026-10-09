@@ -282,6 +282,10 @@ LikelihoodFitResult fast_zap_internal(const Eigen::Ref<const Eigen::MatrixXd>& X
     int total_p = X.cols() + Xzi.cols();
     Eigen::VectorXd params(total_p);
     if (warm_start_params.has_value()) {
+        if (warm_start_params->size() != total_p)
+            throw std::invalid_argument("warm_start_params must have length ncol(X) + ncol(Xzi)");
+        if (!warm_start_params->allFinite())
+            throw std::invalid_argument("warm_start_params must contain only finite values");
         params = *warm_start_params;
     } else if (smart_cold_start) {
         params = edi_opt::zap_smart_cold_start(X, Xzi, y);
@@ -297,6 +301,10 @@ LikelihoodFitResult fast_zap_internal(const Eigen::Ref<const Eigen::MatrixXd>& X
     const Eigen::MatrixXd* h_ptr = nullptr;
     if (warm_start_fisher_info.has_value()) {
         H_start = *warm_start_fisher_info;
+        if (H_start.rows() != total_p || H_start.cols() != total_p)
+            throw std::invalid_argument("warm_start_fisher_info must be square with ncol(X) + ncol(Xzi) rows");
+        if (!H_start.allFinite())
+            throw std::invalid_argument("warm_start_fisher_info must contain only finite values");
         h_ptr = &H_start;
     }
 

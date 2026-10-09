@@ -60,7 +60,7 @@ double bisection_ci_search(const std::function<double(double)>& pvalue, double l
 //' @param u_lower Initial upper bound for lower CI bound search (typically the estimate)
 //' @param l_upper Initial lower bound for upper CI bound search (typically the estimate)
 //' @param u_upper Initial upper bound for upper CI bound search
-//' @param pval_th P-value threshold (typically alpha/2 for two-sided CI)
+//' @param pval_th P-value threshold (typically alpha for a two-sided CI)
 //' @param tol Tolerance for convergence (in p-value space)
 //' @param transform_responses String: "none", "log", or "logit"
 //' @param num_cores Passed through to pval_fn for inner parallelism

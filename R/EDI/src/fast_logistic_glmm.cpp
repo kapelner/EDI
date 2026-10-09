@@ -492,9 +492,11 @@ edi::ResultMap fast_logistic_glmm_internal(
 	par[total - 1] = -3.0;
 	if (warm_start_params.has_value()) {
 		const Eigen::VectorXd& sp = *warm_start_params;
-		if (sp.size() == total) {
-			for (int i = 0; i < total; ++i) par[i] = sp[i];
-		}
+		if (sp.size() != total)
+			throw std::invalid_argument("warm_start_params must have length ncol(X) + 1");
+		if (!sp.allFinite())
+			throw std::invalid_argument("warm_start_params must contain only finite values");
+		par = sp;
 	} else if (smart_cold_start) {
 		par.head(p) = ols_smart_cold_start_beta(X, y);
 	}
@@ -506,6 +508,10 @@ edi::ResultMap fast_logistic_glmm_internal(
 	Eigen::MatrixXd* info_start_ptr = nullptr;
 	if (warm_start_fisher_info.has_value()) {
 		info_start = *warm_start_fisher_info;
+		if (info_start.rows() != total || info_start.cols() != total)
+			throw std::invalid_argument("warm_start_fisher_info must be square with ncol(X) + 1 rows");
+		if (!info_start.allFinite())
+			throw std::invalid_argument("warm_start_fisher_info must contain only finite values");
 		info_start_ptr = &info_start;
 	}
 

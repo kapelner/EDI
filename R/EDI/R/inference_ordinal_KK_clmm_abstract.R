@@ -167,54 +167,16 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		},
 		clmm_link = function() stop(class(self)[1], " must implement clmm_link()"),
 		compute_weighted_clmm_estimate = function(row_weights, estimate_only = FALSE){
-			X_fit = private$clmm_X_for_rcpp()
-			link_method = switch(
-				private$clmm_link(),
-				logit = "logistic",
-				probit = "probit",
-				cauchit = "cauchit",
-				cloglog = "cloglog",
-				"logistic"
-			)
-			if (identical(link_method, "logistic")) {
-				ok = is.finite(row_weights) & row_weights > 0 & is.finite(as.numeric(private$y))
-				if (any(ok)) {
-					X_w = X_fit[ok, , drop = FALSE]
-					y_w = as.numeric(private$y[ok])
-					w_w = as.numeric(row_weights[ok])
-					start_len = ncol(X_w) + length(sort(unique(y_w))) - 1L
-					fit_fast = tryCatch(
-						fast_ordinal_regression_weighted_cpp(
-							X = X_w,
-							y = y_w,
-							weights = w_w,
-							warm_start_params = private$get_fit_warm_start_for_length("params", start_len),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(start_len)
-						),
-						error = function(e) NULL
-					)
-					if (!is.null(fit_fast) && length(fit_fast$b) >= 1L && is.finite(fit_fast$b[1L])) {
-						# Fixed 2026-09-07: fast_ordinal_regression_weighted_cpp
-						# already computes ssq_b_j (the variance of b[1], the
-						# treatment coefficient -- see
-						# fast_ordinal_regression.cpp's ssq_b_j = vcov_full(n_alpha,
-						# n_alpha)) whenever estimate_only = FALSE; it was being
-						# discarded here, starving the Bayesian-bootstrap
-						# studentized/BCa variants of a per-replicate SE for the
-						# logit-link CLMM family (base InferenceOrdinalKKGLMM and
-						# InferenceOrdinalKKCLMM* subclasses using this link).
-						return(list(beta_hat_T = as.numeric(fit_fast$b[1L]), ssq_b_j = fit_fast$ssq_b_j))
-					}
-				}
-			}
-			sur = weighted_ordinal_bootstrap_surrogate_fit(
-				X = X_fit,
+			fit = weighted_ordinal_random_intercept_fit(
 				y = private$y,
+				predictors_df = private$clmm_predictors_df(),
+				group_id = private$clmm_group_id(),
 				row_weights = row_weights,
-				method = link_method
+				link = private$clmm_link(),
+				nAGQ = 20L,
+				estimate_only = estimate_only
 			)
-			if (is.null(sur)) return(list(beta_hat_T = NA_real_, ssq_b_j = NA_real_))
-			list(beta_hat_T = as.numeric(sur$beta_hat), ssq_b_j = NA_real_)
+			list(beta_hat_T = fit$beta, ssq_b_j = fit$variance)
 		},
 		clmm_predictors_df = function(){
 			full_X = private$create_design_matrix()

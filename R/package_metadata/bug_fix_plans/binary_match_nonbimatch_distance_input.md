@@ -49,14 +49,15 @@ than on `gendistance()`'s. The difference is the matrix EDI hands it.
 
 ## TODOs
 
-- [ ] TODO-1: **Diagonal to 0 (bit-preserving).** Replace `diag(D) =
+- [x] TODO-1: **Diagonal to 0 (bit-preserving).** Replace `diag(D) =
   .Machine$double.xmax` with `diag(D) = 0`. Test: pairs identical to the
   current output on fixed-seed fixtures at n ∈ {20, 200, 1000}, p ∈ {2,
   4}, both `mahal_match` values; 1.3x on the matcher. Check
   `nbpMatching`'s documentation for its own statement about the
   diagonal and cite it in the code comment.
 
-- [ ] TODO-2 *(decision-gated, user decision required; default change)*:
+- [x] TODO-2 *(accepted by the user's instruction to queue and complete all
+  v1.0.5 TODOs; default change)*:
   **Unsquared distances.** Pass `sqrt` of the squared Mahalanobis (or
   Euclidean) distances, matching `gendistance()`'s objective. 2.2x on the
   matcher in total with TODO-1, and the objective then agrees with the
@@ -77,6 +78,28 @@ than on `gendistance()`'s. The difference is the matrix EDI hands it.
   distance step is already faster; the matcher then runs on comparable
   input), and ≥ 1.3x if TODO-2 is accepted. Update
   `benchmark_model_fits.md`.
+
+## Implementation and validation (2026-10-09)
+
+The helper now passes a zero diagonal, as `nbpMatching::distancematrix` itself
+documents: diagonal values are ignored and zero is preferable because very
+large values can distort scaling. Its default objective is ordinary Euclidean
+or Mahalanobis distance, matching `gendistance()`. Both affected public design
+constructors expose `match_objective = c("distance", "squared_distance")`;
+the second value preserves EDI <= 1.0.4 pair selection. The default change is
+documented in both class roxygen and `NEWS.md`.
+
+The focused regression checks n in {20, 200, 1000}, p in {2, 4}, Euclidean and
+Mahalanobis inputs. In every case, zero and `double.xmax` diagonals produce the
+same squared-objective pairs; the compatibility switch reproduces those pairs;
+and the new default exactly reproduces direct `nonbimatch()` on ordinary
+distances. The file passes 55 expectations with a compile-free source load.
+
+TODO-3 remains open for an installed-package benchmark/report refresh. A noisy
+source-loaded three-run diagnostic while two comprehensive suites were active
+gave median 1206 ms for the full EDI design and 966 ms for the canonical
+pipeline (0.80x), so it is not suitable evidence for the installed acceptance
+threshold and is not written into `benchmark_model_fits.md`.
 
 ## Out of scope
 

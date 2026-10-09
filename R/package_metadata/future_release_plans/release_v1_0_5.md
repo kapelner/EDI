@@ -1620,6 +1620,16 @@ baseline as expected/benign.
   Acceptance: ≥ 1x of the `gendistance` + `nonbimatch` row after TODO-1.
   Independent of every other item.
 
+  **Implementation status 2026-10-09:** matching now uses a zero diagonal
+  and ordinary distance by default, with `match_objective =
+  "squared_distance"` preserving the prior objective on both public design
+  classes. Roxygen and NEWS record the default change, and the cross-product
+  regression passes 55 expectations across sample sizes, dimensions and
+  Euclidean/Mahalanobis modes. Linked TODOs 1-2 are closed; TODO-3's installed
+  benchmark/report remains. The concurrent source-loaded diagnostic was only
+  0.80x and was correctly not substituted for the installed acceptance run,
+  so this release item stays unchecked.
+
 - [ ] TODO-62 (added 2026-10-07, user decision): **Benchmark harness: R6
   construction inside the timed region misreads sub-10 ms rows** —
   `../bug_fix_plans/benchmark_r6_construction_timing.md → TODO-1..4`.
@@ -1803,15 +1813,15 @@ baseline as expected/benign.
   regression that forces each fallback. **Default change** only on tied
   data reaching those fallbacks. Independent of every other item.
 
-- [ ] TODO-70 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-70 (added 2026-10-09, fixed 2026-10-09; user decision; algorithm-sweep
   verification F1 + F1c): **`DesignSeqOneByOneRandomBlockSize` redraws are wrong** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-1`.
-  The generic redraw loop never advances `private$t`, so every redraw uses the last subject's stratum. The block queue env is shared through the shallow clone and never reset, so redraws mutate the original design. Redraws are block-balanced 51–76% of the time (100% required). The existing `random_block_size_redraw_w_cpp` is never called. **Default change:** rand/bootstrap p and CI for this design.
+  The generic redraw loop never advances `private$t`, so every redraw uses the last subject's stratum. The block queue env is shared through the shallow clone and never reset, so redraws mutate the original design. Redraws are block-balanced 51–76% of the time (100% required). The existing `random_block_size_redraw_w_cpp` is never called. **Default change:** rand/bootstrap p and CI for this design. **Resolution:** the class now overrides redraw with independent C++ queues derived from realized stratum keys and preserves live `w`, `t`, and queue state.
 
-- [ ] TODO-71 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-71 (added 2026-10-09, fixed 2026-10-09; user decision; algorithm-sweep
   verification F1b): **`sample(private$block_sizes, 1)` gotcha corrupts real assignments** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-2`.
-  With a single block size, `sample(4L, 1)` draws from `1:4`; the first block was balanced only 70% of the time. Affects actual assignments, not just redraws. The default `c(4,6,8)` is unaffected.
+  With a single block size, `sample(4L, 1)` draws from `1:4`; the first block was balanced only 70% of the time. Affects actual assignments, not just redraws. The default `c(4,6,8)` is unaffected. **Resolution:** assignment samples an index into `block_sizes`; the package-wide sweep found no second vulnerable length-one call. The focused, shipped-design, and seed suites pass 255 expectations without compilation.
 
 - [ ] TODO-72 (added 2026-10-09, user decision; algorithm-sweep
   verification F8): **Ridit misscores an interior level absent from the reference arm** —

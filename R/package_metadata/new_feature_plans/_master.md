@@ -1193,6 +1193,18 @@ already stated there:**
   `exactRankTests` are GPL-2 only against EDI's GPL-3: reimplemented from
   the 1986/1987 papers, `coin` as a test oracle only. Small-`n` exact
   default is decision-gated (plan TODO-6).
+- **5AM. Covariate coefficient table** (added 2026-10-09, user decision)
+  → `release_v1_1_0.md → TODO-47`. `covariate_coefficient_table.md`: a public
+  `get_coefficient_table()` (model-based Wald table for every covariate, not
+  just `w`), plus `get_summary()` printing it instead of the raw fit list.
+  The method exists only on classes that support it, selected by a registry
+  capability flag. "Support" means a single covariate regression whose full
+  vcov can be formed with the same estimator as the class's own treatment SE.
+  The vcov is built lazily, never inside resampling. Invariant: the table's
+  treatment row reproduces the class's own SE. **Separate path (hard
+  constraint, 2026-10-09):** the treatment-variance path is untouched and
+  gains no work; any needed C++ is a new kernel function. Depends on
+  nothing.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 

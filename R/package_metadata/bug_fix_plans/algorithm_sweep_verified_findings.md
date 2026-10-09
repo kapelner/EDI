@@ -27,7 +27,7 @@ are fixed here because they are still exported and registered.
 
 ## Group A — wrong results on default paths of public classes
 
-- [ ] TODO-1 (F1 + F1c): **`DesignSeqOneByOneRandomBlockSize` redraws are wrong.**
+- [x] TODO-1 (F1 + F1c): **`DesignSeqOneByOneRandomBlockSize` redraws are wrong.**
   The class does not override `draw_ws_raw`, so it uses the generic loop at
   `design_seq_one_by_one_abstract.R:190-204`. That loop iterates a *local* `t`,
   but `assign_wt()` reads `private$Xraw[private$t, ]`
@@ -47,7 +47,7 @@ are fixed here because they are still exported and registered.
   vacuous `0 <= sum(ws[1:4]) <= 4` check in `test-designs.R`.
   **Default change:** randomization and bootstrap p-values and CIs for this design.
 
-- [ ] TODO-2 (F1b): **`sample(private$block_sizes, 1)` R gotcha corrupts real
+- [x] TODO-2 (F1b): **`sample(private$block_sizes, 1)` R gotcha corrupts real
   assignments** (`design_seq_one_by_one_random_block_size.R:129`).
   `assertIntegerish(block_sizes, min.len = 1)` accepts one value, and
   `sample(4L, 1)` then draws from `1:4`. With `block_sizes = 4` the first four
@@ -55,6 +55,16 @@ are fixed here because they are still exported and registered.
   unaffected. **Fix:** `private$block_sizes[sample.int(length(private$block_sizes), 1L)]`.
   Grep the package for other `sample(x, 1)` on possibly length-1 vectors.
   **Test:** `block_sizes = 4` gives perfectly balanced consecutive blocks.
+
+  Implemented 2026-10-09: `draw_ws_raw()` now derives the realized per-row
+  stratum keys and calls `random_block_size_redraw_w_cpp()` independently per
+  requested draw, so replay uses fresh local queues and never mutates `w`, `t`,
+  or the live `strata_states` environment. Real assignment now samples an index
+  into `block_sizes`, avoiding base R's length-one `sample()` special case; an
+  exhaustive R-source grep found no second possibly-length-one `sample(x, 1)`
+  call. The focused decomposition/state regression passes 127 expectations,
+  `test-designs.R` passes 103, and the all-design seed suite passes 25 under
+  `pkgload::load_all(..., compile = FALSE)`.
 
 - [ ] TODO-3 (F8): **Ridit misscores an interior level that is absent from the
   reference arm** (`src/fast_ridit_analysis.cpp:76-81`,
@@ -104,7 +114,7 @@ are fixed here because they are still exported and registered.
 
 ## Group B — resampling calibrated against the wrong target
 
-- [ ] TODO-7 (F13): **Ordinal KK random-effects Bayesian bootstraps use a
+- [x] TODO-7 (F13): **Ordinal KK random-effects Bayesian bootstraps use a
   fixed-effects fit** (`inference_ordinal_KK_clmm_abstract.R:~169`,
   `inference_ordinal_KK_combined.R:~460`). `InferenceOrdinalKKGLMM` reports
   0.583 (matches `ordinal::clmm`), but BB replicates are about 0.414 and the BB
@@ -115,6 +125,24 @@ are fixed here because they are still exported and registered.
   fixed, CLMM shows the same mismatch, so **land this with or after TODO-31**.
   **Fix:** weighted random-intercept kernels for the BB, or disable BB for these
   classes (as KKGEE does). At a minimum, document that it targets the marginal coefficient.
+
+  **Resolved 2026-10-09.** Both ordinal random-effects families now refit the
+  conditional random-intercept model for every nonconstant bootstrap draw.
+  `InferenceOrdinalKKGLMM` no longer calls the fixed-effects
+  `fast_ordinal_regression_weighted_cpp`; it and all four CLMM links share
+  `weighted_ordinal_random_intercept_fit()`, which expands matched-unit weights
+  to rows and fits `ordinal::clmm` with 20-point adaptive Gauss-Hermite
+  quadrature. A failed default CLMM start is retried from a fixed-effects
+  cumulative-link fit over deterministic log-sigma starts
+  `{-5,-3,-1,0,1}`, retaining the highest finite likelihood. If the suggested
+  `ordinal` package is unavailable or every mixed-model fit fails, the draw is
+  nonestimable rather than silently changing estimands. Constant weights still
+  take the existing exact unweighted fast path. Focused source-loaded tests
+  cover logit/probit/cauchit/cloglog, zero-weight units, replicate SEs, the
+  mixed-vs-fixed coefficient distinction, and direct agreement with an
+  independently constructed weighted CLMM. No native rebuild is required for
+  this R-only fix; installed comprehensive CSV regeneration remains a release
+  reconciliation step.
 
 - [ ] TODO-8 (F14): **KK clogit+GLMM Bayesian bootstraps fit glmmTMB (Laplace)
   on all rows**, while the point estimate uses clogit + 20-node GH

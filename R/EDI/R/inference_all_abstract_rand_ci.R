@@ -161,7 +161,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   \code{fit_reuse_factorizations}. Set \code{mc_enable = FALSE} to force
 		#'   full enumeration of all requested randomization draws.
 		#'   The search radius is \code{max(max_radius_se_mult * se_guess, max_radius_scale_mult * sd(y))}.
-		#'   When the randomization p-value does not drop below \code{alpha/2} anywhere within
+		#'   When the randomization p-value does not drop below \code{alpha} anywhere within
 		#'   the search radius (e.g. the test has low power or the design has few unique
 		#'   permutations), a \emph{conservative} CI bound is returned at the search boundary
 		#'   rather than \code{NA}. This guarantees a valid (though possibly wide) interval.
@@ -207,7 +207,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				assertLogical(show_progress); show_progress = isTRUE(show_progress) && self$num_cores == 1
 			}
 			ci_search_control = private$normalize_randomization_ci_search_control(ci_search_control, r, pval_epsilon)
-			ci_search_control$mc_stop_threshold = alpha / 2
+			ci_search_control$mc_stop_threshold = alpha
 			private$check_randomization_ci_deadline(ci_search_control, "Randomization CI setup")
 			dispatch_cores = private$effective_parallel_cores("rand_ci", self$num_cores)
 			if (dispatch_cores != self$num_cores) {
@@ -319,10 +319,10 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			# cores for the inner p-value computations inside each bisection step.
 			ci = c(
 				temp_inf$.__enclos_env__$private$compute_ci_by_inverting_the_randomization_test_iteratively(
-					r, bounds$l, bounds$est, alpha / 2, pval_epsilon, transform_arg, TRUE, show_progress, perms, ci_search_control, ci_pval_cache
+					r, bounds$l, bounds$est, alpha, pval_epsilon, transform_arg, TRUE, show_progress, perms, ci_search_control, ci_pval_cache
 				),
 				temp_inf$.__enclos_env__$private$compute_ci_by_inverting_the_randomization_test_iteratively(
-					r, bounds$est, bounds$u, alpha / 2, pval_epsilon, transform_arg, FALSE, show_progress, perms, ci_search_control, ci_pval_cache
+					r, bounds$est, bounds$u, alpha, pval_epsilon, transform_arg, FALSE, show_progress, perms, ci_search_control, ci_pval_cache
 				)
 			)
 			if (length(ci) != 2L || !all(is.finite(ci[1:2]))) {
@@ -532,8 +532,8 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			u = min(seed_ci[2], est + max_radius)
 			if (!is.finite(l) || l >= est) l = est - min_radius
 			if (!is.finite(u) || u <= est) u = est + min_radius
-			l = private$expand_bound(inf_obj, l, est, r, transform_arg, permutations, alpha / 2, TRUE, max_radius, ci_search_control$max_expansions, ci_search_control, ci_pval_cache)
-			u = private$expand_bound(inf_obj, u, est, r, transform_arg, permutations, alpha / 2, FALSE, max_radius, ci_search_control$max_expansions, ci_search_control, ci_pval_cache)
+			l = private$expand_bound(inf_obj, l, est, r, transform_arg, permutations, alpha, TRUE, max_radius, ci_search_control$max_expansions, ci_search_control, ci_pval_cache)
+			u = private$expand_bound(inf_obj, u, est, r, transform_arg, permutations, alpha, FALSE, max_radius, ci_search_control$max_expansions, ci_search_control, ci_pval_cache)
 			list(est = est, l = l, u = u, fallback_ci = fallback_ci)
 		},
 		get_randomization_ci_seed_candidates = function(inf_obj, alpha){
@@ -697,7 +697,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				private$check_randomization_ci_deadline(ci_search_control, "Randomization CI bisection")
 			}
 			if (is.na(pval_l) || is.na(pval_u) || !all(is.finite(c(l, u)))) return(NA_real_)
-			# Conservative bound: p-value at the search boundary still >= alpha/2,
+			# Conservative bound: p-value at the search boundary still >= alpha,
 			# meaning the true CI bound lies beyond the search radius.
 			# Return the boundary as a valid (conservative) one-sided limit.
 			if (lower && is.finite(pval_l) && pval_l >= pval_th) {

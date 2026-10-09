@@ -110,7 +110,7 @@ test_that("BRT debug mode returns per-iteration diagnostics", {
 test_that("BRT confidence interval covers the truth and inverts the test correctly", {
 	des_alt = build_brt_design(function() DesignSeqOneByOneKK14$new(response_type = "continuous", n = n_brt), 3)
 	inf_alt = new_brt_inference(des_alt)
-	# B must satisfy 2/B < alpha/2 or the p-value floor prevents bracketing the bounds
+	# B must satisfy 2/B < alpha or the p-value floor prevents bracketing the bounds
 	ci_alt = suppressMessages(inf_alt$compute_rand_bootstrap_confidence_interval(B = 101, pval_epsilon = 0.02, show_progress = FALSE))
 	expect_length(ci_alt, 2)
 	expect_true(all(is.finite(ci_alt)))

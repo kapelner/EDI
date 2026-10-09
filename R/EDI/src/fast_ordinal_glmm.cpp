@@ -291,14 +291,11 @@ edi::ResultMap fast_ordinal_glmm_internal(
 	Eigen::VectorXd par(total);
 	if (warm_start_params.has_value()) {
 		const Eigen::VectorXd& sv = *warm_start_params;
-		if (sv.size() == total) {
-			for (int i = 0; i < total; ++i) par[i] = sv[i];
-		} else {
-			// Fallback: zero-initialize
-			par.head(n_alpha).setZero();
-			par.segment(n_alpha, p).setZero();
-			par[total - 1] = -3.0;
-		}
+		if (sv.size() != total)
+			throw std::invalid_argument("warm_start_params must have length (K - 1) + ncol(X) + 1");
+		if (!sv.allFinite())
+			throw std::invalid_argument("warm_start_params must contain only finite values");
+		par = sv;
 	} else if (warm_start_beta.has_value()) {
 		const VectorXd& sb = *warm_start_beta;
 		if (sb.size() == total) {
@@ -331,6 +328,10 @@ edi::ResultMap fast_ordinal_glmm_internal(
 	const Eigen::MatrixXd* info_start_ptr = nullptr;
 	if (warm_start_fisher_info.has_value()) {
 		info_start = *warm_start_fisher_info;
+		if (info_start.rows() != total || info_start.cols() != total)
+			throw std::invalid_argument("warm_start_fisher_info must be square with (K - 1) + ncol(X) + 1 rows");
+		if (!info_start.allFinite())
+			throw std::invalid_argument("warm_start_fisher_info must contain only finite values");
 		info_start_ptr = &info_start;
 	}
 

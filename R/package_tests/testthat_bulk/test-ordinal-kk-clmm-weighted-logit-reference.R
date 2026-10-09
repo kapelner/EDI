@@ -19,13 +19,15 @@ kk_clmm_weighted_logit_fixture <- function() {
 }
 
 kk_clmm_weighted_logit_reference <- function(fixture, weights) {
+  row_weights <- weights[fixture$context$row_to_unit]
   dat <- data.frame(y = ordered(fixture$y), w = fixture$w,
-                    weight = weights[fixture$context$row_to_unit])
-  ordinal::clm(y ~ w, data = dat[dat$weight > 0, ], weights = weight,
-               link = "logit", control = ordinal::clm.control(gradTol = 1e-9))
+                    group_id = factor(fixture$private$clmm_group_id()),
+                    weight = row_weights)
+  ordinal::clmm(y ~ w + (1 | group_id), data = dat[row_weights > 0, ],
+                weights = weight, link = "logit", nAGQ = 20L, Hess = TRUE)
 }
 
-test_that("KK CLMM logit expands matched-unit weights and retains replicate uncertainty", {
+test_that("KK CLMM logit expands matched-unit weights and retains the random intercept", {
   skip_if_not_installed("ordinal")
   fixture <- kk_clmm_weighted_logit_fixture()
   sizes <- tabulate(fixture$context$row_to_unit)
@@ -36,12 +38,8 @@ test_that("KK CLMM logit expands matched-unit weights and retains replicate unce
   beta <- unname(coef(reference)["w"])
   se <- sqrt(unname(vcov(reference)["w", "w"]))
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(fixture$weights),
-               beta, tolerance = 2e-5)
-  expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T, se, tolerance = 2e-5)
-  expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(5 * fixture$weights),
-               beta, tolerance = 2e-5)
-  expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T, se / sqrt(5),
-               tolerance = 2e-5)
+               beta, tolerance = 1e-6)
+  expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T, se, tolerance = 1e-6)
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(
     fixture$weights, estimate_only = TRUE), beta, tolerance = 2e-5)
   expect_true(is.na(fixture$private$last_weighted_refit$s_beta_hat_T))
@@ -57,17 +55,7 @@ test_that("KK CLMM logit excludes whole zero-weight pairs and reservoir subjects
   expect_equal(sum(weights[fixture$context$row_to_unit] == 0), 3L)
   reference <- kk_clmm_weighted_logit_reference(fixture, weights)
   beta <- fixture$inf$compute_estimate_with_bootstrap_weights(weights)
-  # The native relative likelihood stopping rule can leave a coefficient
-  # error of a few 1e-4; verify the resulting likelihood loss separately.
-  expect_equal(beta, unname(coef(reference)["w"]), tolerance = 3e-4)
-  row_weights <- weights[fixture$context$row_to_unit]
-  nll <- function(b) {
-    thresholds <- c(-Inf, reference$alpha, Inf)
-    probability <- plogis(thresholds[fixture$y + 1L] - b * fixture$w) -
-      plogis(thresholds[fixture$y] - b * fixture$w)
-    -sum(row_weights * log(probability))
-  }
-  expect_lt(nll(beta) - nll(unname(coef(reference)["w"])), 1e-6)
+  expect_equal(beta, unname(coef(reference)["w"]), tolerance = 1e-6)
   expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T,
                sqrt(unname(vcov(reference)["w", "w"])), tolerance = 2e-5)
   expect_true(is.na(fixture$inf$compute_estimate_with_bootstrap_weights(weights * 0)))
@@ -78,12 +66,12 @@ test_that("KK CLMM logit can reuse an ordinal coefficient and information warm s
   skip_if_not_installed("ordinal")
   fixture <- kk_clmm_weighted_logit_fixture()
   reference <- kk_clmm_weighted_logit_reference(fixture, fixture$weights)
-  params <- unname(coef(reference)) # Thresholds precede the treatment coefficient.
+  params <- unname(coef(reference))
   fisher <- solve(vcov(reference))
   fixture$private$set_fit_warm_start(params, "params", fisher = fisher)
   expect_equal(fixture$private$get_fit_warm_start_for_length("params", 3L), params)
   expect_equal(fixture$inf$compute_estimate_with_bootstrap_weights(fixture$weights),
-               unname(coef(reference)["w"]), tolerance = 2e-5)
+               unname(coef(reference)["w"]), tolerance = 1e-6)
   expect_equal(fixture$private$last_weighted_refit$s_beta_hat_T,
                sqrt(unname(vcov(reference)["w", "w"])), tolerance = 2e-5)
   expect_equal(fixture$private$get_fit_warm_start_for_length("params", 3L), params)

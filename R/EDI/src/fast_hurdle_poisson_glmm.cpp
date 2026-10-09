@@ -487,6 +487,10 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
 
     Eigen::VectorXd par(total);
     if (warm_start_params.has_value()) {
+        if (warm_start_params->size() != total)
+            throw std::invalid_argument("warm_start_params must have length ncol(X) + 1");
+        if (!warm_start_params->allFinite())
+            throw std::invalid_argument("warm_start_params must contain only finite values");
         par = *warm_start_params;
     } else if (smart_cold_start) {
         par.setZero();
@@ -508,6 +512,10 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
     Eigen::MatrixXd* info_start_ptr = nullptr;
     if (warm_start_fisher_info.has_value()) {
         info_start = *warm_start_fisher_info;
+        if (info_start.rows() != total || info_start.cols() != total)
+            throw std::invalid_argument("warm_start_fisher_info must be square with ncol(X) + 1 rows");
+        if (!info_start.allFinite())
+            throw std::invalid_argument("warm_start_fisher_info must contain only finite values");
         info_start_ptr = &info_start;
     }
 

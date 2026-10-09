@@ -2,9 +2,12 @@
 
 # Compute non-bipartite pair-matching structure from a covariate matrix.
 # Returns a list with $indicies_pairs (n/2 x 2 integer matrix, 1-based row indices).
-# Uses squared Euclidean distance by default; Mahalanobis if mahal_match = TRUE.
+# Uses Euclidean distance by default; Mahalanobis if mahal_match = TRUE.
+# `match_objective = "squared_distance"` preserves the EDI <= 1.0.4 objective.
 # For p == 1 the subjects are simply ordered and paired consecutively.
-compute_binary_match_structure = function(X, mahal_match = FALSE) {
+compute_binary_match_structure = function(X, mahal_match = FALSE,
+		match_objective = c("distance", "squared_distance")) {
+	match_objective = match.arg(match_objective)
 	assert_nbpmatching_installed("compute_binary_match_structure")
 	n = nrow(X)
 	p = ncol(X)
@@ -33,7 +36,10 @@ compute_binary_match_structure = function(X, mahal_match = FALSE) {
 		} else {
 			D = as.matrix(stats::dist(X))^2
 		}
-		diag(D) = .Machine$double.xmax
+		if (match_objective == "distance") D = sqrt(D)
+		# nbpMatching::distancematrix documents that diagonal entries are ignored
+		# and explicitly prefers zero because very large values distort its scaling.
+		diag(D) = 0
 		indicies_pairs = as.matrix(
 			nbpMatching::nonbimatch(nbpMatching::distancematrix(D))$matches[, c("Group1.Row", "Group2.Row")]
 		)

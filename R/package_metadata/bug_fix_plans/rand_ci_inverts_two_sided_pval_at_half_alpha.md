@@ -57,17 +57,29 @@ and the CI's own draws.
 
 ## Fix
 
-- [ ] TODO-1: Use `alpha` (not `alpha / 2`) as `pval_th` in both inverters,
+- [x] TODO-1: Use `alpha` (not `alpha / 2`) as `pval_th` in both inverters,
   the expansion helpers, `mc_stop_threshold`, and the closed-form affine path.
   Also check the `2/B ≥ alpha/2` floor warnings at
   `inference_all_abstract_rand_bootstrap_ci.R:119-124`, which should become
-  `2/B ≥ alpha`.
-- [ ] TODO-2: Check every other inverter for the same convention (grep
+  `2/B ≥ alpha`. Implemented in both public search paths, the SMC stopping
+  controls, bound expansion, bisection, and the affine shortcut; the warning
+  now recommends `B > 2/alpha`.
+- [x] TODO-2: Check every other inverter for the same convention (grep
   `alpha / 2` near `two_sided`). The asymptotic, score, and LR inverters already
-  use α according to the shared-inference catalog, but confirm this.
-- [ ] TODO-3: Add a duality test. On a fixture, `rand_pval(δ = bound) ≈ α` at
+  use α according to the shared-inference catalog, but confirm this. Confirmed:
+  the shared likelihood/score/gradient inverter passes `alpha` directly to
+  `pval_invert_ci_cpp`, and both Zhang inversion routes pass `alpha` to their
+  bisection helper. Remaining `alpha / 2` occurrences are CI labels, two-tail
+  critical values, or two-tail bootstrap quantiles.
+- [x] TODO-3: Add a duality test. On a fixture, `rand_pval(δ = bound) ≈ α` at
   each returned bound (within MC tolerance), and `0 ∉ CI` ⟺ `p < α` for a
-  shared fixed permutation set.
+  shared fixed permutation set. Added a public fixed-permutation regression
+  (399 shared assignments), generic bootstrap threshold-forwarding coverage,
+  and an affine-shortcut regression whose old `alpha / 2` path returned NULL.
+  Source-loaded (`pkgload`, `compile = FALSE`) focused validation passed for
+  the randomization bisection/bounds, bootstrap-randomization CI guards and
+  floor warning, the full bootstrap-randomization suite, the general rand-CI
+  suite, custom-statistic delta shifting, and model-scale classification.
 - [ ] TODO-4: Regenerate the `rand` / `rand_bootstrap` CI rows of the
   `comprehensive_tests` CSVs, and re-run any coverage tables or docs that
   quote randomization-CI coverage.

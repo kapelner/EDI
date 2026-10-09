@@ -16,7 +16,7 @@ using namespace Rcpp;
 //' @param r Number of randomization iterations
 //' @param l Initial lower bound
 //' @param u Initial upper bound
-//' @param pval_th P-value threshold (typically alpha/2 for two-sided CI)
+//' @param pval_th P-value threshold (typically alpha for a two-sided CI)
 //' @param tol Tolerance for convergence (in p-value space)
 //' @param transform_responses String: "none", "log", or "logit"
 //' @param lower Logical: TRUE for lower CI bound, FALSE for upper
