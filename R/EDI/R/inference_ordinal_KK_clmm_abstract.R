@@ -264,7 +264,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 						alpha_par[k] = if (diff_k > 0) log(diff_k) else 0.0
 					}
 				}
-				c(alpha_par, beta_nore, -3.0)
+				c(alpha_par, beta_nore, 0.0)
 			}, error = function(e) NULL)
 		},
 		shared = function(estimate_only = FALSE){

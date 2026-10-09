@@ -126,7 +126,7 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 			}
 			if (is.null(private$strata_states[[key]]) || length(private$strata_states[[key]]) == 0) {
 				# Randomly choose next block size
-				current_block_size = sample(private$block_sizes, 1)
+				current_block_size = private$block_sizes[sample.int(length(private$block_sizes), 1L)]
 				# Refill block
 				n_T = round(current_block_size * private$prob_T)
 				n_C = current_block_size - n_T
@@ -144,6 +144,21 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 		strata_cols = NULL,
 		block_sizes = NULL,
 		strata_states = NULL, # hash map of stratum -> vector of remaining assignments
+		draw_ws_raw = function(r = 100){
+			strata_keys = if (private$uses_covariates) {
+				vapply(seq_len(private$t), function(i) {
+					private$get_strata_key(private$Xraw[i, ])
+				}, character(1))
+			} else {
+				rep("overall", private$t)
+			}
+			w_mat = replicate(r, random_block_size_redraw_w_cpp(
+				as.character(unname(strata_keys)),
+				as.integer(private$block_sizes),
+				as.numeric(private$prob_T)
+			))
+			matrix(as.numeric(w_mat), nrow = private$t, ncol = r)
+		},
 		sequential_bootstrap_whole_group = FALSE
 	)
 )

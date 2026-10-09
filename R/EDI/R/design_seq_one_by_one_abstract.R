@@ -58,6 +58,32 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		add_one_subject = function(x_new, allow_new_cols = TRUE){
 			if (should_run_asserts()) {
 				assertClass(x_new, "data.frame")
+				if (nrow(x_new) != 1){
+					stop("You can only add one subject at a time.")
+				}
+			}
+			# The opt-in preallocated path has already established the schema on
+			# subject 1. Identical names/classes and compatible factor levels let
+			# us fill the next row without repeating the generic schema machinery.
+			if (isTRUE(private$Xraw_preallocated) && private$t < private$n &&
+					identical(names(x_new), names(private$Xraw))) {
+				same_classes = identical(lapply(x_new, class), private$Xraw_schema_classes)
+				factor_levels_ok = identical(
+					lapply(which(vapply(x_new, is.factor, logical(1))), function(j) levels(x_new[[j]])),
+					private$Xraw_schema_factor_levels
+				)
+				if (same_classes && factor_levels_ok) {
+					next_t = private$t + 1L
+					set(private$Xraw, next_t, seq_len(ncol(private$Xraw)), as.list(x_new[1L, ]))
+					private$t = next_t
+					private$model_matrix_stale = TRUE
+					if (private$t > (ncol(private$Xraw) + 2) && private$uses_covariates && private$assignment_rule_reads_model_matrix) {
+						private$covariate_impute_if_necessary_and_then_create_model_matrix()
+					}
+					return(invisible(self))
+				}
+			}
+			if (should_run_asserts()) {
 				assertStrataClusterArgs(
 					strata_cols = private$strata_cols,
 					cluster_col = private$cluster_col,
@@ -67,11 +93,6 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 				)
 			}
 			x_new = as.data.table(x_new)
-			if (should_run_asserts()) {
-				if (nrow(x_new) != 1){
-					stop("You can only add one subject at a time.")
-				}
-			}
 			j_with_NAs = is.na(unlist(x_new))
 			if (any(j_with_NAs) & private$t == 0){
 				# Drop missing attributes, not subject rows: data.table's single
@@ -145,15 +166,43 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 					}
 				}
 			}
-			#add new subject's measurements to the raw data frame (there should be the same exact columns even if there are new ones introduced)
-			private$Xraw = rbindlist(list(private$Xraw, x_new), use.names = TRUE)
+			# Fixed-size sequential rules may opt into one allocation followed by
+			# in-place row fills. A late factor level that was not present in the
+			# first row falls back to the general rbindlist path, which unions levels.
+			next_t = private$t + 1L
+			if (private$t == 0L && isTRUE(private$preallocate_Xraw) && private$fixed_sample) {
+				private$Xraw_schema_classes = lapply(x_new, class)
+				private$Xraw_schema_factor_levels = lapply(which(vapply(x_new, is.factor, logical(1))), function(j) levels(x_new[[j]]))
+				private$Xraw = x_new[rep(1L, private$n)]
+				if (private$n > 1L) {
+					for (j in seq_len(ncol(private$Xraw))) set(private$Xraw, 2L:private$n, j, NA)
+				}
+				private$Xraw_preallocated = TRUE
+			} else if (isTRUE(private$Xraw_preallocated)) {
+				factor_cols = names(private$Xraw)[vapply(private$Xraw, is.factor, logical(1))]
+				factor_levels_ok = all(vapply(factor_cols, function(col) {
+					value = x_new[[col]][1L]
+					is.na(value) || as.character(value) %in% levels(private$Xraw[[col]])
+				}, logical(1)))
+				if (factor_levels_ok) {
+					for (j in seq_len(ncol(private$Xraw))) {
+						set(private$Xraw, next_t, j, x_new[[names(private$Xraw)[j]]][1L])
+					}
+				} else {
+					private$Xraw = rbindlist(list(private$Xraw[seq_len(private$t)], x_new), use.names = TRUE)
+					private$Xraw_preallocated = FALSE
+				}
+			} else {
+				private$Xraw = rbindlist(list(private$Xraw, x_new), use.names = TRUE)
+			}
 			private$p_raw_t = ncol(private$Xraw)
 			#iterate t
-			private$t = private$t + 1L #t must be an integer for data.table's fast "set" function below to work
+			private$t = next_t #t must be an integer for data.table's fast "set" function below to work
+			private$model_matrix_stale = TRUE
 			#we only bother with imputation and model matrices if we have enough data otherwise it's a huge mess
 			#thus, designs cannot utilize imputations nor model matrices until this condition is met
 			#luckily, those are the designs implemented herein so we have complete control (if you are extending this package, you'll have to deal with this issue here)
-			if (private$t > (ncol(private$Xraw) + 2) & private$uses_covariates){ #we only need to impute if we need the X's to make the allocation decisions
+			if (private$t > (ncol(private$Xraw) + 2) & private$uses_covariates & private$assignment_rule_reads_model_matrix){ #we only need to impute if we need the X's to make the allocation decisions
 				private$covariate_impute_if_necessary_and_then_create_model_matrix()
 			}
 		},

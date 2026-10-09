@@ -68,3 +68,35 @@ test_that("block sizes must give an integer number of treated units and must be 
 	expect_error(DesignSeqOneByOneRandomBlockSize$new(block_sizes = c(0, 4), response_type = "continuous", n = 10L, verbose = FALSE))
 	expect_error(DesignSeqOneByOneRandomBlockSize$new(block_sizes = 2.5, response_type = "continuous", n = 10L, verbose = FALSE))
 })
+
+test_that("a singleton block_sizes vector produces balanced real blocks", {
+	for (seed in 1:20) {
+		w <- mk(40L, 4L, seed = seed)
+		expect_equal(as.numeric(rowsum(w, rep(seq_len(10L), each = 4L))), rep(2, 10L))
+	}
+})
+
+test_that("redraws replay fresh stratum queues without mutating the realized design", {
+	set.seed(71)
+	n <- 48L
+	g <- factor(rep(c("a", "b"), each = n / 2L))
+	X <- data.frame(g = g)
+	d <- DesignSeqOneByOneRandomBlockSize$new(
+		strata_cols = "g", block_sizes = c(4L, 6L), response_type = "continuous",
+		n = n, seed = 71L, verbose = FALSE
+	)
+	for (i in seq_len(n)) d$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	priv <- d$.__enclos_env__$private
+	w_before <- d$get_w()
+	queues_before <- as.list.environment(priv$strata_states, all.names = TRUE)
+	t_before <- priv$t
+
+	ws <- d$draw_ws_according_to_design(25L)
+	expect_equal(dim(ws), c(n, 25L))
+	for (j in seq_len(ncol(ws))) {
+		for (lv in levels(g)) expect_true(decomposes(ws[g == lv, j], c(4L, 6L), 0.5))
+	}
+	expect_identical(d$get_w(), w_before)
+	expect_identical(priv$t, t_before)
+	expect_identical(as.list.environment(priv$strata_states, all.names = TRUE), queues_before)
+})

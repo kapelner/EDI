@@ -3,9 +3,8 @@ library(EDI)
 
 # KK ordinal mixed-model classes against ordinal::clmm(nAGQ = 25) with a random intercept per pair (singletons
 # on their own level): InferenceOrdinalKKGLMM (fast_ordinal_glmm_cpp, Newton polish) equals clmm's treatment
-# coefficient. SUSPECTED SOURCE BUG (pinned at class level, not fixed): InferenceOrdinalKKCLMM (fast_ordinal_clmm_cpp
-# started at log sigma = -3) collapses the random effect and returns essentially the FIXED-EFFECTS polr estimate
-# instead of the mixed-model one -- on the seed-302 fixture 0.4101 (= polr 0.4100) vs clmm / KKGLMM 0.4228.
+# coefficient. InferenceOrdinalKKCLMM uses a neutral variance warm start and the CLMM kernel's
+# deterministic multistart, so it must retain the same random-effect solution on the seed-302 fixture.
 
 skip_if_not_installed("ordinal")
 skip_if_not_installed("MASS")
@@ -37,14 +36,13 @@ test_that("KK GLMM class equals clmm's treatment coefficient on several datasets
 	}
 })
 
-test_that("SUSPECTED SOURCE BUG (pinned): the KK CLMM class returns ~ the fixed-effects (polr) estimate, not the mixed-model one, on the seed-302 fixture", {
+test_that("the KK CLMM class retains the mixed-model random effect on the seed-302 fixture", {
 	f <- fx(302L)
 	mm <- suppressWarnings(ordinal::clmm(y ~ w + x + (1 | g), data = f$d, link = "logit", nAGQ = 25))
 	po <- unname(coef(MASS::polr(y ~ w + x, data = f$d))["w"])
 	est <- unname(new_inf("InferenceOrdinalKKCLMM", f$des)$compute_estimate())
 	expect_gt(sqrt(as.numeric(ordinal::VarCorr(mm)$g)), 0.3)                   # a genuine random effect exists
-	expect_lt(abs(est - po), 5e-3)                                              # KK CLMM ~ polr (random effect lost)
-	expect_gt(abs(est - unname(coef(mm)["w"])), 0.01)                           # ... and differs from the mixed-model estimate
-	# The GLMM class, by contrast, keeps the random effect.
+	expect_equal(est, unname(coef(mm)["w"]), tolerance = 3e-3, scale = 1)
+	expect_gt(abs(est - po), 0.01)
 	expect_gt(abs(unname(new_inf("InferenceOrdinalKKGLMM", f$des)$compute_estimate()) - po), 0.01)
 })

@@ -65,12 +65,12 @@ one with `NA` strata values).
 
 ## TODOs
 
-- [ ] TODO-1: **Per-arrival harness, before any change.** Time
+- [x] TODO-1: **Per-arrival harness, before any change.** Time
   `add_one_subject()` + `assign_wt()` at t = 10, 100, 500, 1000 and plot
   cost against t; the slope is the bug. Promote to `R/benchmark/` next to
   the design table. Installed package only.
 
-- [ ] TODO-2: **Incremental level bookkeeping (F3).** Make
+- [x] TODO-2: **Incremental level bookkeeping (F3).** Make
   `ensure_factor_metadata()` O(k): keep the full rescan only when
   `strata_level_rows` is `NULL` (first call or after `duplicate()`), and
   otherwise register only the keys of row t. Remove the duplicate call
@@ -78,7 +78,7 @@ one with `NA` strata values).
   registration. Also read the k values directly (`Xraw[[col]][t]`) instead
   of `Xraw[t, ]` (F4).
 
-- [ ] TODO-3: **Do not rebuild the model matrix during the sequence for
+- [x] TODO-3: **Do not rebuild the model matrix during the sequence for
   rules that never read it (F2).** Add a class-level private flag (for
   example `assignment_rule_reads_model_matrix`, default `TRUE` to
   preserve current behavior) that `DesignSeqOneByOnePocockSimon` sets to
@@ -90,7 +90,7 @@ one with `NA` strata values).
   the rule provably never touches `X`/`Ximp` (Efron, Bernoulli-style,
   Pocock–Simon; the covariate-adaptive and CARA rules keep `TRUE`).
 
-- [ ] TODO-4: **Amortize the append (F1).** Preallocate `Xraw` with
+- [x] TODO-4: **Amortize the append (F1).** Preallocate `Xraw` with
   capacity when `n` is known (fixed-sample sequential designs) and fill
   with data.table `set()`, or grow geometrically; expose the first t rows
   to every reader via the existing accessors. If the preallocation
@@ -102,6 +102,37 @@ one with `NA` strata values).
   flat in t and ≤ 0.5 ms at k = 4; whole-sequence time within 10x of
   `carat` at n = 1000; fixed-seed assignment sequences identical to 1.0.2
   on the TODO-1 fixtures. Update `benchmark_model_fits.md`.
+
+## Implementation and validation (2026-10-09)
+
+TODOs 1--4 are implemented. Fixed-size Pocock--Simon designs preallocate
+`Xraw`, expose only the enrolled prefix, fill schema-compatible rows in place,
+and fall back to `rbindlist` when a late factor schema cannot be filled safely.
+Their assignment rule opts out of the generic model-matrix rebuild and leaves
+the shared stale flag for the first inference/getter consumer. Level metadata
+now scans all rows only for initial/recovery construction; ordinary arrivals
+register one key per strata column and return the current row indices directly.
+
+`R/benchmark/benchmark_pocock_simon_arrivals.R` is the reusable installed- or
+source-package harness for t = 10, 100, 500, and 1000 plus the whole sequence.
+The non-compiling source-loaded run was flat in t. Seven warmed whole-sequence
+runs at n=1000 had times 672, 502, 525, 532, 542, 468, and 495 ms (median 525
+ms, about 0.525 ms/arrival); the smallest runs are below the 0.5 ms threshold,
+and an installed build is required for the release acceptance number.
+
+The fixed-seed late-level/NA fixture remains exactly
+`c(1, 0, 0, 1, 0, 1, 0, 0)`, with the expected stable level-row map and a
+deferred matrix identical after first access. The focused metadata suite passes
+53 expectations, the all-design seed suite passes 25, and five sequential
+schema/type/bootstrap suites pass 62 more expectations.
+
+TODO-5 remains open for the prohibited installed-package rebuild and report
+refresh. Its additional “within 10x of carat” criterion is inconsistent with
+the same item allowing up to 0.5 ms per arrival: 1000 public R calls at that
+bound already total 500 ms, whereas the recorded batch-C++ carat row is 4.41
+ms (a 44.1 ms 10x ceiling). Meeting that criterion requires the explicitly
+out-of-scope whole-sequence C++ API, so the installed rerun should assess the
+flat/0.5 ms arrival criterion and compare honestly with the R-loop Minirand row.
 
 ## Out of scope
 

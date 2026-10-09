@@ -3,9 +3,9 @@ library(EDI)
 
 # fast_ordinal_glmm_cpp started from log sigma = -3 (the start used by InferenceOrdinalKKCombined,
 # inference_ordinal_KK_combined.R) does NOT collapse: its Newton polish moves the L-BFGS result to the ML
-# solution, matching ordinal::clmm. Contrast with fast_ordinal_clmm_cpp from the same start (pinned in
-# test-ordinal-clmm-kernel-...-sigma-collapse-...). Also: a Poisson-GLMM cold start (also log sigma = -3)
-# recovers glmer on every simulated dataset tried.
+# solution, matching ordinal::clmm. The CLMM and Poisson GLMM kernels now independently protect
+# the same low-variance start with deterministic sigma multistart. The Poisson cold start recovers
+# glmer on every simulated dataset tried.
 
 skip_if_not_installed("ordinal")
 K <- function(x) get(x, envir = asNamespace("EDI"))

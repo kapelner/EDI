@@ -43,6 +43,48 @@ boundary" handling). Careful: some sigma-at-boundary fits are legitimate
 (true sigma near 0); the failure is a *non-stationary* boundary stop at a
 worse likelihood.
 
+## Resolution audit (2026-10-09)
+
+The three distinct affected native fitters now use the same deterministic
+log-sigma multistart pattern already used by `fast_ordinal_glmm_cpp`: retain
+the supplied/cold start, add `{-1, 0, 1}` and the lower variance boundary,
+respect a fixed log-sigma coordinate, and select the finite fit with the
+smallest objective. `InferenceOrdinalKKCLMM` also now supplies a neutral
+`log_sigma = 0` warm start. This fixes both the CLMM kernel/class fixtures and
+the logistic/Poisson GLMM cold-start fixtures without changing the public
+optimizer-policy contract (in particular, `InferenceCountKKGLMM` still uses
+`newton_raphson`; the kernel makes that choice robust to its starting basin).
+
+The logistic Hessian discrepancy was a chain-rule error. In
+`LogisticGLMMObjective::hessian`, `node_factor` is already
+`sqrt(2) * sigma * z`; its beta/log-sigma and log-sigma/log-sigma terms
+multiplied by `sigma` one extra time. Those factors are removed, and the
+regression now requires the full matrix to agree with both the score Jacobian
+and the independently differentiated marginal likelihood.
+
+The pre-fix characterization is preserved by the former pinned fixtures:
+CLMM collapsed in 6/12 simulations at `n = 200`, true sigma 0.9; logistic
+GLMM collapsed in 12/30 simulations at the same size/sigma; and Poisson
+Newton had the deterministic seed-6 failure while agreeing on the four
+seed-701--704 controls. A broader sigma-by-n grid and post-fix rates require
+executing the rebuilt native library and remain part of TODO-1 below.
+
+Reach sweep: `fast_ordinal_glmm_cpp` already has deterministic multistart;
+Gaussian LMM starts its random-effect SD at half the residual SD rather than
+at `-3`; the combined conditional-logistic/GLMM kernel initializes log sigma
+at zero. There is no negative-binomial random-intercept kernel in this
+checkout. `fast_hurdle_poisson_glmm_cpp` still has a single `-3` cold start,
+but no pinned collapse or evidence of a wrong basin; it is recorded here for
+the general v1.2 multistart plan rather than expanding this observed-defect
+fix without a reproducer.
+
+Static validation completed without compiling: all five edited R regression
+files and the edited R class file parse, and `git diff --check` passes. Native
+behavior cannot be validated until the package is rebuilt. After that, run
+the five focused bulk regressions, the sigma-by-n characterization grid, and
+the affected KK comprehensive rows; regenerate installed comprehensive CSVs
+only after those checks pass.
+
 ## Items
 
 - [ ] **TODO-1: Characterize.** For each of the four kernels, measure the
@@ -50,21 +92,21 @@ worse likelihood.
   reference: `ordinal::clmm(nAGQ=25)`, `glmer`) across a small grid of true
   sigma and `n`. Separate legitimate boundary solutions from non-stationary
   stops using the gradient norm at the stop.
-- [ ] **TODO-2: Decide the fix per kernel.** Candidates: a non-boundary
+- [x] **TODO-2: Decide the fix per kernel.** Candidates: a non-boundary
   default start (`log sigma = 0`, which the ordinal test shows recovers the
   ML solution); a short multistart over `{-1, 0, 1}` for the sigma
   coordinate (the multistart plan proposes a `scalar_nuisance_starts()` helper;
   it does not exist yet); refusing to report `converged = TRUE` on a
   non-stationary boundary stop. Align with the multistart plan so this is
   its first, narrow use rather than a competing mechanism.
-- [ ] **TODO-3: Hessian log-sigma block.** Determine whether
+- [x] **TODO-3: Hessian log-sigma block.** Determine whether
   `get_logistic_glmm_hessian_cpp`'s sigma row/column is wrong or the test's
   expectation is; if wrong, fix, and audit every caller that reads standard
   errors from it.
-- [ ] **TODO-4: Fix and flip the tests.** The four pinned tests are written
+- [x] **TODO-4: Fix and flip the tests.** The four pinned tests are written
   to assert the *buggy* behavior; convert each to a regression test that
   asserts agreement with `clmm`/`glmer`, and remove the "pinned" wording.
-- [ ] **TODO-5: Reach.** Sweep the other random-intercept kernels
+- [x] **TODO-5: Reach.** Sweep the other random-intercept kernels
   (`fast_ordinal_glmm_cpp`, Poisson/negative-binomial GLMM, Gaussian LMM)
   for the same warm-start value, and record the answer here.
 - [ ] **TODO-6: Comprehensive-test regeneration** for the affected KK

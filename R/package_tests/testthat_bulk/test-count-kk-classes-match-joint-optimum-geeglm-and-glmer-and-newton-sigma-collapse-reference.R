@@ -4,11 +4,9 @@ library(EDI)
 # KK (matched pairs + reservoir) count classes against independent constructions:
 # InferenceCountKKCondPoissonOneLik = the joint conditional-Poisson(pairs, Binomial) + reservoir-Poisson maximum
 # likelihood (derivative-free optimum), InferenceCountPoissonKKGEE ~ geepack::geeglm(poisson, exchangeable), and
-# InferenceCountKKGLMM = the random-intercept Poisson GLMM (glmer). SUSPECTED SOURCE BUG (pinned, not fixed):
-# the KK GLMM classes fit fast_poisson_glmm_cpp with optimization_alg = "newton_raphson", which on some datasets
-# (the seed-6 fixture here) collapses log sigma to about -3.5, reports converged = TRUE with a gradient norm of
-# ~0.3, and lands at a worse likelihood and a biased treatment coefficient (0.5475 vs the L-BFGS / glmer 0.5359).
-# On most datasets the two optimizers agree (checked below).
+# InferenceCountKKGLMM = the random-intercept Poisson GLMM (glmer). The Poisson GLMM kernel uses
+# deterministic log-sigma multistart for both Newton and L-BFGS, including the seed-6 fixture that
+# formerly allowed Newton to accept a worse low-variance local optimum.
 
 skip_if_not_installed("geepack")
 skip_if_not_installed("lme4")
@@ -58,7 +56,7 @@ test_that("KK GLMM class agrees with the L-BFGS fit / glmer on datasets where th
 	}
 })
 
-test_that("SUSPECTED SOURCE BUG (pinned): on the seed-6 fixture the Newton-optimizer KK GLMM fit collapses sigma and is biased vs L-BFGS / glmer", {
+test_that("on the seed-6 fixture the Newton-optimizer KK GLMM selects the L-BFGS / glmer optimum", {
 	f <- fx(6L)
 	inf <- new_inf("InferenceCountKKGLMM", f$des)
 	est <- unname(inf$compute_estimate())
@@ -66,12 +64,10 @@ test_that("SUSPECTED SOURCE BUG (pinned): on the seed-6 fixture the Newton-optim
 	expect_identical(pv$optimization_alg, "newton_raphson")
 	fit <- pv$cached_mod
 	expect_true(fit$converged)
-	expect_lt(as.numeric(fit$log_sigma), -2.5)                              # sigma collapsed
-	expect_gt(as.numeric(fit$gradient_norm), 0.1)                           # yet flagged converged with a large gradient
 	glmer_fit <- suppressMessages(suppressWarnings(lme4::glmer(y ~ w + x + (1 | g), family = poisson, data = f$d, nAGQ = 25)))
-	expect_gt(abs(est - unname(lme4::fixef(glmer_fit)["w"])), 0.005)         # biased relative to the ML solution (0.5359)
+	expect_equal(est, unname(lme4::fixef(glmer_fit)["w"]), tolerance = 1e-3)
 	Xf <- as.matrix(pv$create_design_matrix()); g <- as.integer(pv$m); g[is.na(g)] <- 0L; ri <- which(g == 0L); g[ri] <- max(g) + seq_along(ri)
 	lb <- K("fast_poisson_glmm_cpp")(Xf, as.numeric(pv$y), g, 1L, n_gh = 40L)
-	expect_equal(as.numeric(lb$b[2]), unname(lme4::fixef(glmer_fit)["w"]), tolerance = 1e-3)   # the L-BFGS kernel fit is right
-	expect_gt(as.numeric(fit$neg_loglik) - as.numeric(lb$neg_loglik), 1)
+	expect_equal(as.numeric(lb$b[2]), unname(lme4::fixef(glmer_fit)["w"]), tolerance = 1e-3)
+	expect_equal(as.numeric(fit$neg_loglik), as.numeric(lb$neg_loglik), tolerance = 1e-4)
 })

@@ -104,13 +104,44 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
     double gradient_norm = std::numeric_limits<double>::quiet_NaN();
 
     try {
-        LikelihoodFitResult fit = optimize_fixed_likelihood(obj, par, fixed_spec, maxit, eps_g, optimization_alg, "lbfgs", 0, info_start_ptr);
-        par = fit.params;
-        neg_ll = fit.value;
-        converged = std::isfinite(neg_ll) && fit.converged;
-        hit_iteration_cap = std::isfinite(neg_ll) && fit.hit_iteration_cap;
-        niter = fit.niter;
-        gradient_norm = fit.gradient_norm;
+        const int total = par.size();
+        bool log_sigma_is_fixed = false;
+        for (int ii = 0; ii < fixed_spec.fixed_idx.size(); ++ii)
+            if (fixed_spec.fixed_idx[ii] == total - 1) log_sigma_is_fixed = true;
+        std::vector<Eigen::VectorXd> starts{apply_fixed_values(par, fixed_spec)};
+        if (!log_sigma_is_fixed) {
+            for (double z : std::vector<double>{-1.0, 0.0, 1.0, -dat.max_abs_log_sigma}) {
+                bool duplicate = false;
+                for (const auto& existing : starts)
+                    if (std::abs(existing[total - 1] - z) < 1e-12) duplicate = true;
+                if (!duplicate) {
+                    Eigen::VectorXd candidate = par;
+                    candidate[total - 1] = z;
+                    starts.push_back(apply_fixed_values(candidate, fixed_spec));
+                }
+            }
+        }
+
+        LikelihoodFitResult best_fit;
+        bool have_finite_fit = false;
+        for (const auto& start_candidate : starts) {
+            LikelihoodFitResult fit = optimize_fixed_likelihood(
+                obj, start_candidate, fixed_spec, maxit, eps_g,
+                optimization_alg, "lbfgs", 0, info_start_ptr);
+            if (!std::isfinite(fit.value) || !fit.params.allFinite()) continue;
+            if (!have_finite_fit || fit.value < best_fit.value) {
+                best_fit = fit;
+                have_finite_fit = true;
+            }
+        }
+        if (!have_finite_fit)
+            throw std::runtime_error("ordinal CLMM produced no finite multistart fit");
+        par = best_fit.params;
+        neg_ll = best_fit.value;
+        converged = std::isfinite(neg_ll) && best_fit.converged;
+        hit_iteration_cap = std::isfinite(neg_ll) && best_fit.hit_iteration_cap;
+        niter = best_fit.niter;
+        gradient_norm = best_fit.gradient_norm;
     } catch (...) {
         converged = false;
         hit_iteration_cap = false;

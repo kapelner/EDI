@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <numeric>
 #include <limits>
+#include <stdexcept>
 
 #ifndef EDI_CORE_ONLY
 using namespace Rcpp;
@@ -372,6 +373,8 @@ edi::ResultMap fast_poisson_glmm_internal(
 
 	// Initialize
 	Eigen::VectorXd par(total);
+	par.setZero();
+	par[total - 1] = -3.0;
 	if (warm_start_params.has_value()) {
 		const Eigen::VectorXd& sp = *warm_start_params;
 		if (sp.size() == total) {
@@ -383,10 +386,6 @@ edi::ResultMap fast_poisson_glmm_internal(
 		Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(X);
 		Eigen::VectorXd beta_init = qr.solve(log_y_safe);
 		par.head(p) = beta_init;
-		par[total - 1] = -3.0;
-	} else {
-		par.head(p).setZero();
-		par[total - 1] = -3.0;
 	}
 
 	PoissonGLMMObjective obj(dat);
@@ -405,13 +404,43 @@ edi::ResultMap fast_poisson_glmm_internal(
 	bool hit_iteration_cap = false;
 	double gradient_norm = std::numeric_limits<double>::quiet_NaN();
 	try {
-		LikelihoodFitResult fit = optimize_fixed_likelihood(obj, par, fixed_spec, maxit, eps_g, optimization_alg, "lbfgs", 0, info_start_ptr);
-		par       = fit.params;
-		neg_ll    = fit.value;
-		converged = std::isfinite(neg_ll) && fit.converged;
-		hit_iteration_cap = std::isfinite(neg_ll) && fit.hit_iteration_cap;
-		niter = fit.niter;
-		gradient_norm = fit.gradient_norm;
+		bool log_sigma_is_fixed = false;
+		for (int ii = 0; ii < fixed_spec.fixed_idx.size(); ++ii)
+			if (fixed_spec.fixed_idx[ii] == total - 1) log_sigma_is_fixed = true;
+		std::vector<Eigen::VectorXd> starts{apply_fixed_values(par, fixed_spec)};
+		if (!log_sigma_is_fixed) {
+			for (double z : std::vector<double>{-1.0, 0.0, 1.0, -5.0}) {
+				bool duplicate = false;
+				for (const auto& existing : starts)
+					if (std::abs(existing[total - 1] - z) < 1e-12) duplicate = true;
+				if (!duplicate) {
+					Eigen::VectorXd candidate = par;
+					candidate[total - 1] = z;
+					starts.push_back(apply_fixed_values(candidate, fixed_spec));
+				}
+			}
+		}
+
+		LikelihoodFitResult best_fit;
+		bool have_finite_fit = false;
+		for (const auto& start_candidate : starts) {
+			LikelihoodFitResult fit = optimize_fixed_likelihood(
+				obj, start_candidate, fixed_spec, maxit, eps_g,
+				optimization_alg, "lbfgs", 0, info_start_ptr);
+			if (!std::isfinite(fit.value) || !fit.params.allFinite()) continue;
+			if (!have_finite_fit || fit.value < best_fit.value) {
+				best_fit = fit;
+				have_finite_fit = true;
+			}
+		}
+		if (!have_finite_fit)
+			throw std::runtime_error("Poisson GLMM produced no finite multistart fit");
+		par = best_fit.params;
+		neg_ll = best_fit.value;
+		converged = std::isfinite(neg_ll) && best_fit.converged;
+		hit_iteration_cap = std::isfinite(neg_ll) && best_fit.hit_iteration_cap;
+		niter = best_fit.niter;
+		gradient_norm = best_fit.gradient_norm;
 	} catch (...) {
 		return edi::ResultMap()
 			.set("b", par.head(p))

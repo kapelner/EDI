@@ -2,12 +2,9 @@ library(testthat)
 library(EDI)
 
 # fast_ordinal_clmm_cpp(): random-intercept cumulative-logit model. Started with log sigma = 0 it
-# reaches ordinal::clmm's ML solution (treatment coefficient, log sigma, likelihood). SUSPECTED
-# SOURCE BUG (pinned, not fixed): started with log sigma = -3 -- exactly what the KK ordinal CLMM
-# classes' clmm_warm_start() supplies (`c(alpha_par, beta_nore, -3.0)` in
-# inference_ordinal_KK_clmm_abstract.R) and also the kernel's own cold start -- the fit slides to the
-# lower sigma boundary (~ -3), reports converged = TRUE, and lands at a worse likelihood and a
-# biased treatment coefficient (6 of 12 simulated datasets with true sigma 0.9 in a probe).
+# reaches ordinal::clmm's ML solution (treatment coefficient, log sigma, likelihood). The kernel
+# uses deterministic log-sigma multistart, so an explicitly poor -3 start and the default cold
+# start must select the same likelihood basin rather than silently collapsing the random effect.
 
 skip_if_not_installed("ordinal")
 K <- function(x) get(x, envir = asNamespace("EDI"))
@@ -46,14 +43,14 @@ test_that("the fit is stable across other datasets when started at log sigma = 0
 	}
 })
 
-test_that("SUSPECTED SOURCE BUG (pinned): the -3 start (the KK CLMM classes' warm start) and the default cold start collapse sigma at a worse likelihood", {
+test_that("the -3 start and default cold start select the same finite optimum as the zero start", {
 	f <- fx()
 	good <- K("fast_ordinal_clmm_cpp")(f$X, f$y, f$g, 3L, 0L, warm_start_params = f$start(0))
 	for (r in list(K("fast_ordinal_clmm_cpp")(f$X, f$y, f$g, 3L, 0L, warm_start_params = f$start(-3)),
 			K("fast_ordinal_clmm_cpp")(f$X, f$y, f$g, 3L, 0L))) {
 		expect_true(r$converged)
-		expect_lt(as.numeric(r$log_sigma), -2.5)
-		expect_gt(as.numeric(r$neg_loglik) - as.numeric(good$neg_loglik), 0.5)
-		expect_gt(abs(as.numeric(r$b) - as.numeric(good$b)), 0.02)
+		expect_gt(as.numeric(r$log_sigma), -1.5)
+		expect_equal(as.numeric(r$neg_loglik), as.numeric(good$neg_loglik), tolerance = 1e-5)
+		expect_equal(as.numeric(r$b), as.numeric(good$b), tolerance = 1e-5)
 	}
 })

@@ -3,10 +3,8 @@ library(EDI)
 
 # get_logistic_glmm_neg_loglik_cpp / _score_cpp / _hessian_cpp (random-intercept logistic model,
 # params = [beta, log sigma], adaptive-free Gauss-Hermite with n_gh nodes). References: the
-# marginal likelihood evaluated group by group with integrate(), and numDeriv of it.
-# The neg-loglik, the score and the beta block of the Hessian agree. The Hessian's log-sigma
-# row / column does NOT match the Jacobian of the package's own (correct) score: pinned below
-# as a suspected source bug, not fixed.
+# marginal likelihood evaluated group by group with integrate(), and numDeriv of it. The
+# neg-loglik, score, and full Hessian (including the log-sigma row/column) agree.
 
 skip_if_not_installed("numDeriv")
 K <- function(x) get(x, envir = asNamespace("EDI"))
@@ -49,22 +47,12 @@ test_that("the score is the gradient of the log-likelihood (minus the neg-loglik
 	expect_equal(K("get_logistic_glmm_score_cpp")(f$X, f$y, f$g, p0), -numDeriv::grad(hand_nll, p0, dat = f), tolerance = 1e-5)
 })
 
-test_that("the Hessian's fixed-effect block equals the numeric Hessian; it is symmetric", {
+test_that("the full Hessian equals the score Jacobian and numeric log-likelihood Hessian", {
 	f <- fx()
 	h <- K("get_logistic_glmm_hessian_cpp")(f$X, f$y, f$g, p0)
 	hn <- -numDeriv::hessian(hand_nll, p0, dat = f)
-	expect_equal(unname(h[1:2, 1:2]), hn[1:2, 1:2], tolerance = 1e-5)
-	expect_equal(unname(h), unname(t(h)), tolerance = 1e-8)
-})
-
-test_that("SUSPECTED SOURCE BUG (pinned, not fixed): the Hessian's log-sigma row / column is inconsistent with the Jacobian of the package's own score", {
-	f <- fx()
-	h <- K("get_logistic_glmm_hessian_cpp")(f$X, f$y, f$g, p0)
 	jac <- numDeriv::jacobian(function(p) K("get_logistic_glmm_score_cpp")(f$X, f$y, f$g, p), p0)
-	# The score's Jacobian agrees with the numeric Hessian of the reference likelihood ...
-	expect_equal(jac, -numDeriv::hessian(hand_nll, p0, dat = f) * 1, tolerance = 1e-4)
-	# ... but the reported Hessian differs from it in the log-sigma entries (its diagonal even has the wrong sign).
-	expect_gt(abs(h[3, 3] - jac[3, 3]), 1)
-	expect_gt(h[3, 3], 0)
-	expect_gt(abs(h[1, 3] - jac[1, 3]), 0.1)
+	expect_equal(unname(h), unname(hn), tolerance = 1e-4)
+	expect_equal(unname(h), unname(jac), tolerance = 1e-4)
+	expect_equal(unname(h), unname(t(h)), tolerance = 1e-8)
 })

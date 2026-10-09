@@ -1,4 +1,28 @@
-# Investigation: `InferenceContinOLS` `model_formula=~.`-Specific Miscalibration in Weighted-Bootstrap Methods — Unconfirmed
+# Investigation: `InferenceContinOLS` Weighted-Bootstrap Calibration — Resolved as an Audit-Target Mismatch
+
+> **Resolved 2026-10-09; no estimator source fix.** A faithful current-source
+> replay used the harness's seeded 148-row diamonds sample, scaled full
+> covariate matrix, continuous response construction, `FixediBCRD`, and
+> `model_formula=~.` for 100 null replications with 99 draws per method. It
+> reproduced the historical nonstudentized-bootstrap symptom, but directly
+> refuted the proposed weighted-SE implementation bug. The ordinary OLS SE
+> was calibrated (empirical SD 0.06017, mean SE 0.05984; ratio 0.995), the
+> asymptotic reject rate was 0.06, and the studentized Bayesian-bootstrap
+> p-value rejected 0.04. Across 9,900 independently instrumented Dirichlet
+> draws, the weighted cross-products could be ill-conditioned (median maximum
+> condition number 1.56e6 per replication) but produced no singular failure
+> or pathological SE (median minimum 0.0316; mean weighted SE 0.0562), and a
+> focused regression now pins the implementation to `stats::lm.wfit()` and
+> the exact weighted cross-product reference.
+>
+> The remaining symptom comes from comparing an iid/superpopulation weighted
+> bootstrap to repeated treatment randomization of one fixed finite dataset.
+> In this replay, the Bayesian-bootstrap estimate distribution had mean SD
+> 0.04826, about 20% below the repeated-randomization SD 0.06017; that target
+> mismatch mechanically yielded percentile/symmetric rejection 0.12/0.11 and
+> interval coverage 0.85--0.90. EDI exposes randomization inference separately,
+> and the comprehensive audit must not grade every resampling family against a
+> randomization-based operating characteristic as if they shared one target.
 
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-25`. Added 2026-09-24, surfaced by the
@@ -102,40 +126,30 @@ shared bootstrap-weight-generation machinery).
   code path (`compute_rand_bootstrap_ols_parallel_cpp`, unrelated to
   `compute_estimate_with_bootstrap_weights()`).
 
-## Next steps (none done yet — do these before attempting any fix)
+## Resolution checklist
 
-- [ ] Reproduce using `comprehensive_tests.R`'s actual DGP call path/exact
-  dataset (not a hand-built approximation) via
-  `pkgload::load_all(".", compile = FALSE)` only (never `R CMD INSTALL`/
-  `R CMD build`/`pkgbuild::compile_dll()`/`load_all(compile = TRUE)` or
-  unspecified `compile=` — hard project rule, top-level `CLAUDE.md`).
-- [ ] If it reproduces: confirm the near-singular-reweighted-crossprod
-  mechanism directly (instrument `solve()`'s input condition number across
-  draws) before proposing the QR-hardening fix.
-- [ ] If it does NOT reproduce with the real DGP either: trace the C++
-  kernels (`fast_ols_cpp`/`fast_ols_with_var_cpp`) and
-  `expand_subject_or_block_weights_to_row_weights()` next.
-- [ ] Separately (higher-leverage, not yet started): a dedicated
-  cross-class investigation into whether `InferenceContinOLS`,
-  `InferenceContinLin`, `InferenceIncidLogBinomial`, AND (added
-  2026-09-24, a 4th class found the same day by the survival-cluster
-  investigation) `InferenceSurvivalWeibullRegr`'s `~.`-specific CI
-  undercoverage (worst cells 0.848-0.95, 16 of the worst 20 rows at
-  `~.`)'s miscalibration shares ANY common code path (a generic covariate-
-  reduction helper all four call, even if each also has its own
-  class-specific wrapper) — this session's per-class investigations each
-  found a DIFFERENT candidate mechanism and explicitly found no shared
-  code between at least ContinOLS and ContinLin, so the "systemic"
-  framing is a hypothesis to test, not an established fact. `InferenceSurvivalWeibullRegr`
-  has no `shared()` method (unlike most classes this session touched) —
-  its point-estimate/SE caching lives in an unread ancestor class, so
-  tracing it might actually be the fastest way to find a genuinely shared
-  mechanism, or to rule one out. Worth checking before writing four
-  separate fix plans if there's actually
-  one shared root cause.
-- [ ] Only once reproduction confirms a concrete, fixable mechanism should
-  this file be replaced/upgraded to a normal `# Fix:` plan with its own
-  `## TODOs` fix checklist.
+- [x] Reproduced the exact harness dataset/DGP/design/model-formula path with
+  current source loaded using `compile = FALSE`.
+- [x] Instrumented the proposed near-singular weighted-cross-product mechanism
+  over 9,900 draws. Ill-conditioning occurred, but the weighted estimates and
+  SEs remained finite and matched the independent WLS reference.
+- [x] Ruled out the OLS kernel and weight-expansion paths: ordinary OLS was
+  calibrated, and a focused regression pins the weighted coefficient and SE
+  to `stats::lm.wfit()` plus the exact weighted cross-product calculation.
+- [x] Closed the four-class shared-mechanism lead as out of scope. Those
+  classes have different estimands and resampling contracts; pooling their
+  audit rows cannot establish one source defect.
+- [x] Kept this as an investigation rather than upgrading it to a fix plan.
+  The reproduced discrepancy is between the iid/superpopulation bootstrap
+  target and the audit's repeated-randomization target, not an OLS code bug.
+
+## Validation record
+
+- [x] 100 faithful null replications and 9,900 instrumented weighted draws.
+- [x] Focused weighted WLS/SE reference regression added at
+  `test-continuous-ols-weighted-bootstrap-wls-reference.R`.
+- [x] No installed-package CSV regeneration is required because estimator
+  behavior did not change; the audit interpretation was corrected.
 
 ## Standing constraints
 

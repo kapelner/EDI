@@ -77,6 +77,35 @@ test_that("sequential arrival gives every level of every column its own stable c
 	expect_equal(sum(priv$counts[c(2, 4, 5), ]), 6)
 })
 
+test_that("Pocock-Simon preallocates rows, registers levels incrementally, and defers the model matrix", {
+	X <- data.frame(
+		g = factor(c("a", "a", "b", "a", NA, "c", "b", "c"), levels = c("a", "b", "c")),
+		h = factor(c("u", "v", "u", "v", "u", "w", NA, "w"), levels = c("u", "v", "w"))
+	)
+	des <- DesignSeqOneByOnePocockSimon$new(
+		strata_cols = c("g", "h"), weights = c(1, 2), p_best = 0.8,
+		response_type = "continuous", n = nrow(X), seed = 601L
+	)
+	priv <- des$.__enclos_env__$private
+	w <- numeric(nrow(X))
+	for (i in seq_len(nrow(X))) {
+		w[i] <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+		if (i == 1L) {
+			expect_equal(nrow(priv$Xraw), nrow(X))
+			expect_equal(nrow(des$get_X_raw()), 1L)
+			expect_true(isTRUE(priv$Xraw_preallocated))
+		}
+	}
+	expect_identical(w, c(1, 0, 0, 1, 0, 1, 0, 0))
+	expect_equal(des$get_X_raw(), data.table::as.data.table(X))
+	expect_equal(priv$strata_level_rows$g, c(a = 1L, b = 4L, `NA` = 5L, c = 6L))
+	expect_equal(priv$strata_level_rows$h, c(u = 2L, v = 3L, w = 7L, `NA` = 8L))
+	expect_true(isTRUE(priv$model_matrix_stale))
+	expect_null(priv$X)
+	expect_equal(nrow(des$get_X()), nrow(X))
+	expect_false(isTRUE(priv$model_matrix_stale))
+})
+
 binary_match_priv <- function(n = 20L) {
 	set.seed(4)
 	des <- DesignFixedBinaryMatch$new(response_type = "continuous", n = n, verbose = FALSE)

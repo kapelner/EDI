@@ -2,11 +2,9 @@ library(testthat)
 library(EDI)
 
 # fast_logistic_glmm_cpp(X, y, group, j_T, ...): a warm start at lme4::glmer's optimum recovers the
-# exact ML solution (coefficients, log sigma, negative log-likelihood, standard errors), and the
-# Newton optimizer from the smart cold start also lands near it. SUSPECTED SOURCE BUG (pinned, not
-# fixed): the DEFAULT cold-start L-BFGS fit often collapses log sigma to the lower boundary (about
-# -3) and still reports converged = TRUE, at a strictly worse likelihood than the ML solution
-# (12 of 30 simulated datasets with true sigma 0.9 in a probe; up to ~2.4 nats worse).
+# exact ML solution (coefficients, log sigma, negative log-likelihood, standard errors). The
+# deterministic log-sigma multistart must make the default L-BFGS and Newton fits select that same
+# finite basin instead of accepting a lower-variance local optimum.
 
 skip_if_not_installed("lme4")
 K <- function(x) get(x, envir = asNamespace("EDI"))
@@ -44,12 +42,13 @@ test_that("the Newton optimizer reaches essentially the ML likelihood from the s
 	expect_gt(as.numeric(r$log_sigma), -1)
 })
 
-test_that("SUSPECTED SOURCE BUG (pinned): the default cold-start fit collapses sigma to the boundary yet reports convergence at a worse likelihood", {
+test_that("the default cold-start fit selects the glmer likelihood basin with finite covariance", {
 	f <- fx()
 	ref_nll <- K("get_logistic_glmm_neg_loglik_cpp")(f$X, f$y, f$g, f$p_glmer, 40L)
 	r <- K("fast_logistic_glmm_cpp")(f$X, f$y, f$g, 1L, n_gh = 40L)
 	expect_true(r$converged)
-	expect_lt(as.numeric(r$log_sigma), -2.5)                       # ~ -3: sigma at the lower boundary
-	expect_gt(as.numeric(r$neg_loglik) - ref_nll, 1)               # >1 nat worse than the ML solution
-	expect_true(any(diag(r$vcov) <= 0 | !is.finite(diag(r$vcov))))    # and a non-positive / non-finite variance results
+	expect_gt(as.numeric(r$log_sigma), -1)
+	expect_equal(as.numeric(r$neg_loglik), ref_nll, tolerance = 1e-3)
+	expect_true(all(is.finite(diag(r$vcov))))
+	expect_true(all(diag(r$vcov) > 0))
 })

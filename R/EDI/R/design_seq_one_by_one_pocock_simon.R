@@ -98,6 +98,8 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 			private$strata_cols = strata_cols
 			private$p_best = p_best
 			private$uses_covariates = TRUE
+			private$assignment_rule_reads_model_matrix = FALSE
+			private$preallocate_Xraw = TRUE
 			
 			if (is.null(weights)){
 				private$weights = rep(1, length(strata_cols))
@@ -116,8 +118,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 		#'
 		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
-			private$ensure_factor_metadata()
-			subject_levels_idx = private$get_subject_levels_idx(private$Xraw[private$t, ])
+			subject_levels_idx = private$ensure_factor_metadata()
 			
 			if (is.null(private$counts)){
 				private$counts = matrix(0, nrow = private$num_levels_total, ncol = 2)
@@ -139,7 +140,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 			n = self$get_n()
 			x_levels_matrix = matrix(NA_integer_, nrow = n, ncol = length(private$strata_cols))
 			for (i in 1 : n){
-				x_levels_matrix[i, ] = private$get_subject_levels_idx(private$Xraw[i, ])
+				x_levels_matrix[i, ] = private$get_subject_levels_idx(i)
 			}
 			generate_permutations_pocock_simon_cpp(
 				x_levels_matrix,
@@ -159,26 +160,46 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 			list(i_b = sample_int_replace_cpp(private$t, private$t), m_vec_b = NULL)
 		},
 		ensure_factor_metadata = function(){
-			if (is.null(private$strata_level_rows)) private$strata_level_rows = vector("list", length(private$strata_cols))
-			if (length(private$strata_level_rows) != length(private$strata_cols)) {
+			full_scan = is.null(private$strata_level_rows) || length(private$strata_level_rows) != length(private$strata_cols)
+			if (full_scan) {
 				private$strata_level_rows = vector("list", length(private$strata_cols))
 			}
 			names(private$strata_level_rows) = private$strata_cols
-			used_rows = unlist(private$strata_level_rows, use.names = FALSE)
-			next_row = if (length(used_rows) > 0L) max(used_rows) + 1L else 1L
-			for (col in private$strata_cols) {
+			next_row = if (full_scan) 1L else private$num_levels_total + 1L
+			rows_to_register = if (full_scan) seq_len(private$t) else private$t
+			subject_levels_idx = integer(length(private$strata_cols))
+			names(subject_levels_idx) = private$strata_cols
+			for (j in seq_along(private$strata_cols)) {
+				col = private$strata_cols[[j]]
 				row_map = private$strata_level_rows[[col]]
 				if (is.null(row_map)) row_map = integer(0)
-				col_vals = private$Xraw[[col]]
-				col_keys = ifelse(is.na(col_vals), "NA", as.character(col_vals))
-				new_levels = setdiff(unique(col_keys), names(row_map))
-				if (length(new_levels) > 0L) {
-					new_rows = seq.int(next_row, length.out = length(new_levels))
-					names(new_rows) = new_levels
-					row_map = c(row_map, new_rows)
-					next_row = next_row + length(new_levels)
+				if (full_scan) {
+					col_vals = private$Xraw[[col]][rows_to_register]
+					col_keys = ifelse(is.na(col_vals), "NA", as.character(col_vals))
+					new_levels = setdiff(unique(col_keys), names(row_map))
+					if (length(new_levels) > 0L) {
+						new_rows = seq.int(next_row, length.out = length(new_levels))
+						names(new_rows) = new_levels
+						row_map = c(row_map, new_rows)
+						next_row = next_row + length(new_levels)
+					}
+				} else {
+					value = private$Xraw[[col]][private$t]
+					key = if (is.na(value)) "NA" else as.character(value)
+					pos = match(key, names(row_map), nomatch = 0L)
+					if (pos == 0L) {
+						row_map[[key]] = next_row
+						next_row = next_row + 1L
+					}
 				}
 				private$strata_level_rows[[col]] = row_map
+				if (full_scan) {
+					current_value = private$Xraw[[col]][private$t]
+					current_key = if (is.na(current_value)) "NA" else as.character(current_value)
+				} else {
+					current_key = key
+				}
+				subject_levels_idx[[j]] = row_map[[current_key]]
 			}
 			private$num_levels_total = max(0L, next_row - 1L)
 			if (!is.null(private$counts) && nrow(private$counts) < private$num_levels_total) {
@@ -186,11 +207,14 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				expanded[seq_len(nrow(private$counts)), ] = private$counts
 				private$counts = expanded
 			}
+			subject_levels_idx
 		},
-		get_subject_levels_idx = function(x_row){
-			private$ensure_factor_metadata()
+		get_subject_levels_idx = function(i){
+			x_row = if (is.numeric(i) && length(i) == 1L) NULL else i
+			if (!is.null(x_row)) private$ensure_factor_metadata()
 			vapply(private$strata_cols, function(col) {
-				key = if (is.na(x_row[[col]])) "NA" else as.character(x_row[[col]])
+				value = if (is.null(x_row)) private$Xraw[[col]][i] else x_row[[col]]
+				key = if (is.na(value)) "NA" else as.character(value)
 				row_idx = unname(private$strata_level_rows[[col]][key])
 				if (should_run_asserts()) {
 					if (length(row_idx) != 1L || is.na(row_idx)) {

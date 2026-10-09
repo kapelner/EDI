@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <numeric>
 #include <limits>
+#include <stdexcept>
 
 #ifndef EDI_CORE_ONLY
 using namespace Rcpp;
@@ -320,9 +321,14 @@ public:
 				const double sum_res_k_gi = res_group_sum_mat(gi, k);
 				E_Hik_sum.topLeftCorner(dat.p, dat.p).noalias() -= pk * weighted_crossprod(Xg, w_seg);
 				
-				E_Hik_sum(dat.p, dat.p) += pk * ((-sum_w_k_gi * node_factor * node_factor * sigma + sum_res_k_gi * node_factor) * sigma);
+				// node_factor is b_k = sqrt(2) * sigma * z_k.  Its first and
+				// second derivatives with respect to log(sigma) are both b_k;
+				// multiplying by sigma again double-counts that chain rule.
+				E_Hik_sum(dat.p, dat.p) += pk *
+					(-sum_w_k_gi * node_factor * node_factor + sum_res_k_gi * node_factor);
 				
-				Eigen::VectorXd d2L_db_dlogsigma_k_gi = -(Xg.transpose() * w_seg) * (node_factor * sigma);
+				Eigen::VectorXd d2L_db_dlogsigma_k_gi =
+					-(Xg.transpose() * w_seg) * node_factor;
 				E_Hik_sum.block(0, dat.p, dat.p, 1).noalias() += pk * d2L_db_dlogsigma_k_gi;
 			}
 		}
@@ -482,6 +488,8 @@ edi::ResultMap fast_logistic_glmm_internal(
 	LogisticGLMMData dat(X, y, gid_v, n_gh);
 
 	Eigen::VectorXd par(total);
+	par.setZero();
+	par[total - 1] = -3.0;
 	if (warm_start_params.has_value()) {
 		const Eigen::VectorXd& sp = *warm_start_params;
 		if (sp.size() == total) {
@@ -489,10 +497,6 @@ edi::ResultMap fast_logistic_glmm_internal(
 		}
 	} else if (smart_cold_start) {
 		par.head(p) = ols_smart_cold_start_beta(X, y);
-		par[total - 1] = -3.0;
-	} else {
-		par.head(p).setZero();
-		par[total - 1] = -3.0;
 	}
 
 	LogisticGLMMObjective obj(dat);
@@ -511,17 +515,47 @@ edi::ResultMap fast_logistic_glmm_internal(
 	bool hit_iteration_cap = false;
 	double gradient_norm = std::numeric_limits<double>::quiet_NaN();
 	try {
-		LikelihoodFitResult fit = optimize_fixed_likelihood(obj, par, fixed_spec, maxit, eps_g, optimization_alg, "lbfgs", 0, info_start_ptr);
-		par = fit.params;
-		neg_ll = fit.value;
-		niter = fit.niter;
-		converged = std::isfinite(neg_ll) && fit.converged;
+		bool log_sigma_is_fixed = false;
+		for (int ii = 0; ii < fixed_spec.fixed_idx.size(); ++ii)
+			if (fixed_spec.fixed_idx[ii] == total - 1) log_sigma_is_fixed = true;
+		std::vector<Eigen::VectorXd> starts{apply_fixed_values(par, fixed_spec)};
+		if (!log_sigma_is_fixed) {
+			for (double z : std::vector<double>{-1.0, 0.0, 1.0, -kLogSigmaPenaltyCenter}) {
+				bool duplicate = false;
+				for (const auto& existing : starts)
+					if (std::abs(existing[total - 1] - z) < 1e-12) duplicate = true;
+				if (!duplicate) {
+					Eigen::VectorXd candidate = par;
+					candidate[total - 1] = z;
+					starts.push_back(apply_fixed_values(candidate, fixed_spec));
+				}
+			}
+		}
+
+		LikelihoodFitResult best_fit;
+		bool have_finite_fit = false;
+		for (const auto& start_candidate : starts) {
+			LikelihoodFitResult fit = optimize_fixed_likelihood(
+				obj, start_candidate, fixed_spec, maxit, eps_g,
+				optimization_alg, "lbfgs", 0, info_start_ptr);
+			if (!std::isfinite(fit.value) || !fit.params.allFinite()) continue;
+			if (!have_finite_fit || fit.value < best_fit.value) {
+				best_fit = fit;
+				have_finite_fit = true;
+			}
+		}
+		if (!have_finite_fit)
+			throw std::runtime_error("logistic GLMM produced no finite multistart fit");
+		par = best_fit.params;
+		neg_ll = best_fit.value;
+		niter = best_fit.niter;
+		converged = std::isfinite(neg_ll) && best_fit.converged;
 		// hit_iteration_cap follows the same isfinite(neg_ll) gate as
 		// converged above: a non-finite objective is a distinct failure,
 		// not "ran out of iterations" (optimizer_diagnostics_report.md
 		// TODO-4).
-		hit_iteration_cap = std::isfinite(neg_ll) && fit.hit_iteration_cap;
-		gradient_norm = fit.gradient_norm;
+		hit_iteration_cap = std::isfinite(neg_ll) && best_fit.hit_iteration_cap;
+		gradient_norm = best_fit.gradient_norm;
 	} catch (...) {
 		return edi::ResultMap()
 			.set("params", par)

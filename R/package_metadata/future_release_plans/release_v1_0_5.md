@@ -900,7 +900,7 @@ plan files' internal numbering did not change.
   explicitly ungraded; historical null coverage was 0.93–1.00. All eight
   linked-plan items are closed and 112 focused assertions pass without
   compilation. Independent of every other item in this release.
-- [ ] TODO-25 (added 2026-09-24, same audit-triage wave, **low-medium
+- [x] TODO-25 (added 2026-09-24, conclusively refuted 2026-10-09; same audit-triage wave, **low-medium
   confidence, not reproduced**; tracked as an open investigation, not a
   fix plan, in
   `bug_fix_plans/investigate_contin_ols_weighted_bootstrap_se.md`;
@@ -928,7 +928,17 @@ plan files' internal numbering did not change.
   `InferenceIncidLogBinomial`, `InferenceSurvivalWeibullRegr`) with no
   confirmed shared mechanism between any of them yet — a dedicated
   cross-class investigation (plan's own next-step list) may be
-  higher-leverage than four separate per-class fixes.
+  higher-leverage than four separate per-class fixes. **Resolution:** a
+  faithful 100-replicate current-source replay reproduced the
+  nonstudentized symptom but found calibrated ordinary OLS and studentized
+  Bayesian-bootstrap inference. Across 9,900 weighted draws, even condition
+  numbers up to 1.99e7 produced finite estimates/SEs matching independent
+  WLS references. The bootstrap distribution was about 20% narrower because
+  it targets iid/superpopulation variation while the audit compared it with
+  repeated randomization of one fixed finite dataset. That target mismatch,
+  not an OLS defect, explains the percentile/basic findings. All linked
+  subtasks are closed; a focused three-assertion WLS reference passes and no
+  installed-result regeneration is warranted.
 - [ ] TODO-26 (added 2026-09-24, found independently TWICE the same day —
   by a survival-class cluster investigation and separately by a
   dedicated `biased_estimate` audit sweep, both converging on the same
@@ -1244,6 +1254,15 @@ baseline as expected/benign.
   `polr` estimate (0.4101 vs 0.4228 from `clmm`/`InferenceOrdinalKKGLMM`).
   Also a wrong-signed log-sigma entry in `get_logistic_glmm_hessian_cpp`.
   Reproduced by the pinned fixtures only; extent and fix undecided.
+  **Implementation status 2026-10-09:** the ordinal, logistic and Poisson
+  native GLMM fitters now screen deterministic log-sigma starts and retain
+  the best finite objective while respecting fixed sigma; KK CLMM uses a
+  neutral warm sigma. The duplicated sigma chain-rule factors in the
+  logistic Hessian were removed, five pinned regressions were flipped, and
+  the reach audit is complete. Static parsing and diff checks pass. Linked
+  TODOs 2-5 are closed; TODO-1's rebuilt sigma-by-n characterization and
+  TODO-6's rebuilt native/focused/comprehensive validation remain, so this
+  release item stays unchecked until an authorized rebuild.
 - [x] TODO-32 (added 2026-09-24, fixed 2026-10-08): **`InferenceOrdinalRidit(
   reference = "treatment")` now uses a non-degenerate symmetric estimand** —
   `../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
@@ -1558,6 +1577,15 @@ baseline as expected/benign.
   bit-preserving (equality test on `X`, `Ximp`, draws). Acceptance: iBCRD
   row ≤ 1.5 ms, blocking ≤ 2.5 ms. Touches the same builder as TODO-60;
   independent in content, rebase the second onto the first.
+
+  **Implementation status 2026-10-09:** package-version lookup is cached for
+  the session and covariate-dependent fixed designs defer model-matrix
+  construction behind a lazy builder gate. The focused missingness/cache and
+  all-design seed suites pass 82 expectations without compilation. A new
+  benchmark records source-loaded diagnostics, but those concurrent-load
+  timings are not the required installed-package acceptance measurement.
+  Linked-plan TODOs 1-4 are closed; TODO-5 remains pending the next authorized
+  rebuild/install, so this release item stays unchecked.
 
 - [ ] TODO-60 (added 2026-10-07, user decision): **Pocock–Simon: O(t) work
   per arrival (O(n²) per trial)** —

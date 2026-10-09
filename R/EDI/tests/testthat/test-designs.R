@@ -202,8 +202,8 @@ test_that("DesignSeqOneByOneRandomBlockSize works", {
 
 	ws <- des$get_w()[1:8]
 	expect_true(all(ws %in% c(0, 1)))
-	expect_true(sum(ws[1:4]) >= 0 && sum(ws[1:4]) <= 4)
-	expect_true(sum(ws[5:8]) >= 0 && sum(ws[5:8]) <= 4)
+	expect_equal(sum(ws[1:4]), 2)
+	expect_equal(sum(ws[5:8]), 2)
 })
 
 test_that("Response types work", {

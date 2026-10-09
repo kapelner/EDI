@@ -504,7 +504,7 @@ Design = R6::R6Class("Design",
 		#'
 		#' @return 			A data frame of subject data.
 		get_X_raw = function(){
-			private$Xraw
+			if (is.data.table(private$Xraw)) private$Xraw[seq_len(private$t)] else private$Xraw[seq_len(private$t), , drop = FALSE]
 		},
 		#' @description Get imputed X information
 		#'
@@ -915,6 +915,11 @@ Design = R6::R6Class("Design",
 	private = list(
 		edi_version_created = NULL,
 		model_matrix_stale = FALSE,
+		assignment_rule_reads_model_matrix = TRUE,
+		preallocate_Xraw = FALSE,
+		Xraw_preallocated = FALSE,
+		Xraw_schema_classes = NULL,
+		Xraw_schema_factor_levels = NULL,
 		version_mismatch_checked = FALSE,
 		# See TODO "Decide version-mismatch behavior" in save_load_api.md:
 		# warn once, on the first post-reload call to a "resume the trial"
@@ -1020,6 +1025,7 @@ Design = R6::R6Class("Design",
 			}
 		},
 		covariate_impute_if_necessary_and_then_create_model_matrix = function(){
+			Xraw_current = if (is.data.table(private$Xraw)) private$Xraw[seq_len(private$t)] else private$Xraw[seq_len(private$t), , drop = FALSE]
 			#make a copy... sometimes the raw will be the same as the imputed if there are no imputations
 			#(as.data.table rather than copy: the reusable-bootstrap-worker machinery
 			#deliberately stores the worker design's Xraw as a plain data.frame --
@@ -1027,11 +1033,11 @@ Design = R6::R6Class("Design",
 			#and this function's data.table `..` syntax below requires a data.table;
 			#as.data.table copies either way, so behavior is unchanged for the
 			#ordinary data.table path)
-			column_has_missingness = columns_have_missingness_cpp(private$Xraw)
+			column_has_missingness = columns_have_missingness_cpp(Xraw_current)
 			# Keep Ximp independent of Xraw. get_X_imp() exposes this data.table,
 			# so aliasing the no-missingness path would let a caller's := mutation
 			# silently rewrite the raw covariates as well.
-			private$Ximp = copy(as.data.table(private$Xraw))
+			private$Ximp = copy(as.data.table(Xraw_current))
 			if (any(column_has_missingness)){
 				if (private$missingness_method == "error"){
 					if (should_run_asserts()) {
@@ -1096,7 +1102,7 @@ Design = R6::R6Class("Design",
 			}
 			if (ncol(private$X) > 0){
 				if (should_run_asserts()) {
-					if (nrow(private$X) != nrow(private$Xraw) | nrow(private$X) != nrow(private$Ximp) | nrow(private$Ximp) != nrow(private$Xraw)){
+					if (nrow(private$X) != nrow(Xraw_current) | nrow(private$X) != nrow(private$Ximp) | nrow(private$Ximp) != nrow(Xraw_current)){
 						stop("improper sizing for the internal X representation")
 					}
 				}
