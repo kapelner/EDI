@@ -1693,8 +1693,9 @@ kkglmm_low_coverage_orphans.md`. `InferencePropBetaRegr`,
 `InferenceContinKKRobustRegrOneLik`, `InferencePropKKGLMM`, and the
 `InferenceIncidKKCondLogitGLMMIVWC`/`OneLik` pair. Lower-priority
 addendum: the 7-class KKGLMM/KKCLMM cluster was also ruled out from
-`TODO-28`, but it's not yet confirmed whether that cluster even has real
-findings to explain. Release index: `release_v1_0_5.md → TODO-52`.
+`TODO-28`; the retained audit baseline confirms real but heterogeneous
+findings, so it does not establish a common source defect. Release index:
+`release_v1_0_5.md → TODO-52`.
 
 ## Phase 6 — Exploratory / later
 

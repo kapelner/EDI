@@ -513,10 +513,15 @@ double get_restricted_mean_se_diff(SEXP y, SEXP dead, SEXP w) {
     const double shared_tau = std::min(
         *std::max_element(y_control_std.begin(), y_control_std.end()),
         *std::max_element(y_treatment_std.begin(), y_treatment_std.end()));
+    // Name each wrapped vector so it stays protected while the next one allocates.
+    NumericVector y_control_r = wrap(y_control_std);
+    IntegerVector dead_control_r = wrap(dead_control_std);
+    NumericVector y_treatment_r = wrap(y_treatment_std);
+    IntegerVector dead_treatment_r = wrap(dead_treatment_std);
     double se_control = get_restricted_mean_se_for_group_at_tau(
-        wrap(y_control_std), wrap(dead_control_std), shared_tau);
+        y_control_r, dead_control_r, shared_tau);
     double se_treatment = get_restricted_mean_se_for_group_at_tau(
-        wrap(y_treatment_std), wrap(dead_treatment_std), shared_tau);
+        y_treatment_r, dead_treatment_r, shared_tau);
 
     if (R_IsNA(se_treatment) || R_IsNA(se_control)) {
         return NA_REAL;

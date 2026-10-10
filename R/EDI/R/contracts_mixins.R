@@ -499,6 +499,7 @@ EDI_COMPONENT_SPECS = list(
 		provides_private_methods = c(
 			"supports_bayesian_bootstrap", "bayesian_bootstrap_cache_key",
 			"build_bayesian_bootstrap_context", "bayesian_bootstrap_sample_weights",
+			"bayesian_bootstrap_sample_weight_draws",
 			"expand_subject_or_block_weights_to_row_weights",
 			"load_bayesian_bootstrap_weights_into_worker",
 			"load_bayesian_bootstrap_draw_into_worker",

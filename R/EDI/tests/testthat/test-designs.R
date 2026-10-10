@@ -202,8 +202,12 @@ test_that("DesignSeqOneByOneRandomBlockSize works", {
 
 	ws <- des$get_w()[1:8]
 	expect_true(all(ws %in% c(0, 1)))
-	expect_equal(sum(ws[1:4]), 2)
-	expect_equal(sum(ws[5:8]), 2)
+	# Four subjects per stratum need not close a block: a size-2 block followed
+	# by the first half of a size-4 block can leave the stratum off balance by
+	# one, so exact balance (sum == 2) depends on the RNG state and is not an
+	# invariant. Imbalance is bounded by the largest half-block still open.
+	expect_lte(abs(sum(ws[1:4]) - 2), 1)
+	expect_lte(abs(sum(ws[5:8]) - 2), 1)
 })
 
 test_that("Response types work", {

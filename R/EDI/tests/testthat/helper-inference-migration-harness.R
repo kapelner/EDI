@@ -188,6 +188,23 @@ inference_migration_call_optional_method = function(obj, method_name, args) {
 	)
 }
 
+# Legacy KK fixtures inherit likelihood-test entry points they cannot serve:
+# score/LR/gradient p-values cache a sticky estimate-stage nonestimable flag
+# (likelihood_test_spec_unavailable) that NAs every later call on the same
+# object, while the migrated class does not carry that flag forward. When the
+# reused legacy object comes back all-NA but the migrated side is finite,
+# recompute the legacy value on a fresh instance so the comparison checks the
+# estimator rather than the legacy object's leftover state.
+inference_migration_retry_stale_legacy = function(legacy_result, migrated_result, make_legacy, spec, seed) {
+	stale = identical(legacy_result$status, "ok") && identical(migrated_result$status, "ok") &&
+		length(legacy_result$value) > 0L && all(is.na(as.numeric(legacy_result$value))) &&
+		any(is.finite(as.numeric(migrated_result$value)))
+	if (!stale) return(legacy_result)
+	fresh = make_legacy()
+	fresh$set_seed(seed)
+	inference_migration_with_seed(seed, inference_migration_call_optional_method(fresh, spec$method, spec$args))
+}
+
 inference_migration_class_generator = function(class) {
 	if (is.character(class)) {
 		return(get(class, envir = asNamespace("EDI")))

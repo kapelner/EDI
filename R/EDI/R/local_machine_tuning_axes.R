@@ -259,23 +259,15 @@ EDI_TUNING_WARM_START_OPERATION_CALLS = list(
 #' @keywords internal
 #' @noRd
 EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS = list(
-	# 2026-08-27: InferencePropZeroOneInflatedBetaRegr's jackknife (unlike
-	# its other resampling operations -- rand/non_param_boot/bayesian_boot/
-	# param_boot all benchmark in well under a second) rebuilds a fresh
-	# sub-Inference object per leave-one-out fold
-	# (supports_reusable_bootstrap_worker() = FALSE for this class) and
-	# reruns the full fit_with_hardened_qr_column_dropping() column-
-	# selection search from scratch each time. Confirmed via direct
-	# profiling: the raw fast_zero_one_inflated_beta_cpp() fit converges
-	# correctly and fast (~3ms) in isolation on the exact same data: the
-	# ~50x per-fold slowdown is entirely the surrounding column-selection
-	# machinery being redone from scratch every fold, not a numerical
-	# problem. For a synthetic dataset with no y = 0/1 boundary
-	# observations at all (this tuning benchmark's small-n proportion DGP
-	# hits exactly that at n = 50), that made a single jackknife call take
-	# several seconds and blocked a full tuning run for many minutes. Not a
-	# quick fix -- would need a real get_bootstrap_worker_spec()-based
-	# reuse implementation for this class, out of scope here.
+	# 2026-08-27, reconciled 2026-10-11: InferencePropZeroOneInflatedBetaRegr's
+	# jackknife remains excluded pending its exact n = 50 parity/performance
+	# gate. The class now has a two-matrix reusable-worker implementation, but
+	# an unusable direct fit still pays the ordinary hardened fallback. The
+	# diagnosed small-n tuning fixture has no y = 0/1 boundary observations;
+	# its direct-fit/fallback behavior and the resulting total jackknife cost
+	# have not been re-measured. Keep the exclusion until reusable_bootstrap.md
+	# TODO-3/4 establish both exact parity and the required speedup, then remove
+	# this entry under that plan's TODO-5.
 	jackknife = "InferencePropZeroOneInflatedBetaRegr"
 )
 

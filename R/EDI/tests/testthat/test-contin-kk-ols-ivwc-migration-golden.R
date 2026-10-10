@@ -60,6 +60,8 @@ test_that("InferenceContinKKOLSIVWC migration produces identical outputs", {
 		migrated$set_seed(20260817L)
 		migrated_result = inference_migration_with_seed(20260817L,
 			inference_migration_call_optional_method(migrated, spec$method, spec$args))
+		legacy_result = inference_migration_retry_stale_legacy(legacy_result, migrated_result,
+			function() Legacy$new(des), spec, 20260817L)
 		if (legacy_result$status %in% c("absent", "unsupported") &&
 				migrated_result$status %in% c("absent", "unsupported")) {
 			next

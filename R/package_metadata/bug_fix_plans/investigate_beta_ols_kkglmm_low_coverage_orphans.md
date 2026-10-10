@@ -114,6 +114,7 @@ and `InferenceCountKKGLMM` remains coordinated with TODO-50/TODO-31.
 
 ## Standing constraints
 
-No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn;
-verify via `pkgload::load_all(".", compile = FALSE)` only, never a full
-build (hard project rule, see top-level `CLAUDE.md`).
+No `R CMD INSTALL`/rebuild of `R/EDI` without explicit user permission in
+the current conversation. Do not use `pkgload::load_all()` as a workaround:
+project policy treats loading and verification commands that may compile as
+requiring that same permission.

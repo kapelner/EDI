@@ -325,6 +325,9 @@ test_that("exact incidence migration baseline pins current golden outputs", {
 			pval = 1,
 			ci = c(-1.40296790485226, 2.22290783523223)
 		),
+		# Zhang CI goldens re-pinned 2026-10-11 after zhang_bisect_ci_boundary()
+		# tightened its endpoint tolerance (pval_epsilon is capped at 1e-6): the
+		# new endpoints sit on the p = alpha crossing, the old loose ones did not.
 		InferenceIncidExactZhang = list(
 			generator = EDI:::InferenceIncidExactZhang,
 			legacy_generator = InferenceIncidExactZhangLegacy,
@@ -333,7 +336,7 @@ test_that("exact incidence migration baseline pins current golden outputs", {
 			pval_epsilon = 0.01,
 			estimate = 1.80191184069207,
 			pval = 0.0648822319302868,
-			ci = c(0.235551994035931, 3.55040655323846)
+			ci = c(0.26775603739342, 3.55462197933378)
 		)
 	)
 
@@ -390,7 +393,7 @@ test_that("exact Zhang migration matches legacy outputs across supported fixture
 			pval_epsilon = 0.01,
 			estimate = 1.80191184069207,
 			pval = 0.0648822319302868,
-			ci = c(0.235551994035931, 3.55040655323846)
+			ci = c(0.26775603739342, 3.55462197933378)
 		),
 		matching = list(
 			design = make_exact_binomial_migration_design(),
@@ -398,7 +401,7 @@ test_that("exact Zhang migration matches legacy outputs across supported fixture
 			pval_epsilon = 0.01,
 			estimate = 0,
 			pval = 0.625,
-			ci = c(-0.79291957713222, 3.62477520974729)
+			ci = c(-0.751658555610134, 3.62346160483959)
 		)
 	)
 

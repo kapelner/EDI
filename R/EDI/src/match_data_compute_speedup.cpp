@@ -23,12 +23,12 @@ List match_diffs_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, SEXP w, SEXP 
 
         
 
-        List match_data = compute_zhang_match_data_cpp(
-                wrap(X),
-                wrap(y_vec_coerced),
-                wrap(w_vec_coerced),
-                wrap(m_vec_vec_coerced)
-        );
+        // Name each wrapped argument so it stays protected while the next one allocates.
+        NumericMatrix X_r = wrap(X);
+        NumericVector y_r = wrap(y_vec_coerced);
+        IntegerVector w_r = wrap(w_vec_coerced);
+        IntegerVector m_vec_r = wrap(m_vec_vec_coerced);
+        List match_data = compute_zhang_match_data_cpp(X_r, y_r, w_r, m_vec_r);
 
         return List::create(
         _["yTs_matched"] =              match_data["yTs_matched"],

@@ -34,8 +34,8 @@ range, since the plan files' internal numbering did not change.
   TODO-1..6`. The one class (of 51 live inference families, audited)
   missing the `get_bootstrap_worker_spec()` fast path
   `local_machine_optimization.md`'s shipped `tune_EDI_for_this_machine()`
-  already relies on elsewhere; its jackknife rebuilds a fresh
-  `Design`/`Inference` object and reruns full column-selection from scratch
+  already relies on elsewhere; its jackknife originally rebuilt a fresh
+  `Design`/`Inference` object and reran full column-selection from scratch
   per leave-one-out fold instead of reusing one warmed-up worker. Small,
   additive, R-layer only (no kernel change); must reproduce bit-identical
   jackknife results before/after (plan's TODO-4). **Verified NOT
@@ -1347,10 +1347,10 @@ baseline as expected/benign.
   `InferenceContinKKOLSOneLik`, `InferenceContinKKRobustRegrOneLik`,
   `InferencePropKKGLMM`, `InferenceIncidKKCondLogitGLMMIVWC`/
   `InferenceIncidKKCondLogitGLMMOneLik` (grouped as one finding, all three
-  inherit `InferenceAbstractKKCondLogitGLMM`). Lower-priority, not-yet-
-  confirmed-real addendum: the 7-class KKGLMM/KKCLMM cluster was also ruled
-  out from TODO-28's mechanism, but it's not yet confirmed whether that
-  cluster even has real audit-flagged findings — check that first.
+  inherit `InferenceAbstractKKCondLogitGLMM`). The lower-priority 7-class
+  KKGLMM/KKCLMM addendum was likewise ruled out from TODO-28's mechanism and
+  does have real, heterogeneous audit-flagged rows; those rows do not support
+  a common-source claim.
   **Audit progress 2026-10-09:** the linked plan now reconciles the retained
   historical audit rows. The six classes do not have a single error
   signature (only BetaRegr/ZOIB share two 37-null-draw custom-randomization
