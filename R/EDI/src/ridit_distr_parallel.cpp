@@ -18,6 +18,7 @@ namespace {
 void get_ridit_map_cpp(const std::vector<int>& y_ref,
                   std::vector<int>& levels,
                   std::vector<double>& ridit_scores,
+                  std::vector<double>& cumulative_masses,
                   std::vector<int>& counts) {
     int n_ref = y_ref.size();
     if (n_ref == 0) return;
@@ -27,6 +28,7 @@ void get_ridit_map_cpp(const std::vector<int>& y_ref,
     levels.erase(std::unique(levels.begin(), levels.end()), levels.end());
 
     ridit_scores.assign(levels.size(), 0.0);
+    cumulative_masses.assign(levels.size(), 0.0);
     counts.assign(levels.size(), 0);
     for (int val : y_ref) {
         auto it = std::lower_bound(levels.begin(), levels.end(), val);
@@ -38,11 +40,13 @@ void get_ridit_map_cpp(const std::vector<int>& y_ref,
         double p_k = static_cast<double>(counts[i]) / n_ref;
         ridit_scores[i] = cumulative_p + 0.5 * p_k;
         cumulative_p += p_k;
+        cumulative_masses[i] = cumulative_p;
     }
 }
 
 double compute_mean_ridit_with_map_cpp(const std::vector<int>& y_target,
                                   const std::vector<double>& ridit_scores,
+                                  const std::vector<double>& cumulative_masses,
                                   const std::vector<int>& levels) {
     if (y_target.empty() || ridit_scores.empty()) return NA_REAL;
 
@@ -58,7 +62,7 @@ double compute_mean_ridit_with_map_cpp(const std::vector<int>& y_target,
                 sum_t += 1.0;
             } else {
                 int idx = static_cast<int>(std::distance(levels.begin(), it));
-                sum_t += (ridit_scores[idx - 1] + ridit_scores[idx]) / 2.0;
+                sum_t += cumulative_masses[static_cast<std::size_t>(idx - 1)];
             }
         }
     }
@@ -73,6 +77,7 @@ double compute_single_ridit_estimate_cpp(const int* y_b,
                                    std::vector<int>& y_t,
                                    std::vector<int>& levels,
                                    std::vector<double>& ridit_scores,
+                                   std::vector<double>& cumulative_masses,
                                    std::vector<int>& counts) {
     y_ref.clear();
     y_t.clear();
@@ -94,9 +99,11 @@ double compute_single_ridit_estimate_cpp(const int* y_b,
     
     if (y_ref.empty() || y_t.empty()) return NA_REAL;
     
-    get_ridit_map_cpp(y_ref, levels, ridit_scores, counts);
+    get_ridit_map_cpp(y_ref, levels, ridit_scores, cumulative_masses, counts);
     
-    const double target_mean = compute_mean_ridit_with_map_cpp(y_t, ridit_scores, levels);
+    const double target_mean = compute_mean_ridit_with_map_cpp(
+        y_t, ridit_scores, cumulative_masses, levels
+    );
     return treatment_reference ? 0.5 - target_mean : target_mean - 0.5;
 }
 
@@ -121,9 +128,13 @@ NumericVector compute_ridit_distr_parallel_cpp(const IntegerVector& y,
     bool is_pooled = (reference == "pooled");
     std::vector<int> global_levels;
     std::vector<double> global_ridit_scores;
+    std::vector<double> global_cumulative_masses;
     std::vector<int> global_counts;
     if (is_pooled) {
-        get_ridit_map_cpp(y_std, global_levels, global_ridit_scores, global_counts);
+        get_ridit_map_cpp(
+            y_std, global_levels, global_ridit_scores,
+            global_cumulative_masses, global_counts
+        );
     }
 
     const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
@@ -137,11 +148,13 @@ NumericVector compute_ridit_distr_parallel_cpp(const IntegerVector& y,
         std::vector<int> y_t;
         std::vector<int> levels;
         std::vector<double> ridit_scores;
+        std::vector<double> cumulative_masses;
         std::vector<int> counts;
         y_ref.reserve(n);
         y_t.reserve(n);
         levels.reserve(n);
         ridit_scores.reserve(n);
+        cumulative_masses.reserve(n);
         counts.reserve(n);
 
         #pragma omp for schedule(static)
@@ -155,10 +168,13 @@ NumericVector compute_ridit_distr_parallel_cpp(const IntegerVector& y,
                     if (w_col[i] == 1) y_t.push_back(y_std[i]);
                 }
                 res_ptr[b] = y_t.empty() ? NA_REAL :
-                    compute_mean_ridit_with_map_cpp(y_t, global_ridit_scores, global_levels) - 0.5;
+                    compute_mean_ridit_with_map_cpp(
+                        y_t, global_ridit_scores, global_cumulative_masses, global_levels
+                    ) - 0.5;
             } else {
                 res_ptr[b] = compute_single_ridit_estimate_cpp(
-                    y_std.data(), w_col, n, reference, y_ref, y_t, levels, ridit_scores, counts
+                    y_std.data(), w_col, n, reference, y_ref, y_t,
+                    levels, ridit_scores, cumulative_masses, counts
                 );
             }
         }
@@ -195,11 +211,13 @@ NumericVector compute_ridit_bootstrap_parallel_cpp(const IntegerVector& w,
         std::vector<int> y_t;
         std::vector<int> levels;
         std::vector<double> ridit_scores;
+        std::vector<double> cumulative_masses;
         std::vector<int> counts;
         y_ref.reserve(n);
         y_t.reserve(n);
         levels.reserve(n);
         ridit_scores.reserve(n);
+        cumulative_masses.reserve(n);
         counts.reserve(n);
 
         #pragma omp for schedule(static)
@@ -221,7 +239,8 @@ NumericVector compute_ridit_bootstrap_parallel_cpp(const IntegerVector& w,
                 }
             }
             res_ptr[b] = compute_single_ridit_estimate_cpp(
-                y_b.data(), w_b.data(), n, reference, y_ref, y_t, levels, ridit_scores, counts
+                y_b.data(), w_b.data(), n, reference, y_ref, y_t,
+                levels, ridit_scores, cumulative_masses, counts
             );
         }
     }
@@ -261,11 +280,13 @@ NumericVector compute_ridit_rand_bootstrap_parallel_cpp(const IntegerVector& y0,
         std::vector<int> y_t;
         std::vector<int> levels;
         std::vector<double> ridit_scores;
+        std::vector<double> cumulative_masses;
         std::vector<int> counts;
         y_ref.reserve(n);
         y_t.reserve(n);
         levels.reserve(n);
         ridit_scores.reserve(n);
+        cumulative_masses.reserve(n);
         counts.reserve(n);
 
         #pragma omp for schedule(static)
@@ -275,16 +296,19 @@ NumericVector compute_ridit_rand_bootstrap_parallel_cpp(const IntegerVector& y0,
             for (int i = 0; i < n; ++i) y_b[i] = y0_ptr[i_col[i] - 1]; // i_mat is 1-based
 
             if (is_pooled) {
-                get_ridit_map_cpp(y_b, levels, ridit_scores, counts);
+                get_ridit_map_cpp(y_b, levels, ridit_scores, cumulative_masses, counts);
                 y_t.clear();
                 for (int i = 0; i < n; ++i) {
                     if (w_col[i] == 1) y_t.push_back(y_b[i]);
                 }
                 res_ptr[b] = y_t.empty() ? NA_REAL :
-                    compute_mean_ridit_with_map_cpp(y_t, ridit_scores, levels) - 0.5;
+                    compute_mean_ridit_with_map_cpp(
+                        y_t, ridit_scores, cumulative_masses, levels
+                    ) - 0.5;
             } else {
                 res_ptr[b] = compute_single_ridit_estimate_cpp(
-                    y_b.data(), w_col, n, reference, y_ref, y_t, levels, ridit_scores, counts
+                    y_b.data(), w_col, n, reference, y_ref, y_t,
+                    levels, ridit_scores, cumulative_masses, counts
                 );
             }
         }

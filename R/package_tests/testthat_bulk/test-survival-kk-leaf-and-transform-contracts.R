@@ -11,15 +11,12 @@ make_dep_cens_contract_design <- function() {
 	des
 }
 
-test_that("dependent-censoring CI predicates classify sign exclusion and unstable width", {
+test_that("dependent-censoring bootstrap-CI validation keeps finite intervals", {
 	inf <- InferenceSurvivalDepCensTransformRegr$new(make_dep_cens_contract_design(), verbose = FALSE)
 	priv <- inf$.__enclos_env__$private
-	expect_true(priv$dep_cens_ci_excludes_zero(c(0.1, 1)))
-	expect_true(priv$dep_cens_ci_excludes_zero(c(-2, -0.1)))
-	expect_false(priv$dep_cens_ci_excludes_zero(c(-0.1, 0.2)))
-	expect_false(priv$dep_cens_ci_excludes_zero(c(NA, 1)))
-	expect_true(priv$dep_cens_ci_too_wide(c(NA, 1)))
-	expect_false(priv$dep_cens_ci_too_wide(c(-1, 1)))
+	expect_identical(priv$dep_cens_validate_bootstrap_ci(c(0.1, 1)), c(0.1, 1))
+	expect_identical(priv$dep_cens_validate_bootstrap_ci(c(-1e6, 1e6)), c(-1e6, 1e6))
+	expect_true(all(is.na(priv$dep_cens_validate_bootstrap_ci(c(NA, 1)))))
 })
 
 test_that("KK survival rank helpers extract named estimates and standard errors", {

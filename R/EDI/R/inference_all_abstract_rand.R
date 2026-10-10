@@ -60,7 +60,16 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (!isTRUE(debug) && !is.null(permutations) && private$has_private_method("compute_fast_randomization_distr")) {
 				fast_distr = tryCatch(
 					private$compute_fast_randomization_distr(setup$y_delta, permutations, delta, transform_responses, zero_one_logit_clamp),
-					error = function(e) NULL
+					error = function(e) {
+						if (should_run_asserts()) stop(e)
+						warning_key = "fast_randomization_path_warning_emitted"
+						if (!isTRUE(private$cached_values[[warning_key]])) {
+							warning(sprintf("%s fast randomization path failed; using the worker fallback: %s", class(self)[1], conditionMessage(e)), call. = FALSE)
+							private$cached_values[[warning_key]] = TRUE
+						}
+						private$cached_values$fast_randomization_path_error = conditionMessage(e)
+						NULL
+					}
 				)
 				if (!is.null(fast_distr)) return(fast_distr)
 				# If fast path threw, fall through to the standard reusable-worker path below.
@@ -300,8 +309,16 @@ InferenceRand = R6::R6Class("InferenceRand",
 				)
 			}
 			cache_key = private$build_randomization_distribution_cache_key(r, delta, transform_responses, permutations)
-			if (transform_responses == "none" && !is.null(private$cached_values$t0s_rand) && length(private$cached_values$t0s_rand) >= r) {
-				t0s = private$cached_values$t0s_rand[seq_len(r)] + delta
+			permutation_signature = if (is.null(permutations)) NULL else private$stable_signature(permutations)
+			can_reuse_affine = private$supports_additive_delta_shift(transform_responses) &&
+				!is.null(permutation_signature) &&
+				identical(private$cached_values$t0s_rand_permutation_signature, permutation_signature) &&
+				length(private$cached_values$t0s_rand) >= r &&
+				length(private$cached_values$t0s_rand_slopes) >= r
+			if (can_reuse_affine) {
+				t0s = private$cached_values$t0s_rand[seq_len(r)] +
+					as.numeric(delta) * private$cached_values$t0s_rand_slopes[seq_len(r)]
+				if (isTRUE(private$verbose)) message("Reusing the cached affine randomization distribution.")
 				t = private$compute_treatment_estimate_during_randomization_inference()
 				if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
 				if (length(t) != 1 || !is.finite(t)) {
@@ -343,11 +360,64 @@ InferenceRand = R6::R6Class("InferenceRand",
 				cache_key = cache_key,
 				zero_one_logit_clamp = zero_one_logit_clamp
 			)
+			private$cache_additive_delta_shift_distribution(
+				t0s, r, delta, transform_responses, permutations
+			)
 			private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
 		}
 		),
 	private = c(InferenceExtSequentialMCPval$private, list(
 		randomization_mc_control = NULL,
+		supports_additive_delta_shift = function(transform_responses = "none"){
+			identical(transform_responses, "none") &&
+				!private$should_use_zhang_incidence_randomization() &&
+				any(EDI_INFERENCE_ADDITIVE_DELTA_SHIFT_CLASSES %in% class(self))
+		},
+		compute_additive_delta_shift_slopes = function(permutations, t0s = NULL){
+			if (is.null(permutations$w_mat)) return(NULL)
+			w_mat = as.matrix(permutations$w_mat)
+			if (nrow(w_mat) != private$n || ncol(w_mat) == 0L) return(NULL)
+			class_names = class(self)
+			if (any(c("InferenceAllSimpleMeanDiffPooledVar", "InferenceAllSimpleAverageDiff") %in% class_names)) {
+				w_obs = as.numeric(private$w)
+				n_t = colSums(w_mat == 1)
+				n_c = colSums(w_mat == 0)
+				valid = n_t > 0L & n_c > 0L
+				c_b = rep(NA_real_, ncol(w_mat))
+				if (any(valid)) {
+					c_b[valid] = colSums(w_mat[, valid, drop = FALSE] * w_obs) / n_t[valid] -
+						colSums((1 - w_mat[, valid, drop = FALSE]) * w_obs) / n_c[valid]
+				}
+				return(1 - c_b)
+			}
+			if ("InferenceContinKKOLSOneLik" %in% class_names) {
+				if (length(t0s) != ncol(w_mat)) return(NULL)
+				t1 = tryCatch(self$approximate_randomization_distribution_beta_hat_T(
+					r = ncol(w_mat), delta = 1, transform_responses = "none",
+					show_progress = FALSE, permutations = permutations
+				), error = function(e) NULL)
+				if (length(t1) != length(t0s)) return(NULL)
+				return(as.numeric(t1) - as.numeric(t0s))
+			}
+			if (!private$has_private_method("compute_rand_bootstrap_ci_affine_coefs")) return(NULL)
+			draws = lapply(seq_len(ncol(w_mat)), function(b){
+				list(i_b = seq_len(private$n), w_b = as.numeric(w_mat[, b]))
+			})
+			affine = tryCatch(private$compute_rand_bootstrap_ci_affine_coefs(draws), error = function(e) NULL)
+			if (is.null(affine) || length(affine$c) != ncol(w_mat)) return(NULL)
+			as.numeric(affine$c)
+		},
+		cache_additive_delta_shift_distribution = function(t0s, r, delta, transform_responses, permutations){
+			if (!identical(as.numeric(delta), 0) ||
+				!private$supports_additive_delta_shift(transform_responses) ||
+				is.null(permutations) || length(t0s) != as.integer(r)) return(invisible(FALSE))
+			slopes = private$compute_additive_delta_shift_slopes(permutations, t0s)
+			if (length(slopes) != as.integer(r)) return(invisible(FALSE))
+			private$cached_values$t0s_rand = as.numeric(t0s)
+			private$cached_values$t0s_rand_slopes = as.numeric(slopes)
+			private$cached_values$t0s_rand_permutation_signature = private$stable_signature(permutations)
+			invisible(TRUE)
+		},
 		is_bernoulli_design = function(){
 			private$des_obj$is_a_bernoulli_capable()
 		},
@@ -549,7 +619,8 @@ InferenceRand = R6::R6Class("InferenceRand",
 				worker_des_priv = if (!is.null(worker_des)) worker_des$.__enclos_env__$private else NULL
 				base_m = w_priv$m
 				base_cache = w_priv$cached_values
-				w_priv$y = as.numeric(y)
+				base_y = as.numeric(y)
+				w_priv$y = base_y
 				w_priv$y_temp = w_priv$y
 				if (!is.null(worker_des_priv)) {
 					worker_des_priv$y = w_priv$y
@@ -562,7 +633,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 					if (!is.null(worker_des_priv)) {
 						worker_des_priv$w = as.integer(perm_data$w)
 						worker_des_priv$m = if (!is.null(perm_data$m_vec)) perm_data$m_vec else base_m
-						y_sim = w_priv$y_temp
+						y_sim = base_y
 						if (delta != 0) {
 							resp_type = worker_des_priv$response_type
 							if (transform_responses == "logit") {
@@ -582,7 +653,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 					} else {
 						w_priv$w = as.integer(perm_data$w)
 						w_priv$m = if (!is.null(perm_data$m_vec)) perm_data$m_vec else base_m
-						y_sim = w_priv$y_temp
+						y_sim = base_y
 						if (delta != 0) {
 							resp_type = w_priv$des_obj_priv_int$response_type
 							if (transform_responses == "logit") {
@@ -724,6 +795,11 @@ InferenceRand = R6::R6Class("InferenceRand",
 					zero_one_logit_clamp = zero_one_logit_clamp
 				)
 				n_valid = sum(is.finite(t0s))
+				if (length(t0s) >= as.integer(r)) {
+					private$cache_additive_delta_shift_distribution(
+						t0s, r, delta, transform_responses, permutations
+					)
+				}
 				p_hat = private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
 				if (length(t0s) >= as.integer(r) || n_valid < min_draws || !is.finite(p_hat)) {
 					if (length(t0s) >= as.integer(r) || !is.finite(p_hat)) return(p_hat)

@@ -62,3 +62,26 @@ test_that("neither the kernel nor the class collapses the random-effect scale to
 	inf$compute_estimate()
 	expect_gt(as.numeric(inf$.__enclos_env__$private$cached_mod$params)[4], -2.5)
 })
+
+test_that("the Bayesian bootstrap refits the weighted joint likelihood, not an all-row Laplace GLMM", {
+	f <- fx(903L)
+	inf <- K("InferenceIncidKKCondLogitGLMMOneLik")$new(f$des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
+	set.seed(9031L)
+	block_w <- runif(priv$current_bayesian_bootstrap_context$n_units, 0.25, 2.5)
+	row_w <- priv$expand_subject_or_block_weights_to_row_weights(block_w)
+
+	actual <- inf$compute_estimate_with_bootstrap_weights(block_w, estimate_only = TRUE)
+	d <- priv$prepare_clogit_plus_glmm_data()
+	m <- priv$m
+	disc_w <- vapply(d$i_m_disc, function(pair_id) mean(row_w[m == pair_id]), numeric(1))
+	conc_w <- row_w[d$i_glmm]
+	expected <- K("fast_clogit_plus_glmm_cpp")(
+		d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
+		d$has_discordant, d$has_concordant,
+		estimate_only = TRUE, weights_disc = disc_w, weights_conc = conc_w
+	)
+	expect_true(expected$converged)
+	expect_equal(actual, as.numeric(expected$params)[2L], tolerance = 1e-8)
+})

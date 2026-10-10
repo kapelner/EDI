@@ -99,6 +99,9 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
                              bool estimate_only = false) {
 	const int n = X.rows();
 	const int p = X.cols();
+    require_length(warm_start_beta, p, "warm_start_beta");
+    require_length(warm_start_weights, n, "warm_start_weights");
+    require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
     bool use_weights = (weights.size() == n);
     FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);
     std::string alg = normalize_optimizer_algorithm(optimization_alg, "irls", true);
@@ -300,7 +303,6 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
     // Reuses XtWX_free, already built above (the last iteration's Fisher
     // information in free-parameter space) -- no new computation
     // (optimizer_diagnostics_report.md TODO-1).
-    set_min_eigenvalue_if_suspect(XtWX_free, res);
 
     for (int j = 0; j < p_free; ++j) res.b[fixed_spec.free_idx[j]] = beta_free[j];
     for (int j = 0; j < (int)fixed_spec.fixed_idx.size(); ++j) res.b[fixed_spec.fixed_idx[j]] = fixed_spec.fixed_values[j];

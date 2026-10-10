@@ -40,7 +40,7 @@ InferenceContinOLS = define_inference_class(
 	classname = "InferenceContinOLS",
 	inherit = Inference,
 	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",
@@ -50,6 +50,7 @@ InferenceContinOLS = define_inference_class(
 		private = c(
 			"cached_mod", "supports_lik_ratio_param_bootstrap", "supports_likelihood_tests",
 			"simulate_under_lik_null", "get_likelihood_test_spec", "shared",
+			"compute_fast_randomization_distr",
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",
 			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
@@ -198,6 +199,27 @@ InferenceContinOLS = define_inference_class(
 	private = list(
 		cached_mod = NULL,
 		max_resample_attempts = NULL,
+		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
+			# The kernel implements the additive sharp-null construction only; the
+			# generic worker remains authoritative for transformed outcomes and
+			# matching permutations.
+			if (!identical(transform_responses, "none") || !is.null(permutations$m_mat)) return(NULL)
+			w_mat = permutations$w_mat
+			if (is.null(w_mat)) return(NULL)
+			w_mat = as.matrix(w_mat)
+			if (nrow(w_mat) != as.integer(private$n) || ncol(w_mat) == 0L) return(NULL)
+			storage.mode(w_mat) = "integer"
+			X_full = private$create_design_matrix()
+			X_covars = if (ncol(X_full) > 2L) {
+				as.matrix(X_full[, -(1:2), drop = FALSE])
+			} else {
+				matrix(numeric(0), nrow = as.integer(private$n), ncol = 0L)
+			}
+			compute_ols_distr_parallel_cpp(
+				X_covars, as.numeric(y), w_mat, as.numeric(delta),
+				private$n_cpp_threads(ncol(w_mat))
+			)
+		},
 		compute_fast_rand_bootstrap_distr = function(y0_full, rand_bootstrap_draws, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 			# the OLS kernel only implements the additive sharp-null shift
 			if (delta != 0 && !identical(transform_responses, "none")) return(NULL)

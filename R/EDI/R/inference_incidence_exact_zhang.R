@@ -28,7 +28,7 @@ ExactZhangIncidenceSource = list(
 		# Computes an exact confidence interval for the log odds ratio.
 		# Documented via @R6method below (see
 		# InferenceIncidExactZhang$compute_exact_confidence_interval).
-		compute_exact_confidence_interval = function(alpha = 0.05, pval_epsilon = 0.005, type = NULL, args_for_type = NULL){
+		compute_exact_confidence_interval = function(alpha = 0.05, pval_epsilon = 1e-6, type = NULL, args_for_type = NULL){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)

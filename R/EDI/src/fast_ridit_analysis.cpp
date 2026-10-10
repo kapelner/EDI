@@ -47,6 +47,7 @@ RiditScoreData fast_ridit_scores_from_ref_indices(const int* y_ptr,
     const int K = static_cast<int>(levels.size());
     std::vector<double> ref_p(static_cast<std::size_t>(K));
     std::vector<double> ridit_values(static_cast<std::size_t>(K));
+    std::vector<double> cumulative_masses(static_cast<std::size_t>(K));
 
     // 2. Calculate Ridit scores for each category
     // R_k = sum_{j < k} p_j + 0.5 * p_k
@@ -57,6 +58,7 @@ RiditScoreData fast_ridit_scores_from_ref_indices(const int* y_ptr,
         const double ridit = cumulative_p + 0.5 * pk;
         ridit_values[static_cast<std::size_t>(k)] = ridit;
         cumulative_p += pk;
+        cumulative_masses[static_cast<std::size_t>(k)] = cumulative_p;
     }
 
     // 3. Assign scores to all subjects
@@ -73,12 +75,11 @@ RiditScoreData fast_ridit_scores_from_ref_indices(const int* y_ptr,
             } else if (level_it == levels.end()) {
                 scores[static_cast<std::size_t>(i)] = 1.0; // Extremely high
             } else {
-                // Average of the ridits of the categories it falls between
+                // A missing interior category has no reference mass of its
+                // own, so its ridit is exactly the reference mass below it.
                 const int idx = static_cast<int>(std::distance(levels.begin(), level_it));
-                scores[static_cast<std::size_t>(i)] = 0.5 * (
-                    ridit_values[static_cast<std::size_t>(idx - 1)] +
-                    ridit_values[static_cast<std::size_t>(idx)]
-                );
+                scores[static_cast<std::size_t>(i)] =
+                    cumulative_masses[static_cast<std::size_t>(idx - 1)];
             }
         }
     }

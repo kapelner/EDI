@@ -87,7 +87,7 @@ distance), R errors, or a segfault, all nondeterministic.
 
 ## Items
 
-- [ ] **TODO-1: Protect the temporaries.** In `multivariate_ordinal_tstat`,
+- [x] **TODO-1: Protect the temporaries.** In `multivariate_ordinal_tstat`,
   hold the wrapped arguments in Rcpp objects before the call:
   ```cpp
   NumericMatrix Xs = wrap(X);
@@ -97,19 +97,26 @@ distance), R errors, or a segfault, all nondeterministic.
   Bit-preserving: identical arithmetic, only the undefined behavior goes
   away. Verify by targeted compile of `kk21_weights.cpp` and a relink, then
   rerun the F3 snippet: the `gctorture` call must return `2.357 0.857 0.181`.
-- [ ] **TODO-2: Sweep `src/` for the same shape.** Grep every
+  Implemented with named `NumericMatrix`/`NumericVector` wrappers; targeted
+  compiled execution remains required.
+- [x] **TODO-2: Sweep `src/` for the same shape.** Grep every
   `Rcpp::Function` / `Function` call site for inline `wrap(...)` or other
   freshly allocated SEXP arguments (today this helper is the only callback,
   so the sweep should come back empty; record that in the test from
   TODO-3 as a static check so a future callback cannot reintroduce it).
-- [ ] **TODO-3: Regression test** (new
+  A 2026-10-10 static source sweep found this is the sole inline `wrap()`
+  callback site; generated `.Call` wrappers only wrap returned native values.
+- [x] **TODO-3: Regression test** (new
   `R/EDI/tests/testthat/test-kk21-ordinal-weight-kernel-gc-safety.R`):
   on the F3 fixture, assert that `kk21_ordinal_weights_cpp` and
   `kk21_stepwise_ordinal_weights_cpp` under `gctorture(TRUE)` return finite
   weights equal (to 1e-10) to their non-`gctorture` results and to
   `abs(b / sqrt(ssq_b_j))` from the direct callee; wrap in
   `on.exit(gctorture(FALSE))`. Keep the fixture tiny (n = 40, p = 3) since
-  `gctorture` is slow. Add the static grep from TODO-2 to the same file.
+  `gctorture` is slow. The CRAN-shipped regression now compares both ordinal
+  weight kernels with ordinary calls under `gctorture(TRUE)` and checks the
+  direct univariate ordinal-fit reference. It awaits targeted native rebuild
+  and execution.
 - [ ] **TODO-4 (optional, performance):** the helper exists only to reach
   `fast_ordinal_regression_internal` in `fast_ordinal_regression.cpp`
   through R. Declaring that C++ entry point and calling it directly removes

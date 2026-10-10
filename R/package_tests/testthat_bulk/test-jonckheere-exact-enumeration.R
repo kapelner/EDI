@@ -41,3 +41,14 @@ test_that("exact ordinal distribution rejects missing responses and assignments"
   expect_error(EDI:::exact_jonckheere_terpstra_pval_cpp(c(1L, 2L), c(0L, NA_integer_)),
                "missing values")
 })
+
+test_that("exact ordinal enumeration rejects an infeasibly large allocation space immediately", {
+  # The preflight count is polynomial; do not let this fixture enter the
+  # exponential recursion (its constrained compositions greatly exceed 1e6).
+  y <- rep(seq_len(11L), each = 18L)
+  w <- c(rep(1L, length(y) / 2L), rep(0L, length(y) / 2L))
+  expect_error(
+    EDI:::exact_jonckheere_terpstra_pval_cpp(y, w),
+    "exact enumeration exceeds the 1,000,000-allocation limit"
+  )
+})

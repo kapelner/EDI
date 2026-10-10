@@ -1,9 +1,9 @@
 """Parity test for edi_kernels.fast_ridit_analysis against an R-generated
 fixture.
 
-This does NOT re-verify the statistical correctness of Ridit analysis
+Most tests do not re-verify the statistical correctness of Ridit analysis
 itself -- that's the same fast_ridit_scores_from_ref_indices object code
-the R package's own test suite already exercises via
+the R package's own test suite exercises via
 EDI:::fast_ridit_analysis_cpp (both call the identical algorithm; only
 RiditScoreData's internal storage changed from Rcpp::NumericVector to
 std::vector<double> so a separate Python binding translation unit could
@@ -11,6 +11,10 @@ call it, and fast_ridit_analysis_result was added as a portable sibling of
 fast_ridit_analysis_cpp avoiding its SEXP/Rcpp::List boundary). What this
 test covers: the pybind11 binding layer itself and the EDI_CORE_ONLY
 compiled path.
+
+The missing-interior-level regression below is deliberately duplicated at
+the binding boundary because that bug lived in this shared object code and
+changed Python results too.
 
 The expected values below were computed once via:
     EDI:::fast_ridit_analysis_cpp(w, y, "control")
@@ -77,6 +81,23 @@ def test_estimate_orientation_depends_on_reference_group_without_degenerating():
     expected_se = np.std(control_scores, ddof=1) / math.sqrt(control_scores.size)
     assert res_treatment["se"] == pytest.approx(expected_se, abs=ATOL, rel=RTOL)
     assert abs(res_treatment["estimate"]) > ATOL
+
+
+def test_missing_interior_reference_level_uses_mass_below():
+    # The control arm has mass 1/4 at level 1 and 3/4 at level 3. Therefore
+    # treated level 2 must score 1/4, the control mass strictly below it.
+    w = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int32)
+    y = np.array([1, 3, 3, 3, 2, 2, 3, 4], dtype=np.int32)
+    expected_scores = np.array([0.125, 0.625, 0.625, 0.625, 0.25, 0.25, 0.625, 1.0])
+    treated = y[w == 1][:, None]
+    control = y[w == 0]
+    pairwise = (treated > control).astype(float)
+    pairwise += 0.5 * (treated == control)
+    expected_estimate = pairwise.mean() - 0.5
+
+    res = fast_ridit_analysis(w, y, "control")
+    assert np.asarray(res["scores"]) == pytest.approx(expected_scores, abs=ATOL, rel=RTOL)
+    assert res["estimate"] == pytest.approx(expected_estimate, abs=ATOL, rel=RTOL)
 
 
 def test_empty_reference_group_returns_nan_fields():

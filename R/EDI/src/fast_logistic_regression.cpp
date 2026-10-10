@@ -83,6 +83,9 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
     const int n = X.rows();
     const int p = X.cols();
     const bool use_weights = (weights.size() == n);
+    require_length(warm_start_beta, p, "warm_start_beta");
+    require_length(warm_start_weights, n, "warm_start_weights");
+    require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
     FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);
 
     const int p_free = fixed_spec.free_idx.size();
@@ -168,7 +171,6 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
             // implement .hessian() (optimizer_diagnostics_report.md TODO-1).
             // res.converged is already set above, so the fallback-only gate
             // sees the real value.
-            set_min_eigenvalue_if_suspect(XtWX_free, res);
         }
         return res;
     }
@@ -283,7 +285,6 @@ ModelResult fast_logistic_regression_internal(const Eigen::Ref<const Eigen::Matr
     // information in free-parameter space) -- no new computation
     // (optimizer_diagnostics_report.md TODO-1). Not meaningful for the
     // p_free == 0 case above (returns early); IRLS path only.
-    set_min_eigenvalue_if_suspect(XtWX, res);
     return res;
 }
 

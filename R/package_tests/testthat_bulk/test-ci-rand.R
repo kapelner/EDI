@@ -3,6 +3,88 @@ library(testthat)
 library(EDI)
 library(data.table)
 
+affine_rand_fixture <- function(seed = 2002L, n = 30L) {
+	set.seed(seed)
+	x <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = seed, verbose = FALSE)
+	des$add_all_subjects_to_experiment(x)
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	des$add_all_subject_responses(0.8 * w + 0.2 * x$x1 + rnorm(n, sd = 0.5))
+	des
+}
+
+test_that("tier-1 affine randomization reuse exactly reproduces impute-then-permute distributions", {
+	des <- affine_rand_fixture()
+	classes <- list(
+		InferenceAllSimpleAverageDiff, InferenceAllSimpleMeanDiffPooledVar,
+		InferenceContinOLS, InferenceContinLin
+	)
+	for (cls in classes) {
+		inf <- cls$new(des, model_formula = ~., verbose = FALSE)
+		inf$num_cores <- 1L
+		p <- inf$.__enclos_env__$private
+		perms <- p$generate_permutations(51L)
+		invisible(inf$compute_rand_two_sided_pval(r = 51L, delta = 0, show_progress = FALSE, permutations = perms))
+		expect_true(p$supports_additive_delta_shift("none"), info = class(inf)[1L])
+		expect_length(p$cached_values$t0s_rand, 51L)
+		expect_length(p$cached_values$t0s_rand_slopes, 51L)
+		for (delta in c(-1, -0.1, 0, 0.1, 1)) {
+			slow <- inf$approximate_randomization_distribution_beta_hat_T(
+				r = 51L, delta = delta, show_progress = FALSE, permutations = perms
+			)
+			affine <- p$cached_values$t0s_rand + delta * p$cached_values$t0s_rand_slopes
+			expect_equal(sort(affine), sort(slow), tolerance = 1e-12,
+				info = paste(class(inf)[1L], "delta", delta))
+		}
+	}
+})
+
+test_that("affine CI reuse performs one distribution computation and matches the uncached search", {
+	des <- affine_rand_fixture(seed = 2003L, n = 24L)
+	fast <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+	slow <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+	for (inf in list(fast, slow)) inf$num_cores <- 1L
+	perms <- fast$.__enclos_env__$private$generate_permutations(99L)
+	for (inf in list(fast, slow)) {
+		p <- inf$.__enclos_env__$private
+		unlockBinding("generate_permutations", p)
+		p$generate_permutations <- function(r) perms
+	}
+	fast_p <- fast$.__enclos_env__$private
+	n_distribution_calls <- 0L
+	original_prefix <- fast_p$get_randomization_distribution_prefix
+	unlockBinding("get_randomization_distribution_prefix", fast_p)
+	fast_p$get_randomization_distribution_prefix <- function(...) {
+		n_distribution_calls <<- n_distribution_calls + 1L
+		original_prefix(...)
+	}
+	slow_p <- slow$.__enclos_env__$private
+	unlockBinding("supports_additive_delta_shift", slow_p)
+	slow_p$supports_additive_delta_shift <- function(...) FALSE
+	ctrl <- list(mc_enable = FALSE, high_precision_confirm = FALSE, seed = "none")
+	ci_fast <- fast$compute_rand_confidence_interval(alpha = 0.2, r = 99L, pval_epsilon = 0.02, show_progress = FALSE, ci_search_control = ctrl)
+	ci_slow <- slow$compute_rand_confidence_interval(alpha = 0.2, r = 99L, pval_epsilon = 0.02, show_progress = FALSE, ci_search_control = ctrl)
+	expect_identical(n_distribution_calls, 1L)
+	expect_equal(as.numeric(ci_fast), as.numeric(ci_slow), tolerance = 0.02)
+})
+
+test_that("non-affine estimators and an early-stopped MC prefix never populate the affine cache", {
+	des <- affine_rand_fixture(seed = 2004L, n = 30L)
+	wilcox <- InferenceAllSimpleWilcox$new(des, verbose = FALSE)
+	expect_false(wilcox$.__enclos_env__$private$supports_additive_delta_shift("none"))
+	expect_false(isTRUE(EDI:::get_inference_class_metadata("InferenceAllSimpleWilcox")$supports_additive_delta_shift))
+
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+	p <- inf$.__enclos_env__$private
+	p$randomization_mc_control <- list(
+		mc_enable = TRUE, mc_batch_size = 25L, mc_min_draws = 50L,
+		mc_conf_level = 0.90, mc_stop_threshold = 0.5
+	)
+	invisible(inf$compute_rand_two_sided_pval(r = 199L, delta = 0, show_progress = FALSE))
+	expect_null(p$cached_values$t0s_rand)
+})
+
 make_exact_fisher_2x2 <- function(w, y) {
 	matrix(
 		c(
@@ -167,10 +249,10 @@ test_that("compute_rand_confidence_interval works for survival response (uncenso
 
 	expect_equal(length(ci), 2)
 	expect_true(ci[1] < ci[2])
-	# Survival times (ratios) should be positive
-	expect_true(all(ci > 0))
 
 	est <- inf$compute_estimate()
+	# Both quantities are log-time-ratio effects; a valid interval need not be
+	# positive, but must bracket the estimate on that same scale.
 	expect_true(est >= ci[1] && est <= ci[2])
 
 	message("Survival Rand CI: [", ci[1], ", ", ci[2], "] Est: ", est)

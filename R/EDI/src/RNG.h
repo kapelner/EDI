@@ -61,6 +61,7 @@
 #include <cstdint>
 #include <cmath>
 #include <array>
+#include <algorithm>
 #include <limits>
 
 namespace edi_rng {
@@ -140,9 +141,9 @@ public:
 	// at 32 bits instead of the arbitrary-generator 64-bit form).
 	Int32 next_word() { return mt_genrand(); }
 
-	// std::shuffle / <random>'s UniformRandomBitGenerator interface, so RRng
-	// can be passed directly to std::shuffle(...) the same way
-	// std::mt19937/std::mt19937_64 instances were.
+	// UniformRandomBitGenerator interface retained for compatibility with
+	// callers that consume raw RRng words. Seed-pinned shuffles use the
+	// portable fisher_yates_shuffle() below, not std::shuffle.
 	using result_type = Int32;
 	Int32 operator()() { return next_word(); }
 	static constexpr Int32 min() { return 0u; }
@@ -320,6 +321,18 @@ inline std::uint32_t bounded_rand(RRng& rng, std::uint32_t s) {
 		}
 	}
 	return static_cast<std::uint32_t>(m >> 32);
+}
+
+// Implementation-defined std::shuffle must not define seed-pinned design
+// draws. This Fisher--Yates implementation uses the portable Lemire bounded
+// draw above, so the same RRng state yields the same permutation everywhere.
+template <typename RandomIt>
+inline void fisher_yates_shuffle(RandomIt first, RandomIt last, RRng& rng) {
+	for (auto remaining = last - first; remaining > 1; --remaining) {
+		auto i = remaining - 1;
+		auto j = static_cast<decltype(i)>(bounded_rand(rng, static_cast<std::uint32_t>(remaining)));
+		std::iter_swap(first + i, first + j);
+	}
 }
 
 } // namespace edi_rng

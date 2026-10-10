@@ -1197,12 +1197,24 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			indices = as.integer(indices)
 			w_priv = worker_state$worker_priv
-			w_priv$X = if (!is.null(worker_state$base_X)) {
+			w_priv$w = if (!is.null(worker_state$base_w)) as.numeric(worker_state$base_w[indices]) else NULL
+			X_subset = if (!is.null(worker_state$base_X)) {
 				worker_state$base_X[indices, , drop = FALSE]
 			} else {
 				NULL
 			}
-			w_priv$w = if (!is.null(worker_state$base_w)) as.numeric(worker_state$base_w[indices]) else NULL
+			# Reusing the full-data model matrix avoids the per-draw formula pipeline.
+			# A bootstrap sample can make a rare level or covariate constant, however;
+			# in that case preserve the historical rebuild-and-harden path.
+			use_direct_X_subset = !is.null(X_subset) && is.numeric(w_priv$w)
+			if (isTRUE(use_direct_X_subset) && ncol(X_subset) > 0L) {
+				X_rank = cbind(`(Intercept)` = 1, treatment = w_priv$w, as.matrix(X_subset))
+				use_direct_X_subset = isTRUE(tryCatch(
+					qr(X_rank)$rank == ncol(X_rank),
+					error = function(e) FALSE
+				))
+			}
+			w_priv$X = if (isTRUE(use_direct_X_subset)) X_subset else NULL
 			w_priv$y = if (!is.null(worker_state$base_y)) as.numeric(worker_state$base_y[indices]) else NULL
 			w_priv$dead = if (!is.null(worker_state$base_dead)) as.numeric(worker_state$base_dead[indices]) else NULL
 			w_priv$y_L = if (!is.null(worker_state$base_y_L)) as.numeric(worker_state$base_y_L[indices]) else NULL
@@ -1234,6 +1246,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			des_priv = worker_state$worker_des_priv
 			if (!is.null(des_priv)) {
 				des_priv$X = w_priv$X
+				if (!isTRUE(use_direct_X_subset)) des_priv$model_matrix_stale = TRUE
 				des_priv$t = length(indices)
 				des_priv$n = length(indices)
 				des_priv$w = w_priv$w
@@ -1248,7 +1261,17 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				# Subset Xraw, Ximp, and y_i_t_i in the worker's design
 				subset_field = function(x) {
 					if (is.null(x)) return(NULL)
-					if (is.data.frame(x) || is.matrix(x)) return(x[indices, , drop = FALSE])
+					if (is.data.frame(x)) {
+						# `[.data.frame` calls make.unique() on duplicated bootstrap
+						# indices solely to manufacture row names.  The covariate
+						# pipeline does not use row names, so retain the columns and
+						# install compact automatic row names instead.
+						out = x[FALSE, , drop = FALSE]
+						for (j in seq_along(x)) out[[j]] = x[[j]][indices]
+						attr(out, "row.names") = .set_row_names(length(indices))
+						return(out)
+					}
+					if (is.matrix(x)) return(x[indices, , drop = FALSE])
 					if (is.list(x) && !is.data.frame(x)) return(x[indices])
 					if (is.atomic(x) && length(x) >= max(indices)) return(x[indices])
 					x

@@ -215,6 +215,16 @@ default change.
     block-, cluster- and matched-set weighting, under both
     `weighting_unit_type` values.
 
+  **Source implementation 2026-10-10; execution pending.**
+  `bayesian_bootstrap_sample_weight_draws()` now builds one shared context,
+  draws the full replicate-by-unit batch in one parent `rgamma()` call, and
+  normalizes within groups after arranging units in their historical
+  first-observed order.  It then reconstructs the original unit order before
+  returning one draw record per replicate.  The focused deterministic
+  reference covers the preserved replicate-then-group RNG ordering.  The
+  required installed-package equivalence and benchmark evidence remains part
+  of TODO-9, so this checkbox stays open.
+
 - [ ] TODO-5: **Audit the bootstrap serial blocklist (F1).** For each
   entry (`^InferenceIncid`, `^InferenceSurvival(?!.*KK)`,
   `^InferenceAllKKWilcoxIVWC$`, response type `incidence`):

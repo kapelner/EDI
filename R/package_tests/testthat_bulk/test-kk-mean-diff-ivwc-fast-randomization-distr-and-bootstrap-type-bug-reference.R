@@ -9,9 +9,8 @@ library(EDI)
 # (approximate_randomization_distribution_beta_hat_T()) dispatches to it internally but only ever with
 # the design's own generated permutations, never isolating this method's specific documented branches:
 #   1. delta != 0: returns NULL immediately (a Wald-only class -- no shift-invariant fast path).
-#   2. m_mat == NULL (no pairing info supplied): treated as unpaired, i.e. reduces to the plain
-#      treated-minus-control mean difference dispatched through compute_matching_compound_distr_
-#      parallel_cpp with an all-zero pairing matrix.
+#   2. m_mat == NULL (the matching generator deliberately omits fixed pairing
+#      ids): restores the design's matched-set structure for every draw.
 #   3. Real (nontrivial) pairing info reproduces compute_estimate()'s own point estimate exactly when
 #      the permutation column IS the subject's actual observed assignment/pairing (an independent
 #      cross-check against the class's own compute_estimate(), analogous to the established pattern in
@@ -69,11 +68,11 @@ test_that("passing the subject's real assignment and real pairing as the sole pe
 	expect_equal(as.numeric(out), f$inf$compute_estimate(estimate_only = TRUE), tolerance = 1e-10)
 })
 
-test_that("a NULL m_mat (no pairing supplied) reduces to the plain treated-minus-control mean difference", {
+test_that("a NULL m_mat restores the design's fixed matching structure", {
 	f <- fx(3L)
 	w_int <- as.integer(f$priv$w)
 	out <- f$priv$compute_fast_randomization_distr(f$priv$y, list(w_mat = cbind(w_int)), delta = 0, transform_responses = "none")
-	expect_equal(as.numeric(out), mean(f$priv$y[w_int == 1L]) - mean(f$priv$y[w_int == 0L]), tolerance = 1e-10)
+	expect_equal(as.numeric(out), f$inf$compute_estimate(estimate_only = TRUE), tolerance = 1e-10)
 })
 
 test_that("NA entries in m_mat are zeroed (unpaired) rather than propagating NA, and multi-column permutation matrices work", {

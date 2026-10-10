@@ -105,10 +105,9 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				)
 				set.seed(private$seed)
 			}
-			draws = replicate(
-				as.integer(B),
-				private$bayesian_bootstrap_sample_weights(weighting_unit_type = weighting_unit_type),
-				simplify = FALSE
+			draws = private$bayesian_bootstrap_sample_weight_draws(
+				B = as.integer(B),
+				weighting_unit_type = weighting_unit_type
 			)
 			run_one_iter = function(worker_inf) {
 				draw = draws[[1L]]
@@ -142,6 +141,13 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 					list(val = as.numeric(iter_val)[1L], errors = iter_errs, warnings = iter_warns)
 				}
 				actual_debug_cores = private$effective_parallel_cores("bootstrap", self$num_cores)
+				# The non-reusable branch duplicates an R6 inference object inside a
+				# forked debug worker.  Some of those fits enter OpenMP before the
+				# fork, which can leave an inherited runtime mutex permanently locked.
+				# Debug output is diagnostic rather than throughput-sensitive, so keep
+				# that branch in the parent process.  Ordinary (debug = FALSE)
+				# Bayesian bootstrap dispatch remains parallel.
+				if (!isTRUE(private$use_reusable_bootstrap_worker())) actual_debug_cores = 1L
 				chunk_n = max(1L, min(as.integer(actual_debug_cores), as.integer(B)))
 				chunk_id = ceiling(seq_len(B) / ceiling(B / chunk_n))
 				chunks = split(seq_len(B), chunk_id)
@@ -575,18 +581,42 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				n_units = n
 			)
 		},
-		bayesian_bootstrap_sample_weights = function(weighting_unit_type = NULL){
+		bayesian_bootstrap_sample_weight_draws = function(B, weighting_unit_type = NULL){
 			ctx = private$build_bayesian_bootstrap_context(weighting_unit_type = weighting_unit_type)
-			subject_or_block_weights = numeric(ctx$n_units)
-			for (group_id in unique(ctx$unit_group_id)) {
-				idx = which(ctx$unit_group_id == group_id)
-				draw = stats::rgamma(length(idx), shape = 1, rate = 1)
-				subject_or_block_weights[idx] = draw / sum(draw) * length(idx)
-			}
-			list(
-				subject_or_block_weights = as.numeric(subject_or_block_weights),
-				context = ctx
+			B = as.integer(B)
+			if (B < 1L) return(list())
+			# Keep the historical RNG order: replicate first, then groups in their
+			# first-observed order.  This makes one vectorized rgamma() call exactly
+			# equivalent to the former nested replicate()/group loop.
+			group_id = ctx$unit_group_id
+			group_order = order(match(group_id, unique(group_id)), seq_along(group_id))
+			grouped_id = group_id[group_order]
+			grouped_draws = matrix(
+				stats::rgamma(B * ctx$n_units, shape = 1, rate = 1),
+				nrow = ctx$n_units,
+				ncol = B
 			)
+			for (id in unique(grouped_id)) {
+				idx = which(grouped_id == id)
+				grouped_draws[idx, ] = sweep(
+					grouped_draws[idx, , drop = FALSE],
+					2L,
+					colSums(grouped_draws[idx, , drop = FALSE]),
+					"/"
+				) * length(idx)
+			}
+			weights = matrix(NA_real_, nrow = ctx$n_units, ncol = B)
+			weights[group_order, ] = grouped_draws
+			lapply(seq_len(B), function(b) list(
+				subject_or_block_weights = as.numeric(weights[, b]),
+				context = ctx
+			))
+		},
+		bayesian_bootstrap_sample_weights = function(weighting_unit_type = NULL){
+			private$bayesian_bootstrap_sample_weight_draws(
+				B = 1L,
+				weighting_unit_type = weighting_unit_type
+			)[[1L]]
 		},
 		expand_subject_or_block_weights_to_row_weights = function(subject_or_block_weights){
 			ctx = private$current_bayesian_bootstrap_context

@@ -27,6 +27,7 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <stdexcept>
 
 #ifndef EDI_CORE_ONLY
 using namespace Rcpp;

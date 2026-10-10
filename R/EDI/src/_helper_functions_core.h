@@ -188,36 +188,6 @@ struct ModelResult {
         dispersion_at_poisson_boundary(false) {}
 };
 
-// Fallback-path-only diagnostic for hand-rolled-loop result structs that
-// carry their own `converged`/`min_eigenvalue_information` fields (ModelResult,
-// CoxFitResult, ...) -- parallel to compute_min_eigenvalue_if_suspect above,
-// which operates on LikelihoodFitResult via a functor. Symmetrizes H and
-// stores its minimum eigenvalue into res.min_eigenvalue_information, but only
-// when res.converged is already false. Takes H directly (rather than a
-// functor + params) because these producers already have their curvature
-// matrix (XtWX, total_hess, ...) sitting in a local variable -- this reuses
-// it rather than rebuilding it from a functor. Templated (not overloaded per
-// struct) so any current or future result struct with the two required
-// fields works without a new overload.
-//
-// Disabled for v1.0.0 (body commented out, not deleted, so v1.1.0 can turn
-// it back on without starting from scratch): nothing in R or Python reads
-// min_eigenvalue_information yet, but a spuriously-false `converged` --
-// common on LBFGS exits, see optimizer_diagnostics_report.md TODO-4 -- was
-// making this fire on most calls, costing a full extra Hessian-equivalent
-// build + eigendecomposition every time.
-template <typename ResultStruct>
-inline void set_min_eigenvalue_if_suspect(const Eigen::MatrixXd& H, ResultStruct& res) {
-    (void)H;
-    (void)res;
-    // if (res.converged || H.rows() != H.cols() || H.rows() == 0 || !H.allFinite()) return;
-    // Eigen::MatrixXd H_sym = (H + H.transpose()) / 2.0;
-    // Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(H_sym, Eigen::EigenvaluesOnly);
-    // if (es.info() == Eigen::Success) {
-    //     res.min_eigenvalue_information = es.eigenvalues()(0);
-    // }
-}
-
 // Pure C++ internal helpers
 inline double compute_diagonal_inverse_entry(const Eigen::Ref<const Eigen::MatrixXd>& M, int j) {
     Eigen::VectorXd b = Eigen::VectorXd::Unit(M.rows(), j - 1);
@@ -607,10 +577,47 @@ inline Eigen::MatrixXd subset_matrix(const Eigen::MatrixXd& M, const Eigen::Vect
 }
 
 inline Eigen::VectorXd apply_fixed_values(Eigen::VectorXd params, const FixedParamSpec& spec) {
+    if (spec.fixed_idx.size() != spec.fixed_values.size()) {
+        throw std::invalid_argument("fixed_idx and fixed_values must have the same length");
+    }
     for (int i = 0; i < spec.fixed_idx.size(); ++i) {
+        if (spec.fixed_idx[i] < 0 || spec.fixed_idx[i] >= params.size()) {
+            throw std::invalid_argument("fixed_idx entry is out of bounds for the parameter vector");
+        }
         params[spec.fixed_idx[i]] = spec.fixed_values[i];
     }
     return params;
+}
+
+// Validate externally supplied starts before an optimizer (and, in several
+// kernels, before an OpenMP region) can consume them. Eigen permits assigning
+// a dynamic-size vector to another dynamic-size vector; without this boundary
+// check, a malformed direct R/Python call could shrink the coefficient vector
+// and cause an unchecked later product to access invalid memory.
+inline void require_length(const std::optional<Eigen::VectorXd>& value,
+                           Eigen::Index expected,
+                           const char* what) {
+    if (value.has_value() && value->size() != expected) {
+        throw std::invalid_argument(std::string(what) + " must have length " + std::to_string(expected));
+    }
+}
+
+inline void require_length(const Eigen::VectorXd* value,
+                           Eigen::Index expected,
+                           const char* what) {
+    if (value != nullptr && value->size() != expected) {
+        throw std::invalid_argument(std::string(what) + " must have length " + std::to_string(expected));
+    }
+}
+
+inline void require_square_matrix(const std::optional<Eigen::MatrixXd>& value,
+                                  Eigen::Index expected,
+                                  const char* what) {
+    if (value.has_value() &&
+        (value->rows() != expected || value->cols() != expected)) {
+        throw std::invalid_argument(std::string(what) + " must have dimensions " +
+                                    std::to_string(expected) + " x " + std::to_string(expected));
+    }
 }
 
 inline Eigen::VectorXd expand_free_params(const Eigen::VectorXd& free_params,
@@ -1144,61 +1151,6 @@ struct LikelihoodFitResult {
         reduced_model() {}
 };
 
-// SFINAE detection of an optional fun.hessian(params) method -- mirrors
-// has_expected_hessian below. Not every LikelihoodFunctor passed to
-// optimize_likelihood_lbfgs implements .hessian() (some, e.g.
-// LogisticLbfgsObjective, only ever needed operator() for the gradient), so
-// the eigenvalue diagnostic below must be conditional on this, not assume it.
-template <class T, class = void>
-struct has_hessian_method : std::false_type {};
-
-template <class T>
-struct has_hessian_method<T, decltype(void(
-    std::declval<T&>().hessian(std::declval<const Eigen::VectorXd&>())
-))> : std::true_type {};
-
-// Fallback-path-only diagnostic (optimizer_diagnostics_report.md TODO-1):
-// computes the minimum eigenvalue of fun's Hessian at fit.params and stores
-// it in fit.min_eigenvalue_information, but only when fit.converged is
-// already false -- a fit already flagged suspect by the gradient-norm
-// criterion is exactly the case this is meant to help diagnose (is it also
-// ill-conditioned, or just slow to converge?). Symmetrizes the Hessian
-// before the eigendecomposition (observed-information Hessians from
-// finite-difference or accumulated paths are not always exactly symmetric
-// to floating-point precision). Silently leaves min_eigenvalue_information
-// as NaN if the Hessian can't be built, isn't finite, or the functor has no
-// .hessian() method at all (see has_hessian_method above).
-//
-// Disabled for v1.0.0 (body commented out, not deleted, so v1.1.0 can turn
-// it back on without starting from scratch): nothing in R or Python reads
-// min_eigenvalue_information yet, and "converged" coming back spuriously
-// false turned out to be common on LBFGS exits (TODO-4's delta/tol-coupling
-// discussion), not rare as this was designed assuming -- so in practice
-// this was firing on most calls, each paying for a full extra Hessian
-// build plus an O(p^3) eigendecomposition it never used to pay for
-// (confirmed via interval_censored_survival_response.md TODO-28: this, not
-// the Weibull kernel itself, was the real source of a measured 2-4x
-// slowdown across every likelihood-based kernel using this wrapper).
-template <typename LikelihoodFunctor>
-inline void compute_min_eigenvalue_if_suspect(LikelihoodFunctor& fun, LikelihoodFitResult& fit) {
-    (void)fun;
-    (void)fit;
-    // if (fit.converged || fit.params.size() == 0) return;
-    // if constexpr (has_hessian_method<LikelihoodFunctor>::value) {
-    //     try {
-    //         Eigen::MatrixXd H = fun.hessian(fit.params);
-    //         if (H.rows() != H.cols() || H.rows() == 0 || !H.allFinite()) return;
-    //         Eigen::MatrixXd H_sym = (H + H.transpose()) / 2.0;
-    //         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(H_sym, Eigen::EigenvaluesOnly);
-    //         if (es.info() == Eigen::Success) {
-    //             fit.min_eigenvalue_information = es.eigenvalues()(0);
-    //         }
-    //     } catch (...) {
-    //         // Leave as NaN -- see function comment.
-    //     }
-    // }
-}
-
 inline std::string normalize_optimizer_algorithm(const std::string& optimization_alg,
                                                  const std::string& default_optimization_alg,
                                                  bool allow_irls) {
@@ -1358,7 +1310,6 @@ inline LikelihoodFitResult optimize_likelihood_lbfgs(LikelihoodFunctor& fun,
         fit.hit_iteration_cap = false;
         fit.niter = maxit;
     }
-    compute_min_eigenvalue_if_suspect(fun, fit);
     return fit;
 }
 
@@ -1456,7 +1407,6 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
             fit.gradient_norm = last_grad_norm;
             fit.converged = (last_grad_norm < tol);
             fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
-            compute_min_eigenvalue_if_suspect(fun, fit);
             return fit;
         }
     }
@@ -1472,7 +1422,6 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
     fit.converged = (last_grad_norm < tol);
     fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
     fit.gradient_norm = last_grad_norm;
-    compute_min_eigenvalue_if_suspect(fun, fit);
     return fit;
 }
 

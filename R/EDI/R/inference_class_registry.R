@@ -1007,6 +1007,15 @@ EDI_INFERENCE_ESTIMAND_TAGS = list(
 	InferenceSurvivalWeibullRegr = "log_time_ratio"
 )
 
+# Classes whose randomization statistic is affine in an additive sharp-null
+# shift for a fixed permutation set. The first four are the algebraic tier-1
+# estimators; KK OLS one-likelihood is the sole tier-2 estimator that passed
+# the fixed-permutation numerical identity audit to 1e-10.
+EDI_INFERENCE_ADDITIVE_DELTA_SHIFT_CLASSES = c(
+	"InferenceAllSimpleAverageDiff", "InferenceAllSimpleMeanDiffPooledVar",
+	"InferenceContinOLS", "InferenceContinLin", "InferenceContinKKOLSOneLik"
+)
+
 #' What treatment-effect quantity a concrete `Inference` generator's
 #' `compute_estimate()` reports (e.g. `"mean_difference"`, `"log_odds_ratio"`,
 #' `"log_hazard_ratio"`), for `InferenceSuite$run_all_inference()`'s Combined
@@ -2636,6 +2645,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
 				requires_kk_matching_design = infer_inference_requires_kk_matching_design(name),
+				supports_additive_delta_shift = name %in% EDI_INFERENCE_ADDITIVE_DELTA_SHIFT_CLASSES,
 				design_compatibility_reason = infer_inference_design_compatibility_reason_fn(obj),
 				estimand = infer_inference_estimand_type(obj, name),
 				adjusts_for_covariates = infer_inference_adjusts_for_covariates(name)

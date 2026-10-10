@@ -396,9 +396,15 @@ nonzero `beta_T` specifically rather than for the whole class uniformly.
 (4 classes total) to `COVERAGE_MC_SPEC` in `comprehensive_tests.R`,
 mirroring the existing `InferenceOrdinalRidit` entry (MC-refit truth via
 simulation under the class's own fitted model, not the raw DGP
-parameter). Test-harness-only change; does not touch `R/EDI` source. Not
-yet implemented — this is a real, confirmed, low-risk fix but was out of
-scope for the investigating fork to also apply.
+parameter). Test-harness-only change; does not touch `R/EDI` source.
+
+**Implemented, 2026-10-08:** all four registry entries are now present in
+`COVERAGE_MC_SPEC`. The focused source-loaded registry tests cover their
+dispatches along with the linked KMDiff and conditional-incidence entries;
+see “Implementation audit, 2026-10-08” above. This closes the source-level
+TODO-10 action. It does not close the plan's release-validation TODO-4/5:
+the shared comprehensive-results regeneration and its baseline re-audit are
+still required and remain deliberately unclaimed here.
 
 ## TODO-11 (added 2026-09-25, investigated at user request from the live TODO-4 re-run's first partial results): `PropBetaRegr`/`PropFractionalLogit` residual under-coverage on `ionosphere` is NOT TODO-6's mechanism -- a distinct, likely real, small-sample CI-calibration gap
 

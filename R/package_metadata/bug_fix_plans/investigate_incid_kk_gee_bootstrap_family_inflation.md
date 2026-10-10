@@ -87,6 +87,16 @@ if they don't, that strengthens it.
 
 ## Next steps (none done yet)
 
+**Static CSV re-audit 2026-10-09:** the retained size rows do preserve the
+triggering design/formula strata even though they do not retain the source
+dataset name. The largest historical BRT inflation is concentrated in
+`KK21stepwise` at `model_formula = ~1` and `~.` (for example the
+studentized and symmetric-percentile-t variants are 0.1622 over 37 rows);
+the same family has materially smaller FixedBinaryMatch rows. This supports
+the plan's requirement to replay the exact harness dataset and both model
+formulae, and it does not justify a code change. Runtime replay remains
+pending because this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+
 - [ ] Pull the *exact* historical dataset/design/`model_formula` combination
   from the flagged `comprehensive_tests` CSV rows (both the `~1` and `~.`
   rows) — not a fresh simplified fixture — and attempt reproduction with

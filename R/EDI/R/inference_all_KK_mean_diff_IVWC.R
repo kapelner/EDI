@@ -159,7 +159,16 @@ KKMeanDifferenceIVWCSource = list(
 			storage.mode(w_mat) = "integer"
 			m_mat = permutations$m_mat
 			if (is.null(m_mat)) {
-				m_mat = matrix(0L, nrow = n, ncol = ncol(w_mat))
+				# Matching assignments are rerandomized, but the matched-set
+				# structure is fixed.  The matching permutation generator therefore
+				# deliberately omits m_mat; restore the design's ids for every draw
+				# rather than silently changing the compound IVWC null to an unpaired
+				# mean difference.
+				m_vec = private$m
+				if (is.null(m_vec)) m_vec = rep.int(0L, n)
+				m_vec = as.integer(m_vec)
+				m_vec[is.na(m_vec)] = 0L
+				m_mat = matrix(rep.int(m_vec, ncol(w_mat)), nrow = n, ncol = ncol(w_mat))
 			} else {
 				m_mat = as.matrix(m_mat)
 				m_mat[is.na(m_mat)] = 0L

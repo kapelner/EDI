@@ -262,7 +262,15 @@ double estimate_hl_ssq_rank_sum(const std::vector<double>& y_t, const std::vecto
     }
     const int count = static_cast<int>(y_t.size() * n_c);
     double var_diffs = (sum_sq - (sum * sum) / count) / (count - 1);
-    return var_diffs / (y_t.size() + y_c.size());
+    // Under a common normal location model the rank-sum HL estimator has
+    // variance pi*sigma^2/3 * (1/n_t + 1/n_c). Since Var(Y_T - Y_C) is
+    // 2*sigma^2, calibrate the empirical pairwise-difference variance to
+    // that target. The old var_diffs / (n_t + n_c) expression was too small
+    // by 2*pi/3 in the balanced case. Keep this synchronized with the R
+    // slow/bootstrap-worker path in rank_for_reservoir().
+    const double n_t = static_cast<double>(y_t.size());
+    const double n_c_d = static_cast<double>(y_c.size());
+    return var_diffs * M_PI * (n_t + n_c_d) / (6.0 * n_t * n_c_d);
 }
 
 double estimate_hl_ssq_signed_rank(const std::vector<double>& pair_diffs) {
@@ -281,7 +289,11 @@ double estimate_hl_ssq_signed_rank(const std::vector<double>& pair_diffs) {
         count += static_cast<int>(m - i);
     }
     double var_walsh = (sum_sq - (sum * sum) / count) / (count - 1);
-    return var_walsh / m;
+    // A Walsh average has half the variance of a paired difference under a
+    // normal model, while signed-rank HL has pi/3 times the mean estimator's
+    // variance. Thus var(Walsh) / m needs the 2*pi/3 calibration factor.
+    // Keep this synchronized with rank_for_matched_pairs() in the R path.
+    return var_walsh * (2.0 * M_PI / 3.0) / static_cast<double>(m);
 }
 
 // apply_shift_hl is only called by the Rcpp-export bootstrap functions

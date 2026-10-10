@@ -78,6 +78,41 @@ SimpleMeanDifferencePooledVarSource = list(
 			if (!is.finite(pooled_stats$estimate) || !is.finite(pooled_stats$se) || pooled_stats$se <= 0) return(NA_real_)
 			t_stat = (pooled_stats$estimate - delta) / pooled_stats$se
 			2 * stats::pt(-abs(t_stat), df = pooled_stats$df)
+		},
+		# Frequency-weighted analogue of this class's pooled equal-variance
+		# estimator.  This must not inherit AverageDiff's Welch calculation:
+		# bootstrap/studentized methods consume the cached SE and promise the
+		# same pooled-variance convention as the ordinary asymptotic methods.
+		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
+			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
+			keep = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
+			if (!any(keep)) {
+				private$cached_values$beta_hat_T = NA_real_
+				private$cached_values$s_beta_hat_T = NA_real_
+				private$cached_values$df = NA_real_
+				return(NA_real_)
+			}
+			y = private$y[keep]; w = private$w[keep]; rw = row_weights[keep]
+			y_t = y[w == 1]; y_c = y[w == 0]
+			rw_t = rw[w == 1]; rw_c = rw[w == 0]
+			wt = sum(rw_t); wc = sum(rw_c)
+			if (!is.finite(wt) || !is.finite(wc) || wt <= 0 || wc <= 0) {
+				private$cached_values$beta_hat_T = NA_real_; private$cached_values$s_beta_hat_T = NA_real_; private$cached_values$df = NA_real_
+				return(NA_real_)
+			}
+			mean_t = sum(y_t * rw_t) / wt; mean_c = sum(y_c * rw_c) / wc
+			private$cached_values$beta_hat_T = mean_t - mean_c
+			if (isTRUE(estimate_only) || wt <= 1 || wc <= 1) {
+				private$cached_values$s_beta_hat_T = NA_real_; private$cached_values$df = NA_real_
+				return(private$cached_values$beta_hat_T)
+			}
+			df = wt + wc - 2
+			q = sum(rw_t * (y_t - mean_t)^2) + sum(rw_c * (y_c - mean_c)^2)
+			s2 = q / df
+			se = sqrt(s2 * (1 / wt + 1 / wc))
+			private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
+			private$cached_values$df = if (is.finite(df) && df > 0) df else NA_real_
+			private$cached_values$beta_hat_T
 		}
 	),
 	private = list(
@@ -199,7 +234,7 @@ InferenceAllSimpleMeanDiffPooledVar = define_inference_class(
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
-	metadata = list(likelihood_tier = "none"),
+	metadata = list(likelihood_tier = "none", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",

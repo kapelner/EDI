@@ -126,7 +126,7 @@ test_that("fast_coxph_regression_cpp is equivalent to survival::coxph", {
 	dead <- rbinom(n, 1, 0.8)
 	
 	res_cpp <- fast_coxph_regression_cpp(X, y, dead)
-	res_r <- survival::coxph(survival::Surv(y, dead) ~ X)
+	res_r <- survival::coxph(survival::Surv(y, dead) ~ X, ties = "breslow")
 	
 	expect_equal(as.numeric(res_cpp$coefficients), as.numeric(stats::coef(res_r)), tolerance = 1e-7)
 	expect_equal(as.numeric(res_cpp$vcov), as.numeric(stats::vcov(res_r)), tolerance = 1e-7)
@@ -546,7 +546,7 @@ test_that("fast_stratified_coxph_regression_cpp is equivalent to survival::coxph
 	dead <- rbinom(n, 1, 0.8)
 
 	res_cpp <- EDI:::fast_stratified_coxph_regression_cpp(X, y, dead, as.integer(grp))
-	res_r <- survival::coxph(survival::Surv(y, dead) ~ X + survival::strata(grp))
+	res_r <- survival::coxph(survival::Surv(y, dead) ~ X + survival::strata(grp), ties = "breslow")
 
 	expect_equal(as.numeric(res_cpp$coefficients), as.numeric(stats::coef(res_r)), tolerance = 1e-7)
 	expect_equal(as.numeric(res_cpp$vcov), as.numeric(stats::vcov(res_r)), tolerance = 1e-7)

@@ -3,8 +3,8 @@ library(EDI)
 
 # InferenceSurvivalDepCensTransformRegr$compute_bootstrap_confidence_interval_basic()/_bca(): public wrappers around
 # the generic type-parameterized self$compute_bootstrap_confidence_interval(type = "basic"/"bca", ...), each piped
-# through the class's own private$dep_cens_validate_bootstrap_ci() (contains-the-estimate / usable-width / Wald-
-# fallback logic, already independently tested in test-dep-cens-transform-bootstrap-ci-fallback.R) and, for the
+# through the class's own private$dep_cens_validate_bootstrap_ci() (finite-output validation, already independently
+# tested in test-dep-cens-transform-bootstrap-ci-fallback.R) and, for the
 # "basic" wrapper only, a further fallback to private$dep_cens_percentile_bootstrap_ci() (also already tested) when
 # even the validated interval comes back unusable. This file targets the wrapper methods themselves -- previously
 # exercised only via a stub that replaced compute_bootstrap_confidence_interval_basic entirely (for the studentized
@@ -40,17 +40,15 @@ test_that("compute_bootstrap_confidence_interval_basic(), the usable case: equal
 	expect_false(anyNA(out))
 })
 
-test_that("compute_bootstrap_confidence_interval_basic() falls back to the percentile CI when the validated basic interval is unusable", {
+test_that("compute_bootstrap_confidence_interval_basic() retains a finite basic interval even when it misses the estimate", {
 	f <- dc_fx(); set.seed(3); d <- rnorm(300, 0, 0.3)
 	f <- stub_draws(f, d)
-	f <- set_state(f, est = 5, se = NA_real_)                                          # est far outside the draws AND Wald unusable
+	f <- set_state(f, est = 5, se = NA_real_)
 	direct <- f$inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 300, type = "basic", min_number_usable_samples = 10, show_progress = FALSE)
 	expect_false(direct[1] <= 5 && 5 <= direct[2])                                      # sanity: direct interval genuinely excludes est = 5
-	expect_true(all(is.na(f$p$dep_cens_validate_bootstrap_ci(direct, alpha = 0.05))))   # confirms validation actually rejects it here
-	ref_pct <- f$p$dep_cens_percentile_bootstrap_ci(alpha = 0.05, B = 300, min_number_usable_samples = 10, show_progress = FALSE)
+	expect_equal(f$p$dep_cens_validate_bootstrap_ci(direct, alpha = 0.05), direct)
 	out <- f$inf$compute_bootstrap_confidence_interval_basic(alpha = 0.05, B = 300, min_number_usable_samples = 10, show_progress = FALSE)
-	expect_false(anyNA(ref_pct))                                                        # the percentile fallback itself IS usable here
-	expect_equal(as.numeric(out), as.numeric(ref_pct))
+	expect_equal(as.numeric(out), as.numeric(direct))
 })
 
 # compute_bootstrap_confidence_interval_bca's own bca engine (jackknife-based acceleration) is a class-specific
@@ -72,10 +70,8 @@ test_that("compute_bootstrap_confidence_interval_bca() calls the generic method 
 	expect_equal(as.numeric(out), c(-0.7, 0.1))
 })
 
-test_that("compute_bootstrap_confidence_interval_bca() propagates a Wald fallback (no percentile rescue) when the generic interval doesn't contain the estimate", {
+test_that("compute_bootstrap_confidence_interval_bca() retains a finite generic interval that misses the estimate", {
 	f <- dc_fx(); f <- set_state(f, est = 1.0, se = 0.3); f <- stub_generic(f, c(-0.7, -0.1))   # doesn't contain est = 1.0
-	wald <- 1.0 + c(-1, 1) * qnorm(0.975) * 0.3
 	out <- f$inf$compute_bootstrap_confidence_interval_bca(alpha = 0.05, B = 300, min_number_usable_samples = 10, show_progress = FALSE)
-	expect_equal(as.numeric(out), wald, tolerance = 1e-10)
-	expect_false(isTRUE(all.equal(as.numeric(out), c(-0.7, -0.1))))                             # the unusable generic interval is not what's returned
+	expect_equal(as.numeric(out), c(-0.7, -0.1))
 })

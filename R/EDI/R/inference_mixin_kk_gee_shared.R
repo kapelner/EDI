@@ -157,17 +157,6 @@ InferenceMixinKKGEEShared = list(
 				)
 			}
 			cache_key = private$build_randomization_distribution_cache_key(r, delta, transform_responses, permutations)
-			if (transform_responses == "none" &&
-					!is.null(private$cached_values$t0s_rand) && length(private$cached_values$t0s_rand) >= r) {
-				t0s = private$cached_values$t0s_rand[seq_len(r)] + delta
-				t = private$compute_treatment_estimate_during_randomization_inference()
-				if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
-				if (length(t) != 1 || !is.finite(t)) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_observed_statistic_unavailable")
-					return(NA_real_)
-				}
-				return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t))
-			}
 			private$ensure_resampling_distribution_cache("rand")
 			t = private$compute_treatment_estimate_during_randomization_inference()
 			if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)

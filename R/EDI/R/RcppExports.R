@@ -690,8 +690,8 @@ get_clogit_plus_glmm_hessian_cpp <- function(X_disc_r, y_disc_r, X_conc_r, y_con
     .Call(`_EDI_get_clogit_plus_glmm_hessian_cpp`, X_disc_r, y_disc_r, X_conc_r, y_conc_r, group_conc_r, params_r, has_discordant, has_concordant, max_abs_log_sigma)
 }
 
-fast_clogit_plus_glmm_cpp <- function(X_disc_r, y_disc_r, X_conc_r, y_conc_r, group_conc_r, has_discordant, has_concordant, warm_start_params = NULL, warm_start_beta = NULL, estimate_only = FALSE, max_abs_log_sigma = 8.0, maxit = 200L, eps_g = 1e-5, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL) {
-    .Call(`_EDI_fast_clogit_plus_glmm_cpp`, X_disc_r, y_disc_r, X_conc_r, y_conc_r, group_conc_r, has_discordant, has_concordant, warm_start_params, warm_start_beta, estimate_only, max_abs_log_sigma, maxit, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
+fast_clogit_plus_glmm_cpp <- function(X_disc_r, y_disc_r, X_conc_r, y_conc_r, group_conc_r, has_discordant, has_concordant, warm_start_params = NULL, warm_start_beta = NULL, estimate_only = FALSE, max_abs_log_sigma = 8.0, maxit = 200L, eps_g = 1e-5, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, weights_disc = NULL, weights_conc = NULL) {
+    .Call(`_EDI_fast_clogit_plus_glmm_cpp`, X_disc_r, y_disc_r, X_conc_r, y_conc_r, group_conc_r, has_discordant, has_concordant, warm_start_params, warm_start_beta, estimate_only, max_abs_log_sigma, maxit, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, weights_disc, weights_conc)
 }
 
 get_continuation_ratio_regression_score_cpp <- function(X, y, params) {
@@ -5321,4 +5321,3 @@ compute_zhang_match_data_cpp <- function(X, y, w, m_vec) {
 compute_matching_wy_stats_cpp <- function(w, y, m_vec) {
     .Call(`_EDI_compute_matching_wy_stats_cpp`, w, y, m_vec)
 }
-

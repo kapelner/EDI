@@ -75,3 +75,27 @@ test_that("neither piece succeeds: beta_hat_T and s_beta_hat_T are NA_real_", {
 	expect_true(is.na(f$priv$cached_values$beta_hat_T))
 	expect_true(is.na(f$priv$cached_values$s_beta_hat_T))
 })
+
+test_that("estimate-only IVWC requests finite component variances", {
+	f <- mk_fixture(5L)
+	matched_estimate_only <- logical()
+	reservoir_estimate_only <- logical()
+	unlockBinding("robust_for_matched_pairs", f$priv)
+	f$priv$robust_for_matched_pairs <- function(estimate_only = FALSE) {
+		matched_estimate_only <<- c(matched_estimate_only, estimate_only)
+		f$priv$cached_values$beta_T_matched <- 1.2
+		f$priv$cached_values$ssq_beta_T_matched <- 0.2
+	}
+	unlockBinding("robust_for_reservoir", f$priv)
+	f$priv$robust_for_reservoir <- function(estimate_only = FALSE) {
+		reservoir_estimate_only <<- c(reservoir_estimate_only, estimate_only)
+		f$priv$cached_values$beta_T_reservoir <- 0.9
+		f$priv$cached_values$ssq_beta_T_reservoir <- 0.5
+	}
+	f$priv$shared(estimate_only = TRUE)
+	w_star <- 0.5 / (0.5 + 0.2)
+	expect_false(any(matched_estimate_only))
+	expect_false(any(reservoir_estimate_only))
+	expect_equal(f$priv$cached_values$beta_hat_T, w_star * 1.2 + (1 - w_star) * 0.9)
+	expect_null(f$priv$cached_values$s_beta_hat_T)
+})

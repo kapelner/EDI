@@ -88,6 +88,21 @@ test_that("BRT p-value is deterministic given the inference seed", {
 	expect_identical(p1, p2)
 })
 
+test_that("materialized BRT draws retain distinct replay seeds", {
+	des = build_brt_design(function() DesignFixedBernoulli$new(response_type = "continuous", n = n_brt), 0)
+	priv = new_brt_inference(des, seed = 17L)$.__enclos_env__$private
+	set.seed(801)
+	draws = priv$generate_rand_bootstrap_draws(31L, materialize_w = TRUE)
+	seeds = vapply(draws, `[[`, integer(1L), "w_seed")
+	expect_length(seeds, 31L)
+	expect_equal(length(unique(seeds)), length(seeds))
+	# Replay seeds, as well as the generated draws, remain deterministic when
+	# the caller restores the same stream.
+	set.seed(801)
+	again = priv$generate_rand_bootstrap_draws(31L, materialize_w = TRUE)
+	expect_identical(seeds, vapply(again, `[[`, integer(1L), "w_seed"))
+})
+
 test_that("BRT p-value at delta equal to the true effect is not rejected", {
 	des = build_brt_design(function() DesignFixedBernoulli$new(response_type = "continuous", n = n_brt), 2)
 	inf = new_brt_inference(des)

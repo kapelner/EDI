@@ -7,6 +7,7 @@
 #include <RcppEigen.h>
 #include <Rmath.h>
 #endif
+#include <stdexcept>
 
 #ifndef EDI_CORE_ONLY
 using namespace Rcpp;

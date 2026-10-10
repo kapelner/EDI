@@ -188,7 +188,7 @@ Eigen::MatrixXi generate_permutations_ibcrd_internal(int n, int nsim, double pro
 	for (int b = 0; b < nsim; ++b) {
 		int* w_col = w_ptr + (size_t)b * n;
 		std::vector<int> w_shuffled = w_base;
-		std::shuffle(w_shuffled.begin(), w_shuffled.end(), rng);
+		edi_rng::fisher_yates_shuffle(w_shuffled.begin(), w_shuffled.end(), rng);
 		for (int i = 0; i < n; ++i) w_col[i] = w_shuffled[static_cast<std::size_t>(i)];
 	}
 	return w_mat;
@@ -208,7 +208,7 @@ Eigen::MatrixXi generate_permutations_blocking_internal(
 			int n_T = static_cast<int>(std::round(m * prob_T));
 			std::vector<int> w_stratum(static_cast<std::size_t>(m));
 			for (int i = 0; i < m; ++i) w_stratum[static_cast<std::size_t>(i)] = (i < n_T) ? 1 : 0;
-			std::shuffle(w_stratum.begin(), w_stratum.end(), rng);
+			edi_rng::fisher_yates_shuffle(w_stratum.begin(), w_stratum.end(), rng);
 			for (int i = 0; i < m; ++i) w_col[idxs[static_cast<std::size_t>(i)] - 1] = w_stratum[static_cast<std::size_t>(i)];
 		}
 	}
@@ -424,7 +424,7 @@ Eigen::MatrixXi generate_permutations_spbr_internal(
 			int sid = strata_ids[static_cast<std::size_t>(i)];
 			if (strata_states[static_cast<std::size_t>(sid)].empty()) {
 				strata_states[static_cast<std::size_t>(sid)] = base_block;
-				std::shuffle(strata_states[static_cast<std::size_t>(sid)].begin(), strata_states[static_cast<std::size_t>(sid)].end(), rng);
+				edi_rng::fisher_yates_shuffle(strata_states[static_cast<std::size_t>(sid)].begin(), strata_states[static_cast<std::size_t>(sid)].end(), rng);
 			}
 			w_col[i] = strata_states[static_cast<std::size_t>(sid)].back();
 			strata_states[static_cast<std::size_t>(sid)].pop_back();

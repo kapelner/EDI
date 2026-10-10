@@ -104,7 +104,7 @@ void init_state(AnnealState& st, const ObjKind kind, const MatrixXd& M1, const M
 	std::iota(idx.begin(), idx.end(), 0);
 	for (int i = n - 1; i > 0; i--)
 		std::swap(idx[static_cast<std::size_t>(i)],
-		          idx[static_cast<std::size_t>(std::uniform_int_distribution<int>(0, i)(rng))]);
+		          idx[static_cast<std::size_t>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(i + 1)))]);
 	st.w.assign(static_cast<std::size_t>(n), 0);
 	st.treated.assign(idx.begin(), idx.begin() + n_T);
 	st.control.assign(idx.begin() + n_T, idx.end());
@@ -173,9 +173,6 @@ Rcpp::List annealing_design_search_cpp(
 #pragma omp parallel for schedule(static) if(parallel_ok)
 	for (int c = 0; c < n_chains; c++) {
 		edi_rng::RRng rng(seeds[static_cast<std::size_t>(c)]);
-		std::uniform_int_distribution<int>     pick_t(0, n_T - 1);
-		std::uniform_int_distribution<int>     pick_c(0, nc - 1);
-		std::uniform_real_distribution<double> unif01(0.0, 1.0);
 
 		AnnealState st;
 		init_state(st, kind, M1, M2, n, n_T, rng);
@@ -186,7 +183,7 @@ Rcpp::List annealing_design_search_cpp(
 		double T = initial_temp;
 		VectorXd v_new;  // l1 scratch
 		for (int k = 0; k < max_iter; k++) {
-			const int ti = pick_t(rng), ci = pick_c(rng);
+			const int ti = static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(n_T))), ci = static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(nc)));
 			const int a = st.treated[static_cast<std::size_t>(ti)];   // leaves treatment
 			const int b = st.control[static_cast<std::size_t>(ci)];   // enters treatment
 			double f_new;
@@ -213,7 +210,7 @@ Rcpp::List annealing_design_search_cpp(
 			}
 			if (feasible) {
 				const double delta = f_new - f_cur;
-				if (delta < 0.0 || unif01(rng) < std::exp(-delta / T)) {
+				if (delta < 0.0 || rng.unif_rand() < std::exp(-delta / T)) {
 					// Accept: swap a <-> b and update caches (custom's wd is
 					// already flipped from the evaluation above).
 					st.treated[static_cast<std::size_t>(ti)] = b;

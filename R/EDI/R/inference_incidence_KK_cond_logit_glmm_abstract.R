@@ -110,33 +110,53 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 					return(private$cached_values$beta_hat_T)
 				}
 			}
-			if (!check_package_installed("glmmTMB")) return(NA_real_)
+			# Preserve the reported estimand in every nonconstant bootstrap draw:
+			# the observed fit is the 20-node joint conditional-logit + random-
+			# intercept likelihood, so a weighted draw must not substitute the
+			# all-row Laplace glmmTMB likelihood.  A matched pair contributes one
+			# conditional-logit observation and gets the mean of its member weights,
+			# matching kk_pair_and_reservoir_bootstrap_weights(); GLMM rows retain
+			# their individual weights.  Zero-weight likelihood rows are omitted.
+			d = private$prepare_clogit_plus_glmm_data()
 			m_vec = private$m
 			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			group_id = m_vec
-			res_idx = which(group_id == 0L)
-			if (length(res_idx) > 0L) {
-				group_id[res_idx] = max(group_id) + seq_along(res_idx)
-			}
-			X_fit = private$create_design_matrix()
-			if (is.null(X_fit)) return(NA_real_)
-			X_fit = as.data.frame(X_fit[, -1, drop = FALSE])
-			if ("treatment" %in% colnames(X_fit)) colnames(X_fit)[colnames(X_fit) == "treatment"] = "w"
-			ok = is.finite(row_weights) & row_weights > 0 & is.finite(as.numeric(private$y))
-			if (!any(ok)) return(NA_real_)
-			dat = data.frame(
-				y = as.numeric(private$y[ok]),
-				X_fit[ok, , drop = FALSE],
-				group_id = factor(group_id[ok]),
-				.bootstrap_weight__ = as.numeric(row_weights[ok])
-			)
-			formula_glmm = stats::as.formula(paste("y ~", paste(c(setdiff(colnames(dat), c("y", "group_id", ".bootstrap_weight__")), "(1 | group_id)"), collapse = " + ")))
-			mod = tryCatch(
-				suppressWarnings(glmmTMB::glmmTMB(formula_glmm, family = stats::binomial(link = "logit"), data = dat, weights = .bootstrap_weight__, se = FALSE)),
+			disc_weights = vapply(d$i_m_disc, function(pair_id) {
+				mean(row_weights[m_vec == pair_id], na.rm = TRUE)
+			}, numeric(1))
+			conc_weights = as.numeric(row_weights[d$i_glmm])
+			keep_disc = is.finite(disc_weights) & disc_weights > 0
+			keep_conc = is.finite(conc_weights) & conc_weights > 0 & is.finite(d$y_conc)
+			d$X_disc = d$X_disc[keep_disc, , drop = FALSE]
+			d$y_disc = d$y_disc[keep_disc]
+			d$X_conc = d$X_conc[keep_conc, , drop = FALSE]
+			d$y_conc = d$y_conc[keep_conc]
+			d$group_conc = d$group_conc[keep_conc]
+			disc_weights = disc_weights[keep_disc]
+			conc_weights = conc_weights[keep_conc]
+			d$has_discordant = length(disc_weights) > 0L
+			d$has_concordant = length(conc_weights) > 0L
+			if (!d$has_discordant && !d$has_concordant) return(NA_real_)
+			n_params = if (d$has_concordant) ncol(d$X_conc) + 1L else ncol(d$X_disc)
+			fit = tryCatch(
+				fast_clogit_plus_glmm_cpp(
+					X_disc = d$X_disc, y_disc = d$y_disc,
+					X_conc = d$X_conc, y_conc = d$y_conc,
+					group_conc = d$group_conc,
+					has_discordant = d$has_discordant,
+					has_concordant = d$has_concordant,
+					warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
+					estimate_only = TRUE,
+					max_abs_log_sigma = private$max_abs_log_sigma,
+					optimization_alg = private$optimization_alg,
+					weights_disc = disc_weights,
+					weights_conc = conc_weights
+				),
 				error = function(e) NULL
 			)
-			beta = tryCatch(glmmTMB::fixef(mod)$cond[["w"]], error = function(e) NA_real_)
+			beta = if (isTRUE(fit$converged)) {
+				j_T = if (d$has_concordant) 2L else 1L
+				as.numeric(fit$params)[j_T]
+			} else NA_real_
 			max_abs_boot_coef = min(private$max_abs_reasonable_coef, private$bootstrap_extreme_estimate_threshold)
 			if (!is.finite(beta) || abs(beta) > max_abs_boot_coef) {
 				private$cached_values$beta_hat_T = NA_real_
@@ -404,6 +424,8 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 				X_conc = as.matrix(X_glmm),
 				y_conc = as.numeric(y_glmm),
 				group_conc = as.integer(group_glmm),
+				i_m_disc = as.integer(i_m_disc),
+				i_glmm = as.integer(i_glmm),
 				has_discordant = length(i_m_disc) > 0L,
 				has_concordant = length(i_glmm) > 0L
 			)

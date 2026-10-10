@@ -106,13 +106,15 @@ negligible.
   `_helper_functions_core.h` (Rcpp-free, `EDI_CORE_ONLY`-compatible; use
   `std::numeric_limits<double>::quiet_NaN()`, not `NA_REAL`, since the
   header is shared with the Python core).
-- [x] **TODO-2: Apply at the five sites.** Targeted compile of the five
+- [ ] **TODO-2: Apply at the five sites.** The source edits are complete, but
+  the required targeted compile of the five
   `.cpp` files only, per `CLAUDE.md`. Optionally refactor the four already-
   guarded sites to call the same helper **only if** they currently use
   `lu.inverse()` and the maintainer accepts the ulp-level change there;
   otherwise leave them (recommended for 1.1.0: leave them; note it as a
   1.2.0 tidy-up).
-- [x] **TODO-3: Tests.** `test-information-inverse-guard.R`, per kernel: (a)
+- [ ] **TODO-3: Tests.** The source-loaded assertions are present, but their
+  required rebuilt-native execution remains pending. `test-information-inverse-guard.R`, per kernel: (a)
   all existing `with_var` fixtures `identical()` before/after (the
   bit-for-bit claim); (b) a design with a duplicated covariate column and
   `harden = FALSE` (so the R side does not drop it) yields an all-`NaN`

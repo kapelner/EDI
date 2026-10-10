@@ -22,8 +22,9 @@
 	c(pi0 = e0 / den, pi1 = e1 / den, pib = e2 / den)
 }
 
-.build_zoib_start = function(y, X){
+.build_zoib_start = function(y, X, X_zero_one = X){
 	y = as.numeric(y)
+	X_zero_one = as.matrix(X_zero_one)
 	eps = .Machine$double.eps
 	y_clip = pmin(pmax(y, eps), 1 - eps)
 	beta_start = rep(0, ncol(X) + 1L)
@@ -50,37 +51,41 @@
 	pi1 = min(max(pi1, 1e-4), 1 - pi0 - 1e-4)
 	pib = max(1 - pi0 - pi1, 1e-4)
 
+	alpha0 = rep(0, ncol(X_zero_one))
+	alpha1 = rep(0, ncol(X_zero_one))
+	if (length(alpha0) > 0L) {
+		alpha0[1L] = log(pi0 / pib)
+		alpha1[1L] = log(pi1 / pib)
+	}
 	c(
 		unname(beta_start),
 		log_phi = log(10),
-		alpha0 = log(pi0 / pib),
-		alpha1 = log(pi1 / pib)
+		setNames(alpha0, paste0("alpha0_", seq_along(alpha0))),
+		setNames(alpha1, paste0("alpha1_", seq_along(alpha1)))
 	)
 }
 
-.neg_loglik_zoib = function(par, p, is_zero, is_one, y_beta, X_beta) {
+.neg_loglik_zoib = function(par, p, p_zero_one, is_zero, is_one, y_beta, X_beta, X_zero_one) {
 	beta = par[seq_len(p)]
 	phi = exp(par[p + 1L])
-	a0 = par[p + 2L]
-	a1 = par[p + 3L]
+	a0 = par[p + 1L + seq_len(p_zero_one)]
+	a1 = par[p + 1L + p_zero_one + seq_len(p_zero_one)]
+	eta0 = as.vector(X_zero_one %*% a0)
+	eta1 = as.vector(X_zero_one %*% a1)
+	m = pmax(0, eta0, eta1)
+	denom = exp(-m) + exp(eta0 - m) + exp(eta1 - m)
+	log_p0 = eta0 - m - log(denom)
+	log_p1 = eta1 - m - log(denom)
+	log_pb = -m - log(denom)
 
-	denom = 1 + exp(a0) + exp(a1)
-	p0 = exp(a0) / denom
-	p1 = exp(a1) / denom
-	pb = 1 / denom
-
-	ll = 0
-	n0 = sum(is_zero)
-	n1 = sum(is_one)
-	if (n0 > 0L) ll = ll + n0 * log(p0)
-	if (n1 > 0L) ll = ll + n1 * log(p1)
+	ll = sum(log_p0[is_zero]) + sum(log_p1[is_one])
 
 	if (length(y_beta) > 0L) {
 		mu = as.vector(stats::plogis(X_beta %*% beta))
 		mu = pmin(pmax(mu, .Machine$double.eps), 1 - .Machine$double.eps)
 		shape1 = mu * phi
 		shape2 = (1 - mu) * phi
-		ll = ll + length(y_beta) * log(pb) + sum(stats::dbeta(y_beta, shape1, shape2, log = TRUE))
+		ll = ll + sum(log_pb[!(is_zero | is_one)]) + sum(stats::dbeta(y_beta, shape1, shape2, log = TRUE))
 	}
 	-ll
 }
@@ -89,6 +94,7 @@
 	optimization_alg = .normalize_optimizer_algorithm(optimization_alg, allow_irls = FALSE, default = "lbfgs")
 	y = as.numeric(y)
 	X = as.matrix(X)
+	X_without_intercept = X
 	X_zero_one = as.matrix(X_zero_one)
 	if (length(y) != nrow(X)){
 		stop("Zero/one-inflated beta fit inputs must have matching row counts.")
@@ -115,7 +121,7 @@
 	X_beta = X[is_beta, , drop = FALSE]
 
 	if (is.null(starts)){
-		start0 = .build_zoib_start(y, X)
+		start0 = .build_zoib_start(y, X_without_intercept, X_zero_one)
 		starts = list(start0)
 	}
 
@@ -135,7 +141,9 @@
 	if (is.null(best)) return(NULL)
 
 	best_params = as.numeric(best$coefficients)
-	param_names = c(colnames(X), "log_phi", "alpha0", "alpha1")
+	zero_one_names = colnames(X_zero_one)
+	if (is.null(zero_one_names)) zero_one_names = paste0("x", seq_len(ncol(X_zero_one)))
+	param_names = c(colnames(X), "log_phi", paste0("zero_", zero_one_names), paste0("one_", zero_one_names))
 	coef_full = best_params
 	names(coef_full) = param_names
 
@@ -151,11 +159,11 @@
 		vcov_full = NULL
 	}
 	if (is.null(vcov_full) || any(!is.finite(diag(vcov_full)))){
-		vcov_full = tryCatch(numDeriv::hessian(.neg_loglik_zoib, best_params, p = p, is_zero = is_zero, is_one = is_one, y_beta = y_beta, X_beta = X_beta), error = function(e) NULL)
+		vcov_full = tryCatch(numDeriv::hessian(.neg_loglik_zoib, best_params, p = p, p_zero_one = ncol(X_zero_one), is_zero = is_zero, is_one = is_one, y_beta = y_beta, X_beta = X_beta, X_zero_one = X_zero_one), error = function(e) NULL)
 		vcov_full = tryCatch(solve(vcov_full), error = function(e) NULL)
 	}
 	if (is.null(vcov_full) || any(!is.finite(diag(vcov_full)))){
-		hess_alt = tryCatch(numDeriv::hessian(.neg_loglik_zoib, best_params, p = p, is_zero = is_zero, is_one = is_one, y_beta = y_beta, X_beta = X_beta), error = function(e) NULL)
+		hess_alt = tryCatch(numDeriv::hessian(.neg_loglik_zoib, best_params, p = p, p_zero_one = ncol(X_zero_one), is_zero = is_zero, is_one = is_one, y_beta = y_beta, X_beta = X_beta, X_zero_one = X_zero_one), error = function(e) NULL)
 		if (!is.null(hess_alt)){
 			vcov_full = tryCatch(MASS::ginv(hess_alt), error = function(e) NULL)
 		}

@@ -1,3 +1,24 @@
+newcombe_independent_ci_stable_r = function(x_t, n_t, x_c, n_c, alpha) {
+	wilson = function(x, n) {
+		p = x / n
+		z = stats::qnorm(alpha / 2, lower.tail = FALSE)
+		z2 = z^2
+		denom = 1 + z2 / n
+		center = p + z2 / (2 * n)
+		adj = z * sqrt(p * (1 - p) / n + z2 / (4 * n^2))
+		pmax(0, pmin(1, c(center - adj, center + adj) / denom))
+	}
+	p_t = x_t / n_t
+	p_c = x_c / n_c
+	ci_t = wilson(x_t, n_t)
+	ci_c = wilson(x_c, n_c)
+	diff = p_t - p_c
+	c(
+		max(-1, diff - sqrt((p_t - ci_t[1])^2 + (ci_c[2] - p_c)^2)),
+		min(1, diff + sqrt((ci_t[2] - p_t)^2 + (p_c - ci_c[1])^2))
+	)
+}
+
 #' Newcombe Risk-Difference Inference for Binary Responses
 #'
 #' Fits the Newcombe hybrid score method (Method 10) for the risk difference in a
@@ -135,9 +156,11 @@ InferenceIncidNewcombeRiskDiff = define_inference_class(
 		#'   significance level \eqn{\alpha} at which \code{delta} falls exactly on
 		#'   the boundary of the Newcombe confidence interval (see class
 		#'   documentation) — there is no closed-form p-value for this method.
-		#'   Returns \eqn{1} if no root is found in \eqn{(10^{-10}, 1-10^{-10})}
-		#'   (interpreted as \code{delta} being far inside the interval at every
-		#'   plausible \eqn{\alpha}).
+		#'   The search is carried out on \eqn{\log(\alpha)} so that very small
+		#'   p-values are resolved accurately. If the null is already outside the
+		#'   interval at the numerical \eqn{\alpha} floor, that floor is returned;
+		#'   if it remains inside as \eqn{\alpha} approaches one, the p-value is
+		#'   \eqn{1}.
 		#' @param delta The null risk difference.
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
@@ -147,15 +170,36 @@ InferenceIncidNewcombeRiskDiff = define_inference_class(
 			counts = private$cached_values$counts
 			if (is.null(counts) || counts$n_t == 0 || counts$n_c == 0) return(NA_real_)
 			
-			# Invert the Newcombe CI to find the largest alpha such that delta is on the boundary
+			# Invert the Newcombe CI on the log-alpha scale.  A linear-alpha
+			# uniroot search both fails to bracket very strong effects and has an
+			# absolute tolerance that is much too coarse for small p-values.
 			p_fn = function(a) {
-				ci = newcombe_independent_ci_cpp(counts$x_t, counts$n_t, counts$x_c, counts$n_c, a)
+				# The native Wilson helper forms 1 - alpha / 2, which rounds to one
+				# for the log-scale tail values needed here. This R implementation
+				# instead asks qnorm for its upper tail directly and remains finite.
+				ci = newcombe_independent_ci_stable_r(counts$x_t, counts$n_t, counts$x_c, counts$n_c, a)
 				if (delta < private$cached_values$beta_hat_T) ci[1] - delta else ci[2] - delta
 			}
-			
-			res = tryCatch(stats::uniroot(p_fn, interval = c(1e-10, 1 - 1e-10))$root, error = function(e) NA_real_)
-			if (!is.finite(res)) return(1.0) # If root not found, delta likely far inside
-			res
+			alpha_floor = 1e-300
+			alpha_ceiling = 1 - .Machine$double.eps
+			at_floor = p_fn(alpha_floor)
+			at_ceiling = p_fn(alpha_ceiling)
+			is_lower_boundary = delta < private$cached_values$beta_hat_T
+			outside_at_floor = if (is_lower_boundary) at_floor >= 0 else at_floor <= 0
+			inside_at_ceiling = if (is_lower_boundary) at_ceiling <= 0 else at_ceiling >= 0
+			if (!is.finite(at_floor) || !is.finite(at_ceiling)) return(NA_real_)
+			if (outside_at_floor) return(alpha_floor)
+			if (inside_at_ceiling) return(1.0)
+
+			res = tryCatch(
+				stats::uniroot(
+					function(log_alpha) p_fn(exp(log_alpha)),
+					interval = log(c(alpha_floor, alpha_ceiling)), tol = 1e-12
+				)$root,
+				error = function(e) NA_real_
+			)
+			if (!is.finite(res)) return(NA_real_)
+			exp(res)
 		}
 	),
 	private = list(

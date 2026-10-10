@@ -101,11 +101,13 @@ are the most direct evidence this is fixable rather than structural.
   (`src/fast_survival_models_optim.cpp`).
 - [x] TODO-2: Fix the clipped-vs-unclipped `theta` mismatch between the
   objective (`:69`) and gradient (`:111,121,135,148`).
-- [x] TODO-3: Re-verify the original outlier scenario is resolved; consider
+- [ ] TODO-3: Re-verify the original outlier scenario is resolved; consider
   narrowing `.fit_clayton_weibull_aft`'s fallback cascade if a residual
-  slow tail remains.
-- [x] TODO-4: Confirm no golden-test point-estimate drift from the new
+  slow tail remains. Source changes and source-loaded references are present,
+  but the required rebuilt-native timing verification is pending.
+- [ ] TODO-4: Confirm no golden-test point-estimate drift from the new
   bound; update fixtures only if a deliberate, justified change is found.
+  This requires the same permitted native rebuild and execution as TODO-3.
 
 ## Implementation record (2026-10-08)
 

@@ -40,8 +40,8 @@ test_that("ZOIB likelihood separates endpoint masses and beta interior", {
   X <- cbind(1, c(-1, 0, 1))
   y <- c(0.2, 0.5, 0.8)
   par <- c(0.1, -0.2, log(6), log(0.2), log(0.3))
-  got <- EDI:::.neg_loglik_zoib(par, 2L, c(TRUE, FALSE, FALSE),
-                                c(FALSE, TRUE, FALSE), y, X)
+  got <- EDI:::.neg_loglik_zoib(par, 2L, 1L, c(TRUE, FALSE, FALSE),
+                                c(FALSE, TRUE, FALSE), y, X, matrix(1, 3, 1L))
   expect_true(is.finite(got))
 
   expect_error(EDI:::.fit_zero_one_inflated_beta(c(0.2, 0.4), matrix(1, 3, 1)),

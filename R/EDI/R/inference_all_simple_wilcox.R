@@ -285,9 +285,10 @@ SimpleWilcoxSource = list(
 			NA_real_
 		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
-			w_mat = permutations$w_mat
+			w_mat = as.matrix(permutations$w_mat)
+			storage.mode(w_mat) = "integer"
 			res = compute_wilcox_hl_distr_parallel_cpp(
-				w_mat = as.matrix(w_mat),
+				w_mat = w_mat,
 				y = as.numeric(y),
 				delta = as.numeric(delta),
 				transform_code = 0L,

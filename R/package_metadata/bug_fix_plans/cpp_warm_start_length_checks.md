@@ -66,9 +66,14 @@ lengths is part of TODO-1).
   `fixed_values`/`fixed_idx` dereference in `src/` with its guard status
   (the F2 table plus the weights/Fisher-information sites), and check
   whether `python/cpp/bindings_*.cpp` validates lengths before calling
-  the kernels. Record the table in this file.
+  the kernels. Record the table in this file. **Partial source audit
+  2026-10-09:** all eight binding families accept `std::optional<Eigen::...>`
+  and forward it without dimensional validation, so the native boundary is
+  the required common protection. The original F2 five-kernel cluster has
+  now been guarded; the broader weights/Fisher-information inventory is
+  still open.
 
-- [ ] TODO-2: **One helper, used everywhere.** Add to
+- [x] TODO-2: **One helper, used everywhere.** Add to
   `_helper_functions_core.h` an inline
   `require_length(const std::optional<Eigen::VectorXd>&, Eigen::Index expected, const char* what)`
   (and a matrix variant for Fisher information) that throws
@@ -77,9 +82,15 @@ lengths is part of TODO-1).
   TODO-1. The check must run **before any OpenMP region** (a C++
   exception inside a parallel region terminates R; same rule as the
   2026-09-21 robust `method` check). Make `apply_fixed_values` itself
-  bounds-check `fixed_idx` against `params.size()`.
+  bounds-check `fixed_idx` against `params.size()`. **Source implementation
+  2026-10-09:** `require_length` (optional and pointer forms) and
+  `require_square_matrix` now guard the logistic, Poisson, Cox (both
+  optimizer paths), beta, and robust internal entry points before optimizer
+  or OpenMP work. `apply_fixed_values` now verifies its parallel index/value
+  vectors and each index. This is source-complete for F2 but awaits TODO-4's
+  authorized targeted compile.
 
-- [ ] TODO-3: **Regression test.** `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`:
+- [x] TODO-3: **Regression test.** `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`:
   for every exported kernel that takes `warm_start_beta` (enumerate from
   `RcppExports.R`), call it with a too-short, a too-long and a length-1
   warm start on a small fixture and `expect_error(..., "must have
@@ -88,7 +99,10 @@ lengths is part of TODO-1).
   kernel for `warm_start_weights` and `warm_start_fisher_info` where
   present. The test must run in the `R-CMD-check-sanitizers` (ASAN/UBSAN)
   and `R-CMD-check-valgrind` jobs of `.github/workflows/R-CMD-check.yaml`,
-  which would have caught F1 directly.
+  which would have caught F1 directly. **Source implementation 2026-10-09:**
+  the test covers short, long, and length-one coefficient starts for every
+  F2 kernel and malformed weights/Fisher starts where those are accepted;
+  runtime/sanitizer execution remains part of TODO-4.
 
 - [ ] TODO-4: **Verify by targeted compile.** Recompile only the touched
   `.cpp` files with the flags from `src/Makevars`, relink `EDI.so` from

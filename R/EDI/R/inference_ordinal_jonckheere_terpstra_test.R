@@ -190,9 +190,22 @@ InferenceOrdinalJonckheereTerpstraTest = define_inference_class(
 		},
 		compute_exact_jt_components = function(){
 			if (!is.null(private$cached_values$p_exact)) return(invisible(NULL))
-			res = exact_jonckheere_terpstra_pval_cpp(as.integer(private$y), as.integer(private$w))
+			res = tryCatch(
+				exact_jonckheere_terpstra_pval_cpp(as.integer(private$y), as.integer(private$w)),
+				error = function(e) e
+			)
 			if (is.null(private$cached_values$s_beta_hat_T)) {
 				private$compute_asymptotic_jt_components()
+			}
+			if (inherits(res, "error")) {
+				if (!grepl("exact enumeration exceeds", conditionMessage(res), fixed = TRUE)) stop(res)
+				warning("JT exact enumeration exceeds its safe allocation limit; using the asymptotic normal p-value.", call. = FALSE)
+				z = private$cached_values$beta_hat_T / private$cached_values$s_beta_hat_T
+				private$cached_values$p_exact = 2 * stats::pnorm(-abs(z))
+				private$cached_values$p_lower = NA_real_
+				private$cached_values$p_upper = NA_real_
+				private$cached_values$jt_stat2 = NA_real_
+				return(invisible(NULL))
 			}
 			private$cached_values$superiority = res$superiority
 			private$cached_values$beta_hat_T = res$superiority - 0.5

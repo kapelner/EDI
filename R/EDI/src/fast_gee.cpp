@@ -78,9 +78,15 @@ inline double gee_estimate_exchangeable_alpha(const Eigen::Ref<const VectorXd>& 
                                               const std::vector<int>& grp_start,
                                               const std::vector<int>& grp_size,
                                               GEEFamily family,
-                                              const Eigen::Ref<const VectorXd>& weights) {
-    double num = 0.0, den = 0.0;
+                                              const Eigen::Ref<const VectorXd>& weights,
+                                              int n_params) {
+    double num = 0.0, den = 0.0, pearson = 0.0;
     const bool has_weights = weights.size() > 0;
+    for (int i = 0; i < resid.size(); ++i) {
+        const double ri = resid[i] / std::sqrt(gee_variance(mu[i], family));
+        const double wi = has_weights ? std::max(weights[i], 0.0) : 1.0;
+        pearson += wi * ri * ri;
+    }
     for (int gi = 0; gi < (int)grp_start.size(); ++gi) {
         if (grp_size[gi] < 2) continue;
         int warm_start_params = grp_start[gi];
@@ -96,8 +102,14 @@ inline double gee_estimate_exchangeable_alpha(const Eigen::Ref<const VectorXd>& 
             }
         }
     }
-    if (den <= 0.0) return 0.0;
-    return std::min(std::max(num / den, -0.95), 0.95);
+    // Match geepack's Pearson dispersion correction: the pairwise residual
+    // correlation must be divided by phi, not merely by its pair count.
+    const double phi_denom = static_cast<double>(resid.size() - n_params);
+    const double alpha_denom = den - n_params;
+    if (phi_denom <= 0.0 || alpha_denom <= 0.0) return 0.0;
+    const double phi = pearson / phi_denom;
+    if (!std::isfinite(phi) || phi <= 0.0) return 0.0;
+    return std::min(std::max(num / (alpha_denom * phi), -0.95), 0.95);
 }
 
 inline VectorXd gee_fit_independence_glm(const Eigen::Ref<const MatrixXd>& X,
@@ -159,7 +171,7 @@ GEEResult gee_pairs_singletons_cpp_impl(const Eigen::Ref<const MatrixXd>& X,
         edi_check_R_user_interrupt_every(iter);
         VectorXd mu(n), resid(n);
         for (int i = 0; i < n; ++i) { mu[i] = gee_link_inv(X.row(i).dot(beta), family); resid[i] = y[i] - mu[i]; }
-        alpha = gee_estimate_exchangeable_alpha(resid, mu, grp_start, grp_size, family, weights);
+        alpha = gee_estimate_exchangeable_alpha(resid, mu, grp_start, grp_size, family, weights, p);
 
         MatrixXd Bread = MatrixXd::Zero(p, p); VectorXd Score = VectorXd::Zero(p);
         
@@ -230,7 +242,7 @@ GEEResult gee_pairs_singletons_cpp_impl(const Eigen::Ref<const MatrixXd>& X,
         double wi = has_weights ? std::max(weights[i], 0.0) : 1.0;
         quasi_loglik += wi * gee_quasi_loglik_contrib(y[i], mu[i], family);
     }
-    alpha = gee_estimate_exchangeable_alpha(resid, mu, grp_start, grp_size, family, weights);
+    alpha = gee_estimate_exchangeable_alpha(resid, mu, grp_start, grp_size, family, weights, p);
 
     for (int gi = 0; gi < G; ++gi) {
         int sz = grp_size[gi], gs = grp_start[gi];

@@ -227,11 +227,10 @@ Wu & Ding 2021, *JASA*). The principled fix is a **studentized** statistic
   to `t0_b(δ) = t0_b(0) + δ·(1 − c_b)` — done 2026-09-05 (note added to that
   plan's identity section); the implementation tasks there must compute
   `c_b`.
-- [ ] TODO-3: Fix `test-ci-rand.R:171-172`'s scale-confused comment/assertion
-  (`all(ci > 0)` is not a property of a log-scale CI) — independent of
-  TODO-1; replace with an assertion that the CI brackets the class's
-  estimate *on the estimate's own scale*, which is exactly the property §A
-  found violated for Cox.
+- [x] TODO-3: Fixed 2026-10-09. `test-ci-rand.R` no longer asserts
+  `all(ci > 0)` for the Weibull log-time-ratio interval; it explicitly
+  asserts that the interval brackets the estimator on the same scale. This
+  is independent of TODO-1 and pins the property §A found violated for Cox.
 - [x] TODO-4: §A.0 assumptions added to the `compute_rand_confidence_interval()`
   roxygen, the Weibull class references, the Cox kernel `@param delta`, and
   `REFERENCES.md` — done 2026-09-04/05.

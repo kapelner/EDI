@@ -2014,7 +2014,7 @@ EDI_COMPONENT_SPECS = list(
 					# exercised until now (surfaced as "attempt to apply non-function"
 					# calling private$shared() -> NULL).
 					dependencies = "StandardModelCache",
-					owns_state = c("dep_cens_bootstrap_ci_max_abs", "best_X_colnames", "cached_mod", "max_abs_reasonable_coef"),
+					owns_state = c("best_X_colnames", "cached_mod", "max_abs_reasonable_coef"),
 					requires_state = "cached_vc_params",
 					provides_public_methods = c(
 						"initialize", "compute_estimate", "compute_estimate_with_bootstrap_weights",
@@ -2030,12 +2030,11 @@ EDI_COMPONENT_SPECS = list(
 					),
 					provides_private_methods = c(
 						"nonparam_boot_compute_bootstrap_confidence_interval",
-						"dep_cens_percentile_bootstrap_ci", "dep_cens_ci_excludes_zero",
-						"dep_cens_ci_too_wide", "dep_cens_validate_bootstrap_ci",
+						"dep_cens_percentile_bootstrap_ci", "dep_cens_validate_bootstrap_ci",
 						"compute_treatment_estimate_during_randomization_inference",
 						"supports_reusable_bootstrap_worker", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "generate_mod", "supports_lik_ratio_param_bootstrap",
-						"simulate_under_lik_null", "build_design_matrix", "dep_cens_bootstrap_ci_max_abs",
+						"simulate_under_lik_null", "build_design_matrix",
 						"best_X_colnames", "cached_mod", "max_abs_reasonable_coef"
 					),
 					provides_capabilities = character(),

@@ -116,7 +116,7 @@ inline void random_balanced_init(
 	std::vector<int>& indices, Eigen::VectorXd& w,
 	std::vector<int>& t_idxs, std::vector<int>& c_idxs
 ) {
-	std::shuffle(indices.begin(), indices.end(), rng);
+	edi_rng::fisher_yates_shuffle(indices.begin(), indices.end(), rng);
 	w.setZero();
 	t_idxs.clear();
 	c_idxs.clear();

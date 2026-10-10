@@ -102,6 +102,25 @@ test_that("fast KK GEE direct solver matches geepack for binomial and Poisson", 
 	}
 })
 
+test_that("fast exchangeable Poisson GEE applies the Pearson-dispersion correction to alpha", {
+	skip_if_not_installed("geepack")
+	set.seed(20261010)
+	n_pairs <- 150L
+	n_single <- 80L
+	group_id <- c(rep(seq_len(n_pairs), each = 2L), n_pairs + seq_len(n_single))
+	n <- length(group_id)
+	X <- cbind("(Intercept)" = 1, w = rnorm(n), x1 = rnorm(n))
+	# Large cluster effects induce Pearson overdispersion; the former raw-pair
+	# residual calculation was then biased high and commonly clamped at 0.95.
+	b <- rnorm(max(group_id), sd = 1.25)
+	y <- rpois(n, lambda = exp(pmin(drop(X %*% c(0.2, -0.25, 0.15) + b[group_id]), 5)))
+	mod_ref <- geepack::geeglm(y ~ w + x1, data = data.frame(y, w = X[, "w"], x1 = X[, "x1"]),
+		id = group_id, family = stats::poisson("log"), corstr = "exchangeable", std.err = "san.se")
+	mod_fast <- EDI:::gee_pairs_singletons_cpp(X, y, group_id, family_str = "poisson")
+	expect_true(as.numeric(mod_ref$geese$gamma[1]) > 1)
+	expect_equal(as.numeric(mod_fast$alpha), as.numeric(mod_ref$geese$alpha[1]), tolerance = 3e-2)
+})
+
 test_that("incidence, count, and proportion KK GEE wrappers match backend fits", {
 	skip_if_not_installed("geepack")
 	set.seed(20260423)

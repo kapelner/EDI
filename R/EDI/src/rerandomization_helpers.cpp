@@ -48,8 +48,7 @@ static edi_rng::RRng make_rng(int seed) {
 
 static void shuffle_vec(std::vector<int>& v, edi_rng::RRng& rng) {
     for (int i = static_cast<int>(v.size()) - 1; i > 0; i--) {
-        std::uniform_int_distribution<int> d(0, i);
-        std::swap(v[i], v[d(rng)]);
+        std::swap(v[i], v[static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(i + 1)))]);
     }
 }
 
@@ -237,10 +236,7 @@ Rcpp::IntegerMatrix rerandomization_search_cpp(
 
         for (int draw = 0; draw < max_draws && found < r; draw++) {
             std::iota(order.begin(), order.end(), 0);
-            for (int i = n - 1; i > 0; i--)
-                std::swap(order[static_cast<std::size_t>(i)],
-                          order[static_cast<std::size_t>(
-                              std::uniform_int_distribution<int>(0, i)(rng))]);
+            edi_rng::fisher_yates_shuffle(order.begin(), order.end(), rng);
             std::fill(w.begin(), w.end(), 0);
             for (int i = 0; i < nt; i++) w[static_cast<std::size_t>(order[static_cast<std::size_t>(i)])] = 1;
 
@@ -286,10 +282,7 @@ Rcpp::IntegerMatrix rerandomization_search_cpp(
             for (int draw = start; draw < end && found.load(std::memory_order_relaxed) < r; draw++) {
                 // Fisher-Yates balanced init
                 std::iota(order.begin(), order.end(), 0);
-                for (int i = n - 1; i > 0; i--)
-                    std::swap(order[static_cast<std::size_t>(i)],
-                              order[static_cast<std::size_t>(
-                                  std::uniform_int_distribution<int>(0, i)(rng))]);
+                edi_rng::fisher_yates_shuffle(order.begin(), order.end(), rng);
                 std::fill(w.begin(), w.end(), 0);
                 for (int i = 0; i < nt; i++) w[static_cast<std::size_t>(order[static_cast<std::size_t>(i)])] = 1;
 

@@ -48,7 +48,7 @@ InferenceContinLin = define_inference_class(
 	classname = "InferenceContinLin",
 	inherit = Inference,
 	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",

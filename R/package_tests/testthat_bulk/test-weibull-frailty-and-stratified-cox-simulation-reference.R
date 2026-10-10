@@ -152,3 +152,34 @@ test_that(".cox_simulate_stratified computes independent Breslow baselines per s
 	sim_a_direct <- EDI:::.cox_simulate_from_breslow(breslow_a, y_obs[idx_a], dead_no_b_events[idx_a], X[idx_a, , drop = FALSE], b_null)
 	expect_equal(sim_full$y_sim[idx_a], sim_a_direct$y_sim)
 })
+
+test_that(".cox_simulate_stratified uses each stratum's risk scale when predictors differ between strata", {
+	# The Breslow helper subtracts max(eta) inside each stratum.  This fixture
+	# makes the two maxima deliberately different, so a global risk scale would
+	# change the inversion thresholds and fail this direct per-stratum oracle.
+	set.seed(91L)
+	n_per <- 12L
+	strata <- rep(c("A", "B"), each = n_per)
+	X <- cbind(
+		w = rep(c(0, 1), length.out = 2L * n_per),
+		x = c(rep(0, n_per), rep(3, n_per))
+	)
+	b_null <- c(0.4, 0.8)
+	y_obs <- rexp(2L * n_per, rate = 0.4)
+	dead_obs <- rep(1, 2L * n_per)
+	set.seed(92L)
+	sim <- EDI:::.cox_simulate_stratified(y_obs, dead_obs, X, b_null, strata)
+	set.seed(92L)
+	expected <- vector("list", 2L)
+	for (k in seq_along(unique(strata))) {
+		idx <- which(strata == unique(strata)[k])
+		breslow <- EDI:::.breslow_hazard(y_obs[idx], dead_obs[idx], X[idx, , drop = FALSE], b_null)
+		expected[[k]] <- EDI:::.cox_simulate_from_breslow(
+			breslow, y_obs[idx], dead_obs[idx], X[idx, , drop = FALSE], b_null
+		)
+	}
+	expect_identical(sim$y_sim[strata == "A"], expected[[1L]]$y_sim)
+	expect_identical(sim$y_sim[strata == "B"], expected[[2L]]$y_sim)
+	expect_identical(sim$dead_sim[strata == "A"], expected[[1L]]$dead_sim)
+	expect_identical(sim$dead_sim[strata == "B"], expected[[2L]]$dead_sim)
+})

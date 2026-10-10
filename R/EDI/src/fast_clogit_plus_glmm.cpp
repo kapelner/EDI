@@ -60,6 +60,8 @@ private:
 	const Eigen::Map<const Eigen::MatrixXd> X_conc;
 	const Eigen::Map<const Eigen::VectorXd> y_conc;
 	const Eigen::Map<const Eigen::VectorXi> group_conc;
+	const Eigen::Map<const Eigen::VectorXd> weights_disc;
+	const Eigen::Map<const Eigen::VectorXd> weights_conc;
 	const int q;
 	const bool has_discordant;
 	const bool has_concordant;
@@ -95,11 +97,13 @@ private:
 	}
 
 	static Eigen::VectorXd build_group_y_sum(const Eigen::Ref<const Eigen::VectorXd>& y_conc_,
+	                                         const Eigen::Ref<const Eigen::VectorXd>& weights_conc_,
 	                                         const std::vector<int>& grp_start,
 	                                         const std::vector<int>& grp_size) {
 		Eigen::VectorXd out(grp_start.size());
 		for (int gi = 0; gi < static_cast<int>(grp_start.size()); ++gi) {
-			out[gi] = y_conc_.segment(grp_start[gi], grp_size[gi]).sum();
+			out[gi] = (y_conc_.segment(grp_start[gi], grp_size[gi]).array() *
+				weights_conc_.segment(grp_start[gi], grp_size[gi]).array()).sum();
 		}
 		return out;
 	}
@@ -111,20 +115,23 @@ public:
 		const Eigen::Map<const Eigen::MatrixXd>& X_conc_,
 		const Eigen::Map<const Eigen::VectorXd>& y_conc_,
 		const Eigen::Map<const Eigen::VectorXi>& group_conc_,
+		const Eigen::Map<const Eigen::VectorXd>& weights_disc_,
+		const Eigen::Map<const Eigen::VectorXd>& weights_conc_,
 		const bool has_discordant_,
 		const bool has_concordant_,
 		const int n_gh = 20,
 		const double max_abs_log_sigma_ = 8.0
 	) :
 		X_disc(X_disc_), y_disc(y_disc_), X_conc(X_conc_), y_conc(y_conc_),
-		group_conc(group_conc_), q(has_discordant_ ? (int)X_disc_.cols() : (int)X_conc_.cols()), has_discordant(has_discordant_),
+		group_conc(group_conc_), weights_disc(weights_disc_), weights_conc(weights_conc_),
+		q(has_discordant_ ? (int)X_disc_.cols() : (int)X_conc_.cols()), has_discordant(has_discordant_),
 		has_concordant(has_concordant_), gh(gauss_hermite_rule(n_gh)),
 		max_abs_log_sigma(max_abs_log_sigma_),
 			m_grp_start_conc(build_concordant_layout(group_conc_).start),
 		m_grp_size_conc(build_concordant_layout(group_conc_).size),
 		m_G_conc(static_cast<int>(m_grp_start_conc.size())),
 		m_max_group_size_conc(build_concordant_layout(group_conc_).max_size),
-		m_grp_y_sum_conc(build_group_y_sum(y_conc_, m_grp_start_conc, m_grp_size_conc)),
+		m_grp_y_sum_conc(build_group_y_sum(y_conc_, weights_conc_, m_grp_start_conc, m_grp_size_conc)),
 		m_eta_conc_all(std::max(1, static_cast<int>(X_conc_.rows()))),
 		m_grp_y_eta0_conc(std::max(1, static_cast<int>(m_grp_start_conc.size()))),
 		m_ll_g_vec(std::max(1, static_cast<int>(m_grp_start_conc.size()))),
@@ -150,7 +157,7 @@ public:
 		const Eigen::ArrayXd eta = (X_disc * beta_no_intercept).array();
 		const Eigen::ArrayXd ll = y_disc.array() * eta - log1pexp_array_safe(eta);  // vectorized softplus
 		if (!ll.allFinite()) return 1e100;
-		return -ll.sum();
+		return -(weights_disc.array() * ll).sum();
 	}
 
 	double neg_glmm(const Eigen::Ref<const Eigen::VectorXd>& par_full) const {
@@ -166,7 +173,8 @@ public:
 		for (int gi = 0; gi < m_G_conc; ++gi) {
 			const int warm_start_params = m_grp_start_conc[gi];
 			const int sz = m_grp_size_conc[gi];
-			m_grp_y_eta0_conc[gi] = y_conc.segment(warm_start_params, sz).dot(m_eta_conc_all.segment(warm_start_params, sz));
+			m_grp_y_eta0_conc[gi] = (y_conc.segment(warm_start_params, sz).array() *
+				weights_conc.segment(warm_start_params, sz).array()).matrix().dot(m_eta_conc_all.segment(warm_start_params, sz));
 		}
 		for (int k = 0; k < n_nodes; ++k) {
 			for (int gi = 0; gi < m_G_conc; ++gi) {
@@ -174,7 +182,7 @@ public:
 				const int sz = m_grp_size_conc[gi];
 				m_eta_k_g.head(sz) = m_eta_conc_all.segment(warm_start_params, sz).array() + b_vals[k];
 				double lse_sum = 0.0;
-				for (int j = 0; j < sz; ++j) lse_sum += log1pexp_safe(m_eta_k_g[j]);
+				for (int j = 0; j < sz; ++j) lse_sum += weights_conc[warm_start_params + j] * log1pexp_safe(m_eta_k_g[j]);
 				m_log_terms_mat(gi, k) = gh.log_norm_weights[k]
 				                         + m_grp_y_eta0_conc[gi]
 				                         + b_vals[k] * m_grp_y_sum_conc[gi]
@@ -214,9 +222,9 @@ public:
 			
 			const Eigen::VectorXd eta_d = X_disc * beta_no_intercept;
 			const Eigen::VectorXd mu_d = plogis_array_safe(eta_d.array()).matrix();
-			total_nll += (log1pexp_array_safe(eta_d.array()) - y_disc.array() * eta_d.array()).sum();
+			total_nll += (weights_disc.array() * (log1pexp_array_safe(eta_d.array()) - y_disc.array() * eta_d.array())).sum();
 
-			Eigen::VectorXd grad_clogit = X_disc.transpose() * (mu_d - y_disc);
+			Eigen::VectorXd grad_clogit = X_disc.transpose() * (weights_disc.array() * (mu_d - y_disc).array()).matrix();
 			if (has_concordant) {
 				grad.segment(1, q) += grad_clogit;
 			} else {
@@ -236,7 +244,8 @@ public:
 			for (int gi = 0; gi < m_G_conc; ++gi) {
 				const int warm_start_params = m_grp_start_conc[gi];
 				const int sz = m_grp_size_conc[gi];
-				m_grp_y_eta0_conc[gi] = y_conc.segment(warm_start_params, sz).dot(m_eta_conc_all.segment(warm_start_params, sz));
+				m_grp_y_eta0_conc[gi] = (y_conc.segment(warm_start_params, sz).array() *
+					weights_conc.segment(warm_start_params, sz).array()).matrix().dot(m_eta_conc_all.segment(warm_start_params, sz));
 			}
 
 			for (int k = 0; k < n_nodes; ++k) {
@@ -247,7 +256,7 @@ public:
 					m_mu_conc_all_k_mat.col(k).segment(warm_start_params, sz) =
 						(1.0 / (1.0 + (-m_eta_k_g.head(sz)).exp())).matrix();
 					double lse_sum = 0.0;
-					for (int j = 0; j < sz; ++j) lse_sum += log1pexp_safe(m_eta_k_g[j]);
+					for (int j = 0; j < sz; ++j) lse_sum += weights_conc[warm_start_params + j] * log1pexp_safe(m_eta_k_g[j]);
 					m_log_terms_mat(gi, k) = gh.log_norm_weights[k] +
 					                       m_grp_y_eta0_conc[gi] +
 					                       b_vals[k] * m_grp_y_sum_conc[gi] -
@@ -272,11 +281,13 @@ public:
 				for (int k = 0; k < n_nodes; ++k) {
 					const double pk = std::exp(m_log_terms_mat(gi, k) - m_ll_g_vec[gi]);
 					if (pk < 1e-15) continue;
-					m_weighted_res.head(sz).array() += pk * (
+					m_weighted_res.head(sz).array() += pk * weights_conc.segment(warm_start_params, sz).array() * (
 						y_conc.segment(warm_start_params, sz).array() -
 						m_mu_conc_all_k_mat.block(warm_start_params, k, sz, 1).array()
 					);
-					const double res_sum = m_grp_y_sum_conc[gi] - m_mu_conc_all_k_mat.block(warm_start_params, k, sz, 1).sum();
+					const double res_sum = m_grp_y_sum_conc[gi] -
+						(weights_conc.segment(warm_start_params, sz).array() *
+						 m_mu_conc_all_k_mat.block(warm_start_params, k, sz, 1).array()).sum();
 					grad_log_sigma_gi += pk * res_sum * b_vals[k];
 				}
 
@@ -300,7 +311,7 @@ public:
 				has_concordant ? par.segment(1, q) : par.head(q);
 			const Eigen::VectorXd eta_d = X_disc * beta_no_intercept;
 			const Eigen::VectorXd mu_d = plogis_array_safe(eta_d.array()).matrix();
-			Eigen::VectorXd w_d = (mu_d.array() * (1.0 - mu_d.array())).matrix();
+			Eigen::VectorXd w_d = (weights_disc.array() * mu_d.array() * (1.0 - mu_d.array())).matrix();
 			const Eigen::MatrixXd H_clogit = weighted_crossprod(X_disc, w_d);
 			if (has_concordant) {
 				H.block(1, 1, q, q).noalias() += H_clogit;
@@ -328,7 +339,8 @@ public:
 			for (int gi = 0; gi < m_G_conc; ++gi) {
 				const int s = m_grp_start_conc[gi];
 				const int sz = m_grp_size_conc[gi];
-				m_grp_y_eta0_conc[gi] = y_conc.segment(s, sz).dot(m_eta_conc_all.segment(s, sz));
+				m_grp_y_eta0_conc[gi] = (y_conc.segment(s, sz).array() *
+					weights_conc.segment(s, sz).array()).matrix().dot(m_eta_conc_all.segment(s, sz));
 			}
 
 			for (int k = 0; k < n_nodes; ++k) {
@@ -336,14 +348,16 @@ public:
 				m_mu_conc_all_k_mat.col(k) =
 					(1.0 / (1.0 + (-(m_eta_conc_all.array() + b_vals[k])).exp())).matrix();
 				m_w_conc_all_k_mat.col(k) =
-					(m_mu_conc_all_k_mat.col(k).array() * (1.0 - m_mu_conc_all_k_mat.col(k).array())).matrix();
+					(weights_conc.array() * m_mu_conc_all_k_mat.col(k).array() *
+					 (1.0 - m_mu_conc_all_k_mat.col(k).array())).matrix();
 				for (int gi = 0; gi < m_G_conc; ++gi) {
 					const int s = m_grp_start_conc[gi];
 					const int sz = m_grp_size_conc[gi];
 					m_eta_k_g.head(sz) = m_eta_conc_all.segment(s, sz).array() + b_vals[k];
 					double lse_sum = 0.0;
-					for (int j = 0; j < sz; ++j) lse_sum += log1pexp_safe(m_eta_k_g[j]);
-					const double mu_sum = m_mu_conc_all_k_mat.col(k).segment(s, sz).sum();
+					for (int j = 0; j < sz; ++j) lse_sum += weights_conc[s + j] * log1pexp_safe(m_eta_k_g[j]);
+					const double mu_sum = (weights_conc.segment(s, sz).array() *
+						m_mu_conc_all_k_mat.col(k).segment(s, sz).array()).sum();
 					m_mu_group_sum_mat(gi, k) = mu_sum;
 					m_w_group_sum_mat(gi, k) = m_w_conc_all_k_mat.col(k).segment(s, sz).sum();
 					m_res_group_sum_mat(gi, k) = m_grp_y_sum_conc[gi] - mu_sum;
@@ -396,7 +410,8 @@ public:
 					if (pk < 1e-15) continue;
 					// g_beta: p-vector, computed directly into preallocated buffer
 					m_hess_g_beta.noalias() = X_conc.middleRows(s, sz).transpose() *
-						(y_conc.segment(s, sz) - m_mu_conc_all_k_mat.col(k).segment(s, sz));
+						(weights_conc.segment(s, sz).array() *
+						 (y_conc.segment(s, sz).array() - m_mu_conc_all_k_mat.col(k).segment(s, sz).array())).matrix();
 					const double g_sigma = m_res_group_sum_mat(gi, k) * b_vals[k];
 
 					m_hess_beta_avg.noalias() += pk * m_hess_g_beta;
@@ -449,9 +464,14 @@ Eigen::VectorXd get_clogit_plus_glmm_score_cpp(
 	Eigen::Map<const Eigen::VectorXd> y_conc(y_conc_r.begin(), y_conc_r.size());
 	Eigen::Map<const Eigen::VectorXi> group_conc(group_conc_r.begin(), group_conc_r.size());
 	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+	Eigen::VectorXd weights_disc = Eigen::VectorXd::Ones(y_disc.size());
+	Eigen::VectorXd weights_conc = Eigen::VectorXd::Ones(y_conc.size());
+	Eigen::Map<const Eigen::VectorXd> weights_disc_map(weights_disc.data(), weights_disc.size());
+	Eigen::Map<const Eigen::VectorXd> weights_conc_map(weights_conc.data(), weights_conc.size());
 
 	ClogitPlusGLMMObjective obj(
 		X_disc, y_disc, X_conc, y_conc, group_conc,
+		weights_disc_map, weights_conc_map,
 		has_discordant, has_concordant, 20, max_abs_log_sigma
 	);
 	Eigen::VectorXd grad(params.size());
@@ -477,9 +497,14 @@ Eigen::MatrixXd get_clogit_plus_glmm_hessian_cpp(
 	Eigen::Map<const Eigen::VectorXd> y_conc(y_conc_r.begin(), y_conc_r.size());
 	Eigen::Map<const Eigen::VectorXi> group_conc(group_conc_r.begin(), group_conc_r.size());
 	Eigen::Map<const Eigen::VectorXd> params(params_r.begin(), params_r.size());
+	Eigen::VectorXd weights_disc = Eigen::VectorXd::Ones(y_disc.size());
+	Eigen::VectorXd weights_conc = Eigen::VectorXd::Ones(y_conc.size());
+	Eigen::Map<const Eigen::VectorXd> weights_disc_map(weights_disc.data(), weights_disc.size());
+	Eigen::Map<const Eigen::VectorXd> weights_conc_map(weights_conc.data(), weights_conc.size());
 
 	ClogitPlusGLMMObjective obj(
 		X_disc, y_disc, X_conc, y_conc, group_conc,
+		weights_disc_map, weights_conc_map,
 		has_discordant, has_concordant, 20, max_abs_log_sigma
 	);
 	// obj.hessian() already returns the POSITIVE information matrix, not
@@ -518,6 +543,8 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 	std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
 	std::string optimization_alg = "lbfgs",
 	std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
+	std::optional<Eigen::VectorXd> weights_disc = std::nullopt,
+	std::optional<Eigen::VectorXd> weights_conc = std::nullopt,
 	int n_gh = 20
 ) {
 	Eigen::Map<const Eigen::MatrixXd> X_disc_m(X_disc.data(), X_disc.rows(), X_disc.cols());
@@ -525,9 +552,19 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 	Eigen::Map<const Eigen::MatrixXd> X_conc_m(X_conc.data(), X_conc.rows(), X_conc.cols());
 	Eigen::Map<const Eigen::VectorXd> y_conc_m(y_conc.data(), y_conc.size());
 	Eigen::Map<const Eigen::VectorXi> group_conc_m(group_conc.data(), group_conc.size());
+	Eigen::VectorXd weights_disc_resolved = weights_disc.value_or(Eigen::VectorXd::Ones(y_disc.size()));
+	Eigen::VectorXd weights_conc_resolved = weights_conc.value_or(Eigen::VectorXd::Ones(y_conc.size()));
+	if (weights_disc_resolved.size() != y_disc.size() || weights_conc_resolved.size() != y_conc.size() ||
+		!weights_disc_resolved.allFinite() || !weights_conc_resolved.allFinite() ||
+		(weights_disc_resolved.array() <= 0.0).any() || (weights_conc_resolved.array() <= 0.0).any()) {
+		throw std::invalid_argument("bootstrap weights must be finite, positive, and match their likelihood rows");
+	}
+	Eigen::Map<const Eigen::VectorXd> weights_disc_m(weights_disc_resolved.data(), weights_disc_resolved.size());
+	Eigen::Map<const Eigen::VectorXd> weights_conc_m(weights_conc_resolved.data(), weights_conc_resolved.size());
 
 	ClogitPlusGLMMObjective obj(
 		X_disc_m, y_disc_m, X_conc_m, y_conc_m, group_conc_m,
+		weights_disc_m, weights_conc_m,
 		has_discordant, has_concordant, n_gh, max_abs_log_sigma
 	);
 
@@ -673,7 +710,9 @@ List fast_clogit_plus_glmm_cpp(
 	Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
 	Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
 	std::string optimization_alg = "lbfgs",
-	Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue
+	Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
+	Rcpp::Nullable<Rcpp::NumericVector> weights_disc = R_NilValue,
+	Rcpp::Nullable<Rcpp::NumericVector> weights_conc = R_NilValue
 ) {
 	Eigen::Map<const Eigen::MatrixXd> X_disc(X_disc_r.begin(), X_disc_r.rows(), X_disc_r.cols());
 	Eigen::Map<const Eigen::VectorXd> y_disc(y_disc_r.begin(), y_disc_r.size());
@@ -691,6 +730,8 @@ List fast_clogit_plus_glmm_cpp(
 		nullable_to_optional<Eigen::VectorXd>(fixed_values),
 		optimization_alg,
 		nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
+		nullable_to_optional<Eigen::VectorXd>(weights_disc),
+		nullable_to_optional<Eigen::VectorXd>(weights_conc),
 		20);
 	return edi::to_rcpp_list(res);
 }

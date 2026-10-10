@@ -131,7 +131,8 @@ SurvivalDepCensTransformSource = list(
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
-		#' @description Bootstrap confidence interval, validated for this model.
+		#' @description Bootstrap confidence interval with numerical validation only;
+		#'   finite bootstrap endpoints are never replaced by a Wald interval.
 		#' @param alpha Significance level. Default 0.05.
 		#' @param B Number of bootstrap replicates. Default 1000.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
@@ -169,7 +170,7 @@ SurvivalDepCensTransformSource = list(
 			}
 			ci
 		},
-		#' @description Basic bootstrap confidence interval, validated for this model.
+		#' @description Basic bootstrap confidence interval with numerical validation only.
 		#' @param alpha Significance level. Default 0.05.
 		#' @param B Number of bootstrap replicates. Default 1000.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
@@ -204,7 +205,7 @@ SurvivalDepCensTransformSource = list(
 			}
 			ci
 		},
-		#' @description BCa bootstrap confidence interval, validated for this model.
+		#' @description BCa bootstrap confidence interval with numerical validation only.
 		#' @param alpha Significance level. Default 0.05.
 		#' @param B Number of bootstrap replicates. Default 1000.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
@@ -219,7 +220,7 @@ SurvivalDepCensTransformSource = list(
 				alpha = alpha
 			)
 		},
-		#' @description Studentized bootstrap confidence interval, validated for this model.
+		#' @description Studentized bootstrap confidence interval with numerical validation only.
 		#' @param alpha Significance level. Default 0.05.
 		#' @param B Number of bootstrap replicates. Default 1000.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
@@ -233,11 +234,6 @@ SurvivalDepCensTransformSource = list(
 				),
 				error = function(e) c(NA_real_, NA_real_)
 			)
-			if (private$dep_cens_ci_excludes_zero(ci) || private$dep_cens_ci_too_wide(ci)) {
-				private$cache_nonestimable_se("dep_cens_transform_studentized_bootstrap_ci_unstable")
-				ci = c(NA_real_, NA_real_)
-				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			}
 			ci
 		},
 		#' @description Reports the randomization distribution as unavailable for this model.
@@ -331,7 +327,6 @@ SurvivalDepCensTransformSource = list(
 		# explanation. cached_vc_params was previously undeclared entirely.
 		cached_mod = NULL,
 		max_abs_reasonable_coef = 1e4,
-		dep_cens_bootstrap_ci_max_abs = 2,
 		dep_cens_percentile_bootstrap_ci = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE){
 			theta = tryCatch(
 				self$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress),
@@ -344,7 +339,7 @@ SurvivalDepCensTransformSource = list(
 				out = c(NA_real_, NA_real_)
 			} else {
 				out = as.numeric(stats::quantile(theta, probs = c(alpha / 2, 1 - alpha / 2), names = FALSE, type = 8))
-				if (length(out) < 2L || !all(is.finite(out)) || any(abs(out[1:2]) > private$dep_cens_bootstrap_ci_max_abs)) {
+				if (length(out) < 2L || !all(is.finite(out))) {
 					private$cache_nonestimable_estimate("dep_cens_transform_bootstrap_ci_unstable")
 					out = c(NA_real_, NA_real_)
 				}
@@ -352,50 +347,17 @@ SurvivalDepCensTransformSource = list(
 			names(out) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			out
 		},
-		dep_cens_ci_excludes_zero = function(ci){
-			ci = as.numeric(ci[1:2])
-			length(ci) >= 2L && all(is.finite(ci)) && (min(ci) > 0 || max(ci) < 0)
-		},
-		dep_cens_ci_too_wide = function(ci){
-			ci = as.numeric(ci[1:2])
-			length(ci) < 2L || !all(is.finite(ci)) || any(abs(ci) > private$dep_cens_bootstrap_ci_max_abs)
-		},
 		dep_cens_validate_bootstrap_ci = function(ci, alpha = 0.05){
 			ci = as.numeric(ci)
-			est = private$cached_values$beta_hat_T %||% NA_real_
-			fallback = NULL
-			get_fallback = function(){
-				if (!is.null(fallback)) return(fallback)
-				fallback <<- tryCatch(private$compute_z_or_t_ci_from_s_and_df(alpha), error = function(e) c(NA_real_, NA_real_))
-				fallback <<- sort(as.numeric(fallback[1:2]))
-				fallback
-			}
-			fallback_is_usable = function(fb){
-				is.finite(est) && length(fb) >= 2L && all(is.finite(fb)) &&
-					!private$dep_cens_ci_too_wide(fb) && fb[1L] <= est && fb[2L] >= est
-			}
-			use_fallback = length(ci) < 2L || !all(is.finite(ci[1:2])) ||
-				(is.finite(est) && (ci[1L] > est || ci[2L] < est)) ||
-				any(abs(ci[1:2]) > private$dep_cens_bootstrap_ci_max_abs)
-			if (!use_fallback && length(ci) >= 2L && all(is.finite(ci[1:2]))) {
-				ci_sorted = sort(ci[1:2])
-				fb = get_fallback()
-				if (fallback_is_usable(fb) && fb[1L] <= 0 && fb[2L] >= 0 &&
-					((ci_sorted[1L] > 0) || (ci_sorted[2L] < 0))) {
-					use_fallback = TRUE
-				}
-			}
-			if (use_fallback) {
-				fb = get_fallback()
-				if (fallback_is_usable(fb)) out = fb
-				else {
-					private$cache_nonestimable_se("dep_cens_transform_bootstrap_ci_unstable")
-					out = c(NA_real_, NA_real_)
-				}
-				names(out) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-				return(out)
-			}
-			ci
+			if (length(ci) >= 2L && all(is.finite(ci[1:2]))) return(ci[1:2])
+			# Do not replace a bootstrap interval because of its sign, magnitude, or
+			# relation to a Wald interval.  Those data-dependent checks suppress
+			# bootstrap rejections selectively.  Genuine numerical failure remains
+			# unavailable for every CI type.
+			private$cache_nonestimable_se("dep_cens_transform_bootstrap_ci_unstable")
+			out = c(NA_real_, NA_real_)
+			names(out) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+			out
 		},
 		best_X_colnames = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
@@ -749,4 +711,3 @@ InferenceSurvivalDepCensTransformRegr = define_inference_class(
 #' @R6method InferenceSurvivalDepCensTransformRegr$supports_rand_pval_for_incidence
 #' @template rand-supports-pval-incidence
 NULL
-

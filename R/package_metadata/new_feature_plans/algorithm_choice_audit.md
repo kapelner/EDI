@@ -428,11 +428,11 @@ so it falls outside this audit's "faster algorithm" rule. Whether to offer it
 (as an option, or as a changed default) is a modeling decision for the
 package owner. It is recorded under TODO-6 rather than adopted here.
 
-**But the R-side fallbacks are not all Breslow.** Most R paths pin it
+**R-side fallback consistency (fixed 2026-10-09, v1.0.5 TODO-69).** Most R paths pin it
 (`inference_survival_coxph.R:21-29` `coxph.fit(method = "breslow")`,
 `inference_survival_strat_cox.R:64-73`, the log-rank and Gehan null fits at
 `inference_survival_log_rank.R:209` and `inference_survival_gehan_wilcox.R:218`).
-Two calls do not, and so silently use `coxph`'s default **Efron**:
+Two calls previously did not, and silently used `coxph`'s default **Efron**:
 
 - `inference_survival_coxph.R:641`, `survival::coxph(surv_obj ~ X_fit)`. This
   is the fallback when the C++ fit fails to converge, or when `use_rcpp = FALSE`.
@@ -441,13 +441,12 @@ Two calls do not, and so silently use `coxph`'s default **Efron**:
 - `inference_survival_strat_cox.R:54`, `cox_partial_likelihood_fit_with_formula()`
   (used through `fit_cox_with_formula`, `:459`).
 
-Pin `ties = "breslow"` on both (TODO-6(c)) so every path in the package fits
-the same likelihood.
+Both now pass `ties = "breslow"` (TODO-6(c)), so every path in the package fits
+the same likelihood. Tied-data regressions cover both fallbacks and retain
+explicit Efron fits as sensitivity contrasts.
 
-Side note: `test-rcpp-fitting-equivalence.R:129,549` compares against
-`coxph()` with its default `ties = "efron"`. That is only valid while
-those fixtures have no tied event times. Pin `ties = "breslow"` there so the
-test stays correct if a fixture ever gains ties.
+`test-rcpp-fitting-equivalence.R:129,549` now also pins `ties = "breslow"`, so
+those references stay correct if their currently untied fixtures gain ties.
 
 ---
 
@@ -771,14 +770,11 @@ none of these numbers should be quoted as a measured result.
 - [x] TODO-6: **Cox tie-handling verification** (row L): DONE 2026-10-09.
   `fast_coxph_regression.cpp` is Breslow throughout (fit, neg-ll-only,
   robust sandwich), documented and parity-tested against
-  `coxph(ties = "breslow")`. Remaining follow-ups: (a) **owner decision**:
+  `coxph(ties = "breslow")`. Remaining follow-up: (a) **owner decision**:
   offer Efron as an option or default (an accuracy change, not a speed change;
-  needs CSV and oracle regeneration); (b) pin `ties = "breslow"` in
-  `test-rcpp-fitting-equivalence.R:129,549`; (c) **correctness**: pin
-  `ties = "breslow"` in the two unpinned R fallbacks
-  (`inference_survival_coxph.R:641`, `inference_survival_strat_cox.R:54`),
-  which currently use Efron, so the tie method no longer depends on which
-  fallback fired.
+  needs CSV and oracle regeneration). Follow-ups (b) and (c) were completed
+  under v1.0.5 TODO-69: the equivalence references and both R fallbacks now
+  explicitly select Breslow.
 - [ ] TODO-7: Re-run this audit's method (not its conclusions) whenever a
   new kernel family ships, and after each Prototype item resolves through
   the harness, to keep the summary table current.
@@ -805,7 +801,7 @@ tests, plus an equivalence test where noted, are the gate. **Prototype** = needs
 **Correctness first** (not speed; plans in `../bug_fix_plans/`):
 - [ ] TODO-B1 (scheduled in `../future_release_plans/release_v1_0_5.md → TODO-67`): `kk21_weibull_irls_wrong_fixed_point.md`.
 - [ ] TODO-B2 (scheduled in `../future_release_plans/release_v1_0_5.md → TODO-68`): `rand_ci_inverts_two_sided_pval_at_half_alpha.md`.
-- [ ] TODO-B3 (scheduled in `../future_release_plans/release_v1_0_5.md → TODO-69`): row L TODO-6(c), pin `ties = "breslow"` in the two R fallbacks.
+- [x] TODO-B3 (completed 2026-10-09; scheduled in `../future_release_plans/release_v1_0_5.md → TODO-69`): row L TODO-6(c), pin `ties = "breslow"` in the two R fallbacks. Both calls and the two generic C++-equivalence references now explicitly select Breslow; tied-data regressions cover the formula fallback and `InferenceSurvivalCoxPHRegr(use_rcpp = FALSE)` and retain default-Efron fits as sensitivity contrasts.
 - [x] TODO-B4 (not scheduled in a release; removed from v1.0.5 2026-10-09, owner decision): **verification DONE 2026-10-09** (21 confirmed / 3 partial / 2 refuted; table above, evidence in catalog §13). Filed as `algorithm_sweep_verified_findings.md` → `release_v1_0_5.md → TODO-70..94` (2026-10-09, owner decision). Original text: verify, and file plans for, the unverified findings listed in
   "Correctness findings surfaced by the sweep". RandomBlockSize redraws, the
   KK Wilcoxon IVWC SE, and the ridit scoring come first.
@@ -1011,7 +1007,7 @@ three labels:
 
 **Why not expose everything.** The 2026-10-09 sweep shows where bugs collect:
 on the paths people rarely use. The legacy IVWC classes (F7, F11, F15, F22),
-the R `coxph()` fallbacks that silently switched to Efron (row L), and the
+the R `coxph()` fallbacks that silently switched to Efron before TODO-69 (row L), and the
 `sample(block_sizes, 1)` edge case (F1b) were all off the main path. Each
 exposed option multiplies rows in the comprehensive_tests registry, needs its
 own Type-I error and coverage evidence, and needs docs that tell users when
@@ -1042,9 +1038,10 @@ Read from `R/EDI/R/` on 2026-10-09:
   "auto" row that needs an escape hatch.
 - **Exposed implementation toggles:** `use_rcpp = TRUE` (constructor argument
   in 19 files) and `smart_cold_start_default`. These are developer and parity
-  switches, not statistical choices. Row L shows the risk: the `use_rcpp = FALSE`
-  path fit a different likelihood (Efron) from the C++ path (Breslow). Any path
-  reachable through such a toggle must fit the same model as the default.
+  switches, not statistical choices. Row L showed the risk before TODO-69:
+  the `use_rcpp = FALSE` path fit a different likelihood (Efron) from the C++
+  path (Breslow). Both now fit Breslow. Any path reachable through such a
+  toggle must fit the same model as the default.
 
 **Rule:** if an option changes the model or estimand, it goes in the
 constructor. If it changes only how the test or interval is built, it goes in

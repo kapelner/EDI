@@ -51,6 +51,19 @@ test_that("loading a sample subsets the worker's data and the estimate equals th
 	expect_equal(f$p$w, f$w)
 })
 
+test_that("duplicated bootstrap rows retain their columns without unique row-name construction", {
+	f <- wk_fx()
+	ws <- f$p$create_design_backed_bootstrap_worker_state()
+	idx <- c(2L, 2L, 5L, 2L, 7L)
+	f$p$load_bootstrap_sample_into_design_backed_worker(ws, idx)
+	xraw <- ws$worker_des_priv$Xraw
+	ximp <- ws$worker_des_priv$Ximp
+	expect_equal(as.list(xraw), as.list(as.data.frame(f$p$des_obj_priv_int$Xraw)[idx, , drop = FALSE]))
+	expect_equal(as.list(ximp), as.list(as.data.frame(f$p$des_obj_priv_int$Ximp)[idx, , drop = FALSE]))
+	expect_identical(row.names(xraw), as.character(seq_along(idx)))
+	expect_identical(row.names(ximp), as.character(seq_along(idx)))
+})
+
 test_that("a smaller sample changes n, drops every derived cache and can be reloaded repeatedly", {
 	f <- wk_fx()
 	ws <- f$p$create_design_backed_bootstrap_worker_state()
@@ -96,6 +109,29 @@ test_that("a reused OLS worker fits each resampled design matrix, not the first 
 	expect_gt(abs(second - first), 0.01)
 	expect_equal(second, fresh_second, tolerance = 1e-8)
 	expect_equal(second, reference_second, tolerance = 1e-8)
+})
+
+test_that("a bootstrap sample that makes a rare covariate constant falls back to the rebuild path", {
+	set.seed(290L)
+	n <- 30L
+	x <- rnorm(n)
+	rare <- c(rep(0, n - 1L), 1)
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = x, rare = rare))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	y <- 1.5 * w + 0.4 * x + 0.7 * rare + rnorm(n, sd = 0.2)
+	des$add_all_subject_responses(y)
+	inf <- InferenceContinOLS$new(des, model_formula = ~., harden = TRUE, verbose = FALSE)
+	p <- inf$.__enclos_env__$private
+	ws <- p$create_design_backed_bootstrap_worker_state()
+	idx <- seq_len(n - 1L) # omit the sole rare-level row
+	p$load_bootstrap_sample_into_design_backed_worker(ws, idx)
+	expect_null(ws$worker_priv$X)
+	expect_null(ws$worker_des_priv$X)
+	estimate <- p$compute_bootstrap_worker_estimate(ws)
+	reference <- unname(stats::lm.fit(cbind(1, w[idx], x[idx]), y[idx])$coefficients[2L])
+	expect_equal(estimate, reference, tolerance = 1e-10)
 })
 
 test_that("the indices may be a bare vector or a list draw with i_b (and an optional m_vec_b override)", {

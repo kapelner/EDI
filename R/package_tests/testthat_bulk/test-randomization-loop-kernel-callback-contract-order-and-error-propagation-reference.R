@@ -45,13 +45,12 @@ test_that("errors from a duplicator or from an iteration propagate and stop the 
 	expect_identical(n, 3)
 })
 
-test_that("callback result contract: a non-numeric result is an error, but an EMPTY numeric result is not (unchecked result[0])", {
+test_that("callback result contract rejects non-numeric and empty numeric results", {
 	expect_error(K(2L, function() 1, function() 1, function(o) "text"))
-	# ROBUSTNESS GAP (not fixed here): `result[0]` on a length-0 vector is read without a length check; Rcpp only warns
-	# ("subscript out of bounds") and the loop continues, so the entry is undefined instead of the call failing.
-	out <- NULL
-	expect_warning(out <- K(2L, function() 1, function() 1, function(o) numeric(0)), "subscript out of bounds")
-	expect_length(out, 2L)
+	expect_error(
+		K(2L, function() 1, function() 1, function(o) numeric(0)),
+		"run_randomization_iteration_fn must return a non-empty numeric vector"
+	)
 })
 
 test_that("num_cores is accepted and does not change the (serial) result", {

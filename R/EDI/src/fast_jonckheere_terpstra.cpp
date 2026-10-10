@@ -3,6 +3,7 @@
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
 #include <algorithm>
+#include <cstdint>
 #include <cmath>
 #include <vector>
 
@@ -14,6 +15,28 @@ struct LogChooseTable {
   std::vector<int> offsets;
   std::vector<double> values;
 };
+
+constexpr std::uint64_t kMaxJTExactLeaves = 1000000ULL;
+
+bool jt_exact_leaf_count_exceeds_limit(const std::vector<int>& total_counts,
+                                       int n_treat,
+                                       std::uint64_t limit) {
+  std::vector<std::uint64_t> ways(static_cast<std::size_t>(n_treat + 1), 0ULL);
+  ways[0] = 1ULL;
+  for (int nk : total_counts) {
+    std::vector<std::uint64_t> next(static_cast<std::size_t>(n_treat + 1), 0ULL);
+    for (int treated_so_far = 0; treated_so_far <= n_treat; ++treated_so_far) {
+      if (ways[static_cast<std::size_t>(treated_so_far)] == 0ULL) continue;
+      const int max_take = std::min(nk, n_treat - treated_so_far);
+      for (int tk = 0; tk <= max_take; ++tk) {
+        std::uint64_t& count = next[static_cast<std::size_t>(treated_so_far + tk)];
+        count = std::min(limit + 1ULL, count + ways[static_cast<std::size_t>(treated_so_far)]);
+      }
+    }
+    ways.swap(next);
+  }
+  return ways[static_cast<std::size_t>(n_treat)] > limit;
+}
 
 std::vector<double> build_log_factorials(int n) {
   std::vector<double> log_factorial(static_cast<std::size_t>(n + 1), 0.0);
@@ -90,13 +113,16 @@ void recurse_jt_distribution(int idx,
                              std::vector<double>& stat_prob,
                              std::vector<unsigned char>& stat_active,
                              std::vector<int>& active_stats,
-                             double log_norm) {
+                             double log_norm,
+                             std::uint64_t& leaf_count) {
   const int K = static_cast<int>(total_counts.size());
   const int nk = total_counts[static_cast<std::size_t>(idx)];
   const int lower_controls = total_seen - treated_seen;
 
   if (idx == K - 1) {
     if (remaining_treated < 0 || remaining_treated > nk) return;
+    ++leaf_count;
+    if ((leaf_count & 4095ULL) == 0ULL) Rcpp::checkUserInterrupt();
     const int stat2 = stat2_so_far +
       remaining_treated * (2 * lower_controls + (nk - remaining_treated));
     const double lw = log_weight + log_choose_from_table(log_choose_table, idx, remaining_treated) - log_norm;
@@ -125,7 +151,8 @@ void recurse_jt_distribution(int idx,
       stat_prob,
       stat_active,
       active_stats,
-      log_norm
+      log_norm,
+      leaf_count
     );
   }
 }
@@ -160,6 +187,7 @@ List exact_jonckheere_terpstra_pval_cpp(SEXP y,
       stop("treatment assignments must be 0/1 in exact_jonckheere_terpstra_pval_cpp");
     }
   }
+
   if (n_treat == 0 || n_control == 0) {
     stop("both treatment arms must be present in exact_jonckheere_terpstra_pval_cpp");
   }
@@ -178,6 +206,10 @@ List exact_jonckheere_terpstra_pval_cpp(SEXP y,
     const int k = static_cast<int>(std::lower_bound(levels.begin(), levels.end(), yi) - levels.begin());
     ++total_counts[static_cast<std::size_t>(k)];
     if (w_ptr[i] == 1) ++treat_counts_obs[static_cast<std::size_t>(k)];
+  }
+
+  if (jt_exact_leaf_count_exceeds_limit(total_counts, n_treat, kMaxJTExactLeaves)) {
+    stop("exact_jonckheere_terpstra_pval_cpp: exact enumeration exceeds the 1,000,000-allocation limit; use asymptotic inference");
   }
 
   const int stat2_obs = compute_jt_statistic2_from_counts(treat_counts_obs, total_counts);
@@ -200,7 +232,8 @@ List exact_jonckheere_terpstra_pval_cpp(SEXP y,
     stat_active.resize(static_cast<std::size_t>(max_stat2 + 1), 0U);
   }
   active_stats.reserve(static_cast<std::size_t>(std::min(max_stat2 + 1, 1024)));
-  recurse_jt_distribution(0, n_treat, total_counts, log_choose_table, 0, 0, 0, 0.0, stat_prob, stat_active, active_stats, log_norm);
+  std::uint64_t leaf_count = 0ULL;
+  recurse_jt_distribution(0, n_treat, total_counts, log_choose_table, 0, 0, 0, 0.0, stat_prob, stat_active, active_stats, log_norm, leaf_count);
 
   double p_lower = 0.0;
   double p_upper = 0.0;

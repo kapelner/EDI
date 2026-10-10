@@ -42,6 +42,39 @@ test_that("sample weights are gamma draws normalized to sum to the group size", 
 	expect_true(all(sw$subject_or_block_weights > 0))
 })
 
+test_that("batched Bayesian-bootstrap weights preserve the historical RNG and group order", {
+	# This is the former replicate() + per-group loop written independently.
+	# A single rgamma(B * n_units) call must consume its draws in precisely this
+	# replicate-then-group order, including when unit groups are interleaved.
+	set.seed(210L)
+	des <- DesignFixedBlocking$new(strata_cols = "g", response_type = "continuous", n = 12L, verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(g = factor(rep(c("a", "b", "c"), each = 4L))))
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rnorm(12L))
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	priv <- inf$.__enclos_env__$private
+	ctx <- priv$build_bayesian_bootstrap_context()
+	legacy_draws <- function(B) {
+		out <- vector("list", B)
+		for (b in seq_len(B)) {
+			w <- numeric(ctx$n_units)
+			for (group_id in unique(ctx$unit_group_id)) {
+				idx <- which(ctx$unit_group_id == group_id)
+				g <- rgamma(length(idx), shape = 1, rate = 1)
+				w[idx] <- g / sum(g) * length(idx)
+			}
+			out[[b]] <- w
+		}
+		out
+	}
+	set.seed(211L)
+	expected <- legacy_draws(4L)
+	set.seed(211L)
+	actual <- priv$bayesian_bootstrap_sample_weight_draws(B = 4L)
+	expect_equal(lapply(actual, `[[`, "subject_or_block_weights"), expected, tolerance = 0)
+	expect_true(all(vapply(actual, function(draw) identical(draw$context, ctx), logical(1))))
+})
+
 test_that("jackknife distribution equals independent leave-one-out mean differences and is cached", {
 	f <- bb_fixture()
 	ref <- vapply(seq_len(f$n), function(k) {

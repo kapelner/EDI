@@ -214,13 +214,15 @@ ContinKKRobustRegrIVWCSource = list(
 			nRT = KKstats$nRT
 			nRC = KKstats$nRC
 			if (m > 0){
-				private$robust_for_matched_pairs(estimate_only = estimate_only)
+				# IVWC needs the component variance to combine a point-only fit too.
+				# The outer caller still suppresses only the final combined SE.
+				private$robust_for_matched_pairs(estimate_only = FALSE)
 			}
 			beta_m = private$cached_values$beta_T_matched
 			ssq_m  = private$cached_values$ssq_beta_T_matched
 			m_ok   = !is.null(beta_m) && is.finite(beta_m) && !is.null(ssq_m) && is.finite(ssq_m) && ssq_m > 0
 			if (nRT > 0 && nRC > 0){
-				private$robust_for_reservoir(estimate_only = estimate_only)
+				private$robust_for_reservoir(estimate_only = FALSE)
 			}
 			beta_r = private$cached_values$beta_T_reservoir
 			ssq_r  = private$cached_values$ssq_beta_T_reservoir

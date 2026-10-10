@@ -592,16 +592,20 @@
 .cox_simulate_stratified = function(y_obs, dead_obs, X_null, b_null, strata){
 	n = nrow(X_null)
 	eta = as.numeric(X_null %*% b_null)
-	risk_i = exp(eta - max(eta))
 	max_time = max(y_obs) * 2
 	T_sim = rep(max_time, n)
 	for (s in unique(strata)){
 		idx = which(strata == s)
+		# .breslow_hazard() rescales each stratum's risk set by that stratum's
+		# maximum linear predictor.  Use the same scale here; a global maximum
+		# changes the inversion threshold for every other stratum.
+		risk_i = exp(eta[idx] - max(eta[idx]))
 		breslow_s = .breslow_hazard(y_obs[idx], dead_obs[idx], X_null[idx, , drop = FALSE], b_null)
 		if (length(breslow_s$times) == 0L) next
-		for (i in idx){
+		for (j in seq_along(idx)){
+			i = idx[j]
 			U = runif(1L)
-			tgt = -log(max(U, 1e-10)) / risk_i[i]
+			tgt = -log(max(U, 1e-10)) / risk_i[j]
 			j_k = which(breslow_s$cumhaz >= tgt)
 			T_sim[i] = if (length(j_k) == 0L) max_time else breslow_s$times[j_k[1L]]
 		}
@@ -633,4 +637,3 @@
 	dead_sim = as.numeric(T_sim <= C_i)
 	list(y_sim = y_sim, dead_sim = dead_sim)
 }
-

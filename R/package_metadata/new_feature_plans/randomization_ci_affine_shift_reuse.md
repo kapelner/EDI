@@ -174,7 +174,11 @@ is O(r) arithmetic and MC is moot.
 
 ## Items
 
-- [ ] **TODO-1: `supports_additive_delta_shift()` predicate.** New private
+- [x] **TODO-1: `supports_additive_delta_shift()` predicate.** Implemented
+  2026-10-09: the private predicate is registered for the four tier-1 classes
+  and is gated on the resolved untransformed response scale and non-Zhang
+  randomization path. Registry metadata exposes the same capability.
+  New private
   method on the inference abstract, default `FALSE`. Returns `TRUE` for
   `InferenceAllSimpleMeanDiffPooledVar`, `InferenceAllSimpleAverageDiff`,
   `InferenceContinOLS`, `InferenceContinLin` (tier 1). ~~Must also be
@@ -190,7 +194,10 @@ is O(r) arithmetic and MC is moot.
   `:415`). Registered through the inference-class registry metadata so the
   `InferenceSuite` and the path audits can see it (the same way
   `supports_reusable_bootstrap_worker` is surfaced).
-- [ ] **TODO-2: Populate on the δ = 0 full-`r` path.** In
+- [x] **TODO-2: Populate on the δ = 0 full-`r` path.** Implemented
+  2026-10-09 with a full-content permutation signature and exact
+  per-permutation slopes. The cache is written only after a full distribution
+  and read only for the identical permutation set. In
   `compute_rand_two_sided_pval()`, after
   `get_randomization_distribution_prefix()` returns `t0s` (`:526-534`), if
   `delta == 0`, `transform_responses == "none"`,
@@ -206,14 +213,19 @@ is O(r) arithmetic and MC is moot.
   longer exists on this class family (see TODO-1's note). Invalidate on
   every path that already resets `t0s_rand = NULL` (`set_seed`, response
   mutation — the custom-statistic setters this used to also list are gone).
-- [ ] **TODO-3: Make the CI search use it.** In
+- [x] **TODO-3: Make the CI search use it.** Implemented 2026-10-09: a
+  qualifying CI creates one fixed permutation set, disables sequential MC for
+  the one delta-zero warm-up, then reuses the affine cache for the search. In
   `build_randomization_ci_search_bounds()` (`inference_all_abstract_rand_ci.R:425`),
   when the class qualifies, run the δ = 0 call with sequential MC disabled
   (full `r`) so TODO-2 fires; then leave the search loop untouched — every
   subsequent `compute_randomization_ci_pval_cached()` call hits the `:436`
   branch. Log the hit (`verbose`) so the benchmark can confirm the path is
   taken. Remove the now-redundant "warm" comment at `:431`.
-- [ ] **TODO-4: Tests.** (a) Unit: for each tier-1 class on a fixed seed,
+- [x] **TODO-4: Tests.** Added 2026-10-09 in `test-ci-rand.R`: fixed-seed
+  tier-1 distribution equivalence at five deltas, one-distribution CI reuse,
+  negative capability/MC-prefix checks, and the separate KK OLS reference
+  test. (a) Unit: for each tier-1 class on a fixed seed,
   assert `compute_rand_two_sided_pval(r, delta = d)` with the shortcut equals
   the value with `t0s_rand` forcibly `NULL`-ed, for `d ∈ {−1, −0.1, 0, 0.1, 1}`,
   to `1e-12` on the p-value (ties aside — assert on the sorted `t0s`
@@ -232,12 +244,21 @@ is O(r) arithmetic and MC is moot.
   `get_randomization_distribution_prefix`) — expect exactly 1 for a tier-1
   class, ≥ 10 for Wilcoxon. Lives in `test-ci-rand.R` or a new
   `test-rand-ci-affine-reuse.R`.
-- [ ] **TODO-5: Tier 2 (opt-in after numerical verification).**
+- [x] **TODO-5: Tier 2 (opt-in after numerical verification).** Completed
+  2026-10-09: fixed-permutation numerical checks select
+  `InferenceContinKKOLSOneLik` at `1e-10`; `InferenceContinKKOLSIVWC` and
+  `InferenceAllKKMeanDiffIVWC` remain deliberately excluded and are asserted
+  false by the reference test.
   `InferenceContinKKOLSIVWC`, `InferenceContinKKOLSOneLik`,
   `InferenceAllKKMeanDiffIVWC`: run TODO-4(a) against them first; flip the
   predicate to `TRUE` only for those that pass to `1e-10` across the fixture
   set. Record the result here either way.
-- [ ] **TODO-6: Benchmark + doc.** Before/after wall time of
+- [ ] **TODO-6: Benchmark + doc.** The benchmark script
+  `R/benchmark/benchmark_randomization_ci_affine_reuse.R` and README/roxygen
+  documentation were added 2026-10-09. The required before/after measurements
+  remain pending a runnable source R environment (the present `Rscript` cannot
+  start because `libmkl_gf_lp64.so.2` is unavailable); do not infer the
+  projected 20--30x result from the source change alone. Before/after wall time of
   `compute_confidence_interval_rand()` for OLS and mean-diff at
   `n ∈ {100, 500, 1000}`, `r ∈ {201, 1001, 2001}`, via
   `scripts/benchmark_randomization_ci_ordinal_ppo.R`'s pattern with
@@ -246,7 +267,11 @@ is O(r) arithmetic and MC is moot.
   and the README's CPU section noting that linear-statistic CIs cost one
   null distribution.
 
-- [ ] **TODO-7: Reconcile the KK-GEE mixin read site.** Either (a) gate
+- [x] **TODO-7: Reconcile the KK-GEE mixin read site.** Completed 2026-10-09:
+  the never-populated legacy `t0s_rand + delta` branch was removed from the
+  KK-GEE mixin. Thus an incidence KK-combined object cannot consume this cache;
+  only the verified predicate-bearing classes use the abstract implementation.
+  Either (a) gate
   `inference_mixin_kk_gee_shared.R:167-169` on the same
   `supports_additive_delta_shift()` predicate as the abstract's read
   (correct if any KK-GEE class ever passes TODO-5's numerical

@@ -58,3 +58,30 @@ test_that("KK Wilcox IVWC jackknife methods return NA and cache the class-specif
 	# the unit argument is accepted and ignored, same contract as the simple-Wilcox sibling
 	expect_true(is.na(kk_wilcox_fx(seed = 6L)$inf$compute_jackknife_estimate(unit = "observation")))
 })
+
+test_that("KK Wilcox fast randomization accepts the dispatcher's double permutation matrices", {
+	f <- kk_wilcox_fx(n = 20L, seed = 7L)
+	p <- f$inf$.__enclos_env__$private
+	p$compute_basic_match_data()
+	# `generate_permutations()` caches assignment matrices as doubles.  The
+	# native fast kernel maps them as MatrixXi, so this boundary conversion must
+	# happen here rather than relying on the fallback to conceal a type error.
+	w <- as.numeric(p$w)
+	m <- as.numeric(p$m); m[is.na(m)] <- 0
+	perms_double <- list(w_mat = cbind(w, 1 - w), m_mat = cbind(m, m))
+	expect_identical(typeof(perms_double$w_mat), "double")
+	expect_identical(typeof(perms_double$m_mat), "double")
+	got_double <- p$compute_fast_randomization_distr(
+		p$y, perms_double, delta = 0, transform_responses = "none"
+	)
+	perms_integer <- list(
+		w_mat = matrix(as.integer(perms_double$w_mat), nrow = length(w)),
+		m_mat = matrix(as.integer(perms_double$m_mat), nrow = length(m))
+	)
+	got_integer <- p$compute_fast_randomization_distr(
+		p$y, perms_integer, delta = 0, transform_responses = "none"
+	)
+	expect_length(got_double, 2L)
+	expect_true(all(is.finite(got_double)))
+	expect_equal(got_double, got_integer, tolerance = 1e-10)
+})

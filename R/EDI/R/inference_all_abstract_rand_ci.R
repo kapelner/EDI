@@ -104,7 +104,10 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   compared with the resulting reference distribution. This is the
 		#'   impute-then-permute construction of Rosenbaum (2002, ch. 2) and Imbens and
 		#'   Rubin (2015, ch. 5): \eqn{y_{sim} = y - \delta w_{obs} + \delta w_b} on the
-		#'   additive scale.
+		#'   additive scale. For mean-difference, OLS, Lin, and verified KK OLS
+		#'   one-likelihood estimators, EDI computes one full \eqn{\delta=0} null
+		#'   distribution and reuses its exact per-permutation affine shifts throughout
+		#'   the CI search; other estimators retain the general refit-at-each-\eqn{\delta} path.
 		#'
 		#'   \strong{Survival responses.} The sharp null is an accelerated-failure-time
 		#'   (AFT) effect: for units treated under \eqn{w_b} the recorded time is multiplied
@@ -290,7 +293,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			temp_priv = temp_inf$.__enclos_env__$private
 			temp_priv$begin_rand_worker_reuse_session()
 			on.exit(temp_priv$end_rand_worker_reuse_session(), add = TRUE)
-			precompute_permutations = !(
+			precompute_permutations = isTRUE(temp_priv$supports_additive_delta_shift(transform_arg)) || !(
 				is.finite(suppressWarnings(as.numeric(ci_search_control$timeout_deadline)[1L])) &&
 				isTRUE(ci_search_control$mc_enable) &&
 				as.integer(ci_search_control$mc_batch_size) < as.integer(r)
@@ -497,8 +500,17 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				sort(ci[1:2])
 			}
 			obj_private = inf_obj$.__enclos_env__$private
-			if (transform_arg == "none" && (is.null(obj_private$cached_values$t0s_rand) || length(obj_private$cached_values$t0s_rand) < r)) {
-				private$compute_randomization_ci_pval_cached(inf_obj, r, 0, transform_arg, permutations, ci_search_control, ci_pval_cache)
+			if (isTRUE(obj_private$supports_additive_delta_shift(transform_arg)) &&
+					(is.null(obj_private$cached_values$t0s_rand) || length(obj_private$cached_values$t0s_rand) < r)) {
+				# The affine cache is valid only for a full-r delta-zero distribution.
+				# Disable sequential stopping for this one warm-up; every later delta is
+				# then O(r) arithmetic on the same fixed permutation set.
+				old_mc_control = obj_private$randomization_mc_control
+				full_control = ci_search_control
+				full_control$mc_enable = FALSE
+				obj_private$randomization_mc_control = full_control
+				on.exit({ obj_private$randomization_mc_control = old_mc_control }, add = TRUE)
+				private$compute_randomization_ci_pval_cached(inf_obj, r, 0, transform_arg, permutations, full_control, ci_pval_cache)
 			}
 			est = as.numeric(inf_obj$compute_estimate())
 			if (length(est) == 0L || !is.finite(est[1])) est = NA_real_ else est = est[1]

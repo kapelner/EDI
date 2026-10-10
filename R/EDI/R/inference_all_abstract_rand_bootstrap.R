@@ -687,6 +687,13 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# is drawn inside each (possibly parallel) iteration instead.
 		generate_rand_bootstrap_draws = function(B, bootstrap_type = NULL, materialize_w = TRUE){
 			B = as.integer(B)
+			# A materialized assignment is replayed by its own seed below.  Draw the
+			# whole batch without replacement so two BRT replicates cannot silently
+			# receive an identical design replay (the parametric-bootstrap runners
+			# follow the same per-replicate-seed contract).
+			w_seeds = if (isTRUE(materialize_w) && B > 0L) {
+				sample.int(.Machine$integer.max, B, replace = FALSE)
+			} else integer()
 			draws = lapply(seq_len(B), function(b) {
 				boot_draw = private$bootstrap_sample_indices(private$n, bootstrap_type)
 				draw = if (is.list(boot_draw)) {
@@ -695,7 +702,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					list(i_b = as.integer(boot_draw), m_vec_b = NULL, w_b = NULL)
 				}
 				if (isTRUE(materialize_w)) {
-					draw$w_seed = sample.int(.Machine$integer.max, 1L)
+					draw$w_seed = w_seeds[[b]]
 				}
 				draw
 			})

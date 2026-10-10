@@ -99,8 +99,9 @@ CountKKHurdlePoissonIVWCSource = list(
 		#' @description Compute the IVWC hurdle-Poisson treatment-effect estimate by
 		#'   fitting matched-pair and reservoir count models and combining their
 		#'   log-rate treatment coefficients.
-		#' @param estimate_only If \code{TRUE}, skip standard-error calculations.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @param estimate_only If \code{TRUE}, return only the combined estimate.
+		#'   Component variances are still fitted because they define the IVWC
+		#'   weights; replacing them with placeholders would change the estimate.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
@@ -145,7 +146,8 @@ CountKKHurdlePoissonIVWCSource = list(
 		#'   reservoir fit (\code{fast_poisson_regression_weighted_cpp()}) the
 		#'   same inverse-variance way as \code{$compute_estimate()}.
 		#' @param subject_or_block_weights Row weights for the bootstrap sample.
-		#' @param estimate_only If TRUE, skip variance calculations.
+		#' @param estimate_only If TRUE, return only the combined estimate. Component
+		#'   variances are nevertheless computed to retain IVWC weighting.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X = private$build_model_matrix()
@@ -158,11 +160,10 @@ CountKKHurdlePoissonIVWCSource = list(
 			ssq_m = NA_real_
 			if (length(matched_idx) > 0L){
 				res_m = private$fit_hurdle_for_matched_pairs(
-					X, matched_idx, m_vec, se = !estimate_only,
-					weights = row_weights[matched_idx]
+					X, matched_idx, m_vec, weights = row_weights[matched_idx]
 				)
 				beta_m = res_m$beta_hat
-				ssq_m = if (!estimate_only) res_m$se^2 else 1.0
+				ssq_m = res_m$se^2
 			}
 			m_ok = is.finite(beta_m) && is.finite(ssq_m) && ssq_m > 0
 
@@ -170,11 +171,10 @@ CountKKHurdlePoissonIVWCSource = list(
 			ssq_r = NA_real_
 			if (length(reservoir_idx) > 1L && length(unique(private$w[reservoir_idx])) > 1L){
 				res_r = private$fit_poisson_for_reservoir(
-					X, reservoir_idx, estimate_only = estimate_only,
-					weights = row_weights[reservoir_idx]
+					X, reservoir_idx, weights = row_weights[reservoir_idx]
 				)
 				beta_r = res_r$beta_hat
-				ssq_r = if (!estimate_only) res_r$ssq_hat else 1.0
+				ssq_r = res_r$ssq_hat
 			}
 			r_ok = is.finite(beta_r) && is.finite(ssq_r) && ssq_r > 0
 
@@ -201,8 +201,8 @@ CountKKHurdlePoissonIVWCSource = list(
 		# Wald-only IVWC combination; the KKPassThrough contract requires the
 		# host to declare this (the old ladder inherited it from InferenceAsymp).
 		supports_likelihood_tests = function() FALSE,
-		# Overridden to avoid the heavy summary() call during randomization iterations.
-		# Extracts the fixed-effect coefficient for "w" directly from the fit.
+		# The randomization statistic must retain the observed IVWC estimand, so
+		# component variances are required even though only the point estimate returns.
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			X = private$build_model_matrix()
 			split = split_kk_matched_reservoir_idx(private$m, nrow(X))
@@ -212,7 +212,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			beta_m = NA_real_
 			ssq_m = NA_real_
 			if (length(matched_idx) > 0L){
-				res_m = private$fit_hurdle_for_matched_pairs(X, matched_idx, m_vec, se = FALSE)
+				res_m = private$fit_hurdle_for_matched_pairs(X, matched_idx, m_vec)
 				beta_m = res_m$beta_hat
 				ssq_m = res_m$se^2
 			}
@@ -220,7 +220,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			beta_r = NA_real_
 			ssq_r = NA_real_
 			if (length(reservoir_idx) > 1L && length(unique(private$w[reservoir_idx])) > 1L){
-				res_r = private$fit_poisson_for_reservoir(X, reservoir_idx, estimate_only = estimate_only)
+				res_r = private$fit_poisson_for_reservoir(X, reservoir_idx)
 				beta_r = res_r$beta_hat
 				ssq_r = res_r$ssq_hat
 			}
@@ -269,9 +269,9 @@ CountKKHurdlePoissonIVWCSource = list(
 			matched_idx = split$matched_idx
 			reservoir_idx = split$reservoir_idx
 			if (length(matched_idx) > 0L){
-				res_m = private$fit_hurdle_for_matched_pairs(X, matched_idx, m_vec, se = !estimate_only)
+				res_m = private$fit_hurdle_for_matched_pairs(X, matched_idx, m_vec)
 				private$cached_values$beta_T_matched = res_m$beta_hat
-				if (!estimate_only) private$cached_values$ssq_beta_T_matched = res_m$se^2 else private$cached_values$ssq_beta_T_matched = 1.0
+				private$cached_values$ssq_beta_T_matched = res_m$se^2
 			}
 			beta_m = private$cached_values$beta_T_matched
 			ssq_m = private$cached_values$ssq_beta_T_matched
@@ -279,9 +279,9 @@ CountKKHurdlePoissonIVWCSource = list(
 				!is.null(ssq_m) && is.finite(ssq_m) && ssq_m > 0
 			if (length(reservoir_idx) > 1L &&
 				length(unique(private$w[reservoir_idx])) > 1L){
-				res_r = private$fit_poisson_for_reservoir(X, reservoir_idx, estimate_only = estimate_only)
+				res_r = private$fit_poisson_for_reservoir(X, reservoir_idx)
 				private$cached_values$beta_T_reservoir = res_r$beta_hat
-				if (!estimate_only) private$cached_values$ssq_beta_T_reservoir = res_r$ssq_hat else private$cached_values$ssq_beta_T_reservoir = 1.0
+				private$cached_values$ssq_beta_T_reservoir = res_r$ssq_hat
 			}
 			beta_r = private$cached_values$beta_T_reservoir
 			ssq_r = private$cached_values$ssq_beta_T_reservoir
@@ -310,7 +310,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			rhs = paste(c(fixed_terms, "(1 | pair_group)"), collapse = " + ")
 			stats::as.formula(paste("y ~", rhs))
 		},
-		fit_hurdle_for_matched_pairs = function(X, matched_idx, m_vec, se = TRUE, weights = NULL){
+		fit_hurdle_for_matched_pairs = function(X, matched_idx, m_vec, weights = NULL){
 			X_matched = X[matched_idx, , drop = FALSE]
 			if (is.null(dim(X_matched)) || ncol(X_matched) < 2L) {
 				return(list(beta_hat = NA_real_, se = NA_real_))
@@ -329,10 +329,9 @@ CountKKHurdlePoissonIVWCSource = list(
 					X_fit = X_fit,
 					y_fit = private$y[matched_idx],
 					group_id = m_vec[matched_idx],
-					j_treat = reduced$j_treat,
-					se = se
+					j_treat = reduced$j_treat
 				)
-				if (is.finite(res$beta_hat) && (!se || (is.finite(res$se) && res$se > 0))) {
+				if (is.finite(res$beta_hat) && is.finite(res$se) && res$se > 0) {
 					return(res)
 				}
 			}
@@ -340,18 +339,17 @@ CountKKHurdlePoissonIVWCSource = list(
 				X_fit = X_fit,
 				y_fit = private$y[matched_idx],
 				group_id = m_vec[matched_idx],
-				se = se,
 				weights = weights
 			)
 		},
-		fit_hurdle_for_matched_pairs_rcpp = function(X_fit, y_fit, group_id, j_treat, se = TRUE){
+		fit_hurdle_for_matched_pairs_rcpp = function(X_fit, y_fit, group_id, j_treat){
 			fit = tryCatch(
 				fast_hurdle_poisson_glmm_cpp(
 					X = as.matrix(X_fit),
 					y = as.numeric(y_fit),
 					group_id = as.integer(group_id),
 					j_T = as.integer(j_treat - 1L),
-					estimate_only = !se,
+					estimate_only = FALSE,
 					optimization_alg = private$optimization_alg
 				),
 				error = function(e) NULL
@@ -361,7 +359,6 @@ CountKKHurdlePoissonIVWCSource = list(
 			if (!is.finite(beta_hat) || abs(beta_hat) > private$max_abs_reasonable_coef) {
 				return(list(beta_hat = NA_real_, se = NA_real_))
 			}
-			if (!se) return(list(beta_hat = beta_hat, se = 1.0))
 			ssq = as.numeric(fit$ssq_b_T)
 			if (!is.finite(ssq) || ssq <= 0) return(list(beta_hat = NA_real_, se = NA_real_))
 			se_val = sqrt(ssq)
@@ -370,7 +367,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			}
 			list(beta_hat = beta_hat, se = se_val)
 		},
-		fit_hurdle_for_matched_pairs_glmm_tmb = function(X_fit, y_fit, group_id, se = TRUE, weights = NULL){
+		fit_hurdle_for_matched_pairs_glmm_tmb = function(X_fit, y_fit, group_id, weights = NULL){
 			if (!check_package_installed("glmmTMB")) return(list(beta_hat = NA_real_, se = NA_real_))
 			pred_df = as.data.frame(X_fit[, -1, drop = FALSE])
 			colnames(pred_df)[1] = "w"
@@ -390,7 +387,7 @@ CountKKHurdlePoissonIVWCSource = list(
 						data = dat,
 						weights = weights,
 						control = glmm_control,
-						se = se
+						se = TRUE
 					)
 				)),
 				error = function(e) NULL
@@ -406,20 +403,13 @@ CountKKHurdlePoissonIVWCSource = list(
 							data = dat,
 							weights = weights,
 							control = glmm_control,
-							se = se
+							se = TRUE
 						)
 					)),
 					error = function(e) NULL
 				)
 			}
 			if (is.null(mod)) return(list(beta_hat = NA_real_, se = NA_real_))
-			if (!se){
-				beta = glmmTMB::fixef(mod)$cond
-				if ("w" %in% names(beta)){
-					return(list(beta_hat = as.numeric(beta["w"]), se = 1.0)) # Return dummy SE > 0
-				}
-				return(list(beta_hat = NA_real_, se = NA_real_))
-			}
 			coef_table = tryCatch(summary(mod)$coefficients$cond, error = function(e) NULL)
 			if (is.null(coef_table) || !("w" %in% rownames(coef_table))) return(list(beta_hat = NA_real_, se = NA_real_))
 			beta_hat = as.numeric(coef_table["w", "Estimate"])
@@ -427,7 +417,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			if (!is.finite(beta_hat) || !is.finite(se_val) || se_val <= 0) return(list(beta_hat = NA_real_, se = NA_real_))
 			list(beta_hat = beta_hat, se = se_val)
 		},
-		fit_poisson_for_reservoir = function(X, reservoir_idx, estimate_only = FALSE, weights = NULL){
+		fit_poisson_for_reservoir = function(X, reservoir_idx, weights = NULL){
 			X_res = X[reservoir_idx, , drop = FALSE]
 			if (is.null(dim(X_res)) || ncol(X_res) < 2L) {
 				return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
@@ -444,10 +434,6 @@ CountKKHurdlePoissonIVWCSource = list(
 				)
 				if (is.null(mod) || !isTRUE(mod$converged)) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
 				beta_hat = as.numeric(mod$b[reduced$j_treat])
-				if (estimate_only) {
-					if (!is.finite(beta_hat)) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
-					return(list(beta_hat = beta_hat, ssq_hat = 1))
-				}
 				XtWX = mod$XtWX
 				ssq_hat = tryCatch({
 					inv_XtWX = solve(XtWX)
@@ -456,19 +442,12 @@ CountKKHurdlePoissonIVWCSource = list(
 				if (!is.finite(beta_hat) || !is.finite(ssq_hat) || ssq_hat <= 0) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
 				return(list(beta_hat = beta_hat, ssq_hat = ssq_hat))
 			}
-			mod = tryCatch({
-				if (estimate_only) {
-					fast_poisson_regression_cpp(X_fit, private$y[reservoir_idx])
-				} else {
-					fast_poisson_regression_with_var_cpp(X_fit, private$y[reservoir_idx], j = reduced$j_treat)
-				}
-			}, error = function(e) NULL)
+			mod = tryCatch(
+				fast_poisson_regression_with_var_cpp(X_fit, private$y[reservoir_idx], j = reduced$j_treat),
+				error = function(e) NULL
+			)
 			if (is.null(mod) || !isTRUE(mod$converged)) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
 			beta_hat = as.numeric(mod$b[reduced$j_treat])
-			if (estimate_only) {
-				if (!is.finite(beta_hat)) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
-				return(list(beta_hat = beta_hat, ssq_hat = 1))
-			}
 			ssq_hat = as.numeric(mod$ssq_b_j)
 			if (!is.finite(beta_hat) || !is.finite(ssq_hat) || ssq_hat <= 0) return(list(beta_hat = NA_real_, ssq_hat = NA_real_))
 			list(beta_hat = beta_hat, ssq_hat = ssq_hat)

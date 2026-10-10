@@ -9,7 +9,9 @@ library(EDI)
 # weighted-bootstrap point-estimate path.
 
 wilson_ci_ref = function(x, n, alpha) {
-	z = qnorm(1 - alpha / 2)
+	# The upper-tail form remains finite when alpha is too small for
+	# 1 - alpha / 2 to differ from one in double precision.
+	z = qnorm(alpha / 2, lower.tail = FALSE)
 	phat = x / n
 	denom = 1 + z^2 / n
 	center = phat + z^2 / (2 * n)
@@ -33,8 +35,19 @@ newcombe_pval_ref = function(x_t, n_t, x_c, n_c, delta, beta_hat_T) {
 		ci = newcombe_ci_ref(x_t, n_t, x_c, n_c, a)
 		if (delta < beta_hat_T) ci[1] - delta else ci[2] - delta
 	}
-	res = tryCatch(stats::uniroot(p_fn, interval = c(1e-10, 1 - 1e-10))$root, error = function(e) NA_real_)
-	if (!is.finite(res)) 1.0 else res
+	alpha_floor = 1e-300
+	alpha_ceiling = 1 - .Machine$double.eps
+	at_floor = p_fn(alpha_floor)
+	at_ceiling = p_fn(alpha_ceiling)
+	is_lower_boundary = delta < beta_hat_T
+	outside_at_floor = if (is_lower_boundary) at_floor >= 0 else at_floor <= 0
+	inside_at_ceiling = if (is_lower_boundary) at_ceiling <= 0 else at_ceiling >= 0
+	if (outside_at_floor) return(alpha_floor)
+	if (inside_at_ceiling) return(1.0)
+	exp(stats::uniroot(
+		function(log_alpha) p_fn(exp(log_alpha)),
+		interval = log(c(alpha_floor, alpha_ceiling)), tol = 1e-12
+	)$root)
 }
 
 make_newcombe_fixture = function(n = 90L, seed = 20261001) {
@@ -80,12 +93,38 @@ test_that("Newcombe two-sided p-value matches an independent CI-inversion refere
 		expect_equal(pval, ref, tolerance = 1e-6)
 	}
 
-	# delta = beta_hat_T should land at (or very near) the boundary p-value of 0
-	# for infinitesimally small alpha; the class returns 1.0 when uniroot can't
-	# bracket a sign change, which independently verified happens at delta ~ 0.5
-	# away from the estimate on this fixture.
+	# The point estimate remains inside every non-degenerate CI, so its p-value
+	# is one. A null outside even the alpha floor instead has a p-value at that
+	# floor, rather than being misclassified as one by a failed bracket.
 	far_delta = beta_hat_T + 0.9
-	expect_equal(inf$compute_asymp_two_sided_pval(delta = far_delta), 1.0)
+	expect_equal(
+		inf$compute_asymp_two_sided_pval(delta = far_delta),
+		newcombe_pval_ref(x_t, n_t, x_c, n_c, far_delta, beta_hat_T),
+		tolerance = 1e-12
+	)
+})
+
+make_newcombe_fixed_counts_fixture = function(x_t, n_t, x_c, n_c) {
+	n = n_t + n_c
+	des = DesignFixedBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = seq_len(n)))
+	des$overwrite_all_subject_assignments(c(rep(1L, n_t), rep(0L, n_c)))
+	des$add_all_subject_responses(c(rep(c(1, 0), c(x_t, n_t - x_t)), rep(c(1, 0), c(x_c, n_c - x_c))))
+	InferenceIncidNewcombeRiskDiff$new(des)
+}
+
+test_that("Newcombe p-value resolves strong and small effects on a log-alpha scale", {
+	strong = make_newcombe_fixed_counts_fixture(90L, 100L, 10L, 100L)
+	strong_p = strong$compute_asymp_two_sided_pval()
+	strong_ref = newcombe_pval_ref(90, 100, 10, 100, 0, 0.8)
+	expect_equal(strong_p, strong_ref, tolerance = 1e-10)
+	expect_lt(strong_p, 1e-10)
+
+	precise = make_newcombe_fixed_counts_fixture(75L, 100L, 40L, 100L)
+	precise_p = precise$compute_asymp_two_sided_pval()
+	precise_ref = newcombe_pval_ref(75, 100, 40, 100, 0, 0.35)
+	expect_equal(precise_p, precise_ref, tolerance = 1e-10)
+	expect_lt(precise_p, 1e-5)
 })
 
 test_that("Newcombe p-value rejects a missing null value", {

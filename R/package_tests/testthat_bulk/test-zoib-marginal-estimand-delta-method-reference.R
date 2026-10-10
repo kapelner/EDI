@@ -46,12 +46,13 @@ simulate_zoib_design = function(seed = 1L, n = 250L, beta_T = 0.6){
 # coefficients, and the g-computation mean-difference functional built on it.
 independent_zoib_mean_from_coefs = function(b_beta, b_zero, b_one, X, X_zero_one) {
 	mu  = 1 / (1 + exp(-as.numeric(X %*% b_beta)))
-	pi0 = 1 / (1 + exp(-as.numeric(X_zero_one %*% b_zero)))
-	pi1 = 1 / (1 + exp(-as.numeric(X_zero_one %*% b_one)))
-	pi_mid = pmax(1 - pi0 - pi1, 0)
-	denom = pi0 + pi1 + pi_mid
-	denom[!is.finite(denom) | denom <= 0] = 1
-	(pi1 + pi_mid * mu) / denom
+	a0 = as.numeric(X_zero_one %*% b_zero)
+	a1 = as.numeric(X_zero_one %*% b_one)
+	m = pmax(0, a0, a1)
+	denom = exp(-m) + exp(a0 - m) + exp(a1 - m)
+	pi1 = exp(a1 - m) / denom
+	pi_mid = exp(-m) / denom
+	pi1 + pi_mid * mu
 }
 independent_zoib_marginal_diff_from_coefs = function(b_beta, b_zero, b_one, X, X_zero_one) {
 	X1 = X; X1[, 2L] = 1

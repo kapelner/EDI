@@ -43,6 +43,29 @@ test_that("fast_ridit_scores_cpp scores each subject against the reference indic
 	expect_equal(as.numeric(got$ref_p), as.numeric(table(factor(f$y[f$w == 0], levels = 1:4)) / 40), tolerance = 1e-12)
 })
 
+test_that("an interior level absent from the reference arm uses mass below and preserves Mann-Whitney equivalence", {
+	# Control has mass 1/4 at level 1 and 3/4 at level 3, but no level 2.
+	# A treated level-2 response must therefore score 1/4. Averaging the
+	# neighboring observed-category ridits would incorrectly score it 3/8.
+	w <- c(rep(0L, 4), rep(1L, 4))
+	y <- c(1L, 3L, 3L, 3L, 2L, 2L, 3L, 4L)
+	ref_idx <- which(w == 0L)
+	expected_scores <- c(0.125, 0.625, 0.625, 0.625, 0.25, 0.25, 0.625, 1)
+	mw <- mean(outer(y[w == 1L], y[w == 0L], function(yt, yc) (yt > yc) + 0.5 * (yt == yc))) - 0.5
+
+	scores <- K("fast_ridit_scores_cpp")(y, ref_idx)
+	fit <- K("fast_ridit_analysis_cpp")(w, y, "control")
+	expect_equal(as.numeric(scores$scores), expected_scores, tolerance = 1e-12)
+	expect_equal(fit$estimate, mw, tolerance = 1e-12)
+	expect_equal(fit$estimate, mean(expected_scores[w == 1L]) - 0.5, tolerance = 1e-12)
+
+	i_mat <- matrix(seq_along(y), ncol = 1L)
+	w_mat <- matrix(w, ncol = 1L)
+	expect_equal(K("compute_ridit_distr_parallel_cpp")(y, w_mat, "control", 1L)[1], mw, tolerance = 1e-12)
+	expect_equal(K("compute_ridit_bootstrap_parallel_cpp")(w, y, i_mat, "control", 1L)[1], mw, tolerance = 1e-12)
+	expect_equal(K("compute_ridit_rand_bootstrap_parallel_cpp")(y, i_mat, w_mat, "control", 1L)[1], mw, tolerance = 1e-12)
+})
+
 test_that("pooled-reference analysis scores against all subjects", {
 	f <- fx()
 	r <- K("fast_ridit_analysis_cpp")(f$w, f$y, "pooled")

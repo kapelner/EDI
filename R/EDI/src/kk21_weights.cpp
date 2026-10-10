@@ -1236,7 +1236,12 @@ static double multivariate_ordinal_tstat(
     int coef_idx = 1
 ) {
     Function f("fast_ordinal_regression_with_var_cpp");
-    List res = f(wrap(X), wrap(y));
+    // Keep freshly allocated R objects rooted across the next allocation and
+    // the callback itself; inline wrap() arguments may otherwise be collected
+    // before Function::operator() shields them.
+    NumericMatrix Xs = wrap(X);
+    NumericVector ys = wrap(y);
+    List res = f(Xs, ys);
     NumericVector b = res["b"];
     double ssq = res["ssq_b_j"];
     return std::fabs(b[coef_idx - 1] / std::sqrt(ssq));

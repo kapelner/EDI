@@ -595,7 +595,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				)
 				set.seed(private$seed)
 			}
-			replicate_seeds = sample.int(.Machine$integer.max, B, replace = TRUE)
+			replicate_seeds = sample.int(.Machine$integer.max, B, replace = FALSE)
 
 			# The reusable-worker path amortizes a one-time R6-duplication cost over
 			# many replicates at a *single* delta. Callers that re-run this many times

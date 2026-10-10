@@ -71,6 +71,16 @@ possible before the reproduction step below.
 
 ## Next steps (none done yet — do these before attempting any fix)
 
+**Static re-audit 2026-10-09:** confirmed the proposed experiment must use
+`generate_rand_bootstrap_draws()`: every BRT draw calls the actual
+`bootstrap_sample_indices(private$n, bootstrap_type)` path and carries the
+resulting `i_b` into its materialized design assignment. This preserves the
+with-replacement duplication mechanism under investigation; it is not a
+hand-built permutation substitute. The required quantitative fixture and
+negative controls cannot be run on this host because `Rscript` fails before
+loading EDI (`libmkl_gf_lp64.so.2` is unavailable). No causal conclusion or
+mitigation has therefore been claimed.
+
 - [ ] Construct a true-null fixture for `InferenceContinQuantileRegr`, draw
   several BRT (with-replacement) resamples, and directly inspect whether
   the resampled design's tie/duplication pattern correlates with

@@ -60,7 +60,7 @@ test_that("cox_partial_likelihood_strata_info groups rows by distinct covariate 
 	expect_identical(empty_info$num_strata, 1L)
 })
 
-test_that("fit_estimate_only_fast (breslow ties) agrees exactly with an independent breslow-tie coxph reference, and diverges from fit_with_formula's default efron ties under real tied event times", {
+test_that("formula and fast stratified-Cox fallbacks both use Breslow ties", {
 	set.seed(20260919)
 	n <- 40L
 	w <- rep(c(0, 1), n / 2)
@@ -91,12 +91,34 @@ test_that("fit_estimate_only_fast (breslow ties) agrees exactly with an independ
 	)
 	expect_equal(unname(fit_fast$b), unname(coef(ref_breslow)), tolerance = 1e-6)
 
-	# fit_with_formula uses survival::coxph's own default (efron) ties method
-	# -- confirmed to genuinely diverge from the breslow fast-fit path under
-	# real ties, not a floating-point-noise difference.
-	expect_gt(max(abs(unname(coef(fit_formula)) - unname(fit_fast$b))), 1e-4)
+	# The formula fallback must fit the same Breslow likelihood. Keep the
+	# default-Efron result as a contrast so tied data make this regression
+	# sensitive to an omitted ties argument.
+	expect_equal(unname(coef(fit_formula)), unname(coef(ref_breslow)), tolerance = 1e-6)
 	ref_efron <- survival::coxph(survival::Surv(y, dead) ~ w + x1 + survival::strata(strat), data = dat)
-	expect_equal(unname(coef(fit_formula)), unname(coef(ref_efron)), tolerance = 1e-6)
+	expect_gt(max(abs(unname(coef(fit_formula)) - unname(coef(ref_efron)))), 1e-4)
+})
+
+test_that("InferenceSurvivalCoxPHRegr R fallback uses Breslow ties", {
+	set.seed(20261009)
+	n <- 80L
+	des <- DesignFixedBernoulli$new(response_type = "survival", n = n, seed = 91L, verbose = FALSE)
+	x1 <- rnorm(n)
+	des$add_all_subjects_to_experiment(data.frame(x1 = x1))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	y <- pmax(1, round(rexp(n, rate = exp(0.7 * w + 0.4 * x1)) * 4))
+	dead <- rep(1, n)
+	expect_true(any(duplicated(y)), "fixture must contain tied event times")
+	add_all_subject_responses_seq(des, y, deads = dead)
+
+	fit <- InferenceSurvivalCoxPHRegr$new(des, use_rcpp = FALSE, verbose = FALSE)
+	estimate <- unname(fit$compute_estimate())
+	ref_breslow <- survival::coxph(survival::Surv(y, dead) ~ w + x1, ties = "breslow")
+	ref_efron <- survival::coxph(survival::Surv(y, dead) ~ w + x1, ties = "efron")
+
+	expect_equal(estimate, unname(coef(ref_breslow)["w"]), tolerance = 1e-6)
+	expect_gt(abs(estimate - unname(coef(ref_efron)["w"])), 1e-4)
 })
 
 test_that("fit_with_formula returns NULL on a formula it cannot fit rather than raising", {

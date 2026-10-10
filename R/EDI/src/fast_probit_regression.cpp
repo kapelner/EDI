@@ -228,7 +228,6 @@ ModelResult fast_probit_regression_internal(
         // expand_free_covariance below would introduce for any fixed
         // parameters) -- no new computation (optimizer_diagnostics_report.md
         // TODO-1).
-        set_min_eigenvalue_if_suspect(XtWX, res);
         res.mu = mu;
         res.XtWX = expand_free_covariance(p, fixed_spec, XtWX, false);
         res.score = expand_free_params(score_free, Eigen::VectorXd::Zero(p), fixed_spec);
@@ -266,7 +265,6 @@ ModelResult fast_probit_regression_internal(
             // computed from the LBFGS-fitted res.b -- reused rather than
             // requiring ProbitLbfgsObjective to implement .hessian()
             // (optimizer_diagnostics_report.md TODO-1).
-            set_min_eigenvalue_if_suspect(res.XtWX, res);
         }
         if (res.score.size() == 0) {
             Eigen::VectorXd full_gen_res(n);

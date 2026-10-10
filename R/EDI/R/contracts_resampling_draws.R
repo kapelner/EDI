@@ -69,20 +69,24 @@ EDI_RESAMPLING_DRAW_CONTRACTS = list(
 #' listed here (plus whatever a class declares via its own
 #' \code{reused_worker_preserved_cache_keys()} hook).
 #'
-#' These two keys match what \code{Inference$duplicate()} carries over into a
+#' These keys match what \code{Inference$duplicate()} carries over into a
 #' fresh worker, and are the only ones that are independent of the treatment
 #' assignment and responses a draw installs:
 #' \describe{
 #'   \item{\code{m_cache}}{matched-set bookkeeping derived from the design's
 #'     \code{m} vector, which no reused-worker draw changes.}
-#'   \item{\code{t0s_rand}}{the delta-zero randomization statistics reused by
-#'     the affine-shift fast path; keyed to the original data, never written by
-#'     a per-draw refit.}
+#'   \item{\code{t0s_rand}, \code{t0s_rand_slopes}, and
+#'     \code{t0s_rand_permutation_signature}}{the delta-zero randomization
+#'     statistics, exact per-permutation affine slopes, and permutation-set
+#'     identity reused by the affine-shift fast path; keyed to the original
+#'     data, never written by a per-draw refit.}
 #' }
 #'
 #' @keywords internal
 #' @noRd
-EDI_REUSED_WORKER_CACHE_KEEP_KEYS = c("m_cache", "t0s_rand")
+EDI_REUSED_WORKER_CACHE_KEEP_KEYS = c(
+	"m_cache", "t0s_rand", "t0s_rand_slopes", "t0s_rand_permutation_signature"
+)
 
 #' Rebuilds a reused resampling worker's `cached_values` for the next draw.
 #'

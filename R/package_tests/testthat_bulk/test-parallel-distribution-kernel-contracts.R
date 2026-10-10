@@ -25,6 +25,27 @@ test_that("parallel OLS distribution agrees with separate lm fits", {
 	expect_length(EDI:::compute_ols_distr_parallel_cpp(X, y, w_mat[, FALSE], 0, 1L), 0L)
 	expect_error(EDI:::compute_ols_distr_parallel_cpp(X[-1, , drop = FALSE], y, w_mat, 0, 1L), "X rows")
 	expect_error(EDI:::compute_ols_distr_parallel_cpp(X, y, w_mat[-1, ], 0, 1L), "w_mat rows")
+	degenerate <- cbind(rep(0L, length(y)), rep(1L, length(y)))
+	expect_true(all(is.na(EDI:::compute_ols_distr_parallel_cpp(X, y, degenerate, 0, 1L))))
+	expect_true(all(is.na(EDI:::compute_ols_distr_parallel_cpp(cbind(X, duplicate = X[, 1]), y, w_mat, 0, 1L))))
+})
+
+test_that("OLS class fast randomization path agrees with the reused-worker reference", {
+	set.seed(391L)
+	n <- 24L
+	des <- DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n), x2 = runif(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	des$add_all_subject_responses(0.7 * w + rnorm(n))
+	inf <- InferenceContinOLS$new(des, verbose = FALSE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	W <- cbind(w, sample(w), sample(w), sample(w)) # dispatcher storage is double
+	fast <- p$compute_fast_randomization_distr(p$y, list(w_mat = W), 0.35, "none")
+	slow <- p$compute_fast_randomization_distr_via_reused_worker(p$y, list(w_mat = W), 0.35, "none")
+	expect_equal(fast, slow, tolerance = 1e-10)
+	expect_null(p$compute_fast_randomization_distr(p$y, list(w_mat = W), 0.35, "log"))
 })
 
 test_that("parallel Wilcoxon matrix and list kernels agree with rank definition", {

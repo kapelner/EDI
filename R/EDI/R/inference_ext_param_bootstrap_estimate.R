@@ -168,7 +168,7 @@ InferenceExtParamBootstrapEstimate = list(
 				)
 				set.seed(private$seed)
 			}
-			replicate_seeds = sample.int(.Machine$integer.max, B, replace = TRUE)
+			replicate_seeds = sample.int(.Machine$integer.max, B, replace = FALSE)
 			deterministic_mode = isTRUE(private$use_deterministic_param_bootstrap())
 
 			run_one = function(b){

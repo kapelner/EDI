@@ -61,3 +61,19 @@ test_that("each randomization-distribution value exactly matches an independentl
 	ref <- independent_permutation_refit(inf, perms$w_mat)
 	expect_equal(distr, ref, tolerance = 1e-10)
 })
+
+test_that("KK OLS one-likelihood is affine across null shifts and is the only verified tier-2 opt-in", {
+	inf <- kk_ols_onelik_rand_fixture(7L, 30L, data.frame(x1 = rnorm(30L), x2 = rnorm(30L)))
+	p <- inf$.__enclos_env__$private
+	perms <- p$generate_permutations(11L)
+	t0 <- inf$approximate_randomization_distribution_beta_hat_T(11L, 0, permutations = perms, show_progress = FALSE)
+	t1 <- inf$approximate_randomization_distribution_beta_hat_T(11L, 0.1, permutations = perms, show_progress = FALSE)
+	t5 <- inf$approximate_randomization_distribution_beta_hat_T(11L, 0.5, permutations = perms, show_progress = FALSE)
+	expect_equal((t1 - t0) / 0.1, (t5 - t0) / 0.5, tolerance = 1e-10)
+	invisible(inf$compute_rand_two_sided_pval(11L, 0, show_progress = FALSE, permutations = perms))
+	expect_true(p$supports_additive_delta_shift("none"))
+	expect_equal(p$cached_values$t0s_rand + 0.5 * p$cached_values$t0s_rand_slopes, t5, tolerance = 1e-10)
+	expect_true(EDI:::get_inference_class_metadata("InferenceContinKKOLSOneLik")$supports_additive_delta_shift)
+	expect_false(isTRUE(EDI:::get_inference_class_metadata("InferenceContinKKOLSIVWC")$supports_additive_delta_shift))
+	expect_false(isTRUE(EDI:::get_inference_class_metadata("InferenceAllKKMeanDiffIVWC")$supports_additive_delta_shift))
+})

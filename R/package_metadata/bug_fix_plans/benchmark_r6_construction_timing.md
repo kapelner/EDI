@@ -43,14 +43,13 @@ fixes part of the cost itself; this plan fixes the measurement.
   that constructs the object (and for designs, ingests covariates) and
   time it in its own loop with the same adaptive batching. Report three
   EDI columns: `EDI Total (ms)`, `EDI Construction (ms)`, `EDI Procedure
-  (ms)` = total − construction (procedure measured directly where the
-  object can be reused, which requires a public cache reset; see TODO-2).
+  (ms)`. Measure a procedure directly on a fresh preconstructed object so
+  cache hits cannot enter the timed batch; see TODO-2 for the API decision.
   Compute `Speedup` and `Timing Pval` on the procedure column and show the
   total alongside, so neither number is hidden.
 
 - [ ] TODO-2: **Decide whether a public cache reset is worth adding.**
-  Measuring the procedure directly (fresh caches, same object) needs a
-  way to clear an inference object's result caches; today only
+  Reusing one object would need a way to clear its result caches; today only
   `clear_likelihood_null_warm_cache()` and
   `clear_likelihood_test_eval_cache()` exist. If a general
   `reset_result_caches()` is not wanted as public API, keep the
@@ -63,10 +62,32 @@ fixes part of the cost itself; this plan fixes the measurement.
   `row_bg_color()` leaves them white, which read as "no slow rows" on
   2026-10-07).
 
+  **Source progress 2026-10-10:** `row_bg_color()` now emits light red for a
+  finite, significantly slower canonical comparison, and the shared markdown
+  methodology and HTML legend define that color.  The harness now gives every
+  R6 procedure/design row separate total, construction, and cache-safe
+  procedure measurements.  It prepares a fresh configured object outside
+  each timed procedure batch, so the procedure cannot become a cached repeat;
+  `Speedup` and `Timing Pval` use that procedure column.  The TODO-2 decision
+  is no benchmark-only public cache-reset API, because this harness-local
+  preparation supplies fresh objects.  The shared procedure/design
+  methodology describes the columns.  These TODO-1..3 source changes still
+  need a focused installed run and generated-artifact sync, so their
+  checkboxes remain open.
+
 - [ ] TODO-4: **Section filter for reruns.** If the harness cannot yet run
   only the procedure and design tables, add a `sections=` argument (the
   full run is about 90 minutes; these two tables are a few minutes) and
   use it to regenerate the md/html and sync the `R/benchmark/` copies.
+
+  **Source progress 2026-10-10:** `benchmark_model_fits.R` now accepts
+  `--sections=procedures,designs` (or the space-separated form), defaults to
+  the exhaustive five-section run, and validates section names.  Disabled
+  sections skip their timing loops; excluding `utility` also skips its
+  standalone `sourceCpp()` wrapper compile.  The focused generated report
+  names the selected sections.  Regeneration and artifact synchronization
+  remain open pending an authorized benchmark run, so this checkbox stays
+  unchecked.
 
 ## Acceptance
 

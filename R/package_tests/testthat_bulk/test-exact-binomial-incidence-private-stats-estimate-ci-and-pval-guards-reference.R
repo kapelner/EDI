@@ -4,7 +4,8 @@ library(data.table)
 
 # InferenceIncidExactBinomial private helpers: get_exact_binomial_stats() (m, d_plus, d_minus from the matching structure),
 # get_exact_binomial_log_or_estimate() (Haldane-Anscombe log((d+ + .5)/(d- + .5))), ci_exact_binomial(alpha) (Clopper-Pearson via
-# binom.test on the logit scale, named bounds, NA when no discordant pairs), pval_exact_binomial(delta) and
+# binom.test on the logit scale, named bounds, NA when no discordant pairs), pval_exact_binomial(delta)
+# (the matching central/equal-tail rule) and
 # design_supports_exact_binomial(). References: discordant pairs counted by hand from (m, w, y); stats::binom.test.
 
 mk <- function(n_treat_wins, n_control_wins, n_concordant = 0L) {
@@ -61,8 +62,9 @@ test_that("no discordant pairs: CI is NA-named and the estimate path is marked n
 	expect_true(isTRUE(z$inf$is_nonestimable("estimate")))
 })
 
-test_that("p-value: exact binomial of d+ vs d- under the null log-OR; 1 when no discordant pairs", {
-	for (d0 in c(0, 0.5, -1)) expect_equal(f$p$pval_exact_binomial(d0), binom.test(7, 9, plogis(d0))$p.value, tolerance = 1e-9)
+test_that("p-value: central exact binomial of d+ vs d- under the null log-OR; 1 when no discordant pairs", {
+	central_p <- function(x, n, p) min(1, 2 * min(pbinom(x, n, p), pbinom(x - 1L, n, p, lower.tail = FALSE)))
+	for (d0 in c(0, 0.5, -1)) expect_equal(f$p$pval_exact_binomial(d0), central_p(7, 9, plogis(d0)), tolerance = 1e-9)
 	expect_equal(mk(0L, 0L, 4L)$p$pval_exact_binomial(0), 1)
 })
 

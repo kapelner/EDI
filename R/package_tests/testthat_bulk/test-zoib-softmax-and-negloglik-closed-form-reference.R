@@ -44,7 +44,8 @@ test_that(".neg_loglik_zoib equals the hand-written mixture log-likelihood", {
 	is_zero <- y == 0; is_one <- y == 1; inner <- !(is_zero | is_one)
 	Xb <- cbind(1, x[inner]); yb <- y[inner]
 	par <- c(0.3, -0.4, log(4), -1.0, -1.5)
-	got <- nll(par, p = 2L, is_zero = is_zero, is_one = is_one, y_beta = yb, X_beta = Xb)
+	got <- nll(par, p = 2L, p_zero_one = 1L, is_zero = is_zero, is_one = is_one,
+		y_beta = yb, X_beta = Xb, X_zero_one = matrix(1, n, 1L))
 	pr <- Z(".softmax_three_from_logits")(par[4], par[5])
 	mu <- plogis(drop(Xb %*% par[1:2])); phi <- exp(par[3])
 	ref <- -(sum(is_zero) * log(pr[["pi0"]]) + sum(is_one) * log(pr[["pi1"]]) +
@@ -56,12 +57,14 @@ test_that("with no interior observations only the point-mass terms remain; empty
 	nll <- Z(".neg_loglik_zoib")
 	is_zero <- c(TRUE, TRUE, FALSE, FALSE, FALSE); is_one <- !is_zero
 	par <- c(0, log(2), 0.2, -0.3)
-	got <- nll(par, p = 1L, is_zero = is_zero, is_one = is_one, y_beta = numeric(0), X_beta = matrix(1, 0, 1))
+	got <- nll(par, p = 1L, p_zero_one = 1L, is_zero = is_zero, is_one = is_one,
+		y_beta = numeric(0), X_beta = matrix(1, 0, 1), X_zero_one = matrix(1, 5, 1L))
 	den <- 1 + exp(0.2) + exp(-0.3)
 	expect_equal(got, -(2 * log(exp(0.2) / den) + 3 * log(exp(-0.3) / den)), tolerance = 1e-12)
 	# No zeros or ones: only the beta part and the log(pb) weight.
 	yb <- c(0.2, 0.5, 0.7)
-	got2 <- nll(par, p = 1L, is_zero = rep(FALSE, 3), is_one = rep(FALSE, 3), y_beta = yb, X_beta = matrix(1, 3, 1))
+	got2 <- nll(par, p = 1L, p_zero_one = 1L, is_zero = rep(FALSE, 3), is_one = rep(FALSE, 3),
+		y_beta = yb, X_beta = matrix(1, 3, 1), X_zero_one = matrix(1, 3, 1L))
 	mu <- 0.5; phi <- 2
 	expect_equal(got2, -(3 * log(1 / den) + sum(dbeta(yb, mu * phi, (1 - mu) * phi, log = TRUE))), tolerance = 1e-12)
 })
@@ -73,11 +76,12 @@ test_that("the likelihood is maximised at the empirical inflation proportions an
 	y <- ifelse(runif(n) < 0.2, 0, ifelse(runif(n) < 0.25, 1, rbeta(n, 3, 3)))
 	is_zero <- y == 0; is_one <- y == 1; inner <- !(is_zero | is_one)
 	Xb <- matrix(1, sum(inner), 1); yb <- y[inner]
-	f <- function(a) nll(c(0, log(6), a[1], a[2]), 1L, is_zero, is_one, yb, Xb)
+	X_zero_one <- matrix(1, n, 1L)
+	f <- function(a) nll(c(0, log(6), a[1], a[2]), 1L, 1L, is_zero, is_one, yb, Xb, X_zero_one)
 	opt <- optim(c(0, 0), f, method = "BFGS")
 	p0 <- mean(is_zero); p1 <- mean(is_one); pb <- mean(inner)
 	expect_equal(opt$par, c(log(p0 / pb), log(p1 / pb)), tolerance = 1e-3)
 	# Scale-free check: the shape parameters enter only through mu * phi and (1 - mu) * phi.
-	g <- function(par) nll(par, 1L, is_zero, is_one, yb, Xb)
+	g <- function(par) nll(par, 1L, 1L, is_zero, is_one, yb, Xb, X_zero_one)
 	expect_lt(g(c(0, log(6), opt$par)), g(c(1.5, log(6), opt$par)))
 })

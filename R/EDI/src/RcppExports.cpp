@@ -757,8 +757,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // fast_clogit_plus_glmm_cpp
-List fast_clogit_plus_glmm_cpp(const NumericMatrix& X_disc_r, const NumericVector& y_disc_r, const NumericMatrix& X_conc_r, const NumericVector& y_conc_r, const IntegerVector& group_conc_r, bool has_discordant, bool has_concordant, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta, bool estimate_only, double max_abs_log_sigma, int maxit, double eps_g, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx, Rcpp::Nullable<Rcpp::NumericVector> fixed_values, std::string optimization_alg, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info);
-RcppExport SEXP _EDI_fast_clogit_plus_glmm_cpp(SEXP X_disc_rSEXP, SEXP y_disc_rSEXP, SEXP X_conc_rSEXP, SEXP y_conc_rSEXP, SEXP group_conc_rSEXP, SEXP has_discordantSEXP, SEXP has_concordantSEXP, SEXP warm_start_paramsSEXP, SEXP warm_start_betaSEXP, SEXP estimate_onlySEXP, SEXP max_abs_log_sigmaSEXP, SEXP maxitSEXP, SEXP eps_gSEXP, SEXP fixed_idxSEXP, SEXP fixed_valuesSEXP, SEXP optimization_algSEXP, SEXP warm_start_fisher_infoSEXP) {
+List fast_clogit_plus_glmm_cpp(const NumericMatrix& X_disc_r, const NumericVector& y_disc_r, const NumericMatrix& X_conc_r, const NumericVector& y_conc_r, const IntegerVector& group_conc_r, bool has_discordant, bool has_concordant, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta, bool estimate_only, double max_abs_log_sigma, int maxit, double eps_g, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx, Rcpp::Nullable<Rcpp::NumericVector> fixed_values, std::string optimization_alg, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info, Rcpp::Nullable<Rcpp::NumericVector> weights_disc, Rcpp::Nullable<Rcpp::NumericVector> weights_conc);
+RcppExport SEXP _EDI_fast_clogit_plus_glmm_cpp(SEXP X_disc_rSEXP, SEXP y_disc_rSEXP, SEXP X_conc_rSEXP, SEXP y_conc_rSEXP, SEXP group_conc_rSEXP, SEXP has_discordantSEXP, SEXP has_concordantSEXP, SEXP warm_start_paramsSEXP, SEXP warm_start_betaSEXP, SEXP estimate_onlySEXP, SEXP max_abs_log_sigmaSEXP, SEXP maxitSEXP, SEXP eps_gSEXP, SEXP fixed_idxSEXP, SEXP fixed_valuesSEXP, SEXP optimization_algSEXP, SEXP warm_start_fisher_infoSEXP, SEXP weights_discSEXP, SEXP weights_concSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -779,7 +779,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type fixed_values(fixed_valuesSEXP);
     Rcpp::traits::input_parameter< std::string >::type optimization_alg(optimization_algSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type warm_start_fisher_info(warm_start_fisher_infoSEXP);
-    rcpp_result_gen = Rcpp::wrap(fast_clogit_plus_glmm_cpp(X_disc_r, y_disc_r, X_conc_r, y_conc_r, group_conc_r, has_discordant, has_concordant, warm_start_params, warm_start_beta, estimate_only, max_abs_log_sigma, maxit, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info));
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type weights_disc(weights_discSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericVector> >::type weights_conc(weights_concSEXP);
+    rcpp_result_gen = Rcpp::wrap(fast_clogit_plus_glmm_cpp(X_disc_r, y_disc_r, X_conc_r, y_conc_r, group_conc_r, has_discordant, has_concordant, warm_start_params, warm_start_beta, estimate_only, max_abs_log_sigma, maxit, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, weights_disc, weights_conc));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -5351,7 +5353,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_fast_beta_regression_with_var_cpp", (DL_FUNC) &_EDI_fast_beta_regression_with_var_cpp, 10},
     {"_EDI_get_clogit_plus_glmm_score_cpp", (DL_FUNC) &_EDI_get_clogit_plus_glmm_score_cpp, 9},
     {"_EDI_get_clogit_plus_glmm_hessian_cpp", (DL_FUNC) &_EDI_get_clogit_plus_glmm_hessian_cpp, 9},
-    {"_EDI_fast_clogit_plus_glmm_cpp", (DL_FUNC) &_EDI_fast_clogit_plus_glmm_cpp, 17},
+    {"_EDI_fast_clogit_plus_glmm_cpp", (DL_FUNC) &_EDI_fast_clogit_plus_glmm_cpp, 19},
     {"_EDI_get_continuation_ratio_regression_score_cpp", (DL_FUNC) &_EDI_get_continuation_ratio_regression_score_cpp, 3},
     {"_EDI_get_continuation_ratio_regression_hessian_cpp", (DL_FUNC) &_EDI_get_continuation_ratio_regression_hessian_cpp, 3},
     {"_EDI_fast_continuation_ratio_regression_cpp", (DL_FUNC) &_EDI_fast_continuation_ratio_regression_cpp, 10},

@@ -116,10 +116,13 @@
   is unavailable. Sparse and ordinary weighted regressions pass focused
   source-loaded tests without rebuilding the package. Test:
   `test-incidence-risk-diff-fast-shortcut-and-sparse-weights-reference.R`.
-- [ ] **TODO-7: `randomization_loop` callback result is unchecked.**
-  `result[0]` on a length-0 vector is read without a length check; Rcpp only
-  warns and the loop continues, leaving the entry undefined instead of failing.
-  Test: `test-randomization-loop-kernel-callback-contract-...-reference.R`.
+- [x] **TODO-7: `randomization_loop` callback result is unchecked.**
+  `result[0]` on a length-0 vector previously warned and continued with an
+  undefined entry. `randomization_loop_cpp()` now rejects an empty callback
+  result with a clear error before indexing. The focused callback-contract
+  regression expects that error. Source and test are complete; execution
+  against the rebuilt native package remains required. Test:
+  `test-randomization-loop-kernel-callback-contract-...-reference.R`.
 - [x] **TODO-8: The stale Bayesian-bootstrap worker is no longer present.**
   `test-cox-component-composition.R` works around a "pre-existing bug in the
   shared reusable-worker infrastructure" that leaves a stale

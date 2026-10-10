@@ -68,15 +68,37 @@ not exist either.
   design each can be constructed on, plus the static `*_cpp(`-exists check,
   and record the table here. Installed package only.
 
-- [ ] TODO-2: **Integer `w_mat` for the `Map<MatrixXi>` kernels (F2).**
+  **Static source audit, 2026-10-10:** after the Poisson method was removed,
+  there are 17 overrides (not 18). Six are direct native calls and every
+  symbol is exported in `RcppExports.R`: `InferenceAllSimpleAverageDiff`,
+  `InferenceAllKKMeanDiffIVWC`, `InferenceAllSimpleWilcox`,
+  `InferenceAllKKWilcoxIVWC`, the Bai base, and `InferenceOrdinalRidit`.
+  The first, Ridit, and the two matching mean-difference/Bai paths supply
+  integer matrices already; both Wilcoxon paths now coerce their double
+  dispatcher matrices at the R/native boundary. Ten overrides delegate to
+  the reusable-worker implementation (KK quantile, OLS IVWC/one-likelihood,
+  robust IVWC/one-likelihood, Lin, continuous/proportion quantile, continuous
+  robust, and KK conditional Poisson), and `InferenceRandCustom` is an R
+  `vapply`/optional user C++ callback rather than a package batch-kernel
+  call. Thus the static wrapper-existence check has no remaining dangling
+  `*_cpp` reference. The requested direct-call table and worker-parity run
+  remain open: `Rscript` cannot start on this host because
+  `libmkl_gf_lp64.so.2` is unavailable, and a rebuilt native package is also
+  required to exercise the new coercions.
+
+- [x] TODO-2: **Integer `w_mat` for the `Map<MatrixXi>` kernels (F2).**
   Minimal v1.0.5 form: coerce at the two Wilcoxon call sites
   (`storage.mode(w_mat) = "integer"`; one copy per call, which the
   fallback was paying many times over). Permanent form: integer storage at
   generation, `permutation_signature_once.md → TODO-4`. Implement once.
   Bit-preserving: the kernel and the worker loop compute the same
-  statistic; assert equality to 1e-10 on a fixed permutation set.
+  statistic; assert equality to 1e-10 on a fixed permutation set. **Source
+  implementation 2026-10-09:** both Wilcoxon call sites now make their
+  `w_mat` integer before invoking the mapped kernels; the KK path also
+  normalizes a supplied `m_mat`. Runtime equivalence awaits a usable rebuilt
+  native package.
 
-- [ ] TODO-3 *(choose one; the kernel option is the result-changing
+- [x] TODO-3 *(choose one; the kernel option is the result-changing
   exception in the standing constraint)*: **Poisson (F1).**
   - (a) Delete the dead method so `InferenceCountPoisson` honestly takes
     the worker path (bit-preserving: that is what it does today), and
@@ -89,12 +111,19 @@ not exist either.
     floating point, tolerance 1e-10 against the worker path; move the
     item to the OLS wiring plan's triage list if deferred.
 
-- [ ] TODO-4: **Stop hiding fast-path failures (F3).** Under
+  **Decision/implementation 2026-10-09:** chose (a). The dangling private
+  method was deleted, preserving the existing worker fallback rather than
+  silently claiming a native fast path that has never existed. The OLS
+  wiring-plan reference still needs its linked documentation correction.
+
+- [x] TODO-4: **Stop hiding fast-path failures (F3).** Under
   `should_run_asserts()`, rethrow the fast-path error instead of falling
   back (tests and `comprehensive_tests` then catch the next dead path).
   Outside asserts keep the fallback, but `warning()` once per class per
   session and record the reason in `cached_values` for
-  `InferenceSuite` diagnostics.
+  `InferenceSuite` diagnostics. **Source implementation 2026-10-09:**
+  assertion mode now rethrows; ordinary mode emits one per-instance warning
+  and records the most recent error in `cached_values` before falling back.
 
 - [ ] TODO-5: **Wiring test.** `test-randomization-fast-path-wiring.R` (or
   a block in `test-inference-class-wiring-completeness.R`): for every
@@ -103,6 +132,13 @@ not exist either.
   error and equals the worker-loop distribution to 1e-10 on the same
   permutations. Also the static `*_cpp(`-exists check over
   `R/EDI/R/*.R`.
+
+  **Source regression progress, 2026-10-10:** the existing Simple-Wilcoxon
+  reference test already supplies a double `w_mat` and checks the per-column
+  HL reference. The KK-Wilcoxon reference suite now does the same explicitly,
+  comparing double-dispatcher and integer-kernel matrices to `1e-10`. The
+  broader all-class generated-permutation/worker-parity test remains open
+  with TODO-1's executable audit.
 
 ## Acceptance
 

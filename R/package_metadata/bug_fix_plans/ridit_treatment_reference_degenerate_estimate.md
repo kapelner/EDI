@@ -51,3 +51,8 @@ needs deciding before that plan invests in the `"treatment"` path.
 - [x] **TODO-5: Docs** (roxygen for the `reference` argument) and a NEWS
   entry; if the behavior of `"treatment"` changes it is a documented
   default change.
+- [ ] **TODO-6: Native and binding validation.** Rebuild the R native library
+  and run the focused raw C++ analysis/resampling-kernel assertions against
+  that rebuilt binary; build/install the Python extension and run its Ridit
+  binding coverage. The source-level R checks and Python parse check above do
+  not validate the changed native code in the shipped binaries.

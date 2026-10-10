@@ -241,6 +241,24 @@ must not be skipped just because the reasoning above is sound.
 
 ## Implementation TODOs
 
+**Source-status reconciliation, 2026-10-10:** the class now opts into the
+reusable-worker contract and implements the three worker methods below. The
+implementation preserves a hardened fallback whenever a row subset is rank
+deficient or the direct fit is unusable.  It deliberately differs from this
+historical sketch in one important respect: the primary worker matrix retains
+all candidate columns, because the ordinary per-fold fit may accept a column
+the full-sample fit dropped; the zero/one matrix retains its full-sample
+selected columns.  The loader row-subsets both matrices, rank-gates the
+direct path, and falls back to the worker's ordinary hardened fit when that
+gate, the direct kernel fit, or the marginal functional is unusable.  The
+optional exhaustive reused-worker test has previously compared the two paths
+on an `n = 40` ZOIB fixture, but it is not the diagnosed `n = 50` tuning
+fixture and establishes neither its exact parity nor its speedup.  On that
+fixture a failed direct fit can still be followed by the same ordinary
+fallback fit. Consequently none of the completion checkboxes below is
+claimed: the required exact-fixture parity/performance study, exclusion
+removal, and tuning run all await a usable R runtime.
+
 - [ ] TODO-1: Add `supports_reusable_bootstrap_worker()` (`TRUE`) and the
       three worker-contract methods above to
       `InferencePropZeroOneInflatedBetaRegr`'s private list

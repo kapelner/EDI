@@ -42,6 +42,9 @@ NumericVector randomization_loop_cpp(
 		// Call R function to run one randomization iteration
 		// Each thread uses its own design and inference objects
 		NumericVector result = run_randomization_iteration_fn(thread_objects);
+		if (result.size() == 0) {
+			stop("run_randomization_iteration_fn must return a non-empty numeric vector.");
+		}
 		estimates[i] = result[0];
 	}
 	}

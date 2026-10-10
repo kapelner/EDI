@@ -613,7 +613,7 @@ InferenceContinKKOLSOneLik = define_inference_class(
 	# rationale as every class composing ParametricLikelihoodBootstrap
 	# directly (bypassing StandardModelCache): no component spec in this
 	# codebase declares provides_capabilities = "likelihood_ratio" anywhere.
-	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
+	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",

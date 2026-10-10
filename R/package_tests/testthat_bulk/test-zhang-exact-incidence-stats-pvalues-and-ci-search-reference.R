@@ -95,6 +95,16 @@ test_that("bisection finds the crossing of a monotone p-value curve from either 
 	expect_equal(b(function(d) 0.5, inside = 0, outside = 1, pval_th = 0.5, tol = 1e-3), 0.5)   # already at the threshold
 })
 
+test_that("bisection expands a too-narrow exact-CI bracket and reports an unbounded tail", {
+	b <- Z("zhang_bisect_ci_boundary")
+	p_fn <- function(d) 2 * pnorm(-abs(d))
+	# The supplied endpoint is still inside; the helper must expand before it
+	# bisects rather than returning a silently truncated confidence interval.
+	expect_equal(b(p_fn, inside = 0, outside = 0.25, pval_th = 0.05, tol = 0.005),
+		qnorm(0.975), tolerance = 1e-5)
+	expect_identical(b(function(d) 0.5, inside = 0, outside = -1, pval_th = 0.05, tol = 1e-6), -Inf)
+})
+
 test_that("the exact CI puts the combined p-value at alpha (within the tolerance) at each end and brackets the estimate", {
 	f <- kk_fx()
 	ci <- f$inf$compute_exact_confidence_interval(0.1)

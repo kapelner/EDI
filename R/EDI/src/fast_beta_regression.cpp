@@ -226,6 +226,8 @@ ModelResult fast_beta_regression_internal(const Eigen::Ref<const Eigen::MatrixXd
                                         std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
                                         bool estimate_only = false) {
     int p = X.cols();
+    require_length(warm_start_beta, p, "warm_start_beta");
+    require_square_matrix(warm_start_fisher_info, p + 1, "warm_start_fisher_info");
     ModelResult res;
     Eigen::VectorXd params = Eigen::VectorXd::Zero(p + 1);
     if (warm_start_beta) {

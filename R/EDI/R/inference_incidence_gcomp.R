@@ -198,9 +198,15 @@ incidence_gcomp_overrides = list(
 #' covariates fixed, averaging the model-implied risk over the empirical
 #' covariate distribution under each counterfactual, and differencing — see
 #' \code{\link{gcomp_logistic_point_estimate_cpp}} for the exact standardization
-#' formula. Inference is nonparametric-bootstrap/randomization/jackknife-based
-#' (\code{likelihood_tier = "none"}): no closed-form asymptotic standard error
-#' is used.
+#' formula. Wald inference uses the fitted logistic model's sandwich covariance
+#' and the delta method.  This standard error conditions on the observed
+#' covariates used for standardization: it quantifies uncertainty in the
+#' fitted coefficients for the sample-conditional standardized risk
+#' difference, and does not add sampling variability from a target population's
+#' covariate distribution.  Bootstrap, randomization, and jackknife methods
+#' remain available.  \code{likelihood_tier = "none"} means that this class
+#' does not provide likelihood-ratio or score tests; it does not preclude its
+#' Wald inference.
 #'
 #' @seealso \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}
 #'   for the risk-ratio version of this same standardized logistic working model.
@@ -294,9 +300,15 @@ NULL
 #' jackknife-Wald methods, whose \code{"basic"}/\code{"wald"} interval types
 #' route through log-scale-specific helpers for this estimand), then
 #' back-transformed, since ratio estimators are typically closer to normally
-#' distributed on the log scale. Inference is nonparametric-bootstrap/
-#' randomization/jackknife-based (\code{likelihood_tier = "none"}): no
-#' closed-form asymptotic standard error is used.
+#' distributed on the log scale. Wald inference uses the fitted logistic
+#' model's sandwich covariance and the delta method on the log risk-ratio
+#' scale.  This standard error conditions on the observed covariates used for
+#' standardization: it quantifies uncertainty in the fitted coefficients for
+#' the sample-conditional standardized risk ratio, and does not add sampling
+#' variability from a target population's covariate distribution.  Bootstrap,
+#' randomization, and jackknife methods remain available.
+#' \code{likelihood_tier = "none"} means that this class does not provide
+#' likelihood-ratio or score tests; it does not preclude its Wald inference.
 #'
 #' @seealso \code{\link[EDI:InferenceIncidGCompRiskDiff]{InferenceIncidGCompRiskDiff}}
 #'   for the risk-difference version of this same standardized logistic working model.

@@ -505,12 +505,11 @@ DesignFixedOptimal = define_design_class(
 			sa = private$solver_args
 			arg_or = function(name, default) if (is.null(sa[[name]])) default else sa[[name]]
 			t0 = proc.time()[["elapsed"]]
-			# BRT replicate profile (TODO-8b): each replicate re-optimizes the
-			# resampled covariates, so the per-solve budget is reduced by default
-			# (brt_solver = "annealing", brt_n_chains = 1, brt_max_iter modest);
-			# brt_solver = "ompr" opts into exact per-replicate solves.
+			# Resampling must target the allocation rule that produced the observed
+			# assignment.  Thus a BRT replay inherits the ordinary solver/profile by
+			# default; the legacy brt_* knobs are an explicit opt-in override only.
 			brt_mode = isTRUE(private$brt_replicate_mode)
-			res = if (brt_mode && !identical(arg_or("brt_solver", "annealing"), "ompr")) {
+			res = if (brt_mode && !is.null(sa$brt_solver) && !identical(arg_or("brt_solver", "annealing"), "ompr")) {
 				out = switch(inputs$kind,
 					quadratic = annealing_solve_quadratic(inputs$Q, n_T,
 						n_chains = arg_or("brt_n_chains", 1L), max_iter = arg_or("brt_max_iter", 2000L),

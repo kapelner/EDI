@@ -21,7 +21,7 @@ InferenceExtQuantileRandCI = list(
 		#' @param show_progress  		Ignored.
 		#' @param ci_search_control Ignored for this Zhang-based CI implementation.
 		#' @return 	A length-2 numeric vector giving the lower and upper CI boundary.
-		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, ci_search_control = NULL){
+		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 1e-6, show_progress = TRUE, ci_search_control = NULL){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)

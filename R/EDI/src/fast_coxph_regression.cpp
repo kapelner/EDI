@@ -265,6 +265,8 @@ CoxFitResult cox_newton_raphson(
 {
     if (strata_data.empty()) return CoxFitResult();
     const int p = (int)strata_data[0].p;
+    require_length(warm_start_beta, p, "warm_start_beta");
+    require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
     Eigen::VectorXd beta = Eigen::VectorXd::Zero(p);
     if (warm_start_beta.has_value()) {
         const Eigen::VectorXd& sb = *warm_start_beta;
@@ -385,7 +387,6 @@ CoxFitResult cox_newton_raphson(
     res.hess_mat = total_hess;
     // Reuses total_hess, already built above -- no new computation
     // (optimizer_diagnostics_report.md TODO-1).
-    set_min_eigenvalue_if_suspect(total_hess, res);
     res.gradient_norm = total_grad.norm();
 
     if (!estimate_only) {
@@ -449,6 +450,8 @@ CoxFitResult cox_lbfgs(
 {
     if (strata_data.empty()) return CoxFitResult();
     const int p = (int)strata_data[0].p;
+    require_length(warm_start_beta, p, "warm_start_beta");
+    require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
     Eigen::VectorXd par = Eigen::VectorXd::Zero(p);
     if (warm_start_beta.has_value()) {
         const Eigen::VectorXd& sb = *warm_start_beta;

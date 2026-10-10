@@ -13,16 +13,19 @@
 
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-19`. Added 2026-09-23, same audit-triage wave as
-> TODO-17/TODO-18. **This is an open investigation, not a confirmed bug with
-> a fix plan.** Status as of Round 3 (2026-09-24): the original ~4×
-> SE-overestimation NUMBER was refuted, but a faithful reproduction confirms
-> the underlying SYMPTOM (0% power, 100% coverage) is real, and an
-> independent coverage-audit check corroborates it from a second angle. What
-> remains open is the MAGNITUDE of SE overestimation (modest ~1.3×, possibly
-> just sampling noise at the rep counts tried so far) and whether that
-> magnitude is a genuine code defect or an inherent small-effect-size
-> property of this benchmark scenario. Do not treat anything below as a
-> diagnosed root cause until the "Next steps" section is completed.
+> TODO-17/TODO-18. **Resolution 2026-10-09 (supersedes the historical
+> investigation narrative below):** a faithful 200-replicate Pima/KK21stepwise
+> replay found calibrated robust sandwich uncertainty (empirical SD 0.1932,
+> mean SE 0.1987, ratio 1.029; MC-truth coverage 0.955), refuting the proposed
+> SE defect. The concrete source defect was instead API capability: this
+> modified-Poisson estimator exposed score, gradient, likelihood-ratio,
+> Bartlett, and parametric-bootstrap inference from its Poisson working
+> likelihood despite valid uncertainty being robust Wald only. The class and
+> registry now expose Wald inference only with `likelihood_tier = "none"`;
+> focused source-loaded validation is complete. Only installed comprehensive
+> CSV regeneration/re-audit remains, so the linked release checkbox stays
+> open. Historical sections below document how that resolution was reached;
+> they no longer describe the current work state.
 
 ## The finding that started this
 

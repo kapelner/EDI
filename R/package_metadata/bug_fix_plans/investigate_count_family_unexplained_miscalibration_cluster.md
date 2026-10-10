@@ -99,30 +99,45 @@ the same collision noted above; a one-line cleanup item, not
 part of this investigation) — mentioned here only so a reader of this file
 doesn't also lose track of it.
 
-## Next steps (none done yet)
+## Reconciliation against later fixes (2026-10-09)
 
-- [ ] Check whether `InferenceCountKKGLMM` (and the other 5 KKGLMM-cluster
-  classes) actually show real audit-flagged miscalibration at all, or
-  whether the "broadly flagged" framing in TODO-4's original note was
-  loosely worded — if none of the 6 show a real, confirmed pattern, that
-  narrows this file's scope by one class immediately.
-- [ ] Check `InferenceCountKKHurdlePoissonOneLik` against TODO-28's
-  stale-`cached_design_matrix` mechanism (the one check the other three
-  classes already got but this one didn't) — cheap, do first.
-- [ ] For each of `InferenceCountPoisson`/`InferenceCountQuasiPoisson`/
-  `InferenceCountKKHurdlePoissonOneLik` (whichever remain unexplained after
-  the above): pull the exact historical `comprehensive_tests` CSV rows,
-  identify which specific method families are flagged and at what
-  severity, and look for a shared shape (direction, magnitude,
-  formula-dependence) the way `InferenceContinOLS`/`InferenceContinLin`/
-  `InferenceIncidLogBinomial`/`InferenceSurvivalWeibullRegr`'s shared
-  `~.`-specific pattern led to TODO-28's single-root-cause discovery — a
-  cross-class comparison may again be higher-leverage than three separate
-  per-class investigations, but don't assume that; these three classes have
-  no confirmed shared code path the way those four did.
-- [ ] Only once a concrete mechanism is confirmed for at least one class
-  should this file be split into (or upgraded to) proper `# Fix:` plan
-  file(s) with their own fix checklists.
+The four names in this early umbrella investigation no longer represent four
+unexplained defects:
+
+- `InferenceCountPoisson` was investigated and fixed under release TODO-48.
+  Its missing Bartlett-family conservative combination is implemented and its
+  direct estimate-resampling intervals are documented as retaining their
+  generic semantics.
+- `InferenceCountKKGLMM` did have a native optimization defect. The Poisson
+  GLMM variance component could remain in the near-zero starting basin. The
+  deterministic log-sigma multistart fix is implemented under release TODO-31
+  and pinned against `glmer`; rebuilt native validation remains open there.
+- `InferenceCountKKHurdlePoissonOneLik` now combines model and design-based
+  score/gradient/likelihood intervals and p-values conservatively. Its combined
+  likelihood, derivatives, weighted refit, and dispatch have focused
+  regressions. The historical CSV predates that implementation.
+- `InferenceCountQuasiPoisson` uses the standard Pearson dispersion estimate.
+  Its modest small-sample calibration and the isolated 1.000-coverage
+  subsampling interval are method properties (the latter is conservative),
+  not evidence of an incorrect formula or dispatch. Changing those generic
+  resampling definitions would be a new method feature.
+
+Thus this umbrella plan has no independent implementation left. Its only
+remaining release gate is the rebuilt TODO-31 native validation and subsequent
+installed comprehensive-CSV reconciliation.
+
+## Next steps
+
+- [x] Check whether `InferenceCountKKGLMM` actually has a real finding. Its
+  variance-collapse fixture confirmed one and the source fix is tracked under
+  TODO-31.
+- [x] Check `InferenceCountKKHurdlePoissonOneLik` against stale design caches.
+  It rebuilds the relevant model data, and shared sample/assignment loaders
+  invalidate all reusable design caches.
+- [x] Pull and compare the historical rows. They confirm distinct shapes, not
+  one shared implementation defect; the class-specific resolutions are above.
+- [x] Split confirmed mechanisms into fix plans. TODO-48 and TODO-31 now own
+  the actionable fixes, so no additional split is needed here.
 
 ## Standing constraints
 

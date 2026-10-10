@@ -96,14 +96,18 @@ documented default change under the standing constraint.
   every later TODO reports before/after on the same rows. Installed
   package only.
 
-- [ ] TODO-2: **Subset without `make.unique` (F1).** In `subset_field()`,
+- [x] TODO-2: **Subset without `make.unique` (F1).** In `subset_field()`,
   subset data.frames column-wise (`lapply(x, "[", indices)` →
   `as.data.frame` with compact integer row names via `.set_row_names()`),
   or convert `base_Xraw`/`base_Ximp` once to data.tables at worker
   creation and subset with `x[indices]` (data.table keeps no row names).
   Keep the data.frame class the downstream pipeline expects (see the
-  `as.data.table` comment in `design_abstract.R`). Assert bit-identical
-  bootstrap distributions for a fixed seed on all three fixtures.
+  `as.data.table` comment in `design_abstract.R`). Implemented by rebuilding
+  the existing zero-row data frame column-by-column and assigning compact
+  automatic row names, avoiding `make.unique()` for duplicated bootstrap
+  rows. The worker-state regression verifies repeated-row column values and
+  row names. Full fixed-seed distribution confirmation on the three
+  performance fixtures remains part of TODO-6's installed-runtime gate.
 
 - [ ] TODO-3: **Subset the model matrix instead of rebuilding it (F2).**
   Store `base_X` (the full-data model matrix) in the worker state and set
@@ -116,6 +120,14 @@ documented default change under the standing constraint.
   fixtures plus a fixture with a rare factor level; (b) fall back to the
   rebuild when the subset matrix is rank-deficient (so results on those
   draws stay bit-identical); (c) record this as the plan's default change.
+  **Source implementation 2026-10-10; execution pending.** The reusable
+  worker now takes the direct row subset of its saved full model matrix. It
+  checks the intercept/treatment/covariate matrix for full rank first; a
+  deficient sample clears both worker matrix overrides and marks the design
+  matrix stale, restoring the historical rebuild-and-harden path. A focused
+  rare-covariate sample regression asserts that fallback and its OLS estimate.
+  The three-fixture equality runs remain part of TODO-6's installed-runtime
+  gate, so this checkbox stays open.
 
 - [ ] TODO-4: **Skip the per-draw R `qr()` when the full-data design is
   full rank (F3).** Same change as `bayesian_bootstrap_performance.md →

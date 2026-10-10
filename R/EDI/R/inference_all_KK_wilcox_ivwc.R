@@ -8,14 +8,6 @@
 #' @keywords internal
 KKWilcoxIVWCSource = list(
 	public = list(
-		# @description Override to avoid O(n^2) per-resample HL computation during the bootstrap warm-start
-		# inside compute_rand_confidence_interval. The asymptotic MLE CI is a perfectly
-		# adequate starting bound for the bisection and is computed in O(1).
-		# @param alpha  				The confidence level. Default is 0.05.
-		# @param ... 					Additional arguments passed to super.
-		compute_bootstrap_confidence_interval = function(alpha = 0.05, ...){
-			self$compute_asymp_confidence_interval(alpha)
-		},
 		# @description Initialize KK inverse-variance combined Wilcoxon inference
 		#   and prepare matched/reservoir rank-based components used by
 		#   \code{\link[EDI:InferenceAllKKWilcoxIVWC]{InferenceAllKKWilcoxIVWC}}.
@@ -230,7 +222,8 @@ KKWilcoxIVWCSource = list(
 		compute_basic_match_data = function() private$compute_basic_kk_match_data_impl(),
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps) {
 			# Optimization: w_mat and m_mat are already pre-computed matrices
-			w_mat = permutations$w_mat
+			w_mat = as.matrix(permutations$w_mat)
+			storage.mode(w_mat) = "integer"
 			m_mat = permutations$m_mat
 			nsim = ncol(w_mat)
 			# Reconstruct m_mat if NULL (KK permutations return fixed matching as NULL to save memory)
@@ -241,6 +234,8 @@ KKWilcoxIVWCSource = list(
 				m_mat = matrix(rep(m_vec, nsim), nrow = n_subjects, ncol = nsim)
 				is_fixed_matching = TRUE
 			} else {
+				m_mat = as.matrix(m_mat)
+				storage.mode(m_mat) = "integer"
 				# Check if all matchings are identical
 				is_fixed_matching = TRUE
 				if (nsim > 1) {
@@ -377,10 +372,15 @@ KKWilcoxIVWCSource = list(
 			}, error = function(e) NULL)
 			if (is.null(mod)) return(invisible(NULL))
 			beta = as.numeric(mod$estimate)
-			# Variance of Walsh averages / m — matches C++ fast-path estimate_hl_ssq_signed_rank
+			# A Walsh average has half the normal-model variance of one paired
+			# difference, but the signed-rank HL estimator's normal-model variance
+			# is pi / 3 times that of the mean. The former implementation used
+			# var(Walsh) / m and therefore missed the 2*pi/3 calibration factor.
+			# Keep this in lockstep with estimate_hl_ssq_signed_rank() in
+			# fast_wilcox_hl.cpp, which is used for the fast bootstrap distribution.
 			se_sq = if (m_pairs >= 2L) {
 				walsh = unlist(lapply(seq_len(m_pairs), function(i) (diffs[i] + diffs[i:m_pairs]) / 2))
-				var(walsh) / m_pairs
+				var(walsh) * (2 * pi / 3) / m_pairs
 			} else NA_real_
 			private$cached_values$beta_T_matched     = if (length(beta) == 1L && is.finite(beta)) beta else NA_real_
 			private$cached_values$ssq_beta_T_matched = if (is.finite(se_sq) && se_sq > 0) se_sq else NA_real_
@@ -395,9 +395,14 @@ KKWilcoxIVWCSource = list(
 			}, error = function(e) NULL)
 			if (is.null(mod)) return(invisible(NULL))
 			beta = as.numeric(mod$estimate)
-			# Variance of pairwise differences / (n_t + n_c) — matches C++ estimate_hl_ssq_rank_sum
+			# Normal-calibrated rank-sum HL variance. For common normal group
+			# variance sigma^2 this is pi*sigma^2/3 * (1/n_t + 1/n_c).
+			# Expressing it through pairwise differences keeps the R and native
+			# bootstrap paths identical, including unequal reservoir arm sizes.
 			se_sq = if (length(yT) >= 2L && length(yC) >= 2L) {
-				var(as.vector(outer(yT, yC, FUN = "-"))) / (length(yT) + length(yC))
+				n_t = length(yT)
+				n_c = length(yC)
+				var(as.vector(outer(yT, yC, FUN = "-"))) * pi * (n_t + n_c) / (6 * n_t * n_c)
 			} else NA_real_
 			private$cached_values$beta_T_reservoir     = if (length(beta) == 1L && is.finite(beta)) beta else NA_real_
 			private$cached_values$ssq_beta_T_reservoir = if (is.finite(se_sq) && se_sq > 0) se_sq else NA_real_
@@ -526,7 +531,6 @@ InferenceAllKKWilcoxIVWC = define_inference_class(
 			"compute_rand_two_sided_pval",
 			"initialize",
 			"approximate_bootstrap_distribution_beta_hat_T",
-			"compute_bootstrap_confidence_interval",
 			"compute_estimate",
 			"compute_asymp_confidence_interval",
 			"compute_asymp_two_sided_pval",
@@ -556,10 +560,6 @@ InferenceAllKKWilcoxIVWC = define_inference_class(
 		)
 	)
 )
-
-#' @R6method InferenceAllKKWilcoxIVWC$compute_bootstrap_confidence_interval
-#' @template kk-wilcox-ivwc-bootstrap-confidence-interval
-NULL
 
 #' @R6method InferenceAllKKWilcoxIVWC$initialize
 #' @template kk-wilcox-ivwc-initialize

@@ -39,7 +39,7 @@ test_that(".build_zoib_start's logistic-regression component matches an independ
 	# The beta-start names are stripped (unname()'d) in the source before being
 	# concatenated with the named log_phi/alpha0/alpha1 tail -- only the tail
 	# carries names.
-	expect_equal(names(start), c("", "", "log_phi", "alpha0", "alpha1"))
+	expect_equal(names(start), c("", "", "log_phi", "alpha0_1", "alpha1_1"))
 })
 
 test_that(".build_zoib_start's mixture-weight starts reflect the observed zero/one proportions", {
@@ -52,8 +52,8 @@ test_that(".build_zoib_start's mixture-weight starts reflect the observed zero/o
 	pi0 <- mean(y == 0)
 	pi1 <- mean(y == 1)
 	pib <- 1 - pi0 - pi1
-	expect_equal(unname(start["alpha0"]), log(pi0 / pib), tolerance = 1e-8)
-	expect_equal(unname(start["alpha1"]), log(pi1 / pib), tolerance = 1e-8)
+	expect_equal(unname(start["alpha0_1"]), log(pi0 / pib), tolerance = 1e-8)
+	expect_equal(unname(start["alpha1_1"]), log(pi1 / pib), tolerance = 1e-8)
 	expect_equal(unname(start["log_phi"]), log(10), tolerance = 1e-10)
 })
 
@@ -76,7 +76,15 @@ test_that(".build_zoib_start falls back to a zero beta vector when the logistic 
 	# coefficient vector -- .build_zoib_start must not propagate that failure.
 	X_collinear <- cbind(x = f$X[, "x"], x2 = f$X[, "x"])
 	start <- EDI:::.build_zoib_start(f$y, X_collinear)
-	expect_length(start, 6L)
+	expect_length(start, 8L)
+	expect_true(all(is.finite(start)))
+})
+
+test_that(".build_zoib_start sizes both inflation components to X_zero_one", {
+	f <- zoib_start_fixture(5)
+	X_zero_one <- cbind(1, z = seq_len(f$n) / f$n, z2 = f$X[, "x"]^2)
+	start <- EDI:::.build_zoib_start(f$y, f$X, X_zero_one)
+	expect_length(start, ncol(f$X) + 1L + 1L + 2L * ncol(X_zero_one))
 	expect_true(all(is.finite(start)))
 })
 

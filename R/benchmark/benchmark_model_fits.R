@@ -1,4 +1,35 @@
 options(warn = -1)
+
+# A full benchmark run takes roughly 90 minutes.  Keep the default exhaustive,
+# but permit focused regeneration of the procedure/design tables without paying
+# for the unrelated model-fit, Wald, and utility sections.  For example:
+#   Rscript benchmark/benchmark_model_fits.R --sections=procedures,designs
+# or:
+#   Rscript benchmark/benchmark_model_fits.R --sections procedures,designs
+BENCHMARK_SECTION_NAMES = c("models", "wald", "utility", "procedures", "designs")
+parse_benchmark_sections = function(args = commandArgs(trailingOnly = TRUE)) {
+    inline = sub("^--?sections=", "", args[grepl("^--?sections=", args)])
+    flag = which(args %in% c("--sections", "-sections"))
+    if (length(flag) > 0L && any(flag == length(args))) {
+        stop("`--sections` requires a comma-separated value")
+    }
+    separate = if (length(flag) > 0L) args[flag + 1L] else character(0)
+    requested = trimws(unlist(strsplit(c(inline, separate), ",", fixed = TRUE)))
+    requested = requested[nzchar(requested)]
+    if (length(requested) == 0L || "all" %in% tolower(requested)) {
+        return(BENCHMARK_SECTION_NAMES)
+    }
+    requested = unique(tolower(requested))
+    invalid = setdiff(requested, BENCHMARK_SECTION_NAMES)
+    if (length(invalid) > 0L) {
+        stop("Unknown benchmark section(s): ", paste(invalid, collapse = ", "),
+             ". Choose from: ", paste(c("all", BENCHMARK_SECTION_NAMES), collapse = ", "))
+    }
+    requested
+}
+BENCHMARK_SECTIONS = parse_benchmark_sections()
+run_benchmark_section = function(section) section %in% BENCHMARK_SECTIONS
+
 .libPaths(c(file.path(Sys.getenv("HOME"), "R", paste0(R.version$platform, "-library"), paste(R.version$major, sub("\\..*$", "", R.version$minor), sep = ".")), .libPaths()))
 compiler::enableJIT(0) # Disable JIT to prevent R6 on-the-fly compilation overhead
 suppressPackageStartupMessages(library(microbenchmark))
@@ -26,9 +57,11 @@ library(EDI)
 # as benchmark/fast_trigamma_speed_compare.cpp) so this table stays an
 # exhaustive inventory of every fast_* math kernel in the codebase, not just
 # the ones already promoted.
-suppressPackageStartupMessages(library(Rcpp))
-Sys.setenv(PKG_CPPFLAGS = "-w")
-Rcpp::sourceCpp("benchmark/fast_math_utils_bench.cpp", cacheDir = "/tmp/fast_math_utils_bench_cache")
+if (run_benchmark_section("utility")) {
+    suppressPackageStartupMessages(library(Rcpp))
+    Sys.setenv(PKG_CPPFLAGS = "-w")
+    Rcpp::sourceCpp("benchmark/fast_math_utils_bench.cpp", cacheDir = "/tmp/fast_math_utils_bench_cache")
+}
 
 set.seed(42)
 
@@ -423,6 +456,74 @@ collect_timing_ms = function(expr, times = B_TIME, env = parent.frame(), target_
     }
     list(
         median_ms = median_ms,
+        samples_ms = vals_ms,
+        method = "system.time"
+    )
+}
+
+# Time an R6 procedure without charging its construction to the procedure
+# column.  Each timed call receives a newly constructed object: reusing one
+# would turn the second and later calls into cache hits for several resampling
+# inference classes.  Construction deliberately happens immediately before
+# (and outside) each timed batch, so no public cache-reset API is needed just
+# for the benchmark harness.
+collect_prepared_timing_ms = function(setup_expr, procedure_expr, times = B_TIME,
+                                      env = parent.frame(), target_batch_ms = TARGET_BATCH_MS,
+                                      max_inner_reps = MAX_INNER_REPS,
+                                      fast_path_microbenchmark_reps = FAST_PATH_MICROBENCH_REPS) {
+    setup_one = function() eval(setup_expr, envir = env)
+    run_one = function(object) {
+        assign("inference", object, envir = env)
+        eval(procedure_expr, envir = env)
+    }
+    prepare = function(n) lapply(seq_len(n), function(i) setup_one())
+
+    gctorture(FALSE)
+    gc(verbose = FALSE)
+    inner_reps = 1L
+    batch_ms = 0
+    while (inner_reps < max_inner_reps) {
+        objects = prepare(inner_reps)
+        batch_ms = system.time(for (object in objects) run_one(object))[["elapsed"]] * 1000
+        if (is.finite(batch_ms) && batch_ms >= min(target_batch_ms, MIN_RESOLVED_BATCH_MS)) break
+        inner_reps = min(max_inner_reps, inner_reps * 2L)
+    }
+    if (!is.finite(batch_ms) || batch_ms < MIN_RESOLVED_BATCH_MS) {
+        # bench::mark must also receive a fresh object per iteration, otherwise
+        # it would time cached R6 results.  Prebuild the objects before calling
+        # bench and consume exactly one in each measured iteration.
+        prepared = prepare(fast_path_microbenchmark_reps)
+        runner = local({
+            index = 0L
+            function() {
+                index <<- index + 1L
+                run_one(prepared[[index]])
+            }
+        })
+        bm_res = tryCatch(bench::mark(
+            procedure = runner(), iterations = fast_path_microbenchmark_reps,
+            check = FALSE, filter_gc = TRUE, memory = FALSE
+        ), error = function(e) NULL)
+        if (is.null(bm_res)) {
+            return(list(median_ms = NA_real_, samples_ms = numeric(0), method = "bench::mark"))
+        }
+        return(list(
+            median_ms = as.numeric(bm_res$median[1]) * 1000,
+            samples_ms = bm_res$time[[1]] * 1000,
+            method = "bench::mark"
+        ))
+    }
+    inner_reps = min(max_inner_reps, max(1L, ceiling(inner_reps * target_batch_ms / batch_ms)))
+    vals_ms = numeric(times)
+    for (i in seq_len(times)) {
+        gctorture(FALSE)
+        gc(verbose = FALSE)
+        objects = prepare(inner_reps)
+        vals_ms[i] = system.time(for (object in objects) run_one(object))[["elapsed"]] * 1000 / inner_reps
+    }
+    vals_ms = vals_ms[is.finite(vals_ms) & vals_ms > 0]
+    list(
+        median_ms = if (length(vals_ms) == 0L) NA_real_ else median(vals_ms),
         samples_ms = vals_ms,
         method = "system.time"
     )
@@ -1072,6 +1173,7 @@ row_bg_color = function(speedup, pval, no_canonical = FALSE) {
   if (isTRUE(no_canonical)) return("#cfe2ff")
   if (!is.finite(speedup) || is.na(pval)) return("#eceff1")
   if (pval < 0.05 && speedup > 1) return("#d9fdd3")
+  if (pval < 0.05 && speedup < 1) return("#ffd6d6")
   ""
 }
 format_ms = function(x) {
@@ -1085,9 +1187,11 @@ format_ms = function(x) {
 spec_key = function(s) paste(s$cls, s$pkg, s$func, sep = " | ")
 unique_specs = bench_specs[!duplicated(vapply(bench_specs, spec_key, character(1)))]
 
-for (i in seq_along(unique_specs)) {
-    cat(sprintf("[%d/%d] ", i, length(unique_specs)))
-    run_one(unique_specs[[i]])
+if (run_benchmark_section("models")) {
+    for (i in seq_along(unique_specs)) {
+        cat(sprintf("[%d/%d] ", i, length(unique_specs)))
+        run_one(unique_specs[[i]])
+    }
 }
 
 # ── Wald / Full-Inference Section ──────────────────────────────────────────────
@@ -1693,6 +1797,7 @@ run_one_wald = function(spec) {
     )
 }
 
+if (run_benchmark_section("wald")) {
 wald_unique_specs = wald_specs[!duplicated(vapply(wald_specs, spec_key, character(1)))]
 for (i in seq_along(wald_unique_specs)) run_one_wald(wald_unique_specs[[i]])
 
@@ -1739,10 +1844,13 @@ WALD_HEADER = c(
   "**Limitation**: Some canonical comparators only expose formula-based APIs rather than comparable low-level fit kernels. Those rows remain included, but their canonical timings may still contain formula/model-frame overhead beyond the numerical solver, variance, and p-value work itself.",
   paste0("**Timing Note**: All timings are medians over ", B_TIME, " warmed runs measured with adaptive batched `system.time`; paths below ", FAST_PATH_THRESHOLD_MS, " ms use `microbenchmark(times = ", FAST_PATH_MICROBENCH_REPS, ")` instead."),
   "**Timing P-Value**: `Timing Pval` reports a Welch two-sample t-test comparing the EDI and canonical timing replicate distributions for each row. The unlabeled final column marks thresholds with `***` for p < 0.001, `**` for p < 0.01, and `*` for p < 0.05.",
-  "**Row Highlighting**: Light green rows indicate `Speedup > 1` and `Timing Pval < 0.05`; light grey rows indicate `NA` timing comparisons from a failed fit; light blue rows are estimators with no canonical R implementation at all (only EDI is timed, `Canonical Time`/`Speedup`/`Timing Pval` are `NA` by design).",
+  "**Row Highlighting**: Light green rows indicate `Speedup > 1` and `Timing Pval < 0.05`; light red rows indicate significant `Speedup < 1`; light grey rows indicate `NA` timing comparisons from a failed fit; light blue rows are estimators with no canonical R implementation at all (only EDI is timed, `Canonical Time`/`Speedup`/`Timing Pval` are `NA` by design).",
   "",
   wald_table_lines
 )
+} else {
+  WALD_HEADER = character(0)
+}
 
 # ── Utility / Math Kernel Benchmarks ────────────────────────────────────────
 # Benchmarks EDI's internal scalar fast_* math kernels (fast_digamma,
@@ -1821,6 +1929,7 @@ run_one_utility = function(spec) {
     )
 }
 
+if (run_benchmark_section("utility")) {
 for (i in seq_along(utility_specs)) run_one_utility(utility_specs[[i]])
 
 dt_util = rbindlist(utility_results)
@@ -1858,21 +1967,25 @@ UTILITY_HEADER = c(
   "**Canonical R Timing**: The base R column calls the corresponding vectorized base/stats function directly on the same input vector (e.g. `digamma()`, `lgamma()`, `stats::qnorm()`, `stats::dnbinom(..., mu = , log = TRUE)`).",
   paste0("**Timing Note**: All timings use the same adaptive batched `system.time`/`microbenchmark` harness as the tables above (medians over ", B_TIME, " cold samples; paths below ", FAST_PATH_THRESHOLD_MS, " ms fall back to `microbenchmark(times = ", FAST_PATH_MICROBENCH_REPS, ")`)."),
   "**Timing P-Value**: `Timing Pval` reports a Welch two-sample t-test comparing the EDI and base R timing replicate distributions for each row. The unlabeled final column marks thresholds with `***` for p < 0.001, `**` for p < 0.01, and `*` for p < 0.05.",
-  "**Row Highlighting**: Light green rows indicate `Speedup > 1` and `Timing Pval < 0.05`; light grey rows indicate `NA` timing comparisons from a failed evaluation.",
+  "**Row Highlighting**: Light green rows indicate `Speedup > 1` and `Timing Pval < 0.05`; light red rows indicate significant `Speedup < 1`; light grey rows indicate `NA` timing comparisons from a failed evaluation.",
   "",
   utility_table_lines
 )
+} else {
+  UTILITY_HEADER = character(0)
+}
 
 # ── Resampling-Based Inference Procedure Benchmarks ─────────────────────────
 # (2026-10-07) End-to-end inference PROCEDURES rather than single model fits:
 # randomization-test p-values and randomization CIs (vs ri2 / coin / perm),
 # nonparametric bootstrap CIs (vs boot), and exact 2x2 inference (vs
 # stats::fisher.test). Two kinds of EDI rows:
-#   [R6]     the public user-facing path: InferenceXxx$new(des) + the method call,
-#            with the inference object constructed INSIDE the timed region because EDI
-#            caches resampling distributions per object (a second identical call would
-#            be a cache hit). The completed Design object itself is built once outside.
-#            Canonical rows likewise include their own object/model-frame construction.
+#   [R6]     the public user-facing path: InferenceXxx$new(des) + the method call.
+#            Total time is reported alongside construction and procedure columns.  The
+#            procedure samples receive a freshly constructed object outside their timed
+#            batch because EDI caches resampling distributions per object; a repeated
+#            call on one object would be a cache hit. The completed Design is built once
+#            outside. Canonical rows likewise include their own object/model-frame work.
 #   [kernel] the exported C++ kernel called directly on prebuilt matrices, including the
 #            permutation / bootstrap-index generation (coin, ri2 and boot draw theirs
 #            inside the timed call too). compute_simple_mean_diff_parallel_cpp IS the
@@ -1953,10 +2066,14 @@ procedure_specs = list(
     list(name = sprintf("Randomization test p-value: mean difference (r = %d) [R6 InferenceAllSimpleAverageDiff]", R_PERMS), response = "continuous", fixture = "continuous",
          pkg = "coin", func = "oneway_test(approximate)",
          edi_expr = quote({ inf = InferenceAllSimpleAverageDiff$new(des); inf$num_cores = 1L; inf$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE) }),
+         edi_setup_expr = quote({ inference = InferenceAllSimpleAverageDiff$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE)),
          can_expr = quote(coin::pvalue(coin::oneway_test(y ~ factor(treatment), data = df, distribution = coin::approximate(nresample = R_PERMS))))),
     list(name = sprintf("Randomization test p-value: mean difference (r = %d) [R6 InferenceAllSimpleAverageDiff]", R_PERMS), response = "continuous", fixture = "continuous",
          pkg = "ri2", func = "conduct_ri(sims)",
          edi_expr = quote({ inf = InferenceAllSimpleAverageDiff$new(des); inf$num_cores = 1L; inf$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE) }),
+         edi_setup_expr = quote({ inference = InferenceAllSimpleAverageDiff$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE)),
          can_expr = quote(summary(ri2::conduct_ri(y ~ Z, declaration = randomizr::declare_ra(N = n, m = n %/% 2L), assignment = "Z", data = df, sims = R_PERMS))$two_tailed_p_value)),
     # -- randomization tests: OLS covariate-adjusted --
     list(name = sprintf("Randomization test p-value: OLS covariate-adjusted (r = %d) [kernel, not wired to an R6 class]", R_PERMS), response = "continuous", fixture = "continuous",
@@ -1969,15 +2086,21 @@ procedure_specs = list(
     list(name = sprintf("Randomization test p-value: OLS covariate-adjusted (r = %d) [R6 InferenceContinOLS]", R_PERMS), response = "continuous", fixture = "continuous",
          pkg = "ri2", func = "conduct_ri(y ~ Z + X, sims)",
          edi_expr = quote({ inf = InferenceContinOLS$new(des); inf$num_cores = 1L; inf$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE) }),
+         edi_setup_expr = quote({ inference = InferenceContinOLS$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_rand_two_sided_pval(r = R_PERMS, show_progress = FALSE)),
          can_expr = quote(summary(ri2::conduct_ri(y ~ Z + x1 + x2 + x3 + x4, declaration = randomizr::declare_ra(N = n, m = n %/% 2L), assignment = "Z", data = df, sims = R_PERMS))$two_tailed_p_value)),
     # -- randomization CIs (test inversion): no canonical R implementation --
     list(name = sprintf("Randomization CI: mean difference (r = %d, test inversion) [R6 InferenceAllSimpleAverageDiff]", R_PERMS), response = "continuous", fixture = "continuous",
          pkg = "None", func = "no canonical R implementation", b_time = 5L,
          edi_expr = quote({ inf = InferenceAllSimpleAverageDiff$new(des); inf$num_cores = 1L; inf$compute_rand_confidence_interval(r = R_PERMS, show_progress = FALSE) }),
+         edi_setup_expr = quote({ inference = InferenceAllSimpleAverageDiff$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_rand_confidence_interval(r = R_PERMS, show_progress = FALSE)),
          can_expr = NULL),
     list(name = sprintf("Randomization CI: OLS covariate-adjusted (r = %d, test inversion) [R6 InferenceContinOLS]", R_PERMS), response = "continuous", fixture = "continuous",
          pkg = "None", func = "no canonical R implementation", b_time = 5L,
          edi_expr = quote({ inf = InferenceContinOLS$new(des); inf$num_cores = 1L; inf$compute_rand_confidence_interval(r = R_PERMS, show_progress = FALSE) }),
+         edi_setup_expr = quote({ inference = InferenceContinOLS$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_rand_confidence_interval(r = R_PERMS, show_progress = FALSE)),
          can_expr = NULL),
     # -- nonparametric bootstrap CIs --
     list(name = sprintf("Nonparametric bootstrap CI: OLS (B = %d) [kernel, not wired to an R6 class]", B_BOOT), response = "continuous", fixture = "continuous",
@@ -1994,6 +2117,8 @@ procedure_specs = list(
     list(name = sprintf("Nonparametric bootstrap CI: OLS (B = %d) [R6 InferenceContinOLS]", B_BOOT), response = "continuous", fixture = "continuous",
          pkg = "boot", func = "boot(lm.fit)+boot.ci(perc)",
          edi_expr = quote({ inf = InferenceContinOLS$new(des); inf$num_cores = 1L; inf$compute_bootstrap_confidence_interval(B = B_BOOT, type = "percentile", show_progress = FALSE) }),
+         edi_setup_expr = quote({ inference = InferenceContinOLS$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_bootstrap_confidence_interval(B = B_BOOT, type = "percentile", show_progress = FALSE)),
          can_expr = quote({
              bo = boot::boot(df, function(dd, i) lm.fit(X_full[i, , drop = FALSE], dd$y[i])$coefficients[2], R = B_BOOT)
              boot::boot.ci(bo, type = "perc")$percent[4:5]
@@ -2001,6 +2126,8 @@ procedure_specs = list(
     list(name = sprintf("Nonparametric bootstrap CI: logistic regression (B = %d) [R6 InferenceIncidLogRegr]", B_BOOT_GLM), response = "incidence", fixture = "incidence",
          pkg = "boot", func = "boot(glm.fit)+boot.ci(perc)",
          edi_expr = quote({ inf = InferenceIncidLogRegr$new(des); inf$num_cores = 1L; inf$compute_bootstrap_confidence_interval(B = B_BOOT_GLM, type = "percentile", show_progress = FALSE) }),
+         edi_setup_expr = quote({ inference = InferenceIncidLogRegr$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_bootstrap_confidence_interval(B = B_BOOT_GLM, type = "percentile", show_progress = FALSE)),
          can_expr = quote({
              bo = boot::boot(df, function(dd, i) glm.fit(X_full[i, , drop = FALSE], dd$y[i], family = binomial())$coefficients[2], R = B_BOOT_GLM)
              boot::boot.ci(bo, type = "perc")$percent[4:5]
@@ -2008,6 +2135,8 @@ procedure_specs = list(
     list(name = sprintf("Nonparametric bootstrap CI: Cox PH (B = %d, n = %d) [R6 InferenceSurvivalCoxPHRegr]", B_BOOT_GLM, N_PROC_SURV), response = "survival", fixture = "survival",
          pkg = "boot", func = "boot(coxph.fit)+boot.ci(perc)",
          edi_expr = quote({ inf = InferenceSurvivalCoxPHRegr$new(des); inf$num_cores = 1L; inf$compute_bootstrap_confidence_interval(B = B_BOOT_GLM, type = "percentile", show_progress = FALSE) }),
+         edi_setup_expr = quote({ inference = InferenceSurvivalCoxPHRegr$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_bootstrap_confidence_interval(B = B_BOOT_GLM, type = "percentile", show_progress = FALSE)),
          can_expr = quote({
              bo = boot::boot(df, function(dd, i) survival::coxph.fit(x = X_ord[i, , drop = FALSE], y = survival::Surv(dd$y[i], dd$dead[i]), strata = NULL, offset = NULL, init = NULL, control = survival::coxph.control(), weights = NULL, method = "breslow", rownames = as.character(seq_along(i)))$coefficients[1], R = B_BOOT_GLM)
              boot::boot.ci(bo, type = "perc")$percent[4:5]
@@ -2020,6 +2149,8 @@ procedure_specs = list(
     list(name = sprintf("Exact CI for the log odds ratio (n = %d, test inversion) [R6 InferenceIncidExactZhang]", N_PROC), response = "incidence", fixture = "incidence_bernoulli",
          pkg = "stats", func = "fisher.test(conf.int)",
          edi_expr = quote({ inf = InferenceIncidExactZhang$new(des); inf$num_cores = 1L; inf$compute_exact_confidence_interval() }),
+         edi_setup_expr = quote({ inference = InferenceIncidExactZhang$new(des); inference$num_cores = 1L; inference }),
+         edi_procedure_expr = quote(inference$compute_exact_confidence_interval()),
          can_expr = quote(log(stats::fisher.test(tab)$conf.int)))
 )
 
@@ -2057,14 +2188,20 @@ design_specs = list(
     list(name = sprintf("DesignFixediBCRD: complete randomization (n = %d)", N_DESIGN), response = "design", fixture = "design",
          pkg = "randomizr", func = "complete_ra",
          edi_expr = quote({ des_i = DesignFixediBCRD$new(n = n, response_type = "continuous"); des_i$add_all_subjects_to_experiment(X_cont); des_i$assign_w_to_all_subjects(); des_i$get_w() }),
+         edi_setup_expr = quote({ inference = DesignFixediBCRD$new(n = n, response_type = "continuous"); inference$add_all_subjects_to_experiment(X_cont); inference }),
+         edi_procedure_expr = quote({ inference$assign_w_to_all_subjects(); inference$get_w() }),
          can_expr = quote(randomizr::complete_ra(N = n, m = n %/% 2L))),
     list(name = sprintf("DesignFixedBlocking: strata from 2 factor covariates (6 blocks), n = %d", N_DESIGN), response = "design", fixture = "design",
          pkg = "randomizr", func = "block_ra(blocks precomputed)",
          edi_expr = quote({ des_b = DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = c("x1", "x2"), equal_block_sizes = FALSE); des_b$add_all_subjects_to_experiment(X_fac); des_b$assign_w_to_all_subjects(); des_b$get_w() }),
+         edi_setup_expr = quote({ inference = DesignFixedBlocking$new(n = n, response_type = "continuous", strata_cols = c("x1", "x2"), equal_block_sizes = FALSE); inference$add_all_subjects_to_experiment(X_fac); inference }),
+         edi_procedure_expr = quote({ inference$assign_w_to_all_subjects(); inference$get_w() }),
          can_expr = quote(randomizr::block_ra(blocks = block_id))),
     list(name = sprintf("DesignFixedBinaryMatch: Mahalanobis optimal pairs + within-pair randomization (4 covariates, n = %d)", N_DESIGN), response = "design", fixture = "design",
          pkg = "nbpMatching", func = "gendistance+nonbimatch+coin flips",
          edi_expr = quote({ des_m = DesignFixedBinaryMatch$new(n = n, response_type = "continuous"); des_m$add_all_subjects_to_experiment(X_cont); des_m$assign_w_to_all_subjects(); des_m$get_w() }),
+         edi_setup_expr = quote({ inference = DesignFixedBinaryMatch$new(n = n, response_type = "continuous"); inference$add_all_subjects_to_experiment(X_cont); inference }),
+         edi_procedure_expr = quote({ inference$assign_w_to_all_subjects(); inference$get_w() }),
          can_expr = quote({
              halves = nbpMatching::nonbimatch(nbpMatching::distancematrix(nbpMatching::gendistance(X_cont)))$halves
              w_m = integer(n); flips = rbinom(nrow(halves), 1, 0.5)
@@ -2074,6 +2211,8 @@ design_specs = list(
     list(name = sprintf("DesignFixedBinaryMatch: Mahalanobis optimal pairs + within-pair randomization (4 covariates, n = %d)", N_DESIGN), response = "design", fixture = "design",
          pkg = "blockTools", func = "block(n.tr=2, optGreedy)+assignment",
          edi_expr = quote({ des_m = DesignFixedBinaryMatch$new(n = n, response_type = "continuous"); des_m$add_all_subjects_to_experiment(X_cont); des_m$assign_w_to_all_subjects(); des_m$get_w() }),
+         edi_setup_expr = quote({ inference = DesignFixedBinaryMatch$new(n = n, response_type = "continuous"); inference$add_all_subjects_to_experiment(X_cont); inference }),
+         edi_procedure_expr = quote({ inference$assign_w_to_all_subjects(); inference$get_w() }),
          can_expr = quote({
              bt = blockTools::block(cbind(id = seq_len(n), X_cont), n.tr = 2, id.vars = "id", block.vars = names(X_cont))
              blockTools::assignment(bt)
@@ -2085,6 +2224,8 @@ design_specs = list(
              for (i in seq_len(n)) des_p$add_one_subject_to_experiment_and_assign(X_fac_rows[[i]])
              des_p$get_w()
          }),
+         edi_setup_expr = quote(DesignSeqOneByOnePocockSimon$new(n = n, response_type = "continuous", strata_cols = c("x1", "x2"), p_best = 0.8)),
+         edi_procedure_expr = quote({ for (i in seq_len(n)) inference$add_one_subject_to_experiment_and_assign(X_fac_rows[[i]]); inference$get_w() }),
          can_expr = quote(carat::PocSimMIN(X_fac, p = 0.8)$assignments)),
     list(name = sprintf("DesignSeqOneByOnePocockSimon: %d sequential arrivals, 2 factor covariates, p_best = 0.8", N_DESIGN), response = "design", fixture = "design",
          pkg = "Minirand", func = "Minirand(Range, p = 0.8) loop",
@@ -2093,6 +2234,8 @@ design_specs = list(
              for (i in seq_len(n)) des_p$add_one_subject_to_experiment_and_assign(X_fac_rows[[i]])
              des_p$get_w()
          }),
+         edi_setup_expr = quote(DesignSeqOneByOnePocockSimon$new(n = n, response_type = "continuous", strata_cols = c("x1", "x2"), p_best = 0.8)),
+         edi_procedure_expr = quote({ for (i in seq_len(n)) inference$add_one_subject_to_experiment_and_assign(X_fac_rows[[i]]); inference$get_w() }),
          can_expr = quote({
              res = rep(NA_integer_, n); res[1] = sample(0:1, 1)
              for (j in 2:n) res[j] = Minirand::Minirand(covmat = cov_codes, j = j, covwt = c(0.5, 0.5), ratio = c(1, 1), ntrt = 2, trtseq = c(0, 1), method = "Range", result = res, p = 0.8)
@@ -2106,10 +2249,26 @@ run_one_generic = function(spec, e, label, idx, total) {
     set.seed(seed_for_class(paste(spec$name, spec$pkg, spec$func)))
     cat(sprintf("%s [%d/%d] %s  vs  %s::%s...\n", label, idx, total, spec$name, spec$pkg, spec$func))
     b_time = if (!is.null(spec$b_time)) as.integer(spec$b_time) else B_TIME_PROC
-    timing_edi = tryCatch({
+    timing_total = tryCatch({
         eval(spec$edi_expr, envir = e)  # validation / warm-up
         collect_timing_ms(spec$edi_expr, times = b_time, env = e)
     }, error = function(err) { cat("  EDI Error:", err$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
+    has_separate_setup = !is.null(spec$edi_setup_expr) && !is.null(spec$edi_procedure_expr)
+    timing_construction = list(median_ms = NA_real_, samples_ms = numeric(0))
+    timing_procedure = timing_total
+    if (has_separate_setup) {
+        timing_construction = tryCatch({
+            eval(spec$edi_setup_expr, envir = e)  # validation / warm-up
+            collect_timing_ms(spec$edi_setup_expr, times = b_time, env = e)
+        }, error = function(err) { cat("  EDI construction error:", err$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
+        timing_procedure = tryCatch({
+            assign("inference", eval(spec$edi_setup_expr, envir = e), envir = e)  # fresh validation object
+            eval(spec$edi_procedure_expr, envir = e)
+            collect_prepared_timing_ms(
+                spec$edi_setup_expr, spec$edi_procedure_expr, times = b_time, env = e
+            )
+        }, error = function(err) { cat("  EDI procedure error:", err$message, "\n"); list(median_ms = NA_real_, samples_ms = numeric(0)) })
+    }
     no_can = is.null(spec$can_expr) || identical(spec$pkg, "None")
     timing_can = list(median_ms = NA_real_, samples_ms = numeric(0))
     if (!no_can) {
@@ -2121,11 +2280,13 @@ run_one_generic = function(spec, e, label, idx, total) {
     }
     data.table(
         Class = spec$name, Response = spec$response,
-        EDI_Time_ms = timing_edi$median_ms,
+        EDI_Total_ms = timing_total$median_ms,
+        EDI_Construction_ms = timing_construction$median_ms,
+        EDI_Procedure_ms = timing_procedure$median_ms,
         Canonical_Pkg = spec$pkg, Canonical_Func = spec$func,
         Canonical_Time_ms = timing_can$median_ms,
-        Speedup = if (!is.na(timing_can$median_ms) && !is.na(timing_edi$median_ms) && timing_edi$median_ms > 0) timing_can$median_ms / timing_edi$median_ms else NA_real_,
-        Timing_Pval = timing_ttest_pval(timing_edi$samples_ms, timing_can$samples_ms),
+        Speedup = if (!is.na(timing_can$median_ms) && !is.na(timing_procedure$median_ms) && timing_procedure$median_ms > 0) timing_can$median_ms / timing_procedure$median_ms else NA_real_,
+        Timing_Pval = timing_ttest_pval(timing_procedure$samples_ms, timing_can$samples_ms),
         No_Canonical = no_can
     )
 }
@@ -2145,15 +2306,15 @@ run_generic_table = function(specs, fixture_builder, label) {
     rbindlist(out)
 }
 
-dt_proc = run_generic_table(procedure_specs, function(fx) {
+dt_proc = if (run_benchmark_section("procedures")) run_generic_table(procedure_specs, function(fx) {
     switch(fx,
         continuous = build_procedure_fixture("continuous"),
         incidence = build_procedure_fixture("incidence"),
         incidence_bernoulli = build_procedure_fixture("incidence", design = "bernoulli"),
         survival = build_procedure_fixture("survival")
     )
-}, "Procedure")
-dt_design = run_generic_table(design_specs, function(fx) build_design_fixture(), "Design")
+}, "Procedure") else NULL
+dt_design = if (run_benchmark_section("designs")) run_generic_table(design_specs, function(fx) build_design_fixture(), "Design") else NULL
 
 # Same shape/colouring as the utility table (no optimizer-iteration columns).
 build_generic_table_lines = function(dt_in, first_col_header) {
@@ -2161,21 +2322,23 @@ build_generic_table_lines = function(dt_in, first_col_header) {
     dt_x[, Speedup_Num := Speedup]
     # Sub-0.1x ratios (EDI slower by 10x+) keep two significant digits instead of rounding to "0x".
     dt_x[, Speedup := ifelse(!is.na(Speedup), paste0(ifelse(Speedup < 0.1, signif(Speedup, 2), round(Speedup, 2)), "x"), "NA")]
-    dt_x[, EDI_Time_ms := format_ms(EDI_Time_ms)]
+    dt_x[, EDI_Total_ms := format_ms(EDI_Total_ms)]
+    dt_x[, EDI_Construction_ms := ifelse(is.na(EDI_Construction_ms), "—", format_ms(EDI_Construction_ms))]
+    dt_x[, EDI_Procedure_ms := format_ms(EDI_Procedure_ms)]
     dt_x[, Canonical_Time_ms := format_ms(Canonical_Time_ms)]
     dt_x[, Timing_Row_Color := mapply(row_bg_color, Speedup_Num, Timing_Pval, No_Canonical, USE.NAMES = FALSE)]
     dt_x[, Timing_Pval_Stars := format_pval_stars(Timing_Pval)]
     dt_x[, Timing_Pval := format_pval(Timing_Pval)]
-    rows = mapply(function(cls, resp, edi, pkg, func, can, speed, pval, stars, bg) {
+    rows = mapply(function(cls, resp, total, construction, procedure, pkg, func, can, speed, pval, stars, bg) {
         style = if (nzchar(bg)) paste0(" style=\"background-color: ", bg, ";\"") else ""
-        paste0("    <tr", style, "><td>", cls, "</td><td>", resp, "</td><td>", edi, "</td><td>", pkg, "</td><td>", func, "</td><td>", can, "</td><td>", speed, "</td><td>", pval, "</td><td>", stars, "</td></tr>")
-    }, dt_x$Class, dt_x$Response, dt_x$EDI_Time_ms, dt_x$Canonical_Pkg, dt_x$Canonical_Func,
-    dt_x$Canonical_Time_ms, dt_x$Speedup, dt_x$Timing_Pval, dt_x$Timing_Pval_Stars, dt_x$Timing_Row_Color,
-    SIMPLIFY = TRUE, USE.NAMES = FALSE)
+        paste0("    <tr", style, "><td>", cls, "</td><td>", resp, "</td><td>", total, "</td><td>", construction, "</td><td>", procedure, "</td><td>", pkg, "</td><td>", func, "</td><td>", can, "</td><td>", speed, "</td><td>", pval, "</td><td>", stars, "</td></tr>")
+    }, dt_x$Class, dt_x$Response, dt_x$EDI_Total_ms, dt_x$EDI_Construction_ms, dt_x$EDI_Procedure_ms, dt_x$Canonical_Pkg, dt_x$Canonical_Func,
+        dt_x$Canonical_Time_ms, dt_x$Speedup, dt_x$Timing_Pval, dt_x$Timing_Pval_Stars, dt_x$Timing_Row_Color,
+        SIMPLIFY = TRUE, USE.NAMES = FALSE)
     c(
       "<table>",
       "  <thead>",
-      paste0("    <tr><th>", first_col_header, "</th><th>Response</th><th>EDI Time (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr>"),
+      paste0("    <tr><th>", first_col_header, "</th><th>Response</th><th>EDI Total (ms)</th><th>EDI Construction (ms)</th><th>EDI Procedure (ms)</th><th>Canonical Pkg</th><th>Canonical Func</th><th>Canonical Time (ms)</th><th>Speedup</th><th>Timing Pval</th><th></th></tr>"),
       "  </thead>",
       "  <tbody>",
       rows,
@@ -2184,12 +2347,12 @@ build_generic_table_lines = function(dt_in, first_col_header) {
     )
 }
 
-PROCEDURE_HEADER = c(
+PROCEDURE_HEADER = if (run_benchmark_section("procedures")) c(
   "## Resampling-Based Inference Procedure Performance",
   "",
   "This table times complete inference **procedures** rather than single model fits: randomization-test p-values and randomization confidence intervals, nonparametric bootstrap confidence intervals, and exact 2x2 inference, each against the dedicated R package for that procedure (`ri2`, `coin`, `perm`, `boot`, `stats::fisher.test`).",
   paste0("**Data**: one completed `DesignFixediBCRD` design per response type with $N=", N_PROC, "$ subjects (", N_PROC_SURV, " for the Cox row), a balanced binary treatment and 4 standard-normal covariates, generated by the same `generate_data()` as the model-fit tables; the exact-CI row uses a `DesignFixedBernoulli` design because `InferenceIncidExactZhang` requires Bernoulli or matching designs. All resampling rows use $r=", R_PERMS, "$ randomizations or $B=", B_BOOT, "$ (OLS) / $B=", B_BOOT_GLM, "$ (logistic, Cox) bootstrap draws on both sides."),
-  "**`[R6 ...]` rows** time EDI's public, user-facing path: `InferenceXxx$new(des)` followed by the method call (`compute_rand_two_sided_pval()`, `compute_rand_confidence_interval()`, `compute_bootstrap_confidence_interval()`, `compute_exact_confidence_interval()`). The inference object is constructed *inside* the timed region because EDI caches resampling distributions per object, so a repeated identical call would be a cache hit rather than a recomputation; the completed Design object is built once outside the timed region. Canonical rows likewise include their own model-frame/object construction (`conduct_ri()`, `oneway_test()`, `boot()`), so both sides pay comparable setup. Both sides run single-threaded (`num_cores = 1`); EDI's resampling methods can additionally fan out across cores, which is not exercised here.",
+  "**`[R6 ...]` rows** report `EDI Total (ms)`, `EDI Construction (ms)`, and `EDI Procedure (ms)`. Total preserves the public path (`InferenceXxx$new(des)` plus `compute_rand_two_sided_pval()`, `compute_rand_confidence_interval()`, `compute_bootstrap_confidence_interval()`, or `compute_exact_confidence_interval()`); construction is measured separately. For procedure samples, the harness constructs a fresh configured inference object immediately before, but outside, each timed batch. This prevents a repeated call from becoming a cache hit without adding a benchmark-only public cache-reset API. `Speedup` and `Timing Pval` compare the procedure column with the canonical timing. Kernel rows have no R6 construction, so their construction cell is `—` and procedure equals total. The completed Design is built once outside every inference measurement. Canonical rows include their own model-frame/object construction (`conduct_ri()`, `oneway_test()`, `boot()`), so both sides pay comparable setup. Both sides run single-threaded (`num_cores = 1`); EDI's resampling methods can additionally fan out across cores, which is not exercised here.",
   "**`[kernel ...]` rows** call the exported C++ kernel directly on prebuilt matrices, including the permutation / bootstrap-index generation (`coin`, `ri2` and `boot` draw theirs inside the timed call too). `compute_simple_mean_diff_parallel_cpp` *is* the kernel `InferenceAllSimpleAverageDiff`'s randomization test runs on, so its `[kernel]` and `[R6]` rows bracket the R6 overhead. The two OLS kernels (`compute_ols_distr_parallel_cpp`, `compute_ols_bootstrap_parallel_cpp`) are compiled into the package but are **not currently called by any R6 class** (`InferenceContinOLS` resamples through the generic reused-worker path), so those rows show attainable rather than currently delivered speed; they are labelled accordingly.",
   "**Bootstrap CIs** are percentile intervals on both sides (`type = \"percentile\"` in EDI, `boot.ci(type = \"perc\")`). EDI's default `type = \"bca\"` additionally runs a full leave-one-out jackknife for the acceleration constant, which roughly doubles its cost at these sizes and has no `boot` counterpart without a user-supplied jackknife.",
   "**Randomization CIs** (test inversion by bisection over the sharp-null shift) have no canonical R implementation (`ri2`, `coin` and `perm` return p-values only), so those rows are light blue with EDI timed alone.",
@@ -2198,12 +2361,12 @@ PROCEDURE_HEADER = c(
   paste0("**Timing Note**: medians over ", B_TIME_PROC, " warmed runs (5 for the two randomization-CI rows) with the same adaptive batched `system.time` harness as the tables above; Welch t-test `Timing Pval` and row colouring as above."),
   "",
   build_generic_table_lines(dt_proc, "Procedure")
-)
+) else character(0)
 
-DESIGN_HEADER = c(
+DESIGN_HEADER = if (run_benchmark_section("designs")) c(
   "## Design Generation Performance",
   "",
-  paste0("This table times the production of one complete treatment allocation for $N=", N_DESIGN, "$ subjects, from covariate ingestion to the assignment vector, against the dedicated randomization packages (`randomizr`, `nbpMatching`, `blockTools`, `carat`, `Minirand`). EDI rows include `Design$new()` construction and `add_all_subjects_to_experiment()` (or the 1000 per-arrival `add_one_subject_to_experiment_and_assign()` calls for the sequential design) because that is the user-facing workflow; canonical rows receive their covariate table or block ids prebuilt. Fixtures: two factor covariates (3 and 2 levels, i.e. 6 strata) for the blocking and Pocock-Simon rows, four standard-normal covariates for the matching rows."),
+  paste0("This table times the production of one complete treatment allocation for $N=", N_DESIGN, "$ subjects, from covariate ingestion to the assignment vector, against the dedicated randomization packages (`randomizr`, `nbpMatching`, `blockTools`, `carat`, `Minirand`). `EDI Total (ms)` is the public end-to-end path; `EDI Construction (ms)` is `Design$new()` plus fixed-design covariate ingestion (or only construction for the sequential design); `EDI Procedure (ms)` is assignment, including the 1000 sequential arrivals where applicable. `Speedup` and `Timing Pval` use procedure time. Canonical rows receive their covariate table or block ids prebuilt. Fixtures: two factor covariates (3 and 2 levels, i.e. 6 strata) for the blocking and Pocock-Simon rows, four standard-normal covariates for the matching rows."),
   "**Honest labelling**:",
   "*   `DesignFixedBlocking` derives the strata from the factor covariates itself and then **delegates the within-block draw to `randomizr::block_ra()`** whenever randomizr is installed, so that row measures EDI's strata construction and R6 overhead on top of the canonical draw.",
   "*   `DesignFixedBinaryMatch` computes Mahalanobis distances in-house and **delegates the optimal nonbipartite matching to `nbpMatching::nonbimatch()`**; the nbpMatching row drives the same optimal matcher directly (`gendistance` + `distancematrix` + `nonbimatch` + within-pair coin flips) and the blockTools row is its greedy (`optGreedy`) pairing alternative, so the two rows bracket EDI's overhead and the greedy-vs-optimal cost.",
@@ -2211,9 +2374,10 @@ DESIGN_HEADER = c(
   paste0("**Timing Note**: medians over ", B_TIME_PROC, " warmed runs; Welch t-test `Timing Pval` and row colouring as above."),
   "",
   build_generic_table_lines(dt_design, "Design")
-)
+) else character(0)
 
 # ── Finalize
+if (run_benchmark_section("models")) {
 dt = rbindlist(results)
 response_levels = c("all", "continuous", "incidence", "count", "proportion", "survival", "ordinal")
 dt[, Response := factor(Response, levels = response_levels)]
@@ -2246,6 +2410,9 @@ table_rows = mapply(function(cls, resp, edi, pkg, func, can, speed, pval, stars,
 dt$Canonical_Time_ms, dt$Speedup, dt$Timing_Pval, dt$Timing_Pval_Stars, dt$Timing_Row_Color, dt$EDI_Iterations, dt$Canonical_Iterations,
 SIMPLIFY = TRUE, USE.NAMES = FALSE)
 table_lines = c(table_lines, table_rows, "  </tbody>", "</table>")
+} else {
+  table_lines = character(0)
+}
 
 cmd_config = function(var) {
   out = tryCatch(
@@ -2357,6 +2524,8 @@ report = c(
   "",
   paste0("_Generated: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"), "_"),
   "",
+  paste0("_Selected sections: ", paste(BENCHMARK_SECTIONS, collapse = ", "), "_"),
+  "",
   "This report compares the performance of EDI's Rcpp-optimized model fitting paths against **low-level** canonical R implementations (e.g., `glm.fit`, `lm.fit`, `coxph.fit`) where possible.",
   "",
   compile_context_lines(),
@@ -2385,14 +2554,12 @@ report = c(
   "*   **Limitation:** Some canonical comparators only expose formula-based APIs. Those rows remain included but their canonical timings carry formula/model-frame overhead not present in the EDI bare-metal timing.",
   paste0("*   **Averaging:** All timings are medians over ", B_TIME, " cold estimate-only timing samples measured with adaptive batched `system.time`; paths below ", FAST_PATH_THRESHOLD_MS, " ms use `microbenchmark(times = ", FAST_PATH_MICROBENCH_REPS, ")` instead."),
   "*   **Timing P-Value:** `Timing Pval` reports a Welch two-sample t-test comparing the EDI and canonical timing replicate distributions for each row. The unlabeled final column marks thresholds with `***` for p < 0.001, `**` for p < 0.01, and `*` for p < 0.05.",
-  "*   **Row Highlighting:** Light green rows indicate `Speedup > 1` and `Timing Pval < 0.05`; light grey rows indicate `NA` timing comparisons from a failed fit; light blue rows are estimators with no canonical R implementation at all (only EDI is timed, `Canonical Time`/`Speedup`/`Timing Pval` are `NA` by design).",
+  "*   **Row Highlighting:** Light green rows indicate `Speedup > 1` and `Timing Pval < 0.05`; light red rows indicate significant `Speedup < 1`; light grey rows indicate `NA` timing comparisons from a failed fit; light blue rows are estimators with no canonical R implementation at all (only EDI is timed, `Canonical Time`/`Speedup`/`Timing Pval` are `NA` by design).",
   "*   **Constraints**: Most matched-pair/KK and highly custom paths are excluded as per user request. The exceptions are the custom-data rows below: the two KK combined matched+reservoir joint-likelihood estimators remain light blue (no canonical R implementation at all — see `package_metadata/python_bindings_package_spec.md` for the baseline-gap analysis), while the matched-pair random-intercept GLMM family, Weibull lognormal frailty, zero-one-inflated beta and interval-censored Weibull AFT rows carry real canonical comparators since 2026-10-07 (`lme4`/`glmmTMB`/`ordinal::clmm`, `parfm`, `gamlss(BEINF)`, `survreg(interval2)`/`icenReg::ic_par`). `lme4::glmer(nAGQ = 20)` and `ordinal::clmm(nAGQ = 20)` match EDI's 20-node Gauss-Hermite marginal likelihood; `glmmTMB` is Laplace-only; `lmer` uses ML (`REML = FALSE`) like EDI. `parfm` fits the proportional-hazards parameterization of the same Weibull lognormal-frailty model (equivalent to EDI's AFT-scale Normal random intercept up to reparameterization) and takes ~25 s per fit, so its rows use 5 timing replicates. `zoib` (Bayesian MCMC) is deliberately not timed against EDI's ML fit.",
   "*   **Repeated classes**: a class may appear more than once when it is timed against several comparators (e.g. `InferenceContinRobustRegr` vs `MASS::rlm` and `robustbase::lmrob.fit`; the GLMM rows vs `lme4` and `glmmTMB`); such rows share one dataset and re-time the same EDI kernel.",
   "*   **Weibull design matrix**: the Weibull AFT rows pass `[1, treatment, covariates]` (with intercept) to `fast_weibull_regression_general_cpp`, the layout `InferenceSurvivalWeibullRegr` builds internally, under which the kernel reproduces `survreg()`'s coefficients and log-likelihood exactly. Reports generated before 2026-10-07 omitted the intercept on the EDI side of that row.",
   "",
-  "## Results",
-  "",
-  table_lines
+  if (run_benchmark_section("models")) c("## Results", "", table_lines) else character(0)
 )
 METHODOLOGY_BLOCK = c(
   "## Garbage Collection and Cache Management",
@@ -2492,6 +2659,7 @@ if (requireNamespace("commonmark", quietly = TRUE)) {
   legend_html = paste(
     '<p class="legend">',
     '<span style="background:#d9fdd3"></span>EDI faster, significant &nbsp;',
+    '<span style="background:#ffd6d6"></span>EDI slower, significant &nbsp;',
     '<span style="background:#eceff1"></span>NA timing comparison &nbsp;',
     '<span style="background:#cfe2ff"></span>no canonical R implementation',
     "</p>",

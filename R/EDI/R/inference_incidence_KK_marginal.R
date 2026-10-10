@@ -305,6 +305,10 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 #' the model and returns \eqn{\hat\theta} on the risk-difference (probability)
 #' scale; \code{compute_estimate_with_bootstrap_weights()} refits under
 #' Bayesian-bootstrap subject weights for \code{compute_bayesian_bootstrap_confidence_interval()}.
+#' Those weights affect the working-model fit only: the resulting predictions
+#' are still averaged equally over the retained empirical covariate rows, so
+#' every g-computation implementation in EDI targets the same
+#' sample-conditional standardized estimand.
 #' Jackknife deletes one cluster (matched pair or singleton reservoir subject) at
 #' a time. If the working model fails to converge or the design has no
 #' treatment-arm variation, the estimate is marked non-estimable via

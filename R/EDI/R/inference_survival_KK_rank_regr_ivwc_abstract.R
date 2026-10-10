@@ -65,7 +65,8 @@ SurvivalKKRankRegrIVWCSource = list(
 		},
 		#' @description Returns the model-specific log-time-ratio treatment estimate; see
 		#'   \code{\link[EDI:Inference]{Inference}}.
-		#' @param estimate_only If TRUE, skip variance component calculations.
+		#' @param estimate_only If TRUE, reuse cached component variances when
+		#' available; calculate them only when necessary to form an IVWC estimate.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			private$cached_values$beta_hat_T
@@ -170,6 +171,14 @@ SurvivalKKRankRegrIVWCSource = list(
 			as.numeric(coefs[[term_name]])
 		},
 		extract_term_se = function(mod, term_name = "w"){
+			# aftsrr's summary rounds its displayed standard errors.  Its ISMB
+			# covariance is the authoritative unrounded component variance.
+			ismb_cov = tryCatch(mod$covmat$ISMB, error = function(e) NULL)
+			if (is.matrix(ismb_cov) && nrow(ismb_cov) == ncol(ismb_cov) &&
+				!is.null(rownames(ismb_cov)) && term_name %in% rownames(ismb_cov)){
+				se_ismb = sqrt(as.numeric(ismb_cov[term_name, term_name]))
+				if (is.finite(se_ismb) && se_ismb > 0) return(se_ismb)
+			}
 			coef_table = tryCatch(summary(mod)$coefficients, error = function(e) NULL)
 			if (is.null(coef_table)){
 				return(NA_real_)
@@ -192,7 +201,6 @@ SurvivalKKRankRegrIVWCSource = list(
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			private$clear_nonestimable_state()
 			KKstats = private$cached_values$KKstats
 			if (is.null(KKstats)) {
@@ -248,12 +256,8 @@ SurvivalKKRankRegrIVWCSource = list(
 			private$clear_nonestimable_state()
 		},
 		# Copied verbatim from InferenceMLEorKMSummaryTable (the old ladder's
-		# ancestor). Needed because shared() above early-returns whenever
-		# beta_hat_T is already cached -- even from an estimate_only pass that
-		# never computed the SE -- and the Wald component's own
-		# get_standard_error() fallback stop()s on a missing SE, whereas the old
-		# ladder's version (this one) calls shared() and then degrades to
-		# NA_real_, which Wald-impl methods turn into NA CIs/p-values.
+		# ancestor). A later full call recomputes after an estimate-only pass
+		# that has cached only beta_hat_T, so this accessor can recover its SE.
 		get_standard_error = function(){
 			private$shared(estimate_only = FALSE)
 			se = private$cached_values$s_beta_hat_T
@@ -271,6 +275,11 @@ SurvivalKKRankRegrIVWCSource = list(
 			if (sum(dead_m) < 2) return(invisible(NULL))
 			dat = data.frame(y = y_m, dead = dead_m, w = w_m, id = strata_m)
 			formula_str = "survival::Surv(y, dead) ~ w"
+			cached_ssq = private$cached_values$ssq_beta_T_matched
+			need_variance = !estimate_only || is.null(cached_ssq) ||
+				!is.finite(cached_ssq) || cached_ssq <= 0
+			se_method = if (need_variance) "ISMB" else "NULL"
+			bootstrap_reps = if (need_variance) 100L else 0L
 			mod = NULL
 			if (ncol(as.matrix(private$X)) > 0){
 				X_m = as.matrix(private$get_X()[i_matched, , drop = FALSE])
@@ -283,29 +292,27 @@ SurvivalKKRankRegrIVWCSource = list(
 						dat_try = cbind(dat_try[, c("y", "dead", "w", "id")], X_covs)
 						formula_try = paste(formula_try, "+", paste(colnames(X_covs), collapse = " + "))
 					}
-					se_method = if (estimate_only) "NULL" else "ISMB"
 					mod_try = tryCatch({
-						suppressMessages(aftgee::aftsrr(as.formula(formula_try), id = id, data = dat_try, se = se_method, B = 0))
+						suppressMessages(aftgee::aftsrr(as.formula(formula_try), id = id, data = dat_try, se = se_method, B = bootstrap_reps))
 					}, error = function(e) NULL)
 					beta_try = private$extract_term_estimate(mod_try, "w")
-					se_try = if (estimate_only) 1 else private$extract_term_se(mod_try, "w")
+					se_try = if (need_variance) private$extract_term_se(mod_try, "w") else 1
 					if (is.finite(beta_try) && abs(beta_try) <= private$max_abs_reasonable_coef &&
-					    (estimate_only || (is.finite(se_try) && se_try > 0 && se_try <= private$max_abs_reasonable_coef))){
+					    (!need_variance || (is.finite(se_try) && se_try > 0 && se_try <= private$max_abs_reasonable_coef))){
 						mod = mod_try
 						break
 					}
 				}
 			} else {
 				mod = tryCatch({
-					se_method = if (estimate_only) "NULL" else "ISMB"
-					suppressMessages(aftgee::aftsrr(as.formula(formula_str), id = id, data = dat, se = se_method, B = 0))
+					suppressMessages(aftgee::aftsrr(as.formula(formula_str), id = id, data = dat, se = se_method, B = bootstrap_reps))
 				}, error = function(e) NULL)
 			}
 			if (is.null(mod)) return(invisible(NULL))
 			beta = private$extract_term_estimate(mod, "w")
-			se   = if (estimate_only) NA_real_ else private$extract_term_se(mod, "w")
+			se   = if (need_variance) private$extract_term_se(mod, "w") else NA_real_
 			private$cached_values$beta_T_matched     = if (is.finite(beta) && abs(beta) <= private$max_abs_reasonable_coef) beta else NA_real_
-			private$cached_values$ssq_beta_T_matched = if (!estimate_only && is.finite(se) && se > 0 && se <= private$max_abs_reasonable_coef) se^2 else NA_real_
+			if (need_variance) private$cached_values$ssq_beta_T_matched = if (is.finite(se) && se > 0 && se <= private$max_abs_reasonable_coef) se^2 else NA_real_
 		},
 		aftsrr_for_reservoir = function(estimate_only = FALSE){
 			KKstats = private$cached_values$KKstats
@@ -316,6 +323,11 @@ SurvivalKKRankRegrIVWCSource = list(
 			if (sum(dead_r) < 2) return(invisible(NULL))
 			dat = data.frame(y = y_r, dead = dead_r, w = w_r)
 			formula_str = "survival::Surv(y, dead) ~ w"
+			cached_ssq = private$cached_values$ssq_beta_T_reservoir
+			need_variance = !estimate_only || is.null(cached_ssq) ||
+				!is.finite(cached_ssq) || cached_ssq <= 0
+			se_method = if (need_variance) "ISMB" else "NULL"
+			bootstrap_reps = if (need_variance) 100L else 0L
 			mod = NULL
 			if (ncol(as.matrix(private$X)) > 0){
 				for (X_candidate in private$aft_design_candidates(w_r, X_r, cache_key = "reservoir")){
@@ -327,29 +339,27 @@ SurvivalKKRankRegrIVWCSource = list(
 						dat_try = cbind(dat_try[, c("y", "dead", "w")], X_covs)
 						formula_try = paste(formula_try, "+", paste(colnames(X_covs), collapse = " + "))
 					}
-					se_method = if (estimate_only) "NULL" else "ISMB"
 					mod_try = tryCatch({
-						suppressMessages(aftgee::aftsrr(as.formula(formula_try), data = dat_try, se = se_method, B = 0))
+						suppressMessages(aftgee::aftsrr(as.formula(formula_try), data = dat_try, se = se_method, B = bootstrap_reps))
 					}, error = function(e) NULL)
 					beta_try = private$extract_term_estimate(mod_try, "w")
-					se_try = if (estimate_only) 1 else private$extract_term_se(mod_try, "w")
+					se_try = if (need_variance) private$extract_term_se(mod_try, "w") else 1
 					if (is.finite(beta_try) && abs(beta_try) <= private$max_abs_reasonable_coef &&
-					    (estimate_only || (is.finite(se_try) && se_try > 0 && se_try <= private$max_abs_reasonable_coef))){
+					    (!need_variance || (is.finite(se_try) && se_try > 0 && se_try <= private$max_abs_reasonable_coef))){
 						mod = mod_try
 						break
 					}
 				}
 			} else {
 				mod = tryCatch({
-					se_method = if (estimate_only) "NULL" else "ISMB"
-					suppressMessages(aftgee::aftsrr(as.formula(formula_str), data = dat, se = se_method, B = 0))
+					suppressMessages(aftgee::aftsrr(as.formula(formula_str), data = dat, se = se_method, B = bootstrap_reps))
 				}, error = function(e) NULL)
 			}
 			if (is.null(mod)) return(invisible(NULL))
 			beta = private$extract_term_estimate(mod, "w")
-			se   = if (estimate_only) NA_real_ else private$extract_term_se(mod, "w")
+			se   = if (need_variance) private$extract_term_se(mod, "w") else NA_real_
 			private$cached_values$beta_T_reservoir     = if (is.finite(beta) && abs(beta) <= private$max_abs_reasonable_coef) beta else NA_real_
-			private$cached_values$ssq_beta_T_reservoir = if (!estimate_only && is.finite(se) && se > 0 && se <= private$max_abs_reasonable_coef) se^2 else NA_real_
+			if (need_variance) private$cached_values$ssq_beta_T_reservoir = if (is.finite(se) && se > 0 && se <= private$max_abs_reasonable_coef) se^2 else NA_real_
 		}
 	)
 )

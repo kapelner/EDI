@@ -69,7 +69,7 @@ test_that("debug=TRUE reproduces the debug=FALSE distribution exactly on the non
 	expect_equal(debug_out$prop_illegal_values, 0)
 })
 
-test_that("multi-core dispatch on the non-reusable duplicate()-per-iteration branch reproduces the single-core distribution under the same seed", {
+test_that("multi-core ordinary dispatch and debug-safe serial fallback on the non-reusable duplicate() branch reproduce the single-core distribution", {
 	# num_cores = 2 below drives par_lapply() into its lazy-fork-cluster branch
 	# (inference_all_abstract.R's par_lapply(), "Unix with no pre-existing
 	# cluster: create one lazily and cache it"), which stores a real,
@@ -99,16 +99,14 @@ test_that("multi-core dispatch on the non-reusable duplicate()-per-iteration bra
 
 	expect_equal(values_multi, values_single, tolerance = 1e-5)
 
-	# NOTE: debug=TRUE under num_cores=2 is deliberately NOT exercised here.
-	# It triggers an intermittent hang (confirmed directly, outside testthat,
-	# 2026-10-08: the exact same call sometimes completes in ~1-2s and
-	# sometimes never returns) consistent with a fork-after-OpenMP-threading
-	# race -- forking while the parent has live OMP worker threads can hand a
-	# child process an inherited, permanently-locked mutex. This is a
-	# pre-existing bug in that dispatch combination, not something to newly
-	# bake into CI as a flaky assertion; worth its own investigation/issue
-	# separately from this file's non-reusable-worker coverage goal.
-	debug_multi = inf_single$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 16L, show_progress = FALSE, debug = TRUE)
+	# Debugging non-reusable workers intentionally falls back to the parent
+	# process.  Forking after one of these fits has used OpenMP can inherit a
+	# permanently locked runtime mutex, so this must remain safe even when the
+	# caller requests multiple cores.
+	inf_debug = InferenceCountHurdleNegBin$new(des, verbose = FALSE)
+	inf_debug$set_seed(456)
+	inf_debug$num_cores = 2L
+	debug_multi = inf_debug$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 16L, show_progress = FALSE, debug = TRUE)
 	expect_equal(debug_multi$values, values_single)
 	expect_length(debug_multi$values, 16L)
 	expect_equal(debug_multi$num_errors, rep(0L, 16L))

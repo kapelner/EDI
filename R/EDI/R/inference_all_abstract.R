@@ -266,6 +266,8 @@ Inference = R6::R6Class("Inference",
 			i$.__enclos_env__$private$cached_values = list()
 			i$.__enclos_env__$private$cached_values$m_cache = private$cached_values$m_cache
 			i$.__enclos_env__$private$cached_values$t0s_rand = private$cached_values$t0s_rand
+			i$.__enclos_env__$private$cached_values$t0s_rand_slopes = private$cached_values$t0s_rand_slopes
+			i$.__enclos_env__$private$cached_values$t0s_rand_permutation_signature = private$cached_values$t0s_rand_permutation_signature
 			i$.__enclos_env__$private$cached_values$likelihood_test_eval_cache = list()
 			if (!is.null(private$active_resampling_operation)) {
 				ws_val = edi_warm_start_dispatch_policy(class(self)[1], private$active_resampling_operation, n = private$des_obj$get_t())

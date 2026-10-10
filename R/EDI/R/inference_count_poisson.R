@@ -863,13 +863,6 @@ InferenceCountPoisson = define_inference_class(
 				private$cached_values$likelihood_test_context = NULL
 			}
 			attempt$fit
-		},
-		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
-			w_mat = permutations$w_mat
-			if (is.null(w_mat)) return(NULL)
-			X_covars = private$X
-			log_transform = transform_responses == "log"
-			compute_poisson_distr_parallel_cpp(X_covars, as.numeric(y), w_mat, as.numeric(delta), log_transform, private$n_cpp_threads(ncol(w_mat)))
 		}
 	)
 )

@@ -1,6 +1,6 @@
 # TODO-8b tests (design_fixed_optimal.md): BRT wiring for DesignFixedOptimal
-# -- the prepare_for_resampling_replay() hook, the reduced per-replicate
-# solver profile (solver_args$brt_solver/brt_max_iter/brt_n_chains), and the
+# -- the prepare_for_resampling_replay() hook, the observed-profile default
+# (with explicit solver_args$brt_* overrides), and the
 # testing-plan item 7 end-to-end checks: the BRT runs, per-replicate w*_b
 # varies beyond mere mirroring, and results are seed-deterministic.
 
@@ -19,25 +19,25 @@ test_that("prepare_for_resampling_replay is a harmless no-op on ordinary designs
 	expect_invisible(des$prepare_for_resampling_replay())
 })
 
-test_that("the replicate profile switches solves to reduced annealing (default) or exact ompr (opt-in)", {
+test_that("the replicate profile matches the observed solve by default, with explicit overrides", {
 	skip_on_cran()
-	des = brt_optimal_design(n = 12, seed = 61, solver_args = list(brt_max_iter = 500L))
+	des = brt_optimal_design(n = 12, seed = 61)
 	des$prepare_for_resampling_replay()
 	des$assign_w_to_all_subjects()
 	diag = des$get_optimization_diagnostics()
 	expect_identical(diag$solver_profile, "brt_replicate")
-	expect_identical(diag$solver, "annealing")
-	expect_identical(diag$optimum_certificate, "annealing_converged")
-	expect_identical(diag$n_chains, 1L)
-	expect_identical(diag$max_iter, 500L)
+	expect_identical(diag$solver, "ompr")
+	expect_identical(diag$optimum_certificate, "global")
 
-	des2 = brt_optimal_design(n = 12, seed = 62, solver_args = list(brt_solver = "ompr"))
+	des2 = brt_optimal_design(n = 12, seed = 62, solver_args = list(brt_solver = "annealing", brt_n_chains = 1L, brt_max_iter = 500L))
 	des2$prepare_for_resampling_replay()
 	des2$assign_w_to_all_subjects()
 	diag2 = des2$get_optimization_diagnostics()
 	expect_identical(diag2$solver_profile, "brt_replicate")
-	expect_identical(diag2$solver, "ompr")
-	expect_identical(diag2$optimum_certificate, "global")
+	expect_identical(diag2$solver, "annealing")
+	expect_identical(diag2$optimum_certificate, "annealing_converged")
+	expect_identical(diag2$n_chains, 1L)
+	expect_identical(diag2$max_iter, 500L)
 })
 
 test_that("without the hook, solves stay on the main profile", {

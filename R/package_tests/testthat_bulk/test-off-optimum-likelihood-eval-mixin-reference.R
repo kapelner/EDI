@@ -15,8 +15,9 @@ library(EDI)
 #   3. evaluate_information_at()'s source = "auto" resolves via get_default_information_source(),
 #      with a "legacy" result mapped to "observed" before being passed through; an explicit source is
 #      passed straight through without consulting get_default_information_source() at all.
-#   4. evaluate_penalized_neg_loglik_at() combines both evaluators into
-#      neg_loglik(theta) + 0.5*log|I(theta)|, matching an independently hand-computed reference value,
+#   4. evaluate_penalized_neg_loglik_at() combines both evaluators into the
+#      Firth/Jeffreys negative objective, neg_loglik(theta) - 0.5*log|I(theta)|,
+#      matching an independently hand-computed reference value,
 #      and returns Inf (not an error) for a singular or otherwise non-finite-log-determinant
 #      information matrix.
 
@@ -102,7 +103,7 @@ test_that("evaluate_information_at(): source = \"auto\" resolves via get_default
 	expect_error(unsupported$evaluate_information_at(c(0, 0)), "OffOptimumProbe.*does not support off-optimum information-matrix")
 })
 
-test_that("evaluate_penalized_neg_loglik_at() matches an independently hand-computed neg_loglik + 0.5*log|I|, and returns Inf (not an error) for a singular/non-finite-log-det information matrix", {
+test_that("evaluate_penalized_neg_loglik_at() matches the Firth neg_loglik - 0.5*log|I| objective, and returns Inf (not an error) for a singular/non-finite-log-det information matrix", {
 	theta0 <- c(3, -1)
 	info_mat <- matrix(c(4, 1, 1, 6), 2, 2)
 	spec <- list(
@@ -110,7 +111,7 @@ test_that("evaluate_penalized_neg_loglik_at() matches an independently hand-comp
 		information_at = function(theta, source) info_mat
 	)
 	p <- make_probe(spec)$.__enclos_env__$private
-	ref <- sum((theta0 - c(1, 2))^2) + 0.5 * log(det(info_mat))
+	ref <- sum((theta0 - c(1, 2))^2) - 0.5 * log(det(info_mat))
 	expect_equal(p$evaluate_penalized_neg_loglik_at(theta0), ref, tolerance = 1e-10)
 
 	singular_spec <- list(neg_loglik_at = function(theta) sum(theta^2), information_at = function(theta, source) matrix(0, 2, 2))

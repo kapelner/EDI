@@ -494,8 +494,12 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 			X0 = X_fit
 			X1[, 2L] = 1
 			X0[, 2L] = 0
-			risk1 = stats::weighted.mean(stats::plogis(as.numeric(X1 %*% coef_hat)), w_fit)
-			risk0 = stats::weighted.mean(stats::plogis(as.numeric(X0 %*% coef_hat)), w_fit)
+			# Bootstrap weights perturb the logistic-model fit, but the g-computation
+			# estimand remains standardized over the empirical covariate distribution.
+			# This matches the non-KK incidence, proportion, and ordinal g-computation
+			# implementations and their sample-conditional delta-method SEs.
+			risk1 = mean(stats::plogis(as.numeric(X1 %*% coef_hat)))
+			risk0 = mean(stats::plogis(as.numeric(X0 %*% coef_hat)))
 			if (!is.finite(risk1) || !is.finite(risk0)) return(NA_real_)
 			if (identical(private$get_estimand_type(), "RD")) return(risk1 - risk0)
 			if (risk1 > 0 && risk0 > 0) return(risk1 / risk0)

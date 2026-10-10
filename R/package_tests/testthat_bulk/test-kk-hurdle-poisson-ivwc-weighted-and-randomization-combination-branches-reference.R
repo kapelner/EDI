@@ -66,6 +66,26 @@ test_that("compute_estimate_with_bootstrap_weights(): both pieces succeed matche
 	expect_equal(est, w_star * 1.2 + (1 - w_star) * 0.9, tolerance = 1e-10)
 })
 
+test_that("estimate-only weighted bootstrap still requests both real component variances", {
+	f <- mk_fixture(41L)
+	calls <- new.env(parent = emptyenv())
+	unlockBinding("fit_hurdle_for_matched_pairs", f$priv)
+	f$priv$fit_hurdle_for_matched_pairs <- function(...) {
+		calls$matched <- list(...)
+		list(beta_hat = 1.2, se = sqrt(0.2))
+	}
+	unlockBinding("fit_poisson_for_reservoir", f$priv)
+	f$priv$fit_poisson_for_reservoir <- function(...) {
+		calls$reservoir <- list(...)
+		list(beta_hat = 0.9, ssq_hat = 0.5)
+	}
+	est <- f$inf$compute_estimate_with_bootstrap_weights(rep(1, f$n), estimate_only = TRUE)
+	w_star <- 0.5 / (0.5 + 0.2)
+	expect_equal(est, w_star * 1.2 + (1 - w_star) * 0.9, tolerance = 1e-10)
+	expect_false("se" %in% names(calls$matched))
+	expect_false("estimate_only" %in% names(calls$reservoir))
+})
+
 test_that("compute_treatment_estimate_during_randomization_inference(): matched-only piece succeeds gives beta_m", {
 	f <- mk_fixture(5L)
 	set_mocks(f$priv, 1.2, sqrt(0.2), NA_real_, NA_real_)
@@ -90,4 +110,30 @@ test_that("compute_treatment_estimate_during_randomization_inference(): both pie
 	est <- f$priv$compute_treatment_estimate_during_randomization_inference(estimate_only = TRUE)
 	w_star <- 0.5 / (0.5 + 0.2)
 	expect_equal(est, w_star * 1.2 + (1 - w_star) * 0.9, tolerance = 1e-10)
+})
+
+test_that("estimate-only ordinary and randomization paths preserve real IVWC weights", {
+	for (mode in c("ordinary", "randomization")) {
+		f <- mk_fixture(if (mode == "ordinary") 42L else 43L)
+		calls <- new.env(parent = emptyenv())
+		unlockBinding("fit_hurdle_for_matched_pairs", f$priv)
+		f$priv$fit_hurdle_for_matched_pairs <- function(...) {
+			args <- list(...); calls$matched <- args
+			list(beta_hat = 1.2, se = if (isFALSE(args$se)) 1 else sqrt(0.2))
+		}
+		unlockBinding("fit_poisson_for_reservoir", f$priv)
+		f$priv$fit_poisson_for_reservoir <- function(...) {
+			args <- list(...); calls$reservoir <- args
+			list(beta_hat = 0.9, ssq_hat = if (isTRUE(args$estimate_only)) 1 else 0.5)
+		}
+		est <- if (mode == "ordinary") {
+			f$inf$compute_estimate(estimate_only = TRUE)
+		} else {
+			f$priv$compute_treatment_estimate_during_randomization_inference(estimate_only = TRUE)
+		}
+		w_star <- 0.5 / (0.5 + 0.2)
+		expect_equal(est, w_star * 1.2 + (1 - w_star) * 0.9, tolerance = 1e-10)
+		expect_false("se" %in% names(calls$matched))
+		expect_false("estimate_only" %in% names(calls$reservoir))
+	}
 })

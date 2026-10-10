@@ -84,7 +84,7 @@ InferenceMixinOffOptimumLikelihoodEval = list(
 
 		# Convenience combining the two evaluators into a single scalar
 		# Firth/Jeffreys-penalized negative log-likelihood,
-		# neg_loglik(theta) + 0.5 * log|I(theta)|. Returns Inf (rather than
+		# neg_loglik(theta) - 0.5 * log|I(theta)|. Returns Inf (rather than
 		# erroring) when the information matrix is singular or otherwise
 		# produces a non-finite log-determinant, so this can be handed
 		# directly to an optimizer -- including a derivative-free one --
@@ -102,7 +102,7 @@ InferenceMixinOffOptimumLikelihoodEval = list(
 			if (!is.finite(log_det)) {
 				return(Inf)
 			}
-			neg_loglik + 0.5 * log_det
+			neg_loglik - 0.5 * log_det
 		}
 	)
 )

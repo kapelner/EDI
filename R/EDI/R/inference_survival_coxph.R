@@ -638,7 +638,7 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			}
 			surv_obj = survival::Surv(private$y, private$dead)
 			tryCatch({
-				coxph_mod = suppressWarnings(survival::coxph(surv_obj ~ X_fit))
+				coxph_mod = suppressWarnings(survival::coxph(surv_obj ~ X_fit, ties = "breslow"))
 				if (estimate_only) {
 					coefs = stats::coef(coxph_mod)
 					if (private$cox_coefficients_extreme(coefs)) {

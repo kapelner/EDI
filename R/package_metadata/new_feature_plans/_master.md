@@ -1598,10 +1598,15 @@ same day, high confidence real): `../bug_fix_plans/
 kk_weibull_marginal_jackknife_outliers.md → TODO-1..8`. Apparent "bias"
 (mean -0.080) is actually RMSE (2.154), ~27× the bias magnitude — a small
 number of catastrophic single-fold outliers (raw values -38.0, +17.5 found
-directly), not a mean shift. Root cause hypothesized as an unstable fit on
-a degenerate leave-one-out fold configuration, analogous in shape to
-`TODO-4`'s unguarded-inverse pattern. Release index: `release_v1_0_5.md →
-TODO-26`.
+directly), not a mean shift. **Resolved at source level 2026-10-08:** the
+seed-1 KK14 regression identifies a leave-matched-set-out fold that removes
+the treatment arm's sole event; the old fit returned a wild finite 17.1343525
+despite reporting convergence. The class now refuses ordinary or weighted
+refits without an observed event in both positive-weight treatment arms,
+returning a typed nonestimable result instead. Its focused source-loaded
+coverage is recorded in the linked plan. The bias/RMSE replay and installed
+comprehensive-results regeneration remain release gates. Release index:
+`release_v1_0_5.md → TODO-26`.
 
 **Reused bootstrap worker never resets `cached_design_matrix` — the
 single highest-leverage finding of this whole audit arc** (added

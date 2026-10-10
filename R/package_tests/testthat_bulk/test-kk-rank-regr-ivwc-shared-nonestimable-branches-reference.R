@@ -79,3 +79,11 @@ test_that("both pieces succeed within reasonable bounds: the IVWC combination ma
 	expect_equal(f$priv$cached_values$s_beta_hat_T, sqrt(0.2 * 0.5 / (0.2 + 0.5)))
 	expect_false(f$inf$is_nonestimable("estimate"))
 })
+
+test_that("rank-regression IVWC extracts the unrounded ISMB covariance SE", {
+	f <- mk_fixture(5L)
+	ismb <- matrix(c(0.04, 0.01, 0.01, 0.09), 2L,
+			dimnames = list(c("(Intercept)", "w"), c("(Intercept)", "w")))
+	mod <- list(covmat = list(ISMB = ismb))
+	expect_equal(f$priv$extract_term_se(mod, "w"), 0.3)
+})

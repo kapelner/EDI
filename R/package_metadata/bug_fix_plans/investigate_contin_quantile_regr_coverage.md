@@ -327,6 +327,30 @@ randomization step, not the quantile fit, is where `X` re-enters).
 hypotheses narrow the search space further but this is still not a
 confirmed, fixable bug.
 
+## Final disposition (2026-10-09)
+
+No package defect is supported by this investigation. The raw treatment
+shift is the correct median-effect truth; the same undercoverage is present
+under ordinary Bernoulli assignment; the class's reported standard error is
+the documented `quantreg` `"nid"` estimate; and three proposed data/design
+triggers were directly refuted. The remaining pattern is finite-sample
+calibration of an asymptotic sparsity estimate across heterogeneous empirical
+response distributions, while percentile methods show mild conservativeness.
+That is a method property, not evidence of an incorrect implementation.
+
+The last cache hypothesis is also ruled out in current source. Both sample
+loading (`load_bootstrap_sample_into_design_backed_worker`) and assignment
+replay (`compute_fast_randomization_distr_via_reused_worker`) call
+`reset_reused_worker_private_caches()` with the appropriate change type. Its
+reset inventory includes `cached_design_matrix`,
+`cached_w_for_design_matrix`, the rank-reduction cache, and fitted-model
+caches. The weighted quantile path additionally calls
+`reduce_design_matrix_for_quantile(..., reuse_factorizations = FALSE)`.
+Existing worker-reset and continuous-quantile weighted-refit regressions cover
+those contracts. There is therefore no remaining actionable source change;
+future changes to CI calibration would be a separately specified statistical
+feature rather than a v1.0.5 bug fix.
+
 ## TODOs
 
 - [x] TODO-1 (RESOLVED 2026-09-24, REFUTED): design-pooling is not the
@@ -350,7 +374,7 @@ confirmed, fixable bug.
   Opposite of the predicted ranking. See "Follow-up investigation, fourth
   pass" above. Three hypotheses (design-pooling, dataset-shape, tie-rate)
   now refuted in a row; root cause remains genuinely open.
-- [ ] TODO-3 (RESOLVED 2026-09-24, see above): confirmed the resampling
+- [x] TODO-3 (RESOLVED 2026-09-24, see above): confirmed the resampling
   `studentized`/`symmetric-percentile-t` methods share the exact same
   `"nid"`-based SE machinery as `asymp`/`wald`, via
   `.extract_se_from_rq_fit()` (`R/EDI/R/helper_matching.R:172-190`),
@@ -358,11 +382,11 @@ confirmed, fixable bug.
   refutes TODO-20's tie-sensitivity hypothesis as a SUFFICIENT
   explanation (asymp/wald involve no resampling at all) while not ruling
   it out as a possible compounding factor for the bootstrap-only methods.
-- [ ] TODO-4: Confirm this class is unaffected by `TODO-28`
-  (`cached_design_matrix` staleness) — not checked. Given the failure
-  spans `asymp`/`wald` (non-bootstrap) too, TODO-28 alone cannot be the
-  whole explanation even if it partially applies to the bootstrap-family
-  subset, but should still be ruled in/out for completeness.
+- [x] TODO-4 (RESOLVED 2026-10-09, REFUTED): the shared reusable-worker
+  loaders invalidate `cached_design_matrix` and every dependent fit/rank
+  cache whenever the sample or assignment changes. The class's weighted path
+  also disables factorization reuse explicitly. `TODO-28` staleness does not
+  apply.
 
 ## Standing constraints
 

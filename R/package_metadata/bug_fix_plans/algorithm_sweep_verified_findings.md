@@ -47,6 +47,13 @@ are fixed here because they are still exported and registered.
   vacuous `0 <= sum(ws[1:4]) <= 4` check in `test-designs.R`.
   **Default change:** randomization and bootstrap p-values and CIs for this design.
 
+  **Resolved 2026-10-09.** `draw_ws_raw()` now derives realized per-row
+  stratum keys and calls `random_block_size_redraw_w_cpp()` independently per
+  requested draw, using fresh local queues without mutating `w`, `t`, or the
+  live `strata_states` environment. The focused decomposition/state regression
+  passes 127 expectations, `test-designs.R` passes 103, and the all-design
+  seed suite passes 25 under `pkgload::load_all(..., compile = FALSE)`.
+
 - [x] TODO-2 (F1b): **`sample(private$block_sizes, 1)` R gotcha corrupts real
   assignments** (`design_seq_one_by_one_random_block_size.R:129`).
   `assertIntegerish(block_sizes, min.len = 1)` accepts one value, and
@@ -56,17 +63,12 @@ are fixed here because they are still exported and registered.
   Grep the package for other `sample(x, 1)` on possibly length-1 vectors.
   **Test:** `block_sizes = 4` gives perfectly balanced consecutive blocks.
 
-  Implemented 2026-10-09: `draw_ws_raw()` now derives the realized per-row
-  stratum keys and calls `random_block_size_redraw_w_cpp()` independently per
-  requested draw, so replay uses fresh local queues and never mutates `w`, `t`,
-  or the live `strata_states` environment. Real assignment now samples an index
-  into `block_sizes`, avoiding base R's length-one `sample()` special case; an
+  **Resolved 2026-10-09.** Real assignment now samples an index into
+  `block_sizes`, avoiding base R's length-one `sample()` special case; an
   exhaustive R-source grep found no second possibly-length-one `sample(x, 1)`
-  call. The focused decomposition/state regression passes 127 expectations,
-  `test-designs.R` passes 103, and the all-design seed suite passes 25 under
-  `pkgload::load_all(..., compile = FALSE)`.
+  call. The shared redraw validation is recorded under TODO-1.
 
-- [ ] TODO-3 (F8): **Ridit misscores an interior level that is absent from the
+- [x] TODO-3 (F8, fixed 2026-10-09): **Ridit misscores an interior level that is absent from the
   reference arm** (`src/fast_ridit_analysis.cpp:76-81`,
   `src/ridit_distr_parallel.cpp:59-61`). It scores ½(R_{k−1}+R_k) instead of the
   reference mass below the level, R_{k−1} + ½p_{k−1}, which breaks the documented
@@ -77,6 +79,14 @@ are fixed here because they are still exported and registered.
   **Test:** a fixture whose control arm omits an interior level, asserting
   equality with Mann–Whitney. The existing reference test's fixture never omits
   a level.
+
+  **Resolution:** both native scoring implementations now retain the cumulative
+  reference mass through each observed category and use that mass for a missing
+  interior category. The regression covers direct scores, the analysis kernel,
+  and the randomization, bootstrap, and randomization-bootstrap distribution
+  kernels against the independent pairwise Mann–Whitney definition. Source-only
+  checks pass; executing the new native regression awaits the maintainer's
+  independently authorized rebuild.
 
 - [ ] TODO-4 (F9): **Newcombe p-value returns 1 for strong effects, and small p
   are inflated** (`inference_incidence_newcombe_univ.R:~157`). The inversion's
@@ -90,6 +100,18 @@ are fixed here because they are still exported and registered.
   `test-incid-newcombe-hybrid-wilson-score-reference.R:84-88` currently pins
   p = 1 and must change. Add a strong-effect and a precision regression.
 
+  **Implementation status (2026-10-09):** the inversion now searches
+  `log(alpha)` from `log(1e-300)` to `log(1 - eps)` at `1e-12` tolerance and
+  classifies the two unbracketed endpoint cases explicitly (outside at the
+  floor returns the floor; inside near one returns 1). Its inversion uses a
+  stable R Wilson implementation with `qnorm(alpha / 2, lower.tail = FALSE)`:
+  the native CI helper's `1 - alpha / 2` expression rounds to one in the
+  necessary tail and would otherwise produce an infinite quantile. The
+  reference test now covers 90/100 vs 10/100 and 75/100 vs 40/100 as well as
+  the endpoint behavior. Test execution remains pending because the current
+  worker's R executable cannot start without `libmkl_gf_lp64.so.2`; no build,
+  reinstall, or native change is required for this TODO.
+
 - [ ] TODO-5 (F12, OneLik): **`InferenceContinKKRobustRegrOneLik` randomization
   null uses a different estimator than the observed statistic.** In
   estimate-only mode the null draws fit Huber "M". The observed statistic is
@@ -99,6 +121,11 @@ are fixed here because they are still exported and registered.
   the SE in estimate-only mode (warm-start bisquare from the cached full fit if
   speed matters). **Test:** randomization statistic at the observed `w` equals
   the reported estimate, regardless of call order.
+  **Source implementation 2026-10-10:** the Rcpp and MASS paths now retain
+  `rlm_method` for estimate-only fits and skip only standard-error extraction;
+  the stale documentation and a direct MM estimate-only parity regression were
+  updated.  Focused randomization execution remains pending because this host's
+  `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-6 (F21): **Dependent-censoring bootstrap CI is outcome-dependent and
   biased toward non-rejection** (`inference_survival_dep_cens_transform.R:~363`,
@@ -111,6 +138,12 @@ are fixed here because they are still exported and registered.
   sanity checks (non-finite values, too few usable replicates, bootstrap-distribution
   diagnostics). Fix the docs. **Tests:** two reference tests assert the biased
   behavior and must be rewritten. Add a test that a CI excluding 0 is returned unchanged.
+  **Source implementation 2026-10-10:** percentile, basic, BCa, and
+  studentized intervals retain all finite bootstrap endpoints; the zero-based
+  Wald substitution, ±2 cutoff, and studentized exclusion rule are removed.
+  Component contracts, roxygen, and focused references now cover unchanged
+  rejecting/wide intervals and numerical failure.  Execution remains pending
+  because this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
 ## Group B — resampling calibrated against the wrong target
 
@@ -151,8 +184,23 @@ are fixed here because they are still exported and registered.
   log-OR shift. The IVWC sibling gets the identical BB distribution.
   **Fix:** add weights to `fast_clogit_plus_glmm_cpp` (per-pair on the clogit
   term, per-row in the GLMM) and use it for replicates, or disable BB.
-  **Tests:** `test-prop-kk-glmm-weighted-refit-reference.R` pins the glmmTMB
-  surrogate and must change.
+  **Tests:** add a direct weighted-joint-kernel/class-dispatch regression;
+  `test-prop-kk-glmm-weighted-refit-reference.R` covers the separate
+  proportion-only GLMM class and is not evidence for this joint estimator.
+
+  **Source implementation completed 2026-10-10; execution pending rebuild.**
+  `fast_clogit_plus_glmm_cpp` now accepts strictly positive finite likelihood
+  weights for the discordant-pair and concordant/reservoir blocks.  The
+  conditional-logit log likelihood, score, and information use one mean
+  matched-pair weight per discordant pair; every GH-integrated GLMM
+  contribution uses its row weight.  The shared incidence/proportion bootstrap
+  path now removes zero-weight likelihood rows and calls that weighted 20-node
+  joint kernel rather than `glmmTMB`.  A focused joint-kernel/class-dispatch
+  regression was added beside the independent data-assembly reference.  This
+  native API change has not been compiled or run: no rebuild/install permission
+  was granted, and this host's `Rscript` cannot start because
+  `libmkl_gf_lp64.so.2` is unavailable.  Keep this item unchecked pending an
+  authorized rebuild and the focused plus comprehensive regeneration.
 
 - [ ] TODO-9 (F2): **`.cox_simulate_stratified` hazard mis-scaling**
   (`helper_survival_fits.R:592-615`). The baseline is normalized by the stratum's
@@ -164,6 +212,11 @@ are fixed here because they are still exported and registered.
   parametric-bootstrap LR p-values and CIs (non-default; bites with covariates or δ ≠ 0).
   **Fix:** per-stratum `r_s = exp(eta[idx] − max(eta[idx]))`. **Test:** a
   simulate-then-refit recovery test across strata.
+  **Source implementation 2026-10-10:** simulation now normalizes subject
+  risks within the active stratum, exactly matching `.breslow_hazard()`; a
+  deterministic two-stratum oracle with distinct risk maxima compares each
+  slice to the single-stratum simulator. Runtime execution remains pending
+  because this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-10 (F17): **ZOIB R side uses plogis-then-normalize on softmax
   coefficients.** The C++ likelihood is a softmax with mid as the reference
@@ -176,6 +229,13 @@ are fixed here because they are still exported and registered.
   `d = 1 + e^{a0} + e^{a1}`, `p0 = e^{a0}/d`, `p1 = e^{a1}/d`, `p_mid = 1/d`.
   **Test:** a `marginal_mean_diff` test against a softmax-consistent reference
   (none exists today).
+  **Source implementation 2026-10-10:** a stable reference-category softmax
+  helper now supplies both `zoib_mean_from_coefs()` and
+  `simulate_under_lik_null()`, replacing their independent-logit
+  plogis-normalize calculations. The marginal-estimand reference now derives
+  the same softmax independently. This default parametric-bootstrap and
+  non-default marginal-estimand correction awaits execution on a usable R
+  runtime, so the item remains unchecked.
 
 - [ ] TODO-11 (F10): **Zhang exact CI bracket is never validated**
   (`inference_helpers_zhang.R:~44,180,205`). The search bracket is the 2α Wald CI
@@ -188,6 +248,16 @@ are fixed here because they are still exported and registered.
   **Fix:** expand the bracket geometrically while p(outside) > α, return ±Inf at
   the cap, and stop on interval width (or tol around 1e-6). **Test:** zero-cell and
   too-narrow-bracket fixtures.
+
+  **Source implementation completed 2026-10-10; execution pending.**  The
+  shared Zhang bisection now expands either Wald-derived endpoint geometrically
+  until it is outside the acceptance region, returns the appropriate infinite
+  endpoint if the finite log-odds cap remains accepted, and uses a parameter
+  interval tolerance capped at `1e-6` (rather than the old default 0.005
+  p-value residual).  Both direct exact and randomization-CI callers inherit
+  this helper; their public default now requests `1e-6`.  Focused source tests
+  cover a too-narrow bracket and an unbounded tail.  They were not executed:
+  `Rscript` cannot start on this host because `libmkl_gf_lp64.so.2` is absent.
 
 - [ ] TODO-12 (F23): **`DesignFixedOptimal` BRT replays a weaker solver than
   produced the observed allocation.** Replicates always use annealing with
@@ -202,6 +272,14 @@ are fixed here because they are still exported and registered.
   conservativeness. Interacts with `algorithm_choice_audit.md → TODO-20`
   (exact enumeration would make the replicate solver exact at n ≤ ~30).
 
+  **Source implementation completed 2026-10-10; execution pending.**  BRT
+  replays now inherit the ordinary observed-assignment solver and budget unless
+  a caller explicitly supplies `solver_args$brt_solver`; the old implicit
+  `1 × 2000` annealing fallback is gone.  The BRT wiring regression now checks
+  the default certified solve and an explicit legacy annealing override.  No
+  R execution was possible on this host (`libmkl_gf_lp64.so.2` is missing), so
+  retain this unchecked pending focused and operating-characteristic runs.
+
 ## Group C — legacy IVWC classes (still exported)
 
 - [ ] TODO-13 (F22): **`InferenceSurvivalKKRankRegrIVWC` always returns NA**
@@ -214,6 +292,14 @@ are fixed here because they are still exported and registered.
   `sqrt(diag(mod$covmat$ISMB))` rather than the rounded `summary()`, and let the
   estimate-only path combine with cached weights. **Tests:** the migration golden
   passes only because both sides are NA. Add a finite-output test.
+  **Source implementation completed 2026-10-10; execution pending.** Both
+  matched and reservoir `aftsrr` fits now request `ISMB` with 100 bootstrap
+  replicates whenever a component variance is absent, and extract the
+  unrounded treatment SE from `mod$covmat$ISMB`. Estimate-only resampling
+  reuses finite cached component variances instead of overwriting them with
+  `NA`; a later full call recomputes its final SE after an estimate-only call.
+  A focused reference pins the direct ISMB covariance extraction. It was not
+  run because `Rscript` cannot load `libmkl_gf_lp64.so.2` on this host.
 
 - [ ] TODO-14 (F15): **`InferenceAllKKMeanDiffIVWC` randomization null is the
   plain mean difference** (`inference_all_KK_mean_diff_IVWC.R:~160-163`).
@@ -222,7 +308,15 @@ are fixed here because they are still exported and registered.
   null (coordinator re-ran). **Fix:** fill `m_mat` with the design's match ids
   (fixed across re-randomizations), not zeros. **Tests:**
   `test-kk-mean-diff-ivwc-fast-randomization-distr-and-bootstrap-type-bug-reference.R`
-  pins the zeros branch as a contract and must change.
+  must assert the compound, not zeros, branch.
+
+  **Source implementation completed 2026-10-10; execution pending.**  A
+  missing `m_mat` from the matching permutation generator now restores the
+  inference object's fixed match ids (with unmatched rows encoded as zero) in
+  every randomization draw, instead of manufacturing an all-unpaired null.
+  The focused regression now checks this path against the observed compound
+  IVWC estimate.  It was not run because `Rscript` cannot load
+  `libmkl_gf_lp64.so.2` on this host.
 
 - [ ] TODO-15 (F7): **`InferenceAllKKWilcoxIVWC` HL variance is 2.09× too small**
   (`src/fast_wilcox_hl.cpp:~250-285` and its R mirror). Both component formulas
@@ -232,6 +326,15 @@ are fixed here because they are still exported and registered.
   consistent τ̂, e.g. the SE from the distribution-free Lehmann interval
   (`wilcox.test(conf.int = TRUE)`) per component, or a Koul–Sievers–McKean τ̂ with
   the correct factor. **Test:** a coverage smoke test.
+  **Source implementation completed 2026-10-10; execution pending.** The R
+  fit path and the native fast-bootstrap path now use the same normal-model
+  calibrated HL variances: `2*pi/3 * Var(Walsh)/m` for matched pairs and
+  `pi * Var(Y_T-Y_C) * (n_T+n_C)/(6*n_T*n_C)` for the reservoir. The
+  class-level bootstrap-CI override that returned the asymptotic interval was
+  removed, restoring the composed nonparametric bootstrap interval. A focused
+  regression pins both component formulas and rejects a bootstrap/Wald alias.
+  It was not run because `Rscript` cannot load `libmkl_gf_lp64.so.2` on this
+  host; the native half also requires an authorized rebuild before execution.
 
 - [ ] TODO-16 (F11): **KK hurdle-Poisson IVWC placeholder SEs of 1.0**
   (`inference_count_KK_cond_poisson.R:~364,419,449/470,165/177,274/284`). With
@@ -243,6 +346,15 @@ are fixed here because they are still exported and registered.
   in estimate-only paths, or fix `w*` from the observed variances and reuse it.
   **Tests:** the existing reference test mocks real variances and must exercise
   the estimate-only path.
+  **Source implementation completed 2026-10-10; execution pending.** All
+  three IVWC estimate-only paths now obtain the matched hurdle-GLMM and
+  reservoir Poisson variances before combining their estimates: ordinary,
+  weighted/Bayesian-bootstrap, and randomization. The formerly reachable
+  `1.0` placeholder branches were removed, so the fit helpers always return a
+  usable variance or fail the component. Focused mock regressions pin the
+  real-variance IVWC result and verify that the weighted path no longer asks
+  either helper for estimate-only fitting. No R test ran because this host's
+  `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-17 (F12, IVWC): **`InferenceContinKKRobustRegrIVWC` randomization
   p-value is always NA** on the default `use_rcpp` path. With
@@ -250,6 +362,16 @@ are fixed here because they are still exported and registered.
   the combined estimate is NA. A fresh `compute_estimate(estimate_only = TRUE)`
   is also NA. **Fix:** the same approach as TODO-5 (keep the method, compute or
   cache component variances).
+  **Source implementation completed 2026-10-10; execution pending.** The
+  matched-pair and reservoir fits now obtain their finite component variances
+  even when the outer IVWC call is estimate-only; only the final combined SE is
+  suppressed. This preserves the configured robust-fit method and lets
+  randomization combine the component estimates with its ordinary inverse
+  variance weight. A focused private-method regression asserts that
+  estimate-only calls request both component variances and retain the closed
+  form IVWC point estimate. It was not run because `Rscript` cannot load
+  `libmkl_gf_lp64.so.2` on this host, and native rebuild permission was not
+  requested.
 
 ## Group D — efficiency, documentation, coherence, robustness
 
@@ -262,8 +384,17 @@ are fixed here because they are still exported and registered.
   Rcpp/geepack parity. **Fix:** Pearson φ̂ = Σ w r²/(N − p), then α̂ = num/((den − p) φ̂).
   **Test:** tighten `test-kk-gee-parity.R` (Poisson α tolerance 6e-2 masks it;
   add strongly overdispersed Poisson and a proportion case).
+  **Source implementation completed 2026-10-10; execution pending rebuild.**
+  The native exchangeable-alpha estimator now calculates weighted Pearson
+  dispersion from all standardized residuals using `N - p` degrees of freedom,
+  applies it to the pairwise residual-correlation denominator, and retains the
+  existing bounded alpha safeguard. A strongly overdispersed Poisson
+  geepack-parity reference asserts the corrected alpha rather than allowing the
+  former near-0.95 clamp. This native edit has not been compiled or run because
+  no rebuild permission was granted and `Rscript` cannot load
+  `libmkl_gf_lp64.so.2` here.
 
-- [ ] TODO-19 (F25): **g-computation SE estimand is undocumented.** The
+- [x] TODO-19 (F25): **g-computation SE estimand is documented.** The
   delta method propagates β uncertainty only (`src/gcomp_speedups.cpp:244-266,
   453-470`, the KK R fallback, and the ordinal/proportion g-comp classes), so it
   targets the effect conditional on the sample covariates. The population SE is
@@ -271,13 +402,28 @@ are fixed here because they are still exported and registered.
   document the conditional target, or add the `var(r1 − r0)/n` term as an option.
   Also fix `InferenceIncidGCompRiskDiff`'s false roxygen sentence "no closed-form
   asymptotic standard error is used" (its Wald methods use `se_rd`).
+  **Resolution 2026-10-10:** the public incidence g-computation documentation
+  now identifies both the risk-difference and risk-ratio sandwich-plus-delta
+  SEs as conditional on the empirical covariate distribution used for
+  standardization.  It explicitly distinguishes that Wald inference from the
+  intentionally absent likelihood-ratio/score tier and states that the SE
+  does not include target-population covariate-distribution sampling
+  variation.  The existing sample-conditional estimand is retained; adding a
+  population-marginal variance option is outside this release's scope.
 
-- [ ] TODO-20 (F26): **Exact-binomial CI and p-value use different two-sided
-  rules.** The CI is Clopper–Pearson (central) but `zhang_exact_binom_pval_cpp` is
+- [x] TODO-20 (F26): **Exact-binomial CI and p-value use one two-sided
+  rule.** The CI is Clopper–Pearson (central) but `zhang_exact_binom_pval_cpp` is
   minlike. They disagree only when δ0 ≠ 0: d+ = 0, d− = 5, δ0 = 0.01 is inside the
   CI (−∞, 0.087) yet p = 0.0305 (13,110 disagreeing grid points for k = 5–40).
   **Fix:** one rule for both (central p to match CP, or a minlike/Blaker CI).
   `test-incidence-exact-binomial.R:36` pins CP. Add a coherence test.
+  **Resolution 2026-10-10:** `InferenceIncidExactBinomial` now uses the
+  equal-tail central binomial p-value directly, matching its
+  Clopper--Pearson interval for every null log odds ratio.  The exported
+  Zhang kernel retains its minlike definition for its distinct callers.  New
+  reference coverage pins the previously incoherent `d_+=0`, `d_-=5`,
+  `delta_0=0.01` case and confirms that its central p-value does not reject
+  when the null is in the interval.
 
 - [ ] TODO-21 (F6): **Jonckheere–Terpstra exact p-value can hang
   uninterruptibly** (`src/fast_jonckheere_terpstra.cpp:82-131`). The recursion
@@ -289,6 +435,16 @@ are fixed here because they are still exported and registered.
   seen). At minimum add an interrupt check plus a leaf-count guard falling back to
   the normal approximation with a warning. See
   `algorithm_choice_audit.md → TODO-15`.
+  **Source implementation completed 2026-10-10; execution pending rebuild.**
+  A polynomial constrained-composition preflight now caps direct exact
+  enumeration at one million allocations before recursion begins, and the
+  permitted recursion checks for R interrupts every 4096 leaves. The public
+  inference method catches only this capacity error, warns, and returns its
+  existing asymptotic normal p-value; direct kernel users receive the explicit
+  capacity error. A large 11-level regression asserts the guard without
+  entering recursion. This native edit has not been compiled or run because no
+  rebuild permission was granted and `Rscript` cannot load
+  `libmkl_gf_lp64.so.2` here.
 
 - [ ] TODO-22 (F3): **`std::shuffle` / `<random>` distributions make draws
   stdlib-dependent.** Algorithms are implementation-defined (libstdc++ vs libc++),
@@ -304,6 +460,11 @@ are fixed here because they are still exported and registered.
   `generate_permutations_ibcrd_cpp` so macOS CI catches drift.
   **Default change:** seed-pinned draws change once on whichever platform's
   library is not matched. See `algorithm_choice_audit.md → TODO-23`.
+  **Source progress 2026-10-09:** `RNG.h` now supplies portable
+  Fisher--Yates over `bounded_rand`; the native design/resampling sources no
+  longer use `std::shuffle` or `std::uniform_*` distributions. The fixed-seed
+  golden and rebuild/cross-platform execution remain required, so this plan
+  item remains unchecked.
 
 - [ ] TODO-23 (F19): **Firth penalty has the wrong sign** in
   `evaluate_penalized_neg_loglik_at`
@@ -311,6 +472,11 @@ are fixed here because they are still exported and registered.
   `neg_loglik + 0.5*log_det` and should be `−`. There are no callers today, and
   `test-off-optimum-likelihood-eval-mixin-reference.R` asserts the wrong sign.
   **Fix:** flip the sign in code, comment and test before anything calls it.
+  **Source implementation completed 2026-10-10; execution pending.** The
+  opt-in Firth/Jeffreys negative objective now returns
+  `neg_loglik - 0.5 * log|I|`; its explanatory comment and independent
+  hand-calculated reference were changed to the same sign. No R test ran
+  because `Rscript` cannot load `libmkl_gf_lp64.so.2` on this host.
 
 - [ ] TODO-24 (F4, partial; low priority): **Per-replicate seeds drawn with
   replacement from 31 bits** (`sample.int(.Machine$integer.max, B, replace = TRUE)`
@@ -318,9 +484,20 @@ are fixed here because they are still exported and registered.
   `rand_bootstrap.R:698`). Collision probability is about 2.3% at B = 1e4, giving an
   identical parametric-bootstrap replicate. Impact ≤ 1/B. **Fix:** draw without
   replacement, or use L'Ecuyer substreams.
+  **Source implementation 2026-10-10:** all three batch seed producers now
+  call `sample.int(..., B, replace = FALSE)`. Randomization-bootstrap first
+  creates one unique `w_seeds` vector, then attaches its corresponding seed
+  to each materialized draw, preserving replay semantics. A regression checks
+  that 31 generated BRT draws have unique, deterministic replay seeds. The
+  source test awaits execution because this host's `Rscript` cannot load
+  `libmkl_gf_lp64.so.2`; this low-priority item remains unchecked until then.
 
-- [ ] TODO-25 (F16, partial; low priority): **g-computation BB weighting
-  convention is inconsistent.** Non-KK incidence, proportion and ordinal
-  g-comp average predictions unweighted (the sample estimand, consistent with
-  their Wald SE); the KK version uses `weighted.mean`. About 1% effect. **Fix:**
-  choose one convention, apply it everywhere, and document it (pair with TODO-19).
+- [x] TODO-25 (F16, low priority): **g-computation Bayesian-bootstrap
+  weighting convention is consistent.** Non-KK incidence, proportion, and
+  ordinal g-computation average predictions equally over retained empirical
+  covariate rows (the sample-conditional estimand, consistent with their Wald
+  SE); the KK incidence implementation now does the same after its weighted
+  logistic refit.  This changes only the Bayesian-bootstrap/resampling
+  replicate standardization, not the ordinary estimate.  Its public KK
+  incidence documentation now makes the convention explicit; see also
+  TODO-19 for the corresponding Wald-SE target.

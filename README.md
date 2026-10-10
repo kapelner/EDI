@@ -499,6 +499,12 @@ three build modes, run:
 bash scripts/benchmark_randomization_ci_build_modes.sh
 ```
 
+For linear randomization statistics (mean difference, OLS, Lin, and the
+verified KK OLS one-likelihood estimator), a CI search computes one complete
+zero-effect null distribution and reuses exact affine shifts for every tested
+effect. To compare that reuse with the general refit-at-each-effect path over
+the supported size grid, run `Rscript R/benchmark/benchmark_randomization_ci_affine_reuse.R`.
+
 ## Local performance tuning
 
 Compiler flags aren't the only per-machine tuning `EDI` does. At runtime,

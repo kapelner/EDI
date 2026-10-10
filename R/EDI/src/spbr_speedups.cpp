@@ -32,7 +32,7 @@ NumericVector spbr_redraw_w_cpp(SEXP strata_keys_sexp, SEXP block_size_sexp, SEX
             for (int j = 0; j < n_T_per_block; ++j) new_block.push_back(1.0);
             for (int j = 0; j < n_C_per_block; ++j) new_block.push_back(0.0);
             
-            std::shuffle(new_block.begin(), new_block.end(), g);
+            edi_rng::fisher_yates_shuffle(new_block.begin(), new_block.end(), g);
             strata_blocks[key] = new_block;
         }
         
@@ -56,8 +56,7 @@ IntegerVector stratified_bootstrap_indices_cpp(SEXP strata_keys_sexp) {
         for (int i = 0; i < n; ++i) strata_map[strata_ids[i]].push_back(i + 1);
         for (auto const& [id, members] : strata_map) {
             const int m = members.size();
-            std::uniform_int_distribution<> dis(0, m - 1);
-            for (int j = 0; j < m; ++j) indices[current_idx++] = members[dis(gen)];
+            for (int j = 0; j < m; ++j) indices[current_idx++] = members[static_cast<int>(edi_rng::bounded_rand(gen, static_cast<std::uint32_t>(m)))];
         }
     } else {
         CharacterVector strata_keys = as<CharacterVector>(strata_keys_sexp);
@@ -68,11 +67,10 @@ IntegerVector stratified_bootstrap_indices_cpp(SEXP strata_keys_sexp) {
         }
         for (auto const& [key, members] : strata_map) {
             const int m = members.size();
-            std::uniform_int_distribution<> dis(0, m - 1);
-            for (int j = 0; j < m; ++j) indices[current_idx++] = members[dis(gen)];
+            for (int j = 0; j < m; ++j) indices[current_idx++] = members[static_cast<int>(edi_rng::bounded_rand(gen, static_cast<std::uint32_t>(m)))];
         }
     }
 
-    std::shuffle(indices.begin(), indices.end(), gen);
+    edi_rng::fisher_yates_shuffle(indices.begin(), indices.end(), gen);
     return indices;
 }

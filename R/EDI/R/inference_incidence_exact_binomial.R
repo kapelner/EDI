@@ -122,7 +122,17 @@ ExactBinomialIncidenceSource = list(
 			if (stats$d_plus + stats$d_minus <= 0L) {
 				return(1)
 			}
-			zhang_exact_binom_pval_cpp(stats$d_plus, stats$d_minus, delta_0)
+			if (!is.finite(delta_0)) return(NA_real_)
+			# Use the equal-tail (central) binomial rule.  ci_exact_binomial()
+			# is the corresponding Clopper--Pearson interval, so this test and
+			# interval are inversions of one another even away from delta_0 = 0.
+			# The exported zhang_exact_binom_pval_cpp() intentionally retains its
+			# minlike convention for Zhang's separate exact-test machinery.
+			d_total = stats$d_plus + stats$d_minus
+			p_0 = stats::plogis(delta_0)
+			p_lower = stats::pbinom(stats$d_plus, d_total, p_0)
+			p_upper = stats::pbinom(stats$d_plus - 1L, d_total, p_0, lower.tail = FALSE)
+			min(1, 2 * min(p_lower, p_upper))
 		},
 		ci_exact_binomial = function(alpha){
 			stats = private$get_exact_binomial_stats()
@@ -185,9 +195,9 @@ ExactBinomialIncidenceSource = list(
 #' ratio \eqn{\log\left((d_+ + 0.5)/(d_- + 0.5)\right)}; the confidence interval
 #' inverts the exact (Clopper-Pearson) binomial confidence interval for
 #' \eqn{d_+ / (d_+ + d_-)} against \eqn{1/2} (via \code{stats::binom.test}) onto
-#' the log-odds scale; and the two-sided p-value is an exact binomial test of
-#' \eqn{d_+} vs. \eqn{d_-} (via \code{zhang_exact_binom_pval_cpp}) against a
-#' null log odds ratio. This class is available for
+#' the log-odds scale. Its two-sided p-value uses the corresponding equal-tail
+#' (central) exact binomial rule against a null log odds ratio, so the interval
+#' and test invert one another for every null value. This class is available for
 #' \code{DesignFixedBinaryMatch} and KK matching-on-the-fly designs. For KK
 #' designs, only the matched-pair data are used and the reservoir is ignored.
 #' If there are no matched pairs, or no discordant pairs, the relevant

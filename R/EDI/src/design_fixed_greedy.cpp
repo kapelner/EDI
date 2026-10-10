@@ -100,7 +100,7 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
                 for (int i = n - 1; i > 0; i--)
                     std::swap(idx[static_cast<std::size_t>(i)],
                               idx[static_cast<std::size_t>(
-                                  std::uniform_int_distribution<int>(0, i)(rng))]);
+                                  edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(i + 1)))]);
                 for (int i = 0; i < nt; i++)
                     result(idx[static_cast<std::size_t>(i)], d) = 1;
             }
@@ -143,9 +143,6 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
         tid = omp_get_thread_num();
 #endif
         edi_rng::RRng                      rng(seeds[static_cast<std::size_t>(tid)]);
-        std::uniform_int_distribution<int> pick_nt(0, nt - 1);
-        std::uniform_int_distribution<int> pick_pair_dist(0, np > 0 ? np - 1 : 0);
-        std::bernoulli_distribution        coin(0.5);
 
         // Thread-local working buffers
         std::vector<int> w(n), treated(nt), control(nt), order(n);
@@ -158,7 +155,7 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
                 // ── Pair-constrained init: random coin-flip per pair ─────────
                 std::fill(w.begin(), w.end(), 0);
                 for (int k = 0; k < np; k++) {
-                    int side = coin(rng) ? 0 : 1;
+                    int side = static_cast<int>(edi_rng::bounded_rand(rng, 2U));
                     pair_cur_t[static_cast<std::size_t>(k)] = side;
                     w[static_cast<std::size_t>(pairs[static_cast<std::size_t>(k)][side])]     = 1;
                     w[static_cast<std::size_t>(pairs[static_cast<std::size_t>(k)][1 - side])] = 0;
@@ -166,10 +163,7 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
             } else {
                 // ── Random balanced init (Fisher-Yates) ──────────────────────
                 std::iota(order.begin(), order.end(), 0);
-                for (int i = n - 1; i > 0; i--)
-                    std::swap(order[static_cast<std::size_t>(i)],
-                              order[static_cast<std::size_t>(
-                                  std::uniform_int_distribution<int>(0, i)(rng))]);
+                edi_rng::fisher_yates_shuffle(order.begin(), order.end(), rng);
                 std::fill(w.begin(), w.end(), 0);
                 for (int i = 0; i < nt; i++) w[static_cast<std::size_t>(order[static_cast<std::size_t>(i)])] = 1;
 
@@ -258,7 +252,7 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
                 // ── Stochastic: run exactly n_iter random-pair steps
                 if (pair_mode) {
                     for (int it = 0; it < n_iter; it++) {
-                        const int k    = pick_pair_dist(rng);
+                        const int k    = static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(np)));
                         const int side = pair_cur_t[static_cast<std::size_t>(k)];
                         const int i    = pairs[static_cast<std::size_t>(k)][side];
                         const int j    = pairs[static_cast<std::size_t>(k)][1 - side];
@@ -278,8 +272,8 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
                     }
                 } else {
                     for (int it = 0; it < n_iter; it++) {
-                        const int ti = pick_nt(rng);
-                        const int ci = pick_nt(rng);
+                        const int ti = static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(nt)));
+                        const int ci = static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(nt)));
                         const int i  = treated[static_cast<std::size_t>(ti)];
                         const int j  = control[static_cast<std::size_t>(ci)];
 

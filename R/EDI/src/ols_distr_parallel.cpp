@@ -77,6 +77,14 @@ NumericVector compute_ols_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXd>& 
                         sum_wy += w_val * y_val;
                 }
 
+                // A treatment column with one arm absent is singular with
+                // the intercept. Match the R worker's non-estimable draw
+                // rather than returning an arbitrary QR solution.
+                if (sum_w == 0.0 || sum_w == static_cast<double>(n)) {
+                        res_ptr[b] = NA_REAL;
+                        continue;
+                }
+
                 Eigen::VectorXd Xt_w = X.transpose() * w_d;
 
                         Eigen::MatrixXd XtX(p_full, p_full);
@@ -99,6 +107,10 @@ NumericVector compute_ols_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXd>& 
                 Xty.tail(p_covars) = X.transpose() * y_sim;
 
                 Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(XtX);
+                if (qr.rank() < p_full) {
+                        res_ptr[b] = NA_REAL;
+                        continue;
+                }
                 Eigen::VectorXd beta = qr.solve(Xty);
                 res_ptr[b] = beta.allFinite() && beta.size() > 1 ? beta[1] : NA_REAL;
         }

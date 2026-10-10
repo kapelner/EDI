@@ -42,12 +42,38 @@ zhang_combine_exact_pvals = function(p_M, p_R, m, nRT, nRC, method){
 }
 
 zhang_bisect_ci_boundary = function(p_fn, inside, outside, pval_th, tol){
-	for (iter in seq_len(50L)){
-		mid   = (inside + outside) / 2
-		p_mid = tryCatch(p_fn(mid), error = function(e) NA_real_)
-		if (is.na(p_mid)) p_mid = 0
+	# A finite Wald-derived initial endpoint is merely a starting scale, not a
+	# valid inversion bracket.  Exact zero-cell tables in particular can have an
+	# infinite endpoint, so expand toward the requested tail until it rejects;
+	# if even the numerically safe log-odds cap remains inside, that endpoint is
+	# genuinely unbounded on this scale.
+	p_at = function(delta){
+		p = tryCatch(p_fn(delta), error = function(e) NA_real_)
+		if (is.na(p) || !is.finite(p)) 0 else p
+	}
+	direction = sign(outside - inside)
+	if (!is.finite(direction) || direction == 0) direction = 1
+	max_abs_delta = log(.Machine$double.xmax) / 2
+	step = max(abs(outside - inside), 1)
+	outside = inside + direction * step
+	p_outside = p_at(outside)
+	while (p_outside > pval_th && abs(outside) < max_abs_delta){
+		step = min(2 * step, max_abs_delta + abs(inside))
+		outside = inside + direction * step
+		if (abs(outside) > max_abs_delta) outside = direction * max_abs_delta
+		p_outside = p_at(outside)
+	}
+	if (p_outside > pval_th) return(direction * Inf)
 
-		if (abs(p_mid - pval_th) < tol || abs(outside - inside) < 1e-8) break
+	# `pval_epsilon` historically controlled a very loose p-value residual
+	# (0.005 by default).  Endpoint accuracy instead follows the parameter-scale
+	# bracket; cap a legacy caller's value at 1e-6 for a stable exact CI.
+	width_tol = min(max(as.numeric(tol)[1L], 1e-12), 1e-6)
+	for (iter in seq_len(100L)){
+		mid   = (inside + outside) / 2
+		p_mid = p_at(mid)
+
+		if (abs(p_mid - pval_th) <= width_tol || abs(outside - inside) < width_tol) break
 
 		if (p_mid > pval_th){
 			inside  = mid

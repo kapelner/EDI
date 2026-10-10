@@ -73,9 +73,9 @@ never lands exactly on 0 for arithmetic reasons a median-of-ties estimator
 does. Confirms this is specific to the Hodges-Lehmann estimator, not a
 shared mixin issue.
 
-## Proposed fix — two options
+## Initially proposed fixes — neither is a safe generic v1.0.5 patch
 
-**Option A (recommended) — mid-p / tie-splitting correction.** The
+**Option A (initial candidate; generic rewrite ruled out by TODO-2) — mid-p / tie-splitting correction.** The
 standard textbook fix for a permutation statistic landing exactly on a
 boundary/mode of its own null distribution:
 ```r
@@ -84,18 +84,19 @@ p = min(1, 2 * min(
   mean(t0s < t) + 0.5 * mean(t0s == t)
 ))
 ```
-This is likely a fix to the **generic** `compute_rand_two_sided_pval`/
-bootstrap-family formula (shared machinery), not something patched only in
-this class's file — worth checking whether other classes with discrete or
-tie-prone statistics could hit the same boundary-collapse pattern on
-sufficiently tied data, in which case the generic fix protects all of
-them, not just this one.
+This initially looked like a fix to the **generic** `compute_rand_two_sided_pval`/
+bootstrap-family formula. TODO-2 established that the inclusive-tail rule has
+legitimate tied consumers throughout the package, so changing it globally is
+not safe without calibration and CI-inversion evidence. A Wilcoxon-scoped
+variant remains only a candidate to test against the direct count/ordinal
+oracle and coverage work.
 
-**Option B — route resampling-family methods through
+**Option B (not a direct replacement) — route resampling-family methods through
 `stats::wilcox.test()`'s own rank-based p-value machinery**, mirroring how
 the Wald-family fix (2026-09-06) moved away from the naive HL-point-
-estimate-based formula. Narrower, more class-specific, doesn't generalize
-to other classes that might share the generic-formula boundary problem.
+estimate-based formula. It cannot replace arbitrary resampling distributions
+or their bootstrap CIs, so it too needs a Wilcoxon-specific design and
+evidence before implementation.
 
 Not yet decided/reviewed — flagged here, not fixed.
 
@@ -235,16 +236,28 @@ confirmed, fixable bugs as of this cross-validation.
   unspecified `compile=` — hard project rule, see top-level `CLAUDE.md`).
   Reproduce on both `count` and `ordinal` response types (the class is
   response-type-generic — confirm which types it actually supports).
-- [ ] TODO-2: Check whether the generic `compute_rand_two_sided_pval`/
-  bootstrap-family p-value formulas (`inference_all_abstract_rand.R:317`
-  and the bootstrap-family equivalents) are shared by other classes with
-  discrete or tie-prone point estimates (e.g. exact/rank-based methods)
-  that could hit the same boundary-collapse pattern on sufficiently tied
-  data — this determines whether Option A's fix belongs in the generic
-  formula (protects everyone) or needs to stay class-scoped.
-- [ ] TODO-3: Implement Option A (or B if TODO-2 finds a reason A is
-  unsafe generically — e.g. it changes results for currently-correct,
-  non-degenerate cases in a way that needs its own verification pass).
+- [x] TODO-2 (static scope audit, 2026-10-10): The inclusive-tail formula
+  is shared far beyond this class: randomization uses
+  `compute_two_sided_randomization_pval_from_t0s()` (including its
+  sequential-MC caller and the direct prefix path), while nonparametric,
+  Bayesian, and exchangeable bootstrap percentile paths each retain the
+  same `2 * min(P(T* >= t), P(T* <= t))` rule. Rand-bootstrap has the
+  same inclusive comparisons in its ordinary and studentized evaluators.
+  Thus a generic mid-p rewrite would change every tied randomization or
+  bootstrap result, not merely the pathological Wilcoxon fixture; exact
+  and rank-style statistics are among the legitimate consumers. It is not
+  a no-op whenever equality mass is nonzero, so its calibration and CI
+  inversion consequences cannot be claimed from source inspection alone.
+  Option A is therefore unsafe as a generic v1.0.5 patch. Option B cannot
+  simply replace bootstrap inference either: `stats::wilcox.test()` is a
+  rank-sum test, not a substitute for an arbitrary resampling distribution
+  or its bootstrap CI. Any follow-up must be Wilcoxon-scoped and be backed
+  by the direct count/ordinal oracle and coverage work in TODO-1/3--7.
+- [ ] TODO-3: After TODO-1's direct count/ordinal reproduction, design and
+  implement a **Wilcoxon-scoped** remedy. Do not change the package-wide
+  inclusive-tail formula without its own calibration and CI-inversion
+  evidence; `stats::wilcox.test()` alone cannot supply a bootstrap
+  distribution or CI remedy.
 - [ ] TODO-4: Verify the fix doesn't change p-values (or CI bounds — per
   the 2026-09-24 update, `boot_distr` feeds both) for the non-degenerate
   case (`t != 0`, no boundary collapse) — bit-for-bit or within
@@ -276,7 +289,13 @@ confirmed, fixable bugs as of this cross-validation.
   through to `InferenceAllSimpleAverageDiff`'s Welch-based generic
   component despite `overrides$public` declaring an override that doesn't
   actually exist (`inference_all_simple_mean_diff_pooled_var.R:203-225`).
-  Real, confirmed bug — fix regardless of TODO-9's outcome.
+  Real, confirmed bug — fix regardless of TODO-9's outcome. **Source fix
+  added 2026-10-09:** the class now owns a frequency-weighted pooled-variance
+  override, using the same pooled residual sum of squares and degrees of
+  freedom as its ordinary asymptotic method. Focused execution remains
+  pending because this workspace's `Rscript` cannot load
+  `libmkl_gf_lp64.so.2`; keep this TODO unchecked until its unit regression
+  can run.
 - [ ] TODO-9 (`InferenceAllSimpleMeanDiffPooledVar`): TODO-8 is NOT
   confirmed to explain the flagged `compute_bayesian_bootstrap_confidence_interval_basic`
   coverage finding (that CI type never reads `s_beta_hat_T`, so the

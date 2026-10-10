@@ -365,22 +365,28 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 		get_supported_estimands_impl = function(){
 			c("conditional", "marginal_mean_diff")
 		},
-		# Model-implied unconditional mean E[Y | x, w] for the ZOIB mixture,
-		# given the beta-submodel and zero/one-submodel coefficients: the same
-		# normalized-mixture-probability construction private$simulate_under_
-		# lik_null() uses to actually draw from this model (raw p0/p1 aren't
-		# guaranteed to sum to <= 1, so they're renormalized against a
-		# pmax(1 - p0 - p1, 0) "interior" mass before combining). E[Y] = p1*1 +
-		# p_mid*mu + p0*0 (the zero mass contributes 0).
+		# The zero/one submodel has the likelihood's reference-category softmax:
+		# alpha0/alpha1 are logits against the interior beta component, not two
+		# independent Bernoulli logits. Center first so large linear predictors
+		# remain finite. Keeping this helper shared with the null simulator makes
+		# marginal inference and parametric-bootstrap draws use one model.
+		zoib_softmax_probabilities = function(X_zero_one, b_zero, b_one){
+			eta0 = as.numeric(X_zero_one %*% b_zero)
+			eta1 = as.numeric(X_zero_one %*% b_one)
+			shift = pmax(0, eta0, eta1)
+			denom = exp(-shift) + exp(eta0 - shift) + exp(eta1 - shift)
+			list(
+				p0 = exp(eta0 - shift) / denom,
+				p1 = exp(eta1 - shift) / denom,
+				p_mid = exp(-shift) / denom
+			)
+		},
+		# Model-implied unconditional mean E[Y | x, w] for the ZOIB mixture.
+		# E[Y] = p1*1 + p_mid*mu + p0*0 (the zero mass contributes 0).
 		zoib_mean_from_coefs = function(b_beta, b_zero, b_one, X, X_zero_one){
 			mu = plogis(as.numeric(X %*% b_beta))
-			p0 = plogis(as.numeric(X_zero_one %*% b_zero))
-			p1 = plogis(as.numeric(X_zero_one %*% b_one))
-			p_mid = pmax(1 - p0 - p1, 0)
-			tot = p0 + p1 + p_mid
-			tot[!is.finite(tot) | tot <= 0] = 1
-			p0 = p0 / tot; p1 = p1 / tot; p_mid = p_mid / tot
-			p1 + p_mid * mu
+			probs = private$zoib_softmax_probabilities(X_zero_one, b_zero, b_one)
+			probs$p1 + probs$p_mid * mu
 		},
 		# G-computation average mean difference: every subject plugged in at
 		# w = 1 and w = 0 (column 2 of both design matrices, per
@@ -750,12 +756,9 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			b_one    = params[(p + 1L + q + 1L):(p + 1L + 2L * q)]
 			phi_val  = exp(min(log_phi, 15))
 			if (!is.finite(phi_val) || phi_val <= 0) return(NULL)
-			mu_i  = plogis(as.numeric(X %*% b_beta))
-			p0_i  = plogis(as.numeric(X_zo %*% b_zero))
-			p1_i  = plogis(as.numeric(X_zo %*% b_one))
-			p_b_i = pmax(1 - p0_i - p1_i, 0)
-			tot   = p0_i + p1_i + p_b_i
-			p0_i  = p0_i / tot; p1_i = p1_i / tot; p_b_i = p_b_i / tot
+			mu_i = plogis(as.numeric(X %*% b_beta))
+			probs = private$zoib_softmax_probabilities(X_zo, b_zero, b_one)
+			p0_i = probs$p0; p1_i = probs$p1; p_b_i = probs$p_mid
 			u = runif(n)
 			y_sim = numeric(n)
 			for (i in seq_len(n)){

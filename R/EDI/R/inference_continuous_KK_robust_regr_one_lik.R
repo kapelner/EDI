@@ -71,9 +71,8 @@ ContinKKRobustRegrOneLikSource = list(
 		#'   difference rows stacked with reservoir rows, analogous to
 		#'   \code{\link[EDI:InferenceContinKKOLSOneLik]{InferenceContinKKOLSOneLik}}'s stacked OLS
 		#'   design but with a robust M/MM objective in place of least squares.
-		#' @param estimate_only If \code{TRUE}, skip variance-component calculations and use the
-		#'   faster \code{"M"} robust estimator regardless of the \code{method}
-		#'   argument passed at construction time.
+		#' @param estimate_only If \code{TRUE}, skip variance-component calculations while
+		#'   retaining the \code{method} argument passed at construction time.
 		#' @return Numeric scalar treatment-effect estimate on the outcome's natural scale.
 		compute_estimate = function(estimate_only = FALSE){
 			private$fit_combined(estimate_only = estimate_only)
@@ -232,12 +231,13 @@ ContinKKRobustRegrOneLikSource = list(
 			private$fit_combined(estimate_only = FALSE)
 			private$cached_values$df %||% NA_real_
 		},
-		# estimate_only = TRUE forces "M" (fast, no LQS phase) and skips summary().
+		# estimate_only skips standard-error work but must retain the configured
+		# estimator: randomization draws are compared with the observed statistic.
 		fit_rlm = function(X, y, j_treat, estimate_only = FALSE){
 			if (nrow(X) <= ncol(X)) return(NULL)
 			ctrl = private$resolve_rlm_control(X)
 			if (private$use_rcpp) {
-				method_to_try = if (estimate_only || isTRUE(private$rlm_force_M)) "M" else private$rlm_method
+				method_to_try = if (isTRUE(private$rlm_force_M)) "M" else private$rlm_method
 				start_coef = NULL
 				if (isTRUE(private$rlm_start_with_ols)) {
 					start_coef = tryCatch(as.numeric(stats::coef(stats::lm.fit(x = X, y = y))), error = function(e) NULL)
@@ -301,8 +301,9 @@ ContinKKRobustRegrOneLikSource = list(
 					list(mod = mod, nonconverged = nonconverged)
 				}, error = function(e) e)
 			}
-			# When only the point estimate is needed, skip the expensive MM/LQS phase.
-			method_to_try = if (estimate_only || isTRUE(private$rlm_force_M)) "M" else private$rlm_method
+			# Skip only summary/SE work for point estimates, not the configured MM
+			# fit itself: it defines the observed randomization statistic.
+			method_to_try = if (isTRUE(private$rlm_force_M)) "M" else private$rlm_method
 			start_coef = NULL
 			if (isTRUE(private$rlm_start_with_ols)) {
 				start_coef = tryCatch(as.numeric(stats::coef(stats::lm.fit(x = X, y = y))), error = function(e) NULL)

@@ -80,6 +80,9 @@ RobustModelResult fast_robust_regression_internal(
     }
     int n = X.rows();
     int p = X.cols();
+    require_length(warm_start_beta, p, "warm_start_beta");
+    require_length(warm_start_weights, n, "warm_start_weights");
+    require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
     FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);
     const int p_free = fixed_spec.free_idx.size();
     Eigen::MatrixXd X_free(n, p_free);
@@ -230,7 +233,6 @@ RobustModelResult fast_robust_regression_internal(
     // this diagnostic only needs a curvature/information matrix, which XtWX
     // legitimately is regardless of what stopping rule produced it
     // (optimizer_diagnostics_report.md TODO-1).
-    set_min_eigenvalue_if_suspect(XtWX, res);
 
     return res;
 }

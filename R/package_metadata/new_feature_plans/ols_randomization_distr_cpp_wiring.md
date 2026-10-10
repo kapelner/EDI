@@ -42,10 +42,13 @@ reused-worker loop, so it is not a fast path either. Lin's design has
 `w·Xc` interaction columns the OLS kernel does not build; it is a stretch
 item here (TODO-6), not the main deliverable.
 
-The Poisson class shows the intended wiring
-(`inference_count_poisson.R:839-846`): check for a custom statistic, take
-`permutations$w_mat`, pass `private$X`, `y`, `delta`, and
-`private$n_cpp_threads(ncol(w_mat))` to the batch kernel.
+The Poisson class was previously cited as the intended wiring, but that
+method called a kernel that never existed and was deleted in v1.0.5
+TODO-64. The valid simple-template is instead
+`InferenceAllSimpleAverageDiff$compute_fast_randomization_distr()`
+(`inference_all_average_diff.R:193`): take `permutations$w_mat`, normalize
+the kernel inputs at the boundary, and return the batch distribution (or
+`NULL` when the fast-path preconditions do not hold).
 
 ## Semantics that must match the slow path
 
@@ -112,6 +115,17 @@ The Poisson class shows the intended wiring
   `compute_confidence_interval_rand()` end-to-end agree within
   `pval_epsilon`; (e) a custom-statistic OLS never enters the kernel path
   (spy on the kernel).
+
+  **Source implementation 2026-10-10:** TODO-1 now normalizes the
+  dispatcher's double `w_mat`, declines transformed/matching draws, derives
+  the hardened covariate block from `create_design_matrix()`, and calls the
+  batch kernel. TODO-2 now returns `NA` for one-arm and rank-deficient
+  permutations. TODO-3 has direct-kernel degeneracy regressions plus an OLS
+  fast-path versus reused-worker parity regression. No compile, rebuild, or
+  execution was performed: this host's R runtime cannot load
+  `libmkl_gf_lp64.so.2` and the native source requires a
+  maintainer-authorized rebuild. The dead-export triage and benchmark TODOs
+  remain open.
 - [ ] **TODO-4: Dead-kernel triage.** For each of the nine unreferenced
   exports below, decide *wire in* or *delete*, and do it. Deleting means
   removing the function from its `.cpp`, re-running

@@ -23,6 +23,24 @@ test_that("fit_rlm returns NULL when the design isn't over-determined (nrow(X) <
 	expect_null(p$fit_rlm(Xbad, rnorm(2), j_treat = 1L))
 })
 
+test_that("estimate-only robust fits retain the configured MM estimator", {
+	# Randomization workers request estimate_only = TRUE. Their statistic must
+	# use the same M/MM objective as the observed estimate, not Huber M for speed.
+	set.seed(17L); n <- 30L
+	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
+	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
+	des$add_all_subject_responses(rnorm(n) + 0.7 * des$get_w())
+	p <- InferenceContinKKRobustRegrOneLik$new(des, method = "MM", use_rcpp = FALSE, verbose = FALSE)$.__enclos_env__$private
+	X <- cbind(`(Intercept)` = 1, w = rep(c(0, 1), length.out = n), x1 = rnorm(n))
+	y <- 0.7 * X[, "w"] + rnorm(n)
+	full <- p$fit_rlm(X, y, j_treat = 2L, estimate_only = FALSE)
+	point <- p$fit_rlm(X, y, j_treat = 2L, estimate_only = TRUE)
+	expect_false(is.null(full))
+	expect_false(is.null(point))
+	expect_equal(point$beta, full$beta, tolerance = 1e-10)
+	expect_true(is.na(point$se))
+})
+
 test_that("shared() caches 'rlm_fit_unavailable' end-to-end when fit_rlm() fails", {
 	set.seed(2); n <- 20L
 	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)

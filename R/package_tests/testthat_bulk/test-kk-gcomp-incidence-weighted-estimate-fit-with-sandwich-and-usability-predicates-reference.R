@@ -2,10 +2,11 @@ library(testthat)
 library(EDI)
 
 # InferenceIncidKKGCompRiskDiff / RiskRatio private helpers on a KK14 matched incidence design:
-# compute_weighted_gcomp_estimate(row_weights) (weighted logistic fit + weighted g-computation; NA on unusable weights),
+# compute_weighted_gcomp_estimate(row_weights) (weighted logistic fit +
+# empirical-covariate standardization; NA on unusable weights),
 # fit_logistic_with_sandwich(X, estimate_only) (coefficients equal glm, pair-clustered HC0 vcov; NULL when the fit is impossible),
 # effects_are_usable(effects, estimate_only) and coefficients_are_usable(coef). References: stats::glm (weights via
-# quasibinomial to avoid non-integer warnings), sandwich::vcovCL / vcovHC, weighted.mean.
+# quasibinomial to avoid non-integer warnings), sandwich::vcovCL / vcovHC.
 
 set.seed(9); n <- 80L
 des <- DesignSeqOneByOneKK14$new(n = n, response_type = "incidence", verbose = FALSE)
@@ -43,11 +44,11 @@ test_that("fit returns NULL when the design cannot be fit (fewer rows than colum
 	expect_null(fresh$p$fit_logistic_with_sandwich(Xd[1:3, ]))
 })
 
-test_that("weighted g-computation estimate equals the weighted logistic fit's weighted standardized risks (RD and RR)", {
+test_that("weighted g-computation refits the model but standardizes equally over empirical covariates (RD and RR)", {
 	set.seed(1); rw <- runif(n, 0.3, 2)
 	fw <- suppressWarnings(glm(yv ~ Xd - 1, family = quasibinomial, weights = rw))
 	X1 <- Xd; X1[, 2] <- 1; X0 <- Xd; X0[, 2] <- 0
-	r1 <- weighted.mean(plogis(X1 %*% coef(fw)), rw); r0 <- weighted.mean(plogis(X0 %*% coef(fw)), rw)
+	r1 <- mean(plogis(X1 %*% coef(fw))); r0 <- mean(plogis(X0 %*% coef(fw)))
 	expect_equal(rd$p$compute_weighted_gcomp_estimate(rw), r1 - r0, tolerance = 1e-5)
 	expect_equal(rr$p$compute_weighted_gcomp_estimate(rw), r1 / r0, tolerance = 1e-5)
 	expect_equal(mk(InferenceIncidKKGCompRiskDiff)$p$compute_weighted_gcomp_estimate(rep(1, n)), mk(InferenceIncidKKGCompRiskDiff)$inf$compute_estimate(), tolerance = 1e-6)      # unit weights = unweighted
@@ -58,7 +59,7 @@ test_that("weights that are zero, non-finite or all unusable: zero rows dropped;
 	keep <- rz > 0
 	fw <- suppressWarnings(glm(yv[keep] ~ Xd[keep, ] - 1, family = quasibinomial, weights = rz[keep]))
 	X1 <- Xd[keep, ]; X1[, 2] <- 1; X0 <- Xd[keep, ]; X0[, 2] <- 0
-	ref <- weighted.mean(plogis(X1 %*% coef(fw)), rz[keep]) - weighted.mean(plogis(X0 %*% coef(fw)), rz[keep])
+	ref <- mean(plogis(X1 %*% coef(fw))) - mean(plogis(X0 %*% coef(fw)))
 	expect_equal(rd$p$compute_weighted_gcomp_estimate(rz), ref, tolerance = 1e-5)
 	expect_true(is.finite(rd$p$compute_weighted_gcomp_estimate(rn)))
 	expect_true(is.na(rd$p$compute_weighted_gcomp_estimate(rep(0, n)))); expect_true(is.na(rd$p$compute_weighted_gcomp_estimate(rep(NA_real_, n))))

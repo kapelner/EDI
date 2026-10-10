@@ -51,7 +51,7 @@ cox_partial_likelihood_informative_rows = function(strata_id, y, dead, w) {
 
 cox_partial_likelihood_fit_with_formula = function(dat, formula_str) {
 	tryCatch(
-		suppressWarnings(survival::coxph(stats::as.formula(formula_str), data = dat)),
+		suppressWarnings(survival::coxph(stats::as.formula(formula_str), data = dat, ties = "breslow")),
 		error = function(e) NULL
 	)
 }

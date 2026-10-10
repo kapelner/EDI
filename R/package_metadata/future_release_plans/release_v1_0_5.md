@@ -20,10 +20,12 @@ every item in `release_v1_1_0.md`** (verified when each was originally
 scoped into v1.1.0; nothing here depends on that release's Phase 0 decision
 batch or its diagnostics-chain prerequisite). This release can ship the
 moment its own items are done and verified, without waiting on v1.1.0 —
-that independence is the entire reason for the split. TODO numbers below
-are renumbered 1..16 in chronological "added" order; each still names its
-owning plan file with that plan's own (unrenumbered) TODO range, since the
-plan files' internal numbering did not change.
+that independence is the entire reason for the split. The original items
+were renumbered 1..16 in chronological "added" order; later items retain
+their subsequently assigned numbers (including the documented 50/51
+collision resolution). Each item still names its owning plan file with that
+plan's own (unrenumbered) TODO range, since the plan files' internal numbering
+did not change.
 
 ## Implementation TODOs
 
@@ -43,6 +45,17 @@ plan files' internal numbering did not change.
   `supports_reusable_bootstrap_worker()` etc., exist, but that's a red
   herring — they're baseline mixin methods every class gets regardless of
   this fix.) Plan's own checklist: 0/6 checked.
+  **Source-status reconciliation 2026-10-10:** the class now does opt into
+  the worker contract and has two-matrix worker state/load/estimate methods.
+  Its primary matrix deliberately retains candidate columns to mirror the
+  ordinary per-fold fit, while the zero/one matrix retains the full-sample
+  selected columns; rank-gated or unusable direct fits use the ordinary
+  hardened fallback. The optional exhaustive reused-worker test's `n = 40`
+  ZOIB comparison is not the diagnosed `n = 50` tuning fixture, so it cannot
+  close exact-fixture parity or speedup: a failed direct fit there can still
+  incur the ordinary fallback. The linked performance/parity study, tuning
+  exclusion removal, and tuning run remain open because `Rscript` cannot
+  load `libmkl_gf_lp64.so.2` here.
 - [ ] TODO-2 (added 2026-08-30, user decision): **Randomization CI
   affine-shift reuse** — `randomization_ci_affine_shift_reuse.md →
   TODO-1..7` (plus a decision-gated TODO-8). The fast path at
@@ -67,6 +80,15 @@ plan files' internal numbering did not change.
   exist anywhere (checked at the instance level, not just the generator),
   and `cached_values$t0s_rand` never gets populated after a rand-CI call.
   Plan's own checklist: 0/8 checked.
+
+  **Implemented at source level, 2026-10-09:** TODO-1..5 and TODO-7 now
+  implement the signed affine identity, cache it only for the same full
+  permutation set, and cover tier-1 plus the numerically verified KK OLS
+  one-likelihood opt-in. The KK-GEE stale read was removed. TODO-6's source
+  benchmark and README/roxygen documentation are present, but its requested
+  timing report remains open because this workspace's `Rscript` cannot load
+  `libmkl_gf_lp64.so.2`; therefore this release item remains unchecked. The
+  decision-gated direct-inversion TODO-8 remains deliberately out of scope.
 - [ ] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
   randomization-distribution kernel; triage dead kernels** —
   `ols_randomization_distr_cpp_wiring.md → TODO-1..6`.
@@ -93,7 +115,15 @@ plan files' internal numbering did not change.
   faster) — it silently falls back to the slow R loop every time (the
   generic dispatcher catches the error, so calls don't crash, they're just
   never actually fast). Plan's own checklist: 0/6 checked.
-- [x] TODO-4 (added 2026-08-30, fixed 2026-10-08): **Guard the unguarded
+  **Source implementation 2026-10-10:** the OLS class now calls the batch
+  kernel on its hardened covariate matrix for untransformed, nonmatching
+  draws. The kernel returns `NA` for one-arm or rank-deficient permutations,
+  and source regressions cover those guards plus fast/worker parity. The
+  required native compile/rebuild and runtime equivalence/benchmark remain
+  unrun (no compilation permission; this host's R runtime is unavailable),
+  as do the linked dead-export triage items; this release checkbox remains
+  open.
+- [ ] TODO-4 (added 2026-08-30, source fixed 2026-10-08; native validation pending): **Guard the unguarded
   information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
   → TODO-1..6`. Correctness, not performance. `fast_negbin_regression.cpp:485`
   inverts the free-parameter information block with a bare `.inverse()`
@@ -130,9 +160,10 @@ plan files' internal numbering did not change.
   `.inverse()` values for accepted inputs. All five bare sites and the evolved
   R-facing ZINB covariance are guarded, kernels expose
   `information_invertible`, and wrappers use the existing typed
-  `model_standard_error_unavailable` paths. All six linked-plan items are
-  closed and 18 focused source-loaded assertions pass without compilation;
-  native execution is staged for the next permitted rebuild.
+  `model_standard_error_unavailable` paths. The source implementation,
+  documentation, reason-name audit, and source-loaded assertions are complete,
+  but the linked plan's targeted native compile and kernel execution remain
+  open; native execution is staged for the next permitted rebuild.
 
   **Cross-confirmed 2026-09-24** by the new `pval_miscalibration`/
   `low_coverage` audit checks, independently of the direct-repro check
@@ -166,7 +197,8 @@ plan files' internal numbering did not change.
   `set_min_eigenvalue_if_suspect()` (`_helper_functions_core.h:210-219`)
   is entirely commented out, so `min_eigenvalue_information` is never
   populated — minor, unrelated cleanup, not investigated further.
-- [ ] TODO-5 (added 2026-09-04, found empirically): **Randomization CI
+- [x] TODO-5 (added 2026-09-04, found empirically; fully reconciled
+  2026-10-09): **Randomization CI
   construction audit** — `randomization_ci_construction_audit.md →
   TODO-1..4`. Two findings. **§A (bug):** the Cox-family classes
   (`InferenceSurvivalCoxPHRegr`, KK LWA Cox ×2, KK strat Cox ×2) run the
@@ -187,9 +219,10 @@ plan files' internal numbering did not change.
   units (the Rosenbaum / Imbens–Rubin construction), pinned by
   `tests/testthat/test-rand-null-construction.R`. **Verified DONE,
   2026-09-24**: the plan's own checklist shows TODO-1, 2, 2b, 4, 5 checked
-  `[x]`; only a cosmetic test-comment fix (TODO-3) remains. The one
-  substantively complete item among TODO-1..6.
-- [x] TODO-6 (added 2026-09-11, fixed at source level 2026-10-08; found via a comprehensive-test-harness
+  `[x]`; the cosmetic test-comment fix (TODO-3) was completed 2026-10-09,
+  so all linked TODOs are checked. The one substantively complete item among
+  TODO-1..6.
+- [ ] TODO-6 (added 2026-09-11, source fixed 2026-10-08; native validation pending; found via a comprehensive-test-harness
   timing investigation, not a user report): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
   optimizer stability** — `../bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md
   → TODO-1..4`. A ~200× bimodal slowdown (0.5-1s vs. 150-180s, same
@@ -210,10 +243,12 @@ plan files' internal numbering did not change.
   2026-10-08:** the native optimizer now caps `log_theta` at 6 like the R
   fallback, keeps the valid independence tail open, uses a zero chain
   derivative on the clipped flat surface, normalizes returned parameters, and
-  reports upper-bound contact. The four linked-plan items are checked; 26
-  focused source-loaded/reference assertions pass. Rebuilt-native execution
-  and the exact diamonds reps 1/13 timing rerun remain release-build
-  validation under the repository's no-compilation rule.
+  reports upper-bound contact. Linked-plan TODOs 1--2 are complete at source
+  level; TODO-3's rebuilt-native timing verification and TODO-4's
+  rebuilt-native golden-parity check remain open. Twenty-six focused
+  source-loaded/reference assertions are recorded, while rebuilt-native
+  execution and the exact diamonds reps 1/13 timing rerun remain
+  release-build validation under the repository's no-compilation rule.
 - [x] TODO-7 (added 2026-09-17, fixed 2026-10-08; found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
   randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
@@ -223,9 +258,9 @@ plan files' internal numbering did not change.
   hooks it needs — the bisection silently collapsed to a zero-width
   interval at the point estimate instead of erroring (100% zero-width
   across ~1,644 audited rows, ~0-1% empirical coverage vs. ~95% nominal).
-  Stopgap `stop()` landed 2026-09-17; the real fix (route through the
+  Stopgap `stop()` landed 2026-09-17; the follow-up decision selected the
   already-correctly-wired generic `InferenceRandCI` bisection instead of
-  Zhang) is unverified and needs its own decision before implementing.
+  Zhang.
   **Implemented:** both continuous and proportion OneLik leaves now inherit
   the generic stacked-estimator inversion, while IVWC retains Zhang. The
   emergency stop, leaf override collisions, four wiring exemptions and stale
@@ -240,10 +275,19 @@ plan files' internal numbering did not change.
   likelihood is multimodal and `compute_estimate()`'s own unconstrained fit
   is single-start, so it can silently return a non-global optimum (~3% of
   `n=50` fits in a 400-simulation measurement). Explains a residual ~13%
-  Type-I error at `n=50` (vs. 6.5% at `n=100`). Proposed fix is multi-start
-  `generate_mod()`, but this one changes reported point estimates in the
-  affected fits, so it needs golden/reference-parity re-derivation and a
-  cost/benchmark pass before it ships.
+  Type-I error at `n=50` (vs. 6.5% at `n=100`).
+  **Source implementation 2026-10-08:** `generate_mod()` now screens its
+  ordinary full-data fit across deterministic and data-hashed local starts,
+  retaining the lowest converged negative log likelihood while leaving the
+  repeated randomization and weighted-bootstrap paths single-start. Linked
+  plan TODOs 1--3, 5, and 6 are complete: focused source-loaded references
+  remain compatible and the deterministic fixture confirms the better
+  optimum; the measured full-fit cost is 0.035s versus 0.006s. This release
+  item remains unchecked pending the post-fix 400-null calibration study
+  (TODO-4), its consequent roxygen/update work (TODO-7), and installed
+  comprehensive-results regeneration (TODO-8). The plan's separate thin-
+  sample post-fix coverage lead (TODO-9) also requires that larger study
+  before any conclusion.
 - [ ] TODO-9 (added 2026-09-22, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report; three new checks —
   `biased_estimate`, `bad_type1_error`, `low_power` — added to
@@ -258,7 +302,13 @@ plan files' internal numbering did not change.
   `InferenceOrdinalGCompMeanDiff` rejected a true null 100% of the time
   instead of 5%). Fixed systemically (allowlist → denylist reset,
   `cached_values` reconciled to a `duplicate()`-derived keep-list) plus a
-  permanent non-degeneracy regression test.
+  permanent non-degeneracy regression test. **Reconciled 2026-10-09:** the
+  code, focused regressions, published-output audit, and linked plan
+  TODO-1..6/8 are complete; its sole remaining linked action is TODO-7's
+  installed comprehensive CSV regeneration plus authoritative
+  `audit_comprehensive_results.R --write-baseline`. This release TODO stays
+  unchecked until that regeneration is complete; no local build/install was
+  attempted.
 - [ ] TODO-10 (added 2026-09-22, found the same way; a harness bug, not an
   inference-code bug): **MC coverage-truth uses the wrong covariate set** —
   `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md → TODO-1..6`. **Fixed.**
@@ -277,15 +327,17 @@ plan files' internal numbering did not change.
   finite-sample attenuation bias, not a further harness bug) — do not
   re-run those two pending further work (plan's TODO-6).
 
-  **New class found 2026-09-24** (plan's new TODO-7, this one NOT yet
-  fixed): `InferenceSurvivalKMDiff` was missed by the original 25-class
+  **New class found 2026-09-24** (plan's TODO-7, source fix completed
+  2026-10-08): `InferenceSurvivalKMDiff` was missed by the original 25-class
   `COVERAGE_MC_SPEC` sweep — surfaced instead by this session's new
   `biased_estimate` audit check as apparent large bias, confirmed on
   investigation to be the same truth-scale-mismatch mechanism (estimator
   itself is unbiased at the null; `coverage_truth` is identical to raw
   `beta_T` for 100% of rows despite KM-difference being a non-collapsible,
-  different-scale quantity). Needs adding to `COVERAGE_MC_SPEC` and the
-  same fix applied.
+  different-scale quantity). It is now covered by a survival MC-refit
+  entry in `COVERAGE_MC_SPEC`; focused registry coverage includes that
+  dispatch. This does not make the release TODO complete: the linked plan's
+  comprehensive-results regeneration and baseline re-audit remain open.
 - [x] TODO-11 (added 2026-09-22, closed 2026-10-08 after re-audit;
   **resolved — do not enable**): **Cox
   Bartlett-approx likelihood-ratio correction, forced off** —
@@ -333,8 +385,13 @@ plan files' internal numbering did not change.
   path that flag is permanently stuck at its init value `FALSE`, so every
   draw returns NA. Fixed with a class-specific
   `compute_randomization_worker_estimate()` override reusing the
-  already-correct standard-path logic. CSV regeneration still open (plan's
-  TODO-6).
+  already-correct standard-path logic. **Reconciled 2026-10-10:** linked
+  TODOs 1--5 (direct trace, override, bootstrap bit-for-bit preservation,
+  true-null check, and removal from the nondegeneracy exclusion) are all
+  complete; the focused regression rerun passed 13/13. Only TODO-6's
+  post-install comprehensive-CSV regeneration remains, coordinated with
+  the stale-worker-cache regeneration pass, so this release item stays
+  unchecked.
 - [ ] TODO-14 (added 2026-09-22, surfaced the same way as TODO-13 — the
   new KK-design fixture arm was the first thing to exercise
   `estimate_only = TRUE` on this class with both components simultaneously
@@ -352,7 +409,11 @@ plan files' internal numbering did not change.
   `estimate_only = FALSE` gives `-0.2164` (correct), `estimate_only = TRUE`
   on the same data gave `NA`. Fixed with the equal-weight
   (`0.5 * beta_m + 0.5 * beta_r`) fallback already correct elsewhere in the
-  same file. CSV regeneration still open (plan's TODO-7).
+  same file. **Reconciled 2026-10-10:** linked TODOs 1--6 (including the
+  broader pooling-shape sweep, the ordinary-fit preservation check, and the
+  reused-worker distribution) are complete; the focused regression rerun
+  passed 13/13. Only TODO-7's post-install comprehensive-CSV regeneration
+  remains, so this release item stays unchecked.
 - [x] TODO-15 (added 2026-09-23, conclusively refuted 2026-10-09; from the same `bad_type1_error` audit wave
   as TODO-9, originally hypothesized to be the same mechanism — confirmed
   separate and still unfixed; the later TODO-28 cache hypothesis was
@@ -510,12 +571,13 @@ plan files' internal numbering did not change.
   reused-worker `cached_values` path) — ruled out directly, not assumed.
   Sibling classes `InferenceAllSimpleAverageDiff`/
   `InferenceAllSimpleMeanDiffPooledVar` confirmed unaffected (mean-
-  difference estimators essentially never land exactly on 0). Recommended
-  fix: a mid-p/tie-splitting correction to the generic two-sided p-value
-  formula (`inference_all_abstract_rand.R:317` and the bootstrap-family
-  equivalents) — likely belongs in the shared formula, not a per-class
-  patch, since any other class with a discrete/tie-prone statistic could
-  hit the same boundary-collapse pattern (plan's TODO-2 checks this).
+  difference estimators essentially never land exactly on 0). A mid-p/
+  tie-splitting change to the generic two-sided p-value formula
+  (`inference_all_abstract_rand.R:317` and the bootstrap-family equivalents)
+  was the initial candidate. TODO-2 later ruled out a generic rewrite for
+  v1.0.5 because it would alter legitimate tied results package-wide; any
+  remedy must be Wilcoxon-scoped and supported by the plan's direct
+  count/ordinal and coverage evidence.
   Independent of every other item in this release; depends on nothing else.
 
   **Updated 2026-09-24** (plan's TODO-1..7 now cover CI coverage too, plan's
@@ -534,6 +596,15 @@ plan files' internal numbering did not change.
   reads the SE the Welch/pooled bug affects) — real bug, unconfirmed
   cause of the coverage finding, both tracked in the same plan's new
   TODO-8/9.
+
+  **Static scope reconciliation 2026-10-10:** the linked plan's TODO-2 is
+  complete: the inclusive-tail calculation is shared by randomization,
+  bootstrap, Bayesian-bootstrap, exchangeable-resampling, and
+  rand-bootstrap paths. A generic mid-p rewrite would alter legitimate
+  tied results package-wide, so it is not a safe source-only fix for this
+  Wilcoxon-specific defect. The remaining direct reproduction and
+  Wilcoxon-scoped method/coverage work remain open; this release item
+  stays unchecked.
 - [ ] TODO-18 (added 2026-09-23, surfaced by the new `pval_miscalibration`
   audit check — one function_run variant appeared across ~85 distinct
   (class, response_type) cells with wildly inconsistent miscalibration
@@ -570,6 +641,15 @@ plan files' internal numbering did not change.
   an existing code comment and are believed unaffected (plan's TODO-1
   confirms the exact boundary). Independent of every other item in this
   release; depends on nothing else.
+  **Status reconciliation 2026-10-10:** the policy/source steps (linked
+  TODOs 4--5) are complete: public p-value/CI guards, advertised types,
+  lower-level draw guards, and the compatible real-valued/count paths have
+  58 focused source-loaded expectations. This does not validate the original
+  calibration finding. The exact dispatch/audit cross-reference (TODO-1),
+  continuous-bandwidth investigation (TODO-2), direct historical
+  reproduction (TODO-3), true-null calibration and permanent calibration
+  regression (TODOs 6--7), and post-install CSV regeneration (TODO-8) all
+  remain open; this release checkbox must remain unchecked.
 - [ ] TODO-19 (added 2026-09-23, same audit-triage wave as TODO-17/18, a
   secondary lead the investigating fork did not have budget to fully
   confirm — **medium confidence**; tracked as an open investigation, not
@@ -869,7 +949,14 @@ plan files' internal numbering did not change.
   undercovering, not class-wide) is tracked in the same plan file
   (TODO-8/9), separate mechanism, low confidence, not yet root-caused.
   Independent of every other item in this release; depends on nothing
-  else.
+  else. **Source implementation 2026-10-08:** all RMST-difference paths now
+  derive one shared horizon, the minimum of the two arm-level maxima,
+  including the R weighted-bootstrap, native/portable point-estimate,
+  Greenwood SE-difference, and randomization-bootstrap paths; single-group
+  exported helpers retain their own-arm horizon. Focused common-horizon
+  references and source-loaded weighted checks passed, but this checkbox
+  remains open for the required authorized native rebuild, coverage recheck,
+  and installed comprehensive-results regeneration.
 - [x] TODO-24 (added 2026-09-24, conclusively refuted 2026-10-08):
   **KK-matched Cox proportional-hazards undercoverage was a coverage-truth
   artifact, not a variance defect** —
@@ -949,17 +1036,24 @@ plan files' internal numbering did not change.
   not a mean shift, a small number of individual jackknife replicates
   with catastrophic errors (raw values of −38.0 and +17.5 found directly,
   for an estimand whose typical scale is ~0.2-0.3) dominating the RMSE.
-  Root cause not yet pinned to a line — hypothesized as a leave-one-out
-  fold landing on a degenerate/non-identifiable configuration (small
-  matched-cluster counts + one held-out observation), a numerical-
-  robustness gap analogous in shape (different location) to `TODO-4`'s
-  unguarded-information-inverse pattern: an unstable fit silently
-  producing a wild-but-finite number instead of failing loudly. Also a
+  **Root cause confirmed and source fix implemented 2026-10-08:** on the
+  deterministic seed-1 KK14 fixture, the fold omitting rows 2 and 17 removes
+  the treatment arm's only event.  The old marginal-Weibull fit reported
+  convergence and returned 17.1343525; well-identified folds were
+  0.91--1.66.  Ordinary and weighted refits now require at least one
+  positive-weight observed event in each treatment arm, otherwise returning
+  `NA_real_` with typed reason
+  `kk_weibull_marginal_treatment_arm_no_events`; the shared jackknife
+  summary correctly retains that nonfinite fold as nonestimable.  This is a
+  narrow identifiability guard, not an arbitrary coefficient cutoff.  Also a
   clean real-data validation of this session's `biased_estimate` check
   redesign (t-test alone would miss this — p=0.47 — Wilcoxon signed-rank
   catches it, p=5.7e-11 — exactly the outlier-robustness gap discussed
   when the check was designed). Independent of every other item in this
-  release; depends on nothing else.
+  release; depends on nothing else.  The linked plan records its focused
+  source-loaded regression coverage, but TODO-5's re-run of the bias/RMSE
+  check and TODO-8's installed comprehensive-results regeneration remain
+  open; this release checkbox therefore remains unchecked.
 - [x] TODO-27 (added 2026-09-24, conclusively refuted 2026-10-08):
   `InferenceIncidBinomialIdentityRiskDiff` shows real, moderate Type-I
   error inflation (~2.6× nominal, reject rate ~0.13) specifically on
@@ -1212,6 +1306,18 @@ baseline as expected/benign.
   information-inverse bug, TODO-28/29's stale-`cached_design_matrix` bug)
   and confirmed to NOT share it — but none has been root-caused on its own
   terms. No plan file existed for any of the four before this TODO.
+  **Reconciled 2026-10-10:** this umbrella no longer owns an independent
+  unresolved implementation. `InferenceCountPoisson`'s Bartlett-family
+  conservative combination is resolved under TODO-48; `InferenceCountKKGLMM`'s
+  actual finding is the near-zero variance-component basin fixed at source
+  under TODO-31; and `InferenceCountKKHurdlePoissonOneLik` now combines its
+  model and design-based inference conservatively. `InferenceCountQuasiPoisson`'s
+  remaining modest small-sample behavior and isolated 1.000-coverage
+  subsampling interval are method properties (the latter conservative), not a
+  formula or dispatch defect. The linked plan's historical-row comparison and
+  cache sweep are complete. This row remains unchecked only because TODO-31's
+  native rebuild validation and the subsequent installed comprehensive-CSV
+  reconciliation are still required; no separate TODO-50 source change remains.
 - [ ] TODO-51 (added 2026-09-24 as TODO-32, renumbered 2026-09-24 for the
   same collision as TODO-50 above): promoted from a one-line dead-code aside
   inside TODO-4's prose, same reason as TODO-50 — user flagged that un-homed
@@ -1220,10 +1326,13 @@ baseline as expected/benign.
   (`:210-219`) is entirely commented out, so `min_eigenvalue_information` is
   never populated by any caller. Found while checking `InferenceCountPoisson`
   against TODO-4's unguarded-information-inverse bug (unrelated — there was
-  no live caller to implicate either way). Fix is either delete the dead
-  function and the now-unused `min_eigenvalue_information` field, or
-  actually wire it in if it was meant to be live — a decision, not
-  investigation work; not yet decided.
+  no live caller to implicate either way). **Source progress 2026-10-10:** the
+  decision is to remove the disabled no-op helper templates, their unused
+  SFINAE trait, and all call sites while retaining the
+  `min_eigenvalue_information` result fields in the R/Python schemas with
+  their existing `NaN` default. This cleanup changes neither numerical
+  behavior nor the public result contract. Rebuilt kernel output-contract and
+  equivalence validation remains required; this release item stays unchecked.
 - [ ] TODO-52 (added 2026-09-24, promoted from asides inside
   `bootstrap_worker_stale_design_matrix.md`'s (TODO-28) cross-class sweep,
   same reason and same pattern as TODO-50/51 — user asked for a double-check
@@ -1241,6 +1350,12 @@ baseline as expected/benign.
   confirmed-real addendum: the 7-class KKGLMM/KKCLMM cluster was also ruled
   out from TODO-28's mechanism, but it's not yet confirmed whether that
   cluster even has real audit-flagged findings — check that first.
+  **Audit progress 2026-10-09:** the linked plan now reconciles the retained
+  historical audit rows. The six classes do not have a single error
+  signature (only BetaRegr/ZOIB share two 37-null-draw custom-randomization
+  rows), while the KKGLMM/KKCLMM addendum does have real but heterogeneous
+  flagged rows. The investigation remains open: a causal claim needs a new
+  targeted study, not a retrospective source edit.
 
 - [ ] TODO-31 (added 2026-09-24, from an audit of test-file comments; four
   tests pin it as `SUSPECTED SOURCE BUG (pinned, not fixed)`): **Random-effect
@@ -1263,10 +1378,10 @@ baseline as expected/benign.
   TODOs 2-5 are closed; TODO-1's rebuilt sigma-by-n characterization and
   TODO-6's rebuilt native/focused/comprehensive validation remain, so this
   release item stays unchecked until an authorized rebuild.
-- [x] TODO-32 (added 2026-09-24, fixed 2026-10-08): **`InferenceOrdinalRidit(
+- [ ] TODO-32 (added 2026-09-24, source fixed 2026-10-08; binary validation pending): **`InferenceOrdinalRidit(
   reference = "treatment")` now uses a non-degenerate symmetric estimand** —
   `../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
-  TODO-1..5`. Treatment reference now reports
+  TODO-1..6`. Treatment reference now reports
   `0.5 - mean_control_ridit` with the control-score SE. This is algebraically
   the same empirical Mann–Whitney contrast as the control-reference path and
   preserves the positive-treatment orientation; control and pooled behavior
@@ -1294,13 +1409,19 @@ baseline as expected/benign.
 
 - [x] TODO-37 (added 2026-09-24, fixed 2026-10-07): **`inference_class_accepts_model_formula()` is always FALSE** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-3`. The predicate now inspects the effective R6 initializer, including inherited and lazy component methods. `run_all_inference_build_tasks()` now expands requested formulas for eligible classes; the focused regression test passes without compilation.
 
-- [ ] TODO-38 (added 2026-09-24, test-comment audit; **reproduced 2026-09-24 under valgrind: heap overflow from an unvalidated `warm_start_params` length**, see plan TODO-4; **ZOIB kernel length checks implemented and verified 2026-09-24**, sibling-kernel sweep of 9 other unchecked warm-start sites still open): **Fresh-process crash in `fast_zero_one_inflated_beta_cpp()`** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-4`. In a fresh Rscript the kernel returned `neg_loglik = NaN` and `coefficients = NULL` on ordinary data (8/8 seeds) but not inside testthat, suggesting undefined behavior in the C++ kernel; the R-level guard was fixed, the kernel was not. Check whether `InferencePropZeroOneInflatedBetaRegr` can hit it; run under the ASan/valgrind CI jobs.
+- [ ] TODO-38 (added 2026-09-24, test-comment audit; **reproduced 2026-09-24 under valgrind: heap overflow from an unvalidated `warm_start_params` length**, see plan TODO-4; **ZOIB kernel length checks implemented and verified 2026-09-24**, sibling source sweep completed 2026-10-09; rebuilt-native validation remains open): **Fresh-process crash in `fast_zero_one_inflated_beta_cpp()`** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-4`. In a fresh Rscript the kernel returned `neg_loglik = NaN` and `coefficients = NULL` on ordinary data (8/8 seeds) but not inside testthat, suggesting undefined behavior in the C++ kernel. Check whether `InferencePropZeroOneInflatedBetaRegr` can hit it; run under the ASan/valgrind CI jobs.
+  **Source implementation status 2026-10-09:** the ZOIB native guard remains
+  fixed, and the successor plan `mixed_kernel_warm_start_shape_guards.md`
+  records completed audit, native guard, orphaned-R-helper, and focused-test
+  source work (TODO-1..4). Rebuilt-native kernel tests, ASAN/Valgrind, and
+  installed comprehensive-CSV reconciliation (TODO-5..6) remain release
+  gates, so this checkbox deliberately stays unchecked.
 
 - [x] TODO-39 (added 2026-09-24, fixed 2026-10-07): **Oversized greedy optimal block from multiple leftovers** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-5`. The fallback did see leftover subjects, but could assign several to one block (`n = 8`, `B = 3` yielded sizes `4,2,2`). It now chooses the nearest block below `ceiling(n / B)`, yielding `3,3,2`; focused allocation and randomization-inference tests pass without compilation.
 
 - [x] TODO-40 (added 2026-09-24, fixed 2026-10-07): **Zero-length estimate instead of `NA` on sparse weights** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-6`. The incidence risk-difference weighted refit now retains the treatment column or returns scalar `NA_real_` with a typed nonestimable reason. Sparse and ordinary weighted-refit tests pass without compilation.
 
-- [ ] TODO-41 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Unchecked callback result in the randomization loop** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-7`. `result[0]` on a length-0 vector is read without a length check; Rcpp only warns and the loop continues, leaving the entry undefined instead of failing.
+- [ ] TODO-41 (added 2026-09-24, test-comment audit; pinned by a test, not independently reproduced): **Unchecked callback result in the randomization loop** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-7`. `randomization_loop_cpp()` now rejects a length-0 callback result before indexing, and its focused callback-contract regression asserts the error. This native-source change still needs an authorized rebuild and focused execution before the release item can be checked.
 
 - [x] TODO-42 (added 2026-09-24, closed 2026-10-08): **Stale Bayesian-bootstrap worker workaround is no longer needed** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-8`. The Cox regression already exercises randomization, nonparametric bootstrap and Bayesian bootstrap on one object. A matching `InferenceSurvivalKMDiff` regression now compares the reused object's Bayesian distribution and p-value bit-for-bit with a fresh object after both earlier resampling calls. Eighteen focused assertions pass without compilation; no stale worker was reproduced.
 
@@ -1377,8 +1498,7 @@ baseline as expected/benign.
   estimate-resampling intervals retain their generic semantics and are
   explicitly outside the design-conservative union. All linked-plan subtasks
   are closed.
-- [ ] TODO-49 (added 2026-09-24, same source — medium confidence, root
-  cause open): `InferenceContinQuantileRegr`'s 33 `low_coverage`
+- [x] TODO-49 (added 2026-09-24, resolved/refuted 2026-10-09; same source — medium confidence): `InferenceContinQuantileRegr`'s 33 `low_coverage`
   findings, the single largest uninvestigated cluster in this audit
   wave — `../bug_fix_plans/investigate_contin_quantile_regr_coverage.md`.
   Ruled out the obvious hypothesis (missing `COVERAGE_MC_SPEC` truth
@@ -1391,7 +1511,12 @@ baseline as expected/benign.
   candidates — `quantreg`'s `"nid"` sandwich SE possibly misbehaving under
   the harness's small/near-noiseless noise scale, or compounding with the
   pre-existing `TODO-20` tie-sensitivity hypothesis for resampling-family
-  methods specifically.
+  methods specifically. **Resolution:** no implementation defect is supported:
+  the raw treatment shift is the correct truth, reusable workers invalidate
+  every dependent cache on sample/assignment change, and weighted QR disables
+  factorization reuse. The residual finite-sample calibration behavior is a
+  property of `quantreg`'s documented `nid` SE, not a v1.0.5 bug. Focused
+  source-loaded checks passed 14, 48, and 55 expectations.
 
 - [x] TODO-53 (added 2026-09-24, fixed/audited 2026-10-09; from triaging the stale-cache regeneration
   findings; reproduced from scratch, mechanism unknown): **Randomization
@@ -1532,6 +1657,14 @@ baseline as expected/benign.
   `marketing_plans/cran_task_view_proposals.md`'s gate checklist and the
   owning plan's TODO-9).
 
+  **Source progress 2026-10-10:** plan TODO-4 now batch-generates the
+  Bayesian-bootstrap gamma weights in the parent with one shared context and
+  one `rgamma()` call, while preserving the historical replicate-then-group
+  RNG order; a deterministic blocking reference covers that ordering.  This
+  completes only that source-level substep.  Dispatch, blocklist, weighted
+  native-refit, hot-loop, installed-equivalence, and benchmark acceptance
+  work remain open, so this release item stays unchecked.
+
   Acceptance: `marketing_plans/bb_bench2.R` shows no
   row slower on 3 cores than on 1, and EDI ≥ 1x vs. `bayesboot` on every
   row.
@@ -1557,6 +1690,14 @@ baseline as expected/benign.
   the per-draw `qr()` (the same change as TODO-57's plan → TODO-7,
   implement once); add a non-parametric fast-path hook so TODO-3's
   `compute_ols_bootstrap_parallel_cpp` wiring has somewhere to land.
+  **Source progress 2026-10-10:** duplicated-row data-frame worker subsets
+  now rebuild columns with compact automatic row names, avoiding
+  `[.data.frame`'s `make.unique()` work while preserving downstream
+  data-frame inputs; a repeated-row worker-state regression covers it. The
+  model-matrix subset now uses the saved full matrix directly and detects a
+  rank-deficient resample before falling back to the historical rebuild path;
+  a rare-covariate reference covers that branch. The hardened-fit fast path,
+  OLS batched dispatch, and installed benchmark/regression gates remain open.
   Acceptance: all three rows ≥ 1x `boot`. Otherwise independent of every
   other item here and of v1.1.0.
 
@@ -1604,6 +1745,15 @@ baseline as expected/benign.
   per-arrival cost flat in t and ≤ 0.5 ms; whole sequence within 10x of
   `carat`. See TODO-59 for the shared builder.
 
+  **Implementation status 2026-10-09:** linked-plan TODOs 1--4 are complete:
+  arrivals use incremental strata metadata, avoid assignment-time model-matrix
+  rebuilding, and preallocate compatible fixed-size enrollment storage with a
+  safe append fallback. Source-loaded validation passed the 53-expectation
+  metadata suite, 25 all-design seed checks, and 62 schema/type/bootstrap
+  checks. TODO-5 remains the installed-package benchmark/report gate (and its
+  batch-C++ `carat` comparison is documented as incompatible with a per-arrival
+  public R API), so this release checkbox stays unchecked.
+
 - [ ] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
   `nonbimatch` squared distances with a `double.xmax` diagonal** —
   `../bug_fix_plans/binary_match_nonbimatch_distance_input.md → TODO-1..3`.
@@ -1644,6 +1794,18 @@ baseline as expected/benign.
   `Speedup` on the procedure, color slower-than-canonical rows (today they
   render white), and add a `sections=` filter so the two tables
   regenerate in minutes rather than 90. Independent of every other item.
+  **Source progress 2026-10-10:** significant slower-than-canonical rows now
+  receive a light-red background, defined consistently in the shared
+  methodology and HTML legend. R6 procedure/design rows now report separate
+  total, construction, and cache-safe procedure measurements: a fresh
+  configured object is prepared outside each timed procedure batch, so no
+  benchmark-only public cache-reset API is needed. `Speedup` and `Timing Pval`
+  use procedure time. Focused installed timing and generated-report acceptance
+  remain open. The harness now also accepts
+  `--sections=procedures,designs` to run just those focused tables (skipping
+  the model-fit, Wald, and utility loops, including the utility wrapper
+  compile); generated reports were not hand-edited and require an authorized
+  benchmark run to regenerate.
 
 - [ ] TODO-63 (added 2026-10-07, user decision): **C++ kernels accept a
   `warm_start_beta` of the wrong length and corrupt the heap** —
@@ -1669,6 +1831,13 @@ baseline as expected/benign.
   `R-CMD-check-sanitizers` and `R-CMD-check-valgrind` jobs. Bit-preserving
   (only rejects inputs that were undefined behavior). Targeted compile
   only. Independent of every other item.
+  **Source progress 2026-10-09:** F2's five unsafe kernel families now reject
+  malformed coefficient starts at their native entry points, with matching
+  weight/Fisher guards and a CRAN-shipped testthat contract file. Python
+  bindings forward starts unchecked, so this native boundary also protects
+  them. The full adjacent-start audit and the explicitly required targeted
+  compile/sanitizer/Valgrind validation remain open; this release item is
+  deliberately unchecked.
 
 - [ ] TODO-64 (added 2026-10-07, filed on the model's initiative under the
   standing "add found bugs to v1.0.5" instruction; delete if unwanted):
@@ -1698,6 +1867,17 @@ baseline as expected/benign.
   below); rethrow under `should_run_asserts()` and warn once otherwise;
   a wiring test (fast path vs worker loop to 1e-10 per class, plus a
   static `*_cpp`-exists check). Independent of every other item.
+  **Source progress 2026-10-10:** the two Wilcoxon fast paths now present
+  integer matrices to their `MatrixXi` kernels; the dangling Poisson fast
+  path was deleted (retaining its pre-existing worker behavior); and the
+  dispatcher rethrows in assertion mode while warning once plus retaining
+  the error diagnostically in normal mode. A complete static audit now
+  classifies all 17 remaining overrides and confirms every direct native
+  wrapper exists; Simple- and KK-Wilcoxon regressions exercise double
+  dispatcher matrices. The linked OLS-plan correction is complete. The
+  executable all-class/worker-parity audit and rebuilt-native validation
+  remain open because this host's `Rscript` cannot load
+  `libmkl_gf_lp64.so.2`, so this release item is deliberately unchecked.
 
 - [ ] TODO-65 (added 2026-10-08, user decision): **KK21 ordinal weight
   kernels: unprotected `wrap()` temporaries in the only R callback in
@@ -1722,6 +1902,12 @@ baseline as expected/benign.
   static check that no other `src/` callback passes inline `wrap()`
   temporaries. Optional TODO-4 bypasses the R round-trip entirely.
   Independent of every other item.
+  **Reconciled 2026-10-10:** linked TODO-1--3 are implemented at source: the
+  callback roots both wrapped arguments, the static callback sweep is clean,
+  and the CRAN test exercises both ordinal weight kernels under
+  `gctorture(TRUE)`. Targeted native compilation and execution remain required
+  to validate the shipped binary; optional TODO-4 is a separate performance
+  decision, so this release item remains unchecked.
 
 - [ ] TODO-66 (added 2026-10-08, found while rewriting a stale test):
   **`InferenceCountHurdleNegBin`'s non-reusable-worker multi-core Bayesian
@@ -1753,6 +1939,15 @@ baseline as expected/benign.
   while reproducing, matching the diagnostic approach already used
   successfully for the mirai/nanonext fork hang in
   `project_ci_openblas_fork_hang.md`.
+
+  **Source implementation 2026-10-10:** the diagnostic-only `debug = TRUE`
+  branch now forces the non-reusable-worker duplicate path to run serially,
+  preventing a fork after an OpenMP-using fit; ordinary `debug = FALSE`
+  bootstrap dispatch remains parallel. The focused regression now requests
+  two cores for debug mode and asserts the same seed-pinned values as the
+  single-core run. This release item remains unchecked pending focused
+  execution on a usable R runtime; no compilation, installation, or R
+  execution was performed here.
 
 - [ ] TODO-67 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B1`):
@@ -1796,8 +1991,14 @@ baseline as expected/benign.
   level. Touches the same driver as TODO-2 and TODO-33. Land it with or
   before them so their tolerances are set against the corrected level;
   otherwise it is independent.
+  **Source implementation status:** linked-plan TODOs 1--3 now use `alpha`
+  throughout both public inversion paths, their SMC/bound-expansion controls,
+  and the affine shortcut; the broader inverter audit and fixed-permutation
+  duality coverage are complete. Only TODO-4's installed `rand`/
+  `rand_bootstrap` CSV regeneration and coverage/documentation reconciliation
+  remains, so this release checkbox stays unchecked.
 
-- [ ] TODO-69 (added 2026-10-09, user decision; from the algorithm-catalog
+- [x] TODO-69 (added 2026-10-09, fixed 2026-10-09; user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → row L,
   TODO-6(c) / TODO-B3`): **Cox tie method depends on which fallback
   fires.** The C++ kernel, `coxph.fit(method = "breslow")` paths and the
@@ -1812,6 +2013,10 @@ baseline as expected/benign.
   `coxph` and is only valid while its fixtures have no ties). Add a tied-data
   regression that forces each fallback. **Default change** only on tied
   data reaching those fallbacks. Independent of every other item.
+  **Resolution:** both fallbacks and the two C++-equivalence references now
+  explicitly select Breslow; tied-data regressions cover the formula fallback
+  and `InferenceSurvivalCoxPHRegr(use_rcpp = FALSE)`. Source-only validation
+  passed 106 expectations; no rebuild or install was run.
 
 - [x] TODO-70 (added 2026-10-09, fixed 2026-10-09; user decision; algorithm-sweep
   verification F1 + F1c): **`DesignSeqOneByOneRandomBlockSize` redraws are wrong** —
@@ -1827,116 +2032,250 @@ baseline as expected/benign.
   verification F8): **Ridit misscores an interior level absent from the reference arm** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-3`.
   It scores ½(R_{k−1}+R_k) instead of the mass below the level, in both `fast_ridit_analysis.cpp` and `ridit_distr_parallel.cpp`. Breaks the Mann–Whitney equivalence: 0.172 vs 0.225. Default `reference = "control"` path; coordinator re-ran it.
+  **Source implementation complete:** both native scoring paths now retain the
+  cumulative reference mass and score absent interior levels by mass-below;
+  the linked plan records direct, analysis, randomization, bootstrap, and
+  randomization-bootstrap regressions against the pairwise Mann–Whitney
+  definition. This release checkbox remains open solely because executing the
+  new native regressions requires the maintainer-authorized rebuild; the
+  installed object is stale.
 
 - [ ] TODO-73 (added 2026-10-09, user decision; algorithm-sweep
   verification F9): **Newcombe p-value returns 1 for strong effects; small p inflated** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-4`.
   Failed `uniroot` bracketing returns 1 (90/100 vs 10/100: p = 1, `prop.test` 1.1e-29; coordinator re-ran). The default `uniroot` tolerance inflates small p up to ~160×. A reference test pins p = 1 and must change. Default path.
+  **Implementation status:** the R-side inversion now runs on the log-alpha
+  scale with explicit finite endpoint cases and a stable direct-upper-tail
+  Wilson calculation; source tests cover strong and small effects. It remains
+  unchecked pending execution: this worker's R executable cannot start because
+  `libmkl_gf_lp64.so.2` is unavailable. No compilation or installation was
+  requested or performed.
 
 - [ ] TODO-74 (added 2026-10-09, user decision; algorithm-sweep
   verification F12, OneLik): **`InferenceContinKKRobustRegrOneLik` randomization null ≠ observed estimator** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-5`.
   The null uses Huber M. The observed statistic is MM or M depending on call order. The Bayesian bootstrap hard-codes M. **Default change:** randomization p/CI.
+  **Source implementation 2026-10-10:** estimate-only Rcpp and MASS fits now
+  retain the configured robust M/MM method and omit only standard-error work;
+  the focused regression pins MM estimate-only parity. This remains unchecked
+  pending focused randomization execution on a usable R runtime.
 
 - [ ] TODO-75 (added 2026-10-09, user decision; algorithm-sweep
   verification F21): **Dependent-censoring bootstrap CI is biased toward non-rejection** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-6`.
   It swaps to Wald only when the bootstrap CI excludes 0 and Wald does not. The studentized CI goes NA whenever it excludes 0, so it can never reject. Endpoints beyond ±2 are declared unstable. The docs are inaccurate, and two tests assert the biased behavior. **Default change.**
+  **Source implementation 2026-10-10:** every finite bootstrap endpoint is
+  retained across percentile/basic/BCa/studentized paths; zero/sign/width
+  checks can no longer substitute Wald or NA. Contracts, roxygen, and the
+  focused references are synchronized. This remains unchecked pending R
+  execution on a usable runtime.
 
 - [ ] TODO-76 (added 2026-10-09, user decision; algorithm-sweep
   verification F13): **Ordinal KK random-effects Bayesian bootstrap fits a fixed-effects model** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-7`.
   BB is centred near 0.39 vs the reported conditional 0.583. KKGLMM is documented only as a "fast approximation"; CLMM is undocumented. CLMM is masked today by TODO-31's σ collapse, so land with or after TODO-31.
+  **Implementation resolved 2026-10-09:** the nonconstant-weight bootstrap
+  path now shares a weighted ordinal random-intercept refit across KKGLMM and
+  all CLMM links, with deterministic finite-likelihood rescue; constant
+  weights retain the existing exact unweighted fast path. Focused source-loaded
+  validation passed and no native rebuild is required. This release row remains
+  open solely for the linked installed comprehensive-CSV regeneration and
+  reconciliation.
 
 - [ ] TODO-77 (added 2026-10-09, user decision; algorithm-sweep
   verification F14): **KK clogit+GLMM Bayesian bootstrap fits glmmTMB/Laplace on all rows** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-8`.
-  The point estimate is clogit + 20-node GH; replicates are shifted ~0.35 log-OR. The IVWC sibling shares the distribution. `test-prop-kk-glmm-weighted-refit-reference.R` pins the surrogate.
+  The point estimate is clogit + 20-node GH; replicates are shifted ~0.35 log-OR. The IVWC sibling shares the distribution. The similarly named proportion-only GLMM test does not cover this joint estimator.
+  **Source implementation completed 2026-10-10:** bootstrap draws now use the
+  weighted 20-node joint conditional-logit/random-intercept kernel (mean
+  matched-pair weights for the conditional term and row weights for the GLMM),
+  never the `glmmTMB` Laplace surrogate.  The native wrapper, registration, and
+  focused joint-dispatch regression are updated.  This remains unchecked:
+  recompilation and execution require explicit permission, and `Rscript` is
+  unavailable here (`libmkl_gf_lp64.so.2`); focused and comprehensive
+  regeneration must follow an authorized rebuild.
 
 - [ ] TODO-78 (added 2026-10-09, user decision; algorithm-sweep
   verification F2): **`.cox_simulate_stratified` hazard mis-scaling** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-9`.
   The baseline is scaled by the stratum max risk but subjects by the global max. 61% of simulated times are tied at `max_time`; refit β 0.635 vs 1. Stratified-Cox parametric-bootstrap LR p/CI (non-default).
+  **Source implementation 2026-10-10:** subject risks now use each stratum's
+  maximum linear predictor, matching the corresponding Breslow baseline; a
+  distinct-maxima oracle regression checks both stratum slices. This remains
+  unchecked pending focused execution on a usable R runtime.
 
 - [ ] TODO-79 (added 2026-10-09, user decision; algorithm-sweep
   verification F17): **ZOIB R side applies plogis-normalize to softmax coefficients** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-10`.
   Affects the marginal estimand and its SE, the reused-worker bootstrap, and the null simulator. `marginal_mean_diff` −0.0876 vs a consistent −0.0816 (non-default estimand); mild default parametric-bootstrap distortion. No test covers it.
+  **Source implementation 2026-10-10:** the likelihood's stable
+  reference-category softmax is now shared by the marginal-mean functional
+  and null simulator; the marginal reference test was corrected to an
+  independent softmax derivation. Execution remains blocked by this host's
+  unavailable `libmkl_gf_lp64.so.2`, so this checkbox stays open.
 
 - [ ] TODO-80 (added 2026-10-09, user decision; algorithm-sweep
   verification F10): **Zhang exact CI bracket never validated** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-11`.
   Bounds are silently truncated (CI too narrow), and zero-cell tables report finite bounds where the truth is ±∞. The bisection stops at |p − α| < 0.005. The same bisection is in `inference_ext_quantile_rand_ci.R`.
+  **Source implementation completed 2026-10-10:** the shared bisection expands
+  an invalid finite bracket geometrically, returns signed infinity when the
+  tail cannot reject by the finite log-odds cap, and resolves endpoints at a
+  parameter-scale tolerance no looser than `1e-6`.  Direct exact and
+  randomization CI defaults are aligned; focused narrow-bracket and unbounded
+  tail regressions are added.  This remains unchecked because this host's R
+  runtime cannot load `libmkl_gf_lp64.so.2`, so no focused execution occurred.
 
 - [ ] TODO-81 (added 2026-10-09, user decision; algorithm-sweep
   verification F23): **`DesignFixedOptimal` BRT replays a weaker solver than the observed allocation's** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-12`.
   Replicates use 1 × 2000 annealing moves (stops hot) vs MILP or 4 × 20000. Replicate objectives are 6–45× worse. **Conservative:** size ≈ 0.02–0.03 at nominal 0.05 at high R². Undocumented.
+  **Source implementation completed 2026-10-10:** BRT replays now inherit the
+  observed assignment's solver/profile by default; the cheap annealing profile
+  is available only via an explicit `brt_solver` override.  The wiring test
+  now pins both default profile parity and the opt-in override.  This remains
+  unchecked until focused and operating-characteristic runs can execute; this
+  host's R runtime cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-82 (added 2026-10-09, user decision; algorithm-sweep
   verification F22): **`InferenceSurvivalKKRankRegrIVWC` always returns NA** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-13`.
   `aftsrr(se = "ISMB", B = 0)` computes no SE, so every ladder rung is rejected, and the estimate-only path needs a variance it never has. Coordinator re-ran it. The migration golden passes only because both sides are NA. Legacy IVWC.
+  **Source implementation completed 2026-10-10:** component fits now request
+  ISMB with 100 replicates when no usable variance is cached and use the
+  unrounded `covmat$ISMB` treatment entry. Estimate-only calls retain cached
+  component variances for IVWC rather than replacing them with `NA`; a later
+  full call can still calculate the combined SE. A focused covariance-extractor
+  regression was added. This remains unchecked pending R execution; this host's
+  `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-83 (added 2026-10-09, user decision; algorithm-sweep
   verification F15): **`InferenceAllKKMeanDiffIVWC` randomization null is the plain mean difference** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-14`.
   `m_mat` is replaced by zeros, so the kernel sees no pairs. Shipped p 0.19 vs 0.005 with the correct compound null; coordinator re-ran it. A reference test pins the zeros branch. Legacy IVWC.
+  **Source implementation completed 2026-10-10:** an omitted permutation
+  `m_mat` now expands the design's fixed matched-set ids for each draw rather
+  than using zeros, preserving the compound IVWC null.  The focused reference
+  test now asserts agreement with the observed compound estimator.  This stays
+  unchecked pending execution on a usable R runtime; this host lacks
+  `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-84 (added 2026-10-09, user decision; algorithm-sweep
   verification F7): **`InferenceAllKKWilcoxIVWC` HL variance is 2.09× too small** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-15`.
   Coverage is 80.7% at nominal 95% (class run). The bootstrap CI aliases the asymptotic one. Legacy IVWC.
+  **Source implementation completed 2026-10-10:** matched-pair and reservoir
+  HL variances now use their normal-model calibration in both the R fit path
+  and native fast-bootstrap path, removing the balanced-design `2*pi/3`
+  under-scaling. The bootstrap-CI alias was removed so the composed
+  nonparametric bootstrap interval is used. Focused source regressions cover
+  the two variance formulas and bootstrap/Wald non-aliasing. This remains
+  unchecked pending an authorized native rebuild and R execution; this host's
+  `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-85 (added 2026-10-09, user decision; algorithm-sweep
   verification F11): **KK hurdle-Poisson IVWC placeholder SEs of 1.0** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-16`.
   Estimate-only paths make it an equal-weight average. Bayesian-bootstrap CI is miscalibrated; `compute_estimate(estimate_only = TRUE)` caches the wrong estimate; randomization stays valid but loses power. The existing test mocks the variances. Legacy IVWC.
+  **Source implementation completed 2026-10-10:** ordinary, weighted
+  bootstrap, and randomization estimate-only paths now obtain real matched
+  and reservoir component variances before IVWC combination. The placeholder
+  `1.0` helper branches are removed, so an unavailable variance rejects only
+  that component instead of silently equal-weighting it. Focused mock
+  regressions assert the preserved IVWC weighting. This remains unchecked
+  pending R execution; this host's `Rscript` cannot load
+  `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-86 (added 2026-10-09, user decision; algorithm-sweep
   verification F12, IVWC): **`InferenceContinKKRobustRegrIVWC` randomization p is always NA** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-17`.
   On the default `use_rcpp` path, the estimate-only component variance is NA, so the combined estimate is NA. Legacy IVWC.
+  **Source implementation completed 2026-10-10:** estimate-only IVWC calls now
+  request finite matched-pair and reservoir variances for the combination, while
+  still omitting only the final combined SE. A focused mock regression covers
+  the estimate-only branch and its closed-form IVWC point estimate. This remains
+  unchecked pending R execution; this host's `Rscript` cannot load
+  `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-87 (added 2026-10-09, user decision; algorithm-sweep
   verification F20): **GEE exchangeable α̂ is not divided by φ̂** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-18`.
   Overdispersed Poisson gives 0.95 (clamped) vs a correct 0.33; proportions 0.06 vs 0.76. β and sandwich SEs stay valid, so this is efficiency and geepack parity. `test-kk-gee-parity.R`'s loose tolerance masks it.
+  **Source implementation completed 2026-10-10:** native exchangeable-alpha
+  estimation now divides the pairwise residual correlation by Pearson
+  dispersion computed with `N - p` degrees of freedom. A strongly
+  overdispersed Poisson geepack-parity regression covers the formerly clamped
+  path. This remains unchecked pending an authorized native rebuild and R
+  execution; this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
-- [ ] TODO-88 (added 2026-10-09, user decision; algorithm-sweep
-  verification F25): **g-computation SE estimand undocumented** —
+- [x] TODO-88 (added 2026-10-09, user decision; algorithm-sweep
+  verification F25): **g-computation SE estimand documented** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-19`.
-  Delta method on β only, so it targets the sample-conditional effect; the population SE is 0–6% larger. Also, `InferenceIncidGCompRiskDiff`'s roxygen falsely says no closed-form SE is used.
+  The delta method on β targets the sample-conditional effect; the population
+  SE is 0–6% larger.  The public risk-difference and risk-ratio documentation
+  now states that their sandwich-plus-delta Wald SE conditions on the empirical
+  covariate distribution, excludes target-population covariate sampling
+  variation, and is distinct from the absent likelihood-ratio/score tier.
 
-- [ ] TODO-89 (added 2026-10-09, user decision; algorithm-sweep
-  verification F26): **Exact-binomial CI (Clopper–Pearson) vs p-value (minlike) incoherent** —
+- [x] TODO-89 (added 2026-10-09, user decision; algorithm-sweep
+  verification F26): **Exact-binomial CI (Clopper–Pearson) and p-value are coherent** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-20`.
-  They disagree only when δ0 ≠ 0 (d+ = 0, d− = 5, δ0 = 0.01: inside the CI, p = 0.0305). Use one rule for both.
+  They disagreed when δ0 ≠ 0 (d+ = 0, d− = 5, δ0 = 0.01: inside the CI,
+  minlike p = 0.0305).  Exact-binomial inference now uses the central
+  equal-tail p-value that inverts its Clopper--Pearson interval, while the
+  Zhang kernel retains minlike behavior for its separate callers.  Reference
+  coverage pins the nonzero-null coherence case.
 
 - [ ] TODO-90 (added 2026-10-09, user decision; algorithm-sweep
   verification F6): **Jonckheere–Terpstra exact p-value can hang uninterruptibly** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-21`.
   Composition enumeration, exponential in K: about 13 h at K = 11, n = 200, with no interrupt check. Reached only by an explicit exact call; results are correct. Fix with a polynomial DP, or at least a guard plus an interrupt check.
+  **Source implementation completed 2026-10-10:** a polynomial preflight
+  rejects exact allocation spaces above one million leaves before recursion,
+  and permitted recursion checks R interrupts every 4096 leaves. The public
+  exact-inference method warns and falls back to its asymptotic normal p-value
+  for that capacity condition; direct kernel callers receive a clear error. A
+  large 11-level regression covers the immediate guard. This remains unchecked
+  pending an authorized native rebuild and R execution; this host's `Rscript`
+  cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-91 (added 2026-10-09, user decision; algorithm-sweep
   verification F3): **`std::shuffle` / `<random>` draws are stdlib-dependent** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-22`.
   The same seed gives different draws on Linux and macOS on default design and resampling paths (distributions correct). In-code "cross-platform guarantee" comments are wrong. Use Fisher–Yates on `bounded_rand` and add a fixed-seed golden. **Default change:** seed-pinned draws change once.
+  **Source progress 2026-10-09:** native shuffle/distribution sites now use
+  portable `RRng`/`bounded_rand` Fisher--Yates. The required rebuilt,
+  fixed-seed golden (including macOS) has not run, so this release item stays
+  unchecked.
 
 - [ ] TODO-92 (added 2026-10-09, user decision; algorithm-sweep
   verification F19): **Firth penalty has the wrong sign** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-23`.
   `evaluate_penalized_neg_loglik_at` adds +½ log|I| instead of −. No callers; the reference test asserts the wrong sign. Fix before anything uses it.
+  **Source implementation completed 2026-10-10:** the opt-in Firth/Jeffreys
+  negative objective, its comment, and its independent reference assertion now
+  use `neg_loglik - 0.5 * log|I|`. This remains unchecked pending R execution;
+  this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-93 (added 2026-10-09, user decision; algorithm-sweep
   verification F4): **Per-replicate seeds drawn with replacement from 31 bits (low priority)** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-24`.
   About 2.3% collision chance at B = 1e4; impact ≤ 1/B. Draw without replacement or use L'Ecuyer substreams.
+  **Source implementation 2026-10-10:** both parametric-bootstrap runners
+  and materialized randomization-bootstrap assignment replay now draw their
+  batch seeds without replacement. A BRT regression asserts distinct,
+  deterministic stored replay seeds. It awaits execution on a usable R
+  runtime, so this checkbox remains open.
 
-- [ ] TODO-94 (added 2026-10-09, user decision; algorithm-sweep
-  verification F16): **g-computation Bayesian-bootstrap weighting convention inconsistent (low priority)** —
+- [x] TODO-94 (added 2026-10-09, user decision; algorithm-sweep
+  verification F16): **g-computation Bayesian-bootstrap weighting convention aligned (low priority)** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-25`.
-  Non-KK classes average unweighted, KK uses `weighted.mean`; ~1% effect. Pick one convention and document it, together with TODO-88.
+  Non-KK classes average equally over empirical covariates while KK used
+  `weighted.mean`, a roughly 1% difference.  KK bootstrap weights now affect
+  the model fit only; all g-computation implementations standardize its
+  predictions equally over retained empirical covariate rows, and the public
+  KK documentation records that sample-conditional convention alongside
+  TODO-88's Wald-SE description.
 
 ## Standing constraints
 
@@ -1982,9 +2321,10 @@ its linked plan. TODO-12, TODO-55, and TODO-56 were reopened because their
 own plans still require, respectively, a release-wide bit-for-bit sweep;
 historical-row regeneration plus baseline re-audit; and regenerated results.
 TODO-56's stale generated documentation, missing direct regression, and NEWS
-decision were completed during this audit. The ten
-entries still checked are TODO-22, TODO-28, TODO-30, TODO-34, TODO-35,
+decision were completed during this audit. At that audit's cutoff, the ten
+entries still checked were TODO-22, TODO-28, TODO-30, TODO-34, TODO-35,
 TODO-36, TODO-37, TODO-39, TODO-40, and TODO-44; their item-specific
-checklists have no unfinished work. Superseded TODO-28 checklist items are
-closed with explicit dispositions in its plan rather than left as apparent
-subtasks.
+checklists then had no unfinished work. This is a historical snapshot, not a
+current aggregate: later per-item reconciliations above control the present
+checkboxes. Superseded TODO-28 checklist items are closed with explicit
+dispositions in its plan rather than left as apparent subtasks.

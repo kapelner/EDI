@@ -395,7 +395,7 @@ InferenceAllSimpleAverageDiff = define_inference_class(
 		# public_methods list, not defined here.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
 	),
-	metadata = list(likelihood_tier = "none"),
+	metadata = list(likelihood_tier = "none", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
 			"compute_rand_two_sided_pval",
