@@ -15,17 +15,17 @@ wrongly (a bug, a dead/misfiring performance path, an unguarded numerical
 edge case) — not a new correction family, new estimand, new response type,
 or new diagnostic capability, all of which stay in `release_v1_1_0.md`.
 
-Every item here is **independent of every other item in this file and of
-every item in `release_v1_1_0.md`** (verified when each was originally
-scoped into v1.1.0; nothing here depends on that release's Phase 0 decision
-batch or its diagnostics-chain prerequisite). This release can ship the
-moment its own items are done and verified, without waiting on v1.1.0 —
-that independence is the entire reason for the split. The original items
-were renumbered 1..16 in chronological "added" order; later items retain
-their subsequently assigned numbers (including the documented 50/51
-collision resolution). Each item still names its owning plan file with that
-plan's own (unrenumbered) TODO range, since the plan files' internal numbering
-did not change.
+Every item here is **independent of `release_v1_1_0.md`** (verified when each
+was originally scoped into v1.1.0; nothing here depends on that release's
+Phase 0 decision batch or its diagnostics-chain prerequisite). Explicit
+intra-release ordering and shared validation gates are recorded in the
+individual TODOs and their owning plans. This release can ship the moment its
+own items are done and verified, without waiting on v1.1.0 — that independence
+is the entire reason for the split. The original items were renumbered 1..16
+in chronological "added" order; later items retain their subsequently
+assigned numbers (including the documented 50/51 collision resolution). Each
+item still names its owning plan file with that plan's own (unrenumbered) TODO
+range, since the plan files' internal numbering did not change.
 
 ## Implementation TODOs
 
@@ -1321,7 +1321,8 @@ baseline as expected/benign.
 - [ ] TODO-51 (added 2026-09-24 as TODO-32, renumbered 2026-09-24 for the
   same collision as TODO-50 above): promoted from a one-line dead-code aside
   inside TODO-4's prose, same reason as TODO-50 — user flagged that un-homed
-  findings risk getting lost; trivial, no plan file needed): **dead code in
+  findings risk getting lost; now tracked in
+  `../bug_fix_plans/remove_disabled_min_eigenvalue_helpers.md`): **dead code in
   `_helper_functions_core.h`** — `set_min_eigenvalue_if_suspect()`
   (`:210-219`) is entirely commented out, so `min_eigenvalue_information` is
   never populated by any caller. Found while checking `InferenceCountPoisson`

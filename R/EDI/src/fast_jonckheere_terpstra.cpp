@@ -30,7 +30,7 @@ bool jt_exact_leaf_count_exceeds_limit(const std::vector<int>& total_counts,
       const int max_take = std::min(nk, n_treat - treated_so_far);
       for (int tk = 0; tk <= max_take; ++tk) {
         std::uint64_t& count = next[static_cast<std::size_t>(treated_so_far + tk)];
-        count = std::min(limit + 1ULL, count + ways[static_cast<std::size_t>(treated_so_far)]);
+        count = std::min<std::uint64_t>(limit + 1ULL, count + ways[static_cast<std::size_t>(treated_so_far)]);
       }
     }
     ways.swap(next);

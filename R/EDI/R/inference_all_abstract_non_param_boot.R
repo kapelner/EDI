@@ -1266,8 +1266,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 						# indices solely to manufacture row names.  The covariate
 						# pipeline does not use row names, so retain the columns and
 						# install compact automatic row names instead.
-						out = x[FALSE, , drop = FALSE]
-						for (j in seq_along(x)) out[[j]] = x[[j]][indices]
+						# Subset column-wise into a plain list first: assigning n-row
+						# columns into a zero-row data.frame errors in `[[<-.data.frame`.
+						out = lapply(x, function(col) col[indices])
+						attributes(out) = attributes(x)
 						attr(out, "row.names") = .set_row_names(length(indices))
 						return(out)
 					}
