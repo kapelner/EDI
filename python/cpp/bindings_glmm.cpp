@@ -83,6 +83,8 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
     std::optional<Eigen::VectorXd> fixed_values,
     std::string optimization_alg,
     std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+    std::optional<Eigen::VectorXd> weights_disc,
+    std::optional<Eigen::VectorXd> weights_conc,
     int n_gh
 );
 
@@ -444,7 +446,8 @@ void bind_glmm(py::module_& m) {
         edi::ResultMap res = fast_clogit_plus_glmm_internal(
             X_disc, y_disc, X_conc, y_conc, group_conc, has_discordant, has_concordant,
             warm_start_params, warm_start_beta, estimate_only, max_abs_log_sigma, maxit, eps_g,
-            fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, n_gh);
+            fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info,
+            std::nullopt, std::nullopt, n_gh);
         return edi::to_py_dict(res);
     },
     py::arg("X_disc"), py::arg("y_disc"), py::arg("X_conc"), py::arg("y_conc"), py::arg("group_conc"),
