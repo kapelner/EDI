@@ -2969,7 +2969,7 @@
 "InferenceAllKKWilcoxIVWC::clone","r6_public_method","InferenceAllKKWilcoxIVWC","clone",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE,"","","","","","","",""
 "InferenceContinQuantileRegr::get_nonestimable_reason","r6_public_method","InferenceContinQuantileRegr","get_nonestimable_reason",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE,"","","","","","","",""
 "InferenceContinQuantileRegr::get_nonestimable_stage","r6_public_method","InferenceContinQuantileRegr","get_nonestimable_stage",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE,"","","","","","","",""
-"InferenceAllKKWilcoxIVWC::compute_bootstrap_confidence_interval","r6_public_method","InferenceAllKKWilcoxIVWC","compute_bootstrap_confidence_interval",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE,"","","","","","","",""
+"InferenceAllKKWilcoxIVWC::compute_bootstrap_confidence_interval","r6_public_method","InferenceAllKKWilcoxIVWC","compute_bootstrap_confidence_interval",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE,"","","","","","","",""
 "InferenceAllKKWilcoxIVWC::compute_bootstrap_two_sided_pval","r6_public_method","InferenceAllKKWilcoxIVWC","compute_bootstrap_two_sided_pval",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE,"","","","","","","",""
 "InferenceAllKKWilcoxIVWC::compute_estimate","r6_public_method","InferenceAllKKWilcoxIVWC","compute_estimate",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE,"","","","","","","",""
 "InferenceAllKKWilcoxIVWC::compute_exact_confidence_interval","r6_public_method","InferenceAllKKWilcoxIVWC","compute_exact_confidence_interval",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE,"","","","","","","",""
