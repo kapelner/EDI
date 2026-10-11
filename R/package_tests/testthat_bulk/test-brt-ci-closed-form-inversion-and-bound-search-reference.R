@@ -26,7 +26,7 @@ brute_pval <- function(A, cs, t_obs, d) {
 	min(1, max(2 / B, 2 * min(sum(t0 >= t_obs), sum(t0 <= t_obs)) / B))
 }
 
-test_that("the closed-form interval is exactly the region where the Monte Carlo p-value stays at or above alpha / 2", {
+test_that("the closed-form interval is exactly the region where the Monte Carlo p-value stays at or above alpha", {
 	f <- brt_priv()
 	for (seed in c(1L, 2L, 3L)) {
 		set.seed(seed)
@@ -36,7 +36,10 @@ test_that("the closed-form interval is exactly the region where the Monte Carlo 
 		ci <- f$priv$closed_form_ci_from_affine_null_draws(A, cs, t_obs, alpha)
 		expect_length(ci, 2L)
 		expect_lt(ci[1], ci[2])
-		th <- alpha / 2
+		# closed_form_ci_from_affine_null_draws()'s own comment: "the two-
+		# sided p-value is inverted at alpha" (pval_th = alpha, not alpha/2,
+		# matching the bisection path's threshold convention).
+		th <- alpha
 		# Closed endpoints are accepted; points just outside are rejected.
 		# (Nudged inward by 1e-9 so floating-point rounding at an exact breakpoint cannot
 		# flip a tail count.)
@@ -64,7 +67,7 @@ test_that("draws with a vanishing slope contribute constant tail counts, non-fin
 	ci1 <- f$priv$closed_form_ci_from_affine_null_draws(A, cs, 0.3, 0.1)
 	ci2 <- f$priv$closed_form_ci_from_affine_null_draws(A_bad, c_bad, 0.3, 0.1)
 	expect_equal(ci1, ci2)
-	th <- 0.05
+	th <- 0.1
 	expect_gte(brute_pval(A, cs, 0.3, ci1[1] + 1e-9), th)
 	expect_lt(brute_pval(A, cs, 0.3, ci1[1] - 1e-6), th)
 	expect_lt(brute_pval(A, cs, 0.3, ci1[2] + 1e-6), th)
@@ -77,7 +80,7 @@ test_that("draws with a vanishing slope contribute constant tail counts, non-fin
 test_that("the closed form declines (NULL) when the p-value floor is too high, breakpoints degenerate, or acceptance is unbounded", {
 	f <- brt_priv()
 	set.seed(5)
-	expect_null(f$priv$closed_form_ci_from_affine_null_draws(rnorm(30), runif(30, 0.5, 1.5), 0.3, 0.1))    # 2/B >= alpha/2
+	expect_null(f$priv$closed_form_ci_from_affine_null_draws(rnorm(15), runif(15, 0.5, 1.5), 0.3, 0.1))    # 2/B = 0.133 >= alpha = 0.1
 	expect_null(f$priv$closed_form_ci_from_affine_null_draws(numeric(0), numeric(0), 0.3, 0.1))
 	expect_null(f$priv$closed_form_ci_from_affine_null_draws(rnorm(400), rep(0, 400), 0.3, 0.1))          # every slope ~ 0
 	expect_null(f$priv$closed_form_ci_from_affine_null_draws(rnorm(400), rep(1, 400) * c(1, rep(0, 399)), 0.3, 0.1))   # a single breakpoint

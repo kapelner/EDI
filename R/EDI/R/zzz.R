@@ -44,7 +44,17 @@ edi_onload_trace_step = function(label) {
 
 .onLoad = function(libname, pkgname) {
 	edi_onload_trace_step("start")
-	edi_env$package_version = as.character(utils::packageVersion(pkgname, lib.loc = libname))
+	# tryCatch, not a bare call: a real R load always passes a genuine libname,
+	# but testthat's on_cran()-gated packageNotFoundError auto-skip (test-
+	# package-onload-onattach-defaults-and-startup-message-reference.R calling
+	# this directly with a placeholder libname to exercise .onLoad() itself)
+	# only fires when NOT_CRAN is unset; EDI's CI sets NOT_CRAN=true
+	# everywhere, so there the error propagated as a real test failure instead
+	# of being silently skipped. Mirrors .onAttach()'s existing fallback below.
+	edi_env$package_version = tryCatch(
+		as.character(utils::packageVersion(pkgname, lib.loc = libname)),
+		error = function(e) "unknown"
+	)
 	# No options() are set here: loading EDI must not change the user's options
 	# (CRAN policy). Assertions default to on via should_run_asserts()'s own
 	# getOption("edi.run_asserts", TRUE) default and edi_env state.

@@ -218,14 +218,18 @@ is O(r) arithmetic and MC is moot.
   the one delta-zero warm-up, then reuses the affine cache for the search. In
   `build_randomization_ci_search_bounds()` (`inference_all_abstract_rand_ci.R:425`),
   when the class qualifies, run the δ = 0 call with sequential MC disabled
-  (full `r`) so TODO-2 fires; then leave the search loop untouched — every
+  (full `r`) so TODO-2 fires. A complete cache counts as warm only when both
+  vectors and its full-content permutation signature match the CI's fixed
+  permutation set; otherwise the warm-up replaces the stale cache. Then leave
+  the search loop untouched — every
   subsequent `compute_randomization_ci_pval_cached()` call hits the `:436`
   branch. Log the hit (`verbose`) so the benchmark can confirm the path is
   taken. Remove the now-redundant "warm" comment at `:431`.
 - [x] **TODO-4: Tests.** Added 2026-10-09 in `test-ci-rand.R`: fixed-seed
   tier-1 distribution equivalence at five deltas, one-distribution CI reuse,
-  negative capability/MC-prefix checks, and the separate KK OLS reference
-  test. (a) Unit: for each tier-1 class on a fixed seed,
+  a stale-complete-cache/different-permutation signature regression, negative
+  capability/MC-prefix checks, and the separate KK OLS reference test. (a)
+  Unit: for each tier-1 class on a fixed seed,
   assert `compute_rand_two_sided_pval(r, delta = d)` with the shortcut equals
   the value with `t0s_rand` forcibly `NULL`-ed, for `d ∈ {−1, −0.1, 0, 0.1, 1}`,
   to `1e-12` on the p-value (ties aside — assert on the sorted `t0s`

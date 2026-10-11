@@ -1,6 +1,5 @@
 #include <RcppEigen.h>
 #include "RNG.h"
-#include <random>
 using namespace Rcpp;
 using namespace Eigen;
 

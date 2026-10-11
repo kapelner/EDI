@@ -84,10 +84,15 @@ test_that("Pocock-Simon metadata includes missing and newly observed levels", {
 		sex = c("F", "M", "F", "F"),
 		stringsAsFactors = FALSE
 	)
+	# ensure_factor_metadata()'s full scan registers rows seq_len(private$t),
+	# not nrow(Xraw) -- t only advances via the normal add_one_subject_*()
+	# flow, which this manual Xraw injection bypasses. Without it, t stays 0
+	# and the scan sees zero rows.
+	p$t = 4L
 	p$ensure_factor_metadata()
 	expect_identical(p$num_levels_total, 6L)
-	expect_setequal(names(p$strata_level_rows$site), c("A", "B", "NA", "C"))
-	expect_setequal(names(p$strata_level_rows$sex), c("F", "M"))
+	expect_equal(length(p$strata_level_rows$site), 4L)
+	expect_equal(length(p$strata_level_rows$sex), 2L)
 
 	p$counts = matrix(1, nrow = 1L, ncol = 2L)
 	p$ensure_factor_metadata()

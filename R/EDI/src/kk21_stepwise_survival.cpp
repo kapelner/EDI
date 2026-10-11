@@ -7,16 +7,8 @@
 using namespace Rcpp;
 using namespace Eigen;
 
-namespace {
-
-inline Eigen::ArrayXd clamp_weibull_z(const Eigen::ArrayXd& z) {
-	return z.max(-20.0).min(20.0);
-}
-
-}  // namespace
-
-// Helper: Fit Weibull AFT on the reduced design matrix XS (intercept in col 0)
-// using alternating IRLS (beta) and Newton-Raphson (scale). beta and scale are warm-started.
+// Helper: Fit the shared exact/right-censored Weibull AFT likelihood on the
+// reduced design matrix XS (intercept in col 0). beta and scale are warm-started.
 // On success, fills W_diag = exp(z_hat), resid = delta - W_diag, and XtWX_ldlt.
 // Returns false if rank-deficient or too few events.
 static bool weibull_reduced_fit_for_score_test(
@@ -28,56 +20,32 @@ static bool weibull_reduced_fit_for_score_test(
 	Eigen::VectorXd& W_diag,
 	Eigen::VectorXd& resid,
 	Eigen::LDLT<Eigen::MatrixXd>& XtWX_ldlt,
-	int maxit = 50,
-	double tol = 1e-6
+	int maxit = 100,
+	double tol = 1e-8
 ) {
 	int n = XS.rows();
 	int m = XS.cols();
 	if (n <= m + 1) return false;
 	if (delta.sum() < 2) return false;
+	if (!XS.allFinite() || !log_y.allFinite() || !delta.allFinite() ||
+		beta.size() != m || !beta.allFinite() || !std::isfinite(scale)) return false;
 
-	scale = std::max(0.01, std::min(10.0, scale));
-	W_diag.resize(n);
-
-	for (int iter = 0; iter < maxit; ++iter) {
-		// Standardized log-residuals z_i = (log(t_i) - XS*beta) / scale
-		Eigen::VectorXd z = (log_y - XS * beta) / scale;
-		const Eigen::ArrayXd z_clamped = clamp_weibull_z(z.array());
-		Eigen::VectorXd w = z_clamped.exp().matrix();
-		const Eigen::ArrayXd adj = (delta.array() > 0.5).select(z_clamped - 1.0 + w.array(), w.array());
-
-		// IRLS: weighted least squares update for beta
-		Eigen::VectorXd sqrt_w = w.array().sqrt();
-		Eigen::MatrixXd Xw = XS.array().colwise() * sqrt_w.array();
-		Eigen::VectorXd yw =
-			((log_y.array() - scale * adj / w.array()) * sqrt_w.array()).matrix();
-
-		Eigen::LDLT<Eigen::MatrixXd> ldlt_inner((Xw.transpose() * Xw).eval());
-		if (ldlt_inner.info() != Eigen::Success) return false;
-		Eigen::VectorXd beta_new = ldlt_inner.solve(Xw.transpose() * yw);
-
-		// Newton-Raphson step for scale
-		Eigen::VectorXd z_new = (log_y - XS * beta_new) / scale;
-		const Eigen::ArrayXd z_new_clamped = clamp_weibull_z(z_new.array());
-		const Eigen::ArrayXd exp_z_new = z_new_clamped.exp();
-		const double score_s =
-			(delta.array() * (z_new_clamped - 1.0) - z_new_clamped * exp_z_new).sum() / scale;
-		const double info_s = delta.sum() / (scale * scale);
-		double scale_new = scale;
-		if (info_s > 1e-10) {
-			scale_new = scale - score_s / info_s;
-			scale_new = std::max(0.01, std::min(10.0, scale_new));
-		}
-
-		double diff = (beta_new - beta).norm() + std::fabs(scale_new - scale);
-		beta  = beta_new;
-		scale = scale_new;
-		if (diff < tol) break;
-	}
+	const Eigen::VectorXd y = log_y.array().exp().matrix();
+	if (!y.allFinite()) return false;
+	Eigen::VectorXd params(m + 1);
+	params.head(m) = beta;
+	params[m] = std::log(std::max(1e-8, scale));
+	WeibullAFTLikelihood likelihood(y, delta, XS);
+	const LikelihoodFitResult fit = optimize_likelihood(
+		likelihood, params, maxit, tol, "newton_raphson", "newton_raphson");
+	if (!fit.converged || !fit.params.allFinite()) return false;
+	beta = fit.params.head(m);
+	scale = std::exp(fit.params[m]);
+	if (!std::isfinite(scale) || scale <= 0.0) return false;
 
 	// Final W and score-test residuals
 	Eigen::VectorXd z_fin = (log_y - XS * beta) / scale;
-	W_diag = clamp_weibull_z(z_fin.array()).exp().matrix();
+	W_diag = z_fin.array().min(700.0).exp().matrix();
 	resid = delta - W_diag;
 
 	Eigen::MatrixXd XtWX = weighted_crossprod(XS, W_diag);

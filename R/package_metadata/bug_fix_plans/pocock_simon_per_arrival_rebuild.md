@@ -117,8 +117,9 @@ register one key per strata column and return the current row indices directly.
 source-package harness for t = 10, 100, 500, and 1000 plus the whole sequence.
 The non-compiling source-loaded run was flat in t. Seven warmed whole-sequence
 runs at n=1000 had times 672, 502, 525, 532, 542, 468, and 495 ms (median 525
-ms, about 0.525 ms/arrival); the smallest runs are below the 0.5 ms threshold,
-and an installed build is required for the release acceptance number.
+ms, about 0.525 ms/arrival). That median misses the 0.5 ms acceptance target;
+individual faster runs do not establish it. An installed build is required for
+the release acceptance measurement.
 
 The fixed-seed late-level/NA fixture remains exactly
 `c(1, 0, 0, 1, 0, 1, 0, 0)`, with the expected stable level-row map and a
@@ -127,7 +128,7 @@ deferred matrix identical after first access. The focused metadata suite passes
 schema/type/bootstrap suites pass 62 more expectations.
 
 TODO-5 remains open for the prohibited installed-package rebuild and report
-refresh. Its additional “within 10x of carat” criterion is inconsistent with
+refresh. Its additional “within 10x of carat” criterion is infeasible under
 the same item allowing up to 0.5 ms per arrival: 1000 public R calls at that
 bound already total 500 ms, whereas the recorded batch-C++ carat row is 4.41
 ms (a 44.1 ms 10x ceiling). Meeting that criterion requires the explicitly

@@ -107,13 +107,13 @@ distance), R errors, or a segfault, all nondeterministic.
   A 2026-10-10 static source sweep found this is the sole inline `wrap()`
   callback site; generated `.Call` wrappers only wrap returned native values.
 - [x] **TODO-3: Regression test** (new
-  `R/EDI/tests/testthat/test-kk21-ordinal-weight-kernel-gc-safety.R`):
+  `R/package_tests/testthat_bulk/test-kk21-ordinal-weight-kernel-gc-safety.R`):
   on the F3 fixture, assert that `kk21_ordinal_weights_cpp` and
   `kk21_stepwise_ordinal_weights_cpp` under `gctorture(TRUE)` return finite
   weights equal (to 1e-10) to their non-`gctorture` results and to
   `abs(b / sqrt(ssq_b_j))` from the direct callee; wrap in
   `on.exit(gctorture(FALSE))`. Keep the fixture tiny (n = 40, p = 3) since
-  `gctorture` is slow. The CRAN-shipped regression now compares both ordinal
+  `gctorture` is slow. The bulk-CI regression now compares both ordinal
   weight kernels with ordinary calls under `gctorture(TRUE)` and checks the
   direct univariate ordinal-fit reference. It awaits targeted native rebuild
   and execution.

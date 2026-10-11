@@ -60,7 +60,11 @@ test_that("working-weight and Fisher-information starts have the same boundary c
 		function() fast_poisson_regression_cpp(X, y_count, warm_start_fisher_info = diag(1, 3L)),
 		function() fast_robust_regression_cpp(X, y_count, warm_start_fisher_info = diag(1, 1L)),
 		function() fast_beta_regression_cpp(X, y_prop, warm_start_fisher_info = diag(1, ncol(X))),
-		function() fast_coxph_regression_cpp(X, y_time, y_dead, warm_start_fisher_info = diag(1, 1L))
+		function() fast_coxph_regression_cpp(X, y_time, y_dead, warm_start_fisher_info = diag(1, 1L)),
+		function() fast_coxph_regression_cpp(
+			X, y_time, y_dead, optimization_alg = "lbfgs",
+			warm_start_fisher_info = diag(1, 1L)
+		)
 	)) {
 		expect_error(fun(), "warm_start_fisher_info must have dimensions")
 	}

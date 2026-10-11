@@ -482,8 +482,12 @@ ContinKKRobustRegrOneLikSource = list(
 				sw = sqrt(w_comb)
 				Xs = X_comb * sw
 				ys = as.numeric(y_comb * sw)
+				# Bootstrap replicates must target the same configured robust
+				# estimator as the observed fit.  A prior full-fit fallback to M is
+				# retained deliberately, because that is then the observed estimator.
+				method_to_try = if (isTRUE(private$rlm_force_M)) "M" else private$rlm_method
 				fit_cpp = tryCatch(
-					fast_robust_regression_cpp(X = Xs, y = ys, method = "M", j = j_treat, maxit = 20L, tol = 1e-4, estimate_only = estimate_only),
+					fast_robust_regression_cpp(X = Xs, y = ys, method = method_to_try, j = j_treat, maxit = 20L, tol = 1e-4, estimate_only = estimate_only),
 					error = function(e) NULL
 				)
 				if (!is.null(fit_cpp)) {
@@ -504,8 +508,9 @@ ContinKKRobustRegrOneLikSource = list(
 					}
 				}
 			}
+			method_to_try = if (isTRUE(private$rlm_force_M)) "M" else private$rlm_method
 			fit = tryCatch(
-				suppressWarnings(MASS::rlm(x = X_comb, y = y_comb, weights = w_comb, method = "M", maxit = 20L, acc = 1e-4)),
+				suppressWarnings(MASS::rlm(x = X_comb, y = y_comb, weights = w_comb, method = method_to_try, maxit = 20L, acc = 1e-4)),
 				error = function(e) NULL
 			)
 			coef_vec = tryCatch(as.numeric(stats::coef(fit)), error = function(e) NULL)

@@ -8,21 +8,22 @@
 > `bootstrap_worker_stale_design_matrix.md`/TODO-28-29) that each explicitly
 > ruled these classes OUT from the mechanism they were chasing, leaving the
 > underlying miscalibration itself un-investigated and un-homed. **This is
-> an open investigation, not a confirmed bug** — do not treat "ruled out
-> from mechanism X" as "root-caused"; none of the four classes below has a
-> confirmed root cause yet.
+> initially an open investigation, not a confirmed bug** — do not treat
+> "ruled out from mechanism X" as "root-caused." The later reconciliation
+> below assigns every actionable finding to its owning fix; this umbrella has
+> no independent source change remaining.
 
 ## Why this file exists
 
-Four count-family classes each show broad, real, audit-flagged
+Four count-family classes initially showed broad, audit-flagged
 miscalibration across many method families simultaneously. Each was checked
 against a specific candidate shared mechanism (the unguarded-information-
 matrix-inverse bug, the stale-`cached_design_matrix` reused-worker bug) and
-confirmed **not** to share it — but the underlying cause of each class's own
-miscalibration was never chased further, because ruling out one hypothesis
-was outside the scope of the investigation that found it. Without this file,
-these four findings would exist only as asides inside TODO-4's and TODO-29's
-prose, with no TODO number and no plan file — easy to lose track of.
+confirmed **not** to share it. The reconciliation below subsequently assigned
+the actionable findings to their own fixes and classified the remaining
+behavior; this file preserves the investigation record. Without it, the
+original findings would have existed only as asides inside TODO-4's and
+TODO-29's prose, with no TODO number and no plan file.
 
 ## The four findings
 

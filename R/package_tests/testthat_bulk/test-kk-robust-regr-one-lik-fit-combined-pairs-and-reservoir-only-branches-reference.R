@@ -18,19 +18,24 @@ library(EDI)
 #   2. Reservoir-only (m forced to 0): the design is the reservoir treatment+covariate matrix, matching
 #      an independent MASS::rlm(x = cbind(1, w_reservoir, X_reservoir), ...) exactly.
 
-robust_onelik_fixture <- function(seed, n = 40L, use_rcpp = FALSE) {
+robust_onelik_fixture <- function(seed, n = 40L, use_rcpp = FALSE, method = "MM") {
 	set.seed(seed)
 	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 	des$add_all_subject_responses(rnorm(n))
-	inf <- InferenceContinKKRobustRegrOneLik$new(des, use_rcpp = use_rcpp, verbose = FALSE)
+	inf <- InferenceContinKKRobustRegrOneLik$new(des, method = method, use_rcpp = use_rcpp, verbose = FALSE)
 	priv <- inf$.__enclos_env__$private
 	priv$compute_basic_match_data()
 	list(inf = inf, priv = priv, KKstats = priv$cached_values$KKstats)
 }
 
 test_that("matched-pairs-only (no reservoir) matches an independent MASS::rlm() fit on the pair-difference design exactly", {
-	f <- robust_onelik_fixture(1L)
+	# method = "M": both reference calls in this file use MASS::rlm(...,
+	# method = "M"); the class default is "MM" (LQS/S-estimator start plus
+	# an M-step, not generally equivalent to plain M-estimation), so the
+	# fixture must request "M" explicitly for the comparison to actually be
+	# "exact" as this test's own header claims.
+	f <- robust_onelik_fixture(1L, method = "M")
 	expect_gt(f$KKstats$m, 0L)
 	f$priv$cached_values$KKstats$nRT <- 0L                                         # force the pairs-only branch
 
@@ -41,7 +46,7 @@ test_that("matched-pairs-only (no reservoir) matches an independent MASS::rlm() 
 })
 
 test_that("reservoir-only (no matched pairs) matches an independent MASS::rlm() fit on the reservoir design exactly", {
-	f <- robust_onelik_fixture(2L)
+	f <- robust_onelik_fixture(2L, method = "M")
 	expect_gt(f$KKstats$nRT, 0L)
 	expect_gt(f$KKstats$nRC, 0L)
 	f$priv$cached_values$KKstats$m <- 0L                                           # force the reservoir-only branch
@@ -50,4 +55,19 @@ test_that("reservoir-only (no matched pairs) matches an independent MASS::rlm() 
 	X_r <- as.matrix(f$KKstats$X_reservoir)
 	ref <- MASS::rlm(x = cbind(1, f$KKstats$w_reservoir, X_r), y = f$KKstats$y_reservoir, method = "M", maxit = 20, acc = 1e-4)
 	expect_equal(f$priv$cached_values$beta_hat_T, unname(coef(ref)[2]), tolerance = 1e-8)
+})
+
+test_that("weighted robust resampling retains the configured MM estimator", {
+	f <- robust_onelik_fixture(3L, use_rcpp = FALSE)
+	captured_method <- NULL
+	local_mocked_bindings(
+		rlm = function(x, y, weights, method, ...) {
+			captured_method <<- method
+			structure(list(coefficients = rep(0, ncol(x))), class = "rlm")
+		},
+		.package = "MASS"
+	)
+	result <- f$priv$fit_weighted_combined(seq_len(length(f$priv$y)), estimate_only = TRUE)
+	expect_identical(captured_method, "MM")
+	expect_equal(result, 0)
 })

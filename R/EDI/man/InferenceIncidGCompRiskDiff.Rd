@@ -16,9 +16,15 @@ treatment indicator to 1 (respectively 0) while holding their other observed
 covariates fixed, averaging the model-implied risk over the empirical
 covariate distribution under each counterfactual, and differencing — see
 \code{\link{gcomp_logistic_point_estimate_cpp}} for the exact standardization
-formula. Inference is nonparametric-bootstrap/randomization/jackknife-based
-(\code{likelihood_tier = "none"}): no closed-form asymptotic standard error
-is used.
+formula. Wald inference uses the fitted logistic model's sandwich covariance
+and the delta method. This standard error conditions on the observed
+covariates used for standardization: it quantifies uncertainty in the fitted
+coefficients for the sample-conditional standardized risk difference, and
+does not add sampling variability from a target population's covariate
+distribution. Bootstrap, randomization, and jackknife methods remain
+available. \code{likelihood_tier = "none"} means that this class does not
+provide likelihood-ratio or score tests; it does not preclude its Wald
+inference.
 
 Uses the shared nonparametric bootstrap distribution contract; see
   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.

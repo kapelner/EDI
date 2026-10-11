@@ -73,7 +73,10 @@ zhang_bisect_ci_boundary = function(p_fn, inside, outside, pval_th, tol){
 		mid   = (inside + outside) / 2
 		p_mid = p_at(mid)
 
-		if (abs(p_mid - pval_th) <= width_tol || abs(outside - inside) < width_tol) break
+		# A small p-value residual does not imply a precise endpoint when the
+		# exact p-value curve is locally flat.  Converge on the parameter-scale
+		# bracket promised by this helper instead.
+		if (abs(outside - inside) < width_tol) break
 
 		if (p_mid > pval_th){
 			inside  = mid

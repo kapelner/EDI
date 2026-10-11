@@ -45,13 +45,14 @@
   source behavior was checked without rebuilding the package. The ordinary
   release build/check will verify the installed artifact; it is a release-wide
   gate rather than unfinished work in this item.
-- [x] **TODO-4 (kernel fixed 2026-09-24; sibling sweep still open): `.fit_zero_one_inflated_beta()` / `fast_zero_one_inflated_beta_cpp()`
+- [x] **TODO-4 (kernel fixed 2026-09-24; successor source sweep completed 2026-10-09; rebuilt-native validation remains open): `.fit_zero_one_inflated_beta()` / `fast_zero_one_inflated_beta_cpp()`
   instability.** In a fresh Rscript the kernel returned `neg_loglik = NaN` and
   `coefficients = NULL` on ordinary well-conditioned data (8 of 8 seeds) and
   crashed downstream on a zero-length names assignment; the same call did not
   reproduce inside a testthat session, pointing at undefined
-  behavior/memory safety in the C++ kernel. The R-level guard was fixed; the
-  kernel was not. The R function has no callers in `R/EDI/R/`, but the same
+  behavior/memory safety in the C++ kernel. At this initial-report stage, only
+  the R-level guard was fixed; the native kernel was not yet guarded. The R
+  function has no callers in `R/EDI/R/`, but the same
   kernel backs `InferencePropZeroOneInflatedBetaRegr`, so first check whether
   that class can hit it. Run under ASan/valgrind (the CI sanitizer jobs).
   Test: `test-zoib-start-value-construction-reference.R`.
@@ -82,9 +83,11 @@
   `.so` kept outside the repo); the new `tests/testthat/test-zoib-kernel-input-length-validation.R`
   passes (9 expectations) on the fixed build and aborts R on the previous
   build; the original crash script, which aborted 3 of 3 times, now completes
-  3 of 3. Not yet done: a valgrind rerun of the fixed build, the R helper
-  cleanup, and the sibling sweep below (the "TODO-4" checkbox covers the
-  ZOIB kernel only; the 9 other unchecked sites stay open).
+  3 of 3. At that point, a valgrind rerun of the fixed build, the R helper
+  cleanup, and the sibling sweep below remained. The helper cleanup and the
+  sibling native-source sweep were subsequently completed in
+  `mixed_kernel_warm_start_shape_guards.md`; that successor's rebuilt-native,
+  memory-safety, and installed-CSV gates remain open.
   **Sweep of sibling kernels (static, 2026-09-24).** 26 sites copy a
   caller-supplied `warm_start_params` into the parameter vector
   (`= *warm_start_params;`). A crude check (any size comparison or
@@ -93,9 +96,11 @@
   `fast_hurdle_poisson_glmm.cpp:490`, `fast_logistic_glmm.cpp:486`,
   `fast_ordinal_glmm.cpp:293`, `fast_poisson_glmm.cpp:376`,
   `fast_weibull_frailty.cpp:333`, `fast_zero_augmented_poisson.cpp:285`, and
-  `fast_zero_one_inflated_beta.cpp:428`. The heuristic can miss checks done
-  elsewhere in the function or in the R wrapper, so each of the 10 needs to be
-  read; only the ZOIB kernel is confirmed as an overflow (valgrind).
+  `fast_zero_one_inflated_beta.cpp:428`. The heuristic could miss checks done
+  elsewhere in the function or in the R wrapper, so the ten sites then needed
+  manual reading; the completed classification and source changes are recorded
+  in `mixed_kernel_warm_start_shape_guards.md`. Only the ZOIB kernel is
+  confirmed as an overflow (valgrind).
 - [x] **TODO-5: `DesignFixedOptimalBlocks` (blockTools/greedy path) trailing
   incomplete block.** When `n` is not a multiple of `B`, leftover subjects
   reach the nearest-neighbour fallback, but its unrestricted choices can put

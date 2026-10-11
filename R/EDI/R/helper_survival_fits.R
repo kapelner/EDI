@@ -618,7 +618,7 @@
 
 # Simulate survival times by inverting the Breslow baseline hazard.
 # Returns list(y_sim, dead_sim) applying observed censoring times.
-.cox_simulate_from_breslow = function(breslow, y_obs, dead_obs, X_null, b_null){
+.cox_simulate_from_breslow = function(breslow, y_obs, dead_obs, X_null, b_null, max_time = NULL){
 	n = nrow(X_null)
 	eta = as.numeric(X_null %*% b_null)
 	risk_i = exp(eta - max(eta))
@@ -626,7 +626,11 @@
 	target = -log(pmax(U, 1e-10))
 	times = breslow$times
 	cumhaz = breslow$cumhaz
-	max_time = max(y_obs) * 2
+	# Defaults to this call's own y_obs, as before; .cox_simulate_stratified()
+	# instead passes the fallback from its full (cross-stratum) y_obs so the
+	# "no event time covers this draw" ceiling stays on one consistent scale
+	# across strata rather than jumping with each stratum's own local max.
+	if (is.null(max_time)) max_time = max(y_obs) * 2
 	T_sim = vapply(seq_len(n), function(i){
 		tgt = target[i] / risk_i[i]
 		idx = which(cumhaz >= tgt)

@@ -119,6 +119,16 @@ estimates, and unchanged version stamps. TODO-5 remains open because updating
 the installed-package benchmark requires rebuilding/installing the checkout,
 which this task explicitly forbids without separate permission.
 
+Follow-up source audit (2026-10-11): `Inference$get_X()` bypassed the design
+object's lazy-current gate and only rebuilt when the stored matrix was `NULL`.
+For a sequential Pocock--Simon design, materializing a prefix matrix then
+finishing enrollment leaves a non-`NULL`, stale prefix; an inference object
+could therefore capture too few covariate rows. The accessor now also rebuilds
+when `model_matrix_stale` is true. A focused regression materializes four of
+eight rows, completes enrollment, then verifies that OLS construction receives
+all eight rows and its estimate agrees with `lm.fit`. This is source-level
+validation only; the installed benchmark gate remains TODO-5.
+
 ## Out of scope
 
 - Replacing `randomizr::block_ra` with a native blocking draw (it is 0.7

@@ -438,10 +438,24 @@ InferencePropBetaRegr = define_inference_class(
 			}
 			n_params = ncol(X) + 1L
 			ws_args = private$get_backend_warm_start_args(n_params)
+			# ws_args$start_beta is drawn from either the "beta"-type cache
+			# (length ncol(X)) or, via %||% fallback, the "params"-type cache
+			# (length ncol(X)+1, coefficients with log(phi) appended) -- the
+			# cross-call warm start this function itself writes below via
+			# set_fit_warm_start(..., "params", ...). fast_beta_regression_cpp's
+			# warm_start_beta argument requires exactly ncol(X) (no phi), so the
+			# "params" case must be sliced down to its coefficient prefix; same
+			# fix as compute_estimate_with_bootstrap_weights() above.
+			start_params = ws_args$start_params
+			start_beta = if (!is.null(start_params) && length(start_params) >= ncol(X)) {
+				start_params[seq_len(ncol(X))]
+			} else {
+				ws_args$start_beta
+			}
 			has_vc = isTRUE(is.finite(private$cached_vc_params))
 			res = fast_beta_regression_cpp(
 				X = X, y = sanitize_beta_response(as.numeric(private$y)),
-				warm_start_beta = ws_args$start_beta,
+				warm_start_beta = start_beta,
 				warm_start_fisher_info = ws_args$warm_start_fisher_info,
 				compute_std_errs = FALSE,
 				smart_cold_start = private$smart_cold_start_default,
@@ -475,12 +489,22 @@ InferencePropBetaRegr = define_inference_class(
 			X_fit  = spec$X
 			j      = spec$j
 			
-			# Parametric bootstrap: use observed fit as anchor for the full fit
+			# Parametric bootstrap: use observed fit as anchor for the full fit.
+			# ws_args$start_beta can fall back to the "params"-type cache
+			# (coefficients + log(phi), length ncol(X_fit)+1); slice it down to
+			# the coefficient prefix before using it as warm_start_beta, same
+			# fix as compute_treatment_estimate_during_randomization_inference().
 			ws_args = private$get_backend_warm_start_args(ncol(X_fit) + 1L)
+			start_beta_full = ws_args$start_params
+			start_beta_full = if (!is.null(start_beta_full) && length(start_beta_full) >= ncol(X_fit)) {
+				start_beta_full[seq_len(ncol(X_fit))]
+			} else {
+				ws_args$start_beta
+			}
 			full_res = tryCatch(
 				fast_beta_regression_cpp(
 					X = X_fit, y = y_sim,
-					warm_start_beta = ws_args$start_beta,
+					warm_start_beta = start_beta_full,
 					warm_start_fisher_info = ws_args$warm_start_fisher_info,
 					smart_cold_start = private$smart_cold_start_default,
 					optimization_alg = private$optimization_alg
@@ -526,10 +550,19 @@ InferencePropBetaRegr = define_inference_class(
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
 					ws_args = private$get_backend_warm_start_args(ncol(X_fit) + 1L)
+					# Same ws_args$start_beta length hazard as the other call sites
+					# above: fall back to the "params" cache's coefficient prefix,
+					# not the raw (possibly phi-appended) vector.
+					ws_start_beta = ws_args$start_params
+					ws_start_beta = if (!is.null(ws_start_beta) && length(ws_start_beta) >= ncol(X_fit)) {
+						ws_start_beta[seq_len(ncol(X_fit))]
+					} else {
+						ws_args$start_beta
+					}
 					res = fast_beta_regression_cpp(
 						X_fit, y,
 						fixed_idx = j_treat, fixed_values = delta,
-						warm_start_beta = if (!is.null(start)) start[1:ncol(X_fit)] else ws_args$start_beta,
+						warm_start_beta = if (!is.null(start)) start[1:ncol(X_fit)] else ws_start_beta,
 						warm_start_fisher_info = ws_args$warm_start_fisher_info,
 						smart_cold_start = private$smart_cold_start_default,
 						optimization_alg = private$optimization_alg

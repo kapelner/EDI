@@ -18,8 +18,8 @@ pocock_priv <- function(X, n = 20L) {
 test_that("with every level visible at once, levels get consecutive unique rows across columns", {
 	f <- pocock_priv(data.frame(g = c("a", "b", "a", "b"), h = c("u", "v", "w", "u")))
 	f$priv$ensure_factor_metadata()
-	expect_equal(f$priv$strata_level_rows$g, c(a = 1L, b = 2L))
-	expect_equal(f$priv$strata_level_rows$h, c(u = 3L, v = 4L, w = 5L))
+	expect_equal(unname(f$priv$strata_level_rows$g), c(1L, 2L))
+	expect_equal(unname(f$priv$strata_level_rows$h), c(3L, 4L, 5L))
 	expect_equal(f$priv$num_levels_total, 5L)
 	expect_false(anyDuplicated(unlist(f$priv$strata_level_rows, use.names = FALSE)) > 0L)
 
@@ -27,12 +27,13 @@ test_that("with every level visible at once, levels get consecutive unique rows 
 	expect_equal(f$priv$get_subject_levels_idx(list(g = "a", h = "u")), c(g = 1L, h = 3L))
 })
 
-test_that("missing covariate values map to the literal 'NA' level", {
-	f <- pocock_priv(data.frame(g = c("a", NA, "a", NA), h = c("u", "v", "u", "v"), stringsAsFactors = FALSE))
+test_that("missing covariate values have a level distinct from a literal NA category", {
+	f <- pocock_priv(data.frame(g = c("a", NA, "NA", NA), h = c("u", "v", "u", "v"), stringsAsFactors = FALSE))
 	f$priv$ensure_factor_metadata()
-	expect_setequal(names(f$priv$strata_level_rows$g), c("a", "NA"))
-	idx <- f$priv$get_subject_levels_idx(list(g = NA, h = "v"))
-	expect_equal(unname(idx["g"]), unname(f$priv$strata_level_rows$g[["NA"]]))
+	missing_idx <- f$priv$get_subject_levels_idx(list(g = NA, h = "v"))
+	literal_idx <- f$priv$get_subject_levels_idx(list(g = "NA", h = "v"))
+	expect_false(identical(unname(missing_idx["g"]), unname(literal_idx["g"])))
+	expect_equal(length(f$priv$strata_level_rows$g), 3L)
 })
 
 test_that("an existing counts matrix is expanded (not reset) when new levels appear", {
@@ -63,8 +64,8 @@ test_that("sequential arrival gives every level of every column its own stable c
 	}
 	expect_equal(priv$num_levels_total, 5L)
 	expect_equal(dim(priv$counts), c(5L, 2L))
-	expect_equal(priv$strata_level_rows$g, c(b = 1L, a = 3L))
-	expect_equal(priv$strata_level_rows$h, c(v = 2L, w = 4L, u = 5L))
+	expect_equal(unname(priv$strata_level_rows$g), c(1L, 3L))
+	expect_equal(unname(priv$strata_level_rows$h), c(2L, 4L, 5L))
 	expect_false(anyDuplicated(unlist(priv$strata_level_rows, use.names = FALSE)) > 0L)
 	# Rows assigned earlier never move when later levels are discovered.
 	for (i in 2:6) for (col in c("g", "h")) {
@@ -98,12 +99,49 @@ test_that("Pocock-Simon preallocates rows, registers levels incrementally, and d
 	}
 	expect_identical(w, c(1, 0, 0, 1, 0, 1, 0, 0))
 	expect_equal(des$get_X_raw(), data.table::as.data.table(X))
-	expect_equal(priv$strata_level_rows$g, c(a = 1L, b = 4L, `NA` = 5L, c = 6L))
-	expect_equal(priv$strata_level_rows$h, c(u = 2L, v = 3L, w = 7L, `NA` = 8L))
+	expect_equal(unname(priv$strata_level_rows$g), c(1L, 4L, 5L, 6L))
+	expect_equal(unname(priv$strata_level_rows$h), c(2L, 3L, 7L, 8L))
+	expect_equal(
+		unname(priv$get_subject_levels_idx(list(g = NA, h = NA))),
+		c(5L, 8L)
+	)
 	expect_true(isTRUE(priv$model_matrix_stale))
 	expect_null(priv$X)
 	expect_equal(nrow(des$get_X()), nrow(X))
 	expect_false(isTRUE(priv$model_matrix_stale))
+})
+
+test_that("inference construction refreshes a stale Pocock-Simon model matrix", {
+	X <- data.frame(
+		g = factor(c("a", "b", "a", "b", "a", "b", "a", "b")),
+		h = factor(c("u", "u", "v", "v", "u", "u", "v", "v"))
+	)
+	des <- DesignSeqOneByOnePocockSimon$new(
+		strata_cols = c("g", "h"), response_type = "continuous",
+		n = nrow(X), design_formula = ~ 1, seed = 602L, verbose = FALSE
+	)
+	for (i in seq_len(4L)) {
+		des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	}
+	# Materialize a prefix, then finish enrollment.  Pocock-Simon deliberately
+	# does not rebuild this analysis matrix while assigning later subjects.
+	expect_equal(nrow(des$get_X()), 4L)
+	for (i in 5:nrow(X)) {
+		des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+	}
+	priv <- des$.__enclos_env__$private
+	expect_true(isTRUE(priv$model_matrix_stale))
+	expect_equal(nrow(priv$X), 4L)
+	w <- des$get_w()
+	expect_setequal(w, c(0, 1))
+	y <- 1.5 * w + seq_len(nrow(X)) / 10
+	des$add_all_subject_responses(y)
+
+	inf <- InferenceContinOLS$new(des, verbose = FALSE)
+	expect_equal(nrow(inf$.__enclos_env__$private$X), nrow(X))
+	expect_false(isTRUE(priv$model_matrix_stale))
+	reference <- unname(stats::lm.fit(cbind(1, w, inf$.__enclos_env__$private$X), y)$coefficients[2L])
+	expect_equal(inf$compute_estimate(estimate_only = TRUE), reference, tolerance = 1e-10)
 })
 
 binary_match_priv <- function(n = 20L) {

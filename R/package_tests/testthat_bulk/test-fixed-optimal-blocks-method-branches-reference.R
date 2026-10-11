@@ -64,7 +64,16 @@ test_that("with no usable covariates the blocks fall back to round-robin labels"
 	skip_if_not_installed("anticlust")
 	des <- make_blocks_design("K-way", B = 3L, X = data.frame(x = 1:9))
 	priv <- des$.__enclos_env__$private
+	# get_or_compute_block_ids() itself calls ensure_model_matrix_current()
+	# before reading private$X, which (being still stale from
+	# add_all_subjects_to_experiment(), with private$Ximp still NULL) would
+	# otherwise rebuild private$X from the real x = 1:9 covariate and
+	# silently undo this override. Build it for real once first (so
+	# model_matrix_stale is FALSE and Ximp is non-NULL), then override X and
+	# clear the resulting block_ids cache so the override actually sticks.
+	priv$get_or_compute_block_ids()
 	priv$X <- matrix(0, nrow = 9, ncol = 0)
+	priv$block_ids <- NULL
 	ids <- priv$get_or_compute_block_ids()
 	expect_equal(as.integer(as.character(ids)), rep(1:3, length.out = 9))
 	expect_equal(levels(ids), c("1", "2", "3"))
@@ -74,6 +83,7 @@ test_that("distance-matrix conventions match independent references and the matr
 	X <- blocks_fixture_X()
 	get_D <- function(dist) {
 		priv <- make_blocks_design("ompr", dist = dist)$.__enclos_env__$private
+		priv$ensure_model_matrix_current()
 		Xp <- priv$X[1:8, , drop = FALSE]
 		list(priv = priv, X = Xp, D = priv$get_or_compute_distance_matrix(Xp))
 	}
@@ -99,6 +109,7 @@ test_that("ompr blocks attain the constrained optimum of an independent brute-fo
 	skip_on_os("windows")
 	des <- make_blocks_design("ompr", dist = "sum_abs_diff")
 	priv <- des$.__enclos_env__$private
+	priv$ensure_model_matrix_current()
 	D <- priv$get_or_compute_distance_matrix(priv$X[1:8, , drop = FALSE])
 	ids <- as.integer(priv$get_or_compute_block_ids())
 

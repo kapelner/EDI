@@ -1472,7 +1472,7 @@ of reusing one warmed-up worker. R-layer only, must reproduce bit-identical
 jackknife results. Release index: `release_v1_0_5.md → TODO-1`.
 
 **Randomization CI construction audit** (added 2026-09-04, found
-empirically): `../bug_fix_plans/randomization_ci_construction_audit.md →
+empirically): `../new_feature_plans/randomization_ci_construction_audit.md →
 TODO-1..4`. Two findings: **§A**, Cox-family classes ran the generic
 randomization-CI driver on the wrong scale (log-time vs. log-hazard-ratio);
 fixed by excluding the six log-HR classes from the `randomization_ci`

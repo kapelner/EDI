@@ -720,7 +720,11 @@ test_that("Weibull marginal BRT fast kernel: pval finite under null", {
 
 test_that("Weibull marginal BRT fast kernel: pval under null >= pval under strong alternative", {
 	set.seed(42)
-	n_wb = 20
+	# n_wb = 20 made this a genuinely flaky single-realization comparison
+	# (~27% failure rate swept across seeds 40-50, purely from sampling
+	# noise at that sample size, not a kernel bug): the correct ordering
+	# held reliably across seeds 40-55 at n_wb = 40 instead.
+	n_wb = 40
 	make_wb_des = function(log_hr){
 		des = DesignSeqOneByOneKK14$new(n = n_wb, response_type = "survival")
 		for (t in seq_len(n_wb)) {

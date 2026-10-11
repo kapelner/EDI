@@ -80,12 +80,16 @@ inline double gee_estimate_exchangeable_alpha(const Eigen::Ref<const VectorXd>& 
                                               GEEFamily family,
                                               const Eigen::Ref<const VectorXd>& weights,
                                               int n_params) {
-    double num = 0.0, den = 0.0, pearson = 0.0;
+    double num = 0.0, pearson = 0.0;
+    int num_pairs = 0, num_rows = 0;
     const bool has_weights = weights.size() > 0;
     for (int i = 0; i < resid.size(); ++i) {
         const double ri = resid[i] / std::sqrt(gee_variance(mu[i], family));
         const double wi = has_weights ? std::max(weights[i], 0.0) : 1.0;
         pearson += wi * ri * ri;
+        // A zero-weight row must count the same as an omitted one (own
+        // regression test): exclude it from the dispersion row count too.
+        if (wi > 0.0) num_rows++;
     }
     for (int gi = 0; gi < (int)grp_start.size(); ++gi) {
         if (grp_size[gi] < 2) continue;
@@ -98,14 +102,28 @@ inline double gee_estimate_exchangeable_alpha(const Eigen::Ref<const VectorXd>& 
                 double rj = resid[j] / std::sqrt(gee_variance(mu[j], family));
                 double wij = has_weights ? std::sqrt(std::max(weights[i], 0.0) * std::max(weights[j], 0.0)) : 1.0;
                 num += wij * ri * rj;
-                den += wij;
+                // A zero-weight pair must count the same as an omitted one
+                // (its own regression test): skip it here too, not just in
+                // the (zero-contribution) num accumulation above.
+                if (wij > 0.0) num_pairs++;
             }
         }
     }
     // Match geepack's Pearson dispersion correction: the pairwise residual
     // correlation must be divided by phi, not merely by its pair count.
-    const double phi_denom = static_cast<double>(resid.size() - n_params);
-    const double alpha_denom = den - n_params;
+    //
+    // alpha_denom uses the RAW pair count (num_pairs), not the weighted sum
+    // of wij -- confirmed against geepack: scaling every weight by a common
+    // positive constant c must leave alpha (and so beta, since the working
+    // correlation only enters through alpha) exactly unchanged. pearson and
+    // num both scale by c (so phi = pearson/phi_denom scales by c too, since
+    // phi_denom is weight-independent); using the weighted sum here as
+    // alpha_denom would scale it by c as well, leaving a residual c in the
+    // alpha_denom*phi product that num's own c-scaling cannot cancel. Using
+    // the weight-independent pair count instead makes alpha_denom*phi scale
+    // by exactly c, matching num and restoring the invariance geepack has.
+    const double phi_denom = static_cast<double>(num_rows - n_params);
+    const double alpha_denom = static_cast<double>(num_pairs - n_params);
     if (phi_denom <= 0.0 || alpha_denom <= 0.0) return 0.0;
     const double phi = pearson / phi_denom;
     if (!std::isfinite(phi) || phi <= 0.0) return 0.0;

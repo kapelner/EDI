@@ -284,8 +284,10 @@ if this design needs to be reloadable.}
   a \emph{closed} set; arbitrary ROI plugin names are rejected),
   \code{linearization_max_n}, \code{max_dinkelbach_iter},
   \code{n_chains}, \code{max_iter}, \code{initial_temp},
-  \code{cooling_rate}, and (consumed by the BRT replicate path)
-  \code{brt_max_iter}, \code{brt_n_chains}, \code{brt_solver}.
+  \code{cooling_rate}, and the explicit BRT-replay override
+  \code{brt_solver} with its annealing controls \code{brt_max_iter}
+  and \code{brt_n_chains}. Without \code{brt_solver}, BRT replays
+  inherit the observed assignment's ordinary solver profile.
 
   \strong{Wiring up Gurobi} (\code{roi_solver = "gurobi"}): (1) obtain
   a Gurobi license (free academic licenses are available) and install
@@ -462,14 +464,13 @@ seeded label flip).}
   BRT replicate-mode switch (called by the
   bootstrap-randomization-test machinery ahead of each replayed draw;
   see \code{Design$prepare_for_resampling_replay()}). Subsequent solves
-  use the per-replicate solver profile: \code{solver_args$brt_solver}
-  (default \code{"annealing"} with the reduced
-  \code{brt_max_iter}/\code{brt_n_chains} schedule -- replicate
-  assignments need to be faithful applications of the mechanism, not
-  individually re-verified to the observed solve's convergence
-  standard; \code{"ompr"} buys exact per-replicate solves at the
-  user's expense). Idempotent; the mirror coin still applies per
-  replicate (the BRT replays the coin-inclusive mechanism).
+  inherit the observed assignment's ordinary solver and budget, so each
+  replay targets the same allocation mechanism. Set
+  \code{solver_args$brt_solver = "annealing"} to opt into the legacy
+  reduced \code{brt_max_iter}/\code{brt_n_chains} replay profile, or
+  \code{"ompr"} to request the MILP path when the objective permits it.
+  Idempotent; the mirror coin still applies per replicate (the BRT
+  replays the coin-inclusive mechanism).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedOptimal$prepare_for_resampling_replay()}

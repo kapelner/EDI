@@ -24,14 +24,14 @@ weighted_ordinal_random_intercept_fit = function(y, predictors_df, group_id,
 	form = stats::as.formula(paste(
 		"y ~", paste(c(fixed_terms, "(1 | group_id)"), collapse = " + ")
 	))
-	fit_clmm = function(start = NULL){
+	fit_clmm = function(start = NULL, nAGQ_use = nAGQ){
 		tryCatch({
 			args = list(
 				formula = form,
 				data = dat,
 				weights = dat$.bootstrap_weight__,
 				link = link,
-				nAGQ = as.integer(nAGQ),
+				nAGQ = as.integer(nAGQ_use),
 				Hess = !estimate_only
 			)
 			if (!is.null(start)) args$start = start
@@ -69,9 +69,25 @@ weighted_ordinal_random_intercept_fit = function(y, predictors_df, group_id,
 	if (is.null(mod)) return(list(beta = NA_real_, se = NA_real_, variance = NA_real_))
 	beta = suppressWarnings(as.numeric(stats::coef(mod)["w"]))
 	if (!is.finite(beta)) return(list(beta = NA_real_, se = NA_real_, variance = NA_real_))
-	variance = if (estimate_only) NA_real_ else tryCatch({
-		v = stats::vcov(mod)["w", "w"]
+	get_variance = function(fit) tryCatch({
+		v = stats::vcov(fit)["w", "w"]
 		if (is.finite(v) && v > 0) as.numeric(v) else NA_real_
 	}, error = function(e) NA_real_)
+	variance = if (estimate_only) NA_real_ else get_variance(mod)
+	if (!estimate_only && !is.finite(variance)) {
+		# The point estimate converged, but the quadrature-based Hessian at
+		# nAGQ=20 can be singular/ill-conditioned for some bootstrap-weight
+		# draws. A coarser or finer quadrature grid, refit from the converged
+		# coefficients, often yields a well-conditioned Hessian without
+		# changing the point estimate; try a few before giving up.
+		start = suppressWarnings(as.numeric(stats::coef(mod)))
+		if (!any(is.finite(start))) start = NULL
+		for (alt_nAGQ in c(7L, 11L, 15L, 1L)) {
+			cand = fit_clmm(start = start, nAGQ_use = alt_nAGQ)
+			if (is.null(cand)) next
+			v = get_variance(cand)
+			if (is.finite(v)) { variance = v; break }
+		}
+	}
 	list(beta = beta, se = sqrt(variance), variance = variance)
 }

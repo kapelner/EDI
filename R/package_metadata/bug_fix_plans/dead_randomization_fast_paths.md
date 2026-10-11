@@ -68,21 +68,22 @@ not exist either.
   design each can be constructed on, plus the static `*_cpp(`-exists check,
   and record the table here. Installed package only.
 
-  **Static source audit, 2026-10-10:** after the Poisson method was removed,
-  there are 17 overrides (not 18). Six are direct native calls and every
-  symbol is exported in `RcppExports.R`: `InferenceAllSimpleAverageDiff`,
+  **Static source audit, 2026-10-11:** after the Poisson method was removed,
+  there are 18 overrides: seven direct native calls, ten reusable-worker
+  delegates, and `InferenceRandCustom`'s R `vapply`/optional user C++
+  callback. Every direct symbol has an R wrapper and native registration in
+  `RcppExports`: `InferenceAllSimpleAverageDiff`,
   `InferenceAllKKMeanDiffIVWC`, `InferenceAllSimpleWilcox`,
-  `InferenceAllKKWilcoxIVWC`, the Bai base, and `InferenceOrdinalRidit`.
-  The first, Ridit, and the two matching mean-difference/Bai paths supply
-  integer matrices already; both Wilcoxon paths now coerce their double
-  dispatcher matrices at the R/native boundary. Ten overrides delegate to
-  the reusable-worker implementation (KK quantile, OLS IVWC/one-likelihood,
+  `InferenceAllKKWilcoxIVWC`, the Bai base, `InferenceContinOLS`, and
+  `InferenceOrdinalRidit`. `InferenceContinOLS` was added by the linked
+  TODO-3 wiring work after the earlier count. The first, Ridit, and the two
+  matching mean-difference/Bai paths supply integer matrices already; OLS and
+  both Wilcoxon paths now coerce the numeric dispatcher matrix at the R/native
+  boundary. The ten delegates are KK quantile, OLS IVWC/one-likelihood,
   robust IVWC/one-likelihood, Lin, continuous/proportion quantile, continuous
-  robust, and KK conditional Poisson), and `InferenceRandCustom` is an R
-  `vapply`/optional user C++ callback rather than a package batch-kernel
-  call. Thus the static wrapper-existence check has no remaining dangling
-  `*_cpp` reference. The requested direct-call table and worker-parity run
-  remain open: `Rscript` cannot start on this host because
+  robust, and KK conditional Poisson. Thus the static wrapper-existence check
+  has no remaining dangling `*_cpp` reference. The requested direct-call
+  table and worker-parity run remain open: `Rscript` cannot start on this host because
   `libmkl_gf_lp64.so.2` is unavailable, and a rebuilt native package is also
   required to exercise the new coercions.
 

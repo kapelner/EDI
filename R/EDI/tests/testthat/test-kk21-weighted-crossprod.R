@@ -57,38 +57,8 @@ kk21_stepwise_logistic_reference <- function(X, y, treatment) {
 }
 
 kk21_weibull_weight_reference <- function(x, time, event) {
-	log_time <- log(pmax(time, 1e-10))
-	design <- cbind(1, x)
-	beta <- drop(solve(crossprod(design), crossprod(design, log_time)))
-	residuals <- log_time - drop(design %*% beta)
-	scale <- sqrt(sum(residuals[event > 0.5]^2) / max(1, sum(event) - 2))
-	scale <- pmax(0.01, pmin(10, scale))
-
-	for (iteration in seq_len(30L)) {
-		z <- pmax(-20, pmin(20, residuals / scale))
-		weights <- exp(z)
-		adjustment <- ifelse(event > 0.5, z - 1 + weights, weights)
-		pseudo_response <- log_time - scale * adjustment / weights
-		beta_new <- drop(solve(
-			crossprod(design, design * weights),
-			crossprod(design, weights * pseudo_response)
-		))
-		residuals_new <- log_time - drop(design %*% beta_new)
-		z_new <- pmax(-20, pmin(20, residuals_new / scale))
-		score <- sum(event * (z_new - 1) - z_new * exp(z_new)) / scale
-		information <- sum(event) / scale^2
-		scale_new <- if (abs(information) > 1e-10) scale - score / information else scale
-		scale_new <- pmax(0.01, pmin(10, scale_new))
-		difference <- sqrt(sum((beta_new - beta)^2)) + abs(scale_new - scale)
-		beta <- beta_new
-		scale <- scale_new
-		residuals <- residuals_new
-		if (difference < 1e-5) break
-	}
-
-	weights <- exp(pmax(-20, pmin(20, residuals / scale))) / scale^2
-	variance <- solve(crossprod(design, design * weights))[2L, 2L]
-	abs(beta[2L] / sqrt(variance))
+	fit <- survival::survreg(survival::Surv(time, event) ~ x, dist = "weibull")
+	abs(unname(summary(fit)$table["x", "z"]))
 }
 
 test_that("KK21 stepwise logistic weights match an R score-test reference", {
@@ -103,14 +73,14 @@ test_that("KK21 stepwise logistic weights match an R score-test reference", {
 	expect_equal(as.numeric(actual), expected, tolerance = 1e-8)
 })
 
-test_that("KK21 survival weights match an R Weibull reference", {
+test_that("KK21 survival weights match a survreg Weibull MLE with and without censoring", {
 	set.seed(791)
 	n <- 100L
 	X <- cbind(x1 = rnorm(n), x2 = runif(n, -1, 1), x3 = rep(c(-1, 1), n / 2L))
 	time <- rexp(n, rate = exp(0.3 * X[, 1L] - 0.2 * X[, 2L]))
-	event <- rbinom(n, 1, 0.8)
-
-	expected <- apply(X, 2L, kk21_weibull_weight_reference, time = time, event = event)
-	actual <- EDI:::kk21_survival_weights_cpp(X, time, event)
-	expect_equal(as.numeric(actual), unname(expected), tolerance = 1e-7)
+	for (event in list(censored = rbinom(n, 1, 0.8), uncensored = rep(1L, n))) {
+		expected <- apply(X, 2L, kk21_weibull_weight_reference, time = time, event = event)
+		actual <- EDI:::kk21_survival_weights_cpp(X, time, event)
+		expect_equal(as.numeric(actual), unname(expected), tolerance = 1e-5)
+	}
 })

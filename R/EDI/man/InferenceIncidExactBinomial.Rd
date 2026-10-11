@@ -18,9 +18,9 @@ the point estimate is the Haldane-Anscombe continuity-corrected log odds
 ratio \eqn{\log\left((d_+ + 0.5)/(d_- + 0.5)\right)}; the confidence interval
 inverts the exact (Clopper-Pearson) binomial confidence interval for
 \eqn{d_+ / (d_+ + d_-)} against \eqn{1/2} (via \code{stats::binom.test}) onto
-the log-odds scale; and the two-sided p-value is an exact binomial test of
-\eqn{d_+} vs. \eqn{d_-} (via \code{zhang_exact_binom_pval_cpp}) against a
-null log odds ratio. This class is available for
+the log-odds scale. Its two-sided p-value uses the corresponding equal-tail
+(central) exact binomial rule against a null log odds ratio, so the interval
+and test invert one another for every null value. This class is available for
 \code{DesignFixedBinaryMatch} and KK matching-on-the-fly designs. For KK
 designs, only the matched-pair data are used and the reservoir is ignored.
 If there are no matched pairs, or no discordant pairs, the relevant

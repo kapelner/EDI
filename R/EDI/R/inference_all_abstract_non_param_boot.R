@@ -1246,7 +1246,11 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			des_priv = worker_state$worker_des_priv
 			if (!is.null(des_priv)) {
 				des_priv$X = w_priv$X
-				if (!isTRUE(use_direct_X_subset)) des_priv$model_matrix_stale = TRUE
+				# A deficient draw must rebuild its matrix, but the next full-rank
+				# draw can safely resume using its direct base-X subset.  Set this
+				# explicitly in both directions: otherwise a previous fallback leaves
+				# the reusable design permanently stale and defeats later direct draws.
+				des_priv$model_matrix_stale = !isTRUE(use_direct_X_subset)
 				des_priv$t = length(indices)
 				des_priv$n = length(indices)
 				des_priv$w = w_priv$w

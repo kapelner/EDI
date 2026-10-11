@@ -61,6 +61,17 @@ test_that("Zhang CI bisection locates both increasing and decreasing boundaries"
 	expect_equal(increasing_side, log(0.2), tolerance = 1e-5)
 })
 
+test_that("Zhang CI bisection converges on the parameter bracket when the p-value curve is flat", {
+	# The p-value residual is below the 1e-6 endpoint tolerance almost
+	# everywhere.  Stopping on that residual would return the first midpoint
+	# (2.5) instead of the actual boundary (2).
+	boundary <- EDI:::zhang_bisect_ci_boundary(
+		function(x) 0.2 + 1e-8 * (2 - x),
+		inside = 0, outside = 5, pval_th = 0.2, tol = 1e-6
+	)
+	expect_equal(boundary, 2, tolerance = 1e-5)
+})
+
 test_that("blocking-only incidence procedures explain incompatible designs", {
 	des <- make_exact_incidence_design()
 	er_reason <- InferenceIncidExtendedRobins$private_methods$design_compatibility_reason(des)

@@ -500,9 +500,16 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				sort(ci[1:2])
 			}
 			obj_private = inf_obj$.__enclos_env__$private
-			if (isTRUE(obj_private$supports_additive_delta_shift(transform_arg)) &&
-					(is.null(obj_private$cached_values$t0s_rand) || length(obj_private$cached_values$t0s_rand) < r)) {
+			permutation_signature = if (is.null(permutations)) NULL else obj_private$stable_signature(permutations)
+			has_current_affine_cache = !is.null(permutation_signature) &&
+				!is.null(obj_private$cached_values$t0s_rand_permutation_signature) &&
+				identical(obj_private$cached_values$t0s_rand_permutation_signature, permutation_signature) &&
+				length(obj_private$cached_values$t0s_rand) >= r &&
+				length(obj_private$cached_values$t0s_rand_slopes) >= r
+			if (isTRUE(obj_private$supports_additive_delta_shift(transform_arg)) && !has_current_affine_cache) {
 				# The affine cache is valid only for a full-r delta-zero distribution.
+				# It must also come from this CI's fixed permutation set: a prior
+				# p-value can leave a complete cache for different permutations.
 				# Disable sequential stopping for this one warm-up; every later delta is
 				# then O(r) arithmetic on the same fixed permutation set.
 				old_mc_control = obj_private$randomization_mc_control

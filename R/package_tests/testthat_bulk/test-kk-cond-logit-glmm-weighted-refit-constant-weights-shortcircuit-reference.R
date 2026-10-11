@@ -4,15 +4,17 @@ library(EDI)
 # InferenceAbstractKKCondLogitGLMM$compute_estimate_with_bootstrap_weights()
 # (inference_incidence_KK_cond_logit_glmm_abstract.R) short-circuits when the supplied
 # subject/block weights are effectively constant (weights_are_effectively_constant()):
-# instead of fitting the weighted glmmTMB model, it reuses the plain (unweighted)
+# instead of fitting the weighted joint conditional-logit/random-intercept
+# model, it reuses the plain (unweighted)
 # self$compute_estimate(estimate_only = TRUE) point estimate directly and sets
-# s_beta_hat_T to NA -- entirely bypassing the glmmTMB weighted-refit machinery this
+# s_beta_hat_T to NA -- entirely bypassing the weighted joint-refit machinery this
 # method otherwise performs. The existing weighted-refit reference tests
 # (test-prop-kk-glmm-weighted-refit-reference.R,
 # test-kk-cond-logit-glmm-weighted-refit-extreme-coefficient-guard-reference.R) only ever
 # pass genuinely varying block weights, so this short-circuit branch had zero test
 # references anywhere. Exercised on a real InferencePropKKGLMM instance with a constant
-# weight vector, independent of glmmTMB (never invoked on this path). As with all weighted
+# weight vector, independent of the weighted joint refit (never invoked on
+# this path). As with all weighted
 # refits (InferenceAllAbstract$install_weighted_refit_isolation()), the outer wrapper rolls
 # private$cached_values back afterward and records the call's own outcome in
 # private$last_weighted_refit instead.

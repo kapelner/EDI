@@ -84,11 +84,13 @@ range, since the plan files' internal numbering did not change.
   **Implemented at source level, 2026-10-09:** TODO-1..5 and TODO-7 now
   implement the signed affine identity, cache it only for the same full
   permutation set, and cover tier-1 plus the numerically verified KK OLS
-  one-likelihood opt-in. The KK-GEE stale read was removed. TODO-6's source
-  benchmark and README/roxygen documentation are present, but its requested
-  timing report remains open because this workspace's `Rscript` cannot load
-  `libmkl_gf_lp64.so.2`; therefore this release item remains unchecked. The
-  decision-gated direct-inversion TODO-8 remains deliberately out of scope.
+  one-likelihood opt-in. The CI warm-up verifies that a complete cache also
+  has matching slopes and the CI permutation signature before reusing it. The
+  KK-GEE stale read was removed. TODO-6's source benchmark and README/roxygen
+  documentation are present, but its requested timing report remains open
+  because this workspace's `Rscript` cannot load `libmkl_gf_lp64.so.2`;
+  therefore this release item remains unchecked. The decision-gated
+  direct-inversion TODO-8 remains deliberately out of scope.
 - [ ] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
   randomization-distribution kernel; triage dead kernels** —
   `ols_randomization_distr_cpp_wiring.md → TODO-1..6`.
@@ -199,7 +201,7 @@ range, since the plan files' internal numbering did not change.
   populated — minor, unrelated cleanup, not investigated further.
 - [x] TODO-5 (added 2026-09-04, found empirically; fully reconciled
   2026-10-09): **Randomization CI
-  construction audit** — `randomization_ci_construction_audit.md →
+  construction audit** — `../new_feature_plans/randomization_ci_construction_audit.md →
   TODO-1..4`. Two findings. **§A (bug):** the Cox-family classes
   (`InferenceSurvivalCoxPHRegr`, KK LWA Cox ×2, KK strat Cox ×2) run the
   generic randomization-CI driver, which shifts responses on the log-time
@@ -1661,10 +1663,12 @@ baseline as expected/benign.
   **Source progress 2026-10-10:** plan TODO-4 now batch-generates the
   Bayesian-bootstrap gamma weights in the parent with one shared context and
   one `rgamma()` call, while preserving the historical replicate-then-group
-  RNG order; a deterministic blocking reference covers that ordering.  This
-  completes only that source-level substep.  Dispatch, blocklist, weighted
-  native-refit, hot-loop, installed-equivalence, and benchmark acceptance
-  work remain open, so this release item stays unchecked.
+  RNG order; a deterministic blocking reference covers that ordering. The
+  studentized/bootstrap-t statistics loop now consumes the same full parent
+  batch instead of B one-draw calls. This completes only that source-level
+  substep. Dispatch, blocklist, weighted native-refit, hot-loop,
+  installed-equivalence, and benchmark acceptance work remain open, so this
+  release item stays unchecked.
 
   Acceptance: `marketing_plans/bb_bench2.R` shows no
   row slower on 3 cores than on 1, and EDI ≥ 1x vs. `bayesboot` on every
@@ -1727,7 +1731,13 @@ baseline as expected/benign.
   benchmark records source-loaded diagnostics, but those concurrent-load
   timings are not the required installed-package acceptance measurement.
   Linked-plan TODOs 1-4 are closed; TODO-5 remains pending the next authorized
-  rebuild/install, so this release item stays unchecked.
+  rebuild/install, so this release item stays unchecked. **Follow-up source
+  correction 2026-10-11:** inference construction now honors a non-`NULL`
+  design matrix's stale flag. This prevents a sequential Pocock--Simon design
+  from carrying a manually materialized prefix covariate matrix into final
+  inference after later arrivals. A regression checks an eight-row enrollment
+  after a four-row materialization; it remains unexecuted here because this
+  task forbids R execution.
 
 - [ ] TODO-60 (added 2026-10-07, user decision): **Pocock–Simon: O(t) work
   per arrival (O(n²) per trial)** —
@@ -1751,9 +1761,12 @@ baseline as expected/benign.
   rebuilding, and preallocate compatible fixed-size enrollment storage with a
   safe append fallback. Source-loaded validation passed the 53-expectation
   metadata suite, 25 all-design seed checks, and 62 schema/type/bootstrap
-  checks. TODO-5 remains the installed-package benchmark/report gate (and its
-  batch-C++ `carat` comparison is documented as incompatible with a per-arrival
-  public R API), so this release checkbox stays unchecked.
+  checks. The level map now also keeps a missing stratum separate from a
+  literal category named `"NA"`. TODO-5 remains the installed-package
+  benchmark/report gate: the source-loaded median is 0.525 ms per arrival, so
+  it does not yet meet the 0.5 ms target, and the batch-C++ `carat` comparison
+  is infeasible for the per-arrival public R API. This release checkbox stays
+  unchecked.
 
 - [ ] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
   `nonbimatch` squared distances with a `double.xmax` diagonal** —
@@ -1836,7 +1849,10 @@ baseline as expected/benign.
   malformed coefficient starts at their native entry points, with matching
   weight/Fisher guards and a CRAN-shipped testthat contract file. Python
   bindings forward starts unchecked, so this native boundary also protects
-  them. The full adjacent-start audit and the explicitly required targeted
+  them. **Follow-up source correction 2026-10-11:** the Cox LBFGS dispatcher
+  now forwards its Fisher start into the guarded implementation; a malformed
+  Fisher matrix had otherwise been ignored on that path. The full
+  adjacent-start audit and the explicitly required targeted
   compile/sanitizer/Valgrind validation remain open; this release item is
   deliberately unchecked.
 
@@ -1873,10 +1889,12 @@ baseline as expected/benign.
   path was deleted (retaining its pre-existing worker behavior); and the
   dispatcher rethrows in assertion mode while warning once plus retaining
   the error diagnostically in normal mode. A complete static audit now
-  classifies all 17 remaining overrides and confirms every direct native
-  wrapper exists; Simple- and KK-Wilcoxon regressions exercise double
-  dispatcher matrices. The linked OLS-plan correction is complete. The
-  executable all-class/worker-parity audit and rebuilt-native validation
+  classifies all 18 remaining overrides: seven direct native wrappers
+  (including the newly wired OLS kernel), ten reusable-worker delegates, and
+  the custom R/callback path; every direct native wrapper exists. Simple- and
+  KK-Wilcoxon regressions exercise double dispatcher matrices. The linked
+  OLS-plan correction is complete. The executable all-class/worker-parity
+  audit and rebuilt-native validation
   remain open because this host's `Rscript` cannot load
   `libmkl_gf_lp64.so.2`, so this release item is deliberately unchecked.
 
@@ -1905,7 +1923,7 @@ baseline as expected/benign.
   Independent of every other item.
   **Reconciled 2026-10-10:** linked TODO-1--3 are implemented at source: the
   callback roots both wrapped arguments, the static callback sweep is clean,
-  and the CRAN test exercises both ordinal weight kernels under
+  and the bulk-CI test exercises both ordinal weight kernels under
   `gctorture(TRUE)`. Targeted native compilation and execution remain required
   to validate the shipped binary; optional TODO-4 is a separate performance
   decision, so this release item remains unchecked.
@@ -1944,11 +1962,12 @@ baseline as expected/benign.
   **Source implementation 2026-10-10:** the diagnostic-only `debug = TRUE`
   branch now forces the non-reusable-worker duplicate path to run serially,
   preventing a fork after an OpenMP-using fit; ordinary `debug = FALSE`
-  bootstrap dispatch remains parallel. The focused regression now requests
-  two cores for debug mode and asserts the same seed-pinned values as the
-  single-core run. This release item remains unchecked pending focused
-  execution on a usable R runtime; no compilation, installation, or R
-  execution was performed here.
+  bootstrap retains its existing policy and warmup-based eligibility for
+  parallel dispatch. The focused bulk-CI regression now requests two cores
+  for debug mode and asserts the same seed-pinned values as the single-core
+  run; its correctness and coverage runtime-manifest rows are registered.
+  This release item remains unchecked pending focused execution on a usable R
+  runtime; no compilation, installation, or R execution was performed here.
 
 - [ ] TODO-67 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B1`):
@@ -1972,6 +1991,15 @@ baseline as expected/benign.
   and Newton, a `survreg` oracle test, and a re-run of the KK21 survival weight
   comparison. **Default change**: KK21 survival weights move (to the correct
   values). Independent of every other item.
+
+  **Source implementation 2026-10-11:** both KK21 callers now share the
+  exact/right-censored `WeibullAFTLikelihood` with the public fast Weibull
+  kernel and optimize `(beta, log_sigma)` through its damped-Newton/L-BFGS
+  path. The univariate Wald statistic uses the full observed information;
+  censored and uncensored `survreg` references cover both the univariate and
+  stepwise reduced-fit paths, and the smart-start offset is Euler's gamma.
+  This item remains open pending an authorized native rebuild, execution of
+  those oracle tests, and TODO-5's benchmark/CSV regeneration.
 
 - [ ] TODO-68 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B2`):
@@ -2058,8 +2086,10 @@ baseline as expected/benign.
   The null uses Huber M. The observed statistic is MM or M depending on call order. The Bayesian bootstrap hard-codes M. **Default change:** randomization p/CI.
   **Source implementation 2026-10-10:** estimate-only Rcpp and MASS fits now
   retain the configured robust M/MM method and omit only standard-error work;
-  the focused regression pins MM estimate-only parity. This remains unchecked
-  pending focused randomization execution on a usable R runtime.
+  weighted bootstrap refits use that same method unless the observed fit has
+  already fallen back to M. Focused regressions pin MM estimate-only and
+  weighted-refit parity. This remains unchecked pending focused randomization
+  and bootstrap execution on a usable R runtime.
 
 - [ ] TODO-75 (added 2026-10-09, user decision; algorithm-sweep
   verification F21): **Dependent-censoring bootstrap CI is biased toward non-rejection** —
@@ -2110,10 +2140,12 @@ baseline as expected/benign.
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-10`.
   Affects the marginal estimand and its SE, the reused-worker bootstrap, and the null simulator. `marginal_mean_diff` −0.0876 vs a consistent −0.0816 (non-default estimand); mild default parametric-bootstrap distortion. No test covers it.
   **Source implementation 2026-10-10:** the likelihood's stable
-  reference-category softmax is now shared by the marginal-mean functional
-  and null simulator; the marginal reference test was corrected to an
-  independent softmax derivation. Execution remains blocked by this host's
-  unavailable `libmkl_gf_lp64.so.2`, so this checkbox stays open.
+  reference-category softmax is now shared by the marginal-mean functional,
+  weighted-bootstrap combination, and null simulator; the marginal reference
+  test was corrected to an independent softmax derivation. The weighted path
+  still uses its separate weighted submodel fits, rather than a joint-MLE
+  refit. Execution remains blocked by this host's unavailable
+  `libmkl_gf_lp64.so.2`, so this checkbox stays open.
 
 - [ ] TODO-80 (added 2026-10-09, user decision; algorithm-sweep
   verification F10): **Zhang exact CI bracket never validated** —
@@ -2121,10 +2153,11 @@ baseline as expected/benign.
   Bounds are silently truncated (CI too narrow), and zero-cell tables report finite bounds where the truth is ±∞. The bisection stops at |p − α| < 0.005. The same bisection is in `inference_ext_quantile_rand_ci.R`.
   **Source implementation completed 2026-10-10:** the shared bisection expands
   an invalid finite bracket geometrically, returns signed infinity when the
-  tail cannot reject by the finite log-odds cap, and resolves endpoints at a
-  parameter-scale tolerance no looser than `1e-6`.  Direct exact and
-  randomization CI defaults are aligned; focused narrow-bracket and unbounded
-  tail regressions are added.  This remains unchecked because this host's R
+  tail cannot reject by the finite log-odds cap, and resolves endpoints by
+  parameter-scale bracket width no looser than `1e-6`, including locally flat
+  p-value curves. Direct exact and
+  randomization CI defaults are aligned; focused narrow-bracket, flat-crossing,
+  and unbounded-tail regressions are added. This remains unchecked because this host's R
   runtime cannot load `libmkl_gf_lp64.so.2`, so no focused execution occurred.
 
 - [ ] TODO-81 (added 2026-10-09, user decision; algorithm-sweep
@@ -2133,8 +2166,10 @@ baseline as expected/benign.
   Replicates use 1 × 2000 annealing moves (stops hot) vs MILP or 4 × 20000. Replicate objectives are 6–45× worse. **Conservative:** size ≈ 0.02–0.03 at nominal 0.05 at high R². Undocumented.
   **Source implementation completed 2026-10-10:** BRT replays now inherit the
   observed assignment's solver/profile by default; the cheap annealing profile
-  is available only via an explicit `brt_solver` override.  The wiring test
-  now pins both default profile parity and the opt-in override.  This remains
+  is available only via an explicit `brt_solver` override, while an explicit
+  `brt_solver = "ompr"` forces MILP instead of silently crossing the auto
+  solver's large-design annealing threshold. The wiring test now pins default
+  profile parity and both opt-in overrides. This remains
   unchecked until focused and operating-characteristic runs can execute; this
   host's R runtime cannot load `libmkl_gf_lp64.so.2`.
 
@@ -2168,9 +2203,10 @@ baseline as expected/benign.
   **Source implementation completed 2026-10-10:** matched-pair and reservoir
   HL variances now use their normal-model calibration in both the R fit path
   and native fast-bootstrap path, removing the balanced-design `2*pi/3`
-  under-scaling. The bootstrap-CI alias was removed so the composed
-  nonparametric bootstrap interval is used. Focused source regressions cover
-  the two variance formulas and bootstrap/Wald non-aliasing. This remains
+  under-scaling. The bootstrap-CI alias was removed, while the normal
+  package-level restriction correctly rejects nonparametric bootstrap CIs for
+  sequential KK designs. Focused source regressions cover the two variance
+  formulas and that unsupported CI path. This remains
   unchecked pending an authorized native rebuild and R execution; this host's
   `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
@@ -2182,7 +2218,8 @@ baseline as expected/benign.
   bootstrap, and randomization estimate-only paths now obtain real matched
   and reservoir component variances before IVWC combination. The placeholder
   `1.0` helper branches are removed, so an unavailable variance rejects only
-  that component instead of silently equal-weighting it. Focused mock
+  that component instead of silently equal-weighting it; the direct Rcpp
+  helper has no unused branch that can restore the placeholder. Focused mock
   regressions assert the preserved IVWC weighting. This remains unchecked
   pending R execution; this host's `Rscript` cannot load
   `libmkl_gf_lp64.so.2`.
@@ -2235,8 +2272,9 @@ baseline as expected/benign.
   rejects exact allocation spaces above one million leaves before recursion,
   and permitted recursion checks R interrupts every 4096 leaves. The public
   exact-inference method warns and falls back to its asymptotic normal p-value
-  for that capacity condition; direct kernel callers receive a clear error. A
-  large 11-level regression covers the immediate guard. This remains unchecked
+  for that capacity condition; direct kernel callers receive a clear error.
+  Large 11-level regressions cover the immediate guard and public fallback.
+  This remains unchecked
   pending an authorized native rebuild and R execution; this host's `Rscript`
   cannot load `libmkl_gf_lp64.so.2`.
 
@@ -2245,9 +2283,10 @@ baseline as expected/benign.
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-22`.
   The same seed gives different draws on Linux and macOS on default design and resampling paths (distributions correct). In-code "cross-platform guarantee" comments are wrong. Use Fisher–Yates on `bounded_rand` and add a fixed-seed golden. **Default change:** seed-pinned draws change once.
   **Source progress 2026-10-09:** native shuffle/distribution sites now use
-  portable `RRng`/`bounded_rand` Fisher--Yates. The required rebuilt,
-  fixed-seed golden (including macOS) has not run, so this release item stays
-  unchecked.
+  portable `RRng`/`bounded_rand` Fisher--Yates, with no stale `<random>`
+  headers remaining at those sites. The required rebuilt fixed-seed golden
+  has not yet been recorded or run, including on macOS, so this release item
+  stays unchecked.
 
 - [ ] TODO-92 (added 2026-10-09, user decision; algorithm-sweep
   verification F19): **Firth penalty has the wrong sign** —

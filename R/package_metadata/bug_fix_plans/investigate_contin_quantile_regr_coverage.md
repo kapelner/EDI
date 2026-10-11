@@ -2,9 +2,10 @@
 
 > **Depends on:** none. Found 2026-09-24, via a dedicated cross-class
 > investigation fork chasing the audit's `low_coverage` backlog after the
-> `stale_ok_row_rows` prune. **Medium confidence on the primary claim
-> (truth-mismatch hypothesis ruled out by direct distributional argument);
-> low confidence on the actual root cause, which remains open.**
+> `stale_ok_row_rows` prune. The investigation initially had medium confidence
+> that a truth mismatch was ruled out and low confidence on the remaining
+> cause. Its 2026-10-09 final disposition, recorded below, found no package
+> defect and closed the release item as a method-property investigation.
 
 ## The finding
 

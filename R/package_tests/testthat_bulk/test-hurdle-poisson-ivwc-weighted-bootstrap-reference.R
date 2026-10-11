@@ -26,13 +26,20 @@ hurdle_ivwc_fixture <- function() {
 }
 
 hurdle_ivwc_reference_estimate_only <- function(fixture, weights) {
+	# Combine the two independent component fits the same way the class
+	# itself does (inference_count_KK_cond_poisson.R's
+	# compute_estimate_with_bootstrap_weights(): `w_star = ssq_r / (ssq_r +
+	# ssq_m); w_star * beta_m + (1 - w_star) * beta_r`), an inverse-variance
+	# weighted combination, not a naive 50/50 average -- this reference
+	# helper previously hardcoded `0.5 * beta_m + 0.5 * beta_r`, which is
+	# only correct when the two component variances happen to be equal.
 	skip_if_not(requireNamespace("glmmTMB", quietly = TRUE))
 	units <- split(seq_along(fixture$y), fixture$context$row_to_unit)
 	pairs <- units[lengths(units) == 2L]
 	reservoir <- unlist(units[lengths(units) == 1L], use.names = FALSE)
 	row_weight <- weights[fixture$context$row_to_unit]
 
-	beta_m <- NA_real_
+	beta_m <- NA_real_; ssq_m <- NA_real_
 	if (length(pairs) > 0L) {
 		matched_idx <- unlist(pairs, use.names = FALSE)
 		dat_m <- data.frame(
@@ -43,20 +50,32 @@ hurdle_ivwc_reference_estimate_only <- function(fixture, weights) {
 		mod_m <- suppressWarnings(suppressMessages(glmmTMB::glmmTMB(
 			y ~ w + (1 | pair_group), ziformula = ~ w + (1 | pair_group),
 			family = glmmTMB::truncated_poisson(link = "log"),
-			data = dat_m, weights = row_weight[matched_idx], se = FALSE
+			data = dat_m, weights = row_weight[matched_idx], se = TRUE
 		)))
-		beta_m <- as.numeric(glmmTMB::fixef(mod_m)$cond["w"])
+		coef_table <- tryCatch(summary(mod_m)$coefficients$cond, error = function(e) NULL)
+		if (!is.null(coef_table) && "w" %in% rownames(coef_table)) {
+			beta_m <- as.numeric(coef_table["w", "Estimate"])
+			ssq_m <- as.numeric(coef_table["w", "Std. Error"])^2
+		}
 	}
 
-	beta_r <- NA_real_
+	beta_r <- NA_real_; ssq_r <- NA_real_
 	if (length(reservoir) > 1L) {
-		mod_r <- glm.fit(
-			cbind(1, fixture$w[reservoir]), fixture$y[reservoir],
+		mod_r <- glm(
+			y ~ w, data = data.frame(y = fixture$y[reservoir], w = fixture$w[reservoir]),
 			weights = row_weight[reservoir], family = poisson(link = "log")
 		)
-		beta_r <- unname(mod_r$coefficients[2])
+		beta_r <- unname(coef(mod_r)["w"])
+		ssq_r <- unname(vcov(mod_r)["w", "w"])
 	}
-	list(beta_m = beta_m, beta_r = beta_r, combined = 0.5 * beta_m + 0.5 * beta_r)
+
+	m_ok <- is.finite(beta_m) && is.finite(ssq_m) && ssq_m > 0
+	r_ok <- is.finite(beta_r) && is.finite(ssq_r) && ssq_r > 0
+	combined <- if (m_ok && r_ok) {
+		w_star <- ssq_r / (ssq_r + ssq_m)
+		w_star * beta_m + (1 - w_star) * beta_r
+	} else if (m_ok) beta_m else if (r_ok) beta_r else NA_real_
+	list(beta_m = beta_m, beta_r = beta_r, combined = combined)
 }
 
 test_that("KK hurdle-Poisson IVWC weighted estimate-only combines independent matched/reservoir fits", {

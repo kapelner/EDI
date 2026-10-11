@@ -9,6 +9,12 @@ make_mixed_kernel_guard_fixture <- function() {
 		X = cbind(1, x),
 		X_no_intercept = matrix(x, ncol = 1L),
 		group = rep(seq_len(6L), each = 3L),
+		# fast_gaussian_lmm_cpp is a closed-form solution specific to KK-design
+		# groups (matched pairs / reservoir singletons): any group of size > 2
+		# throws before the warm-start-shape guards this file is testing even
+		# run. The other kernels below tolerate the plain size-3 `group`
+		# above; only gaussian_lmm needs this size-2 variant.
+		group_pairs = rep(seq_len(9L), each = 2L),
 		y_binary = rep(c(0, 1, 0), 6L),
 		y_count = rep(c(1, 2, 3), 6L),
 		y_hurdle = rep(c(0, 1, 2), 6L),
@@ -22,7 +28,7 @@ test_that("mixed-model kernels reject wrong-length warm_start_params", {
 	d <- make_mixed_kernel_guard_fixture()
 	cases <- list(
 		gaussian_lmm = list(
-			call = function(z) EDI:::fast_gaussian_lmm_cpp(d$X, seq_len(nrow(d$X)), d$group, warm_start_params = z),
+			call = function(z) EDI:::fast_gaussian_lmm_cpp(d$X, seq_len(nrow(d$X)), d$group_pairs, warm_start_params = z),
 			n_params = ncol(d$X) + 2L),
 		hurdle_negbin = list(
 			call = function(z) EDI:::fast_hurdle_negbin_cpp(d$X, d$y_hurdle, d$X, warm_start_params = z),
@@ -63,7 +69,7 @@ test_that("mixed-model kernels reject wrong-shaped warm_start_fisher_info", {
 	d <- make_mixed_kernel_guard_fixture()
 	cases <- list(
 		gaussian_lmm = list(
-			call = function(H) EDI:::fast_gaussian_lmm_cpp(d$X, seq_len(nrow(d$X)), d$group, warm_start_fisher_info = H),
+			call = function(H) EDI:::fast_gaussian_lmm_cpp(d$X, seq_len(nrow(d$X)), d$group_pairs, warm_start_fisher_info = H),
 			n_params = ncol(d$X) + 2L),
 		hurdle_negbin = list(
 			call = function(H) EDI:::fast_hurdle_negbin_cpp(d$X, d$y_hurdle, d$X, warm_start_fisher_info = H),

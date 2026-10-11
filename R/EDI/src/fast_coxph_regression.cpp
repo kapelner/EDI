@@ -519,7 +519,7 @@ CoxFitResult cox_fit(
     std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt)
 {
     if (optimization_alg == "lbfgs")
-        return cox_lbfgs(strata_data, warm_start_beta, smart_cold_start, fixed_spec, estimate_only, maxit, tol);
+        return cox_lbfgs(strata_data, warm_start_beta, smart_cold_start, fixed_spec, estimate_only, maxit, tol, warm_start_fisher_info);
     return cox_newton_raphson(strata_data, warm_start_beta, smart_cold_start, fixed_spec, estimate_only, maxit, tol, warm_start_fisher_info);
 }
 

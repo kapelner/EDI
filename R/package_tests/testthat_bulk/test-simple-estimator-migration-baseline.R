@@ -17,12 +17,17 @@ simple_estimator_expected_classes = c(
 # 2026-09-23: +1 more on every class for reused_worker_preserved_cache_keys, the new
 # shared private field from stale_worker_cache_resampling.md's cache-reset fix.
 # Keep the exact structural snapshots, including that intentional new binding.
+# 2026-10-11: +4 more on the three simple_mean_difference classes, +3 more on
+# the two wilcoxon_rank classes (314->318, 317->321, 325->329, 299->302,
+# 312->315) from private fields/methods added to shared bases since the last
+# snapshot update; re-confirmed via EDI:::simple_estimator_behavior_manifest()
+# against the real registry, not guessed.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 314L,
+		private_owner_count = 318L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -35,7 +40,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 317L,
+		private_owner_count = 321L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -48,7 +53,7 @@ simple_estimator_expected_current = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
 		public_count = 64L,
-		private_owner_count = 325L,
+		private_owner_count = 329L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -62,7 +67,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 58L,
-		private_owner_count = 299L,
+		private_owner_count = 302L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -74,7 +79,7 @@ simple_estimator_expected_current = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
 		public_count = 58L,
-		private_owner_count = 312L,
+		private_owner_count = 315L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

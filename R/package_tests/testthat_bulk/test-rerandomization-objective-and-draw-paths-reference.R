@@ -46,6 +46,13 @@ test_that("generate_one_rerandomized_w returns a balanced allocation for prob_T 
 	pool <- vapply(1:400, function(i) ref_mahal(as.matrix(X), sample(rep(0:1, 10))), numeric(1))
 	cutoff <- unname(quantile(pool, 0.3))
 	f <- rerand_design(obj_val_cutoff = cutoff, X = X)
+	# generate_one_rerandomized_w() reads private$X directly (not the X
+	# argument compute_obj() takes); add_all_subjects_to_experiment() leaves
+	# it NULL until something triggers the lazy impute-then-build-model-
+	# matrix step (normally get_X(), or draw_ws_according_to_design() as in
+	# the test above) -- do that explicitly before manually setting S_inv
+	# and calling the private generator directly.
+	f$des$get_X()
 	f$priv$S_inv <- solve(var(f$X))
 	set.seed(7)
 	for (i in 1:15) {
@@ -56,6 +63,7 @@ test_that("generate_one_rerandomized_w returns a balanced allocation for prob_T 
 	}
 	# No cutoff: the first candidate is accepted.
 	g <- rerand_design(X = X)
+	g$des$get_X()
 	g$priv$S_inv <- solve(var(g$X))
 	expect_equal(sum(g$priv$generate_one_rerandomized_w()), 10)
 })

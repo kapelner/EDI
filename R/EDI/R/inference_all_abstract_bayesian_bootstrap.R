@@ -146,7 +146,8 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				# fork, which can leave an inherited runtime mutex permanently locked.
 				# Debug output is diagnostic rather than throughput-sensitive, so keep
 				# that branch in the parent process.  Ordinary (debug = FALSE)
-				# Bayesian bootstrap dispatch remains parallel.
+				# Bayesian bootstrap remains eligible for its normal policy and
+				# warmup-based parallel dispatch.
 				if (!isTRUE(private$use_reusable_bootstrap_worker())) actual_debug_cores = 1L
 				chunk_n = max(1L, min(as.integer(actual_debug_cores), as.integer(B)))
 				chunk_id = ceiling(seq_len(B) / ceiling(B / chunk_n))
@@ -677,6 +678,15 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			}
 			inf_work = self$duplicate(make_fork_cluster = FALSE)
 			inf_work$num_cores = 1L
+			# Keep the studentized/bootstrap-t path on the same parent-batched
+			# gamma-draw implementation as the ordinary distribution path.  A
+			# length-B draw batch consumes exactly the historical replicate-then-
+			# group RNG stream, while avoiding B context constructions and B small
+			# rgamma() calls before the serial SE refits below.
+			draws = private$bayesian_bootstrap_sample_weight_draws(
+				B = as.integer(B),
+				weighting_unit_type = weighting_unit_type
+			)
 			stats_mat = matrix(NA_real_, nrow = B, ncol = 2L)
 			pb = if (isTRUE(show_progress) && B > 1L) {
 				pb_obj = utils::txtProgressBar(min = 0, max = B, style = 3)
@@ -685,7 +695,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			} else NULL
 			for (b in seq_len(B)) {
 				private$check_bootstrap_replicate_deadline("Bayesian bootstrap statistic replicate")
-				draw = private$bayesian_bootstrap_sample_weights(weighting_unit_type = weighting_unit_type)
+				draw = draws[[b]]
 				tryCatch({
 					inf_work$.__enclos_env__$private$current_bayesian_bootstrap_context = draw$context
 					theta_b = as.numeric(inf_work$compute_estimate_with_bootstrap_weights(

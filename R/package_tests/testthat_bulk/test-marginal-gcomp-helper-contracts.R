@@ -63,14 +63,21 @@ test_that("zero-one-inflated beta mean helpers implement normalized mixture mean
 	X = cbind(1, c(0, 1), c(-1, 1))
 	XZ = cbind(1, c(0, 1))
 	b_beta = c(0, 1, 0)
-	b_zero = c(0, 0)
-	b_one = c(0, 0)
+	# zoib_softmax_probabilities() is a 3-way softmax over (p0, p1, p_mid)
+	# with an implicit 0 logit for p_mid: all-zero b_zero/b_one gives eta0 =
+	# eta1 = 0, i.e. p0 = p1 = p_mid = 1/3, NOT p0 = p1 = 0.5 with zero
+	# interior mass. A large common intercept on both gates (slope still 0,
+	# so it's constant across subjects/treatment) instead pushes p_mid to
+	# ~exp(-30) =~ 9e-14 while keeping p0 = p1 =~ 0.5, which is what this
+	# test actually wants to exercise.
+	b_zero = c(30, 0)
+	b_one = c(30, 0)
 	observed = p$zoib_mean_from_coefs(b_beta, b_zero, b_one, X, XZ)
-	# p0 = p1 = 0.5 leaves zero interior mass after normalization.
-	expect_equal(observed, rep(0.5, 2))
+	# p0 = p1 =~ 0.5 leaves ~zero interior mass after normalization.
+	expect_equal(observed, rep(0.5, 2), tolerance = 1e-10)
 
 	md = p$zoib_marginal_mean_diff_from_coefs(b_beta, b_zero, b_one, X, XZ)
-	expect_equal(md, 0)
+	expect_equal(md, 0, tolerance = 1e-10)
 	theta = c(b_beta, log(5), b_zero, b_one)
 	expect_equal(p$zoib_marginal_mean_diff_functional(theta, X, XZ, 3L, 2L), md)
 })

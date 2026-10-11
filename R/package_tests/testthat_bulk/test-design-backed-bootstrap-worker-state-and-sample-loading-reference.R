@@ -129,9 +129,20 @@ test_that("a bootstrap sample that makes a rare covariate constant falls back to
 	p$load_bootstrap_sample_into_design_backed_worker(ws, idx)
 	expect_null(ws$worker_priv$X)
 	expect_null(ws$worker_des_priv$X)
+	expect_true(ws$worker_des_priv$model_matrix_stale)
 	estimate <- p$compute_bootstrap_worker_estimate(ws)
 	reference <- unname(stats::lm.fit(cbind(1, w[idx], x[idx]), y[idx])$coefficients[2L])
 	expect_equal(estimate, reference, tolerance = 1e-10)
+
+	# The same reusable worker must return to the direct-subset path after a
+	# rank-deficient draw; its stale flag belongs to the draw, not the worker.
+	direct_idx <- seq_len(n)
+	p$load_bootstrap_sample_into_design_backed_worker(ws, direct_idx)
+	expect_false(ws$worker_des_priv$model_matrix_stale)
+	expect_equal(ws$worker_priv$X, ws$base_X[direct_idx, , drop = FALSE])
+	direct_estimate <- p$compute_bootstrap_worker_estimate(ws)
+	direct_reference <- unname(stats::lm.fit(cbind(1, w[direct_idx], x[direct_idx], rare[direct_idx]), y[direct_idx])$coefficients[2L])
+	expect_equal(direct_estimate, direct_reference, tolerance = 1e-10)
 })
 
 test_that("the indices may be a bare vector or a list draw with i_b (and an optional m_vec_b override)", {

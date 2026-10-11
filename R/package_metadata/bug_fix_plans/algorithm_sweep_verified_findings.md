@@ -123,8 +123,10 @@ are fixed here because they are still exported and registered.
   the reported estimate, regardless of call order.
   **Source implementation 2026-10-10:** the Rcpp and MASS paths now retain
   `rlm_method` for estimate-only fits and skip only standard-error extraction;
-  the stale documentation and a direct MM estimate-only parity regression were
-  updated.  Focused randomization execution remains pending because this host's
+  weighted bootstrap refits now use that same method (or an already-established
+  observed-fit fallback to M). The stale documentation and direct MM
+  estimate-only/weighted-refit regressions were updated. Focused randomization
+  and bootstrap execution remains pending because this host's
   `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
 - [ ] TODO-6 (F21): **Dependent-censoring bootstrap CI is outcome-dependent and
@@ -225,17 +227,21 @@ are fixed here because they are still exported and registered.
   apply plogis-normalize instead. `marginal_mean_diff`: EDI −0.0876 vs
   softmax-consistent −0.0816 (truth −0.0782). The default-estimand parametric
   bootstrap is mildly distorted. The weighted-BB path fits separate logits (a
-  different functional, so document or align it). **Fix:**
+  distinct separate-fit model, so document or align it). **Fix:**
   `d = 1 + e^{a0} + e^{a1}`, `p0 = e^{a0}/d`, `p1 = e^{a1}/d`, `p_mid = 1/d`.
   **Test:** a `marginal_mean_diff` test against a softmax-consistent reference
   (none exists today).
   **Source implementation 2026-10-10:** a stable reference-category softmax
   helper now supplies both `zoib_mean_from_coefs()` and
   `simulate_under_lik_null()`, replacing their independent-logit
-  plogis-normalize calculations. The marginal-estimand reference now derives
-  the same softmax independently. This default parametric-bootstrap and
-  non-default marginal-estimand correction awaits execution on a usable R
-  runtime, so the item remains unchecked.
+  plogis-normalize calculations. The weighted-bootstrap path still estimates
+  separate weighted zero/one and beta submodels, but now combines those
+  coefficients through the same softmax g-computation rather than treating
+  its logits as independent probabilities; it therefore remains a distinct
+  fitted model rather than a joint-MLE refit. The marginal-estimand reference
+  now derives the same softmax independently. This default
+  parametric-bootstrap and non-default marginal-estimand correction awaits
+  execution on a usable R runtime, so the item remains unchecked.
 
 - [ ] TODO-11 (F10): **Zhang exact CI bracket is never validated**
   (`inference_helpers_zhang.R:~44,180,205`). The search bracket is the 2α Wald CI
@@ -254,9 +260,11 @@ are fixed here because they are still exported and registered.
   until it is outside the acceptance region, returns the appropriate infinite
   endpoint if the finite log-odds cap remains accepted, and uses a parameter
   interval tolerance capped at `1e-6` (rather than the old default 0.005
-  p-value residual).  Both direct exact and randomization-CI callers inherit
+  p-value residual), including when a locally flat p-value curve would make a
+  residual-only stop inaccurate.  Both direct exact and randomization-CI callers inherit
   this helper; their public default now requests `1e-6`.  Focused source tests
-  cover a too-narrow bracket and an unbounded tail.  They were not executed:
+  cover a too-narrow bracket, a locally flat crossing, and an unbounded tail.
+  They were not executed:
   `Rscript` cannot start on this host because `libmkl_gf_lp64.so.2` is absent.
 
 - [ ] TODO-12 (F23): **`DesignFixedOptimal` BRT replays a weaker solver than
@@ -275,8 +283,10 @@ are fixed here because they are still exported and registered.
   **Source implementation completed 2026-10-10; execution pending.**  BRT
   replays now inherit the ordinary observed-assignment solver and budget unless
   a caller explicitly supplies `solver_args$brt_solver`; the old implicit
-  `1 × 2000` annealing fallback is gone.  The BRT wiring regression now checks
-  the default certified solve and an explicit legacy annealing override.  No
+  `1 × 2000` annealing fallback is gone.  An explicit `brt_solver = "ompr"`
+  now forces the MILP replay rather than silently taking the auto solver's
+  large-design annealing threshold. The BRT wiring regression now checks the
+  default certified solve and both explicit overrides. No
   R execution was possible on this host (`libmkl_gf_lp64.so.2` is missing), so
   retain this unchecked pending focused and operating-characteristic runs.
 
@@ -331,8 +341,10 @@ are fixed here because they are still exported and registered.
   calibrated HL variances: `2*pi/3 * Var(Walsh)/m` for matched pairs and
   `pi * Var(Y_T-Y_C) * (n_T+n_C)/(6*n_T*n_C)` for the reservoir. The
   class-level bootstrap-CI override that returned the asymptotic interval was
-  removed, restoring the composed nonparametric bootstrap interval. A focused
-  regression pins both component formulas and rejects a bootstrap/Wald alias.
+  removed. KK designs are sequential, however, and the package-level
+  capability restriction disables ordinary nonparametric bootstrap CIs for
+  them; the focused regression therefore pins both component formulas and
+  asserts that this unsupported CI path errors rather than aliases Wald.
   It was not run because `Rscript` cannot load `libmkl_gf_lp64.so.2` on this
   host; the native half also requires an authorized rebuild before execution.
 
@@ -351,7 +363,9 @@ are fixed here because they are still exported and registered.
   reservoir Poisson variances before combining their estimates: ordinary,
   weighted/Bayesian-bootstrap, and randomization. The formerly reachable
   `1.0` placeholder branches were removed, so the fit helpers always return a
-  usable variance or fail the component. Focused mock regressions pin the
+  usable variance or fail the component. The direct Rcpp helper no longer has
+  an unused `se = FALSE` argument that could reintroduce a placeholder.
+  Focused mock regressions pin the
   real-variance IVWC result and verify that the weighted path no longer asks
   either helper for estimate-only fitting. No R test ran because this host's
   `Rscript` cannot load `libmkl_gf_lp64.so.2`.
@@ -441,8 +455,9 @@ are fixed here because they are still exported and registered.
   permitted recursion checks for R interrupts every 4096 leaves. The public
   inference method catches only this capacity error, warns, and returns its
   existing asymptotic normal p-value; direct kernel users receive the explicit
-  capacity error. A large 11-level regression asserts the guard without
-  entering recursion. This native edit has not been compiled or run because no
+  capacity error. Large 11-level regressions assert both the direct guard and
+  public warning/fallback without entering recursion. This native edit has not
+  been compiled or run because no
   rebuild permission was granted and `Rscript` cannot load
   `libmkl_gf_lp64.so.2` here.
 
@@ -462,9 +477,10 @@ are fixed here because they are still exported and registered.
   library is not matched. See `algorithm_choice_audit.md → TODO-23`.
   **Source progress 2026-10-09:** `RNG.h` now supplies portable
   Fisher--Yates over `bounded_rand`; the native design/resampling sources no
-  longer use `std::shuffle` or `std::uniform_*` distributions. The fixed-seed
-  golden and rebuild/cross-platform execution remain required, so this plan
-  item remains unchecked.
+  longer use `std::shuffle`, `std::uniform_*` distributions, or stale
+  `<random>` headers. No fixed-seed output golden has yet been recorded, so
+  that golden plus rebuilt cross-platform execution remain required and this
+  plan item remains unchecked.
 
 - [ ] TODO-23 (F19): **Firth penalty has the wrong sign** in
   `evaluate_penalized_neg_loglik_at`

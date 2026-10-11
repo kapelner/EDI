@@ -165,6 +165,22 @@ default change.
 
 ## TODOs
 
+### Diagnostic non-reusable-worker safety exception (release v1.0.5 TODO-66)
+
+`debug = TRUE` is diagnostic output, not a throughput path.  For an inference
+class that does not support a reusable bootstrap worker, each debug replicate
+duplicates its inference object.  Forking that path after an OpenMP-using fit
+can inherit a permanently locked runtime mutex.  The shared Bayesian-bootstrap
+driver therefore executes that **debug-only, non-reusable** branch serially;
+ordinary `debug = FALSE` dispatch retains its existing policy and
+warmup-based eligibility for parallel execution.  The focused
+`test-bayesian-bootstrap-non-reusable-worker-debug-path.R` requests two cores
+and checks the serial diagnostic result against the same seeded single-core
+distribution.  Its registered runtime-manifest entries are 4.3 seconds for
+correctness and 240 seconds for coverage.  This is a safety exception, not a
+claim that the ordinary non-reusable path is universally fork-safe; repeat-run
+runtime validation remains required before release closure.
+
 - [ ] TODO-1: **Benchmark harness, before any change.** Promote the
   scratch timing (1 vs. 3 cores, B ∈ {1000, 5000}, OLS / logistic / Cox /
   Weibull / median regression / difference in means / beta regression) to
@@ -220,10 +236,13 @@ default change.
   draws the full replicate-by-unit batch in one parent `rgamma()` call, and
   normalizes within groups after arranging units in their historical
   first-observed order.  It then reconstructs the original unit order before
-  returning one draw record per replicate.  The focused deterministic
-  reference covers the preserved replicate-then-group RNG ordering.  The
-  required installed-package equivalence and benchmark evidence remains part
-  of TODO-9, so this checkbox stays open.
+  returning one draw record per replicate. The studentized/bootstrap-t
+  statistics path now consumes that same full parent batch before its serial
+  weighted refits, rather than rebuilding a context and calling the one-draw
+  wrapper B times. The focused deterministic reference and the existing
+  statistics-vs-manual-loop regression cover the preserved replicate-then-
+  group RNG ordering. The required installed-package equivalence and benchmark
+  evidence remains part of TODO-9, so this checkbox stays open.
 
 - [ ] TODO-5: **Audit the bootstrap serial blocklist (F1).** For each
   entry (`^InferenceIncid`, `^InferenceSurvival(?!.*KK)`,

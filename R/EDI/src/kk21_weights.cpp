@@ -6,10 +6,6 @@
 using namespace Rcpp;
 using namespace Eigen;
 
-inline Eigen::ArrayXd clamp_weibull_z_kk(const Eigen::ArrayXd& z) {
-	return z.max(-20.0).min(20.0);
-}
-
 inline Eigen::ArrayXd plogis_array_kk(const Eigen::ArrayXd& eta) {
 	const Eigen::Array<bool, Eigen::Dynamic, 1> nonnegative = (eta >= 0.0);
 	const Eigen::ArrayXd pos = 1.0 / (1.0 + (-eta).exp());
@@ -745,8 +741,8 @@ static double univariate_weibull_tstat(
 	const Eigen::VectorXd& log_y,
 	const Eigen::VectorXd& delta,
 	const Eigen::VectorXd& x,
-	int maxit = 30,
-	double tol = 1e-5
+	int maxit = 100,
+	double tol = 1e-8
 ) {
 	int n = log_y.size();
 	if (n < 4) return -1.0;
@@ -777,75 +773,28 @@ static double univariate_weibull_tstat(
 	scale = std::sqrt(scale / std::max(1.0, n_events - 2));
 	scale = std::max(0.01, std::min(10.0, scale));
 
-	// Newton-Raphson for Weibull AFT
-	for (int iter = 0; iter < maxit; ++iter) {
-		Eigen::ArrayXd z = clamp_weibull_z_kk((resid / scale).array());
-		Eigen::VectorXd w = z.exp().matrix();
-		Eigen::ArrayXd adj = (delta.array() > 0.5).select(z - 1.0 + w.array(), w.array());
+	// Use the same likelihood and damped Newton/L-BFGS fallback as the public
+	// Weibull kernel and the stepwise score-test fit.  The old alternating
+	// updates solved a different beta equation and an incorrect scale score.
+	const Eigen::VectorXd y = log_y.array().exp().matrix();
+	if (!y.allFinite()) return -1.0;
+	Eigen::VectorXd params(3);
+	params.head(2) = beta;
+	params[2] = std::log(std::max(1e-8, scale));
+	WeibullAFTLikelihood likelihood(y, delta, X);
+	const LikelihoodFitResult fit = optimize_likelihood(
+		likelihood, params, maxit, tol, "newton_raphson", "newton_raphson");
+	if (!fit.converged || !fit.params.allFinite()) return -1.0;
 
-		// Weighted least squares update
-		Eigen::VectorXd pseudo_response = (log_y.array() - scale * adj / w.array()).matrix();
-		double sum_w = 0.0;
-		double sum_wx = 0.0;
-		double sum_wxx = 0.0;
-		double sum_wz = 0.0;
-		double sum_wxz = 0.0;
-		for (int i = 0; i < n; ++i) {
-			const double wi = w[i];
-			const double xi = x[i];
-			const double zi = pseudo_response[i];
-			sum_w += wi;
-			sum_wx += wi * xi;
-			sum_wxx += wi * xi * xi;
-			sum_wz += wi * zi;
-			sum_wxz += wi * xi * zi;
-		}
-		Eigen::Matrix2d XwXw;
-		XwXw << sum_w, sum_wx,
-		          sum_wx, sum_wxx;
-		Eigen::Vector2d Xwz(sum_wz, sum_wxz);
-		Eigen::ColPivHouseholderQR<Eigen::Matrix2d> qr_w(XwXw);
-		if (qr_w.rank() < 2) return -1.0;
-
-		Eigen::VectorXd beta_new = qr_w.solve(Xwz);
-		Eigen::VectorXd resid_new = log_y - X * beta_new;
-
-		// Scale update
-		double sum_d = 0.0;
-		double scale_new = scale;
-		for (int i = 0; i < n; ++i) {
-			if (delta(i) > 0.5) sum_d += 1.0;
-		}
-		if (sum_d > 0) {
-			const Eigen::ArrayXd z_new = clamp_weibull_z_kk((resid_new / scale).array());
-			const Eigen::ArrayXd exp_z_new = z_new.exp();
-			double score =
-				(delta.array() * (z_new - 1.0) - z_new * exp_z_new).sum() / scale;
-			double info = sum_d / (scale * scale);
-			if (std::fabs(info) > 1e-10) {
-				scale_new = scale - score / info;
-				scale_new = std::max(0.01, std::min(10.0, scale_new));
-			}
-		}
-
-		double diff = (beta_new - beta).norm() + std::fabs(scale_new - scale);
-		beta = beta_new;
-		scale = scale_new;
-		resid = resid_new;
-
-		if (diff < tol) break;
-	}
-
-	// Compute standard error of beta[1]
-	Eigen::VectorXd w = (clamp_weibull_z_kk((resid / scale).array()).exp() / (scale * scale)).matrix();
-	Eigen::MatrixXd info_mat = weighted_crossprod(X, w);
-
-	const double var_1 = compute_diagonal_inverse_entry(info_mat, 2);
+	// The beta/log-scale cross-information is nonzero, so use the full
+	// observed-information inverse for the coefficient's Wald standard error.
+	const Eigen::MatrixXd information = likelihood.hessian(fit.params);
+	const double var_1 = compute_diagonal_inverse_entry(information, 2);
 	if (!R_finite(var_1) || var_1 <= 0) return -1.0;
 	double se = std::sqrt(var_1);
 	if (!std::isfinite(se) || se <= 0) return -1.0;
 
-	return std::fabs(beta(1) / se);
+	return std::fabs(fit.params(1) / se);
 }
 
 // [[Rcpp::export]]

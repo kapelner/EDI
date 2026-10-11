@@ -353,6 +353,72 @@ inline Eigen::MatrixXd weighted_crossprod(const Eigen::Map<const Eigen::Matrix<d
     return res;
 }
 
+// Exact/right-censored Weibull AFT negative log-likelihood.  This is shared
+// by the public Weibull kernel and the KK21 survival-weight kernels so their
+// optimisation target cannot drift apart.  Parameters are [beta, log(sigma)].
+class WeibullAFTLikelihood {
+private:
+    const Eigen::Ref<const Eigen::VectorXd> m_y;
+    const Eigen::Ref<const Eigen::VectorXd> m_dead;
+    const Eigen::Ref<const Eigen::MatrixXd> m_X;
+    const int m_n;
+    const int m_p;
+    const Eigen::VectorXd m_log_y;
+    Eigen::VectorXd m_eta;
+    Eigen::ArrayXd m_w;
+    Eigen::ArrayXd m_exp_w;
+    Eigen::VectorXd m_d_eta;
+    Eigen::VectorXd m_beta_weights;
+    Eigen::VectorXd m_cross_weights;
+
+public:
+    WeibullAFTLikelihood(const Eigen::Ref<const Eigen::VectorXd>& y,
+                         const Eigen::Ref<const Eigen::VectorXd>& dead,
+                         const Eigen::Ref<const Eigen::MatrixXd>& X) :
+        m_y(y), m_dead(dead), m_X(X), m_n(y.size()), m_p(X.cols()),
+        m_log_y(y.array().log().matrix()), m_eta(m_n), m_w(m_n),
+        m_exp_w(m_n), m_d_eta(m_n), m_beta_weights(m_n),
+        m_cross_weights(m_n) {}
+
+    double operator()(const Eigen::VectorXd& params, Eigen::VectorXd& grad) {
+        const auto beta = params.head(m_p);
+        const double log_sigma = params[m_p];
+        const double sigma = std::exp(log_sigma);
+
+        m_eta.noalias() = m_X * beta;
+        m_w = ((m_log_y - m_eta) / sigma).array().min(700.0);
+        m_exp_w = m_w.exp();
+        const auto dead = m_dead.array();
+        const double loglik = (dead * (m_w - log_sigma - m_log_y.array()) - m_exp_w).sum();
+        m_d_eta = ((m_exp_w - dead) / sigma).matrix();
+        const double d_ll_d_log_sigma = (m_exp_w * m_w - dead * (m_w + 1.0)).sum();
+
+        grad.setZero();
+        grad.head(m_p).noalias() = -m_X.transpose() * m_d_eta;
+        grad[m_p] = -d_ll_d_log_sigma;
+        return -loglik;
+    }
+
+    Eigen::MatrixXd hessian(const Eigen::VectorXd& params) {
+        const int total_p = params.size();
+        Eigen::MatrixXd H = Eigen::MatrixXd::Zero(total_p, total_p);
+        const auto beta = params.head(m_p);
+        const double sigma = std::exp(params[m_p]);
+        m_eta.noalias() = m_X * beta;
+        m_w = ((m_log_y - m_eta) / sigma).array().min(700.0);
+        m_exp_w = m_w.exp();
+        m_beta_weights = (m_exp_w / (sigma * sigma)).matrix();
+        m_cross_weights =
+            ((m_exp_w * (m_w + 1.0) - m_dead.array()) / sigma).matrix();
+
+        H.topLeftCorner(m_p, m_p).noalias() = weighted_crossprod(m_X, m_beta_weights);
+        H.topRightCorner(m_p, 1).noalias() = m_X.transpose() * m_cross_weights;
+        H(m_p, m_p) = (m_exp_w * (m_w.square() + m_w) - m_dead.array() * m_w).sum();
+        H.bottomLeftCorner(1, m_p) = H.topRightCorner(m_p, 1).transpose();
+        return H;
+    }
+};
+
 template <typename Derived, typename WDerived, typename YDerived>
 inline Eigen::VectorXd weighted_crossprod_rhs(const Eigen::MatrixBase<Derived>& X,
                                               const Eigen::MatrixBase<WDerived>& w,
@@ -942,9 +1008,10 @@ inline WeibullStart weibull_aft_start(const Eigen::MatrixXd& X,
     }
 
     // R survival package (survreg) uses Method of Moments on the log scale:
-    // mean(log_y) + 0.572 and var(log_y) / 1.64
+    // mean(log_y) + Euler's gamma and var(log_y) / 1.64.
     // Here we apply this to the OLS fit on uncensored data.
-    Eigen::VectorXd log_y_adj = log_y.array() + 0.5722;
+    constexpr double euler_gamma = 0.5772156649015329;
+    Eigen::VectorXd log_y_adj = log_y.array() + euler_gamma;
     out.beta = safe_ols_solve(X_sub, log_y_adj);
     if (!out.beta.allFinite()) {
         out.beta = Eigen::VectorXd::Zero(p);

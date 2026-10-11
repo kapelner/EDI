@@ -26,7 +26,7 @@
 #' in \code{private$counts} (an (total levels across all covariates) x 2 matrix of
 #' running treated/control counts), growing both the level map and \code{counts} as
 #' new levels are encountered; missing values are treated as their own level
-#' (\code{"NA"}).
+#' (distinct from a literal category named \code{"NA"}).
 #'
 #' \strong{Non-resampling bootstrap.} \code{draw_bootstrap_indices()} always performs a
 #' plain i.i.d. nonparametric bootstrap over subjects (\code{sample_int_replace_cpp()}),
@@ -156,6 +156,16 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 		counts = NULL,
 		num_levels_total = NULL,
 		strata_level_rows = NULL,
+		# Named-vector maps need a reversible key: using the display string "NA"
+		# for both a missing value and the literal category "NA" merges two strata
+		# and changes the assignment rule.  The private map therefore records a
+		# type tag and character count for non-missing values.
+		stratum_level_key = function(value){
+			value = as.character(value)
+			key = paste0("\001V", nchar(value, type = "chars"), ":", value)
+			key[is.na(value)] = "\001N"
+			key
+		},
 		draw_bootstrap_indices = function(bootstrap_type = NULL) {
 			list(i_b = sample_int_replace_cpp(private$t, private$t), m_vec_b = NULL)
 		},
@@ -175,7 +185,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				if (is.null(row_map)) row_map = integer(0)
 				if (full_scan) {
 					col_vals = private$Xraw[[col]][rows_to_register]
-					col_keys = ifelse(is.na(col_vals), "NA", as.character(col_vals))
+					col_keys = private$stratum_level_key(col_vals)
 					new_levels = setdiff(unique(col_keys), names(row_map))
 					if (length(new_levels) > 0L) {
 						new_rows = seq.int(next_row, length.out = length(new_levels))
@@ -185,7 +195,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 					}
 				} else {
 					value = private$Xraw[[col]][private$t]
-					key = if (is.na(value)) "NA" else as.character(value)
+					key = private$stratum_level_key(value)
 					pos = match(key, names(row_map), nomatch = 0L)
 					if (pos == 0L) {
 						row_map[[key]] = next_row
@@ -195,7 +205,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				private$strata_level_rows[[col]] = row_map
 				if (full_scan) {
 					current_value = private$Xraw[[col]][private$t]
-					current_key = if (is.na(current_value)) "NA" else as.character(current_value)
+					current_key = private$stratum_level_key(current_value)
 				} else {
 					current_key = key
 				}
@@ -214,7 +224,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 			if (!is.null(x_row)) private$ensure_factor_metadata()
 			vapply(private$strata_cols, function(col) {
 				value = if (is.null(x_row)) private$Xraw[[col]][i] else x_row[[col]]
-				key = if (is.na(value)) "NA" else as.character(value)
+				key = private$stratum_level_key(value)
 				row_idx = unname(private$strata_level_rows[[col]][key])
 				if (should_run_asserts()) {
 					if (length(row_idx) != 1L || is.na(row_idx)) {

@@ -54,82 +54,9 @@ inline BoundTerms bound_terms_degenerate(double S_limit) {
     return t;
 }
 
-// Fast path: exact/right-censored responses only (dead == 1 exact, dead ==
-// 0 right-censored). Restored from the pre-TODO-3 implementation (see
-// interval_censored_survival_response.md TODO-28) -- fully vectorized via
-// Eigen array expressions (SIMD-batched .exp()/.log()), no per-row scalar
-// loop or branching. TODO-28 measured this is ~3-4x faster per call than
-// WeibullAFTLikelihoodGeneral below on exact/right-censored-only data, and
-// that gap is a real, unavoidable cost of general-censoring support (see
-// that TODO's perf investigation), not a fixable inefficiency -- hence
-// keeping both kernels rather than routing everything through one.
-class WeibullAFTLikelihood {
-private:
-    const Eigen::Ref<const Eigen::VectorXd> m_y;
-    const Eigen::Ref<const Eigen::VectorXd> m_dead;
-    const Eigen::Ref<const Eigen::MatrixXd> m_X;
-    const int m_n;
-    const int m_p;
-    const Eigen::VectorXd m_log_y;
-    Eigen::VectorXd m_eta;
-    Eigen::ArrayXd m_w;
-    Eigen::ArrayXd m_exp_w;
-    Eigen::VectorXd m_d_eta;
-    Eigen::VectorXd m_beta_weights;
-    Eigen::VectorXd m_cross_weights;
-
-public:
-    WeibullAFTLikelihood(const Eigen::Ref<const Eigen::VectorXd>& y,
-                         const Eigen::Ref<const Eigen::VectorXd>& dead,
-                         const Eigen::Ref<const Eigen::MatrixXd>& X) :
-        m_y(y), m_dead(dead), m_X(X), m_n(y.size()), m_p(X.cols()),
-        m_log_y(y.array().log().matrix()), m_eta(m_n), m_w(m_n),
-        m_exp_w(m_n), m_d_eta(m_n), m_beta_weights(m_n),
-        m_cross_weights(m_n) {}
-
-    double operator()(const Eigen::VectorXd& params, Eigen::VectorXd& grad) {
-        // params: [beta (p), log_sigma (1)]
-        const auto beta = params.head(m_p);
-        double log_sigma = params[m_p];
-        double sigma = std::exp(log_sigma);
-
-        m_eta.noalias() = m_X * beta;
-        m_w = ((m_log_y - m_eta) / sigma).array().min(700.0);
-        m_exp_w = m_w.exp();
-        const auto dead = m_dead.array();
-        const double loglik = (dead * (m_w - log_sigma - m_log_y.array()) - m_exp_w).sum();
-        m_d_eta = ((m_exp_w - dead) / sigma).matrix();
-        const double d_ll_d_log_sigma = (m_exp_w * m_w - dead * (m_w + 1.0)).sum();
-
-        grad.setZero();
-
-        grad.head(m_p).noalias() = -m_X.transpose() * m_d_eta;
-        grad[m_p] = - d_ll_d_log_sigma;
-
-        return -loglik;
-    }
-
-    Eigen::MatrixXd hessian(const Eigen::VectorXd& params) {
-        int total_p = params.size();
-        Eigen::MatrixXd H = Eigen::MatrixXd::Zero(total_p, total_p);
-        const auto beta = params.head(m_p);
-        double sigma = std::exp(params[m_p]);
-        m_eta.noalias() = m_X * beta;
-        m_w = ((m_log_y - m_eta) / sigma).array().min(700.0);
-        m_exp_w = m_w.exp();
-        m_beta_weights = (m_exp_w / (sigma * sigma)).matrix();
-        m_cross_weights =
-            ((m_exp_w * (m_w + 1.0) - m_dead.array()) / sigma).matrix();
-
-        H.topLeftCorner(m_p, m_p).noalias() = weighted_crossprod(m_X, m_beta_weights);
-        H.topRightCorner(m_p, 1).noalias() = m_X.transpose() * m_cross_weights;
-        H(m_p, m_p) = (m_exp_w * (m_w.square() + m_w) - m_dead.array() * m_w).sum();
-        H.bottomLeftCorner(1, m_p) = H.topRightCorner(m_p, 1).transpose();
-        return H;
-    }
-};
-
-// General path: left-/interval-/right-censored responses (see TODO-3 in
+// The shared WeibullAFTLikelihood in _helper_functions_core.h is the fast
+// exact/right-censoring path.  Keep this general path only for left/interval
+// censoring (see TODO-3 in
 // interval_censored_survival_response.md). Optimized per TODO-28: exact
 // rows use the same vectorized Eigen-array strategy as WeibullAFTLikelihood
 // above (arithmetic-blended via m_is_exact_d, not .select(), which measured

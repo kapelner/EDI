@@ -60,7 +60,8 @@ test_that("Exact-binomial two-sided p-value at nonzero delta matches the central
 
 test_that("Exact-binomial central p-value and Clopper--Pearson interval are coherent away from zero", {
 	d_plus <- 0L; d_minus <- 5L; delta <- 0.01; alpha <- 0.05
-	inf <- make_matched_pair_design(favor_treatment_pairs = d_plus, favor_control_pairs = d_minus)
+	des <- make_matched_pair_design(favor_treatment_pairs = d_plus, favor_control_pairs = d_minus)
+	inf <- InferenceIncidExactBinomial$new(des, verbose = FALSE)
 	ci <- inf$compute_exact_confidence_interval(alpha = alpha)
 	pval <- inf$compute_exact_two_sided_pval_for_treatment_effect(delta = delta)
 	expect_true(delta >= ci[[1L]] && delta <= ci[[2L]])

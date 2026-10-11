@@ -1070,7 +1070,12 @@ Inference = R6::R6Class("Inference",
 		},
 		get_X = function(){
 			if (!is.null(private$X)) return(private$X)  # transient bootstrap override
-			if (is.null(private$des_obj_priv_int$X))
+			# Sequential designs can retain the previous matrix while adding a
+			# subject marks it stale.  Inference construction must not capture that
+			# shorter matrix: it needs the same lazy-current guarantee as the
+			# design's public get_X().
+			if (is.null(private$des_obj_priv_int$X) ||
+					isTRUE(private$des_obj_priv_int$model_matrix_stale))
 				private$des_obj_priv_int$covariate_impute_if_necessary_and_then_create_model_matrix()
 			private$des_obj_priv_int$X
 		},

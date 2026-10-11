@@ -34,12 +34,19 @@ test_that("KK Wilcox IVWC uses the normal-calibrated HL component variances", {
 	}
 })
 
-test_that("KK Wilcox IVWC bootstrap CI is a resampling interval, not the Wald alias", {
+test_that("KK Wilcox IVWC bootstrap CI is disabled for its (necessarily sequential) KK design", {
+	# Nonparametric bootstrap resampling of subjects is invalid for response-
+	# adaptive sequential designs (inference_class_registry.R's
+	# EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES: any DesignSeqOneByOne
+	# descendant except the non-adaptive DesignSeqOneByOneBernoulli loses
+	# compute_bootstrap_confidence_interval() and its aliases). Every concrete
+	# design InferenceAllKKWilcoxIVWC can attach to is itself a KK (sequential)
+	# design, so this capability can never actually run for this class --
+	# this test was written before that restriction existed; it now asserts
+	# the restriction fires instead of expecting the call to succeed.
 	inf <- kk_wilcox_hl_variance_fixture(seed = 812L)
-	set.seed(8121L)
-	boot_ci <- inf$compute_bootstrap_confidence_interval(B = 61L, show_progress = FALSE)
-	wald_ci <- inf$compute_asymp_confidence_interval()
-	expect_length(boot_ci, 2L)
-	expect_true(all(is.finite(boot_ci)))
-	expect_false(isTRUE(all.equal(boot_ci, wald_ci, tolerance = 0)))
+	expect_error(
+		inf$compute_bootstrap_confidence_interval(B = 61L, show_progress = FALSE),
+		"not supported for DesignSeqOneByOne designs"
+	)
 })

@@ -10,13 +10,18 @@ library(EDI)
 # a private method, so local_mocked_bindings() rather than unlockBinding()) to return a character
 # matrix directly, the same "force an internally-trusted dependency to violate its contract" technique
 # already used elsewhere in this suite for analogous defensive guards.
+# add_all_subjects_to_experiment() itself only invalidates the cached model
+# matrix (private$X <- NULL); the actual (re)build -- and so this guard --
+# happens lazily the first time something calls ensure_model_matrix_current()
+# (e.g. get_X()), not during add_all_subjects_to_experiment() itself.
 
 test_that("a character model matrix from create_model_matrix_from_features() triggers the documented defensive guard", {
-	local_mocked_bindings(create_model_matrix_from_features = function(...) matrix("a", 2L, 1L), .package = "EDI")
 	set.seed(1L); n <- 10L
 	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+	local_mocked_bindings(create_model_matrix_from_features = function(...) matrix("a", 2L, 1L), .package = "EDI")
 	expect_error(
-		des$add_all_subjects_to_experiment(data.frame(x = rnorm(n))),
+		des$get_X(),
 		"model\\.matrix returned a character matrix - this should not happen\\."
 	)
 })

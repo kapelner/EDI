@@ -179,8 +179,10 @@ DesignFixedOptimal = define_design_class(
 		#'   a \emph{closed} set; arbitrary ROI plugin names are rejected),
 		#'   \code{linearization_max_n}, \code{max_dinkelbach_iter},
 		#'   \code{n_chains}, \code{max_iter}, \code{initial_temp},
-		#'   \code{cooling_rate}, and (consumed by the BRT replicate path)
-		#'   \code{brt_max_iter}, \code{brt_n_chains}, \code{brt_solver}.
+		#'   \code{cooling_rate}, and the explicit BRT-replay override
+		#'   \code{brt_solver} with its annealing controls \code{brt_max_iter}
+		#'   and \code{brt_n_chains}. Without \code{brt_solver}, BRT replays
+		#'   inherit the observed assignment's ordinary solver profile.
 		#'
 		#'   \strong{Wiring up Gurobi} (\code{roi_solver = "gurobi"}): (1) obtain
 		#'   a Gurobi license (free academic licenses are available) and install
@@ -366,14 +368,13 @@ DesignFixedOptimal = define_design_class(
 		#' @description BRT replicate-mode switch (called by the
 		#'   bootstrap-randomization-test machinery ahead of each replayed draw;
 		#'   see \code{Design$prepare_for_resampling_replay()}). Subsequent solves
-		#'   use the per-replicate solver profile: \code{solver_args$brt_solver}
-		#'   (default \code{"annealing"} with the reduced
-		#'   \code{brt_max_iter}/\code{brt_n_chains} schedule -- replicate
-		#'   assignments need to be faithful applications of the mechanism, not
-		#'   individually re-verified to the observed solve's convergence
-		#'   standard; \code{"ompr"} buys exact per-replicate solves at the
-		#'   user's expense). Idempotent; the mirror coin still applies per
-		#'   replicate (the BRT replays the coin-inclusive mechanism).
+		#'   inherit the observed assignment's ordinary solver and budget, so each
+		#'   replay targets the same allocation mechanism. Set
+		#'   \code{solver_args$brt_solver = "annealing"} to opt into the legacy
+		#'   reduced \code{brt_max_iter}/\code{brt_n_chains} replay profile, or
+		#'   \code{"ompr"} to request the MILP path when the objective permits it.
+		#'   Idempotent; the mirror coin still applies per replicate (the BRT
+		#'   replays the coin-inclusive mechanism).
 		#' @return \code{invisible(NULL)}.
 		prepare_for_resampling_replay = function(){
 			private$brt_replicate_mode = TRUE
@@ -526,7 +527,7 @@ DesignFixedOptimal = define_design_class(
 				)
 				out$solver = "annealing"
 				out
-			} else if (identical(private$solver, "auto") || (brt_mode && identical(arg_or("brt_solver", "annealing"), "ompr"))) {
+			} else if (identical(private$solver, "auto") && !(brt_mode && identical(arg_or("brt_solver", "annealing"), "ompr"))) {
 				optimal_solve_auto(
 					kind = inputs$kind, Q = inputs$Q, A = inputs$A, P = inputs$P, H = inputs$H,
 					X = inputs$X, custom_objective = inputs$xptr,
@@ -540,7 +541,7 @@ DesignFixedOptimal = define_design_class(
 					max_dinkelbach_iter = arg_or("max_dinkelbach_iter", 30L),
 					verbose = private$verbose
 				)
-			} else if (identical(private$solver, "ompr")) {
+			} else if (identical(private$solver, "ompr") || (brt_mode && identical(arg_or("brt_solver", "annealing"), "ompr"))) {
 				roi_solver = arg_or("roi_solver", "glpk")
 				out = switch(inputs$kind,
 					quadratic = milp_solve_quadratic(inputs$Q, n_T, roi_solver = roi_solver, verbose = private$verbose),

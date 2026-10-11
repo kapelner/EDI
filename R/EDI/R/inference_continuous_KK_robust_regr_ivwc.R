@@ -114,7 +114,9 @@ ContinKKRobustRegrIVWCSource = list(
 		#'   \eqn{w_k = 1/\widehat{\mathrm{Var}}(\hat\beta_{T,k})}; a component is dropped from the
 		#'   combination if it is not estimable (e.g. too few observations). See
 		#'   \code{\link[EDI:Inference]{Inference}} for the general estimate contract.
-		#' @param estimate_only Logical. If \code{TRUE}, skip variance-component calculations.
+		#' @param estimate_only Logical. If \code{TRUE}, omit only the final combined
+		#'   standard error. Component variances are still computed because inverse-variance
+		#'   weighting is required for the point estimate.
 		#' @return Numeric scalar treatment-effect estimate on the outcome's natural scale.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)

@@ -1,7 +1,6 @@
 #include <Rcpp.h>
 #include "RNG.h"
 #include <algorithm>
-#include <random>
 #include <vector>
 #include <string>
 #include <map>

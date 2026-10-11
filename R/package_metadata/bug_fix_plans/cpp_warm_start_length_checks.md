@@ -88,7 +88,11 @@ lengths is part of TODO-1).
   optimizer paths), beta, and robust internal entry points before optimizer
   or OpenMP work. `apply_fixed_values` now verifies its parallel index/value
   vectors and each index. This is source-complete for F2 but awaits TODO-4's
-  authorized targeted compile.
+  authorized targeted compile. **Dispatch correction 2026-10-11:**
+  `cox_fit()` now forwards `warm_start_fisher_info` to its LBFGS branch;
+  previously that branch silently discarded the supplied matrix before its
+  otherwise-present guard could validate it. The contract test now covers
+  this branch too. This source correction remains unexecuted.
 
 - [x] TODO-3: **Regression test.** `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`:
   for every exported kernel that takes `warm_start_beta` (enumerate from

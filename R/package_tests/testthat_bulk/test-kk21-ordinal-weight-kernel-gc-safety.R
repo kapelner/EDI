@@ -1,3 +1,22 @@
+library(testthat)
+library(EDI)
+
+# 2026-10-11: moved here from R/EDI/tests/testthat/ -- this file's
+# gctorture(TRUE) regression test alone took 692.9s (89% of the entire
+# local pre-push test suite's 867s total), since gctorture forces a full GC
+# on every single allocation. It still runs via the sharded correctness/
+# coverage CI tiers from here; it just no longer dominates every local
+# pre-push run or R CMD check invocation.
+#
+# 2026-10-11: skipped under R_COVR (covr's own env var, same pattern as
+# test-parametric-bootstrap-lr.R's "avoid ... under covr's gcov-instrumented
+# build") -- gctorture(TRUE) forces a GC on every allocation, and covr's
+# line-by-line tracing instrumentation multiplies allocation count per line;
+# combined, this hung an entire coverage shard for the full 75-minute job
+# timeout (run 38104981120, shard 71, zero test files completed) rather than
+# the ~690s this test takes normally. The correctness tier (plain testthat,
+# no covr instrumentation) is unaffected and still runs it.
+
 kk21_weight_source_dir = function() {
 	candidates = c(
 		file.path("R", "EDI", "src"),
@@ -26,6 +45,10 @@ test_that("native R callbacks do not pass freshly wrapped objects inline", {
 })
 
 test_that("KK21 ordinal weight callbacks keep wrapped arguments alive under gctorture", {
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"gctorture(TRUE) under covr's line-tracing instrumentation is catastrophically slow, not just slow"
+	)
 	set.seed(404)
 	n <- 40L
 	X <- matrix(rnorm(n * 3L), n, 3L)

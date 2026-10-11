@@ -40,6 +40,21 @@ test_that("the replicate profile matches the observed solve by default, with exp
 	expect_identical(diag2$max_iter, 500L)
 })
 
+test_that("an explicit BRT ompr override does not fall back to the auto annealing threshold", {
+	skip_on_cran()
+	# n = 21 is above the auto linearization threshold used by this fixture,
+	# so auto would anneal.  An explicit brt_solver = "ompr" must instead force
+	# the requested MILP replay even when the observed allocation used annealing.
+	des <- brt_optimal_design(n = 21, seed = 621, solver = "annealing",
+		solver_args = list(brt_solver = "ompr"))
+	des$prepare_for_resampling_replay()
+	des$assign_w_to_all_subjects()
+	diag <- des$get_optimization_diagnostics()
+	expect_identical(diag$solver_profile, "brt_replicate")
+	expect_identical(diag$solver, "ompr")
+	expect_identical(diag$optimum_certificate, "global")
+})
+
 test_that("without the hook, solves stay on the main profile", {
 	des = brt_optimal_design(n = 12, seed = 63)
 	des$assign_w_to_all_subjects()

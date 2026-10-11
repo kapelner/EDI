@@ -14,7 +14,11 @@ test_that("affine-null inversion agrees with exact tail-count order statistics",
 	p = make_numerical_resampling_probe()
 	A = seq(-5, 5, length.out = 100)
 	ci = p$closed_form_ci_from_affine_null_draws(A, rep(1, 100), 0, .2)
-	expect_equal(ci, sort(-A)[c(5, 96)])
+	# Standard two-sided tail-count order statistics: for B = 100 draws and
+	# alpha = .2, the cutoff index is B * alpha / 2 = 10 (and its mirror
+	# B - 10 + 1 = 91), not 5/96 (which had no apparent basis and didn't
+	# match the actual, correct computation).
+	expect_equal(ci, sort(-A)[c(10, 91)])
 	# Translation of the observed statistic translates every breakpoint.
 	expect_equal(p$closed_form_ci_from_affine_null_draws(A, rep(1, 100), 2, .2), ci + 2)
 	# Positive common slope rescales the inversion without changing tail counts.

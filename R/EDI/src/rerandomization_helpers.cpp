@@ -16,7 +16,6 @@
 // [[Rcpp::depends(RcppEigen)]]
 
 #include <Rcpp.h>
-#include <random>
 #include <chrono>
 #include <cmath>
 #include <atomic>

@@ -44,6 +44,7 @@ test_that("a cluster with zero weight in every row is equivalent to omitting the
 	keep <- gm != 3
 	sub <- W(Xm[keep, ], ym[keep], as.integer(gm[keep]), "gaussian", wm[keep])
 	expect_equal(as.numeric(full$beta), as.numeric(sub$beta), tolerance = 1e-6)
+	expect_equal(as.numeric(full$alpha), as.numeric(sub$alpha), tolerance = 1e-6)
 })
 
 test_that("results do not depend on row order and the fit converges with the documented fields", {

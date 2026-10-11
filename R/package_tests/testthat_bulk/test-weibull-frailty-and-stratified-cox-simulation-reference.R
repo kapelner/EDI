@@ -169,13 +169,20 @@ test_that(".cox_simulate_stratified uses each stratum's risk scale when predicto
 	dead_obs <- rep(1, 2L * n_per)
 	set.seed(92L)
 	sim <- EDI:::.cox_simulate_stratified(y_obs, dead_obs, X, b_null, strata)
+	# .cox_simulate_stratified() falls back to max(y_obs)*2 OVER ALL STRATA
+	# (so the "no event time covers this draw" ceiling is on one consistent
+	# scale, not a per-stratum one) -- pass that same global max_time through
+	# here so this oracle only differs from it in the risk-scale dimension
+	# the comment above is about, not also in which fallback value a rare
+	# extreme-uniform draw lands on.
+	global_max_time <- max(y_obs) * 2
 	set.seed(92L)
 	expected <- vector("list", 2L)
 	for (k in seq_along(unique(strata))) {
 		idx <- which(strata == unique(strata)[k])
 		breslow <- EDI:::.breslow_hazard(y_obs[idx], dead_obs[idx], X[idx, , drop = FALSE], b_null)
 		expected[[k]] <- EDI:::.cox_simulate_from_breslow(
-			breslow, y_obs[idx], dead_obs[idx], X[idx, , drop = FALSE], b_null
+			breslow, y_obs[idx], dead_obs[idx], X[idx, , drop = FALSE], b_null, max_time = global_max_time
 		)
 	}
 	expect_identical(sim$y_sim[strata == "A"], expected[[1L]]$y_sim)

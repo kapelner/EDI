@@ -69,6 +69,39 @@ test_that("affine CI reuse performs one distribution computation and matches the
 	expect_equal(as.numeric(ci_fast), as.numeric(ci_slow), tolerance = 0.02)
 })
 
+test_that("affine CI refreshes a complete cache from different permutations", {
+	des <- affine_rand_fixture(seed = 2005L, n = 24L)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	stale_perms <- p$generate_permutations(99L)
+	invisible(inf$compute_rand_two_sided_pval(
+		r = 99L, delta = 0, show_progress = FALSE, permutations = stale_perms
+	))
+	ci_perms <- stale_perms[, rev(seq_len(ncol(stale_perms))), drop = FALSE]
+	expect_false(identical(p$stable_signature(stale_perms), p$stable_signature(ci_perms)))
+
+	unlockBinding("generate_permutations", p)
+	p$generate_permutations <- function(r) ci_perms
+	n_distribution_calls <- 0L
+	original_prefix <- p$get_randomization_distribution_prefix
+	unlockBinding("get_randomization_distribution_prefix", p)
+	p$get_randomization_distribution_prefix <- function(...) {
+		n_distribution_calls <<- n_distribution_calls + 1L
+		original_prefix(...)
+	}
+	ctrl <- list(mc_enable = FALSE, high_precision_confirm = FALSE, seed = "none")
+	invisible(inf$compute_rand_confidence_interval(
+		alpha = 0.2, r = 99L, pval_epsilon = 0.02, show_progress = FALSE,
+		ci_search_control = ctrl
+	))
+	expect_identical(n_distribution_calls, 1L)
+	expect_identical(
+		p$cached_values$t0s_rand_permutation_signature,
+		p$stable_signature(ci_perms)
+	)
+})
+
 test_that("non-affine estimators and an early-stopped MC prefix never populate the affine cache", {
 	des <- affine_rand_fixture(seed = 2004L, n = 30L)
 	wilcox <- InferenceAllSimpleWilcox$new(des, verbose = FALSE)

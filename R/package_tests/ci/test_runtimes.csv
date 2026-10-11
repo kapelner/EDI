@@ -598,6 +598,8 @@ R/package_tests/testthat_bulk/test-kk21-design-illegal-raw-weight-values-guard-r
 R/package_tests/testthat_bulk/test-kk21-design-proportion-weight-beta-regression-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk21-design-survival-ordinal-count-per-covariate-weight-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk21-design-survival-weight-survreg-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk21-ordinal-weight-kernel-gc-safety.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-kk21-stepwise-beta-negbin-weight-kernel-contract-and-collinearity-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk21-stepwise-continuous-and-logistic-weight-kernels-greedy-forward-selection-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk21-stepwise-design-compute-weights-dispatcher-speedup-branches-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1270,7 +1272,6 @@ R/EDI/tests/testthat/test-kk-robust-fallbacks.R,coverage,1,measured_with_30_perc
 R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R,coverage,1.8,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-beta-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-negbin-fast-digamma.R,coverage,1,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-kk21-ordinal-weight-kernel-gc-safety.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk21-weighted-crossprod.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-km-median-canonical.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-lik-ratio-ci-degenerate-inversion.R,coverage,30,bootstrap
@@ -1991,6 +1992,8 @@ R/package_tests/testthat_bulk/test-kk21-design-illegal-raw-weight-values-guard-r
 R/package_tests/testthat_bulk/test-kk21-design-proportion-weight-beta-regression-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk21-design-survival-ordinal-count-per-covariate-weight-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk21-design-survival-weight-survreg-fallback-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk21-ordinal-weight-kernel-gc-safety.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk21-stepwise-beta-negbin-weight-kernel-contract-and-collinearity-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk21-stepwise-continuous-and-logistic-weight-kernels-greedy-forward-selection-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk21-stepwise-design-compute-weights-dispatcher-speedup-branches-reference.R,coverage,240,bootstrap

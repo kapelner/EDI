@@ -104,7 +104,8 @@ the kernel inputs at the boundary, and return the batch distribution (or
   return `NA` when `sum_w == 0 || sum_w == n` (all-treated / all-control
   permutation) rather than letting the solve produce garbage. Targeted
   compile of this one file only, per `CLAUDE.md`.
-- [ ] **TODO-3: Equivalence tests.** New `test-ols-rand-distr-kernel.R`:
+- [ ] **TODO-3: Equivalence tests.**
+  `test-parallel-distribution-kernel-contracts.R`:
   (a) for fixed seed and permutations, the sorted `t0s` from the kernel path
   and from `compute_fast_randomization_distr_via_reused_worker()` agree to
   `1e-10`, at `p_covars ∈ {0, 1, 5}`, `harden ∈ {TRUE, FALSE}`, and
@@ -121,8 +122,10 @@ the kernel inputs at the boundary, and return the batch distribution (or
   the hardened covariate block from `create_design_matrix()`, and calls the
   batch kernel. TODO-2 now returns `NA` for one-arm and rank-deficient
   permutations. TODO-3 has direct-kernel degeneracy regressions plus an OLS
-  fast-path versus reused-worker parity regression. No compile, rebuild, or
-  execution was performed: this host's R runtime cannot load
+  fast-path versus reused-worker parity regression in
+  `test-parallel-distribution-kernel-contracts.R`. The full matrix and
+  end-to-end checks above still require executable native validation. No
+  compile, rebuild, or execution was performed: this host's R runtime cannot load
   `libmkl_gf_lp64.so.2` and the native source requires a
   maintainer-authorized rebuild. The dead-export triage and benchmark TODOs
   remain open.

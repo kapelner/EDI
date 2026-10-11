@@ -88,5 +88,22 @@ would return its `−1.0` sentinel and the reduced fit would return `false`.
   (`project_kk21_speedup_vs_glm_weights_20261008`) and any `package_tests`
   CSV rows for KK21 stepwise survival designs.
 
+### Source-status reconciliation (2026-10-11)
+
+TODO-1's two hand-written alternating loops are replaced by the shared
+`WeibullAFTLikelihood` used by `fast_weibull_regression.cpp`, fitted through
+the established damped-Newton-with-L-BFGS-fallback path on `(beta, log_sigma)`.
+The univariate Wald statistic now inverts the full observed information, which
+retains beta/log-scale cross-information. TODO-2 now uses a direct
+`survival::survreg(dist = "weibull")` coefficient-z oracle on both censored
+and uncensored fixtures. TODO-3 adds the corresponding native stepwise-score
+parity test, with its reduced-model MLE supplied independently by `survreg`.
+TODO-4 corrects the smart-start offset to Euler's gamma
+(`0.5772156649015329`).
+
+These source changes deliberately remain unchecked until an authorized native
+rebuild and R execution can run the new oracle tests. TODO-5 and the required
+regeneration of the affected benchmark/CSV evidence are still pending.
+
 Build/verify per `CLAUDE.md`: targeted compile of the two touched `.cpp`
 files plus relink only. No full rebuild.

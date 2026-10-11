@@ -527,6 +527,15 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 
 			all_terms = unique(c("treatment", parallel_covars, nonparallel_covars))
 			par_terms = unique(c("treatment", parallel_covars))
+			# When every term is parallel, VGAM::cumulative()'s formula-based
+			# `parallel = ~a+b+c` spec is semantically equivalent to `parallel =
+			# TRUE` but numerically more fragile for this model (confirmed:
+			# IRLS can terminate early on "half-step sizes are very small" and
+			# land several percent off the formula route's own correctly-
+			# converged value under `parallel = TRUE`, even on unweighted
+			# data). Use the boolean form whenever there is no nonparallel
+			# split to express.
+			parallel_spec = if (length(nonparallel_covars) == 0L) TRUE else private$parallel_formula(par_terms)
 
 			mod = tryCatch(
 				suppressWarnings(
@@ -534,7 +543,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 						formula = private$main_formula(all_terms),
 						family = VGAM::cumulative(
 							link = "logitlink",
-							parallel = private$parallel_formula(par_terms)
+							parallel = parallel_spec
 						),
 						data = dat,
 						trace = FALSE,
@@ -555,11 +564,15 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			if (!check_package_installed("VGAM")) return(NULL)
 			all_terms = unique(c("treatment", parallel_covars, nonparallel_covars))
 			par_terms = unique(c("treatment", parallel_covars))
+			# See fit_vgam()'s identical comment: prefer the boolean `parallel =
+			# TRUE` over the equivalent-but-more-fragile formula form whenever
+			# there is no nonparallel split to express.
+			parallel_spec = if (length(nonparallel_covars) == 0L) TRUE else private$parallel_formula(par_terms)
 			mod = tryCatch(
 				suppressWarnings(
 					VGAM::vglm(
 						formula = private$main_formula(all_terms),
-						family = VGAM::cumulative(link = "logitlink", parallel = private$parallel_formula(par_terms)),
+						family = VGAM::cumulative(link = "logitlink", parallel = parallel_spec),
 						data = dat,
 						weights = .bootstrap_weight__,
 						trace = FALSE,

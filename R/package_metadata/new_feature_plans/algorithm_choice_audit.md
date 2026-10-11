@@ -802,7 +802,13 @@ tests, plus an equivalence test where noted, are the gate. **Prototype** = needs
 - [ ] TODO-B1 (scheduled in `../future_release_plans/release_v1_0_5.md → TODO-67`): `kk21_weibull_irls_wrong_fixed_point.md`.
 - [ ] TODO-B2 (scheduled in `../future_release_plans/release_v1_0_5.md → TODO-68`): `rand_ci_inverts_two_sided_pval_at_half_alpha.md`.
 - [x] TODO-B3 (completed 2026-10-09; scheduled in `../future_release_plans/release_v1_0_5.md → TODO-69`): row L TODO-6(c), pin `ties = "breslow"` in the two R fallbacks. Both calls and the two generic C++-equivalence references now explicitly select Breslow; tied-data regressions cover the formula fallback and `InferenceSurvivalCoxPHRegr(use_rcpp = FALSE)` and retain default-Efron fits as sensitivity contrasts.
-- [x] TODO-B4 (not scheduled in a release; removed from v1.0.5 2026-10-09, owner decision): **verification DONE 2026-10-09** (21 confirmed / 3 partial / 2 refuted; table above, evidence in catalog §13). Filed as `algorithm_sweep_verified_findings.md` → `release_v1_0_5.md → TODO-70..94` (2026-10-09, owner decision). Original text: verify, and file plans for, the unverified findings listed in
+- [x] TODO-B4 (completed verification task; its resulting findings are
+  scheduled separately in `release_v1_0_5.md → TODO-70..94`):
+  **verification DONE 2026-10-09** (21 confirmed / 3 partial / 2 refuted;
+  table above, evidence in catalog §13). Filed as
+  `algorithm_sweep_verified_findings.md` → `release_v1_0_5.md → TODO-70..94`
+  (2026-10-09, owner decision). Original text: verify, and file plans for,
+  the unverified findings listed in
   "Correctness findings surfaced by the sweep". RandomBlockSize redraws, the
   KK Wilcoxon IVWC SE, and the ridit scoring come first.
 

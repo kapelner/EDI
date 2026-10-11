@@ -52,3 +52,19 @@ test_that("exact ordinal enumeration rejects an infeasibly large allocation spac
     "exact enumeration exceeds the 1,000,000-allocation limit"
   )
 })
+
+test_that("public exact JT inference warns and falls back to its asymptotic p-value at the capacity limit", {
+  set.seed(20261011)
+  y <- rep(seq_len(11L), each = 18L)
+  des <- DesignFixedBernoulli$new(n = length(y), response_type = "ordinal", verbose = FALSE)
+  des$add_all_subjects_to_experiment(data.frame(x1 = seq_along(y)))
+  des$assign_w_to_all_subjects()
+  des$add_all_subject_responses(y)
+  inf <- InferenceOrdinalJonckheereTerpstraTest$new(des, verbose = FALSE)
+
+  p_exact <- expect_warning(
+    inf$compute_exact_two_sided_pval_for_treatment_effect(),
+    "exact enumeration exceeds its safe allocation limit"
+  )
+  expect_equal(p_exact, inf$compute_asymp_two_sided_pval(), tolerance = 1e-15)
+})
