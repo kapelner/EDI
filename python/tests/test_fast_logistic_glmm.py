@@ -54,11 +54,13 @@ def _synthetic_data():
     return X, y, group_id
 
 
-# R reference, EDI 1.0.0, computed 2026-08-04 via:
+# R reference, EDI 1.0.5, re-pinned 2026-10-11 after the log-sigma Hessian
+# chain-rule fix + multistart over log_sigma (e706c6f6); the old 2026-08-04
+# fixture had sigma stuck at its -3 start (neg_loglik 184.90 vs 183.78 now). Via:
 #   EDI:::fast_logistic_glmm_cpp(X, y, group_id, j_T = 1L)
-R_B = np.array([0.460728584117953, 0.407526507792535, -0.509899263656389])
-R_LOG_SIGMA = -2.9958677618216
-R_NEG_LOGLIK = 184.903423932874
+R_B = np.array([0.527142637556341, 0.471202902953106, -0.578533926548495])
+R_LOG_SIGMA = -0.152281121338829
+R_NEG_LOGLIK = 183.783660194322
 
 
 def test_matches_r_fixture():

@@ -42,12 +42,13 @@ def _synthetic_data():
     return X, y, group_id
 
 
-# R reference, EDI 1.0.0, computed 2026-08-03 via:
+# R reference, EDI 1.0.5, re-pinned 2026-10-11 after the exchangeable alpha
+# gained geepack's Pearson dispersion correction (c189e94f). Via:
 #   EDI:::gee_pairs_singletons_cpp(X, y, group_id, "gaussian")
-R_BETA = np.array([1.0663177530105, 0.285182366555922, -0.218756218512224])
-R_ALPHA = 0.160221693613315
-R_QUASI_LOGLIK = -19.7170161093913
-R_VCOV_00 = 0.0102321055738414
+R_BETA = np.array([1.05126601563468, 0.314215395731582, -0.218316222146581])
+R_ALPHA = 0.423038090629466
+R_QUASI_LOGLIK = -19.7407942964455
+R_VCOV_00 = 0.0101346518912272
 
 
 def test_matches_r_fixture():

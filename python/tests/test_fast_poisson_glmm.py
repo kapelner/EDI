@@ -41,13 +41,14 @@ def _synthetic_data():
     return X, y, group_id
 
 
-# R reference, EDI 1.0.0, computed 2026-08-02 via:
+# R reference, EDI 1.0.5, re-pinned 2026-10-11 after the multistart over
+# log_sigma (e706c6f6) landed on a marginally better optimum. Via:
 #   EDI:::fast_poisson_glmm_cpp(X, y, group_id, j_T = 1L)
-R_B = np.array([0.396523267557659, 0.325077586190454, -0.181464003915205])
-R_LOG_SIGMA = -0.987593452504449
-R_NEG_LOGLIK = 344.026116874617912
-R_VCOV_00 = 0.010051111518828
-R_VCOV_11 = 0.012777563541711
+R_B = np.array([0.39648727353815, 0.325086056494597, -0.181513483406603])
+R_LOG_SIGMA = -0.988051338398773
+R_NEG_LOGLIK = 344.026113686333
+R_VCOV_00 = 0.0100496694130413
+R_VCOV_11 = 0.0127773949511875
 
 
 def test_matches_r_fixture():

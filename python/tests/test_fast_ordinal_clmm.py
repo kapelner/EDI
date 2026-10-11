@@ -53,12 +53,14 @@ def _synthetic_data():
     return X, y.astype(np.int32), group_id
 
 
-# R reference, EDI 1.0.0, computed 2026-08-04 via:
+# R reference, EDI 1.0.5, re-pinned 2026-10-11 after the CLMM log-sigma fixes
+# (e706c6f6); the old 2026-08-04 fixture had sigma stuck at its -3 start
+# (neg_loglik 305.06 vs 304.43 now). Via:
 #   EDI:::fast_ordinal_clmm_cpp(X, y, group_id, K = 3L, j_T = 0L, link = "logit")
-R_B = np.array([0.49344668004228, -0.455881644568393])
-R_ALPHA = np.array([-1.03927476132197, 0.367853367499999])
-R_LOG_SIGMA = -2.99621926508333
-R_NEG_LOGLIK = 305.063716714842
+R_B = np.array([0.55888892440341, -0.491100628144333])
+R_ALPHA = np.array([-1.10593958892995, 0.445408883013162])
+R_LOG_SIGMA = -0.460626132920187
+R_NEG_LOGLIK = 304.434809048618
 
 
 def test_matches_r_fixture():
