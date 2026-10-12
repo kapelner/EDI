@@ -275,7 +275,11 @@ KKWilcoxIVWCSource = list(
 		# Override the per-permutation statistic to avoid the O(n^2) conf.int = TRUE cost.
 		# Uses standardized Wilcoxon W statistics (conf.int = FALSE, O(n log n)) as the
 		# rank test statistic; monotone with the HL / rank-regression estimate under the null.
-		compute_treatment_estimate_during_randomization_inference = function(){
+		# estimate_only is accepted (and ignored: this statistic has no SE) because
+		# the reused-worker randomization and randomization-bootstrap paths call
+		# it as (estimate_only = TRUE); with a bare function() signature that was
+		# an "unused argument" error, silently caught as NA_real_ per draw.
+		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			KKstats = private$cached_values$KKstats
 			if (is.null(KKstats)){
 				private$compute_basic_match_data()
@@ -318,6 +322,28 @@ KKWilcoxIVWCSource = list(
 				n_components = n_components + 1
 			}
 			if (n_components == 0L) NA_real_ else stat
+		},
+		# The reused-worker randomization and randomization-bootstrap paths
+		# evaluate each draw through this hook. The inherited default shortcuts
+		# to the worker's compute_estimate(), which equals the randomization
+		# statistic for every class that keeps the base definition
+		# (compute_treatment_estimate_during_randomization_inference() ==
+		# compute_estimate()). This class overrides that statistic with the
+		# standardized W sum above, so the default put HL-scale draws (±0.16)
+		# under a W-scale observed value (1.56 on the n = 12 golden fixture):
+		# BRT p = 0.02 vs randomization-test p = 0.31 on the same data. Route
+		# the worker through the same statistic the observed value, the C++
+		# randomization kernel and the non-worker fallbacks all use. Only
+		# randomization_test / randomization_bootstrap reach this hook here
+		# (ordinary, m-out-of-n and subsampling bootstraps are unsupported for
+		# sequential designs), so no estimate-scale consumer is affected.
+		compute_bootstrap_worker_estimate = function(worker_state){
+			worker = worker_state$worker
+			if (is.function(worker$is_nonestimable) && isTRUE(worker$is_nonestimable("estimate"))) {
+				return(NA_real_)
+			}
+			stat = worker$.__enclos_env__$private$compute_treatment_estimate_during_randomization_inference(estimate_only = TRUE)
+			as.numeric(stat)[1L]
 		},
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))

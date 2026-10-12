@@ -938,9 +938,17 @@ Design = R6::R6Class("Design",
 		check_version_compat = function(){
 			if (private$version_mismatch_checked) return(invisible(NULL))
 			private$version_mismatch_checked = TRUE
-			stamped_major = as.integer(unlist(strsplit(self$get_edi_version_created(), "\\."))[1])
+			# Leading digit run only, never as.integer() on the raw token: a
+			# non-numeric version string (e.g. .onLoad()'s "unknown" fallback)
+			# must yield NA silently, not an "NAs introduced by coercion"
+			# warning on every design object's first add/assign call.
+			major_of = function(version) {
+				digits = regmatches(version, regexpr("^[0-9]+", version))
+				if (length(digits) == 1L) as.integer(digits) else NA_integer_
+			}
+			stamped_major = major_of(self$get_edi_version_created())
 			current_version = edi_package_version()
-			current_major = as.integer(unlist(strsplit(current_version, "\\."))[1])
+			current_major = major_of(current_version)
 			if (!is.na(stamped_major) && !is.na(current_major) && stamped_major != current_major) {
 				warning(
 					"This ", class(self)[1L], " object was created under EDI version ",

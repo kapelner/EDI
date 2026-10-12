@@ -228,7 +228,11 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				row_idx = unname(private$strata_level_rows[[col]][key])
 				if (should_run_asserts()) {
 					if (length(row_idx) != 1L || is.na(row_idx)) {
-						stop("Unknown strata level encountered for Pocock-Simon column ", col, ": ", key)
+						# Report the user's raw level, not the internal
+						# stratum_level_key() encoding ("\001V2:zz"), which is
+						# unreadable in an error message.
+						stop("Unknown strata level encountered for Pocock-Simon column ", col, ": ",
+							if (is.na(value)) "NA" else as.character(value))
 					}
 				}
 				as.integer(row_idx)

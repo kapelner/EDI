@@ -58,6 +58,11 @@ test_that("robust class equals MASS::rlm for M and MM (use_rcpp = FALSE), and th
 		expect_equal(unname(fast$compute_estimate()), ref, tolerance = 5e-3, scale = 1, info = mt)
 	}
 	# The Huber (M) and bisquare (MM) fits differ on this heavy-tailed sample.
+	# Only a sanity check that the two methods are distinguishable (so the
+	# per-method equality checks above are meaningful), not a calibrated
+	# effect size: the gap depends on the design's treatment draw, which
+	# changed when the draw kernels were reseeded by index (0.0102 now;
+	# 0.02 happened to hold on the old draw).
 	m <- unname(coef(MASS::rlm(y ~ w + x, data = f$d, method = "M"))["w"]); mm <- unname(coef(MASS::rlm(y ~ w + x, data = f$d, method = "MM"))["w"])
-	expect_gt(abs(mm - m), 0.02)
+	expect_gt(abs(mm - m), 0.005)
 })

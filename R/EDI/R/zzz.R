@@ -51,9 +51,19 @@ edi_onload_trace_step = function(label) {
 	# only fires when NOT_CRAN is unset; EDI's CI sets NOT_CRAN=true
 	# everywhere, so there the error propagated as a real test failure instead
 	# of being silently skipped. Mirrors .onAttach()'s existing fallback below.
+	# Fallback order matters because this function is shared process state:
+	# the bulk suite calls .onLoad("lib", "EDI") directly from several test
+	# files, and a bare "unknown" fallback poisoned edi_env$package_version
+	# for every test that ran afterwards in the same shard process (every
+	# design's check_version_compat() then warned "NAs introduced by
+	# coercion" twice). So on a bad libname, ask the already-loaded namespace
+	# for its version first, and only then give up with "unknown".
 	edi_env$package_version = tryCatch(
 		as.character(utils::packageVersion(pkgname, lib.loc = libname)),
-		error = function(e) "unknown"
+		error = function(e) tryCatch(
+			as.character(utils::packageVersion(pkgname)),
+			error = function(e2) "unknown"
+		)
 	)
 	# No options() are set here: loading EDI must not change the user's options
 	# (CRAN policy). Assertions default to on via should_run_asserts()'s own

@@ -25,7 +25,12 @@ robust_onelik_weighted_fixture <- function(seed, n = 60L, use_rcpp = TRUE) {
 	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
 	des$add_all_subject_responses(rnorm(n))
-	inf <- InferenceContinKKRobustRegrOneLik$new(des, use_rcpp = use_rcpp, verbose = FALSE)
+	# method = "M": every MASS::rlm() reference below is an M fit (method =
+	# "M", psi.huber), but the class default is "MM" (an LQS/S-estimator start
+	# plus an M-step, not generally equivalent), so without this the tests were
+	# comparing an MM fit to an M reference -- same fix as the sibling
+	# ...fit-combined-pairs-and-reservoir-only-branches-reference.R.
+	inf <- InferenceContinKKRobustRegrOneLik$new(des, method = "M", use_rcpp = use_rcpp, verbose = FALSE)
 	priv <- inf$.__enclos_env__$private
 	invisible(inf$compute_estimate())
 	list(inf = inf, priv = priv)

@@ -142,6 +142,10 @@ test_that("matching greedy pair switching is invariant to the OpenMP core count"
 
 test_that("OpenMP draw kernels retain no worker-indexed seed path", {
 	src_dir = testthat::test_path("..", "..", "src")
+	# Static source scan: R CMD check runs the tests from the installed
+	# package, where src/ does not exist (same guard as
+	# test-registry-component-drift.R).
+	skip_if_not(dir.exists(src_dir), "R source tree not available (installed-package run)")
 	files = c(
 		"design_fixed_greedy.cpp", "optimal_design_search.cpp",
 		"rerandomization_helpers.cpp", "binary_match_search.cpp",

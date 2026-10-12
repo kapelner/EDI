@@ -115,8 +115,10 @@ test_that("missing attributes in the first sequential arrival do not create extr
 
 test_that("a closed first-arrival schema warns before rejecting later missing attributes", {
   des <- DesignSeqOneByOneBernoulli$new("continuous", seed = 650)
+  # Wording changed in eeded99e ("non-stratum covariate value(s)"); match the
+  # stable core of the message, not the old full phrase.
   expect_warning(des$add_one_subject(data.frame(x = 1.0, score = NA_real_, site = "A"), allow_new_cols = FALSE),
-    "missing data in the first subject's covariate", fixed = TRUE)
+    "missing data in the first subject's non-stratum covariate", fixed = TRUE)
   expect_equal(as.data.frame(des$get_X_raw()), data.frame(x = 1.0, site = "A"))
   expect_warning(des$add_one_subject(data.frame(site = "B", x = 2.0), allow_new_cols = FALSE), NA)
   before <- as.data.frame(des$get_X_raw())

@@ -78,7 +78,11 @@ test_that("affine CI refreshes a complete cache from different permutations", {
 	invisible(inf$compute_rand_two_sided_pval(
 		r = 99L, delta = 0, show_progress = FALSE, permutations = stale_perms
 	))
-	ci_perms <- stale_perms[, rev(seq_len(ncol(stale_perms))), drop = FALSE]
+	# generate_permutations() returns list(w_mat, m_mat), not a bare matrix:
+	# reverse the draw columns inside that same structure so the signatures
+	# being compared are over like objects.
+	ci_perms <- stale_perms
+	ci_perms$w_mat <- stale_perms$w_mat[, rev(seq_len(ncol(stale_perms$w_mat))), drop = FALSE]
 	expect_false(identical(p$stable_signature(stale_perms), p$stable_signature(ci_perms)))
 
 	unlockBinding("generate_permutations", p)

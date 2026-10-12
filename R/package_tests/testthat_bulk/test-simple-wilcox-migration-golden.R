@@ -257,7 +257,10 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		"asymptotic confidence interval",
 		"compute_asymp_confidence_interval",
 		list(alpha = 0.2),
-		c(`10%` = 0.157787853101872, `90%` = 0.167753034350421)
+		# Re-recorded 2026-10-12 after the signed-rank/rank-sum HL variance
+		# recalibration (2*pi/3 and pi*(n_t+n_c)/(6 n_t n_c) factors) widened
+		# the asymptotic interval; the point estimate above is unchanged.
+		c(`10%` = 0.15555962607279547, `90%` = 0.16998126137949679)
 	)
 	expect_kk_wilcox_golden(
 		"asymptotic p-value",
@@ -269,10 +272,16 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		"randomization distribution",
 		"approximate_randomization_distribution_beta_hat_T",
 		list(r = 9L, show_progress = FALSE),
+		# Re-recorded 2026-10-12. The per-permutation statistic is the sum of
+		# the standardized signed-rank and rank-sum W statistics
+		# (compute_treatment_estimate_during_randomization_inference() and
+		# fast_kk_wilcox_parallel.cpp since 597ff617, 2026-08-31), not the HL
+		# estimate the 2026-08-24 golden was recorded from; the values are on a
+		# z-score scale.
 		c(
-			-0.1626663432174322577, -0.162704310549257769, -0.0094121383485589252,
-			-0.0075523376223692144, -0.1627451388585888503, -0.16275512552050167,
-			-0.0054983719938008768, 0.1626228617150562161, 0.1628147845278387906
+			0.29814239699997191, -0.34164078649987384, 0.15853846090514501,
+			-0.44721359549995793, -0.89442719099991597, -1.1925695879998879,
+			-1.1018672662079352, -0.59628479399994383, 2.0083074531665406
 		)
 	)
 	expect_kk_wilcox_golden(
@@ -295,10 +304,18 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		"randomization bootstrap distribution",
 		"approximate_rand_bootstrap_distribution_beta_hat_T",
 		list(B = 9L, show_progress = FALSE),
+		# Re-recorded 2026-10-12. Same statistic as the randomization
+		# distribution above (standardized W sum, z-score scale): the
+		# reused-worker BRT path used to shortcut to the HL estimate while the
+		# observed value was the W statistic, so the BRT p-value compared
+		# incompatible scales (0.02 vs the randomization test's 0.31 on this
+		# fixture). KKWilcoxIVWCSource$compute_bootstrap_worker_estimate now
+		# routes workers through the W statistic; these values are identical
+		# to the debug = TRUE (pure R) path.
 		c(
-			-0.162856120731504211, -0.066998567187538299, -0.040537058306785882,
-			0, -0.01407192206605286, 0.571452644844059554,
-			-0.16359567953864429, 0.053228717594146359, 0
+			-0.89442719099991597, 0.032333445083919443, -2,
+			0.59628479399994394, -2.3851391759997753, -1.1666666666666667,
+			0, -1.6019141338792096, 2.352003757581719
 		)
 	)
 	expect_kk_wilcox_golden(

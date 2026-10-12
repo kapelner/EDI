@@ -41,9 +41,14 @@ test_that("factors are expanded to treatment contrasts; transformations and inte
 	expect_equal(unname(e$get_X()), unname(model.matrix(~ x1 + I(x2^2) + x1:x3, dat)[, -1]), tolerance = 1e-12)
 })
 
-test_that("a formula referencing a missing variable fails when covariates arrive", {
+test_that("a formula referencing a missing variable fails when the model matrix is built", {
 	d <- DesignFixedBernoulli$new(response_type = "continuous", n = 6L, design_formula = ~ nope, seed = 1L, verbose = FALSE)
-	expect_error(d$add_all_subjects_to_experiment(dat))
+	# add_all_subjects_to_experiment() only stores the raw covariates and
+	# invalidates the cached model matrix; the formula is applied lazily on
+	# the first build (get_X() / ensure_model_matrix_current()), so that is
+	# where the missing variable surfaces.
+	d$add_all_subjects_to_experiment(dat)
+	expect_error(d$get_X(), "nope")
 })
 
 test_that("has_private_method probes only this object's own private environment", {

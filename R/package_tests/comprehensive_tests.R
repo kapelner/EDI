@@ -768,6 +768,19 @@ if (!is.na(TEST_FAMILY_FILTER) && !(TEST_FAMILY_FILTER %in% ALL_TEST_FAMILY_FILT
 		paste(ALL_TEST_FAMILY_FILTERS, collapse = ", ")
 	)
 }
+# Opt-in narrow mode (arg 10, default "NA" = off, full pass as always): skips
+# only the studentized/bca (plain and Bayesian bootstrap) and studentized/
+# symmetric-percentile-t/smoothed (randomization-bootstrap) CI and pval type
+# variants -- the four heaviest resampling-based variants found to dominate
+# a continuous-response sweep's wall-clock cost (2026-10 timing
+# investigation: these variants alone, at ~2-7s per call each, repeated
+# across every design/formula/class, accounted for most of a ~1.7h-per-
+# replicate cost, with no single call individually slow enough to qualify
+# for ADDITIONAL_TEST_SLOW_PATHS' own >15-30s mean threshold). Does not
+# touch the "basic"/"wald"/"symmetric" (plain, not "-percentile-t") variants,
+# the untyped default bootstrap/bayesian-bootstrap/rand-bootstrap calls, or
+# any other test family -- narrow mode trims resampling-type breadth only.
+NARROW_MODE = length(args) >= 10 && identical(args[10], "narrow")
 # Deliberately NOT calling set_num_cores(NUM_CORES) here. Found 2026-09-11:
 # set_num_cores() on unix creates a persistent multi-process FORK cluster
 # (make_configured_fork_cluster()) that lives for the whole script run.
@@ -1763,12 +1776,20 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_bbt_pval_slow = is_slow_class_rule("bbt_pval")
 	skip_bbt_pval_symmetric_slow = is_slow_class_rule("bbt_pval_symmetric")
 	skip_bbt_pval_wald_slow = is_slow_class_rule("bbt_pval_wald")
-	skip_bbt_pval_studentized_slow = is_slow_class_rule("bbt_pval_studentized")
+	skip_bbt_pval_studentized_slow = is_slow_class_rule("bbt_pval_studentized") || NARROW_MODE
+	# No ADDITIONAL_TEST_SLOW_PATHS/registry category exists for bca on any
+	# of these three loops (bayesian-bootstrap CI, plain bootstrap pval,
+	# bayesian-bootstrap pval) -- narrow mode is the only thing these flags
+	# gate today.
+	skip_bbt_pval_bca_slow = NARROW_MODE
 	skip_bbt_ci_slow = is_slow_class_rule("bbt_ci")
+	skip_bbt_ci_bca_slow = NARROW_MODE
+	skip_bbt_ci_stud_slow = NARROW_MODE
 	skip_boot_ci_default_slow = is_slow_class_rule("boot_ci_default")
-	skip_boot_ci_bca_slow = is_slow_class_rule("boot_ci_bca")
-	skip_boot_stud_slow = is_slow_class_rule("boot_stud")
-	skip_boot_pval_stud_slow = is_slow_class_rule("boot_pval_stud")
+	skip_boot_ci_bca_slow = is_slow_class_rule("boot_ci_bca") || NARROW_MODE
+	skip_boot_stud_slow = is_slow_class_rule("boot_stud") || NARROW_MODE
+	skip_boot_pval_stud_slow = is_slow_class_rule("boot_pval_stud") || NARROW_MODE
+	skip_boot_pval_bca_slow = NARROW_MODE
 	skip_boot_pval_symmetric_slow = is_slow_class_rule("boot_pval_symmetric")
 	skip_boot_ci_slow = is_slow_class_rule("boot_ci")
 	skip_jack_slow = is_slow_class_rule("jack")
@@ -1783,15 +1804,15 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	skip_rand_delta_pval_slow = is_slow_class_rule("rand_delta_pval")
 	skip_brt_pval_block_slow = is_slow_class_rule("brt_pval") ||
 		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval))
-	skip_brt_pval_smoothed_slow = is_slow_class_rule("brt_pval_smoothed") ||
+	skip_brt_pval_smoothed_slow = NARROW_MODE || is_slow_class_rule("brt_pval_smoothed") ||
 		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval_smoothed))
-	skip_brt_pval_typed_slow = is_slow_class_rule("brt_pval_typed") ||
+	skip_brt_pval_typed_slow = NARROW_MODE || is_slow_class_rule("brt_pval_typed") ||
 		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval_typed))
 	skip_brt_ci_all_slow = is_slow_class_rule("brt_ci_all") ||
 		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_all))
-	skip_brt_ci_smoothed_slow = is_slow_class_rule("brt_ci_smoothed") ||
+	skip_brt_ci_smoothed_slow = NARROW_MODE || is_slow_class_rule("brt_ci_smoothed") ||
 		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_smoothed))
-	skip_brt_ci_typed_slow = is_slow_class_rule("brt_ci_typed") ||
+	skip_brt_ci_typed_slow = NARROW_MODE || is_slow_class_rule("brt_ci_typed") ||
 		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_typed))
 	skip_m_out_of_n_slow = is_slow_class_rule("m_out_of_n")
 	skip_m_out_of_n_ci_slow = skip_m_out_of_n_slow || is_slow_class_rule("m_out_of_n_ci")
@@ -2697,6 +2718,14 @@ call_direct_asymp = function(method_name, testing_type, ...){
 	if (should_run_test_family("bayesian_bootstrap") && !skip_slow && !skip_bayesian_bootstrap && !skip_bbt_ci_slow){
 		safe_call("compute_bayesian_bootstrap_confidence_interval", seq_des_inf$compute_bayesian_bootstrap_confidence_interval(B = r, na.rm = TRUE, show_progress = FALSE))
 		for (bayes_ci_type in c("basic", "wald", "bca", "studentized")) {
+			if (bayes_ci_type == "bca" && skip_bbt_ci_bca_slow) {
+				message("          Skipping compute_bayesian_bootstrap_confidence_interval_bca (too slow)")
+				next
+			}
+			if (bayes_ci_type == "studentized" && skip_bbt_ci_stud_slow) {
+				message("          Skipping compute_bayesian_bootstrap_confidence_interval_studentized (too slow)")
+				next
+			}
 			safe_call(paste0("compute_bayesian_bootstrap_confidence_interval_", bayes_ci_type),
 					  seq_des_inf$compute_bayesian_bootstrap_confidence_interval(B = r, type = bayes_ci_type, na.rm = TRUE, show_progress = FALSE))
 		}
@@ -2707,6 +2736,10 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		for (boot_pval_type in c("symmetric", "bca", "studentized")) {
 			if (boot_pval_type == "symmetric" && skip_boot_pval_symmetric_slow) {
 				message("          Skipping compute_bootstrap_two_sided_pval_symmetric (too slow)")
+				next
+			}
+			if (boot_pval_type == "bca" && skip_boot_pval_bca_slow) {
+				message("          Skipping compute_bootstrap_two_sided_pval_bca (too slow)")
 				next
 			}
 			if (boot_pval_type == "studentized" && skip_boot_pval_stud_slow) {
@@ -2749,6 +2782,10 @@ call_direct_asymp = function(method_name, testing_type, ...){
 			}
 			if (bayes_pval_type == "wald" && skip_bbt_pval_wald_slow) {
 				message("          Skipping compute_bayesian_bootstrap_two_sided_pval_wald (too slow)")
+				next
+			}
+			if (bayes_pval_type == "bca" && skip_bbt_pval_bca_slow) {
+				message("          Skipping compute_bayesian_bootstrap_two_sided_pval_bca (too slow)")
 				next
 			}
 			if (bayes_pval_type == "studentized" && skip_bbt_pval_studentized_slow) {

@@ -127,6 +127,49 @@ noted, and pass on all CI platform legs.
     exactly.
   - Regenerating the fixture is a deliberate act: the script refuses to
     overwrite without a flag, and any change needs a NEWS line.
+  - **How this tests other platforms from a Linux workstation.** The
+    committed fixture is what connects the platforms: it is generated once
+    on Linux, and every other platform runs a test that compares its own
+    output against that file. Nobody needs a Mac or Windows machine locally.
+    - **CI legs that already exist.** `R-CMD-check.yaml` already runs
+      `macos-latest` (arm64, clang, Accelerate/reference BLAS),
+      `windows-latest` release and devel (Rtools gcc/UCRT), and Ubuntu
+      devel/release/oldrel-1. A test in `R/EDI/tests/testthat/` runs on all
+      six legs automatically, with no new workflow.
+    - **A cross-leg diff job.** Each leg uploads its computed digests and
+      float values as an artifact. A final job collects them into one
+      platform × class table and fails on any integer mismatch or any float
+      outside tolerance. This catches the case the fixture alone cannot: two
+      non-Linux platforms that agree with each other but not with a stale
+      fixture. The table also tells you the observed float spread, which is
+      what the TODO-1 tolerance should be based on.
+    - **Free platforms beyond CI.** The digest test is cheap, so it should
+      not use `skip_on_cran()`. It then runs on CRAN's check flavours
+      (Fedora clang, Debian gcc, macOS arm64 and x86_64, Windows) and on
+      r-universe's builds, including webR (WebAssembly), on every release.
+      The CRAN check-results page becomes a cross-platform report. Keep its
+      runtime to a few seconds.
+    - **Local variation on Linux.** Most of the variation that matters is
+      in the build and the libraries, not the OS, so a lot can be tested
+      locally:
+      - gcc vs clang (both are installed);
+      - `EDI_PORTABLE=1` vs `-march=native`;
+      - BLAS: the workstation R uses MKL (`La_library()`); OpenBLAS and
+        reference BLAS are also installed, and Docker `rocker/r-ver`
+        images give a clean reference-BLAS R;
+      - optionally, aarch64 through Docker with QEMU emulation (slow;
+        CI's macOS arm64 leg already covers ARM).
+      These are full builds of `R/EDI`, so under `CLAUDE.md` they are run by
+      the owner or in CI, never by an agent without being asked in that turn.
+    - **Windows on this machine.** The workstation is WSL2 with Windows R
+      4.5.0 at `C:\Program Files\R\R-4.5.0` (EDI not installed there). A
+      Windows-side install would allow local Windows checks. That is
+      optional, since the `windows-latest` legs cover it, and it is the
+      owner's build to run.
+    - **Required test for the harness itself:** a deliberately perturbed
+      fixture row makes the digest test fail, and a perturbed artifact makes
+      the cross-leg diff job fail. Run both once when the harness is added,
+      to show it can actually fail.
   - **Required tests:**
     - the digest test itself;
     - a meta-test that the fixture has a row for every class in the design
