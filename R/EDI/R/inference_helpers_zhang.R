@@ -76,6 +76,11 @@ zhang_bisect_ci_boundary = function(p_fn, inside, outside, pval_th, tol){
 		# A small p-value residual does not imply a precise endpoint when the
 		# exact p-value curve is locally flat.  Converge on the parameter-scale
 		# bracket promised by this helper instead.
+		# An exact threshold value is already a valid boundary.  In particular,
+		# treating equality as the rejected side would walk a flat p == alpha
+		# segment all the way back to `inside`, despite the midpoint itself
+		# satisfying the inversion equation.
+		if (isTRUE(p_mid == pval_th)) return(mid)
 		if (abs(outside - inside) < width_tol) break
 
 		if (p_mid > pval_th){

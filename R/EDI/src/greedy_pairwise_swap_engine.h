@@ -32,44 +32,9 @@
 
 #include <vector>
 #include <algorithm>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 #include "RNG.h"
 
 namespace edi_search {
-
-// Seeds one edi_rng::RRng generator per OpenMP thread from R's own RNG
-// state, consumed serially (single-threaded, via GetRNGstate()/unif_rand())
-// before any parallel region begins -- so a given R seed produces identical
-// per-thread streams regardless of how many OpenMP threads actually run,
-// matching the pattern greedy_design_search_cpp originated
-// (design_fixed_greedy.cpp) and now shared with the optimal-design kernels.
-inline std::vector<std::uint32_t> seed_per_thread_rngs_from_r(int nthreads) {
-	std::vector<std::uint32_t> seeds(static_cast<std::size_t>(nthreads));
-	GetRNGstate();
-	for (int t = 0; t < nthreads; t++) {
-		seeds[static_cast<std::size_t>(t)] = edi_rng::seed_from_unif01(::unif_rand());
-	}
-	PutRNGstate();
-	return seeds;
-}
-
-inline int omp_max_threads() {
-#ifdef _OPENMP
-	return omp_get_max_threads();
-#else
-	return 1;
-#endif
-}
-
-inline int omp_this_thread() {
-#ifdef _OPENMP
-	return omp_get_thread_num();
-#else
-	return 0;
-#endif
-}
 
 // Runs Objective's swap search to a strict local optimum: each round scans
 // every (treated, control) pair, applies the single globally best improving

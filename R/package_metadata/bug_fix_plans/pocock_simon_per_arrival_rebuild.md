@@ -70,7 +70,7 @@ one with `NA` strata values).
   cost against t; the slope is the bug. Promote to `R/benchmark/` next to
   the design table. Installed package only.
 
-- [x] TODO-2: **Incremental level bookkeeping (F3).** Make
+- [ ] TODO-2: **Incremental level bookkeeping (F3).** Make
   `ensure_factor_metadata()` O(k): keep the full rescan only when
   `strata_level_rows` is `NULL` (first call or after `duplicate()`), and
   otherwise register only the keys of row t. Remove the duplicate call
@@ -105,7 +105,9 @@ one with `NA` strata values).
 
 ## Implementation and validation (2026-10-09)
 
-TODOs 1--4 are implemented. Fixed-size Pocock--Simon designs preallocate
+TODOs 1, 3--4 are implemented. TODO-2's incremental bookkeeping source is
+implemented but is reopened below for a newly discovered first-arrival edge
+case. Fixed-size Pocock--Simon designs preallocate
 `Xraw`, expose only the enrolled prefix, fill schema-compatible rows in place,
 and fall back to `rbindlist` when a late factor schema cannot be filled safely.
 Their assignment rule opts out of the generic model-matrix rebuild and leaves
@@ -126,6 +128,18 @@ The fixed-seed late-level/NA fixture remains exactly
 deferred matrix identical after first access. The focused metadata suite passes
 53 expectations, the all-design seed suite passes 25, and five sequential
 schema/type/bootstrap suites pass 62 more expectations.
+
+### First-arrival missing-stratum correction (2026-10-12)
+
+Static review found that the generic first-arrival cleanup removed every
+missing column before Pocock--Simon could register its strata.  A first subject
+with a missing declared stratum therefore lost that required column, despite
+this plan's missing-level contract.  The cleanup now retains declared strata
+columns and only drops other missing first-row covariates.  A public regression
+adds a missing first stratum followed by a literal `"NA"` category and asserts
+that both enroll and map to different level rows.  TODO-2 remains open until
+that added regression is run against a rebuilt package; the earlier 53-test
+result did not cover this first-arrival case.
 
 TODO-5 remains open for the prohibited installed-package rebuild and report
 refresh. Its additional “within 10x of carat” criterion is infeasible under

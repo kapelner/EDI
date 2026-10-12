@@ -26,11 +26,10 @@
 
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-25`. Added 2026-09-24, surfaced by the
-> `pval_miscalibration`/`low_coverage` audit checks. **This is an open
-> investigation, not a confirmed bug with a fix plan** — a plausible
-> mechanism was identified by code reading but NOT confirmed by
-> reproduction. Do not treat anything below as a diagnosed root cause
-> until reproduction succeeds.
+> `pval_miscalibration`/`low_coverage` audit checks, and resolved
+> 2026-10-09 as an audit-target mismatch. The retained historical analysis
+> below documents the candidate that was tested and refuted; it is not a
+> diagnosed estimator defect or a pending fix plan.
 
 ## The finding
 

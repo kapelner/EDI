@@ -141,8 +141,11 @@ are fixed here because they are still exported and registered.
   diagnostics). Fix the docs. **Tests:** two reference tests assert the biased
   behavior and must be rewritten. Add a test that a CI excluding 0 is returned unchanged.
   **Source implementation 2026-10-10:** percentile, basic, BCa, and
-  studentized intervals retain all finite bootstrap endpoints; the zero-based
-  Wald substitution, ±2 cutoff, and studentized exclusion rule are removed.
+  percentile, basic, and BCa intervals retain all finite bootstrap endpoints;
+  the public studentized wrapper delegates to basic for this model (which has
+  no replicate-SE estimator) and preserves that finite interval. The
+  zero-based Wald substitution, ±2 cutoff, and studentized exclusion rule are
+  removed.
   Component contracts, roxygen, and focused references now cover unchanged
   rejecting/wide intervals and numerical failure.  Execution remains pending
   because this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
@@ -358,13 +361,13 @@ are fixed here because they are still exported and registered.
   in estimate-only paths, or fix `w*` from the observed variances and reuse it.
   **Tests:** the existing reference test mocks real variances and must exercise
   the estimate-only path.
-  **Source implementation completed 2026-10-10; execution pending.** All
+  **Source implementation completed 2026-10-12; execution pending.** All
   three IVWC estimate-only paths now obtain the matched hurdle-GLMM and
   reservoir Poisson variances before combining their estimates: ordinary,
   weighted/Bayesian-bootstrap, and randomization. The formerly reachable
   `1.0` placeholder branches were removed, so the fit helpers always return a
-  usable variance or fail the component. The direct Rcpp helper no longer has
-  an unused `se = FALSE` argument that could reintroduce a placeholder.
+  usable variance or fail the component. The direct Rcpp helper no longer
+  accepts the former `se = FALSE` switch that returned a placeholder.
   Focused mock regressions pin the
   real-variance IVWC result and verify that the weighted path no longer asks
   either helper for estimate-only fitting. No R test ran because this host's

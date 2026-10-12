@@ -15,13 +15,9 @@
 //                  f(d+Δ) = f + 2 d·Δ + ‖Δ‖²  (incremental — avoids forming d+Δ)
 //
 // Parallelism: outer loop over r designs is embarrassingly parallel (OMP).
-//   Per-thread edi_rng::RRng (RNG.h) generators -- a portable
-//   re-implementation of R's own Mersenne-Twister, so a given seed produces
-//   identical draws in R and any future binding using the same core -- are
-//   seeded from R's RNG before the parallel region so set.seed() governs
-//   reproducibility at the R level.
-//   Thread count follows whatever omp_set_num_threads() was last called with
-//   (EDI sets this via set_num_cores() → set_omp_num_threads_cpp()).
+//   Each logical draw owns an edi_rng::RRng (RNG.h) stream, derived from one
+//   R seed before the parallel region.  Therefore a draw's allocation depends
+//   on its index, never on the OpenMP worker scheduled to compute it.
 
 #include <RcppEigen.h>
 #include "RNG.h"
@@ -72,29 +68,20 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
 
     Rcpp::NumericMatrix result(n, r);
 
-    // ── Seed per-thread RNGs from R's RNG (single-threaded, before parallel) ─
-    int nthreads = 1;
-#ifdef _OPENMP
-    nthreads = omp_get_max_threads();
-#endif
-    std::vector<uint32_t> seeds(static_cast<std::size_t>(nthreads));
+    // ── One master seed from R, then a deterministic stream per draw ────────
+    std::uint64_t master_seed;
     GetRNGstate();
-    for (int t = 0; t < nthreads; t++)
-        seeds[static_cast<std::size_t>(t)] = edi_rng::seed_from_unif01(::unif_rand());
+    master_seed = static_cast<std::uint64_t>(edi_rng::seed_from_unif01(::unif_rand()));
     PutRNGstate();
 
     // ── No covariates: pure balanced randomisation ───────────────────────────
     if (p == 0) {
 #pragma omp parallel
         {
-            int tid = 0;
-#ifdef _OPENMP
-            tid = omp_get_thread_num();
-#endif
-            edi_rng::RRng rng(seeds[static_cast<std::size_t>(tid)]);
             std::vector<int> idx(n);
 #pragma omp for schedule(static)
             for (int d = 0; d < r; d++) {
+                edi_rng::RRng rng(edi_rng::seed_for_index(master_seed, static_cast<std::uint64_t>(d)));
                 std::iota(idx.begin(), idx.end(), 0);
                 for (int i = n - 1; i > 0; i--)
                     std::swap(idx[static_cast<std::size_t>(i)],
@@ -137,12 +124,6 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
     // ── Parallel greedy search over r independent designs ────────────────────
 #pragma omp parallel
     {
-        int tid = 0;
-#ifdef _OPENMP
-        tid = omp_get_thread_num();
-#endif
-        edi_rng::RRng                      rng(seeds[static_cast<std::size_t>(tid)]);
-
         // Thread-local working buffers
         std::vector<int> w(n), treated(nt), control(nt), order(n);
         std::vector<int> pair_cur_t(static_cast<std::size_t>(np)); // 0/1: which pair member is T
@@ -150,6 +131,7 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
 
 #pragma omp for schedule(static)
         for (int des = 0; des < r; des++) {
+            edi_rng::RRng rng(edi_rng::seed_for_index(master_seed, static_cast<std::uint64_t>(des)));
             if (pair_mode) {
                 // ── Pair-constrained init: random coin-flip per pair ─────────
                 std::fill(w.begin(), w.end(), 0);

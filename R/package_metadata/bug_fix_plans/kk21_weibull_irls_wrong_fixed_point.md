@@ -105,5 +105,7 @@ These source changes deliberately remain unchecked until an authorized native
 rebuild and R execution can run the new oracle tests. TODO-5 and the required
 regeneration of the affected benchmark/CSV evidence are still pending.
 
-Build/verify per `CLAUDE.md`: targeted compile of the two touched `.cpp`
-files plus relink only. No full rebuild.
+Build/verify per `CLAUDE.md`: rebuild the affected native translation
+units (`fast_weibull_regression.cpp`, `kk21_stepwise_survival.cpp`, and
+`kk21_weights.cpp`) and their shared `_helper_functions_core.h` dependents,
+then relink. No full rebuild.

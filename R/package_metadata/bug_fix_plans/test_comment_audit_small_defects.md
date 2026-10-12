@@ -25,6 +25,11 @@
   p-values. The same sweep also fixed Newcombe risk-difference p-values, which
   previously returned 1 for a missing null value. Regression tests cover all
   three paths.
+  **Static re-audit (2026-10-12):** the ordinary and KK g-computation
+  engines and `InferenceIncidNewcombeRiskDiff` each retain
+  `any.missing = FALSE`; their three missing-null regression cases are present
+  and registered in the runtime inventory. No runtime test was rerun in this
+  audit.
 - [x] **TODO-2: Exact-test classes cannot use the shared weighted estimate.**
   `ExactTestSource$compute_estimate_with_bootstrap_weights()` calls
   `private$expand_subject_or_block_weights_to_row_weights()`, which only the

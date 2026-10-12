@@ -155,6 +155,17 @@ track from this release without replacement; it does not block the release.
 
 ## In scope (by plan)
 
+Reproducibility *(added 2026-10-11, user decision; from
+`marketing_plans/agent_proofing.md` W6)*: `cross_platform_reproducibility.md`
+(`TODO-48`). It states the package's reproducibility guarantee: random draws
+are exactly identical across platforms, thread counts and worker counts;
+floating-point outputs are equal within a documented tolerance. It adds a
+reproducibility record to every result, makes thread- and worker-count
+independence a package-wide invariant with a static ban, fixes p-value tie
+counting if verification confirms the problem, and enforces all of it with
+golden digests on every CI platform leg. Each of its four TODOs ships with
+required tests. It builds on `release_v1_0_5.md → TODO-91, -93, -95`.
+
 Repository hygiene *(maintenance, added 2026-09-16, user decision)*:
 `implement_a_lintr.md` (a `.lintr` codifying EDI's actual `=`/tab house
 style, correctness linters on, content-gated hook + CI step — `TODO-23`)
@@ -1375,6 +1386,26 @@ ticked in their **owning plans**; this list is the release index.
   estimate/CI/p-value/resampling), a kernel signature freeze, and a manual
   hot-path timing check against the pre-feature baseline.
 
+- [ ] TODO-48 (added 2026-10-11, user decision): **Cross-platform
+  reproducibility guarantee** — `cross_platform_reproducibility.md →
+  TODO-1..4`. Every TODO requires its listed tests before it can be ticked.
+  - (1) **Guarantee and record:** state the three-level guarantee in the
+    reproducibility vignette, and attach a reproducibility record (seed,
+    `RNGkind`, version, threads, workers, build flag) to every result. This
+    shares the slot with `algorithm_choice_audit.md → TODO-38`.
+  - (2) **Thread- and worker-count invariance everywhere:** use
+    `seed_for_index` for every parallel stream; registry-driven invariance
+    tests at 1/2/4 cores on both the fork and `mirai` backends; a pre-push
+    ban on `std::shuffle`, `<random>`, `rand()` and per-thread seeding.
+  - (3) **p-value tie tolerance:** verify first, then fix, gated on
+    exact-enumeration fixtures.
+  - (4) **CI enforcement:** golden integer digests that must match exactly
+    on every platform leg, plus floats within tolerance, plus a meta-test
+    that every registry class has a fixture.
+  - **Depends on:** `release_v1_0_5.md → TODO-91, -93, -95`.
+  - **Open owner decision D1:** portable build by default for GitHub source
+    installs.
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update
@@ -1390,7 +1421,7 @@ deprecation decision; TODO-40's exact-null default switch, its plan's
 TODO-7, and TODO-41's small-n exact default, its plan's TODO-6, both
 decision-gated and off until the user accepts them; and TODO-45's
 precomputed hypergeometric log-densities in the Zhang exact kernel, its
-plan's TODO-3, tolerance-equal to 1e-12). TODO-4b is narrowed to measurement infrastructure
+plan's TODO-3, tolerance-equal to 1e-12; and TODO-48's reproducibility work, whose TODO-3 tie tolerance changes p-values only where a tie was resolved by rounding, its plan's TODO-3, documented when it lands). TODO-4b is narrowed to measurement infrastructure
 only in this release (`performance_profiling_and_upgrades.md →
 TODO-132..135, 175`, all infrastructure-only, no gate needed); the
 result-changing performance items formerly gated here

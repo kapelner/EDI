@@ -38,6 +38,12 @@ bug), and standard-error and confidence-interval fixes.
 
 ## Bug fixes
 
+* Seed-pinned draws from `DesignFixedGreedy`,
+  `DesignFixedMatchingGreedyPairSwitching`, `DesignFixedGreedyDOptimal`, and
+  `DesignFixedRerandomization` are now invariant to the configured OpenMP
+  thread count. Their exact seeded allocations change once because streams
+  are now derived from logical draw indices rather than worker identities.
+
 * `InferenceOrdinalRidit(reference = "treatment")` now reports the
   treated-versus-control ridit contrast as `0.5 - mean_control_ridit`, with
   its standard error computed from control-arm ridit scores. Previously it

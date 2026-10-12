@@ -18,24 +18,6 @@ library(EDI)
 #      reference.R).
 #   4. NA entries in m_mat are zeroed (treated as unpaired) rather than propagating NA.
 #
-# Separately: this iteration also found -- but per instructions does NOT fix -- a real source bug in
-# this file's SIBLING private method, compute_fast_bootstrap_distr(): it builds w_mat/m_mat as
-# `matrix(0L, ...)` (integer) but then assigns `w_mat[, b] = w[i_b]` where w (private$w) is always
-# stored as a *double* vector everywhere in this codebase; assigning a double vector into an integer
-# matrix column promotes R's ENTIRE matrix to double (confirmed via a minimal `m <- matrix(0L,2,2);
-# m[,1] <- c(1,2)` repro), so w_mat (and m_mat, built the same way) end up double by the time they
-# reach compute_matching_compound_bootstrap_parallel_cpp(), which Rcpp-maps as Eigen::MatrixXi --
-# raising "Wrong R type for mapped matrix" on every call. This method is, however, structurally
-# unreachable via the public API: every KK-matching design (KK14/KK21/KK21stepwise) is a
-# DesignSeqOneByOne descendant, and EDI_INFERENCE_DESIGN_EXCLUDED_CAPABILITIES (inference_class_
-# registry.R) disables the "nonparametric_bootstrap" capability -- including approximate_bootstrap_
-# distribution_beta_hat_T(), the only caller -- for that entire design family (DesignSeqOneByOneBernoulli
-# is the sole exception, and it has no match structure to dispatch this fast path at all). So this bug
-# can never actually be hit by a real user; no test is written to exercise the crash (which would just
-# be testing an artifact of the type-promotion bug, not a documented contract), matching this project's
-# established convention of leaving genuinely-unreachable code untested rather than forcing an
-# artificial repro.
-
 fx <- function(seed, n = 40L) {
 	set.seed(seed)
 	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)

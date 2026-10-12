@@ -132,8 +132,8 @@ threads feeding this release.)
   injected-summary and independent delete-one regressions pass 30
   assertions without compilation.
 
-- [ ] TODO-6 (added 2026-09-24, confirmed by direct code reading — medium-high
-  confidence, concrete and low-risk to fix): `InferenceCountPoisson`'s
+- [x] TODO-6 (added 2026-09-24, implemented 2026-10-09 under v1.0.5
+  TODO-48): `InferenceCountPoisson`'s
   documented "design-conservative" equidispersion-robustness treatment
   (every asymptotic CI unioned with a design-based jackknife-Wald
   interval, per the class's own docstring at `inference_count_poisson.R:11-29`,
@@ -146,16 +146,17 @@ threads feeding this release.)
   `compute_lik_ratio_bartlett_approx_confidence_interval` — does NOT, and
   shows the exact anti-conservative undercoverage (0.834-0.915) the union
   exists to prevent — `../bug_fix_plans/investigate_count_glm_family_coverage.md
-  → TODO-5`. Fix: wire the Bartlett variants through the same
-  `design_conservative_ci()` call the plain `lik_ratio` CI already uses —
-  mechanical, matches an existing in-file pattern. **Separately flagged,
+  → TODO-5`. The Bartlett variants now use the same
+  `design_conservative_ci()` call as the plain `lik_ratio` CI, with a
+  focused four-entry-point regression. **Separately decided and documented,
   not slated here:** whether to extend the same union to the
   resampling-family CI methods (`bayesian_bootstrap*`, `param_bootstrap`,
   `bootstrap_studentized`, also undercovering) is a design decision, not
-  an obvious bug — see the linked plan's TODO-6. `InferenceCountNegBin`/
-  `InferenceCountZeroInflatedPoisson`'s own undercoverage (no jackknife
-  backstop exists for either) remains genuinely unresolved, tracked at
-  `release_v1_0_5.md → TODO-48`, not promoted here.
+  an obvious bug — see the linked plan's TODO-6. `InferenceCountNegBin` and
+  `InferenceCountZeroInflatedPoisson` use standard joint-MLE
+  observed-information inference; their remaining small-sample behavior was
+  audited as finite-sample bias rather than a package defect. No v1.5.0 work
+  remains for this item.
 
 - [ ] TODO-7 (added 2026-09-24, HIGH confidence, confirmed by direct
   code reading at 3 sites): `InferenceSurvivalRestrictedMeanDiff` computes

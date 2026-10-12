@@ -342,7 +342,7 @@ CountKKHurdlePoissonIVWCSource = list(
 				weights = weights
 			)
 		},
-		fit_hurdle_for_matched_pairs_rcpp = function(X_fit, y_fit, group_id, j_treat, se = TRUE){
+		fit_hurdle_for_matched_pairs_rcpp = function(X_fit, y_fit, group_id, j_treat){
 			fit = tryCatch(
 				fast_hurdle_poisson_glmm_cpp(
 					X = as.matrix(X_fit),
@@ -359,12 +359,6 @@ CountKKHurdlePoissonIVWCSource = list(
 			if (!is.finite(beta_hat) || abs(beta_hat) > private$max_abs_reasonable_coef) {
 				return(list(beta_hat = NA_real_, se = NA_real_))
 			}
-			# estimate_only callers (point estimate never consumed downstream)
-			# don't need ssq_b_T at all: skip validating it and return a
-			# placeholder se instead of letting an unrelated SE problem (e.g. a
-			# non-finite ssq_b_T on an otherwise fine point estimate) reject a
-			# beta_hat that was never going to be paired with that se anyway.
-			if (!se) return(list(beta_hat = beta_hat, se = 1.0))
 			ssq = as.numeric(fit$ssq_b_T)
 			if (!is.finite(ssq) || ssq <= 0) return(list(beta_hat = NA_real_, se = NA_real_))
 			se_val = sqrt(ssq)

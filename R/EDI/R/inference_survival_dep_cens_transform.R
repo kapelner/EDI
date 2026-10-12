@@ -220,7 +220,9 @@ SurvivalDepCensTransformSource = list(
 				alpha = alpha
 			)
 		},
-		#' @description Studentized bootstrap confidence interval with numerical validation only.
+		#' @description Studentized bootstrap interface. The dependent-censoring
+		#'   fit has no replicate standard-error estimator, so this returns the
+		#'   numerically validated basic-bootstrap interval.
 		#' @param alpha Significance level. Default 0.05.
 		#' @param B Number of bootstrap replicates. Default 1000.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.

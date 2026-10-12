@@ -434,6 +434,9 @@ LikelihoodFitResult fast_zero_one_inflated_beta_internal(
 		if (warm_start_params->size() != total) {
 			throw std::invalid_argument("warm_start_params must have length p + 1 + 2 * p_zero_one (the number of model parameters)");
 		}
+		if (!warm_start_params->allFinite()) {
+			throw std::invalid_argument("warm_start_params must contain only finite values");
+		}
 		params = *warm_start_params;
 	} else if (smart_cold_start) {
 		// Beta component: OLS on logit(y) for entries in (0, 1)
@@ -471,6 +474,9 @@ LikelihoodFitResult fast_zero_one_inflated_beta_internal(
     if (warm_start_fisher_info.has_value()) {
         if (warm_start_fisher_info->rows() != total || warm_start_fisher_info->cols() != total) {
             throw std::invalid_argument("warm_start_fisher_info must be a square matrix with one row per model parameter");
+        }
+        if (!warm_start_fisher_info->allFinite()) {
+            throw std::invalid_argument("warm_start_fisher_info must contain only finite values");
         }
         info_start = *warm_start_fisher_info;
         info_start_ptr = &info_start;

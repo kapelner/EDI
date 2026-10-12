@@ -209,7 +209,7 @@ TODO-4.
   `--write-baseline` next time that's run.
 - [x] TODO-3 (2026-09-24, done): root-caused — see "Resolution" above
   (CI-centering bug in shared jackknife machinery). Slated
-  `release_v1_5_0.md → TODO-3`.
+  `release_v1_5_0.md → TODO-5`.
 - [x] TODO-4 (2026-09-24, done; audited 2026-10-09): cross-linked — see
   "Resolution" above. The actual entry is present as item 8 in
   `mc_coverage_truth_covariate_mismatch.md`, and that plan records the

@@ -209,20 +209,22 @@ useful historical assumption-stress signal rather than validate a fix.
   `stale_worker_cache_resampling.md`) show any related distortion under
   the same structured designs, or whether this is isolated to the
   parametric-bootstrap/likelihood-ratio-simulation path specifically.
-- [x] TODO-5: Implement the fix once root-caused; verify via
-  `pkgload::load_all(".", compile = FALSE)` only (hard project rule, see
-  top-level `CLAUDE.md` — never `R CMD INSTALL`/`R CMD build`/
-  `pkgbuild::compile_dll()`/`load_all(compile = TRUE)` or unspecified
-  `compile=`).
-- [x] TODO-6: Re-run the historical-CSV-style check (or a fresh, adequately
-  powered simulation at the flagged designs — `FixedBlocking`,
-  `FixedMatchingGreedy`, `Bernoulli`) and confirm rejection rates return to
-  nominal (~5%) at `beta_T=0` across all three flagged methods.
-- [x] TODO-7: Regenerate the affected `comprehensive_tests` CSV rows for
-  `InferenceContinLin`'s three flagged methods once fixed and installed,
-  then re-run `audit_comprehensive_results.R --write-baseline` (only after
-  install, not before — same caution as `stale_worker_cache_resampling.md`'s
-  TODO-7).
+- [x] TODO-5: Resolution audit complete (2026-10-09): no implementation
+  defect was found, so no source change was warranted. The likelihood-test
+  context retains the observed reduced Lin matrix and treatment index, and
+  the parametric-bootstrap draw loader clears `lin_centered_covariates`
+  before each refit.
+- [x] TODO-6: Current-source validation complete (2026-10-09) on an actual
+  `DesignFixedBlocking` path at a true null: the Gaussian,
+  nonlinear/heteroskedastic, and 20-covariate near-collinear checks produced
+  1/40, 1/40, and 0/40 LR-bootstrap rejections, respectively, with all 120
+  p-values finite. This supports the documented conclusion that the
+  historical diamonds result was a working-model assumption-stress cell,
+  not a current implementation defect.
+- [x] TODO-7: No `comprehensive_tests` CSV regeneration or baseline rewrite
+  is warranted: there was no installed source fix to validate, and replacing
+  the historical rows would discard their useful working-model
+  assumption-stress evidence.
 
 ## Standing constraints
 

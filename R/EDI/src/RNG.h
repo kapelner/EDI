@@ -294,6 +294,19 @@ inline std::uint32_t seed_from_unif01(double u) {
 	return static_cast<std::uint32_t>(u * static_cast<double>(RRng::max()));
 }
 
+// Derives one portable RRng seed for a logical draw index.  Parallel kernels
+// must derive streams from the draw index, never an OpenMP thread ID: the
+// scheduler then changes only which thread performs a draw, not the draw
+// itself.  SplitMix64 decorrelates adjacent indexes before the 32-bit seed is
+// consumed by RRng.
+inline std::uint32_t seed_for_index(std::uint64_t master_seed, std::uint64_t index) {
+	std::uint64_t x = master_seed + index + 0x9e3779b97f4a7c15ULL;
+	x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+	x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+	x = x ^ (x >> 31);
+	return static_cast<std::uint32_t>(x);
+}
+
 // Lemire-style unbiased bounded integer sampling, 32-bit width to match
 // RRng's native word size (R's actual Mersenne-Twister generates 32-bit
 // words -- this is R's own generator, not an arbitrary wider one).

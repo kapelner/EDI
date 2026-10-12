@@ -89,16 +89,17 @@ above) — that is an open, cheap first check.
 
 ## Tangential, much smaller item found alongside these (not itself part of the cluster)
 
-While checking `InferenceCountPoisson`, `set_min_eigenvalue_if_suspect()`
-(`_helper_functions_core.h:210-219`) was found to be entirely commented
-out, so `min_eigenvalue_information` is never populated. This looked like
-dead code, not a cause of the miscalibration above (there was no live
-caller to rule in or out) — noted as "minor, unrelated cleanup, not
-investigated further" in `release_v1_0_5.md → TODO-4`'s own text. Tracked
-separately as `release_v1_0_5.md → TODO-51` (renumbered from TODO-32 for
-the same collision noted above; a one-line cleanup item, not
-part of this investigation) — mentioned here only so a reader of this file
-doesn't also lose track of it.
+While checking `InferenceCountPoisson`,
+`set_min_eigenvalue_if_suspect()` was found entirely commented out, so its
+generic `min_eigenvalue_information` diagnostic was never populated. This
+looked like dead code, not a cause of the miscalibration above (there was no
+live caller to rule in or out) — noted as "minor, unrelated cleanup, not
+investigated further" in `release_v1_0_5.md → TODO-4`'s own text. The helper,
+its unused trait, and call sites were subsequently removed under
+`release_v1_0_5.md → TODO-51` (renumbered from TODO-32 for the same collision
+noted above); its result-schema fields retain their `NaN` default. This
+historical item is mentioned only so a reader of this file doesn't also lose
+track of it.
 
 ## Reconciliation against later fixes (2026-10-09)
 

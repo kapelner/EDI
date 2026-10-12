@@ -211,16 +211,33 @@ Rcpp::IntegerMatrix rerandomization_search_cpp(
         M = (X * inv_sd.asDiagonal()).transpose() / static_cast<double>(n);
     }
 
-    // ── Seed per-thread RNGs from R's RNG ────────────────────────────────────
+    // ── One master seed from R, then a deterministic stream per candidate ───
     int nthreads = 1;
 #ifdef _OPENMP
     nthreads = omp_get_max_threads();
 #endif
-    std::vector<uint32_t> seeds(static_cast<std::size_t>(nthreads));
+    std::uint64_t master_seed;
     GetRNGstate();
-    for (int t = 0; t < nthreads; t++)
-        seeds[static_cast<std::size_t>(t)] = edi_rng::seed_from_unif01(::unif_rand());
+    master_seed = static_cast<std::uint64_t>(edi_rng::seed_from_unif01(::unif_rand()));
     PutRNGstate();
+
+    // A candidate is determined by its draw index, not by the worker which
+    // happens to evaluate it.  This is what makes accepted allocations and
+    // their order invariant to OpenMP scheduling and thread count.
+    const auto candidate_is_accepted = [&](int draw, std::vector<int>& w,
+                                           std::vector<int>& order, VectorXd& dbl_w,
+                                           VectorXd& d) {
+        edi_rng::RRng rng(edi_rng::seed_for_index(master_seed, static_cast<std::uint64_t>(draw)));
+        std::iota(order.begin(), order.end(), 0);
+        edi_rng::fisher_yates_shuffle(order.begin(), order.end(), rng);
+        std::fill(w.begin(), w.end(), 0);
+        for (int i = 0; i < nt; i++) w[static_cast<std::size_t>(order[static_cast<std::size_t>(i)])] = 1;
+
+        for (int i = 0; i < n; i++) dbl_w[i] = 2.0 * static_cast<double>(w[static_cast<std::size_t>(i)]) - 1.0;
+        d.noalias() = M * dbl_w;
+        const double f = abs_mode ? d.lpNorm<1>() : d.squaredNorm();
+        return f <= cutoff;
+    };
 
     // ── Shared result storage ────────────────────────────────────────────────
     // Pre-allocate n×r; only the first `found` columns are valid on return.
@@ -228,22 +245,12 @@ Rcpp::IntegerMatrix rerandomization_search_cpp(
     const bool use_sequential = (nthreads <= 1);
 
     if (use_sequential) {
-        edi_rng::RRng rng(seeds[0]);
         std::vector<int> w(n), order(n);
         VectorXd dbl_w(n), d(p);
         int found = 0;
 
         for (int draw = 0; draw < max_draws && found < r; draw++) {
-            std::iota(order.begin(), order.end(), 0);
-            edi_rng::fisher_yates_shuffle(order.begin(), order.end(), rng);
-            std::fill(w.begin(), w.end(), 0);
-            for (int i = 0; i < nt; i++) w[static_cast<std::size_t>(order[static_cast<std::size_t>(i)])] = 1;
-
-            for (int i = 0; i < n; i++) dbl_w[i] = 2.0 * static_cast<double>(w[static_cast<std::size_t>(i)]) - 1.0;
-            d.noalias() = M * dbl_w;
-            double f = abs_mode ? d.lpNorm<1>() : d.squaredNorm();
-
-            if (f <= cutoff) {
+            if (candidate_is_accepted(draw, w, order, dbl_w, d)) {
                 for (int i = 0; i < n; i++) result(i, found) = w[static_cast<std::size_t>(i)];
                 ++found;
             }
@@ -256,54 +263,45 @@ Rcpp::IntegerMatrix rerandomization_search_cpp(
         return trimmed;
     }
 
-    std::atomic<int> found(0);
-    std::atomic<int> next_draw(0);
+    int found = 0;
     const int chunk_size = 64;
 
-    // ── Parallel rejection loop ──────────────────────────────────────────────
-#pragma omp parallel
-    {
-        int tid = 0;
-#ifdef _OPENMP
-        tid = omp_get_thread_num();
-#endif
-        edi_rng::RRng rng(seeds[static_cast<std::size_t>(tid)]);
+    // Complete a deterministic prefix of fixed-size blocks at a time.  A
+    // wave has at most one block per worker, so it retains early stopping
+    // (at most nthreads * chunk_size extra candidates) without allowing OS
+    // scheduling to decide which accepted allocation claims an output slot.
+    for (int first_block = 0; found < r && first_block * chunk_size < max_draws; ) {
+        const int blocks_remaining = (max_draws - first_block * chunk_size + chunk_size - 1) / chunk_size;
+        const int blocks_in_wave = std::min(nthreads, blocks_remaining);
+        std::vector<std::vector<std::vector<int>>> accepted_by_block(
+            static_cast<std::size_t>(blocks_in_wave));
 
-        // thread-local buffers
-        std::vector<int> w(n), order(n);
-        VectorXd dbl_w(n), d(p);
-
-        while (found.load(std::memory_order_relaxed) < r) {
-            const int start = next_draw.fetch_add(chunk_size, std::memory_order_relaxed);
-            if (start >= max_draws) break;
+#pragma omp parallel for schedule(static)
+        for (int b = 0; b < blocks_in_wave; ++b) {
+            const int start = (first_block + b) * chunk_size;
             const int end = std::min(max_draws, start + chunk_size);
-
-            for (int draw = start; draw < end && found.load(std::memory_order_relaxed) < r; draw++) {
-                // Fisher-Yates balanced init
-                std::iota(order.begin(), order.end(), 0);
-                edi_rng::fisher_yates_shuffle(order.begin(), order.end(), rng);
-                std::fill(w.begin(), w.end(), 0);
-                for (int i = 0; i < nt; i++) w[static_cast<std::size_t>(order[static_cast<std::size_t>(i)])] = 1;
-
-                for (int i = 0; i < n; i++) dbl_w[i] = 2.0 * static_cast<double>(w[static_cast<std::size_t>(i)]) - 1.0;
-                d.noalias() = M * dbl_w;
-                double f = abs_mode ? d.lpNorm<1>() : d.squaredNorm();
-
-                if (f <= cutoff) {
-                    int slot = found.fetch_add(1, std::memory_order_relaxed);
-                    if (slot < r) {
-                        for (int i = 0; i < n; i++) result(i, slot) = w[static_cast<std::size_t>(i)];
-                    }
+            std::vector<int> w(n), order(n);
+            VectorXd dbl_w(n), d(p);
+            for (int draw = start; draw < end; ++draw) {
+                if (candidate_is_accepted(draw, w, order, dbl_w, d)) {
+                    accepted_by_block[static_cast<std::size_t>(b)].push_back(w);
                 }
             }
         }
+
+        for (int b = 0; b < blocks_in_wave && found < r; ++b) {
+            for (const std::vector<int>& w : accepted_by_block[static_cast<std::size_t>(b)]) {
+                for (int i = 0; i < n; ++i) result(i, found) = w[static_cast<std::size_t>(i)];
+                if (++found == r) break;
+            }
+        }
+        first_block += blocks_in_wave;
     }
 
-    int k = std::min(found.load(), r);
-    if (k == r) return result;
+    if (found == r) return result;
     // Return only the filled columns
-    Rcpp::IntegerMatrix trimmed(n, k);
-    for (int j = 0; j < k; j++)
+    Rcpp::IntegerMatrix trimmed(n, found);
+    for (int j = 0; j < found; j++)
         for (int i = 0; i < n; i++) trimmed(i, j) = result(i, j);
     return trimmed;
 }

@@ -36,6 +36,29 @@ test_that("missing covariate values have a level distinct from a literal NA cate
 	expect_equal(length(f$priv$strata_level_rows$g), 3L)
 })
 
+test_that("a first-arrival missing stratum is retained and differs from a literal NA level", {
+	des <- DesignSeqOneByOnePocockSimon$new(
+		strata_cols = c("g", "h"), response_type = "continuous", n = 2L,
+		seed = 603L, verbose = FALSE
+	)
+	priv <- des$.__enclos_env__$private
+	expect_silent(des$add_one_subject_to_experiment_and_assign(data.frame(
+		g = factor(NA, levels = c("a", "NA")),
+		h = factor("u", levels = c("u", "v"))
+	)))
+	expect_silent(des$add_one_subject_to_experiment_and_assign(data.frame(
+		g = factor("NA", levels = c("a", "NA")),
+		h = factor("v", levels = c("u", "v"))
+	)))
+	expect_equal(nrow(des$get_X_raw()), 2L)
+	expect_true(is.na(des$get_X_raw()$g[[1L]]))
+	expect_identical(as.character(des$get_X_raw()$g[[2L]]), "NA")
+	expect_false(identical(
+		unname(priv$get_subject_levels_idx(1L)["g"]),
+		unname(priv$get_subject_levels_idx(2L)["g"])
+	))
+})
+
 test_that("an existing counts matrix is expanded (not reset) when new levels appear", {
 	f <- pocock_priv(data.frame(g = c("a", "b"), h = c("u", "v")))
 	f$priv$counts <- matrix(c(1, 2, 3, 4), nrow = 2)

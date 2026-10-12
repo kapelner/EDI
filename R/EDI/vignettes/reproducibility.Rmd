@@ -44,10 +44,11 @@ This is the mechanism behind the overwhelming majority of `Design` subclasses
 (`DesignFixedBernoulli`, `DesignFixedFactorial`, `DesignFixedBlocking`, the
 `DesignSeqOneByOne*` family, etc.). Three design families implement "seed means
 R's `set.seed()` governs the draw" via a different, local-generator mechanism,
-documented in detail below: `DesignFixedGreedy` (parallel-safe per-thread
-generators), `DesignFixedGreedyDOptimal` (a single local generator seeded
-from R's stream), and `DesignFixedOptimal` (per-chain generators for its
-annealing solver plus an R-level mirror coin; see its own subsection below).
+documented in detail below: `DesignFixedGreedy`,
+`DesignFixedGreedyDOptimal`, and `DesignFixedOptimal` (per-chain generators
+for its annealing solver plus an R-level mirror coin; see its own subsection
+below). The OpenMP kernels derive their local stream from each logical draw
+index, so a fixed seed gives the same result at every configured thread count.
 Every concrete design is seed-reproducible; the package currently has no
 exceptions.
 
@@ -128,15 +129,16 @@ function in the package uses the one-draw-seeded independent-`RRng` pattern
 instead, specifically so that it does *not* need to make this assumption
 about `.Random.seed`'s internal shape.
 
-## Seed-reproducible via a local generator: `DesignFixedGreedyDOptimal`
+## Seed-reproducible via per-draw local generators: `DesignFixedGreedyDOptimal`
 
 Historical note: the two classes this design merges
 (`DesignFixedAOptimal`/`DesignFixedDOptimal`) originally seeded their
 exchange-search kernels' initial random shuffles from `std::random_device`
 (hardware entropy), which made their draws genuinely not reproducible via
 `seed`. The RNG migration (see the SEXP-removal spec's RNG section) replaced
-that with a local `edi_rng::RRng` generator seeded from R's own stream
-(`R::unif_rand()`) inside `d_optimal_search_cpp()`/`a_optimal_search_cpp()`,
+that with one `edi_rng::RRng` generator per logical draw, derived from a
+master seed taken from R's own stream (`R::unif_rand()`) inside
+`d_optimal_search_cpp()`/`a_optimal_search_cpp()`,
 and the merged `DesignFixedGreedyDOptimal` class inherits that behavior:
 **repeated calls with the same `seed` return identical allocations**
 (verified empirically in `test-greedy-d-optimal-merged.R`, and reflected in
@@ -147,19 +149,18 @@ calling the design's own `draw_ws_according_to_design()` (see below),
 randomization p-values/CIs against this design are exactly reproducible with
 `seed` set, like every other design's.
 
-## Seed-reproducible despite being parallel: `DesignFixedGreedy`
+## Seed-reproducible despite being parallel: greedy-family designs
 
-`DesignFixedGreedy`'s search (`greedy_design_search_cpp()`) runs `r`
-independent searches in parallel via OpenMP, each with its own
-`std::mt19937` generator — but unlike the A-/D-optimal kernels, these
-per-thread generators are **seeded from R's own RNG state**
-(`GetRNGstate()`/`unif_rand()`) **before the parallel region begins**, so
-`private$maybe_set_seed()` does govern the resulting allocation, and the
-result is identical regardless of how many OpenMP threads (`RhpcBLASctl`/
-`set_num_cores()`) are actually used at draw time. This is the template other
-designs' parallel kernels should follow if they need both speed and
-seed-reproducibility simultaneously — draw all per-worker seeds from R's
-stream up front, before fanning out.
+`DesignFixedGreedy`, `DesignFixedMatchingGreedyPairSwitching`,
+`DesignFixedGreedyDOptimal`, and `DesignFixedRerandomization` run candidate
+searches in parallel via OpenMP. Each call first takes one master seed from
+R's stream, then derives an `edi_rng::RRng` stream from the candidate's
+logical draw index. `private$maybe_set_seed()` therefore governs the result,
+while OpenMP only changes which worker computes a candidate. The returned
+allocations are identical at every `set_num_cores()` setting. Rerandomization
+evaluates fixed-size waves and retains the first accepted draw indices, so it
+also remains deterministic while stopping after a bounded amount of extra
+work.
 
 ## Randomization inference reuses the design's own draw mechanism
 

@@ -7,9 +7,8 @@ library(EDI)
 # fit_hurdle_for_matched_pairs() itself (one level up, skipping both the rcpp/glmmTMB split and this
 # rcpp wrapper's own post-processing entirely), and the underlying kernel fast_hurdle_poisson_glmm_cpp()
 # has its own dedicated equivalence test (R/EDI/tests/testthat/test-glmm-cpp-equivalence.R) but nothing
-# exercises THIS wrapper's own gating logic: not-converged/error -> NA, a too-extreme beta -> NA, se =
-# FALSE short-circuits to se = 1.0 without needing ssq_b_T at all, and a non-finite/non-positive/too-
-# extreme ssq_b_T -> NA. Reached by mocking fast_hurdle_poisson_glmm_cpp() directly via with_mocked_
+# exercises THIS wrapper's own gating logic: not-converged/error -> NA, a too-extreme beta -> NA, and a
+# non-finite/non-positive/too-extreme ssq_b_T -> NA. Reached by mocking fast_hurdle_poisson_glmm_cpp() directly via with_mocked_
 # bindings(.package = "EDI"), independent of any real GLMM fit. build_glmm_formula() is a small, pure,
 # untested string-building helper (fixed covariate terms plus a "(1 | pair_group)" random-intercept
 # term) exercised directly with hand-built data frames.
@@ -73,15 +72,19 @@ test_that("fit_hurdle_for_matched_pairs_rcpp(): a converged fit with a too-extre
 	)
 })
 
-test_that("fit_hurdle_for_matched_pairs_rcpp(): se = FALSE short-circuits to se = 1.0 without consulting ssq_b_T at all", {
+test_that("fit_hurdle_for_matched_pairs_rcpp(): no public or private switch can reintroduce a placeholder standard error", {
 	priv <- fx(5L)
 	with_mocked_bindings(
 		fast_hurdle_poisson_glmm_cpp = function(...) list(converged = TRUE, b = c(0.5, 0.2), ssq_b_T = NA_real_),
 		.package = "EDI",
 		code = {
-			res <- priv$fit_hurdle_for_matched_pairs_rcpp(X_fit, y_fit, group_id, j_treat = 1L, se = FALSE)
-			expect_equal(res$beta_hat, 0.5)
-			expect_equal(res$se, 1.0)
+			expect_error(
+				priv$fit_hurdle_for_matched_pairs_rcpp(X_fit, y_fit, group_id, j_treat = 1L, se = FALSE),
+				"unused argument"
+			)
+			res <- priv$fit_hurdle_for_matched_pairs_rcpp(X_fit, y_fit, group_id, j_treat = 1L)
+			expect_true(is.na(res$beta_hat))
+			expect_true(is.na(res$se))
 		}
 	)
 })

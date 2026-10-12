@@ -43,3 +43,8 @@ test checks interval-censored results against `interval::ictest()`, and
 `R/EDI/tests/testthat/test-survival-score-cache-order.R` checks ordering across
 both classes. Focused tests passed with `pkgload::load_all(compile = FALSE)`
 using the existing checkout DLL.
+
+**Static re-audit (2026-10-12):** the only two `compute_shared_icen()`
+implementations are the LogRank and Gehan-Wilcox methods above. Both retain the
+request-sensitive cache guards, and both ordering regressions are registered in
+`R/package_tests/ci/test_runtimes.csv`. No runtime test was rerun in this audit.

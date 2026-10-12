@@ -11,7 +11,7 @@
 "DesignFixedMatchingGreedyPairSwitching","fixed","matching_greedy_pair_switching","TRUE","FALSE","nbpMatching"
 "DesignFixedOptimal","fixed","deterministic_optimal","TRUE","FALSE","ompr|ompr.roi|ROI.plugin.glpk"
 "DesignFixedOptimalBlocks","fixed","optimal_blocks","TRUE","FALSE","anticlust|blockTools|ompr|ompr.roi|randomizr|ROI.plugin.glpk"
-"DesignFixedRerandomization","fixed","rerandomization","TRUE","TRUE",""
+"DesignFixedRerandomization","fixed","rerandomization","TRUE","FALSE",""
 "DesignSeqOneByOneAtkinson","sequential","atkinson","TRUE","FALSE",""
 "DesignSeqOneByOneBernoulli","sequential","bernoulli","TRUE","FALSE",""
 "DesignSeqOneByOneEfron","sequential","efron","TRUE","FALSE",""

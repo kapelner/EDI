@@ -94,12 +94,18 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 			}
 			x_new = as.data.table(x_new)
 			j_with_NAs = is.na(unlist(x_new))
-			if (any(j_with_NAs) & private$t == 0){
+			# Pocock--Simon treats a missing stratum as a real, separate level.
+			# Do not discard a declared stratum merely because the first entrant
+			# has a missing value: doing so leaves the subclass without the column
+			# it must register.  The historical first-row cleanup still applies to
+			# other incomplete covariates.
+			j_non_strata_with_NAs = j_with_NAs & !(names(x_new) %in% private$strata_cols)
+			if (any(j_non_strata_with_NAs) & private$t == 0){
 				# Drop missing attributes, not subject rows: data.table's single
 				# bracket argument selects rows even when these are column indices.
-				x_new = x_new[, which(!j_with_NAs), with = FALSE]
+				x_new = x_new[, which(!j_non_strata_with_NAs), with = FALSE]
 				if (!allow_new_cols){
-					warning("There is missing data in the first subject's covariate value(s). Setting the flag allow_new_cols = FALSE will disallow additional subjects")
+					warning("There is missing data in the first subject's non-stratum covariate value(s). Setting the flag allow_new_cols = FALSE will disallow additional subjects")
 				}
 			}
 			xnew_data_types = get_column_types_cpp(x_new)

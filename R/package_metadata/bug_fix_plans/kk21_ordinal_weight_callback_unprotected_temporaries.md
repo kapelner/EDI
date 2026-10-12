@@ -39,8 +39,8 @@ concurrently; the two clean runs were nearly alone on the machine. The
 install was stable throughout (last reinstall finished before any of the
 runs started), so this is not the reinstall-flapping explanation.
 
-**F2. Root cause.** `multivariate_ordinal_tstat` is the only `Rcpp::Function`
-callback in `src/`. It hands two fresh, unprotected `wrap()` temporaries
+**F2. Root cause.** `multivariate_ordinal_tstat` is the sole `src/`
+callback found to hand fresh, unprotected `wrap()` temporaries
 straight to `Function::operator()`:
 
 ```cpp
@@ -80,8 +80,9 @@ survives under Rcpp 1.1.2) and install flapping (F1).
 `kk21_ordinal_weights_cpp` (~L1266) behind `DesignSeqOneByOneKK21` with
 `ordinal_use_speedup = FALSE`, and `kk21_stepwise_ordinal_weights_cpp`
 (~L1314) behind `DesignSeqOneByOneKK21stepwise` with the same flag. The
-default `ordinal_use_speedup = TRUE` never enters the helper. No other
-kernel in `src/` calls back into R. Symptoms in the wild: rare silent NaN
+default `ordinal_use_speedup = TRUE` never enters the helper. Other `src/`
+kernels do call back into R, but the static sweep found none that passes
+inline `wrap()` temporaries. Symptoms in the wild: rare silent NaN
 weights (which the design then normalizes and feeds into the weighted
 distance), R errors, or a segfault, all nondeterministic.
 
@@ -101,9 +102,8 @@ distance), R errors, or a segfault, all nondeterministic.
   compiled execution remains required.
 - [x] **TODO-2: Sweep `src/` for the same shape.** Grep every
   `Rcpp::Function` / `Function` call site for inline `wrap(...)` or other
-  freshly allocated SEXP arguments (today this helper is the only callback,
-  so the sweep should come back empty; record that in the test from
-  TODO-3 as a static check so a future callback cannot reintroduce it).
+  freshly allocated SEXP arguments; record that in the test from TODO-3 as a
+  static check so a future callback cannot reintroduce it.
   A 2026-10-10 static source sweep found this is the sole inline `wrap()`
   callback site; generated `.Call` wrappers only wrap returned native values.
 - [x] **TODO-3: Regression test** (new

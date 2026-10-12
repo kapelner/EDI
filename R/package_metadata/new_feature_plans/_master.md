@@ -770,7 +770,7 @@ vs EDI 17 s) is the one fair addition. Release index:
 → TODO-1..4. Found while measuring the `*_use_speedup` approximation's cost
 (negligible; recorded in the KK21 class's roxygen Details). With
 `ordinal_use_speedup = FALSE`, `multivariate_ordinal_tstat`
-(`kk21_weights.cpp`, the only `Rcpp::Function` callback in `src/`) does
+(`kk21_weights.cpp`, the callback that passes inline `wrap()` temporaries) does
 `f(wrap(X), wrap(y))`, so the second allocation can collect the first
 before Rcpp shields either; three of five 150-replication design runs
 segfaulted, same-seed reruns did not, and `gctorture(TRUE)` turns the
@@ -1205,6 +1205,23 @@ already stated there:**
   constraint, 2026-10-09):** the treatment-variance path is untouched and
   gains no work; any needed C++ is a new kernel function. Depends on
   nothing.
+- **5AN. Cross-platform reproducibility guarantee** (added 2026-10-11, user
+  decision; from `marketing_plans/agent_proofing.md` W6) → `release_v1_1_0.md
+  → TODO-48`. `cross_platform_reproducibility.md`:
+  - a three-level guarantee: random draws exact across platforms, thread
+    counts and worker counts; floats within a stated tolerance; changes
+    across versions announced in NEWS;
+  - a reproducibility record on every result, sharing a slot with
+    `algorithm_choice_audit.md → TODO-38`;
+  - package-wide `seed_for_index` streams plus a pre-push ban on
+    per-thread seeding and `<random>`;
+  - p-value tie tolerance, verified first;
+  - golden digests on every CI platform leg.
+
+  Every TODO requires tests. Depends on `release_v1_0_5.md → TODO-91, -93,
+  -95` (TODO-95 = `../bug_fix_plans/design_draws_depend_on_thread_count.md`:
+  greedy, D/A-optimal, pair-switching and rerandomization draws depend on
+  the thread count, and the vignette claims they don't).
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 
@@ -1404,26 +1421,34 @@ index: `release_v1_0_5.md → TODO-16` (was `release_v1_1_0.md → TODO-38`).
 on `w` while embedding `y`/`dead`. No confirmed wrong result yet (plan
 TODO-1 is the exposure audit). Release index: `release_v1_0_5.md → TODO-30`.
 
-**Incidence identity-link risk-difference subsampling inflation** (added
-2026-09-24, same audit-triage wave; no dependency on any phase above):
+**Incidence identity-link risk-difference subsampling inflation — closed as a
+non-reproducible historical finding** (added 2026-09-24; closed 2026-10-08;
+no dependency on any phase above):
 `../bug_fix_plans/investigate_incid_binomial_identity_subsampling_inflation.md
-→ TODO-1..6`. `InferenceIncidBinomialIdentityRiskDiff` shows ~2.6× nominal
-Type-I error on subsampling and m-out-of-n bootstrap p-values, formula-
-independent; leading (unconfirmed) hypothesis is boundary-rejected subsample
-fits biasing the pivot distribution. Investigation-first. Release index:
-`release_v1_0_5.md → TODO-27`.
+→ TODO-1..6`. Historical audit output reported ~2.6× nominal Type-I error on
+subsampling and m-out-of-n bootstrap p-values, formula-independent. The
+proposed boundary-rejection mechanism is algebraically impossible in the
+intercept-only cell; deterministic resampling checks had no dropout, and
+fresh null calibration was nominal. No source change is warranted. Release
+index: `release_v1_0_5.md → TODO-27`.
 
 **`InferenceAllSimpleAverageDiff` studentized-bootstrap / jackknife-Wald SE
-quality** (added 2026-09-24, cross-class audit-triage fork; no dependency on
+quality — resolved** (added 2026-09-24; resolved 2026-10-08; no dependency on
 any phase above): `../bug_fix_plans/investigate_average_diff_bayesian_jackknife_se_quality.md
-→ TODO-1..4`. An open investigation (medium-low confidence; a Kish
-effective-n vs. raw-n Welch asymmetry is the unconfirmed hypothesis). Release
-index: `release_v1_0_5.md → TODO-29`.
+→ TODO-1..4`. Bayesian-bootstrap studentization had applied Kish effective
+sample size to normalized Dirichlet frequency weights, inflating replicate
+SEs. It now uses frequency-weight Welch contributions and matching
+Satterthwaite degrees of freedom. The separate jackknife-Wald signal is
+ordinary finite-sample Wald behavior. Release index: `release_v1_0_5.md →
+TODO-29`.
 
-**KK21stepwise randomization p-values conservative at the null** (added
-2026-09-24, from triaging the stale-cache regeneration findings; no dependency
-on any phase above): `../bug_fix_plans/investigate_kk21stepwise_incidence_randomization_pval_conservative.md
-→ TODO-1..4`. Open investigation. Release index: `release_v1_0_5.md → TODO-53`.
+**KK21stepwise randomization p-values conservative at the null — resolved**
+(added 2026-09-24; fixed/audited 2026-10-09; no dependency on any phase above):
+`../bug_fix_plans/investigate_kk21stepwise_incidence_randomization_pval_conservative.md
+→ TODO-1..4`. KK21 now replays its full outcome-adaptive sequential rule rather
+than fixing the realized pair structure; the remaining incidence conservatism is
+intentional inclusive-tail behavior for a discrete exact test. Release index:
+`release_v1_0_5.md → TODO-53`.
 
 **Test-comment audit findings** (added 2026-09-24; no dependency on any
 phase above): five plans from defects that test authors recorded but did not
@@ -1588,9 +1613,9 @@ Release index: `release_v1_0_5.md → TODO-24`.
 (added 2026-09-24; tracked as an open investigation): `../bug_fix_plans/
 investigate_contin_ols_weighted_bootstrap_se.md`. Severe `~.`-specific
 miscalibration across reweighting resampling families. Its own unguarded-
-`solve()` hypothesis is likely superseded by `TODO-28` (added the same
-day), which found an exact mechanistic match for this class's worst-
-affected families. Release index: `release_v1_0_5.md → TODO-25`.
+`solve()` hypothesis and the separate TODO-28 cache hypothesis were both
+refuted; the faithful replay resolved this row as an estimand mismatch.
+Release index: `release_v1_0_5.md → TODO-25`.
 
 **`InferenceSurvivalKKWeibullMarginal` jackknife estimate has catastrophic
 single-fold outliers** (added 2026-09-24, found independently twice the
@@ -1608,26 +1633,15 @@ coverage is recorded in the linked plan. The bias/RMSE replay and installed
 comprehensive-results regeneration remain release gates. Release index:
 `release_v1_0_5.md → TODO-26`.
 
-**Reused bootstrap worker never resets `cached_design_matrix` — the
-single highest-leverage finding of this whole audit arc** (added
-2026-09-24, found via a dedicated cross-class investigation into `TODO-15`/
-`TODO-25`'s shared-mechanism question; high confidence, confirmed by
-direct code reading): `../bug_fix_plans/bootstrap_worker_stale_design_
-matrix.md → TODO-1..10`. `load_bootstrap_sample_into_design_backed_worker()`
-(the `subsampling`/`m_out_of_n_bootstrap`/plain-`bootstrap` loader —
-previously believed, from this session's original stale-cache fix, to
-already be fully correct) resets several caches between draws but never
-`w_priv$cached_design_matrix`; `create_design_matrix()` unconditionally
-returns the cached matrix if one exists, so every draw after the first
-silently reuses draw 1's design matrix while the weights are the current
-draw's — a scrambled data/weight correspondence. Confirmed scope has grown
-to 12+ classes across 3 waves of cross-class checking (exact mechanistic
-match for `InferenceContinOLS`'s worst-affected families), with several
-classes explicitly ruled out (the whole KKGLMM/KKCLMM cluster, several
-KKCondLogitGLMM classes — none reach the reused-worker path this bug
-requires) and a few still unresolved (`InferenceContinKKQuantileRegrOneLik`).
-Fix not yet implemented — this file is still pure investigation/scoping.
-Release index: `release_v1_0_5.md → TODO-28`.
+**Reused bootstrap worker `cached_design_matrix` reset audit — closed as a
+stale source finding** (added 2026-09-24; closed 2026-10-07):
+`../bug_fix_plans/bootstrap_worker_stale_design_matrix.md → TODO-1..10`.
+`load_bootstrap_sample_into_design_backed_worker()` already cleared
+`cached_design_matrix`, `cached_hardened_X_cov`, and related caches before
+this investigation was written; a two-draw OLS regression matches both a
+fresh worker and `lm.fit()`. The historical cache hypothesis therefore does
+not explain the class-specific calibration findings, which remain owned by
+their separate release TODOs. Release index: `release_v1_0_5.md → TODO-28`.
 
 **`InferenceIncidLogRegr`/`InferenceIncidProbitRegr` broad mild
 over-coverage** (added 2026-09-24, first real-data run of the new
@@ -1641,29 +1655,27 @@ binary-outcome GLMs, matching this session's earlier RiskDiff/RiskRatio
 One opposite-direction outlier noted, possibly connected to `TODO-29`.
 Release index: `release_v1_0_5.md → TODO-47`.
 
-**Count-family GLM `low_coverage` cluster** (added 2026-09-24, same
-source, medium-low confidence, root cause genuinely unresolved):
-`../bug_fix_plans/investigate_count_glm_family_coverage.md`.
-`InferenceCountPoisson`, `InferenceCountNegBin` (broad undercoverage
-across both asymptotic AND resampling methods), `InferenceCountZeroInflatedPoisson`
-(asymptotic-only) — 50 findings total. `TODO-28` cleanly ruled out for all
-3 (design matrix built inline, never touches the broken cache). Leading,
-unconfirmed lead: none of the 3 appear in `comprehensive_tests.R`'s
-coverage-truth tables, so coverage falls back to raw `beta_T` — but in
-tension with nonparametric methods (which should be immune to a
-truth-mismatch) showing the same undercoverage. Release index:
-`release_v1_0_5.md → TODO-48`.
+**Count-family GLM `low_coverage` cluster** (added 2026-09-24, resolved
+2026-10-09): `../bug_fix_plans/investigate_count_glm_family_coverage.md`.
+`InferenceCountPoisson`'s Bartlett likelihood-ratio entry points had missed
+the class's documented design-conservative jackknife union; they now use the
+same p-value maximum and CI union as their sibling likelihood methods.
+`InferenceCountNegBin` and `InferenceCountZeroInflatedPoisson` use standard
+joint-MLE observed-information inference; their residual small-sample
+undercoverage is finite-sample dispersion/mixture-parameter bias, not a
+package implementation defect. The raw `beta_T` coverage truth is correct
+for all three, and TODO-28's design-matrix cache cannot apply. Release index:
+`release_v1_0_5.md → TODO-48` (checked).
 
 **`InferenceContinQuantileRegr`'s 33 `low_coverage` findings** (added
-2026-09-24, same source, medium confidence, root cause open): `../bug_fix_
-plans/investigate_contin_quantile_regr_coverage.md`. The single largest
-uninvestigated cluster in this audit wave. Ruled out the obvious
-missing-`COVERAGE_MC_SPEC`-entry hypothesis (a direct distributional
-argument shows the raw-`beta_T` fallback is actually correct for this
-harness's DGP). Two unconfirmed candidates: `quantreg`'s `"nid"` sandwich
-SE misbehaving at this harness's near-noiseless noise scale, or
-compounding with `TODO-20`'s tie-sensitivity hypothesis. Release index:
-`release_v1_0_5.md → TODO-49`.
+2026-09-24, resolved/refuted 2026-10-09):
+`../bug_fix_plans/investigate_contin_quantile_regr_coverage.md`. The raw
+`beta_T` fallback is the correct median-effect truth for this additive DGP;
+the pattern also occurs under Bernoulli assignment. Reusable-worker cache
+invalidation and weighted QR's disabled factorization reuse rule out stale
+state. The remaining finite-sample calibration of `quantreg`'s documented
+`"nid"` sparsity estimate is a method property, not a v1.0.5 implementation
+defect. Release index: `release_v1_0_5.md → TODO-49` (checked).
 
 **Four count-family classes with confirmed-real, unexplained
 miscalibration** (added 2026-09-24, promoted from asides inside `TODO-4`'s

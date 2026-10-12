@@ -1,4 +1,4 @@
-# Fix: KK-Matched Cox Proportional-Hazards Classes — Severe CI Undercoverage, Two Distinct Mechanisms
+# Investigation: KK-Matched Cox Proportional-Hazards Apparent CI Undercoverage — Resolved as a Coverage-Truth Target Mismatch
 
 > **Depends on:** none. (Global ordering: see `../new_feature_plans/_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-24`. Found 2026-09-24, surfaced by the new
@@ -9,6 +9,10 @@
 > 2026-09-06 by excluding these classes from the `randomization_ci`
 > capability entirely — randomization-CI isn't even callable for them
 > anymore, so this is a completely different code path).
+> **Resolved 2026-10-08:** the investigation had conflated `OneLik` with
+> IVWC implementations and graded non-null rows against an invalid,
+> unconverged coverage target. No production estimator or variance fix is
+> warranted; the historical triage below is retained for provenance.
 
 ## The finding: KK-matched/reservoir-split variants only, not Cox generally
 

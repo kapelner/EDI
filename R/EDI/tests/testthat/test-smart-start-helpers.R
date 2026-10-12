@@ -41,7 +41,12 @@ test_that("Weibull smart starts use uncensored rows and ordinal thresholds are o
 	y[dead == 0] <- y[dead == 0] * 20
 
 	weibull_start <- EDI:::test_weibull_aft_start_cpp(X, y, dead)
-	uncens_coef <- as.numeric(coef(lm((log(y[dead == 1]) + 0.5722) ~ X[dead == 1, ] - 1)))
+	# Euler's gamma (matches _helper_functions_core.h's weibull_aft_start()
+	# euler_gamma = 0.5772156649015329 exactly); was "0.5722" here, a digit
+	# transposition that shifted only the intercept (adding a different
+	# constant to y shifts an OLS intercept, not its slopes -- matching the
+	# observed 1-of-3-coefficients, ~0.005 mismatch).
+	uncens_coef <- as.numeric(coef(lm((log(y[dead == 1]) + 0.5772156649015329) ~ X[dead == 1, ] - 1)))
 	expect_equal(as.numeric(weibull_start$beta), uncens_coef, tolerance = 1e-6)
 
 	y_ord <- as.numeric(cut(X_cov[, 1] + 0.4 * X_cov[, 2] + rnorm(nrow(X_cov)),

@@ -82,6 +82,49 @@ test_that("zero-one-inflated beta mean helpers implement normalized mixture mean
 	expect_equal(p$zoib_marginal_mean_diff_functional(theta, X, XZ, 3L, 2L), md)
 })
 
+test_that("zero-one-inflated beta marginal g-computation matches an independent reference-category softmax oracle", {
+	inf = InferencePropZeroOneInflatedBetaRegr$new(make_proportion_design_for_helpers())
+	p = inf$.__enclos_env__$private
+	X = cbind(`(Intercept)` = 1, treatment = c(0, 1, 0, 1), x = c(-1.2, -0.3, 0.4, 1.1))
+	XZ = cbind(`(Intercept)` = 1, treatment = c(0, 1, 0, 1), z = c(0.7, -0.5, 1.3, -1.1))
+	b_beta = c(-0.35, 0.75, 0.28)
+	b_zero = c(-0.65, 0.50, -0.45)
+	b_one = c(-0.15, -0.70, 0.35)
+
+	# Keep this algebra independent of the private helper: the beta component
+	# has reference logit zero, so pi0/ pi1/ pi_mid are exp(eta0),
+	# exp(eta1), 1 divided by their common denominator.
+	manual_mean = function(X_mean, X_mix){
+		eta0 = drop(X_mix %*% b_zero)
+		eta1 = drop(X_mix %*% b_one)
+		denom = 1 + exp(eta0) + exp(eta1)
+		pi1 = exp(eta1) / denom
+		pimid = 1 / denom
+		pi1 + pimid * plogis(drop(X_mean %*% b_beta))
+	}
+	X1 = X0 = X
+	XZ1 = XZ0 = XZ
+	X1[, "treatment"] = 1
+	X0[, "treatment"] = 0
+	XZ1[, "treatment"] = 1
+	XZ0[, "treatment"] = 0
+	expected = mean(manual_mean(X1, XZ1) - manual_mean(X0, XZ0))
+	got = p$zoib_marginal_mean_diff_from_coefs(b_beta, b_zero, b_one, X, XZ)
+	expect_equal(got, expected, tolerance = 1e-12)
+
+	# The prior independent-logit normalization has a materially different
+	# estimand on this non-symmetric fixture.
+	legacy_mean = function(X_mean, X_mix){
+		p0 = plogis(drop(X_mix %*% b_zero))
+		p1 = plogis(drop(X_mix %*% b_one))
+		pi1 = p1 / (p0 + p1)
+		pimid = 1 - pi1
+		pi1 + pimid * plogis(drop(X_mean %*% b_beta))
+	}
+	legacy = mean(legacy_mean(X1, XZ1) - legacy_mean(X0, XZ0))
+	expect_gt(abs(got - legacy), 1e-4)
+})
+
 test_that("assigned gcomp and KK combined classes expose intended family contracts", {
 	expect_true("compute_estimate_with_bootstrap_weights" %in% names(InferenceOrdinalGCompMeanDiff$public_methods))
 	expect_true("compute_estimate_with_bootstrap_weights" %in% names(InferencePropGCompMeanDiff$public_methods))

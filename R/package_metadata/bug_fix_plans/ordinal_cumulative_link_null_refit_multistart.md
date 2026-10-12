@@ -323,8 +323,8 @@ without the maintainer's separately authorized rebuild/install.
   become its own plan file once someone reads that class-specific
   override.
 - [x] TODO-10 (added 2026-09-24, from this session's new `biased_estimate`
-  audit check; **CONFIRMED 2026-09-24, high confidence, root cause
-  found, not yet fixed**): `InferenceOrdinalCloglogRegr`'s
+  audit check; **CONFIRMED 2026-09-24, high confidence, source fix added
+  2026-10-09; installed re-audit remains pending**): `InferenceOrdinalCloglogRegr`'s
   MAIN (observed) fit — `compute_estimate()` itself, not the null-refit
   Bug 1/2 already fixed inside the parametric-bootstrap machinery — shows
   outlier/non-convergence contamination at `model_formula=~.`. At
@@ -335,19 +335,21 @@ without the maintainer's separately authorized rebuild/install.
   non-convergence under the larger `~.` design matrix), not a uniform
   shift.
 
-  **Root cause CONFIRMED**: `generate_mod()`
-  (`inference_ordinal_cloglog.R:229-286`) — the MAIN/observed fit — makes
-  exactly one call to `fast_ordinal_cloglog_regression_with_var_cpp()`
-  with one warm-start, wrapped only in QR column-dropping retries, no
-  multi-start logic at all. Contrast with the two already-fixed `fit_null`
-  closures (lines 137-168, 183-210, Bug 1 above), which now try two starts
-  (prior warm-start + unconstrained-fit-perturbed start) and keep
-  whichever converged fit reaches the lower `neg_loglik`. `generate_mod()`
-  never received this fix — the same single-start-stalls-in-a-bad-local-
-  optimum vulnerability sits unpatched at this second call site, exactly
-  as hypothesized. **Concrete, scoped, easily fixable**: apply the same
-  two-start-keep-lower-`neg_loglik` pattern to `generate_mod()`'s fit
-  call. Slated `release_v1_5_0.md → TODO-11`.
+  **Root cause CONFIRMED (historical state):** `generate_mod()` made one
+  warmed native fit under its QR column-dropping retries. That left the
+  observed fit exposed to the same inferior-local-optimum mechanism as the
+  earlier constrained-refit call sites.
+
+  **Source implementation completed 2026-10-09:**
+  `.cloglog_full_data_multistart()` screens four deterministic treatment
+  starts (zero, reflected, minus one, and plus one), retains only a strictly
+  lower usable negative log likelihood, and, for non-estimate-only work,
+  refits the selected candidate to obtain the variance. `generate_mod()`
+  invokes that helper for both its estimate-only and variance-producing
+  paths. `test-cloglog-parametric-bootstrap-native-sign.R` mocks the native
+  fit and verifies that the lower-likelihood candidate is selected. This
+  static reconciliation does not replace the installed comprehensive CSV
+  regeneration/re-audit required by TODO-6 and release TODO-16.
 - [x] TODO-11 (added 2026-09-24, from a dedicated cross-class ordinal
   re-audit fork, medium confidence — pattern confirmed real, shared
   mechanism NOT confirmed): `InferenceOrdinalContRatioRegr` and

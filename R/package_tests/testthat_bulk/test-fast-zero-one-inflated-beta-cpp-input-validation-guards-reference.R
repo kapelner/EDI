@@ -46,6 +46,21 @@ test_that("a wrong-shaped warm_start_fisher_info is rejected (must be square, on
 	)
 })
 
+test_that("non-finite ZOIB warm starts are rejected before optimization", {
+	X <- matrix(1, 5, 1); X_zero_one <- matrix(1, 5, 1); y <- rep(0.5, 5)
+	expect_error(
+		f(X, X_zero_one, y, warm_start_params = c(0, 0, 2, NaN)),
+		"warm_start_params must contain only finite values",
+		fixed = TRUE
+	)
+	bad_info <- diag(4); bad_info[1, 1] <- Inf
+	expect_error(
+		f(X, X_zero_one, y, warm_start_fisher_info = bad_info),
+		"warm_start_fisher_info must contain only finite values",
+		fixed = TRUE
+	)
+})
+
 test_that("correctly-sized warm_start_params/warm_start_fisher_info do not trigger either guard", {
 	X <- matrix(1, 5, 1); X_zero_one <- matrix(1, 5, 1); y <- rep(0.5, 5)
 	res <- f(X, X_zero_one, y, warm_start_params = c(1, 2, 3, 4), warm_start_fisher_info = diag(4))

@@ -17,10 +17,9 @@
 // round. See AOptimalPruneObjective::prune_threshold() and the engine
 // header's own comment for why these two are not the same rule.
 //
-// Both objectives are still seeded the same way greedy_design_search_cpp
-// is: one RRng per OpenMP thread, seeded serially from R's own RNG state
-// before the parallel region begins, so a given R seed reproduces identical
-// draws independent of the thread count in use.
+// Both objectives derive one RRng stream per logical simulation from a
+// single R seed, so scheduler and OpenMP-thread-count changes cannot alter a
+// seed-pinned allocation.
 
 #include <RcppEigen.h>
 #include "RNG.h"
@@ -139,14 +138,13 @@ IntegerMatrix d_optimal_search_cpp( const Eigen::Map<Eigen::MatrixXd>& P,
 	const double max_P = P.cwiseAbs().maxCoeff();
 	IntegerMatrix w_mat(n, nsim);
 
-	int nthreads = edi_search::omp_max_threads();
-	std::vector<std::uint32_t> seeds = edi_search::seed_per_thread_rngs_from_r(nthreads);
+    std::uint64_t master_seed;
+    GetRNGstate();
+    master_seed = static_cast<std::uint64_t>(edi_rng::seed_from_unif01(::unif_rand()));
+	PutRNGstate();
 
 #pragma omp parallel
 	{
-		const int tid = edi_search::omp_this_thread();
-		edi_rng::RRng rng(seeds[static_cast<std::size_t>(tid)]);
-
 		std::vector<int> indices(n);
 		for (int i = 0; i < n; ++i) indices[static_cast<std::size_t>(i)] = i;
 		Eigen::VectorXd w(n);
@@ -156,6 +154,7 @@ IntegerMatrix d_optimal_search_cpp( const Eigen::Map<Eigen::MatrixXd>& P,
 
 #pragma omp for schedule(static)
 		for (int s = 0; s < nsim; ++s) {
+			edi_rng::RRng rng(edi_rng::seed_for_index(master_seed, static_cast<std::uint64_t>(s)));
 			random_balanced_init(rng, n, n_T, indices, w, t_idxs, c_idxs);
 
 			DOptimalPruneObjective obj{P, p_ptr, p_diag, max_P, n, P * w};
@@ -186,14 +185,13 @@ IntegerMatrix a_optimal_search_cpp( const Eigen::Map<Eigen::MatrixXd>& P,
 	const double max_H = H.cwiseAbs().maxCoeff();
 	IntegerMatrix w_mat(n, nsim);
 
-	int nthreads = edi_search::omp_max_threads();
-	std::vector<std::uint32_t> seeds = edi_search::seed_per_thread_rngs_from_r(nthreads);
+    std::uint64_t master_seed;
+    GetRNGstate();
+    master_seed = static_cast<std::uint64_t>(edi_rng::seed_from_unif01(::unif_rand()));
+	PutRNGstate();
 
 #pragma omp parallel
 	{
-		const int tid = edi_search::omp_this_thread();
-		edi_rng::RRng rng(seeds[static_cast<std::size_t>(tid)]);
-
 		std::vector<int> indices(n);
 		for (int i = 0; i < n; ++i) indices[static_cast<std::size_t>(i)] = i;
 		Eigen::VectorXd w(n);
@@ -203,6 +201,7 @@ IntegerMatrix a_optimal_search_cpp( const Eigen::Map<Eigen::MatrixXd>& P,
 
 #pragma omp for schedule(static)
 		for (int s = 0; s < nsim; ++s) {
+			edi_rng::RRng rng(edi_rng::seed_for_index(master_seed, static_cast<std::uint64_t>(s)));
 			random_balanced_init(rng, n, n_T, indices, w, t_idxs, c_idxs);
 
 			Eigen::VectorXd Pw = P * w;

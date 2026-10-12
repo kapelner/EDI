@@ -1,7 +1,7 @@
 #include <Rcpp.h>
 #include "RNG.h"
 #include <cstdint>
-#include <limits>
+#include <cmath>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -10,24 +10,6 @@
 // [[Rcpp::plugins(openmp)]]
 
 using namespace Rcpp;
-
-namespace {
-
-// SplitMix64 bijection: maps integer → well-distributed 64-bit value, then
-// truncated to 32 bits to seed edi_rng::RRng (RNG.h's portable
-// re-implementation of R's own Mersenne-Twister -- R's Int32 state is
-// genuinely 32-bit, unlike the arbitrary-width std::mt19937_64 this
-// replaces). Ensures independent RRng streams when seeded with consecutive
-// j values.
-inline std::uint32_t splitmix64_seed(std::uint64_t x) {
-    x += 0x9e3779b97f4a7c15ULL;
-    x  = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
-    x  = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
-    x  = x ^ (x >> 31);
-    return static_cast<std::uint32_t>(x);
-}
-
-} // namespace
 
 // [[Rcpp::export]]
 NumericMatrix draw_binary_match_assignments_cpp(IntegerMatrix indices_pairs, int n, int r, int num_cores) {
@@ -39,8 +21,11 @@ NumericMatrix draw_binary_match_assignments_cpp(IntegerMatrix indices_pairs, int
     uint64_t master_seed;
     {
         Rcpp::RNGScope rng_scope;
-        master_seed = static_cast<uint64_t>(
-            R::unif_rand() * static_cast<double>(std::numeric_limits<uint64_t>::max()));
+        // Scaling by an exact power of two preserves the pre-existing stream
+        // for R's [0, 1) generator without rounding UINT64_MAX up to 2^64,
+        // which would make the floating-point-to-uint64_t conversion
+        // out-of-range at the largest valid R draw.
+        master_seed = static_cast<uint64_t>(std::ldexp(R::unif_rand(), 64));
     }
 
     const int* pairs_ptr = indices_pairs.begin();
@@ -52,9 +37,9 @@ NumericMatrix draw_binary_match_assignments_cpp(IntegerMatrix indices_pairs, int
 
 #pragma omp parallel for schedule(static)
     for (int j = 0; j < r; j++) {
-        // Each column gets its own independent PRNG seeded deterministically from master_seed.
-        // splitmix64_seed(master_seed + j) distributes consecutive j values into uncorrelated seeds.
-        edi_rng::RRng rng(splitmix64_seed(master_seed + static_cast<uint64_t>(j)));
+        // Each column gets its own independent PRNG seeded deterministically
+        // from master_seed and its logical draw index.
+        edi_rng::RRng rng(edi_rng::seed_for_index(master_seed, static_cast<uint64_t>(j)));
 
         double* w_col = w_ptr + static_cast<size_t>(j) * n;
 

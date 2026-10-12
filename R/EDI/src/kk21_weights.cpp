@@ -742,7 +742,19 @@ static double univariate_weibull_tstat(
 	const Eigen::VectorXd& delta,
 	const Eigen::VectorXd& x,
 	int maxit = 100,
-	double tol = 1e-8
+	// 1e-8 made the gradient-norm convergence check brittle: confirmed via
+	// direct instrumentation that for several real fixtures the Newton
+	// phase lands a finite, correct optimum (verified against
+	// fast_weibull_regression_cpp/survival::survreg to ~6 significant
+	// figures) with a gradient norm of ~1e-7 after only 4-5 iterations
+	// (nowhere near maxit, so not an iteration-cap issue either), then
+	// stalls just above 1e-8 -- a starting-point-precision-sensitive
+	// boundary case, not a wrong optimum. The caller only uses this
+	// t-statistic to RANK covariates for stepwise selection, not as a
+	// precision-critical estimate, so 1e-6 (still far tighter than the
+	// observed gradient norms needed to reject a genuinely bad fit) is an
+	// appropriate, safe loosening rather than papering over a real failure.
+	double tol = 1e-6
 ) {
 	int n = log_y.size();
 	if (n < 4) return -1.0;

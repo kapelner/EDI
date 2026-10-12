@@ -92,37 +92,14 @@ EDI_DESIGN_RANDOMIZATION_FAMILY_BY_NAME = c(
 # draw of their own; TRUE (the register_design_class() default) for everything else.
 EDI_DESIGN_NOT_SEED_REPRODUCIBLE_CLASS_NAMES = character(0)
 
-# seed_reproducible_draw_requires_single_thread (fix_design_hierarchy.md, TODO-29):
-# TRUE for a class whose draw is seed-reproducible with a single core
-# (get_num_cores() == 1, the package default) but not necessarily under multi-core
-# parallelism. Investigated each OpenMP-parallel design's kernel directly rather than
-# assuming they share the pattern: `rerandomization_search_cpp`
-# (rerandomization_helpers.cpp) is a genuine work-stealing rejection sampler --
-# threads race via `std::atomic::fetch_add` for both which draws to try next and which
-# output column an accepted draw claims, so which of a run's per-thread-seeded RNG
-# streams ends up filling a given column (and in what order) depends on real-time OS
-# scheduling, not just the seed. `greedy_design_search_cpp`
-# (design_fixed_greedy.cpp, used by DesignFixedGreedy and
-# DesignFixedMatchingGreedyPairSwitching) and `draw_binary_match_assignments_cpp`
-# (binary_match_search.cpp) both use `#pragma omp for schedule(static)`, which assigns
-# each thread a fixed, deterministic range of iteration indices regardless of
-# real-time timing -- no work-stealing, no nondeterminism.
-# `optimal_design_search.cpp` (DesignFixedGreedyDOptimal) has no OpenMP at all
-# (single-threaded). So DesignFixedRerandomization is the *only* affected class today.
-#
-# Decision (documented, not just implemented): keep `seed_reproducible_draw = TRUE`
-# for DesignFixedRerandomization rather than flipping it to FALSE outright --
-# get_num_cores() defaults to 1 (globals.R's get_num_cores(), unless the caller
-# explicitly opts into set_num_cores()/a fork cluster/mirai daemons), so the class
-# genuinely *is* seed-reproducible for the common case, and a blanket FALSE would be
-# misleading for it. The kernel was deliberately left as work-stealing rather than
-# switched to `schedule(static)` to match the other three kernels: doing so would
-# force it to abandon early termination the moment `r` acceptable draws are found
-# across *all* threads (the entire point of using atomics here, given a
-# potentially-expensive rejection search under a tight `obj_val_cutoff`) in favor of
-# every thread grinding through a fixed index range regardless of how many draws have
-# already been found elsewhere -- a real performance regression, not a free fix.
-EDI_DESIGN_SEED_REPRODUCIBLE_SINGLE_THREAD_ONLY_CLASS_NAMES = c("DesignFixedRerandomization")
+# seed_reproducible_draw_requires_single_thread (fix_design_hierarchy.md,
+# TODO-29): no current exception.  TODO-95 seeds every greedy, D/A-optimal,
+# binary-match, and rerandomization candidate by its logical draw index.  The
+# OpenMP scheduler can therefore only choose which worker computes a draw; it
+# cannot alter the draw or the returned order.  Rerandomization completes
+# deterministic fixed-size waves and returns the earliest accepted indices,
+# retaining bounded early-stop work without a scheduler race.
+EDI_DESIGN_SEED_REPRODUCIBLE_SINGLE_THREAD_ONLY_CLASS_NAMES = character(0)
 
 EDI_DESIGN_BATCH_W_PREGENERATION_CLASS_NAMES = c(
 	"DesignFixedBinaryMatch", "DesignFixedGreedy",
@@ -283,11 +260,9 @@ validate_design_class_metadata = function(metadata) {
 	if (!is.logical(metadata$seed_reproducible_draw) || length(metadata$seed_reproducible_draw) != 1L) {
 		stop(sprintf("Design metadata for %s has invalid `seed_reproducible_draw`.", metadata$name), call. = FALSE)
 	}
-	# TODO-29 (fix_design_hierarchy.md, "Seed-Reproducibility Metadata"): TRUE only for
-	# a class whose draw is seed-reproducible with a single core (get_num_cores() == 1,
-	# the package default) but not necessarily under multi-core parallelism -- see
-	# DesignFixedRerandomization's registration for the one current case and its
-	# reasoning. Always FALSE, never NA, regardless of seed_reproducible_draw's own
+	# TODO-29 (fix_design_hierarchy.md, "Seed-Reproducibility Metadata"): currently
+	# always FALSE.  Retain the field for a future class that has a documented
+	# single-thread-only guarantee. Never NA, regardless of seed_reproducible_draw's own
 	# value (including for the abstract bases, where it's meaningless but must still be
 	# a concrete logical for validation uniformity).
 	if (!is.logical(metadata$seed_reproducible_draw_requires_single_thread) ||

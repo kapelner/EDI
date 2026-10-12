@@ -196,9 +196,10 @@ range, since the plan files' internal numbering did not change.
   confirmed NOT to share this TODO's specific kernels — also broadly
   flagged, also unexplained, also not part of this TODO. One unrelated
   dead-code note surfaced while checking `InferenceCountPoisson`:
-  `set_min_eigenvalue_if_suspect()` (`_helper_functions_core.h:210-219`)
-  is entirely commented out, so `min_eigenvalue_information` is never
-  populated — minor, unrelated cleanup, not investigated further.
+  `set_min_eigenvalue_if_suspect()` was then entirely commented out, so the
+  generic `min_eigenvalue_information` diagnostic was never populated. That
+  historical no-op was later removed under TODO-51; it was unrelated to this
+  TODO's miscalibration investigation.
 - [x] TODO-5 (added 2026-09-04, found empirically; fully reconciled
   2026-10-09): **Randomization CI
   construction audit** — `../new_feature_plans/randomization_ci_construction_audit.md →
@@ -652,28 +653,19 @@ range, since the plan files' internal numbering did not change.
   reproduction (TODO-3), true-null calibration and permanent calibration
   regression (TODOs 6--7), and post-install CSV regeneration (TODO-8) all
   remain open; this release checkbox must remain unchecked.
-- [ ] TODO-19 (added 2026-09-23, same audit-triage wave as TODO-17/18, a
-  secondary lead the investigating fork did not have budget to fully
-  confirm — **medium confidence**; tracked as an open investigation, not
-  a fix plan, in
-  `bug_fix_plans/investigate_incid_kk_modified_poisson_se_quality.md`):
-  possible over-estimated standard error causing chronic
-  under-rejection (reject-rate 0.000) across MULTIPLE unrelated test-
-  statistic families simultaneously (Wald, score, gradient, likelihood-
-  ratio, Bartlett all zero-reject at the same cell) for
-  `InferenceIncidKKModifiedPoisson` at `model_formula=~1`. The original
-  hypothesis (a structurally non-estimable/degenerate cell, similar in
-  shape to `InferenceAllSimpleWilcox`'s TODO-17 finding) was directly
-  REFUTED: `compute_estimate()` for this exact cell (n=172, beta_T=0) shows
-  146 distinct values ranging -0.37 to 0.52, only 4.65% exactly 0 — a
-  normally-varying point estimate, not a degenerate one. Alternative,
-  unconfirmed lead: Wald CI width for the same cell has median 0.82
-  (half-width ≈0.41) while the point estimate's own empirical IQR is only
-  (-0.11, 0.12) — roughly 4x wider than the estimate's actual spread,
-  consistent with an over-estimated SE that every test family consuming
-  that same variance estimate would inherit. Not yet verified against the
-  empirical SD of `beta_hat_T` across reps — that's the concrete next
-  step before this becomes its own plan file.
+- [ ] TODO-19 (added 2026-09-23, resolved in source 2026-10-09):
+  **`InferenceIncidKKModifiedPoisson` exposed invalid working-likelihood
+  inference.** The validated estimator uses a cluster-robust sandwich, so
+  score, gradient, likelihood-ratio, Bartlett, and parametric-bootstrap
+  procedures from the Poisson working likelihood were removed. The class
+  and registry now advertise Wald inference only with `likelihood_tier =
+  "none"`; focused source-loaded regression coverage is complete. The
+  original over-estimated-SE hypothesis was refuted by the faithful
+  200-replicate Pima/KK21stepwise replay (empirical SD 0.19318; mean robust
+  SE 0.19870; ratio 1.0286; MC-truth coverage 0.955). Installed
+  comprehensive-CSV regeneration/re-audit remains the sole release gate.
+  The historical investigation notes below record how the superseded SE
+  hypothesis was ruled out.
 
   **Checked against the empirical SD 2026-09-23 — REFUTED as originally
   stated, medium confidence (approximate fixture, not an exact harness
@@ -989,22 +981,24 @@ range, since the plan files' internal numbering did not change.
   explicitly ungraded; historical null coverage was 0.93–1.00. All eight
   linked-plan items are closed and 112 focused assertions pass without
   compilation. Independent of every other item in this release.
-- [x] TODO-25 (added 2026-09-24, conclusively refuted 2026-10-09; same audit-triage wave, **low-medium
-  confidence, not reproduced**; tracked as an open investigation, not a
-  fix plan, in
-  `bug_fix_plans/investigate_contin_ols_weighted_bootstrap_se.md`;
-  the later TODO-28 cache hypothesis was closed as stale on 2026-10-07,
-  so the root cause here remains open):
-  `InferenceContinOLS` — one of the most fundamental classes in the
-  package — shows severe `model_formula=~.`-specific miscalibration
+- [x] TODO-25 (added 2026-09-24, resolved 2026-10-09):
+  **`InferenceContinOLS` has no weighted-bootstrap estimator or SE bug.**
+  `bug_fix_plans/investigate_contin_ols_weighted_bootstrap_se.md` records a
+  faithful reproduction that resolved the audit finding as an estimand
+  mismatch: iid/superpopulation resampling was graded against repeated
+  randomization of one fixed finite dataset. No production source change or
+  installed-result regeneration is warranted. The historical finding was
+  that this fundamental class appeared to show severe
+  `model_formula=~.`-specific miscalibration
   across resampling-family methods that reweight rather than permute
   (`subsampling` reject=0.19 vs nominal 0.05, `m_out_of_n_bootstrap`
   reject=0.16, several `bayesian_bootstrap` variants reject=0.13,
   `rand_bootstrap` reject=0.14; coverage as low as 0.80 on
   `bayesian_bootstrap`-family CIs). Confirmed NOT related to `TODO-15`
   (`InferenceContinLin`, different method-family group entirely — no
-  overlap) or `TODO-3` (different code path). Candidate mechanism,
-  unconfirmed by reproduction: `compute_estimate_with_bootstrap_weights()`
+  overlap) or `TODO-3` (different code path). The historical candidate
+  mechanism, refuted by the faithful reproduction, was that
+  `compute_estimate_with_bootstrap_weights()`
   (`inference_continuous_ols.R:121-159`) computes its SE via an unguarded
   `solve(crossprod(...))[2,2]` with no rank/conditioning check, unlike the
   observed-fit path which applies an adaptive QR-based hardening layer —
@@ -1057,8 +1051,9 @@ range, since the plan files' internal numbering did not change.
   check and TODO-8's installed comprehensive-results regeneration remain
   open; this release checkbox therefore remains unchecked.
 - [x] TODO-27 (added 2026-09-24, conclusively refuted 2026-10-08):
-  `InferenceIncidBinomialIdentityRiskDiff` shows real, moderate Type-I
-  error inflation (~2.6× nominal, reject rate ~0.13) specifically on
+  **Historical audit output reported** moderate Type-I error inflation
+  (~2.6× nominal, reject rate ~0.13) for
+  `InferenceIncidBinomialIdentityRiskDiff` specifically on
   `compute_subsampling_two_sided_pval`/`compute_m_out_of_n_bootstrap_two_sided_pval`,
   consistent at BOTH `model_formula=~1` and `~.` (NOT the formula-
   dependent pattern TODO-25/TODO-15 and friends show — a different
@@ -1070,8 +1065,7 @@ range, since the plan files' internal numbering did not change.
   `InferenceIncidKKCondLogitOneLik`'s worst cell is already explained by
   `TODO-18` (unclamped smoothed-noise injection), with only a small,
   low-priority residual left. `InferenceIncidBinomialIdentityRiskDiff` is
-  the one clear exception worth a dedicated look — not yet investigated
-  beyond confirming the pattern is real and consistent.
+  the one historical exception selected for a dedicated investigation.
 
   **Plan written 2026-09-24:**
   `../bug_fix_plans/investigate_incid_binomial_identity_subsampling_inflation.md
@@ -1193,20 +1187,16 @@ range, since the plan files' internal numbering did not change.
   plan file's "Scope update 2026-09-24" section for the full per-class
   table and unresolved cases (`InferenceContinKKQuantileRegrOneLik`,
   `InferenceOrdinalGCompMeanDiff`, other GComp siblings).
-- [x] TODO-29 (added 2026-09-24, fixed and audited 2026-10-08; found via a dedicated cross-class
-  investigation fork — medium-low confidence, pattern confirmed real and
-  response-type-independent but mechanism unconfirmed): `InferenceAllSimpleAverageDiff`'s
+- [x] TODO-29 (added 2026-09-24, fixed and audited 2026-10-08): Historical
+  audit output identified `InferenceAllSimpleAverageDiff`'s
   `bayesian_bootstrap_studentized`/`jackknife_wald` families are
   consistently the worst-covering across all 5 response types this class
   supports, while other families are fine — `../bug_fix_plans/investigate_average_diff_bayesian_jackknife_se_quality.md`.
   **Not TODO-28** — this class builds no design matrix in this path,
-  confirmed a distinct mechanism. Candidate cause (unconfirmed, not yet
-  traced to an exact line): a Kish effective-sample-size approximation
-  used asymmetrically vs. the raw-`n` Welch SE formula elsewhere in the
-  same class. `jackknife_wald`'s involvement is entirely unexplained —
-  may share a cause with the Bayesian-bootstrap finding or be a separate,
-  co-occurring bug. Independent of TODO-28 and everything else in this
-  release.
+  confirmed a distinct mechanism. The historical Kish-effective-size
+  candidate is resolved below; `jackknife_wald` is independently classified
+  as finite-sample Wald behavior. Independent of TODO-28 and everything else
+  in this release.
 
   **Resolution:** Bayesian-bootstrap studentization incorrectly applied Kish
   effective sample size to normalized Dirichlet frequency weights, inflating
@@ -1326,8 +1316,9 @@ baseline as expected/benign.
   findings risk getting lost; now tracked in
   `../bug_fix_plans/remove_disabled_min_eigenvalue_helpers.md`): **dead code in
   `_helper_functions_core.h`** — `set_min_eigenvalue_if_suspect()`
-  (`:210-219`) is entirely commented out, so `min_eigenvalue_information` is
-  never populated by any caller. Found while checking `InferenceCountPoisson`
+  was entirely commented out, so the generic
+  `min_eigenvalue_information` diagnostic was never populated by that helper.
+  Found while checking `InferenceCountPoisson`
   against TODO-4's unguarded-information-inverse bug (unrelated — there was
   no live caller to implicate either way). **Source progress 2026-10-10:** the
   decision is to remove the disabled no-op helper templates, their unused
@@ -1342,9 +1333,10 @@ baseline as expected/benign.
   sweep of this file for orphans and buried secrets; tracked as an open
   investigation, not a fix plan, in
   `bug_fix_plans/investigate_beta_ols_kkglmm_low_coverage_orphans.md`):
-  **six classes show real, audit-flagged `low_coverage`/unexplained
-  findings, each checked only against the stale-`cached_design_matrix`
-  bug and confirmed not to share it, with no other investigation opened**
+  **six audited findings show real but heterogeneous historical flags
+  (`pval_miscalibration`, `low_coverage`, or `biased_estimate`), each checked
+  only against the stale-`cached_design_matrix` bug and confirmed not to
+  share it, with no common-source investigation yet justified**
   — `InferencePropBetaRegr`, `InferencePropZeroOneInflatedBetaRegr`,
   `InferenceContinKKOLSOneLik`, `InferenceContinKKRobustRegrOneLik`,
   `InferencePropKKGLMM`, `InferenceIncidKKCondLogitGLMMIVWC`/
@@ -1474,8 +1466,8 @@ baseline as expected/benign.
   jackknife-Wald inference now centers on the bias-corrected jackknife
   estimate. Two focused files pass 30 assertions without compilation, and all
   linked-plan subtasks are closed.
-- [x] TODO-48 (added 2026-09-24, fixed/audited 2026-10-09; same source — medium-low confidence,
-  root cause genuinely unresolved): the count-family GLM `low_coverage`
+- [x] TODO-48 (added 2026-09-24, fixed/audited 2026-10-09; same source — initially
+  medium-low confidence with root cause unresolved): the count-family GLM `low_coverage`
   cluster — `InferenceCountPoisson`, `InferenceCountNegBin` (broad
   ~0.85-0.93 undercoverage across both asymptotic AND most resampling
   methods simultaneously), `InferenceCountZeroInflatedPoisson`
@@ -1756,13 +1748,20 @@ baseline as expected/benign.
   per-arrival cost flat in t and ≤ 0.5 ms; whole sequence within 10x of
   `carat`. See TODO-59 for the shared builder.
 
-  **Implementation status 2026-10-09:** linked-plan TODOs 1--4 are complete:
+  **Implementation status 2026-10-09, corrected 2026-10-12:** linked-plan
+  TODOs 1, 3--4 are complete; TODO-2's source implementation is reopened for
+  a first-arrival missing-stratum regression:
   arrivals use incremental strata metadata, avoid assignment-time model-matrix
   rebuilding, and preallocate compatible fixed-size enrollment storage with a
   safe append fallback. Source-loaded validation passed the 53-expectation
   metadata suite, 25 all-design seed checks, and 62 schema/type/bootstrap
   checks. The level map now also keeps a missing stratum separate from a
-  literal category named `"NA"`. TODO-5 remains the installed-package
+  literal category named `"NA"`. A subsequent static audit found that the
+  generic first-arrival cleanup had removed a missing declared stratum before
+  this map could register it. The cleanup now retains declared strata and a
+  focused public regression covers a missing first stratum followed by a
+  literal `"NA"` category; that new regression still needs rebuilt-package
+  execution. TODO-5 remains the installed-package
   benchmark/report gate: the source-loaded median is 0.525 ms per arrival, so
   it does not yet meet the 0.5 ms target, and the batch-C++ `carat` comparison
   is infeasible for the per-arrival public R API. This release checkbox stays
@@ -1899,7 +1898,7 @@ baseline as expected/benign.
   `libmkl_gf_lp64.so.2`, so this release item is deliberately unchecked.
 
 - [ ] TODO-65 (added 2026-10-08, user decision): **KK21 ordinal weight
-  kernels: unprotected `wrap()` temporaries in the only R callback in
+  kernels: unprotected `wrap()` temporaries in an R callback in
   `src/` can be garbage-collected mid-call** —
   `../bug_fix_plans/kk21_ordinal_weight_callback_unprotected_temporaries.md → TODO-1..4`.
 
@@ -2096,8 +2095,10 @@ baseline as expected/benign.
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-6`.
   It swaps to Wald only when the bootstrap CI excludes 0 and Wald does not. The studentized CI goes NA whenever it excludes 0, so it can never reject. Endpoints beyond ±2 are declared unstable. The docs are inaccurate, and two tests assert the biased behavior. **Default change.**
   **Source implementation 2026-10-10:** every finite bootstrap endpoint is
-  retained across percentile/basic/BCa/studentized paths; zero/sign/width
-  checks can no longer substitute Wald or NA. Contracts, roxygen, and the
+  retained across percentile/basic/BCa paths; the public studentized wrapper
+  delegates to basic for this model (which has no replicate-SE estimator) and
+  preserves that finite result. Zero/sign/width checks can no longer substitute
+  Wald or NA. Contracts, roxygen, and the
   focused references are synchronized. This remains unchecked pending R
   execution on a usable runtime.
 
@@ -2214,12 +2215,13 @@ baseline as expected/benign.
   verification F11): **KK hurdle-Poisson IVWC placeholder SEs of 1.0** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-16`.
   Estimate-only paths make it an equal-weight average. Bayesian-bootstrap CI is miscalibrated; `compute_estimate(estimate_only = TRUE)` caches the wrong estimate; randomization stays valid but loses power. The existing test mocks the variances. Legacy IVWC.
-  **Source implementation completed 2026-10-10:** ordinary, weighted
+  **Source implementation completed 2026-10-12:** ordinary, weighted
   bootstrap, and randomization estimate-only paths now obtain real matched
   and reservoir component variances before IVWC combination. The placeholder
   `1.0` helper branches are removed, so an unavailable variance rejects only
   that component instead of silently equal-weighting it; the direct Rcpp
-  helper has no unused branch that can restore the placeholder. Focused mock
+  helper no longer accepts the former `se = FALSE` switch that returned a
+  placeholder. Focused mock
   regressions assert the preserved IVWC weighting. This remains unchecked
   pending R execution; this host's `Rscript` cannot load
   `libmkl_gf_lp64.so.2`.
@@ -2317,6 +2319,36 @@ baseline as expected/benign.
   KK documentation records that sample-conditional convention alongside
   TODO-88's Wald-SE description.
 
+
+- [ ] TODO-95 (added 2026-10-11, user decision; found while scoping
+  `marketing_plans/agent_proofing.md` W6): **Seed-pinned design draws depend
+  on the OpenMP thread count** — `../bug_fix_plans/design_draws_depend_on_thread_count.md → TODO-1..4`.
+  `DesignFixedGreedy`, `DesignFixedGreedyDOptimal` and
+  `DesignFixedMatchingGreedyPairSwitching` give different allocations at
+  `set_num_cores(1/2/4)` for the same seed. `DesignFixedRerandomization`
+  also differs between repeat runs at 4 threads. Measured on installed
+  EDI 1.0.3; `DesignFixedBinaryMatch` is invariant.
+  - **Cause:** one seed per thread, indexed by `omp_get_thread_num()`
+    (`design_fixed_greedy.cpp:76-144`, `optimal_design_search.cpp:143-195`,
+    `rerandomization_helpers.cpp:215-293`).
+  - **False documentation:** the reproducibility vignette (`:150-162`),
+    two code comments and `design_class_registry.R:95-112` all claim
+    thread-count independence for the greedy kernels, and `design_matrix.csv`
+    publishes it.
+  - **Fix:** seed per draw index, using the existing `binary_match_search.cpp`
+    pattern. Rerandomization becomes a deterministic early-stopping sampler.
+  - **Tests required:** a thread-invariance test over the design registry,
+    a repeat-run test, rand p identical at 1 and 4 cores, and a pre-push ban
+    on per-thread seeding.
+  - Default threads (1) are unaffected today, but seed-pinned draws for the
+    four classes change once with the fix. The package-wide guarantee
+    follows in `release_v1_1_0.md → TODO-48`.
+  - **Source status (2026-10-11):** draw-index stream derivation,
+    deterministic rerandomization waves, metadata, documentation, NEWS, and
+    static test coverage are present. This TODO remains open until an
+    authorized native rebuild verifies the required 1/2/4-core allocation,
+    repeat-run, tight-cutoff, and randomization-inference comparisons.
+
 ## Standing constraints
 
 Same as `release_v1_1_0.md`'s standing constraints: default behavior with
@@ -2333,7 +2365,7 @@ TODO-67 (KK21 survival weights move to the correct Weibull MLE), TODO-68
 (randomization CIs narrow from 1 − α/2 to the documented 1 − α), and
 TODO-69 (Breslow on the two Cox fallbacks, tied data only), and the
 algorithm-sweep verification fixes TODO-70..94, which by design change wrong
-results (each names its default change; TODO-91 changes seed-pinned draws once); all document their equivalence
+results (each names its default change; TODO-91 changes seed-pinned draws once), and TODO-95 (seed-pinned draws of the four OpenMP design classes change once, at every thread count); all document their equivalence
 tolerance or verification).
 No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn (see
 top-level `CLAUDE.md`); verify any `.cpp`-adjacent change via targeted

@@ -48,7 +48,7 @@ test_that("batched Bayesian-bootstrap weights preserve the historical RNG and gr
 	# replicate-then-group order, including when unit groups are interleaved.
 	set.seed(210L)
 	des <- DesignFixedBlocking$new(strata_cols = "g", response_type = "continuous", n = 12L, verbose = FALSE)
-	des$add_all_subjects_to_experiment(data.frame(g = factor(rep(c("a", "b", "c"), each = 4L))))
+	des$add_all_subjects_to_experiment(data.frame(g = factor(rep(c("a", "b", "c"), length.out = 12L))))
 	des$assign_w_to_all_subjects()
 	des$add_all_subject_responses(rnorm(12L))
 	inf <- InferenceAllSimpleAverageDiff$new(des)

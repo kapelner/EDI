@@ -1,25 +1,13 @@
 library(testthat)
 library(EDI)
 
-# InferenceIncidKKModifiedPoisson migration (fix_inference_hierarchy.md,
-# "Full-Likelihood Estimators", "ModifiedPoisson full-likelihood migration"):
-# migrated by migrating the shared abstract grandparent
-# InferenceAbstractKKMarginalIncid rather than InferenceAbstractKKModifiedPoisson/
-# InferenceIncidKKModifiedPoisson directly (same "migrate the shared base"
-# strategy as the KKCondLogitGLMM/KKOrdinalCLMM families earlier this
-# stretch). InferenceAbstractKKMarginalIncid flipped from the raw-splice
-# `utils::modifyList(as.list(InferenceMixinKKPassThrough$public/private),
-# list(...))` state (manual harvesting under `inherit =
-# InferenceParamBootstrap`, not even a `define_inference_class()` call) to
-# `inherit = Inference` with `components = c("BayesianBootstrap",
-# "ParametricLikelihoodBootstrap", "KKPassThrough")` -- ParametricLikelihoodBootstrap
-# (not Wald-only) because InferenceAbstractKKModifiedPoisson genuinely
-# overrides `supports_likelihood_tests()`/`supports_lik_ratio_param_bootstrap()`
-# to TRUE with its own real `get_likelihood_test_spec()`/
-# `simulate_under_lik_null()` -- unlike every Wald-only KK partial-likelihood
-# class fixed earlier this stretch. `InferenceAbstractKKModifiedPoisson` and
-# `InferenceIncidKKModifiedPoisson` themselves needed no changes (no
-# `super$...()` calls in either body).
+# InferenceIncidKKModifiedPoisson migration baseline. The legacy fixture
+# retains the former working-likelihood surface so this regression can compare
+# valid point-estimate/Wald results while asserting that the current class no
+# longer exposes score, gradient, likelihood-ratio, Bartlett, or
+# parametric-bootstrap inference. Those methods are invalid for the
+# modified-Poisson working likelihood: its reported uncertainty is the
+# cluster-robust sandwich (release v1.0.5 TODO-19).
 #
 # This migration also surfaced two real bugs in the previously-untouched
 # InferenceIncidKKGCompAbstract (a sibling descendant of
