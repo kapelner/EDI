@@ -174,7 +174,13 @@ jobs:
     # above for why a bare comparison alone isn't enough.
     if: always() && needs.plan.result == 'success' && needs.shards.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 2026-10-12: 15 -> 30. merge_coverage.R now sums compact per-shard
+    # sidecars (seconds) but still reads one full ~1.6 GB coverage object as
+    # the skeleton (~17 s) plus one more per shard that holds C++ gcov keys
+    # the skeleton lacks (bounded, serial), then a ~30 s saveRDS and the
+    # codecov upload; worst case is a few minutes, so leave real headroom
+    # over the old budget rather than re-introduce a timeout as the failure.
+    timeout-minutes: 30
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

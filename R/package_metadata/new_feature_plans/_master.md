@@ -796,8 +796,9 @@ evidence in `algorithm_choice_audit_catalog.md §13`).
   randomization and BRT CIs invert a two-sided p-value at α/2, so they are
   97.5% intervals. Confirmed from existing comprehensive_tests output.
   Release index: `→ TODO-68`.
-- (3) Two unpinned `coxph()` fallbacks use Efron while every other Cox path
-  is Breslow. Release index: `→ TODO-69`.
+- (3) Two point-estimate `coxph()` fallbacks formerly used Efron while every
+  other Cox path used Breslow. **Resolved in v1.0.5 TODO-69:** both now
+  explicitly select Breslow. Release index: `→ TODO-69`.
 - (4) The 24 confirmed or partial verification findings, in one owning plan:
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-1..25`
   (F18 cloglog was already `release_v1_0_5.md → TODO-16`). Highlights:
@@ -1279,12 +1280,13 @@ empirical coverage vs. ~95% nominal, confirmed over ~1,644 audited rows).
 Same symptom family as `incidence_randomization_cis.md` (a randomization
 CI silently reporting a wrong-but-plausible answer instead of failing) but
 a different mechanism (missing composition hooks, not a scale mismatch); a
-`stop()` stopgap landed 2026-09-17, same pattern as that plan's own. The
-likely-cheap real fix (route through the already-correctly-wired generic
-`InferenceRandCI` bisection instead of Zhang, since the stacked-model
-estimator already supplies that path's own hooks) is unverified and needs
-its own decision before implementing. Release index:
-`release_v1_0_5.md → TODO-7` (was `release_v1_1_0.md → TODO-25`).
+`stop()` stopgap landed 2026-09-17, same pattern as that plan's own.
+**Resolved 2026-10-08:** the OneLik leaves now use the generic
+`InferenceRandCI` bisection; finite-width/Wald-overlap and coverage checks,
+the focused regression, the wiring audit, and migration golden all passed.
+The Zhang implementation remains only on the correctly wired IVWC path.
+Release index: `release_v1_0_5.md → TODO-7` (was
+`release_v1_1_0.md → TODO-25`; closed).
 
 **Stereotype-logit multimodal likelihood** (added 2026-09-22, found the
 same way as `TODO-7` (old numbering `TODO-25`); no dependency on any phase above): `fix_multimodal_
@@ -1373,20 +1375,18 @@ unconditionally, even though they're deliberately `NA` under
 fallback already correct elsewhere in the same file. CSV regeneration
 still open. Release index: `release_v1_0_5.md → TODO-14` (was `release_v1_1_0.md → TODO-36`).
 
-**`InferenceContinLin` parametric-bootstrap Type-I error, design-dependent**
-(added 2026-09-23, from the same `bad_type1_error` audit wave as release
-`TODO-9` (old numbering `TODO-31`),
-originally hypothesized to be the same mechanism — confirmed separate,
-still unfixed): `../bug_fix_plans/contin_lin_param_bootstrap_bad_type1_error.md →
-TODO-1..7`. Three parametric-bootstrap/likelihood-ratio methods flagged
-simultaneously; confirmed NOT release `TODO-9`'s reused-worker path (already
-fixed for this class) and isolated to this class's own overrides, not
-shared machinery. Rejection rate at a true null ranges from 0.059 (SPBR,
-near nominal) to 0.406 (`FixedMatchingGreedy`, 8× nominal) — design-
-dependent, but not reproduced with a plain Bernoulli design plus a
-correlated covariate, so the actual structured `Design` subclass's
-block/match machinery is needed to trigger it. Root cause not yet pinned
-down. Release index: `release_v1_0_5.md → TODO-15` (was `release_v1_1_0.md → TODO-37`).
+**`InferenceContinLin` parametric-bootstrap Type-I error, design-dependent —
+resolved** (added 2026-09-23; resolved 2026-10-09):
+`../bug_fix_plans/contin_lin_param_bootstrap_bad_type1_error.md → TODO-1..7`.
+The original historical rows were not reproduced on the current source.
+Observed, null, and simulated Lin fits now use the same reduced matrix and
+treatment index, and the parametric-bootstrap loader clears
+`lin_centered_covariates`. Blocking, nonlinear/heteroskedastic, and
+near-collinear current-source null checks were near nominal with all p-values
+finite; the historical diamonds cell is an assumption-stress result for the
+documented secondary Gaussian working-model path, not a current cache/design
+defect. Release index: `release_v1_0_5.md → TODO-15` (was
+`release_v1_1_0.md → TODO-37`; closed).
 
 **Ordinal cumulative-link parametric-bootstrap inference** (added
 2026-09-23, from the same raw `comprehensive_tests` CSV audit wave as
@@ -1415,11 +1415,13 @@ sharing both the helper and the negation pattern is still open. Release
 index: `release_v1_0_5.md → TODO-16` (was `release_v1_1_0.md → TODO-38`).
 
 **Cox risk-set cache staleness** (found 2026-08-30, slotted into v1.0.5
-2026-09-24 from "unassigned"; no dependency on any phase above):
+2026-09-24 from "unassigned"; fixed 2026-10-07):
 `../bug_fix_plans/cox_risk_set_cache_staleness.md → TODO-1..5`. The
-`InferenceCoxPH`/`InferenceStratifiedCoxPH` risk-set caches are guarded only
-on `w` while embedding `y`/`dead`. No confirmed wrong result yet (plan
-TODO-1 is the exposure audit). Release index: `release_v1_0_5.md → TODO-30`.
+`InferenceCoxPH`/`InferenceStratifiedCoxPH` caches now key on full
+`w`/`y`/`dead`/`X` inputs. The same-pattern sweep fixed four stale-
+model-matrix caches, and mutation, bootstrap, cache-reuse, and class-wiring
+regressions cover the guards. Release index: `release_v1_0_5.md → TODO-30`
+(closed).
 
 **Incidence identity-link risk-difference subsampling inflation — closed as a
 non-reproducible historical finding** (added 2026-09-24; closed 2026-10-08;
@@ -1496,14 +1498,16 @@ its jackknife rebuilds a fresh `Design`/`Inference` object per fold instead
 of reusing one warmed-up worker. R-layer only, must reproduce bit-identical
 jackknife results. Release index: `release_v1_0_5.md → TODO-1`.
 
-**Randomization CI construction audit** (added 2026-09-04, found
-empirically): `../new_feature_plans/randomization_ci_construction_audit.md →
-TODO-1..4`. Two findings: **§A**, Cox-family classes ran the generic
+**Randomization CI construction audit — resolved** (added 2026-09-04;
+fully reconciled 2026-10-09):
+`../new_feature_plans/randomization_ci_construction_audit.md → TODO-1..5,
+including TODO-2b`. Two findings: **§A**, Cox-family classes ran the generic
 randomization-CI driver on the wrong scale (log-time vs. log-hazard-ratio);
 fixed by excluding the six log-HR classes from the `randomization_ci`
 capability. **§B**, an earlier draft's null-construction claim was wrong;
-closed with no code change, pinned by a test. Release index:
-`release_v1_0_5.md → TODO-5`.
+closed with no code change, pinned by a test. The final test-comment and
+registry reconciliation are complete. Release index: `release_v1_0_5.md →
+TODO-5` (closed).
 
 **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` optimizer stability**
 (added 2026-09-11, timing investigation, not a user report):
@@ -1597,20 +1601,18 @@ cases. A second, narrower, unconfirmed finding
 (`InferenceSurvivalDepCensTransformRegr`) is tracked in the same plan.
 Release index: `release_v1_0_5.md → TODO-23`.
 
-**KK-matched Cox proportional-hazards classes — severe CI undercoverage,
-isolated to the matching/reservoir-split mechanism** (added 2026-09-24,
-same audit-triage wave, root-caused same day): `../bug_fix_plans/
-survival_kk_cox_coverage_variance.md → TODO-1..8`. Distinct from `TODO-5
-§A`. Plain Cox/stratified-Cox siblings are fine, confirming this is
-KK-matching-specific. `InferenceSurvivalKKStratCoxPHOneLik`: medium-high
-confidence its inverse-variance pooling of matched/reservoir estimates
-wrongly assumes independence. `InferenceSurvivalKKLWACoxPHOneLik`: does
-NOT share that pooling pattern (single joint cluster-robust fit) — root
-cause not found, needs the C++ cluster-robust vcov kernel read directly.
-Release index: `release_v1_0_5.md → TODO-24`.
+**KK-matched Cox proportional-hazards undercoverage — closed as a
+coverage-truth artifact** (added 2026-09-24; closed 2026-10-08):
+`../bug_fix_plans/survival_kk_cox_coverage_variance.md → TODO-1..8`.
+The earlier plan conflated OneLik and IVWC siblings. Source and native-formula
+audits found OneLik uses a joint stratified or joint cluster-robust Cox fit,
+and the kernel agrees with independent scores and `survival::coxph`.
+The apparent undercoverage came from unconverged coverage truth; historical
+null coverage was 0.93–1.00. Release index: `release_v1_0_5.md → TODO-24`
+(closed).
 
 **`InferenceContinOLS` weighted-bootstrap SE investigation — superseded**
-(added 2026-09-24; tracked as an open investigation): `../bug_fix_plans/
+(added 2026-09-24; resolved 2026-10-09): `../bug_fix_plans/
 investigate_contin_ols_weighted_bootstrap_se.md`. Severe `~.`-specific
 miscalibration across reweighting resampling families. Its own unguarded-
 `solve()` hypothesis and the separate TODO-28 cache hypothesis were both

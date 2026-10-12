@@ -633,8 +633,10 @@ sweep found them, and they outrank every speed TODO.
    p-value at α/2, giving 97.5% at α = 0.05. In existing comprehensive_tests
    output, for 0.03 < p ≤ 0.045 the "95%" rand CI excludes 0 in only 17% of 429
    cases. → `../bug_fix_plans/rand_ci_inverts_two_sided_pval_at_half_alpha.md`
-3. **Cox tie method depends on which fallback fires.** Two unpinned `coxph()`
-   calls use Efron while everything else is Breslow (row L, TODO-6(c)).
+3. **Cox tie method formerly depended on which point-estimate fallback fired.**
+   The two unpinned `coxph()` calls used Efron while everything else used
+   Breslow (row L, TODO-6(c)); **v1.0.5 TODO-69 resolved those two calls by
+   explicitly selecting Breslow.**
 
 **Verification of the remaining findings (2026-10-09, TODO-B4 done).** Five
 adversarial verifier subagents checked 26 findings (F1–F26) by code reading and small

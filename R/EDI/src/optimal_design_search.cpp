@@ -115,6 +115,16 @@ inline void random_balanced_init(
 	std::vector<int>& indices, Eigen::VectorXd& w,
 	std::vector<int>& t_idxs, std::vector<int>& c_idxs
 ) {
+	// Reset to the identity permutation EVERY draw. `indices` is a thread-local
+	// buffer reused across all draws scheduled on that OpenMP thread; shuffling
+	// it in place without this reset made draw s start from whatever
+	// permutation the previous draw on the same thread left behind, so the
+	// result depended on the static schedule (thread 0's draws matched a serial
+	// run, every other thread's did not) and, even serially, on which draws
+	// preceded it -- despite each draw's rng being seeded from its own index.
+	// The plain greedy kernel (design_fixed_greedy.cpp) re-iotas per draw for
+	// exactly this reason.
+	for (int i = 0; i < n; ++i) indices[static_cast<std::size_t>(i)] = i;
 	edi_rng::fisher_yates_shuffle(indices.begin(), indices.end(), rng);
 	w.setZero();
 	t_idxs.clear();

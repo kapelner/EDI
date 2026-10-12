@@ -60,10 +60,22 @@ version, compiler flags, and shard ID. Coverage builds override covr's `-O0`
 default with `-O2 --coverage` through `configure_coverage_compiler.R` so Eigen
 kernels remain practical to test. Optimization can change native line attribution;
 compare coverage measurements made with the same compiler settings.
-The merge job requires every expected shard and matching
-provenance, uses covr's internal `merge_coverage` implementation to add counters,
-and uploads one combined report under the Codecov `r` flag. Keep all coverage
-jobs on the same covr version; changes to its internal merger need validation.
+Each shard also writes a compact `coverage_values.rds` sidecar (occurrence-unique
+covr element keys + counts, under 1 MB) beside the full `coverage.rds` (~55 MB
+compressed, ~1.6 GB of R heap once deserialized -- 100 of them cannot coexist
+on a 16 GB runner, which is why the merge job silently died with "the runner
+has received a shutdown signal" on every run from 2026-09-25 to 2026-10-12).
+The merge job (`merge_coverage.R`) requires every expected shard and matching
+provenance, sums the sidecar counts by key over the union of keys (shards
+legitimately differ in which C++ files gcov reports), reads ONE full
+`coverage.rds` as the srcref-bearing skeleton (plus, one at a time, any shard
+holding keys the skeleton lacks), writes the summed counts back into it, and
+uploads one combined report under the Codecov `r` flag. It deliberately does
+not use covr's own `merge_coverage()`: that takes ~2 minutes per pair of these
+objects and mis-sums the ~9.6k gcov entries whose names are duplicated (one per
+translation unit including a header). Per-line totals are exact since every
+consumer aggregates by filename+line. Keep all coverage jobs on the same covr
+version. Set `EDI_SKIP_CODECOV_UPLOAD=1` to dry-run the merge locally.
 Test failures are visible in coverage logs but do not abort measurement;
 correctness shards fail on failed expectations and test errors.
 
