@@ -1679,24 +1679,28 @@ state. The remaining finite-sample calibration of `quantreg`'s documented
 `"nid"` sparsity estimate is a method property, not a v1.0.5 implementation
 defect. Release index: `release_v1_0_5.md → TODO-49` (checked).
 
-**Four count-family classes with confirmed-real, unexplained
-miscalibration** (added 2026-09-24, promoted from asides inside `TODO-4`'s
-and `TODO-9`'s prose — un-homed findings risk getting lost; tracked as an
-open investigation): `../bug_fix_plans/investigate_count_family_
-unexplained_miscalibration_cluster.md`. `InferenceCountPoisson` (16
-families), `InferenceCountQuasiPoisson` (9 families uniformity + 4
-coverage), `InferenceCountKKGLMM`, `InferenceCountKKHurdlePoissonOneLik` —
-each ruled out from a specific candidate mechanism (`TODO-4`'s unguarded
-inverse, `TODO-28`'s stale design matrix) but never root-caused on its own
-terms. Release index: `release_v1_0_5.md → TODO-50` (renumbered 2026-09-24
-from a colliding `TODO-31`).
+**Count-family miscalibration investigation, later reconciled** (added
+2026-09-24, promoted from asides inside `TODO-4`'s and `TODO-9`'s prose):
+`../bug_fix_plans/investigate_count_family_unexplained_miscalibration_cluster.md`.
+The original `InferenceCountPoisson`, `InferenceCountQuasiPoisson`,
+`InferenceCountKKGLMM`, and `InferenceCountKKHurdlePoissonOneLik` findings
+no longer imply one unexplained shared defect: the Poisson and KKGLMM fixes
+belong to TODO-48 and TODO-31, the hurdle class now combines its inference
+conservatively, and the remaining Quasi-Poisson behavior is a conservative
+method property. This umbrella has no independent source change; its release
+gate is TODO-31's rebuilt-native validation and the ensuing installed CSV
+reconciliation. Release index: `release_v1_0_5.md → TODO-50` (renumbered
+2026-09-24 from a colliding `TODO-31`).
 
-**Dead code in `_helper_functions_core.h`** (added 2026-09-24, same
-promotion reason as the item above; trivial, no plan file): `set_min_
-eigenvalue_if_suspect()` is entirely commented out, so `min_eigenvalue_
-information` is never populated by any caller. Fix is delete-or-wire-in, a
-decision not yet made. Release index: `release_v1_0_5.md → TODO-51`
-(renumbered from a colliding `TODO-32`).
+**Disabled minimum-eigenvalue helper cleanup** (added 2026-09-24, same
+promotion reason as the item above):
+`../bug_fix_plans/remove_disabled_min_eigenvalue_helpers.md`. The commented
+`set_min_eigenvalue_if_suspect()` helper, its unused SFINAE trait, and all
+no-op callers were removed while the public `min_eigenvalue_information`
+schema field retains its `NaN` default. The source decision is complete;
+rebuilt kernel output-contract and equivalence validation remain open.
+Release index: `release_v1_0_5.md → TODO-51` (renumbered from a colliding
+`TODO-32`).
 
 **Six classes with confirmed-real `low_coverage` findings ruled out from
 the stale-`cached_design_matrix` bug, never root-caused** (added

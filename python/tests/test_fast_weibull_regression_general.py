@@ -33,10 +33,18 @@ def _general_response(y_obs, dead):
     return y, y_L, y_R
 
 
-# R reference, EDI 1.0.0, computed 2026-08-04 with the same general response.
-R_PARAMS = np.array([-0.580572508466287, 0.35362562665742, 0.115502572892534])
-R_NEG_LOGLIK = 100.088153200844
-R_VCOV_DIAG = np.array([0.0210927071459095, 0.0105260329864121, 0.00435393717820719])
+# R reference, EDI 1.0.3, computed 2026-10-12 with the same general response
+# (EDI:::fast_weibull_regression_general_cpp(X, y, y_L, y_R) at its defaults on
+# the exact arrays _synthetic_data()/_general_response() produce; verified
+# bit-identical to this binding's output, which is the point of the test).
+# Re-recorded from the 2026-08-04 / EDI 1.0.0 values: the shared kernel since
+# gained an OLS-based smart cold start and the optimize_fixed_likelihood path,
+# which moves LBFGS's converged point by ~1e-5 relative (new neg_loglik is
+# slightly lower, i.e. a marginally better optimum), so the old snapshot no
+# longer described what R itself returns.
+R_PARAMS = np.array([-0.580573515413595, 0.353629028146913, 0.115501190444471])
+R_NEG_LOGLIK = 100.088153199747
+R_VCOV_DIAG = np.array([0.021092630686265, 0.01052599002121961, 0.00435392424062992])
 
 
 def test_matches_r_fixture():

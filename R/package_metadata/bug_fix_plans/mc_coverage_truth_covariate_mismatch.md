@@ -349,7 +349,7 @@ closely. `KMDiff`'s 8 new findings (all bootstrap/jackknife-family, under
 finding. **No new information from any of these three — pure
 confirmation, still blocked on the same open items (TODO-4/5/6 above).**
 
-## TODO-10 (added 2026-09-24, high confidence for the mechanism, fix not implemented): 3 more classes with the same missing-MC-truth pattern as Ridit
+## TODO-10 (added 2026-09-24, high confidence for the mechanism; source fix implemented 2026-10-08, release validation pending): 3 more classes with the same missing-MC-truth pattern as Ridit
 
 A follow-up fork investigating `ordinal_cumulative_link_null_refit_multistart.md`'s
 TODO-13 (a suspected shared package-level SE bug across 4 ordinal

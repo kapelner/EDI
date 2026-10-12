@@ -12,8 +12,9 @@
 #' \code{clinfun::jonckheere.test()}'s normal approximation. This class also
 #' provides an \strong{exact}, permutation-distribution-based two-sided p-value
 #' via \code{$compute_exact_two_sided_pval_for_treatment_effect()}
-#' (\code{exact_jonckheere_terpstra_pval_cpp}), which does not rely on the
-#' normal approximation.
+#' (\code{exact_jonckheere_terpstra_pval_cpp}).  Exact enumeration is capped
+#' at one million allocations; above that limit the public method warns and
+#' returns the asymptotic normal p-value instead.
 #'
 #' @references Jonckheere, A. R. (1954). "A Distribution-Free k-Sample Test
 #'   Against Ordered Alternatives." \emph{Biometrika}, 41(1-2), 133-145,
@@ -90,9 +91,10 @@ InferenceOrdinalJonckheereTerpstraTest = define_inference_class(
 			private$cached_values$beta_hat_T
 		},
 		#' @description Returns the \strong{exact}, permutation-distribution-based
-		#'   two-sided p-value (\code{exact_jonckheere_terpstra_pval_cpp}) — unlike
-		#'   \code{$compute_asymp_two_sided_pval()}, this does not rely on the
-		#'   normal approximation to the Mann-Whitney \eqn{U} null distribution.
+		#'   two-sided p-value (\code{exact_jonckheere_terpstra_pval_cpp}). Exact
+		#'   enumeration is capped at one million allocations; when that limit is
+		#'   exceeded, this method warns and returns
+		#'   \code{$compute_asymp_two_sided_pval()} instead.
 		compute_exact_two_sided_pval_for_treatment_effect = function(){
 			private$compute_exact_jt_components()
 			private$cached_values$p_exact
