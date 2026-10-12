@@ -128,7 +128,7 @@
       "timing_family": "fixed",
       "randomization_family": "rerandomization",
       "seed_reproducible_draw": "TRUE",
-      "seed_reproducible_single_thread_only": "TRUE",
+      "seed_reproducible_single_thread_only": "FALSE",
       "required_packages": ""
     },
     {
