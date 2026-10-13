@@ -406,6 +406,15 @@ pieces below never did.
   is built once here; applying it to the remaining kernels with no
   documented failure — GLMM/LMM/frailty, ZOIB, stereotype logit, copula
   survival, cauchit, bisquare — moved to v1.2.0.)
+- **[Faster custom randomization statistics](R/package_metadata/new_feature_plans/custom_rand_stat_batched_cpp_loop.md)** —
+  when you supply your randomization statistic as compiled C++, the loop
+  over permutations runs in C++ too. Today it runs in R, so every
+  permutation, and every step of the confidence-interval search, pays an
+  R-to-C++ round trip. This is the same approach the optimal design's
+  custom objective already uses. C++ source strings can now be written
+  with Eigen types, the same convention as pre-compiled pointers, and then
+  take the faster path. Existing Rcpp-typed source strings keep working
+  unchanged. Results are bit-for-bit unchanged.
 - **[Algorithm choice audit](R/package_metadata/new_feature_plans/algorithm_choice_audit.md)**
   *(maintenance)* — a per-kernel survey of whether the *chosen
   algorithm*, not just its implementation, is the best known one for its
@@ -836,6 +845,10 @@ own report.
   the deprecated greedy classes are removed, and every accumulated
   1.x → 2.0.0 contract break ships with a documented deprecation path and
   a migration guide.
+- **[Eigen-only C++ source strings for custom randomization statistics](R/package_metadata/new_feature_plans/custom_rand_stat_batched_cpp_loop.md)** —
+  the legacy Rcpp-typed signature for C++ source strings is dropped, so
+  every C++ statistic runs the permutation loop in C++. The last 1.x
+  release warns on the old form and shows the equivalent Eigen signature.
 
 ---
 

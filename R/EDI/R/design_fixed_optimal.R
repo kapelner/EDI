@@ -444,7 +444,7 @@ DesignFixedOptimal = define_design_class(
 						call. = FALSE
 					)
 				}
-				normalized$xptr = RcppXPtrUtils::cppXPtr(code = normalized$src, depends = "RcppEigen")
+				normalized$xptr = cached_cpp_compile(normalized$src, "cppXPtr", depends = "RcppEigen")
 				private$custom_objective_normalized = normalized
 			}
 			invisible(NULL)

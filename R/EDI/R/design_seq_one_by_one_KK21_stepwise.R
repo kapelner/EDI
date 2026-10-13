@@ -30,6 +30,29 @@
 #' replaced with 0 (excluding them from the weighted matching distance) rather than
 #' propagating the failure.
 #'
+#' \strong{Randomization draws.} Because the stepwise models include the treatment
+#' column \code{ws}, the covariate weights (and therefore which subjects end up paired)
+#' depend in principle on the realized assignment path, even under the sharp null where
+#' the responses are fixed. Re-randomization for randomization tests and confidence
+#' intervals is therefore controlled by \code{condition_on_ws_for_rand_tests}:
+#' \itemize{
+#'   \item \code{TRUE} (default): condition on the realized reservoir/pair structure
+#'     exactly as \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} (and
+#'     \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}) do: each matched
+#'     pair's assignments are flipped with probability 1/2 and reservoir subjects are
+#'     redrawn independently with probability \code{prob_T}. This is fast but
+#'     \strong{approximate}, not exact: since \code{w} is randomized it should be
+#'     (nearly) independent of the covariates, so partialling it out barely changes the
+#'     conditional association statistics and the pair structure is almost always the
+#'     same under a different assignment path. In simulation the resulting inference
+#'     is very close to the exact replay.
+#'   \item \code{FALSE}: exact. Every randomization draw replays the entire sequential
+#'     design from subject 1, refitting the stepwise weights at every step using only the
+#'     responses available at that point, so pairs may form differently in each draw.
+#'     This costs on the order of \eqn{r \times n} stepwise weight fits per set of
+#'     \eqn{r} draws and is dramatically slower.
+#' }
+#'
 #' \strong{Everything else is inherited from KK21.} Burn-in fallback to KK14, the
 #' bootstrapped acceptance-threshold test, matched-pair assignment, and the
 #' \code{morrison}/\code{lambda}/\code{t_0_pct} matching-schedule options are all
@@ -115,6 +138,16 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 		#' \code{TRUE}.
 		#' @param missingness_method How to handle missing values in covariates.
 		#' @param design_formula A formula object.
+		#' @param condition_on_ws_for_rand_tests Should randomization draws (used by
+		#'   randomization tests and randomization confidence intervals) condition on the
+		#'   realized reservoir/matched-pair structure, as in KK14? If \code{TRUE} (default),
+		#'   each draw flips each matched pair and redraws the reservoir; this is fast but
+		#'   approximate, because the stepwise weights condition on the treatment column so
+		#'   the pairs could in principle differ under another assignment path (since
+		#'   \code{w} is randomized it should be independent of the covariates, and in
+		#'   simulation the approximation is very close). If \code{FALSE}, each draw replays
+		#'   the entire sequential design, refitting the stepwise weights at every step;
+		#'   this is exact but much slower. See the class documentation for details.
 		#' @param ... Extra arguments passed to the \code{DesignSeqOneByOneKK21} superclass.
 		#' @return  A new `DesignSeqOneByOneKK21stepwise` object
 		#'
@@ -139,12 +172,72 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 			ordinal_use_speedup = TRUE,
 			missingness_method = "impute",
 			design_formula = ~ .,
+			condition_on_ws_for_rand_tests = TRUE,
 			...
 		){
+			if (should_run_asserts()) {
+				assertFlag(condition_on_ws_for_rand_tests)
+			}
+			private$condition_on_ws_for_rand_tests = condition_on_ws_for_rand_tests
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, lambda, t_0_pct, morrison, p, num_boot, count_use_speedup, proportion_use_speedup, survival_use_speedup_for_no_censoring, ordinal_use_speedup, missingness_method, design_formula, ...)
 		}
 	),
 	private = list(
+		condition_on_ws_for_rand_tests = TRUE,
+		# Unlike KK21, the stepwise weights regress y on the treatment column ws too,
+		# so they depend on the preceding assignments and a new assignment path can
+		# produce different pairs even under the sharp null. By default
+		# (condition_on_ws_for_rand_tests = TRUE) we nevertheless condition on the
+		# realized pairs via KK14's paired redraw (approximate; see roxygen). Otherwise
+		# replay the full sequential rule while exposing only responses available
+		# before each assignment, restoring the completed design even if one replay
+		# errors (exact but slow).
+		draw_ws_raw = function(r = 100){
+			if (isTRUE(private$condition_on_ws_for_rand_tests)) {
+				return(super$draw_ws_raw(r))
+			}
+			n_completed = private$t
+			state = list(
+				t = private$t,
+				w = private$w,
+				m = private$m,
+				y = private$y,
+				y_L = private$y_L,
+				y_R = private$y_R,
+				covariate_weights = private$covariate_weights,
+				iteration_weights = private$iteration_weights
+			)
+			on.exit({
+				private$t = state$t
+				private$w = state$w
+				private$m = state$m
+				private$y = state$y
+				private$y_L = state$y_L
+				private$y_R = state$y_R
+				private$covariate_weights = state$covariate_weights
+				private$iteration_weights = state$iteration_weights
+			}, add = TRUE)
+
+			w_mat = matrix(NA_real_, nrow = n_completed, ncol = r)
+			for (j in seq_len(r)) {
+				private$w = rep(NA_real_, length(state$w))
+				private$m = rep(NA_real_, length(state$m))
+				private$covariate_weights = NULL
+				private$iteration_weights = list()
+				for (t_replay in seq_len(n_completed)) {
+					private$t = t_replay
+					private$y = state$y
+					private$y_L = state$y_L
+					private$y_R = state$y_R
+					private$y[t_replay:n_completed] = NA_real_
+					private$y_L[t_replay:n_completed] = NA_real_
+					private$y_R[t_replay:n_completed] = NA_real_
+					private$w[t_replay] = self$assign_wt()
+				}
+				w_mat[, j] = private$w[seq_len(n_completed)]
+			}
+			w_mat
+		},
 		compute_weights = function(all_subject_data){ #stepwise function
 			xs = all_subject_data$X_all_with_y_scaled
 			ys = all_subject_data$y_all

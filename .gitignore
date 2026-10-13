@@ -201,3 +201,6 @@ marketing_plans/
 
 # Playwright MCP browser snapshots/logs
 .playwright-mcp/
+
+# comprehensive_tests.R nohup logs
+/R/logs/

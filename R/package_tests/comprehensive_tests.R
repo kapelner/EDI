@@ -3299,6 +3299,10 @@ compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_ty
 		y = vapply(seq_len(n), function(i) apply_treatment_effect_and_noise(y_lin[i], w[i], response_type), numeric(1))
 		list(y = y, dead = dead_mc)
 	}
+	# SimulationFramework also writes <stem>__staging.csv, <stem>__elapsed.rds
+	# and a <stem>__cache/ dir next to results_filename; remove all of them.
+	results_filename = tempfile(fileext = ".csv")
+	on.exit(unlink(Sys.glob(paste0(sub("\\.csv$", "", results_filename), "*")), recursive = TRUE, force = TRUE), add = TRUE)
 	sim = SimulationFramework$new(
 		response_type = response_type,
 		design_classes_and_params = list(design_gen),
@@ -3308,7 +3312,7 @@ compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_ty
 		betaT = beta_T_val,
 		custom_replication_data_generator = custom_data,
 		custom_apply_treatment_and_noise = custom_apply,
-		results_filename = tempfile(fileext = ".csv"),
+		results_filename = results_filename,
 		continue_from_last_result_row = FALSE,
 		verbose = FALSE,
 		stop_on_error = FALSE
@@ -3784,12 +3788,26 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		if (!seq_ok) return(invisible(NULL))
 	} else {
 		# It is a DesignFixed but not a DesignSeqOneByOne
-		setup_ok = tryCatch({
-			des_obj$add_all_subjects_to_experiment(X_design_for_design)
-			des_obj$assign_w_to_all_subjects()
-			TRUE
-		}, error = function(e){ message("    Skipping design: ", e$message); FALSE })
-		if (!setup_ok) return(invisible(NULL))
+		setup_fixed_design = function(d){
+			tryCatch({
+				d$add_all_subjects_to_experiment(X_design_for_design)
+				d$assign_w_to_all_subjects()
+				NULL
+			}, error = function(e) e)
+		}
+		setup_err = setup_fixed_design(des_obj)
+		# FixedBlocking defaults to equal_block_sizes = TRUE, which real-data covariate strata
+		# rarely satisfy; only when that fails, fall back to equal_block_sizes = FALSE.
+		if (!is.null(setup_err) && identical(design_type, "FixedBlocking") &&
+				grepl("equal_block_sizes = TRUE", conditionMessage(setup_err), fixed = TRUE)) {
+			message("    ", conditionMessage(setup_err), " Retrying FixedBlocking with equal_block_sizes = FALSE.")
+			des_obj = DesignFixedBlocking$new(strata_cols = strata_cols_to_use, equal_block_sizes = FALSE, response_type = response_type, n = n, design_formula = design_formula)
+			setup_err = setup_fixed_design(des_obj)
+		}
+		if (!is.null(setup_err)) {
+			message("    Skipping design: ", conditionMessage(setup_err))
+			return(invisible(NULL))
+		}
 		w = des_obj$get_w()
 		for (t in 1 : n){
 			y_t = apply_treatment_effect_and_noise(y[t], w[t], response_type)

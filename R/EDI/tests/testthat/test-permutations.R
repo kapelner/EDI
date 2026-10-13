@@ -96,7 +96,7 @@ test_that("Generated permutations support randomization p-values", {
 	expect_true(pval >= 0 && pval <= 1)
 })
 
-test_that("KK21 stepwise randomization draws replay outcome-adaptive matching", {
+test_that("KK21 stepwise randomization draws replay outcome-adaptive matching when not conditioning on ws", {
 	set.seed(5301)
 	n <- 48L
 	x <- data.frame(x1 = rnorm(n))
@@ -108,7 +108,8 @@ test_that("KK21 stepwise randomization draws replay outcome-adaptive matching", 
 
 	for (response_type in names(y_by_type)) {
 		des <- DesignSeqOneByOneKK21stepwise$new(
-			n = n, response_type = response_type, num_boot = 20L, verbose = FALSE
+			n = n, response_type = response_type, num_boot = 20L, verbose = FALSE,
+			condition_on_ws_for_rand_tests = FALSE
 		)
 		for (i in seq_len(n)) {
 			des$add_one_subject_to_experiment_and_assign(x[i, , drop = FALSE])
@@ -148,6 +149,56 @@ test_that("KK21 stepwise randomization draws replay outcome-adaptive matching", 
 		expect_identical(priv$covariate_weights, state$covariate_weights, info = response_type)
 		expect_identical(priv$iteration_weights, state$iteration_weights, info = response_type)
 	}
+})
+
+test_that("KK21 randomization draws condition on the realized pairs", {
+	set.seed(5303)
+	n <- 48L
+	x <- data.frame(x1 = rnorm(n))
+	y <- 0.5 * x$x1 + rnorm(n)
+	des <- DesignSeqOneByOneKK21$new(n = n, response_type = "continuous", num_boot = 20L, verbose = FALSE)
+	for (i in seq_len(n)) {
+		des$add_one_subject_to_experiment_and_assign(x[i, , drop = FALSE])
+		des$add_one_subject_response(i, y = y[i])
+	}
+	m <- des$.__enclos_env__$private$m
+	observed_pairs <- split(which(m > 0), m[m > 0])
+	expect_true(length(observed_pairs) > 0L)
+
+	draws <- des$draw_ws_according_to_design(40L)
+	expect_equal(dim(draws), c(n, 40L))
+	expect_true(all(draws %in% 0:1))
+	# KK21's marginal weights do not depend on w, so under the sharp null the
+	# realized pairs are invariant and every draw keeps each pair opposite.
+	for (ii in observed_pairs) {
+		expect_true(all(colSums(draws[ii, , drop = FALSE]) == 1))
+	}
+	# reservoir subjects are still randomized independently
+	expect_true(any(apply(draws[m == 0, , drop = FALSE], 1, function(z) length(unique(z)) > 1)))
+})
+
+test_that("KK21 stepwise randomization draws condition on the realized pairs by default", {
+	set.seed(5304)
+	n <- 48L
+	x <- data.frame(x1 = rnorm(n))
+	y <- 0.5 * x$x1 + rnorm(n)
+	des <- DesignSeqOneByOneKK21stepwise$new(n = n, response_type = "continuous", num_boot = 20L, verbose = FALSE)
+	for (i in seq_len(n)) {
+		des$add_one_subject_to_experiment_and_assign(x[i, , drop = FALSE])
+		des$add_one_subject_response(i, y = y[i])
+	}
+	m <- des$.__enclos_env__$private$m
+	observed_pairs <- split(which(m > 0), m[m > 0])
+	expect_true(length(observed_pairs) > 0L)
+
+	draws <- des$draw_ws_according_to_design(40L)
+	expect_equal(dim(draws), c(n, 40L))
+	expect_true(all(draws %in% 0:1))
+	for (ii in observed_pairs) {
+		expect_true(all(colSums(draws[ii, , drop = FALSE]) == 1))
+	}
+	expect_true(any(apply(draws[m == 0, , drop = FALSE], 1, function(z) length(unique(z)) > 1)))
+	expect_identical(des$.__enclos_env__$private$m, m)
 })
 
 test_that("KK designs with KK inference work", {

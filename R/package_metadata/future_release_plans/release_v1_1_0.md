@@ -288,6 +288,12 @@ see `TODO-17o` below) — revives the never-populated `t0s_rand` fast path so a
 randomization CI for a linear statistic costs one null distribution instead
 of ~20–35.
 
+`custom_rand_stat_batched_cpp_loop.md` (added 2026-10-13, user decision;
+`→ TODO-1..7`; see `TODO-49` below) — moves `InferenceRandCustom`'s
+per-permutation loop over `w_mat` from R into one C++ call that dereferences
+the user's compiled statistic once, the pattern
+`design_optimal_annealing_search.cpp` already uses for `custom_objective`.
+
 The honest-inference-after-model-selection family's no-substrate half
 (moved from v2.0.0 on 2026-09-05, user decision; see `TODO-17y` /
 `TODO-17z` below): `model_selection_framework.md` **Phase A** — the
@@ -1406,6 +1412,31 @@ ticked in their **owning plans**; this list is the release index.
   - **Decision D1 (decided 2026-10-14, implemented in the source tree):**
     portable build by default for every install, with `EDI_PORTABLE=0` as
     the opt-in tuned build. See the plan and NEWS.
+
+- [ ] TODO-49 (added 2026-10-13, user decision): **Batched C++ loop for the
+  custom randomization statistic** — `custom_rand_stat_batched_cpp_loop.md →
+  TODO-1..7`. `InferenceRandCustom$compute_fast_randomization_distr()` loops
+  over `w_mat` in R and crosses R ↔ C++ once per permutation, even when the
+  user supplied compiled C++. A new serial export,
+  `compute_custom_rand_stat_distr_xptr_cpp()` in
+  `user_compiled_fn_shims.cpp`, dereferences the `user_compiled_fns.h`
+  pointer once and loops in C++. This is the pattern
+  `design_optimal_annealing_search.cpp:152-155` already uses for
+  `DesignFixedOptimal`'s `custom_objective`. R functions, pre-compiled
+  Rcpp functions and Rcpp-typed source strings keep the R loop.
+  - **Decision D1 (resolved 2026-10-13, user decision): option (b).** Source
+    strings may now also use the Eigen-typed `user_compiled_fns.h`
+    signature. Those sources, and XPtrs, get the C++ loop. Existing
+    Rcpp-typed sources are unchanged, so the change is additive. Making the
+    Eigen signature the only one is breaking and is deferred to
+    `release_v2_0_0.md → TODO-7b`.
+  - **Gate:** bit-for-bit equality with the R loop (2- and 3-argument forms,
+    `delta` 0 and non-zero, fork and `mirai` workers). The speedup is
+    measured through TODO-4b's noise-floor harness before any number is
+    published.
+  - **Depends on:** `cached_cpp_compile()` (landed 2026-10-13), the
+    per-process compile memo that stopped `cppFunction`/`cppXPtr` from
+    leaving one `file*.cpp` per call in `tempdir()`.
 
 ## Standing constraints
 
