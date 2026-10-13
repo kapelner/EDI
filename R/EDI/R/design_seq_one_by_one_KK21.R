@@ -348,55 +348,11 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		proportion_use_speedup = NULL,
 		survival_use_speedup_for_no_censoring = NULL,
 		ordinal_use_speedup = NULL,
-		# KK14 may condition on its realized pairs because its covariate-only
-		# match structure is invariant to treatment assignment. KK21 cannot:
-		# outcome-informed covariate weights depend on the preceding assignments,
-		# so a new assignment path can produce different pairs. Replay the full
-		# sequential rule while exposing only responses available before each
-		# assignment. Restore the completed design even if one replay errors.
-		draw_ws_raw = function(r = 100){
-			n_completed = private$t
-			state = list(
-				t = private$t,
-				w = private$w,
-				m = private$m,
-				y = private$y,
-				y_L = private$y_L,
-				y_R = private$y_R,
-				covariate_weights = private$covariate_weights,
-				iteration_weights = private$iteration_weights
-			)
-			on.exit({
-				private$t = state$t
-				private$w = state$w
-				private$m = state$m
-				private$y = state$y
-				private$y_L = state$y_L
-				private$y_R = state$y_R
-				private$covariate_weights = state$covariate_weights
-				private$iteration_weights = state$iteration_weights
-			}, add = TRUE)
-
-			w_mat = matrix(NA_real_, nrow = n_completed, ncol = r)
-			for (j in seq_len(r)) {
-				private$w = rep(NA_real_, length(state$w))
-				private$m = rep(NA_real_, length(state$m))
-				private$covariate_weights = NULL
-				private$iteration_weights = list()
-				for (t_replay in seq_len(n_completed)) {
-					private$t = t_replay
-					private$y = state$y
-					private$y_L = state$y_L
-					private$y_R = state$y_R
-					private$y[t_replay:n_completed] = NA_real_
-					private$y_L[t_replay:n_completed] = NA_real_
-					private$y_R[t_replay:n_completed] = NA_real_
-					private$w[t_replay] = self$assign_wt()
-				}
-				w_mat[, j] = private$w[seq_len(n_completed)]
-			}
-			w_mat
-		},
+		# draw_ws_raw is inherited from KK14: KK21's marginal weights regress y on
+		# each covariate alone (no treatment column), so under the sharp null (y
+		# fixed) the weights, and hence the reservoir/pair structure, are invariant
+		# to the assignment path. Conditioning on the realized pairs is exact.
+		# KK21stepwise overrides this because its weights condition on w.
 		duplicate = function(){
 			d = super$duplicate()
 			d

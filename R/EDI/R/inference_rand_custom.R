@@ -88,7 +88,7 @@ InferenceRandCustom = define_inference_class(
 		# used by DesignFixedOptimal's custom_objective.
 		install_stat_cpp = function(fn){
 			if (is.character(fn) && length(fn) == 1L) {
-				compiled = Rcpp::cppFunction(fn)
+				compiled = cached_cpp_compile(fn)
 				arity = length(formals(compiled))
 				if (!arity %in% c(2L, 3L)) stop("custom_randomization_statistic_cpp source must define a function with 2 arguments (y, w) or 3 arguments (y, w, dead); got ", arity, ".")
 				private[["compiled_cpp_stat_src"]] = fn
@@ -148,10 +148,7 @@ InferenceRandCustom = define_inference_class(
 			# cpp_fn_override: a worker recompiles its own copy from
 			# compiled_cpp_stat_src rather than dereferencing an XPtr serialized
 			# from the main process (same rationale as the ported code above).
-			cpp_fn_override = if (!is.null(private$compiled_cpp_stat_src)) local({
-				.src = private$compiled_cpp_stat_src; .fn = NULL
-				function(){ if (is.null(.fn)) .fn <<- Rcpp::cppFunction(.src); .fn }
-			})() else NULL
+			cpp_fn_override = if (!is.null(private$compiled_cpp_stat_src)) cached_cpp_compile(private$compiled_cpp_stat_src) else NULL
 			# `y` arrives already shifted to the delta-null (treated responses minus
 			# delta, see setup_randomization_template_and_shifts()); each permuted
 			# assignment must add delta back onto its own treated units, exactly as

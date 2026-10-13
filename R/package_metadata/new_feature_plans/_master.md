@@ -1223,6 +1223,21 @@ already stated there:**
   -95` (TODO-95 = `../bug_fix_plans/design_draws_depend_on_thread_count.md`:
   greedy, D/A-optimal, pair-switching and rerandomization draws depend on
   the thread count, and the vignette claims they don't).
+- **5AO. Batched C++ loop for the custom randomization statistic** (added
+  2026-10-13, user decision) → `release_v1_1_0.md → TODO-49`.
+  `custom_rand_stat_batched_cpp_loop.md`: `InferenceRandCustom`'s
+  randomization distribution loops over `w_mat` in R, so compiled user
+  statistics still pay one R ↔ C++ round trip per permutation, per CI
+  bisection step. A new serial `compute_custom_rand_stat_distr_xptr_cpp()`
+  (`user_compiled_fn_shims.cpp`, `unity_06`) dereferences the
+  `user_compiled_fns.h` pointer once and loops in C++. This is the pattern
+  `design_optimal_annealing_search.cpp` already uses for `custom_objective`.
+  D1 resolved 2026-10-13 (user decision) to option (b): source strings may
+  also use the Eigen-typed signature and then take the pointer path;
+  Rcpp-typed sources are unchanged. Gate: bit-for-bit equality with the R
+  loop. Dropping the Rcpp-typed form is breaking and follows in
+  `release_v2_0_0.md → TODO-7b`. Depends on `cached_cpp_compile()` (landed
+  2026-10-13), which stops per-call `file*.cpp` leaks in `tempdir()`.
 
 ### Audit reports (2026-08-26/27) — reference, not work items
 

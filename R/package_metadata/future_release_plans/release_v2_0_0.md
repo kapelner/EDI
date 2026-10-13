@@ -252,6 +252,12 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   1.1.0 note, 1.1.0 ships `DesignFixedGreedyPairSwitch` with the
   general-`prob_T` rederivation and soft-deprecates the two old names
   (warnings, aliases); the hard deletion is a 2.0.0 item.
+- `custom_rand_stat_batched_cpp_loop.md` — **Eigen-only C++ source strings**
+  for `InferenceRandCustom`'s `custom_randomization_statistic_cpp` (added
+  2026-10-13, user decision; option (c) of that plan's D1, see `TODO-7b`).
+  v1.1.0 accepts both the legacy Rcpp-typed signature and the Eigen-typed
+  `user_compiled_fns.h` signature. 2.0.0 drops the Rcpp-typed one, so every
+  source string reaches the batched C++ loop.
 - Any other public-contract break surfaced by the multi-arm `w` storage
   change or the response-shape work lands here, never in 1.x.
 
@@ -422,6 +428,21 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
 - [ ] TODO-7: **Breaking changes** — greedy-class deletion; any contract
   breaks accumulated from TODO-3/4, each with a documented deprecation
   path from 1.x.
+- [ ] TODO-7b (added 2026-10-13, user decision): **Eigen-only source strings
+  for the custom randomization statistic** — option (c) of
+  `custom_rand_stat_batched_cpp_loop.md`'s D1. Drop the Rcpp-typed
+  `(NumericVector y, IntegerVector w[, IntegerVector dead])` source-string
+  signature of `custom_randomization_statistic_cpp`. Every source string
+  then uses the `user_compiled_fns.h` Eigen convention and the batched
+  C++ loop. Pre-compiled Rcpp functions and R functions stay supported on
+  the R loop.
+  - **Deprecation path (last 1.x release):** a warning on Rcpp-typed sources
+    that shows the equivalent Eigen signature, plus a migration-guide entry
+    (`TODO-9`).
+  - **Depends on:** `release_v1_1_0.md → TODO-49`, which ships the Eigen
+    source form and the batched kernel.
+  - Then delete the legacy branch of the signature detection in
+    `install_stat_cpp()` and update the roxygen `@param`.
 - [ ] TODO-8: **Landscape refresh** `response_types_landscape_report.md`
   after TODO-4.
 - [ ] TODO-9: **Release mechanics** per `release.md`, including a

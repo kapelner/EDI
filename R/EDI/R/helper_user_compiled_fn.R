@@ -59,7 +59,7 @@ normalize_user_cpp_fn = function(x, what, signature_name, depends = "RcppEigen",
 		if (!requireNamespace("RcppXPtrUtils", quietly = TRUE)) {
 			stop(sprintf("Package 'RcppXPtrUtils' is required to compile %s from source; please install it.", what))
 		}
-		xptr = RcppXPtrUtils::cppXPtr(code = x, depends = depends)
+		xptr = cached_cpp_compile(x, "cppXPtr", depends = depends)
 		recorded = attr(xptr, "args")
 		if (!is.null(recorded) && !user_cpp_xptr_args_match(recorded, sig$args)) {
 			stop(sprintf(
@@ -92,4 +92,32 @@ assert_custom_objective_xptr = function(custom_objective){
 		stop('custom_objective is required when objective = "custom" (an RcppXPtrUtils::cppXPtr() external pointer or a C++ source string).')
 	}
 	invisible(normalize_user_cpp_fn(custom_objective, "custom_objective", "design_objective"))
+}
+
+# Per-process memo of runtime C++ compiles, keyed on (compiler, depends,
+# source). Rcpp::cppFunction() and RcppXPtrUtils::cppXPtr() both go through
+# sourceCpp(code = ...), which writes a fresh file*.cpp into tempdir()'s
+# sourceCpp cache on every call even when it reuses an existing build. Calling
+# them once per randomization-distribution evaluation (once per delta during
+# CI bisection) left tens of thousands of files per process and exhausted
+# /tmp's inodes. Each forked/PSOCK worker gets its own copy of this env, so a
+# worker compiles once and never dereferences another process's pointers.
+.user_cpp_compile_cache = new.env(parent = emptyenv())
+.user_cpp_compile_cache$keys = character(0)
+.user_cpp_compile_cache$values = list()
+
+cached_cpp_compile = function(src, compiler = c("cppFunction", "cppXPtr"), depends = character(0)){
+	compiler = match.arg(compiler)
+	cache = .user_cpp_compile_cache
+	key = paste(c(compiler, depends, src), collapse = "\r")
+	idx = match(key, cache$keys)
+	if (!is.na(idx)) return(cache$values[[idx]])
+	value = if (identical(compiler, "cppXPtr")) {
+		RcppXPtrUtils::cppXPtr(code = src, depends = depends)
+	} else {
+		Rcpp::cppFunction(src)
+	}
+	cache$keys = c(cache$keys, key)
+	cache$values = c(cache$values, list(value))
+	value
 }
