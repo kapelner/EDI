@@ -269,7 +269,15 @@ inline bool should_parallelize_replicates(int n_work_items,
                                           int num_cores,
                                           int min_items = 128,
                                           long long min_total_work = 20000) {
-    return num_cores > 1 &&
+    int available_threads = num_cores;
+#ifdef _OPENMP
+    // R workers and package OpenMP threads are configured independently by
+    // set_num_cores() and set_package_threads(), respectively. Replicate
+    // kernels should follow the package thread budget, not the R worker count
+    // passed through legacy wrapper signatures.
+    available_threads = omp_get_max_threads();
+#endif
+    return available_threads > 1 &&
            n_work_items >= min_items &&
            static_cast<long long>(n_work_items) * static_cast<long long>(item_size) >= min_total_work;
 }

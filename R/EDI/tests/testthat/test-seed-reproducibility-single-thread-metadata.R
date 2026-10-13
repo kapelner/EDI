@@ -14,6 +14,9 @@ test_that("no design is marked reproducible only with a single thread", {
 	expect_false(isTRUE(registry$DesignFixedBinaryMatch$seed_reproducible_draw_requires_single_thread))
 	expect_false(isTRUE(registry$DesignFixedMatchingGreedyPairSwitching$seed_reproducible_draw_requires_single_thread))
 	expect_false(isTRUE(registry$DesignFixedGreedyDOptimal$seed_reproducible_draw_requires_single_thread))
+	expect_true(isTRUE(registry$DesignFixedBinaryMatch$seed_reproducible_draw))
+	expect_true(isTRUE(registry$DesignFixedOptimal$seed_reproducible_draw))
+	expect_false(isTRUE(registry$DesignFixedOptimal$seed_reproducible_draw_requires_single_thread))
 	expect_true(isTRUE(registry$DesignFixedRerandomization$seed_reproducible_draw))
 	expect_false(isTRUE(registry$DesignFixedRerandomization$seed_reproducible_draw_requires_single_thread))
 })
@@ -108,7 +111,11 @@ test_that("greedy-family draw matrices are invariant to the OpenMP core count", 
 		# of the cross-core assertion.
 		expect_identical(w1, draw_matrix(factories[[name]], 2L), info = paste(name, "repeat"))
 		if (parallel::detectCores(logical = TRUE) >= 4L) {
-			expect_identical(w1, draw_matrix(factories[[name]], 4L), info = name)
+			w4 = draw_matrix(factories[[name]], 4L)
+			expect_identical(w1, w4, info = name)
+			# Repeating at four cores catches a scheduler race that may not occur
+			# in the two-core run.
+			expect_identical(w4, draw_matrix(factories[[name]], 4L), info = paste(name, "4-core repeat"))
 		}
 	}
 })
@@ -136,7 +143,9 @@ test_that("matching greedy pair switching is invariant to the OpenMP core count"
 	expect_identical(w1, draw_matrix(2L))
 	expect_identical(w1, draw_matrix(2L))
 	if (parallel::detectCores(logical = TRUE) >= 4L) {
-		expect_identical(w1, draw_matrix(4L))
+		w4 = draw_matrix(4L)
+		expect_identical(w1, w4)
+		expect_identical(w4, draw_matrix(4L))
 	}
 })
 
@@ -157,4 +166,43 @@ test_that("OpenMP draw kernels retain no worker-indexed seed path", {
 	expect_false(any(grepl("seeds[", code, fixed = TRUE)))
 	expect_false(any(grepl("omp_get_thread_num()", code, fixed = TRUE)))
 	expect_true(any(grepl("seed_for_index", code, fixed = TRUE)))
+})
+
+test_that("randomization p-values for affected fixed designs are invariant at 1 and 4 cores", {
+	skip_on_cran()
+	if (parallel::detectCores(logical = TRUE) < 4L) {
+		skip("fewer than 4 logical cores available")
+	}
+	old_cores = EDI:::get_num_cores()
+	on.exit(EDI:::set_package_threads(old_cores), add = TRUE)
+
+	n = 20L
+	X = data.frame(x1 = seq_len(n), x2 = rep(c(0, 1), length.out = n), x3 = rep(c(1, 1, 0, 0), length.out = n))
+	y = c(2, 1, 4, 3, 5, 2, 6, 4, 7, 5, 8, 6, 9, 4, 10, 7, 11, 8, 12, 9)
+	factories = list(
+		DesignFixedGreedy = function() DesignFixedGreedy$new(n = n, response_type = "continuous", seed = 91L, verbose = FALSE),
+		DesignFixedGreedyDOptimal = function() DesignFixedGreedyDOptimal$new(n = n, response_type = "continuous", seed = 91L, verbose = FALSE),
+		DesignFixedRerandomization = function() DesignFixedRerandomization$new(n = n, response_type = "continuous", seed = 91L, obj_val_cutoff = 0.1, verbose = FALSE)
+	)
+	if (requireNamespace("nbpMatching", quietly = TRUE)) {
+		factories$DesignFixedMatchingGreedyPairSwitching = function() DesignFixedMatchingGreedyPairSwitching$new(
+			n = n, response_type = "continuous", seed = 91L, verbose = FALSE
+		)
+	}
+
+	p_value = function(factory, cores) {
+		EDI:::set_package_threads(cores)
+		set.seed(20261013L)
+		des = factory()
+		des$add_all_subjects_to_experiment(X)
+		des$assign_w_to_all_subjects()
+		des$add_all_subject_responses(y)
+		inf = InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+		inf$compute_rand_two_sided_pval(r = 64L, show_progress = FALSE)
+	}
+	for (name in names(factories)) {
+		p1 = p_value(factories[[name]], 1L)
+		p4 = p_value(factories[[name]], 4L)
+		expect_identical(p1, p4, info = name)
+	}
 })

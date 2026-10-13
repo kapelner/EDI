@@ -76,7 +76,7 @@ and benchmark results.
 - [Setting a seed for reproducible output](#setting-a-seed-for-reproducible-output)
 - [Vignettes](#vignettes)
 - [Future Releases](#future-releases)
-- [Tuning Local Builds](#tuning-local-builds) · [Local performance tuning](#local-performance-tuning) · [Why CPU-only](#why-edi-targets-the-cpu-and-not-gpus-tpus-or-quantum-hardware)
+- [Tuning Local Builds](#tuning-local-builds) · [Optimizing R itself](R/package_metadata/R_OPTIMIZATION.md) · [Local performance tuning](#local-performance-tuning) · [Why CPU-only](#why-edi-targets-the-cpu-and-not-gpus-tpus-or-quantum-hardware)
 - [Contributing](#contributing) · [License](#license) · [Citation](#citation)
 
 ## R package
@@ -112,12 +112,11 @@ install.packages("EDI",
 RECOMMENDED: install the development version straight from GitHub without cloning
 (requires a C++ compiler toolchain for R packages, e.g. Rtools on Windows,
 Xcode command line tools on macOS, or `r-base-dev` on Debian/Ubuntu — the R
-package lives in the `R/EDI` subdirectory of this repo). Building from
-source like this (or from a local clone, below) automatically compiles with
-your machine's native CPU optimizations (`-march=native`, `-O3`) for extra
-speed — no flags to set yourself. The CRAN and R-universe installs above use
-a portable build instead, since those binaries have to run on hardware they
-were never compiled on:
+package lives in the `R/EDI` subdirectory of this repo).
+Every install of `EDI` (CRAN, R-universe, or GitHub source) uses the same
+standard, portable build so results match everywhere; if you want more speed,
+compile it yourself with `EDI_PORTABLE=0` and optimized libraries, as described
+in [Tuning Local Builds](#tuning-local-builds):
 
 ```r
 remotes::install_github("kapelner/EDI", subdir = "R/EDI")
@@ -445,34 +444,39 @@ work breakdowns live in `R/package_metadata/future_release_plans/` and
 
 ## Tuning Local Builds
 
+> **Optimizing R itself:** [R_OPTIMIZATION.md](R/package_metadata/R_OPTIMIZATION.md) covers
+> rebuilding R with optimized flags, LTO, and profile-guided optimization
+> (7–12% faster on `EDI`'s comprehensive test suite, with identical results),
+> with step-by-step reinstall instructions for both options.
+
 `EDI`'s `configure` script resolves its compiler flags at install time based
-on a handful of environment variables, so a plain `R CMD INSTALL R/EDI`
-already builds the tuned, machine-specific configuration by default:
+on a handful of environment variables. A plain `R CMD INSTALL R/EDI` builds
+the same portable configuration as CRAN; set `EDI_PORTABLE=0` to opt into the
+tuned, machine-specific build:
 
 | Variable | Default | Effect |
 | --- | --- | --- |
-| `EDI_PORTABLE` | `0` | `1` drops `-march=native -mtune=native` (and the other non-portable flags below) for a fully portable, warning-free build. Set this for CRAN/CI-style checks. |
-| `EDI_NATIVE_SPEED` | `1` | Adds `-O3`; `0` leaves `CXXFLAGS` at R's own default optimization level. |
+| `EDI_PORTABLE` | `1` | `0` opts into the tuned build: `-march=native -mtune=native` plus the other non-portable flags below. The binary then only runs on CPUs like the one it was built on, and floating-point results can differ in the last bits from the standard build. |
+| `EDI_NATIVE_SPEED` | `1` | With `EDI_PORTABLE=0`, adds `-O3`; `0` leaves `CXXFLAGS` at R's own default optimization level. |
 | `EDI_NATIVE_LTO` | `0` | `1` adds `-flto` on top of the native-speed flags. Off by default — GCC/RcppEigen LTO builds have shown severe slowdowns on some of the small model-fit kernels. |
 | `EDI_DISABLE_VECTORIZATION` | `0` | `1` adds `-DEIGEN_DONT_VECTORIZE -DEIGEN_UNALIGNED_VECTORIZE=0 -fno-tree-vectorize`, for isolating SIMD's contribution when benchmarking. |
 | `EDI_DEBUG_SYMBOLS` | `0` | `1` adds `-g1 -fno-omit-frame-pointer` (profiler-friendly symbols) instead of stripping with `-g0`. |
 | `EDI_UNITY` | `1` | Compiles `src/*.cpp` as ~10 merged "unity" translation units instead of one object per file, which amortizes RcppEigen's per-TU header-parsing cost. Set `0` for a targeted/incremental edit-compile loop on a single kernel file. |
 
-When `EDI_PORTABLE=0` (the default), the non-portable build also carries
+With `EDI_PORTABLE=0`, the non-portable build also carries
 `-march=native -mtune=native -Wno-ignored-attributes` unconditionally, plus
 `-DNDEBUG -DEIGEN_NO_DEBUG` and `-fstack-protector` regardless of
-`EDI_PORTABLE`. For a fully portable install (e.g. matching what CRAN builds),
-use:
+`EDI_PORTABLE`. To opt into the tuned build:
 
 ```sh
-EDI_PORTABLE=1 R CMD INSTALL R/EDI
+EDI_PORTABLE=0 R CMD INSTALL R/EDI
 ```
 
 To compare plain native versus native plus link-time optimization:
 
 ```sh
-R CMD INSTALL R/EDI
-EDI_NATIVE_LTO=1 R CMD INSTALL R/EDI
+EDI_PORTABLE=0 R CMD INSTALL R/EDI
+EDI_PORTABLE=0 EDI_NATIVE_LTO=1 R CMD INSTALL R/EDI
 ```
 
 To benchmark the three builds back-to-back, run:

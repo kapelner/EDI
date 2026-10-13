@@ -7,7 +7,8 @@
 #         SKIP_SRC=1 bash profile/install_perf_tools.sh # apt + pip + R only
 #         SRC_DIR=~/perf-tools bash profile/install_perf_tools.sh   # where git clones go (default ~/perf-tools)
 #         PREFIX=~/.local bash profile/install_perf_tools.sh        # install prefix for source builds / npm (default ~/.local, no sudo)
-#         ONLY=pip,r,src bash profile/install_perf_tools.sh         # run a subset of steps (apt,pip,r,src); sudo is only needed for apt
+#         ONLY=pip,r,src bash profile/install_perf_tools.sh         # run a subset of steps (apt,pip,r,src,sde); sudo is only needed for apt
+#         ONLY=sde bash profile/install_perf_tools.sh               # only unpack a downloaded Intel SDE kit
 # Verify afterwards with:  bash profile/verify_perf_tools.sh
 #
 # Not installed here (manual / licensed / vendor downloads — see the end of this script):
@@ -16,13 +17,16 @@
 set -euo pipefail
 SRC_DIR="${SRC_DIR:-$HOME/perf-tools}"
 PREFIX="${PREFIX:-$HOME/.local}"
-ONLY="${ONLY:-apt,pip,r,src}"
+ONLY="${ONLY:-apt,pip,r,src,sde}"
 want() { case ",$ONLY," in *",$1,"*) return 0;; *) return 1;; esac; }
 mkdir -p "$PREFIX/bin"
 
 if want apt; then
 echo "== 1/5 apt packages =="
 sudo apt-get update
+# BOLT's apt package is versioned and must match the default llvm (plain "bolt" is the
+# unrelated Thunderbolt daemon).
+LLVM_VER=$(apt-cache depends llvm 2>/dev/null | grep -oE 'llvm-[0-9]+' | head -1 | cut -d- -f2)
 APT_PKGS=(
   # sampling / HW-counter profilers
   linux-tools-common linux-tools-generic
@@ -37,6 +41,7 @@ APT_PKGS=(
   dwarves                            # pahole
   # assembly / compiler / static analysis
   llvm clang clang-tidy clang-tools lld
+  ${LLVM_VER:+bolt-$LLVM_VER}        # BOLT post-link optimizer: llvm-bolt-N, perf2bolt-N in /usr/bin; merge-fdata in /usr/lib/llvm-N/bin
   cppcheck iwyu ccache
   # machine state & benchmark hygiene
   hyperfine stress-ng powertop lm-sensors
@@ -67,6 +72,8 @@ sudo apt-get install -y --no-install-recommends "${AVAIL[@]}"
 #     cycles/instructions/branches/branch-misses/cache-misses and named events (fp_assist.any,
 #     topdown-*), perf stat --topdown (TMA level 1), perf diff, bpftrace/bcc uprobes (BTF present),
 #     valgrind/heaptrack/DHAT, llvm-mca/OSACA/uiCA/SDE, hyperfine, all R/Python profilers.
+#     LBR branch-stack sampling also works (perf record -e cycles:u -j any,u; 32-entry stacks,
+#     checked 2026-10-13), which is the profile mode BOLT (perf2bolt) wants.
 #   DOES NOT work in WSL2: PEBS precise events (cycles:pp -> "Error") so perf mem and perf c2c
 #     fail ("memory events not supported"); Intel PT (no intel_pt PMU); /dev/cpu/*/msr (so
 #     likwid-perfctr, turbostat, likwid-powermeter cannot read counters/frequency/energy);
@@ -166,10 +173,37 @@ cat <<'TXT'
     # processor" inside WSL2 (2026.4 on i7-9750H) — they need bare metal, like PEBS/MSR. User-mode
     # hotspots/threading and Advisor survey/roofline (software FLOP counting) work on WSL2.
   Intel SDE (instruction mix, ISA emulation): https://www.intel.com/content/www/us/en/developer/articles/tool/software-development-emulator.html
+    # The kit (sde-external-<ver>-<date>-lin.tar.xz) is behind a browser click-through, so download it by
+    # hand; this script then unpacks it automatically (see below) from ~, ~/Downloads, a Windows
+    # Downloads folder under /mnt/c, or SDE_TARBALL=/path/to/kit.
   Intel Pin:                                  https://www.intel.com/content/www/us/en/developer/articles/tool/pin-a-binary-instrumentation-tool-downloads.html
-  AMD uProf (AMD hosts):                      https://www.amd.com/en/developer/uprof.html  (.deb)
+  AMD uProf (AMD hosts only; nothing to install on Intel CPUs): https://www.amd.com/en/developer/uprof.html  (.deb)
   Compiler Explorer (local):                  docker run -p 10240:10240 compilerexplorer/compiler-explorer  (or madduci/docker-compiler-explorer)
   IACA: discontinued by Intel — use uiCA/llvm-mca/OSACA.
   Empirical Roofline Tool (ERT):              https://bitbucket.org/berkeleylab/cs-roofline-toolkit
 TXT
+
+# Intel SDE: unpack a manually downloaded kit (newest one found) into $PREFIX/opt, wrapper in $PREFIX/bin.
+if want sde; then
+SDE_TARBALL="${SDE_TARBALL:-}"
+if [ -z "$SDE_TARBALL" ]; then
+  shopt -s nullglob
+  for f in "$HOME"/sde-external-*-lin.tar.xz "$HOME"/Downloads/sde-external-*-lin.tar.xz /mnt/c/Users/*/Downloads/sde-external-*-lin.tar.xz; do
+    if [ -z "$SDE_TARBALL" ] || [ "$f" -nt "$SDE_TARBALL" ]; then SDE_TARBALL="$f"; fi
+  done
+  shopt -u nullglob
+fi
+if [ -n "$SDE_TARBALL" ] && [ -f "$SDE_TARBALL" ]; then
+  echo "Intel SDE: unpacking $SDE_TARBALL"
+  echo "  sha256: $(sha256sum "$SDE_TARBALL" | cut -d' ' -f1)  (compare with the SHA256 on Intel's download page)"
+  mkdir -p "$PREFIX/opt" "$PREFIX/bin"
+  tar -xJf "$SDE_TARBALL" -C "$PREFIX/opt"
+  sde_dir="$PREFIX/opt/$(basename "$SDE_TARBALL" .tar.xz)"
+  printf '#!/bin/sh\nexec "%s/sde64" "$@"\n' "$sde_dir" > "$PREFIX/bin/sde64"; chmod +x "$PREFIX/bin/sde64"
+  echo "  installed: $PREFIX/bin/sde64 -> $sde_dir/sde64"
+else
+  echo "Intel SDE: no sde-external-*-lin.tar.xz found — download it from the URL above, then rerun"
+  echo "  (or: SDE_TARBALL=/path/to/sde-external-...-lin.tar.xz ONLY=sde bash profile/install_perf_tools.sh)"
+fi
+fi
 echo "done."

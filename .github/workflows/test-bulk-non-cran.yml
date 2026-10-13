@@ -57,8 +57,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Required, not optional, for a build-once-share-with-every-shard
-      # artifact: EDI_PORTABLE=1 disables configure's default -march=native/
-      # -mtune=native tuning (see R/EDI/configure), which bakes in whatever
+      # artifact: EDI_PORTABLE=1 (configure's default since 2026-10-14, kept
+      # explicit here) rules out -march=native/-mtune=native tuning (see
+      # R/EDI/configure), which bakes in whatever
       # instruction-set extensions THIS job's specific runner host happens to
       # support. Every shards job below runs the resulting .so on a
       # potentially different physical runner host; a -march=native build

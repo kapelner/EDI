@@ -1403,8 +1403,9 @@ ticked in their **owning plans**; this list is the release index.
     on every platform leg, plus floats within tolerance, plus a meta-test
     that every registry class has a fixture.
   - **Depends on:** `release_v1_0_5.md → TODO-91, -93, -95`.
-  - **Open owner decision D1:** portable build by default for GitHub source
-    installs.
+  - **Decision D1 (decided 2026-10-14, implemented in the source tree):**
+    portable build by default for every install, with `EDI_PORTABLE=0` as
+    the opt-in tuned build. See the plan and NEWS.
 
 ## Standing constraints
 

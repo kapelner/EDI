@@ -100,7 +100,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Output of `sessionInfo()` (R) or `python -c "import edi_kernels, numpy, sys; print(edi_kernels.__version__, numpy.__version__, sys.version)"` plus OS. Say whether EDI was built with `EDI_PORTABLE=1` (default `0` on a local install).
+      description: Output of `sessionInfo()` (R) or `python -c "import edi_kernels, numpy, sys; print(edi_kernels.__version__, numpy.__version__, sys.version)"` plus OS. Say whether EDI was built with `EDI_PORTABLE=0` (the tuned build; the default is `1`, portable, everywhere).
       render: text
     validations:
       required: true

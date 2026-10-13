@@ -9,6 +9,16 @@ bug), and standard-error and confidence-interval fixes.
 
 ## Breaking changes
 
+* Installing from GitHub source (`remotes::install_github()`, `pak`, or a
+  local clone) now builds the same portable configuration as CRAN and
+  R-universe. It previously defaulted to a machine-tuned build
+  (`-march=native -mtune=native -O3`). Results are now consistent across every
+  install method, and a compiled library no longer crashes with "illegal
+  instruction" when copied to a different CPU (shared library caches, Docker
+  images, HPC nodes). For maximum speed, compile it yourself with
+  `EDI_PORTABLE=0` and optimized libraries; see "Tuning Local Builds" in the
+  README.
+
 * Binary matching now minimizes ordinary Mahalanobis or Euclidean distance,
   matching `nbpMatching::gendistance()`, instead of squared distance. This can
   change the selected pairs. `match_objective = "squared_distance"` on

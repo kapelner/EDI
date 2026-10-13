@@ -100,10 +100,6 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen:
       }
   }
 
-#ifdef _OPENMP
-  omp_set_num_threads(num_cores);
-#endif
-
   if (is_fixed_matching && nsim > 0) {
     // ULTRA-FAST PATH
     std::vector<int> res_idx;
@@ -142,7 +138,7 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen:
       }
     }
 
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static) num_threads(omp_get_max_threads())
     for (int b = 0; b < nsim; ++b) {
       const int* w_col = w_ptr + (size_t)b * n;
       double total_stat = 0;
@@ -215,7 +211,7 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen:
     return wrap(results_vec);
   }
 
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static) num_threads(omp_get_max_threads())
   for (int b = 0; b < nsim; ++b) {
     const int* w_col = w_ptr + (size_t)b * n;
     const int* m_col = m_ptr + (size_t)b * n;

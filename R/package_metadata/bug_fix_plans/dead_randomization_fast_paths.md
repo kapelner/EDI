@@ -115,7 +115,7 @@ not exist either.
   **Decision/implementation 2026-10-09:** chose (a). The dangling private
   method was deleted, preserving the existing worker fallback rather than
   silently claiming a native fast path that has never existed. The OLS
-  wiring-plan reference still needs its linked documentation correction.
+  wiring-plan reference now names the valid average-difference template.
 
 - [x] TODO-4: **Stop hiding fast-path failures (F3).** Under
   `should_run_asserts()`, rethrow the fast-path error instead of falling

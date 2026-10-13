@@ -86,11 +86,16 @@ range, since the plan files' internal numbering did not change.
   permutation set, and cover tier-1 plus the numerically verified KK OLS
   one-likelihood opt-in. The CI warm-up verifies that a complete cache also
   has matching slopes and the CI permutation signature before reusing it. The
-  KK-GEE stale read was removed. TODO-6's source benchmark and README/roxygen
-  documentation are present, but its requested timing report remains open
-  because this workspace's `Rscript` cannot load `libmkl_gf_lp64.so.2`;
-  therefore this release item remains unchecked. The decision-gated
-  direct-inversion TODO-8 remains deliberately out of scope.
+  KK-GEE stale read was removed. TODO-6's full source-loaded benchmark ran on
+  2026-10-13 (`compile = FALSE`, three repetitions per `n/r` cell); median
+  speedups were 1.13–1.59× for average difference and 1.05–2.14× for OLS,
+  below the plan's projected 20–30×. The OLS slope calculation was then
+  vectorized by residualizing the fixed covariate block once, with the
+  per-permutation QR reference and tier-1 equivalence tests passing. TODO-6
+  records the complete measurements; the projected gain was not achieved, so
+  this release item remains unchecked pending reconciliation of that target.
+  The decision-gated direct-inversion TODO-8 remains deliberately out of
+  scope.
 - [ ] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
   randomization-distribution kernel; triage dead kernels** —
   `ols_randomization_distr_cpp_wiring.md → TODO-1..6`.
@@ -121,10 +126,11 @@ range, since the plan files' internal numbering did not change.
   kernel on its hardened covariate matrix for untransformed, nonmatching
   draws. The kernel returns `NA` for one-arm or rank-deficient permutations,
   and source regressions cover those guards plus fast/worker parity. The
-  required native compile/rebuild and runtime equivalence/benchmark remain
-  unrun (no compilation permission; this host's R runtime is unavailable),
-  as do the linked dead-export triage items; this release checkbox remains
-  open.
+  focused kernel-contract, end-to-end OLS p-value/CI parity, and
+  parallel-threshold suites passed source-loaded on 2026-10-13 with
+  `compile = FALSE`, using the installed native library. No compile/rebuild
+  was performed. The full parameter matrix, dead-export triage, and benchmark
+  remain open, so this release checkbox remains open.
 - [ ] TODO-4 (added 2026-08-30, source fixed 2026-10-08; native validation pending): **Guard the unguarded
   information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
   → TODO-1..6`. Correctness, not performance. `fast_negbin_regression.cpp:485`
@@ -162,10 +168,12 @@ range, since the plan files' internal numbering did not change.
   `.inverse()` values for accepted inputs. All five bare sites and the evolved
   R-facing ZINB covariance are guarded, kernels expose
   `information_invertible`, and wrappers use the existing typed
-  `model_standard_error_unavailable` paths. The source implementation,
-  documentation, reason-name audit, and source-loaded assertions are complete,
-  but the linked plan's targeted native compile and kernel execution remain
-  open; native execution is staged for the next permitted rebuild.
+  `model_standard_error_unavailable` paths. A high-level NegBin `harden =
+  FALSE` edge was found and fixed on 2026-10-14: when the native guard rejects
+  the information matrix, the wrapper now preserves the finite point estimate
+  but caches typed SE non-estimability. The information-inverse test and
+  information-matrix reference suites passed source-loaded with the installed
+  native library. The linked plan's targeted native rebuild remains open.
 
   **Cross-confirmed 2026-09-24** by the new `pval_miscalibration`/
   `low_coverage` audit checks, independently of the direct-repro check
@@ -2348,6 +2356,43 @@ baseline as expected/benign.
     static test coverage are present. This TODO remains open until an
     authorized native rebuild verifies the required 1/2/4-core allocation,
     repeat-run, tight-cutoff, and randomization-inference comparisons.
+- [ ] TODO-96 (added 2026-10-14, user decision; found while wiring the
+  cross-platform digest test for `release_v1_1_0.md → TODO-48`): **C++
+  kernels overwrite OpenMP's global thread count with their own argument.**
+  - `binary_match_search.cpp:35` calls `omp_set_num_threads(num_cores)`.
+    `num_cores` comes from the design's `self$num_cores`, which is
+    `get_num_cores()`, the R worker count (`design_abstract.R:913`). 21 other
+    `src/*.cpp` files use the same pattern.
+  - **Measured on the installed build, 2026-10-14:**
+    - After `EDI:::set_package_threads(4)`: `get_num_cores()` is 1 and the
+      OpenMP maximum is 4. A `DesignFixedBinaryMatch` draw then runs on 1
+      thread and leaves OpenMP's global maximum at 1.
+    - Through the public API, `set_num_cores(4)` sets both counts to 4, and
+      nothing is reset.
+  - **Effect:** a performance problem, not a reproducibility one. Draws are
+    seeded per index. It shows up whenever the two counts diverge: the
+    internal `set_package_threads()` used alone (tests,
+    `setup-thread-limits.R`), and potentially workers and
+    `SimulationFramework`. Every later OpenMP region that relies on the
+    global setting then runs single-threaded. It also means the new digest
+    test's thread probe, which is read before each draw, cannot see that
+    BinaryMatch itself ran serially.
+  - **Fix:**
+    - Use `#pragma omp parallel for num_threads(k)`. This scopes the count
+      to the region and leaves global state alone. Replace every
+      `omp_set_num_threads()` call in a kernel with it.
+    - Decide which count a kernel should use. Probably the package OpenMP
+      count, not the R worker count. Document the split between
+      `set_num_cores()` (R workers plus threads) and
+      `set_package_threads()` (threads only).
+  - **Tests required:**
+    - After a draw from every OpenMP design kernel,
+      `get_omp_max_threads_cpp()` is unchanged.
+    - A kernel asked for k threads actually uses k. Probe
+      `omp_get_num_threads()` inside the region through a small test-only
+      export, or check a timing-independent proxy.
+    - A pre-push ban on `omp_set_num_threads(` in `R/EDI/src/` outside
+      `omp_control.cpp`.
 
 ## Standing constraints
 

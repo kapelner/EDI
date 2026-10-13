@@ -390,6 +390,39 @@ InferenceRand = R6::R6Class("InferenceRand",
 				}
 				return(1 - c_b)
 			}
+			if ("InferenceContinOLS" %in% class_names) {
+				# For OLS, c_b = 1 - g_b where g_b is the treatment
+				# coefficient from w_obs ~ 1 + w_b + X.  Residualize all
+				# permutation columns against the fixed [1, X] block once, then
+				# recover every g_b with columnwise inner products.  The generic
+				# QR-per-draw path did one small R QR for each permutation and could
+				# cost as much as (or more than) the CI search this cache is meant to
+				# eliminate.
+				X_full = private$create_design_matrix()
+				X_covars = if (ncol(X_full) > 2L) {
+					as.matrix(X_full[, -(1:2), drop = FALSE])
+				} else {
+					matrix(numeric(0), nrow = nrow(w_mat), ncol = 0L)
+				}
+			Z = cbind(1, X_covars)
+			qr_Z = qr(Z)
+			w_res = qr.resid(qr_Z, w_mat)
+			w_obs_res = as.numeric(qr.resid(qr_Z, as.numeric(private$w)))
+			denom = colSums(w_res * w_res)
+			numer = colSums(w_res * w_obs_res)
+			n_t = colSums(w_mat == 1)
+			largest_qr_diag = if (qr_Z$rank > 0L) {
+				max(abs(diag(qr_Z$qr)[seq_len(qr_Z$rank)]))
+			} else {
+				0
+			}
+			rank_scale = pmax(largest_qr_diag, sqrt(colSums(w_mat * w_mat)))
+			valid = n_t > 0L & n_t < nrow(w_mat) & is.finite(denom) &
+				sqrt(pmax(0, denom)) > 1e-7 * rank_scale
+			slopes = rep(NA_real_, ncol(w_mat))
+			slopes[valid] = 1 - numer[valid] / denom[valid]
+			return(slopes)
+		}
 			if ("InferenceContinKKOLSOneLik" %in% class_names) {
 				if (length(t0s) != ncol(w_mat)) return(NULL)
 				t1 = tryCatch(self$approximate_randomization_distribution_beta_hat_T(

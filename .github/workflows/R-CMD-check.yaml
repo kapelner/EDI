@@ -14,6 +14,11 @@ on:
       - 'R/EDI/src/Makevars'
       - 'R/EDI/src/Makevars.win'
       - '.github/workflows/R-CMD-check.yaml'
+      # Test fixtures (e.g. tests/testthat/fixtures/cross_platform_digests.csv)
+      # and the cross-leg comparison script are not .R/.cpp files, but a
+      # change to either must still trigger the cross-platform run.
+      - 'R/EDI/tests/**'
+      - '.github/scripts/compare_repro_digests.R'
   pull_request:
     branches: [main, master]
     paths: *r-cmd-check-paths
@@ -76,7 +81,7 @@ jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
 
-    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }}${{ matrix.config.variant && format(', {0}', matrix.config.variant) || '' }})
 
     # Originally 90 (see the 2026-08-10 incident where ubuntu-latest
     # (oldrel-1) and the sibling R-CMD-check-no-suggests job below both sat
@@ -104,15 +109,27 @@ jobs:
           - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
           - {os: ubuntu-latest,  r: 'release'}
           - {os: ubuntu-latest,  r: 'oldrel-1'}
+          # OpenMP on macOS: CRAN's macOS R ships without OpenMP, so the
+          # plain macos-latest leg runs every kernel on one thread. This leg
+          # links Homebrew libomp so the thread-count invariance tests run on
+          # macOS too (cross_platform_reproducibility.md TODO-4).
+          - {os: macos-latest,   r: 'release', variant: 'openmp'}
+          # Native build: every install defaults to EDI_PORTABLE=1, and the
+          # tuned EDI_PORTABLE=0 build (-march=native) is a documented opt-in
+          # for users who compile for speed. This leg compiles that way so
+          # the cross-leg comparison shows how far its floating-point
+          # results drift from the standard build.
+          - {os: ubuntu-latest,  r: 'release', variant: 'native'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      # Portable build: skips -march=native/-mtune=native/-fno-lto and the
-      # CXXFLAGS override (see R/EDI/configure). Those are opt-in for local
-      # performance-tuned builds (EDI_PORTABLE=0, the default) but would
-      # otherwise trip "checking compilation flags in Makevars" here.
-      EDI_PORTABLE: 1
+      # Portable build, configure's default since 2026-10-14 (kept explicit
+      # here): skips -march=native/-mtune=native/-fno-lto and the CXXFLAGS
+      # override (see R/EDI/configure). Those are opt-in for performance-tuned
+      # builds (EDI_PORTABLE=0) and would trip "checking compilation flags in
+      # Makevars" here. The 'native' leg sets 0 to test that opt-in.
+      EDI_PORTABLE: ${{ matrix.config.variant == 'native' && '0' || '1' }}
       # --as-cran implies --run-donttest (reruns every example, including
       # \donttest{} blocks, in one combined session). That pass is fast and
       # clean on every other leg of this matrix (macOS: ~32s, all 3 Ubuntu
@@ -275,6 +292,38 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
 
+      # OpenMP leg only. CRAN's macOS R is built without OpenMP (empty
+      # SHLIB_OPENMP_CXXFLAGS), so EDI's #ifdef _OPENMP kernels compile
+      # serial there. This follows mac.r-project.org/openmp: pass
+      # -Xclang -fopenmp to Apple clang at compile time and link libomp. It
+      # goes in CPPFLAGS/LDFLAGS rather than SHLIB_OPENMP_CXXFLAGS so the
+      # link step never sees -Xclang (an "unused argument" compiler warning
+      # that --as-cran would report). Placed after dependency installation so
+      # only EDI itself is built with it. EDI_EXPECT_OPENMP makes
+      # test-cross-platform-reproducibility-digests.R fail if the built
+      # package still cannot run more than one thread.
+      - name: Enable OpenMP on macOS with Homebrew libomp
+        if: matrix.config.variant == 'openmp'
+        run: |
+          brew install libomp
+          LIBOMP="$(brew --prefix libomp)"
+          mkdir -p ~/.R
+          cat >> ~/.R/Makevars <<EOF
+          CPPFLAGS += -Xclang -fopenmp -I${LIBOMP}/include
+          LDFLAGS += -L${LIBOMP}/lib -lomp
+          EOF
+          cat ~/.R/Makevars
+          echo "EDI_EXPECT_OPENMP=true" >> "$GITHUB_ENV"
+
+      # Every leg writes its seed-pinned digests and float results here
+      # (test-cross-platform-reproducibility-digests.R); the upload step after
+      # the check and the repro-compare job below compare them across legs.
+      - name: Configure cross-platform digest output
+        shell: bash
+        run: |
+          echo "EDI_REPRO_DIGEST_DIR=${RUNNER_TEMP}/repro-digests" >> "$GITHUB_ENV"
+          echo "EDI_REPRO_LEG=${{ matrix.config.os }}-${{ matrix.config.r }}${{ matrix.config.variant && format('-{0}', matrix.config.variant) || '' }}" >> "$GITHUB_ENV"
+
       # Windows R ships reference Rblas.dll/Rlapack.dll and has no supported
       # alternatives mechanism. Install a pre-built UCRT64 OpenBLAS DLL only
       # after dependency installation (so source dependency builds retain the
@@ -311,7 +360,20 @@ jobs:
           # *other* NOTE that does need attention. "warning" still fails
           # the job on any new NOTE-worthy regression that rises to a real
           # WARNING or ERROR.
-          error-on: '"warning"'
+          #
+          # Exception: the 'native' leg compiles with -march=native, which
+          # --as-cran always reports as a non-portable-flags WARNING. That leg
+          # exists to test native results, not CRAN portability, so it fails
+          # only on ERROR.
+          error-on: ${{ matrix.config.variant == 'native' && '"error"' || '"warning"' }}
+
+      - name: Upload cross-platform digests
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: repro-digests-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/repro-digests
+          if-no-files-found: warn
 
       - name: Dump test-hang watchdog log
         if: always() && runner.os == 'Linux'
@@ -352,6 +414,47 @@ jobs:
   # fails immediately in "checking package dependencies" before it can
   # actually exercise the missing-Suggests-guard code this job exists to
   # test.
+  # Runs after every R-CMD-check leg finishes, the way the bulk workflow's
+  # gate job waits for all shards. Each leg uploads the digests and float
+  # results written by test-cross-platform-reproducibility-digests.R; this job
+  # puts them side by side and fails if seed-pinned integer draws differ on any
+  # leg, if a float differs by more than the tolerance, or if a leg produced
+  # no results. That catches what each leg's own fixture check cannot: two
+  # platforms agreeing with each other but not with the rest
+  # (cross_platform_reproducibility.md TODO-4). !cancelled() so it still
+  # reports when a leg failed; missing legs are then listed as failures.
+  repro-compare:
+    name: cross-platform reproducibility comparison
+    needs: R-CMD-check
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Keep equal to the number of R-CMD-check matrix legs above.
+      REPRO_EXPECTED_LEGS: 8
+      # Relative tolerance for estimates, CIs and p-values across legs.
+      # Provisional until TODO-1 fixes the documented value from the
+      # observed spread this job reports.
+      REPRO_FLOAT_TOL: 1e-8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: repro-digests-*
+          path: repro-digests
+          merge-multiple: true
+
+      - name: Compare digests and floats across legs
+        run: Rscript .github/scripts/compare_repro_digests.R repro-digests
+
   R-CMD-check-no-suggests:
     runs-on: ubuntu-latest
     name: ubuntu-latest (release, no Suggests)

@@ -469,6 +469,9 @@ InferenceCountNegBin = define_inference_class(
 				log_th = log(as.numeric(res$theta_hat))
 				if (isTRUE(is.finite(log_th))) private$cached_vc_params = log_th
 				private$clear_nonestimable_state()
+				if (!estimate_only && identical(res$information_invertible, FALSE)) {
+					private$cache_nonestimable_se("model_standard_error_unavailable")
+				}
 				private$cached_values$likelihood_test_context = list(X = X_full, j_treat = 2L)
 				return(res)
 			}

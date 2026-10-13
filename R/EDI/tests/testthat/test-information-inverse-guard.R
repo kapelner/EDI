@@ -122,3 +122,30 @@ test_that("rebuilt count kernels return NaN covariance for duplicated columns", 
 	expect_false(zinb$information_invertible)
 	expect_true(all(is.nan(zinb$vcov)))
 })
+
+test_that("Negative Binomial maps a guarded singular covariance to typed SE non-estimability", {
+	set.seed(20261009L)
+	n <- 100L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "count", seed = 1L, verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	x <- des$.__enclos_env__$private$Xraw[["x"]]
+	des$add_all_subject_responses(as.integer(rpois(n, exp(0.3 + 0.2 * w + 0.1 * x))))
+	inf <- InferenceCountNegBin$new(des, verbose = FALSE)
+	private <- inf$.__enclos_env__$private
+	private$harden <- FALSE
+	X_data <- private$get_X()
+	X_full <- cbind(`(Intercept)` = 1, treatment = private$w,
+		as.matrix(X_data), duplicate = as.numeric(X_data[, 1L]))
+	colnames(X_full)[ncol(X_full)] <- "x_duplicate"
+	private$negbin_X_full_cache <- X_full
+	private$negbin_w_cache <- private$w
+	private$negbin_X_cov_cache <- X_data
+
+	ci <- inf$compute_asymp_confidence_interval()
+	expect_true(all(is.na(ci)))
+	expect_true(isTRUE(private$cached_values$nonestimable))
+	expect_identical(private$cached_values$nonestimable_reason, "model_standard_error_unavailable")
+	expect_identical(private$cached_values$nonestimable_stage, "se")
+})

@@ -40,6 +40,30 @@ test_that("tier-1 affine randomization reuse exactly reproduces impute-then-perm
 	}
 })
 
+test_that("OLS affine slopes match the per-permutation QR reference", {
+	des <- affine_rand_fixture(seed = 2006L, n = 30L)
+	inf <- InferenceContinOLS$new(des, model_formula = ~., verbose = FALSE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	perms <- p$generate_permutations(51L)
+	invisible(inf$compute_rand_two_sided_pval(r = 51L, delta = 0, show_progress = FALSE, permutations = perms))
+
+	X_full <- p$create_design_matrix()
+	X_covars <- if (ncol(X_full) > 2L) as.matrix(X_full[, -(1:2), drop = FALSE]) else NULL
+	W <- as.matrix(perms$w_mat)
+	w_obs <- as.numeric(p$w)
+	y <- as.numeric(p$y)
+	reference <- vapply(seq_len(ncol(W)), function(b) {
+		w_b <- as.numeric(W[, b])
+		if (all(w_b == 0) || all(w_b == 1)) return(NA_real_)
+		M_b <- if (is.null(X_covars)) cbind(1, w_b) else cbind(1, w_b, X_covars)
+		coefs <- tryCatch(qr.coef(qr(M_b), cbind(y, w_obs)), error = function(e) NULL)
+		if (is.null(coefs) || !is.finite(coefs[2L, 2L])) return(NA_real_)
+		1 - as.numeric(coefs[2L, 2L])
+	}, numeric(1))
+	expect_equal(p$cached_values$t0s_rand_slopes, reference, tolerance = 1e-12)
+})
+
 test_that("affine CI reuse performs one distribution computation and matches the uncached search", {
 	des <- affine_rand_fixture(seed = 2003L, n = 24L)
 	fast <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)

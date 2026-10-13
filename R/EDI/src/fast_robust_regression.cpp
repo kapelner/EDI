@@ -451,11 +451,7 @@ NumericVector compute_robust_rand_bootstrap_parallel_cpp(
         noise_ptr = noise_m.begin();
     }
 
-#ifdef _OPENMP
-    if (num_cores > 1) omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel if(num_cores > 1)
+#pragma omp parallel if(omp_get_max_threads() > 1) num_threads(omp_get_max_threads())
     {
         Eigen::VectorXd y_b(n);
         Eigen::MatrixXd X_b(n, p);

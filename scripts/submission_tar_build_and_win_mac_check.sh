@@ -12,32 +12,20 @@
 #      EDI_PORTABLE=1 forced and --compact-vignettes=gs+qpdf. EDI_PORTABLE=1
 #      is NOT optional and is not left to the caller's environment: it is
 #      set directly on the `R CMD build` invocation below, unconditionally.
-#      EDI_PORTABLE=0 is configure's default, and that build embeds
-#      -march=native/-mtune=native (targets the build machine's exact CPU --
-#      non-portable) and an `override CXXFLAGS +=` line (discards R's own
-#      configured flags instead of appending via PKG_CXXFLAGS) into
-#      src/Makevars -- both are CRAN policy violations, and win-builder/
-#      mac-builder both flag them ("checking compilation flags in Makevars
-#      ... WARNING"). Confirmed in practice 2026-08-28: a tarball built
-#      without this flag got that exact warning on mac-builder after
-#      submission -- this script builds it itself specifically so that
-#      mistake can't recur.
+#      An EDI_PORTABLE=0 build embeds -march=native/-mtune=native (targets
+#      the build machine's exact CPU -- non-portable) and an
+#      `override CXXFLAGS +=` line into src/Makevars -- both CRAN policy
+#      violations that win-builder/mac-builder flag ("checking compilation
+#      flags in Makevars ... WARNING"; confirmed 2026-08-28).
 #
-#      That said, EDI_PORTABLE=1 here only controls the temporary install
-#      `R CMD build` performs for vignette rebuilding -- it has NO effect on
-#      what happens when win-builder/mac-builder/CRAN later run
-#      `R CMD INSTALL` on the uploaded tarball, because configure reruns at
-#      *install* time and none of those machines set EDI_PORTABLE, so
-#      configure's own default (0, non-portable) wins regardless. Confirmed
-#      2026-08-29: win-builder and mac-builder both reproduced the
-#      non-portable-flags WARNING even though this script's step 2 already
-#      used EDI_PORTABLE=1. To fix that for real, this script patches the
-#      SCRATCH COPY of configure (never the repo's real
-#      R/EDI/configure) so that an *unset* EDI_PORTABLE defaults to the
-#      portable build in the shipped tarball -- while local dev checkouts of
-#      the real repo file keep the native-tuned default unchanged. Nothing
-#      needs reverting: the scratch copy is discarded with the rest of
-#      $SCRATCH_DIR.
+#      Since 2026-10-14 configure itself defaults to EDI_PORTABLE=1 (decision
+#      D1, cross_platform_reproducibility.md), so the shipped tarball installs
+#      portably on win-builder/mac-builder/CRAN with no EDI_PORTABLE set.
+#      Before that the default was 0 and this script patched the scratch copy
+#      of configure (needed because configure reruns at *install* time, where
+#      the build-time EDI_PORTABLE=1 has no effect; confirmed 2026-08-29).
+#      Step 1a now only verifies that the default is still portable, and
+#      step 2b checks the generated Makevars end to end.
 #   1b. Fails fast, before the slow build, if any Rd example uses \dontrun{}
 #      or has unparseable example code (e.g. a \donttest{} nested inside a
 #      \dontrun{} -- CRAN's "Unexecutable code in man/X.Rd" warning), via
@@ -124,18 +112,10 @@ rsync -a \
   --exclude='src/*.dll' \
   "$PKG_DIR/" "$CLEAN_PKG_DIR/"
 
-echo "== 1a. Patching scratch copy's configure so an UNSET EDI_PORTABLE defaults to the portable build =="
-echo "  (only $CLEAN_PKG_DIR/configure is touched -- the real repo file is never modified)"
-CONFIGURE_DEFAULT_LINE='  edi_portable=0'
-CONFIGURE_PATCHED_LINE='  edi_portable=1'
+echo "== 1a. Verifying configure defaults to the portable build when EDI_PORTABLE is unset =="
+CONFIGURE_DEFAULT_LINE='edi_portable="$(env_or_default EDI_PORTABLE 1)"'
 if ! grep -qF "$CONFIGURE_DEFAULT_LINE" "$CLEAN_PKG_DIR/configure"; then
-  echo "ERROR: expected line not found in $CLEAN_PKG_DIR/configure -- configure's EDI_PORTABLE default logic may have changed; update this script's patch to match." >&2
-  exit 1
-fi
-CONFIGURE_DEFAULT_LINE="$CONFIGURE_DEFAULT_LINE" CONFIGURE_PATCHED_LINE="$CONFIGURE_PATCHED_LINE" \
-  perl -i -pe 's/\Q$ENV{CONFIGURE_DEFAULT_LINE}\E/$ENV{CONFIGURE_PATCHED_LINE}/' "$CLEAN_PKG_DIR/configure"
-if ! grep -qF "$CONFIGURE_PATCHED_LINE" "$CLEAN_PKG_DIR/configure"; then
-  echo "ERROR: patch of $CLEAN_PKG_DIR/configure did not take effect." >&2
+  echo "ERROR: $CLEAN_PKG_DIR/configure no longer defaults EDI_PORTABLE to 1 -- CRAN would install a non-portable build. Restore the portable default (see R/EDI/configure) before submitting." >&2
   exit 1
 fi
 
@@ -194,7 +174,7 @@ if [[ ! -f "$GENERATED_MAKEVARS" ]]; then
   exit 1
 fi
 if grep -qE -- '-march=native|-mtune=native|override CXXFLAGS' "$GENERATED_MAKEVARS"; then
-  echo "ERROR: the SHIPPED tarball's configure still defaults to non-portable flags when EDI_PORTABLE is unset -- do not submit this tarball. The scratch-copy patch in step 1a did not take effect; investigate before retrying." >&2
+  echo "ERROR: the SHIPPED tarball's configure still defaults to non-portable flags when EDI_PORTABLE is unset -- do not submit this tarball. Check configure's EDI_PORTABLE default (step 1a) before retrying." >&2
   cat "$GENERATED_MAKEVARS" >&2
   exit 1
 fi

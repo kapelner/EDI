@@ -73,10 +73,6 @@ NumericVector compute_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi
   const int* w_ptr = w_mat.data();
   const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
 
-#ifdef _OPENMP
-  if (use_parallel) omp_set_num_threads(num_cores);
-#endif
-
   if (delta == 0) {
     // Pre-rank once and reuse across all permutations
     std::vector<double> values(n);
@@ -98,7 +94,7 @@ NumericVector compute_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi
         }
         i = j;
     }
-    #pragma omp parallel for schedule(static) if(use_parallel)
+    #pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
     for (int b = 0; b < nsim; ++b) {
         const int* w_col = w_ptr + (size_t)b * n;
         double sum_T = 0;
@@ -113,7 +109,7 @@ NumericVector compute_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi
             (sum_T / n_T) - ((total_rank_sum - sum_T) / n_C);
     }
   } else {
-    #pragma omp parallel if(use_parallel)
+    #pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
     {
         std::vector<double> values;
         std::vector<int> order;
@@ -141,10 +137,6 @@ NumericVector compute_wilcox_distr_from_list_parallel_cpp(const List& permutatio
   std::vector<double> results_vec(nsim);
   const double* y_ptr = y_vec_coerced.data();
   const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
-
-#ifdef _OPENMP
-  if (use_parallel) omp_set_num_threads(num_cores);
-#endif
 
   std::vector<const int*> w_ptrs(nsim);
   for (int b = 0; b < nsim; ++b) {
@@ -174,7 +166,7 @@ NumericVector compute_wilcox_distr_from_list_parallel_cpp(const List& permutatio
         i = j;
     }
 
-    #pragma omp parallel for schedule(static) if(use_parallel)
+    #pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
     for (int b = 0; b < nsim; ++b) {
         double sum_T = 0;
         int n_T = 0;
@@ -188,7 +180,7 @@ NumericVector compute_wilcox_distr_from_list_parallel_cpp(const List& permutatio
         else results_vec[b] = (sum_T / n_T) - ((total_rank_sum - sum_T) / n_C);
     }
   } else {
-    #pragma omp parallel if(use_parallel)
+    #pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
     {
         std::vector<double> values;
         std::vector<int> order;

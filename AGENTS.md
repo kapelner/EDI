@@ -20,7 +20,7 @@ Repo layout:
 
 Canonical entry points: design classes (`DesignFixed*`, `DesignSeqOneByOne*`,
 e.g. `DesignFixedBlocking`, `DesignSeqOneByOneKK21`), matched inference
-classes (`Inference<ResponseType><Method>`, e.g. `InferenceContinKKOLSIVWC`),
+classes (`Inference<ResponseType><Method>`, e.g. `InferenceContinKKOLSOneLik`),
 `InferenceSuite` (runs every applicable procedure, Cauchy-combined p-value),
 `SimulationFramework` (power/operating-characteristic studies), and the
 `fast_*` C++ kernel wrappers. Docs: https://kapelner.github.io/EDI/

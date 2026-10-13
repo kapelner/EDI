@@ -259,17 +259,18 @@ is O(r) arithmetic and MC is moot.
   set. Record the result here either way.
 - [ ] **TODO-6: Benchmark + doc.** The benchmark script
   `R/benchmark/benchmark_randomization_ci_affine_reuse.R` and README/roxygen
-  documentation were added 2026-10-09. The required before/after measurements
-  remain pending a runnable source R environment (the present `Rscript` cannot
-  start because `libmkl_gf_lp64.so.2` is unavailable); do not infer the
-  projected 20--30x result from the source change alone. Before/after wall time of
-  `compute_confidence_interval_rand()` for OLS and mean-diff at
-  `n ∈ {100, 500, 1000}`, `r ∈ {201, 1001, 2001}`, via
-  `scripts/benchmark_randomization_ci_ordinal_ppo.R`'s pattern with
-  `EDI_INFERENCE_CLASS` extended to accept the tier-1 classes. Expect
-  20–30×. Add a sentence to the `compute_confidence_interval_rand()` roxygen
-  and the README's CPU section noting that linear-statistic CIs cost one
-  null distribution.
+  documentation were added 2026-10-09. A full source-loaded, `compile = FALSE`
+  run completed 2026-10-13 with three interleaved repetitions per cell at
+  `n ∈ {100, 500, 1000}`, `r ∈ {201, 1001, 2001}`. The measured affine/general
+  median speedup ranges were 1.13–1.59× for `InferenceAllSimpleAverageDiff`
+  and 1.05–2.14× for `InferenceContinOLS`; thus the projected 20–30× is not
+  supported by this implementation/environment and remains an open acceptance
+  gate, not a claimed result. To reduce avoidable OLS overhead, affine slopes
+  now residualize the fixed covariate block once and use vectorized
+  permutation-column inner products; a per-permutation QR reference test and
+  the tier-1 distribution-equivalence tests pass. Keep the checkbox open
+  until the measured gain and the README/roxygen claim are reconciled with the
+  original target (or the owner explicitly accepts the smaller measured gain).
 
 - [x] **TODO-7: Reconcile the KK-GEE mixin read site.** Completed 2026-10-09:
   the never-populated legacy `t0s_rand + delta` branch was removed from the

@@ -161,3 +161,46 @@ for (design_name in names(design_seed_reproducibility_cases)) {
 		})
 	})
 }
+
+test_that("every registry design that promises seeded draws is invariant across core counts", {
+	skip_on_cran()
+	available_cores = parallel::detectCores(logical = TRUE)
+	if (is.na(available_cores) || available_cores < 2L) {
+		skip("fewer than 2 logical cores available")
+	}
+	old_cores = EDI:::get_num_cores()
+	on.exit(EDI:::set_package_threads(old_cores), add = TRUE)
+
+	registry = EDI:::design_class_registry_as_list()
+	# Observational designs accept a user-supplied w and have no draw path; the
+	# registry's TRUE value describes seed behavior if a draw existed, not a
+	# promise that these classes generate assignments.
+	no_draw_designs = c("ObservationalDesign", "ObservationalDesignBlocks", "ObservationalDesignMatching")
+	reproducible = setdiff(
+		names(Filter(function(metadata) isTRUE(metadata$seed_reproducible_draw), registry)),
+		no_draw_designs
+	)
+	expect_true(all(reproducible %in% names(design_seed_reproducibility_cases)))
+	draw_at = function(build, cores) {
+		EDI:::set_package_threads(cores)
+		set.seed(20261013L)
+		build(20261013L)
+	}
+
+	for (name in reproducible) {
+		metadata = registry[[name]]
+		packages = metadata$required_packages
+		if (is.null(packages)) packages = character()
+		if (length(packages) && !all(vapply(packages, requireNamespace, logical(1), quietly = TRUE))) next
+
+		build = design_seed_reproducibility_cases[[name]]
+		w1 = draw_at(build, 1L)
+		for (cores in c(2L, if (available_cores >= 4L) 4L)) {
+			w = draw_at(build, cores)
+			expect_identical(w1, w, info = paste(name, cores, "cores"))
+			if (cores == 4L) {
+				expect_identical(w, draw_at(build, 4L), info = paste(name, "4-core repeat"))
+			}
+		}
+	}
+})

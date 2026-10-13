@@ -51,11 +51,7 @@ NumericVector compute_rand_bootstrap_ols_parallel_cpp(
 		noise_ptr = noise_m.begin();
 	}
 
-#ifdef _OPENMP
-	if (use_parallel) omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel for schedule(static) if(use_parallel)
+#pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
 	for (int b = 0; b < nsim; ++b) {
 		const int* i_col = i_ptr + (size_t)b * n;
 		const int* w_col = w_ptr + (size_t)b * n;

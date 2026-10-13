@@ -48,6 +48,54 @@ test_that("OLS class fast randomization path agrees with the reused-worker refer
 	expect_null(p$compute_fast_randomization_distr(p$y, list(w_mat = W), 0.35, "log"))
 })
 
+test_that("OLS randomization p-values and CIs agree with the reused-worker fallback", {
+	set.seed(392L)
+	n <- 24L
+	des <- DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n), x2 = runif(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	des$add_all_subject_responses(0.7 * w + rnorm(n))
+	SlowOLS <- R6::R6Class(
+		"SlowOLSRandomizationReference",
+		inherit = InferenceContinOLS,
+		lock_objects = FALSE,
+		private = list(
+			compute_fast_randomization_distr = function(...) NULL,
+			supports_additive_delta_shift = function(...) FALSE
+		)
+	)
+	make_pair <- function(r) {
+		fast <- InferenceContinOLS$new(des, verbose = FALSE)
+		slow <- SlowOLS$new(des, verbose = FALSE)
+		for (inf in list(fast, slow)) inf$num_cores <- 1L
+		perms <- fast$.__enclos_env__$private$generate_permutations(r)
+		for (inf in list(fast, slow)) {
+			p <- inf$.__enclos_env__$private
+			unlockBinding("generate_permutations", p)
+			p$generate_permutations <- function(r) perms
+		}
+		list(fast = fast, slow = slow)
+	}
+
+	pair <- make_pair(71L)
+	p_fast <- pair$fast$compute_rand_two_sided_pval(r = 71L, delta = 0.15, show_progress = FALSE)
+	p_slow <- pair$slow$compute_rand_two_sided_pval(r = 71L, delta = 0.15, show_progress = FALSE)
+	expect_equal(p_fast, p_slow, tolerance = 1e-10)
+
+	pair <- make_pair(99L)
+	control <- list(mc_enable = FALSE, high_precision_confirm = FALSE, seed = "none")
+	ci_fast <- pair$fast$compute_rand_confidence_interval(
+		alpha = 0.2, r = 99L, pval_epsilon = 0.02, show_progress = FALSE,
+		ci_search_control = control
+	)
+	ci_slow <- pair$slow$compute_rand_confidence_interval(
+		alpha = 0.2, r = 99L, pval_epsilon = 0.02, show_progress = FALSE,
+		ci_search_control = control
+	)
+	expect_equal(as.numeric(ci_fast), as.numeric(ci_slow), tolerance = 0.02)
+})
+
 test_that("parallel Wilcoxon matrix and list kernels agree with rank definition", {
 	y <- c(1, 2, 2, 5, 8, 13)
 	w_mat <- cbind(

@@ -1607,6 +1607,9 @@ edi_optimization_dispatch_policy = function(inference_class) {
 }
 # Internal helper
 set_package_threads = function(num_cores) {
+	# This sets the package-wide OpenMP/BLAS maximum. Design$set_num_cores()
+	# additionally controls R-level workers; native OpenMP kernels scope their
+	# team size to this maximum and must not overwrite it globally.
   # Ensure it's an integer
   num_cores = as.integer(num_cores)
   # Skip all expensive syscalls if threads are already set to this value.

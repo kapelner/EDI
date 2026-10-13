@@ -3,7 +3,7 @@
 # package_metadata/new_feature_plans/performance_profiling_and_upgrades.md §8.0
 # is installed. Companion to install_perf_tools.sh. Exit 0 always; prints OK/MISSING per item.
 SRC_DIR="${SRC_DIR:-$HOME/perf-tools}"
-ok=0; miss=0
+ok=0; miss=0; skip=0
 say() { printf '  %-8s %s\n' "$1" "$2"; }
 chk_cmd() { if command -v "$1" >/dev/null 2>&1; then say OK "$1 ($(command -v "$1"))"; ok=$((ok+1)); else say MISSING "$1${2:+  ($2)}"; miss=$((miss+1)); fi; }
 chk_pkg() { if dpkg -s "$1" >/dev/null 2>&1; then say OK "apt $1"; ok=$((ok+1)); else say MISSING "apt $1"; miss=$((miss+1)); fi; }
@@ -16,6 +16,13 @@ for p in linux-tools-common linux-tools-generic likwid uftrace binutils gdb elfu
   libjemalloc2 libjemalloc-dev dwarves llvm clang clang-tidy clang-tools lld cppcheck iwyu ccache hyperfine \
   stress-ng powertop lm-sensors numactl hwloc cpuid cpuset sysstat htop cpupower-gui libopenblas-dev libblis-dev \
   intel-mkl libbenchmark-dev libgit2-dev libssh2-1-dev libssl-dev; do chk_pkg "$p"; done
+# BOLT: versioned package matching the default llvm (plain "bolt" is the Thunderbolt daemon)
+LLVM_VER=$(apt-cache depends llvm 2>/dev/null | grep -oE 'llvm-[0-9]+' | head -1 | cut -d- -f2)
+if [ -n "$LLVM_VER" ]; then
+  chk_pkg "bolt-$LLVM_VER"
+  for c in llvm-bolt-$LLVM_VER perf2bolt-$LLVM_VER; do chk_cmd "$c" "apt bolt-$LLVM_VER"; done
+  chk_dir "/usr/lib/llvm-$LLVM_VER/bin/merge-fdata" "apt bolt-$LLVM_VER"
+fi
 
 echo "== binaries on PATH =="
 for c in perf valgrind callgrind_annotate cg_annotate ms_print heaptrack uftrace ltrace strace bpftrace \
@@ -71,10 +78,21 @@ chk_cmd advisor "Intel oneAPI: apt install intel-oneapi-advisor"
 [ -x /opt/intel/oneapi/advisor/latest/bin64/advisor ] && say NOTE "advisor present at /opt/intel/oneapi/advisor/latest"
 ps_scope=$(cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null); [ "${ps_scope:-0}" != "0" ] && say NOTE "kernel.yama.ptrace_scope=$ps_scope — VTune/Advisor user-mode sampling needs 0 (sudo sysctl -w kernel.yama.ptrace_scope=0)"
 systemctl is-enabled sep5.service >/dev/null 2>&1 && say NOTE "sep5.service (VTune kernel driver) is enabled; on WSL2 it cannot load — sudo systemctl disable --now sep5.service"
-chk_cmd sde64 "Intel SDE: manual download"
-chk_cmd AMDuProfCLI "AMD uProf: AMD hosts only"
+if perf record -q -e cycles:u -j any,u -o /tmp/_lbr_check.data -- true >/dev/null 2>&1; then
+  say OK "perf LBR branch sampling (-j any,u) — needed for BOLT profiles"; ok=$((ok+1))
+else
+  say MISSING "perf LBR branch sampling (-j any,u) — BOLT falls back to instrumentation or perf2bolt -nl"; miss=$((miss+1))
+fi
+rm -f /tmp/_lbr_check.data
+chk_cmd sde64 "Intel SDE: download sde-external-*-lin.tar.xz from intel.com, then rerun install_perf_tools.sh (it unpacks the kit)"
+cpu_vendor=$(grep -m1 -oE 'GenuineIntel|AuthenticAMD' /proc/cpuinfo)
+if [ "$cpu_vendor" = "AuthenticAMD" ]; then
+  chk_cmd AMDuProfCLI "AMD uProf: https://www.amd.com/en/developer/uprof.html (.deb)"
+else
+  say SKIP "AMDuProfCLI (AMD uProf is for AMD hosts; this CPU is ${cpu_vendor:-unknown})"; skip=$((skip+1))
+fi
 chk_cmd hotspot "KDAB AppImage — install_perf_tools.sh src step downloads it to $PREFIX/bin"
 chk_cmd magic-trace "install_perf_tools.sh src step downloads it to $PREFIX/bin (Intel PT: bare metal only)"
 
 echo
-echo "SUMMARY: $ok OK, $miss MISSING"
+echo "SUMMARY: $ok OK, $miss MISSING, $skip SKIPPED (not applicable to this host)"

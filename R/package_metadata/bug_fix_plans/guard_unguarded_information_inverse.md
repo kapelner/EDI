@@ -113,8 +113,12 @@ negligible.
   `lu.inverse()` and the maintainer accepts the ulp-level change there;
   otherwise leave them (recommended for 1.1.0: leave them; note it as a
   1.2.0 tidy-up).
-- [ ] **TODO-3: Tests.** The source-loaded assertions are present, but their
-  required rebuilt-native execution remains pending. `test-information-inverse-guard.R`, per kernel: (a)
+- [ ] **TODO-3: Tests.** `test-information-inverse-guard.R` and the linked
+  information-matrix reference test passed source-loaded on 2026-10-14 using
+  the installed native library; the targeted native rebuild remains pending.
+  The end-to-end NegBin regression now injects the duplicated candidate
+  column through the private design-matrix cache and checks typed
+  `model_standard_error_unavailable` plus NA CI. Per kernel: (a)
   all existing `with_var` fixtures `identical()` before/after (the
   bit-for-bit claim); (b) a design with a duplicated covariate column and
   `harden = FALSE` (so the R side does not drop it) yields an all-`NaN`

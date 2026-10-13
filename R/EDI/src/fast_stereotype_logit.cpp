@@ -1225,11 +1225,7 @@ NumericVector compute_stereotype_logit_distr_parallel_cpp(
 	std::vector<double> results(nsim, NA_REAL);
 	const int* w_ptr = w_mat.begin();
 
-#ifdef _OPENMP
-	omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static) num_threads(omp_get_max_threads())
 	for (int b = 0; b < nsim; ++b) {
 		const int* w_col = w_ptr + (size_t)b * n;
 

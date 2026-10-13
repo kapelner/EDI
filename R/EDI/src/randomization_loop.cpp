@@ -20,7 +20,7 @@ NumericVector randomization_loop_cpp(
 
 // #ifdef _OPENMP
 //   if (num_cores > 1) {
-//     omp_set_num_threads(num_cores);
+//     configure the OpenMP thread count for this region;
 //   }
 // #endif
 

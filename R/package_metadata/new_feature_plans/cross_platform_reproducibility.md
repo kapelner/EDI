@@ -42,14 +42,19 @@ Today the guarantee is partly met and partly unstated:
 | tolerance | estimates, SEs, CIs, p-values | equal within a documented relative tolerance across platforms. Bit-identical floats would require identical libm, BLAS and CPU instruction sets, which no major R package promises |
 | none, but announced | seed-pinned draws across EDI versions | may change; every release that changes them says so in NEWS |
 
-**Open owner decision D1 (not a TODO):** source installs from GitHub
-compile with `-march=native` by default (`R/EDI/configure:28-42`,
-`EDI_PORTABLE` unset → 0). CRAN tarballs (patched by
-`scripts/submission_tar_build_and_win_mac_check.sh`) and r-universe builds
-are portable. Native builds change floating-point last bits, so "tolerance"
-is the right promise for them. Making portable the default everywhere, with
-native opt-in, would make agent and user source installs match. The cost is
-speed for people who build from source.
+**Owner decision D1 (decided and implemented 2026-10-14): portable by default
+everywhere.**
+- `R/EDI/configure` defaults `EDI_PORTABLE` to 1 for every install: GitHub
+  source, CRAN, r-universe and CI. The tracked `src/Makevars` and
+  `src/Makevars.win` are portable. The submission script now only verifies
+  this default instead of patching it.
+- The tuned build is opt-in: users who want speed compile it themselves with
+  `EDI_PORTABLE=0` and optimized libraries. These changes are recorded in the
+  README (one sentence under Installing, plus the Tuning Local Builds table),
+  in NEWS (Breaking changes), and in the benchmark scripts' native modes,
+  which now set `EDI_PORTABLE=0` explicitly.
+- The guarantee's float "tolerance" level still covers opt-in native builds,
+  which CI's `native` leg measures.
 
 ## TODOs
 
@@ -166,6 +171,59 @@ noted, and pass on all CI platform legs.
       Windows-side install would allow local Windows checks. That is
       optional, since the `windows-latest` legs cover it, and it is the
       owner's build to run.
+    - **CI changes (audited 2026-10-13; wired the same day, not yet run in
+      CI, uncommitted).**
+      - [x] Digest test: `R/EDI/tests/testthat/test-cross-platform-reproducibility-digests.R`.
+        - Covers 6 design classes, at 1, 2 and 4 threads (2 at most on
+          CRAN), plus 4 floats from `InferenceAllSimpleAverageDiff`.
+        - Checks thread invariance within the run, and checks against
+          `fixtures/cross_platform_digests.csv` when that file exists.
+        - Writes per-leg rows when `EDI_REPRO_DIGEST_DIR` is set. Runs in
+          ~2.5 s, not `skip_on_cran()`.
+        - **Fixture not yet generated:** run the file with
+          `EDI_REPRO_WRITE_FIXTURE=true` once v1.0.5 TODO-95 is merged and
+          built. Until then the fixture check skips.
+      - [x] Per-leg artifact upload, plus the `repro-compare` job
+        (`needs: R-CMD-check`, `!cancelled()`). It runs
+        `.github/scripts/compare_repro_digests.R`, which fails on any digest
+        mismatch, on any float spread above `REPRO_FLOAT_TOL` (provisional
+        1e-8), or when fewer than `REPRO_EXPECTED_LEGS` (8) legs report. It
+        writes a leg × class table to the job summary. Verified locally on
+        matching and perturbed inputs.
+      - [x] The `paths:` filter now includes `R/EDI/tests/**` and the
+        compare script.
+      - [x] Thread counts: the digest test records
+        `get_omp_max_threads_cpp()` before each draw. The compare job lists
+        legs that got fewer threads than requested.
+        - `OMP_NUM_THREADS=1` should not cap `set_num_cores(k)`, because
+          `set_package_threads()` calls `omp_set_num_threads()`. It does,
+          however, set `OMP_THREAD_LIMIT` (`R/globals.R:1644`), so a session
+          whose OpenMP runtime starts after a call with k = 1 may be capped.
+          The probe is what reveals that.
+        - Note: `binary_match_search.cpp:35` resets the global OpenMP thread
+          count from its own argument, so the probe is read before each draw,
+          not after.
+      - [x] macOS OpenMP leg (`variant: 'openmp'`): Homebrew `libomp` added
+        through `CPPFLAGS`/`LDFLAGS` in `~/.R/Makevars`, following
+        mac.r-project.org/openmp. It sets `EDI_EXPECT_OPENMP=true`, so the
+        digest test fails if the build still runs single-threaded.
+      - [x] Workers: `test-aa-fork-worker-count-invariance.R`, Linux only and
+        exempt from `EDI_PREPUSH_NO_PARALLEL`.
+        - Bootstrap CIs for `InferenceAllSimpleAverageDiff` and
+          `InferenceContinOLS` are identical at 1, 2 and 3 fork workers
+          (verified locally, ~6 s).
+        - The test asserts that `par_lapply()` really received n_cores > 1.
+        - Randomization p-values for these classes run in a C++ kernel and
+          never use R workers, so they are covered by the thread digests.
+        - The mirai backend is still covered only by the sanitizer and
+          valgrind jobs.
+      - [x] Native leg (`variant: 'native'`, `EDI_PORTABLE=0`) with
+        `error-on: "error"`, because `-march=native` is always an `--as-cran`
+        WARNING.
+      - [ ] Run it in CI and read the first job summary. Set the TODO-1 float
+        tolerance from the observed spread.
+      - [ ] Extend the digest cases to every `seed_reproducible_draw` class in
+        the registry, and add the meta-test listed below.
     - **Required test for the harness itself:** a deliberately perturbed
       fixture row makes the digest test fail, and a perturbed artifact makes
       the cross-leg diff job fail. Run both once when the harness is added,

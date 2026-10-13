@@ -573,11 +573,7 @@ NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
     noise_ptr = noise_m.begin();
   }
 
-#ifdef _OPENMP
-  omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel if(num_cores > 1)
+#pragma omp parallel if(omp_get_max_threads() > 1) num_threads(omp_get_max_threads())
   {
     // Per-thread reusable buffers: avoids heap allocation in the hot loop
     std::vector<SurvEntry> y_t(n), y_c(n);

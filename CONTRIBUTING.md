@@ -35,9 +35,9 @@ pip install -e "./python[test]"
 git config core.hooksPath scripts
 ```
 
-`EDI_PORTABLE=1` in your environment gives the portable build CI uses
-(skips `-march=native`; see `R/EDI/configure`). Leave it unset for a
-machine-tuned build when benchmarking on your own hardware.
+The default build is the portable one that CRAN and CI use (see
+`R/EDI/configure`). Set `EDI_PORTABLE=0` for a machine-tuned build
+(`-march=native`, `-O3`) when benchmarking on your own hardware.
 
 ## 1. The compilation rule (read before touching `R/EDI/src/`)
 

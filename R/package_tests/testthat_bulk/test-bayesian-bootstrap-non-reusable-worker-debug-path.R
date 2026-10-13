@@ -107,7 +107,11 @@ test_that("multi-core ordinary dispatch and debug-safe serial fallback on the no
 	inf_debug$set_seed(456)
 	inf_debug$num_cores = 2L
 	debug_multi = inf_debug$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 16L, show_progress = FALSE, debug = TRUE)
-	expect_equal(debug_multi$values, values_single)
+	# Debug mode serializes the outer duplicate()-per-draw dispatch to avoid
+	# forking after OpenMP work, but the model fit still honors num_cores = 2.
+	# Keep the same tolerance used above for ordinary multi-core refits because
+	# their floating-point reduction order can differ by a few 1e-7.
+	expect_equal(debug_multi$values, values_single, tolerance = 1e-5)
 	expect_length(debug_multi$values, 16L)
 	expect_equal(debug_multi$num_errors, rep(0L, 16L))
 	expect_equal(debug_multi$num_warnings, rep(0L, 16L))

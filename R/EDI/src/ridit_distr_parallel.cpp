@@ -138,11 +138,7 @@ NumericVector compute_ridit_distr_parallel_cpp(const IntegerVector& y,
     }
 
     const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
-#ifdef _OPENMP
-    if (use_parallel) omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel if(use_parallel)
+#pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
     {
         std::vector<int> y_ref;
         std::vector<int> y_t;
@@ -199,11 +195,7 @@ NumericVector compute_ridit_bootstrap_parallel_cpp(const IntegerVector& w,
     const int* idx_mat_ptr = indices_mat.begin();
 
     const bool use_parallel = should_parallelize_replicates(B, n, num_cores);
-#ifdef _OPENMP
-    if (use_parallel) omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel if(use_parallel)
+#pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
     {
         std::vector<int> y_b(n);
         std::vector<int> w_b(n);
@@ -269,11 +261,7 @@ NumericVector compute_ridit_rand_bootstrap_parallel_cpp(const IntegerVector& y0,
     const bool is_pooled = (reference == "pooled");
 
     const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
-#ifdef _OPENMP
-    if (use_parallel) omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel if(use_parallel)
+#pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
     {
         std::vector<int> y_b(n);
         std::vector<int> y_ref;

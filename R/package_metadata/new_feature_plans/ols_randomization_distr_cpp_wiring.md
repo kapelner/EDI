@@ -123,12 +123,11 @@ the kernel inputs at the boundary, and return the batch distribution (or
   batch kernel. TODO-2 now returns `NA` for one-arm and rank-deficient
   permutations. TODO-3 has direct-kernel degeneracy regressions plus an OLS
   fast-path versus reused-worker parity regression in
-  `test-parallel-distribution-kernel-contracts.R`. The full matrix and
-  end-to-end checks above still require executable native validation. No
-  compile, rebuild, or execution was performed: this host's R runtime cannot load
-  `libmkl_gf_lp64.so.2` and the native source requires a
-  maintainer-authorized rebuild. The dead-export triage and benchmark TODOs
-  remain open.
+  `test-parallel-distribution-kernel-contracts.R`. On 2026-10-13, the focused
+  kernel-contract, end-to-end OLS p-value/CI parity, and parallel-threshold
+  suites passed source-loaded with `compile = FALSE`, using the already
+  installed native library. No compile or rebuild was performed. The full
+  parameter matrix, dead-export triage, and benchmark remain open.
 - [ ] **TODO-4: Dead-kernel triage.** For each of the nine unreferenced
   exports below, decide *wire in* or *delete*, and do it. Deleting means
   removing the function from its `.cpp`, re-running

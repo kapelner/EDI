@@ -84,8 +84,8 @@ run_mode() {
 for mode in $modes; do
   case "$mode" in
     portable)   run_mode "portable"   EDI_PORTABLE=1 ;;
-    native)     run_mode "native" ;;
-    native+lto) run_mode "native+lto" EDI_NATIVE_LTO=1 ;;
+    native)     run_mode "native"     EDI_PORTABLE=0 ;;
+    native+lto) run_mode "native+lto" EDI_PORTABLE=0 EDI_NATIVE_LTO=1 ;;
     *) echo "unknown build mode: $mode (expected portable, native, native+lto)" >&2; exit 1 ;;
   esac
 done

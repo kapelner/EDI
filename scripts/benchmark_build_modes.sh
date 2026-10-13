@@ -7,8 +7,8 @@
 # Build modes (see R/EDI/configure and the README "Local performance builds"
 # table):
 #   portable     EDI_PORTABLE=1                       no -march=native, no -O3
-#   native       (configure defaults)                 -march=native -mtune=native -O3
-#   native+lto   EDI_NATIVE_LTO=1                     native flags + -flto
+#   native       EDI_PORTABLE=0                       -march=native -mtune=native -O3
+#   native+lto   EDI_PORTABLE=0 EDI_NATIVE_LTO=1      native flags + -flto
 #
 # Usage:
 #   bash scripts/benchmark_build_modes.sh                # all three modes
@@ -140,8 +140,8 @@ run_mode() {
 for mode in $modes; do
   case "$mode" in
     portable)   run_mode "portable"   EDI_PORTABLE=1 ;;
-    native)     run_mode "native" ;;
-    native+lto) run_mode "native+lto" EDI_NATIVE_LTO=1 ;;
+    native)     run_mode "native"     EDI_PORTABLE=0 ;;
+    native+lto) run_mode "native+lto" EDI_PORTABLE=0 EDI_NATIVE_LTO=1 ;;
     *) echo "unknown build mode: $mode (expected portable, native, native+lto)" >&2; exit 1 ;;
   esac
 done

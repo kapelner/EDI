@@ -28,11 +28,7 @@ NumericVector compute_matching_compound_distr_parallel_cpp(SEXP y, const Eigen::
 	double* res_ptr = results_vec.data();
 	const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
 
-#ifdef _OPENMP
-	if (use_parallel) omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel if(use_parallel)
+#pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
 	{
 		std::vector<double> diffs;
 		std::vector<int> treated_idx;
@@ -133,11 +129,7 @@ NumericVector compute_matching_compound_bootstrap_parallel_cpp( const Eigen::Map
 	double* res_ptr = results_vec.data();
 	const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
 
-#ifdef _OPENMP
-	if (use_parallel) omp_set_num_threads(num_cores);
-#endif
-
-#pragma omp parallel if(use_parallel)
+#pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
 	{
 		std::vector<double> diffs;
 		std::vector<int> treated_idx;
