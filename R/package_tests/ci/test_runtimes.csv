@@ -1935,6 +1935,7 @@ R/package_tests/testthat_bulk/test-kk-passthrough-compound-host-compute-estimate
 R/package_tests/testthat_bulk/test-kk-passthrough-compound-matched-reservoir-dispatch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-passthrough-compound-mixin-imbalance-predicates-and-design-matrix-reduction-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-passthrough-compound-reduce-design-matrix-once-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-kk-quantile-onelik-randomization-ci.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-quantile-regr-ivwc-iqr-se-helper-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-quantile-regr-ivwc-matrix-with-n-rows-and-reduce-full-rank-matrix-helpers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-kk-quantile-regr-ivwc-migration-golden.R,coverage,2.8,measured_with_30_percent_headroom
