@@ -17,8 +17,10 @@ The fastest path to a working environment is the devcontainer
 (`.devcontainer/`): open the repo in VS Code / Codespaces, or any
 devcontainer-aware agent runtime, and it installs R, Python, every
 dependency, LaTeX, the profiling toolchain and `ccache`, then builds both
-packages once. Alternatively, on a machine with R and Python already
-present:
+packages once. On a fresh bare-metal Ubuntu host, first run
+`bash scripts/setup_ubuntu_host.sh` to apt-install the system libraries,
+LaTeX, check tools and profiling toolchain. Then, on a machine with R and
+Python present:
 
 ```sh
 # R package dependencies (Imports + Suggests + LinkingTo) -- pak also

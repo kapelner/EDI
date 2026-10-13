@@ -3,7 +3,7 @@
 # libraries both packages in this repo need to compile from source --
 # R/EDI/src/*.cpp (Rcpp/RcppEigen/RcppNumerical) and python/ (pybind11 +
 # CMake). Versions/packages here mirror what CI actually installs (see
-# .github/workflows/python-tests.yml's "Install system BLAS" step and
+# .github/workflows/test-coverage-python.yml's "Install system BLAS" step and
 # test-coverage-R-advanced.yml's sysreqs comment) rather than being guessed.
 FROM rocker/r-ver:latest
 
@@ -59,12 +59,24 @@ RUN apt-get update && \
     install_pkg libtiff-dev libtiff5-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# libc6-dbg lets valgrind (installed by R/profile/install_perf_tools.sh)
+# symbolize libc frames. Pinned to the installed libc6's exact version, the
+# same fix R-CMD-check.yaml's valgrind job uses: unpinned, apt can pick an
+# older libc6-dbg whose exact libc6 dependency forces a blocked downgrade.
+# Non-fatal -- a missing matching version only costs valgrind libc symbols.
+RUN apt-get update && \
+    (apt-get install -y --no-install-recommends \
+        "libc6-dbg=$(dpkg-query -W -f='${Version}' libc6)" || \
+     echo "libc6-dbg matching libc6 not available, skipping" >&2) && \
+    rm -rf /var/lib/apt/lists/*
+
 # LaTeX -- not for the vignettes (all five are rmarkdown::html_vignette,
 # pure HTML, no LaTeX involved), but for: (1) R CMD check's own PDF
 # reference manual step whenever run without --no-manual (every CI job
 # passes --no-manual, so this only matters for a manual local run); and
-# (2) the real .tex sources under R/package_metadata/new_research_ideas/
-# (grant proposals, article class; a beamer talk) -- confirmed by grepping
+# (2) the real .tex sources under private/ (grants, papers, a beamer talk;
+# gitignored, present only where the EDI_research_projects repo is mounted
+# there) -- confirmed by grepping
 # every \usepackage/\documentclass across those files, not guessed. `texlive`
 # (the "recommended" tier: latex-base + latex-recommended + fonts-recommended
 # + pictures) covers most of that list already; the four packages below add

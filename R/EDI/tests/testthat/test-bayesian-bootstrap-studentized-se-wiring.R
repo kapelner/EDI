@@ -61,6 +61,13 @@ test_that("InferenceOrdinalPropOddsRegr reads the treatment coefficient from the
 })
 
 test_that("InferenceOrdinalKKCLMM (logit link) wires the already-computed weighted SE through", {
+	# The unweighted estimate runs on the internal Rcpp kernel
+	# (fast_ordinal_clmm_cpp, no weights argument), but the bootstrap-weight
+	# refit goes through weighted_ordinal_random_intercept_fit(), which needs
+	# ordinal::clmm and returns NA estimate/SE when that Suggests package is
+	# absent. The ASAN/valgrind check jobs install Depends/Imports only, so
+	# without this guard they failed here on every run.
+	skip_if_not_installed("ordinal")
 	set.seed(80104L)
 	n <- 60L
 	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "ordinal", verbose = FALSE)

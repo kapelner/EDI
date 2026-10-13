@@ -541,6 +541,7 @@ R/package_tests/testthat_bulk/test-kk-passthrough-compound-host-compute-estimate
 R/package_tests/testthat_bulk/test-kk-passthrough-compound-matched-reservoir-dispatch-reference.R,correctness,1.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-passthrough-compound-mixin-imbalance-predicates-and-design-matrix-reduction-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-passthrough-compound-reduce-design-matrix-once-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-kk-quantile-onelik-randomization-ci.R,correctness,52.6,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-quantile-regr-ivwc-iqr-se-helper-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-quantile-regr-ivwc-matrix-with-n-rows-and-reduce-full-rank-matrix-helpers-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-kk-quantile-regr-ivwc-migration-golden.R,correctness,20.4,measured_with_30_percent_headroom
@@ -1267,7 +1268,6 @@ R/EDI/tests/testthat/test-kk-compound-merged-pass.R,coverage,1,measured_with_30_
 R/EDI/tests/testthat/test-kk-gee-fallback.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-ivwc-compound-focused-regression.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-ols-se.R,coverage,1,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-kk-quantile-onelik-randomization-ci.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-robust-fallbacks.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R,coverage,1.8,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-beta-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
