@@ -169,6 +169,9 @@ graft/
 # Private research notes — not for public repo history
 /private/
 
+# trail session learnings — local only (may reference /private/ material)
+/.trail/
+
 # Belt-and-suspenders: already covered by the blanket rule above, named
 # explicitly in case that rule ever narrows
 R/package_metadata/new_research_ideas/grants/26_10_01_RcISC/isc_grant.pdf

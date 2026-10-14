@@ -79,8 +79,8 @@ immutable once built and safe to reuse across many calls to
 \code{fast_coxph_regression_prebuilt_cpp} as long as \code{X}, \code{y},
 and \code{dead} have not changed; callers (e.g.
 \code{InferenceCoxPH$private$cox_data_cache}) are responsible for
-invalidating and rebuilding the cache when the treatment assignment or
-covariates change.
+invalidating and rebuilding the cache when any of the full
+\code{w}, \code{y}, \code{dead}, or \code{X} inputs changes.
 
 \strong{Complexity.} \eqn{O(n \log n)} for the sort plus \eqn{O(n)} for
 the tabulation pass, where \eqn{n} is the number of subjects; memory use

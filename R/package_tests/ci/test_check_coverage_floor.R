@@ -23,9 +23,9 @@ write_baseline = function(r_pct, py_pct, path) {
 		fmt(r_pct), fmt(py_pct)), path)
 }
 
-run = function(report, baseline, key) {
+run = function(report, baseline, key, ...) {
 	out = suppressWarnings(system2(file.path(R.home("bin"), "Rscript"),
-		shQuote(c("R/package_tests/ci/check_coverage_floor.R", report, baseline, key)),
+		shQuote(c("R/package_tests/ci/check_coverage_floor.R", report, baseline, key, ...)),
 		stdout = TRUE, stderr = TRUE))
 	list(status = attr(out, "status") %||% 0L, output = out)
 }
@@ -58,5 +58,38 @@ Sys.setenv(GITHUB_STEP_SUMMARY = summary)
 res = run(file.path(work, "regressed.rds"), baseline, "r")
 Sys.unsetenv("GITHUB_STEP_SUMMARY")
 stopifnot(res$status != 0L, any(grepl("regressed", readLines(summary), ignore.case = TRUE)))
+
+# Auto-write mode (TODO-10 follow-up): a new high with COMMIT_SHA + AUTO_WRITE=1
+# writes the baseline file in place, preserving the untouched language entry
+# (including its JSON nulls, not jsonlite's {} round-trip artifact) and the
+# baseline's own JSON stays loadable.
+baseline_aw = file.path(work, "baseline-autowrite.json"); write_baseline(60, NULL, baseline_aw)
+report = file.path(work, "improved.rds")
+res = run(report, baseline_aw, "r", "deadbeef", "1")
+stopifnot(res$status == 0L, any(grepl("Wrote the", res$output)))
+written = jsonlite::fromJSON(baseline_aw, simplifyVector = TRUE)
+stopifnot(
+	abs(written$r$coverage_pct - 80) < 1e-6,
+	identical(written$r$commit, "deadbeef"),
+	is.character(written$r$measured_at), nzchar(written$r$measured_at),
+	is.na(written$python$coverage_pct), is.na(written$python$commit)
+)
+raw_json = paste(readLines(baseline_aw), collapse = "")
+stopifnot(grepl('"commit":null', gsub("\\s", "", raw_json)) || grepl('"commit": null', raw_json))
+
+# Auto-write mode must not write when the result is a regression, not a new high.
+baseline_aw2 = file.path(work, "baseline-autowrite-regress.json"); write_baseline(90, NULL, baseline_aw2)
+res = run(file.path(work, "regressed.rds"), baseline_aw2, "r", "deadbeef", "1")
+stopifnot(res$status != 0L)
+unwritten = jsonlite::fromJSON(baseline_aw2, simplifyVector = TRUE)
+stopifnot(abs(unwritten$r$coverage_pct - 90) < 1e-6, identical(unwritten$r$commit, "prev"))
+
+# Omitting COMMIT_SHA/AUTO_WRITE (the original 3-arg call) must never write,
+# exactly as before auto-write mode existed.
+baseline_aw3 = file.path(work, "baseline-no-autowrite.json"); write_baseline(60, NULL, baseline_aw3)
+res = run(report, baseline_aw3, "r")
+stopifnot(res$status == 0L, any(grepl("Update the", res$output)))
+unwritten3 = jsonlite::fromJSON(baseline_aw3, simplifyVector = TRUE)
+stopifnot(abs(unwritten3$r$coverage_pct - 60) < 1e-6)
 
 cat("Coverage floor check regression checks passed.\n")

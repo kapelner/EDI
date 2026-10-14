@@ -25,6 +25,9 @@ than folded into the same likelihood.
 }
 \details{
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
+See \code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}'s
+known estimability limitation at high covariate counts, which applies here
+too.
 }
 \examples{
 seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'incidence')

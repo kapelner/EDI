@@ -24,7 +24,7 @@ bisection_ci_loop_cpp(
 
 \item{u}{Initial upper bound}
 
-\item{pval_th}{P-value threshold (typically alpha/2 for two-sided CI)}
+\item{pval_th}{P-value threshold (typically alpha for a two-sided CI)}
 
 \item{tol}{Tolerance for convergence (in p-value space)}
 

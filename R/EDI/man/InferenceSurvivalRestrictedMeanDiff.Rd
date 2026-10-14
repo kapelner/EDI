@@ -7,8 +7,10 @@
 Fits a non-parametric treatment-effect estimator for censored survival
 responses: the difference in \strong{restricted mean survival time} (RMST)
 between the treated and control arms, \eqn{\hat\mu_T(\tau) - \hat\mu_C(\tau)},
-where each arm's RMST is the area under its Kaplan-Meier survival curve up to
-a truncation horizon \eqn{\tau} (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
+where both arms use the same truncation horizon \eqn{\tau}, chosen as the
+smaller of their maximum follow-up times, and each RMST is the area under its
+Kaplan-Meier survival curve up to that horizon
+(\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
 computed by trapezoidal integration of the step-function KM curve. The
 standard error of the difference comes from the Greenwood-type variance of
 each arm's RMST, combined across the two (independent) arms via

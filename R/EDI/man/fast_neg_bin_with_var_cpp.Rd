@@ -65,6 +65,8 @@ A list containing the following components:
 A list with components \code{b} (\eqn{\hat\beta}),
   \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{vcov} (the full
   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix),
+  \code{information_invertible} (whether its free information block passed
+  the invertibility check),
   \code{converged}, \code{iterations}, and \code{hess_fisher_info_matrix}
   (the working-weights curvature matrix \code{vcov} was inverted from).
 }
@@ -77,13 +79,11 @@ computes the full variance-covariance matrix of \code{c(beta, log(theta))}.
 \details{
 \strong{Variance computation.} The working-weights curvature matrix
 \code{res.XtWX} (over all \code{p + 1} parameters) is restricted to the
-free (non-\code{fixed_idx}) parameters and inverted via a \strong{plain
-matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse as used
-by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
-being expanded back to the full \code{(p + 1) x (p + 1)} size as
-\code{vcov}. A rank-deficient or near-singular design (after restricting to
-free parameters) will therefore produce numerically unstable or \code{NaN}
-variances rather than a graceful fallback.
+free (non-\code{fixed_idx}) parameters. A \code{FullPivLU} invertibility
+check guards the same plain matrix inverse used previously, so invertible
+fits retain their existing covariance values while a singular or non-finite
+free block returns a \code{NaN} covariance. Callers should check
+\code{is.finite(vcov)} before using its entries.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)

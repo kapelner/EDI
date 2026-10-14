@@ -1457,6 +1457,20 @@ baseline as expected/benign.
   cache sweep are complete. This row remains unchecked only because TODO-31's
   native rebuild validation and the subsequent installed comprehensive-CSV
   reconciliation are still required; no separate TODO-50 source change remains.
+  **TODO-31 partial grid evidence 2026-10-14 (installed EDI 1.0.3; no
+  rebuild):** the explicit small-grid convention `n={120,200}`,
+  `sigma={0.6,0.9}`, seeds `41001:41010` covered all four native kernels
+  (160 fits). No ordinal boundary fit was materially worse than its
+  `clmm(nAGQ=25)` reference; the three logistic boundary fits matched
+  singular/zero-sigma `glmer` references. Poisson had no boundary fits, but
+  reproducible cold-start non-boundary local optima at seed 41003 (0.12833
+  NLL worse) and seed 41008 (1.01325 worse) versus glmer-informed native
+  starts. These fits reported convergence, no iteration-cap hit, and gradients
+  below `8e-7`; the better reference-start fits had higher reported gradients
+  (0.0475 and 0.0313), so convergence/gradient interpretation remains part of
+  TODO-31's residual. Its linked plan records the full kernel-level settings
+  and results. TODO-50 stays open pending TODO-31 resolution and canonical
+  comprehensive-CSV reconciliation.
 - [x] TODO-51 (added 2026-09-24 as TODO-32, renumbered 2026-09-24 for the
   same collision as TODO-50 above): promoted from a one-line dead-code aside
   inside TODO-4's prose, same reason as TODO-50 — user flagged that un-homed
@@ -1943,7 +1957,7 @@ baseline as expected/benign.
   is infeasible for the per-arrival public R API. This release checkbox stays
   unchecked.
 
-- [ ] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
+- [x] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
   `nonbimatch` squared distances with a `double.xmax` diagonal** —
   `../bug_fix_plans/binary_match_nonbimatch_distance_input.md → TODO-1..3`.
 
@@ -1967,7 +1981,14 @@ baseline as expected/benign.
   Euclidean/Mahalanobis modes. Linked TODOs 1-2 are closed; TODO-3's installed
   benchmark/report remains. The concurrent source-loaded diagnostic was only
   0.80x and was correctly not substituted for the installed acceptance run,
-  so this release item stays unchecked.
+  so this release item stayed unchecked. An installed EDI 1.0.3 focused
+  rerun on the design-table fixture (n=1000, p=4; four continuous normal
+  covariates) timed the full EDI construction/ingestion/assignment workflow
+  against `gendistance` + `nonbimatch` + within-pair coin flips: EDI was
+  578/537/473 ms (median 537), canonical was 890/897/881 ms (median 890),
+  for 1.66x, meeting the ≥1.3x acceptance threshold. Linked-plan TODO-3 is
+  complete; the same installed result still needs copying into the canonical
+  `benchmark_model_fits.md` row.
 
 - [ ] TODO-62 (added 2026-10-07, user decision): **Benchmark harness: R6
   construction inside the timed region misreads sub-10 ms rows** —
@@ -2360,7 +2381,7 @@ baseline as expected/benign.
   against installed EDI 1.0.3; no compile/install was needed. See the linked
   algorithm-sweep plan.
 
-- [ ] TODO-81 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-81 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F23): **`DesignFixedOptimal` BRT replays a weaker solver than the observed allocation's** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-12`.
   Replicates use 1 × 2000 annealing moves (stops hot) vs MILP or 4 × 20000. Replicate objectives are 6–45× worse. **Conservative:** size ≈ 0.02–0.03 at nominal 0.05 at high R². Undocumented.
@@ -2369,13 +2390,13 @@ baseline as expected/benign.
   is available only via an explicit `brt_solver` override, while an explicit
   `brt_solver = "ompr"` forces MILP instead of silently crossing the auto
   solver's large-design annealing threshold. The wiring test now pins default
-  profile parity and both opt-in overrides. **Installed recheck 2026-10-14:**
-  the solver-argument guard test passed 2 assertions. The BRT suite with
-  `NOT_CRAN=true` reached 18 passes but failed 3 assertions after the running R
-  process reported `EDI.rdb` corruption/libdeflate errors; a separate fresh
-  process loaded EDI 1.0.3 and `get_num_cores()` successfully. The suite's
-  process-level failure needs isolation before this item can close; no
-  compilation or install was run.
+  profile parity and both opt-in overrides. **Installed validation
+  2026-10-14:** against EDI 1.0.3, the standalone `NOT_CRAN=true` BRT suite
+  passed 22 assertions in approximately 13 minutes; the solver-argument guard
+  passed 2 assertions. Exact BRT command:
+  `Rscript -e 'Sys.setenv(NOT_CRAN="true"); library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-design-fixed-optimal-brt.R")'`.
+  The prior process-level `EDI.rdb` corruption/libdeflate errors did not recur.
+  No compile/install was run.
 
 - [x] TODO-82 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F22): **`InferenceSurvivalKKRankRegrIVWC` always returns NA** —
@@ -2405,7 +2426,7 @@ baseline as expected/benign.
   matched/reservoir dispatch passed 17 against installed EDI 1.0.3; no
   compile/install was needed. See the linked algorithm-sweep plan.
 
-- [ ] TODO-84 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-84 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F7): **`InferenceAllKKWilcoxIVWC` HL variance is 2.09× too small** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-15`.
   Coverage is 80.7% at nominal 95% (class run). The bootstrap CI aliases the asymptotic one. Legacy IVWC.
@@ -2416,9 +2437,17 @@ baseline as expected/benign.
   package-level restriction correctly rejects nonparametric bootstrap CIs for
   sequential KK designs. Focused source regressions cover the two variance
   formulas and that unsupported CI path. The R-side focused variance/CI test
-  passed all 3 assertions against installed EDI 1.0.3. This remains open for
-  the native fast-bootstrap rebuild and direct execution; no compile/install
-  was run.
+  passed all 3 assertions against installed EDI 1.0.3. The installed native
+  fast-bootstrap entry point was called directly on a deterministic mixed
+  matched-pair/reservoir fixture and returned 2.625, matching the independently
+  calculated calibrated-variance estimate to 1e-12; the bootstrap reference
+  contract suite passed 14 assertions. The original class-level 300-replicate
+  coverage fixture also passed against installed EDI 1.0.3: 281/300 = 93.7%
+  coverage at nominal 95%, empirical SD(est)=0.2296, in 47.7 seconds. Exact
+  command: `Rscript -e 'source("/tmp/edi_f7_class_cov_installed.R")'`; the
+  temporary runner uses installed EDI and does not load or compile the
+  checkout. No compile/install was run. See the linked plan for native direct
+  fixture details.
 
 - [x] TODO-85 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F11): **KK hurdle-Poisson IVWC placeholder SEs of 1.0** —
@@ -2574,7 +2603,7 @@ baseline as expected/benign.
     24 assertions with 4 CRAN-only skips). The cross-core seed-registry and
     tight-cutoff rerandomization suites passed 106 and 21 assertions,
     respectively.
-- [ ] TODO-96 (added 2026-10-14, user decision; found while wiring the
+- [x] TODO-96 (added 2026-10-14, user decision; found while wiring the
   cross-platform digest test for `release_v1_1_0.md → TODO-48`): **C++
   kernels overwrite OpenMP's global thread count with their own argument.**
   - `binary_match_search.cpp:35` calls `omp_set_num_threads(num_cores)`.
@@ -2629,8 +2658,15 @@ baseline as expected/benign.
     the package OpenMP limit to two first, then checks runtime support; against
     the user's installed OpenMP-enabled package it passes all 42 assertions,
     including a two-thread team observed inside the probe and an unchanged
-    global maximum afterward. The OpenMP implementation is verified; TODO-96
-    remains open for the broader all-kernel audit/coverage criteria.
+    global maximum afterward. The source audit checks all 19 threaded kernel
+    files for scoped `num_threads(EDI_KERNEL_NUM_THREADS(num_cores))` regions
+    and confirms `omp_set_num_threads()` appears only in the explicit package
+    thread-control function. The focused test passed 42 assertions; the
+    thread-control reference passed 13; and the fork-worker invariance test
+    passed 8 with `NOT_CRAN=true`. Together these verify the shared per-region
+    policy across every kernel plus runtime team size/global-state behavior.
+    The installed build metadata now reports `-fopenmp`, matching R's
+    `Makeconf`. **Completed 2026-10-14.**
 
 ## Standing constraints
 

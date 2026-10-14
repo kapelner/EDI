@@ -285,7 +285,7 @@ are fixed here because they are still exported and registered.
   suite passed 49 assertions, parallel CI bounds passed 5, and nonfinite-point
   guards passed 5 against EDI 1.0.3 (59 total). No compile/install was needed.
 
-- [ ] TODO-12 (F23): **`DesignFixedOptimal` BRT replays a weaker solver than
+- [x] TODO-12 (F23): **`DesignFixedOptimal` BRT replays a weaker solver than
   produced the observed allocation.** Replicates always use annealing with
   1 chain × 2000 moves (`design_fixed_optimal.R:512-529`), which stops hot
   (T_final ≈ 0.135 T_0). The observed `w` comes from exact MILP (n ≤ 20) or
@@ -304,12 +304,15 @@ are fixed here because they are still exported and registered.
   `1 × 2000` annealing fallback is gone.  An explicit `brt_solver = "ompr"`
   now forces the MILP replay rather than silently taking the auto solver's
   large-design annealing threshold. The BRT wiring regression now checks the
-  default certified solve and both explicit overrides. **Installed recheck
-  2026-10-14:** the solver-argument guard passed 2 assertions. The non-CRAN
-  BRT suite reached 18 passes but ended with 3 failures after the R process
-  reported `EDI.rdb` corruption/libdeflate errors; a separate fresh process
-  loaded EDI 1.0.3 and `get_num_cores()` successfully. Isolate this
-  process-level failure before closing; no compile or install was run.
+  default certified solve and both explicit overrides. **Installed validation
+  2026-10-14:** against EDI 1.0.3, the standalone non-CRAN
+  `test-design-fixed-optimal-brt.R` run passed 22 assertions with
+  `NOT_CRAN=true` in approximately 13 minutes, and
+  `test-design-fixed-optimal-solver-args-brt-solver-guards-reference.R`
+  passed 2 assertions. Exact BRT command:
+  `Rscript -e 'Sys.setenv(NOT_CRAN="true"); library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-design-fixed-optimal-brt.R")'`.
+  The prior `EDI.rdb` corruption/libdeflate failure did not recur in the fresh
+  standalone run. No compile or install was run.
 
 ## Group C — legacy IVWC classes (still exported)
 
@@ -353,7 +356,7 @@ are fixed here because they are still exported and registered.
   regression passed 6 assertions and the shared compound matched/reservoir
   dispatch suite passed 17 against EDI 1.0.3. No compile/install was needed.
 
-- [ ] TODO-15 (F7): **`InferenceAllKKWilcoxIVWC` HL variance is 2.09× too small**
+- [x] TODO-15 (F7): **`InferenceAllKKWilcoxIVWC` HL variance is 2.09× too small**
   (`src/fast_wilcox_hl.cpp:~250-285` and its R mirror). Both component formulas
   (all pairwise differences / (n_T+n_C), Walsh averages / m) are wrong by the
   same factor under normality. Class coverage is 80.7% at nominal 95% (KK14,
@@ -372,8 +375,18 @@ are fixed here because they are still exported and registered.
   asserts that this unsupported CI path errors rather than aliases Wald.
   **Installed validation 2026-10-14:** the focused R-side variance/CI test
   passed all 3 assertions against EDI 1.0.3. The native fast-bootstrap
-  implementation still needs a maintainer-authorized rebuild and direct
-  execution; no compile/install was run.
+  fast path was also called directly from installed EDI 1.0.3 with a
+  deterministic mixed matched-pair/reservoir fixture. It returned 2.625,
+  matching the independently calculated calibrated-variance estimate to
+  1e-12 (matched variance 1.0471975512; reservoir variance 1.7453292520).
+  `test-wilcox-hl-bootstrap-reference-contracts.R` passed 14 assertions.
+  The original class-level coverage smoke test was rerun against installed
+  EDI 1.0.3, with its original seed/DGP (KK14, n=80, two N(0,1) covariates,
+  N(0,1) noise, treatment effect 1, 300 reps): the 95% asymptotic CI covered
+  281/300 = 93.7%, with empirical SD(est)=0.2296 (47.7 seconds). The run used
+  `Rscript -e 'source("/tmp/edi_f7_class_cov_installed.R")'`; that temporary
+  script uses `library(EDI)` rather than loading the checkout. No compile or
+  install was run.
 
 - [x] TODO-16 (F11, closed after installed validation 2026-10-14): **KK hurdle-Poisson IVWC placeholder SEs of 1.0**
   (`inference_count_KK_cond_poisson.R:~364,419,449/470,165/177,274/284`). With

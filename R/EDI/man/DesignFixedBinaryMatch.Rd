@@ -23,9 +23,9 @@ closeness of any two subjects.
 \code{draw_ws_raw()}/\code{assign_w_to_all_subjects()}, via
 \code{private$ensure_matching_structure_computed()}) by
 \code{compute_binary_match_structure()}, which forms an \eqn{n \times n} pairwise
-distance matrix — squared Mahalanobis distance if \code{mahal_match = TRUE} (the
+distance matrix — Mahalanobis distance if \code{mahal_match = TRUE} (the
 default; using the sample covariance of the covariates, ridge-regularized if singular),
-or squared Euclidean distance otherwise — and solves the minimum-weight non-bipartite
+or Euclidean distance otherwise — and solves the minimum-weight non-bipartite
 perfect matching on that distance matrix via \code{\link[nbpMatching]{nonbimatch}}
 (\pkg{nbpMatching}, a Suggests-only dependency; loading is deferred until matching is
 actually needed, so pre-computed \code{w} vectors injected via \code{m} never require
@@ -194,6 +194,7 @@ Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P. (2004). "Optimal
   response_type,
   prob_T = 0.5,
   mahal_match = TRUE,
+  match_objective = c("distance", "squared_distance"),
   include_is_missing_as_a_new_feature = TRUE,
   n = NULL,
   m = NULL,
@@ -211,9 +212,12 @@ Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P. (2004). "Optimal
       \item{\code{prob_T}}{The probability of the treatment assignment. Must be 0.5,
 since within-pair randomization only supports an even 1-treated/1-control
 split per pair.}
-      \item{\code{mahal_match}}{Match using squared Mahalanobis distance (accounting for
-covariate correlation/scale) if \code{TRUE} (default), else squared
+      \item{\code{mahal_match}}{Match using Mahalanobis distance (accounting for
+covariate correlation/scale) if \code{TRUE} (default), else
 Euclidean distance on the raw covariate matrix.}
+      \item{\code{match_objective}}{Matching objective. \code{"distance"} (default)
+matches \pkg{nbpMatching}; \code{"squared_distance"} reproduces EDI
+through version 1.0.4.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{m}}{Optional integer vector of explicit matched-pair identifiers, one per

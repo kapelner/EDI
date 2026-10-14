@@ -30,7 +30,7 @@ bisection_ci_parallel_cpp(
 
 \item{u_upper}{Initial upper bound for upper CI bound search}
 
-\item{pval_th}{P-value threshold (typically alpha/2 for two-sided CI)}
+\item{pval_th}{P-value threshold (typically alpha for a two-sided CI)}
 
 \item{tol}{Tolerance for convergence (in p-value space)}
 

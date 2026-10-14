@@ -8,6 +8,29 @@
 Fits one likelihood with a conditional-logistic contribution from discordant
 matched pairs and a random-intercept logistic GLMM contribution from concordant
 matched pairs and reservoir subjects.
+
+\strong{Known estimability limitation at high covariate counts.} The
+treatment effect is identified from the discordant-pair conditional-logit
+term alone (the shared pair-level intercept cancels only for pairs that
+disagree on outcome), so that term alone must identify treatment plus
+every adjustment covariate from however many pairs happen to be
+discordant for a given incidence response, typically a modest fraction of
+\eqn{n}. With \code{model_formula = ~.} on a dataset with many covariates,
+the number of free parameters the discordant term must help identify can
+approach or exceed the number of discordant pairs, and the joint fit then
+frequently converges to an out-of-bounds coefficient or random-effect
+log-variance and is correctly reported as nonestimable rather than
+returned. This was measured directly (\code{comprehensive_tests.R} repro,
+2026-10): the identical design/response/n was estimable in 39 of 40 null
+replicates with one covariate, but only 22 of 40 with ten covariates under
+\code{model_formula = ~.}. This is treated as an accepted property of this
+estimator in this regime, not a defect to be patched; when the cause is
+specifically this parameter-to-discordant-pair imbalance, the cached
+nonestimability reason names it explicitly
+(\code{joint_likelihood_nonestimable_high_dimensional_relative_to_discordant_pairs},
+with the actual counts) rather than the generic
+\code{joint_likelihood_nonestimable} that covers every other cause of the
+same two bound checks.
 }
 \keyword{internal}
 \section{Super class}{

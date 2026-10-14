@@ -45,7 +45,10 @@ fast_zinb_cpp(
 \item{estimate_only}{Logical. If TRUE, skip variance computation and return only coefficients.}
 }
 \value{
-A list containing coefficients and convergence status.
+A list containing coefficients, convergence status, and, when
+  \code{estimate_only = FALSE}, \code{information_invertible}. A singular or
+  non-finite free information block sets that field to \code{FALSE} and
+  returns a \code{NaN} free-parameter covariance block.
 }
 \description{
 High-performance zero-inflated negative binomial model fitting via L-BFGS.

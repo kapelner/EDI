@@ -271,7 +271,26 @@ without the maintainer's separately authorized rebuild/install.
   Type-I error was explained.
 - [ ] TODO-6: Regenerate `comprehensive_tests` CSV rows for every affected
   class's parametric-bootstrap-family methods once both bugs are fixed and
-  installed, then re-audit.
+  installed, then re-audit. **Canonical-artifact audit 2026-10-14:** the
+  ignored `R/package_tests/comprehensive_tests_results_nc_1_ordinal.csv`
+  contains rows for the affected classes, but an `awk` scan of its
+  `inference_class`/`timestamp` columns finds latest rows no newer than
+  2026-09-27 (`InferenceOrdinalCloglogRegr`, `~1`: 2026-09-27 12:20:17 IDT;
+  `~.`: 11:44:32; `InferenceOrdinalContRatioRegr`, `~1`: 12:22:26; `~.`:
+  11:47:19). These predate the 2026-10-09 implementation and therefore do
+  not validate it. No CSV was rewritten; the full re-audit remains open.
+  **Bounded installed-package pilot 2026-10-14:** copied the canonical
+  harness plus its minimal helper files to `/tmp/edi-todo14-pilot-W6SnZz`
+  and ran `Rscript package_tests/comprehensive_tests.R 1 1 ordinal Bernoulli
+  InferenceOrdinalCloglogRegr diamonds 0 1 parametric_bootstrap` there.
+  It completed in about 69s and produced eight `ok` rows (four function runs for
+  each of `design_formula=~1` and `~.`) in
+  `/tmp/edi-todo14-pilot-W6SnZz/package_tests/comprehensive_tests_results_nc_1_ordinal_filtered_design-Bernoulli_class-InferenceOrdinalCloglogRegr_dataset-diamonds_beta-0_rep-1_family-parametric_bootstrap.csv`.
+  The slowest call was `compute_lik_ratio_bootstrap_two_sided_pval` at
+  56.5s for `~.`; all other calls took <1s. This confirms installed
+  execution and `/tmp` output isolation, but is only one class/dataset/design,
+  one null replicate, and one test-family filter—not the required complete
+  regeneration/re-audit. Logs remain under the same `/tmp` root.
 - [x] TODO-7: Note the generator-vs-instance verification gotcha (see Bug
   1's "Verification note") somewhere durable if a lazily-loaded component
   gets edited again — checking `Generator$private_methods` after

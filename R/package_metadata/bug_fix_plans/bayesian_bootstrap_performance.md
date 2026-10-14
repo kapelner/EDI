@@ -181,6 +181,12 @@ correctness and 240 seconds for coverage.  This is a safety exception, not a
 claim that the ordinary non-reusable path is universally fork-safe; repeat-run
 runtime validation remains required before release closure.
 
+**Installed repeat-run check, 2026-10-14:** the focused test file passed all
+19 expectations in three consecutive invocations against installed EDI 1.0.3
+(`Rscript -e "for (i in seq_len(3)) testthat::test_file('R/package_tests/testthat_bulk/test-bayesian-bootstrap-non-reusable-worker-debug-path.R')"`).
+No hang occurred. This is a small repeat-run smoke check, not the longer
+release-scale runtime-manifest or sanitizer validation; TODO-66 remains open.
+
 - [ ] TODO-1: **Benchmark harness, before any change.** Promote the
   scratch timing (1 vs. 3 cores, B ∈ {1000, 5000}, OLS / logistic / Cox /
   Weibull / median regression / difference in means / beta regression) to
@@ -326,6 +332,18 @@ path passed 19. The installed package reports EDI 1.0.3. These checks do not
 replace the pre-change benchmark harness (TODO-1), source validation for the
 pending refactors, or the full before/after comparison (TODO-9); no TODO
 checkbox above is closed by this check alone.
+
+**TODO-1 pilot blocker, 2026-10-14:** the promoted harness is available at
+`R/benchmark/benchmark_bayesian_bootstrap_performance.R` and supports a
+bounded pilot before the full B/core grid. The pilot command
+`Rscript R/benchmark/benchmark_bayesian_bootstrap_performance.R 500 1 3 1000 /tmp/edi-v105-bb-bench-pilot.csv`
+did not reach timing: its child `marketing_plans/bb_bench2.R` exited while
+loading the installed-package benchmark dependencies because `bayesboot` is
+not installed (`there is no package called 'bayesboot'`). No dependency was
+installed and no benchmark result CSV was produced. Do not retry the pilot or
+full grid until `bayesboot` is already available; installing it requires user
+approval. TODO-1 therefore remains open/blocked on this dependency, and TODO-9
+cannot use a matching pre-change harness result yet.
 
 ## Out of scope
 

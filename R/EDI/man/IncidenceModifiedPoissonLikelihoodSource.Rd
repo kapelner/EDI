@@ -11,8 +11,8 @@ Initialize inference for the modified Poisson model
   \eqn{\log E[Y_i \mid w_i, x_i] = \beta_0 + \beta_T w_i + x_i^\top
   \gamma}; see
   \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}
-  for the model form and its robust/sandwich standard error. Does not fit the
-  model; the fit is deferred to the first call to
+  for the model form and its robust/sandwich standard error. Does not
+  fit the model; the fit is deferred to the first call to
   \code{compute_estimate()} or a method that requires it.
 
 Fits the modified Poisson model by maximizing the Poisson
@@ -21,9 +21,9 @@ Fits the modified Poisson model by maximizing the Poisson
 
 Wald confidence interval for \eqn{\beta_T} using Zou's
   (2004) robust/sandwich standard error; see
-  \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}} and
-  \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared Wald
-  contract.
+  \code{\link[EDI:InferenceIncidModifiedPoisson]{InferenceIncidModifiedPoisson}}
+  and \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
+  Wald contract.
 
 Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
   using Zou's (2004) robust/sandwich standard error; see

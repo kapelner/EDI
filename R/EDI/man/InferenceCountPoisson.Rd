@@ -34,6 +34,13 @@ result is \code{NA}. Validity requires the usual correctly-specified
 linear predictor on the log scale; unlike the raw Poisson likelihood
 alone, this class's actual reported inference degrades gracefully (rather
 than becoming anti-conservative) under mean-variance misspecification.
+This combination applies to the asymptotic likelihood methods, their
+Bartlett-corrected variants, and likelihood-ratio bootstrap calibration.
+Generic estimate-resampling intervals (Bayesian bootstrap, ordinary
+bootstrap, and the direct parametric-bootstrap estimate interval) retain
+their standard component definitions and are not unioned with a second
+jackknife interval; use one of the design-conservative likelihood methods
+when robustness to Poisson equidispersion failure is required.
 
 \strong{Estimand.} Composes
 \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
@@ -112,6 +119,10 @@ Comparable Python API:
     \item \href{#method-InferenceCountPoisson-compute_score_two_sided_pval}{\code{InferenceCountPoisson$compute_score_two_sided_pval()}}
     \item \href{#method-InferenceCountPoisson-compute_lik_ratio_confidence_interval}{\code{InferenceCountPoisson$compute_lik_ratio_confidence_interval()}}
     \item \href{#method-InferenceCountPoisson-compute_lik_ratio_two_sided_pval}{\code{InferenceCountPoisson$compute_lik_ratio_two_sided_pval()}}
+    \item \href{#method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_confidence_interval}{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_confidence_interval()}}
+    \item \href{#method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_two_sided_pval}{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_two_sided_pval()}}
+    \item \href{#method-InferenceCountPoisson-compute_lik_ratio_bartlett_confidence_interval}{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_confidence_interval()}}
+    \item \href{#method-InferenceCountPoisson-compute_lik_ratio_bartlett_two_sided_pval}{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_two_sided_pval()}}
     \item \href{#method-InferenceCountPoisson-compute_gradient_confidence_interval}{\code{InferenceCountPoisson$compute_gradient_confidence_interval()}}
     \item \href{#method-InferenceCountPoisson-compute_gradient_two_sided_pval}{\code{InferenceCountPoisson$compute_gradient_two_sided_pval()}}
     \item \href{#method-InferenceCountPoisson-compute_lik_ratio_bootstrap_two_sided_pval}{\code{InferenceCountPoisson$compute_lik_ratio_bootstrap_two_sided_pval()}}
@@ -388,6 +399,102 @@ bootstrap resampling paths.}
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{delta}}{Null treatment effect. Default 0.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_confidence_interval}{}}}
+\subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_confidence_interval()}}{
+  Approximate Bartlett-corrected likelihood-ratio confidence
+  interval, unioned with the design-based jackknife-Wald interval.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_confidence_interval(
+  alpha = 0.05,
+  B = 99
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{B}}{Number of Monte-Carlo replicates used for the Bartlett factor.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bartlett_approx_two_sided_pval}{}}}
+\subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_two_sided_pval()}}{
+  Approximate Bartlett-corrected likelihood-ratio p-value,
+  conservatively combined with the design-based jackknife-Wald p-value.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_two_sided_pval(
+  delta = 0,
+  B = 99
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{B}}{Number of Monte-Carlo replicates used for the Bartlett factor.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bartlett_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bartlett_confidence_interval}{}}}
+\subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_confidence_interval()}}{
+  Best-available Bartlett-corrected likelihood-ratio confidence
+  interval, unioned with the design-based jackknife-Wald interval.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_confidence_interval(
+  alpha = 0.05,
+  B = 99
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{B}}{Number of Monte-Carlo replicates when the approximate correction is used.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountPoisson-compute_lik_ratio_bartlett_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountPoisson-compute_lik_ratio_bartlett_two_sided_pval}{}}}
+\subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_two_sided_pval()}}{
+  Best-available Bartlett-corrected likelihood-ratio p-value,
+  conservatively combined with the design-based jackknife-Wald p-value.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_two_sided_pval(
+  delta = 0,
+  B = 99
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{B}}{Number of Monte-Carlo replicates when the approximate correction is used.}
     }
     \if{html}{\out{</div>}}
   }

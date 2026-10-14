@@ -112,6 +112,17 @@ one with `NA` strata values).
   compare the full sequence against `carat` or all TODO-1 fixtures against
   EDI 1.0.2, so TODO 5 remains open.
 
+  **Additional installed rerun 2026-10-14 (under concurrent CPU load):**
+  `Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5` completed
+  against installed EDI 1.0.3 without writing a CSV. Per-arrival medians were
+  0.50 ms at t=10, 0.70 ms at t=100, 0.50 ms at t=500, and 0.45 ms at
+  t=1000; whole-sequence median was 503.05 ms. Three other R jobs were each
+  using approximately one CPU during this run, and the observed range at
+  t=1000 extended to 1.25 ms. This load-contended sample is not clean
+  acceptance evidence: it is broadly flat but does not meet the strict
+  <=0.5 ms median criterion at every checkpoint. TODO 5 remains open; rerun
+  under isolated load before release closure.
+
 ## Implementation and validation (2026-10-09)
 
 TODOs 1, 3--4 are implemented. TODO-2's incremental bookkeeping source is

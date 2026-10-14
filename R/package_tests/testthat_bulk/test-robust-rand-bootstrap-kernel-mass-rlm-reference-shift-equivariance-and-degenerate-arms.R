@@ -56,6 +56,33 @@ test_that("no-covariate design works and thread count does not change the result
 	expect_equal(K(y0, Xc, i_mat, w_mat, 0.2, "M", NULL, 2L), K(y0, Xc, i_mat, w_mat, 0.2, "M", NULL, 1L), tolerance = 1e-12)
 })
 
+test_that("the robust bootstrap parallel branch matches serial and per-resample fits", {
+	set.seed(742)
+	n_parallel <- 80L
+	B_parallel <- 32L
+	y_parallel <- rnorm(n_parallel, sd = 2)
+	y_parallel[c(9, 54)] <- y_parallel[c(9, 54)] + 12
+	X_parallel <- cbind(a = rnorm(n_parallel), b = rnorm(n_parallel))
+	i_parallel <- replicate(B_parallel, sample.int(n_parallel, n_parallel, replace = TRUE))
+	storage.mode(i_parallel) <- "integer"
+	w_parallel <- replicate(B_parallel, sample(rep(0:1, length.out = n_parallel)))
+	storage.mode(w_parallel) <- "integer"
+
+	parallel_fit <- K(y_parallel, X_parallel, i_parallel, w_parallel, 0.35, "M", NULL, 2L)
+	serial_fit <- K(y_parallel, X_parallel, i_parallel, w_parallel, 0.35, "M", NULL, 1L)
+	per_resample_reference <- vapply(seq_len(B_parallel), function(b) {
+		i <- i_parallel[, b]
+		w <- w_parallel[, b]
+		X <- cbind(1, w, X_parallel[i, , drop = FALSE])
+		y <- y_parallel[i] + 0.35 * w
+		unname(fast1(X, y, method = "M")$coefficients[2])
+	}, numeric(1))
+
+	expect_true(all(is.finite(parallel_fit)))
+	expect_equal(parallel_fit, serial_fit, tolerance = 1e-12)
+	expect_equal(parallel_fit, per_resample_reference, tolerance = 1e-8)
+})
+
 test_that("resamples with fewer than two treated or two control rows return NA", {
 	w2 <- w_mat; w2[, 1] <- 0L; w2[1, 1] <- 1L                       # one treated
 	w2[, 2] <- 1L; w2[1, 2] <- 0L                                    # one control

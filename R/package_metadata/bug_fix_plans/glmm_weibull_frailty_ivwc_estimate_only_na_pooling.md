@@ -183,7 +183,21 @@ remains open under release TODO-14.
   re-run passes (13/13).
 - [ ] TODO-7: Regenerate any `comprehensive_tests` CSV rows for this
   class's `rand`-family methods once fixed and installed (only after
-  install, not before, same caution as the sibling plans).
+  install, not before, same caution as the sibling plans). **Bounded
+  harness-isolation pilot 2026-10-14:** ran the canonical harness from a
+  minimal `/tmp` root (only `comprehensive_tests.R`, `_dataset_load.R`,
+  its pruning helper, and the likelihood-smoke helper copied there), so its
+  results path could not touch the workspace CSVs. First command filtered to
+  one rep, survival, KK21, this class, `pte_example`, beta 0, rep 1, `rand`;
+  second relaxed design/dataset filters while keeping one rep, survival,
+  this class, beta 0, rep 1, `rand`. The runs exited 0 in 2.4s and 37.4s,
+  respectively, but emitted no filtered result CSV/eligible rows, so these
+  are isolation/setup timings only, not a benchmark of the class method.
+  Logs are preserved at `/tmp/edi-todo14-pilot-W6SnZz/pilot.log` and
+  `/tmp/edi-todo14-pilot-W6SnZz/pilot_all_designs.log`. The copied root is
+  not a Git checkout, causing expected `rev-parse`/stale-row-pruner warnings;
+  no workspace CSV changed. TODO-7 remains open pending a valid canonical
+  class result run.
 
 ## Standing constraints
 

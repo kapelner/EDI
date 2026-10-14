@@ -122,7 +122,10 @@ and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumption
   compared with the resulting reference distribution. This is the
   impute-then-permute construction of Rosenbaum (2002, ch. 2) and Imbens and
   Rubin (2015, ch. 5): \eqn{y_{sim} = y - \delta w_{obs} + \delta w_b} on the
-  additive scale.
+  additive scale. For mean-difference, OLS, Lin, and verified KK OLS
+  one-likelihood estimators, EDI computes one full \eqn{\delta=0} null
+  distribution and reuses its exact per-permutation affine shifts throughout
+  the CI search; other estimators retain the general refit-at-each-\eqn{\delta} path.
 
   \strong{Survival responses.} The sharp null is an accelerated-failure-time
   (AFT) effect: for units treated under \eqn{w_b} the recorded time is multiplied
@@ -186,7 +189,7 @@ reuse settings \code{fit_warm_start_enable} and
 \code{fit_reuse_factorizations}. Set \code{mc_enable = FALSE} to force
 full enumeration of all requested randomization draws.
 The search radius is \code{max(max_radius_se_mult * se_guess, max_radius_scale_mult * sd(y))}.
-When the randomization p-value does not drop below \code{alpha/2} anywhere within
+When the randomization p-value does not drop below \code{alpha} anywhere within
 the search radius (e.g. the test has low power or the design has few unique
 permutations), a \emph{conservative} CI bound is returned at the search boundary
 rather than \code{NA}. This guarantees a valid (though possibly wide) interval.

@@ -151,6 +151,7 @@ Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
   n,
   verbose = FALSE,
   objective = "mahal_dist",
+  match_objective = c("distance", "squared_distance"),
   n_iter = Inf,
   missingness_method = "impute",
   design_formula = ~.,
@@ -171,6 +172,9 @@ which pair member is treated: either \code{"mahal_dist"} (default, squared
 Mahalanobis distance between treated/control means, also used as the
 matching distance) or \code{"abs_sum_diff"} (sum of absolute standardized
 mean differences); see class documentation for the exact criteria.}
+      \item{\code{match_objective}}{Matching objective used to form pairs.
+\code{"distance"} (default) matches \pkg{nbpMatching};
+\code{"squared_distance"} reproduces EDI through version 1.0.4.}
       \item{\code{n_iter}}{Number of swap iterations. \code{Inf} (default) uses exhaustive
 best-improvement search guaranteed to reach a strict local optimum. A positive
 integer runs that many stochastic random-pair iterations with patience-based

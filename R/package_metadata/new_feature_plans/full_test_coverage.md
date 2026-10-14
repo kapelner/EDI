@@ -533,6 +533,28 @@ is explicitly not the target** -- see Non-goals below.
   vs. slow/bulk split -- these are deliberately expensive paths, don't pull
   them into the always-run pre-push suite) that crosses that threshold and
   asserts a real result (not just "didn't error").
+
+  **TODO-3 progress (2026-10-14):** The three rows that were pending have
+  focused test coverage or a documented measurement explanation:
+  `fast_robust_regression.cpp` now has a 32-resample, two-thread bulk case
+  checked against serial and per-resample fits;
+  `kk21_stepwise_survival.cpp` has low-event fallback/score-path references
+  plus non-finite event/time cases for the reduced-fit guards; and
+  `fast_scale_cols.cpp` already has ordinary/constant-column references and
+  has no parallel/size dispatch gate in its implementation. Its 75% report
+  is a known `-O2`/gcov line-attribution anomaly (unchanged code measured
+  100% previously), so do not add tests for arithmetic lines unless a
+  line-level report identifies a real unexercised branch. The 2026-10-14 CI
+  report (commit `598774af`) confirms the robust parallel function has no
+  zero-hit executable lines; its earlier two-thread assertion already crossed
+  the gate. That report identifies only arithmetic statements and a closing
+  brace as zero-hit in `fast_scale_cols.cpp`, while its loop and both branches
+  run, so the registry row is now `excluded` as measurement noise. The robust,
+  survival, and scaling focused files pass against the installed package, and
+  both shard planners accept the manifest. Keep the robust and survival rows
+  pending until a report including the new 32-resample test and non-finite
+  cases confirms their coverage movement; focused test runs alone do not
+  update the measured registry values.
 - **TODO-4.** Confirm whether `InferenceContinuousKK14Bai`,
   `InferenceContinuousKK21Bai`, `InferenceExtQuantileRandCI`, and the
   quantile-rand-CI abstract base genuinely have no test anywhere (they may
@@ -550,6 +572,12 @@ is explicitly not the target** -- see Non-goals below.
   (`(1 - coverage) * lines_of_code`), not raw percentage, so effort goes
   toward files where a new test recovers the most absolute lines first,
   not just whichever file has the lowest %.
+
+  **Complete (2026-10-14):** `summarize_coverage()` computes this as
+  `coverable_lines - covered_lines`, and both the per-file summary and merged
+  registry sort descending by that value. The registry regression fixture now
+  proves a higher-coverage, larger file ranks ahead of a lower-coverage small
+  file when it has more uncovered lines.
 - **TODO-7.** For each low-coverage file, distinguish two different root
   causes before choosing a fix: (i) the code path already runs under an
   existing comprehensive-suite/argument-combination fixture, but the
@@ -560,6 +588,20 @@ is explicitly not the target** -- see Non-goals below.
   reaches the branch at all does nothing; writing a whole new test for
   something an existing fixture already exercises duplicates coverage
   without closing the gap it looked like it would).
+
+  **Classification pass (2026-10-14):** the 11 pending TODO-7 registry rows
+  were reviewed against their call paths and current bulk-test fixtures. Add
+  focused tests where the path is not reached at all (`simulations_framework.R`,
+  `local_machine_tuning_axes.R`, `fast_cpoisson_combined.cpp`, and
+  `atkinson_assign.cpp`); broaden existing fixtures for the stratified Cox,
+  survival-fit, KK Wilcoxon IVWC, GLM-fit, KK conditional-logit/GLMM,
+  KK mean-difference IVWC, and Atkinson design paths. The per-file branch
+  evidence and test targets are recorded in `coverage_gap_registry.csv`. These
+  rows remain pending until a coverage run confirms the targeted lines moved.
+  The separate `kk21_stepwise_survival.cpp` TODO-3 row also received malformed
+  non-finite event/time cases in `test-stepwise-survival-fallback-reference.R`;
+  retain its pending status until measured because its current note is based on
+  the older run.
 - **TODO-8.** For genuinely-defensive/impossible-state `stop()`/assertion
   branches (the kind CLAUDE.md's own guardrail-pattern documents
   elsewhere in this codebase), decide case by case: (a) write a test that
@@ -606,6 +648,71 @@ is explicitly not the target** -- see Non-goals below.
   this is an actively-developed codebase and new files/functions land
   continuously; confirm nothing new crept in unaddressed while this plan
   was being executed.
+
+  **Trigger condition met (2026-10-13).** A real CI run (commit `fdbbfb8e`,
+  2026-10-12, Codecov: **89.66%** overall, 309 files) regenerated the
+  registry from 109 to 113 rows and dropped the open backlog from 51 rows
+  (41 pending + 10 in_progress) to **17** (16 pending + 1 in_progress) --
+  "substantially cleared" by any reading. Pulled and applied via:
+  ```sh
+  gh run list --workflow=test-coverage-R.yaml --limit 5
+  gh run download <run-id> -R kapelner/EDI -n coverage-registry -D <dir>   # candidate CSV + drift note
+  gh run download <run-id> -R kapelner/EDI -n coverage-merged -D <dir>    # merged-coverage.rds, for line-level digging
+  ```
+  (`gh api .../artifacts/<id>/zip` also works but needs
+  `*.blob.core.windows.net` allowed for the redirect; `gh run download`
+  handles it.) This is now the established, repeatable mechanism for
+  future TODO-10 passes -- no local instrumented build required when CI has
+  already produced a fresh measurement.
+
+  **Three measurement-noise categories confirmed this pass -- check for
+  these BEFORE treating a backlog row as a real gap, especially an
+  apparent regression in a previously-`addressed` file:**
+  1. *`covr`/`define_inference_class()` composition-attribution gap*
+     (documented above, 2026-09-23): thin wiring files and harvested-source
+     classes can show near-0%/NaN regardless of real test coverage.
+     Verify via `covr::file_coverage()` against the file's dedicated
+     tests (if assertions pass despite 0%/NaN, it's this).
+  2. *gcov header/inline-function attribution* (found 2026-10-13,
+     `r_seed_draw.h`): an inline function defined in a `.h` and only ever
+     called from other translation units can show 0% in its own file
+     while the including `.cpp` files measure fine. Verify by checking
+     whether the file's only callers are themselves well above threshold.
+  3. *`-O2`-under-`--coverage` line-attribution noise* (found 2026-10-13,
+     `fast_scale_cols.cpp`, unchanged source yet measured 100% -> 75%):
+     pull the merged report and tally by line
+     (`covr::tally_coverage(report$coverage, by = "line")`); if the
+     surrounding control flow (loop entry, branch conditions, both
+     branches, return) all show real nonzero hits and only a couple of
+     plain arithmetic statement lines show 0, it's compiler reordering
+     under optimization, not a real gap -- the "Sharding procedure"
+     section already warned "optimization can change native line
+     attribution."
+     A genuine new gap instead looks like `kk21_stepwise_survival.cpp`
+     (found the same pass): a real source change (commit `51d9167c`,
+     2026-10-11) added new `return false` guard clauses with zero hits,
+     fully consistent with "new code, no new test yet" -- that one stays
+     a real TODO-7 row, not noise.
+
+  **Still open for this pass:**
+  - Classify any newly-appeared `triage_needed` rows (4 appeared this run,
+    already resolved 2026-10-13: 3 real C++ dispatch/straightforward gaps
+    filed under TODO-3/TODO-7, 1 excluded as gcov header-attribution noise
+    per category 2 above).
+  - Decide whether to promote `coverage_baseline.json`'s floor -- it is
+    still pinned at the 2026-09-20 figure (**82.79%**) while real coverage
+    is now **89.66%**; TODO-9's gate is live but this specific number was
+    never bumped. Bundle that decision into whichever session closes out
+    the remaining 17-row backlog, rather than leaving it stale indefinitely.
+  - Work the remaining 16 open rows (TODO-3: 2, TODO-6: 2 pending + 1
+    in_progress, TODO-7: 11). TODO-3's focused test work for its three
+    initial rows is recorded above; its robust/survival registry entries still
+    need the confirming coverage measurement. TODO-6/7 retain test-writing
+    work.
+  - Only once those are cleared (or explicitly accepted/excluded) does this
+    plan meet its own stated success criterion: every file has a
+    deliberate, documented reason for its coverage percentage, not "high
+    90s" as a bare number.
 
 ## Testing/verification plan
 

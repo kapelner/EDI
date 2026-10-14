@@ -90,8 +90,10 @@ only after those checks pass.
 CLMM kernel (23 assertions), ordinal KK class (8), logistic GLMM (13), KK
 count GLMM (11), and logistic score/Hessian (7), for 62 passing assertions
 with no failures or warnings. Codex did not compile, build, or install. The
-sigma-by-n characterization grid (TODO-1) and affected KK comprehensive-row
-regeneration (TODO-6) remain outstanding.
+bounded sigma-by-n characterization grid (TODO-1) has since been run against
+the installed package; its partial evidence and residual Poisson local-optimum
+cases are recorded below. Affected KK comprehensive-row regeneration
+(TODO-6) remains outstanding.
 
 ## Items
 
@@ -100,6 +102,38 @@ regeneration (TODO-6) remain outstanding.
   reference: `ordinal::clmm(nAGQ=25)`, `glmer`) across a small grid of true
   sigma and `n`. Separate legitimate boundary solutions from non-stationary
   stops using the gradient norm at the stop.
+  **Bounded installed-package grid 2026-10-14 (partial evidence; EDI 1.0.3):**
+  because this plan specifies only a “small grid,” the convention used here
+  was `n={120,200}`, true `sigma={0.6,0.9}`, and seeds `41001:41010` in each
+  cell (40 fits per kernel, 160 total). The kernels were `fast_ordinal_clmm_cpp`
+  and `fast_ordinal_glmm_cpp` (both compared with `ordinal::clmm(nAGQ=25)`),
+  `fast_logistic_glmm_cpp`, and `fast_poisson_glmm_cpp` (the latter two compared
+  with `glmer`; native objective evaluations used 40-node quadrature). A
+  material worse-fit threshold of `1e-3` NLL units was used to avoid treating
+  floating-point noise as a failure. Ordinal CLMM had 5/40 boundary fits and
+  ordinal GLMM 5/40; none was worse than its reference by more than the
+  threshold. Logistic GLMM had 3/40 boundary fits, each paired with a
+  singular/zero-sigma `glmer` reference (so its zero-sigma likelihood gap is
+  not finite); the fit gradient norms were 0.00062–0.00121. Poisson GLMM had
+  no boundary fits, but two converged, non-boundary cold-start fits at
+  `n=200, sigma=0.9` were materially worse than a glmer-informed native start:
+  seed 41003, gap 0.12833 NLL (fit sigma 0.92225 vs reference sigma 0.84160),
+  and seed 41008, gap 1.01325 (fit sigma 1.04495 vs 0.80532). Both cold fits
+  reported `converged=TRUE`, no iteration-cap hit, and gradient norms below
+  `8e-7`; the lower-NLL reference-informed fits also reported convergence but
+  larger gradient norms (0.0475 and 0.0313), so the gradient diagnostic needs
+  cautious interpretation. Repeating both cases with LBFGS cold starts
+  reproduced the worse local optima. Source inspection shows the Poisson
+  kernel's deterministic multistart varies `log_sigma` while retaining its
+  single smart-cold beta initialization; this points to a remaining
+  coefficient-start/local-optimum robustness gap, not a nonstationary
+  boundary stop. The bounded grid therefore does not close TODO-1: the two
+  Poisson cases need a validated start/reference policy, and the plan's
+  boundary/gradient classification must be reconciled with this non-boundary
+  finding. Temporary results are under `/tmp/edi_todo31_sigma_n_grid.csv`,
+  `/tmp/edi_todo31_ordinal_glmm_grid.csv`, and
+  `/tmp/edi_todo31_poisson_outlier_diagnostics.csv`; no repository baseline was
+  changed and no build/install was run.
 - [x] **TODO-2: Decide the fix per kernel.** Candidates: a non-boundary
   default start (`log sigma = 0`, which the ordinal test shows recovers the
   ML solution); a short multistart over `{-1, 0, 1}` for the sigma

@@ -171,6 +171,16 @@ those APIs.
   after install, not before, same caution as the sibling plans this
   session produced).
 
+**Artifact-independent source audit 2026-10-14:** exhaustive Graft searches
+for `get_survival_stat_diff` and `get_restricted_mean_se_diff` found no
+additional production callsites beyond RMST and the separate median-only
+KM-difference path. The native RMST point-estimate branch takes the minimum
+of the two observed arm maxima only when `requested_stat` is
+`"restricted_mean"`; the native SE-difference path takes the same minimum
+unconditionally. This narrows the remaining code-path risk, but cannot
+substitute for TODO-3's targeted compile/runtime validation, TODO-5's
+coverage calibration, or TODO-7's post-install regeneration.
+
 ## `InferenceSurvivalDepCensTransformRegr` — separate, narrower, unconfirmed finding
 
 Surfaced by the same audit sweep, this class shows a narrow, isolated

@@ -62,6 +62,7 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-InferenceCountZeroInflatedNegBin-initialize}{\code{InferenceCountZeroInflatedNegBin$new()}}
+    \item \href{#method-InferenceCountZeroInflatedNegBin-compute_estimate}{\code{InferenceCountZeroInflatedNegBin$compute_estimate()}}
     \item \href{#method-InferenceCountZeroInflatedNegBin-clone}{\code{InferenceCountZeroInflatedNegBin$clone()}}
   }
 }
@@ -80,7 +81,6 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bayesian_bootstrap_two_sided_pval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bootstrap_confidence_interval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_bootstrap_two_sided_pval()</code></li>
-  <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_estimate()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_estimate_with_bootstrap_weights()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_gradient_confidence_interval()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$compute_gradient_two_sided_pval()</code></li>
@@ -192,6 +192,24 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
       \item{\code{verbose}}{Whether to print progress messages.}
       \item{\code{optimization_alg}}{Optimization algorithm. Default is dispatched via policy.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceCountZeroInflatedNegBin-compute_estimate"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedNegBin-compute_estimate}{}}}
+\subsection{\code{InferenceCountZeroInflatedNegBin$compute_estimate()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceCountZeroInflatedNegBin$compute_estimate(estimate_only = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
     }
     \if{html}{\out{</div>}}
   }

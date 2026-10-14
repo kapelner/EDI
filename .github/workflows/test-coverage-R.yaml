@@ -205,7 +205,46 @@ jobs:
       - name: Merge all shards and upload one report
         run: Rscript R/package_tests/ci/merge_coverage.R coverage-artifacts coverage-artifacts/coverage-shard-plan/matrix.json
       - name: Check coverage floor (must not drop below best-ever, TODO-9)
-        run: Rscript R/package_tests/ci/check_coverage_floor.R coverage-artifacts/merged-coverage.rds R/package_tests/ci/coverage_baseline.json r
+        # Auto-write mode (TODO-10 follow-up) only on a push to main/master, and only
+        # when COVERAGE_BASELINE_PAT is configured: branch protection requires an
+        # approving PR review with no bypass allowance for the default GITHUB_TOKEN
+        # (verified 2026-10-14 -- required_pull_request_reviews.bypass_pull_request_
+        # allowances is empty), so a bot-authored push via GITHUB_TOKEN would be
+        # rejected. Only a PAT belonging to an actual repo admin (who already has
+        # direct-push liberty, per CONTRIBUTING.md) can commit the bump. Without the
+        # secret this step silently falls back to the original print-only behavior --
+        # the regression check (dropping below the floor) always runs either way,
+        # only the auto-write half is gated.
+        env:
+          AUTO_WRITE: ${{ (github.event_name == 'push' && secrets.COVERAGE_BASELINE_PAT != '') && '1' || '0' }}
+        run: |
+          if [ "$AUTO_WRITE" = "1" ]; then
+            Rscript R/package_tests/ci/check_coverage_floor.R coverage-artifacts/merged-coverage.rds R/package_tests/ci/coverage_baseline.json r "${{ github.sha }}" 1
+          else
+            Rscript R/package_tests/ci/check_coverage_floor.R coverage-artifacts/merged-coverage.rds R/package_tests/ci/coverage_baseline.json r
+          fi
+      - name: Commit coverage floor bump
+        # [skip ci] prevents this commit from re-triggering this same (expensive,
+        # ~1.5h) workflow -- coverage_baseline.json falls under this workflow's own
+        # R/package_tests/** push path filter, so without it every promotion would
+        # queue a second, wasted full measurement.
+        if: github.event_name == 'push' && secrets.COVERAGE_BASELINE_PAT != ''
+        # A failed push here (e.g. a race against another push to the same branch)
+        # should not turn an otherwise-green coverage run red; the real gate already
+        # ran in the step above. Worst case, this promotion is just skipped and the
+        # next green run tries again.
+        continue-on-error: true
+        run: |
+          if git diff --quiet -- R/package_tests/ci/coverage_baseline.json; then
+            echo "No baseline change to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ secrets.COVERAGE_BASELINE_PAT }}@github.com/${{ github.repository }}.git"
+          git add R/package_tests/ci/coverage_baseline.json
+          git commit -m "ci: raise R coverage floor baseline [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
       - name: Regenerate coverage backlog and report drift
         if: always()
         run: Rscript R/package_tests/ci/check_coverage_registry.R coverage-artifacts/merged-coverage.rds R/package_tests/coverage_gap_registry.csv coverage-registry

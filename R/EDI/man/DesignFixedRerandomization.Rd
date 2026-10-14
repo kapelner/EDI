@@ -54,18 +54,15 @@ errors naming how many were actually found -- loosen \code{obj_val_cutoff} or us
 to pad out to \code{r}, duplicating some draws; fixed, since that meant some
 "independent" replicates were literal duplicates of an accepted allocation.)
 
-\strong{Seed reproducibility and multi-core parallelism.} The C++ fast path's
-rejection sampler is a genuine work-stealing search: with more than one core
-(\code{\link{set_num_cores}}/a fork cluster/mirai daemons; the package default is a
-single core), threads race via atomic operations for both which candidate draws to
-try next and which output column an accepted draw claims, so which per-thread-seeded
-RNG stream ends up producing a given replicate -- and in what order -- depends on
-real-time OS scheduling, not just \code{seed}. With the default single core, draws
-\emph{are} exactly seed-reproducible; this is not guaranteed once more than one core
-is in use. Contrast with \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}/
-\code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, whose C++ kernels
-use static (not work-stealing) thread scheduling and remain seed-reproducible
-regardless of core count.
+\strong{Seed reproducibility and multi-core parallelism.} The C++ fast path
+derives each candidate's local RNG stream from its logical draw index, rather
+than from the OpenMP worker evaluating it. It evaluates deterministic,
+contiguous candidate blocks in fixed-size waves and returns accepted
+allocations in draw-index order. Consequently, a fixed \code{seed} returns
+the same allocations at every configured core count; adding cores changes
+only which worker evaluates a candidate. The package default is one core,
+but this reproducibility guarantee also holds after
+\code{\link{set_num_cores}} or when using a fork cluster/mirai daemons.
 
 \strong{\code{prop_acceptable} path.} Uses
 \code{complete_randomization_forced_balanced_cpp()} (balanced case) or

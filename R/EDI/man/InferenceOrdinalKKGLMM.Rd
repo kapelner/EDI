@@ -236,17 +236,15 @@ replicate.}
 \if{html}{\out{<a id="method-InferenceOrdinalKKGLMM-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceOrdinalKKGLMM-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceOrdinalKKGLMM$compute_estimate_with_bootstrap_weights()}}{
-  Refits the mixed model with subject/block-level weights
-  applied to each row's contribution to the marginal likelihood
-  (Bayesian-bootstrap or nonparametric-bootstrap draw weights, expanded
-  from subject/block level to individual rows via
-  \code{private$expand_subject_or_block_weights_to_row_weights()}) and
-  returns the reweighted estimate \eqn{\hat\beta_T^{(w)}}. Uses
-  \code{\link{fast_ordinal_regression_weighted_cpp}} — an ordinary
-  (non-mixed-effects) weighted cumulative-logit fit, not a reweighted
-  GLMM refit — as a fast approximation to the weighted marginal
-  likelihood; this trades exact random-effects refitting for speed across
-  many bootstrap replicates. When weights are effectively constant, this
+  Refits the ordinal random-intercept model with
+  subject/block-level weights applied to each row's contribution to the
+  marginal likelihood (Bayesian-bootstrap or nonparametric-bootstrap
+  draw weights, expanded from subject/block level to individual rows via
+  \code{private$expand_subject_or_block_weights_to_row_weights()}). The
+  weighted refit uses \pkg{ordinal}'s cumulative-logit CLMM with 20-point
+  adaptive Gauss-Hermite quadrature,
+  preserving the conditional treatment-coefficient estimand reported by
+  the unweighted fit. When weights are effectively constant, this
   collapses to the unweighted \code{compute_estimate()} call (returns
   \code{df = Inf} to signal a degenerate/skipped bootstrap replicate
   rather than refitting). Rows with non-finite or non-positive weight, or

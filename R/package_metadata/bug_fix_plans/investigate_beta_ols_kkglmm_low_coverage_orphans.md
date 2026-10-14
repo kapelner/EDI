@@ -1,4 +1,4 @@
-# Investigation: Six Classes With Confirmed-Real `low_coverage`/Unexplained Flags — Ruled Out From The Stale-`cached_design_matrix` Bug
+# Investigation: Six Classes With Historical Audit Flags — Ruled Out From The Stale-`cached_design_matrix` Bug
 
 > **Depends on:** none. (Global ordering: see `_master.md`.) Slated for
 > `release_v1_0_5.md → TODO-52`. Surfaced 2026-09-24 as a byproduct of
@@ -10,7 +10,7 @@
 > that file's TODO-50 entry). **This is an open investigation, not a
 > confirmed bug.**
 
-## The six findings
+## The six historical flag groups
 
 All six were checked only against one specific candidate mechanism (the
 reused bootstrap worker's stale `cached_design_matrix`,

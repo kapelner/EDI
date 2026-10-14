@@ -127,7 +127,7 @@ seq_des_inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 101)
   coefficient), the inversion is performed in closed form from the breakpoints of the
   p-value step function — exact given the draws and requiring no bisection. Otherwise,
   the generic bisection search is used. When the p-value does not drop below
-  \code{alpha / 2} anywhere within the search radius, a conservative bound is returned
+  \code{alpha} anywhere within the search radius, a conservative bound is returned
   at the search boundary rather than \code{NA}; each such event emits a
   \code{message()} and increments the private field
   \code{rand_bootstrap_ci_conservative_count}.
@@ -173,8 +173,11 @@ Require the class to expose a standard error; return \code{NA} bounds in harden
 mode if unavailable.
 \code{"smoothed"} adds per-draw kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
 to the resampled responses before imposing the null shift, reducing discreteness.
-Only meaningful for continuous responses; count responses are rounded and floored at
-zero after the noise so the Poisson-family refits stay on the integer support. See
+Supported for real-valued statistics on coded responses, and for continuous,
+count, and survival responses. Categorical or bounded model refits and ordinal
+rank-score estimators reject this type because Gaussian noise leaves their response
+support. Count responses are rounded and floored at zero after the noise so
+Poisson-family refits stay on the integer support. See
 \code{\link{InferenceRandBootstrap}}'s \code{compute_rand_bootstrap_two_sided_pval} for
 the theoretical justification (Silverman 1981; Silverman & Young 1987; Hall, DiCiccio &
 Romano 1989), an explicit caveat that the bandwidth used here (\eqn{\hat{\sigma}/\sqrt{n}},

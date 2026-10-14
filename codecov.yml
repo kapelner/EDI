@@ -14,7 +14,15 @@ coverage:
         flags: [python]
         target: auto
     patch:
-      default: true
+      default: false
+      r:
+        flags: [r]
+        target: 80%
+        threshold: 2%
+      python:
+        flags: [python]
+        target: 80%
+        threshold: 2%
 
 flags:
   r:
@@ -35,6 +43,20 @@ ignore:
   - "R/package_tests/**"
   - "python/tests/**"
   - "graft/**"
+  # Confirmed covr/gcov measurement-attribution artifacts (not real gaps):
+  # see full_test_coverage.md's "covr/composition-attribution gap" and
+  # TODO-10 sections for how each was verified (dedicated-test assertions
+  # pass despite 0%/NaN coverage). Patch-coverage on these files would
+  # otherwise flag genuinely well-tested diffs; revisit only if covr/gcov
+  # ever fixes the underlying attribution issue.
+  - "R/EDI/R/inference_incidence_gcomp_abstract.R"
+  - "R/EDI/R/inference_incidence_KK_gcomp_abstract.R"
+  - "R/EDI/R/local_machine_tuning_harness.R"
+  - "R/EDI/R/inference_ext_quantile_rand_ci.R"
+  - "R/EDI/R/inference_all_abstract_quantile_rand_ci.R"
+  - "R/EDI/src/r_seed_draw.h"
+  - "R/EDI/R/inference_continuous_KK14_bai.R"
+  - "R/EDI/R/inference_continuous_KK21_bai.R"
 
 comment:
   layout: "header, diff, flags, files"

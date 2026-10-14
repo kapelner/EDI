@@ -10,6 +10,24 @@ rows = read_coverage_rows(input)
 s = summarize_coverage(rows)
 stopifnot(s$coverage_percent[s$file == "R/EDI/R/a.R"] == 100,
 	s$coverable_lines[s$file == "R/EDI/R/a.R"] == 2)
+# The backlog ranks expected absolute line recovery, not lowest percentage.
+weighted_input = file.path(work, "weighted-opportunity.csv")
+weighted_rows = data.frame(
+	filename = c(rep("R/small-low-coverage.R", 4),
+		rep("R/large-high-coverage.R", 100), rep("R/medium-mid-coverage.R", 20)),
+	line = c(seq_len(4), seq_len(100), seq_len(20)),
+	value = c(rep(0, 4), c(rep(1, 80), rep(0, 20)),
+		c(rep(1, 10), rep(0, 10)))
+)
+write.csv(weighted_rows, weighted_input, row.names = FALSE)
+weighted = summarize_coverage(read_coverage_rows(weighted_input))
+stopifnot(identical(weighted$file, c("R/EDI/R/large-high-coverage.R",
+	"R/EDI/R/medium-mid-coverage.R", "R/EDI/R/small-low-coverage.R")),
+	identical(weighted$weighted_opportunity, c(20L, 10L, 4L)))
+weighted_registry = merge_triage(weighted, threshold = 95)
+stopifnot(identical(weighted_registry$file, weighted$file),
+	weighted_registry$coverage_percent[[1L]] > weighted_registry$coverage_percent[[2L]],
+	weighted_registry$weighted_opportunity[[1L]] > weighted_registry$weighted_opportunity[[2L]])
 prior = merge_triage(s, threshold = 100, measured_commit = "old", measured_at = "old-time")
 prior$status = "in_progress"
 prior$notes = "retain this work"

@@ -27,13 +27,21 @@ relative risk, the same estimand as
 \code{\link[EDI:InferenceIncidLogBinomial]{InferenceIncidLogBinomial}}'s
 log-binomial model, but modified Poisson never produces a fit failure from
 the \eqn{[0,1]}-probability constraint that a genuine binomial log-link
-model can hit. Standard errors use Zou's (2004) robust/sandwich correction,
-not the ordinary model-based Poisson Fisher information. The misspecified
-Poisson working model assumes \eqn{\mathrm{Var}(Y_i)=\mu_i}, while the binary
-outcome has \eqn{\mathrm{Var}(Y_i)=p_i(1-p_i)}. Earlier versions used the
-naive Fisher-information standard error directly; this result-changing fix
-therefore changes every Wald standard error, confidence interval, and
-\eqn{p}-value returned by this class.
+model can hit. Standard errors use Zou's (2004) robust/sandwich
+correction, not the ordinary (model-based) Poisson Fisher information: the
+misspecified Poisson working model assumes \eqn{\mathrm{Var}(Y_i) = \mu_i},
+but \eqn{Y_i} is actually Bernoulli with \eqn{\mathrm{Var}(Y_i) = p_i(1 -
+p_i) \le \mu_i}, so the naive Fisher-information SE materially
+overstates the true sampling variance. The sandwich correction is computed
+in R from quantities \code{\link{fast_poisson_regression_with_var_cpp}}
+already returns (\code{mu} and the unrestricted Fisher information
+\code{fisher_information}), not a change to the underlying kernel.
+\strong{Changed 2026-10:} earlier versions of this class used the naive
+Fisher-information SE directly, which measured at roughly 0.26% empirical
+Type-I error against a nominal 5% under a true null (incidence response,
+Bernoulli design, \code{model_formula = ~.}, asymptotic Wald test); every
+standard error, confidence interval, and p-value this class has ever
+returned differs from this version's.
 \code{likelihood_tier = "full"} metadata is set for component-composition
 purposes, but \code{private$supports_likelihood_tests()} is hard
 \code{FALSE} — only Wald inference is exposed

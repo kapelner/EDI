@@ -34,6 +34,29 @@ remaining not-yet-selected covariates' weights are left \code{NA} internally and
 replaced with 0 (excluding them from the weighted matching distance) rather than
 propagating the failure.
 
+\strong{Randomization draws.} Because the stepwise models include the treatment
+column \code{ws}, the covariate weights (and therefore which subjects end up paired)
+depend in principle on the realized assignment path, even under the sharp null where
+the responses are fixed. Re-randomization for randomization tests and confidence
+intervals is therefore controlled by \code{condition_on_ws_for_rand_tests}:
+\itemize{
+  \item \code{TRUE} (default): condition on the realized reservoir/pair structure
+    exactly as \code{\link[EDI:DesignSeqOneByOneKK14]{DesignSeqOneByOneKK14}} (and
+    \code{\link[EDI:DesignSeqOneByOneKK21]{DesignSeqOneByOneKK21}}) do: each matched
+    pair's assignments are flipped with probability 1/2 and reservoir subjects are
+    redrawn independently with probability \code{prob_T}. This is fast but
+    \strong{approximate}, not exact: since \code{w} is randomized it should be
+    (nearly) independent of the covariates, so partialling it out barely changes the
+    conditional association statistics and the pair structure is almost always the
+    same under a different assignment path. In simulation the resulting inference
+    is very close to the exact replay.
+  \item \code{FALSE}: exact. Every randomization draw replays the entire sequential
+    design from subject 1, refitting the stepwise weights at every step using only the
+    responses available at that point, so pairs may form differently in each draw.
+    This costs on the order of \eqn{r \times n} stepwise weight fits per set of
+    \eqn{r} draws and is dramatically slower.
+}
+
 \strong{Everything else is inherited from KK21.} Burn-in fallback to KK14, the
 bootstrapped acceptance-threshold test, matched-pair assignment, and the
 \code{morrison}/\code{lambda}/\code{t_0_pct} matching-schedule options are all
@@ -181,6 +204,7 @@ Kapelner and Krieger (2021) with option to use matching parameters of Morrison a
   ordinal_use_speedup = TRUE,
   missingness_method = "impute",
   design_formula = ~.,
+  condition_on_ws_for_rand_tests = TRUE,
   ...
 )}
     \if{html}{\out{</div>}}
@@ -243,6 +267,16 @@ model each time? This is at the expense of the weights being less accurate. Defa
 \code{TRUE}.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}
+      \item{\code{condition_on_ws_for_rand_tests}}{Should randomization draws (used by
+randomization tests and randomization confidence intervals) condition on the
+realized reservoir/matched-pair structure, as in KK14? If \code{TRUE} (default),
+each draw flips each matched pair and redraws the reservoir; this is fast but
+approximate, because the stepwise weights condition on the treatment column so
+the pairs could in principle differ under another assignment path (since
+\code{w} is randomized it should be independent of the covariates, and in
+simulation the approximation is very close). If \code{FALSE}, each draw replays
+the entire sequential design, refitting the stepwise weights at every step;
+this is exact but much slower. See the class documentation for details.}
       \item{\code{...}}{Extra arguments passed to the \code{DesignSeqOneByOneKK21} superclass.}
     }
     \if{html}{\out{</div>}}

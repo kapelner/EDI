@@ -23,12 +23,12 @@ estimand is generally done on the \strong{log} risk-ratio scale internally
 jackknife-Wald methods, whose \code{"basic"}/\code{"wald"} interval types
 route through log-scale-specific helpers for this estimand), then
 back-transformed, since ratio estimators are typically closer to normally
-distributed on the log scale. Wald inference uses the fitted logistic model's
-sandwich covariance and the delta method on the log risk-ratio scale. This
-standard error conditions on the observed covariates used for standardization:
-it quantifies uncertainty in the fitted coefficients for the
-sample-conditional standardized risk ratio, and does not add sampling
-variability from a target population's covariate distribution. Bootstrap,
+distributed on the log scale. Wald inference uses the fitted logistic
+model's sandwich covariance and the delta method on the log risk-ratio
+scale.  This standard error conditions on the observed covariates used for
+standardization: it quantifies uncertainty in the fitted coefficients for
+the sample-conditional standardized risk ratio, and does not add sampling
+variability from a target population's covariate distribution.  Bootstrap,
 randomization, and jackknife methods remain available.
 \code{likelihood_tier = "none"} means that this class does not provide
 likelihood-ratio or score tests; it does not preclude its Wald inference.

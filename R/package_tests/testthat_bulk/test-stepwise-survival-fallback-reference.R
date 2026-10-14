@@ -43,3 +43,30 @@ test_that("survival fallback leaves collinear candidates unselected", {
   expect_true(is.na(EDI:::kk21_stepwise_survival_weights_cpp(
     matrix(c(1, 2), 2, 1), c(1, 2), c(0, 0), c(0, 1))))
 })
+
+test_that("survival stepwise falls back safely when Weibull inputs are non-finite", {
+  set.seed(894)
+  n <- 24L
+  w <- rep(c(0, 1), n / 2)
+  X <- cbind(rnorm(n), rnorm(n))
+  y <- exp(0.3 * w + X %*% c(0.4, -0.2) + rnorm(n, sd = 0.4))
+
+  # A non-finite event indicator rejects the Weibull fit and uses the
+  # log-time FWL path, whose result is independent of the event indicator.
+  reference <- EDI:::kk21_stepwise_survival_weights_cpp(X, y, rep(0, n), w)
+  guarded_delta <- rep(0, n)
+  guarded_delta[[1L]] <- NA_real_
+  expect_equal(
+    EDI:::kk21_stepwise_survival_weights_cpp(X, y, guarded_delta, w),
+    reference,
+    tolerance = 1e-9
+  )
+
+  # Infinite follow-up time makes log(y) non-finite. The defensive reduced-fit
+  # check must reject it, and the fallback must leave candidates unselected.
+  guarded_y <- y
+  guarded_y[[1L]] <- Inf
+  expect_true(all(is.na(
+    EDI:::kk21_stepwise_survival_weights_cpp(X, guarded_y, rep(1, n), w)
+  )))
+})

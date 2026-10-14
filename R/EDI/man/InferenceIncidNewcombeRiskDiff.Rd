@@ -201,9 +201,11 @@ computes variance components regardless of its value.}
   significance level \eqn{\alpha} at which \code{delta} falls exactly on
   the boundary of the Newcombe confidence interval (see class
   documentation) — there is no closed-form p-value for this method.
-  Returns \eqn{1} if no root is found in \eqn{(10^{-10}, 1-10^{-10})}
-  (interpreted as \code{delta} being far inside the interval at every
-  plausible \eqn{\alpha}).
+  The search is carried out on \eqn{\log(\alpha)} so that very small
+  p-values are resolved accurately. If the null is already outside the
+  interval at the numerical \eqn{\alpha} floor, that floor is returned;
+  if it remains inside as \eqn{\alpha} approaches one, the p-value is
+  \eqn{1}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidNewcombeRiskDiff$compute_asymp_two_sided_pval(delta = 0)}

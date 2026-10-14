@@ -85,6 +85,7 @@ Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
     \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-initialize}{\code{InferenceAllSimpleMeanDiffPooledVar$new()}}
     \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-compute_asymp_confidence_interval}{\code{InferenceAllSimpleMeanDiffPooledVar$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-compute_asymp_two_sided_pval}{\code{InferenceAllSimpleMeanDiffPooledVar$compute_asymp_two_sided_pval()}}
+    \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-compute_estimate_with_bootstrap_weights}{\code{InferenceAllSimpleMeanDiffPooledVar$compute_estimate_with_bootstrap_weights()}}
     \item \href{#method-InferenceAllSimpleMeanDiffPooledVar-clone}{\code{InferenceAllSimpleMeanDiffPooledVar$clone()}}
   }
 }
@@ -174,6 +175,20 @@ design's imputed covariates.}
     \describe{
       \item{\code{delta}}{Null treatment effect value.}
     }
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAllSimpleMeanDiffPooledVar-compute_estimate_with_bootstrap_weights"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiffPooledVar-compute_estimate_with_bootstrap_weights}{}}}
+\subsection{\code{InferenceAllSimpleMeanDiffPooledVar$compute_estimate_with_bootstrap_weights()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAllSimpleMeanDiffPooledVar$compute_estimate_with_bootstrap_weights(
+  subject_or_block_weights,
+  estimate_only = FALSE
+)}
     \if{html}{\out{</div>}}
   }
 }

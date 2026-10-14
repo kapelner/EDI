@@ -638,16 +638,11 @@ fast_beta_regression_weighted_cpp <- function(X, y, weights, warm_start_beta = N
 #' @details
 #' \strong{Variance computation.} The fit's working-information matrix
 #' (\code{fit.XtWX}, over all \code{p + 1} parameters \code{c(beta, log(phi))}) is
-#' restricted to the free (non-\code{fixed_idx}) parameters and inverted via a
-#' \strong{plain matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse
-#' as used by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
-#' being expanded back to the full \code{(p + 1) x (p + 1)} size as \code{vcov};
-#' \code{std_errs} is \code{sqrt(diag(vcov))}. Because this uses a plain inverse, a
-#' rank-deficient or near-singular \code{X} (after restricting to free parameters)
-#' will produce numerically unstable or \code{NaN} standard errors rather than a
-#' graceful fallback — callers should ensure \code{X} is full rank on the free
-#' parameters (e.g. via the package's shared \code{drop_linearly_dependent_cols()}
-#' preprocessing) before calling this function if that is not already guaranteed.
+#' restricted to the free (non-\code{fixed_idx}) parameters. A \code{FullPivLU}
+#' invertibility check guards the same plain matrix inverse used previously, so
+#' invertible fits retain their existing covariance values. A singular or
+#' non-finite free block returns a \code{NaN} covariance and standard errors;
+#' callers should check \code{is.finite(vcov)} before using its entries.
 #'
 #' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y A numeric vector of responses, strictly in \eqn{(0, 1)}.
@@ -666,6 +661,8 @@ fast_beta_regression_weighted_cpp <- function(X, y, weights, warm_start_beta = N
 #'   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
 #'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
 #'   (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
+#'   \code{information_invertible} (whether the free information block passed
+#'   the invertibility check), and
 #'   \code{fisher_information} (the working-weights curvature matrix \code{vcov} was
 #'   inverted from).
 #' @seealso \code{\link{fast_beta_regression_cpp}} for the estimate-only variant and
@@ -2274,13 +2271,11 @@ get_negbin_regression_expected_hessian_cpp <- function(X, y, params) {
 #' @details
 #' \strong{Variance computation.} The working-weights curvature matrix
 #' \code{res.XtWX} (over all \code{p + 1} parameters) is restricted to the
-#' free (non-\code{fixed_idx}) parameters and inverted via a \strong{plain
-#' matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse as used
-#' by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
-#' being expanded back to the full \code{(p + 1) x (p + 1)} size as
-#' \code{vcov}. A rank-deficient or near-singular design (after restricting to
-#' free parameters) will therefore produce numerically unstable or \code{NaN}
-#' variances rather than a graceful fallback.
+#' free (non-\code{fixed_idx}) parameters. A \code{FullPivLU} invertibility
+#' check guards the same plain matrix inverse used previously, so invertible
+#' fits retain their existing covariance values while a singular or non-finite
+#' free block returns a \code{NaN} covariance. Callers should check
+#' \code{is.finite(vcov)} before using its entries.
 #'
 #' @param X A numeric matrix of predictors, \eqn{n \times p}.
 #' @param y A numeric (integer-valued) vector of non-negative observed
@@ -2300,6 +2295,8 @@ get_negbin_regression_expected_hessian_cpp <- function(X, y, params) {
 #' @return A list with components \code{b} (\eqn{\hat\beta}),
 #'   \code{theta_hat} (\eqn{\hat\theta}), \code{logLik}, \code{vcov} (the full
 #'   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix),
+#'   \code{information_invertible} (whether its free information block passed
+#'   the invertibility check),
 #'   \code{converged}, \code{iterations}, and \code{hess_fisher_info_matrix}
 #'   (the working-weights curvature matrix \code{vcov} was inverted from).
 #' @seealso \code{\link{fast_neg_bin_cpp}} for the estimate-only variant and
@@ -3814,6 +3811,22 @@ fast_dep_cens_transform_optim_cpp <- function(X, y, dead, warm_start_params = NU
     .Call(`_EDI_fast_dep_cens_transform_optim_cpp`, X, y, dead, warm_start_params, smart_cold_start, estimate_only, maxit, reltol, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
 }
 
+#' Calculates standard variance using the formula from Uno et al
+#'
+#' \eqn{Var(RMST) = \sum_j A(t_j)^2 d_j / (n_j (n_j - d_j))}
+#' where \eqn{A(t_j) = \int_{t_j}^{\tau} S(u) du} is the remaining area under the KM
+#' curve from event time \eqn{t_j} to the last observation \eqn{\tau}.
+#' Here \eqn{d_j} is the number of events at \eqn{t_j}, and \eqn{n_j}
+#' is the number at risk just before \eqn{t_j}.
+#' Terms where n_j == d_j are omitted: S drops to 0 there, so A(t_j) = 0 and the
+#' contribution is 0 in the limit regardless of the undefined Greenwood denominator.
+#'
+#' @param y Numeric vector of survival times.
+#' @param dead Integer vector of event indicators (1=event, 0=censored).
+#' @return The standard error of the restricted mean.
+#' @keywords internal
+NULL
+
 #' Calculates the median or restricted mean survival time for a single group
 #'
 #' @param y Numeric vector of survival times.
@@ -3838,20 +3851,6 @@ get_survival_stat_diff <- function(y, dead, w, requested_stat) {
     .Call(`_EDI_get_survival_stat_diff`, y, dead, w, requested_stat)
 }
 
-#' Calculates standard variance using the formula from Uno et al
-#'
-#' \eqn{Var(RMST) = \sum_j A(t_j)^2 d_j / (n_j (n_j - d_j))}
-#' where \eqn{A(t_j) = \int_{t_j}^{\tau} S(u) du} is the remaining area under the KM
-#' curve from event time \eqn{t_j} to the last observation \eqn{\tau}.
-#' Here \eqn{d_j} is the number of events at \eqn{t_j}, and \eqn{n_j}
-#' is the number at risk just before \eqn{t_j}.
-#' Terms where n_j == d_j are omitted: S drops to 0 there, so A(t_j) = 0 and the
-#' contribution is 0 in the limit regardless of the undefined Greenwood denominator.
-#'
-#' @param y Numeric vector of survival times.
-#' @param dead Integer vector of event indicators (1=event, 0=censored).
-#' @return The standard error of the restricted mean.
-#' @keywords internal
 get_restricted_mean_se_for_group <- function(y, dead) {
     .Call(`_EDI_get_restricted_mean_se_for_group`, y, dead)
 }
@@ -4146,7 +4145,10 @@ get_zero_augmented_poisson_hessian_cpp <- function(X, y, Xzi, params, is_hurdle)
 #'   \code{information} (three aliases for the same observed-information matrix;
 #'   \code{information_type} is always \code{"observed"}), \code{hessian} (the negative of
 #'   that same matrix), and \code{coefficients} (a list with \code{cond} and \code{zi}
-#'   sub-vectors splitting \code{params} back into its two components).
+#'   sub-vectors splitting \code{params} back into its two components). The free
+#'   information block is checked with \code{FullPivLU}; if it is singular or
+#'   non-finite, \code{information_invertible} is \code{FALSE} and \code{vcov}
+#'   contains \code{NaN} in its free-parameter block.
 #' @export
 #' @keywords internal
 fast_zero_augmented_poisson_cpp <- function(X, y, Xzi, is_hurdle, warm_start_params = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 1000L, tol = 1e-8, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL) {
@@ -4246,7 +4248,10 @@ fast_zero_one_inflated_beta_cpp <- function(X, X_zero_one, y, warm_start_params 
 #' @param smart_cold_start Logical. If TRUE, use a heuristic initial guess.
 #' @param warm_start_fisher_info Optional initial Fisher Information matrix.
 #' @param estimate_only Logical. If TRUE, skip variance computation and return only coefficients.
-#' @return A list containing coefficients and convergence status.
+#' @return A list containing coefficients, convergence status, and, when
+#'   \code{estimate_only = FALSE}, \code{information_invertible}. A singular or
+#'   non-finite free information block sets that field to \code{FALSE} and
+#'   returns a \code{NaN} free-parameter covariance block.
 #' @export
 #' @keywords internal
 fast_zinb_cpp <- function(X, Xzi, y, warm_start_params = NULL, maxit = 1000L, tol = 1e-8, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", smart_cold_start = TRUE, warm_start_fisher_info = NULL, estimate_only = FALSE) {
@@ -4904,6 +4909,15 @@ get_omp_max_threads_cpp <- function() {
     .Call(`_EDI_get_omp_max_threads_cpp`)
 }
 
+#' Probe the actual OpenMP team size for the package's kernel policy
+#'
+#' This internal test hook makes thread-count tests independent of timing.
+#' In the R build, the package OpenMP maximum is authoritative; in the Python
+#' core-only build, the explicit argument is used by EDI_KERNEL_NUM_THREADS.
+#'
+#' @param num_cores Requested worker count for EDI_CORE_ONLY builds.
+#' @return Number of threads that entered the OpenMP region.
+#' @keywords internal
 probe_omp_team_size_cpp <- function(num_cores) {
     .Call(`_EDI_probe_omp_team_size_cpp`, num_cores)
 }
@@ -5325,3 +5339,4 @@ compute_zhang_match_data_cpp <- function(X, y, w, m_vec) {
 compute_matching_wy_stats_cpp <- function(w, y, m_vec) {
     .Call(`_EDI_compute_matching_wy_stats_cpp`, w, y, m_vec)
 }
+

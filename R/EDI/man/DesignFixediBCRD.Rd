@@ -23,7 +23,7 @@ allocations is equally likely.
 \strong{Draw mechanism.} \code{draw_ws_raw(r)} delegates to
 \code{generate_permutations_ibcrd_cpp()}, which builds one base allocation vector
 (\eqn{n_T} ones followed by \eqn{n - n_T} zeros) and independently
-shuffles (Fisher-Yates via \code{std::shuffle}) a fresh copy of it
+shuffles (portable Fisher-Yates) a fresh copy of it
 per replicate column, seeded from R's own RNG stream (so \code{seed} does govern
 reproducibility here, unlike the A-/D-optimal exchange searches).
 \code{assign_w_to_all_subjects()} draws one such allocation (\code{r = 1}) and applies

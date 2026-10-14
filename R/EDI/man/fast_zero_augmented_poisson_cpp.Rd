@@ -74,7 +74,10 @@ On optimizer failure (an internal exception, never an R error), and
   \code{information} (three aliases for the same observed-information matrix;
   \code{information_type} is always \code{"observed"}), \code{hessian} (the negative of
   that same matrix), and \code{coefficients} (a list with \code{cond} and \code{zi}
-  sub-vectors splitting \code{params} back into its two components).
+  sub-vectors splitting \code{params} back into its two components). The free
+  information block is checked with \code{FullPivLU}; if it is singular or
+  non-finite, \code{information_invertible} is \code{FALSE} and \code{vcov}
+  contains \code{NaN} in its free-parameter block.
 }
 \description{
 Fits, by direct maximum likelihood, a two-component count model with a

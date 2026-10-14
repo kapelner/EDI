@@ -30,7 +30,7 @@ mapping from each observed level of each \code{strata_cols} column to a row inde
 in \code{private$counts} (an (total levels across all covariates) x 2 matrix of
 running treated/control counts), growing both the level map and \code{counts} as
 new levels are encountered; missing values are treated as their own level
-(\code{"NA"}).
+(distinct from a literal category named \code{"NA"}).
 
 \strong{Non-resampling bootstrap.} \code{draw_bootstrap_indices()} always performs a
 plain i.i.d. nonparametric bootstrap over subjects (\code{sample_int_replace_cpp()}),

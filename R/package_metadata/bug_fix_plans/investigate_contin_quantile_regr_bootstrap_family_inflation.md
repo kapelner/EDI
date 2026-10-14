@@ -69,7 +69,7 @@ isn't recommended for quantile-regression classes" or "add a tie-breaking
 jitter before refitting," not a simple correction. Don't assume a fix is
 possible before the reproduction step below.
 
-## Next steps (none done yet — do these before attempting any fix)
+## Acceptance checks and conclusion
 
 **Static re-audit 2026-10-09:** confirmed the proposed experiment must use
 `generate_rand_bootstrap_draws()`: every BRT draw calls the actual
@@ -126,17 +126,33 @@ diagnostics, not a Type-I-error test. Unique artifacts:
 was performed. TODO-20 remains open; no mitigation is supported by this
 evidence.
 
-- [ ] Construct a true-null fixture for `InferenceContinQuantileRegr`, draw
-  several BRT (with-replacement) resamples, and directly inspect whether
-  the resampled design's tie/duplication pattern correlates with
-  unstable/biased `beta_hat_T` or its sandwich SE.
-- [ ] Use `InferenceContinOLS`/`InferenceContinRobustRegr` (estimators that
+**Artifact-only estimate check 2026-10-14:** source inspection confirms
+`run_rand_bootstrap_iteration_with_se()` returns `compute_estimate()`'s
+treatment coefficient as `t0` and the cached treatment-coefficient SE as
+`se0`. Recomputed against the existing `same_draws.csv` (no package load or
+new resampling), the 600-draw Quantile/OLS/RobustRegr mean `t0` values were
+0.0102/0.0030/0.0031 and mean absolute `t0` values were
+0.2302/0.2087/0.2117. Spearman correlations of duplicate-row count with
+absolute `t0` were 0.016/0.016/0.032, respectively. This fills the raw
+estimate-vs-tie check for this fixture; together with the recorded SE and
+studentized-statistic checks, it still shows no Quantile-specific signal.
+It does not test the historical comprehensive-test DGP or resolve its
+inflation result.
+
+- [x] Constructed a true-null fixture for `InferenceContinQuantileRegr`, drew
+  several BRT (with-replacement) resamples, and inspected whether the
+  resampled design's tie/duplication pattern correlates with `beta_hat_T` or
+  its sandwich SE. On this bounded fixture, correlations were near zero;
+  historical-DGP behavior remains untested.
+- [x] Used `InferenceContinOLS`/`InferenceContinRobustRegr` (estimators that
   are not known to be tie-sensitive) as negative controls on the identical
   BRT-resampled designs — if they stay well-calibrated under the same
   duplicated-row draws while quantile regression breaks, that's strong
   evidence for the tie-sensitivity mechanism specifically (as opposed to
   some other property of with-replacement resampling shared by all
-  estimators).
+  estimators). The observed fixture did not show Quantile breaking or
+  behaving worse than the controls, so this hypothesis is not supported by
+  this pilot; that does not dismiss the historical finding.
 - [ ] If tie-sensitivity is confirmed: decide between (a) documenting BRT as
   unsuitable for quantile-regression classes (a limitation, not a bug fix),
   or (b) a mitigation such as tie-breaking jitter before each bootstrap

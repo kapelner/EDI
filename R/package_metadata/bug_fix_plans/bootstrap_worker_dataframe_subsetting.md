@@ -96,6 +96,21 @@ documented default change under the standing constraint.
   every later TODO reports before/after on the same rows. Installed
   package only.
 
+  **Harness promoted 2026-10-14:**
+  `R/benchmark/benchmark_bootstrap_worker_draws.R` benchmarks the three
+  installed-package worker paths, prepares draws before timing, reports
+  batched per-draw timings, and prints an `Rprof` summary. A bounded pilot
+  against installed EDI 1.0.3 (2026-10-14; n = 30, 25 draws, seed 20261014)
+  passed: OLS 0.60 ms/draw, logistic 0.92 ms/draw, Cox 0.68 ms/draw. The
+  pilot caught and fixed two harness issues: exact-event Cox responses now
+  pass `ys` without unpaired censoring bounds, and `Rprof` uses the platform's
+  10 ms minimum interval. Results are in
+  `/tmp/edi_bootstrap_worker_draws_pilot_20261014.csv`. This is only a
+  functionality pilot, not the required n = 1000 evidence. Since the worker
+  changes predate this harness, its measurement is a current-state baseline,
+  not the required pre-change baseline; TODO-1 remains open for the larger
+  run and historical comparison.
+
 - [x] TODO-2: **Subset without `make.unique` (F1).** In `subset_field()`,
   subset data.frames column-wise (`lapply(x, "[", indices)` →
   `as.data.frame` with compact integer row names via `.set_row_names()`),

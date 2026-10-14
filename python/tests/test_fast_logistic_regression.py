@@ -79,3 +79,10 @@ def test_estimate_only_true_still_returns_b():
     res = fast_logistic_regression(X, y, estimate_only=True)
 
     assert res["b"] == pytest.approx(R_B, abs=1e-6, rel=1e-6)
+
+
+def test_wrong_length_warm_start_beta_raises_value_error():
+    X, y = _synthetic_data()
+
+    with pytest.raises(ValueError, match="warm_start_beta.*length"):
+        fast_logistic_regression(X, y, warm_start_beta=np.zeros(X.shape[1] - 1))

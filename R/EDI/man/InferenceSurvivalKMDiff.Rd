@@ -85,6 +85,7 @@ Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
     \item \href{#method-InferenceSurvivalKMDiff-initialize}{\code{InferenceSurvivalKMDiff$new()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_estimate}{\code{InferenceSurvivalKMDiff$compute_estimate()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_estimate_with_bootstrap_weights}{\code{InferenceSurvivalKMDiff$compute_estimate_with_bootstrap_weights()}}
+    \item \href{#method-InferenceSurvivalKMDiff-compute_bayesian_bootstrap_two_sided_pval}{\code{InferenceSurvivalKMDiff$compute_bayesian_bootstrap_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_asymp_confidence_interval}{\code{InferenceSurvivalKMDiff$compute_asymp_confidence_interval()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_asymp_two_sided_pval}{\code{InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_asymp_log_rank_two_sided_pval_for_treatment_effect}{\code{InferenceSurvivalKMDiff$compute_asymp_log_rank_two_sided_pval_for_treatment_effect()}}
@@ -214,6 +215,55 @@ seq_des_inf$compute_estimate()
       \item{\code{estimate_only}}{If TRUE, skip variance calculations.}
     }
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKMDiff-compute_bayesian_bootstrap_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKMDiff-compute_bayesian_bootstrap_two_sided_pval}{}}}
+\subsection{\code{InferenceSurvivalKMDiff$compute_bayesian_bootstrap_two_sided_pval()}}{
+  Computes a Bayesian-bootstrap two-sided p-value for the
+  difference in Kaplan-Meier medians.
+
+A weighted Kaplan-Meier curve can fail to reach 0.5 even when the
+original sample has finite medians in both arms. Such a draw has no
+finite median-difference estimate. This class therefore drops non-finite
+weighted-median draws by default and requires at least
+\code{min_number_usable_samples} finite draws. If too few remain, the
+result is \code{NA_real_} with nonestimability reason
+\code{"bayesian_bootstrap_too_few_finite_estimates"}. Set
+\code{na.rm = FALSE} to retain the generic fail-on-any-nonfinite policy.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKMDiff$compute_bayesian_bootstrap_two_sided_pval(
+  delta = 0,
+  B = 501,
+  type = NULL,
+  na.rm = TRUE,
+  show_progress = TRUE,
+  min_number_usable_samples = 5L,
+  weighting_unit_type = NULL
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null median difference. Default 0.}
+      \item{\code{B}}{Number of Bayesian-bootstrap replicates. Default 501.}
+      \item{\code{type}}{Bayesian-bootstrap p-value type.}
+      \item{\code{na.rm}}{Whether to discard non-finite weighted-median draws. Defaults
+to \code{TRUE} for this estimator.}
+      \item{\code{show_progress}}{Whether to display a progress bar.}
+      \item{\code{min_number_usable_samples}}{Minimum number of finite draws required.}
+      \item{\code{weighting_unit_type}}{Optional Bayesian-bootstrap weighting-unit
+scheme.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A numeric two-sided p-value, or \code{NA_real_} when too few
+  finite draws remain.
   }
 }
 

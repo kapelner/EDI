@@ -37,9 +37,9 @@ comprehensive test suite; jackknife bias correction is unstable for this
 likelihood on small censored samples) — every jackknife/randomization
 method returns \code{NA} and marks the result nonestimable rather than
 computing a value. Nonparametric-bootstrap confidence intervals are
-computed but additionally validated/sanity-checked (excessively wide or
-zero-excluding-by-construction intervals are treated as unstable and
-replaced with \code{NA}), and Bayesian-bootstrap weighted re-estimation
+computed and returned whenever both endpoints are finite; they are never
+replaced based on width, sign, or agreement with a Wald interval. Numerical
+failures return \code{NA}. Bayesian-bootstrap weighted re-estimation
 uses a fast Cox-model surrogate fit (\code{weighted_cox_bootstrap_surrogate_fit()})
 as an approximation rather than a full weighted joint-likelihood refit.
 

@@ -267,6 +267,16 @@ the intended performance fix. TODO-1/3/4/5/6 remain open pending a safe
 performance improvement, a non-NA parity fixture/result, exclusion removal,
 and the full tuning run; no completion checkbox is claimed.
 
+**Compile-free source/fixture audit 2026-10-14:** the current class source
+contains the worker-contract methods, and `get_bootstrap_worker_spec()`
+requires the treatment column at position 2 in both matrices. The loader only
+subsets rows and gates the direct path on the resulting matrix ranks. In the
+recorded exact fixture, all 50 folds had `fast_path_ready=TRUE`, supporting
+the treatment-column/rank precondition for that case. This static/artifact
+evidence does not change the measured slowdown, extra fallback fits, or NA
+jackknife summary, so it does not satisfy the performance or non-NA golden-
+value acceptance criteria.
+
 - [ ] TODO-1: Add `supports_reusable_bootstrap_worker()` (`TRUE`) and the
       three worker-contract methods above to
       `InferencePropZeroOneInflatedBetaRegr`'s private list

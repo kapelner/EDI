@@ -54,6 +54,8 @@ A list with components \code{coefficients} (\eqn{\hat\beta}),
   \code{phi} (\eqn{\hat\phi}), \code{neg_loglik}, \code{vcov} (the full
   \code{(p + 1) x (p + 1)} parameter variance-covariance matrix), \code{std_errs}
   (\code{sqrt(diag(vcov))}), \code{converged} (logical), and
+  \code{information_invertible} (whether the free information block passed
+  the invertibility check), and
   \code{fisher_information} (the working-weights curvature matrix \code{vcov} was
   inverted from).
 }
@@ -67,16 +69,11 @@ matrix documented there.
 \details{
 \strong{Variance computation.} The fit's working-information matrix
 (\code{fit.XtWX}, over all \code{p + 1} parameters \code{c(beta, log(phi))}) is
-restricted to the free (non-\code{fixed_idx}) parameters and inverted via a
-\strong{plain matrix inverse} (\code{.inverse()}, not a rank-aware pseudo-inverse
-as used by, e.g., \code{\link{fast_adjacent_category_logit_with_var_cpp}}) before
-being expanded back to the full \code{(p + 1) x (p + 1)} size as \code{vcov};
-\code{std_errs} is \code{sqrt(diag(vcov))}. Because this uses a plain inverse, a
-rank-deficient or near-singular \code{X} (after restricting to free parameters)
-will produce numerically unstable or \code{NaN} standard errors rather than a
-graceful fallback — callers should ensure \code{X} is full rank on the free
-parameters (e.g. via the package's shared \code{drop_linearly_dependent_cols()}
-preprocessing) before calling this function if that is not already guaranteed.
+restricted to the free (non-\code{fixed_idx}) parameters. A \code{FullPivLU}
+invertibility check guards the same plain matrix inverse used previously, so
+invertible fits retain their existing covariance values. A singular or
+non-finite free block returns a \code{NaN} covariance and standard errors;
+callers should check \code{is.finite(vcov)} before using its entries.
 }
 \examples{
 X = matrix(rnorm(100), 10, 10)

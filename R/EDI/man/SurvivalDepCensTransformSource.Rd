@@ -44,13 +44,16 @@ Reports randomization inference as unavailable for this
 
 Reports randomization confidence interval as unavailable for this model.
 
-Bootstrap confidence interval, validated for this model.
+Bootstrap confidence interval with numerical validation only;
+  finite bootstrap endpoints are never replaced by a Wald interval.
 
-Basic bootstrap confidence interval, validated for this model.
+Basic bootstrap confidence interval with numerical validation only.
 
-BCa bootstrap confidence interval, validated for this model.
+BCa bootstrap confidence interval with numerical validation only.
 
-Studentized bootstrap confidence interval, validated for this model.
+Studentized bootstrap interface. The dependent-censoring
+  fit has no replicate standard-error estimator, so this returns the
+  numerically validated basic-bootstrap interval.
 
 Reports the randomization distribution as unavailable for this model.
 

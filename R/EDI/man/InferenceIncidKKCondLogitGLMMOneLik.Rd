@@ -16,7 +16,10 @@ jointly maximized) and
 \code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}
 for the shared fitting/caching contract. Contrast with the sibling
 \code{\link[EDI:InferenceIncidKKCondLogitGLMMIVWC]{InferenceIncidKKCondLogitGLMMIVWC}},
-which excludes reservoir subjects from the GLMM component.
+which excludes reservoir subjects from the GLMM component. See
+\code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}'s
+known estimability limitation at high covariate counts, which applies
+here too.
 }
 \examples{
 \donttest{

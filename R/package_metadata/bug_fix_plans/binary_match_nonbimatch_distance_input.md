@@ -73,7 +73,7 @@ than on `gendistance()`'s. The difference is the matrix EDI hands it.
      `package_tests` golden files, and re-run the results audit on them.
   If declined, record the decision here and close the item.
 
-- [ ] TODO-3: **Re-run the design table.** Acceptance: `DesignFixedBinaryMatch`
+- [x] TODO-3: **Re-run the design table.** Acceptance: `DesignFixedBinaryMatch`
   ≥ 1x of the `gendistance()` + `nonbimatch()` row after TODO-1 (EDI's
   distance step is already faster; the matcher then runs on comparable
   input), and ≥ 1.3x if TODO-2 is accepted. Update
@@ -95,11 +95,22 @@ same squared-objective pairs; the compatibility switch reproduces those pairs;
 and the new default exactly reproduces direct `nonbimatch()` on ordinary
 distances. The file passes 55 expectations with a compile-free source load.
 
-TODO-3 remains open for an installed-package benchmark/report refresh. A noisy
-source-loaded three-run diagnostic while two comprehensive suites were active
-gave median 1206 ms for the full EDI design and 966 ms for the canonical
-pipeline (0.80x), so it is not suitable evidence for the installed acceptance
-threshold and is not written into `benchmark_model_fits.md`.
+Installed-package focused rerun (EDI 1.0.3) used the design-table workflow at
+n = 1000, p = 4: four continuous normal covariates; EDI constructed
+`DesignFixedBinaryMatch`, ingested the table, assigned all subjects, and read
+`w`; the canonical comparator ran `gendistance(X)`,
+`nonbimatch(distancematrix(...))`, and within-pair coin flips. Exact
+compile-free command:
+
+```sh
+Rscript -e 'suppressPackageStartupMessages(library(EDI)); suppressPackageStartupMessages(library(nbpMatching)); n <- 1000L; set.seed(12345); X <- data.frame(x3=rnorm(n),x4=rnorm(n),x5=rnorm(n),x6=rnorm(n)); edi <- function(){d<-DesignFixedBinaryMatch$new(n=n,response_type="continuous"); d$add_all_subjects_to_experiment(X); d$assign_w_to_all_subjects(); d$get_w()}; can <- function(){h<-nbpMatching::nonbimatch(nbpMatching::distancematrix(nbpMatching::gendistance(X)))$halves; w<-integer(n); f<-rbinom(nrow(h),1,.5); w[h$Group1.Row]<-f; w[h$Group2.Row]<-1L-f; w}; edi(); can(); a<-replicate(3,system.time(edi())["elapsed"]*1000); b<-replicate(3,system.time(can())["elapsed"]*1000); cat("EDI_ms",paste(round(a,2),collapse=","),"median",median(a),"canonical_ms",paste(round(b,2),collapse=","),"median",median(b),"speedup",median(b)/median(a),"\\n")'
+```
+
+EDI times were 578, 537, and 473 ms (median 537 ms); canonical times were
+890, 897, and 881 ms (median 890 ms), for a 1.66x speedup. This exceeds the
+accepted ≥1.3x threshold after TODO-2's default-objective change. TODO-3 is
+complete; the canonical `benchmark_model_fits.md` row still needs this
+installed result recorded.
 
 ## Out of scope
 

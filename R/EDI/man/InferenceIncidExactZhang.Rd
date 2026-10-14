@@ -153,7 +153,7 @@ always cheap to compute; there is no separate variance step to skip).}
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceIncidExactZhang$compute_exact_confidence_interval(
   alpha = 0.05,
-  pval_epsilon = 0.005,
+  pval_epsilon = 1e-06,
   type = NULL,
   args_for_type = NULL
 )}

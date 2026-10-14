@@ -30,10 +30,6 @@ its jackknife methods all report explicit non-estimability rather than
 computing a (statistically unreliable) delete-1 jackknife of the
 Hodges-Lehmann functional.
 
-Override to avoid O(n^2) per-resample HL computation during the bootstrap warm-start
-inside compute_rand_confidence_interval. The asymptotic MLE CI is a perfectly
-adequate starting bound for the bisection and is computed in O(1).
-
 Initialize KK inverse-variance combined Wilcoxon inference
   and prepare matched/reservoir rank-based components used by
   \code{\link[EDI:InferenceAllKKWilcoxIVWC]{InferenceAllKKWilcoxIVWC}}.
@@ -167,7 +163,6 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
-    \item \href{#method-InferenceAllKKWilcoxIVWC-compute_bootstrap_confidence_interval}{\code{InferenceAllKKWilcoxIVWC$compute_bootstrap_confidence_interval()}}
     \item \href{#method-InferenceAllKKWilcoxIVWC-initialize}{\code{InferenceAllKKWilcoxIVWC$new()}}
     \item \href{#method-InferenceAllKKWilcoxIVWC-compute_estimate}{\code{InferenceAllKKWilcoxIVWC$compute_estimate()}}
     \item \href{#method-InferenceAllKKWilcoxIVWC-compute_asymp_confidence_interval}{\code{InferenceAllKKWilcoxIVWC$compute_asymp_confidence_interval()}}
@@ -202,31 +197,6 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
   <li><a href='../../EDI/html/Inference.html#method-Inference-supports'><code>Inference$supports()</code></a></li>
 </ul>
 </details>}}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-compute_bootstrap_confidence_interval"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-compute_bootstrap_confidence_interval}{}}}
-\subsection{\code{InferenceAllKKWilcoxIVWC$compute_bootstrap_confidence_interval()}}{
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceAllKKWilcoxIVWC$compute_bootstrap_confidence_interval(
-  alpha = 0.05,
-  ...
-)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{alpha}}{The confidence level. Default is 0.05.}
-      \item{\code{alpha}}{The confidence level in the computed confidence
-interval is 1 - \code{alpha}. The default is 0.05.}
-      \item{\code{alpha}}{Significance level. Default 0.05.}
-      \item{\code{...}}{Additional arguments passed to super.}
-    }
-    \if{html}{\out{</div>}}
-  }
-}
-
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceAllKKWilcoxIVWC-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllKKWilcoxIVWC-initialize}{}}}
@@ -287,7 +257,6 @@ component variances are still fitted because they determine IVWC weights.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{The confidence level. Default is 0.05.}
       \item{\code{alpha}}{The confidence level in the computed confidence
 interval is 1 - \code{alpha}. The default is 0.05.}
       \item{\code{alpha}}{Significance level. Default 0.05.}
@@ -425,7 +394,6 @@ treatment effect at all this is set to zero (the default).}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{alpha}}{The confidence level. Default is 0.05.}
       \item{\code{alpha}}{The confidence level in the computed confidence
 interval is 1 - \code{alpha}. The default is 0.05.}
       \item{\code{alpha}}{Significance level. Default 0.05.}
