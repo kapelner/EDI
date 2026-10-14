@@ -5071,7 +5071,7 @@
 "InferenceOrdinalContRatioRegr::compute_asymp_confidence_interval","r6_public_method","InferenceOrdinalContRatioRegr","compute_asymp_confidence_interval",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceOrdinalContRatioRegr::compute_asymp_two_sided_pval","r6_public_method","InferenceOrdinalContRatioRegr","compute_asymp_two_sided_pval",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKGEE","r6_class","InferenceIncidKKGEE","",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"InferenceCountZeroInflatedNegBin::compute_estimate","r6_public_method","InferenceCountZeroInflatedNegBin","compute_estimate",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"InferenceCountZeroInflatedNegBin::compute_estimate","r6_public_method","InferenceCountZeroInflatedNegBin","compute_estimate",1,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountZeroInflatedNegBin::compute_estimate_with_bootstrap_weights","r6_public_method","InferenceCountZeroInflatedNegBin","compute_estimate_with_bootstrap_weights",2,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceCountZeroInflatedNegBin::compute_exact_confidence_interval","r6_public_method","InferenceCountZeroInflatedNegBin","compute_exact_confidence_interval",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceIncidKKGEE::approximate_m_out_of_n_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceIncidKKGEE","approximate_m_out_of_n_bootstrap_distribution_beta_hat_T",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
