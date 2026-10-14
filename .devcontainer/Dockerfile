@@ -142,8 +142,20 @@ RUN install2.r --error --skipinstalled pak roxygen2 devtools pkgdown profvis pro
 # in this container uniformly. CCACHE_DIR points at a path devcontainer.json
 # mounts as a named volume, so the cache survives a container rebuild, not
 # just a single session.
+#
+# -Wno-ignored-attributes: GCC warns "ignoring attributes on template
+# argument '__m128d'/'__m256d'" for every Eigen packet type, thousands of
+# lines per build, whenever Eigen is compiled with SIMD enabled (always on
+# x86-64; AVX variants whenever R's own CXXFLAGS carry -march=native). It
+# cannot live in R/EDI/src/Makevars for the portable default build: R CMD
+# check flags any -W* in PKG_CXXFLAGS as non-portable
+# (tools:::.check_make_vars) and reports diagnostic-suppressing pragmas
+# (tools:::.check_pragmas), both CRAN WARNINGs. configure only adds it on the
+# opt-in EDI_PORTABLE=0 tuned path, so the user Makevars is where the
+# default build gets quieted. `+=` appends to R's Makeconf values (CXXFLAGS,
+# CXX17FLAGS and CXX20FLAGS are each literal there, so all three need it).
 ENV CCACHE_DIR=/ccache
 RUN mkdir -p /root/.R /ccache && \
-    printf 'CC = ccache gcc\nCXX = ccache g++\nCXX11 = ccache g++\nCXX14 = ccache g++\nCXX17 = ccache g++\nCXX20 = ccache g++\n' > /root/.R/Makevars
+    printf 'CC = ccache gcc\nCXX = ccache g++\nCXX11 = ccache g++\nCXX14 = ccache g++\nCXX17 = ccache g++\nCXX20 = ccache g++\nCXXFLAGS += -Wno-ignored-attributes\nCXX17FLAGS += -Wno-ignored-attributes\nCXX20FLAGS += -Wno-ignored-attributes\n' > /root/.R/Makevars
 
 WORKDIR /workspaces/EDI

@@ -1,6 +1,7 @@
 #include <RcppEigen.h>
 #include <algorithm>
 #include <vector>
+#include "omp_policy.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -38,7 +39,7 @@ NumericVector compute_bai_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& 
   const int* h_ptr = halves_idx.data();
   double* res_ptr = results_vec.data();
 
-#pragma omp parallel num_threads(omp_get_max_threads())
+#pragma omp parallel num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
   {
     std::vector<double> d_i;
     std::vector<double> y_r;

@@ -85,6 +85,14 @@ the five focused bulk regressions, the sigma-by-n characterization grid, and
 the affected KK comprehensive rows; regenerate installed comprehensive CSVs
 only after those checks pass.
 
+**Installed-package validation 2026-10-14:** the user-reinstalled package
+(reports EDI 1.0.3) passed the five focused native regression files: ordinal
+CLMM kernel (23 assertions), ordinal KK class (8), logistic GLMM (13), KK
+count GLMM (11), and logistic score/Hessian (7), for 62 passing assertions
+with no failures or warnings. Codex did not compile, build, or install. The
+sigma-by-n characterization grid (TODO-1) and affected KK comprehensive-row
+regeneration (TODO-6) remain outstanding.
+
 ## Items
 
 - [ ] **TODO-1: Characterize.** For each of the four kernels, measure the

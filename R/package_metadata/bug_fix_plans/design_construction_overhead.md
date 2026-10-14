@@ -91,6 +91,14 @@ filter), which is a direct equality test.
   is 0.7 ms of that), with all design rows' `w` draws bit-identical to
   1.0.2 for a fixed seed. Update `benchmark_model_fits.md`.
 
+  Installed-package rerun on 2026-10-14 (EDI 1.0.3; n=1000, batch=100,
+  seven repeats) met both timing limits: iBCRD construction + registration +
+  assignment median 0.83 ms; blocking construction + registration +
+  assignment median 1.91 ms. Lazy registration was 0.16 ms/call and deferred
+  `get_X()` was 1.67 ms/call. The focused design/version/resample test passed
+  17 assertions. The broad fixed-seed assignment equivalence against 1.0.2
+  was not established by this run, so TODO 5 remains open pending that check.
+
 ## Implementation and validation (2026-10-09)
 
 TODOs 1--4 are implemented. `edi_package_version()` now reads the version from

@@ -204,6 +204,10 @@ the full audit-to-dispatch cross-reference is still open.
   A focused support regression now covers the public p-value and CI guards,
   advertised types, lower-level draws, and the preserved real-valued/count
   paths; repeated-trial calibration remains open.
+  After the user's 2026-10-14 reinstall, `test-brt-smoothed-count-support.R`
+  passed 58 assertions and `test-brt-smoothed-noise-mat-plumbing.R` passed 7
+  against the installed package; these validate the guard/plumbing, not the
+  still-open calibration TODOs.
 - [ ] TODO-8: Regenerate the affected `comprehensive_tests` CSV rows for
   the confirmed affected classes' `smoothed` variant once fixed and
   installed (only after install, not before, same caution as the sibling

@@ -165,6 +165,19 @@ siblings, and proves the Wilcox MC route is proportion-only.
 5. [ ] Re-audit and prune `comprehensive_results_audit_baseline.csv` for
    findings this closes after the comprehensive rows regenerate.
 
+   Focused installed-package validation on 2026-10-14 passed all 18
+   assertions in `test-comprehensive-proportion-coverage-truth-reference.R`.
+   Then a two-replicate comprehensive replay on `boston` at `beta_T=0.5`
+   regenerated 20 Wald result rows spanning both design formulas for
+   `InferenceAllSimpleAverageDiff`, `InferenceAllSimpleMeanDiffPooledVar`,
+   `InferencePropGCompMeanDiff`, and `InferencePropWilcox`. The regenerated
+   confidence-interval rows use the corrected proportion truth (0.1115437).
+   This scoped replay is a smoke check only: it writes a filtered result CSV,
+   not the canonical `comprehensive_tests_results_nc_1_proportion.csv` that
+   the baseline audit consumes, and does not regenerate the full set of
+   historical rows invalidated by the stale-row rules. TODO 5 therefore
+   remains open pending the full row regeneration and baseline re-audit.
+
 Independent of `mc_coverage_truth_covariate_mismatch.md`'s TODO-6/TODO-11
 (different mechanism, different classes) -- do not conflate when resolving
 either.

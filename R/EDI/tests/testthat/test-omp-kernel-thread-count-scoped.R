@@ -41,7 +41,7 @@ test_that("OpenMP kernels scope thread counts instead of changing global state",
 		regions = grep("^\\s*#pragma omp parallel", lines, value = TRUE)
 		expect_true(length(regions) > 0L, info = name)
 		expect_true(all(grepl(
-			"num_threads\\(omp_get_max_threads\\(\\)\\)", regions, perl = TRUE
+			"num_threads\\(EDI_KERNEL_NUM_THREADS\\(num_cores\\)\\)", regions, perl = TRUE
 		)), info = name)
 	}
 })

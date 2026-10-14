@@ -1989,10 +1989,11 @@ UTILITY_HEADER = c(
 #   [kernel] the exported C++ kernel called directly on prebuilt matrices, including the
 #            permutation / bootstrap-index generation (coin, ri2 and boot draw theirs
 #            inside the timed call too). compute_simple_mean_diff_parallel_cpp IS the
-#            kernel InferenceAllSimpleAverageDiff's randomization test runs on; the two
-#            OLS kernels (compute_ols_distr_parallel_cpp, compute_ols_bootstrap_parallel_cpp)
-#            are compiled into the package but not currently called by any R6 class, so
-#            those rows show attainable rather than currently-delivered speed.
+#            kernel InferenceAllSimpleAverageDiff's randomization test runs on.
+#            `compute_ols_distr_parallel_cpp` is now called by InferenceContinOLS for
+#            untransformed, nonmatching randomization draws; `compute_ols_bootstrap_parallel_cpp`
+#            remains direct-kernel-only. Kernel rows still time the bare kernel rather
+#            than the full R6 procedure, so they are not end-to-end speedup claims.
 # All rows are single-threaded on both sides (EDI num_cores = 1).
 N_PROC = 1000L
 N_PROC_SURV = 500L
@@ -2441,6 +2442,8 @@ compile_context_lines = function() {
         "",
         "**Compilation warning:** EDI model-fit timings are sensitive to the compiler flags used to build the loaded `EDI.so`. If EDI is compiled without the proper optimized flags, or with flags that are known to degrade these kernels such as problematic LTO builds, the benchmark can show substantial performance regressions that reflect the binary build rather than the modeling algorithms.",
         "",
+        "**Default install vs. this build:** every standard install of EDI (CRAN, R-universe, or GitHub source) uses the portable build (`EDI_PORTABLE=1`, no `-march=native`/`-mtune=native` or `-O3` override), so results match across platforms. The timings below come from the build listed in this section; when it shows `EDI_PORTABLE=0`, they are from the opt-in tuned build described in the README's \"Tuning Local Builds\" section, and a default install may run slower.",
+        "",
         paste0("*   **EDI shared object:** `", so_path, "`"),
         paste0("*   **EDI shared object mtime:** `", if (!is.null(so_info)) format(so_info$mtime) else "unknown", "`"),
         paste0("*   **Capture method:** `", info$capture_method, "`"),
@@ -2499,6 +2502,8 @@ compile_context_lines = function() {
     "The installed EDI package does not expose compiled-in build metadata via `edi_build_info_cpp()`. These rows therefore record only the current toolchain and `EDI/src/Makevars`-derived context visible to the benchmark process; they are not proof of the flags used to build the loaded `EDI.so`.",
     "",
     "**Compilation warning:** EDI model-fit timings are sensitive to the compiler flags used to build the loaded `EDI.so`. If EDI is compiled without the proper optimized flags, or with flags that are known to degrade these kernels such as problematic LTO builds, the benchmark can show substantial performance regressions that reflect the binary build rather than the modeling algorithms.",
+    "",
+    "**Default install vs. this build:** every standard install of EDI (CRAN, R-universe, or GitHub source) uses the portable build (`EDI_PORTABLE=1`, no `-march=native`/`-mtune=native` or `-O3` override), so results match across platforms. The timings below come from the build listed in this section; when it shows `EDI_PORTABLE=0`, they are from the opt-in tuned build described in the README's \"Tuning Local Builds\" section, and a default install may run slower.",
     "",
     paste0("*   **EDI library path:** `", system.file(package = "EDI"), "`"),
     paste0("*   **R version:** `", R.version.string, "`"),

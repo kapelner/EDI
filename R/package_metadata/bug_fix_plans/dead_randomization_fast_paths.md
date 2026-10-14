@@ -83,9 +83,15 @@ not exist either.
   robust IVWC/one-likelihood, Lin, continuous/proportion quantile, continuous
   robust, and KK conditional Poisson. Thus the static wrapper-existence check
   has no remaining dangling `*_cpp` reference. The requested direct-call
-  table and worker-parity run remain open: `Rscript` cannot start on this host because
-  `libmkl_gf_lp64.so.2` is unavailable, and a rebuilt native package is also
-  required to exercise the new coercions.
+  table and worker-parity run remain open. **Environment recheck
+  2026-10-15:** `Rscript` now starts successfully and loads installed EDI
+  1.0.3, so the earlier `libmkl_gf_lp64.so.2` startup failure is no longer a
+  current blocker. Focused installed-package tests passed 93 assertions
+  across KK mean-difference, simple Wilcoxon, KK Wilcoxon, and ordinal Ridit
+  fast paths, plus 54 assertions in the broader parallel-kernel contract
+  suite. These do not replace the required direct-call/parity table for all
+  18 overrides; current-checkout coercion verification still requires a
+  rebuilt native package.
 
 - [x] TODO-2: **Integer `w_mat` for the `Map<MatrixXi>` kernels (F2).**
   Minimal v1.0.5 form: coerce at the two Wilcoxon call sites

@@ -125,7 +125,7 @@ sim = SimulationFramework$new(
     DesignSeqOneByOneBernoulli = list()
   ),
   inference_classes_and_params = list(
-    InferenceContinKKOLSIVWC = list(),
+    InferenceContinKKOLSOneLik = list(),
     InferenceContinOLS = list()
   ),
   n = 100, p = 3, Nrep_W = 1000L, betaT = 0.5,

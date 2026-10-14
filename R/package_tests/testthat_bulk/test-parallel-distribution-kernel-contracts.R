@@ -48,6 +48,43 @@ test_that("OLS class fast randomization path agrees with the reused-worker refer
 	expect_null(p$compute_fast_randomization_distr(p$y, list(w_mat = W), 0.35, "log"))
 })
 
+test_that("OLS batch kernel matches reused workers across the release parameter matrix", {
+	set.seed(390L)
+	n <- 48L
+	W <- replicate(8L, sample(rep(0:1, each = n / 2L)))
+	W <- matrix(as.integer(W), nrow = n)
+
+	for (p_covars in c(0L, 1L, 5L)) {
+		X <- if (p_covars == 0L) {
+			data.frame(row.names = seq_len(n))
+		} else {
+			as.data.frame(matrix(rnorm(n * p_covars), nrow = n,
+				dimnames = list(NULL, paste0("x", seq_len(p_covars)))))
+		}
+		des <- DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+		des$add_all_subjects_to_experiment(X)
+		des$assign_w_to_all_subjects()
+		w <- des$get_w()
+		des$add_all_subject_responses(0.7 * w + rnorm(n))
+
+		for (harden in c(TRUE, FALSE)) {
+			inf <- InferenceContinOLS$new(des, verbose = FALSE, harden = harden)
+			inf$num_cores <- 1L
+			priv <- inf$.__enclos_env__$private
+			for (delta in c(0, 0.5)) {
+				fast <- priv$compute_fast_randomization_distr(
+					priv$y, list(w_mat = W), delta, "none"
+				)
+				slow <- priv$compute_fast_randomization_distr_via_reused_worker(
+					priv$y, list(w_mat = W), delta, "none"
+				)
+				expect_equal(fast, slow, tolerance = 1e-10,
+					info = paste("p_covars =", p_covars, "harden =", harden, "delta =", delta))
+			}
+		}
+	}
+})
+
 test_that("OLS randomization p-values and CIs agree with the reused-worker fallback", {
 	set.seed(392L)
 	n <- 24L

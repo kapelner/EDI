@@ -81,6 +81,19 @@ negative controls cannot be run on this host because `Rscript` fails before
 loading EDI (`libmkl_gf_lp64.so.2` is unavailable). No causal conclusion or
 mitigation has therefore been claimed.
 
+**Installed-package pilot 2026-10-14:** after the user's reinstall, an
+exploratory 25-replicate null run on `DesignSeqOneByOneKK14` (`n=60`, one
+continuous covariate, `model_formula = ~1`, `B=r=99`) did not reproduce the
+historical inflation: quantile plain-randomization rejected 1/25, quantile
+BRT percentile 0/25, and quantile BRT studentized 0/25. The OLS negative
+control rejected 2/25 for each BRT variant. A separate 12-draw pilot using
+`generate_rand_bootstrap_draws()` produced 16--26 duplicated rows per draw;
+the resulting quantile fits had finite estimates and SEs, but no tie-count /
+fit-instability correlation was established. These are limited pilot results,
+not the comprehensive-test DGP, so TODOs remain open and no fix or dismissal
+of the historical finding is warranted. The installed library reports EDI
+1.0.3.
+
 - [ ] Construct a true-null fixture for `InferenceContinQuantileRegr`, draw
   several BRT (with-replacement) resamples, and directly inspect whether
   the resampled design's tie/duplication pattern correlates with

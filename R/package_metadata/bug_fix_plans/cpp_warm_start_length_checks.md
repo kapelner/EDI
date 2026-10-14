@@ -73,6 +73,19 @@ lengths is part of TODO-1).
   now been guarded; the broader weights/Fisher-information inventory is
   still open.
 
+  Follow-up indexed source inventory, 2026-10-15: `warm_start_fisher_info`
+  has 38 direct dereference hits across 37 symbols in 31 C++ source files.
+  Six internals call `require_square_matrix()`; 11 other functions contain
+  explicit dimension/finite-value rejection (with `fast_robust_regression`
+  appearing in both groups), and GEE has a dimension-mismatch fallback.
+  The remaining Fisher-start paths still need individual classification.
+  `warm_start_weights` has three direct-dereference internals: logistic,
+  Poisson, and robust use the shared length helper; weighted constrained
+  binomial has an explicit row-count check. Probit documents the argument as
+  unused, and the unweighted constrained-binomial path accepts but does not
+  consume it. This is not yet the required full `warm_start_*` plus
+  `fixed_values`/`fixed_idx` inventory; TODO 1 remains open.
+
 - [x] TODO-2: **One helper, used everywhere.** Add to
   `_helper_functions_core.h` an inline
   `require_length(const std::optional<Eigen::VectorXd>&, Eigen::Index expected, const char* what)`
@@ -114,6 +127,13 @@ lengths is part of TODO-1).
   run TODO-3 and the kernel-equivalence tests. Bit-preserving by
   construction: the change only rejects inputs that were undefined
   behavior before. `NEWS.md` entry under bug fixes.
+
+  Installed-package check on 2026-10-14: the CRAN-shipped
+  `test-kernel-warm-start-length-contracts.R` passed all 20 assertions under
+  EDI 1.0.3. This confirms the installed boundary rejects the tested malformed
+  starts without terminating R, but does not validate the current checkout's
+  C++ edits or sanitizer behavior; targeted compile/link and sanitizer runs
+  remain pending explicit permission.
 
 - [ ] TODO-5: **Python bindings.** If TODO-1 finds the bindings pass
   lengths through unchecked, the C++ fix covers them once the wheels are

@@ -94,7 +94,7 @@ NumericVector compute_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi
         }
         i = j;
     }
-    #pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
+    #pragma omp parallel for schedule(static) if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int b = 0; b < nsim; ++b) {
         const int* w_col = w_ptr + (size_t)b * n;
         double sum_T = 0;
@@ -109,7 +109,7 @@ NumericVector compute_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi
             (sum_T / n_T) - ((total_rank_sum - sum_T) / n_C);
     }
   } else {
-    #pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
+    #pragma omp parallel if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     {
         std::vector<double> values;
         std::vector<int> order;
@@ -166,7 +166,7 @@ NumericVector compute_wilcox_distr_from_list_parallel_cpp(const List& permutatio
         i = j;
     }
 
-    #pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
+    #pragma omp parallel for schedule(static) if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int b = 0; b < nsim; ++b) {
         double sum_T = 0;
         int n_T = 0;
@@ -180,7 +180,7 @@ NumericVector compute_wilcox_distr_from_list_parallel_cpp(const List& permutatio
         else results_vec[b] = (sum_T / n_T) - ((total_rank_sum - sum_T) / n_C);
     }
   } else {
-    #pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
+    #pragma omp parallel if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     {
         std::vector<double> values;
         std::vector<int> order;

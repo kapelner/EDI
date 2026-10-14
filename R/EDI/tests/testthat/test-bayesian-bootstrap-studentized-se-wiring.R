@@ -83,6 +83,36 @@ test_that("InferenceOrdinalKKCLMM (logit link) wires the already-computed weight
 	expect_gt(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T, 0)
 })
 
+test_that("InferenceAllSimpleMeanDiffPooledVar uses pooled, not Welch, weighted SE", {
+	set.seed(80105L)
+	n <- 80L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	y <- rnorm(n, mean = 0.5 * w, sd = ifelse(w == 1, 2.5, 0.5))
+	des$add_all_subject_responses(y)
+	inf <- InferenceAllSimpleMeanDiffPooledVar$new(des, verbose = FALSE)
+	private <- inf$.__enclos_env__$private
+	draw <- private$bayesian_bootstrap_sample_weights()
+	private$current_bayesian_bootstrap_context <- draw$context
+	est <- inf$compute_estimate_with_bootstrap_weights(
+		draw$subject_or_block_weights,
+		estimate_only = FALSE
+	)
+	weighted <- private$last_weighted_refit
+	rw <- private$expand_subject_or_block_weights_to_row_weights(draw$subject_or_block_weights)
+	wt <- sum(rw[w == 1]); wc <- sum(rw[w == 0])
+	mean_t <- sum(rw[w == 1] * y[w == 1]) / wt
+	mean_c <- sum(rw[w == 0] * y[w == 0]) / wc
+	df <- wt + wc - 2
+	pooled_ss <- sum(rw[w == 1] * (y[w == 1] - mean_t)^2) +
+		sum(rw[w == 0] * (y[w == 0] - mean_c)^2)
+	expected_se <- sqrt(pooled_ss / df * (1 / wt + 1 / wc))
+	expect_equal(est, mean_t - mean_c, tolerance = 1e-12)
+	expect_equal(weighted$s_beta_hat_T, expected_se, tolerance = 1e-12)
+})
+
 test_that("Studentized Bayesian bootstrap NA rate drops for the four fixed classes", {
 	# End-to-end regression: before the 2026-09-07 fixes, all four of these
 	# classes returned NA on the large majority (often 100%) of

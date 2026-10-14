@@ -276,7 +276,7 @@ NumericVector compute_jt_rand_bootstrap_parallel_cpp(
   double* res_ptr = results_vec.data();
   const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
 
-#pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
+#pragma omp parallel if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
   {
     std::vector<double> y_t, y_c;
 

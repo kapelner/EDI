@@ -89,6 +89,17 @@ fixes part of the cost itself; this plan fixes the measurement.
   remain open pending an authorized benchmark run, so this checkbox stays
   unchecked.
 
+  Focused installed-package run completed on 2026-10-14 in an isolated copy
+  of the staged benchmark inputs (`EDI 1.0.3`, `--sections=procedures,designs`):
+  all 15 procedure and 6 design rows ran, and the generated report contained
+  the separate total/construction/procedure columns. The Zhang exact-CI row
+  measured 4.55 ms total, 0.85 ms construction, and 3.66 ms procedure versus
+  0.75 ms for `fisher.test()` (0.21x procedure speedup), so the plan's parity
+  acceptance is not met. The run also confirms the report-generation path;
+  tracked generated-artifact synchronization is still open because the
+  corresponding workspace report contains staged user edits that must be
+  preserved during reconciliation.
+
 ## Acceptance
 
 The Zhang row shows procedure time at parity with `fisher.test` (about

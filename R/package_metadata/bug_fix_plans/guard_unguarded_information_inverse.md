@@ -106,19 +106,24 @@ negligible.
   `_helper_functions_core.h` (Rcpp-free, `EDI_CORE_ONLY`-compatible; use
   `std::numeric_limits<double>::quiet_NaN()`, not `NA_REAL`, since the
   header is shared with the Python core).
-- [ ] **TODO-2: Apply at the five sites.** The source edits are complete, but
-  the required targeted compile of the five
-  `.cpp` files only, per `CLAUDE.md`. Optionally refactor the four already-
+- [x] **TODO-2: Apply at the five sites.** Source edits were complete and
+  the user's 2026-10-14 EDI reinstall has now supplied the native rebuild:
+  `test-information-inverse-guard.R` exercises the rebuilt kernels and
+  observes the new `information_invertible` results. No compile/install was
+  run by Codex. Optionally refactor the four already-
   guarded sites to call the same helper **only if** they currently use
   `lu.inverse()` and the maintainer accepts the ulp-level change there;
   otherwise leave them (recommended for 1.1.0: leave them; note it as a
   1.2.0 tidy-up).
 - [ ] **TODO-3: Tests.** `test-information-inverse-guard.R` and the linked
-  information-matrix reference test passed source-loaded on 2026-10-14 using
-  the installed native library; the targeted native rebuild remains pending.
-  The end-to-end NegBin regression now injects the duplicated candidate
+  information-matrix reference tests passed on 2026-10-14 against the user's
+  reinstalled package: 30 guard assertions, 48 extraction/fallback
+  assertions, and 4 solve-cascade assertions; no compile/install was run by
+  Codex. The end-to-end NegBin regression injects the duplicated candidate
   column through the private design-matrix cache and checks typed
-  `model_standard_error_unavailable` plus NA CI. Per kernel: (a)
+  `model_standard_error_unavailable` plus NA CI. Still add/confirm the
+  planned Poisson-boundary, non-finite `H_free`, and all-fixed (`k = 0`)
+  guard regressions before closing this checkbox. Per kernel: (a)
   all existing `with_var` fixtures `identical()` before/after (the
   bit-for-bit claim); (b) a design with a duplicated covariate column and
   `harden = FALSE` (so the R side does not drop it) yields an all-`NaN`

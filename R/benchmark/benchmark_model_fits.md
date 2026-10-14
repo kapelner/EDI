@@ -15,6 +15,8 @@ These rows are read from build metadata compiled into the loaded `EDI` shared ob
 
 **Compilation warning:** EDI model-fit timings are sensitive to the compiler flags used to build the loaded `EDI.so`. If EDI is compiled without the proper optimized flags, or with flags that are known to degrade these kernels such as problematic LTO builds, the benchmark can show substantial performance regressions that reflect the binary build rather than the modeling algorithms.
 
+**Default install vs. this build:** every standard install of EDI (CRAN, R-universe, or GitHub source) uses the portable build (`EDI_PORTABLE=1`, no `-march=native`/`-mtune=native` or `-O3` override), so results match across platforms. The timings below come from the build listed in this section; when it shows `EDI_PORTABLE=0`, they are from the opt-in tuned build described in the README's "Tuning Local Builds" section, and a default install may run slower.
+
 *   **EDI shared object:** `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`
 *   **EDI shared object mtime:** `2026-10-07 13:00:07`
 *   **Capture method:** `configure-generated header compiled into EDI.so`
@@ -549,6 +551,42 @@ line in different places.)</p>
 <p><small>See <code>R/package_metadata/python_bindings_package_spec.md</code> for the full kernel-binding plan.</small></p>
 
 _Source: `../python/benchmark/benchmark_model_fits_python.html`._
+
+### Design construction benchmark (2026-10-14)
+
+Focused construction timings from `R/benchmark/benchmark_design_construction.R`
+using the installed EDI 1.0.3 package (`n = 1000`, 100 constructions per
+batch, seven repeats). Values are median elapsed milliseconds per call.
+
+| Stage | Median (ms) |
+|---|---:|
+| `DesignFixediBCRD$new()` only | 0.52 |
+| `add_all_subjects_to_experiment()` (lazy registration) | 0.16 |
+| First deferred `get_X()` | 1.67 |
+| iBCRD construction + registration + assignment | 0.83 |
+| Blocking construction + registration + assignment | 1.91 |
+
+Both construction-plus-assignment rows meet the v1.0.5 limits (iBCRD ≤ 1.5
+ms; blocking ≤ 2.5 ms). This timing run does not establish fixed-seed,
+bit-for-bit assignment equivalence with EDI 1.0.2; that remains an open
+release check.
+
+### Pocock–Simon sequential design benchmark (2026-10-14)
+
+Installed-package timings from `R/benchmark/benchmark_pocock_simon_arrivals.R`
+(EDI 1.0.3; n = 1000, 20 batched designs, five repeats). Median cost per
+arrival stayed approximately flat as the enrollment index increased:
+
+| Arrival index | Median per-arrival cost (ms) |
+|---:|---:|
+| 10 | 0.35 |
+| 100 | 0.35 |
+| 500 | 0.35 |
+| 1000 | 0.40 |
+
+Median whole-sequence time was 364.05 ms. The 0.5 ms per-arrival target is
+met; the comparison against `carat` and the full fixed-seed EDI 1.0.2
+sequence audit remain open.
 
 <style>
     body, .markdown-body, .container {

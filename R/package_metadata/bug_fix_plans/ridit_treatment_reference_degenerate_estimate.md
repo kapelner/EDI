@@ -56,3 +56,12 @@ needs deciding before that plan invests in the `"treatment"` path.
   that rebuilt binary; build/install the Python extension and run its Ridit
   binding coverage. The source-level R checks and Python parse check above do
   not validate the changed native code in the shipped binaries.
+
+**Installed-package recheck 2026-10-14:** after the user's reinstall, the
+installed R package (reports EDI 1.0.3) passed the treatment-reference/raw-
+kernel regression (34 assertions), unweighted/wald/fast-kernel Ridit tests
+(34), and weighted-bootstrap Ridit tests (19), plus 2 fit-unavailable guard
+assertions: 89 total, no failures or warnings. Codex did not compile, build,
+or install. `python3` cannot import `edi_kernels` in this environment, so the
+Python binding test could not run; it requires the separately managed Python
+extension build/install. TODO-6 remains open.

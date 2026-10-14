@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include "omp_policy.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -138,7 +139,7 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen:
       }
     }
 
-    #pragma omp parallel for schedule(static) num_threads(omp_get_max_threads())
+    #pragma omp parallel for schedule(static) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int b = 0; b < nsim; ++b) {
       const int* w_col = w_ptr + (size_t)b * n;
       double total_stat = 0;
@@ -211,7 +212,7 @@ NumericVector compute_matching_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen:
     return wrap(results_vec);
   }
 
-#pragma omp parallel for schedule(static) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(static) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
   for (int b = 0; b < nsim; ++b) {
     const int* w_col = w_ptr + (size_t)b * n;
     const int* m_col = m_ptr + (size_t)b * n;

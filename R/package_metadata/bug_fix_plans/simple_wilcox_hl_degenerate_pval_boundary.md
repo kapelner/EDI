@@ -230,12 +230,21 @@ confirmed, fixable bugs as of this cross-validation.
 
 ## TODOs
 
-- [ ] TODO-1: Confirm the trace above with a direct repro:
+- [x] TODO-1: Confirm the trace above with a direct repro:
   `pkgload::load_all(".", compile = FALSE)` only (never `R CMD INSTALL`/
   `R CMD build`/`pkgbuild::compile_dll()`/`load_all(compile = TRUE)` or
   unspecified `compile=` — hard project rule, see top-level `CLAUDE.md`).
   Reproduce on both `count` and `ordinal` response types (the class is
   response-type-generic — confirm which types it actually supports).
+  **Installed-package reproduction 2026-10-14:** using the user's reinstalled
+  EDI library (which reports package version 1.0.3), 25 null datasets per
+  response type at `n=60`, `r=501` reproduced the boundary exactly: for
+  Poisson(2) counts, `beta_hat_T == 0` in 76% of runs and every such run had
+  `p_rand == 1`; for three-level ordinal data, both rates were 100%. A
+  companion rank-sum comparison had rejection rates 0/25 and 1/25 conditional
+  on the zero-HL boundary, respectively. This confirms a severe discreteness/
+  power limitation, but does not establish that the inclusive-tail randomization
+  p-value is anti-conservative or that a mid-p adjustment is calibrated.
 - [x] TODO-2 (static scope audit, 2026-10-10): The inclusive-tail formula
   is shared far beyond this class: randomization uses
   `compute_two_sided_randomization_pval_from_t0s()` (including its
@@ -281,7 +290,7 @@ confirmed, fixable bugs as of this cross-validation.
   `InferenceAllSimpleWilcox`'s resampling-family methods (p-value AND CI)
   once fixed and installed (only after install, not before, same caution
   as the sibling plans this session produced).
-- [ ] TODO-8 (`InferenceAllSimpleMeanDiffPooledVar`, independent of
+- [x] TODO-8 (`InferenceAllSimpleMeanDiffPooledVar`, independent of
   TODO-1..7 above): give this class its own pooled-variance
   `compute_estimate_with_bootstrap_weights()` override, mirroring its
   already-correct `compute_asymp_confidence_interval`/
@@ -292,10 +301,10 @@ confirmed, fixable bugs as of this cross-validation.
   Real, confirmed bug — fix regardless of TODO-9's outcome. **Source fix
   added 2026-10-09:** the class now owns a frequency-weighted pooled-variance
   override, using the same pooled residual sum of squares and degrees of
-  freedom as its ordinary asymptotic method. Focused execution remains
-  pending because this workspace's `Rscript` cannot load
-  `libmkl_gf_lp64.so.2`; keep this TODO unchecked until its unit regression
-  can run.
+  freedom as its ordinary asymptotic method. After the user's reinstall, a
+  deterministic weighted-refit regression passed in the Bayesian-bootstrap
+  SE-wiring test file; it checks the estimate and pooled SE against the direct
+  weighted formula. No build/install was run by Codex.
 - [ ] TODO-9 (`InferenceAllSimpleMeanDiffPooledVar`): TODO-8 is NOT
   confirmed to explain the flagged `compute_bayesian_bootstrap_confidence_interval_basic`
   coverage finding (that CI type never reads `s_beta_hat_T`, so the

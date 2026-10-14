@@ -140,8 +140,13 @@ those APIs.
   `.cpp` file(s), never a full package rebuild. Confirm this rule applies
   and follow it exactly when implementing TODO-2. **Pending:** repository
   instructions in the current session explicitly prohibit compiling,
-  building, or installing. The C++-backed regressions are written but must
-  run after the user's next authorized rebuild.
+  building, or installing. **Updated 2026-10-14:** after the user's
+  reinstall, the installed package still reports version 1.0.3, but the
+  C++-backed shared-horizon/Greenwood/randomization regression file passed
+  all 17 assertions, and the separate 52-assertion `survfit` group/difference
+  reference passed. No compile command was run by Codex; the explicit
+  compile-permission rule remains in force, so the targeted compile criterion
+  itself is not claimed as complete.
 - [x] TODO-4: Decide the exact shared-τ convention (minimum of both arms'
   max time is the standard literature default; confirm this is what's
   wanted here, or whether a pre-specified fixed horizon parameter should

@@ -19,5 +19,10 @@ therefore an internal cleanup with no result or numerical-behavior change.
 - [x] Audit exact helper and call-site reachability.
 - [x] Remove both disabled helper templates, the unused trait, and all calls.
 - [x] Preserve the public result-field contract and its `NaN` default.
-- [ ] After the user rebuilds, run the affected kernel output-contract and
+- [x] After the user rebuilds, run the affected kernel output-contract and
   equivalence tests. No source-loaded test can execute this header change.
+  **Installed-package recheck 2026-10-14:** after the user's reinstall, the
+  probit output/equivalence suite passed 75 assertions, the Poisson output/
+  equivalence suite passed 37, and the zero-augmented-Poisson failed-fit
+  diagnostic suite passed 14 (126 total, no failures/warnings). The installed
+  package reports EDI 1.0.3. Codex did not compile/build/install.

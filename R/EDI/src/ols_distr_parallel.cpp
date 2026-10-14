@@ -52,7 +52,7 @@ NumericVector compute_ols_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXd>& 
         Eigen::VectorXd Xt_1 = X.colwise().sum();
         Eigen::MatrixXd XtX_c = X.transpose() * X;
 
-#pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(static) if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
         for (int b = 0; b < nsim; ++b) {
                 const int* w_col = w_ptr + (size_t)b * n;
 
@@ -155,7 +155,7 @@ NumericVector compute_ols_bootstrap_parallel_cpp(const Eigen::Map<Eigen::MatrixX
         const int* idx_ptr = indices_mat.data();
         const bool use_parallel = should_parallelize_replicates(B, n_boot, num_cores);
 
-#pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(static) if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
         for (int b = 0; b < B; ++b) {
                 const int* idx_col = idx_ptr + (size_t)b * n_boot;
                 if (idx_col[0] < 0) { results_vec[b] = NA_REAL; continue; }

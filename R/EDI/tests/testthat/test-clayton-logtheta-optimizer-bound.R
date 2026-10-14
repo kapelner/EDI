@@ -65,7 +65,7 @@ test_that("Clayton objective and gradient share the same upper log-theta bound",
 
 test_that("rebuilt Clayton optimizer terminates an unsafe upper-bound start", {
 	d = clayton_bound_fixture()
-	probe = fast_clayton_weibull_aft_optim_cpp(
+	probe = EDI:::fast_clayton_weibull_aft_optim_cpp(
 		d$X, d$y, d$dead, d$pair_idx, d$singleton_rows, d$start,
 		estimate_only = TRUE
 	)
@@ -73,7 +73,7 @@ test_that("rebuilt Clayton optimizer terminates an unsafe upper-bound start", {
 
 	unsafe = as.numeric(probe$params)
 	unsafe[length(unsafe)] = 20
-	fit = fast_clayton_weibull_aft_optim_cpp(
+	fit = EDI:::fast_clayton_weibull_aft_optim_cpp(
 		d$X, d$y, d$dead, d$pair_idx, d$singleton_rows, unsafe,
 		estimate_only = TRUE, maxit = 20L,
 		fixed_idx = seq_len(length(unsafe) - 1L),
@@ -85,7 +85,7 @@ test_that("rebuilt Clayton optimizer terminates an unsafe upper-bound start", {
 	expect_true(fit$log_theta_at_upper_bound)
 	expect_identical(as.numeric(tail(fit$params, 1L)), 6)
 
-	score = get_clayton_weibull_aft_score_cpp(
+	score = EDI:::get_clayton_weibull_aft_score_cpp(
 		d$X, d$y, d$dead, d$pair_idx, d$singleton_rows, fit$params
 	)
 	expect_identical(as.numeric(tail(score, 1L)), 0)
@@ -93,7 +93,7 @@ test_that("rebuilt Clayton optimizer terminates an unsafe upper-bound start", {
 
 test_that("ordinary Clayton fixture remains below the new upper bound", {
 	d = clayton_bound_fixture(n_pairs = 60L)
-	fit = fast_clayton_weibull_aft_optim_cpp(
+	fit = EDI:::fast_clayton_weibull_aft_optim_cpp(
 		d$X, d$y, d$dead, d$pair_idx, d$singleton_rows, d$start,
 		estimate_only = TRUE
 	)

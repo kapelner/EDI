@@ -188,7 +188,7 @@ NumericVector compute_logrank_rand_bootstrap_parallel_cpp(
     noise_ptr = noise_m.begin();
   }
 
-#pragma omp parallel if(use_parallel) num_threads(omp_get_max_threads())
+#pragma omp parallel if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
   {
     Eigen::VectorXd time_b(n);
     std::vector<int> dead_b(n), w_b(n);

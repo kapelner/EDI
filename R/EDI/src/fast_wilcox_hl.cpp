@@ -7,6 +7,7 @@
 #include <omp.h>
 #endif
 #endif
+#include "omp_policy.h"
 #include "zero_one_logit_transform.h"
 #include <algorithm>
 #include <cmath>
@@ -417,7 +418,7 @@ NumericVector compute_wilcox_hl_bootstrap_parallel_cpp(SEXP w, SEXP y, const Eig
     double* res_ptr = results_vec.data();
 
     check_user_interrupt();
-#pragma omp parallel for schedule(dynamic) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(dynamic) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int b = 0; b < B; ++b) {
         const int* idx_col = idx_ptr + (size_t)b * n;
         if (idx_col[0] < 0) {
@@ -484,7 +485,7 @@ NumericVector compute_wilcox_hl_distr_parallel_cpp(const Eigen::Map<Eigen::Matri
     }
 
     check_user_interrupt();
-#pragma omp parallel for schedule(dynamic) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(dynamic) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int b = 0; b < nsim; ++b) {
         const int* w_col = w_ptr + (size_t)b * n;
         std::vector<double> y_t;
@@ -537,7 +538,7 @@ NumericVector compute_wilcox_matching_ivwc_bootstrap_parallel_cpp(SEXP w, SEXP y
     double* res_ptr = results_vec.data();
 
     check_user_interrupt();
-#pragma omp parallel for schedule(dynamic) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(dynamic) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int b = 0; b < B; ++b) {
         const int* idx_col = idx_ptr + (size_t)b * n;
         const int* m_col = m_ptr + (size_t)b * n;
@@ -628,7 +629,7 @@ NumericVector compute_wilcox_hl_rand_bootstrap_parallel_cpp( const Eigen::Map<Ei
     }
 
     check_user_interrupt();
-#pragma omp parallel for schedule(dynamic) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(dynamic) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int b = 0; b < nsim; ++b) {
         const int* i_col = i_ptr + (size_t)b * n;
         const int* w_col = w_ptr + (size_t)b * n;

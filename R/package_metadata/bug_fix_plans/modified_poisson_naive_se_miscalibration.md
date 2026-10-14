@@ -113,6 +113,13 @@ version's.
   release-wide gates rather than subtasks of this fix.
 - The release note, generated Rd synchronization, and direct deterministic
   sandwich regression were completed by the 2026-10-07 finished-item audit.
+- Focused installed-package follow-up on 2026-10-14: the public-fit sandwich
+  regression passed all 5 assertions. A 25-replicate Boston null Wald replay
+  regenerated 100 p-value rows and 100 CI rows across the two model formulas
+  and two design formulas: p-value rejection rates were 0.04, 0.08, 0.04,
+  and 0.04; CI coverage was 0.92–0.96. This supports the corrected behavior
+  but writes only a filtered CSV. It does not regenerate the canonical
+  historical result CSVs or their derived aggregates, so TODO 6 remains open.
 
 ## Files changed
 

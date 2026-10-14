@@ -127,7 +127,10 @@ the kernel inputs at the boundary, and return the batch distribution (or
   kernel-contract, end-to-end OLS p-value/CI parity, and parallel-threshold
   suites passed source-loaded with `compile = FALSE`, using the already
   installed native library. No compile or rebuild was performed. The full
-  parameter matrix, dead-export triage, and benchmark remain open.
+  parameter matrix was added to `test-parallel-distribution-kernel-contracts.R`
+  and passed on 2026-10-14 against the reinstalled package (48 observations,
+  8 fixed permutations, covariate counts 0/1/5, `harden` TRUE/FALSE, and
+  `delta` 0/0.5). Dead-export triage and the benchmark remain open.
 - [ ] **TODO-4: Dead-kernel triage.** For each of the nine unreferenced
   exports below, decide *wire in* or *delete*, and do it. Deleting means
   removing the function from its `.cpp`, re-running
@@ -149,11 +152,19 @@ the kernel inputs at the boundary, and return the batch distribution (or
   If a whole file becomes empty, delete the file and its unity-group entry.
   Update `python/` bindings only if any of these were surfaced there (the
   grep says none are).
-- [ ] **TODO-5: Benchmark.** `r ∈ {201, 1001, 2001}`, `n ∈ {100, 500, 1000}`,
-  `p ∈ {0, 5, 10}`, `compute_rand_two_sided_pval()` before/after, 1 and 4
-  cores. Expect 20–50× single-core; record the point where the R-side
-  per-call overhead (permutation generation, `t` computation) dominates.
-  Add the numbers to `benchmark_model_fits.md`'s randomization section.
+- [x] **TODO-5: Benchmark.** Completed 2026-10-14 against the reinstalled
+  package: three interleaved fast/worker timing pairs per cell for
+  `r ∈ {201, 1001, 2001}`, `n ∈ {100, 500, 1000}`, `p ∈ {0, 5, 10}`, and
+  1/4 cores. All 162 p-value pairs matched at `1e-10`. Median speedup was
+  43.07× at one core (cell-median range 19.50×–185×) and 54.30× at four
+  cores (28.37×–113×); the one-core median meets the 20–50× target, while
+  the `n=1000, p=0, r=2001` one-core cell is the low outlier. The slow path
+  was the same inference class with the batch-kernel hook disabled; each
+  pair used an identical fixed permutation matrix. Results are recorded in
+  `benchmark_model_fits.md`'s randomization section. The fast times are
+  generally short enough that per-call overhead and timer resolution explain
+  much of the small-cell spread; permutation generation was outside the
+  timed call on both paths.
 - [ ] **TODO-6 (stretch): Lin.** A `compute_lin_distr_parallel_cpp` that
   builds `[1, w_b, Xc, w_b·Xc]` per replicate (the interaction block is
   the only thing that changes with `w_b`, and it is `diag(w_b)·Xc`, so

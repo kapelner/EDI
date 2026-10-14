@@ -319,6 +319,14 @@ runtime validation remains required before release closure.
      - Ask the owner for the go-ahead to file both. Filing is outward-facing
        and never happens without it.
 
+**Installed-package regression check, 2026-10-14:** the Bayesian-bootstrap
+weight-draw/manual-loop reference passed 24 assertions; worker-loading and
+abstract-hook checks passed 34; and the non-reusable-worker serial-debug
+path passed 19. The installed package reports EDI 1.0.3. These checks do not
+replace the pre-change benchmark harness (TODO-1), source validation for the
+pending refactors, or the full before/after comparison (TODO-9); no TODO
+checkbox above is closed by this check alone.
+
 ## Out of scope
 
 - New Bayesian-bootstrap support for classes that lack it (for example

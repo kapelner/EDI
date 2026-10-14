@@ -1129,7 +1129,7 @@ NumericVector compute_coxph_rand_bootstrap_cpp(
     const int* i_ptr = i_mat.begin();
     const int* w_ptr = w_mat.begin();
 
-#pragma omp parallel for schedule(dynamic) if(omp_get_max_threads() > 1) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(dynamic) if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int b = 0; b < B; ++b) {
         Eigen::VectorXd y_b(n), dead_b(n);
         RowMajorMatrixXd X_b(n, 1);
@@ -1189,7 +1189,7 @@ NumericVector compute_coxph_rand_bootstrap_parallel_cpp(
         noise_ptr = noise_m.begin();
     }
 
-#pragma omp parallel if(omp_get_max_threads() > 1) num_threads(omp_get_max_threads())
+#pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     {
         Eigen::VectorXd y_b(n), dead_b(n);
         Eigen::MatrixXd X_b(n, p);

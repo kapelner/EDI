@@ -18,8 +18,8 @@ make_stereotype_multimodal_fixture <- function(seed = 1005L){
 
 test_that("stereotype full-data multistart escapes a reproducible inferior optimum", {
 	fixture = make_stereotype_multimodal_fixture()
-	primary = fast_stereotype_logit_with_var_cpp(fixture$X, fixture$y)
-	primary_lik = fast_stereotype_logit_cpp(
+	primary = EDI:::fast_stereotype_logit_with_var_cpp(fixture$X, fixture$y)
+	primary_lik = EDI:::fast_stereotype_logit_cpp(
 		fixture$X, fixture$y,
 		warm_start_params = primary$params,
 		warm_start_fisher_info = primary$fisher_information,
@@ -90,7 +90,7 @@ test_that("stereotype multistart selection preserves ties and refits a winning s
 
 test_that("stereotype data-seeded starts do not consume the global RNG", {
 	fixture = make_stereotype_multimodal_fixture(44L)
-	primary = fast_stereotype_logit_cpp(fixture$X, fixture$y)
+	primary = EDI:::fast_stereotype_logit_cpp(fixture$X, fixture$y)
 	set.seed(9123)
 	state_before = .Random.seed
 	candidates_a = EDI:::.stereotype_multistart_candidates(

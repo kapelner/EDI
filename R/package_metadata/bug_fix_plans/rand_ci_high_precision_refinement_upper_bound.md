@@ -35,8 +35,13 @@ the branch ignores it.
 - [x] **TODO-3: Flip the pinned test** to assert convergence to the correct
   crossing for both bounds; add a symmetric-statistic test where the lower
   and upper bounds must mirror each other.
-- [ ] **TODO-4: Coverage check** with the standard randomization-CI
-  simulation for one tier-1 class after the fix.
+- [x] **TODO-4: Coverage check** with the standard randomization-CI
+  simulation for one tier-1 class after the fix. **Done 2026-10-14:**
+  using the installed package, `InferenceContinOLS`, `n=32`, constant effect
+  1, nominal 90% CI, `r=201`, sequential MC enabled, and full-precision
+  confirmation, 461/500 intervals covered (92.2%); all 500 were finite.
+  The exact 95% binomial interval was 89.49%-94.39%, which includes nominal
+  90%. No Codex compile/build/install was run.
 
 Verification (2026-10-07): the controlled public-API regression makes the
 cheap p-values obscure a wide crossing and checks that both refined bounds
@@ -49,3 +54,8 @@ The confirmation helper was called for both bounds in every run, but the
 inner refinement loop was not entered. This was a bounded smoke check;
 the standard coverage simulation remains to be run. The 12-replicate result
 cannot precisely estimate operating coverage or the pre-fix effect.
+
+The 2026-10-14 500-replication installed-package coverage recheck is recorded
+under TODO-4 above. TODO-1 remains open: no real-data run has yet been
+confirmed to enter the inner high-precision refinement loop for the upper
+bound.

@@ -103,11 +103,14 @@ are the most direct evidence this is fixable rather than structural.
   objective (`:69`) and gradient (`:111,121,135,148`).
 - [ ] TODO-3: Re-verify the original outlier scenario is resolved; consider
   narrowing `.fit_clayton_weibull_aft`'s fallback cascade if a residual
-  slow tail remains. Source changes and source-loaded references are present,
-  but the required rebuilt-native timing verification is pending.
-- [ ] TODO-4: Confirm no golden-test point-estimate drift from the new
-  bound; update fixtures only if a deliberate, justified change is found.
-  This requires the same permitted native rebuild and execution as TODO-3.
+  slow tail remains. The user's reinstalled native library passes the direct
+  upper-bound regression (unsafe start converges before 20 iterations) and
+  the failed-fit branch test, but the original KK21stepwise/diamonds Bartlett
+  outliers (reps 1 and 13) still need an end-to-end timing rerun.
+- [x] TODO-4: Confirm no golden-test point-estimate drift from the new
+  bound. `test-clayton-logtheta-optimizer-bound.R` passed against the
+  reinstalled package on 2026-10-14, including the censored fixture's
+  parameter vector, treatment estimate, variance, and log-likelihood.
 
 ## Implementation record (2026-10-08)
 
@@ -125,14 +128,13 @@ are the most direct evidence this is fixable rather than structural.
   other parameter fixed and require convergence before 20 iterations without
   hitting the iteration cap. This directly covers the mechanism behind the
   old 2,000-iteration outliers without adding a wall-clock assertion. The
-  production diamonds reps 1/13 timing rerun requires rebuilding the native
-  library and remains a post-rebuild validation step under the repository's
-  no-compilation rule; no fallback-cascade retuning was justified before that
-  evidence exists.
+  production diamonds reps 1/13 timing rerun was not reproduced in this
+  session; no fallback-cascade retuning is justified without that evidence.
 - An existing censored-data fit is pinned at its pre-change parameter vector,
   treatment estimate, treatment variance, and likelihood. The Python parity
   fixture independently pins an ordinary in-boundary parameter vector and
   likelihood. These fixtures exercise the unchanged interior surface; the
   Bartlett path uses the same full/null kernel and is covered mechanistically
-  by the constrained-refit regression. Rebuilt-native execution remains
-  pending under the same no-compilation rule.
+  by the constrained-refit regression. On 2026-10-14, the user's reinstalled
+  package passed the direct bound/golden regression; Codex did not compile or
+  install.

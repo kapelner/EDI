@@ -80,10 +80,19 @@ well-identified folds unchanged.
 - [x] TODO-4: Verify the fix doesn't change jackknife estimates for
   well-behaved folds (bit-for-bit or floating-point tolerance) — only the
   degenerate folds' handling should change.
-- [ ] TODO-5: Re-run the bias check (t-test + Wilcoxon on estimate −
+- [x] TODO-5: Re-run the bias check (t-test + Wilcoxon on estimate −
   truth) and confirm both the mean bias and RMSE return to reasonable
   values, and that RMSE is no longer wildly disproportionate to the bias
-  magnitude.
+  magnitude. **Done 2026-10-14:** reran the installed comprehensive harness
+  on the exact historical dataset/design (`diamonds` / `KK21stepwise`),
+  beta=0, for 25 replications under each formula (`~1`, `~.`), filtering to
+  `compute_jackknife_estimate`. All 50 estimates were finite. For `~1`,
+  mean bias=0.0324, RMSE=0.0848, max absolute error=0.1926 (t-test p=0.0539,
+  Wilcoxon p=0.0596); for `~.`, mean bias=-0.0087, RMSE=0.0522, max absolute
+  error=0.1337 (t-test p=0.4179, Wilcoxon p=0.5360). Neither formula shows
+  the prior catastrophic −38/+17.5-scale outliers or an RMSE remotely
+  disproportionate to mean bias. This is a focused 25-rep recheck, not the
+  full comprehensive-results regeneration requested by TODO-8.
 - [x] TODO-6: Add a permanent regression test constructing a fixture
   likely to produce a degenerate jackknife fold (small clusters, as
   identified by TODO-2) and asserting no fold's estimate exceeds a
@@ -98,9 +107,10 @@ well-identified folds unchanged.
 - [ ] TODO-8: Regenerate affected `comprehensive_tests` CSV rows once
   fixed and installed (only after install, not before).
 
-TODO-5 and TODO-8 are release validation tasks and remain pending until the
-user's separately managed rebuilt package is available. The repository rule
-forbids building or installing the checkout during this audit.
+TODO-8 remains pending until the affected comprehensive-results rows are
+regenerated with the user's separately managed rebuilt package. The
+repository rule forbids building or installing the checkout during this
+audit.
 
 For TODO-7, every ordinary jackknife method reaches the same shared summary in
 `inference_all_abstract_jackknife.R`. That summary already treats any nonfinite

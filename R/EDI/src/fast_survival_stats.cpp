@@ -8,6 +8,10 @@ inline bool R_IsNA(double x) { return std::isnan(x); }
 #include <omp.h>
 #endif
 #endif
+// EDI_KERNEL_NUM_THREADS() for the OpenMP pragma below; every other kernel
+// gets it transitively via _helper_functions_core.h, which this file does
+// not include.
+#include "omp_policy.h"
 #include <algorithm> // for std::sort
 #include <cmath>
 #include <limits>
@@ -573,7 +577,7 @@ NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
     noise_ptr = noise_m.begin();
   }
 
-#pragma omp parallel if(omp_get_max_threads() > 1) num_threads(omp_get_max_threads())
+#pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
   {
     // Per-thread reusable buffers: avoids heap allocation in the hot loop
     std::vector<SurvEntry> y_t(n), y_c(n);

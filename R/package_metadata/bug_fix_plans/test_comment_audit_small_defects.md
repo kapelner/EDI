@@ -50,7 +50,7 @@
   source behavior was checked without rebuilding the package. The ordinary
   release build/check will verify the installed artifact; it is a release-wide
   gate rather than unfinished work in this item.
-- [x] **TODO-4 (kernel fixed 2026-09-24; successor source sweep completed 2026-10-09; rebuilt-native validation remains open): `.fit_zero_one_inflated_beta()` / `fast_zero_one_inflated_beta_cpp()`
+- [x] **TODO-4 (kernel fixed 2026-09-24; successor source sweep completed 2026-10-09; installed-native validation rechecked 2026-10-14): `.fit_zero_one_inflated_beta()` / `fast_zero_one_inflated_beta_cpp()`
   instability.** In a fresh Rscript the kernel returned `neg_loglik = NaN` and
   `coefficients = NULL` on ordinary well-conditioned data (8 of 8 seeds) and
   crashed downstream on a zero-length names assignment; the same call did not
@@ -106,6 +106,12 @@
   manual reading; the completed classification and source changes are recorded
   in `mixed_kernel_warm_start_shape_guards.md`. Only the ZOIB kernel is
   confirmed as an overflow (valgrind).
+  **Installed-package recheck 2026-10-14:** the direct C++ input-validation
+  regression passed all 9 assertions against the user's reinstalled EDI
+  package (reported version 1.0.3), both normally and under Valgrind Memcheck
+  with `--error-exitcode=99`; the run exited 0. The CRAN fast-math test also
+  passed 2 assertions. Codex did not compile/build/install. The separate
+  successor plan's broader sibling-kernel validation gates remain open.
 - [x] **TODO-5: `DesignFixedOptimalBlocks` (blockTools/greedy path) trailing
   incomplete block.** When `n` is not a multiple of `B`, leftover subjects
   reach the nearest-neighbour fallback, but its unrestricted choices can put
@@ -130,8 +136,9 @@
   `result[0]` on a length-0 vector previously warned and continued with an
   undefined entry. `randomization_loop_cpp()` now rejects an empty callback
   result with a clear error before indexing. The focused callback-contract
-  regression expects that error. Source and test are complete; execution
-  against the rebuilt native package remains required. Test:
+  regression expects that error. **Installed-package recheck 2026-10-14:**
+  all 32 assertions pass against the user's reinstalled EDI package (version
+  1.0.3). Codex did not compile/build/install. Test:
   `test-randomization-loop-kernel-callback-contract-...-reference.R`.
 - [x] **TODO-8: The stale Bayesian-bootstrap worker is no longer present.**
   `test-cox-component-composition.R` works around a "pre-existing bug in the

@@ -149,15 +149,15 @@ for (i in seq_len(n)) {
 }
 ```
 
-The matched inference class for this design, `InferenceContinKKOLSIVWC`,
-combines a within-pair estimate with the reservoir's estimate (inverse-
-variance weighted). Note the nonparametric bootstrap is **not** offered on
+The matched inference class for this design, `InferenceContinKKOLSOneLik`,
+fits one stacked OLS regression over the matched-pair differences and the
+reservoir subjects, so both contribute to a single likelihood. Note the nonparametric bootstrap is **not** offered on
 sequential designs whose assignment depends on earlier subjects (row
 resampling would not replicate the design); the randomization test, which
 replays the design's actual mechanism, is the right tool here.
 
 ```{r seq-inference}
-inf_seq = InferenceContinKKOLSIVWC$new(des_seq, verbose = FALSE)
+inf_seq = InferenceContinKKOLSOneLik$new(des_seq, verbose = FALSE)
 inf_seq$num_cores = 1L
 inf_seq$compute_estimate()
 inf_seq$compute_asymp_confidence_interval(alpha = 0.05)

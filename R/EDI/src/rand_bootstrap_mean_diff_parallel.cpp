@@ -80,7 +80,7 @@ NumericVector compute_rand_bootstrap_mean_diff_parallel_cpp(
 		noise_ptr = noise_m.begin();
 	}
 
-#pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(static) if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
 	for (int b = 0; b < nsim; ++b) {
 		const int* i_col = i_ptr + (size_t)b * n;
 		const int* w_col = w_ptr + (size_t)b * n;
@@ -135,7 +135,7 @@ NumericMatrix compute_rand_bootstrap_mean_diff_se_parallel_cpp(
 
 	const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
 
-#pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(static) if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
 	for (int b = 0; b < nsim; ++b) {
 		const int* i_col = i_ptr + (size_t)b * n;
 		const int* w_col = w_ptr + (size_t)b * n;

@@ -38,6 +38,7 @@
 #include "ordinal_fixed_link_helpers.h"
 #include "optimization_starts.h"
 #include "fast_erfc.h"
+#include "omp_policy.h"
 
 #ifdef EDI_CORE_ONLY
 #include <Eigen/Dense>
@@ -264,19 +265,15 @@ inline ContiguousGroupLayout build_contiguous_group_layout(int n, GroupIdAccesso
     return layout;
 }
 
+// R has separate controls for R workers and package OpenMP threads. Replicate
+// kernels follow the package thread budget; Python builds keep the explicit
+// num_cores argument through EDI_KERNEL_NUM_THREADS().
 inline bool should_parallelize_replicates(int n_work_items,
                                           int item_size,
                                           int num_cores,
                                           int min_items = 128,
                                           long long min_total_work = 20000) {
-    int available_threads = num_cores;
-#ifdef _OPENMP
-    // R workers and package OpenMP threads are configured independently by
-    // set_num_cores() and set_package_threads(), respectively. Replicate
-    // kernels should follow the package thread budget, not the R worker count
-    // passed through legacy wrapper signatures.
-    available_threads = omp_get_max_threads();
-#endif
+    int available_threads = EDI_KERNEL_NUM_THREADS(num_cores);
     return available_threads > 1 &&
            n_work_items >= min_items &&
            static_cast<long long>(n_work_items) * static_cast<long long>(item_size) >= min_total_work;

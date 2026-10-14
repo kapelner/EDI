@@ -30,7 +30,7 @@ NumericVector compute_simple_mean_diff_parallel_cpp(
 	double* res_ptr = results_vec.data();
 	const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
 
-#pragma omp parallel for schedule(static) if(use_parallel) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(static) if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
 	for (int b = 0; b < nsim; ++b) {
 		const int* w_col = w_ptr + (size_t)b * n;
 		double sum_T = 0, sum_C = 0;

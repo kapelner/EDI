@@ -1,5 +1,6 @@
 #include <Rcpp.h>
 #include "RNG.h"
+#include "omp_policy.h"
 #include <cstdint>
 #include <cmath>
 
@@ -31,7 +32,7 @@ NumericMatrix draw_binary_match_assignments_cpp(IntegerMatrix indices_pairs, int
     const int* pairs_ptr = indices_pairs.begin();
     double*    w_ptr     = w_mat.begin();
 
-#pragma omp parallel for schedule(static) num_threads(omp_get_max_threads())
+#pragma omp parallel for schedule(static) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     for (int j = 0; j < r; j++) {
         // Each column gets its own independent PRNG seeded deterministically
         // from master_seed and its logical draw index.

@@ -103,6 +103,15 @@ one with `NA` strata values).
   `carat` at n = 1000; fixed-seed assignment sequences identical to 1.0.2
   on the TODO-1 fixtures. Update `benchmark_model_fits.md`.
 
+  Installed-package rerun on 2026-10-14 (EDI 1.0.3; n=1000, batch=20,
+  five repeats) measured per-arrival medians of 0.35 ms at t=10, 0.35 ms at
+  t=100, 0.35 ms at t=500, and 0.40 ms at t=1000; whole-sequence median was
+  364.05 ms. The focused level/missing-stratum/reference test passed 67
+  assertions, including a fixed-seed eight-row expected assignment vector.
+  The per-arrival timing is flat and below 0.5 ms, but this run did not
+  compare the full sequence against `carat` or all TODO-1 fixtures against
+  EDI 1.0.2, so TODO 5 remains open.
+
 ## Implementation and validation (2026-10-09)
 
 TODOs 1, 3--4 are implemented. TODO-2's incremental bookkeeping source is

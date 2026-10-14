@@ -56,9 +56,18 @@ edi_unity="$(env_or_default EDI_UNITY 1)"
 # written below are plain, unconditional variable assignments -- no GNU Make
 # extensions (ifeq/endif, +=, :=), and no non-portable flags (-march=native,
 # -mtune=native, -fno-lto, -Wno-ignored-attributes, or a CXXFLAGS override)
-# unless EDI_PORTABLE=0 (the default) explicitly opts into the tuned build.
-# CRAN/CI-style checks should set EDI_PORTABLE=1 to get a fully portable,
-# warning-free Makevars.
+# unless EDI_PORTABLE=0 explicitly opts into the tuned build; the default
+# (EDI_PORTABLE=1) is the fully portable Makevars that CRAN/CI checks need.
+#
+# Consequence worth knowing: the portable build compiles Eigen with GCC's
+# default -Wignored-attributes enabled, which floods the log with "ignoring
+# attributes on template argument '__m128d'" (and '__m256d' whenever R's own
+# CXXFLAGS carry -march=native). Do NOT fix that here: R CMD check treats
+# every -W* in PKG_CXXFLAGS as non-portable (tools:::.check_make_vars) and
+# reports diagnostic-suppressing pragmas (tools:::.check_pragmas). Quiet it
+# from the user side instead -- `CXXFLAGS += -Wno-ignored-attributes` (plus
+# CXX17FLAGS/CXX20FLAGS, which R's Makeconf defines literally) in
+# ~/.R/Makevars; .devcontainer/Dockerfile does exactly this.
 
 pkg_cppflags=""
 pkg_cxxflags="\$(SHLIB_OPENMP_CXXFLAGS) -DNDEBUG -DEIGEN_NO_DEBUG"
