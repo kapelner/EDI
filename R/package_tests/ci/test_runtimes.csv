@@ -1147,6 +1147,7 @@ R/package_tests/testthat_bulk/test-zoib-randomization-estimate-refit-reference.R
 R/package_tests/testthat_bulk/test-zoib-softmax-and-negloglik-closed-form-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-start-value-construction-reference.R,correctness,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-aa-fork-cluster-seed-determinism.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-aa-fork-worker-count-invariance.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-adj-cat-exp-batch.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-adversarial-and-fault-injection.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-all-simple-wilcox-wald-routing.R,coverage,1.8,measured_with_30_percent_headroom
@@ -1197,6 +1198,7 @@ R/EDI/tests/testthat/test-count-family-audit-excluded-bugs.R,coverage,1,measured
 R/EDI/tests/testthat/test-cox-risk-set-cache-invalidation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-coxph-hessian-symmetric-writes.R,coverage,1.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-coxph-robust-vcov.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-cross-platform-reproducibility-digests.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-custom-implementation-canonical-reductions.R,coverage,1.4,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-d-optimal-row-access.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-degenerate-fit-threshold-calibration.R,coverage,30,bootstrap
@@ -1297,6 +1299,7 @@ R/EDI/tests/testthat/test-negbin-weighted.R,coverage,1,measured_with_30_percent_
 R/EDI/tests/testthat/test-observational-design-resampling-capabilities.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ols-hc2-hat-vectorized.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ols-symmetric-crossprod-dsyrk.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-omp-kernel-thread-count-scoped.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-optimal-design-hoisted-allocs.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-optimal-design-search-cpp.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ordinal-adj-cat-logit-migration-golden.R,coverage,1.3,measured_with_30_percent_headroom
