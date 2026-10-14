@@ -1262,7 +1262,9 @@ R/EDI/tests/testthat/test-inference-dispatch-policy-structure.R,coverage,2.2,mea
 R/EDI/tests/testthat/test-inference-factory-transitive-inheritance.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-migration-harness.R,coverage,1.3,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-inference-suite-discovery.R,coverage,3.9,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-information-inverse-edge-cases.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-information-inverse-guard.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-information-inverse-inference-typed-guards.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-jackknife-api.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-bootstrap-method-inheritance.R,coverage,1,measured_with_30_percent_headroom
