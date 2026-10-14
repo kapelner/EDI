@@ -253,11 +253,19 @@ direct path, and falls back to the worker's ordinary hardened fit when that
 gate, the direct kernel fit, or the marginal functional is unusable.  The
 optional exhaustive reused-worker test has previously compared the two paths
 on an `n = 40` ZOIB fixture, but it is not the diagnosed `n = 50` tuning
-fixture and establishes neither its exact parity nor its speedup.  On that
-fixture a failed direct fit can still be followed by the same ordinary
-fallback fit. Consequently none of the completion checkboxes below is
-claimed: the required exact-fixture parity/performance study, exclusion
-removal, and tuning run all await a usable R runtime.
+fixture. An exact-fixture probe on 2026-10-14 used the default tuning seed
+`20264492` (`n = 50`, proportion response, no boundary mass) and compared the
+installed reusable class with an R6 subclass overriding only
+`supports_reusable_bootstrap_worker()` to `FALSE`. The 50 leave-one-out values
+were finite and bit-identical between routes, but both public jackknife
+estimates were `NA` because `compute_jackknife_summary()` reported
+`jackknife_extreme_summary`. The reusable route took 11.051s versus 6.617s for
+the legacy route; tracing counted 68 versus 60 calls to
+`fast_zero_one_inflated_beta_cpp()` (the extra eight correspond to fallback
+fits). The reusable route was therefore slower on the diagnosed fixture, not
+the intended performance fix. TODO-1/3/4/5/6 remain open pending a safe
+performance improvement, a non-NA parity fixture/result, exclusion removal,
+and the full tuning run; no completion checkbox is claimed.
 
 - [ ] TODO-1: Add `supports_reusable_bootstrap_worker()` (`TRUE`) and the
       three worker-contract methods above to

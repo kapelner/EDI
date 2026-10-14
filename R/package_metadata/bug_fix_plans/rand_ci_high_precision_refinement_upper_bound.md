@@ -59,3 +59,28 @@ The 2026-10-14 500-replication installed-package coverage recheck is recorded
 under TODO-4 above. TODO-1 remains open: no real-data run has yet been
 confirmed to enter the inner high-precision refinement loop for the upper
 bound.
+
+**Installed-package public-API trigger search (2026-10-14):** instrumented
+`InferenceContinOLS` confidence-interval calls on fixed real datasets through
+the installed EDI 1.0.3 package; no build/install was run. The 100-case
+`mtcars` run (`mpg ~ wt + hp`, `r = 1001`, default search controls,
+`pval_epsilon = 0.005`) had zero errors and zero upper-bound inner-loop
+entries; every call made only the two endpoint full-precision evaluations.
+The necessary trigger condition—cheap endpoint p-span at or below tolerance,
+full-precision endpoint p-span above tolerance, and bracket width above
+tolerance—occurred 0/100 times. In 84 cases the bracket was still wider than
+tolerance, but in all 84 the full-precision p-span was already at or below
+tolerance. In the other direction, 7 cases had full-precision p-span above
+tolerance, but their cheap p-span was also above tolerance, so the cheap
+search would not enter confirmation. The instrumented CSV and harness are
+`/tmp/edi-v105-todo33/mtcars_public_api_ci_probe_r1001.csv` and
+`/tmp/edi-v105-todo33/public_api_probe.R`. Other bounded mtcars/airquality
+public-API probes at `r = 201`/`1001`, including nondefault MC stress settings,
+also produced no inner upper-bound entries. These are trigger-search results,
+not evidence that the production bug is unreachable or that coverage is
+unaffected. The controlled public-API regression remains the only confirmed
+inner-loop reproduction. Next useful experiment: instrument a seed search on
+a real dataset with a steeper randomization p-value crossing and deliberately
+vary MC batch/confidence controls, retaining each candidate's cheap/full
+endpoint spans and bracket width; only then run a pre/post coverage comparison
+on a trigger-producing public case.

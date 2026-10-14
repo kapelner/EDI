@@ -206,3 +206,52 @@ test_that("randomization p-values for affected fixed designs are invariant at 1 
 		expect_identical(p1, p4, info = name)
 	}
 })
+
+test_that("v1.0.5 OpenMP draw-index migration matches its pinned allocation fixture", {
+	fixture_path = testthat::test_path("fixtures", "openmp_design_seed_draws_v1_0_5.csv")
+	fixture = utils::read.csv(fixture_path, stringsAsFactors = FALSE)
+	expect_identical(sort(fixture$class), sort(c(
+		"DesignFixedGreedy", "DesignFixedGreedyDOptimal",
+		"DesignFixedMatchingGreedyPairSwitching", "DesignFixedRerandomization"
+	)))
+
+	old_cores = EDI:::get_num_cores()
+	on.exit(EDI:::set_package_threads(old_cores), add = TRUE)
+	EDI:::set_package_threads(1L)
+	n = 20L
+	set.seed(20261011)
+	X = data.frame(x1 = rnorm(n), x2 = rnorm(n), x3 = rnorm(n))
+	factories = list(
+		DesignFixedGreedy = function() DesignFixedGreedy$new(
+			n = n, response_type = "continuous", seed = 91L, verbose = FALSE
+		),
+		DesignFixedGreedyDOptimal = function() DesignFixedGreedyDOptimal$new(
+			n = n, response_type = "continuous", seed = 91L, verbose = FALSE
+		),
+		DesignFixedRerandomization = function() DesignFixedRerandomization$new(
+			n = n, response_type = "continuous", seed = 91L,
+			obj_val_cutoff = 0.1, verbose = FALSE
+		)
+	)
+	if (requireNamespace("nbpMatching", quietly = TRUE)) {
+		factories$DesignFixedMatchingGreedyPairSwitching = function() DesignFixedMatchingGreedyPairSwitching$new(
+			n = n, response_type = "continuous", seed = 92L, verbose = FALSE
+		)
+	}
+	allocation_md5 = function(w) {
+		path = tempfile(fileext = ".txt")
+		on.exit(unlink(path), add = TRUE)
+		writeLines(paste(as.integer(w), collapse = ""), path)
+		unname(tools::md5sum(path))
+	}
+	for (name in names(factories)) {
+		des = factories[[name]]()
+		des$add_all_subjects_to_experiment(X)
+		w = des$draw_ws_according_to_design(12L)
+		expected = fixture$digest[fixture$class == name]
+		expect_identical(length(expected), 1L, info = paste(name, "fixture row"))
+		if (length(expected) == 1L) {
+			expect_identical(allocation_md5(w), expected, info = paste(name, "seeded allocation fixture"))
+		}
+	}
+})

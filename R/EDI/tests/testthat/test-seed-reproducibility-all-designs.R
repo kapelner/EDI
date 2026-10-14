@@ -204,3 +204,46 @@ test_that("every registry design that promises seeded draws is invariant across 
 		}
 	}
 })
+
+test_that("seeded randomization p-values for thread-sensitive designs are core-invariant", {
+	skip_on_cran()
+	if (!requireNamespace("nbpMatching", quietly = TRUE)) skip("requires nbpMatching")
+	available_cores = parallel::detectCores(logical = TRUE)
+	if (is.na(available_cores) || available_cores < 4L) skip("fewer than 4 logical cores available")
+	old_cores = EDI:::get_num_cores()
+	on.exit(EDI:::set_num_cores(old_cores), add = TRUE)
+	n_test = 12L
+	set.seed(20261014L)
+	X_test = data.frame(x1 = rnorm(n_test), x2 = rnorm(n_test))
+	epsilon = rnorm(n_test)
+	seed = 20261015L
+	design_names = c(
+		"DesignFixedGreedy", "DesignFixedGreedyDOptimal",
+		"DesignFixedMatchingGreedyPairSwitching", "DesignFixedRerandomization"
+	)
+	build = function(name, cores) {
+		EDI:::set_num_cores(cores)
+		set.seed(seed)
+		des = switch(name,
+			DesignFixedGreedy = DesignFixedGreedy$new(n = n_test, response_type = "continuous", seed = seed, verbose = FALSE),
+			DesignFixedGreedyDOptimal = DesignFixedGreedyDOptimal$new(n = n_test, response_type = "continuous", seed = seed, verbose = FALSE),
+			DesignFixedMatchingGreedyPairSwitching = DesignFixedMatchingGreedyPairSwitching$new(n = n_test, response_type = "continuous", seed = seed, verbose = FALSE),
+			DesignFixedRerandomization = DesignFixedRerandomization$new(n = n_test, response_type = "continuous", obj_val_cutoff = 0.35, seed = seed, verbose = FALSE)
+		)
+		des$add_all_subjects_to_experiment(X_test)
+		des$assign_w_to_all_subjects()
+		w = as.numeric(des$get_w())
+		des$add_all_subject_responses(0.5 * w + 0.2 * X_test$x1 - 0.1 * X_test$x2 + epsilon)
+		inf = InferenceContinOLS$new(des, verbose = FALSE)
+		inf$num_cores = cores
+		inf$set_seed(seed + 1L)
+		as.numeric(inf$compute_rand_two_sided_pval(r = 51L, show_progress = FALSE))
+	}
+
+	for (name in design_names) {
+		p1 = build(name, 1L)
+		p4 = build(name, 4L)
+		expect_true(is.finite(p1), info = paste(name, "one-core p-value is finite"))
+		expect_identical(p1, p4, info = paste(name, "randomization p-value at 1/4 cores"))
+	}
+})

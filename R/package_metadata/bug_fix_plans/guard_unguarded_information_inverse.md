@@ -121,20 +121,25 @@ negligible.
   assertions, and 4 solve-cascade assertions; no compile/install was run by
   Codex. The end-to-end NegBin regression injects the duplicated candidate
   column through the private design-matrix cache and checks typed
-  `model_standard_error_unavailable` plus NA CI. Still add/confirm the
-  planned Poisson-boundary, non-finite `H_free`, and all-fixed (`k = 0`)
-  guard regressions before closing this checkbox. Per kernel: (a)
-  all existing `with_var` fixtures `identical()` before/after (the
-  bit-for-bit claim); (b) a design with a duplicated covariate column and
-  `harden = FALSE` (so the R side does not drop it) yields an all-`NaN`
-  `vcov`, `NA` `ssq_b_2`, and — through the inference class — `NA` SE and
-  `NA` asymptotic CI rather than a finite number; (c) for negbin, a
-  dispersion-at-Poisson-boundary fixture confirms `negbin_information_spec`'s
-  own handling still takes precedence (no regression in the boundary
-  path); (d) a `H_free` containing `Inf` (forced via a warm start that
-  overflows `exp(eta)`) returns `NaN` rather than throwing; (e) the
-  `k = 0` free-parameter case (all fixed) returns a 0×0 block and the
-  expanded `vcov` is the fixed-parameter fill only.
+  `model_standard_error_unavailable` plus NA CI. Two focused files passed
+  against the installed native library: `test-information-inverse-edge-cases.R`
+  (11 assertions: Poisson-boundary-excluded `k = 0` information block,
+  non-finite information after an overflowing warm start, and a finite-input
+  fixture whose Fisher-information matrix contains a literal `Inf`) and
+  `test-information-inverse-inference-typed-guards.R` (30 assertions with the
+  checkout's R class source-overlaid on installed EDI v1.0.3; typed SE/CI
+  coverage for Beta, ZIP, Hurdle-Poisson, and ZINB). The native
+  duplicate-column kernel cases also cover NegBin, Beta, ZAP, and ZINB.
+  **Resolved 2026-10-14:** added a finite-input NegBin fixture with
+  `X = cbind(1, rep(1e200, 80))` and moderate warm-start coefficients. The
+  installed kernel reports a literal `Inf` in the information matrix,
+  `information_invertible = FALSE`, and an all-`NaN` covariance; the edge-case
+  test now asserts each condition and passes 11 assertions against installed
+  EDI v1.0.3. The before/after bit-identical sweep remains the only open
+  requirement under this checklist item. The Poisson
+  boundary and `k = 0` requirements are now exercised through the public
+  NegBin kernel API; the latter reports `information_invertible = TRUE` and
+  the expected all-NA fixed/boundary covariance fill.
 - [x] **TODO-4: Roxygen.** Replace the "will produce numerically unstable or
   NaN variances" caveats at `fast_negbin_regression.cpp:411-418` and
   `fast_beta_regression.cpp:576` with a sentence describing the guard
@@ -249,10 +254,24 @@ diagnostics chain itself is out of scope here.
   model objects for later diagnostics.
 - `test-information-inverse-guard.R` statically verifies the helper, all five
   migrations, the audit dispositions, and the typed rejection strings. Its
-  native duplicate-column cases cover NegBin, Beta, ZAP, and ZINB after the
-  shared library is rebuilt. Python duplicate-column coverage was added for
+  native duplicate-column cases cover NegBin, Beta, ZAP, and ZINB; the user's
+  installed native library was exercised in the 2026-10-14 focused runs above.
+  The focused inference-guard tests additionally exercise typed SE
+  nonestimability through Beta, ZIP, Hurdle-Poisson, and ZINB classes. The
+  ZINB regression uses an exact duplicate conditional covariate and confirms
+  the finite point estimate is retained while the SE is typed as unavailable;
+  its public CI preserves the bootstrap fallback warning and NA endpoints.
+  The typed-guard file passed 30 assertions with the checkout's R class
+  source-overlaid on installed EDI v1.0.3 (installed native kernels; no
+  compile/install). A plain installed-namespace run cannot exercise the new
+  ZINB R override until the maintainer's independent reinstall. Python
+  duplicate-column coverage was added for
   the portable ZINB and both ZAP variants. Source-loaded validation with
   `compile = FALSE` passed 18 assertions; the rebuilt-native block skipped as
   designed. R/Python parse checks and `git diff --check` passed. Per the repo's
   compilation rule, native compilation and rebuilt-kernel execution remain for
-  the maintainer's next independent build.
+  the maintainer's next independent build. Full closure still needs the
+  before/after `identical()` sweep for all `with_var` fixtures. The separate
+  literal-Inf fixture described above passes against the installed binary;
+  that binary reports a Sep 20 native build, so it does not verify this
+  checkout's native changes.

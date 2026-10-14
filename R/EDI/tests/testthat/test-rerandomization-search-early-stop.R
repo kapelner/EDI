@@ -60,3 +60,32 @@ test_that("rerandomization_search_cpp returns valid accepted allocations with ea
   )
   expect_valid_rerandomization_search(X, mahal_w, r, cutoff_mahal, "mahal_dist")
 })
+
+test_that("tight-cutoff rerandomization returns the same accepted prefix at 1, 2, and 4 threads", {
+  skip_on_cran()
+  available_cores <- parallel::detectCores(logical = TRUE)
+  if (is.na(available_cores) || available_cores < 4L) skip("fewer than 4 logical cores available")
+
+  old_threads <- EDI:::get_omp_max_threads_cpp()
+  on.exit(EDI:::set_package_threads(old_threads), add = TRUE)
+  set.seed(10801)
+  n <- 40L
+  p <- 3L
+  r <- 100L
+  cutoff <- 0.25
+  max_draws <- 100000L
+  X <- matrix(rnorm(n * p), n, p)
+  draw_at <- function(threads) {
+    EDI:::set_package_threads(threads)
+    set.seed(10802)
+    EDI:::rerandomization_search_cpp(X, r, "abs_sum_diff", cutoff, max_draws)
+  }
+
+  w1 <- draw_at(1L)
+  w2 <- draw_at(2L)
+  w4 <- draw_at(4L)
+  expect_valid_rerandomization_search(X, w1, r, cutoff, "abs_sum_diff")
+  expect_identical(w1, w2)
+  expect_identical(w1, w4)
+  expect_identical(w4, draw_at(4L))
+})

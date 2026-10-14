@@ -4517,6 +4517,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// probe_omp_team_size_cpp
+int probe_omp_team_size_cpp(int num_cores);
+RcppExport SEXP _EDI_probe_omp_team_size_cpp(SEXP num_coresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
+    rcpp_result_gen = Rcpp::wrap(probe_omp_team_size_cpp(num_cores));
+    return rcpp_result_gen;
+END_RCPP
+}
 // distance_matrix_euclidean_sq_cpp
 NumericMatrix distance_matrix_euclidean_sq_cpp(const NumericMatrix& X);
 RcppExport SEXP _EDI_distance_matrix_euclidean_sq_cpp(SEXP XSEXP) {
@@ -5588,6 +5599,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_compute_ols_bootstrap_parallel_cpp", (DL_FUNC) &_EDI_compute_ols_bootstrap_parallel_cpp, 5},
     {"_EDI_set_omp_num_threads_cpp", (DL_FUNC) &_EDI_set_omp_num_threads_cpp, 1},
     {"_EDI_get_omp_max_threads_cpp", (DL_FUNC) &_EDI_get_omp_max_threads_cpp, 0},
+    {"_EDI_probe_omp_team_size_cpp", (DL_FUNC) &_EDI_probe_omp_team_size_cpp, 1},
     {"_EDI_distance_matrix_euclidean_sq_cpp", (DL_FUNC) &_EDI_distance_matrix_euclidean_sq_cpp, 1},
     {"_EDI_distance_matrix_custom_cpp", (DL_FUNC) &_EDI_distance_matrix_custom_cpp, 2},
     {"_EDI_distance_matrix_sum_abs_diff_cpp", (DL_FUNC) &_EDI_distance_matrix_sum_abs_diff_cpp, 1},

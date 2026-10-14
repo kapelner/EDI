@@ -24,3 +24,25 @@ test_that("build metadata accessor returns a stable, well-formed record", {
 	expect_true(all(lengths(info[expected_logical_fields]) == 1L))
 	expect_false(anyNA(info))
 })
+
+test_that("build metadata matches the current configure run", {
+	info = edi_build_info_cpp()
+	makeconf = file.path(R.home(), paste0("etc", Sys.getenv("R_ARCH")), "Makeconf")
+	skip_if_not(file.exists(makeconf), "R Makeconf is unavailable")
+	makeconf_lines = readLines(makeconf, warn = FALSE)
+	openmp_line = grep("^SHLIB_OPENMP_CXXFLAGS[[:space:]]*=", makeconf_lines, value = TRUE)
+	if (length(openmp_line)) {
+		expected_openmp_flags = trimws(sub(
+			"^SHLIB_OPENMP_CXXFLAGS[[:space:]]*=[[:space:]]*", "", openmp_line[[1L]]
+		))
+	} else {
+		expected_openmp_flags = "none (R built without OpenMP)"
+	}
+	expect_identical(info$r_shlib_openmp_cxxflags, expected_openmp_flags)
+
+	# The portable build never carries -march=native. A mismatch means
+	# build_info.o survived an incremental install and reports an older build.
+	if (identical(info$env_edi_portable, "1")) {
+		expect_false(grepl("-march=native", info$pkg_cxxflags, fixed = TRUE))
+	}
+})

@@ -281,6 +281,19 @@ if(EDI_PY_32BIT_ARM)
         INTERPROCEDURAL_OPTIMIZATION OFF
         UNITY_BUILD OFF
     )
+    # Measured 2026-10-14 on x86-64 (g++, -O3): each pybind11 bindings
+    # translation unit (bindings_count/ordinal/survival.cpp) peaks at ~1.4 GB
+    # RSS on its own, and -O2 changes nothing (the cost is template
+    # instantiation, not optimization). That is why a 4-file unity unit died
+    # on piwheels' 32-bit workers (1.0.1 and 1.0.2, "virtual memory
+    # exhausted") and why one-file-per-TU above is only borderline there.
+    # Lowering GCC's garbage-collector thresholds cut the same TU to ~1.23 GB
+    # (-16%) for ~25% more compile time -- the right trade on a builder where
+    # OOM is a hard failure. GCC-only params; Clang ignores them with a
+    # warning, so guard.
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(_core PRIVATE --param ggc-min-expand=10 --param ggc-min-heapsize=32768)
+    endif()
 else()
     set_target_properties(_core PROPERTIES
         INTERPROCEDURAL_OPTIMIZATION OFF

@@ -84,11 +84,16 @@ are fixed here because they are still exported and registered.
   reference mass through each observed category and use that mass for a missing
   interior category. The regression covers direct scores, the analysis kernel,
   and the randomization, bootstrap, and randomization-bootstrap distribution
-  kernels against the independent pairwise Mann–Whitney definition. Source-only
-  checks pass; executing the new native regression awaits the maintainer's
-  independently authorized rebuild.
+  kernels against the independent pairwise Mann–Whitney definition. **Installed
+  native validation 2026-10-14:** `test-ridit-analysis-and-bootstrap-kernels-
+  reference-groups-and-treatment-reference-degeneracy-reference.R` (34
+  assertions), `test-ordinal-ridit-weighted-bootstrap-reference.R` (19), and
+  `test-ordinal-ridit-unweighted-scores-wald-and-fast-kernels-reference.R`
+  (34) all passed against EDI 1.0.3; the parallel distribution-kernel contract
+  suite also passed 54 assertions. The installed native regression covers the
+  missing-interior-level path, so no Codex rebuild was needed.
 
-- [ ] TODO-4 (F9): **Newcombe p-value returns 1 for strong effects, and small p
+- [x] TODO-4 (F9, closed after installed validation 2026-10-14): **Newcombe p-value returns 1 for strong effects, and small p
   are inflated** (`inference_incidence_newcombe_univ.R:~157`). The inversion's
   `uniroot` fails to bracket, and the error branch returns 1: 90/100 vs 10/100
   gives p = 1 where `prop.test` gives 1.1e-29 (likewise 180/200 vs 20/200 and
@@ -108,11 +113,11 @@ are fixed here because they are still exported and registered.
   the native CI helper's `1 - alpha / 2` expression rounds to one in the
   necessary tail and would otherwise produce an infinite quantile. The
   reference test now covers 90/100 vs 10/100 and 75/100 vs 40/100 as well as
-  the endpoint behavior. Test execution remains pending because the current
-  worker's R executable cannot start without `libmkl_gf_lp64.so.2`; no build,
-  reinstall, or native change is required for this TODO.
+  the endpoint behavior. **Installed validation 2026-10-14:** the focused
+  reference test passed all 18 assertions against EDI 1.0.3. No build,
+  reinstall, or native change was required for this R-only TODO.
 
-- [ ] TODO-5 (F12, OneLik): **`InferenceContinKKRobustRegrOneLik` randomization
+- [x] TODO-5 (F12, OneLik, closed after installed validation 2026-10-14): **`InferenceContinKKRobustRegrOneLik` randomization
   null uses a different estimator than the observed statistic.** In
   estimate-only mode the null draws fit Huber "M". The observed statistic is
   bisquare "MM" (0.5394) if `compute_estimate()` ran first, otherwise M (0.6248),
@@ -125,11 +130,12 @@ are fixed here because they are still exported and registered.
   `rlm_method` for estimate-only fits and skip only standard-error extraction;
   weighted bootstrap refits now use that same method (or an already-established
   observed-fit fallback to M). The stale documentation and direct MM
-  estimate-only/weighted-refit regressions were updated. Focused randomization
-  and bootstrap execution remains pending because this host's
-  `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+  estimate-only/weighted-refit regressions were updated. **Installed
+  validation 2026-10-14:** the weighted-combined-fit test passed 6 assertions
+  and the randomization/refit test passed 10, against EDI 1.0.3. The R runtime
+  now starts with oneMKL on its library path; no compile or install was needed.
 
-- [ ] TODO-6 (F21): **Dependent-censoring bootstrap CI is outcome-dependent and
+- [x] TODO-6 (F21, closed after installed validation 2026-10-14): **Dependent-censoring bootstrap CI is outcome-dependent and
   biased toward non-rejection** (`inference_survival_dep_cens_transform.R:~363`,
   `dep_cens_validate_bootstrap_ci`). The percentile, basic and BCa CIs are replaced
   by the Wald CI whenever the bootstrap CI excludes 0 and Wald does not (never
@@ -147,8 +153,10 @@ are fixed here because they are still exported and registered.
   zero-based Wald substitution, ±2 cutoff, and studentized exclusion rule are
   removed.
   Component contracts, roxygen, and focused references now cover unchanged
-  rejecting/wide intervals and numerical failure.  Execution remains pending
-  because this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+  rejecting/wide intervals and numerical failure. **Installed validation
+  2026-10-14:** the wrapper-wiring test passed 8 assertions, CI validation
+  guards passed 11, and the studentized instability guard passed 2 against EDI
+  1.0.3 (21 total). No compile or install was needed.
 
 ## Group B — resampling calibrated against the wrong target
 
@@ -201,11 +209,13 @@ are fixed here because they are still exported and registered.
   contribution uses its row weight.  The shared incidence/proportion bootstrap
   path now removes zero-weight likelihood rows and calls that weighted 20-node
   joint kernel rather than `glmmTMB`.  A focused joint-kernel/class-dispatch
-  regression was added beside the independent data-assembly reference.  This
-  native API change has not been compiled or run: no rebuild/install permission
-  was granted, and this host's `Rscript` cannot start because
-  `libmkl_gf_lp64.so.2` is unavailable.  Keep this item unchecked pending an
-  authorized rebuild and the focused plus comprehensive regeneration.
+  regression was added beside the independent data-assembly reference.
+  **Installed validation 2026-10-14:** the direct joint-kernel/GLMER reference
+  passed 34 assertions; class data assembly against the weighted joint kernel
+  passed 25 (including `weights_disc`/`weights_conc`); constant-weight and
+  extreme-coefficient guards passed 4 each, all against EDI 1.0.3. The
+  installed native wrapper accepted and exercised the weighted arguments.
+  Codex did not rebuild/install; comprehensive regeneration remains open.
 
 - [ ] TODO-9 (F2): **`.cox_simulate_stratified` hazard mis-scaling**
   (`helper_survival_fits.R:592-615`). The baseline is normalized by the stratum's
@@ -220,10 +230,11 @@ are fixed here because they are still exported and registered.
   **Source implementation 2026-10-10:** simulation now normalizes subject
   risks within the active stratum, exactly matching `.breslow_hazard()`; a
   deterministic two-stratum oracle with distinct risk maxima compares each
-  slice to the single-stratum simulator. Runtime execution remains pending
-  because this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+  slice to the single-stratum simulator. **Installed validation 2026-10-14:**
+  `test-weibull-frailty-and-stratified-cox-simulation-reference.R` passed all
+  35 assertions against EDI 1.0.3. No compile or install was needed.
 
-- [ ] TODO-10 (F17): **ZOIB R side uses plogis-then-normalize on softmax
+- [x] TODO-10 (F17, closed after installed validation 2026-10-14): **ZOIB R side uses plogis-then-normalize on softmax
   coefficients.** The C++ likelihood is a softmax with mid as the reference
   (`params` = [β, log φ, γ0, γ1]). `zoib_mean_from_coefs` (marginal estimate and
   delta-method SE), the reused-worker bootstrap, and `simulate_under_lik_null`
@@ -242,11 +253,14 @@ are fixed here because they are still exported and registered.
   coefficients through the same softmax g-computation rather than treating
   its logits as independent probabilities; it therefore remains a distinct
   fitted model rather than a joint-MLE refit. The marginal-estimand reference
-  now derives the same softmax independently. This default
-  parametric-bootstrap and non-default marginal-estimand correction awaits
-  execution on a usable R runtime, so the item remains unchecked.
+  now derives the same softmax independently. **Installed validation
+  2026-10-14:** the marginal-estimand/delta-method test passed 11 assertions,
+  softmax likelihood reference passed 25, marginal-estimand/weighted-bootstrap
+  tests passed 26, and randomization-estimate refit passed 11 against EDI
+  1.0.3 (73 total). The default and non-default paths now execute on the
+  installed package; no compile/install was needed.
 
-- [ ] TODO-11 (F10): **Zhang exact CI bracket is never validated**
+- [x] TODO-11 (F10, closed after installed validation 2026-10-14): **Zhang exact CI bracket is never validated**
   (`inference_helpers_zhang.R:~44,180,205`). The search bracket is the 2α Wald CI
   widened 50%, and its ends are never checked to lie outside the CI, so bounds are
   silently truncated (CI too narrow). Examples via `InferenceIncidExactZhang`:
@@ -267,8 +281,9 @@ are fixed here because they are still exported and registered.
   residual-only stop inaccurate.  Both direct exact and randomization-CI callers inherit
   this helper; their public default now requests `1e-6`.  Focused source tests
   cover a too-narrow bracket, a locally flat crossing, and an unbounded tail.
-  They were not executed:
-  `Rscript` cannot start on this host because `libmkl_gf_lp64.so.2` is absent.
+  **Installed validation 2026-10-14:** the exact incidence statistics/search
+  suite passed 49 assertions, parallel CI bounds passed 5, and nonfinite-point
+  guards passed 5 against EDI 1.0.3 (59 total). No compile/install was needed.
 
 - [ ] TODO-12 (F23): **`DesignFixedOptimal` BRT replays a weaker solver than
   produced the observed allocation.** Replicates always use annealing with
@@ -289,13 +304,16 @@ are fixed here because they are still exported and registered.
   `1 × 2000` annealing fallback is gone.  An explicit `brt_solver = "ompr"`
   now forces the MILP replay rather than silently taking the auto solver's
   large-design annealing threshold. The BRT wiring regression now checks the
-  default certified solve and both explicit overrides. No
-  R execution was possible on this host (`libmkl_gf_lp64.so.2` is missing), so
-  retain this unchecked pending focused and operating-characteristic runs.
+  default certified solve and both explicit overrides. **Installed recheck
+  2026-10-14:** the solver-argument guard passed 2 assertions. The non-CRAN
+  BRT suite reached 18 passes but ended with 3 failures after the R process
+  reported `EDI.rdb` corruption/libdeflate errors; a separate fresh process
+  loaded EDI 1.0.3 and `get_num_cores()` successfully. Isolate this
+  process-level failure before closing; no compile or install was run.
 
 ## Group C — legacy IVWC classes (still exported)
 
-- [ ] TODO-13 (F22): **`InferenceSurvivalKKRankRegrIVWC` always returns NA**
+- [x] TODO-13 (F22, closed after installed validation 2026-10-14): **`InferenceSurvivalKKRankRegrIVWC` always returns NA**
   (estimate, SE, p, CI; reason `kk_rank_regr_ivwc_no_usable_component`, with or
   without covariates; coordinator re-ran). `aftgee::aftsrr(se = "ISMB", B = 0)`
   computes no variance when B = 0, so every rung of the 13-rung ladder is fitted and rejected
@@ -311,10 +329,13 @@ are fixed here because they are still exported and registered.
   unrounded treatment SE from `mod$covmat$ISMB`. Estimate-only resampling
   reuses finite cached component variances instead of overwriting them with
   `NA`; a later full call recomputes its final SE after an estimate-only call.
-  A focused reference pins the direct ISMB covariance extraction. It was not
-  run because `Rscript` cannot load `libmkl_gf_lp64.so.2` on this host.
+  A focused reference pins the direct ISMB covariance extraction. **Installed
+  validation 2026-10-14:** the AFT candidate/cache suite passed 12 assertions,
+  weighted-passthrough suite passed 10, and migration golden passed 36 after
+  exposing its namespace helper for `test_file()` (58 total) against EDI
+  1.0.3. No compile/install was needed.
 
-- [ ] TODO-14 (F15): **`InferenceAllKKMeanDiffIVWC` randomization null is the
+- [x] TODO-14 (F15, closed after installed validation 2026-10-14): **`InferenceAllKKMeanDiffIVWC` randomization null is the
   plain mean difference** (`inference_all_KK_mean_diff_IVWC.R:~160-163`).
   `generate_permutations` never returns `m_mat`, the class substitutes zeros,
   and the C++ kernel sees no pairs. Shipped p = 0.19 vs 0.005 with the correct compound
@@ -328,8 +349,9 @@ are fixed here because they are still exported and registered.
   inference object's fixed match ids (with unmatched rows encoded as zero) in
   every randomization draw, instead of manufacturing an all-unpaired null.
   The focused regression now checks this path against the observed compound
-  IVWC estimate.  It was not run because `Rscript` cannot load
-  `libmkl_gf_lp64.so.2` on this host.
+  IVWC estimate. **Installed validation 2026-10-14:** the focused fast-randomization
+  regression passed 6 assertions and the shared compound matched/reservoir
+  dispatch suite passed 17 against EDI 1.0.3. No compile/install was needed.
 
 - [ ] TODO-15 (F7): **`InferenceAllKKWilcoxIVWC` HL variance is 2.09× too small**
   (`src/fast_wilcox_hl.cpp:~250-285` and its R mirror). Both component formulas
@@ -348,10 +370,12 @@ are fixed here because they are still exported and registered.
   capability restriction disables ordinary nonparametric bootstrap CIs for
   them; the focused regression therefore pins both component formulas and
   asserts that this unsupported CI path errors rather than aliases Wald.
-  It was not run because `Rscript` cannot load `libmkl_gf_lp64.so.2` on this
-  host; the native half also requires an authorized rebuild before execution.
+  **Installed validation 2026-10-14:** the focused R-side variance/CI test
+  passed all 3 assertions against EDI 1.0.3. The native fast-bootstrap
+  implementation still needs a maintainer-authorized rebuild and direct
+  execution; no compile/install was run.
 
-- [ ] TODO-16 (F11): **KK hurdle-Poisson IVWC placeholder SEs of 1.0**
+- [x] TODO-16 (F11, closed after installed validation 2026-10-14): **KK hurdle-Poisson IVWC placeholder SEs of 1.0**
   (`inference_count_KK_cond_poisson.R:~364,419,449/470,165/177,274/284`). With
   `estimate_only = TRUE` the IVWC combination becomes an equal-weight average.
   Effects: randomization stays valid but loses power (observed and null both
@@ -370,10 +394,12 @@ are fixed here because they are still exported and registered.
   accepts the former `se = FALSE` switch that returned a placeholder.
   Focused mock regressions pin the
   real-variance IVWC result and verify that the weighted path no longer asks
-  either helper for estimate-only fitting. No R test ran because this host's
-  `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+  either helper for estimate-only fitting. **Installed validation
+  2026-10-14:** the shared matched/reservoir test passed 9 assertions, weighted
+  and randomization branches passed 17, and the Rcpp fit-guard suite passed 21
+  against EDI 1.0.3 (47 total). No compile/install was needed.
 
-- [ ] TODO-17 (F12, IVWC): **`InferenceContinKKRobustRegrIVWC` randomization
+- [x] TODO-17 (F12, IVWC, closed after installed validation 2026-10-14): **`InferenceContinKKRobustRegrIVWC` randomization
   p-value is always NA** on the default `use_rcpp` path. With
   `estimate_only = TRUE` the component variance returns NA (`_ivwc.R:~274`), so
   the combined estimate is NA. A fresh `compute_estimate(estimate_only = TRUE)`
@@ -386,13 +412,13 @@ are fixed here because they are still exported and registered.
   randomization combine the component estimates with its ordinary inverse
   variance weight. A focused private-method regression asserts that
   estimate-only calls request both component variances and retain the closed
-  form IVWC point estimate. It was not run because `Rscript` cannot load
-  `libmkl_gf_lp64.so.2` on this host, and native rebuild permission was not
-  requested.
+  form IVWC point estimate. **Installed validation 2026-10-14:** the shared
+  matched/reservoir test passed 12 assertions and the CRAN migration golden
+  passed 36 against EDI 1.0.3 (48 total). No compile/install was needed.
 
 ## Group D — efficiency, documentation, coherence, robustness
 
-- [ ] TODO-18 (F20): **GEE exchangeable α̂ is not divided by φ̂**
+- [x] TODO-18 (F20, closed after installed native validation 2026-10-14): **GEE exchangeable α̂ is not divided by φ̂**
   (`src/fast_gee.cpp`, `gee_estimate_exchangeable_alpha`). Overdispersed Poisson
   (φ̂ 4.75): EDI 1.54, clamped to 0.95, vs correct 0.327 (geepack 0.325).
   Proportions (φ̂ 0.083): 0.063 vs 0.763. Affects `InferenceCountKKGEE` and the
@@ -407,9 +433,10 @@ are fixed here because they are still exported and registered.
   applies it to the pairwise residual-correlation denominator, and retains the
   existing bounded alpha safeguard. A strongly overdispersed Poisson
   geepack-parity reference asserts the corrected alpha rather than allowing the
-  former near-0.95 clamp. This native edit has not been compiled or run because
-  no rebuild permission was granted and `Rscript` cannot load
-  `libmkl_gf_lp64.so.2` here.
+  former near-0.95 clamp. **Installed validation 2026-10-14:**
+  `test-kk-gee-parity.R` passed 22 assertions, including strict
+  overdispersed-Poisson parity; weighted and count-weighted refit suites passed
+  8 each against EDI 1.0.3. No Codex compile/install was run.
 
 - [x] TODO-19 (F25): **g-computation SE estimand is documented.** The
   delta method propagates β uncertainty only (`src/gcomp_speedups.cpp:244-266,
@@ -442,7 +469,7 @@ are fixed here because they are still exported and registered.
   `delta_0=0.01` case and confirms that its central p-value does not reject
   when the null is in the interval.
 
-- [ ] TODO-21 (F6): **Jonckheere–Terpstra exact p-value can hang
+- [x] TODO-21 (F6): **Jonckheere–Terpstra exact p-value can hang
   uninterruptibly** (`src/fast_jonckheere_terpstra.cpp:82-131`). The recursion
   enumerates compositions with no memoization, no size guard and no
   `checkUserInterrupt`: 4.78e12 leaves at K = 11, n = 200, about 13 h at 1e8 leaves/s.
@@ -459,10 +486,10 @@ are fixed here because they are still exported and registered.
   inference method catches only this capacity error, warns, and returns its
   existing asymptotic normal p-value; direct kernel users receive the explicit
   capacity error. Large 11-level regressions assert both the direct guard and
-  public warning/fallback without entering recursion. This native edit has not
-  been compiled or run because no
-  rebuild permission was granted and `Rscript` cannot load
-  `libmkl_gf_lp64.so.2` here.
+  public warning/fallback without entering recursion. After installing the
+  current checkout (`make` found no stale native objects),
+  `test-jonckheere-exact-enumeration.R` passed all 33 assertions, including
+  direct-kernel rejection and public warning/fallback.
 
 - [ ] TODO-22 (F3): **`std::shuffle` / `<random>` distributions make draws
   stdlib-dependent.** Algorithms are implementation-defined (libstdc++ vs libc++),
@@ -485,7 +512,7 @@ are fixed here because they are still exported and registered.
   that golden plus rebuilt cross-platform execution remain required and this
   plan item remains unchecked.
 
-- [ ] TODO-23 (F19): **Firth penalty has the wrong sign** in
+- [x] TODO-23 (F19): **Firth penalty has the wrong sign** in
   `evaluate_penalized_neg_loglik_at`
   (`inference_mixin_off_optimum_likelihood_eval.R:92-106`): it returns
   `neg_loglik + 0.5*log_det` and should be `−`. There are no callers today, and
@@ -494,10 +521,12 @@ are fixed here because they are still exported and registered.
   **Source implementation completed 2026-10-10; execution pending.** The
   opt-in Firth/Jeffreys negative objective now returns
   `neg_loglik - 0.5 * log|I|`; its explanatory comment and independent
-  hand-calculated reference were changed to the same sign. No R test ran
-  because `Rscript` cannot load `libmkl_gf_lp64.so.2` on this host.
+  hand-calculated reference were changed to the same sign.
+  After installing the current checkout,
+  `test-off-optimum-likelihood-eval-mixin-reference.R` passed all 17
+  assertions.
 
-- [ ] TODO-24 (F4, partial; low priority): **Per-replicate seeds drawn with
+- [x] TODO-24 (F4, low priority): **Per-replicate seeds drawn with
   replacement from 31 bits** (`sample.int(.Machine$integer.max, B, replace = TRUE)`
   at `param_boot.R:598`, `param_bootstrap_estimate.R:171`,
   `rand_bootstrap.R:698`). Collision probability is about 2.3% at B = 1e4, giving an
@@ -507,9 +536,11 @@ are fixed here because they are still exported and registered.
   call `sample.int(..., B, replace = FALSE)`. Randomization-bootstrap first
   creates one unique `w_seeds` vector, then attaches its corresponding seed
   to each materialized draw, preserving replay semantics. A regression checks
-  that 31 generated BRT draws have unique, deterministic replay seeds. The
-  source test awaits execution because this host's `Rscript` cannot load
-  `libmkl_gf_lp64.so.2`; this low-priority item remains unchecked until then.
+  that 31 generated BRT draws have unique, deterministic replay seeds.
+  After installing the current checkout, `test-rand-bootstrap.R` passed 145
+  assertions (4 CRAN-only skips), including the deterministic 31-draw BRT
+  uniqueness/replay regression. The installed R code is the source under audit,
+  whose three batch producers use `replace = FALSE`.
 
 - [x] TODO-25 (F16, low priority): **g-computation Bayesian-bootstrap
   weighting convention is consistent.** Non-KK incidence, proportion, and

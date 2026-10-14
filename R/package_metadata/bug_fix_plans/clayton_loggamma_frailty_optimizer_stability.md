@@ -105,8 +105,24 @@ are the most direct evidence this is fixable rather than structural.
   narrowing `.fit_clayton_weibull_aft`'s fallback cascade if a residual
   slow tail remains. The user's reinstalled native library passes the direct
   upper-bound regression (unsafe start converges before 20 iterations) and
-  the failed-fit branch test, but the original KK21stepwise/diamonds Bartlett
-  outliers (reps 1 and 13) still need an end-to-end timing rerun.
+  the failed-fit branch test. **Filtered installed-package timing probe
+  2026-10-14:** an isolated copy of `comprehensive_tests.R` was restricted to
+  `~1` and run sequentially through rep 13 for the survival /
+  KK21stepwise / diamonds / `beta_T=0` Bartlett case. The approx Bartlett
+  p-value took 0.359s at rep 1 and 0.380s at rep 13 (p=0.837 and 0.735,
+  both `status=ok`), versus the historical 178.7s and 159.7s. Generic
+  Bartlett p-values took 10.169s and 0.448s; approx CIs took 4.979s and
+  7.494s. This suggests the approx-pval slowdown is gone on these filtered
+  draws, but does not reproduce the original production RNG stream: all
+  other datasets/designs/classes were filtered out, and rep 13 is the
+  thirteenth replicate of this isolated run. A separate two-formula run
+  stalled for >5:24 in the generic Bartlett p-value for `~.` and was
+  interrupted. Therefore the original outlier and multivariate-tail checks
+  remain open; no fallback-cascade retuning is justified yet. The focused
+  results are in
+  `/tmp/edi-v105-todo6.kCbSHR/R/package_tests/comprehensive_tests_results_nc_1_survival_filtered_design-KK21stepwise_class-InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik_dataset-diamonds_beta-0_family-bartlett.csv`;
+  its CSV records heartbeat path `/tmp/RtmpaeuB1H/comprehensive_tests_heartbeat_2.log`
+  (R temporary-session path; console output was not separately redirected).
 - [x] TODO-4: Confirm no golden-test point-estimate drift from the new
   bound. `test-clayton-logtheta-optimizer-bound.R` passed against the
   reinstalled package on 2026-10-14, including the censored fixture's
@@ -127,9 +143,24 @@ are the most direct evidence this is fixable rather than structural.
 - Deterministic R and Python regressions start above the boundary with every
   other parameter fixed and require convergence before 20 iterations without
   hitting the iteration cap. This directly covers the mechanism behind the
-  old 2,000-iteration outliers without adding a wall-clock assertion. The
-  production diamonds reps 1/13 timing rerun was not reproduced in this
-  session; no fallback-cascade retuning is justified without that evidence.
+  old 2,000-iteration outliers without adding a wall-clock assertion.
+- **Filtered production-shaped timing probe, 2026-10-14:** against the
+  already-installed package only, an isolated copy of the comprehensive
+  harness was restricted to the `~1` formula and run sequentially through
+  rep 13 with the survival/KK21stepwise/diamonds/`beta_T=0`/Bartlett filters.
+  `compute_lik_ratio_bartlett_approx_two_sided_pval()` took 0.359s (rep 1)
+  and 0.380s (rep 13), both finite and `status=ok`; the historical full-sweep
+  rows were 178.7s and 159.7s. The filtered run does not preserve the full
+  sweep's RNG consumption, so those rep labels do not prove exact-sample
+  parity. A separate two-formula attempt stalled for over 5:24 in the generic
+  Bartlett p-value on `~.` and was interrupted. Thus the targeted `~1`
+  filtered sample shows no 200x tail, but TODO-3 remains open pending a
+  reproducible original full-sweep sample and resolution/measurement of the
+  `~.` path. The CSV is at
+  `/tmp/edi-v105-todo6.kCbSHR/R/package_tests/comprehensive_tests_results_nc_1_survival_filtered_design-KK21stepwise_class-InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik_dataset-diamonds_beta-0_family-bartlett.csv`;
+  its heartbeat path was `/tmp/RtmpaeuB1H/comprehensive_tests_heartbeat_2.log`
+  (temporary R session path; stdout was not saved separately). No build or
+  installation was performed for this timing check.
 - An existing censored-data fit is pinned at its pre-change parameter vector,
   treatment estimate, treatment variance, and likelihood. The Python parity
   fixture independently pins an ordinary in-boundary parameter vector and

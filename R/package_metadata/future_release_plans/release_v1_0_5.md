@@ -53,9 +53,22 @@ range, since the plan files' internal numbering did not change.
   hardened fallback. The optional exhaustive reused-worker test's `n = 40`
   ZOIB comparison is not the diagnosed `n = 50` tuning fixture, so it cannot
   close exact-fixture parity or speedup: a failed direct fit there can still
-  incur the ordinary fallback. The linked performance/parity study, tuning
-  exclusion removal, and tuning run remain open because `Rscript` cannot
-  load `libmkl_gf_lp64.so.2` here.
+  incur the ordinary fallback. Installed-package checks passed 30 assertions
+  in `test-non-param-boot-reusable-worker-distribution-driver-and-worker-estimate-reference.R`
+  and 19 in `test-bayesian-bootstrap-non-reusable-worker-debug-path.R` against
+  EDI v1.0.3. That installation lacks current checkout design classes, and
+  these suites do not cover the diagnosed `n = 50` parity/performance fixture.
+  The linked performance/parity study, tuning exclusion removal, and tuning
+  run remain open pending validation against a matching build.
+  **Exact-fixture probe 2026-10-14:** with the default tuning seed `20264492`,
+  the 50 leave-one-out values were finite and bit-identical between the
+  reusable class and an R6 subclass forcing the legacy route, but both public
+  jackknife estimates were `NA` (`jackknife_extreme_summary`). The reusable
+  route took 11.051s versus 6.617s for legacy; tracing counted 68 versus 60
+  calls to `fast_zero_one_inflated_beta_cpp()` (eight extra fallback fits).
+  This disproves the hoped-for speedup on the diagnosed fixture. TODO-1 stays
+  open while the class-specific cost, non-NA parity fixture, exclusion removal,
+  and end-to-end tuning behavior remain unresolved.
 - [ ] TODO-2 (added 2026-08-30, user decision): **Randomization CI
   affine-shift reuse** — `randomization_ci_affine_shift_reuse.md →
   TODO-1..7` (plus a decision-gated TODO-8). The fast path at
@@ -94,6 +107,10 @@ range, since the plan files' internal numbering did not change.
   per-permutation QR reference and tier-1 equivalence tests passing. TODO-6
   records the complete measurements; the projected gain was not achieved, so
   this release item remains unchecked pending reconciliation of that target.
+  The focused `test-ci-rand.R` suite also passed 80 assertions against the
+  currently installed EDI 1.0.3 package on 2026-10-14. The working tree has no
+  randomization-CI source changes pending; this does not resolve the measured
+  speedup versus the original 20–30× expectation or the documentation claim.
   The decision-gated direct-inversion TODO-8 remains deliberately out of
   scope.
 - [ ] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
@@ -135,9 +152,20 @@ range, since the plan files' internal numbering did not change.
   `harden = TRUE/FALSE`, `delta = 0/0.5`). TODO-5's full end-to-end
   parameter-grid benchmark also passed on 2026-10-14: all p-values matched,
   with median speedups of 43.07× at one core and 54.30× at four cores. Results
-  are recorded in `benchmark_model_fits.md`; dead-export triage remains open,
-  so this release checkbox remains open.
-- [ ] TODO-4 (added 2026-08-30, source fixed 2026-10-08; focused edge tests pending): **Guard the unguarded
+  are recorded in `benchmark_model_fits.md`. A Graft caller audit found that
+  the nine remaining candidates have test/benchmark/profiler references but no
+  production inference callers. The old OLS bootstrap export is not the active
+  OLS bootstrap path (`InferenceContinOLS` calls
+  `compute_rand_bootstrap_ols_parallel_cpp`); the two Wilcoxon kernels are
+  superseded by the HL path. Deletion would require migrating/removing the
+  direct contract tests and regenerating Rcpp exports/unity wrappers. That
+  cleanup is still open and requires explicit permission for generated-code
+  changes; this release checkbox remains open. Additional installed-package
+  verification on 2026-10-14 passed 54 assertions in
+  `test-parallel-distribution-kernel-contracts.R` and 31 in
+  `test-resampling-parallel-threshold-contracts.R` against EDI 1.0.3, without
+  compiling or installing.
+- [ ] TODO-4 (added 2026-08-30, source fixed 2026-10-08; focused edge tests added, full validation pending): **Guard the unguarded
   information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
   → TODO-1..6`. Correctness, not performance. `fast_negbin_regression.cpp:485`
   inverts the free-parameter information block with a bare `.inverse()`
@@ -181,8 +209,31 @@ range, since the plan files' internal numbering did not change.
   the information-inverse test passed all 30 assertions, the information-matrix
   extraction/fallback suite passed 48, and the solve-cascade reference passed 4
   against the installed native library; Codex did not compile/install. The
-  linked plan still needs explicit Poisson-boundary, non-finite-information,
-  and all-fixed guard regressions, so this release item remains open.
+  additional negative-binomial and ZINB Poisson-boundary acceptance suites
+  passed 11 and 8 assertions, respectively, against installed EDI v1.0.3.
+  Added `test-information-inverse-edge-cases.R` for a boundary-excluded
+  zero-dimensional free block and rejection of non-finite information through
+  the installed public NegBin kernel; it passed 11 assertions without failures,
+  warnings, or skips, including a finite-input fixture that yields a literal
+  `Inf` information entry and verifies `information_invertible = FALSE` with
+  all-`NaN` covariance. `test-information-inverse-inference-typed-guards.R`
+  adds runtime typed SE/CI coverage for Beta, Zero-Inflated Poisson, and
+  Hurdle Poisson, passing 22 assertions; together with the earlier NegBin
+  regression, these paths preserve finite point estimates and surface the
+  typed `model_standard_error_unavailable` reason. The zero-augmented public
+  CI follows its documented bootstrap fallback, warns, and returns NA
+  endpoints. ZINB typed SE/CI coverage was then added using a duplicate
+  conditional covariate; the R override preserves the finite estimate, records
+  `model_standard_error_unavailable`, and keeps the public bootstrap fallback.
+  The typed-guard test passed 30 assertions with the checkout's R class
+  source-overlaid on installed EDI v1.0.3 (installed native kernels; no
+  compile/install). Plain installed-namespace execution still uses the older
+  class until the maintainer's independent reinstall. The release item remains
+  open: linked TODO-3 still lacks an explicit before/after `identical()` sweep
+  for all `with_var` fixtures. The new literal-Inf assertion passed against
+  the installed EDI v1.0.3 binary, whose metadata reports a Sep 20 native
+  build; it confirms the behavior of the available binary, not the current
+  source revision's native migration.
 
   **Cross-confirmed 2026-09-24** by the new `pval_miscalibration`/
   `low_coverage` audit checks, independently of the direct-repro check
@@ -267,8 +318,22 @@ range, since the plan files' internal numbering did not change.
   `test-clayton-logtheta-optimizer-bound.R` passed 18 assertions (including
   the native boundary fit and golden censored outputs), and the failed-fit
   branch test passed 7; Codex did not compile/install. Linked-plan TODO-4 is
-  complete. TODO-3 remains open only for an end-to-end timing rerun of the
-  original KK21stepwise/diamonds Bartlett outliers, reps 1 and 13.
+  complete. **Filtered timing probe 2026-10-14:** an isolated harness copy,
+  restricted to formula `~1` and run sequentially through rep 13 for the
+  survival/KK21stepwise/diamonds/`beta_T=0` Bartlett case, measured the
+  approx Bartlett p-value at 0.359s (rep 1) and 0.380s (rep 13), both finite
+  and `status=ok` (p=0.837/0.735), versus the historical 178.7s/159.7s.
+  This is not an exact re-run of the original full-sweep samples: filtering
+  out other datasets/designs/classes changes RNG consumption, so rep 13 is
+  only the 13th replicate of this focused sweep. A separate two-formula
+  attempt stalled for >5:24 in the generic Bartlett p-value on `~.` and was
+  interrupted. The filtered `~1` result suggests the approx-pval tail is
+  gone on those draws, but TODO-3 remains open pending an exact full-sweep
+  sample and resolution/measurement of the `~.` path. Results CSV:
+  `/tmp/edi-v105-todo6.kCbSHR/R/package_tests/comprehensive_tests_results_nc_1_survival_filtered_design-KK21stepwise_class-InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik_dataset-diamonds_beta-0_family-bartlett.csv`;
+  heartbeat path recorded in that CSV:
+  `/tmp/RtmpaeuB1H/comprehensive_tests_heartbeat_2.log` (temporary R session
+  path; stdout was not saved separately). No build or install was performed.
 - [x] TODO-7 (added 2026-09-17, fixed 2026-10-08; found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
   randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
@@ -311,7 +376,26 @@ range, since the plan files' internal numbering did not change.
   multi-start regression passed 14 assertions and the linked null-refit
   reference passed 5; its private native-wrapper calls were qualified with
   `EDI:::` so `testthat::test_file()` can resolve them. These focused passes
-  do not substitute for the calibration study.
+  do not substitute for the calibration study. **Installed-package
+  diagnostic 2026-10-14 (not release-current validation):** 400 seeds per
+  configuration (1001--1400) against installed EDI v1.0.3 yielded, at
+  `n=100, K=5`, 224 finite estimate/LR-p-value pairs, 19/224 rejections
+  (8.48%), 212/224 finite CIs covering zero (94.64%), zero zero-width CIs,
+  and 3/400 multistart NLL improvements. At `n=50, K=3`, there were 177
+  finite estimate/LR-p-value pairs, 6/177 rejections (3.39%), non-missing
+  interval-comparison coverage 168/172 (97.67%; 170 finite CI pairs, 168/170
+  covering zero), zero zero-width CIs, and 48/400 multistart NLL improvements.
+  Missing estimate/LR results (176 and 223) report `model_fit_unavailable`;
+  sampled missing fits converged but failed the Fisher-information
+  conditioning gate (rcond 1.29e-9 at n=100 and 1.82e-11 at n=50, below the
+  ~1.49e-8 threshold). This usable-denominator discrepancy—especially
+  224/400 versus the earlier 386/400 at n=100—remains unreconciled. The
+  installed library reports EDI 1.0.3 and native build timestamp
+  2026-09-20, so this is not validation of the current checkout/native pair.
+  TODO-8 remains open pending reconciliation and authorized current-native
+  validation; TODO-7's documentation update and comprehensive-results
+  regeneration must wait. Full results and metadata are preserved at
+  `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`.
 - [ ] TODO-9 (added 2026-09-22, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report; three new checks —
   `biased_estimate`, `bad_type1_error`, `low_power` — added to
@@ -833,9 +917,20 @@ range, since the plan files' internal numbering did not change.
   historical inflation: quantile plain-randomization rejected 1/25, BRT
   percentile and studentized each 0/25, while OLS BRT rejected 2/25. Actual
   BRT draws contained duplicated rows and yielded finite quantile fits, but
-  tie-count correlation was not established. Because this pilot does not
-  match the comprehensive-test DGP, TODO-20 remains open without a fix or
-  dismissal of the historical finding.
+  tie-count correlation was not established. **Matched-draw extension
+  2026-10-14:** 50 installed-package sharp-null cases, 12 actual BRT draws per
+  case, and the same 600 materialized draws per estimator for Quantile, OLS,
+  and RobustRegr. All 600/600 estimates and positive SEs per estimator were
+  finite; draws had median 22 duplicated rows and 72 tied-response pairs.
+  Within-case median Spearman correlations (duplicate rows vs. log(SE)) were
+  -0.055, -0.021, -0.080 for Quantile/OLS/RobustRegr; versus absolute
+  studentized statistic they were 0.027, 0.053, 0.074. Quantile showed no
+  excess instability or tie association relative to controls. Since 12 draws
+  imply a two-sided p-value floor of 2/12, this is a draw-level diagnostic,
+  not a Type-I-error test; the fixture also differs from the historical
+  comprehensive-test DGP. Details and denominators are in
+  `../bug_fix_plans/investigate_contin_quantile_regr_bootstrap_family_inflation.md`.
+  TODO-20 remains open without a fix or dismissal of the historical finding.
 - [ ] TODO-21 (added 2026-09-23, same audit-triage wave; reservoir-
   singleton hypothesis **REFUTED 2026-09-23 by code trace AND direct
   reproduction, high confidence on the code being correct — but the
@@ -1460,8 +1555,19 @@ baseline as expected/benign.
   tier-1 `InferenceContinOLS` simulation (n=32, true effect 1, nominal 90%,
   500 replications, r=201, sequential MC plus full-precision confirmation)
   covered 461/500 (92.2%; exact 95% interval 89.49%-94.39%), including
-  nominal 90%. The linked plan's TODO-1 real-data entry into the inner
-  refinement loop remains open; the release item stays unchecked.
+  nominal 90%. **Real-data trigger search 2026-10-14:** 100 installed-package
+  public `InferenceContinOLS` CIs on `mtcars` (`mpg ~ wt + hp`, `r=1001`,
+  default controls) had zero errors and zero upper-bound inner refinements.
+  The required cheap-span `<= tolerance`, full-span `> tolerance`, and
+  bracket-width `> tolerance` condition occurred 0/100 times; 84 cases had a
+  wide bracket but full-precision span already `<= tolerance`, while 7 had a
+  full-precision span above tolerance but also a cheap span above tolerance.
+  Further bounded `mtcars`/`airquality` probes at `r=201`/`1001` likewise
+  found no inner entry. Harness/results:
+  `/tmp/edi-v105-todo33/public_api_probe.R` and
+  `/tmp/edi-v105-todo33/mtcars_public_api_ci_probe_r1001.csv`. This is a
+  trigger-search failure, not evidence of inaccessibility or unchanged
+  coverage; the linked plan's TODO-1 and this release item remain open.
 - [x] TODO-34 (added 2026-09-24, same audit; fixed 2026-10-07): **Interval-censored `compute_shared_icen()` blanket cache guard**
   — `../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
   TODO-1..4`. After `compute_estimate(estimate_only = TRUE)`, a later full
@@ -2103,7 +2209,10 @@ baseline as expected/benign.
   **Source implementation status:** linked-plan TODOs 1--3 now use `alpha`
   throughout both public inversion paths, their SMC/bound-expansion controls,
   and the affine shortcut; the broader inverter audit and fixed-permutation
-  duality coverage are complete. Only TODO-4's installed `rand`/
+  duality coverage are complete. **Installed-package recheck 2026-10-14:**
+  the rand-CI bounds/search tests (36), bootstrap-CI floor warning (3),
+  bootstrap closed-form/failure guards (9), and `test-ci-rand.R` (80) all
+  passed against EDI 1.0.3 (128 assertions total). Only TODO-4's installed `rand`/
   `rand_bootstrap` CSV regeneration and coverage/documentation reconciliation
   remains, so this release checkbox stays unchecked.
 
@@ -2137,30 +2246,27 @@ baseline as expected/benign.
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-2`.
   With a single block size, `sample(4L, 1)` draws from `1:4`; the first block was balanced only 70% of the time. Affects actual assignments, not just redraws. The default `c(4,6,8)` is unaffected. **Resolution:** assignment samples an index into `block_sizes`; the package-wide sweep found no second vulnerable length-one call. The focused, shipped-design, and seed suites pass 255 expectations without compilation.
 
-- [ ] TODO-72 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-72 (added 2026-10-09, user decision; closed after installed native validation 2026-10-14; algorithm-sweep
   verification F8): **Ridit misscores an interior level absent from the reference arm** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-3`.
   It scores ½(R_{k−1}+R_k) instead of the mass below the level, in both `fast_ridit_analysis.cpp` and `ridit_distr_parallel.cpp`. Breaks the Mann–Whitney equivalence: 0.172 vs 0.225. Default `reference = "control"` path; coordinator re-ran it.
-  **Source implementation complete:** both native scoring paths now retain the
-  cumulative reference mass and score absent interior levels by mass-below;
-  the linked plan records direct, analysis, randomization, bootstrap, and
-  randomization-bootstrap regressions against the pairwise Mann–Whitney
-  definition. This release checkbox remains open solely because executing the
-  new native regressions requires the maintainer-authorized rebuild; the
-  installed object is stale.
+  **Resolution:** both native scoring paths retain the cumulative reference
+  mass and score absent interior levels by mass-below. The linked plan records
+  direct, analysis, randomization, bootstrap, and randomization-bootstrap
+  regressions against the pairwise Mann–Whitney definition. Those focused
+  regressions passed against the installed EDI 1.0.3 binary (see linked plan),
+  including the missing-interior-level case; no rebuild was needed.
 
-- [ ] TODO-73 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-73 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F9): **Newcombe p-value returns 1 for strong effects; small p inflated** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-4`.
   Failed `uniroot` bracketing returns 1 (90/100 vs 10/100: p = 1, `prop.test` 1.1e-29; coordinator re-ran). The default `uniroot` tolerance inflates small p up to ~160×. A reference test pins p = 1 and must change. Default path.
-  **Implementation status:** the R-side inversion now runs on the log-alpha
-  scale with explicit finite endpoint cases and a stable direct-upper-tail
-  Wilson calculation; source tests cover strong and small effects. It remains
-  unchecked pending execution: this worker's R executable cannot start because
-  `libmkl_gf_lp64.so.2` is unavailable. No compilation or installation was
-  requested or performed.
+  **Resolution:** the R-side inversion uses log-alpha search, explicit finite
+  endpoint cases, and a stable direct-upper-tail Wilson calculation. The
+  focused source test passed all 18 assertions against installed EDI 1.0.3;
+  no compile or install was needed. See the linked algorithm-sweep plan.
 
-- [ ] TODO-74 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-74 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F12, OneLik): **`InferenceContinKKRobustRegrOneLik` randomization null ≠ observed estimator** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-5`.
   The null uses Huber M. The observed statistic is MM or M depending on call order. The Bayesian bootstrap hard-codes M. **Default change:** randomization p/CI.
@@ -2168,10 +2274,11 @@ baseline as expected/benign.
   retain the configured robust M/MM method and omit only standard-error work;
   weighted bootstrap refits use that same method unless the observed fit has
   already fallen back to M. Focused regressions pin MM estimate-only and
-  weighted-refit parity. This remains unchecked pending focused randomization
-  and bootstrap execution on a usable R runtime.
+  weighted-refit parity. The focused weighted-fit (6 assertions) and
+  randomization/refit (10 assertions) tests passed against installed EDI
+  1.0.3; see the linked algorithm-sweep plan.
 
-- [ ] TODO-75 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-75 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F21): **Dependent-censoring bootstrap CI is biased toward non-rejection** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-6`.
   It swaps to Wald only when the bootstrap CI excludes 0 and Wald does not. The studentized CI goes NA whenever it excludes 0, so it can never reject. Endpoints beyond ±2 are declared unstable. The docs are inaccurate, and two tests assert the biased behavior. **Default change.**
@@ -2180,8 +2287,10 @@ baseline as expected/benign.
   delegates to basic for this model (which has no replicate-SE estimator) and
   preserves that finite result. Zero/sign/width checks can no longer substitute
   Wald or NA. Contracts, roxygen, and the
-  focused references are synchronized. This remains unchecked pending R
-  execution on a usable runtime.
+  focused references are synchronized. Installed EDI 1.0.3 validation passed
+  the wrapper-wiring test (8 assertions), endpoint-validation guards (11), and
+  studentized instability guard (2); no compile/install was needed. See the
+  linked algorithm-sweep plan.
 
 - [ ] TODO-76 (added 2026-10-09, user decision; algorithm-sweep
   verification F13): **Ordinal KK random-effects Bayesian bootstrap fits a fixed-effects model** —
@@ -2191,9 +2300,11 @@ baseline as expected/benign.
   path now shares a weighted ordinal random-intercept refit across KKGLMM and
   all CLMM links, with deterministic finite-likelihood rescue; constant
   weights retain the existing exact unweighted fast path. Focused source-loaded
-  validation passed and no native rebuild is required. This release row remains
-  open solely for the linked installed comprehensive-CSV regeneration and
-  reconciliation.
+  validation passed and no native rebuild is required. **Installed validation
+  2026-10-14:** the weighted-logit regression passed 16 assertions and the
+  link-helper/weighted-estimate regression passed 34 against EDI 1.0.3. This
+  release row remains open solely for the linked installed comprehensive-CSV
+  regeneration and reconciliation.
 
 - [ ] TODO-77 (added 2026-10-09, user decision; algorithm-sweep
   verification F14): **KK clogit+GLMM Bayesian bootstrap fits glmmTMB/Laplace on all rows** —
@@ -2203,21 +2314,24 @@ baseline as expected/benign.
   weighted 20-node joint conditional-logit/random-intercept kernel (mean
   matched-pair weights for the conditional term and row weights for the GLMM),
   never the `glmmTMB` Laplace surrogate.  The native wrapper, registration, and
-  focused joint-dispatch regression are updated.  This remains unchecked:
-  recompilation and execution require explicit permission, and `Rscript` is
-  unavailable here (`libmkl_gf_lp64.so.2`); focused and comprehensive
-  regeneration must follow an authorized rebuild.
+  focused joint-dispatch regression are updated. **Installed validation
+  2026-10-14:** the joint-kernel/GLMER test passed 34 assertions, weighted
+  class data assembly passed 25, and constant-weight/extreme-coefficient guards
+  passed 4 each against EDI 1.0.3. The installed native wrapper exercised the
+  weighted kernel arguments. Codex did not rebuild/install; comprehensive
+  result regeneration and reconciliation remain open.
 
-- [ ] TODO-78 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-78 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F2): **`.cox_simulate_stratified` hazard mis-scaling** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-9`.
   The baseline is scaled by the stratum max risk but subjects by the global max. 61% of simulated times are tied at `max_time`; refit β 0.635 vs 1. Stratified-Cox parametric-bootstrap LR p/CI (non-default).
   **Source implementation 2026-10-10:** subject risks now use each stratum's
   maximum linear predictor, matching the corresponding Breslow baseline; a
-  distinct-maxima oracle regression checks both stratum slices. This remains
-  unchecked pending focused execution on a usable R runtime.
+  distinct-maxima oracle regression checks both stratum slices. The focused
+  simulation suite passed all 35 assertions against installed EDI 1.0.3; no
+  compile/install was needed. See the linked algorithm-sweep plan.
 
-- [ ] TODO-79 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-79 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F17): **ZOIB R side applies plogis-normalize to softmax coefficients** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-10`.
   Affects the marginal estimand and its SE, the reused-worker bootstrap, and the null simulator. `marginal_mean_diff` −0.0876 vs a consistent −0.0816 (non-default estimand); mild default parametric-bootstrap distortion. No test covers it.
@@ -2226,10 +2340,12 @@ baseline as expected/benign.
   weighted-bootstrap combination, and null simulator; the marginal reference
   test was corrected to an independent softmax derivation. The weighted path
   still uses its separate weighted submodel fits, rather than a joint-MLE
-  refit. Execution remains blocked by this host's unavailable
-  `libmkl_gf_lp64.so.2`, so this checkbox stays open.
+  refit. The marginal/delta-method, softmax likelihood, marginal-estimand and
+  weighted-bootstrap, and randomization-estimate tests passed 73 assertions
+  against installed EDI 1.0.3; no compile/install was needed. See the linked
+  algorithm-sweep plan.
 
-- [ ] TODO-80 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-80 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F10): **Zhang exact CI bracket never validated** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-11`.
   Bounds are silently truncated (CI too narrow), and zero-cell tables report finite bounds where the truth is ±∞. The bisection stops at |p − α| < 0.005. The same bisection is in `inference_ext_quantile_rand_ci.R`.
@@ -2239,8 +2355,10 @@ baseline as expected/benign.
   parameter-scale bracket width no looser than `1e-6`, including locally flat
   p-value curves. Direct exact and
   randomization CI defaults are aligned; focused narrow-bracket, flat-crossing,
-  and unbounded-tail regressions are added. This remains unchecked because this host's R
-  runtime cannot load `libmkl_gf_lp64.so.2`, so no focused execution occurred.
+  and unbounded-tail regressions are added. The exact CI/search suite (49
+  assertions), parallel-bounds suite (5), and nonfinite-point guard (5) passed
+  against installed EDI 1.0.3; no compile/install was needed. See the linked
+  algorithm-sweep plan.
 
 - [ ] TODO-81 (added 2026-10-09, user decision; algorithm-sweep
   verification F23): **`DesignFixedOptimal` BRT replays a weaker solver than the observed allocation's** —
@@ -2251,14 +2369,22 @@ baseline as expected/benign.
   is available only via an explicit `brt_solver` override, while an explicit
   `brt_solver = "ompr"` forces MILP instead of silently crossing the auto
   solver's large-design annealing threshold. The wiring test now pins default
-  profile parity and both opt-in overrides. This remains
-  unchecked until focused and operating-characteristic runs can execute; this
-  host's R runtime cannot load `libmkl_gf_lp64.so.2`.
+  profile parity and both opt-in overrides. **Installed recheck 2026-10-14:**
+  the solver-argument guard test passed 2 assertions. The BRT suite with
+  `NOT_CRAN=true` reached 18 passes but failed 3 assertions after the running R
+  process reported `EDI.rdb` corruption/libdeflate errors; a separate fresh
+  process loaded EDI 1.0.3 and `get_num_cores()` successfully. The suite's
+  process-level failure needs isolation before this item can close; no
+  compilation or install was run.
 
-- [ ] TODO-82 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-82 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F22): **`InferenceSurvivalKKRankRegrIVWC` always returns NA** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-13`.
   `aftsrr(se = "ISMB", B = 0)` computes no SE, so every ladder rung is rejected, and the estimate-only path needs a variance it never has. Coordinator re-ran it. The migration golden passes only because both sides are NA. Legacy IVWC.
+  **Validation:** the AFT candidate/cache suite (12 assertions), weighted
+  passthrough suite (10), and migration golden (36) passed against installed
+  EDI 1.0.3; the golden helper was explicitly exposed for `test_file()`. See
+  the linked algorithm-sweep plan.
   **Source implementation completed 2026-10-10:** component fits now request
   ISMB with 100 replicates when no usable variance is cached and use the
   unrounded `covmat$ISMB` treatment entry. Estimate-only calls retain cached
@@ -2267,16 +2393,17 @@ baseline as expected/benign.
   regression was added. This remains unchecked pending R execution; this host's
   `Rscript` cannot load `libmkl_gf_lp64.so.2`.
 
-- [ ] TODO-83 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-83 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F15): **`InferenceAllKKMeanDiffIVWC` randomization null is the plain mean difference** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-14`.
   `m_mat` is replaced by zeros, so the kernel sees no pairs. Shipped p 0.19 vs 0.005 with the correct compound null; coordinator re-ran it. A reference test pins the zeros branch. Legacy IVWC.
   **Source implementation completed 2026-10-10:** an omitted permutation
   `m_mat` now expands the design's fixed matched-set ids for each draw rather
   than using zeros, preserving the compound IVWC null.  The focused reference
-  test now asserts agreement with the observed compound estimator.  This stays
-  unchecked pending execution on a usable R runtime; this host lacks
-  `libmkl_gf_lp64.so.2`.
+  test now asserts agreement with the observed compound estimator. The focused
+  fast-randomization test passed 6 assertions and shared compound
+  matched/reservoir dispatch passed 17 against installed EDI 1.0.3; no
+  compile/install was needed. See the linked algorithm-sweep plan.
 
 - [ ] TODO-84 (added 2026-10-09, user decision; algorithm-sweep
   verification F7): **`InferenceAllKKWilcoxIVWC` HL variance is 2.09× too small** —
@@ -2288,11 +2415,12 @@ baseline as expected/benign.
   under-scaling. The bootstrap-CI alias was removed, while the normal
   package-level restriction correctly rejects nonparametric bootstrap CIs for
   sequential KK designs. Focused source regressions cover the two variance
-  formulas and that unsupported CI path. This remains
-  unchecked pending an authorized native rebuild and R execution; this host's
-  `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+  formulas and that unsupported CI path. The R-side focused variance/CI test
+  passed all 3 assertions against installed EDI 1.0.3. This remains open for
+  the native fast-bootstrap rebuild and direct execution; no compile/install
+  was run.
 
-- [ ] TODO-85 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-85 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F11): **KK hurdle-Poisson IVWC placeholder SEs of 1.0** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-16`.
   Estimate-only paths make it an equal-weight average. Bayesian-bootstrap CI is miscalibrated; `compute_estimate(estimate_only = TRUE)` caches the wrong estimate; randomization stays valid but loses power. The existing test mocks the variances. Legacy IVWC.
@@ -2303,11 +2431,12 @@ baseline as expected/benign.
   that component instead of silently equal-weighting it; the direct Rcpp
   helper no longer accepts the former `se = FALSE` switch that returned a
   placeholder. Focused mock
-  regressions assert the preserved IVWC weighting. This remains unchecked
-  pending R execution; this host's `Rscript` cannot load
-  `libmkl_gf_lp64.so.2`.
+  regressions assert the preserved IVWC weighting. The shared matched/reservoir
+  test (9 assertions), weighted/randomization branches (17), and Rcpp fit
+  guards (21) passed against installed EDI 1.0.3; no compile/install was
+  needed. See the linked algorithm-sweep plan.
 
-- [ ] TODO-86 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-86 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F12, IVWC): **`InferenceContinKKRobustRegrIVWC` randomization p is always NA** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-17`.
   On the default `use_rcpp` path, the estimate-only component variance is NA, so the combined estimate is NA. Legacy IVWC.
@@ -2315,10 +2444,11 @@ baseline as expected/benign.
   request finite matched-pair and reservoir variances for the combination, while
   still omitting only the final combined SE. A focused mock regression covers
   the estimate-only branch and its closed-form IVWC point estimate. This remains
-  unchecked pending R execution; this host's `Rscript` cannot load
-  `libmkl_gf_lp64.so.2`.
+  The shared matched/reservoir test passed 12 assertions and the CRAN migration
+  golden passed 36 against installed EDI 1.0.3; no compile/install was needed.
+  See the linked algorithm-sweep plan.
 
-- [ ] TODO-87 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-87 (added 2026-10-09, user decision; closed after installed native validation 2026-10-14; algorithm-sweep
   verification F20): **GEE exchangeable α̂ is not divided by φ̂** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-18`.
   Overdispersed Poisson gives 0.95 (clamped) vs a correct 0.33; proportions 0.06 vs 0.76. β and sandwich SEs stay valid, so this is efficiency and geepack parity. `test-kk-gee-parity.R`'s loose tolerance masks it.
@@ -2326,8 +2456,10 @@ baseline as expected/benign.
   estimation now divides the pairwise residual correlation by Pearson
   dispersion computed with `N - p` degrees of freedom. A strongly
   overdispersed Poisson geepack-parity regression covers the formerly clamped
-  path. This remains unchecked pending an authorized native rebuild and R
-  execution; this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+  path. `test-kk-gee-parity.R` passed 22 assertions, including the strict
+  overdispersed-Poisson case; weighted and count-weighted refit suites passed
+  8 each against installed EDI 1.0.3. No Codex compile/install was run. See
+  the linked algorithm-sweep plan.
 
 - [x] TODO-88 (added 2026-10-09, user decision; algorithm-sweep
   verification F25): **g-computation SE estimand documented** —
@@ -2347,7 +2479,7 @@ baseline as expected/benign.
   Zhang kernel retains minlike behavior for its separate callers.  Reference
   coverage pins the nonzero-null coherence case.
 
-- [ ] TODO-90 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-90 (added 2026-10-09, user decision; algorithm-sweep
   verification F6): **Jonckheere–Terpstra exact p-value can hang uninterruptibly** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-21`.
   Composition enumeration, exponential in K: about 13 h at K = 11, n = 200, with no interrupt check. Reached only by an explicit exact call; results are correct. Fix with a polynomial DP, or at least a guard plus an interrupt check.
@@ -2357,9 +2489,10 @@ baseline as expected/benign.
   exact-inference method warns and falls back to its asymptotic normal p-value
   for that capacity condition; direct kernel callers receive a clear error.
   Large 11-level regressions cover the immediate guard and public fallback.
-  This remains unchecked
-  pending an authorized native rebuild and R execution; this host's `Rscript`
-  cannot load `libmkl_gf_lp64.so.2`.
+  `R CMD INSTALL R/EDI` then installed the current checkout; its `make` phase
+  reported no stale objects. `test-jonckheere-exact-enumeration.R` passed all
+  33 assertions against that installed checkout, including the direct native
+  guard and public fallback.
 
 - [ ] TODO-91 (added 2026-10-09, user decision; algorithm-sweep
   verification F3): **`std::shuffle` / `<random>` draws are stdlib-dependent** —
@@ -2369,26 +2502,32 @@ baseline as expected/benign.
   portable `RRng`/`bounded_rand` Fisher--Yates, with no stale `<random>`
   headers remaining at those sites. The required rebuilt fixed-seed golden
   has not yet been recorded or run, including on macOS, so this release item
-  stays unchecked.
+  stays unchecked. Utility-kernel coverage passed 25 assertions. The
+  cross-platform digest test passed 6 and skipped the uncommitted fixture; the
+  all-design seed suite passed 25 assertions (1 CRAN-only skip) once its
+  internal classes were made visible to `test_file()`. This verifies same-host
+  repeatability, not the required fixed-seed cross-platform golden.
 
-- [ ] TODO-92 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-92 (added 2026-10-09, user decision; algorithm-sweep
   verification F19): **Firth penalty has the wrong sign** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-23`.
   `evaluate_penalized_neg_loglik_at` adds +½ log|I| instead of −. No callers; the reference test asserts the wrong sign. Fix before anything uses it.
   **Source implementation completed 2026-10-10:** the opt-in Firth/Jeffreys
   negative objective, its comment, and its independent reference assertion now
-  use `neg_loglik - 0.5 * log|I|`. This remains unchecked pending R execution;
-  this host's `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+  use `neg_loglik - 0.5 * log|I|`.
+  After installing the current checkout, `test-off-optimum-likelihood-eval-mixin-reference.R`
+  passed all 17 assertions.
 
-- [ ] TODO-93 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-93 (added 2026-10-09, user decision; algorithm-sweep
   verification F4): **Per-replicate seeds drawn with replacement from 31 bits (low priority)** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-24`.
   About 2.3% collision chance at B = 1e4; impact ≤ 1/B. Draw without replacement or use L'Ecuyer substreams.
   **Source implementation 2026-10-10:** both parametric-bootstrap runners
   and materialized randomization-bootstrap assignment replay now draw their
-  batch seeds without replacement. A BRT regression asserts distinct,
-  deterministic stored replay seeds. It awaits execution on a usable R
-  runtime, so this checkbox remains open.
+  batch seeds without replacement. `test-rand-bootstrap.R` passed 145
+  assertions (4 CRAN-only skips) after installing the current checkout,
+  including the deterministic BRT replay-seed regression. Source inspection
+  confirms all three batch producers use `sample.int(..., replace = FALSE)`.
 
 - [x] TODO-94 (added 2026-10-09, user decision; algorithm-sweep
   verification F16): **g-computation Bayesian-bootstrap weighting convention aligned (low priority)** —
@@ -2401,7 +2540,7 @@ baseline as expected/benign.
   TODO-88's Wald-SE description.
 
 
-- [ ] TODO-95 (added 2026-10-11, user decision; found while scoping
+- [x] TODO-95 (added 2026-10-11, user decision; found while scoping
   `marketing_plans/agent_proofing.md` W6): **Seed-pinned design draws depend
   on the OpenMP thread count** — `../bug_fix_plans/design_draws_depend_on_thread_count.md → TODO-1..4`.
   `DesignFixedGreedy`, `DesignFixedGreedyDOptimal` and
@@ -2424,11 +2563,17 @@ baseline as expected/benign.
   - Default threads (1) are unaffected today, but seed-pinned draws for the
     four classes change once with the fix. The package-wide guarantee
     follows in `release_v1_1_0.md → TODO-48`.
-  - **Source status (2026-10-11):** draw-index stream derivation,
-    deterministic rerandomization waves, metadata, documentation, NEWS, and
-    static test coverage are present. This TODO remains open until an
-    authorized native rebuild verifies the required 1/2/4-core allocation,
-    repeat-run, tight-cutoff, and randomization-inference comparisons.
+  - **Completed 2026-10-14:** draw-index stream derivation, deterministic
+    rerandomization waves, metadata, documentation, NEWS, and static test
+    coverage are present. After installing the current checkout, the required
+    1/2/4-core allocation, repeat-run, tight-cutoff, and randomization-inference
+    comparisons passed. The four post-migration streams are pinned as exact
+    allocation digests in
+    `R/EDI/tests/testthat/fixtures/openmp_design_seed_draws_v1_0_5.csv`; the
+    single-thread fixture test passed 48 assertions with `NOT_CRAN=true` (or
+    24 assertions with 4 CRAN-only skips). The cross-core seed-registry and
+    tight-cutoff rerandomization suites passed 106 and 21 assertions,
+    respectively.
 - [ ] TODO-96 (added 2026-10-14, user decision; found while wiring the
   cross-platform digest test for `release_v1_1_0.md → TODO-48`): **C++
   kernels overwrite OpenMP's global thread count with their own argument.**
@@ -2474,6 +2619,18 @@ baseline as expected/benign.
       export, or check a timing-independent proxy.
     - A pre-push ban on `omp_set_num_threads(` in `R/EDI/src/` outside
       `omp_control.cpp`.
+  - After installing the current checkout (with no stale native objects),
+    `test-omp-kernel-thread-count-scoped.R` passed all 40 assertions, including
+    the source audit and binary-match global-count preservation check. The
+    timing-independent proof is implemented as the internal
+    `probe_omp_team_size_cpp()` Rcpp hook and regression test. The first probe
+    test incorrectly skipped when EDI's intentional one-thread default was
+    active, before attempting to configure a multi-thread team. It now sets
+    the package OpenMP limit to two first, then checks runtime support; against
+    the user's installed OpenMP-enabled package it passes all 42 assertions,
+    including a two-thread team observed inside the probe and an unchanged
+    global maximum afterward. The OpenMP implementation is verified; TODO-96
+    remains open for the broader all-kernel audit/coverage criteria.
 
 ## Standing constraints
 

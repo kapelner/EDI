@@ -131,8 +131,24 @@ the kernel inputs at the boundary, and return the batch distribution (or
   and passed on 2026-10-14 against the reinstalled package (48 observations,
   8 fixed permutations, covariate counts 0/1/5, `harden` TRUE/FALSE, and
   `delta` 0/0.5). Dead-export triage and the benchmark remain open.
-- [ ] **TODO-4: Dead-kernel triage.** For each of the nine unreferenced
-  exports below, decide *wire in* or *delete*, and do it. Deleting means
+- [ ] **TODO-4: Dead-kernel triage.** For each of the nine exports below
+  without a production caller, decide *wire in* or *delete*, and do it.
+  A Graft caller audit on 2026-10-14 found direct test/benchmark/profiler
+  references for these exports, so “unreferenced” here means no production
+  inference path, not no repository references. In particular,
+  `compute_ols_bootstrap_parallel_cpp` is exercised by a benchmark and the
+  resampling-threshold test, while `InferenceContinOLS`'s bootstrap path now
+  calls the distinct `compute_rand_bootstrap_ols_parallel_cpp` kernel. The two
+  old Wilcoxon exports are likewise exercised by contract tests but have no
+  production caller; the live inference path uses the HL kernel. The bootstrap
+  loops, fill-in helper, and bisection kernels also have direct contract-test
+  references that must be migrated or intentionally removed with any deletion.
+  Current installed-package runs on 2026-10-14 passed 144 resampling-kernel
+  assertions, 18 bisection-tail/discontinuity assertions, 13 index-fill and
+  bisection-loop assertions, plus 54 parallel-distribution and 31 threshold
+  assertions. They establish these are exercised contracts, not unreferenced
+  code; they do not settle whether the internal wrappers should remain.
+  Deleting means
   removing the function from its `.cpp`, re-running
   `Rcpp::compileAttributes()`, and — because of the unity build — checking
   the file is still non-empty or removing it from its `unity_NN.cpp` group

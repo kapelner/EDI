@@ -307,6 +307,31 @@ InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin
 		#' @param optimization_alg Optimization algorithm. Default is dispatched via policy.
 		initialize = function(des_obj, model_formula = NULL, model_formula_zero = NULL, use_rcpp = TRUE, verbose = FALSE, optimization_alg = NULL){
 			super$initialize(des_obj, model_formula = model_formula, model_formula_zero = model_formula_zero, use_rcpp = use_rcpp, verbose = verbose, optimization_alg = optimization_alg)
+		},
+		compute_estimate = function(estimate_only = FALSE){
+			private$shared(estimate_only = estimate_only)
+			estimand = if (is.function(self$get_estimand)) self$get_estimand() else "conditional"
+			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
+				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
+			}
+			# Keep the point estimate when the native ZINB fit is usable but its
+			# guarded covariance is not. This mirrors the ZIP/Hurdle-Poisson
+			# wrappers and records typed SE nonestimability for the public API.
+			mod = private$cached_mod
+			if (!is.null(mod)) {
+				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$params[2L])[1L]
+				if (!estimate_only) {
+					ssq = mod$ssq_b_j
+					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+					if (is.finite(ssq) && ssq > .Machine$double.eps) {
+						private$cached_values$s_beta_hat_T = sqrt(ssq)
+						private$clear_nonestimable_state()
+					} else {
+						private$cache_nonestimable_se("model_standard_error_unavailable")
+					}
+				}
+			}
+			private$cached_values$beta_hat_T
 		}
 	),
 	private = list(

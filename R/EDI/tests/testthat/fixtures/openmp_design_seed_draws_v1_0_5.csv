@@ -1,0 +1,5 @@
+class,seed,n,r,cutoff,digest
+DesignFixedGreedy,91,20,12,,20b5c500ef8ed7cc36d31caeb129ae2c
+DesignFixedGreedyDOptimal,91,20,12,,20b5c500ef8ed7cc36d31caeb129ae2c
+DesignFixedMatchingGreedyPairSwitching,92,20,12,,bda2b2f43cda36ddda0857d5eb54ae62
+DesignFixedRerandomization,91,20,12,0.1,7e129baa6ae9d919d2f560622dffe035

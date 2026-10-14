@@ -94,6 +94,38 @@ not the comprehensive-test DGP, so TODOs remain open and no fix or dismissal
 of the historical finding is warranted. The installed library reports EDI
 1.0.3.
 
+**Matched-draw tie-sensitivity extension 2026-10-14:** ran 50 independent
+sharp-null cases on installed EDI 1.0.3, each with `n=60`, one continuous
+assignment covariate, `model_formula = ~1`, and rounded continuous outcomes
+`round(0.5*x + error, 1)`. For each case, generated one batch of 12 actual
+BRT draws through `generate_rand_bootstrap_draws(B=12, materialize_w=TRUE)`
+from the Quantile inference object, then passed that exact batch into
+`compute_brt_null_statistics_with_se()` for Quantile, OLS, and RobustRegr.
+Thus the comparison denominator is 600 identical draw/model pairs per
+estimator, not 1,800 independently generated resamples. All 600/600 estimates
+and all 600/600 SEs per estimator were finite, with positive SEs. The draws
+contained a median 22 duplicated rows (range 11--32 of 60) and median 72
+within-resample tied-response pairs (range 36--173).
+
+Within-case Spearman correlation medians for duplicate-row count versus
+`log(SE)` were -0.055 (Quantile), -0.021 (OLS), and -0.080 (RobustRegr);
+versus absolute studentized draw statistic they were 0.027, 0.053, and 0.074.
+Quantile's median absolute studentized statistic was 0.450, versus 0.625 for
+OLS and 0.609 for RobustRegr; its per-case median was lower than OLS in 1st-
+to-3rd quartile paired differences (median -0.111), and lower than RobustRegr
+(median -0.122). This bounded fixture shows no Quantile-specific increase in
+fit failures, SE collapse, or tie-count association relative to the controls;
+it does not establish the cause of the historical comprehensive-suite result
+or refute sensitivity on its DGP. With only 12 draws per case the empirical
+two-sided p-value floor would be 2/12, so these are draw-level fit/tie
+diagnostics, not a Type-I-error test. Unique artifacts:
+`/tmp/edi-v105-todo20/tie_sensitivity_probe.R`,
+`/tmp/edi-v105-todo20/same_draws.csv`,
+`/tmp/edi-v105-todo20/within_case_correlations.csv`, and
+`/tmp/edi-v105-todo20/summary.csv`. No build/install or workspace CSV write
+was performed. TODO-20 remains open; no mitigation is supported by this
+evidence.
+
 - [ ] Construct a true-null fixture for `InferenceContinQuantileRegr`, draw
   several BRT (with-replacement) resamples, and directly inspect whether
   the resampled design's tie/duplication pattern correlates with

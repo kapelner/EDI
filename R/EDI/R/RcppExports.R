@@ -4904,6 +4904,10 @@ get_omp_max_threads_cpp <- function() {
     .Call(`_EDI_get_omp_max_threads_cpp`)
 }
 
+probe_omp_team_size_cpp <- function(num_cores) {
+    .Call(`_EDI_probe_omp_team_size_cpp`, num_cores)
+}
+
 distance_matrix_euclidean_sq_cpp <- function(X) {
     .Call(`_EDI_distance_matrix_euclidean_sq_cpp`, X)
 }

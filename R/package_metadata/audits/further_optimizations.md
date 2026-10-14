@@ -118,6 +118,74 @@ echo 'export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2' | sudo tee -
 `make install` regenerates `ldpaths`, so reapply this line after each R
 reinstall.
 
+### Result (2026-10-14): no allocator beats glibc + huge pages; screen confounded by drift
+
+**Setup.** The PGO build of R r90668 was used with the baseline already
+including `GLIBC_TUNABLES=glibc.malloc.hugetlb=1` (section 3). Instead of
+survival only, the workload was one heavy class per response type, run
+concurrently, all test families (Wald/asymptotic, randomization/bootstrap,
+other), `pte_example`, Bernoulli, `nc = 1`: ContinQuantileRegr,
+IncidLogBinomial, PropBetaRegr, CountHurdleNegBin, SurvivalStratCoxPHRegr,
+OrdinalContRatioRegr. That is 2,166 calls, about 14 minutes per run. Variants
+in palindrome order: base → jemalloc → jemalloc + `MALLOC_CONF=thp:always,metadata_thp:auto`
+→ tcmalloc → tcmalloc → jemalloc + THP → jemalloc → base. Each preloaded
+allocator was confirmed to be mapped in R.
+
+**Validity problems.** `EDI` was reinstalled twice during the screen, from
+the development checkout (R code only; `EDI.so` was unchanged until the
+second one):
+
+- between jethp1 and tc1 (`EDI.rdb` md5 `a0375791…` → `6628846f…`), during
+  commit/pre-push hook activity that regenerated `package_tests` CSVs;
+- during base2 (16:31), which removed `EDI.rdb` mid-run. 772 base2 calls
+  failed, so base2 is unusable and the palindrome cannot be closed.
+
+`result_1`, `result_2` and `status` were identical in all 2,166 calls
+across the seven complete runs, so the R-code change did not alter this
+workload's results. Load did change, though. Total user CPU time, for
+identical work, rose from 2,637 s (base1) to 3,032 s (jethp1), then fell to
+2,474 s (je2). That is hump-shaped drift peaking around tc1/tc2.
+
+**Per-call ratios vs base1** (matched calls > 0.05 s, n ≈ 1,700):
+
+| Variant | Run 1 sum / median | Run 2 sum / median | Mean of runs (sum) |
+|---|---|---|---|
+| jemalloc | 1.047 / 1.025 | 0.946 / 0.919 | 0.997 |
+| jemalloc + THP | 1.148 / 1.091 | 1.009 / 0.978 | 1.078 |
+| tcmalloc | 1.207 / 1.087 | 1.072 / 1.017 | 1.140 |
+
+Repeating the same allocator moved it by about 10% (tc1 → tc2 0.888,
+je1 → je2 0.903, jethp1 → jethp2 0.878). That is as large as any gap between
+allocators, and the ordering inside each half simply follows run order. The
+per-response-type × family breakdown shows no allocator winning consistently
+on Wald or on resampling calls.
+
+**Fork/page-fault costs** (the main reason to try another allocator) did not
+improve with any of them:
+
+| Run | sys (s) | Minor faults | Max RSS |
+|---|---|---|---|
+| base1 | 618 | 83.4 M | 1,289 MB |
+| je1 / je2 | 649 / 646 | 89.5 M / 102.2 M | 1,345 / 1,280 MB |
+| jethp1 / jethp2 | 697 / 657 | 80.7 M / 89.4 M | 1,370 / 1,296 MB |
+| tc1 / tc2 | 778 / 729 | 88.3 M / 100.0 M | 1,384 / 1,323 MB |
+
+This matches section 3: the faults come from copy-on-write of R's GC heap
+in the forked child, which the allocator does not control.
+
+**Conclusion.** Keep glibc with `glibc.malloc.hugetlb=1`; do not add an
+`LD_PRELOAD` allocator.
+
+- tcmalloc and jemalloc + THP are, at best, no better.
+- jemalloc averages out to parity (0.997) with ±5% uncertainty.
+- None reduces system time or page faults.
+
+A clean confirmation would need base vs jemalloc in ABBA order on an idle
+machine with no `EDI` reinstalls during the run. A gain small enough to hide
+in this noise is not worth the `ldpaths` maintenance. Data:
+`sys3/multi/` in the 2026-10-14 session scratchpad (`analyze.R`, `ident.R`,
+`progress.log`).
+
 ## 2. Tune R's garbage collector (no rebuild)
 
 **Hypothesis.** `R_gc_internal` reaches ~11% of samples in some kernel
@@ -419,8 +487,9 @@ ideally native Linux, or try an interpreter-heavy workload (the R6-heavy
 
 ## Suggested order
 
-1. Section 1 (allocator) and section 2 (GC): no rebuild, about 30 minutes
-   per variant on the survival-only workload, trivial to adopt or revert.
+1. ~~Section 1~~ (allocator): tried 2026-10-14, no gain over glibc + huge
+   pages. Section 2 (GC): large heaps are harmful with forking (section 3);
+   small-step tuning is untested.
 2. Section 3: profile the system time first. Then THP (reversible), and if
    possible a native-Linux comparison.
 3. ~~Section 4~~ and ~~section 6~~: tried 2026-10-14, no measurable gain

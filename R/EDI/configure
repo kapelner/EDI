@@ -14,6 +14,23 @@ r_cmd_config() {
   esac
 }
 
+# For Makeconf variables `R CMD config` does not expose (it rejects
+# SHLIB_OPENMP_CXXFLAGS with "no information for variable"), read R's own
+# Makeconf directly. Empty there means R was built without OpenMP.
+makeconf_var() {
+  makeconf="${R_HOME}/etc${R_ARCH:-}/Makeconf"
+  if [ ! -f "$makeconf" ]; then
+    printf '%s' "unavailable"
+    return
+  fi
+  out="$(sed -n "s/^$1[[:space:]]*=[[:space:]]*//p" "$makeconf" | sed -n '1p')"
+  if [ -z "$out" ]; then
+    printf '%s' "none (R built without OpenMP)"
+  else
+    printf '%s' "$out"
+  fi
+}
+
 env_or_default() {
   var_name="$1"
   default_value="$2"
@@ -183,7 +200,7 @@ write_makevars() {
 #
 # Sets $pkg_objects as a side effect (package-global, read by
 # write_makevars): the space-separated "unity_01.o unity_02.o ... .o
-# RcppExports.o" list, or "" if $edi_unity != 1 (in which case any leftover
+# build_info.o RcppExports.o" list, or "" if $edi_unity != 1 (in which case any leftover
 # unity_NN.cpp from a previous run are removed and R's own default
 # per-file OBJECTS discovery is left in effect).
 #
@@ -202,7 +219,11 @@ generate_unity_wrappers() {
     pkg_objects=""
     return
   fi
-  member_list="$(cd src && ls -1 *.cpp 2>/dev/null | grep -v '^RcppExports\.cpp$' | grep -v '^unity_' | LC_ALL=C sort)"
+  # build_info.cpp also stays its own translation unit: configure deletes
+  # build_info.o on every run so the build metadata is never stale (see the
+  # end of this script), and inside a unity group that would recompile the
+  # whole group on every install.
+  member_list="$(cd src && ls -1 *.cpp 2>/dev/null | grep -v '^RcppExports\.cpp$' | grep -v '^build_info\.cpp$' | grep -v '^unity_' | LC_ALL=C sort)"
   if [ -z "$member_list" ]; then
     rm -f src/unity_*.cpp
     pkg_objects=""
@@ -242,7 +263,7 @@ generate_unity_wrappers() {
     pkg_objects="$pkg_objects unity_${num}.o"
     i=$((i + 1))
   done
-  pkg_objects="${pkg_objects# } RcppExports.o"
+  pkg_objects="${pkg_objects# } build_info.o RcppExports.o"
   rm -rf "$scratch_dir"
   # Remove any wrapper left over from a run with a larger $ngroups than this
   # one (only relevant if that constant is ever deliberately changed).
@@ -279,7 +300,7 @@ write_makevars src/Makevars.win
   echo "#define EDI_BUILD_R_CXX20 \"$(c_escape "$(r_cmd_config CXX20)")\""
   echo "#define EDI_BUILD_R_CXX20STD \"$(c_escape "$(r_cmd_config CXX20STD)")\""
   echo "#define EDI_BUILD_R_CXX20FLAGS \"$(c_escape "$(r_cmd_config CXX20FLAGS)")\""
-  echo "#define EDI_BUILD_R_SHLIB_OPENMP_CXXFLAGS \"$(c_escape "$(r_cmd_config SHLIB_OPENMP_CXXFLAGS)")\""
+  echo "#define EDI_BUILD_R_SHLIB_OPENMP_CXXFLAGS \"$(c_escape "$(makeconf_var SHLIB_OPENMP_CXXFLAGS)")\""
   echo "#define EDI_BUILD_ENV_EDI_PORTABLE \"$(c_escape "$edi_portable")\""
   echo "#define EDI_BUILD_ENV_EDI_DISABLE_VECTORIZATION \"$(c_escape "$edi_disable_vectorization")\""
   echo "#define EDI_BUILD_ENV_EDI_NATIVE_SPEED \"$(c_escape "$edi_native_speed")\""
@@ -291,3 +312,13 @@ write_makevars src/Makevars.win
   echo ""
   echo "#endif"
 } > src/edi_build_flags.h
+
+# make tracks .cpp -> .o by mtime only, never the headers a .cpp includes,
+# so build_info.o (the only consumer of edi_build_flags.h) would otherwise
+# survive every incremental install and keep reporting the build that first
+# compiled it -- edi_build_info_cpp() then shows stale flags/timestamp for a
+# .so whose other objects were rebuilt since. Deleting it forces exactly one
+# small recompile (build_info.cpp includes only Rcpp.h) per install. In
+# unity mode build_info.cpp is kept out of the unity groups for the same
+# reason (see generate_unity_wrappers), so this never forces a whole group.
+rm -f src/build_info.o

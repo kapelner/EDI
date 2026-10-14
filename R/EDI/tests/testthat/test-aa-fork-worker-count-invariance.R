@@ -67,7 +67,14 @@ test_that("bootstrap CIs are identical at 1, 2 and 3 fork workers", {
 	)
 	available = parallel::detectCores(logical = TRUE)
 	skip_if(is.na(available) || available < 2L, "fewer than 2 logical cores available")
-	worker_counts = c(2L, if (available >= 3L) 3L)
+	# R CMD check --as-cran sets _R_CHECK_LIMIT_CORES_, under which parallel
+	# refuses more than 2 simultaneous processes ("3 simultaneous processes
+	# spawned" from makeForkCluster): every --as-cran matrix job failed here
+	# on the 4-core GitHub runners. The 3-worker leg only runs where the
+	# limit is off (local, sanitizer/valgrind jobs, pre-push).
+	cores_limited = nzchar(Sys.getenv("_R_CHECK_LIMIT_CORES_")) &&
+		!tolower(Sys.getenv("_R_CHECK_LIMIT_CORES_")) %in% c("false", "0")
+	worker_counts = c(2L, if (available >= 3L && !cores_limited) 3L)
 
 	des = make_fork_worker_invariance_design()
 	for (class_name in c("InferenceAllSimpleAverageDiff", "InferenceContinOLS")) {

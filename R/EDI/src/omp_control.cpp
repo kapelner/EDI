@@ -1,4 +1,5 @@
 #include <RcppEigen.h>
+#include "omp_policy.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -40,4 +41,27 @@ int get_omp_max_threads_cpp() {
 #else
     return 1;
 #endif
+}
+
+//' Probe the actual OpenMP team size for the package's kernel policy
+//'
+//' This internal test hook makes thread-count tests independent of timing.
+//' In the R build, the package OpenMP maximum is authoritative; in the Python
+//' core-only build, the explicit argument is used by EDI_KERNEL_NUM_THREADS.
+//'
+//' @param num_cores Requested worker count for EDI_CORE_ONLY builds.
+//' @return Number of threads that entered the OpenMP region.
+//' @keywords internal
+// [[Rcpp::export]]
+int probe_omp_team_size_cpp(int num_cores) {
+    (void)num_cores;
+    int team_size = 1;
+#ifdef _OPENMP
+    #pragma omp parallel num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
+    {
+        #pragma omp single
+        team_size = omp_get_num_threads();
+    }
+#endif
+    return team_size;
 }

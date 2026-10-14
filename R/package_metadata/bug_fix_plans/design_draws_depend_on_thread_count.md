@@ -91,7 +91,7 @@ Seed-pinned draws change once for these four classes, including at one
 thread, because the seed derivation changes. That is a documented default
 change under v1.0.5's standing constraints.
 
-- [ ] TODO-1: **Greedy and D/A-optimal: seed per draw, not per thread.**
+- [x] TODO-1: **Greedy and D/A-optimal: seed per draw, not per thread.**
   - Move `splitmix64_seed` from `binary_match_search.cpp` into `RNG.h` as
     `edi_rng::seed_for_index(master, i)`.
   - Replace `seed_per_thread_rngs_from_r()` with one master draw from R's
@@ -101,7 +101,7 @@ change under v1.0.5's standing constraints.
     optimal kernels. Delete the per-thread helper so it cannot be reused.
   - Cost: one Mersenne-Twister initialisation per draw, which is negligible
     next to a full pairwise-swap local search per draw.
-- [ ] TODO-2: **Rerandomization: deterministic early-stopping rejection
+- [x] TODO-2: **Rerandomization: deterministic early-stopping rejection
   sampler.**
   - Seed draw *d* from `seed_for_index(master, d)`.
   - Threads keep claiming fixed-size blocks of draw indices from
@@ -114,13 +114,13 @@ change under v1.0.5's standing constraints.
     kept, and the extra work is at most threads × block size draws.
   - Afterwards, remove the class from
     `EDI_DESIGN_SEED_REPRODUCIBLE_SINGLE_THREAD_ONLY_CLASS_NAMES`.
-- [ ] TODO-3: **Correct the documentation and metadata.**
+- [x] TODO-3: **Correct the documentation and metadata.**
   - Fix the five locations above.
   - Rewrite the vignette subsection around the per-draw pattern.
   - Rewrite the registry comment and regenerate `design_matrix.csv`.
   - Add a NEWS entry naming the four classes whose seed-pinned draws change
     once.
-- [ ] TODO-4: **Tests (required; the fix does not land without them).**
+- [x] TODO-4: **Tests (required; the fix does not land without them).**
   - (a) For each of the four classes plus `DesignFixedBinaryMatch` and
     `DesignFixedOptimal` (per-chain annealing seeds, expected invariant):
     same seed at `set_num_cores(1, 2, 4)` gives identical `w` matrices, and
@@ -149,9 +149,17 @@ candidate-index blocks and returns accepted allocations in block/index order.
 The registry, matrix, vignette, NEWS, and the shipped metadata/static-guard
 test have been updated to match that implementation.
 
-This is **not yet execution-verified**. Before checking any plan or release
-item, rebuild the native code with authorization and run the required
-one/two/four-thread allocation and randomization-inference comparisons,
-including the tight-cutoff rerandomization case. The exact seeded fixtures
-also need regeneration because the four affected classes intentionally change
-their seeded streams once.
+Execution verification 2026-10-14: after installing the current checkout
+(`make` reported no stale native objects), the registry-driven seed test passed
+at 1/2/4 package threads across all seed-reproducible designs, including the
+four changed classes, BinaryMatch, and optimal designs; the 4-thread repeat
+checks passed. The static guard rejects reintroduction of the per-thread seed
+helper. A new tight-cutoff rerandomization test passed at 1/2/4 threads and on
+the 4-thread repeat. A new OLS randomization-p-value test passed at 1/4 threads
+for Greedy, D-optimal, matching-pair-switching, and rerandomization designs.
+The four classes' intentionally changed seed streams are pinned as exact
+allocation digests in `tests/testthat/fixtures/openmp_design_seed_draws_v1_0_5.csv`;
+the single-thread metadata test regenerates each 12-allocation matrix and checks
+its digest. The fixture was captured from the post-migration implementation,
+and the thread-invariance tests independently confirm the same outputs at
+multiple core counts. This completes TODO-1..4.

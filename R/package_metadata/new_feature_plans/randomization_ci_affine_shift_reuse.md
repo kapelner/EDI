@@ -268,9 +268,14 @@ is O(r) arithmetic and MC is moot.
   gate, not a claimed result. To reduce avoidable OLS overhead, affine slopes
   now residualize the fixed covariate block once and use vectorized
   permutation-column inner products; a per-permutation QR reference test and
-  the tier-1 distribution-equivalence tests pass. Keep the checkbox open
-  until the measured gain and the README/roxygen claim are reconciled with the
-  original target (or the owner explicitly accepts the smaller measured gain).
+  the tier-1 distribution-equivalence tests pass. The harness was strengthened
+  2026-10-14 with one unmeasured warm-up for each route on fresh objects and
+  alternating measured order (two pairs in quick mode, four in full mode).
+  The bounded quick rerun measured 1.33× for mean difference and 1.42× for OLS;
+  this small sample is consistent with the full run and does not support the
+  projected 20–30× target. Keep the checkbox open until the measured gain and
+  the README/roxygen claim are reconciled with the original target (or the
+  owner explicitly accepts the smaller measured gain).
 
 - [x] **TODO-7: Reconcile the KK-GEE mixin read site.** Completed 2026-10-09:
   the never-populated legacy `t0s_rand + delta` branch was removed from the

@@ -30,6 +30,12 @@ test_that("all formerly bare information inverses use the shared guard", {
 	expect_match(helper, "lu.isInvertible()", fixed = TRUE)
 	expect_match(helper, "return information.inverse()", fixed = TRUE)
 	expect_match(helper, "Eigen::MatrixXd(0, 0)", fixed = TRUE)
+	# The zero-dimensional block is the all-fixed / boundary-excluded case. It
+	# is valid, while malformed or non-finite free blocks must be rejected before
+	# Eigen's inverse can manufacture an apparently usable covariance.
+	expect_match(helper, "if (n == 0)", fixed = TRUE)
+	expect_match(helper, "information.cols() != n || !information.allFinite()", fixed = TRUE)
+	expect_match(helper, "std::numeric_limits<double>::quiet_NaN()", fixed = TRUE)
 
 	targets = c(
 		"fast_negbin_regression.cpp",

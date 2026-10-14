@@ -149,7 +149,31 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   `n=50, K=3` configurations from this plan's table) post-fix; confirm the
   `n=50` non-global-optimum count drops to ~0 and Type-I/coverage improve
   accordingly. Extend to a few more `(n, K)` combinations to characterize
-  where multimodality bites hardest.
+  where multimodality bites hardest. **Installed-package diagnostic
+  2026-10-14 (not release-current validation):** the prescribed 400 seeds
+  (1001--1400) were run for both configurations against installed EDI v1.0.3
+  without rebuilding. At `n=100, K=5`, 224/400 estimates/LR p-values were
+  finite; 19/224 rejected (8.48%), and 212/224 finite CIs covered zero
+  (94.64%; zero-width 0). The fit's selected NLL improved in 3/400 cases.
+  At `n=50, K=3`, 177/400 estimates/LR p-values were finite; 6/177 rejected
+  (3.39%), and the script's non-missing interval-comparison coverage was
+  168/172 (97.67%); 170 CI endpoint pairs were finite, of which 168 covered
+  zero (98.82%; zero-width 0). The selected NLL improved in 48/400 cases.
+  Thus the nominal 400 is the simulation count, not the usable inference
+  denominator. In each grid, missing estimates and LR p-values coincide
+  (176 and 223, respectively) and report `model_fit_unavailable`; sampled
+  failures (seed 1003 at n=100 and seed 1001 at n=50) had converged full
+  fits but failed the Fisher-information conditioning gate. Their reciprocal
+  conditions were 1.29e-9 and 1.82e-11, below the source threshold
+  `sqrt(.Machine$double.eps)` (~1.49e-8); both pass when that gate is waived.
+  The n=50 run also had seven additional incomplete CI endpoint pairs.
+  These results do not reconcile with the earlier n=100 table's 386 usable
+  fits and cannot establish release-current calibration: the installed EDI
+  reports version 1.0.3 and a native build timestamp of 2026-09-20, while the
+  checkout's R layer is newer. Preserve this run as a diagnostic only; TODO-4
+  remains open pending reconciliation of the usable-fit discrepancy and
+  validation against a matching/current native build. Results:
+  `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`.
 - [x] TODO-5: Audit and, where estimates move, re-derive (not just
   re-record) every golden/reference value touching
   `InferenceOrdinalStereotypeLogitRegr` in

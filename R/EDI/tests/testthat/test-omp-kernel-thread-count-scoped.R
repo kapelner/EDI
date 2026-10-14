@@ -60,3 +60,26 @@ test_that("a binary-match kernel call preserves the configured OpenMP maximum", 
 	EDI:::draw_binary_match_assignments_cpp(pairs, n = 4L, r = 64L, num_cores = 1L)
 	expect_identical(get_max(), current_max)
 })
+
+test_that("the OpenMP probe observes the configured package team size without timing", {
+	ns = asNamespace("EDI")
+	if (!exists("probe_omp_team_size_cpp", envir = ns, inherits = FALSE) ||
+			!exists("_EDI_probe_omp_team_size_cpp", envir = ns, inherits = FALSE)) {
+		skip("requires the rebuilt native library with the thread-team probe")
+	}
+	probe = EDI:::probe_omp_team_size_cpp
+	get_max = EDI:::get_omp_max_threads_cpp
+	set_threads = EDI:::set_package_threads
+	old_max = get_max()
+	on.exit(set_threads(old_max), add = TRUE)
+	# EDI intentionally defaults its package-wide OpenMP limit to one. Configure
+	# a multi-thread team before deciding whether this runtime supports OpenMP.
+	target_threads = 2L
+	set_threads(target_threads)
+	skip_if(get_max() < target_threads, "OpenMP runtime cannot configure multiple threads")
+	# Pass a deliberately different argument: the R build's policy must use the
+	# configured package OpenMP count, not the inference worker count.
+	observed = probe(1L)
+	expect_identical(observed, target_threads)
+	expect_identical(get_max(), target_threads)
+})
