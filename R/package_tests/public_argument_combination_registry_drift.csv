@@ -120,6 +120,7 @@
 "registry_target_missing_generated_case","DesignSeqOneByOneKK21stepwise::add_all_subject_responses","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","DesignSeqOneByOneKK21stepwise::add_one_subject","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","DesignSeqOneByOneKK21stepwise::add_one_subject_response","","registry target has no generated case in current case table"
+"registry_target_missing_generated_case","DesignSeqOneByOneKK21stepwise::initialize","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","DesignSeqOneByOneKK21stepwise::overwrite_all_subject_assignments","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","DesignSeqOneByOneKK21stepwise::set_m","","registry target has no generated case in current case table"
 "registry_target_missing_generated_case","DesignSeqOneByOneKK21stepwise::transform_y","","registry target has no generated case in current case table"
