@@ -292,7 +292,11 @@ if(EDI_PY_32BIT_ARM)
     # OOM is a hard failure. GCC-only params; Clang ignores them with a
     # warning, so guard.
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        target_compile_options(_core PRIVATE --param ggc-min-expand=10 --param ggc-min-heapsize=32768)
+        # SHELL: keeps each "--param N=V" pair intact; plain options are
+        # de-duplicated per token, which drops the second "--param".
+        target_compile_options(_core PRIVATE
+            "SHELL:--param ggc-min-expand=10"
+            "SHELL:--param ggc-min-heapsize=32768")
     endif()
 else()
     set_target_properties(_core PROPERTIES

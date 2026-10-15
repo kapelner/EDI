@@ -521,9 +521,13 @@ are fixed here because they are still exported and registered.
   **Source progress 2026-10-09:** `RNG.h` now supplies portable
   Fisher--Yates over `bounded_rand`; the native design/resampling sources no
   longer use `std::shuffle`, `std::uniform_*` distributions, or stale
-  `<random>` headers. No fixed-seed output golden has yet been recorded, so
-  that golden plus rebuilt cross-platform execution remain required and this
-  plan item remains unchecked.
+  `<random>` headers. **Linux golden recorded 2026-10-14:** the portable EDI
+  1.0.3 build produced the six fixed-seed digests now committed in
+  `R/EDI/tests/testthat/fixtures/cross_platform_digests.csv`; the focused
+  cross-platform digest test passed all 18 assertions on Linux, including
+  thread-count invariance and exact fixture matches. The macOS comparison has
+  not yet run, so cross-platform confirmation remains the only outstanding
+  platform gate and this plan item remains unchecked.
 
 - [x] TODO-23 (F19): **Firth penalty has the wrong sign** in
   `evaluate_penalized_neg_loglik_at`

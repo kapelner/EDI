@@ -750,21 +750,21 @@ none of these numbers should be quoted as a measured result.
 
 ## Implementation TODOs
 
-- [ ] TODO-1: **A/B testing harness** (gates every Prototype row above):
+- [ ] TODO-1 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-21`): **A/B testing harness** (gates every Prototype row above):
   `algorithm_ab_testing_framework.md → TODO-1..N`. Build once, reuse for
   every item below and every future algorithm-choice question.
-- [ ] TODO-2: **Garthwaite–Buckland CI search** (row D):
+- [ ] TODO-2 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-21`): **Garthwaite–Buckland CI search** (row D):
   `garthwaite_buckland_ci_search.md → TODO-1..N`. Depends on TODO-1's
   harness for the promotion decision.
-- [ ] TODO-3: **EM for zero-inflated mixtures** (row B):
+- [ ] TODO-3 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-21`): **EM for zero-inflated mixtures** (row B):
   `em_algorithm_zero_inflated_mixtures.md → TODO-1..N`. Depends on TODO-1.
-- [ ] TODO-4: **Balanced bootstrap resampling** (row J) — not yet a plan.
+- [ ] TODO-4 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Balanced bootstrap resampling** (row J) — not yet a plan.
   **Re-scoped 2026-10-09:** `bootstrap_indices.cpp` is test-only; the change
   must be a batch-of-B generator wired into `draw_bootstrap_indices()` (see
   catalog §7 TODO-1). Original scope: `bootstrap_indices.cpp`, `bootstrap_match_indices.cpp`; measure
   CI-width reduction at fixed `B` through the TODO-1 harness before writing
   the implementation plan.
-- [ ] TODO-5: **Saddlepoint p-value screening** (row E) — not yet a plan;
+- [ ] TODO-5 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Saddlepoint p-value screening** (row E) — not yet a plan;
   lowest priority of the four Prototype rows because it is the only one
   that changes an exactness guarantee rather than only cost. Scope as
   early-stop-trigger-only (reported p-value stays Monte Carlo) for the
@@ -780,12 +780,12 @@ none of these numbers should be quoted as a measured result.
 - [ ] TODO-7: Re-run this audit's method (not its conclusions) whenever a
   new kernel family ships, and after each Prototype item resolves through
   the harness, to keep the summary table current.
-- [ ] TODO-8: **Replace the "Estimated speedup multiples" section's
+- [ ] TODO-8 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Replace the "Estimated speedup multiples" section's
   theoretical figures with measured ones** as each Prototype item's A/B
   report lands (TODO-2..5 above); until then that section's numbers must
   stay clearly labeled as unmeasured estimates, never quoted elsewhere as
   results.
-- [ ] TODO-9: **Brent for the score / gradient / Bartlett-LR CI inverters**
+- [ ] TODO-9 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-17w`): **Brent for the score / gradient / Bartlett-LR CI inverters**
   (row M): `brent_ci_inversion.md → TODO-1..3`. Adopt, not Prototype —
   deterministic root-finder swap, bound identical within `tol`; gated on
   the existing CI tests, not the A/B harness. Independent of TODO-1..5.
@@ -793,6 +793,12 @@ none of these numbers should be quoted as a measured result.
   last section, "Which algorithm choices should users get to make?".
 
 ### TODOs added by the 2026-10-09 sweep
+
+**Release scheduling (2026-10-15, user decision).** Each TODO below names its
+release slot. The split: items faster **and** at least as accurate with no
+new options → `release_v1_1_0.md → TODO-50`; speed-only drop-ins →
+`release_v1_2_0.md → TODO-22`; items needing the A/B harness →
+`release_v1_2_0.md → TODO-23` (after that file's TODO-21 builds the harness).
 
 Ordered by expected value. "§n TODO-k" points into
 `algorithm_choice_audit_catalog.md`. **Adopt** = deterministic drop-in;
@@ -815,71 +821,71 @@ tests, plus an equivalence test where noted, are the gate. **Prototype** = needs
   KK Wilcoxon IVWC SE, and the ridit scoring come first.
 
 **Adopt (deterministic drop-ins):**
-- [ ] TODO-10: **Atkinson null draws via Schur complement / per-t precompute**
+- [ ] TODO-10 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-22`): **Atkinson null draws via Schur complement / per-t precompute**
   (`generate_permutations.cpp:80-119,279-293`). O(B·n²·p²) → O(n²p² + B·n·p²),
   ~50× at n = 200, p = 10, B = 501. Same RNG consumption; reproduce the singular
   0.5 fallbacks with explicit tolerances. §7 TODO-5, §12 TODO-3.
-- [ ] TODO-11: **Interval-censored log-rank/Wilcoxon randomization tests:
+- [ ] TODO-11 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-22`): **Interval-censored log-rank/Wilcoxon randomization tests:
   compute the pooled-NPMLE scores once.** They are label-invariant at δ = 0, so each
   draw becomes one linear statistic (`inference_survival_log_rank.R:237`,
   `inference_survival_gehan_wilcox.R:251`). ~r× (≈ 500×) fewer NPMLE solves.
   Gate: reproduce `ictest`'s statistic on fixtures. §10 TODO-5.
-- [ ] TODO-12: **Newton as default** where an analytic Hessian and a Newton path
+- [ ] TODO-12 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Newton as default** where an analytic Hessian and a Newton path
   already exist and the likelihood is concave: ordinal logit/probit/cloglog,
   adjacent-category, continuation-ratio, and the logistic/Poisson/clogit GLMMs and
   Gaussian LMM (A/B for wall-clock only: unique MLE). Weibull AFT also gets
   warm-started BRT draws, but needs a full A/B because it is not jointly concave.
   §2 TODO-1/2, §4 TODO-6, §5 TODO-3.
-- [ ] TODO-13: **Exploit separability.**
+- [ ] TODO-13 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Exploit separability.**
   - ZOIB: skip the fixed γ block in resampling now (Adopt), and fit the two blocks separately (§3 TODO-2, §11 TODO-1).
   - Hurdle-Poisson: block-separate Newton (§3 TODO-3).
   - Continuation-ratio: structured Hessian instead of a dense `X_aug`, ~5–8× (§2 TODO-3).
   - Update `em_algorithm_zero_inflated_mixtures.md` to drop ZOIB.
-- [ ] TODO-14: **Analytic derivatives instead of FD.**
+- [ ] TODO-14 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`): **Analytic derivatives instead of FD.**
   - log/identity-binomial (`fast_log_binomial_regression.cpp:580-662`, ~p×, also removes NaN Hessians; §1 TODO-1);
   - ordinal-GLMM and CLMM-engine Louis information (§4 TODO-2);
   - Poisson marginal-estimand delta method (§12 TODO-8);
   - ordinal g-comp gradient (§2 TODO-5).
-- [ ] TODO-15: **JT exact null by polynomial DP**, with a size guard and
+- [ ] TODO-15 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`; size guard already shipped as `../future_release_plans/release_v1_0_5.md → TODO-90`): **JT exact null by polynomial DP**, with a size guard and
   `checkUserInterrupt` (`fast_jonckheere_terpstra.cpp:82-136`). This turns a hang
   into sub-second at large K. Gate: brute force at n ≤ 12. §6 TODO-1.
-- [ ] TODO-16: **Closed-form Gaussian score/gradient/LR CIs and exact F(1, n−p)
+- [ ] TODO-16 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`): **Closed-form Gaussian score/gradient/LR CIs and exact F(1, n−p)
   LR null** (`inference_continuous_lin.R:396`, `inference_continuous_KK_ols_one_lik.R:290`,
   `inference_continuous_ols.R:352`). ~10–20 refits → 0. §10 TODO-8.
-- [ ] TODO-17: **CMH design variance in closed form** for complete, Bernoulli
+- [ ] TODO-17 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`): **CMH design variance in closed form** for complete, Bernoulli
   and blocked designs (keep MC for sequential designs; `inference_incidence_cmh.R:192`). §11 TODO-3.
-- [ ] TODO-18: **Presort in survival resampling.**
+- [ ] TODO-18 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-22`): **Presort in survival resampling.**
   - KM/RMST BRT (`fast_survival_stats.cpp:536,628`, bit-identical, ~2–5×);
   - log-rank BRT presort+merge (§5 TODO-1/2);
   - weighted KM median O(n²) → O(n log n) (§10 TODO-6);
   - Breslow hazard and its inversion via reverse cumsum + `findInterval` (§12 TODO-7);
   - JT weighted superiority O(n_T·n_C) → O(n+K) (§10 TODO-1).
-- [ ] TODO-19: **Replicate-loop economics.**
+- [ ] TODO-19 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-22`): **Replicate-loop economics.**
   - Memoize the param-bootstrap batch across estimate/CI/p (3×; §9 TODO-1).
   - `rq.fit` instead of formula `rq()` in the KK quantile rand CI (3–10×; §9 TODO-6b).
   - Weighted C++ cpoisson-combined instead of R `optim` BFGS (10–50×; §10 TODO-2).
   - C++ batch randomization kernel for Lin/KK OLS (§10 TODO-9).
   - Parallel BRT draw materialization (§9 TODO-4).
-- [ ] TODO-20: **Exact enumeration solver for `DesignFixedOptimal`**, n ≤ ~30
+- [ ] TODO-20 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Exact enumeration solver for `DesignFixedOptimal`**, n ≤ ~30
   (revolving door, O(p) incremental objective; §12 TODO-1). Then tighten the
   MILP beyond that size: RLT rows, symmetry cut (not for the A-ratio objective),
   optimal-blocks reformulation (§12 TODO-2, -5; benchmark only).
-- [ ] TODO-21: **Use the existing C++ block/cluster draw kernels** instead of
+- [ ] TODO-21 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-22`): **Use the existing C++ block/cluster draw kernels** instead of
   `replicate(randomizr::…)` (§12 TODO-11). Add a C++ urn kernel (§12 TODO-10).
-- [ ] TODO-22: **Accuracy fixes at the same speed:**
+- [ ] TODO-22 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`): **Accuracy fixes at the same speed:**
   - `pnorm_fast` / `fast_log_pnorm` tail branch (§6 TODO-2);
   - shifted one-pass variances (§7 TODO-4);
   - stable `fast_dnbinom_mu` (§6 TODO-8);
   - exact `qnorm` in Wilson/Newcombe (§6 TODO-7).
-- [ ] TODO-23: **Explicit Fisher–Yates instead of `std::shuffle`** (portability
+- [ ] TODO-23 (scheduled in `../future_release_plans/release_v1_0_5.md → TODO-91` (finding F3)): **Explicit Fisher–Yates instead of `std::shuffle`** (portability
   and seed reproducibility; §7 TODO-3). Refresh seed-pinned fixtures once.
-- [ ] TODO-24: **Feasible / consistent starts.**
+- [ ] TODO-24 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`): **Feasible / consistent starts.**
   - Log-binomial: start with max η < 0.
   - Adjacent-category and Cox: put the intercept in the start regression.
   - Proportional odds: use marginal-quantile thresholds.
   - (§1 TODO-3a, §2 TODO-4.) Concave cases only change the iteration count.
   Also add glm2-style step-halving to logistic, probit and cpoisson-combined (§1 TODO-2).
-- [ ] TODO-29: Low-priority linear-algebra items:
+- [ ] TODO-29 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-22`): Low-priority linear-algebra items:
   - whitened Mahalanobis for optimal blocks;
   - drop the redundant QR;
   - Atkinson LDLT;
@@ -889,33 +895,33 @@ tests, plus an equivalence test where noted, are the gate. **Prototype** = needs
   - `qr_reduce_preserve_cols` single factorization.
 
   (§1 TODO-6, §4 TODO-1, §5 TODO-4/5, §8 TODO-1/5/6.)
-- [ ] TODO-34: **LPT scheduling in `run_all_inference`** from the runtime manifest (§11 TODO-5).
+- [ ] TODO-34 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-22`): **LPT scheduling in `run_all_inference`** from the runtime manifest (§11 TODO-5).
 
 **Prototype (A/B harness):**
-- [ ] TODO-25: **KK21 score-test stepwise for beta/NB/ordinal** (~p/2× fewer
+- [ ] TODO-25 (φ half scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`; score-test stepwise half in `../future_release_plans/release_v1_2_0.md → TODO-23`): **KK21 score-test stepwise for beta/NB/ordinal** (~p/2× fewer
   fits), and 1-D Brent for φ instead of the 19-point grid (§8 TODO-3/4).
   Re-run the KK21 weight comparison afterward.
-- [ ] TODO-26: **CI-search refit economics.**
+- [ ] TODO-26 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **CI-search refit economics.**
   - Bartlett-approx: compute the MC factor once per CI (5–20×; §9 TODO-3).
   - Double-bootstrap: one outer×inner set with continuous calibration (5×; §9 TODO-2).
   - Tangent warm start for CI refits (§9 TODO-5).
   - Fixed-critical-value bootstrap-calibrated LR CI (§9 TODO-9).
   - SMC early stopping in the param-bootstrap CI search (§9 TODO-8).
   - Influence-function BCa acceleration as an opt-in (§9 TODO-7).
-- [ ] TODO-27: **Weighted C++ kernels for Bayesian-bootstrap replicates**
+- [ ] TODO-27 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Weighted C++ kernels for Bayesian-bootstrap replicates**
   instead of per-replicate glmmTMB: ZIP/ZINB/hurdle-NB/KK-hurdle at 10–100×,
   and KK clogit+GLMM. This also fixes the estimate/replicate model mismatches.
   (§10 TODO-3, §11 TODO-4.)
-- [ ] TODO-28: **EMICM for the Turnbull NPMLE** (`icfit(initfit = "initEMICM")`
+- [ ] TODO-28 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`): **EMICM for the Turnbull NPMLE** (`icfit(initfit = "initEMICM")`
   first, then `icenReg::ic_np`, whose `weights=` unblocks the interval-censored BB).
   §10 TODO-7, §12 TODO-6.
-- [ ] TODO-30: **Stop the per-arrival full re-imputation and model-matrix
+- [ ] TODO-30 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Stop the per-arrival full re-imputation and model-matrix
   rebuild** in sequential designs. O(n²p) → O(np), with n random-forest
   imputations reduced to a few (§12 TODO-9). This changes design output.
-- [ ] TODO-31: **Robust regression.** Rename or document "MM" as bisquare-M from an LS
+- [ ] TODO-31 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`; the rename/document half is not harness-gated): **Robust regression.** Rename or document "MM" as bisquare-M from an LS
   start *now* (no A/B). A true MM with a FAST-S start, used for the point estimate
   with warm-started replicates, is a Prototype (§1 TODO-4/8).
-- [ ] TODO-32: **Mixture / boundary solvers.**
+- [ ] TODO-32 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Mixture / boundary solvers.**
   - ZINB/ZIP consistent truncated-count start, compared head-to-head with the EM plan (§3 TODO-1).
   - NB α = 1/θ bound-constrained parametrization (§3 TODO-4).
   - Log-binomial constrained solver (§1 TODO-3b).
@@ -923,14 +929,14 @@ tests, plus an equivalence test where noted, are the gate. **Prototype** = needs
   - Modified-Newton safeguard in the shared `optimize_likelihood_newton` (§1 TODO-9).
   - Profiled 1-D Gaussian LMM plus REML (§4 TODO-3).
   - Closed-form probit CLMM (§4 TODO-4).
-- [ ] TODO-33: **Nonconcave non-mixture models.**
+- [ ] TODO-33 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`; the `DesignFixedOptimal` BRT solver-mismatch bullet shipped as `../future_release_plans/release_v1_0_5.md → TODO-81` (F23)): **Nonconcave non-mixture models.**
   - Stereotype: curvature-safe scoring, the p = 1 closed form, and a well-defined replicate statistic (§2 TODO-6/7).
   - Annealing: polish pass plus an n-scaled move budget (§12 TODO-4).
   - Fix the `DesignFixedOptimal` BRT solver mismatch (validity).
-- [ ] TODO-35: **Exact randomization distribution when the support is ≤ r**
+- [ ] TODO-35 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`; needs a policy decision first): **Exact randomization distribution when the support is ≤ r**
   (complete randomization, pairs, clusters). This needs a policy decision first (§7 TODO-6).
   Also exact all-pairs enumeration for KK21's λ (§7 TODO-7).
-- [ ] TODO-36: Investigate the row AB items: the √w sandwich convention,
+- [ ] TODO-36 (covered by `../future_release_plans/release_v1_0_5.md → TODO-82` (`aftsrr`, F22) and `→ TODO-88` (g-comp SE, F25); the √w convention was refuted (F24)): Investigate the row AB items: the √w sandwich convention,
   the g-comp SE target, and `aftsrr` with B = 0.
 
 ---
@@ -1120,22 +1126,22 @@ target (AB), and the three `type`s from the bug sweep.
 
 ### TODOs
 
-- [ ] TODO-37: Add an `exposure` column (auto / expose / dial) to the summary
+- [ ] TODO-37 (scheduled with the audit document itself, `../future_release_plans/release_v1_1_0.md → TODO-17t`): Add an `exposure` column (auto / expose / dial) to the summary
   table and to each options table in `algorithm_choice_audit_catalog.md`,
   starting from the labelling pass above. TODO-7's re-audit keeps it current.
-- [ ] TODO-38: **Algorithm provenance on fitted objects.** Record which
+- [ ] TODO-38 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-48` (shares its reproducibility record)): **Algorithm provenance on fitted objects.** Record which
   algorithm, `"auto"` choice and fallback actually ran (gate item 3). It is a
   prerequisite for exposing anything new, and it would have caught row L's
   silent Efron fallback. Design it once in the inference base classes, not
   per class.
-- [ ] TODO-39: **`ties` for the Cox family** (row L). This is the owner decision
+- [ ] TODO-39 (not scheduled: waits on the owner decision in TODO-6(a)): **`ties` for the Cox family** (row L). This is the owner decision
   in TODO-6(a), now framed as "expose, and choose a default". It depends on
   TODO-69 in `release_v1_0_5.md` (pin Breslow in the fallbacks first).
-- [ ] TODO-40: **Quadrature dial** for GLMM/LMM/frailty (row C), shipped with
+- [ ] TODO-40 (scheduled with adaptive GH, `../future_release_plans/release_v1_2_0.md → TODO-11` (`performance_profiling_and_upgrades.md → TODO-153`)): **Quadrature dial** for GLMM/LMM/frailty (row C), shipped with
   adaptive GH (`performance_profiling_and_upgrades.md → TODO-153`). It should
   not ship before adaptive GH: a dial whose only cheap setting is plain
   low-node GH would invite inaccurate fits.
-- [ ] TODO-41: Audit the exposed implementation toggles (`use_rcpp`,
+- [ ] TODO-41 (not scheduled): Audit the exposed implementation toggles (`use_rcpp`,
   `smart_cold_start_default`): every reachable path must fit the same model as
   the default, enforced by a parity test per toggle. Document them as
   developer options.

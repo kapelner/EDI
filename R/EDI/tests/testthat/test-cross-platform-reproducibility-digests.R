@@ -45,7 +45,9 @@ repro_leg_name = function() {
 repro_md5 = function(w) {
 	f = tempfile(fileext = ".txt")
 	on.exit(unlink(f), add = TRUE)
-	writeLines(paste(as.integer(w), collapse = ""), f)
+	# writeBin, not writeLines: a text-mode file gets CRLF line endings on Windows,
+	# which changes the md5 of an otherwise identical allocation.
+	writeBin(charToRaw(paste0(paste(as.integer(w), collapse = ""), "\n")), f)
 	unname(tools::md5sum(f))
 }
 

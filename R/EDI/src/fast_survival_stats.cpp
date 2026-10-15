@@ -383,20 +383,20 @@ double get_survival_stat_diff(SEXP y, SEXP dead, SEXP w, std::string requested_s
 }
 
 
-//' Calculates standard variance using the formula from Uno et al
-//'
-//' \eqn{Var(RMST) = \sum_j A(t_j)^2 d_j / (n_j (n_j - d_j))}
-//' where \eqn{A(t_j) = \int_{t_j}^{\tau} S(u) du} is the remaining area under the KM
-//' curve from event time \eqn{t_j} to the last observation \eqn{\tau}.
-//' Here \eqn{d_j} is the number of events at \eqn{t_j}, and \eqn{n_j}
-//' is the number at risk just before \eqn{t_j}.
-//' Terms where n_j == d_j are omitted: S drops to 0 there, so A(t_j) = 0 and the
-//' contribution is 0 in the limit regardless of the undefined Greenwood denominator.
-//'
-//' @param y Numeric vector of survival times.
-//' @param dead Integer vector of event indicators (1=event, 0=censored).
-//' @return The standard error of the restricted mean.
-//' @keywords internal
+// Calculates standard variance using the formula from Uno et al
+//
+// \eqn{Var(RMST) = \sum_j A(t_j)^2 d_j / (n_j (n_j - d_j))}
+// where \eqn{A(t_j) = \int_{t_j}^{\tau} S(u) du} is the remaining area under the KM
+// curve from event time \eqn{t_j} to the last observation \eqn{\tau}.
+// Here \eqn{d_j} is the number of events at \eqn{t_j}, and \eqn{n_j}
+// is the number at risk just before \eqn{t_j}.
+// Terms where n_j == d_j are omitted: S drops to 0 there, so A(t_j) = 0 and the
+// contribution is 0 in the limit regardless of the undefined Greenwood denominator.
+//
+// @param y Numeric vector of survival times.
+// @param dead Integer vector of event indicators (1=event, 0=censored).
+// @return The standard error of the restricted mean.
+// @keywords internal
 static double get_restricted_mean_se_for_group_at_tau(SEXP y, SEXP dead, double rmst_tau) {
 	IntegerVector dead_r_coerced(dead); Eigen::Map<const Eigen::VectorXi> dead_vec_coerced(dead_r_coerced.begin(), dead_r_coerced.size());
 	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());

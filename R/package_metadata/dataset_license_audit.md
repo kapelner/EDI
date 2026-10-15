@@ -18,9 +18,13 @@ constrains what could be bundled or committed later.
   (agent-written Expanded-tier metadata); all rows are now verified.
 - **Version** — a release that exists on CRAN. 45 package/version pins (123 rows)
   matched no CRAN release and were replaced by the then-current release on
-  2026-10-07; the same pins were fixed in `download_experimental_datasets.R`'s
-  `DATASET_MANIFEST`, which must stay in step with the md (the observational
-  downloader reads the md directly). Note `packageVersion()` prints `3.8-6` as
+  2026-10-07. The md is the only copy of every pin: since 2026-10-15
+  `download_experimental_datasets.R`'s `download_all_datasets()` takes each CRAN
+  version and GitHub commit from the md's Version cell (`catalog_row()`), and
+  `DATASET_MANIFEST` holds only how to fetch each dataset (it refuses an entry that
+  sets `version` or `commit_sha`); the observational downloader has always read the
+  md. A pin change does not refresh an existing `<key>.tar.bz2` in the cache —
+  delete it and download again. Note `packageVersion()` prints `3.8-6` as
   `3.8.6`; compare with `numeric_version()`, not string equality. Ten rows are pinned
   to *old* releases on purpose (see "Ten rows deliberately pinned" below) — an old pin
   is not automatically a stale one.
@@ -40,7 +44,11 @@ constrains what could be bundled or committed later.
     package license does not convey (`surrosurv::gastadv`, `coxphw::biofeedback`).
 
   Any value other than plain `yes` means: fetch and use locally, do not commit or bundle
-  without a decision.
+  without a decision. Such rows are still downloadable (user decision 2026-10-15): both
+  download scripts call `warn_if_not_gpl3_compatible()` on download and on unpacking,
+  e.g. "Dataset rwm1984 has license GPL-2, which does not comply with GPL-3.
+  Only use it if your use case complies with the license GPL-2."; for `unclear:`,
+  `conditional:` and data-level `no:` rows the warning quotes the Redistribution cell.
 
 ## Rows that are not plain `yes`
 
@@ -58,7 +66,7 @@ constrains what could be bundled or committed later.
 
 Some packages that are GPL-2 only today were `GPL (>= 2)` or unversioned `GPL` (any
 version) in earlier releases. Where the catalogued data object is `identical()` between
-the old release and the current one, the row is pinned (md + `DATASET_MANIFEST`) to the
+the old release and the current one, the row's md Version is pinned to the
 **last compatible release**, and the downloader fetches that tarball from CRAN's
 `Archive/`, so the data really does arrive under a GPL-3-compatible license:
 
@@ -74,9 +82,14 @@ the old release and the current one, the row is pinned (md + `DATASET_MANIFEST`)
 All ten objects were verified `identical()` across releases and the downloaders write
 byte-identical CSVs from either. **Do not "update" these pins to the current release**
 — that silently turns the rows back into `no: GPL-2 only`. (The two non-`.rda` storage
-formats are why both fetchers — `cran_download_dataset_as_csv()` and
-`cran_fetch_object_auto()` — match data files with compression suffixes stripped and
-can `sys.source()` a `data/<obj>.R` file.)
+formats are why the shared fetcher, `load_data_object()` in
+`download_experimental_datasets.R`, matches data files with compression suffixes
+stripped and can `sys.source()` a `data/<obj>.R` file.) The fetcher never substitutes
+another release: a pin missing from both `src/contrib/` and `Archive/` is an error.
+Until 2026-10-15 both fetchers fell back to the current release with only a message;
+that is how the cached `nafld1` came from survival 3.8-11+ while the md pins 3.8-6
+(`case.id` has 31 `NA`s in 3.8-6, none from 3.8-11). A re-download of every survival,
+AER, granova and R4HCR row found no other such case.
 
 Release-history sweep (2026-10-08): every archived DESCRIPTION of every GPL-2-only
 package in the catalogs was checked (437 releases, 24 packages). The four above plus

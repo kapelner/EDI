@@ -35,6 +35,8 @@ test_that("build metadata matches the current configure run", {
 		expected_openmp_flags = trimws(sub(
 			"^SHLIB_OPENMP_CXXFLAGS[[:space:]]*=[[:space:]]*", "", openmp_line[[1L]]
 		))
+		# An empty assignment (e.g. macOS R) means no OpenMP; configure reports it as below.
+		if (!nzchar(expected_openmp_flags)) expected_openmp_flags = "none (R built without OpenMP)"
 	} else {
 		expected_openmp_flags = "none (R built without OpenMP)"
 	}

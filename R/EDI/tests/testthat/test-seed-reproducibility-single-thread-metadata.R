@@ -241,7 +241,8 @@ test_that("v1.0.5 OpenMP draw-index migration matches its pinned allocation fixt
 	allocation_md5 = function(w) {
 		path = tempfile(fileext = ".txt")
 		on.exit(unlink(path), add = TRUE)
-		writeLines(paste(as.integer(w), collapse = ""), path)
+		# writeBin, not writeLines: text mode writes CRLF on Windows and changes the md5.
+		writeBin(charToRaw(paste0(paste(as.integer(w), collapse = ""), "\n")), path)
 		unname(tools::md5sum(path))
 	}
 	for (name in names(factories)) {

@@ -183,12 +183,25 @@ design's imputed covariates.}
 \if{html}{\out{<a id="method-InferenceAllSimpleMeanDiffPooledVar-compute_estimate_with_bootstrap_weights"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAllSimpleMeanDiffPooledVar-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceAllSimpleMeanDiffPooledVar$compute_estimate_with_bootstrap_weights()}}{
+  Recomputes the pooled-variance difference in means and its
+  pooled (equal-variance) standard error under bootstrap weights, so
+  bootstrap and studentized intervals use the same variance convention as
+  the asymptotic methods; see
+  \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAllSimpleMeanDiffPooledVar$compute_estimate_with_bootstrap_weights(
   subject_or_block_weights,
   estimate_only = FALSE
 )}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{subject_or_block_weights}}{Bootstrap weights at the subject or block level.}
+      \item{\code{estimate_only}}{If TRUE, skip variance calculations.}
+    }
     \if{html}{\out{</div>}}
   }
 }

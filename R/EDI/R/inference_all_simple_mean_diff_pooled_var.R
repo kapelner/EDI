@@ -272,3 +272,13 @@ NULL
 #' @R6method InferenceAllSimpleMeanDiffPooledVar$compute_asymp_two_sided_pval
 #' @template simple-mean-diff-pooled-var-asymp-two-sided-pval
 NULL
+
+#' @R6method InferenceAllSimpleMeanDiffPooledVar$compute_estimate_with_bootstrap_weights
+#' @description Recomputes the pooled-variance difference in means and its
+#'   pooled (equal-variance) standard error under bootstrap weights, so
+#'   bootstrap and studentized intervals use the same variance convention as
+#'   the asymptotic methods; see
+#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
+#' @param subject_or_block_weights Bootstrap weights at the subject or block level.
+#' @param estimate_only If TRUE, skip variance calculations.
+NULL

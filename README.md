@@ -665,6 +665,15 @@ harness — it's more than just getting the point estimate right. Follow
 [`R/package_metadata/contracts/new_model_creation.md`](R/package_metadata/contracts/new_model_creation.md)
 end to end before opening a PR for one.
 
+Adding or refactoring code in a file that already exists has its own, shorter
+contract:
+[`R/package_metadata/contracts/coverage_test_writing.md`](R/package_metadata/contracts/coverage_test_writing.md)
+— how to classify a coverage gap, when to broaden an existing test instead of
+adding one, what makes an assertion count (an independent reference, both
+sides of a branch), and the one rule that matters most: coverage is confirmed
+by a real instrumented CI measurement, never by a test that merely looks
+relevant.
+
 Adding a new `Design*` class (a new randomization scheme for an existing
 timing family — fixed or sequential) touches the same breadth of wiring on
 the design side: component/capability metadata via `define_design_class()`

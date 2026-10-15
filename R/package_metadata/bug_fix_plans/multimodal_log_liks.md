@@ -174,6 +174,27 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   remains open pending reconciliation of the usable-fit discrepancy and
   validation against a matching/current native build. Results:
   `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`.
+  **Artifact-only reconciliation, 2026-10-15:** a second 400-seed run after
+  the user's reinstall is preserved at
+  `/tmp/edi-todo8-400-null-reinstall-20261014T173835Z/`. Its `n100k5.csv`
+  and `n50k3.csv` are byte-identical to the earlier installed-package run
+  (SHA256 respectively `e07fb6839cbacb3e0bfa40da1f6a5614d9823206caf12ad273c4169ee0ddd051`
+  and `5992e43b803016c970e0bbd2a92cf541872f062e153fad0b853d0bfdf147eff4`),
+  even though `run_metadata.txt` records the native build timestamp changing
+  from 2026-09-20 to 2026-10-14. Both runs therefore agree exactly on the
+  observed 224/400 usable n=100 cases and 177/400 usable n=50 cases; the
+  reinstall alone did not reproduce the historical table's 386/400 and
+  169/400 denominators. The only other seed-level output located,
+  `/tmp/edi_todo8_n100k5.csv` (2026-10-09; SHA256
+  `7d4a64a0dc74dff0540130146e12d1a7f1943ba72362219e25a88b6a428566f9`),
+  has 64/400 finite n=100 estimates/LR p-values. These 64 seeds are all
+  finite in the later 224-case run; there are no old-only finite seeds and
+  160 later-only finite seeds. That Oct 9 file has no paired n=50 output and
+  is not the missing Sep 21 seed-level baseline. The original 386/400 and
+  169/400 table still has no located per-seed CSV or run metadata, so neither
+  denominator nor the historical fit-usability decisions can be reconciled
+  from available artifacts. TODO-4 remains open; no regeneration or
+  compilation was performed.
 - [x] TODO-5: Audit and, where estimates move, re-derive (not just
   re-record) every golden/reference value touching
   `InferenceOrdinalStereotypeLogitRegr` in

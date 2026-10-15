@@ -208,8 +208,14 @@ test_that("every registry design that promises seeded draws is invariant across 
 test_that("seeded randomization p-values for thread-sensitive designs are core-invariant", {
 	skip_on_cran()
 	if (!requireNamespace("nbpMatching", quietly = TRUE)) skip("requires nbpMatching")
+	# R CMD check --as-cran sets _R_CHECK_LIMIT_CORES_, under which parallel
+	# refuses more than 2 simultaneous processes (makeForkCluster then fails
+	# with "4 simultaneous processes spawned"), so compare 1 vs 2 cores there.
+	cores_limited = nzchar(Sys.getenv("_R_CHECK_LIMIT_CORES_")) &&
+		!tolower(Sys.getenv("_R_CHECK_LIMIT_CORES_")) %in% c("false", "0")
+	many_cores = if (cores_limited) 2L else 4L
 	available_cores = parallel::detectCores(logical = TRUE)
-	if (is.na(available_cores) || available_cores < 4L) skip("fewer than 4 logical cores available")
+	if (is.na(available_cores) || available_cores < many_cores) skip(paste0("fewer than ", many_cores, " logical cores available"))
 	old_cores = EDI:::get_num_cores()
 	on.exit(EDI:::set_num_cores(old_cores), add = TRUE)
 	n_test = 12L
@@ -242,8 +248,8 @@ test_that("seeded randomization p-values for thread-sensitive designs are core-i
 
 	for (name in design_names) {
 		p1 = build(name, 1L)
-		p4 = build(name, 4L)
+		p_many = build(name, many_cores)
 		expect_true(is.finite(p1), info = paste(name, "one-core p-value is finite"))
-		expect_identical(p1, p4, info = paste(name, "randomization p-value at 1/4 cores"))
+		expect_identical(p1, p_many, info = paste(name, "randomization p-value at 1/", many_cores, " cores"))
 	}
 })

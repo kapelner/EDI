@@ -1,0 +1,7 @@
+"name","quantity","value_chr"
+"DesignFixedBernoulli","w_md5","1492c98aed4c92a9c9347f84a7816b8e"
+"DesignFixedRerandomization","w_md5","71fd866ccec6bef227d180d8f8f5ff7e"
+"DesignFixedGreedy","w_md5","9e0663813584bd7974f24dbb2703b77e"
+"DesignFixedGreedyDOptimal","w_md5","9e0663813584bd7974f24dbb2703b77e"
+"DesignFixedMatchingGreedyPairSwitching","w_md5","69c085cd80b10985af9a9f22994d2762"
+"DesignFixedBinaryMatch","w_md5","6a378a977c2a456d5c0d5ed1ffa78e5a"

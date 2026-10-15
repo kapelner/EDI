@@ -184,6 +184,8 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      # Step-level `if:` cannot read the secrets context, only env, so expose it here.
+      COVERAGE_BASELINE_PAT: ${{ secrets.COVERAGE_BASELINE_PAT }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -228,7 +230,7 @@ jobs:
         # ~1.5h) workflow -- coverage_baseline.json falls under this workflow's own
         # R/package_tests/** push path filter, so without it every promotion would
         # queue a second, wasted full measurement.
-        if: github.event_name == 'push' && secrets.COVERAGE_BASELINE_PAT != ''
+        if: github.event_name == 'push' && env.COVERAGE_BASELINE_PAT != ''
         # A failed push here (e.g. a race against another push to the same branch)
         # should not turn an otherwise-green coverage run red; the real gate already
         # ran in the step above. Worst case, this promotion is just skipped and the

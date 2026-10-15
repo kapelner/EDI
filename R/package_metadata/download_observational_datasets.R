@@ -13,18 +13,19 @@
 # inside each CRAN package actually contains the named object (verified by
 # spot-checking CRAN's survival package: a single cancer.rda file holds
 # veteran/ovarian/colon/bladder1/gbsg/lung/mgus2/rotterdam, so
-# "rda_name == obj_name" would be wrong most of the time). See
-# compute_covariate_missingness.R's cran_fetch_object_auto(), which this
-# reuses, for the discovery mechanism and the curl-CLI-not-httr2 fetch
-# rationale (R's curl/httr2 package fails through this sandbox's proxy).
-# The one `datasets`-package (base R) row, `esoph`, needs no download at all.
+# "rda_name == obj_name" would be wrong most of the time). The fetch is the
+# experimental downloader's: cran_dataset_as_csv() / github_dataset_as_csv() /
+# load_data_object() in download_experimental_datasets.R (sourced through
+# compute_covariate_missingness.R). Versions come from the md's Version column,
+# and a row whose Redistribution cell is not "yes" warns on download and on
+# unpacking. The one `datasets`-package (base R) row, `esoph`, needs no download at all.
 
 THIS_DIR <- {
   file_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
   if (length(file_arg) == 0) "R/package_metadata" else dirname(normalizePath(sub("^--file=", "", file_arg[1])))
 }
 source(file.path(THIS_DIR, "build_experimental_datasets_csv.R"))  # read_dataset_table(), strip_md()
-source(file.path(THIS_DIR, "compute_covariate_missingness.R"))    # curl_fetch(), cran_fetch_object_auto(), extract_backtick_columns()
+source(file.path(THIS_DIR, "compute_covariate_missingness.R"))    # download_experimental_datasets.R's fetchers, extract_backtick_columns()
 
 OBS_ARCHIVE_DIR <- file.path(THIS_DIR, "observational_datasets_cache")
 
@@ -41,6 +42,8 @@ observational_manifest <- function(md_path = file.path(THIS_DIR, "observational_
     is_dataverse = is_dataverse,
     version = sub("^commit `(.*)`$", "\\1", md_tbl$Version),
     source = md_tbl$Source,
+    license = strip_md(md_tbl$License),
+    redistribution = strip_md(md_tbl$Redistribution),
     dv_doi = vapply(dv, function(x) if (is.null(x)) NA_character_ else x$doi, character(1)),
     dv_filename = vapply(dv, function(x) if (is.null(x)) NA_character_ else x$filename, character(1)),
     dv_inside_zip = vapply(dv, function(x) if (is.null(x)) NA_character_ else x$inside_zip, character(1)),
@@ -56,6 +59,7 @@ download_all_observational_datasets <- function(download_dir = OBS_ARCHIVE_DIR,
   if (!dir.exists(download_dir)) dir.create(download_dir, recursive = TRUE)
   manifest <- observational_manifest()
   if (!is.null(datasets)) manifest <- manifest[manifest$name %in% datasets, ]
+  on.exit(clean_fetch_scratch(download_dir), add = TRUE)
 
   results <- data.frame(name = character(0), status = character(0), detail = character(0))
   for (i in seq_len(nrow(manifest))) {
@@ -73,18 +77,19 @@ download_all_observational_datasets <- function(download_dir = OBS_ARCHIVE_DIR,
     }
     source_desc <- if (row$is_dataverse) paste0("Dataverse ", row$dv_doi) else paste0(row$pkg, if (!row$is_base_r) paste0(" ", row$version) else "")
     message("== ", row$name, " (", source_desc, ") ==")
+    warn_if_not_gpl3_compatible(row$name, row$license, row$redistribution)
     out_csv <- file.path(download_dir, paste0(row$name, ".csv"))
     ok <- tryCatch({
       if (row$is_base_r) {
         df <- as.data.frame(get(row$obj_name, envir = asNamespace("datasets")))
         data.table::fwrite(df, out_csv)
       } else if (row$is_github) {
-        github_fetch_object_auto(row$pkg, row$version, row$obj_name, out_csv, download_dir)
+        github_dataset_as_csv(row$pkg, row$version, out_csv, download_dir, obj_name = row$obj_name)
       } else if (row$is_dataverse) {
         dataverse_fetch_object_auto(row$dv_doi, row$dv_filename, out_csv, download_dir,
                                      inside_zip = if (is.na(row$dv_inside_zip)) NULL else row$dv_inside_zip)
       } else {
-        cran_fetch_object_auto(row$pkg, row$version, row$obj_name, out_csv, download_dir)
+        cran_dataset_as_csv(row$pkg, row$version, out_csv, download_dir, obj_name = row$obj_name)
       }
       TRUE
     }, error = function(e) { message("  FAILED: ", conditionMessage(e)); FALSE })
@@ -112,6 +117,9 @@ extract_observational_datasets <- function(name, download_dir = OBS_ARCHIVE_DIR)
     stop("Archive not found: ", archive_path, ". Run download_all_observational_datasets(datasets = \"", name,
          "\") first.", call. = FALSE)
   }
+  row <- observational_manifest()
+  row <- row[row$name == name, ]
+  if (nrow(row) == 1L) warn_if_not_gpl3_compatible(row$name, row$license, row$redistribution)
   utils::untar(archive_path, exdir = download_dir)
   invisible(download_dir)
 }

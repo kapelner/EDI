@@ -76,7 +76,22 @@ search would not enter confirmation. The instrumented CSV and harness are
 `/tmp/edi-v105-todo33/mtcars_public_api_ci_probe_r1001.csv` and
 `/tmp/edi-v105-todo33/public_api_probe.R`. Other bounded mtcars/airquality
 public-API probes at `r = 201`/`1001`, including nondefault MC stress settings,
-also produced no inner upper-bound entries. These are trigger-search results,
+also produced no inner upper-bound entries. A new bounded `airquality` sweep
+used the 111 complete cases (`Ozone ~ Wind + Temp`) through public
+`InferenceContinOLS` calls: 25 seeds at `r=201`, `pval_epsilon=0.005`, then
+10 seeds at `r=1001`, `pval_epsilon=0.001`; all 35 calls were error-free and
+none entered the upper inner loop. At `r=201`, all 25 upper delta brackets
+were narrower than the `0.005` tolerance (0.00406–0.00428), and cheap endpoint
+p-spans were at least `0.00995`. At `r=1001`, all 10 brackets were narrower
+than the `0.001` tolerance (0.000504–0.000521), while cheap p-spans were
+`0.001998` or `0.003996`; the full-precision endpoint span was zero or
+`0.001998`. These runs therefore did not satisfy the joint condition needed
+to enter refinement. Harnesses and CSVs are
+`/tmp/edi-v105-todo33-airquality-probe.R`,
+`/tmp/edi-v105-todo33/airquality_public_api_ci_probe_r201.csv`,
+`/tmp/edi-v105-todo33-airquality-r1001-probe.R`, and
+`/tmp/edi-v105-todo33/airquality_public_api_ci_probe_r1001.csv`.
+These are trigger-search results,
 not evidence that the production bug is unreachable or that coverage is
 unaffected. The controlled public-API regression remains the only confirmed
 inner-loop reproduction. Next useful experiment: instrument a seed search on

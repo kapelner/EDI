@@ -100,6 +100,36 @@ fixes part of the cost itself; this plan fixes the measurement.
   corresponding workspace report contains staged user edits that must be
   preserved during reconciliation.
 
+  **Isolated report-write diagnostic 2026-10-14:** a final instrumented run of
+  the official `--sections=designs` section completed all six rows under
+  installed EDI 1.0.3, in `/tmp/edi-todo62-instrumented.xpTSrk/R`. Immediately
+  before both final writes, `getwd()` was that R root; destinations resolved
+  to its `package_metadata/benchmark_model_fits.md` and
+  `package_metadata/benchmark_model_fits_R.html`; both parent directories
+  existed and had write access (`file.access(..., 2L) == 0`). The report
+  targets did not yet exist, and both writes succeeded without warnings or
+  errors. The Markdown report (55,116 bytes) retained the Python section and
+  all six design rows. Full row output (`EDI total / construction / procedure;
+  canonical; speedup; timing p-value`) was:
+
+  | Design / comparator | EDI ms (total / construct / procedure) | Canonical ms | Speedup | p-value |
+  | --- | ---: | ---: | ---: | ---: |
+  | iBCRD / `randomizr::complete_ra` | 1.16 / 0.98 / 0.05 | 0.16 | 3.08x | 1.11e-08 |
+  | Blocking / `randomizr::block_ra(blocks precomputed)` | 2.85 / 1.55 / 1.31 | 0.67 | 0.51x | 2.98e-08 |
+  | BinaryMatch / `nbpMatching::gendistance + nonbimatch + coin flips` | 359.50 / 1.28 / 406.50 | 508.00 | 1.25x | 0.00249 |
+  | BinaryMatch / `blockTools::block(n.tr=2,optGreedy) + assignment` | 387.00 / 1.17 / 361.00 | 378.50 | 1.05x | 0.171 |
+  | Pocock-Simon / `carat::PocSimMIN(p=0.8)` | 326.00 / 0.88 / 316.50 | 4.70 | 0.015x | 2.36e-11 |
+  | Pocock-Simon / `Minirand::Minirand(Range,p=0.8)` loop | 312.00 / 1.00 / 366.50 | 1187.00 | 3.24x | 7.41e-17 |
+
+  The prior two full-section errors were `Error in file(con, "w") : cannot
+  open the connection` after the six design rows, but their logs did not
+  retain the suppressed open warning/path (`options(warn=-1)`). The original
+  `/tmp/edi-todo61-bench-retry.TVVJ2s/R` tree is now sparse; direct small and
+  full-report-content write probes there both succeed. The failure is not
+  reproducible, so no harness or tracked generated artifact was changed and
+  no further full run was attempted. Keep report regeneration/synchronization
+  open until it is done from the canonical checkout.
+
 ## Acceptance
 
 The Zhang row shows procedure time at parity with `fisher.test` (about

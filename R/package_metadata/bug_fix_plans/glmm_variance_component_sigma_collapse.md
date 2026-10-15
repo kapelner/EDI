@@ -134,6 +134,25 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   `/tmp/edi_todo31_ordinal_glmm_grid.csv`, and
   `/tmp/edi_todo31_poisson_outlier_diagnostics.csv`; no repository baseline was
   changed and no build/install was run.
+  **Candidate-beta probe 2026-10-14 (proposal only):** on the installed EDI
+  1.0.3 wrapper, using the fixed-effects Poisson GLM coefficients as
+  `warm_start_params` (with `smart_cold_start=FALSE`; the kernel still applied
+  its current log-sigma starts) reached the lower basin for both fixtures
+  under LBFGS: seed 41003 NLL 312.748983 and seed 41008 NLL 379.147299, versus
+  cold LBFGS 312.877334 and 380.160551. The same candidate under Newton was
+  less consistent: seed 41003 stopped at NLL 312.754654 with gradient norm
+  1.73, while seed 41008 reached 379.147298 with gradient norm 0.0125. A
+  plausible narrow source option is to retain the existing smart-cold beta
+  start and add a fixed-effects Poisson-GLM beta start only when there is no
+  caller-supplied warm start, then retain the best finite fit. Before adopting
+  it, decide whether the GLM start is intended for both optimizer modes and
+  whether the extra beta-by-log-sigma starts (and their runtime cost) are
+  acceptable; a single beta seed did not resolve the Newton 41003 diagnostic.
+  Regression location: `R/package_tests/testthat_bulk/test-poisson-glmm-fit-
+  quadrature-convergence-and-glmer-agreement-reference.R`, adding seeds 41003
+  and 41008 and checking 40-node marginal NLL against the glmer-informed
+  reference. No source change or rebuild was made; this option is not yet
+  validated across unaffected fits.
 - [x] **TODO-2: Decide the fix per kernel.** Candidates: a non-boundary
   default start (`log sigma = 0`, which the ordinal test shows recovers the
   ML solution); a short multistart over `{-1, 0, 1}` for the sigma

@@ -320,6 +320,99 @@ are adjacent runs, since two baselines drifted ~10% apart:
   fork cost measured here may be WSL2's extra layer of address
   translation.
 
+### Result (2026-10-14): in-process `safe_call()` cuts per-call time by about a third, with identical results
+
+`gc()` in the parent before each fork was not tried. The probe above shows
+that a child's GC costs ~94 ms per fork even when the parent heap is near
+empty, because loaded package code is also on the heap. Only avoiding the
+fork removes that cost.
+
+**Prototype.** The scratch copy of `comprehensive_tests.R` gained an opt-in
+mode, `COMPREHENSIVE_SAFE_CALL_MODE=inprocess`. It evaluates `expr` in the
+parent under `R.utils::withTimeout()`, the existing non-Unix fallback. To
+keep fork semantics, it undoes what a forked child would have kept to
+itself, **before** the `handle_*()` callbacks (which run in the parent in
+both modes):
+
+- `.Random.seed`;
+- `num_cores`;
+- every plain (not active, not locked) field of the inference object,
+  its private environment, and its design's public and private
+  environments.
+
+The patch is `inprocess_safe_call.diff` in the session scratchpad. It
+applies cleanly to the repo.
+
+Two things that look harmless are not, and both were found by testing:
+
+- **Calls mutate shared state.** They write caches, warm starts and draw
+  counters on the inference object, and randomization tests write
+  `permutations_cache` on the shared design.
+- **Parent-side helpers consume the RNG.** `handle_success()`/`handle_error()`
+  and `safe_call_debug()` call methods on the object that draw random
+  numbers. Restoring the RNG *after* the handlers undid that legitimate
+  parent-side use, which shifted every later random draw.
+
+With the restore placed correctly, a per-call trace of a hash of
+`.Random.seed` matched fork mode at all 194 calls of the ordinal class.
+
+**Measurement.** The workload was the six-class mix from section 1 (2,166
+calls, six processes in parallel). `EDI` was loaded from a private snapshot
+of the installed package, because it was being reinstalled during the
+session. The order was fork → in-process → in-process keep-state →
+keep-state → in-process → fork.
+
+| Run | Results identical to fork1 | Wall (s) | Sum of call times (s) | user (s) | sys (s) | Minor faults | Max RSS |
+|---|---|---|---|---|---|---|---|
+| fork1 | — | 1,539 | 6,653 | 4,179 | 1,081 | 93.8 M | 1,341 MB |
+| inprocess1 | **2,166 / 2,166** | 786 | 2,736 | 2,766 | 48 | 0.7 M | 1,427 MB |
+| keep-state1 | 615 / 2,166 | 332 | 1,279 | 1,392 | 21 | 0.7 M | 1,453 MB |
+| keep-state2 | 615 / 2,166 | 336 | 1,379 | 1,495 | 22 | 0.7 M | 1,477 MB |
+| inprocess2 | **2,166 / 2,166** | 641 | 2,027 | 2,126 | 32 | 0.7 M | 1,428 MB |
+| fork2 | 2,166 / 2,166 | 829 | 3,040 | 2,647 | 652 | 92.9 M | 1,315 MB |
+
+Other activity loaded the machine during the first pair: user CPU time for
+the same work was 4,179 s in fork1 versus 2,647 s in fork2. The adjacent,
+quieter pair, fork2 → inprocess2, is therefore the conservative estimate:
+
+- **Per-call time:** sum of matched calls 0.673, median 0.550.
+- **Wall clock:** −23%, from 829 s to 641 s.
+- **System time:** −95%.
+- **Minor faults:** −99%.
+
+By response type and test family, the per-call ratio is 0.15–0.92 for
+Wald/asymptotic calls (the fixed fork cost dominates fast calls; the median
+asymptotic call dropped from 43 ms to 21 ms) and 0.43–0.76 for resampling
+calls. The loaded first pair showed an even larger gain (sum 0.416): forking
+degrades worse than in-process work under CPU contention.
+
+**Keep-state** skips the restore, so calls reuse the fits and caches of
+earlier calls, as in a normal user session. It halves the time again (wall
+about 335 s), but only 615 of 2,166 results stay identical: resampling
+calls see different random streams, and warm starts change fits. That
+changes what the suite measures, so it is not a drop-in.
+
+**Conclusions and what adoption needs.**
+
+- In-process mode with state restore is a drop-in speedup for
+  `comprehensive_tests.R` at `nc = 1`, verified identical on 2 × 2,166
+  calls. It saves about a third of the test time on this machine.
+- **Lost: the hard timeout.** `setTimeLimit()` cannot interrupt a long
+  compiled call (the reason `safe_call()` forks). This workload had no
+  timeouts. A safe adoption keeps fork mode for labels already known to be
+  slow, or adds an external watchdog. For example, the runner kills the R
+  process when the heartbeat shows one call past `FUNCTION_TIMEOUT_SEC`,
+  records a timeout for that call, and relaunches; the harness already
+  resumes from `is_row_completed()`.
+- **Lost: crash isolation.** A native crash ends the run instead of one
+  call. The same relaunch-and-resume covers it.
+- **Restrict to `nc = 1`.** With `nc > 1`, OpenMP would run in a process
+  that might later fork (the hazard documented in `safe_call()`).
+- The restore covers plain fields of the inference object and its design.
+  It does not cover objects nested in environment-valued fields or global
+  variables. Any new class that keeps state elsewhere should be checked
+  with the same identity test.
+
 ## 4. Train R's PGO profile on an `EDI` workload
 
 **Hypothesis.** R's PGO build was trained on `make check`, which is a generic
@@ -490,8 +583,10 @@ ideally native Linux, or try an interpreter-heavy workload (the R6-heavy
 1. ~~Section 1~~ (allocator): tried 2026-10-14, no gain over glibc + huge
    pages. Section 2 (GC): large heaps are harmful with forking (section 3);
    small-step tuning is untested.
-2. Section 3: profile the system time first. Then THP (reversible), and if
-   possible a native-Linux comparison.
+2. Section 3: done. THP-malloc adopted. The in-process `safe_call()`
+   prototype saves about a third of test time with identical results; it
+   needs a watchdog or resume path before adoption. A native-Linux
+   comparison is still open.
 3. ~~Section 4~~ and ~~section 6~~: tried 2026-10-14, no measurable gain
    (see their result subsections).
 4. Section 5: a larger engineering effort, only if the earlier results point

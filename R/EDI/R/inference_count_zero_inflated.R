@@ -308,6 +308,17 @@ InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin
 		initialize = function(des_obj, model_formula = NULL, model_formula_zero = NULL, use_rcpp = TRUE, verbose = FALSE, optimization_alg = NULL){
 			super$initialize(des_obj, model_formula = model_formula, model_formula_zero = model_formula_zero, use_rcpp = use_rcpp, verbose = verbose, optimization_alg = optimization_alg)
 		},
+		#' @description Fits the zero-inflated negative binomial model. Under the
+		#'   default \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
+		#'   treatment log-rate coefficient from the conditional count submodel.
+		#'   Under \code{estimand = "marginal_mean_diff"} or
+		#'   \code{"marginal_ratio"} (set via \code{set_estimand()}), returns the
+		#'   g-computation marginal mean difference or log-scale marginal ratio
+		#'   of the unconditional mean instead -- a post-fit transform of the same
+		#'   cached fit, no refit.
+		#' @param estimate_only If TRUE, skip standard-error computation and cache
+		#'   only the point estimate; used by randomization and bootstrap
+		#'   resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
 			estimand = if (is.function(self$get_estimand)) self$get_estimand() else "conditional"

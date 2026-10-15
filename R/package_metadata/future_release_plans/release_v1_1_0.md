@@ -166,6 +166,11 @@ counting if verification confirms the problem, and enforces all of it with
 golden digests on every CI platform leg. Each of its four TODOs ships with
 required tests. It builds on `release_v1_0_5.md → TODO-91, -93, -95`.
 
+Algorithm choice *(added 2026-10-15, user decision)*:
+`algorithm_choice_audit.md`'s items that are faster **and** at least as
+accurate, with no new user options (`TODO-50`). The speed-only items and the
+items that need the A/B harness are in `release_v1_2_0.md → TODO-22, -23`.
+
 Repository hygiene *(maintenance, added 2026-09-16, user decision)*:
 `implement_a_lintr.md` (a `.lintr` codifying EDI's actual `=`/tab house
 style, correctness linters on, content-gated hook + CI step — `TODO-23`)
@@ -1438,6 +1443,38 @@ ticked in their **owning plans**; this list is the release index.
     per-process compile memo that stopped `cppFunction`/`cppXPtr` from
     leaving one `file*.cpp` per call in `tempdir()`.
 
+- [ ] TODO-50 (added 2026-10-15, user decision): **Algorithm audit: wins on
+  both speed and accuracy, no new options** — `algorithm_choice_audit.md →
+  TODO-14, -15, -16, -17, -22, -24, -28`, and the φ half of `-25`. Every item
+  replaces an algorithm with one that is faster and at least as accurate,
+  and adds no user-facing argument ("auto" in the audit's labelling pass).
+  - **TODO-14:** analytic score / Hessian / Louis information instead of
+    finite differences (log/identity-binomial, ordinal-GLMM and CLMM engine,
+    Poisson marginal-estimand delta method, ordinal g-comp gradient).
+  - **TODO-15:** JT exact null by polynomial DP. `release_v1_0_5.md →
+    TODO-90` already added the size guard; the DP returns the exact p-value
+    where the guard now errors.
+  - **TODO-16:** closed-form Gaussian score / gradient / LR CIs, and the
+    exact F(1, n−p) LR null as a `type` (the F null changes the p-value, so
+    it is opt-in).
+  - **TODO-17:** CMH design variance in closed form for complete, Bernoulli
+    and blocked designs (Monte Carlo kept for sequential designs).
+  - **TODO-22:** accuracy fixes at the same speed: `pnorm_fast` /
+    `fast_log_pnorm` tail branch, shifted one-pass variances, stable
+    `fast_dnbinom_mu`, exact `qnorm` in Wilson/Newcombe.
+  - **TODO-24:** feasible / consistent starting values and glm2-style
+    step-halving.
+  - **TODO-28:** EMICM for the Turnbull NPMLE: `icfit(initfit =
+    "initEMICM")` first, then `icenReg::ic_np` (its `weights=` unblocks the
+    interval-censored Bayesian bootstrap).
+  - **TODO-25, φ half only:** 1-D Brent on KK21's dispersion profile
+    likelihood instead of the 19-point grid. The score-test stepwise half
+    is `release_v1_2_0.md → TODO-23`.
+  - **Gate:** the existing tests plus an equivalence test per item (brute
+    force at n ≤ 12 for the JT DP; tolerance-equal estimates for the
+    derivative, start and NPMLE changes). Results that move are documented
+    default changes (see Standing constraints).
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update
@@ -1453,7 +1490,7 @@ deprecation decision; TODO-40's exact-null default switch, its plan's
 TODO-7, and TODO-41's small-n exact default, its plan's TODO-6, both
 decision-gated and off until the user accepts them; and TODO-45's
 precomputed hypergeometric log-densities in the Zhang exact kernel, its
-plan's TODO-3, tolerance-equal to 1e-12; and TODO-48's reproducibility work, whose TODO-3 tie tolerance changes p-values only where a tie was resolved by rounding, its plan's TODO-3, documented when it lands). TODO-4b is narrowed to measurement infrastructure
+plan's TODO-3, tolerance-equal to 1e-12; and TODO-48's reproducibility work, whose TODO-3 tie tolerance changes p-values only where a tie was resolved by rounding, its plan's TODO-3, documented when it lands; and TODO-50's algorithm-audit items, which change results only within numerical tolerance or where the old algorithm was inaccurate (FD Hessians, clamped normal tails, the 19-point φ grid, Monte Carlo CMH variance), documented per item when it lands). TODO-4b is narrowed to measurement infrastructure
 only in this release (`performance_profiling_and_upgrades.md →
 TODO-132..135, 175`, all infrastructure-only, no gate needed); the
 result-changing performance items formerly gated here

@@ -58,123 +58,13 @@ extract_backtick_columns <- function(cell) {
   unique(parts[nzchar(parts)])
 }
 
-# ---------------------------------------------------------------------------
-# Auto-discovering CRAN fetch: downloads pkg's tarball once, tries every
-# data/ file until one actually contains `obj_name`, writes it to dest_csv.
-# Falls back through Archive/ and "current" exactly like
-# cran_download_dataset_as_csv() (reimplemented here, not called, since we
-# need to search ALL data/ files rather than one named rda_name).
-# ---------------------------------------------------------------------------
-# R's curl/httr2 package fails through this sandbox's proxy ("Proxy CONNECT
-# aborted") even though the plain `curl` CLI works fine against the same
-# URL -- shell out rather than use httr2::req_perform().
-curl_fetch <- function(url, dest_path) {
-  status <- suppressWarnings(system2("curl", c("-sL", "-f", "-o", shQuote(dest_path), shQuote(url)), stdout = TRUE, stderr = TRUE))
-  exit_code <- attr(status, "status")
-  !is.null(exit_code) && exit_code != 0L
-}
-
-# Extracted tarballs are cached per pkg+version under work_dir (several
-# observational rows share one package, e.g. 7 rows all come from
-# `survival` -- extract it once, reuse for all of them).
-cran_fetch_object_auto <- function(pkg, version, obj_name, dest_csv, work_dir) {
-  pkg_dir <- file.path(work_dir, paste0(".extract_", pkg, "_", version), pkg)
-  if (!dir.exists(pkg_dir)) {
-    tar_path <- file.path(work_dir, paste0(".raw_", pkg, ".tar.gz"))
-    direct_url <- sprintf("https://cran.r-project.org/src/contrib/%s_%s.tar.gz", pkg, version)
-    archive_url <- sprintf("https://cran.r-project.org/src/contrib/Archive/%s/%s_%s.tar.gz", pkg, pkg, version)
-    failed <- curl_fetch(direct_url, tar_path)
-    if (failed || !file.exists(tar_path) || file.size(tar_path) < 100) {
-      failed <- curl_fetch(archive_url, tar_path)
-    }
-    if (failed || !file.exists(tar_path) || file.size(tar_path) < 100) {
-      cur_ver <- tryCatch(tools::CRAN_package_db()$Version[tools::CRAN_package_db()$Package == pkg],
-                           error = function(e) character(0))
-      if (length(cur_ver) == 0L) stop("CRAN download failed for ", pkg, " (not found at all)", call. = FALSE)
-      current_url <- sprintf("https://cran.r-project.org/src/contrib/%s_%s.tar.gz", pkg, cur_ver[[1L]])
-      failed <- curl_fetch(current_url, tar_path)
-    }
-    if (failed || !file.exists(tar_path) || file.size(tar_path) == 0L) {
-      stop("CRAN download failed or empty for ", pkg, call. = FALSE)
-    }
-    utils::untar(tar_path, exdir = dirname(pkg_dir))
-    unlink(tar_path)
-  }
-  if (!dir.exists(pkg_dir)) stop("tarball for ", pkg, " did not extract as expected", call. = FALSE)
-
-  data_files <- list.files(file.path(pkg_dir, "data"))
-  obj <- NULL
-  for (f in data_files) {
-    base_ext <- tolower(tools::file_ext(sub("\\.gz$", "", f, ignore.case = TRUE)))
-    full_path <- file.path(pkg_dir, "data", f)
-    if (base_ext %in% c("rda", "rdata")) {
-      e <- new.env()
-      ok2 <- tryCatch({ load(full_path, envir = e); TRUE }, error = function(e) FALSE)
-      if (ok2 && obj_name %in% ls(e)) { obj <- get(obj_name, envir = e); break }
-    } else if (base_ext %in% c("txt", "csv") &&
-               tools::file_path_sans_ext(f, compression = TRUE) == obj_name) {
-      obj <- tryCatch(data.table::fread(full_path, data.table = FALSE), error = function(e) NULL)
-      if (!is.null(obj)) break
-    } else if (base_ext == "r" && tools::file_path_sans_ext(f, compression = TRUE) == obj_name) {
-      # data/<obj>.R: an R script that builds the object, sourced the way data() does.
-      # Old releases only, e.g. Epi 1.1.10's thoro.R -- pinned for its GPL (>= 2) license.
-      e <- new.env()
-      ok2 <- tryCatch({ sys.source(full_path, envir = e, chdir = TRUE); TRUE }, error = function(e) FALSE)
-      if (ok2 && obj_name %in% ls(e)) { obj <- get(obj_name, envir = e); break }
-    }
-  }
-  if (is.null(obj)) stop(obj_name, " not found in any data/ file of ", pkg, " (checked: ", paste(data_files, collapse = ", "), ")", call. = FALSE)
-  if (!(is.data.frame(obj) || is.matrix(obj))) stop(obj_name, " in ", pkg, " is not a data.frame/matrix (class ", class(obj)[1L], ")", call. = FALSE)
-  data.table::fwrite(as.data.frame(obj), dest_csv)
-  invisible(dest_csv)
-}
-
-# Same auto-discovery idea as cran_fetch_object_auto(), for a GitHub-only
-# (not-on-CRAN) repo pinned at a commit SHA. Repo's data/ files are plain
-# .csv here (rmcelreath/rethinking), not .rda -- data.table::fread()
-# auto-detects the delimiter (rethinking's CSVs use ";", not ",").
-github_fetch_object_auto <- function(repo, commit_sha, obj_name, dest_csv, work_dir) {
-  owner_repo <- strsplit(repo, "/", fixed = TRUE)[[1L]]
-  repo_dir <- file.path(work_dir, paste0(".extract_gh_", owner_repo[[2L]], "_", commit_sha))
-  if (!dir.exists(repo_dir)) {
-    tar_path <- file.path(work_dir, paste0(".raw_gh_", owner_repo[[2L]], ".tar.gz"))
-    url <- sprintf("https://github.com/%s/archive/%s.tar.gz", repo, commit_sha)
-    failed <- curl_fetch(url, tar_path)
-    if (failed || !file.exists(tar_path) || file.size(tar_path) == 0L) {
-      stop("GitHub download failed or empty: ", url, call. = FALSE)
-    }
-    utils::untar(tar_path, exdir = repo_dir)
-    unlink(tar_path)
-  }
-  # GitHub tarballs extract to "<repo>-<sha>/", not "<repo>/"
-  pkg_dir <- list.files(repo_dir, full.names = TRUE)[[1L]]
-  if (is.na(pkg_dir) || !dir.exists(pkg_dir)) stop("GitHub tarball for ", repo, " did not extract as expected", call. = FALSE)
-
-  data_files <- list.files(file.path(pkg_dir, "data"))
-  obj <- NULL
-  for (f in data_files) {
-    base_ext <- tolower(tools::file_ext(sub("\\.gz$", "", f, ignore.case = TRUE)))
-    full_path <- file.path(pkg_dir, "data", f)
-    if (base_ext %in% c("rda", "rdata")) {
-      e <- new.env()
-      ok2 <- tryCatch({ load(full_path, envir = e); TRUE }, error = function(e) FALSE)
-      if (ok2 && obj_name %in% ls(e)) { obj <- get(obj_name, envir = e); break }
-    } else if (base_ext %in% c("txt", "csv") &&
-               tools::file_path_sans_ext(f, compression = TRUE) == obj_name) {
-      obj <- tryCatch(data.table::fread(full_path, data.table = FALSE), error = function(e) NULL)
-      if (!is.null(obj)) break
-    }
-  }
-  if (is.null(obj)) stop(obj_name, " not found in any data/ file of ", repo, "@", commit_sha, " (checked: ", paste(data_files, collapse = ", "), ")", call. = FALSE)
-  if (!(is.data.frame(obj) || is.matrix(obj))) stop(obj_name, " in ", repo, " is not a data.frame/matrix (class ", class(obj)[1L], ")", call. = FALSE)
-  data.table::fwrite(as.data.frame(obj), dest_csv)
-  invisible(dest_csv)
-}
+# CRAN and GitHub fetches use cran_dataset_as_csv() / github_dataset_as_csv() and
+# curl_fetch() from download_experimental_datasets.R (sourced above).
 
 # ---------------------------------------------------------------------------
 # Dataverse fetch: curl-based equivalents of download_experimental_datasets.R's
 # dataverse_dataset_files()/dataverse_download_file() (which use httr2 and so
-# hit the same sandbox-proxy failure as cran_fetch_object_auto() above).
+# hit the same sandbox-proxy failure that moved the CRAN fetch to the curl CLI).
 # Reuses that file's DATAVERSE_HOST/DATAVERSE_GUESTBOOK_ANSWERS/
 # dataverse_guestbook_identity() -- those are plain data/logic, not httr2
 # calls, so they're safe to reuse as-is (already in scope via the
@@ -339,7 +229,8 @@ compute_experimental_missingness <- function(csv_path = file.path(THIS_DIR, "exp
     if (is.na(csv_name)) { note[i] <- "ambiguous source, skipped"; next }
     dest_csv <- file.path(ARCHIVE_DIR, csv_name)
     if (!file.exists(dest_csv)) {
-      ok <- tryCatch({ extract_experimental_datasets(manifest_key, download_dir = ARCHIVE_DIR); TRUE },
+      ok <- tryCatch({ extract_experimental_datasets(manifest_key, download_dir = ARCHIVE_DIR,
+                                                     catalog_md = file.path(THIS_DIR, "experimental_datasets.md")); TRUE },
                       error = function(e) { note[i] <<- paste("extract failed:", conditionMessage(e)); FALSE })
       if (!ok) next
     }
@@ -401,13 +292,13 @@ compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "ob
         dest_csv <- file.path(WORK_DIR, paste0("obs_", gsub("[^A-Za-z0-9]", "_", name), ".csv"))
         ok <- tryCatch({
           if (is_github[i]) {
-            github_fetch_object_auto(pkgs[i], versions[i], obj_names[i], dest_csv, WORK_DIR)
+            github_dataset_as_csv(pkgs[i], versions[i], dest_csv, WORK_DIR, obj_name = obj_names[i])
           } else if (is_dataverse[i]) {
             dv_i <- dv[[i]]
             dataverse_fetch_object_auto(dv_i$doi, dv_i$filename, dest_csv, WORK_DIR,
                                          inside_zip = if (is.na(dv_i$inside_zip)) NULL else dv_i$inside_zip)
           } else {
-            cran_fetch_object_auto(pkgs[i], versions[i], obj_names[i], dest_csv, WORK_DIR)
+            cran_dataset_as_csv(pkgs[i], versions[i], dest_csv, WORK_DIR, obj_name = obj_names[i])
           }
           TRUE
         }, error = function(e) { note[i] <<- paste("download failed:", conditionMessage(e)); FALSE })

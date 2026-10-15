@@ -297,7 +297,7 @@ This table times the production of one complete treatment allocation for $N=1000
 *   `DesignFixedBlocking` derives the strata from the factor covariates itself and then **delegates the within-block draw to `randomizr::block_ra()`** whenever randomizr is installed, so that row measures EDI's strata construction and R6 overhead on top of the canonical draw.
 *   `DesignFixedBinaryMatch` computes Mahalanobis distances in-house and **delegates the optimal nonbipartite matching to `nbpMatching::nonbimatch()`**; the nbpMatching row drives the same optimal matcher directly (`gendistance` + `distancematrix` + `nonbimatch` + within-pair coin flips) and the blockTools row is its greedy (`optGreedy`) pairing alternative, so the two rows bracket EDI's overhead and the greedy-vs-optimal cost.
 *   `DesignSeqOneByOnePocockSimon` processes the 1000 arrivals one R6 method call at a time, the sequential-trial use case it exists for, while `carat::PocSimMIN()` receives the whole covariate table at once and runs the sequence in C++ and `Minirand` is an R loop. The imbalance criteria differ in detail (EDI's weighted marginal $G_k$ with `p_best = 0.8` vs carat's and Minirand's `Range` method at $p = 0.8$).
-**Timing Note**: medians over 10 warmed runs; Welch t-test `Timing Pval` and row colouring as above.
+**Timing Note**: medians over 10 warmed runs except where a later focused benchmark is documented in the linked release plan; Welch t-test `Timing Pval` and row colouring as above.
 
 <table>
   <thead>
@@ -306,7 +306,7 @@ This table times the production of one complete treatment allocation for $N=1000
   <tbody>
     <tr><td>DesignFixediBCRD: complete randomization (n = 1000)</td><td>design</td><td>4.13</td><td>randomizr</td><td>complete_ra</td><td>0.12</td><td>0.028x</td><td>4.64e-11</td><td>***</td></tr>
     <tr><td>DesignFixedBlocking: strata from 2 factor covariates (6 blocks), n = 1000</td><td>design</td><td>4.81</td><td>randomizr</td><td>block_ra(blocks precomputed)</td><td>0.60</td><td>0.12x</td><td>6.53e-11</td><td>***</td></tr>
-    <tr><td>DesignFixedBinaryMatch: Mahalanobis optimal pairs + within-pair randomization (4 covariates, n = 1000)</td><td>design</td><td>639.00</td><td>nbpMatching</td><td>gendistance+nonbimatch+coin flips</td><td>453.00</td><td>0.71x</td><td>0.0132</td><td>*</td></tr>
+    <tr style="background-color: #d9fdd3;"><td>DesignFixedBinaryMatch: Mahalanobis optimal pairs + within-pair randomization (4 covariates, n = 1000)</td><td>design</td><td>537.00</td><td>nbpMatching</td><td>gendistance+nonbimatch+coin flips</td><td>890.00</td><td>1.66x</td><td>0.00618</td><td>**</td></tr>
     <tr><td>DesignFixedBinaryMatch: Mahalanobis optimal pairs + within-pair randomization (4 covariates, n = 1000)</td><td>design</td><td>476.50</td><td>blockTools</td><td>block(n.tr=2, optGreedy)+assignment</td><td>271.00</td><td>0.57x</td><td>0.000211</td><td>***</td></tr>
     <tr><td>DesignSeqOneByOnePocockSimon: 1000 sequential arrivals, 2 factor covariates, p_best = 0.8</td><td>design</td><td>3136.00</td><td>carat</td><td>PocSimMIN(p = 0.8)</td><td>4.41</td><td>0.0014x</td><td>5e-10</td><td>***</td></tr>
     <tr><td>DesignSeqOneByOnePocockSimon: 1000 sequential arrivals, 2 factor covariates, p_best = 0.8</td><td>design</td><td>3250.00</td><td>Minirand</td><td>Minirand(Range, p = 0.8) loop</td><td>1054.50</td><td>0.32x</td><td>5.61e-09</td><td>***</td></tr>

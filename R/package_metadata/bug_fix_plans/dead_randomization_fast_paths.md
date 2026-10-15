@@ -89,9 +89,21 @@ not exist either.
   current blocker. Focused installed-package tests passed 93 assertions
   across KK mean-difference, simple Wilcoxon, KK Wilcoxon, and ordinal Ridit
   fast paths, plus 54 assertions in the broader parallel-kernel contract
-  suite. These do not replace the required direct-call/parity table for all
-  18 overrides; current-checkout coercion verification still requires a
-  rebuilt native package.
+  suite. **Installed-package coverage probe, 2026-10-14:**
+  `Rscript scripts/todo64_installed_override_parity.R` directly called the
+  remaining 12 override definitions (Bai's shared override was exercised via
+  both KK14 and KK21 classes) on generated small fixtures and compared each
+  result with the reused-worker path at `1e-10`. All 13 class cases returned
+  the requested 4 draws (5 for RandCustom) and reported parity; 12 had finite
+  draws. The `InferenceContinKKOLSIVWC` case returned four `NA`s on both
+  paths, so that equality is vacuous; a separate randomized-covariate n=40
+  fixture also returned all `NA`s despite a finite public point estimate.
+  Several delegate overrides call the same reused-worker method directly, so
+  those comparisons establish execution, not an independent native-kernel
+  oracle. This records the remaining installed-package coverage but does not
+  close the all-18, generated-50, independent-parity acceptance criterion.
+  Current-checkout coercion verification still requires a rebuilt native
+  package.
 
 - [x] TODO-2: **Integer `w_mat` for the `Map<MatrixXi>` kernels (F2).**
   Minimal v1.0.5 form: coerce at the two Wilcoxon call sites
@@ -145,7 +157,11 @@ not exist either.
   HL reference. The KK-Wilcoxon reference suite now does the same explicitly,
   comparing double-dispatcher and integer-kernel matrices to `1e-10`. The
   broader all-class generated-permutation/worker-parity test remains open
-  with TODO-1's executable audit.
+  with TODO-1's executable audit. The compile-free installed-package probe
+  in `scripts/todo64_installed_override_parity.R` supplies small-fixture
+  evidence for the 12 previously uncovered override definitions, but it does
+  not substitute for a checked-in all-class `generate_permutations(50)` test;
+  the KK OLS-IVWC fixture is vacuous (all outputs `NA`).
 
 ## Acceptance
 

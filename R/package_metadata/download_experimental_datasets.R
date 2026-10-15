@@ -1,5 +1,7 @@
-# Download-and-normalize pipeline for every non-CRAN, non-GitHub real
-# experimental dataset in R/package_metadata/experimental_datasets.md.
+# Download-and-normalize pipeline for every experimental dataset in
+# R/package_metadata/experimental_datasets.md: 248 CRAN, 15 Dataverse and 6 GitHub
+# rows (the 2 ICPSR restricted-terms rows are fetched by hand). DATASET_MANIFEST
+# below says how to fetch each one; the md's Version column says which release.
 #
 # Usage (from the repo root):
 #   Rscript R/package_metadata/download_experimental_datasets.R
@@ -7,18 +9,16 @@
 #   source("R/package_metadata/download_experimental_datasets.R")
 #   download_all_datasets()
 #
-# Every dataset ends up as one or more plain CSV files, and the whole
-# download directory is then packed into a single randomized_experiment_datasets.tar.bz2 (the
-# loose CSVs are deleted afterward by default -- text compresses well under
-# bzip2, so one archive of uniform CSVs is both smaller on disk and simpler
-# to reason about than a mix of .zip/.tab/.dta/.csv). Run
-# extract_experimental_datasets() to unpack the archive back to loose CSVs when you
-# actually need to read one (e.g. from `_dataset_load.R`-style consumers).
+# Every dataset ends up as one plain CSV packed into its own <name>.tar.bz2 under
+# randomized_experiment_datasets/ (the loose CSVs are deleted afterward by
+# default -- text compresses well under bzip2). Run
+# extract_experimental_datasets(<name>) to unpack one back to a loose CSV when you
+# actually need to read it (e.g. from `_dataset_load.R`-style consumers). A row
+# whose Redistribution cell is not "yes" warns on download and on unpacking.
 #
-# Two distinct download mechanisms are used, per dataset:
+# Download mechanisms, per dataset:
 #
-# 1. Harvard Dataverse (the source for every dataset currently in the
-#    manifest below -- J-PAL/IPA/openICPSR studies mirrored there).
+# 1. Harvard Dataverse (J-PAL/IPA/openICPSR studies mirrored there).
 #    CONFIRMED WORKING end-to-end 2026-09-14/15. No ICPSR account or login
 #    of any kind is needed -- Dataverse's own "Guestbook" mechanism (a
 #    usage-tracking questionnaire some depositors require, unrelated to the
@@ -50,12 +50,16 @@
 #    inconsistently across back-to-back attempts (see the function's own
 #    comment). Prefer a Dataverse mirror when one exists.
 #
+# 3./4. CRAN packages and GitHub-only R packages: the pinned source tarball is
+#    fetched with the curl CLI and the data object read from its data/
+#    directory, no install (cran_extract_package(), github_extract_repo(),
+#    load_data_object(); shared with download_observational_datasets.R).
+#
 # Credentials: only the classic-ICPSR path (mechanism 2) needs any. Read
 # from your personal `~/.Rprofile` (never from this repo):
 #   options("icpsr_email" = "you@example.com", "icpsr_password" = "...")
-# The Dataverse guestbook path (mechanism 1 -- everything in the manifest
-# below) needs no account and no secret; it just records who's asking, the
-# same as a physical library guestbook. Your own name/email/institution for
+# The Dataverse guestbook path (mechanism 1) needs no account and no secret;
+# it just records who's asking, the same as a physical library guestbook. Your own name/email/institution for
 # that guestbook come from these options (all optional -- generic defaults
 # are used if unset, so this script runs for anyone who clones the repo):
 #   options("dataverse_guestbook_name" = "Your Name",
@@ -63,9 +67,8 @@
 #           "dataverse_guestbook_institution" = "Your Institution")
 #
 # Licensing: do not vendor any of this repo's downloaded output into a git
-# commit or the shipped package -- see the "Licensing note" section of
-# experimental_datasets.md. Keep `randomized_experiment_datasets/` and `randomized_experiment_datasets.tar.bz2`
-# gitignored (already true) and fetch live instead.
+# commit or the shipped package -- see dataset_license_audit.md. Keep
+# `randomized_experiment_datasets/` gitignored (already true) and fetch live instead.
 
 library(httr2)
 
@@ -303,7 +306,11 @@ download_zip_member_as_csv <- function(doi, zip_filename, member_basename, dest_
 }
 
 # ---------------------------------------------------------------------------
-# Mechanism 3: CRAN packages -- source tarball only, no install.packages()
+# Mechanisms 3 and 4: CRAN packages, and GitHub-only R packages (e.g.
+# `experimentdatar`, no CRAN listing -- see "Required R packages" in
+# experimental_datasets.md) -- source tarball only, no install. Shared with
+# download_observational_datasets.R and compute_covariate_missingness.R, which
+# source this file.
 # ---------------------------------------------------------------------------
 #
 # Confirmed working 2026-09-15/16 as the harvesting method for the
@@ -317,188 +324,177 @@ download_zip_member_as_csv <- function(doi, zip_filename, member_basename, dest_
 # is exactly what's needed here: we only want one dataset's bytes, not a
 # working copy of the package's R/C++ code.
 
-#' Download a CRAN package's source tarball (curl only, no install), pull
-#' out one named data object, convert it to CSV, and clean up the
-#' downloaded tarball/extracted directory -- nothing from the package
-#' itself is left on disk afterward, only `dest_csv`.
-#'
-#' @param pkg CRAN package name.
-#' @param version Exact version to fetch (pin, not "latest" -- matches
-#'   this project's existing CRAN/GitHub pinning convention).
-#' @param rda_name Base name (no extension) of the file under the
-#'   package's `data/` directory, e.g. "tanf" for `data/tanf.rda`.
-#' @param dest_csv Output CSV path.
-#' @param work_dir Scratch directory for the tarball/extraction (cleaned
-#'   up before returning).
-#' @param list_element For a data object that's a named list of several
-#'   data.frames (e.g. `stevedata::mm_randhie`, which bundles a
-#'   "RAND Baseline" and a "RAND Outcomes" table), the name of the one
-#'   element to use. NULL (default) expects the loaded object to already
-#'   be a plain data.frame/matrix.
-#' @param obj_name For a `.rda` FILE that bundles several independent
-#'   top-level objects together (e.g. `survival`'s `data/cancer.rda`,
-#'   which loads 21 separate datasets including `veteran`/`ovarian`/
-#'   `colon`/`bladder1` at once), the name of the one object to keep.
-#'   NULL (default) just takes the first object `load()` produces, which
-#'   is correct whenever `rda_name` and the object name coincide (the
-#'   common case).
-cran_download_dataset_as_csv <- function(pkg, version, rda_name, dest_csv, work_dir,
-                                          list_element = NULL, obj_name = NULL) {
-  # CRAN's plain src/contrib/ listing only ever holds the CURRENT version
-  # of a package; anything superseded moves to src/contrib/Archive/<pkg>/.
-  # The version pinned in our manifest is whatever was current when a
-  # dataset was first verified -- by the time this actually runs (this
-  # sweep alone took hours, spread across many parallel workers checking
-  # packages at different moments) the package may well have been
-  # updated, 404-ing the direct URL. Try direct first (usually still
-  # right), fall back to Archive on 404 -- don't silently substitute a
-  # newer version, since a later release could change the dataset itself.
-  tar_path <- file.path(work_dir, paste0(".raw_", pkg, ".tar.gz"))
-  direct_url <- sprintf("https://cran.r-project.org/src/contrib/%s_%s.tar.gz", pkg, version)
-  archive_url <- sprintf("https://cran.r-project.org/src/contrib/Archive/%s/%s_%s.tar.gz", pkg, pkg, version)
-  ok <- tryCatch({
-    httr2::request(direct_url) |> httr2::req_perform(path = tar_path)
-    TRUE
-  }, httr2_http_404 = function(e) FALSE)
-  if (!ok) {
-    message("  (", pkg, " ", version, " superseded on CRAN's main listing; trying Archive/)")
-    ok <- tryCatch({
-      httr2::request(archive_url) |> httr2::req_perform(path = tar_path)
-      TRUE
-    }, httr2_http_404 = function(e) FALSE)
-  }
-  if (!ok) {
-    # Last resort: the manifest's pinned version string doesn't exist
-    # anywhere on CRAN (a handful of these were mis-transcribed during
-    # the exhaustive sweep's fork-based review -- ~200 version strings
-    # recorded by many parallel passes, some error rate is expected).
-    # Fall back to whatever is CURRENT now rather than hard-failing --
-    # for a package that exists mainly to ship one classic dataset, the
-    # data itself essentially never changes across version bumps, only
-    # code/docs, so this is a safe last resort, not a silent data swap.
-    cur_ver <- tryCatch(tools::CRAN_package_db()$Version[tools::CRAN_package_db()$Package == pkg],
-                         error = function(e) character(0))
-    if (length(cur_ver) == 0L) stop("CRAN download failed for ", pkg, " ", version, " (not found on CRAN at all)", call. = FALSE)
-    message("  (", pkg, " ", version, " not found in Archive/ either; falling back to current CRAN version ", cur_ver[[1L]], ")")
-    current_url <- sprintf("https://cran.r-project.org/src/contrib/%s_%s.tar.gz", pkg, cur_ver[[1L]])
-    httr2::request(current_url) |> httr2::req_perform(path = tar_path)
-  }
-  if (!file.exists(tar_path) || file.size(tar_path) == 0L) {
-    stop("CRAN download failed or empty for ", pkg, " ", version, call. = FALSE)
-  }
-
-  extract_dir <- file.path(work_dir, paste0(".extract_", pkg))
-  unlink(extract_dir, recursive = TRUE)
-  utils::untar(tar_path, exdir = extract_dir)
-  pkg_dir <- file.path(extract_dir, pkg)
-  if (!dir.exists(pkg_dir) || !file.exists(file.path(pkg_dir, "DESCRIPTION"))) {
-    stop("CRAN tarball for ", pkg, " did not extract as expected (partial download?)", call. = FALSE)
-  }
-
-  data_files <- list.files(file.path(pkg_dir, "data"))
-  # compression = TRUE: older releases may ship e.g. teach.df.txt.gz (s20x 3.1-10,
-  # pinned deliberately for its GPL (>= 2) license); fread reads .gz directly.
-  hit <- data_files[tools::file_path_sans_ext(data_files, compression = TRUE) == rda_name]
-  if (length(hit) == 0L) {
-    stop("Data object '", rda_name, "' not found in ", pkg, " ", version,
-         "'s data/ directory (found: ", paste(data_files, collapse = ", "), ")", call. = FALSE)
-  }
-  src_path <- file.path(pkg_dir, "data", hit[[1L]])
-  ext <- tolower(tools::file_ext(sub("\\.(gz|bz2|xz)$", "", src_path)))
-  if (ext %in% c("rda", "rdata", "r")) {
-    e <- new.env()
-    if (ext == "r") {
-      # data/<obj>.R builds the object when sourced, the way data() handles it (old
-      # releases only, e.g. Epi 1.1.10's thoro.R); same as cran_fetch_object_auto().
-      sys.source(src_path, envir = e, chdir = TRUE)
-    } else {
-      load(src_path, envir = e)
-    }
-    obj_names <- ls(e)
-    if (length(obj_names) == 0L) stop("No objects loaded from ", src_path, call. = FALSE)
-    want <- if (!is.null(obj_name)) obj_name else obj_names[[1L]]
-    if (!want %in% obj_names) {
-      stop("obj_name '", want, "' not found in ", pkg, "::", rda_name,
-           " (available: ", paste(obj_names, collapse = ", "), ")", call. = FALSE)
-    }
-    obj <- get(want, envir = e)
-    if (is.list(obj) && !is.data.frame(obj) && !is.null(list_element)) {
-      if (!list_element %in% names(obj)) {
-        stop("list_element '", list_element, "' not found in ", pkg, "::", rda_name,
-             " (available: ", paste(names(obj), collapse = ", "), ")", call. = FALSE)
-      }
-      obj <- obj[[list_element]]
-    }
-    if (!(is.data.frame(obj) || is.matrix(obj))) {
-      stop("Object '", obj_names[[1L]], "' in ", pkg, "::", rda_name,
-           " is not a data.frame/matrix (class: ", class(obj)[1L], ") -- needs a bespoke conversion",
-           call. = FALSE)
-    }
-    data.table::fwrite(as.data.frame(obj), dest_csv)
-  } else if (ext == "txt") {
-    df <- data.table::fread(src_path, data.table = FALSE)
-    data.table::fwrite(df, dest_csv)
-  } else {
-    convert_to_csv(src_path, dest_csv)
-  }
-
-  unlink(tar_path)
-  unlink(extract_dir, recursive = TRUE)
-  invisible(dest_csv)
+# Tarballs are fetched with the curl CLI, not httr2: R's curl/httr2 package fails through
+# some proxies ("Proxy CONNECT aborted", e.g. the Claude Code sandbox's) where the CLI works
+# against the same URL. Returns curl's exit status: 0 on success, 22 on an HTTP error such
+# as 404.
+curl_status <- function(url, dest_path) {
+  out <- suppressWarnings(system2("curl", c("-sSL", "-f", "-o", shQuote(dest_path), shQuote(url)),
+                                  stdout = TRUE, stderr = TRUE))
+  status <- attr(out, "status")
+  if (is.null(status)) 0L else as.integer(status)
 }
 
-# ---------------------------------------------------------------------------
-# Mechanism 4: GitHub-only R packages -- same install-free approach as
-# CRAN, just a different tarball source. Needed for `experimentdatar`
-# (GitHub-only, no CRAN listing at all -- see "Required R packages" in
-# experimental_datasets.md for why).
-# ---------------------------------------------------------------------------
+# TRUE when the download failed (the Dataverse helpers in compute_covariate_missingness.R).
+curl_fetch <- function(url, dest_path) curl_status(url, dest_path) != 0L
 
-#' Download one GitHub repo at a pinned commit (source tarball, no
-#' `devtools::install_github()`), pull out one named data object, convert
-#' to CSV. Same structure/rationale as `cran_download_dataset_as_csv()`.
+#' Download a CRAN package's source tarball at exactly `version` and extract it
+#' under `work_dir`; returns the package directory. An earlier extraction of the
+#' same package and version is reused, since many catalog rows share a package
+#' (seven observational rows come from `survival` alone).
+#'
+#' CRAN's src/contrib/ holds only the current release; superseded ones move to
+#' src/contrib/Archive/<pkg>/. Another version is never substituted: the catalogs'
+#' License and Redistribution cells describe the pinned release, and some pins are
+#' deliberately old because the current release is GPL-2 only
+#' (dataset_license_audit.md).
+cran_extract_package <- function(pkg, version, work_dir) {
+  pkg_dir <- file.path(work_dir, paste0(".extract_", pkg, "_", version), pkg)
+  if (file.exists(file.path(pkg_dir, "DESCRIPTION"))) return(pkg_dir)
+  tar_path <- file.path(work_dir, paste0(".raw_", pkg, "_", version, ".tar.gz"))
+  on.exit(unlink(tar_path))
+  status <- curl_status(sprintf("https://cran.r-project.org/src/contrib/%s_%s.tar.gz", pkg, version), tar_path)
+  if (status == 22L) {
+    message("  (", pkg, " ", version, " superseded on CRAN's main listing; trying Archive/)")
+    status <- curl_status(sprintf("https://cran.r-project.org/src/contrib/Archive/%s/%s_%s.tar.gz",
+                                  pkg, pkg, version), tar_path)
+  }
+  if (status == 22L) {
+    stop("CRAN has no ", pkg, " ", version, " (neither src/contrib/ nor Archive/); ",
+         "correct the Version cell in the catalog md", call. = FALSE)
+  }
+  if (status != 0L || !file.exists(tar_path) || file.size(tar_path) == 0L) {
+    stop("CRAN download of ", pkg, " ", version, " failed (curl exit status ", status, ")", call. = FALSE)
+  }
+  utils::untar(tar_path, exdir = dirname(pkg_dir))
+  if (!file.exists(file.path(pkg_dir, "DESCRIPTION"))) {
+    stop("CRAN tarball for ", pkg, " ", version, " did not extract as expected (partial download?)", call. = FALSE)
+  }
+  pkg_dir
+}
+
+#' Download a GitHub repo at a pinned commit (source tarball, no
+#' `devtools::install_github()`) and extract it under `work_dir`; returns the
+#' package directory. An earlier extraction of the same commit is reused.
 #'
 #' @param repo "owner/name" GitHub repo spec.
 #' @param commit_sha Pinned commit SHA (full or abbreviated).
-github_download_dataset_as_csv <- function(repo, commit_sha, rda_name, dest_csv, work_dir) {
-  owner_repo <- strsplit(repo, "/", fixed = TRUE)[[1L]]
-  url <- sprintf("https://github.com/%s/archive/%s.tar.gz", repo, commit_sha)
-  tar_path <- file.path(work_dir, paste0(".raw_", owner_repo[[2L]], ".tar.gz"))
-  httr2::request(url) |> httr2::req_perform(path = tar_path)
-  if (!file.exists(tar_path) || file.size(tar_path) == 0L) {
-    stop("GitHub download failed or empty: ", url, call. = FALSE)
-  }
-
-  extract_dir <- file.path(work_dir, paste0(".extract_", owner_repo[[2L]]))
-  unlink(extract_dir, recursive = TRUE)
-  utils::untar(tar_path, exdir = extract_dir)
+github_extract_repo <- function(repo, commit_sha, work_dir) {
+  repo_dir <- file.path(work_dir, paste0(".extract_gh_", basename(repo), "_", commit_sha))
   # GitHub tarballs extract to "<repo>-<sha>/", not "<repo>/"
-  pkg_dir <- list.files(extract_dir, full.names = TRUE)[[1L]]
-  if (is.na(pkg_dir) || !dir.exists(pkg_dir)) {
-    stop("GitHub tarball for ", repo, " did not extract as expected", call. = FALSE)
+  pkg_dir <- list.files(repo_dir, full.names = TRUE)
+  if (length(pkg_dir) == 1L) return(pkg_dir)
+  url <- sprintf("https://github.com/%s/archive/%s.tar.gz", repo, commit_sha)
+  tar_path <- file.path(work_dir, paste0(".raw_gh_", basename(repo), "_", commit_sha, ".tar.gz"))
+  on.exit(unlink(tar_path))
+  status <- curl_status(url, tar_path)
+  if (status != 0L || !file.exists(tar_path) || file.size(tar_path) == 0L) {
+    stop("GitHub download failed (curl exit status ", status, "): ", url, call. = FALSE)
   }
+  unlink(repo_dir, recursive = TRUE)
+  utils::untar(tar_path, exdir = repo_dir)
+  pkg_dir <- list.files(repo_dir, full.names = TRUE)
+  if (length(pkg_dir) != 1L) stop("GitHub tarball for ", repo, " did not extract as expected", call. = FALSE)
+  pkg_dir
+}
 
+#' Load one data object from an extracted package's data/ directory the way
+#' `data()` would: .rda/.RData are `load()`ed, a data/<obj>.R script is
+#' `sys.source()`d (old releases only, e.g. Epi 1.1.10's thoro.R), and
+#' .txt/.csv/.tab/.tsv tables are read with `fread()`. Compression suffixes are
+#' ignored (s20x 3.1-10 ships teach.df.txt.gz; fread reads .gz directly). Returns a
+#' data.frame.
+#'
+#' @param obj_name The object to return. For a file that bundles several objects
+#'   (e.g. `survival`'s data/cancer.rda, which holds veteran/ovarian/colon/bladder1
+#'   and more), this picks one; NULL takes the first object the file defines.
+#' @param file_name The data/ file holding the object, without extension. NULL
+#'   (default) tries every .rda/.RData file, then a table or .R file named
+#'   `obj_name`, until one yields `obj_name` -- the file name often differs from the
+#'   object's (cancer.rda again).
+#' @param list_element For an object that is a named list of tables (e.g.
+#'   `stevedata::mm_randhie`'s "RAND Baseline" and "RAND Outcomes"), the one to use.
+#' @param label How to name the package in error messages.
+load_data_object <- function(pkg_dir, obj_name = NULL, file_name = NULL, list_element = NULL,
+                             label = basename(pkg_dir)) {
+  if (is.null(obj_name) && is.null(file_name)) stop("load_data_object() needs obj_name or file_name", call. = FALSE)
+  searching <- is.null(file_name)
+  stem_wanted <- if (searching) obj_name else file_name
   data_files <- list.files(file.path(pkg_dir, "data"))
-  hit <- data_files[tools::file_path_sans_ext(data_files) == rda_name]
-  if (length(hit) == 0L) {
-    stop("Data object '", rda_name, "' not found in ", repo, "@", commit_sha,
-         "'s data/ directory (found: ", paste(data_files, collapse = ", "), ")", call. = FALSE)
+  stems <- tools::file_path_sans_ext(data_files, compression = TRUE)
+  exts <- tolower(tools::file_ext(sub("\\.(gz|bz2|xz)$", "", data_files, ignore.case = TRUE)))
+  candidates <- which(stems == stem_wanted | (searching & exts %in% c("rda", "rdata")))
+  if (length(candidates) == 0L) {
+    stop("No data/ file for '", stem_wanted, "' in ", label, " (found: ", paste(data_files, collapse = ", "), ")", call. = FALSE)
   }
-  src_path <- file.path(pkg_dir, "data", hit[[1L]])
-  e <- new.env()
-  load(src_path, envir = e)
-  obj_names <- ls(e)
-  if (length(obj_names) == 0L) stop("No objects loaded from ", src_path, call. = FALSE)
-  obj <- get(obj_names[[1L]], envir = e)
+  # While searching, a file that fails to load or lacks the object is skipped, not fatal.
+  give_up <- function(...) if (searching) NULL else stop(..., call. = FALSE)
+  obj <- NULL
+  for (i in candidates) {
+    path <- file.path(pkg_dir, "data", data_files[[i]])
+    if (exts[[i]] %in% c("rda", "rdata", "r")) {
+      e <- new.env()
+      loaded <- tryCatch({
+        if (exts[[i]] == "r") sys.source(path, envir = e, chdir = TRUE) else load(path, envir = e)
+        TRUE
+      }, error = function(err) { give_up("Could not load ", path, ": ", conditionMessage(err)); FALSE })
+      if (!loaded) next
+      want <- if (!is.null(obj_name)) obj_name else ls(e)[1L]
+      if (is.na(want) || !want %in% ls(e)) {
+        give_up("Object '", if (is.null(obj_name)) "<any>" else obj_name, "' not in data/", data_files[[i]], " of ", label,
+                " (available: ", paste(ls(e), collapse = ", "), ")")
+        next
+      }
+      obj <- get(want, envir = e)
+    } else if (exts[[i]] %in% c("txt", "csv", "tab", "tsv")) {
+      obj <- tryCatch(
+        if (exts[[i]] %in% c("tab", "tsv")) data.table::fread(path, sep = "\t", quote = "", data.table = FALSE)
+        else data.table::fread(path, data.table = FALSE),
+        error = function(err) give_up("Could not read ", path, ": ", conditionMessage(err)))
+      if (is.null(obj)) next
+    } else {
+      give_up("Unsupported data/ file type: ", data_files[[i]], " in ", label)
+      next
+    }
+    break
+  }
+  if (is.null(obj)) {
+    stop(obj_name, " not found in any data/ file of ", label, " (checked: ", paste(data_files[candidates], collapse = ", "), ")",
+         call. = FALSE)
+  }
+  if (is.list(obj) && !is.data.frame(obj) && !is.null(list_element)) {
+    if (!list_element %in% names(obj)) {
+      stop("list_element '", list_element, "' not found in ", label, " (available: ", paste(names(obj), collapse = ", "), ")",
+           call. = FALSE)
+    }
+    obj <- obj[[list_element]]
+  }
   if (!(is.data.frame(obj) || is.matrix(obj))) {
-    stop("Object '", obj_names[[1L]], "' in ", repo, "::", rda_name,
-         " is not a data.frame/matrix (class: ", class(obj)[1L], ")", call. = FALSE)
+    stop("Data object in ", label, " is not a data.frame/matrix (class: ", class(obj)[1L], ") -- needs a bespoke conversion",
+         call. = FALSE)
   }
-  data.table::fwrite(as.data.frame(obj), dest_csv)
+  as.data.frame(obj)
+}
 
-  unlink(tar_path)
-  unlink(extract_dir, recursive = TRUE)
+#' Fetch one data object from a pinned CRAN release and write it to `dest_csv`.
+#' Arguments as for cran_extract_package() and load_data_object().
+cran_dataset_as_csv <- function(pkg, version, dest_csv, work_dir, obj_name = NULL, file_name = NULL,
+                                list_element = NULL) {
+  pkg_dir <- cran_extract_package(pkg, version, work_dir)
+  data.table::fwrite(load_data_object(pkg_dir, obj_name, file_name, list_element, label = paste(pkg, version)), dest_csv)
   invisible(dest_csv)
+}
+
+#' Same as cran_dataset_as_csv() for a GitHub repo at a pinned commit.
+github_dataset_as_csv <- function(repo, commit_sha, dest_csv, work_dir, obj_name = NULL, file_name = NULL) {
+  pkg_dir <- github_extract_repo(repo, commit_sha, work_dir)
+  data.table::fwrite(load_data_object(pkg_dir, obj_name, file_name, label = paste0(repo, "@", commit_sha)), dest_csv)
+  invisible(dest_csv)
+}
+
+# Remove the .extract_* / .raw_* scratch the fetchers above leave under work_dir.
+clean_fetch_scratch <- function(work_dir) {
+  unlink(list.files(work_dir, pattern = "^\\.(extract|raw)_", all.files = TRUE, full.names = TRUE), recursive = TRUE)
 }
 
 # ---------------------------------------------------------------------------
@@ -599,40 +595,44 @@ combine_monitoring_works <- function(tables) {
 # Dataset manifest -- every Dataverse-sourced row in experimental_datasets.md
 # ---------------------------------------------------------------------------
 
+# The manifest says how to fetch and normalize each dataset, never which release: every
+# CRAN version and GitHub commit comes from the Version column of experimental_datasets.md
+# (catalog_row() below), so the catalog's License/Redistribution cells always describe the
+# release actually downloaded. Ten rows are pinned to old GPL-3-compatible releases on
+# purpose (PASWR 1.1, s20x 3.1-10, coin 0.6-4, nlmeU 0.70-9; see dataset_license_audit.md).
 DATASET_MANIFEST <- list(
   # ---- Core tier, CRAN-sourced -- migrated from install.packages()+data()
   # to the install-free mechanism for consistency with every Expanded-tier
-  # CRAN dataset. Versions here match the exact installed versions recorded
-  # in the table (real pins, not the round-5-sweep's best-effort ones).
-  veteran = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cancer", obj_name = "veteran", out_csv = "core_veteran.csv")),
-  ovarian = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cancer", obj_name = "ovarian", out_csv = "core_ovarian.csv")),
-  colon = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cancer", obj_name = "colon", out_csv = "core_colon.csv")),
-  pbc = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "pbc", out_csv = "core_pbc.csv")),
-  respdis = list(cran = list(pkg = "geepack", version = "1.3.13", rda_name = "respdis", out_csv = "core_respdis.csv")),
-  respiratory = list(cran = list(pkg = "geepack", version = "1.3.13", rda_name = "respiratory", out_csv = "core_respiratory.csv")),
-  strep_tb = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "strep_tb", out_csv = "core_strep_tb.csv")),
-  licorice_gargle = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "licorice_gargle", out_csv = "core_licorice_gargle.csv")),
-  polyps = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "polyps", out_csv = "core_polyps.csv")),
-  indo_rct = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "indo_rct", out_csv = "core_indo_rct.csv")),
-  laryngoscope = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "laryngoscope", out_csv = "core_laryngoscope.csv")),
-  lalonde.exp = list(cran = list(pkg = "qte", version = "2.0.0", rda_name = "lalonde", out_csv = "core_lalonde_exp.csv")),
-  STAR = list(cran = list(pkg = "AER", version = "1.2-17", rda_name = "STAR", out_csv = "core_STAR.csv")),
-  ResumeNames = list(cran = list(pkg = "AER", version = "1.2-17", rda_name = "ResumeNames", out_csv = "core_ResumeNames.csv")),
-  mm_randhie = list(cran = list(pkg = "stevedata", version = "1.8.0", rda_name = "mm_randhie", out_csv = "core_mm_randhie.csv", list_element = "RAND Outcomes")),
-  diabetic = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "diabetic", out_csv = "core_diabetic.csv")),
-  bladder1 = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cancer", obj_name = "bladder1", out_csv = "core_bladder1.csv")),
-  rhDNase = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "rhDNase", out_csv = "core_rhDNase.csv")),
-  cgd = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "cgd", out_csv = "core_cgd.csv")),
-  udca = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "udca", out_csv = "core_udca.csv")),
-  solder = list(cran = list(pkg = "survival", version = "3.8-6", rda_name = "solder", out_csv = "core_solder.csv")),
+  # CRAN dataset.
+  veteran = list(cran = list(pkg = "survival", rda_name = "cancer", obj_name = "veteran", out_csv = "core_veteran.csv")),
+  ovarian = list(cran = list(pkg = "survival", rda_name = "cancer", obj_name = "ovarian", out_csv = "core_ovarian.csv")),
+  colon = list(cran = list(pkg = "survival", rda_name = "cancer", obj_name = "colon", out_csv = "core_colon.csv")),
+  pbc = list(cran = list(pkg = "survival", rda_name = "pbc", out_csv = "core_pbc.csv")),
+  respdis = list(cran = list(pkg = "geepack", rda_name = "respdis", out_csv = "core_respdis.csv")),
+  respiratory = list(cran = list(pkg = "geepack", rda_name = "respiratory", out_csv = "core_respiratory.csv")),
+  strep_tb = list(cran = list(pkg = "medicaldata", rda_name = "strep_tb", out_csv = "core_strep_tb.csv")),
+  licorice_gargle = list(cran = list(pkg = "medicaldata", rda_name = "licorice_gargle", out_csv = "core_licorice_gargle.csv")),
+  polyps = list(cran = list(pkg = "medicaldata", rda_name = "polyps", out_csv = "core_polyps.csv")),
+  indo_rct = list(cran = list(pkg = "medicaldata", rda_name = "indo_rct", out_csv = "core_indo_rct.csv")),
+  laryngoscope = list(cran = list(pkg = "medicaldata", rda_name = "laryngoscope", out_csv = "core_laryngoscope.csv")),
+  lalonde.exp = list(cran = list(pkg = "qte", rda_name = "lalonde", out_csv = "core_lalonde_exp.csv")),
+  STAR = list(cran = list(pkg = "AER", rda_name = "STAR", out_csv = "core_STAR.csv")),
+  ResumeNames = list(cran = list(pkg = "AER", rda_name = "ResumeNames", out_csv = "core_ResumeNames.csv")),
+  mm_randhie = list(cran = list(pkg = "stevedata", rda_name = "mm_randhie", out_csv = "core_mm_randhie.csv", list_element = "RAND Outcomes")),
+  diabetic = list(cran = list(pkg = "survival", rda_name = "diabetic", out_csv = "core_diabetic.csv")),
+  bladder1 = list(cran = list(pkg = "survival", rda_name = "cancer", obj_name = "bladder1", out_csv = "core_bladder1.csv")),
+  rhDNase = list(cran = list(pkg = "survival", rda_name = "rhDNase", out_csv = "core_rhDNase.csv")),
+  cgd = list(cran = list(pkg = "survival", rda_name = "cgd", out_csv = "core_cgd.csv")),
+  udca = list(cran = list(pkg = "survival", rda_name = "udca", out_csv = "core_udca.csv")),
+  solder = list(cran = list(pkg = "survival", rda_name = "solder", out_csv = "core_solder.csv")),
 
   # ---- Core tier, GitHub-sourced (experimentdatar, no CRAN listing) ----
-  charitable = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "charitable", out_csv = "core_charitable.csv")),
-  mobilization = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "mobilization", out_csv = "core_mobilization.csv")),
-  social = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "social", out_csv = "core_social.csv")),
-  secrecy = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "secrecy", out_csv = "core_secrecy.csv")),
-  vouchers = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "vouchers", out_csv = "core_vouchers.csv")),
-  welfare = list(github = list(repo = "itamarcaspi/experimentdatar", commit_sha = "f71a9d0", rda_name = "welfare", out_csv = "core_welfare.csv")),
+  charitable = list(github = list(repo = "itamarcaspi/experimentdatar", rda_name = "charitable", out_csv = "core_charitable.csv")),
+  mobilization = list(github = list(repo = "itamarcaspi/experimentdatar", rda_name = "mobilization", out_csv = "core_mobilization.csv")),
+  social = list(github = list(repo = "itamarcaspi/experimentdatar", rda_name = "social", out_csv = "core_social.csv")),
+  secrecy = list(github = list(repo = "itamarcaspi/experimentdatar", rda_name = "secrecy", out_csv = "core_secrecy.csv")),
+  vouchers = list(github = list(repo = "itamarcaspi/experimentdatar", rda_name = "vouchers", out_csv = "core_vouchers.csv")),
+  welfare = list(github = list(repo = "itamarcaspi/experimentdatar", rda_name = "welfare", out_csv = "core_welfare.csv")),
 
   # Roster.csv is not fetched: it is a variable-description sheet for a
   # roster data file the deposit does not include.
@@ -731,240 +731,236 @@ DATASET_MANIFEST <- list(
   # (the original 32) are NOT migrated -- they predate this mechanism and
   # are already relied on via the ordinary install.packages()+data()
   # pattern documented above; changing that is a separate decision.
-  tanf = list(cran = list(pkg = "whatifbandit", version = "1.0.3", rda_name = "tanf", out_csv = "tanf.csv")),
-  gastric_cancer_trial_df = list(cran = list(pkg = "DigestiveDataSets", version = "0.2.0", rda_name = "gastric_cancer_trial_df", out_csv = "gastric_cancer_trial_df.csv")),
-  liver_cirrhosis_prednisone_df = list(cran = list(pkg = "DigestiveDataSets", version = "0.2.0", rda_name = "liver_cirrhosis_prednisone_df", out_csv = "liver_cirrhosis_prednisone_df.csv")),
-  WSCdata = list(cran = list(pkg = "WSCdata", version = "0.1.2", rda_name = "WSCdata", out_csv = "WSCdata.csv")),
-  immigrationconjoint = list(cran = list(pkg = "cjoint", version = "2.1.3", rda_name = "immigrationconjoint", out_csv = "immigrationconjoint.csv")),
-  epilepsy_RCT_tbl_df = list(cran = list(pkg = "NeuroDataSets", version = "0.3.1", rda_name = "epilepsy_RCT_tbl_df", out_csv = "epilepsy_RCT_tbl_df.csv")),
-  sulphinpyrazone_tbl_df = list(cran = list(pkg = "CardioDataSets", version = "0.2.0", rda_name = "sulphinpyrazone_tbl_df", out_csv = "sulphinpyrazone_tbl_df.csv")),
-  Gbsg_df = list(cran = list(pkg = "ForCausality", version = "0.1.0", rda_name = "Gbsg_df", out_csv = "Gbsg_df.csv")),
-  seguro = list(cran = list(pkg = "experiment", version = "1.2.1", rda_name = "seguro", out_csv = "seguro.csv")),
-  ajps = list(cran = list(pkg = "GK2011", version = "0.1.3", rda_name = "ajps", out_csv = "ajps.csv")),
-  pakistan = list(cran = list(pkg = "endorse", version = "1.6.2", rda_name = "pakistan", out_csv = "pakistan.csv")),
-  berberis_treatment = list(cran = list(pkg = "ecoteach", version = "0.1.0", rda_name = "berberis_treatment", out_csv = "berberis_treatment.csv")),
-  PowderyMildew = list(cran = list(pkg = "epifitter", version = "1.0.0", rda_name = "PowderyMildew", out_csv = "PowderyMildew.csv")),
-  train1 = list(cran = list(pkg = "callback", version = "0.1.3", rda_name = "train1", out_csv = "train1.csv")),
-  opt = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "opt", out_csv = "opt.csv")),
-  supraclavicular = list(cran = list(pkg = "medicaldata", version = "0.2.0", rda_name = "supraclavicular", out_csv = "supraclavicular.csv")),
+  tanf = list(cran = list(pkg = "whatifbandit", rda_name = "tanf", out_csv = "tanf.csv")),
+  gastric_cancer_trial_df = list(cran = list(pkg = "DigestiveDataSets", rda_name = "gastric_cancer_trial_df", out_csv = "gastric_cancer_trial_df.csv")),
+  liver_cirrhosis_prednisone_df = list(cran = list(pkg = "DigestiveDataSets", rda_name = "liver_cirrhosis_prednisone_df", out_csv = "liver_cirrhosis_prednisone_df.csv")),
+  WSCdata = list(cran = list(pkg = "WSCdata", rda_name = "WSCdata", out_csv = "WSCdata.csv")),
+  immigrationconjoint = list(cran = list(pkg = "cjoint", rda_name = "immigrationconjoint", out_csv = "immigrationconjoint.csv")),
+  epilepsy_RCT_tbl_df = list(cran = list(pkg = "NeuroDataSets", rda_name = "epilepsy_RCT_tbl_df", out_csv = "epilepsy_RCT_tbl_df.csv")),
+  sulphinpyrazone_tbl_df = list(cran = list(pkg = "CardioDataSets", rda_name = "sulphinpyrazone_tbl_df", out_csv = "sulphinpyrazone_tbl_df.csv")),
+  Gbsg_df = list(cran = list(pkg = "ForCausality", rda_name = "Gbsg_df", out_csv = "Gbsg_df.csv")),
+  seguro = list(cran = list(pkg = "experiment", rda_name = "seguro", out_csv = "seguro.csv")),
+  ajps = list(cran = list(pkg = "GK2011", rda_name = "ajps", out_csv = "ajps.csv")),
+  pakistan = list(cran = list(pkg = "endorse", rda_name = "pakistan", out_csv = "pakistan.csv")),
+  berberis_treatment = list(cran = list(pkg = "ecoteach", rda_name = "berberis_treatment", out_csv = "berberis_treatment.csv")),
+  PowderyMildew = list(cran = list(pkg = "epifitter", rda_name = "PowderyMildew", out_csv = "PowderyMildew.csv")),
+  train1 = list(cran = list(pkg = "callback", rda_name = "train1", out_csv = "train1.csv")),
+  opt = list(cran = list(pkg = "medicaldata", rda_name = "opt", out_csv = "opt.csv")),
+  supraclavicular = list(cran = list(pkg = "medicaldata", rda_name = "supraclavicular", out_csv = "supraclavicular.csv")),
 
   # ---- CRAN-sourced datasets from the exhaustive sweep (round 4), no
-  # install.packages() needed -- see cran_download_dataset_as_csv() ----
-  clubSandwich_AchievementAwardsRCT = list(cran = list(pkg = "clubSandwich", version = "0.5.11", rda_name = "AchievementAwardsRCT", out_csv = "clubSandwich_AchievementAwardsRCT.csv")),
-  asaur_pharmacoSmoking = list(cran = list(pkg = "asaur", version = "0.50", rda_name = "pharmacoSmoking", out_csv = "asaur_pharmacoSmoking.csv")),
-  afex_laptop_urry = list(cran = list(pkg = "afex", version = "1.5-1", rda_name = "laptop_urry", out_csv = "afex_laptop_urry.csv")),
-  cofad_testing_effect = list(cran = list(pkg = "cofad", version = "0.4.0", rda_name = "testing_effect", out_csv = "cofad_testing_effect.csv")),
-  causalweight_JC = list(cran = list(pkg = "causalweight", version = "1.1.5", rda_name = "JC", out_csv = "causalweight_JC.csv")),
-  causalweight_india = list(cran = list(pkg = "causalweight", version = "1.1.6", rda_name = "india", out_csv = "causalweight_india.csv")),
-  causalweight_wexpect = list(cran = list(pkg = "causalweight", version = "1.1.6", rda_name = "wexpect", out_csv = "causalweight_wexpect.csv")),
-  causalweight_coffeeleaflet = list(cran = list(pkg = "causalweight", version = "1.1.6", rda_name = "coffeeleaflet", out_csv = "causalweight_coffeeleaflet.csv")),
-  causalweight_swissexper = list(cran = list(pkg = "causalweight", version = "1.1.6", rda_name = "swissexper", out_csv = "causalweight_swissexper.csv")),
-  causalOT_pph = list(cran = list(pkg = "causalOT", version = "1.0.4", rda_name = "pph", out_csv = "causalOT_pph.csv")),
-  causalSLSE_nsw = list(cran = list(pkg = "causalSLSE", version = "0.4", rda_name = "nsw", out_csv = "causalSLSE_nsw.csv")),
-  causaldata_black_politicians = list(cran = list(pkg = "causaldata", version = "0.1.4", rda_name = "black_politicians", out_csv = "causaldata_black_politicians.csv")),
-  ClinicalTrialSummary_ggas = list(cran = list(pkg = "ClinicalTrialSummary", version = "1.1.1", rda_name = "ggas", out_csv = "ClinicalTrialSummary_ggas.csv")),
-  baggr_microcredit = list(cran = list(pkg = "baggr", version = "0.8.2", rda_name = "microcredit", out_csv = "baggr_microcredit.csv")),
-  asbio_potash = list(cran = list(pkg = "asbio", version = "1.13-1", rda_name = "potash", out_csv = "asbio_potash.csv")),
-  collett_prostatic = list(cran = list(pkg = "collett", version = "0.1.2", rda_name = "prostatic", out_csv = "collett_prostatic.csv")),
-  collett_tamoxifen = list(cran = list(pkg = "collett", version = "0.1.2", rda_name = "tamoxifen", out_csv = "collett_tamoxifen.csv")),
-  collett_active_hepatitis = list(cran = list(pkg = "collett", version = "0.1.2", rda_name = "active_hepatitis", out_csv = "collett_active_hepatitis.csv")),
-  BGPhazard_gehan = list(cran = list(pkg = "BGPhazard", version = "2.1.1", rda_name = "gehan", out_csv = "BGPhazard_gehan.csv")),
-  coxphw_biofeedback = list(cran = list(pkg = "coxphw", version = "4.0.3", rda_name = "biofeedback", out_csv = "coxphw_biofeedback.csv")),
-  CrossCarry_Water = list(cran = list(pkg = "CrossCarry", version = "1.2.0", rda_name = "Water", out_csv = "CrossCarry_Water.csv")),
-  dae_McIntyreTMV_dat = list(cran = list(pkg = "dae", version = "3.2.35", rda_name = "McIntyreTMV.dat", out_csv = "dae_McIntyreTMV.csv")),
-  dae_Oats_dat = list(cran = list(pkg = "dae", version = "3.2.35", rda_name = "Oats.dat", out_csv = "dae_Oats.csv")),
-  cvGEE_aids = list(cran = list(pkg = "cvGEE", version = "0.3-0", rda_name = "aids", out_csv = "cvGEE_aids.csv")),
-  DeepLearningCausal_exp_data = list(cran = list(pkg = "DeepLearningCausal", version = "0.0.107", rda_name = "exp_data", out_csv = "DeepLearningCausal_exp_data.csv")),
-  DeepLearningCausal_exp_data_full = list(cran = list(pkg = "DeepLearningCausal", version = "0.0.107", rda_name = "exp_data_full", out_csv = "DeepLearningCausal_exp_data_full.csv")),
-  coursekata_TipExperiment = list(cran = list(pkg = "coursekata", version = "0.20.1", rda_name = "TipExperiment", out_csv = "coursekata_TipExperiment.csv")),
-  DoseFinding_migraine = list(cran = list(pkg = "DoseFinding", version = "1.4-1", rda_name = "migraine", out_csv = "DoseFinding_migraine.csv")),
-  ecotox_lamprey_tox = list(cran = list(pkg = "ecotox", version = "1.4.4", rda_name = "lamprey_tox", out_csv = "ecotox_lamprey_tox.csv")),
-  emplik_smallcell = list(cran = list(pkg = "emplik", version = "1.3-3", rda_name = "smallcell", out_csv = "emplik_smallcell.csv")),
-  EngrExpt_uvcoatin = list(cran = list(pkg = "EngrExpt", version = "0.1-8", rda_name = "uvcoatin", out_csv = "EngrExpt_uvcoatin.csv")),
-  esci_data_rattanmotivation = list(cran = list(pkg = "esci", version = "1.0.4", rda_name = "data_rattanmotivation", out_csv = "esci_rattanmotivation.csv")),
-  esci_data_selfexplain = list(cran = list(pkg = "esci", version = "1.0.4", rda_name = "data_selfexplain", out_csv = "esci_selfexplain.csv")),
-  EstimationTools_head_neck_cancer = list(cran = list(pkg = "EstimationTools", version = "4.3.1", rda_name = "head_neck_cancer", out_csv = "EstimationTools_headneck.csv")),
-  coin_rotarod = list(cran = list(pkg = "coin", version = "0.6-4", rda_name = "rotarod", out_csv = "coin_rotarod.csv")),  # deliberate old pin (last unversioned-GPL coin), see PASWR note
-  experimentr_mcgrath = list(cran = list(pkg = "experimentr", version = "0.1.0", rda_name = "mcgrath", out_csv = "experimentr_mcgrath.csv")),
-  experimentr_sherman = list(cran = list(pkg = "experimentr", version = "0.1.0", rda_name = "sherman", out_csv = "experimentr_sherman.csv")),
-  faraway_coagulation = list(cran = list(pkg = "faraway", version = "1.0.9", rda_name = "coagulation", out_csv = "faraway_coagulation.csv")),
-  faraway_fruitfly = list(cran = list(pkg = "faraway", version = "1.0.9", rda_name = "fruitfly", out_csv = "faraway_fruitfly.csv")),
-  faraway_hips = list(cran = list(pkg = "faraway", version = "1.0.9", rda_name = "hips", out_csv = "faraway_hips.csv")),
-  faraway_irrigation = list(cran = list(pkg = "faraway", version = "1.0.9", rda_name = "irrigation", out_csv = "faraway_irrigation.csv")),
-  frailtyHL_bladder0 = list(cran = list(pkg = "frailtyHL", version = "2.3", rda_name = "bladder0", out_csv = "frailtyHL_bladder0.csv")),
-  frailtyHL_ren = list(cran = list(pkg = "frailtyHL", version = "2.3", rda_name = "ren", out_csv = "frailtyHL_ren.csv")),
-  frailtypack_bcos = list(cran = list(pkg = "frailtypack", version = "3.7.1", rda_name = "bcos", out_csv = "frailtypack_bcos.csv")),
-  frailtypack_colorectal = list(cran = list(pkg = "frailtypack", version = "3.7.1", rda_name = "colorectal", out_csv = "frailtypack_colorectal.csv")),
-  frailtypack_dataOvarian = list(cran = list(pkg = "frailtypack", version = "3.7.1", rda_name = "dataOvarian", out_csv = "frailtypack_dataOvarian.csv")),
-  frailtypack_gastadj = list(cran = list(pkg = "frailtypack", version = "3.7.1", rda_name = "gastadj", out_csv = "frailtypack_gastadj.csv")),
-  frailtypack_reduce = list(cran = list(pkg = "frailtypack", version = "3.7.1", rda_name = "reduce", out_csv = "frailtypack_reduce.csv")),
-  geecure_smoking = list(cran = list(pkg = "geecure", version = "1.0-6", rda_name = "smoking", out_csv = "geecure_smoking.csv")),
-  geecure_tonsil = list(cran = list(pkg = "geecure", version = "1.0-6", rda_name = "tonsil", out_csv = "geecure_tonsil.csv")),
-  geer_cerebrovascular = list(cran = list(pkg = "geer", version = "0.1.0", rda_name = "cerebrovascular", out_csv = "geer_cerebrovascular.csv")),
-  geer_cholecystectomy = list(cran = list(pkg = "geer", version = "0.1.0", rda_name = "cholecystectomy", out_csv = "geer_cholecystectomy.csv")),
-  geer_depression = list(cran = list(pkg = "geer", version = "0.1.0", rda_name = "depression", out_csv = "geer_depression.csv")),
-  geer_leprosy = list(cran = list(pkg = "geer", version = "0.1.0", rda_name = "leprosy", out_csv = "geer_leprosy.csv")),
-  geer_rinse = list(cran = list(pkg = "geer", version = "0.1.0", rda_name = "rinse", out_csv = "geer_rinse.csv")),
-  GJRM_data_hie = list(cran = list(pkg = "GJRM.data", version = "0.1-1", rda_name = "hie", out_csv = "GJRMdata_hie.csv")),
-  glmm_bacteria = list(cran = list(pkg = "glmm", version = "1.4.4", rda_name = "bacteria", out_csv = "glmm_bacteria.csv")),
-  glmtoolbox_amenorrhea = list(cran = list(pkg = "glmtoolbox", version = "0.1.12", rda_name = "amenorrhea", out_csv = "glmtoolbox_amenorrhea.csv")),
-  glmtoolbox_ossification = list(cran = list(pkg = "glmtoolbox", version = "0.1.12", rda_name = "ossification", out_csv = "glmtoolbox_ossification.csv")),
-  gosset_breadwheat = list(cran = list(pkg = "gosset", version = "1.5.1", rda_name = "breadwheat", out_csv = "gosset_breadwheat.csv")),
-  gosset_nicabean = list(cran = list(pkg = "gosset", version = "1.5.1", rda_name = "nicabean", out_csv = "gosset_nicabean.csv", list_element = "trial")),
-  gpk_cloudseed = list(cran = list(pkg = "gpk", version = "1.0", rda_name = "cloudseed", out_csv = "gpk_cloudseed.csv")),
-  granova_arousal = list(cran = list(pkg = "granova", version = "2.0", rda_name = "arousal", out_csv = "granova_arousal.csv")),
-  gss_bacteriuria = list(cran = list(pkg = "gss", version = "3.0-0", rda_name = "bacteriuria", out_csv = "gss_bacteriuria.csv")),
-  hamlet_orxwide = list(cran = list(pkg = "hamlet", version = "0.9.8", rda_name = "orxwide", out_csv = "hamlet_orxwide.csv")),
-  heplots_RatWeight = list(cran = list(pkg = "heplots", version = "1.7.4", rda_name = "RatWeight", out_csv = "heplots_RatWeight.csv")),
-  heritable_lettuce_phenotypes = list(cran = list(pkg = "heritable", version = "0.1.0", rda_name = "lettuce_phenotypes", out_csv = "heritable_lettuce.csv")),
-  hiddenf_Graybill_mtx = list(cran = list(pkg = "hiddenf", version = "2.0", rda_name = "Graybill.mtx", out_csv = "hiddenf_Graybill.csv")),
-  HLMdiag_ahd = list(cran = list(pkg = "HLMdiag", version = "0.5.0", rda_name = "ahd", out_csv = "HLMdiag_ahd.csv")),
-  hnp_cbb = list(cran = list(pkg = "hnp", version = "1.2-7", rda_name = "cbb", out_csv = "hnp_cbb.csv")),
-  hnp_chryso = list(cran = list(pkg = "hnp", version = "1.2-7", rda_name = "chryso", out_csv = "hnp_chryso.csv")),
-  hnp_corn = list(cran = list(pkg = "hnp", version = "1.2-7", rda_name = "corn", out_csv = "hnp_corn.csv")),
-  hnp_fungi = list(cran = list(pkg = "hnp", version = "1.2-7", rda_name = "fungi", out_csv = "hnp_fungi.csv")),
-  hnp_oil = list(cran = list(pkg = "hnp", version = "1.2-7", rda_name = "oil", out_csv = "hnp_oil.csv")),
-  hnp_orange = list(cran = list(pkg = "hnp", version = "1.2-7", rda_name = "orange", out_csv = "hnp_orange.csv")),
-  hnp_progeny = list(cran = list(pkg = "hnp", version = "1.2-7", rda_name = "progeny", out_csv = "hnp_progeny.csv")),
-  HSAUR3_BtheB = list(cran = list(pkg = "HSAUR3", version = "1.0-13", rda_name = "BtheB", out_csv = "HSAUR3_BtheB.csv")),
-  HSAUR3_Lanza = list(cran = list(pkg = "HSAUR3", version = "1.0-13", rda_name = "Lanza", out_csv = "HSAUR3_Lanza.csv")),
-  HSAUR3_students = list(cran = list(pkg = "HSAUR3", version = "1.0-13", rda_name = "students", out_csv = "HSAUR3_students.csv")),
-  PASWR2_WEIGHTGAIN = list(cran = list(pkg = "PASWR2", version = "1.0.5", rda_name = "WEIGHTGAIN", out_csv = "PASWR2_WeightGain.csv")),
-  mediation_jobs = list(cran = list(pkg = "mediation", version = "4.5.0", rda_name = "jobs", out_csv = "mediation_jobs.csv")),
-  Matching_GerberGreenImai = list(cran = list(pkg = "Matching", version = "4.10-15", rda_name = "GerberGreenImai", out_csv = "Matching_GerberGreenImai.csv")),
-  lmPerm_Federer276 = list(cran = list(pkg = "lmPerm", version = "2.1.0", rda_name = "Federer276", out_csv = "lmPerm_Federer276.csv")),
-  lmPerm_Hald17_4 = list(cran = list(pkg = "lmPerm", version = "2.1.0", rda_name = "Hald17.4", out_csv = "lmPerm_Hald.csv")),
-  labstats_festing = list(cran = list(pkg = "labstats", version = "1.0.1", rda_name = "festing", out_csv = "labstats_festing.csv")),
-  labstats_fluoxetine = list(cran = list(pkg = "labstats", version = "1.0.1", rda_name = "fluoxetine", out_csv = "labstats_fluoxetine.csv")),
-  labstats_glycogen = list(cran = list(pkg = "labstats", version = "1.0.1", rda_name = "glycogen", out_csv = "labstats_glycogen.csv")),
-  labstats_hypertension = list(cran = list(pkg = "labstats", version = "1.0.1", rda_name = "hypertension", out_csv = "labstats_hypertension.csv")),
-  labstats_KH2004 = list(cran = list(pkg = "labstats", version = "1.0.1", rda_name = "KH2004", out_csv = "labstats_KH2004.csv")),
-  labstats_locomotor = list(cran = list(pkg = "labstats", version = "1.0.1", rda_name = "locomotor", out_csv = "labstats_locomotor.csv")),
-  labstats_VPA = list(cran = list(pkg = "labstats", version = "1.0.1", rda_name = "VPA", out_csv = "labstats_VPA.csv")),
-  KONPsurv_carcinoma = list(cran = list(pkg = "KONPsurv", version = "1.0.4", rda_name = "carcinoma", out_csv = "KONPsurv_carcinoma.csv")),
-  mice_toenail = list(cran = list(pkg = "mice", version = "3.18.0", rda_name = "toenail", out_csv = "mice_toenail.csv")),
-  ISwR_alkfos = list(cran = list(pkg = "ISwR", version = "2.0-12", rda_name = "alkfos", out_csv = "ISwR_alkfos.csv")),
-  invGauss_d_oropha_rec = list(cran = list(pkg = "invGauss", version = "1.2", rda_name = "d.oropha.rec", out_csv = "invGauss_dorophar.csv")),
-  lava_bmd = list(cran = list(pkg = "lava", version = "1.8.1", rda_name = "bmd", out_csv = "lava_bmd.csv")),
-  mhazard_anemia = list(cran = list(pkg = "mhazard", version = "0.2.3", rda_name = "anemia", out_csv = "mhazard_anemia.csv")),
-  isdals_cornyield = list(cran = list(pkg = "isdals", version = "3.0.1", rda_name = "cornyield", out_csv = "isdals_cornyield.csv")),
-  lqmm_labor = list(cran = list(pkg = "lqmm", version = "1.5.8", rda_name = "labor", out_csv = "lqmm_labor.csv")),
-  LongCART_ACTG175 = list(cran = list(pkg = "LongCART", version = "3.2", rda_name = "ACTG175", out_csv = "LongCART_ACTG175.csv")),
-  mixor_schizophrenia = list(cran = list(pkg = "mixor", version = "1.0.7", rda_name = "schizophrenia", out_csv = "mixor_schizophrenia.csv")),
-  mixor_SmokeOnset = list(cran = list(pkg = "mixor", version = "1.0.7", rda_name = "SmokeOnset", out_csv = "mixor_SmokeOnset.csv")),
-  mixor_SmokingPrevention = list(cran = list(pkg = "mixor", version = "1.0.7", rda_name = "SmokingPrevention", out_csv = "mixor_SmokingPrevention.csv")),
-  MNM_beans = list(cran = list(pkg = "MNM", version = "1.0-4", rda_name = "beans", out_csv = "MNM_beans.csv")),
-  moderate_mediation_newws = list(cran = list(pkg = "moderate.mediation", version = "0.0.12", rda_name = "newws", out_csv = "modmed_newws.csv")),
-  mosaicData_HELPrct = list(cran = list(pkg = "mosaicData", version = "0.20.4", rda_name = "HELPrct", out_csv = "mosaicData_HELPrct.csv")),
-  mosaicData_Mites = list(cran = list(pkg = "mosaicData", version = "0.20.4", rda_name = "Mites", out_csv = "mosaicData_Mites.csv")),
-  multiDimBio_Nuclei = list(cran = list(pkg = "multiDimBio", version = "1.2.5", rda_name = "Nuclei", out_csv = "multiDimBio_Nuclei.csv")),
-  nlme_Alfalfa = list(cran = list(pkg = "nlme", version = "3.1-171", rda_name = "Alfalfa", out_csv = "nlme_Alfalfa.csv")),
-  nlme_Assay = list(cran = list(pkg = "nlme", version = "3.1-171", rda_name = "Assay", out_csv = "nlme_Assay.csv")),
-  nlmeU_armd0 = list(cran = list(pkg = "nlmeU", version = "0.70-9", rda_name = "armd0", out_csv = "nlmeU_armd0.csv")),  # deliberate old pin (GPL (>= 2)), see PASWR note
-  nlmeU_prt_subjects = list(cran = list(pkg = "nlmeU", version = "0.70-9", rda_name = "prt.subjects", out_csv = "nlmeU_prt.csv")),
-  # PASWR 1.1 and s20x 3.1-10 below (and coin 0.6-4, nlmeU 0.70-9 above) are pinned on
-  # purpose, NOT stale: those releases are GPL (>= 2) / unversioned GPL (GPL-3-compatible)
-  # while current ones are GPL-2 only, and the data objects are identical. Do not
-  # "update" them to current (see dataset_license_audit.md).
-  PASWR_Aggression = list(cran = list(pkg = "PASWR", version = "1.1", rda_name = "Aggression", out_csv = "PASWR_Aggression.csv")),
-  PASWR_Ratbp = list(cran = list(pkg = "PASWR", version = "1.1", rda_name = "Ratbp", out_csv = "PASWR_Ratbp.csv")),
-  PASWR_Swimtimes = list(cran = list(pkg = "PASWR", version = "1.1", rda_name = "Swimtimes", out_csv = "PASWR_Swimtimes.csv")),
-  PASWR2_EPIDURALF = list(cran = list(pkg = "PASWR2", version = "1.0.5", rda_name = "EPIDURALF", out_csv = "PASWR2_Epidural.csv")),
-  R4HCR_Acupuncture = list(cran = list(pkg = "R4HCR", version = "0.1", rda_name = "Acupuncture", out_csv = "R4HCR_Acupuncture.csv")),
-  R4HCR_Facemasks = list(cran = list(pkg = "R4HCR", version = "0.1", rda_name = "Facemasks", out_csv = "R4HCR_Facemasks.csv")),
-  powerSurvEpi_Oph = list(cran = list(pkg = "powerSurvEpi", version = "0.1.5", rda_name = "Oph", out_csv = "powerSurvEpi_Oph.csv")),
-  pscl_RockTheVote = list(cran = list(pkg = "pscl", version = "1.5.9", rda_name = "RockTheVote", out_csv = "pscl_RockTheVote.csv")),
-  QDComparison_Microfinance = list(cran = list(pkg = "QDComparison", version = "3.0", rda_name = "Microfinance", out_csv = "QDComparison_Microfinance.csv")),
-  quantreg_uis = list(cran = list(pkg = "quantreg", version = "6.1", rda_name = "uis", out_csv = "quantreg_uis.csv")),
-  RCT2_india = list(cran = list(pkg = "RCT2", version = "0.0.1", rda_name = "india", out_csv = "RCT2_india.csv")),
-  RCT2_jd = list(cran = list(pkg = "RCT2", version = "0.0.1", rda_name = "jd", out_csv = "RCT2_jd.csv")),
-  RESIDE_IST = list(cran = list(pkg = "RESIDE", version = "0.4.0", rda_name = "IST", out_csv = "RESIDE_IST.csv")),
-  Rfit_quail = list(cran = list(pkg = "Rfit", version = "0.27.0", rda_name = "quail", out_csv = "Rfit_quail.csv")),
-  Rlab_magnet = list(cran = list(pkg = "Rlab", version = "4.0", rda_name = "magnet", out_csv = "Rlab_magnet.csv")),
-  randomizationInference_reading = list(cran = list(pkg = "randomizationInference", version = "1.0.4", rda_name = "reading", out_csv = "randinf_reading.csv")),
-  RPEXE_RPEXT_data2 = list(cran = list(pkg = "RPEXE.RPEXT", version = "0.0.2", rda_name = "data2", out_csv = "RPEXE_data2.csv")),
-  rqlm_mch = list(cran = list(pkg = "rqlm", version = "4.5-1", rda_name = "mch", out_csv = "rqlm_mch.csv")),
-  s20x_teach_df = list(cran = list(pkg = "s20x", version = "3.1-10", rda_name = "teach.df", out_csv = "s20x_teach.csv")),  # deliberate old pin, see PASWR note
-  s20x_thyroid_df = list(cran = list(pkg = "s20x", version = "3.1-10", rda_name = "thyroid.df", out_csv = "s20x_thyroid.csv")),
-  sanon_cpain = list(cran = list(pkg = "sanon", version = "1.6", rda_name = "cpain", out_csv = "sanon_cpain.csv")),
-  sanon_sebor = list(cran = list(pkg = "sanon", version = "1.6", rda_name = "sebor", out_csv = "sanon_sebor.csv")),
-  sanon_skin = list(cran = list(pkg = "sanon", version = "1.6", rda_name = "skin", out_csv = "sanon_skin.csv")),
-  scidesignR_silkdat = list(cran = list(pkg = "scidesignR", version = "1.0.0", rda_name = "silkdat", out_csv = "scidesignR_silkdat.csv")),
-  SingleCaseES_Kelley2015 = list(cran = list(pkg = "SingleCaseES", version = "0.7.1", rda_name = "Kelley2015", out_csv = "SingleCaseES_Kelley.csv")),
-  SixSigma_ss_data_doe1 = list(cran = list(pkg = "SixSigma", version = "0.11.1", rda_name = "ss.data.doe1", out_csv = "SixSigma_doe1.csv")),
-  Sleuth2_case0101 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case0101", out_csv = "Sleuth2_case0101.csv")),
-  Sleuth2_case0301 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case0301", out_csv = "Sleuth2_case0301.csv")),
-  Sleuth2_case0402 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case0402", out_csv = "Sleuth2_case0402.csv")),
-  Sleuth2_case0501 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case0501", out_csv = "Sleuth2_case0501.csv")),
-  Sleuth2_case0601 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case0601", out_csv = "Sleuth2_case0601.csv")),
-  Sleuth2_case1301 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case1301", out_csv = "Sleuth2_case1301.csv")),
-  Sleuth2_case1302 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case1302", out_csv = "Sleuth2_case1302.csv")),
-  Sleuth2_case1402 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case1402", out_csv = "Sleuth2_case1402.csv")),
-  Sleuth2_case1602 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "case1602", out_csv = "Sleuth2_case1602.csv")),
-  Sleuth3_ex0112 = list(cran = list(pkg = "Sleuth3", version = "1.0-6", rda_name = "ex0112", out_csv = "Sleuth3_ex0112.csv")),
-  Sleuth3_ex0211 = list(cran = list(pkg = "Sleuth3", version = "1.0-6", rda_name = "ex0211", out_csv = "Sleuth3_ex0211.csv")),
-  Sleuth3_ex0331 = list(cran = list(pkg = "Sleuth3", version = "1.0-6", rda_name = "ex0331", out_csv = "Sleuth3_ex0331.csv")),
-  Sleuth2_ex0429 = list(cran = list(pkg = "Sleuth2", version = "2.0-7", rda_name = "ex0429", out_csv = "Sleuth2_ex0429.csv")),
-  Sleuth3_ex0431 = list(cran = list(pkg = "Sleuth3", version = "1.0-6", rda_name = "ex0431", out_csv = "Sleuth3_ex0431.csv")),
-  Sleuth3_ex0432 = list(cran = list(pkg = "Sleuth3", version = "1.0-6", rda_name = "ex0432", out_csv = "Sleuth3_ex0432.csv")),
-  Sleuth3_ex0518 = list(cran = list(pkg = "Sleuth3", version = "1.0-6", rda_name = "ex0518", out_csv = "Sleuth3_ex0518.csv")),
-  Sleuth3_ex1014 = list(cran = list(pkg = "Sleuth3", version = "1.0-6", rda_name = "ex1014", out_csv = "Sleuth3_ex1014.csv")),
-  smbdata_beetles = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "beetles", out_csv = "smbdata_beetles.csv")),
-  smbdata_biomassc = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "biomassc", out_csv = "smbdata_biomassc.csv")),
-  smbdata_calcium = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "calcium", out_csv = "smbdata_calcium.csv")),
-  smbdata_calibrate = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "calibrate", out_csv = "smbdata_calibrate.csv")),
-  smbdata_cotton = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "cotton", out_csv = "smbdata_cotton.csv")),
-  smbdata_cuttings = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "cuttings", out_csv = "smbdata_cuttings.csv")),
-  smbdata_demethylation = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "demethylation", out_csv = "smbdata_demethylation.csv")),
-  smbdata_forage = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "forage", out_csv = "smbdata_forage.csv")),
-  smbdata_heights = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "heights", out_csv = "smbdata_heights.csv")),
-  smbdata_herbicide = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "herbicide", out_csv = "smbdata_herbicide.csv")),
-  smbdata_ladybird = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "ladybird", out_csv = "smbdata_ladybird.csv")),
-  smbdata_lupintrial = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "lupintrial", out_csv = "smbdata_lupintrial.csv")),
-  smbdata_potato = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "potato", out_csv = "smbdata_potato.csv")),
-  smbdata_prey = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "prey", out_csv = "smbdata_prey.csv")),
-  smbdata_tgw = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "tgw", out_csv = "smbdata_tgw.csv")),
-  smbdata_voltage = list(cran = list(pkg = "smbdata", version = "0.2.0", rda_name = "voltage", out_csv = "smbdata_voltage.csv")),
-  SMPracticals_arithmetic = list(cran = list(pkg = "SMPracticals", version = "1.4-3", rda_name = "arithmetic", out_csv = "SMPracticals_arithmetic.csv")),
-  SMPracticals_cake = list(cran = list(pkg = "SMPracticals", version = "1.4-3", rda_name = "cake", out_csv = "SMPracticals_cake.csv")),
-  SMPracticals_marking = list(cran = list(pkg = "SMPracticals", version = "1.4-3", rda_name = "marking", out_csv = "SMPracticals_marking.csv")),
-  SMPracticals_shoe = list(cran = list(pkg = "SMPracticals", version = "1.4-3", rda_name = "shoe", out_csv = "SMPracticals_shoe.csv")),
-  SMPracticals_teak = list(cran = list(pkg = "SMPracticals", version = "1.4-3", rda_name = "teak", out_csv = "SMPracticals_teak.csv")),
-  SpATS_wheatdata = list(cran = list(pkg = "SpATS", version = "1.0-19", rda_name = "wheatdata", out_csv = "SpATS_wheatdata.csv")),
-  splmm_cognitive = list(cran = list(pkg = "splmm", version = "1.2.0", rda_name = "cognitive", out_csv = "splmm_cognitive.csv")),
-  SRMData_Jumping = list(cran = list(pkg = "SRMData", version = "1.0.2", rda_name = "Jumping", out_csv = "SRMData_Jumping.csv")),
-  SRMData_SixMWT = list(cran = list(pkg = "SRMData", version = "1.0.2", rda_name = "SixMWT", out_csv = "SRMData_SixMWT.csv")),
-  Stat2Data_Alfalfa = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "Alfalfa", out_csv = "Stat2Data_Alfalfa.csv")),
-  Stat2Data_AutoPollution = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "AutoPollution", out_csv = "Stat2Data_AutoPollution.csv")),
-  Stat2Data_CalciumBP = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "CalciumBP", out_csv = "Stat2Data_CalciumBP.csv")),
-  Stat2Data_Contraceptives = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "Contraceptives", out_csv = "Stat2Data_Contraceptives.csv")),
-  Stat2Data_CrackerFiber = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "CrackerFiber", out_csv = "Stat2Data_CrackerFiber.csv")),
-  Stat2Data_FruitFlies2 = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "FruitFlies2", out_csv = "Stat2Data_FruitFlies2.csv")),
-  Stat2Data_FruitFlies = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "FruitFlies", out_csv = "Stat2Data_FruitFlies.csv")),
-  Stat2Data_Meniscus = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "Meniscus", out_csv = "Stat2Data_Meniscus.csv")),
-  Stat2Data_Milgram = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "Milgram", out_csv = "Stat2Data_Milgram.csv")),
-  Stat2Data_MusicTime = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "MusicTime", out_csv = "Stat2Data_MusicTime.csv")),
-  Stat2Data_PigFeed = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "PigFeed", out_csv = "Stat2Data_PigFeed.csv")),
-  Stat2Data_Popcorn = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "Popcorn", out_csv = "Stat2Data_Popcorn.csv")),
-  Stat2Data_SandwichAnts = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "SandwichAnts", out_csv = "Stat2Data_SandwichAnts.csv")),
-  Stat2Data_TipJoke = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "TipJoke", out_csv = "Stat2Data_TipJoke.csv")),
-  Stat2Data_WeightLossIncentive = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "WeightLossIncentive", out_csv = "Stat2Data_WeightLossIncentive.csv")),
-  Stat2Data_WordMemory = list(cran = list(pkg = "Stat2Data", version = "2.0.0", rda_name = "WordMemory", out_csv = "Stat2Data_WordMemory.csv")),
-  stepp_aspirin = list(cran = list(pkg = "stepp", version = "3.2.7", rda_name = "aspirin", out_csv = "stepp_aspirin.csv")),
-  stepp_bigCI = list(cran = list(pkg = "stepp", version = "3.2.7", rda_name = "bigCI", out_csv = "stepp_bigCI.csv")),
-  surrosurv_gastadv = list(cran = list(pkg = "surrosurv", version = "1.1.27", rda_name = "gastadv", out_csv = "surrosurv_gastadv.csv")),
-  survSAKK_esophagus = list(cran = list(pkg = "survSAKK", version = "1.3.3", rda_name = "esophagus", out_csv = "survSAKK_esophagus.csv")),
-  texmex_liver = list(cran = list(pkg = "texmex", version = "2.4.8", rda_name = "liver", out_csv = "texmex_liver.csv")),
-  TukeyC_SPET = list(cran = list(pkg = "TukeyC", version = "1.4-0", rda_name = "SPET", out_csv = "TukeyC_SPET.csv", list_element = "dfm")),
-  vegan_pyrifos = list(cran = list(pkg = "vegan", version = "2.7-1", rda_name = "pyrifos", out_csv = "vegan_pyrifos.csv")),
-  VGAMdata_belcap = list(cran = list(pkg = "VGAMdata", version = "1.1-13", rda_name = "belcap", out_csv = "VGAMdata_belcap.csv")),
-  WA_hfaction_cpx12 = list(cran = list(pkg = "WA", version = "1.0", rda_name = "hfaction_cpx12", out_csv = "WA_hfaction.csv")),
-  wgaim_phenoCxR = list(cran = list(pkg = "wgaim", version = "2.0-6", rda_name = "phenoCxR", out_csv = "wgaim_phenoCxR.csv")),
-  wgaim_phenoRxK = list(cran = list(pkg = "wgaim", version = "2.0-6", rda_name = "phenoRxK", out_csv = "wgaim_phenoRxK.csv")),
-  wgaim_phenoSxT = list(cran = list(pkg = "wgaim", version = "2.0-6", rda_name = "phenoSxT", out_csv = "wgaim_phenoSxT.csv")),
-  wooldridge_apple = list(cran = list(pkg = "wooldridge", version = "1.4-2", rda_name = "apple", out_csv = "wooldridge_apple.csv")),
-  WRS2_electric = list(cran = list(pkg = "WRS2", version = "1.1-6", rda_name = "electric", out_csv = "WRS2_electric.csv")),
-  WWGbook_ratpup = list(cran = list(pkg = "WWGbook", version = "1.0.2", rda_name = "ratpup", out_csv = "WWGbook_ratpup.csv"))
+  # install.packages() needed -- see cran_dataset_as_csv() ----
+  clubSandwich_AchievementAwardsRCT = list(cran = list(pkg = "clubSandwich", rda_name = "AchievementAwardsRCT", out_csv = "clubSandwich_AchievementAwardsRCT.csv")),
+  asaur_pharmacoSmoking = list(cran = list(pkg = "asaur", rda_name = "pharmacoSmoking", out_csv = "asaur_pharmacoSmoking.csv")),
+  afex_laptop_urry = list(cran = list(pkg = "afex", rda_name = "laptop_urry", out_csv = "afex_laptop_urry.csv")),
+  cofad_testing_effect = list(cran = list(pkg = "cofad", rda_name = "testing_effect", out_csv = "cofad_testing_effect.csv")),
+  causalweight_JC = list(cran = list(pkg = "causalweight", rda_name = "JC", out_csv = "causalweight_JC.csv")),
+  causalweight_india = list(cran = list(pkg = "causalweight", rda_name = "india", out_csv = "causalweight_india.csv")),
+  causalweight_wexpect = list(cran = list(pkg = "causalweight", rda_name = "wexpect", out_csv = "causalweight_wexpect.csv")),
+  causalweight_coffeeleaflet = list(cran = list(pkg = "causalweight", rda_name = "coffeeleaflet", out_csv = "causalweight_coffeeleaflet.csv")),
+  causalweight_swissexper = list(cran = list(pkg = "causalweight", rda_name = "swissexper", out_csv = "causalweight_swissexper.csv")),
+  causalOT_pph = list(cran = list(pkg = "causalOT", rda_name = "pph", out_csv = "causalOT_pph.csv")),
+  causalSLSE_nsw = list(cran = list(pkg = "causalSLSE", rda_name = "nsw", out_csv = "causalSLSE_nsw.csv")),
+  causaldata_black_politicians = list(cran = list(pkg = "causaldata", rda_name = "black_politicians", out_csv = "causaldata_black_politicians.csv")),
+  ClinicalTrialSummary_ggas = list(cran = list(pkg = "ClinicalTrialSummary", rda_name = "ggas", out_csv = "ClinicalTrialSummary_ggas.csv")),
+  baggr_microcredit = list(cran = list(pkg = "baggr", rda_name = "microcredit", out_csv = "baggr_microcredit.csv")),
+  asbio_potash = list(cran = list(pkg = "asbio", rda_name = "potash", out_csv = "asbio_potash.csv")),
+  collett_prostatic = list(cran = list(pkg = "collett", rda_name = "prostatic", out_csv = "collett_prostatic.csv")),
+  collett_tamoxifen = list(cran = list(pkg = "collett", rda_name = "tamoxifen", out_csv = "collett_tamoxifen.csv")),
+  collett_active_hepatitis = list(cran = list(pkg = "collett", rda_name = "active_hepatitis", out_csv = "collett_active_hepatitis.csv")),
+  BGPhazard_gehan = list(cran = list(pkg = "BGPhazard", rda_name = "gehan", out_csv = "BGPhazard_gehan.csv")),
+  coxphw_biofeedback = list(cran = list(pkg = "coxphw", rda_name = "biofeedback", out_csv = "coxphw_biofeedback.csv")),
+  CrossCarry_Water = list(cran = list(pkg = "CrossCarry", rda_name = "Water", out_csv = "CrossCarry_Water.csv")),
+  dae_McIntyreTMV_dat = list(cran = list(pkg = "dae", rda_name = "McIntyreTMV.dat", out_csv = "dae_McIntyreTMV.csv")),
+  dae_Oats_dat = list(cran = list(pkg = "dae", rda_name = "Oats.dat", out_csv = "dae_Oats.csv")),
+  cvGEE_aids = list(cran = list(pkg = "cvGEE", rda_name = "aids", out_csv = "cvGEE_aids.csv")),
+  DeepLearningCausal_exp_data = list(cran = list(pkg = "DeepLearningCausal", rda_name = "exp_data", out_csv = "DeepLearningCausal_exp_data.csv")),
+  DeepLearningCausal_exp_data_full = list(cran = list(pkg = "DeepLearningCausal", rda_name = "exp_data_full", out_csv = "DeepLearningCausal_exp_data_full.csv")),
+  coursekata_TipExperiment = list(cran = list(pkg = "coursekata", rda_name = "TipExperiment", out_csv = "coursekata_TipExperiment.csv")),
+  DoseFinding_migraine = list(cran = list(pkg = "DoseFinding", rda_name = "migraine", out_csv = "DoseFinding_migraine.csv")),
+  ecotox_lamprey_tox = list(cran = list(pkg = "ecotox", rda_name = "lamprey_tox", out_csv = "ecotox_lamprey_tox.csv")),
+  emplik_smallcell = list(cran = list(pkg = "emplik", rda_name = "smallcell", out_csv = "emplik_smallcell.csv")),
+  EngrExpt_uvcoatin = list(cran = list(pkg = "EngrExpt", rda_name = "uvcoatin", out_csv = "EngrExpt_uvcoatin.csv")),
+  esci_data_rattanmotivation = list(cran = list(pkg = "esci", rda_name = "data_rattanmotivation", out_csv = "esci_rattanmotivation.csv")),
+  esci_data_selfexplain = list(cran = list(pkg = "esci", rda_name = "data_selfexplain", out_csv = "esci_selfexplain.csv")),
+  EstimationTools_head_neck_cancer = list(cran = list(pkg = "EstimationTools", rda_name = "head_neck_cancer", out_csv = "EstimationTools_headneck.csv")),
+  coin_rotarod = list(cran = list(pkg = "coin", rda_name = "rotarod", out_csv = "coin_rotarod.csv")),
+  experimentr_mcgrath = list(cran = list(pkg = "experimentr", rda_name = "mcgrath", out_csv = "experimentr_mcgrath.csv")),
+  experimentr_sherman = list(cran = list(pkg = "experimentr", rda_name = "sherman", out_csv = "experimentr_sherman.csv")),
+  faraway_coagulation = list(cran = list(pkg = "faraway", rda_name = "coagulation", out_csv = "faraway_coagulation.csv")),
+  faraway_fruitfly = list(cran = list(pkg = "faraway", rda_name = "fruitfly", out_csv = "faraway_fruitfly.csv")),
+  faraway_hips = list(cran = list(pkg = "faraway", rda_name = "hips", out_csv = "faraway_hips.csv")),
+  faraway_irrigation = list(cran = list(pkg = "faraway", rda_name = "irrigation", out_csv = "faraway_irrigation.csv")),
+  frailtyHL_bladder0 = list(cran = list(pkg = "frailtyHL", rda_name = "bladder0", out_csv = "frailtyHL_bladder0.csv")),
+  frailtyHL_ren = list(cran = list(pkg = "frailtyHL", rda_name = "ren", out_csv = "frailtyHL_ren.csv")),
+  frailtypack_bcos = list(cran = list(pkg = "frailtypack", rda_name = "bcos", out_csv = "frailtypack_bcos.csv")),
+  frailtypack_colorectal = list(cran = list(pkg = "frailtypack", rda_name = "colorectal", out_csv = "frailtypack_colorectal.csv")),
+  frailtypack_dataOvarian = list(cran = list(pkg = "frailtypack", rda_name = "dataOvarian", out_csv = "frailtypack_dataOvarian.csv")),
+  frailtypack_gastadj = list(cran = list(pkg = "frailtypack", rda_name = "gastadj", out_csv = "frailtypack_gastadj.csv")),
+  frailtypack_reduce = list(cran = list(pkg = "frailtypack", rda_name = "reduce", out_csv = "frailtypack_reduce.csv")),
+  geecure_smoking = list(cran = list(pkg = "geecure", rda_name = "smoking", out_csv = "geecure_smoking.csv")),
+  geecure_tonsil = list(cran = list(pkg = "geecure", rda_name = "tonsil", out_csv = "geecure_tonsil.csv")),
+  geer_cerebrovascular = list(cran = list(pkg = "geer", rda_name = "cerebrovascular", out_csv = "geer_cerebrovascular.csv")),
+  geer_cholecystectomy = list(cran = list(pkg = "geer", rda_name = "cholecystectomy", out_csv = "geer_cholecystectomy.csv")),
+  geer_depression = list(cran = list(pkg = "geer", rda_name = "depression", out_csv = "geer_depression.csv")),
+  geer_leprosy = list(cran = list(pkg = "geer", rda_name = "leprosy", out_csv = "geer_leprosy.csv")),
+  geer_rinse = list(cran = list(pkg = "geer", rda_name = "rinse", out_csv = "geer_rinse.csv")),
+  GJRM_data_hie = list(cran = list(pkg = "GJRM.data", rda_name = "hie", out_csv = "GJRMdata_hie.csv")),
+  glmm_bacteria = list(cran = list(pkg = "glmm", rda_name = "bacteria", out_csv = "glmm_bacteria.csv")),
+  glmtoolbox_amenorrhea = list(cran = list(pkg = "glmtoolbox", rda_name = "amenorrhea", out_csv = "glmtoolbox_amenorrhea.csv")),
+  glmtoolbox_ossification = list(cran = list(pkg = "glmtoolbox", rda_name = "ossification", out_csv = "glmtoolbox_ossification.csv")),
+  gosset_breadwheat = list(cran = list(pkg = "gosset", rda_name = "breadwheat", out_csv = "gosset_breadwheat.csv")),
+  gosset_nicabean = list(cran = list(pkg = "gosset", rda_name = "nicabean", out_csv = "gosset_nicabean.csv", list_element = "trial")),
+  gpk_cloudseed = list(cran = list(pkg = "gpk", rda_name = "cloudseed", out_csv = "gpk_cloudseed.csv")),
+  granova_arousal = list(cran = list(pkg = "granova", rda_name = "arousal", out_csv = "granova_arousal.csv")),
+  gss_bacteriuria = list(cran = list(pkg = "gss", rda_name = "bacteriuria", out_csv = "gss_bacteriuria.csv")),
+  hamlet_orxwide = list(cran = list(pkg = "hamlet", rda_name = "orxwide", out_csv = "hamlet_orxwide.csv")),
+  heplots_RatWeight = list(cran = list(pkg = "heplots", rda_name = "RatWeight", out_csv = "heplots_RatWeight.csv")),
+  heritable_lettuce_phenotypes = list(cran = list(pkg = "heritable", rda_name = "lettuce_phenotypes", out_csv = "heritable_lettuce.csv")),
+  hiddenf_Graybill_mtx = list(cran = list(pkg = "hiddenf", rda_name = "Graybill.mtx", out_csv = "hiddenf_Graybill.csv")),
+  HLMdiag_ahd = list(cran = list(pkg = "HLMdiag", rda_name = "ahd", out_csv = "HLMdiag_ahd.csv")),
+  hnp_cbb = list(cran = list(pkg = "hnp", rda_name = "cbb", out_csv = "hnp_cbb.csv")),
+  hnp_chryso = list(cran = list(pkg = "hnp", rda_name = "chryso", out_csv = "hnp_chryso.csv")),
+  hnp_corn = list(cran = list(pkg = "hnp", rda_name = "corn", out_csv = "hnp_corn.csv")),
+  hnp_fungi = list(cran = list(pkg = "hnp", rda_name = "fungi", out_csv = "hnp_fungi.csv")),
+  hnp_oil = list(cran = list(pkg = "hnp", rda_name = "oil", out_csv = "hnp_oil.csv")),
+  hnp_orange = list(cran = list(pkg = "hnp", rda_name = "orange", out_csv = "hnp_orange.csv")),
+  hnp_progeny = list(cran = list(pkg = "hnp", rda_name = "progeny", out_csv = "hnp_progeny.csv")),
+  HSAUR3_BtheB = list(cran = list(pkg = "HSAUR3", rda_name = "BtheB", out_csv = "HSAUR3_BtheB.csv")),
+  HSAUR3_Lanza = list(cran = list(pkg = "HSAUR3", rda_name = "Lanza", out_csv = "HSAUR3_Lanza.csv")),
+  HSAUR3_students = list(cran = list(pkg = "HSAUR3", rda_name = "students", out_csv = "HSAUR3_students.csv")),
+  PASWR2_WEIGHTGAIN = list(cran = list(pkg = "PASWR2", rda_name = "WEIGHTGAIN", out_csv = "PASWR2_WeightGain.csv")),
+  mediation_jobs = list(cran = list(pkg = "mediation", rda_name = "jobs", out_csv = "mediation_jobs.csv")),
+  Matching_GerberGreenImai = list(cran = list(pkg = "Matching", rda_name = "GerberGreenImai", out_csv = "Matching_GerberGreenImai.csv")),
+  lmPerm_Federer276 = list(cran = list(pkg = "lmPerm", rda_name = "Federer276", out_csv = "lmPerm_Federer276.csv")),
+  lmPerm_Hald17_4 = list(cran = list(pkg = "lmPerm", rda_name = "Hald17.4", out_csv = "lmPerm_Hald.csv")),
+  labstats_festing = list(cran = list(pkg = "labstats", rda_name = "festing", out_csv = "labstats_festing.csv")),
+  labstats_fluoxetine = list(cran = list(pkg = "labstats", rda_name = "fluoxetine", out_csv = "labstats_fluoxetine.csv")),
+  labstats_glycogen = list(cran = list(pkg = "labstats", rda_name = "glycogen", out_csv = "labstats_glycogen.csv")),
+  labstats_hypertension = list(cran = list(pkg = "labstats", rda_name = "hypertension", out_csv = "labstats_hypertension.csv")),
+  labstats_KH2004 = list(cran = list(pkg = "labstats", rda_name = "KH2004", out_csv = "labstats_KH2004.csv")),
+  labstats_locomotor = list(cran = list(pkg = "labstats", rda_name = "locomotor", out_csv = "labstats_locomotor.csv")),
+  labstats_VPA = list(cran = list(pkg = "labstats", rda_name = "VPA", out_csv = "labstats_VPA.csv")),
+  KONPsurv_carcinoma = list(cran = list(pkg = "KONPsurv", rda_name = "carcinoma", out_csv = "KONPsurv_carcinoma.csv")),
+  mice_toenail = list(cran = list(pkg = "mice", rda_name = "toenail", out_csv = "mice_toenail.csv")),
+  ISwR_alkfos = list(cran = list(pkg = "ISwR", rda_name = "alkfos", out_csv = "ISwR_alkfos.csv")),
+  invGauss_d_oropha_rec = list(cran = list(pkg = "invGauss", rda_name = "d.oropha.rec", out_csv = "invGauss_dorophar.csv")),
+  lava_bmd = list(cran = list(pkg = "lava", rda_name = "bmd", out_csv = "lava_bmd.csv")),
+  mhazard_anemia = list(cran = list(pkg = "mhazard", rda_name = "anemia", out_csv = "mhazard_anemia.csv")),
+  isdals_cornyield = list(cran = list(pkg = "isdals", rda_name = "cornyield", out_csv = "isdals_cornyield.csv")),
+  lqmm_labor = list(cran = list(pkg = "lqmm", rda_name = "labor", out_csv = "lqmm_labor.csv")),
+  LongCART_ACTG175 = list(cran = list(pkg = "LongCART", rda_name = "ACTG175", out_csv = "LongCART_ACTG175.csv")),
+  mixor_schizophrenia = list(cran = list(pkg = "mixor", rda_name = "schizophrenia", out_csv = "mixor_schizophrenia.csv")),
+  mixor_SmokeOnset = list(cran = list(pkg = "mixor", rda_name = "SmokeOnset", out_csv = "mixor_SmokeOnset.csv")),
+  mixor_SmokingPrevention = list(cran = list(pkg = "mixor", rda_name = "SmokingPrevention", out_csv = "mixor_SmokingPrevention.csv")),
+  MNM_beans = list(cran = list(pkg = "MNM", rda_name = "beans", out_csv = "MNM_beans.csv")),
+  moderate_mediation_newws = list(cran = list(pkg = "moderate.mediation", rda_name = "newws", out_csv = "modmed_newws.csv")),
+  mosaicData_HELPrct = list(cran = list(pkg = "mosaicData", rda_name = "HELPrct", out_csv = "mosaicData_HELPrct.csv")),
+  mosaicData_Mites = list(cran = list(pkg = "mosaicData", rda_name = "Mites", out_csv = "mosaicData_Mites.csv")),
+  multiDimBio_Nuclei = list(cran = list(pkg = "multiDimBio", rda_name = "Nuclei", out_csv = "multiDimBio_Nuclei.csv")),
+  nlme_Alfalfa = list(cran = list(pkg = "nlme", rda_name = "Alfalfa", out_csv = "nlme_Alfalfa.csv")),
+  nlme_Assay = list(cran = list(pkg = "nlme", rda_name = "Assay", out_csv = "nlme_Assay.csv")),
+  nlmeU_armd0 = list(cran = list(pkg = "nlmeU", rda_name = "armd0", out_csv = "nlmeU_armd0.csv")),
+  nlmeU_prt_subjects = list(cran = list(pkg = "nlmeU", rda_name = "prt.subjects", out_csv = "nlmeU_prt.csv")),
+  PASWR_Aggression = list(cran = list(pkg = "PASWR", rda_name = "Aggression", out_csv = "PASWR_Aggression.csv")),
+  PASWR_Ratbp = list(cran = list(pkg = "PASWR", rda_name = "Ratbp", out_csv = "PASWR_Ratbp.csv")),
+  PASWR_Swimtimes = list(cran = list(pkg = "PASWR", rda_name = "Swimtimes", out_csv = "PASWR_Swimtimes.csv")),
+  PASWR2_EPIDURALF = list(cran = list(pkg = "PASWR2", rda_name = "EPIDURALF", out_csv = "PASWR2_Epidural.csv")),
+  R4HCR_Acupuncture = list(cran = list(pkg = "R4HCR", rda_name = "Acupuncture", out_csv = "R4HCR_Acupuncture.csv")),
+  R4HCR_Facemasks = list(cran = list(pkg = "R4HCR", rda_name = "Facemasks", out_csv = "R4HCR_Facemasks.csv")),
+  powerSurvEpi_Oph = list(cran = list(pkg = "powerSurvEpi", rda_name = "Oph", out_csv = "powerSurvEpi_Oph.csv")),
+  pscl_RockTheVote = list(cran = list(pkg = "pscl", rda_name = "RockTheVote", out_csv = "pscl_RockTheVote.csv")),
+  QDComparison_Microfinance = list(cran = list(pkg = "QDComparison", rda_name = "Microfinance", out_csv = "QDComparison_Microfinance.csv")),
+  quantreg_uis = list(cran = list(pkg = "quantreg", rda_name = "uis", out_csv = "quantreg_uis.csv")),
+  RCT2_india = list(cran = list(pkg = "RCT2", rda_name = "india", out_csv = "RCT2_india.csv")),
+  RCT2_jd = list(cran = list(pkg = "RCT2", rda_name = "jd", out_csv = "RCT2_jd.csv")),
+  RESIDE_IST = list(cran = list(pkg = "RESIDE", rda_name = "IST", out_csv = "RESIDE_IST.csv")),
+  Rfit_quail = list(cran = list(pkg = "Rfit", rda_name = "quail", out_csv = "Rfit_quail.csv")),
+  Rlab_magnet = list(cran = list(pkg = "Rlab", rda_name = "magnet", out_csv = "Rlab_magnet.csv")),
+  randomizationInference_reading = list(cran = list(pkg = "randomizationInference", rda_name = "reading", out_csv = "randinf_reading.csv")),
+  RPEXE_RPEXT_data2 = list(cran = list(pkg = "RPEXE.RPEXT", rda_name = "data2", out_csv = "RPEXE_data2.csv")),
+  rqlm_mch = list(cran = list(pkg = "rqlm", rda_name = "mch", out_csv = "rqlm_mch.csv")),
+  s20x_teach_df = list(cran = list(pkg = "s20x", rda_name = "teach.df", out_csv = "s20x_teach.csv")),
+  s20x_thyroid_df = list(cran = list(pkg = "s20x", rda_name = "thyroid.df", out_csv = "s20x_thyroid.csv")),
+  sanon_cpain = list(cran = list(pkg = "sanon", rda_name = "cpain", out_csv = "sanon_cpain.csv")),
+  sanon_sebor = list(cran = list(pkg = "sanon", rda_name = "sebor", out_csv = "sanon_sebor.csv")),
+  sanon_skin = list(cran = list(pkg = "sanon", rda_name = "skin", out_csv = "sanon_skin.csv")),
+  scidesignR_silkdat = list(cran = list(pkg = "scidesignR", rda_name = "silkdat", out_csv = "scidesignR_silkdat.csv")),
+  SingleCaseES_Kelley2015 = list(cran = list(pkg = "SingleCaseES", rda_name = "Kelley2015", out_csv = "SingleCaseES_Kelley.csv")),
+  SixSigma_ss_data_doe1 = list(cran = list(pkg = "SixSigma", rda_name = "ss.data.doe1", out_csv = "SixSigma_doe1.csv")),
+  Sleuth2_case0101 = list(cran = list(pkg = "Sleuth2", rda_name = "case0101", out_csv = "Sleuth2_case0101.csv")),
+  Sleuth2_case0301 = list(cran = list(pkg = "Sleuth2", rda_name = "case0301", out_csv = "Sleuth2_case0301.csv")),
+  Sleuth2_case0402 = list(cran = list(pkg = "Sleuth2", rda_name = "case0402", out_csv = "Sleuth2_case0402.csv")),
+  Sleuth2_case0501 = list(cran = list(pkg = "Sleuth2", rda_name = "case0501", out_csv = "Sleuth2_case0501.csv")),
+  Sleuth2_case0601 = list(cran = list(pkg = "Sleuth2", rda_name = "case0601", out_csv = "Sleuth2_case0601.csv")),
+  Sleuth2_case1301 = list(cran = list(pkg = "Sleuth2", rda_name = "case1301", out_csv = "Sleuth2_case1301.csv")),
+  Sleuth2_case1302 = list(cran = list(pkg = "Sleuth2", rda_name = "case1302", out_csv = "Sleuth2_case1302.csv")),
+  Sleuth2_case1402 = list(cran = list(pkg = "Sleuth2", rda_name = "case1402", out_csv = "Sleuth2_case1402.csv")),
+  Sleuth2_case1602 = list(cran = list(pkg = "Sleuth2", rda_name = "case1602", out_csv = "Sleuth2_case1602.csv")),
+  Sleuth3_ex0112 = list(cran = list(pkg = "Sleuth3", rda_name = "ex0112", out_csv = "Sleuth3_ex0112.csv")),
+  Sleuth3_ex0211 = list(cran = list(pkg = "Sleuth3", rda_name = "ex0211", out_csv = "Sleuth3_ex0211.csv")),
+  Sleuth3_ex0331 = list(cran = list(pkg = "Sleuth3", rda_name = "ex0331", out_csv = "Sleuth3_ex0331.csv")),
+  Sleuth2_ex0429 = list(cran = list(pkg = "Sleuth2", rda_name = "ex0429", out_csv = "Sleuth2_ex0429.csv")),
+  Sleuth3_ex0431 = list(cran = list(pkg = "Sleuth3", rda_name = "ex0431", out_csv = "Sleuth3_ex0431.csv")),
+  Sleuth3_ex0432 = list(cran = list(pkg = "Sleuth3", rda_name = "ex0432", out_csv = "Sleuth3_ex0432.csv")),
+  Sleuth3_ex0518 = list(cran = list(pkg = "Sleuth3", rda_name = "ex0518", out_csv = "Sleuth3_ex0518.csv")),
+  Sleuth3_ex1014 = list(cran = list(pkg = "Sleuth3", rda_name = "ex1014", out_csv = "Sleuth3_ex1014.csv")),
+  smbdata_beetles = list(cran = list(pkg = "smbdata", rda_name = "beetles", out_csv = "smbdata_beetles.csv")),
+  smbdata_biomassc = list(cran = list(pkg = "smbdata", rda_name = "biomassc", out_csv = "smbdata_biomassc.csv")),
+  smbdata_calcium = list(cran = list(pkg = "smbdata", rda_name = "calcium", out_csv = "smbdata_calcium.csv")),
+  smbdata_calibrate = list(cran = list(pkg = "smbdata", rda_name = "calibrate", out_csv = "smbdata_calibrate.csv")),
+  smbdata_cotton = list(cran = list(pkg = "smbdata", rda_name = "cotton", out_csv = "smbdata_cotton.csv")),
+  smbdata_cuttings = list(cran = list(pkg = "smbdata", rda_name = "cuttings", out_csv = "smbdata_cuttings.csv")),
+  smbdata_demethylation = list(cran = list(pkg = "smbdata", rda_name = "demethylation", out_csv = "smbdata_demethylation.csv")),
+  smbdata_forage = list(cran = list(pkg = "smbdata", rda_name = "forage", out_csv = "smbdata_forage.csv")),
+  smbdata_heights = list(cran = list(pkg = "smbdata", rda_name = "heights", out_csv = "smbdata_heights.csv")),
+  smbdata_herbicide = list(cran = list(pkg = "smbdata", rda_name = "herbicide", out_csv = "smbdata_herbicide.csv")),
+  smbdata_ladybird = list(cran = list(pkg = "smbdata", rda_name = "ladybird", out_csv = "smbdata_ladybird.csv")),
+  smbdata_lupintrial = list(cran = list(pkg = "smbdata", rda_name = "lupintrial", out_csv = "smbdata_lupintrial.csv")),
+  smbdata_potato = list(cran = list(pkg = "smbdata", rda_name = "potato", out_csv = "smbdata_potato.csv")),
+  smbdata_prey = list(cran = list(pkg = "smbdata", rda_name = "prey", out_csv = "smbdata_prey.csv")),
+  smbdata_tgw = list(cran = list(pkg = "smbdata", rda_name = "tgw", out_csv = "smbdata_tgw.csv")),
+  smbdata_voltage = list(cran = list(pkg = "smbdata", rda_name = "voltage", out_csv = "smbdata_voltage.csv")),
+  SMPracticals_arithmetic = list(cran = list(pkg = "SMPracticals", rda_name = "arithmetic", out_csv = "SMPracticals_arithmetic.csv")),
+  SMPracticals_cake = list(cran = list(pkg = "SMPracticals", rda_name = "cake", out_csv = "SMPracticals_cake.csv")),
+  SMPracticals_marking = list(cran = list(pkg = "SMPracticals", rda_name = "marking", out_csv = "SMPracticals_marking.csv")),
+  SMPracticals_shoe = list(cran = list(pkg = "SMPracticals", rda_name = "shoe", out_csv = "SMPracticals_shoe.csv")),
+  SMPracticals_teak = list(cran = list(pkg = "SMPracticals", rda_name = "teak", out_csv = "SMPracticals_teak.csv")),
+  SpATS_wheatdata = list(cran = list(pkg = "SpATS", rda_name = "wheatdata", out_csv = "SpATS_wheatdata.csv")),
+  splmm_cognitive = list(cran = list(pkg = "splmm", rda_name = "cognitive", out_csv = "splmm_cognitive.csv")),
+  SRMData_Jumping = list(cran = list(pkg = "SRMData", rda_name = "Jumping", out_csv = "SRMData_Jumping.csv")),
+  SRMData_SixMWT = list(cran = list(pkg = "SRMData", rda_name = "SixMWT", out_csv = "SRMData_SixMWT.csv")),
+  Stat2Data_Alfalfa = list(cran = list(pkg = "Stat2Data", rda_name = "Alfalfa", out_csv = "Stat2Data_Alfalfa.csv")),
+  Stat2Data_AutoPollution = list(cran = list(pkg = "Stat2Data", rda_name = "AutoPollution", out_csv = "Stat2Data_AutoPollution.csv")),
+  Stat2Data_CalciumBP = list(cran = list(pkg = "Stat2Data", rda_name = "CalciumBP", out_csv = "Stat2Data_CalciumBP.csv")),
+  Stat2Data_Contraceptives = list(cran = list(pkg = "Stat2Data", rda_name = "Contraceptives", out_csv = "Stat2Data_Contraceptives.csv")),
+  Stat2Data_CrackerFiber = list(cran = list(pkg = "Stat2Data", rda_name = "CrackerFiber", out_csv = "Stat2Data_CrackerFiber.csv")),
+  Stat2Data_FruitFlies2 = list(cran = list(pkg = "Stat2Data", rda_name = "FruitFlies2", out_csv = "Stat2Data_FruitFlies2.csv")),
+  Stat2Data_FruitFlies = list(cran = list(pkg = "Stat2Data", rda_name = "FruitFlies", out_csv = "Stat2Data_FruitFlies.csv")),
+  Stat2Data_Meniscus = list(cran = list(pkg = "Stat2Data", rda_name = "Meniscus", out_csv = "Stat2Data_Meniscus.csv")),
+  Stat2Data_Milgram = list(cran = list(pkg = "Stat2Data", rda_name = "Milgram", out_csv = "Stat2Data_Milgram.csv")),
+  Stat2Data_MusicTime = list(cran = list(pkg = "Stat2Data", rda_name = "MusicTime", out_csv = "Stat2Data_MusicTime.csv")),
+  Stat2Data_PigFeed = list(cran = list(pkg = "Stat2Data", rda_name = "PigFeed", out_csv = "Stat2Data_PigFeed.csv")),
+  Stat2Data_Popcorn = list(cran = list(pkg = "Stat2Data", rda_name = "Popcorn", out_csv = "Stat2Data_Popcorn.csv")),
+  Stat2Data_SandwichAnts = list(cran = list(pkg = "Stat2Data", rda_name = "SandwichAnts", out_csv = "Stat2Data_SandwichAnts.csv")),
+  Stat2Data_TipJoke = list(cran = list(pkg = "Stat2Data", rda_name = "TipJoke", out_csv = "Stat2Data_TipJoke.csv")),
+  Stat2Data_WeightLossIncentive = list(cran = list(pkg = "Stat2Data", rda_name = "WeightLossIncentive", out_csv = "Stat2Data_WeightLossIncentive.csv")),
+  Stat2Data_WordMemory = list(cran = list(pkg = "Stat2Data", rda_name = "WordMemory", out_csv = "Stat2Data_WordMemory.csv")),
+  stepp_aspirin = list(cran = list(pkg = "stepp", rda_name = "aspirin", out_csv = "stepp_aspirin.csv")),
+  stepp_bigCI = list(cran = list(pkg = "stepp", rda_name = "bigCI", out_csv = "stepp_bigCI.csv")),
+  surrosurv_gastadv = list(cran = list(pkg = "surrosurv", rda_name = "gastadv", out_csv = "surrosurv_gastadv.csv")),
+  survSAKK_esophagus = list(cran = list(pkg = "survSAKK", rda_name = "esophagus", out_csv = "survSAKK_esophagus.csv")),
+  texmex_liver = list(cran = list(pkg = "texmex", rda_name = "liver", out_csv = "texmex_liver.csv")),
+  TukeyC_SPET = list(cran = list(pkg = "TukeyC", rda_name = "SPET", out_csv = "TukeyC_SPET.csv", list_element = "dfm")),
+  vegan_pyrifos = list(cran = list(pkg = "vegan", rda_name = "pyrifos", out_csv = "vegan_pyrifos.csv")),
+  VGAMdata_belcap = list(cran = list(pkg = "VGAMdata", rda_name = "belcap", out_csv = "VGAMdata_belcap.csv")),
+  WA_hfaction_cpx12 = list(cran = list(pkg = "WA", rda_name = "hfaction_cpx12", out_csv = "WA_hfaction.csv")),
+  wgaim_phenoCxR = list(cran = list(pkg = "wgaim", rda_name = "phenoCxR", out_csv = "wgaim_phenoCxR.csv")),
+  wgaim_phenoRxK = list(cran = list(pkg = "wgaim", rda_name = "phenoRxK", out_csv = "wgaim_phenoRxK.csv")),
+  wgaim_phenoSxT = list(cran = list(pkg = "wgaim", rda_name = "phenoSxT", out_csv = "wgaim_phenoSxT.csv")),
+  wooldridge_apple = list(cran = list(pkg = "wooldridge", rda_name = "apple", out_csv = "wooldridge_apple.csv")),
+  WRS2_electric = list(cran = list(pkg = "WRS2", rda_name = "electric", out_csv = "WRS2_electric.csv")),
+  WWGbook_ratpup = list(cran = list(pkg = "WWGbook", rda_name = "ratpup", out_csv = "WWGbook_ratpup.csv"))
 )
 
 # Every archive must hold exactly one CSV: an entry with several sources
@@ -982,10 +978,63 @@ validate_manifest <- function(manifest) {
     if (xor(is.null(spec$combine), is.null(spec$combined_csv))) {
       stop("Manifest entry '", name, "' must set both `combine` and `combined_csv`, or neither", call. = FALSE)
     }
+    if (!is.null(spec$cran$version) || !is.null(spec$github$commit_sha)) {
+      stop("Manifest entry '", name, "' pins a version; pins live only in experimental_datasets.md", call. = FALSE)
+    }
   }
   invisible(manifest)
 }
 validate_manifest(DATASET_MANIFEST)
+
+# The md's dataset table reduced to what the fetchers need: one row per dataset with its
+# manifest key (the Dataset name with "::" and other punctuation turned into "_"), Source
+# ("CRAN: <pkg>", "GitHub: <owner/repo>", ...), Version (a CRAN release, or the commit of a
+# "commit <sha>" cell), License and Redistribution.
+catalog_rows <- function(md_path) {
+  e <- new.env()
+  sys.source(file.path(dirname(md_path), "build_experimental_datasets_csv.R"), envir = e)
+  tbl <- e$read_dataset_table(md_path)
+  dataset <- e$strip_md(tbl$Dataset)
+  data.frame(dataset = dataset,
+             key = gsub("[^A-Za-z0-9_]", "_", gsub("::", "_", dataset, fixed = TRUE)),
+             source = e$strip_md(tbl$Source),
+             version = sub("^commit ", "", e$strip_md(tbl$Version)),
+             license = e$strip_md(tbl$License),
+             redistribution = e$strip_md(tbl$Redistribution),
+             stringsAsFactors = FALSE)
+}
+
+# The md row of manifest entry `name`, checked against the source the manifest fetches
+# from (`expected_source`, e.g. "CRAN: coin"; NULL for Dataverse entries, whose DOI is not
+# a pin). One key (`lalonde.exp`) keeps its literal dot, hence the match on either the key
+# or the Dataset name.
+catalog_row <- function(rows, name, expected_source = NULL) {
+  hit <- rows[rows$key == name | rows$dataset == name, , drop = FALSE]
+  if (nrow(hit) != 1L) {
+    stop("Manifest entry '", name, "' matches ", nrow(hit), " rows of experimental_datasets.md; expected 1", call. = FALSE)
+  }
+  if (!is.null(expected_source) && !identical(hit$source, expected_source)) {
+    stop("Manifest entry '", name, "' fetches from ", expected_source, " but experimental_datasets.md says ",
+         hit$source, call. = FALSE)
+  }
+  hit
+}
+
+# Every row may be fetched and used locally, but a row whose Redistribution cell is not
+# "yes..." says why each time it is downloaded or unpacked (user decision 2026-10-15; the
+# cell vocabulary is in dataset_license_audit.md). Shared with download_observational_datasets.R.
+warn_if_not_gpl3_compatible <- function(dataset, license, redistribution) {
+  if (startsWith(redistribution, "yes")) return(invisible(FALSE))
+  msg <- if (startsWith(redistribution, "no: GPL-2 only")) {
+    sprintf("Dataset %s has license %s, which does not comply with GPL-3. Only use it if your use case complies with the license %s.",
+            dataset, license, license)
+  } else {
+    sprintf("Dataset %s has license %s but is not cleared for use with GPL-3 (%s). Only use it if your use case complies with the license %s and those terms.",
+            dataset, license, redistribution, license)
+  }
+  warning(msg, call. = FALSE, immediate. = TRUE)
+  invisible(TRUE)
+}
 
 # ---------------------------------------------------------------------------
 # Orchestration
@@ -1008,20 +1057,37 @@ validate_manifest(DATASET_MANIFEST)
 #'   are deleted right after that dataset's archive is written. Set TRUE
 #'   to keep both (e.g. while developing this script).
 #' @param datasets Names of DATASET_MANIFEST entries to fetch; default all.
+#' @param catalog_md The catalog whose Version column pins every CRAN release and
+#'   GitHub commit fetched. All requested pins are resolved before anything is
+#'   downloaded, so a manifest entry with no matching md row fails up front.
 download_all_datasets <- function(download_dir = "R/package_metadata/randomized_experiment_datasets",
                                    keep_loose_csvs = FALSE,
-                                   datasets = names(DATASET_MANIFEST)) {
+                                   datasets = names(DATASET_MANIFEST),
+                                   catalog_md = "R/package_metadata/experimental_datasets.md") {
   if (!dir.exists(download_dir)) dir.create(download_dir, recursive = TRUE)
+
+  unknown <- setdiff(datasets, names(DATASET_MANIFEST))
+  if (length(unknown) > 0L) stop("No manifest entry named '", unknown[[1L]], "'", call. = FALSE)
+  md_rows <- catalog_rows(catalog_md)
+  rows <- lapply(datasets, function(name) {
+    spec <- DATASET_MANIFEST[[name]]
+    expected_source <- if (!is.null(spec$cran)) paste0("CRAN: ", spec$cran$pkg)
+                       else if (!is.null(spec$github)) paste0("GitHub: ", spec$github$repo)
+    catalog_row(md_rows, name, expected_source)
+  })
+  names(rows) <- datasets
+  pins <- vapply(rows, function(r) r$version, character(1))
+  on.exit(clean_fetch_scratch(download_dir), add = TRUE)
 
   for (name in datasets) {
     spec <- DATASET_MANIFEST[[name]]
-    if (is.null(spec)) stop("No manifest entry named '", name, "'", call. = FALSE)
     archive_path <- file.path(download_dir, paste0(name, ".tar.bz2"))
     if (file.exists(archive_path)) {
       message("== ", name, " == already have ", archive_path)
       next
     }
     message("== ", name, " ==")
+    warn_if_not_gpl3_compatible(rows[[name]]$dataset, rows[[name]]$license, rows[[name]]$redistribution)
     out_csvs <- character(0)
 
     if (!is.null(spec$files)) {
@@ -1053,11 +1119,11 @@ download_all_datasets <- function(download_dir = "R/package_metadata/randomized_
       out_csv <- file.path(download_dir, spec$cran$out_csv)
       out_csvs <- c(out_csvs, out_csv)
       if (!file.exists(out_csv)) {
-        message("  downloading CRAN ", spec$cran$pkg, " ", spec$cran$version,
+        message("  downloading CRAN ", spec$cran$pkg, " ", pins[[name]],
                 " (", spec$cran$rda_name, ", no install.packages()) ...")
-        cran_download_dataset_as_csv(spec$cran$pkg, spec$cran$version, spec$cran$rda_name,
-                                      out_csv, download_dir, list_element = spec$cran$list_element,
-                                      obj_name = spec$cran$obj_name)
+        cran_dataset_as_csv(spec$cran$pkg, pins[[name]], out_csv, download_dir,
+                            obj_name = spec$cran$obj_name, file_name = spec$cran$rda_name,
+                            list_element = spec$cran$list_element)
         message("  -> ", out_csv)
       }
     }
@@ -1066,10 +1132,10 @@ download_all_datasets <- function(download_dir = "R/package_metadata/randomized_
       out_csv <- file.path(download_dir, spec$github$out_csv)
       out_csvs <- c(out_csvs, out_csv)
       if (!file.exists(out_csv)) {
-        message("  downloading GitHub ", spec$github$repo, "@", spec$github$commit_sha,
+        message("  downloading GitHub ", spec$github$repo, "@", pins[[name]],
                 " (", spec$github$rda_name, ", no install_github()) ...")
-        github_download_dataset_as_csv(spec$github$repo, spec$github$commit_sha, spec$github$rda_name,
-                                        out_csv, download_dir)
+        github_dataset_as_csv(spec$github$repo, pins[[name]], out_csv, download_dir,
+                              file_name = spec$github$rda_name)
         message("  -> ", out_csv)
       }
     }
@@ -1101,13 +1167,18 @@ download_all_datasets <- function(download_dir = "R/package_metadata/randomized_
 #'
 #' @param name Dataset name (a DATASET_MANIFEST key); its archive must
 #'   already exist (run `download_all_datasets(datasets = name)` first if not).
+#' @param catalog_md The catalog whose License/Redistribution cells decide whether
+#'   unpacking warns (see warn_if_not_gpl3_compatible()).
 extract_experimental_datasets <- function(name,
-                                download_dir = "R/package_metadata/randomized_experiment_datasets") {
+                                download_dir = "R/package_metadata/randomized_experiment_datasets",
+                                catalog_md = "R/package_metadata/experimental_datasets.md") {
   archive_path <- file.path(download_dir, paste0(name, ".tar.bz2"))
   if (!file.exists(archive_path)) {
     stop("Archive not found: ", archive_path, ". Run download_all_datasets(datasets = \"", name,
          "\") first.", call. = FALSE)
   }
+  row <- catalog_row(catalog_rows(catalog_md), name)
+  warn_if_not_gpl3_compatible(row$dataset, row$license, row$redistribution)
   utils::untar(archive_path, exdir = download_dir)
   invisible(download_dir)
 }
@@ -1118,7 +1189,7 @@ extract_experimental_datasets <- function(name,
 if (sys.nframe() == 0L) {
   .args <- commandArgs(trailingOnly = FALSE)
   .file_arg <- grep("^--file=", .args, value = TRUE)
-  if (length(.file_arg) > 0L && grepl("icpsr_download\\.R$", .file_arg[[1L]])) {
+  if (length(.file_arg) > 0L && grepl("download_experimental_datasets\\.R$", .file_arg[[1L]])) {
     download_all_datasets()
   }
 }

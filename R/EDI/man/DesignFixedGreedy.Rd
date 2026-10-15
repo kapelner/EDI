@@ -43,6 +43,24 @@ RNGs are seeded from R's own RNG state (\code{GetRNGstate()}/\code{unif_rand()})
 before the parallel region begins, so \code{private$maybe_set_seed()} does govern the
 resulting allocation, independent of the number of OpenMP threads used.
 
+\strong{Same draws as \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}
+at the defaults.} With \code{objective = "mahal_dist"} and \code{n_iter = Inf} (the
+defaults), this class returns exactly the same allocations as
+\code{DesignFixedGreedyDOptimal} with its defaults (\code{objective = "D"}, no
+\code{prior_precision}) for the same seed. Despite the "no linear-model assumption"
+framing above, the default criterion coincides with D-optimality: with the number of
+treated subjects fixed, the information about the treatment effect in the linear model
+\eqn{y = \beta_T w + \beta_0 + X \gamma + \epsilon} equals a constant minus a positive
+multiple of the squared Mahalanobis distance between the treated and control
+covariate means. Both criteria therefore rank every allocation the same way, and the
+same swap search from the same starting allocation reaches the same allocation (the
+derivation is in \code{DesignFixedGreedyDOptimal}'s documentation). The draws differ
+when this class uses \code{objective = "abs_sum_diff"}, a finite \code{n_iter}, or the
+\code{"abs_sum_diff"} fallback after a failed Cholesky factorization, and when
+\code{DesignFixedGreedyDOptimal} uses an unequal \code{prob_T} (which this class
+does not support), \code{objective = "A"} with \code{interest = "all"} or a covariate
+subset, or a \code{prior_precision}.
+
 \strong{Constraints and fallbacks.} Only exactly balanced allocation
 (\code{prob_T = 0.5}, \eqn{n} even) is supported; the constructor errors otherwise. If
 no covariates are available, the search degenerates to pure balanced Fisher-Yates

@@ -117,6 +117,17 @@ distance), R errors, or a segfault, all nondeterministic.
   weight kernels with ordinary calls under `gctorture(TRUE)` and checks the
   direct univariate ordinal-fit reference. It awaits targeted native rebuild
   and execution.
+
+  **Installed-package smoke 2026-10-14:**
+  `Rscript -e 'cat("EDI ", as.character(packageVersion("EDI")), "\\n", sep=""); testthat::test_file("R/package_tests/testthat_bulk/test-kk21-ordinal-weight-kernel-gc-safety.R")'`
+  ran against EDI 1.0.3 and completed with 5 passed, 1 skipped, 0 failed,
+  0 warnings (about 10 minutes). The skip was the static source-tree check:
+  `test_file()` evaluated the test from its bulk-test directory, where the
+  fixture's relative-path search does not find `R/EDI/src`; the independent
+  source sweep above remains its evidence. Both `gctorture(TRUE)` calls
+  against the installed binary passed. This does not establish that the
+  installed binary contains the current checkout's C++ change, so targeted
+  compile/relink and shipped-binary validation remain required.
 - [ ] **TODO-4 (optional, performance):** the helper exists only to reach
   `fast_ordinal_regression_internal` in `fast_ordinal_regression.cpp`
   through R. Declaring that C++ entry point and calling it directly removes

@@ -42,13 +42,14 @@ recommender. No estimator changes.
    group column → treatment, outcome column(s) → response, remaining numeric
    columns → covariates. Survival rows add the censoring indicator.
 4. **Template renderer.** Emit a standalone R script:
-   - data load (CRAN object via `cran_fetch_object_auto()`, or the cached
-     archive from `download_*_datasets.R`);
+   - data load (CRAN object via `cran_dataset_as_csv()` / `load_data_object()`, or
+     the cached archive from `download_*_datasets.R`);
    - design construction;
    - `inf <- <Class>$new(des)`;
    - `run_all_inference_class_applicable_methods(...)` and `print(summary)`.
    For rows whose `redistribution` is not plain `yes` (`no: …`, `unclear: …`,
-   `conditional: …`), emit a fetch step with a comment and never embed data.
+   `conditional: …`), emit a fetch step with a comment and never embed data, and
+   print the license warning (see "Eligible sources for v1").
 5. **Entry point.** `edi_inference_demo(class, dataset = NULL, demo_number = 1, fast = TRUE, write_to = NULL)`.
    Prints the script, or writes it to `write_to`. `demo_number` selects one of the
    candidate demos for that class (see "Demo number" below).
@@ -78,21 +79,21 @@ must ship with the installed package, not only live in the repository:
 
 ### Eligible sources for v1
 
-A demo may use only rows whose source is CRAN or base R and whose
-`redistribution` value starts with `yes`. (The column was re-valued 2026-10-08 — see
-`dataset_license_audit.md`: `yes` / `yes, with attribution (…)` / `conditional: …` /
-`unclear: …` / `no: <reason>`; the old "not flagged" / "not permitted" values are gone.)
-Before the redistribution filter, that is 338 of the 371 catalog rows (248 + 89 CRAN,
-1 base R); the filter then removes 37 (31 `no:`, 5 `unclear:`, 1 `conditional:`),
-leaving 301. Excluded for v1:
+A demo may use any row whose source is CRAN or base R: 338 of the 371 catalog rows
+(248 + 89 CRAN, 1 base R). Demos fetch data at run time and never embed it, so the
+`redistribution` column (`dataset_license_audit.md`: `yes` / `yes, with attribution (…)`
+/ `conditional: …` / `unclear: …` / `no: <reason>`) does not filter rows. Instead
+(user decision 2026-10-15) the 37 rows whose value does not start with `yes` (31 `no:`,
+5 `unclear:`, 1 `conditional:`) print the same warning the download scripts give
+(`warn_if_not_gpl3_compatible()` in `download_experimental_datasets.R`): "Dataset <d>
+has license <L>, which does not comply with GPL-3. Only use it if your use case
+complies with the license <L>." Rows with conditions beyond the license
+(`surrosurv::gastadv`, `coxphw::biofeedback`, the `unclear:` rows) name those terms in
+the warning. Excluded for v1:
 
 - **Dataverse** (15 experimental, 2 observational): needs a guestbook form.
 - **GitHub** (6 experimental, 7 observational): pinned commits can disappear.
 - **ICPSR** (2 experimental, 1 observational): account and terms of use.
-- Any CRAN row whose `redistribution` is not `yes`. Examples: `surrosurv::gastadv`
-  (research-only conditions), `coxphw::biofeedback` (non-commercial), `mediation::jobs`
-  (ICPSR-derived). 29 of the 31 `no:` rows are `no: GPL-2 only`, which bars *embedding*
-  the data in a GPL-3 package but not fetching it at run time — see Open decisions.
 
 The index builder rejects a spec that points to an ineligible row and says why.
 Dataverse and GitHub can be added later as separate steps.
@@ -109,10 +110,10 @@ A CRAN demo does not install the source package. It downloads the data only:
 
 The tarball is downloaded whole, since CRAN does not let a single file be
 fetched from it. Most data-bearing packages are a few MB, far smaller than an
-install. The fetch logic is the same as `cran_fetch_object_auto()` in
-`R/package_metadata/compute_covariate_missingness.R`, and the catalog download
-scripts already use it. Move it into one shared helper that both the catalog
-download scripts and the demos call.
+install. Both catalog download scripts already share this logic
+(`cran_extract_package()`, `load_data_object()` and `cran_dataset_as_csv()` in
+`R/package_metadata/download_experimental_datasets.R`, merged 2026-10-15). The demos
+call the same helper once it moves into the package (TODO-11).
 
 A demo needs only EDI and, for pair-based classes, `optmatch`. It never needs
 the CRAN source package's own imports.
@@ -223,7 +224,7 @@ class also depends on design, structure, censoring, covariates, and model
 needs. So coverage is computed, not assumed.
 
 - The index builder checks every exported Inference class against the
-  eligible catalog rows (CRAN or base R, `redistribution` starts with `yes`).
+  eligible catalog rows (CRAN or base R).
 - For each class it lists the matching datasets, or reports why none match:
   missing response type, wrong design (randomized vs observational), missing
   ID or cluster column, censoring type not present, no covariates, or no
@@ -391,12 +392,16 @@ Open for the implementation step:
   rows.
 - [ ] TODO-11: Shared CRAN fetch helper (tarball via `curl`, extract `data/`,
   load by format, check and fill the `tools::R_user_dir("EDI", "cache")` cache,
-  documented clear-cache helper). Refactor `cran_fetch_object_auto()` and the catalog download
-  scripts onto it. Test: fetch and load one object from each format (`.rda`,
-  `.RData`, `.csv`, `.R`), and a pinned archive version.
-- [ ] TODO-12: Eligibility filter in the index builder (CRAN or base R only,
-  `redistribution` starts with `yes`). Test: an ICPSR row, a Dataverse row, a GitHub
-  row, and a `no:`/`unclear:` CRAN row (e.g. `surrosurv::gastadv`) are each rejected with a reason.
+  documented clear-cache helper). Repo half done 2026-10-15: both catalog download
+  scripts use `cran_extract_package()` / `github_extract_repo()` / `load_data_object()`
+  in `download_experimental_datasets.R` (`.rda`/`.RData`/`.R`/`.txt`/`.csv`/`.tab`, any
+  compression; never substitutes another version). Left: move them into `R/` as
+  internal functions with the user cache and clear-cache helper. Test: fetch and load
+  one object from each format, and a pinned archive version.
+- [ ] TODO-12: Eligibility filter in the index builder (CRAN or base R only).
+  Test: an ICPSR row, a Dataverse row and a GitHub row are each rejected with a
+  reason; a `no:`/`unclear:` CRAN row (e.g. `surrosurv::gastadv`) is accepted and its
+  demo prints the license warning.
 - [ ] TODO-14: Summary renderer prints design provenance (actual vs imposed) from the spec and catalog. Test: a documented randomized row prints the actual case; a KK demo on observational data prints the imposed case with the warning.
 - [ ] TODO-15: `prop_reservoir` argument (default 0.2, KK only). Caliper calibration via `caliper_for_reservoir()`, printing the caliper and achieved share. Tests: achieved share within 2/n of target across targets 0.1, 0.2, 0.4; an unreachable target gives a clear message; a non-KK spec with `prop_reservoir` is rejected.
 - [ ] TODO-16: `seed` argument (default 1), passed to every design and inference constructor, plus `with_demo_seed()` for other draws. No bare `set.seed()` in the demo. Tests: two runs with the same seed give identical output; the user's `.Random.seed` is identical before and after `edi_inference_demo()` runs; `seed = NULL` leaves the RNG untouched and passes `NULL` to constructors; the seed appears in the summary and header.
@@ -442,13 +447,10 @@ Open for the implementation step:
 
 ## Open decisions (defaults chosen; confirm before implementing)
 
-Resolved 2026-10-06: data-only CRAN fetch instead of install; CRAN and base R sources only in v1; ICPSR and redistribution-flagged rows excluded.
+Resolved 2026-10-06: data-only CRAN fetch instead of install; CRAN and base R sources only in v1; ICPSR rows excluded.
 
-Open (2026-10-08, after the `redistribution` column was re-valued): demos fetch data at
-run time and never embed it, so the 29 `no: GPL-2 only` rows (HSAUR3, PASWR2, COUNT,
-ISLR, vegan, …) are not actually barred from a demo — only from being bundled. Default
-kept as "starts with `yes`" (301 rows) for simplicity; relaxing the filter to
-"`yes` or `no: GPL-2 only`" would add those 29.
+Resolved 2026-10-15 (user decision): rows whose `redistribution` is not `yes` are not
+excluded; their demos print the license warning instead (see "Eligible sources for v1").
 
 
 1. **Output.** Default: print to console; `write_to` writes a file. Files are not

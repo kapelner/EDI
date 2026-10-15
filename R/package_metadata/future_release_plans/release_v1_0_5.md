@@ -392,6 +392,22 @@ range, since the plan files' internal numbering did not change.
   224/400 versus the earlier 386/400 at n=100—remains unreconciled. The
   installed library reports EDI 1.0.3 and native build timestamp
   2026-09-20, so this is not validation of the current checkout/native pair.
+  **Artifact-only reconciliation 2026-10-15:** a post-reinstall run at
+  `/tmp/edi-todo8-400-null-reinstall-20261014T173835Z/` is byte-identical
+  to the above n=100/n=50 CSVs (SHA256
+  `e07fb6839cbacb3e0bfa40da1f6a5614d9823206caf12ad273c4169ee0ddd051` /
+  `5992e43b803016c970e0bbd2a92cf541872f062e153fad0b853d0bfdf147eff4`),
+  despite reporting a 2026-10-14 native build timestamp. An Oct 9
+  source-loaded n=100 artifact at `/tmp/edi_todo8_n100k5.csv` has 64/400
+  finite fits; those same 64 seeds are finite in the newer 224-case run,
+  with 160 additional seeds finite and no old-only finite seeds. No paired
+  n=50 CSV was found for that run. The historical 386/400 n=100 and 169/400
+  n=50 table still lacks its seed-level CSV/run metadata, so the cause of
+  the denominator differences cannot be established. TODO-8 remains open;
+  no regeneration or compilation was performed. TODO-7's documentation
+  update and comprehensive-results regeneration must wait. Full results
+  and metadata are preserved at
+  `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`.
   TODO-8 remains open pending reconciliation and authorized current-native
   validation; TODO-7's documentation update and comprehensive-results
   regeneration must wait. Full results and metadata are preserved at
@@ -1577,7 +1593,17 @@ baseline as expected/benign.
   wide bracket but full-precision span already `<= tolerance`, while 7 had a
   full-precision span above tolerance but also a cheap span above tolerance.
   Further bounded `mtcars`/`airquality` probes at `r=201`/`1001` likewise
-  found no inner entry. Harness/results:
+  found no inner entry. **Additional bounded `airquality` probe 2026-10-14:**
+  on 111 complete cases (`Ozone ~ Wind + Temp`), 25 seeds at `r=201`,
+  `pval_epsilon=0.005`, and 10 seeds at `r=1001`, `pval_epsilon=0.001`, all
+  35 calls completed without errors and none entered the upper inner loop;
+  all upper delta brackets were already narrower than tolerance. Harnesses
+  and CSVs are `/tmp/edi-v105-todo33-airquality-probe.R`,
+  `/tmp/edi-v105-todo33/airquality_public_api_ci_probe_r201.csv`,
+  `/tmp/edi-v105-todo33-airquality-r1001-probe.R`, and
+  `/tmp/edi-v105-todo33/airquality_public_api_ci_probe_r1001.csv`.
+  This remains a trigger-search failure, not proof of inaccessibility.
+  Harness/results:
   `/tmp/edi-v105-todo33/public_api_probe.R` and
   `/tmp/edi-v105-todo33/mtcars_public_api_ci_probe_r1001.csv`. This is a
   trigger-search failure, not evidence of inaccessibility or unchanged
@@ -1955,7 +1981,14 @@ baseline as expected/benign.
   benchmark/report gate: the source-loaded median is 0.525 ms per arrival, so
   it does not yet meet the 0.5 ms target, and the batch-C++ `carat` comparison
   is infeasible for the per-arrival public R API. This release checkbox stays
-  unchecked.
+  unchecked. **Additional compile-free installed benchmark 2026-10-14:**
+  `Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5` completed
+  on EDI 1.0.3 without a CSV, during concurrent R test load. Per-arrival
+  medians at t=10/100/500/1000 were 1.75/3.55/2.75/1.30 ms; whole-sequence
+  median was 1486.70 ms. This load-contended result is diagnostic, not clean
+  acceptance evidence, and misses the ≤0.5 ms gate at all checkpoints. The
+  linked plan records the run; an isolated rerun and remaining identity/report
+  gates are still needed.
 
 - [x] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
   `nonbimatch` squared distances with a `double.xmax` diagonal** —
@@ -1987,8 +2020,11 @@ baseline as expected/benign.
   against `gendistance` + `nonbimatch` + within-pair coin flips: EDI was
   578/537/473 ms (median 537), canonical was 890/897/881 ms (median 890),
   for 1.66x, meeting the ≥1.3x acceptance threshold. Linked-plan TODO-3 is
-  complete; the same installed result still needs copying into the canonical
-  `benchmark_model_fits.md` row.
+  complete. On 2026-10-14, the canonical
+  `benchmark_model_fits.md` row was refreshed to those medians and the Welch
+  timing p-value (0.00618, **); the three-replicate command and fixture are
+  recorded in the linked plan. The installed benchmark/report acceptance is
+  complete.
 
 - [ ] TODO-62 (added 2026-10-07, user decision): **Benchmark harness: R6
   construction inside the timed region misreads sub-10 ms rows** —
@@ -2015,7 +2051,17 @@ baseline as expected/benign.
   `--sections=procedures,designs` to run just those focused tables (skipping
   the model-fit, Wald, and utility loops, including the utility wrapper
   compile); generated reports were not hand-edited and require an authorized
-  benchmark run to regenerate.
+  benchmark run to regenerate. **Isolated output-path diagnosis 2026-10-14:**
+  an instrumented official `--sections=designs` run completed all six design
+  rows under installed EDI 1.0.3 and successfully wrote both Markdown and HTML
+  reports in `/tmp/edi-todo62-instrumented.xpTSrk/R/package_metadata/`.
+  Immediately before writing, cwd was the expected R root, the resolved parent
+  existed and was writable, and neither target existed. The two prior
+  `writeLines` failures (`file(con, "w"): cannot open the connection`) are
+  therefore not currently reproducible; their path warning was hidden by
+  `options(warn=-1)`. No canonical report was overwritten. The exact six-row
+  output and diagnostic are in the linked plan. TODO-62 remains open for the
+  Zhang parity criterion and canonical artifact synchronization.
 
 - [ ] TODO-63 (added 2026-10-07, user decision): **C++ kernels accept a
   `warm_start_beta` of the wrong length and corrupt the heap** —
@@ -2050,7 +2096,12 @@ baseline as expected/benign.
   Fisher matrix had otherwise been ignored on that path. The full
   adjacent-start audit and the explicitly required targeted
   compile/sanitizer/Valgrind validation remain open; this release item is
-  deliberately unchecked.
+  deliberately unchecked. The existing Python regression
+  `test_wrong_length_warm_start_beta_raises_value_error` also passed against
+  the preinstalled Python extension on 2026-10-14 (`1 passed in 0.29s`, via
+  `python/.venv/bin/python -m pytest -q`); this is only a logistic smoke on
+  that binary and does not validate the current C++ checkout or replace the
+  pending rebuild-backed Python/sanitizer gate.
 
 - [ ] TODO-64 (added 2026-10-07, filed on the model's initiative under the
   standing "add found bugs to v1.0.5" instruction; delete if unwanted):
@@ -2089,10 +2140,22 @@ baseline as expected/benign.
   (including the newly wired OLS kernel), ten reusable-worker delegates, and
   the custom R/callback path; every direct native wrapper exists. Simple- and
   KK-Wilcoxon regressions exercise double dispatcher matrices. The linked
-  OLS-plan correction is complete. The executable all-class/worker-parity
-  audit and rebuilt-native validation
-  remain open because this host's `Rscript` cannot load
-  `libmkl_gf_lp64.so.2`, so this release item is deliberately unchecked.
+  OLS-plan correction is complete. **Compile-free installed-package probe,
+  2026-10-14:** `Rscript scripts/todo64_installed_override_parity.R` exercised
+  the 12 override definitions not covered by the numerical agent's 165
+  assertions (Bai's one override via both KK14 and KK21 classes). All 13
+  class cases returned 4 draws each (5 for RandCustom) and matched the
+  reused-worker route at `1e-10`; 12 had finite draws. KK OLS-IVWC returned
+  four `NA`s on both paths, making that parity vacuous; a separate randomized-
+  covariate n=40 probe also returned all `NA`s despite a finite public point
+  estimate. The 10 delegate methods route through the reused-worker method,
+  so these are execution checks rather than independent native-kernel
+  comparisons. The exact reproduction is the script above. `Rscript` now
+  loads installed EDI 1.0.3, so the prior MKL startup failure is no longer a
+  blocker; however, the installed-package probe is not the required checked-in
+  all-18 `generate_permutations(50)` wiring test, the OLS-IVWC result needs a
+  non-vacuous fixture, and current-checkout native coercion still needs a
+  rebuilt package. TODO-64 remains deliberately unchecked.
 
 - [ ] TODO-65 (added 2026-10-08, user decision): **KK21 ordinal weight
   kernels: unprotected `wrap()` temporaries in an R callback in
@@ -2122,7 +2185,13 @@ baseline as expected/benign.
   and the bulk-CI test exercises both ordinal weight kernels under
   `gctorture(TRUE)`. Targeted native compilation and execution remain required
   to validate the shipped binary; optional TODO-4 is a separate performance
-  decision, so this release item remains unchecked.
+  decision, so this release item remains unchecked. The focused bulk test
+  ran against installed EDI 1.0.3 on 2026-10-14: 5 passed, 1 skipped, 0
+  failures/warnings (about 10 minutes); both torture-protected kernel calls
+  passed. The skipped static check could not locate the source tree from
+  `test_file()`'s bulk-test working directory, while the linked plan records
+  the independent source-sweep result. This does not validate the checkout's
+  C++ change, so targeted compile/relink remains the closure gate.
 
 - [ ] TODO-66 (added 2026-10-08, found while rewriting a stale test):
   **`InferenceCountHurdleNegBin`'s non-reusable-worker multi-core Bayesian
@@ -2529,13 +2598,20 @@ baseline as expected/benign.
   The same seed gives different draws on Linux and macOS on default design and resampling paths (distributions correct). In-code "cross-platform guarantee" comments are wrong. Use Fisher–Yates on `bounded_rand` and add a fixed-seed golden. **Default change:** seed-pinned draws change once.
   **Source progress 2026-10-09:** native shuffle/distribution sites now use
   portable `RRng`/`bounded_rand` Fisher--Yates, with no stale `<random>`
-  headers remaining at those sites. The required rebuilt fixed-seed golden
-  has not yet been recorded or run, including on macOS, so this release item
-  stays unchecked. Utility-kernel coverage passed 25 assertions. The
-  cross-platform digest test passed 6 and skipped the uncommitted fixture; the
-  all-design seed suite passed 25 assertions (1 CRAN-only skip) once its
-  internal classes were made visible to `test_file()`. This verifies same-host
-  repeatability, not the required fixed-seed cross-platform golden.
+  headers remaining at those sites. **Linux golden recorded 2026-10-14:** the
+  seed queue's portable EDI 1.0.3 run produced six fixed-seed design digests
+  for Bernoulli, rerandomization, greedy, greedy D-optimal, matching greedy
+  pair-switching, and binary matching; each was identical at 1, 2, and 4
+  threads. The committed fixture is
+  `R/EDI/tests/testthat/fixtures/cross_platform_digests.csv`, copied from
+  `/tmp/edi-todo91-linux-golden-20261014T211424/fixtures/cross_platform_digests.csv`
+  and byte-identical to that generated artifact. The focused command
+  `Rscript -e 'testthat::test_file("R/EDI/tests/testthat/test-cross-platform-reproducibility-digests.R")'`
+  passed 18 assertions, zero failures/warnings/skips, against installed EDI
+  1.0.3. The external macOS digest comparison is still required; this item
+  remains unchecked pending that cross-platform confirmation. Utility-kernel
+  coverage passed 25 assertions; the all-design seed suite passed 25
+  assertions (1 CRAN-only skip) and verifies same-host repeatability.
 
 - [x] TODO-92 (added 2026-10-09, user decision; algorithm-sweep
   verification F19): **Firth penalty has the wrong sign** —

@@ -88,6 +88,52 @@ local generator from R's own RNG stream, so a fixed \code{seed} yields identical
 draws (this corrects the former classes' documentation, which predated the RNG
 migration).
 
+\strong{Relation to \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}: the
+same draws at the defaults.} With \code{objective = "D"} (any \code{interest}) or
+\code{objective = "A", interest = "treatment"}, no \code{prior_precision}, and
+\code{prob_T = 0.5}, this class returns exactly the same allocations as
+\code{DesignFixedGreedy} with its defaults (\code{objective = "mahal_dist"},
+\code{n_iter = Inf}) for the same seed. This is a mathematical identity, not a
+coincidence. Write \eqn{X_c} for the centered covariates, \eqn{S} for their sample
+covariance, and \eqn{n_C = n - n_T}. Because the column space of \eqn{Z_0 = [1\ X]}
+splits orthogonally into the intercept and \eqn{X_c},
+\eqn{w^\top P w = n_T^2/n + (X_c^\top w)^\top (X_c^\top X_c)^{-1} (X_c^\top w)}, and
+\eqn{X_c^\top w = (n_T n_C / n)(\bar{x}_T - \bar{x}_C)}. Hence
+\deqn{s(w) = \frac{n_T n_C}{n} - \frac{n_T^2 n_C^2}{n^2 (n - 1)} (\bar{x}_T - \bar{x}_C)^\top S^{-1} (\bar{x}_T - \bar{x}_C):}{s(w) = n_T n_C / n - n_T^2 n_C^2 / (n^2 (n - 1)) * (xbar_T - xbar_C)' S^-1 (xbar_T - xbar_C):}
+the information about the treatment effect is a constant minus a positive multiple
+of the squared Mahalanobis distance between the treated and control covariate means,
+which is \code{DesignFixedGreedy}'s default criterion up to a positive factor.
+Maximizing one is minimizing the other, so the two rank every allocation the same
+way; both draw the same starting allocation from the seed and apply the same
+best-improving-swap rule, so they take the same steps to the same local optimum. In
+words: once the number of treated subjects is fixed, balancing the covariate means
+in Mahalanobis distance and maximizing the precision of the treatment effect in a
+linear model with an intercept are the same goal.
+
+The two classes give different draws when:
+\itemize{
+  \item \code{prob_T} is not 0.5 (or \eqn{n} is odd). \code{DesignFixedGreedy}
+    refuses these; this class runs them. The identity above holds for any fixed
+    \eqn{n_T}, so this class is then the Mahalanobis-balancing greedy search at an
+    unequal allocation.
+  \item \code{objective = "A"} with \code{interest = "all"} or a covariate subset.
+    The trace criterion \eqn{(w^\top H w + 1)/s(w)} also weighs the precision of
+    the covariate coefficients, so it is not a function of the Mahalanobis distance
+    alone.
+  \item \code{prior_precision} is supplied. The ridge term replaces \eqn{S} with a
+    shrunken covariance, so the ranking moves away from plain Mahalanobis distance;
+    the larger the prior precision, the more draws differ.
+  \item \code{DesignFixedGreedy} is run with \code{objective = "abs_sum_diff"}, with
+    a finite \code{n_iter} (stochastic swaps), or falls back to
+    \code{"abs_sum_diff"} because the Cholesky factorization of its covariate
+    covariance fails.
+}
+The two kernels compute swap gains with different arithmetic, so a floating-point
+near-tie between two candidate swaps could in principle be broken differently.
+In practice, use \code{DesignFixedGreedy} for balanced Mahalanobis balancing (it
+also offers \code{"abs_sum_diff"} and stochastic search), and this class for
+unequal allocation, A-optimality, or a Bayesian prior.
+
 \strong{Covariate-subset criteria (D_s/A_s) via \code{interest = } a formula or
 names.} \code{interest} also accepts a one-sided formula (e.g.
 \code{~ x1 + x2}) or a character vector of model-matrix column names, meaning

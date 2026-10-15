@@ -201,6 +201,14 @@ implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
 \if{html}{\out{<a id="method-InferenceCountZeroInflatedNegBin-compute_estimate"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceCountZeroInflatedNegBin-compute_estimate}{}}}
 \subsection{\code{InferenceCountZeroInflatedNegBin$compute_estimate()}}{
+  Fits the zero-inflated negative binomial model. Under the
+  default \code{estimand = "conditional"}, returns \eqn{\hat\beta_T}, the
+  treatment log-rate coefficient from the conditional count submodel.
+  Under \code{estimand = "marginal_mean_diff"} or
+  \code{"marginal_ratio"} (set via \code{set_estimand()}), returns the
+  g-computation marginal mean difference or log-scale marginal ratio
+  of the unconditional mean instead -- a post-fit transform of the same
+  cached fit, no refit.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountZeroInflatedNegBin$compute_estimate(estimate_only = FALSE)}
@@ -209,7 +217,9 @@ implementation. If \code{FALSE}, use \pkg{glmmTMB}.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{estimate_only}}{If TRUE, skip variance component calculations.}
+      \item{\code{estimate_only}}{If TRUE, skip standard-error computation and cache
+only the point estimate; used by randomization and bootstrap
+resampling paths.}
     }
     \if{html}{\out{</div>}}
   }

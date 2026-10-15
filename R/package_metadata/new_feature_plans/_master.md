@@ -813,8 +813,11 @@ evidence in `algorithm_choice_audit_catalog.md §13`).
   - GEE α̂/φ̂.
 
   Release index: `release_v1_0_5.md → TODO-70..94` (added 2026-10-09, user decision).
-The sweep's speed items (`algorithm_choice_audit.md → TODO-10..36`) are
-**not** scheduled into a release yet.
+The sweep's speed and accuracy items (`algorithm_choice_audit.md →
+TODO-10..36`) were scheduled 2026-10-15 (user decision): wins on both speed
+and accuracy → `release_v1_1_0.md → TODO-50`; speed-only drop-ins →
+`release_v1_2_0.md → TODO-22`; A/B-harness-gated items →
+`release_v1_2_0.md → TODO-23`. Each audit TODO names its slot.
 
 ---
 

@@ -3811,22 +3811,6 @@ fast_dep_cens_transform_optim_cpp <- function(X, y, dead, warm_start_params = NU
     .Call(`_EDI_fast_dep_cens_transform_optim_cpp`, X, y, dead, warm_start_params, smart_cold_start, estimate_only, maxit, reltol, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
 }
 
-#' Calculates standard variance using the formula from Uno et al
-#'
-#' \eqn{Var(RMST) = \sum_j A(t_j)^2 d_j / (n_j (n_j - d_j))}
-#' where \eqn{A(t_j) = \int_{t_j}^{\tau} S(u) du} is the remaining area under the KM
-#' curve from event time \eqn{t_j} to the last observation \eqn{\tau}.
-#' Here \eqn{d_j} is the number of events at \eqn{t_j}, and \eqn{n_j}
-#' is the number at risk just before \eqn{t_j}.
-#' Terms where n_j == d_j are omitted: S drops to 0 there, so A(t_j) = 0 and the
-#' contribution is 0 in the limit regardless of the undefined Greenwood denominator.
-#'
-#' @param y Numeric vector of survival times.
-#' @param dead Integer vector of event indicators (1=event, 0=censored).
-#' @return The standard error of the restricted mean.
-#' @keywords internal
-NULL
-
 #' Calculates the median or restricted mean survival time for a single group
 #'
 #' @param y Numeric vector of survival times.

@@ -138,7 +138,16 @@ lengths is part of TODO-1).
 - [ ] TODO-5: **Python bindings.** If TODO-1 finds the bindings pass
   lengths through unchecked, the C++ fix covers them once the wheels are
   rebuilt; add a matching pytest that a wrong-length warm start raises a
-  Python exception rather than crashing the interpreter.
+  Python exception rather than crashing the interpreter. **Compile-free
+  smoke 2026-10-14:** the matching regression already exists at
+  `python/tests/test_fast_logistic_regression.py::test_wrong_length_warm_start_beta_raises_value_error`;
+  it passed (`1 passed in 0.29s`) using
+  `python/.venv/bin/python -m pytest -q` against the existing extension at
+  `python/.venv/lib/python3.14/site-packages/edi_kernels/_core.cpython-314-x86_64-linux-gnu.so`.
+  No build/install was run. This confirms the existing binary's logistic
+  binding behavior only; the wheel/build provenance is not tied to the
+  current C++ checkout edits, so rebuild-backed Python validation remains
+  open.
 
 ## Out of scope
 

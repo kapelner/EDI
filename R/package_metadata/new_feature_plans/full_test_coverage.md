@@ -538,8 +538,9 @@ is explicitly not the target** -- see Non-goals below.
   focused test coverage or a documented measurement explanation:
   `fast_robust_regression.cpp` now has a 32-resample, two-thread bulk case
   checked against serial and per-resample fits;
-  `kk21_stepwise_survival.cpp` has low-event fallback/score-path references
-  plus non-finite event/time cases for the reduced-fit guards; and
+  `kk21_stepwise_survival.cpp` has low-event fallback and non-finite
+  event/time cases for the reduced-fit guards, alongside its existing score
+  reference; and
   `fast_scale_cols.cpp` already has ordinary/constant-column references and
   has no parallel/size dispatch gate in its implementation. Its 75% report
   is a known `-O2`/gcov line-attribution anomaly (unchanged code measured
@@ -554,7 +555,11 @@ is explicitly not the target** -- see Non-goals below.
   both shard planners accept the manifest. Keep the robust and survival rows
   pending until a report including the new 32-resample test and non-finite
   cases confirms their coverage movement; focused test runs alone do not
-  update the measured registry values.
+  update the measured registry values. The low-event fallback, malformed-input,
+  robust-parallel, and scaling files pass against installed EDI v1.0.3. The
+  separate Weibull score reference passes its censored fixture but fails its
+  all-event fixture against that installed binary (6.101761 vs. 6.446710); this
+  needs a fresh checkout-build/CI result before treating it as a source defect.
 - **TODO-4.** Confirm whether `InferenceContinuousKK14Bai`,
   `InferenceContinuousKK21Bai`, `InferenceExtQuantileRandCI`, and the
   quantile-rand-CI abstract base genuinely have no test anywhere (they may

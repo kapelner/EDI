@@ -94,6 +94,10 @@ release, none of it needed to ship v1.1.0's inference-quality theme:**
   the profiling lane above. `algorithm_choice_audit.md` itself (the
   survey; no code) stayed in v1.1.0 since it costs nothing and one of its
   Adopt verdicts (Brent) is already there.
+- The 2026-10-09 sweep's speed-only drop-ins (`TODO-22`) and its
+  harness-gated items (`TODO-23`), both from `algorithm_choice_audit.md`
+  (added 2026-10-15, user decision). Its items that win on both speed and
+  accuracy are in `release_v1_1_0.md → TODO-50`.
 
 ## Implementation TODOs (dependency order)
 
@@ -299,6 +303,49 @@ Ticked in owning plans; this list is the index.
   the pattern; composes with TODO-20's multistart as one more
   deterministic start).
 
+- [ ] TODO-22 (added 2026-10-15, user decision): **Algorithm audit:
+  speed-only drop-ins** — `algorithm_choice_audit.md → TODO-10, -11, -18,
+  -19, -21, -29, -34`. Same answer, less time; no new options.
+  - **TODO-10:** Atkinson null draws via Schur complement / per-t
+    precompute (same RNG consumption).
+  - **TODO-11:** interval-censored log-rank / Wilcoxon randomization
+    tests compute the pooled-NPMLE scores once (~r× fewer NPMLE solves;
+    gate: reproduce `ictest` on fixtures).
+  - **TODO-18:** presorting in survival resampling (bit-identical).
+  - **TODO-19:** replicate-loop economics (memoized param-bootstrap batch,
+    `rq.fit` instead of formula `rq()` with one method for point fit and
+    replicates, C++ cpoisson-combined and Lin/KK OLS batch kernels,
+    parallel BRT draw materialization). Coordinate the `rq.fit` part with
+    `quantile_regression_cpp_kernel_spec.md` above.
+  - **TODO-21:** the existing C++ block / cluster draw kernels instead of
+    `replicate(randomizr::…)`, plus a C++ urn kernel. **Changes
+    seed-pinned draws once** (documented default change; refresh fixtures).
+  - **TODO-29:** low-priority linear algebra (whitened Mahalanobis, drop
+    the redundant QR, LDLT, cached GH rule, SYRK Cox Hessian).
+  - **TODO-34:** longest-first (LPT) scheduling in `run_all_inference`.
+  - **Gate:** the existing tests and bit-for-bit parity, except TODO-21
+    (documented draw change) and TODO-11 (tolerance-equal to `ictest`).
+- [ ] TODO-23 (added 2026-10-15, user decision): **Algorithm audit: items
+  gated on the A/B harness** — `algorithm_choice_audit.md → TODO-4, -5, -8,
+  -12, -13, -20, -25 (score-test stepwise half), -26, -27, -30, -31, -32,
+  -33, -35`. **Depends on TODO-21** (the harness). Each is a trade-off or an
+  unmeasured win: no default changes without a human reading its harness
+  report.
+  - **Trade-offs / opt-in:** TODO-5 saddlepoint p-values (early-stop
+    screen only), TODO-25 KK21 score-test stepwise (can select different
+    covariates), TODO-31 true MM robust regression (the rename/document
+    half of TODO-31 is not harness-gated and can land any time), TODO-32
+    mixture / boundary solvers, TODO-33 nonconcave models, TODO-35 exact
+    randomization support (needs a policy decision first).
+  - **Unmeasured speed wins:** TODO-4 balanced bootstrap (changes
+    seed-pinned draws once), TODO-12 Newton as default, TODO-13 separable
+    fits (ZOIB, hurdle-Poisson, continuation-ratio), TODO-20 exact
+    enumeration for `DesignFixedOptimal`, TODO-26 CI-search refit economics,
+    TODO-27 weighted C++ Bayesian-bootstrap kernels, TODO-30 per-arrival
+    re-imputation (changes design output).
+  - **TODO-8:** replace the audit's theoretical speedup table with the
+    measured multiples as each report lands.
+
 ## Standing constraints
 
 Additive; bit-for-bit defaults (kernel parity tests are the gate); every
@@ -312,4 +359,4 @@ default change with re-justified equivalence tolerances; `→ TODO-156`
 (Monte-Carlo early stopping) ships opt-in only; `→ TODO-149` (non-R RNG
 streams) is opt-in or a documented default change. TODO-21's Robbins–Monro
 item is opt-in by construction (`ci_search_algorithm` argument,
-default `"bisection"`) until its own A/B report clears a wider default.
+default `"bisection"`) until its own A/B report clears a wider default. TODO-22's draw-kernel item (`algorithm_choice_audit.md → TODO-21`) changes seed-pinned draws once, as a documented default change; every TODO-23 item ships opt-in or as a documented default change only after its harness report is read.
