@@ -5,8 +5,11 @@ library(EDI)
 # TODO-4; release_v1_1_0.md TODO-48).
 #
 # For each design class below, draw r allocations from a fixed seed at several
-# OpenMP thread counts and reduce each w matrix to an md5 digest. Three checks
-# use these digests:
+# OpenMP thread counts and reduce each w matrix to an md5 digest (quantity
+# "w_md5"). Sequential designs are first driven through their one-at-a-time
+# assignment path under the same seed, and that allocation is digested too
+# (quantity "w_seq_md5"), since the two paths run different kernels. Three
+# checks use these digests:
 #   1. Within this run: the digest must not depend on the thread count.
 #   2. Against the committed fixture (fixtures/cross_platform_digests.csv), when
 #      present: integer draws must match it exactly on every platform. This is
@@ -59,10 +62,17 @@ repro_X = local({
 	set.seed(7L)
 	data.frame(x1 = rnorm(repro_n), x2 = rnorm(repro_n), x3 = rnorm(repro_n))
 })
+# The stratified designs need a factor column; the other cases keep repro_X so
+# their digests stay comparable with earlier fixtures.
+repro_X_strata = cbind(repro_X, s = factor(rep(1:2, length.out = repro_n)))
 
-# name -> list(packages, build), where build() returns a fresh design with
-# every subject added. These cover the classes with OpenMP draw kernels plus a
-# serial control.
+# name -> list(packages, build, X, sequential), where build() returns a fresh
+# design. X defaults to repro_X. sequential = TRUE drives the design through
+# add_one_subject_to_experiment_and_assign() instead of
+# add_all_subjects_to_experiment(). These cover the classes with OpenMP draw
+# kernels, a serial control, and every class whose draws moved from
+# std::shuffle / <random> to the portable Fisher-Yates shuffle
+# (release_v1_0_5.md TODO-91): iBCRD, blocking, SPBR and random block sizes.
 repro_design_cases = list(
 	DesignFixedBernoulli = list(packages = character(), build = function()
 		DesignFixedBernoulli$new(n = repro_n, response_type = "continuous")),
@@ -75,7 +85,17 @@ repro_design_cases = list(
 	DesignFixedMatchingGreedyPairSwitching = list(packages = "nbpMatching", build = function()
 		DesignFixedMatchingGreedyPairSwitching$new(n = repro_n, response_type = "continuous")),
 	DesignFixedBinaryMatch = list(packages = "nbpMatching", build = function()
-		DesignFixedBinaryMatch$new(n = repro_n, response_type = "continuous"))
+		DesignFixedBinaryMatch$new(n = repro_n, response_type = "continuous")),
+	DesignFixediBCRD = list(packages = character(), build = function()
+		DesignFixediBCRD$new(n = repro_n, response_type = "continuous")),
+	DesignFixedBlocking = list(packages = character(), X = repro_X_strata, build = function()
+		DesignFixedBlocking$new(n = repro_n, response_type = "continuous", strata_cols = "s")),
+	DesignSeqOneByOneiBCRD = list(packages = character(), sequential = TRUE, build = function()
+		DesignSeqOneByOneiBCRD$new(n = repro_n, response_type = "continuous")),
+	DesignSeqOneByOneSPBR = list(packages = character(), X = repro_X_strata, sequential = TRUE, build = function()
+		DesignSeqOneByOneSPBR$new(n = repro_n, response_type = "continuous", strata_cols = "s")),
+	DesignSeqOneByOneRandomBlockSize = list(packages = character(), sequential = TRUE, build = function()
+		DesignSeqOneByOneRandomBlockSize$new(n = repro_n, response_type = "continuous"))
 )
 
 repro_digest_rows = function() {
@@ -90,15 +110,25 @@ repro_digest_rows = function() {
 			# Read the OpenMP team size before the draw: some kernels reset it.
 			obtained = EDI:::get_omp_max_threads_cpp()
 			des = case$build()
-			des$add_all_subjects_to_experiment(repro_X)
+			X = if (is.null(case$X)) repro_X else case$X
+			digests = list()
+			if (isTRUE(case$sequential)) {
+				set.seed(20261013L)
+				for (i in seq_len(nrow(X))) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+				digests$w_seq_md5 = repro_md5(des$get_w())
+			} else {
+				des$add_all_subjects_to_experiment(X)
+			}
 			set.seed(20261013L)
-			w = des$draw_ws_according_to_design(repro_r)
-			rows[[length(rows) + 1L]] = data.frame(
-				kind = "design_draw", name = name, threads = threads,
-				threads_obtained = obtained, quantity = "w_md5",
-				value_chr = repro_md5(w), value_num = NA_real_,
-				stringsAsFactors = FALSE
-			)
+			digests$w_md5 = repro_md5(des$draw_ws_according_to_design(repro_r))
+			for (quantity in names(digests)) {
+				rows[[length(rows) + 1L]] = data.frame(
+					kind = "design_draw", name = name, threads = threads,
+					threads_obtained = obtained, quantity = quantity,
+					value_chr = digests[[quantity]], value_num = NA_real_,
+					stringsAsFactors = FALSE
+				)
+			}
 		}
 	}
 	rows
@@ -159,9 +189,10 @@ test_that("seed-pinned design draws are identical across thread counts, legs and
 	}
 
 	# Check 1: thread-count invariance within this run.
-	for (name in unique(design_rows$name)) {
-		digests = design_rows$value_chr[design_rows$name == name]
-		expect_identical(length(unique(digests)), 1L, info = paste(name, "digest changes with the thread count"))
+	design_rows$key = paste(design_rows$name, design_rows$quantity, sep = "$")
+	for (key in unique(design_rows$key)) {
+		digests = design_rows$value_chr[design_rows$key == key]
+		expect_identical(length(unique(digests)), 1L, info = paste(key, "digest changes with the thread count"))
 	}
 
 	# Check 2: integer draws match the committed fixture.
@@ -174,12 +205,13 @@ test_that("seed-pinned design draws are identical across thread counts, legs and
 	}
 	skip_if_not(file.exists(fixture_path), "no committed cross-platform fixture yet")
 	fixture = utils::read.csv(fixture_path, stringsAsFactors = FALSE)
-	for (name in unique(design_rows$name)) {
-		expected = fixture$value_chr[fixture$name == name & fixture$quantity == "w_md5"]
-		expect_identical(length(expected), 1L, info = paste(name, "has no row in the committed fixture"))
+	fixture$key = paste(fixture$name, fixture$quantity, sep = "$")
+	for (key in unique(design_rows$key)) {
+		expected = fixture$value_chr[fixture$key == key]
+		expect_identical(length(expected), 1L, info = paste(key, "has no row in the committed fixture"))
 		if (length(expected) == 1L) {
-			got = unique(design_rows$value_chr[design_rows$name == name])
-			expect_identical(got, expected, info = paste(name, "draw differs from the committed fixture"))
+			got = unique(design_rows$value_chr[design_rows$key == key])
+			expect_identical(got, expected, info = paste(key, "draw differs from the committed fixture"))
 		}
 	}
 })

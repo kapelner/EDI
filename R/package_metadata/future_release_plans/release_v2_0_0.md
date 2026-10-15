@@ -452,7 +452,8 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
 
 `define_inference_class()` / `define_design_class()` for every class;
 kernel conventions per `sexp_removal_rcppeigen_conversion_spec.md`;
-targeted compile only. Unlike 1.x, bit-for-bit default reproduction of the
-prior release is **not** required where a contract deliberately changes —
+targeted compile only. Unlike 1.x, default reproduction of the prior
+release (the numerical-equivalence rule, `cross_platform_reproducibility.md` D2) is **not** required where a
+contract deliberately changes —
 but every such change must ship with a deprecation shim in the last 1.x
 release and a migration note.

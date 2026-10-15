@@ -398,7 +398,10 @@ parallelizes.
 The core count comes from `getOption("mc.cores")`, which the `parallel`
 package sets from the `MC_CORES` environment variable. The patch also adds an
 `R CMD INSTALL --jobs=N` flag that sets both. It does **not** read
-`MAKEFLAGS`.
+`MAKEFLAGS`. `--jobs=N` takes precedence over an `MC_CORES` in
+`~/.Renviron`, which would otherwise reset the count in the byte-compile
+subprocess (fixed locally 2026-10-15 in `install.R`'s `R_runR_deps_only()`;
+not yet in the installed R or the PR).
 
 ```bash
 R CMD INSTALL --jobs=8 R/EDI

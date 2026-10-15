@@ -446,15 +446,21 @@ is explicitly not the target** -- see Non-goals below.
     test.
 
   **TODO-1 partly reopened (2026-09-20), then re-closed except one row (2026-09-21):** the first
-  real C++ measurement added 20 `triage_needed` rows (17 C++, 3 R). 19 are now classified (14
-  `straightforward_test`, 5 `dispatch_threshold`); 1 is left `unclassified`/`triage_needed` on purpose:
-  `inference_continuous_KK_quantile_regr_one_lik.R`, whose two flagged lines are a comment and a closing
-  brace, i.e. a `covr` non-executable-line artifact (adjacent executable lines have 19 hits). Note that
-  `covr` also reports lines past end of file (`contracts_mixins.R` 3782-3792, `inference_continuous_lin.R`
-  429-439), so a small share of "missed" lines are measurement noise. The measurement predates about
-  214 test files created after the run started (2026-09-20 05:57; the manifest now lists 788 coverage-tier
-  files, the run executed the 574 that existed), so some of these gaps may already be closed; re-measure
-  before writing tests for them (several notes name an existing test that was written after the run).
+  real C++ measurement added 20 `triage_needed` rows (17 C++, 3 R). 19 were classified (14
+  `straightforward_test`, 5 `dispatch_threshold`); one remained `unclassified`/`triage_needed`:
+  `inference_continuous_KK_quantile_regr_one_lik.R`. The initial flagged lines were comments or a
+  closing brace, and `covr` also reported lines past end of file (`contracts_mixins.R` 3782-3792,
+  `inference_continuous_lin.R` 429-439), so some apparent misses were measurement noise. That run
+  predates about 214 test files created after it started (2026-09-20 05:57; the manifest now lists 788
+  coverage-tier files, while the run executed the 574 that existed).
+
+  **Remaining TODO-1 row resolved (2026-10-15):** the full report at commit
+  `fdbbfb8e` records `inference_continuous_KK_quantile_regr_one_lik.R` at 100%
+  (7/7 coverable lines), with registry status `addressed`; no row is currently
+  `triage_needed` under TODO-1. The formerly flagged source lines are comments
+  in the current file, so no test or coverage exclusion is needed. Its registry
+  category remains `unclassified` because the file is no longer below the
+  coverage threshold.
 
   **TODO-1 done (2026-09-19):** regenerated from the first complete,
   provenance-bearing run (commit `f72b8fdb`, 73.57%, **R code only** -- no
@@ -560,16 +566,46 @@ is explicitly not the target** -- see Non-goals below.
   separate Weibull score reference passes its censored fixture but fails its
   all-event fixture against that installed binary (6.101761 vs. 6.446710); this
   needs a fresh checkout-build/CI result before treating it as a source defect.
-- **TODO-4.** Confirm whether `InferenceContinuousKK14Bai`,
-  `InferenceContinuousKK21Bai`, `InferenceExtQuantileRandCI`, and the
-  quantile-rand-CI abstract base genuinely have no test anywhere (they may
-  and this run simply didn't reach them for an unrelated reason -- verify
-  before writing anything new). If genuinely untested, write focused tests
-  against each class's public contract, following the existing
-  migration-golden/focused-test pattern used for sibling classes.
+
+  **TODO-3 progress (2026-10-15):** Focused instrumented shard 102 included the
+  robust bootstrap test, survival fallback guards, and Weibull score reference.
+  `fast_robust_regression.cpp` now has deterministic nonzero noise in its
+  32-resample, two-thread case; all 13 executable lines in
+  `compute_robust_rand_bootstrap_parallel_cpp()` (lines 418-492) were hit.
+  For `kk21_stepwise_survival.cpp`, the reduced-fit guards and fitted Weibull
+  path were both reached; 108 of 113 unique source lines were hit in this
+  focused report, with five residual source lines still unhit. Both TODO-3
+  registry rows are now addressed; classify remaining
+  file-level misses under TODO-7 if they remain in the next full report.
+- **TODO-4.** Confirm tests cover the Bai-adjusted-T classes,
+  `InferenceExtQuantileRandCI`, and the quantile-randomization-CI abstract
+  base. The former names `InferenceContinuousKK14Bai` and
+  `InferenceContinuousKK21Bai` in this item do not match the current exported
+  class names.
+
+  **TODO-4 done (2026-10-15):** the actual Bai class names are
+  `InferenceBaiAdjustedTKK14` and `InferenceBaiAdjustedTKK21`. Existing tests
+  cover both through migration goldens; KK14 also has halves-pairing/variance
+  reference and missing-`nbpMatching` guard tests, while KK21 has asymptotic
+  path and missing-package guard coverage. `test-quantile-rand-ci-coverage.R`
+  exercises `InferenceExtQuantileRandCI`'s component inversion, fallback,
+  failure, and validation behavior, and includes a completed quantile-fit
+  fixture. `test-kk-quantile-onelik-randomization-ci.R` checks concrete-host
+  wiring and nondegenerate CIs. The abstract base is exercised through its
+  concrete continuous/proportion IVWC and OneLik hosts in their migration
+  goldens. No additional focused tests are needed; the registry's exclusions
+  for these files record composition-attribution limits, not missing tests.
 - **TODO-5.** `build_info.cpp` / `edi_build_info_cpp()`: add a one-line
   smoke test asserting the accessor returns a well-formed list. Check the
   public API inventory first to confirm the current exported wrapper name.
+
+  **TODO-5 done (2026-10-15):** the public API inventory and `NAMESPACE`
+  confirm the exported wrapper is `edi_build_info_cpp()`. The existing
+  `R/EDI/tests/testthat/test-build-info.R` checks that it returns a named,
+  well-formed list of scalar character/logical fields with no missing values,
+  and verifies the OpenMP metadata against R's Makeconf. The full coverage
+  registry measures `build_info.cpp` at 100% (23/23 coverable lines) and marks
+  it `addressed`.
 
 ### Phase 3: The broadly-thin long tail
 
@@ -583,6 +619,17 @@ is explicitly not the target** -- see Non-goals below.
   registry sort descending by that value. The registry regression fixture now
   proves a higher-coverage, larger file ranks ahead of a lower-coverage small
   file when it has more uncovered lines.
+
+  **Backlog clarification (2026-10-15):** The weighted-opportunity sort itself
+  is complete. Three registry rows still use `owning_todo = TODO-6` in the
+  broader TODO-10 coverage backlog (two pending, one in progress); they are
+  per-file coverage follow-ups, not unfinished sorting behavior. Existing
+  direct-reference tests cover the KK21 response-type kernels and constrained
+  OLS paths; focused edge assertions were added for constant/exact-fit KK21
+  inputs and a non-finite OLS response. Keep those rows open until a fresh full
+  coverage report confirms movement. The last full artifact (commit
+  `598774af`) predates these additions; the in-progress KK passthrough row also
+  needs its deletion confirmed in a fresh report.
 - **TODO-7.** For each low-coverage file, distinguish two different root
   causes before choosing a fix: (i) the code path already runs under an
   existing comprehensive-suite/argument-combination fixture, but the
@@ -613,12 +660,31 @@ is explicitly not the target** -- see Non-goals below.
   reaches the branch via a deliberately malformed internal state (via
   `.__enclos_env__$private` manipulation, matching patterns already used
   in this test suite), or (b) mark it excluded via `covr`'s
-  `line_exclusions`/`function_exclusions` (would need adding that
-  parameter to the `covr::codecov()` call in `test-coverage-R.yaml`, not
-  currently passed). Every exclusion needs an inline comment stating why
-  it's excluded, matching this repo's comment-density convention -- an
-  unexplained exclusion is indistinguishable from someone hiding a real
-  gap.
+  `line_exclusions`/`function_exclusions`. The current shard runner calls
+  `covr::package_coverage()` in `R/package_tests/ci/run_shard.R`; pass
+  exclusions there, not to `covr::codecov()` in the workflow. Every
+  exclusion needs an inline comment stating why it's excluded, matching this
+  repo's comment-density convention -- an unexplained exclusion is
+  indistinguishable from someone hiding a real gap.
+
+  **TODO-8 decision pass (2026-10-15):**
+
+  | Case | Decision | Rationale / follow-up |
+  | --- | --- | --- |
+  | `fast_survival_stats.cpp:get_survival_stat_diff_result`, `fast_zero_augmented_poisson.cpp:fast_zap_with_var_internal`, `robust_post_fit_speedups.cpp:ols_hc2_post_fit_result`, and `fast_wilcox_hl.cpp:wilcox_hl_point_estimate_result` | Exclude these functions from the R coverage denominator; retain Python coverage/tests | The Python bindings call these functions, while R has no caller. Exclude only these function bodies from R covr, with per-function comments naming the Python binding and test ownership. Do not exclude the source files or Python coverage. |
+  | `inference_all_abstract_KK_passthrough_compound.R`'s retained hierarchy methods | Test; do not exclude | The bases are directly constructible even though no concrete registered production class descends from them. `test-kk-passthrough-compound-host-compute-estimate-with-bootstrap-weights-reference.R` already exercises the shared weighted-estimate host method through the no-parametric-bootstrap base. Keep R coverage for this architectural behavior; add/retain a parity check for the parametric-bootstrap sibling if its host composition is not already exercised. |
+  | `inference_all_abstract_exact.R` default stop methods | Add focused tests | A small test-only subclass can inherit the defaults and assert the documented errors. These stops are deliberate abstract-contract guardrails and are directly testable. |
+  | `inference_count_composite_likelihood.R` unsupported likelihood-test stubs | Add focused tests | The capability gate prevents ordinary callers from reaching them, but direct internal calls can verify the defensive errors. Keep these guardrails visible in tests rather than excluding them. |
+  | `helper_package_checks.R` optional-package guards | Keep/add mocked-missing-package tests; do not exclude | Missing suggested packages are a supported installation state, and tests can mock availability even when CI has every optional package installed. Existing tests already use this pattern for several guards; audit the remaining assertions before adding duplicates. |
+  | `fast_ols.cpp` LDLT-to-QR fallback | Do not exclude yet; retain as a test/reachability question under TODO-6 | The current evidence does not prove the fallback impossible for all accepted inputs. First establish whether a stable finite fixture can make the factorization fail; only then classify a truly unreachable branch for exclusion. |
+  | `simulation_dgp.cpp` clamped-value checks, the removed `rand_bootstrap_mean_diff_parallel.cpp` compatibility overload, and the deleted `contracts_mixins.R` helpers | No test or exclusion | These candidates were already removed after review, so they no longer contribute executable coverage gaps. |
+
+  This records the disposition, not its implementation: the four Python-only
+  functions still need exclusion entries with inline rationale, and the
+  exact/count-composite guard tests still need to be added. Keep the KK
+  pass-through methods in R coverage and extend their direct tests as needed.
+  Keep TODO-8 open until those changes are in place and the next coverage
+  report confirms the denominator and tests behave as intended.
 
 ### Phase 4: Guardrails against regression
 
@@ -709,11 +775,31 @@ is explicitly not the target** -- see Non-goals below.
     is now **89.66%**; TODO-9's gate is live but this specific number was
     never bumped. Bundle that decision into whichever session closes out
     the remaining 17-row backlog, rather than leaving it stale indefinitely.
-  - Work the remaining 16 open rows (TODO-3: 2, TODO-6: 2 pending + 1
+  - Work the remaining 14 open rows (TODO-3: 0, TODO-6: 2 pending + 1
     in_progress, TODO-7: 11). TODO-3's focused test work for its three
-    initial rows is recorded above; its robust/survival registry entries still
-    need the confirming coverage measurement. TODO-6/7 retain test-writing
-    work.
+    initial rows and its confirming robust/survival focused coverage
+    measurement are recorded above. TODO-6/7 retain test-writing work.
+  - **Turning this into a standing protocol (2026-10-15).** Three pieces
+    now exist, none yet gating: (a) `coverage_baseline.json` is auto-promoted
+    on push to `main` by `test-coverage-R.yaml`'s merge job *when* a
+    `COVERAGE_BASELINE_PAT` secret exists (branch protection has no bypass
+    allowance for `GITHUB_TOKEN`, so only an admin PAT can push the bump);
+    (b) `test-coverage-R-pr.yaml` runs one budget-bounded coverage shard per
+    PR -- the fast tier plus the PR's own edited bulk tests plus the bulk
+    tests most related to its changed sources (`select_pr_coverage_tests.py`)
+    -- and uploads it under flag `r`, so `codecov/patch/r` has head-commit
+    data; `project.r` is restricted to `main` and `patch.r` is informational
+    while the selection is tuned; (c) `test-coverage-python.yml` lost its PR
+    path filter so every PR produces at least one upload. Found on throwaway
+    PR #6 the same day: Codecov is in token-only mode here -- **no status
+    checks can be posted until the Codecov GitHub App is installed** -- and
+    the committed `test-coverage-R.yaml` on `main` did not parse
+    (`secrets.*` in a step-level `if:`), so no coverage ran on `main` until
+    the `env.*` fix lands. Order of operations to actually gate PRs: fix on
+    `main` -> App installed -> read the real context names off a PR -> flip
+    `informational` -> re-add to required checks. Contributor-facing rules
+    live in `contracts/coverage_test_writing.md` (wired into CONTRIBUTING
+    §3b, the PR template, README and AGENTS.md).
   - Only once those are cleared (or explicitly accepted/excluded) does this
     plan meet its own stated success criterion: every file has a
     deliberate, documented reason for its coverage percentage, not "high

@@ -39,6 +39,7 @@
 #include "optimization_starts.h"
 #include "fast_erfc.h"
 #include "omp_policy.h"
+#include "edi_simd.h"
 
 #ifdef EDI_CORE_ONLY
 #include <Eigen/Dense>
@@ -304,7 +305,7 @@ inline Eigen::MatrixXd weighted_crossprod(const Eigen::MatrixBase<Derived>& X,
                 // This is a vectorization hint only, safe to omit on MSVC
                 // rather than pass an extra compiler flag just for this.
 #ifndef _MSC_VER
-#pragma omp simd
+EDI_SIMD
 #endif
                 for (int k = j; k < p; ++k) {
                     res(j, k) += w_xij * X(i, k);
@@ -347,7 +348,7 @@ inline Eigen::MatrixXd weighted_crossprod(const Eigen::Map<const Eigen::Matrix<d
             double xij = X(i, j);
             double w_xij = wi * xij;
 #ifndef _MSC_VER
-#pragma omp simd
+EDI_SIMD
 #endif
             for (int k = j; k < p; ++k) {
                 res(j, k) += w_xij * X(i, k);
@@ -440,7 +441,7 @@ inline Eigen::VectorXd weighted_crossprod_rhs(const Eigen::MatrixBase<Derived>& 
             double wi_yi = w(i) * y(i);
             if (wi_yi == 0.0) continue;
 #ifndef _MSC_VER
-#pragma omp simd
+EDI_SIMD
 #endif
             for (int j = 0; j < p; ++j) {
                 res(j) += X(i, j) * wi_yi;
@@ -468,7 +469,7 @@ inline Eigen::VectorXd weighted_crossprod_rhs(const Eigen::Map<const Eigen::Matr
         double wi_yi = w(i) * y(i);
         if (wi_yi == 0.0) continue;
 #ifndef _MSC_VER
-#pragma omp simd
+EDI_SIMD
 #endif
         for (int j = 0; j < p; ++j) {
             res(j) += X(i, j) * wi_yi;

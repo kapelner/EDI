@@ -1,4 +1,5 @@
 #include <RcppEigen.h>
+#include "edi_simd.h"
 using namespace Rcpp;
 
 // [[Rcpp::depends(RcppEigen)]]
@@ -21,7 +22,7 @@ Eigen::VectorXd compute_proportional_mahal_distances_cpp( const Eigen::Map<Eigen
 		const double xtj = xt_prev[j];
 		double* D_col = D.col(j).data();
 		const double* X_col = X_prev.col(j).data();
-#pragma omp simd
+EDI_SIMD
 		for (int r = 0; r < n_R; ++r) {
 			D_col[r] = xtj - X_col[reservoir_indices[r] - 1];
 		}

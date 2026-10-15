@@ -1,0 +1,106 @@
+name: test-coverage-R-pr
+
+# Pull-request R coverage: ONE instrumented shard instead of the ~100-shard,
+# ~1.5 h full measurement test-coverage-R.yaml runs on push to main (which is
+# deliberately not run on pull_request -- see its header). The shard is the
+# whole fast tier (R/EDI/tests/testthat) plus the bulk tests most related to
+# the PR's changed R/C++ files, chosen by select_pr_coverage_tests.py (the
+# same "grep the suite for the names you changed" rule the coverage-test
+# contract asks a human to apply). Uploaded under the `r` flag so Codecov has
+# head-commit data for the changed lines -- the one thing a patch-coverage
+# status needs. Because the shard is a subset, the `r` PROJECT status is
+# restricted to main in codecov.yml (a partial upload would otherwise read as
+# a project regression on every PR) and `codecov/patch/r` starts as
+# informational; see contracts/coverage_test_writing.md section 7.
+#
+# Cost is bounded like one ordinary shard: fast tier (~1,100 manifest-
+# estimated seconds under covr, never budgeted) + up to --budget-seconds of
+# bulk tests (the PR's own edited tests first, then the most related ones)
+# + one instrumented build. Read the real wall-clock off the first runs and
+# tune the budget; selection_report.json in the artifact lists exactly what
+# was dropped, and the job log shouts if that includes a test the PR edits.
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'R/EDI/**/*.R'
+      - 'R/EDI/**/*.cpp'
+      - 'R/EDI/**/*.h'
+      - 'R/EDI/**/*.hpp'
+      - 'R/EDI/DESCRIPTION'
+      - 'R/EDI/NAMESPACE'
+      - 'R/EDI/tests/**'
+      - 'R/package_tests/testthat_bulk/**'
+      - 'R/package_tests/ci/select_pr_coverage_tests.py'
+      - 'R/package_tests/ci/run_shard.R'
+      - 'R/package_tests/ci/run_selected_tests.R'
+      - '.github/workflows/test-coverage-R-pr.yaml'
+
+jobs:
+  pr-coverage:
+    runs-on: ubuntu-latest
+    # Same budget as a full-run shard (test-coverage-R.yaml): one instrumented
+    # build plus a 2,400 s-class test load.
+    timeout-minutes: 90
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      # Mirrors test-coverage-R.yaml's shards job exactly, so PR numbers are
+      # comparable with the full measurement: EDI_PORTABLE=1 keeps covr's
+      # --coverage flag (configure would otherwise override CXXFLAGS and no C++
+      # would be instrumented); NOT_CRAN runs skip_on_cran() tests; the thread
+      # pins stop OpenMP/BLAS from fanning out on the runner.
+      R_KEEP_PKG_SOURCE: yes
+      EDI_PORTABLE: 1
+      NOT_CRAN: true
+      CI: true
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+      GOTO_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history: the selector diffs base...head to find the changed files.
+          fetch-depth: 0
+      - name: Check the selector's own regression tests
+        run: python3 R/package_tests/ci/test_select_pr_coverage_tests.py
+      - name: Select the fast tier plus the bulk tests related to this PR's changes
+        run: |
+          python3 R/package_tests/ci/select_pr_coverage_tests.py \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}" \
+            --output pr-shard --budget-seconds 900
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+          extra-packages: any::jsonlite, any::covr
+      - name: Run the PR coverage shard (instrumented build + selected tests)
+        timeout-minutes: 75
+        run: Rscript R/package_tests/ci/run_shard.R "$GITHUB_WORKSPACE" pr-shard/shard-0.json coverage pr-results
+      - name: Export Cobertura for the Codecov uploader
+        # codecov-action maps a pull_request merge-commit upload back onto the PR
+        # head (proven here on PR #6 for the python flag); covr::codecov() would
+        # report the merge commit's own SHA instead.
+        run: Rscript -e 'r <- readRDS("pr-results/coverage.rds"); covr::to_cobertura(r$coverage, filename = "pr-results/coverage.xml"); cat("cobertura written\n")'
+      - name: Upload PR coverage to Codecov (flag r)
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: pr-results/coverage.xml
+          flags: r
+          fail_ci_if_error: false
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pr-coverage
+          path: |
+            pr-shard
+            pr-results/timings.csv
+            pr-results/coverage.xml
+          if-no-files-found: warn

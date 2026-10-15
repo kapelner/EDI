@@ -33,8 +33,9 @@
 #' \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}, but with moves restricted to
 #' "flip which side of a given pair is treated" rather than "swap any treated/control
 #' pair of subjects." Random initialization and swap selection are seeded from R's own
-#' RNG (via \code{greedy_design_search_cpp()}'s per-thread seeding), so \code{seed} does
-#' govern reproducibility here.
+#' RNG (via \code{greedy_design_search_cpp()}, which derives one stream per draw index
+#' from a master seed), so \code{seed} governs reproducibility here and the draws are
+#' the same at every \code{set_num_cores()} setting.
 #'
 #' \strong{Pair-preserving bootstrap.} \code{draw_bootstrap_indices()} resamples whole
 #' matched pairs (via \code{draw_matching_bootstrap_sample_cpp()}) rather than

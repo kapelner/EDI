@@ -211,8 +211,29 @@ expensive. Use the same protocol as section 1.
 **Measured (2026-10-14, section 3):** on the fork-per-call harness,
 `R_GC_MEM_GROW=3 R_VSIZE=2Gb R_NSIZE=20000000` raised system time by 72% and
 wall time by 19%. Don't use large heap settings with fork-heavy workloads.
-They might still help single-process, non-forking runs, but that hasn't been
-tested.
+
+**Result (2026-10-15): GC is about 3% of in-process time; skipped.** With
+`fork=FALSE` the harness no longer forks per call, so this section was
+re-checked by the "first check" above. Workload: the section-3 six-class mix
+(one heavy class per response type, `pte_example`, Bernoulli, nc = 1, the six
+in parallel), with `gc.time(TRUE)` turned on through an `R_PROFILE_USER` and
+`gc.time()` read at exit in the worker process.
+
+| Class | GC time | Worker elapsed | GC share |
+|---|---|---|---|
+| ContinQuantileRegr | 12.3 s | 321 s | 3.8% |
+| CountHurdleNegBin | 22.3 s | 739 s | 3.0% |
+| IncidLogBinomial | 11.5 s | 418 s | 2.7% |
+| OrdinalContRatioRegr | 11.2 s | 323 s | 3.5% |
+| PropBetaRegr | 11.9 s | 357 s | 3.3% |
+| SurvivalStratCoxPHRegr | 15.2 s | 420 s | 3.6% |
+| **All six** | **84 s** | **2,579 s** | **3.3%** |
+
+Even removing GC entirely would save about 3%, which is below this
+machine's run-to-run drift (section 1), and larger heaps would remove only
+part of it. The ~11% `R_gc_internal` share in the earlier profiles came from
+the fork-per-call harness, where each child's GC also caused copy-on-write
+faults. Not pursued.
 
 ## 3. Reduce system (fork / page-fault) time
 
@@ -406,12 +427,104 @@ changes what the suite measures, so it is not a drop-in.
   resumes from `is_row_completed()`.
 - **Lost: crash isolation.** A native crash ends the run instead of one
   call. The same relaunch-and-resume covers it.
-- **Restrict to `nc = 1`.** With `nc > 1`, OpenMP would run in a process
-  that might later fork (the hazard documented in `safe_call()`).
+- **`nc > 1`.** OpenMP then runs in a process that might later fork (the
+  hazard documented in `safe_call()`). On 2026-10-15 the ordinal slice at
+  `nc = 2` gave identical results with no hang, but other classes are
+  untested at `nc > 1`; a hang there is caught by the watchdog as a timeout.
 - The restore covers plain fields of the inference object and its design.
   It does not cover objects nested in environment-valued fields or global
   variables. Any new class that keeps state elsewhere should be checked
   with the same identity test.
+
+**Adopted (2026-10-15) as the default: `fork=FALSE`.**
+`comprehensive_tests.R` takes `fork=TRUE|FALSE` anywhere on the command line
+(or `COMPREHENSIVE_FORK`). Run as a script, the default is `fork=FALSE`.
+When the file is `source()`d (e.g. by `run_comprehensive_tests_sunk.R`) the
+default stays `fork=TRUE`, because the watchdog has to relaunch a script; an
+explicit `fork=FALSE` there runs unsupervised with the warning below.
+`fork=TRUE` gives the old per-call fork behaviour.
+
+`fork=FALSE` runs calls in-process with the state restore above, under
+`comprehensive_tests_watchdog.R`. The script relaunches itself as a worker
+under a small supervisor (needs `processx`). The worker writes an in-flight
+marker per call, and the supervisor handles failures:
+
+- **Hung call:** a call past `COMPREHENSIVE_FUNCTION_TIMEOUT_SEC` +
+  `COMPREHENSIVE_WATCHDOG_GRACE_SEC` (default 15 s) is SIGKILLed, recorded as
+  a timeout, and the worker is restarted.
+- **Death during a call:** recorded as a crash (status `error`), or as a
+  timeout if the call was already past the limit, because `setTimeLimit()`'s
+  error can escape every `tryCatch`.
+
+The restarted worker resumes from the CSV and records the outcome through
+`safe_call()`'s own handlers, instead of rerunning the call. Rows are written
+one at a time under the watchdog, so a kill loses nothing.
+
+If the supervisor dies by any means (including SIGKILL, or the `system2()`
+timeout in `run_comprehensive_suite.R`), processx's `supervise = TRUE` helper
+kills the worker, even one stuck in compiled code. Without
+`processx`, `fork=FALSE` warns "watchdog recommended for autorestarts" and
+runs unsupervised.
+
+Tests (ordinal class, 194 calls):
+
+| Test | Result |
+|---|---|
+| No timeouts | Identical to fork mode, 194 / 194 |
+| No timeouts, nc = 2 (the script's default) | Identical to fork mode, 194 / 194; wall 6:03 → 4:50, sys 85 → 4 s (the two runs were concurrent) |
+| 4 s limit | Six hard kills and soft timeouts, all recorded; run completed |
+| Injected SIGSEGV mid-call | One error row with the signal; run completed |
+| No `processx` | Warning, then the run completed in-process |
+| Supervisor SIGKILLed | Worker exited within 1 s |
+| Supervisor SIGKILLed while worker SIGSTOPped (`supervise = TRUE`) | Worker killed within 5 s |
+| No `fork=` argument, run as script | Watchdog mode |
+| Header `source()`d from another script | `fork=TRUE` |
+
+**Caveat, pre-existing:** after any kill-and-resume (fork=TRUE or FALSE),
+later results can differ from an uninterrupted run. The Monte Carlo
+coverage truth (`compute_mc_coverage_truth_simframe()`) draws from the global
+RNG in the parent and is cached per class, dataset and beta_T, so a resumed
+process consumes the stream at different points. Computing it under a local
+seed would make resumes exact, but would change every random draw relative
+to current baselines.
+
+### Result (2026-10-15): `InferenceSuite`'s per-task fork roughly doubles its CPU
+
+`run_all_inference(num_cores > 1)` forks one `mcparallel()` child per task
+(`run_all_inference_fork_dispatch()`). At `num_cores = 1` it already runs
+in-process, so here forking buys parallelism, not just isolation.
+
+Workload: continuous response, `DesignFixedBernoulli`, n = 200, three
+covariates, all applicable classes (7 classes, 154 tasks), installed PGO R,
+THP-malloc. Times are for the `run_all_inference()` call only.
+
+| Run | Wall | CPU (user + sys) | Sum of per-task `fit_secs` |
+|---|---|---|---|
+| A: fork dispatch, `num_cores = 4` | 94.6 s | 369 s (321 + 48) | 258 s |
+| B: same tasks in-process, serial (`EDI_TESTING_DISABLE_FORK_CLUSTER=true`) | 170 s | 170 s | 169 s |
+| B, four copies at once (same CPU contention as A, no forks) | 192–196 s each | ~194 s each | 190–195 s |
+
+- **Fork overhead:** about 175 s of CPU over 154 tasks, so about 1.1 s per
+  task. The median task takes 0.5 s. Contention explains only 169 → 193 s
+  of task time; forking takes it to 258 s, and a further ~110 s of child CPU
+  falls outside `fit_secs` (child setup, teardown, result transfer).
+- **Most of the extra is user time, not system time.** An empty fork from
+  the warmed process costs 8–9 ms. A fork whose child runs one `gc()` costs
+  380–480 ms, of which 220–310 ms is system time (copy-on-write). Lazily
+  loaded packages are not the cause: only quantreg, SparseM and
+  MatrixModels load during tasks, which takes 0.12 s. Untested guess: caches
+  on the shared design object (as in the `keep-state` result above) fill
+  once in-process but are rebuilt in every child.
+- **Results:** in-process runs are identical to each other. Fork and
+  in-process differ only in bootstrap and randomization rows, because each
+  forked child starts from its own RNG state.
+- **Fork still wins on wall time** at `num_cores = 4` (94.6 vs 170 s), since
+  in-process is serial. The lever is a pool of `num_cores` long-lived forked
+  workers that take tasks in turn, forked after a warm-up so namespaces and
+  caches are shared. A worker that exceeds `max_secs_per_class` is still
+  killed by PID and replaced. Rough estimate, not measured: about 194 s of
+  CPU over four workers, so 50–60 s of wall time with the largest task
+  (25 s) as the tail.
 
 ## 4. Train R's PGO profile on an `EDI` workload
 
@@ -581,12 +694,17 @@ ideally native Linux, or try an interpreter-heavy workload (the R6-heavy
 ## Suggested order
 
 1. ~~Section 1~~ (allocator): tried 2026-10-14, no gain over glibc + huge
-   pages. Section 2 (GC): large heaps are harmful with forking (section 3);
-   small-step tuning is untested.
+   pages. ~~Section 2~~ (GC): large heaps are harmful with forking
+   (section 3), and in-process GC is only ~3% of run time (2026-10-15), so
+   not pursued.
 2. Section 3: done. THP-malloc adopted. The in-process `safe_call()`
-   prototype saves about a third of test time with identical results; it
-   needs a watchdog or resume path before adoption. A native-Linux
-   comparison is still open.
+   mode saves about a third of test time with identical results and is
+   the default (`fork=FALSE`, with a watchdog; `fork=TRUE` restores per-call
+   forks). A
+   native-Linux
+   comparison is still open. `InferenceSuite`'s per-task fork about doubles
+   its CPU (1.1 s per task); a long-lived worker pool is planned for v1.1.0
+   (`release_v1_1_0.md → TODO-51`, `inference_suite_worker_pool.md`).
 3. ~~Section 4~~ and ~~section 6~~: tried 2026-10-14, no measurable gain
    (see their result subsections).
 4. Section 5: a larger engineering effort, only if the earlier results point

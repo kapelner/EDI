@@ -3,6 +3,7 @@ library(EDI)
 
 test_that("build metadata accessor returns a stable, well-formed record", {
 	info = edi_build_info_cpp()
+	expect_type(info, "list")
 
 	expected_character_fields = c(
 		"capture_method", "build_timestamp", "build_host", "r_home",

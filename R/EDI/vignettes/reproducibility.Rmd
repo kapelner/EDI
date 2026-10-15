@@ -68,8 +68,8 @@ a randomization distribution, so most of its "draw" is not random at all:
 - **The annealing solver seeds one `edi_rng::RRng` per chain** (not per
   thread), each from one `R::unif_rand()` draw before the parallel region —
   so a given `set.seed()` reproduces the identical search under **any**
-  OpenMP thread count, a deliberately stronger guarantee than
-  `DesignFixedGreedy`'s per-thread seeding. When `initial_temp` is
+  OpenMP thread count, the same guarantee the greedy-family designs give
+  through per-draw-index streams (see below). When `initial_temp` is
   auto-calibrated, the calibration probe also consumes R's stream (and is
   therefore covered by the same seed). Annealing carries certificate
   `"annealing_converged"`, never `"global"`: Hajek (1988) guarantees

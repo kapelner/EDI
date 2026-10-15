@@ -1,14 +1,23 @@
-# Adds a covariate-missingness column to experimental_datasets.csv and
-# observational_datasets.csv: the % of rows that have at least one missing
-# value among the COVARIATE columns only (treatment/w column and response
-# outcome column(s) excluded) -- per-dataset's real raw data, not just the
-# metadata already in the tables.
+# Computes each catalogued dataset's covariate missingness: the % of rows that
+# have at least one missing value among the COVARIATE columns only
+# (treatment/w column and response outcome column(s) excluded), measured on
+# the dataset's real data, not on the catalog metadata.
 #
-# Usage (from the repo root): Rscript R/package_metadata/compute_covariate_missingness.R
+# Usage (from the repo root):
+#   Rscript R/package_metadata/compute_covariate_missingness.R               # every row
+#   Rscript R/package_metadata/compute_covariate_missingness.R --stale-only  # new, changed-pin and never-computed rows only
 #
-# This is a computed statistic over live CRAN data, not a hand-curated fact,
-# so it is added to the two CSVs only -- NOT to the .md tables (same
-# treatment as p_approx/n_raw, which are also CSV-only derived fields).
+# Output: one sidecar per catalog, experimental_datasets_missingness.csv and
+# observational_datasets_missingness.csv, with columns dataset, version,
+# pct_missing_covariate_rows, n_covariate_cols_used, missingness_note. The
+# catalog CSVs are never written here: build_*_datasets_csv.R regenerates them
+# from the md and would drop any extra column. Join on `dataset` when needed.
+# `version` is the catalog Version the value was computed from; --stale-only
+# recomputes rows missing from the sidecar, whose catalog version differs, or
+# that have no value yet (n_covariate_cols_used empty), and keeps the rest. Values come from the cached archives (unpacked to a temp dir;
+# loose CSVs beside them are ignored), so after a pin change delete that
+# dataset's cached <key>.tar.bz2 and download it again before recomputing, or
+# the old release's data is measured again.
 #
 # Column-name resolution: the "tx (treatment column)"/"w (group column)" and
 # outcome cells in the .md tables name real data.frame columns via backticks
@@ -21,26 +30,28 @@
 # anything, UNDER-count missingness slightly by treating a stray
 # treatment/outcome column as a covariate, never the other way round.
 #
-# Dataset-fetch strategy: the 262 experimental rows are already downloaded
-# (one <name>.tar.bz2 per DATASET_MANIFEST entry under
-# randomized_experiment_datasets/, from the original exhaustive-search
-# session) -- extract the loose CSV already inside, no re-download. The 64
-# observational rows have no such manifest/cache; rather than hand-map
-# rda_name per row (verified by spot-checking CRAN's survival package: a
-# single cancer.rda file holds
-# veteran/ovarian/colon/bladder1/gbsg/lung/mgus2/rotterdam, so
-# "rda_name == obj_name" is wrong most of the time), this scans every file in
-# the package's data/ directory and uses whichever one actually contains the
-# named object -- auto-discovery instead of guessing.
+# Dataset-fetch strategy: experimental rows are read from the cached archives
+# download_experimental_datasets.R writes (one <name>.tar.bz2 per
+# DATASET_MANIFEST entry under randomized_experiment_datasets/); a row without
+# one is reported, not downloaded. Observational rows use
+# download_observational_datasets.R's cache (observational_datasets_cache/)
+# and otherwise fetch the pinned release into a temp dir; the CRAN/GitHub
+# fetchers find the named object in whichever data/ file holds it (a single
+# survival cancer.rda holds veteran/ovarian/colon/..., so "file name ==
+# object name" is often wrong).
 
 suppressMessages({
   library(data.table)
 })
 
-THIS_DIR <- {
-  file_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
-  if (length(file_arg) == 0) "R/package_metadata" else dirname(normalizePath(sub("^--file=", "", file_arg[1])))
-}
+# This file's folder as an absolute path, so it runs from any working directory, whether
+# run with Rscript or source()d (also from inside another script): the innermost source()
+# call's file wins, then Rscript's --file=, then R/package_metadata/ under the working directory.
+THIS_DIR <- local({
+  sourced <- Filter(is.character, lapply(rev(sys.frames()), function(f) f$ofile))
+  file_arg <- sub("^--file=", "", grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE))
+  dirname(normalizePath(c(unlist(sourced), file_arg, "R/package_metadata/compute_covariate_missingness.R")[[1L]], mustWork = TRUE))
+})
 source(file.path(THIS_DIR, "download_experimental_datasets.R"))
 source(file.path(THIS_DIR, "build_experimental_datasets_csv.R"))  # for read_dataset_table()/strip_md()
 
@@ -58,110 +69,9 @@ extract_backtick_columns <- function(cell) {
   unique(parts[nzchar(parts)])
 }
 
-# CRAN and GitHub fetches use cran_dataset_as_csv() / github_dataset_as_csv() and
-# curl_fetch() from download_experimental_datasets.R (sourced above).
-
-# ---------------------------------------------------------------------------
-# Dataverse fetch: curl-based equivalents of download_experimental_datasets.R's
-# dataverse_dataset_files()/dataverse_download_file() (which use httr2 and so
-# hit the same sandbox-proxy failure that moved the CRAN fetch to the curl CLI).
-# Reuses that file's DATAVERSE_HOST/DATAVERSE_GUESTBOOK_ANSWERS/
-# dataverse_guestbook_identity() -- those are plain data/logic, not httr2
-# calls, so they're safe to reuse as-is (already in scope via the
-# download_experimental_datasets.R source() at the top of this file).
-# ---------------------------------------------------------------------------
-
-# Parses a Source cell of the form
-# "Dataverse: `doi:10.7910/DVN/XXXXX`; file `name.csv`" or, when the file is
-# bundled inside a zip, "...; file `name.csv` (inside `archive.zip`)".
-parse_dataverse_source <- function(cell) {
-  if (!grepl("^Dataverse:", cell)) return(NULL)
-  list(
-    doi = sub("^Dataverse: `doi:([^`]+)`.*$", "\\1", cell),
-    filename = sub("^.*; file `([^`]+)`.*$", "\\1", cell),
-    inside_zip = if (grepl("\\(inside `[^`]+`\\)", cell)) sub("^.*\\(inside `([^`]+)`\\).*$", "\\1", cell) else NA_character_
-  )
-}
-
-dataverse_list_files_curl <- function(doi) {
-  json_path <- tempfile(fileext = ".json")
-  url <- sprintf("%s/api/datasets/:persistentId/?persistentId=doi:%s", DATAVERSE_HOST, doi)
-  if (curl_fetch(url, json_path)) stop("Dataverse metadata fetch failed for ", doi, call. = FALSE)
-  dat <- jsonlite::fromJSON(json_path, simplifyVector = FALSE)$data
-  files <- lapply(dat$latestVersion$files, function(f) {
-    list(filename = f$dataFile$filename, id = f$dataFile$id)
-  })
-  list(guestbookId = dat$guestbookId, files = files)
-}
-
-dataverse_download_file_curl <- function(file_id, guestbook_id, dest_path) {
-  base_access_url <- sprintf("%s/api/access/datafile/%s", DATAVERSE_HOST, file_id)
-  if (is.null(guestbook_id)) {
-    if (curl_fetch(base_access_url, dest_path)) stop("Dataverse file download failed: ", base_access_url, call. = FALSE)
-    return(invisible(dest_path))
-  }
-  answers <- DATAVERSE_GUESTBOOK_ANSWERS[[as.character(guestbook_id)]]
-  if (is.null(answers)) {
-    stop("No DATAVERSE_GUESTBOOK_ANSWERS entry for guestbookId ", guestbook_id,
-         " -- inspect ", DATAVERSE_HOST, "/api/guestbooks/", guestbook_id,
-         " and add a matching entry (string-valued answers, not numeric ids).", call. = FALSE)
-  }
-  identity <- dataverse_guestbook_identity()
-  body <- list(guestbookResponse = c(identity, list(answers = answers)))
-  body_path <- tempfile(fileext = ".json")
-  writeLines(jsonlite::toJSON(body, auto_unbox = TRUE), body_path)
-  resp_path <- tempfile(fileext = ".json")
-  status <- suppressWarnings(system2("curl", c("-sL", "-X", "POST", "-H", shQuote("Content-Type: application/json"),
-                                                "--data-binary", paste0("@", body_path), "-o", shQuote(resp_path),
-                                                shQuote(base_access_url)), stdout = TRUE, stderr = TRUE))
-  exit_code <- attr(status, "status")
-  if (!is.null(exit_code) && exit_code != 0L) stop("Dataverse guestbook POST failed: ", base_access_url, call. = FALSE)
-  signed_url <- jsonlite::fromJSON(resp_path, simplifyVector = FALSE)$data$signedUrl
-  if (is.null(signed_url)) stop("Dataverse guestbook POST did not return a signedUrl for file ", file_id, call. = FALSE)
-  if (curl_fetch(signed_url, dest_path)) stop("Dataverse signed-URL download failed for file ", file_id, call. = FALSE)
-  invisible(dest_path)
-}
-
-# `filename` is the actual data file to read; if it lives inside a zip on
-# Dataverse (several deposits bundle data+code+results together), pass
-# `inside_zip` as that zip's own listed filename and `filename` as the member
-# to extract. Handles .csv/.txt directly, .xlsx via readxl, falls back to
-# convert_to_csv() (from download_experimental_datasets.R) for .dta/.sav/.tab.
-dataverse_fetch_object_auto <- function(doi, filename, dest_csv, work_dir, inside_zip = NULL) {
-  listing <- dataverse_list_files_curl(doi)
-  want <- if (!is.null(inside_zip)) inside_zip else filename
-  hit <- Filter(function(f) identical(f$filename, want), listing$files)
-  if (length(hit) == 0L) {
-    stop("'", want, "' not found in Dataverse dataset ", doi, " (found: ",
-         paste(vapply(listing$files, function(f) f$filename, character(1)), collapse = ", "), ")", call. = FALSE)
-  }
-  raw_path <- file.path(work_dir, paste0(".dv_raw_", hit[[1L]]$id, ".", tools::file_ext(want)))
-  dataverse_download_file_curl(hit[[1L]]$id, listing$guestbookId, raw_path)
-
-  src_path <- raw_path
-  if (!is.null(inside_zip)) {
-    extract_dir <- file.path(work_dir, paste0(".dv_extract_", hit[[1L]]$id))
-    unlink(extract_dir, recursive = TRUE)
-    utils::unzip(raw_path, exdir = extract_dir)
-    all_files <- list.files(extract_dir, recursive = TRUE, full.names = TRUE)
-    matches <- all_files[basename(all_files) == basename(filename)]
-    if (length(matches) == 0L) stop("'", filename, "' not found inside ", inside_zip, call. = FALSE)
-    src_path <- matches[[1L]]
-  }
-
-  ext <- tolower(tools::file_ext(src_path))
-  obj <- if (ext %in% c("csv", "txt", "tab")) {
-    data.table::fread(src_path, data.table = FALSE)
-  } else if (ext == "xlsx") {
-    as.data.frame(readxl::read_xlsx(src_path))
-  } else {
-    tmp_csv <- tempfile(fileext = ".csv")
-    convert_to_csv(src_path, tmp_csv)
-    data.table::fread(tmp_csv, data.table = FALSE)
-  }
-  data.table::fwrite(obj, dest_csv)
-  invisible(dest_csv)
-}
+# All fetches use download_experimental_datasets.R's shared helpers (sourced above):
+# cran_dataset_as_csv(), github_dataset_as_csv() and dataverse_file_as_csv(), with
+# parse_dataverse_source() for the md's Dataverse Source cells.
 
 # ---------------------------------------------------------------------------
 # Covariate-missingness core: given the data.frame and the raw column names
@@ -192,9 +102,53 @@ resolve_exclude_cols <- function(dataset, treat_raw_cell, outcome_strs, data_col
 }
 
 # ---------------------------------------------------------------------------
-# Experimental: all 262 are already downloaded as one <name>.tar.bz2 archive
-# each (see "already have" skip logic in download_all_datasets()) -- extract
-# the loose CSV from the existing archive instead of re-downloading anything.
+# Sidecar files: <catalog>_missingness.csv next to each catalog CSV.
+# ---------------------------------------------------------------------------
+missingness_sidecar_path <- function(csv_path) sub("\\.csv$", "_missingness.csv", csv_path)
+
+read_catalog_csv <- function(path) {
+  read.csv(path, stringsAsFactors = FALSE, na.strings = "", colClasses = c(version = "character"))
+}
+
+# Which catalog rows to compute: all of them, or with stale_only only rows that
+# are missing from the sidecar, whose catalog version differs from the version
+# the sidecar value was computed from, or that were never computed (no cached
+# archive, failed download, ...: n_covariate_cols_used is empty).
+missingness_rows_to_compute <- function(csv, sidecar_path, stale_only) {
+  if (!stale_only || !file.exists(sidecar_path)) return(rep(TRUE, nrow(csv)))
+  old <- read_catalog_csv(sidecar_path)
+  m <- match(csv$dataset, old$dataset)
+  is.na(m) | !mapply(identical, old$version[m], csv$version) | is.na(old$n_covariate_cols_used[m])
+}
+
+# Writes the sidecar in catalog row order: computed rows take the new values,
+# the others keep their sidecar values; datasets no longer in the catalog drop out.
+write_missingness_sidecar <- function(csv, todo, pct, n_cov, note, sidecar_path) {
+  out <- data.frame(dataset = csv$dataset, version = csv$version,
+                    pct_missing_covariate_rows = pct, n_covariate_cols_used = n_cov,
+                    missingness_note = note, stringsAsFactors = FALSE)
+  if (any(!todo)) {
+    old <- read_catalog_csv(sidecar_path)
+    m <- match(csv$dataset[!todo], old$dataset)
+    for (col in names(out)[-(1:2)]) out[[col]][!todo] <- old[[col]][m]
+  }
+  write.csv(out, sidecar_path, row.names = FALSE, na = "", fileEncoding = "UTF-8")
+  message("wrote ", sidecar_path, " (", sum(todo), " of ", nrow(out), " rows computed)")
+  invisible(out)
+}
+
+# Unpacks one CSV from a cached archive into a fresh scratch dir under WORK_DIR and
+# returns its path. Never reads a loose CSV left beside the archive: that copy may
+# predate a pin change.
+untar_cached_csv <- function(archive_path, csv_name) {
+  exdir <- tempfile("unpack_", tmpdir = WORK_DIR)
+  utils::untar(archive_path, files = csv_name, exdir = exdir)
+  file.path(exdir, csv_name)
+}
+
+# ---------------------------------------------------------------------------
+# Experimental: read from the cached archives (one <name>.tar.bz2 per manifest
+# entry, written by download_all_datasets()); nothing is downloaded here.
 # ---------------------------------------------------------------------------
 ARCHIVE_DIR <- file.path(THIS_DIR, "randomized_experiment_datasets")
 
@@ -209,14 +163,17 @@ manifest_final_csv_name <- function(spec) {
   NA_character_
 }
 
-compute_experimental_missingness <- function(csv_path = file.path(THIS_DIR, "experimental_datasets.csv")) {
-  csv <- read.csv(csv_path, stringsAsFactors = FALSE, na.strings = "")
+compute_experimental_missingness <- function(csv_path = file.path(THIS_DIR, "experimental_datasets.csv"),
+                                             stale_only = FALSE) {
+  csv <- read_catalog_csv(csv_path)
+  sidecar_path <- missingness_sidecar_path(csv_path)
+  todo <- missingness_rows_to_compute(csv, sidecar_path, stale_only)
   md_tbl <- read_dataset_table(file.path(THIS_DIR, "experimental_datasets.md"))
   treat_raw <- md_tbl[["tx (treatment column)"]]
   outcome_cols <- grep("^(primary|secondary|tertiary|outcome_[0-9]+)_outcome$", names(csv), value = TRUE)
 
   pct <- rep(NA_real_, nrow(csv)); n_cov <- rep(NA_integer_, nrow(csv)); note <- rep(NA_character_, nrow(csv))
-  for (i in seq_len(nrow(csv))) {
+  for (i in which(todo)) {
     name <- csv$dataset[i]
     manifest_key <- gsub("[^A-Za-z0-9_]", "_", gsub("::", "_", name, fixed = TRUE))
     spec <- DATASET_MANIFEST[[manifest_key]]
@@ -227,13 +184,9 @@ compute_experimental_missingness <- function(csv_path = file.path(THIS_DIR, "exp
     if (!file.exists(archive_path)) { note[i] <- "no cached archive"; next }
     csv_name <- manifest_final_csv_name(spec)
     if (is.na(csv_name)) { note[i] <- "ambiguous source, skipped"; next }
-    dest_csv <- file.path(ARCHIVE_DIR, csv_name)
-    if (!file.exists(dest_csv)) {
-      ok <- tryCatch({ extract_experimental_datasets(manifest_key, download_dir = ARCHIVE_DIR,
-                                                     catalog_md = file.path(THIS_DIR, "experimental_datasets.md")); TRUE },
-                      error = function(e) { note[i] <<- paste("extract failed:", conditionMessage(e)); FALSE })
-      if (!ok) next
-    }
+    dest_csv <- tryCatch(untar_cached_csv(archive_path, csv_name),
+                         error = function(e) { note[i] <<- paste("extract failed:", conditionMessage(e)); NULL })
+    if (is.null(dest_csv)) next
     if (!file.exists(dest_csv)) { note[i] <- "csv not found after extract"; next }
     df <- tryCatch(data.table::fread(dest_csv, data.table = FALSE), error = function(e) NULL)
     if (is.null(df)) { note[i] <- "csv read failed"; next }
@@ -243,18 +196,18 @@ compute_experimental_missingness <- function(csv_path = file.path(THIS_DIR, "exp
     pct[i] <- r$pct; n_cov[i] <- r$n_cov
     if (r$n_cov == 0L) note[i] <- "no covariate columns in dataset (only treatment/outcome columns present)"
   }
-  csv$pct_missing_covariate_rows <- pct
-  csv$n_covariate_cols_used <- n_cov
-  csv$missingness_note <- note
-  write.csv(csv, csv_path, row.names = FALSE, na = "", fileEncoding = "UTF-8")
-  invisible(csv)
+  write_missingness_sidecar(csv, todo, pct, n_cov, note, sidecar_path)
 }
 
 # ---------------------------------------------------------------------------
-# Observational: no manifest -- auto-discover rda file per row.
+# Observational: no manifest -- each row's md Source/Version/Dataset cells say
+# what to fetch; the fetchers find the object's data/ file.
 # ---------------------------------------------------------------------------
-compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "observational_datasets.csv")) {
-  csv <- read.csv(csv_path, stringsAsFactors = FALSE, na.strings = "")
+compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "observational_datasets.csv"),
+                                              stale_only = FALSE) {
+  csv <- read_catalog_csv(csv_path)
+  sidecar_path <- missingness_sidecar_path(csv_path)
+  todo <- missingness_rows_to_compute(csv, sidecar_path, stale_only)
   md_tbl <- read_dataset_table(file.path(THIS_DIR, "observational_datasets.md"))
   treat_raw <- md_tbl[["w (group column)"]]
   obj_names <- sub("^.*::", "", sapply(md_tbl$Dataset, function(x) extract_backtick_columns(x)[1]))
@@ -269,7 +222,7 @@ compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "ob
   obs_cache_dir <- file.path(THIS_DIR, "observational_datasets_cache")
 
   pct <- rep(NA_real_, nrow(csv)); n_cov <- rep(NA_integer_, nrow(csv)); note <- rep(NA_character_, nrow(csv))
-  for (i in seq_len(nrow(csv))) {
+  for (i in which(todo)) {
     name <- csv$dataset[i]
     message("[", i, "/", nrow(csv), "] ", name)
     df <- NULL
@@ -280,14 +233,11 @@ compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "ob
       # Prefer the persistent cache (download_observational_datasets.R) over
       # a throwaway tempdir() fetch, so a second run of this script is free.
       archive_path <- file.path(obs_cache_dir, paste0(name, ".tar.bz2"))
-      dest_csv <- file.path(obs_cache_dir, paste0(name, ".csv"))
       if (startsWith(md_tbl$Source[i], "ICPSR:")) {
         note[i] <- "ICPSR restricted-terms data: not cached, missingness not computed"
         next
       }
-      if (file.exists(archive_path) && !file.exists(dest_csv)) {
-        utils::untar(archive_path, exdir = obs_cache_dir)
-      }
+      dest_csv <- if (file.exists(archive_path)) untar_cached_csv(archive_path, paste0(name, ".csv")) else ""
       if (!file.exists(dest_csv)) {
         dest_csv <- file.path(WORK_DIR, paste0("obs_", gsub("[^A-Za-z0-9]", "_", name), ".csv"))
         ok <- tryCatch({
@@ -295,8 +245,9 @@ compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "ob
             github_dataset_as_csv(pkgs[i], versions[i], dest_csv, WORK_DIR, obj_name = obj_names[i])
           } else if (is_dataverse[i]) {
             dv_i <- dv[[i]]
-            dataverse_fetch_object_auto(dv_i$doi, dv_i$filename, dest_csv, WORK_DIR,
-                                         inside_zip = if (is.na(dv_i$inside_zip)) NULL else dv_i$inside_zip)
+            dataverse_file_as_csv(dv_i$doi, md_tbl$Version[i], dv_i$filename, dest_csv, WORK_DIR,
+                                  inside_zip = if (is.na(dv_i$inside_zip)) NULL else dv_i$inside_zip,
+                                  credentials_dir = obs_cache_dir)
           } else {
             cran_dataset_as_csv(pkgs[i], versions[i], dest_csv, WORK_DIR, obj_name = obj_names[i])
           }
@@ -314,19 +265,16 @@ compute_observational_missingness <- function(csv_path = file.path(THIS_DIR, "ob
     pct[i] <- r$pct; n_cov[i] <- r$n_cov
     if (r$n_cov == 0L) note[i] <- "no covariate columns in dataset (only treatment/outcome columns present)"
   }
-  csv$pct_missing_covariate_rows <- pct
-  csv$n_covariate_cols_used <- n_cov
-  csv$missingness_note <- note
-  write.csv(csv, csv_path, row.names = FALSE, na = "", fileEncoding = "UTF-8")
-  invisible(csv)
+  write_missingness_sidecar(csv, todo, pct, n_cov, note, sidecar_path)
 }
 
 if (sys.nframe() == 0L) {
-  message("=== Observational (64 datasets) ===")
-  obs <- compute_observational_missingness()
+  stale_only <- "--stale-only" %in% commandArgs(trailingOnly = TRUE)
+  message("=== Observational ===")
+  obs <- compute_observational_missingness(stale_only = stale_only)
   message("done: ", sum(!is.na(obs$pct_missing_covariate_rows)), "/", nrow(obs), " resolved")
 
-  message("\n=== Experimental (262 datasets, CRAN-sourced only) ===")
-  exp <- compute_experimental_missingness()
+  message("\n=== Experimental ===")
+  exp <- compute_experimental_missingness(stale_only = stale_only)
   message("done: ", sum(!is.na(exp$pct_missing_covariate_rows)), "/", nrow(exp), " resolved")
 }

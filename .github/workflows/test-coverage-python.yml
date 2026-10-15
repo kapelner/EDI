@@ -8,8 +8,13 @@ name: test-coverage-python
 # separate job was folded into this one (2026-09-18) rather than paying for
 # the same test run twice. Called by build-wheels.yml on main/release
 # pushes so a test failure blocks publishing, and also runs directly on
-# relevant pull requests. Upload failure remains non-blocking; test failure
-# is blocking.
+# EVERY pull request. It used to be path-filtered to python/** and the C++
+# kernels; the filter was dropped 2026-10-15 so that every PR produces at
+# least one Codecov upload (a PR with no upload at all leaves any required
+# Codecov status check "Expected" forever, blocking the merge -- found on
+# throwaway PR #6). The job costs ~3 minutes, so running it unconditionally
+# is cheaper than that failure mode. Upload failure remains non-blocking;
+# test failure is blocking.
 #
 # Package root is python/ (pyproject.toml lives there), since this repo
 # also holds the unrelated R package (R/EDI/) and paper-reproduction code.
@@ -18,13 +23,6 @@ on:
   workflow_call:
   pull_request:
     branches: [main, master]
-    paths:
-      - 'python/**'
-      - 'R/EDI/src/**/*.cpp'
-      - 'R/EDI/src/**/*.h'
-      - 'R/EDI/src/**/*.hpp'
-      - '.github/workflows/test-coverage-python.yml'
-      - '.github/workflows/build-wheels.yml'
 
 jobs:
   coverage:

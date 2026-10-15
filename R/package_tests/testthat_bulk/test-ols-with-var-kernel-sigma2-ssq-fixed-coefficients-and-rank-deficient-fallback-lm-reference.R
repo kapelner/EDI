@@ -56,3 +56,10 @@ test_that("rank-deficient design: QR fallback returns finite coefficients withou
 	expect_equal(as.numeric(Xd %*% r$b), as.numeric(fitted(m)), tolerance = 1e-6)      # same fitted values as the full-rank fit
 	expect_null(r$ssq_b_j)
 })
+
+test_that("fast_ols_cpp marks every coefficient non-finite when the response contains Inf", {
+	y_bad <- y
+	y_bad[1] <- Inf
+	r <- K("fast_ols_cpp")(X, y_bad)
+	expect_true(all(is.na(r$b)))
+})

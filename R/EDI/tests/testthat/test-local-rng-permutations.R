@@ -14,6 +14,19 @@ test_that("generate_permutations_bernoulli_cpp marginals match Bernoulli(prob_T)
   expect_lt(abs(grand_mean - prob_T), 0.01)
 })
 
+# Fixed-seed golden (release_v1_0_5.md TODO-91): the iBCRD kernel shuffles with
+# edi_rng::fisher_yates_shuffle on the portable Mersenne-Twister port, so this
+# exact allocation must come back on every platform and standard library. A
+# std::shuffle would have given different draws under libstdc++ and libc++.
+# Changing these draws is an announced default change (NEWS line); only then
+# may the expected string be regenerated.
+test_that("generate_permutations_ibcrd_cpp reproduces a fixed-seed golden on every platform", {
+  set.seed(20261013L)
+  w <- EDI:::generate_permutations_ibcrd_cpp(10L, 3L, 0.5)$w_mat
+  expect_identical(dim(w), c(10L, 3L))
+  expect_identical(paste(as.integer(w), collapse = ""), "111000011011101000100011110100")
+})
+
 test_that("generate_permutations_ibcrd_cpp preserves exact treatment balance", {
   set.seed(7)
   n <- 200L; nsim <- 500L; prob_T <- 0.5

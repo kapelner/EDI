@@ -29,6 +29,9 @@ Rscript -e 'pak::local_install_deps("R/EDI", dependencies = TRUE, ask = FALSE)'
 # Contributor tools not in DESCRIPTION (they aren't needed to check the package)
 Rscript -e 'install.packages(c("roxygen2", "devtools", "pkgdown", "profvis", "proftools",
                                "microbenchmark", "DescTools"))'
+# R/package_tests/comprehensive_tests.R's own dependencies -- a separate
+# list from EDI's own Suggests above, not installed by anything else here
+Rscript R/package_tests/install_comprehensive_tests_deps.R
 # Python package, editable, with test deps
 pip install -e "./python[test]"
 # Local pre-push gate (see §4)
@@ -263,7 +266,8 @@ skipped.
      gates must all pass locally — the same sequence
      `test-coverage-R-advanced` runs post-push (the hook runs this only
      when `R/package_tests/` itself changed, so a class change alone
-     won't trigger it locally):
+     won't trigger it locally; `comprehensive_tests.R`'s own dependencies
+     are installed in §0):
      ```sh
      cd R
      Rscript package_tests/run_comprehensive_suite.R smoke "" 300 --force

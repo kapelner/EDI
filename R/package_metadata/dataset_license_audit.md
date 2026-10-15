@@ -23,7 +23,8 @@ constrains what could be bundled or committed later.
   version and GitHub commit from the md's Version cell (`catalog_row()`), and
   `DATASET_MANIFEST` holds only how to fetch each dataset (it refuses an entry that
   sets `version` or `commit_sha`); the observational downloader has always read the
-  md. A pin change does not refresh an existing `<key>.tar.bz2` in the cache —
+  md. Dataverse rows fetch the files of the md's dataset version (e.g. `v3.3`), not the
+  latest one (`dataverse_file_as_csv()`, since 2026-10-15). A pin change does not refresh an existing `<key>.tar.bz2` in the cache —
   delete it and download again. Note `packageVersion()` prints `3.8-6` as
   `3.8.6`; compare with `numeric_version()`, not string equality. Ten rows are pinned
   to *old* releases on purpose (see "Ten rows deliberately pinned" below) — an old pin
@@ -88,8 +89,12 @@ stripped and can `sys.source()` a `data/<obj>.R` file.) The fetcher never substi
 another release: a pin missing from both `src/contrib/` and `Archive/` is an error.
 Until 2026-10-15 both fetchers fell back to the current release with only a message;
 that is how the cached `nafld1` came from survival 3.8-11+ while the md pins 3.8-6
-(`case.id` has 31 `NA`s in 3.8-6, none from 3.8-11). A re-download of every survival,
-AER, granova and R4HCR row found no other such case.
+(`case.id` has 31 `NA`s in 3.8-6, none from 3.8-11). The cache was replaced with the
+3.8-6 data on 2026-10-15; its share of rows with a missing covariate is 28.42%, not the
+28.27% the old cache gave (`observational_datasets_missingness.csv`, written by
+`compute_covariate_missingness.R`; `--stale-only` recomputes only rows whose version
+changed or that have no value yet). A re-download of every survival, AER, granova and R4HCR row
+found no other such case.
 
 Release-history sweep (2026-10-08): every archived DESCRIPTION of every GPL-2-only
 package in the catalogs was checked (437 releases, 24 packages). The four above plus

@@ -79,18 +79,22 @@ must ship with the installed package, not only live in the repository:
 
 ### Eligible sources for v1
 
-A demo may use any row whose source is CRAN or base R: 338 of the 371 catalog rows
-(248 + 89 CRAN, 1 base R). Demos fetch data at run time and never embed it, so the
-`redistribution` column (`dataset_license_audit.md`: `yes` / `yes, with attribution (…)`
-/ `conditional: …` / `unclear: …` / `no: <reason>`) does not filter rows. Instead
-(user decision 2026-10-15) the 37 rows whose value does not start with `yes` (31 `no:`,
-5 `unclear:`, 1 `conditional:`) print the same warning the download scripts give
-(`warn_if_not_gpl3_compatible()` in `download_experimental_datasets.R`): "Dataset <d>
-has license <L>, which does not comply with GPL-3. Only use it if your use case
-complies with the license <L>." Rows with conditions beyond the license
-(`surrosurv::gastadv`, `coxphw::biofeedback`, the `unclear:` rows) name those terms in
-the warning. Excluded for v1:
+A demo may use any row whose source is CRAN or base R, except the two below: 336 of
+the 371 catalog rows (246 + 89 CRAN, 1 base R). Demos fetch data at run time and never
+embed it, so the `redistribution` column (`dataset_license_audit.md`: `yes` /
+`yes, with attribution (…)` / `conditional: …` / `unclear: …` / `no: <reason>`) does
+not filter rows. Instead (user decision 2026-10-15) the 35 eligible rows whose value
+does not start with `yes` (29 `no: GPL-2 only`, 5 `unclear:`, 1 `conditional:`) print
+the same warning the download scripts give (`warn_if_not_gpl3_compatible()` in
+`download_experimental_datasets.R`): "Dataset <d> has license <L>, which does not
+comply with GPL-3. Only use it if your use case complies with the license <L>." The
+`unclear:` and `conditional:` rows quote their Redistribution cell in the warning.
+Excluded for v1:
 
+- **Data-level use restrictions** (user decision 2026-10-15, to keep it simple):
+  `surrosurv::gastadv` (research use only, results shared with the GASTRIC Group
+  before publication) and `coxphw::biofeedback` (non-commercial use only). Their terms
+  go beyond the package license, so no demo uses them.
 - **Dataverse** (15 experimental, 2 observational): needs a guestbook form.
 - **GitHub** (6 experimental, 7 observational): pinned commits can disappear.
 - **ICPSR** (2 experimental, 1 observational): account and terms of use.
@@ -399,9 +403,9 @@ Open for the implementation step:
   internal functions with the user cache and clear-cache helper. Test: fetch and load
   one object from each format, and a pinned archive version.
 - [ ] TODO-12: Eligibility filter in the index builder (CRAN or base R only).
-  Test: an ICPSR row, a Dataverse row and a GitHub row are each rejected with a
-  reason; a `no:`/`unclear:` CRAN row (e.g. `surrosurv::gastadv`) is accepted and its
-  demo prints the license warning.
+  Test: an ICPSR row, a Dataverse row, a GitHub row and `surrosurv::gastadv` are each
+  rejected with a reason; a `no: GPL-2 only` or `unclear:` CRAN row (e.g.
+  `COUNT::rwm1984`) is accepted and its demo prints the license warning.
 - [ ] TODO-14: Summary renderer prints design provenance (actual vs imposed) from the spec and catalog. Test: a documented randomized row prints the actual case; a KK demo on observational data prints the imposed case with the warning.
 - [ ] TODO-15: `prop_reservoir` argument (default 0.2, KK only). Caliper calibration via `caliper_for_reservoir()`, printing the caliper and achieved share. Tests: achieved share within 2/n of target across targets 0.1, 0.2, 0.4; an unreachable target gives a clear message; a non-KK spec with `prop_reservoir` is rejected.
 - [ ] TODO-16: `seed` argument (default 1), passed to every design and inference constructor, plus `with_demo_seed()` for other draws. No bare `set.seed()` in the demo. Tests: two runs with the same seed give identical output; the user's `.Random.seed` is identical before and after `edi_inference_demo()` runs; `seed = NULL` leaves the RNG untouched and passes `NULL` to constructors; the seed appears in the summary and header.
@@ -450,7 +454,9 @@ Open for the implementation step:
 Resolved 2026-10-06: data-only CRAN fetch instead of install; CRAN and base R sources only in v1; ICPSR rows excluded.
 
 Resolved 2026-10-15 (user decision): rows whose `redistribution` is not `yes` are not
-excluded; their demos print the license warning instead (see "Eligible sources for v1").
+excluded; their demos print the license warning instead, except `surrosurv::gastadv` and
+`coxphw::biofeedback`, whose data-level use restrictions keep them out of demos (see
+"Eligible sources for v1").
 
 
 1. **Output.** Default: print to console; `write_to` writes a file. Files are not

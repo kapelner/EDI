@@ -328,4 +328,6 @@ item beyond the shared-machinery core that gates nothing else there.
 
 As the other 1.x releases, with one exception recorded here: the `dead →
 uncensored` rename is a deliberate break with a migration note; every
-other default reproduces 1.3.0 bit-for-bit.
+other default reproduces 1.3.0 under the numerical-equivalence rule
+(`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+equivalence`).

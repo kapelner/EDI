@@ -101,6 +101,25 @@ when compilation would only be an implicit side effect of testing, checking,
 loading, or verification commands (including `devtools::test()` and
 `devtools::load_all()`).
 
+## Always compile with `EDI_UNITY=0`
+
+Every compile an agent runs (Codex, Gemini, Antigravity, Claude, any other)
+uses `EDI_UNITY=0`, which builds one object file per `.cpp` so a touched file
+recompiles alone. Set it on the command line every time, because nothing in
+your environment sets it for you:
+
+```sh
+EDI_UNITY=0 R CMD INSTALL --no-multiarch R/EDI   # only when the user asked for an install
+(cd R/EDI && EDI_UNITY=0 ./configure)            # likewise
+```
+
+This applies to targeted compiles and relinks too, and to an install the user
+explicitly asked for. Never pass `EDI_UNITY=1` or leave the variable unset:
+unity (merged `unity_NN.o` groups) is the default, and it is reserved for the
+user's own builds. If the per-file `.o` files a targeted relink needs are
+missing (a unity or `--preclean` build removes them), stop and ask rather
+than rebuilding them.
+
 ## Working in this repo
 
 - The user runs their own build/install tooling for `R/EDI` independently —
@@ -112,6 +131,15 @@ loading, or verification commands (including `devtools::test()` and
   files (e.g. `testthat::test_file("R/EDI/tests/testthat/test-<name>.R")`)
   against the already-installed package rather than anything that
   compiles or reinstalls.
+- Writing or extending tests for code that already exists (new functions,
+  refactors, bug fixes, coverage-registry rows) follows
+  `R/package_metadata/contracts/coverage_test_writing.md`: classify the gap
+  first, broaden an existing fixture before adding a file, assert against an
+  independent reference, pick the fast vs. bulk tier by its §4.1 rule, and
+  treat coverage as confirmed only by a real instrumented CI measurement —
+  never by a test that merely looks relevant. Adding a whole new
+  `Inference*`/`Design*` class follows `contracts/new_model_creation.md`
+  instead. Both are wired into `CONTRIBUTING.md` §3b and the PR template.
 - Feature plans, audits, and release checklists live in
   `R/package_metadata/` (active work in `new_feature_plans/`, completed in
   `finished_features/`).

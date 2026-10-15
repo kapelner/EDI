@@ -157,19 +157,30 @@ track from this release without replacement; it does not block the release.
 
 Reproducibility *(added 2026-10-11, user decision; from
 `marketing_plans/agent_proofing.md` W6)*: `cross_platform_reproducibility.md`
-(`TODO-48`). It states the package's reproducibility guarantee: random draws
-are exactly identical across platforms, thread counts and worker counts;
-floating-point outputs are equal within a documented tolerance. It adds a
+(`TODO-48`). It states the package's reproducibility guarantee (revised
+2026-10-15, decision D3): RNG-only random draws are exactly identical across
+platforms, thread counts and worker counts; one installed build is
+bit-identical across runs, thread counts and worker counts for every output;
+optimizer-chosen allocations match across platforms except at documented
+near-ties; floating-point outputs agree across platforms within a
+documented tolerance. It adds a
 reproducibility record to every result, makes thread- and worker-count
 independence a package-wide invariant with a static ban, fixes p-value tie
 counting if verification confirms the problem, and enforces all of it with
-golden digests on every CI platform leg. Each of its four TODOs ships with
+golden digests on every CI platform leg. Each of its seven TODOs ships with
 required tests. It builds on `release_v1_0_5.md → TODO-91, -93, -95`.
 
 Algorithm choice *(added 2026-10-15, user decision)*:
 `algorithm_choice_audit.md`'s items that are faster **and** at least as
 accurate, with no new user options (`TODO-50`). The speed-only items and the
 items that need the A/B harness are in `release_v1_2_0.md → TODO-22, -23`.
+
+InferenceSuite performance *(added 2026-10-15, user decision; from
+`../audits/further_optimizations.md` section 3)*:
+`inference_suite_worker_pool.md` (`TODO-51`). `run_all_inference()` moves
+from one forked child per task to a pool of long-lived workers, about
+halving its CPU, with per-task seeding so results no longer depend on
+worker count.
 
 Repository hygiene *(maintenance, added 2026-09-16, user decision)*:
 `implement_a_lintr.md` (a `.lintr` codifying EDI's actual `=`/tab house
@@ -1399,20 +1410,30 @@ ticked in their **owning plans**; this list is the release index.
 
 - [ ] TODO-48 (added 2026-10-11, user decision): **Cross-platform
   reproducibility guarantee** — `cross_platform_reproducibility.md →
-  TODO-1..4`. Every TODO requires its listed tests before it can be ticked.
-  - (1) **Guarantee and record:** state the three-level guarantee in the
+  TODO-1..7`. Every TODO requires its listed tests before it can be ticked.
+  - (1) **Guarantee and record:** state the five-level guarantee (D3) in the
     reproducibility vignette, and attach a reproducibility record (seed,
     `RNGkind`, version, threads, workers, build flag) to every result. This
     shares the slot with `algorithm_choice_audit.md → TODO-38`.
   - (2) **Thread- and worker-count invariance everywhere:** use
     `seed_for_index` for every parallel stream; registry-driven invariance
     tests at 1/2/4 cores on both the fork and `mirai` backends; a pre-push
-    ban on `std::shuffle`, `<random>`, `rand()` and per-thread seeding.
+    ban on `std::shuffle`, `<random>`, `rand()` and per-thread seeding,
+    plus floating-point `parallel for` reductions, atomics and critical
+    sections; `identical()` same-binary determinism tests (D3).
   - (3) **p-value tie tolerance:** verify first, then fix, gated on
     exact-enumeration fixtures.
-  - (4) **CI enforcement:** golden integer digests that must match exactly
-    on every platform leg, plus floats within tolerance, plus a meta-test
-    that every registry class has a fixture.
+  - (4) **CI enforcement:** golden integer digests; RNG-only draws must
+    match exactly on every platform leg, optimizer-chosen allocations
+    exactly except at reported near-ties; floats within tolerance; a
+    meta-test that every registry class has a fixture.
+  - (5) **Release-equivalence fixtures (D2):** last-release golden values
+    checked with the numerical-equivalence tiers.
+  - (6) **Near-ties in optimizer-chosen allocations (D3):** measure first;
+    tie-tolerant comparisons only if near-ties are common (a one-time
+    documented draw change).
+  - (7) **`draw_version` (D4):** decision-gated; reproduces earlier
+    releases' draws, as R's `RNGversion()` does.
   - **Depends on:** `release_v1_0_5.md → TODO-91, -93, -95`.
   - **Decision D1 (decided 2026-10-14, implemented in the source tree):**
     portable build by default for every install, with `EDI_PORTABLE=0` as
@@ -1470,10 +1491,31 @@ ticked in their **owning plans**; this list is the release index.
   - **TODO-25, φ half only:** 1-D Brent on KK21's dispersion profile
     likelihood instead of the 19-point grid. The score-test stepwise half
     is `release_v1_2_0.md → TODO-23`.
-  - **Gate:** the existing tests plus an equivalence test per item (brute
-    force at n ≤ 12 for the JT DP; tolerance-equal estimates for the
-    derivative, start and NPMLE changes). Results that move are documented
-    default changes (see Standing constraints).
+  - **Gate:** the existing tests plus an equivalence test per item, using
+    the tiers of `../new_feature_plans/cross_platform_reproducibility.md →
+    Release-to-release equivalence`: exact at n ≤ 12 against brute force for
+    the JT DP; the iterative-solver tier for the derivative, start and NPMLE
+    changes. Items that move results beyond their tier (the tail fix, the φ
+    grid, Monte Carlo CMH variance) are documented default changes (see
+    Standing constraints).
+
+- [ ] TODO-51 (added 2026-10-15, user decision): **InferenceSuite worker
+  pool** — `inference_suite_worker_pool.md → TODO-1..5`.
+  `run_all_inference(num_cores > 1)` forks one `mcparallel()` child per
+  task, which roughly doubles its CPU (measured 2026-10-15: 369 s against
+  ~194 s in-process at the same contention, about 1.1 s per task, median
+  task 0.5 s). It moves to `num_cores` long-lived forked workers with a
+  rolling dispatch. It keeps the per-task `max_secs_per_class` kill by PID
+  (the killed worker is replaced, the others are untouched) and avoids
+  `clusterApply()` / `stopCluster()`.
+  - **Seeding:** each task is seeded with `seed_for_index`, so results no
+    longer depend on worker count or scheduling. This is a documented draw
+    change for bootstrap and randomization rows at `num_cores > 1`.
+  - **Gate:** `identical()` results across `num_cores = 1, 2, 4` (all
+    columns but `fit_secs`); hang and crash injection tests; the existing
+    `run_all_inference` tests unchanged.
+  - **Depends on:** `TODO-48` (2) for `seed_for_index` and the invariance
+    suite. Shares the worker single-threading helper with `TODO-18`.
 
 ## Standing constraints
 
@@ -1484,13 +1526,16 @@ the SEXP/RcppEigen conventions including unity-build group membership; new
 classes go through `define_inference_class()`/`define_design_class()`; tick
 TODOs in owning plans). Additionally, everything in this release must be
 **additive**: default behavior with no new switches set must reproduce
-1.0.0 results bit-for-bit, except where a plan explicitly documents a
+1.0.0 results — since 2026-10-15 (owner decision D2) under the
+numerical-equivalence rule in
+`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+equivalence`, no longer bit-for-bit — except where a plan explicitly documents a
 default change (currently TODO-11's class deletion, pending its
 deprecation decision; TODO-40's exact-null default switch, its plan's
 TODO-7, and TODO-41's small-n exact default, its plan's TODO-6, both
 decision-gated and off until the user accepts them; and TODO-45's
 precomputed hypergeometric log-densities in the Zhang exact kernel, its
-plan's TODO-3, tolerance-equal to 1e-12; and TODO-48's reproducibility work, whose TODO-3 tie tolerance changes p-values only where a tie was resolved by rounding, its plan's TODO-3, documented when it lands; and TODO-50's algorithm-audit items, which change results only within numerical tolerance or where the old algorithm was inaccurate (FD Hessians, clamped normal tails, the 19-point φ grid, Monte Carlo CMH variance), documented per item when it lands). TODO-4b is narrowed to measurement infrastructure
+plan's TODO-3, tolerance-equal to 1e-12; and TODO-48's reproducibility work, whose TODO-3 tie tolerance changes p-values only where a tie was resolved by rounding, its plan's TODO-3, documented when it lands, and its plan's TODO-6 tie-tolerant optimizer comparisons, if measurement adopts them, which change seed-pinned draws of the optimizer designs once; and TODO-50's algorithm-audit items that move results beyond the equivalence tiers because the old algorithm was inaccurate (clamped normal tails, the 19-point φ grid, Monte Carlo CMH variance), documented per item when it lands; its derivative, start and NPMLE changes need no exception when they land inside the iterative-solver tier). TODO-4b is narrowed to measurement infrastructure
 only in this release (`performance_profiling_and_upgrades.md →
 TODO-132..135, 175`, all infrastructure-only, no gate needed); the
 result-changing performance items formerly gated here
@@ -1499,5 +1544,5 @@ change with re-justified equivalence tolerances) moved with the rest of
 TODO-4b's remainder to `release_v1_2_0.md → TODO-11` on 2026-09-06 — that
 file's own standing constraints restate this gate. TODO-9b's
 `qubo_backend` defaults to `"none"`, which must reproduce 1.0.0's MILP → SA
-results bit-for-bit; every external backend is opt-in and falls back to the
+results (allocations exact, per the equivalence rule); every external backend is opt-in and falls back to the
 classical solver with a warning, never silently.

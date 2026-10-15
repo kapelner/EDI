@@ -1,8 +1,9 @@
-# EDI — guide for Gemini and other agents
+# EDI — guide for Gemini, Antigravity and other agents
 
 **The canonical agent guide is [`AGENTS.md`](AGENTS.md)** — read it first.
-This file exists because Gemini looks for `GEMINI.md`; it deliberately
-repeats only the rule that bites fastest, so the two files can't drift.
+This file exists because Gemini and Antigravity look for `GEMINI.md`; it
+deliberately repeats only the rules that bite fastest, so the two files
+can't drift.
 
 ## Never compile `R/EDI` without being asked
 
@@ -13,6 +14,16 @@ that can race the maintainer's own build. Don't run them unless the user asks
 in the current conversation. Load with `pkgload::load_all("R/EDI", compile =
 FALSE)`; compile a touched `.cpp` alone and relink (`CONTRIBUTING.md` §1). If
 unsure whether a command compiles, treat it as if it does and ask.
+
+## Always compile with `EDI_UNITY=0`
+
+Every compile you run, including an install the user asked for, a targeted
+`.cpp` compile and a relink, sets `EDI_UNITY=0` on the command line (one
+object per `.cpp`), e.g. `EDI_UNITY=0 R CMD INSTALL --no-multiarch R/EDI`.
+Nothing in your environment sets it for you. Never pass `EDI_UNITY=1` or leave
+it unset: unity is the default and is reserved for the maintainer's own
+builds. If the per-file `.o` files a relink needs are missing, stop and ask
+(`AGENTS.md` → "Always compile with `EDI_UNITY=0`").
 
 ## Where things are
 

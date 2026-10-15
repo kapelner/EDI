@@ -339,6 +339,16 @@ and maintenance cost.
   `more_simd_optimization.md → TODO-7`: allow `-fopenmp-simd` where Apple
   clang accepts it, while keeping threaded OpenMP optional. Do not make a
   Homebrew `libomp` installation a package requirement.
+  *Status 2026-10-15 (in progress, awaiting a macOS CI run):* `-fopenmp-simd`
+  is ruled out: R CMD check reports every `-f*` in `PKG_CXXFLAGS` as
+  non-portable (`tools:::.check_make_vars`). Instead the nine `#pragma omp
+  simd` sites use `EDI_SIMD`/`EDI_SIMD_REDUCTION` (`src/edi_simd.h`): `omp
+  simd` under OpenMP, `clang loop vectorize(assume_safety)` under clang
+  without OpenMP. Locally (clang 21, no OpenMP) all nine loops vectorize with
+  no warnings; the committed code vectorized none of the five `.cpp` loops.
+  R-CMD-check's plain macOS leg now runs
+  `R/package_tests/ci/simd_vectorization_report.sh` into the job summary.
+  Close once that report is all-vectorized on Apple clang.
 - [ ] **TODO-8: Add ARM compile-report artifacts.** Save vectorization
   reports for the six files containing `#pragma omp simd` and the top ten hot
   likelihood/distance loops. CI should check capabilities and correctness;
@@ -425,6 +435,12 @@ small internal adapter with explicit operations and measured thresholds:
   `VECLIB_MAXIMUM_THREADS`, `RhpcBLASctl`, and process-start timing actually
   constrain the linked Accelerate version. Report observed behavior instead
   of assuming the environment variable is sufficient.
+  *Status 2026-10-15 (wired, awaiting results):* R-CMD-check's plain macOS
+  leg runs `R/package_tests/ci/accelerate_thread_probe.R`, which times
+  `crossprod()` in a fresh process per control (none,
+  `VECLIB_MAXIMUM_THREADS=1` before start, `Sys.setenv` after the first BLAS
+  call, `RhpcBLASctl::blas_set_num_threads(1)`) and writes CPU/elapsed to the
+  job summary. Record the observed table here and close.
 - [ ] **TODO-22: Add architecture presets to local tuning.** Suggested labels
   are `arm-throughput`, `apple-interactive`, and `grace-bandwidth`, but the
   preset should seed a short empirical tuner rather than encode permanent

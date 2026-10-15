@@ -315,6 +315,26 @@ jobs:
           cat ~/.R/Makevars
           echo "EDI_EXPECT_OPENMP=true" >> "$GITHUB_ENV"
 
+      # Plain macOS leg only: CRAN's macOS R has no OpenMP, which is the
+      # build these two reports describe. Both go to the job summary and are
+      # informational (continue-on-error); the check step below is what fails
+      # the leg if the clang vectorization hints ever emit a compiler warning.
+      #  - arm_hardware.md TODO-7: every EDI_SIMD hint (src/edi_simd.h) should
+      #    vectorize under Apple clang without -fopenmp. Compiles the hinted
+      #    files into a temp dir with -Rpass=loop-vectorize.
+      #  - arm_hardware.md TODO-21: whether VECLIB_MAXIMUM_THREADS (before
+      #    start / after start) and RhpcBLASctl actually limit Accelerate's
+      #    threads, measured as CPU/elapsed of a large crossprod().
+      - name: macOS SIMD vectorization report (arm_hardware TODO-7)
+        if: matrix.config.os == 'macos-latest' && !matrix.config.variant
+        continue-on-error: true
+        run: R/package_tests/ci/simd_vectorization_report.sh "$GITHUB_STEP_SUMMARY"
+
+      - name: macOS Accelerate thread-control probe (arm_hardware TODO-21)
+        if: matrix.config.os == 'macos-latest' && !matrix.config.variant
+        continue-on-error: true
+        run: Rscript R/package_tests/ci/accelerate_thread_probe.R "$GITHUB_STEP_SUMMARY"
+
       # Every leg writes its seed-pinned digests and float results here
       # (test-cross-platform-reproducibility-digests.R); the upload step after
       # the check and the repro-compare job below compare them across legs.

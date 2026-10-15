@@ -15,15 +15,19 @@
 # veteran/ovarian/colon/bladder1/gbsg/lung/mgus2/rotterdam, so
 # "rda_name == obj_name" would be wrong most of the time). The fetch is the
 # experimental downloader's: cran_dataset_as_csv() / github_dataset_as_csv() /
-# load_data_object() in download_experimental_datasets.R (sourced through
+# load_data_object() / dataverse_file_as_csv() in download_experimental_datasets.R (sourced through
 # compute_covariate_missingness.R). Versions come from the md's Version column,
 # and a row whose Redistribution cell is not "yes" warns on download and on
 # unpacking. The one `datasets`-package (base R) row, `esoph`, needs no download at all.
 
-THIS_DIR <- {
-  file_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
-  if (length(file_arg) == 0) "R/package_metadata" else dirname(normalizePath(sub("^--file=", "", file_arg[1])))
-}
+# This file's folder as an absolute path, so it runs from any working directory, whether
+# run with Rscript or source()d (also from inside another script): the innermost source()
+# call's file wins, then Rscript's --file=, then R/package_metadata/ under the working directory.
+THIS_DIR <- local({
+  sourced <- Filter(is.character, lapply(rev(sys.frames()), function(f) f$ofile))
+  file_arg <- sub("^--file=", "", grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE))
+  dirname(normalizePath(c(unlist(sourced), file_arg, "R/package_metadata/download_observational_datasets.R")[[1L]], mustWork = TRUE))
+})
 source(file.path(THIS_DIR, "build_experimental_datasets_csv.R"))  # read_dataset_table(), strip_md()
 source(file.path(THIS_DIR, "compute_covariate_missingness.R"))    # download_experimental_datasets.R's fetchers, extract_backtick_columns()
 
@@ -86,8 +90,8 @@ download_all_observational_datasets <- function(download_dir = OBS_ARCHIVE_DIR,
       } else if (row$is_github) {
         github_dataset_as_csv(row$pkg, row$version, out_csv, download_dir, obj_name = row$obj_name)
       } else if (row$is_dataverse) {
-        dataverse_fetch_object_auto(row$dv_doi, row$dv_filename, out_csv, download_dir,
-                                     inside_zip = if (is.na(row$dv_inside_zip)) NULL else row$dv_inside_zip)
+        dataverse_file_as_csv(row$dv_doi, row$version, row$dv_filename, out_csv, download_dir,
+                              inside_zip = if (is.na(row$dv_inside_zip)) NULL else row$dv_inside_zip)
       } else {
         cran_dataset_as_csv(row$pkg, row$version, out_csv, download_dir, obj_name = row$obj_name)
       }

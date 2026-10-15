@@ -62,7 +62,7 @@ NumericVector compute_ols_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXd>& 
                 double sum_y = 0;
                 double sum_wy = 0;
 
-#pragma omp simd reduction(+:sum_w,sum_y,sum_wy)
+EDI_SIMD_REDUCTION(+:sum_w,sum_y,sum_wy)
                 for (int i = 0; i < n; ++i) {
                         double w_val = (double)w_col[i];
                         w_d[i] = w_val;

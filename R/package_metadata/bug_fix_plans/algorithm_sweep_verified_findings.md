@@ -504,7 +504,7 @@ are fixed here because they are still exported and registered.
   `test-jonckheere-exact-enumeration.R` passed all 33 assertions, including
   direct-kernel rejection and public warning/fallback.
 
-- [ ] TODO-22 (F3): **`std::shuffle` / `<random>` distributions make draws
+- [x] TODO-22 (F3, closed 2026-10-15 via `../future_release_plans/release_v1_0_5.md → TODO-91`, which records the 8-leg CI evidence and the golden tests): **`std::shuffle` / `<random>` distributions make draws
   stdlib-dependent.** Algorithms are implementation-defined (libstdc++ vs libc++),
   so the same seed gives different draws on Linux and macOS (distributions
   correct). Default paths: iBCRD initial assignment and redraws,

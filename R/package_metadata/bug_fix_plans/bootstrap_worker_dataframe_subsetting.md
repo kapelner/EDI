@@ -109,7 +109,19 @@ documented default change under the standing constraint.
   functionality pilot, not the required n = 1000 evidence. Since the worker
   changes predate this harness, its measurement is a current-state baseline,
   not the required pre-change baseline; TODO-1 remains open for the larger
-  run and historical comparison.
+  run and historical comparison. **Larger current-state profile, 2026-10-15:**
+  the installed EDI 1.0.3 harness ran n = 1000, 100 draws, seed 20261015
+  (the three fixtures use seeds 20261015--20261017). Median/IQR were OLS
+  1.00/0.12 ms per draw, logistic 1.04/0.33 ms, and Cox 1.24/0.33 ms.
+  The 100-draw, 10-ms-interval Rprof snapshots show OLS time concentrated in
+  `which()` / `drop_highly_correlated_cols()` / `create_design_matrix()` and
+  sample loading; logistic in `generate_mod()` and
+  `fit_with_hardened_qr_column_dropping()`; Cox in sample loading,
+  `generate_mod()`, and `.Call`. The short profile is directional rather than
+  a precise attribution. CSV: `/tmp/edi-todo58-worker-profile-1000-100-20261015.csv`.
+  This is still current-state data only; it neither recovers the 1.0.2
+  pre-change baseline nor compares the full procedure table to `boot`, so
+  TODO-1 and TODO-6 remain open.
 
 - [x] TODO-2: **Subset without `make.unique` (F1).** In `subset_field()`,
   subset data.frames column-wise (`lapply(x, "[", indices)` →
@@ -142,7 +154,14 @@ documented default change under the standing constraint.
   matrix stale, restoring the historical rebuild-and-harden path. A focused
   rare-covariate sample regression asserts that fallback and its OLS estimate.
   The three-fixture equality runs remain part of TODO-6's installed-runtime
-  gate, so this checkbox stays open.
+  gate, so this checkbox stays open. **Installed-package regression,
+  2026-10-15:** `test-design-backed-bootstrap-worker-state-and-sample-loading-reference.R`
+  passed 59/59 assertions against EDI 1.0.3, including repeated-row data
+  frame values/row names, OLS resampling with changing design matrices,
+  rare-covariate rank-deficient fallback versus rebuild at `1e-10`, matching
+  vector renumbering, and survival event indicators. This validates the
+  installed worker behavior, not the three performance-fixture distribution
+  comparison or the `boot` speed gate.
 
 - [ ] TODO-4: **Skip the per-draw R `qr()` when the full-data design is
   full rank (F3).** Same change as `bayesian_bootstrap_performance.md →
@@ -164,6 +183,25 @@ documented default change under the standing constraint.
   except where TODO-3 documents otherwise. Update
   `benchmark_model_fits.md` and any performance text that quotes the
   0.09x / 0.86x / 0.42x numbers.
+
+  **Installed worker-vs-`boot` pilot (2026-10-15; diagnostic, not closure):**
+  `boot` 1.3.32 was already installed; no install/build occurred. The
+  compile-free harness `/tmp/edi-todo58-boot-compare.R` recreated the
+  procedure benchmark's deterministic `generate_data()` fixtures and
+  `seed_for_class("Procedure <response>")` rule, with 4 covariates, balanced
+  treatment, OLS `n=1000, B=1000`, logistic `n=1000, B=500`, and Cox
+  `n=500, B=500`. It compared the installed EDI reusable worker against the
+  corresponding `boot` statistic on identical resample indices, and separately
+  timed EDI worker draws against complete `boot::boot()` calls divided by B.
+  All draws were finite; the paired distributions' maximum absolute
+  coefficient differences were `1.55e-15` (OLS), `5.20e-11` (logistic), and
+  `3.39e-9` (Cox), and their percentile endpoints agreed on every paired
+  fixture. Median per-draw times (EDI worker / `boot::boot`) were 0.84 / 0.145
+  ms (0.17x), 1.14 / 1.662 ms (1.46x), and 1.04 / 0.516 ms (0.50x),
+  respectively. Results: `/tmp/edi-todo58-boot-compare-20261015.csv`.
+  This direct-worker pilot is not the required public R6 procedure-table
+  rerun, does not establish 1.0.2 distribution parity, and leaves TODO-6 and
+  release TODO-58 open; do not use it to overwrite the canonical benchmark.
 
 ## Out of scope
 

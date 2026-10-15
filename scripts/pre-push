@@ -67,9 +67,13 @@ if grep -qE '^R/EDI/(.*\.(R|Rd|cpp|h|hpp)|DESCRIPTION|NAMESPACE|configure|config
 	run_r_tests=1
 fi
 
-# Mirrors test-coverage-python.yml's path filter: python/** plus R/EDI/src/**/*.{cpp,h,hpp}
-# -- R/EDI/src is the single source of truth the Python C++ extension compiles
-# directly (see python/CMakeLists.txt), so a kernel change affects both sides.
+# python/** plus R/EDI/src/**/*.{cpp,h,hpp} -- R/EDI/src is the single source of
+# truth the Python C++ extension compiles directly (see python/CMakeLists.txt),
+# so a kernel change affects both sides. This is the set of changes that can
+# break the python suite; test-coverage-python.yml itself now runs on EVERY
+# pull request (no path filter, 2026-10-15) so that every PR produces at least
+# one Codecov upload, but locally there is no reason to rebuild the extension
+# for a change that cannot have touched it.
 run_python_tests=0
 if grep -qE '^python/|^R/EDI/src/.*\.(cpp|h|hpp)$' "$changed_files_file"; then
 	run_python_tests=1

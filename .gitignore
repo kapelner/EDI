@@ -169,8 +169,11 @@ graft/
 # Private research notes — not for public repo history
 /private/
 
-# trail session learnings — local only (may reference /private/ material)
-/.trail/
+# trail session learnings are committed so contributors' agents start from them.
+# Notes about /private/ material (grants, papers, marketing, talks) belong in the
+# EDI_research_projects repo's own .trail/learnings/, never here. The harness's
+# write log under .trail/.claude/ stays local.
+/.trail
 
 # Belt-and-suspenders: already covered by the blanket rule above, named
 # explicitly in case that rule ever narrows

@@ -275,7 +275,19 @@ is O(r) arithmetic and MC is moot.
   this small sample is consistent with the full run and does not support the
   projected 20–30× target. Keep the checkbox open until the measured gain and
   the README/roxygen claim are reconciled with the original target (or the
-  owner explicitly accepts the smaller measured gain).
+  owner explicitly accepts the smaller measured gain). **Installed-package
+  check, 2026-10-15:** one bounded three-pair run against EDI 1.0.3 at
+  `n=500, r=1001` (fixed permutations, one warm-up per path, alternating
+  order; no compilation) measured affine/general medians of 0.108/0.121 s
+  for `InferenceAllSimpleAverageDiff` (1.12×) and 0.084/0.153 s for
+  `InferenceContinOLS` (1.82×). The current installed DLL's mtime was
+  2026-10-15 14:09:05 +0300. This confirms the modest gain on the installed
+  package but does not meet the projected target. No call-level profiler was
+  collected, so the residual time is not attributable to a single function;
+  the modest end-to-end gain is consistent with shared CI setup/search and
+  p-value counting limiting the realized benefit at this workload. CSV:
+  `/tmp/edi-todo2-installed-benchmark-20261015.csv`; harness:
+  `/tmp/edi-todo2-installed-benchmark.R`.
 
 - [x] **TODO-7: Reconcile the KK-GEE mixin read site.** Completed 2026-10-09:
   the never-populated legacy `t0s_rand + delta` branch was removed from the

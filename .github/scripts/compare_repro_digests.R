@@ -43,22 +43,25 @@ if (expected_legs > 0L && length(legs) < expected_legs) {
 }
 
 if (!is.null(rows) && nrow(rows)) {
-	# Integer draws: one digest per design across every leg and thread count.
+	# Integer draws: one digest per design and quantity (w_md5 for the r
+	# redraws; w_seq_md5 for a sequential design's one-at-a-time assignment)
+	# across every leg and thread count.
 	design = rows[rows$kind == "design_draw", , drop = FALSE]
+	design$key = paste(design$name, design$quantity, sep = "$")
 	emit("")
 	emit("### Seed-pinned design draws (md5 of w, first 8 characters)")
 	emit("")
 	emit("| design | ", paste(legs, collapse = " | "), " | identical |")
 	emit("|", paste(rep("---", length(legs) + 2L), collapse = "|"), "|")
-	for (name in sort(unique(design$name))) {
-		d = design[design$name == name, , drop = FALSE]
+	for (key in sort(unique(design$key))) {
+		d = design[design$key == key, , drop = FALSE]
 		cells = vapply(legs, function(leg) {
 			v = unique(d$value_chr[d$leg == leg])
 			if (!length(v)) "–" else paste(substr(v, 1L, 8L), collapse = " / ")
 		}, character(1))
 		same = length(unique(d$value_chr)) == 1L
-		if (!same) problem(name, ": draw digest differs across legs or thread counts")
-		emit("| ", name, " | ", paste(cells, collapse = " | "), " | ", if (same) "yes" else "**NO**", " |")
+		if (!same) problem(key, ": draw digest differs across legs or thread counts")
+		emit("| ", key, " | ", paste(cells, collapse = " | "), " | ", if (same) "yes" else "**NO**", " |")
 	}
 
 	# Thread counts each leg actually obtained (a leg without OpenMP reports 1).

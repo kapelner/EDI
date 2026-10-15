@@ -130,6 +130,20 @@ fixes part of the cost itself; this plan fixes the measurement.
   no further full run was attempted. Keep report regeneration/synchronization
   open until it is done from the canonical checkout.
 
+  **Noncanonical Zhang timing probe, 2026-10-15:** one fixed synthetic
+  Bernoulli-incidence fixture (`n=1000`, seed 20261015) was timed against
+  installed EDI 1.0.3 using fresh R6 objects for every procedure call. Median
+  construction was 1.00 ms, Zhang CI procedure 4.83 ms, and
+  `fisher.test(conf.int=TRUE)` 0.87 ms (0.18x procedure speedup); the maximum
+  absolute log-bound difference was 0.00642. This fixture is not the canonical
+  benchmark's generated-data fixture and its one-run result does not replace
+  the canonical report or establish a general slowdown. It does show that
+  procedure time and interval agreement can vary on a separate data table, so
+  the canonical Zhang parity row remains the acceptance target. Harness and
+  result: `/tmp/edi-todo62-zhang-procedure-20261015.R` and
+  `/tmp/edi-todo62-zhang-procedure-20261015.csv`; no canonical artifacts were
+  changed.
+
 ## Acceptance
 
 The Zhang row shows procedure time at parity with `fisher.test` (about

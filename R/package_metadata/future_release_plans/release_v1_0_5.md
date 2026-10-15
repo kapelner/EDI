@@ -111,6 +111,17 @@ range, since the plan files' internal numbering did not change.
   currently installed EDI 1.0.3 package on 2026-10-14. The working tree has no
   randomization-CI source changes pending; this does not resolve the measured
   speedup versus the original 20–30× expectation or the documentation claim.
+  A bounded installed-package check on 2026-10-15 (EDI 1.0.3; installed
+  `EDI.so` mtime 14:09:05 +0300) at `n=500, r=1001`, three interleaved
+  pairs with a warm-up per path, measured 1.12× for
+  `InferenceAllSimpleAverageDiff` (0.108 s affine vs. 0.121 s general) and
+  1.82× for `InferenceContinOLS` (0.084 s vs. 0.153 s). Results are in
+  `/tmp/edi-todo2-installed-benchmark-20261015.csv`; the harness is
+  `/tmp/edi-todo2-installed-benchmark.R`. This independently confirms a
+  modest gain in the installed package but does not meet the 20–30× target.
+  No call-level profile was collected, so the remaining time is not attributed
+  to a single function. Keep TODO-2 open pending reconciling the target and
+  documentation (or an explicit owner decision to accept the smaller gain).
   The decision-gated direct-inversion TODO-8 remains deliberately out of
   scope.
 - [ ] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
@@ -1912,7 +1923,18 @@ baseline as expected/benign.
   a rare-covariate reference covers that branch. The hardened-fit fast path,
   OLS batched dispatch, and installed benchmark/regression gates remain open.
   Acceptance: all three rows ≥ 1x `boot`. Otherwise independent of every
-  other item here and of v1.1.0.
+  other item here and of v1.1.0. **Installed worker profile 2026-10-15:**
+  at n=1000 / 100 draws, OLS/logistic/Cox measured 1.00/1.04/1.24 ms per
+  draw against EDI 1.0.3; the short Rprof shows the OLS `which()`/design
+  matrix path, logistic hardened QR fit, and Cox sample-loading/fit path as
+  top inclusive entries. This is a current-state profile only, not a
+  before/after or `boot` comparison; it does not meet acceptance. Details and
+  the `/tmp` result path are in
+  `../bug_fix_plans/bootstrap_worker_dataframe_subsetting.md → TODO-1/6`.
+  The installed worker-state/sample-loading reference also passed 59/59
+  assertions on 2026-10-15, covering OLS resample matrix refresh and the
+  rare-covariate rebuild fallback. This does not establish fixed-seed
+  distribution equivalence or the `boot` comparison, so TODO-58 remains open.
 
 - [ ] TODO-59 (added 2026-10-07, user decision): **Design construction
   overhead: `packageVersion()` disk read and eager covariate ingestion** —
@@ -2062,6 +2084,13 @@ baseline as expected/benign.
   `options(warn=-1)`. No canonical report was overwritten. The exact six-row
   output and diagnostic are in the linked plan. TODO-62 remains open for the
   Zhang parity criterion and canonical artifact synchronization.
+  A separate noncanonical installed-package probe on 2026-10-15 (`n=1000`,
+  fixed synthetic seed 20261015) measured Zhang CI procedure 4.83 ms vs.
+  `fisher.test(conf.int=TRUE)` 0.87 ms (0.18x) and a 0.00642 maximum absolute
+  log-bound difference. Because this was not the report's canonical fixture,
+  it is diagnostic only and does not replace the canonical Zhang parity or
+  artifact-synchronization gates. Harness/result are preserved in `/tmp` and
+  described in the linked plan.
 
 - [ ] TODO-63 (added 2026-10-07, user decision): **C++ kernels accept a
   `warm_start_beta` of the wrong length and corrupt the heap** —
@@ -2592,7 +2621,7 @@ baseline as expected/benign.
   33 assertions against that installed checkout, including the direct native
   guard and public fallback.
 
-- [ ] TODO-91 (added 2026-10-09, user decision; algorithm-sweep
+- [x] TODO-91 (added 2026-10-09, user decision; algorithm-sweep
   verification F3): **`std::shuffle` / `<random>` draws are stdlib-dependent** —
   `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-22`.
   The same seed gives different draws on Linux and macOS on default design and resampling paths (distributions correct). In-code "cross-platform guarantee" comments are wrong. Use Fisher–Yates on `bounded_rand` and add a fixed-seed golden. **Default change:** seed-pinned draws change once.
@@ -2612,6 +2641,43 @@ baseline as expected/benign.
   remains unchecked pending that cross-platform confirmation. Utility-kernel
   coverage passed 25 assertions; the all-design seed suite passed 25
   assertions (1 CRAN-only skip) and verifies same-host repeatability.
+  **Cross-platform confirmation, closed 2026-10-15:** the `R-CMD-check`
+  workflow run 38629542755 on commit `95f4730b` (whose `src/` already had
+  the Fisher--Yates code and no `<random>` use) ran the digest test on all 8
+  legs: Linux release/devel/oldrel-1/native, macOS with and without
+  OpenMP, Windows release/devel. All six design digests were identical on
+  the six Linux and macOS legs and equal to the committed fixture. Both
+  Windows legs reported different digests for all six designs, Bernoulli
+  included; the cause was the test's `writeLines()` writing CRLF line
+  endings before hashing, not the draws: recomputing each digest locally
+  over the same allocation with `\r\n` reproduces the Windows hashes
+  exactly (e.g. Bernoulli `1492c98a` with LF, `0f33141c` with CRLF). The
+  test now hashes through `writeBin()`. The four recorded floats
+  (`InferenceAllSimpleAverageDiff` estimate, Wald CI bounds, randomization
+  p-value) spread by at most 2.2e-16 relative across the 8 legs, and the
+  randomization p-value was identical on all of them. The run's two other
+  failures were unrelated (`--as-cran`'s 2-process limit in
+  `test-seed-reproducibility-all-designs.R`; an empty OpenMP flag on macOS
+  in `test-build-info.R`) and are fixed in the working tree. The linked
+  plan's required golden now exists:
+  `test-local-rng-permutations.R` pins `generate_permutations_ibcrd_cpp`
+  (seed 20261013, n = 10, 3 draws) to an exact allocation string, and the
+  digest test gained `DesignFixediBCRD`, `DesignFixedBlocking`,
+  `DesignSeqOneByOneiBCRD`, `DesignSeqOneByOneSPBR` and
+  `DesignSeqOneByOneRandomBlockSize` (the sequential ones digest both the
+  one-at-a-time assignment, `w_seq_md5`, and the redraws), covering the
+  `generate_permutations.cpp`, `spbr_speedups.cpp` and
+  `random_block_size_speedups.cpp` Fisher--Yates sites; the six earlier
+  fixture rows are byte-identical, the eight new rows were generated on
+  Linux, pass at 1/2/4 threads locally, and get their first cross-platform
+  confirmation on the next CI run (reopen this item if that run disagrees).
+  Still outside the digests: `stratified_bootstrap_indices_cpp` (a
+  bootstrap path, not a design draw) and the annealing search in
+  `design_optimal_annealing_search.cpp`; both moved to the portable
+  shuffle in the same source change and are covered by
+  `cross_platform_reproducibility.md → TODO-4`'s "every class" extension.
+  The NEWS line announcing the one-time draw change is still to be
+  written (release step).
 
 - [x] TODO-92 (added 2026-10-09, user decision; algorithm-sweep
   verification F19): **Firth penalty has the wrong sign** —
@@ -2747,7 +2813,10 @@ baseline as expected/benign.
 ## Standing constraints
 
 Same as `release_v1_1_0.md`'s standing constraints: default behavior with
-no new switches set must reproduce 1.0.0 results bit-for-bit, except where
+no new switches set must reproduce 1.0.0 results (numerical equivalence
+per owner decision D2, 2026-10-15:
+`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+equivalence`; bit-for-bit before that date), except where
 a TODO above explicitly documents a default change (TODO-2, TODO-3,
 TODO-56, TODO-57's native weighted refits — its owning plan's TODO-6
 (and TODO-8 if pursued), TODO-58's direct model-matrix subsetting (its

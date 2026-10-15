@@ -451,6 +451,14 @@ pieces below never did.
   stop-on-death loop written out more than once, and worker
   single-threading setup defined once for persistent clusters and
   hand-rederived once for forked child processes.
+- **[InferenceSuite worker pool](R/package_metadata/new_feature_plans/inference_suite_worker_pool.md)** —
+  `run_all_inference(num_cores > 1)` forks a fresh child for every task,
+  which about doubles its CPU (measured 2026-10-15: about 1.1 s of
+  overhead per task, against a median task of 0.5 s). It moves to a pool of
+  long-lived workers that take tasks in turn, keeping the per-task timeout
+  kill. Each task gets its own seed, so results no longer depend on the
+  number of cores (a documented change to bootstrap and randomization
+  draws at `num_cores > 1`).
 - **[Harden the capability/slow-path registries](R/package_metadata/new_feature_plans/harden_registry.md)**
   *(maintenance)* — no output/behavior change. Eliminates a hardcoded
   "migration debt" capability-exclusion list in

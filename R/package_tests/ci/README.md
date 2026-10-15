@@ -94,3 +94,57 @@ auto-committing CI step. The Python half also runs from `scripts/pre-push`
 (pytest-cov is cheap; covr needs an instrumented rebuild, so R coverage
 stays CI-only). Self-tests (`test_check_coverage_floor.R`/`.py`) build
 synthetic coverage reports rather than real instrumentation.
+
+## PR coverage job (`test-coverage-R-pr.yaml`, 2026-10-15)
+
+The full measurement above never runs on pull requests (~100 shards, ~1.5 h).
+Instead `test-coverage-R-pr.yaml` runs **one** coverage shard per PR, chosen by
+`select_pr_coverage_tests.py` (stdlib Python, no R):
+
+- every fast-tier file (`R/EDI/tests/testthat/`, ~1,100 manifest-estimated
+  seconds under `covr`), never budgeted;
+- bulk tests under one `--budget-seconds` (900 by default): the PR's own
+  added/edited bulk tests first, then the files most related to the changed
+  R/C++ sources -- ranked by how many of the names those files define
+  (top-level assignments, `define_inference_class()`/`R6Class()` class names,
+  `[[Rcpp::export]]` kernels, the file's own basename) each test mentions.
+  Generated files (`RcppExports.*`, `unity_*.cpp`) contribute no names, and a
+  name matching more than a quarter of candidates (e.g. `Inference`) is
+  dropped as non-discriminative -- both guards came from dry-running the
+  selector on real commits, where they turned a 163-minute selection into 34.
+
+The shard JSON has `plan_shards.py`'s shape, so `run_shard.R` runs it unchanged
+(same env as the full run: `EDI_PORTABLE=1`, thread pins). The report is
+exported with `covr::to_cobertura()` and uploaded by `codecov-action` under flag
+`r` -- that action maps a merge-commit upload back onto the PR head; a
+`covr::codecov()` upload would report the merge SHA. The `pr-coverage` artifact
+carries `selection_report.json` (every file selected or dropped, with its
+score and the names it matched) and `timings.csv`; the job log shouts when a
+test the PR itself edits was dropped for budget.
+
+Consequences encoded in `codecov.yml`: the `r` **project** status is restricted
+to `main`/`master` (a partial PR upload would otherwise read as a project
+regression on every PR), and `codecov/patch/r` is `informational: true` until a
+few real PRs show the selection covers changed lines reliably. Note that
+Codecov can post *no* status checks at all until the Codecov GitHub App is
+installed (verified on PR #6, 2026-10-15: token-only mode comments but never
+posts statuses); until then the PR comment is the only visible output. Self-
+test: `python3 R/package_tests/ci/test_select_pr_coverage_tests.py` (runs first
+in the workflow). Dry-run locally against any two commits:
+
+```sh
+python3 R/package_tests/ci/select_pr_coverage_tests.py --base <sha>^ --head <sha> --output /tmp/prsel
+```
+
+## macOS reports (R-CMD-check's plain macOS leg)
+
+Two informational steps write to the job summary on the `macos-latest`
+(release) leg, the one that matches CRAN's OpenMP-free macOS R:
+
+- `simd_vectorization_report.sh` compiles the files holding `EDI_SIMD` hints
+  (`R/EDI/src/edi_simd.h`) with clang `-Rpass=loop-vectorize` into a temp dir
+  and tabulates which hinted loops vectorized (arm_hardware.md TODO-7). Runs
+  locally too: `SIMD_REPORT_CXX="clang++ -std=gnu++17" SIMD_REPORT_OPENMP=""
+  R/package_tests/ci/simd_vectorization_report.sh` checks the no-OpenMP path.
+- `accelerate_thread_probe.R` times `crossprod()` in fresh R processes under
+  each BLAS thread control and reports CPU/elapsed (arm_hardware.md TODO-21).

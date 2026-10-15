@@ -293,13 +293,25 @@ This release also carries one **additive feature** (1.x scope: simple
 addition on the existing architecture). It sits outside the calibration
 theme above and is listed separately so the two can ship independently:
 
-- [ ] TODO-F1 (`../new_feature_plans/demo_generator.md` → TODO-1..7):
+- [ ] TODO-F1 (`../new_feature_plans/demo_generator.md` → TODO-1..26; TODO-22 is done):
   `edi_inference_demo(class)` — recommends and emits runnable demo code that loads a
   catalog dataset, builds the matching design, passes it into the Inference
   class, and runs every applicable method. Uses the existing
   `run_all_inference_class_applicable_methods()` and the
   `experimental_datasets.csv` / `observational_datasets.csv` catalogs.
-  Respects the ICPSR redistribution flag (fetch step only, no embedded data).
+  The plan has two TODO lists, and both ship with this item:
+  - TODO-1..7, the core: metadata reader, catalog matcher, design mapping, renderer,
+    entry point, smoke test, docs.
+  - TODO-8..26 ("Extra TODOs"), which include the in-package fetch helper with the
+    `R_user_dir` cache (TODO-11), the cache helper (TODO-20) and offline behavior
+    (TODO-21).
+
+  Data eligibility (see the plan's "Eligible sources for v1"):
+  - Demos use CRAN and base R rows only, fetched at run time and never embedded.
+  - Excluded: ICPSR, Dataverse and GitHub rows, plus `surrosurv::gastadv` and
+    `coxphw::biofeedback`, whose data-level use restrictions go beyond their license.
+  - Every other row whose `redistribution` is not `yes` prints the license warning.
+
   **Not yet implemented.**
 
 ## Standing constraints

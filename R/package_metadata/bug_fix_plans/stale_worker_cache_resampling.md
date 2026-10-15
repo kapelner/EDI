@@ -278,6 +278,36 @@ written to eliminate elsewhere in this codebase.
   New rows are already live in the 3 main result CSVs (harmless — this is
   what the harness would produce on its next unfiltered run regardless).
   No compile/install command was run at any point.
+
+  **Ordinal GComp randomization-p-value audit signal (2026-10-15; triage only):**
+  a filtered installed-package audit in
+  `/tmp/edi-todo9-target-audit-20261015` reported a new
+  `InferenceOrdinalGCompMeanDiff::compute_rand_two_sided_pval` finding:
+  275/4,675 finite `beta_T=0` p-values were below .05 (5.882%; ACAT
+  `p=1.19e-4`). The 4,680 candidate rows covered nine datasets, seven designs,
+  40 reps, and two model-formula variants; five fuel/`FixedMatchingGreedy`
+  cells were explicitly skipped after 120-second timeouts and excluded by the
+  audit. Rejection rates were 4.6–7.1% by dataset and 4.6–8.3% by design.
+  These rows are clustered within dataset/replicate across designs and formula
+  variants, so the pooled IID binomial signal is not a calibrated method-level
+  test: an exploratory score-SE correction grouped by dataset×replicate gives
+  `p≈.009`, while treating the nine datasets as clusters gives `p≈.063`.
+
+  A fresh isolated installed-package replay on iris (`n=150`, truncated to 148;
+  40 reps, seven designs, both formulas; `r=151`) produced 19/520 rejections
+  (3.65%), with all 520 calls status `ok`; a separate 10-rep replay gave 7/130
+  (5.38%). The original audit slice for iris was 37/520 (7.12%). The 40-rep
+  run used `/tmp/edi-todo9-ordinal-replay.svol7d` and did not compile/build/
+  install. A separate full audit copy has an additional older 10-rep block
+  for diamonds (reps 41–50), yielding 4,805 finite rows rather than 4,675;
+  this confirms that artifact provenance and replay composition must be
+  checked before interpreting pooled significance. The focused iris replay
+  does not reproduce inflation, but it is not enough to establish calibration
+  across datasets/designs. No method semantics or canonical baseline were
+  changed. TODO-7 remains open for a clean, complete installed regeneration
+  and audit; any inference-method change requires a controlled, cluster-aware
+  calibration study rather than this aggregate finding alone.
+
 - [x] TODO-8: Once the affected-class list is final (TODO-1), decide
   whether any already-published example, vignette, or documentation output
   used an affected class's resampling p-value/CI and needs correction —

@@ -877,8 +877,8 @@ tests, plus an equivalence test where noted, are the gate. **Prototype** = needs
   - shifted one-pass variances (§7 TODO-4);
   - stable `fast_dnbinom_mu` (§6 TODO-8);
   - exact `qnorm` in Wilson/Newcombe (§6 TODO-7).
-- [ ] TODO-23 (scheduled in `../future_release_plans/release_v1_0_5.md → TODO-91` (finding F3)): **Explicit Fisher–Yates instead of `std::shuffle`** (portability
-  and seed reproducibility; §7 TODO-3). Refresh seed-pinned fixtures once.
+- [x] TODO-23 (closed 2026-10-15 in `../future_release_plans/release_v1_0_5.md → TODO-91` (finding F3)): **Explicit Fisher–Yates instead of `std::shuffle`** (portability
+  and seed reproducibility; §7 TODO-3). Fixtures refreshed; 8-leg CI run confirmed identical draws on Linux, macOS and Windows.
 - [ ] TODO-24 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-50`): **Feasible / consistent starts.**
   - Log-binomial: start with max η < 0.
   - Adjacent-category and Cox: put the intercept in the start regression.

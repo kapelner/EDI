@@ -36,11 +36,16 @@ Today the guarantee is partly met and partly unstated:
 
 ## The guarantee (what to promise, and what not to)
 
+Revised 2026-10-15 (owner decision D3, below): the former single "exact"
+level is split, and same-binary determinism is added.
+
 | level | covers | promise |
 |---|---|---|
-| exact | random draws: design allocations, permutation, bootstrap and Bayesian-bootstrap index/weight draws | identical for the same seed and EDI version on every supported platform, at every thread count and worker count |
-| tolerance | estimates, SEs, CIs, p-values | equal within a documented relative tolerance across platforms. Bit-identical floats would require identical libm, BLAS and CPU instruction sets, which no major R package promises |
-| none, but announced | seed-pinned draws across EDI versions | may change; every release that changes them says so in NEWS |
+| exact everywhere | draws that use only the RNG: complete randomization, Bernoulli, blocked and permuted-block designs, biased-coin designs, permutation, bootstrap and Bayesian-bootstrap index/weight draws | identical for the same seed and EDI version on every supported platform, at every thread count and worker count |
+| exact on one build | every output, floats included | the same installed binary gives identical results across runs and across thread and worker counts |
+| exact except near-ties | allocations chosen by comparing floating-point objectives: greedy, D-optimal, pair-switching, optimal/annealing designs, rerandomization acceptance | identical across platforms except where two candidates' objectives (or an objective and its threshold) tie within the documented tolerance; such cases are rare and documented |
+| tolerance | estimates, SEs, CIs, p-values across platforms | equal within `REPRO_FLOAT_TOL` (set by TODO-4's first CI run). Bit-identical floats would require identical libm, BLAS, FMA contraction and CPU instruction sets, which no major numerical platform promises |
+| announced | seed-pinned draws across EDI versions | may change; every release that changes them says so in NEWS (and, if D4 adopts it, `draw_version` reproduces earlier releases' draws) |
 
 **Owner decision D1 (decided and implemented 2026-10-14): portable by default
 everywhere.**
@@ -56,6 +61,78 @@ everywhere.**
 - The guarantee's float "tolerance" level still covers opt-in native builds,
   which CI's `native` leg measures.
 
+**Owner decision D3 (decided 2026-10-15): where bit-for-bit is required.**
+It is required only where it is achievable and catches real bugs, which is
+what comparable platforms do: Stan, PyTorch and MKL's CNR mode promise
+exactness only on a fixed environment; NumPy and R promise stable integer
+RNG streams but not floats; climate models gate on bit-for-bit for one
+machine and compiler and use statistical tests across machines.
+- **Random-number-only draws are exact everywhere.** They are integers
+  produced by `edi_rng::RRng` and compared against exact constants, so no
+  floating-point difference can reach them.
+- **One binary is deterministic.** Checked 2026-10-15: the only OpenMP
+  reductions in `R/EDI/src/` are `omp simd` reductions inside one thread
+  (`pair_dist_helpers.cpp:78`, `ols_distr_parallel.cpp:65`,
+  `simple_mean_diff_parallel.cpp:39`), whose order is fixed by the binary;
+  there are no `parallel for` reductions, atomics or critical sections, and
+  `omp_get_thread_num()` is used only for interrupt checks. With per-index
+  seeding (v1.0.5 TODO-95) the whole package can therefore be bit-identical
+  across thread counts on one build. TODO-2's static check keeps it that way.
+- **Optimizer-chosen allocations are not promised exact across
+  platforms.** A near-tie between two swaps, or a rerandomization criterion
+  landing on its threshold, can resolve differently under a different libm
+  or FMA contraction. TODO-4's digests treat them separately, and TODO-6
+  decides whether to make those comparisons tie-tolerant.
+- **The stored allocation is the record of truth**, as in clinical trial
+  randomization systems. Regenerating from a seed is a check, not the audit
+  trail; TODO-1's vignette says so.
+
+## Release-to-release equivalence (the 1.x default rule)
+
+**Owner decision D2 (decided 2026-10-15): numerical equivalence replaces
+bit-for-bit.** The 1.x releases used to require that every default
+"reproduce the prior release bit-for-bit". That rule is replaced by the
+tiered rule below, and every release plan's standing constraints point here
+instead of restating it. The reasons:
+- No build ever met it. A different compiler, BLAS, flags or CPU changes the
+  last bits of the same source. The D1 switch to portable builds already
+  changed every GitHub install's floats.
+- The tests never enforced it. About 6,700 of the roughly 9,600 equality
+  assertions are `expect_equal` (default tolerance ~1.5e-8), and the explicit
+  tolerances in use are mostly 1e-12, 1e-10 and 1e-8.
+- It contradicted the cross-platform guarantee above, which already promises
+  exact integers and tolerance-equal floats.
+- Its exception lists grew with every accuracy or speed improvement
+  (`release_v1_1_0.md → TODO-50`, `release_v1_2_0.md → TODO-22/23`,
+  libmvec, adaptive quadrature).
+
+A change to a default **preserves results** when every output meets its row
+below, compared with that output on the same platform:
+
+| output | requirement |
+|---|---|
+| integers and discrete choices: design allocations, resampling indices and weights' draws, selected covariates or strata, convergence and fallback flags, error/warning conditions | exact |
+| closed-form floats: mean differences, OLS/WLS coefficients, closed-form SEs, CIs and p-values | `abs(new - old) <= 1e-10 * max(1, abs(old))` |
+| floats from an iterative solver: MLEs, their SEs, CI bounds found by root-finding or bisection | within 10× the solver's own convergence tolerance, on the same relative scale; the tolerance used is the one the class documents |
+| Monte Carlo p-values and CIs (randomization, bootstrap, Bayesian bootstrap) | the same, except changes accounted for by near-tied replicates: a p-value may move by at most (number of replicates with `abs(t_b - t_obs) <= 1e-10 * max(1, abs(t_obs))`)/r, and CI bounds only through those same replicates |
+
+- **Fixed reference points.** Equivalence is checked against golden
+  fixtures from the **last release**, not the previous commit, so many small
+  changes within tolerance cannot add up to drift (TODO-5 below).
+- **Anything else is a documented default change**, with a NEWS entry and,
+  for a correctness fix, a test showing the old value was wrong. That
+  includes every change to seed-pinned draws and every accuracy fix that
+  moves results beyond the table.
+- **Stricter gates stay available.** A TODO may still require exact
+  equality where it is cheap and diagnostic, e.g. presorting or hoisting that
+  is bit-identical by construction, or a kernel whose parity test with its R
+  reference is exact today. Those TODOs say so explicitly; the release rule
+  does not demand it.
+- **Cross-platform vs cross-release.** The cross-platform "tolerance" level
+  (CI's `REPRO_FLOAT_TOL`, 1e-8 until TODO-4's first run sets it) compares
+  different machines and is looser. The table above compares the same
+  machine across versions and is tighter.
+
 ## TODOs
 
 Every TODO lists the tests it **must** ship with. A TODO is not done until
@@ -63,8 +140,9 @@ its tests are in `R/EDI/tests/testthat/`, or in `R/package_tests/` where
 noted, and pass on all CI platform legs.
 
 - [ ] TODO-1: **State the guarantee and record what ran.**
-  - Rewrite `R/EDI/vignettes/reproducibility.Rmd` around the three levels
-    above and the tolerance value. Its current thread-count claims are
+  - Rewrite `R/EDI/vignettes/reproducibility.Rmd` around the five levels
+    above and the tolerance value, and recommend saving the allocation
+    itself (not only the seed) as the trial record. Its current thread-count claims are
     corrected by v1.0.5 TODO-95.
   - Attach a reproducibility record to every design draw and inference
     result: seed, `RNGkind()`, EDI version, OpenMP thread count, R worker
@@ -92,13 +170,25 @@ noted, and pass on all CI platform legs.
   - Add a pre-push static check that bans `std::shuffle`,
     `std::random_shuffle`, `<random>` engines and distributions,
     `std::random_device`, `rand()`, and per-thread-indexed seeding in
-    `R/EDI/src/`.
+    `R/EDI/src/`. Also ban, unless allowlisted with a reason, OpenMP
+    `parallel for ... reduction(` on floating-point variables, `omp atomic`
+    and `omp critical` on floating-point accumulators, and per-thread
+    partial sums combined in thread order: each makes floats depend on the
+    thread count and breaks the "exact on one build" level (D3). `omp simd`
+    reductions are allowed.
+  - Combine R-level worker results (fork and `mirai`) in replicate order,
+    never completion order.
   - **Required tests:**
     - registry-driven invariance tests: for every design class, and for
       every inference class's randomization, bootstrap and Bayesian-bootstrap
       p-value and CI, the same seed gives identical results at
       `set_num_cores(1, 2, 4)`, under both the fork and `mirai` backends;
-    - a test that the static check fails on a planted violation.
+    - same-binary determinism (D3): for every inference class at its
+      defaults, two runs with the same seed, and runs at 1 and 4 threads,
+      give `identical()` estimates, SEs, CIs and p-values, not merely
+      tolerance-equal ones;
+    - a test that the static check fails on each planted violation,
+      including a floating-point `parallel for` reduction.
 - [ ] TODO-3: **Tie tolerance in randomization p-value counting.**
   Verify first, then fix.
   - `inference_all_abstract_rand.R:334,712` counts `t0s >= t` and
@@ -129,7 +219,18 @@ noted, and pass on all CI platform legs.
     response type, checked within the TODO-1 tolerance.
   - Run it on every CI platform leg (Linux, macOS, Windows), with portable
     and native builds where the leg allows. Integer digests must match
-    exactly.
+    exactly, split by the D3 levels:
+    - RNG-only draws must match on every leg, with no exceptions;
+    - optimizer-chosen allocations (greedy, D-optimal, pair-switching,
+      optimal/annealing, rerandomization) carry a fixture column marking
+      them. On a cross-platform mismatch the test re-runs the case with
+      objective-gap logging, and passes only if the differing step was a
+      near-tie within the documented tolerance; it reports every such case
+      in the job summary. Until TODO-6 lands, any such mismatch is listed in
+      the job summary rather than silently passing.
+    - Within one leg, the same-binary level applies: digests at 1 and 4
+      threads match exactly for every class, optimizer-chosen ones
+      included.
   - Regenerating the fixture is a deliberate act: the script refuses to
     overwrite without a flag, and any change needs a NEWS line.
   - **How this tests other platforms from a Linux workstation.** The
@@ -223,7 +324,11 @@ noted, and pass on all CI platform legs.
       - [ ] Run it in CI and read the first job summary. Set the TODO-1 float
         tolerance from the observed spread.
       - [ ] Extend the digest cases to every `seed_reproducible_draw` class in
-        the registry, and add the meta-test listed below.
+        the registry, and add the meta-test listed below. (2026-10-15: 11 of
+        the registry's design classes are covered, including every class
+        whose draws moved to the portable shuffle for v1.0.5 TODO-91;
+        sequential designs digest both their one-at-a-time assignment and
+        their redraws, and the compare script keys by design and quantity.)
     - **Required test for the harness itself:** a deliberately perturbed
       fixture row makes the digest test fail, and a perturbed artifact makes
       the cross-leg diff job fail. Run both once when the harness is added,
@@ -234,6 +339,65 @@ noted, and pass on all CI platform legs.
       registry and every resampling method in the inference registry, so a
       new class fails CI until it is added;
     - a test that the regeneration script refuses to overwrite silently.
+- [ ] TODO-5 (added 2026-10-15, user decision D2): **Release-equivalence
+  golden fixtures.**
+  - At each release tag, one script records the outputs that the D2 table
+    covers for a fixed set of cases: every class in the design and inference
+    registries, at their defaults, on small seeded datasets. The record
+    holds integer digests (shared with TODO-4's fixture) plus the float
+    values, their tier, and, for iterative fits, the solver tolerance.
+  - The fixture is committed under `R/package_tests/` and replaced only by
+    the release script, never by hand.
+  - A test compares the working tree against the last release's fixture
+    using the D2 tiers, and reports each failure with its tier and the size
+    of the difference, so a documented default change can name the rows it
+    moves.
+  - **Required tests:**
+    - the comparison test itself;
+    - a perturbed fixture row in each tier makes it fail, and a perturbation
+      inside the tier's tolerance does not;
+    - the same registry-coverage meta-test as TODO-4.
+- [ ] TODO-6 (added 2026-10-15, user decision D3): **Near-ties in
+  optimizer-chosen allocations.** Verify first, then decide.
+  - Measure: over the TODO-4 digest cases and a seeded sweep (~1,000 draws
+    per optimizer design class), log the gap between the chosen candidate
+    and the runner-up at every step (best swap, accept/reject against a
+    rerandomization threshold). Report how often the gap is under 1e-12
+    relative, i.e. close enough for libm or FMA differences to flip it.
+  - If such near-ties occur at a non-negligible rate, make the comparison
+    tie-tolerant with a deterministic tie-break: candidates within
+    `tol * max(1, abs(best))` count as tied and the lowest index wins;
+    a rerandomization criterion within `tol` of its threshold is accepted.
+    Choose `tol` once, package-wide, alongside TODO-3's p-value `tol`.
+    This changes seed-pinned draws once, as a documented default change
+    (bundle it with v1.0.5 TODO-91/95's draw change if both land in the
+    same release).
+  - If they essentially never occur, record the measurement here and leave
+    the comparisons exact; TODO-4's near-tie reporting stays as the
+    safety net.
+  - **Required tests:**
+    - a constructed fixture with two exactly tied swaps (symmetric
+      covariates) where perturbing one objective by 1 ulp leaves the
+      allocation unchanged under the tolerant comparison;
+    - a rerandomization fixture whose criterion equals the threshold to
+      within 1 ulp, with the same property;
+    - the same-binary digests from TODO-2 still pass.
+- [ ] TODO-7 (added 2026-10-15): **Owner decision D4: `draw_version`, so
+  earlier releases' draws can be reproduced.** Decision-gated; nothing is
+  built until the owner accepts it.
+  - Precedent: R's `RNGversion()` / `sample.kind = "Rounding"` reproduces
+    pre-3.6.0 `sample()` draws; NumPy freezes the legacy `RandomState`
+    stream.
+  - Proposal: `set_draw_version("1.0.4")` (package option, default the
+    current version) routes each design and resampling kernel whose draws
+    changed to the earlier algorithm. Keep a version only for draw changes
+    that shipped in a release (the first candidates are v1.0.5 TODO-91 and
+    TODO-95, and TODO-6 above if it lands). Each kept old path costs a
+    maintained, tested code path, so the decision should weigh how many
+    trial users need regeneration rather than a stored allocation (D3).
+  - **Required tests (if adopted):** for each kept version, golden digests
+    from that release are reproduced exactly under `set_draw_version()`;
+    the TODO-1 record includes the draw version; an unknown version errors.
 
 ## Not in scope
 

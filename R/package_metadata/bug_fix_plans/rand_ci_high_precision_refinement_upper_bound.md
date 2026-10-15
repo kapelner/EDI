@@ -94,8 +94,24 @@ to enter refinement. Harnesses and CSVs are
 These are trigger-search results,
 not evidence that the production bug is unreachable or that coverage is
 unaffected. The controlled public-API regression remains the only confirmed
-inner-loop reproduction. Next useful experiment: instrument a seed search on
-a real dataset with a steeper randomization p-value crossing and deliberately
-vary MC batch/confidence controls, retaining each candidate's cheap/full
-endpoint spans and bracket width; only then run a pre/post coverage comparison
-on a trigger-producing public case.
+inner-loop reproduction.
+
+**Additional bounded real-data MC-control stress (2026-10-15):** on `mtcars`
+(`mpg ~ wt + hp`), 50 seeds per setting were run through the installed
+EDI 1.0.3 public API with `r=1001`, no build/install, and instrumentation of
+the cheap/full endpoint spans and upper bracket width. At `pval_epsilon=0.005`,
+the two settings were aggressive (`mc_batch_size=10`, `mc_min_draws=10`,
+`mc_conf_level=0.5`) and conservative (`25`, `100`, `0.99`): 100/100 calls
+completed without errors, but 0 entered upper refinement. The full joint trigger
+condition occurred 0/100 times: cheap span `<= 0.005` in 90/100, full-precision
+span `> 0.005` in 6/100, and bracket width `> 0.005` in 82/100, with no overlap
+of all three. Repeating the same 100 cases at `pval_epsilon=0.01` yielded zero
+errors and zero inner entries: cheap span `<= 0.01` in 100/100, full-precision
+span `> 0.01` in 0/100, and bracket width `> 0.01` in 100/100. The isolated
+CSV outputs are `/tmp/edi-v105-todo33-mc-stress-r1001.csv` and
+`/tmp/edi-v105-todo33-mc-stress-r1001-tol010.csv`, driven by
+`/tmp/edi_todo33_mc_stress.R`. This extends the negative trigger search but
+does not close TODO-1 or establish unreachability. Next useful experiment:
+instrument a seed search on a real dataset with a steeper randomization
+p-value crossing; only then run a pre/post coverage comparison on a
+trigger-producing public case.

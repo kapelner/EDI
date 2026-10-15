@@ -26,6 +26,41 @@ script_dir = dirname(script_path)
 repo_root = normalizePath(file.path(script_dir, ".."), mustWork = TRUE)
 repo_path = function(...) file.path(repo_root, ...)
 
+# fork=FALSE (default when run as a script): each call runs in this
+# process, which avoids the per-call cost of forking and of R's GC
+# copy-on-writing the heap in the child (on 2026-10-14: about a third less
+# test time, system time -95%, results identical; see
+# package_metadata/audits/further_optimizations.md, section 3). The hard
+# timeout and crash isolation come from a watchdog that kills, records and
+# restarts the whole process (comprehensive_tests_watchdog.R).
+# fork=TRUE (the old behaviour, and the default when this file is
+# source()d, since the watchdog must relaunch a script): safe_call() runs
+# each call in a forked child that is hard-killed at FUNCTION_TIMEOUT_SEC.
+# Set with a "fork=TRUE|FALSE" argument anywhere on the command line, or
+# COMPREHENSIVE_FORK.
+fork_cli_arg = grep("^fork=", commandArgs(trailingOnly = TRUE), value = TRUE)
+# (A runner that source()s this file under Rscript has a --file= too.)
+run_as_script = length(script_file_arg) > 0L && identical(basename(script_path), "comprehensive_tests.R")
+SAFE_CALL_FORK = !(tolower(sub("^fork=", "", c(fork_cli_arg, Sys.getenv("COMPREHENSIVE_FORK", if (run_as_script) "FALSE" else "TRUE"))[1L])) %in%
+	c("false", "f", "0", "no", "n"))
+WATCHDOG_MARKER = Sys.getenv("COMPREHENSIVE_WATCHDOG_MARKER", "")
+if (!SAFE_CALL_FORK) {
+	source(file.path(script_dir, "comprehensive_tests_watchdog.R"))
+	if (!nzchar(WATCHDOG_MARKER)) {
+		if (run_as_script && requireNamespace("processx", quietly = TRUE)) {
+			quit(save = "no", status = run_comprehensive_tests_watchdog(script_path))
+		}
+		# No watchdog: calls still run in-process, but a hung compiled call
+		# blocks the run and a native crash ends it.
+		warning(if (run_as_script) {
+			"watchdog recommended for autorestarts (fork=FALSE without the processx package: no hard timeout, no restart after a crash)"
+		} else {
+			"watchdog recommended for autorestarts (fork=FALSE in a source()d session runs unsupervised: no hard timeout, no restart after a crash; run with Rscript for the watchdog)"
+		}, call. = FALSE, immediate. = TRUE)
+	}
+	WATCHDOG_SUPERVISOR_PID = as.integer(Sys.getenv("COMPREHENSIVE_WATCHDOG_SUPERVISOR_PID", NA))
+}
+
 edi_lib_user = Sys.getenv("R_LIBS_USER", unset = "")
 if (nzchar(edi_lib_user)) {
 	.libPaths(unique(c(edi_lib_user, .libPaths())))
@@ -705,7 +740,7 @@ source(repo_path("package_tests", "_dataset_load.R"))
 # options(error = recover)
 # options(warn=2)
 
-args = commandArgs(trailingOnly = TRUE)
+args = grep("^fork=", commandArgs(trailingOnly = TRUE), value = TRUE, invert = TRUE)
 parse_bool_arg = function(value, default = FALSE){
 	if (length(value) == 0L || is.na(value) || identical(value, "NA")) return(default)
 	as.character(value) %in% c("1", "true", "TRUE", "yes", "YES", "y", "Y")
@@ -812,6 +847,15 @@ prob_censoring = 0.15
 r = 151
 pval_epsilon = 0.007
 FUNCTION_TIMEOUT_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_FUNCTION_TIMEOUT_SEC", "120"))
+if (!SAFE_CALL_FORK) {
+	if (NUM_CORES > 2L) {
+		message("Note: fork=FALSE has only been validated with nc = 1 and 2 (identical results to fork=TRUE).")
+	}
+	# Calls that hung or crashed an earlier worker in this watchdog session,
+	# keyed by result key (written only by the supervisor, while no worker
+	# runs). safe_call() records these instead of running them again.
+	watchdog_outcomes = if (nzchar(WATCHDOG_MARKER)) comprehensive_watchdog_read_outcomes(WATCHDOG_MARKER) else list()
+}
 HEARTBEAT_LOG_FILE = Sys.getenv(
 	"COMPREHENSIVE_HEARTBEAT_LOG",
 	file.path(tempdir(), paste0("comprehensive_tests_heartbeat_", Sys.getpid(), ".log"))
@@ -1326,6 +1370,9 @@ ensure_existing_results_schema = function(){
 }
 ensure_existing_results_schema()
 RESULTS_WRITE_BATCH_SIZE = 50L
+# Under the fork=FALSE watchdog, write every row at once: a kill would
+# otherwise lose the buffered rows and the restarted worker redo them.
+if (!SAFE_CALL_FORK && nzchar(WATCHDOG_MARKER)) RESULTS_WRITE_BATCH_SIZE = 1L
 # Dependency-free interprocess lock for the results CSV: no package outside
 # base R is required (avoids adding a hard dependency to this harness script
 # just for locking), and mkdir() is atomic on every filesystem this runs on
@@ -2375,6 +2422,76 @@ safe_call = function(label, expr){
 		# compiled call with no R-level checkpoints, unlike setTimeLimit(). Falls
 		# back to the old setTimeLimit()/withTimeout() path on non-Unix, where
 		# mcparallel() is unavailable.
+		if (!SAFE_CALL_FORK) {
+			# fork=FALSE: run expr in this process, under the watchdog in
+			# comprehensive_tests_watchdog.R. To keep fork semantics, undo the
+			# side effects a child would have kept to itself -- the RNG state,
+			# num_cores, and the plain fields of the inference object and its
+			# design (calls cache fits, warm starts and draw counters there,
+			# and randomization tests cache permutations on the shared
+			# design) -- BEFORE the handle_*() callbacks, which run in the
+			# parent in both modes and may themselves draw random numbers.
+			# Verified identical to fork=TRUE on 2 x 2,166 calls.
+			if (!is.na(WATCHDOG_SUPERVISOR_PID) && !isTRUE(tools::pskill(WATCHDOG_SUPERVISOR_PID, 0L))) {
+				message("Watchdog supervisor ", WATCHDOG_SUPERVISOR_PID, " is gone; stopping.")
+				quit(save = "no", status = 1L)
+			}
+			call_key = build_result_key(rep_curr, beta_T, dataset_name, response_type, design_type, inference_result_label, label)
+			previous = watchdog_outcomes[[call_key]]
+			if (!is.null(previous)) {
+				# This call hung or crashed an earlier worker: record that,
+				# with that attempt's duration, instead of running it again.
+				# (A crash row has status "error", which a resume would
+				# otherwise retry after every later restart.)
+				start_elapsed = start_elapsed - previous$duration
+				if (identical(previous$outcome, "timeout")) return(handle_timeout())
+				return(handle_error(simpleError(sprintf(
+					"Process running %s died during the call (%s) -- likely a native crash rather than a caught condition; the watchdog restarted it.",
+					label, previous$detail
+				))))
+			}
+			had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+			if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv)
+			state_envs = local({
+				priv = seq_des_inf$.__enclos_env__$private
+				des = priv$des_obj
+				list(seq_des_inf, priv, des, des$.__enclos_env__$private)
+			})
+			plain_fields = function(e){
+				v = ls(e, all.names = TRUE)
+				v[!vapply(v, function(k) bindingIsActive(k, e) || bindingIsLocked(k, e), logical(1))]
+			}
+			saved_state = lapply(state_envs, function(e) mget(plain_fields(e), envir = e))
+			old_num_cores = seq_des_inf$num_cores
+			seq_des_inf$num_cores = as.integer(NUM_CORES)
+			if (nzchar(WATCHDOG_MARKER)) {
+				comprehensive_watchdog_write_rds(
+					list(pid = Sys.getpid(), key = call_key, label = label, start_epoch = start_epoch),
+					WATCHDOG_MARKER
+				)
+			}
+			ran = tryCatch(
+				list(ok = TRUE, value = R.utils::withTimeout(eval(expr), cpu = Inf, elapsed = FUNCTION_TIMEOUT_SEC, onTimeout = "error")),
+				error = function(e) list(ok = FALSE, error = e)
+			)
+			if (nzchar(WATCHDOG_MARKER)) unlink(WATCHDOG_MARKER)
+			setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+			for (i in seq_along(state_envs)) {
+				e = state_envs[[i]]
+				saved = saved_state[[i]]
+				added = setdiff(plain_fields(e), names(saved))
+				if (length(added)) rm(list = added, envir = e)
+				for (k in names(saved)) assign(k, saved[[k]], envir = e)
+			}
+			if (had_seed) {
+				assign(".Random.seed", old_seed, envir = .GlobalEnv)
+			} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+				rm(".Random.seed", envir = .GlobalEnv)
+			}
+			seq_des_inf$num_cores = old_num_cores
+			if (ran$ok) return(handle_success(ran$value))
+			return(handle_error(ran$error))
+		}
 		if (.Platform$OS.type == "unix") {
 			# num_cores is set HERE, inside the forked child's own expression,
 			# not in the parent (see run_inference_checks_impl()'s note) --

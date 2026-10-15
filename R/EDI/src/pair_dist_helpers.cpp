@@ -1,4 +1,5 @@
 #include <RcppEigen.h>
+#include "edi_simd.h"
 #include <limits>
 
 using namespace Rcpp;
@@ -75,7 +76,7 @@ NumericMatrix compute_pair_distance_matrix_cpp(const NumericMatrix& pair_avg,
 		for (int j = i + 1; j < m; ++j) {
 			const double* row_j = pair_row.data() + static_cast<size_t>(j) * p;
 			double sum = 0.0;
-#pragma omp simd reduction(+:sum)
+EDI_SIMD_REDUCTION(+:sum)
 			for (int k = 0; k < p; ++k) {
 				const double diff = row_i[k] - row_j[k];
 				const double w = use_weights ? weight_ptr[k] : 1.0;

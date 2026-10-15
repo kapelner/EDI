@@ -62,3 +62,16 @@ pattern.
 
 When in doubt about whether an action counts as "a full rebuild," treat it as
 one and ask first.
+
+## Agents compile with `EDI_UNITY=0`; the user's default build is unity
+
+The user's own installs use the default unity build (`EDI_UNITY=1`, merged
+`unity_NN.o` groups). Every compile an agent runs — targeted `.cpp` compiles,
+relinks, and any install the user explicitly asks for — uses `EDI_UNITY=0`
+(one object per `.cpp`), so a touched file recompiles alone. Claude Code sets
+this via `env` in `.claude/settings.json`; still pass `EDI_UNITY=0`
+explicitly on any `configure`/`R CMD INSTALL` command line so the intent is
+visible. Never pass `EDI_UNITY=1` yourself unless the user asks for a unity
+build in that turn. A unity install (and any `--preclean`) leaves no per-file
+`.o` files, so the targeted-compile relink above will find them missing —
+that is the "stop and ask" case, not a reason to build them yourself.

@@ -96,8 +96,8 @@ spliced into one step and marked **[spliced]**.
 > scope as a second kernel/perf lane: `release_v1_1_0.md → TODO-4b`, Phase 4
 > below. Measurement-first, no Phase 0 dependency; its result-changing items
 > (libmvec exp/log, adaptive quadrature, Monte-Carlo early stopping, non-R RNG
-> streams) are gated by the release's additive/bit-for-bit rule (opt-in or a
-> documented default change). **Narrowed 2026-09-06 (lighten-1.1.0 pass,
+> streams) are gated by the release's additive rule (numerical equivalence since D2, 2026-10-15, bit-for-bit before; see Standing constraints): opt-in or a
+> documented default change. **Narrowed 2026-09-06 (lighten-1.1.0 pass,
 > user decision): only the measurement-infrastructure sub-batch
 > (TODO-132..135, 175) stays in v1.1.0, needed to benchmark that
 > release's own speedup claims; everything past it, and the three
@@ -1944,3 +1944,14 @@ plans, indexed under their own phases.)
 - Tick TODOs in their owning plan; move a plan to
   `../finished_features/` only when its checklist is fully closed or
   explicitly re-homed.
+- **Defaults are preserved by numerical equivalence, not bit-for-bit**
+  (owner decision D2, 2026-10-15). Wherever a release plan says a default
+  must "reproduce the prior release", it means the tiered rule in
+  `cross_platform_reproducibility.md → Release-to-release equivalence`:
+  integer outputs exact, closed-form floats within 1e-10 relative,
+  iterative fits within 10× their solver tolerance, Monte Carlo results
+  unchanged except through near-tied replicates, all checked against the
+  last release's golden fixtures. Anything beyond that is a documented
+  default change with a NEWS entry. Older "bit-for-bit" wording in plans
+  and TODOs written before D2 means this rule, unless the TODO explicitly
+  asks for exact equality as its own gate.

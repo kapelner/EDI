@@ -34,11 +34,13 @@
 #         looks plausible (it's what the "id" field elsewhere in the
 #         payload takes) but 500s server-side with an opaque
 #         ClassCastException; found by trial 2026-09-15.
-#      c. GET the file's own access URL (guestbook-gated) or the signed URL
+#      c. GET the file's own access URL (no guestbook) or the signed URL
 #         (guestbook-gated case) -- both return an HTTP 303 redirect to a
-#         short-lived, pre-signed S3 URL, which must be followed
-#         (`httr2::req_perform()` follows redirects by default; a bare
-#         `curl` needs `-L`) and consumed promptly.
+#         short-lived, pre-signed S3 URL, which must be followed (`curl -L`)
+#         and consumed promptly.
+#    The files are those of the dataset version in the md's Version cell
+#    (e.g. v3.3), never the latest one instead. All calls use the curl CLI
+#    (dataverse_file_as_csv(), shared with the observational downloader).
 #
 # 2. Classic ICPSR archive proper (`icpsr_download_simple()`, kept below
 #    for any future dataset that is on ICPSR but NOT mirrored on Dataverse
@@ -59,18 +61,27 @@
 # from your personal `~/.Rprofile` (never from this repo):
 #   options("icpsr_email" = "you@example.com", "icpsr_password" = "...")
 # The Dataverse guestbook path (mechanism 1) needs no account and no secret;
-# it just records who's asking, the same as a physical library guestbook. Your own name/email/institution for
-# that guestbook come from these options (all optional -- generic defaults
-# are used if unset, so this script runs for anyone who clones the repo):
-#   options("dataverse_guestbook_name" = "Your Name",
-#           "dataverse_guestbook_email" = "you@example.com",
-#           "dataverse_guestbook_institution" = "Your Institution")
+# it just records who's asking, the same as a physical library guestbook. There
+# are no defaults: the first guestbook-gated download asks for your name, email
+# and institution at the prompt and saves them to
+# <download dir>/dataverse_guestbook_credentials.dcf (inside the gitignored
+# download folder, readable only by you), which later runs reuse. Edit or delete
+# that file to change them; never commit it.
 #
 # Licensing: do not vendor any of this repo's downloaded output into a git
 # commit or the shipped package -- see dataset_license_audit.md. Keep
 # `randomized_experiment_datasets/` gitignored (already true) and fetch live instead.
 
 library(httr2)
+
+# This file's folder as an absolute path, so it runs from any working directory, whether
+# run with Rscript or source()d (also from inside another script): the innermost source()
+# call's file wins, then Rscript's --file=, then R/package_metadata/ under the working directory.
+EXPERIMENTAL_DIR <- local({
+  sourced <- Filter(is.character, lapply(rev(sys.frames()), function(f) f$ofile))
+  file_arg <- sub("^--file=", "", grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE))
+  dirname(normalizePath(c(unlist(sourced), file_arg, "R/package_metadata/download_experimental_datasets.R")[[1L]], mustWork = TRUE))
+})
 
 # ---------------------------------------------------------------------------
 # Mechanism 2: classic ICPSR archive (OAuth/Keycloak login)
@@ -105,7 +116,7 @@ get_icpsr_credentials <- function() {
 #'
 #' @param project_id ICPSR/openICPSR project or study id.
 #' @param download_dir Directory to write the downloaded file into.
-icpsr_download_simple <- function(project_id, download_dir = "R/package_metadata/randomized_experiment_datasets") {
+icpsr_download_simple <- function(project_id, download_dir = file.path(EXPERIMENTAL_DIR, "randomized_experiment_datasets")) {
   creds <- get_icpsr_credentials()
   if (!dir.exists(download_dir)) dir.create(download_dir, recursive = TRUE)
 
@@ -176,17 +187,48 @@ icpsr_download_simple <- function(project_id, download_dir = "R/package_metadata
 
 DATAVERSE_HOST <- "https://dataverse.harvard.edu"
 
-# Defaults match the identity already used (with the user's explicit
-# go-ahead) for every Dataverse guestbook download fetched so far this
-# project -- override via options() if you're a different user running
-# this script; some guestbooks (e.g. IPA's, id 80) reject an empty email
-# or institution outright, so these must be non-empty, not just placeholders.
-dataverse_guestbook_identity <- function() {
-  list(
-    name = getOption("dataverse_guestbook_name", "Adam Kapelner"),
-    email = getOption("dataverse_guestbook_email", Sys.getenv("EDI_DATAVERSE_EMAIL", unset = "kapelner@gmail.com")),
-    institution = getOption("dataverse_guestbook_institution", Sys.getenv("EDI_DATAVERSE_INSTITUTION", unset = "Hebrew University of Jerusalem"))
-  )
+DATAVERSE_CREDENTIALS_FILE <- "dataverse_guestbook_credentials.dcf"
+
+# Reads one answer per prompt: readline() in an interactive session, the terminal (stdin)
+# under Rscript. All prompts share one stdin connection so piped answers are not lost.
+prompt_lines <- function(prompts) {
+  if (interactive()) return(vapply(prompts, readline, character(1)))
+  con <- file("stdin")
+  on.exit(close(con))
+  open(con)
+  vapply(prompts, function(p) {
+    cat(p)
+    line <- readLines(con, n = 1L)
+    if (length(line) == 0L) {
+      stop("No input for the Dataverse guestbook prompt. Run the download from a terminal or an ",
+           "interactive R session so you can answer it", call. = FALSE)
+    }
+    line
+  }, character(1))
+}
+
+# The name, email and institution sent with a Dataverse guestbook form, from
+# <dir>/dataverse_guestbook_credentials.dcf. When that file is missing or incomplete, asks
+# for them at the prompt (the guestbooks reject empty fields) and saves them there.
+dataverse_guestbook_identity <- function(dir) {
+  path <- file.path(dir, DATAVERSE_CREDENTIALS_FILE)
+  fields <- c("name", "email", "institution")
+  if (file.exists(path)) {
+    saved <- read.dcf(path, fields = fields)[1L, ]
+    if (all(!is.na(saved) & nzchar(trimws(saved)))) return(as.list(saved))
+    message("Ignoring incomplete ", path)
+  }
+  message("This Dataverse deposit requires a guestbook form: the name, email and institution of the person ",
+          "downloading. Your answers are saved to ", path, " for later runs.")
+  answers <- trimws(prompt_lines(c("Your name: ", "Your email: ", "Your institution: ")))
+  names(answers) <- fields
+  if (any(!nzchar(answers))) {
+    stop("Dataverse guestbook ", paste(fields[!nzchar(answers)], collapse = ", "),
+         " is required; nothing was saved", call. = FALSE)
+  }
+  write.dcf(as.data.frame(as.list(answers)), path)
+  Sys.chmod(path, "600")
+  as.list(answers)
 }
 
 # Per-guestbook required custom-question answers, keyed by the numeric
@@ -209,60 +251,130 @@ DATAVERSE_GUESTBOOK_ANSWERS <- list(
   )
 )
 
-#' List a dataset's files (name/id/size) and its guestbookId, from its DOI.
-dataverse_dataset_files <- function(doi) {
-  resp <- httr2::request(sprintf("%s/api/datasets/:persistentId/", DATAVERSE_HOST)) |>
-    httr2::req_url_query(persistentId = doi) |>
-    httr2::req_perform()
-  dat <- httr2::resp_body_json(resp)$data
-  files <- lapply(dat$latestVersion$files, function(f) {
+# Every Dataverse call goes through the curl CLI (curl_status(), with the CRAN helpers
+# below), not httr2, for the same proxy reason as the CRAN tarballs. Shared with
+# download_observational_datasets.R and compute_covariate_missingness.R.
+
+# Parses an md Source cell of the form "Dataverse: `doi:10.7910/DVN/XXXXX`; file
+# `name.csv`" or, for a file bundled in a zip, "...; file `name.csv` (inside
+# `archive.zip`)". NULL for a non-Dataverse cell.
+parse_dataverse_source <- function(cell) {
+  if (!grepl("^Dataverse:", cell)) return(NULL)
+  list(
+    doi = sub("^Dataverse: `doi:([^`]+)`.*$", "\\1", cell),
+    filename = sub("^.*; file `([^`]+)`.*$", "\\1", cell),
+    inside_zip = if (grepl("\\(inside `[^`]+`\\)", cell)) sub("^.*\\(inside `([^`]+)`\\).*$", "\\1", cell) else NA_character_
+  )
+}
+
+# The `data` field of a Dataverse API response, or NULL with the curl exit status as the
+# "status" attribute when the request failed (22 = HTTP error such as 404).
+dataverse_api_data <- function(url) {
+  json_path <- tempfile(fileext = ".json")
+  on.exit(unlink(json_path))
+  status <- curl_status(url, json_path)
+  if (status != 0L) return(structure(list(), status = status))
+  jsonlite::fromJSON(json_path, simplifyVector = FALSE)$data
+}
+
+#' A dataset's guestbookId and the files (name/id/size) of exactly `version` (the md
+#' Version cell, "v3.3" or "3.3"). A version Dataverse does not have is an error; no
+#' other version is substituted.
+dataverse_dataset_files <- function(doi, version) {
+  pid <- paste0("doi:", sub("^doi:", "", doi))
+  dat <- dataverse_api_data(sprintf("%s/api/datasets/:persistentId/?persistentId=%s", DATAVERSE_HOST, pid))
+  if (length(dat) == 0L) stop("Dataverse metadata fetch failed for ", pid, " (curl exit status ", attr(dat, "status"), ")", call. = FALSE)
+  ver <- sub("^v", "", version)
+  ver_dat <- dataverse_api_data(sprintf("%s/api/datasets/:persistentId/versions/%s?persistentId=%s", DATAVERSE_HOST, ver, pid))
+  if (length(ver_dat) == 0L) {
+    if (identical(attr(ver_dat, "status"), 22L)) {
+      stop("Dataverse has no version ", version, " of ", pid, " (latest is ", dat$latestVersion$versionNumber, ".",
+           dat$latestVersion$versionMinorNumber, "); correct the Version cell in the catalog md", call. = FALSE)
+    }
+    stop("Dataverse version fetch failed for ", pid, " ", version, " (curl exit status ", attr(ver_dat, "status"), ")", call. = FALSE)
+  }
+  files <- lapply(ver_dat$files, function(f) {
     list(filename = f$dataFile$filename, id = f$dataFile$id, size = f$dataFile$filesize)
   })
   list(guestbookId = dat$guestbookId, files = files)
 }
 
 #' Download one Dataverse file by its numeric file id to `dest_path`,
-#' satisfying the guestbook if the dataset requires one.
-dataverse_download_file <- function(file_id, guestbook_id, dest_path) {
+#' satisfying the guestbook if the dataset requires one (identity from
+#' `credentials_dir`; see dataverse_guestbook_identity()).
+dataverse_download_file <- function(file_id, guestbook_id, dest_path, credentials_dir) {
   base_access_url <- sprintf("%s/api/access/datafile/%s", DATAVERSE_HOST, file_id)
-  if (!is.null(guestbook_id)) {
-    answers <- DATAVERSE_GUESTBOOK_ANSWERS[[as.character(guestbook_id)]]
-    if (is.null(answers)) {
-      stop(
-        "No DATAVERSE_GUESTBOOK_ANSWERS entry for guestbookId ", guestbook_id,
-        " -- inspect https://dataverse.harvard.edu/api/guestbooks/", guestbook_id,
-        " and add a matching entry (string-valued answers, not numeric ids).",
-        call. = FALSE
-      )
-    }
-    identity <- dataverse_guestbook_identity()
-    body <- list(guestbookResponse = c(identity, list(answers = answers)))
-    resp <- httr2::request(base_access_url) |>
-      httr2::req_body_json(body) |>
-      httr2::req_perform()
-    signed_url <- httr2::resp_body_json(resp)$data$signedUrl
-    httr2::request(signed_url) |> httr2::req_perform(path = dest_path)
-  } else {
-    httr2::request(base_access_url) |> httr2::req_perform(path = dest_path)
+  if (is.null(guestbook_id)) {
+    status <- curl_status(base_access_url, dest_path)
+    if (status != 0L) stop("Dataverse file download failed (curl exit status ", status, "): ", base_access_url, call. = FALSE)
+    return(invisible(dest_path))
   }
+  answers <- DATAVERSE_GUESTBOOK_ANSWERS[[as.character(guestbook_id)]]
+  if (is.null(answers)) {
+    stop(
+      "No DATAVERSE_GUESTBOOK_ANSWERS entry for guestbookId ", guestbook_id,
+      " -- inspect ", DATAVERSE_HOST, "/api/guestbooks/", guestbook_id,
+      " and add a matching entry (string-valued answers, not numeric ids).",
+      call. = FALSE
+    )
+  }
+  body <- list(guestbookResponse = c(dataverse_guestbook_identity(credentials_dir), list(answers = answers)))
+  body_path <- tempfile(fileext = ".json")
+  resp_path <- tempfile(fileext = ".json")
+  on.exit(unlink(c(body_path, resp_path)))
+  writeLines(jsonlite::toJSON(body, auto_unbox = TRUE), body_path)
+  out <- suppressWarnings(system2("curl", c("-sSL", "-f", "-X", "POST", "-H", shQuote("Content-Type: application/json"),
+                                            "--data-binary", paste0("@", body_path), "-o", shQuote(resp_path),
+                                            shQuote(base_access_url)), stdout = TRUE, stderr = TRUE))
+  if (!is.null(attr(out, "status"))) {
+    stop("Dataverse guestbook POST failed (curl exit status ", attr(out, "status"), "): ", base_access_url, call. = FALSE)
+  }
+  signed_url <- jsonlite::fromJSON(resp_path, simplifyVector = FALSE)$data$signedUrl
+  if (is.null(signed_url)) stop("Dataverse guestbook POST did not return a signedUrl for file ", file_id, call. = FALSE)
+  status <- curl_status(signed_url, dest_path)
+  if (status != 0L) stop("Dataverse signed-URL download failed for file ", file_id, " (curl exit status ", status, ")", call. = FALSE)
   invisible(dest_path)
 }
 
-#' Look up a file's id by filename within a dataset and download it.
-dataverse_download_by_filename <- function(doi, filename, dest_path) {
-  listing <- dataverse_dataset_files(doi)
-  hit <- Filter(function(f) identical(f$filename, filename), listing$files)
+#' Download file `filename` of Dataverse dataset `doi` at `version` and write it to
+#' `dest_csv` as plain CSV. When the deposit bundles the file in a zip, `inside_zip` is
+#' the zip's listed filename and `filename` the member's name, matched case-insensitively
+#' at any depth (Dataverse zips nest arbitrarily, e.g.
+#' `PUBLISH_0/Data/Analysis/analysis.dta`). Scratch files go in `work_dir` and are removed;
+#' the guestbook credentials file is read from (or saved to) `credentials_dir`.
+dataverse_file_as_csv <- function(doi, version, filename, dest_csv, work_dir, inside_zip = NULL,
+                                  credentials_dir = work_dir) {
+  listing <- dataverse_dataset_files(doi, version)
+  want <- if (is.null(inside_zip)) filename else inside_zip
+  hit <- Filter(function(f) identical(f$filename, want), listing$files)
   if (length(hit) == 0L) {
-    stop("File '", filename, "' not found in dataset ", doi, call. = FALSE)
+    stop("'", want, "' not found in Dataverse dataset ", doi, " ", version, " (found: ",
+         paste(vapply(listing$files, function(f) f$filename, character(1)), collapse = ", "), ")", call. = FALSE)
   }
-  dataverse_download_file(hit[[1L]]$id, listing$guestbookId, dest_path)
+  file_id <- hit[[1L]]$id
+  raw_path <- file.path(work_dir, paste0(".raw_dv_", file_id, ".", tools::file_ext(want)))
+  on.exit(unlink(raw_path), add = TRUE)
+  dataverse_download_file(file_id, listing$guestbookId, raw_path, credentials_dir)
+
+  src_path <- raw_path
+  if (!is.null(inside_zip)) {
+    extract_dir <- file.path(work_dir, paste0(".extract_dv_", file_id))
+    on.exit(unlink(extract_dir, recursive = TRUE), add = TRUE)
+    unlink(extract_dir, recursive = TRUE)
+    utils::unzip(raw_path, exdir = extract_dir)
+    members <- list.files(extract_dir, recursive = TRUE, full.names = TRUE)
+    members <- members[tolower(basename(members)) == tolower(basename(filename))]
+    if (length(members) == 0L) stop("'", filename, "' not found inside ", inside_zip, call. = FALSE)
+    src_path <- members[[1L]]
+  }
+  convert_to_csv(src_path, dest_csv)
 }
 
 # ---------------------------------------------------------------------------
 # Normalization: every downloaded file becomes plain CSV
 # ---------------------------------------------------------------------------
 
-#' Convert a downloaded .tab/.tsv/.dta/.csv file in place to CSV at
+#' Convert a downloaded .tab/.tsv/.dta/.csv/.txt/.xlsx file to CSV at
 #' `dest_csv`. Stata (.dta) columns are stripped of haven's value/variable
 #' labels (`zap_labels()`) so the CSV holds plain values, not labelled
 #' vectors -- consumers reading the CSV shouldn't need `haven` at all.
@@ -274,34 +386,11 @@ convert_to_csv <- function(src_path, dest_csv) {
     tab = data.table::fread(src_path, sep = "\t", quote = "", data.table = FALSE),
     tsv = data.table::fread(src_path, sep = "\t", quote = "", data.table = FALSE),
     csv = data.table::fread(src_path, data.table = FALSE),
+    txt = data.table::fread(src_path, data.table = FALSE),
+    xlsx = as.data.frame(readxl::read_xlsx(src_path)),
     stop("convert_to_csv: unsupported extension '", ext, "' for ", src_path, call. = FALSE)
   )
   data.table::fwrite(df, dest_csv)
-  invisible(dest_csv)
-}
-
-#' Download one zip-bundled file, locate a member by filename anywhere in
-#' the archive (Dataverse zips nest arbitrarily, e.g.
-#' `PUBLISH_0/Data/Analysis/analysis.dta`), convert it to CSV, then discard
-#' the zip and the extraction scratch directory.
-download_zip_member_as_csv <- function(doi, zip_filename, member_basename, dest_csv, work_dir) {
-  zip_path <- file.path(work_dir, zip_filename)
-  listing <- dataverse_dataset_files(doi)
-  hit <- Filter(function(f) identical(f$filename, zip_filename), listing$files)
-  if (length(hit) == 0L) stop("Zip '", zip_filename, "' not found in dataset ", doi, call. = FALSE)
-  dataverse_download_file(hit[[1L]]$id, listing$guestbookId, zip_path)
-
-  extract_dir <- file.path(work_dir, paste0(".extract_", tools::file_path_sans_ext(zip_filename)))
-  utils::unzip(zip_path, exdir = extract_dir)
-  member_path <- list.files(extract_dir, pattern = paste0("^", member_basename, "$"),
-                             recursive = TRUE, full.names = TRUE, ignore.case = TRUE)
-  if (length(member_path) == 0L) {
-    stop("Member '", member_basename, "' not found inside ", zip_filename, call. = FALSE)
-  }
-  convert_to_csv(member_path[[1L]], dest_csv)
-
-  unlink(zip_path)
-  unlink(extract_dir, recursive = TRUE)
   invisible(dest_csv)
 }
 
@@ -335,8 +424,6 @@ curl_status <- function(url, dest_path) {
   if (is.null(status)) 0L else as.integer(status)
 }
 
-# TRUE when the download failed (the Dataverse helpers in compute_covariate_missingness.R).
-curl_fetch <- function(url, dest_path) curl_status(url, dest_path) != 0L
 
 #' Download a CRAN package's source tarball at exactly `version` and extract it
 #' under `work_dir`; returns the package directory. An earlier extraction of the
@@ -714,13 +801,13 @@ DATASET_MANIFEST <- list(
   immig = list(
     doi = "doi:10.7910/DVN/DDCNEW",
     zip_members = list(
-      list(zip_filename = "PUBLISH.zip", member_basename = "analysis\\.dta", dest_csv = "immig_analysis.csv")
+      list(zip_filename = "PUBLISH.zip", member_basename = "analysis.dta", dest_csv = "immig_analysis.csv")
     )
   ),
   hiv = list(
     doi = "doi:10.7910/DVN/CVOPZL",
     zip_members = list(
-      list(zip_filename = "data.zip", member_basename = "Phase2_sample_list\\.dta", dest_csv = "hiv_Phase2_sample_list.csv")
+      list(zip_filename = "data.zip", member_basename = "Phase2_sample_list.dta", dest_csv = "hiv_Phase2_sample_list.csv")
     )
   )
   ,
@@ -1060,10 +1147,10 @@ warn_if_not_gpl3_compatible <- function(dataset, license, redistribution) {
 #' @param catalog_md The catalog whose Version column pins every CRAN release and
 #'   GitHub commit fetched. All requested pins are resolved before anything is
 #'   downloaded, so a manifest entry with no matching md row fails up front.
-download_all_datasets <- function(download_dir = "R/package_metadata/randomized_experiment_datasets",
+download_all_datasets <- function(download_dir = file.path(EXPERIMENTAL_DIR, "randomized_experiment_datasets"),
                                    keep_loose_csvs = FALSE,
                                    datasets = names(DATASET_MANIFEST),
-                                   catalog_md = "R/package_metadata/experimental_datasets.md") {
+                                   catalog_md = file.path(EXPERIMENTAL_DIR, "experimental_datasets.md")) {
   if (!dir.exists(download_dir)) dir.create(download_dir, recursive = TRUE)
 
   unknown <- setdiff(datasets, names(DATASET_MANIFEST))
@@ -1095,11 +1182,8 @@ download_all_datasets <- function(download_dir = "R/package_metadata/randomized_
         out_csv <- file.path(download_dir, spec$files[[remote_name]])
         out_csvs <- c(out_csvs, out_csv)
         if (file.exists(out_csv)) { message("  already have ", out_csv); next }
-        raw_path <- file.path(download_dir, paste0(".raw_", remote_name))
-        message("  downloading ", remote_name, " ...")
-        dataverse_download_by_filename(spec$doi, remote_name, raw_path)
-        convert_to_csv(raw_path, out_csv)
-        unlink(raw_path)
+        message("  downloading ", remote_name, " (Dataverse ", pins[[name]], ") ...")
+        dataverse_file_as_csv(spec$doi, pins[[name]], remote_name, out_csv, download_dir)
         message("  -> ", out_csv)
       }
     }
@@ -1110,7 +1194,8 @@ download_all_datasets <- function(download_dir = "R/package_metadata/randomized_
         out_csvs <- c(out_csvs, out_csv)
         if (file.exists(out_csv)) { message("  already have ", out_csv); next }
         message("  downloading ", zm$zip_filename, " (large; extracting ", zm$member_basename, ") ...")
-        download_zip_member_as_csv(spec$doi, zm$zip_filename, zm$member_basename, out_csv, download_dir)
+        dataverse_file_as_csv(spec$doi, pins[[name]], zm$member_basename, out_csv, download_dir,
+                              inside_zip = zm$zip_filename)
         message("  -> ", out_csv)
       }
     }
@@ -1170,8 +1255,8 @@ download_all_datasets <- function(download_dir = "R/package_metadata/randomized_
 #' @param catalog_md The catalog whose License/Redistribution cells decide whether
 #'   unpacking warns (see warn_if_not_gpl3_compatible()).
 extract_experimental_datasets <- function(name,
-                                download_dir = "R/package_metadata/randomized_experiment_datasets",
-                                catalog_md = "R/package_metadata/experimental_datasets.md") {
+                                download_dir = file.path(EXPERIMENTAL_DIR, "randomized_experiment_datasets"),
+                                catalog_md = file.path(EXPERIMENTAL_DIR, "experimental_datasets.md")) {
   archive_path <- file.path(download_dir, paste0(name, ".tar.bz2"))
   if (!file.exists(archive_path)) {
     stop("Archive not found: ", archive_path, ". Run download_all_datasets(datasets = \"", name,

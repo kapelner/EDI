@@ -218,7 +218,7 @@ jobs:
         # the regression check (dropping below the floor) always runs either way,
         # only the auto-write half is gated.
         env:
-          AUTO_WRITE: ${{ (github.event_name == 'push' && secrets.COVERAGE_BASELINE_PAT != '') && '1' || '0' }}
+          AUTO_WRITE: ${{ (github.event_name == 'push' && env.COVERAGE_BASELINE_PAT != '') && '1' || '0' }}
         run: |
           if [ "$AUTO_WRITE" = "1" ]; then
             Rscript R/package_tests/ci/check_coverage_floor.R coverage-artifacts/merged-coverage.rds R/package_tests/ci/coverage_baseline.json r "${{ github.sha }}" 1

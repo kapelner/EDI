@@ -1,4 +1,5 @@
 #include <Rcpp.h>
+#include "edi_simd.h"
 using namespace Rcpp;
 
 // [[Rcpp::export]]
@@ -23,7 +24,7 @@ NumericVector compute_weighted_sqd_distances_cpp(
 		const double xj = x_ptr[j];
 		const double wj = w_ptr[j];
 		const double* X_col = X_ptr + static_cast<size_t>(j) * n_rows;
-#pragma omp simd
+EDI_SIMD
 		for (int r = 0; r < n; ++r) {
 			const int row_idx = idx_ptr[r] - 1; // 1-based to 0-based
 			const double diff = xj - X_col[row_idx];

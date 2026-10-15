@@ -63,18 +63,19 @@ test_that("the robust bootstrap parallel branch matches serial and per-resample 
 	y_parallel <- rnorm(n_parallel, sd = 2)
 	y_parallel[c(9, 54)] <- y_parallel[c(9, 54)] + 12
 	X_parallel <- cbind(a = rnorm(n_parallel), b = rnorm(n_parallel))
+	noise_parallel <- matrix(rnorm(n_parallel * B_parallel, sd = 0.1), nrow = n_parallel)
 	i_parallel <- replicate(B_parallel, sample.int(n_parallel, n_parallel, replace = TRUE))
 	storage.mode(i_parallel) <- "integer"
 	w_parallel <- replicate(B_parallel, sample(rep(0:1, length.out = n_parallel)))
 	storage.mode(w_parallel) <- "integer"
 
-	parallel_fit <- K(y_parallel, X_parallel, i_parallel, w_parallel, 0.35, "M", NULL, 2L)
-	serial_fit <- K(y_parallel, X_parallel, i_parallel, w_parallel, 0.35, "M", NULL, 1L)
+	parallel_fit <- K(y_parallel, X_parallel, i_parallel, w_parallel, 0.35, "M", noise_parallel, 2L)
+	serial_fit <- K(y_parallel, X_parallel, i_parallel, w_parallel, 0.35, "M", noise_parallel, 1L)
 	per_resample_reference <- vapply(seq_len(B_parallel), function(b) {
 		i <- i_parallel[, b]
 		w <- w_parallel[, b]
 		X <- cbind(1, w, X_parallel[i, , drop = FALSE])
-		y <- y_parallel[i] + 0.35 * w
+		y <- y_parallel[i] + noise_parallel[, b] + 0.35 * w
 		unname(fast1(X, y, method = "M")$coefficients[2])
 	}, numeric(1))
 

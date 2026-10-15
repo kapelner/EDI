@@ -10,7 +10,10 @@ engines** / 1.3.0 design theory / 1.4.0 response & data extensions;
 2.0.0 remains the architecture release). Rule for all 1.x releases:
 improvements on the current codebase plus simple additions on the
 existing architecture and the six scalar response types; every default
-reproduces the prior release bit-for-bit.
+reproduces the prior release. Since 2026-10-15 (owner decision D2)
+"reproduces" means numerical equivalence per
+`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+equivalence`, not bit-for-bit.
 
 **Theme.** Everything that makes existing classes faster or replaces an
 R/Fortran dependency path with an exact-parity native kernel, plus the
@@ -188,9 +191,12 @@ Ticked in owning plans; this list is the index.
   `release_v1_1_0.md`'s standing constraints, which this item inherited
   when it moved): `→ TODO-137` (libmvec, ≤4 ulp result differences) and
   `→ TODO-153` (adaptive quadrature, changes GLMM numerics at tolerance
-  level) break the bit-for-bit default rule — each ships either opt-in
-  (configure flag / fit argument) or as an explicitly documented default
-  change with the equivalence tests' tolerances re-justified; `→ TODO-156`
+  level) need no exception when their measured differences fall inside
+  the numerical-equivalence tiers
+  (`../new_feature_plans/cross_platform_reproducibility.md →
+  Release-to-release equivalence`, since 2026-10-15); otherwise each ships
+  either opt-in (configure flag / fit argument) or as an explicitly
+  documented default change; `→ TODO-156`
   (Monte-Carlo early stopping) ships **opt-in only**; `→ TODO-149`
   (non-R RNG streams) changes draws under `set.seed()` and must be opt-in
   or documented as a default change. Everything else in this item ships
@@ -323,8 +329,10 @@ Ticked in owning plans; this list is the index.
   - **TODO-29:** low-priority linear algebra (whitened Mahalanobis, drop
     the redundant QR, LDLT, cached GH rule, SYRK Cox Hessian).
   - **TODO-34:** longest-first (LPT) scheduling in `run_all_inference`.
-  - **Gate:** the existing tests and bit-for-bit parity, except TODO-21
-    (documented draw change) and TODO-11 (tolerance-equal to `ictest`).
+  - **Gate:** the existing tests and the numerical-equivalence tiers
+    (exact for TODO-18's presorting, which is bit-identical by
+    construction), except TODO-21 (documented draw change) and TODO-11
+    (tolerance-equal to `ictest`).
 - [ ] TODO-23 (added 2026-10-15, user decision): **Algorithm audit: items
   gated on the A/B harness** — `algorithm_choice_audit.md → TODO-4, -5, -8,
   -12, -13, -20, -25 (score-test stepwise half), -26, -27, -30, -31, -32,
@@ -348,14 +356,19 @@ Ticked in owning plans; this list is the index.
 
 ## Standing constraints
 
-Additive; bit-for-bit defaults (kernel parity tests are the gate); every
+Additive; defaults preserved under the numerical-equivalence rule
+(`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
+equivalence`: integers exact, closed-form floats 1e-10 relative, iterative
+fits 10× solver tolerance, Monte Carlo results only through near-ties;
+kernel parity tests plus the last release's golden fixtures are the gate); every
 new C++ kernel per `sexp_removal_rcppeigen_conversion_spec.md`; targeted
 compile only — never `R CMD INSTALL` / `pkgbuild::compile_dll()` /
 `load_all(compile = TRUE)`. **Inherited from `release_v1_1_0.md` when
 TODO-11 moved here (2026-09-06):** `performance_profiling_and_upgrades.md
 → TODO-137` (libmvec, ≤4 ulp) and `→ TODO-153` (adaptive quadrature)
-break the bit-for-bit default rule and ship opt-in or as a documented
-default change with re-justified equivalence tolerances; `→ TODO-156`
+ship opt-in or as a documented default change unless their measured
+differences fall inside the equivalence tiers (libmvec's ≤4 ulp should; adaptive
+quadrature must be checked against each fit's solver tolerance); `→ TODO-156`
 (Monte-Carlo early stopping) ships opt-in only; `→ TODO-149` (non-R RNG
 streams) is opt-in or a documented default change. TODO-21's Robbins–Monro
 item is opt-in by construction (`ci_search_algorithm` argument,

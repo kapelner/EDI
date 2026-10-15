@@ -10,6 +10,15 @@ coverage:
       r:
         flags: [r]
         target: auto
+        # Pull requests upload only a PARTIAL `r` report (one shard: the fast tier
+        # plus the bulk tests related to the change -- see
+        # test-coverage-R-pr.yaml), so a project comparison against main would
+        # read as a regression on every PR. Project `r` is therefore evaluated
+        # only for commits on main/master, where test-coverage-R.yaml's full
+        # measurement runs; patch `r` below is what PRs are judged on.
+        branches:
+          - main
+          - master
       python:
         flags: [python]
         target: auto
@@ -19,6 +28,11 @@ coverage:
         flags: [r]
         target: 80%
         threshold: 2%
+        # Informational while the PR shard's test selection is being tuned: the
+        # status always passes, with the patch percentage in its description.
+        # Flip to false once a few real PRs show the selected tests cover the
+        # changed lines reliably (contracts/coverage_test_writing.md section 7).
+        informational: true
       python:
         flags: [python]
         target: 80%

@@ -297,10 +297,32 @@ categories goes in the registry as `category = unclassified`,
   Diff the source since the last measured commit. Unchanged source -> suspect
   §6.3 and check the line tally. Changed source -> find the new uncovered
   lines; they are your new tests (§5).
-- Patch coverage (`codecov/patch/r`, target 80% ± 2) is posted on PRs and
-  required for merge; for direct pushes to `main` it, like the floor gate, is
-  a retrospective red X, not a pre-landing block. Treat a red patch status as
-  "fix in the next commit", not "ignore".
+- **Patch coverage on PRs** (target 80% ± 2 per flag in `codecov.yml`) is
+  fed by `test-coverage-R-pr.yaml`: one instrumented shard per PR -- the
+  whole fast tier plus, under a runtime budget, the PR's own edited bulk
+  tests and the bulk tests most related to its changed sources (the same
+  grep-the-suite rule as §1, automated by
+  `R/package_tests/ci/select_pr_coverage_tests.py`; see
+  `R/package_tests/ci/README.md` "PR coverage job"). Uploaded under flag
+  `r`, that gives Codecov head-commit data for the changed R lines. Because
+  it is a subset, the `r` *project* status is restricted to `main`, and
+  `codecov/patch/r` is `informational: true` until the selection is tuned.
+  **Practical consequence for you:** if the PR comment shows low patch
+  coverage, first open the `pr-coverage` artifact's `selection_report.json`
+  -- the lines may be covered by a bulk test that was dropped for budget
+  (the job log says so loudly if it was one the PR edits). If the right
+  test ran and the lines are still red, that is a real gap: fix it in the
+  next commit, don't ignore it.
+- Patch coverage cannot *block* a merge yet: this repo's Codecov runs in
+  token-upload mode without the Codecov GitHub App, so it can post a PR
+  comment but no status checks -- verified 2026-10-15 on a throwaway PR
+  (zero `codecov/*` contexts despite a successful upload; the
+  `codecov/patch/*` required checks were removed again the same day). Once
+  the App is installed and real PRs show the selection is reliable, flip
+  `informational` off and re-add `codecov/patch/r` to the required checks
+  -- only after reading the exact context name off a real PR. For direct
+  pushes to `main` the floor gate is likewise a retrospective red X, not a
+  pre-landing block.
 
 ## 8. Definition of Done (checklist)
 

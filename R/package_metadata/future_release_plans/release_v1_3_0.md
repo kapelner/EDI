@@ -53,6 +53,7 @@ existing design factory.
 
 ## Standing constraints
 
-As 1.1.0/1.2.0: additive, bit-for-bit defaults (every new `cluster_col` /
+As 1.1.0/1.2.0: additive, defaults preserved under the
+numerical-equivalence rule (`cross_platform_reproducibility.md` D2; every new `cluster_col` /
 `prob_T` argument defaults to today's behaviour), `define_design_class()`
 for every class, kernel conventions, targeted compile only.

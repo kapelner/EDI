@@ -163,6 +163,20 @@ not exist either.
   not substitute for a checked-in all-class `generate_permutations(50)` test;
   the KK OLS-IVWC fixture is vacuous (all outputs `NA`).
 
+  **Additional installed-package coverage, 2026-10-15:** a temporary
+  compile-free probe (`Rscript /tmp/edi_todo64_missing6_probe.R`) exercised
+  the six remaining override classes not in that 12-case script—
+  `InferenceAllKKMeanDiffIVWC`, `InferenceAllSimpleWilcox`,
+  `InferenceAllKKWilcoxIVWC`, `InferenceContinOLS`,
+  `InferenceContinKKOLSOneLik`, and `InferenceOrdinalRidit`—with
+  `generate_permutations(50)` on small n=40 fixtures. All six returned 50
+  finite values, and each matched the reused-worker distribution at
+  tolerance `1e-10`; the run completed against installed EDI 1.0.3 without
+  compilation/build/install. This is additional runtime evidence, not the
+  checked-in all-class wiring test, and it does not address the known
+  non-vacuous `InferenceContinKKOLSIVWC` fixture or current-checkout native
+  coercion. TODO-5 and release TODO-64 remain open.
+
 ## Acceptance
 
 No class's fast path errors on the dispatcher's own permutation object;

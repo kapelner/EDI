@@ -42,6 +42,9 @@ test_that("degenerate inputs return the eps weight: constant column, tiny n, emp
 	Xc <- cbind(a = rep(1, n), b = X[, 1])
 	expect_equal(K("kk21_continuous_weights_cpp")(Xc, y)[1], eps)
 	expect_gt(K("kk21_continuous_weights_cpp")(Xc, y)[2], eps)
+	expect_equal(K("kk21_logistic_weights_cpp")(Xc, rbinom(n, 1, 0.5))[1], eps)
+	x_fit <- 0:3
+	expect_equal(K("kk21_continuous_weights_cpp")(matrix(x_fit, ncol = 1), 2 + 3 * x_fit), eps)
 	expect_equal(K("kk21_continuous_weights_cpp")(X[1:2, ], y[1:2]), rep(eps, 3))
 	expect_length(K("kk21_continuous_weights_cpp")(matrix(numeric(0), n, 0), y), 0L)
 	expect_equal(K("kk21_logistic_weights_cpp")(matrix(numeric(0), 0, 2), numeric(0)), rep(eps, 2))

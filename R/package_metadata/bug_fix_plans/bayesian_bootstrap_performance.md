@@ -250,6 +250,18 @@ release-scale runtime-manifest or sanitizer validation; TODO-66 remains open.
   group RNG ordering. The required installed-package equivalence and benchmark
   evidence remains part of TODO-9, so this checkbox stays open.
 
+  **Installed weighting-unit matrix check, 2026-10-15:** against EDI 1.0.3,
+  `Rscript /tmp/edi_todo57_weighting_matrix.R` compared five batched draws
+  bit-for-bit with the historical nested replicate/group `rgamma()` loop
+  across eight valid cases: subject/`NULL`; block/`NULL`, `within_blocks`,
+  and `resample_blocks`; cluster/`NULL`, `within_blocks`, and
+  `resample_blocks`; matched-set/`NULL`. All eight passed, and every draw
+  shared the same context object within its case. Non-`NULL` weighting types
+  are valid only for blocking-style designs, so subject and matched-set use
+  their documented `NULL` defaults. This is a bounded installed-binary check,
+  not proof of current-checkout provenance or the full before/after benchmark;
+  TODO-4 and TODO-9 remain open.
+
 - [ ] TODO-5: **Audit the bootstrap serial blocklist (F1).** For each
   entry (`^InferenceIncid`, `^InferenceSurvival(?!.*KK)`,
   `^InferenceAllKKWilcoxIVWC$`, response type `incidence`):

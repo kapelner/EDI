@@ -161,6 +161,10 @@ starts — none of them re-run that measurement.
   `pkg_cxxflags` (it does not pull in the OpenMP runtime). Confirm with
   `EDI:::build_info()` and a macOS build that the pragma is honoured
   (`-Rpass=loop-vectorize` on one of the six files).
+  *Status 2026-10-15:* done differently, see `arm_hardware.md → TODO-7`
+  (`-fopenmp-simd` trips R CMD check's non-portable-flag check; the pragmas
+  became `EDI_SIMD` macros from `src/edi_simd.h`, verified by
+  `R/package_tests/ci/simd_vectorization_report.sh` on the macOS CI leg).
 
 ## Suggested order
 
