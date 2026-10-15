@@ -63,3 +63,7 @@ jobs:
           files: python/coverage.xml
           flags: python
           fail_ci_if_error: false
+
+# codecov throwaway test (PR "codecov test throwaway"): comment-only change to trigger the
+# pull_request coverage upload so the exact Codecov status-context names can be observed.
+# This branch is never merged; delete it after reading the statuses.
