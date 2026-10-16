@@ -210,3 +210,6 @@ marketing_plans/
 
 # comprehensive_tests.R nohup logs
 /R/logs/
+
+# TODO-56 modified-Poisson resume scratch trees (comprehensive_tests snapshots, never source)
+/R/package_tests/todo56_mp*/
