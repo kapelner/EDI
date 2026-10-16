@@ -852,6 +852,7 @@ R/package_tests/testthat_bulk/test-proportion-gcomp-weighted-standardization-ref
 R/package_tests/testthat_bulk/test-proportion-interval-and-distance-matrix-kernels-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-proportion-kk-classes-match-logit-stacked-quantile-and-quasibinomial-references.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-proportion-quantile-regr-reference-and-weighted-refit.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-prune-stale-result-rows-safety-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-prw-subsampling-b-list-optimal-selection-failure-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-prw-subsampling-pval-and-ci-b-list-selection-failure-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-prw-subsampling-size-evaluation-grid-selection-and-index-draws-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2256,6 +2257,7 @@ R/package_tests/testthat_bulk/test-proportion-gcomp-weighted-standardization-ref
 R/package_tests/testthat_bulk/test-proportion-interval-and-distance-matrix-kernels-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-proportion-kk-classes-match-logit-stacked-quantile-and-quasibinomial-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-proportion-quantile-regr-reference-and-weighted-refit.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-prune-stale-result-rows-safety-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prw-subsampling-b-list-optimal-selection-failure-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prw-subsampling-pval-and-ci-b-list-selection-failure-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prw-subsampling-size-evaluation-grid-selection-and-index-draws-reference.R,coverage,240,bootstrap
