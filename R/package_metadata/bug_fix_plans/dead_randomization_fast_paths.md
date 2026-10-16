@@ -63,7 +63,7 @@ not exist either.
 
 ## TODOs
 
-- [ ] TODO-1: **Complete the audit.** Run the direct-call check for every
+- [x] TODO-1: **Complete the audit.** Run the direct-call check for every
   class that defines `compute_fast_randomization_distr()` (18 files) on a
   design each can be constructed on, plus the static `*_cpp(`-exists check,
   and record the table here. Installed package only.
@@ -82,8 +82,7 @@ not exist either.
   boundary. The ten delegates are KK quantile, OLS IVWC/one-likelihood,
   robust IVWC/one-likelihood, Lin, continuous/proportion quantile, continuous
   robust, and KK conditional Poisson. Thus the static wrapper-existence check
-  has no remaining dangling `*_cpp` reference. The requested direct-call
-  table and worker-parity run remain open. **Environment recheck
+  has no remaining dangling `*_cpp` reference. **Environment recheck
   2026-10-15:** `Rscript` now starts successfully and loads installed EDI
   1.0.3, so the earlier `libmkl_gf_lp64.so.2` startup failure is no longer a
   current blocker. Focused installed-package tests passed 93 assertions
@@ -100,10 +99,38 @@ not exist either.
   fixture also returned all `NA`s despite a finite public point estimate.
   Several delegate overrides call the same reused-worker method directly, so
   those comparisons establish execution, not an independent native-kernel
-  oracle. This records the remaining installed-package coverage but does not
-  close the all-18, generated-50, independent-parity acceptance criterion.
+  oracle. That probe alone did not close the all-18, generated-50
+  worker-parity criterion; the checked-in run below closes that runtime audit.
   Current-checkout coercion verification still requires a rebuilt native
   package.
+
+  **Checked-in direct-call table, installed EDI 1.0.3, 2026-10-16:**
+
+  | Class case | Draws | Finite | Fast/worker |
+  |---|---:|---:|---|
+  | `InferenceAllSimpleAverageDiff` | 50 | 50 | equal, `1e-10` |
+  | `InferenceAllKKMeanDiffIVWC` | 50 | 50 | equal, `1e-10` |
+  | `InferenceAllSimpleWilcox` | 50 | 50 | equal, `1e-10` |
+  | `InferenceAllKKWilcoxIVWC` | 50 | 50 | equal, `1e-10` |
+  | `InferenceBaiAdjustedTKK14` | 50 | 50 | equal, `1e-10` |
+  | `InferenceBaiAdjustedTKK21` | 50 | 50 | equal, `1e-10` |
+  | `InferenceContinKKOLSIVWC` | 50 | 50 | equal, `1e-10` |
+  | `InferenceContinKKOLSOneLik` | 50 | 50 | equal, `1e-10` |
+  | `InferenceContinKKRobustRegrIVWC` | 50 | 50 | equal, `1e-10` |
+  | `InferenceContinKKRobustRegrOneLik` | 50 | 50 | equal, `1e-10` |
+  | `InferenceContinLin` | 50 | 50 | equal, `1e-10` |
+  | `InferenceContinOLS` | 50 | 50 | equal, `1e-10` |
+  | `InferenceContinQuantileRegr` | 50 | 50 | equal, `1e-10` |
+  | `InferenceContinRobustRegr` | 50 | 50 | equal, `1e-10` |
+  | `InferenceCountKKHurdlePoissonIVWC` | 50 | 50 | equal, `1e-10` |
+  | `InferenceOrdinalRidit` | 50 | 50 | equal, `1e-10` |
+  | `InferencePropQuantileRegr` | 50 | 50 | equal, `1e-10` |
+  | `InferenceRandCustom` | 50 | 50 | equal, `1e-10` |
+
+  Each case calls its inference object's dispatcher generator, then directly
+  calls the fast method and reused-worker reference on the same permutation
+  matrix. The non-vacuous KK OLS-IVWC row uses the deterministic n=20 KK14
+  fixture (design/response seed 1; permutation seed 1).
 
 - [x] TODO-2: **Integer `w_mat` for the `Map<MatrixXi>` kernels (F2).**
   Minimal v1.0.5 form: coerce at the two Wilcoxon call sites
@@ -144,7 +171,7 @@ not exist either.
   assertion mode now rethrows; ordinary mode emits one per-instance warning
   and records the most recent error in `cached_values` before falling back.
 
-- [ ] TODO-5: **Wiring test.** `test-randomization-fast-path-wiring.R` (or
+- [x] TODO-5: **Wiring test.** `test-randomization-fast-path-wiring-reference.R` (or
   a block in `test-inference-class-wiring-completeness.R`): for every
   class with a fast path, construct on a small fixture, call
   `generate_permutations(50)`, then assert the fast path returns without
@@ -156,12 +183,13 @@ not exist either.
   reference test already supplies a double `w_mat` and checks the per-column
   HL reference. The KK-Wilcoxon reference suite now does the same explicitly,
   comparing double-dispatcher and integer-kernel matrices to `1e-10`. The
-  broader all-class generated-permutation/worker-parity test remains open
-  with TODO-1's executable audit. The compile-free installed-package probe
+  broader all-class generated-permutation/worker-parity test remained open
+  at that date and is closed by the checked-in audit below. The compile-free installed-package probe
   in `scripts/todo64_installed_override_parity.R` supplies small-fixture
   evidence for the 12 previously uncovered override definitions, but it does
   not substitute for a checked-in all-class `generate_permutations(50)` test;
-  the KK OLS-IVWC fixture is vacuous (all outputs `NA`).
+  its KK OLS-IVWC fixture is vacuous (all outputs `NA`; resolved by the
+  seeded fixture described below).
 
   **Additional installed-package coverage, 2026-10-15:** a temporary
   compile-free probe (`Rscript /tmp/edi_todo64_missing6_probe.R`) exercised
@@ -173,9 +201,77 @@ not exist either.
   finite values, and each matched the reused-worker distribution at
   tolerance `1e-10`; the run completed against installed EDI 1.0.3 without
   compilation/build/install. This is additional runtime evidence, not the
-  checked-in all-class wiring test, and it does not address the known
-  non-vacuous `InferenceContinKKOLSIVWC` fixture or current-checkout native
-  coercion. TODO-5 and release TODO-64 remain open.
+  checked-in all-class wiring test; its `InferenceContinKKOLSIVWC` case was
+  vacuous, and it did not address current-checkout native coercion. The
+  non-vacuous fixture is covered by the follow-up below.
+
+  **Checked-in wiring test, 2026-10-15:**
+  `R/package_tests/testthat_bulk/test-randomization-fast-path-wiring-reference.R`
+  now exercises all 18 concrete fast-path class cases (including both Bai
+  variants and `InferenceRandCustom`) using each inference object's generated
+  50-permutation object, and compares the fast distribution to the reused-
+  worker result at `1e-10`. Focused command
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-randomization-fast-path-wiring-reference.R")'`
+  passed against installed EDI 1.0.3. **Final fixture/acceptance follow-up,
+  2026-10-16:** the checked-in test uses a deterministic n=20 KK14 design
+  (design/response seed 1; permutation seed 1) for KK OLS-IVWC; all 50
+  `InferenceContinKKOLSIVWC` results are finite and match the reused-worker
+  output at `1e-10`. The file also checks the Simple-Wilcoxon R6 p-value
+  against its fast-kernel distribution at n=r=1000: both are `0.002` (ratio
+  1.0, 1000/1000 finite draws). Final focused run against installed EDI 1.0.3
+  passed 79 assertions with 0 failures and 0 warnings, including the direct-
+  wrapper source audit. The existing pre-push
+  `test-inference-class-wiring-completeness.R`
+  audit was broadened to reject missing callable Rcpp wrappers referenced by
+  instantiated fast-randomization methods; its focused installed-package run
+  passed 10 assertions with no failures. `InferenceCountPoisson` has no
+  class-defined `compute_fast_randomization_distr` in installed EDI 1.0.3,
+  matching TODO-3's delete-the-dead-method choice. The KK OLS-IVWC non-vacuous
+  fixture gap and the checked-in wiring-test/pre-push structural gates are
+  resolved. **Source-only Rcpp registration assertion, 2026-10-16:** the
+  wiring test now parses each direct fast-path wrapper's `.Call` target and
+  checks for its generated registration row in checkout `src/RcppExports.cpp`;
+  the focused installed-package run passes 152 assertions. This catches
+  source-level wrapper/registration drift but does not validate a rebuilt
+  current-head shared library. Current-checkout native coercion/symbol mapping
+  validation remains outstanding; release TODO-64 stays open pending that
+  gate.
+
+  **CI artifact/readiness audit, 2026-10-16:** the successful
+  `test-bulk-non-cran` run `38808821543` is on HEAD
+  `430c19bcdb0702d998c79f9058c449449034134c`. Its `build` job installed that
+  commit into an isolated library, archived the installed library and compiled
+  objects as artifact `edi-build`, and the correctness shards passed. The
+  successful full `test-coverage` run `38808821546` and
+  `test-coverage-R-advanced` run `38808821369` are also on that HEAD. These
+  runs establish that CI built the committed native source, but do NOT close
+  this targeted parity gate: the focused
+  `R/package_tests/testthat_bulk/test-randomization-fast-path-wiring-reference.R`
+  is untracked in the current checkout (and the expanded
+  `test-inference-class-wiring-completeness.R` is modified locally), so neither
+  test's current content was in commit `430c19bc` or executed by those runs.
+  Existing tracked IVWC combination tests and OLS-OneLik fast/worker parity
+  tests are not a substitute for the non-vacuous `InferenceContinKKOLSIVWC`
+  fast-path/worker fixture. `R-CMD-check` run `38808821525` on the same HEAD
+  was still in progress at this audit; it likewise cannot include those
+  untracked/local test edits.
+
+  **Non-compiling artifact option:** to test the current native implementation
+  without a local compile, explicit approval is required to download and
+  extract artifact `edi-build` from run `38808821543` into `/tmp`, then run the
+  focused parity test with that artifact's preinstalled library on
+  `.libPaths()`. No artifact was downloaded or installed during this audit.
+  Until that permission is granted and the test passes against the artifact,
+  or another valid native run is available, keep release TODO-64 unchecked.
+
+  **Placement rationale:** this is a bulk-tier dispatch-parity test: the
+  existing `test-inference-class-wiring-completeness.R` only checks structural
+  promises and runs no inference, while
+  `test-kk-ols-one-lik-fast-randomization-distr-reused-worker-reference.R`
+  covers only the one-likelihood class with its independent refit reference.
+  Neither is a suitable home for 18 classes × 50 permutation refits. The new
+  test checks the TODO's fast-path/worker wiring contract; class-specific
+  independent numerical references remain in their existing focused files.
 
 ## Acceptance
 

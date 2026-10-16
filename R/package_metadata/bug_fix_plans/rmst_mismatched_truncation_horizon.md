@@ -147,6 +147,16 @@ those APIs.
   reference passed. No compile command was run by Codex; the explicit
   compile-permission rule remains in force, so the targeted compile criterion
   itself is not claimed as complete.
+  **Same-HEAD CI native validation 2026-10-16:** current checkout HEAD
+  `430c19bcdb0702d998c79f9058c449449034134c` passed R bulk run `38808821543`.
+  Its isolated build job installed that commit and all five correctness
+  shards succeeded. The correctness manifest includes the shared-horizon,
+  native RMST/complete-randomization, Greenwood `survfit`, weighted/fallback,
+  and general-censoring tests. Thus the changed C++ code was compiled and
+  exercised at current HEAD in CI; no local or targeted compile was run.
+  This confirms native compile/runtime behavior at the same HEAD in CI, but
+  does not satisfy the plan's literal targeted-only compile criterion; TODO-3
+  remains open unless that criterion is explicitly waived in favor of CI.
 - [x] TODO-4: Decide the exact shared-τ convention (minimum of both arms'
   max time is the standard literature default; confirm this is what's
   wanted here, or whether a pre-specified fixed horizon parameter should
@@ -158,6 +168,56 @@ those APIs.
 - [ ] TODO-5: Re-run the historical-CSV-style coverage check (or a fresh
   simulation at this harness's censoring rate) across every affected
   method family and confirm coverage returns to nominal ~95%.
+  **Bounded installed-package diagnostic 2026-10-16 (not closure):** against
+  EDI 1.0.3, seed 23001, 120 replications, n=100/arm, B=199 for each
+  bootstrap interval; exponential event rates were 0.4 (control) and 0.3
+  (treatment), with administrative follow-up maxima forced to 4 and 10, so
+  the shared horizon was exactly τ=4 in every sample and the analytic RMST
+  contrast was 0.334094. Mean censoring was 13.2%. Wald coverage was 115/120
+  (0.958; exact 95% binomial interval 0.905–0.986), nonparametric percentile
+  bootstrap 112/120 (0.933; 0.873–0.971), and Bayesian-bootstrap percentile
+  113/120 (0.942; 0.884–0.976). This small diagnostic exercises the changed
+  estimand and spans asymptotic, ordinary-bootstrap, and weighted-bootstrap
+  intervals, but its intervals are wide and it does not cover every affected
+  method family; the full TODO-5 calibration remains open. The exact binomial
+  intervals reflect outer-replication uncertainty only, not inner-bootstrap
+  Monte Carlo error at B=199. It ran only against the installed package and
+  does not validate the checkout's C++ changes. One administratively
+  censored sentinel per arm fixed each sample's observed maximum; this is a
+  bounded stress design, not a fully iid coverage calibration.
+  **Expanded installed-package diagnostic, 2026-10-16 (still not closure):**
+  the broader matrix used seed 23002, 120 reps, n=100/arm, B=99, rates
+  0.4/0.3, maxima 4/10 (τ=4, truth 0.334094; mean censoring 13.5%). Exact
+  95% binomial intervals for valid CIs were: asymp/Wald 113/120 each
+  (0.942; 0.884–0.976); ordinary bootstrap percentile 114/120 (0.950;
+  0.894–0.981), basic 110/120 (0.917; 0.852–0.959), BCa 33/35 valid
+  (0.943; 0.808–0.993; 85/120 invalid), studentized 115/120 (0.958;
+  0.905–0.986); Bayesian-bootstrap percentile 115/120 (0.958; 0.905–0.986),
+  basic 112/120 (0.933; 0.873–0.971), BCa 34/36 valid (0.944; 0.813–0.993;
+  84/120 invalid), Wald 114/120 (0.950; 0.894–0.981); subsampling-basic
+  111/120 (0.925; 0.862–0.965); m-out-of-n-basic 111/120 (0.925;
+  0.862–0.965); jackknife-Wald 113/120 (0.942; 0.884–0.976); and
+  randomization-bootstrap 100/120 (0.833; 0.754–0.895). BCa coverage is
+  conditional on the few finite intervals; counting invalid intervals as
+  noncoverage gives 33/120 and 34/120, respectively.
+
+  A second pattern/seed used seed 23003, 120 reps, n=100/arm, B=199,
+  maxima 3/8 (τ=3, truth 0.231087; mean censoring 20.4%). Wald covered
+  117/120 (0.975; exact 95% interval 0.929–0.995), ordinary-bootstrap
+  percentile 116/120 (0.967; 0.917–0.991), Bayesian-bootstrap percentile
+  119/120 (0.992; 0.954–1.000), and subsampling-basic 116/120 (0.967;
+  0.917–0.991); all had 120 finite intervals. This second run was narrowed
+  to four representatives after the full matrix's randomization-bootstrap
+  path made the second-pattern run exceed the bounded runtime. These intervals
+  reflect outer-replication uncertainty only, with additional inner-bootstrap
+  Monte Carlo error (especially B=99) unaccounted for. Results are mixed—most
+  non-randomization methods are compatible with 95% at this resolution, while
+  the randomization-bootstrap interval undercovers and both BCa variants have
+  substantial invalid rates—so the complete historical-CSV calibration and
+  post-install regeneration remain required. All runs used installed EDI
+  1.0.3, not the checkout's compiled C++. Both patterns used one forced
+  administrative censor per arm to make their maxima deterministic, so these
+  remain stress diagnostics rather than iid coverage evidence.
 - [x] TODO-6: Add a permanent regression test constructing a fixture with
   deliberately mismatched arm-level max follow-up times, asserting the
   point estimate and SE are computed against one shared τ, not two
@@ -170,6 +230,15 @@ those APIs.
   this class's coverage-affected methods once fixed and installed (only
   after install, not before, same caution as the sibling plans this
   session produced).
+
+  **Read-only artifact check 2026-10-16:** canonical
+  `R/package_tests/comprehensive_tests_results_nc_1_survival.csv` has 50,670
+  `InferenceSurvivalRestrictedMeanDiff` text matches, size 372,209,537 bytes,
+  and mtime 2026-09-27 (before the 2026-10-08 source fix). The TODO-56 resume
+  copy has the same size and match count but is not a post-fix regeneration
+  receipt. No current provenance ties any canonical RMST result rows to the
+  fixed installed package. Keep TODO-7 open; regenerate/reconcile only after
+  TODO-56 releases the shared artifacts.
 
 **Artifact-independent source audit 2026-10-14:** exhaustive Graft searches
 for `get_survival_stat_diff` and `get_restricted_mean_se_diff` found no

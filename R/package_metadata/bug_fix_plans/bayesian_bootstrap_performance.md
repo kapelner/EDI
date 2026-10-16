@@ -314,6 +314,44 @@ release-scale runtime-manifest or sanitizer validation; TODO-66 remains open.
   Bit-preserving when the fast path is the same kernel call the hardened
   path would have made.
 
+  **Shared helper step, 2026-10-16 (implemented once under TODO-58 TODO-4):**
+  `fit_with_hardened_qr_column_dropping()` now reuses an exact-matrix rank
+  certificate for an all-column fit attempt, falling through to the original
+  hardened QR/drop-column path if that fit fails. Bayesian worker loading
+  enables the positive-weight certificate path only when all draw weights are
+  finite and strictly positive; this preserves rank under row scaling. The
+  same helper change is cross-referenced in
+  `bootstrap_worker_dataframe_subsetting.md → TODO-4`; do not implement it a
+  second time here. Its focused source regression evaluates the checkout
+  helper without loading/rebuilding the package. TODO-7 remains open for the
+  nonparametric loader's remaining QR and rank-deficient behavior, plus
+  current-build runtime/performance validation.
+
+  **Chunk-level error guard, 2026-10-16 (shared reusable-worker dispatcher):**
+  `compute_reusable_bootstrap_worker_distribution()` now runs each chunk's
+  normal draw loop under one error guard rather than constructing a
+  `tryCatch` for every successful draw. If a non-control error occurs, that
+  draw remains `NA` and the rest of that chunk uses the existing per-draw
+  handler, preserving error isolation. Deadline/control conditions and errors
+  outside loading/fitting still propagate. The checkout-source regression
+  confirms one guard on a clean serial chunk, continuation after multiple
+  failures, and control-condition propagation. Test harness used installed
+  EDI 1.0.3 for package setup but parsed/evaluated the checkout dispatcher
+  directly for these assertions; no native/current-package validation is
+  claimed. TODO-7 remains open for loader-side QR/rank fallback and native
+  performance/runtime gates.
+
+  **Design-backed loader regression, 2026-10-16:**
+  `test-design-backed-bootstrap-worker-state-and-sample-loading-reference.R`
+  passed 113 assertions against installed EDI 1.0.3. Its targeted loader test
+  extracts and evaluates the checkout's
+  `load_bootstrap_sample_into_design_backed_worker()` definition, instrumenting
+  `qr()` to show that an identical full-rank matrix reuses its certificate,
+  while a resample that makes treatment collinear invalidates the certificate
+  and takes the rebuild path. This is checkout-source evidence for that
+  loader's QR/rank behavior, not native/current-package validation or a
+  performance measurement; TODO-7's native gates remain open.
+
 - [ ] TODO-8 *(stretch — decide after TODO-7's numbers)*: **Batched C++
   replicate loop** for the GLM families (logistic, Poisson, probit, NB,
   beta, ordinal): one `.Call` per chunk that loops over that chunk's draws

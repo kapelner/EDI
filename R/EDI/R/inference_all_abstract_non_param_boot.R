@@ -1198,6 +1198,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			indices = as.integer(indices)
 			w_priv = worker_state$worker_priv
 			w_priv$w = if (!is.null(worker_state$base_w)) as.numeric(worker_state$base_w[indices]) else NULL
+			prior_qr_rank_certificate = w_priv$bootstrap_qr_rank_certificate
+			bootstrap_qr_rank_certificate = NULL
 			X_subset = if (!is.null(worker_state$base_X)) {
 				worker_state$base_X[indices, , drop = FALSE]
 			} else {
@@ -1209,10 +1211,17 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			use_direct_X_subset = !is.null(X_subset) && is.numeric(w_priv$w)
 			if (isTRUE(use_direct_X_subset) && ncol(X_subset) > 0L) {
 				X_rank = cbind(`(Intercept)` = 1, treatment = w_priv$w, as.matrix(X_subset))
-				use_direct_X_subset = isTRUE(tryCatch(
+				has_matching_rank_certificate = is.list(prior_qr_rank_certificate) &&
+					identical(prior_qr_rank_certificate$mode, "unweighted") &&
+					is.matrix(prior_qr_rank_certificate$X) &&
+					identical(unname(X_rank), unname(prior_qr_rank_certificate$X))
+				use_direct_X_subset = isTRUE(has_matching_rank_certificate) || isTRUE(tryCatch(
 					qr(X_rank)$rank == ncol(X_rank),
 					error = function(e) FALSE
 				))
+				if (isTRUE(use_direct_X_subset)) {
+					bootstrap_qr_rank_certificate = list(mode = "unweighted", X = X_rank)
+				}
 			}
 			w_priv$X = if (isTRUE(use_direct_X_subset)) X_subset else NULL
 			w_priv$y = if (!is.null(worker_state$base_y)) as.numeric(worker_state$base_y[indices]) else NULL
@@ -1231,6 +1240,11 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			w_priv$fit_warm_start_type = worker_state$base_fit_warm_start_type
 			w_priv$fit_warm_start_fisher = worker_state$base_fit_warm_start_fisher
 			reset_reused_worker_private_caches(w_priv, changed = "sample")
+			# The matrix above was already rank-checked to decide whether direct
+			# subsetting is bit-safe. Let the shared fit wrapper reuse that exact
+			# certificate instead of performing a second QR on the same draw.
+			w_priv$bootstrap_qr_rank_certificate = bootstrap_qr_rank_certificate
+			w_priv$bootstrap_qr_positive_weights = FALSE
 			
 			w_priv$za_X_cov_all = if (!is.null(worker_state$base_za_X_cov_all)) {
 				worker_state$base_za_X_cov_all[indices, , drop = FALSE]
@@ -1340,9 +1354,37 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				load_draw = private[[contract$loader]]
 				estimate_draw = private[[contract$estimator]]
 				out = numeric(length(idxs))
-				for (k in seq_along(idxs)) {
-					private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
-					boot_draw = draws[[idxs[[k]]]]
+				current_k = 0L
+				inside_draw_fit = FALSE
+				chunk_error_handler = function(e){
+					# The normal path has one tryCatch for this chunk, not one per
+					# draw. Preserve the old per-draw error -> NA behavior by marking
+					# the failing draw and running the remainder under the slow path.
+					# Deadline/control conditions and errors outside the fit block must
+					# still abort exactly as before.
+					if (!isTRUE(inside_draw_fit)) stop(e)
+					out[current_k] <<- private$resampling_error_to_na(e)
+				}
+				tryCatch({
+					for (k in seq_along(idxs)) {
+						private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+						current_k = k
+						boot_draw = draws[[idxs[[k]]]]
+						inside_draw_fit = TRUE
+						if (length(loader_args)) {
+							do.call(load_draw, c(list(worker_state = worker_state, draw = boot_draw), loader_args))
+						} else {
+							load_draw(worker_state, boot_draw)
+						}
+						out[k] = estimate_draw(worker_state)
+						inside_draw_fit = FALSE
+						private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+					}
+				}, error = chunk_error_handler)
+				if (current_k > 0L && current_k < length(idxs)) {
+					for (k in seq.int(current_k + 1L, length(idxs))) {
+						private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+						boot_draw = draws[[idxs[[k]]]]
 						out[k] = tryCatch({
 							if (length(loader_args)) {
 								do.call(load_draw, c(list(worker_state = worker_state, draw = boot_draw), loader_args))
@@ -1351,7 +1393,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 							}
 							estimate_draw(worker_state)
 						}, error = private$resampling_error_to_na)
-					private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+						private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+					}
 				}
 				out
 			}

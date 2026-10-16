@@ -123,3 +123,86 @@ test_that("worker estimate via compute_estimate: first element, NA when the work
 	expect_true(is.na(fn(mk(0.7, TRUE))))
 	expect_equal(fn(list(worker = list(compute_estimate = function(estimate_only) 1.5))), 1.5)   # no nonestimable hook
 })
+
+checkout_reusable_worker_distribution <- function(eval_env){
+	source_candidates = c(
+		file.path("R", "EDI", "R", "inference_all_abstract_non_param_boot.R"),
+		file.path("..", "..", "EDI", "R", "inference_all_abstract_non_param_boot.R")
+	)
+	source_file = source_candidates[file.exists(source_candidates)][1L]
+	if (is.na(source_file)) stop("Could not locate checkout bootstrap source")
+	source_lines = readLines(source_file, warn = FALSE)
+	start_line = grep("^\\s*compute_reusable_bootstrap_worker_distribution\\s*=\\s*function\\s*\\(", source_lines)
+	if (!length(start_line)) stop("Could not locate checkout reusable-worker method")
+	partial = character()
+	definition = NULL
+	for (line in source_lines[seq.int(start_line[1L], length(source_lines))]) {
+		partial = c(partial, line)
+		candidate = sub(",\\s*$", "", paste(partial, collapse = "\n"))
+		parsed = tryCatch(parse(text = candidate), error = function(e) NULL)
+		if (length(parsed) == 1L) {
+			assignment = parsed[[1L]]
+			if (is.call(assignment) && identical(assignment[[1L]], as.name("=")) &&
+					identical(assignment[[2L]], as.name("compute_reusable_bootstrap_worker_distribution"))) {
+				definition = assignment[[3L]]
+				break
+			}
+		}
+	}
+	if (is.null(definition)) stop("Could not extract checkout reusable-worker method")
+	eval(definition, envir = eval_env)
+}
+
+source_worker_distribution_fixture <- function(fail_draws = numeric()){
+	eval_env = new.env(parent = baseenv())
+	eval_env$private = new.env(parent = emptyenv())
+	eval_env$private$cached_values = list()
+	eval_env$private$get_resampling_draw_contract = function(operation) {
+		list(loader = "load_draw", estimator = "estimate_draw")
+	}
+	eval_env$private$create_reusable_bootstrap_worker = function() {
+		worker_state = new.env(parent = emptyenv())
+		worker_state$current = NULL
+		worker_state
+	}
+	eval_env$private$check_bootstrap_replicate_deadline = function(label) invisible(FALSE)
+	eval_env$private$resampling_error_to_na = function(e) {
+		if (grepl("reached elapsed time limit", conditionMessage(e), fixed = TRUE)) stop(e)
+		NA_real_
+	}
+	eval_env$private[["load_draw"]] = function(worker_state, draw, ...) {
+		if (draw %in% fail_draws) stop(paste("bad draw", draw))
+		worker_state$current = draw
+		invisible(NULL)
+	}
+	eval_env$private[["estimate_draw"]] = function(worker_state) 10 * worker_state$current
+	eval_env$tryCatch_calls = 0L
+	eval_env$tryCatch = function(expr, ...) {
+		eval_env$tryCatch_calls = eval_env$tryCatch_calls + 1L
+		base::tryCatch(expr, ...)
+	}
+	eval_env$run = checkout_reusable_worker_distribution(eval_env)
+	eval_env
+}
+
+test_that("checkout reusable-worker fast path has one error guard per chunk", {
+	f = source_worker_distribution_fixture()
+	out = f$run(as.list(1:4), actual_cores = 1L)
+	expect_equal(out, 10 * (1:4))
+	expect_equal(f$tryCatch_calls, 1L)
+})
+
+test_that("checkout chunk fallback isolates the failed draw and continues the rest", {
+	f = source_worker_distribution_fixture(fail_draws = c(2, 4))
+	out = f$run(as.list(1:5), actual_cores = 1L)
+	expect_equal(out, c(10, NA_real_, 30, NA_real_, 50))
+	expect_equal(f$tryCatch_calls, 4L) # one chunk guard plus draws 3, 4, and 5
+})
+
+test_that("checkout chunk guard still propagates resampling control conditions", {
+	f = source_worker_distribution_fixture()
+	f$private[["load_draw"]] = function(worker_state, draw, ...) {
+		stop("resampling reached elapsed time limit")
+	}
+	expect_error(f$run(list(1, 2), actual_cores = 1L), "reached elapsed time limit")
+})

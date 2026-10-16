@@ -163,7 +163,111 @@ the full audit-to-dispatch cross-reference is still open.
   every affected response type/link scale, not just whether rounding is
   missing — `InferenceContinKKRobustRegrOneLik` (continuous, reject=0.495)
   doesn't fit the "unclamped discrete noise" explanation cleanly and needs
-  its own look.
+  its own look. **Checked-in fixture audit 2026-10-16:**
+  `R/EDI/tests/testthat/test-brt-smoothed-count-support.R` constructs one
+  `n = 30` continuous KK design with `rnorm(n)` outcomes, runs the robust
+  OneLik smoothed p-value once at `B = 21` (`use_rcpp = FALSE`), and asserts
+  only that the result is finite. It does not estimate a null rejection
+  rate, compare plain and smoothed p-values on matched draws, or vary the
+  noise bandwidth. This fixture therefore confirms dispatch/execution, not
+  the historical 0.495 rejection rate or whether `sd(y)/sqrt(n)` is
+  appropriate. TODO-2 still needs a controlled empirical calibration; do
+  not change the bandwidth based on the single-fixture smoke result.
+  **Bounded installed-package pilot 2026-10-16:** ran 25 independent copies
+  of that `n = 30` sharp-null fixture against installed EDI 1.0.3, with
+  `B = 101` materialized assignments per copy. Each copy compared the
+  percentile result with smoothed results using those same assignments and
+  common Gaussian noise scaled to `0.5x`, `1x`, and `2x` the current
+  `sd(y)/sqrt(n)` bandwidth. Rejection counts at 0.05 were respectively
+  2/25 (0.08), 2/25 (0.08), 2/25 (0.08), and 1/25 (0.04); exact 95% binomial
+  intervals are wide and include 0.05 in every case. The current-bandwidth
+  result rejected exactly the same two fixtures as percentile; doubling the
+  bandwidth changed one decision. This does not reproduce the historical
+  0.495 rate or validate any bandwidth. Separately, the checked-in aggregate
+  audit baseline reports the unsmoothed percentile and smoothed rows both at
+  0.495 over 105 `beta_T = 0`, `model_formula = ~1` rows. **Historical row
+  provenance audit 2026-10-16:** the baseline file was last committed in
+  `11f61e0a` (2026-09-24); the ignored local raw CSV contains the matching
+  105-row method cells (50 `FixedBinaryMatch` + 54 `KK21stepwise` on
+  `diamonds`, plus 1 `FixedBinaryMatch` row on `pte_example`; raw timestamps
+  2026-09-10 through 2026-09-16). Each method has 52/105 rejections, but
+  equality of the rates does not mean equality of the p-values: 52 paired
+  values match exactly, 53 differ, and only 2 rows have different rejection
+  decisions. All 50 `diamonds`/`FixedBinaryMatch` p-values are exactly
+  0.013245 for both methods. Thus the shared 0.495 is dominated by that
+  design's 50/50 rejections and is not evidence that smoothing alone caused
+  it. The harness calls the same `compute_rand_bootstrap_two_sided_pval()`
+  method twice: default `type="percentile"`, then `type="smoothed"`
+  (`R/package_tests/comprehensive_tests.R:3077-3092`). The raw CSV preserves
+  outcomes and case/commit metadata, but has no RNG seed, assignments, or
+  response vectors; it cannot regenerate the exact 105 historical inputs.
+  The row-level outcomes can be paired for comparison, but an exact DGP replay
+  is not reconstructible from checked-in/raw artifacts. Do not treat the
+  earlier pilot as a historical replay or change bandwidth based on it.
+  Raw and summary pilot outputs are isolated at
+  `/tmp/edi-todo18-robust-onelik-bandwidth-20261016.csv` and
+  `/tmp/edi-todo18-robust-onelik-bandwidth-20261016-summary.csv`; the script
+  is `/tmp/edi_todo18_onelik_bandwidth_calibration_20261016.R`.
+  **500-replicate extension 2026-10-16:** repeated the same predeclared
+  n=30 KK14 sharp-null experiment against installed EDI 1.0.3, B=101, 500
+  planned fixtures, common materialized assignments and common normal noise
+  across the 0.5x/1x/2x bandwidth grid. Four fixtures (replicates 161, 171,
+  269, 304) had a non-finite observed robust estimate, so all four variants
+  were non-estimable there; the 496 finite replicates had zero thrown errors.
+  Exact 95% binomial CIs were: percentile 35/496 = 7.06% [4.96%, 9.68%];
+  smoothed at 0.5x, 33/496 = 6.65% [4.62%, 9.22%]; current 1x, 32/496 =
+  6.45% [4.45%, 8.99%]; 2x, 22/496 = 4.44% [2.80%, 6.64%]. Paired decision
+  discordances versus percentile were 4 (3 plain-only, 1 smoothed-only), 11
+  (7, 4), and 19 (16, 3), respectively; exact paired binomial p-values were
+  0.625, 0.549, and 0.00443. This suggests a detectable decision shift only
+  at 2x in this small-n fixture; it does not justify choosing a new bandwidth.
+  The 500-replicate raw, summary, and paired outputs are
+  `/tmp/edi-todo18-robust-onelik-bandwidth-500-20261016.csv`,
+  `/tmp/edi-todo18-robust-onelik-bandwidth-500-20261016-summary.csv`, and
+  `/tmp/edi-todo18-robust-onelik-bandwidth-500-20261016-paired.csv`.
+  Recomputed summaries and paired counts from all 2,000 raw rows match those
+  CSVs exactly. The Rscript session printed all completion and summary output
+  but exited nonzero with a trailing `unexpected ')'`; independent script
+  parsing, R startup/shutdown, and summary-print checks pass, so this did not
+  corrupt or invalidate the completed outputs (the exact source of the
+  trailing process message is not reproducible). These remain installed-
+  EDI-1.0.3 fixture evidence, not checkout validation or the unreconstructible
+  historical DGP. **Representative larger-n/design slice 2026-10-16:** ran
+  exactly `Rscript scratch/todo18_onelik_larger_n_20261016_01/calibrate.R`:
+  installed EDI 1.0.3; `DesignFixedBinaryMatch`, n=148 (matching the
+  historical diamonds fixed-match cell's row count), 50 sharp-null fixtures,
+  B=101, and the same percentile/smoothed 0.5x/1x/2x paired assignment/noise
+  grid. All 50 replicates were finite for every variant, with zero errors.
+  Percentile rejected 1/50 = 2.0%, exact 95% CI [0.0005, 0.1065]; smoothed
+  at 0.5x and current 1x each rejected 1/50 = 2.0% with the same interval;
+  2x rejected 0/50 = 0%, CI [0, 0.0711]. Paired decisions were identical at
+  0.5x and 1x (0 discordances); 2x differed on one replicate (plain-only),
+  exact paired p=1. Thus this larger-n fixed-match null slice does not change
+  the bandwidth decision: current 1x is indistinguishable from percentile,
+  and the single 2x difference is uninformative. Raw, summary, and paired
+  outputs are isolated under the gitignored
+  `scratch/todo18_onelik_larger_n_20261016_01/`. This is a synthetic null
+  fixture, not the unreconstructible historical DGP. TODO-2 remains open
+  pending additional representative n/design slices and an evidence-based
+  bandwidth decision.
+  **Outcome-adaptive design slice 2026-10-16:** ran
+  `Rscript scratch/todo18_onelik_kk21stepwise_20261016_01/calibrate.R`
+  against installed EDI 1.0.3 only. This used 25 sharp-null fixtures with
+  `DesignSeqOneByOneKK21stepwise` (n=60, two independent normal covariates,
+  sequentially revealed independent N(0,1) responses), then
+  `InferenceContinKKRobustRegrOneLik` (`model_formula=~1`, method MM,
+  `use_rcpp=FALSE`). B=101 assignments were materialized once per fixture;
+  percentile and smoothed at 0.5x/1x/2x current `sd(y)/sqrt(n)` bandwidths
+  reused those assignments and common noise. All 25 fixtures were finite for
+  all four variants, with zero errors. Percentile and smoothed 0.5x/current
+  each rejected 2/25 (8%; exact 95% CI [0.0098, 0.2603]); 2x rejected 1/25
+  (4%; [0.0010, 0.2035]). Paired decisions were identical at 0.5x and 1x;
+  the 2x result differed on one fixture (percentile-only, exact paired
+  p=1). This adds an outcome-adaptive design check but is still a small,
+  synthetic installed-package diagnostic, not a historical-DGP replay or
+  checkout validation; it does not justify changing the bandwidth. Raw,
+  summary, paired results, and the predeclared seed protocol are isolated in
+  `scratch/todo18_onelik_kk21stepwise_20261016_01/`. TODO-2 remains open.
 - [ ] TODO-3: Reproduce directly via `pkgload::load_all(".", compile = FALSE)`
   only (never `R CMD INSTALL`/`R CMD build`/`pkgbuild::compile_dll()`/
   `load_all(compile = TRUE)` or unspecified `compile=` — hard project rule,
@@ -191,7 +295,17 @@ the full audit-to-dispatch cross-reference is still open.
   GLMM p-value, continuous raw additive noise and a finite KK robust OneLik
   smoothed p-value, plus survival raw additive noise and a finite CoxPH
   smoothed p-value (all with `compile = FALSE`). This establishes path
-  preservation, not calibration of the continuous outlier.
+  preservation, not calibration of the continuous outlier. The deterministic
+  count-support reference is `R/EDI/tests/testthat/test-brt-smoothed-count-support.R`:
+  input `y = c(0, 0, 1, 3, 7)` and noise `c(-0.9, 0.4, -0.6, 0.51, -2.7)` must
+  return integer `c(0, 0, 0, 4, 4)`, with every value nonnegative; this
+  independently pins both nearest-integer rounding and the zero floor,
+  including negative noisy counts. The same test asserts the continuous path
+  remains exactly `y + noise`, and the Poisson GLMM public-path check produces
+  a finite p-value without GLMM fit-error messages. Categorical/bounded
+  response guards and lower-level supplied-draw guards are pinned in the same
+  file. These deterministic contracts are covered; they do not substitute for
+  the open historical/true-null calibration or CSV regeneration gates.
 - [ ] TODO-6: Re-run true-null calibration checks across all affected
   classes/response-types and confirm rejection rates return to nominal
   ~5%.
@@ -220,3 +334,52 @@ of `R/EDI` without being asked in that turn; verify via
 `pkgload::load_all(".", compile = FALSE)` only, never a full build.
 Response types NOT affected by whatever gap is found must produce
 unchanged (bit-for-bit or floating-point-tolerance) results after the fix.
+
+## Audit boundary and next criterion (2026-10-16)
+
+The historical `InferenceContinKKRobustRegrOneLik` 49.5% signal is a
+continuous-response/bandwidth question, not explained by the categorical
+noise-support bug: in the paired historical rows the unsmoothed percentile
+variant also rejected 52/105, exactly the smoothed count; only 2/105
+decisions differed, and all 50 `diamonds`/`FixedBinaryMatch` rows rejected
+under both at p = 0.013245. The raw rows lack seeds, assignments, and response
+vectors, so they cannot recover the original DGP. Existing installed-1.0.3
+follow-ups (500 `n=30` KK14 cases, 50 `n=148` FixedBinaryMatch cases, and 25
+KK21stepwise cases) show no current-bandwidth rejection-rate difference from
+matched percentile draws; none is an exact historical replay or validates
+the checkout.
+
+Keep the nearby release findings separate: TODO-17 is the Wilcoxon
+inclusive-tail/zero-estimate tie boundary (a generic mid-p change would alter
+legitimate tied results); TODO-20 is Quantile regression's nonsmoothed BRT
+duplicate-row/fit sensitivity. Neither is evidence about adding Gaussian
+noise to response values in this plan.
+
+Next runnable criterion after TODO-56 is terminal: the categorical/bounded
+model-refit cells (incidence, ordinal, proportion) are now intentionally
+unsupported and should be checked as rejection/advertisement guards, not
+recalibrated as if they still had a smoothed estimator. For the remaining
+supported outliers, include both continuous and count cells. The checked-in
+smoothed `pval_miscalibration` baseline has seven count keys in addition to
+the continuous keys: `InferenceAllSimpleAverageDiff`,
+`InferenceCountHurdleNegBin` (`~1`),
+`InferenceCountHurdlePoisson` (`~1`),
+`InferenceCountKKHurdlePoissonOneLik` (`~1`), `InferenceCountPoisson` (`~.`),
+`InferenceCountZeroInflatedNegBin` (`~1`), and
+`InferenceCountZeroInflatedPoisson` (`~1`). These are still supported after
+the count rounding/floor correction, so the deterministic boundary test does
+not close their empirical calibration gate. Run a predeclared true-null
+comparison for the continuous outliers, including
+`InferenceContinKKRobustRegrOneLik` (`model_formula=~1`) and
+`InferenceContinOLS` (`model_formula=~.`), using the comprehensive harness's
+current null DGP/design once recovered; cover the seven count keys above in
+the same audit or an equivalent predeclared count stratum. Use at least 500
+estimable outer cases and B=101 materialized assignments per case. Reuse the
+same assignments and Gaussian noise in percentile and smoothed variants;
+report non-estimable counts, exact binomial intervals for each rejection
+rate, and paired decision discordances. If the comprehensive DGP cannot be
+reconstructed, label this as a fresh representative calibration only; do
+not claim it reproduces the historical cells or alter the bandwidth from
+it. The focused deterministic support test already pins the count transform;
+do not add a nominal-rate assertion to it before this empirical run defines
+the fixture, seed, and acceptance tolerance.

@@ -173,6 +173,7 @@ ContinuationRatioFit fast_continuation_ratio_internal(
 	}
 
 	int p_aug = result.n_alpha + result.p;
+	require_square_matrix(warm_start_fisher_info, p_aug, "warm_start_fisher_info");
 	ContinuationRatioObjective fun(result.X_aug, result.z, result.weights_aug);
 	VectorXd beta = VectorXd::Zero(p_aug);
 	if (warm_start_beta.has_value()) {

@@ -1,163 +1,71 @@
 # EDI 1.0.5
 
-A correctness release. The algorithm audit and the comprehensive-test sweeps
-found results that were wrong in specific classes; those are fixed below.
-Seeded draws are now identical on Linux, macOS and Windows and at every
-thread count, and CI checks this on each platform. No new statistical
-capability.
+Correctness release. Wrong results found by the algorithm audit and the
+comprehensive-test sweeps are fixed, and seeded draws are now identical on
+Linux, macOS and Windows at every thread count (checked in CI). No new
+methods.
 
 ## Breaking changes
 
-* Installing from GitHub source now builds the same portable configuration
-  as CRAN (`EDI_PORTABLE=1`), so results match across install methods and a
-  compiled library no longer dies with "illegal instruction" on another CPU.
-  The machine-tuned build (`-march=native`, `-O3`) is opt-in with
-  `EDI_PORTABLE=0`; see "Tuning Local Builds" in the README.
-
-* Seed-pinned draws change once. Every design and resampling kernel now
-  shuffles with a portable Fisher-Yates on EDI's Mersenne-Twister port
-  instead of `std::shuffle`, so the same seed gives the same draws on every
-  platform (they differed by C++ standard library). `DesignFixedGreedy`,
-  `DesignFixedGreedyDOptimal`, `DesignFixedMatchingGreedyPairSwitching` and
-  `DesignFixedRerandomization` derive their streams from the draw index, so
-  draws no longer depend on the OpenMP thread count. Parametric- and
-  randomization-bootstrap replicate seeds are drawn without replacement.
-
-* Randomization confidence intervals (`compute_rand_confidence_interval()`,
-  `compute_rand_bootstrap_confidence_interval()`) invert the two-sided
-  p-value at `alpha`, giving the documented `1 - alpha` level; they inverted
-  at `alpha / 2` before and were too wide. The default `pval_epsilon` for
-  these and for the exact Zhang interval tightened from 0.005 to 1e-6.
-
-* Binary matching minimizes plain Mahalanobis or Euclidean distance, as
-  `nbpMatching::gendistance()` does, instead of squared distance, which can
-  change the selected pairs. `match_objective = "squared_distance"` on
-  `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching`
-  restores the old objective.
-
-* `DesignSeqOneByOneKK21` and `DesignSeqOneByOneKK21stepwise` survival
-  weights come from a correct Weibull AFT fit (the previous iteration
-  converged to the wrong fixed point), which changes survival allocations.
-
-* `InferenceSurvivalRestrictedMeanDiff` truncates both arms at one shared
-  horizon, the smaller of the two arms' maximum follow-up.
-
-* `DesignFixedOptimal` bootstrap-randomization replays reuse the observed
-  allocation's solver and budget; the cheaper annealing profile is opt-in
-  through `brt_solver`. The old default replayed a weaker solver and the
-  test was conservative.
-
-* Jackknife p-values and intervals are centred on the jackknife estimate
-  rather than the full-sample estimate.
-
-* Methods that could not give a valid answer now error instead of returning
-  one: `InferenceIncidKKModifiedPoisson` offers Wald inference only (with a
-  cluster-robust SE); `type = "smoothed"` randomization bootstrap is refused
-  for categorical and bounded refits, Ridit and Jonckheere-Terpstra; the
-  exact-test classes refuse bootstrap-weighted estimates; and
+* GitHub source installs build the portable CRAN configuration by default;
+  `EDI_PORTABLE=0` restores the machine-tuned build.
+* Seed-pinned draws change once: a portable Fisher-Yates shuffle replaces
+  `std::shuffle`, and the greedy, D-optimal, pair-switching and
+  rerandomization designs no longer depend on the thread count.
+* Randomization intervals invert at `alpha`, not `alpha / 2` (they were too
+  wide); the default `pval_epsilon` drops from 0.005 to 1e-6.
+* Binary matching minimizes plain distance, as `nbpMatching` does;
+  `match_objective = "squared_distance"` restores the old pairs.
+* KK21 survival weights come from a correct Weibull AFT fit.
+* `InferenceSurvivalRestrictedMeanDiff` truncates both arms at one horizon.
+* `DesignFixedOptimal` bootstrap replays reuse the observed solver
+  (`brt_solver` overrides).
+* Jackknife inference is centred on the jackknife estimate.
+* Methods that cannot give a valid answer now error: KK modified Poisson is
+  Wald-only, smoothed randomization bootstrap is refused for categorical and
+  bounded refits, exact tests refuse bootstrap weights, and
   `InferenceOrdinalKKCondAdjCatLogitRegr` drops the Bayesian bootstrap.
 
 ## New features
 
-* `DesignSeqOneByOneKK21stepwise$new(condition_on_ws_for_rand_tests =
-  FALSE)` replays the full sequential allocation in randomization tests
-  (exact but slow); the default keeps the fast conditional draws.
-
-* Randomization intervals for `InferenceContinKKQuantileRegrOneLik` and
-  `InferencePropKKQuantileRegrOneLik` work again; 1.0.2 disabled them.
-
-* Studentized Bayesian-bootstrap intervals for the Weibull, KK Weibull
-  marginal, Weibull-frailty and modified-Poisson classes.
-
-* `InferenceSurvivalKMDiff$compute_bayesian_bootstrap_two_sided_pval()`
-  drops non-finite draws by default (`na.rm = TRUE`).
+* `DesignSeqOneByOneKK21stepwise`: `condition_on_ws_for_rand_tests = FALSE`
+  replays the full allocation in randomization tests.
+* KK quantile-regression randomization intervals are re-enabled.
+* Studentized Bayesian-bootstrap intervals for the Weibull and
+  modified-Poisson classes.
+* `na.rm` for the KMDiff Bayesian-bootstrap p-value.
 
 ## Bug fixes
 
-* `InferenceOrdinalRidit(reference = "treatment")` returned an estimate of
-  0 and `p = 1` for every dataset; it now reports `0.5 - mean_control_ridit`
-  with the SE from the control arm. Ridit also misscored an interior
-  category absent from the reference arm.
-
-* `InferenceIncidModifiedPoisson` uses Zou's robust sandwich variance for
-  Wald inference; the model-based Poisson information gave 0.26% rejection
-  at a nominal 5%.
-
-* Randomization intervals for classes other than mean difference, OLS, Lin
-  and KK OLS reused the null distribution shifted by `delta`, which is only
-  exact for those estimators; the others now recompute. The upper-bound
-  refinement also moved the wrong endpoint.
-
-* `InferenceAllKKWilcoxIVWC`: Hodges-Lehmann SEs lacked their normal
-  calibration factors (about 2x too small), the bootstrap interval returned
-  the asymptotic one, and randomization-bootstrap draws were on a different
-  scale from the observed statistic. Other legacy KK `*IVWC` classes (hurdle
-  Poisson, robust regression, survival rank regression, mean difference)
-  used placeholder variances or dropped the pair structure when resampling,
-  giving `NA` or wrong p-values.
-
-* Mixed models: the logistic GLMM Hessian double-counted the variance
-  component, so SEs were wrong; logistic and Poisson GLMM and ordinal CLMM
-  fits multi-start over the variance scale; the KK GEE exchangeable
-  correlation was not divided by the dispersion (now matches `geepack`).
-  Bootstrap-weighted refits of the KK conditional-logit GLMM and the KK
-  ordinal mixed classes fit the wrong model (a plain GLMM, or a fixed-effects
-  proportional-odds model ignoring the pairs).
-
-* `InferenceOrdinalCloglogRegr`'s parametric bootstrap: the sign mismatch
-  left open in 1.0.2 is fixed (the kernel stores slopes with the opposite
-  orientation from the shared simulator). Stereotype-logit and
-  continuation-ratio fits gained multi-start.
-
-* `InferencePropZeroOneInflatedBetaRegr`'s marginal mean difference used
-  renormalized logistic probabilities instead of the model's softmax.
-
-* Designs: `DesignSeqOneByOneRandomBlockSize` redraws used the last
-  subject's stratum and mutated the design, and a single `block_sizes` value
-  was mis-sampled; `DesignSeqOneByOnePocockSimon` merged `NA` with a literal
-  `"NA"` level; `DesignFixedOptimalBlocks` could make block sizes differ by
-  more than one.
-
-* Incidence: the Newcombe p-value returned 1 when its root search failed
-  and was imprecise for small p; the exact-binomial p-value is equal-tailed
-  so it agrees with its Clopper-Pearson interval; the Zhang exact interval
-  widens its bracket and reports `Inf` where the bound is infinite instead
-  of a truncated finite value.
-
-* Survival: stratified-Cox parametric-bootstrap simulation scaled every
-  stratum by the global maximum; `InferenceSurvivalDepCensTransform`
-  bootstrap intervals are no longer replaced by Wald or `NA` based on their
-  sign or width; the Clayton-copula Weibull fitter overflowed at the theta
-  bound; the KK Weibull marginal returns `NA` when an arm has no events; Cox
-  fallbacks use Breslow ties consistently.
-
-* Stale caches: GLM, Cox and stratified-Cox design caches were keyed on `w`
-  only; log-rank and Gehan returned stale values; `Design$get_X_imp()`
-  shared memory with the raw covariates.
-
-* `InferenceAllSimpleAverageDiff` treats bootstrap weights as frequency
-  weights (it used a Kish effective sample size).
-
-* Non-estimable cases: singular information matrices give `NA` SEs for the
-  beta, NegBin, ZAP and ZINB fits instead of garbage; m-out-of-n and
-  subsampling selection failures record a reason and return `NA`; the
-  Jonckheere-Terpstra exact enumeration is capped at 1e6 cells and falls
-  back to the asymptotic p-value with a warning instead of hanging.
-
-* Crashes: GC-protection faults in the KK21 ordinal and match-data kernels;
-  repeated C++ compiles in `InferenceRandCustom` exhausted `tempdir()`
-  inodes (compiles are now cached).
+* Ridit `reference = "treatment"` always returned 0; interior levels misscored.
+* Modified Poisson Wald SE is the robust sandwich.
+* Randomization intervals reused a shifted null that is exact only for
+  mean-difference and OLS estimators, and refined the wrong endpoint.
+* `InferenceAllKKWilcoxIVWC` SEs, bootstrap interval and bootstrap scale;
+  other legacy `*IVWC` classes had placeholder variances or dropped pairs.
+* Mixed models: logistic GLMM Hessian, multi-start fits, KK GEE correlation,
+  bootstrap-weighted refits that fit the wrong model.
+* Ordinal: cloglog parametric-bootstrap sign (left open in 1.0.2),
+  stereotype and continuation-ratio multi-start; ZOIB softmax means.
+* Designs: `RandomBlockSize` redraw stratum and single block size,
+  `PocockSimon` `NA` level, `OptimalBlocks` block-size spread.
+* Incidence: Newcombe root search, equal-tailed exact-binomial p-value,
+  Zhang interval bracket.
+* Survival: stratified-Cox bootstrap scaling, DepCens intervals, Clayton
+  overflow, KK Weibull no-event `NA`, Breslow ties in Cox fallbacks.
+* Stale caches keyed on `w` only (GLM, Cox, log-rank, Gehan);
+  `get_X_imp()` aliased the raw covariates.
+* `InferenceAllSimpleAverageDiff` bootstrap weights are frequency weights.
+* Singular fits return `NA` SEs; Jonckheere-Terpstra exact enumeration is
+  capped at 1e6 cells.
+* Crashes: GC faults in the KK21 ordinal and match kernels;
+  `InferenceRandCustom` compile cache.
 
 ## Performance
 
-* Randomization intervals cache the per-permutation slopes once, and
-  `InferenceContinOLS` randomization runs in a C++ kernel. Bayesian-bootstrap
-  weights are drawn in one batch, ZOIB reuses a bootstrap worker, and model
-  matrices are built lazily.
-
-* OpenMP kernels use the package thread maximum instead of resetting the
-  global thread count, and SIMD hints apply under Apple clang without
-  OpenMP.
+* Cached per-permutation slopes, a C++ OLS randomization kernel, batched
+  Bayesian-bootstrap weights, lazy model matrices; OpenMP kernels respect the
+  package thread maximum.
 
 # EDI 1.0.2
 

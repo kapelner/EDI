@@ -287,7 +287,29 @@ is O(r) arithmetic and MC is moot.
   the modest end-to-end gain is consistent with shared CI setup/search and
   p-value counting limiting the realized benefit at this workload. CSV:
   `/tmp/edi-todo2-installed-benchmark-20261015.csv`; harness:
-  `/tmp/edi-todo2-installed-benchmark.R`.
+  `/tmp/edi-todo2-installed-benchmark.R`. **Exploratory profile, 2026-10-16:**
+  one warmed call per route on installed EDI 1.0.3 at `n=500, r=1001`,
+  `InferenceContinOLS`, with the same fixed permutation matrix, measured
+  0.180 s affine and 0.213 s general under `Rprof` (10 ms sampling; this is
+  not a benchmark acceptance run). Both profiles retained substantial
+  allocation/GC cost (35–40% sampled self time); affine still spent about
+  43% of sampled total in the CI p-value/cache path, including cache-key and
+  stable-signature work, while the general path spent about 38% in randomization
+  distribution-prefix/kernel work. This localizes plausible remaining shared
+  overhead but does not establish a stable per-function cost: the profiles
+  contain few samples, GC is material, and they do not substitute for a
+  repeated paired benchmark. Raw profiles and runner scratch are under
+  `scratch/todo2_profile_20261016/`. **Source-level cache-key optimization,
+  2026-10-16:** `compute_rand_two_sided_pval()` now computes the full-content
+  permutation signature once and supplies it to the private distribution
+  cache-key builder, which retains its old hash-on-omitted/NULL behavior for
+  other callers. The stable-signature regression now checks precomputed-key
+  identity, full-content mutation sensitivity, and the NULL signature. The
+  edited R files parse and their scoped `git diff --check` is clean; the
+  installed EDI 1.0.3 cannot validate unbuilt checkout edits, so the focused
+  test remains unrun pending an authorized source/native validation path. No
+  benchmark followed this change; it makes no speedup claim and leaves the
+  20–30× target open.
 
 - [x] **TODO-7: Reconcile the KK-GEE mixin read site.** Completed 2026-10-09:
   the never-populated legacy `t0s_rand + delta` branch was removed from the

@@ -47,6 +47,7 @@ truth_fixture <- function() {
 		"COVERAGE_TRUTH_UNAVAILABLE",
 		"coverage_truth_uses_real_covariates",
 		"coverage_truth_cache_key",
+		"coverage_truth_seed",
 		"get_coverage_mc_spec",
 		"get_coverage_truth",
 		".screen_estimate_theta_cache",

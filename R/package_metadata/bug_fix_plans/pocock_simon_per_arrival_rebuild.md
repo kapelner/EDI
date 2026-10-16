@@ -70,13 +70,21 @@ one with `NA` strata values).
   cost against t; the slope is the bug. Promote to `R/benchmark/` next to
   the design table. Installed package only.
 
-- [ ] TODO-2: **Incremental level bookkeeping (F3).** Make
+- [x] TODO-2: **Incremental level bookkeeping (F3).** Make
   `ensure_factor_metadata()` O(k): keep the full rescan only when
   `strata_level_rows` is `NULL` (first call or after `duplicate()`), and
   otherwise register only the keys of row t. Remove the duplicate call
   from `get_subject_levels_idx()` or make it a no-op after the first
   registration. Also read the k values directly (`Xraw[[col]][t]`) instead
-  of `Xraw[t, ]` (F4).
+  of `Xraw[t, ]` (F4). The current source implements this: the full scan is
+  limited to first use/reinitialization, subsequent arrivals inspect only
+  row `t`, and the sequential numeric-row lookup reads `Xraw[[col]][i]`
+  directly. The focused reference test covers incremental level discovery,
+  first-arrival missing strata versus a literal `"NA"` category, and stable
+  count-row mappings. Parse-only validation passed on 2026-10-16. Native
+  execution against the current checkout remains unverified until an
+  authorized rebuild/install; that runtime gate is tracked with TODO-5's
+  post-change validation, not as unfinished implementation work here.
 
 - [x] TODO-3: **Do not rebuild the model matrix during the sequence for
   rules that never read it (F2).** Add a class-level private flag (for
@@ -132,6 +140,51 @@ one with `NA` strata values).
   not a clean comparison; they fail the 0.5 ms target at every checkpoint.
   This reinforces the need for an isolated timing run and does not close
   TODO-5.
+
+### TODO-5 post-gate run protocol (prepared 2026-10-16)
+
+Do not run until TODO-56 is terminal, the current checkout has an explicitly
+authorized `EDI_UNITY=0` rebuild/install, and the machine is otherwise idle.
+Record `git rev-parse HEAD`, installed `packageVersion("EDI")` and
+`find.package("EDI")`, build/install time, R/platform versions, the exact
+command, and whether any competing CPU-heavy process was active. Keep the
+benchmark stdout and its optional CSV together as one isolated run record.
+
+1. For asymptotic/per-arrival acceptance, run the current installed package
+   with `Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5`.
+   This fixes `n=1000`, 20 batched designs, five repeats, four strata columns,
+   covariate seed 6001 and assignment seed 6002; the harness reports
+   per-arrival median/min/max at `t={10,100,500,1000}` and whole-sequence
+   median. Require each checkpoint median `<= 0.5 ms` and no material
+   increasing trend from t=10 to t=1000. Preserve the printed result and
+   record the host/load fields above; the existing harness does not emit each
+   replicate's raw timing, so do not describe min/max as a confidence interval.
+
+2. For semantic parity, run the same explicit fixture in an isolated EDI
+   1.0.2 environment and the rebuilt checkout: the eight-row factor fixture
+   in `test-pocock-simon-level-rows-and-binary-match-structure-reference.R`
+   (seed 601, `strata_cols=c("g","h")`, weights `c(1,2)`, `p_best=0.8`,
+   including late levels and missing values). Capture the full `X`, factor
+   levels, constructor arguments, seed, and both complete assignment vectors;
+   require exact vector identity and separately verify the expected vector
+   `c(1,0,0,1,0,1,0,0)`. The source-test expectation alone is not evidence
+   that EDI 1.0.2 produced the same vector. If 1.0.2 cannot be run, report
+   that baseline comparison as unavailable rather than infer parity.
+
+3. For release-table context, compare complete n=1000 workflows against the
+   existing `carat::PocSimMIN()` and `Minirand` rows in
+   `R/benchmark/benchmark_model_fits.md`, recording their two-factor fixture
+   and ten warmed-run convention separately from the four-column focused
+   harness above. `carat` processes the whole table in C++ and uses a
+   different interface/imbalance criterion, so its 4.41 ms result is context,
+   not a feasible pass threshold for EDI's 1000 public R arrivals. Retain the
+   R-loop Minirand comparison as contextual evidence, not an algorithmically
+   identical parity claim. Do not claim the original “within 10x of carat”
+   criterion; at 0.5 ms per EDI arrival that cap permits 500 ms total, while
+   10x the recorded carat time is only 44.1 ms.
+
+This protocol is readiness documentation only: no benchmark or package
+execution was performed while TODO-56/rebuild authorization gates remain.
 
 ## Implementation and validation (2026-10-09)
 

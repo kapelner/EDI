@@ -255,6 +255,7 @@ edi::ResultMap fast_weibull_regression_internal(
     std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt
 ) {
     int p = (int)X.cols();
+    require_square_matrix(warm_start_fisher_info, p + 1, "warm_start_fisher_info");
     FixedParamSpec fixed_spec = make_fixed_param_spec(p + 1, fixed_idx, fixed_values);
     WeibullAFTLikelihood fun(y, dead, X);
 
@@ -448,6 +449,7 @@ edi::ResultMap fast_weibull_regression_left_interval_censoring_internal(
     std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt
 ) {
     int p = (int)X.cols();
+    require_square_matrix(warm_start_fisher_info, p + 1, "warm_start_fisher_info");
     FixedParamSpec fixed_spec = make_fixed_param_spec(p + 1, fixed_idx, fixed_values);
     WeibullAFTLikelihoodGeneral fun(y, y_L, y_R, X);
 

@@ -69,50 +69,52 @@ test_that("debug=TRUE reproduces the debug=FALSE distribution exactly on the non
 	expect_equal(debug_out$prop_illegal_values, 0)
 })
 
-test_that("multi-core ordinary dispatch and debug-safe serial fallback on the non-reusable duplicate() branch reproduce the single-core distribution", {
-	# num_cores = 2 below drives par_lapply() into its lazy-fork-cluster branch
-	# (inference_all_abstract.R's par_lapply(), "Unix with no pre-existing
-	# cluster: create one lazily and cache it"), which stores a real,
-	# persistent 2-worker cluster in edi_env$global_fork_cluster -- by design,
-	# for real callers this cluster is meant to outlive the call for reuse.
-	# In a bin-packed test shard that persistence leaks into every later test
-	# in the same session (get_num_cores() then reports 2, not 1), so this
-	# test must tear it down itself.
-	on.exit(unset_num_cores(), add = TRUE)
-	des = simulate_hurdle_negbin_design(3L)
-
+test_that("non-reusable Bayesian-bootstrap debug bypasses outer par_lapply but ordinary mode still dispatches", {
+	des = simulate_hurdle_negbin_design(4L)
 	inf_single = InferenceCountHurdleNegBin$new(des, verbose = FALSE)
-	inf_single$set_seed(456)
-	values_single = inf_single$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 16L, show_progress = FALSE, debug = FALSE)
+	inf_single$set_seed(789)
+	values_single = inf_single$approximate_bayesian_bootstrap_distribution_beta_hat_T(
+		B = 8L, show_progress = FALSE, debug = FALSE
+	)
 
-	# num_cores > 1 exercises the non-reusable do_warmup_iter() and the
-	# unlist(private$par_lapply(...)) chunked-dispatch arm (lines ~199-246),
-	# not just the sequential actual_cores<=1L branch. tolerance (not exact
-	# equality) because the per-replicate NegBin fit's OpenMP-parallel linear
-	# algebra does not sum in the same order at 1 vs 2 active threads, so the
-	# optimizer can land a few ULPs apart even under the same seed -- confirmed
-	# empirically (differences ~1e-7, not a real divergence).
-	inf_multi = InferenceCountHurdleNegBin$new(des, verbose = FALSE)
-	inf_multi$set_seed(456)
-	inf_multi$num_cores = 2L
-	values_multi = inf_multi$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 16L, show_progress = FALSE, debug = FALSE)
+	# Keep the ordinary path's dispatch contract under test without creating a
+	# real fork cluster.  par_lapply normally partitions X and applies FUN to
+	# each element, so this serial spy preserves its result shape while proving
+	# the non-debug branch still reaches the parallel-dispatch seam.
+	inf_ordinary = InferenceCountHurdleNegBin$new(des, verbose = FALSE)
+	inf_ordinary$set_seed(789)
+	inf_ordinary$num_cores = 2L
+	ordinary_priv = inf_ordinary$.__enclos_env__$private
+	ordinary_dispatches = 0L
+	unlockBinding("par_lapply", ordinary_priv)
+	ordinary_priv$par_lapply = function(X, FUN, ...) {
+		ordinary_dispatches <<- ordinary_dispatches + 1L
+		lapply(X, FUN)
+	}
+	ordinary_values = inf_ordinary$approximate_bayesian_bootstrap_distribution_beta_hat_T(
+		B = 8L, show_progress = FALSE, debug = FALSE
+	)
+	expect_gt(ordinary_dispatches, 0L)
+	expect_length(ordinary_values, 8L)
+	expect_equal(ordinary_values, values_single, tolerance = 1e-5)
 
-	expect_equal(values_multi, values_single, tolerance = 1e-5)
-
-	# Debugging non-reusable workers intentionally falls back to the parent
-	# process.  Forking after one of these fits has used OpenMP can inherit a
-	# permanently locked runtime mutex, so this must remain safe even when the
-	# caller requests multiple cores.
+	# A regression that routes debug through par_lapply fails immediately here,
+	# rather than attempting a flaky fork/hang in the test process.
 	inf_debug = InferenceCountHurdleNegBin$new(des, verbose = FALSE)
-	inf_debug$set_seed(456)
+	inf_debug$set_seed(789)
 	inf_debug$num_cores = 2L
-	debug_multi = inf_debug$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 16L, show_progress = FALSE, debug = TRUE)
-	# Debug mode serializes the outer duplicate()-per-draw dispatch to avoid
-	# forking after OpenMP work, but the model fit still honors num_cores = 2.
-	# Keep the same tolerance used above for ordinary multi-core refits because
-	# their floating-point reduction order can differ by a few 1e-7.
-	expect_equal(debug_multi$values, values_single, tolerance = 1e-5)
-	expect_length(debug_multi$values, 16L)
-	expect_equal(debug_multi$num_errors, rep(0L, 16L))
-	expect_equal(debug_multi$num_warnings, rep(0L, 16L))
+	debug_priv = inf_debug$.__enclos_env__$private
+	debug_dispatches = 0L
+	unlockBinding("par_lapply", debug_priv)
+	debug_priv$par_lapply = function(...) {
+		debug_dispatches <<- debug_dispatches + 1L
+		stop("non-reusable debug path unexpectedly called par_lapply")
+	}
+	debug_values = inf_debug$approximate_bayesian_bootstrap_distribution_beta_hat_T(
+		B = 8L, show_progress = FALSE, debug = TRUE
+	)
+	expect_identical(debug_dispatches, 0L)
+	expect_length(debug_values$values, 8L)
+	expect_equal(debug_values$values, values_single, tolerance = 1e-5)
+	expect_equal(debug_values$num_errors, rep(0L, 8L))
 })

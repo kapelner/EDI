@@ -69,3 +69,29 @@ test_that("NA entries in m_mat are zeroed (unpaired) rather than propagating NA,
 	# second column has an all-NA (-> all-zero) m_mat column, so it must match the unpaired formula
 	expect_equal(out[2], mean(f$priv$y[w2 == 1L]) - mean(f$priv$y[w2 == 0L]), tolerance = 1e-10)
 })
+
+constant_effect_fixed_match_fixture <- function() {
+	set.seed(20261016L)
+	n <- 24L
+	X <- data.frame(x1 = rnorm(n))
+	des <- DesignFixedBinaryMatch$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X)
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	des$add_all_subject_responses(2 * w)
+	inf <- InferenceAllKKMeanDiffIVWC$new(des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	priv$compute_basic_match_data()
+	list(inf = inf, priv = priv)
+}
+
+test_that("KKPassThrough's generic debug bootstrap preserves a constant treatment effect", {
+	f <- constant_effect_fixed_match_fixture()
+	set.seed(20261017L)
+	out <- f$inf$approximate_bootstrap_distribution_beta_hat_T(B = 8L, show_progress = FALSE, debug = TRUE)
+	expect_length(out, 8L)
+	expect_true(all(vapply(out, function(x) is.null(x$error), logical(1))))
+	# Every matched difference is exactly 2, so the independent bootstrap reference is 2
+	# for every resampled pair set, regardless of the pair multiplicities.
+	expect_equal(vapply(out, `[[`, numeric(1), "val"), rep(2, 8L), tolerance = 1e-10)
+})

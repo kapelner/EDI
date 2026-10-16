@@ -217,6 +217,37 @@ are fixed here because they are still exported and registered.
   installed native wrapper accepted and exercised the weighted arguments.
   Codex did not rebuild/install; comprehensive regeneration remains open.
 
+  **Comprehensive-results readiness audit, 2026-10-16 (read-only):** the
+  checkout contains no `comprehensive_tests_results*.csv`. The available
+  `/tmp` artifacts contain older `InferenceIncidKKCondLogitGLMMOneLik`
+  incidence/Bayesian-bootstrap rows on commit
+  `5d8246300ea034bed7f4591d7f2258a7215436eb`, predating this implementation;
+  they are not post-fix evidence. No comprehensive CSV found in the available
+  `/tmp/edi-*` trees contains `InferenceIncidKKCondLogitGLMMIVWC`. The stale
+  filtered OneLik artifact has only the ten Bayesian-bootstrap methods
+  (five confidence-interval variants and five two-sided-p-value variants),
+  across its two beta values. Thus current post-fix rows are absent for both
+  affected incidence classes: `InferenceIncidKKCondLogitGLMMOneLik` and
+  `InferenceIncidKKCondLogitGLMMIVWC`, for all ten methods in
+  `bayesian_bootstrap`.
+
+  **Minimum isolated regeneration (not run):** copy the current `R/` tree to
+  a unique `/tmp/edi-todo77.*` directory, then run from that copy's `R/` root
+  with the already-installed package library first on `R_LIBS_USER`:
+
+  ```sh
+  R_LIBS_USER=/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7 \
+    Rscript package_tests/comprehensive_tests.R 1 1 incidence KK21stepwise \
+    'InferenceIncidKKCondLogitGLMM(OneLik|IVWC)' pima 0 1 bayesian_bootstrap
+  ```
+
+  This selects one dataset, design, beta, replicate, and test family for both
+  classes; its filtered CSV would stay under the disposable copy's
+  `R/package_tests/`. Verify `find.package("EDI")` resolves to the installed
+  library before running. No build/install is needed or authorized here, and
+  this isolated result would not replace the canonical comprehensive-results
+  regeneration/reconciliation gate.
+
 - [ ] TODO-9 (F2): **`.cox_simulate_stratified` hazard mis-scaling**
   (`helper_survival_fits.R:592-615`). The baseline is normalized by the stratum's
   max risk, but subject risk by the global max, so the hazard shrinks by

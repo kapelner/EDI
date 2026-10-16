@@ -130,6 +130,8 @@ edi::ResultMap fast_ordinal_probit_regression_internal(
     const int n_alpha = K - 1;
     const int n_params = n_alpha + p;
 
+    require_square_matrix(warm_start_fisher_info, n_params, "warm_start_fisher_info");
+
     VectorXd params(n_params);
     FixedParamSpec fixed_spec = make_fixed_param_spec(n_params, fixed_idx, fixed_values);
     if (warm_start_params.has_value()) {

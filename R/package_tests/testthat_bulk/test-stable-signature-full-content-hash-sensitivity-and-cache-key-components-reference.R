@@ -49,11 +49,17 @@ test_that("cache key combines r, delta (17 significant digits), transform and th
 	perm <- list(w_mat = matrix(sample(0:1, 40, TRUE), 10), m_mat = NULL)
 	key <- function(r = 10, delta = 0, tr = "none", permutations = perm) p$build_randomization_distribution_cache_key(r, delta, tr, permutations)
 	k0 <- key()
+	precomputed <- p$build_randomization_distribution_cache_key(
+		10, 0, "none", perm, permutation_signature = S(perm)
+	)
 	parts <- strsplit(k0, "|", fixed = TRUE)[[1]]
 	expect_identical(parts[1], "10"); expect_identical(parts[3], "none"); expect_identical(parts[4], S(perm))
+	expect_identical(precomputed, k0)
 	expect_false(identical(k0, key(r = 11))); expect_false(identical(k0, key(delta = 0.1))); expect_false(identical(k0, key(tr = "log")))
 	perm2 <- perm; perm2$w_mat[1, 1] <- 1L - perm2$w_mat[1, 1]
 	expect_false(identical(k0, key(permutations = perm2)))
 	expect_identical(k0, key())
+	null_key <- p$build_randomization_distribution_cache_key(10, 0, "none", NULL)
+	expect_identical(strsplit(null_key, "|", fixed = TRUE)[[1]][4], S(NULL))
 	expect_false(identical(key(delta = 0.1), key(delta = 0.1 + 1e-12)))
 })

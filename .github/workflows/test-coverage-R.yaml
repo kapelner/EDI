@@ -188,6 +188,16 @@ jobs:
       COVERAGE_BASELINE_PAT: ${{ secrets.COVERAGE_BASELINE_PAT }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Do NOT persist GITHUB_TOKEN into the repo's git config. checkout
+          # stores it as an `http.https://github.com/.extraheader` Authorization
+          # header, and git sends that header in preference to any credential
+          # embedded in the remote URL -- so the floor-bump push below
+          # authenticated as github-actions[bot] (which branch protection
+          # rejects, 403 "Permission ... denied to github-actions[bot]", run
+          # 38808821546 on 2026-10-15) instead of as the COVERAGE_BASELINE_PAT
+          # it was given. Nothing else in this job pushes or pulls over git.
+          persist-credentials: false
       - uses: actions/download-artifact@v8
         with:
           pattern: coverage-shard-*
@@ -243,6 +253,10 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Belt and braces with checkout's persist-credentials: false above: if a
+          # persisted GITHUB_TOKEN header is ever present it would silently win over
+          # the PAT in the URL (see the checkout step's comment), so drop it first.
+          git config --unset-all http.https://github.com/.extraheader || true
           git remote set-url origin "https://x-access-token:${{ secrets.COVERAGE_BASELINE_PAT }}@github.com/${{ github.repository }}.git"
           git add R/package_tests/ci/coverage_baseline.json
           git commit -m "ci: raise R coverage floor baseline [skip ci]"

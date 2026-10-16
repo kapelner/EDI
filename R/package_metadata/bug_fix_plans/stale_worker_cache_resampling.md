@@ -308,6 +308,59 @@ written to eliminate elsewhere in this codebase.
   and audit; any inference-method change requires a controlled, cluster-aware
   calibration study rather than this aggregate finding alone.
 
+  **Isolated minimal ordinal regeneration (2026-10-16; diagnostic only):**
+  in a fresh `/tmp/edi-todo9-ordinal-minregen-gW7hGl` copy, the absolute-path
+  harness ran installed EDI 1.0.3 for `iris`, ordinal, Bernoulli,
+  `InferenceOrdinalGCompMeanDiff`, `beta_T=0`, 40 reps, and `rand` only.
+  The 80 ordinary null p-values (40 per `~1`/`~.` formula) were non-pointmass:
+  32 distinct values per formula, ranges 0.013–0.954 and 0.013–0.967, with
+  3/40 and 2/40 below .05. The delta=.5 controls were retained but excluded
+  from null calibration by the audit as intended. The unmodified audit first
+  exposed an empty-CI edge in this rand-only slice (`binom.test(k, n=0)`);
+  one additional 1-rep bootstrap-family run in the same temp copy supplied
+  real CI rows, after which the audit ran against only the staged ordinal CSV
+  plus a copy of the tracked audit baseline: 0 current findings, 2165 baseline
+  findings absent from this deliberately partial file. This checks the local
+  stale-cache signature for one dataset/design; it is neither a calibration
+  study nor canonical regeneration/baseline rewrite. All outputs remain in
+  `/tmp/edi-todo9-ordinal-minregen-gW7hGl/`; no canonical CSV or baseline was
+  written, and no build/install occurred. TODO-7 remains open.
+
+  **Full canonical audit (2026-10-16; no canonical writes):** the unmodified
+  audit ran with `--force` in a `/tmp` staging directory whose result CSVs
+  were read-only symlinks to the canonical files and whose baseline was a
+  copy. It reported 183 baseline findings absent and 373 new findings across
+  the full suite, so `--write-baseline` remains blocked. There are 13 current
+  `InferenceOrdinalGCompMeanDiff` findings: 12 already accepted in the
+  baseline and one new `low_power` finding for
+  `compute_rand_bootstrap_two_sided_pval_smoothed` (0/67 non-null rows reject
+  at .05; p=8.60e-4). Its baseline-accepted null-calibration finding is the
+  same method: 0/706 null rejections, with 36 distinct p-values in [0.450,
+  0.993] (extreme excess of large p-values, not a point mass). The old rows
+  include pre-cutoff observations (685 null and 11 non-null); post-cutoff
+  rows still show 0/21 null and 0/56 non-null rejections, with 11 and 20
+  distinct p-values respectively. The exact stale-cache rule cell,
+  `compute_rand_two_sided_pval`, has 650 post-cutoff null rows, 75 distinct
+  p-values and 46/650 rejections; it is not among current audit findings.
+  Thus the two smoothed-method signals do not reproduce the old point-mass
+  signature, but their mixed pre-/post-fix history means stale-worker
+  causation is not fully excluded. Keep these as a separate method-specific
+  follow-up: regenerate that smoothed method's null and beta_T=.5 rows with
+  the current package, compare against the post-cutoff records, and inspect
+  the randomization-bootstrap worker/smoothing path before deciding whether
+  this is a method defect or a legitimate low-power regime. No canonical CSV,
+  baseline, or stamp was modified.
+
+  **Current-support qualification:** the current ordinal smoothing guard in
+  `rand_bootstrap_smoothing_supported()` permits smoothed resampling only
+  when the inference class supplies the private
+  `compute_fast_rand_bootstrap_distr` method. `InferenceOrdinalGCompMeanDiff`
+  does not supply that method, so the historical smoothed rows above do not
+  represent currently supported behavior for this class. Reconcile the
+  regeneration proposal with TODO-18's ordinal guard before treating any new
+  smoothed rows as current-package results; keep TODO-7 open pending that
+  decision and the remaining release-wide gates.
+
 - [x] TODO-8: Once the affected-class list is final (TODO-1), decide
   whether any already-published example, vignette, or documentation output
   used an affected class's resampling p-value/CI and needs correction —

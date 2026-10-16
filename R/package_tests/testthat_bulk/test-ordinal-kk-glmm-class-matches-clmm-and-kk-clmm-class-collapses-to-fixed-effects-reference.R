@@ -10,16 +10,34 @@ skip_if_not_installed("ordinal")
 skip_if_not_installed("MASS")
 K <- function(x) get(x, envir = asNamespace("EDI"))
 
-fx <- function(seed) {
+fx <- function(seed, link = "logit", n = 200L) {
 	set.seed(seed)
-	n <- 200L
+	n <- as.integer(n)
 	des <- DesignSeqOneByOneKK14$new(response_type = "ordinal", n = n, verbose = FALSE)
 	X <- data.frame(x = rnorm(n))
 	for (i in seq_len(n)) des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 	w <- des$get_w()
 	m <- des$.__enclos_env__$private$m[seq_len(n)]
 	u <- ifelse(m > 0, rnorm(max(m))[pmax(m, 1)], 0) * 0.9
-	y <- as.integer(cut(0.7 * w + 0.4 * X$x + u + rlogis(n), c(-Inf, -1, 0.5, Inf)))
+	eta <- 0.7 * w + 0.4 * X$x + u
+	if (identical(link, "logit")) {
+		y <- as.integer(cut(eta + rlogis(n), c(-Inf, -1, 0.5, Inf)))
+	} else {
+		# Generate from the requested cumulative-link family so the independent
+		# ordinal::clmm oracle and the EDI class are fitted to a correctly
+		# specified random-intercept model, not merely a misspecified link.
+		cum_prob <- vapply(c(-1, 0.5), function(threshold) {
+			z <- threshold - eta
+			switch(link,
+				probit = pnorm(z),
+				cauchit = pcauchy(z),
+				cloglog = -expm1(-exp(z)),
+				stop("Unsupported fixture link: ", link)
+			)
+		}, numeric(n))
+		u_y <- runif(n)
+		y <- 1L + as.integer(u_y > cum_prob[, 1L]) + as.integer(u_y > cum_prob[, 2L])
+	}
 	des$add_all_subject_responses(y)
 	d <- data.frame(y = factor(y, ordered = TRUE), w = w, x = X$x,
 		g = factor(ifelse(m > 0, paste0("p", m), paste0("s", seq_along(m)))))
@@ -52,4 +70,37 @@ test_that("the KK CLMM class retains the mixed-model random effect on the seed-3
 	# actual separation on this fixture (observed ~0.0068).
 	expect_gt(abs(est - po), 0.003)
 	expect_gt(abs(unname(new_inf("InferenceOrdinalKKGLMM", f$des)$compute_estimate()) - po), 0.003)
+})
+
+test_that("nonlogit KK CLMM classes recover the ordinal::clmm random-effect fit from their default sigma start", {
+	class_by_link <- c(
+		probit = "InferenceOrdinalKKCLMMProbit",
+		cauchit = "InferenceOrdinalKKCLMMCauchit",
+		cloglog = "InferenceOrdinalKKCLMMCloglog"
+	)
+	for (link in names(class_by_link)) {
+		# More groups stabilize the heavy-tailed Cauchit random-effect estimate.
+		f <- fx(307L, link = link, n = 400L)
+		mm <- suppressWarnings(ordinal::clmm(y ~ w + x + (1 | g), data = f$d, link = link, nAGQ = 25))
+		inf <- new_inf(unname(class_by_link[[link]]), f$des)
+		beta <- unname(inf$compute_estimate())
+		priv <- inf$.__enclos_env__$private
+		fit <- priv$cached_mod
+		ref_log_sigma <- log(sqrt(as.numeric(ordinal::VarCorr(mm)$g)))
+		y_levels <- sort(unique(priv$y))
+		start <- priv$clmm_warm_start(
+			priv$clmm_X_for_rcpp(), as.integer(match(priv$y, y_levels)), length(y_levels) - 1L
+		)
+
+		expect_true(isTRUE(fit$converged), info = link)
+		expect_identical(priv$clmm_link(), link)
+		expect_equal(tail(start, 1L), 0, tolerance = 0)
+		# Compare treatment and sigma to ordinal's separately implemented AGQ=25
+		# optimizer. The 0.15 coefficient and 0.2 log-sigma tolerances allow for
+		# 20-vs-25-node quadrature and link-specific optimizer differences; the
+		# non-collapse bound independently rules out the historical -3 basin.
+		expect_equal(beta, unname(coef(mm)["w"]), tolerance = 0.15, scale = 1, info = link)
+		expect_equal(as.numeric(fit$log_sigma), ref_log_sigma, tolerance = 0.2, info = link)
+		expect_true(as.numeric(fit$log_sigma) > -2.5, info = link)
+	}
 })

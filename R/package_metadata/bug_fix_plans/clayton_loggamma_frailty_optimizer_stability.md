@@ -123,6 +123,12 @@ are the most direct evidence this is fixable rather than structural.
   `/tmp/edi-v105-todo6.kCbSHR/R/package_tests/comprehensive_tests_results_nc_1_survival_filtered_design-KK21stepwise_class-InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik_dataset-diamonds_beta-0_family-bartlett.csv`;
   its CSV records heartbeat path `/tmp/RtmpaeuB1H/comprehensive_tests_heartbeat_2.log`
   (R temporary-session path; console output was not separately redirected).
+  **Artifact re-audit 2026-10-16:** the retained `/tmp/edi-v105-todo6.kCbSHR`
+  tree contains only the filtered `~1` 13-replicate output, filtered two-
+  formula rep-1 output, harness/helpers, and no original full-sweep sample
+  or seed metadata. Thus the exact historical reps 1/13 cannot be recovered
+  from retained artifacts; the prior `~.` stall remains unresolved, and no
+  retry was launched.
 - [x] TODO-4: Confirm no golden-test point-estimate drift from the new
   bound. `test-clayton-logtheta-optimizer-bound.R` passed against the
   reinstalled package on 2026-10-14, including the censored fixture's

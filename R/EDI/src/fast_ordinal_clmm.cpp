@@ -205,6 +205,8 @@ edi::ResultMap fast_ordinal_clmm_internal(
     int na = K - 1;
     int total = na + p + 1;
 
+    require_square_matrix(warm_start_fisher_info, total, "warm_start_fisher_info");
+
     Eigen::VectorXd y_v(n);
     std::vector<int> gid_v(n);
     for (int i = 0; i < n; ++i) {

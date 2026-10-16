@@ -64,6 +64,31 @@ test_that("fixing a parameter holds it and gives the constrained optimum for the
 	expect_true(is.na(fT$ssq_b_j))
 })
 
+test_that("combined conditional-Poisson derivatives match independent references with either component empty", {
+	d <- cp_fixture()
+	p0 <- c(0.4, 0.25, 0.1, -0.05)
+	pairs_only <- d
+	pairs_only$yr <- numeric(0)
+	pairs_only$wr <- numeric(0)
+	pairs_only$Xr <- matrix(numeric(0), nrow = 0L, ncol = ncol(d$Xr))
+	reservoir_only <- d
+	reservoir_only$yT <- numeric(0)
+	reservoir_only$nk <- numeric(0)
+	reservoir_only$Xd <- matrix(numeric(0), nrow = 0L, ncol = ncol(d$Xd))
+
+	for (case in list(pairs_only, reservoir_only)) {
+		ref_score <- numDeriv::grad(cp_ll, p0, d = case)
+		ref_hessian <- numDeriv::hessian(cp_ll, p0, d = case)
+		got_score <- cp_call("get_cpoisson_combined_score_cpp", case, p0)
+		got_hessian <- cp_call("get_cpoisson_combined_hessian_cpp", case, p0)
+		expect_equal(got_score, ref_score, tolerance = 1e-6)
+		expect_equal(unname(got_hessian), unname(ref_hessian), tolerance = 1e-5)
+		expect_equal(unname(got_hessian), unname(t(got_hessian)), tolerance = 1e-12)
+	}
+	# With no reservoir observations, the intercept has no pair-likelihood information.
+	expect_equal(cp_call("get_cpoisson_combined_score_cpp", pairs_only, p0)[1], 0, tolerance = 1e-12)
+})
+
 test_that("beta-regression score and Hessian (params = coefficients, log precision) equal numeric derivatives", {
 	set.seed(3)
 	n <- 100L

@@ -70,18 +70,18 @@ would return its `−1.0` sentinel and the reduced fit would return `false`.
 
 ## Fix
 
-- [ ] TODO-1: Replace both loops with one shared helper. Either use the
+- [x] TODO-1: Replace both loops with one shared helper. Either use the
   correct IRLS working response `η + σ(1 − δ/w)` plus the correct σ-score and
   information (`Σ[δ + z²w]/σ²`-type observed information, or Newton on
   `(β, log σ)` jointly), **or**, preferably, reuse the existing Weibull
   likelihood and Newton path in `fast_weibull_regression.cpp` rather than a
   third hand-rolled copy.
-- [ ] TODO-2: Replace `kk21_weibull_weight_reference` in
+- [x] TODO-2: Replace `kk21_weibull_weight_reference` in
   `test-kk21-weighted-crossprod.R` with a `survival::survreg(dist = "weibull")`
   oracle (coefficient z-statistic), on censored **and** uncensored fixtures.
-- [ ] TODO-3: Add a reduced-fit parity test for
+- [x] TODO-3: Add a reduced-fit parity test for
   `weibull_reduced_fit_for_score_test` vs `survreg` on the same fixtures.
-- [ ] TODO-4: Fix the start constant `+0.5722` (Weibull start, flagged in
+- [x] TODO-4: Fix the start constant `+0.5722` (Weibull start, flagged in
   the designs catalog). It looks like a typo for Euler's γ = 0.5772. Harmless
   once the fit converges correctly, but fix it while there.
 - [ ] TODO-5: Re-run the KK21 survival weight comparison
@@ -101,9 +101,63 @@ parity test, with its reduced-model MLE supplied independently by `survreg`.
 TODO-4 corrects the smart-start offset to Euler's gamma
 (`0.5772156649015329`).
 
-These source changes deliberately remain unchecked until an authorized native
-rebuild and R execution can run the new oracle tests. TODO-5 and the required
-regeneration of the affected benchmark/CSV evidence are still pending.
+The native oracle gate was subsequently exercised by CI: successful
+`test-bulk-non-cran` run
+[#38808821543](https://github.com/kapelner/EDI/actions/runs/38808821543)
+used checkout HEAD `430c19bcdb0702d998c79f9058c449449034134c`, where both the
+source fix and the oracle test were present. The run installed that commit in
+an isolated library, planned the correctness suite, and passed all five
+correctness shards; the test manifest classifies the oracle file in that
+correctness tier. This satisfies the native oracle execution gate. TODO-5 and
+the required regeneration of the affected benchmark/CSV evidence remain
+pending.
+
+### Installed-package baseline diagnosis (2026-10-16)
+
+Three independent runs of
+`Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R")'`
+against installed EDI 1.0.3 reproduced the same first-fixture mismatch:
+the installed stepwise kernel returns 6.1 while the test's independent
+`survival::survreg(dist = "weibull")` reduced-model score reference is 6.45
+(difference −0.345). Its separate fallback assertions pass. This is a stable
+old-binary correctness discrepancy, not timing noise: the statistic is
+computed deterministically from the fixed-seed fixture. The test oracle's
+6.45 is the intended corrected value because it evaluates the score and
+efficient information at the independently fitted Weibull MLE; current
+checkout source now obtains that reduced fit from the shared
+`WeibullAFTLikelihood`/optimizer and uses the same score/information formulas.
+Since installed EDI 1.0.3 predates that checkout implementation, these runs
+confirm only the historical baseline behavior. The post-fix native oracle
+execution is now confirmed by CI run #38808821543 above; TODO-5
+benchmark/CSV regeneration remains required.
+
+### TODO-5 fixture/provenance audit (2026-10-16)
+
+The named `project_kk21_speedup_vs_glm_weights_20261008` comparison has no
+tracked fixture, raw output, or provenance record in the checked-in metadata,
+benchmark, and package-test paths inspected for this audit. The existing
+`test-kk21-stepwise-design-survival-weight-selection-reference.R` is a
+fixed-seed `survival::survreg` correctness oracle (n=60); it does not compare
+pre-fix with corrected weights or evaluate downstream matching quality. It
+must not be treated as a substitute for TODO-5, and this is not a timing
+acceptance question.
+
+To make the historical comparison reproducible, retain the original fixture
+(or its exact generator, seed, and input hash), old and corrected source/package
+identities, and identical method options and RNG state. Record the old and
+corrected survival weight vectors/ranks and the originally specified
+downstream matching-quality metric, with row-level case/method identifiers,
+status/errors, and a summary. Record R and `survival` versions, OS/compiler,
+thread settings, commit and loaded package/DLL provenance. If the historical
+fixture or metric cannot be recovered, obtain a maintainer-selected replacement
+fixture and metric; neither the correctness oracle alone nor timing results
+close this gate. The requested comparison is matching-quality validation, not
+an A/B speed test.
+
+The linked algorithm-sweep/TODO-31 reference is mismatched: release TODO-31
+currently links to `glmm_variance_component_sigma_collapse.md` and concerns
+GLMM/CLMM random-effect variance collapse, not KK21 survival weights. This
+cross-reference does not change TODO-5 scope or acceptance.
 
 Build/verify per `CLAUDE.md`: rebuild the affected native translation
 units (`fast_weibull_regression.cpp`, `kk21_stepwise_survival.cpp`, and

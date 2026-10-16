@@ -428,9 +428,53 @@ changes what the suite measures, so it is not a drop-in.
 - **Lost: crash isolation.** A native crash ends the run instead of one
   call. The same relaunch-and-resume covers it.
 - **`nc > 1`.** OpenMP then runs in a process that might later fork (the
-  hazard documented in `safe_call()`). On 2026-10-15 the ordinal slice at
-  `nc = 2` gave identical results with no hang, but other classes are
-  untested at `nc > 1`; a hang there is caught by the watchdog as a timeout.
+  hazard documented in `safe_call()`). On 2026-10-15 the six-class mix at
+  `nc = 2` (2,166 calls, both modes) gave 2,161 identical rows, with no hang
+  and no watchdog event in `fork=FALSE`. The other 5 rows were spurious
+  `fork=TRUE` timeouts: the laptop suspended the WSL VM from 23:12 to 23:38
+  during that pass (journal gap; Hyper-V `TimeSync` on resume at 23:38:08),
+  so the one in-flight call in each class measured ~1,580 s of wall time.
+  On 2026-10-16 the same mix at `nc = 4` (three classes at a time, so 12
+  threads on this 12-thread machine) gave 2,159 / 2,166 identical rows with
+  no hang and no watchdog event. The other 7 were `fork=FALSE` timeouts on
+  count's Bayesian-bootstrap calls while other work held the load average
+  near 20. Rerunning count in both modes at the same time (equal
+  conditions) gave 332 / 332 identical, no timeouts in either mode, and
+  Bayesian-bootstrap calls 18% faster in-process (447 vs 543 s). `nc > 4`
+  is untested; a hang there is caught by the watchdog as a timeout.
+- **Host suspend counts as a timeout in both modes.** Both the `fork=TRUE`
+  deadline and the watchdog use wall-clock time. The heartbeat's sleep
+  adjustment recorded 0 s for those suspended calls. Checked 2026-10-16:
+  the heartbeat process runs in both modes (one line per second), and
+  `sleep_overlap_sec()` subtracts 1,569 s when given a synthetic file with
+  a 1,570 s gap. sysstat shows the VM really was paused (samples at
+  23:10:02 and 23:38:16, none at 23:20 or 23:30). So the heartbeat file
+  most likely had no gap, which happens if the VM was throttled (laptop
+  modern standby) rather than frozen and the one-line-per-second loop kept
+  being scheduled while R did not. Confirming it needs a probe across a
+  real laptop sleep; the files from that run were deleted at exit.
+  Separately, the adjustment only corrects the recorded duration columns.
+  The timeout decision never consults the heartbeat, so even a working
+  heartbeat would still produce a timeout row.
+  **Fixed 2026-10-16: a suspended call is rerun.** Both timeout loops now
+  measure the time between their own polls (0.2 s under `fork=TRUE`, 1 s
+  in the watchdog). A gap over `COMPREHENSIVE_SUSPEND_GAP_SEC` (default
+  10 s) while a call is in flight means a suspend. `fork=TRUE` kills the
+  child and reruns the call with fresh deadlines, up to 3 times; this is
+  exact because the parent's state and seed are untouched. `fork=FALSE`'s
+  supervisor kills the worker and restarts it without recording anything,
+  so the call is rerun on resume. This is exact given the local truth seed
+  below. A worker whose call ran past the limit waits 2 s before recording
+  it, so the supervisor can act first. Rerunning also covers the soft
+  deadlines inside the call (EDI's CI deadline, `setTimeLimit()`), which a
+  suspend can trip too. Tests on the ordinal slice: a 15 s SIGSTOP of all R
+  processes inside a call gave one rerun in each mode and 194 / 194 rows
+  identical to an uninterrupted run, with the rerun's own duration
+  recorded. Limits: a suspend outside a call, such as during the
+  coverage-truth simulation in `handle_success()`, has no deadline to trip
+  and is not rerun, but it still inflates that row's recorded duration
+  unless the heartbeat catches it. A VM that is throttled rather than
+  frozen, so that the poll loops keep running, would not show a gap.
 - The restore covers plain fields of the inference object and its design.
   It does not cover objects nested in environment-valued fields or global
   variables. Any new class that keeps state elsewhere should be checked
@@ -472,6 +516,8 @@ Tests (ordinal class, 194 calls):
 |---|---|
 | No timeouts | Identical to fork mode, 194 / 194 |
 | No timeouts, nc = 2 (the script's default) | Identical to fork mode, 194 / 194; wall 6:03 → 4:50, sys 85 → 4 s (the two runs were concurrent) |
+| Six-class mix, nc = 2, modes run one after the other | 2,161 / 2,166 identical; the 5 others are `fork=TRUE` timeouts caused by a host suspend; no watchdog events |
+| Six-class mix, nc = 4, three classes at a time | 2,159 / 2,166 identical; the 7 others are load-induced `fork=FALSE` timeouts in count, which matched 332 / 332 when both modes were rerun side by side; no watchdog events |
 | 4 s limit | Six hard kills and soft timeouts, all recorded; run completed |
 | Injected SIGSEGV mid-call | One error row with the signal; run completed |
 | No `processx` | Warning, then the run completed in-process |
@@ -480,13 +526,19 @@ Tests (ordinal class, 194 calls):
 | No `fork=` argument, run as script | Watchdog mode |
 | Header `source()`d from another script | `fork=TRUE` |
 
-**Caveat, pre-existing:** after any kill-and-resume (fork=TRUE or FALSE),
-later results can differ from an uninterrupted run. The Monte Carlo
-coverage truth (`compute_mc_coverage_truth_simframe()`) draws from the global
-RNG in the parent and is cached per class, dataset and beta_T, so a resumed
-process consumes the stream at different points. Computing it under a local
-seed would make resumes exact, but would change every random draw relative
-to current baselines.
+**Resumes are now exact (2026-10-16).** Before this date, a killed-and-resumed
+run (`fork=TRUE` or `FALSE`) diverged from an uninterrupted one. The Monte
+Carlo coverage truth (`compute_mc_coverage_truth_simframe()`) drew from the
+main random stream in the parent and was cached per class, dataset and
+beta_T, so a resumed process consumed the stream at different points.
+`get_coverage_truth()` now simulates it under its own seed: a hash of the
+cache key plus the attempt number (`coverage_truth_seed()`). It restores the
+main stream afterwards. Test: an ordinal-slice `fork=TRUE` run SIGKILLed
+mid-call and resumed by hand gave 194 / 194 rows identical to an
+uninterrupted run; before, 106–118 of 194 matched. **This changed every
+random draw and the truth values (within Monte Carlo error) relative to
+results produced before 2026-10-16, so comprehensive-test baselines must be
+regenerated once.**
 
 ### Result (2026-10-15): `InferenceSuite`'s per-task fork roughly doubles its CPU
 

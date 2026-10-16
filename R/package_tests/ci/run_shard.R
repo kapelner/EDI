@@ -21,8 +21,19 @@ if (tier == "correctness") {
 	# so every file runs exactly once across this matrix, with the same instrumentation.
 	code = sprintf("library(EDI); source(%s); run_selected_tests(%s, %s, 'coverage', %s)",
 		deparse(runner), deparse(root), deparse(shard_file), deparse(timing_file))
+	function_exclusions = c(
+		# Python edi_kernels.get_survival_stat_diff; owned by python/tests/test_get_survival_stat_diff.py.
+		"get_survival_stat_diff_result",
+		# Python edi_kernels.fast_zero_augmented_poisson_with_var; owned by python/tests/test_fast_zero_augmented_poisson.py.
+		"fast_zap_with_var_internal",
+		# Python edi_kernels.ols_hc2_post_fit; owned by python/tests/test_ols_hc2_post_fit.py.
+		"ols_hc2_post_fit_result",
+		# Python edi_kernels.wilcox_hl_point_estimate; owned by python/tests/test_wilcox_hl_point_estimate.py.
+		"wilcox_hl_point_estimate_result"
+	)
 	coverage = covr::package_coverage(file.path(root, "R/EDI"), type = "none",
-		code = code, relative_path = root, quiet = FALSE)
+		code = code, relative_path = root, quiet = FALSE,
+		function_exclusions = function_exclusions)
 	provenance = list(commit = Sys.getenv("GITHUB_SHA"), covr_version = as.character(packageVersion("covr")),
 		coverage_compiler_flags = coverage_compiler_flags,
 		shard = jsonlite::fromJSON(shard_file)$shard,

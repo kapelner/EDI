@@ -265,6 +265,7 @@ ModelResult fast_neg_bin_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
                                   bool estimate_only = false,
                                   const Eigen::VectorXd* weights = nullptr) {
     int p = X.cols();
+    require_square_matrix(warm_start_fisher_info, p + 1, "warm_start_fisher_info");
     ModelResult res;
     Eigen::VectorXd params = Eigen::VectorXd::Zero(p + 1);
     const Eigen::VectorXd y_double = y.cast<double>();

@@ -51,11 +51,23 @@ needs deciding before that plan invests in the `"treatment"` path.
 - [x] **TODO-5: Docs** (roxygen for the `reference` argument) and a NEWS
   entry; if the behavior of `"treatment"` changes it is a documented
   default change.
-- [ ] **TODO-6: Native and binding validation.** Rebuild the R native library
+- [x] **TODO-6: Native and binding validation.** Rebuild the R native library
   and run the focused raw C++ analysis/resampling-kernel assertions against
   that rebuilt binary; build/install the Python extension and run its Ridit
   binding coverage. The source-level R checks and Python parse check above do
   not validate the changed native code in the shipped binaries.
+
+**Same-HEAD CI validation (2026-10-16):** commit
+`430c19bcdb0702d998c79f9058c449449034134c` passed R bulk run `38808821543`:
+the build job installed that commit, and all five correctness shards passed.
+The correctness manifest includes the focused treatment-reference,
+unweighted/Wald/fast-kernel, and weighted-bootstrap Ridit tests; shard loading
+uses `compile = FALSE` after the CI build. Python run `38808821508` passed its
+editable-extension coverage job, which runs pytest across `python/tests`,
+including `test_fast_ridit_analysis.py`, and the Linux/macOS/Windows wheel
+jobs. This closes the binary-validation gate without a local build or
+artifact download. CI reports aggregate job outcomes, not a separate result
+for each Python test file.
 
 **Installed-package recheck 2026-10-14:** after the user's reinstall, the
 installed R package (reports EDI 1.0.3) passed the treatment-reference/raw-
@@ -64,4 +76,5 @@ kernel regression (34 assertions), unweighted/wald/fast-kernel Ridit tests
 assertions: 89 total, no failures or warnings. Codex did not compile, build,
 or install. `python3` cannot import `edi_kernels` in this environment, so the
 Python binding test could not run; it requires the separately managed Python
-extension build/install. TODO-6 remains open.
+extension build/install. This was the status before the same-HEAD CI validation
+above.

@@ -76,10 +76,33 @@ test_that("worker loading hooks copy weights and context onto the worker's priva
 	expect_identical(g$priv$current_bayesian_bootstrap_subject_or_block_weights, c(1, 2, 3))
 	expect_type(g$priv$current_bayesian_bootstrap_subject_or_block_weights, "double")
 	expect_identical(g$priv$current_bayesian_bootstrap_context, draw$context)
+	expect_true(isTRUE(g$priv$bootstrap_qr_positive_weights))
 	h <- blk_fixture(seed = 3L)
 	f$priv$load_bayesian_bootstrap_draw_into_worker(list(worker = h$inf), draw, extra_ignored = TRUE)
 	expect_identical(h$priv$current_bayesian_bootstrap_context, draw$context)
 	expect_equal(h$priv$current_bayesian_bootstrap_subject_or_block_weights, c(1, 2, 3))
+})
+
+test_that("nonpositive or non-finite Bayesian weights disable and clear the rank certificate", {
+	f <- blk_fixture()
+	g <- blk_fixture(seed = 2L)
+	context <- f$priv$build_bayesian_bootstrap_context("resample_blocks")
+	invalid_weights <- list(
+		c(0, 1, 2),
+		c(-1, 2, 3),
+		c(NA_real_, 2, 3),
+		c(Inf, 2, 3),
+		double()
+	)
+	for (weights in invalid_weights) {
+		g$priv$bootstrap_qr_rank_certificate <- list(mode = "weighted_positive", X = matrix(1, 2, 2))
+		f$priv$load_bayesian_bootstrap_weights_into_worker(
+			list(worker = g$inf),
+			list(subject_or_block_weights = weights, context = context)
+		)
+		expect_false(isTRUE(g$priv$bootstrap_qr_positive_weights))
+		expect_null(g$priv$bootstrap_qr_rank_certificate)
+	}
 })
 
 test_that("worker estimate takes the first value of the weighted estimate, and reports NA when nonestimable", {

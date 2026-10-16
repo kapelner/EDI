@@ -85,3 +85,31 @@ test_that("the Bayesian bootstrap refits the weighted joint likelihood, not an a
 	expect_true(expected$converged)
 	expect_equal(actual, as.numeric(expected$params)[2L], tolerance = 1e-8)
 })
+
+test_that("the IVWC Bayesian bootstrap matches the weighted joint kernel and excludes reservoir rows", {
+	f <- fx(903L)
+	inf <- K("InferenceIncidKKCondLogitGLMMIVWC")$new(f$des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	priv$current_bayesian_bootstrap_context <- priv$build_bayesian_bootstrap_context()
+	set.seed(9031L)
+	block_w <- runif(priv$current_bayesian_bootstrap_context$n_units, 0.25, 2.5)
+	row_w <- priv$expand_subject_or_block_weights_to_row_weights(block_w)
+
+	d <- priv$prepare_clogit_plus_glmm_data()
+	m <- priv$m
+	expect_gt(sum(m == 0L), 0L)
+	expect_gt(length(d$i_glmm), 0L)
+	expect_true(all(m[d$i_glmm] > 0L))
+	disc_w <- vapply(d$i_m_disc, function(pair_id) mean(row_w[m == pair_id]), numeric(1))
+	conc_w <- row_w[d$i_glmm]
+	expected <- K("fast_clogit_plus_glmm_cpp")(
+		d$X_disc, d$y_disc, d$X_conc, d$y_conc, d$group_conc,
+		d$has_discordant, d$has_concordant,
+		estimate_only = TRUE, weights_disc = disc_w, weights_conc = conc_w
+	)
+	actual <- inf$compute_estimate_with_bootstrap_weights(block_w, estimate_only = TRUE)
+
+	expect_true(expected$converged)
+	expect_true(is.finite(actual))
+	expect_equal(actual, as.numeric(expected$params)[2L], tolerance = 1e-8)
+})

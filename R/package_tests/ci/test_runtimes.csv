@@ -101,8 +101,10 @@ R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-binary-match-structure-odd-rows-guard-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -286,6 +288,7 @@ R/package_tests/testthat_bulk/test-factorial-design-two-arm-mapping-balance-and-
 R/package_tests/testthat_bulk/test-fast-beta-regression-cpp-fallback-chain-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-coxph-regression-wrapper-and-optimizer-name-normalization-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-glm-direct-helper-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-fast-logistic-helper-separated-covariate-fallback-reference.R,correctness,3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-probit-regression-warm-start-beta-length-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-randomization-worker-cache-carryover-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-weibull-regression-r-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -887,6 +890,7 @@ R/package_tests/testthat_bulk/test-random-block-unbalanced-allocation.R,correctn
 R/package_tests/testthat_bulk/test-randomization-cache-key-distinguishes-integer-permutation-matrices-of-every-shape-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-randomization-ci-component-is-a-rand-ci-marker-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-randomization-ci-search-control-and-seed-bounds-reference.R,correctness,1.1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-randomization-fast-path-wiring-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-randomization-loop-kernel-callback-contract-order-and-error-propagation-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-randomization-mc-band-cache-key-and-prefix-helpers-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-randomization-pval-from-t0s-too-few-finite-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1139,6 +1143,7 @@ R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,correctness,
 R/package_tests/testthat_bulk/test-zoib-fit-input-validation-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-fit-no-interior-responses-early-return-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-fit-vcov-hessian-fallback-rungs-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference.R,correctness,1.3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,correctness,2.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-mean-diff-nonestimable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1500,8 +1505,10 @@ R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-binary-match-structure-odd-rows-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R,coverage,240,bootstrap
@@ -1685,6 +1692,7 @@ R/package_tests/testthat_bulk/test-factorial-design-two-arm-mapping-balance-and-
 R/package_tests/testthat_bulk/test-fast-beta-regression-cpp-fallback-chain-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-coxph-regression-wrapper-and-optimizer-name-normalization-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-glm-direct-helper-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-fast-logistic-helper-separated-covariate-fallback-reference.R,coverage,3,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-fast-probit-regression-warm-start-beta-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-randomization-worker-cache-carryover-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-fast-weibull-regression-r-fallback-reference.R,coverage,240,bootstrap
@@ -2286,6 +2294,7 @@ R/package_tests/testthat_bulk/test-random-block-unbalanced-allocation.R,coverage
 R/package_tests/testthat_bulk/test-randomization-cache-key-distinguishes-integer-permutation-matrices-of-every-shape-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-randomization-ci-component-is-a-rand-ci-marker-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-randomization-ci-search-control-and-seed-bounds-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-randomization-fast-path-wiring-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-randomization-loop-kernel-callback-contract-order-and-error-propagation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-randomization-mc-band-cache-key-and-prefix-helpers-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-randomization-pval-from-t0s-too-few-finite-guard-reference.R,coverage,240,bootstrap
@@ -2538,6 +2547,7 @@ R/package_tests/testthat_bulk/test-zoib-endpoint-only-information.R,coverage,1,m
 R/package_tests/testthat_bulk/test-zoib-fit-input-validation-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-fit-no-interior-responses-early-return-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-fit-vcov-hessian-fallback-rungs-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand-delta-method-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zoib-marginal-estimand.R,coverage,4.8,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zoib-marginal-mean-diff-nonestimable-guards-reference.R,coverage,240,bootstrap

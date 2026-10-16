@@ -213,6 +213,7 @@ LikelihoodFitResult fast_adjacent_category_logit_internal(
 	int n_alpha = K - 1;
 	int p = X.cols();
 	int n_par = n_alpha + p;
+	require_square_matrix(warm_start_fisher_info, n_par, "warm_start_fisher_info");
 	VectorXd params = VectorXd::Zero(n_par);
 
 	if (warm_start_params.has_value()) {

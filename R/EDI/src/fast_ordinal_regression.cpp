@@ -8,6 +8,7 @@
 #include <RcppEigen.h>
 #endif
 #include "ordinal_fixed_link_helpers.h"
+#include "fast_ordinal_regression_internal.h"
 #include <algorithm>
 #include <vector>
 #include <optional>
@@ -138,16 +139,16 @@ Eigen::MatrixXd get_ordinal_regression_hessian_cpp(const Rcpp::NumericMatrix& X,
 edi::ResultMap fast_ordinal_regression_internal(
     const Eigen::Ref<const Eigen::MatrixXd>& X,
     const Eigen::Ref<const Eigen::VectorXd>& y,
-    std::optional<Eigen::VectorXd> weights = std::nullopt,
-    std::optional<Eigen::VectorXd> warm_start_params = std::nullopt,
-    bool smart_cold_start = true,
-    int maxit = 100,
-    double tol = 1e-6,
-    std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-    std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-    std::string optimization_alg = "lbfgs",
-    std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
-    bool estimate_only = false
+    std::optional<Eigen::VectorXd> weights,
+    std::optional<Eigen::VectorXd> warm_start_params,
+    bool smart_cold_start,
+    int maxit,
+    double tol,
+    std::optional<Eigen::VectorXi> fixed_idx,
+    std::optional<Eigen::VectorXd> fixed_values,
+    std::string optimization_alg,
+    std::optional<Eigen::MatrixXd> warm_start_fisher_info,
+    bool estimate_only
 ) {
     if (weights.has_value() && weights->size() != X.rows())
         throw std::invalid_argument("weights must have length equal to nrow(X)");
@@ -159,6 +160,8 @@ edi::ResultMap fast_ordinal_regression_internal(
     int K = (int)OrdinalRegression::init_levels(y).size();
     int n_alpha = K - 1;
     int n_params = n_alpha + p;
+
+    require_square_matrix(warm_start_fisher_info, n_params, "warm_start_fisher_info");
 
     VectorXd params(n_params);
     FixedParamSpec fixed_spec = make_fixed_param_spec(n_params, fixed_idx, fixed_values);

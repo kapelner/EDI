@@ -85,6 +85,40 @@ test_that("OLS batch kernel matches reused workers across the release parameter 
 	}
 })
 
+test_that("OLS hardening keeps kernel and worker parity with duplicated covariates", {
+	set.seed(393L)
+	n <- 36L
+	x <- rnorm(n)
+	des <- DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = x, x_duplicate = x))
+	des$overwrite_all_subject_assignments(rep(c(0L, 1L), each = n / 2L))
+	w <- des$get_w()
+	y <- 0.6 * w + 0.4 * x + rnorm(n, sd = 0.5)
+	des$add_all_subject_responses(y)
+
+	inf <- InferenceContinOLS$new(des, verbose = FALSE, harden = TRUE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	X_hardened <- p$create_design_matrix()
+	# Hardening should retain one of the exact-duplicate covariates, plus the
+	# intercept and treatment columns.
+	expect_equal(ncol(X_hardened), 3L)
+
+	W <- replicate(12L, sample(rep(0:1, each = n / 2L)))
+	for (delta in c(0, 0.5)) {
+		fast <- p$compute_fast_randomization_distr(p$y, list(w_mat = W), delta, "none")
+		worker <- p$compute_fast_randomization_distr_via_reused_worker(
+			p$y, list(w_mat = W), delta, "none"
+		)
+		expect_identical(is.na(fast), is.na(worker))
+		expect_equal(fast, worker, tolerance = 1e-10)
+		reference <- vapply(seq_len(ncol(W)), function(j) {
+			unname(coef(lm((y + delta * W[, j]) ~ W[, j] + x))[2L])
+		}, numeric(1L))
+		expect_equal(fast, reference, tolerance = 1e-10)
+	}
+})
+
 test_that("OLS randomization p-values and CIs agree with the reused-worker fallback", {
 	set.seed(392L)
 	n <- 24L

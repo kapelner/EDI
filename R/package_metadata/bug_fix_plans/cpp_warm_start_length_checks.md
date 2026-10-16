@@ -86,6 +86,20 @@ lengths is part of TODO-1).
   consume it. This is not yet the required full `warm_start_*` plus
   `fixed_values`/`fixed_idx` inventory; TODO 1 remains open.
 
+  Follow-up source audit and guard pass, 2026-10-16: the existing shared
+  `require_square_matrix()` helper was added at the remaining unsafe Fisher
+  start entry points: ordinal cauchit, stereotype logit, continuation-ratio,
+  adjacent-category, both Weibull regression paths, ordinal probit, ordinal
+  CLMM, ordinal logit, ZINB, clogit+GLMM, Clayton-Weibull, dependent-censoring
+  transform, and negative-binomial regression. The Clayton-Weibull path also
+  now rejects a parameter start whose length is not `ncol(X) + 2` before
+  constructing the objective. The CRAN contract test now asserts malformed
+  Fisher dimensions are rejected through each affected exported kernel.
+  R parsing and `git diff --check` were run; the latter reports pre-existing
+  trailing whitespace in the concurrently modified bulk-test manifest, which
+  was not changed here. No compile/install was run, so checkout behavior and
+  sanitizer/Valgrind validation remain pending; TODO 1 and TODO 4 stay open.
+
 - [x] TODO-2: **One helper, used everywhere.** Add to
   `_helper_functions_core.h` an inline
   `require_length(const std::optional<Eigen::VectorXd>&, Eigen::Index expected, const char* what)`

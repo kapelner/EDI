@@ -1,0 +1,4325 @@
+rm(list = ls())
+set.seed(1)
+
+# Prefix every screen printout from this script with a left-aligned timestamp,
+# to make it possible to tell how long the run has actually been sitting on
+# its last-printed line (e.g. to distinguish a live computation from a hang)
+# without cross-referencing file mtimes. Shadowing message()/cat() here in
+# .GlobalEnv only affects code that resolves them lexically from this script
+# (this file and anything it source()s) -- EDI package internals resolve
+# message()/cat() from their own package namespace and are unaffected.
+.comprehensive_tests_timestamp = function() format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+message = function(..., domain = NULL, appendLF = TRUE){
+	base::message(sprintf("[%s] ", .comprehensive_tests_timestamp()), ..., domain = domain, appendLF = appendLF)
+}
+cat = function(..., file = "", sep = " ", fill = FALSE, labels = NULL, append = FALSE){
+	base::cat(sprintf("[%s] ", .comprehensive_tests_timestamp()), ..., file = file, sep = sep, fill = fill, labels = labels, append = append)
+}
+
+script_file_arg = grep("^--file=", commandArgs(FALSE), value = TRUE)
+script_path = if (length(script_file_arg)) {
+	normalizePath(sub("^--file=", "", script_file_arg[1]), mustWork = TRUE)
+} else {
+	normalizePath("package_tests/comprehensive_tests.R", mustWork = TRUE)
+}
+script_dir = dirname(script_path)
+repo_root = normalizePath(file.path(script_dir, ".."), mustWork = TRUE)
+repo_path = function(...) file.path(repo_root, ...)
+
+# fork=FALSE (default when run as a script): each call runs in this
+# process, which avoids the per-call cost of forking and of R's GC
+# copy-on-writing the heap in the child (on 2026-10-14: about a third less
+# test time, system time -95%, results identical; see
+# package_metadata/audits/further_optimizations.md, section 3). The hard
+# timeout and crash isolation come from a watchdog that kills, records and
+# restarts the whole process (comprehensive_tests_watchdog.R).
+# fork=TRUE (the old behaviour, and the default when this file is
+# source()d, since the watchdog must relaunch a script): safe_call() runs
+# each call in a forked child that is hard-killed at FUNCTION_TIMEOUT_SEC.
+# Set with a "fork=TRUE|FALSE" argument anywhere on the command line, or
+# COMPREHENSIVE_FORK.
+fork_cli_arg = grep("^fork=", commandArgs(trailingOnly = TRUE), value = TRUE)
+# (A runner that source()s this file under Rscript has a --file= too.)
+run_as_script = length(script_file_arg) > 0L && identical(basename(script_path), "comprehensive_tests.R")
+SAFE_CALL_FORK = !(tolower(sub("^fork=", "", c(fork_cli_arg, Sys.getenv("COMPREHENSIVE_FORK", if (run_as_script) "FALSE" else "TRUE"))[1L])) %in%
+	c("false", "f", "0", "no", "n"))
+WATCHDOG_MARKER = Sys.getenv("COMPREHENSIVE_WATCHDOG_MARKER", "")
+if (!SAFE_CALL_FORK) {
+	source(file.path(script_dir, "comprehensive_tests_watchdog.R"))
+	if (!nzchar(WATCHDOG_MARKER)) {
+		if (run_as_script && requireNamespace("processx", quietly = TRUE)) {
+			quit(save = "no", status = run_comprehensive_tests_watchdog(script_path))
+		}
+		# No watchdog: calls still run in-process, but a hung compiled call
+		# blocks the run and a native crash ends it.
+		warning(if (run_as_script) {
+			"watchdog recommended for autorestarts (fork=FALSE without the processx package: no hard timeout, no restart after a crash)"
+		} else {
+			"watchdog recommended for autorestarts (fork=FALSE in a source()d session runs unsupervised: no hard timeout, no restart after a crash; run with Rscript for the watchdog)"
+		}, call. = FALSE, immediate. = TRUE)
+	}
+	WATCHDOG_SUPERVISOR_PID = as.integer(Sys.getenv("COMPREHENSIVE_WATCHDOG_SUPERVISOR_PID", NA))
+}
+
+edi_lib_user = Sys.getenv("R_LIBS_USER", unset = "")
+if (nzchar(edi_lib_user)) {
+	.libPaths(unique(c(edi_lib_user, .libPaths())))
+}
+suppressPackageStartupMessages(library(EDI))
+comprehensive_slow_path_rules = EDI::EDI_COMPREHENSIVE_SLOW_PATHS
+getFromNamespace("validate_comprehensive_slow_path_rules", "EDI")(
+	comprehensive_slow_path_rules
+)
+
+# Additional test-harness-only skip rules, ADDITIONAL TO (never instead of)
+# the package's own EDI_COMPREHENSIVE_SLOW_PATHS registry loaded above.
+# These predate that registry -- present since this repo's very first
+# commit -- and were never migrated into it when it was created
+# (2026-08-24, "slow paths now a constant"): that commit extracted one
+# already-cleanly-structured local variable into a package constant and
+# never touched these, which sat immediately adjacent in the same file.
+# They mix two different kinds of fact the package registry's own
+# docstring says must stay separate -- some entries are genuinely
+# structural (bootstrap/randomization doesn't apply at all, e.g. an
+# exact-test-only class), others are genuine, never-migrated performance
+# facts (see `rand_ci_custom`'s inline timing). Sorting each entry into
+# the right one of those two buckets -- the package's capability-exclusion
+# system for structural facts, EDI_COMPREHENSIVE_SLOW_PATHS for
+# performance facts -- is real class-by-class analytical work, deferred to
+# its own scoping pass; see
+# package_metadata/new_feature_plans/harden_registry.md, "Finding 2" and
+# "Also still open". Until that happens, they live here, in ONE place,
+# instead of scattered as inline is_any_inference_class()/is()-chain
+# checks throughout this file -- consumed below by the same
+# is_any_inference_class()/is_exact_inference_class() helpers (defined
+# inside run_inference_checks_impl()) each one always used, so this is a
+# pure data consolidation, not a behavior change.
+#
+# Cleaned up 2026-09-08 after auditing every entry against
+# EDI::get_effective_capabilities(): removed 4 entries naming classes that
+# no longer exist anywhere in R/EDI/R (InferenceContinMultGLS,
+# InferenceAbstractGLMMWeibullFrailtyNormalOneLik,
+# InferenceIncidExactZhangAbstract, InferenceContinMultKKQuantileRegrOneLik
+# -- presumably renamed/removed since these lists were written; a class-
+# name check against a nonexistent name is always FALSE, so they did
+# nothing), and 3 more (InferenceIncidExactFisher/ExactBinomial/ExactZhang,
+# from `bootstrap`; InferenceIncidExactZhang also from `rand`) whose
+# exclusion the capability system already independently agrees with
+# (get_effective_capabilities() already omits nonparametric_bootstrap/
+# randomization_test for them), making the hardcoded skip fully redundant.
+#
+# Second pass same day, after force-running the remainder via
+# COMPREHENSIVE_FORCE_SLOW_PATHS=1 and reading source: removed
+# InferenceOrdinalPairedSignTest from `rand` and emptied `jackknife_exclude`
+# (its sole member, InferenceCountKKGLMM) -- both confirmed by direct probe
+# to run clean and fast (sub-second, no errors) when forced, so the
+# exclusion was copy-paste-along debt, not a real fact. (PairedSignTest's
+# randomization inference permutes assignment rather than resampling
+# subjects, so it was never actually broken for `rand`.)
+#
+# Third pass same day: removed InferenceOrdinalPairedSignTest from
+# `bootstrap` too, after a 10x force-run + error_message breakdown showed
+# this was never a *slow* path -- everything resolves near-instantly, one
+# way or another. Initial per-method split (10 attempts each) found
+# compute_bootstrap_confidence_interval/_basic/_bca and
+# compute_bootstrap_two_sided_pval/_bca/_symmetric hitting a real,
+# unconditional stop() ("Bootstrap inference is not supported for
+# InferenceOrdinalPairedSignTest because subject-level resampling violates
+# the matched-pair design constraint"), while _studentized, both
+# compute_m_out_of_n_bootstrap_*, and both compute_subsampling_* already
+# produced real results -- all funnel through the same identical resampling
+# primitive (bootstrap_sample_indices() -> the design's
+# draw_matching_bootstrap_indices(), which is pair-aware: it resamples whole
+# matched pairs via draw_matching_bootstrap_sample_cpp()/pair_rows, not
+# individual subjects), just via different call paths, only one of which
+# the stop() happened to sit on. Live-probed the un-blocked path directly
+# (percentile/basic/bca/studentized CI, all 3 pval types, B=300, both a
+# well-powered n=60 case and small-n/coarse-category edge cases mirroring
+# what this harness actually hits): every result was finite, well-behaved,
+# and matched the closed-form asymptotic CI/estimate closely, with the
+# same graceful nonestimable/na.rm fallback as any other class when a draw
+# is too sparse -- no crashes, no degenerate output. So the stop() text's
+# premise doesn't hold against the current resampling implementation; the
+# override was removed from InferenceOrdinalPairedSignTest's own
+# approximate_bootstrap_distribution_beta_hat_T (R/EDI/R/
+# inference_ordinal_paired_sign_test.R) rather than worked around here.
+# All 12 bootstrap methods for this class are now genuinely unblocked, not
+# just ungated in the test harness. The class's separate jackknife stop()
+# (approximate_jackknife_distribution_beta_hat_T, a different public method
+# -- its own doc comment claimed "subject-level deletion violates the
+# matched-pair design constraint") turned out to be the same story: the
+# public method is a thin wrapper around a private jackknife machinery
+# already exercised successfully via BCa above, and a from-scratch probe of
+# the full public API (approximate_jackknife_distribution_beta_hat_T,
+# compute_jackknife_estimate/_bias_estimate/_std_error/
+# _wald_two_sided_pval/_wald_confidence_interval) across the same
+# well-powered + small-n/coarse-category scenarios came back well-behaved
+# throughout (sane near-zero bias correction, sensible SE, graceful
+# degenerate-case handling, no crashes). Removed too, same file.
+#
+# Fourth pass same day: bulk-ungated every remaining bootstrap/rand/rand_ci
+# entry that had a completed 10x force-run (COMPREHENSIVE_FORCE_SLOW_PATHS=1)
+# against the original slow-path threshold this registry has always used --
+# average runtime > 30s. None of the rechecked entries came close (worst
+# case: InferenceOrdinalCauchitRegr's bootstrap _studentized methods,
+# avg ~16.5s / max ~33s) -- these were added when the package's resampling
+# machinery was genuinely slower; subsequent performance work made them
+# viable again, and it's better to let them run for real (and get flagged
+# again if they regress) than keep skipping them on stale data. Removed
+# from `bootstrap`: InferenceCountPoissonKKGEE, InferenceCountKKGLMM,
+# InferenceOrdinalKKCondAdjCatLogitRegr, InferenceOrdinalGCompMeanDiff,
+# InferenceOrdinalCloglogRegr, InferenceOrdinalOrderedProbitRegr,
+# InferenceOrdinalCauchitRegr, InferenceOrdinalPartialProportionalOddsRegr,
+# InferencePropFractionalLogit, InferenceCountHurdleNegBin. Removed from
+# `rand`: InferenceOrdinalKKCondAdjCatLogitRegr, InferenceOrdinalGCompMeanDiff.
+# Removed from `rand_ci`: InferenceContinRobustRegr (its rand-family CI
+# already ran clean under the force-bypass, avg 2.6-3.6s). Left alone:
+# entries with zero completed data yet (InferenceSurvivalGLMMWeibullFrailty
+# LoggammaOneLik, InferencePropZeroOneInflatedBetaRegr in `bootstrap`;
+# InferencePropGCompMeanDiff/InferenceOrdinalCloglogRegr/
+# InferenceOrdinalOrderedProbitRegr/InferenceOrdinalCauchitRegr in `rand`
+# specifically -- their bootstrap-family removal above is unrelated to
+# their still-untested rand-family membership) -- a second retry batch for
+# these was still in flight when this pass was made; recheck once it
+# completes rather than assuming they're the same story. The count_*_rand
+# classes still in `rand_ci` (HurdleNegBin, NegBin, ZeroInflatedNegBin,
+# ZeroOneInflatedBetaRegr, FractionalLogit, HurdlePoisson,
+# ZeroInflatedPoisson, KKHurdlePoissonOneLik) were NOT touched even though
+# some have real rand pval timing data now: their CI is separately gated by
+# a hardcoded `response_type == "count"` blanket rule at the call site
+# (not a class list), so no CI timing data was ever collected for them here
+# -- removing them from this list alone wouldn't even change behavior.
+ADDITIONAL_TEST_SLOW_PATHS = list(
+	# Gates the whole nonparametric-bootstrap family (plain, BRT, and
+	# Bayesian bootstrap all key off this via skip_bayesian_bootstrap's own
+	# "|| skip_bootstrap" clause) -- consumed via
+	# is_any_inference_class_for_formula() (optional `||~formula` suffix;
+	# an unsuffixed entry matches every formula), matching every subclass
+	# too. Populated across two production-run audit passes, 2026-09-09
+	# (real, non-forced runs; every (class, formula, function) group with
+	# real-result rows collapsed over design). First pass, mean > 30s:
+	# InferenceCountHurdleNegBin/HurdlePoisson/ZeroInflatedNegBin/
+	# ZeroInflatedPoisson are all Bayesian-bootstrap-family-only findings on
+	# ~. (35-52s mean, up to 90s) -- their plain/nonparametric bootstrap
+	# methods weren't shown slow, but this list has no per-function
+	# granularity so the whole family is gated with them.
+	# InferenceOrdinalKKGEE is the worst finding this session: 12 methods
+	# (bootstrap, jackknife, m_out_of_n, subsampling, rand all included --
+	# see rand/jackknife_exclude below too) averaging 68-105s, several
+	# bumping the CI/rand search's ~120s internal deadline.
+	# InferenceOrdinalKKGLMM: 2 bootstrap methods, 31-36s mean up to 109s
+	# max (also see rand below). InferenceSurvivalDepCensTransformRegr:
+	# only its _bca variants were confirmed slow on ~. (31.1s/30.8s mean,
+	# barely over threshold, n=25-26) -- gated at the class level like
+	# everything else here since this list can't target one method: the
+	# non-bca bootstrap methods for this class are NOT confirmed slow, a
+	# known over-broad catch. Second pass, mean 15-30s (a lower bar, so
+	# treat these as more marginal): InferencePropKKGLMM's Bayesian
+	# bootstrap turned out slow on ~1 too (25-26s mean, up to 52s), not
+	# just ~. from the first pass -- broadened from ||~. to unrestricted.
+	# InferenceAllSimpleWilcox and InferenceOrdinalAdjCatLogitRegr both
+	# show their bootstrap _studentized methods slow on both formulas
+	# across every response type tested (15-18s mean, up to 90s and 81s
+	# max respectively) -- added unrestricted.
+	# InferenceOrdinalPartialProportionalOddsRegr's ~. bootstrap
+	# _studentized is slow (24.1s/23.7s mean, up to 63s) -- added ||~.
+	# only, its ~1 side has no evidence either way.
+	bootstrap = c(
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+		"InferencePropZeroOneInflatedBetaRegr",
+		"InferenceCountHurdleNegBin||~.",
+		"InferenceCountHurdlePoisson||~.",
+		"InferenceCountZeroInflatedNegBin||~.",
+		"InferenceCountZeroInflatedPoisson||~.",
+		"InferencePropKKGLMM",
+		"InferenceOrdinalKKGEE||~.",
+		"InferenceOrdinalKKGLMM||~.",
+		"InferenceSurvivalDepCensTransformRegr||~.",
+		"InferenceAllSimpleWilcox",
+		"InferenceOrdinalAdjCatLogitRegr",
+		"InferenceOrdinalPartialProportionalOddsRegr||~.",
+		# Added 2026-09-14 from a full post-fix comprehensive-suite audit
+		# (real production data, not a forced sample): all 8 plain-bootstrap
+		# CI+pval methods (basic/bca/studentized CI, base/symmetric/bca/
+		# studentized pval, m-out-of-n, subsampling) average 95-96s, n=9-11
+		# each, well over the 30s threshold. This directly contradicts the
+		# 2026-09-09 "Fourth pass" bulk-ungating, which removed this exact
+		# class from this list based on a 10x COMPREHENSIVE_FORCE_SLOW_PATHS
+		# force-run showing it fast -- that sample looks like it got lucky;
+		# this much larger real sample says otherwise.
+		"InferenceCountPoissonKKGEE||~."
+	),
+	# Gates every randomization-family test at once (plain pval, CI, BRT
+	# pval/CI, custom pval/CI) -- consumed via
+	# is_any_inference_class_for_formula() (optional `||~formula` suffix).
+	# InferenceOrdinalKKGEE||~. and InferenceOrdinalKKGLMM||~. added
+	# 2026-09-09, first-pass (mean>30s) production-run audit (KKGEE rand
+	# pval: 84.7s mean; KKGLMM rand pval(delta=0.5) on ~.: 42.3s mean, up to
+	# 111.6s). InferenceOrdinalKKGLMM||~1 added in the second pass
+	# (mean 15-30s): its ~1 rand pval(delta=0.5) is also slow (18.2s mean,
+	# up to 114.5s max).
+	rand = c(
+		"InferencePropGCompMeanDiff",
+		"InferenceOrdinalCloglogRegr",
+		"InferenceOrdinalOrderedProbitRegr",
+		"InferenceOrdinalCauchitRegr",
+		"InferenceOrdinalKKGEE||~.",
+		"InferenceOrdinalKKGLMM||~.",
+		"InferenceOrdinalKKGLMM||~1",
+		# Added 2026-09-11 from the BRT timing sweep audit: plain rand
+		# pval (both base and delta=0.5) is ~69s mean, up to 115s max,
+		# n=244 -- ~1 is fine (~8s).
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~."
+	),
+	# Gates the plain (non-CI) randomization p-value specifically --
+	# consumed via is_any_inference_class().
+	rand_pval = c(
+		"InferencePropGCompMeanDiff",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik"
+	),
+	# Per-class (optionally per-formula, via `||~formula`) additions to
+	# skip_bartlett_pval_slow, alongside the package's own official
+	# EDI_COMPREHENSIVE_SLOW_PATHS$bartlett_pval category -- consumed via
+	# is_any_inference_class_for_formula(). Gates both the approx and exact
+	# compute_lik_ratio_bartlett_*_two_sided_pval variants together (same
+	# scope as the official bartlett_pval category, whose own doc comment
+	# says it "gates both 'approx' and 'exact'"). Populated 2026-09-09,
+	# second-pass (mean 15-30s) production-run audit: both entries are the
+	# same bimodal shape -- p80 well under 1s (most calls near-instant) but
+	# mean dragged to 17-22s by rare, severe outliers (max 113.6s-178.7s).
+	bartlett_pval = c(
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik||~1",
+		"InferenceOrdinalKKGLMM||~1",
+		# No formula suffix: migrated 2026-09-10 from the standalone
+		# skip_hurdle_poisson_bartlett flag (which applied regardless of
+		# formula), dropping that flag's `r >= 50` numeric threshold --
+		# r is always 151 in this harness, so the threshold never actually
+		# distinguished anything in practice.
+		"InferenceCountHurdlePoisson",
+		# Added 2026-09-14 from a full post-fix comprehensive-suite audit:
+		# compute_lik_ratio_bartlett_approx_two_sided_pval averages 114s
+		# mean, n=62 -- a well-populated, non-marginal finding. Existing
+		# ||~1 entry above (from the 2026-09-09 audit) is unrelated: the ~.
+		# side just wasn't tested with enough volume back then to surface.
+		"InferenceOrdinalKKGLMM||~."
+	),
+	# Same migration as bartlett_pval's InferenceCountHurdlePoisson entry
+	# above, for the CI side (the old skip_hurdle_poisson_bartlett flag
+	# gated both). Consumed via is_any_inference_class_for_formula(),
+	# OR'd into skip_pboot_ci_slow. This single entry gates FOUR call
+	# families at once (compute_lik_ratio_bartlett_confidence_interval,
+	# _approx_confidence_interval, compute_param_bootstrap_confidence_
+	# interval, compute_lik_ratio_bootstrap_confidence_interval -- see
+	# comprehensive_tests.R's skip_pboot_ci_slow usage sites), so one
+	# missing entry here silently lets a class burn real time (often the
+	# full 120s FUNCTION_TIMEOUT_SEC) on all four every rep.
+	#
+	# Expanded 2026-09-15 from a full production results-CSV audit (real,
+	# non-forced data; mean/max computed per class[/formula] across
+	# whichever of the four functions had rows, n=15-688 per entry --
+	# every entry below has n>=15 on its weakest function). Unrestricted
+	# (no ||formula) where both ~1 and ~. showed slow evidence;
+	# formula-restricted where only one side did (the other side has no
+	# evidence either way, not evidence of being fast):
+	# InferenceCountKKGLMM (~.: 31-120s mean n=25, ~1: 46-46s mean n=25),
+	# InferenceCountKKHurdlePoissonOneLik (~.: 43-108s n=25, ~1: 68-68s
+	# n=25), InferenceOrdinalCauchitRegr (~.: 50-54s n=42, ~1: 30-32s
+	# n=31), InferenceOrdinalCloglogRegr (~.: 55-109s n=42, ~1: 85-85s
+	# n=31), InferenceOrdinalKKGLMM (~.: 113s n=18, ~1: 103-113s n=18),
+	# InferenceOrdinalOrderedProbitRegr (~.: 39-52s n=42, ~1: 33-33s
+	# n=31), InferenceOrdinalPropOddsRegr (~.: 30s n=42, ~1: 35-37s
+	# n=31), InferenceSurvivalGLMMWeibullFrailtyNormalOneLik (~.: 58-108s
+	# n=28, ~1: 42-46s n=15). Formula-restricted, single-formula evidence
+	# only: InferenceCountHurdleNegBin||~. (50s n=77),
+	# InferenceCountZeroInflatedPoisson||~. (44s n=77),
+	# InferencePropBetaRegr||~. (48s n=126),
+	# InferencePropZeroOneInflatedBetaRegr||~. (47-111s n=93),
+	# InferenceSurvivalDepCensTransformRegr||~. (47s n=172),
+	# InferenceSurvivalKKStratCoxPHOneLik||~. (87s n=28),
+	# InferenceOrdinalAdjCatLogitRegr||~1 (53-55s n=31),
+	# InferenceOrdinalContRatioRegr||~1 (33s n=31),
+	# InferencePropKKGLMM||~1 (51s n=32).
+	# InferenceSurvivalKKLWACoxPHOneLik||~. added 2026-09-15 from a
+	# post-migration audit re-run: bartlett CI + approx CI both ~30.1-30.2s
+	# mean, n=30 each -- right at the 30s bar, not a deep-margin case, but a
+	# real, well-sampled (n=30) finding, not a weak n=1-2. ~1 has no
+	# evidence either way.
+	pboot_ci = c(
+		"InferenceCountHurdlePoisson",
+		"InferenceCountKKGLMM",
+		"InferenceCountKKHurdlePoissonOneLik",
+		"InferenceOrdinalCauchitRegr",
+		"InferenceOrdinalCloglogRegr",
+		"InferenceOrdinalKKGLMM",
+		"InferenceOrdinalOrderedProbitRegr",
+		"InferenceOrdinalPropOddsRegr",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
+		"InferenceCountHurdleNegBin||~.",
+		"InferenceCountZeroInflatedPoisson||~.",
+		"InferencePropBetaRegr||~.",
+		"InferencePropZeroOneInflatedBetaRegr||~.",
+		"InferenceSurvivalDepCensTransformRegr||~.",
+		"InferenceSurvivalKKStratCoxPHOneLik||~.",
+		"InferenceOrdinalAdjCatLogitRegr||~1",
+		"InferenceOrdinalContRatioRegr||~1",
+		"InferencePropKKGLMM||~1",
+		"InferenceSurvivalKKLWACoxPHOneLik||~."
+	),
+	# Per-class (optionally per-formula) additions to the 5
+	# skip_brt_*_slow flags below -- consumed via
+	# is_any_inference_class_for_formula(), same OR-with-the-official-
+	# registry pattern as bartlett_pval above. Names match
+	# EDI_COMPREHENSIVE_SLOW_PATHS' own brt_pval_smoothed/brt_pval_typed/
+	# brt_ci_all/brt_ci_smoothed/brt_ci_typed categories exactly (see
+	# comprehensive_slow_paths.R) so path_audits_source.R's
+	# derive_additional_slow_methods() can reuse that file's already-built
+	# method-name mapping for them unchanged. Populated 2026-09-11 from the
+	# main-CSV production-run audit: entries below are means well over the
+	# 60s ceiling (several 95-120s), not marginal calls.
+	#
+	# A same-day dedicated Nrep=3 BRT-only sweep (boston dataset,
+	# FixediBCRD design, 60s hard timeout, skip-repeat-after-timeout,
+	# NUM_CORES=2) additionally flagged ~22 (class,formula) pairs as
+	# confirmed 60s-timeout hits. Live isolated reproduction of every one
+	# of those pairs (both pval and CI sides, whichever was gated)
+	# afterward showed 21 of them complete in well under 3 seconds in
+	# isolation -- the sweep ran all 6 response types as 6 concurrent
+	# processes (2 threads requested each = 12 threads nominal on a
+	# 12-core box, zero slack, plus unrelated external memory pressure at
+	# the time), so its 60s "timeouts" were a CPU-contention measurement
+	# artifact, not real cost. None of those 21 were ever added here.
+	# Only InferenceOrdinalPartialProportionalOddsRegr||~1's pval-smoothed
+	# entry (below) is corroborated by the sweep AND independently by the
+	# main-CSV audit (98s mean) AND by live reproduction (120.9s) -- three
+	# independent measurements agree, so it stays.
+	# 2026-09-13 additions (InferenceCountHurdleNegBin||~1,
+	# InferencePropBetaRegr/InferencePropQuantileRegr on both formulas) were
+	# added same-day from the re-run (serial, deadlock-fixed) BRT sweep's
+	# clean data, then removed again later the same day: this registry's own
+	# threshold (see this list's header comment, "average runtime > 30s") was
+	# never actually met by them -- their mean was 10-23s, well under the
+	# bar every other entry here clears. Kept out for consistency rather than
+	# gating on sub-30s-mean cost; recheck against real data if they show up
+	# as an actual 60s timeout later.
+	# InferenceIncidKKCondLogitGLMMOneLik||~1 added to this and the two
+	# categories below 2026-09-14 from a full post-fix comprehensive-suite
+	# audit: its ~1 side is slow across every BRT pval variant (smoothed and
+	# pval(delta=0.5) ~120s mean n=8; base/symm-t/studentized ~71s mean n=7)
+	# -- the existing brt_pval entry for this class below covers ||~. only
+	# (a different, separately-diagnosed finding from 2026-09-11).
+	# InferenceCountKKHurdlePoissonOneLik||~. added 2026-09-15 from the
+	# post-migration audit re-run: 34.1s mean, n=65, max 99s.
+	brt_pval_smoothed = c(
+		"InferenceOrdinalPartialProportionalOddsRegr||~1",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
+		"InferenceSurvivalWeibullRegr||~.",
+		"InferenceSurvivalKKWeibullMarginal||~.",
+		"InferenceIncidKKCondLogitGLMMOneLik||~1",
+		"InferenceCountKKHurdlePoissonOneLik||~."
+	),
+	# InferenceCountPoissonKKGEE||~. added 2026-09-15 from the post-migration
+	# audit re-run: studentized and symmetric-percentile-t both ~53.8s mean,
+	# n=65 each.
+	brt_pval_typed = c(
+		"InferenceCountKKGLMM||~1",
+		"InferenceCountKKGLMM||~.",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
+		"InferenceIncidKKCondLogitGLMMOneLik||~1",
+		"InferenceCountPoissonKKGEE||~."
+	),
+	# InferenceSurvivalDepCensTransformRegr||~1 gates here (not just
+	# brt_ci_smoothed) because its base/untyped CI genuinely hard-times-out
+	# at 60s (the one confirmed timeout in the clean re-sweep), not just
+	# "slow" like its typed/smoothed siblings (10-11s mean) -- same
+	# over-broad trade-off this category's own doc comment already
+	# describes for other classes.
+	# InferenceSurvivalKKStratCoxPHOneLik||~. and InferenceCountKKGLMM||~.
+	# added 2026-09-15 from the post-migration audit re-run: base
+	# compute_rand_bootstrap_confidence_interval() means 76.2s (n=15) and
+	# 49.3s (n=9) respectively. Neither has ~1 evidence either way.
+	brt_ci_all = c(
+		"InferenceContinQuantileRegr||~.",
+		"InferenceCountHurdlePoisson||~1",
+		"InferenceCountNegBin||~1",
+		"InferenceCountZeroInflatedPoisson||~1",
+		"InferenceSurvivalDepCensTransformRegr||~1",
+		"InferenceSurvivalKKStratCoxPHOneLik||~.",
+		"InferenceCountKKGLMM||~."
+	),
+	# InferenceSurvivalKKStratCoxPHOneLik||~. added 2026-09-14 immediately
+	# after the skip_brt_ci fixes above unblocked it for the first time ever
+	# (previously always skipped, first genuine timing data that exists for
+	# it): smoothed 33.2s (n=1), symmetric-percentile-t 85.4s (n=1) -- both
+	# over the 30s threshold, though on a weak n=1 sample each (same caveat
+	# as jackknife_exclude's InferenceOrdinalStereotypeLogitRegr entry
+	# below -- included per the evidence available but worth a bigger sample
+	# before fully trusting). base CI (20.7s mean, n=2) and studentized
+	# (28.4s, n=1) stayed under the bar and are NOT gated -- brt_ci_typed has
+	# no separate lever for studentized vs symmetric-percentile-t (same
+	# over-broad trade-off this category's own doc comment already
+	# describes elsewhere), so studentized rides along gated with it. Only
+	# ~. was reachable in this test (~1 hit an unrelated "no covariates"
+	# construction skip for the dataset available); ~1 has no evidence
+	# either way.
+	# InferenceCountKKGLMM||~., InferenceSurvivalDepCensTransformRegr||~1,
+	# InferenceCountHurdlePoisson||~1 added 2026-09-15 from the
+	# post-migration audit re-run: smoothed CI means 113.4s (n=9), 39.5s
+	# (n=463 -- a large, well-powered sample), and 32.8s (n=194)
+	# respectively.
+	brt_ci_smoothed = c(
+		"InferenceCountKKHurdlePoissonOneLik||~1",
+		"InferenceSurvivalKKStratCoxPHOneLik||~.",
+		"InferenceCountKKGLMM||~.",
+		"InferenceSurvivalDepCensTransformRegr||~1",
+		"InferenceCountHurdlePoisson||~1"
+	),
+	# InferenceCountKKGLMM added 2026-09-15 (unrestricted: studentized/
+	# symmetric-percentile-t both ~120s mean n=9 on ~., ~106s mean n=9 on
+	# ~1 -- slow on both formulas). InferenceSurvivalKKLWACoxPHOneLik||~.
+	# also added: symmetric-percentile-t 30.5s mean, n=15; ~1 no evidence
+	# either way.
+	brt_ci_typed = c(
+		"InferenceCountKKHurdlePoissonOneLik||~1",
+		"InferenceSurvivalKKStratCoxPHOneLik||~.",
+		"InferenceCountKKGLMM",
+		"InferenceSurvivalKKLWACoxPHOneLik||~."
+	),
+	# Whole-pval-block gate: the base (non-typed, non-smoothed)
+	# compute_rand_bootstrap_two_sided_pval/(delta=0.5) calls have no
+	# per-variant skip lever of their own -- unlike CI, where brt_ci_all
+	# above already plays this "skip everything" role, pval had no
+	# equivalent until this key was added 2026-09-10 (removed alongside
+	# RUN_BRT/always_run_brt). No official EDI_COMPREHENSIVE_SLOW_PATHS
+	# category of this name exists; purely additional-registry-driven.
+	# Main-CSV audit: WeibullFrailtyNormalOneLik||~. is slow on both the
+	# base and delta=0.5 pval (~75s mean each); IncidKKCondLogitGLMMOneLik
+	# ||~.'s base pval itself is fast (~3s) but its delta=0.5 variant is
+	# not (45.7s mean, n=2) -- this category has no per-variant lever, so
+	# the whole class/formula is gated with it. (See brt_pval_smoothed's
+	# comment above: the BRT sweep's own brt_pval-shaped findings -- 15
+	# more (class,formula) pairs -- were all measurement artifacts and are
+	# not included here; live reproduction timed every one under 3s.)
+	# 2026-09-13 additions (InferenceCountHurdleNegBin||~1,
+	# InferencePropBetaRegr/InferencePropQuantileRegr on both formulas) were
+	# added same-day then removed again later the same day, same story as
+	# brt_pval_smoothed's comment above -- 10-23s mean never actually cleared
+	# this registry's own 30s threshold.
+	brt_pval = c(
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik||~.",
+		"InferenceIncidKKCondLogitGLMMOneLik||~.",
+		"InferenceIncidKKCondLogitGLMMOneLik||~1"
+	),
+	# Gates the plain randomization confidence interval -- consumed via
+	# is_any_inference_class(); also combined at the call site with a
+	# response_type == "count" blanket rule (itself now overridable per-class
+	# via rand_ci_count_allowed below) and an InferenceAllSimpleAverageDiff
+	# non-continuous special case, neither of which is a class list so
+	# neither moved here.
+	rand_ci = c(
+		"InferencePropGCompMeanDiff",
+		"InferenceCountHurdleNegBin",
+		"InferenceCountZeroInflatedNegBin",
+		"InferencePropZeroOneInflatedBetaRegr",
+		"InferencePropFractionalLogit"
+	),
+	# Per-class (optionally per-formula, via a `||~formula` suffix -- see
+	# is_any_inference_class_for_formula()) exceptions to the
+	# response_type == "count" blanket rand-CI skip above -- consumed at the
+	# call site (skip_ci_rand). Populated 2026-09-09 from a from-scratch
+	# smoke test (COMPREHENSIVE_FORCE_SLOW_PATHS=1, family=rand,
+	# response=count, 2 reps x every design x both formulas, run to
+	# completion at a 60-min per-class cap; ~300-hundreds of
+	# compute_rand_confidence_interval() calls per class per formula) --
+	# every count class/formula combination tested shows *some* rare tail
+	# risk of hitting the CI search's internal ~120s safety deadline
+	# (check_randomization_ci_deadline()), 0-4 out of ~50-300+ calls
+	# depending on combination; not unique to any one entry here, treated
+	# as an accepted background risk rather than a reason to withhold a
+	# combination whose mean is otherwise well under the 30s threshold.
+	# InferenceCountZeroInflatedPoisson is fast on both formulas (3.7-7.4s
+	# mean) -- unrestricted. InferenceCountNegBin, InferenceCountHurdle
+	# Poisson, and InferenceCountKKHurdlePoissonOneLik are all restricted
+	# to ~1 only: NegBin is fast on both (3.6s / 7.2s mean) but ~. had the
+	# highest cap-hit rate seen (4/311); HurdlePoisson and
+	# KKHurdlePoissonOneLik show a real formula split, fast-ish on ~1
+	# (9-21s mean) but consistently over the 30s threshold on ~. (28-47s
+	# mean, up to 107-120s) -- their ~. case stays behind the blanket rule.
+	# InferenceCountKKGLMM and InferenceCountPoissonKKGEE added 2026-09-14:
+	# path_audits_source.R's own hand-typed audit notes for both classes
+	# already claimed "rand CI force-run and verified fast" (KKGLMM: 0.2-10.1s
+	# 2026-09-10; PoissonKKGEE: 26.3s at n=40, r=151 -- that note flagged
+	# itself as "worth a larger-n check before fully trusting") but neither
+	# class was ever actually added here, so the blanket count-response skip
+	# stayed in force despite the audit believing otherwise -- exactly the
+	# mismatch a fresh audit pass surfaced (both showed real, complete
+	# coverage for every other rand method but zero for rand-CI/BRT-CI/
+	# custom-CI). Live-verified same day at diamonds scale (n=148, r=151,
+	# 6 design/rep samples per formula): KKGLMM is fast on both formulas
+	# (~1 mean 11.6s max 14.1s; ~. mean 14.9s max 20.8s) -- added
+	# unrestricted. PoissonKKGEE's self-flagged "worth a larger-n check"
+	# caution was justified: ~1 is fast (mean 3.9s max 4.3s) but ~. is
+	# consistently slow at this scale (mean 43.5s, max 51.1s, 6/6 samples
+	# over the 30s threshold) -- added ||~1 only, matching the same
+	# formula-split pattern already seen in this list for HurdlePoisson/
+	# KKHurdlePoissonOneLik.
+	rand_ci_count_allowed = c(
+		"InferenceCountNegBin||~1",
+		"InferenceCountZeroInflatedPoisson",
+		"InferenceCountHurdlePoisson||~1",
+		"InferenceCountKKHurdlePoissonOneLik||~1",
+		"InferenceCountKKGLMM",
+		"InferenceCountPoissonKKGEE||~1"
+	),
+	# rand_ci_custom and rand_pval_custom_allowed (both formerly here) were
+	# removed 2026-09-13 (fix_custom_randomization_statistic.md TODO-10): the
+	# recorded timings (e.g. "robust avg 336.6s / max 1994.8s at n=6") were
+	# for the OLD mechanism, where the custom statistic ran as a method call
+	# on seq_des_inf itself -- whatever concrete estimator class happened to
+	# be under test -- so a slow/pathological class made the custom-stat path
+	# slow too. The custom statistic now runs on a freshly constructed,
+	# standalone InferenceRandCustom with its own dedicated fast kernel (see
+	# that class), so its cost no longer depends at all on seq_des_inf's
+	# class; a spot check at n=100, r=151 (comparable to this file's usual
+	# scale) timed the p-value at ~0.09s and the CI at ~0.35s, nowhere near
+	# either exclusion's threshold. See skip_custom_rand_pval/skip_ci_rand_
+	# custom below, which no longer reference either list.
+	# Hard-excluded from jackknife despite otherwise qualifying -- consumed
+	# via is_any_inference_class_for_formula() (optional `||~formula`
+	# suffix). Populated 2026-09-09, same production-run audit as bootstrap
+	# above. InferenceOrdinalKKGEE||~.: 3 jackknife methods 68-71s mean, up
+	# to 118s. InferenceOrdinalStereotypeLogitRegr||~.: weak evidence (n=1
+	# for each of its 2 methods, 36.8s/37.6s, barely over threshold) --
+	# included per the audit but worth a bigger sample before trusting it.
+	jackknife_exclude = c(
+		"InferenceOrdinalKKGEE||~.",
+		"InferenceOrdinalStereotypeLogitRegr||~."
+	),
+	# Harness-local counterpart of EDI_COMPREHENSIVE_SLOW_PATHS$exact_operations
+	# (comprehensive_slow_paths.R's own @format doc), added 2026-09-17 (user
+	# decision): every other key above gates by CLASS (optionally formula-
+	# restricted) via is_any_inference_class_for_formula(), so skipping one
+	# specific *operation* without also skipping every other operation in
+	# whichever category happens to contain it isn't expressible here -- the
+	# package registry's exact_operations existed for exactly that reason, but
+	# using it for a purely test-harness-cost finding conflates two different
+	# concepts: EDI_COMPREHENSIVE_SLOW_PATHS is the package's own public
+	# judgment about what's too slow for InferenceSuite$run_all_inference()'s
+	# default output (a statement about the package, read by ordinary users'
+	# single-call runs); ADDITIONAL_TEST_SLOW_PATHS is this exhaustive
+	# thousands-of-reps test harness' own private cost-control list (a
+	# statement about this test suite's runtime budget, irrelevant to anyone
+	# just calling the class directly). A finding from a comprehensive_tests
+	# results audit is the second kind by construction, regardless of whether
+	# exact-operation granularity happens to be needed to express it -- same
+	# `response_type||InferenceClass||function_run` key format, optionally
+	# suffixed `||model_formula` to restrict to one formula (see
+	# EDI_COMPREHENSIVE_SLOW_PATHS' @format for the exact grammar), consumed
+	# by is_slow_operation() below alongside the package registry's own list.
+	# The 15 entries below were found the same way as the package registry's
+	# own exact_operations entries (a raw comprehensive_tests_results_nc_1_
+	# *.csv audit, 2026-09-16/17, mean-duration-by-(response_type, class,
+	# function_run), collapsed across design, model_formula kept split where
+	# the data showed a clear fast/slow split) and were briefly added to
+	# EDI_COMPREHENSIVE_SLOW_PATHS before this key existed to hold them
+	# properly -- relocated here 2026-09-17, same data, no re-audit. 6 are
+	# among rows pegged at the 120s FUNCTION_TIMEOUT_SEC cap rather than a
+	# graded slow time. No existing category bucket (in either registry)
+	# covers the Bartlett confidence-interval variants at all (only
+	# bartlett_pval, for the two_sided_pval operation, gates anything
+	# Bartlett-shaped) -- these are the first entries anywhere for
+	# compute_lik_ratio_bartlett_confidence_interval / compute_lik_ratio_
+	# bartlett_approx_confidence_interval. Two of these (InferenceCountKKGLMM's
+	# rand_bootstrap_confidence_interval_studentized/_symmetric-percentile-t)
+	# already have partial coverage via brt_ci_typed above (unrestricted
+	# there too) -- left in rather than pulled, since the two mechanisms are
+	# independent and redundant coverage is harmless; worth reconciling
+	# alongside the general revisit these two lists are due for.
+	exact_operations = c(
+		"count||InferenceCountKKGLMM||compute_lik_ratio_bartlett_confidence_interval",
+		"count||InferenceCountKKGLMM||compute_lik_ratio_bartlett_approx_confidence_interval",
+		"count||InferenceCountKKGLMM||compute_rand_confidence_interval",
+		"count||InferenceCountKKGLMM||compute_rand_bootstrap_confidence_interval",
+		"count||InferenceCountKKGLMM||compute_rand_bootstrap_confidence_interval_studentized",
+		"count||InferenceCountKKGLMM||compute_rand_bootstrap_confidence_interval_symmetric-percentile-t",
+		# ~1 aggregate 18.0s (fast), ~. aggregate 32.7s (slow) -- formula-restricted.
+		"count||InferenceCountKKGLMM||compute_lik_ratio_bootstrap_confidence_interval||~.",
+		# ~1 aggregate 26.1s (fast), ~. aggregate 113.5s (pegged at timeout) -- formula-restricted.
+		"count||InferenceCountKKGLMM||compute_rand_bootstrap_confidence_interval_smoothed||~.",
+		# Only ~1 model_formula observed in the 2026-09-16 data; mean 33.1s over 194 runs.
+		"count||InferenceCountHurdlePoisson||compute_rand_bootstrap_confidence_interval_smoothed",
+		# ~1 aggregate 13.8-13.5s (fast), ~. aggregate 42.1s (slow) -- formula-restricted.
+		"count||InferenceCountZeroInflatedPoisson||compute_lik_ratio_bartlett_confidence_interval||~.",
+		"count||InferenceCountZeroInflatedPoisson||compute_lik_ratio_bartlett_approx_confidence_interval||~.",
+		# ~1 aggregate 36.2-36.6s (slow), ~. aggregate 24.0s (fast) -- formula-restricted (opposite direction from ZeroInflatedPoisson above).
+		"count||InferenceCountZeroInflatedNegBin||compute_lik_ratio_bartlett_confidence_interval||~1",
+		"count||InferenceCountZeroInflatedNegBin||compute_lik_ratio_bartlett_approx_confidence_interval||~1",
+		"proportion||InferencePropKKGLMM||compute_lik_ratio_bartlett_confidence_interval",
+		"proportion||InferencePropKKGLMM||compute_lik_ratio_bartlett_approx_confidence_interval"
+		# Same audit also looked at survival/InferenceSurvivalKKLWACoxPHOneLik
+		# (both Bartlett CI variants and compute_rand_bootstrap_confidence_
+		# interval_symmetric-percentile-t) but left them out: the Bartlett CI
+		# aggregate is only 15.1s once both designs are pooled (one design
+		# ~0.1s, the other ~30s -- the same design-dilutes-the-mean pattern
+		# EDI_COMPREHENSIVE_SLOW_PATHS' own header calls out for
+		# InferenceOrdinalGCompMeanDiff, not confirmed slow at this collapsed
+		# granularity), and the symmetric-percentile-t entry is a single thin
+		# sample (n=15) right at the 30s line (mean 30.5s). Worth re-checking
+		# if they reappear with more data rather than added speculatively now.
+	)
+	# always_run_parametric_bootstrap_ci (used to hardcode InferenceIncidLogBinomial
+	# as the one exception to the COMPREHENSIVE_PARAM_BOOT_CI opt-in gate) removed
+	# 2026-09-13 along with that gate -- see run_parametric_bootstrap_ci's removal
+	# comment near its old definition site. Same migration BRT itself already went
+	# through 2026-09-10 (RUN_BRT CLI flag + always_run_brt removed; BRT now runs
+	# by default for every class, gated purely by skip_brt_*_slow).
+)
+required_packages = c("doParallel", "PTE", "datasets", "qgam", "mlbench", "AppliedPredictiveModeling", "dplyr", "ggplot2", "gridExtra", "profvis", "data.table", "devtools", "R.utils")
+for (pkg in required_packages) {
+	if (!suppressPackageStartupMessages(require(pkg, character.only = TRUE, quietly = TRUE))) {
+		stop("Required package is not installed: ", pkg, call. = FALSE)
+	}
+}
+
+welch_t_stat_cpp = '
+	double welch_t_stat(NumericVector y, IntegerVector w) {
+		int n = y.size();
+		double sum_t = 0, sum_c = 0;
+		int n_t = 0, n_c = 0;
+		for (int i = 0; i < n; i++) {
+			if (w[i] == 1) { sum_t += y[i]; n_t++; }
+			else           { sum_c += y[i]; n_c++; }
+		}
+		double mean_t = sum_t / n_t;
+		double mean_c = sum_c / n_c;
+		double var_t = 0, var_c = 0;
+		for (int i = 0; i < n; i++) {
+			if (w[i] == 1) { double d = y[i] - mean_t; var_t += d * d; }
+			else           { double d = y[i] - mean_c; var_c += d * d; }
+		}
+		var_t /= (n_t - 1);
+		var_c /= (n_c - 1);
+		return (mean_t - mean_c) / sqrt(var_t / n_t + var_c / n_c);
+	}
+'
+
+# Translation-equivariant statistic (T(y + delta*w, w) = T(y, w) + delta) for the
+# custom randomization CI: the CI search is seeded from the observed statistic and
+# inverts on the response-shift axis, so a scale-free statistic such as the Welch t
+# above yields an interval in t-units (centred on the observed t), not in y-units.
+mean_diff_stat_cpp = '
+	double mean_diff_stat(NumericVector y, IntegerVector w) {
+		int n = y.size();
+		double sum_t = 0, sum_c = 0;
+		int n_t = 0, n_c = 0;
+		for (int i = 0; i < n; i++) {
+			if (w[i] == 1) { sum_t += y[i]; n_t++; }
+			else           { sum_c += y[i]; n_c++; }
+		}
+		return sum_t / n_t - sum_c / n_c;
+	}
+'
+
+source(repo_path("EDI", "tests", "testthat", "helper-likelihood-method-smoke.R"))
+
+supports_exact_inference = function(inf_obj) {
+	isTRUE(tryCatch(
+		inf_obj$supports("exact_test")[["exact_test"]],
+		error = function(e) FALSE
+	)) || is(inf_obj, "InferenceExact")
+}
+
+supports_inference_capability = function(inf_obj, capability) {
+	isTRUE(tryCatch(
+		inf_obj$supports(capability)[[capability]],
+		error = function(e) FALSE
+	))
+}
+
+max_n_dataset = 148 #needs to be divisible by 4 for some blocking designs
+source(repo_path("package_tests", "_dataset_load.R"))
+# options(error = recover)
+# options(warn=2)
+
+args = grep("^fork=", commandArgs(trailingOnly = TRUE), value = TRUE, invert = TRUE)
+parse_bool_arg = function(value, default = FALSE){
+	if (length(value) == 0L || is.na(value) || identical(value, "NA")) return(default)
+	as.character(value) %in% c("1", "true", "TRUE", "yes", "YES", "y", "Y")
+}
+Nrep      = if (length(args) >= 1) as.integer(args[1]) else 40L
+NUM_CORES = if (length(args) >= 2) as.integer(args[2]) else 2L
+ALL_RESPONSE_TYPES = c("continuous", "incidence", "proportion", "count", "survival", "ordinal")
+RESPONSE_TYPE_FILTER = if (length(args) >= 3 && args[3] != "NA") as.character(args[3]) else NA_character_
+if (!is.na(RESPONSE_TYPE_FILTER) && !(RESPONSE_TYPE_FILTER %in% ALL_RESPONSE_TYPES)) {
+	stop(
+		"Unsupported response_type filter: ",
+		RESPONSE_TYPE_FILTER,
+		". Supported values are: ",
+		paste(ALL_RESPONSE_TYPES, collapse = ", ")
+	)
+}
+ALL_DESIGN_TYPES = c("Bernoulli", "iBCRD", "Efron", "KK14", "KK21", "KK21stepwise", "SPBR", "PocockSimon", "Urn", "RandomBlockSize", "FixedBernoulli", "FixediBCRD", "FixedBlocking", "FixedCluster", "FixedBlockedCluster", "FixedBinaryMatch", "FixedGreedy", "FixedRerandomization", "FixedMatchingGreedy", "FixedDOptimal", "FixedAOptimal")
+TESTED_DESIGNS = c(
+	"Bernoulli",
+	"KK21stepwise",
+	"SPBR",
+	"FixediBCRD",
+	"FixedBlocking",
+	"FixedBinaryMatch",
+	"FixedMatchingGreedy"
+)
+DESIGN_TYPE_FILTER = if (length(args) >= 4 && args[4] != "NA") as.character(args[4]) else NA_character_
+if (!is.na(DESIGN_TYPE_FILTER) && !(DESIGN_TYPE_FILTER %in% ALL_DESIGN_TYPES)) {
+	stop(
+		"Unsupported design_type filter: ",
+		DESIGN_TYPE_FILTER,
+		". Supported values are: ",
+		paste(ALL_DESIGN_TYPES, collapse = ", ")
+	)
+}
+INFERENCE_CLASS_FILTER = if (length(args) >= 5 && args[5] != "NA") as.character(args[5]) else NA_character_
+DATASET_FILTER = if (length(args) >= 6 && args[6] != "NA") as.character(args[6]) else NA_character_
+BETA_T_FILTER = if (length(args) >= 7 && args[7] != "NA") as.numeric(args[7]) else NA_real_
+REP_FILTER = if (length(args) >= 8 && args[8] != "NA") as.integer(args[8]) else NA_integer_
+canonicalize_test_family_filter = function(value){
+	value = as.character(value)
+	switch(
+		value,
+		lr = "lik_ratio",
+		likelihood_ratio = "lik_ratio",
+		bayes_bootstrap = "bayesian_bootstrap",
+		randomization = "rand",
+		brt = "rand_bootstrap",
+		bootstrap_randomization = "rand_bootstrap",
+		value
+	)
+}
+ALL_TEST_FAMILY_FILTERS = c("estimate", "exact", "asymp", "wald", "score", "lik_ratio", "gradient", "bootstrap", "bayesian_bootstrap", "parametric_bootstrap", "bartlett", "jackknife", "rand", "rand_custom", "rand_bootstrap")
+TEST_FAMILY_FILTER = if (length(args) >= 9 && args[9] != "NA") canonicalize_test_family_filter(args[9]) else NA_character_
+if (!is.na(TEST_FAMILY_FILTER) && !(TEST_FAMILY_FILTER %in% ALL_TEST_FAMILY_FILTERS)) {
+	stop(
+		"Unsupported test family filter: ",
+		TEST_FAMILY_FILTER,
+		". Supported values are: ",
+		paste(ALL_TEST_FAMILY_FILTERS, collapse = ", ")
+	)
+}
+# Opt-in narrow mode (arg 10, default "NA" = off, full pass as always): skips
+# only the studentized/bca (plain and Bayesian bootstrap) and studentized/
+# symmetric-percentile-t/smoothed (randomization-bootstrap) CI and pval type
+# variants -- the four heaviest resampling-based variants found to dominate
+# a continuous-response sweep's wall-clock cost (2026-10 timing
+# investigation: these variants alone, at ~2-7s per call each, repeated
+# across every design/formula/class, accounted for most of a ~1.7h-per-
+# replicate cost, with no single call individually slow enough to qualify
+# for ADDITIONAL_TEST_SLOW_PATHS' own >15-30s mean threshold). Does not
+# touch the "basic"/"wald"/"symmetric" (plain, not "-percentile-t") variants,
+# the untyped default bootstrap/bayesian-bootstrap/rand-bootstrap calls, or
+# any other test family -- narrow mode trims resampling-type breadth only.
+NARROW_MODE = length(args) >= 10 && identical(args[10], "narrow")
+# Deliberately NOT calling set_num_cores(NUM_CORES) here. Found 2026-09-11:
+# set_num_cores() on unix creates a persistent multi-process FORK cluster
+# (make_configured_fork_cluster()) that lives for the whole script run.
+# safe_call() (below) independently forks a fresh child per call via
+# parallel::mcparallel() for hard-timeout enforcement -- and forking a
+# process that already holds open pipes/sockets to that persistent
+# cluster's workers deadlocks the C++ BRT kernel every time it tries to
+# use its own in-process parallelism from inside that forked child
+# (confirmed via direct reproduction: a call that completes in <1s
+# standalone hangs indefinitely under this exact nested-fork pattern).
+# EDI's own hardened per-task fork dispatcher
+# (inference_suite.R::run_all_inference_fork_dispatch(), written after a
+# real 2026-08-21 CI deadlock incident) avoids this by design: each forked
+# child is a standalone process with no persistent cluster underneath it
+# at all. This script follows the same rule the simple way: no global
+# cluster is ever created; each inference object instead gets its thread
+# budget set directly via the public num_cores active binding, right
+# before any safe_call() dispatch (run_inference_checks_impl(), below) --
+# giving the C++ kernels' in-process OpenMP parallelism the same NUM_CORES
+# budget with nothing persistent for a later fork to collide with.
+toggle_asserts(FALSE)
+if (is.na(INFERENCE_CLASS_FILTER)) {
+	run_likelihood_method_smoke_suite(RESPONSE_TYPE_FILTER)
+} else {
+	message("Skipping likelihood method smoke suite because INFERENCE_CLASS_FILTER is set.")
+}
+
+prob_censoring = 0.15
+r = 151
+pval_epsilon = 0.007
+FUNCTION_TIMEOUT_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_FUNCTION_TIMEOUT_SEC", "120"))
+if (!SAFE_CALL_FORK) {
+	if (NUM_CORES > 2L) {
+		message("Note: fork=FALSE has only been validated with nc = 1 and 2 (identical results to fork=TRUE).")
+	}
+	# Calls that hung or crashed an earlier worker in this watchdog session,
+	# keyed by result key (written only by the supervisor, while no worker
+	# runs). safe_call() records these instead of running them again.
+	watchdog_outcomes = if (nzchar(WATCHDOG_MARKER)) comprehensive_watchdog_read_outcomes(WATCHDOG_MARKER) else list()
+}
+HEARTBEAT_LOG_FILE = Sys.getenv(
+	"COMPREHENSIVE_HEARTBEAT_LOG",
+	file.path(tempdir(), paste0("comprehensive_tests_heartbeat_", Sys.getpid(), ".log"))
+)
+HEARTBEAT_INTERVAL_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_HEARTBEAT_INTERVAL_SEC", "1"))
+HEARTBEAT_GAP_THRESHOLD_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_HEARTBEAT_GAP_THRESHOLD_SEC", "5"))
+# A gap this long between two polls of a timeout loop (which wakes every
+# 0.2-1 s) means the machine was suspended. The call in flight is rerun
+# with fresh deadlines instead of being recorded as a timeout: the heartbeat
+# above only corrects recorded durations, and it missed a 26-minute WSL
+# suspend on 2026-10-15 (further_optimizations.md, section 3).
+SUSPEND_GAP_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_SUSPEND_GAP_SEC", "10"))
+SUSPEND_MAX_RERUNS = 3L
+test_compute_confidence_interval_rand = TRUE
+run_debug_resampling = Sys.getenv("COMPREHENSIVE_DEBUG_RESAMPLING", "0") %in% c("1", "true", "TRUE", "yes", "YES")
+# run_parametric_bootstrap_ci (COMPREHENSIVE_PARAM_BOOT_CI env flag, defaulted
+# off) removed 2026-09-13: it blanket-gated compute_lik_ratio_bootstrap_
+# confidence_interval and the Bartlett CI paths behind an opt-in nobody set by
+# default, for every parametric-bootstrap-capable class at once, with only
+# InferenceIncidLogBinomial hardcoded exempt -- these never got a real
+# comprehensive-suite run and always showed "unknown" in path_audits.html.
+# Live-timed compute_lik_ratio_bootstrap_confidence_interval (B=151, n=60)
+# across one representative class per response type before removing this:
+# ContinOLS 2.7s, IncidLogRegr 13.7s, CountNegBin 4.0s, SurvivalWeibullRegr
+# 11.4s, OrdinalCauchitRegr 11.1s, PropBetaRegr 2.6s -- all well under this
+# registry's own 30s slow-path threshold (see ADDITIONAL_TEST_SLOW_PATHS'
+# header comment). Same migration BRT went through 2026-09-10 (RUN_BRT CLI
+# flag + always_run_brt removed): this CI now runs by default like every
+# other test family, gated purely by the pre-existing skip_pboot_ci_slow flag
+# (ADDITIONAL_TEST_SLOW_PATHS$pboot_ci / EDI_COMPREHENSIVE_SLOW_PATHS$pboot_ci)
+# -- any class that turns out to be genuinely slow gets caught there, same as
+# every other family, instead of every class paying a blanket opt-in tax.
+# Opt-in escape hatch to re-time entries in EDI_COMPREHENSIVE_SLOW_PATHS: when
+# set, the registry-based per-rule skips below are neutralized so a filtered
+# invocation (RESPONSE_TYPE_FILTER/INFERENCE_CLASS_FILTER/TEST_FAMILY_FILTER)
+# actually executes the normally-skipped operation instead of skipping it.
+force_run_slow_paths = Sys.getenv("COMPREHENSIVE_FORCE_SLOW_PATHS", "0") %in% c("1", "true", "TRUE", "yes", "YES")
+param_boot_ci_max_root_iterations = 0L
+beta_T_values = c(0, 0.5)
+SD_NOISE = 0.1
+pending_rep_header = NULL
+pending_beta_header = NULL
+pending_dataset_header = NULL
+pending_response_header = NULL
+pending_design_header = NULL
+pending_banner = NULL
+
+sanitize_results_filter = function(value){
+	value = as.character(value)
+	value = gsub("[^A-Za-z0-9._=-]+", "_", value)
+	value = gsub("_+", "_", value)
+	gsub("^_|_$", "", value)
+}
+
+extra_filter_parts = character(0)
+if (!is.na(DESIGN_TYPE_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("design-", sanitize_results_filter(DESIGN_TYPE_FILTER)))
+if (!is.na(INFERENCE_CLASS_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("class-", sanitize_results_filter(INFERENCE_CLASS_FILTER)))
+if (!is.na(DATASET_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("dataset-", sanitize_results_filter(DATASET_FILTER)))
+if (!is.na(BETA_T_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("beta-", sanitize_results_filter(BETA_T_FILTER)))
+if (!is.na(REP_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("rep-", sanitize_results_filter(REP_FILTER)))
+if (!is.na(TEST_FAMILY_FILTER)) extra_filter_parts = c(extra_filter_parts, paste0("family-", sanitize_results_filter(TEST_FAMILY_FILTER)))
+filtered_results_suffix = if (length(extra_filter_parts)) {
+	paste0("_filtered_", paste(extra_filter_parts, collapse = "_"))
+} else {
+	""
+}
+
+results_file = if (is.na(RESPONSE_TYPE_FILTER)) {
+	repo_path("package_tests", paste0("comprehensive_tests_results_nc_", NUM_CORES, filtered_results_suffix, ".csv"))
+} else {
+	repo_path("package_tests", paste0("comprehensive_tests_results_nc_", NUM_CORES, "_", RESPONSE_TYPE_FILTER, filtered_results_suffix, ".csv"))
+}
+existing_results_dt = if (file.exists(results_file)) data.table::fread(results_file) else data.table::data.table()
+run_row_id = if ("run_row_id" %in% colnames(existing_results_dt) && nrow(existing_results_dt) > 0L) {
+	as.integer(max(existing_results_dt$run_row_id, na.rm = TRUE))
+} else {
+	0L
+}
+
+serialize_beta_T = function(value){
+	# vectorized (not just scalar) so it can be used to bulk-build cache keys from a results data.table
+	ifelse(
+		is.na(value),
+		"NA",
+		ifelse(is.numeric(value), format(as.numeric(value), scientific = TRUE, digits = 17), as.character(value))
+	)
+}
+
+round_result_field = function(value){
+	if (is.null(value) || is.na(value)) return(NA_character_)
+	if (value == "") return("")
+	num = suppressWarnings(as.numeric(value))
+	if (!is.finite(num)) return(value)
+	sprintf("%.3f", num)
+}
+
+round_duration_field = function(value){
+	if (is.null(value) || is.na(value)) return(NA_real_)
+	num = suppressWarnings(as.numeric(value))
+	if (!is.finite(num)) return(num)
+	round(num, 3)
+}
+
+current_github_commit_id = function(){
+	commit = tryCatch(
+		system2("git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE, stderr = FALSE),
+		error = function(e) NA_character_
+	)
+	if (!length(commit) || is.na(commit[1]) || !nzchar(commit[1])) NA_character_ else commit[1]
+}
+
+GITHUB_COMMIT_ID = current_github_commit_id()
+
+# One-line startup reminder only -- never mutates the result CSVs (dry run,
+# no --apply), so it's safe to run even while another process is appending
+# rows to the same files. Pruning itself stays a deliberate manual step
+# (see prune_stale_result_rows.R's own header) -- this just keeps staleness
+# drift visible on every run instead of silently accumulating between manual
+# prunes. Never blocks the actual test run if it fails for any reason.
+tryCatch({
+	prune_check_output = system2(
+		"Rscript",
+		c(shQuote(repo_path("package_tests", "prune_stale_result_rows.R"))),
+		stdout = TRUE, stderr = TRUE
+	)
+	prune_summary_line = grep("stale row\\(s\\)", prune_check_output, value = TRUE)
+	if (length(prune_summary_line)) {
+		message("[prune-check] ", prune_summary_line[1], " (run `Rscript package_tests/prune_stale_result_rows.R --apply` to clean up)")
+	}
+}, error = function(e) invisible(NULL))
+
+stable_text_checksum = function(value){
+	text = paste(as.character(value), collapse = "\r")
+	raw_vals = as.integer(charToRaw(enc2utf8(text)))
+	modulus = 4294967296
+	hash = 2166136261
+	for (byte in raw_vals) {
+		hash = (hash * 16777619 + byte) %% modulus
+	}
+	digits = "0123456789abcdef"
+	out = character(8L)
+	for (i in 8L:1L) {
+		nibble = hash %% 16
+		out[i] = substr(digits, nibble + 1L, nibble + 1L)
+		hash = floor(hash / 16)
+	}
+	paste(out, collapse = "")
+}
+
+sanitize_case_id_part = function(value){
+	value = gsub("[^A-Za-z0-9]+", "_", as.character(value))
+	value = gsub("_+", "_", value)
+	value = gsub("^_|_$", "", value)
+	ifelse(nzchar(value), value, "NA")
+}
+
+build_comprehensive_case_id = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+	signature = paste(
+		as.character(dataset_val),
+		as.character(response_val),
+		as.character(design_val),
+		as.character(inference_val),
+		as.character(function_run_val),
+		sep = "||"
+	)
+	prefix = paste(
+		"comprehensive_tests",
+		sanitize_case_id_part(response_val),
+		sanitize_case_id_part(design_val),
+		sanitize_case_id_part(function_run_val),
+		sep = "__"
+	)
+	prefix = substr(prefix, 1L, 120L)
+	paste(prefix, stable_text_checksum(signature), sep = "_")
+}
+
+method_family_for_function_run = function(function_run){
+	label = as.character(function_run)
+	if (grepl("_debug$", label)) return("debug_distribution")
+	if (grepl("bayesian_bootstrap", label, fixed = TRUE)) return("bayesian_bootstrap")
+	if (grepl("parametric_bootstrap|lik_ratio_bootstrap", label)) return("parametric_bootstrap")
+	if (grepl("bootstrap", label, fixed = TRUE)) return("bootstrap")
+	if (grepl("jackknife", label, fixed = TRUE)) return("jackknife")
+	if (grepl("bartlett", label, fixed = TRUE)) return("bartlett")
+	if (grepl("rand", label, fixed = TRUE)) return("rand")
+	if (grepl("exact", label, fixed = TRUE)) return("exact")
+	if (grepl("wald", label, fixed = TRUE)) return("wald")
+	if (grepl("score", label, fixed = TRUE)) return("score")
+	if (grepl("lik_ratio", label, fixed = TRUE)) return("lik_ratio")
+	if (grepl("gradient", label, fixed = TRUE)) return("gradient")
+	if (grepl("asymp", label, fixed = TRUE)) return("asymp")
+	if (grepl("confidence_interval", label, fixed = TRUE)) return("confidence_interval")
+	if (grepl("pval", label, fixed = TRUE)) return("p_value")
+	if (grepl("estimate", label, fixed = TRUE)) return("estimate")
+	"other"
+}
+
+skip_reason_for_result = function(status, error_message){
+	msg = if (is.null(error_message) || is.na(error_message) || !nzchar(error_message)) "" else as.character(error_message)
+	if (identical(status, "error")) return("error")
+	if (nzchar(msg)) {
+		if (grepl("timeout", msg, ignore.case = TRUE)) return("timeout")
+		if (grepl("non-estimable", msg, ignore.case = TRUE)) return("nonestimable")
+		if (grepl("not implemented|must implement|does not support|not supported", msg, ignore.case = TRUE)) return("unsupported")
+		if (grepl("Invalid output|NA/NaN/Inf|non-finite|finite standard error|Degenerate confidence interval", msg, ignore.case = TRUE)) return("numeric_instability")
+		if (grepl("missing output|Allowed missing output", msg, ignore.case = TRUE)) return("allowed_missing_output")
+		return("recorded_skip")
+	}
+	if (identical(status, "ok")) return("")
+	"unknown"
+}
+
+heartbeat_cache = new.env(parent = emptyenv())
+heartbeat_cache$path = NA_character_
+heartbeat_cache$size = NA_real_
+heartbeat_cache$mtime = as.POSIXct(NA)
+heartbeat_cache$epochs = numeric()
+
+start_heartbeat_process = function(){
+	if (!is.finite(HEARTBEAT_INTERVAL_SEC) || HEARTBEAT_INTERVAL_SEC <= 0) return(invisible(FALSE))
+	dir.create(dirname(HEARTBEAT_LOG_FILE), recursive = TRUE, showWarnings = FALSE)
+	parent_pid = Sys.getpid()
+	cmd = sprintf(
+		"while kill -0 %d 2>/dev/null; do date +%%s >> %s; sleep %s; done",
+		parent_pid,
+		shQuote(HEARTBEAT_LOG_FILE),
+		shQuote(as.character(HEARTBEAT_INTERVAL_SEC))
+	)
+	tryCatch({
+		system2("sh", c("-c", shQuote(cmd)), wait = FALSE, stdout = FALSE, stderr = FALSE)
+		invisible(TRUE)
+	}, error = function(e) invisible(FALSE))
+}
+
+read_heartbeat_epochs = function(){
+	if (!file.exists(HEARTBEAT_LOG_FILE)) return(numeric())
+	info = file.info(HEARTBEAT_LOG_FILE)
+	same_file =
+		identical(heartbeat_cache$path, HEARTBEAT_LOG_FILE) &&
+		isTRUE(heartbeat_cache$size == info$size) &&
+		isTRUE(heartbeat_cache$mtime == info$mtime)
+	if (same_file) return(heartbeat_cache$epochs)
+	epochs = tryCatch(
+		scan(HEARTBEAT_LOG_FILE, what = numeric(), quiet = TRUE),
+		error = function(e) numeric()
+	)
+	epochs = sort(unique(epochs[is.finite(epochs)]))
+	heartbeat_cache$path = HEARTBEAT_LOG_FILE
+	heartbeat_cache$size = info$size
+	heartbeat_cache$mtime = info$mtime
+	heartbeat_cache$epochs = epochs
+	epochs
+}
+
+sleep_overlap_sec = function(start_epoch, end_epoch){
+	if (!is.finite(start_epoch) || !is.finite(end_epoch) || end_epoch <= start_epoch) return(0)
+	epochs = read_heartbeat_epochs()
+	if (length(epochs) < 2L) return(0)
+	gap = diff(epochs)
+	gap_idx = which(is.finite(gap) & gap > HEARTBEAT_GAP_THRESHOLD_SEC)
+	if (!length(gap_idx)) return(0)
+	sum(vapply(gap_idx, function(i){
+		sleep_start = epochs[i] + HEARTBEAT_INTERVAL_SEC
+		sleep_end = epochs[i + 1L]
+		max(0, min(end_epoch, sleep_end) - max(start_epoch, sleep_start))
+	}, numeric(1)))
+}
+
+sleep_adjust_duration = function(duration_time_sec, start_epoch = NA_real_, end_epoch = NA_real_){
+	raw_duration = suppressWarnings(as.numeric(duration_time_sec))
+	if (!is.finite(raw_duration)) {
+		return(list(adjusted = raw_duration, sleep_adjustment = NA_real_))
+	}
+	sleep_adjustment = sleep_overlap_sec(start_epoch, end_epoch)
+	adjusted = max(0, raw_duration - sleep_adjustment)
+	list(adjusted = adjusted, sleep_adjustment = sleep_adjustment)
+}
+
+start_heartbeat_process()
+
+add_assignment_only_cluster_id = function(X_design, strata_cols = character(0), cluster_size = 2L){
+	X_out = as.data.frame(X_design)
+	cluster_col = ".assignment_only_cluster_id"
+	cluster_ids = integer(nrow(X_out))
+	next_cluster_id = 1L
+
+	if (!length(strata_cols)) {
+		cluster_ids = ((seq_len(nrow(X_out)) - 1L) %/% cluster_size) + 1L
+	} else {
+		strata_df = X_out[, strata_cols, drop = FALSE]
+		strata_key = do.call(paste, c(lapply(strata_df, as.character), sep = "\r"))
+		for (key in unique(strata_key)) {
+			idx = which(strata_key == key)
+			cluster_ids[idx] = ((seq_along(idx) - 1L) %/% cluster_size) + next_cluster_id
+			next_cluster_id = max(cluster_ids[idx]) + 1L
+		}
+	}
+
+	X_out[[cluster_col]] = factor(cluster_ids)
+	list(X = X_out, cluster_col = cluster_col)
+}
+
+design_supports_zhang_incidence = function(des_obj){
+	is(des_obj, "DesignSeqOneByOneBernoulli") ||
+		is(des_obj, "DesignFixedBernoulli") ||
+		is(des_obj, "DesignSeqOneByOneKK14") ||
+		is(des_obj, "DesignFixedBinaryMatch")
+}
+
+design_supports_exact_fisher_incidence = function(des_obj){
+	is(des_obj, "DesignSeqOneByOneiBCRD") ||
+		is(des_obj, "DesignFixediBCRD") ||
+		is(des_obj, "DesignFixedBlocking") ||
+		is(des_obj, "DesignSeqOneByOneSPBR") ||
+		is(des_obj, "DesignSeqOneByOneRandomBlockSize") ||
+		is(des_obj, "DesignSeqOneByOneKK14") ||
+		is(des_obj, "DesignSeqOneByOneKK21") ||
+		is(des_obj, "DesignSeqOneByOneKK21stepwise") ||
+		is(des_obj, "DesignFixedBinaryMatch")
+}
+
+design_supports_exact_binomial_incidence = function(des_obj){
+	is(des_obj, "DesignSeqOneByOneKK14") ||
+		is(des_obj, "DesignFixedBinaryMatch")
+}
+
+design_has_realized_matched_pair = function(des_obj){
+	if (!design_supports_exact_binomial_incidence(des_obj)) {
+		return(FALSE)
+	}
+	tryCatch({
+		if (is(des_obj, "DesignFixedBinaryMatch")) {
+			des_obj$.__enclos_env__$private$ensure_matching_structure_computed()
+		}
+		m_vec = des_obj$.__enclos_env__$private$m
+		if (is.null(m_vec) || length(m_vec) == 0L) {
+			return(FALSE)
+		}
+		m_vec = as.integer(m_vec)
+		m_vec[is.na(m_vec)] = 0L
+		pair_sizes = table(m_vec[m_vec > 0L])
+		length(pair_sizes) > 0L && any(as.integer(pair_sizes) == 2L)
+	}, error = function(e) FALSE)
+}
+
+build_result_key = function(rep_val, beta_val, dataset_val, response_val, design_val, inference_val, function_run_val){
+	paste(
+		as.integer(rep_val),
+		serialize_beta_T(beta_val),
+		as.character(dataset_val),
+		as.character(response_val),
+		as.character(design_val),
+		as.character(inference_val),
+		as.character(function_run_val),
+		sep = "||"
+	)
+}
+
+completed_rows_cache = new.env(parent = emptyenv())
+
+mark_row_completed = function(rep_val, beta_val, dataset_val, response_val, design_val, inference_val, function_run_val){
+	key = build_result_key(rep_val, beta_val, dataset_val, response_val, design_val, inference_val, function_run_val)
+	completed_rows_cache[[key]] <- TRUE
+}
+
+is_row_completed = function(rep_val, beta_val, dataset_val, response_val, design_val, inference_val, function_run_val){
+	key = build_result_key(rep_val, beta_val, dataset_val, response_val, design_val, inference_val, function_run_val)
+	!is.null(completed_rows_cache[[key]])
+}
+
+# Opt-in (default off): once a (dataset, response_type, design, class,
+# function_run) call hits the FUNCTION_TIMEOUT_SEC watchdog, skip that exact
+# combination for the rest of THIS invocation instead of re-attempting it on
+# every subsequent rep/beta_T -- a rep-level exploratory sweep (comparing
+# avg/p80/max duration across reps) doesn't need to re-pay a confirmed 60s
+# timeout Nrep times over. Deliberately excludes rep/beta_T from the key
+# (unlike completed_rows_cache above, which is keyed on the full row and
+# exists for a different purpose -- resuming from an existing results CSV).
+# Session-local only: nothing here is persisted, so a fresh invocation always
+# re-attempts every call at least once.
+skip_repeat_after_timeout = Sys.getenv("COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT", "0") %in% c("1", "true", "TRUE", "yes", "YES")
+confirmed_timeout_cache = new.env(parent = emptyenv())
+timeout_cache_key = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+	paste(dataset_val, response_val, design_val, inference_val, function_run_val, sep = "||")
+}
+mark_confirmed_timeout = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+	confirmed_timeout_cache[[timeout_cache_key(dataset_val, response_val, design_val, inference_val, function_run_val)]] <- TRUE
+}
+is_confirmed_timeout = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+	skip_repeat_after_timeout && !is.null(confirmed_timeout_cache[[timeout_cache_key(dataset_val, response_val, design_val, inference_val, function_run_val)]])
+}
+
+if (nrow(existing_results_dt) > 0L) {
+	rows_to_cache = if ("status" %in% colnames(existing_results_dt)) {
+		existing_results_dt[status == "ok"]
+	} else {
+		existing_results_dt
+	}
+	if (nrow(rows_to_cache) > 0L) {
+		# Vectorized key construction (build_result_key is vectorized over all 7 args) instead of
+		# subsetting the data.table one row at a time, which dominates startup cost on large result files.
+		keys = if ("id" %in% colnames(rows_to_cache)) {
+			rows_to_cache$id
+		} else {
+			build_result_key(
+				rows_to_cache$rep,
+				rows_to_cache$beta_T,
+				rows_to_cache$dataset,
+				rows_to_cache$response_type,
+				rows_to_cache$design,
+				rows_to_cache$inference_class,
+				rows_to_cache$function_run
+			)
+		}
+		for (key in keys) {
+			completed_rows_cache[[key]] <- TRUE
+		}
+		# Seed confirmed_timeout_cache from the resumed CSV too -- otherwise a
+		# timeout recorded by an EARLIER (e.g. killed and relaunched) process
+		# invocation is invisible to this fresh process's in-memory cache: a
+		# resumed row returns at is_row_completed() (above is_confirmed_timeout()
+		# in safe_call()) without ever reaching handle_timeout(), so the
+		# confirmed-slow fact never gets (re-)learned here, and every relaunch
+		# re-pays the full timeout for every already-known-slow combination
+		# instead of skipping it. Found 2026-09-10 after a 3+ hour run showed
+		# zero cache hits despite hundreds of confirmed timeouts -- the run had
+		# been killed and relaunched (different Nrep) partway through, and the
+		# resumed rows never seeded this process's fresh, empty cache.
+		if (skip_repeat_after_timeout && "error_message" %in% colnames(rows_to_cache)) {
+			timeout_rows = rows_to_cache[grepl("timeout", error_message, ignore.case = TRUE)]
+			if (nrow(timeout_rows) > 0L) {
+				timeout_keys = timeout_cache_key(
+					timeout_rows$dataset,
+					timeout_rows$response_type,
+					timeout_rows$design,
+					timeout_rows$inference_class,
+					timeout_rows$function_run
+				)
+				for (tkey in timeout_keys) {
+					confirmed_timeout_cache[[tkey]] <- TRUE
+				}
+				message(sprintf("Seeded confirmed_timeout_cache with %d already-timed-out combination(s) from the resumed results file.", length(unique(timeout_keys))))
+			}
+		}
+	}
+}
+results_dt = data.table(
+	rep = integer(),
+	beta_T = numeric(),
+	dataset = character(),
+	response_type = character(),
+	design = character(),
+	inference_class = character(),
+	function_run = character(),
+	id = character(),
+	case_id = character(),
+	coverage_scope = character(),
+	runner = character(),
+	github_commit_id = character(),
+	method_family = character(),
+	argument_coverage_kind = character(),
+	skip_reason = character(),
+	timestamp = character(),
+	duration_time_sec = numeric(),
+	duration_time_sec_raw = numeric(),
+	duration_time_sec_sleep_adjusted = numeric(),
+	duration_sleep_adjustment_sec = numeric(),
+	start_epoch = numeric(),
+	end_epoch = numeric(),
+	heartbeat_log = character(),
+	result_1 = character(),
+	result_2 = character(),
+	coverage_truth = numeric(),
+	beta_T_in_confidence_interval = logical(),
+	error_message = character(),
+	run_row_id = integer(),
+	r = integer(),
+	pval_epsilon = numeric(),
+	prob_censoring = numeric(),
+	sd_noise = numeric(),
+	num_cores = integer(),
+	dataset_n_rows = integer(),
+	dataset_n_cols = integer(),
+	result = character(),
+	status = character()
+)
+ensure_existing_results_schema = function(){
+	if (!file.exists(results_file) || file.info(results_file)$size == 0 || nrow(existing_results_dt) == 0L) {
+		return(invisible(FALSE))
+	}
+	expected_cols = names(results_dt)
+	missing_cols = setdiff(expected_cols, names(existing_results_dt))
+	if (!length(missing_cols)) return(invisible(FALSE))
+	for (col in missing_cols) {
+		if (col %in% c("heartbeat_log", "result", "status", "error_message", "result_1", "result_2", "timestamp", "id", "case_id", "coverage_scope", "runner", "github_commit_id", "method_family", "argument_coverage_kind", "skip_reason", "dataset", "response_type", "design", "inference_class", "function_run")) {
+			existing_results_dt[, (col) := NA_character_]
+		} else if (col == "beta_T" || grepl("duration|epoch|pval|prob|sd|coverage", col)) {
+			existing_results_dt[, (col) := NA_real_]
+		} else if (col == "beta_T_in_confidence_interval") {
+			existing_results_dt[, (col) := NA]
+		} else {
+			existing_results_dt[, (col) := NA_integer_]
+		}
+	}
+	if (all(c("dataset", "response_type", "design", "inference_class", "function_run") %in% names(existing_results_dt))) {
+		existing_results_dt[is.na(case_id) | !nzchar(ifelse(is.na(case_id), "", case_id)), case_id := build_comprehensive_case_id(dataset, response_type, design, inference_class, function_run)]
+		existing_results_dt[is.na(coverage_scope) | !nzchar(ifelse(is.na(coverage_scope), "", coverage_scope)), coverage_scope := "comprehensive_workflow"]
+		existing_results_dt[is.na(runner) | !nzchar(ifelse(is.na(runner), "", runner)), runner := "comprehensive_tests"]
+		existing_results_dt[is.na(method_family) | !nzchar(ifelse(is.na(method_family), "", method_family)), method_family := vapply(function_run, method_family_for_function_run, character(1))]
+		existing_results_dt[is.na(argument_coverage_kind) | !nzchar(ifelse(is.na(argument_coverage_kind), "", argument_coverage_kind)), argument_coverage_kind := "not_argument_combination"]
+	}
+	if (all(c("status", "error_message") %in% names(existing_results_dt))) {
+		existing_results_dt[is.na(skip_reason) | !nzchar(ifelse(is.na(skip_reason), "", skip_reason)), skip_reason := mapply(skip_reason_for_result, status, error_message, USE.NAMES = FALSE)]
+	}
+	extra_cols = setdiff(names(existing_results_dt), expected_cols)
+	data.table::setcolorder(existing_results_dt, c(expected_cols, extra_cols))
+	data.table::fwrite(existing_results_dt, results_file, na = "NA")
+	invisible(TRUE)
+}
+ensure_existing_results_schema()
+RESULTS_WRITE_BATCH_SIZE = 50L
+# Under the fork=FALSE watchdog, write every row at once: a kill would
+# otherwise lose the buffered rows and the restarted worker redo them.
+if (!SAFE_CALL_FORK && nzchar(WATCHDOG_MARKER)) RESULTS_WRITE_BATCH_SIZE = 1L
+# Dependency-free interprocess lock for the results CSV: no package outside
+# base R is required (avoids adding a hard dependency to this harness script
+# just for locking), and mkdir() is atomic on every filesystem this runs on
+# (POSIX guarantees "create if not exists" atomicity for directory creation,
+# unlike file.create()/file.exists() checks, which race). Found 2026-09-11:
+# without this, two OS processes both appending 50-row fwrite() batches to
+# the same results_file (this harness has no other synchronization between
+# separate invocations/workers touching one file) can interleave mid-write,
+# producing torn/column-shifted rows -- confirmed via ~30,300 such rows
+# (~1% of all 6 main results files) with a missing leading field exactly at
+# a batch-boundary transition between two unrelated (dataset,design)
+# contexts.
+acquire_results_file_lock = function(timeout_sec = 30, poll_sec = 0.05){
+	lock_dir = paste0(results_file, ".lock")
+	deadline = proc.time()[["elapsed"]] + timeout_sec
+	repeat {
+		if (dir.create(lock_dir, showWarnings = FALSE)) return(invisible(lock_dir))
+		if (proc.time()[["elapsed"]] >= deadline) {
+			stop(sprintf("Timed out after %gs waiting for results file lock: %s", timeout_sec, lock_dir))
+		}
+		Sys.sleep(poll_sec)
+	}
+}
+
+release_results_file_lock = function(lock_dir){
+	unlink(lock_dir, recursive = TRUE, force = TRUE)
+}
+
+write_results_if_needed = function(force = FALSE){
+	if (nrow(results_dt) > 0L && (force || nrow(results_dt) >= RESULTS_WRITE_BATCH_SIZE)){
+		lock_dir = acquire_results_file_lock()
+		on.exit(release_results_file_lock(lock_dir), add = TRUE)
+		append_mode = file.exists(results_file) && file.info(results_file)$size > 0
+		if (append_mode) {
+			# Defensive re-alignment against record_result()'s own column
+			# construction order drifting from the file's actual header again
+			# in the future (see record_result()'s comment on this exact
+			# 2026-09-14 bug): appends write no header (col.names=FALSE
+			# below), so fwrite() blindly serializes results_dt in whatever
+			# order it currently has -- if that ever again differs from the
+			# existing file's header, every appended row silently lands under
+			# the wrong column, permanently, with no error. Re-derive the
+			# order from the file itself (safe to read here: we hold
+			# lock_dir, so no other writer can be mid-append) rather than
+			# trusting results_dt's order matches by construction.
+			file_header = names(data.table::fread(results_file, nrows = 0L, showProgress = FALSE))
+			if (!setequal(file_header, names(results_dt))) {
+				stop(
+					"results_dt columns do not match ", results_file, "'s header -- ",
+					"refusing to append (would silently corrupt the file). ",
+					"In file but not results_dt: ", paste(setdiff(file_header, names(results_dt)), collapse = ", "),
+					"; in results_dt but not file: ", paste(setdiff(names(results_dt), file_header), collapse = ", "),
+					call. = FALSE
+				)
+			}
+			data.table::setcolorder(results_dt, file_header)
+		}
+		data.table::fwrite(
+			results_dt,
+			results_file,
+			append = append_mode,
+			col.names = !append_mode,
+			na = "NA"
+		)
+		results_dt <<- results_dt[0]
+	}
+}
+
+log_progress = function(msg){
+	message(msg)
+	flush.console()
+}
+
+should_run_inference_label = function(inference_label){
+	is.na(INFERENCE_CLASS_FILTER) || grepl(INFERENCE_CLASS_FILTER, inference_label)
+}
+
+is_test_family_filter_active = function(){
+	!is.na(TEST_FAMILY_FILTER)
+}
+
+should_run_test_family = function(test_family){
+	!is_test_family_filter_active() || identical(TEST_FAMILY_FILTER, test_family)
+}
+
+inference_banner = function(inf_name, mf = NULL){
+	if (is.null(mf)) {
+		mf = if (exists("model_formula", envir = .GlobalEnv)) get("model_formula", envir = .GlobalEnv) else NULL
+	}
+	pending_banner <<- sprintf("\n\n  == Inference: %s design_type = %s dataset = %s response_type = %s beta_T = [%s] num_cores = [%d] rep = [%d/%d]%s\n", 
+	  inf_name, 
+	  if (exists("design_type", envir = .GlobalEnv)) get("design_type", envir = .GlobalEnv) else "unknown",
+	  if (exists("dataset_name", envir = .GlobalEnv)) get("dataset_name", envir = .GlobalEnv) else "unknown",
+	  if (exists("response_type", envir = .GlobalEnv)) get("response_type", envir = .GlobalEnv) else "unknown",
+	  format(beta_T), NUM_CORES, rep_curr, Nrep,
+	  if (!is.null(mf)) paste0(" formula = [", deparse(mf), "]") else "")
+}
+
+current_design_formula_suffix = function(){
+	if (exists(".comprehensive_current_model_formula", envir = .GlobalEnv, inherits = FALSE)) {
+		current_model_formula = get(".comprehensive_current_model_formula", envir = .GlobalEnv)
+		paste0(" [design_formula=", paste(deparse(current_model_formula), collapse = " "), "]")
+	} else {
+		""
+	}
+}
+
+current_inference_result_label = function(inf_name){
+	paste0(inf_name, current_design_formula_suffix())
+}
+
+record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_class, function_run, result, status, duration_time_sec, error_message = NA_character_, start_epoch = NA_real_, end_epoch = NA_real_){
+	if (!is.finite(start_epoch) &&
+		exists(".comprehensive_current_call_start_epoch", envir = .GlobalEnv, inherits = FALSE)) {
+		start_epoch = get(".comprehensive_current_call_start_epoch", envir = .GlobalEnv)
+	}
+	if (!is.finite(end_epoch)) {
+		end_epoch = as.numeric(Sys.time())
+	}
+	duration_adjustment = sleep_adjust_duration(duration_time_sec, start_epoch, end_epoch)
+	if (identical(as.numeric(beta_T), 0) &&
+		grepl("InferenceSurvivalDepCensTransformRegr", inference_class, fixed = TRUE) &&
+		is.atomic(result)) {
+		result_num_for_truth = suppressWarnings(as.numeric(result))
+		is_truth_anomaly_for_record = FALSE
+		if (length(result_num_for_truth) && !all(is.na(result_num_for_truth))) {
+			if (grepl("pval", function_run, fixed = TRUE)) {
+				is_truth_anomaly_for_record = length(result_num_for_truth) >= 1L &&
+					is.finite(result_num_for_truth[1L]) && result_num_for_truth[1L] < 1e-6
+			} else if (grepl("confidence_interval", function_run, fixed = TRUE)) {
+				is_truth_anomaly_for_record = length(result_num_for_truth) < 2L ||
+					!all(is.finite(result_num_for_truth[1:2])) ||
+					result_num_for_truth[1L] > result_num_for_truth[2L] ||
+					max(abs(result_num_for_truth[1:2])) > 50
+			} else if (grepl("estimate", function_run, fixed = TRUE)) {
+				is_truth_anomaly_for_record = length(result_num_for_truth) >= 1L &&
+					is.finite(result_num_for_truth[1L]) && abs(result_num_for_truth[1L]) > 50
+			}
+		}
+		if (isTRUE(is_truth_anomaly_for_record)) {
+			result = NA_character_
+			status = "ok"
+			error_message = paste0(
+				"Explicitly non-estimable in ", function_run,
+				"; stage=se; reason=dep_cens_transform_truth_anomalous_result_unstable"
+			)
+		}
+	}
+	result_vec = if (is.null(result)) {
+		NA_character_
+	} else if (length(result) == 0) {
+		character(0)
+	} else {
+		as.character(result)
+	}
+
+	result_str = if (is.null(result)) {
+		NA_character_
+	} else if (length(result) == 0) {
+		""
+	} else if (length(result) == 1) {
+		as.character(result)
+	} else {
+		paste(as.character(result), collapse = " ")
+	}
+	result_1 = if (length(result_vec) >= 1) round_result_field(result_vec[1]) else NA_character_
+	is_debug_distribution = grepl("_debug$", function_run)
+	result_2 = if ((grepl("confidence_interval", function_run, fixed = TRUE) || is_debug_distribution) && length(result_vec) >= 2) round_result_field(result_vec[2]) else NA_character_
+	beta_T_in_confidence_interval = NA
+	coverage_truth = beta_T
+	base_inference_class = sub(" [\\(\\[].*$", "", inference_class)
+	has_closed_form_coverage_truth =
+		exists("COVERAGE_CLOSED_FORM", inherits = TRUE) &&
+		(
+			!is.null(COVERAGE_CLOSED_FORM[[base_inference_class]]) ||
+			(identical(base_inference_class, "InferenceAllSimpleAverageDiff") &&
+			 !is.na(response_type) &&
+			 !is.null(COVERAGE_CLOSED_FORM[[paste0("InferenceAllSimpleAverageDiff__", response_type)]]))
+		)
+	has_mc_spec_coverage_truth =
+		exists("COVERAGE_MC_SPEC", inherits = TRUE) && !is.null(COVERAGE_MC_SPEC[[base_inference_class]])
+	if (has_closed_form_coverage_truth || has_mc_spec_coverage_truth || grepl("confidence_interval", function_run, fixed = TRUE)){
+		coverage_truth = get_coverage_truth(inference_class, dataset_name, beta_T, response_type_hint = response_type)
+	}
+	if (grepl("confidence_interval", function_run, fixed = TRUE)){
+		result_num_ci = suppressWarnings(as.numeric(result))
+		if (length(result_num_ci) >= 2 && all(is.finite(result_num_ci[1:2]))){
+			ci_lo = min(result_num_ci[1:2])
+			ci_hi = max(result_num_ci[1:2])
+			beta_T_in_confidence_interval = (coverage_truth >= ci_lo && coverage_truth <= ci_hi)
+		}
+	}
+	cache_estimate_logging_theta(inference_class, dataset_name, beta_T, response_type, coverage_truth)
+	run_row_id <<- run_row_id + 1L
+	error_message_chr = if (is.null(error_message)) NA_character_ else as.character(error_message)
+	# Column order here MUST match the existing results CSVs' header
+	# (function_run first) -- this is not cosmetic. write_results_if_needed()
+	# appends with col.names=FALSE for files that already exist, so fwrite()
+	# serializes results_dt in ITS OWN column order with no header written;
+	# if that order doesn't match the file's actual header, every appended
+	# row silently lands under the wrong column, permanently, for every
+	# single row (not intermittently -- confirmed 2026-09-14: 100% of a
+	# fresh run's newly-appended rows in comprehensive_tests_results_nc_1_
+	# continuous.csv were shifted by exactly one column, e.g. a real
+	# compute_param_bootstrap_estimate() call for InferenceContinLin showing
+	# up under "inference_class" instead of "function_run"). This was
+	# previously misdiagnosed as a torn/concurrent-write race (which the
+	# file-lock fix earlier this session addressed but did not -- and could
+	# not -- fix, since this mismatch is deterministic, not a race). See
+	# the defensive setcolorder() in write_results_if_needed() below for the
+	# second half of this fix, which also guards against this drifting again.
+	results_dt <<- data.table::rbindlist(list(
+		results_dt,
+		data.table(
+			function_run = function_run,
+			rep = as.integer(rep_curr),
+			beta_T = beta_T,
+			dataset = dataset_name,
+			response_type = response_type,
+			design = design_type,
+			inference_class = inference_class,
+			id = build_result_key(rep_curr, beta_T, dataset_name, response_type, design_type, inference_class, function_run),
+			case_id = build_comprehensive_case_id(dataset_name, response_type, design_type, inference_class, function_run),
+			coverage_scope = "comprehensive_workflow",
+			runner = "comprehensive_tests",
+			github_commit_id = GITHUB_COMMIT_ID,
+			method_family = method_family_for_function_run(function_run),
+			argument_coverage_kind = "not_argument_combination",
+			skip_reason = skip_reason_for_result(status, error_message_chr),
+			timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+			duration_time_sec = round_duration_field(duration_time_sec),
+			duration_time_sec_raw = round_duration_field(duration_time_sec),
+			duration_time_sec_sleep_adjusted = round_duration_field(duration_adjustment$adjusted),
+			duration_sleep_adjustment_sec = round_duration_field(duration_adjustment$sleep_adjustment),
+			start_epoch = round_duration_field(start_epoch),
+			end_epoch = round_duration_field(end_epoch),
+			heartbeat_log = HEARTBEAT_LOG_FILE,
+			result_1 = result_1,
+			result_2 = result_2,
+			coverage_truth = coverage_truth,
+			beta_T_in_confidence_interval = beta_T_in_confidence_interval,
+			error_message = error_message_chr,
+			run_row_id = run_row_id,
+			r = as.integer(r),
+			pval_epsilon = pval_epsilon,
+			prob_censoring = prob_censoring,
+			sd_noise = SD_NOISE,
+			num_cores = as.integer(NUM_CORES),
+			dataset_n_rows = as.integer(dataset_n_rows),
+			dataset_n_cols = as.integer(dataset_n_cols),
+			result = result_str,
+			status = status
+		)
+	), use.names = TRUE)
+	if (identical(status, "ok")) {
+		mark_row_completed(rep_curr, beta_T, dataset_name, response_type, design_type, inference_class, function_run)
+	}
+	# Buffered: only hits disk once RESULTS_WRITE_BATCH_SIZE rows have accumulated. Forced flush points
+	# (end of each design_type iteration, end of script) bound how much is lost on a crash/interrupt.
+	write_results_if_needed(force = FALSE)
+}
+
+# Memoized on first use: prior-run "latest status per key" rows, derived from the on-disk snapshot
+# (existing_results_dt) already loaded once at startup rather than re-reading + re-grouping the
+# whole results file from disk on every call (this can be called many times per run, e.g. once per
+# censored-survival design/dataset/rep combination).
+.existing_error_keys_latest = NULL
+get_existing_error_keys_latest = function(){
+	if (is.null(.existing_error_keys_latest)) {
+		key_cols = c("rep", "beta_T", "dataset", "response_type", "design", "inference_class", "function_run")
+		.existing_error_keys_latest <<- if (nrow(existing_results_dt) > 0L && all(c(key_cols, "status") %in% names(existing_results_dt))) {
+			existing_results_dt[, .SD[.N], by = key_cols]
+		} else {
+			data.table::data.table()
+		}
+	}
+	.existing_error_keys_latest
+}
+
+record_existing_error_keys_as_skipped = function(inference_class, dataset_n_rows, dataset_n_cols, error_message){
+	latest = get_existing_error_keys_latest()
+	if (nrow(latest) == 0L) return(invisible(NULL))
+	to_mark = latest[
+		status == "error" &
+			rep == as.integer(rep_curr) &
+			as.numeric(beta_T) == as.numeric(get("beta_T", envir = .GlobalEnv)) &
+			dataset == dataset_name &
+			response_type == get("response_type", envir = .GlobalEnv) &
+			design == design_type &
+			inference_class == inference_class,
+		unique(function_run)
+	]
+	if (!length(to_mark)) return(invisible(NULL))
+	for (fn in to_mark) {
+		record_result(
+			dataset_name, dataset_n_rows, dataset_n_cols,
+			get("response_type", envir = .GlobalEnv), design_type,
+			inference_class, fn, NA_character_, status = "ok",
+			duration_time_sec = 0,
+			error_message = error_message
+		)
+	}
+	invisible(NULL)
+}
+
+run_inference_checks_both_paths = function(class_gen, class_name, des_obj, response_type, design_type, dataset_name, n_rows, n_cols, model_formula = NULL, ...){
+	# model_formula=~1 path
+	univ_label = paste0(class_name, " (model_formula=~1)")
+	if (should_run_inference_label(univ_label)) {
+		inference_banner(univ_label, mf = ~ 1)
+		run_inference_checks(
+			class_gen$new(des_obj, model_formula = ~ 1, ...),
+			response_type, design_type, dataset_name, n_rows, n_cols,
+			inference_label = univ_label
+		)
+	}
+
+	# model_formula=~. path
+	multi_label = paste0(class_name, " (model_formula=~.)")
+	if (should_run_inference_label(multi_label)) {
+		inference_banner(multi_label, mf = ~ .)
+		run_inference_checks(
+			class_gen$new(des_obj, model_formula = ~ ., ...),
+			response_type, design_type, dataset_name, n_rows, n_cols,
+			inference_label = multi_label
+		)
+	}
+}
+
+run_inference_checks_for_class = function(class_gen, class_name, des_obj, response_type, design_type, dataset_name, n_rows, n_cols, model_formula = NULL, ...){
+	if (!should_run_inference_label(class_name)) return(invisible(NULL))
+	inference_banner(class_name, mf = model_formula)
+	run_inference_checks(
+		class_gen$new(des_obj, model_formula = model_formula, ...),
+		response_type, design_type, dataset_name, n_rows, n_cols
+	)
+}
+
+run_inference_checks_impl = function(seq_des_inf, response_type, design_type, dataset_name, dataset_n_rows, dataset_n_cols, exhaustive_sweep = FALSE, inference_label = NULL){
+	inference_base_label = if (!is.null(inference_label) && nzchar(inference_label)) {
+		inference_label
+	} else {
+		class(seq_des_inf)[1]
+	}
+	design_formula_suffix = if (exists(".comprehensive_current_model_formula", envir = .GlobalEnv, inherits = FALSE)) {
+		current_model_formula = get(".comprehensive_current_model_formula", envir = .GlobalEnv)
+		paste0(" [design_formula=", paste(deparse(current_model_formula), collapse = " "), "]")
+	} else {
+		""
+	}
+	inference_result_label = paste0(inference_base_label, design_formula_suffix)
+	if (!should_run_inference_label(inference_result_label)) {
+		return(invisible(NULL))
+	}
+	# NOTE: seq_des_inf$num_cores is deliberately NOT set here (in the
+	# parent). It's set inside safe_call()'s forked child instead, right
+	# before evaluating expr -- see that comment for why setting it here
+	# was unsafe even without a persistent fork cluster.
+	skip_slow = exhaustive_sweep
+	B_debug = as.integer(r)
+	r_debug = as.integer(r)
+	is_any_inference_class = function(classes){
+		any(vapply(classes, function(cls) is(seq_des_inf, cls), logical(1)))
+	}
+	inference_class_label = sub(" \\(model_formula=.*$", "", inference_base_label)
+	is_exact_inference_class = function(classes){
+		inference_class_label %in% classes
+	}
+	# Like is_any_inference_class(), but each entry may optionally carry a
+	# `||~formula` suffix (same convention as EDI_COMPREHENSIVE_SLOW_PATHS'
+	# exact_operations) restricting the match to that one model_formula --
+	# an unsuffixed entry matches every formula. Relies on
+	# inference_model_formula_str, assigned below.
+	is_any_inference_class_for_formula = function(entries){
+		any(vapply(entries, function(entry){
+			parts = strsplit(entry, "\\|\\|", fixed = FALSE)[[1]]
+			if (!is(seq_des_inf, parts[[1]])) return(FALSE)
+			if (length(parts) < 2L) return(TRUE)
+			!is.na(inference_model_formula_str) && identical(inference_model_formula_str, parts[[2]])
+		}, logical(1)))
+	}
+	# Two label conventions exist depending on whether the class takes its
+	# own model_formula (run_inference_checks_both_paths' univ_label/
+	# multi_label, folded into inference_base_label above:
+	# "(model_formula=~X)") or the formula is design-driven instead
+	# (design_formula_suffix just above, appended onto inference_result_
+	# label rather than inference_base_label: "[design_formula=~X]", e.g.
+	# survival GLMM and several ordinal classes) -- check both label
+	# variables, or every formula-suffixed registry/list entry silently
+	# never matches for the second group (found 2026-09-09: a
+	# rand_pval_custom_allowed entry for InferenceSurvivalGLMMWeibullFrailty
+	# LoggammaOneLik matched nothing in a real run because this only checked
+	# inference_base_label, which never carries the bracket form). Defined
+	# here, ahead of skip_bootstrap/skip_rand/jackknife below, because those
+	# now consume it via is_any_inference_class_for_formula() too.
+	inference_model_formula_str = if (grepl(" \\(model_formula=", inference_base_label)) {
+		sub(".*\\(model_formula=([^)]*)\\).*", "\\1", inference_base_label)
+	} else if (grepl("\\[design_formula=", inference_result_label)) {
+		sub(".*\\[design_formula=([^]]*)\\].*", "\\1", inference_result_label)
+	} else {
+		NA_character_
+	}
+	# Structural capability check added 2026-09-14: a full post-fix
+	# comprehensive-suite audit found InferenceIncidExactFisher/
+	# ExactBinomial/ExactZhang erroring ("attempt to apply non-function") on
+	# their entire nonparametric-bootstrap (and, via skip_bootstrap's OR
+	# term below, Bayesian-bootstrap) family, 100% of every real error in
+	# the audited data. Root cause: these 3 classes were removed from
+	# ADDITIONAL_TEST_SLOW_PATHS$bootstrap on 2026-09-08 on the premise that
+	# "the capability system already independently agrees" (get_effective_
+	# capabilities() does correctly omit nonparametric_bootstrap for all
+	# three) -- but skip_bootstrap never actually consulted that capability
+	# system, only this hardcoded list, so removing the entries left
+	# nothing to stop the harness from attempting calls that error every
+	# time. Unlike the slow-list term below, this check is NOT gated behind
+	# force_run_slow_paths -- a class that structurally lacks the capability
+	# would just error again on a forced re-run, not answer a timing
+	# question, so COMPREHENSIVE_FORCE_SLOW_PATHS has no business re-enabling
+	# it.
+	skip_bootstrap = !supports_inference_capability(seq_des_inf, "nonparametric_bootstrap") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$bootstrap))
+	# Package-owned, public registry; formula-, dataset-independent (an
+	# exact_operations entry may optionally restrict itself to one
+	# model_formula via a `||model_formula` suffix -- see
+	# EDI_COMPREHENSIVE_SLOW_PATHS' @format).
+	slow_skip_rules = comprehensive_slow_path_rules
+	is_slow_class_rule = function(rule){
+		!force_run_slow_paths && is_exact_inference_class(slow_skip_rules[[rule]])
+	}
+	is_slow_operation = function(function_run){
+		if (force_run_slow_paths) return(FALSE)
+		key_base = paste(response_type, inference_class_label, function_run, sep = "||")
+		key_with_formula = if (!is.na(inference_model_formula_str)) paste(key_base, inference_model_formula_str, sep = "||") else NA_character_
+		if (key_base %in% slow_skip_rules$exact_operations) return(TRUE)
+		if (!is.na(key_with_formula) && key_with_formula %in% slow_skip_rules$exact_operations) return(TRUE)
+		# Harness-local counterpart -- see ADDITIONAL_TEST_SLOW_PATHS$exact_operations'
+		# own header comment for why this is a second, independent list rather
+		# than more entries in the package registry above.
+		if (key_base %in% ADDITIONAL_TEST_SLOW_PATHS$exact_operations) return(TRUE)
+		if (!is.na(key_with_formula) && key_with_formula %in% ADDITIONAL_TEST_SLOW_PATHS$exact_operations) return(TRUE)
+		FALSE
+	}
+	skip_bootstrap_slow = is_slow_class_rule("bootstrap")
+	skip_rand_slow = is_slow_class_rule("rand")
+	skip_rand_ci_slow = is_slow_class_rule("rand_ci")
+	skip_score_ci_slow = is_slow_class_rule("score_ci")
+	skip_lik_ratio_ci_slow = is_slow_class_rule("lik_ratio_ci")
+	skip_bbt_pval_slow = is_slow_class_rule("bbt_pval")
+	skip_bbt_pval_symmetric_slow = is_slow_class_rule("bbt_pval_symmetric")
+	skip_bbt_pval_wald_slow = is_slow_class_rule("bbt_pval_wald")
+	skip_bbt_pval_studentized_slow = is_slow_class_rule("bbt_pval_studentized") || NARROW_MODE
+	# No ADDITIONAL_TEST_SLOW_PATHS/registry category exists for bca on any
+	# of these three loops (bayesian-bootstrap CI, plain bootstrap pval,
+	# bayesian-bootstrap pval) -- narrow mode is the only thing these flags
+	# gate today.
+	skip_bbt_pval_bca_slow = NARROW_MODE
+	skip_bbt_ci_slow = is_slow_class_rule("bbt_ci")
+	skip_bbt_ci_bca_slow = NARROW_MODE
+	skip_bbt_ci_stud_slow = NARROW_MODE
+	skip_boot_ci_default_slow = is_slow_class_rule("boot_ci_default")
+	skip_boot_ci_bca_slow = is_slow_class_rule("boot_ci_bca") || NARROW_MODE
+	skip_boot_stud_slow = is_slow_class_rule("boot_stud") || NARROW_MODE
+	skip_boot_pval_stud_slow = is_slow_class_rule("boot_pval_stud") || NARROW_MODE
+	skip_boot_pval_bca_slow = NARROW_MODE
+	skip_boot_pval_symmetric_slow = is_slow_class_rule("boot_pval_symmetric")
+	skip_boot_ci_slow = is_slow_class_rule("boot_ci")
+	skip_jack_slow = is_slow_class_rule("jack")
+	skip_pboot_ci_slow = is_slow_class_rule("pboot_ci") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$pboot_ci))
+	skip_lik_ratio_bootstrap_pval_slow = is_slow_class_rule("lik_ratio_bootstrap_pval")
+	skip_param_bootstrap_estimate_slow = is_slow_class_rule("param_bootstrap_estimate")
+	skip_param_bootstrap_pval_slow = is_slow_class_rule("param_bootstrap_pval")
+	skip_param_bootstrap_ci_slow = is_slow_class_rule("param_bootstrap_ci")
+	skip_bartlett_pval_slow = is_slow_class_rule("bartlett_pval") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$bartlett_pval))
+	skip_rand_delta_pval_slow = is_slow_class_rule("rand_delta_pval")
+	skip_brt_pval_block_slow = is_slow_class_rule("brt_pval") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval))
+	skip_brt_pval_smoothed_slow = NARROW_MODE || is_slow_class_rule("brt_pval_smoothed") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval_smoothed))
+	skip_brt_pval_typed_slow = NARROW_MODE || is_slow_class_rule("brt_pval_typed") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_pval_typed))
+	skip_brt_ci_all_slow = is_slow_class_rule("brt_ci_all") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_all))
+	skip_brt_ci_smoothed_slow = NARROW_MODE || is_slow_class_rule("brt_ci_smoothed") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_smoothed))
+	skip_brt_ci_typed_slow = NARROW_MODE || is_slow_class_rule("brt_ci_typed") ||
+		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$brt_ci_typed))
+	skip_m_out_of_n_slow = is_slow_class_rule("m_out_of_n")
+	skip_m_out_of_n_ci_slow = skip_m_out_of_n_slow || is_slow_class_rule("m_out_of_n_ci")
+	skip_subsampling_slow = is_slow_class_rule("subsampling")
+	# BRT pval: skip only if bootstrap structurally broken OR rand itself slow
+	# OR this class's whole BRT pval block is separately flagged slow;
+	# ContinRobustRegr keeps BRT pval
+	skip_brt_pval = skip_bootstrap || skip_rand_slow || skip_brt_pval_block_slow
+	# skip_rand_ci_slow deliberately excluded here (was included until
+	# 2026-09-14): EDI_COMPREHENSIVE_SLOW_PATHS$rand_ci and ADDITIONAL_TEST_
+	# SLOW_PATHS$rand_ci both classify the PLAIN compute_rand_confidence_
+	# interval()'s slowness, a structurally different code path from this
+	# bootstrap variant -- conflating them here reproduced the exact same bug
+	# just fixed above for supports_randomization_ci. Confirmed live 2026-09-14
+	# for InferenceSurvivalKKStratCoxPHOneLik (in EDI_COMPREHENSIVE_SLOW_PATHS
+	# $rand_ci): compute_rand_bootstrap_confidence_interval() returns a real
+	# result (-11.48, 9.99), not slow at all. That registry entry's own
+	# comment (comprehensive_slow_paths.R) even says its removal was left
+	# "unverified, not confirmed-fast" because a 2026-09-08 recheck "produced
+	# zero matching calls" -- i.e. this exact bug was already silently
+	# preventing anyone from ever verifying it, a self-reinforcing loop this
+	# removal breaks. skip_brt_ci_all_slow (BRT-CI's own dedicated registry
+	# category) remains the correct lever for a genuinely slow BRT-CI.
+	skip_brt_ci   = skip_bootstrap || skip_bootstrap_slow || skip_rand_slow || skip_brt_ci_all_slow
+	# Migrated 2026-09-15 to EDI:::get_effective_capabilities(seq_des_inf) --
+	# the package function now accepts a live object (not just a class name)
+	# and, for the small set of capabilities in its own
+	# EDI_INFERENCE_LIVE_CAPABILITY_GATES map (bayesian_bootstrap included),
+	# consults the live private supports_*() gate instead of only the
+	# static mixin-composition answer. Direct private access is no longer
+	# needed for this one. Requires EDI >= the 2026-09-15 install with this
+	# signature change -- confirmed live against the installed package.
+	skip_bayesian_bootstrap = skip_bootstrap || skip_bootstrap_slow ||
+		!("bayesian_bootstrap" %in% EDI:::get_effective_capabilities(seq_des_inf))
+	# Deliberately NOT gated on is(seq_des_inf, "InferenceParamBootstrap") --
+	# that only catches the 7 classes literally `inherit = InferenceParamBootstrap`.
+	# EDI composes the same capability onto ~32 more classes (InferenceContinOLS,
+	# InferenceContinLin, InferenceIncidLogRegr, InferenceCountNegBin,
+	# InferencePropBetaRegr, InferenceSurvivalWeibullRegr, etc.) via
+	# `components = c(..., "ParametricLikelihoodBootstrap")` mixin composition
+	# (assemble_public()/assemble_private() in contracts_mixins.R), which copies
+	# the methods onto the object's own method table without adding
+	# InferenceParamBootstrap to its R6 class vector -- so is() was FALSE for
+	# all of them even though the methods are real and callable. Confirmed live
+	# 2026-09-13: is(InferenceContinOLS$new(...), "InferenceParamBootstrap") is
+	# FALSE, but $compute_param_bootstrap_estimate() returns a real result. The
+	# is() check added nothing the tryCatch below doesn't already provide --
+	# a class that truly lacks this capability either defines the private flag
+	# as FALSE (seen explicitly in inference_all_average_diff.R,
+	# inference_incidence_cmh.R, etc.) or lacks the method entirely, in which
+	# case the tryCatch already falls back to FALSE. Removing is() only widens
+	# eligibility for the ~32 mixin-composed classes; behavior for every other
+	# class is unchanged.
+	# Structural method-existence check added 2026-09-15: a full results-CSV
+	# audit found InferenceSurvivalCoxPHRegr/StratCoxPHRegr producing 1,740
+	# "attempt to apply non-function" errors on compute_lik_ratio_bootstrap_
+	# two_sided_pval()/_confidence_interval() (the latter via
+	# supports_parametric_bootstrap_ci below, which requires this flag).
+	# Root cause confirmed via R6 generator introspection (no live object
+	# needed): both classes' private supports_lik_ratio_param_bootstrap()
+	# returns TRUE, but neither actually defines the public
+	# compute_lik_ratio_bootstrap_two_sided_pval() method -- so the harness
+	# dispatches a call that doesn't exist on the object. Their KK-family
+	# siblings (InferenceSurvivalKKLWACoxPHOneLik, KKStratCoxPHOneLik) do NOT
+	# have this mismatch: both the flag and the public method are present.
+	# Fixed generally (not by hardcoding these 2 class names) by also
+	# requiring the public method to actually exist -- R6 objects return NULL
+	# for a missing field, so is.function() on it is a safe, error-free FALSE
+	# for exactly this mismatch, with no effect on any class where the flag
+	# and method already agree.
+	#
+	# Migrated 2026-09-15 to EDI:::get_effective_capabilities(seq_des_inf)
+	# for the base capability check -- the package function now accepts a
+	# live object and, for "parametric_likelihood_bootstrap" specifically,
+	# consults the live private supports_lik_ratio_param_bootstrap() gate
+	# (EDI_INFERENCE_LIVE_CAPABILITY_GATES), the same private method this
+	# used to call directly. The is.function() method-existence check stays
+	# -- that's the separate, still-real package inconsistency above (the
+	# capability flag can say TRUE while the public method backing it was
+	# never wired up), which the capability system has no way to know about
+	# regardless of how the flag itself is computed.
+	#
+	# supports_parametric_bootstrap_ci below is NOT migrated: its gate
+	# (supports_lik_ratio_param_bootstrap_confidence_interval) is a finer
+	# sub-check under the same capability umbrella with no capability name
+	# of its own in EDI_INFERENCE_LIVE_CAPABILITY_GATES, so there's nothing
+	# for get_effective_capabilities() to look up -- same for
+	# supports_parametric_bootstrap_estimate/supports_bartlett_exact_variant
+	# further below (supports_param_bootstrap_estimate and
+	# supports_bartlett_likelihood_ratio_exact are likewise un-mapped,
+	# finer-grained checks). Direct private access remains correct for all
+	# of those.
+	supports_parametric_bootstrap =
+		("parametric_likelihood_bootstrap" %in% EDI:::get_effective_capabilities(seq_des_inf)) &&
+		is.function(seq_des_inf$compute_lik_ratio_bootstrap_two_sided_pval)
+	supports_parametric_bootstrap_ci =
+		supports_parametric_bootstrap &&
+		isTRUE(tryCatch({
+			ci_support_fn = seq_des_inf$.__enclos_env__$private$supports_lik_ratio_param_bootstrap_confidence_interval
+			if (is.function(ci_support_fn)) ci_support_fn() else TRUE
+		}, error = function(e) TRUE))
+	# compute_param_bootstrap_estimate()/_pval()/_confidence_interval(): the
+	# Monte-Carlo bias-correction trio, gated by their own supports_param_bootstrap_estimate()
+	# (defaults to isTRUE(supports_lik_ratio_param_bootstrap()), so this tracks
+	# supports_parametric_bootstrap for every family unless one overrides it separately).
+	# Unlike the LR CI above, the new CI is a single reflected-quantile batch (no
+	# per-delta bisection refits) -- it was never gated behind the now-removed
+	# run_parametric_bootstrap_ci opt-in in the first place.
+	# Same is()-removal rationale as supports_parametric_bootstrap above.
+	supports_parametric_bootstrap_estimate =
+		isTRUE(tryCatch(
+			seq_des_inf$.__enclos_env__$private$supports_param_bootstrap_estimate(),
+			error = function(e) FALSE
+		))
+	# Bartlett-corrected LR ("best available": exact factor if a family implements
+	# one, otherwise the generic InferenceParamBootstrap Monte-Carlo factor). The
+	# approx factor reuses the same simulate_under_lik_null()/refit machinery as
+	# parametric-bootstrap LR, so it carries the same cost profile and exclusions.
+	supports_bartlett_exact_variant =
+		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bartlett_likelihood_ratio_exact(), error = function(e) FALSE))
+	supports_bartlett_approx_variant =
+		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$supports_bartlett_likelihood_ratio_approx(), error = function(e) FALSE))
+	supports_bartlett = supports_bartlett_exact_variant || supports_bartlett_approx_variant
+	supports_bartlett_ci = supports_bartlett
+	supports_randomization_test =
+		supports_inference_capability(seq_des_inf, "randomization_test")
+	supports_randomization_ci =
+		supports_inference_capability(seq_des_inf, "randomization_ci")
+	supports_randomization_bootstrap =
+		supports_inference_capability(seq_des_inf, "randomization_bootstrap")
+	supports_incidence_rand_pval =
+		response_type != "incidence" ||
+		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_zhang_incidence_randomization(), error = function(e) FALSE)) ||
+		isTRUE(tryCatch(seq_des_inf$.__enclos_env__$private$should_use_design_randomization_for_incidence(), error = function(e) FALSE))
+	skip_rand      = !force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand)
+	skip_rand_pval = !force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_pval)
+	skip_regular_rand_pval = skip_rand_pval || !supports_incidence_rand_pval
+	# Decoupled from skip_regular_rand_pval 2026-09-13
+	# (fix_custom_randomization_statistic.md TODO-10): the custom statistic
+	# now runs on a standalone InferenceRandCustom (its own dedicated fast
+	# kernel), not as a method call on seq_des_inf, so seq_des_inf's own
+	# slow-path status is no longer relevant to this path's cost. Incidence
+	# stays excluded -- that limitation is InferenceRandCustom-independent
+	# (see its roxygen and compute_rand_two_sided_pval()'s incidence guard).
+	skip_custom_rand_pval = response_type == "incidence"
+	skip_ci_rand   = (!force_run_slow_paths && is_any_inference_class(ADDITIONAL_TEST_SLOW_PATHS$rand_ci)) ||
+		(!force_run_slow_paths && response_type == "count" && !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$rand_ci_count_allowed)) ||
+		(response_type != "continuous" && is(seq_des_inf, "InferenceAllSimpleAverageDiff"))
+	supports_jackknife = is(seq_des_inf, "InferenceJackknife") ||
+		(
+			"compute_jackknife_wald_two_sided_pval" %in% names(seq_des_inf) &&
+			"compute_jackknife_wald_confidence_interval" %in% names(seq_des_inf)
+		)
+	supports_jackknife = supports_jackknife && (force_run_slow_paths || !is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$jackknife_exclude))
+	
+	snap_small_numeric_to_zero = function(x, tol = sqrt(.Machine$double.eps)){
+		if (is.null(x)) return(x)
+		if (is.list(x)) return(lapply(x, snap_small_numeric_to_zero, tol = tol))
+		if (is.atomic(x) && is.numeric(x)){
+			x[is.finite(x) & abs(x) < tol] = 0
+			return(x)
+		}
+		x
+	}
+
+	estimate_error_annotation = function(label, result){
+		if (!grepl("estimate", label, fixed = TRUE)) return("")
+		if (!is.atomic(result) || length(result) < 1L) return("")
+		estimate = suppressWarnings(as.numeric(result[1L]))
+		if (!length(estimate) || !is.finite(estimate)) return("")
+		theta = get_estimate_logging_theta(inference_result_label, dataset_name, beta_T, response_type)
+		if (!length(theta) || !is.finite(theta)) return("")
+		abs_error = abs(estimate - theta)
+		sqd_error = abs_error^2
+		paste0(
+			" (theta = ", format(theta, digits = 3),
+			", |e| = ", format(abs_error, digits = 3),
+			", e^2 = ", format(sqd_error, digits = 3),
+			")"
+		)
+	}
+
+	has_invalid_numeric = function(x){
+		if (is.null(x)) return(FALSE)
+		if (is.list(x)) return(any(vapply(x, has_invalid_numeric, logical(1))))
+		if (is.atomic(x) && any(is.na(x))) return(TRUE)
+		if (is.atomic(x) && is.numeric(x)) return(any(!is.finite(x) | is.nan(x)))
+		FALSE
+	}
+
+	is_rejected_zero_zero_confidence_interval = function(label, result){
+		if (is(seq_des_inf, "InferenceAllSimpleWilcox")) return(FALSE)
+		if (!grepl("confidence_interval", label, fixed = TRUE)) return(FALSE)
+		if (!(is.atomic(result) && is.numeric(result))) return(FALSE)
+		length(result) >= 2L && isTRUE(all(result[1:2] == 0))
+	}
+
+	is_truth_anomalous_result = function(label, result){
+		if (!is.atomic(result)) return(FALSE)
+		result_num = suppressWarnings(as.numeric(result))
+		if (!length(result_num) || all(is.na(result_num))) return(FALSE)
+		truth = get_coverage_truth(inference_result_label, dataset_name, beta_T, response_type_hint = response_type)
+		if (!is.finite(truth)) truth = 0
+		if (grepl("pval", label, fixed = TRUE)) {
+			if (!identical(as.numeric(beta_T), 0)) return(FALSE)
+			return(length(result_num) >= 1L && is.finite(result_num[1L]) && result_num[1L] < 1e-6)
+		}
+		if (grepl("confidence_interval", label, fixed = TRUE)) {
+			if (length(result_num) < 2L || !all(is.finite(result_num[1:2]))) return(TRUE)
+			if (result_num[1L] > result_num[2L]) return(TRUE)
+			# A nominal confidence interval is expected to miss its estimand at the
+			# stated error rate. Only reject intervals with numerical/pathological
+			# scale problems; coverage is retained separately in the result table.
+			return(max(abs(result_num[1:2] - truth)) > 50)
+		}
+		if (grepl("estimate", label, fixed = TRUE)) {
+			return(length(result_num) >= 1L && is.finite(result_num[1L]) && abs(result_num[1L] - truth) > 50)
+		}
+		FALSE
+	}
+
+	is_allowed_missing_output = function(label, result){
+		if (!has_invalid_numeric(result)) return(FALSE)
+		identical(response_type, "ordinal") &&
+			identical(label, "compute_asymp_two_sided_pval")
+	}
+
+is_explicitly_nonestimable = function(obj){
+	if (is.null(obj) || !is.function(obj$is_nonestimable)) return(FALSE)
+	isTRUE(tryCatch(obj$is_nonestimable(), error = function(e) FALSE))
+}
+
+supports_direct_testing_type = function(testing_type){
+	if (is.null(seq_des_inf) || !is.function(seq_des_inf$get_supported_testing_types)) return(FALSE)
+	supported = tryCatch(seq_des_inf$get_supported_testing_types(), error = function(e) character())
+	testing_type %in% supported
+}
+
+	should_record_nonestimable_as_missing = function(obj, label, result = NULL){
+		if (!is_explicitly_nonestimable(obj)) return(FALSE)
+		# If the method returned a valid (finite) result despite non-estimable state, record it normally
+		if (!is.null(result) && !has_invalid_numeric(result)) return(FALSE)
+		stage = if (!is.null(obj) && is.function(obj$get_nonestimable_stage)) {
+			tryCatch(obj$get_nonestimable_stage(), error = function(e) NULL)
+		} else {
+			NULL
+		}
+		if (identical(stage, "estimate")) return(TRUE)
+		if (identical(stage, "se")) {
+			# These methods require an original or per-replicate standard error.
+			# If the inference object explicitly marked the SE unavailable, a
+			# missing result is expected rather than a numerical-output failure.
+			return(
+				grepl("studentized", label, fixed = TRUE) ||
+				grepl("bca", label, fixed = TRUE) ||
+				identical(label, "compute_bootstrap_confidence_interval") ||
+				identical(label, "compute_bootstrap_two_sided_pval") ||
+				identical(label, "compute_bayesian_bootstrap_confidence_interval") ||
+				identical(label, "compute_bayesian_bootstrap_two_sided_pval") ||
+				grepl("bootstrap", label, fixed = TRUE) ||
+				grepl("subsampling", label, fixed = TRUE) ||
+				grepl("jackknife", label, fixed = TRUE) ||
+				grepl("wald", label, ignore.case = TRUE) ||
+				grepl("score", label, ignore.case = TRUE) ||
+				grepl("gradient", label, ignore.case = TRUE) ||
+				grepl("lik_ratio", label, fixed = TRUE) ||
+				grepl("asymp", label, ignore.case = TRUE) ||
+				grepl("lik_ratio_bootstrap", label, fixed = TRUE) ||
+				grepl("rand", label, ignore.case = TRUE)
+			)
+		}
+		TRUE
+	}
+
+	nonestimable_error_message = function(obj, label){
+		reason = if (!is.null(obj) && is.function(obj$get_nonestimable_reason)) {
+			tryCatch(obj$get_nonestimable_reason(), error = function(e) NULL)
+		} else {
+			NULL
+		}
+		stage = if (!is.null(obj) && is.function(obj$get_nonestimable_stage)) {
+			tryCatch(obj$get_nonestimable_stage(), error = function(e) NULL)
+		} else {
+			NULL
+		}
+		parts = c(
+			paste0("Explicitly non-estimable in ", label),
+			if (!is.null(stage) && nzchar(stage)) paste0("stage=", stage) else NULL,
+			if (!is.null(reason) && nzchar(reason)) paste0("reason=", reason) else NULL
+		)
+		paste(parts, collapse = "; ")
+	}
+
+safe_call = function(label, expr){
+	# setTimeLimit()/R.utils::withTimeout() cannot reliably interrupt a single
+	# long-running compiled C++ call: R only checks the elapsed-time deadline
+	# at R-level checkpoints (between statements / at loop iterations it
+	# evaluates itself), so a call that is effectively one big .Call() with no
+	# R-level checkpoints in between can silently run past the deadline with
+	# no error at all, or raise its timeout error from a context that isn't
+	# reliably caught by any tryCatch wrapping it. R/benchmark/benchmark_inference_all.R's
+	# bm_safe() already documents this ("C++ code bypasses setTimeLimit; check
+	# manually") and works around it with a hard watchdog kill. On Unix we do
+	# the equivalent here: run expr in a forked child (parallel::mcparallel)
+	# and hard-kill it if it overruns the deadline, instead of trusting
+	# setTimeLimit to interrupt in-process compiled code.
+	setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+	on.exit(
+		setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE),
+		add = TRUE
+	)
+	outer_call_start_elapsed = unname(proc.time()[["elapsed"]])
+	tryCatch({
+	if (is_row_completed(
+		rep_curr,
+		beta_T,
+			dataset_name,
+			response_type,
+			design_type,
+			inference_result_label,
+			label
+		)) {
+			return(invisible(NULL))
+	}
+	if (is_slow_operation(label)) {
+		message("          Skipping ", label, " (too slow for this response/class path)")
+		return(invisible(NULL))
+	}
+	if (is_confirmed_timeout(dataset_name, response_type, design_type, inference_result_label, label)) {
+		message("          Skipping ", label, " (already timed out earlier this run)")
+		return(invisible(NULL))
+	}
+
+	if (!is.null(pending_rep_header)) { message(pending_rep_header); pending_rep_header <<- NULL }
+	if (!is.null(pending_beta_header)) { message(pending_beta_header); pending_beta_header <<- NULL }
+	if (!is.null(pending_dataset_header)) { message(pending_dataset_header); pending_dataset_header <<- NULL }
+	if (!is.null(pending_response_header)) { message(pending_response_header); pending_response_header <<- NULL }
+	if (!is.null(pending_design_header)) { message(pending_design_header); pending_design_header <<- NULL }
+	if (!is.null(pending_banner)){
+		message(pending_banner)
+		pending_banner <<- NULL
+	}
+
+	message("          Calling ", label, "()")
+		start_elapsed = unname(proc.time()[["elapsed"]])
+		start_epoch = as.numeric(Sys.time())
+		assign(".comprehensive_current_call_start_epoch", start_epoch, envir = .GlobalEnv)
+		on.exit({
+			if (exists(".comprehensive_current_call_start_epoch", envir = .GlobalEnv, inherits = FALSE)) {
+				rm(".comprehensive_current_call_start_epoch", envir = .GlobalEnv)
+			}
+		}, add = TRUE)
+		old_ci_timeout_deadline = getOption("EDI.ci_timeout_deadline", default = NULL)
+		options(EDI.ci_timeout_deadline = start_elapsed + FUNCTION_TIMEOUT_SEC)
+		on.exit(options(EDI.ci_timeout_deadline = old_ci_timeout_deadline), add = TRUE)
+
+		handle_timeout = function(){
+			duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+			msg = paste0("Skipped due to timeout after ", FUNCTION_TIMEOUT_SEC, " seconds")
+			message("Skipping ", label, " (timeout): ", msg)
+			cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+			record_result(
+				dataset_name, dataset_n_rows, dataset_n_cols,
+				response_type, design_type, inference_result_label,
+				label, NA_character_, status = "ok",
+				duration_time_sec = duration_time_sec,
+				error_message = msg
+			)
+			if (skip_repeat_after_timeout) {
+				mark_confirmed_timeout(dataset_name, response_type, design_type, inference_result_label, label)
+			}
+			invisible(NULL)
+		}
+
+		handle_success = function(result){
+			if (should_record_nonestimable_as_missing(seq_des_inf, label, result)) {
+				msg = nonestimable_error_message(seq_des_inf, label)
+				message("Recording missing output for ", label, " as ok (explicitly non-estimable).")
+				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+				cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+						record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+				return(invisible(NULL))
+			}
+			if (is_allowed_missing_output(label, result)) {
+				msg = "Allowed missing output: ordinal asymptotic p-value not estimable"
+				message("Recording missing output for ", label, " as ok (ordinal asymptotic p-value not estimable).")
+				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+				cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+				record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+				return(invisible(NULL))
+			}
+				if (has_invalid_numeric(result)) {
+					msg = paste0("Invalid output detected (NA/NaN/Inf) in ", label)
+					message("Recording missing output for ", label, " as ok: ", msg)
+					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+					return(invisible(NULL))
+				}
+				if (is_rejected_zero_zero_confidence_interval(label, result)) {
+					msg = paste0("Degenerate confidence interval [0, 0] detected in ", label)
+					message("Skipping ", label, " (non-fatal): ", msg)
+					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+					return(invisible(NULL))
+				}
+				if (is_truth_anomalous_result(label, result) &&
+					is(seq_des_inf, "InferenceSurvivalDepCensTransformRegr")) {
+					msg = paste0(
+						"Explicitly non-estimable in ", label,
+						"; stage=se; reason=dep_cens_transform_truth_anomalous_result_unstable"
+					)
+					message("Recording missing output for ", label, " as ok (explicitly non-estimable): ", msg)
+					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+					return(invisible(NULL))
+				}
+				if (is_truth_anomalous_result(label, result)) {
+					msg = paste0("Truth-based anomaly filter in ", label)
+					message("Recording missing output for ", label, " as ok (truth-based anomaly filter).")
+					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+						record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+					return(invisible(NULL))
+				}
+				result = snap_small_numeric_to_zero(result)
+			duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+			record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, result, status = "ok", duration_time_sec = duration_time_sec)
+			cat("            ", paste(format(result, digits = 3), collapse = " "), estimate_error_annotation(label, result), "\n", sep = "")
+			cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+			flush.console()
+			result
+		}
+
+		handle_error = function(e){
+			# A setTimeLimit() interrupt raised while native code is inside
+			# .Call() can leave R's process-level elapsed limit armed until the
+			# next top-level checkpoint. Clear it before recording the timeout so
+			# the following method/case is not interrupted by the stale deadline.
+			setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+			if (inherits(e, "TimeoutException") ||
+				grepl("reached elapsed time limit", conditionMessage(e), fixed = TRUE)) {
+				return(handle_timeout())
+			}
+			if (should_record_nonestimable_as_missing(seq_des_inf, label)) {
+				msg = nonestimable_error_message(seq_des_inf, label)
+				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+				message("Recording missing output for ", label, " as ok (explicitly non-estimable): ", msg)
+				cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+						record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+				return(invisible(NULL))
+			}
+			# Use conditionMessage(e), not the raw e$message slot, to build the
+			# classification text below. Found 2026-09-15 from a results-CSV
+			# audit: 4 rows recorded status="error" with error_message exactly
+			# "ignoring SIGPIPE signal" -- a message that IS listed in the
+			# is_non_fatal check just below and, live-reproduced, satisfies
+			# grepl("ignoring SIGPIPE signal", e$message, fixed=TRUE) for a
+			# plain simpleError. Since is_non_fatal always routes to
+			# status="ok" once matched (see the block below), and the exact
+			# same text ended up recorded via conditionMessage(e) at the
+			# status="error" call site further down, the only way both are
+			# true is if e$message and conditionMessage(e) disagreed at
+			# classification time for whatever condition object these calls
+			# actually threw -- confirmed possible in general (not just
+			# theoretical) by reproducing a condition with a custom
+			# conditionMessage() S3 method where the two diverge.
+			# conditionMessage() is the canonical, S3-dispatched accessor (and
+			# is already what gets recorded on both the "ok" and "error"
+			# paths), so using it here instead of the raw slot is strictly
+			# more correct with no downside for the ordinary case.
+			msg = if (length(conditionMessage(e)) == 0L) "" else conditionMessage(e)
+			is_non_fatal = grepl("not implemented", msg, fixed = TRUE) ||
+			                 grepl("must implement", msg, fixed = TRUE) ||
+			                 grepl("no informative strata are available", msg, fixed = TRUE) ||
+			                 grepl("Matching structure is unavailable", msg, fixed = TRUE) ||
+			                 grepl("Fisher exact inference requires iBCRD, blocking, or matching designs.", msg, fixed = TRUE) ||
+			                 grepl("Exact binomial incidence inference requires at least one matched pair.", msg, fixed = TRUE) ||
+			                 grepl("Exact binomial incidence inference requires at least one discordant matched pair.", msg, fixed = TRUE) ||
+			                 grepl("Assertion on 'type' failed", msg, fixed = TRUE) ||
+			                 grepl("Exact inference is only supported for exact inference classes.", msg, fixed = TRUE) ||
+			                 grepl("does not support parametric-bootstrap LR calibration", msg, fixed = TRUE) ||
+			                 grepl("Override private\\$supports_lik_ratio_param_bootstrap\\(\\) and simulate_under_lik_null\\(\\)", msg) ||
+			                 grepl("does not support parametric-bootstrap estimate bias correction", msg, fixed = TRUE) ||
+			                 grepl("Override private\\$supports_param_bootstrap_estimate\\(\\) and simulate_under_lik_null\\(\\)", msg) ||
+			                 grepl("Randomization tests are not supported for incidence", msg, fixed = TRUE) ||
+			                 grepl("Bootstrap randomization tests are not supported for incidence", msg, fixed = TRUE) ||
+			                 grepl("singular matrix in 'backsolve'", msg, fixed = TRUE) ||
+			                 grepl("G-computation RD: could not compute a finite delta-method standard error.", msg, fixed = TRUE) ||
+			                 grepl("G-computation RR: could not compute a finite delta-method standard error.", msg, fixed = TRUE) ||
+			                 grepl("G-computation RR: could not compute a finite delta-method confidence interval.", msg, fixed = TRUE) ||
+			                 grepl("KK g-computation RR: could not compute a finite delta-method confidence interval.", msg, fixed = TRUE) ||
+			                 grepl("G-computation mean difference: could not compute a finite delta-method standard error.", msg, fixed = TRUE) ||
+			                 grepl("Zero/one-inflated beta requires y in [0, 1]", msg, fixed = TRUE) ||
+			                 grepl("Zhang incidence inference is only supported", msg, fixed = TRUE) ||
+			                 grepl("ignoring SIGPIPE signal", msg, fixed = TRUE) ||
+
+					 grepl("This type of inference is only available for incidence", msg, fixed = TRUE) ||
+						 grepl("not enough discordant pairs", msg, ignore.case = TRUE) ||
+						 grepl("Degenerate confidence interval", msg, fixed = TRUE) ||
+						 grepl("inconsistent estimator units", msg, ignore.case = TRUE) ||
+						 					 grepl("Bootstrap confidence interval returned NA bounds", msg, fixed = TRUE) ||
+						 					 grepl("Bootstrap confidence interval returned non-finite bounds", msg, fixed = TRUE) ||
+						 					 						 grepl("Weibull regression failed to converge", msg, fixed = TRUE) ||
+				 grepl("Negative binomial regression failed to converge", msg, fixed = TRUE) ||
+						 					 						 grepl("Invalid output detected", msg, fixed = TRUE) ||
+						 					 						 grepl("missing value where TRUE/FALSE needed", msg, fixed = TRUE) ||
+						 					 						 ((grepl("NA/NaN/Inf", msg, fixed = TRUE) || grepl("non-finite standard error", msg, fixed = TRUE) || grepl("could not compute a finite standard error", msg, fixed = TRUE)) &&
+						 					 
+						 													 (is(seq_des_inf, "InferenceContinKKRobustRegrOneLik") ||
+						 													  is(seq_des_inf, "InferenceAbstractKKQuantileRegrOneLik") ||
+						 													  													  is(seq_des_inf, "InferencePropFractionalLogit") ||
+						 													  													  is(seq_des_inf, "InferenceIncidRiskDiff") ||
+						 													  													  is(seq_des_inf, "InferenceIncidGCompRiskDiff") ||
+						 													  													  is(seq_des_inf, "InferenceIncidGCompRiskDiff") ||
+						 													  													  is(seq_des_inf, "InferenceIncidGCompRiskRatio") ||
+						 													  													  is(seq_des_inf, "InferenceIncidGCompRiskRatio") ||
+						 													  													  is(seq_des_inf, "InferenceIncidKKGCompRiskDiff") ||
+						 													  													  is(seq_des_inf, "InferenceIncidKKGCompRiskDiff") ||
+						 													  													  is(seq_des_inf, "InferenceIncidKKGCompRiskRatio") ||
+						 													  													  is(seq_des_inf, "InferenceIncidKKGCompRiskRatio") ||
+						 													  is(seq_des_inf, "InferenceIncidModifiedPoisson") ||
+						 													  is(seq_des_inf, "InferencePropGCompMeanDiff") ||
+						 													  is(seq_des_inf, "InferencePropGCompMeanDiff") ||
+						 													  is(seq_des_inf, "InferencePropZeroOneInflatedBetaRegr") ||
+						 													  is(seq_des_inf, "InferencePropZeroOneInflatedBetaRegr") ||
+						 													  is(seq_des_inf, "InferenceContinMultGLS")))
+						 													  										if (isTRUE(is_non_fatal)){
+				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+				is_structural_limitation = grepl("must implement", msg, fixed = TRUE) ||
+					grepl("not implemented", msg, fixed = TRUE) ||
+					grepl("Randomization tests are not supported for incidence", msg, fixed = TRUE) ||
+					grepl("Bootstrap randomization tests are not supported for incidence", msg, fixed = TRUE)
+				if (is_structural_limitation || isTRUE(is_non_fatal)) {
+					message("Recording missing output for ", label, " as ok (structural limitation): ", e$message)
+					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = e$message)
+				}
+				return(invisible(NULL))
+			} else {
+				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+				message("Recording error for ", label, " and continuing: ", conditionMessage(e))
+				cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+				record_result(
+					dataset_name, dataset_n_rows, dataset_n_cols,
+					response_type, design_type, inference_result_label,
+					label, NA_character_, status = "error",
+					duration_time_sec = duration_time_sec,
+					error_message = conditionMessage(e)
+				)
+				return(invisible(NULL))
+			}
+		}
+
+		# Hard per-call timeout: on Unix, run expr in a forked child and poll it
+		# with a wall-clock deadline, hard-killing the child (SIGKILL) if it
+		# overruns -- this is enforceable even against a single long-running
+		# compiled call with no R-level checkpoints, unlike setTimeLimit(). Falls
+		# back to the old setTimeLimit()/withTimeout() path on non-Unix, where
+		# mcparallel() is unavailable.
+		if (!SAFE_CALL_FORK) {
+			# fork=FALSE: run expr in this process, under the watchdog in
+			# comprehensive_tests_watchdog.R. To keep fork semantics, undo the
+			# side effects a child would have kept to itself -- the RNG state,
+			# num_cores, and the plain fields of the inference object and its
+			# design (calls cache fits, warm starts and draw counters there,
+			# and randomization tests cache permutations on the shared
+			# design) -- BEFORE the handle_*() callbacks, which run in the
+			# parent in both modes and may themselves draw random numbers.
+			# Verified identical to fork=TRUE on 2 x 2,166 calls.
+			if (!is.na(WATCHDOG_SUPERVISOR_PID) && !isTRUE(tools::pskill(WATCHDOG_SUPERVISOR_PID, 0L))) {
+				message("Watchdog supervisor ", WATCHDOG_SUPERVISOR_PID, " is gone; stopping.")
+				quit(save = "no", status = 1L)
+			}
+			call_key = build_result_key(rep_curr, beta_T, dataset_name, response_type, design_type, inference_result_label, label)
+			previous = watchdog_outcomes[[call_key]]
+			if (!is.null(previous)) {
+				# This call hung or crashed an earlier worker: record that,
+				# with that attempt's duration, instead of running it again.
+				# (A crash row has status "error", which a resume would
+				# otherwise retry after every later restart.)
+				start_elapsed = start_elapsed - previous$duration
+				if (identical(previous$outcome, "timeout")) return(handle_timeout())
+				return(handle_error(simpleError(sprintf(
+					"Process running %s died during the call (%s) -- likely a native crash rather than a caught condition; the watchdog restarted it.",
+					label, previous$detail
+				))))
+			}
+			had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+			if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv)
+			state_envs = local({
+				priv = seq_des_inf$.__enclos_env__$private
+				des = priv$des_obj
+				list(seq_des_inf, priv, des, des$.__enclos_env__$private)
+			})
+			plain_fields = function(e){
+				v = ls(e, all.names = TRUE)
+				v[!vapply(v, function(k) bindingIsActive(k, e) || bindingIsLocked(k, e), logical(1))]
+			}
+			saved_state = lapply(state_envs, function(e) mget(plain_fields(e), envir = e))
+			old_num_cores = seq_des_inf$num_cores
+			seq_des_inf$num_cores = as.integer(NUM_CORES)
+			if (nzchar(WATCHDOG_MARKER)) {
+				comprehensive_watchdog_write_rds(
+					list(pid = Sys.getpid(), key = call_key, label = label, start_epoch = start_epoch),
+					WATCHDOG_MARKER
+				)
+			}
+			ran = tryCatch(
+				list(ok = TRUE, value = R.utils::withTimeout(eval(expr), cpu = Inf, elapsed = FUNCTION_TIMEOUT_SEC, onTimeout = "error")),
+				error = function(e) list(ok = FALSE, error = e)
+			)
+			setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+			# A call that ran past the limit may have been stretched by a
+			# machine suspend. Keep the marker live for two of the
+			# supervisor's 1 s polls, so it can kill this worker and have the
+			# call rerun before a spurious timeout is recorded.
+			if (nzchar(WATCHDOG_MARKER) && as.numeric(Sys.time()) - start_epoch >= FUNCTION_TIMEOUT_SEC) Sys.sleep(2)
+			if (nzchar(WATCHDOG_MARKER)) unlink(WATCHDOG_MARKER)
+			for (i in seq_along(state_envs)) {
+				e = state_envs[[i]]
+				saved = saved_state[[i]]
+				added = setdiff(plain_fields(e), names(saved))
+				if (length(added)) rm(list = added, envir = e)
+				for (k in names(saved)) assign(k, saved[[k]], envir = e)
+			}
+			if (had_seed) {
+				assign(".Random.seed", old_seed, envir = .GlobalEnv)
+			} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+				rm(".Random.seed", envir = .GlobalEnv)
+			}
+			seq_des_inf$num_cores = old_num_cores
+			if (ran$ok) return(handle_success(ran$value))
+			return(handle_error(ran$error))
+		}
+		if (.Platform$OS.type == "unix") {
+			# num_cores is set HERE, inside the forked child's own expression,
+			# not in the parent (see run_inference_checks_impl()'s note) --
+			# whatever C++ kernel expr calls only ever spins up its OpenMP
+			# threads inside this one disposable, about-to-exit child process,
+			# never in the long-lived parent that keeps forking new children
+			# for every subsequent safe_call(). A first attempt that set
+			# num_cores on seq_des_inf in the parent instead (still with no
+			# persistent fork cluster) segfaulted/corrupted state on a later
+			# fork -- consistent with the general OpenMP-vs-fork() hazard
+			# this avoids by construction: the parent process itself must
+			# never be the one to actually invoke n_cpp_threads()-threaded
+			# C++ code.
+			# The child's own return value is wrapped in a sentinel envelope
+			# (.safe_call_child_completed = TRUE) rather than returned bare.
+			# Verified live 2026-09-14: when a forked child dies from a signal
+			# mccollect() doesn't treat at all (SIGABRT from a process-level
+			# abort() -- the exact OpenMP-worker-thread-checkUserInterrupt crash
+			# root-caused and fixed in _helper_functions_core.h earlier this
+			# session, or any other native crash/OOM kill), mccollect() still
+			# returns a non-NULL outer list once the child's pipe closes, but
+			# collected[[1]] itself is bare NULL -- NOT a try-error condition,
+			# indistinguishable by value from a method that legitimately
+			# returns NULL. Before this wrapper, that NULL fell all the way
+			# through handle_success()'s checks (has_invalid_numeric(NULL) is
+			# FALSE by design) to record_result(), which writes result=NA,
+			# status="ok" with no error_message -- a crashed call silently
+			# recorded as a normal completed result, polluting the
+			# nonestimability rate data with a fabricated data point for a
+			# call that never actually finished. The parent process itself is
+			# NOT affected (confirmed live: sending SIGABRT to a mcparallel()
+			# child does not take down the parent) -- this was never a
+			# whole-run-dies problem, only a silent-misclassification one.
+			# With the wrapper, only a call that truly ran to completion
+			# (including ones that legitimately return NULL) produces the
+			# envelope; a dead child's collected[[1]] stays bare NULL/not-a-list,
+			# now handled explicitly below instead of reaching handle_success().
+			# A suspend during the call (a poll gap over SUSPEND_GAP_SEC) kills
+			# the child and reruns the call with fresh deadlines. The rerun is
+			# exact: the parent's state and seed are untouched by the child.
+			for (suspend_rerun in 0:SUSPEND_MAX_RERUNS) {
+				child = parallel::mcparallel({
+					seq_des_inf$num_cores = as.integer(NUM_CORES)
+					list(.safe_call_child_completed = TRUE, value = eval(expr))
+				}, silent = TRUE, mc.set.seed = FALSE)
+				deadline = start_elapsed + FUNCTION_TIMEOUT_SEC
+				collected = NULL
+				suspended_sec = 0
+				t_prev = unname(proc.time()[["elapsed"]])
+				repeat {
+					remaining = deadline - t_prev
+					if (remaining <= 0) break
+					collected = parallel::mccollect(child, wait = FALSE, timeout = min(0.2, remaining))
+					t_now = unname(proc.time()[["elapsed"]])
+					if (t_now - t_prev > SUSPEND_GAP_SEC) {
+						suspended_sec = t_now - t_prev
+						break
+					}
+					t_prev = t_now
+					if (!is.null(collected)) break
+				}
+				if (suspended_sec == 0 || suspend_rerun == SUSPEND_MAX_RERUNS) break
+				try(tools::pskill(child$pid, signal = tools::SIGKILL), silent = TRUE)
+				try(parallel::mccollect(child, wait = FALSE), silent = TRUE)
+				message(sprintf("          Machine suspended for %.0fs during %s(); rerunning it.", suspended_sec, label))
+				start_elapsed = unname(proc.time()[["elapsed"]])
+				start_epoch = as.numeric(Sys.time())
+				assign(".comprehensive_current_call_start_epoch", start_epoch, envir = .GlobalEnv)
+				options(EDI.ci_timeout_deadline = start_elapsed + FUNCTION_TIMEOUT_SEC)
+			}
+			if (is.null(collected)) {
+				try(tools::pskill(child$pid, signal = tools::SIGKILL), silent = TRUE)
+				try(parallel::mccollect(child, wait = FALSE), silent = TRUE)
+				return(handle_timeout())
+			}
+			envelope = collected[[1]]
+			if (inherits(envelope, "try-error")) {
+				cond = attr(envelope, "condition")
+				e = if (!is.null(cond)) cond else simpleError(as.character(envelope))
+				return(handle_error(e))
+			}
+			if (!is.list(envelope) || !isTRUE(envelope$.safe_call_child_completed)) {
+				return(handle_error(simpleError(sprintf(
+					"Child process for %s terminated abnormally with no result and no R-level error -- likely a native crash (signal/abort) rather than a caught condition.",
+					label
+				))))
+			}
+			return(handle_success(envelope$value))
+		}
+		tryCatch({
+			result <- R.utils::withTimeout(
+				expr,
+				cpu = Inf,
+				elapsed = FUNCTION_TIMEOUT_SEC,
+				onTimeout = "error"
+			)
+			handle_success(result)
+		}, error = handle_error)
+	}, error = function(e){
+		# Defensive outer guard: a stale process-level elapsed-time limit from a
+		# prior timed-out call (see comment above) can fire anywhere in this
+		# function's bookkeeping, not just inside the inner tryCatch/withTimeout
+		# above -- most likely between the "Calling label()" message and that
+		# inner tryCatch. Catch it here too instead of letting it crash the run.
+		setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+		duration_time_sec = unname(proc.time()[["elapsed"]]) - outer_call_start_elapsed
+		if (inherits(e, "TimeoutException") ||
+			grepl("reached elapsed time limit", conditionMessage(e), fixed = TRUE)) {
+			msg = paste0("Skipped due to timeout after ", FUNCTION_TIMEOUT_SEC, " seconds (outer safe_call guard)")
+			message("Skipping ", label, " (timeout, outer guard): ", msg)
+			cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+			record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+			return(invisible(NULL))
+		}
+		message("Recording error for ", label, " and continuing (outer safe_call guard): ", conditionMessage(e))
+		cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+		record_result(
+			dataset_name, dataset_n_rows, dataset_n_cols,
+			response_type, design_type, inference_result_label,
+			label, NA_character_, status = "error",
+			duration_time_sec = duration_time_sec,
+			error_message = conditionMessage(e)
+		)
+		return(invisible(NULL))
+	})
+}
+
+safe_call_family = function(test_family, label, expr){
+	if (!should_run_test_family(test_family)) return(invisible(NULL))
+	safe_call(label, expr)
+}
+
+ensure_estimate_setup_for_filtered_family = function(){
+	if (!is_test_family_filter_active() || identical(TEST_FAMILY_FILTER, "estimate")) return(TRUE)
+	if (TEST_FAMILY_FILTER %in% c("wald", "score", "lik_ratio", "gradient") &&
+	    !supports_direct_testing_type(TEST_FAMILY_FILTER)) {
+		message(
+			"          Skipping ",
+			TEST_FAMILY_FILTER,
+			" family for ",
+			inference_result_label,
+			" because testing_type is not supported."
+		)
+		return(FALSE)
+	}
+	if (!"compute_estimate" %in% names(seq_des_inf)) return(TRUE)
+	isTRUE(tryCatch({
+		seq_des_inf$compute_estimate()
+		TRUE
+	}, error = function(e){
+		msg = if (length(e$message) == 0L) "" else e$message
+		message(
+			"          Skipping ",
+			TEST_FAMILY_FILTER,
+			" family for ",
+			inference_result_label,
+			" because compute_estimate setup failed: ",
+			msg
+		)
+		FALSE
+	}))
+}
+
+call_direct_asymp = function(method_name, testing_type, ...){
+	if (!should_run_test_family(testing_type)) return(invisible(NULL))
+	method_fn = tryCatch(seq_des_inf[[method_name]], error = function(e) NULL)
+	if (!is.function(method_fn)) return(invisible(NULL))
+	if (!supports_direct_testing_type(testing_type)) {
+		message("          Skipping ", method_name, " (not implemented for testing_type = ", testing_type, ")")
+		return(invisible(NULL))
+	}
+	safe_call(method_name, do.call(method_fn, list(...)))
+}
+
+	if (!ensure_estimate_setup_for_filtered_family()) return(invisible(NULL))
+
+	if (is(seq_des_inf, "InferenceOrdinalJonckheereTerpstraTest")){
+		safe_call_family("exact", "compute_exact_two_sided_pval_for_treatment_effect", seq_des_inf$compute_exact_two_sided_pval_for_treatment_effect())
+		safe_call_family("estimate", "compute_estimate", seq_des_inf$compute_estimate())
+		return(invisible(NULL))
+	}
+
+	des_obj_for_exact = seq_des_inf$.__enclos_env__$private$des_obj
+	if (response_type == "incidence" &&
+	    is(seq_des_inf, "InferenceIncidExactFisher") &&
+	    !design_supports_exact_fisher_incidence(des_obj_for_exact)) {
+		message("          Skipping InferenceIncidExactFisher: design is not Fisher-exact compatible.")
+		return(invisible(NULL))
+	}
+	if (response_type == "incidence" &&
+	    is(seq_des_inf, "InferenceIncidExactBinomial") &&
+	    !design_has_realized_matched_pair(des_obj_for_exact)) {
+		message("          Skipping InferenceIncidExactBinomial: design has no realized matched pairs.")
+		return(invisible(NULL))
+	}
+
+	is_zhang_inference = is(seq_des_inf, "InferenceIncidExactZhang")
+	zhang_valid_design = response_type == "incidence" &&
+		design_supports_zhang_incidence(des_obj_for_exact)
+	has_exact_inference = if (is_zhang_inference) zhang_valid_design else supports_exact_inference(seq_des_inf)
+	if (should_run_test_family("exact") && response_type == "incidence" && has_exact_inference){
+		safe_call_family("exact", "compute_exact_two_sided_pval_for_treatment_effect", seq_des_inf$compute_exact_two_sided_pval_for_treatment_effect())
+		if (is_zhang_inference) {
+			safe_call_family("exact", "compute_exact_confidence_interval", seq_des_inf$compute_exact_confidence_interval(args_for_type = list(Zhang = list(combination_method = "Fisher", pval_epsilon = pval_epsilon))))
+		} else {
+			safe_call_family("exact", "compute_exact_confidence_interval", seq_des_inf$compute_exact_confidence_interval(pval_epsilon = pval_epsilon))
+		}
+	}
+	skip_asymp = supports_exact_inference(seq_des_inf) &&
+		!is(seq_des_inf, "InferenceAsymp") &&
+		!is(seq_des_inf, "InferenceAsympLik")
+
+	safe_call_family("estimate", "compute_estimate", seq_des_inf$compute_estimate())
+	if (should_run_test_family("asymp") && !skip_asymp){
+		if ("compute_asymp_log_rank_two_sided_pval_for_treatment_effect" %in% names(seq_des_inf)) {
+			safe_call_family("asymp", "compute_asymp_log_rank_two_sided_pval_for_treatment_effect", seq_des_inf$compute_asymp_log_rank_two_sided_pval_for_treatment_effect())
+		}
+		if ("compute_asymp_two_sided_pval" %in% names(seq_des_inf)) {
+			safe_call_family("asymp", "compute_asymp_two_sided_pval", seq_des_inf$compute_asymp_two_sided_pval())
+		}
+	}
+	if (should_run_test_family("asymp") && !skip_asymp){
+		safe_call_family("asymp", "compute_asymp_confidence_interval", seq_des_inf$compute_asymp_confidence_interval(0.05))
+	}
+	if (!skip_asymp){
+			call_direct_asymp("compute_wald_two_sided_pval", "wald")
+			call_direct_asymp("compute_score_two_sided_pval", "score")
+			call_direct_asymp("compute_lik_ratio_two_sided_pval", "lik_ratio")
+			call_direct_asymp("compute_gradient_two_sided_pval", "gradient")
+		}
+	if (!skip_asymp){
+		call_direct_asymp("compute_wald_confidence_interval", "wald", 0.05)
+		if (!skip_score_ci_slow) {
+			call_direct_asymp("compute_score_confidence_interval", "score", 0.05)
+		} else if ("compute_score_confidence_interval" %in% names(seq_des_inf) && supports_direct_testing_type("score")) {
+			message("          Skipping compute_score_confidence_interval (too slow)")
+		}
+		if (!skip_lik_ratio_ci_slow) {
+			call_direct_asymp("compute_lik_ratio_confidence_interval", "lik_ratio", 0.05)
+		} else if ("compute_lik_ratio_confidence_interval" %in% names(seq_des_inf) && supports_direct_testing_type("lik_ratio")) {
+			message("          Skipping compute_lik_ratio_confidence_interval (too slow)")
+		}
+		call_direct_asymp("compute_gradient_confidence_interval", "gradient", 0.05)
+	}
+	safe_call_debug = function(label, expr) {
+		if (is_row_completed(rep_curr, beta_T, dataset_name, response_type, design_type, inference_result_label, label)) {
+			return(invisible(NULL))
+		}
+		if (!is.null(pending_rep_header)) { message(pending_rep_header); pending_rep_header <<- NULL }
+		if (!is.null(pending_beta_header)) { message(pending_beta_header); pending_beta_header <<- NULL }
+		if (!is.null(pending_dataset_header)) { message(pending_dataset_header); pending_dataset_header <<- NULL }
+		if (!is.null(pending_response_header)) { message(pending_response_header); pending_response_header <<- NULL }
+		if (!is.null(pending_design_header)) { message(pending_design_header); pending_design_header <<- NULL }
+		if (!is.null(pending_banner)) { message(pending_banner); pending_banner <<- NULL }
+		message("          Calling ", label, "()")
+		start_elapsed = unname(proc.time()[["elapsed"]])
+		start_epoch = as.numeric(Sys.time())
+		assign(".comprehensive_current_call_start_epoch", start_epoch, envir = .GlobalEnv)
+		on.exit({
+			if (exists(".comprehensive_current_call_start_epoch", envir = .GlobalEnv, inherits = FALSE)) {
+				rm(".comprehensive_current_call_start_epoch", envir = .GlobalEnv)
+			}
+		}, add = TRUE)
+		debug_result = tryCatch(expr, error = function(e) {
+			dur = unname(proc.time()[["elapsed"]]) - start_elapsed
+			cat(sprintf("              (Duration: %.3gs)\n", dur))
+			record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type,
+						  inference_result_label, label, NA_character_, status = "error",
+						  duration_time_sec = dur, error_message = e$message)
+			NULL
+		})
+		if (is.null(debug_result)) return(invisible(NULL))
+		duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+		if (identical(label, "approximate_bootstrap_distribution_beta_hat_T_debug")) {
+			stats_vec = c(
+				debug_result$prop_illegal_values,
+				debug_result$prop_iterations_with_errors,
+				debug_result$prop_iterations_with_warnings
+			)
+			cat(sprintf("            prop_illegal=%.3f  prop_err=%.3f  prop_warn=%.3f\n",
+					stats_vec[1], stats_vec[2], stats_vec[3]))
+		} else {
+			stats_vec = c(
+				debug_result$prop_iterations_with_errors,
+				debug_result$prop_iterations_with_warnings,
+				debug_result$prop_illegal_values
+			)
+			cat(sprintf("            prop_err=%.3f  prop_warn=%.3f  prop_illegal=%.3f\n",
+					stats_vec[1], stats_vec[2], stats_vec[3]))
+		}
+		cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
+		record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type,
+					  inference_result_label, label, stats_vec, status = "ok",
+					  duration_time_sec = duration_time_sec)
+	}
+
+	if (should_run_test_family("bootstrap") && run_debug_resampling && !skip_slow && !skip_bootstrap && !skip_bootstrap_slow){
+		safe_call_debug("approximate_bootstrap_distribution_beta_hat_T_debug",
+						seq_des_inf$approximate_bootstrap_distribution_beta_hat_T(B = B_debug, debug = TRUE))
+	}
+	if (should_run_test_family("bayesian_bootstrap") && run_debug_resampling && !skip_slow && !skip_bayesian_bootstrap){
+		safe_call_debug("approximate_bayesian_bootstrap_distribution_beta_hat_T_debug",
+						seq_des_inf$approximate_bayesian_bootstrap_distribution_beta_hat_T(B = B_debug, debug = TRUE, show_progress = FALSE))
+	}
+	default_small_resampling_size = function(){
+		unit_info = tryCatch(
+			seq_des_inf$.__enclos_env__$private$get_exchangeable_units(unit = "auto", resampling_type = NULL),
+			error = function(e) NULL
+		)
+		has_n_units = is.list(unit_info) && length(unit_info$n_units) == 1L && is.finite(unit_info$n_units)
+		n_units = if (has_n_units) as.integer(unit_info$n_units) else as.integer(dataset_n_rows)
+		p_eff = tryCatch(
+			as.integer(seq_des_inf$.__enclos_env__$private$resampling_effective_p()),
+			error = function(e) as.integer(dataset_n_cols)
+		)
+		if (length(p_eff) != 1L || !is.finite(p_eff)) p_eff = as.integer(dataset_n_cols)
+		min_size = max(5L, p_eff + 2L)
+		max_size = floor(n_units / 2L)
+		if (!is.finite(n_units) || n_units <= 0L || max_size < min_size) return(NA_integer_)
+		as.integer(max(min_size, min(floor(n_units ^ 0.7), max_size)))
+	}
+	small_resampling_size = default_small_resampling_size()
+	# Nonparametric bootstrap CI — default type first (warms the distribution cache), then extra types reuse it
+	if (should_run_test_family("bootstrap") && !skip_slow && !skip_bootstrap && !skip_bootstrap_slow && !skip_boot_ci_slow){
+		if (!skip_boot_ci_default_slow) {
+			safe_call("compute_bootstrap_confidence_interval", seq_des_inf$compute_bootstrap_confidence_interval(B = r, na.rm = TRUE, show_progress = FALSE))
+		} else {
+			message("          Skipping compute_bootstrap_confidence_interval (too slow)")
+		}
+		for (boot_ci_type in c("basic", "bca", "studentized")) {
+			if (boot_ci_type == "bca" && skip_boot_ci_bca_slow) {
+				message("          Skipping compute_bootstrap_confidence_interval_bca (too slow)")
+				next
+			}
+			if (boot_ci_type == "studentized" && skip_boot_stud_slow) {
+				message("          Skipping compute_bootstrap_confidence_interval_studentized (too slow)")
+				next
+			}
+			safe_call(paste0("compute_bootstrap_confidence_interval_", boot_ci_type),
+					  seq_des_inf$compute_bootstrap_confidence_interval(B = r, type = boot_ci_type, na.rm = TRUE, show_progress = FALSE))
+		}
+	}
+	if (should_run_test_family("bootstrap") && !skip_slow && !skip_bootstrap && !skip_bootstrap_slow){
+		if (is.na(small_resampling_size)) {
+			message("          Skipping compute_m_out_of_n_bootstrap_confidence_interval / compute_subsampling_confidence_interval (too few exchangeable units)")
+		} else {
+			if (!skip_m_out_of_n_ci_slow) {
+				safe_call("compute_m_out_of_n_bootstrap_confidence_interval",
+						  seq_des_inf$compute_m_out_of_n_bootstrap_confidence_interval(B = r, m = small_resampling_size, show_progress = FALSE))
+			} else {
+				message("          Skipping compute_m_out_of_n_bootstrap_confidence_interval (too slow)")
+			}
+			if (!skip_subsampling_slow) {
+				safe_call("compute_subsampling_confidence_interval",
+						  seq_des_inf$compute_subsampling_confidence_interval(B = r, b = small_resampling_size, show_progress = FALSE))
+			} else {
+				message("          Skipping compute_subsampling_confidence_interval (too slow)")
+			}
+		}
+		}
+	# Bayesian bootstrap CI — default type first (warms the distribution cache), then extra types reuse it
+	if (should_run_test_family("bayesian_bootstrap") && !skip_slow && !skip_bayesian_bootstrap && !skip_bbt_ci_slow){
+		safe_call("compute_bayesian_bootstrap_confidence_interval", seq_des_inf$compute_bayesian_bootstrap_confidence_interval(B = r, na.rm = TRUE, show_progress = FALSE))
+		for (bayes_ci_type in c("basic", "wald", "bca", "studentized")) {
+			if (bayes_ci_type == "bca" && skip_bbt_ci_bca_slow) {
+				message("          Skipping compute_bayesian_bootstrap_confidence_interval_bca (too slow)")
+				next
+			}
+			if (bayes_ci_type == "studentized" && skip_bbt_ci_stud_slow) {
+				message("          Skipping compute_bayesian_bootstrap_confidence_interval_studentized (too slow)")
+				next
+			}
+			safe_call(paste0("compute_bayesian_bootstrap_confidence_interval_", bayes_ci_type),
+					  seq_des_inf$compute_bayesian_bootstrap_confidence_interval(B = r, type = bayes_ci_type, na.rm = TRUE, show_progress = FALSE))
+		}
+	}
+	# Nonparametric bootstrap p-val — default first, extra types reuse distribution cache
+	if (should_run_test_family("bootstrap") && !skip_slow && !skip_bootstrap && !skip_bootstrap_slow){
+		safe_call("compute_bootstrap_two_sided_pval", seq_des_inf$compute_bootstrap_two_sided_pval(B = r, na.rm = TRUE, show_progress = FALSE))
+		for (boot_pval_type in c("symmetric", "bca", "studentized")) {
+			if (boot_pval_type == "symmetric" && skip_boot_pval_symmetric_slow) {
+				message("          Skipping compute_bootstrap_two_sided_pval_symmetric (too slow)")
+				next
+			}
+			if (boot_pval_type == "bca" && skip_boot_pval_bca_slow) {
+				message("          Skipping compute_bootstrap_two_sided_pval_bca (too slow)")
+				next
+			}
+			if (boot_pval_type == "studentized" && skip_boot_pval_stud_slow) {
+				message("          Skipping compute_bootstrap_two_sided_pval_studentized (too slow)")
+				next
+			}
+			safe_call(paste0("compute_bootstrap_two_sided_pval_", boot_pval_type),
+					  seq_des_inf$compute_bootstrap_two_sided_pval(B = r, type = boot_pval_type, na.rm = TRUE, show_progress = FALSE))
+		}
+	}
+	if (should_run_test_family("bootstrap") && !skip_slow && !skip_bootstrap && !skip_bootstrap_slow){
+		if (is.na(small_resampling_size)) {
+			message("          Skipping compute_m_out_of_n_bootstrap_two_sided_pval / compute_subsampling_two_sided_pval (too few exchangeable units)")
+		} else {
+			if (!skip_m_out_of_n_slow) {
+				safe_call("compute_m_out_of_n_bootstrap_two_sided_pval",
+						  seq_des_inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = r, m = small_resampling_size, show_progress = FALSE))
+			} else {
+				message("          Skipping compute_m_out_of_n_bootstrap_two_sided_pval (too slow)")
+			}
+			if (!skip_subsampling_slow) {
+				safe_call("compute_subsampling_two_sided_pval",
+						  seq_des_inf$compute_subsampling_two_sided_pval(B = r, b = small_resampling_size, show_progress = FALSE))
+			} else {
+				message("          Skipping compute_subsampling_two_sided_pval (too slow)")
+			}
+		}
+	}
+	# Bayesian bootstrap p-val — default first, extra types reuse distribution cache
+	if (should_run_test_family("bayesian_bootstrap") && !skip_slow && !skip_bayesian_bootstrap){
+		if (!skip_bbt_pval_slow) {
+			safe_call("compute_bayesian_bootstrap_two_sided_pval", seq_des_inf$compute_bayesian_bootstrap_two_sided_pval(B = r, na.rm = TRUE, show_progress = FALSE))
+		} else {
+			message("          Skipping compute_bayesian_bootstrap_two_sided_pval (too slow)")
+		}
+		for (bayes_pval_type in c("symmetric", "wald", "bca", "studentized")) {
+			if (bayes_pval_type == "symmetric" && skip_bbt_pval_symmetric_slow) {
+				message("          Skipping compute_bayesian_bootstrap_two_sided_pval_symmetric (too slow)")
+				next
+			}
+			if (bayes_pval_type == "wald" && skip_bbt_pval_wald_slow) {
+				message("          Skipping compute_bayesian_bootstrap_two_sided_pval_wald (too slow)")
+				next
+			}
+			if (bayes_pval_type == "bca" && skip_bbt_pval_bca_slow) {
+				message("          Skipping compute_bayesian_bootstrap_two_sided_pval_bca (too slow)")
+				next
+			}
+			if (bayes_pval_type == "studentized" && skip_bbt_pval_studentized_slow) {
+				message("          Skipping compute_bayesian_bootstrap_two_sided_pval_studentized (too slow)")
+				next
+			}
+			safe_call(paste0("compute_bayesian_bootstrap_two_sided_pval_", bayes_pval_type),
+					  seq_des_inf$compute_bayesian_bootstrap_two_sided_pval(B = r, type = bayes_pval_type, na.rm = TRUE, show_progress = FALSE))
+		}
+	}
+	if (should_run_test_family("parametric_bootstrap") && !skip_slow && supports_parametric_bootstrap && !skip_lik_ratio_bootstrap_pval_slow){
+		safe_call("compute_lik_ratio_bootstrap_two_sided_pval", seq_des_inf$compute_lik_ratio_bootstrap_two_sided_pval(B = r, show_progress = FALSE))
+	} else if (should_run_test_family("parametric_bootstrap") && supports_parametric_bootstrap && skip_lik_ratio_bootstrap_pval_slow) {
+		message("          Skipping compute_lik_ratio_bootstrap_two_sided_pval (too slow)")
+	}
+	if (should_run_test_family("parametric_bootstrap") && !skip_slow && supports_parametric_bootstrap_estimate && !skip_param_bootstrap_estimate_slow){
+		safe_call("compute_param_bootstrap_estimate", seq_des_inf$compute_param_bootstrap_estimate(B = r, show_progress = FALSE))
+	} else if (should_run_test_family("parametric_bootstrap") && supports_parametric_bootstrap_estimate && skip_param_bootstrap_estimate_slow) {
+		message("          Skipping compute_param_bootstrap_estimate (too slow)")
+	}
+	if (should_run_test_family("parametric_bootstrap") && !skip_slow && supports_parametric_bootstrap_estimate && !skip_param_bootstrap_pval_slow){
+		safe_call("compute_param_bootstrap_pval", seq_des_inf$compute_param_bootstrap_pval(delta = 0, B = r, show_progress = FALSE))
+	} else if (should_run_test_family("parametric_bootstrap") && supports_parametric_bootstrap_estimate && skip_param_bootstrap_pval_slow) {
+		message("          Skipping compute_param_bootstrap_pval (too slow)")
+	}
+	if (should_run_test_family("parametric_bootstrap") && !skip_slow && supports_parametric_bootstrap_estimate && !skip_param_bootstrap_ci_slow){
+		safe_call("compute_param_bootstrap_confidence_interval", seq_des_inf$compute_param_bootstrap_confidence_interval(B = r, show_progress = FALSE))
+	} else if (should_run_test_family("parametric_bootstrap") && supports_parametric_bootstrap_estimate && skip_param_bootstrap_ci_slow) {
+		message("          Skipping compute_param_bootstrap_confidence_interval (too slow)")
+	}
+	if (should_run_test_family("parametric_bootstrap") && !skip_slow && supports_parametric_bootstrap_ci && !skip_pboot_ci_slow){
+		safe_call("compute_lik_ratio_bootstrap_confidence_interval",
+			seq_des_inf$compute_lik_ratio_bootstrap_confidence_interval(
+				B = r,
+				show_progress = FALSE,
+				max_root_iterations = param_boot_ci_max_root_iterations
+			)
+		)
+	}
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett &&
+		!skip_bartlett_pval_slow){
+		safe_call("compute_lik_ratio_bartlett_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_two_sided_pval(B = r))
+	} else if (should_run_test_family("bartlett") && supports_bartlett &&
+		skip_bartlett_pval_slow) {
+		message("          Skipping compute_lik_ratio_bartlett_two_sided_pval (too slow)")
+	}
+	# Explicit approx/exact variants, tested alongside the "best available"
+	# generic wrapper above: the wrapper's own doc comment
+	# (compute_lik_ratio_bartlett_confidence_interval()) directs callers who
+	# need version-to-version reproducibility to these instead, and
+	# path_audits.html's separate "LR-Bart-app"/"LR-Bart-ex" columns were,
+	# until 2026-09-06, both silently keyed to the generic wrapper's result --
+	# giving two display columns for what was actually one shared test call.
+	# Gated on the same skip_bartlett_pval_slow flag as the generic call:
+	# EDI_COMPREHENSIVE_SLOW_PATHS$bartlett_pval's own comment says the
+	# bucket "gates both 'approx' and 'exact'" already. Hurdle-Poisson's
+	# Bartlett calibration (a documented multi-minute path -- it repeatedly
+	# refits a truncated-Poisson likelihood) is skipped here via
+	# ADDITIONAL_TEST_SLOW_PATHS$bartlett_pval (pval side) and $pboot_ci
+	# (ci side below) rather than a standalone hand-rolled flag.
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_approx_variant &&
+		!skip_bartlett_pval_slow){
+		safe_call("compute_lik_ratio_bartlett_approx_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_approx_two_sided_pval(B = r))
+	} else if (should_run_test_family("bartlett") && supports_bartlett_approx_variant &&
+		skip_bartlett_pval_slow) {
+		message("          Skipping compute_lik_ratio_bartlett_approx_two_sided_pval (too slow)")
+	}
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_exact_variant &&
+		!skip_bartlett_pval_slow){
+		safe_call("compute_lik_ratio_bartlett_exact_two_sided_pval", seq_des_inf$compute_lik_ratio_bartlett_exact_two_sided_pval())
+	} else if (should_run_test_family("bartlett") && supports_bartlett_exact_variant &&
+		skip_bartlett_pval_slow) {
+		message("          Skipping compute_lik_ratio_bartlett_exact_two_sided_pval (too slow)")
+	}
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_ci &&
+		!skip_pboot_ci_slow){
+		safe_call("compute_lik_ratio_bartlett_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_confidence_interval(B = r))
+	}
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_approx_variant &&
+		!skip_pboot_ci_slow){
+		safe_call("compute_lik_ratio_bartlett_approx_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_approx_confidence_interval(B = r))
+	}
+	if (should_run_test_family("bartlett") && !skip_slow && supports_bartlett_exact_variant &&
+		!skip_pboot_ci_slow){
+		safe_call("compute_lik_ratio_bartlett_exact_confidence_interval", seq_des_inf$compute_lik_ratio_bartlett_exact_confidence_interval())
+	}
+	if (should_run_test_family("jackknife") && !skip_slow && supports_jackknife && !skip_jack_slow){
+		# No more blanket response_type == "count" skip here -- removed
+		# 2026-09-10 after a direct smoke test (InferenceAllSimpleAverageDiff/
+		# MeanDiffPooledVar on synthetic count data, 5 seeds x 3 effect sizes,
+		# 0/30 errors, jackknife estimate exactly matched compute_estimate() as
+		# expected for a linear statistic) found no structural reason these
+		# two classes' count-response jackknife estimate would fail. The
+		# blanket rule was over-broad: the count classes that genuinely are
+		# unstable under delete-one refits (hurdle/negbin/zero-augmented
+		# Poisson -- inference_count_hurdle.R, inference_count_negbin.R,
+		# inference_count_zero_augmented_poisson_abstract.R) already
+		# self-protect by overriding compute_jackknife_estimate() to return
+		# NA via cache_nonestimable_estimate() rather than erroring, and
+		# safe_call() below already catches any genuine error/timeout on its
+		# own -- there was nothing this response-type-wide pre-filter
+		# protected that wasn't already handled per-class.
+		safe_call("compute_jackknife_estimate", seq_des_inf$compute_jackknife_estimate())
+		safe_call("compute_jackknife_wald_two_sided_pval", seq_des_inf$compute_jackknife_wald_two_sided_pval())
+	}
+	if (should_run_test_family("jackknife") && !skip_slow && supports_jackknife && !skip_jack_slow){
+		safe_call("compute_jackknife_wald_confidence_interval", seq_des_inf$compute_jackknife_wald_confidence_interval())
+	}
+	if (supports_randomization_test && should_run_test_family("rand") && !skip_slow && !skip_rand && !skip_regular_rand_pval && !skip_rand_slow && response_type %in% c("continuous", "survival", "proportion", "incidence", "count", "ordinal")){
+		if (run_debug_resampling) {
+			safe_call_debug("approximate_randomization_distribution_beta_hat_T_debug",
+						seq_des_inf$approximate_randomization_distribution_beta_hat_T(r = r_debug, debug = TRUE))
+		}
+		safe_call("compute_rand_two_sided_pval", seq_des_inf$compute_rand_two_sided_pval(r = r, show_progress = FALSE))
+		transform_for_rand = switch(
+			response_type,
+			continuous = "none",
+			proportion = "logit",
+			count = "log",
+			survival = "log",
+			"none"
+		)
+		delta_for_rand = 0.5
+		if (!skip_rand_delta_pval_slow) {
+			safe_call("compute_rand_two_sided_pval(delta=0.5)",
+					seq_des_inf$compute_rand_two_sided_pval(r = r, delta = delta_for_rand, transform_responses = transform_for_rand, show_progress = FALSE))
+		}
+	}
+
+	if (supports_randomization_ci && should_run_test_family("rand") && !skip_slow && !skip_rand && !skip_ci_rand && !skip_rand_slow && !skip_rand_ci_slow && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
+		safe_call("compute_rand_confidence_interval", seq_des_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
+	}
+	# Bootstrap randomization test (BRT): row bootstrap + fresh assignment draw from the design
+	if (supports_randomization_bootstrap && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_pval && !skip_rand && !skip_rand_pval && response_type %in% c("continuous", "survival", "proportion", "incidence", "count", "ordinal")){
+		if (run_debug_resampling) {
+			safe_call_debug("approximate_rand_bootstrap_distribution_beta_hat_T_debug",
+						seq_des_inf$approximate_rand_bootstrap_distribution_beta_hat_T(B = B_debug, debug = TRUE, show_progress = FALSE))
+		}
+		safe_call("compute_rand_bootstrap_two_sided_pval", seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = r, show_progress = FALSE))
+		transform_for_rand_bootstrap = switch(
+			response_type,
+			continuous = "none",
+			proportion = "logit",
+			count = "log",
+			survival = "log",
+			"none"
+		)
+		safe_call("compute_rand_bootstrap_two_sided_pval(delta=0.5)",
+				seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = r, delta = 0.5, transform_responses = transform_for_rand_bootstrap, show_progress = FALSE))
+		for (brt_pval_type in c("studentized", "symmetric-percentile-t", "smoothed")) {
+			if (brt_pval_type == "smoothed" && skip_brt_pval_smoothed_slow) next
+			if (brt_pval_type %in% c("studentized", "symmetric-percentile-t") && skip_brt_pval_typed_slow) next
+			safe_call(paste0("compute_rand_bootstrap_two_sided_pval_", brt_pval_type),
+					  seq_des_inf$compute_rand_bootstrap_two_sided_pval(B = r, type = brt_pval_type, show_progress = FALSE))
+		}
+	}
+	# Deliberately NOT gated on supports_randomization_ci -- that's the PLAIN
+	# compute_rand_confidence_interval()'s capability, not this bootstrap
+	# variant's. Confirmed live 2026-09-14: InferenceSurvivalKKLWACoxPHOneLik/
+	# KKStratCoxPHOneLik/CoxPHRegr/StratCoxPHRegr all have
+	# randomization_ci=FALSE (their plain rand-CI genuinely errors -- log-
+	# hazard-ratio estimand units are incompatible with the generic epsilon-
+	# search machinery) but randomization_bootstrap=TRUE, and
+	# compute_rand_bootstrap_confidence_interval() works fine for them (real
+	# results, not errors) -- the package's own error message for the plain
+	# method even says so explicitly: "The randomization p-value and the
+	# randomization-bootstrap CI remain available." Requiring
+	# supports_randomization_ci here was silently skipping a working,
+	# documented-as-available path for every log-hazard-ratio class, forever.
+	# The one class of genuine BRT-CI failure (ordinal model-coefficient
+	# estimands, confirmed live to still error) is already caught gracefully
+	# by handle_error()'s existing "not implemented" pattern match below, the
+	# same as every other structural-limitation error in this file --
+	# response_type's own filter already excludes incidence (BRT-CI's other
+	# structural-failure case) from this block entirely, so that message
+	# never reaches here regardless.
+	if (supports_randomization_bootstrap && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_ci && !skip_rand && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
+		safe_call("compute_rand_bootstrap_confidence_interval", seq_des_inf$compute_rand_bootstrap_confidence_interval(B = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
+		for (brt_ci_type in c("studentized", "symmetric-percentile-t", "smoothed")) {
+			if (brt_ci_type == "smoothed" && skip_brt_ci_smoothed_slow) next
+			if (brt_ci_type %in% c("studentized", "symmetric-percentile-t") && skip_brt_ci_typed_slow) next
+			safe_call(paste0("compute_rand_bootstrap_confidence_interval_", brt_ci_type),
+					  seq_des_inf$compute_rand_bootstrap_confidence_interval(B = r, type = brt_ci_type, pval_epsilon = pval_epsilon, show_progress = FALSE))
+		}
+	}
+	if (supports_randomization_test && should_run_test_family("rand_custom")){
+		# Runs on a standalone InferenceRandCustom over the same design object,
+		# not on seq_des_inf itself (fix_custom_randomization_statistic.md
+		# TODO-7): the escape hatch that used to attach a custom statistic
+		# directly to whatever concrete estimator class seq_des_inf is was
+		# removed, replaced by this one dedicated class.
+		custom_inf = InferenceRandCustom$new(
+			seq_des_inf$get_design_object(),
+			custom_randomization_statistic_cpp = welch_t_stat_cpp,
+			verbose = FALSE
+		)
+		if (!skip_slow && !skip_custom_rand_pval){
+			safe_call("compute_rand_two_sided_pval(custom)", custom_inf$compute_rand_two_sided_pval(r = r, show_progress = FALSE))
+		} else if (response_type == "incidence") {
+			message("    Skipping compute_rand_two_sided_pval(custom) (custom randomization statistic unsupported for incidence)")
+		}
+		# response_type set matches the plain/BRT rand-CI set (continuous,
+		# proportion, count, survival) as of 2026-09-13 -- count was previously
+		# excluded here with no matching restriction, unlike ordinal/incidence
+		# which both hit real package-level stop()s (see this file's earlier
+		# response_type %in% c(...) gates and their own comments). Live-verified
+		# before widening: InferenceRandCustom$compute_rand_confidence_interval()
+		# on a count-response design returns a real CI (with the routine
+		# "conservative bound" warning every response type can get, not an
+		# error) -- there was never a structural reason to exclude count here.
+		if (supports_randomization_ci && !skip_slow && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
+			custom_inf_ci = InferenceRandCustom$new(
+				seq_des_inf$get_design_object(),
+				custom_randomization_statistic_cpp = mean_diff_stat_cpp,
+				verbose = FALSE
+			)
+			safe_call("compute_rand_confidence_interval(custom)", custom_inf_ci$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
+		}
+	}
+}
+
+run_inference_checks = function(seq_des_inf, response_type, design_type, dataset_name, dataset_n_rows, dataset_n_cols, exhaustive_sweep = FALSE, inference_label = NULL){
+	tryCatch(
+		run_inference_checks_impl(
+			seq_des_inf, response_type, design_type, dataset_name,
+			dataset_n_rows, dataset_n_cols,
+			exhaustive_sweep = exhaustive_sweep,
+			inference_label = inference_label
+		),
+		error = function(e){
+			if (!is.null(pending_banner)) {
+				pending_banner <<- NULL
+			}
+			label = if (!is.null(inference_label) && nzchar(inference_label)) {
+				inference_label
+			} else {
+				"<model construction or unlabeled inference>"
+			}
+			formula_label = if (exists(".comprehensive_current_model_formula", envir = .GlobalEnv, inherits = FALSE)) {
+				paste(deparse(get(".comprehensive_current_model_formula", envir = .GlobalEnv)), collapse = " ")
+			} else {
+				"<unset>"
+			}
+			message(
+				"  FATAL ERROR in inference model(",
+				response_type, ", ", design_type, ", ", dataset_name,
+				", formula = ", formula_label, ", ", label, "): ",
+				conditionMessage(e)
+			)
+			write_results_if_needed(force = TRUE)
+			invisible(NULL)
+		}
+	)
+}
+
+instantiate_inference_generator = function(class_gen, des_obj, model_formula = NULL){
+	init_fn = class_gen$public_methods$initialize
+	init_formals = if (is.function(init_fn)) names(formals(init_fn)) else character()
+	candidate_arg_sets = list(
+		list(des_obj = des_obj, model_formula = model_formula, verbose = FALSE),
+		list(des_obj = des_obj, model_formula = model_formula),
+		list(des_obj = des_obj, verbose = FALSE),
+		list(des_obj = des_obj)
+	)
+	for (args in candidate_arg_sets){
+		args = args[names(args) %in% init_formals]
+		obj = tryCatch(do.call(class_gen$new, args), error = function(e) NULL)
+		if (!is.null(obj)) return(obj)
+	}
+	NULL
+}
+
+is_skipped_inference_label = function(class_names){
+	class_names %in% c("InferenceIncidCMH", "InferenceIncidExtendedRobins") |
+		grepl("IVWC", class_names, fixed = TRUE)
+}
+
+run_exhaustive_remaining_inference_classes = function(des_obj, response_type, design_type, dataset_name, n_rows, n_cols, model_formula = NULL){
+	ns = asNamespace("EDI")
+	nms = ls(ns, all.names = TRUE)
+	gen_names = nms[vapply(nms, function(nm) inherits(get(nm, envir = ns), "R6ClassGenerator"), logical(1))]
+	gen_names = gen_names[grepl("^Inference", gen_names)]
+	# Query only registered, concrete generators in the actual Inference
+	# hierarchy. Name-based exclusions alone admitted component generators such
+	# as InferenceMarginalEstimand, which is not an estimator and has no
+	# compute_estimate() method.
+	is_inference_generator = get("is_inference_r6_generator", envir = ns)
+	get_inference_metadata = get("get_inference_class_metadata", envir = ns)
+	gen_names = gen_names[vapply(gen_names, function(nm){
+		gen = get(nm, envir = ns)
+		if (!isTRUE(is_inference_generator(gen))) return(FALSE)
+		metadata = tryCatch(get_inference_metadata(nm), error = function(e) NULL)
+		!is.null(metadata) && !isTRUE(metadata$abstract)
+	}, logical(1))]
+	gen_names = gen_names[!is_skipped_inference_label(gen_names)]
+	gen_names = gen_names[!grepl("Abstract|Suite|Custom|RandCI$|NoParamBootstrap$", gen_names)]
+	gen_names = setdiff(gen_names, c(
+		"Inference",
+		"InferenceAsymp",
+		"InferenceBoot",
+		"InferenceRand",
+		"InferenceExact",
+		"InferenceKKPassThrough",
+		"InferenceKKPassThroughCompound",
+		"InferenceMLEorKMforGLMs",
+		"InferenceMLEorKMSummaryTable",
+		"InferenceMarginalEstimand",
+		"InferenceCustomAsymp",
+		"InferenceCustomBoot",
+		"InferenceCustomRand",
+		"InferenceIncidKKCondLogitGLMMOneLik",
+		"InferenceRandCI",
+		"InferenceQuantileRandCI"
+	))
+	is_response_family_mismatch = function(class_name, response_type){
+		if (response_type == "survival" && identical(class_name, "InferenceAllSimpleWilcox")) return(TRUE)
+		switch(
+			response_type,
+			continuous = grepl("Count|Incid|Survival|Ordinal|^InferenceProp", class_name),
+			incidence = grepl("Count|Contin|Survival|Ordinal|Wilcox|^InferenceProp", class_name),
+			proportion = grepl("Count|Contin|Incid|Survival|Ordinal", class_name),
+			count = grepl("Contin|Incid|Survival|Ordinal|^InferenceProp", class_name),
+			survival = grepl("Count|Contin|Incid|Ordinal|^InferenceProp", class_name),
+			ordinal = grepl("Count|Contin|Incid|Survival|^InferenceProp", class_name),
+			FALSE
+		)
+	}
+	is_kk_design_type = design_type %in% c("KK21", "KK21stepwise", "KK14", "FixedBinaryMatch")
+	for (class_name in sort(unique(gen_names))){
+		if (is_response_family_mismatch(class_name, response_type)) next
+		if (!is_kk_design_type && grepl("KK", class_name, fixed = TRUE)) next
+		class_gen = get(class_name, envir = ns)
+		inf_obj = instantiate_inference_generator(class_gen, des_obj, model_formula = model_formula)
+		if (is.null(inf_obj)) next
+		class_label = class(inf_obj)[1L]
+		if (!startsWith(class_label, "Inference")) next
+		inference_banner(class_label)
+		tryCatch({
+			run_inference_checks(inf_obj, response_type, design_type, dataset_name, n_rows, n_cols, exhaustive_sweep = TRUE)
+		}, error = function(e){
+			msg = if (length(e$message) == 0L) "" else e$message
+			message("  Skipping ", class_label, " (exhaustive sweep): ", msg)
+			return(invisible(NULL))
+		})
+	}
+	invisible(NULL)
+}
+
+apply_treatment_effect_and_noise = function(y_t, w_t, response_type){
+	eps = rnorm(1, 0, SD_NOISE)
+	bt = ifelse(w_t == 1, beta_T, 0)
+	if (response_type == "continuous") return(y_t + bt + eps)
+	if (response_type == "incidence") {
+		p_base = if (is.finite(y_t) && y_t >= 0 && y_t <= 1) y_t else stats::plogis(y_t)
+		p_base = pmin(0.95, pmax(0.05, p_base))
+		p_t = plogis(qlogis(p_base) + bt + eps)
+		return(as.numeric(stats::rbinom(1, size = 1, prob = p_t)))
+	}
+	if (response_type == "proportion"){
+		# Was a raw additive shift on the [0,1] scale, hard-clamped with
+		# pmin(1,pmax(0,...)) -- fixed 2026-09-15 to shift on the logit
+		# scale instead, mirroring the incidence branch above. Root cause
+		# (results-CSV audit): the raw-scale version, combined with
+		# finagle_different_responses_from_continuous()'s baseline
+		# proportion sitting close to the [0,1] edges, clamped 58% of the
+		# diamonds treatment arm (beta_T=0.5) to the exact boundary value
+		# 1.0 -- a majority-boundary-mass response that Beta regression/
+		# quantile regression/fractional logit (all fit a continuous (0,1)
+		# likelihood) have no well-defined behavior for, producing
+		# coefficient estimates of 30-35 against a ~0.06 typical value.
+		# A logit-scale shift asymptotically approaches but never reaches
+		# the boundary, matching how a real bounded-proportion treatment
+		# effect would behave. The baseline itself was also tightened
+		# (0.1 + 0.8 * ... instead of a near-0/1-reaching epsilon pad) --
+		# this qlogis()/plogis() round-trip is a second, independent layer
+		# of the same fix, not a substitute for it.
+		p_base = pmin(0.95, pmax(0.05, y_t))
+		p_t = plogis(qlogis(p_base) + bt + eps)
+		return(p_t)
+	}
+	if (response_type == "count"){
+		lambda_t = pmax(.Machine$double.eps, y_t * exp(bt + eps))
+		return(as.numeric(stats::rpois(1, lambda = lambda_t)))
+	}
+	if (response_type == "survival") return(pmax(.Machine$double.eps, y_t * exp(bt + eps)))
+	if (response_type == "ordinal"){
+		# For ordinal, we'll just use a simple shift and re-cut if needed,
+		# but here y_t is already the ordinal level.
+		# Let's just do a simple shift and round.
+		# We use a larger noise multiplier (5x) to ensure some subjects jump categories,
+		# otherwise with SD_NOISE=0.1, matched pairs are almost always concordant.
+		return(as.integer(max(1, round(y_t + bt + 5 * eps))))
+	}
+	stop("Unsupported response_type: ", response_type)
+}
+
+# ── Model-specific coverage truth ───────────────────────────────────────────
+# beta_T is the treatment shift comprehensive_tests.R's own DGP (apply_treatment_effect_and_noise)
+# applies on each response's generation scale. That IS the right coverage target for additive/collapsible
+# estimators (continuous OLS-type, count log-rate classes — a constant multiplicative Poisson shift
+# is exactly collapsible: log(mean_i(lambda_i*exp(bt))) - log(mean_i(lambda_i)) = bt algebraically).
+# It is NOT the right target for:
+#  (a) risk-difference/risk-ratio-type incidence/proportion estimators (mean-diff family) — their
+#      target is mean(p_t_i - p_c_i) or a ratio of means, not the logit-scale beta_T;
+#  (b) any class whose own coefficient is a marginal link-scale coefficient (logit/probit/Cox) —
+#      non-collapsibility makes the marginal coefficient differ from beta_T once baseline
+#      heterogeneity is present, and several fitted-model estimands do not match the DGP's
+#      marginal contrast, so there is no closed form for those.
+# (a) and InferenceIncidLogRegr (b, but exactly well-specified) get closed forms below. Everything
+# else in (b) is computed by Monte Carlo via SimulationFramework: simulate a very large sample from
+# this exact same DGP (custom_replication_data_generator/custom_apply_treatment_and_noise let us
+# reuse SimulationFramework's own — already-correct — design-building/covariate-injection logic
+# instead of re-deriving it) and fit the class's own estimator to it once. At large n the MC noise
+# is negligible and the fitted coefficient is the "least false"/KL-projection parameter that a
+# correctly-behaving CI should cover at the nominal rate, even under model misspecification.
+.coverage_truth_cache = new.env(parent = emptyenv())
+
+incid_p_base_and_treated = function(dataset_name, beta_T_val){
+	y_i = datasets_and_response_models[[dataset_name]]$y_original$incidence
+	p_base = ifelse(is.finite(y_i) & y_i >= 0 & y_i <= 1, y_i, stats::plogis(y_i))
+	p_base = pmin(0.95, pmax(0.05, p_base))
+	list(p_c = p_base, p_t = stats::plogis(stats::qlogis(p_base) + beta_T_val))
+}
+compute_incid_logit_coverage_truth = function(dataset_name, beta_T_val){
+	pp = incid_p_base_and_treated(dataset_name, beta_T_val)
+	stats::qlogis(mean(pp$p_t)) - stats::qlogis(mean(pp$p_c))
+}
+compute_incid_risk_diff_coverage_truth = function(dataset_name, beta_T_val){
+	pp = incid_p_base_and_treated(dataset_name, beta_T_val)
+	mean(pp$p_t - pp$p_c)
+}
+compute_incid_risk_ratio_coverage_truth = function(dataset_name, beta_T_val){
+	pp = incid_p_base_and_treated(dataset_name, beta_T_val)
+	mean(pp$p_t) / mean(pp$p_c)
+}
+compute_incid_log_risk_ratio_coverage_truth = function(dataset_name, beta_T_val){
+	log(compute_incid_risk_ratio_coverage_truth(dataset_name, beta_T_val))
+}
+compute_prop_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
+	y_p = datasets_and_response_models[[dataset_name]]$y_original$proportion
+	p_base = pmin(0.95, pmax(0.05, y_p))
+	p_t = stats::plogis(stats::qlogis(p_base) + beta_T_val)
+	mean(p_t - p_base)
+}
+compute_survival_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
+	# DGP is a multiplicative time shift (y_t = y_c * exp(bt)), not additive, so the naive
+	# mean-difference target is mean(y_c) * (exp(beta_T) - 1), not beta_T. Ignores censoring's
+	# (identical-in-both-arms) effect on the observed mean, same level of approximation used
+	# elsewhere here (e.g. the tiny eps noise term).
+	y_c = datasets_and_response_models[[dataset_name]]$y_original$survival
+	mean(y_c) * (exp(beta_T_val) - 1)
+}
+
+COVERAGE_CLOSED_FORM = list(
+	InferenceAllSimpleAverageDiff__incidence = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidWald                    = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidRiskDiff                = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidMiettinenNurminenRiskDiff = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidNewcombeRiskDiff        = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidKKNewcombeRiskDiff      = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidGCompRiskDiff           = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidKKGCompRiskDiff         = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidBinomialIdentityRiskDiff = compute_incid_risk_diff_coverage_truth,
+	InferenceIncidGCompRiskRatio          = compute_incid_risk_ratio_coverage_truth,
+	InferenceIncidKKGCompRiskRatio        = compute_incid_risk_ratio_coverage_truth,
+	InferenceIncidModifiedPoisson         = compute_incid_log_risk_ratio_coverage_truth,
+	InferenceIncidKKModifiedPoisson       = compute_incid_log_risk_ratio_coverage_truth,
+	InferenceIncidLogBinomial             = compute_incid_log_risk_ratio_coverage_truth,
+	InferenceAllSimpleAverageDiff__proportion = compute_prop_mean_diff_coverage_truth,
+	InferencePropGCompMeanDiff            = compute_prop_mean_diff_coverage_truth,
+	InferenceAllSimpleAverageDiff__survival   = compute_survival_mean_diff_coverage_truth
+)
+
+# Monte Carlo via SimulationFramework: reuses its design-building (incl. auto strata/cluster
+# injection for KK-matched designs) rather than hand-rolling that logic here.
+#
+# `real_X`: when supplied (a per-row test used the real dataset's full covariate
+# set, i.e. NOT an explicit `~1` label -- see get_coverage_truth()'s
+# use_real_covariates), its rows are recycled to length mc_n exactly like
+# y_base below, so the MC fit adjusts for the SAME covariate set the real
+# per-row results were fit against (TODO-32,
+# mc_coverage_truth_covariate_mismatch.md). NULL keeps the original single
+# synthetic-covariate behavior, which is already correct for an `~1`
+# (no-adjustment) per-row fit.
+compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_type, dataset_name, beta_T_val, mc_n, real_X = NULL){
+	y_base = datasets_and_response_models[[dataset_name]]$y_original[[response_type]]
+	p_mc = if (is.null(real_X)) 1L else ncol(real_X)
+	custom_data = function(state, rep){
+		n0 = length(y_base)
+		y_rep = rep(y_base, ceiling(state$n / n0))[seq_len(state$n)]
+		X_rep = if (is.null(real_X)) {
+			data.frame(x1 = stats::rnorm(state$n))
+		} else {
+			n0_X = nrow(real_X)
+			real_X[rep(seq_len(n0_X), ceiling(state$n / n0_X))[seq_len(state$n)], , drop = FALSE]
+		}
+		list(X = X_rep, y_linear_model = y_rep)
+	}
+	custom_apply = function(y_linear_model, w, state){
+		n = length(y_linear_model)
+		y_lin = y_linear_model
+		dead_mc = rep(1L, n)
+		if (response_type == "survival") {
+			t_f_mc = stats::quantile(y_lin, .95)
+			cens = stats::runif(n) < prob_censoring | y_lin >= t_f_mc
+			if (any(cens)) {
+				y_lin[cens] = stats::runif(sum(cens), 0, y_lin[cens])
+				dead_mc[cens] = 0
+			}
+		}
+		y = vapply(seq_len(n), function(i) apply_treatment_effect_and_noise(y_lin[i], w[i], response_type), numeric(1))
+		list(y = y, dead = dead_mc)
+	}
+	# SimulationFramework also writes <stem>__staging.csv, <stem>__elapsed.rds
+	# and a <stem>__cache/ dir next to results_filename; remove all of them.
+	results_filename = tempfile(fileext = ".csv")
+	on.exit(unlink(Sys.glob(paste0(sub("\\.csv$", "", results_filename), "*")), recursive = TRUE, force = TRUE), add = TRUE)
+	sim = SimulationFramework$new(
+		response_type = response_type,
+		design_classes_and_params = list(design_gen),
+		inference_classes_and_params = list(class_gen),
+		inference_types_and_params = list(rand_pval = list()),
+		n = mc_n, p = p_mc, Nrep_W = 1L, Nrep_Y_w = 1L,
+		betaT = beta_T_val,
+		custom_replication_data_generator = custom_data,
+		custom_apply_treatment_and_noise = custom_apply,
+		results_filename = results_filename,
+		continue_from_last_result_row = FALSE,
+		verbose = FALSE,
+		stop_on_error = FALSE
+	)
+	sim$run()
+	res = SimulationFrameworkReport$new(sim)$get_results()
+	if (!nrow(res)) {
+		class_label  = tryCatch(class_gen$classname, error = function(e) NA_character_)
+		design_label = tryCatch(design_gen$classname, error = function(e) NA_character_)
+		warning(sprintf(
+			paste0(
+				"compute_mc_coverage_truth_simframe: zero result rows for class=%s design=%s ",
+				"response_type=%s dataset=%s beta_T=%s -- the design/inference pair was filtered ",
+				"as invalid for every replication (see the SimulationFramework warning above). ",
+				"Returning NA rather than a fabricated truth."
+			),
+			class_label, design_label, response_type, dataset_name, format(beta_T_val)
+		), call. = FALSE)
+		return(NA_real_)
+	}
+	as.numeric(res$estimate[1L])
+}
+
+# design_gen: plain DesignFixedBernoulli unless the class structurally requires a KK-matched
+# design (verified directly: these error with "requires a KK matching-on-the-fly design" otherwise).
+COVERAGE_MC_SPEC = list(
+	# The Hodges-Lehmann estimate is the median of all treated-minus-control
+	# pairwise differences, not a mean difference. Under the proportion DGP's
+	# heterogeneous baselines, logit shift, and Gaussian noise there is no
+	# corresponding closed form. It used to fall through to raw beta_T_val,
+	# which is on the logit scale and produced 0.12--0.33 coverage. Keep this
+	# response-qualified because InferenceAllSimpleWilcox is also run on other
+	# response families whose truth must not be replaced by a proportion fit.
+	InferenceAllSimpleWilcox__proportion = list(rt = "proportion", design = quote(DesignFixedBernoulli), gen = quote(InferenceAllSimpleWilcox), mc_n = 20000L),
+	InferencePropBetaRegr                = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropBetaRegr),                mc_n = 20000L),
+	InferencePropFractionalLogit         = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropFractionalLogit),         mc_n = 20000L),
+	InferencePropZeroOneInflatedBetaRegr = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropZeroOneInflatedBetaRegr), mc_n = 20000L),
+	InferencePropQuantileRegr            = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropQuantileRegr),            mc_n = 20000L),
+	InferencePropKKGEE                   = list(rt = "proportion", design = quote(DesignFixedBinaryMatch), gen = quote(InferencePropKKGEE),                   mc_n = 3000L),
+	InferencePropKKGLMM                  = list(rt = "proportion", design = quote(DesignFixedBinaryMatch), gen = quote(InferencePropKKGLMM),                  mc_n = 3000L),
+	InferencePropKKQuantileRegrOneLik    = list(rt = "proportion", design = quote(DesignFixedBinaryMatch), gen = quote(InferencePropKKQuantileRegrOneLik),    mc_n = 3000L),
+	InferenceIncidProbitRegr             = list(rt = "incidence",  design = quote(DesignFixedBernoulli),  gen = quote(InferenceIncidProbitRegr),             mc_n = 20000L),
+	# The incidence DGP's closed-form marginal log-odds contrast does not
+	# match InferenceIncidLogRegr's default conditional estimand. Fit the
+	# estimator against the same adjustment set instead of grading it against
+	# a different estimand.
+	InferenceIncidLogRegr                = list(rt = "incidence",  design = quote(DesignFixedBernoulli),  gen = quote(InferenceIncidLogRegr),                mc_n = 20000L),
+	InferenceIncidKKGEE                  = list(rt = "incidence",  design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKGEE),                  mc_n = 3000L),
+	InferenceIncidKKCondLogitOneLik      = list(rt = "incidence",  design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKCondLogitOneLik),      mc_n = 3000L),
+	InferenceIncidKKCondLogitGLMMOneLik = list(rt = "incidence", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceIncidKKCondLogitGLMMOneLik), mc_n = 3000L),
+	# LogRank/GehanWilcox estimates are marginal rank-based/martingale-
+	# residual treatment contrasts, not the covariate-adjusted log-hazard-
+	# ratio beta_T used to generate the data (well-known non-collapsibility
+	# of marginal hazard-type statistics vs. a conditional coefficient) --
+	# without an MC-fitted truth, get_coverage_truth() fell back to raw
+	# beta_T_val, producing uniformly poor (~51-62%) coverage across every
+	# CI method at once (the signature of a wrong reference value, not a
+	# broken CI) (found 2026-09-06).
+	InferenceSurvivalLogRank             = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalLogRank),             mc_n = 20000L),
+	InferenceSurvivalGehanWilcox         = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalGehanWilcox),         mc_n = 20000L),
+	# The KM median difference is on the observed-time scale, whereas beta_T
+	# is the DGP's multiplicative-time parameter. Its least-false target also
+	# depends on censoring and the fitted adjustment set.
+	InferenceSurvivalKMDiff              = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalKMDiff),              mc_n = 20000L),
+	InferenceSurvivalCoxPHRegr           = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalCoxPHRegr),           mc_n = 20000L),
+	InferenceSurvivalStratCoxPHRegr      = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalStratCoxPHRegr),      mc_n = 20000L),
+	InferenceSurvivalWeibullRegr         = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalWeibullRegr),         mc_n = 20000L),
+	InferenceSurvivalDepCensTransformRegr = list(rt = "survival",  design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalDepCensTransformRegr), mc_n = 20000L),
+	InferenceSurvivalKKLWACoxPHOneLik    = list(rt = "survival",   design = quote(DesignFixedBinaryMatch),  gen = quote(InferenceSurvivalKKLWACoxPHOneLik),    mc_n = 3000L),
+	InferenceSurvivalKKStratCoxPHOneLik  = list(rt = "survival",   design = quote(DesignFixedBinaryMatch),  gen = quote(InferenceSurvivalKKStratCoxPHOneLik),  mc_n = 3000L),
+	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik  = list(rt = "survival", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik),  mc_n = 3000L),
+	InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = list(rt = "survival", design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalGLMMWeibullFrailtyNormalOneLik), mc_n = 3000L),
+	InferenceSurvivalKKWeibullMarginal   = list(rt = "survival",   design = quote(DesignFixedBinaryMatch), gen = quote(InferenceSurvivalKKWeibullMarginal),  mc_n = 3000L),
+	# Ridit estimates a bounded [-0.5, 0.5] probability-scale quantity (mean
+	# ridit score minus 0.5, Bross 1958), not the cumulative-logit log-odds
+	# beta_T used to generate ordinal data -- without an MC-fitted truth,
+	# get_coverage_truth() fell back to raw beta_T_val, producing <80%
+	# coverage across essentially every CI method at once (found 2026-09-06;
+	# reproduced directly: a true log-odds effect of 0.6 gave a Ridit point
+	# estimate/CI of about -0.09, nowhere near 0.6, at n=20000).
+	InferenceOrdinalRidit                = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalRidit),               mc_n = 20000L),
+	# These estimators fit different ordinal likelihood/link families from the
+	# cumulative-logit DGP (or, for PartialProportionalOdds, a conditional
+	# coefficient under covariate adjustment). Raw beta_T is therefore not
+	# their coverage target.
+	InferenceOrdinalCauchitRegr          = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalCauchitRegr),          mc_n = 20000L),
+	InferenceOrdinalCloglogRegr          = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalCloglogRegr),          mc_n = 20000L),
+	InferenceOrdinalOrderedProbitRegr    = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalOrderedProbitRegr),    mc_n = 20000L),
+	InferenceOrdinalAdjCatLogitRegr      = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalAdjCatLogitRegr),      mc_n = 20000L),
+	InferenceOrdinalContRatioRegr        = list(rt = "ordinal",    design = quote(DesignFixedBernoulli),  gen = quote(InferenceOrdinalContRatioRegr),        mc_n = 20000L),
+	InferenceOrdinalPartialProportionalOddsRegr = list(rt = "ordinal", design = quote(DesignFixedBernoulli), gen = quote(InferenceOrdinalPartialProportionalOddsRegr), mc_n = 20000L),
+	# InferenceOrdinalKKGLMM/InferenceOrdinalKKCLMMCauchit have the same
+	# missing-MC-truth problem as Ridit/LogRank above, found 2026-09-22
+	# (comprehensive_results CSV audit's biased_estimate check). Both are
+	# mixed models (random-effects GLMM / cumulative-link mixed model); a
+	# mixed model's fixed-effect coefficient is the conditional
+	# (subject-specific) effect, not the marginal/population-averaged
+	# additive shift beta_T used to generate the data -- the classic
+	# GLMM conditional-vs-marginal divergence. Reproduced directly at large
+	# n, two independent seeds: with a true additive shift of 0.6, KKGLMM's
+	# estimate holds at ~1.02-1.06 (not shrinking toward 0.6) from n=2000 to
+	# n=6000; KKCLMMCauchit holds at ~0.93-1.02 over the same range. Their
+	# sibling InferenceOrdinalKKCLMMCloglog does NOT have this problem --
+	# same repro converges cleanly to the true 0.6 (diff +0.02 at n=6000,
+	# shrinking monotonically from n=2000) -- so it is deliberately NOT
+	# added here; its own comprehensive_results "biased_estimate" flag is
+	# ordinary small-sample noise at the harness's actual (much smaller) n,
+	# not a truth-scale mismatch.
+	InferenceOrdinalKKGLMM               = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKGLMM),              mc_n = 3000L),
+	InferenceOrdinalKKCLMMCauchit        = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKCLMMCauchit),       mc_n = 3000L)
+)
+
+# These matched Cox classes do not yet have a defensible numeric coverage
+# target in the high-covariate scenarios used by the harness. Block-recycled
+# and bootstrap-resampled real-X constructions converge to materially
+# different values, both far from the finite-sample estimator distribution.
+# Returning NA prevents the harness from silently grading intervals against
+# either an unconverged MC value or the known-wrong raw beta_T fallback.
+COVERAGE_TRUTH_UNAVAILABLE = c(
+	"InferenceSurvivalKKLWACoxPHOneLik",
+	"InferenceSurvivalKKStratCoxPHOneLik"
+)
+
+# TODO-32 (mc_coverage_truth_covariate_mismatch.md): shared by
+# get_coverage_truth() and get_estimate_logging_theta() so their
+# .coverage_truth_cache keys can never drift apart again -- they did once
+# (2026-09-22 fix), silently breaking get_estimate_logging_theta()'s
+# diagnostic-annotation lookup (cosmetic only: it degrades console logging,
+# it is never read for the recorded coverage_truth column) without erroring.
+coverage_truth_uses_real_covariates = function(inference_class){
+	# NOT a POSIX bracket expression ([\)\]] doesn't do what it looks like it
+	# does -- R's default ERE engine doesn't support backslash escapes inside
+	# [...], so that silently matched nothing at all; caught 2026-09-23 by a
+	# direct unit check, not by comprehensive_tests itself). Plain alternation.
+	!grepl("~1\\)|~1\\]", inference_class)
+}
+coverage_truth_cache_key = function(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint = NA_character_){
+	paste(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint, sep = "||")
+}
+
+# Deterministic seed in [0, 2^31 - 1) from a coverage-truth cache key
+# (a polynomial string hash; exact in doubles since h < 2^31).
+coverage_truth_seed = function(key){
+	h = 0
+	for (code in utf8ToInt(key)) h = (h * 31 + code) %% 2147483647
+	as.integer(h)
+}
+
+get_coverage_mc_spec = function(base_class, response_type_hint = NA_character_){
+	spec = COVERAGE_MC_SPEC[[base_class]]
+	if (is.null(spec) && !is.na(response_type_hint)) {
+		spec = COVERAGE_MC_SPEC[[paste0(base_class, "__", response_type_hint)]]
+	}
+	spec
+}
+
+get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
+	base_class = sub(" [\\(\\[].*$", "", inference_class)
+	if (base_class %in% COVERAGE_TRUTH_UNAVAILABLE) return(NA_real_)
+	closed_form_fn = COVERAGE_CLOSED_FORM[[base_class]]
+	# InferenceAllSimpleMeanDiffPooledVar computes the identical mean-
+	# difference estimand (yT_bar - yC_bar) as InferenceAllSimpleAverageDiff
+	# on the same data-generating process, but was missing from this
+	# fallback -- so its CI was compared against the raw beta_T_val (the
+	# untransformed DGP shift parameter, e.g. a logit-scale shift for
+	# incidence data) instead of the correctly response-type-compressed
+	# truth, producing spurious ~51% "coverage" that is a harness truth-
+	# scale mismatch, not a real CI defect (found 2026-09-06).
+	if (is.null(closed_form_fn) && base_class %in% c("InferenceAllSimpleAverageDiff", "InferenceAllSimpleMeanDiffPooledVar") && !is.na(response_type_hint)) {
+		closed_form_fn = COVERAGE_CLOSED_FORM[[paste0("InferenceAllSimpleAverageDiff__", response_type_hint)]]
+	}
+	if (!is.null(closed_form_fn)) {
+		return(tryCatch(closed_form_fn(dataset_name, beta_T_val), error = function(e) beta_T_val))
+	}
+	spec = get_coverage_mc_spec(base_class, response_type_hint)
+	if (!is.null(spec)) {
+		# TODO-32 (mc_coverage_truth_covariate_mismatch.md): the MC fit below
+		# used to always simulate against ONE synthetic covariate, while a
+		# `(model_formula=~.)`/`[design_formula=~.]` per-row test adjusts for the
+		# real dataset's FULL covariate matrix -- two different fitted models for
+		# a non-collapsible coefficient, not two draws of the same one (confirmed
+		# 2026-09-22 on InferenceSurvivalKKStratCoxPHOneLik: coverage 0.91 at
+		# beta_T=0, 0.30 at beta_T=0.5, uniformly across every CI method -- the
+		# signature of a wrong reference value). An explicit `~1` suffix is the
+		# ONLY case with no real adjustment set (matches the old synthetic-x1
+		# behavior, which never used the formula anyway); everything else,
+		# including a bare label with no suffix (a fixed-formula class, always
+		# fit as `~.` per run_tests_for_response()'s own default), adjusts for
+		# the real covariates and must be matched here.
+		use_real_covariates = coverage_truth_uses_real_covariates(inference_class)
+		key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint)
+		if (exists(key, envir = .coverage_truth_cache, inherits = FALSE)) {
+			return(get(key, envir = .coverage_truth_cache, inherits = FALSE))
+		}
+		# Only cache a genuinely-finite, plausible MC-fitted truth. A failed or
+		# degenerate MC attempt (e.g. an empty result set, or an implausible
+		# one-shot fit) must NOT be cached -- otherwise a bad value gets
+		# permanently mistaken for the "least false" truth for the rest of the
+		# run. Found 2026-09-22 (comprehensive_results CSV audit): a single
+		# mc_n-sized fit of InferencePropQuantileRegr/InferencePropKKQuantileRegrOneLik
+		# on the diamonds/abalone datasets occasionally lands in a degenerate
+		# quantile-regression optimum, producing a truth of ~36 (vs. <2.5 across
+		# every other proportion/incidence MC_SPEC class on the same datasets --
+		# a treatment-effect truth of 36 on a response bounded in [0, 1] is not
+		# physically plausible). Since that one bad-but-finite draw got cached,
+		# every comprehensive_tests row recorded against it that run inherited
+		# the wrong truth (the ~8-10% "biased_estimate"/degenerate-looking rows
+		# were this, not an estimator bug -- the actual per-replicate estimates
+		# were ordinary). Retry a small, bounded number of times with a fresh MC
+		# draw (each attempt has its own seed, below, so a retry is a genuinely
+		# different fit, not a repeat) before giving up and returning NA
+		# (matching the existing "don't cache a bad value" contract) rather than
+		# silently caching an implausible truth. Bound is response-type-specific
+		# (proportion/incidence responses are in [0, 1], so a treatment-effect
+		# truth this large is definitionally broken) and deliberately generous
+		# relative to every other MC_SPEC class's observed range on these two
+		# response types (<2.5) -- scoped narrowly to the confirmed failure mode,
+		# not a universal bound, since survival/continuous MC_SPEC classes may
+		# have legitimately larger natural truth scales that were not audited
+		# here.
+		mc_truth_is_plausible = function(truth, rt){
+			if (!(rt %in% c("proportion", "incidence"))) return(TRUE)
+			is.finite(truth) && abs(truth) <= 5
+		}
+		max_mc_attempts = 5L
+		truth = NA_real_
+		# The truth is simulated under its own seed (from the cache key, plus
+		# the attempt number so a retry is a different fit), and the main
+		# random stream is restored afterwards. Drawing from the main stream
+		# made every later draw depend on whether, and when, this cache was
+		# filled, so a killed-and-resumed run (including a fork=FALSE
+		# watchdog restart) diverged from an uninterrupted one. Adopted
+		# 2026-10-16; this changed every draw relative to earlier baselines.
+		had_main_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+		if (had_main_seed) main_seed = get(".Random.seed", envir = .GlobalEnv)
+		on.exit({
+			if (had_main_seed) {
+				assign(".Random.seed", main_seed, envir = .GlobalEnv)
+			} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+				rm(".Random.seed", envir = .GlobalEnv)
+			}
+		}, add = TRUE)
+		for (attempt in seq_len(max_mc_attempts)) {
+			set.seed((coverage_truth_seed(key) + attempt) %% .Machine$integer.max)
+			truth = tryCatch(
+				compute_mc_coverage_truth_simframe(
+					eval(spec$gen), eval(spec$design), spec$rt, dataset_name, beta_T_val, spec$mc_n,
+					real_X = if (use_real_covariates) datasets_and_response_models[[dataset_name]]$X else NULL
+				),
+				error = function(e) NA_real_
+			)
+			if (length(truth) && is.finite(truth) && mc_truth_is_plausible(truth, spec$rt)) break
+			truth = NA_real_
+		}
+		if (!length(truth) || !is.finite(truth)) {
+			return(NA_real_)
+		}
+		assign(key, truth, envir = .coverage_truth_cache)
+		return(truth)
+	}
+	beta_T_val
+}
+
+.screen_estimate_theta_cache = new.env(parent = emptyenv())
+
+estimate_logging_theta_base_class = function(inference_class){
+	sub(" [\\(\\[].*$", "", inference_class)
+}
+
+screen_estimate_theta_key = function(base_class, dataset_name, beta_T_val, response_type_hint){
+	paste(
+		as.character(base_class),
+		as.character(dataset_name),
+		serialize_beta_T(beta_T_val),
+		as.character(response_type_hint),
+		sep = "||"
+	)
+}
+
+cache_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val, response_type_hint, theta){
+	theta = suppressWarnings(as.numeric(theta))
+	if (!length(theta) || !is.finite(theta)) return(invisible(FALSE))
+	assign(
+		screen_estimate_theta_key(
+			estimate_logging_theta_base_class(inference_class),
+			dataset_name,
+			beta_T_val,
+			response_type_hint
+		),
+		theta,
+		envir = .screen_estimate_theta_cache
+	)
+	invisible(TRUE)
+}
+
+seed_estimate_theta_cache_from_existing_results = function(){
+	required_cols = c("inference_class", "dataset", "beta_T", "response_type", "coverage_truth")
+	if (!nrow(existing_results_dt) || !all(required_cols %in% names(existing_results_dt))) {
+		return(invisible(NULL))
+	}
+	theta_rows = unique(existing_results_dt[
+		!is.na(coverage_truth),
+		.(inference_class, dataset, beta_T, response_type, coverage_truth)
+	])
+	if (!nrow(theta_rows)) return(invisible(NULL))
+	for (i in seq_len(nrow(theta_rows))) {
+		cache_estimate_logging_theta(
+			theta_rows$inference_class[i],
+			theta_rows$dataset[i],
+			theta_rows$beta_T[i],
+			theta_rows$response_type[i],
+			theta_rows$coverage_truth[i]
+		)
+	}
+	invisible(NULL)
+}
+
+infer_closed_form_response_type = function(closed_form_key){
+	if (grepl("__", closed_form_key, fixed = TRUE)) {
+		return(sub("^.*__", "", closed_form_key))
+	}
+	if (grepl("^InferenceIncid", closed_form_key)) return("incidence")
+	if (grepl("^InferenceProp", closed_form_key)) return("proportion")
+	if (grepl("^InferenceSurvival", closed_form_key)) return("survival")
+	NA_character_
+}
+
+precompute_screen_estimate_theta_cache = function(){
+	beta_vals = beta_T_values
+	if (!is.na(BETA_T_FILTER)) {
+		beta_vals = beta_vals[as.numeric(beta_vals) == BETA_T_FILTER]
+	}
+	if (!length(beta_vals)) return(invisible(NULL))
+	for (closed_form_key in names(COVERAGE_CLOSED_FORM)) {
+		base_class = sub("__.*$", "", closed_form_key)
+		response_type_hint = infer_closed_form_response_type(closed_form_key)
+		if (is.na(response_type_hint)) next
+		closed_form_fn = COVERAGE_CLOSED_FORM[[closed_form_key]]
+		for (dataset_name_curr in names(datasets_and_response_models)) {
+			if (!is.na(DATASET_FILTER) && !identical(dataset_name_curr, DATASET_FILTER)) next
+			if (!(response_type_hint %in% names(datasets_and_response_models[[dataset_name_curr]]$y_original))) next
+			for (beta_T_val in beta_vals) {
+				theta = tryCatch(closed_form_fn(dataset_name_curr, beta_T_val), error = function(e) NA_real_)
+				if (length(theta) && is.finite(theta)) {
+					assign(
+						screen_estimate_theta_key(base_class, dataset_name_curr, beta_T_val, response_type_hint),
+						theta,
+						envir = .screen_estimate_theta_cache
+					)
+				}
+			}
+		}
+	}
+	invisible(NULL)
+}
+
+get_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val, response_type_hint){
+	base_class = estimate_logging_theta_base_class(inference_class)
+	if (base_class %in% COVERAGE_TRUTH_UNAVAILABLE) return(NA_real_)
+	screen_key = screen_estimate_theta_key(base_class, dataset_name, beta_T_val, response_type_hint)
+	if (exists(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE)) {
+		return(get(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE))
+	}
+	coverage_key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, coverage_truth_uses_real_covariates(inference_class), response_type_hint)
+	if (exists(coverage_key, envir = .coverage_truth_cache, inherits = FALSE)) {
+		return(get(coverage_key, envir = .coverage_truth_cache, inherits = FALSE))
+	}
+	if (!is.null(get_coverage_mc_spec(base_class, response_type_hint))) {
+		return(NA_real_)
+	}
+	beta_T_val
+}
+
+run_tests_for_response = function(response_type, design_type, dataset_name, model_formula = NULL){
+	.comprehensive_current_model_formula <<- model_formula
+	on.exit({
+		if (exists(".comprehensive_current_model_formula", envir = .GlobalEnv, inherits = FALSE)) {
+			rm(".comprehensive_current_model_formula", envir = .GlobalEnv)
+		}
+	}, add = TRUE)
+
+	D = datasets_and_response_models[[dataset_name]]
+	n_X = nrow(D$X)
+	p_X = ncol(D$X)
+	X_design = as.data.frame(D$X)
+	if (identical(design_type, "KK21stepwise") && ncol(X_design) > 20L){
+		message(
+			"    Truncating KK21stepwise test covariates from ",
+			ncol(X_design),
+			" to 20 to keep stepwise-weight tests bounded in runtime."
+		)
+		X_design = X_design[, seq_len(20L), drop = FALSE]
+	}
+
+	if (nrow(X_design) %% 4L != 0L){
+		n_keep = nrow(X_design) - (nrow(X_design) %% 4L)
+		message(
+			"    Truncating test rows from ",
+			nrow(X_design),
+			" to ",
+			n_keep,
+			" so the design matrix row count is divisible by 4."
+		)
+		X_design = X_design[seq_len(n_keep), , drop = FALSE]
+	}
+
+	n = nrow(X_design)
+	dataset_n_rows = nrow(X_design)
+	dataset_n_cols = ncol(X_design)
+	dead = rep(1, n)
+	y = D$y_original[[response_type]]
+	t_f = quantile(y, .95)
+
+	if (response_type == "survival"){
+		for (i in 1 : n){
+			if (runif(1) < prob_censoring || y[i] >= t_f){
+				y[i] = runif(1, 0, y[i])
+				dead[i] = 0
+			}
+		}
+	}
+
+	cluster_design_setup = NULL
+	if (identical(design_type, "FixedCluster")) {
+		cluster_design_setup = add_assignment_only_cluster_id(X_design)
+	} else if (identical(design_type, "FixedBlockedCluster")) {
+		cluster_design_setup = add_assignment_only_cluster_id(X_design, strata_cols = names(X_design)[2:min(2, ncol(X_design))])
+	}
+	X_design_for_design = if (is.null(cluster_design_setup)) X_design else cluster_design_setup$X
+
+	# For sequential designs that use stratification, we MUST discretize continuous strata
+	# because the DesignSeqOneByOne base class explicitly disallows numeric strata.
+	X_design_sequential_strata = X_design
+	strata_cols_to_use = names(X_design)[1:min(2, ncol(X_design))]
+	if (design_type %in% c("SPBR", "PocockSimon", "RandomBlockSize")) {
+		for (col in strata_cols_to_use) {
+			if (is.numeric(X_design_sequential_strata[[col]])) {
+				med = stats::median(X_design_sequential_strata[[col]], na.rm = TRUE)
+				val_vec = ifelse(X_design_sequential_strata[[col]] <= med, "low", "high")
+				if (length(unique(val_vec)) < 2) {
+					val_vec = ifelse(X_design_sequential_strata[[col]] < max(X_design_sequential_strata[[col]], na.rm = TRUE), "low", "high")
+				}
+				X_design_sequential_strata[[col]] = factor(val_vec)
+			}
+		}
+	}
+
+	design_formula = if (is.null(model_formula)) ~ . else model_formula
+
+	des_obj = tryCatch(switch(design_type,
+		KK21 =         DesignSeqOneByOneKK21$new(        response_type = response_type, n = n, design_formula = design_formula),
+		KK21stepwise = DesignSeqOneByOneKK21stepwise$new(response_type = response_type, n = n, design_formula = design_formula),
+		KK14 =         DesignSeqOneByOneKK14$new(        response_type = response_type, n = n, design_formula = design_formula),
+		Bernoulli =    DesignSeqOneByOneBernoulli$new(   response_type = response_type, n = n, design_formula = design_formula),
+		Efron =        DesignSeqOneByOneEfron$new(       response_type = response_type, n = n, design_formula = design_formula),
+		Atkinson =     DesignSeqOneByOneAtkinson$new(    response_type = response_type, n = n, design_formula = design_formula),
+		iBCRD =        DesignSeqOneByOneiBCRD$new(       response_type = response_type, n = n, design_formula = design_formula),
+		Urn =          DesignSeqOneByOneUrn$new(         response_type = response_type, n = n, design_formula = design_formula),
+		RandomBlockSize = DesignSeqOneByOneRandomBlockSize$new( strata_cols = strata_cols_to_use, response_type = response_type, n = n, design_formula = design_formula),
+		SPBR =         DesignSeqOneByOneSPBR$new(        strata_cols = strata_cols_to_use, block_size = 4, response_type = response_type, n = n, design_formula = design_formula),
+		PocockSimon =  DesignSeqOneByOnePocockSimon$new( strata_cols = strata_cols_to_use, response_type = response_type, n = n, design_formula = design_formula),
+		FixedBernoulli = DesignFixedBernoulli$new( response_type = response_type, n = n, design_formula = design_formula),
+		FixediBCRD =     DesignFixediBCRD$new(     response_type = response_type, n = n, design_formula = design_formula),
+		FixedBlocking =  DesignFixedBlocking$new(  strata_cols = strata_cols_to_use, response_type = response_type, n = n, design_formula = design_formula),
+		FixedCluster =   DesignFixedCluster$new(   cluster_col = cluster_design_setup$cluster_col, response_type = response_type, n = n, design_formula = design_formula),
+		FixedBlockedCluster = DesignFixedBlockedCluster$new( strata_cols = names(X_design)[2:min(2, ncol(X_design))], cluster_col = cluster_design_setup$cluster_col, response_type = response_type, n = n, design_formula = design_formula),
+		FixedBinaryMatch = DesignFixedBinaryMatch$new( response_type = response_type, n = n, design_formula = design_formula),
+		FixedGreedy =    DesignFixedGreedy$new(    response_type = response_type, n = n, design_formula = design_formula),
+		FixedRerandomization = DesignFixedRerandomization$new( response_type = response_type, n = n, design_formula = design_formula),
+		FixedMatchingGreedy = DesignFixedMatchingGreedyPairSwitching$new( response_type = response_type, n = n, design_formula = design_formula),
+		FixedGreedyDOptimalD =  DesignFixedGreedyDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula),
+		FixedGreedyDOptimalA =  DesignFixedGreedyDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula, objective = "A", interest = "all"),
+		stop("Unsupported design_type: ", design_type)
+	), error = function(e){ message("    Skipping design (creation error): ", e$message); NULL })
+	if (is.null(des_obj)) return(invisible(NULL))
+
+	add_response_for_subject = function(t, y_t, dead_t){
+		if (response_type == "survival"){
+			if (dead_t == 0){
+				des_obj$add_one_subject_response(t, y_L = max(y_t, .Machine$double.eps), y_R = Inf)
+			} else {
+				des_obj$add_one_subject_response(t, y = y_t)
+			}
+		} else {
+			des_obj$add_one_subject_response(t, y = y_t)
+		}
+	}
+
+	if (inherits(des_obj, "DesignSeqOneByOne")){
+		seq_ok = tryCatch({
+			for (t in 1 : n){
+				w_t = des_obj$add_one_subject_to_experiment_and_assign(X_design_sequential_strata[t, , drop = FALSE])
+				y_t = apply_treatment_effect_and_noise(y[t], w_t, response_type)
+				add_response_for_subject(t, y_t, dead[t])
+			}
+			TRUE
+		}, error = function(e){ message("    Skipping design (seq error): ", e$message); FALSE })
+		if (!seq_ok) return(invisible(NULL))
+	} else {
+		# It is a DesignFixed but not a DesignSeqOneByOne
+		setup_fixed_design = function(d){
+			tryCatch({
+				d$add_all_subjects_to_experiment(X_design_for_design)
+				d$assign_w_to_all_subjects()
+				NULL
+			}, error = function(e) e)
+		}
+		setup_err = setup_fixed_design(des_obj)
+		# FixedBlocking defaults to equal_block_sizes = TRUE, which real-data covariate strata
+		# rarely satisfy; only when that fails, fall back to equal_block_sizes = FALSE.
+		if (!is.null(setup_err) && identical(design_type, "FixedBlocking") &&
+				grepl("equal_block_sizes = TRUE", conditionMessage(setup_err), fixed = TRUE)) {
+			message("    ", conditionMessage(setup_err), " Retrying FixedBlocking with equal_block_sizes = FALSE.")
+			des_obj = DesignFixedBlocking$new(strata_cols = strata_cols_to_use, equal_block_sizes = FALSE, response_type = response_type, n = n, design_formula = design_formula)
+			setup_err = setup_fixed_design(des_obj)
+		}
+		if (!is.null(setup_err)) {
+			message("    Skipping design: ", conditionMessage(setup_err))
+			return(invisible(NULL))
+		}
+		w = des_obj$get_w()
+		for (t in 1 : n){
+			y_t = apply_treatment_effect_and_noise(y[t], w[t], response_type)
+			add_response_for_subject(t, y_t, dead[t])
+		}
+	}
+
+	is_kk_design = design_type %in% c("KK21", "KK21stepwise", "KK14", "FixedBinaryMatch")
+	if (response_type == "continuous"){
+		inference_banner("InferenceAllSimpleAverageDiff")
+		run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleMeanDiffPooledVar")
+		run_inference_checks(InferenceAllSimpleMeanDiffPooledVar$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleWilcox")
+		run_inference_checks(InferenceAllSimpleWilcox$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		if (is_kk_design){
+			run_inference_checks_both_paths(InferenceContinKKRobustRegrOneLik, "InferenceContinKKRobustRegrOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceContinKKOLSOneLik, "InferenceContinKKOLSOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceContinKKGLMM, "InferenceContinKKGLMM", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceContinKKQuantileRegrOneLik, "InferenceContinKKQuantileRegrOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		} else {
+			run_inference_checks_both_paths(InferenceContinRobustRegr, "InferenceContinRobustRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceContinQuantileRegr, "InferenceContinQuantileRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceContinLin, "InferenceContinLin", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceContinOLS, "InferenceContinOLS", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		}
+	}
+
+	if (response_type == "incidence"){
+		supports_exact_fisher_design = design_supports_exact_fisher_incidence(des_obj)
+		supports_exact_binomial_design = design_has_realized_matched_pair(des_obj)
+
+			inference_banner("InferenceAllSimpleAverageDiff")
+			run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+			if (supports_exact_fisher_design) {
+				inference_banner("InferenceIncidExactFisher")
+				run_inference_checks(InferenceIncidExactFisher$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+			} else {
+				record_existing_error_keys_as_skipped(
+					current_inference_result_label("InferenceIncidExactFisher"),
+					n_X,
+					p_X,
+					"Skipping InferenceIncidExactFisher: design is not Fisher-exact compatible."
+				)
+			}
+				if (supports_exact_binomial_design) {
+					inference_banner("InferenceIncidExactBinomial")
+					run_inference_checks(InferenceIncidExactBinomial$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+				} else if (design_supports_exact_binomial_incidence(des_obj)) {
+					message("  Skipping InferenceIncidExactBinomial: design has no realized matched pairs.")
+					record_existing_error_keys_as_skipped(
+						current_inference_result_label("InferenceIncidExactBinomial"),
+						n_X,
+						p_X,
+						"Skipping InferenceIncidExactBinomial: design has no realized matched pairs."
+					)
+				}
+			if (design_supports_zhang_incidence(des_obj)) {
+				inference_banner("InferenceIncidExactZhang")
+				err_msg_ez = tryCatch({
+					run_inference_checks(InferenceIncidExactZhang$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+					NULL
+				}, error = function(e) if (length(e$message) == 0L) "" else e$message)
+				if (!is.null(err_msg_ez)) message("  Skipping InferenceIncidExactZhang: ", err_msg_ez)
+			} else {
+				message("  Skipping InferenceIncidExactZhang: design is not Zhang-compatible.")
+			}
+		inference_banner("InferenceIncidWald")
+		run_inference_checks(InferenceIncidWald$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		if (is_kk_design){
+			run_inference_checks_both_paths(InferenceIncidKKCondLogitOneLik, "InferenceIncidKKCondLogitOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidKKCondLogitGLMMOneLik, "InferenceIncidKKCondLogitGLMMOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidKKGEE, "InferenceIncidKKGEE", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			inference_banner("InferenceIncidKKNewcombeRiskDiff")
+			run_inference_checks(InferenceIncidKKNewcombeRiskDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+			run_inference_checks_both_paths(InferenceIncidKKGCompRiskDiff, "InferenceIncidKKGCompRiskDiff", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidKKGCompRiskRatio, "InferenceIncidKKGCompRiskRatio", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidKKModifiedPoisson, "InferenceIncidKKModifiedPoisson", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidKKCondLogitGLMMOneLik, "InferenceIncidKKCondLogitGLMMOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		}
+		run_inference_checks_both_paths(InferenceIncidLogRegr, "InferenceIncidLogRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		if (!is_kk_design){
+			run_inference_checks_both_paths(InferenceIncidProbitRegr, "InferenceIncidProbitRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			inference_banner("InferenceIncidMiettinenNurminenRiskDiff")
+			run_inference_checks(InferenceIncidMiettinenNurminenRiskDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+			inference_banner("InferenceIncidNewcombeRiskDiff")
+			run_inference_checks(InferenceIncidNewcombeRiskDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+			run_inference_checks_both_paths(InferenceIncidRiskDiff, "InferenceIncidRiskDiff", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidGCompRiskDiff, "InferenceIncidGCompRiskDiff", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidGCompRiskRatio, "InferenceIncidGCompRiskRatio", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidModifiedPoisson, "InferenceIncidModifiedPoisson", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidLogBinomial, "InferenceIncidLogBinomial", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceIncidBinomialIdentityRiskDiff, "InferenceIncidBinomialIdentityRiskDiff", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		}
+	}
+
+	if (response_type == "proportion"){
+		inference_banner("InferenceAllSimpleAverageDiff")
+		run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleWilcox")
+		run_inference_checks(InferenceAllSimpleWilcox$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		if (is_kk_design){
+			run_inference_checks_both_paths(InferencePropKKGEE, "InferencePropKKGEE", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferencePropKKGLMM, "InferencePropKKGLMM", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferencePropKKQuantileRegrOneLik, "InferencePropKKQuantileRegrOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		}
+		run_inference_checks_both_paths(InferencePropBetaRegr, "InferencePropBetaRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		if (!is_kk_design){
+			run_inference_checks_both_paths(InferencePropZeroOneInflatedBetaRegr, "InferencePropZeroOneInflatedBetaRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferencePropGCompMeanDiff, "InferencePropGCompMeanDiff", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferencePropFractionalLogit, "InferencePropFractionalLogit", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferencePropQuantileRegr, "InferencePropQuantileRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		}
+	}
+
+	if (response_type == "count"){
+		inference_banner("InferenceAllSimpleAverageDiff")
+		run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleWilcox")
+		run_inference_checks(InferenceAllSimpleWilcox$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		if (is_kk_design){
+			run_inference_checks_both_paths(InferenceCountPoissonKKGEE, "InferenceCountPoissonKKGEE", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountKKGLMM, "InferenceCountKKGLMM", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountKKHurdlePoissonOneLik, "InferenceCountKKHurdlePoissonOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountKKCondPoissonOneLik, "InferenceCountKKCondPoissonOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		}
+		if (!is_kk_design){
+			run_inference_checks_both_paths(InferenceCountPoisson, "InferenceCountPoisson", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountRobustPoisson, "InferenceCountRobustPoisson", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountQuasiPoisson, "InferenceCountQuasiPoisson", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountZeroInflatedPoisson, "InferenceCountZeroInflatedPoisson", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountZeroInflatedNegBin, "InferenceCountZeroInflatedNegBin", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountHurdlePoisson, "InferenceCountHurdlePoisson", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceCountHurdleNegBin, "InferenceCountHurdleNegBin", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		}
+		run_inference_checks_both_paths(InferenceCountNegBin, "InferenceCountNegBin", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+	}
+
+	if (response_type == "survival"){
+		if (is_kk_design){
+			is_censoring_skip_error = function(msg){
+				grepl("only available for uncensored", msg, fixed = TRUE) ||
+				grepl("does not currently support censored", msg, fixed = TRUE) ||
+				grepl("does not support censored", msg, fixed = TRUE)
+			}
+			for (kk_surv_class in Filter(function(class_gen) should_run_inference_label(class_gen$classname), list(
+				InferenceSurvivalKKWeibullMarginal,
+				InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik,
+				InferenceSurvivalKKLWACoxPHOneLik,
+				InferenceSurvivalKKStratCoxPHOneLik,
+				InferenceSurvivalGLMMWeibullFrailtyNormalOneLik
+			))){
+				class_name = kk_surv_class$classname
+				inference_banner(class_name)
+				err_msg = tryCatch({
+					run_inference_checks(kk_surv_class$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+					NULL
+				}, error = function(e) if (length(e$message) == 0L) "" else e$message)
+				if (!is.null(err_msg)){
+					if (grepl("only available for uncensored", err_msg, fixed = TRUE)) message("  Skipping ", class_name, " (censored data): ", err_msg)
+					else stop(err_msg)
+				}
+			}
+		}
+		message(
+			"  Skipping InferenceAllSimpleWilcox (censored survival data): ",
+			"Wilcoxon rank-sum inference does not support censored survival data. ",
+			"Use InferenceSurvivalGehanWilcox for censored survival outcomes."
+		)
+		inference_banner("InferenceSurvivalGehanWilcox")
+		run_inference_checks(InferenceSurvivalGehanWilcox$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceSurvivalLogRank")
+		run_inference_checks(InferenceSurvivalLogRank$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceSurvivalRestrictedMeanDiff")
+		run_inference_checks(InferenceSurvivalRestrictedMeanDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceSurvivalKMDiff")
+		run_inference_checks(InferenceSurvivalKMDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		run_inference_checks_both_paths(InferenceSurvivalWeibullRegr, "InferenceSurvivalWeibullRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		run_inference_checks_both_paths(InferenceSurvivalDepCensTransformRegr, "InferenceSurvivalDepCensTransformRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		run_inference_checks_both_paths(InferenceSurvivalCoxPHRegr, "InferenceSurvivalCoxPHRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+		run_inference_checks_both_paths(InferenceSurvivalStratCoxPHRegr, "InferenceSurvivalStratCoxPHRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+	}
+
+	if (response_type == "ordinal"){
+		inference_banner("InferenceAllSimpleAverageDiff")
+		run_inference_checks(InferenceAllSimpleAverageDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceAllSimpleWilcox")
+		run_inference_checks(InferenceAllSimpleWilcox$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		if (is_kk_design){
+			inference_banner("InferenceOrdinalKKGEE")
+			run_inference_checks(InferenceOrdinalKKGEE$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+			run_inference_checks_both_paths(InferenceOrdinalKKGLMM, "InferenceOrdinalKKGLMM", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceOrdinalKKCLMM, "InferenceOrdinalKKCLMM", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceOrdinalKKCLMMProbit, "InferenceOrdinalKKCLMMProbit", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceOrdinalKKCLMMCauchit, "InferenceOrdinalKKCLMMCauchit", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			run_inference_checks_both_paths(InferenceOrdinalKKCLMMCloglog, "InferenceOrdinalKKCLMMCloglog", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			inference_banner("InferenceOrdinalKKCondAdjCatLogitRegr")
+			run_inference_checks(InferenceOrdinalKKCondAdjCatLogitRegr$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+			inference_banner("InferenceOrdinalPairedSignTest")
+			run_inference_checks(InferenceOrdinalPairedSignTest$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		}
+		inference_banner("InferenceOrdinalAdjCatLogitRegr")
+		run_inference_checks(InferenceOrdinalAdjCatLogitRegr$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalOrderedProbitRegr")
+		run_inference_checks(InferenceOrdinalOrderedProbitRegr$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalStereotypeLogitRegr")
+		run_inference_checks(InferenceOrdinalStereotypeLogitRegr$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalPropOddsRegr")
+		run_inference_checks(InferenceOrdinalPropOddsRegr$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalPartialProportionalOddsRegr")
+		run_inference_checks(InferenceOrdinalPartialProportionalOddsRegr$new(des_obj, verbose = FALSE, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalCloglogRegr")
+		run_inference_checks(InferenceOrdinalCloglogRegr$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalGCompMeanDiff")
+		run_inference_checks(InferenceOrdinalGCompMeanDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalJonckheereTerpstraTest")
+		run_inference_checks(InferenceOrdinalJonckheereTerpstraTest$new(des_obj), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalCauchitRegr")
+		run_inference_checks(InferenceOrdinalCauchitRegr$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalContRatioRegr")
+		run_inference_checks(InferenceOrdinalContRatioRegr$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		inference_banner("InferenceOrdinalRidit")
+		run_inference_checks(InferenceOrdinalRidit$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+	}
+
+	run_exhaustive_remaining_inference_classes(des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+}
+
+precompute_screen_estimate_theta_cache()
+seed_estimate_theta_cache_from_existing_results()
+
+for (dataset_name in names(datasets_and_response_models)){
+	if (!is.na(DATASET_FILTER) && !identical(dataset_name, DATASET_FILTER)) {
+		next
+	}
+	pending_dataset_header <<- paste0("\n\n====== DATASET: ", dataset_name, " ======\n")
+	for (beta_T_iter_curr in seq_along(beta_T_values)){
+		beta_T = beta_T_values[beta_T_iter_curr]
+		if (!is.na(BETA_T_FILTER) && !identical(as.numeric(beta_T), BETA_T_FILTER)) {
+			next
+		}
+		pending_beta_header <<- paste0("  === beta_T = [", beta_T, "] ===")
+		for (rep_curr in 1:Nrep) {
+			if (!is.na(REP_FILTER) && !identical(as.integer(rep_curr), REP_FILTER)) {
+				next
+			}
+			pending_rep_header <<- paste0("    === rep ", rep_curr, " of ", Nrep, " ===")
+			for (response_type in ALL_RESPONSE_TYPES) {
+				if (!is.na(RESPONSE_TYPE_FILTER) && !identical(response_type, RESPONSE_TYPE_FILTER)) {
+					next
+				}
+				if (!(response_type %in% names(datasets_and_response_models[[dataset_name]]$y_original))) {
+					next
+				}
+				pending_response_header <<- paste0("      === response_type: ", response_type, " ===")
+
+				formulas_to_test = list(~ 1, ~ .) #univariate then multivariate, leave as vector so we can edit later
+
+				designs_to_test = if (is.na(DESIGN_TYPE_FILTER)) TESTED_DESIGNS else DESIGN_TYPE_FILTER
+				for (model_formula in formulas_to_test) {
+					for (design_type in designs_to_test) {
+						if (!is.na(DESIGN_TYPE_FILTER) && !identical(design_type, DESIGN_TYPE_FILTER)) {
+							next
+						}
+						pending_design_header <<- paste0("        === design: ", design_type, " ===")
+						tryCatch(
+							run_tests_for_response(response_type, design_type = design_type, dataset_name = dataset_name, model_formula = model_formula),
+							error = function(e){
+								message("  FATAL ERROR in run_tests_for_response(", response_type, ", ", design_type, ", ", dataset_name, "): ", e$message)
+								# Previously this message was the ONLY record of the failure -- nothing
+								# was ever written to results_dt/the results CSV, so every case this
+								# (response_type, design_type, dataset, formula) call would have covered
+								# silently disappeared with no error row, no skip_reason, nothing to grep
+								# for later. Write one explicit status="error" row instead, using the
+								# schema's own error_message column, so a whole-call crash is as visible
+								# in the CSV as a single compute_*() call's failure already is. Built by
+								# hand rather than via record_result()/build_result_key()/
+								# build_comprehensive_case_id(), deliberately: those rely on per-replicate
+								# globals (beta_T, rep_curr) that have no meaningful value here (the crash
+								# happened before any replicate ran), and an error handler that itself
+								# errors would propagate uncaught and abort the whole script.
+								run_row_id <<- run_row_id + 1L
+								results_dt <<- data.table::rbindlist(list(
+									results_dt,
+									data.table(
+										function_run = "run_tests_for_response",
+										rep = NA_integer_,
+										beta_T = NA_real_,
+										dataset = dataset_name,
+										response_type = response_type,
+										design = design_type,
+										inference_class = NA_character_,
+										id = paste("run_tests_for_response_error", response_type, design_type, dataset_name, format(Sys.time(), "%Y%m%d%H%M%OS3"), sep = "||"),
+										case_id = paste("comprehensive_tests_response_level_error", response_type, design_type, sep = "__"),
+										coverage_scope = "comprehensive_workflow",
+										runner = "comprehensive_tests",
+										github_commit_id = GITHUB_COMMIT_ID,
+										method_family = NA_character_,
+										argument_coverage_kind = "not_argument_combination",
+										skip_reason = NA_character_,
+										timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z"),
+										duration_time_sec = NA_real_,
+										duration_time_sec_raw = NA_real_,
+										duration_time_sec_sleep_adjusted = NA_real_,
+										duration_sleep_adjustment_sec = NA_real_,
+										start_epoch = NA_real_,
+										end_epoch = round_duration_field(as.numeric(Sys.time())),
+										heartbeat_log = HEARTBEAT_LOG_FILE,
+										result_1 = NA_character_,
+										result_2 = NA_character_,
+										coverage_truth = NA_real_,
+										beta_T_in_confidence_interval = NA,
+										error_message = as.character(e$message),
+										run_row_id = run_row_id,
+										r = as.integer(r),
+										pval_epsilon = pval_epsilon,
+										prob_censoring = prob_censoring,
+										sd_noise = SD_NOISE,
+										num_cores = as.integer(NUM_CORES),
+										dataset_n_rows = NA_integer_,
+										dataset_n_cols = NA_integer_,
+										result = NA_character_,
+										status = "error"
+									)
+								), use.names = TRUE)
+							}
+						)
+						# Bound crash/interrupt loss to at most one design_type iteration's worth of buffered rows.
+						write_results_if_needed(force = TRUE)
+					}
+				}
+			}
+		}
+	}
+}
+message("\n\n----------------------All tests complete!")
+write_results_if_needed(force = TRUE)
+
+unset_num_cores()
+rm(list=ls())

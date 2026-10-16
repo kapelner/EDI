@@ -1,7 +1,9 @@
 #include "_helper_functions.h"
+#include "fast_ordinal_regression_internal.h"
 #include <RcppEigen.h>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 
 using namespace Rcpp;
 using namespace Eigen;
@@ -1196,16 +1198,13 @@ static double multivariate_ordinal_tstat(
     const Eigen::VectorXd& y,
     int coef_idx = 1
 ) {
-    Function f("fast_ordinal_regression_with_var_cpp");
-    // Keep freshly allocated R objects rooted across the next allocation and
-    // the callback itself; inline wrap() arguments may otherwise be collected
-    // before Function::operator() shields them.
-    NumericMatrix Xs = wrap(X);
-    NumericVector ys = wrap(y);
-    List res = f(Xs, ys);
-    NumericVector b = res["b"];
-    double ssq = res["ssq_b_j"];
-    return std::fabs(b[coef_idx - 1] / std::sqrt(ssq));
+    const edi::ResultMap fit = fast_ordinal_regression_internal(X, y);
+    const Eigen::VectorXd* b = fit.get_if<Eigen::VectorXd>("b");
+    const double* ssq = fit.get_if<double>("ssq_b_j");
+    if (b == nullptr || ssq == nullptr || coef_idx < 1 || coef_idx > b->size()) {
+        throw std::runtime_error("ordinal fit result is missing the requested coefficient or variance");
+    }
+    return std::fabs((*b)[coef_idx - 1] / std::sqrt(*ssq));
 }
 
 // [[Rcpp::export]]

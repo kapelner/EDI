@@ -42,7 +42,7 @@ registry_fixture <- function() {
 		"compute_survival_mean_diff_coverage_truth",
 		"COVERAGE_CLOSED_FORM", "COVERAGE_MC_SPEC", "COVERAGE_TRUTH_UNAVAILABLE",
 		"coverage_truth_uses_real_covariates", "coverage_truth_cache_key",
-		"get_coverage_mc_spec", "get_coverage_truth", "estimate_logging_theta_base_class",
+		"coverage_truth_seed", "get_coverage_mc_spec", "get_coverage_truth", "estimate_logging_theta_base_class",
 		"screen_estimate_theta_key", "get_estimate_logging_theta"
 	), e)
 	e
@@ -87,4 +87,31 @@ test_that("unconverged matched-Cox truth is unavailable rather than raw beta_T",
 		expect_true(is.na(e$get_coverage_truth(label, "toy", 0.5, "survival")), info = class_name)
 		expect_true(is.na(e$get_estimate_logging_theta(label, "toy", 0.5, "survival")), info = class_name)
 	}
+})
+
+test_that("MC coverage truth uses a key-specific seed without advancing the caller RNG", {
+	withr::local_seed(731L)
+	e <- registry_fixture()
+	e$compute_mc_coverage_truth_simframe <- function(...) stats::runif(1L)
+
+	caller_seed <- .Random.seed
+	expected_next <- stats::runif(1L)
+	assign(".Random.seed", caller_seed, envir = .GlobalEnv)
+	value <- e$get_coverage_truth(
+		"InferenceOrdinalCauchitRegr [model_formula=~.]", "toy", 0.5, "ordinal"
+	)
+	expect_identical(get(".Random.seed", envir = .GlobalEnv), caller_seed)
+	expect_identical(stats::runif(1L), expected_next)
+
+	# The same cache key gets the same fit seed even when the caller arrives
+	# with a different main-stream state.
+	withr::local_seed(918L)
+	e2 <- registry_fixture()
+	e2$compute_mc_coverage_truth_simframe <- function(...) stats::runif(1L)
+	second_caller_seed <- .Random.seed
+	second_value <- e2$get_coverage_truth(
+		"InferenceOrdinalCauchitRegr [model_formula=~.]", "toy", 0.5, "ordinal"
+	)
+	expect_identical(get(".Random.seed", envir = .GlobalEnv), second_caller_seed)
+	expect_identical(second_value, value)
 })

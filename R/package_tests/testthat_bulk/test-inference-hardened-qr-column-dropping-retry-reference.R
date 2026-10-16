@@ -145,3 +145,89 @@ test_that("degenerate inputs: zero-column and vector designs, and out-of-range r
 	expect_true(2L %in% out$keep)
 	expect_true(all(out$keep <= ncol(X)))
 })
+
+# Evaluate only the checked-out helper definition, not the checkout package.
+# This keeps the regression executable without pkgload/load_all or a native build.
+checkout_hardened_fit_helper <- function(){
+	source_candidates = c(
+		file.path("R", "EDI", "R", "inference_all_abstract.R"),
+		file.path("..", "..", "EDI", "R", "inference_all_abstract.R")
+	)
+	source_file = source_candidates[file.exists(source_candidates)][1L]
+	if (is.na(source_file)) stop("Could not locate checkout inference source")
+	source_lines = readLines(source_file, warn = FALSE)
+	start_line = grep("^\\s*fit_with_hardened_qr_column_dropping\\s*=\\s*function\\s*\\(", source_lines)
+	if (!length(start_line)) stop("Could not locate checkout fit helper")
+	definition = NULL
+	partial = character()
+	for (line in source_lines[seq.int(start_line[1L], length(source_lines))]) {
+		partial = c(partial, line)
+		parsed = tryCatch(parse(text = partial), error = function(e) NULL)
+		if (length(parsed) == 1L) {
+			assignment = parsed[[1L]]
+			if (is.call(assignment) && identical(assignment[[1L]], as.name("=")) &&
+					identical(assignment[[2L]], as.name("fit_with_hardened_qr_column_dropping"))) {
+				definition = assignment[[3L]]
+				break
+			}
+		}
+	}
+	if (is.null(definition)) stop("Could not locate checkout fit helper")
+	eval_env = new.env(parent = baseenv())
+	eval_env$private = new.env(parent = emptyenv())
+	eval_env$private$harden = TRUE
+	eval_env$qr_calls = 0L
+	eval_env$qr = function(...) {
+		eval_env$qr_calls = eval_env$qr_calls + 1L
+		base::qr(...)
+	}
+	eval(definition, envir = eval_env)
+}
+
+test_that("a checked-out rank certificate avoids the duplicate helper QR", {
+	fit_helper = checkout_hardened_fit_helper()
+	X = design_matrix(collinear = FALSE)
+	priv = environment(fit_helper)$private
+	priv$bootstrap_qr_rank_certificate = list(mode = "unweighted", X = X)
+	priv$bootstrap_qr_positive_weights = FALSE
+	fit_count = 0L
+	out = fit_helper(
+		X,
+		function(X_fit, keep) { fit_count <<- fit_count + 1L; list(ok = TRUE) },
+		function(mod, X_fit, keep) isTRUE(mod$ok),
+		required_cols = 1:2
+	)
+	expect_equal(fit_count, 1L)
+	expect_equal(environment(fit_helper)$qr_calls, 0L)
+	expect_equal(out$keep, seq_len(ncol(X)))
+})
+
+test_that("a failed certified fit retains the hardened rank-deficient fallback", {
+	fit_helper = checkout_hardened_fit_helper()
+	X = design_matrix(collinear = FALSE)
+	priv = environment(fit_helper)$private
+	priv$bootstrap_qr_rank_certificate = list(mode = "unweighted", X = X)
+	priv$bootstrap_qr_positive_weights = FALSE
+	fit_count = 0L
+	out = fit_helper(
+		X,
+		function(X_fit, keep) { fit_count <<- fit_count + 1L; list(ok = fit_count > 1L) },
+		function(mod, X_fit, keep) isTRUE(mod$ok),
+		required_cols = 1:2
+	)
+	expect_equal(fit_count, 2L)
+	expect_equal(environment(fit_helper)$qr_calls, 1L)
+	expect_equal(out$keep, seq_len(ncol(X)))
+
+	X_deficient = design_matrix(collinear = TRUE)
+	# A stale certificate from another matrix must not suppress this QR/fallback.
+	priv$bootstrap_qr_rank_certificate = list(mode = "unweighted", X = X)
+	out_deficient = fit_helper(
+		X_deficient,
+		function(X_fit, keep) list(ok = TRUE),
+		function(mod, X_fit, keep) isTRUE(mod$ok),
+		required_cols = 1:2
+	)
+	expect_lt(length(out_deficient$keep), ncol(X_deficient))
+	expect_true(environment(fit_helper)$qr_calls >= 2L)
+})

@@ -69,3 +69,50 @@ test_that("working-weight and Fisher-information starts have the same boundary c
 		expect_error(fun(), "warm_start_fisher_info must have dimensions")
 	}
 })
+
+test_that("remaining exported kernels reject malformed Fisher-information dimensions", {
+	y_ordinal <- as.integer(cut(seq_len(n), breaks = 3L, labels = FALSE))
+	group_id <- rep(seq_len(n / 3L), each = 3L)
+	bad_fisher <- diag(1, 1L)
+	y_exact <- seq_len(n) / 10 + 1
+	y_lower <- rep(NA_real_, n)
+	y_upper <- rep(NA_real_, n)
+	pair_idx <- matrix(integer(), nrow = 0L, ncol = 2L)
+	singleton_rows <- seq_len(n) - 1L
+
+	bad_calls <- list(
+		function() fast_ordinal_cauchit_regression_cpp(X, y_ordinal, warm_start_fisher_info = bad_fisher),
+		function() fast_stereotype_logit_cpp(X, y_ordinal, warm_start_fisher_info = bad_fisher),
+		function() fast_continuation_ratio_regression_cpp(X, y_ordinal, warm_start_fisher_info = bad_fisher),
+		function() fast_adjacent_category_logit_cpp(X, y_ordinal, warm_start_fisher_info = bad_fisher),
+		function() fast_weibull_regression_cpp(X, y_time, y_dead, warm_start_fisher_info = bad_fisher),
+		function() fast_weibull_regression_general_cpp(
+			X, y_exact, y_lower, y_upper, warm_start_fisher_info = bad_fisher
+		),
+		function() fast_ordinal_probit_regression_cpp(X, y_ordinal, warm_start_fisher_info = bad_fisher),
+		function() fast_ordinal_clmm_cpp(
+			X, y_ordinal, group_id, K = 3L, j_T = 1L,
+			warm_start_fisher_info = bad_fisher
+		),
+		function() fast_ordinal_regression_cpp(X, y_ordinal, warm_start_fisher_info = bad_fisher),
+		function() fast_zinb_cpp(X, X, y_count, warm_start_fisher_info = bad_fisher),
+		function() fast_clogit_plus_glmm_cpp(
+			X, y_binary, X, y_binary, group_id,
+			has_discordant = TRUE, has_concordant = TRUE,
+			warm_start_fisher_info = bad_fisher
+		),
+		function() fast_clayton_weibull_aft_optim_cpp(
+			X, y_time, y_dead, pair_idx, singleton_rows,
+			warm_start_params = numeric(ncol(X) + 2L),
+			warm_start_fisher_info = bad_fisher
+		),
+		function() fast_dep_cens_transform_optim_cpp(
+			X, y_time, y_dead, warm_start_fisher_info = bad_fisher
+		),
+		function() fast_neg_bin_cpp(X, y_count, warm_start_fisher_info = bad_fisher)
+	)
+
+	for (call in bad_calls) {
+		expect_error(call(), "warm_start_fisher_info must have dimensions")
+	}
+})

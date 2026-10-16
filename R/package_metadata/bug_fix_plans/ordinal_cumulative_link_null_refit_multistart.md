@@ -229,16 +229,24 @@ its weighted hook is an ordinary ordinal-logistic surrogate rather than a
 weighted refit of the pair-stratified conditional adjacent-category
 estimator, so its old bootstrap distribution targeted the wrong estimator.
 
-Installed-package comprehensive CSV regeneration remains the sole release
-validation item; it cannot be performed from the source-loaded checkout
-without the maintainer's separately authorized rebuild/install.
+For Bug 2, installed-package comprehensive CSV regeneration remains the
+release validation item; it cannot be performed from the source-loaded
+checkout without the maintainer's separately authorized rebuild/install.
+TODO-1's independent Bug 1 true-null checks remain a separate open item below.
 
-- [x] TODO-1: Verify Bug 1's fix (already applied) actually helps
+- [ ] TODO-1: Verify Bug 1's fix (already applied) actually helps
   `compute_lik_ratio_two_sided_pval()`, `compute_lik_ratio_bootstrap_two_sided_pval()`,
   and Bartlett-approx on `InferenceOrdinalCloglogRegr` — not yet checked
   independently of the `compute_param_bootstrap_pval` repro that turned out
   to be Bug 2. Use the same true-null-reject-rate style repro as the
   stereotype-logit fix.
+
+  **Status correction 2026-10-16:** the previous checked mark was unsupported.
+  No post-fix true-null rejection-rate evidence for these three methods is
+  recorded; the existing focused test covers null-fit multistart selection,
+  not Bartlett calibration. Keep open until the separate true-null check is
+  run and recorded. TODO-6's CSV regeneration remains scoped to its stated
+  `parametric_bootstrap` family.
 - [x] TODO-2 (2026-09-23, completed): Read all 6 originally-suspected
   classes' `generate_mod()`/`compute_estimate()` for the same
   `-attempt$fit$b[1]`-style negation Cloglog has, and cross-checked which

@@ -169,6 +169,32 @@ documented default change under the standing constraint.
   `fit_with_hardened_qr_column_dropping()` on failure or rank deficiency,
   move `tryCatch` to per-chunk. Implement once; close in both plans.
 
+  **Shared helper step, 2026-10-16 (TODO-57 TODO-7):**
+  `fit_with_hardened_qr_column_dropping()` now accepts an exact-matrix rank
+  certificate and first attempts the normal all-column fit without another
+  helper-level QR. The design-backed nonparametric worker passes the
+  certificate from its existing per-draw rank check, so rank-deficient draws
+  still take the historical rebuild-and-harden path. Bayesian-bootstrap
+  workers mark a draw eligible only when every weight is finite and strictly
+  positive; a previously established full-matrix certificate can then be
+  reused because positive row scaling preserves rank. A failed fit continues
+  through the existing hardened QR/drop-column fallback. The focused checkout
+  source regression tests both no-QR certified success and fallback behavior;
+  it evaluates only the helper definition and does not load the checkout
+  package. This is one shared implementation, not a second TODO-57 change.
+  Remaining acceptance: eliminate the nonparametric loader's own per-draw QR
+  without changing its bit-preserving deficient-draw rebuild, and validate
+  current-checkout/native performance and behavior. The shared reusable-worker
+  dispatcher also now uses one chunk-level `tryCatch` on the no-error path;
+  after a non-control draw error, it records that draw as `NA` and processes
+  the chunk suffix with the existing per-draw handler so later draws remain
+  isolated. Deadline/control conditions and errors outside the fit block still
+  propagate. A checkout-source regression verifies one guard for a clean
+  chunk, continued results after multiple failed draws, and control-condition
+  propagation. The source regression passed with the installed-package test
+  harness, but evaluates the checkout dispatcher separately; it is not a
+  native/current-package validation. This checkbox remains open.
+
 - [ ] TODO-5: **Fast-path hook + wire `compute_ols_bootstrap_parallel_cpp` (F5).**
   Add a `compute_fast_bootstrap_distr()` dispatch in the non-parametric
   bootstrap (mirroring `inference_all_abstract_rand.R:60`) and let
@@ -202,6 +228,42 @@ documented default change under the standing constraint.
   This direct-worker pilot is not the required public R6 procedure-table
   rerun, does not establish 1.0.2 distribution parity, and leaves TODO-6 and
   release TODO-58 open; do not use it to overwrite the canonical benchmark.
+
+  **Protocol clarification, 2026-10-16:** the ≥1x current-speed gate compares
+  the public R6 percentile-CI procedure call with the complete canonical
+  `boot::boot()` + `boot::boot.ci(type = "perc")` call on the controlled
+  fixtures, using interleaved timing samples. The EDI procedure timing excludes
+  fresh inference-object construction (which is measured separately); the
+  canonical timing includes both `boot()` and `boot.ci()`. The speed comparison
+  does not require EDI and `boot` to use identical bootstrap indices: their
+  resampling implementations differ, and resetting both to the same R seed
+  does not guarantee matched draws. Fixed-seed distribution parity is a
+  separate gate against EDI 1.0.2, not against `boot`.
+
+  Fixture RNG starts with `set.seed(seed_for_class(paste("Procedure", fx)))`
+  before `generate_data(n, p = 5, family)`, where `fx` is `continuous`,
+  `incidence`, or `survival`, giving seeds 22422, 19021, and 17961. The
+  procedure row then starts at
+  `seed_for_class(paste(spec$name, spec$pkg, spec$func))`; `seed_for_class(s)`
+  is `sum(utf8ToInt(s) * seq_along(utf8ToInt(s))) %% 2147483647`. For the
+  current rows (`pkg = "boot"`) the full row strings and seeds are:
+  - `Nonparametric bootstrap CI: OLS (B = 1000) [R6 InferenceContinOLS] boot boot(lm.fit)+boot.ci(perc)` → 414230.
+  - `Nonparametric bootstrap CI: logistic regression (B = 500) [R6 InferenceIncidLogRegr] boot boot(glm.fit)+boot.ci(perc)` → 609739.
+  - `Nonparametric bootstrap CI: Cox PH (B = 500, n = 500) [R6 InferenceSurvivalCoxPHRegr] boot boot(coxph.fit)+boot.ci(perc)` → 628354.
+
+  **Public-path high-load reduced-B pilot, 2026-10-16 (diagnostic only):**
+  installed EDI 1.0.3 (`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`,
+  DLL `libs/EDI.so`), R 4.7.0 x86_64, 12 detected cores; OMP/MKL/BLAS/OpenBLAS
+  were configured for one thread. At host load averages 7.79/7.89/8.96, two
+  alternating public R6-vs-full-`boot` pairs gave OLS (B=100) 398/236 ms vs
+  258/25 ms, logistic (B=50) 171/154 ms vs 145/132 ms, and Cox (B=50) 157/132
+  ms vs 54/50 ms. This used the exact deterministic fixture seeds above, but
+  a simplified row seed rather than the full row seeds listed above; the small
+  sample and high load also make these times unsuitable for acceptance. Results
+  are isolated at `/tmp/edi-todo58-public-paired-pilot-20261016.csv`; the run
+  did not establish 1.0.2 distribution parity. Do not promote these values or
+  edit the canonical report from this pilot. Run the full 10-sample, original-B
+  public-procedure comparison only in a quiet window.
 
 ## Out of scope
 

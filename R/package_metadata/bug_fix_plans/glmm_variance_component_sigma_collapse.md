@@ -153,6 +153,110 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   and 41008 and checking 40-node marginal NLL against the glmer-informed
   reference. No source change or rebuild was made; this option is not yet
   validated across unaffected fits.
+  **Focused logistic cold-start recheck 2026-10-16 (installed EDI 1.0.3; no
+  build/install):** the existing `test-logistic-glmm-fit-glmer-agreement-and-
+  cold-start-variance-collapse-reference.R` passed all 13 assertions. Its
+  seed-4 default cold-start fit had `log_sigma = -0.1748084` versus the
+  25-node `glmer` reference `-0.1747772`, 40-node NLL gap `1.33e-8`, reported
+  gradient norm `7.61e-4`, and maximum absolute score component `6.99e-4`;
+  `converged = TRUE`. This is a reproducible non-boundary post-fix agreement
+  fixture, not a reproduction of the old collapsed basin or a replacement for
+  TODO-1's multi-seed rate characterization.
+  **Historical/source discriminator 2026-10-16:** commit `e706c6f6`
+  (`more bug fixes in v1.0.5`, 2026-10-09) changed the logistic GLMM cold
+  path from one L-BFGS optimization at the `smart_cold_start` beta vector
+  with `log_sigma = -3` to deterministic starts retaining that supplied
+  start and adding log-sigma values `-1`, `0`, `1`, and
+  `-kLogSigmaPenaltyCenter`; it selects the finite fit with minimum objective.
+  The pre-fix version of the existing seed-4 test is an exact discriminator:
+  at `G = 40`, `m = 5`, true sigma `0.9`, it asserted `log_sigma < -2.5`,
+  NLL gap `> 1` against the `glmer` parameters, and a non-finite or
+  non-positive covariance diagonal. The post-fix test now asserts the opposite
+  ML-basin agreement, and the installed post-fix seed-4 check above passes.
+  This deterministic fixture is suitable for comparing old and new binaries,
+  but no pre-fix binary was available to execute and no checkout-native build
+  was run; historical behavior is supported by the old pinned test and source
+  diff, not independently re-executed here.
+  **Count-family variance discriminator 2026-10-16 (TODO-50 follow-up; installed
+  EDI 1.0.3, no build/install):** reran the exact Poisson GLMM outlier fixtures
+  (`n=200`, five observations/group, true `sigma=0.9`, seeds 41003 and 41008)
+  with 40-node quadrature, comparing cold Newton/LBFGS starts with `glmer`-
+  informed and fixed-effects Poisson-GLM beta starts. The cold fits reproduced
+  the worse basins: seed 41003 NLL 312.877334 (`sigma=0.92225`) versus
+  312.749005 at the `glmer` start; seed 41008 NLL 380.160550
+  (`sigma=1.04495`) versus 379.147299. The NLL gaps are 0.128329 and 1.013251;
+  cold Newton and LBFGS agree to displayed precision on both seeds. The
+  `glmer`-informed fits were marked converged despite score norms 0.0475 and
+  0.0313, while cold Newton was also marked converged (norms below `8e-7` for
+  these two rows); thus a successful convergence flag or a small gradient
+  alone does not distinguish the preferred basin in these fixtures. GLM beta
+  starts reached the lower basin under LBFGS for both seeds, but Newton seed
+  41003 stopped at NLL 312.754654 with score norm 1.731, so that candidate is
+  not yet a validated optimizer-independent fix. This controlled installed
+  comparison isolates a repeatable Poisson-GLMM cold-start/local-optimum
+  failure mode; it does not establish a rate over the count family or reconcile
+  comprehensive operating-characteristic CSVs. Harness and raw rows are in
+  `/tmp/edi-todo50-count-variance-20261016/installed_check.R` and
+  `/tmp/edi-todo50-count-variance-20261016/installed_check.csv`; command:
+  `Rscript -e 'source("/tmp/edi-todo50-count-variance-20261016/installed_check.R")'`.
+  The harness checked EDI version and loaded-library mtime before and after the
+  run; both remained EDI 1.0.3 with `EDI.so` mtime `2026-10-16 01:54:58 +0300`.
+  **Remediation assessment (TODO-50, source-level only; 2026-10-16):** the
+  Poisson kernel already uses the same basic `log_sigma` multistart strategy
+  as the post-fix logistic kernel: retain the supplied/cold start and try
+  `log_sigma` values `-1`, `0`, `1`, and `-5`, optimizing each from the same
+  beta vector and selecting the finite fit with the lowest objective. Since
+  the two Poisson failures persist under both Newton and LBFGS despite that
+  grid, simply copying the binomial remedy would not address the observed
+  mechanism. The concrete remaining candidate is a second, data-derived beta
+  seed for *automatic smart cold starts*: obtain fixed-effect Poisson GLM beta
+  estimates (honoring row weights where present), cross that seed with the
+  existing sigma grid, and retain the current transformed-OLS beta seed as a
+  candidate. Keep an explicit caller-provided `warm_start_params` as the
+  existing primary seed, and do not add generated beta starts when
+  `smart_cold_start = FALSE`; if the GLM solve is rank-deficient or non-finite,
+  skip only that candidate and preserve today's finite fallback behavior.
+  The 2026-10-14/16 beta-start probe motivates but does not validate this
+  candidate: LBFGS reached the lower basin on both outliers, while Newton seed
+  41003 returned score norm 1.73. Before source work, the owner should decide
+  whether the generated beta seed is intended for both optimizer modes and
+  accept or reject the up-to-2x multistart cost.
+
+  **Proposed validation gate:** add the two exact regression fixtures above
+  (seeds 41003 and 41008; `n=200`, 40 groups of five, true `sigma=0.9`) to the
+  existing Poisson GLMM quadrature/glmer agreement test. For both `newton` and
+  `lbfgs`, require the selected 40-node marginal NLL to be no worse than the
+  `glmer`-informed reference within a documented quadrature tolerance, finite
+  parameters/covariance, and truthful optimizer diagnostics; assert that a
+  caller-provided start and fixed-parameter constraints retain their contract.
+  Also run unaffected seeds 41001:41010 and the existing small Poisson GLMM
+  reference fixture to check for regressions, including weighted/rank-deficient
+  inputs, and report per-fit runtime for cold starts versus the present path.
+  No source change, native rebuild, or canonical CSV regeneration has been
+  made; this is a candidate/design gate, not closure evidence.
+  **Internal-only fixed-seed comparison 2026-10-16 (installed EDI 1.0.3):**
+  the namespace's unexported `fast_poisson_glmm_cpp` wrapper accepts
+  `warm_start_params`, so it permits a direct controlled call without a
+  checkout build; the public exports do not include this wrapper. On three
+  fixed generator seeds (`41001`, `41003`, `41008`; each `n=200`, 40 groups of
+  five, true sigma 0.9), each algorithm compared the installed cold smart
+  start against fixed-effects Poisson-GLM beta plus `log_sigma=-3` and the
+  `glmer(nAGQ=25)` parameter start. For seed 41001, all three starts reached
+  NLL 359.83376 under both algorithms. For seed 41003, the cold NLL was
+  312.877334 under both algorithms; the GLM start gave 312.754654 under
+  Newton (score norm 1.731) and 312.748983 under LBFGS, versus the glmer-start
+  NLLs 312.749005 and 312.748983. For seed 41008, cold NLL was 380.160550 /
+  380.160551 (Newton/LBFGS); GLM starts reached 379.147299 under both, versus
+  glmer starts 379.147299 / 379.149076. Thus this tiny internal-only sample
+  reproduces two material cold-start failures and shows the GLM start recovers
+  the lower basin's NLL to within 0.0057 on the problematic Newton seed and to
+  displayed precision on the other three algorithm/seed pairs. It does not
+  validate convergence diagnostics (Newton seed 41003's score remains large),
+  establish an incidence rate, or replace public-API/test-seam coverage. The
+  18 fit rows and timings are in
+  `/tmp/edi-todo50-multiseed-20261016/internal_comparison.csv`, generated by
+  `/tmp/edi-todo50-multiseed-20261016/compare_internal_starts.R`; no package
+  version/library-mtime change was observed and no repo CSV was touched.
 - [x] **TODO-2: Decide the fix per kernel.** Candidates: a non-boundary
   default start (`log sigma = 0`, which the ordinal test shows recovers the
   ML solution); a short multistart over `{-1, 0, 1}` for the sigma
@@ -172,6 +276,62 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   for the same warm-start value, and record the answer here.
 - [ ] **TODO-6: Comprehensive-test regeneration** for the affected KK
   classes after the fix, per the standing pruning workflow.
+
+  **Read-only artifact audit 2026-10-16:** TODO-1 and TODO-6 remain open; no
+  gate can be closed from the available artifacts alone. The post-fix
+  10-seed logistic check is positive fixture evidence, not the required
+  four-kernel sigma-by-n rate characterization. The existing grid still has
+  two materially worse Poisson cold-start fits (seeds 41003 and 41008), so
+  TODO-1 needs either a validated start/reference policy with an optimizer-
+  and unaffected-fit regression check, or an explicit decision to split that
+  non-boundary local-optimum issue from the original boundary-collapse scope.
+  For TODO-6, the canonical count file
+  `R/package_tests/comprehensive_tests_results_nc_1_count.csv` has 14,206
+  `InferenceCountKKGLMM` text matches and mtime 2026-09-27; the canonical
+  ordinal file `R/package_tests/comprehensive_tests_results_nc_1_ordinal.csv`
+  has 69,121 `InferenceOrdinalKKCLMM` matches and mtime 2026-10-09. These
+  timestamps/counts do not establish which rows were recomputed with the
+  post-fix installed binary. The TODO-56 resume copy has the same observed
+  match counts and must not be treated as independent completion evidence
+  while that run is active. After TODO-56 releases the shared result files,
+  the remaining evidence is a provenance-stamped post-fix regeneration of
+  the affected CountKKGLMM and OrdinalKKCLMM rows using the standing stale-row
+  pruning workflow, followed by the comprehensive audit/reconciliation; do
+  not update the canonical baseline until that audit passes.
+
+  **Post-fix CI provenance check 2026-10-16:** GitHub Actions run
+  `38808821543` (`test-bulk-non-cran`) completed successfully at commit
+  `430c19bcdb0702d998c79f9058c449449034134c`, which descends from the sigma-
+  start fix commit `e706c6f67a6798eea666921155c259a751476feb`. Its successful
+  build and five correctness shards used the current-commit native package;
+  the run's `correctness-shard-plan` schedules these five regression files:
+  `test-ordinal-clmm-kernel-ordinal-package-agreement-and-sigma-collapse-from-minus-three-start-reference.R`,
+  `test-logistic-glmm-fit-glmer-agreement-and-cold-start-variance-collapse-reference.R`,
+  `test-count-kk-classes-match-joint-optimum-geeglm-and-glmer-and-newton-sigma-collapse-reference.R`,
+  `test-ordinal-kk-glmm-class-matches-clmm-and-kk-clmm-class-collapses-to-fixed-effects-reference.R`,
+  and `test-poisson-glmm-fit-quadrature-convergence-and-glmer-agreement-reference.R`.
+  This is post-fix native fixture-regression evidence, but does not complete
+  TODO-1's broader four-kernel sigma-by-n rate characterization or resolve
+  the two Poisson outlier/start-policy question above. The run artifacts are
+  the build and correctness-shard plan/results, not comprehensive result
+  CSVs, so they do not satisfy TODO-6's canonical row reconciliation. The
+  current working tree also has an uncommitted `require_square_matrix()` guard
+  in `R/EDI/src/fast_ordinal_clmm.cpp`; that additional guard is outside the
+  CI commit and is not validated by this run. Keep TODO-1 and TODO-6 open.
+
+  **TODO-76 dependency path check 2026-10-16:** the weighted ordinal Bayesian-
+  bootstrap refit is implemented through
+  `weighted_ordinal_random_intercept_fit()` in `R/EDI/R/helper_ordinal_mixed_fit.R`;
+  that helper calls `ordinal::clmm()` (and uses `ordinal::clm()` plus candidate
+  starts only after the initial CLMM fit errors). It does not call the native
+  `fast_ordinal_clmm_cpp()` fitter whose sigma-start behavior is changed here.
+  Thus TODO-76's focused weighted-refit tests establish the helper's separate
+  behavior, not TODO-31 native-kernel validation. The release cross-link still
+  matters for the CLMM's reported point-estimate/BB comparison: its comprehensive
+  rows must be regenerated and reconciled only after TODO-31's native gate is
+  resolved. This path check does not waive either TODO-31's TODO-1/TODO-6 gates
+  or TODO-76's result-regeneration gate; no test, build, install, or CSV run was
+  performed for this note.
 
 ## Cross-links (kept in sync 2026-09-24)
 

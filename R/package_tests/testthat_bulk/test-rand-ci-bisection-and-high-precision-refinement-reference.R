@@ -109,7 +109,12 @@ test_that("public randomization CI reaches both refinement directions when cheap
 	center <- f$inf$compute_estimate()
 	threshold <- 0.10
 	entry_widths <- numeric(0)
+	active_refine_bound <- NULL
+	upper_full_precision_deltas <- numeric(0)
 	f$p$compute_randomization_ci_pval_cached <- function(inf_obj, r, delta, transform_responses, permutations, ci_search_control, ci_pval_cache) {
+		if (identical(active_refine_bound, FALSE) && !isTRUE(ci_search_control$mc_enable)) {
+			upper_full_precision_deltas <<- c(upper_full_precision_deltas, delta)
+		}
 		full_p <- 2 * pnorm(-abs(delta - center) / sdv)
 		if (isTRUE(ci_search_control$mc_enable)) {
 			return(if (full_p >= threshold) threshold + 0.001 else threshold - 0.001)
@@ -119,6 +124,8 @@ test_that("public randomization CI reaches both refinement directions when cheap
 	original_refine <- f$p$high_precision_confirm_and_refine_ci_bound
 	unlockBinding("high_precision_confirm_and_refine_ci_bound", f$p)
 	f$p$high_precision_confirm_and_refine_ci_bound <- function(l, u, lower, r, transform_responses, permutations, ci_search_control, pval_th, tol) {
+		active_refine_bound <<- lower
+		on.exit(active_refine_bound <<- NULL)
 		entry_widths <<- c(entry_widths, u - l)
 		original_refine(l, u, lower, r, transform_responses, permutations, ci_search_control, pval_th, tol)
 	}
@@ -128,6 +135,10 @@ test_that("public randomization CI reaches both refinement directions when cheap
 	)
 	expect_length(entry_widths, 2L)
 	expect_true(all(entry_widths > 0.01))
+	# The helper always evaluates the two full-precision endpoints; any further
+	# upper-bound evaluation is an inner refinement midpoint. The returned upper
+	# limit must still match the independent normal-score crossing below.
+	expect_gt(length(upper_full_precision_deltas), 2L)
 	expect_equal(as.numeric(ci), center + c(-1, 1) * qnorm(0.95) * sdv, tolerance = 1e-2)
 })
 

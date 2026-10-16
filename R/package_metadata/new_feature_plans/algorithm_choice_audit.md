@@ -174,13 +174,19 @@ alternatives exist:
 **bisection** on the monotone function `p(δ)`, each step re-evaluating a
 full `B`-replicate p-value at the candidate `δ`. Two improvements already
 shipped against this exact bottleneck:
-`randomization_ci_affine_shift_reuse.md` (one null distribution serves the
-whole search via an exact shift identity, ~20–30×) and
+`randomization_ci_affine_shift_reuse.md` (the implementation reuses one null
+distribution across the search via an exact shift identity) and
 `randomization_ci_search_precision.md` (a final high-precision confirmation
 pass after early-stopped bisection). Both reduce the cost of **each**
 bisection step or of the last one; neither changes the fact that the search
 is bisection at all — `O(log(range/tol))` separate full-precision
-evaluations.
+evaluations. The reuse implementation shipped 2026-10-09, but its projected
+20–30× end-to-end speedup was not achieved in the recorded benchmarks:
+the 2026-10-13 source-loaded grid measured 1.13–1.59× for average difference
+and 1.05–2.14× for OLS; the 2026-10-15 installed-package check measured
+1.12× and 1.82×, respectively. The 20–30× acceptance target remains open
+pending reconciliation or an explicit maintainer decision (see
+`randomization_ci_affine_shift_reuse.md` TODO-6 and release TODO-2).
 
 **Best-known alternative for exactly this problem** — finding the root of a
 function only observable through noisy Monte Carlo evaluations — is not
@@ -703,7 +709,7 @@ none of these numbers should be quoted as a measured result.
 | B | (same) | (same) | (same) | fits the joint optimizer currently fails on (`../bug_fix_plans/negbin_dispersion_convergence.md`'s fixture) | not a wall-clock ratio — converts a failed/`nonest` fit to a converged one | theoretical: EM's monotone-ascent guarantee |
 | C | GLMM/LMM/frailty quadrature | fixed 20-node GH | adaptive GH (5–9 nodes) | every GLMM objective call | 1.5–2.5× per call; 1.2–2× end-to-end on GLMM-heavy workflows | **already estimated elsewhere** — `performance_profiling_and_upgrades.md §8.8`, not this audit |
 | D | randomization/bootstrap CI search | bisection (~20–35 full-precision steps) | Robbins–Monro (Garthwaite–Buckland) | any CI search | ~3–20× | structural: ratio derives from the bisection step count, unmeasured |
-| D | (composed) | bisection + affine-shift-reuse | + Robbins–Monro | any CI search | ~~multiplicative with the ~20–30× already shipped~~ **Correction 2026-10-09: affine-shift reuse has NOT shipped** (the `t0s_rand` reuse branch is dead code); see the sweep section | structural |
+| D | (composed) | bisection + affine-shift-reuse | + Robbins–Monro | any CI search | multiplicative benefit is unmeasured; affine-shift reuse shipped 2026-10-09, but its projected 20–30× end-to-end speedup was not observed (see measurements above) | structural |
 | E | small permutation p-values | Monte Carlo (`B` replicates) | saddlepoint approximation | `p ≈ 0.05` | ~25× but not a useful regime — already cheap | derived from this repo's `B(p)` figures (`quantum_upgrade.md`: `B ≈ 501` at `p ≈ 0.05`) vs. saddlepoint's O(1) cost |
 | E | (same) | (same) | (same) | `p ≈ 10⁻⁴` | ~5×10⁴× | same derivation (`quantum_upgrade.md`: `B ≈ 10⁶` at `p ≈ 10⁻⁴`) |
 | E | (same) | (same) | (same) | `p ≲ 10⁻⁶` | classical MC infeasible (`B` → 10⁸+); saddlepoint stays O(1) — unbounded | same |

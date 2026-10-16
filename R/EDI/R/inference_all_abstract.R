@@ -1207,6 +1207,54 @@ Inference = R6::R6Class("Inference",
 			]
 			fit_fun_formals = names(formals(fit_fun))
 			fit_fun_accepts_keep = "keep" %in% fit_fun_formals || "..." %in% fit_fun_formals
+			# Reusable bootstrap workers can certify the exact unweighted draw
+			# matrix before fitting. Bayesian-bootstrap draws can certify the
+			# unchanged base matrix when every row weight is strictly positive;
+			# positive row scaling preserves column rank. In either case, try the
+			# ordinary full-column fit first and retain the hardened QR path if
+			# that fit is unusable. This avoids repeating R's QR/closure setup on
+			# draws whose rank was already established without changing the
+			# rank-deficient fallback.
+			bootstrap_rank_certificate = private$bootstrap_qr_rank_certificate
+			can_use_bootstrap_rank_certificate = isTRUE(private$harden) &&
+				ncol(X_mat) > length(required_cols) &&
+				!isTRUE(implicit_intercept) &&
+				is.list(bootstrap_rank_certificate) &&
+				identical(bootstrap_rank_certificate$mode, "unweighted") &&
+				is.matrix(bootstrap_rank_certificate$X) &&
+				identical(unname(X_mat), unname(bootstrap_rank_certificate$X))
+			if (!can_use_bootstrap_rank_certificate &&
+					isTRUE(private$harden) &&
+					ncol(X_mat) > length(required_cols) &&
+					!isTRUE(implicit_intercept) &&
+					isTRUE(private$bootstrap_qr_positive_weights)) {
+				if (is.list(bootstrap_rank_certificate) &&
+						identical(bootstrap_rank_certificate$mode, "weighted_positive") &&
+						is.matrix(bootstrap_rank_certificate$X) &&
+						identical(unname(X_mat), unname(bootstrap_rank_certificate$X))) {
+					can_use_bootstrap_rank_certificate = TRUE
+				} else {
+					qr_X = qr(X_mat)
+					if (qr_X$rank == ncol(X_mat)) {
+						bootstrap_rank_certificate = list(mode = "weighted_positive", X = X_mat)
+						private$bootstrap_qr_rank_certificate = bootstrap_rank_certificate
+						can_use_bootstrap_rank_certificate = TRUE
+					}
+				}
+			}
+			if (isTRUE(can_use_bootstrap_rank_certificate)) {
+				keep_all = seq_len(ncol(X_mat))
+				fast_attempt = list(
+					fit = tryCatch({
+						if (fit_fun_accepts_keep) fit_fun(X_mat, keep_all) else fit_fun(X_mat)
+					}, error = function(e) NULL),
+					X = X_mat,
+					keep = keep_all
+				)
+				if (isTRUE(fit_ok(fast_attempt$fit, fast_attempt$X, fast_attempt$keep))) {
+					return(fast_attempt)
+				}
+			}
 			attempt_fit = function(keep){
 				X_try = X_mat[, keep, drop = FALSE]
 				colnames(X_try) = colnames(X_mat)[keep]
@@ -1232,7 +1280,10 @@ Inference = R6::R6Class("Inference",
 				pivot = qr_X$pivot[qr_X$pivot != 1L] - 1L
 				rank_cols = pivot[seq_len(max(0L, qr_X$rank - 1L))]
 			} else {
-				qr_X = qr(X_mat)
+				if (!exists("qr_X", inherits = FALSE)) qr_X = qr(X_mat)
+				if (qr_X$rank == ncol(X_mat)) {
+					private$bootstrap_qr_rank_certificate = list(mode = "unweighted", X = X_mat)
+				}
 				pivot = qr_X$pivot
 				rank_cols = pivot[seq_len(qr_X$rank)]
 			}

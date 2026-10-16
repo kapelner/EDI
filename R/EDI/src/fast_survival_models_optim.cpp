@@ -611,6 +611,11 @@ edi::ResultMap fast_clayton_weibull_aft_optim_internal(
     std::string optimization_alg = "lbfgs",
     std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt
 ) {
+    const Eigen::Index expected_params = X.cols() + 2;
+    if (warm_start_params.size() != expected_params) {
+        throw std::invalid_argument("warm_start_params must have length ncol(X) + 2");
+    }
+    require_square_matrix(warm_start_fisher_info, expected_params, "warm_start_fisher_info");
     ClaytonWeibullLikelihood fun(y, dead, X, pair_idx, singleton_rows);
     Eigen::VectorXd params = warm_start_params;
     FixedParamSpec fixed_spec = make_fixed_param_spec(params.size(), fixed_idx, fixed_values);
@@ -709,6 +714,7 @@ edi::ResultMap fast_dep_cens_transform_optim_internal(
 ) {
     int p = (int)X.cols();
     int total = 2 * p + 3;
+    require_square_matrix(warm_start_fisher_info, total, "warm_start_fisher_info");
     Eigen::VectorXd params(total);
     if (warm_start_params.has_value() && warm_start_params->size() == total) {
         params = *warm_start_params;

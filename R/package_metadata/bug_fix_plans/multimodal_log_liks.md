@@ -195,6 +195,29 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   denominator nor the historical fit-usability decisions can be reconciled
   from available artifacts. TODO-4 remains open; no regeneration or
   compilation was performed.
+  **Artifact-schema follow-up, 2026-10-16:** reinspection of every located
+  artifact found no missing status/reason field that explains the denominator
+  gap. The Oct 9 `n100k5` file has 400 rows and only the estimate, LR p-value,
+  CI endpoints, NLLs, and improvement columns; its generator uses
+  `pkgload::load_all('R/EDI', compile=FALSE)` and has no run metadata. The two
+  Oct 14 study scripts differ only in output-directory setup and metadata
+  collection/formatting; their computation is otherwise identical, and their
+  400-row CSVs are byte-identical despite the changed installed native mtime.
+  This confirms deterministic repeatability of the later 224/177 counts but
+  does not identify why the earlier table reported 386/169. The next decisive
+  check is recovery of the Sep 21 per-seed CSV plus its generator/runtime
+  metadata and exact usable-fit predicate. If those artifacts no longer exist,
+  an explicitly approved current-native rerun must record per-stage errors,
+  fit-usability decisions, and Fisher-information conditioning per seed; it
+  can establish current behavior but cannot retrospectively explain the
+  missing historical denominator. TODO-4 remains open, and no simulation was
+  launched for this audit.
+  **Fresh artifact inventory 2026-10-16:** a path search across `/tmp` and
+  workspace `.scratch` found no additional TODO-8 artifacts beyond the Oct 9
+  `n100k5` CSV and the two Oct 14 study directories already listed above;
+  specifically, the original Sep 21 per-seed outputs and run metadata are
+  absent. Thus the historical 386/400 and 169/400 usable denominators are
+  irrecoverable from retained artifacts; this does not resolve their cause.
 - [x] TODO-5: Audit and, where estimates move, re-derive (not just
   re-record) every golden/reference value touching
   `InferenceOrdinalStereotypeLogitRegr` in

@@ -196,8 +196,22 @@ remains open under release TODO-14.
   Logs are preserved at `/tmp/edi-todo14-pilot-W6SnZz/pilot.log` and
   `/tmp/edi-todo14-pilot-W6SnZz/pilot_all_designs.log`. The copied root is
   not a Git checkout, causing expected `rev-parse`/stale-row-pruner warnings;
-  no workspace CSV changed. TODO-7 remains open pending a valid canonical
-  class result run.
+  no workspace CSV changed. **Harness selection fixed and isolated rows
+  validated 2026-10-16:** `comprehensive_tests.R` now explicitly includes
+  this IVWC class in the KK-survival selector (IVWC remains excluded from
+  the exhaustive namespace sweep). The focused regression
+  `R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R`
+  passed 7 expectations against installed EDI 1.0.3. One-core isolated
+  `pte_example` runs for beta 0 and 0.5 each emitted the expected six rows
+  (both formulas × p-value, delta=.5 p-value, and CI), all `status=ok`;
+  direct public-API calls on the same in-memory data/object and restored
+  pre-call RNG matched all 12 values exactly. Comparison records are in
+  `/tmp/edi-todo14-api-compare.Nezg4w/direct_api_comparisons.csv` (combined
+  beta run) and `/tmp/edi-todo14-api-compare.QKZpfy/direct_api_comparisons.csv`
+  (beta 0.5 filtered run matching the original pilot RNG path). These are
+  isolated validation outputs, not canonical results. TODO-7 remains open
+  pending authorized regeneration/reconciliation of the canonical
+  comprehensive-results CSV rows after install.
 
 ## Standing constraints
 

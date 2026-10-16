@@ -699,6 +699,7 @@ LikelihoodFitResult fast_stereotype_logit_internal(
 	int n_par = params.size();
 	int n_alpha = model.num_alpha();
 	int p = model.num_params() - n_alpha - model.num_gamma();
+	require_square_matrix(warm_start_fisher_info, n_par, "warm_start_fisher_info");
 
 	if (warm_start_params.has_value()) {
 		params = *warm_start_params;

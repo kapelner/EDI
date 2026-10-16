@@ -277,6 +277,19 @@ evidence does not change the measured slowdown, extra fallback fits, or NA
 jackknife summary, so it does not satisfy the performance or non-NA golden-
 value acceptance criteria.
 
+**ZOIB dual-matrix regression follow-up, 2026-10-16:** the existing bulk
+migration-golden test was extended with a deterministic `n = 24` fixture whose
+beta and zero/one formulas use distinct covariates. It asserts that both
+matrices receive the same row indices, omission of the only varying
+zero/one-covariate row disables the direct path, the fallback matches a fresh
+ordinary worker fit, and reloading the same worker at full rank restores
+direct-path readiness and estimate parity. The test parses cleanly and
+`git diff --check` passes. A non-compiling checkout test attempt using
+`pkgload::load_all("R/EDI", compile = FALSE)` aborted in `dyn.load()` with a
+bus error while loading the existing `R/EDI/src/EDI.so`; no compilation or
+installation was attempted. This is static/parse evidence only: the runtime
+test and the TODO-1/3/4/5/6 acceptance gates remain open.
+
 - [ ] TODO-1: Add `supports_reusable_bootstrap_worker()` (`TRUE`) and the
       three worker-contract methods above to
       `InferencePropZeroOneInflatedBetaRegr`'s private list

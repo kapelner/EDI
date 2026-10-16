@@ -174,3 +174,41 @@ resampling entry point), not a hand-approximated with-replacement sample —
 `investigate_incid_kk_modified_poisson_se_quality.md` (TODO-19) already
 showed a hand-built fixture can fail to reproduce a historical finding that
 was real, so prefer exercising the actual code path wherever practical.
+
+## Read-only artifact audit 2026-10-16
+
+The earlier 25-replicate installed-package pilot is recorded above only as
+summary prose; no matching raw result CSV or run log is present in
+`/tmp/edi-v105-todo20/`. The matched-draw extension is available there as
+`tie_sensitivity_probe.R`, `same_draws.csv`, `within_case_correlations.csv`,
+`summary.csv`, and `run.log` (installed EDI 1.0.3). The CSVs are a 50-case
+fixture (seeds 2026101401–2026101450), 12 shared materialized BRT draws per
+case, and three estimators (Quantile/OLS/RobustRegr): 1,800 rows in
+`same_draws.csv`. SHA256: `same_draws.csv`
+`9e119ac4cf6e35b82ab52d8842f3b9bb95e426ed9a067678f3d37560c186a398`,
+`summary.csv`
+`e78612509a57e2fcf7292d577ff4a2fcfdd5788388b1a08187f5753d74184c62`,
+`within_case_correlations.csv`
+`4bd0bd45c8f717fc3cf40c0c210a5ca0d2bea318d56a3f22b537acc9f19c3f91`.
+That fixture uses `n=60`, `DesignSeqOneByOneKK14`, `model_formula = ~1`,
+and rounded `0.5*x + error` outcomes. All 600 fits and positive SEs per
+estimator were finite; Quantile's median within-case Spearman correlations
+were −0.055 (duplicate rows vs. log(SE)) and 0.027 (vs. |t|), versus −0.021/
+0.053 for OLS and −0.080/0.074 for RobustRegr. This is evidence against a
+simple tie-count/fit-failure mechanism on that fixture, not a calibration
+test: 12 draws give a two-sided p-value floor of 2/12, and the fixture does
+not match the historical `~.` comprehensive-test cell.
+
+The historical audit baseline reports 428 null rows for `~.` with rejection
+rates 0.185 for `compute_rand_bootstrap_two_sided_pval` and 0.285 for its
+studentized variant (0.294 for symmetric-percentile-t). These aggregates
+strongly warrant replication, but do not identify a code defect. Once the
+active comprehensive run is idle, first recover the exact historical cell's
+dataset, design, formula, DGP, and seed schedule. Then freeze identical
+assignments/outcomes and actual BRT draw indices for a small independent
+null-case replay, comparing per-draw treatment estimates, SEs, and p-values
+with an independent `quantreg::rq` reference and the OLS/RobustRegr controls.
+A mismatch on identical inputs points to implementation; parity plus
+recurrent calibration failure points toward estimator/inference instability.
+Do not use this fixture or its 12-draw diagnostics to dismiss the historical
+finding, and do not run the reproduction while TODO-56 is saturating CPU.

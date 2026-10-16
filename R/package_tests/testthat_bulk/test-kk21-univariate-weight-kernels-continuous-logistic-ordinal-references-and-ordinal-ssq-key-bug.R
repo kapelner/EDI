@@ -69,4 +69,25 @@ test_that("stepwise ordinal weights are no longer all-NA (the shared multivariat
 	got <- K("kk21_stepwise_ordinal_weights_cpp")(X, yo, w)
 	expect_false(anyNA(got))
 	expect_equal(which.max(got), 1L)                                                  # the informative covariate is selected first (largest weight)
+
+	# Independently reconstruct the greedy path using the public weighted-
+	# variance ordinal fitter, so the stepwise helper's native path stays
+	# equivalent to its previous R-wrapper reference.
+	selected <- integer()
+	remaining <- seq_len(ncol(X))
+	ref <- rep(NA_real_, ncol(X))
+	for (step in seq_len(ncol(X))) {
+		stats <- vapply(remaining, function(j) {
+			candidate_cols <- c(j, selected)
+			X_fit <- cbind(X[, candidate_cols, drop = FALSE], w = w)
+			fit <- K("fast_ordinal_regression_with_var_cpp")(X_fit, yo)
+			abs(fit$b[1L] / sqrt(fit$ssq_b_j))
+		}, numeric(1))
+		best_pos <- which.max(stats)
+		best <- remaining[[best_pos]]
+		ref[best] <- stats[[best_pos]]
+		selected <- c(selected, best)
+		remaining <- remaining[-best_pos]
+	}
+	expect_equal(got, ref, tolerance = 1e-8)
 })

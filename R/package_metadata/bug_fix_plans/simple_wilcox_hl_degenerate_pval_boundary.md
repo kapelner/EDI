@@ -262,6 +262,120 @@ confirmed, fixable bugs as of this cross-validation.
   rank-sum test, not a substitute for an arbitrary resampling distribution
   or its bootstrap CI. Any follow-up must be Wilcoxon-scoped and be backed
   by the direct count/ordinal oracle and coverage work in TODO-1/3--7.
+
+### Randomization-statistic design evidence (2026-10-16; exploratory, no source change)
+
+The proposed repair must not be selected from the fact that an alternative
+statistic removes the point mass at `p = 1`; it must also satisfy the existing
+conditional-size gate in TODO-5 and retain an inferential target compatible
+with the reported Hodges-Lehmann (HL) location-shift estimate. Independent
+null simulations compared the inclusive two-sided randomization p-value from
+the HL statistic with the Wilcoxon rank-sum statistic, a Welch-studentized
+mean difference, and an unstudentized mean difference. Each used `n = 60`,
+30 treated/30 control, 501 random assignments per replicate, count outcomes
+from `Poisson(2)`, and three-level ordinal outcomes with probabilities
+`(0.25, 0.50, 0.25)`. The rejection-rate intervals below are exact 95%
+binomial intervals. These are design checks, not production-method
+validation or coverage evidence.
+
+In a first 200-replicate comparison (seed 917), count data had `beta_hat_T`
+equal to zero in 161/200 draws. Conditional rejection was 0/161 for each
+candidate: rank sum 0.0% [0.0%, 2.3%], Welch 0.0% [0.0%, 2.3%], and mean difference
+0.0% [0.0%, 2.3%]. Unconditional rejection was rank sum 9/200 = 4.5%
+[2.1%, 8.4%], Welch 11/200 = 5.5% [2.8%, 9.6%], and mean difference
+10/200 = 5.0% [2.4%, 9.0%]. For ordinal data, HL was zero in all 200 draws;
+conditional and unconditional rates were therefore identical: rank sum
+6/200 = 3.0% [1.1%, 6.4%], Welch 4/200 = 2.0% [0.5%, 5.0%], and mean
+difference 3/200 = 1.5% [0.3%, 4.3%].
+
+A larger 1,000-replicate comparison (seed 1917) sharpened the count result:
+HL was zero in 829/1,000 draws; conditional rejection was rank sum 0/829 =
+0.0% [0.0%, 0.4%], Welch 1/829 = 0.1% [0.0%, 0.7%], and mean difference
+1/829 = 0.1% [0.0%, 0.7%]. Unconditionally, the corresponding rates were
+49/1,000 = 4.9% [3.6%, 6.4%], 42/1,000 = 4.2% [3.0%, 5.6%], and
+41/1,000 = 4.1% [3.0%, 5.5%]. For ordinal data, HL was zero in 985/1,000 draws;
+conditional rejection was rank sum 32/985 = 3.2% [2.2%, 4.6%], Welch
+22/985 = 2.2% [1.4%, 3.4%], and mean difference 20/985 = 2.0% [1.2%,
+3.1%]. Unconditional rates were 47/1,000 = 4.7% [3.5%, 6.2%],
+37/1,000 = 3.7% [2.6%, 5.1%], and 35/1,000 = 3.5% [2.4%, 4.8%].
+
+Thus all three alternatives were reasonably close to 5% unconditionally in
+these checks, but none met the unchanged conditional-near-5% requirement;
+the count conditional rates were effectively zero even at 1,000 replicates.
+This is evidence that conditioning on the realized event `HL = 0` selects a
+conservative stratum for these statistics, not evidence that their
+unconditional randomization tests are miscalibrated. The Monte Carlo
+two-tail floor at `B = 501` is `2/501 = 0.003992`; values at the 5% boundary
+advance in increments of `2/501` (12 exceedances give 0.04790, 13 give
+0.05190). A different statistic may retain HL as the reported point estimate
+and be inverted for a test-specific interval, but Welch/mean inversion targets
+a mean-shift null and need not invert the HL estimand when count/ordinal
+distributions are not related by a pure location shift. Rank-sum inversion
+is closer to Wilcoxon semantics, but its count conditional-size result above
+does not clear TODO-5. No candidate has been accepted, no TODO checkbox has
+been changed, and no package code or comprehensive result was modified.
+
+### TODO-3 remedy decision memo (2026-10-16; design-only)
+
+The evidence above does not support a deterministic Wilcoxon-scoped
+statistic substitution: the three checked alternatives all remain far below
+the required conditional rejection rate on count data, and Welch/mean
+statistics additionally change the null from an HL location-shift target.
+The unconditional rates near 5% are not a substitute for TODO-5, which remains
+unchanged. Randomized tie-breaking is a mathematically plausible separate
+design for an exact randomization test under the sharp null, but it would
+introduce auxiliary randomness and does not by itself define matching
+bootstrap-family p-values or confidence intervals. It is therefore not a
+drop-in fix for the full family implicated here. A conditional randomization
+test on assignments with `beta_hat_T == 0` would also require an explicitly
+chosen secondary statistic and test/CI target; conditioning alone determines
+neither.
+
+**Decision required before implementation:** no deterministic candidate has
+yet met TODO-5 while preserving the reported HL target. Keep TODO-5 and the
+release item open. A maintainer must either authorize development of a
+randomized/conditional test with explicit p-value, reproducibility, and
+CI-inversion contracts, or retain the current deterministic contract and
+defer this fix until a candidate satisfies the existing gate. This memo does
+not select a statistic, relax acceptance, or modify TODO-4's parity scope.
+
+### TODO-4 installed parity fixture (2026-10-16; baseline only)
+
+A deterministic nondegenerate baseline was exercised against the already-
+installed EDI 1.0.3. Build a public `DesignFixediBCRD` with `n = 60`,
+`response_type` as specified, add `data.frame(x = seq_len(60L))` as the
+subjects, overwrite assignments with `w = c(rep(0L, 30L), rep(1L, 30L))`,
+and then add the outcomes below.
+The continuous primary fixture has controls `seq(-1.45, 1.45, length.out =
+30L)` and treated responses equal to controls plus `0.75`, so the direct
+pairwise-difference median is `beta_hat_T = 0.75` with no HL-zero boundary.
+Its installed outputs were `compute_rand_two_sided_pval(r = 501)` =
+0.01596806, `compute_rand_confidence_interval(r = 501, pval_epsilon = 0.02)`
+= [0.2375143, 1.2624857], `compute_bootstrap_two_sided_pval(B = 101)` =
+0.01980198, and `compute_bootstrap_confidence_interval(B = 101)` =
+[0.150000, 1.276667].
+
+For tied-response companion fixtures, use count controls `rep(0:4, 6L)` and
+treated `rep(1:5, 6L)`, or ordinal controls `rep(1:5, 6L)` and treated
+`rep(2:6, 6L)`; both have `beta_hat_T = 1`. Each yielded randomization p =
+0.2235529, bootstrap p = 0.1188119, and bootstrap CI [0, 2]. The count
+randomization CI was [-0.01789815, 0.58061332], and the ordinal one was
+[-0.01558536, 2.01558536]. The count randomization CI uses the existing
+response-type default log transformation, so these bounds are an exact API
+parity baseline, not a claim that the interval targets an additive HL shift.
+
+Reproduction settings: set `num_cores = 1L`; create a fresh inference object
+for each method (reusing one object allows cached randomization draws to
+change what a subsequent reseeded CI call consumes); set seeds 24601, 24602,
+24603, and 24604 immediately before the randomization p-value, randomization
+CI, bootstrap p-value, and bootstrap CI calls, respectively. Repeating the
+four calls with fresh objects returned identical values for each response
+fixture. This is a stdout-only installed-package check and does not write
+canonical results. Once a fixed package is installed, rerun this exact
+fixture/procedure and compare its nondegenerate outputs to these baselines;
+the present EDI 1.0.3 run is not evidence about uninstalled source changes.
+TODO-4 remains open until a fix exists and the post-fix comparison is run.
+
 - [ ] TODO-3: After TODO-1's direct count/ordinal reproduction, design and
   implement a **Wilcoxon-scoped** remedy. Do not change the package-wide
   inclusive-tail formula without its own calibration and CI-inversion

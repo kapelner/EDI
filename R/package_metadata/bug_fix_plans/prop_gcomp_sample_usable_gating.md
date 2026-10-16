@@ -153,6 +153,50 @@ regeneration pass as `stale_worker_cache_resampling.md → TODO-7`.
   `stale_worker_cache_resampling.md`'s TODO-7 — only after install, not
   before).
 
+### TODO-6 reconciliation criteria (read-only prep, 2026-10-16)
+
+The available pre-fix archive
+`R/package_tests/todo56_mp_resume_20261016/R/package_tests/comprehensive_tests_results_nc_1_proportion_filtered_class-InferencePropGCompMeanDiff_family-rand.csv`
+has 2,964 rows at commit `09b5905b413f70009104e6e0e19d0c7cf782fe90`:
+988 each for `compute_rand_two_sided_pval`,
+`compute_rand_two_sided_pval(delta=0.5)`, and
+`compute_rand_confidence_interval`. Both p-value rows are marked
+`numeric_instability` with NA results; the confidence-interval rows have
+numeric endpoints. Treat this as the stale pre-fix comparison, not as current
+evidence. Before closing TODO-6 after the active run/install:
+
+- derive the expected current row-key set from the current comprehensive
+  harness for `InferencePropGCompMeanDiff`, `response_type=proportion`,
+  `method_family=rand`; compare it against the merged results by `case_id`
+  and `id` (including `model_formula=~1` and `~.` and each supported design /
+  dataset / beta_T / replicate), and account explicitly for missing or extra
+  keys rather than relying only on total row counts;
+- verify provenance on regenerated rows (`github_commit_id`, timestamp,
+  runner, and installed package/build version) identifies the post-fix
+  checkout/install, and ensure old pre-fix rows are not silently retained as
+  duplicates or treated as regenerated evidence;
+- inspect `status`, `skip_reason`, `error_message`, `result_1`, `result_2`,
+  `result`, and `coverage_truth` for every target row. The old
+  `numeric_instability`/NA p-value records must be replaced by valid finite
+  results or individually explained legitimate non-estimability; runner
+  `status=ok` alone is not enough. For interval rows, also confirm finite
+  endpoints and the recorded `beta_T_in_confidence_interval` agrees with the
+  interval and `coverage_truth` contract;
+- confirm non-`rand` families are outside this TODO-6 replacement scope, and
+  reconcile/dedupe only after the complete post-install target row set is
+  available. Do not edit the canonical comprehensive CSV during this prep.
+
+**Read-only key-set check, 2026-10-16:** compared the archived partition above
+with the existing `R/package_tests/comprehensive_tests_results_nc_1_proportion.csv`.
+The existing canonical file contains no rows for this class in the proportion
+`rand` family. The archived pre-fix partition has 2,964 unique `id` values,
+66 `case_id` values (22 per function run), and 988 rows for each of its three
+function runs; all archived `(id, case_id)` pairs are absent from the existing
+canonical file. The partition is therefore not already merged and must remain
+a stale comparison, not be counted as post-fix evidence. This does not establish
+the current harness's expected key set; derive that from the post-install run
+before merging. No result CSV was modified.
+
 ## Standing constraints
 
 Same as `stale_worker_cache_resampling.md`: no `R CMD INSTALL`/rebuild

@@ -275,3 +275,48 @@ diagnostics chain itself is out of scope here.
   literal-Inf fixture described above passes against the installed binary;
   that binary reports a Sep 20 native build, so it does not verify this
   checkout's native changes.
+
+**Compile-free acceptance audit 2026-10-16:** the existing cross-family
+`with_var` reference test compares `ssq_b_j` and covariance to
+`solve(fisher_information)` and GLM values with numerical tolerances (up to
+`1e-3`); it is an independent accuracy check, not a before/after identity
+comparison. The guard regression also source-checks that accepted inputs still
+execute `information.inverse()`, but that does not establish bit-for-bit output
+parity for the five migrated kernels. The installed native binary noted above
+predates the source migration. Therefore no available compile-free fixture
+closes the remaining parity gate. The smallest valid next step remains a
+provenance-stamped same-input comparison of each affected `with_var` result
+before and after the source change, asserting `identical()` for
+accepted/invertible fixtures; do not substitute the tolerant Fisher/GLM
+reference assertions or alter the acceptance criterion.
+
+**Current-head CI execution evidence 2026-10-16:** HEAD
+`430c19bcdb0702d998c79f9058c449449034134c` passed the R coverage workflow
+([run 38808821546](https://github.com/kapelner/EDI/actions/runs/38808821546));
+the same-commit coverage manifest assigns all three files below to the
+coverage tier, and the run completed all shards and merge successfully:
+
+- `R/EDI/tests/testthat/test-information-inverse-guard.R` — five-site source
+  assertion and native duplicate-column guard fixtures;
+- `R/EDI/tests/testthat/test-information-inverse-edge-cases.R`;
+- `R/EDI/tests/testthat/test-information-inverse-inference-typed-guards.R` —
+  typed R-side SE/CI rejection behavior.
+
+The same SHA's successful Python coverage job ([run 38808821508](https://github.com/kapelner/EDI/actions/runs/38808821508))
+also ran the portable duplicate-column cases in
+`python/tests/test_fast_zinb.py` and
+`python/tests/test_fast_zero_augmented_poisson.py` (including the two
+zero-augmented variants). This establishes execution of the checked-in
+guard/typed regressions at that commit; it does **not** close the separate
+before/after `identical()` parity sweep above. The worktree's later dirty
+warm-start dimension checks in `R/EDI/src/fast_negbin_regression.cpp` and
+`R/EDI/src/fast_zinb.cpp` are not in this CI commit and are excluded from this
+evidence. No change to the parity acceptance criterion or TODO status follows
+from these CI runs.
+
+**Parity-artifact audit 2026-10-16:** no tracked pre-guard baseline or stored
+before/after `identical()` values were found for the duplicate-column SE/CI
+fixtures. Those fixtures record only post-guard outcomes; the successful
+post-guard CI runs above establish execution, not a before/after comparison.
+The required accepted/invertible `with_var` parity gate therefore remains
+open.

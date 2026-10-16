@@ -23,6 +23,86 @@ the same consistent-direction bootstrap-family inflation shape as TODO-20:
 - `compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t`: 0.185 vs.
   nominal 0.05.
 
+**Provenance reconciliation (read-only, 2026-10-16):** Those three headline
+rates are not traceable to the tracked audit baseline, the current raw CSV,
+or the older local raw snapshot inspected below. The tracked
+`comprehensive_results_audit_baseline.csv` (mtime 2026-09-24 15:59:56 +0300;
+756,199 bytes) was committed alongside this plan in `2d382ee1`
+(2026-09-24 00:21:22 +0300), but its `InferenceIncidKKGEE` entries do not
+report .306/.314/.185. For `model_formula=~1`, it records the symmetric BB
+variant (not the unsuffixed default function) and BB-Wald rejection rates
+of .054 (n=130 each), plus symmetric-percentile-t BRT of .065 (n=123); the
+audit's nonuniformity flags in these rows reflect an excess of large
+p-values, not those headline rejection fractions.
+
+The audit implementation's denominator/filtering is: retain
+`status == "ok"`, finite `result_1` p-values in [0,1], exclude function names
+containing `(delta=`, and select `beta_T == 0`; aggregate by bare class,
+`model_formula`, and `function_run`. It pools dataset, design, and
+`design_formula`. The audit stamp records its older incidence input as
+561,975,056 bytes with mtime epoch 1790497128 (2026-09-27 08:18:48 UTC).
+The currently retained
+`comprehensive_tests_results_nc_1_incidence.csv` is a different artifact:
+525,863,531 bytes, mtime 2026-10-09 01:14:03 +0300. Its available
+`pima`/`KK21stepwise`/n=148 rows carry source commit
+`5d8246300ea034bed7f4591d7f2258a7215436eb` (2026-09-07 14:16:40 +0300).
+For beta_T=0, stratifying these rows by (`model_formula`,
+`design_formula`) gives BRT symmetric-percentile-t rejection rates .028
+(1/36) for `(~., ~.)`, .162 (6/37) for `(~., ~1)`, .028 (1/36) for
+`(~1, ~.)`, and .108 (4/37) for `(~1, ~1)`; BB default/Wald rates are
+.025–.10 across those strata. These are not the
+three headline rates, and the current strata are narrower than the audit's
+pooling rule. The plan/release headline has no recorded raw-input path,
+source stamp, denominator, or aggregation definition, so its original input
+and grouping cannot be recovered from the retained files. An alternate run
+or aggregation is possible but unverified; no causal attribution is
+justified until the original input artifact and its aggregation are
+recovered. Keep this investigation open.
+
+**Older snapshot check (read-only, 2026-10-16):** The only earlier raw
+incidence snapshot found locally is the non-Git backup
+`/tmp/edi-v105-r6-benchmark.eQ0PpT/R/package_tests/comprehensive_tests_results_nc_1_incidence.csv.pre_anomaly_fix_removal.bak`
+(523,788,866 bytes; file mtime 2026-09-07 17:54:14 +0300). Its rows identify
+source commit `8918bada0547a6bfb5454b8623c69e8d50ccc6b5` (2026-08-24
+11:00:32 +0300), so it is an earlier, differently-versioned run, not the
+missing 2026-09-27 stamped input. Applying the documented audit p-value
+filter to this snapshot (`status=ok`, `beta_T=0`, finite `result_1` in
+[0,1], no delta-shifted function), then grouping across dataset/design by
+`(bare class, model_formula, function_run)` and counting `result_1 < .05`,
+gives unsuffixed BB-default rates 3/153=.0196 (`~.`) and 2/158=.0127 (`~1`), and BB
+Wald rates 4/153=.0261 (`~.`) and 3/158=.0190 (`~1`). It contains no
+`InferenceIncidKKGEE` symmetric-percentile-t randomization-bootstrap rows,
+so it cannot reproduce the .185 headline at all. These earlier rows also do
+not yield .306/.314. The tracked baseline at the headline's plan commit
+`2d382ee1` includes the symmetric BB, BB-Wald, and BRT families (but not
+the exact unsuffixed BB-default function), and reports rejection fractions
+.054, .054, and .065 for `model_formula=~1` (n=130, 130, 123 respectively),
+not the headline. The raw CSV named by the
+audit stamp (561,975,056 bytes, mtime 2026-09-27 08:18:48 UTC) is not present
+in Git or among the retained local snapshots; the stamp itself is also
+untracked. Thus no committed snapshot plus documented filter reproduces
+the headline, and the missing raw input, source/run commit, denominator,
+and aggregation strata are the exact unresolved provenance.
+
+**Candidate-file checksum audit (read-only, 2026-10-16):** no accessible file
+under `/tmp` or `R/package_tests` matched the stamped 561,975,056-byte size.
+The retained full CSV is 525,863,531 bytes (SHA-256
+`03f9ba580d55d0664f6f85a3e3f20f62a5a426dd546e1cdb03656ae688d50436`); the
+2026-10-15 full snapshot is 525,208,409 bytes (SHA-256
+`cdbd73e119a72d30a983dbb0a47153a42aca63399958451f3342ff4b084b2a01`); the
+27,124,848-byte filtered diagnostic is a distinct subset (SHA-256
+`57ee1554cacf7ae1a64b38ff2413b7ea90d0ba3247438b39f6ab6cc73caca417`); and
+the 523,788,866-byte Sep 7 backup has SHA-256
+`be7dbb7503c0e44c805816bf64831229abd9b904693e642221cc9991716ad1d4`.
+The full snapshot in the TODO-56 scratch tree is byte-identical to the
+retained full CSV, and the TODO-9 scratch backup is byte-identical to the
+Sep 7 backup; neither is another historical candidate. These checks confirm
+the missing stamped input among the retained accessible candidates, but do
+not establish that the .306/.314/.185 rates were erroneous or that the
+current code is free of the reported behavior. Without that exact raw input
+(or a source/run seed plus equivalent fixture), the historical class,
+dataset/design/formula rows cannot be replayed or used to justify a fix.
+
 Originally-suspected cause: naive row-level bootstrap breaking GEE
 matched-pair structure — resampling rows independently would ignore the
 matched-pair clustering, understating true variance and inflating Type-I

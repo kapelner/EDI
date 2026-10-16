@@ -474,8 +474,8 @@ is explicitly not the target** -- see Non-goals below.
   Caveats: the classifications rest on a measurement that is known to
   undercount harvested-composition files, so the backlog should be re-triaged
   after that `covr` attribution issue is understood (TODO-10's re-run is the
-  natural point); and the registry CSV is still an uncommitted working-tree
-  change (TODO-2).
+  natural point); the reviewed registry CSV is tracked and committed (TODO-2,
+  commit `413aeb78`).
 - **TODO-2.** Produce a tracked artifact,
   `R/package_tests/coverage_gap_registry.csv`, mapping
   `file -> category -> owning TODO -> status`, mirroring this repo's
@@ -512,10 +512,12 @@ is explicitly not the target** -- see Non-goals below.
   regression checks run in CI and locally with
   `Rscript R/package_tests/ci/test_coverage_gap_registry.R`.
 
-  **Still pending:** the 31 historical seed rows were replaced on 2026-09-19
+  **TODO-2 done:** the 31 historical seed rows were replaced on 2026-09-19
   with the full 89-row backlog from a complete, provenance-bearing run
-  (commit `f72b8fdb`) and reviewed under TODO-1. TODO-2 remains in progress
-  only until that registry CSV is reviewed and committed.
+  (commit `f72b8fdb`) and reviewed under TODO-1. The registry is tracked at
+  `R/package_tests/coverage_gap_registry.csv`; its latest commit is
+  `413aeb78`. The scheduled workflow compares regenerated candidates with the
+  tracked backlog and reports drift without committing new measurements.
 
 ### Phase 2: Zero-coverage files (highest ROI -- 31 whole files)
 
@@ -620,16 +622,20 @@ is explicitly not the target** -- see Non-goals below.
   proves a higher-coverage, larger file ranks ahead of a lower-coverage small
   file when it has more uncovered lines.
 
-  **Backlog clarification (2026-10-15):** The weighted-opportunity sort itself
-  is complete. Three registry rows still use `owning_todo = TODO-6` in the
-  broader TODO-10 coverage backlog (two pending, one in progress); they are
-  per-file coverage follow-ups, not unfinished sorting behavior. Existing
-  direct-reference tests cover the KK21 response-type kernels and constrained
-  OLS paths; focused edge assertions were added for constant/exact-fit KK21
-  inputs and a non-finite OLS response. Keep those rows open until a fresh full
-  coverage report confirms movement. The last full artifact (commit
-  `598774af`) predates these additions; the in-progress KK passthrough row also
-  needs its deletion confirmed in a fresh report.
+  **Backlog resolution (2026-10-16):** The weighted-opportunity sort and its
+  three follow-ups were reviewed against successful full CI coverage run
+  `38808821546` (commit `430c19bc`, measured `2026-10-15T22:42:38Z`).
+  `kk21_weights.cpp` moved from 610/778 to 613/778 covered lines (78.79%);
+  the new constant-column logistic and exact-fit continuous guards are hit.
+  Remaining lines are transferred to TODO-7 for classification. `fast_ols.cpp`
+  moved from 110/140 to 111/140 (79.29%); the non-finite response guard is
+  hit, while the LDLT-to-QR fallback remains an open TODO-8 reachability
+  question. The passthrough row moved from 60/349 before deletion to 64/223
+  (28.70%) after the dead reused-worker branch was removed, confirming that
+  cleanup. The active generic bootstrap body is still unmeasured and now
+  belongs to TODO-7 for direct-test/classification work. These three registry
+  records now carry the fresh report provenance and follow-up owners; no
+  coverage-gap row remains owned by TODO-6.
 - **TODO-7.** For each low-coverage file, distinguish two different root
   causes before choosing a fix: (i) the code path already runs under an
   existing comprehensive-suite/argument-combination fixture, but the
@@ -654,6 +660,26 @@ is explicitly not the target** -- see Non-goals below.
   non-finite event/time cases in `test-stepwise-survival-fallback-reference.R`;
   retain its pending status until measured because its current note is based on
   the older run.
+
+  **Transferred TODO-6 follow-ups (2026-10-16):** the latest full report
+  confirms the targeted KK21/OLS guard lines. Remaining `kk21_weights.cpp`
+  response-type and stepwise gaps, plus the active
+  `InferenceMixinKKPassThrough` bootstrap body (lines 57-197), are now assigned
+  to TODO-7 in the registry. `test-kk-bootstrap-method-inheritance.R` checks
+  method identity but skips under `R_COVR=true`; TODO-7 should add a direct
+  behavior test for a host using `KKPassThrough` without `KKCompound`. The
+  `fast_ols.cpp` LDLT-to-QR reachability question is assigned to TODO-8.
+
+  **Focused follow-up (2026-10-16):** added independent assertions for the
+  KKPassThrough generic bootstrap, separated-covariate GLM fallback,
+  and pair-only/reservoir-only C-Poisson score and Hessian paths. The
+  corresponding bulk files pass targeted checks against installed EDI
+  v1.0.3; those runs validate the fixtures but do not measure checkout
+  line coverage. CI run 38808821546 confirms `atkinson_assign.cpp` at
+  29/36 lines (80.56%), so that row is now addressed. The `kk21_weights.cpp`
+  triage is classified as straightforward executable kernel coverage; it
+  remains pending at 613/778 lines (78.79%) until a later full report
+  identifies and measures the remaining response-type/stepwise branches.
 - **TODO-8.** For genuinely-defensive/impossible-state `stop()`/assertion
   branches (the kind CLAUDE.md's own guardrail-pattern documents
   elsewhere in this codebase), decide case by case: (a) write a test that
@@ -676,15 +702,23 @@ is explicitly not the target** -- see Non-goals below.
   | `inference_all_abstract_exact.R` default stop methods | Add focused tests | A small test-only subclass can inherit the defaults and assert the documented errors. These stops are deliberate abstract-contract guardrails and are directly testable. |
   | `inference_count_composite_likelihood.R` unsupported likelihood-test stubs | Add focused tests | The capability gate prevents ordinary callers from reaching them, but direct internal calls can verify the defensive errors. Keep these guardrails visible in tests rather than excluding them. |
   | `helper_package_checks.R` optional-package guards | Keep/add mocked-missing-package tests; do not exclude | Missing suggested packages are a supported installation state, and tests can mock availability even when CI has every optional package installed. Existing tests already use this pattern for several guards; audit the remaining assertions before adding duplicates. |
-  | `fast_ols.cpp` LDLT-to-QR fallback | Do not exclude yet; retain as a test/reachability question under TODO-6 | The current evidence does not prove the fallback impossible for all accepted inputs. First establish whether a stable finite fixture can make the factorization fail; only then classify a truly unreachable branch for exclusion. |
+  | `fast_ols.cpp` LDLT-to-QR fallback | Do not exclude yet; retain as a test/reachability question under TODO-8 | The current evidence does not prove the fallback impossible for all accepted inputs. First establish whether a stable finite fixture can make the factorization fail; only then classify a truly unreachable branch for exclusion. |
   | `simulation_dgp.cpp` clamped-value checks, the removed `rand_bootstrap_mean_diff_parallel.cpp` compatibility overload, and the deleted `contracts_mixins.R` helpers | No test or exclusion | These candidates were already removed after review, so they no longer contribute executable coverage gaps. |
 
-  This records the disposition, not its implementation: the four Python-only
-  functions still need exclusion entries with inline rationale, and the
-  exact/count-composite guard tests still need to be added. Keep the KK
-  pass-through methods in R coverage and extend their direct tests as needed.
-  Keep TODO-8 open until those changes are in place and the next coverage
-  report confirms the denominator and tests behave as intended.
+  The decision pass records the disposition; implementation and coverage
+  confirmation are tracked below. Keep the KK pass-through methods in R
+  coverage and retain direct tests for their shared host method.
+
+  **TODO-8 implementation (2026-10-16):** `run_shard.R` now excludes only
+  the four Python-owned native helper functions from R covr, with each
+  exclusion naming its Python binding and owning Python test. The focused
+  exact-test default-stop and count-composite unsupported-test assertions
+  were already present in the bulk suite; the existing KK pass-through host
+  test now also checks the parametric-bootstrap sibling against the same
+  independent cached-statistic identity. Existing mocked-missing-package
+  guard tests were audited and retained without duplicates. TODO-8 remains
+  open until a real coverage artifact confirms that the four function bodies
+  leave the R denominator and the retained guard tests are measured.
 
 ### Phase 4: Guardrails against regression
 
@@ -774,11 +808,12 @@ is explicitly not the target** -- see Non-goals below.
     still pinned at the 2026-09-20 figure (**82.79%**) while real coverage
     is now **89.66%**; TODO-9's gate is live but this specific number was
     never bumped. Bundle that decision into whichever session closes out
-    the remaining 17-row backlog, rather than leaving it stale indefinitely.
-  - Work the remaining 14 open rows (TODO-3: 0, TODO-6: 2 pending + 1
-    in_progress, TODO-7: 11). TODO-3's focused test work for its three
-    initial rows and its confirming robust/survival focused coverage
-    measurement are recorded above. TODO-6/7 retain test-writing work.
+    the remaining open-row backlog, rather than leaving it stale indefinitely.
+  - Work the remaining 13 open rows (TODO-3: 0, TODO-6: 0, TODO-7: 12
+    pending, TODO-8: 1 pending), matching the current
+    registry. TODO-3's focused test work for its three initial rows and its
+    confirming robust/survival focused coverage measurement are recorded
+    above. TODO-6 is closed; TODO-7/8 retain follow-up work.
   - **Turning this into a standing protocol (2026-10-15).** Three pieces
     now exist, none yet gating: (a) `coverage_baseline.json` is auto-promoted
     on push to `main` by `test-coverage-R.yaml`'s merge job *when* a

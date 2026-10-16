@@ -117,6 +117,15 @@ wiring_gaps_for_instance = function(inst, class_name) {
 			if (m %in% c("clone", ".__enclos_env__")) next
 			f = tryCatch(get(m, envir = env_info$env), error = function(e) NULL)
 			if (!is.function(f)) next
+			if (identical(m, "compute_fast_randomization_distr")) {
+				cpp_symbols = unique(all.names(body(f), functions = TRUE, unique = FALSE))
+				cpp_symbols = cpp_symbols[grepl("_cpp$", cpp_symbols)]
+				for (cpp_symbol in cpp_symbols) {
+					if (!exists(cpp_symbol, envir = asNamespace("EDI"), inherits = FALSE)) {
+						gaps = c(gaps, sprintf("fast randomization: Rcpp wrapper %s missing", cpp_symbol))
+					}
+				}
+			}
 			for (target in wiring_unguarded_private_calls(f)) {
 				checked = checked + 1L
 				if (!is.function(priv[[target]])) gaps = c(gaps, sprintf("call: %s::%s -> private$%s missing", env_info$kind, m, target))

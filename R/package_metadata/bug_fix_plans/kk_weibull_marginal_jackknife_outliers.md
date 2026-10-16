@@ -93,6 +93,14 @@ well-identified folds unchanged.
   the prior catastrophic −38/+17.5-scale outliers or an RMSE remotely
   disproportionate to mean bias. This is a focused 25-rep recheck, not the
   full comprehensive-results regeneration requested by TODO-8.
+- **Artifact provenance audit 2026-10-16:** the ignored filtered output
+  `R/package_tests/comprehensive_tests_results_nc_1_survival_filtered_design-KK21stepwise_class-InferenceSurvivalKKWeibullMarginal_dataset-diamonds_beta-0_family-jackknife.csv`
+  contains 150 rows (25 replications × 2 formulas × 3 jackknife methods),
+  stamped 2026-10-14 with `github_commit_id=2942b68f6d7ddfe846de0762a2fa628396f72fc3`.
+  The event-per-arm guard is present in that commit's source, so these are
+  post-fix focused-recheck rows. The artifact corroborates TODO-5 only; it
+  is filtered, gitignored, and does not satisfy TODO-8's full
+  comprehensive-results regeneration.
 - [x] TODO-6: Add a permanent regression test constructing a fixture
   likely to produce a degenerate jackknife fold (small clusters, as
   identified by TODO-2) and asserting no fold's estimate exceeds a
@@ -106,6 +114,31 @@ well-identified folds unchanged.
   class.
 - [ ] TODO-8: Regenerate affected `comprehensive_tests` CSV rows once
   fixed and installed (only after install, not before).
+
+  **Regeneration matrix/provenance (2026-10-16):** the canonical
+  `comprehensive_tests_results_nc_1_survival.csv` currently contains 300
+  matching pre-fix rows: reps 1–50 × formulas `~1` and `~.` × the three
+  jackknife operations (`compute_jackknife_estimate`,
+  `compute_jackknife_wald_two_sided_pval`, and
+  `compute_jackknife_wald_confidence_interval`). All match response
+  `survival`, design `KK21stepwise`, class
+  `InferenceSurvivalKKWeibullMarginal`, dataset `diamonds`, and
+  `beta_T=0`. Their timestamps span 2026-08-26 through 2026-08-30 and their
+  provenance is limited to commits `ec003b7eeefab2e40b64b6412f4fc127dee4efac`,
+  `d41880c19a6c8a32a9515b1c19331d73e74f0b3e`, and
+  `842da415c7e17697a118fb2e3dd50908c17ae8ba`; none is post-fix.
+
+  The harness selector for this matrix is
+  `Rscript package_tests/comprehensive_tests.R 50 1 survival KK21stepwise InferenceSurvivalKKWeibullMarginal diamonds 0 NA jackknife`
+  (arguments: repetitions, cores, response, design, class, dataset, beta,
+  rep selector, family). This produces a filtered CSV, not an update to the
+  canonical survival CSV. The existing filtered file already holds the 150
+  post-fix TODO-5 rows (25 reps × 2 formulas × 3 methods), and the harness
+  appends rows; rerunning into that path would duplicate overlapping reps.
+  Therefore the 50-rep run must target an isolated fresh output and any
+  canonical reconciliation must be a separately approved, controlled merge.
+  TODO-8 remains open pending the user's separately managed rebuilt/installed
+  package, isolated full-matrix regeneration, and authorized canonical merge.
 
 TODO-8 remains pending until the affected comprehensive-results rows are
 regenerated with the user's separately managed rebuilt package. The

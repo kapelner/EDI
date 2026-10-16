@@ -681,6 +681,7 @@ LikelihoodFitResult fast_zinb_internal(const Eigen::Ref<const Eigen::MatrixXd>& 
                                        std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt) {
     ZeroInflatedNegBin obj(y_vec, Xc, Xz);
     int n_par = Xc.cols() + Xz.cols() + 1;
+    require_square_matrix(warm_start_fisher_info, n_par, "warm_start_fisher_info");
     Eigen::VectorXd par = Eigen::VectorXd::Zero(n_par);
 
     if (warm_start_params.has_value()) {

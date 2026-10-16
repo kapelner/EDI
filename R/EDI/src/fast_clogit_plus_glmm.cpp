@@ -561,16 +561,16 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 	}
 	Eigen::Map<const Eigen::VectorXd> weights_disc_m(weights_disc_resolved.data(), weights_disc_resolved.size());
 	Eigen::Map<const Eigen::VectorXd> weights_conc_m(weights_conc_resolved.data(), weights_conc_resolved.size());
+	int p_disc = has_discordant ? (int)X_disc.cols() : 0;
+	int p_conc = has_concordant ? (int)X_conc.cols() : 0;
+	int n_par = (has_discordant && has_concordant) ? p_conc + 1 : (has_concordant ? p_conc + 1 : p_disc);
+	require_square_matrix(warm_start_fisher_info, n_par, "warm_start_fisher_info");
 
 	ClogitPlusGLMMObjective obj(
 		X_disc_m, y_disc_m, X_conc_m, y_conc_m, group_conc_m,
 		weights_disc_m, weights_conc_m,
 		has_discordant, has_concordant, n_gh, max_abs_log_sigma
 	);
-
-	int p_disc = has_discordant ? (int)X_disc.cols() : 0;
-	int p_conc = has_concordant ? (int)X_conc.cols() : 0;
-	int n_par = (has_discordant && has_concordant) ? p_conc + 1 : (has_concordant ? p_conc + 1 : p_disc);
 
 	Eigen::VectorXd par = Eigen::VectorXd::Zero(n_par);
 

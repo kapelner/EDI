@@ -242,6 +242,38 @@ hypothesis is now ruled out for this class specifically.
   clogit contribution + concordant/reservoir GLMM contribution, jointly
   optimized with shared coefficients, matching `fast_clogit_plus_glmm.cpp`'s
   actual likelihood) rather than pure `clogit` alone.
+
+  **Addendum 2026-10, different facet of the same "interacts with
+  covariate adjustment" question, does not resolve the sign-flip above**:
+  investigating `InferenceIncidKKCondLogitGLMMOneLik` (sibling class, same
+  `InferenceAbstractKKCondLogitGLMM`/`fast_clogit_plus_glmm_cpp` base) for
+  an unrelated power/calibration question surfaced a confirmed,
+  quantified covariate-count effect on this kernel: estimability, not
+  bias direction. Live repro, same design/response/n, varying only
+  covariate count: 1 covariate -> 39/40 null replicates estimable; 10
+  covariates under `model_formula = ~.` -> only 22/40. Root cause: the
+  discordant-pair conditional-logit term alone must identify treatment
+  plus every covariate from however many pairs are actually discordant,
+  typically a modest fraction of `n`; at 10 covariates the parameter count
+  approaches/exceeds the discordant-pair count and the joint fit
+  increasingly lands on an out-of-bounds coefficient or random-effect
+  log-variance. Among fits that DO converge, Type-I error stayed near
+  nominal (~4%), so this is an estimability/selection effect, not a
+  silently-wrong SE — but it's exactly the kind of mechanism that could
+  also feed this TODO's own open bias-direction question, since `~1` vs
+  `~.` estimable subsets are selected samples of different (and
+  differently-sized) surviving fits, not the same population measured
+  twice. Treated as an accepted property of the estimator in this regime
+  rather than a defect to patch (see
+  `inference_incidence_KK_cond_logit_glmm_abstract.R`'s class-level docs,
+  which state this explicitly with the same numbers). The only concrete
+  code change: failures caused specifically by this parameter/discordant-
+  pair imbalance now get a named reason,
+  `joint_likelihood_nonestimable_high_dimensional_relative_to_discordant_pairs`
+  (with the actual counts), instead of the generic
+  `joint_likelihood_nonestimable` bucket every other cause of the same two
+  bound checks still uses. Not promoted to its own release TODO; recorded
+  here since it's the same kernel this TODO is already tracking.
 - [ ] TODO-5: `InferenceCountQuasiPoisson`'s isolated
   `compute_subsampling_confidence_interval ~. ` perfect-1.000
   over-coverage outlier (164 rows) — not investigated, may be unrelated

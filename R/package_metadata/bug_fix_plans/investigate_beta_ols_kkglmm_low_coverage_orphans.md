@@ -87,6 +87,88 @@ audit summary, not a reproducible raw-result fixture, so any causal claim
 requires a new, documented targeted study rather than retrospective source
 edits.
 
+**Additional historical lead from the isolated comprehensive audit (2026-10-16;
+not a new TODO and not a current-defect claim):** the Oct 16 audit of the
+retained proportion results also flags `InferencePropBetaRegr`'s generic
+`compute_lik_ratio_two_sided_pval`, separate from the older
+`compute_lik_ratio_bootstrap_two_sided_pval` row above. The model-formula
+`~.` group rejects 45/316 null rows (0.142); the legacy rows without an
+explicit model formula reject 29/316 (0.092). The `~1` group rejects 10/316
+(0.032) and was not flagged. As a method-family comparison, the corresponding
+likelihood-ratio-bootstrap rate is 43/339 (0.127), while asymptotic/Wald is
+15/339 (0.044); this is evidence to investigate the LR family, not enough to
+assign a cause. These raw rows all carry commit
+`903ced0404921b7f4a6b5a8b1f7d0a6702466a31` and timestamps from 2026-09-25
+through 2026-09-27, so they are internally same-commit historical evidence,
+not a mixture of commits. They predate the 2026-10-11 source change in
+`inference_proportion_beta.R` that corrected the warm-start coefficient
+vector passed by the likelihood-test null-fit closure. Consequently, current
+reproducibility is unproven; the historical rows must not be called a live
+defect or used to justify a source change without a post-fix calibration
+check. This remains within TODO-52's existing unexplained-finding scope.
+
+**Bounded installed-harness pilot setup check (2026-10-16):** the first
+scratch-only diagnostic invocation selected `response=incidence`,
+`design=FixedBinaryMatch`, `InferencePropBetaRegr`, `dataset=cars`,
+`beta_T=0.5`, one replicate, and the generic likelihood-ratio family. It was
+not a valid calibration cell: `InferencePropBetaRegr` is a proportion model,
+and the harness explicitly skipped FixedBinaryMatch with
+`no covariates provided to run the binary matching algorithm`. The process
+exited 0 but executed zero cells/replicates and wrote no CSV; its unique
+`/tmp/edi-todo52-pilot-lr-20261016/` output directory is empty. Installed
+context was R-devel r90668 and EDI 1.0.3 from
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. No canonical output
+was touched. This is only a setup/skip check, not post-fix calibration
+evidence.
+
+The corrected one-replicate pilot matrix, held until the active TODO-56 run is
+terminal, is response `proportion`, dataset `airquality`, `beta_T=0.3`, and
+`InferencePropBetaRegr`, with separate `Bernoulli` and `FixedBinaryMatch`
+design invocations (the harness accepts one design filter per invocation).
+Run the generic `lik_ratio`, LR parametric-bootstrap (`parametric_bootstrap`),
+and `wald` families as separate calls; the class wrapper covers both `~1` and `~.`
+formula paths. Keep each result in a distinct scratch directory, record
+successful denominators and session metadata, and do not scale to 100
+replicates until pilot timing supports it. Use the checkout runner
+`R/package_tests/comprehensive_tests.R` with argument tuple
+`1 1 proportion <design> InferencePropBetaRegr airquality 0.3 NA <family> narrow fork=FALSE`;
+the family argument is exactly `lik_ratio`, `parametric_bootstrap`, or
+`wald`, and run
+each tuple independently for each of the two designs (six pilot invocations
+total). The runner normally hard-wires its CSV under `R/package_tests/`, so
+do not launch the raw command directly: evaluate the parsed runner in-memory
+with `script_path` fixed to the checkout script and `results_file` overridden
+to `<scratch-root>/<design>/<family>/results.csv`. This preserves the harness
+logic without editing the runner or touching canonical results. The
+`fork=FALSE` argument is already part of the harness's supported CLI and
+keeps this narrow pilot in one process. Note that `r=151` is a separate
+runner constant: the LR parametric-bootstrap call uses `B=151` for each
+formula path even when outer `Nrep=1`, so time the first such cell before
+proceeding with the other parametric-bootstrap pilot calls or expanding to
+100 outer replicates. The ordinary nonparametric `bootstrap` family is not
+the historical LR-bootstrap method under investigation.
+
+**Runner-isolation warning (2026-10-16):** the in-memory instruction above
+must not be implemented as one unrestricted `eval(parse(file=...))`. The
+runner begins with `rm(list=ls())`, selects its script path from process
+arguments/current directory, may enter watchdog setup, and later assigns
+`results_file` unconditionally to the canonical `R/package_tests/` path
+(lines 926-931) before the write path. A future pilot must use an isolated
+evaluation/copy strategy that preserves the checkout `repo_root`, avoids
+watchdog relaunch/`quit()` behavior, and intercepts or replaces the output
+path after runner initialization but before any result loop/write. Verify
+the resolved output path is under that invocation's unique scratch directory
+before starting each call. No corrected pilot has run yet; the six-cell
+matrix remains held until TODO-56 is confirmed terminal.
+
+**Hold reconciliation (2026-10-16):** one Bernoulli/`lik_ratio` invocation
+was briefly started after a process poll returned no R workers, then
+interrupted with SIGINT when the TODO-56 owner reported that its worker was
+still live. It exited 130 before any result CSV was created; its scratch
+directory is empty. No other valid pilot invocation was started. Keep the
+full matrix held until the TODO-56 owner confirms a clean terminal result and
+log.
+
 The lower-priority KKGLMM/KKCLMM check is also affirmative and must remain
 in scope. The same baseline has flagged rows for `InferenceContinKKGLMM`
 (3 low-coverage, 2 low-power, 11 p-value), `InferenceCountKKGLMM` (11

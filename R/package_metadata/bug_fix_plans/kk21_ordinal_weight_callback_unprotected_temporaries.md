@@ -98,8 +98,8 @@ distance), R errors, or a segfault, all nondeterministic.
   Bit-preserving: identical arithmetic, only the undefined behavior goes
   away. Verify by targeted compile of `kk21_weights.cpp` and a relink, then
   rerun the F3 snippet: the `gctorture` call must return `2.357 0.857 0.181`.
-  Implemented with named `NumericMatrix`/`NumericVector` wrappers; targeted
-  compiled execution remains required.
+  Implemented with named `NumericMatrix`/`NumericVector` wrappers; current-HEAD
+  compiled execution is recorded under TODO-3's native-validation evidence.
 - [x] **TODO-2: Sweep `src/` for the same shape.** Grep every
   `Rcpp::Function` / `Function` call site for inline `wrap(...)` or other
   freshly allocated SEXP arguments; record that in the test from TODO-3 as a
@@ -115,8 +115,7 @@ distance), R errors, or a segfault, all nondeterministic.
   `on.exit(gctorture(FALSE))`. Keep the fixture tiny (n = 40, p = 3) since
   `gctorture` is slow. The bulk-CI regression now compares both ordinal
   weight kernels with ordinary calls under `gctorture(TRUE)` and checks the
-  direct univariate ordinal-fit reference. It awaits targeted native rebuild
-  and execution.
+  direct univariate ordinal-fit reference.
 
   **Installed-package smoke 2026-10-14:**
   `Rscript -e 'cat("EDI ", as.character(packageVersion("EDI")), "\\n", sep=""); testthat::test_file("R/package_tests/testthat_bulk/test-kk21-ordinal-weight-kernel-gc-safety.R")'`
@@ -125,9 +124,27 @@ distance), R errors, or a segfault, all nondeterministic.
   `test_file()` evaluated the test from its bulk-test directory, where the
   fixture's relative-path search does not find `R/EDI/src`; the independent
   source sweep above remains its evidence. Both `gctorture(TRUE)` calls
-  against the installed binary passed. This does not establish that the
-  installed binary contains the current checkout's C++ change, so targeted
-  compile/relink and shipped-binary validation remain required.
+  against the installed binary passed. At that point this did not establish
+  that the installed binary contained the checkout's C++ change; the later
+  current-HEAD native validation below closes that gate.
+  **Installed-package rerun 2026-10-16:** after adding the `../../EDI/src`
+  candidate for `testthat::test_file()`'s bulk-test working directory, the
+  focused file completed against installed EDI 1.0.3 with 9 passed, 0
+  skipped, 0 failed, and 0 warnings. This confirms the static source scan is
+  no longer skipped in that invocation and the installed-binary torture
+  assertions still pass; it does not validate the checkout's compiled C++.
+  **Current-HEAD native validation 2026-10-15:** GitHub Actions bulk
+  correctness run `38808821543` succeeded on
+  `430c19bcdb0702d998c79f9058c449449034134c`. The current-commit isolated
+  install job (`116676541980`) succeeded, as did correctness shard 2
+  (`116681563194`); the deterministic planner assigns this test to shard 2
+  from the HEAD runtime manifest (correctness tier, 120-second estimate), and
+  the final `bulk tests passed` job (`116695886005`) succeeded. This run
+  exercises the `gctorture(TRUE)` block because it is the plain correctness
+  tier. The separate coverage run `38808821546` is not evidence for that
+  block: the test explicitly skips gctorture when `R_COVR=true`. Therefore
+  the current-HEAD native-validation gate is satisfied; optional TODO-4
+  remains independent and open.
 - [ ] **TODO-4 (optional, performance):** the helper exists only to reach
   `fast_ordinal_regression_internal` in `fast_ordinal_regression.cpp`
   through R. Declaring that C++ entry point and calling it directly removes

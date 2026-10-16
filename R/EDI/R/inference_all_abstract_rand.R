@@ -308,8 +308,11 @@ InferenceRand = R6::R6Class("InferenceRand",
 					"none"
 				)
 			}
-			cache_key = private$build_randomization_distribution_cache_key(r, delta, transform_responses, permutations)
 			permutation_signature = if (is.null(permutations)) NULL else private$stable_signature(permutations)
+			cache_key = private$build_randomization_distribution_cache_key(
+				r, delta, transform_responses, permutations,
+				permutation_signature = permutation_signature
+			)
 			can_reuse_affine = private$supports_additive_delta_shift(transform_responses) &&
 				!is.null(permutation_signature) &&
 				identical(private$cached_values$t0s_rand_permutation_signature, permutation_signature) &&
@@ -869,9 +872,15 @@ InferenceRand = R6::R6Class("InferenceRand",
 			private$des_obj_priv_int$permutations_cache[[cache_key]] = permutations
 			permutations
 		},
-		build_randomization_distribution_cache_key = function(r, delta, transform_responses, permutations){
+		build_randomization_distribution_cache_key = function(
+			r, delta, transform_responses, permutations, permutation_signature = NULL
+		){
 			delta_key = formatC(as.numeric(delta), digits = 17, format = "fg", flag = "#")
-			perm_sig = private$stable_signature(permutations)
+			perm_sig = if (is.null(permutation_signature)) {
+				private$stable_signature(permutations)
+			} else {
+				permutation_signature
+			}
 			paste(as.integer(r), delta_key, transform_responses, perm_sig, sep = "|")
 		},
 		get_resampling_draw_contract = function(operation){

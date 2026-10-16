@@ -18,6 +18,86 @@ wk_fx <- function(n = 30L, seed = 4L) {
 
 mean_diff <- function(y, w) mean(y[w == 1]) - mean(y[w == 0])
 
+bootstrap_matrix_fixture <- function(kind, n = 1000L, seed) {
+	set.seed(seed)
+	x1 <- rnorm(n)
+	x2 <- rnorm(n)
+	response_type <- switch(kind,
+		OLS = "continuous",
+		logistic = "incidence",
+		Cox = "survival"
+	)
+	design_class <- if (identical(kind, "Cox")) DesignFixediBCRD else DesignFixedBernoulli
+	des <- design_class$new(n = n, response_type = response_type, seed = seed, verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = x1, x2 = x2))
+	des$assign_w_to_all_subjects()
+	w <- as.numeric(des$get_w())
+	if (identical(kind, "OLS")) {
+		y <- 0.5 + 0.7 * w + 0.4 * x1 - 0.2 * x2 + rnorm(n)
+		des$add_all_subject_responses(y)
+		inf <- InferenceContinOLS$new(des, model_formula = ~., verbose = FALSE)
+	} else if (identical(kind, "logistic")) {
+		y <- rbinom(n, size = 1L, prob = plogis(-0.4 + 0.7 * w + 0.3 * x1 - 0.2 * x2))
+		des$add_all_subject_responses(y)
+		inf <- InferenceIncidLogRegr$new(des, model_formula = ~., verbose = FALSE)
+	} else {
+		y <- rexp(n, rate = exp(0.25 * w + 0.2 * x1 - 0.15 * x2))
+		des$add_all_subject_responses(y)
+		inf <- InferenceSurvivalCoxPHRegr$new(des, model_formula = ~., verbose = FALSE)
+	}
+	inf$num_cores <- 1L
+	invisible(inf$compute_estimate(estimate_only = TRUE))
+	list(inf = inf, w = w, y = y, x1 = x1, x2 = x2, n = n)
+}
+
+bootstrap_matrix_reference <- function(kind, y, w, x1, x2, indices) {
+	X <- cbind(`(Intercept)` = 1, treatment = w[indices], x1 = x1[indices], x2 = x2[indices])
+	if (identical(kind, "OLS")) {
+		return(unname(stats::lm.fit(X, y[indices])$coefficients[2L]))
+	}
+	if (identical(kind, "logistic")) {
+		return(unname(stats::glm.fit(X, y[indices], family = stats::binomial())$coefficients[2L]))
+	}
+	df <- data.frame(time = y[indices], treatment = w[indices], x1 = x1[indices], x2 = x2[indices])
+	unname(survival::coxph(survival::Surv(time) ~ treatment + x1 + x2, data = df, ties = "breslow")$coefficients[1L])
+}
+
+checkout_design_backed_sample_loader <- function(parent_private){
+	source_candidates = c(
+		file.path("R", "EDI", "R", "inference_all_abstract_non_param_boot.R"),
+		file.path("..", "..", "EDI", "R", "inference_all_abstract_non_param_boot.R")
+	)
+	source_file = source_candidates[file.exists(source_candidates)][1L]
+	if (is.na(source_file)) stop("Could not locate checkout bootstrap source")
+	source_lines = readLines(source_file, warn = FALSE)
+	start_line = grep("^\\s*load_bootstrap_sample_into_design_backed_worker\\s*=\\s*function\\s*\\(", source_lines)
+	if (!length(start_line)) stop("Could not locate checkout design-backed loader")
+	partial = character()
+	definition = NULL
+	for (line in source_lines[seq.int(start_line[1L], length(source_lines))]) {
+		partial = c(partial, line)
+		candidate = sub(",\\s*$", "", paste(partial, collapse = "\n"))
+		parsed = tryCatch(parse(text = candidate), error = function(e) NULL)
+		if (length(parsed) == 1L) {
+			assignment = parsed[[1L]]
+			if (is.call(assignment) && identical(assignment[[1L]], as.name("=")) &&
+					identical(assignment[[2L]], as.name("load_bootstrap_sample_into_design_backed_worker"))) {
+				definition = assignment[[3L]]
+				break
+			}
+		}
+	}
+	if (is.null(definition)) stop("Could not extract checkout design-backed loader")
+	eval_env = new.env(parent = asNamespace("EDI"))
+	eval_env$private = parent_private
+	eval_env$qr_calls = 0L
+	eval_env$qr = function(...) {
+		eval_env$qr_calls = eval_env$qr_calls + 1L
+		base::qr(...)
+	}
+	eval(definition, envir = eval_env)
+}
+
 test_that("worker state: an independent single-core duplicate plus a snapshot of the base data", {
 	f <- wk_fx()
 	ws <- f$p$create_design_backed_bootstrap_worker_state()
@@ -32,6 +112,31 @@ test_that("worker state: an independent single-core duplicate plus a snapshot of
 	expect_false(identical(ws$worker_des_priv, f$p$des_obj_priv_int))                    # the design was duplicated too
 	expect_identical(ws$worker_priv$des_obj_priv_int, ws$worker_des_priv)
 	expect_equal(ws$base_Xraw, as.data.frame(f$p$des_obj_priv_int$Xraw))
+})
+
+test_that("checkout sample loader reuses only an exact prior full-rank matrix certificate", {
+	f <- wk_fx()
+	ws <- f$p$create_design_backed_bootstrap_worker_state()
+	load_checkout <- checkout_design_backed_sample_loader(f$p)
+	full_rank_indices <- seq_len(f$n)
+
+	load_checkout(ws, full_rank_indices)
+	expect_equal(environment(load_checkout)$qr_calls, 1L)
+	expect_true(isTRUE(ws$worker_priv$bootstrap_qr_rank_certificate$mode == "unweighted"))
+	expect_false(ws$worker_des_priv$model_matrix_stale)
+
+	# Identical X_rank means the earlier QR certifies this draw exactly.
+	load_checkout(ws, full_rank_indices)
+	expect_equal(environment(load_checkout)$qr_calls, 1L)
+	expect_false(ws$worker_des_priv$model_matrix_stale)
+
+	# Repeatedly selecting one row makes intercept and treatment collinear.
+	# The stale full-rank certificate must not bypass this draw's QR/rebuild.
+	load_checkout(ws, rep(1L, f$n))
+	expect_equal(environment(load_checkout)$qr_calls, 2L)
+	expect_null(ws$worker_priv$X)
+	expect_true(ws$worker_des_priv$model_matrix_stale)
+	expect_null(ws$worker_priv$bootstrap_qr_rank_certificate)
 })
 
 test_that("loading a sample subsets the worker's data and the estimate equals the estimate on those rows", {
@@ -109,6 +214,40 @@ test_that("a reused OLS worker fits each resampled design matrix, not the first 
 	expect_gt(abs(second - first), 0.01)
 	expect_equal(second, fresh_second, tolerance = 1e-8)
 	expect_equal(second, reference_second, tolerance = 1e-8)
+})
+
+test_that("direct-subset bootstrap estimates match rebuilt matrices on OLS, logistic, and Cox fixtures", {
+	kinds <- c("OLS", "logistic", "Cox")
+	seeds <- c(20261014L, 20261015L, 20261016L)
+	for (j in seq_along(kinds)) {
+		kind <- kinds[[j]]
+		fixture <- bootstrap_matrix_fixture(kind, n = 1000L, seed = seeds[[j]])
+		p <- fixture$inf$.__enclos_env__$private
+		direct_state <- p$create_design_backed_bootstrap_worker_state()
+		rebuilt_state <- p$create_design_backed_bootstrap_worker_state()
+		# Removing the cached full-data matrix makes the loader mark the design
+		# stale. Materialize the draw-specific matrix explicitly, as the historical
+		# per-draw rebuild path did before fitting the worker estimate.
+		rebuilt_state$base_X <- NULL
+		set.seed(seeds[[j]] + 1000L)
+		draws <- replicate(5L, sample.int(fixture$n, fixture$n, replace = TRUE), simplify = FALSE)
+		for (indices in draws) {
+			p$load_bootstrap_sample_into_design_backed_worker(direct_state, indices)
+			direct <- p$compute_bootstrap_worker_estimate(direct_state)
+
+			p$load_bootstrap_sample_into_design_backed_worker(rebuilt_state, indices)
+			rebuilt_priv <- rebuilt_state$worker$.__enclos_env__$private
+			rebuilt_priv$X <- rebuilt_priv$get_X()
+			rebuilt <- p$compute_bootstrap_worker_estimate(rebuilt_state)
+
+			reference <- bootstrap_matrix_reference(
+				kind, fixture$y, fixture$w, fixture$x1, fixture$x2, indices
+			)
+			expect_true(is.finite(direct) && is.finite(rebuilt) && is.finite(reference))
+			expect_equal(direct, rebuilt, tolerance = 1e-10)
+			expect_equal(direct, reference, tolerance = 1e-10)
+		}
+	}
 })
 
 test_that("a bootstrap sample that makes a rare covariate constant falls back to the rebuild path", {

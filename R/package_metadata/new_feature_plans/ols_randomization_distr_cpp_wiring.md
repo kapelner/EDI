@@ -130,7 +130,11 @@ the kernel inputs at the boundary, and return the batch distribution (or
   parameter matrix was added to `test-parallel-distribution-kernel-contracts.R`
   and passed on 2026-10-14 against the reinstalled package (48 observations,
   8 fixed permutations, covariate counts 0/1/5, `harden` TRUE/FALSE, and
-  `delta` 0/0.5). Dead-export triage and the benchmark remain open.
+  `delta` 0/0.5). **Equivalence subchecks (TODO-3) are satisfied by this
+  installed-package evidence**; it is not a current-checkout native
+  validation. The separate benchmark TODO-5 is checked below. The release
+  parent remains open for current-head native validation and the TODO-4
+  dead-export disposition; TODO-6 (Lin) remains a stretch item.
 - [ ] **TODO-4: Dead-kernel triage.** For each of the nine exports below
   without a production caller, decide *wire in* or *delete*, and do it.
   A Graft caller audit on 2026-10-14 found direct test/benchmark/profiler
@@ -165,6 +169,23 @@ the kernel inputs at the boundary, and return the batch distribution (or
   | `fill_i_b_with_matches_loop_cpp` | `KK_bootstrap_helper_fillin.cpp` | **delete** (also O(m·n); not worth fixing) |
   | `bisection_ci_parallel_cpp`, `bisection_ci_single_bound_cpp` | `bisection_ci.cpp` | **delete** — they call an R `pval_fn` per step, so they cannot be faster than the R bisection, and the R search now has expansion/MC/cache logic they lack |
   | `bisection_ci_loop_cpp` | `bisection_ci_loop.cpp` | **delete**, same |
+  **Source-only caller disposition audit, 2026-10-16:** Trail `callers`
+  and exhaustive `grep` for all nine names show no incoming edge from a
+  production inference path. Their non-generated references are only direct
+  test/benchmark/profiler calls (and their generated `RcppExports`/`.Call`
+  registration plumbing). This confirms “no production caller” for every
+  listed kernel, but does not make the package-private wrappers unreferenced
+  or authorize deleting them. The two Wilcoxon kernels are superseded by the
+  live HL kernel; the two bootstrap loops by the reusable-worker route; the
+  fill-in helper and three bisection kernels are likewise test-only from the
+  source caller graph. These eight match the plan's delete recommendation.
+  `compute_ols_bootstrap_parallel_cpp` also has no production caller, but
+  its disposition remains conditional: first compare its index-matrix/
+  `-1 = NA` contract against the current bootstrap draw path, then a
+  maintainer must choose wire-or-delete. Closure therefore requires that
+  decision, migration/removal of direct contract tests and profiler/benchmark
+  references as applicable, generated Rcpp export/registration updates, and
+  unity-wrapper cleanup. No source/export was changed and no compile was run.
   If a whole file becomes empty, delete the file and its unity-group entry.
   Update `python/` bindings only if any of these were surfaced there (the
   grep says none are).

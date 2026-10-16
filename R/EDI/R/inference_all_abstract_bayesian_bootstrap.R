@@ -631,8 +631,14 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		},
 		load_bayesian_bootstrap_weights_into_worker = function(worker_state, draw){
 			worker_priv = worker_state$worker$.__enclos_env__$private
-			worker_priv$current_bayesian_bootstrap_subject_or_block_weights = as.numeric(draw$subject_or_block_weights)
+			subject_or_block_weights = as.numeric(draw$subject_or_block_weights)
+			worker_priv$current_bayesian_bootstrap_subject_or_block_weights = subject_or_block_weights
 			worker_priv$current_bayesian_bootstrap_context = draw$context
+			worker_priv$bootstrap_qr_positive_weights = length(subject_or_block_weights) > 0L &&
+				all(is.finite(subject_or_block_weights) & subject_or_block_weights > 0)
+			if (!isTRUE(worker_priv$bootstrap_qr_positive_weights)) {
+				worker_priv$bootstrap_qr_rank_certificate = NULL
+			}
 		},
 		load_bayesian_bootstrap_draw_into_worker = function(worker_state, draw, ...){
 			private$load_bayesian_bootstrap_weights_into_worker(worker_state, draw)

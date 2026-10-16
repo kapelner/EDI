@@ -99,6 +99,72 @@ filter), which is a direct equality test.
   17 assertions. The broad fixed-seed assignment equivalence against 1.0.2
   was not established by this run, so TODO 5 remains open pending that check.
 
+  **Repeat diagnostic 2026-10-15:** the same installed-package benchmark
+  script was run twice without compiling/installing: first at `n=1000`,
+  `batch=50`, five repeats (iBCRD row 3.50 ms; blocking 5.90 ms), then with
+  the acceptance settings `batch=100`, seven repeats (iBCRD 4.15 ms; blocking
+  6.12 ms). Both exceed the timing targets and conflict sharply with the
+  2026-10-14 measurements above. The per-stage CSVs are isolated at
+  `/tmp/edi-todo59-installed-20261015.csv` and
+  `/tmp/edi-todo59-installed-exact-20261015.csv`; no canonical benchmark
+  artifact was changed. This is a repeatability warning, not evidence to
+  replace the earlier acceptance result: TODO 5 remains open pending a
+  controlled installed-package run and the missing fixed-seed 1.0.2
+  assignment comparison.
+
+  **Affinity-controlled repeat 2026-10-16:** to reduce scheduling variation,
+  three more exact-acceptance runs (`n=1000`, `batch=100`, seven repeats)
+  were pinned to allowed CPU 0. The host load average before this series was
+  8.22 on 12 visible CPUs. The iBCRD row medians were 3.09, 2.87, and 2.86 ms;
+  the blocking row medians were 6.88, 6.33, and 5.98 ms. All six exceed the
+  respective limits, and the three pinned repetitions are substantially more
+  consistent with each other than with the 2026-10-14 pass. Raw stage CSVs:
+  `/tmp/edi-todo59-pinned-core0-20261016.csv`,
+  `/tmp/edi-todo59-pinned-core0-b-20261016.csv`, and
+  `/tmp/edi-todo59-pinned-core0-c-20261016.csv`. These remain diagnostic;
+  the high host load and absent environment metadata for the earlier run mean
+  they do not establish a code regression. A quiet-host controlled comparison
+  and the 1.0.2 fixed-seed assignment baseline are still needed.
+
+  **Compile-free source/stage audit (2026-10-16):** read-only inspection of
+  the three pinned raw CSVs shows `DesignFixediBCRD$new() only` medians of
+  2.05, 2.30, and 2.06 ms, already above the complete iBCRD acceptance ceiling
+  of 1.5 ms; lazy registration itself is only 0.56–0.59 ms. Deferred first
+  `get_X()` is 5.72–6.45 ms but is not part of the measured iBCRD
+  construction/registration/assignment row. The combined blocking row is
+  5.98–6.88 ms versus a 2.5 ms ceiling, while the stated delegated `block_ra`
+  draw accounts for only 0.7 ms. Source inspection shows each fixed-design
+  constructor routes through `DesignFixed` into `Design$initialize()`, which
+  allocates five length-`n` response/assignment vectors when `n` is fixed;
+  iBCRD then also initializes its implicit `m` block. This is a plausible
+  allocation-cost probe, not proof that any allocation is unnecessary or safe
+  to remove. No source/benchmark changes or timing runs were made in this
+  audit. Next, once TODO-56 releases the CPU, perform a scratch-only,
+  environment-recorded exact-acceptance rerun and add constructor-only
+  `n=NULL` versus `n=1000` diagnostic measurements (plus constructor,
+  registration, and assignment stages for blocking). If fixed-size allocation
+  dominates as predicted, evaluate an opt-in/lazy vector-allocation design
+  only with tests covering fixed-sample getters, assignments, and the full
+  1.0.2 fixed-seed `w` baseline; otherwise revisit the timing target or
+  identify the blocking stage before proposing a code edit. Keep all outputs
+  in unique scratch paths and leave the canonical benchmark unchanged.
+
+  **Source-backed allocation follow-up, 2026-10-16:** the fixed-size path
+  allocates `y`, `y_original`, `w`, `y_L`, and `y_R` once in
+  `Design$initialize()`; iBCRD then creates its single-block `m` vector once
+  through `set_m(rep(1L, n))`. This is per-object construction, not a repeated
+  allocation inside assignment. The exact-response setter indexes all five
+  response/assignment vectors, and the public censoring-bound getters plus
+  `get_effective_time()` preserve length-`n` semantics, so simply omitting
+  `y_L`/`y_R` for non-survival designs is not a drop-in change. Lazy bounds
+  would require a broader storage/API adjustment and synthesize equivalent
+  vectors at later access; the current evidence does not show that it would
+  materially improve the 1.5 ms ceiling. The raw-covariate copy remains
+  intentional because exposed imputed data must not alias caller-mutable
+  input. No low-risk allocation removal is supported by this source audit;
+  do not edit or benchmark it while TODO-56 is active. Keep TODO-5 open for
+  the quiet-host acceptance rerun and fixed-seed 1.0.2 assignment comparison.
+
 ## Implementation and validation (2026-10-09)
 
 TODOs 1--4 are implemented. `edi_package_version()` now reads the version from

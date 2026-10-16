@@ -25,6 +25,10 @@
 #     / handle_error() instead of running the call again.
 #   - A worker that exits non-zero outside any call (e.g. a setup error) is
 #     not relaunched; its exit status is returned.
+#   - If two polls are more than COMPREHENSIVE_SUSPEND_GAP_SEC (default 10)
+#     apart while a call is in flight, the machine was suspended. The
+#     supervisor kills the worker and relaunches it without recording an
+#     outcome, so the call is rerun rather than counted as a timeout.
 #
 # The supervisor needs the processx package. Without it,
 # comprehensive_tests.R warns "watchdog recommended for autorestarts" and
@@ -32,11 +36,10 @@
 # compiled call blocks the run and a native crash ends it.
 #
 # Under the watchdog each result row is written as soon as it is recorded,
-# so a kill loses nothing. Results after a restart can still differ from an
-# uninterrupted run, exactly as when a fork=TRUE run is killed and resumed by
-# hand: the Monte Carlo coverage truth (compute_mc_coverage_truth_simframe())
-# draws from the global RNG in the parent and is cached per class, dataset
-# and beta_T, so a resumed process consumes the stream at different points.
+# so a kill loses nothing. A restarted worker's results match an
+# uninterrupted run exactly: the Monte Carlo coverage truth is simulated
+# under its own seed (get_coverage_truth()), so resuming does not shift the
+# main random stream.
 
 comprehensive_watchdog_read_rds = function(path){
 	if (!nzchar(path) || !file.exists(path)) return(NULL)
@@ -63,6 +66,9 @@ run_comprehensive_tests_watchdog = function(script_path){
 	timeout_sec = as.numeric(Sys.getenv("COMPREHENSIVE_FUNCTION_TIMEOUT_SEC", "120"))
 	grace_sec = as.numeric(Sys.getenv("COMPREHENSIVE_WATCHDOG_GRACE_SEC", "15"))
 	max_restarts = as.integer(Sys.getenv("COMPREHENSIVE_WATCHDOG_MAX_RESTARTS", "100"))
+	# A gap this long between two 1 s polls means the machine was suspended
+	# (same setting as SUSPEND_GAP_SEC in comprehensive_tests.R).
+	suspend_gap_sec = as.numeric(Sys.getenv("COMPREHENSIVE_SUSPEND_GAP_SEC", "10"))
 	run_dir = tempfile("comprehensive_tests_watchdog_")
 	dir.create(run_dir)
 	on.exit(unlink(run_dir, recursive = TRUE), add = TRUE)
@@ -87,6 +93,7 @@ run_comprehensive_tests_watchdog = function(script_path){
 		unlink(marker)
 	}
 	restarts = 0L
+	suspend_restarts = 0L
 	repeat {
 		# supervise = TRUE: processx's own helper kills the worker if this
 		# process dies by any means (e.g. SIGKILL, or a system2() timeout in
@@ -99,11 +106,22 @@ run_comprehensive_tests_watchdog = function(script_path){
 		)
 		worker_pid = worker$get_pid()
 		timed_out = NULL
+		suspended = NULL
+		t_prev = as.numeric(Sys.time())
 		while (worker$is_alive()) {
 			worker$wait(1000)
+			t_now = as.numeric(Sys.time())
+			gap = t_now - t_prev
+			t_prev = t_now
 			info = comprehensive_watchdog_read_rds(marker)
 			if (is.null(info) || !identical(info$pid, worker_pid)) next
-			elapsed = as.numeric(Sys.time()) - info$start_epoch
+			if (gap > suspend_gap_sec) {
+				worker$kill()
+				worker$wait()
+				suspended = c(info, list(gap = gap))
+				break
+			}
+			elapsed = t_now - info$start_epoch
 			if (elapsed > timeout_sec + grace_sec) {
 				worker$kill()
 				worker$wait()
@@ -111,6 +129,22 @@ run_comprehensive_tests_watchdog = function(script_path){
 			}
 		}
 		status = worker$get_exit_status()
+		if (!is.null(suspended)) {
+			# The machine was suspended during this call: record nothing, so
+			# the relaunched worker resumes from the CSV and reruns it. Not
+			# counted against max_restarts.
+			unlink(marker)
+			suspend_restarts = suspend_restarts + 1L
+			if (suspend_restarts > max_restarts) {
+				message(sprintf("Watchdog: giving up after %d suspend restarts.", max_restarts))
+				return(1L)
+			}
+			message(sprintf(
+				"Watchdog: machine suspended for %.0fs during %s; restarted worker %d to rerun the call.",
+				suspended$gap, suspended$label, worker_pid
+			))
+			next
+		}
 		if (!is.null(timed_out)) {
 			add_outcome(timed_out)
 			message(sprintf(

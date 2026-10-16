@@ -20,6 +20,7 @@ library(EDI)
 kk21_weight_source_dir = function() {
 	candidates = c(
 		file.path("R", "EDI", "src"),
+		file.path("..", "..", "EDI", "src"),
 		file.path("..", "..", "src"),
 		file.path("..", "src"),
 		"src"
@@ -38,9 +39,8 @@ test_that("native R callbacks do not pass freshly wrapped objects inline", {
 	}, character(1L)), collapse = "\n")
 	kk21_text = paste(readLines(file.path(src_dir, "kk21_weights.cpp"), warn = FALSE), collapse = "\n")
 
-	expect_match(kk21_text, "NumericMatrix Xs = wrap(X);", fixed = TRUE)
-	expect_match(kk21_text, "NumericVector ys = wrap(y);", fixed = TRUE)
-	expect_match(kk21_text, "List res = f(Xs, ys);", fixed = TRUE)
+	expect_match(kk21_text, "fast_ordinal_regression_internal(X, y)", fixed = TRUE)
+	expect_false(grepl("Function f(\"fast_ordinal_regression_with_var_cpp\")", kk21_text, fixed = TRUE))
 	expect_false(grepl("\\b[A-Za-z_][A-Za-z0-9_]*\\s*\\(\\s*wrap\\s*\\(", source_text, perl = TRUE))
 })
 

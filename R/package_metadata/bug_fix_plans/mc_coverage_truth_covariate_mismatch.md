@@ -182,6 +182,29 @@ neither has actually converged to a fixed point; "stable across seeds
 within one scheme" was necessary but not sufficient evidence of
 correctness.
 
+**What this evidence does not yet establish:** deterministic block cycling
+keeps the paired empirical `(X, y_base)` distribution fixed, whereas the
+bootstrap construction changes its realized row weights on each fit. Those
+are not interchangeable finite-sample experiments, and the evidence above
+does not record a multi-`mc_n` convergence curve or per-fit optimizer/Hessian
+diagnostics. Before treating cross-scheme agreement as an acceptance test,
+the target population must be stated: the fixed empirical dataset
+distribution, or a specified superpopulation for `(X, y_base)`. The
+comprehensive harness currently carries the finite dataset rows into its
+coverage setup, but the plan does not establish maintainer approval that
+this finite empirical projection is the intended matched-Cox truth.
+
+**Safe next step:** obtain that target-population decision first. If the
+finite empirical distribution is intended, the controlled convergence
+experiment should preserve paired rows and their weights, vary only `mc_n`
+and independent simulation seeds, and retain coefficient, convergence,
+and Hessian/usable-fit diagnostics for each fit; bootstrap-resampled rows
+would be a separately labeled sensitivity analysis, not a competing truth
+definition. If a superpopulation is intended, its joint covariate/outcome
+generator must be specified before any run. Until this choice is made, keep
+the two matched-Cox truths unavailable and do not spend another long fit on
+an ambiguous target.
+
 **Most likely explanation:** this isn't a convergence-rate problem fixable
 by raising `mc_n` further. `KKStratCoxPHOneLik`/`diamonds` fits 24
 covariates + treatment via matched-pair/stratified Cox partial likelihood
@@ -305,6 +328,137 @@ lookup, real-covariate forwarding, and the two unavailable matched-Cox cases.
 The prior proportion-truth regression remains green. The multi-hour TODO-4
 result regeneration and TODO-5 baseline re-audit are still release-validation
 work; no shared result CSV or audit baseline was rewritten in this change.
+
+**Artifact readiness audit, 2026-10-16 (read-only):** The retained
+`comprehensive_tests_results_nc_1_survival.csv` is 372,209,537 bytes with
+mtime 2026-09-27 11:19:22 +0300, predating the 2026-10-08 real-covariate
+truth implementation. `comprehensive_results_audit_baseline.csv` is 756,199
+bytes with mtime 2026-09-24 15:59:56 +0300; it predates both that fix and the
+retained survival results. `stale_ok_row_rules.csv` is 18,702 bytes with
+mtime 2026-10-09 01:13:40 +0300, but its later timestamp does not make the
+underlying coverage results current. These artifacts therefore cannot
+validate TODO-4 or serve as TODO-5's post-fix re-audit; both depend on a
+canonical rerun followed by audit regeneration. The plan estimates that
+rerun as multi-hour and explicitly notes it writes shared result CSVs, so it
+was not started here.
+
+The matched-Cox convergence gate is also not resolved by the current source
+guard: `KKStratCoxPHOneLik` and `KKLWACoxPHOneLik` now yield unavailable
+(`NA`) coverage truths, which prevents grading against either known-bad
+candidate but establishes no converged target. Per the existing TODO-6
+warning, no speculative class rerun or covariate-cap choice was made. Keep
+TODO-4/5 pending canonical post-fix artifacts and TODO-6 pending either the
+specified convergence evidence or a maintainer-approved revised scenario.
+
+**Harness/output-path audit, 2026-10-16 (read-only):** the retained survival
+CSV's first rows record commit `8918bada0547a6bfb5454b8623c69e8d50ccc6b5`
+and timestamps from 2026-08-24; the `InferenceSurvivalKMDiff` example row
+has `coverage_truth = 0`, consistent with the pre-TODO-7 raw-`beta_T`
+fallback. The current harness fixes `max_n_dataset = 148`, uses
+`beta_T_values = c(0, 0.5)`, and its survival MC-refit entries use
+`mc_n = 20,000` for Bernoulli-design classes (3,000 for matched classes).
+It writes to a path derived from the script's parent repository, not an
+output-directory argument. A `response=survival`/class-filtered run writes a
+new `_filtered_...csv`; `audit_comprehensive_results.R` reads only the
+canonical `comprehensive_tests_results_nc_1_<response>.csv` files, so such a
+filtered file is diagnostic evidence, not TODO-4/5 completion. The audit's
+`--write-baseline` likewise writes the baseline beside itself after reading
+the canonical response files.
+
+An isolated diagnostic is feasible without redirecting or risking the live
+CSV: stage the harness, `_dataset_load.R`, its likelihood-smoke helper, and
+watchdog under a disposable repository/worktree in `/tmp`, retaining Git
+metadata because startup invokes the dry-run stale-row checker. The runner
+then derives both result and baseline paths from that staged root. A bounded
+first probe should use one non-KK survival MC-refit class, one dataset, one
+replicate, and `beta_T=0.5`; verify that its filtered output is created only
+under the staged root, records the expected HEAD commit and finite MC truth,
+and preserve the staged source diff/hash plus `packageVersion("EDI")`,
+`.libPaths()`, and the installed `EDI.so` hash separately (the CSV records
+the Git HEAD, not the dirty patch or installed-package identity). Do not
+count this filtered probe as coverage confirmation. Before the canonical
+run, enumerate the full stale-row set:
+the current `stale_ok_row_rules.csv` includes the original three survival
+classes but has no `SurvivalKMDiff` rule, and it also lacks the four ordinal
+classes added by TODO-10 (`OrdinalCauchitRegr`, `OrdinalAdjCatLogitRegr`,
+`OrdinalContRatioRegr`, `OrdinalPartialProportionalOddsRegr`). The canonical
+response-file regeneration and audit-baseline rewrite remain a separate,
+explicitly approved multi-hour step; neither was launched here.
+
+**Bounded isolated diagnostic, 2026-10-16:** Ran exactly one filtered
+survival class/dataset/replicate at `beta_T=0.5`, one core, Wald family:
+`InferenceSurvivalKMDiff` / `cars` / rep 1. The disposable clone lives at
+`/tmp/edi-todo10-diagnostic.C97NQu/repo` and retains Git metadata; its HEAD
+is `430c19bcdb0702d998c79f9058c449449034134c`. The checked-out harness and
+watchdog files were copied into it byte-for-byte (SHA-256
+`3a870d1c980505b0b4df01430264d4a969f442111d7258daeb7cab7918c122b4` and
+`6059cbe88972f252e884c9c26c3b13876a13ca5f3f5b6b2a78e44fe0b50a3157`,
+respectively). The filtered output is only in that clone:
+`comprehensive_tests_results_nc_1_survival_filtered_design-Bernoulli_class-InferenceSurvivalKMDiff_dataset-cars_beta-0.5_rep-1_family-wald.csv`.
+Both formula branches returned `status=ok`; the `~1` truth was `0.6141116`
+with CI `[-0.1872613, 0.7778929]`, and the `~.` truth was `0.5755462` with
+CI `[0.3911263, 1.2957628]`; each CI contains its reported MC truth. The
+installed package was EDI 1.0.3 at
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, with `.libPaths()`
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7`,
+`/usr/local/lib/R/site-library`, and `/usr/lib/R/library`; installed
+`libs/EDI.so` SHA-256 was
+`20f5713ae07cf3c7f53b7e5b66657bce028183a1b74d778d83fe0b061135f3a9`.
+This is only a one-replicate diagnostic (and used the installed package),
+not coverage confirmation or canonical regeneration. The canonical survival
+CSV still has its prior 2026-09-27 mtime; no canonical CSV or audit baseline
+was written, and no build/install was run. TODO-4/5 remain open.
+
+**TODO-10 stale-stratum inventory, 2026-10-16 (read-only):** the retained
+survival file is 372,209,537 bytes (mtime 2026-09-27) and the retained
+ordinal file is 417,165,307 bytes (mtime 2026-10-09); among the affected
+classes, the newest row in either file is dated 2026-09-27. The new
+2026-10-16 isolated-seed MC truth therefore has no canonical row yet. The
+harness has 12 survival and 9 ordinal `COVERAGE_MC_SPEC` classes. Existing
+class-wide stale rules are present for only six of them, all with the old
+2026-09-24 cutoff: survival `SurvivalLogRank` (15,666 rows),
+`SurvivalGehanWilcox` (13,425), `SurvivalStratCoxPHRegr` (38,059); ordinal
+`OrdinalRidit` (22,138), `OrdinalKKGLMM` (8,020), and
+`OrdinalKKCLMMCauchit` (7,722). Those six cutoff dates must advance to
+2026-10-16 to expire the retained pre-seed rows; the current rows begin on
+2026-09-24, so the existing cutoff does not expire the post-cutoff portion.
+
+No class-wide rule currently covers these nine survival MC-truth strata
+(row counts in the retained file): `SurvivalKMDiff` (52,262),
+`SurvivalCoxPHRegr` (64,898), `SurvivalWeibullRegr` (120,317),
+`SurvivalDepCensTransformRegr` (50,919), `SurvivalKKLWACoxPHOneLik`
+(12,689), `SurvivalKKStratCoxPHOneLik` (13,744),
+`SurvivalGLMMWeibullFrailtyLoggammaOneLik` (5,186),
+`SurvivalGLMMWeibullFrailtyNormalOneLik` (12,268), and
+`SurvivalKKWeibullMarginal` (10,214). Existing function-specific rules for
+KKLWA and the log-gamma frailty class cover only selected randomization/score
+operations, not every `function_run` whose row stores `coverage_truth`.
+Class-wide rules are also missing for six ordinal MC-truth strata:
+`OrdinalCauchitRegr` (44,111), `OrdinalCloglogRegr` (44,110),
+`OrdinalOrderedProbitRegr` (44,111), `OrdinalAdjCatLogitRegr` (42,682),
+`OrdinalContRatioRegr` (66,981), and
+`OrdinalPartialProportionalOddsRegr` (26,951). Thus 15 classes (611,443
+retained rows) need new class-wide rules; the other six classes (105,030
+rows) need their existing class-wide cutoff advanced. This inventory includes
+all four TODO-10 classes; their old rows are still present despite the source
+registry fix.
+
+The exact pruning scope is one rule per affected response/class with blank
+`function_run` (all functions), cutoff `before_timestamp=2026-10-16`, and a
+`tracked_in` reference to the committed seed-isolation change once that source
+change has a commit. A blank function filter is required because the harness
+records `coverage_truth` on estimate, p-value, CI, and other function rows,
+not just CIs. Full regeneration filters must cover both response types,
+all registered datasets, both `beta_T` values (0 and 0.5), every replicate,
+and every supported function family; the prior diagnostic filter
+`survival / Bernoulli / InferenceSurvivalKMDiff / cars / beta=.5 / rep=1 /
+family=wald` is only four rows and is not representative coverage. The two
+matched Cox classes currently have numeric `coverage_truth` in all retained
+rows but the post-fix unavailable-truth guard returns `NA`; their stale rows
+must be expired class-wide as well. No stale-rule CSV or shared result file
+was changed during this audit. Add the rule rows only after the source commit
+exists so `--check-rules` can validate `tracked_in`; then run the canonical
+survival/ordinal regeneration and audit separately under explicit approval.
 
 8. **New class found 2026-09-24**, via a follow-up fork closing out
    `investigate_incid_logregr_probitregr_coverage.md`'s `low_coverage`

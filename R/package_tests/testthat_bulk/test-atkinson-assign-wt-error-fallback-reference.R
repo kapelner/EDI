@@ -1,6 +1,8 @@
 library(testthat)
 library(EDI)
 
+K <- function(nm) get(nm, envir = asNamespace("EDI"))
+
 # DesignSeqOneByOneAtkinson$assign_wt() (design_seq_one_by_one_atkinson.R, registry weighted_opportunity
 # 7) has a tryCatch around its call to atkinson_assign_weight_cpp(): if the C++ call throws (a
 # non-invertible/non-finite-bias design), it falls back to an unbiased coin flip
@@ -47,4 +49,32 @@ test_that("without the mock, the same fixture completes normally (sanity check t
 		des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
 	}
 	expect_equal(des$get_n(), n)
+})
+
+atkinson_assignment_probability_reference <- function(w_prev, X_prev, xt_prev, t) {
+	# Direct translation of the documented D-optimal leverage update, independent of the C++ RNG.
+	# The treatment, intercept, and covariate columns form Z; M=(t-1)(Z'Z)^-1.
+	Z <- cbind(w_prev, 1, X_prev)
+	M <- (t - 1) * solve(crossprod(Z))
+	x <- c(1, xt_prev)
+	A <- sum(M[1, -1] * x)
+	v <- M[1, 1] / A + 1
+	v^2 / (v^2 + 1)
+}
+
+test_that("the live Atkinson assignment kernel samples its independent D-optimal probability", {
+	set.seed(25L)
+	n <- 30L
+	w_prev <- rep(0:1, length.out = n)
+	X_prev <- cbind(x = seq(-1, 1, length.out = n))
+	xt_prev <- 0.35
+	t <- n + 1L
+	p_ref <- atkinson_assignment_probability_reference(w_prev, X_prev, xt_prev, t)
+	expect_true(is.finite(p_ref) && p_ref > 0 && p_ref < 1)
+
+	# Atkinson's first-stage gate is already past: t = n + 1 > ncol(X_prev) + 3.
+	set.seed(26L)
+	draws <- replicate(2000L, K("atkinson_assign_weight_cpp")(w_prev, X_prev, xt_prev, ncol(X_prev), t))
+	expect_true(all(draws %in% c(0, 1)))
+	expect_equal(mean(draws), p_ref, tolerance = 0.04)
 })

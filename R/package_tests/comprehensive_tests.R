@@ -848,8 +848,8 @@ r = 151
 pval_epsilon = 0.007
 FUNCTION_TIMEOUT_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_FUNCTION_TIMEOUT_SEC", "120"))
 if (!SAFE_CALL_FORK) {
-	if (NUM_CORES > 2L) {
-		message("Note: fork=FALSE has only been validated with nc = 1 and 2 (identical results to fork=TRUE).")
+	if (NUM_CORES > 4L) {
+		message("Note: fork=FALSE has only been validated with nc = 1, 2 and 4 (identical results to fork=TRUE).")
 	}
 	# Calls that hung or crashed an earlier worker in this watchdog session,
 	# keyed by result key (written only by the supervisor, while no worker
@@ -862,6 +862,13 @@ HEARTBEAT_LOG_FILE = Sys.getenv(
 )
 HEARTBEAT_INTERVAL_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_HEARTBEAT_INTERVAL_SEC", "1"))
 HEARTBEAT_GAP_THRESHOLD_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_HEARTBEAT_GAP_THRESHOLD_SEC", "5"))
+# A gap this long between two polls of a timeout loop (which wakes every
+# 0.2-1 s) means the machine was suspended. The call in flight is rerun
+# with fresh deadlines instead of being recorded as a timeout: the heartbeat
+# above only corrects recorded durations, and it missed a 26-minute WSL
+# suspend on 2026-10-15 (further_optimizations.md, section 3).
+SUSPEND_GAP_SEC = as.numeric(Sys.getenv("COMPREHENSIVE_SUSPEND_GAP_SEC", "10"))
+SUSPEND_MAX_RERUNS = 3L
 test_compute_confidence_interval_rand = TRUE
 run_debug_resampling = Sys.getenv("COMPREHENSIVE_DEBUG_RESAMPLING", "0") %in% c("1", "true", "TRUE", "yes", "YES")
 # run_parametric_bootstrap_ci (COMPREHENSIVE_PARAM_BOOT_CI env flag, defaulted
@@ -1792,8 +1799,10 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# would just error again on a forced re-run, not answer a timing
 	# question, so COMPREHENSIVE_FORCE_SLOW_PATHS has no business re-enabling
 	# it.
+	skip_bootstrap_additional_slow = !force_run_slow_paths &&
+		is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$bootstrap)
 	skip_bootstrap = !supports_inference_capability(seq_des_inf, "nonparametric_bootstrap") ||
-		(!force_run_slow_paths && is_any_inference_class_for_formula(ADDITIONAL_TEST_SLOW_PATHS$bootstrap))
+		skip_bootstrap_additional_slow
 	# Package-owned, public registry; formula-, dataset-independent (an
 	# exact_operations entry may optionally restrict itself to one
 	# model_formula via a `||model_formula` suffix -- see
@@ -1892,8 +1901,11 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# static mixin-composition answer. Direct private access is no longer
 	# needed for this one. Requires EDI >= the 2026-09-15 install with this
 	# signature change -- confirmed live against the installed package.
-	skip_bayesian_bootstrap = skip_bootstrap || skip_bootstrap_slow ||
-		!("bayesian_bootstrap" %in% EDI:::get_effective_capabilities(seq_des_inf))
+	skip_bayesian_bootstrap = should_skip_bayesian_bootstrap(
+		skip_bootstrap_additional_slow,
+		skip_bootstrap_slow,
+		EDI:::get_effective_capabilities(seq_des_inf)
+	)
 	# Deliberately NOT gated on is(seq_des_inf, "InferenceParamBootstrap") --
 	# that only catches the 7 classes literally `inherit = InferenceParamBootstrap`.
 	# EDI composes the same capability onto ~32 more classes (InferenceContinOLS,
@@ -2474,8 +2486,13 @@ safe_call = function(label, expr){
 				list(ok = TRUE, value = R.utils::withTimeout(eval(expr), cpu = Inf, elapsed = FUNCTION_TIMEOUT_SEC, onTimeout = "error")),
 				error = function(e) list(ok = FALSE, error = e)
 			)
-			if (nzchar(WATCHDOG_MARKER)) unlink(WATCHDOG_MARKER)
 			setTimeLimit(cpu = Inf, elapsed = Inf, transient = FALSE)
+			# A call that ran past the limit may have been stretched by a
+			# machine suspend. Keep the marker live for two of the
+			# supervisor's 1 s polls, so it can kill this worker and have the
+			# call rerun before a spurious timeout is recorded.
+			if (nzchar(WATCHDOG_MARKER) && as.numeric(Sys.time()) - start_epoch >= FUNCTION_TIMEOUT_SEC) Sys.sleep(2)
+			if (nzchar(WATCHDOG_MARKER)) unlink(WATCHDOG_MARKER)
 			for (i in seq_along(state_envs)) {
 				e = state_envs[[i]]
 				saved = saved_state[[i]]
@@ -2529,17 +2546,38 @@ safe_call = function(label, expr){
 			# (including ones that legitimately return NULL) produces the
 			# envelope; a dead child's collected[[1]] stays bare NULL/not-a-list,
 			# now handled explicitly below instead of reaching handle_success().
-			child = parallel::mcparallel({
-				seq_des_inf$num_cores = as.integer(NUM_CORES)
-				list(.safe_call_child_completed = TRUE, value = eval(expr))
-			}, silent = TRUE, mc.set.seed = FALSE)
-			deadline = start_elapsed + FUNCTION_TIMEOUT_SEC
-			collected = NULL
-			repeat {
-				remaining = deadline - unname(proc.time()[["elapsed"]])
-				if (remaining <= 0) break
-				collected = parallel::mccollect(child, wait = FALSE, timeout = min(0.2, remaining))
-				if (!is.null(collected)) break
+			# A suspend during the call (a poll gap over SUSPEND_GAP_SEC) kills
+			# the child and reruns the call with fresh deadlines. The rerun is
+			# exact: the parent's state and seed are untouched by the child.
+			for (suspend_rerun in 0:SUSPEND_MAX_RERUNS) {
+				child = parallel::mcparallel({
+					seq_des_inf$num_cores = as.integer(NUM_CORES)
+					list(.safe_call_child_completed = TRUE, value = eval(expr))
+				}, silent = TRUE, mc.set.seed = FALSE)
+				deadline = start_elapsed + FUNCTION_TIMEOUT_SEC
+				collected = NULL
+				suspended_sec = 0
+				t_prev = unname(proc.time()[["elapsed"]])
+				repeat {
+					remaining = deadline - t_prev
+					if (remaining <= 0) break
+					collected = parallel::mccollect(child, wait = FALSE, timeout = min(0.2, remaining))
+					t_now = unname(proc.time()[["elapsed"]])
+					if (t_now - t_prev > SUSPEND_GAP_SEC) {
+						suspended_sec = t_now - t_prev
+						break
+					}
+					t_prev = t_now
+					if (!is.null(collected)) break
+				}
+				if (suspended_sec == 0 || suspend_rerun == SUSPEND_MAX_RERUNS) break
+				try(tools::pskill(child$pid, signal = tools::SIGKILL), silent = TRUE)
+				try(parallel::mccollect(child, wait = FALSE), silent = TRUE)
+				message(sprintf("          Machine suspended for %.0fs during %s(); rerunning it.", suspended_sec, label))
+				start_elapsed = unname(proc.time()[["elapsed"]])
+				start_epoch = as.numeric(Sys.time())
+				assign(".comprehensive_current_call_start_epoch", start_epoch, envir = .GlobalEnv)
+				options(EDI.ci_timeout_deadline = start_elapsed + FUNCTION_TIMEOUT_SEC)
 			}
 			if (is.null(collected)) {
 				try(tools::pskill(child$pid, signal = tools::SIGKILL), silent = TRUE)
@@ -3177,7 +3215,22 @@ instantiate_inference_generator = function(class_gen, des_obj, model_formula = N
 
 is_skipped_inference_label = function(class_names){
 	class_names %in% c("InferenceIncidCMH", "InferenceIncidExtendedRobins") |
-		grepl("IVWC", class_names, fixed = TRUE)
+		(grepl("IVWC", class_names, fixed = TRUE) &
+			class_names != "InferenceIncidKKCondLogitGLMMIVWC")
+}
+
+select_kk_incidence_glmm_ivwc_generator = function(should_run = function(class_name) TRUE){
+	Filter(function(class_gen) should_run(class_gen$classname), list(
+		InferenceIncidKKCondLogitGLMMIVWC
+	))
+}
+
+should_skip_bayesian_bootstrap = function(skip_additional_bootstrap_slow,
+										 skip_registered_bootstrap_slow,
+										 capabilities){
+	 isTRUE(skip_additional_bootstrap_slow) ||
+		isTRUE(skip_registered_bootstrap_slow) ||
+		!("bayesian_bootstrap" %in% capabilities)
 }
 
 run_exhaustive_remaining_inference_classes = function(des_obj, response_type, design_type, dataset_name, n_rows, n_cols, model_formula = NULL){
@@ -3570,6 +3623,14 @@ coverage_truth_cache_key = function(base_class, dataset_name, beta_T_val, use_re
 	paste(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint, sep = "||")
 }
 
+# Deterministic seed in [0, 2^31 - 1) from a coverage-truth cache key
+# (a polynomial string hash; exact in doubles since h < 2^31).
+coverage_truth_seed = function(key){
+	h = 0
+	for (code in utf8ToInt(key)) h = (h * 31 + code) %% 2147483647
+	as.integer(h)
+}
+
 get_coverage_mc_spec = function(base_class, response_type_hint = NA_character_){
 	spec = COVERAGE_MC_SPEC[[base_class]]
 	if (is.null(spec) && !is.na(response_type_hint)) {
@@ -3631,7 +3692,7 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 		# the wrong truth (the ~8-10% "biased_estimate"/degenerate-looking rows
 		# were this, not an estimator bug -- the actual per-replicate estimates
 		# were ordinary). Retry a small, bounded number of times with a fresh MC
-		# draw (the RNG state advances between calls, so a retry is a genuinely
+		# draw (each attempt has its own seed, below, so a retry is a genuinely
 		# different fit, not a repeat) before giving up and returning NA
 		# (matching the existing "don't cache a bad value" contract) rather than
 		# silently caching an implausible truth. Bound is response-type-specific
@@ -3648,7 +3709,24 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 		}
 		max_mc_attempts = 5L
 		truth = NA_real_
+		# The truth is simulated under its own seed (from the cache key, plus
+		# the attempt number so a retry is a different fit), and the main
+		# random stream is restored afterwards. Drawing from the main stream
+		# made every later draw depend on whether, and when, this cache was
+		# filled, so a killed-and-resumed run (including a fork=FALSE
+		# watchdog restart) diverged from an uninterrupted one. Adopted
+		# 2026-10-16; this changed every draw relative to earlier baselines.
+		had_main_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+		if (had_main_seed) main_seed = get(".Random.seed", envir = .GlobalEnv)
+		on.exit({
+			if (had_main_seed) {
+				assign(".Random.seed", main_seed, envir = .GlobalEnv)
+			} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+				rm(".Random.seed", envir = .GlobalEnv)
+			}
+		}, add = TRUE)
 		for (attempt in seq_len(max_mc_attempts)) {
+			set.seed((coverage_truth_seed(key) + attempt) %% .Machine$integer.max)
 			truth = tryCatch(
 				compute_mc_coverage_truth_simframe(
 					eval(spec$gen), eval(spec$design), spec$rt, dataset_name, beta_T_val, spec$mc_n,
@@ -3776,6 +3854,20 @@ get_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val,
 		return(NA_real_)
 	}
 	beta_T_val
+}
+
+select_kk_survival_class_generators = function(should_run = function(class_name) TRUE){
+	Filter(function(class_gen) should_run(class_gen$classname), list(
+		InferenceSurvivalKKWeibullMarginal,
+		# IVWC classes are intentionally excluded from the exhaustive namespace
+		# sweep; include this fixed KK survival path explicitly so its repaired
+		# randomization-family rows are emitted by comprehensive_tests.
+		InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC,
+		InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik,
+		InferenceSurvivalKKLWACoxPHOneLik,
+		InferenceSurvivalKKStratCoxPHOneLik,
+		InferenceSurvivalGLMMWeibullFrailtyNormalOneLik
+	))
 }
 
 run_tests_for_response = function(response_type, design_type, dataset_name, model_formula = NULL){
@@ -3996,14 +4088,16 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		run_inference_checks(InferenceIncidWald$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		if (is_kk_design){
 			run_inference_checks_both_paths(InferenceIncidKKCondLogitOneLik, "InferenceIncidKKCondLogitOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
-			run_inference_checks_both_paths(InferenceIncidKKCondLogitGLMMOneLik, "InferenceIncidKKCondLogitGLMMOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			for (kk_glmm_class in select_kk_incidence_glmm_ivwc_generator(should_run_inference_label)){
+				class_name = kk_glmm_class$classname
+				run_inference_checks_both_paths(kk_glmm_class, class_name, des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
+			}
 			run_inference_checks_both_paths(InferenceIncidKKGEE, "InferenceIncidKKGEE", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
 			inference_banner("InferenceIncidKKNewcombeRiskDiff")
 			run_inference_checks(InferenceIncidKKNewcombeRiskDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 			run_inference_checks_both_paths(InferenceIncidKKGCompRiskDiff, "InferenceIncidKKGCompRiskDiff", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
 			run_inference_checks_both_paths(InferenceIncidKKGCompRiskRatio, "InferenceIncidKKGCompRiskRatio", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
 			run_inference_checks_both_paths(InferenceIncidKKModifiedPoisson, "InferenceIncidKKModifiedPoisson", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
-			run_inference_checks_both_paths(InferenceIncidKKCondLogitGLMMOneLik, "InferenceIncidKKCondLogitGLMMOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
 		}
 		run_inference_checks_both_paths(InferenceIncidLogRegr, "InferenceIncidLogRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
 		if (!is_kk_design){
@@ -4070,13 +4164,7 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 				grepl("does not currently support censored", msg, fixed = TRUE) ||
 				grepl("does not support censored", msg, fixed = TRUE)
 			}
-			for (kk_surv_class in Filter(function(class_gen) should_run_inference_label(class_gen$classname), list(
-				InferenceSurvivalKKWeibullMarginal,
-				InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik,
-				InferenceSurvivalKKLWACoxPHOneLik,
-				InferenceSurvivalKKStratCoxPHOneLik,
-				InferenceSurvivalGLMMWeibullFrailtyNormalOneLik
-			))){
+			for (kk_surv_class in select_kk_survival_class_generators(should_run_inference_label)){
 				class_name = kk_surv_class$classname
 				inference_banner(class_name)
 				err_msg = tryCatch({

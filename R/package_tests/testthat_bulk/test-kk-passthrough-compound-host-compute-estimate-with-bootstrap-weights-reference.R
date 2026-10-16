@@ -22,7 +22,7 @@ library(EDI)
 # context wiring the real bootstrap loop uses (inference_all_abstract_bayesian_bootstrap.R), and
 # independently cross-checking every branch against the KKstats cache's own d_bar/r_bar/w_star.
 
-fx <- function(seed, n = 40L) {
+fx <- function(seed, n = 40L, cls = "InferenceKKPassThroughCompoundNoParamBootstrap") {
 	set.seed(seed)
 	des <- DesignSeqOneByOneKK14$new(n = n, response_type = "continuous", verbose = FALSE)
 	X <- data.frame(x1 = rnorm(n))
@@ -30,7 +30,7 @@ fx <- function(seed, n = 40L) {
 	w <- des$get_w()
 	y <- rnorm(n) + 0.8 * w
 	des$add_all_subject_responses(y)
-	inf <- EDI:::InferenceKKPassThroughCompoundNoParamBootstrap$new(des, verbose = FALSE)
+	inf <- get(cls, envir = asNamespace("EDI"), inherits = FALSE)$new(des, verbose = FALSE)
 	priv <- inf$.__enclos_env__$private
 	priv$compute_basic_match_data()
 	priv$compute_reservoir_and_match_statistics()
@@ -43,6 +43,13 @@ test_that("uniform (all-1) unit weights reproduce the observed KKstats-combined 
 	f <- fx(1L)
 	out <- f$inf$compute_estimate_with_bootstrap_weights(rep(1, f$ctx$n_units), estimate_only = FALSE)
 	KKstats <- f$priv$cached_values$KKstats
+	expect_equal(out, KKstats$w_star * KKstats$d_bar + (1 - KKstats$w_star) * KKstats$r_bar, tolerance = 1e-10)
+})
+
+test_that("the parametric-bootstrap sibling composes the same weighted-estimate host method", {
+	f <- fx(6L, cls = "InferenceKKPassThroughCompound")
+	KKstats <- f$priv$cached_values$KKstats
+	out <- f$inf$compute_estimate_with_bootstrap_weights(rep(1, f$ctx$n_units), estimate_only = FALSE)
 	expect_equal(out, KKstats$w_star * KKstats$d_bar + (1 - KKstats$w_star) * KKstats$r_bar, tolerance = 1e-10)
 })
 
