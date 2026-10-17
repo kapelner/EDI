@@ -232,10 +232,24 @@ not exist either.
   wiring test now parses each direct fast-path wrapper's `.Call` target and
   checks for its generated registration row in checkout `src/RcppExports.cpp`;
   the focused installed-package run passes 152 assertions. This catches
-  source-level wrapper/registration drift but does not validate a rebuilt
-  current-head shared library. Current-checkout native coercion/symbol mapping
-  validation remains outstanding; release TODO-64 stays open pending that
-  gate.
+  source-level wrapper/registration drift but does not by itself validate a
+  rebuilt current-head shared library; the installed-package rerun below
+  supplies that runtime evidence.
+
+  **Installed-package rerun, 2026-10-16:** after the user-reported rebuild,
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-randomization-fast-path-wiring-reference.R", package = "EDI")'`
+  passed all 152 assertions against `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`
+  (EDI 1.0.3; `edi_build_info_cpp()` timestamp `2026-10-16 18:00:39 IDT`).
+  The installed-package
+  `R/EDI/tests/testthat/test-inference-class-wiring-completeness.R` also passed
+  all 10 assertions.
+  The installed build timestamp is later than checkout HEAD
+  `6a9b91c4231853de1a14ab935beb2349ca9a189a` (17:50:36 IDT), and the checkout
+  had no source changes at test time. The package does not embed its source
+  commit, so there is no exact build-SHA attestation. Given the user's report
+  that they rebuilt this checkout and the post-HEAD build timestamp, this is
+  accepted as current-head native coercion/symbol-mapping validation; release
+  TODO-64 is closed, with the provenance caveat retained.
 
   **CI artifact/readiness audit, 2026-10-16:** the successful
   `test-bulk-non-cran` run `38808821543` is on HEAD
@@ -245,24 +259,22 @@ not exist either.
   successful full `test-coverage` run `38808821546` and
   `test-coverage-R-advanced` run `38808821369` are also on that HEAD. These
   runs establish that CI built the committed native source, but do NOT close
-  this targeted parity gate: the focused
+  this targeted parity gate: neither the focused
   `R/package_tests/testthat_bulk/test-randomization-fast-path-wiring-reference.R`
-  is untracked in the current checkout (and the expanded
-  `test-inference-class-wiring-completeness.R` is modified locally), so neither
-  test's current content was in commit `430c19bc` or executed by those runs.
+  nor the expanded `test-inference-class-wiring-completeness.R` was present
+  at commit `430c19bc` or executed by those runs. Both tests are tracked at
+  current HEAD and passed in the post-HEAD installed-package rerun above;
+  the old CI artifacts are not used as evidence for that rerun.
   Existing tracked IVWC combination tests and OLS-OneLik fast/worker parity
   tests are not a substitute for the non-vacuous `InferenceContinKKOLSIVWC`
   fast-path/worker fixture. `R-CMD-check` run `38808821525` on the same HEAD
   was still in progress at this audit; it likewise cannot include those
   untracked/local test edits.
 
-  **Non-compiling artifact option:** to test the current native implementation
-  without a local compile, explicit approval is required to download and
-  extract artifact `edi-build` from run `38808821543` into `/tmp`, then run the
-  focused parity test with that artifact's preinstalled library on
-  `.libPaths()`. No artifact was downloaded or installed during this audit.
-  Until that permission is granted and the test passes against the artifact,
-  or another valid native run is available, keep release TODO-64 unchecked.
+  **Non-compiling artifact option (superseded):** an earlier audit proposed
+  downloading and extracting artifact `edi-build` from run `38808821543` into
+  `/tmp`. It was not used; the post-HEAD installed-package rerun above supplied
+  native execution evidence without downloading or compiling locally.
 
   **Placement rationale:** this is a bulk-tier dispatch-parity test: the
   existing `test-inference-class-wiring-completeness.R` only checks structural

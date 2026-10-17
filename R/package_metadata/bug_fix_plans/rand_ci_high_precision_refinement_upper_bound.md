@@ -218,10 +218,12 @@ permutation object. The replay bundle retains the data, response/covariates,
 realized assignment, permutations, RNG kind/states, controls, bound entry and
 diagnostics, and package/R session metadata. This is a static design review
 only: the prepared search has not run and no candidate/result bundle exists.
-Two review caveats remain: provenance records package path/version/Built and
-RemoteSha when available but not the loaded `EDI.so` path/hash; and the
-straddle predicate is orientation-agnostic rather than explicitly requiring
-the expected upper-bound ordering. Neither caveat changes the current
-acceptance criteria. Keep the search held until TODO-56 is terminal and host
-load is suitable; if a candidate is retained, pause for review before any
-old-branch counterfactual or coverage run.
+**Harness amendment (2026-10-16):** the held script now records the loaded
+EDI shared-library path and SHA-256 (with `<unavailable>` fallback), checks
+that this provenance remains stable across the search, and requires the
+expected upper-bound orientation `p(l) >= pval_th >= p(u)` in addition to the
+existing straddle/span and midpoint gates. These amendments close the two
+static-review caveats without changing the acceptance criteria. The amended
+search has not run and no candidate bundle exists. Keep it held until TODO-56
+is terminal and host load is suitable; if a candidate is retained, pause for
+review before any old-branch counterfactual or coverage run.

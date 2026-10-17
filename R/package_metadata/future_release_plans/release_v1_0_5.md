@@ -2192,7 +2192,7 @@ baseline as expected/benign.
   that binary and does not validate the current C++ checkout or replace the
   pending rebuild-backed Python/sanitizer gate.
 
-- [ ] TODO-64 (added 2026-10-07, filed on the model's initiative under the
+- [x] TODO-64 (added 2026-10-07, filed on the model's initiative under the
   standing "add found bugs to v1.0.5" instruction; delete if unwanted):
   **Dead randomization fast paths: a kernel that does not exist, two type
   mismatches, and a dispatcher that hides both** —
@@ -2256,14 +2256,24 @@ baseline as expected/benign.
   class-defined fast-distribution override in installed EDI 1.0.3, consistent
   with deleting the dead method. These close the checked-in all-class test and
   non-vacuous fixture gaps, but do not validate the current checkout's native
-  coercion/symbol mapping. TODO-64 remains deliberately unchecked pending a
-  current-checkout native validation after an explicitly authorized rebuild/
-  install. **Additional source-only registration gate, 2026-10-16:** the
+  coercion/symbol mapping. **Additional source-only registration gate,
+  2026-10-16:** the
   checked-in wiring test now also verifies that each direct fast-path wrapper's
   `.Call` symbol has a generated registration entry in checkout
   `src/RcppExports.cpp`; the focused installed-package run passed 152
-  assertions. This strengthens static source coverage only and does not close
-  the current-head native-validation gate.
+  assertions. This strengthened static source coverage but did not by itself
+  close the current-head native-validation gate. **Closure evidence,
+  2026-10-16:** following the user's reported rebuild, both
+  `test-randomization-fast-path-wiring-reference.R` (152 assertions) and
+  `R/EDI/tests/testthat/test-inference-class-wiring-completeness.R`
+  (10 assertions) passed against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Its embedded build
+  timestamp is `2026-10-16 18:00:39 IDT`, after current checkout HEAD
+  `6a9b91c4231853de1a14ab935beb2349ca9a189a` (`17:50:36 IDT`); the checkout
+  had no source changes at test time. The package does not embed a Git SHA,
+  so this relies on the user's rebuild report plus timestamp and clean source
+  tree rather than an artifact SHA attestation. This validates current native
+  coercion/symbol mapping and closes TODO-64.
 
 - [x] TODO-65 (added 2026-10-08, user decision): **KK21 ordinal weight
   kernels: unprotected `wrap()` temporaries in an R callback in

@@ -326,6 +326,22 @@ the full audit-to-dispatch cross-reference is still open.
   the confirmed affected classes' `smoothed` variant once fixed and
   installed (only after install, not before, same caution as the sibling
   plans this session produced).
+  **Existing-artifact audit 2026-10-16:** no artifact closes this gate.
+  Checked-in `comprehensive_results_audit_baseline.csv` is last committed at
+  `11f61e0a` (2026-09-24). The ignored raw comprehensive CSVs have local mtimes
+  from 2026-09-27 (count) and 2026-10-09 (continuous/incidence/ordinal), but
+  no source-SHA/package-library provenance tying their rows to the corrected
+  code; their timestamps alone are not accepted as a post-fix regeneration.
+  The successful full coverage CI run `38808821546` used commit
+  `430c19bcdb0702d998c79f9058c449449034134c` and exposed 103 artifacts; the
+  complete artifact-name list consists only of `coverage-merged`,
+  `coverage-registry`, and `coverage-shard-*`, not simulation results. The
+  later scheduled coverage run `38862282598` on the same commit skipped its
+  plan, shard, and merge jobs. The `430c19bc` pre-push regeneration commit
+  changed only `comprehensive_suite_internal_surfaces.csv`. TODO-56's local
+  snapshot is a copy of the old comprehensive CSVs and its rerun targets
+  ModifiedPoisson, not these smoothed cells. A provenance-recorded,
+  post-install TODO-18 rerun and verified output rows are still required.
 
 ## Standing constraints
 

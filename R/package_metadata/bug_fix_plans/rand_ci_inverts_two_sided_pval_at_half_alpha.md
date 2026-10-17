@@ -83,3 +83,19 @@ and the CI's own draws.
 - [ ] TODO-4: Regenerate the `rand` / `rand_bootstrap` CI rows of the
   `comprehensive_tests` CSVs, and re-run any coverage tables or docs that
   quote randomization-CI coverage.
+
+  Reconciliation audit (2026-10-16): the targeted CI slice is the exact
+  `compute_rand_confidence_interval` and
+  `compute_rand_bootstrap_confidence_interval` `function_run` allowlist,
+  including `_studentized`, `_symmetric-percentile-t`, and `_smoothed`
+  variants. A read-only audit of the current continuous/count/proportion/
+  survival CSVs found 44,905/4,877/2,038/19,349 selected rows respectively;
+  every selected row had `status=ok` and complete seven-field keys. The
+  continuous CSV has 83 duplicated keys (82 with conflicting
+  result/status/coverage signatures across historical commits) and 3
+  duplicated `run_row_id` values. The other three CSVs have no duplicate
+  seven-field keys. Therefore key-wise upsert is unsafe, especially for
+  continuous. After a full fresh regeneration, replace the targeted CI slice
+  as a whole in each affected CSV, preserve non-target rows, and verify
+  targeted cell coverage plus fresh `run_row_id` uniqueness. This audit does
+  not close TODO-4: the current canonical rows have not been regenerated.

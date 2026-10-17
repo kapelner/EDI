@@ -226,27 +226,100 @@ are fixed here because they are still exported and registered.
   `/tmp/edi-*` trees contains `InferenceIncidKKCondLogitGLMMIVWC`. The stale
   filtered OneLik artifact has only the ten Bayesian-bootstrap methods
   (five confidence-interval variants and five two-sided-p-value variants),
-  across its two beta values. Thus current post-fix rows are absent for both
+  repeated across `model_formula=~1` and `model_formula=~.`; its rows are all
+  `beta_T=0`, rep 1, dataset `pima`, design `KK21stepwise`, with status `ok`.
+  The matching workspace CSV and TODO-56 snapshot copy are byte-identical
+  (SHA-256 `329a7182430e46eb5f4f97c387f397ba378978e8489f1aa92ea742c5293b6fd2`).
+  Thus current post-fix rows are absent for both
   affected incidence classes: `InferenceIncidKKCondLogitGLMMOneLik` and
   `InferenceIncidKKCondLogitGLMMIVWC`, for all ten methods in
   `bayesian_bootstrap`.
 
-  **Minimum isolated regeneration (not run):** copy the current `R/` tree to
-  a unique `/tmp/edi-todo77.*` directory, then run from that copy's `R/` root
-  with the already-installed package library first on `R_LIBS_USER`:
+  **CI artifact reconciliation, 2026-10-16 (read-only):** successful bulk
+  test run `38808821543` used SHA
+  `430c19bcdb0702d998c79f9058c449449034134c`, which includes the source fix
+  from ancestor commit `c189e94f` (2026-10-10). It is post-fix, but it
+  predates the current checkout HEAD `3af6e7a3`; the run's result scope is
+  limited to the joint-kernel/class-dispatch regression and is not evidence
+  for comprehensive Bayesian-bootstrap rows at current HEAD. The installed
+  EDI 1.0.3 library was built at 2026-10-16 01:54:50 IDT, before current HEAD
+  was produced at 17:40 IDT, so it too is stale for current-HEAD validation.
+  (shard-4 job `116681563370`, artifact `correctness-shard-4`, SHA-256
+  `0263aa80b11c88929309ac72ca8d9926d88b0efe9807ef4414db743586a608ed`). Its
+  shard plan assigns `test-clogit-plus-glmm-joint-kernel-glmer-and-conditional-logit-references.R`
+  to correctness shard 4; the artifact timing row reports `0.839` seconds,
+  status `complete`. This is valid post-fix focused native-kernel/class
+  validation, not a comprehensive Bayesian-bootstrap run: the artifact has
+  only shard timings, not result CSV rows. In the current tracked
+  `comprehensive_suite_workflow_coverage.csv` (also generated at
+  `430c19bc…`), the generic fixed-Bernoulli constructor smoke rows for both
+  classes are `exempted` because those inference classes require a
+  KK-matching or binary-match design; the two default Bayesian-bootstrap
+  method rows per class remain `workflow_only` with zero recorded calls.
+  Consequently this CI evidence does not satisfy the comprehensive-results
+  reconciliation gate.
+
+  The focused comprehensive selector in `run_inference_checks_both_paths()`
+  emits both `model_formula=~1` and `model_formula=~.` for these classes. For
+  the one-rep/one-dataset slice below, reconcile 40 expected keys: 2 classes
+  × 2 formula labels × 10 methods. The ten method labels are default/basic/
+  Wald/BCa/studentized Bayesian-bootstrap confidence intervals and
+  default/symmetric/Wald/BCa/studentized two-sided p-values. Compare the CSV
+  key fields `rep`, `beta_T`, `dataset`, `response_type`, `design`,
+  `inference_class`, and `function_run` (plus `case_id`), and require
+  `method_family=bayesian_bootstrap`, the post-fix `github_commit_id`, and
+  terminal per-row status; preserve explicit `nonestimable` reasons rather
+  than treating them as errors. Expected post-fix slice: rep 1, beta_T 0,
+  pima, incidence, KK21stepwise. A wider release reconciliation must then
+  cover every accepted seed/beta/dataset slice, not just this minimal
+  diagnostic.
+
+  **Minimum isolated regeneration (static protocol only; not run):** after
+  TODO-56 is terminal and a package built/installed from the intended current
+  source commit is available, make a disposable copy of the required current
+  `R/` test/data tree under `/tmp/edi-todo77.*` and run the harness from that
+  copy's `R/` root. Keep `repo_root` at the disposable copy so its CSV goes to
+  `/tmp/edi-todo77.*/R/package_tests/`, never the checkout. Because the
+  harness obtains `github_commit_id` with `git -C repo_root rev-parse HEAD`,
+  preserve the intended source commit in the isolated runner's Git context
+  (for example, expose the checkout's read-only `.git` metadata via
+  `GIT_DIR`/`GIT_WORK_TREE`) and verify the emitted commit field before
+  accepting rows. The exact filtered run is:
 
   ```sh
-  R_LIBS_USER=/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7 \
+  R_LIBS_USER=<library containing EDI built from the intended source commit> \
     Rscript package_tests/comprehensive_tests.R 1 1 incidence KK21stepwise \
     'InferenceIncidKKCondLogitGLMM(OneLik|IVWC)' pima 0 1 bayesian_bootstrap
   ```
 
-  This selects one dataset, design, beta, replicate, and test family for both
-  classes; its filtered CSV would stay under the disposable copy's
-  `R/package_tests/`. Verify `find.package("EDI")` resolves to the installed
-  library before running. No build/install is needed or authorized here, and
-  this isolated result would not replace the canonical comprehensive-results
-  regeneration/reconciliation gate.
+  This selects `Nrep=1`, one core, incidence, design `KK21stepwise`, class
+  regex `InferenceIncidKKCondLogitGLMM(OneLik|IVWC)`, dataset `pima`,
+  `beta_T=0`, rep 1, and family `bayesian_bootstrap`. The expected filtered
+  output basename is
+  `comprehensive_tests_results_nc_1_incidence_filtered_design-KK21stepwise_class-InferenceIncidKKCondLogitGLMM_OneLik_IVWC_dataset-pima_beta-0_rep-1_family-bayesian_bootstrap.csv`.
+  Reconcile exactly 40 method/configuration keys: for each of OneLik and
+  IVWC, both `model_formula=~1` and `model_formula=~.`, and these ten
+  `function_run` labels: `compute_bayesian_bootstrap_confidence_interval`,
+  `compute_bayesian_bootstrap_confidence_interval_basic`,
+  `compute_bayesian_bootstrap_confidence_interval_wald`,
+  `compute_bayesian_bootstrap_confidence_interval_bca`,
+  `compute_bayesian_bootstrap_confidence_interval_studentized`,
+  `compute_bayesian_bootstrap_two_sided_pval`,
+  `compute_bayesian_bootstrap_two_sided_pval_symmetric`,
+  `compute_bayesian_bootstrap_two_sided_pval_wald`,
+  `compute_bayesian_bootstrap_two_sided_pval_bca`, and
+  `compute_bayesian_bootstrap_two_sided_pval_studentized`. Each result key
+  includes `rep`, `beta_T`, `dataset`, `response_type`, `design`,
+  `inference_class`, `function_run`, and `case_id`; additionally verify
+  `method_family=bayesian_bootstrap`, intended `github_commit_id`, formula
+  configuration, and terminal `status`/result fields (retaining explicit
+  `nonestimable` reason fields). Record source HEAD and dirty status, package
+  version/library path and installed DLL build time, exact argv, R/platform,
+  seed behavior, and output SHA-256 in a `/tmp`-only run manifest. Do not use
+  the 01:54 installed package or claim current-checkout validation; no
+  build/install is authorized here, and this isolated result would not
+  replace the canonical comprehensive-results regeneration/reconciliation
+  gate.
 
 - [ ] TODO-9 (F2): **`.cox_simulate_stratified` hazard mis-scaling**
   (`helper_survival_fits.R:592-615`). The baseline is normalized by the stratum's
