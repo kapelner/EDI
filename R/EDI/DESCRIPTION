@@ -60,7 +60,7 @@ Suggests:
     dplyr,
     mirai,
     aftgee,
-    betareg,
+    betareg (>= 3.2-6),
     copula,
     doParallel,
     ggplot2,

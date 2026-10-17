@@ -157,6 +157,26 @@ those APIs.
   This confirms native compile/runtime behavior at the same HEAD in CI, but
   does not satisfy the plan's literal targeted-only compile criterion; TODO-3
   remains open unless that criterion is explicitly waived in favor of CI.
+  **Current-HEAD provenance recheck 2026-10-17:** checkout HEAD is
+  `3f71c2c996050fc0367fdce2e287b9e90b6e6891`; the latest remote run list
+  contains no run for this SHA. The latest successful `test-bulk-non-cran` build/shard
+  run remains `38808821543` at `430c19bcdb0702d998c79f9058c449449034134c`.
+  The current diff from that SHA has no changes to
+  `fast_survival_stats.cpp`, `inference_survival_rmst.R`, or
+  `test-rmst-weighted-shared-truncation-horizon-reference.R`, so the target
+  source/test content is unchanged, but this is source-identical ancestor
+  evidence, not exact-current-SHA validation. The most recent scheduled
+  coverage run (`39009933731`) is also at `430c19bc` and is not native-gate
+  evidence for the new SHA. A no-local-compile route is available: run the
+  existing bulk correctness workflow on the current commit, whose build job
+  compiles/installs that commit in an isolated library and whose five shards
+  execute the native tests; until that exact-SHA run exists, TODO-3 remains
+  open. **Supplemental installed-package runtime check 2026-10-17:** the
+  focused `test-rmst-weighted-shared-truncation-horizon-reference.R` run
+  against installed EDI 1.0.3 passed 4 assertions with zero failures or
+  warnings (`TMPDIR=/tmp Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-rmst-weighted-shared-truncation-horizon-reference.R", package="EDI")'`).
+  This is useful runtime evidence for the installed library only; it is not
+  an exact-current-HEAD build/CI result and does not close TODO-3.
 - [x] TODO-4: Decide the exact shared-τ convention (minimum of both arms'
   max time is the standard literature default; confirm this is what's
   wanted here, or whether a pre-specified fixed horizon parameter should

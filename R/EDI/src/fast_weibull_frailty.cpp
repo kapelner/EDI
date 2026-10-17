@@ -325,6 +325,8 @@ edi::ResultMap fast_weibull_frailty_internal(
 ) {
 	const int p     = (int)X.cols();
 	const int n_par = p + 2;
+	if (warm_start_beta.has_value() && warm_start_beta->size() != p && warm_start_beta->size() != n_par)
+		throw std::invalid_argument("warm_start_beta must have length ncol(X) or ncol(X) + 2");
 
 	WeibullFrailtyNormalLikelihood obj(y, dead, X, group_id, n_gh, max_abs_log_sigma);
 

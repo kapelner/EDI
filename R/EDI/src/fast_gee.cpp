@@ -155,6 +155,8 @@ GEEResult gee_pairs_singletons_cpp_impl(const Eigen::Ref<const MatrixXd>& X,
                                         std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
                                         int maxit = 100, double tol = 1e-8) {
     const int n = (int)X.rows(), p = (int)X.cols(), G = (int)grp_start.size();
+    require_length(warm_start_beta, p, "warm_start_beta");
+    require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
     const bool has_weights = weights.size() > 0;
     for (int gi = 0; gi < G; ++gi) {
         if (grp_size[gi] > 2) throw std::invalid_argument(

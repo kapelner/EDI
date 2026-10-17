@@ -279,6 +279,8 @@ edi::ResultMap fast_cpoisson_combined_internal(
 	const int nR = (int)y_r.size();
 	const int p  = (int)X_diff_v.cols();
 	const int np = p + 2;              // beta_0, beta_T, beta_xs (p)
+	if (warm_start_beta.has_value() && warm_start_beta->size() != np && warm_start_beta->size() != p + 1)
+		throw std::invalid_argument("warm_start_beta must have length p + 1 or p + 2");
 
 	// ---- Initialise params -----------------------------------------------
 	VectorXd params = VectorXd::Zero(np);

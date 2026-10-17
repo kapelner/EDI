@@ -102,6 +102,9 @@ ModelResult fast_probit_regression_internal(
 
     const int n = X_eigen.rows();
     const int p = X_eigen.cols();
+    if (optimization_alg != "lbfgs") {
+        require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
+    }
     const bool use_weights = (weights_eigen.size() == n);
     FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);
     const int p_free = static_cast<int>(fixed_spec.free_idx.size());

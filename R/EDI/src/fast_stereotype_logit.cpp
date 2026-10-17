@@ -699,6 +699,8 @@ LikelihoodFitResult fast_stereotype_logit_internal(
 	int n_par = params.size();
 	int n_alpha = model.num_alpha();
 	int p = model.num_params() - n_alpha - model.num_gamma();
+	if (warm_start_beta.has_value() && warm_start_beta->size() != p)
+		throw std::invalid_argument("warm_start_beta must have length equal to ncol(X)");
 	require_square_matrix(warm_start_fisher_info, n_par, "warm_start_fisher_info");
 
 	if (warm_start_params.has_value()) {
@@ -1177,6 +1179,8 @@ double fast_stereotype_profile_loglik_cpp(
     VectorXd params = model.initialize_params();
     std::optional<Eigen::VectorXd> warm_start_params_opt = nullable_to_optional<Eigen::VectorXd>(warm_start_params);
     std::optional<Eigen::VectorXd> warm_start_beta_opt = nullable_to_optional<Eigen::VectorXd>(warm_start_beta);
+    if (warm_start_beta_opt.has_value() && warm_start_beta_opt->size() != p && warm_start_beta_opt->size() != total)
+        stop("warm_start_beta must have length ncol(X) or number of model parameters");
     if (warm_start_params_opt.has_value()) {
         params = *warm_start_params_opt;
         if (params.size() != total) stop("warm_start_params size mismatch");

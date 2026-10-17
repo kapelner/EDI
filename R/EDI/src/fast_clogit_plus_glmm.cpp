@@ -564,6 +564,9 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 	int p_disc = has_discordant ? (int)X_disc.cols() : 0;
 	int p_conc = has_concordant ? (int)X_conc.cols() : 0;
 	int n_par = (has_discordant && has_concordant) ? p_conc + 1 : (has_concordant ? p_conc + 1 : p_disc);
+	int n_beta = has_concordant ? p_conc : p_disc;
+	if (warm_start_beta.has_value() && warm_start_beta->size() != n_beta && warm_start_beta->size() != n_par)
+		throw std::invalid_argument("warm_start_beta must have length equal to beta coefficients or model parameters");
 	require_square_matrix(warm_start_fisher_info, n_par, "warm_start_fisher_info");
 
 	ClogitPlusGLMMObjective obj(
@@ -583,7 +586,6 @@ edi::ResultMap fast_clogit_plus_glmm_internal(
 			par = sb;
 		} else {
 			// Try to fill beta part
-			int n_beta = has_concordant ? p_conc : p_disc;
 			if (sb.size() == n_beta) {
 				par.head(n_beta) = sb;
 			}

@@ -158,6 +158,7 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
                                        bool estimate_only = false) {
   const int n = (int)X.rows();
   const int p = (int)X.cols();
+  require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
   if (y.size() != n) throw std::invalid_argument("dimension mismatch in constrained binomial regression");
   FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);
   const int p_free = (int)fixed_spec.free_idx.size();
@@ -340,6 +341,7 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
                                                 bool estimate_only = false) {
   const int n = (int)X.rows();
   const int p = (int)X.cols();
+  require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
   if (y.size() != n) throw std::invalid_argument("dimension mismatch in constrained binomial regression");
   if (obs_weights.size() != n) throw std::invalid_argument("weights length mismatch in constrained binomial regression");
   FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);

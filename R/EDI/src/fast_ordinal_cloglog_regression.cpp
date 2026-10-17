@@ -130,9 +130,10 @@ edi::ResultMap fast_ordinal_cloglog_regression_internal(
     OrdinalCLLRegression model(X, y);
     int p = (int)X.cols();
     int K = (int)OrdinalCLLRegression::init_levels(y).size();
+    const int n_alpha = K > 1 ? K - 1 : 0;
+    const int n_params = n_alpha + p;
+    require_square_matrix(warm_start_fisher_info, n_params, "warm_start_fisher_info");
     if (K < 2) return edi::ResultMap();
-    int n_alpha = K - 1;
-    int n_params = n_alpha + p;
 
     VectorXd params(n_params);
     FixedParamSpec fixed_spec = make_fixed_param_spec(n_params, fixed_idx, fixed_values);

@@ -168,17 +168,16 @@ ContinuationRatioFit fast_continuation_ratio_internal(
 	result.z = aug.z;
 	result.weights_aug = aug.weights_aug;
 	result.n_alpha = aug.n_alpha;
+	int p_aug = result.n_alpha + result.p;
+	require_length(warm_start_beta, p_aug, "warm_start_beta");
+	require_square_matrix(warm_start_fisher_info, p_aug, "warm_start_fisher_info");
 	if (result.n_alpha == 0) {
 		return result;
 	}
-
-	int p_aug = result.n_alpha + result.p;
-	require_square_matrix(warm_start_fisher_info, p_aug, "warm_start_fisher_info");
 	ContinuationRatioObjective fun(result.X_aug, result.z, result.weights_aug);
 	VectorXd beta = VectorXd::Zero(p_aug);
 	if (warm_start_beta.has_value()) {
 		beta = *warm_start_beta;
-		if (beta.size() != p_aug) throw std::invalid_argument("warm_start_beta size mismatch");
 	} else if (smart_cold_start) {
 		// Smart warm_start_params: OLS on z (the augmented binary response)
 		beta = ols_smart_cold_start_beta(result.X_aug, result.z);

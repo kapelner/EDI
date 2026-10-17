@@ -400,6 +400,8 @@ edi::ResultMap fast_gaussian_lmm_internal(
     std::optional<Eigen::VectorXd> weights = std::nullopt
 ) {
     const int n = (int)y.size(), p = (int)X.cols();
+    if (warm_start_beta.has_value() && warm_start_beta->size() != p && warm_start_beta->size() != p + 2)
+        throw std::invalid_argument("warm_start_beta must have length ncol(X) or ncol(X) + 2");
 
     std::vector<int> gid(n);
     {

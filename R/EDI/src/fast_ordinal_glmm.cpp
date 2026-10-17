@@ -274,6 +274,8 @@ edi::ResultMap fast_ordinal_glmm_internal(
 		throw std::invalid_argument("ordinal GLMM numerical controls must be finite and positive");
 	const int n_alpha = K - 1;
 	const int total = n_alpha + p + 1; // cutpoint params + betas + log_sigma
+	if (warm_start_beta.has_value() && warm_start_beta->size() != p && warm_start_beta->size() != total)
+		throw std::invalid_argument("warm_start_beta must have length ncol(X) or number of model parameters");
 	FixedParamSpec fixed_spec = make_fixed_param_spec(total, fixed_idx, fixed_values);
 
 	// Convert Eigen/R vectors to std::vector for OrdinalGLMMData

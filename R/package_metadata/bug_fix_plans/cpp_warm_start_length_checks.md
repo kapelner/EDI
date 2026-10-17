@@ -121,7 +121,7 @@ lengths is part of TODO-1).
   otherwise-present guard could validate it. The contract test now covers
   this branch too. This source correction remains unexecuted.
 
-- [x] TODO-3: **Regression test.** `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`:
+- [ ] TODO-3: **Regression test.** `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`:
   for every exported kernel that takes `warm_start_beta` (enumerate from
   `RcppExports.R`), call it with a too-short, a too-long and a length-1
   warm start on a small fixture and `expect_error(..., "must have
@@ -130,14 +130,34 @@ lengths is part of TODO-1).
   kernel for `warm_start_weights` and `warm_start_fisher_info` where
   present. The test must run in the `R-CMD-check-sanitizers` (ASAN/UBSAN)
   and `R-CMD-check-valgrind` jobs of `.github/workflows/R-CMD-check.yaml`,
-  which would have caught F1 directly. **Source implementation 2026-10-09:**
-  the test covers short, long, and length-one coefficient starts for every
-  F2 kernel and malformed weights/Fisher starts where those are accepted;
-  runtime/sanitizer execution remains part of TODO-4.
+  which would have caught F1 directly. **Coverage audit 2026-10-17:**
+  enumerating `RcppExports.R` shows 38 exported wrappers with
+  `warm_start_beta`, 17 with `warm_start_weights`, and 63 with
+  `warm_start_fisher_info`; this contract test currently exercises only
+  38/38, 17/17, and 19/63 unique wrappers respectively (20 Fisher call cases
+  because Cox is checked under two optimizer modes). Of the 17 weight
+  wrappers, 10 validate
+  consumed starts and reject a wrong row count; the remaining four unweighted
+  constrained-binomial wrappers and three probit wrappers accept but do not
+  consume the argument, so the test asserts identical results with a malformed
+  vector and with no start. The coefficient fixture has three columns so
+  length 1, a non-one short length, and a long length are distinct. Full
+  At that 2026-10-17 snapshot, Fisher-wrapper coverage and sanitizer/Valgrind
+  execution remained open.
+
+  Static source audit on 2026-10-17 found additional silent-ignore paths:
+  adjacent-category (including with-variance), continuation-ratio (including
+  weighted/with-variance and the no-augmented-row return), Gaussian LMM, GEE
+  pair/singleton, stereotype logit/profile, ordinal GLMM, clogit+GLMM,
+  combined conditional-Poisson, and Weibull frailty. Their internal entry
+  points now reject unsupported lengths before copying/using the starts;
+  combined-model APIs preserve their supported beta-only and full-parameter
+  dimensions. The Gaussian LMM fixture uses only supported pair-sized groups.
+  These checkout C++ edits are not compiled.
 
 - [ ] TODO-4: **Verify by targeted compile.** Recompile only the touched
   `.cpp` files with the flags from `src/Makevars`, relink `EDI.so` from
-  the existing `.o` files, load with `pkgload::load_all(compile = FALSE)`,
+  the existing `.o` files, load the rebuilt package without source-loading,
   run TODO-3 and the kernel-equivalence tests. Bit-preserving by
   construction: the change only rejects inputs that were undefined
   behavior before. `NEWS.md` entry under bug fixes.
@@ -148,6 +168,57 @@ lengths is part of TODO-1).
   starts without terminating R, but does not validate the current checkout's
   C++ edits or sanitizer behavior; targeted compile/link and sanitizer runs
   remain pending explicit permission.
+
+  Installed-package recheck on 2026-10-17: the expanded file parses, and
+  export enumeration confirms 38/38 beta-taking wrappers have malformed-start
+  cases. Running against `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`
+  (EDI 1.0.3) yields 107 pass / 46 fail / 0 warnings. Failures are current-
+  checkout versus installed-native discrepancies for guarded paths, including
+  adjacent-category, continuation-ratio's normalized error and degenerate-
+  response guard, GEE, combined models, ordinal/stereotype models, and Weibull
+  frailty; this installed binary is not evidence for the checkout. No local
+  compile/build/install was run. TODO-3 remains open pending execution against
+  a rebuilt package and sanitizer/Valgrind CI evidence.
+
+  Fisher-info completion audit, 2026-10-18: the CRAN contract test now has a
+  malformed-matrix invocation for every one of the 63 R wrappers whose
+  signature accepts `warm_start_fisher_info`. Shared internals are exercised
+  at each wrapper boundary, including both Cox optimizer branches. The three
+  ordinary probit wrappers reject a malformed matrix on IRLS; under their
+  documented `optimization_alg = "lbfgs"` path, which bypasses IRLS and does
+  not consult this argument, the test asserts result identity against `NULL`.
+  The 17/17 weight-wrapper assertions remain: consuming implementations reject
+  wrong lengths, while documented unused constrained-binomial and probit
+  weight arguments are tested as no-ops.
+
+  The expanded audit added source guards for ordinary probit (p-by-p before
+  IRLS setup, only on the consuming path), ordinal cloglog (threshold-plus-beta
+  dimension before its degenerate-level return), GEE pair/singleton (p-by-p
+  instead of silently falling back), both constrained-binomial implementations
+  (p-by-p before using or falling back), and continuation-ratio (augmented
+  dimension before the zero-augmentation return). Existing ordinal, ZINB,
+  hurdle/truncated NB, GLMM, zero-augmented, zero-one-inflated-beta, survival,
+  and mixed-model guards were classified by shared internals; dimensions
+  include model-specific thresholds, dispersion, random-effect terms, and
+  cpoisson's `p + 2` form where applicable. Static review only: no checkout
+  C++ compile, install, sanitizer, or Valgrind run has occurred.
+
+  Focused installed-package rerun after the 2026-10-18 expansion used
+  `testthat::test_file("R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R", package = "EDI")`
+  against EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`: 140 passed,
+  60 failed, 0 warnings. The additional matrix cases exposed no invocation or
+  fixture errors after correcting truncated-NB input to strictly positive
+  counts. New guard expectations that fail against this old installed binary
+  are the four constrained-binomial unweighted wrappers, two ordinal-cloglog
+  wrappers, three probit IRLS wrappers (old binary reaches `subset_matrix`
+  instead of the named dimension guard), and zero-augmented Poisson. Existing
+  beta/continuation and other checkout-native guard expectations also remain
+  stale-binary failures. This run verifies only fixture reachability and the
+  documented probit L-BFGS/no-op equivalences; it does not validate checkout
+  source. The edited test parses and `git diff --check` is clean. No local
+  build/install occurred; TODO-3/TODO-4 and sanitizer/Valgrind gates remain
+  open.
 
 - [ ] TODO-5: **Python bindings.** If TODO-1 finds the bindings pass
   lengths through unchecked, the C++ fix covers them once the wheels are

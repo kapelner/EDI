@@ -478,6 +478,10 @@ Inference = R6::R6Class("Inference",
 		},
 		seed = NULL,
 		harden = TRUE,
+		# Declared here so subclasses built with R6's default lock_objects = TRUE
+		# (e.g. test-local Slow* classes) can still receive these bootstrap fields.
+		bootstrap_qr_rank_certificate = NULL,
+		bootstrap_qr_positive_weights = NULL,
 		des_obj = NULL,		des_obj_priv_int = NULL,
 		m = NULL,
 		is_KK = NULL,
