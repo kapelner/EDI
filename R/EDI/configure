@@ -160,7 +160,9 @@ write_makevars() {
       # switches back to compiling them directly) but are not independently
       # built while this is in effect.
       #
-      # KNOWN LIMITATION: editing a member .cpp file changes that file's own
+      # KNOWN LIMITATION (now closed by drop_stale_unity_objects, which runs
+      # right after generate_unity_wrappers; kept for the history and the
+      # -MMD warning below): editing a member .cpp file changes that file's own
       # mtime but not its unity_NN.cpp wrapper's (the wrapper's content, a
       # fixed #include list, is unaffected by what's inside the file it
       # #includes) -- so a plain incremental `make`/`R CMD INSTALL` in this
@@ -284,7 +286,38 @@ mkdir -p src
 # bounded. Not read from an env var: changing it is a source-level decision
 # (re-validate against that audit's method first), not a per-build tuning
 # knob like EDI_PORTABLE/EDI_NATIVE_SPEED above.
+# Closes the KNOWN LIMITATION described in write_makevars above: a wrapper only
+# #includes its members, so editing a member .cpp (or a shared header) leaves
+# the wrapper's mtime alone and an unclean incremental install relinks a stale
+# unity_NN.o into EDI.so. configure runs on every source-directory install, so
+# deleting any unity_NN.o older than one of its sources here makes `make`
+# recompile exactly those groups. Fresh builds (no .o yet) are unaffected.
+# `find -newer` rather than `test -nt`: the latter is not POSIX.
+drop_stale_unity_objects() {
+  for wrapper in src/unity_*.cpp; do
+    [ -f "$wrapper" ] || continue
+    obj="${wrapper%.cpp}.o"
+    [ -f "$obj" ] || continue
+    stale=""
+    for source in $(sed -n 's/^#include "\(.*\)"$/\1/p' "$wrapper") $(cd src && ls -1 *.h *.hpp 2>/dev/null); do
+      [ -f "src/$source" ] || continue
+      # Regenerated below on every configure run; only build_info.cpp (its own
+      # TU, never in a unity group) includes it.
+      [ "$source" = "edi_build_flags.h" ] && continue
+      if [ -n "$(find "src/$source" -newer "$obj" 2>/dev/null)" ]; then
+        stale=1
+        break
+      fi
+    done
+    if [ -n "$stale" ]; then
+      echo "configure: $obj is older than $source -- removing it so that unity group recompiles"
+      rm -f "$obj"
+    fi
+  done
+}
+
 generate_unity_wrappers 10
+drop_stale_unity_objects
 write_makevars src/Makevars
 write_makevars src/Makevars.win
 

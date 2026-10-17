@@ -190,6 +190,16 @@ range, since the plan files' internal numbering did not change.
   native code from the current checkout. Keep this parent unchecked pending
   current-head native validation, TODO-4's dead-export disposition, and the
   separate TODO-6 Lin stretch decision.
+  - [ ] After an explicitly authorized `EDI_UNITY=0` build/install (or an
+    equivalent user-managed current-head package), rerun the OLS kernel
+    parity/edge matrix and public randomization test against that native
+    artifact with source/DLL provenance.
+  - [ ] Decide the disposition of the nine unused exports (including the
+    bootstrap export's wire-or-delete choice); only after approval, migrate
+    their direct tests/benchmarks, update Rcpp registration/generated wrappers,
+    and verify no production callers remain.
+  - [ ] Obtain the separate owner decision on TODO-6's Lin stretch target and
+    align the release claim with that decision.
 - [ ] TODO-4 (added 2026-08-30, source fixed 2026-10-08; focused edge tests added, full validation pending): **Guard the unguarded
   information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
   → TODO-1..6`. Correctness, not performance. `fast_negbin_regression.cpp:485`
@@ -259,6 +269,10 @@ range, since the plan files' internal numbering did not change.
   the installed EDI v1.0.3 binary, whose metadata reports a Sep 20 native
   build; it confirms the behavior of the available binary, not the current
   source revision's native migration.
+  - [ ] Run linked-plan TODO-3's before/after comparison over every
+    `with_var` fixture on a provenance-pinned current-head native package;
+    apply the release's numerical-equivalence policy to invertible fits and
+    confirm singular/non-finite cases surface the typed SE/CI fallback.
 
   **Cross-confirmed 2026-09-24** by the new `pval_miscalibration`/
   `low_coverage` audit checks, independently of the direct-repro check
@@ -359,6 +373,15 @@ range, since the plan files' internal numbering did not change.
   heartbeat path recorded in that CSV:
   `/tmp/RtmpaeuB1H/comprehensive_tests_heartbeat_2.log` (temporary R session
   path; stdout was not saved separately). No build or install was performed.
+  - [ ] Recover the historical sample/seed and package provenance (or obtain
+    approval for a deterministic replacement), and obtain a maintainer-approved
+    numeric runtime bound plus explicit point-estimate/SE/Bartlett-p parity
+    criteria for both `~1` and `~.`. After TODO-56 releases the shared paths,
+    rerun the full production case under a hard timeout; require finite
+    successful results and recorded package/native provenance, then compare
+    against those predeclared criteria. The linked plan currently says only
+    “well under” the historical 159.7–178.7 s outliers and does not define a
+    numeric acceptance cutoff.
 - [x] TODO-7 (added 2026-09-17, fixed 2026-10-08; found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
   randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
@@ -460,6 +483,11 @@ range, since the plan files' internal numbering did not change.
   attempted. After the user's 2026-10-14 reinstall, the CRAN
   non-degeneracy regression passed all 13 assertions against the installed
   package.
+  - [ ] Reconcile the current comprehensive rows only after TODO-18's
+    supported/unsupported smoothed-method scope is settled. Classify all
+    183 baseline findings now absent and 373 newly reported findings; do not
+    write a new baseline until every difference has an evidence-backed
+    disposition and the canonical run is authorized.
 - [ ] TODO-10 (added 2026-09-22, found the same way; a harness bug, not an
   inference-code bug): **MC coverage-truth uses the wrong covariate set** —
   `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md → TODO-1..6`. **Fixed.**
@@ -489,6 +517,11 @@ range, since the plan files' internal numbering did not change.
   entry in `COVERAGE_MC_SPEC`; focused registry coverage includes that
   dispatch. This does not make the release TODO complete: the linked plan's
   comprehensive-results regeneration and baseline re-audit remain open.
+  - [ ] Regenerate the affected survival and ordinal comprehensive rows with
+    the corrected truth dispatch, reconcile every affected key/status, and
+    rerun the baseline audit. Keep `KKStratCoxPHOneLik` and
+    `KKLWACoxPHOneLik` excluded until the linked plan's convergence/policy
+    gate is resolved.
 - [x] TODO-11 (added 2026-09-22, closed 2026-10-08 after re-audit;
   **resolved — do not enable**): **Cox
   Bartlett-approx likelihood-ratio correction, forced off** —
@@ -524,6 +557,11 @@ range, since the plan files' internal numbering did not change.
   comparable clean baseline is not currently available. After the user's
   2026-10-14 reinstall, the CRAN private-cache-reset regression passed all
   55 assertions against the installed package.
+  - [ ] Run the release-wide pre/post sweep on identical fixtures and RNG
+    seeds, using a recoverable pre-fix checkout and matching package/native
+    environment; review every `fixed`, `noise`, or `MOVED` classification.
+    If that baseline cannot be recovered, record the limitation and do not
+    treat the focused tests as sweep acceptance.
 - [ ] TODO-13 (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
   TODO-9's regression test, root-caused same day on user request):
   **`InferencePropGCompMeanDiff` randomization distribution all-NA in
@@ -545,6 +583,11 @@ range, since the plan files' internal numbering did not change.
   post-install comprehensive-CSV regeneration remains, coordinated with
   the stale-worker-cache regeneration pass, so this release item stays
   unchecked.
+  - [ ] After a post-fix package is available, regenerate the complete
+    supported proportion `rand` family (both `~1` and `~.` formulas and all
+    supported design/data/beta/rep keys); reconcile by `case_id` and `id`,
+    validate provenance, statuses, finite CI endpoints and coverage fields,
+    then merge/deduplicate only the complete target set.
 - [ ] TODO-14 (added 2026-09-22, surfaced the same way as TODO-13 — the
   new KK-design fixture arm was the first thing to exercise
   `estimate_only = TRUE` on this class with both components simultaneously
@@ -576,6 +619,10 @@ range, since the plan files' internal numbering did not change.
   are validation only, not canonical results. Only TODO-7's authorized
   post-install comprehensive-CSV regeneration/reconciliation remains, so
   this release item stays unchecked.
+  - [ ] Regenerate the complete eligible `InferenceSurvivalGLMMWeibullFrailtyIVWC`
+    `rand` row set from the current post-fix installation, with source/package/
+    DLL provenance; validate every result/status/coverage field and reconcile
+    by canonical result keys before merge/deduplication.
 - [x] TODO-15 (added 2026-09-23, conclusively refuted 2026-10-09; from the same `bad_type1_error` audit wave
   as TODO-9, originally hypothesized to be the same mechanism — confirmed
   separate and still unfixed; the later TODO-28 cache hypothesis was
@@ -708,6 +755,10 @@ range, since the plan files' internal numbering did not change.
   package comprehensive CSV regeneration and re-audit. Linked-plan TODOs
   2-5 and 7-18 remain closed. This release item stays unchecked until both
   TODO-1 and TODO-6 are complete.
+  - [ ] Calibrate direct LR, LR-bootstrap, and Bartlett-approx methods under
+    the post-fix Cloglog null with independent seeds and a predeclared
+    rejection-rate interval; then regenerate and re-audit all affected
+    parametric-bootstrap comprehensive rows with package/DLL provenance.
 
   **Independent confirmation 2026-10-09** (algorithm-sweep verification F18,
   `../new_feature_plans/algorithm_choice_audit_catalog.md §13.4`): the cloglog
@@ -777,6 +828,11 @@ range, since the plan files' internal numbering did not change.
   Bayesian-bootstrap SE fix now has a passing deterministic regression.
   Wilcoxon-scoped method/coverage work remains open; this release item stays
   unchecked.
+  - [ ] Obtain a maintainer decision on the Wilcoxon-specific remedy or an
+    explicit deferral. If proceeding, require nondegenerate-estimand parity,
+    conditional size calibration for HL-zero ties, and a permanent tied
+    p-value/CI regression before post-fix comprehensive regeneration; do not
+    use a generic mid-p change.
 - [ ] TODO-18 (added 2026-09-23, surfaced by the new `pval_miscalibration`
   audit check — one function_run variant appeared across ~85 distinct
   (class, response_type) cells with wildly inconsistent miscalibration
@@ -825,6 +881,13 @@ range, since the plan files' internal numbering did not change.
   2026-10-14 reinstall, the smoothed-noise plumbing and count-support tests
   passed 7 and 58 assertions, respectively; these are guard/plumbing checks,
   not calibration evidence.
+  - [ ] Finish the dispatch/support cross-reference and continuous-bandwidth
+    investigation; then, after TODO-56 releases shared result paths, run the
+    predeclared matched calibration for supported continuous and count cells
+    (at least 500 estimable cases per stratum, B=101, shared assignments and
+    noise, exact binomial intervals and paired discordances). Verify bounded
+    categorical cases are rejected, select and pin a permanent-test fixture/
+    tolerance, then regenerate rows with package/DLL provenance.
 - [ ] TODO-19 (added 2026-09-23, resolved in source 2026-10-09):
   **`InferenceIncidKKModifiedPoisson` exposed invalid working-likelihood
   inference.** The validated estimator uses a cluster-robust sandwich, so
@@ -921,6 +984,11 @@ range, since the plan files' internal numbering did not change.
   skips. This confirms the installed migration/capability contract but does
   not close the comprehensive-CSV regeneration/re-audit gate or validate a
   newer checkout/native pair.
+  - [ ] After a provenance-pinned post-fix package is installed, regenerate
+    and reconcile the `InferenceIncidKKModifiedPoisson` comprehensive rows:
+    unsupported score/gradient/LR/Bartlett/parametric-bootstrap rows must be
+    absent and the supported Wald rows must remain. Record exact result keys
+    and package/DLL provenance before re-auditing.
 - [ ] TODO-20 (added 2026-09-23, same audit-triage wave; original
   `fit_warm_keep` hypothesis **REFUTED 2026-09-23 by direct code trace,
   high confidence** — new alternative lead, medium confidence, not yet
@@ -1045,6 +1113,12 @@ range, since the plan files' internal numbering did not change.
   genuinely unclear. Do not write a plan file without first pulling the
   exact historical dataset/design/formula and confirming the inflation
   reproduces on it.
+  - [ ] Recover the stamped historical input or obtain an owner-approved
+    equivalent with dataset, design, both formulas, DGP, seed schedule,
+    commit/runtime, denominator, and pooling rules. Replay the flagged rates;
+    if they reproduce, check the three KKGEE siblings and near-collinearity
+    before deciding whether to create a fix plan. Do not infer a defect from
+    the simplified null pilots.
 - [x] TODO-22 (added 2026-09-23/24, found and fixed by a separate session
   working concurrently in this repo — not this file's own investigation;
   recorded here at user request so it has a release home): **KK survival
@@ -1162,6 +1236,11 @@ range, since the plan files' internal numbering did not change.
   TODO-5's broad coverage calibration and TODO-7's installed
   comprehensive-results regeneration also remain open, so this release item
   stays unchecked.
+  - [ ] Re-run the predeclared multi-method coverage calibration with a
+    provenance-pinned post-fix package, and evaluate invalid intervals rather
+    than dropping them. Then validate the shared-horizon behavior on current
+    native code and regenerate/re-audit the stale survival rows before any
+    canonical reconciliation.
 - [x] TODO-24 (added 2026-09-24, conclusively refuted 2026-10-08):
   **KK-matched Cox proportional-hazards undercoverage was a coverage-truth
   artifact, not a variance defect** —
@@ -1266,6 +1345,11 @@ range, since the plan files' internal numbering did not change.
   comprehensive-results regeneration remains open. Independent of every
   other item in this release; depends on nothing else. The release checkbox
   therefore remains unchecked.
+  - [ ] Regenerate the documented 50-rep matrix (two formulas × three
+    jackknife operations) into a fresh `/tmp` output using a provenance-pinned
+    post-fix package; audit exact keys and statuses, then perform separately
+    authorized canonical reconciliation without overwriting the existing
+    filtered rows.
 - [x] TODO-27 (added 2026-09-24, conclusively refuted 2026-10-08):
   **Historical audit output reported** moderate Type-I error inflation
   (~2.6× nominal, reject rate ~0.13) for
@@ -1540,6 +1624,11 @@ baseline as expected/benign.
   TODO-31's residual. Its linked plan records the full kernel-level settings
   and results. TODO-50 stays open pending TODO-31 resolution and canonical
   comprehensive-CSV reconciliation.
+  - [ ] Close TODO-31's Poisson local-optimum/start-policy decision, validate
+    the selected policy on the broader four-kernel grid, and reconcile the
+    provenance-stamped CountKKGLMM/OrdinalKKCLMM comprehensive rows; then
+    confirm TODO-50's historical umbrella findings remain dispositioned in
+    the baseline audit.
 - [x] TODO-51 (added 2026-09-24 as TODO-32, renumbered 2026-09-24 for the
   same collision as TODO-50 above): promoted from a one-line dead-code aside
   inside TODO-4's prose, same reason as TODO-50 — user flagged that un-homed
@@ -1584,6 +1673,15 @@ baseline as expected/benign.
   rows), while the KKGLMM/KKCLMM addendum does have real but heterogeneous
   flagged rows. The investigation remains open: a causal claim needs a new
   targeted study, not a retrospective source edit.
+  - [ ] Recover the flagged historical cells' dataset, design, formula, DGP,
+    and seed/provenance, or obtain approval for a replacement targeted study.
+    Test the six named groups and seven-class addendum separately; implement
+    no shared fix unless a common mechanism is reproduced.
+  - [ ] For the historical `InferencePropBetaRegr` lead, run the six corrected
+    one-replicate proportion-response pilots in isolated `/tmp` outputs; time
+    the B=151 generic LR-bootstrap cell first. Inspect the actual affected
+    p-value/coverage results before deciding whether a post-fix calibration
+    study or source change is warranted.
 
 - [ ] TODO-31 (added 2026-09-24, from an audit of test-file comments; four
   tests pin it as `SUSPECTED SOURCE BUG (pinned, not fixed)`): **Random-effect
@@ -1613,6 +1711,12 @@ baseline as expected/benign.
   checkout's native code. TODO-1's sigma-by-n characterization and
   TODO-6's comprehensive-row regeneration remain open; this release item
   stays unchecked.
+  - [ ] Resolve Poisson local-optimum cases at seeds 41003/41008 with an
+    optimizer/start policy that preserves already-correct fits, or obtain an
+    explicit scope decision separating that issue from the boundary-collapse
+    finding. Validate the selected policy on the broader four-kernel sigma-by-n
+    grid, then run current-head native tests and reconcile provenance-stamped
+    CountKKGLMM/OrdinalKKCLMM comprehensive rows.
 - [x] TODO-32 (added 2026-09-24, source fixed 2026-10-08): **`InferenceOrdinalRidit(
   reference = "treatment")` now uses a non-degenerate symmetric estimand** —
   `../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
@@ -1672,6 +1776,12 @@ baseline as expected/benign.
   `/tmp/edi-v105-todo33/mtcars_public_api_ci_probe_r1001.csv`. This is a
   trigger-search failure, not evidence of inaccessibility or unchanged
   coverage; the linked plan's TODO-1 and this release item remain open.
+  - [ ] After TODO-56 terminates and host load is suitable, run the bounded
+    20-seed `trees` public-API search and retain a candidate only if it enters
+    upper-bound inner refinement with finite full-precision endpoints that
+    bracket the threshold. If a trigger is found, preserve replay inputs and
+    pause for review before the old-branch counterfactual or repeated-trial
+    coverage study.
 - [x] TODO-34 (added 2026-09-24, same audit; fixed 2026-10-07): **Interval-censored `compute_shared_icen()` blanket cache guard**
   — `../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
   TODO-1..4`. After `compute_estimate(estimate_only = TRUE)`, a later full
@@ -1856,6 +1966,12 @@ baseline as expected/benign.
   `mc_coverage_truth_covariate_mismatch.md`'s TODO-6/TODO-11 — different
   mechanism (closed-form path, not Monte-Carlo), different classes, do not
   conflate when resolving either.
+  - [ ] Regenerate the full proportion rows for
+    `InferenceAllSimpleAverageDiff`,
+    `InferenceAllSimpleMeanDiffPooledVar`, `InferencePropGCompMeanDiff`, and
+    proportion `InferenceAllSimpleWilcox`; then rerun the baseline audit and
+    prune only findings resolved by those rows. Do not start the canonical
+    run while TODO-56 is using the shared result paths.
 - [ ] TODO-56 (added 2026-10, found investigating why incidence-response
   power looked low across every design; **core fix implemented and verified
   same session; release follow-ups still open**):
@@ -1988,6 +2104,11 @@ baseline as expected/benign.
   assertions on 2026-10-15, covering OLS resample matrix refresh and the
   rare-covariate rebuild fallback. This does not establish fixed-seed
   distribution equivalence or the `boot` comparison, so TODO-58 remains open.
+  - [ ] Run the full original-bootstrap-size public R6 percentile-CI benchmark
+    for OLS, logistic, and Cox against `boot`, requiring each row to reach at
+    least 1x; separately confirm fixed-seed distribution parity against an
+    authoritative EDI 1.0.2 package. Record package/DLL provenance and keep
+    diagnostic or reduced-B pilots out of acceptance.
 
 - [ ] TODO-59 (added 2026-10-07, user decision): **Design construction
   overhead: `packageVersion()` disk read and eager covariate ingestion** —
@@ -2028,6 +2149,10 @@ baseline as expected/benign.
   inference after later arrivals. A regression checks an eight-row enrollment
   after a four-row materialization; it remains unexecuted here because this
   task forbids R execution.
+  - [ ] On a quiet host, verify the installed package/DLL identity and run
+    the installed `n=1000`, `batch=100`, seven-repeat timing with provenance;
+    require iBCRD <= 1.5 ms and blocking <= 2.5 ms. Separately compare
+    fixed-seed assignment weights against an authentic EDI 1.0.2 package.
 
 - [ ] TODO-60 (added 2026-10-07, user decision): **Pocock–Simon: O(t) work
   per arrival (O(n²) per trial)** —
@@ -2043,8 +2168,10 @@ baseline as expected/benign.
   class-level "rule reads the model matrix" flag that skips the rebuild
   (default `TRUE`, Pocock–Simon `FALSE`); amortized append. All
   bit-preserving (fixed-seed assignment sequence identical). Acceptance:
-  per-arrival cost flat in t and ≤ 0.5 ms; whole sequence within 10x of
-  `carat`. See TODO-59 for the shared builder.
+  per-arrival cost flat in t and ≤ 0.5 ms. The `carat` and `Minirand`
+  timings are report context, not an additional ratio gate: the ≤0.5 ms
+  per-arrival limit implies a whole-sequence runtime that cannot also be
+  within 10x of `carat`. See TODO-59 for the shared builder.
 
   **Implementation status 2026-10-09, corrected 2026-10-12:** linked-plan
   TODOs 1, 3--4 are complete; TODO-2's source implementation is reopened for
@@ -2071,6 +2198,13 @@ baseline as expected/benign.
   acceptance evidence, and misses the ≤0.5 ms gate at all checkpoints. The
   linked plan records the run; an isolated rerun and remaining identity/report
   gates are still needed.
+  - [ ] After TODO-56 is terminal, run
+    `Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5` on an
+    idle host; record installed package/DLL identity and host provenance, and
+    require per-arrival medians at t=10/100/500/1000 to be <= 0.5 ms with no
+    material upward trend. Separately verify fixed-seed assignment-vector
+    identity against an authentic EDI 1.0.2 package and refresh the full
+    n=1000 report context; do not use a carat ratio as an acceptance gate.
 
 - [x] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
   `nonbimatch` squared distances with a `double.xmax` diagonal** —
@@ -2151,6 +2285,10 @@ baseline as expected/benign.
   it is diagnostic only and does not replace the canonical Zhang parity or
   artifact-synchronization gates. Harness/result are preserved in `/tmp` and
   described in the linked plan.
+  - [ ] Set and record an owner-approved numeric Zhang parity tolerance;
+    rerun the canonical fixture and confirm both parity and report rows.
+    Only then regenerate and synchronize all four tracked reports from the
+    harness (never by hand-editing generated artifacts).
 
 - [ ] TODO-63 (added 2026-10-07, user decision): **C++ kernels accept a
   `warm_start_beta` of the wrong length and corrupt the heap** —
@@ -2191,6 +2329,11 @@ baseline as expected/benign.
   `python/.venv/bin/python -m pytest -q`); this is only a logistic smoke on
   that binary and does not validate the current C++ checkout or replace the
   pending rebuild-backed Python/sanitizer gate.
+  - [ ] After an explicitly authorized `EDI_UNITY=0` build/install, run the
+    full malformed-start contract against the matching native library, the
+    Python wrong-length-start suite, and the sanitizer/Valgrind CI jobs; retain
+    per-wrapper results and verify no malformed start reaches an unchecked
+    dereference.
 
 - [x] TODO-64 (added 2026-10-07, filed on the model's initiative under the
   standing "add found bugs to v1.0.5" instruction; delete if unwanted):
@@ -2388,6 +2531,14 @@ baseline as expected/benign.
   spy or isolate that fork-sensitive path before relying on a rerun. TODO-66
   remains open pending a bounded, repeatable validation of the serial debug
   fallback and the checkout's native artifacts.
+  - [ ] Replace the ordinary real-fork assertion with a serial dispatch spy
+    (or isolate it in its own subprocess); then run a bounded fresh-process
+    stress check of the two-core debug fallback with a hard timeout. Each
+    process must return the expected finite seeded values, match the serial
+    reference, emit no replicate errors/warnings, and exit/clean up normally;
+    record statuses and package/native provenance. Do not retry the ordinary
+    real-fork path in-process or treat installed-package passes as checkout
+    validation.
 
 - [ ] TODO-67 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B1`):
@@ -2434,6 +2585,10 @@ baseline as expected/benign.
   compile/build/install was run. TODO-67 remains open only for TODO-5's
   KK21 survival-weight comparison and affected package_tests benchmark/CSV
   regeneration.
+  - [ ] Select and document the comparison fixture and matching-quality
+    metric; then run the `survreg`-referenced KK21 survival-weight comparison
+    and regenerate/re-audit every affected benchmark row with package and
+    native-library provenance.
 
 - [ ] TODO-68 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B2`):
@@ -2463,6 +2618,9 @@ baseline as expected/benign.
   passed against EDI 1.0.3 (128 assertions total). Only TODO-4's installed `rand`/
   `rand_bootstrap` CSV regeneration and coverage/documentation reconciliation
   remains, so this release checkbox stays unchecked.
+  - [ ] Regenerate the affected `rand` and `rand_bootstrap` comprehensive rows
+    using the corrected inversion, reconcile every affected result key and
+    coverage claim, and update documentation only from the reconciled output.
 
 - [x] TODO-69 (added 2026-10-09, fixed 2026-10-09; user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → row L,
@@ -2584,8 +2742,12 @@ baseline as expected/benign.
   lack commit and installed-library/DLL provenance and do not meet the
   comprehensive regeneration/reconciliation gate. After TODO-56 releases the
   shared result paths, rerun the affected classes and all ten BB methods in
-  isolated scratch with package/library/DLL provenance, then reconcile every
+  isolated `/tmp` scratch with package/library/DLL provenance, then reconcile every
   affected key against canonical results.
+  - [ ] For the predeclared affected grid (KKGLMM and all four KKCLMM links),
+    rerun all ten Bayesian-bootstrap procedures with commit, package, and DLL
+    provenance; classify every skipped/error row by `skip_reason`, and
+    reconcile exact keys against canonical results before updating the audit.
 
 - [ ] TODO-77 (added 2026-10-09, user decision; algorithm-sweep
   verification F14): **KK clogit+GLMM Bayesian bootstrap fits glmmTMB/Laplace on all rows** —
@@ -2601,6 +2763,11 @@ baseline as expected/benign.
   passed 4 each against EDI 1.0.3. The installed native wrapper exercised the
   weighted kernel arguments. Codex did not rebuild/install; comprehensive
   result regeneration and reconciliation remain open.
+  - [ ] After a post-fix package with recorded source/DLL provenance is
+    available, regenerate both affected classes across all ten Bayesian-
+    bootstrap p-value and confidence-interval procedures; reconcile every
+    affected result key/status against canonical outputs before accepting the
+    fix.
 
 - [x] TODO-78 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F2): **`.cox_simulate_stratified` hazard mis-scaling** —

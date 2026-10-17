@@ -297,8 +297,9 @@ are fixed here because they are still exported and registered.
   `beta_T=0`, rep 1, and family `bayesian_bootstrap`. The expected filtered
   output basename is
   `comprehensive_tests_results_nc_1_incidence_filtered_design-KK21stepwise_class-InferenceIncidKKCondLogitGLMM_OneLik_IVWC_dataset-pima_beta-0_rep-1_family-bayesian_bootstrap.csv`.
-  Reconcile exactly 40 method/configuration keys: for each of OneLik and
-  IVWC, both `model_formula=~1` and `model_formula=~.`, and these ten
+  Reconcile exactly 80 method/configuration keys: for each of OneLik and
+  IVWC, all four combinations of `model_formula` (`~1`, `~.`) and
+  `design_formula` (`~1`, `~.`), and these ten
   `function_run` labels: `compute_bayesian_bootstrap_confidence_interval`,
   `compute_bayesian_bootstrap_confidence_interval_basic`,
   `compute_bayesian_bootstrap_confidence_interval_wald`,
