@@ -2869,7 +2869,8 @@ baseline as expected/benign.
   used here. TODO-65 is closed for the GC-safety bug; optional linked TODO-4
   remains open and is not part of this release closure.
 
-- [ ] TODO-66 (added 2026-10-08, found while rewriting a stale test):
+- [x] TODO-66 (added 2026-10-08; serial-dispatch fix and runtime gates
+  completed 2026-10-18):
   **`InferenceCountHurdleNegBin`'s non-reusable-worker multi-core Bayesian
   bootstrap (`num_cores = 2`, `debug = TRUE`) hangs intermittently.**
 
@@ -3012,10 +3013,21 @@ baseline as expected/benign.
     validates the installed debug fallback only; no binary/source SHA is
     available and the historical ordinary-path hang is not reproduced by
     this stress fixture.
-  - [ ] After the user's rebuild/install, rerun the focused dispatch test
-    against the current native artifact with package/native provenance.
-    Do not retry the ordinary real-fork path in-process or treat the
-    installed-package stress as current-native validation.
+  - [x] Post-rebuild current-artifact validation, 2026-10-18: reran the
+    source-loaded focused dispatch test after the installed EDI 1.0.3 shared
+    library was rebuilt (all 25 assertions passed; no failures, warnings, or
+    skips). `pkgload::load_all(..., compile = FALSE)` loaded
+    `/tmp/RtmpHGuCBT/pkgload39405660145362/EDI.so`, MD5
+    `c07ee5a3a9d9b1909684dee3bb345cfe`, matching the installed
+    `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`;
+    installed artifact timestamp was 2026-10-18 10:56:47 +0300. Then ran
+    three separate fresh R processes through the real ordinary
+    `InferenceCountHurdleNegBin` path with `num_cores = 4` and `B = 16`;
+    each completed under the 60-second R time limit with 16 finite values.
+    The focused test confirms the non-reusable branch clamps to one worker
+    before warmup and does not fork. The serial clamp removes the affected
+    path; it does not claim to identify the underlying historical fork/OpenMP
+    runtime failure. Do not retry the old real-fork path in-process.
 
 - [ ] TODO-67 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B1`):

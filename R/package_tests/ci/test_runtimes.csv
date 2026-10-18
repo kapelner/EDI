@@ -920,6 +920,7 @@ R/package_tests/testthat_bulk/test-resolve-effective-design-components-and-capab
 R/package_tests/testthat_bulk/test-restricted-mean-se-diff-kernel-nan-event-time-propagation-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-restricted-mean-se-group-and-diff-kernels-match-survfit-per-group-truncation-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-result-key-store-kernel-membership-ranges-field-sensitivity-and-lifecycle-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-reused-worker-bitforbit-sweep-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-reused-worker-cached-values-for-next-draw-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-ridit-analysis-and-bootstrap-kernels-reference-groups-and-treatment-reference-degeneracy-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rmst-asymptotic-wald-and-general-censoring.R,correctness,1,measured_with_30_percent_headroom
@@ -2327,6 +2328,7 @@ R/package_tests/testthat_bulk/test-resolve-effective-design-components-and-capab
 R/package_tests/testthat_bulk/test-restricted-mean-se-diff-kernel-nan-event-time-propagation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-restricted-mean-se-group-and-diff-kernels-match-survfit-per-group-truncation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-result-key-store-kernel-membership-ranges-field-sensitivity-and-lifecycle-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-reused-worker-bitforbit-sweep-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-reused-worker-cached-values-for-next-draw-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ridit-analysis-and-bootstrap-kernels-reference-groups-and-treatment-reference-degeneracy-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rmst-asymptotic-wald-and-general-censoring.R,coverage,1,measured_with_30_percent_headroom
