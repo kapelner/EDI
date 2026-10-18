@@ -224,6 +224,21 @@ reproduction, the *magnitude* still isn't pinned down precisely.
   authorized package rebuild; obsolete score/gradient/LR/Bartlett rows for
   this class must disappear.
 
+### Installed-results artifact preflight (2026-10-18)
+
+A filename-only search found no class-filtered
+`comprehensive_tests_results*InferenceIncidKKModifiedPoisson*` shard. The
+available canonical `comprehensive_tests_results_nc_1_incidence.csv` is
+525,863,531 bytes (mtime 2026-10-09) and its header includes
+`function_run`, `rep`, `beta_T`, `dataset`, `response_type`, `design`,
+`inference_class`, `method_family`, `run_row_id`, and `status`. No full-file
+scan, row count, or rewrite was performed. Once a provenance-pinned package
+containing the fix is installed, regenerate the class's complete supported
+incidence matrix; reconcile rows by those experiment/method identifiers,
+remove only this class's obsolete score/gradient/LR/Bartlett/parametric-
+bootstrap rows, and verify the Wald rows remain. Preserve the canonical file
+until that generation and key-level audit are authorized and complete.
+
 ## Standing constraints
 
 No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn;

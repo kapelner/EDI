@@ -56,13 +56,12 @@ test_that("mixed-model kernels reject wrong-length warm_start_params", {
 		expect_error(case$call(numeric(case$n_params + 1L)), "warm_start_params must have length", info = case_name)
 	}
 
-	# This wrapper deliberately converts native optimizer exceptions into a
-	# diagnostic result so callers still receive terminal fit metadata.
-	zap <- EDI:::fast_zero_augmented_poisson_cpp(
+	# This wrapper converts native optimizer exceptions into a diagnostic
+	# result, but argument-contract violations error like every other kernel.
+	expect_error(EDI:::fast_zero_augmented_poisson_cpp(
 		d$X, d$y_hurdle, d$X, is_hurdle = TRUE,
-		warm_start_params = numeric(2L * ncol(d$X) - 1L))
-	expect_false(zap$converged)
-	expect_match(zap$exception_message, "warm_start_params must have length")
+		warm_start_params = numeric(2L * ncol(d$X) - 1L)),
+		"warm_start_params must have length")
 })
 
 test_that("mixed-model kernels reject wrong-shaped warm_start_fisher_info", {
@@ -97,9 +96,8 @@ test_that("mixed-model kernels reject wrong-shaped warm_start_fisher_info", {
 		expect_error(case$call(bad), "warm_start_fisher_info must be square", info = case_name)
 	}
 
-	zap <- EDI:::fast_zero_augmented_poisson_cpp(
+	expect_error(EDI:::fast_zero_augmented_poisson_cpp(
 		d$X, d$y_hurdle, d$X, is_hurdle = TRUE,
-		warm_start_fisher_info = matrix(0, 4L, 3L))
-	expect_false(zap$converged)
-	expect_match(zap$exception_message, "warm_start_fisher_info must be square")
+		warm_start_fisher_info = matrix(0, 4L, 3L)),
+		"warm_start_fisher_info must have dimensions")
 })

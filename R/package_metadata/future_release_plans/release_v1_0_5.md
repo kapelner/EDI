@@ -1999,9 +1999,10 @@ baseline as expected/benign.
 - [ ] TODO-57 (added 2026-10-07, user decision; moved here from
   `release_v1_1_0.md → TODO-39` the same day): **Bayesian bootstrap
   performance: parallel scaling and native weighted refits** —
-  `../bug_fix_plans/bayesian_bootstrap_performance.md → TODO-1..9`.
+  `../bug_fix_plans/bayesian_bootstrap_performance.md → TODO-1..10`.
 
-  A `bayesboot` comparison at n = 500, B = 1000 found two problems.
+  A `bayesboot` comparison at n = 500, B = 1000 found two problems. A third
+  (TODO-10, added 2026-10-18) came from profiling `comprehensive_tests.R`.
   - **EDI's Bayesian bootstrap does not scale with cores.**
     - The serial blocklist in `get_parallel_dispatch_policy()` pins
       logistic, Cox, Weibull and every other non-KK survival class to one
@@ -2016,6 +2017,11 @@ baseline as expected/benign.
     `survreg` formula calls rebuilt per draw (including an unused
     concordance), and `lm.wfit`. Even C++-kernel classes spend about 70%
     of their time in R-side wrappers.
+  - **Classes without a reusable worker copy the inference object per
+    draw** (plan F7 / TODO-10): `InferenceCountHurdleNegBin` and the six
+    KK GLMM / conditional-logit classes. The hurdle class's plain path
+    takes 0.103 s per draw vs. 0.057 s on one reused copy, with identical
+    estimates. Present since the initial commit, so not a regression.
 
   Fix order:
   1. dispatch machinery (bit-preserving; also speeds up the nonparametric
@@ -2416,7 +2422,20 @@ baseline as expected/benign.
   had no source changes at test time. The package does not embed a Git SHA,
   so this relies on the user's rebuild report plus timestamp and clean source
   tree rather than an artifact SHA attestation. This validates current native
-  coercion/symbol mapping and closes TODO-64.
+  coercion/symbol mapping and closes the original dispatch-wiring acceptance.
+  - [ ] **Nested OLS-IVWC numerical fixture gate** — although the existing
+    50-draw fast/worker parity case is finite and non-vacuous for dispatch
+    parity, its three matched pairs and three-column matched design use the
+    `estimate_only=TRUE` `n <= p` fallback; it does not exercise the public
+    OLS-IVWC matched fit or IVWC combination. The new n=40 one-covariate
+    independent HC2-reference case in
+    `test-kk-ols-ivwc-shared-satterthwaite-df-and-combination-branches-reference.R`
+    passes 27 assertions against installed EDI 1.0.3, but current-checkout
+    native validation remains pending. See
+    `../bug_fix_plans/dead_randomization_fast_paths.md → TODO-6`. Keep this
+    nested gate open until the focused test is run against an explicitly
+    authorized current-checkout build/install; no canonical outputs are
+    involved.
 
 - [x] TODO-65 (added 2026-10-08, user decision): **KK21 ordinal weight
   kernels: unprotected `wrap()` temporaries in an R callback in
@@ -2531,6 +2550,28 @@ baseline as expected/benign.
   spy or isolate that fork-sensitive path before relying on a rerun. TODO-66
   remains open pending a bounded, repeatable validation of the serial debug
   fallback and the checkout's native artifacts.
+
+  **Standalone reproduction of the ordinary path, 2026-10-18:** outside
+  testthat and with no earlier fit in the process, a fresh
+  `InferenceCountHurdleNegBin` (n = 80, two covariates, simulated hurdle
+  NB response) with `inf$num_cores = 4L` hung in
+  `approximate_bayesian_bootstrap_distribution_beta_hat_T(B = 151,
+  show_progress = FALSE)` (`debug = FALSE`) in 3 of 3 runs, inside and
+  outside the Claude sandbox, against installed EDI 1.0.3. Same signature
+  as 2026-10-16: the parent (5 threads) waits in `do_select`; all four
+  forked workers sleep in `futex_wait_queue`. The parent was still
+  single-threaded after `compute_estimate()` and
+  `compute_asymp_confidence_interval()`, so the OpenMP pool is most likely
+  created by the warmup refits inside this call, just before
+  `par_lapply()` forks. The same call at `num_cores = 1` finishes in
+  ~12.6 s. `comprehensive_tests.R` runs this class at nc = 4 without
+  hanging; why is not yet known. No stack: `ptrace_scope = 1` blocks gdb
+  and eu-stack on the workers.
+  - [ ] Fix the ordinary non-reusable path, not only the debug branch:
+    e.g. run the warmup in a forked child or with OpenMP held to one
+    thread, or keep the non-reusable branch serial until the hazard is
+    fixed. `bayesian_bootstrap_performance.md → TODO-10` changes the same
+    branch.
   - [ ] Replace the ordinary real-fork assertion with a serial dispatch spy
     (or isolate it in its own subprocess); then run a bounded fresh-process
     stress check of the two-core debug fallback with a hard timeout. Each

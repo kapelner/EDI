@@ -555,6 +555,12 @@ List fast_zero_augmented_poisson_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
             .set("exception_message", exception_message));
     };
 
+    // Argument-contract violations are errors for the R caller, like every
+    // other exported kernel; the try below only converts optimizer failures
+    // into the diagnostic failed-fit list.
+    require_length(nullable_to_optional<Eigen::VectorXd>(warm_start_params), total_p, "warm_start_params");
+    require_square_matrix(nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info), total_p, "warm_start_fisher_info");
+
     LikelihoodFitResult fit;
     try {
         fit = fast_zap_internal(

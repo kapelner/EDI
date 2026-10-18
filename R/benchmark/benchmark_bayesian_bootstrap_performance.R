@@ -2,8 +2,11 @@
 #
 # Runs the same installed-package benchmark protocol at B = 1000 and 5000,
 # first with the shipped dispatch blocklist and then with that blocklist
-# overridden. The child benchmark compares EDI at one and three cores against
-# bayesboot at the same core counts. It never builds or loads the checkout.
+# overridden. The child benchmark compares EDI at one and the requested number
+# of cores against bayesboot at the same core counts. It never builds or loads
+# the checkout.
+# The combined CSV also records the installed EDI DLL hash/path, package
+# versions, source commit/worktree state and run parameters for provenance.
 #
 # Usage from the repository root:
 #   Rscript R/benchmark/benchmark_bayesian_bootstrap_performance.R [n] [reps] [cores] [B-list] [output.csv]
@@ -68,5 +71,42 @@ for (B in B_values) {
 
 combined = do.call(rbind, results)
 unlink(csv_paths)
+source_commit = tryCatch(
+  system2("git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE, stderr = FALSE),
+  error = function(e) character()
+)
+source_status = tryCatch(
+  system2("git", c("-C", repo_root, "status", "--porcelain", "--untracked-files=no"), stdout = TRUE, stderr = FALSE),
+  error = function(e) character()
+)
+if (!length(source_commit)) source_commit = NA_character_
+suppressPackageStartupMessages(library("EDI"))
+edi_dll = getLoadedDLLs()[["EDI"]]
+edi_dll_path = if (is.null(edi_dll)) NA_character_ else unname(edi_dll[["path"]])
+edi_dll_path = if (!is.na(edi_dll_path) && file.exists(edi_dll_path)) normalizePath(edi_dll_path) else NA_character_
+edi_dll_md5 = if (is.na(edi_dll_path)) NA_character_ else unname(tools::md5sum(edi_dll_path))
+benchmark_packages = c("EDI", "bayesboot", "survival", "MASS", "betareg", "quantreg", "doParallel")
+package_versions = vapply(benchmark_packages, function(pkg) {
+  if (requireNamespace(pkg, quietly = TRUE)) as.character(utils::packageVersion(pkg)) else NA_character_
+}, character(1L))
+provenance = data.frame(
+  measured_at_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+  source_commit = source_commit[[1L]],
+  source_worktree_dirty = length(source_status) > 0L,
+  source_worktree_status = paste(source_status, collapse = ";"),
+  installed_edi_version = as.character(utils::packageVersion("EDI")),
+  installed_edi_path = normalizePath(find.package("EDI"), winslash = "/"),
+  installed_edi_dll_path = edi_dll_path,
+  installed_edi_dll_md5 = edi_dll_md5,
+  benchmark_package_versions = paste(paste(names(package_versions), package_versions, sep = "="), collapse = ";"),
+  R_version = R.version.string,
+  platform = R.version$platform,
+  host = Sys.info()[["nodename"]],
+  requested_cores = cores,
+  requested_B_values = paste(B_values, collapse = ","),
+  seed = 2L, detected_cores = parallel::detectCores(),
+  stringsAsFactors = FALSE
+)
+combined = cbind(combined, provenance[rep(1L, nrow(combined)), , drop = FALSE])
 print(combined, row.names = FALSE, digits = 3)
 if (!is.null(output)) utils::write.csv(combined, output, row.names = FALSE)

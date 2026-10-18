@@ -285,6 +285,22 @@ not exist either.
   test checks the TODO's fast-path/worker wiring contract; class-specific
   independent numerical references remain in their existing focused files.
 
+- [ ] TODO-6 (added 2026-10-18, follow-up): **Exercise the real OLS-IVWC
+  matched/reservoir fit and combination on a non-fallback fixture.** The
+  existing n=20, two-covariate fixture in the 50-draw dispatch-parity test has
+  three matched pairs and a three-column matched design; its
+  `estimate_only=TRUE` randomization calculation therefore takes the
+  documented `n <= p` paired-mean fallback. That is non-vacuous fast-vs-worker
+  parity, but it does not validate the public OLS-IVWC estimator. The
+  independent test added to
+  `test-kk-ols-ivwc-shared-satterthwaite-df-and-combination-branches-reference.R`
+  uses n=40, one covariate, seed 1, and compares real matched and reservoir OLS
+  HC2 components plus the IVWC estimate/SE/Satterthwaite df to a base-R
+  linear-algebra reference. It passed 27 assertions against installed EDI
+  1.0.3 (`TMPDIR=/tmp Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-kk-ols-ivwc-shared-satterthwaite-df-and-combination-branches-reference.R", package="EDI")'`).
+  Current-checkout native validation remains pending; do not treat the
+  installed 1.0.3 run as validation of checkout C++.
+
 ## Acceptance
 
 No class's fast path errors on the dispatcher's own permutation object;

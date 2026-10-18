@@ -165,6 +165,25 @@ filter), which is a direct equality test.
   do not edit or benchmark it while TODO-56 is active. Keep TODO-5 open for
   the quiet-host acceptance rerun and fixed-seed 1.0.2 assignment comparison.
 
+  **Parity-artifact audit 2026-10-18:** the searched installed library and
+  retained temporary R-library copies identify as EDI 1.0.3; no installed
+  EDI 1.0.2 binary or fixed-seed `w`-vector artifact was found. A candidate
+  source archive exists at
+  `/tmp/claude-1000/tmp.tRezeJm6cW/EDI_1.0.2.tar.gz` (SHA-256
+  `01f79c8d52678cbd95af1b7ed25609a8f1c340f059531939c9c82fddd5c47af9`). Its
+  embedded `DESCRIPTION` says EDI 1.0.2, `Repository: CRAN`, packaged
+  2026-09-25; the archive contains source but no `libs/EDI.so` or object
+  files. No trusted CRAN checksum or other provenance record for this
+  temporary copy was found, so the internal metadata and locally computed
+  hash do not authenticate it as the official baseline. A separate extracted
+  `/tmp/claude-1000/EDI` tree is also labeled 1.0.2, but its `DESCRIPTION`
+  hash differs from the archive's embedded file and they must not be treated
+  as identical. The extant TODO-59 temporary CSVs are timing/stage reports,
+  not assignment vectors. Until an authentic installed 1.0.2 baseline (or
+  retained fixed-seed vectors with provenance) is available, exact assignment
+  parity remains unavailable; do not infer it from the checkout's current
+  fixed-seed tests.
+
 ## Implementation and validation (2026-10-09)
 
 TODOs 1--4 are implemented. `edi_package_version()` now reads the version from

@@ -309,7 +309,49 @@ is O(r) arithmetic and MC is moot.
   installed EDI 1.0.3 cannot validate unbuilt checkout edits, so the focused
   test remains unrun pending an authorized source/native validation path. No
   benchmark followed this change; it makes no speedup claim and leaves the
-  20–30× target open.
+  20–30× target open. **CI inventory cross-check, 2026-10-18:** at checkout
+  `66379c40`, `test-ci-rand.R` is scheduled in the correctness tier (5.0 s)
+  and coverage tier (9.8 s); the stable-signature regression is scheduled in
+  correctness (1 s) and coverage (`bootstrap`). These manifest rows establish
+  that CI will schedule the focused tests, not that a particular branch was
+  exercised or that the unbuilt cache-key change passed. After authorized
+  native validation, retain the current full paired benchmark protocol and
+  report its result separately; neither the manifest nor the prior installed
+  EDI 1.0.3 profile closes the speed/documentation gate.
+  **Post-cache-key rerun runbook (prepared 2026-10-18; not run):** the target
+  is the unchanged full 18-cell grid (`InferenceAllSimpleAverageDiff` and
+  `InferenceContinOLS`; `n = {100, 500, 1000}` × `r = {201, 1001, 2001}`),
+  not quick mode. At current checkout `66379c40`, the source-level cache-key
+  reuse optimization is present (introduced at `51d9167c`); the harness is
+  `R/benchmark/benchmark_randomization_ci_affine_reuse.R` with blob
+  `c12bb19c5c469b1ca683008af1ff9a6e18f419e4`. Each cell fixes one generated
+  design/permutation set, warms both fresh-object routes, then alternates four
+  measured affine/general pairs. After TODO-56 is terminal and compute is
+  authorized, run from the checkout with `EDI_BENCHMARK_QUICK=0`, one BLAS/
+  OpenMP thread, and `TMPDIR` set to a fresh unique child of `/tmp`; the
+  no-canonical-write invocation is:
+
+  ```sh
+  bench_dir="$(mktemp -d /tmp/edi-todo2-rerun.XXXXXX)"
+  mkdir "$bench_dir/tmp"
+  TMPDIR="$bench_dir/tmp" OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+    EDI_BENCHMARK_QUICK=0 Rscript R/benchmark/benchmark_randomization_ci_affine_reuse.R \
+    > "$bench_dir/run.log" 2>&1
+  ```
+
+  The harness uses `pkgload::load_all(..., compile = FALSE)` and writes its
+  cell summaries to stdout, so the log is the raw artifact; do not redirect it
+  over a tracked/canonical result. Record
+  checkout SHA, harness blob, R/package and loaded-DLL provenance, thread
+  settings, complete log, per-cell medians and speedup ratios. Historical
+  comparison anchors remain the 2026-10-13 full-grid ranges (1.13–1.59× mean
+  difference; 1.05–2.14× OLS) and 2026-10-15 installed three-pair cell
+  (1.12× mean difference; 1.82× OLS); the latter is not the same full grid.
+  The script emits cell summaries/medians, not individual pair durations, so
+  retain the full log and do not imply paired uncertainty estimates. Keep the
+  original 20–30× target and documentation reconciliation open unless the
+  owner explicitly accepts a revised target; this rerun alone cannot change
+  that decision.
 
 - [x] **TODO-7: Reconcile the KK-GEE mixin read site.** Completed 2026-10-09:
   the never-populated legacy `t0s_rand + delta` branch was removed from the

@@ -159,6 +159,24 @@ currently links to `glmm_variance_component_sigma_collapse.md` and concerns
 GLMM/CLMM random-effect variance collapse, not KK21 survival weights. This
 cross-reference does not change TODO-5 scope or acceptance.
 
+### TODO-5 affected-artifact preflight (2026-10-18)
+
+A fresh filename-only search of accessible `/tmp` paths found no retained
+`project_kk21_speedup_vs_glm_weights_20261008` output or survival-weight
+comparison artifact; some system-private `/tmp` directories are not readable,
+so this is not proof that no such file exists anywhere on the host. The
+checked-in package-test outputs available for a future reconciliation are
+`comprehensive_tests_results_nc_1_survival.csv` and the aggregate
+`comprehensive_tests_{coverage,mse,power,size}.csv` files. Their headers support
+targeting raw rows by `response_type=survival` and `design=KK21stepwise`; the
+aggregate schemas also carry these fields, with `function_run` available in
+coverage, power, and size but not MSE. No row counts or duplicate-key audit was
+performed, and no result file was changed. These selectors identify the
+potentially affected scope only; they are not sufficient grounds to delete or
+replace rows. After the comparison fixture/metric is recovered or maintainer
+approved, run the post-fix comparison with row-level provenance, then reconcile
+only confirmed affected keys and regenerate the corresponding aggregate values.
+
 Build/verify per `CLAUDE.md`: rebuild the affected native translation
 units (`fast_weibull_regression.cpp`, `kk21_stepwise_survival.cpp`, and
 `kk21_weights.cpp`) and their shared `_helper_functions_core.h` dependents,

@@ -87,6 +87,26 @@ audit summary, not a reproducible raw-result fixture, so any causal claim
 requires a new, documented targeted study rather than retrospective source
 edits.
 
+**Local artifact availability recheck (read-only), 2026-10-18:** this
+workspace also contains the ignored, row-level comprehensive output files
+`comprehensive_tests_results_nc_1_proportion.csv` (81 MB, Oct 9),
+`..._continuous.csv` (644 MB, Oct 9), `..._incidence.csv` (502 MB, Oct 9),
+`..._count.csv` (315 MB, Sep 27), and `..._ordinal.csv` (398 MB, Oct 9).
+Unlike the tracked audit baseline, their rows retain `rep`, `beta_T`, dataset,
+response type, design, inference-class label (including the model/design
+formula tags), function run, `github_commit_id`, timestamp, and harness
+settings such as `r`, `pval_epsilon`, censoring rate, and noise SD. A sample
+row in the proportion file, for example, records commit
+`95e5203765fde92b5d501c0e93139603c2a95bf1` and its 2026-09-24 run context.
+This means some of TODO-52's historical cell metadata can be recovered from
+these local files; the earlier wording that the audit summary is the only
+retained representation was too broad. These files are ignored local
+artifacts, not tracked or release-provenance artifacts, and they do not store
+the generated outcomes/assignments or RNG state. They can identify/filter
+the old cells and their recorded commit/settings, but cannot provide an exact
+deterministic replay. Do not use them as post-fix evidence or edit them; keep
+the replacement-study/calibration gate open.
+
 **Additional historical lead from the isolated comprehensive audit (2026-10-16;
 not a new TODO and not a current-defect claim):** the Oct 16 audit of the
 retained proportion results also flags `InferencePropBetaRegr`'s generic

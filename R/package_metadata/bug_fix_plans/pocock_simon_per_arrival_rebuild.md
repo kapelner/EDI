@@ -144,6 +144,32 @@ one with `NA` strata values).
   This reinforces the need for an isolated timing run and does not close
   TODO-5.
 
+  **Read-only scratch-artifact audit 2026-10-18:** four timing-only CSVs are
+  retained under `/tmp`: `/tmp/edi_v105_todo60_pocock_simon_arrivals.csv`
+  (medians 0.35, 0.35, 0.35, 0.40 ms at t=10/100/500/1000), plus
+  `/tmp/todo60_pocock_benchmark.csv`, `_fast.csv`, and `_fast3.csv` (medians
+  respectively 1.4/1.6/1.4/1.4, 1.0/1.0/1.0/1.0, and
+  0.667/1.0/0.667/1.0 ms). Each contains only `t, median_ms, min_ms,
+  max_ms`; no companion run log, source SHA, installed package identity, or
+  CPU-load record was found in the bounded `/tmp` search. The first CSV's
+  values match the previously recorded 2026-10-14 result, but the file alone
+  cannot authenticate its run conditions; the remaining CSVs do not meet the
+  strict per-checkpoint 0.5 ms target. None establishes fixed-seed parity
+  against EDI 1.0.2. Treat these as diagnostic scratch outputs, not
+  acceptance evidence. TODO-5 still requires a provenance-pinned isolated
+  timing run and an authentic 1.0.2 assignment-vector comparison; do not
+  infer either result from these files.
+
+  **Read-only parity-artifact check 2026-10-18:** the only retained 1.0.2
+  candidate found is `/tmp/claude-1000/tmp.tRezeJm6cW/EDI_1.0.2.tar.gz`
+  (SHA-256 `01f79c8d52678cbd95af1b7ed25609a8f1c340f059531939c9c82fddd5c47af9`).
+  Its `DESCRIPTION` identifies source version 1.0.2, but the archive contains
+  source files only and no `.so`, `.dll`, or `.dylib`; no signature or trusted
+  checksum was found to authenticate it as the exact CRAN artifact. Running
+  that source would require compiling, which is not authorized here. Thus it
+  cannot supply the plan's isolated installed-1.0.2 comparison, and the
+  baseline-vector half of TODO-5 remains open.
+
 ### TODO-5 post-gate run protocol (prepared 2026-10-16)
 
 Do not run until TODO-56 is terminal, the current checkout has an explicitly

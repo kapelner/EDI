@@ -51,6 +51,7 @@ InferenceContinOLS = define_inference_class(
 			"cached_mod", "supports_lik_ratio_param_bootstrap", "supports_likelihood_tests",
 			"simulate_under_lik_null", "get_likelihood_test_spec", "shared",
 			"compute_fast_randomization_distr",
+			"compute_fast_non_param_bootstrap_distr",
 			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
 			"mark_jackknife_nonestimable_if_block_unsupported",
 			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
@@ -199,6 +200,53 @@ InferenceContinOLS = define_inference_class(
 	private = list(
 		cached_mod = NULL,
 		max_resample_attempts = NULL,
+		compute_fast_non_param_bootstrap_distr = function(boot_draws, bootstrap_type = NULL){
+			# The compiled kernel implements ordinary row-IID resampling for the
+			# additive OLS model only. Keep all structured designs and non-default
+			# bootstrap schemes on the existing worker path.
+			if (!is.null(bootstrap_type) || is.null(private$des_obj)) return(NULL)
+			design_classes = class(private$des_obj)
+			if (!any(design_classes %in% c("DesignFixedBernoulli", "DesignSeqOneByOneBernoulli"))) return(NULL)
+			des = private$des_obj
+			if (isTRUE(des$is_blocking_design()) || isTRUE(des$is_matching_design()) || isTRUE(des$is_a_cluster_capable())) return(NULL)
+			n = as.integer(private$n)
+			if (length(boot_draws) == 0L || n <= 0L) return(NULL)
+			indices = lapply(boot_draws, function(draw){
+				if (!is.list(draw) || is.null(draw$i_b) || !is.null(draw$m_vec_b)) return(NULL)
+				i_b = as.integer(draw$i_b)
+				if (length(i_b) != n || anyNA(i_b) || any(i_b < 1L | i_b > n)) return(NULL)
+				i_b
+			})
+			if (any(vapply(indices, is.null, logical(1)))) return(NULL)
+			X_full = private$create_design_matrix()
+			w = as.numeric(private$w)
+			y = as.numeric(private$y)
+			if (nrow(X_full) != n || ncol(X_full) < 2L || length(w) != n || length(y) != n ||
+					!identical(as.numeric(X_full[, 2L]), w)) return(NULL)
+			# The worker's hardened QR keeps the treatment column and drops
+			# collinear covariates. The batch kernel does not implement that policy,
+			# so one unsafe draw sends the whole distribution through the worker.
+			full_rank_draw = vapply(indices, function(idx){
+				length(idx) > ncol(X_full) && qr(X_full[idx, , drop = FALSE])$rank == ncol(X_full)
+			}, logical(1))
+			if (!all(full_rank_draw)) return(NULL)
+			X_covars = if (ncol(X_full) > 2L) {
+				as.matrix(X_full[, -(1:2), drop = FALSE])
+			} else {
+				matrix(numeric(0), nrow = n, ncol = 0L)
+			}
+			indices0 = do.call(cbind, lapply(indices, function(idx) idx - 1L))
+			storage.mode(indices0) = "integer"
+			out = tryCatch(
+				compute_ols_bootstrap_parallel_cpp(
+					X_covars, y, as.integer(w), indices0,
+					private$n_cpp_threads(length(boot_draws))
+				),
+				error = function(e) NULL
+			)
+			if (is.null(out) || length(out) != length(boot_draws) || any(!is.finite(out))) return(NULL)
+			as.numeric(out)
+		},
 		compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 			# The kernel implements the additive sharp-null construction only; the
 			# generic worker remains authoritative for transformed outcomes and

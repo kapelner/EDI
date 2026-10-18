@@ -177,6 +177,20 @@ those APIs.
   warnings (`TMPDIR=/tmp Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-rmst-weighted-shared-truncation-horizon-reference.R", package="EDI")'`).
   This is useful runtime evidence for the installed library only; it is not
   an exact-current-HEAD build/CI result and does not close TODO-3.
+  **Current-HEAD provenance recheck 2026-10-18:** checkout HEAD is
+  `66379c40b7c417ba024a5edbe79a1f1a8b344222`; `gh run list --commit
+  66379c40b7c417ba024a5edbe79a1f1a8b344222` returns no runs. The latest
+  successful scheduled coverage run `39009933731` is at
+  `430c19bcdb0702d998c79f9058c449449034134c`, and its correctness jobs were
+  skipped, so it is not native validation. The latest successful bulk
+  correctness run remains `38808821543` at that same older SHA. The target
+  RMST source and focused shared-horizon test are unchanged between that SHA
+  and current HEAD (a path-limited diff for `fast_survival_stats.cpp`,
+  `inference_survival_rmst.R`, and the focused shared-horizon test is empty),
+  but this ancestry/source-identity does not equal an exact-SHA native run.
+  TODO-3 therefore remains open; run the current commit through
+  the existing bulk correctness workflow for exact-SHA CI evidence, or obtain
+  explicit approval to waive its literal targeted-only compile criterion.
 - [x] TODO-4: Decide the exact shared-τ convention (minimum of both arms'
   max time is the standard literature default; confirm this is what's
   wanted here, or whether a pre-specified fixed horizon parameter should

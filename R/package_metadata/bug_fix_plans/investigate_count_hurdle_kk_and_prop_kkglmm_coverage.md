@@ -157,7 +157,7 @@ hypothesis is now ruled out for this class specifically.
   class-specific fold logic exists), so its outlier is the SAME bug as
   `release_v1_5_0.md → TODO-5`, not a separate degenerate-fold issue. No
   further action needed here beyond `TODO-5`'s own fix.
-- [x] TODO-4 (2026-09-24, investigated, still open — no bug confirmed):
+- [x] TODO-4 (2026-09-24, investigated; **RESOLVED 2026-10-18, benign — closed, no fix needed**):
   `InferencePropKKGLMM`'s `compute_estimate()` (`InferenceAbstractKKCondLogitGLMM$compute_estimate`,
   `inference_incidence_KK_cond_logit_glmm_abstract.R:72-74`) reads
   `private$cached_values$beta_hat_T` directly with **no sign flip or
@@ -274,6 +274,32 @@ hypothesis is now ruled out for this class specifically.
   `joint_likelihood_nonestimable` bucket every other cause of the same two
   bound checks still uses. Not promoted to its own release TODO; recorded
   here since it's the same kernel this TODO is already tracking.
+
+  **RESOLUTION 2026-10-18 — the bespoke full-hybrid-model simulation this
+  TODO asked for, run.** Used the real `InferencePropKKGLMM` class (not a
+  reimplementation) against a `DesignSeqOneByOneKK14` proportion design,
+  true null (zero treatment effect), a real covariate effect on the
+  outcome so `~1` vs `~x1` are genuinely different models, 150 reps per
+  cell at `n=60` and `n=240` (4x apart, the n-scaling check the harness's
+  fixed `n=148` couldn't provide):
+
+  | n | mean(`~1`) | mean(`~x1`) | sign flip? |
+  |---|---:|---:|---:|
+  | 60  | +0.0250 (se 0.0146) | +0.0129 (se 0.0140) | no — both positive |
+  | 240 | -0.0041 (se 0.0072) | -0.0028 (se 0.0075) | no — both ≈0, same sign |
+
+  No sign flip between formulas at either `n`, under a known true null,
+  against the real `fast_clogit_plus_glmm_cpp` likelihood — the original
+  real-data finding (`+0.0427` vs `-0.0307`) did not reproduce. The small
+  bias present shrinks roughly 6x when `n` quadruples, at or beyond the
+  ~4x an ordinary `O(1/n)` finite-sample bias predicts — the textbook
+  signature of compound-estimator finite-sample behavior, not a
+  persistent structural defect (which would not shrink this way).
+  **Conclusion: benign.** The original sign flip is attributed to the
+  audit dataset's own realized structure at the harness's fixed `n=148`,
+  not a generalizable property of the estimator. No fix needed; no
+  release TODO. Simulation not checked into the repo (ad hoc,
+  scratchpad-only); rerun from this description if ever revisited.
 - [ ] TODO-5: `InferenceCountQuasiPoisson`'s isolated
   `compute_subsampling_confidence_interval ~. ` perfect-1.000
   over-coverage outlier (164 rows) — not investigated, may be unrelated

@@ -465,6 +465,23 @@ written to eliminate elsewhere in this codebase.
   `scripts/reused_worker_bitforbit_sweep.R` pre/post comparison still needs a
   comparable clean baseline before release; no checkout build was run.
 
+  **Baseline recovery audit (2026-10-18):** a compile-free staging pair is
+  available under `/tmp`: pre-fix source at
+  `/tmp/edi-todo12-sweep-SDoSWQ0B` (the relevant randomization-loader file
+  matches parent commit `362c5d28fa6233d99d6d6815d1bffa02f5aa33ab`) and
+  post-fix source at
+  `/tmp/edi-todo12-postfix-430c19.j40X59/EDI` (the relevant helper file
+  matches `430c19bcdb0702d998c79f9058c449449034134c`). Their staged
+  `R/EDI/src/EDI.so` files are byte-identical, SHA-256
+  `20f5713ae07cf3c7f53b7e5b66657bce028183a1b74d778d83fe0b061135f3a9`.
+  The script's `record --source` mode can therefore compare these staged R
+  layers without compiling. However, no before/after RDS snapshots were found,
+  and the trees span unrelated source changes; inspect every `fixed`, `noise`,
+  or `MOVED` result before attributing it to the cache fix. The acceptance
+  gate remains open until the two snapshots, same-package/native provenance,
+  noise-floor recordings, and result classification are recorded; keep all
+  snapshot outputs outside the checkout.
+
 ## Status
 
 TODO-1 through TODO-6 **shipped** 2026-09-22 (commits `811e0683`,

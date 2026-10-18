@@ -129,6 +129,24 @@ are the most direct evidence this is fixable rather than structural.
   or seed metadata. Thus the exact historical reps 1/13 cannot be recovered
   from retained artifacts; the prior `~.` stall remains unresolved, and no
   retry was launched.
+  **Local raw-output metadata recheck 2026-10-18 (read-only):** the ignored
+  `R/package_tests/comprehensive_tests_results_nc_1_survival.csv` (355 MB,
+  last modified 2026-09-27) retains row-level run, duration, formula, commit,
+  timestamp, and harness settings. It contains other historical
+  `compute_lik_ratio_bartlett_approx_two_sided_pval` rows over 100s at
+  `design_formula=~.` (rep 20: 213.060s, commit
+  `c8d4786e8d56f9e53b4f9a5a38a263f2fdd4f903`; rep 30: 165.243s, commit
+  `36368a0e00f9feb5cafb316ed2e161e8fbfac659`), as well as high-duration
+  `compute_estimate` rows. These are pre-fix historical observations, not
+  post-fix evidence and not the missing original reps 1/13 sample. The CSV
+  does not record `.Random.seed`, assignments, or generated outcomes, so it
+  cannot recover the exact RNG realization. The remaining acceptance is
+  therefore still decision-gated: recover the original realization or obtain
+  approval for a deterministic replacement; have the maintainer set the
+  numeric runtime ceiling and point-estimate/SE/Bartlett-p parity tolerances
+  for both `~1` and `~.`; then run the full selected case in isolation under
+  a hard timeout and record package/native provenance. Do not infer a runtime
+  threshold from the filtered probe or these other historical rows.
 - [x] TODO-4: Confirm no golden-test point-estimate drift from the new
   bound. `test-clayton-logtheta-optimizer-bound.R` passed against the
   reinstalled package on 2026-10-14, including the censored fixture's

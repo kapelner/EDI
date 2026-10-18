@@ -206,6 +206,33 @@ write a fix plan or attempt a code change without first pulling the exact
 historical dataset/design/formula and confirming the inflation reproduces
 on it.
 
+### TODO-21 independence/provenance checkpoint (2026-10-18)
+
+TODO-21 can remain independently scoped while TODO-20 is investigated: its
+specific class, method-family headlines, and refuted reservoir-singleton
+mechanism are already documented here. However, it cannot be independently
+reproduced from the retained artifacts: neither the tracked audit baseline,
+current incidence CSV, nor older local snapshot contains the three headline
+rates, and the stamped 2026-09-27 raw input (561,975,056 bytes) is unavailable.
+Do not use TODO-20's evidence as a substitute or let its outcome close this
+item. The next useful input is that exact historical raw CSV plus its audit
+stamp/source provenance, or an equivalent row export preserving both formulae,
+dataset/design, method family, denominator and run identifiers. Only then can
+the exact cells and remaining KKGEE-family comparisons be selected without
+another all-data scan. No simulation or code change was performed for this
+checkpoint.
+
+**Cross-family baseline check (same date):** a bounded read-only query of the
+tracked `comprehensive_results_audit_baseline.csv` found p-value-miscalibration
+rows for neighboring `InferenceCountPoissonKKGEE` (including
+Bayesian-bootstrap and studentized-bootstrap methods), but none for
+`InferenceOrdinalKKGEE` or `InferencePropKKGEE`. This older pooled baseline
+does not preserve source dataset/run identity, has a different response type,
+and its `InferenceIncidKKGEE` rows do not reproduce the three headline rates;
+therefore it cannot establish a shared KKGEE mechanism. Keep TODO-21 separate
+from TODO-20 and defer any broader conclusion until the exact stamped raw
+input is recovered. No result CSV or simulation was touched.
+
 ## Standing constraints
 
 No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn;

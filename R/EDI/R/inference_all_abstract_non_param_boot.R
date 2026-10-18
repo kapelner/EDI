@@ -559,6 +559,20 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 						prop_illegal_values = mean(!is.finite(values))
 					))
 				}
+			# Optional class-specific batch path. Draws have already been generated,
+			# so a supported hook preserves the generic path's RNG contract. Debug
+			# calls returned above with per-replicate diagnostics and never batch.
+			if (private$has_private_method("compute_fast_non_param_bootstrap_distr")) {
+				fast_boot_distr = private$compute_fast_non_param_bootstrap_distr(
+					boot_draws = boot_draws,
+					bootstrap_type = bootstrap_type
+				)
+				if (!is.null(fast_boot_distr)) {
+					fast_boot_distr = as.numeric(fast_boot_distr)
+					private$set_cached_resampling_distribution("non_param_boot", cache_key, fast_boot_distr)
+					return(fast_boot_distr)
+				}
+			}
 			# Determine cores — warm-up guard: run one iteration serially to estimate per-iteration
 			# cost, then only parallelize if computation outweighs overhead per worker.
 			# For an existing persistent fork cluster the per-call overhead is ~10ms (socket

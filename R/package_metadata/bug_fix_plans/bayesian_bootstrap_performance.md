@@ -138,6 +138,37 @@ each time looping over groups with `stats::rgamma`. Each draw also carries
 a context object (about 2.2 KB). This costs 0.09–0.16 s per 1000 draws,
 which is 20–30% of the whole OLS bootstrap.
 
+**F7. Classes without a reusable worker copy the whole inference object for
+every draw.** Found 2026-10-18 while profiling `comprehensive_tests.R`
+(`../audits/further_optimizations.md`). When
+`supports_reusable_bootstrap_worker()` is `FALSE`,
+`approximate_bayesian_bootstrap_distribution_beta_hat_T()` calls
+`inf_template$duplicate(make_fork_cluster = FALSE)` once per draw. That is
+the base default (`inference_all_abstract_non_param_boot.R`); the
+studentized path (`approximate_bayesian_bootstrap_statistics_beta_hat_T()`)
+instead reuses one `inf_work` for all B draws. Affected classes:
+`InferenceCountHurdleNegBin` (explicit `FALSE`), plus the six KK GLMM /
+conditional-logit classes that inherit the default
+(`release_v1_0_5.md`, stale-design-matrix audit). Measured on installed EDI
+1.0.3 with `InferenceCountHurdleNegBin`, n = 80, 1 core:
+
+| Per draw | Seconds |
+|---|---|
+| `duplicate()` alone | 0.021 |
+| fresh `duplicate()` + weighted refit (the plain path) | 0.103 |
+| weighted refit on one reused copy | 0.057 |
+
+So the plain distribution path (12.6 s at B = 151) is slower than the
+studentized path (8.9 s), which also refits an SE per draw. About 84% of
+the refit is `glmmTMB::glmmTMB`; the gap beyond the copy itself is warm
+state a fresh copy rebuilds. On 30 seeded draws the fresh and reused copies
+gave bit-identical estimates. Not a regression: the per-draw copy, the
+reused studentized copy and the hurdle `FALSE` override are all in the
+initial commit (`ff079d54`, 2026-08-10), and nothing on this branch changed
+between v1.0.2 and HEAD. The per-draw copy is also what guarantees no cache
+crosses draws (`release_v1_0_5.md` relies on it to rule out stale
+`cached_design_matrix` for the KK GLMM cluster), so a fix must keep that.
+
 ## Proposal
 
 Fix in order of payoff per unit of risk: the dispatch machinery first
@@ -155,7 +186,7 @@ identical at any core count for a given seed. Keep that:
 default behavior to reproduce 1.0.x bit-for-bit unless a plan documents a
 default change.
 
-- TODO-2..5 and TODO-7 are bit-preserving.
+- TODO-2..5, TODO-7 and TODO-10 are bit-preserving.
 - TODO-6 (and TODO-8, if pursued) swaps numerical engines, so it changes
   low-order bits of bootstrap replicates. This plan documents that as a
   default change:
@@ -374,6 +405,30 @@ release-scale runtime-manifest or sanitizer validation; TODO-66 remains open.
      - Rewrite #13's "does not yet gain from extra cores" sentence.
      - Ask the owner for the go-ahead to file both. Filing is outward-facing
        and never happens without it.
+
+- [ ] TODO-10 (added 2026-10-18, user decision): **One copy per worker,
+  not per draw, on the non-reusable path (F7).**
+  1. In the non-reusable branch of
+     `approximate_bayesian_bootstrap_distribution_beta_hat_T()` (and its
+     warmup), duplicate `inf_template` once per worker chunk and reuse it
+     for that chunk's draws, as the studentized path already does.
+  2. Before each draw, clear whatever a refit can leave behind that
+     depends on the previous draw's weights (fit caches, warm starts,
+     `cached_design_matrix`, nonestimable flags), so the per-draw-copy
+     guarantee in F7 still holds. List the fields per affected class
+     rather than clearing all of `cached_values`, which would discard the
+     warm state that makes reuse pay.
+  3. Assert bit-identical distributions against the per-draw-copy path,
+     seeded, at 1 and 2+ cores, for `InferenceCountHurdleNegBin` and the
+     six inheriting KK GLMM / conditional-logit classes.
+  4. Measure before/after with TODO-1's harness. Expected: about 45% off
+     the hurdle class's Bayesian bootstrap (0.103 → ~0.057 s per draw).
+  5. Check whether the ordinary nonparametric bootstrap and the jackknife
+     have the same per-draw copy on their non-reusable branches, and apply
+     the same change there.
+
+  Independent of TODO-66's fork hang, but touches the same branch, so land
+  them together or rebase one on the other.
 
 **Installed-package regression check, 2026-10-14:** the Bayesian-bootstrap
 weight-draw/manual-loop reference passed 24 assertions; worker-loading and

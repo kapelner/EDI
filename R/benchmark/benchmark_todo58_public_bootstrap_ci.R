@@ -98,10 +98,45 @@ if (startsWith(edi_path, paste0(repo_root, "/R/EDI"))) {
   stop("This evidence driver must use an installed EDI package, not the checkout.", call. = FALSE)
 }
 edi_version <- as.character(utils::packageVersion("EDI"))
+loaded_edi_dll_path <- function() {
+  dlls <- getLoadedDLLs()
+  dll_paths <- vapply(dlls, function(dll) {
+    tryCatch(as.character(dll[["path"]]), error = function(e) "")
+  }, character(1L))
+  is_edi <- grepl("(^|[/\\\\])EDI\\.(so|dylib|dll)$", dll_paths, ignore.case = TRUE)
+  paths <- dll_paths[is_edi & nzchar(dll_paths)]
+  if (!length(paths)) return("<unavailable>")
+  tryCatch(normalizePath(paths[[1L]], winslash = "/", mustWork = TRUE),
+           error = function(e) "<unavailable>")
+}
+sha256_file <- function(path) {
+  if (length(path) != 1L || is.na(path) || !file.exists(path)) return("<unavailable>")
+  commands <- list(
+    list(command = Sys.which("sha256sum"), args = character()),
+    list(command = Sys.which("shasum"), args = c("-a", "256")),
+    list(command = Sys.which("openssl"), args = c("dgst", "-sha256")),
+    list(command = Sys.which("certutil"), args = c("-hashfile", shQuote(path), "SHA256"))
+  )
+  for (entry in commands) {
+    if (!nzchar(entry$command)) next
+    args <- c(entry$args, if (!identical(entry$command, Sys.which("certutil"))) shQuote(path))
+    output <- tryCatch(system2(entry$command, args = args, stdout = TRUE, stderr = FALSE),
+                       error = function(e) character())
+    status <- attr(output, "status")
+    if (!length(output) || (!is.null(status) && !identical(as.integer(status), 0L))) next
+    hashes <- regmatches(output, gregexpr("[[:xdigit:]]{64}", output, perl = TRUE))
+    hashes <- tolower(unlist(hashes, use.names = FALSE))
+    if (length(hashes)) return(hashes[[1L]])
+  }
+  "<unavailable>"
+}
+edi_dll_path <- loaded_edi_dll_path()
+edi_dll_sha256 <- sha256_file(edi_dll_path)
 if (!is.null(expected_version) && !identical(edi_version, expected_version)) {
   stop("Expected EDI ", expected_version, " but loaded ", edi_version, " from ", edi_path, call. = FALSE)
 }
-cat("Installed EDI", edi_version, "from", edi_path, "\n")
+cat("Installed EDI", edi_version, "from", edi_path,
+    "(DLL:", edi_dll_path, "; SHA-256:", edi_dll_sha256, ")\n")
 
 seed_for_class <- function(label) {
   codes <- utf8ToInt(label)
@@ -225,6 +260,7 @@ if (identical(mode, "dump-parity")) {
          row_seed = spec$row_seed, distribution = distribution)
   })
   saveRDS(list(package_version = edi_version, package_path = edi_path,
+               edi_dll_path = edi_dll_path, edi_dll_sha256 = edi_dll_sha256,
                case_keys = case_keys, cases = results), output_path)
   cat("Wrote installed-package parity dump:", output_path, "\n")
   quit(status = 0L)
@@ -253,6 +289,8 @@ for (i in seq_along(cases)) {
     }
     rows[[row_i]] <- data.frame(
       case = spec$key, sample = sample_id, n = spec$n, B = spec$B,
+      EDI_package_version = edi_version, EDI_package_path = edi_path,
+      EDI_dll_path = edi_dll_path, EDI_dll_sha256 = edi_dll_sha256,
       fixture_seed = spec$fixture_seed, row_seed = seed,
       EDI_CI_lower = edi$ci[1L], EDI_CI_upper = edi$ci[2L],
       EDI_construction_ms = edi$construction_ms,

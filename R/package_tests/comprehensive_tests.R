@@ -923,11 +923,13 @@ filtered_results_suffix = if (length(extra_filter_parts)) {
 	""
 }
 
-results_file = if (is.na(RESPONSE_TYPE_FILTER)) {
+source(file.path(script_dir, "comprehensive_results_path.R"), local = TRUE)
+default_results_file = if (is.na(RESPONSE_TYPE_FILTER)) {
 	repo_path("package_tests", paste0("comprehensive_tests_results_nc_", NUM_CORES, filtered_results_suffix, ".csv"))
 } else {
 	repo_path("package_tests", paste0("comprehensive_tests_results_nc_", NUM_CORES, "_", RESPONSE_TYPE_FILTER, filtered_results_suffix, ".csv"))
 }
+results_file = resolve_comprehensive_results_file(default_results_file)
 existing_results_dt = if (file.exists(results_file)) data.table::fread(results_file) else data.table::data.table()
 run_row_id = if ("run_row_id" %in% colnames(existing_results_dt) && nrow(existing_results_dt) > 0L) {
 	as.integer(max(existing_results_dt$run_row_id, na.rm = TRUE))

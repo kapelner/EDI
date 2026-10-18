@@ -44,6 +44,63 @@ set_mocks <- function(priv, beta_m, ssq_m, df_m, beta_r, ssq_r, df_r) {
 	}
 }
 
+# Independent OLS/HC2 oracle for the real-estimator fixture below. This uses
+# only base R linear algebra, not the EDI OLS or IVWC helpers.
+ols_hc2_reference <- function(X, y, treatment_col) {
+	X <- as.matrix(X)
+	y <- as.numeric(y)
+	fit <- stats::lm.fit(x = X, y = y)
+	if (fit$rank != ncol(X)) stop("reference fixture design is not full rank")
+	bread <- solve(crossprod(X))
+	h <- rowSums((X %*% bread) * X)
+	e <- as.numeric(fit$residuals)
+	meat <- crossprod(X, X * (e^2 / (1 - h)))
+	vcov_hc2 <- bread %*% meat %*% bread
+	list(beta = unname(fit$coefficients[treatment_col]),
+	     ssq = unname(vcov_hc2[treatment_col, treatment_col]),
+	     df = nrow(X) - ncol(X))
+}
+
+ols_ivwc_reference <- function(y, w, m, X) {
+	y <- as.numeric(y)
+	w <- as.integer(w)
+	m <- as.integer(m)
+	X <- as.matrix(X)
+	matched_ids <- sort(unique(m[m > 0L]))
+	pair_diffs <- lapply(matched_ids, function(id) {
+		i_t <- which(m == id & w == 1L)
+		i_c <- which(m == id & w == 0L)
+		if (length(i_t) != 1L || length(i_c) != 1L) {
+			stop("reference fixture must contain one treated and one control per matched pair")
+		}
+		list(y = y[i_t] - y[i_c], X = X[i_t, , drop = FALSE] - X[i_c, , drop = FALSE])
+	})
+	y_diff <- vapply(pair_diffs, `[[`, numeric(1L), "y")
+	X_diff <- do.call(rbind, lapply(pair_diffs, `[[`, "X"))
+	X_matched <- cbind(1, X_diff)
+	matched <- ols_hc2_reference(X_matched, y_diff, treatment_col = 1L)
+
+	i_res <- which(m == 0L)
+	X_reservoir <- cbind(1, w[i_res], X[i_res, , drop = FALSE])
+	reservoir <- ols_hc2_reference(X_reservoir, y[i_res], treatment_col = 2L)
+	if (!is.finite(matched$ssq) || matched$ssq <= 0 ||
+	    !is.finite(reservoir$ssq) || reservoir$ssq <= 0) {
+		stop("reference fixture must have two positive finite HC2 variances")
+	}
+	w_matched <- reservoir$ssq / (matched$ssq + reservoir$ssq)
+	variance_terms <- c(w_matched^2 * matched$ssq,
+	                    (1 - w_matched)^2 * reservoir$ssq)
+	list(
+		beta = w_matched * matched$beta + (1 - w_matched) * reservoir$beta,
+		ssq = matched$ssq * reservoir$ssq / (matched$ssq + reservoir$ssq),
+		df = sum(variance_terms)^2 /
+			sum(variance_terms^2 / c(matched$df, reservoir$df)),
+		matched = matched,
+		reservoir = reservoir,
+		w_matched = w_matched
+	)
+}
+
 test_that("satterthwaite_df() matches the closed-form formula, restricted to finite-and-positive pairs, and is NA when none remain", {
 	f <- mk_fixture(1L)
 	sw <- f$priv$satterthwaite_df(c(2, 3), c(5, 8))
@@ -93,4 +150,39 @@ test_that("neither piece succeeds: beta_hat_T, s_beta_hat_T and df are all NA_re
 	expect_true(is.na(f$priv$cached_values$beta_hat_T))
 	expect_true(is.na(f$priv$cached_values$s_beta_hat_T))
 	expect_true(is.na(f$priv$cached_values$df))
+})
+
+test_that("real OLS-IVWC fit uses estimable matched and reservoir regressions and matches an independent HC2 reference", {
+	# n=40, one varying covariate, and seed 1 yield enough complete KK14 pairs
+	# for the matched design (more rows than columns) and a two-arm reservoir.
+	# This exercises the real OLS components and IVWC/Satterthwaite combination,
+	# unlike the mocked branch tests or an estimate_only randomization fallback.
+	f <- mk_fixture(1L, n = 40L)
+	priv <- f$priv
+	X <- as.matrix(priv$get_X())
+	y <- as.numeric(priv$y)
+	w <- as.integer(priv$w)
+	m <- as.integer(priv$m)
+	ids <- sort(unique(m[m > 0L]))
+	reservoir <- which(m == 0L)
+
+	ref <- ols_ivwc_reference(y, w, m, X)
+	expect_gt(length(ids), ncol(X) + 1L)
+	expect_true(qr(cbind(1, do.call(rbind, lapply(ids, function(id) {
+		i_t <- which(m == id & w == 1L)
+		i_c <- which(m == id & w == 0L)
+		X[i_t, , drop = FALSE] - X[i_c, , drop = FALSE]
+	}))))$rank == ncol(X) + 1L)
+	expect_gt(sum(w[reservoir] == 0L), 1L)
+	expect_gt(sum(w[reservoir] == 1L), 1L)
+	expect_true(is.finite(ref$matched$beta) && is.finite(ref$reservoir$beta))
+	expect_true(ref$matched$ssq > 0 && ref$reservoir$ssq > 0)
+	expect_true(ref$w_matched > 0 && ref$w_matched < 1)
+
+	actual_beta <- f$inf$compute_estimate(estimate_only = FALSE)
+	expect_equal(actual_beta, ref$beta, tolerance = 1e-8)
+	expect_equal(priv$cached_values$s_beta_hat_T, sqrt(ref$ssq), tolerance = 1e-8)
+	expect_equal(priv$cached_values$df, ref$df, tolerance = 1e-8)
+	expect_equal(priv$cached_values$beta_T_matched, ref$matched$beta, tolerance = 1e-8)
+	expect_equal(priv$cached_values$beta_T_reservoir, ref$reservoir$beta, tolerance = 1e-8)
 })

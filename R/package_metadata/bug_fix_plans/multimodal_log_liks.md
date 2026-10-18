@@ -218,6 +218,13 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   specifically, the original Sep 21 per-seed outputs and run metadata are
   absent. Thus the historical 386/400 and 169/400 usable denominators are
   irrecoverable from retained artifacts; this does not resolve their cause.
+  **Hash verification 2026-10-18:** a read-only SHA-256 check of the four
+  `n100k5.csv`/`n50k3.csv` files in the two Oct 14 directories reproduced the
+  two hashes above exactly (`e07fb683…ddd051` for n=100 and
+  `5992e43b…7eff4` for n=50). The recheck confirms byte identity, not source or
+  native-build provenance; TODO-4 remains blocked on historical-denominator
+  reconciliation or an explicitly approved current-native rerun. No files in
+  either result directory were modified.
 - [x] TODO-5: Audit and, where estimates move, re-derive (not just
   re-record) every golden/reference value touching
   `InferenceOrdinalStereotypeLogitRegr` in
@@ -249,6 +256,13 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   `man/InferenceOrdinalStereotypeLogitRegr.Rd`
   (`fix_documentation.md`'s batch process — do not roxygenize ad hoc mid
   other work, see memory `feedback_no_interim_roxygenize`).
+  **Read-only gate check 2026-10-18:** both the roxygen source and checked-in
+  Rd still report the prior post-refit/pre-multistart calibration (n=100:
+  ~6.5% Type-I error and 0.93 coverage; n=50: ~13% and 169 converged fits).
+  Because TODO-4 has not produced release-current post-multistart numbers,
+  these values cannot yet be replaced safely. Update the source and generated
+  Rd together only after TODO-4 is valid; follow the batch documentation
+  process rather than roxygenizing ad hoc.
 - [ ] TODO-8: Regenerate the `comprehensive_tests` CSV rows for this class
   (all `function_run`s, not just the lik-ratio-bootstrap slice already
   regenerated 2026-09-21) once the fix lands and is installed, then re-run
@@ -272,7 +286,15 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   original target of the fix) — plausible if the SE/CI machinery for
   these families implicitly assumed the old (buggy) single-start fit's
   behavior somewhere downstream. Not investigated further; needs its own
-  look once TODO-4's larger post-fix measurement run exists.
+  look once TODO-4's larger post-fix measurement run exists. **Read-only
+  matrix preflight 2026-10-18:** the retained `study.R` runner records the
+  point estimate, raw LR p-value, and LR-bootstrap CI per seed; its summary
+  has no Wald/asymptotic, score, or gradient result columns. Therefore simply
+  repeating that runner cannot test the four family-specific coverage changes
+  above. The later authorized calibration must add those family outputs and
+  retain separate finite-result denominators per method; otherwise TODO-9's
+  coverage lead remains unanswered even if TODO-4's aggregate calibration
+  completes. No simulation was run for this preflight.
 
 ## Standing constraints
 

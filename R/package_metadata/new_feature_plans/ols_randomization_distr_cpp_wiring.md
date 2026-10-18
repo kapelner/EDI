@@ -91,7 +91,7 @@ the kernel inputs at the boundary, and return the batch distribution (or
 
 ## Items
 
-- [ ] **TODO-1: `InferenceContinOLS$compute_fast_randomization_distr()`.**
+- [x] **TODO-1: `InferenceContinOLS$compute_fast_randomization_distr()`.**
   Private method with the Poisson signature. Guards per §1–7 above, then
   `compute_ols_distr_parallel_cpp(Xc_kept, as.numeric(y), w_mat,
   as.numeric(delta), private$n_cpp_threads(ncol(w_mat)))`. `Xc_kept` is
@@ -99,12 +99,12 @@ the kernel inputs at the boundary, and return the batch distribution (or
   once per object, not per call. For `p_covars = 0` pass a 0-column matrix;
   verify the kernel handles `p_covars = 0` (it sizes `XtX` as 2×2 — check
   `Xt_1`/`XtX_c` with zero columns compile to no-ops rather than UB).
-- [ ] **TODO-2: Kernel rank guard.** In `ols_distr_parallel.cpp`, after the
+- [x] **TODO-2: Kernel rank guard.** In `ols_distr_parallel.cpp`, after the
   QR, `if (qr.rank() < p_full) { res_ptr[b] = NA_REAL; continue; }`. Also
   return `NA` when `sum_w == 0 || sum_w == n` (all-treated / all-control
   permutation) rather than letting the solve produce garbage. Targeted
   compile of this one file only, per `CLAUDE.md`.
-- [ ] **TODO-3: Equivalence tests.**
+- [x] **TODO-3: Equivalence tests.**
   `test-parallel-distribution-kernel-contracts.R`:
   (a) for fixed seed and permutations, the sorted `t0s` from the kernel path
   and from `compute_fast_randomization_distr_via_reused_worker()` agree to
@@ -134,7 +134,9 @@ the kernel inputs at the boundary, and return the batch distribution (or
   installed-package evidence**; it is not a current-checkout native
   validation. The separate benchmark TODO-5 is checked below. The release
   parent remains open for current-head native validation and the TODO-4
-  dead-export disposition; TODO-6 (Lin) remains a stretch item.
+  dead-export disposition; TODO-6 (Lin) remains a stretch item. The TODO-1..3
+  checkmarks record source implementation and equivalence-test evidence only;
+  they do not close the release parent's current-head native gate.
 - [ ] **TODO-4: Dead-kernel triage.** For each of the nine exports below
   without a production caller, decide *wire in* or *delete*, and do it.
   A Graft caller audit on 2026-10-14 found direct test/benchmark/profiler

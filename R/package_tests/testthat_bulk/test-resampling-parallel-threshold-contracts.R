@@ -39,6 +39,30 @@ threshold_ridit_reference <- function(y, w, reference) {
 	if (treatment_reference) 0.5 - mean(mapped) else mean(mapped) - .5
 }
 
+ols_bootstrap_fixture <- function(n = 32L, seed = 20261018L, rare_covariate = FALSE) {
+	set.seed(seed)
+	x <- if (rare_covariate) c(rep(0, n / 2L), rep(1, n / 2L)) else rnorm(n)
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = seed, verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = x))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	y <- 1.2 + 0.7 * w + 0.4 * x + rnorm(n, sd = 0.2)
+	des$add_all_subject_responses(y)
+	inf <- InferenceContinOLS$new(des, verbose = FALSE)
+	inf$num_cores <- 1L
+	list(inf = inf, X = inf$.__enclos_env__$private$create_design_matrix(), y = y, w = w)
+}
+
+set_fixed_bootstrap_draws <- function(inf, draws) {
+	p <- inf$.__enclos_env__$private
+	unlockBinding("bootstrap_sample_indices", p)
+	i <- 0L
+	assign("bootstrap_sample_indices", function(n, bootstrap_type = NULL) {
+		i <<- i + 1L
+		draws[[i]]
+	}, envir = p)
+}
+
 test_that("OLS bootstrap parallel dispatch preserves zero-based sample indices", {
 	f <- make_threshold_resampling_fixture()
 	indices0 <- f$indices - 1L
@@ -59,6 +83,127 @@ test_that("OLS bootstrap parallel dispatch preserves zero-based sample indices",
 	expect_equal(EDI:::compute_ols_bootstrap_parallel_cpp(f$X, f$y, f$w, short, 0L), expected_short, tolerance = 1e-10)
 	expect_length(EDI:::compute_ols_bootstrap_parallel_cpp(f$X, f$y, f$w, indices0[, FALSE], 2L), 0L)
 	expect_error(EDI:::compute_ols_bootstrap_parallel_cpp(f$X, f$y, f$w[-1], indices0, 1L), "length must match")
+})
+
+test_that("public OLS percentile bootstrap dispatch matches fixed-index lm.fit references", {
+	f <- ols_bootstrap_fixture()
+	n <- length(f$y)
+	set.seed(20261019)
+	draws <- lapply(seq_len(24L), function(b) {
+		repeat {
+			idx <- sample.int(n, n, replace = TRUE)
+			if (qr(f$X[idx, , drop = FALSE])$rank == ncol(f$X)) break
+		}
+		list(i_b = idx, m_vec_b = NULL)
+	})
+	expect_true(all(vapply(draws, function(d) qr(f$X[d$i_b, , drop = FALSE])$rank == ncol(f$X), logical(1))))
+	set_fixed_bootstrap_draws(f$inf, draws)
+	p <- f$inf$.__enclos_env__$private
+	original_hook <- p$compute_fast_non_param_bootstrap_distr
+	hook_called <- FALSE
+	unlockBinding("compute_fast_non_param_bootstrap_distr", p)
+	assign("compute_fast_non_param_bootstrap_distr", function(boot_draws, bootstrap_type = NULL) {
+		hook_called <<- TRUE
+		original_hook(boot_draws, bootstrap_type)
+	}, envir = p)
+	ref <- vapply(draws, function(d) {
+		unname(stats::lm.fit(f$X[d$i_b, , drop = FALSE], f$y[d$i_b])$coefficients[2L])
+	}, numeric(1))
+	ci <- f$inf$compute_bootstrap_confidence_interval(
+		alpha = 0.2, B = length(draws), type = "percentile", show_progress = FALSE
+	)
+	expect_true(hook_called)
+	expect_equal(unname(ci), unname(stats::quantile(ref, c(0.1, 0.9), names = FALSE, type = 8)), tolerance = 1e-8)
+})
+
+test_that("rank-deficient OLS bootstrap draws fall back to the hardened worker", {
+	f <- ols_bootstrap_fixture(rare_covariate = TRUE)
+	base <- which(f$X[, 3L] == 0)
+	set.seed(20261020)
+	draws <- lapply(seq_len(16L), function(b) {
+		repeat {
+			idx <- sample(base, length(f$y), replace = TRUE)
+			if (any(f$w[idx] == 0L) && any(f$w[idx] == 1L)) break
+		}
+		list(i_b = idx, m_vec_b = NULL)
+	})
+	idx <- draws[[1L]]$i_b
+	expect_lt(qr(f$X[idx, , drop = FALSE])$rank, ncol(f$X))
+	set_fixed_bootstrap_draws(f$inf, draws)
+	p <- f$inf$.__enclos_env__$private
+	original_hook <- p$compute_fast_non_param_bootstrap_distr
+	hook_returned_null <- FALSE
+	unlockBinding("compute_fast_non_param_bootstrap_distr", p)
+	assign("compute_fast_non_param_bootstrap_distr", function(boot_draws, bootstrap_type = NULL) {
+		out <- original_hook(boot_draws, bootstrap_type)
+		hook_returned_null <<- is.null(out)
+		out
+	}, envir = p)
+	ref <- unname(stats::lm.fit(f$X[idx, , drop = FALSE], f$y[idx])$coefficients[2L])
+	ci <- f$inf$compute_bootstrap_confidence_interval(
+		alpha = 0.2, B = length(draws), type = "percentile", show_progress = FALSE
+	)
+	expect_true(hook_returned_null)
+	expect_true(is.finite(ref))
+	ref_distr <- vapply(draws, function(d) {
+		unname(stats::lm.fit(f$X[d$i_b, , drop = FALSE], f$y[d$i_b])$coefficients[2L])
+	}, numeric(1))
+	expect_equal(unname(ci), unname(stats::quantile(ref_distr, c(0.1, 0.9), names = FALSE, type = 8)), tolerance = 1e-8)
+})
+
+test_that("debug bootstrap diagnostics bypass the OLS batch hook", {
+	f <- ols_bootstrap_fixture()
+	n <- length(f$y)
+	set.seed(20261021)
+	draws <- lapply(seq_len(5L), function(b) {
+		repeat {
+			idx <- sample.int(n, n, replace = TRUE)
+			if (qr(f$X[idx, , drop = FALSE])$rank == ncol(f$X)) break
+		}
+		list(i_b = idx, m_vec_b = NULL)
+	})
+	set_fixed_bootstrap_draws(f$inf, draws)
+	p <- f$inf$.__enclos_env__$private
+	original_hook <- p$compute_fast_non_param_bootstrap_distr
+	hook_called <- FALSE
+	unlockBinding("compute_fast_non_param_bootstrap_distr", p)
+	assign("compute_fast_non_param_bootstrap_distr", function(boot_draws, bootstrap_type = NULL) {
+		hook_called <<- TRUE
+		original_hook(boot_draws, bootstrap_type)
+	}, envir = p)
+	out <- f$inf$approximate_bootstrap_distribution_beta_hat_T(
+		B = length(draws), show_progress = FALSE, debug = TRUE
+	)
+	expect_false(hook_called)
+	expect_length(out$values, length(draws))
+})
+
+test_that("OLS batch hook declines unsupported schemes, structured designs, and malformed draws", {
+	f <- ols_bootstrap_fixture()
+	p <- f$inf$.__enclos_env__$private
+	n <- length(f$y)
+	valid_draw <- list(i_b = seq_len(n), m_vec_b = NULL)
+	expect_null(p$compute_fast_non_param_bootstrap_distr(
+		list(valid_draw), bootstrap_type = "within_blocks"
+	))
+	expect_null(p$compute_fast_non_param_bootstrap_distr(list(list(i_b = seq_len(n - 1L)))))
+	expect_null(p$compute_fast_non_param_bootstrap_distr(list(list(i_b = c(0L, seq_len(n - 1L))))))
+
+	blocked <- DesignFixedBlocking$new(
+		n = n, B_target = 4L, response_type = "continuous", verbose = FALSE
+	)
+	unlockBinding("des_obj", p)
+	assign("des_obj", blocked, envir = p)
+	expect_null(p$compute_fast_non_param_bootstrap_distr(list(valid_draw)))
+})
+
+test_that("a non-finite native batch result declines to the generic fallback", {
+	f <- ols_bootstrap_fixture()
+	p <- f$inf$.__enclos_env__$private
+	unlockBinding("y", p)
+	assign("y", rep(NA_real_, length(f$y)), envir = p)
+	valid_draw <- list(i_b = seq_along(f$y), m_vec_b = NULL)
+	expect_null(p$compute_fast_non_param_bootstrap_distr(list(valid_draw)))
 })
 
 test_that("ridit bootstrap kernels agree with empirical reference scores above the parallel gate", {

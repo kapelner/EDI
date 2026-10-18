@@ -336,3 +336,23 @@ The Zhang row shows procedure time at parity with `fisher.test` (about
 tables shows all three columns; the Python section is still present in
 the regenerated md (the harness falls back to
 `python/benchmark/benchmark_model_fits_python.html` since 2026-10-07).
+
+**Tracked-artifact preflight (2026-10-18; read-only):** no report was
+regenerated or edited. All four tracked outputs still contain the old,
+unsplit Zhang row (`2.44 ms` EDI vs. `0.96 ms` Fisher, `0.39x`), so neither
+the procedure-only parity gate nor the report synchronization gate is
+closed. The two HTML copies are byte-identical (SHA-256
+`ae366ee3a325ac42e70dacd55e736d3743529fe6e3680f309973403d3d0f0408`), but
+the Markdown copies are not: `R/package_metadata/benchmark_model_fits.md`
+has the Oct. 14 OLS batch-kernel follow-up and additional benchmark sections
+absent from `R/benchmark/benchmark_model_fits.md` (their SHA-256s are
+`27c0153604eadd3ba9578a63457e1ba4106e42a1ed0181e834fc46021dc69ab1` and
+`9cf7b03ae0dbc13e4a67ea38c374d80cad8fed700f2ecbe50efd979d40624a7e`,
+respectively). The current harness source already emits separate total,
+construction, and procedure columns and supports `--sections=procedures,designs`;
+the checked-in reports therefore predate the current harness. At synchronization,
+preserve/reconcile the Markdown-only material explicitly rather than assuming
+the two Markdown files are interchangeable. This preflight does not alter the
+previous acceptance: obtain the owner-approved numeric Zhang parity band,
+run the synchronized canonical fixture and confirm endpoint tolerance, then
+regenerate and reconcile all four outputs from the harness.
