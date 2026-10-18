@@ -52,6 +52,12 @@ test_that("with 160 nodes the fit equals glmer: coefficients, log sigma, and the
 })
 
 test_that("cold Poisson GLMM fit is no worse than the glmer candidate on known local-optimum seeds", {
+	# 320 nodes, not the 40 first tried here: the comparison is on the exact
+	# marginal likelihood, and at 40 non-adaptive Gauss-Hermite nodes the
+	# kernel's own objective is off by ~0.17 nll on these fixtures (it reports
+	# 312.75 where the exact value at its optimum is 312.91 for seed 41003),
+	# which is larger than the cold-vs-glmer gap being tested. At 160 nodes the
+	# gap is still ~6e-3 for seed 41008; 320 brings both seeds within 1e-4.
 	for (seed in c(41003L, 41008L)) {
 		f <- poisson_glmm_cold_start_fixture(seed)
 		d <- data.frame(y = f$y, x = f$X[, 2], g = factor(f$g))
@@ -59,7 +65,7 @@ test_that("cold Poisson GLMM fit is no worse than the glmer candidate on known l
 			data = d, nAGQ = 25))
 		p_glmer <- c(unname(lme4::fixef(m)),
 			log(as.data.frame(lme4::VarCorr(m))$sdcor[1L]))
-		r <- K("fast_poisson_glmm_cpp")(f$X, f$y, f$g, 0L, n_gh = 40L)
+		r <- K("fast_poisson_glmm_cpp")(f$X, f$y, f$g, 0L, n_gh = 320L)
 		p_cold <- c(as.numeric(r$b), as.numeric(r$log_sigma))
 
 		expect_true(r$converged)

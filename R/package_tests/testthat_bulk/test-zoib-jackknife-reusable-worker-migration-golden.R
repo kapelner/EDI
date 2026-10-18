@@ -2,15 +2,28 @@ library(testthat)
 library(EDI)
 
 test_that("ZOIB reusable jackknife preserves the finite public legacy result", {
-	# The tuning fixture uses an internal deterministic builder; pin its seed and
-	# assert the no-boundary-mass precondition that made the tuning case finite.
-	seed <- 20264506L
+	# Not the tuning fixture (edi_tuning_synthetic_experiment("proportion")): its
+	# response is almost a deterministic function of the treatment (cor 0.9), so
+	# all 50 leave-one-out replicates agree to ~1e-10 and the jackknife SE is
+	# floating-point noise. The summary's |bias| <= 2 * SE guard then sits at a
+	# ratio of ~1.0 on that noise and flips to non-estimable under a different
+	# build's rounding (CI's portable build returned NA for all three methods).
+	# This fixture has real covariate variation and interior-only responses.
+	seed <- 20264507L
 	set.seed(seed)
 	ns <- asNamespace("EDI")
-	design <- get("edi_tuning_synthetic_experiment", envir = ns)(
-		"proportion", n = 50L, seed = seed
+	n <- 50L
+	x1 <- rnorm(n)
+	x2 <- rnorm(n)
+	design <- DesignFixedBernoulli$new(
+		n = n, response_type = "proportion", seed = seed, verbose = FALSE
 	)
-	y <- design$get_y()
+	design$add_all_subjects_to_experiment(data.frame(x1 = x1, x2 = x2))
+	design$assign_w_to_all_subjects()
+	w <- as.numeric(design$get_w())
+	mu <- plogis(0.2 + 0.5 * w + 0.3 * x1 - 0.2 * x2)
+	y <- pmin(pmax(rbeta(n, mu * 8, (1 - mu) * 8), 0.02), 0.98)
+	design$add_all_subject_responses(y)
 	expect_equal(sum(y <= 0 | y >= 1), 0L)
 
 	zoib_generator <- get("InferencePropZeroOneInflatedBetaRegr", envir = ns)
