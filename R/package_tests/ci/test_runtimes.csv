@@ -100,6 +100,7 @@ R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-col
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-comprehensive-audit-output-directory-override-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,correctness,120,bootstrap
@@ -1506,6 +1507,7 @@ R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-col
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-audit-output-directory-override-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,coverage,240,bootstrap

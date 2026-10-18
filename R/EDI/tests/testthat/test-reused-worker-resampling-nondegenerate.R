@@ -235,29 +235,44 @@ resampling_nondegenerate_distinct_values = function(generator, classname, des_ob
 # constructs on the fixture and (b) actually uses a reusable randomization
 # worker. Returns an empty list when the arm has no classes for this response
 # type, so the caller can skip building a fixture it would not use.
-resampling_nondegenerate_cases = function(arm, response_type, des_obj){
-	ns = asNamespace("EDI")
-	registry = EDI:::inference_class_registry_as_list()
+resampling_nondegenerate_cases = function(arm, response_type, des_obj,
+									 registry = EDI:::inference_class_registry_as_list(),
+								 ns = asNamespace("EDI"), strict = FALSE){
 	cases = list()
 	for (classname in names(registry)) {
 		entry = registry[[classname]]
 		if (isTRUE(entry$abstract)) next
 		if (!isTRUE(response_type %in% entry$response_types)) next
 		if (!isTRUE(arm$selects(entry))) next
-		if (!exists(classname, envir = ns, inherits = FALSE)) next
+		if (!exists(classname, envir = ns, inherits = FALSE)) {
+			if (isTRUE(strict)) stop("missing registered sweep class: ", classname, call. = FALSE)
+			next
+		}
 		generator = get(classname, envir = ns)
-		if (!R6::is.R6Class(generator)) next
+		if (!R6::is.R6Class(generator)) {
+			if (isTRUE(strict)) stop("registered sweep class is not an R6 generator: ", classname, call. = FALSE)
+			next
+		}
 		if (is.null(des_obj)) {
 			# Caller is only asking whether this arm has any candidate at all.
 			cases[[length(cases) + 1L]] = list(classname = classname, generator = generator)
 			next
 		}
-		probe = tryCatch(generator$new(des_obj, verbose = FALSE), error = function(e) NULL)
+		probe = tryCatch(generator$new(des_obj, verbose = FALSE), error = function(e) {
+			if (isTRUE(strict)) stop("sweep class constructor failed for ", classname, ": ", conditionMessage(e), call. = FALSE)
+			NULL
+		})
 		if (is.null(probe)) next
 		probe_private = probe$.__enclos_env__$private
-		uses_worker = isTRUE(tryCatch(probe_private$use_reusable_bootstrap_worker(), error = function(e) FALSE))
+		uses_worker = tryCatch(probe_private$use_reusable_bootstrap_worker(), error = function(e) {
+			if (isTRUE(strict)) stop("sweep worker-capability check failed for ", classname, ": ", conditionMessage(e), call. = FALSE)
+			FALSE
+		})
 		if (!uses_worker) next
-		if (!is.function(probe$approximate_randomization_distribution_beta_hat_T)) next
+		if (!is.function(probe$approximate_randomization_distribution_beta_hat_T)) {
+			if (isTRUE(strict)) stop("sweep class lacks randomization distribution method: ", classname, call. = FALSE)
+			next
+		}
 		cases[[length(cases) + 1L]] = list(classname = classname, generator = generator)
 	}
 	cases

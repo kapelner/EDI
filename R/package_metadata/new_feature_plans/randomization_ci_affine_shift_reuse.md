@@ -353,6 +353,16 @@ is O(r) arithmetic and MC is moot.
   owner explicitly accepts a revised target; this rerun alone cannot change
   that decision.
 
+  **Maintainer target decision — pending (no option selected):** the full-grid
+  source-loaded benchmark measured 1.05–2.14× for OLS and 1.13–1.59× for
+  average difference, versus the original projected 20–30× gain. The owner
+  must either (a) accept the measured, workload-specific gain and restate the
+  acceptance target/documentation accordingly, or (b) retain the 20–30× target
+  and authorize further optimization; until decided, TODO-6 and release
+  TODO-2 remain open. Record owner, date, selected option, and rationale here.
+  This is a target/acceptance decision only, not benchmark evidence or
+  authorization to run another benchmark.
+
 - [x] **TODO-7: Reconcile the KK-GEE mixin read site.** Completed 2026-10-09:
   the never-populated legacy `t0s_rand + delta` branch was removed from the
   KK-GEE mixin. Thus an incidence KK-combined object cannot consume this cache;

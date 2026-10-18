@@ -59,6 +59,55 @@ repo_root = function(){
 	normalizePath(file.path(dirname(script), ".."), mustWork = FALSE)
 }
 
+sweep_build_design = function(arm, response_type){
+	design = tryCatch(arm$build(response_type), error = function(e) {
+		stop(sprintf("design constructor failed for %s/%s: %s", arm$name, response_type, conditionMessage(e)), call. = FALSE)
+	})
+	if (is.null(design)) stop(sprintf("design constructor returned NULL for %s/%s", arm$name, response_type), call. = FALSE)
+	design
+}
+
+sweep_new_inference = function(generator, des_obj, key){
+	tryCatch(generator$new(des_obj, verbose = FALSE), error = function(e) {
+		stop(sprintf("inference constructor failed for %s: %s", key, conditionMessage(e)), call. = FALSE)
+	})
+}
+
+sweep_distribution = function(obj, key, r){
+	values = tryCatch(
+		suppressWarnings(as.numeric(obj$approximate_randomization_distribution_beta_hat_T(
+			r = r, show_progress = FALSE
+		))),
+		error = function(e) stop(sprintf("distribution failed for %s: %s", key, conditionMessage(e)), call. = FALSE)
+	)
+	if (!is.numeric(values)) stop(sprintf("distribution for %s is not numeric", key), call. = FALSE)
+	if (length(values) != r) stop(sprintf("distribution for %s has length %d; expected %d", key, length(values), r), call. = FALSE)
+	if (any(!is.na(values) & !is.finite(values))) stop(sprintf("distribution for %s contains non-finite, non-NA values", key), call. = FALSE)
+	values
+}
+
+validate_sweep_snapshot = function(snapshot, expected_keys, r, context = "snapshot"){
+	if (!is.list(snapshot) || is.null(names(snapshot))) stop(context, " is not a named distribution list", call. = FALSE)
+	if (anyDuplicated(names(snapshot))) stop(context, " has duplicate keys", call. = FALSE)
+	if (anyDuplicated(expected_keys)) stop(context, " expected manifest has duplicate keys", call. = FALSE)
+	missing = setdiff(expected_keys, names(snapshot))
+	extra = setdiff(names(snapshot), expected_keys)
+	if (length(missing) || length(extra)) {
+		stop(sprintf("%s key mismatch: missing={%s}; extra={%s}", context,
+		             paste(missing, collapse = ", "), paste(extra, collapse = ", ")), call. = FALSE)
+	}
+	for (key in expected_keys) {
+		values = snapshot[[key]]
+		if (!is.numeric(values) || length(values) != r) {
+			stop(sprintf("%s distribution for %s must be numeric length %d", context, key, r), call. = FALSE)
+		}
+		if (any(!is.na(values) & !is.finite(values))) {
+			stop(sprintf("%s distribution for %s contains non-finite, non-NA values", context, key), call. = FALSE)
+		}
+	}
+	invisible(snapshot)
+}
+
 # Evaluates the regression test file's helper definitions -- its fixture
 # builders, its arm definitions and its registry-driven case enumeration --
 # without running its `test_that()` blocks.
@@ -92,37 +141,34 @@ record = function(out_path, use_source_tree){
 	load_sweep_enumeration(root)
 
 	snapshot = list()
+	expected_keys = character()
 	for (arm in resampling_nondegenerate_arms()) {
 		for (response_type in RESAMPLING_NONDEGENERATE_RESPONSE_TYPES) {
-			if (length(resampling_nondegenerate_cases(arm, response_type, NULL)) == 0L) next
-			des_obj = tryCatch(arm$build(response_type), error = function(e) NULL)
-			if (is.null(des_obj)) next
-			for (case in resampling_nondegenerate_cases(arm, response_type, des_obj)) {
+			if (length(resampling_nondegenerate_cases(arm, response_type, NULL, strict = TRUE)) == 0L) next
+			des_obj = sweep_build_design(arm, response_type)
+			for (case in resampling_nondegenerate_cases(arm, response_type, des_obj, strict = TRUE)) {
 				for (forced in c(FALSE, TRUE)) {
+					key = paste(case$classname, arm$name, response_type,
+					            if (forced) "forced" else "production", sep = "|")
+					if (key %in% expected_keys) stop("duplicate expected sweep key: ", key, call. = FALSE)
+					expected_keys = c(expected_keys, key)
 					generator = if (forced) {
 						resampling_nondegenerate_probe(case$generator, case$classname, reusable = TRUE)
 					} else {
 						case$generator
 					}
-					obj = tryCatch(generator$new(des_obj, verbose = FALSE), error = function(e) NULL)
-					if (is.null(obj)) next
+					obj = sweep_new_inference(generator, des_obj, key)
 					obj$num_cores = 1L
 					set.seed(RESAMPLING_NONDEGENERATE_SEED)
-					values = tryCatch(
-						suppressWarnings(as.numeric(obj$approximate_randomization_distribution_beta_hat_T(
-							r = RESAMPLING_NONDEGENERATE_R,
-							show_progress = FALSE
-						))),
-						error = function(e) NA_real_
-					)
-					key = paste(case$classname, arm$name, response_type,
-					            if (forced) "forced" else "production", sep = "|")
+					values = sweep_distribution(obj, key, RESAMPLING_NONDEGENERATE_R)
 					snapshot[[key]] = values
 				}
 			}
 			cat("swept", arm$name, response_type, "--", length(snapshot), "entries so far\n")
 		}
 	}
+	validate_sweep_snapshot(snapshot, expected_keys, RESAMPLING_NONDEGENERATE_R, "recorded sweep")
+	attr(snapshot, "expected_keys") = expected_keys
 	saveRDS(snapshot, out_path)
 	cat("wrote", length(snapshot), "distributions to", out_path, "\n")
 }
@@ -158,11 +204,18 @@ classify_change = function(b, a, noise_tolerance){
 compare = function(before_path, after_path, noise_tolerance = 1e-8){
 	before = readRDS(before_path)
 	after = readRDS(after_path)
-	only_before = setdiff(names(before), names(after))
-	only_after = setdiff(names(after), names(before))
-	if (length(only_before)) cat("ONLY IN BEFORE:", paste(only_before, collapse = ", "), "\n")
-	if (length(only_after)) cat("ONLY IN AFTER:", paste(only_after, collapse = ", "), "\n")
+	before_keys = attr(before, "expected_keys", exact = TRUE)
+	after_keys = attr(after, "expected_keys", exact = TRUE)
+	if (is.null(before_keys) || is.null(after_keys)) stop("both snapshots must carry their source-derived expected_keys manifest", call. = FALSE)
+	validate_sweep_snapshot(before, before_keys, RESAMPLING_NONDEGENERATE_R, "before snapshot")
+	validate_sweep_snapshot(after, after_keys, RESAMPLING_NONDEGENERATE_R, "after snapshot")
+	if (!identical(sort(before_keys), sort(after_keys))) stop("before/after expected key manifests differ", call. = FALSE)
+	if (!identical(sort(names(before)), sort(names(after)))) stop("before/after observed key sets differ", call. = FALSE)
 	shared = intersect(names(before), names(after))
+	for (k in shared) {
+		if (length(before[[k]]) != length(after[[k]])) stop("distribution length mismatch for ", k, call. = FALSE)
+		if (!identical(is.na(before[[k]]), is.na(after[[k]]))) stop("NA-pattern mismatch for ", k, call. = FALSE)
+	}
 	same = vapply(shared, function(k) identical(before[[k]], after[[k]]), logical(1L))
 	changed = shared[!same]
 	verdicts = vapply(changed, function(k) classify_change(before[[k]], after[[k]], noise_tolerance), character(1L))

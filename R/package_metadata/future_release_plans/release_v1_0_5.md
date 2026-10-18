@@ -124,6 +124,10 @@ range, since the plan files' internal numbering did not change.
   establish a stable per-function attribution (details in the linked plan).
   Keep TODO-2 open pending reconciling the target and documentation (or an
   explicit owner decision to accept the smaller gain).
+  **Maintainer target decision pending:** accept/restated target for the
+  measured 1.05–2.14× OLS and 1.13–1.59× average-difference gains, or retain
+  the original 20–30× target and optimize further; no option is selected.
+  See `../new_feature_plans/randomization_ci_affine_shift_reuse.md → TODO-6`.
   The decision-gated direct-inversion TODO-8 remains deliberately out of
   scope. **Source-level micro-optimization, 2026-10-16:** the randomization
   p-value path now reuses the permutation signature it already computed when
@@ -531,15 +535,18 @@ range, since the plan files' internal numbering did not change.
     but the tracked baseline has aggregate keys only and the audit stamp has
     only input paths/sizes/mtimes. The raw comprehensive CSVs and the
     row-level 183-absent/373-new audit diff are not tracked, so those totals
-    cannot yet be classified or safely joined. One specific historical
-    finding is classifiable: `low_power|ordinal|InferenceOrdinalGCompMeanDiff|NA|compute_rand_bootstrap_two_sided_pval_smoothed`
-    (0/67 at .05) is not supported by the current ordinal guard; this does not dispose of the
-    remaining differences or authorize `--write-baseline`. Preserve or
+    cannot yet be classified or safely joined. The ordinal smoothed
+    `low_power` key was specifically classifiable at that audit stage:
+    `low_power|ordinal|InferenceOrdinalGCompMeanDiff|NA|compute_rand_bootstrap_two_sided_pval_smoothed`
+    (0/67 at .05) is not supported by the current guard. The exact-key
+    scratch recheck below extends this partial classification but still does
+    not dispose of the remaining differences or authorize
+    `--write-baseline`. Preserve or
     regenerate the complete finding table in `/tmp`, join by exact key to
     baseline, and disposition every difference before a baseline write.
     **Bounded smoothed-key disposition, 2026-10-18:** the current
-    `rand_bootstrap_smoothing_supported()` predicate blocks incidence/ordinal
-    smoothing unless the class provides a private
+    `rand_bootstrap_smoothing_supported()` predicate blocks incidence,
+    ordinal, and proportion smoothing unless the class provides a private
     `compute_fast_rand_bootstrap_distr()` method; the p-value support list and
     execution path use this predicate. The nine categorical baseline keys
     match classes without that method. Their exact `(response_type, class,
@@ -551,12 +558,24 @@ range, since the plan files' internal numbering did not change.
     `(InferenceIncidProbitRegr, ~1)`; ordinal:
     `(InferenceOrdinalGCompMeanDiff, NA)`,
     `(InferenceOrdinalPairedSignTest, NA)`,
-    `(InferenceOrdinalPropOddsRegr, NA)`. The new ordinal `low_power` key
-    above is the tenth current-unsupported key. These ten may be dropped only
-    after a complete, provenance-verified regeneration confirms the supported
-    current rows. This bounded classification does not explain the overall
-    183 absent / 373 new findings; those remain unresolved and no baseline
-    update is authorized.
+    `(InferenceOrdinalPropOddsRegr, NA)`. **Scratch exact-key recheck,
+    2026-10-18 (no canonical writes):** local gitignored full response CSVs
+    were symlinked read-only into `/tmp/edi-todo9-audit.NnBBLg`, with a copy
+    of the tracked baseline. A forced audit reproduced 183 baseline findings
+    absent / 373 new; a second pass wrote the current finding table and stamp
+    only in that scratch directory for exact key comparison. It found four
+    new smoothed keys in addition to the nine baseline keys: the above ordinal
+    `low_power` key, `low_power|incidence|InferenceIncidLogRegr|~1|compute_rand_bootstrap_two_sided_pval_smoothed`,
+    `pval_miscalibration|proportion|InferencePropBetaRegr|~.|compute_rand_bootstrap_two_sided_pval_smoothed`,
+    and
+    `pval_miscalibration|proportion|InferencePropFractionalLogit|~.|compute_rand_bootstrap_two_sided_pval_smoothed`.
+    All four new classes lack the private fast-kernel method required by the
+    current predicate, so the thirteen smoothed keys appear to be old output
+    for unsupported paths, not supported current behavior. The local CSVs'
+    mtimes range from 2026-09-27 to 2026-10-09 and have no verified
+    source/DLL provenance; this is an audit-key classification only, not
+    current-package validation. The remaining 183 absent / 373 new findings
+    are still unresolved, and no baseline update is authorized.
 - [ ] TODO-10 (added 2026-09-22, found the same way; a harness bug, not an
   inference-code bug): **MC coverage-truth uses the wrong covariate set** —
   `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md → TODO-1..6`. **Fixed.**
