@@ -1078,7 +1078,18 @@ InferenceRand = R6::R6Class("InferenceRand",
 			)
 			inf_priv$likelihood_null_warm_cache = list()
 			
-			reset_reused_worker_private_caches(inf_priv, changed = "assignment")
+			worker_inf_obj = if (!is.null(worker_state[["worker_inf"]])) {
+				worker_state[["worker_inf"]]
+			} else if (!is.null(worker_state[["worker_priv"]])) {
+				NULL
+			} else {
+				worker_state[["worker"]]
+			}
+			reset_reused_worker_private_caches(
+				inf_priv,
+				changed = "assignment",
+				preserve_fields = if (inherits(worker_inf_obj, "InferenceContinRobustRegr")) "best_X_colnames" else character()
+			)
 			
 			inf_priv$fit_warm_start = worker_state$base_fit_warm_start
 			inf_priv$fit_warm_start_type = worker_state$base_fit_warm_start_type
@@ -1113,7 +1124,11 @@ InferenceRand = R6::R6Class("InferenceRand",
 			if (private$has_match_structure) inf_priv$m = des_priv$m
 			if (!is.null(inf_priv$compute_basic_match_data)) inf_priv$compute_basic_match_data()
 			
-			reset_reused_worker_private_caches(inf_priv, changed = "assignment")
+			reset_reused_worker_private_caches(
+				inf_priv,
+				changed = "assignment",
+				preserve_fields = if (inherits(thread_inf_obj, "InferenceContinRobustRegr")) "best_X_colnames" else character()
+			)
 			
 			invisible(NULL)
 		},

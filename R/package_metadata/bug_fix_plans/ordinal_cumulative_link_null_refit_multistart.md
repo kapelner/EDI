@@ -247,6 +247,35 @@ TODO-1's independent Bug 1 true-null checks remain a separate open item below.
   not Bartlett calibration. Keep open until the separate true-null check is
   run and recorded. TODO-6's CSV regeneration remains scoped to its stated
   `parametric_bootstrap` family.
+
+  **Calibration acceptance policy audit (2026-10-18):**
+  `SimulationFrameworkReport` reports the exact two-sided binomial test of
+  `H0: size = alpha`, but defines no pass cutoff or acceptable size interval.
+  The comprehensive miscalibration audit uses a combined p-value screen with
+  BH `q = 0.05` and a 30-row minimum; this is not a predeclared acceptance
+  interval for these three methods. `LOW_POWER_TARGET = 0.10` applies only to
+  power. TODO-1 therefore still needs a maintainer decision: adopt the audit
+  rule as its acceptance criterion, or specify the acceptable rejection-rate
+  interval, confidence level, and replicate/finite-denominator target. Do not
+  infer these from the reporting functions.
+
+  **Focused source-loaded regression recheck (2026-10-18):** ran
+  `test-ordinal-cloglog-lik-test-null-refit-multistart-reference.R` (5
+  assertions) and
+  `test-ordinal-cloglog-stereotype-simulate-under-lik-null-fit-null-multistart-reference.R`
+  (8 assertions) after `pkgload::load_all("R/EDI", compile = FALSE)`;
+  all 13 assertions passed with no failures, warnings, or skips. R sources came
+  from `/home/kapelner/workspace/EDI/R/EDI` (package version 1.0.3). The
+  already-built native DLL loaded by the source overlay was
+  `/tmp/RtmpWqudlE/pkgload36ee8d535c4466/EDI.so`, SHA-256
+  `23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`;
+  this is the same hash as the installed EDI 1.0.3 DLL. No checkout native
+  compilation occurred. This verifies the current R-source null-refit /
+  multistart behavior against that existing native ABI, not the post-fix
+  rejection-rate calibration for `compute_lik_ratio_two_sided_pval()`,
+  `compute_lik_ratio_bootstrap_two_sided_pval()`, and Bartlett approximation.
+  Keep TODO-1 open for those true-null checks and TODO-6 open for its separate
+  comprehensive regeneration/re-audit.
 - [x] TODO-2 (2026-09-23, completed): Read all 6 originally-suspected
   classes' `generate_mod()`/`compute_estimate()` for the same
   `-attempt$fit$b[1]`-style negation Cloglog has, and cross-checked which

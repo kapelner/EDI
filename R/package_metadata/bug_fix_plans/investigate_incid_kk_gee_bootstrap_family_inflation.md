@@ -233,6 +233,21 @@ therefore it cannot establish a shared KKGEE mechanism. Keep TODO-21 separate
 from TODO-20 and defer any broader conclusion until the exact stamped raw
 input is recovered. No result CSV or simulation was touched.
 
+**Tracked-artifact schema audit (read-only, 2026-10-18):** directly reading
+the tracked `comprehensive_results_audit_baseline.csv` (756,199 bytes) shows
+only `key`, `check`, `response_type`, `class`, `formula`, `function_run`, and
+`detail`; its 13 `InferenceIncidKKGEE` entries are aggregate summaries, not
+seed-level rows. The `~1` summaries for the three implicated methods report
+their own baseline denominators/rates (BB-Wald 130/.054, symmetric BB
+130/.054, BRT 123/.065), but do not match .314/.306/.185. The artifact has
+no dataset, design, `design_formula`, DGP parameters, seed schedule,
+individual results, or execution commit/runtime stamp. The tracked commit
+that contains this summary is known, but is not a substitute for the missing
+source/run provenance of the headline. Consequently, no retained
+comprehensive artifact reconstructs those historical cells; the current
+incidence raw CSV and TODO-56 scratch output were not read. No simulation or
+canonical output was touched.
+
 ## Standing constraints
 
 No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn;

@@ -714,9 +714,10 @@ edi::ResultMap fast_dep_cens_transform_optim_internal(
 ) {
     int p = (int)X.cols();
     int total = 2 * p + 3;
+    require_length(warm_start_params, total, "warm_start_params");
     require_square_matrix(warm_start_fisher_info, total, "warm_start_fisher_info");
     Eigen::VectorXd params(total);
-    if (warm_start_params.has_value() && warm_start_params->size() == total) {
+    if (warm_start_params.has_value()) {
         params = *warm_start_params;
     } else if (smart_cold_start) {
         params.setZero();

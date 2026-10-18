@@ -217,6 +217,20 @@ are fixed here because they are still exported and registered.
   installed native wrapper accepted and exercised the weighted arguments.
   Codex did not rebuild/install; comprehensive regeneration remains open.
 
+  **Focused installed recheck (2026-10-18):** reran the four named test files
+  with `testthat::test_file()` against installed EDI 1.0.3. The joint-kernel /
+  GLMER reference passed 34 assertions; class data assembly passed 31 (including
+  weighted argument assembly); constant-weight short-circuit and
+  extreme-coefficient guards passed 4 each (73 assertions total, no failures,
+  warnings, or skips). The loaded library was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`, SHA-256
+  `23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`.
+  This confirms the installed wrapper and R classes satisfy these focused
+  parity, data-assembly, and guard contracts; it does not validate current
+  checkout source or close the still-open comprehensive regeneration and
+  affected-key reconciliation. No build/install or canonical output write was
+  performed.
+
   **Comprehensive-results readiness audit, 2026-10-16 (read-only):** the
   checkout contains no `comprehensive_tests_results*.csv`. The available
   `/tmp` artifacts contain older `InferenceIncidKKCondLogitGLMMOneLik`
@@ -259,10 +273,13 @@ are fixed here because they are still exported and registered.
   Consequently this CI evidence does not satisfy the comprehensive-results
   reconciliation gate.
 
-  The focused comprehensive selector in `run_inference_checks_both_paths()`
-  emits both `model_formula=~1` and `model_formula=~.` for these classes. For
-  the one-rep/one-dataset slice below, reconcile 40 expected keys: 2 classes
-  × 2 formula labels × 10 methods. The ten method labels are default/basic/
+  The focused comprehensive selector has two formula axes: the outer
+  `run_tests_for_response()` pass constructs the design under both
+  `design_formula=~1` and `design_formula=~.`, then
+  `run_inference_checks_both_paths()` constructs each inference class under
+  both `model_formula=~1` and `model_formula=~.`. For the one-rep/one-dataset
+  slice below, reconcile 80 expected keys: 2 classes × 2 design formulas × 2
+  model formulas × 10 methods. The ten method labels are default/basic/
   Wald/BCa/studentized Bayesian-bootstrap confidence intervals and
   default/symmetric/Wald/BCa/studentized two-sided p-values. Compare the CSV
   key fields `rep`, `beta_T`, `dataset`, `response_type`, `design`,
@@ -321,6 +338,39 @@ are fixed here because they are still exported and registered.
   build/install is authorized here, and this isolated result would not
   replace the canonical comprehensive-results regeneration/reconciliation
   gate.
+
+  **Additional isolated-artifact audit, 2026-10-18:** a prior scratch
+  reconciliation tree contains
+  `/tmp/edi-todo77-reconcile.yQTUzj/R/package_tests/comprehensive_tests_results_nc_1_incidence_filtered_design-KK21stepwise_class-InferenceIncidKKCondLogitGLMM_OneLik_IVWC_dataset-pima_beta-0_rep-1_family-bayesian_bootstrap.csv`
+  (SHA-256 `91a0b9780e6654df6148b132c9e828199099f84a8fa47e1f6c3bd617a7837759`).
+  It has 80 rows and 80 unique result keys: both inference classes × both
+  `model_formula` values × both `design_formula` values × all ten expected
+  methods. Every row has `status=ok`; `skip_reason` is empty on 38 rows,
+  `nonestimable` on 32, and `numeric_instability` on 10. However, every
+  `github_commit_id` is `NA`, and the scratch tree contains no run manifest
+  with the installed package/library or DLL provenance. This confirms the
+  expected key shape and preserves useful diagnostic outputs, but cannot
+  authenticate that these rows came from the intended post-fix binary; it
+  does not close the regeneration/reconciliation gate or authorize copying
+  rows into canonical results. Preserve the recorded skip reasons and rerun
+  under the provenance protocol above after TODO-56 is terminal.
+
+  **Numeric/result-shape recheck, 2026-10-18 (read-only):** reparsing this
+  CSV confirmed 80/80 unique composite keys. The 38 rows with an empty
+  `skip_reason` have finite result fields; all 32 `nonestimable` and 10
+  `numeric_instability` rows have nonfinite result fields, with no mismatch
+  between the reason and result shape. This verifies internal consistency
+  only; the missing commit and package/DLL provenance still blocks acceptance.
+
+  **Formula-key source reconciliation, 2026-10-18 (read-only):** the CSV has no
+  standalone `model_formula` or `design_formula` columns; both labels are
+  embedded in `inference_class`. Reconstructing the labels from that field
+  yields all four design/model formula combinations for each class, with ten
+  methods per combination (80 unique method/configuration keys total), as
+  expected from the outer design-formula loop and inner
+  `run_inference_checks_both_paths()` dispatch. All 80 `github_commit_id`
+  values are missing, so the scratch rows remain structurally useful but
+  unprovenanced and cannot be accepted or copied into canonical results.
 
 - [ ] TODO-9 (F2): **`.cox_simulate_stratified` hazard mis-scaling**
   (`helper_survival_fits.R:592-615`). The baseline is normalized by the stratum's

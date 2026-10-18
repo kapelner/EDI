@@ -103,6 +103,7 @@ R/package_tests/testthat_bulk/test-component-validator-name-field-guards-referen
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-results-output-directory-override-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1508,6 +1509,7 @@ R/package_tests/testthat_bulk/test-component-validator-name-field-guards-referen
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-results-output-directory-override-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-and-unknown-class-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,coverage,240,bootstrap

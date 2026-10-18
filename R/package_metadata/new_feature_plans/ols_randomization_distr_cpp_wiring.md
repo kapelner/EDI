@@ -137,15 +137,16 @@ the kernel inputs at the boundary, and return the batch distribution (or
   dead-export disposition; TODO-6 (Lin) remains a stretch item. The TODO-1..3
   checkmarks record source implementation and equivalence-test evidence only;
   they do not close the release parent's current-head native gate.
-- [ ] **TODO-4: Dead-kernel triage.** For each of the nine exports below
+- [ ] **TODO-4: Dead-kernel triage.** For the remaining exports below
   without a production caller, decide *wire in* or *delete*, and do it.
   A Graft caller audit on 2026-10-14 found direct test/benchmark/profiler
   references for these exports, so “unreferenced” here means no production
   inference path, not no repository references. In particular,
-  `compute_ols_bootstrap_parallel_cpp` is exercised by a benchmark and the
-  resampling-threshold test, while `InferenceContinOLS`'s bootstrap path now
-  calls the distinct `compute_rand_bootstrap_ols_parallel_cpp` kernel. The two
-  old Wilcoxon exports are likewise exercised by contract tests but have no
+  `compute_ols_bootstrap_parallel_cpp` is already used by
+  `InferenceContinOLS$compute_fast_non_param_bootstrap_distr()` for the
+  ordinary row-IID percentile-bootstrap path; randomization bootstrap uses the
+  distinct `compute_rand_bootstrap_ols_parallel_cpp` kernel. The two old
+  Wilcoxon exports are likewise exercised by contract tests but have no
   production caller; the live inference path uses the HL kernel. The bootstrap
   loops, fill-in helper, and bisection kernels also have direct contract-test
   references that must be migrated or intentionally removed with any deletion.
@@ -163,7 +164,7 @@ the kernel inputs at the boundary, and return the batch distribution (or
   | kernel | file | recommendation |
   | --- | --- | --- |
   | `compute_ols_distr_parallel_cpp` | `ols_distr_parallel.cpp` | **wire** (TODO-1) |
-  | `compute_ols_bootstrap_parallel_cpp` | `ols_distr_parallel.cpp` | **wire** as `compute_fast_rand_bootstrap_distr()` if its resampling contract matches `inference_all_abstract_rand_bootstrap.R:227/808` (index matrix, `-1 = NA`); else delete |
+  | `compute_ols_bootstrap_parallel_cpp` | `ols_distr_parallel.cpp` | **retain** — already wired to ordinary OLS percentile bootstrap via `compute_fast_non_param_bootstrap_distr()`; distinct from randomization-bootstrap kernel |
   | `compute_wilcox_distr_parallel_cpp` | `fast_wilcox_parallel.cpp` | **delete** — superseded by the live `compute_wilcox_hl_distr_parallel_cpp` (`inference_all_simple_wilcox.R:262`) |
   | `compute_wilcox_distr_from_list_parallel_cpp` | `fast_wilcox_parallel.cpp` | **delete**, same reason |
   | `base_bootstrap_loop_cpp` | `base_bootstrap_loop.cpp` | **delete** — the reusable-bootstrap-worker path replaced it |
@@ -171,23 +172,63 @@ the kernel inputs at the boundary, and return the batch distribution (or
   | `fill_i_b_with_matches_loop_cpp` | `KK_bootstrap_helper_fillin.cpp` | **delete** (also O(m·n); not worth fixing) |
   | `bisection_ci_parallel_cpp`, `bisection_ci_single_bound_cpp` | `bisection_ci.cpp` | **delete** — they call an R `pval_fn` per step, so they cannot be faster than the R bisection, and the R search now has expansion/MC/cache logic they lack |
   | `bisection_ci_loop_cpp` | `bisection_ci_loop.cpp` | **delete**, same |
-  **Source-only caller disposition audit, 2026-10-16:** Trail `callers`
-  and exhaustive `grep` for all nine names show no incoming edge from a
+  **Source-only caller disposition audit, corrected 2026-10-18:** The earlier
+  2026-10-16 note incorrectly classified `compute_ols_bootstrap_parallel_cpp`
+  as having no production caller. The current caller is
+  `InferenceContinOLS$compute_fast_non_param_bootstrap_distr()`
+  (`R/EDI/R/inference_continuous_ols.R:203-248`, native call at `:241`), for
+  ordinary row-IID OLS percentile-bootstrap draws. It receives zero-based
+  `i_b - 1` indices, and the wrapper requires supported Bernoulli designs,
+  unstructured draws, and full-rank sampled designs; unsupported/rank-deficient
+  cases decline to the worker. The separate randomization-bootstrap path uses
+  `compute_rand_bootstrap_ols_parallel_cpp`, so the older kernel should not be
+  wired as `compute_fast_rand_bootstrap_distr()`. Direct-kernel reference tests
+  in `test-resampling-parallel-threshold-contracts.R:66-86` compare fixed-index
+  samples with `lm.fit`; its public percentile-dispatch test at `:88-121`
+  compares the complete distribution and CI endpoints against independent
+  `lm.fit` references. These source/test references establish the current
+  production role but are not current-checkout native validation.
+
+  The remaining exports in this subsection have no incoming edge from a
   production inference path. Their non-generated references are only direct
-  test/benchmark/profiler calls (and their generated `RcppExports`/`.Call`
-  registration plumbing). This confirms “no production caller” for every
-  listed kernel, but does not make the package-private wrappers unreferenced
-  or authorize deleting them. The two Wilcoxon kernels are superseded by the
+  test/benchmark/profiler calls (and generated `RcppExports`/`.Call`
+  registration plumbing). This confirms “no production caller” for those
+  kernels, but does not make their package-private wrappers unreferenced or
+  authorize deleting them. The two Wilcoxon kernels are superseded by the
   live HL kernel; the two bootstrap loops by the reusable-worker route; the
   fill-in helper and three bisection kernels are likewise test-only from the
   source caller graph. These eight match the plan's delete recommendation.
-  `compute_ols_bootstrap_parallel_cpp` also has no production caller, but
-  its disposition remains conditional: first compare its index-matrix/
-  `-1 = NA` contract against the current bootstrap draw path, then a
-  maintainer must choose wire-or-delete. Closure therefore requires that
-  decision, migration/removal of direct contract tests and profiler/benchmark
-  references as applicable, generated Rcpp export/registration updates, and
-  unity-wrapper cleanup. No source/export was changed and no compile was run.
+  The remaining delete recommendations still require migration/removal of
+  direct contract tests and profiler/benchmark references as applicable,
+  generated Rcpp export/registration updates, and unity-wrapper cleanup. No
+  source/export was changed and no compile was run.
+  **Direct-test migration map, 2026-10-18:** the package-private contracts
+  are grouped as follows, so a future approved retirement can migrate each
+  call site without weakening unrelated coverage:
+  - `compute_wilcox_distr_parallel_cpp` and
+    `compute_wilcox_distr_from_list_parallel_cpp`:
+    `test-parallel-distribution-kernel-contracts.R` and
+    `test-resampling-parallel-threshold-contracts.R`; replace with live
+    HL/public-kernel assertions only after the retirement decision.
+  - `base_bootstrap_loop_cpp` and `matching_bootstrap_loop_cpp`:
+    `test-resampling-callback-recovery-contracts.R`,
+    `test-resampling-kernel-contracts.R`, and the profiler entry in
+    `R/profile/edi_kernel_profiler.R`. Preserve the distinct
+    `match_stats_from_indices_cpp` coverage when migrating the matching
+    wrapper.
+  - `fill_i_b_with_matches_loop_cpp`:
+    `test-bootstrap-index-fillin-and-bisection-loop.R` and
+    `test-resampling-kernel-contracts.R`.
+  - `bisection_ci_parallel_cpp`, `bisection_ci_single_bound_cpp`, and
+    `bisection_ci_loop_cpp`:
+    `test-bisection-tail-and-discontinuity-regressions.R`,
+    `test-bootstrap-index-fillin-and-bisection-loop.R`,
+    `test-resampling-kernel-contracts.R`, and
+    `test-resampling-parallel-threshold-contracts.R`.
+  These direct tests currently encode wrapper-specific contracts; do not
+  delete or rewrite them before the maintainer disposition. Once approved,
+  migrate tests/profiler references and the Rcpp export/prototype/registration
+  rows together, regenerate exports, and verify no stale references remain.
   If a whole file becomes empty, delete the file and its unity-group entry.
   Update `python/` bindings only if any of these were surfaced there (the
   grep says none are).

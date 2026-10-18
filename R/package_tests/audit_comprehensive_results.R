@@ -176,12 +176,14 @@ force_run = "--force" %in% args || write_baseline
 
 script_arg = grep("^--file=", commandArgs(FALSE), value = TRUE)[1]
 here = if (is.na(script_arg)) "R/package_tests" else dirname(normalizePath(sub("^--file=", "", script_arg)))
-baseline_path = file.path(here, "comprehensive_results_audit_baseline.csv")
-stamp_path = file.path(here, ".comprehensive_results_audit_stamp")
-
 response_types = c("continuous", "incidence", "proportion", "count", "survival", "ordinal")
-files = file.path(here, sprintf("comprehensive_tests_results_nc_1_%s.csv", response_types))
-names(files) = response_types
+source(file.path(here, "comprehensive_audit_paths.R"), local = TRUE)
+audit_paths = resolve_comprehensive_audit_paths(here, response_types)
+baseline_path = audit_paths$baseline
+stamp_path = audit_paths$stamp
+
+if (write_baseline) validate_comprehensive_audit_baseline_inputs(audit_paths$files)
+files = audit_paths$files
 files = files[file.exists(files)]
 if (!length(files)) {
 	cat("audit_comprehensive_results: no raw comprehensive_tests_results_nc_1_*.csv present -- nothing to audit.\n")

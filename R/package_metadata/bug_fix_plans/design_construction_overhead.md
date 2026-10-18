@@ -184,6 +184,22 @@ filter), which is a direct equality test.
   parity remains unavailable; do not infer it from the checkout's current
   fixed-seed tests.
 
+  **Installed focused regression, 2026-10-18:**
+  `test-design-covariate-missingness-methods-and-subject-data-cache-reference.R`
+  passed 57 expectations (8 test blocks, 0 failures or warnings) against
+  installed EDI 1.0.3, built 2026-10-18 00:57:28 UTC; `EDI.so` MD5
+  `dd43c5d0e11708aea17ba82b900f66d1`. It checks lazy behavior against an
+  eager comparison object, but the installed build metadata does not identify
+  a checkout SHA, so this is installed-package evidence only. The output log
+  is `/tmp/edi-todo59-installed-fixed-design-laziness-20261018.log`.
+  **Timing evidence remains inconsistent:** the 2026-10-14 medians (0.83 ms
+  iBCRD; 1.91 ms blocking) are within the 1.5/2.5 ms caps, while the exact
+  settings on 2026-10-15 measured 4.15/6.12 ms and the three CPU-pinned
+  2026-10-16 runs measured 2.86–3.09/5.98–6.88 ms, above both caps. Per the
+  source/stage audit above, do not benchmark while TODO-56 remains active;
+  the quiet-host acceptance rerun and authentic EDI 1.0.2 assignment parity
+  remain open.
+
 ## Implementation and validation (2026-10-09)
 
 TODOs 1--4 are implemented. `edi_package_version()` now reads the version from

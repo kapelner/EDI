@@ -285,6 +285,15 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   TODO-1 needs either a validated start/reference policy with an optimizer-
   and unaffected-fit regression check, or an explicit decision to split that
   non-boundary local-optimum issue from the original boundary-collapse scope.
+  **Policy-neutral acceptance candidate, 2026-10-18:** the existing Poisson
+  fit reference test already provides an independent exact marginal-likelihood
+  evaluator and a `glmer(nAGQ = 25)` parameter candidate. Extend its fixture
+  to seeds 41003 and 41008 (`n = 200`, 40 groups of five, true `sigma = 0.9`)
+  and require the cold fit's independently integrated exact NLL to be no worse
+  than that candidate's exact NLL plus `1e-4`. This tests a reproducible
+  outcome without prescribing a beta-start or optimizer policy; it does not
+  certify a global optimum. Add it with the corresponding fix, since the
+  current cold-start implementation is known to fail the comparison.
   For TODO-6, the canonical count file
   `R/package_tests/comprehensive_tests_results_nc_1_count.csv` has 14,206
   `InferenceCountKKGLMM` text matches and mtime 2026-09-27; the canonical
@@ -298,6 +307,32 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   the affected CountKKGLMM and OrdinalKKCLMM rows using the standing stale-row
   pruning workflow, followed by the comprehensive audit/reconciliation; do
   not update the canonical baseline until that audit passes.
+
+  **Read-only canonical-row provenance snapshot 2026-10-18:** direct reads of
+  the two canonical CSVs found 14,206 `InferenceCountKKGLMM` rows in the
+  count file (14,206 distinct `id`, 307 distinct `case_id`) and 69,121
+  `InferenceOrdinalKKCLMM` rows in the ordinal file (69,121 distinct `id`,
+  973 distinct `case_id`). Every matching row currently has `status = ok`.
+  The recorded timestamp ranges are 2026-08-24 12:38:18 IDT–2026-09-27
+  09:32:10 IDT (count) and 2026-08-24 12:30:58 IDT–2026-10-09 01:12:24 IDT
+  (ordinal). Each class has 22 distinct `github_commit_id` values; the exact
+  inventories are:
+
+  ```text
+  CountKKGLMM: 09b5905b413f70009104e6e0e19d0c7cf782fe90, 108db0377224cb71995a1bb2823d3e1152399f5f, 13e1eb113be3090456738eed75076f33fa4c2d4b, 36368a0e00f9feb5cafb316ed2e161e8fbfac659, 57dab4428119b05e724c5de9f9a1749d65f5e691, 5d8246300ea034bed7f4591d7f2258a7215436eb, 7241fc7b151c53c525e14039d0b9c02ef7435d16, 842da415c7e17697a118fb2e3dd50908c17ae8ba, 8918bada0547a6bfb5454b8623c69e8d50ccc6b5, 894668404512bb2de2472dae149823756c29d7fd, 8a03e5ddb976ce194f87dbc66f0b772af6fc3577, 903ced0404921b7f4a6b5a8b1f7d0a6702466a31, a18354bce4b10d7007601ef3a53c5f217d6c9154, a31ecc5e6fdae4e08c659caa479d6c877d80a551, a5878d83900ea7d647cfcc355f72d8be04fc5588, b6ec06b5e985414d05380c6926f4807452d9cb24, baec9f3d7282250d31343f9bc3ef0cfd66ca0d54, c4dbf91fb33eab1532a276da7e9576f5d54e4249, c8d4786e8d56f9e53b4f9a5a38a263f2fdd4f903, d41880c19a6c8a32a9515b1c19331d73e74f0b3e, ec003b7eeefab2e40b64b6412f4fc127dee4efac, f1e3bb2bbba0d37ea194724d4e859e32b488327b
+  OrdinalKKCLMM: 13e1eb113be3090456738eed75076f33fa4c2d4b, 36368a0e00f9feb5cafb316ed2e161e8fbfac659, 363fbedee6b6d2a68f56eb3083dd190f73bd1ec4, 4d0040ab144c339b4096037164db0d8dea0629c8, 57dab4428119b05e724c5de9f9a1749d65f5e691, 5d8246300ea034bed7f4591d7f2258a7215436eb, 641eea900c1777e13d0ca81a86eeec8439444bab, 7241fc7b151c53c525e14039d0b9c02ef7435d16, 842da415c7e17697a118fb2e3dd50908c17ae8ba, 8918bada0547a6bfb5454b8623c69e8d50ccc6b5, 8a03e5ddb976ce194f87dbc66f0b772af6fc3577, 903ced0404921b7f4a6b5a8b1f7d0a6702466a31, 95e5203765fde92b5d501c0e93139603c2a95bf1, a18354bce4b10d7007601ef3a53c5f217d6c9154, a5878d83900ea7d647cfcc355f72d8be04fc5588, b6ec06b5e985414d05380c6926f4807452d9cb24, baec9f3d7282250d31343f9bc3ef0cfd66ca0d54, c4dbf91fb33eab1532a276da7e9576f5d54e4249, c8d4786e8d56f9e53b4f9a5a38a263f2fdd4f903, cd3a703471577eb391d899306356ed8d01e09561, d41880c19a6c8a32a9515b1c19331d73e74f0b3e, d948f6e9fb20ce6a500ef25fb00f77bce3c9a4c5
+  ```
+
+  `id` is the row-level key and includes replicate and `beta_T`; `case_id`
+  identifies a broader case and omits those dimensions, so it is not a
+  row-unique reconciliation key. A read-only ancestry check against the
+  sigma-start fix commit `e706c6f67a6798eea666921155c259a751476feb` found
+  zero matching rows whose recorded `github_commit_id` descends from it.
+  These CSV columns stamp the source-tree HEAD (`github_commit_id`), not the
+  loaded native-library build; even a descendant HEAD would not prove which
+  `EDI.so` was loaded. Record the exact source revision and native artifact
+  identity at regeneration. This snapshot is not post-fix native evidence;
+  keep TODO-1 policy/grid validation and TODO-6 regeneration/audit open.
 
   **Post-fix CI provenance check 2026-10-16:** GitHub Actions run
   `38808821543` (`test-bulk-non-cran`) completed successfully at commit

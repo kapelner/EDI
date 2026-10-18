@@ -203,6 +203,27 @@ documented default change under the standing constraint.
   plan only adds the hook if that plan has not. Equality to 1e-10 against
   the worker path, documented there.
 
+  **Parity-test strengthening, 2026-10-18:** the existing bulk fixture
+  `test-resampling-parallel-threshold-contracts.R` already reached the OLS
+  hook and compared public percentile-CI endpoints with an independent
+  `lm.fit` reference at `1e-8`. It now also compares the hook's complete
+  fixed-draw vector directly against the per-draw `lm.fit` coefficients at
+  `1e-10`, the plan's required tolerance. Running that file through
+  `testthat::test_file()` against installed EDI 1.0.3 passed 46 assertions
+  (0 failures, warnings, or skips). This is installed-package evidence only;
+  because compilation is not authorized, it does not validate the current
+  checkout/native library. TODO-5 remains open pending current-head
+  validation and confirmation that the tested installed binary contains the
+  same hook implementation. **Checkout-R/native-DLL pairing, 2026-10-18:**
+  the same file also passed 46/46 with
+  `pkgload::load_all("R/EDI", compile = FALSE)`, loading the current checkout's
+  R source without compilation. `pkgload`'s temporary `EDI.so` had MD5
+  `dd43c5d0e11708aea17ba82b900f66d1`, matching the installed EDI 1.0.3 DLL at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` exactly.
+  This validates current R dispatch/test source against that installed native
+  binary, not a current-head native build; the full benchmark and historical
+  EDI 1.0.2 parity gates remain open.
+
 - [ ] TODO-6: **Re-run the procedure table and update claims.**
   Acceptance: OLS percentile CI ≥ 1x `boot`; logistic and Cox ≥ 1x
   `boot`; bootstrap distributions bit-identical to 1.0.2 for a fixed seed

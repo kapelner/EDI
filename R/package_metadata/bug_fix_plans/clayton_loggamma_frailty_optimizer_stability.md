@@ -141,12 +141,51 @@ are the most direct evidence this is fixable rather than structural.
   post-fix evidence and not the missing original reps 1/13 sample. The CSV
   does not record `.Random.seed`, assignments, or generated outcomes, so it
   cannot recover the exact RNG realization. The remaining acceptance is
-  therefore still decision-gated: recover the original realization or obtain
-  approval for a deterministic replacement; have the maintainer set the
-  numeric runtime ceiling and point-estimate/SE/Bartlett-p parity tolerances
-  for both `~1` and `~.`; then run the full selected case in isolation under
-  a hard timeout and record package/native provenance. Do not infer a runtime
-  threshold from the filtered probe or these other historical rows.
+  therefore still decision-gated. **Bounded execution proposal (not yet
+  authorized):** use dataset `diamonds`, response `survival`, design
+  `KK21stepwise`, class
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`, and `beta_T=0` for both
+  formulas `~1` and `~.`. For an exact historical replay, target `~1` reps 1
+  and 13 and the recorded `~.` rep 1 attempt only if their original per-case
+  RNG state and full call context are recovered; the `~.` rep 1 attempt
+  stalled in the generic Bartlett p-value, so it is not an observed
+  approximate-p-value baseline. Otherwise, request approval for a deterministic
+  replacement consisting of one explicitly seeded replicate per formula,
+  labeled as replacement data (not historical reps 1/13). For every selected
+  formula/replicate, record the point estimate, standard error, and
+  `compute_lik_ratio_bartlett_approx_two_sided_pval()` result, including
+  non-finite/error outcomes. Save the case-start `.Random.seed` and
+  `RNGkind()`, plus R version, dataset/version or row-data hash, harness
+  command and source commit, installed EDI version/library path, loaded native
+  library path and hash/build provenance, start/end timestamps, per-call
+  durations, stdout/stderr, process exit status, and timeout outcome. Run from
+  an isolated harness copy with all outputs and logs under a fresh `/tmp`
+  directory; apply a hard timeout whose numeric value is approved in advance.
+  Before execution, the maintainer must approve the numeric runtime ceiling
+  and explicit tolerances for estimate, SE, and Bartlett-p parity for each
+  formula. The original replay and replacement are separate evidence paths;
+  filtered rows, other historical rows, and a replacement seed cannot stand
+  in for the missing historical RNG realization. Do not infer a runtime or
+  parity threshold from existing probes.
+
+**Fresh source/DLL provenance recheck 2026-10-18 (read-only):** checkout
+`HEAD` is `efdc1b4ebe07c6dc3aadba713b5f5fe0722fdfe1`. The current
+`R/EDI/src/fast_survival_models_optim.cpp` SHA-256 is
+`c0ce193eaa4a40a511c55dcbce39026e2f35fab7df0a979fb70ee386b352475d`
+(mtime 2026-10-18 05:59:22 +0300); its working-tree diff is limited to an
+unrelated warm-start length guard in `fast_dep_cens_transform_optim_internal`,
+not the Clayton optimizer. The loaded installed package is EDI 1.0.3 from
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; its `libs/EDI.so`
+SHA-256 is `23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`
+(MD5 `dd43c5d0e11708aea17ba82b900f66d1`, mtime 2026-10-18 03:57:33 +0300).
+The DLL predates the current translation-unit mtime, and it has no recorded
+source/build attestation tying it to this checkout. This is a provenance
+limitation, not evidence that the Clayton fix is absent: the observed source
+diff is outside the Clayton optimizer. No fit or test was run for this
+recheck; TODO-56 remains active, the original per-case RNG/outcome context is
+unavailable, and the numeric runtime ceiling plus per-formula estimate/SE/
+Bartlett-p tolerances still require maintainer approval before the gated run.
+
 - [x] TODO-4: Confirm no golden-test point-estimate drift from the new
   bound. `test-clayton-logtheta-optimizer-bound.R` passed against the
   reinstalled package on 2026-10-14, including the censored fixture's

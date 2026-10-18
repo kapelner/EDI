@@ -74,3 +74,13 @@ def test_estimate_only_still_returns_params():
     res = fast_dep_cens_transform_optim(X, y, dead, estimate_only=True)
 
     assert res["params"] == pytest.approx(R_PARAMS, abs=1e-6, rel=1e-6)
+
+
+@pytest.mark.parametrize("size", [6, 8])
+def test_rejects_wrong_length_warm_start_params(size):
+    X, y, dead = _synthetic_data()
+    # Two p-vectors and three scale parameters: total length is 2 * 2 + 3 = 7.
+    with pytest.raises(ValueError, match="warm_start_params must have length"):
+        fast_dep_cens_transform_optim(
+            X, y, dead, warm_start_params=np.zeros(size),
+        )

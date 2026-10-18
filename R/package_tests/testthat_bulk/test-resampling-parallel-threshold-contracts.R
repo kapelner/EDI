@@ -109,6 +109,10 @@ test_that("public OLS percentile bootstrap dispatch matches fixed-index lm.fit r
 	ref <- vapply(draws, function(d) {
 		unname(stats::lm.fit(f$X[d$i_b, , drop = FALSE], f$y[d$i_b])$coefficients[2L])
 	}, numeric(1))
+	# Compare the fast hook's entire distribution to an independent per-draw
+	# lm.fit reference, not only the public CI endpoints derived from it.
+	fast_ref <- original_hook(draws)
+	expect_equal(unname(fast_ref), unname(ref), tolerance = 1e-10)
 	ci <- f$inf$compute_bootstrap_confidence_interval(
 		alpha = 0.2, B = length(draws), type = "percentile", show_progress = FALSE
 	)

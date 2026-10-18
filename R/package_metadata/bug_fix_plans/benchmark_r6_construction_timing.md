@@ -356,3 +356,28 @@ the two Markdown files are interchangeable. This preflight does not alter the
 previous acceptance: obtain the owner-approved numeric Zhang parity band,
 run the synchronized canonical fixture and confirm endpoint tolerance, then
 regenerate and reconcile all four outputs from the harness.
+
+**Canonical Zhang decision evidence (2026-10-18; existing scratch artifacts,
+no rerun):** the canonical incidence/Bernoulli fixture is reconstructible
+from seed `45265` at `n=1000` (four covariates; table cells in the scratch
+script's order: `348, 303, 152, 197`). The recorded canonical endpoint
+discrepancy is `0.00441339775` on the log-CI scale; the separate, noncanonical
+synthetic fixture recorded `0.00642`. These are observations, not proposed
+acceptance bounds. The canonical procedure timing medians recorded in the
+scratch run are `6.387 ms` for EDI and `1.105 ms` for `fisher.test`, but the
+samples were collected in separate adaptive batches and are unpaired; they do
+not establish a reliable procedure-time ratio. `pval_epsilon=1e-6` is the
+algorithm's numerical inversion/bisection precision, not an owner-approved
+cross-implementation endpoint-parity tolerance.
+
+The preserved scratch evidence is `/tmp/edi-todo62-canonical-zhang-20261016.R`,
+`/tmp/edi-todo62-canonical-zhang-20261016.csv`,
+`/tmp/edi-todo62-canonical-zhang-20261016-summary.txt`,
+`/tmp/edi-todo62-zhang-procedure-20261015.R`, and
+`/tmp/edi-todo62-zhang-procedure-20261015.csv`. No canonical report or CSV was
+changed. Two independent owner decisions remain: (1) the endpoint-error
+metric and acceptable parity bound, and (2) the procedure-time ratio bound.
+After those decisions, collect paired alternating EDI/`fisher.test` timings on
+the same canonical fixture with host context recorded, and check the chosen
+endpoint criterion on boundary and sparse 2x2 fixtures before synchronizing
+reports. No thresholds are selected here.

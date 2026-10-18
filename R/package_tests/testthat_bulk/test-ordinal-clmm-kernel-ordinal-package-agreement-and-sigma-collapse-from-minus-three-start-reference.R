@@ -28,6 +28,9 @@ test_that("started at log sigma = 0 the CLMM kernel matches ordinal::clmm (coeff
 	f <- fx()
 	r <- K("fast_ordinal_clmm_cpp")(f$X, f$y, f$g, 3L, 0L, warm_start_params = f$start(0))
 	expect_true(r$converged)
+	# TODO-31 classifies a boundary-looking stop using its gradient; keep the
+	# optimizer diagnostic present/finite alongside the independent ML oracle.
+	expect_true(is.finite(as.numeric(r$gradient_norm)))
 	expect_equal(as.numeric(r$b), unname(coef(f$mm)["x"]), tolerance = 0.1)
 	expect_equal(as.numeric(r$log_sigma), f$clmm_logsig, tolerance = 0.02)
 	expect_equal(as.numeric(r$neg_loglik), -as.numeric(logLik(f$mm)), tolerance = 0.5)
@@ -38,6 +41,7 @@ test_that("the fit is stable across other datasets when started at log sigma = 0
 	for (s in c(302L, 303L, 304L, 305L, 306L)) {
 		f <- fx(s)
 		r <- K("fast_ordinal_clmm_cpp")(f$X, f$y, f$g, 3L, 0L, warm_start_params = f$start(0))
+		expect_true(is.finite(as.numeric(r$gradient_norm)), info = as.character(s))
 		expect_gt(as.numeric(r$log_sigma), -2.5)
 		expect_equal(as.numeric(r$log_sigma), f$clmm_logsig, tolerance = 0.03, info = as.character(s))
 	}
@@ -49,6 +53,7 @@ test_that("the -3 start and default cold start select the same finite optimum as
 	for (r in list(K("fast_ordinal_clmm_cpp")(f$X, f$y, f$g, 3L, 0L, warm_start_params = f$start(-3)),
 			K("fast_ordinal_clmm_cpp")(f$X, f$y, f$g, 3L, 0L))) {
 		expect_true(r$converged)
+		expect_true(is.finite(as.numeric(r$gradient_norm)))
 		expect_gt(as.numeric(r$log_sigma), -1.5)
 		expect_equal(as.numeric(r$neg_loglik), as.numeric(good$neg_loglik), tolerance = 1e-5)
 		# Same kernel, different starting points converging to "the same"

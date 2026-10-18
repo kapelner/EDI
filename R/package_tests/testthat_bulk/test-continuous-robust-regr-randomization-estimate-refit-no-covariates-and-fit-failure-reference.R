@@ -58,6 +58,41 @@ test_that("use_rcpp = TRUE: the fast refit approximates an independent MASS::rlm
 	expect_equal(est, ref, tolerance = 0.02)
 })
 
+test_that("reused randomization keeps the original robust-regression covariate set across draws", {
+	f <- robust_regr_fixture(seed = 17L, n = 50L, use_rcpp = FALSE)
+	f$inf$compute_estimate()
+	expect_identical(f$priv$best_X_colnames, "x1")
+	# Force the batch path to decline so explicit permutations reach the
+	# reusable-worker fallback, which exercises both assignment loading and
+	# subsequent worker-state sync on every draw.
+	expect_true(f$priv$use_reusable_bootstrap_worker())
+	expect_true(f$priv$has_private_method("compute_fast_randomization_distr"))
+	unlockBinding("compute_fast_randomization_distr", f$priv)
+	f$priv$compute_fast_randomization_distr <- function(...) NULL
+
+	permuted_w <- list(
+		f$w,
+		rev(f$w),
+		c(f$w[-1L], f$w[1L])
+	)
+	actual <- f$inf$approximate_randomization_distribution_beta_hat_T(
+		r = length(permuted_w),
+		permutations = lapply(permuted_w, function(w) list(w = w)),
+		show_progress = FALSE
+	)
+	expected <- vapply(permuted_w, function(w_draw) {
+		unname(coef(MASS::rlm(
+			x = cbind(1, w_draw, f$x),
+			y = f$y,
+			method = f$priv$rlm_method,
+			scale.est = "mad",
+			maxit = 20
+		))[2])
+	}, numeric(1))
+
+	expect_equal(actual, expected, tolerance = 0.01)
+})
+
 test_that("without prior column selection it calls shared() first", {
 	f <- robust_regr_fixture(seed = 3L)
 	expect_null(f$priv$best_X_colnames)

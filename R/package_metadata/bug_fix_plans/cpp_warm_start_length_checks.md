@@ -62,7 +62,7 @@ lengths is part of TODO-1).
 
 ## TODOs
 
-- [ ] TODO-1: **Complete the audit.** List every `warm_start_*` and
+- [x] TODO-1: **Complete the audit.** List every `warm_start_*` and
   `fixed_values`/`fixed_idx` dereference in `src/` with its guard status
   (the F2 table plus the weights/Fisher-information sites), and check
   whether `python/cpp/bindings_*.cpp` validates lengths before calling
@@ -155,6 +155,59 @@ lengths is part of TODO-1).
   dimensions. The Gaussian LMM fixture uses only supported pair-sized groups.
   These checkout C++ edits are not compiled.
 
+  Final warm-start source audit, 2026-10-18: exhaustive searches of C++
+  entry-point accesses, conditional size checks, copies, indexing and caller
+  paths found two additional `warm_start_params` branches that silently
+  discarded malformed non-null vectors in favor of a cold start:
+  `fast_ordinal_clmm_internal` and `fast_dep_cens_transform_optim_internal`.
+  Both now call `require_length(..., total, "warm_start_params")` before
+  initializing the start vector, and copy only after that guard. Each internal
+  is called by both the R and Python binding. The warm-start portion of the
+  source audit is complete; TODO-1 remains open only for its separate
+  exhaustive `fixed_values`/`fixed_idx` inventory. No other consumed
+  warm-start input was found to have an unchecked or silent-ignore path;
+  documented unused weight arguments remain no-ops.
+
+  Fixed-parameter source audit, 2026-10-18: `trail grep` enumerated all 78
+  `make_fixed_param_spec(` call sites (72 symbols, 34 C++ files) and all 27
+  `fixed_idx[` / 19 `fixed_values[` indexed-access hits. The hits are
+  `apply_fixed_values` (`_helper_functions_core.h:651-662`),
+  `fast_poisson_internal` (`fast_poisson_regression.cpp:177,308`),
+  constrained-binomial unweighted/weighted fits (`fast_log_binomial_regression.cpp:169,353`),
+  logistic (`fast_logistic_regression.cpp:103`), probit
+  (`fast_probit_regression.cpp:126`), Cox Newton-Raphson
+  (`fast_coxph_regression.cpp:337,354`), robust
+  (`fast_robust_regression.cpp:92,135`), combined conditional Poisson
+  (`fast_cpoisson_combined.cpp:305,422`), logistic/ordinal/Poisson GLMM
+  (`fast_logistic_glmm.cpp:526`, `fast_ordinal_glmm.cpp:348`,
+  `fast_poisson_glmm.cpp:415`), OLS and OLS-with-variance
+  (`fast_ols.cpp:26,31,108,113`), and ZINB/ZIP reduced fallbacks
+  (`fast_zinb.cpp:462,476,479,582-584`). Each receives a validated
+  `FixedParamSpec` from the shared helper at `_helper_functions_core.h:517-581`
+  or a filtered copy of such a spec; the helper checks paired presence for
+  nonempty indices, equal lengths, one-based range, duplicates, finite values,
+  and at least one free parameter. The R adapter
+  (`_helper_functions.h:60-73`) and Python lambdas forward optionals without
+  pre-validation, so this common native validation is the boundary for both.
+  `apply_fixed_values()` independently checks index/value lengths and every
+  target index before assignment. No unchecked external fixed-parameter access
+  was found, so no new native guard or malformed-input regression is justified.
+  The scan did identify two Python docstrings claiming `fast_ols` and
+  `fast_robust_regression` use zero-based `fixed_idx`; both bindings forward
+  directly to the one-based helper. The C++ binding docs and generated
+  `python/src/edi_kernels/_core.pyi` now state one-based. This is a docs-only
+  correction. No build, install, or runtime test was run; native/Python
+  extension validation remains under TODO-4/TODO-5.
+
+  Contract note: the shared helper returns the all-free spec immediately when
+  `fixed_idx` is absent or empty, so an independently supplied `fixed_values`
+  vector is currently ignored (not indexed). This is not an unsafe access;
+  changing that no-op behavior would be a separate API-contract decision.
+
+  TODO-1 source inventory is complete. Validation requiring a checkout-native
+  library or rebuilt Python extension remains intentionally assigned to
+  TODO-4/TODO-5, not this source-audit checkbox.
+
 - [ ] TODO-4: **Verify by targeted compile.** Recompile only the touched
   `.cpp` files with the flags from `src/Makevars`, relink `EDI.so` from
   the existing `.o` files, load the rebuilt package without source-loading,
@@ -220,6 +273,16 @@ lengths is part of TODO-1).
   build/install occurred; TODO-3/TODO-4 and sanitizer/Valgrind gates remain
   open.
 
+  Warm-start follow-up, 2026-10-18: the CRAN contract file now also asserts
+  that short and long parameter starts are rejected by the ordinal CLMM and
+  dependent-censoring transform kernels. Matching pytest cases assert Python
+  `ValueError` for short and long vectors through `fast_ordinal_clmm` and
+  `fast_dep_cens_transform_optim`. The four R and four Python malformed-length
+  cases cover the two newly guarded paths; they have not been executed against
+  the checkout native library or a checkout-built Python extension. The
+  exhaustive warm-start source audit is complete, but TODO-3 runtime,
+  sanitizer, and Valgrind evidence remains open pending an authorized rebuild.
+
 - [ ] TODO-5: **Python bindings.** If TODO-1 finds the bindings pass
   lengths through unchecked, the C++ fix covers them once the wheels are
   rebuilt; add a matching pytest that a wrong-length warm start raises a
@@ -232,7 +295,15 @@ lengths is part of TODO-1).
   No build/install was run. This confirms the existing binary's logistic
   binding behavior only; the wheel/build provenance is not tied to the
   current C++ checkout edits, so rebuild-backed Python validation remains
-  open.
+  open. **Additional Python coverage, 2026-10-18:** short/long malformed-
+  length `ValueError` regressions were added to
+  `python/tests/test_fast_ordinal_clmm.py` (expected vector length 5) and
+  `python/tests/test_fast_dep_cens_transform_optim.py` (expected vector
+  length 7). No pytest run used the stale extension. After an authorized
+  checkout extension rebuild/install, run:
+  `python -m pytest python/tests/test_fast_ordinal_clmm.py python/tests/test_fast_dep_cens_transform_optim.py`.
+  This gate remains open until that command passes against the rebuilt
+  extension; no extension was built or installed in this audit.
 
 ## Out of scope
 

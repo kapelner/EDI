@@ -158,6 +158,55 @@ the full audit-to-dispatch cross-reference is still open.
   this holds for `type="smoothed"` specifically, not just the general BRT
   path). Cross-reference against the ~85 flagged cells from the audit to
   build the exact list.
+  **Source-boundary slice rechecked 2026-10-18:** exhaustive Trail search
+  finds three application sites for the shared R noise hook: ordinary
+  iteration, the reused-worker assignment loader, and the with-SE iteration.
+  Both public p-value and CI entry points assert support for `type="smoothed"`;
+  the corresponding type accessors omit it when unsupported. For
+  `incidence`/`ordinal`/`proportion`, the current shared predicate permits
+  only classes with `compute_fast_rand_bootstrap_distr`, excluding Ridit and
+  Jonckheere-Terpstra; `continuous`/`count`/`survival` pass this categorical
+  guard. The CI accessor also has its incidence-specific custom-statistic /
+  compiled-kernel exception, so p-value and CI support must be cross-referenced
+  separately. C++ batch paths apply their own `noise_mat`, rather than calling
+  the R hook. This pins the mechanism boundary but does not map all historical
+  flagged cells to supported/blocked branches. The current bandwidth remains
+  `sd(private$y, na.rm = TRUE) / sqrt(n)` with no class- or response-specific
+  adjustment in this audit; its appropriateness is still unvalidated, so no
+  bandwidth change or calibration conclusion follows. No calibration or
+  comprehensive-result outputs were read or changed.
+  **Tracked-cell cross-reference, 2026-10-18:** the checked-in audit baseline
+  has exactly 25 `_smoothed` p-value rows. Sixteen are in response types whose
+  current p-value guard admits smoothing: continuous (9 keys: `InferenceAllSimpleAverageDiff`
+  / `NA`, `InferenceAllSimpleMeanDiffPooledVar` / `NA`,
+  `InferenceContinKKRobustRegrOneLik` / `~1`, `InferenceContinLin` / `~.` and
+  `~1`, `InferenceContinOLS` / `~.` and `~1`, `InferenceContinQuantileRegr` /
+  `~1`, `InferenceContinRobustRegr` / `~1`) and count (7 keys:
+  `InferenceAllSimpleAverageDiff` / `NA`, `InferenceCountHurdleNegBin` /
+  `~1`, `InferenceCountHurdlePoisson` / `~1`,
+  `InferenceCountKKHurdlePoissonOneLik` / `~1`, `InferenceCountPoisson` /
+  `~.`, `InferenceCountZeroInflatedNegBin` / `~1`, and
+  `InferenceCountZeroInflatedPoisson` / `~1`). Current source identifies five
+  of these as C++ batch dispatches: the two `InferenceAllSimpleAverageDiff`
+  keys use the mean-difference kernel, the two `InferenceContinOLS` keys use
+  the OLS kernel, and `InferenceContinRobustRegr` / `~1` uses the robust
+  regression kernel. The other eleven use the generic R-level per-draw path;
+  they remain admitted by the continuous/count response guard, but this is not
+  evidence that their historical calibration finding is fixed.
+
+  The other nine tracked keys are categorical and fail the current p-value
+  support predicate because their classes have no accepted fast smoothed
+  method: incidence `InferenceIncidBinomialIdentityRiskDiff` / `~.` and `~1`,
+  `InferenceIncidKKCondLogitOneLik` / `~.` and `~1`, `InferenceIncidKKGEE` /
+  `~.`, `InferenceIncidProbitRegr` / `~1`; ordinal
+  `InferenceOrdinalGCompMeanDiff` / `NA`, `InferenceOrdinalPairedSignTest` /
+  `NA`, and `InferenceOrdinalPropOddsRegr` / `NA`. These baseline records are
+  historical audit findings, not evidence that current public calls can
+  produce those rows. The remaining roughly 60 of the reported historical
+  ~85 cells cannot be enumerated or assigned to dispatch branches from the
+  tracked baseline: their exact (response, class, formula) keys are not checked
+  in. Resolving that remainder requires the provenance-bearing historical
+  audit input/output; no guessed rows or calibration inference are recorded.
 - [ ] TODO-2: Investigate whether the bandwidth formula
   (`bw = sd(private$y) / sqrt(n)`, `:526-527`) is itself appropriate across
   every affected response type/link scale, not just whether rounding is
@@ -322,6 +371,21 @@ the full audit-to-dispatch cross-reference is still open.
   passed 58 assertions and `test-brt-smoothed-noise-mat-plumbing.R` passed 7
   against the installed package; these validate the guard/plumbing, not the
   still-open calibration TODOs.
+  **Current-R-source regression recheck (2026-10-18):** after
+  `pkgload::load_all("R/EDI", compile = FALSE)`,
+  `test-brt-smoothed-count-support.R` passed 58 assertions and
+  `test-brt-smoothed-noise-mat-plumbing.R` passed 7 (65 total, no failures,
+  warnings, or skips). The source came from
+  `/home/kapelner/workspace/EDI/R/EDI`, version 1.0.3. The already-built
+  native DLL used by the source overlay was
+  `/tmp/RtmpbRBDJL/pkgload36fbdb21f8fda4/EDI.so`, SHA-256
+  `23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`
+  (matching installed EDI 1.0.3). This validates current R smoothing support
+  guards, count round/floor behavior, and native noise-matrix plumbing against
+  the existing DLL ABI. It does not measure repeated-trial calibration or
+  validate the native source checkout; TODO-6/7 calibration and TODO-8
+  comprehensive regeneration remain open. No benchmark, build/install, or
+  canonical result write occurred.
 - [ ] TODO-8: Regenerate the affected `comprehensive_tests` CSV rows for
   the confirmed affected classes' `smoothed` variant once fixed and
   installed (only after install, not before, same caution as the sibling

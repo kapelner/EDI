@@ -86,3 +86,14 @@ def test_result_shape_and_types():
     assert res["alpha"].shape == (2,)
     assert isinstance(res["converged"], bool)
     assert isinstance(res["neg_loglik"], float)
+
+
+@pytest.mark.parametrize("size", [4, 6])
+def test_rejects_wrong_length_warm_start_params(size):
+    X, y, group_id = _synthetic_data()
+    # K - 1 thresholds + p fixed effects + one log-SD = 5 parameters.
+    with pytest.raises(ValueError, match="warm_start_params must have length"):
+        fast_ordinal_clmm(
+            X, y, group_id, K=3, j_T=0,
+            warm_start_params=np.zeros(size),
+        )

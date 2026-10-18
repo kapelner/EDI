@@ -141,6 +141,19 @@ than copying the implementation's `qlogis`/`plogis` expression), verifies
 all three mean-difference dispatch paths, checks both incidence GComp
 siblings, and proves the Wilcox MC route is proportion-only.
 
+**Estimand semantics question (2026-10-18; unresolved maintainer choice):**
+the comprehensive proportion DGP draws `eps ~ N(0, SD_NOISE)` with
+`SD_NOISE = 0.1` and applies it inside `plogis(qlogis(p_base) + bt + eps)`.
+The closed-form truth and its independent reference currently omit `eps`, so
+they compute the clamped-baseline, zero-noise logit-shift contrast. The exact
+marginal mean contrast under the noisy DGP would instead integrate the
+logistic-normal response over `eps` and need not equal that closed form.
+This does not silently change TODO-55's corrected formula or establish a new
+bug: a maintainer must decide whether coverage truth is intentionally defined
+as the zero-noise conditional contrast or should target the noisy marginal
+mean. Until then, describe the formula as matching the zero-noise logit-shift
+contrast, not as an exact marginal expectation under the full noisy DGP.
+
 ## TODO
 
 1. [x] Apply the fix above once it's safe to edit `comprehensive_tests.R`
@@ -167,6 +180,16 @@ siblings, and proves the Wilcox MC route is proportion-only.
 
    Focused installed-package validation on 2026-10-14 passed all 18
    assertions in `test-comprehensive-proportion-coverage-truth-reference.R`.
+   **Current-source recheck 2026-10-18:** after
+   `pkgload::load_all("R/EDI", compile = FALSE)` at checkout HEAD
+   `efdc1b4ebe07c6dc3aadba713b5f5fe0722fdfe1`, the same test passed all 18
+   assertions with 0 failures, warnings, or skips. The installed package was
+   EDI 1.0.3; its `EDI.so` at
+   `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` and
+   the DLL loaded by `pkgload` had matching MD5
+   `dd43c5d0e11708aea17ba82b900f66d1`. This focused harness-truth test does
+   not call native code and is not validation of release TODO-10's separate
+   ordinal MC-truth dispatch.
    Then a two-replicate comprehensive replay on `boston` at `beta_T=0.5`
    regenerated 20 Wald result rows spanning both design formulas for
    `InferenceAllSimpleAverageDiff`, `InferenceAllSimpleMeanDiffPooledVar`,

@@ -132,7 +132,14 @@ range, since the plan files' internal numbering did not change.
   and NULL-key compatibility. Scoped diff checks and R parsing pass, but the
   installed package cannot validate unbuilt checkout edits; no test or
   benchmark was run after the change. This is not evidence toward the 20–30×
-  target, which remains open.
+  target, which remains open. **Post-change focused check, 2026-10-18:**
+  source-loaded validation of `test-stable-signature-full-content-hash-
+  sensitivity-and-cache-key-components-reference.R` passed 37 assertions
+  with compilation disabled. It covers the precomputed permutation-signature
+  path, parity with the legacy omitted-signature path, full-content mutation
+  sensitivity, and NULL-signature compatibility. This is R-source evidence
+  against installed EDI 1.0.3's native library, not current-native validation
+  or benchmark acceptance.
 - [ ] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
   randomization-distribution kernel; triage dead kernels** —
   `ols_randomization_distr_cpp_wiring.md → TODO-1..6`.
@@ -146,9 +153,9 @@ range, since the plan files' internal numbering did not change.
   block and adding a per-replicate rank guard to the kernel so `NA`
   patterns match the worker. Same estimator to ~1e-14 (documented default
   change, tolerance 1e-10). Expected 20–50× on the OLS randomization
-  distribution; multiplicative with TODO-2. Also triages eight other
-  never-called exports: wire the bootstrap one if its contract matches,
-  delete the rest (with unity-group cleanup). **Verified NOT implemented —
+  distribution; multiplicative with TODO-2. It also triages eight exports
+  without a production caller; their wire/delete dispositions remain open.
+  **Verified NOT implemented —
   and actively broken, 2026-09-24**: `compute_fast_randomization_distr()`
   shows as present on `InferenceContinOLS`'s class *generator* (a static
   existence check), but throws `"attempt to apply non-function"` — one of
@@ -172,15 +179,17 @@ range, since the plan files' internal numbering did not change.
   `harden = TRUE/FALSE`, `delta = 0/0.5`). TODO-5's full end-to-end
   parameter-grid benchmark also passed on 2026-10-14: all p-values matched,
   with median speedups of 43.07× at one core and 54.30× at four cores. Results
-  are recorded in `benchmark_model_fits.md`. A Graft caller audit found that
-  the nine remaining candidates have test/benchmark/profiler references but no
-  production inference callers. The old OLS bootstrap export is not the active
-  OLS bootstrap path (`InferenceContinOLS` calls
-  `compute_rand_bootstrap_ols_parallel_cpp`); the two Wilcoxon kernels are
-  superseded by the HL path. Deletion would require migrating/removing the
-  direct contract tests and regenerating Rcpp exports/unity wrappers. That
-  cleanup is still open and requires explicit permission for generated-code
-  changes; this release checkbox remains open. Additional installed-package
+  are recorded in `benchmark_model_fits.md`. **Caller correction, 2026-10-18:**
+  `compute_ols_bootstrap_parallel_cpp` is used by the ordinary OLS percentile-
+  bootstrap path (`InferenceContinOLS$compute_fast_non_param_bootstrap_distr`);
+  it is distinct from the randomization-bootstrap kernel and is not a dead
+  export. The eight genuinely unused candidates have test/benchmark/profiler
+  references but no production inference callers; the two Wilcoxon kernels
+  are superseded by the HL path. Deletion would require
+  migrating/removing the direct contract tests and regenerating Rcpp
+  exports/unity wrappers. That cleanup is still open and requires explicit
+  permission for generated-code changes; this release checkbox remains open.
+  Additional installed-package
   verification on 2026-10-14 passed 54 assertions in
   `test-parallel-distribution-kernel-contracts.R` and 31 in
   `test-resampling-parallel-threshold-contracts.R` against EDI 1.0.3, without
@@ -194,10 +203,9 @@ range, since the plan files' internal numbering did not change.
     equivalent user-managed current-head package), rerun the OLS kernel
     parity/edge matrix and public randomization test against that native
     artifact with source/DLL provenance.
-  - [ ] Decide the disposition of the nine unused exports (including the
-    bootstrap export's wire-or-delete choice); only after approval, migrate
-    their direct tests/benchmarks, update Rcpp registration/generated wrappers,
-    and verify no production callers remain.
+  - [ ] Decide the disposition of the eight genuinely unused exports; only
+    after approval, migrate their direct tests/benchmarks, update Rcpp
+    registration/generated wrappers, and verify no production callers remain.
   - [ ] Obtain the separate owner decision on TODO-6's Lin stretch target and
     align the release claim with that decision.
 - [ ] TODO-4 (added 2026-08-30, source fixed 2026-10-08; focused edge tests added, full validation pending): **Guard the unguarded
@@ -373,6 +381,21 @@ range, since the plan files' internal numbering did not change.
   heartbeat path recorded in that CSV:
   `/tmp/RtmpaeuB1H/comprehensive_tests_heartbeat_2.log` (temporary R session
   path; stdout was not saved separately). No build or install was performed.
+  **Fresh provenance recheck 2026-10-18 (read-only):** checkout `HEAD`
+  `efdc1b4ebe07c6dc3aadba713b5f5fe0722fdfe1`; current
+  `R/EDI/src/fast_survival_models_optim.cpp` SHA-256
+  `c0ce193eaa4a40a511c55dcbce39026e2f35fab7df0a979fb70ee386b352475d`
+  (mtime 2026-10-18 05:59:22 +0300). The loaded installed EDI 1.0.3 DLL is
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  SHA-256 `23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`
+  (mtime 2026-10-18 03:57:33.954 +0300). The DLL predates this source
+  translation-unit mtime and there is no build attestation tying it to the
+  current whole source; the current source diff is an unrelated
+  dependent-censoring warm-start length guard, not a Clayton change. This is
+  a provenance limitation, not evidence that the Clayton fix is absent from
+  the DLL. No fit was run while TODO-56 is active. The historical seed/RNG
+  context remains unavailable, and no numeric runtime ceiling or parity
+  tolerances have been maintainer-approved.
   - [ ] Recover the historical sample/seed and package provenance (or obtain
     approval for a deterministic replacement), and obtain a maintainer-approved
     numeric runtime bound plus explicit point-estimate/SE/Bartlett-p parity
@@ -460,6 +483,21 @@ range, since the plan files' internal numbering did not change.
   validation; TODO-7's documentation update and comprehensive-results
   regeneration must wait. Full results and metadata are preserved at
   `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`.
+  **Full-data wiring regression, 2026-10-18:** the new integration assertion
+  in `test-stereotype-logit-full-fit-multistart.R` confirms ordinary
+  `generate_mod()` invokes the multi-start selector and returns a finite
+  treatment estimate with a selected start. Source-loaded test passed 17
+  assertions with compilation disabled; native calls used installed EDI
+  1.0.3 (`EDI.so` MD5 `dd43c5d0e11708aea17ba82b900f66d1`). This closes only
+  the call-site regression gap, not calibration or current-native validation.
+  **Scratch audit-path check (2026-10-18):** the focused
+  `test-comprehensive-audit-output-directory-override-reference.R` passed 7
+  assertions with 0 failures and 0 warnings. This verifies that response-level
+  audit inputs, baseline, and stamp route to the configured scratch directory;
+  it is not a full audit or post-fix regeneration and does not close TODO-8.
+  Before any scratch `--write-baseline` pass, stage all complete response-type
+  inputs covered by the baseline; an ordinal-only audit input set could make
+  findings for absent response types appear resolved and prune them.
 - [ ] TODO-9 (added 2026-09-22, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report; three new checks —
   `biased_estimate`, `bad_type1_error`, `low_power` — added to
@@ -488,6 +526,37 @@ range, since the plan files' internal numbering did not change.
     183 baseline findings now absent and 373 newly reported findings; do not
     write a new baseline until every difference has an evidence-backed
     disposition and the canonical run is authorized.
+    **Evidence audit, 2026-10-18:** TODO-18 now maps current support (16
+    continuous/count keys supported; nine categorical baseline keys blocked),
+    but the tracked baseline has aggregate keys only and the audit stamp has
+    only input paths/sizes/mtimes. The raw comprehensive CSVs and the
+    row-level 183-absent/373-new audit diff are not tracked, so those totals
+    cannot yet be classified or safely joined. One specific historical
+    finding is classifiable: `low_power|ordinal|InferenceOrdinalGCompMeanDiff|NA|compute_rand_bootstrap_two_sided_pval_smoothed`
+    (0/67 at .05) is not supported by the current ordinal guard; this does not dispose of the
+    remaining differences or authorize `--write-baseline`. Preserve or
+    regenerate the complete finding table in `/tmp`, join by exact key to
+    baseline, and disposition every difference before a baseline write.
+    **Bounded smoothed-key disposition, 2026-10-18:** the current
+    `rand_bootstrap_smoothing_supported()` predicate blocks incidence/ordinal
+    smoothing unless the class provides a private
+    `compute_fast_rand_bootstrap_distr()` method; the p-value support list and
+    execution path use this predicate. The nine categorical baseline keys
+    match classes without that method. Their exact `(response_type, class,
+    formula)` tuples, all for `compute_rand_bootstrap_two_sided_pval_smoothed`,
+    are incidence: `(InferenceIncidBinomialIdentityRiskDiff, ~.)`,
+    `(InferenceIncidBinomialIdentityRiskDiff, ~1)`,
+    `(InferenceIncidKKCondLogitOneLik, ~.)`,
+    `(InferenceIncidKKCondLogitOneLik, ~1)`, `(InferenceIncidKKGEE, ~.)`,
+    `(InferenceIncidProbitRegr, ~1)`; ordinal:
+    `(InferenceOrdinalGCompMeanDiff, NA)`,
+    `(InferenceOrdinalPairedSignTest, NA)`,
+    `(InferenceOrdinalPropOddsRegr, NA)`. The new ordinal `low_power` key
+    above is the tenth current-unsupported key. These ten may be dropped only
+    after a complete, provenance-verified regeneration confirms the supported
+    current rows. This bounded classification does not explain the overall
+    183 absent / 373 new findings; those remain unresolved and no baseline
+    update is authorized.
 - [ ] TODO-10 (added 2026-09-22, found the same way; a harness bug, not an
   inference-code bug): **MC coverage-truth uses the wrong covariate set** —
   `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md → TODO-1..6`. **Fixed.**
@@ -552,16 +621,81 @@ range, since the plan files' internal numbering did not change.
   Fixed by routing every reused-worker loader through one context-aware
   private-cache reset helper. Structural and two-draw reused-versus-fresh
   regressions cover randomization, bootstrap, and randomization-bootstrap;
-  focused source-loaded tests pass without compilation. The release-wide
-  pre/post bit-for-bit sweep remains a final verification item because a
-  comparable clean baseline is not currently available. After the user's
+  focused source-loaded tests pass without compilation. The isolated TODO-12
+  baseline is recorded below; the release-wide pre/post bit-for-bit sweep
+  remains open because the broad 614-file comparison is not a comparable
+  TODO-12-only baseline. After the user's
   2026-10-14 reinstall, the CRAN private-cache-reset regression passed all
-  55 assertions against the installed package.
+  55 assertions against the installed package. **Isolated source comparison,
+  2026-10-18:** recovered pre-fix source at `362c5d28` and isolated only the
+  TODO-12 helper plus its two randomization-loader call-site changes from
+  `70b55982`; both sides used the same staged native library and identical
+  fixture/sweep hashes. Across 240 shared entries, 234 were bit-identical,
+  five were repeatable noise, and one stable `MOVED` result was
+  `InferenceContinRobustRegr|bernoulli|continuous|production` (max absolute
+  difference 0.139). The movement is reproducible across post repeats and is
+  now adjudicated against the class contract: `best_X_colnames` is selected
+  from the original fit and the randomization refit explicitly uses that same
+  design-matrix structure, so clearing it and reselecting under each draw is
+  an unintended semantic change. A narrow follow-up preserves only this field
+  for `InferenceContinRobustRegr` assignment workers; the loader class check
+  uses the exact active R6 worker object selected from `worker_state`, while
+  the sync call checks its `thread_inf_obj`. The other classes keep the
+  existing reset policy. A three-draw regression compares the reused
+  output with independent direct `MASS::rlm` fits using the original selected
+  covariate set. **Refined isolated sweep, 2026-10-18:** using the exact
+  pre-fix source at `362c5d28`, the same staged native library, and unchanged
+  fixture/seed definitions (`RESAMPLING_NONDEGENERATE_SEED = 20260922`,
+  `r = 15`), the class-scoped refinement returned the
+  original robust-regression production distribution bit-for-bit (max
+  absolute difference 0), consistent with the fixed-original-covariate
+  contract. The run used R Under development (2026-10-13 r90668), exact
+  pre-fix source commit `362c5d28fa6233d99d6d6815d1bffa02f5aa33ab`, and
+  compile-disabled source loading. Across all 240 entries, 235 were bit-identical, five were
+  repeatable floating-point noise, and there were zero `fixed` or `MOVED`
+  entries. The only noise rows were
+  `InferenceAllKKMeanDiffIVWC|kk|continuous|forced`,
+  `InferenceBaiAdjustedTKK14|kk|continuous|forced`,
+  `InferenceBaiAdjustedTKK21|kk|continuous|forced`,
+  `InferenceAllKKMeanDiffIVWC|kk|proportion|forced`, and
+  `InferenceAllKKMeanDiffIVWC|kk|survival|forced`; all were within 1.11e-16.
+  Pre/pre noise-floor comparison remained 235 identical / five noise / zero
+  `MOVED`. Provenance: staged `EDI.so` SHA-256
+  `20f5713ae07cf3c7f53b7e5b66657bce028183a1b74d778d83fe0b061135f3a9` on
+  both source trees; fixture-registry SHA-256
+  `b31d1a4b9ef9da754cfc492c990975d52080d43bf7e8fbfa8eaa4ef96fbadccd`;
+  pre snapshots SHA-256 `2ed850bfe71a073e36ee0aa6d264049a1062d131accbc7a9f44bbb171e14250e`
+  and `865e7580b555079a0359fec20e9ad455fd004de67d572b5bc3648c734789d83f`;
+  refined snapshot SHA-256
+  `222a87ce4aac5304cdc9790c39bae4167cfa876ec2e8e117d4e7c861a2a1fb63`.
+  The source-loaded robust-regression reference test passed 14/14 assertions;
+  it loaded checkout R code with `compile = FALSE` and installed EDI 1.0.3
+  native DLL MD5 `dd43c5d0e11708aea17ba82b900f66d1`. No compilation ran; the
+  current-native verification gate remains separate. TODO-12 release
+  acceptance remains open pending the release-wide sweep and authorized
+  native gate.
+  **Runner/fixture-scope preflight, 2026-10-18 (read-only):** the current
+  `test-reused-worker-resampling-nondegenerate.R` SHA-256
+  (`b31d1a4b9ef9da754cfc492c990975d52080d43bf7e8fbfa8eaa4ef96fbadccd`)
+  matches both staged source trees; the sweep runner SHA-256
+  (`645db2a8acd8d8815d6c44561e410343119428cb422951d4f9a152cb490c1081`)
+  also matches both. This independently confirms that the current fixture
+  registry and runner match the recorded 240-entry isolated sweep inputs; the
+  staged `EDI.so` identity is already recorded above. It is scope/provenance
+  preflight only, not a release-wide rerun or current-checkout native
+  validation. Keep all future RDS snapshots under `/tmp`; this preflight read
+  no canonical comprehensive results and does not contend with TODO-56's
+  shared-result paths.
+  - [x] TODO-12-only paired sweep and noise-floor review: 240 entries, 235
+  bit-identical, five repeatable noise, zero `fixed`, zero `MOVED`, with the
+  robust-regression result restored exactly to the original source result.
   - [ ] Run the release-wide pre/post sweep on identical fixtures and RNG
-    seeds, using a recoverable pre-fix checkout and matching package/native
-    environment; review every `fixed`, `noise`, or `MOVED` classification.
-    If that baseline cannot be recovered, record the limitation and do not
-    treat the focused tests as sweep acceptance.
+  seeds with matching package/native environments; review every `fixed`,
+  `noise`, or `MOVED` classification. The separate broad
+  `362c5d28..430c19bc` comparison spans 614 files and is not attributable to
+  TODO-12; do not use its `MOVED` rows for release acceptance. Native-build
+  verification remains a separate gate and requires explicit user
+  permission; no build/install was performed for this review.
 - [ ] TODO-13 (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
   TODO-9's regression test, root-caused same day on user request):
   **`InferencePropGCompMeanDiff` randomization distribution all-NA in
@@ -619,10 +753,64 @@ range, since the plan files' internal numbering did not change.
   are validation only, not canonical results. Only TODO-7's authorized
   post-install comprehensive-CSV regeneration/reconciliation remains, so
   this release item stays unchecked.
-  - [ ] Regenerate the complete eligible `InferenceSurvivalGLMMWeibullFrailtyIVWC`
-    `rand` row set from the current post-fix installation, with source/package/
-    DLL provenance; validate every result/status/coverage field and reconcile
-    by canonical result keys before merge/deduplication.
+  **Canonical-results audit, 2026-10-18:** the current survival CSV has
+  475,092 rows, all `status=ok`, spanning reps 1–50 and 7,680 distinct
+  `case_id`s; only 1,114 case IDs occur in all 50 reps. It has 23 source
+  commit IDs but no invocation, requested-`Nrep`, package-version, or DLL
+  provenance. The repaired `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`
+  is absent from both `inference_class` and `function_run`, including all
+  `rand` rows, and the CSV predates the 2026-10-16 harness-selector fix.
+  Therefore neither the rep-50 maximum nor all-`ok` statuses establish target
+  completeness. The comprehensive runner defaults to 40 when `Nrep` is
+  omitted, but the observed maximum of 50 means that default is only a
+  provisional target, not recovered invocation provenance. Regenerate the
+  newly eligible rows from the post-fix installation; do not merge this old
+  file as proof.
+  **Independent runner-attempt inventory (source-derived, not yet observed or
+  evidence of output completeness):** with the current default dataset and
+  design loops, the target selector is reached for nine survival datasets
+  (`diamonds`, `pte_example`, `ionosphere`, `abalone`, `iris`, `boston`,
+  `fuel`, `cars`, `airquality`), beta values `0` and `0.5`, reps `1:40`, and
+  the intersection of `TESTED_DESIGNS` with `is_kk_design`:
+  `KK21stepwise` and `FixedBinaryMatch`. Each has both design formulas (`~1`,
+  `~.`), yielding class labels ending in `[design_formula=~1]` and
+  `[design_formula=~.]`, and three `rand` operations:
+  `compute_rand_two_sided_pval`,
+  `compute_rand_two_sided_pval(delta=0.5)`, and
+  `compute_rand_confidence_interval`. This gives a provisional expected
+  **8,640 runner-attempt keys** (9 × 2 × 2 × 40 × 2 × 2 × 3); it is not a
+  claim that any of those rows have run or succeeded. Build the expected-key
+  manifest independently from these source loop/selector dimensions under
+  the fresh `/tmp` run directory, before running the harness; do not infer
+  the target set from the emitted CSV. The natural key is
+  `(rep, beta_T, dataset, response_type, design, inference_class,
+  function_run)`, identical to the harness result key `id` formed by joining
+  those values with `||` and serializing numeric `beta_T` with
+  `format(as.numeric(beta_T), scientific=TRUE, digits=17)`. `case_id` is not
+  unique across replicates and is not the merge key.
+  - [ ] Regenerate the complete eligible
+    `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` `rand` row set from the
+    current post-fix installation, with source/package/DLL provenance; keep
+    the post-install data gate open until all of the following pass:
+    - Exact anti-join of manifest IDs against candidate IDs and candidate
+      IDs against manifest IDs has zero missing and zero unexpected keys;
+      require exactly 8,640 rows, unique IDs/natural keys and unique
+      `run_row_id`s, and reps exactly `1:40` for every non-replicate key.
+      Treat design/setup failures or absent rows as missing keys, not as
+      eligible-set reductions.
+    - Every row has the exact target class, `response_type=survival`,
+      `method_family=rand`, `coverage_scope=comprehensive_workflow`,
+      `argument_coverage_kind=not_argument_combination`, nonempty source
+      commit/timestamp and `status=ok`; reject errors, skips, or nonempty
+      `error_message`s unless a specific skip is independently approved
+      before the run (none is assumed by this inventory).
+    - For both p-value `function_run`s, `result_1` is finite and in `[0,1]`;
+      for CI rows, both endpoints are finite and ordered, `coverage_truth` is
+      finite, and `beta_T_in_confidence_interval` equals the inclusive
+      endpoint-membership check. Reconcile every field for overlapping
+      natural keys against any existing canonical target rows, then merge
+      and deduplicate only after provenance, anti-join, status and value gates
+      pass. No canonical CSV write is authorized by this note.
 - [x] TODO-15 (added 2026-09-23, conclusively refuted 2026-10-09; from the same `bad_type1_error` audit wave
   as TODO-9, originally hypothesized to be the same mechanism — confirmed
   separate and still unfixed; the later TODO-28 cache hypothesis was
@@ -760,6 +948,14 @@ range, since the plan files' internal numbering did not change.
     rejection-rate interval; then regenerate and re-audit all affected
     parametric-bootstrap comprehensive rows with package/DLL provenance.
 
+  **Acceptance-policy audit, 2026-10-18:** repository reporting includes an
+  exact binomial size p-value, but no pass cutoff or accepted interval;
+  comprehensive miscalibration screening and its power-only
+  `LOW_POWER_TARGET` do not set this criterion. Keep this item open until the
+  maintainer adopts the audit rule or specifies the interval, confidence
+  level, and replicate/finite-denominator target. Details are recorded in
+  `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md → TODO-1`.
+
   **Independent confirmation 2026-10-09** (algorithm-sweep verification F18,
   `../new_feature_plans/algorithm_choice_audit_catalog.md §13.4`): the cloglog
   native `α + xβ` convention is the root cause of the sign bug, **for cloglog
@@ -881,6 +1077,17 @@ range, since the plan files' internal numbering did not change.
   2026-10-14 reinstall, the smoothed-noise plumbing and count-support tests
   passed 7 and 58 assertions, respectively; these are guard/plumbing checks,
   not calibration evidence.
+  **Source-boundary follow-up, 2026-10-18:** the dispatch audit documented
+  three R-level noise paths separately from C++ batch kernels, which consume
+  their own `noise_mat`; current-source runs of the smoothed-count-support
+  and noise-matrix-plumbing tests passed 58 and 7 assertions (65 total).
+  The tracked baseline contains 25 `_smoothed` rows: 16 currently admitted
+  continuous/count keys (five dispatched to identified C++ batches, eleven
+  to generic R refits) and nine incidence/ordinal keys now blocked by the
+  support predicate. This does not recover the other ~60 historical cells;
+  their exact keys require the missing provenance-bearing historical audit
+  input/output. It also does not validate the continuous bandwidth formula or
+  provide calibration evidence.
   - [ ] Finish the dispatch/support cross-reference and continuous-bandwidth
     investigation; then, after TODO-56 releases shared result paths, run the
     predeclared matched calibration for supported continuous and count cells
@@ -1345,6 +1552,19 @@ range, since the plan files' internal numbering did not change.
   comprehensive-results regeneration remains open. Independent of every
   other item in this release; depends on nothing else. The release checkbox
   therefore remains unchecked.
+  **Source-loaded focused recheck, 2026-10-18:** after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`,
+  `test-kk-weibull-marginal-jackknife-arm-event-guard-reference.R` passed 16
+  assertions and `test-kk-weibull-marginal-no-events-and-fit-failed-guards-reference.R`
+  passed 4 (20 total; 0 failures, warnings, or skips). The source-loaded EDI
+  metadata reported version 1.0.3; its temporary DLL
+  `/tmp/RtmpFgk7nF/pkgload371e26210ba362/EDI.so` had MD5
+  `dd43c5d0e11708aea17ba82b900f66d1`, matching installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`.
+  This exercises current checkout R code against the installed native
+  artifact; it is not a rebuilt-checkout native validation and does not close
+  the separate TODO-8 50-rep, two-formula-by-three-operation result matrix.
+  No comprehensive run or canonical output was touched.
   - [ ] Regenerate the documented 50-rep matrix (two formulas × three
     jackknife operations) into a fresh `/tmp` output using a provenance-pinned
     post-fix package; audit exact keys and statuses, then perform separately
@@ -1624,6 +1844,23 @@ baseline as expected/benign.
   TODO-31's residual. Its linked plan records the full kernel-level settings
   and results. TODO-50 stays open pending TODO-31 resolution and canonical
   comprehensive-CSV reconciliation.
+  **Read-only TODO-31 row/provenance inventory 2026-10-18:** the root
+  canonical count CSV contains 14,206 matching `InferenceCountKKGLMM` rows
+  (all `ok`; 14,206 distinct row `id`s, 307 broader `case_id`s; timestamps
+  2026-08-24 12:38:18 IDT–2026-09-27 09:32:10 IDT) across 22 recorded
+  `github_commit_id`s. The ordinal CSV contains 69,121 matching
+  `InferenceOrdinalKKCLMM` rows (all `ok`; 69,121 distinct row `id`s, 973
+  broader `case_id`s; timestamps 2026-08-24 12:30:58 IDT–2026-10-09
+  01:12:24 IDT), also across 22 recorded commit IDs. Neither class has a row
+  whose recorded commit descends from sigma-start fix
+  `e706c6f67a6798eea666921155c259a751476feb`. Use `id` rather than
+  `case_id` for row-level reconciliation because `id` includes replicate and
+  `beta_T`. Exact 22-SHA inventories are in the linked TODO-31 plan. The
+  CSV `github_commit_id` records source HEAD, not the native library actually
+  loaded, so this inventory establishes stale source attribution, not native
+  artifact identity; separately record the built/loaded native artifact on
+  regeneration. No result CSV or baseline was changed. Policy resolution,
+  current-head native validation, and row regeneration/audit remain open.
   - [ ] Close TODO-31's Poisson local-optimum/start-policy decision, validate
     the selected policy on the broader four-kernel grid, and reconcile the
     provenance-stamped CountKKGLMM/OrdinalKKCLMM comprehensive rows; then
@@ -1708,9 +1945,53 @@ baseline as expected/benign.
   compile, build, or install. An additional nonlogit KK-CLMM fixture was
   added to the existing class/reference test and passed 26 assertions against
   installed EDI 1.0.3 on 2026-10-16; this still does not validate the current
-  checkout's native code. TODO-1's sigma-by-n characterization and
+  checkout's native code. **Diagnostic assertion extension, 2026-10-18:**
+  the focused class/reference file now also requires finite `gradient_norm`
+  for the independent `ordinal::clmm` oracle start, five seeded stability
+  starts, and both -3/default cold starts. It passed 31 assertions against
+  installed EDI 1.0.3 (DLL SHA256
+  `23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`).
+  This pins the diagnostic's presence without imposing an undecided threshold;
+  it is not current-checkout native validation. TODO-1's sigma-by-n characterization and
   TODO-6's comprehensive-row regeneration remain open; this release item
   stays unchecked.
+  **Poisson local-optimum follow-up, 2026-10-18:** the cold smart-start now
+  adds a fixed-effects Poisson IRLS beta candidate alongside the existing
+  start family, preserving fixed-sigma handling and selecting the lowest
+  finite GLMM objective. A non-vacuous regression uses seeds 41003/41008 and
+  independently integrates each result's marginal likelihood against the
+  `glmer(nAGQ = 25)` candidate. R parsing and scoped diff checks pass. Against
+  installed EDI 1.0.3, the 15 existing assertions pass and only the two new
+  seed comparisons fail, as expected because that native binary predates this
+  checkout change. The source fix is not yet validated: current-native testing
+  requires an explicitly authorized `EDI_UNITY=0` rebuild/install. The broader
+  four-kernel sigma-by-n grid and comprehensive-row reconciliation also remain
+  open.
+  **Optimizer-mode limitation, 2026-10-18:** the new exact-NLL test currently
+  calls the kernel with its default L-BFGS optimizer; it does not exercise the
+  production `InferenceCountKKGLMM` Newton path. A saved Newton probe using the
+  added GLM beta candidate reports exact NLL 312.754654 versus 312.749004 for
+  the `glmer` candidate at seed 41003 (gap about 0.00565, above the linked
+  plan's 1e-3 material threshold; gradient norm 1.731). This probe is not a
+  current-checkout native validation, but it means the present change does not
+  yet establish optimizer-independent acceptance. The sigma-by-n runner also
+  labels `strictly_worse` at 1e-6 while the plan's material threshold is
+  1e-3; compare raw likelihood gaps under the declared threshold before
+  interpreting its classification. Keep TODO-31 open until the Newton path
+  is covered and the optimizer policy passes the full grid.
+  **Read-only canonical-row provenance inventory 2026-10-18:** the count
+  artifact has 14,206 `InferenceCountKKGLMM` rows (all `ok`, 14,206 distinct
+  `id`s/307 `case_id`s, 2026-08-24–2026-09-27) and 22 distinct recorded
+  `github_commit_id`s; the ordinal artifact has 69,121 `InferenceOrdinalKKCLMM`
+  rows (all `ok`, 69,121 distinct `id`s/973 `case_id`s, 2026-08-24–2026-10-09)
+  and 22 distinct commit IDs. A read-only ancestry check found zero rows
+  stamped with commits descending from the sigma-start fix
+  `e706c6f67a6798eea666921155c259a751476feb`; the plan records the exact SHA
+  inventories. Row-level joins should use `id`, which includes rep and
+  `beta_T`, rather than the broader `case_id`. `github_commit_id` describes
+  the source HEAD, not the native library loaded, so this does not establish
+  native provenance or current-native acceptance. Keep the optimizer policy,
+  native grid, and post-fix row regeneration/audit gates open.
   - [ ] Resolve Poisson local-optimum cases at seeds 41003/41008 with an
     optimizer/start policy that preserves already-correct fits, or obtain an
     explicit scope decision separating that issue from the boundary-collapse
@@ -1776,6 +2057,21 @@ baseline as expected/benign.
   `/tmp/edi-v105-todo33/mtcars_public_api_ci_probe_r1001.csv`. This is a
   trigger-search failure, not evidence of inaccessibility or unchanged
   coverage; the linked plan's TODO-1 and this release item remain open.
+  **Source-loaded focused regression, 2026-10-18:**
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` followed by
+  `testthat::test_file("R/package_tests/testthat_bulk/test-rand-ci-bisection-and-high-precision-refinement-reference.R")`
+  passed 30 assertions (0 failures, warnings, or skips). The fixture tests
+  both lower and upper directions directly against mirrored analytic normal
+  crossings; its public-API case also forces hidden cheap Monte Carlo p-values
+  to create wide brackets, observes upper full-precision midpoint evaluations,
+  and checks the returned two-sided interval against the independent normal
+  score. The source-loaded DLL was
+  `/tmp/RtmpJWVK0H/pkgload37242a3e64b573/EDI.so`, MD5
+  `dd43c5d0e11708aea17ba82b900f66d1`, matching installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`.
+  This validates current R source against the installed native artifact, not a
+  rebuilt checkout or a real-data trigger. The TODO-56-gated `trees` search
+  below remains open; no trigger search or comprehensive output was run here.
   - [ ] After TODO-56 terminates and host load is suitable, run the bounded
     20-seed `trees` public-API search and retain a candidate only if it enters
     upper-bound inner refinement with finite full-precision endpoints that
@@ -1940,8 +2236,9 @@ baseline as expected/benign.
   same mechanism): **Proportion mean-diff closed-form coverage truth is
   stale relative to the 2026-09-15 DGP fix** —
   `../bug_fix_plans/prop_mean_diff_closed_form_truth_stale.md`.
-  The closed form now matches the clamped-baseline logit DGP, and the audit
-  also gave proportion Wilcox a response-qualified Monte Carlo truth.
+  The closed form now uses the clamped-baseline, zero-noise logit-shift
+  contrast; the audit also gave proportion Wilcox a response-qualified Monte
+  Carlo truth.
   Eighteen focused assertions pass, and stale-row rules register every
   affected historical row for regeneration. Re-auditing and pruning the
   baseline remain after those rows regenerate.
@@ -1962,6 +2259,12 @@ baseline as expected/benign.
   logit-scale truth (0.112) almost exactly, against the stale formula's
   0.466 (17+ SDs off). The small test-harness-only formula change now mirrors
   the incidence sibling; the historical rows have not yet regenerated.
+  **Open estimand-semantics choice (2026-10-18):** the proportion DGP also
+  adds `N(0, 0.1)` noise inside the logit transform, while the corrected
+  closed form omits that noise and is the zero-noise conditional contrast.
+  Its exact noisy marginal-mean contrast may differ. This is not classified
+  as a TODO-55 defect and does not change the implemented formula; a
+  maintainer must confirm which estimand coverage truth is intended to use.
   Independent of
   `mc_coverage_truth_covariate_mismatch.md`'s TODO-6/TODO-11 — different
   mechanism (closed-form path, not Monte-Carlo), different classes, do not
@@ -1996,6 +2299,27 @@ baseline as expected/benign.
   The audit added a direct deterministic sandwich regression, synchronized
   both generated Rd topics, and recorded the result-changing fix in NEWS;
   CSV regeneration is the only item-specific subtask left.
+  **Candidate-run artifact audit, 2026-10-18:** no worker process remains.
+  Slice 1 (broad 40-replicate class): 101,287 unique row IDs across reps
+  1--40; all 48,872 original target IDs are present, plus 52,415 additional
+  IDs. Statuses are 98,682 `ok` and 2,605 `error`; every error carries the
+  same unsupported smoothed-randomization-bootstrap message, and all original
+  `ok` IDs remain `ok`. A heartbeat records about 49 hours of row durations,
+  but no terminal exit/stdout record survives. Treat as full-key/replicate
+  coverage evidence pending status-policy reconciliation; do not rerun this
+  roughly 50-hour slice solely to recover an exit code.
+  Slices 2 and 3 have complete exact target-ID sets, reps 1--60 and 1--25
+  respectively, all `ok`; their artifact timestamps span about 13m34s and
+  1m51s, but neither has a retained invocation exit record. Slices 4--7 have
+  no regenerated target rows, and the analyzer has not run. For the smallest
+  pending slice (#6, 16 expected rows), an Oct 14 historical run took about
+  13--15 seconds wall time; that is only a ballpark, not an ETA guarantee.
+  The candidate tree remains 2.7 GiB under
+  `R/package_tests/todo56_mp_resume_20261016/`, while `/tmp` has about 1.5 GiB
+  free. Do not write more scratch into the checkout; run a small remaining
+  slice only with all scratch routed to a new `/tmp` directory and preserve
+  its exit/provenance record. Reconcile every key/status before marking this
+  item complete.
 - [ ] TODO-57 (added 2026-10-07, user decision; moved here from
   `release_v1_1_0.md → TODO-39` the same day): **Bayesian bootstrap
   performance: parallel scaling and native weighted refits** —
@@ -2022,6 +2346,11 @@ baseline as expected/benign.
     KK GLMM / conditional-logit classes. The hurdle class's plain path
     takes 0.103 s per draw vs. 0.057 s on one reused copy, with identical
     estimates. Present since the initial commit, so not a regression.
+    TODO-66's serial fallback for the non-reusable strategy changes the
+    HurdleNegBin multi-core dispatch context; after fork-safety validation,
+    re-evaluate/report this class's parallel-scaling comparison separately.
+    This cross-reference does not change TODO-57's performance scope or
+    thresholds.
 
   Fix order:
   1. dispatch machinery (bit-preserving; also speeds up the nonparametric
@@ -2063,6 +2392,14 @@ baseline as expected/benign.
   substep. Dispatch, blocklist, weighted native-refit, hot-loop,
   installed-equivalence, and benchmark acceptance work remain open, so this
   release item stays unchecked.
+
+  **Focused source/fixture check, 2026-10-18:** the design-backed bootstrap
+  worker state/sample-loading reference test passed 113 assertions against
+  installed EDI 1.0.3. Its QR-certificate assertions extract the current
+  checkout's `load_bootstrap_sample_into_design_backed_worker()` definition;
+  setup and native calls still came from the installed DLL. This is focused
+  R-source evidence, not current-checkout native validation or performance
+  acceptance.
 
   Acceptance: `marketing_plans/bb_bench2.R` shows no
   row slower on 3 cores than on 1, and EDI ≥ 1x vs. `bayesboot` on every
@@ -2204,6 +2541,14 @@ baseline as expected/benign.
   acceptance evidence, and misses the ≤0.5 ms gate at all checkpoints. The
   linked plan records the run; an isolated rerun and remaining identity/report
   gates are still needed.
+  **Installed focused regression, 2026-10-18:**
+  `test-pocock-simon-level-rows-and-binary-match-structure-reference.R`
+  passed 67 expectations (10 test blocks, 0 failures/warnings) against
+  installed EDI 1.0.3, built 2026-10-18 00:57:28 UTC, DLL MD5
+  `dd43c5d0e11708aea17ba82b900f66d1`. This confirms the installed behavior,
+  including the missing-first-stratum versus literal-`"NA"` case; the
+  installed build metadata does not identify the checkout SHA, so it is not
+  proof that the current source revision was built.
   - [ ] After TODO-56 is terminal, run
     `Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5` on an
     idle host; record installed package/DLL identity and host provenance, and
@@ -2327,14 +2672,35 @@ baseline as expected/benign.
   them. **Follow-up source correction 2026-10-11:** the Cox LBFGS dispatcher
   now forwards its Fisher start into the guarded implementation; a malformed
   Fisher matrix had otherwise been ignored on that path. The full
-  adjacent-start audit and the explicitly required targeted
-  compile/sanitizer/Valgrind validation remain open; this release item is
-  deliberately unchecked. The existing Python regression
+  **Adjacent-start audit, 2026-10-18:** the exhaustive pass found two
+  additional silent-ignore paths: `fast_ordinal_clmm_internal()` and
+  `fast_dep_cens_transform_optim_internal()` cold-started when a supplied
+  `warm_start_params` had the wrong length. Both now call the shared length
+  guard before consuming the start; the CRAN testthat contract covers short
+  and long lengths for each API, and Python tests now cover the corresponding
+  bindings. The pass found no other size-conditional silent-ignore for
+  consumed warm starts; documented unused weights remain no-ops. This closes
+  the source-audit subtask, not runtime validation. The explicitly required
+  targeted compile/sanitizer/Valgrind validation remains open, so this release
+  item is deliberately unchecked. The existing Python regression
   `test_wrong_length_warm_start_beta_raises_value_error` also passed against
   the preinstalled Python extension on 2026-10-14 (`1 passed in 0.29s`, via
   `python/.venv/bin/python -m pytest -q`); this is only a logistic smoke on
   that binary and does not validate the current C++ checkout or replace the
-  pending rebuild-backed Python/sanitizer gate.
+  pending rebuild-backed Python/sanitizer gate. **Stale-install check,
+  2026-10-18:** the full CRAN contract was attempted against installed EDI
+  1.0.3 and reported 16 failures / 180 passes. The failures include missing
+  newly referenced wrappers and no rejection from the two newly guarded
+  internals; the installed `EDI.so` mtime (`03:57 +0300`) predates the
+  checkout edits to `fast_ordinal_clmm.cpp` and
+  `fast_survival_models_optim.cpp` (`05:59 +0300`). Treat this run only as
+  confirmation that the installed package is stale for these changes, not as
+  source-regression evidence. The explicit rebuild-backed gate below remains
+  open. The Python venv extension is stale for the companion binding/tests as
+  well: `_core.cpython-314-x86_64-linux-gnu.so` is timestamped
+  `2026-10-18 04:23 +0300`, before the binding edit (`06:19`) and the two
+  new Python tests (`06:04`). Do not treat runs against that extension as
+  validation of the current binding/source changes.
   - [ ] After an explicitly authorized `EDI_UNITY=0` build/install, run the
     full malformed-start contract against the matching native library, the
     Python wrong-length-start suite, and the sanitizer/Valgrind CI jobs; retain
@@ -2423,19 +2789,22 @@ baseline as expected/benign.
   so this relies on the user's rebuild report plus timestamp and clean source
   tree rather than an artifact SHA attestation. This validates current native
   coercion/symbol mapping and closes the original dispatch-wiring acceptance.
-  - [ ] **Nested OLS-IVWC numerical fixture gate** — although the existing
+  - [x] **Nested OLS-IVWC numerical fixture gate** — although the existing
     50-draw fast/worker parity case is finite and non-vacuous for dispatch
     parity, its three matched pairs and three-column matched design use the
     `estimate_only=TRUE` `n <= p` fallback; it does not exercise the public
     OLS-IVWC matched fit or IVWC combination. The new n=40 one-covariate
     independent HC2-reference case in
     `test-kk-ols-ivwc-shared-satterthwaite-df-and-combination-branches-reference.R`
-    passes 27 assertions against installed EDI 1.0.3, but current-checkout
-    native validation remains pending. See
-    `../bug_fix_plans/dead_randomization_fast_paths.md → TODO-6`. Keep this
-    nested gate open until the focused test is run against an explicitly
-    authorized current-checkout build/install; no canonical outputs are
-    involved.
+    passed 27 assertions against installed EDI 1.0.3 again on 2026-10-18.
+    Its `EDI.so` mtime was `2026-10-18 03:57:33 +0300`, two minutes after
+    checkout HEAD `efdc1b4ebe07c6dc3aadba713b5f5fe0722fdfe1`
+    (`03:55:42 +0300`); relevant checkout source and registration files
+    were unmodified. This closes the nested gate for the user's rebuilt
+    package. The package does not embed a Git SHA, so this is timestamp plus
+    user-reported rebuild evidence, not an artifact-SHA attestation. No
+    canonical outputs are involved. See
+    `../bug_fix_plans/dead_randomization_fast_paths.md → TODO-6`.
 
 - [x] TODO-65 (added 2026-10-08, user decision): **KK21 ordinal weight
   kernels: unprotected `wrap()` temporaries in an R callback in
@@ -2567,19 +2936,67 @@ baseline as expected/benign.
   ~12.6 s. `comprehensive_tests.R` runs this class at nc = 4 without
   hanging; why is not yet known. No stack: `ptrace_scope = 1` blocks gdb
   and eu-stack on the workers.
-  - [ ] Fix the ordinary non-reusable path, not only the debug branch:
-    e.g. run the warmup in a forked child or with OpenMP held to one
-    thread, or keep the non-reusable branch serial until the hazard is
-    fixed. `bayesian_bootstrap_performance.md → TODO-10` changes the same
-    branch.
-  - [ ] Replace the ordinary real-fork assertion with a serial dispatch spy
-    (or isolate it in its own subprocess); then run a bounded fresh-process
-    stress check of the two-core debug fallback with a hard timeout. Each
-    process must return the expected finite seeded values, match the serial
-    reference, emit no replicate errors/warnings, and exit/clean up normally;
-    record statuses and package/native provenance. Do not retry the ordinary
-    real-fork path in-process or treat installed-package passes as checkout
-    validation.
+  **Source/test update, 2026-10-18 (not runtime-validated):** the ordinary
+  non-reusable path now clamps its effective worker count to one before the
+  warmup block, avoiding both the warmup-then-fork sequence and any real fork
+  for this worker strategy. The existing dispatch-spy regression now records
+  the requested `n_cores` and expects exactly one while still comparing the
+  serial distribution to its seeded reference. The serial fallback is
+  intentionally scoped to non-reusable workers and leaves reusable-worker
+  dispatch untouched. **Installed-package test history, 2026-10-18:** an
+  initial 23-assertion pass against EDI 1.0.3 was later found
+  non-discriminating: with B = 8 the old warmup timing heuristic itself
+  reduced effective cores to one, so the requested-core/dispatch assertion
+  did not exercise the new pre-warmup clamp. The test now captures calls to
+  `check_bootstrap_replicate_deadline()` labeled `Bayesian bootstrap warmup`.
+  With the effective-core policy fixed at two, the pre-fix installed EDI
+  1.0.3 enters warmup exactly twice; the focused test has one intentional
+  negative-control failure (two labels, expected zero) and 23 passes. The
+  check is timing-independent, and the serial `par_lapply` spy means no real
+  fork occurs. This does not validate current-checkout source or native
+  artifacts; rerun after a user rebuild/install. **Debug-policy non-vacuity
+  correction, 2026-10-18:** the debug subcase now also stubs
+  `effective_parallel_cores()` to record the request and return two, so an
+  unrelated global serial policy cannot make its no-dispatch assertion pass
+  vacuously. The focused test passed all debug-subcase assertions against
+  installed EDI 1.0.3; its only failure remained the intentional ordinary
+  pre-fix negative control (warmup observed twice, expected zero), for 24
+  passes / 1 failure overall. No real fork was launched. This still does not
+  validate the dirty checkout's ordinary clamp or provide the required
+  bounded fresh-process stress run.
+  - [x] Implement the ordinary non-reusable path, not only the debug branch:
+    the source-only fix clamps this worker strategy to one core before
+    warmup, avoiding warmup-then-fork. Runtime validation remains pending.
+    `bayesian_bootstrap_performance.md → TODO-10` changes the same branch.
+  - [x] Replace the ordinary real-fork assertion with a serial dispatch spy
+    and deterministic no-warmup assertion. This is a source/test change only;
+    it has not been run against a rebuilt current checkout.
+  - [x] Source-loaded focused dispatch test, 2026-10-18: ran
+    `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` followed by
+    `testthat::test_file("R/package_tests/testthat_bulk/test-bayesian-bootstrap-non-reusable-worker-debug-path.R")`;
+    all 25 assertions passed. This validates current R source against the
+    already-installed EDI 1.0.3 native library, not a rebuilt current native
+    artifact.
+  - [x] Provenance refresh, 2026-10-18: reran that exact source-loaded test;
+    all 25 assertions passed (0 failures, warnings, or skips). The temporary
+    `pkgload` DLL was `/tmp/RtmpWJVtq2/pkgload370b917cf99ee3/EDI.so` (MD5
+    `dd43c5d0e11708aea17ba82b900f66d1`), matching the installed EDI 1.0.3 DLL
+    at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`.
+    Thus the test exercised current checkout R sources but only the installed
+    native binary; current-checkout native validation remains gated on the
+    user's rebuild/install.
+  - [x] Bounded fresh-process debug-fallback stress, 2026-10-18: three
+    separate `timeout 90s Rscript /tmp/edi-v105-todo66-debug-stress.R` runs
+    against installed EDI 1.0.3 each exited normally and matched the seeded
+    single-core reference for all 16 finite values, with zero replicate
+    errors or warnings. No real fork was requested by the debug path. This
+    validates the installed debug fallback only; no binary/source SHA is
+    available and the historical ordinary-path hang is not reproduced by
+    this stress fixture.
+  - [ ] After the user's rebuild/install, rerun the focused dispatch test
+    against the current native artifact with package/native provenance.
+    Do not retry the ordinary real-fork path in-process or treat the
+    installed-package stress as current-native validation.
 
 - [ ] TODO-67 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B1`):
@@ -2626,10 +3043,12 @@ baseline as expected/benign.
   compile/build/install was run. TODO-67 remains open only for TODO-5's
   KK21 survival-weight comparison and affected package_tests benchmark/CSV
   regeneration.
-  - [ ] Select and document the comparison fixture and matching-quality
-    metric; then run the `survreg`-referenced KK21 survival-weight comparison
-    and regenerate/re-audit every affected benchmark row with package and
-    native-library provenance.
+  - [ ] Review/approve or replace the linked plan's TODO-5 replacement-fixture
+    and mASMD proposal, and set any acceptance threshold; then run the
+    `survreg`-referenced KK21 survival-weight comparison and regenerate/re-audit
+    every affected benchmark row with current-code package and native-library
+    provenance. The proposal is not an approved estimand, and the installed
+    EDI 1.0.3 binary and CI at 430c19bc do not validate current HEAD.
 
 - [ ] TODO-68 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B2`):
@@ -2749,9 +3168,15 @@ baseline as expected/benign.
   weights retain the existing exact unweighted fast path. Focused source-loaded
   validation passed and no native rebuild is required. **Installed validation
   2026-10-14:** the weighted-logit regression passed 16 assertions and the
-  link-helper/weighted-estimate regression passed 34 against EDI 1.0.3. This
-  release row remains open solely for the linked installed comprehensive-CSV
-  regeneration and reconciliation.
+  link-helper/weighted-estimate regression passed 34 against EDI 1.0.3. The
+  TODO-76 implementation/focused-test gate is complete; release acceptance
+  remains open for comprehensive-CSV regeneration and reconciliation. The
+  weighted-refit helper is R-only and does not call TODO-31's native CLMM
+  fitter, but affected CLMM rows also contain the native conditional point
+  estimate. Do not finalize those rows from historical CSVs or helper-focused
+  tests before TODO-31's current-head native validation of the CLMM estimate
+  path. See `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-7`
+  for the source-path audit.
 
   **Exploratory out-of-scope formula check (2026-10-16; does not expand
   acceptance):** an isolated installed-package pilot for the logit
@@ -2804,11 +3229,11 @@ baseline as expected/benign.
   passed 4 each against EDI 1.0.3. The installed native wrapper exercised the
   weighted kernel arguments. Codex did not rebuild/install; comprehensive
   result regeneration and reconciliation remain open.
-  - [ ] After a post-fix package with recorded source/DLL provenance is
-    available, regenerate both affected classes across all ten Bayesian-
-    bootstrap p-value and confidence-interval procedures; reconcile every
-    affected result key/status against canonical outputs before accepting the
-    fix.
+  - [ ] After TODO-56 is terminal and a post-fix package with recorded
+    source/DLL provenance is available, regenerate both affected classes
+    across all ten Bayesian-bootstrap p-value and confidence-interval
+    procedures; reconcile every affected result key/status against canonical
+    outputs before accepting the fix.
 
 - [x] TODO-78 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F2): **`.cox_simulate_stratified` hazard mis-scaling** —

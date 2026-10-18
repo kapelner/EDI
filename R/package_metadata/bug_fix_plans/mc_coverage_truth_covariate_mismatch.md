@@ -460,6 +460,15 @@ was changed during this audit. Add the rule rows only after the source commit
 exists so `--check-rules` can validate `tracked_in`; then run the canonical
 survival/ordinal regeneration and audit separately under explicit approval.
 
+**Stale-rule metadata follow-up, 2026-10-18:** the historical inventory above
+predates the rule-file update. `R/package_tests/stale_ok_row_rules.csv` now has
+class-wide, blank-`function_run` rules for all 12 survival and 9 ordinal
+`COVERAGE_MC_SPEC` strata at the `2026-10-16` cutoff, each tied to the
+committed seed-isolation change `05117b6bea93921669f061067a9eefb9d22cb8ac`.
+This closes the rule-inventory gap only; it does not validate or replace any
+canonical rows, and comprehensive regeneration plus baseline re-audit remain
+open.
+
 8. **New class found 2026-09-24**, via a follow-up fork closing out
    `investigate_incid_logregr_probitregr_coverage.md`'s `low_coverage`
    cluster: `InferenceIncidLogRegr`'s closed-form truth
@@ -559,6 +568,33 @@ see “Implementation audit, 2026-10-08” above. This closes the source-level
 TODO-10 action. It does not close the plan's release-validation TODO-4/5:
 the shared comprehensive-results regeneration and its baseline re-audit are
 still required and remain deliberately unclaimed here.
+
+**Adjacent test scope check, 2026-10-18:**
+`test-comprehensive-proportion-coverage-truth-reference.R` passed 18
+assertions against current harness source after `pkgload::load_all("R/EDI",
+compile = FALSE)` at HEAD `efdc1b4ebe07c6dc3aadba713b5f5fe0722fdfe1`. Its
+fixture covers the separate proportion mean-difference truth and Wilcox
+response-qualified MC path; it does not exercise this TODO's four ordinal
+MC-truth entries, so it is not TODO-10 validation. Installed EDI was 1.0.3;
+the installed DLL and `pkgload`'s source-session DLL had matching MD5
+`dd43c5d0e11708aea17ba82b900f66d1`. This harness-only test does not call
+native code. The ordinal source-level registry evidence remains the focused
+registry test recorded above; the outstanding TODO-10 gates are comprehensive
+result regeneration and baseline re-audit.
+
+**Direct TODO-10 registry recheck, 2026-10-18:**
+`test-comprehensive-coverage-mc-registry-gaps-reference.R` passed all 50
+assertions (0 failures, warnings, or skips) after
+`pkgload::load_all("R/EDI", compile = FALSE)` at the same checkout HEAD.
+This directly exercises all four TODO-10 ordinal class dispatches through
+`get_coverage_truth()` and `get_estimate_logging_theta()`, including the
+20,000-draw argument and real-covariate fixture, plus key-specific RNG
+isolation/cache behavior. Installed EDI was 1.0.3; its DLL and the DLL loaded
+by `pkgload` both had MD5 `dd43c5d0e11708aea17ba82b900f66d1`. The test
+evaluates selected harness assignments with a stubbed MC function; it does
+not run the 20,000-draw simulation or call native code. Thus it strengthens
+source-level dispatch evidence only; comprehensive result regeneration and
+baseline re-audit remain open.
 
 ## TODO-11 (added 2026-09-25, investigated at user request from the live TODO-4 re-run's first partial results): `PropBetaRegr`/`PropFractionalLogit` residual under-coverage on `ionosphere` is NOT TODO-6's mechanism -- a distinct, likely real, small-sample CI-calibration gap
 

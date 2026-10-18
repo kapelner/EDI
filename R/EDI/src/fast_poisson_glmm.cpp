@@ -25,6 +25,7 @@
 #include "result_map_rcpp.h"
 #include <RcppEigen.h>
 #endif
+#include "internal_fn_decls.h"
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -413,16 +414,38 @@ edi::ResultMap fast_poisson_glmm_internal(
 		bool log_sigma_is_fixed = false;
 		for (int ii = 0; ii < fixed_spec.fixed_idx.size(); ++ii)
 			if (fixed_spec.fixed_idx[ii] == total - 1) log_sigma_is_fixed = true;
-		std::vector<Eigen::VectorXd> starts{apply_fixed_values(par, fixed_spec)};
-		if (!log_sigma_is_fixed) {
-			for (double z : std::vector<double>{-1.0, 0.0, 1.0, -5.0}) {
-				bool duplicate = false;
-				for (const auto& existing : starts)
-					if (std::abs(existing[total - 1] - z) < 1e-12) duplicate = true;
-				if (!duplicate) {
-					Eigen::VectorXd candidate = par;
+		std::vector<Eigen::VectorXd> beta_starts{par};
+		if (!warm_start_params.has_value() && smart_cold_start) {
+			// The log(y + 0.5) start can land in a worse basin. Add the ordinary
+			// fixed-effects Poisson fit as another beta start; keep the existing
+			// cold start and log-sigma candidates, then select by the GLMM objective.
+			ModelResult glm_fit = fast_poisson_regression_internal(
+				X, y, rw_vec, std::nullopt, true, maxit, eps_g,
+				std::nullopt, std::nullopt, "irls", std::nullopt,
+				std::nullopt, true);
+			if (glm_fit.converged && glm_fit.b.size() == p && glm_fit.b.allFinite()) {
+				Eigen::VectorXd glm_start = par;
+				glm_start.head(p) = glm_fit.b;
+				beta_starts.push_back(glm_start);
+			}
+		}
+
+		std::vector<Eigen::VectorXd> starts;
+		for (const auto& beta_start : beta_starts) {
+			Eigen::VectorXd initial = apply_fixed_values(beta_start, fixed_spec);
+			bool duplicate_initial = false;
+			for (const auto& existing : starts)
+				if ((existing - initial).cwiseAbs().maxCoeff() < 1e-12) duplicate_initial = true;
+			if (!duplicate_initial) starts.push_back(initial);
+			if (!log_sigma_is_fixed) {
+				for (double z : std::vector<double>{-1.0, 0.0, 1.0, -5.0}) {
+					Eigen::VectorXd candidate = beta_start;
 					candidate[total - 1] = z;
-					starts.push_back(apply_fixed_values(candidate, fixed_spec));
+					candidate = apply_fixed_values(candidate, fixed_spec);
+					bool duplicate = false;
+					for (const auto& existing : starts)
+						if ((existing - candidate).cwiseAbs().maxCoeff() < 1e-12) duplicate = true;
+					if (!duplicate) starts.push_back(candidate);
 				}
 			}
 		}

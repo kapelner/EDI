@@ -145,9 +145,8 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				# forked debug worker.  Some of those fits enter OpenMP before the
 				# fork, which can leave an inherited runtime mutex permanently locked.
 				# Debug output is diagnostic rather than throughput-sensitive, so keep
-				# that branch in the parent process.  Ordinary (debug = FALSE)
-				# Bayesian bootstrap remains eligible for its normal policy and
-				# warmup-based parallel dispatch.
+				# that branch in the parent process. The ordinary path applies the same
+				# non-reusable-worker safety clamp below, before any warmup can fork.
 				if (!isTRUE(private$use_reusable_bootstrap_worker())) actual_debug_cores = 1L
 				chunk_n = max(1L, min(as.integer(actual_debug_cores), as.integer(B)))
 				chunk_id = ceiling(seq_len(B) / ceiling(B / chunk_n))
@@ -195,6 +194,13 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				))
 			}
 			actual_cores = private$effective_parallel_cores("bootstrap", self$num_cores)
+			if (!isTRUE(private$use_reusable_bootstrap_worker())) {
+				# The per-draw duplicate() fallback can enter OpenMP during the
+				# warmup and then fork in par_lapply(), inheriting a locked
+				# runtime mutex. Keep only this legacy worker strategy serial until
+				# its fork-after-OpenMP lifecycle is made safe.
+				actual_cores = 1L
+			}
 			if (actual_cores > 1L) {
 				do_warmup_iter = if (isTRUE(private$use_reusable_bootstrap_worker())) {
 					function() {

@@ -11,7 +11,7 @@ EDI_REUSED_WORKER_PRIVATE_CACHE_FIELDS = c(
 	"best_X_colnames", "best_Xmm_colnames", "cached_mod"
 )
 
-reset_reused_worker_private_caches = function(worker_priv, changed = c("sample", "assignment", "response")){
+reset_reused_worker_private_caches = function(worker_priv, changed = c("sample", "assignment", "response"), preserve_fields = character()){
 	changed = match.arg(changed)
 	preserve = switch(changed,
 		# X is fixed under randomization, but w and the fitted model change.
@@ -23,6 +23,9 @@ reset_reused_worker_private_caches = function(worker_priv, changed = c("sample",
 		             "cached_keep_for_reduced", "cached_j_treat_for_reduced"),
 		sample = character()
 	)
+	# A few class-owned invariants are not derivable from the changed-data kind
+	# alone. Callers may opt in to preserving those fields for a specific worker.
+	preserve = union(preserve, preserve_fields)
 	for (field in setdiff(EDI_REUSED_WORKER_PRIVATE_CACHE_FIELDS, preserve)) {
 		if (exists(field, envir = worker_priv, inherits = FALSE)) worker_priv[[field]] = NULL
 	}

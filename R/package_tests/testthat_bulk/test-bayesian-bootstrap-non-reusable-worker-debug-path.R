@@ -86,15 +86,38 @@ test_that("non-reusable Bayesian-bootstrap debug bypasses outer par_lapply but o
 	inf_ordinary$num_cores = 2L
 	ordinary_priv = inf_ordinary$.__enclos_env__$private
 	ordinary_dispatches = 0L
+	ordinary_policy_core_requests = integer(0)
+	ordinary_core_requests = integer(0)
+	unlockBinding("effective_parallel_cores", ordinary_priv)
+	ordinary_priv$effective_parallel_cores = function(operation, requested_cores = inf_ordinary$num_cores) {
+		ordinary_policy_core_requests <<- c(ordinary_policy_core_requests, as.integer(requested_cores))
+		2L
+	}
+	# Count the explicit warmup deadline checks rather than relying on elapsed
+	# time: the old implementation emits exactly two when it enters its warmup
+	# branch, while the serial fallback must clamp before warmup. This remains
+	# deterministic and never starts a real fork.
+	ordinary_deadline_labels = character(0)
+	unlockBinding("check_bootstrap_replicate_deadline", ordinary_priv)
+	ordinary_priv$check_bootstrap_replicate_deadline = function(label, ...) {
+		ordinary_deadline_labels <<- c(ordinary_deadline_labels, as.character(label)[1L])
+		# This fixture has no replicate deadline configured; the spy only records
+		# which branch was entered.
+		invisible(NULL)
+	}
 	unlockBinding("par_lapply", ordinary_priv)
-	ordinary_priv$par_lapply = function(X, FUN, ...) {
+	ordinary_priv$par_lapply = function(X, FUN, n_cores = inf_ordinary$num_cores, ...) {
 		ordinary_dispatches <<- ordinary_dispatches + 1L
+		ordinary_core_requests <<- c(ordinary_core_requests, as.integer(n_cores))
 		lapply(X, FUN)
 	}
 	ordinary_values = inf_ordinary$approximate_bayesian_bootstrap_distribution_beta_hat_T(
 		B = 8L, show_progress = FALSE, debug = FALSE
 	)
 	expect_gt(ordinary_dispatches, 0L)
+	expect_identical(ordinary_policy_core_requests, 2L)
+	expect_length(ordinary_deadline_labels[ordinary_deadline_labels == "Bayesian bootstrap warmup"], 0L)
+	expect_identical(ordinary_core_requests, 1L)
 	expect_length(ordinary_values, 8L)
 	expect_equal(ordinary_values, values_single, tolerance = 1e-5)
 
@@ -105,6 +128,12 @@ test_that("non-reusable Bayesian-bootstrap debug bypasses outer par_lapply but o
 	inf_debug$num_cores = 2L
 	debug_priv = inf_debug$.__enclos_env__$private
 	debug_dispatches = 0L
+	debug_policy_core_requests = integer(0)
+	unlockBinding("effective_parallel_cores", debug_priv)
+	debug_priv$effective_parallel_cores = function(operation, requested_cores = inf_debug$num_cores) {
+		debug_policy_core_requests <<- c(debug_policy_core_requests, as.integer(requested_cores))
+		2L
+	}
 	unlockBinding("par_lapply", debug_priv)
 	debug_priv$par_lapply = function(...) {
 		debug_dispatches <<- debug_dispatches + 1L
@@ -113,6 +142,7 @@ test_that("non-reusable Bayesian-bootstrap debug bypasses outer par_lapply but o
 	debug_values = inf_debug$approximate_bayesian_bootstrap_distribution_beta_hat_T(
 		B = 8L, show_progress = FALSE, debug = TRUE
 	)
+	expect_identical(debug_policy_core_requests, 2L)
 	expect_identical(debug_dispatches, 0L)
 	expect_length(debug_values$values, 8L)
 	expect_equal(debug_values$values, values_single, tolerance = 1e-5)

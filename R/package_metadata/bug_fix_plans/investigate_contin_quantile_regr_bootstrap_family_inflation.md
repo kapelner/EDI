@@ -212,3 +212,70 @@ A mismatch on identical inputs points to implementation; parity plus
 recurrent calibration failure points toward estimator/inference instability.
 Do not use this fixture or its 12-draw diagnostics to dismiss the historical
 finding, and do not run the reproduction while TODO-56 is saturating CPU.
+
+### Matched-control replay runbook (prepared; not yet authorized to execute)
+
+This runbook separates what the existing audit already fixes from decisions
+that must be made before anyone interprets a new run. The earlier 50-case,
+12-draw fixture is diagnostic only; none of its settings silently become the
+historical replay protocol.
+
+**Fixed by the historical finding and existing plan**
+
+- Target the `InferenceContinQuantileRegr`, `model_formula = ~.` true-null
+  comprehensive cell. The baseline denominator is 428 null rows; the
+  reported rejection rates are 0.185 for ordinary BRT, 0.285 for studentized
+  BRT, and 0.294 for symmetric-percentile-t BRT, against nominal 0.05.
+- Before generating cases, recover and record the exact historical dataset,
+  design, response/DGP construction, and seed schedule. Until recovered, a
+  new fixture is exploratory and must not be labeled a replay.
+- Generate BRT draws through the actual `generate_rand_bootstrap_draws()` /
+  `bootstrap_sample_indices()` path, preserving its with-replacement row
+  sampling. For each null case, materialize one draw-index batch and reuse
+  those identical indices, assignments, and outcomes for Quantile, OLS, and
+  RobustRegr; do not generate a separate resample stream for each estimator.
+- Keep the permutation randomization result as the non-bootstrap contrast.
+  For the bootstrap comparison, record ordinary, studentized, and
+  symmetric-percentile-t p-values, plus each draw's treatment estimate and
+  SE. Also retain per-draw duplicate-row/tied-response counts and fit status
+  so a failed fit, an SE collapse, estimator disagreement, and a rejection
+  are not conflated.
+- Compare Quantile's per-draw estimate/SE path against the independent
+  `quantreg::rq` reference specified above, and compare it with OLS and
+  RobustRegr on the same frozen draws. Preserve the RNG seed, package
+  version/library, source or DLL identity, design/DGP metadata, and a digest
+  of each case's assignments and draw indices alongside scratch output.
+
+**Must be set by the owner before execution**
+
+- Number of independent null cases and BRT draws per case. The historical
+  428-row denominator describes the old audit; it is not a mandate for a new
+  sample size. The old 25-case and 50-case pilots are not powered calibration
+  runs.
+- Numerical decision rules: acceptable Type-I error interval (and confidence
+  procedure), any multiplicity handling across the three BRT variants,
+  tolerances for Quantile-vs-`quantreg::rq` estimate/SE/p-value parity, and
+  the threshold for calling a tie-count association meaningful. Do not select
+  these after looking at replay output.
+- Whether this is only a historical-cell confirmation or also a generalized
+  claim about `InferenceContinQuantileRegr` across other designs/formulas;
+  those are different estimands and require separately declared strata.
+- Any stopping/extension rule if fit failures or nonestimable cases reduce
+  the planned denominator. Report attempted, completed, and estimable cases
+  separately rather than silently replacing failures.
+
+**Execution gate and interpretation**
+
+Do not start while TODO-56 is using the shared host/result paths. After its
+supervisor and worker are confirmed terminal, first finish historical
+cell/DGP/seed recovery and have the owner record the decisions above. Run the
+replay as an isolated scratch-only job with no canonical comprehensive CSV
+write. If exact historical inputs cannot be recovered, stop at a documented
+exploratory result instead of claiming TODO-20 reproduction. Quantile
+disagreement with `quantreg::rq` on identical inputs is an implementation
+lead; agreement with that reference plus repeatable calibration failure is
+evidence for estimator/inference instability; no Quantile-specific
+difference from matched OLS/RobustRegr controls weakens the tie-manufacturing
+hypothesis but does not, by itself, erase the historical finding. Keep
+TODO-21's `InferenceIncidKKGEE` study separate: share only a later cross-family
+synthesis, not fixtures, thresholds, or acceptance conclusions.

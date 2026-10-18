@@ -191,6 +191,16 @@ those APIs.
   TODO-3 therefore remains open; run the current commit through
   the existing bulk correctness workflow for exact-SHA CI evidence, or obtain
   explicit approval to waive its literal targeted-only compile criterion.
+  **Current-source R-layer check 2026-10-18:** ran
+  `test-rmst-weighted-shared-truncation-horizon-reference.R` after
+  `pkgload::load_all("R/EDI", compile = FALSE)` at checkout HEAD
+  `efdc1b4ebe07c6dc3aadba713b5f5fe0722fdfe1`; all 4 assertions passed,
+  with no failures, warnings, or skips. The source-loaded session's EDI DLL
+  MD5 (`dd43c5d0e11708aea17ba82b900f66d1`) matches the installed EDI 1.0.3
+  DLL at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`.
+  This fixture validates the R weighted-helper path against `survfit`, not the
+  changed native RMST kernels; it does not close TODO-3 or provide current-
+  HEAD native provenance.
 - [x] TODO-4: Decide the exact shared-τ convention (minimum of both arms'
   max time is the standard literature default; confirm this is what's
   wanted here, or whether a pre-specified fixed horizon parameter should
@@ -371,31 +381,31 @@ independently.
   `comprehensive_tests.R:2700-2701`, a separate historical-baseline entry
   at 0.55/0.74 coverage, not re-confirmed this pass) actually exercises
   the `"basic"` branch.
-  **Root cause is the shape of this class's own bootstrap distribution,
-  not a code defect**: the observed pattern — `percentile`/`"basic"`
-  both undercover, `wald` (symmetric, SD-based, ignores boot_distr's
-  actual shape) overcovers on the SAME underlying estimate/distribution —
-  is the textbook signature of a skewed or biased-mean bootstrap
-  distribution: quantile-based methods (percentile, basic/reflection)
-  are known to perform poorly (typically undercovering on the skewed
-  side) under skew, while a symmetric normal-approximation method using
-  only the SD is comparatively insensitive to that skew and instead
-  tends to over-cover if the SD is inflated by the same asymmetry/heavy
-  tail. This is a **known methodological weakness of the basic/
-  percentile bootstrap under a skewed sampling distribution**, not a
-  bug in `bootstrap_ci_from_distribution()` or in `DepCensTransformRegr`'s
-  estimate. Not independently confirmed via a direct skewness
-  measurement of this class's actual `boot_distr` (would need a
-  standalone repro) — recommend closing this as accepted/documented
-  behavior unless someone measures the skewness directly and it turns
-  out to be mild (which would reopen the question). **Not added to
-  `release_v1_5_0.md`** — no code defect confirmed, and the
-  methodological-weakness explanation, if it holds, isn't something a
-  one-line fix addresses (the enhancement would be "prefer BCa/
-  studentized over basic/percentile for skew-prone estimators," a
-  design decision, not a bug fix — worth a separate, lower-priority
-  enhancement note if the skewness is later confirmed, not a v1.5.0 item
-  now).
+  **Static source/estimand audit (2026-10-18; narrows the prior
+  hypothesis):** dispatch and formulas do not show a missing-method or
+  interval-order defect. The original point estimate is the treatment
+  log-time ratio from the joint bivariate log-normal dependent-censoring
+  likelihood, while `compute_estimate_with_bootstrap_weights()` explicitly
+  uses `weighted_cox_bootstrap_surrogate_fit()` as an approximation to the
+  weighted joint likelihood. The shared Bayesian-bootstrap CI then combines
+  that surrogate draw distribution with the original joint-likelihood
+  estimate (for `"basic"`; `"percentile"` uses the raw surrogate quantiles).
+  This intentional estimator mismatch is a concrete alternative to the
+  earlier unmeasured-skew explanation; neither it nor skew has been shown to
+  cause the observed coverage. The old
+  `/tmp/edi-v105-r6-benchmark.eQ0PpT/R/package_tests/comprehensive_tests_results_nc_1_survival.csv`
+  full survival CSV is not validating evidence for the historical finding: its
+  relevant `compute_bayesian_bootstrap_confidence_interval_basic` row is one
+  replicate (`rep=1`), marked `numeric_instability`, under commit
+  `5d8246300ea034bed7f4591d7f2258a7215436eb`, rather than the retained
+  per-seed coverage/bootstrap draws needed to reproduce the 0.55/0.74 rates.
+  Do not close this as accepted behavior or add a numerical regression based
+  on that summary alone. A useful next investigation needs the original
+  response/design/DGP and seed-level estimates plus the corresponding
+  weighted-Cox bootstrap draws and usable-fit counts; comparing those with a
+  full weighted joint-likelihood reference would separate surrogate error
+  from bootstrap-shape effects. No statistical threshold is set here, and
+  no calibration run or source behavior change was made.
 
 ## Standing constraints
 

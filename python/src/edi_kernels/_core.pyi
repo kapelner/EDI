@@ -730,7 +730,7 @@ def fast_ols(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", 
     y : ndarray
         Numeric vector of continuous responses.
     fixed_idx : ndarray of int, optional
-        0-based indices of coefficients to hold fixed at fixed_values rather than
+        1-based indices of coefficients to hold fixed at fixed_values rather than
         estimate, instead of dropping those columns from X entirely. Must be paired
         with fixed_values (both or neither).
     fixed_values : ndarray, optional
@@ -1123,7 +1123,7 @@ def fast_robust_regression(X: typing.Annotated[numpy.typing.NDArray[numpy.float6
     tol : float, default 1e-7
         Convergence tolerance.
     fixed_idx : ndarray of int, optional
-        Optional 0-based indices of coefficients to hold fixed at fixed_values
+        Optional 1-based indices of coefficients to hold fixed at fixed_values
         rather than estimate.
     fixed_values : ndarray, optional
         Optional values for the fixed_idx coefficients.

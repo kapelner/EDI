@@ -361,6 +361,61 @@ written to eliminate elsewhere in this codebase.
   smoothed rows as current-package results; keep TODO-7 open pending that
   decision and the remaining release-wide gates.
 
+  **Scratch exact-key recheck (2026-10-18; no canonical writes):** the six
+  locally present, gitignored full response CSVs were symlinked read-only
+  into `/tmp/edi-todo9-audit.NnBBLg`; the tracked baseline was copied there.
+  `audit_comprehensive_results.R --force` reproduced 183 baseline findings
+  absent and 373 new findings. A second `--write-baseline` pass used the
+  same output override and wrote only the scratch baseline/stamp, allowing an
+  exact key join without touching canonical results or baseline. The input
+  CSV mtimes range from 2026-09-27 to 2026-10-09, and they carry no verified
+  source/DLL provenance, so this reproduces the prior audit counts but does
+  not validate current-package results or authorize reconciliation.
+
+  The exact join confirms the nine listed categorical baseline smoothed
+  findings are still reported by these old rows. It also exposes four newly
+  reported smoothed findings:
+  `low_power|incidence|InferenceIncidLogRegr|~1|compute_rand_bootstrap_two_sided_pval_smoothed`,
+  `low_power|ordinal|InferenceOrdinalGCompMeanDiff|NA|compute_rand_bootstrap_two_sided_pval_smoothed`,
+  `pval_miscalibration|proportion|InferencePropBetaRegr|~.|compute_rand_bootstrap_two_sided_pval_smoothed`,
+  and
+  `pval_miscalibration|proportion|InferencePropFractionalLogit|~.|compute_rand_bootstrap_two_sided_pval_smoothed`.
+  Static source review finds that the current smoothing predicate requires a
+  private `compute_fast_rand_bootstrap_distr` method for incidence, ordinal,
+  and proportion responses, and none of these four classes supplies one.
+  Thus the three newly surfaced non-ordinal keys also appear to describe
+  unsupported old output, not current source behavior. This classifies only
+  these 13 smoothed keys; the remaining 183-absent/373-new differences still
+  need row-level evidence and disposition before a baseline write.
+
+  **Isolated-output integration audit (2026-10-18):**
+  `comprehensive_tests.R` now passes its computed canonical filename through
+  `resolve_comprehensive_results_file()`. Setting
+  `EDI_COMPREHENSIVE_RESULTS_DIR` to an existing `/tmp` directory redirects
+  the result CSV and adjacent lock while preserving the filename/filter
+  suffix; when unset, the original `repo_path("package_tests", ...)`
+  destination is unchanged. The pure helper regression covers unchanged
+  default path, override path, and fail-closed behavior for a missing
+  directory. For the later TODO-7 regeneration, use a new scratch directory
+  per run and do not point the override at the existing filtered/canonical
+  files.
+
+  This is output isolation, not yet an end-to-end scratch audit: the runner's
+  startup stale-row check still invokes `prune_stale_result_rows.R` relative
+  to the checkout (default/report-only mode), and
+  `audit_comprehensive_results.R` does not read
+  `EDI_COMPREHENSIVE_RESULTS_DIR`. The latter derives `here` from its own
+  `--file` path, reads only unfiltered
+  `comprehensive_tests_results_nc_1_<response>.csv` names, and writes its
+  baseline/stamp beside the script under `--write-baseline`. A filtered shard
+  produced by the override will therefore not be consumed by that audit.
+  Do not run `--write-baseline` against the checkout as part of an isolated
+  pilot. Before claiming TODO-7 reconciliation, define a scratch-only audit
+  input containing the complete response-level results required by the
+  baseline comparison, and keep its baseline/stamp separate; filtered shards
+  alone are insufficient. No run, audit, pruning, or baseline write was
+  performed for this integration check.
+
 - [x] TODO-8: Once the affected-class list is final (TODO-1), decide
   whether any already-published example, vignette, or documentation output
   used an affected class's resampling p-value/CI and needs correction —
@@ -481,6 +536,33 @@ written to eliminate elsewhere in this codebase.
   gate remains open until the two snapshots, same-package/native provenance,
   noise-floor recordings, and result classification are recorded; keep all
   snapshot outputs outside the checkout.
+
+  **Installed regression recheck (2026-10-18):**
+  `Rscript -e 'testthat::test_file("R/EDI/tests/testthat/test-reused-worker-private-cache-reset.R")'`
+  passed all 55 assertions (0 failures, warnings, or skips) against installed
+  EDI 1.0.3 from `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`;
+  loaded `EDI.so` SHA-256 was
+  `23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`.
+  This confirms the installed package satisfies the structural cache-reset,
+  context-preservation, and focused reused-worker regression assertions. It
+  does not validate the current checkout source or substitute for the open
+  identical-fixture/RNG pre/post bit-for-bit sweep using the staged source
+  layers and recoverable snapshots described above. No source/native build or
+  canonical result generation was performed.
+
+  **Current-R-source regression recheck (2026-10-18):** after
+  `pkgload::load_all("R/EDI", compile = FALSE)`,
+  `test-reused-worker-private-cache-reset.R` passed 55 assertions and
+  `test-reused-worker-cached-values-for-next-draw-reference.R` passed 9
+  (64 total; no failures, warnings, or skips). R source was loaded from
+  `/home/kapelner/workspace/EDI/R/EDI`, version 1.0.3. The native DLL used by
+  this source overlay was `/tmp/Rtmpb7icUR/pkgload36f3365760677e/EDI.so`,
+  SHA-256 `23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`
+  (same hash as the installed EDI 1.0.3 DLL). Thus the current R cache-reset
+  helper and structural/context and two-draw reused-vs-fresh regressions pass
+  against the existing native ABI; this does not supply the missing pre/post
+  snapshots or close the release-wide sweep/classification gate. No compile,
+  build, install, shared-result operation, or canonical write occurred.
 
 ## Status
 

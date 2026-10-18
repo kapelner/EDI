@@ -169,6 +169,21 @@ between v1.0.2 and HEAD. The per-draw copy is also what guarantees no cache
 crosses draws (`release_v1_0_5.md` relies on it to rule out stale
 `cached_design_matrix` for the KK GLMM cluster), so a fix must keep that.
 
+**TODO-66 dispatch interaction (2026-10-18):** release TODO-66 adds a
+serial fallback for this non-reusable strategy after reproducing a
+fork-after-OpenMP hang. Consequently, the existing one-core F7 timing is
+unchanged evidence for per-draw-copy overhead, but it is not evidence of
+multi-core scaling; any HurdleNegBin parallel before/after claim must be
+re-evaluated after TODO-66's fork-safety validation and any later reusable-
+worker redesign. This does not alter TODO-57's performance scope or targets.
+TODO-57/TODO-10's one-copy-per-worker implementation can still proceed on
+the serial fallback: retain the TODO-66 pre-warmup one-core clamp, rebase or
+land the changes together, and validate the seeded single-core/cache-reset
+contract first. Do not claim restored multi-core scaling for these classes
+until TODO-66's rebuilt-checkout safety gate is passed; multi-core before/
+after performance evidence also requires the TODO-1 harness, whose pilot is
+currently blocked because `bayesboot` is unavailable.
+
 ## Proposal
 
 Fix in order of payoff per unit of risk: the dispatch machinery first
@@ -198,19 +213,21 @@ default change.
 
 ### Diagnostic non-reusable-worker safety exception (release v1.0.5 TODO-66)
 
-`debug = TRUE` is diagnostic output, not a throughput path.  For an inference
-class that does not support a reusable bootstrap worker, each debug replicate
-duplicates its inference object.  Forking that path after an OpenMP-using fit
-can inherit a permanently locked runtime mutex.  The shared Bayesian-bootstrap
-driver therefore executes that **debug-only, non-reusable** branch serially;
-ordinary `debug = FALSE` dispatch retains its existing policy and
-warmup-based eligibility for parallel execution.  The focused
+`debug = TRUE` is diagnostic output, not a throughput path. For an inference
+class that does not support a reusable bootstrap worker, each replicate
+duplicates its inference object. Forking that path after an OpenMP-using fit
+can inherit a permanently locked runtime mutex. The shared Bayesian-bootstrap
+driver therefore executes the **non-reusable-worker strategy serially** in
+both debug and ordinary modes; the ordinary path clamps before warmup, so it
+cannot warm up and then fork. Reusable-worker classes retain their existing
+dispatch policy. The focused
 `test-bayesian-bootstrap-non-reusable-worker-debug-path.R` requests two cores
 and checks the serial diagnostic result against the same seeded single-core
-distribution.  Its registered runtime-manifest entries are 4.3 seconds for
-correctness and 240 seconds for coverage.  This is a safety exception, not a
-claim that the ordinary non-reusable path is universally fork-safe; repeat-run
-runtime validation remains required before release closure.
+distribution; its ordinary-path spy also verifies the pre-warmup one-core
+clamp without launching a real fork. Its registered runtime-manifest entries
+are 4.3 seconds for correctness and 240 seconds for coverage. This is a
+safety exception, not a claim that the original fork lifecycle is safe;
+repeat-run runtime validation remains required before release closure.
 
 **Installed repeat-run check, 2026-10-14:** the focused test file passed all
 19 expectations in three consecutive invocations against installed EDI 1.0.3
@@ -429,6 +446,88 @@ release-scale runtime-manifest or sanitizer validation; TODO-66 remains open.
 
   Independent of TODO-66's fork hang, but touches the same branch, so land
   them together or rebase one on the other.
+
+  **Static target/cache map, 2026-10-18:** the seven Bayesian-bootstrap
+  targets are `InferenceCountHurdleNegBin`; `InferenceContinKKGLMM`,
+  `InferenceCountKKGLMM`, `InferenceOrdinalKKGLMM`; and
+  `InferencePropKKGLMM`, `InferenceIncidKKCondLogitGLMMIVWC`,
+  `InferenceIncidKKCondLogitGLMMOneLik` (the six latter classes inherit the
+  non-reusable default). Weighted calls pass through
+  `run_isolated_weighted_refit()` (`inference_all_abstract.R:L519-L570`),
+  which already snapshots/restores `cached_values`, optional `cached_mod`,
+  and the four fit-warm-start slots (`fit_warm_start`, type, Fisher
+  information, and weights); `last_weighted_refit` is deliberately replaced
+  per call. Keep assigning `current_bayesian_bootstrap_context` from each
+  draw before refitting.
+
+  - The three `KKGLMM` classes share `InferenceMixinKKGLMMShared`: weighted
+    fits consume the draw's row weights and store the result in
+    `cached_values$beta_hat_T`, `$s_beta_hat_T`, `$df`, and `$summary_table`.
+    `cached_design_matrix` / `cached_hardened_X_cov` and the predictor
+    candidates derive from the fixed design, not the bootstrap weights;
+    retain them unless a class-specific mutation audit proves otherwise.
+  - `InferenceCountHurdleNegBin` stores its weighted `glmmTMB` fit in
+    `cached_mod` and writes `cached_values$count_likelihood_context`,
+    `$beta_hat_T`, `$s_beta_hat_T`, `$df`, and `$full_coefficients`; the
+    common wrapper rolls back the result cache and model. `best_X_colnames`,
+    `best_hurdle_X_colnames`, formulas, and `cached_vc_params` are selected
+    from the fixed-data fit and are not written by the weighted refit path.
+  - The conditional-logit trio share `InferenceAbstractKKCondLogitGLMM`.
+    Their weighted estimate writes treatment estimate/SE and failure state
+    through `cached_values`; the full-data `KKstats`, matched-pair structure,
+    and design inputs are weight-independent. Treat any per-call likelihood
+    context as transient; the common `cached_values` rollback must continue
+    to isolate it.
+
+  This is a source-derived inventory, not proof that every subclass has no
+  additional mutable fields. Before reuse is implemented, inspect each
+  weighted-refit path for writes outside the common rollback set; reset only
+  draw-dependent state, preserve fixed-design caches, and test seeded
+  serial/reference equivalence before attempting parallel reuse.
+
+  **Per-class mutation audit, 2026-10-18 (static):** the seven paths were
+  checked against the shared rollback and draw loader. `InferenceContinKKGLMM`
+  (`inference_continuous_KK_glmm.R:L138-L173`) writes only result fields in
+  `cached_values`; its Rcpp weighted helper reads fixed `cached_vc_params` and
+  warm-start configuration but does not update either. `InferenceCountKKGLMM`
+  (`inference_count_KK_combined.R:L127-L145`, `L242-L307`) likewise writes
+  only `cached_values`; the native weighted fit reads the fixed-fit warm start
+  and `cached_vc_params` but keeps its fit local. `InferenceOrdinalKKGLMM`
+  (`inference_ordinal_KK_combined.R:L458-L482`) delegates to the local-fit
+  `weighted_ordinal_random_intercept_fit()` helper and writes only
+  `cached_values`. Thus none of these three weighted methods changes the
+  fit-warm-start slots or cached variance components.
+
+  `InferenceCountHurdleNegBin` (`inference_count_hurdle.R:L400-L440`) is a
+  class-specific override: it locally fits `glmmTMB`, stores that result only
+  in `cached_mod`, sets `cached_values$count_likelihood_context = NULL`, and
+  writes estimate/SE/df/full-coefficient and nonestimability fields through
+  `cached_values`. Both state locations are covered by
+  `run_isolated_weighted_refit()`; the selected component column names and
+  formulas are read-only during this path. `InferencePropKKGLMM`,
+  `InferenceIncidKKCondLogitGLMMIVWC`, and
+  `InferenceIncidKKCondLogitGLMMOneLik` inherit the same weighted method from
+  `InferenceAbstractKKCondLogitGLMM` (`inference_incidence_KK_cond_logit_glmm_abstract.R:L103-L169`):
+  it builds per-call match/GLMM data, fits locally, and changes only
+  `cached_values` (including `KKstats` via `compute_basic_match_data()`). The
+  subclasses only select whether reservoir rows join the GLMM component;
+  that choice and the underlying matching/design data do not vary by draw.
+
+  Two common fields outside the rollback are intentional: the non-reusable
+  driver sets `current_bayesian_bootstrap_context` and passes each draw's
+  weights directly before every fit (`inference_all_abstract_bayesian_bootstrap.R:L208-L259`);
+  reusable loading additionally refreshes the current weight vector and the
+  positive-weight flag (`L639-L649`). The loader clears
+  `bootstrap_qr_rank_certificate` whenever any weight is nonpositive. For
+  all-positive draws it may retain a certificate only for the same full
+  design matrix; positive row scaling preserves rank. This is the only
+  additional persistent mutation found in the shared GLMM candidate path
+  (`inference_all_abstract.R:L1194-L1314`), and it is draw-safe under those
+  loader conditions. No missing per-draw reset was established by this
+  source audit. The one-copy-per-worker change must preserve the per-draw
+  context/weight refresh and the conditional QR-certificate invalidation;
+  any route through `compute_bayesian_bootstrap_worker_estimate()` must call
+  the draw loader first because that helper reads the worker's stored weights.
 
 **Installed-package regression check, 2026-10-14:** the Bayesian-bootstrap
 weight-draw/manual-loop reference passed 24 assertions; worker-loading and

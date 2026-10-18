@@ -205,6 +205,7 @@ edi::ResultMap fast_ordinal_clmm_internal(
     int na = K - 1;
     int total = na + p + 1;
 
+    require_length(warm_start_params, total, "warm_start_params");
     require_square_matrix(warm_start_fisher_info, total, "warm_start_fisher_info");
 
     Eigen::VectorXd y_v(n);
@@ -218,7 +219,7 @@ edi::ResultMap fast_ordinal_clmm_internal(
     FixedParamSpec fixed_spec = make_fixed_param_spec(total, fixed_idx, fixed_values);
 
     Eigen::VectorXd start_full(total);
-    if (warm_start_params.has_value() && warm_start_params->size() == total) {
+    if (warm_start_params.has_value()) {
         start_full = *warm_start_params;
     } else {
         start_full.setZero();

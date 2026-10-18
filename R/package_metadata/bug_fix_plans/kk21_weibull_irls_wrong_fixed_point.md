@@ -181,3 +181,41 @@ Build/verify per `CLAUDE.md`: rebuild the affected native translation
 units (`fast_weibull_regression.cpp`, `kk21_stepwise_survival.cpp`, and
 `kk21_weights.cpp`) and their shared `_helper_functions_core.h` dependents,
 then relink. No full rebuild.
+
+### TODO-5 replacement fixture and metric proposal (2026-10-18)
+
+The checked-in oracle fixtures provide a reproducible starting point, but do
+not themselves measure matching quality. In particular,
+`test-kk21-stepwise-survival-weibull-mle-score-reference.R` uses
+`set.seed(6721)`, `n = 120`, balanced treatment, `x ~ N(0,1)`, and a Weibull
+time with shape 1.4 and scale `exp(0.35 * treatment + 0.55 * x)`; it compares
+the native stepwise score with score arithmetic using the independently
+estimated reduced-model `survival::survreg` MLE. The separate private-weight
+oracle fixture (`set.seed(20)`, n = 60) verifies a per-covariate
+`survreg` coefficient statistic. Neither fixture compares pre/post-fix
+weights or resulting matched samples.
+
+If the original `project_kk21_speedup_vs_glm_weights_20261008` inputs and
+metric cannot be recovered, a reproducible replacement should extend the
+seed-6721 generator to several named covariates with distinct prespecified
+Weibull effects, preserve balanced treatment and the event/censoring
+mechanism, and record the generated input hash and realized censoring rate.
+For each covariate, compute an independent reference importance from a
+`survival::survreg(dist = "weibull")` fit (the existing reduced-model score
+reference is the closest test precedent), then run the same fixed-seed KK21
+matching procedure with the old and corrected weight vectors. A defensible
+primary matching-quality outcome is mean absolute standardized mean
+difference (mASMD) across the prespecified covariates in the resulting
+matched pairs; also retain the per-covariate `survreg`-reference ranks and
+weight ranks as a diagnostic that ties the changed weights to the oracle.
+Report raw values and paired case-level differences, not only an aggregate.
+
+This is a proposal, not an approved replacement for the missing historical
+estimand: no acceptance threshold, minimum improvement, or equivalence margin
+is specified here. A maintainer must confirm the replacement fixture and
+primary metric before execution. The already-installed EDI 1.0.3 binary does
+not contain the checkout's Weibull fix, so it cannot produce valid post-fix
+weight/matching evidence. No native comparison or canonical CSV regeneration
+was run for this audit; preserve the TODO-5 gate until a current-code native
+run, with old/new implementation identities and row-level provenance, is
+available.

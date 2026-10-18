@@ -197,6 +197,57 @@ a stale comparison, not be counted as post-fix evidence. This does not establish
 the current harness's expected key set; derive that from the post-install run
 before merging. No result CSV was modified.
 
+**Focused installed regression recheck (2026-10-18):**
+`test-prop-gcomp-mean-diff-randomization-worker-estimate-not-all-na-reference.R`
+passed all 6 assertions against installed EDI 1.0.3, with no failures,
+warnings, or skips. The test proves its fixture enters the reused-worker path,
+the identity assignment reproduces the observed estimate, and a 30-permutation
+public randomization distribution is finite and non-degenerate. Loaded DLL:
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`, SHA-256
+`23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`. This
+validates the installed package's focused regression only; it neither validates
+the current checkout nor closes TODO-6's provenance-stamped comprehensive-row
+regeneration and key/status reconciliation. No canonical results were written.
+
+**Current-R-source regression recheck (2026-10-18):** after
+`pkgload::load_all("R/EDI", compile = FALSE)`,
+`test-prop-gcomp-mean-diff-randomization-worker-estimate-not-all-na-reference.R`
+passed all 6 assertions, with no failures, warnings, or skips. R source came
+from `/home/kapelner/workspace/EDI/R/EDI`, version 1.0.3. The source overlay
+loaded `/tmp/Rtmp0tLF3P/pkgload36f6c04c47157c/EDI.so`, SHA-256
+`23033b395c5167d2e5cb88225084a5af63febe0483671498aaf0808d802a865e`, matching
+the installed EDI 1.0.3 DLL. This confirms the current R worker override and
+public-path identity/non-degeneracy regression against that existing native
+ABI; it does not close TODO-6's post-fix comprehensive rows and reconciliation.
+No native build/install or canonical result write occurred.
+
+**Isolated regeneration preparation, 2026-10-18 (not run):** the output-path
+override is covered by
+`test-comprehensive-results-output-directory-override-reference.R` (3/3
+assertions, `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-results-output-directory-override-reference.R")'`, no compilation). Once a post-fix installed package is explicitly available, the full supported proportion `rand` target can be generated without opening the canonical CSV using a fresh `/tmp` directory and:
+
+```sh
+outdir=$(mktemp -d /tmp/edi-todo13-propgcomp-postfix.XXXXXX)
+COMPREHENSIVE_FORCE_SLOW_PATHS=1 EDI_COMPREHENSIVE_RESULTS_DIR="$outdir" Rscript R/package_tests/comprehensive_tests.R 40 1 proportion NA InferencePropGCompMeanDiff NA NA NA rand
+```
+
+**Static target/guard audit, 2026-10-18:** the harness places
+`InferencePropGCompMeanDiff` in `ADDITIONAL_TEST_SLOW_PATHS$rand`,
+`$rand_pval`, and `$rand_ci`. Without `COMPREHENSIVE_FORCE_SLOW_PATHS=1`,
+the class-level `skip_rand` gate suppresses its rand-family calls even when the
+family filter is `rand`; the force flag also disables the separate rand-pval
+and rand-CI exclusions. For `response=proportion`, the harness call sites
+define the expected `function_run` labels as `compute_rand_two_sided_pval`,
+`compute_rand_two_sided_pval(delta=0.5)`, and
+`compute_rand_confidence_interval`, under both `model_formula=~1` and `~.`.
+This is a source-derived acceptance inventory, not a promise of a fixed row
+count: the complete case/id set remains dependent on the harness's current
+eligible design/dataset/beta/replication grid and per-call execution status.
+
+This leaves design, dataset, beta, and replicate filters unset, so the harness
+enumerates its full current target, including both formula branches. It should
+write `comprehensive_tests_results_nc_1_proportion_filtered_class-InferencePropGCompMeanDiff_family-rand.csv` only under `$outdir`. The CSV records the checkout `github_commit_id`, not the loaded package identity; separately capture `packageVersion("EDI")`, `.libPaths()`, the resolved installed library path, and the SHA-256 of its `libs/EDI.so` (or platform DLL). No package-install/build provenance is inferred from the CSV alone. A post-fix package/install identity and the resulting isolated output are still missing; do not merge or deduplicate until the complete `id`/`case_id` set and row-level status/result/coverage checks in TODO-6 pass. This command is a preparation only, not evidence of regeneration.
+
 ## Standing constraints
 
 Same as `stale_worker_cache_resampling.md`: no `R CMD INSTALL`/rebuild

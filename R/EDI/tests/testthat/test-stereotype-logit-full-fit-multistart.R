@@ -1,3 +1,6 @@
+library(testthat)
+library(EDI)
+
 make_stereotype_multimodal_fixture <- function(seed = 1005L){
 	set.seed(seed)
 	n = 50L
@@ -103,4 +106,26 @@ test_that("stereotype data-seeded starts do not consume the global RNG", {
 
 	expect_identical(state_after, state_before)
 	expect_identical(candidates_b, candidates_a)
+})
+
+test_that("generate_mod wires the full-data multistart selector into ordinary fitting", {
+	set.seed(1L)
+	n <- 200L
+	x <- rnorm(n)
+	des <- DesignFixediBCRD$new(n = n, response_type = "ordinal", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x = x))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	y <- as.integer(cut(0.9 * w + rlogis(n), c(-Inf, -1, 0.4, 1.5, Inf)))
+	des$add_all_subject_responses(y)
+	inf <- InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~1, verbose = FALSE)
+	mod <- inf$.__enclos_env__$private$generate_mod()
+
+	# The lower-level selector tests above prove how candidate fits are
+	# selected; this integration assertion guards the ordinary full-data
+	# generate_mod() call site. It is not a calibration estimate or a claim
+	# about the separate repeated randomization/bootstrap refit paths.
+	expect_true(length(mod$b) >= 2L && is.finite(mod$b[2L]))
+	expect_true(mod$multistart_n_tried > 1L)
+	expect_true(is.character(mod$multistart_selected_start) && nzchar(mod$multistart_selected_start))
 })

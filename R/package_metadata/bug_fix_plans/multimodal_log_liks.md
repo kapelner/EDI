@@ -268,6 +268,42 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   regenerated 2026-09-21) once the fix lands and is installed, then re-run
   `audit_comprehensive_results.R --write-baseline` to drop any
   now-stale `InferenceOrdinalStereotypeLogitRegr` baseline entries.
+
+  **Isolated-output integration audit (2026-10-18):** the comprehensive
+  runner's `EDI_COMPREHENSIVE_RESULTS_DIR` override redirects its computed
+  result filename into an existing scratch directory and preserves the
+  canonical default when unset. For a future class-filtered regeneration,
+  use a new `/tmp` directory and retain every `function_run` for
+  `InferenceOrdinalStereotypeLogitRegr`; record the installed package and
+  loaded-DLL provenance with the shard. This produces a filtered filename,
+  not the unfiltered
+  `comprehensive_tests_results_nc_1_ordinal.csv` that
+  `audit_comprehensive_results.R` scans. The audit now honors the same
+  `EDI_COMPREHENSIVE_RESULTS_DIR` override: it routes response-level input
+  filenames, baseline, and stamp into that existing scratch directory, while
+  retaining script-relative canonical defaults when unset. Do not mistake a
+  filtered shard alone for a full-suite audit: the audit needs complete
+  response-level inputs. Before reconciliation, stage a scratch-only copy of
+  the relevant complete ordinal results, replace only exact keys from the
+  complete post-fix class shard, and run the audit with the override pointing
+  at that scratch directory. For a `--write-baseline` pass, also stage every
+  other complete response-level input CSV covered by the existing baseline:
+  the audit treats missing response files as absent findings, so an ordinal-
+  only scratch set could incorrectly prune unrelated baseline entries.
+  The audit now refuses `--write-baseline` when any expected response-level
+  file is missing or empty; this guard cannot prove that a present CSV is
+  complete, which still requires provenance/content verification.
+  Review every absent/new finding before any baseline update;
+  `--write-baseline` must remain confined to scratch until separately
+  authorized. Keep canonical CSVs and baseline untouched absent separate
+  authorization.
+  The focused output-directory-override reference test passed 7 assertions
+  with 0 failures and 0 warnings (2026-10-18); this validates path routing
+  only, not a full audit or post-fix regeneration.
+  The current post-fix calibration and provenance gates (TODO-4/7) still
+  precede this regeneration, and no run or audit was performed for this
+  integration check.
+
 - [ ] TODO-9 (added 2026-09-24, found via a dedicated cross-class
   investigation fork re-auditing the ordinal cluster — **flag
   prominently, low-medium confidence, thin sample**): possible **post-fix

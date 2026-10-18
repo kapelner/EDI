@@ -140,6 +140,15 @@ well-identified folds unchanged.
   TODO-8 remains open pending the user's separately managed rebuilt/installed
   package, isolated full-matrix regeneration, and authorized canonical merge.
 
+  **Read-only artifact recheck 2026-10-18:** the filtered focused-recheck CSV
+  remains ignored by `.gitignore:85`, has 150 data rows (151 lines including
+  the header), mtime 2026-10-14, and SHA-256
+  `20fd07e48f6cadd5e2912174c9f6727e43239e1345e4c753cb658bffd9edccc6`.
+  The canonical survival-results file's mtime remains 2026-09-27. This confirms
+  the earlier post-fix focused artifact is intact and that no broader
+  reconciliation has occurred; it does not satisfy TODO-8. No result file was
+  changed during this recheck.
+
 TODO-8 remains pending until the affected comprehensive-results rows are
 regenerated with the user's separately managed rebuilt package. The
 repository rule forbids building or installing the checkout during this

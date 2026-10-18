@@ -455,3 +455,37 @@ test_that("remaining exported kernels reject malformed Fisher-information dimens
 		expect_identical(call(bad_fisher), call(NULL))
 	}
 })
+
+test_that("survival and ordinal CLMM kernels reject malformed parameter starts", {
+	# A wrong-length optional start previously fell through to cold-start logic
+	# in these two kernels, silently ignoring the caller's supplied vector.
+	# CLMM has (K - 1) thresholds + p fixed effects + one log-SD; the
+	# dependent-censoring model has two p-vectors plus three scale parameters.
+	expect_error(
+		EDI:::fast_ordinal_clmm_cpp(
+			X, y_ordinal, group_id, K = 3L, j_T = 1L,
+			warm_start_params = numeric((3L - 1L) + ncol(X) + 1L - 1L)
+		),
+		"warm_start_params must have length"
+	)
+	expect_error(
+		EDI:::fast_ordinal_clmm_cpp(
+			X, y_ordinal, group_id, K = 3L, j_T = 1L,
+			warm_start_params = numeric((3L - 1L) + ncol(X) + 1L + 1L)
+		),
+		"warm_start_params must have length"
+	)
+
+	expect_error(
+		EDI:::fast_dep_cens_transform_optim_cpp(
+			X, y_time, y_dead, warm_start_params = numeric(2L * ncol(X) + 2L)
+		),
+		"warm_start_params must have length"
+	)
+	expect_error(
+		EDI:::fast_dep_cens_transform_optim_cpp(
+			X, y_time, y_dead, warm_start_params = numeric(2L * ncol(X) + 4L)
+		),
+		"warm_start_params must have length"
+	)
+})

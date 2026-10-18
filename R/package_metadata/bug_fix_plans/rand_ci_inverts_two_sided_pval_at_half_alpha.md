@@ -80,6 +80,15 @@ and the CI's own draws.
   the randomization bisection/bounds, bootstrap-randomization CI guards and
   floor warning, the full bootstrap-randomization suite, the general rand-CI
   suite, custom-statistic delta shifting, and model-scale classification.
+  **Focused source-loaded refresh, 2026-10-18:**
+  `test-rand-ci-bisection-and-high-precision-refinement-reference.R` (30
+  assertions) and `test-rand-bootstrap-ci-closed-form-and-bisection-failed-guards-reference.R`
+  (9 assertions) passed after loading checkout R sources with
+  `pkgload::load_all("R/EDI", compile = FALSE)`. Native calls used installed
+  EDI 1.0.3's `EDI.so` (MD5
+  `dd43c5d0e11708aea17ba82b900f66d1`, timestamp 2026-10-18 03:57:33 +0300).
+  This is current R-source/installed-native evidence only; it does not validate
+  a current-checkout native build or regenerate the comprehensive results.
 - [ ] TODO-4: Regenerate the `rand` / `rand_bootstrap` CI rows of the
   `comprehensive_tests` CSVs, and re-run any coverage tables or docs that
   quote randomization-CI coverage.

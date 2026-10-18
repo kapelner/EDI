@@ -16,6 +16,16 @@ fx <- function() {
 	X <- cbind(1, rnorm(60)); u <- rnorm(G, 0, 0.6)[g]
 	list(X = X, y = as.numeric(rpois(60, exp(X %*% c(0.2, 0.4) + u))), g = as.integer(g), G = G)
 }
+poisson_glmm_cold_start_fixture <- function(seed) {
+	n <- 200L; G <- 40L
+	set.seed(seed)
+	g <- rep(seq_len(G), each = 5L)
+	x <- rnorm(n)
+	u <- rnorm(G, sd = 0.9)[g]
+	X <- cbind(1, x)
+	list(X = X, y = as.numeric(rpois(n, exp(0.4 + 0.3 * x + u))),
+		g = as.integer(g), G = G)
+}
 exact_nll <- function(p, dat) {
 	b <- p[1:2]; s <- exp(p[3])
 	-sum(vapply(seq_len(dat$G), function(k) {
@@ -39,6 +49,23 @@ test_that("with 160 nodes the fit equals glmer: coefficients, log sigma, and the
 	# The package optimum is at least as good as glmer's own solution on the exact likelihood.
 	p_glmer <- c(unname(lme4::fixef(m)), log(as.data.frame(lme4::VarCorr(m))$sdcor))
 	expect_lte(exact_nll(p_pkg, f), exact_nll(p_glmer, f) + 1e-4)
+})
+
+test_that("cold Poisson GLMM fit is no worse than the glmer candidate on known local-optimum seeds", {
+	for (seed in c(41003L, 41008L)) {
+		f <- poisson_glmm_cold_start_fixture(seed)
+		d <- data.frame(y = f$y, x = f$X[, 2], g = factor(f$g))
+		m <- suppressMessages(lme4::glmer(y ~ x + (1 | g), family = poisson,
+			data = d, nAGQ = 25))
+		p_glmer <- c(unname(lme4::fixef(m)),
+			log(as.data.frame(lme4::VarCorr(m))$sdcor[1L]))
+		r <- K("fast_poisson_glmm_cpp")(f$X, f$y, f$g, 0L, n_gh = 40L)
+		p_cold <- c(as.numeric(r$b), as.numeric(r$log_sigma))
+
+		expect_true(r$converged)
+		expect_true(exact_nll(p_cold, f) <= exact_nll(p_glmer, f) + 1e-4,
+			info = paste("seed", seed))
+	}
 })
 
 test_that("ssq_b_T is vcov[j_T + 1, j_T + 1] for a 0-based j_T, and NaN for an out-of-range index", {

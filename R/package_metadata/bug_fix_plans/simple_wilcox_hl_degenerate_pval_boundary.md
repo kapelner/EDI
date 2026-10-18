@@ -339,6 +339,23 @@ CI-inversion contracts, or retain the current deterministic contract and
 defer this fix until a candidate satisfies the existing gate. This memo does
 not select a statistic, relax acceptance, or modify TODO-4's parity scope.
 
+**Maintainer decision record — pending (no option selected):**
+
+- [ ] **Authorize design work** on a Wilcoxon-scoped randomized/conditional
+  procedure. Before implementation, specify the target null/statistic,
+  auxiliary-randomness and reproducibility contract, how p-values and CIs
+  relate (including CI inversion), and retain TODO-4 nondegenerate parity
+  plus TODO-5 conditional-size acceptance.
+- [ ] **Defer the remedy.** Keep the current deterministic inclusive-tail
+  contract and leave TODO-3 through TODO-7 and release TODO-17 open until a
+  candidate preserves the HL target and passes the existing acceptance gates.
+
+Record the maintainer, date, selected option, and rationale here when decided.
+Neither option authorizes a generic mid-p change; the evidence above shows
+that the tested deterministic statistic substitutions did not meet the
+conditional-size gate, while randomized tie-breaking alone does not define
+the bootstrap-family p-value/CI behavior.
+
 ### TODO-4 installed parity fixture (2026-10-16; baseline only)
 
 A deterministic nondegenerate baseline was exercised against the already-

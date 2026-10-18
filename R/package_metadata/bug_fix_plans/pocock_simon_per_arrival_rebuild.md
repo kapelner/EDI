@@ -261,6 +261,22 @@ ms (a 44.1 ms 10x ceiling). Meeting that criterion requires the explicitly
 out-of-scope whole-sequence C++ API, so the installed rerun should assess the
 flat/0.5 ms arrival criterion and compare honestly with the R-loop Minirand row.
 
+**Static complexity review and focused installed test, 2026-10-18:** the
+current compatible-schema path fills one preallocated row, skips the
+Pocock--Simon model-matrix rebuild, and sends one level index per strata
+column to the assignment kernel. This supports O(k) per arrival when the
+factor-level maps remain fixed or bounded. Registering an unseen level
+searches the accumulated per-column map and may expand/copy the counts matrix;
+cost can therefore depend on the number of observed levels as cardinality
+grows. The focused level/missing-stratum test passed 67 expectations with no
+failures or warnings against installed EDI 1.0.3 (built 2026-10-18 00:57:28
+UTC; `EDI.so` MD5 `dd43c5d0e11708aea17ba82b900f66d1`). The installed metadata
+does not record a checkout SHA, so this pass is installed-package evidence,
+not validation of newer checkout source. The test checks correctness and
+stable mappings; it does not count operations or establish timing acceptance.
+TODO-5 remains open for the isolated, provenance-pinned timing run and the
+authentic EDI 1.0.2 assignment-vector replay described above.
+
 ## Out of scope
 
 - Moving the whole sequence into C++ as `carat` does (the batch
