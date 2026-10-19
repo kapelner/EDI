@@ -3635,6 +3635,34 @@ baseline as expected/benign.
     policy across every kernel plus runtime team size/global-state behavior.
     The installed build metadata now reports `-fopenmp`, matching R's
     `Makeconf`. **Completed 2026-10-14.**
+- [ ] TODO-97 (added 2026-10-19, user decision; found while drawing the
+  inference-component diagram for the HUJI seminar talk): **Inference component
+  dependencies declare packaging, not use.** — `../new_feature_plans/inference_component_dependency_cleanup.md
+  → TODO-1..7`. Each component's `dependencies` in `EDI_COMPONENT_SPECS` copies
+  the retained legacy ladder's `inherit` parent. For example, `Wald` declares
+  `Jackknife` but calls none of its methods. Meanwhile, undeclared calls form
+  cycles: `Jackknife` and `NonparametricBootstrap` call each other, and both
+  bootstrap components call resampling-cache helpers defined with
+  `RandomizationTest`. The fix extracts the shared helpers into their own
+  component(s), rewrites dependencies to the measured call graph, and lists
+  formerly implied components explicitly on classes. It is gated on an
+  unchanged per-class effective component and method golden. *(maintenance)*:
+  no output or behavior change. Placed here rather than v1.1.0 by user
+  decision as cleanup work, an exception to this file's bug-fix-only rule.
+- [ ] TODO-98 (added 2026-10-19, user decision; found while preparing the
+  HUJI seminar survival demo): **Randomization inference under left-/interval-
+  censoring returns silent wrong results.** — `../bug_fix_plans/rand_inference_general_censoring_silent_results.md
+  → TODO-1..5`. A δ ≠ 0 null shift moves only `y`, not `y_L`/`y_R`, so censored
+  rows stay unshifted. The shared guard against this runs only with asserts on
+  (`SimulationFramework` turns them off by default). With asserts off,
+  Cox and log-rank randomization p-values at δ ≠ 0 are computed silently:
+  0.438 and 0.408 on the plan's fixture, where both should error. Weibull's own
+  always-on guard is swallowed by the randomization CI's `tryCatch(..., NA)`.
+  As a result, `compute_rand_confidence_interval()` returns a finite interval
+  built from NA p-values: (-0.147, 0.749) on the current source, asserts on.
+  Also covers the Weibull parametric-bootstrap LR returning a silent `NA`
+  under general censoring. Fix scope: errors instead of silent results.
+  Supporting the shift is deferred.
 
 ## Standing constraints
 
