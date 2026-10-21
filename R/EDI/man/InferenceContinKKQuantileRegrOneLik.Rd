@@ -29,6 +29,7 @@ design. Requires the \pkg{quantreg} package (listed in Suggests, not
 installed automatically).
 }
 \examples{
+if (requireNamespace("quantreg", quietly = TRUE)) {
 \donttest{
 seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
 for (i in 1:10) {
@@ -57,7 +58,7 @@ seq_des$add_all_subject_responses(c(1.2, 0.9, 1.5, 1.8, 2.1, 1.7, 2.6, 2.2))
 infer <- InferenceContinKKQuantileRegrOneLik$new(seq_des, verbose
 = FALSE)
 infer
-
+}
 }
 \references{
 Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential

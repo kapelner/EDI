@@ -1000,6 +1000,16 @@ range, since the plan files' internal numbering did not change.
   None of those acceptance limits is currently specified, and no threshold
   is inferred here. TODO-6 remains open; no benchmark, build/install, or
   canonical output write occurred.
+  **Scratch-path availability recheck, 2026-10-21 (read-only):** the
+  previously cited `/tmp/edi-v105-todo6.kCbSHR` filtered-run directory is no
+  longer present at that path. Thus the filtered CSVs/runner snapshot
+  described in the linked plan are not currently recoverable from that
+  location; this does not supply the missing original RNG/input provenance or
+  a replacement acceptance run. Closure still requires either the original
+  per-case RNG/input and package/harness provenance, or maintainer approval
+  of a replacement protocol, plus explicit runtime and estimate/SE/Bartlett-p
+  criteria for both formulas. No fit, benchmark, build/install, or canonical
+  write occurred in this recheck.
 - [x] TODO-7 (added 2026-09-17, fixed 2026-10-08; found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
   randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
@@ -4589,6 +4599,25 @@ range, since the plan files' internal numbering did not change.
   not attest retained RMST outputs, resolve the 16-vs-18 operation/grid
   decision, validate current native provenance, or provide empirical
   calibration evidence. The post-fix full run and reconciliation remain open.
+  **Read-only reconciliation recheck, 2026-10-21:** the canonical merged
+  survival CSV remains the 372,209,537-byte artifact (SHA-256
+  `05e1dbf4c9b51d573b5d2f0caff6a311bb3ffb4c498668d2a6d84c4b950b1b79`),
+  with 18 recorded GitHub commits and no matching run receipt/sidecar; it is
+  not attributable to one source-derived run roster. The audit baseline's
+  16 low-coverage operation labels and the 18 operations present in the raw
+  union leave the exact release target owner-dependent. The prior 181,440-key
+  source candidate manifest is stale for current checkout: it records HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` and runner SHA-256
+  `491a0d088461f1e408d96fa8be92b716a0fb1986ac0718a2beeadc16fab25cd7`, while
+  current HEAD is `bf3addd46b63c405b961178be09ea4e03c7c6275` and the runner
+  SHA-256 is `63f3055edea1b7f2db4da635a723882aa5dbb55a2187de25339ecea621739590`.
+  The four-row scratch pilot remains diagnostic only: its EDI 1.0.3 log and
+  checkout commit do not bind package/library payload, DLL, or attempt events.
+  Next, obtain approval of the exact historical operation/grid/status roster
+  or use an authorized isolated post-fix run with current package/R/DLL
+  provenance and an attempt receipt; then rebuild the source-derived roster
+  from the current runner and reconcile exact keys/statuses. TODO-23 remains
+  open; no workload or canonical artifact was changed.
   - [ ] Re-run the predeclared multi-method coverage calibration with a
     provenance-pinned post-fix package, and evaluate invalid intervals rather
     than dropping them. Then validate the shared-horizon behavior on current
@@ -7571,6 +7600,21 @@ baseline as expected/benign.
   provenance-current acceptance run, and harness-based report regeneration
   plus deliberate Markdown reconciliation remain open. No benchmark/report
   generation or canonical write occurred in this inventory.
+  **Native identity recheck, 2026-10-21 (read-only):** at 16:30 IDT the
+  installed `EDI.so` and checkout `R/EDI/src/EDI.so` both hash to
+  `13a6dd534bacf3d9fa8e63d255c407745c26917e4c0e043f8bc1476f7cdcd313`
+  (14,727,184 bytes; mtime 16:27:21 IDT), at checkout HEAD
+  `bf3addd46b63c405b961178be09ea4e03c7c6275`. An earlier check during this
+  audit found both DLLs at `2db64ed8ef36e13b1bc4101fee46b9e007afe4701e9bde11c34a88b564844d67`
+  at the same HEAD, so the native bytes changed during the audit. This
+  supersedes the previously noted then-current `f7cf...` identity; neither
+  hash binds the retained timing to those bytes. The October 16 30-pair
+  receipts have no DLL/source hash, and the three-pair diagnostic records DLL
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94` at
+  HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. No benchmark, report
+  generation, or canonical write was performed. The owner-selected endpoint
+  criterion, current-provenance acceptance run, and report synchronization
+  remain open.
 
 - [ ] TODO-63 (added 2026-10-07, user decision): **C++ kernels accept a
   `warm_start_beta` of the wrong length and corrupt the heap** —
@@ -8373,6 +8417,22 @@ baseline as expected/benign.
   recoverable from this bounded repo/history/scratch check; retrieving the
   external project inputs or approving the replacement fixture, metric, and
   acceptance rules remains a maintainer choice. No benchmark was run.
+  **Local source-to-installed-DLL provenance recheck, 2026-10-21 (read-only):**
+  checkout HEAD is `bf3addd46b63c405b961178be09ea4e03c7c6275`; the target
+  `kk21_stepwise_survival.cpp` SHA-256 is
+  `46bd15f980d16ce299e7f20374979b911aebef401cd19ece3fbc81df7bca1b67`.
+  Installed EDI 1.0.3 metadata says `Built: R 4.7.0; x86_64-pc-linux-gnu;
+  2026-10-21 13:27:18 UTC`; installed and checkout `EDI.so` are byte-identical
+  at SHA-256 `13a6dd534bacf3d9fa8e63d255c407745c26917e4c0e043f8bc1476f7cdcd313`
+  (both mtimes 2026-10-21 16:27 IDT). This is temporally consistent with a
+  recent build from the current tree, but neither package metadata nor the
+  inspected `/tmp/edi-todo67-run391356/` timing-only files record a source
+  revision/build receipt linking that binary to HEAD or the target source
+  hash. Therefore it does not attest the edited native tolerance. The next
+  native gate still requires an authorized, provenance-recorded
+  `EDI_UNITY=0` rebuild/install and focused-test rerun; the independent
+  matching-quality owner choices and comparison remain separately open. No R,
+  build/install, benchmark, or artifact write was performed for this audit.
 
 - [ ] TODO-68 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B2`):
@@ -8528,6 +8588,20 @@ baseline as expected/benign.
   not a candidate-vs-attempt anti-join or full-grid reconciliation; it does
   not cover other strata or the omitted bootstrap-CI variants and is not
   canonical data. TODO-68 remains open.
+  **Scratch-slice availability recheck, 2026-10-21 (read-only):** both
+  previously cited 40-replicate artifacts remain present and their result/
+  sidecar hashes still match: `rand` CSV
+  `11658067064b9de3c36898195b2127cb5660d83cc0a271f91ddf2c4aed99d36f`,
+  sidecar `5790b1a983ae34a11dad72e178f38568c15866c7946005ed77de7f1c811bd864`;
+  `rand_bootstrap` CSV
+  `8885a6dca4f3382178f7f5d24b17f448b3d2e0c108fc89a2aa1175045451a6cd`,
+  sidecar `7bcca9017991471d4a2fc82353e5f3a11b6b90ba381411310290863ca7d62a27`.
+  This remains exactly one `InferenceContinOLS`/diamonds/continuous/
+  Bernoulli/beta-0.5 selector per family; it omits studentized,
+  symmetric-percentile-t, and smoothed bootstrap-CI variants and does not
+  reconcile the 635,680-key candidate universe or canonical rows. The full-
+  grid attempt/status reconciliation and resulting coverage/documentation
+  updates remain open. No artifact was modified.
   **Focused checkout-R regression, 2026-10-21:** after confirming the R/Rscript
   process table was clear, ran only
   `test-rand-ci-bisection-and-high-precision-refinement-reference.R` after
@@ -8541,6 +8615,19 @@ baseline as expected/benign.
   user-built native DLL only. It does not close comprehensive `rand` /
   `rand_bootstrap` row regeneration, exact-key reconciliation, or coverage /
   documentation updates. No build/install or canonical output write occurred.
+  **Candidate-key shape audit, 2026-10-21 (read-only):** the retained
+  `/tmp/edi_todo68_rand_ci_candidate_attempt_roster.csv` has two
+  `model_formula` values and no `design_formula` field; its class keys are
+  unannotated class names. In contrast, the retained 40-replicate OLS `rand`
+  output encodes both formula dimensions in `inference_class` and contains
+  four distinct pairs (`~1/~1`, `~1/~.`, `~./~1`, `~./~.`). Thus the earlier
+  635,680-row roster and raw-output overlap counts are not yet an exact
+  candidate-to-emitted-key reconciliation unless both formula dimensions
+  and the runner's label encoding are explicitly normalized. Candidate rows
+  also remain conditional on successful setup, not proof of attempts/status.
+  Rebuild the source-derived manifest with the full formula-pair key (or
+  prove a lossless mapping) before relying on its missing/overlap counts.
+  This correction does not alter the retained CSVs or canonical data.
   - [ ] Regenerate the affected `rand` and `rand_bootstrap` comprehensive rows
     using the corrected inversion, reconcile every affected result key and
     coverage claim, and update documentation only from the reconciled output.
@@ -8841,6 +8928,31 @@ baseline as expected/benign.
   `ae5b59d562287b2f0fc819a72399028ff849bbf8b4d8f459a248308d8dbe92e4`), so
   0/50 selected keys are present. The focused validator test is synthetic
   only; fresh current-source candidate/result reconciliation remains open.
+  **Explicit selected-pair manifest recheck, 2026-10-21 (read-only):** the
+  pair-specific manifest is now retained at
+  `/tmp/edi-todo76-pair-explicit.lb97t9/selected_pair_50_key_manifest.csv`
+  (SHA-256
+  `1c18f55291f20c09f5fbec07838c0b43a3350a5f898e2c864e977b4b7706803a`),
+  with provenance note SHA-256
+  `992c0b1e60e160411e9c97749e4e1c53480f0eb99931fafcb9b8041fd25b9260`.
+  It selects `design_formula=~.` and `model_formula=~1` from the 200-key
+  source-potential manifest (SHA-256
+  `20e9ca64c7da1558402484fc6ac301bda98edccee8df299a8973688329d987b6`):
+  50 keys (5 classes × 10 method labels), with the other 150 keys belonging
+  to the three other formula pairs. The recorded exact-pair validator result
+  is `ok`. This resolves the manifest's missing-formula-column ambiguity and
+  proves only the selected source-potential key set; it does not show that
+  runtime gates attempted those calls or that any result is usable. The only
+  retained pilot remains the three-row `~.`/`~.` timeout artifact above
+  (SHA-256
+  `ae5b59d562287b2f0fc819a72399028ff849bbf8b4d8f459a248308d8dbe92e4`),
+  outside the selected pair, so the retained results still cover 0/50
+  selected keys. Next gate: run the selected slice in a fresh isolated
+  directory with source/package/native-DLL provenance, then validate exact
+  keys, duplicates, status, `skip_reason`, errors, and usable values for every
+  attempted key. Keep comprehensive reconciliation open until TODO-31's
+  current-head native CLMM point-estimate gate is satisfied; no result or
+  canonical artifact was changed in this manifest audit.
 
   - [ ] For the predeclared affected grid (KKGLMM and all four KKCLMM links),
     rerun all ten Bayesian-bootstrap procedures with commit, package, and DLL
@@ -9699,6 +9811,29 @@ baseline as expected/benign.
   production-runner caller. Runtime eligibility/full-roster completeness,
   current-source isolated regeneration and reconciliation, and separate
   authorization before canonical updates remain open.
+  **Setup-context validation follow-up, 2026-10-21:** source
+  review found the validator accepted unkeyed setup events without the
+  `model_formula` now recorded by all three `setup_skipped` call sites; it
+  also did not constrain setup lifecycle fields. The pure-R validator now
+  requires nonempty case/formula/error context, no operation identity, and
+  the writer's `setup_skipped` versus `setup_failure` status/function shape.
+  The synthetic regression covers both valid event types plus missing-formula
+  and invalid-status rejection. The focused test is registered in correctness
+  and coverage tiers and passed 17 expectations against installed EDI 1.0.3
+  with no failures, warnings, or skips; it uses synthetic `/tmp` artifacts and
+  makes no build/install or canonical write. This closes only the setup-context
+  validator contract subgate. The expected-manifest, runtime-eligibility,
+  full-roster, provenance, and canonical authorization gates remain open.
+
+- [ ] TODO-100 (added 2026-10-21, user decision; found while writing the
+  Technion seminar slide on `InferenceRandCustom`):
+  **Custom-statistic randomization CI is searched on the statistic's scale,
+  not δ's** — `../bug_fix_plans/custom_rand_ci_statistic_scale.md → TODO-1..4`.
+  With a Welch t statistic the CI comes back (1.35, 1.81) in place of about
+  (-0.24, 1.09). Every δ in it is rejected (p = 0.004), and it excludes
+  δ = 0 (p = 0.144). The p-values themselves are correct. The search seeds on
+  `compute_estimate()` (the t value) and never checks that its seed is
+  accepted.
 
 ## Standing constraints
 

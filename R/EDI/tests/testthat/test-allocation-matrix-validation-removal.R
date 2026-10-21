@@ -39,6 +39,7 @@ test_that("DesignFixedRerandomization still produces valid, correctly-shaped dra
 })
 
 test_that("DesignFixedBinaryMatch still produces valid, correctly-shaped draws without the old validation layer", {
+	skip_if_not_installed("nbpMatching")
 	set.seed(20260817)
 	n = 20L
 	X = data.frame(x1 = rnorm(n), x2 = rnorm(n))
@@ -65,6 +66,7 @@ test_that("DesignFixedGreedy still produces valid, correctly-shaped draws withou
 })
 
 test_that("DesignFixedMatchingGreedyPairSwitching still produces valid, correctly-shaped draws without the old validation layer", {
+	skip_if_not_installed("nbpMatching")
 	set.seed(20260817)
 	n = 20L
 	X = data.frame(x1 = rnorm(n), x2 = rnorm(n))

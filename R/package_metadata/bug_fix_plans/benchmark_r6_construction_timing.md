@@ -488,3 +488,18 @@ and authorized regeneration/reconciliation of all four reports remain
 required; the existing HTML copies match, but the Markdown copies differ and
 need the documented content-preservation policy. No benchmark or report was
 run or changed for this recheck.
+
+**Native identity recheck, 2026-10-21 (read-only):** at 16:30 IDT the
+installed `EDI.so` and checkout `R/EDI/src/EDI.so` both hash to
+`13a6dd534bacf3d9fa8e63d255c407745c26917e4c0e043f8bc1476f7cdcd313`
+(14,727,184 bytes; mtime 16:27:21 IDT); checkout HEAD is
+`bf3addd46b63c405b961178be09ea4e03c7c6275`. An earlier check during this
+audit found both DLLs at `2db64ed8ef36e13b1bc4101fee46b9e007afe4701e9bde11c34a88b564844d67`
+at the same HEAD, so the native bytes changed during the audit. This
+supersedes the prior note's then-current `f7cf...` hash but does not
+retroactively authenticate any retained timing: the October 16 metadata lacks
+a DLL hash, while the three-pair diagnostic records DLL
+`ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94` and HEAD
+`4f7a6e4ca82829e880c15a76699701a95e5e83b9`. No timing, report generation, or
+canonical write was performed. The endpoint decision, acceptance-grade
+current-provenance run, and report synchronization gates remain open.

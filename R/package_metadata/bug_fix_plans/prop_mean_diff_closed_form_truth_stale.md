@@ -378,3 +378,44 @@ isolated, exact-key/value-validated four-class regeneration on or after the
 R process's local 2026-10-22 date, with timezone and matching current
 coverage-truth/package/DLL provenance captured, followed by baseline re-audit
 and pruning only of findings resolved by those rows.
+
+**Post-cutoff run preflight, 2026-10-21 (recipe only; not executed):** the
+checked-in runner's default case-grid axes are `Nrep=40`, beta values
+`0`/`0.5`, the nine source-declared proportion datasets
+(`diamonds`, `pte_example`, `ionosphere`, `abalone`, `iris`, `boston`,
+`fuel`, `cars`, `airquality`), the seven `TESTED_DESIGNS`, and formula arms
+`~1`/`~.`. The four target inference classes are
+`InferenceAllSimpleAverageDiff`, `InferenceAllSimpleMeanDiffPooledVar`,
+`InferencePropGCompMeanDiff`, and `InferenceAllSimpleWilcox`. Their
+Cartesian case envelope is 40,320 keys (9 datasets × 2 betas × 40 reps × 7
+designs × 2 formulas × 4 classes); this is a candidate envelope only, not an
+assertion that every constructor/method combination is runtime-eligible or
+emits a result row. Use the runner's default slow-path/capability behavior,
+leave the family filter unset, and keep the full 40-replicate run in one
+process (do not shard by `REP_FILTER`, which restarts the runner RNG stream).
+The one-invocation selector is:
+
+```sh
+Rscript R/package_tests/comprehensive_tests.R \
+  40 2 proportion NA \
+  'InferenceAllSimpleAverageDiff|InferenceAllSimpleMeanDiffPooledVar|InferencePropGCompMeanDiff|InferenceAllSimpleWilcox' \
+  NA NA NA NA NA
+```
+
+On the authorized run date, redirect output to a newly created `/tmp`
+directory with `EDI_COMPREHENSIVE_RESULTS_DIR` and set
+`EDI_COMPREHENSIVE_ATTEMPT_MANIFEST` to a distinct event-CSV path in that
+directory; never point either path at the canonical artifacts. Confirm the
+R process's local date is at least 2026-10-22 and record `Sys.timezone()`
+alongside the run. Preserve the generated schema-2 sidecar and verify that
+its command, before/after checkout and package-payload identities, installed
+library/package version, DLL path/hash, output CSV identity, and event-CSV
+path/hash all describe the same run. Before any merge, derive/validate the
+operation-level eligible keys from the current runner and actual keyed
+attempt/skip events; do not treat the 40,320 case envelope or the 140,960
+historical row count as an expected-operation manifest. Reconcile exact full
+keys, retries/duplicates, terminal events and statuses, then validate finite
+result/CI/truth fields and compare the resulting current rows with the audit
+baseline in an isolated copy. A setup failure without a candidate-key mapping
+cannot be silently counted as an excluded case. No process, output directory,
+or result artifact was created during this preflight.

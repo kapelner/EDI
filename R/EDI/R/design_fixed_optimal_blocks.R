@@ -132,9 +132,11 @@
 #'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
 #'   the default \code{"ompr"} distance.
 #' @examples
+#' if (requireNamespace("anticlust", quietly = TRUE)) {
 #' des = DesignFixedOptimalBlocks$new(n = 9, response_type = 'continuous')
 #' des$add_all_subjects_to_experiment(data.frame(x = rnorm(9)))
 #' des$assign_w_to_all_subjects()
+#' }
 #' @export
 DesignFixedOptimalBlocks = define_design_class(
 	classname = "DesignFixedOptimalBlocks",

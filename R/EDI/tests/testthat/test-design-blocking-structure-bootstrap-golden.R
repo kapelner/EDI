@@ -73,6 +73,7 @@ test_that("BlockingStructure's generalized draw_bootstrap_indices reproduces Des
 })
 
 test_that("BlockingStructure's generalized draw_bootstrap_indices reproduces DesignFixedOptimalBlocks exactly", {
+	skip_if_not_installed("anticlust")
 	EDI:::populate_design_component_registry()
 	DesignTemporaryOptimalBlocksHost = EDI:::define_design_class(
 		classname = "DesignTemporaryOptimalBlocksHost",

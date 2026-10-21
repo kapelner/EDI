@@ -335,6 +335,41 @@ validate_comprehensive_incidence_rand_pvalue_result_artifact <- function(
 	if (nrow(unkeyed_events) && any(!as.character(unkeyed_events$event_type) %in% c("setup_skipped", "setup_failure"))) {
 		stop("TODO-99 attempt manifest contains an unkeyed non-setup event", call. = FALSE)
 	}
+	if (nrow(unkeyed_events)) {
+		setup_context_fields <- c(
+			"id", "rep", "beta_T", "dataset", "response_type", "design", "model_formula",
+			"inference_class", "function_run", "status", "skip_reason", "error_message"
+		)
+		missing_setup_fields <- setdiff(setup_context_fields, names(unkeyed_events))
+		if (length(missing_setup_fields)) {
+			stop("TODO-99 setup events are missing context field(s): ",
+				paste(missing_setup_fields, collapse = ", "), call. = FALSE)
+		}
+		rep_value <- suppressWarnings(as.numeric(as.character(unkeyed_events$rep)))
+		beta_value <- suppressWarnings(as.numeric(as.character(unkeyed_events$beta_T)))
+		required_context <- c("dataset", "response_type", "design", "model_formula", "error_message")
+		missing_context <- Reduce(`|`, lapply(unkeyed_events[required_context], function(x) {
+			value <- trimws(as.character(x))
+			is.na(value) | !nzchar(value)
+		}))
+		bad_keys <- is.na(rep_value) | !is.finite(rep_value) | rep_value < 1 | rep_value != floor(rep_value) |
+			is.na(beta_value) | !is.finite(beta_value)
+		bad_operation_fields <- !is.na(unkeyed_events$id) & nzchar(as.character(unkeyed_events$id)) |
+			!is.na(unkeyed_events$inference_class) & nzchar(as.character(unkeyed_events$inference_class))
+		setup_type <- as.character(unkeyed_events$event_type)
+		setup_skipped <- setup_type == "setup_skipped"
+		function_run <- as.character(unkeyed_events$function_run)
+		status <- as.character(unkeyed_events$status)
+		bad_lifecycle <- ifelse(
+			setup_skipped,
+			!is.na(unkeyed_events$function_run) | !is.na(unkeyed_events$status) | !is.na(unkeyed_events$skip_reason),
+			is.na(function_run) | function_run != "run_tests_for_response" |
+				is.na(status) | status != "error" | !is.na(unkeyed_events$skip_reason)
+		)
+		if (any(missing_context | bad_keys | bad_operation_fields | bad_lifecycle)) {
+			stop("TODO-99 setup events have incomplete context or invalid lifecycle fields", call. = FALSE)
+		}
+	}
 	state <- reconciliation$event_state
 	if (nrow(state) != nrow(expected_manifest) || any(state$started != 1L | state$terminal != 1L |
 			state$unclosed_starts != 0L | state$orphan_terminals != 0L | state$overlapping_starts != 0L)) {

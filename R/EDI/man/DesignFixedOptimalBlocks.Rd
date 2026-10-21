@@ -128,9 +128,11 @@ default (\code{bootstrap_type = "within_blocks"} or \code{NULL}, via
 scheme, as in \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}.
 }
 \examples{
+if (requireNamespace("anticlust", quietly = TRUE)) {
 des = DesignFixedOptimalBlocks$new(n = 9, response_type = 'continuous')
 des$add_all_subjects_to_experiment(data.frame(x = rnorm(9)))
 des$assign_w_to_all_subjects()
+}
 }
 \references{
 Higgins, M. J., Sävje, F., and Sekhon, J. S. (2016). "Improving massive

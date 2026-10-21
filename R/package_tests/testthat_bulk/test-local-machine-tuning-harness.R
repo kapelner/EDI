@@ -7,7 +7,9 @@ test_that("edi_tuning_live_families() enumerates concrete, single-response-type 
 	families = edi_tuning_live_families()
 	expect_true(is.data.frame(families))
 	expect_setequal(names(families), c("class", "response_type"))
-	expect_gt(nrow(families), 50L)
+	# Sanity floor, not an exact count: InferenceIncidExactBinomial moved to the
+	# KK-matching-required overrides (2026-10-21), taking the live count from 51 to 50.
+	expect_gte(nrow(families), 50L)
 	expect_false(anyDuplicated(families$class) > 0L)
 	expect_true(all(families$response_type %in%
 		c("continuous", "incidence", "count", "proportion", "ordinal", "survival")))

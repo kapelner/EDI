@@ -142,6 +142,7 @@ test_that("DesignFixedGreedy get_w and draw_ws return {0,1}", {
 })
 
 test_that("DesignFixedOptimalBlocks get_w and draw_ws return {0,1}", {
+	skip_if_not_installed("anticlust")
   set.seed(1)
   des = run_fixed_design(DesignFixedOptimalBlocks$new(n = n12, response_type = "continuous"), X12)
   expect_w_encoding(des$get_w(), n12)

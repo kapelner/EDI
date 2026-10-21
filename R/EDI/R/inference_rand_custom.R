@@ -17,6 +17,15 @@
 #' available -- there is no package point-estimator, Wald path, or bootstrap
 #' machinery on this class, so no other action needs disabling.
 #'
+#' The confidence interval inverts tests under an additive shift \eqn{\delta}
+#' of the treated responses, so its endpoints are intended to be interpreted
+#' on the additive response-effect scale, not necessarily in the units of the
+#' supplied statistic. \strong{Current limitation:} the search is seeded from the
+#' observed statistic. If that statistic is not on the \eqn{\delta} scale
+#' (for example, a t statistic), the returned interval may be invalid. Until
+#' this is fixed, use the CI only with a statistic whose observed value is on
+#' the additive response-effect scale.
+#'
 #' @param des_obj A Design object whose subjects are assigned and responses
 #'   recorded.
 #' @param custom_randomization_statistic_function A function of

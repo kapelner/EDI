@@ -63,9 +63,11 @@
 #'   \href{https://en.wikipedia.org/wiki/Mahalanobis_distance}{Mahalanobis distance} for
 #'   orientation.
 #' @examples
+#' if (requireNamespace("nbpMatching", quietly = TRUE)) {
 #' des = DesignFixedBinaryMatch$new(n = 10, response_type = 'continuous')
 #' des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 #' des$assign_w_to_all_subjects()
+#' }
 #' @export
 DesignFixedBinaryMatch = define_design_class(
 	classname = "DesignFixedBinaryMatch",

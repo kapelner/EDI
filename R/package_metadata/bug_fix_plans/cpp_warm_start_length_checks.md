@@ -213,7 +213,10 @@ lengths is part of TODO-1).
   the existing `.o` files, load the rebuilt package without source-loading,
   run TODO-3 and the kernel-equivalence tests. Bit-preserving by
   construction: the change only rejects inputs that were undefined
-  behavior before. `NEWS.md` entry under bug fixes.
+  behavior before. **NEWS subtask, 2026-10-21:** added a release note
+  describing dimension checks for consumed warm starts and fixed-parameter
+  indices; the linked native compile/relink and rebuilt-package validation
+  remain open.
 
   Installed-package check on 2026-10-14: the CRAN-shipped
   `test-kernel-warm-start-length-contracts.R` passed all 20 assertions under

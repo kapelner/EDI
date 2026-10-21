@@ -202,6 +202,7 @@ test_that("KK21 stepwise randomization draws condition on the realized pairs by 
 })
 
 test_that("KK designs with KK inference work", {
+	skip_if_not_installed("nbpMatching")
 	n <- 30
 	designs <- list(
 	KK14 = DesignSeqOneByOneKK14$new(response_type = "continuous", n = n),

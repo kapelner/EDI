@@ -155,12 +155,18 @@ test_that("incidence rand artifact wrapper enforces expected outcomes after rece
 		key_columns <- c("rep", "beta_T", "dataset", "response_type", "design", "inference_class", "function_run")
 		rows <- rows[c(key_columns, "status")]
 		pieces <- lapply(seq_len(nrow(rows)), function(i) {
-			key <- rows[rep(i, 2L), key_columns, drop = FALSE]
 			data.frame(
 				event_seq = c(2L * i - 1L, 2L * i),
 				event_type = c("started", "terminal"),
-				key,
+				id = NA_character_,
+				rep = rep(rows$rep[i], 2L), beta_T = rep(rows$beta_T[i], 2L),
+				dataset = rep(rows$dataset[i], 2L), response_type = rep(rows$response_type[i], 2L),
+				design = rep(rows$design[i], 2L),
+				model_formula = NA_character_,
+				inference_class = rep(rows$inference_class[i], 2L),
+				function_run = rep(rows$function_run[i], 2L),
 				status = c(NA_character_, as.character(rows$status[i])),
+				skip_reason = NA_character_, error_message = NA_character_,
 				stringsAsFactors = FALSE
 			)
 		})
@@ -209,9 +215,10 @@ test_that("incidence rand artifact wrapper enforces expected outcomes after rece
 	expect_equal(validated$unkeyed_setup_events, 0L)
 
 	setup_context <- data.frame(
-		event_seq = 5L, event_type = "setup_skipped", rep = 1L, beta_T = 0,
+		event_seq = 5L, event_type = "setup_skipped", id = NA_character_, rep = 1L, beta_T = 0,
 		dataset = "pima", response_type = "incidence", design = "Bernoulli",
-		inference_class = NA_character_, function_run = NA_character_, status = NA_character_,
+		model_formula = "~1", inference_class = NA_character_, function_run = NA_character_,
+		status = NA_character_, skip_reason = NA_character_, error_message = "fixture setup failed",
 		stringsAsFactors = FALSE
 	)
 	write_artifact(result_rows, rbind(make_events(result_rows), setup_context))
@@ -219,6 +226,33 @@ test_that("incidence rand artifact wrapper enforces expected outcomes after rece
 		results_path, sidecar_path, manifest, events_path
 	)
 	expect_equal(validated_with_setup_context$unkeyed_setup_events, 1L)
+	setup_failure_context <- setup_context
+	setup_failure_context$event_type <- "setup_failure"
+	setup_failure_context$function_run <- "run_tests_for_response"
+	setup_failure_context$status <- "error"
+	write_artifact(result_rows, rbind(make_events(result_rows), setup_failure_context))
+	validated_with_setup_failure <- validate_comprehensive_incidence_rand_pvalue_result_artifact(
+		results_path, sidecar_path, manifest, events_path
+	)
+	expect_equal(validated_with_setup_failure$unkeyed_setup_events, 1L)
+	missing_setup_formula <- setup_context
+	missing_setup_formula$model_formula <- NA_character_
+	write_artifact(result_rows, rbind(make_events(result_rows), missing_setup_formula))
+	expect_error(
+		validate_comprehensive_incidence_rand_pvalue_result_artifact(
+			results_path, sidecar_path, manifest, events_path
+		),
+		"setup events have incomplete context or invalid lifecycle fields"
+	)
+	malformed_setup_status <- setup_context
+	malformed_setup_status$status <- "error"
+	write_artifact(result_rows, rbind(make_events(result_rows), malformed_setup_status))
+	expect_error(
+		validate_comprehensive_incidence_rand_pvalue_result_artifact(
+			results_path, sidecar_path, manifest, events_path
+		),
+		"setup events have incomplete context or invalid lifecycle fields"
+	)
 
 	missing_terminal <- make_events(result_rows)
 	missing_terminal <- missing_terminal[missing_terminal$event_type != "terminal" | missing_terminal$rep != 1L | missing_terminal$beta_T != 0.5, , drop = FALSE]

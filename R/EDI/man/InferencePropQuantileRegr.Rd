@@ -32,6 +32,7 @@ Install \pkg{quantreg} manually before use. Only uncensored proportion responses
 supported (checked via \code{assertNoCensoring} at construction).
 }
 \examples{
+if (requireNamespace("quantreg", quietly = TRUE)) {
 \donttest{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'proportion')
 for (i in 1:10) {
@@ -40,6 +41,7 @@ for (i in 1:10) {
 seq_des$add_all_subject_responses(runif(10))
 inf = InferencePropQuantileRegr$new(seq_des)
 inf$compute_estimate()
+}
 }
 }
 \references{

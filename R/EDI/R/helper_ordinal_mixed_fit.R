@@ -47,7 +47,7 @@ weighted_ordinal_random_intercept_fit = function(y, predictors_df, group_id,
 		fixed_fit = tryCatch({
 			utils::capture.output(fit <- suppressMessages(suppressWarnings(
 				ordinal::clm(
-					fixed_form, data = dat, weights = .bootstrap_weight__,
+					fixed_form, data = dat, weights = dat$.bootstrap_weight__,
 					link = link, Hess = FALSE
 				)
 			)))

@@ -30,6 +30,7 @@
 #'   Powell-style sandwich standard error estimators used here.
 #'
 #' @examples
+#' if (requireNamespace("quantreg", quietly = TRUE)) {
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'continuous')
 #' for (i in 1:10) {
@@ -38,6 +39,7 @@
 #' seq_des$add_all_subject_responses(rnorm(10))
 #' inf = InferenceContinQuantileRegr$new(seq_des)
 #' inf$compute_estimate()
+#' }
 #' }
 #' @concept quantile regression
 #' @concept median regression

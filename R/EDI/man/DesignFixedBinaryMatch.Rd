@@ -60,9 +60,11 @@ batch (amortizing the one-time \pkg{nbpMatching} matching cost across all replic
 of that cell) rather than recomputing the matching structure per replicate.
 }
 \examples{
+if (requireNamespace("nbpMatching", quietly = TRUE)) {
 des = DesignFixedBinaryMatch$new(n = 10, response_type = 'continuous')
 des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(10)))
 des$assign_w_to_all_subjects()
+}
 }
 \references{
 Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P. (2004). "Optimal

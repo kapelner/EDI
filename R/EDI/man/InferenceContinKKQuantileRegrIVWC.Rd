@@ -40,6 +40,7 @@ Install \pkg{quantreg} before using this class.
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 }
 \examples{
+if (requireNamespace("quantreg", quietly = TRUE)) {
 \donttest{
 seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
 for (i in 1:10) {
@@ -67,7 +68,7 @@ for (i in seq_len(nrow(x_dat))) {
 seq_des$add_all_subject_responses(c(1.2, 0.9, 1.5, 1.8, 2.1, 1.7, 2.6, 2.2))
 infer <- InferenceContinKKQuantileRegrIVWC$new(seq_des, verbose = FALSE)
 infer
-
+}
 }
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceContinKKQuantileRegrIVWC}

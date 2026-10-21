@@ -228,6 +228,7 @@ test_that("register_design_component rejects duplicate registration", {
 })
 
 test_that("registering design components does not change any existing Design class's behavior", {
+	skip_if_not_installed("nbpMatching")
 	# Components are metadata + references only at this stage (Component Registry);
 	# no concrete class consumes them yet (that's Component Extraction), so ordinary
 	# design usage must be completely unaffected.

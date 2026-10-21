@@ -29,6 +29,7 @@ disabled until the weighted ordinal-GEE implementation planned for v1.1.0
 is complete.
 }
 \examples{
+if (requireNamespace("multgee", quietly = TRUE)) {
 \donttest{
 seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'ordinal')
 for (i in 1:10) {
@@ -37,6 +38,7 @@ for (i in 1:10) {
 seq_des$add_all_subject_responses(sample(1:4, 10, replace = TRUE))
 inf = InferenceOrdinalKKGEE$new(seq_des)
 inf$compute_estimate()
+}
 }
 }
 \references{

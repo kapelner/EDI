@@ -41,6 +41,7 @@ Install \pkg{quantreg} before using this class.
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 }
 \examples{
+if (requireNamespace("quantreg", quietly = TRUE)) {
 \donttest{
 seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'proportion')
 for (i in 1:10) {
@@ -49,6 +50,7 @@ for (i in 1:10) {
 seq_des$add_all_subject_responses(runif(10))
 inf = InferencePropKKQuantileRegrIVWC$new(seq_des)
 inf$compute_estimate()
+}
 }
 }
 \section{Super class}{

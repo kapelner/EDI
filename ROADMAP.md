@@ -252,6 +252,12 @@ for the full index.
   p-values when asserts are off (the default in simulations), and a finite
   Weibull randomization CI built from failed p-values. These will error clearly
   until the shift itself is supported.
+- **[Custom-statistic randomization CI](R/package_metadata/bug_fix_plans/custom_rand_ci_statistic_scale.md)** —
+  with a user statistic that is not on the treatment effect's scale (e.g. a
+  t statistic), `InferenceRandCustom`'s randomization CI searches around the
+  statistic's own value and returns an interval of rejected values. The
+  p-values are correct. The search will start from a δ-scale seed and refuse
+  to return an interval with no accepted value.
 - **[Inference component dependency cleanup](R/package_metadata/new_feature_plans/inference_component_dependency_cleanup.md)**
   *(maintenance)* — each inference component's declared dependencies copy
   the old inheritance ladder (e.g. Wald "requires" Jackknife but never calls

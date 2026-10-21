@@ -20,6 +20,7 @@
 #'   University Press. \doi{10.1017/CBO9780511754098}
 #'
 #' @examples
+#' if (requireNamespace("quantreg", quietly = TRUE)) {
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'proportion')
 #' for (i in 1:10) {
@@ -28,6 +29,7 @@
 #' seq_des$add_all_subject_responses(runif(10))
 #' inf = InferencePropKKQuantileRegrOneLik$new(seq_des)
 #' inf$compute_estimate()
+#' }
 #' }
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "Full-Likelihood

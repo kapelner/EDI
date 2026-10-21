@@ -301,6 +301,7 @@ expect_exact_incidence_current_snapshot = function(class_name, extra_duplicate_p
 }
 
 test_that("exact incidence migration baseline pins current golden outputs", {
+	skip_if_not_installed("nbpMatching")
 	InferenceIncidExactBinomialLegacy = make_exact_binomial_legacy_generator()
 	InferenceIncidExactFisherLegacy = make_exact_fisher_legacy_generator()
 	InferenceIncidExactZhangLegacy = make_exact_zhang_legacy_generator()
@@ -389,6 +390,7 @@ test_that("exact incidence migration baseline pins current golden outputs", {
 })
 
 test_that("exact Zhang migration matches legacy outputs across supported fixtures", {
+	skip_if_not_installed("nbpMatching")
 	skip_on_cran()
 	InferenceIncidExactZhangLegacy = make_exact_zhang_legacy_generator()
 	specs = list(
@@ -450,6 +452,7 @@ test_that("exact Zhang migration matches legacy outputs across supported fixture
 })
 
 test_that("exact Fisher migration matches legacy outputs across supported fixtures", {
+	skip_if_not_installed("nbpMatching")
 	skip_on_cran()
 	InferenceIncidExactFisherLegacy = make_exact_fisher_legacy_generator()
 	specs = list(

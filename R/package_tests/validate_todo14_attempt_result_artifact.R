@@ -72,14 +72,177 @@
 	issues
 }
 
+# A source candidate inventory is not evidence that all candidate keys were
+# attempted. Require a second, caller-supplied disposition for every candidate
+# and reconcile operation events against that disposition before accepting the
+# attempted subset. Setup-level events are intentionally fail-closed: the
+# current runner does not provide a proven mapping from those events to every
+# affected operation key.
+.todo14_reconcile_candidate_eligibility <- function(
+	candidate_manifest, eligibility_manifest, expected_manifest, events, results
+) {
+	key_columns <- c("rep", "beta_T", "dataset", "response_type", "design", "inference_class")
+	manifest_columns <- c(key_columns, "function_run")
+	eligibility_column <- "eligibility"
+	if (!is.data.frame(candidate_manifest) || !nrow(candidate_manifest) ||
+			!all(c("id", manifest_columns, "candidate_status", "scope_source") %in% names(candidate_manifest))) {
+		stop("candidate_manifest must be a nonempty source candidate roster with explicit candidate-only labels", call. = FALSE)
+	}
+	if (anyNA(candidate_manifest$candidate_status) || any(as.character(candidate_manifest$candidate_status) !=
+			"candidate_only_requires_setup_and_runtime_eligibility") ||
+			anyNA(candidate_manifest$scope_source) || any(as.character(candidate_manifest$scope_source) !=
+				"checked_in_runner_defaults_without_cli_filters")) {
+		stop("candidate_manifest must retain its candidate-only status and runner-default scope labels", call. = FALSE)
+	}
+	candidate_attempt_fields <- intersect(
+		c("status", "expected_status", "skip_reason", "error_message", "runtime_eligible", "attempted", "attempt_event"),
+		names(candidate_manifest)
+	)
+	if (length(candidate_attempt_fields)) {
+		stop("candidate_manifest must remain key-only; attempt/runtime fields are not accepted: ",
+			paste(candidate_attempt_fields, collapse = ", "), call. = FALSE)
+	}
+	if (!is.data.frame(eligibility_manifest) || !nrow(eligibility_manifest) ||
+			!all(c("id", manifest_columns, eligibility_column) %in% names(eligibility_manifest))) {
+		stop("eligibility_manifest must classify every candidate key with an explicit eligibility disposition", call. = FALSE)
+	}
+	if (any(c("candidate_status", "scope_source") %in% names(expected_manifest))) {
+		stop("candidate-only inventory must be supplied as candidate_manifest, not expected_manifest", call. = FALSE)
+	}
+	validate_key_table <- function(x, label, unique_keys = TRUE) {
+		values <- lapply(x[manifest_columns], as.character)
+		if (any(vapply(values, function(column) anyNA(column) || any(!nzchar(trimws(column))), logical(1)))) {
+			stop(label, " contains missing or empty natural-key fields", call. = FALSE)
+		}
+		key_ids <- comprehensive_result_manifest_keys(x, manifest_columns)
+		if (isTRUE(unique_keys) && anyDuplicated(key_ids)) stop(label, " contains duplicate natural keys", call. = FALSE)
+		built_ids <- .todo14_build_id(x)
+		if (anyNA(x$id) || any(as.character(x$id) != built_ids)) {
+			stop(label, " id does not match its natural-key fields", call. = FALSE)
+		}
+		key_ids
+	}
+	candidate_ids <- validate_key_table(candidate_manifest, "candidate_manifest")
+	eligibility_ids <- validate_key_table(eligibility_manifest, "eligibility_manifest")
+	if (!setequal(candidate_ids, eligibility_ids) || length(candidate_ids) != length(eligibility_ids)) {
+		stop("eligibility_manifest must classify the exact source candidate inventory", call. = FALSE)
+	}
+	candidate_match <- match(eligibility_ids, candidate_ids)
+	if (anyNA(candidate_match) || any(as.character(eligibility_manifest$id) != as.character(candidate_manifest$id[candidate_match]))) {
+		stop("eligibility_manifest natural keys do not match candidate_manifest", call. = FALSE)
+	}
+	valid_dispositions <- c("attempt", "skipped_completed", "skipped_slow", "skipped_confirmed_timeout")
+	disposition <- as.character(eligibility_manifest[[eligibility_column]])
+	if (anyNA(disposition) || any(!disposition %in% valid_dispositions)) {
+		stop("eligibility_manifest has missing or unsupported dispositions; setup-level outcomes require an explicit key mapping", call. = FALSE)
+	}
+	attempt_ids <- eligibility_ids[disposition == "attempt"]
+	if (!length(attempt_ids)) stop("eligibility_manifest has no eligible operation attempts", call. = FALSE)
+	expected_ids <- validate_key_table(expected_manifest, "expected_manifest")
+	if (!setequal(attempt_ids, expected_ids) || length(attempt_ids) != length(expected_ids)) {
+		stop("expected_manifest must equal exactly the eligibility_manifest attempt subset", call. = FALSE)
+	}
+	if (!is.data.frame(events) || !is.data.frame(results)) stop("events and results must be data.frames", call. = FALSE)
+	event_required <- c("event_seq", "event_type", "id", manifest_columns, "status", "skip_reason")
+	event_missing <- setdiff(event_required, names(events))
+	if (length(event_missing)) stop("attempt manifest is missing field(s): ", paste(event_missing, collapse = ", "), call. = FALSE)
+	if (anyNA(events$event_type)) stop("attempt manifest contains missing event types", call. = FALSE)
+	event_type <- as.character(events$event_type)
+	setup_rows <- which(event_type %in% c("setup_skipped", "setup_failure"))
+	if (length(setup_rows)) {
+		stop(sprintf(
+			"%d unmapped setup-level event(s) (%s) cannot be reconciled to operation keys; provide a proven row-level setup eligibility mapping",
+			length(setup_rows), paste(unique(event_type[setup_rows]), collapse = ", ")
+		), call. = FALSE)
+	}
+	allowed_events <- c("started", "terminal", "skipped_completed", "skipped_slow", "skipped_confirmed_timeout")
+	if (any(!event_type %in% allowed_events)) stop("attempt manifest contains an unsupported event type", call. = FALSE)
+	if (nrow(events)) {
+		event_ids <- validate_key_table(events, "attempt events", unique_keys = FALSE)
+		if (anyNA(events$id) || any(!event_ids %in% candidate_ids)) {
+			stop("attempt event keys/ids do not map to the source candidate inventory", call. = FALSE)
+		}
+		seq_value <- suppressWarnings(as.numeric(events$event_seq))
+		if (any(!is.finite(seq_value)) || any(seq_value < 1 | seq_value != floor(seq_value)) || anyDuplicated(seq_value)) {
+			stop("attempt events require unique positive integer event_seq values", call. = FALSE)
+		}
+	} else {
+		event_ids <- character()
+	}
+	if (any(event_type == "started" & !is.na(events$status) & nzchar(trimws(as.character(events$status))))) {
+		stop("started events must have no status", call. = FALSE)
+	}
+	terminal <- event_type == "terminal"
+	if (any(terminal & (is.na(events$status) | !as.character(events$status) %in% c("ok", "error")))) {
+		stop("terminal events must have status ok/error", call. = FALSE)
+	}
+	skip_rows <- which(event_type %in% valid_dispositions[-1L])
+	if (length(skip_rows) && any(!is.na(events$status[skip_rows]) & nzchar(trimws(as.character(events$status[skip_rows]))))) {
+		stop("runtime skip events must not carry a result status", call. = FALSE)
+	}
+	expected_skip_reason <- c(
+		skipped_completed = "completed_cache",
+		skipped_slow = "slow_path",
+		skipped_confirmed_timeout = "confirmed_timeout_cache"
+	)
+	if (length(skip_rows) && any(is.na(events$skip_reason[skip_rows]) |
+			as.character(events$skip_reason[skip_rows]) != unname(expected_skip_reason[event_type[skip_rows]]))) {
+		stop("runtime skip event reason does not match its runner skip classification", call. = FALSE)
+	}
+	for (i in seq_along(eligibility_ids)) {
+		id <- eligibility_ids[i]
+		key_events <- which(event_ids == id)
+		key_types <- event_type[key_events]
+		if (disposition[i] == "attempt") {
+			if (any(key_types %in% valid_dispositions[-1L])) {
+				stop("attempt-eligible key also has a runtime skip event", call. = FALSE)
+			}
+		} else if (length(key_events) != 1L || !identical(key_types, disposition[i])) {
+			stop("each runtime-ineligible candidate requires exactly one matching keyed skip event", call. = FALSE)
+		}
+	}
+	if (any(!event_ids %in% eligibility_ids)) stop("attempt events contain keys absent from eligibility_manifest", call. = FALSE)
+	execution_events <- events[event_type %in% c("started", "terminal"), , drop = FALSE]
+	attempt_manifest <- eligibility_manifest[disposition == "attempt", , drop = FALSE]
+	reconciliation <- reconcile_todo23_attempts(
+		expected_manifest = attempt_manifest,
+		events = execution_events,
+		results = results,
+		key_columns = key_columns,
+		method_column = "function_run"
+	)
+	if (nrow(reconciliation$event_missing) || nrow(reconciliation$event_extra) ||
+			nrow(reconciliation$result_missing) || nrow(reconciliation$result_extra) ||
+			nrow(reconciliation$result_duplicates) || nrow(reconciliation$terminal_without_result) ||
+			nrow(reconciliation$result_without_terminal) || nrow(reconciliation$terminal_status_mismatches) ||
+			length(reconciliation$unkeyed_event_rows)) {
+		stop("attempt event/result reconciliation found missing, extra, duplicate, unpaired, or unkeyed rows", call. = FALSE)
+	}
+	state <- reconciliation$event_state
+	if (nrow(state) != nrow(attempt_manifest) || any(state$started != 1L | state$terminal != 1L |
+			state$unclosed_starts != 0L | state$orphan_terminals != 0L | state$overlapping_starts != 0L)) {
+		stop("each attempt-eligible key must have exactly one well-formed started/terminal pair", call. = FALSE)
+	}
+	skip_index <- which(disposition != "attempt")
+	skip_event_index <- match(eligibility_ids[skip_index], event_ids)
+	runtime_skips <- eligibility_manifest[skip_index, c("id", manifest_columns, eligibility_column), drop = FALSE]
+	runtime_skips$event_seq <- if (length(skip_event_index)) events$event_seq[skip_event_index] else integer()
+	runtime_skips$skip_reason <- if (length(skip_event_index)) events$skip_reason[skip_event_index] else character()
+	list(
+		attempt_count = length(attempt_ids),
+		runtime_skip_counts = table(factor(disposition[disposition != "attempt"], levels = valid_dispositions[-1L])),
+		runtime_skips = runtime_skips,
+		reconciliation = reconciliation
+	)
+}
+
 #' Validate an isolated TODO-14 attempt/result artifact and its receipts.
 #'
-#' `expected_manifest` is the independently prepared *exact eligible-attempt*
-#' roster for this isolated run, not merely the source candidate inventory.
-#' Every expected key must have exactly one started/terminal event pair and one
-#' result row. Setup/runtime-ineligible candidates must be resolved before
-#' calling this validator; they are not silently treated as emitted attempts.
-#' The result CSV and attempt-event CSV must both be bound by the run sidecar.
+#' `candidate_manifest` is a source-derived key inventory only. The explicit
+#' `eligibility_manifest` must classify every candidate as an attempt or one
+#' keyed runtime skip; `expected_manifest` must equal its attempt subset. Setup
+#' events are rejected until the runner proves their mapping to operation keys.
+#' The result CSV and raw attempt-event CSV must both be bound by the run sidecar.
 #' `expected_provenance` pins the run to the approved checkout, R version,
 #' EDI package location/version, and native DLL hash.
 validate_todo14_attempt_result_artifact <- function(
@@ -87,13 +250,18 @@ validate_todo14_attempt_result_artifact <- function(
 	sidecar_path,
 	attempt_manifest_path,
 	expected_manifest,
-	expected_provenance = NULL
+	expected_provenance = NULL,
+	candidate_manifest = NULL,
+	eligibility_manifest = NULL
 ) {
 	key_columns <- c("rep", "beta_T", "dataset", "response_type", "design", "inference_class")
 	manifest_columns <- c(key_columns, "function_run")
 	if (!is.data.frame(expected_manifest) || !nrow(expected_manifest) ||
 			!all(c("id", manifest_columns) %in% names(expected_manifest))) {
 		stop("expected_manifest must be a nonempty exact TODO-14 roster with id and full natural-key fields", call. = FALSE)
+	}
+	if (is.null(candidate_manifest) || is.null(eligibility_manifest)) {
+		stop("candidate_manifest and explicit eligibility_manifest are required; a candidate roster is not an attempt roster", call. = FALSE)
 	}
 	manifest_values <- lapply(expected_manifest[manifest_columns], as.character)
 	if (any(vapply(manifest_values, function(x) anyNA(x) || any(!nzchar(trimws(x))), logical(1)))) {
@@ -174,29 +342,6 @@ validate_todo14_attempt_result_artifact <- function(
 
 	results <- utils::read.csv(results_file, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("", "NA"))
 	events <- utils::read.csv(actual_attempt_path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = c("", "NA"))
-	event_required <- c("id", manifest_columns, "event_type", "event_seq", "status")
-	event_missing <- setdiff(event_required, names(events))
-	if (length(event_missing)) {
-		stop("attempt manifest is missing field(s): ", paste(event_missing, collapse = ", "), call. = FALSE)
-	}
-	event_type <- as.character(events$event_type)
-	if (anyNA(event_type) || any(!event_type %in% c("started", "terminal"))) {
-		stop("isolated TODO-14 attempt manifest may contain only started and terminal operation events", call. = FALSE)
-	}
-	event_status <- as.character(events$status)
-	bad_started_status <- event_type == "started" & !is.na(event_status) & nzchar(trimws(event_status))
-	bad_terminal_status <- event_type == "terminal" &
-		(is.na(event_status) | !event_status %in% c("ok", "error"))
-	if (any(bad_started_status) || any(bad_terminal_status)) {
-		stop("started events must have no status and terminal events must have status ok/error", call. = FALSE)
-	}
-	if (nrow(events)) {
-		event_key_ids <- comprehensive_result_manifest_keys(events, manifest_columns)
-		event_to_expected <- match(event_key_ids, expected_key_ids)
-		if (anyNA(event_to_expected) || anyNA(events$id) || any(as.character(events$id) != as.character(expected_manifest$id[event_to_expected]))) {
-			stop("attempt event id does not agree with an expected natural key", call. = FALSE)
-		}
-	}
 	value_issues <- .todo14_attempt_value_issues(results, expected_manifest)
 	if (length(value_issues)) stop(paste(value_issues, collapse = "; "), call. = FALSE)
 	result_key_ids <- comprehensive_result_manifest_keys(results, manifest_columns)
@@ -209,35 +354,20 @@ validate_todo14_attempt_result_artifact <- function(
 		stop("result github_commit_id does not match expected checkout", call. = FALSE)
 	}
 
-	reconciliation <- reconcile_todo23_attempts(
+	eligibility_reconciliation <- .todo14_reconcile_candidate_eligibility(
+		candidate_manifest = candidate_manifest,
+		eligibility_manifest = eligibility_manifest,
 		expected_manifest = expected_manifest,
 		events = events,
-		results = results,
-		key_columns = key_columns,
-		method_column = "function_run"
+		results = results
 	)
-	if (nrow(reconciliation$event_missing) || nrow(reconciliation$event_extra) ||
-			nrow(reconciliation$result_missing) || nrow(reconciliation$result_extra) ||
-			nrow(reconciliation$result_duplicates) || nrow(reconciliation$terminal_without_result) ||
-		nrow(reconciliation$result_without_terminal) || nrow(reconciliation$terminal_status_mismatches) ||
-			length(reconciliation$unkeyed_event_rows)) {
-		stop("attempt event/result reconciliation found missing, extra, duplicate, unpaired, or unkeyed rows", call. = FALSE)
-	}
-	state <- reconciliation$event_state
-	if (nrow(state) != nrow(expected_manifest) || any(state$started != 1L | state$terminal != 1L |
-			state$unclosed_starts != 0L | state$orphan_terminals != 0L | state$overlapping_starts != 0L)) {
-		stop("each expected key must have exactly one well-formed started/terminal pair", call. = FALSE)
-	}
-	if (nrow(reconciliation$terminal_result_counts) != nrow(expected_manifest) ||
-			any(!reconciliation$terminal_result_counts$count_match)) {
-		stop("terminal-event and result-row counts differ for one or more expected keys", call. = FALSE)
-	}
 	invisible(list(
 		results_file = validated$results_file,
 		rows = nrow(results),
 		attempt_events = nrow(events),
 		status_counts = table(factor(results$status, levels = c("ok", "error"))),
 		provenance = provenance,
-		reconciliation = reconciliation
+		reconciliation = eligibility_reconciliation$reconciliation,
+		eligibility = eligibility_reconciliation[c("attempt_count", "runtime_skip_counts", "runtime_skips")]
 	))
 }

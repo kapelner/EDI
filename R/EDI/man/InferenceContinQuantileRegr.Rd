@@ -28,6 +28,7 @@ This class requires the \pkg{quantreg} package, which is listed under
 Install \pkg{quantreg} manually before use.
 }
 \examples{
+if (requireNamespace("quantreg", quietly = TRUE)) {
 \donttest{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'continuous')
 for (i in 1:10) {
@@ -36,6 +37,7 @@ for (i in 1:10) {
 seq_des$add_all_subject_responses(rnorm(10))
 inf = InferenceContinQuantileRegr$new(seq_des)
 inf$compute_estimate()
+}
 }
 }
 \references{

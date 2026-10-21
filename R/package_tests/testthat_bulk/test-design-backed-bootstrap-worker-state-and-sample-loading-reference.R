@@ -249,7 +249,12 @@ test_that("direct-subset bootstrap estimates match rebuilt matrices on OLS, logi
 			)
 			expect_true(is.finite(direct) && is.finite(rebuilt) && is.finite(reference))
 			expect_equal(direct, rebuilt, tolerance = 1e-10)
-			expect_equal(direct, reference, tolerance = 1e-10)
+			# glm.fit and coxph stop on their own convergence criteria (deviance
+			# 1e-8, partial-likelihood 1e-9), so their coefficients differ from the
+			# native fitters by up to that order depending on the final Newton step.
+			# A CI runner showed a 3.6e-8 gap that this machine does not reproduce.
+			# OLS is closed-form and stays tight.
+			expect_equal(direct, reference, tolerance = if (identical(kind, "OLS")) 1e-10 else 1e-6)
 		}
 	}
 })

@@ -181,6 +181,11 @@ bug), and standard-error and confidence-interval fixes.
 * The KK21 stepwise weight selection for ordinal responses read a
   nonexistent field (`ssq_b_2`) from `fast_ordinal_regression_with_var_cpp()`;
   it now reads the returned `ssq_b_j`.
+* Native fitting kernels now validate the dimensions of consumed caller-supplied
+  warm-start parameter, weight, and Fisher-information inputs, and validate
+  fixed-parameter indices before use. Malformed inputs that could previously
+  trigger unsafe Eigen indexing or silently discard a supplied start now fail
+  at the native boundary with an error.
 * `fast_zero_one_inflated_beta_cpp()` did not check the length of a supplied
   `warm_start_params` (or `warm_start_fisher_info`, or the row counts of `X`,
   `X_zero_one` and `y`), so a mis-sized start let the optimizer read and write

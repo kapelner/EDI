@@ -19,6 +19,7 @@
 #' \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 #'
 #' @examples
+#' if (requireNamespace("nbpMatching", quietly = TRUE)) {
 #' \donttest{
 #' seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'continuous')
 #' for (i in 1:10) {
@@ -27,6 +28,7 @@
 #' seq_des$add_all_subject_responses(rnorm(10))
 #' inf = InferenceBaiAdjustedTKK14$new(seq_des)
 #' inf$compute_estimate()
+#' }
 #' }
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):

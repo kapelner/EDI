@@ -19,6 +19,19 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 		stringsAsFactors = FALSE
 	)
 	manifest$id <- .todo14_build_id(manifest)
+	skipped_candidates <- data.frame(
+		rep = c(1L, 1L, 1L), beta_T = c(0.5, 0.5, 0.5), dataset = c("airquality", "boston", "fuel"),
+		response_type = "survival", design = "KK21stepwise",
+		inference_class = rep(.todo14_expected_classes[1L], 3L),
+		function_run = c("compute_rand_two_sided_pval", "compute_rand_confidence_interval", "compute_rand_two_sided_pval(delta=0.5)"),
+		stringsAsFactors = FALSE
+	)
+	skipped_candidates$id <- .todo14_build_id(skipped_candidates)
+	candidate_manifest <- rbind(manifest, skipped_candidates)
+	candidate_manifest$candidate_status <- "candidate_only_requires_setup_and_runtime_eligibility"
+	candidate_manifest$scope_source <- "checked_in_runner_defaults_without_cli_filters"
+	eligibility_manifest <- candidate_manifest[c("id", .todo14_key_columns)]
+	eligibility_manifest$eligibility <- c("attempt", "attempt", "skipped_completed", "skipped_slow", "skipped_confirmed_timeout")
 
 	results_path <- file.path(fixture_dir, "results.csv")
 	events_path <- file.path(fixture_dir, "attempts.csv")
@@ -42,13 +55,18 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 		data.frame(
 			event_seq = as.integer(seq), event_type = type,
 			id = key$id, key[c(.todo14_key_columns)], status = status,
-			skip_reason = if (type == "terminal") "" else NA_character_,
+			skip_reason = switch(type,
+				skipped_completed = "completed_cache", skipped_slow = "slow_path",
+				skipped_confirmed_timeout = "confirmed_timeout_cache", ""),
 			error_message = NA_character_, stringsAsFactors = FALSE
 		)
 	}
 	events <- do.call(rbind, list(
 		event("started", manifest[1L, ], 1L), event("terminal", manifest[1L, ], 2L, "ok"),
-		event("started", manifest[2L, ], 3L), event("terminal", manifest[2L, ], 4L, "ok")
+		event("started", manifest[2L, ], 3L), event("terminal", manifest[2L, ], 4L, "ok"),
+		event("skipped_completed", skipped_candidates[1L, ], 5L),
+		event("skipped_slow", skipped_candidates[2L, ], 6L),
+		event("skipped_confirmed_timeout", skipped_candidates[3L, ], 7L)
 	))
 	utils::write.csv(results, results_path, row.names = FALSE, na = "")
 	utils::write.csv(events, events_path, row.names = FALSE, na = "")
@@ -84,18 +102,54 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 		package_version = "1.0.3", library_path = "/tmp/library/EDI",
 		dll_path = "/tmp/library/EDI/libs/EDI.so", dll_sha256 = paste(rep("c", 64L), collapse = "")
 	)
+	validate_artifact <- function(expected = manifest, candidates = candidate_manifest, eligibility = eligibility_manifest) {
+		validate_todo14_attempt_result_artifact(
+			results_path, sidecar_path, events_path, expected, expected_provenance,
+			candidate_manifest = candidates, eligibility_manifest = eligibility
+		)
+	}
 
-	accepted <- validate_todo14_attempt_result_artifact(
-		results_path, sidecar_path, events_path, manifest, expected_provenance
-	)
+	accepted <- validate_artifact()
 	expect_equal(accepted$rows, 2L)
-	expect_equal(accepted$attempt_events, 4L)
+	expect_equal(accepted$attempt_events, 7L)
 	expect_equal(as.integer(accepted$status_counts), c(2L, 0L))
+	expect_equal(accepted$eligibility$attempt_count, 2L)
+	expect_equal(as.integer(accepted$eligibility$runtime_skip_counts), c(1L, 1L, 1L))
+	expect_equal(accepted$eligibility$runtime_skips$eligibility,
+		c("skipped_completed", "skipped_slow", "skipped_confirmed_timeout"))
+	expect_equal(accepted$eligibility$runtime_skips$event_seq, 5:7)
+	expect_error(
+		validate_todo14_attempt_result_artifact(results_path, sidecar_path, events_path, manifest, expected_provenance),
+		"candidate_manifest and explicit eligibility_manifest are required"
+	)
+	expect_error(validate_artifact(candidate_manifest), "key/method inventory mismatch")
+
+	missing_skip <- events[-5L, , drop = FALSE]
+	utils::write.csv(missing_skip, events_path, row.names = FALSE, na = "")
+	write_sidecar()
+	expect_error(validate_artifact(), "exactly one matching keyed skip event")
+	utils::write.csv(events, events_path, row.names = FALSE, na = "")
+	write_sidecar()
+	bad_skip_reason <- events
+	bad_skip_reason$skip_reason[5L] <- "slow_path"
+	utils::write.csv(bad_skip_reason, events_path, row.names = FALSE, na = "")
+	write_sidecar()
+	expect_error(validate_artifact(), "reason does not match its runner skip classification")
+	utils::write.csv(events, events_path, row.names = FALSE, na = "")
+	write_sidecar()
+	setup_event <- event("setup_failure", manifest[1L, ], 8L)
+	setup_event$id <- NA_character_
+	for (column in .todo14_key_columns) setup_event[[column]] <- NA
+	utils::write.csv(rbind(events, setup_event), events_path, row.names = FALSE, na = "")
+	write_sidecar()
+	expect_error(validate_artifact(), "unmapped setup-level event")
+	utils::write.csv(events, events_path, row.names = FALSE, na = "")
+	write_sidecar()
 
 	bad_expected <- manifest
 	bad_expected$dataset[1L] <- NA_character_
 	expect_error(
-		validate_todo14_attempt_result_artifact(results_path, sidecar_path, events_path, bad_expected, expected_provenance),
+		validate_artifact(bad_expected),
 		"missing or empty natural-key fields"
 	)
 	bad_started <- events
@@ -103,7 +157,7 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 	utils::write.csv(bad_started, events_path, row.names = FALSE, na = "")
 	write_sidecar()
 	expect_error(
-		validate_todo14_attempt_result_artifact(results_path, sidecar_path, events_path, manifest, expected_provenance),
+		validate_artifact(),
 		"started events must have no status"
 	)
 	utils::write.csv(events, events_path, row.names = FALSE, na = "")
@@ -120,9 +174,7 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 	utils::write.csv(error_results, results_path, row.names = FALSE, na = "")
 	utils::write.csv(error_events, events_path, row.names = FALSE, na = "")
 	write_sidecar()
-	accepted_error <- validate_todo14_attempt_result_artifact(
-		results_path, sidecar_path, events_path, manifest, expected_provenance
-	)
+	accepted_error <- validate_artifact()
 	expect_equal(as.integer(accepted_error$status_counts), c(1L, 1L))
 
 	utils::write.csv(results, results_path, row.names = FALSE, na = "")
@@ -145,7 +197,7 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 	utils::write.csv(timeout_events, events_path, row.names = FALSE, na = "")
 	write_sidecar()
 	expect_error(
-		validate_todo14_attempt_result_artifact(results_path, sidecar_path, events_path, manifest, expected_provenance),
+		validate_artifact(),
 		"timeout result rows cannot have status='ok'"
 	)
 	utils::write.csv(results, results_path, row.names = FALSE, na = "")
@@ -154,7 +206,7 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 	utils::write.csv(results[-1L, , drop = FALSE], results_path, row.names = FALSE, na = "")
 	write_sidecar()
 	expect_error(
-		validate_todo14_attempt_result_artifact(results_path, sidecar_path, events_path, manifest, expected_provenance),
+		validate_artifact(),
 		"key/method inventory mismatch"
 	)
 	utils::write.csv(results, results_path, row.names = FALSE, na = "")
@@ -165,7 +217,7 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 	utils::write.csv(bad_values, results_path, row.names = FALSE, na = "")
 	write_sidecar()
 	expect_error(
-		validate_todo14_attempt_result_artifact(results_path, sidecar_path, events_path, manifest, expected_provenance),
+		validate_artifact(),
 		"successful p-value rows have invalid result fields"
 	)
 
@@ -174,7 +226,7 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 	utils::write.csv(events, events_path, row.names = FALSE, na = "")
 	write_sidecar()
 	expect_error(
-		validate_todo14_attempt_result_artifact(results_path, sidecar_path, events_path, manifest, expected_provenance),
+		validate_artifact(),
 		"attempt event/result reconciliation"
 	)
 
@@ -185,7 +237,7 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 	provenance$attempt_manifest$identity$sha256 <- paste(rep("0", 64L), collapse = "")
 	saveRDS(provenance, sidecar_path)
 	expect_error(
-		validate_todo14_attempt_result_artifact(results_path, sidecar_path, events_path, manifest, expected_provenance),
+		validate_artifact(),
 		"attempt manifest bytes or SHA-256"
 	)
 })

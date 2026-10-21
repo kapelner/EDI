@@ -1,4 +1,5 @@
 test_that("InferenceOrdinalPairedSignTest ignores NA pair differences instead of propagating NaN", {
+	skip_if_not_installed("nbpMatching")
 	# Regression for the 2026-09-06 comprehensive-results investigation:
 	# shared() computed pos/neg via sum(diffs > 0)/sum(diffs < 0) with no
 	# na.rm, so a single NA in y_matched_diffs (e.g. a partially-resolved

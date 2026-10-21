@@ -86,7 +86,11 @@ test_that("estimate_only returns consistent params", {
 # Test 9: ssq_b_1 is finite and positive
 test_that("ssq_b_1 is finite positive (K=4)", {
     d <- make_ordinal_data(300, 2, 4)
-    fit <- EDI:::fast_stereotype_logit_with_var_cpp(d$X, d$y)
+    # The thresholds (alpha) absorb the intercept, and InferenceOrdinalStereotypeLogit
+    # drops it (implicit_intercept = TRUE) before calling the kernel. Keeping the
+    # all-ones column makes the model unidentified: ssq_b_1 is then +-1e13-1e14
+    # noise whose sign depends on the platform's floating point.
+    fit <- EDI:::fast_stereotype_logit_with_var_cpp(d$X[, -1, drop = FALSE], d$y)
     expect_true(is.finite(fit$ssq_b_1))
     expect_gt(fit$ssq_b_1, 0)
 })

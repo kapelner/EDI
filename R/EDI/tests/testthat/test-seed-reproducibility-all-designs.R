@@ -145,6 +145,7 @@ for (design_name in names(design_seed_reproducibility_cases)) {
 		this_name = design_name
 		build = design_seed_reproducibility_cases[[this_name]]
 		test_that(paste(this_name, "draw reproducibility matches its seed_reproducible_draw metadata"), {
+			if (identical(this_name, "DesignFixedOptimalBlocks")) skip_if_not_installed("anticlust")
 			metadata = EDI:::get_design_class_metadata(this_name)
 			if (isTRUE(metadata$seed_reproducible_draw_requires_single_thread)) {
 				skip_if_not(identical(EDI:::get_num_cores(), 1L), "package-level core count was not at its default of 1")

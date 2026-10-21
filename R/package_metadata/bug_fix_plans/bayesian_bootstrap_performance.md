@@ -274,6 +274,19 @@ bulk-CI/instrumented run when authorized; do not retry the historical real-
 fork reproduction. Current-source native build-flag authentication and the
 release-scale/instrumented gate remain open.
 
+**Current-source overlay provenance correction, 2026-10-21:** the release
+checklist records the 29-expectation source-overlay run's temporary DLL as
+`/tmp/Rtmpifikdb/pkgload1be79250995391/EDI.so`, SHA-256
+`ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`, matching
+checkout `R/EDI/src/EDI.so`. This corrects the preceding statement that the
+overlay invocation did not record a temporary DLL hash. The match establishes
+the bytes used for that focused run, but not compiler/build flags, a complete
+current-source native build record, real-fork behavior, or sanitizer coverage;
+the synchronous dispatch spy still avoids the historical hang path. A
+current-tree instrumented/bulk-CI run of the deterministic serial-clamp
+contract, with build and source provenance retained, is the bounded next
+acceptance step. Do not use the historical real-fork reproduction as a gate.
+
 - [ ] TODO-1: **Benchmark harness, before any change.** Promote the
   scratch timing (1 vs. 3 cores, B ∈ {1000, 5000}, OLS / logistic / Cox /
   Weibull / median regression / difference in means / beta regression) to

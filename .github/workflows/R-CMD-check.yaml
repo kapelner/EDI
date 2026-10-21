@@ -533,10 +533,16 @@ jobs:
           # building without a renderer, which CRAN never does) -- see the
           # check-r-package step below for what skipping this actually
           # breaks (2026-08-26).
+          # testthat is also added explicitly: tests/testthat.R calls
+          # library(testthat) unconditionally, so without it "checking tests"
+          # ERRORs before running anything (ubuntu-26.04 runner, 2026-10-21;
+          # earlier images happened to ship it). The other Suggests stay
+          # uninstalled so the skip_if_not_installed() guards are still exercised.
           extra-packages: |
             any::rcmdcheck
             any::knitr
             any::rmarkdown
+            any::testthat
           dependencies: 'NA'
 
       - uses: r-lib/actions/check-r-package@v2
