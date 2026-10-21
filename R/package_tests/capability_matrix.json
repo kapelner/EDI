@@ -714,7 +714,7 @@
       "estimand": "log_odds_ratio_conditional",
       "likelihood_tier": "none",
       "adjusts_for_covariates": "TRUE",
-      "requires_kk_matching_design": "FALSE",
+      "requires_kk_matching_design": "TRUE",
       "requires_blocking_design": "FALSE",
       "supports_general_censoring": "FALSE",
       "capabilities": "exact_binomial_incidence|exact_test",
