@@ -54,17 +54,15 @@ test_that("a plain (unforced) blocking-design instance is NOT Zhang-eligible, co
 	expect_false(priv$should_use_zhang_incidence_randomization())
 })
 
-test_that("with has_match_structure forced TRUE, compute_rand_two_sided_pval() dispatches through the Zhang exact path and matches an independent reference class exactly, across several deltas", {
+test_that("with has_match_structure forced TRUE, compute_rand_two_sided_pval() uses the randomization draws (not the Zhang test), is reproducible, refuses nonzero delta, and type = 'Zhang' still works", {
 	des <- fx(3L)
 	inf_er <- force_match_structure(InferenceIncidExtendedRobins$new(des, verbose = FALSE))
 	expect_true(inf_er$.__enclos_env__$private$should_use_zhang_incidence_randomization())
-
-	inf_ref <- force_match_structure(InferenceIncidLogRegr$new(des, verbose = FALSE))
-
-	for (delta in c(0, 0.3, -0.5)) {
-		pv_er <- inf_er$compute_rand_two_sided_pval(delta = delta)
-		pv_ref <- inf_ref$compute_rand_two_sided_pval(delta = delta)
-		expect_true(is.finite(pv_er))
-		expect_equal(pv_er, pv_ref, tolerance = 1e-12, info = paste("delta =", delta))
-	}
+	set.seed(11L); pv1 <- inf_er$compute_rand_two_sided_pval(delta = 0, show_progress = FALSE)
+	set.seed(11L); pv2 <- inf_er$compute_rand_two_sided_pval(delta = 0, show_progress = FALSE)
+	expect_true(is.finite(pv1) && pv1 > 0 && pv1 <= 1)
+	expect_identical(pv1, pv2)
+	expect_error(inf_er$compute_rand_two_sided_pval(delta = 0.3, show_progress = FALSE), "delta nonzero not supported for incidence")
+	pz <- inf_er$compute_rand_two_sided_pval(delta = 0, type = "Zhang")
+	expect_true(is.finite(pz) && pz > 0 && pz <= 1)
 })

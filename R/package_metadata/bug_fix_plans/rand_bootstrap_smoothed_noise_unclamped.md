@@ -175,6 +175,19 @@ the full audit-to-dispatch cross-reference is still open.
   adjustment in this audit; its appropriateness is still unvalidated, so no
   bandwidth change or calibration conclusion follows. No calibration or
   comprehensive-result outputs were read or changed.
+  **Exact caller-edge audit, 2026-10-21:** Trail's caller graph confirms the
+  three hook invocations and their enclosing functions:
+  `load_rand_bootstrap_assignment_into_worker()`
+  (`inference_all_abstract_rand_bootstrap.R:789`) uses the simulated
+  response type; `run_rand_bootstrap_iteration_with_se()`
+  (`inference_all_abstract_rand_bootstrap.R:960`) and
+  `run_rand_bootstrap_iteration()` (`inference_all_abstract_rand_bootstrap.R:1092`)
+  use the sub-design response type.
+  Each calls the hook only when `draw[["smooth_noise"]]` is non-`NULL`; there
+  is no fourth code caller. This sharpens the already-recorded mechanism
+  boundary, but does not resolve the missing provenance-bearing historical
+  audit rows or the remaining affected-cell cross-reference. No source, test,
+  or result artifact changed.
   **Tracked-cell cross-reference, 2026-10-18:** the checked-in audit baseline
   has exactly 25 `_smoothed` p-value rows. Sixteen are in response types whose
   current p-value guard admits smoothing: continuous (9 keys: `InferenceAllSimpleAverageDiff`
@@ -317,6 +330,68 @@ the full audit-to-dispatch cross-reference is still open.
   checkout validation; it does not justify changing the bandwidth. Raw,
   summary, paired results, and the predeclared seed protocol are isolated in
   `scratch/todo18_onelik_kk21stepwise_20261016_01/`. TODO-2 remains open.
+  **Retained-artifact/provenance recheck, 2026-10-21:** the only retained
+  calibration outputs found are the two exploratory B=101 robust-OneLik
+  slices above: FixedBinaryMatch (n=148, 50 fixtures; 200 variant rows) and
+  KK21stepwise (n=60, 25 fixtures; 100 variant rows). Both were run against
+  installed EDI 1.0.3 and retain deterministic seed/variant data, but neither
+  records the installed package path, EDI DLL hash, R version, checkout HEAD
+  or source hash, or a run-provenance sidecar. Their raw-output SHA-256 values
+  are `623fe2f22bd123eca1a8b58f0a3f189ac097d46e60912285ea395610b33dd59d`
+  and `e46b1a8688d37135753430f2b0e776b3dfbcccfed98096affc5fe53881b90e71`,
+  respectively; these identify retained exploratory files, not accepted
+  current-source calibration. The earlier n=30/25-fixture and 500-fixture
+  pilot outputs formerly recorded under `/tmp/edi-todo18-*` are absent; their
+  historical summaries in this plan are not recoverable raw evidence. The
+  comprehensive audit baseline remains the 2026-09-24 snapshot at
+  `11f61e0a`, while the large local comprehensive CSVs have no seed,
+  assignment, or response-vector fields for exact replay. Thus no retained
+  artifact meets TODO-6/7 calibration acceptance. Before a new run, the
+  maintainer must still select the admitted roster/strata and null DGP,
+  define the per-cell versus simultaneous acceptance rule (including any
+  multiplicity treatment), choose interval confidence level and attempted
+  versus estimable denominator, and confirm the proposed precision target
+  (at least 500 estimable cases per stratum, B=101) or replace it. Preserve
+  the full post-fix installed-package calibration and provenance-stamped
+  comprehensive regeneration gates; no result is accepted by this audit.
+  **Bounded on-disk recheck, 2026-10-21:** both named exploratory raw pilot
+  files are present in the repository's `scratch/` tree:
+  `scratch/todo18_onelik_larger_n_20261016_01/raw.csv` (200 data rows; SHA-256
+  `623fe2f22bd123eca1a8b58f0a3f189ac097d46e60912285ea395610b33dd59d`) and
+  `scratch/todo18_onelik_kk21stepwise_20261016_01/raw.csv` (100 data rows;
+  SHA-256 `e46b1a8688d37135753430f2b0e776b3dfbcccfed98096affc5fe53881b90e71`).
+  Their companion summaries and paired tables are present (four summary rows
+  and three paired comparisons per slice). Raw schemas retain covariate,
+  design, outcome, assignment, noise, and fit seeds and identify installed
+  EDI 1.0.3, but provide no package path, DLL hash, R version, checkout HEAD,
+  source hash, or provenance sidecar. The specifically named earlier
+  `/tmp/edi-todo18-robust-onelik-bandwidth-20261016*` raw/summary outputs are
+  absent. These files corroborate only the two small synthetic pilot
+  summaries, not the historical 105-row replay or post-fix calibration.
+  Repository evidence still cannot choose nine versus 16 supported
+  calibration cells, their null DGP/strata, per-cell versus simultaneous
+  acceptance and multiplicity, interval confidence level, attempted-versus-
+  estimable denominator, or the proposed precision target; the historical
+  audit's exact seeds, assignments, and response vectors also remain
+  unavailable. No simulation, build/install, or canonical result write was
+  performed.
+  **Source-only bandwidth consistency audit, 2026-10-20:** the standalone
+  p-value path (`inference_all_abstract_rand_bootstrap.R:555-558`) and the
+  CI-inversion path (`inference_all_abstract_rand_bootstrap_ci.R:244-248`)
+  independently use the same raw-response rule,
+  `sd(private$y, na.rm = TRUE) / sqrt(n)`, falling back to `1 / sqrt(n)`
+  when the sample SD is non-finite or nonpositive. Both attach one Gaussian
+  noise vector per draw before the null shift. The shared noise application
+  (`inference_all_abstract_rand_bootstrap.R:641-646`) leaves continuous and
+  survival values additive on their observed scale and rounds/floors counts
+  afterward; there is no class- or response-specific bandwidth or
+  transform-scale conversion. This rules out a p-value-vs-CI formula
+  discrepancy, but does not establish that one raw-scale bandwidth is
+  appropriate across these response families, nor explain the historical
+  continuous KK robust OneLik finding. A bandwidth decision still needs
+  predeclared calibration across representative supported response/design
+  strata; the existing small matched-grid pilots are not enough to choose a
+  new multiplier. No source or test was changed in this audit.
 - [ ] TODO-3: Reproduce directly via `pkgload::load_all(".", compile = FALSE)`
   only (never `R CMD INSTALL`/`R CMD build`/`pkgbuild::compile_dll()`/
   `load_all(compile = TRUE)` or unspecified `compile=` — hard project rule,
@@ -367,6 +442,14 @@ the full audit-to-dispatch cross-reference is still open.
   A focused support regression now covers the public p-value and CI guards,
   advertised types, lower-level draws, and the preserved real-valued/count
   paths; repeated-trial calibration remains open.
+  **Acceptance inputs still required:** before a calibration regression can
+  be made deterministic, the maintainer must specify (1) the per-cell nominal-
+  rejection acceptance interval or exact-binomial pass rule, (2) the supported
+  response/class/design strata and true-null fixture for each cell, and (3)
+  the replicate-count or precision target, including whether the rule is
+  applied independently per cell or simultaneously across cells. The existing
+  plan's phrase “reasonable band” and its historical flagged rows do not
+  select these inputs; no threshold or pilot-derived substitute is assumed.
   After the user's 2026-10-14 reinstall, `test-brt-smoothed-count-support.R`
   passed 58 assertions and `test-brt-smoothed-noise-mat-plumbing.R` passed 7
   against the installed package; these validate the guard/plumbing, not the
@@ -386,6 +469,48 @@ the full audit-to-dispatch cross-reference is still open.
   validate the native source checkout; TODO-6/7 calibration and TODO-8
   comprehensive regeneration remain open. No benchmark, build/install, or
   canonical result write occurred.
+  **Historical-class CI guard regression (2026-10-20):** the existing
+  `test-brt-smoothed-count-support.R` fixture now also verifies that
+  `InferenceIncidKKCondLogitOneLik` and `InferenceOrdinalGCompMeanDiff` omit
+  `smoothed` from CI support and reject a smoothed CI request before draws,
+  complementing their existing p-value checks. With
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`, the focused
+  `testthat::test_file("R/EDI/tests/testthat/test-brt-smoothed-count-support.R")`
+  passed 62 expectations (0 failures, warnings, or skips). R was
+  `R Under development (unstable) (2026-10-13 r90668)`, source was
+  `/home/kapelner/workspace/EDI/R/EDI` (version 1.0.3), and the already-built
+  overlay DLL `/tmp/RtmpcEE3Yy/pkgload7cb1c37f62ab2/EDI.so` had SHA-256
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+  The test file SHA-256 was
+  `a9f60a6a4e98bb1180478b54a6a1bff5cad567f7ecad70f754dc725dd062b391`.
+  This deterministic guard coverage does not close the owner-defined
+  calibration or post-install regeneration gates; no native source validation
+  or canonical result write occurred.
+  **Installed-package guard recheck (2026-10-20):**
+  `Rscript -e 'library(EDI); testthat::test_file("R/EDI/tests/testthat/test-brt-smoothed-count-support.R", reporter = "summary")'`
+  passed 62 expectations against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` had
+  SHA-256 `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  (MD5 `a75519a9256c0b3121398032314291d4`). It covers count support,
+  bounded/categorical model-refit rejection, and supported real-valued
+  paths; these are deterministic guard checks, not calibration or historical
+  reproduction. TODO-6/7 calibration, historical audit provenance, the
+  bandwidth investigation, and TODO-8 comprehensive regeneration remain open.
+  No build/install or canonical result write occurred.
+  **Latest installed-artifact support recheck, 2026-10-21:** reran
+  `test-brt-smoothed-count-support.R` via `timeout 180s Rscript -e` after
+  `library(EDI)`; all 68 expectations passed (0 failures, warnings, or skips).
+  Installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI` loaded DLL SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`
+  (MD5 `bfea6f47ab8b27618d5d8633e9021f91`), byte-identical to the ignored
+  checkout `R/EDI/src/EDI.so`. The test file SHA-256 was
+  `67d7af1b25207cf62f21a5f64c212abae4a4d047dece86b4be9674193d165126`.
+  This checks deterministic support/guard behavior on that installed
+  artifact only; it does not validate current R-source identity, calibration,
+  historical findings, the bandwidth choice, or comprehensive rows. No
+  build/install or canonical output occurred.
 - [ ] TODO-8: Regenerate the affected `comprehensive_tests` CSV rows for
   the confirmed affected classes' `smoothed` variant once fixed and
   installed (only after install, not before, same caution as the sibling

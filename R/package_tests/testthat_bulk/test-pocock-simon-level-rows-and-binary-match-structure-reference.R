@@ -111,15 +111,56 @@ test_that("Pocock-Simon preallocates rows, registers levels incrementally, and d
 		response_type = "continuous", n = nrow(X), seed = 601L
 	)
 	priv <- des$.__enclos_env__$private
+	level_key_input_lengths <- integer()
+	stratum_level_key <- priv$stratum_level_key
+	unlockBinding("stratum_level_key", priv)
+	priv$stratum_level_key <- function(value) {
+		level_key_input_lengths <<- c(level_key_input_lengths, length(value))
+		stratum_level_key(value)
+	}
+	lockBinding("stratum_level_key", priv)
+	model_matrix_builds <- 0L
+	build_model_matrix <- priv$covariate_impute_if_necessary_and_then_create_model_matrix
+	unlockBinding("covariate_impute_if_necessary_and_then_create_model_matrix", priv)
+	priv$covariate_impute_if_necessary_and_then_create_model_matrix <- function() {
+		model_matrix_builds <<- model_matrix_builds + 1L
+		build_model_matrix()
+	}
+	lockBinding("covariate_impute_if_necessary_and_then_create_model_matrix", priv)
+	previous_level_count <- 0L
+	previous_count_rows <- 0L
 	w <- numeric(nrow(X))
 	for (i in seq_len(nrow(X))) {
+		key_calls_before <- length(level_key_input_lengths)
 		w[i] <- des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])
+		# The first arrival initializes both columns' maps from the current row;
+		# later arrivals key only their two current values, not the enrolled prefix.
+		new_key_lengths <- level_key_input_lengths[seq.int(key_calls_before + 1L, length(level_key_input_lengths))]
+		if (i == 1L) {
+			expect_identical(new_key_lengths, c(1L, 1L, 1L, 1L))
+		} else {
+			expect_identical(new_key_lengths, c(1L, 1L))
+		}
+		# New observed levels add exactly one counts row each. This pins the
+		# level-growth work while making no claim that resizing/copying the matrix
+		# or matching against all known levels is constant-time.
+		current_level_count <- sum(vapply(X[seq_len(i), , drop = FALSE], function(column) {
+			length(unique(column))
+		}, integer(1L)))
+		current_count_rows <- nrow(priv$counts)
+		expect_identical(current_count_rows - previous_count_rows, current_level_count - previous_level_count)
+		previous_level_count <- current_level_count
+		previous_count_rows <- current_count_rows
 		if (i == 1L) {
 			expect_equal(nrow(priv$Xraw), nrow(X))
 			expect_equal(nrow(des$get_X_raw()), 1L)
 			expect_true(isTRUE(priv$Xraw_preallocated))
 		}
 	}
+	# Total key conversion is initialization plus one scalar per column per
+	# later arrival. This guards against re-keying all prior subjects; it does
+	# not bound named-map lookup cost as the number of distinct levels grows.
+	expect_identical(sum(level_key_input_lengths), 18L)
 	expect_identical(w, c(1, 0, 0, 1, 0, 1, 0, 0))
 	expect_equal(des$get_X_raw(), data.table::as.data.table(X))
 	expect_equal(unname(priv$strata_level_rows$g), c(1L, 4L, 5L, 6L))
@@ -130,7 +171,12 @@ test_that("Pocock-Simon preallocates rows, registers levels incrementally, and d
 	)
 	expect_true(isTRUE(priv$model_matrix_stale))
 	expect_null(priv$X)
+	# Pocock-Simon's assignment rule uses raw strata only, so no model-matrix
+	# construction is allowed anywhere in the arrival sequence; first access
+	# after enrollment should build it exactly once.
+	expect_identical(model_matrix_builds, 0L)
 	expect_equal(nrow(des$get_X()), nrow(X))
+	expect_identical(model_matrix_builds, 1L)
 	expect_false(isTRUE(priv$model_matrix_stale))
 })
 

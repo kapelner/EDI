@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 # Pure report-processing regression checks: no EDI load/install/build.
 source("R/package_tests/coverage_gap_registry.R")
+source("R/package_tests/coverage_triage_report.R")
 work = tempfile("registry-tests-")
 dir.create(work)
 input = file.path(work, "lines.csv")
@@ -91,6 +92,50 @@ saveRDS(list(coverage = coverage, commit = "real-covr-commit",
 wrapped = read_coverage_rows(wrapper)
 stopifnot(identical(summarize_coverage(wrapped), physical),
 	identical(attr(wrapped, "provenance")$commit, "real-covr-commit"))
+# Partial test inventories are rejected before the triage output directory is
+# created, so an incomplete run cannot be mistaken for a promotable report.
+partial_report = file.path(work, "partial-coverage.rds")
+saveRDS(list(coverage = data.frame(filename = "R/EDI/R/example.R", line = 1L, value = 1),
+	commit = "partial-commit", measured_at = "partial-time", tests_complete = FALSE),
+	partial_report)
+partial_output = file.path(work, "partial-triage")
+partial_error = tryCatch(coverage_triage_report(partial_report, partial_output),
+	error = identity)
+stopifnot(inherits(partial_error, "error"),
+	identical(conditionMessage(partial_error),
+		"Incomplete test inventory: do not promote partial coverage."),
+	!dir.exists(partial_output))
+# Excluded unclassified files are not manual-review work; pending ones remain.
+triage_report = file.path(work, "triage-coverage.rds")
+triage_coverage = data.frame(
+	filename = c("R/EDI/R/triage-excluded.R", "R/EDI/src/triage-pending.cpp"),
+	line = c(1L, 1L), value = c(0, 0)
+)
+saveRDS(list(coverage = triage_coverage, commit = "triage-commit",
+	measured_at = "triage-time", tests_complete = TRUE), triage_report)
+triage_registry = file.path(work, "triage-registry.csv")
+triage_prior = data.frame(
+	file = triage_coverage$filename,
+	coverage_percent = c(0, 0), covered_lines = c(0L, 0L),
+	coverable_lines = c(1L, 1L), weighted_opportunity = c(1, 1),
+	category = c("unclassified", "unclassified"),
+	owning_todo = c("TODO-1", "TODO-1"),
+	status = c("excluded", "pending"),
+	baseline_commit = c("baseline", "baseline"),
+	measured_commit = c("prior", "prior"),
+	measured_at = c("prior-time", "prior-time"),
+	notes = c("verified measurement exclusion", "awaiting triage"),
+	stringsAsFactors = FALSE
+)
+write.csv(triage_prior, triage_registry, row.names = FALSE, na = "")
+triage_output = file.path(work, "triage-output")
+triage = coverage_triage_report(triage_report, triage_output,
+	registry_path = triage_registry)
+triage_queue = read.csv(file.path(triage_output, "coverage-triage-needed.csv"),
+	stringsAsFactors = FALSE)
+stopifnot(nrow(triage$unreviewed) == 1L,
+	identical(triage$unreviewed$file, "R/EDI/src/triage-pending.cpp"),
+	identical(triage_queue$file, "R/EDI/src/triage-pending.cpp"))
 # Restore the drift fixture used below.
 saveRDS(list(coverage = data.frame(filename = "R/b.R", line = 1L, value = 0),
 	commit = "report-commit", measured_at = "report-time", shard = 1L), wrapper)

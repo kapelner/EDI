@@ -21,7 +21,9 @@ static bool weibull_reduced_fit_for_score_test(
 	Eigen::VectorXd& resid,
 	Eigen::LDLT<Eigen::MatrixXd>& XtWX_ldlt,
 	int maxit = 100,
-	double tol = 1e-8
+	// The reduced fit is used for score-test construction; a near-1e-8
+	// gradient can be starting-point-sensitive after matching survreg's MLE.
+	double tol = 1e-6
 ) {
 	int n = XS.rows();
 	int m = XS.cols();

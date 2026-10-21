@@ -290,12 +290,65 @@ bus error while loading the existing `R/EDI/src/EDI.so`; no compilation or
 installation was attempted. This is static/parse evidence only: the runtime
 test and the TODO-1/3/4/5/6 acceptance gates remain open.
 
-- [ ] TODO-1: Add `supports_reusable_bootstrap_worker()` (`TRUE`) and the
+**Installed migration-golden recheck, 2026-10-20:** ran
+`Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R")'`
+against installed EDI 1.0.3. All 24 assertions passed. In particular, the
+deterministic `n = 50`, no-boundary-mass fixture has finite jackknife estimate,
+SE, and Wald p-value, and each is identical between the reusable class and an
+R6 subclass forced through the legacy fresh-fit route. The same file's `n =
+24` dual-matrix fixture verifies row-subsetting, deficient-rank fallback, and
+recovery; it does not substitute for the two-regime golden requirement in
+TODO-4. The file is registered in `R/package_tests/ci/test_runtimes.csv` for
+both correctness (120 s bootstrap) and coverage (240 s bootstrap). This
+installed-package run validates the fixture/test against EDI 1.0.3, not
+current-checkout source/native parity, performance, the diagnosed
+`20264492` tuning fixture, or the end-to-end tuning run. No TODO checkbox is
+closed by this result.
+
+**Installed migration-golden rerun with DLL provenance, 2026-10-20:** the
+same focused test was rerun against the installed EDI 1.0.3 package at
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; all 55 assertions
+passed (0 failures, warnings, or skips; exit 0). Loaded DLL
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` had MD5
+`a75519a9256c0b3121398032314291d4` and SHA-256
+`dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+Command: `Rscript -e 'library(EDI); cat("Version:", as.character(packageVersion("EDI")), "\nLibrary:", find.package("EDI"), "\n"); dll <- getLoadedDLLs()[["EDI"]][["path"]]; cat("DLL:", dll, "\nMD5:", unname(tools::md5sum(dll)), "\nSHA256:", unname(tools::sha256sum(dll)), "\n"); testthat::test_file("R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R")'`. Checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; the test loaded the installed artifact, not checkout R/native source. The diagnosed `n=50`, seed `20264492` NA-summary/slower-route result and the end-to-end tuning/performance gates remain unresolved; no TODO checkbox is closed.
+
+The finite interior-only parity fixture's exact key is `class=InferencePropZeroOneInflatedBetaRegr`, `design=DesignFixedBernoulli`, `response_type=proportion`, `n=50`, `seed=20264507`, `model_formula`/`model_formula_zero_one` left at constructor defaults, no boundary responses, and public methods `compute_jackknife_estimate`, `compute_jackknife_std_error`, and `compute_jackknife_wald_two_sided_pval`. Its generated design covariates are `x1,x2 ~ N(0,1)`; the response uses `mu=plogis(0.2 + 0.5*w + 0.3*x1 - 0.2*x2)`, `rbeta(mu*8, (1-mu)*8)` clipped to `[0.02,0.98]`. This is a useful finite parity fixture, explicitly **not** the diagnosed tuning fixture or a performance acceptance case.
+
+**Generic jackknife bias-ratio guard follow-up, 2026-10-20:** the existing
+`test-jackknife-summary-extreme-and-wald-guards-reference.R` reached
+`jackknife_extreme_summary` through an oversized jackknife SE, but did not
+independently exercise the final `abs(bias_j) > 2 * se_j` condition. Extended
+that fixture with finite, tightly clustered synthetic replicates and an
+independent calculation showing that the bias-ratio condition alone triggers
+the documented nonestimable result. The focused source-loaded file passed all
+24 assertions (0 failures, warnings, or skips) with EDI metadata version
+1.0.3; this run did not record a loaded-DLL identity or measure coverage. This
+generic guard test does **not** identify which final guard condition caused
+the historical `n = 50`, seed `20264492` ZOIB summary to become NA, nor prove
+that its jackknife summaries should be finite. No ZOIB fit, timing run, or
+TODO-1 acceptance gate was changed.
+
+- [x] TODO-1: Add `supports_reusable_bootstrap_worker()` (`TRUE`) and the
       three worker-contract methods above to
       `InferencePropZeroOneInflatedBetaRegr`'s private list
       (`inference_proportion_zero_one_inflated_beta.R`), modeled on
       `inference_proportion_gcomp.R`'s existing two-matrix-aware
       implementation as the concrete template rather than the sketch above.
+      **Source-contract verification, 2026-10-20:** the class defines
+      `supports_reusable_bootstrap_worker()`, `get_bootstrap_worker_spec()`,
+      `create_bootstrap_worker_state()`, `load_bootstrap_sample_into_worker()`,
+      and `compute_bootstrap_worker_estimate()` in
+      `R/EDI/R/inference_proportion_zero_one_inflated_beta.R:510-585`.
+      The implementation uses the reusable worker path with a hardened-fit
+      fallback for rank-deficient draws; the focused
+      `test-zoib-jackknife-reusable-worker-migration-golden.R` passed 55
+      assertions with checkout R loaded using
+      `pkgload::load_all("R/EDI", compile = FALSE)` (recorded under TODO-4
+      above). This closes the source-contract item only; TODO-2's broader
+      matrix invariant, TODO-3 performance, and TODO-5/6 tuning acceptance
+      remain open.
 - [ ] TODO-2: Verify empirically (don't assume) that the full-sample fit's
       frozen `best_X_colnames`/`best_X_zero_one_colnames`
       (`create_bootstrap_worker_state()`) always include the treatment
@@ -305,6 +358,52 @@ test and the TODO-1/3/4/5/6 acceptance gates remain open.
       `load_bootstrap_sample_into_worker()`'s row-subsetting (a leave-one-out
       fold can't drop columns, only rows, so this should hold, but verify
       rather than assume before shipping).
+      A focused fixture extension now asserts that both frozen full matrices
+      and their loaded row-subsets keep `treatment` at column 2, including a
+      rank-deficient zero/one draw. The fixture passed against installed EDI
+      v1.0.3 (28 assertions, no failures/warnings/skips; no compile/install).
+      **Property-path extension, 2026-10-20:** the same fixture now checks
+      full, permuted, duplicated/rank-deficient, and wrapped `i_b` sample
+      indices against exact row-subsets of both frozen matrices. All 52
+      assertions passed after `pkgload::load_all("R/EDI", compile = FALSE)`;
+      the loaded temporary DLL MD5 `dfd5bf4384b5a0cc0d430fd70dab2a59` matches
+      the installed EDI 1.0.3 DLL. This exercises multiple loader shapes and
+      fallback/recovery for this fixture, but does not prove the invariant for
+      every formula/design or provide current-checkout native parity, so
+      TODO-2 remains open.
+      **Post-reinstall installed-artifact rerun, 2026-10-21:** with no active
+      R/Rscript job, `testthat::test_file("R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R", package = "EDI")`
+      passed 67 assertions (0 failures, warnings, or skips; exit 0) against
+      installed EDI 1.0.3 at
+      `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. The loaded
+      `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`
+      SHA-256 is `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+      byte-identical to `R/EDI/src/EDI.so` at checkout HEAD
+      `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. The `n=24` dual-matrix
+      fixture specifically checks treatment at column 2 in both matrices,
+      exact shared row-indexing for full/permuted/duplicated/wrapped draws,
+      exclusion of the other formula's covariate from each matrix, rank-based
+      direct-path exclusion, fallback estimate parity, and direct-path
+      recovery. This is installed-package evidence, not proof that its R
+      payload exactly matches checkout source, not a universal
+      formula/design invariant, and not performance or tuning acceptance;
+      TODO-2 remains open.
+      **Current-checkout R-source overlay, 2026-10-21:** after confirming
+      no R/Rscript job was active, ran
+      `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` and the
+      same focused file with `testthat::test_file(..., reporter = "summary")`.
+      All 67 assertions passed (0 failures, warnings, or skips; exit 0).
+      The namespace path was checkout `R/EDI`; the loaded temporary DLL was
+      `/tmp/Rtmp5GWRmC/pkgload1cb50a7ee6d139/EDI.so`, SHA-256
+      `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+      identical to the existing checkout `R/EDI/src/EDI.so` at HEAD
+      `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; no compile/install occurred.
+      This validates current checkout R worker dispatch/state and the recorded
+      finite-parity, dual-matrix row-alignment, rank-fallback/recovery, and
+      equal-input summary-guard fixtures over that existing native library.
+      It does not measure speed, justify removing the tuning exclusion, run
+      end-to-end tuning, or establish CI/coverage confirmation; TODO-2 and
+      TODO-3/5/6 remain open.
 - [ ] TODO-3: Re-profile `compute_jackknife_estimate()` on the exact
       diagnosed case (n=50, `edi_tuning_default_seed(cls, 50L)` synthetic
       data, no `y=0`/`y=1` boundary mass) before/after. Confirm the fix
@@ -312,13 +411,81 @@ test and the TODO-1/3/4/5/6 acceptance gates remain open.
       other four warm-start operations, i.e. low hundreds of ms total for
       50 folds, not seconds). If it doesn't, open the column-selection-cache
       follow-up noted above rather than declaring this plan done.
-- [ ] TODO-4: Golden-value regression test: `compute_jackknife_estimate()`
+      **Strategy gate, 2026-10-21:** the retained exact-fixture comparison
+      does not meet this target: the reusable route took 11.051s versus
+      6.617s for the legacy route, with 68 versus 60 calls to
+      `fast_zero_one_inflated_beta_cpp()`. The same evidence says all 50
+      subsets passed `fast_path_ready`, but does not attribute the eight
+      additional native calls to a specific direct-fit/marginal-functional
+      fallback branch. Current source preserves fallbacks when the direct fit
+      is unusable or the marginal functional cannot be evaluated; removing or
+      weakening those guards is not justified by the retained evidence. Before
+      another implementation change, the maintainer must choose whether to
+      authorize a further performance investigation/optimization that
+      preserves those fallback and TODO-4 parity contracts, or leave the
+      performance target unmet and keep the tuning exclusion/acceptance open.
+      This note does not change the target, claim a speedup, or close TODO-3.
+      **Exact-seed fallback observer, 2026-10-21:** ran the disposable
+      `/tmp/edi_todo3_fallback_observer.R` once with a 180-second timeout and
+      `pkgload::load_all("R/EDI", compile = FALSE)`. Across the 50 `n=49`
+      estimate-only calls, 42 returned finite treatment coefficients and 8
+      returned nonfinite treatment coefficients; there were no NULL results,
+      missing coefficients, or kernel errors. Each of those 8 direct
+      nonfinite results was followed by 3 ordinary full-fit calls: two
+      nonfinite `p=4` fits, then one finite `p=3` fit (24 ordinary refit
+      calls total: 16 nonfinite `p=4`, 8 finite `p=3`). Thus the observed
+      fallback trigger is the direct treatment coefficient being nonfinite,
+      not the marginal-functional branch. The public summary remained `NA`
+      with reason `jackknife_extreme_summary`. Ordered call records are in
+      `/tmp/edi-todo3-fallback-observer-20261021.csv`. Provenance printed by
+      that run: EDI 1.0.3, checkout R namespace `/home/kapelner/workspace/EDI/R/EDI`,
+      loaded DLL `/tmp/RtmpORtmTo/pkgload3f2ea126/EDI.so`, MD5
+      `bfea6f47ab8b27618d5d8633e9021f91`; no build/install occurred. This
+      single reusable-route diagnostic does not measure timing or resolve
+      the historical reusable-vs-legacy 68/60 total-call comparison. It
+      localizes the direct-fit fallback trigger but does not justify changing
+      its guards or close TODO-3's performance target.
+- [x] TODO-4: Golden-value regression test: `compute_jackknife_estimate()`
       (and `compute_jackknife_std_error()`/`compute_jackknife_wald_two_sided_pval()`)
       must return **bit-identical** results before and after this change, on
       both a "no boundary mass" dataset (the diagnosed case) and a normal
       dataset with real `y=0`/`y=1` observations. This is a performance-only
       change; any numeric difference is a bug in the worker-state
       subsetting, not an acceptable side effect.
+      **Dual-regime migration golden, 2026-10-20:** extended the existing
+      boundary-mass, two-component/rank-fallback fixture to compare the public
+      jackknife estimate, standard error, and Wald p-value bit-for-bit against
+      an R6 subclass forced through the legacy fresh-fit route. Together with
+      the existing interior-only fixture, both required regimes now have the
+      three public-value comparisons. The full file passed 55 assertions
+      after `pkgload::load_all("R/EDI", compile = FALSE)`; its temporary DLL
+      MD5 `dfd5bf4384b5a0cc0d430fd70dab2a59` matches installed EDI 1.0.3. This
+      closes the R-level dual-regime parity test, but is not a current-checkout
+      native rebuild or performance result; TODO-3 remains open.
+      **Exact diagnosed-seed regression, 2026-10-21:** broadened the same
+      migration-golden file with the recorded tuning fixture (`proportion`,
+      `n=50`, seed `20264492`). It checks all 50 finite leave-one-out values
+      bit-identically between the reusable and forced-legacy routes, then
+      checks both routes' documented `NA` summary and
+      `jackknife_extreme_summary` reason plus equality of the three public
+      jackknife methods. This avoids letting equal `NA` summaries hide a
+      per-fold parity regression. The focused file passed 80 assertions
+      (0 failures, warnings, or skips; exit 0) via
+      `testthat::test_file("R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R", package = "EDI", reporter = "summary")`
+      against installed EDI 1.0.3; this run did not capture DLL identity or
+      attest checkout R source. No speed result or change to the NA
+      estimability conclusion is implied; TODO-3/5/6 remain open.
+      **Checkout-R overlay rerun, 2026-10-21:** after confirming no competing
+      R/Rscript process, ran
+      `timeout 180s Rscript -e 'pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R", reporter = "summary")'`.
+      All 80 assertions passed (0 failures, warnings, or skips; exit 0). This
+      validates the exact-seed per-fold parity and documented nonestimable
+      summary assertions against checkout R sources using the existing native
+      library. The run captured no loaded-DLL path/hash and performed no
+      native build/install, so it is not a native rebuild attestation. It
+      closes the exact-fixture current-R regression subgate only; TODO-3's
+      performance target, TODO-5's exclusion removal, and TODO-6's tuning run
+      remain open.
 - [ ] TODO-5: Remove the now-unnecessary `jackknife = "InferencePropZeroOneInflatedBetaRegr"`
       entry from `EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS`
       (`local_machine_tuning_axes.R`) once TODO-3/4 confirm the fix, so the

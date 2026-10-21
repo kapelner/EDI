@@ -10,8 +10,10 @@ Origin: `marketing_plans/agent_proofing.md` W6 (repo-root `marketing_plans/`, gi
 >   Fisher–Yates instead of `std::shuffle`. Appears implemented in the tree:
 >   `RNG.h:339-349` supplies the shared helper, and the two legacy
 >   rerandomization helpers perform the same bounded-`RRng` Fisher–Yates loop
->   directly.
->   but is still unchecked; verify and tick it there.
+>   directly. v1.0.5 TODO-91 was closed 2026-10-20 after R-CMD-check run
+>   39110868823 confirmed the committed digests and RNG golden across its
+>   eight platform legs; the broader every-class fixture requested below
+>   remains part of this v1.1.0 plan.
 > - `release_v1_0_5.md → TODO-93`: per-replicate seeds drawn without replacement.
 > - `release_v1_0_5.md → TODO-95`: thread-count-dependent design draws,
 >   `../bug_fix_plans/design_draws_depend_on_thread_count.md`.

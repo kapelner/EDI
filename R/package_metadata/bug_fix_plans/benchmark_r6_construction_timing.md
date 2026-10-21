@@ -94,6 +94,16 @@ fixes part of the cost itself; this plan fixes the measurement.
   remain open pending an authorized benchmark run, so this checkbox stays
   unchecked.
 
+  **Section-parser guard, 2026-10-20:** the section parser now lives in the
+  sourceable `R/benchmark/benchmark_sections.R` helper and rejects an
+  explicitly empty `--sections=` value instead of silently selecting all five
+  sections (the roughly 90-minute default). A focused bulk contract test
+  covers defaults, both flag forms, `all`, unknown names, and empty/missing
+  values; it passed 9 assertions without running the benchmark. The correctness
+  and coverage shard planners both validated the refreshed test inventory.
+  This is harness-input validation only: no benchmark, report generation,
+  Zhang parity check, or canonical artifact change was performed.
+
   Focused installed-package run completed on 2026-10-14 in an isolated copy
   of the staged benchmark inputs (`EDI 1.0.3`, `--sections=procedures,designs`):
   all 15 procedure and 6 design rows ran, and the generated report contained
@@ -218,9 +228,42 @@ fixes part of the cost itself; this plan fixes the measurement.
   0.127618, 0.668427): endpoint closeness is separate from, and does not
   compensate for, the speed failure. Raw pairs, construction samples,
   metadata, and harness are isolated in
-  `scratch/todo62_paired_zhang_20261016_02/` and
-  `scratch/todo62_paired_zhang_20261016_01/`; canonical artifacts were not
+  `/tmp/todo62_paired_zhang_20261016_02/` and
+  `/tmp/todo62_paired_zhang_20261016_01/`; canonical artifacts were not
   touched.
+
+  **Read-only provenance/report audit (2026-10-20):** recomputing summaries
+  from the preserved 30-row `paired_samples.csv` reproduces the recorded
+  EDI/Fisher medians, IQRs, and paired-speedup values; each stored ratio also
+  equals `Fisher / EDI` for its row. This validates internal arithmetic only.
+  The artifact metadata records installed EDI 1.0.3 and a DLL path/mtime of
+  2026-10-16, but no DLL hash or source revision. The currently installed
+  EDI 1.0.3 was built 2026-10-20 07:40:04 UTC and its DLL hash is
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  matching the checkout's `R/EDI/src/EDI.so`; the older paired run therefore
+  cannot be attributed to this exact installed binary. The four tracked
+  reports still show the old unsplit EDI-time row (2.44 ms vs. 0.96 ms,
+  0.39x); the two Markdown copies differ, while the HTML copies match
+  byte-for-byte. No timing, report generation, or canonical write was performed.
+  A current-build canonical comparison remains gated on the owner-approved
+  endpoint metric/tolerance. The project-history audit in
+  `release_v1_0_5.md → TODO-62` confirms the numeric procedure/whole-row speed
+  criteria are already owner-approved and that retained paired timing falls
+  short of the procedure target; endpoint accuracy is the only remaining
+  owner-choice gap. After the endpoint criterion is selected, record current
+  DLL/source provenance, run the paired canonical fixture, and
+  regenerate/synchronize all four reports only through the harness.
+
+  **Loaded R-layer identity follow-up, 2026-10-21:** the benchmark report
+  previously recorded the installed package path but not a fingerprint for
+  the loaded namespace's R payload. `benchmark_model_fits.R` now places the
+  namespace path, payload file count, and deterministic SHA-256 manifest in
+  either compilation-context branch. The focused section-selection/provenance
+  test passed 24 expectations, including a real loaded-namespace digest and a
+  synthetic payload-change check. No benchmark or report generation ran, and
+  the existing generated reports were not changed. This binds future generated
+  reports only; TODO-62's owner-approved parity criteria and canonical report
+  synchronization remain open.
 
   **Endpoint/kernel-work diagnostic (2026-10-16; installed EDI 1.0.3):** on
   the same fixture, the lower and upper endpoint each evaluated the scalar
@@ -331,11 +374,13 @@ fixes part of the cost itself; this plan fixes the measurement.
 
 ## Acceptance
 
-The Zhang row shows procedure time at parity with `fisher.test` (about
-1.0x) with construction reported beside it; every R6 row in the two
-tables shows all three columns; the Python section is still present in
-the regenerated md (the harness falls back to
+The Zhang row's EDI procedure time is no slower than `fisher.test`
+(`Fisher / EDI >= 1`) with construction reported separately; every R6 row in
+the two tables shows all three columns; the Python section is still present
+in the regenerated md (the harness falls back to
 `python/benchmark/benchmark_model_fits_python.html` since 2026-10-07).
+This is the approved speed criterion, not endpoint parity: the owner-approved
+endpoint error metric and numeric tolerance remain a separate unresolved gate.
 
 **Tracked-artifact preflight (2026-10-18; read-only):** no report was
 regenerated or edited. All four tracked outputs still contain the old,
@@ -357,6 +402,21 @@ previous acceptance: obtain the owner-approved numeric Zhang parity band,
 run the synchronized canonical fixture and confirm endpoint tolerance, then
 regenerate and reconcile all four outputs from the harness.
 
+**Synchronization-check scope (2026-10-20):** the harness source writes only
+`package_metadata/benchmark_model_fits.md` and
+`package_metadata/benchmark_model_fits_R.html`; it does not update the two
+tracked `R/benchmark/` copies. A byte-equality check is already meaningful for
+the HTML pair (currently equal), but not for the Markdown pair until the OLS
+follow-up and other Markdown-only content have an explicit preservation
+policy. Therefore no passing four-file sync test can be added against the
+present artifacts without either failing on their known stale state or
+silently choosing how that extra content should be reconciled. Once the
+owner-approved parity criteria permit the canonical rerun and the Markdown
+reconciliation policy is explicit, a post-generation check can assert the
+updated Zhang row/three timing columns in all four files, HTML byte equality,
+and the agreed Markdown-only section disposition; keep this separate from
+endpoint/timing acceptance.
+
 **Canonical Zhang decision evidence (2026-10-18; existing scratch artifacts,
 no rerun):** the canonical incidence/Bernoulli fixture is reconstructible
 from seed `45265` at `n=1000` (four covariates; table cells in the scratch
@@ -370,14 +430,61 @@ not establish a reliable procedure-time ratio. `pval_epsilon=1e-6` is the
 algorithm's numerical inversion/bisection precision, not an owner-approved
 cross-implementation endpoint-parity tolerance.
 
-The preserved scratch evidence is `/tmp/edi-todo62-canonical-zhang-20261016.R`,
+The historically recorded scratch evidence was `/tmp/edi-todo62-canonical-zhang-20261016.R`,
 `/tmp/edi-todo62-canonical-zhang-20261016.csv`,
 `/tmp/edi-todo62-canonical-zhang-20261016-summary.txt`,
 `/tmp/edi-todo62-zhang-procedure-20261015.R`, and
-`/tmp/edi-todo62-zhang-procedure-20261015.csv`. No canonical report or CSV was
-changed. Two independent owner decisions remain: (1) the endpoint-error
-metric and acceptable parity bound, and (2) the procedure-time ratio bound.
-After those decisions, collect paired alternating EDI/`fisher.test` timings on
-the same canonical fixture with host context recorded, and check the chosen
-endpoint criterion on boundary and sparse 2x2 fixtures before synchronizing
-reports. No thresholds are selected here.
+`/tmp/edi-todo62-zhang-procedure-20261015.csv`; these paths are absent in the
+current environment. No canonical report or CSV was changed. The approved procedure-time criterion is EDI no slower than
+`fisher.test` (`Fisher / EDI >= 1`); the retained measurements fail it. The
+remaining owner decision is the endpoint-error metric and acceptable parity
+bound. After that choice, collect provenance-current paired alternating
+EDI/`fisher.test` timings on the same canonical fixture with host context
+recorded, and check the chosen endpoint criterion on boundary and sparse 2x2
+fixtures before synchronizing reports. No endpoint threshold is selected here.
+
+**Retained paired-artifact/provenance audit, 2026-10-21 (read-only):** the two
+30-pair bundles under `/tmp/todo62_paired_zhang_20261016_01/` and
+`_02/` remain available. Both use the canonical seed-45265, n=1000, four-
+covariate table `(348,303,152,197)` and report construction separately. Their
+EDI/Fisher procedure medians are 9.420/1.413 ms (`Fisher / EDI = 0.149x`) and
+7.750/1.717 ms (`0.208x`), both below the approved `>=1x` criterion; maximum
+absolute log-endpoint discrepancy is `0.00441339775`. Their metadata records
+EDI 1.0.3, DLL path/mtime, R/platform, thread limits, and fixture, but no DLL
+SHA-256, checkout/source revision, or loaded R-payload fingerprint. The
+recorded DLL mtime is 2026-10-16; the current installed and checkout DLLs
+match at SHA-256 `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`,
+so the old runs cannot be attributed to this current artifact. The earlier
+isolated 15-procedure/6-design output directories recorded above are absent;
+the four tracked reports still contain the old unsplit Zhang row. Their HTML
+copies remain byte-identical, while Markdown copies differ and require the
+already-documented content-reconciliation policy. These old pairs remain
+historical diagnostics only, not current acceptance. A current-provenance
+canonical rerun and harness report regeneration/synchronization remain open.
+The separate three-pair, provenance-stamped diagnostic under
+`/tmp/edi-todo62-paired3.1o5VF5/` is recorded in the release row; its sample
+count and host-load variation make it diagnostic rather than an acceptance
+run, and it does not supply the absent 15-procedure/6-design report output.
+
+**Three-pair artifact identity recheck (2026-10-21; read-only):** the retained
+`metadata.txt`, `paired_samples.csv`, and `construction_samples.csv` have
+SHA-256 `8f562db148b743a20abd44cb446894c8ff51f844ea8d6077b611806ec72d0911`,
+`c067a45211e180b6895bf9f5acb6cd8898a16f91c57375dcd48af89afd4df2e2`, and
+`eb85e26c4a47dcf9d664dfca079ef9ea11bf33c07a0642e9db127ba3aeee4ba6`.
+The metadata identifies installed EDI 1.0.3, a three-file R-layer manifest
+(`cb1b1b5812cee41799ef53c1f0af1271d5a7c48e45b975b1954889e777cc76cd`), DLL
+SHA-256 `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and the canonical
+seed-45265, n=1000 fixture. Its paired procedure medians are 4.0293 ms EDI
+and 1.4737 ms Fisher (`Fisher / EDI = 0.2002`), below the approved `>=1`
+speed criterion; its maximum absolute log-bound difference is
+`0.00441339774953`, an observation rather than an approved endpoint tolerance.
+The saved run DLL differs from the currently inspected installed/checkout DLL
+(`f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`), so
+this small historical diagnostic is not current-artifact acceptance. The
+owner must still choose the cross-implementation endpoint error metric and
+bound. After that choice, a provenance-current canonical timing/parity run
+and authorized regeneration/reconciliation of all four reports remain
+required; the existing HTML copies match, but the Markdown copies differ and
+need the documented content-preservation policy. No benchmark or report was
+run or changed for this recheck.

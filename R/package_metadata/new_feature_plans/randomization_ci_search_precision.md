@@ -223,6 +223,8 @@ the first place.
 
 ## Implementation TODOs
 
+> **Scheduled 2026-10-20 (user decision):** v1.2.0 `TODO-34`; TODO-1's decision is "pursue the full redesign", with the default flip gated as in TODO-3.
+
 1. **Decision (Phase-0-style):** pursue the full anytime-valid CS redesign
    now, ship the Bonferroni bridge only, or leave the 2026-08-26 high-
    precision-confirmation stopgap as the standing behavior. This changes

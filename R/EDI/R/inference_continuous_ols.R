@@ -132,11 +132,36 @@ InferenceContinOLS = define_inference_class(
 			}
 			w_eff = as.numeric(row_weights[keep])
 			X_sub = X_full[keep, , drop = FALSE]
-			fit = tryCatch(
-				stats::lm.wfit(x = X_sub, y = as.numeric(private$y[keep]), w = w_eff),
-				error = function(e) NULL
-			)
-			coef_hat = if (!is.null(fit)) as.numeric(stats::coef(fit)) else numeric(0)
+			y_sub = as.numeric(private$y[keep])
+			# Positive row weights preserve the design's rank under sqrt-weight
+			# scaling. Use the existing native OLS solve on full-rank draws; keep
+			# lm.wfit as the compatibility fallback for aliased or failed fits.
+			sqrt_w = sqrt(w_eff)
+			X_weighted = X_sub * sqrt_w
+			y_weighted = y_sub * sqrt_w
+			beta_native = tryCatch({
+				if (ncol(X_weighted) > 0L && qr(X_weighted)$rank == ncol(X_weighted)) {
+					fit_native = fast_ols_cpp(X_weighted, y_weighted)
+					beta = as.numeric(fit_native$b)
+					if (length(beta) == ncol(X_sub) && all(is.finite(beta))) beta else NULL
+				} else {
+					NULL
+				}
+			}, error = function(e) NULL)
+			fit = NULL
+			if (is.null(beta_native)) {
+				fit = tryCatch(
+					stats::lm.wfit(x = X_sub, y = y_sub, w = w_eff),
+					error = function(e) NULL
+				)
+			}
+			coef_hat = if (!is.null(beta_native)) {
+				beta_native
+			} else if (!is.null(fit)) {
+				as.numeric(stats::coef(fit))
+			} else {
+				numeric(0)
+			}
 			if (length(coef_hat) < 2L || !is.finite(coef_hat[2L])) {
 				private$cached_values$beta_hat_T = NA_real_
 				private$cached_values$s_beta_hat_T = NA_real_
@@ -147,7 +172,12 @@ InferenceContinOLS = define_inference_class(
 			if (!estimate_only) {
 				df = sum(keep) - length(coef_hat)
 				se = if (df > 0L) {
-					sigma2_w = sum(w_eff * fit$residuals^2) / df
+					residuals = if (!is.null(beta_native)) {
+						y_sub - as.numeric(X_sub %*% coef_hat)
+					} else {
+						fit$residuals
+					}
+					sigma2_w = sum(w_eff * residuals^2) / df
 					var_j = tryCatch(solve(crossprod(X_sub * sqrt(w_eff)))[2L, 2L], error = function(e) NA_real_)
 					if (is.finite(var_j) && var_j > 0) sqrt(sigma2_w * var_j) else NA_real_
 				} else NA_real_

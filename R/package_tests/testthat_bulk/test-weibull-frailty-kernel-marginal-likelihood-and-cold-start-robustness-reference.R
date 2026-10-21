@@ -29,7 +29,7 @@ hand_nll <- function(p, dat) {
 	}, 0))
 }
 
-test_that("the negative log-likelihood is the marginal likelihood integral at the fitted parameters, and the fit is a local optimum of it", {
+test_that("cold and valid warm-start fits agree with the marginal likelihood reference", {
 	f <- fx(11L)
 	r <- K("fast_weibull_frailty_cpp")(f$X, f$y, f$dead, f$g, n_gh = 40L)
 	expect_true(r$converged)
@@ -38,6 +38,18 @@ test_that("the negative log-likelihood is the marginal likelihood integral at th
 	o <- optim(p, hand_nll, dat = f, method = "BFGS", control = list(reltol = 1e-10))
 	expect_equal(o$par, p, tolerance = 5e-3)
 	expect_lte(hand_nll(p, f), o$value + 1e-3)
+	# Exercise the affected kernel's valid p + 2 warm-start branch and check
+	# its fitted result against the independent per-group marginal integral.
+	warm_start <- c(1, 0.4, log(1 / 1.5), log(0.7))
+	r_warm <- K("fast_weibull_frailty_cpp")(
+		f$X, f$y, f$dead, f$g, n_gh = 40L,
+		warm_start_params = warm_start
+	)
+	p_warm <- as.numeric(r_warm$params)
+	expect_true(r_warm$converged)
+	expect_equal(as.numeric(r_warm$neg_loglik), hand_nll(p_warm, f), tolerance = 5e-4)
+	expect_equal(p_warm, o$par, tolerance = 5e-3)
+	expect_lte(hand_nll(p_warm, f), o$value + 1e-3)
 })
 
 test_that("default cold start reaches the same optimum as a well-started fit on every dataset (no variance collapse)", {

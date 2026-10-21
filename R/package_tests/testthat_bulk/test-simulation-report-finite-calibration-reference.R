@@ -15,6 +15,29 @@ simulation_calibration_rows <- function(type, beta = 0, truth = 0) {
              ci_lo = NA_real_, ci_hi = NA_real_, pval = NA_real_, true_estimand = truth)
 }
 
+simulation_calibration_report_from_run_state <- function(rows, errors, nrep) {
+  sim <- SimulationFramework$new(
+    response_type = "continuous", design_classes_and_params = list(DesignFixedBernoulli),
+    inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
+    inference_types_and_params = list(asymp_ci = list()),
+    n = 20L, p = 1L, Nrep_W = nrep, Nrep_Y_w = 1L, betaT = 0,
+    results_filename = tempfile(fileext = ".csv"), continue_from_last_result_row = FALSE,
+    verbose = FALSE, turn_off_asserts_for_speed = FALSE, stop_on_error = FALSE
+  )
+  private <- sim$.__enclos_env__$private
+  rows$design <- private$design_labels[[1L]]
+  rows$inference <- private$inference_labels[[1L]]
+  combo_cols <- c("response_type", "cond_exp_func_model", "n", "p", "betaT",
+                  "design", "inference", "inference_type")
+  private$has_run <- TRUE
+  private$raw_results <- list(data.table::as.data.table(rows))
+  private$results_idx <- 1L
+  private$error_log <- errors
+  private$valid_combos <- list(as.list(rows[1L, combo_cols, drop = FALSE]))
+  private$inf_types <- unique(rows$inference_type)
+  list(report = SimulationFrameworkReport$new(sim), private = private)
+}
+
 test_that("simulation calibration excludes nonfinite estimates and intervals", {
   ci <- simulation_calibration_rows("asymp_ci")
   ci$ci_lo <- c(-1, 1, NA, -Inf, -0.5)
@@ -25,12 +48,31 @@ test_that("simulation calibration excludes nonfinite estimates and intervals", {
   sm <- report$summarize()
   ci_summary <- sm[sm$inference_type == "asymp_ci", ]
   pv_summary <- sm[sm$inference_type == "asymp_pval", ]
+  raw_results <- report$get_results()
+  ci_rows <- raw_results[raw_results$inference_type == "asymp_ci", ]
+  interval_finite <- is.finite(ci_rows$ci_lo) & is.finite(ci_rows$ci_hi)
+  interval_covered <- interval_finite &
+    ci_rows$ci_lo <= ci_rows$true_estimand & ci_rows$true_estimand <= ci_rows$ci_hi
+  attempted_reps <- nrow(ci_rows)
+  invalid_intervals <- sum(!interval_finite)
+  covered_reps <- sum(interval_covered)
+  finite_only_coverage <- covered_reps / sum(interval_finite)
+  # This all-attempts rate treats every invalid interval as noncoverage; it is
+  # distinct from SimulationFrameworkReport's finite-interval calibration.
+  all_attempts_coverage <- covered_reps / attempted_reps
+  expect_identical(sort(as.integer(ci_rows$rep)), 1:5)
+  expect_identical(attempted_reps, 5L)
+  expect_identical(invalid_intervals, 2L)
+  expect_identical(covered_reps, 2L)
+  expect_equal(finite_only_coverage, 2 / 3)
+  expect_equal(all_attempts_coverage, 2 / 5)
   expect_equal(ci_summary$MSE, 2 / 3)
   expect_equal(ci_summary$n_est, 3)
-  expect_equal(ci_summary$coverage, 2 / 3)
-  expect_equal(ci_summary$n_cov, 3)
+  expect_equal(ci_summary$coverage, finite_only_coverage)
+  expect_equal(ci_summary$n_cov, sum(interval_finite))
   expect_equal(ci_summary$ci_length, mean(c(2, 1, 0.5)))
-  expect_equal(ci_summary$coverage_pval, binom.test(2, 3, p = 0.95)$p.value)
+  expect_equal(ci_summary$coverage_pval,
+               binom.test(covered_reps, sum(interval_finite), p = 0.95)$p.value)
   expect_equal(pv_summary$size, 1 / 3)
   expect_equal(pv_summary$n_size, 3)
   expect_equal(pv_summary$size_pval, binom.test(1, 3, p = 0.05)$p.value)
@@ -40,6 +82,48 @@ test_that("simulation calibration excludes nonfinite estimates and intervals", {
   expect_equal(pv_summary$n_cov, 0)
   expect_identical(report$get_errors(), list())
   expect_equal(nrow(report$get_results()), 10L)
+})
+
+test_that("attempt denominator includes an errored rep and a rep with no interval row", {
+  ci <- simulation_calibration_rows("asymp_ci")[1:3, ]
+  ci$ci_lo <- c(-1, -2, NA_real_)
+  ci$ci_hi <- c(1, 2, 1)
+  error <- list(
+    list(rep = 4L, stage = "inference", inference_type = "asymp_ci",
+         error_message = "synthetic failed interval attempt")
+  )
+  fixture <- simulation_calibration_report_from_run_state(ci, error, nrep = 5L)
+  report <- fixture$report
+  sim_private <- fixture$private
+
+  # SimulationFramework sets Nrep = Nrep_W * Nrep_Y_w; this expected roster
+  # is independent of the result rows that happened to be recorded.
+  expected_attempt_reps <- seq_len(sim_private$Nrep_W * sim_private$Nrep_Y_w)
+  expect_identical(as.integer(length(expected_attempt_reps)), sim_private$Nrep)
+  expect_identical(expected_attempt_reps, 1:5)
+
+  raw_ci <- report$get_results()
+  expect_identical(sort(as.integer(raw_ci$rep)), 1:3)
+  finite_interval <- is.finite(raw_ci$ci_lo) & is.finite(raw_ci$ci_hi)
+  covered <- finite_interval &
+    raw_ci$ci_lo <= raw_ci$true_estimand & raw_ci$true_estimand <= raw_ci$ci_hi
+  missing_result_reps <- setdiff(expected_attempt_reps, raw_ci$rep)
+  errored_reps <- vapply(report$get_errors(), `[[`, integer(1), "rep")
+  unclassified_missing_reps <- setdiff(missing_result_reps, errored_reps)
+  all_attempt_coverage <- sum(covered) / length(expected_attempt_reps)
+
+  expect_identical(sort(missing_result_reps), c(4L, 5L))
+  expect_identical(errored_reps, 4L)
+  expect_identical(unclassified_missing_reps, 5L)
+  expect_equal(sum(covered), 2L)
+  expect_equal(all_attempt_coverage, 2 / 5)
+
+  ci_summary <- report$summarize()[inference_type == "asymp_ci", ]
+  expect_equal(ci_summary$n_cov, 2L)
+  expect_equal(ci_summary$coverage, 1)
+  # Report summaries cover recorded finite intervals only. Captured errors are
+  # exposed separately, and a missing result is visible only against the
+  # expected-rep roster above; neither changes the report's finite denominator.
 })
 
 test_that("custom simulation calibration uses the true estimand to identify the null", {

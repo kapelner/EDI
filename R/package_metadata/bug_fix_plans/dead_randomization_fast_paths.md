@@ -285,7 +285,8 @@ not exist either.
   test checks the TODO's fast-path/worker wiring contract; class-specific
   independent numerical references remain in their existing focused files.
 
-- [ ] TODO-6 (added 2026-10-18, follow-up): **Exercise the real OLS-IVWC
+- [x] TODO-6 (added 2026-10-18, follow-up; installed-native validation
+  rechecked 2026-10-20): **Exercise the real OLS-IVWC
   matched/reservoir fit and combination on a non-fallback fixture.** The
   existing n=20, two-covariate fixture in the 50-draw dispatch-parity test has
   three matched pairs and a three-column matched design; its
@@ -298,8 +299,35 @@ not exist either.
   HC2 components plus the IVWC estimate/SE/Satterthwaite df to a base-R
   linear-algebra reference. It passed 27 assertions against installed EDI
   1.0.3 (`TMPDIR=/tmp Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-kk-ols-ivwc-shared-satterthwaite-df-and-combination-branches-reference.R", package="EDI")'`).
-  Current-checkout native validation remains pending; do not treat the
-  installed 1.0.3 run as validation of checkout C++.
+  **Post-HEAD installed-native recheck, 2026-10-20:** the same 27-assertion
+  test passed with 0 failures, warnings, or skips against installed EDI 1.0.3.
+  `edi_build_info_cpp()` reports build timestamp `2026-10-19 23:31:50 IDT`
+  (installed `EDI.so` mtime `23:47:15 IDT`), later than checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` (`21:03:16 IDT`); relevant R,
+  native-source, and test files are clean at HEAD. This validates the real
+  matched/reservoir fit and combination against the user's post-HEAD rebuild.
+  The package embeds no Git SHA, so source identity still relies on the
+  reported reinstall plus build timestamp rather than an artifact-SHA
+  attestation. **Fixture non-vacuity assertion, 2026-10-20:** the reference
+  test now also requires distinct matched and reservoir treatment estimates,
+  a strict IVWC estimate distinct from both component estimates, and equality
+  to the independent weighted-combination formula. The focused test passed
+  31 assertions (0 failures, warnings, or skips) against installed EDI 1.0.3
+  via `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-kk-ols-ivwc-shared-satterthwaite-df-and-combination-branches-reference.R")'`.
+  This confirms the fixture is non-vacuous for the weighted combination at
+  the test/oracle level. **Current-native recheck, 2026-10-20:** reran the
+  same test against installed EDI 1.0.3; all 31 expectations passed, with no
+  failures, warnings, or skips. The loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`
+  (14,727,184 bytes; mtime `2026-10-20 09:38:02 +0300`) has SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  and MD5 `a75519a9256c0b3121398032314291d4`; it is byte-identical to
+  checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` (same size and SHA-256). This
+  resolves the remaining focused native-artifact identity gap for the
+  non-fallback public OLS-IVWC fixture. The package still embeds no Git SHA,
+  but both test and checkout artifact hashes are recorded. No compile/install
+  or canonical result write occurred.
 
 ## Acceptance
 

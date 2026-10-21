@@ -4245,8 +4245,8 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     .flush_pending_to_disk = function() {
       if (length(private$pending_file_rows) == 0L) return(invisible(NULL))
       combined = data.table::rbindlist(private$pending_file_rows, use.names = TRUE, fill = TRUE)
-      private$pending_file_rows = list()
       private$.append_result_row_to_file(combined)
+      private$pending_file_rows = list()
       invisible(NULL)
     },
     # Append multiple rows to raw_results and write to disk in one go.

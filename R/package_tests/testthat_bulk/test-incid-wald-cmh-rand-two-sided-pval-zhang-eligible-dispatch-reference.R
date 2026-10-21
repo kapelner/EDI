@@ -1,21 +1,12 @@
 library(testthat)
 library(EDI)
 
-# InferenceIncidWald and InferenceIncidCMH both pin compute_rand_two_sided_pval to InferenceRandCI's
-# version (inference_incid_wald.R / inference_incidence_cmh.R), the SAME fix InferenceIncidExtendedRobins
-# got -- fix_inference_hierarchy.md's InferenceIncidExtendedRobins entry says explicitly "same bug as
-# InferenceIncidWald/InferenceIncidCMH, fixed alongside them". Unlike InferenceIncidExtendedRobins
-# (regression-guarded earlier this session via private-state injection, since its own constructor
-# structurally forbids a Zhang-eligible design), both these classes' Zhang-eligible path IS reachable
-# through a real, ordinary DesignFixedBernoulli constructor -- neither restricts itself to blocking-only
-# designs the way ExtendedRobins does. Despite that, existing test coverage only reaches the REFUSAL
-# branch: test-coin-cross-validation-location.R explicitly documents and tests that InferenceIncidCMH
-# under a non-Zhang-eligible DesignFixedBlocking design refuses with "Randomization tests are not
-# supported for incidence", but a codebase-wide grep confirmed no test anywhere calls compute_rand_two_
-# sided_pval() successfully for either class on a Zhang-eligible design. Verified against an independent
-# reference: InferenceIncidLogRegr (an already-correctly-pinned class) computes the bit-identical Zhang
-# p-value on the same y/w, since the Zhang exact test depends only on the data, never the calling
-# class's own point estimator.
+# Since 2026-10-20 compute_rand_two_sided_pval() always draws w vectors from the design (user decision):
+# the Zhang exact-combined-test dispatch it used to take for Zhang-eligible incidence designs ignored the
+# draws and was far more conservative (200 KK21stepwise nulls: reject@0.05 1% vs 3%, median p 0.82 vs 0.58).
+# This file pins that InferenceIncidWald/InferenceIncidCMH uses the draw-based path on a Zhang-eligible design: the p-value is finite, in (0, 1],
+# reproducible under a fixed seed, a nonzero delta is refused for incidence (additive shifts are not defined
+# for 0/1 outcomes), and the Zhang test is still reachable explicitly via type = "Zhang".
 
 fx <- function(seed = 1L, n = 20L) {
 	set.seed(seed)
@@ -26,30 +17,23 @@ fx <- function(seed = 1L, n = 20L) {
 	des
 }
 
-test_that("InferenceIncidWald on a real Bernoulli design is genuinely Zhang-eligible and compute_rand_two_sided_pval() matches an independent reference class exactly, across several deltas", {
-	des <- fx(1L)
-	inf <- InferenceIncidWald$new(des, verbose = FALSE)
-	expect_true(inf$.__enclos_env__$private$should_use_zhang_incidence_randomization())
+check_draw_based_pval <- function(inf, info) {
+	expect_true(inf$.__enclos_env__$private$should_use_zhang_incidence_randomization(), info = info)
+	set.seed(11L); pv1 <- inf$compute_rand_two_sided_pval(delta = 0, show_progress = FALSE)
+	set.seed(11L); pv2 <- inf$compute_rand_two_sided_pval(delta = 0, show_progress = FALSE)
+	expect_true(is.finite(pv1) && pv1 > 0 && pv1 <= 1, info = info)
+	expect_identical(pv1, pv2, info = info)
+	expect_error(inf$compute_rand_two_sided_pval(delta = 0.3, show_progress = FALSE), "delta nonzero not supported for incidence", info = info)
+	pz <- inf$compute_rand_two_sided_pval(delta = 0, type = "Zhang")
+	expect_true(is.finite(pz) && pz > 0 && pz <= 1, info = info)
+}
 
-	inf_ref <- InferenceIncidLogRegr$new(des, verbose = FALSE)
-	for (delta in c(0, 0.3, -0.4)) {
-		pv <- inf$compute_rand_two_sided_pval(delta = delta)
-		pv_ref <- inf_ref$compute_rand_two_sided_pval(delta = delta)
-		expect_true(is.finite(pv))
-		expect_equal(pv, pv_ref, tolerance = 1e-12, info = paste("delta =", delta))
-	}
+test_that("InferenceIncidWald on a Zhang-eligible design: compute_rand_two_sided_pval() uses the randomization draws, is reproducible, refuses nonzero delta, and type = 'Zhang' still works", {
+	inf <- InferenceIncidWald$new(fx(1L), verbose = FALSE)
+	check_draw_based_pval(inf, "InferenceIncidWald")
 })
 
-test_that("InferenceIncidCMH on a real (non-blocking) Bernoulli design is genuinely Zhang-eligible and compute_rand_two_sided_pval() matches the same independent reference exactly", {
-	des <- fx(2L)
-	inf <- InferenceIncidCMH$new(des, verbose = FALSE)
-	expect_true(inf$.__enclos_env__$private$should_use_zhang_incidence_randomization())
-
-	inf_ref <- InferenceIncidLogRegr$new(des, verbose = FALSE)
-	for (delta in c(0, 0.2, -0.3)) {
-		pv <- inf$compute_rand_two_sided_pval(delta = delta)
-		pv_ref <- inf_ref$compute_rand_two_sided_pval(delta = delta)
-		expect_true(is.finite(pv))
-		expect_equal(pv, pv_ref, tolerance = 1e-12, info = paste("delta =", delta))
-	}
+test_that("InferenceIncidCMH on a Zhang-eligible design: compute_rand_two_sided_pval() uses the randomization draws, is reproducible, refuses nonzero delta, and type = 'Zhang' still works", {
+	inf <- InferenceIncidCMH$new(fx(2L), verbose = FALSE)
+	check_draw_based_pval(inf, "InferenceIncidCMH")
 })

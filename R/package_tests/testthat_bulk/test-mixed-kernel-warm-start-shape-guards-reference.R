@@ -69,6 +69,91 @@ test_that("mixed-model kernels reject wrong-shaped warm_start_fisher_info", {
 	cases <- list(
 		gaussian_lmm = list(
 			call = function(H) EDI:::fast_gaussian_lmm_cpp(d$X, seq_len(nrow(d$X)), d$group_pairs, warm_start_fisher_info = H),
+			n_params = ncol(d$X) + 2L,
+			dimension_error = "warm_start_fisher_info must be square with ncol(X) + 2 rows"),
+		hurdle_negbin = list(
+			call = function(H) EDI:::fast_hurdle_negbin_cpp(d$X, d$y_hurdle, d$X, warm_start_fisher_info = H),
+			n_params = ncol(d$X) + 1L,
+			dimension_error = "warm_start_fisher_info must be square with ncol(X) + 1 rows"),
+		hurdle_poisson_glmm = list(
+			call = function(H) EDI:::fast_hurdle_poisson_glmm_cpp(d$X, d$y_count, d$group, 1L, warm_start_fisher_info = H),
+			n_params = ncol(d$X) + 1L,
+			dimension_error = "warm_start_fisher_info must be square with ncol(X) + 1 rows"),
+		logistic_glmm = list(
+			call = function(H) EDI:::fast_logistic_glmm_cpp(d$X, d$y_binary, d$group, 1L, warm_start_fisher_info = H),
+			n_params = ncol(d$X) + 1L,
+			dimension_error = "warm_start_fisher_info must be square with ncol(X) + 1 rows"),
+		ordinal_glmm = list(
+			call = function(H) EDI:::fast_ordinal_glmm_cpp(d$X_no_intercept, d$y_ordinal, d$group, 3L, 0L, warm_start_fisher_info = H),
+			n_params = 2L + ncol(d$X_no_intercept) + 1L,
+			dimension_error = "warm_start_fisher_info must be square with (K - 1) + ncol(X) + 1 rows"),
+		poisson_glmm = list(
+			call = function(H) EDI:::fast_poisson_glmm_cpp(d$X, d$y_count, d$group, 1L, warm_start_fisher_info = H),
+			n_params = ncol(d$X) + 1L,
+			dimension_error = "warm_start_fisher_info must be square with ncol(X) + 1 rows"),
+		weibull_frailty = list(
+			call = function(H) EDI:::fast_weibull_frailty_cpp(d$X, d$y_survival, d$dead, d$group, warm_start_fisher_info = H),
+			n_params = ncol(d$X) + 2L,
+			dimension_error = "warm_start_fisher_info must be square with ncol(X) + 2 rows")
+	)
+
+	for (case_name in names(cases)) {
+		case <- cases[[case_name]]
+		bad <- matrix(0, nrow = case$n_params, ncol = case$n_params - 1L)
+		expect_error(case$call(bad), "warm_start_fisher_info must be square", info = case_name)
+
+		# A square matrix can still have the wrong parameter dimension. Check
+		# the kernel's specific dimension-contract error, not just squareness.
+		wrong_size_square <- diag(case$n_params + 1L)
+		actual_error <- tryCatch({
+			case$call(wrong_size_square)
+			NA_character_
+		}, error = function(e) conditionMessage(e))
+		expect_identical(actual_error, case$dimension_error, info = case_name)
+	}
+
+	expect_error(EDI:::fast_zero_augmented_poisson_cpp(
+		d$X, d$y_hurdle, d$X, is_hurdle = TRUE,
+		warm_start_fisher_info = matrix(0, 4L, 3L)),
+		"warm_start_fisher_info must have dimensions")
+	zip_wrong_size_square_error <- tryCatch({
+		EDI:::fast_zero_augmented_poisson_cpp(
+			d$X, d$y_hurdle, d$X, is_hurdle = TRUE,
+			warm_start_fisher_info = diag(5L))
+		NA_character_
+	}, error = function(e) conditionMessage(e))
+	expect_identical(zip_wrong_size_square_error,
+		"warm_start_fisher_info must have dimensions 4 x 4")
+})
+
+test_that("mixed-model kernels reject non-finite warm-start inputs", {
+	d <- make_mixed_kernel_guard_fixture()
+	parameter_cases <- list(
+		gaussian_lmm = list(
+			call = function(z) EDI:::fast_gaussian_lmm_cpp(d$X, seq_len(nrow(d$X)), d$group_pairs, warm_start_params = z),
+			n_params = ncol(d$X) + 2L),
+		hurdle_negbin = list(
+			call = function(z) EDI:::fast_hurdle_negbin_cpp(d$X, d$y_hurdle, d$X, warm_start_params = z),
+			n_params = ncol(d$X) + 1L),
+		hurdle_poisson_glmm = list(
+			call = function(z) EDI:::fast_hurdle_poisson_glmm_cpp(d$X, d$y_count, d$group, 1L, warm_start_params = z),
+			n_params = ncol(d$X) + 1L),
+		logistic_glmm = list(
+			call = function(z) EDI:::fast_logistic_glmm_cpp(d$X, d$y_binary, d$group, 1L, warm_start_params = z),
+			n_params = ncol(d$X) + 1L),
+		ordinal_glmm = list(
+			call = function(z) EDI:::fast_ordinal_glmm_cpp(d$X_no_intercept, d$y_ordinal, d$group, 3L, 0L, warm_start_params = z),
+			n_params = 2L + ncol(d$X_no_intercept) + 1L),
+		poisson_glmm = list(
+			call = function(z) EDI:::fast_poisson_glmm_cpp(d$X, d$y_count, d$group, 1L, warm_start_params = z),
+			n_params = ncol(d$X) + 1L),
+		weibull_frailty = list(
+			call = function(z) EDI:::fast_weibull_frailty_cpp(d$X, d$y_survival, d$dead, d$group, warm_start_params = z),
+			n_params = ncol(d$X) + 2L)
+	)
+	fisher_cases <- list(
+		gaussian_lmm = list(
+			call = function(H) EDI:::fast_gaussian_lmm_cpp(d$X, seq_len(nrow(d$X)), d$group_pairs, warm_start_fisher_info = H),
 			n_params = ncol(d$X) + 2L),
 		hurdle_negbin = list(
 			call = function(H) EDI:::fast_hurdle_negbin_cpp(d$X, d$y_hurdle, d$X, warm_start_fisher_info = H),
@@ -90,14 +175,33 @@ test_that("mixed-model kernels reject wrong-shaped warm_start_fisher_info", {
 			n_params = ncol(d$X) + 2L)
 	)
 
-	for (case_name in names(cases)) {
-		case <- cases[[case_name]]
-		bad <- matrix(0, nrow = case$n_params, ncol = case$n_params - 1L)
-		expect_error(case$call(bad), "warm_start_fisher_info must be square", info = case_name)
+	for (case_name in names(parameter_cases)) {
+		case <- parameter_cases[[case_name]]
+		bad <- numeric(case$n_params)
+		bad[[1L]] <- NaN
+		expect_error(case$call(bad), "warm_start_params must contain only finite values", info = case_name)
+	}
+	for (case_name in names(fisher_cases)) {
+		case <- fisher_cases[[case_name]]
+		bad <- diag(case$n_params)
+		bad[[1L, 1L]] <- Inf
+		expect_error(case$call(bad), "warm_start_fisher_info must contain only finite values", info = case_name)
 	}
 
-	expect_error(EDI:::fast_zero_augmented_poisson_cpp(
+	# The zero-augmented wrapper returns a structured diagnostic for native
+	# parameter/finiteness failures, unlike the sibling wrappers' thrown errors.
+	zoib_params <- rep(0, 2L * ncol(d$X))
+	zoib_params[[1L]] <- NaN
+	zoib_fit <- EDI:::fast_zero_augmented_poisson_cpp(
 		d$X, d$y_hurdle, d$X, is_hurdle = TRUE,
-		warm_start_fisher_info = matrix(0, 4L, 3L)),
-		"warm_start_fisher_info must have dimensions")
+		warm_start_params = zoib_params)
+	expect_match(zoib_fit$exception_message,
+		"warm_start_params must contain only finite values")
+	zoib_info <- diag(length(zoib_params))
+	zoib_info[[1L, 1L]] <- Inf
+	zoib_fit <- EDI:::fast_zero_augmented_poisson_cpp(
+		d$X, d$y_hurdle, d$X, is_hurdle = TRUE,
+		warm_start_fisher_info = zoib_info)
+	expect_match(zoib_fit$exception_message,
+		"warm_start_fisher_info must contain only finite values")
 })

@@ -44,8 +44,19 @@
 #'     \strong{approximate}, not exact: since \code{w} is randomized it should be
 #'     (nearly) independent of the covariates, so partialling it out barely changes the
 #'     conditional association statistics and the pair structure is almost always the
-#'     same under a different assignment path. In simulation the resulting inference
-#'     is very close to the exact replay.
+#'     same under a different assignment path. In a paired null simulation (incidence
+#'     response, \eqn{n = 148}, one covariate, \eqn{r = 151} draws, 200 experiments,
+#'     identical data, observed design and draw seed in both arms) the default and
+#'     the exact replay were practically indistinguishable: randomization p-values
+#'     rejected at the 0.05 level in 3.0\% of experiments under both settings (and at
+#'     the 0.10 level in 8.5\% vs 9.0\%), mean p-value 0.550 (default) vs 0.542
+#'     (exact), paired p-values correlated 0.986, and
+#'     the standard deviation of the randomization draws agreed to within 0.2\%
+#'     (0.0797 vs 0.0792). The remaining sub-nominal rejection rate is the
+#'     conservatism of inclusive exact tails on a discrete statistic, not a
+#'     consequence of the approximation. This is one configuration (one covariate,
+#'     a mean-difference statistic, incidence), so \code{FALSE} remains the safe
+#'     choice when exactness matters.
 #'   \item \code{FALSE}: exact. Every randomization draw replays the entire sequential
 #'     design from subject 1, refitting the stepwise weights at every step using only the
 #'     responses available at that point, so pairs may form differently in each draw.

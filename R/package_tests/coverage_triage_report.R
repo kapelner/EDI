@@ -42,7 +42,8 @@ coverage_triage_report = function(input, output_dir,
 	generator$validate_registry(registry)
 	# Historical rows absent from this report are not newly measured gaps.
 	gaps = registry[registry$file %in% per_file$file & registry$coverage_percent < threshold, , drop = FALSE]
-	unreviewed = gaps[gaps$category == "unclassified" | gaps$status == "triage_needed", , drop = FALSE]
+	unreviewed = gaps[gaps$status != "excluded" &
+		(gaps$category == "unclassified" | gaps$status == "triage_needed"), , drop = FALSE]
 	missing = prior[!prior$file %in% per_file$file, , drop = FALSE]
 	covered = sum(per_file$covered_lines)
 	coverable = sum(per_file$coverable_lines)

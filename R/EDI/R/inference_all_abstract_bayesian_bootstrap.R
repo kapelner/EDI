@@ -210,9 +210,9 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 						tryCatch(private$compute_bayesian_bootstrap_worker_estimate(worker_state), error = function(e) NA_real_)
 					}
 				} else {
+					worker_inf = inf_template$duplicate(make_fork_cluster = FALSE)
+					draw = draws[[1L]]
 					function() {
-						worker_inf = inf_template$duplicate(make_fork_cluster = FALSE)
-						draw = draws[[1L]]
 						tryCatch({
 							worker_inf$.__enclos_env__$private$current_bayesian_bootstrap_context = draw$context
 							as.numeric(worker_inf$compute_estimate_with_bootstrap_weights(
@@ -236,12 +236,13 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 					show_progress = show_progress
 				)
 			} else {
-				unlist(private$par_lapply(
-					seq_along(draws),
-					function(idx) {
+				chunk_n = max(1L, min(as.integer(actual_cores), length(draws)))
+				chunk_size = as.integer(ceiling(length(draws) / chunk_n))
+				draw_chunks = split(draws, ceiling(seq_along(draws) / chunk_size))
+				process_draw_chunk = function(draw_chunk) {
+					worker_inf = inf_template$duplicate(make_fork_cluster = FALSE)
+					vapply(draw_chunk, function(draw) {
 						private$check_bootstrap_replicate_deadline("Bayesian bootstrap replicate")
-						worker_inf = inf_template$duplicate(make_fork_cluster = FALSE)
-						draw = draws[[idx]]
 						out = tryCatch({
 							worker_inf$.__enclos_env__$private$current_bayesian_bootstrap_context = draw$context
 							as.numeric(worker_inf$compute_estimate_with_bootstrap_weights(
@@ -251,7 +252,17 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 						}, error = function(e) NA_real_)
 						private$check_bootstrap_replicate_deadline("Bayesian bootstrap replicate")
 						out
-					},
+					}, numeric(1))
+				}
+				# Keep only the per-chunk draw slice and the one inference template
+				# needed for that chunk in the function's serialization environment.
+				process_draw_chunk_env = new.env(parent = asNamespace("EDI"))
+				process_draw_chunk_env$inf_template = inf_template
+				process_draw_chunk_env$private = private
+				environment(process_draw_chunk) = process_draw_chunk_env
+				unlist(private$par_lapply(
+					draw_chunks,
+					process_draw_chunk,
 					n_cores = actual_cores,
 					show_progress = show_progress,
 					export_list = list(inf_template = inf_template, draws = draws)

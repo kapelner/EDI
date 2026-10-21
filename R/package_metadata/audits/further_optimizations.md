@@ -756,7 +756,7 @@ ideally native Linux, or try an interpreter-heavy workload (the R6-heavy
    native-Linux
    comparison is still open. `InferenceSuite`'s per-task fork about doubles
    its CPU (1.1 s per task); a long-lived worker pool is planned for v1.1.0
-   (`release_v1_1_0.md → TODO-51`, `inference_suite_worker_pool.md`).
+   (`release_v1_2_0.md → TODO-32`, `inference_suite_worker_pool.md`).
 3. ~~Section 4~~ and ~~section 6~~: tried 2026-10-14, no measurable gain
    (see their result subsections).
 4. Section 5: a larger engineering effort, only if the earlier results point

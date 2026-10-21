@@ -256,6 +256,34 @@ lengths is part of TODO-1).
   cpoisson's `p + 2` form where applicable. Static review only: no checkout
   C++ compile, install, sanitizer, or Valgrind run has occurred.
 
+  **Focused installed-package revalidation, 2026-10-20:** eight bulk guard
+  tests passed against EDI 1.0.3 (64 assertions): log-identity binomial,
+  probit, robust weighted, ordinal, ordinal probit/cauchit/cloglog, Weibull,
+  negative-binomial, and weighted log-identity binomial. The ZINB sibling
+  guard test passed seven additional assertions. The loaded package was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; its `EDI.so` was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  SHA-256 `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  (MD5 `a75519a9256c0b3121398032314291d4`). This installed-library identity
+  differs from the earlier recorded SHA-256, so these results are evidence
+  for this installed package only; they do not establish current-checkout
+  native equivalence. No build/install was run. ASAN/UBSAN and Valgrind remain
+  open.
+
+  **Fresh user-managed rebuild with checkout-R overlay, 2026-10-20:** the
+  installed namespace-only CRAN contract reported 12 failures / 184 passes;
+  the failures were missing R wrapper functions in the installed R layer, not
+  wrong-length guards returning incorrectly. Re-running with
+  `pkgload::load_all("R/EDI", compile = FALSE)` against the same native
+  library passed all 204 CRAN expectations, plus 64 assertions across the
+  eight sibling files and 7 ZINB assertions (275 total, no failures). The
+  loaded overlay DLL at `/tmp/RtmpHlgw5S/pkgload99164b557f1e/EDI.so` had
+  SHA-256 `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  matching the freshly installed binary and checkout `R/EDI/src/EDI.so`.
+  This closes the R-source/native malformed-start runtime gate for these
+  cases. The installed R-layer mismatch, Python validation, and sanitizer /
+  Valgrind CI remain open; no build/install was performed by the agent.
+
   Focused installed-package rerun after the 2026-10-18 expansion used
   `testthat::test_file("R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R", package = "EDI")`
   against EDI 1.0.3 at
@@ -304,6 +332,84 @@ lengths is part of TODO-1).
   `python -m pytest python/tests/test_fast_ordinal_clmm.py python/tests/test_fast_dep_cens_transform_optim.py`.
   This gate remains open until that command passes against the rebuilt
   extension; no extension was built or installed in this audit.
+
+  **Focused existing-extension smoke, 2026-10-20:** the two added files were
+  run without building/installing:
+  `python/.venv/bin/python -m pytest -q python/tests/test_fast_ordinal_clmm.py python/tests/test_fast_dep_cens_transform_optim.py`
+  passed 9 tests. The editable `edi-kernels` package initializer resolved to
+  this checkout's `python/src/edi_kernels/__init__.py`, while the imported
+  native module resolved to
+  `python/.venv/lib/python3.14/site-packages/edi_kernels/_core.cpython-314-x86_64-linux-gnu.so`
+  (package metadata version 1.0.2; SHA-256
+  `ea216d1626310beedcacc18bccf6419207da78c34ac1a5b41f1cea983b83de05`).
+  Its filesystem mtime (2026-10-18 11:17 +0300) is later than the guarded
+  C++ sources and new tests (2026-10-18 09:44 +0300), unlike the stale
+  extension recorded in the prior audit. This makes the smoke relevant to
+  these changes by chronology, but the editable install records no source
+  commit/build provenance, so it is not proof that this exact checkout was
+  compiled into `_core`. It does not close the rebuild-backed Python gate or
+  the required ASAN/UBSAN and Valgrind jobs; no build, install, or sanitizer
+  run occurred here.
+
+  **Existing-extension logistic warm-start recheck, 2026-10-20:** the single
+  node `python/tests/test_fast_logistic_regression.py::test_wrong_length_warm_start_beta_raises_value_error`
+  passed (`1 passed in 0.37s`) with bytecode/cache writes disabled. Python was
+  3.14.4; `edi_kernels.__init__` resolved to the checkout's
+  `python/src/edi_kernels/__init__.py`, while `_core` resolved to
+  `python/.venv/lib/python3.14/site-packages/edi_kernels/_core.cpython-314-x86_64-linux-gnu.so`.
+  Installed distribution metadata reports `edi-kernels` 1.0.2; the extension
+  SHA-256 is
+  `ea216d1626310beedcacc18bccf6419207da78c34ac1a5b41f1cea983b83de05`
+  (mtime 2026-10-18 11:17 +0300). The relevant Python package/test files are
+  clean at checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. The extension
+  mtime follows the recorded source edits, but no build manifest or embedded
+  commit proves this binary was built from this checkout. This is evidence for
+  the existing binary's logistic guard only; rebuild-backed validation of all
+  Python bindings and the ASAN/UBSAN/Valgrind CI gates remain open. No build or
+  install occurred.
+
+  **Same-source Python CI validation, 2026-10-18:** the successful
+  `Build edi_kernels wheels` run
+  [39110868916](https://github.com/kapelner/EDI/actions/runs/39110868916)
+  tested commit `4d2531e97bc0636d3409003576a5766d15a308d0`; its
+  `Python coverage / coverage` job (117626532957) completed the editable
+  `pip install -e "./python[test]"` and full `python -m pytest tests -q
+  --cov=edi_kernels` steps successfully. The full suite includes the logistic,
+  ordinal-CLMM, and dependent-censoring wrong-length-start tests. Read-only
+  comparison found no differences in `R/EDI/src` or `python/` between that
+  tested commit and checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`,
+  so the CI-built Python extension exercised the same native guards, bindings,
+  and test sources now in checkout. This closes the Python wrong-length suite
+  validation subgate without relying on the unproven local Python 1.0.2
+  extension. It does not close the R targeted compile/relink or the required
+  R-CMD-check ASAN/UBSAN and Valgrind gates; no artifact was downloaded and no
+  local build/install was run.
+
+**Current installed/staged DLL identity recheck, 2026-10-21:** read-only SHA-256
+inspection found installed
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` and
+checkout `R/EDI/src/EDI.so` byte-identical at
+`0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0` (both
+dated 2026-10-21 09:43). This differs from the prior installed-native test
+identity `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+The current matching files do not establish that the earlier warm-start tests
+ran against this DLL, nor authenticate its source/build inputs. Keep the
+current-source/build-provenance and sanitizer/Valgrind gates open; no test,
+build, or install was run for this identity check.
+
+**Installed current-identity contract rerun, 2026-10-21:** after that identity
+check, `Rscript -e 'library(EDI); testthat::test_file("R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R", package="EDI")'`
+passed all 243 expectations (0 failures, warnings, or skips) against installed
+EDI 1.0.3. The test process loaded
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`; a
+read-only SHA-256 check immediately afterward found the installed DLL and
+checkout `R/EDI/src/EDI.so` byte-identical at
+`f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`. This
+supersedes the prior "no test" status for that older identity and validates
+the expanded CRAN contract against the currently available installed
+artifact. It does not authenticate that DLL to the C++ source tree or build
+flags; current-source/build provenance and sanitizer/Valgrind evidence remain
+open. No source overlay, compilation, build, or install was used.
 
 ## Out of scope
 

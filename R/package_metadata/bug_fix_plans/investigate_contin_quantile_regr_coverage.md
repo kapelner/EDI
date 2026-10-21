@@ -252,7 +252,7 @@ dataset-property facts independent of harness state, so the refutation
 stands regardless; it rests on the earlier fork's own documented
 per-dataset coverage table, which is the best record currently available.)
 
-**Root cause remains open — both leading hypotheses (design-pooling,
+**(Historical, superseded by "Final disposition (2026-10-09)" below.) Root cause remains open — both leading hypotheses (design-pooling,
 dataset-shape) are now refuted.** What's left unexplained: `diamonds` and
 `pte_example` showing worse coverage than `iris`/`ionosphere` for some OTHER
 reason not yet identified. Candidate directions not yet explored: dataset
@@ -374,7 +374,8 @@ feature rather than a v1.0.5 bug fix.
   has the LOWEST tie rate; `iris` (best coverage, 1.000) has the HIGHEST.
   Opposite of the predicted ranking. See "Follow-up investigation, fourth
   pass" above. Three hypotheses (design-pooling, dataset-shape, tie-rate)
-  now refuted in a row; root cause remains genuinely open.
+  now refuted in a row; root cause remains genuinely open (historical;
+  superseded by "Final disposition (2026-10-09)" below).
 - [x] TODO-3 (RESOLVED 2026-09-24, see above): confirmed the resampling
   `studentized`/`symmetric-percentile-t` methods share the exact same
   `"nid"`-based SE machinery as `asymp`/`wald`, via

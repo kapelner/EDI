@@ -149,10 +149,206 @@ well-identified folds unchanged.
   reconciliation has occurred; it does not satisfy TODO-8. No result file was
   changed during this recheck.
 
+**Current-source focused recheck 2026-10-20:** at checkout HEAD
+`4f7a6e4ca82829e880c15a76699701a95e5e83b9`, loaded `R/EDI` with
+`pkgload::load_all(..., compile = FALSE)` and reran the two registered
+correctness tests: `test-kk-weibull-marginal-jackknife-arm-event-guard-reference.R`
+(16 assertions) and `test-kk-weibull-marginal-no-events-and-fit-failed-guards-reference.R`
+(4 assertions). All 20 passed with no failures, warnings, or skips. These
+current-checkout R-source tests used the installed EDI 1.0.3 native artifact;
+no local compile/install was run. `gh run list --commit` for this HEAD returned
+no run; the latest successful full correctness run is at an older SHA. This
+refreshes focused regression evidence but does not satisfy TODO-8's required
+50-rep, two-formula-by-three-operation post-fix output regeneration or
+canonical reconciliation.
+
+**Installed-package focused recheck 2026-10-20:** ran the two same registered
+tests directly with `testthat::test_file()` (without `pkgload`) against
+`EDI 1.0.3` from
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. The jackknife
+arm-event guard test passed 16 assertions; the no-events/fit-failed guard
+test passed 4 (20 total; 0 failures, warnings, or skips). The installed
+package DLL was `libs/EDI.so`, MD5
+`dfd5bf4384b5a0cc0d430fd70dab2a59`. This confirms the focused guard behavior
+with the currently installed native artifact; it does not prove the required
+50-rep matrix or provenance-stamped canonical reconciliation. No build,
+install, or result-file operation was performed.
+
+**Isolated full-matrix installed-package recheck 2026-10-20:** ran
+`EDI_COMPREHENSIVE_RESULTS_DIR=/tmp/edi-todo26-matrix-9NDMSE Rscript R/package_tests/comprehensive_tests.R 50 1 survival KK21stepwise InferenceSurvivalKKWeibullMarginal diamonds 0 NA jackknife`
+into a fresh `/tmp` directory. The 300-row CSV has 300 unique `id`s and all
+300 statuses are `ok`: 50 reps for each of `~1`/`~.` and each of the three
+jackknife operations; all estimates and CI endpoints are finite, p-values
+range from 0.009 to 0.992, and error messages are missing/empty. Estimate
+errors (`result_1 - coverage_truth`) were descriptive as follows: `~1` bias
+−0.0437, RMSE 0.0892, max absolute error 0.2265; `~.` bias 0.0090, RMSE
+0.0537, max absolute error 0.1504. No catastrophic −38/+17-scale outlier
+reappeared; no acceptance threshold was inferred from these summaries.
+Artifact SHA-256:
+`b017896390779fd24afed7f3126d8633c65de0bd7b11fbe5b607dcef694fe4ed`.
+The available library was EDI 1.0.3 at
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, native build stamp
+`2026-10-19 23:31:50 IDT`, DLL MD5
+`dfd5bf4384b5a0cc0d430fd70dab2a59`, R-devel r90668. CSV
+`github_commit_id=4f7a6e4ca82829e880c15a76699701a95e5e83b9` identifies the
+checkout harness, not the installed package/DLL source revision. This
+advances only the isolated installed-package matrix; do not claim
+current-checkout native validation or merge these rows into canonical data.
+
+**Read-only reconciliation preflight, 2026-10-20:** compared the isolated
+matrix against the 300 matching pre-fix canonical rows using the full row key
+(`rep`, `beta_T`, dataset, response, design, inference class/formula,
+`function_run`). Both sides have exactly 300 unique keys with no missing or
+extra combinations and all statuses are `ok`; the isolated artifact also has
+300 unique row `id`s. `case_id` alone is not a unique row key (only three
+distinct values, one per operation). However, the `coverage_truth` values do
+not match the old canonical rows: the isolated output has distinct values for
+the `~1` and `~.` formulas, while the canonical rows carry the same old value
+for both. The harness's TODO-32 formula-aware truth handling is a plausible
+reason for the difference, but this preflight did not independently
+recompute/validate those truth values. Thus status/key coverage is complete;
+an independent truth oracle and explicit review of the truth-value change are
+still needed before any canonical merge. This audit was read-only and does
+not change TODO-8's separate installed-package/native-provenance gate.
+
+**Formula-specific truth audit 2026-10-20:** the isolated artifact records
+`coverage_truth = 0.036465267` for
+`InferenceSurvivalKKWeibullMarginal [design_formula=~1]` and
+`-0.007431527` for `[design_formula=~.]`, with `beta_T = 0` in both cases.
+TODO-32 defines this split: explicit `~1` passes `real_X = NULL` (the
+one-synthetic-covariate/no-adjustment MC path), while `~.` passes the real
+dataset covariate matrix; a bare label also means the latter. Re-ran
+`test-comprehensive-coverage-mc-registry-gaps-reference.R` against the current
+checkout harness: 53 assertions passed (0 failures, warnings, or skips),
+including the `~.`/bare-label real-covariate dispatch contract. Under the
+zero-effect DGP, both formula-specific targets are zero; the recorded finite
+MC fits are close to zero and show no sign/scale contradiction. This supports
+the formula-aware truth routing and gives no indication that either recorded
+truth is wrong, but it is not an exact numerical oracle for the two
+single-fit MC values. No truth was regenerated and no canonical data changed.
+The historical/native reconciliation gate remains open; these 300 rows must
+not be merged on this evidence alone.
+
+**TODO-26 class-specific dispatch regression, 2026-10-21:** broadened the
+existing `test-comprehensive-coverage-mc-registry-gaps-reference.R` fixture
+with `InferenceSurvivalKKWeibullMarginal` and its `DesignFixedBinaryMatch`
+generator. The new case pins that the actual `design_formula=~1` label routes
+to `real_X=NULL`, `design_formula=~.` routes to the toy dataset's full `X`,
+and a bare class label reuses the adjusted cache entry. A stubbed simulator
+also checks the class/design/response/`mc_n=3000` registry fields; it does
+not fit models or assert either historical MC truth value. The focused test
+passed 76 expectations with the `library(EDI)` attachment suppressed, so it
+loaded neither the package nor native code. This closes only the
+class-specific formula-routing regression; exact numerical truth review,
+authenticated matrix-era R/DLL provenance, and TODO-8 exact-key/canonical
+reconciliation remain open. No matrix or canonical artifact was read or
+changed.
+
 TODO-8 remains pending until the affected comprehensive-results rows are
 regenerated with the user's separately managed rebuilt package. The
 repository rule forbids building or installing the checkout during this
 audit.
+
+**Matrix-era provenance search, 2026-10-20:** the documented matrix output
+directory `/tmp/edi-todo26-matrix-9NDMSE/` contains only the 300-row CSV; no
+run-provenance sidecar, install log, or package-source manifest is retained
+there. The prepared `/tmp/edi-todo26-ready-BouNHE/` tree contains only its
+runbook and no output. The current installed EDI 1.0.3 build (2026-10-20
+07:40:04 UTC; DLL SHA-256 `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`)
+is later than the matrix artifact and differs from its recorded matrix-era
+DLL MD5 `dfd5bf4384b5a0cc0d430fd70dab2a59`. Thus the matrix's `github_commit_id`
+cannot retrospectively attest its installed R-layer source, and current
+artifacts do not recover that identity. Safe rerun gate: first pin the
+post-fix installed package source identity (R-layer file hashes or source
+commit), package/library and DLL hashes, and runner/helper hashes in a fresh
+run manifest/sidecar; then regenerate into a new isolated directory only
+after TODO-56 is terminal. Keep canonical reconciliation separately
+authorized. This search did not inspect the CSV payload, rerun the matrix, or
+write canonical results.
+
+**Bounded artifact recheck, 2026-10-21:** the declared matrix directory still
+contains only the 220,422-byte 300-row CSV (mtime 2026-10-20 03:47:25 +0300;
+SHA-256 `b017896390779fd24afed7f3126d8633c65de0bd7b11fbe5b607dcef694fe4ed`),
+with no sidecar, install log, or source manifest. The prepared directory still
+contains only `RUNBOOK.md`, not a generated result. Thus no retained artifact
+adds authenticated installed R-layer identity, an independent oracle for the
+two formula-specific Monte Carlo truths, or new exact-key reconciliation
+beyond the already documented 300/300-key match to pre-fix rows. A focused
+test rerun would not resolve those matrix-artifact gaps, so none was repeated.
+The remaining gates are: establish the matrix's post-fix R-source provenance
+or regenerate into fresh isolated output with a provenance sidecar; review
+the `~1` versus `~.` truth difference against an independent numerical oracle;
+then perform the separately authorized exact-key canonical reconciliation.
+No CSV rows were parsed, and no simulation, build/install, or canonical write
+occurred.
+
+**Read-only exact-key audit, 2026-10-21:** subsequently parsed only the
+isolated CSV above (no inference or simulation). Its 300 rows cover the full
+declared Cartesian grid: reps 1–50, `beta_T=0`, dataset `diamonds`, response
+`survival`, design `KK21stepwise`, both `design_formula=~1` and `~.` class
+labels, and all three jackknife operations. Comparing the observed seven-field
+key (`rep`, `beta_T`, `dataset`, `response_type`, `design`, `inference_class`,
+`function_run`) to that in-memory expected grid produced 300/300 unique keys,
+zero missing keys, zero extras, and zero duplicate full keys; `id` is also
+unique for all 300 rows. Every replicate has six rows (two formulas × three
+operations), every status is `ok`, and there are no nonempty error messages.
+For estimate and p-value operations `result_1` is finite in all 50 rows per
+formula/operation; for the CI operation both `result_1` and `result_2` are
+finite in all 50 rows per formula. The two formula labels each have one
+constant but different `coverage_truth`: `0.036465266547781` (`~1`) and
+`-0.00743152669119731` (`~.`). This confirms key/status/field completeness,
+not correctness of either Monte Carlo truth. The checked-in MC test verifies
+formula-aware covariate dispatch, but neither it nor the matrix supplies an
+independent exact numerical oracle for those finite-MC values; the matrix also
+lacks authenticated installed R-source provenance. Keep the truth review and
+separately authorized canonical reconciliation open; no row was changed.
+
+**Zero-effect truth clarification, 2026-10-21:** source review establishes an
+analytic target for this matrix's `beta_T=0` stratum: the survival DGP applies
+`bt=0` in both arms and the same noise/censoring mechanism, so treatment
+assignment is exchangeable under the null. The population null treatment
+coefficient is therefore zero for both `~1` and covariate-adjusted `~.` fits;
+the adjustment set changes the fit, not the null target. The recorded
+`coverage_truth` values (`0.036465266547781` and `-0.00743152669119731`) are
+not exact truth values: `COVERAGE_MC_SPEC` uses `mc_n=3000`, while
+`compute_mc_coverage_truth_simframe()` runs one W/Y simulation replicate and
+returns its single fitted estimate. They are finite-run MC draws around the
+known zero target. Here `diamonds` survival starts from the transformed
+`log(price)` response in `R/package_tests/_dataset_load.R`; the MC generator in
+`R/package_tests/comprehensive_tests.R` applies a treatment shift on the
+log-time scale and treatment-independent noise/censoring. The `~1` path uses
+synthetic `X`, while `~.` uses the real covariates, but neither changes the
+zero treatment-effect target. Accordingly, the extant matrix CSV
+(`/tmp/edi-todo26-matrix-9NDMSE/comprehensive_tests_results_nc_1_survival_filtered_design-KK21stepwise_class-InferenceSurvivalKKWeibullMarginal_dataset-diamonds_beta-0_family-jackknife.csv`, SHA-256
+`b017896390779fd24afed7f3126d8633c65de0bd7b11fbe5b607dcef694fe4ed`) is
+diagnostic only with respect to truth: its serialized `coverage_truth` fields
+are one-replicate fitted estimates, not the exact null truth. No coverage
+impact is inferred and no canonical value is rewritten. For nonzero
+`beta_T`, the source defines the generic target as the fitted least-false/KL-
+projection coefficient under this dataset-derived survival and censoring
+process; no closed-form truth is documented. This clarifies the null truth
+only; it sets no acceptance threshold and does not authorize changing or
+reconciling canonical rows. The matrix provenance and canonical reconciliation
+gates remain open.
+
+**Independent retained-artifact audit, 2026-10-21:** a shell-only recheck
+found the declared matrix CSV at
+`/tmp/edi-todo26-matrix-9NDMSE/comprehensive_tests_results_nc_1_survival_filtered_design-KK21stepwise_class-InferenceSurvivalKKWeibullMarginal_dataset-diamonds_beta-0_family-jackknife.csv`
+(220,422 bytes; SHA-256
+`b017896390779fd24afed7f3126d8633c65de0bd7b11fbe5b607dcef694fe4ed`). The
+matrix directory contained only that CSV: no provenance sidecar, install log,
+or source manifest. Its full seven-field key has 300/300 unique rows for reps
+1–50 × two formulas × three jackknife operations; all 300 rows have
+`status=ok`, unique `id`s, and the serialized missing-value marker `NA` in
+`error_message`. The recorded `github_commit_id` identifies the harness
+checkout, not the installed R-layer source. The prepared path
+`/tmp/edi-todo26-ready-BouNHE/` was absent at this recheck (the earlier
+runbook-only inventory is historical). The earlier 300/300 comparison is
+against the pre-fix canonical cohort and proves key coverage only. Neither
+that comparison nor this artifact audit authenticates installed-package
+identity or validates the finite-MC `coverage_truth` fields against the exact
+zero target; no current canonical merge is authorized. Preserve the separate
+source-provenance, truth-review, and explicit canonical-reconciliation gates.
 
 For TODO-7, every ordinary jackknife method reaches the same shared summary in
 `inference_all_abstract_jackknife.R`. That summary already treats any nonfinite
@@ -198,6 +394,74 @@ jackknife guards (36); CRAN marginal-Weibull tests (9); migration golden tests
 (32); cluster-ID cache tests (15); C++/`survreg` agreement and guard tests (19);
 and randomization-refit tests (12). No compilation, build, or installation was
 performed.
+
+## Post-reinstall installed-package recheck (2026-10-20)
+
+The two focused guard regressions passed against installed EDI 1.0.3:
+`test-kk-weibull-marginal-jackknife-arm-event-guard-reference.R` passed 16
+assertions and `test-kk-weibull-marginal-no-events-and-fit-failed-guards-reference.R`
+passed 4, with no failures, warnings, or skips. The independent estimator
+reference `test-kk-weibull-marginal-cpp-and-survreg-fits-cluster-robust-se-agreement-and-guards-reference.R`
+also passed all 19 assertions. These bounded tests use installed-package
+execution; no build, install, comprehensive regeneration, or canonical write
+occurred.
+
+Runtime identity: R `R Under development (unstable) (2026-10-13 r90668)`;
+installed package `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`,
+version 1.0.3, `Built: R 4.7.0; x86_64-pc-linux-gnu; 2026-10-20 07:40:04 UTC`;
+loaded DLL MD5 `8b3ca30492d7b1c790deeebe94b201ad`, SHA-256
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`. That
+DLL is byte-identical to ignored checkout `R/EDI/src/EDI.so` (same SHA-256),
+at HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; the tracked implementation
+and test files are clean at that HEAD. This establishes the loaded native
+binary identity, but the package contains no Git SHA/build manifest to
+authenticate its installed R-layer source. It adds focused installed-package
+validation only. For the isolated matrix's `beta_T=0` stratum, the analytical
+treatment-coefficient truth is zero under both `~1` and `~.`; the serialized
+formula-specific `coverage_truth` values are one-replicate MC fitted estimates
+and are diagnostic only. No coverage impact is inferred and no canonical
+value is rewritten. The matrix still lacks authenticated installed R-source
+provenance, and exact-key canonical reconciliation remains separately
+authorized and open.
+
+## Additional installed-package reference recheck (2026-10-20)
+
+`Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-kk-weibull-marginal-cpp-and-survreg-fits-cluster-robust-se-agreement-and-guards-reference.R", reporter="summary")'`
+passed 19 assertions (0 failures, warnings, or skips) against installed EDI
+1.0.3. This deterministic `set.seed(8)`, `n=80` fixture compares the C++
+marginal-Weibull treatment estimate and cluster-robust SE to an independent
+`survival::survreg` reference, including no-cluster and missing-treatment
+guards. Runtime provenance: R `R Under development (unstable) (2026-10-13
+r90668)`, library `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, DLL
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`, MD5
+`a75519a9256c0b3121398032314291d4`, SHA-256
+`dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`, and
+checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. The DLL differs from
+the artifact used for the isolated 300-row matrix (MD5
+`dfd5bf4384b5a0cc0d430fd70dab2a59`), so this is a separate installed-package
+oracle check, not historical-result parity or current-checkout native
+validation. No simulation sweep, canonical output write, build, or install
+was performed. This advances the TODO-26 Weibull estimator-reference evidence
+only; it does not satisfy linked-plan TODO-8's separate canonical
+regeneration/reconciliation gate, which remains open.
+
+## Checkout-R source-overlay reference recheck (2026-10-20)
+
+The same focused `test-kk-weibull-marginal-cpp-and-survreg-fits-cluster-robust-se-agreement-and-guards-reference.R`
+passed all 19 assertions with `pkgload::load_all("R/EDI", compile = FALSE,
+quiet = TRUE)` followed by `testthat::test_file(...)` (0 failures, warnings,
+or skips). This reruns the deterministic `set.seed(8)`, `n=80` independent
+`survival::survreg` comparison and no-cluster/missing-treatment guards with
+checkout R sources. The namespace was `/home/kapelner/workspace/EDI/R/EDI`,
+package version 1.0.3, and the loaded temporary DLL MD5 was
+`8b3ca30492d7b1c790deeebe94b201ad`; it matches the installed and ignored
+checkout DLL, SHA-256
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+No build, install, matrix run, or canonical write occurred. This strengthens
+the focused current-checkout R-layer estimator-reference evidence only; the
+isolated 300-row matrix's authenticated installed R-layer provenance and
+formula-specific truth review, plus separately authorized exact-key
+canonical reconciliation, remain open.
 
 ## Standing constraints
 

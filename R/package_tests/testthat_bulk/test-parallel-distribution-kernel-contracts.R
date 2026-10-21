@@ -46,6 +46,21 @@ test_that("OLS class fast randomization path agrees with the reused-worker refer
 	slow <- p$compute_fast_randomization_distr_via_reused_worker(p$y, list(w_mat = W), 0.35, "none")
 	expect_equal(fast, slow, tolerance = 1e-10)
 	expect_null(p$compute_fast_randomization_distr(p$y, list(w_mat = W), 0.35, "log"))
+	# The batch OLS kernel has no matching structure; decline to the generic
+	# reused-worker path whenever the permutation payload includes m_mat.
+	expect_null(p$compute_fast_randomization_distr(
+		p$y, list(w_mat = W, m_mat = matrix(1L, nrow = n, ncol = ncol(W))), 0.35, "none"
+	))
+	# This R-layer kernel declines malformed/inapplicable matrix payloads before
+	# entering the native implementation: no w_mat, the wrong subject count, or
+	# an empty permutation batch each selects the generic fallback.
+	expect_null(p$compute_fast_randomization_distr(p$y, list(), 0.35, "none"))
+	expect_null(p$compute_fast_randomization_distr(
+		p$y, list(w_mat = matrix(0L, nrow = n - 1L, ncol = 2L)), 0.35, "none"
+	))
+	expect_null(p$compute_fast_randomization_distr(
+		p$y, list(w_mat = matrix(integer(0), nrow = n, ncol = 0L)), 0.35, "none"
+	))
 })
 
 test_that("OLS batch kernel matches reused workers across the release parameter matrix", {

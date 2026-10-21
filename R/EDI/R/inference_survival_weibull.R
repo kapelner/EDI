@@ -507,12 +507,33 @@ InferenceSurvivalWeibullRegr = define_inference_class(
 	classname = "InferenceSurvivalWeibullRegr",
 	inherit = Inference,
 	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalWeibullLikelihood"),
+	public = list(
+		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
+			private$stop_weibull_parametric_bootstrap_for_general_censoring()
+			private$param_boot_compute_lik_ratio_bootstrap_two_sided_pval(
+				delta = delta, B = B, show_progress = show_progress,
+				min_number_usable_samples = min_number_usable_samples,
+				max_attempts_per_replicate = max_attempts_per_replicate
+			)
+		},
+		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
+			private$stop_weibull_parametric_bootstrap_for_general_censoring()
+			private$param_boot_compute_lik_ratio_bootstrap_confidence_interval(
+				alpha = alpha, B = B, show_progress = show_progress,
+				min_number_usable_samples = min_number_usable_samples,
+				max_attempts_per_replicate = max_attempts_per_replicate,
+				root_tolerance = root_tolerance, max_root_iterations = max_root_iterations
+			)
+		}
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "survival"),
 	overrides = list(
 		public = c(
 			"compute_estimate", "compute_estimate_with_bootstrap_weights",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"compute_bayesian_bootstrap_two_sided_pval",
+			"compute_lik_ratio_bootstrap_two_sided_pval",
+			"compute_lik_ratio_bootstrap_confidence_interval",
 			"compute_lik_ratio_bartlett_approx_two_sided_pval",
 			"compute_rand_two_sided_pval", "get_supported_testing_types", "set_testing_type"
 		),
@@ -553,7 +574,20 @@ InferenceSurvivalWeibullRegr = define_inference_class(
 		# This is the first class in this migration effort whose composed
 		# component overrides this specific method, so the gap was never
 		# exercised until now.
-		supports_interval_or_left_censored_data = function() TRUE
+		supports_interval_or_left_censored_data = function() TRUE,
+		stop_weibull_parametric_bootstrap_for_general_censoring = function(){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Parametric-bootstrap LR calibration is not yet supported for left-/interval-censored ",
+					"survival data: the Weibull null simulator only knows how to re-censor a simulated exact ",
+					"time against one right-censoring threshold.",
+					call. = FALSE
+				)
+			}
+			invisible(NULL)
+		},
+		param_boot_compute_lik_ratio_bootstrap_two_sided_pval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_two_sided_pval,
+		param_boot_compute_lik_ratio_bootstrap_confidence_interval = InferenceParamBootstrap$public_methods$compute_lik_ratio_bootstrap_confidence_interval
 	)
 )
 

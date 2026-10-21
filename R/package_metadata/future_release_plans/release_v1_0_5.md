@@ -69,6 +69,126 @@ range, since the plan files' internal numbering did not change.
   This disproves the hoped-for speedup on the diagnosed fixture. TODO-1 stays
   open while the class-specific cost, non-NA parity fixture, exclusion removal,
   and end-to-end tuning behavior remain unresolved.
+  **Fallback-reason observer, 2026-10-21:** one bounded exact-seed run of
+  `/tmp/edi_todo3_fallback_observer.R` (`timeout 180s Rscript ...`, with
+  `pkgload::load_all("R/EDI", compile = FALSE)`) recorded 50 `n=49`
+  estimate-only calls: 42 finite and 8 nonfinite treatment coefficients;
+  no NULL/missing/error cases. Each of the 8 direct nonfinite results was
+  followed by three ordinary refit calls (two nonfinite `p=4`, then one
+  finite `p=3`), 24 ordinary calls total. The public summary stayed `NA`
+  (`jackknife_extreme_summary`). CSV:
+  `/tmp/edi-todo3-fallback-observer-20261021.csv`. The checkout R namespace
+  was `/home/kapelner/workspace/EDI/R/EDI`, EDI version 1.0.3; loaded DLL
+  `/tmp/RtmpORtmTo/pkgload3f2ea126/EDI.so`, MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`. This localizes the direct-fit
+  nonfinite-coefficient fallback on the reusable route; it is not a timing
+  run and does not reconcile the historical 68/60 cross-route call totals.
+  No estimator behavior changed; TODO-3 performance/parity acceptance stays
+  open.
+  **Dual-regime parity test, 2026-10-20:** the linked plan's TODO-4 now has
+  a public jackknife estimate/SE/Wald-p bit-identical comparison against the
+  forced-legacy route on both an interior-only fixture and a boundary-mass,
+  two-component rank-fallback fixture. The 55-assertion file passed with
+  current checkout R sources via `pkgload::load_all(..., compile = FALSE)`;
+  the temporary EDI DLL matched installed v1.0.3 (MD5
+  `dfd5bf4384b5a0cc0d430fd70dab2a59`). This closes the linked plan's
+  dual-regime R-layer parity-test gate only. It does not resolve TODO-3's
+  exact tuning fixture (both jackknife summaries are still `NA`, and the
+  reusable route was slower), so TODO-5's exclusion removal and TODO-6's
+  end-to-end tuning run remain blocked pending a cost-effective, non-NA
+  exact-fixture result.
+  **Installed migration-golden rerun with DLL provenance, 2026-10-20:** the
+  same focused file passed 55 assertions (0 failures, warnings, or skips;
+  exit 0) against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` MD5:
+  `a75519a9256c0b3121398032314291d4`; SHA-256:
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  Checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; this run used
+  the installed artifact, not checkout R/native source. The diagnosed
+  seed-20264492 case remains NA for both public summaries and slower on the
+  reusable route; performance, exclusion-removal, and end-to-end tuning gates
+  remain open.
+  The finite parity fixture is distinct: `InferencePropZeroOneInflatedBetaRegr`
+  on `DesignFixedBernoulli`, response type `proportion`, `n=50`, seed
+  `20264507`, with constructor-default `model_formula` and
+  `model_formula_zero_one`, no boundary responses, and exact comparisons for
+  `compute_jackknife_estimate`, `compute_jackknife_std_error`, and
+  `compute_jackknife_wald_two_sided_pval`. Its `x1,x2 ~ N(0,1)` response uses
+  `mu=plogis(0.2 + 0.5*w + 0.3*x1 - 0.2*x2)` and
+  `rbeta(mu*8, (1-mu)*8)` clipped to `[0.02,0.98]`. This is finite parity
+  evidence only, not the diagnosed `20264492` fixture or speedup acceptance.
+  **Installed-artifact focused rerun, 2026-10-21:** the existing
+  `R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R`
+  passed 67 assertions (0 failures, warnings, or skips) against installed EDI
+  1.0.3. Loaded DLL MD5 was `ea0e2f72d87d401db15557e0ecc151c9`. The initially
+  requested `R/EDI/tests/testthat/` path does not contain this file; the
+  existing extended-suite path above was used. This strengthens installed
+  migration-golden evidence only; it does not close the exact tuning fixture,
+  speedup, exclusion-removal, or end-to-end gates.
+  **Reinstalled-artifact rerun, 2026-10-21:** after the later EDI reinstall,
+  the same test again passed all 67 assertions against installed EDI 1.0.3;
+  its loaded DLL SHA-256 is
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`, also
+  byte-identical to checkout `R/EDI/src/EDI.so`. This verifies the focused
+  migration golden on the current installed native artifact, but the exact
+  tuning fixture remains non-NA-unresolved and the speed/exclusion/end-to-end
+  gates remain open.
+  **Checkout-R exact-fixture rerun, 2026-10-21:** after confirming no
+  competing R/Rscript process, ran
+  `timeout 180s Rscript -e 'pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-zoib-jackknife-reusable-worker-migration-golden.R", reporter = "summary")'`.
+  All 80 assertions passed (0 failures, warnings, or skips; exit 0). This
+  exercises the exact-seed per-fold parity and documented NA-summary contract
+  against checkout R sources with compilation disabled. The run did not
+  capture a loaded-DLL path/hash and is not a native rebuild attestation.
+  It does not resolve the 11.051s versus 6.617s performance result or justify
+  removing the tuning exclusion; TODO-3/5/6 remain open.
+  **Generic worker-state guard contract, 2026-10-21:**
+  `test-non-param-boot-reusable-worker-state-validation-guards-reference.R`
+  passed all 8 assertions (0 failures, warnings, or skips; exit 0) against
+  installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded DLL MD5:
+  `ea0e2f72d87d401db15557e0ecc151c9`. This closes only the generic installed-
+  artifact worker-state validation-guard subgate; it does not validate the
+  checkout's ZOIB worker implementation or current-source/native parity, and
+  does not affect the exact-fixture, performance, exclusion-removal, or
+  end-to-end tuning gates.
+  **Installed driver/worker-estimate contract rerun, 2026-10-21:**
+  `test-non-param-boot-reusable-worker-distribution-driver-and-worker-estimate-reference.R`
+  passed 55 assertions (0 failures, warnings, or skips; exit 0) with
+  `testthat::test_file(..., package = "EDI")`. The process loaded installed
+  EDI 1.0.3 from
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI` (DLL MD5
+  `ea0e2f72d87d401db15557e0ecc151c9`); the test also extracts the checkout's
+  pure-R distribution-driver method for its source-level batching/guard
+  checks. This adds generic driver, chunking, error-recovery, and worker
+  estimate contract evidence only; it does not test the ZOIB two-matrix
+  invariant, the diagnosed tuning fixture, or current-checkout native parity.
+  TODO-2's wider matrix invariant and TODO-3/5/6 tuning/performance gates stay
+  open.
+  **Current-checkout R-source overlay, 2026-10-21:** with no active
+  R/Rscript job, `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`
+  followed by the same migration-golden test passed all 67 assertions
+  (0 failures, warnings, or skips; exit 0). The loaded temporary DLL SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94` is
+  identical to checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; no compile/install occurred.
+  This covers current checkout R-layer worker behavior, finite legacy parity,
+  the dual-matrix alignment/rank-fallback fixture, and the summary guard over
+  the existing native DLL. It does not establish performance, exclusion
+  removal, end-to-end tuning, or CI/coverage confirmation; TODO-1 remains open.
+  **Exact diagnosed-seed migration regression, 2026-10-21:** the existing
+  `test-zoib-jackknife-reusable-worker-migration-golden.R` now checks the
+  `proportion`, `n=50`, seed `20264492` fixture's 50 finite per-fold values
+  bit-identically across reusable and forced-legacy routes, as well as the
+  matching `NA` public summaries and `jackknife_extreme_summary` reason. The
+  focused file passed 80 expectations (0 failures, warnings, or skips; exit 0)
+  against installed EDI 1.0.3 with
+  `testthat::test_file(..., package = "EDI", reporter = "summary")`; no
+  build/install occurred and no DLL identity was captured for this run. This
+  closes the exact-seed R-level parity regression gap only, not the current
+  checkout R-layer attestation, performance target, tuning exclusion, or
+  end-to-end tuning gate. TODO-1 remains open.
 - [ ] TODO-2 (added 2026-08-30, user decision): **Randomization CI
   affine-shift reuse** — `randomization_ci_affine_shift_reuse.md →
   TODO-1..7` (plus a decision-gated TODO-8). The fast path at
@@ -124,6 +244,24 @@ range, since the plan files' internal numbering did not change.
   establish a stable per-function attribution (details in the linked plan).
   Keep TODO-2 open pending reconciling the target and documentation (or an
   explicit owner decision to accept the smaller gain).
+  **Second-pass provenance audit, 2026-10-21:** the checked-in harness
+  available for the 2026-10-13 full-grid run (introduced at commit `c189e94f`,
+  blob `41611163047d2940553497a6f27efaffcbc1bf88`) timed the end-to-end
+  `compute_rand_confidence_interval()` call on fresh objects sharing each
+  cell's design and fixed permutation matrix. It ran three samples per route
+  in a fixed affine-then-general order, without warm-ups or alternating order;
+  therefore the feature-plan phrase “three interleaved repetitions” is not
+  supported by that runner. The harness emits only per-cell medians/ratios,
+  and no full-grid stdout/log or individual timing rows were found among the
+  retained local TODO-2 artifacts, so exact historical samples and runtime
+  identity cannot be independently reconciled. The 2026-10-15 installed
+  1.0.3 three-pair cell also times the public CI operation with shared fixed
+  permutations, but is only `n=500, r=1001` and uses fresh warm-ups plus
+  alternating order; compare it as a separate, better-balanced single-cell
+  check, not as a replication of the full grid. The 20–30× figure is a
+  projected reduction in repeated full-distribution work (~20–35 per CI to
+  one), not an observed runtime ratio: affine CI still does slope/cache work
+  and per-delta p-value/search work. Keep the target decision open.
   **Maintainer target decision pending:** accept/restated target for the
   measured 1.05–2.14× OLS and 1.13–1.59× average-difference gains, or retain
   the original 20–30× target and optimize further; no option is selected.
@@ -143,22 +281,94 @@ range, since the plan files' internal numbering did not change.
   path, parity with the legacy omitted-signature path, full-content mutation
   sensitivity, and NULL-signature compatibility. This is R-source evidence
   against installed EDI 1.0.3's native library, not current-native validation
-  or benchmark acceptance.
+  or benchmark acceptance. **Focused cache-write guard, 2026-10-20:** the
+  source-loaded `test-ci-rand.R` suite now passes 89 expectations after adding
+  a public nonzero-`delta` p-value call that must leave the delta-zero affine
+  cache vectors and permutation signature unset. Compilation was disabled;
+  native calls still used installed EDI 1.0.3, so this is not current-native
+  validation. The measured-speed target/maintainer decision and TODO-6
+  benchmark reconciliation remain open. **Installed correctness recheck,
+  2026-10-20:** `testthat::test_file("R/package_tests/testthat_bulk/test-ci-rand.R")`
+  passed against installed EDI 1.0.3 without source loading or compilation.
+  Package path was `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`;
+  loaded DLL SHA-256 was
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  This confirms focused installed-artifact correctness only; performance-target
+  reconciliation and maintainer decision remain open. **Current-checkout
+  source/native recheck, 2026-10-20:** reran the complete test file after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; it finished
+  `DONE` with no failures. The R namespace was
+  `/home/kapelner/workspace/EDI/R/EDI`; the temporary loaded DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  matching the user-rebuilt installed artifact and checkout `R/EDI/src/EDI.so`
+  as byte-verified under TODO-3. This adds current-checkout R-layer correctness
+  evidence against the matching native artifact, not performance acceptance;
+  the target decision and TODO-6 benchmark reconciliation remain open. No
+  compilation or installation occurred.
+  **Installed stable-signature/cache-key correctness check, 2026-10-21:**
+  `test-stable-signature-full-content-hash-sensitivity-and-cache-key-components-reference.R`
+  passed 37 assertions (0 failures, warnings, or skips; exit 0) directly
+  against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Loaded DLL MD5:
+  `ea0e2f72d87d401db15557e0ecc151c9`; SHA-256:
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  This covers full-content signature sensitivity, precomputed-signature/cache-
+  key identity, key-component differentiation, and NULL-signature behavior.
+  It establishes installed-artifact correctness only, not public-CI affine
+  equivalence or the measured speed target; TODO-2's performance decision and
+  benchmark reconciliation remain open. **Installed public-CI correctness
+  rerun, 2026-10-21:** `test-ci-rand.R` passed 110 assertions (0 failures,
+  warnings, or skips; exit 0) via `testthat::test_file(..., package = "EDI")`
+  against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded DLL MD5
+  `ea0e2f72d87d401db15557e0ecc151c9`, SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  This is public affine-CI correctness evidence for the installed artifact,
+  not proof of installed R-source identity/current-checkout native parity and
+  not performance acceptance. The 20–30× target decision and benchmark
+  reconciliation remain open.
+  **Target-origin/acceptance brief, 2026-10-21:** the original 20–30× figure
+  is a projection from eliminating roughly 20–35 full-`r` permutation
+  distributions per CI search (one full `delta = 0` distribution reused via
+  the affine identity); it was not a measured speedup. The 2026-10-13 full
+  18-cell source-loaded run used the earlier harness: three measured calls per
+  route/cell in fixed affine-then-general order, without a warm-up. It measured
+  1.13–1.59× for average difference and 1.05–2.14× for OLS; the later quick
+  run used the warmed, alternating-order harness and measured 1.33×/1.42×,
+  while the separate installed `n=500, r=1001` check
+  measured 1.12×/1.82×. These are distinct workload/protocol samples, not one
+  pooled estimate. The linked plan attributes the gap plausibly to shared CI
+  setup/search and p-value/cache work, but the original work-count argument
+  did not establish that these costs were negligible. Maintainer choice
+  remains: accept and restate the workload-specific measured target/documentation,
+  or retain 20–30× and authorize further optimization. No choice or new
+  benchmark is authorized by this reconciliation.
+  **Post-reinstall focused correctness rerun, 2026-10-21:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-ci-rand.R",
+  reporter = "summary")` completed `DONE` (exit 0) against installed EDI
+  1.0.3, without `pkgload`, build, or install. Package path:
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded `EDI.so`
+  SHA-256 `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`
+  (14,727,184 bytes; installed `DESCRIPTION` Built `2026-10-21 11:12:19 UTC`).
+  This rechecks focused public affine-CI correctness on the latest installed
+  artifact only. It does not prove installed R-source identity/current-source
+  native parity, measure performance, or resolve the target/documentation
+  decision; TODO-2 stays open.
 - [ ] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
   randomization-distribution kernel; triage dead kernels** —
   `ols_randomization_distr_cpp_wiring.md → TODO-1..6`.
-  `compute_ols_distr_parallel_cpp` (`src/ols_distr_parallel.cpp:15`) is
-  complete and exported but has no caller anywhere (R, tests, python,
-  benchmark); `InferenceContinOLS` has no `compute_fast_randomization_distr()`
-  and falls through to the R-level reused-worker loop
-  (`inference_all_abstract_rand.R:708-800`) — ~100–200 µs of R6 bookkeeping
-  per replicate around a ~5 µs solve. Adds the method on the Poisson
-  pattern (`inference_count_poisson.R:839`), passing the hardened covariate
-  block and adding a per-replicate rank guard to the kernel so `NA`
-  patterns match the worker. Same estimator to ~1e-14 (documented default
-  change, tolerance 1e-10). Expected 20–50× on the OLS randomization
-  distribution; multiplicative with TODO-2. It also triages eight exports
-  without a production caller; their wire/delete dispositions remain open.
+  **Historical status, now corrected:** `compute_ols_distr_parallel_cpp`
+  (`src/ols_distr_parallel.cpp:15`) was exported but unused, while
+  `InferenceContinOLS` fell through to the R-level reused-worker loop
+  (`inference_all_abstract_rand.R:708-800`), paying ~100–200 µs of R6
+  bookkeeping per replicate around a ~5 µs solve. The source fix now adds
+  `compute_fast_randomization_distr()` on the Poisson pattern
+  (`inference_count_poisson.R:839`), passing the hardened covariate block and
+  adding a per-replicate rank guard so `NA` patterns match the worker. The
+  implementation, parity tests, and measured 43.07×/54.30× one-/four-core
+  speedups are recorded below. The eight *other* exports without a production
+  caller still need a wire/delete disposition; TODO-6's separate Lin stretch
+  decision also remains open.
   **Verified NOT implemented —
   and actively broken, 2026-09-24**: `compute_fast_randomization_distr()`
   shows as present on `InferenceContinOLS`'s class *generator* (a static
@@ -199,20 +409,115 @@ range, since the plan files' internal numbering did not change.
   `test-resampling-parallel-threshold-contracts.R` against EDI 1.0.3, without
   compiling or installing. **TODO-3 evidence reconciliation, 2026-10-16:**
   the equivalence subchecks are satisfied by the recorded installed-package
-  matrix/parity evidence and TODO-5's benchmark; these results do not validate
-  native code from the current checkout. Keep this parent unchecked pending
-  current-head native validation, TODO-4's dead-export disposition, and the
-  separate TODO-6 Lin stretch decision.
-  - [ ] After an explicitly authorized `EDI_UNITY=0` build/install (or an
-    equivalent user-managed current-head package), rerun the OLS kernel
-    parity/edge matrix and public randomization test against that native
-    artifact with source/DLL provenance.
+  matrix/parity evidence and TODO-5's benchmark. At the time, these results did
+  not validate native code from the current checkout. The focused
+  current-checkout R/native runtime subgate was subsequently exercised and
+  recorded below; the parent remains unchecked for TODO-4's dead-export
+  disposition and the separate TODO-6 Lin stretch decision.
+  **R-layer fallback regression, 2026-10-20:** the focused
+  `test-parallel-distribution-kernel-contracts.R` passed 65 assertions after
+  adding checks that `InferenceContinOLS` returns `NULL` for missing `w_mat`,
+  a row-mismatched `w_mat`, and a zero-column batch, matching its explicit
+  pre-native fallback guards. It was run with
+  `pkgload::load_all("R/EDI", compile = FALSE)` and therefore exercised
+  checkout R source against the existing EDI 1.0.3 native library; no build or
+  install occurred. The source namespace was
+  `/home/kapelner/workspace/EDI/R/EDI`; the loaded library was
+  `/tmp/RtmpoHuOG2/pkgload81b622b8d75a6/EDI.so`, MD5
+  `dfd5bf4384b5a0cc0d430fd70dab2a59`. This does not close current-head native
+  validation or the eight-export disposition, both of which remain open.
+  **Installed-native recheck, 2026-10-20:**
+  `test-kk-ols-one-lik-fast-randomization-distr-reused-worker-reference.R`
+  passed 8 expectations and
+  `test-parallel-distribution-kernel-contracts.R` passed 65 expectations
+  (0 failures, warnings, or skips) via `testthat::test_file()` against
+  installed EDI 1.0.3. Both processes loaded
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; `EDI.so` was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`, MD5
+  `a75519a9256c0b3121398032314291d4`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`,
+  size 14,727,184 bytes, mtime `2026-10-20 09:38:02 +0300`. This confirms
+  focused parity and kernel-edge contracts in that installed artifact. A
+  direct byte comparison confirmed the installed `EDI.so` is identical to
+  checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; both hashes are the SHA-256
+  above and `cmp -s` returned identical. The shared worktree has modifications
+  in `R/EDI/R/inference_all_abstract_rand.R` and
+  `test-parallel-distribution-kernel-contracts.R`; the test namespace was the
+  installed package rather than checkout R source. This closes the native DLL
+  identity gap for these focused tests, but does not establish checkout
+  R-dispatch identity or broader matrix completion. No compilation,
+  installation, or canonical output write occurred. The eight-export
+  disposition and TODO-6 owner decision remain open.
+  **Fresh user-managed rebuild/reinstall validation, 2026-10-20:** after the
+  user reported recompiling and reinstalling EDI, both focused suites were
+  rerun against installed EDI 1.0.3: the OLS reused-worker test passed 8
+  expectations and the kernel-contract test passed 65 (0 failures, warnings,
+  or skips). Installed `EDI.so` SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+  matches checkout `R/EDI/src/EDI.so` byte-for-byte; install `Built` time was
+  `2026-10-20 07:40:04 UTC`. This validates the freshly installed native
+  artifact for these focused cases. It does not settle the eight-export
+  disposition or TODO-6 Lin stretch decision; no build/install was performed
+  by the agent.
+  - [x] Rerun the OLS kernel parity/edge matrix and public randomization test
+    against the freshly user-rebuilt/reinstalled artifact. See the
+    2026-10-20 fresh-build evidence above; this closes only the current native
+    validation subgate.
+  - [x] Recheck the kernel-contract suite with current checkout R sources and
+    `compile = FALSE`; on 2026-10-20 all 65 assertions passed. The source
+    namespace was `/home/kapelner/workspace/EDI/R/EDI`; the loaded temporary
+    DLL SHA-256 `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+    matched both the installed user-rebuilt `EDI.so` and checkout
+    `R/EDI/src/EDI.so` byte-for-byte. This closes focused R/native provenance
+    for that suite only, not unrun cases or the remaining owner decisions.
+    The recorded hashes establish native artifact identity and test execution;
+    no independent compiler-input manifest/source-hash-at-build record was
+    captured, so they should not be generalized into full source-to-binary
+    provenance or broad TODO-3 completion.
   - [ ] Decide the disposition of the eight genuinely unused exports; only
     after approval, migrate their direct tests/benchmarks, update Rcpp
     registration/generated wrappers, and verify no production callers remain.
+    **Read-only inventory recheck, 2026-10-20:** the exact names are
+    `compute_wilcox_distr_parallel_cpp`,
+    `compute_wilcox_distr_from_list_parallel_cpp`,
+    `base_bootstrap_loop_cpp`, `matching_bootstrap_loop_cpp`,
+    `fill_i_b_with_matches_loop_cpp`, `bisection_ci_parallel_cpp`,
+    `bisection_ci_single_bound_cpp`, and `bisection_ci_loop_cpp`. Each has
+    existing direct wrapper-contract tests; none has a production inference
+    caller. They are registered Rcpp/native wrappers, not explicit
+    `NAMESPACE` public exports. The plan's delete recommendations are not
+    maintainer approval, so this is a wire/delete decision gate, not a
+    missing-coverage-only task. Definition/test mapping and the retained
+    `compute_ols_bootstrap_parallel_cpp` exception are in the linked plan.
+    **Exhaustive caller/export/document recheck, 2026-10-21:** indexed
+    `trail grep` for each of the eight names and a repository-wide `rg`
+    confirm no production inference caller and no `NAMESPACE` export. Their
+    direct contract-test references are unchanged: the Wilcoxon pair is in
+    `test-parallel-distribution-kernel-contracts.R` and
+    `test-resampling-parallel-threshold-contracts.R`; the bootstrap-loop pair
+    is in `test-resampling-callback-recovery-contracts.R` and
+    `test-resampling-kernel-contracts.R` (the base loop also has a profiler
+    entry); fill-in is in `test-bootstrap-index-fillin-and-bisection-loop.R`
+    and `test-resampling-kernel-contracts.R`; and the bisection trio spans
+    `test-bisection-tail-and-discontinuity-regressions.R`,
+    `test-bootstrap-index-fillin-and-bisection-loop.R`,
+    `test-resampling-kernel-contracts.R`, and
+    `test-resampling-parallel-threshold-contracts.R`. Additional non-caller
+    references matter for cleanup: the three bisection wrappers have generated
+    `R/EDI/man/*.Rd` help aliases marked internal; the Wilcoxon kernel is still
+    named as a possible GPU prototype in `gpu_optimizations.md`; and other
+    plans/catalogs document these kernels. Recommendation: do not auto-delete
+    or treat the existing plan's delete labels as approval. Keep the owner
+    disposition gate; if deletion is authorized, migrate direct tests and
+    profiler use, update/remove generated help and roadmap references, then
+    regenerate Rcpp registration/wrappers and unity grouping together. The
+    separate `compute_ols_distr_parallel_cpp` wiring and live
+    `compute_ols_bootstrap_parallel_cpp` percentile-bootstrap caller are not
+    deletion candidates.
   - [ ] Obtain the separate owner decision on TODO-6's Lin stretch target and
     align the release claim with that decision.
-- [ ] TODO-4 (added 2026-08-30, source fixed 2026-10-08; focused edge tests added, full validation pending): **Guard the unguarded
+- [ ] TODO-4 (added 2026-08-30; source fixed 2026-10-08; validation in progress 2026-10-20): **Guard the unguarded
   information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
   → TODO-1..6`. Correctness, not performance. `fast_negbin_regression.cpp:485`
   inverts the free-parameter information block with a bare `.inverse()`
@@ -274,17 +579,217 @@ range, since the plan files' internal numbering did not change.
   `model_standard_error_unavailable`, and keeps the public bootstrap fallback.
   The typed-guard test passed 30 assertions with the checkout's R class
   source-overlaid on installed EDI v1.0.3 (installed native kernels; no
-  compile/install). Plain installed-namespace execution still uses the older
-  class until the maintainer's independent reinstall. The release item remains
-  open: linked TODO-3 still lacks an explicit before/after `identical()` sweep
-  for all `with_var` fixtures. The new literal-Inf assertion passed against
-  the installed EDI v1.0.3 binary, whose metadata reports a Sep 20 native
-  build; it confirms the behavior of the available binary, not the current
-  source revision's native migration.
-  - [ ] Run linked-plan TODO-3's before/after comparison over every
-    `with_var` fixture on a provenance-pinned current-head native package;
-    apply the release's numerical-equivalence policy to invertible fits and
-    confirm singular/non-finite cases surface the typed SE/CI fallback.
+  compile/install). Plain installed-namespace execution still used the older
+  class at that checkpoint. The full before/after sweep was still open at that
+  checkpoint; the later fixture-union replay below broadens the evidence but
+  is not exhaustive. The new literal-Inf assertion passed against the installed
+  EDI v1.0.3 binary, whose metadata reports a Sep 20 native build; it confirms
+  the behavior of the available binary, not the current source revision's
+  native migration.
+  **Installed-native focused recheck, 2026-10-20:** the solve-fallback test
+  passed 4 assertions, the information-matrix extraction/fallback test passed
+  48, `test-information-inverse-guard.R` passed 33, and
+  `test-information-inverse-edge-cases.R` passed 11 (96 total; no failures,
+  warnings, or skips) against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Its loaded DLL was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  This confirms behavior of that installed artifact only; the provenance-pinned
+  current-head before/after `with_var` sweep remains open, so release TODO-4
+  remains unchecked. No build/install occurred. TODO-17's Wilcoxon-specific
+  maintainer decision/calibration gate is separate and unchanged.
+  **Independent affected-kernel references, 2026-10-20:** against the same
+  installed artifact, the Beta `with_var` reference test passed 18 assertions;
+  the zero-augmented Poisson kernel/reference test passed 20 assertions with
+  three upstream `pscl` deprecated-`.Names` warnings. These do not establish
+  the required before/after identity across every `with_var` fixture.
+  **Fresh user-managed rebuild/reinstall guard recheck, 2026-10-20:**
+  `test-information-inverse-guard.R` passed 33 assertions,
+  `test-information-inverse-edge-cases.R` passed 11, the Beta `with_var`
+  reference passed 18, and the zero-augmented Poisson kernel/reference passed
+  20 (82 assertions total; 0 failures, 3 upstream `pscl` deprecation
+  warnings). Installed EDI 1.0.3 `EDI.so` SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  byte-identical to checkout `R/EDI/src/EDI.so`; install `Built` time was
+  `2026-10-20 07:40:04 UTC`. This validates current installed guard/kernel
+  behavior. No build/install was performed by the agent.
+  **Installed-package focused recheck, 2026-10-21:**
+  `timeout 180s Rscript -e 'library(EDI); ...; testthat::test_file("R/EDI/tests/testthat/test-information-inverse-guard.R", reporter = "summary")'`
+  passed all 33 expectations (0 failures, warnings, or skips). The test ran
+  against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded `EDI.so`
+  SHA-256 `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`
+  (MD5 `bfea6f47ab8b27618d5d8633e9021f91`). This is installed-artifact
+  evidence only and does not establish the installed R-source/build chain or
+  replace the pending provenance-pinned before/after `with_var` inventory.
+  No build/install or canonical output occurred; TODO-4 remains unchecked.
+  **Recovered pre-guard artifact and focused identity probe, 2026-10-20:** a
+  scratch snapshot of the parent of guard commit `288e6643` was loaded with
+  `compile=FALSE` and an Oct-8 09:58 pre-guard candidate DLL (SHA-256
+  `89faa3386ace12922e63b28c67e5d24d1b0be924de2199831555d94ce5b3560b`). On
+  the same seeded, well-conditioned `n=100` inputs, all common native result
+  fields were `identical()` between that EDI 1.0.2 artifact and the installed
+  EDI 1.0.3 DLL (SHA-256 `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`)
+  for NegBin, Beta, zero-augmented Poisson, Hurdle Poisson, and ZINB. On the
+  matched duplicated-column NegBin fixture, the candidate pre-guard DLL
+  produced non-finite covariance entries including `+/-Inf`; the current DLL
+  reported `information_invertible = FALSE` and all-`NaN` covariance. Probe
+  script and RDS outputs are under `/tmp/edi-v105-todo4-preguard.Ocl0Mg/`.
+  This verifies one invertible fixture per kernel branch plus the singular
+  behavior; it does not establish identity across every `with_var` fixture.
+  **Expanded seeded identity matrix, 2026-10-20:** the same pre-guard
+  snapshot/candidate DLL and freshly installed current DLL were run over
+  75 well-conditioned fits: 3 sample sizes (`n=50,100,200`) × 5 fixed seeds
+  × NegBin, Beta, zero-augmented Poisson, Hurdle Poisson, and ZINB. All 75
+  current fits reported `information_invertible = TRUE`; every common native
+  result field was bit-identical pre/post (75/75). The current-only
+  `information_invertible` field was excluded from parity. The RDS outputs
+  (`old-matrix.rds` SHA-256
+  `51838dcdc92ef9cd87cd4fe87848ddeb32d1e2853409791811077a0aac29b711`,
+  `new-matrix.rds` SHA-256
+  `babe3f294b2043961ccf5cad43e06dbf9a07a8f14c5d39a25f5abd77308fee49`)
+  and driver are in `/tmp/edi-v105-todo4-preguard.Ocl0Mg/`. At this checkpoint,
+  this expanded generated-fit coverage did not yet meet the existing-fixture
+  requirement; the later 20-file fixture-union replay below broadens coverage
+  but does not close the exhaustive-fixture gate.
+  **Captured fixture-union parity and typed-fallback evidence, 2026-10-20 (not exhaustive):**
+  instrumented 20 affected-kernel R test files using identical current
+  checkout R sources (`pkgload::load_all(..., compile = FALSE)`) while
+  swapping only the recovered pre-guard DLL (SHA-256
+  `89faa3386ace12922e63b28c67e5d24d1b0be924de2199831555d94ce5b3560b`) and
+  the current installed/checkout DLL (SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`). The
+  test files exercised 638 legacy and 644 current native calls; the union
+  produced 567 unique exact-input fixtures, replayed successfully against both
+  artifacts with zero native errors. Of 436 currently invertible fits, all
+  common native result fields were bit-identical. Of 131 non-invertible fits,
+  72 changed only `vcov` to all-NaN (18 legacy covariances contained non-finite
+  entries); the remaining common fields were identical, and 59 singular cases
+  were identical in every common field. Current source-loaded tests passed
+  1,229 assertions with no failures (16 upstream warnings, 2 skips); the
+  pre-guard run's seven failures were the expected typed singular-SE/CI
+  rejection assertions. Manifest and before/after outputs are under
+  `/tmp/edi-v105-todo4-preguard.Ocl0Mg/` (manifest SHA-256
+  `84c3ff1c657f5a9cbb99f8ae6211d0bf3a4b34df0b17dd9113f324906a99a9c0`, old
+  outputs `8d0b665b929d1100517a31e2ed74e6cb27c0e6b45a2d7622eafbb76e7e17f811`,
+  current outputs `fea3a768182d559cd2a9646a34e6150134ea592d31249fd1cefcebb5f432dfe5`).
+  The 567-fixture union is the complete replay of the 20 captured files, but
+  not every existing `with_var` fixture. A pre-existing test,
+  `R/EDI/tests/testthat/test-zinb-operator-workspace.R`, was omitted from that
+  capture. Its deterministic ZINB variance-path fixture uses seed `11001`,
+  `n = 180`, a warm-start estimate-only fit, and a subsequent
+  `fast_zinb_cpp(..., estimate_only = FALSE)` fit; the installed-artifact test
+  passed all 7 expectations. It ran against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, with loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`, SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+  (matching checkout `R/EDI/src/EDI.so`). This establishes current-artifact
+  execution only. **Omitted-fixture pre/post replay, 2026-10-20:** to close
+  that specific capture omission without changing the saved capture script,
+  two isolated `/tmp` package copies from current checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` were loaded with
+  `pkgload::load_all(..., compile = FALSE)`. Their R-source trees were
+  identical (sorted `.R`-file manifest SHA-256
+  `1adba6bbd477f63760d4d0ee7e1d2b9d805149829fe7aad9edc1e1e0f8046635`), as
+  was the test file (SHA-256
+  `d59d48461b5ff78d91a05f9bf24414d60dbc319743da4ee109ec1e272ce5528e`);
+  only the DLL differed: recovered pre-guard SHA-256
+  `89faa3386ace12922e63b28c67e5d24d1b0be924de2199831555d94ce5b3560b` versus
+  current SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  `test-zinb-operator-workspace.R` passed all 7 expectations under both. The
+  separately generated estimate-only warm-start parameter vectors were
+  bit-identical; every common result field from the subsequent variance-path
+  call was also `identical()`, including `vcov`. The current-only
+  `information_invertible` field was excluded from that common-field
+  comparison. RDS outputs are preserved under
+  `/tmp/edi-todo4-zinb-replay.EZqzty/` (pre-guard SHA-256
+  `60afd6971a83230ebb815d9a025f9f91b2bddf50c9f355d83c834465f50f3186`, current
+  SHA-256 `694c9f55c43eaf5887372f084c64582e67b1bb3b47616c58ca69af2133174c81`).
+  This closes the operator-workspace fixture's replay gap; the original
+  20-file/567-fixture capture remains unchanged and must not be described as a
+  21-file capture. A subsequent source-inventory audit found two additional
+  successful ZINB variance-path tests outside that capture:
+  `test-zinb-poisson-boundary-score-length.R` (seed 1, `n = 30`, fixed
+  treatment coefficient, Poisson-boundary fit) and
+  `test-zinb-kernel-warm-start-params-wrong-length-guard-reference.R` (seed
+  37, `n = 150`, correctly-sized warm start, full-variance default). Both
+  were replayed 2026-10-20 against preserved pre-guard/current DLLs in
+  isolated copies with identical current R sources loaded using
+  `pkgload::load_all(..., compile = FALSE)`: the boundary test passed 15
+  assertions under each artifact, and all four successful calls matched by
+  exact arguments (two had identical common fields; two differed only in
+  `vcov`, where current returned all-NaN rather than the pre-guard partial
+  NaN/large-finite matrix). The warm-start test passed 7 assertions under each;
+  its successful full-variance call had identical common result fields. The
+  current-only `information_invertible` field was not part of common-field
+  equality. Outputs and exact provenance are in the linked plan's
+  “Two additional ZINB fixture replays” note and
+  `/tmp/edi-todo4-zinb-twofixtures.OPBGoG/`. These standalone replays do not
+  change the original 20-file/567-fixture capture or prove the complete
+  direct/indirect successful-call inventory. Keep release TODO-4 unchecked
+  until that inventory is exhaustive and every fixture is reconciled. No
+  build or install was performed.
+  **Caller-inventory follow-up, 2026-10-20:** source tracing found six native
+  helper call sites and the R routes through Beta/NegBin inference, shared
+  zero-augmented likelihood methods, and KK21 Beta weight helpers. Against the
+  unchanged hand-maintained 20-file/567-fixture capture, 11 more focused test
+  files were replayed under preserved pre-guard/current DLLs with identical
+  checkout R sources (`pkgload::load_all(..., compile = FALSE)`): 132
+  assertions passed under each DLL, and 26 successful calls were captured.
+  Current DLL results replayed on exact old arguments matched all common
+  fields for the six NegBin class calls and 16/20 direct/Beta calls; four
+  degenerate Beta covariance cases differed in `vcov` (two also in
+  `std_errs`), with guarded all-NaN fallback versus pre-guard Inf/NaN values.
+  The next candidate, `test-mle-km-summary-table.R`, was then replayed under
+  both DLLs and passed; its one successful Beta variance call had identical
+  arguments and all 11 common result fields. Thus this adds one exact-input
+  pair (current-only `information_invertible` excluded). In
+  `test-asymp-inference-paths.R`, only the NegBin and Beta asymptotic blocks
+  plus their helper were then run: each passed 20 expectations under both
+  DLLs; one successful call per class had identical exact arguments and all
+  11 common fields on current-DLL replay. Other file blocks were not run.
+  `test-permutations.R` was statically classified as an estimate-only Beta
+  randomization-refit path (`fast_beta_regression_cpp(...,
+  compute_std_errs = FALSE)`), so it is not a positive information-inversion
+  fixture. The single Beta `compute_estimate()` block in
+  `test-design-inference.R` was replayed under both DLLs (one expectation each);
+  its exact-input current replay matched all 11 common fields. In the Bartlett
+  smoke file, only the initial `compute_estimate()` fits were run for its
+  NegBin, ZINB, ZIP, and Hurdle fixtures; the B=21 Bartlett p-value/CI
+  null-refit workload was not run. Four successful calls (one NegBin, one
+  ZINB, two zero-augmented) were replayed on exact old arguments, matching 11
+  common NegBin fields and 15 common fields for each zero-augmented call. The
+  full smoke test's resampling portion remains open. The NegBin gradient block
+  in `test-smart-start-warm-paths.R` was also isolated (4 expectations): its
+  one exact-input current replay matched all 11 common fields. Conversely,
+  `test-negbin-weighted.R` uses the distinct `fast_neg_bin_weighted_cpp`
+  point-estimate path and is not an inversion fixture. The other broad
+  candidate is `test-parametric-bootstrap-lr-all-capable-classes.R`, whose B=2
+  matrix was not run; any remaining indirect helper hits still need
+  success-path classification. Details and provenance are in the
+  linked plan's “Caller-inventory and omitted-fixture follow-up” note. This
+  does not close the full replay gate; no build/install or canonical capture
+  change was made.
+  - [ ] Run linked-plan TODO-3's before/after comparison across the existing
+    `with_var` test fixtures; preserve exact identity for invertible fits and
+    verify typed SE/CI fallback for singular/non-finite fits.
+  **Current-checkout R/current-user-native focused guard recheck, 2026-10-21:**
+  after confirming `ps -C R -C Rscript` was empty and `/tmp` had 16 GiB free,
+  ran `test-information-inverse-guard.R` (33 expectations) and
+  `test-information-inverse-edge-cases.R` (11; 44 total) after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`, with no
+  failures reported. The loaded namespace was
+  `/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3; temporary DLL
+  `/tmp/Rtmp82cqLV/pkgload24f4a25e7/EDI.so` had MD5
+  `bfea6f47ab8b27618d5d8633e9021f91` and SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`,
+  byte-identical to checkout and installed `EDI.so`. This validates the
+  focused R guard/edge behavior against the latest user-built native artifact
+  without compilation. It does not close the provenance-pinned before/after
+  identity inventory across every successful `with_var` caller, Python
+  positive parity, or Bartlett per-replicate diagnostics; TODO-4 remains open.
+  No canonical outputs were written.
 
   **Cross-confirmed 2026-09-24** by the new `pval_miscalibration`/
   `low_coverage` audit checks, independently of the direct-repro check
@@ -349,8 +854,12 @@ range, since the plan files' internal numbering did not change.
   optimizer stability** — `../bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md
   → TODO-1..4`. A ~200× bimodal slowdown (0.5-1s vs. 150-180s, same
   scenario, only the data realization differs) in
-  `compute_lik_ratio_bartlett_approx_two_sided_pval()`'s B=99 Monte-Carlo
-  null replicates, traced to the Clayton-copula/loggamma-frailty C++
+  `compute_lik_ratio_bartlett_approx_two_sided_pval()`'s Monte-Carlo null
+  replicates (the method default is B=99; the standard comprehensive runner
+  overrides it with `B=r=151`). The reported historical `~1` outliers are
+  therefore likely B=151 if they came from that runner, but the retained
+  matching-class rows cover `~.` rather than those `~1` cases, so their exact
+  B remains unproven. The slowdown was traced to the Clayton-copula/loggamma-frailty C++
   optimizer having no bound on its dependence parameter (unlike the
   sibling normal-frailty optimizer's `max_abs_log_sigma=8.0` cap) plus a
   stale-gradient mismatch (the objective clips `theta` but the gradient
@@ -409,6 +918,88 @@ range, since the plan files' internal numbering did not change.
     against those predeclared criteria. The linked plan currently says only
     “well under” the historical 159.7–178.7 s outliers and does not define a
     numeric acceptance cutoff.
+  **Independence-tail test follow-up, 2026-10-20:** the focused Clayton
+  regression now checks the current source's one-sided upper-cap expression
+  and a finite, small, nonzero native score at `log_theta = -20`. It passed
+  22 assertions against installed EDI 1.0.3 (build timestamp
+  `2026-10-19 23:31:50 IDT`); this is not an exact current-head native-build
+  attestation. No compile/install or timing run occurred, and it does not
+  resolve the historical RNG/sample or maintainer-accepted runtime/parity
+  criteria above.
+  **Post-rebuild native recheck, 2026-10-20:** reran
+  `test-clayton-logtheta-optimizer-bound.R`; all 22 expectations passed
+  against installed EDI 1.0.3 with no failures, warnings, or skips. Loaded
+  `EDI.so` (`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  14,727,184 bytes, mtime `2026-10-20 09:38:02 +0300`) SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  (MD5 `a75519a9256c0b3121398032314291d4`), byte-identical to checkout
+  `R/EDI/src/EDI.so` at HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`.
+  This focused DLL recheck does not satisfy the historical RNG/sample,
+  maintainer-set timing/parity criteria, or calibration gates; TODO-6 remains
+  open. No compile/install, timing run, or canonical result change occurred.
+  **Checkout-R source-overlay recheck, 2026-10-20:** after the active R work
+  finished, ran the focused `test-clayton-logtheta-optimizer-bound.R` with
+  checkout R loaded via `pkgload::load_all("R/EDI", compile = FALSE)`; all
+  22 expectations passed with no failures, warnings, or skips. The loaded
+  checkout namespace used R `R Under development (unstable) (2026-10-13
+  r90668)` and a temporary DLL with SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  byte-identical to the installed user-rebuilt EDI 1.0.3 DLL and checkout
+  `R/EDI/src/EDI.so`. This adds focused checkout-R/runtime evidence only; it
+  is not independent compiler-input provenance, an exact historical-sample
+  replay, or timing/parity acceptance. TODO-3 remains open; no build,
+  install, timing run, or canonical result change occurred.
+  **Filtered-artifact metadata recheck, 2026-10-20 (read-only):** the retained
+  `/tmp/edi-v105-todo6.kCbSHR` tree contains only six files: its filtered
+  runner/helpers and two filtered result CSVs (13-replicate: 40,109 bytes;
+  rep-1: 3,529 bytes). The 13-replicate CSV has case/result, commit,
+  timestamp, duration, and heartbeat columns, but no RNG state,
+  assignment/outcome hash, or provenance sidecar; no original sample or full
+  run bundle is present there. This does not recover the original reps 1/13
+  realization. The historical replay/runtime-parity and maintainer-approved
+  runtime/estimate/SE/Bartlett-p acceptance gates remain open. No fit or
+  canonical result write occurred.
+  **Tracked-source RNG/provenance audit, 2026-10-20 (read-only):** the runner
+  begins with `set.seed(1)`, but `_dataset_load.R` consumes that stream to
+  sample the `diamonds` rows before individual inference cases. This is not
+  the original case-start `.Random.seed`/`RNGkind()` or sampled-input hash.
+  The current provenance helper snapshots RNG state only at run boundaries,
+  after dataset loading, so it cannot backfill the historical cases. The
+  linked TODO records propose a deterministic one-replicate-per-formula
+  replacement but require approval; none is recorded. The recoverable
+  metadata is limited to the configured start seed and historical row labels,
+  outcomes/timings, and commit metadata. Exact replay still needs the per-case
+  RNG state and sampled-row/assignment-or-outcome hash plus compatible data,
+  harness, and package provenance; otherwise the maintainer must approve the
+  replacement protocol and acceptance thresholds. No fit or artifact write
+  occurred.
+  **Timing/workload acceptance reconciliation, 2026-10-21 (read-only):** the
+  reported historical `~1` outliers (178.7s and 159.7s, reps 1 and 13) cannot
+  be authenticated as replay inputs: retained artifacts do not include the
+  original per-case RNG state/RNG kind, sampled `diamonds` row IDs or input
+  hash, treatment/outcome realization, or compatible harness/package/DLL
+  provenance. The filtered post-fix `~1` timings above are replacement draws,
+  not those historical realizations; the separate `~.` attempt stalled in
+  the generic Bartlett path, not the target approximate-p-value path, and
+  therefore does not measure that target. The retained full-sweep `~.` rows
+  are different cases and do not fill this gap. There is also a workload
+  discrepancy to resolve before replay: the linked historical description
+  says B=99, while the current runner sets `r=151` and passes `B=r` to this
+  call; the filtered CSV records `r=151`. No historical artifact establishes
+  which B produced the original outliers. The current installed/checkout
+  native DLLs were byte-identical at SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`, and
+  the optimizer translation-unit SHA-256 was
+  `c0ce193eaa4a40a511c55dcbce39026e2f35fab7df0a979fb70ee386b352475d`; this
+  establishes artifact identity for that inspection, not build-input
+  attestation or timing provenance for the earlier measurements. Closure
+  still requires either recovery of the exact historical sample, seed/RNG,
+  B, and package/harness provenance, or maintainer approval of a clearly
+  labeled replacement protocol; plus an explicit numeric runtime ceiling and
+  separate estimate, SE, and Bartlett-p tolerances for both `~1` and `~.`.
+  None of those acceptance limits is currently specified, and no threshold
+  is inferred here. TODO-6 remains open; no benchmark, build/install, or
+  canonical output write occurred.
 - [x] TODO-7 (added 2026-09-17, fixed 2026-10-08; found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
   randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
@@ -483,10 +1074,20 @@ range, since the plan files' internal numbering did not change.
   update and comprehensive-results regeneration must wait. Full results
   and metadata are preserved at
   `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`.
-  TODO-8 remains open pending reconciliation and authorized current-native
-  validation; TODO-7's documentation update and comprehensive-results
-  regeneration must wait. Full results and metadata are preserved at
-  `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`.
+  **Artifact/source snapshot audit 2026-10-20:** independently re-hashed the
+  two preserved installed-package CSV pairs; `n100k5.csv` matches at SHA-256
+  `e07fb6839cbacb3e0bfa40da1f6a5614d9823206caf12ad273c4169ee0ddd051`,
+  and `n50k3.csv` at
+  `5992e43b803016c970e0bbd2a92cf541872f062e153fad0b853d0bfdf147eff4`.
+  The two `study.R` snapshots differ only in the output-directory literal
+  and added installed-artifact-mtime metadata collection; the seed range,
+  simulation grid, and fit/acceptance calculations are unchanged. Metadata
+  confirms different installed native build timestamps (2026-09-20 06:41:28
+  IDT vs. 2026-10-14 20:37:15 IDT), but emitted results remain byte-identical.
+  Thus the reinstall did not resolve the 224/400 denominator or explain the
+  missing historical 386/400 run. No canonical data or artifacts were
+  modified; current-native validation and the historical seed-level CSV/run
+  metadata remain blockers.
   **Full-data wiring regression, 2026-10-18:** the new integration assertion
   in `test-stereotype-logit-full-fit-multistart.R` confirms ordinary
   `generate_mod()` invokes the multi-start selector and returns a finite
@@ -494,6 +1095,26 @@ range, since the plan files' internal numbering did not change.
   assertions with compilation disabled; native calls used installed EDI
   1.0.3 (`EDI.so` MD5 `dd43c5d0e11708aea17ba82b900f66d1`). This closes only
   the call-site regression gap, not calibration or current-native validation.
+  **Installed-package focused recheck, 2026-10-20:**
+  `test-stereotype-logit-full-fit-multistart.R` passed all 17 expectations
+  using `testthat::test_file()`. The installed package was EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, Built
+  `2026-10-20 06:33:10 UTC`, under `R-devel r90668`; its loaded `EDI.so`
+  SHA-256 was `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  (MD5 `a75519a9256c0b3121398032314291d4`). Checkout HEAD was
+  `4f7a6e4ca828`. This installed-package recheck does not show that its R
+  implementation matches checkout source and is not current-checkout/native
+  validation. No compilation or installation occurred; the 400-null study,
+  documentation update, and comprehensive-results regeneration remain open.
+  **Ordinary-fit RNG-stream contract, 2026-10-21:** broadened the existing
+  fast regression to capture `.Random.seed` immediately before the real
+  `generate_mod()` multi-start call and assert that it is unchanged afterward.
+  The focused file passed all 18 expectations against installed EDI 1.0.3
+  via `testthat::test_file(..., package = "EDI")`, with no failures,
+  warnings, or skips. This extends the existing candidate-generator RNG
+  check to the ordinary fit integration path; it does not establish
+  calibration or test the separate resampling refit paths. No build/install
+  or simulation ran; TODO-8's calibration and artifact gates remain open.
   **Scratch audit-path check (2026-10-18):** the focused
   `test-comprehensive-audit-output-directory-override-reference.R` passed 7
   assertions with 0 failures and 0 warnings. This verifies that response-level
@@ -502,6 +1123,63 @@ range, since the plan files' internal numbering did not change.
   Before any scratch `--write-baseline` pass, stage all complete response-type
   inputs covered by the baseline; an ordinal-only audit input set could make
   findings for absent response types appear resolved and prune them.
+  **Installed null-refit-selection regression, 2026-10-20:**
+  `test-ordinal-stereotype-logit-lik-test-null-refit-multistart-reference.R`
+  passed 5 assertions (0 failures/warnings/skips; exit 0) against installed
+  EDI 1.0.3 at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`.
+  Loaded DLL `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`
+  MD5 `8b3ca30492d7b1c790deeebe94b201ad`, SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`;
+  checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This mock-based
+  unit test checks null-start selection/failure handling only; it does not
+  establish Type-I error or coverage, regenerate the full class result rows,
+  reconcile historical usable denominators, or prove installed R-source
+  freshness. TODO-8's regeneration gate and TODO-4/7 calibration/documentation
+  prerequisites remain open.
+  **Historical artifact reconciliation, 2026-10-21:** the two retained
+  October 14 study directories each contain 400 seed rows for n=100 and n=50,
+  and their CSVs are byte-identical. The October 9 n=100 file's 64 finite
+  estimate/LR rows all occur in the later 224-finite-row file (zero old-only,
+  160 later-only finite rows). The retained study metadata identifies EDI
+  1.0.3/R-devel and seeds 1001–1400 but has no source revision, DLL hash,
+  per-seed timing, or explicit failure-stage/conditioning fields. The original
+  September 21 per-seed output and run metadata were not found in the bounded
+  artifact inventory, so the historical 386/400 and 169/400 counts remain
+  unreconciled. Recover those inputs or approve a provenance-pinned rerun with
+  per-seed status, error stage, conditioning, and elapsed time; do not infer
+  the historical discrepancy from the Oct. 9/14 overlap alone.
+  **Retained-artifact inventory, 2026-10-21 (read-only):** the previously
+  named `/tmp/edi-todo8-400-null-reinstall-20261014T173835Z/`,
+  `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`, and
+  `/tmp/edi_todo8_n100k5.csv` are absent now. The only TODO-8-named file found
+  under `/tmp` is the 1,249-byte source-test log
+  `/tmp/todo8-stereotype-multistart-source-20261020.log`. Four ignored,
+  filtered historical class CSVs survive in `R/package_tests/` (line counts
+  include headers): beta-0 parametric bootstrap, 556 lines, SHA-256
+  `46479a28cf5acf36f52b6365cec75a9766be4d0f080ce80eb07d8392b42db6ff`;
+  bootstrap, 133 lines, `362c25a221608db8030cda91330fda2315dc8e6c1c61363b97eca27f2a7bb7be`;
+  jackknife, 508 lines, `9fdd6ffb04c2a72a9659c44deec521b2dae5b6f5c395afe1cf9e52e9ccc56cca`;
+  rand, 163 lines, `298511ebeb8200d997f5f24d003b403032cac2c7ea7b6cc9bc20876d753de011`.
+  Their mtimes are Sep 8 (three slices) and Sep 21 (beta-0 parametric
+  bootstrap), all before the Oct 8 ordinary full-fit multi-start fix; none is
+  a complete all-`function_run` class shard or carries current source/DLL
+  provenance. The two documented Oct 14 400-row null-study cohorts are absent
+  too and are not comprehensive-runner results. No exact current-source
+  reconciliation or complete expected-key roster can be recovered from these
+  files. Keep TODO-8 open behind TODO-4/7; after those gates, regenerate an
+  installed, provenance-stamped all-`function_run` shard and reconcile it
+  against complete ordinal scratch inputs. Do not use these stale partial
+  files to modify canonical results or baseline.
+  **Ordinal artifact parity recheck, 2026-10-21 (read-only):** the bounded
+  inventory also finds `comprehensive_tests_results_nc_1_ordinal.csv.pre_stereotype_merge.bak`
+  (437,321,222 bytes; mtime 2026-09-21) and two Bernoulli/diamonds filtered
+  class outputs (`rand_custom` and `rand`, both dated 2026-09-23). All predate
+  the 2026-10-08 ordinary-fit multi-start change; the backup is a pre-change
+  snapshot and the others are narrow dataset/family slices. None validates
+  post-fix optimum selection/calibration or supplies a full class key
+  inventory. No new retained artifact closes TODO-8 without TODO-4/7
+  calibration and provenance; do not update canonical CSV/baseline from
+  these files.
 - [ ] TODO-9 (added 2026-09-22, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report; three new checks —
   `biased_estimate`, `bad_type1_error`, `low_power` — added to
@@ -576,6 +1254,117 @@ range, since the plan files' internal numbering did not change.
     source/DLL provenance; this is an audit-key classification only, not
     current-package validation. The remaining 183 absent / 373 new findings
     are still unresolved, and no baseline update is authorized.
+    **Baseline-write safety regression, 2026-10-20:** the focused bulk test
+    now invokes `audit_comprehensive_results.R --write-baseline` against a
+    `/tmp` directory containing only one nonempty response CSV plus sentinel
+    baseline/stamp files. It confirms the command rejects the partial
+    artifact set and leaves both prior state files unchanged.
+    This verifies the fail-closed CLI guard; it neither classifies the
+    unresolved finding deltas nor authorizes a canonical baseline write.
+    **Positive scratch baseline-write regression, 2026-10-20:** the same
+    focused test also runs `--write-baseline` on six synthetic response CSVs,
+    with the copied runner and output directory both contained under one
+    `tempfile()` root. It confirms a successful zero-finding write, the exact
+    baseline schema and size/mtime stamp, and that sidecars are created only
+    in the configured override directory. This exercises the CLI happy path
+    on synthetic inputs only; it does not reconcile the real finding deltas
+    or authorize a canonical baseline write.
+    **Structural input preflight, 2026-10-21:** the write guard now checks
+    each of the six response files for the required result columns and at
+    least one data row (reading only the header/first row); the focused
+    scratch-path test passes 39 assertions, including rejection of
+    header-only/wrong-schema inputs while preserving existing baseline/stamp
+    sentinels. This is only a structural check, not proof of complete keys,
+    current source/native provenance, or valid terminal outcomes. The
+    six-response provenance/key reconciliation remains open; the 183
+    baseline-only and 373 finding-only differences are not resolved, and no
+    canonical baseline write is authorized.
+    **Duplicate response-name guard, 2026-10-21:** the same preflight now
+    rejects duplicate names in its response-path vector before inspecting any
+    files, preventing one response path from being ambiguously presented as
+    multiple response-level inputs. The focused scratch-path test passes with
+    the added rejection case. This input-shape guard does not establish that
+    all six distinct response types are complete or provenance-valid; the
+    reconciliation and baseline-write gates above remain unchanged.
+    **Sweep-classification guard, 2026-10-20:** deterministic review found
+    that the linked `scripts/reused_worker_bitforbit_sweep.R` comparator
+    classified an all-NA baseline as a point mass (`0 <= 1`) and could label
+    its transition to a varying distribution as `fixed`. It now calls `fixed`
+    only when the baseline has exactly one finite value; the focused contract
+    test pins both this case and all-NA → `MOVED`. The new assertions passed,
+    but the full focused file had two existing failures against installed EDI
+    1.0.3 because its `InferenceIncidExactBinomial` registry entry differs
+    from checkout expectations. No sweep ran; pre/post snapshot comparison
+    and unresolved finding reconciliation remain open.
+    **Retained exact-key partition, 2026-10-21 (read-only):** the 2026-10-18
+    scratch finding table was previously recorded at
+    `/tmp/edi-todo9-audit.NnBBLg/comprehensive_results_audit_baseline.csv`
+    with SHA-256
+    `14d3ddbe31f0a6c39a21c0e394054b4d1d4cdbfd770b02200954c0e394828464`;
+    that file is now absent, so its recorded byte identity cannot be checked.
+    The copied input baseline is `baseline.before.csv`, SHA-256
+    `6daf9c3d6caff7bd09a65afef066de818e53dbe7d7e15b0a9b1dddac321cf125`.
+    Exact key join gives 2,165 unique baseline keys, 2,355 unique finding
+    keys, 1,982 common, 183 baseline-only, and 373 finding-only; neither
+    table has duplicate keys. This reproduces the earlier totals, but is not
+    a new current-package audit: the six CSV inputs were read-only links to
+    gitignored artifacts dated 2026-09-27 through 2026-10-09, and the scratch
+    stamp (SHA-256
+    `54f8e558f3121cd6b4a22641840dd7d3c8c3ded363d41d1b06ee17aea0f7ccde`)
+    records only input paths, sizes, and mtimes—not source revision, package,
+    or native-DLL identity.
+
+    Bounded disposition: current source rejects 13 smoothed class/formula
+    keys (the nine baseline keys remain among the 1,982 common keys; four
+    appear among the 373 new keys). Those four exact new keys are the
+    incidence/ordinal/proportion keys listed above; all require the private
+    fast-kernel method that those classes lack. One of these four also falls
+    in the 29 new `pval_miscalibration|proportion|InferencePropBetaRegr`
+    keys (18 p-value functions, formulas `~.`, `~1`, `NA`). The 29-key
+    PropBeta subset comes from the 2026-10-09 proportion CSV, predating the
+    TODO-52 Oct. 11 warm-start change, but has no source/DLL provenance:
+    classify it as historical/pre-fix with current status unknown, not as
+    safe to drop or accept. Thus 32 distinct new keys have this limited
+    source-scope/historical classification (the four smoothed keys and 29
+    PropBeta keys overlap once); 341 other new keys and all 183 absent keys
+    remain unexplained. No baseline disposition follows from these
+    classifications alone.
+
+    Minimal safe-write prerequisites: regenerate all six complete
+    response-level inputs from one authorized current package/source/native
+    identity; retain row/run provenance (including source/script hashes,
+    package version/path, native-DLL hash, and attempted-key/status data);
+    audit in an isolated copy with separate baseline/stamp; then account for
+    every exact-key delta, including the remaining 341 new and 183 absent
+    keys, and review persistent findings as fixed or explicitly accepted.
+    Only after that review may an explicitly authorized baseline/stamp
+    promotion occur. No canonical CSV/baseline/stamp payload was read or
+    changed in this partition audit.
+    **Tracked-HEAD replay, 2026-10-21:** copied the audit script and paths
+    helper byte-for-byte from checkout HEAD
+    `4f7a6e4ca82829e880c15a76699701a95e5e83b9` into an isolated `/tmp` tree,
+    then replayed them against the six retained response CSVs and tracked
+    baseline. The script exited 0 and reproduced 2,355 finding keys; the
+    exact join again gives 2,165 baseline, 1,982 common, 183 baseline-only,
+    and 373 finding-only keys, with no duplicates. Replay table:
+    `/tmp/edi-todo9-head-replay.8aFP0a/R/package_tests/comprehensive_results_audit_baseline.csv`,
+    SHA-256
+    `14d3ddbe31f0a6c39a21ecf653054b4d1d4cdbfd770b02200954c0e394828464`.
+    The prior scratch table is gone; the formerly recorded hash differs from
+    this regenerated table, and the original bytes cannot now be compared.
+    This hash identifies the regenerated table only. The 556-key
+    source-disposition table is
+    `/tmp/edi-todo9-head-replay.8aFP0a/source_disposition_table.csv`, SHA-256
+    `e8b13ca4fed1caeb9b48f9d1b33b1927290b7bc0c1ed887805bed16fdaeb073c`.
+    Its bounded tags cover 32 new keys (four unsupported smoothed-path keys
+    and 29 pre-TODO-52 PropBeta keys, with one overlap); 341 other new and
+    all 183 absent keys remain unexplained. The raw inputs still lack
+    source/package/native-DLL/RNG provenance, so this replay establishes
+    reproducible key membership and limited source-scope tags only—not a
+    current-package audit, complete dispositions, or authority to promote
+    the baseline. A dirty-checkout audit produced 3,148 rows under later
+    denominator changes and is not comparable to this tracked-HEAD replay.
+    No canonical input, output, baseline, or stamp was changed.
 - [ ] TODO-10 (added 2026-09-22, found the same way; a harness bug, not an
   inference-code bug): **MC coverage-truth uses the wrong covariate set** —
   `../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md → TODO-1..6`. **Fixed.**
@@ -610,6 +1399,222 @@ range, since the plan files' internal numbering did not change.
     rerun the baseline audit. Keep `KKStratCoxPHOneLik` and
     `KKLWACoxPHOneLik` excluded until the linked plan's convergence/policy
     gate is resolved.
+  **Compile-free source regression recheck 2026-10-20:**
+  `Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R")'`
+  passed 53 expectations (0 failures, warnings, or skips) after adding a
+  bare `InferenceIncidLogRegr` dispatch case: a no-suffix fixed-formula label
+  must default to `~.` and forward the real covariate matrix. This file parses
+  `comprehensive_tests.R` and evaluates only named coverage-truth assignments
+  in a stub environment; it exercises the `InferenceSurvivalKMDiff` MC-truth
+  dispatch alongside the incidence/ordinal gap cases and checks key-specific
+  seed isolation without fitting models or invoking native kernels. It is
+  source/test-contract evidence only; the survival/ordinal results regeneration
+  and baseline re-audit above remain open. The recheck also passed with
+  `library(EDI)` loaded for installed EDI 1.0.3 (`EDI.so` MD5
+  `dfd5bf4384b5a0cc0d430fd70dab2a59`); the test stubs MC fitting and does not
+  call package or native code. **Checkout-R source-overlay recheck, also
+  2026-10-20:** the same test passed 53 expectations after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` (R-devel
+  r90668, checkout namespace `/home/kapelner/workspace/EDI/R/EDI`, package
+  version 1.0.3). Current `comprehensive_tests.R` SHA-256 is
+  `0f4612616ec1362c6e8b100a1c2fec32c417f86b8c4bf8ce8c317f5eaa13b92a`; the
+  test SHA-256 is
+  `e392d6fafe916fdc2f15daf088aef6f83c79a3b5eb32990014c3b789c2d9510b`.
+  The loaded temporary DLL SHA-256 `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`
+  matches the installed EDI DLL. The test parses current harness assignments
+  and stubs the MC fit; no native fitting or calibration run occurred. This
+  remains source-level dispatch evidence only, not result regeneration or
+  baseline reconciliation.
+  **Cache adjustment-set isolation, 2026-10-20:** extended and reran the
+  same focused registry test with paired `~.` and `~1` requests for the same
+  class/dataset/effect/response. The assertions confirm separate cache keys,
+  the expected real-covariate versus `NULL` stub inputs, and reuse within each
+  key. The focused `testthat::test_file(...)` run passed 59 expectations
+  (0 failures, warnings, or skips) against installed EDI 1.0.3; the test
+  evaluates selected current-harness assignments with a stubbed MC fit, not
+  model fits or native kernels. This adds source/test-contract evidence only;
+  affected-row regeneration and baseline reconciliation remain open, so
+  TODO-10 stays unchecked.
+  **Bounded source-overlay row pilot, 2026-10-20:** one rep at beta_T=0.5,
+  family `estimate`, was run for `InferenceSurvivalKMDiff`/`cars` and
+  `InferenceOrdinalRidit`/`diamonds`, with outputs isolated under
+  `/tmp/edi-todo10-row-pilot.WQ09ZP`. The exact four expected natural keys
+  (each selected class's `compute_estimate` row under `design_formula=~1` and
+  `~.`) equaled the observed keys: 4 rows, all `ok`, no missing, extra, or
+  duplicate keys, and finite coverage truths. The runner used checkout R via
+  `R_PROFILE_USER` and `pkgload::load_all(..., compile = FALSE)`; provenance
+  records checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, source
+  namespace `/home/kapelner/workspace/EDI/R/EDI`, and temporary DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  These candidate rows validate only the two selected estimate-family cases;
+  they do not complete affected-class/family/dataset/beta/replicate coverage
+  or the baseline re-audit. Canonical outputs were not modified.
+  **Survival expected-attempt roster regression, 2026-10-20:**
+  `test-todo10-survival-expected-attempt-roster-reference.R` passed both test
+  blocks, 29 expectations total (0 failures, warnings, or skips; exit 0).
+  Its source-derived fixture reconciles a deliberately reduced 272-key roster
+  from the runner's survival dispatch, including class availability, the two
+  formula axes, estimate labels, LogRank asymptotic labels, and the
+  incidence-only exact-family guard. This is static eligibility/roster
+  evidence, not a fit, real-attempt inventory, full method roster, corrected
+  result regeneration, or baseline audit. The test ran under R-devel
+  `r90668` with installed EDI 1.0.3; `testthat::test_file()` attached the
+  package, but the test only parses runner/class sources and invokes no native
+  fitter. The loaded DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; runner SHA-256
+  `39f1abc8e492b2307ed4229b1bf36d42021464af1521578e4683aaf3d3de7189`;
+  test SHA-256
+  `2d40fbde3c8686bc8b4ed5133b2e27eb944db83aba74b392892e9c4f89ee015d`.
+  Full affected-row regeneration and baseline re-audit remain open. No build,
+  fit, result generation, or canonical output write occurred.
+  **Focused source-roster rerun, 2026-10-21:** reran
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo10-survival-expected-attempt-roster-reference.R", reporter = "summary")'`;
+  both test blocks passed (29 expectations, 0 failures, warnings, or skips).
+  The test derives its reduced 272 natural keys from parsed runner dispatch,
+  source class eligibility/inheritance, and declared function labels rather
+  than observed result rows. The roster covers estimate attempts and the
+  source-declared LogRank asymptotic labels for its reduced fixture; it does
+  not establish the full runner method inventory, real-attempt output
+  completeness, or result provenance. Test SHA-256 remains
+  `2d40fbde3c8686bc8b4ed5133b2e27eb944db83aba74b392892e9c4f89ee015d`; the
+  parsed current runner SHA-256 is
+  `1b12a10860e566d3402cc7d799669c7a94ac20bb6e37d348d249c15e2a293b1a`.
+  EDI 1.0.3 attached, but no fitter/native code was invoked. Full affected-row
+  regeneration, exact production-key/status reconciliation, and baseline
+  re-audit remain open; no build or canonical output write occurred.
+  **Ordinal expected-attempt roster input guards, 2026-10-21:** the existing
+  `test-comprehensive-coverage-mc-registry-gaps-reference.R` fixture now also
+  rejects an omitted explicit `skip_slow` flag and a nonlogical
+  `has_compute_estimate`, matching `comprehensive_ordinal_coverage_attempt_manifest()`'s
+  documented validation errors. The focused full-file run passed (no failures,
+  warnings, or skips) with installed EDI 1.0.3 attached. This fixture derives
+  the reduced 84-key ordinal roster from two cases, seven selected direct-call
+  classes, two formulas, and the explicit estimate/Wald flags; its validation
+  assertions prove only the pure-R fixture guard and exact reduced roster, not
+  live class capabilities or emitted-attempt completeness. It parses current
+  runner/helper source and calls no fitter/native kernel; no build or result
+  write occurred. Test/helper/runner SHA-256 at the run:
+  `88e57fa56d7eef713b212ad6a4283ad26690a1ab4b7fae4d9cd27b1bbc157db2` /
+  `5877432dbcb9515bd33717ea4792f442e64c48f96d73fcdcba1b7fe304ed410e` /
+  `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`.
+  Full affected-row regeneration, exact production-key/status reconciliation,
+  and baseline re-audit remain open.
+  **Source-derived production case-lattice regression, 2026-10-21:**
+  `test-todo10-survival-expected-attempt-roster-reference.R` passed all 41
+  expectations (0 failures, warnings, or skips; exit 0). This invocation
+  suppressed the test file's `library(EDI)` call and loaded only `testthat`,
+  so it parsed source and asserted roster dimensions without loading EDI or
+  calling native code. The new parser derives the 9 dataset/response pairs,
+  runner beta/design/formula axes, and produces 20,160 *candidate case rows*
+  at `Nrep=40`: 10,080 each for survival and ordinal, with half each for
+  design formula `~1` and `~.`. Every row is explicitly conditional on
+  dataset/design/inference setup and runtime support; this is not an emitted
+  attempt/result-key manifest and does not predict constructor failures or
+  skips. The unresolved `InferenceSurvivalKKLWACoxPHOneLik` and
+  `InferenceSurvivalKKStratCoxPHOneLik` are preserved in the lattice's
+  explicit excluded-class metadata. Test SHA-256
+  `dabe7c201dceab9e6888808425bd05c81544ac4e8a26f95c2f476867c58032fb`,
+  runner SHA-256 `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`,
+  dataset-source SHA-256 `7e3cf603ef384c369c4435dc5ca0b541d9248bbda9e5db7f3c17b2b41628bdda`.
+  Full affected-row regeneration, exact production attempt/status reconciliation,
+  and baseline re-audit remain open; no fit, build, package load, or result write.
+  **Read-only actual-attempt artifact audit, 2026-10-20:** the retained
+  source-overlay pilot at `/tmp/edi-todo10-row-pilot.WQ09ZP` contains exact
+  two-key slices for `InferenceSurvivalKMDiff`/`cars`/survival/Bernoulli and
+  `InferenceOrdinalRidit`/`diamonds`/ordinal/Bernoulli, each with
+  `design_formula=~1` and `~.` and `function_run=compute_estimate`. Both slices
+  exactly match their independently reconstructed expected keys: two rows,
+  no missing/extra/duplicate key, both `status=ok`, and unique `id` and
+  `run_row_id`. Recorded sidecar path, byte count, and CSV SHA-256 match each
+  artifact; before/after R/EDI/DLL/checkout/diff/runner identity fields match.
+  Provenance: R-devel `r90668`, EDI 1.0.3, HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Survival CSV/sidecar SHA-256:
+  `e467af71f4ae3755d5e97bf8f403d8e91d11880b531c962845eae114ad77bbc5` /
+  `b0397e49108d5610b405d6f134327f937f71736f17750768cd81012139c6511e`;
+  ordinal CSV/sidecar SHA-256:
+  `aa042a5bdac1ca0a30be61065a2250070672e7c59ec4245928956c83785da3e5` /
+  `a677c6ddf0d115320981d016c01f9e0c47b51ae6271d389108450b2d86dadc41`.
+  These retained sidecars are schema 1; the current artifact validator
+  requires schema 2, so this manual slice audit is not validator acceptance.
+  It covers neither the full affected grid nor the baseline re-audit. No fit
+  was rerun and no output was written. A later schema-2 recapture and
+  artifact-side disposition are recorded below; full-row reconciliation and
+  baseline audit remain open.
+  **Schema-2 artifact/roster reconciliation, 2026-10-21 (read-only):** the
+  later `/tmp/edi-todo10-schema2.HNmaUs` cohort has the same four
+  `compute_estimate` keys (two formulas each for SurvivalKMDiff/cars and
+  OrdinalRidit/diamonds); each two-row CSV has unique IDs and both rows
+  `status=ok`. With the two independently specified case keys per CSV,
+  `validate_comprehensive_result_artifact()` passed both artifacts' schema-2
+  sidecar, CSV byte/SHA identity, before/after identity, and exact-key checks.
+  CSV/sidecar SHA-256 pairs are `d423a5c2ec64e1bcffe3b6c6e6e4d431612fd27a8454f38245dcf20d12d0e6c4` /
+  `813c808727758eaf078949371a59a950c1a4ca8d558dffdacde497d4bc65f4f8` for
+  survival and `51ea567ba01e964e40ad661b8d34f4981ca1a2a4e9e06317c8e3e7033aa1fbc4` /
+  `7579fd2c97b99c7271feb12809f758930738ca01404a0660991f5bc8bfa87847` for
+  ordinal. However, the 272-key roster test is a deliberately reduced source
+  fixture over `toy-a`/`toy-b`, reps 1:2, beta 0/0.5, and survival dispatch;
+  it is not a production result manifest. Exact natural-key intersection with
+  these four pilot rows is zero: the SurvivalKMDiff rows match the roster's
+  class/design/formula/estimate shape but use `cars` rather than a toy dataset,
+  while OrdinalRidit is outside this survival roster. Thus the pilot cannot be
+  counted as 4/272 complete or as 272 missing production attempts. The
+  bounded production-shaped roster for these retained slices is independently
+  derivable from current source: `cars$y_original` includes survival and
+  `diamonds$y_original` includes ordinal; Bernoulli is in `TESTED_DESIGNS`,
+  the filtered run selects beta 0.5 and rep 1, each class has a matching
+  Bernoulli entry in `COVERAGE_MC_SPEC`, the runner traverses `~1` and `~.`;
+  the estimate-family route emits `compute_estimate`. This yields exactly the
+  four observed natural keys (2 per class/case), with no absent or extra key
+  within those two selected slices. It is intentionally not a full production
+  roster: it says nothing about other eligible classes, supported
+  dataset/response pairs, families, beta values, or reps, whose runtime
+  dispatch/skip outcomes still need a provenance-matched regenerated artifact.
+  The schema-2 sidecars are internally validator-valid for their captured run,
+  but stale relative to the current source snapshot: they record runner SHA
+  `39f1abc8e492b2307ed4229b1bf36d42021464af1521578e4683aaf3d3de7189`, whereas
+  the current runner is `1b12a10860e566d3402cc7d799669c7a94ac20bb6e37d348d249c15e2a293b1`;
+  they record package-payload SHA
+  `ed3f0fa1591701ba1d1d9e6dd793006e843053323e931255a9350db54dce6382`, and
+  checkout R/source files have post-capture modifications. Same HEAD does not
+  make the captured dirty diff current. The earlier schema-1 cohort still
+  fails the current validator (`unsupported or missing ... schema`). Next
+  safe step for full acceptance: derive the complete eligible production
+  roster from the corrected runner/spec and supported dataset/beta/rep/family
+  axes, then regenerate/reconcile that scope with fresh schema-2 provenance.
+  No result, canonical, or baseline file was changed.
+  **Retained canonical-artifact inventory, 2026-10-21 (read-only):** the
+  identified `/tmp/edi-todo10-*` simulation cohorts contain only the two
+  schema-2 pilot CSV/sidecar pairs above: four selected `compute_estimate`
+  keys total, valid only for their captured run. Those sidecars record runner
+  SHA-256 `39f1abc8e492b2307ed4229b1bf36d42021464af1521578e4683aaf3d3de7189`;
+  the current raw `comprehensive_tests.R` file hashes to
+  `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`.
+  The 20,160-row source case lattice remains candidate scope, not an emitted-
+  attempt roster: setup eligibility, `function_run` emission, and runtime
+  skip outcomes are unresolved. Canonical survival and ordinal CSVs are
+  372,209,537 bytes (2026-09-27) and 417,165,307 bytes (2026-10-09), with no
+  adjacent provenance sidecars. No current-source complete or reconcilable
+  result exists beyond the four-key pilot. Full attempt-roster/setup-outcome
+  derivation, current-source schema-2 regeneration, exact key/status/value
+  reconciliation, and baseline re-audit remain open; no simulation or
+  canonical write occurred.
+  **Deterministic MC-truth retry/cache/RNG regression, 2026-10-21:** the
+  linked `test-comprehensive-coverage-mc-registry-gaps-reference.R` now
+  covers retry after implausible finite and non-finite MC results, the exact
+  per-attempt seed-state sequence derived from the cache key, acceptance and
+  caching of the first plausible result, cache reuse without another fit,
+  and five-attempt exhaustion returning `NA` without caching. Its stubbed
+  fitter keeps this a deterministic source-contract test rather than a
+  calibration run. The focused command
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R")'`
+  passed 89 expectations (0 failures, warnings, or skips; exit 0); it attached
+  installed EDI 1.0.3 but evaluates only selected harness assignments and
+  does not call native code. This adds no evidence for complete affected-row
+  regeneration, current-source/native provenance, or baseline re-audit; those
+  gates remain open and no canonical results were changed.
 - [x] TODO-11 (added 2026-09-22, closed 2026-10-08 after re-audit;
   **resolved — do not enable**): **Cox
   Bartlett-approx likelihood-ratio correction, forced off** —
@@ -705,6 +1710,156 @@ range, since the plan files' internal numbering did not change.
   validation. Keep all future RDS snapshots under `/tmp`; this preflight read
   no canonical comprehensive results and does not contend with TODO-56's
   shared-result paths.
+  **Positive comparator-contract regression, 2026-10-20:** the existing
+  sweep-contract test now also proves a valid two-key synthetic pair is
+  accepted with identical expected keys/package version/native-DLL digest
+  while installed-lazyload and checkout-source R provenance differ; its
+  result asserts one bit-identical and one substantive `MOVED` distribution.
+  The focused test passed 37 expectations with checkout R loaded via
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; test SHA-256
+  `32fa2407c994826374e3c2cb56717a2173e8f354231799a97b081989ab39ab9a`,
+  temporary loaded DLL MD5 `8b3ca30492d7b1c790deeebe94b201ad`. This is
+  comparator-contract evidence only: no distribution or snapshot was
+  generated, and the release-wide paired sweep, retained-artifact
+  reconciliation, and current-native gate remain open.
+  **Current harness provenance recheck, 2026-10-19 (read-only):** checkout
+  `HEAD` is `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. Since the recorded
+  2026-10-18 preflight, commit `4d2531e9` changed the sweep runner and fixture
+  registry. Their current SHA-256 values are respectively
+  `826f9518760c89d238a493cdb1de2244152bc555644e45226272091075f7df28` and
+  `5c1a428134aee72b969d06f446171d34a8d28bfb88e399b641ee7562109f2d53`, not
+  the previously recorded hashes. The diff adds strict enumeration/failure
+  checks and snapshot key/shape validation; it does not change the sweep's
+  distribution calculation or arm/data fixture definitions. This strengthens
+  the runner but means the old artifacts are not provenance-matched to the
+  current harness.
+  No sweep was rerun; release-wide acceptance remains open and requires
+  current authorization for its broad run.
+  **Snapshot/output safety precondition (2026-10-20):** the sweep runner's
+  `record()` writes directly to its caller-supplied path and can overwrite an
+  existing file. Any future run must use distinct, non-existing absolute
+  snapshot paths under a fresh `/tmp` directory; stop rather than pass a
+  checkout/canonical path or reuse a filename. The legacy `--source` recipe
+  copies the installed DLL over `R/EDI/src/EDI.so` and then removes that path;
+  do not execute it as written or overwrite/remove an existing staged DLL.
+  Capture R version, checkout HEAD/status/diff, runner and fixture hashes, and
+  native DLL path/hash externally before and after the paired run: snapshot
+  provenance records package/native/R-layer identity but not those run inputs.
+  **Existing artifact-only integrity check, 2026-10-19:** read-only
+  `readRDS()` inspection of `before-1.rds`, `before-2.rds`, and
+  `after-refined-v2.rds` found 240 uniquely named entries in each, with
+  identical key sets. The two pre snapshots and refined post snapshot match
+  their recorded SHA-256 values above, but none carries the new runner's
+  `expected_keys` attribute. This confirms internal key-set consistency only;
+  it cannot establish that strict current-source enumeration would produce
+  exactly these keys, so it does not replace a rerun with the updated runner.
+  **Registry-routing metadata correction, 2026-10-20:** the strict
+  enumeration preflight had selected `InferenceIncidExactBinomial` for the
+  Bernoulli arm, where construction correctly rejects the design. Its class
+  contract permits only `DesignFixedBinaryMatch` or KK-capable designs, but
+  the registry's name/override rule had left `requires_kk_matching_design`
+  false. Added the explicit KK-required override and assertions for both the
+  inferred routing flag and resolved registry metadata. The focused
+  source-loaded registry test passed 43 expectations with checkout R code
+  loaded using `compile = FALSE` against installed EDI 1.0.3; the test
+  exercised registry/R metadata only. A follow-up no-draw strict-enumeration
+  smoke loaded the runner helpers and completed candidate selection across
+  all arms and response types. ExactBinomial routed only to `kk`; its targeted
+  KK-incidence constructor check succeeded but produced zero reusable-worker
+  candidates, so no distribution key is expected for this class. No
+  distribution was called and no snapshot was written. This did not run the
+  runner's `record` mode or validate old snapshot coverage; those snapshots
+  still lack the current `expected_keys` attribute. No canonical artifacts
+  were read or written. Release-wide pre/post parity, current-native
+  verification, and result reconciliation remain open.
+  **Persistent candidate-exclusion regression, 2026-10-20:** the existing
+  sweep-contract test now asserts that ExactBinomial is absent from Bernoulli
+  incidence candidates and, after strict KK-incidence construction, contributes
+  zero reusable-worker cases. The focused source-loaded run passed 27
+  expectations, made no resampling-distribution call, and wrote no snapshot;
+  provenance and hashes are recorded in the linked plan. **Compile-free
+  manifest-guard extension, 2026-10-20:** broadened that same fixture with
+  an assertion that `validate_sweep_snapshot()` rejects a duplicate expected
+  key. The checkout-source test passed 28 expectations via
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE,
+  export_all = FALSE)` followed by `testthat::test_file(...)`, using the
+  existing installed EDI 1.0.3 native DLL. No distribution call or snapshot
+  write occurred. This pins duplicate-manifest rejection only; it does not
+  establish full manifest completeness, paired parity, or current-native
+  validation. **Retained-artifact acceptance check, 2026-10-20:** read-only
+  inspection confirmed that all three retained 240-entry RDS snapshots match
+  their recorded SHA-256 hashes and have unique names, but lack both the
+  `expected_keys` and `provenance` attributes required by the current
+  comparator. Their names/key-set agreement alone is not acceptance evidence;
+  do not retrofit run metadata. Added a focused missing-manifest comparator
+  regression; the complete sweep-contract test passed 31 expectations with
+  checkout R sources loaded using `compile = FALSE` (the installed-only run
+  fails two existing registry assertions because EDI 1.0.3 is stale). No
+  distribution was called and no snapshot was written. Provenance and hashes
+  are recorded in the linked plan. Release-wide paired parity and
+  current-native verification remain open.
+  **Installed-native focused recheck, 2026-10-20:**
+  `test-reused-worker-private-cache-reset.R` passed 55 expectations (0
+  failures, warnings, or skips) against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Its installed
+  `DESCRIPTION` SHA-256 is
+  `4a90096cefbca36c7f68d2d53af5821ed7747fa20d0d359880bcd704372998f0`;
+  loaded `EDI.so` SHA-256 is
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  The DLL is byte-identical to checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, but this does not establish
+  source/build provenance; installed and checkout DESCRIPTION hashes differ.
+  This confirms the focused installed-artifact cache-reset regression only.
+  The release-wide paired sweep and reproducible current-source/native
+  provenance gate remain open. No build/install, sweep, or canonical output
+  was produced.
+  **Current installed sweep-contract recheck, 2026-10-20:** attached
+  installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI` and ran
+  `testthat::test_file("R/package_tests/testthat_bulk/test-reused-worker-bitforbit-sweep-contracts.R")`;
+  all 31 expectations passed with no failures, warnings, or skips. The
+  deterministic test covers mocked failure handling, installed-registry
+  routing, snapshot key/NA/provenance rejection, and all-NA classification; it
+  calls no resampling distribution and writes no sweep snapshot. The test
+  sources the current checkout runner (SHA-256
+  `4510d0e8a56ffa681c84e3de8e7057b44c87f8bb581c88b8f0114ffb8c5e6bdf`); test
+  SHA-256 is
+  `a63dd474cf8f907112d1dcba0c56999180badf124b50484845646f84382ca922`.
+  Installed DESCRIPTION SHA-256 is
+  `9bc2620857fc1dce03c0cf8f0ce91f51c2385da011fb8d8c6f4264ef9c9231c5`; loaded
+  `EDI.so` SHA-256 is
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This validates the harness contract against the latest installed namespace,
+  not actual reused-worker distribution behavior; the release-wide paired
+  sweep, artifact reconciliation, and reproducible current-source/native
+  provenance remain open. No build/install or canonical output write.
+  **Comparator fail-closed edge recheck, 2026-10-21:** broadened the existing
+  sweep-contract fixture to exercise an `after.rds` with two extra names,
+  missing `expected_keys` on either side independently, and missing R/native
+  provenance on the after side. `testthat::test_file()` passed 39
+  expectations (0 failures, warnings, or skips) with installed EDI 1.0.3;
+  the test sources the checkout sweep script and writes only synthetic RDS
+  files under `/tmp`. The comparator rejects all three cases. This covers
+  artifact-structure failure paths only; no real snapshot was read or
+  produced, and release-wide paired runtime parity, current-native
+  verification, and retained-artifact reconciliation remain open.
+  **Three-snapshot run preflight, 2026-10-21:** the pending 720 evaluations
+  comprise two same-source pre-fix noise-floor snapshots plus one post-fix
+  snapshot, each with the exact 240-key source-derived roster (registry,
+  strict arm/design construction, reusable-worker capability), `r=15`, seed
+  `20260922`, three arms (`bernoulli`, `kk`, `blocking`), six response types,
+  and production/forced paths. No current matched artifact pair is usable:
+  the recorded 240-entry RDS/staging paths are absent, and the bounded `/tmp`
+  inventory found only synthetic comparator fixtures. Current preflight
+  identities are HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, working-tree
+  runner SHA-256
+  `4510d0e8a56ffa681c84e3de8e7057b44c87f8bb581c88b8f0114ffb8c5e6bdf`, fixture
+  SHA-256 `5c1a428134aee72b969d06f446171d34a8d28bfb88e399b641ee7562109f2d53`,
+  and matching installed/staged DLL SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`. These
+  are point-in-time preflight values, not historical-run provenance. No R
+  test/workload or output generation ran; await explicit run approval and
+  freeze/record a reproducible pre/post source bundle before execution.
   - [x] TODO-12-only paired sweep and noise-floor review: 240 entries, 235
   bit-identical, five repeatable noise, zero `fixed`, zero `MOVED`, with the
   robust-regression result restored exactly to the original source result.
@@ -715,6 +1870,38 @@ range, since the plan files' internal numbering did not change.
   TODO-12; do not use its `MOVED` rows for release acceptance. Native-build
   verification remains a separate gate and requires explicit user
   permission; no build/install was performed for this review.
+  **Live `/tmp` snapshot inventory, 2026-10-21:** the historical paths
+  `/tmp/edi-todo12-paired-53rKFp/before-1.rds`,
+  `/tmp/edi-todo12-paired-53rKFp/before-2.rds`, and
+  `/tmp/edi-todo12-refined-9EdvIW/after-refined-v2.rds` are now absent. A
+  read-only search of 669 `/tmp` RDS files found no match for their recorded
+  SHA-256 values (`2ed850bfe71a073e36ee0aa6d264049a1062d131accbc7a9f44bbb171e14250e`,
+  `865e7580b555079a0359fec20e9ad455fd004de67d572b5bc3648c734789d83f`, and
+  `222a87ce4aac5304cdc9790c39bae4167cfa876ec2e8e117d4e7c861a2a1fb63`). The
+  remaining TODO-12-prefixed RDS files are tiny synthetic comparator fixtures
+  or staged `testthat-problems.rds`, not run snapshots. The historical
+  240-key/key-set and hash check above therefore cannot be repeated against
+  extant artifacts; those old snapshots also lacked `expected_keys` and
+  `provenance` and were not acceptance-eligible. Current preflight identity is
+  HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9` and runner SHA-256
+  `f22124b58abc774b1a66b174cf18007b8048ac3a62b929e77805c9d606b19a45`.
+  The required fresh evidence remains three snapshots × 240 keys × `r=15`
+  (720 evaluations). This audit did not run them: the user explicitly
+  prohibited that workload, and fresh explicit user approval is required
+  before it can be launched. No artifact was modified.
+  **Checkout-R source-overlay regression, 2026-10-20:**
+  `test-reused-worker-private-cache-reset.R` passed 55 assertions (0 failures,
+  warnings, or skips) using `pkgload::load_all("R/EDI", compile = FALSE,
+  quiet = TRUE)` and `testthat::test_file(...)`. The test covers cache reset
+  across randomization, bootstrap, and randomization-bootstrap small fixtures.
+  Checkout namespace was `/home/kapelner/workspace/EDI/R/EDI`; loaded
+  temporary DLL MD5 `8b3ca30492d7b1c790deeebe94b201ad` matches installed and
+  checkout `EDI.so` SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This is focused source-overlay evidence only, not the release-wide 614-file
+  identical-fixture/seed sweep or its required review of every classification.
+  No build/install, sweep, or result write occurred; the release-wide sweep
+  and separate native/provenance gate remain open.
 - [ ] TODO-13 (added 2026-09-22, surfaced as a `KNOWN_BROKEN` entry in
   TODO-9's regression test, root-caused same day on user request):
   **`InferencePropGCompMeanDiff` randomization distribution all-NA in
@@ -735,12 +1922,526 @@ range, since the plan files' internal numbering did not change.
   complete; the focused regression rerun passed 13/13. Only TODO-6's
   post-install comprehensive-CSV regeneration remains, coordinated with
   the stale-worker-cache regeneration pass, so this release item stays
-  unchecked.
+  unchecked. **Checkout-source recheck 2026-10-20:** the linked focused
+  randomization regression passed all 6 assertions with
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` under R-devel
+  `r90668`, checkout version 1.0.3. The tested R source SHA-256 is
+  `cc5e502fedd2b6c4f2d259341445d7a3f003ee947aee900b97f673a247ef1a63`; the
+  test SHA-256 is
+  `a95ee0ebd70c2680d531cc50f40c4a46f028fc3b0498a21fea85fbab41e33906`.
+  The existing EDI 1.0.3 native DLL loaded by pkgload matched the installed
+  DLL, SHA-256
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+  This is focused checkout-R/current-existing-native evidence only; no
+  compile/install or canonical result write occurred. **Current-artifact
+  recheck, 2026-10-20:** reran the same 6-assertion test with checkout R under
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; it passed with
+  no failures, warnings, or skips. The temporary loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+  matched the installed user-rebuilt DLL and checkout `R/EDI/src/EDI.so`
+  byte-for-byte (`cmp -s` succeeded). Source/test SHA-256 values are
+  `cc5e502fedd2b6c4f2d259341445d7a3f003ee947aee900b97f673a247ef1a63` /
+  `a95ee0ebd70c2680d531cc50f40c4a46f028fc3b0498a21fea85fbab41e33906`.
+  This closes focused current-R/current-native regression provenance only;
+  complete post-fix `rand` CSV regeneration and exact-key/status reconciliation
+  remain open. No build/install or canonical output write occurred.
+  **Isolated scaling pilot, 2026-10-20:** the runner accepts only one scalar
+  `REP_FILTER` and seeds once at startup, so separate invocations for reps
+  11--20 would restart the same RNG stream. To preserve a continuous stream,
+  ran one fresh isolated `Nrep=20` process with the prune-skip guard, then
+  inspected only reps 11--20. It completed in about 114 seconds (under the
+  180-second whole-process cap); the output contains 240 rows total, with 12
+  unique runner IDs per rep and `status=ok` throughout. Reps 11--20 contain
+  120 rows (12 each), covering all four model/design formula pairs and the
+  three eligible `rand` calls per pair; all 120 IDs are unique, all 40 CI rows
+  have finite endpoints and nonmissing coverage truth, and there are no error
+  messages. This is one `airquality`/beta=0.5/Bernoulli pilot only, not evidence
+  for the full eligible grid or an extrapolation to its runtime. Checkout R
+  source was loaded with `pkgload::load_all("R/EDI", compile=FALSE)` under
+  R-devel `r90668` (checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`,
+  package version 1.0.3); the loaded existing DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Isolated CSV:
+  `/tmp/edi-todo13-reps11-20.l7cZnQ/comprehensive_tests_results_nc_1_proportion_filtered_design-Bernoulli_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv`
+  (SHA-256 `3d57bd3f066ab07ccbb34ca76a5cfd20c3809b3f26b7388a53b2f91aaf9ceffc`);
+  its sidecar records the command, checkout diff hash, DLL hash, and run
+  interval. The isolated run did not use `--apply` or write canonical results.
+  **Additional isolated pilot, 2026-10-20:** after waiting for the other
+  comprehensive runners to exit, ran a fresh `Nrep=25` process under the same
+  prune-skip guard and 180-second cap, then inspected reps 21--25. The runner
+  also computed reps 1--20 in this fresh output to preserve its single-seed
+  sequence. It exited successfully in about 128 seconds; the CSV has 300 rows
+  total, with 12 unique IDs per rep and `status=ok` throughout. Reps 21--25
+  contain 60 rows (12 each), spanning all four model/design formula pairs and
+  three eligible `rand` calls per pair; all 60 IDs are unique, all 20 CI rows
+  have finite endpoints and nonmissing coverage truth, and there are no error
+  messages. This remains a single `airquality`/beta=0.5/Bernoulli pilot, with
+  no runtime extrapolation. Provenance sidecar records R-devel `r90668`, EDI
+  1.0.3, checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and loaded
+  DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Isolated CSV:
+  `/tmp/edi-todo13-reps21-25.0iWTyQ/comprehensive_tests_results_nc_1_proportion_filtered_design-Bernoulli_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv`
+  (SHA-256 `945ef4998f234e84d3991b44272a31652da0ca584fb3959f52d45380d629d665`).
+  Sidecar:
+  `/tmp/edi-todo13-reps21-25.0iWTyQ/comprehensive_tests_results_nc_1_proportion_filtered_design-Bernoulli_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv.provenance-20261020T165157.205885-pid4.rds`
+  (SHA-256 `76de6491229ca6754dabffed4240f1d6e5afd753e6a9e83ba5067de65c00229e`).
+  No `--apply`, build/install, or canonical result write occurred; the
+  complete supported proportion `rand` grid and exact-key reconciliation
+  remain open.
+  **Third isolated pilot, 2026-10-20:** after the R/Rscript process table was
+  clear, ran a fresh `Nrep=30` process under the same prune-skip guard and
+  180-second cap, then inspected reps 26--30. Reps 1--25 were also computed in
+  the isolated run to preserve its single-seed sequence. It exited successfully
+  in about 160 seconds; the CSV contains 360 rows, 12 unique IDs per rep, and
+  `status=ok` throughout. Reps 26--30 contain 60 rows (12 each), spanning all
+  four model/design formula pairs and three eligible `rand` calls per pair;
+  all 60 IDs are unique, all 20 CI rows have finite endpoints and nonmissing
+  coverage truth, and there are no error messages. This is still only the
+  `airquality`/beta=0.5/Bernoulli pilot; no runtime extrapolation is made.
+  Provenance sidecar records R-devel `r90668`, EDI 1.0.3, checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Isolated CSV:
+  `/tmp/edi-todo13-reps26-30.BNb9W3/comprehensive_tests_results_nc_1_proportion_filtered_design-Bernoulli_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv`
+  (SHA-256 `620f89184c11e31ec9c15286d6ff4a176edb366ff1ab878fb08b6549f0bc7159`);
+  sidecar:
+  `/tmp/edi-todo13-reps26-30.BNb9W3/comprehensive_tests_results_nc_1_proportion_filtered_design-Bernoulli_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv.provenance-20261020T171237.868245-pid4.rds`
+  (SHA-256 `937a81efff20ee69357df361ee34c3ad155f42800c579af4a4f40bd9d4379c2f`).
+  No `--apply`, build/install, or canonical result write occurred; full-grid
+  regeneration and exact-key reconciliation remain open.
+  **Replicate-continuation audit, 2026-10-20:** the current runner resets to
+  `set.seed(1)` at startup, accepts only one scalar `REP_FILTER`, and has no
+  option to restore an initial RNG state or select a range. Although the Nrep=30
+  sidecar records its final `.Random.seed`, the runner does not consume that
+  state; reusing a scalar filter would skip intervening reps without advancing
+  RNG, so it would not produce the authentic reps 31--40 stream. Injecting a
+  saved seed and relabeling or rewriting result IDs would require an unsupported
+  alternate harness/provenance path. At the time of this audit, no reps 31--40
+  run was started. A subsequent complete Nrep=40 pilot below covers the
+  selector without relying on seed continuation. The earlier partial pilots
+  are separate seeded processes and should not be concatenated as one
+  replication stream. Full-grid/exact-key acceptance remains open.
+  **Complete isolated selector pilot, 2026-10-20:** after confirming no
+  R/Rscript runner was active, ran a fresh Nrep=40 process with `REP_FILTER=NA`,
+  the tested prune-skip guard, checkout R loaded using
+  `pkgload::load_all("R/EDI", compile=FALSE)`, and a 240-second cap. It exited
+  successfully in about 163 seconds. The isolated CSV has 480 rows, 480 unique
+  runner IDs and structural keys, 12 rows per replicate, and `status=ok` for
+  every row. It covers all four model/design formula pairs and three eligible
+  `rand` functions (40 rows for every pair/function combination). All 160 CI
+  rows have finite endpoints and nonmissing coverage truth; there are no error
+  messages. Provenance sidecar records R-devel `r90668`, EDI 1.0.3, checkout
+  HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This is one `airquality`/beta=0.5/Bernoulli selector only—not full-grid
+  acceptance or a runtime projection. CSV:
+  `/tmp/edi-todo13-reps1-40.ZOLn0y/comprehensive_tests_results_nc_1_proportion_filtered_design-Bernoulli_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv`
+  (SHA-256 `92c3368e565e6f955b5540d2e287c1dc35f9bba08e2777524aeb96d7a51f8b63`);
+  sidecar:
+  `/tmp/edi-todo13-reps1-40.ZOLn0y/comprehensive_tests_results_nc_1_proportion_filtered_design-Bernoulli_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv.provenance-20261020T172350.461286-pid4.rds`
+  (SHA-256 `6ccec75fbba9084678612cfe60ab17edc425bc0343c36510a002472cf9c0a9d1`).
+  No `--apply`, build/install, or canonical result write occurred.
+  **Distinct adjacent selector pilot, 2026-10-20:** the predeclared
+  `airquality × beta_T=0 × Bernoulli` selector completed 5 reps in about 71
+  seconds with 60 unique rows/keys, all statuses `ok`, all four formula pairs
+  crossed with three `rand` functions, and all 20 CI rows finite with coverage
+  truth present. It used checkout R with `compile=FALSE`; EDI 1.0.3, R-devel
+  `r90668`, HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041` are
+  captured in the isolated sidecar. See
+  `../bug_fix_plans/prop_gcomp_sample_usable_gating.md` for output hashes and
+  full provenance. This is one 5-replicate selector pilot only; the supported
+  proportion `rand` grid and exact-key reconciliation remain open.
+  **Next predeclared design selector, 2026-10-20:** the adjacent
+  `airquality × beta_T=0 × SPBR` pilot completed 5 reps in about 71 seconds:
+  60 unique rows/keys, all `ok`, four formula pairs crossed with three `rand`
+  functions, and all 20 CI rows finite with coverage truth present. Provenance
+  is captured in the isolated sidecar (checkout R with `compile=FALSE`, EDI
+  1.0.3, R-devel `r90668`, HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`). See
+  `../bug_fix_plans/prop_gcomp_sample_usable_gating.md` for output hashes and
+  complete details. This is one five-replicate selector only; full-grid
+  reconciliation remains open.
+  **Next predeclared selector pilot (2026-10-20; partial):** after confirming
+  no R/Rscript runner was active, ran `airquality × beta_T=0 × FixediBCRD`
+  with `Nrep=5`, `REP_FILTER=NA`, the tested prune-skip guard, checkout R
+  loaded with `pkgload::load_all("R/EDI", compile=FALSE)`, fresh isolated
+  `/tmp` output, and a 240-second cap. It exited 0 in about 56 seconds. The
+  output contains 60 unique IDs/structural keys (12 per rep), all four
+  model/design formula pairs crossed with the three expected functions (five
+  rows per pair/function), all statuses `ok`, and 20 CI rows with finite
+  endpoints and nonmissing coverage truth; no error messages occurred. Sidecar
+  provenance: R-devel `r90668`, EDI 1.0.3, checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  interval `2026-10-20T17:55:08.660109Z`–`2026-10-20T17:56:04.188676Z`.
+  CSV:
+  `/tmp/edi-todo13-airquality-beta0-FixediBCRD.aH7riu/comprehensive_tests_results_nc_1_proportion_filtered_design-FixediBCRD_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0_family-rand.csv`
+  (SHA-256 `2250958d94ffdf67008710b093bf433ad46a8888489b20bd85d9caf36d4088a3`);
+  sidecar SHA-256
+  `d171566778776adbfe4a19459d01ff08494a13d4cffec2c122334738d60ca1b4`.
+  This five-replicate selector pilot does not close full-grid regeneration,
+  post-fix installed-package validation, or exact-key/status/value
+  reconciliation. No `--apply`, build/install, or canonical result write.
+  **Next predeclared selector pilot (2026-10-20; partial):** after the active
+  R/Rscript process exited, ran `airquality × beta_T=0 × FixedBlocking` with
+  `Nrep=5`, `REP_FILTER=NA`, the tested prune-skip guard, checkout R loaded
+  with `pkgload::load_all("R/EDI", compile=FALSE)`, fresh isolated `/tmp`
+  output, and a 240-second cap. It exited 0 in about 64 seconds. The CSV has
+  60 unique IDs/structural keys (12 per rep), all four formula pairs crossed
+  with the three expected functions (five rows per pair/function), all
+  statuses `ok`, and 20 CI rows with finite endpoints and nonmissing coverage
+  truth; no row errors occurred. The log records an `equal_block_sizes=TRUE`
+  retry for unequal strata (33, 41), followed by successful completion.
+  Sidecar provenance: R-devel `r90668`, EDI 1.0.3, checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  interval `2026-10-20T18:01:16.263357Z`–`2026-10-20T18:02:19.796341Z`.
+  CSV:
+  `/tmp/edi-todo13-airquality-beta0-FixedBlocking.CbZG9i/comprehensive_tests_results_nc_1_proportion_filtered_design-FixedBlocking_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0_family-rand.csv`
+  (SHA-256 `9adc1f811a5ead1c725c07ccb3ca4ac3629a9254174f49d9ff6e08025006b2ee`);
+  sidecar SHA-256
+  `f5ea2d12581cbabd5a0a59027136c14c545874907d3811f185f6ff28020d98bd`.
+  This five-replicate selector pilot does not close full-grid regeneration,
+  post-fix installed-package validation, or exact-key/status/value
+  reconciliation. No `--apply`, build/install, or canonical result write.
+  **Next predeclared selector pilot (2026-10-20; partial):** after confirming
+  no R/Rscript runner was active, ran `airquality × beta_T=0 ×
+  FixedMatchingGreedy` with `Nrep=5`, `REP_FILTER=NA`, the tested prune-skip
+  guard, checkout R loaded with `pkgload::load_all("R/EDI", compile=FALSE)`,
+  fresh isolated `/tmp` output, and a 240-second cap. It exited 0 in about 57
+  seconds. The CSV has 60 unique IDs/structural keys (12 per rep), all four
+  formula pairs crossed with the three expected functions (five rows per
+  pair/function), all statuses `ok`, and 20 CI rows with finite endpoints and
+  nonmissing coverage truth; no row errors occurred. Sidecar provenance:
+  R-devel `r90668`, EDI 1.0.3, checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  interval `2026-10-20T18:05:22.149233Z`–`2026-10-20T18:06:19.348261Z`.
+  CSV:
+  `/tmp/edi-todo13-airquality-beta0-FixedMatchingGreedy.h4uDq1/comprehensive_tests_results_nc_1_proportion_filtered_design-FixedMatchingGreedy_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0_family-rand.csv`
+  (SHA-256 `fd4bfbc920d15fd2b6d2b1e50f6c46e0df5dd89c529c6583403efdfc07270c60`);
+  sidecar SHA-256
+  `307243cf39af9048fa8aeca8cb947d67ab6961714300fd9cd4001b92c9f13ad8`.
+  This five-replicate selector pilot does not close full-grid regeneration,
+  post-fix installed-package validation, or exact-key/status/value
+  reconciliation. No `--apply`, build/install, or canonical result write.
+  **Next predeclared selector pilot (2026-10-20; partial):** with no active
+  R/Rscript process at preflight, ran `airquality × beta_T=0.5 × SPBR` with
+  `Nrep=5`, `REP_FILTER=NA`, the tested prune-skip guard, checkout R loaded
+  with `pkgload::load_all("R/EDI", compile=FALSE)`, fresh isolated `/tmp`
+  output, and a 240-second cap. It exited 0 in about 31 seconds. The CSV has
+  60 unique IDs/structural keys (12 per rep), all four formula pairs crossed
+  with the three expected functions (five rows per pair/function), all
+  statuses `ok`, and 20 CI rows with finite endpoints and nonmissing coverage
+  truth; no row errors occurred. Sidecar provenance: R-devel `r90668`, EDI
+  1.0.3, checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, loaded
+  DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  interval `2026-10-20T18:10:54.245414Z`–`2026-10-20T18:11:25.330416Z`.
+  CSV:
+  `/tmp/edi-todo13-airquality-beta05-SPBR.dGSa2Q/comprehensive_tests_results_nc_1_proportion_filtered_design-SPBR_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv`
+  (SHA-256 `999582b6314d0e0b035f59f6739db130ed7450db73099ccb1129edeefbca52c4`);
+  sidecar SHA-256
+  `4bd80dfb05795656fe902bbe3fc00382c1e103c6c4d25074c3f6492a10ac7e64`.
+  This five-replicate selector pilot does not close full-grid regeneration,
+  post-fix installed-package validation, or exact-key/status/value
+  reconciliation. No `--apply`, build/install, or canonical result write.
+  **Next predeclared selector pilot (2026-10-20; partial):** after waiting for
+  the active survival R/Rscript runner to exit, ran
+  `airquality × beta_T=0.5 × FixediBCRD` with `Nrep=5`, `REP_FILTER=NA`, the
+  tested prune-skip guard, checkout R loaded with
+  `pkgload::load_all("R/EDI", compile=FALSE)`, fresh isolated `/tmp` output,
+  and a 240-second cap. It exited 0 in about 142 seconds. The CSV has 60
+  unique IDs/structural keys (12 per rep), all four formula pairs crossed
+  with the three expected functions (five rows per pair/function), all
+  statuses `ok`, and 20 CI rows with finite endpoints and nonmissing coverage
+  truth; no row errors occurred. Sidecar provenance: R-devel `r90668`, EDI
+  1.0.3, checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, loaded
+  DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  interval `2026-10-20T19:29:17.259746Z`–`2026-10-20T19:31:38.926511Z`.
+  CSV:
+  `/tmp/edi-todo13-airquality-beta05-FixediBCRD.4dyDU5/comprehensive_tests_results_nc_1_proportion_filtered_design-FixediBCRD_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv`
+  (SHA-256 `eeca0de70f6308e463346accee75198293a8891d4edd5fdb4630f4dae4ce58f2`);
+  sidecar SHA-256
+  `581e47f37fd67cc5ea4eb1d6cb5cdce1e46095d2a0cd66561fc0bcc1de160b14`.
+  This five-replicate selector pilot does not close full-grid regeneration,
+  post-fix installed-package validation, or exact-key/status/value
+  reconciliation. No `--apply`, build/install, or canonical result write.
+  **Next predeclared selector pilot (2026-10-20; partial):** after the active
+  R/Rscript workloads exited, ran `airquality × beta_T=0.5 × FixedBlocking`
+  with `Nrep=5`, `REP_FILTER=NA`, the tested prune-skip guard, checkout R
+  loaded with `pkgload::load_all("R/EDI", compile=FALSE)`, fresh isolated
+  `/tmp` output, and a 240-second cap. It exited 0 in about 133 seconds. The
+  CSV has 60 unique IDs/structural keys (12 per rep), all four formula pairs
+  crossed with the three expected functions (five rows per pair/function),
+  all statuses `ok`, and 20 CI rows with finite endpoints and nonmissing
+  coverage truth; no row errors occurred. The log records
+  `equal_block_sizes=TRUE` retries for unequal strata (33, 41), followed by
+  successful completion. Sidecar provenance: R-devel `r90668`, EDI 1.0.3,
+  checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  interval `2026-10-20T19:35:43.374376Z`–`2026-10-20T19:37:56.245854Z`.
+  CSV:
+  `/tmp/edi-todo13-airquality-beta05-FixedBlocking.6Jj8Hj/comprehensive_tests_results_nc_1_proportion_filtered_design-FixedBlocking_class-InferencePropGCompMeanDiff_dataset-airquality_beta-0.5_family-rand.csv`
+  (SHA-256 `8c4222f17ce801a4a745c3af5a190836795c070ea5267432de91bd7977dcbf6c`);
+  sidecar SHA-256
+  `9689507193a0714cb840b7f5ad512a168811eb21ba37db8d3f320a0cee200d24`.
+  This five-replicate selector pilot does not close full-grid regeneration,
+  post-fix installed-package validation, or exact-key/status/value
+  reconciliation. No `--apply`, build/install, or canonical result write.
+  **Broader pilot-artifact reconciliation, 2026-10-21 (initial inventory):** the source-derived
+  envelope is 90 selectors and at most 43,200 attempts (9 datasets × 2 beta
+  values × 5 designs × 4 formula pairs × 3 `rand` operations × 40 reps).
+  The bounded `/tmp/edi-todo13-*` inventory contains 23 CSVs, 22 sidecars,
+  and 23 logs. Each CSV has the expected four formula and three operation
+  labels, unique within-file natural keys/IDs, `status=ok`, no row errors,
+  and finite ordered CI endpoints with coverage truth; all 22 sidecars match
+  their CSV hashes. However, only 17/90 selectors are represented: 16 have
+  reps 1--5 only, and one (airquality, beta 0.5, Bernoulli) has a complete
+  40-rep/480-key artifact. Six overlapping partial files for that selector
+  all begin at rep 1; their overlapping payloads match the complete file, so
+  they are duplicate evidence, not chunks to concatenate. The raw files have
+  2,808 rows, 1,440 unique keys, and 1,368 duplicate occurrences. Seventy-
+  three selectors are absent; the 16 partial selectors are each 35 reps
+  short. Sidecars show three DLL cohorts (`db4b…`, `d44e…`, `ae4f…`), so the
+  multi-selector pilots are not one homogeneous installed-native run. One
+  CSV has neither sidecar nor terminal-completion marker; a separate failed
+  log has no CSV. Keep the full-grid gate open: confirm one post-fix package/
+  DLL identity, regenerate all selectors into isolated `/tmp`, then pass
+  exact-manifest, provenance, status, and value checks before any canonical
+  merge. No R/build or canonical write was performed for this reconciliation.
+  **Subsequent independent selector pilot, 2026-10-21:** ran
+  `pte_example × beta_T=0.5 × Bernoulli` with `Nrep=5` and `REP_FILTER=NA`
+  (no replicate filter), using checkout R with `compile=FALSE` and isolated
+  output at `/tmp/edi-todo13-pte-beta05-Bernoulli.clF5JU/`. All 60 expected
+  keys (reps 1--5 × four formula pairs × three `rand` operations) were unique
+  and present; all rows were `status=ok` without errors, all 20 CI rows had
+  finite ordered bounds and consistent coverage flags, and all 40 p-values
+  were finite in `[0,1]`. The schema-v2 sidecar matched the 44,955-byte CSV
+  and its SHA-256 `d132e7fba029f1035030d00f13fe56728c6a5fe729a9636ac6a780fbb137db26`.
+  Provenance: EDI 1.0.3, HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`,
+  loaded temporary DLL SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  This is a valid five-replicate candidate slice, not full-grid acceptance;
+  no build/install or canonical output write occurred.
+  **Second independent selector pilot, 2026-10-21:**
+  `pte_example × beta_T=0.5 × SPBR` also passed a five-replicate unfiltered
+  run at `/tmp/edi-todo13-pte-beta05-SPBR.7x6NUd/`. All 60 expected keys were
+  present and unique; statuses/errors, finite coverage truths, 20 ordered CI
+  rows/flags, and 40 finite in-range p-values passed validation. Its
+  schema-v2 sidecar matched the CSV SHA-256
+  `a22c8c88015657c4a49d52974c852b01cb2851260ff6434a95630d58949beb5e`;
+  provenance identifies EDI 1.0.3, HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and DLL SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  With the immediately preceding pte_example/beta=.5/Bernoulli pilot, these
+  raise represented coverage to 19/90 selectors: one 40-rep selector and 18
+  five-rep selectors; 71 selectors remain absent. Both are pilot slices only.
+  **Two more bounded pilots, 2026-10-21:** `pte_example × beta_T=0.5 ×
+  FixediBCRD` and `FixedBlocking` each completed reps 1:5 with all 60 expected
+  unique keys, valid status/error fields, finite ordered CI endpoints and
+  matching coverage flags, finite in-range p-values, and schema-v2 sidecars
+  matching their CSV hashes. Outputs are under
+  `/tmp/edi-todo13-pte-beta05-FixediBCRD.4tsRMo/` and
+  `/tmp/edi-todo13-pte-beta05-FixedBlocking.EFVXAH/`; both record EDI 1.0.3,
+  checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and DLL SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  The two selectors raise represented coverage to 21/90 (one 40-rep and 20
+  five-rep selectors; 69 absent). They remain bounded pilots, not full-grid
+  acceptance. An attempted `pte_example × beta_T=0.5 × FixedBinaryMatch`
+  selector produced no CSV: the runner reported that no covariates were
+  available for binary matching, and the provenance sidecar records zero
+  result bytes. Source/plan eligibility review confirms FixedBinaryMatch is
+  excluded from the five supported proportion designs; its absence does not
+  change the 90-selector target. It contributes no keys and is not counted
+  among covered selectors.
+  **Missing-selector pilot estimate, 2026-10-21 (read-only):** 20 retained
+  complete five-rep selector CSVs each contain 60 rows and are about 42.9–46.7
+  KB, with roughly 10 KB sidecars and 16–19 KB logs. Producing five-rep pilots
+  for the 69 selectors without a CSV is estimated at about 5 MB of persistent
+  artifacts. Nineteen retained logs suggest a median of 87 seconds per
+  selector, or roughly 100 minutes serially (observed-range extrapolation:
+  44 minutes–2 hours 20 minutes); these estimates do not cover unrepresented
+  datasets or retries. The full 40-rep target is 43,200 rows, including
+  33,120 rows for the 69 missing selectors; a single retained 40-rep selector
+  suggests about 25 MB of CSV for those 69, but is not a reliable runtime
+  forecast. Five-rep pilots validate selector paths only, not full-grid
+  acceptance. No run was launched for this estimate.
+  **Read-only retained-artifact reconciliation, 2026-10-21:** re-inventoried
+  29 `/tmp/edi-todo13-*` CSVs: 3,120 physical rows reduce to 1,740 unique
+  natural keys/runner IDs across 22 of 90 source-derived selectors and four
+  datasets (`airquality`, `diamonds`, `iris`, `pte_example`). One selector has
+  reps 1--40; the other 21 have reps 1--5; 68 selectors have no artifact. The
+  represented keys cover all four formula contexts (encoded in
+  `inference_class`) and all three expected `rand` function labels. All 3,120
+  rows have `status=ok`; all 1,740 unique IDs are in the 43,200-key
+  conditional roster, leaving 41,460 absent. Repeated-key groups have no
+  conflicting result/status/error/coverage payloads. Twenty-eight CSVs have
+  receipts whose byte count and SHA-256 match; 12 receipts are schema v1 and
+  16 are schema v2. The schema-v2 receipts span four package-payload hashes
+  and three DLL hashes, while all receipts span five runner-source hashes;
+  these are not one homogeneous installed-run cohort.
+  `/tmp/edi-todo13-propgcomp-airquality-beta0.5-Bernoulli.8c0Pf9/` contains a
+  further 336-row CSV with no sidecar; its keys add nothing beyond the
+  retained 40-replicate airquality/Bernoulli/beta=.5 artifact and it is not
+  counted as provenance-backed coverage. The 60-row iris beta=0 Bernoulli
+  five-replicate pilot is
+  `/tmp/edi-todo13-iris-beta0-Bernoulli-5rep-final/results/comprehensive_tests_results_nc_1_proportion_filtered_design-Bernoulli_class-InferencePropGCompMeanDiff_dataset-iris_beta-0_family-rand.csv`
+  (SHA-256 `6cd266d9c31c0e1245218ddc56ee69e39dbaa5527f4ecf5dfcbefb97aeeecc60`);
+  its verified schema-v2 receipt records package-payload SHA-256
+  `58f809147f419372f9e82792e2ad6de097b3cbfede3371f9fac9d4ddd0283afd`, DLL
+  SHA-256 `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  and runner SHA-256
+  `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`,
+  matching the current runner. The staged 12-row iris one-replicate file has
+  the same package/DLL identity and identical overlapping payloads but an
+  older runner hash, adding no coverage. Full-grid attempts, homogeneous
+  provenance, and exact status/value reconciliation remain open; no canonical
+  merge is supported by these pilot artifacts.
+
+  **Coverage-membership precision note, 2026-10-21:** a read-only check of the
+  560 unique CI rows agrees with all 560 recorded
+  `beta_T_in_confidence_interval` flags when evaluated against the full-
+  precision endpoint pair in `result`. Comparing against rounded
+  `result_1`/`result_2` instead produces one apparent mismatch: airquality,
+  beta=.5, Bernoulli, rep 35, both formulas `~.`, where the rounded upper
+  endpoint is `0.111` but the raw upper endpoint is `0.110510415439683` and
+  coverage truth is `0.1105502`; the recorded `FALSE` flag is consistent with
+  the raw endpoints. `record_result()` preserves full-precision `result` but
+  rounds `result_1`/`result_2` and computes the flag from the unrounded
+  endpoints (`R/package_tests/comprehensive_tests.R:1529-1540,1558-1562`).
+  Future reconciliation should use `result` for this membership check, not
+  infer a defect from the rounded display columns. No result files were
+  modified; complete post-fix installed-package regeneration and exact-key,
+  provenance, status, and value reconciliation remain required.
+  This check covered the earlier 560-row pilot subset; the newly inventoried
+  iris pilot contributes 12 CI rows that are not covered by that precision
+  check.
+
+  **Eligibility-aware source roster, 2026-10-21 (read-only):** TODO-13 is the
+  proportion class `InferencePropGCompMeanDiff`, not an incidence-response
+  artifact. Its direct components are `BayesianBootstrap` and `Jackknife`
+  (`R/EDI/R/inference_proportion_gcomp.R:49-52`; registry mapping at
+  `R/EDI/R/inference_class_registry.R:1210`). The BayesianBootstrap
+  dependency chain includes `RandomizationBootstrapCI`, `RandomizationCI`,
+  and `RandomizationTest` (`R/EDI/R/contracts_mixins.R:319-335,447-461,480-489`),
+  so the live runner's `supports_randomization_test` and
+  `supports_randomization_ci` predicates are statically true for this class.
+  The only registered design exclusion is sequential-design
+  `nonparametric_bootstrap` (`R/EDI/R/inference_class_registry.R:1526-1534`),
+  which does not remove either rand capability for the five selected designs.
+  With the plan's proportion/`rand` filters and
+  `COMPREHENSIVE_FORCE_SLOW_PATHS=1`, the source roster is therefore exactly
+  14,400 case contexts (9 datasets × 2 beta values × 40 reps × 5 designs ×
+  2 model formulas × 2 design formulas) crossed with the three eligible calls:
+  `compute_rand_two_sided_pval`,
+  `compute_rand_two_sided_pval(delta=0.5)`, and
+  `compute_rand_confidence_interval`, for 43,200 candidate attempt keys.
+  This is an exact source-derived candidate roster conditional on each
+  dataset/design/formula setup succeeding, not a claim that those calls were
+  emitted or completed. Historical pilot rows match the operation labels but
+  remain heterogeneous in provenance; complete current-installation run,
+  setup-failure accounting, and exact-key/status/value reconciliation remain
+  open. No maintainer policy choice or result-generation action is implied.
+
+  **Full conditional-roster reference test, 2026-10-21:** broadened the
+  existing `test-comprehensive-rand-pvalue-eligibility-reference.R` inventory
+  so the inference-model formula and outer design formula are independent
+  dimensions. The previous fixture paired them diagonally and asserted only
+  21,600 keys; the corrected source-derived lattice asserts 14,400 case
+  contexts (all four formula pairs), 28,800 ordinary rand-p-value keys,
+  14,400 rand-CI keys, and 43,200 distinct non-missing IDs. Its explicit
+  conditional-on-setup wording makes clear this is not evidence of actual
+  calls, output rows, or setup success. Focused command
+  `Rscript -e 'invisible(parse("R/package_tests/testthat_bulk/test-comprehensive-rand-pvalue-eligibility-reference.R")); testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-rand-pvalue-eligibility-reference.R")'`
+  passed 61 expectations (0 failures, warnings, or skips) with installed EDI
+  1.0.3; it parses the checkout runner/manifests and constructs no designs,
+  fits, or output rows. This closes only the source-roster test subgate; the
+  full post-fix installed run and artifact reconciliation remain open.
+
+  **Independent retained-pilot anti-join, refreshed 2026-10-21 (read-only):** rebuilt
+  the natural-key roster from the 9 proportion datasets, 5 supported designs,
+  both beta values, 40 reps, all four independent inference/design formula
+  pairs, and the three eligible `rand` operation labels above. Across the 29
+  retained `/tmp/edi-todo13-*` result CSVs (3,120 physical rows), all 1,740
+  unique IDs are in the 43,200-key roster; 41,460 roster keys are absent,
+  with zero out-of-roster IDs. There are 1,380 duplicate occurrences across
+  372 repeated-key groups, with zero conflicting result/status/error/coverage
+  payloads; all 3,120 rows have `status=ok`. Twenty-eight CSVs have receipts
+  whose byte count and SHA-256 match (12 schema v1, 16 schema v2); the v2
+  files span four package-payload hashes and three DLL hashes, while all
+  receipts span five runner-source hashes. The remaining unreceipted file is
+  the 336-row airquality/Bernoulli/beta=.5 CSV. The 60-row iris beta=0
+  Bernoulli five-replicate pilot has SHA-256
+  `6cd266d9c31c0e1245218ddc56ee69e39dbaa5527f4ecf5dfcbefb97aeeecc60`; its
+  verified schema-v2 receipt records package-payload SHA-256
+  `58f809147f419372f9e82792e2ad6de097b3cbfede3371f9fac9d4ddd0283afd`, DLL
+  SHA-256 `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  and current-runner SHA-256
+  `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`. The
+  staged 12-row iris file has the same package/DLL identity and identical
+  overlapping payloads, but an older runner hash and no unique IDs. This is
+  pilot evidence only, not proof of full-grid attempts or acceptance. No rows
+  were merged or modified. The acceptance gate remains a complete post-fix
+  installed-package run with one authenticated package/DLL provenance cohort,
+  then exact roster equality and status/value validation before any
+  canonical merge.
+
+  **Receipt-to-file pairing recheck, 2026-10-21 (read-only):** the current
+  filename inventory contains 29 matching result CSVs and 29 provenance
+  sidecars, but only 28 matching CSV/sidecar pairs. One sidecar is orphaned:
+  it names a `pte_example`/beta=.5/`FixedBinaryMatch` output with no matching
+  retained result CSV. The unreceipted CSV remains the 336-row
+  airquality/Bernoulli/beta=.5 file. This does not add a provenance-backed
+  cohort or change the anti-join: 1,740 unique keys observed, 41,460 absent,
+  heterogeneous package/DLL/runner identities, no complete post-fix run, and
+  no canonical merge authorization.
+
+  **Candidate-manifest input guards, 2026-10-21:** strengthened the pure-R
+  proportion rand p-value attempt manifest to reject malformed numeric keys
+  (non-finite beta or non-positive/non-integer reps), non-character textual
+  key fields, unknown family-filter labels, and non-scalar/missing logical
+  eligibility flags before emitting candidate IDs. The focused existing
+  reference test now exercises those failures and confirms that a recognized
+  non-rand `estimate` filter still yields an empty rand manifest. Command
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-rand-pvalue-eligibility-reference.R")'`
+  passed 74 expectations with installed EDI 1.0.3 (0 failures, warnings, or
+  skips); this was pure-R manifest/capability logic, not native inference or
+  candidate-row generation. It improves validation readiness only and does
+  not close the full post-fix run, homogeneous provenance, setup/attempt
+  accounting, exact result-key/status/value reconciliation, or canonical
+  merge gates below.
+
+  **Installed-package focused worker regression, 2026-10-21:** after the
+  current EDI reinstall and with no competing R/Rscript process, ran
+  `test-prop-gcomp-mean-diff-randomization-worker-estimate-not-all-na-reference.R`
+  against installed EDI 1.0.3. All six expectations passed: reusable-worker
+  selection, identity-permutation parity with `compute_estimate()`, and a
+  30-permutation finite, nonconstant randomization distribution. The loaded
+  library is `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; its
+  `R/EDI.rdb` / `R/EDI.rdx` SHA-256 values are
+  `40e86c189d1af56ff23cfee1c487c914a4e8b8fb03781a36b3b54462a0d84761` /
+  `9e677c323091a5344ea1f1f6d5aed97b6eae7c385113df292b6850fccb93b56f`, and
+  `EDI.so` SHA-256 is
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  The package metadata records `Built: R 4.7.0; x86_64-pc-linux-gnu;
+  2026-10-21 06:41:23 UTC`. No build/load_all/install or result generation
+  occurred. This validates the focused installed R-layer behavior only; the
+  complete post-fix run, homogeneous provenance, setup/attempt accounting,
+  exact-key/status/value reconciliation, and canonical merge gates remain open.
+
   - [ ] After a post-fix package is available, regenerate the complete
     supported proportion `rand` family (both `~1` and `~.` formulas and all
-    supported design/data/beta/rep keys); reconcile by `case_id` and `id`,
-    validate provenance, statuses, finite CI endpoints and coverage fields,
-    then merge/deduplicate only the complete target set.
+    supported design/data/beta/rep keys); reconcile by unique runner `id`
+    (the row-level key). `case_id` omits replicate and `beta_T`, so use it
+    only as a descriptive grouping/consistency field, never as a row-level
+    merge key. Require exact key-set equality, validate provenance, statuses,
+    finite CI endpoints and coverage fields, then merge/deduplicate only the
+    complete target set.
 - [ ] TODO-14 (added 2026-09-22, surfaced the same way as TODO-13 — the
   new KK-design fixture arm was the first thing to exercise
   `estimate_only = TRUE` on this class with both components simultaneously
@@ -797,7 +2498,8 @@ range, since the plan files' internal numbering did not change.
   `compute_rand_two_sided_pval`,
   `compute_rand_two_sided_pval(delta=0.5)`, and
   `compute_rand_confidence_interval`. This gives a provisional expected
-  **8,640 runner-attempt keys** (9 × 2 × 2 × 40 × 2 × 2 × 3); it is not a
+  **8,640 runner-attempt keys** (9 datasets × 2 beta values × 40 reps × 2
+  designs × 2 design formulas × 3 operations); it is not a
   claim that any of those rows have run or succeeded. Build the expected-key
   manifest independently from these source loop/selector dimensions under
   the fresh `/tmp` run directory, before running the harness; do not infer
@@ -807,6 +2509,57 @@ range, since the plan files' internal numbering did not change.
   those values with `||` and serializing numeric `beta_T` with
   `format(as.numeric(beta_T), scientific=TRUE, digits=17)`. `case_id` is not
   unique across replicates and is not the merge key.
+  **Full-run feasibility preflight, 2026-10-21:** the source-derived manifest
+  has exactly 8,640 rows (8,640 data lines plus header), confirming the
+  corrected dimension product above. The baseline RNG-preserving invocation
+  is one unfiltered 40-rep, one-core run with dataset/design/beta/rep unset;
+  the scalar `REP_FILTER` cannot resume a stream or safely partition this run.
+  **Potential prefix/resume route (not yet validated):** `Nrep` is only the
+  rep-loop upper bound, and the harness has a results-CSV resume cache.
+  Replaying the identical unfiltered command from rep 1 with the same output
+  path and increasing `Nrep` from `K` to 40 may preserve the parent RNG stream
+  while skipping cached calls; dataset/beta/design filters do not. Before
+  relying on this, add an integration regression comparing one-shot and
+  prefix/resume keys, result payloads, and final parent `.Random.seed`. The
+  cache currently treats any `status=ok` row as complete, including timeout
+  rows with a nonempty `error_message`, so these cannot be silently accepted
+  as completed work.
+  **Timeout-cache classification regression, 2026-10-21:** extracted the
+  resumed-row classifier into `R/package_tests/comprehensive_result_cache_classification.R`
+  and wired it into the runner. Only anchored runner-emitted 1/60/120-second
+  timeout messages (optionally suffixed by the outer `safe_call` guard) are
+  retryable and eligible for the opt-in timeout cache; other `status=ok` rows
+  remain completed, while `status=error` rows enter neither cache. Timeout
+  keys are seeded before completed keys. The focused contract test passed all
+  7 expectations against installed EDI 1.0.3, and is registered in both
+  correctness and coverage manifest tiers. This is classifier-level evidence,
+  not a full runner resume or artifact-reconciliation result; the 8,640-key
+  current-installation gate below remains open. No build/install or canonical
+  write occurred.
+  **Bounded prefix/resume validation, 2026-10-21:** compared one-shot
+  `Nrep=2` against `Nrep=1` followed by resumed `Nrep=2` for the same
+  `iris × beta_T=0.5 × KK21stepwise ×
+  InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` selector. Both emitted the
+  same 12 natural keys and identical `id`, raw result fields, coverage fields,
+  status, and error-message values; the resumed output had 12 `ok` rows and
+  no errors or skips. Final parent `.Random.seed` values were identical.
+  All three schema-v2 sidecars agreed on initial RNG state, R 4.7-devel
+  r90668, package-payload SHA-256
+  `58f809147f419372f9e82792e2ad6de097b3cbfede3371f9fac9d4ddd0283afd`, and
+  installed DLL SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`; the
+  payload and DLL hashes were unchanged across each invocation. Isolated
+  outputs are `/tmp/edi-todo14-one-shot-corrected-20261021/` and
+  `/tmp/edi-todo14-prefix-resume-corrected-20261021/`. This validates the
+  resume argument for this 12-key slice only; timeout-row cache behavior and
+  the full 8,640-key acceptance remain open. No build/install or canonical
+  write occurred.
+  Retained timings imply an optimistic roughly 3.5–4.1 hours, but some
+  single-replicate cars/diamonds slices exceeded 180 seconds, so total runtime
+  is not bounded. `/tmp` had only 363 MiB free on a 21 GiB tmpfs. Do not launch
+  the full candidate until there is explicit multi-hour authorization, a
+  serialized R slot, and substantially more scratch headroom. The full-grid
+  acceptance gate remains open.
   - [ ] Regenerate the complete eligible
     `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` `rand` row set from the
     current post-fix installation, with source/package/DLL provenance; keep
@@ -830,6 +2583,464 @@ range, since the plan files' internal numbering did not change.
       natural keys against any existing canonical target rows, then merge
       and deduplicate only after provenance, anti-join, status and value gates
       pass. No canonical CSV write is authorized by this note.
+  **Validator-only QA, 2026-10-20:** the synthetic
+  `test-todo14-candidate-validation-reference.R` passed 24 expectations.
+  Review found and closed two fail-open cases: fractional replicate values
+  could be truncated to integer IDs, and duplicate expected-provenance field
+  names were silently resolved by R's named-list lookup. The validator now
+  rejects malformed replicate numbers on both manifest and candidate sides
+  and duplicate field names in provenance snapshots; its fixture confirms
+  candidate/manifest files remain unchanged. This does not inspect or validate
+  a real post-fix candidate, and the full run's package/DLL provenance,
+  8,640-key reconciliation, and any later canonical merge remain open.
+  **Validator-only focused rerun, 2026-10-21:** the exact synthetic
+  `test-todo14-candidate-validation-reference.R` passed 37 expectations
+  against installed EDI 1.0.3, with no failures, warnings, or skips. The
+  positive fixture supplies all 8,640 expected rows; deleting the complete
+  `FixedBinaryMatch × pte_example × beta_T=0.5 × design_formula=~1` group
+  (120 keys) is rejected with missing IDs, candidate-count, and replicate
+  issues even while the matching `~.` group remains valid. Malformed IDs,
+  fractional reps, invalid result/status fields, and provenance mismatch are
+  also rejected, and file hashes confirm validation is read-only. This
+  exercises the synthetic validator contract only: the fixture does not
+  derive its expected manifest from a successful real setup or run any fit.
+  The acceptance inventory remains conditional on setup success; a setup
+  failure is a missing/failed target gate, not authority to shrink the 8,640
+  expected-key manifest. No candidate output or canonical file was written.
+  **Additional isolated candidate slices, 2026-10-21:** cohort-C iris,
+  `beta_T=0.5`, reps 7--13 now has 42/42 expected `rand` keys, all unique and
+  `status=ok`; each six-row CSV passed schema-v2 sidecar size/hash validation
+  and the exact-key validator. However, the single-rep filter resets the
+  process RNG to `set.seed(1)` and skips earlier reps before response/design
+  setup, so the same six row payloads repeat under every rep label. A
+  byte-for-byte comparison confirms reps 7--13 are seven copies of one
+  realization, not seven independent replications. These rows prove only
+  key/status/sidecar behavior and must not count as independent candidate
+  reps. Reps 7--12 share HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, diff
+  `e6f7cf1d...a29d25`, payload `24f16c8b...386927`, and DLL
+  `ae4fddaf...68d94` (cohort C). Rep 13 has the same HEAD, package payload,
+  and DLL; its checkout-diff snapshot is `4f9b30fb...d0d2cb`, reflecting
+  out-of-payload repository edits. Rep 12 is under
+  `/tmp/edi-todo14-iris-beta05-rep12-schema2.oKaH6t/`. Across the individually
+  validated slices there are now 126 key instances, but they span multiple
+  provenance cohorts and cover only a small part of the 8,640-key manifest;
+  independence of other isolated-rep slices has not been established. A
+  valid regeneration must preserve the full-run RNG progression or use an
+  explicitly specified and validated per-rep seed scheme, then pass the
+  existing key/provenance/status/value gates. This evidence is not a
+  canonical merge and does not close the post-install reconciliation gate.
+  **Sequential-RNG candidate slice, 2026-10-21:** reran the same
+  `iris × beta_T=0.5 × IVWC` selector with `Nrep=5` and `REP_FILTER=NA` in one
+  source-overlay process, output under
+  `/tmp/edi-todo14-iris-beta05-reps1to5-sequential-schema2.A0xNso/`. The
+  exact 30-key roster passed (six unique rows per rep, all `status=ok`) and
+  the schema-v2 sidecar matched the CSV. Its package payload and DLL match
+  cohort C; reps 1--5 have distinct CI result payloads across the sequence,
+  unlike isolated reps 7--13. This establishes a valid sequential five-rep
+  candidate slice, not a full-run parity result or authorization to merge
+  overlapping keys from other provenance cohorts.
+  **Overlapping-slice audit, 2026-10-21:** compared the sequential five-rep
+  iris/.5/IVWC candidate against isolated rep1–5 CSVs by natural key. All 30
+  keys overlap, but only 22/30 full result payloads match: the eight CI rows
+  for reps 2–5 differ, while rep 1 and all 20 p-value rows match. Each
+  isolated single-rep file repeats one result per selector/formula/method
+  across its rep labels; the sequential candidate instead has five distinct
+  CI payloads per formula. Together with startup `set.seed(1)` and the early
+  `REP_FILTER` skip, this confirms the isolated slices cannot establish
+  replication equivalence. The sequential slice supports only its own 30 keys
+  and advancing RNG sequence, not historical full-run parity or the 8,640-key
+  gate. Do not merge overlapping rows without a predeclared authority and
+  reconciliation rule.
+  **Recheck, 2026-10-20:** the source-derived manifest still exists at
+  `/tmp/edi-todo14-expected-attempts-20261020.csv` with SHA-256
+  `7f7af2c77b02458dfff4f1aab1b2fc55d9844cde5526a3f3aa4abeb6b4c925b0`; the
+  current runner SHA-256 is still
+  `0f4612616ec1362c6e8b100a1c2fec32c417f86b8c4bf8ce8c317f5eaa13b92a`, matching
+  its recorded snapshot. The focused
+  synthetic validator test was rerun and passed 27 expectations. This pass
+  also added an explicit malformed-manifest regression: duplicating an
+  expected natural key is rejected as `duplicate_manifest_id` and violates
+  the exact 1:40 replicate contract. An
+  older 207,998,976-byte `candidate_survival.csv` remains in
+  `/tmp/edi-todo14-fullmerge.s72fR5/` (dated 2026-10-16) without adjacent run
+  provenance, so it is not accepted as the post-fix target candidate and was
+  not reconciled. The 8,640-key manifest remains an expected-attempt inventory,
+  not observed-output evidence.
+  **Bounded source-overlay candidate, 2026-10-20:** a fresh
+  `compile=FALSE` run for `pte_example × KK21stepwise × beta_T=0.5 × reps 1:7`
+  emitted 42/42 unique expected keys (both design formulas × three rand calls
+  × seven reps), all `status=ok`. The 30 result/status rows for reps 1:5
+  exactly match the earlier reps 1:5 candidate; reps 6:7 completed. Scratch
+  output is `/tmp/edi-todo14-pte-kk21stepwise-beta05-reps1to7.9BIqzA/`; CSV
+  SHA-256 `1f8c56350056876f95e137a3e0ff141634c4d96b518bd97545f545362c52ccf4`,
+  provenance sidecar SHA-256
+  `2053b8228c47d5759f5999c5063acecddffdbf20abca7bb5096a2a427242b568`.
+  The sidecar records R 4.6 development r90668, EDI 1.0.3 from the checkout
+  namespace, checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, runner
+  SHA-256 `660dae16378ce533bf1d7bb816b2e7933b989bff838e93989ec0cbf024159`,
+  and source-loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  **Provenance limitation:** the prior five-rep run has a different checkout
+  diff SHA-256 (`10a1fa7a26e891c180043d9e22849c0e2de6809f63c74c21a91fe87ab1138b2a`)
+  from this seven-rep run (`cadcf4db5339dbedd445cc25a147d8ca702a200bb671f3138dd4f939e12c8721`),
+  although the runner and DLL hashes match and the deterministic result/status
+  fields match exactly. This is a bounded candidate, not release-wide or
+  byte-identical full-source replay evidence; the 8,640-key gate remains open.
+  **FixedBinaryMatch `~1` key boundary, 2026-10-20:** the class API accepts
+  explicit matched-pair IDs through `m`, but the comprehensive runner's
+  `FixedBinaryMatch` constructor does not supply `m`; the source-derived
+  `pte_example` fixture contains covariates/outcomes and no pair-ID field.
+  Thus the observed `~1` setup skip cannot be replaced with a source-supported
+  paired fixture without an authoritative pairing source. Do not invent pair
+  IDs or remove these attempts from the expected manifest: the focused
+  validator regression now removes exactly the 120 `pte_example`, beta 0.5,
+  `FixedBinaryMatch/~1` keys while retaining valid `~.` rows and confirms the
+  missing IDs, row-count, and candidate-replicate checks fail. Its rerun passed
+  37 expectations; the full 8,640-key candidate/provenance reconciliation
+  remains outstanding.
+  **Additional bounded candidate, 2026-10-20:** the source-roster subset
+  `iris × survival × KK21stepwise × InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC
+  × beta_T=0.5 × rep=1` comprises six expected keys (two formula labels ×
+  three rand calls). A `compile=FALSE` source-overlay run emitted all 6 with
+  unique IDs and `status=ok`; `validate_comprehensive_result_artifact()`
+  confirmed six rows, exact expected-key equality, and its matching sidecar.
+  Scratch directory `/tmp/edi-todo14-iris-kk21-beta05-rep1.oEHfZ8/`; CSV
+  SHA-256 `3f14a4d97b92c1e2fffc43b2d8fbb79f3aea099456f853bf8766c29adac49f99`,
+  sidecar SHA-256
+  `0b1c1b94fa9dd9f4f9ea2f0613bf3950c9a1cc87882c27989b6cc5246fd6c983`,
+  log SHA-256
+  `f773b08b7cf7300a90f0d5c30f61f9713081f0ca63daddc927cf4f8ac6e183da`.
+  Provenance records R 4.6 development r90668, EDI 1.0.3 from checkout
+  namespace, DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, runner SHA-256
+  `660dae16378ce533bf1d7bb816b2e7933b989bff838e93989ec0cbf024159`,
+  and checkout-diff SHA-256
+  `3bbe6bc89834cca14ac176265fbb0c5f378b4bf778e1492613ae6e91037e6dc0`.
+  The `cars` and `diamonds` candidates are partial—not accepted: each reached
+  its timeout with only the three `~1` rows persisted; the `~.` CI did not
+  complete, so neither partial artifact has completion-provenance acceptance.
+  All remain under `/tmp`. This is bounded evidence only; the full 8,640-key
+  reconciliation and post-install/native gate stay open.
+  **Additional bounded candidate, 2026-10-20:** the source-roster subset
+  `airquality × survival × KK21stepwise × InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC
+  × beta_T=0.5 × rep=1` comprises six expected keys (two formula labels ×
+  three rand calls). A `compile=FALSE` source-overlay run emitted all 6 with
+  unique IDs and `status=ok`; `validate_comprehensive_result_artifact()`
+  confirmed six rows, exact expected-key equality, and its matching sidecar.
+  Scratch directory `/tmp/edi-todo14-airquality-kk21-beta05-rep1.e6NO3W/`; CSV
+  SHA-256 `bcca23507f183a46fecc8dd3f9a0babf01ac2cfb34174c2590739d121a73c3b4`,
+  sidecar SHA-256
+  `326ae151d21a0123cf229e061602f7c7bbef98ec0794ff4adf06434a493d6245`,
+  log SHA-256
+  `27eeb1a54312ca28630d60aa22bb8961308364c92d12dfe0f35973f40c11bd3a`.
+  Provenance records R 4.6 development r90668, EDI 1.0.3 from checkout
+  namespace, DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, runner SHA-256
+  `660dae16378ce533bf1d7bb816b2e7933b989bff838e93907889ec0cbf024159`,
+  and checkout-diff SHA-256
+  `5347c7f6f8fd7a307becbaf477810be5291d642180e9ad4ae15178f425e2f24d`.
+  This is bounded evidence only; the 8,640-key full-grid reconciliation and
+  post-install/native gate remain open.
+  **Schema-v2 provenance replay (2026-10-20):** reran the same
+  `airquality × survival × KK21stepwise × InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC
+  × beta_T=0.5 × rep=1` six-key slice with the package-payload fingerprint
+  validator. It emitted all six unique expected keys (both formulas × two
+  rand p-values and rand CI), all `status=ok`; exact-key validation passed
+  and all deterministic result fields equal the prior airquality beta=.5
+  candidate. Before/after runtime package-payload SHA-256 was
+  `ed3f0fa1591701ba1d1d9e6dd793006e843053323e931255a9350db54dce6382`;
+  before/after loaded DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Scratch `/tmp/edi-todo14-airquality-beta05-schema2-R3kWt9/`; CSV SHA-256
+  `4cea9b5e92649e00d88fe541622f4bf0afb1580918e3b8e4d0e8a2d650359849`,
+  schema-v2 sidecar SHA-256
+  `c6febf58435588200d3762e629b267e59b2698c33e7180c2b7b7ce84f4e01936`.
+  Isolated source-overlay evidence only; the 8,640-key reconciliation and
+  post-install/native gate remain open.
+  **Additional schema-v2 bounded candidate (iris beta=0, 2026-10-20):**
+  preflighted the prepared TODO-14 manifest and selected its exact
+  `iris × survival × KK21stepwise × InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC
+  × beta_T=0 × rep=1` subset (six unique keys, both formulas × three rand
+  calls). A `compile=FALSE` run completed in under the 180-second cap and
+  emitted all six, each `status=ok`, with no missing results; exact ID-set
+  comparison and `validate_comprehensive_result_artifact()` passed. Sidecar
+  schema is 2; before/after package-payload SHA-256 is
+  `ed3f0fa1591701ba1d1d9e6dd793006e843053323e931255a9350db54dce6382`, and
+  before/after loaded-DLL SHA-256 is
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Scratch `/tmp/edi-todo14-iris-beta0-schema2.jjnO9U/`; CSV SHA-256
+  `7379bb8c1be4c0e72ce788fa8c2b6df9a20abfd8fdc66b6627f0aa4479282dc3`,
+  sidecar SHA-256
+  `5d7981bf4ef3c9e0096b41819c1bc98043b988b8602fb75138f46d759f0e5368`.
+  This isolated source-overlay candidate does not close the 8,640-key
+  reconciliation or post-install/native gate.
+  **Additional schema-v2 bounded candidate (pte_example beta=0, 2026-10-20):**
+  the source-derived manifest subset `pte_example × survival × KK21stepwise ×
+  InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC × beta_T=0 × rep=1` has six
+  unique keys (both formulas × three rand calls). With no active R workload,
+  a serialized `compile=FALSE` run completed within the 180-second cap; all
+  six exact IDs were emitted once, `status=ok`, with no missing results.
+  `validate_comprehensive_result_artifact()` accepted the exact key set and
+  matching schema-v2 sidecar. Before/after package-payload SHA-256 was
+  `ed3f0fa1591701ba1d1d9e6dd793006e843053323e931255a9350db54dce6382` and
+  before/after loaded-DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Scratch `/tmp/edi-todo14-pte-beta0-schema2.DX4ydF/`; CSV SHA-256
+  `8e079102d56fce9091d9df94f72d74f79eb3ad673c38a06b02b29f344e632648`,
+  sidecar SHA-256
+  `c2ec4cd8be69b4d1e5cd97948bfaf725abdbd1720f5450c04530e65fcb91adaa`,
+  log SHA-256 `ad125f5eadbf03727366e41368c72e675233fff022ce965fbbe537d26bdf3da8`.
+  This is an isolated source-overlay slice; full-grid reconciliation and
+  post-install/native acceptance remain open.
+  **Partial candidate, not accepted (airquality beta=0, 2026-10-20):** the
+  source-roster subset `airquality × survival × KK21stepwise ×
+  InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC × beta_T=0 × rep=1` has six
+  expected keys. The serialized schema-v2 `compile=FALSE` run hit its
+  180-second timeout: only the three `~1` rows persisted (`status=ok`); the
+  log records both `~.` p-values, but the `~.` confidence-interval call was
+  still running and no completion sidecar was written. The three absent keys
+  remain expected; this is not validator-accepted evidence. Scratch
+  `/tmp/edi-todo14-airquality-beta0-schema2.4EbTwx/`; partial CSV SHA-256
+  `3b5e0610608510a0015c53bf9dd7373029aafa84a0afa52596a6a603f3e309af`, log
+  SHA-256 `63090e9feb010be1adf3c01c417cb1835da2b1b557078c5d74f26c15651ed8bc`.
+  Do not shrink the manifest or use these rows to close the 8,640-key gate.
+  **Additional schema-v2 bounded candidate (pte_example beta=.5 rep=8,
+  2026-10-20):** the source-derived subset has six exact IDs for
+  `pte_example × survival × KK21stepwise ×
+  InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC × beta_T=0.5 × rep=8`
+  (two formulas × three rand calls). With no competing R job, a serialized
+  `compile=FALSE` run completed in 129 seconds under the 180-second cap.
+  All six IDs were unique and matched the manifest exactly, all statuses
+  were `ok`, no results were missing, and the schema-v2 artifact validator
+  accepted the CSV and sidecar. Before/after package-payload SHA-256 was
+  `ed3f0fa1591701ba1d1d9e6dd793006e843053323e931255a9350db54dce6382`;
+  before/after loaded-DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Scratch `/tmp/edi-todo14-pte-beta05-rep8-schema2.Kr4ClI/`; CSV SHA-256
+  `aa3c98bf79599f8d23daed201ae290b07bf73bb576eaf58b3c4c9d842a54f3cc`,
+  sidecar SHA-256
+  `21acecd56bb658c7f266fc0e94d1c347c542e0cf970b639fd111805400198845`,
+  log SHA-256 `554405268dbb536ff0730d8cb84ecd5fe1d6811c499336b01f9f40448d75a376`.
+  This is a bounded source-overlay candidate only; the full 8,640-key
+  reconciliation and post-install/native gate stay open.
+  **Additional schema-v2 bounded candidate (iris beta=.5 rep=2,
+  2026-10-20):** the prepared source manifest contains six exact IDs for
+  `iris × survival × KK21stepwise ×
+  InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC × beta_T=0.5 × rep=2`.
+  Following serialization preflight, a `compile=FALSE` run completed in
+  about 120 seconds under the 180-second cap. All six IDs were unique and
+  matched the manifest exactly, all rows had `status=ok`, no results were
+  missing, and the schema-v2 artifact validator accepted the CSV and
+  sidecar. Before/after package-payload SHA-256 was
+  `ed3f0fa1591701ba1d1d9e6dd793006e843053323e931255a9350db54dce6382`; the
+  loaded-DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041` both
+  before and after. R was 4.6 development r90668, EDI 1.0.3 from the
+  checkout namespace, HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`,
+  runner SHA-256 `39f1abc8e492b2307ed4229b1bf36d42021464af1521578e4683aaf3d3de7189`.
+  Scratch `/tmp/edi-todo14-iris-beta05-rep2-schema2.bYgDXf/`; CSV SHA-256
+  `932671e3b49f99606070794fefcbdb3e874396d6476ca2eb82f5efba9945e921`,
+  sidecar SHA-256
+  `bb63292b3f87c6c53ebf59d184ac060a2fd0470f1daa8d5dfffe207006397fd8`,
+  log SHA-256 `0e9ab355029a0460838e43c19fc6ea60d1c01e0b5eb66cc76b63e57837dfc576`.
+  Isolated source-overlay evidence only; the full 8,640-key reconciliation
+  and post-install/native gate remain open.
+  **Additional schema-v2 bounded candidate (iris beta=.5 rep=3,
+  2026-10-20):** the source-derived subset has exactly six IDs for
+  `iris × survival × KK21stepwise ×
+  InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC × beta_T=0.5 × rep=3`.
+  The serialized `compile=FALSE` run completed in about 113 seconds under
+  the 180-second cap. All six IDs were unique and matched the manifest,
+  all statuses were `ok`, no results were missing, and the schema-v2
+  artifact validator accepted the CSV and sidecar. Before/after package-
+  payload SHA-256 was
+  `ed3f0fa1591701ba1d1d9e6dd793006e843053323e931255a9350db54dce6382`; the
+  loaded-DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041` both
+  before and after. R was 4.6 development r90668, EDI 1.0.3 from checkout
+  namespace, HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, runner SHA-256
+  `39f1abc8e492b2307ed4229b1bf36d42021464af1521578e4683aaf3d3de7189`.
+  Scratch `/tmp/edi-todo14-iris-beta05-rep3-schema2.2m3lEQ/`; CSV SHA-256
+  `a61e2926ceba860574286b071b6bc4535a52d96d66be9375bd8b547a221407d8`,
+  sidecar SHA-256
+  `1be0de08f98844f045bf80025c296f6c63b8cf9558f74a2e98206315d774903d`,
+  log SHA-256 `b83bc635f684eebec3abb7de251a65ab795b9facf3df1f8a8693b417bc05d7bc`.
+  This isolated source-overlay candidate does not close the full 8,640-key
+  reconciliation or post-install/native gate.
+  **Additional schema-v2 bounded candidate (iris beta=.5 rep=4,
+  2026-10-20):** the source-derived subset has six expected IDs for
+  `iris × survival × KK21stepwise ×
+  InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC × beta_T=0.5 × rep=4`.
+  The serialized `compile=FALSE` run completed in about 121 seconds under
+  the 180-second cap. All six IDs were unique and matched the manifest;
+  all statuses were `ok`, no results were missing, and the schema-v2
+  artifact validator accepted the CSV and sidecar. Before/after package-
+  payload SHA-256 was
+  `ed3f0fa1591701ba1d1d9e6dd793006e843053323e931255a9350db54dce6382`; the
+  loaded-DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041` both
+  before and after. R was 4.6 development r90668, EDI 1.0.3 from checkout
+  namespace, HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, runner SHA-256
+  `39f1abc8e492b2307ed4229b1bf36d42021464af1521578e4683aaf3d3de7189`.
+  Scratch `/tmp/edi-todo14-iris-beta05-rep4-schema2.ammv1O/`; CSV SHA-256
+  `199b1b3eb231f079de1dfb011e057d1acd393fd4238c3351b0db6f013dce5a11`,
+  sidecar SHA-256
+  `c41f76be66a018cd5919e3101e91ec42b02c4e746f585e55b35362749d768dcc`,
+  log SHA-256 `c923b9a4f15bb77071f124620e3f52a3adf3c7b25cf080c90d88731de791720d`.
+  Isolated source-overlay evidence only; the full 8,640-key reconciliation
+  and post-install/native gate remain open.
+  **Read-only candidate-artifact reconciliation, 2026-10-21:** checked the
+  source-derived manifest at
+  `/tmp/edi-todo14-expected-attempts-20261020.csv` (8,640 unique IDs; SHA-256
+  `7f7af2c77b02458dfff4f1aab1b2fc55d9844cde5526a3f3aa4abeb6b4c925b0`)
+  against 34 existing direct-output CSVs under `/tmp/edi-todo14-*`. The files
+  contain 300 rows and 192 unique expected IDs: 8,448 IDs are missing and
+  there are no extra IDs or within-file duplicate IDs. Across files, 78 IDs
+  repeat (108 repeated occurrences); eight repeated confidence-interval IDs
+  have conflicting payloads (iris, beta=.5, reps 2–5, both formulas). Of the
+  36 beta/dataset/design selectors, 12 have any candidate rows and 24 have
+  none; none of the 216 formula/operation groups has all 40 reps. All 300
+  rows have `status=ok`, but one row has the nonempty timeout message
+  `Skipped due to timeout after 120 seconds`, which fails the no-error-message
+  acceptance gate and is retryable under the timeout-cache fix.
+
+  Provenance is not a single current-run cohort: 27 CSVs have one sidecar, one
+  has two (one matches the final CSV hash and one is stale), and six have no
+  sidecar. Of 29 sidecars, 28 match a CSV hash. Sidecars record EDI 1.0.3,
+  four package-payload hashes, three DLL hashes, and three runner hashes; none
+  of the runner hashes matches the current runner SHA-256
+  `1b12a10860e566d3402cc7d799669c7a94ac20bb6e37d348d249c15e2a293b1a`.
+  The 372,209,537-byte canonical `comprehensive_tests_results_nc_1_survival.csv`
+  has no row for the target IVWC class, and no IVWC-specific canonical CSV is
+  present. The older 207,998,976-byte
+  `/tmp/edi-todo14-fullmerge.s72fR5/candidate_survival.csv` remains without
+  adjacent provenance and is inadmissible. These overlapping pilots must not
+  be merged: conflicting payloads and repeated `run_row_id`s prevent them
+  from satisfying the unique-row contract. At this audit, `/tmp` had only
+  363 MiB free. The full current-source/current-package 40-rep run, exact
+  8,640-key reconciliation, provenance/status/value gates, and any canonical
+  merge remain open and unchanged; no output was modified.
+  **One-shot/prefix-resume cohort classification, 2026-10-21:** the two
+  corrected scratch CSVs
+  `/tmp/edi-todo14-one-shot-corrected-20261021/` and
+  `/tmp/edi-todo14-prefix-resume-corrected-20261021/` are already included in
+  the 34-file/300-row census above. Each has 12 unique natural keys exactly
+  matching the manifest slice for iris, beta=.5, KK21stepwise, reps 1–2,
+  both design formulas, and the three emitted rand calls. Both have all rows
+  `status=ok`, no error messages or within-file key/`run_row_id` duplicates;
+  their result/CI/truth/status payloads agree row-for-row. They are duplicate
+  cohorts, not 24 additional eligible attempts. The one-shot sidecar's final
+  CSV hash matches its 9,125-byte CSV. The prefix/resume directory has two
+  sidecars: one binds an overwritten 4,808-byte intermediate, while the later
+  sidecar's hash matches the final 9,120-byte CSV. All three sidecars record
+  runner SHA-256 `77bfab7772580bc94f96e845fb20a89e7f9c7d7ae9014e42f0be50c93a71fbb9`,
+  not the current runner hash
+  `1b12a10860e566d3402cc7d799669c7a94ac20bb6e37d348d249c15e2a293b1a`; this
+  bounded slice is key-complete but not current-runner-provenance eligible.
+  No counts or acceptance status change: the 8,640-key production run,
+  current-provenance/status/value validation, and canonical merge gates remain
+  open; no artifacts were modified.
+  **Validator-backed candidate rescan, 2026-10-21 (read-only):** current
+  source still supports the manifest axes: the IVWC class is in the explicit
+  KK-survival selector; its intersection with `TESTED_DESIGNS` is
+  `KK21stepwise`/`FixedBinaryMatch`; the runner has both formula labels and
+  the three recorded `rand` operations. The retained manifest remains 8,640
+  unique IDs (SHA-256 above). Rechecked the 34 direct-output candidate CSVs
+  against that manifest: 300 rows, 192 unique expected IDs, 8,448 expected IDs
+  absent, no target extras or within-file duplicate IDs, 108 repeated row
+  occurrences across files (78 repeated IDs), and 8 conflicting payload IDs
+  (confidence-interval results for iris, beta=.5, reps 2–5, both formulas).
+  All rows say `status=ok`, but one has the timeout `error_message` and is not
+  acceptable. Twelve of 36 dataset/beta/design selectors have any candidate
+  rows; 54 of 216 formula/operation groups are represented and none has all 40
+  reps.
+
+  Ran `validate_comprehensive_result_artifact()` read-only on each available
+  direct-file sidecar, deriving the expected slice from its recorded command
+  filters and the source manifest. Of 29 sidecars for 34 files, 19 exact
+  schema-2 artifacts passed; 10 failed (9 lack schema 2, 1 has a stale CSV
+  hash). Six files have no sidecar. Of the 29 sidecars, 28 bind their current
+  CSV bytes/hash, but their three runner-hash cohorts are all different from
+  current `comprehensive_tests.R` SHA-256
+  `1b12a10860e566d3402cc7d799669c7a94ac20bb6e37d348d249c15e2a293b1a`.
+  Thus validator-pass only means internally consistent for the captured
+  command/artifact, not current-source provenance or full-grid acceptance.
+
+  A recursive `/tmp/edi-todo14-*` scan also finds six nested diagnostic CSVs
+  (42 rows, 20 distinct IDs, none in the target manifest): five are KK14 API
+  comparison outputs, outside the two accepted design axes, and one is an
+  unrelated ordinal Cloglog pilot. They have no provenance sidecars and are
+  classified as controls, not TODO-14 candidates. Including these controls
+  would create 20 extra IDs and four additional conflicting payload IDs; they
+  must not be merged into the target artifact census. The current-source,
+  post-install 8,640-key run and reconciliation remain open; no result or
+  canonical file was changed.
+  **Source-derived candidate-roster guard, 2026-10-21:** added
+  `todo14_source_candidate_manifest()` and a focused pure-R contract to
+  `test-todo14-candidate-validation-reference.R`. The helper parses the
+  checked-in runner/dataset loader and validates the no-CLI-filter scope
+  (40 reps, beta 0/0.5, two target designs/formulas, the selected IVWC class,
+  three `rand` operations, and nine survival datasets) before emitting 8,640
+  unique candidate keys. The focused test passed 71 expectations; it did not
+  run the comprehensive harness or establish package/native provenance.
+  Candidate rows are explicitly marked as requiring setup/runtime eligibility:
+  this source inventory cannot predict live constructor/capability/runtime
+  skips and is not an exact emitted-attempt roster. The post-install run,
+  event-output reconciliation, provenance/status/value checks, and any
+  canonical merge remain open.
+  **Malformed expected-manifest guard regression, 2026-10-21:** extended
+  `test-todo14-candidate-validation-reference.R` to exercise the distinct
+  `manifest_id_key_mismatch` validator branch, including its missing/extra ID
+  report and input-file hash stability. The pure-R test passed 50 assertions
+  with `testthat::test_file(..., load_helpers = FALSE)` (no EDI load, native
+  call, build, or install). This closes only that negative-case test gap; it
+  does not validate setup or provide the current-source 8,640-key artifact,
+  which remains open.
+  **Timeout-result validator contract, 2026-10-21:** extended
+  `test-todo14-attempt-result-provenance-reference.R` with the producer-shaped
+  timeout terminal (`status=ok`, `skip_reason=timeout`, exact timeout message,
+  missing numeric result) and verified the artifact validator rejects it.
+  The focused test passed 12 expectations against installed EDI 1.0.3, with
+  no failures, warnings, or skips; no native code, build, install, or canonical
+  result was involved. This closes only the validator-contract subgate. The
+  full 8,640-key post-install artifact, provenance/value reconciliation, and
+  any canonical merge remain open.
+  **Filesystem-only TODO-14 recount, 2026-10-21:** rechecked the prepared
+  manifest (`/tmp/edi-todo14-expected-attempts-20261020.csv`, 8,640 unique
+  IDs; SHA-256 `7f7af2c77b02458dfff4f1aab1b2fc55d9844cde5526a3f3aa4abeb6b4c925b0`)
+  against the 34 direct-output candidate CSVs. The candidate rows claim
+  `github_commit_id=4f7a6e4ca82829e880c15a76699701a95e5e83b9`, matching the
+  checkout HEAD at this recount, but this alone does not establish loaded
+  package or DLL identity. The 300 rows contain 192 distinct expected IDs,
+  no extras, and 8,448 absent IDs; all natural-key columns agree with the
+  manifest. There are 108 repeated row occurrences beyond the unique IDs
+  (78 IDs recur across files), and 8 IDs have conflicting `ok` confidence-
+  interval payloads (iris, beta=.5, reps 2–5, both formulas). All rows have
+  `status=ok`; the separately recorded timeout-message exception above still
+  fails acceptance. Sidecar receipts exist for 28/34 CSVs (29 sidecar files;
+  one CSV has two); six CSVs have none. This filesystem-only recount did not
+  decode or validate RDS receipts; the earlier sidecar-validator findings
+  above remain the applicable evidence. No candidate is a complete cohort,
+  no files were merged or modified, and the full current-package 8,640-key
+  run and reconciliation remain open.
+  **Conflict provenance attribution, 2026-10-21 (read-only):** the eight
+  conflicting confidence-interval IDs (iris, beta=.5, reps 2–5, both design
+  formulas) come from isolated invocations with `Nrep=rep` and
+  `REP_FILTER=rep`, which repeat the rep-1 payload across nominal replicates.
+  The 30-row unfiltered `Nrep=5`, `REP_FILTER=NA` candidate at
+  `/tmp/edi-todo14-iris-beta05-reps1to5-sequential-schema2.A0xNso/` has CSV
+  SHA `8cb3fee97dc81632ff2fe4effde085eca23a89980db3c05e11606057aca90cda`;
+  its per-replicate interval values are distinct. Later one-shot and
+  prefix/resume 12-key artifacts agree exactly on rep 2, corroborating that
+  sequential value. Receipts show heterogeneous package-payload fingerprints
+  across the isolated and sequential/replay cohorts (full identities are in
+  the linked plan), so the isolated repeats are not independent-replicate
+  evidence and the partial cohorts are not mergeable/current full-grid
+  acceptance. No artifacts were changed; the provenance-matched 8,640-key run
+  and exact reconciliation remain open.
 - [x] TODO-15 (added 2026-09-23, conclusively refuted 2026-10-09; from the same `bad_type1_error` audit wave
   as TODO-9, originally hypothesized to be the same mechanism — confirmed
   separate and still unfixed; the later TODO-28 cache hypothesis was
@@ -921,9 +3132,10 @@ range, since the plan files' internal numbering did not change.
   audit of the five other classes this triage wave also flagged (`Cauchit`,
   `PropOddsRegr`, `KKCondAdjCatLogitRegr`, `AdjCatLogitRegr`,
   `OrderedProbitRegr`) found none of them share this bug — their own flags
-  are on unrelated mechanisms, out of scope here. A package-wide sweep for
-  any other class sharing both the helper and the negation pattern is
-  still open (plan's TODO-2b). **2026-09-25, investigated at user request
+  are on unrelated mechanisms, out of scope here. At that point, a
+  package-wide sweep for any other class sharing both the helper and the
+  negation pattern remained open (plan's TODO-2b); the sweep was later
+  completed as recorded below. **2026-09-25, investigated at user request
   from the live TODO-4 re-run's first partial results:**
   `PropBetaRegr`/`PropFractionalLogit` still cover at only 0.84/0.85
   (nominal 0.95) on `ionosphere` (33 real covariates) after the
@@ -944,6 +3156,27 @@ range, since the plan files' internal numbering did not change.
   Explicitly not the same bug as `TODO-6`; do not conflate when resolving
   either.
 
+  **TODO-11 artifact/provenance re-audit, 2026-10-21:** the ignored local
+  `R/package_tests/comprehensive_tests_results_nc_1_proportion.csv` snapshot
+  (84,170,816 bytes; SHA-256
+  `cd5bbd589816657930eb8e4aa5ae92b9f4fe8de02084dcfa21548a37d9edc6ba`)
+  contains 1,438 ionosphere beta_T=0.5 rows for the two affected classes
+  (854 `PropBetaRegr`, 584 `PropFractionalLogit`). It cites source commit
+  `95e5203765fde92b5d501c0e93139603c2a95bf1` but has no provenance sidecar or
+  installed package/DLL identity, so it cannot confirm this hypothesis against
+  a current installation. The observed ionosphere pattern remains roughly
+  0.79--0.81 for asymptotic/Wald/LR/subsampling CIs versus 1.00 for
+  jackknife-Wald/LR-bootstrap; this is consistent with, but does not prove, a
+  high-p/n SE limitation. Existing `/tmp` merged coverage reports measure
+  code coverage, not statistical CI coverage. No provenance-matched lower-p/n
+  comparison is retained. The linked plan's acceptance gap remains a current-
+  provenance beta_T=0.5 comparison for both classes on a lower-covariate-count
+  dataset, followed by the maintainer's choice to document a reproducible
+  high-p/n limitation or investigate an SE correction; if lower-p/n
+  under-coverage also appears, revisit the shared truth/SE explanation. The
+  linked-plan TODO-11 remains open and separate from TODO-6; this note does
+  not close or change the release TODO-16 checkbox.
+
   **Implementation status 2026-10-09:** the cloglog simulator now converts
   native slopes to the public `threshold - X beta` convention; its observed
   fit screens deterministic alternative starts; and continuation-ratio
@@ -954,7 +3187,12 @@ range, since the plan files' internal numbering did not change.
   coverage. Harness MC-refit truth now covers cloglog and ordered probit,
   while the conditional adjacent-category class no longer advertises a
   Bayesian bootstrap based on its mismatched surrogate estimator. The
-  focused migration/registry suites pass. **Linked-plan status corrected
+  focused migration/registry suites pass. The completed TODO-2b source
+  sweep found exactly four production callers of the shared ordinal
+  simulator (Cauchit, Cloglog, Ordered Probit, Proportional Odds); only
+  Cloglog negates its native slope block before simulation, and no additional
+  affected caller was found. This establishes source scope only, not null
+  calibration. **Linked-plan status corrected
   2026-10-16:** TODO-1 is open again because no independent post-fix
   true-null calibration is recorded for direct LR, LR-bootstrap, or
   Bartlett-approx methods; the focused multistart-selection tests do not
@@ -974,6 +3212,63 @@ range, since the plan files' internal numbering did not change.
   maintainer adopts the audit rule or specifies the interval, confidence
   level, and replicate/finite-denominator target. Details are recorded in
   `../bug_fix_plans/ordinal_cumulative_link_null_refit_multistart.md → TODO-1`.
+  **Decision tradeoff, clarified 2026-10-21:** adopting the existing audit
+  screen (combined binomial-size evidence, BH `q = 0.05`, 30-row minimum) is
+  the smallest-policy-change option, but its non-rejection is not evidence of
+  practical equivalence to nominal size and its row floor is not a precision
+  target. Alternatively, the maintainer can define an acceptable rejection-
+  rate interval, confidence level, and valid-replicate denominator; that
+  provides an explicit tolerance/precision target but requires choosing the
+  limits and running enough independent null replicates. No option or
+  numeric criterion is selected; calibration remains gated on this decision.
+
+  **Installed-package multistart regression recheck, 2026-10-20:** the
+  focused Cloglog and stereotype-logit constrained-null-refit tests, including
+  the second `simulate_under_lik_null()` closure test, passed 18 expectations
+  against EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  matches checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. These mocked optimizer-selection
+  checks confirm installed R behavior only; they do not establish source-to-
+  install R provenance or the three methods' Type-I calibration. The
+  maintainer's acceptance criterion, independent null calibration, and TODO-6
+  comprehensive regeneration/re-audit remain open. No Type-I simulation or
+  build/install occurred. **Current-checkout/current-native recheck,
+  2026-10-20:** reran the two constrained-null-refit selection tests and the
+  second `simulate_under_lik_null()` closure test after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. All 18
+  assertions passed with no failures, warnings, or skips. Checkout HEAD was
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+  matched the user-rebuilt installed DLL and checkout `R/EDI/src/EDI.so`
+  byte-for-byte. This closes focused checkout-R/current-native provenance
+  only; TODO-1's acceptance/calibration gate and TODO-6's comprehensive
+  regeneration/reconciliation remain open. No build/install or canonical
+  output write occurred.
+  **Run-replay metadata guard, 2026-10-20:** comprehensive-run provenance
+  snapshots now include `RNGkind()` and the current `.Random.seed` in both
+  before/after records; the focused provenance test verifies the snapshot
+  against the actual capture state and passed with no failures, warnings, or
+  skips. The run used checkout helper code and installed EDI 1.0.3 under
+  R-devel `r90668` (DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`); no
+  native compilation/build/install occurred. This makes future runs more
+  replayable but does not parameterize the harness's fixed seed or satisfy
+  independent-seed Type-I calibration. The owner acceptance rule and
+  TODO-6's comprehensive regeneration/re-audit remain open.
+
+  **Constrained-coordinate regression, 2026-10-21:** the focused Cloglog
+  null-refit test now checks both `fixed_idx = spec$j` and
+  `fixed_values = -delta` (fixture `delta = 0.3`), and that the selected fit
+  retains the constrained coordinate. The test passed all 8 expectations
+  against installed EDI 1.0.3. This is installed-package evidence only; it
+  does not establish current-checkout R-layer provenance, true-null
+  rejection calibration, or comprehensive-row regeneration. No simulation,
+  build/install, or canonical output write occurred. TODO-16 remains open for
+  the maintainer's acceptance rule and independent calibration, plus TODO-6's
+  post-fix comprehensive regeneration/re-audit.
 
   **Independent confirmation 2026-10-09** (algorithm-sweep verification F18,
   `../new_feature_plans/algorithm_choice_audit_catalog.md §13.4`): the cloglog
@@ -982,7 +3277,96 @@ range, since the plan files' internal numbering did not change.
   simulator and are unaffected. AdjCat, KKCondAdjCat, CR and stereotype never call it.
   The staged cloglog fix (`inference_ordinal_cloglog.R` +
   `test-cloglog-parametric-bootstrap-native-sign.R`) checked out as correct.
-- [ ] TODO-17 (added 2026-09-23, surfaced by the new `pval_miscalibration`
+  **Installed-package focused regression recheck, 2026-10-21:** the two
+  constrained-null-refit selector tests and the null-likelihood simulation
+  closure test passed all 18 expectations (0 failures, warnings, or skips)
+  against installed EDI 1.0.3. The loaded DLL was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  SHA-256 `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  This is installed-artifact evidence for null-refit multistart selection and
+  likelihood-null closure only; it does not establish current-checkout R-source
+  provenance or true-null rejection-rate calibration for LR, LR-bootstrap, and
+  Bartlett. The maintainer-selected calibration rule and TODO-6 comprehensive
+  row regeneration/reconciliation remain open. No broad simulation,
+  build/install, or canonical output write occurred.
+  **Calibration-artifact audit, 2026-10-21:** the acceptance rule is still
+  unspecified: exact-binomial size reporting supplies a p-value but no pass
+  cutoff/interval; the audit's BH `q=0.05` plus 30-row screen is a discovery
+  rule, and `LOW_POWER_TARGET=0.10` is a power criterion. Retained post-fix
+  evidence separates into (a) an implementation repro for the distinct
+  simulator-sign bug: 25 true-null reps at `n=100`, `B=39` gave 0/25 rejects
+  for the two parametric-bootstrap p-value families and CI coverage 24/25,
+  with an ordinary-LR 8/100 result; this is not the independent post-fix
+  calibration of the constrained-null-refit fix required by TODO-1, and the
+  small counts do not establish an approved pass rule; (b) a retained
+  one-replicate installed-package pilot for Cloglog / Bernoulli / `diamonds` /
+  `beta_T=0`, `rep=1`, which emitted eight `ok` parametric-bootstrap-family
+  rows across `~1` and `~.` but is not a rejection-rate study; and (c) focused
+  null-refit-selection tests (18 expectations) that exercise mocked optimizer
+  outcomes/closure behavior, not rejection rates. The canonical ordinal CSV's
+  latest recorded affected rows predate the 2026-10-09 fix (Cloglog and
+  continuation-ratio rows dated 2026-09-27); it is not a post-fix result
+  artifact. No retained artifact supplies independent-seed rejection counts
+  and denominator/nonestimable accounting for direct LR, LR-bootstrap, and
+  Bartlett under the post-fix Cloglog true null. **Bounded next step:** obtain
+  the maintainer's choice of (i) pass rule or acceptable rate interval and
+  confidence level, (ii) number of reps/finite-denominator handling, and
+  (iii) the approved true-null fixture/seed protocol for those three methods.
+  Only then run and report that narrowly scoped Cloglog calibration with
+  independent seeds; keep TODO-6's separate provenance-stamped comprehensive
+  row regeneration/re-audit gated on TODO-56's shared-output release. No
+  simulation or canonical result access was performed for this audit.
+  **Decision-ready TODO-1 calibration protocol options, 2026-10-21:** the
+  linked plan identifies one confirmed class/null target,
+  `InferenceOrdinalCloglogRegr` with treatment coefficient `beta_T=0`, and
+  three separate outcomes to calibrate: `compute_lik_ratio_two_sided_pval`
+  (direct LR), `compute_lik_ratio_bootstrap_two_sided_pval` (LR bootstrap),
+  and Bartlett approximation. The exact DGP/dataset, `model_formula` strata,
+  and inner LR-bootstrap B are not specified for this post-fix check. The
+  retained one-replicate pilot (`Bernoulli` / `diamonds` / `beta_T=0`, both
+  `~1` and `~.`) exercises execution only, not calibration. The plan's
+  `25+`-replicate, `n=100` precedent belongs to TODO-4's distinct
+  `compute_param_bootstrap_pval` simulator-sign fix; it is not a TODO-1
+  sample-size criterion and does not test these three methods.
+
+  For planning only, at nominal size `p=0.05`, a normal approximation to a
+  95% binomial interval gives half-widths of about 1.9 percentage points at
+  500 independent outer datasets per selected null stratum (evaluate all
+  three methods on each dataset), 1.35 points at 1,000, and 0.96 points at
+  2,000 (`h ~= 1.96 * sqrt(p*(1-p)/n)`). These are transparent precision
+  options, not acceptance limits; final results should report exact binomial
+  intervals at a maintainer-selected confidence level. `n=100` is about ±4.3
+  points and `n=25` about ±8.5 points at the same nominal rate, illustrating
+  why the older small diagnostic cannot by itself establish tight calibration.
+  **Project-convention recommendation:** `SimulationFrameworkReport` already
+  computes size from finite p-values (`pval < alpha`), records their count as
+  `n_size`, and reports the exact two-sided binomial test of `H0: size=alpha`;
+  its file-backed default is `alpha=0.05`, matching the historical audit
+  signal. Reuse that finite-p-value denominator and report `k`, `n_size`, and
+  the observed rate, plus an exact Clopper-Pearson interval (the report's
+  `size_pval` is a test, not an interval). The comprehensive audit uses BH
+  `q=0.05` with a 30-row discovery floor for its p-value-distribution screen;
+  this is a reasonable diagnostic screen to report alongside the size
+  statistics, but is not established as TODO-1's pass rule. `LOW_POWER_TARGET`
+  is for alternatives and does not govern this null check. Keep attempted,
+  estimable, and nonconvergent counts visible even when using `n_size` as the
+  rate denominator.
+
+  **Owner choices still required:** approve the true-null DGP/dataset and
+  whether `~1` and `~.` are separate strata; select outer replicate target,
+  inner LR-bootstrap B, interval confidence level, treatment of failures in
+  any acceptance denominator, and whether the decision is a per-method/cell
+  interval or a simultaneous/multiplicity-adjusted criterion. The finite-p
+  denominator and exact-binomial reporting can follow existing project
+  convention without a new policy choice, but no rejection-rate simulation
+  should be treated as acceptance evidence until those fixture and pass-rule
+  choices are explicit. The deterministic
+  `test-simulation-report-finite-calibration-reference.R` already checks
+  finite-p-value denominators and exact-binomial size p-values, so that
+  reporting contract can be reused without fits. No threshold, DGP expansion,
+  or simulation is selected here; TODO-1 and the independent TODO-6 artifact
+  gate remain open.
+- [x] TODO-17 (CLOSED 2026-10-21 by owner decision: deferred; remedy tracked in `release_v1_5_0.md → TODO-1`; added 2026-09-23, surfaced by the new `pval_miscalibration`
   audit check's extreme-violation triage — ACAT-combined p as low as
   2.5e-300 — root-caused same day): **`InferenceAllSimpleWilcox`
   resampling-family p-values collapse to exactly 1** —
@@ -1043,7 +3427,14 @@ range, since the plan files' internal numbering did not change.
   Bayesian-bootstrap SE fix now has a passing deterministic regression.
   Wilcoxon-scoped method/coverage work remains open; this release item stays
   unchecked.
-  - [ ] Obtain a maintainer decision on the Wilcoxon-specific remedy or an
+  - [x] **Owner decision 2026-10-21: defer the Wilcoxon-specific remedy.** Keep the
+    deterministic inclusive-tail method and document the conservatism (roxygen
+    on `InferenceAllSimpleWilcox`). No generic mid-p change. TODO-3..7 of the linked
+    plan stay open until a candidate passes the conditional-size gate. This item
+    stays unchecked as a deferred-to-later-release item: the resampling CI
+    undercoverage (~48-57%) from the same mechanism is also deferred and is
+    documented, not fixed.
+  - [ ] (superseded by the deferral above) Obtain a maintainer decision on the Wilcoxon-specific remedy or an
     explicit deferral. If proceeding, require nondegenerate-estimand parity,
     conditional size calibration for HL-zero ties, and a permanent tied
     p-value/CI regression before post-fix comprehensive regeneration; do not
@@ -1107,6 +3498,139 @@ range, since the plan files' internal numbering did not change.
   their exact keys require the missing provenance-bearing historical audit
   input/output. It also does not validate the continuous bandwidth formula or
   provide calibration evidence.
+  **Historical-class CI guard recheck, 2026-10-20:** the existing focused
+  support test now checks CI support advertisement and pre-draw rejection for
+  `InferenceIncidKKCondLogitOneLik` and `InferenceOrdinalGCompMeanDiff`, in
+  addition to p-values. The source-loaded test passed 62 expectations with
+  compilation disabled (test SHA-256
+  `a9f60a6a4e98bb1180478b54a6a1bff5cad567f7ecad70f754dc725dd062b391`; already-built
+  overlay DLL SHA-256
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`). This
+  only closes the deterministic CI-guard coverage gap; calibration, the
+  continuous-bandwidth investigation, historical audit provenance, and
+  post-install CSV regeneration remain open, so TODO-18 remains unchecked.
+  **Installed-package guard recheck, 2026-10-20:** the focused
+  `R/EDI/tests/testthat/test-brt-smoothed-count-support.R` passed 62
+  expectations against EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  (MD5 `a75519a9256c0b3121398032314291d4`). This confirms support/rejection
+  guards on the installed package only; it does not validate calibration,
+  historical findings, bandwidth, or regenerated comprehensive rows. No
+  build/install or canonical write occurred.
+  **Installed-package focused recheck, 2026-10-21:** with no competing R
+  process, ran `test-brt-smoothed-count-support.R` and
+  `test-brt-smoothed-noise-mat-plumbing.R` sequentially via
+  `testthat::test_file()` after `library(EDI)`. They passed 62 and 7
+  expectations respectively (69 total; no failures, warnings, or skips).
+  Package version/path were EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` had
+  SHA-256 `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  This confirms the installed package's deterministic support/guard and
+  noise-matrix plumbing contracts only; it does not establish checkout R or
+  native-source behavior, historical reproduction, true-null calibration,
+  or post-fix comprehensive-row provenance. The tracked baseline cohort
+  remains 25 `_smoothed` keys (16 currently supported continuous/count and
+  nine intentionally blocked incidence/ordinal), while the other historical
+  cells are not provenance-resolved. Open linked gates are the TODO-1 exact
+  dispatch/caller cross-reference, TODO-2 continuous-bandwidth investigation,
+  TODO-3 historical reproduction, TODO-6/7 owner-specified true-null strata,
+  replicate/precision and acceptance rule plus permanent calibration test,
+  and TODO-8 post-install provenance-stamped regeneration/reconciliation
+  after TODO-56 releases the shared result paths. No build/install or
+  canonical CSV write occurred.
+  **Rejected-request RNG regression, 2026-10-21:** the existing fast-tier
+  support test now also asserts that unsupported categorical smoothed p-value
+  and confidence-interval requests leave the caller's `.Random.seed` unchanged
+  for incidence, ordinal, and proportion model-refit classes. The focused
+  installed-package test passed 68 expectations with no failures, warnings,
+  or skips; no build/load_all/install or canonical artifact write occurred.
+  This pins the early-rejection reproducibility contract only; it does not
+  address TODO-18's calibration, historical audit, bandwidth, or regeneration
+  gates.
+  **Latest installed-artifact support recheck, 2026-10-21:** reran
+  `test-brt-smoothed-count-support.R` via `timeout 180s Rscript -e` after
+  `library(EDI)`; all 68 expectations passed (0 failures, warnings, or skips).
+  Installed EDI 1.0.3 was at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; DLL SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`
+  (MD5 `bfea6f47ab8b27618d5d8633e9021f91`), byte-identical to the ignored
+  checkout DLL. Test file SHA-256
+  `67d7af1b25207cf62f21a5f64c212abae4a4d047dece86b4be9674193d165126`.
+  This verifies deterministic support/guard behavior on the installed
+  artifact only; it does not validate calibration, historical findings,
+  bandwidth, current R-source identity, or comprehensive rows. No
+  build/install or canonical write occurred.
+  **Decision-ready true-null protocol options, 2026-10-21:** the linked plan's
+  expressly named minimum calibration roster is nine cells: continuous
+  `InferenceContinKKRobustRegrOneLik` / `~1` and `InferenceContinOLS` / `~.`,
+  plus the seven currently supported count keys
+  `InferenceAllSimpleAverageDiff` / `NA`, `InferenceCountHurdleNegBin` /
+  `~1`, `InferenceCountHurdlePoisson` / `~1`,
+  `InferenceCountKKHurdlePoissonOneLik` / `~1`, `InferenceCountPoisson` /
+  `~.`, `InferenceCountZeroInflatedNegBin` / `~1`, and
+  `InferenceCountZeroInflatedPoisson` / `~1`. This is distinct from the
+  broader source-supported baseline cohort of 16 keys: the other seven
+  continuous keys are `InferenceAllSimpleAverageDiff` / `NA`,
+  `InferenceAllSimpleMeanDiffPooledVar` / `NA`, `InferenceContinLin` / `~.`
+  and `~1`, `InferenceContinOLS` / `~1`,
+  `InferenceContinQuantileRegr` / `~1`, and `InferenceContinRobustRegr` /
+  `~1`. The roster decision is whether to calibrate only the nine cells
+  expressly named by the plan or all 16 source-supported cells; do not treat
+  all 16 as historical miscalibration findings without the missing
+  provenance-bearing historical audit input. The nine incidence/ordinal
+  baseline keys are intentionally unsupported now and belong only in the
+  deterministic rejection/advertisement checks, not an estimator-size
+  calibration.
+
+  Apply the existing finite-null reporting convention to each admitted
+  candidate: `SimulationFrameworkReport` forms `size` from finite p-values
+  satisfying `p < alpha`, records their count as `n_size`, and reports the
+  exact two-sided binomial test of `H0: size=alpha`. Report `k`, `n_size`, and
+  the observed rate for percentile and smoothed variants separately, with an
+  exact Clopper-Pearson interval at a stated confidence level; additionally
+  retain attempted, nonfinite/nonestimable counts and paired decision
+  discordances. The current report supplies the exact test, not the interval.
+  The audit's BH `q=0.05`/30-row rule is a discovery screen only, not an
+  acceptance band for these cells.
+
+  The plan proposes at least 500 *estimable* outer cases per selected
+  stratum and B=101 materialized assignments per case. For transparent
+  planning, the normal approximation `n ~= z^2 p(1-p) / h^2` at nominal
+  `p=0.05` gives a 95%-planning half-width `h` of about 4.3 percentage points
+  at n=100, 1.9 points at n=500, and 1.0 point at n=1,825. These are
+  precision illustrations, not pass bands. The nine-cell minimum is 4,500
+  estimable outer cases; expanding to all 16 admitted candidates is 8,000,
+  with the same 101 assignments per case and paired variants. Report exact
+  binomial intervals for observed rejection counts; the maintainer chooses
+  the interval confidence level and acceptance rule. The choice still needed is
+  whether the criterion is per-cell or simultaneous across selected cells,
+  including any multiplicity treatment; neither exact-binomial reporting nor
+  `LOW_POWER_TARGET` supplies a cutoff. Also specify the selected roster,
+  true-null design/DGP (recover the comprehensive harness inputs or approve a
+  clearly labeled fresh representative design), seeds, and how estimable vs.
+  attempted outer cases define the denominator. For each case, pair the
+  percentile and smoothed variants on identical assignments and Gaussian
+  noise; retain attempted/estimable counts and paired decision discordances.
+  Keep B=101 unless the maintainer changes the precision/run-cost target.
+  No simulation or canonical result access occurred for this protocol note;
+  the calibration, acceptance rule, and post-install regeneration gates
+  remain open.
+  **Bounded on-disk recheck, 2026-10-21:** the two exploratory raw pilot files
+  are present under `scratch/todo18_onelik_larger_n_20261016_01/` (200 data
+  rows; SHA-256 `623fe2f22bd123eca1a8b58f0a3f189ac097d46e60912285ea395610b33dd59d`)
+  and `scratch/todo18_onelik_kk21stepwise_20261016_01/` (100 rows; SHA-256
+  `e46b1a8688d37135753430f2b0e776b3dfbcccfed98096affc5fe53881b90e71`).
+  Their companion summaries/paired tables are present, but neither directory
+  has a provenance sidecar or package/DLL/R/source identity. Raw rows retain
+  deterministic seed/variant columns and identify EDI 1.0.3. The specifically
+  named earlier `/tmp/edi-todo18-robust-onelik-bandwidth-20261016*` outputs
+  are absent. These small synthetic pilots do not recover the historical
+  105-row inputs or resolve the roster, null-DGP, acceptance, denominator,
+  or precision choices above. No workload, build/install, or canonical output
+  was touched; TODO-18 remains open.
   - [ ] Finish the dispatch/support cross-reference and continuous-bandwidth
     investigation; then, after TODO-56 releases shared result paths, run the
     predeclared matched calibration for supported continuous and count cells
@@ -1114,6 +3638,20 @@ range, since the plan files' internal numbering did not change.
     noise, exact binomial intervals and paired discordances). Verify bounded
     categorical cases are rejected, select and pin a permanent-test fixture/
     tolerance, then regenerate rows with package/DLL provenance.
+  **Retained-artifact audit, 2026-10-21:** only two exploratory B=101
+  robust-OneLik pilot slices remain: FixedBinaryMatch n=148 (50 fixtures) and
+  KK21stepwise n=60 (25 fixtures), both from installed EDI 1.0.3. They retain
+  seeds and paired variants, but no package path, DLL hash, R version, checkout
+  HEAD/source hash, or provenance sidecar, so they do not establish current
+  post-fix calibration. Earlier n=30/25-fixture and 500-fixture `/tmp` outputs
+  are absent; retained comprehensive CSVs are historical and lack seeds,
+  assignments, and response vectors for replay. No artifact closes the
+  calibration gate. The supported roster, null strata/DGP, per-cell versus
+  simultaneous acceptance rule/multiplicity, interval confidence level,
+  attempted-versus-estimable denominator, and proposed ≥500 estimable cases
+  per stratum (B=101) still require confirmation. Keep post-fix calibration
+  and provenance-stamped comprehensive regeneration open; no run or result
+  merge occurred.
 - [ ] TODO-19 (added 2026-09-23, resolved in source 2026-10-09):
   **`InferenceIncidKKModifiedPoisson` exposed invalid working-likelihood
   inference.** The validated estimator uses a cluster-robust sandwich, so
@@ -1125,6 +3663,50 @@ range, since the plan files' internal numbering did not change.
   200-replicate Pima/KK21stepwise replay (empirical SD 0.19318; mean robust
   SE 0.19870; ratio 1.0286; MC-truth coverage 0.955). Installed
   comprehensive-CSV regeneration/re-audit remains the sole release gate.
+  **Additional installed migration-golden check:** the updated
+  `test-incid-kk-modified-poisson-migration-golden.R`, including the explicit
+  `likelihood_tier == "none"` assertion, passed 36 expectations against
+  installed EDI 1.0.3 after sourcing the checkout's pure-R fixture helper.
+  This is mixed-provenance test evidence, not a source-loaded or rebuilt-
+  checkout validation; the exact invocation and loaded DLL hash were not
+  captured. No build/install or canonical result write occurred.
+  **Current artifact audit, 2026-10-21:** the canonical incidence results
+  CSV is 525,863,531 bytes and dated 2026-10-09, before the source fix. The
+  two known `/tmp` roots retain only limited diagnostics: a 64-row all-family
+  slice and an 8-row Wald slice, with no provenance sidecars. Their limited
+  keys/statuses do not cover the supported full matrix. The next acceptance
+  step is a full class-filtered regeneration to isolated scratch with current
+  package/DLL provenance, exact key/status reconciliation (removed likelihood
+  methods absent; valid Wald rows retained), and only then consideration of a
+  canonical update. No run or canonical CSV write occurred in this audit.
+  **Read-only roster/resource preflight, 2026-10-21:** the current runner
+  source expands to 26,880 class/formula labels for the full Modified Poisson
+  incidence grid (12 incidence datasets × 2 beta values × 40 reps × 7 tested
+  designs × 2 design formulas × 2 model formulas). The retained 64-row pilot
+  contains 16 distinct `function_run` candidates per label; applying that
+  operation roster yields 430,080 candidate rows, conditional on the pilot
+  roster remaining eligible across the grid, not a guaranteed terminal-row
+  count. The pilot took 11.340 aggregate seconds and occupied 49,574 bytes;
+  linear extrapolation gives about 21.2 hours and 318 MiB of CSV output, with
+  substantial runtime variability not captured by one Pima/KK21stepwise case.
+  At the audit, `/tmp` had about 362 MiB free, leaving only about 44 MiB beyond
+  the estimated CSV before sidecar/log/temp needs; this is inadequate headroom
+  for a safe isolated full run. The existing pilot does not satisfy the full
+  key/status reconciliation. Future authorized command shape, after creating
+  an empty dedicated output directory and ensuring adequate scratch space:
+  `EDI_COMPREHENSIVE_RESULTS_DIR=/tmp/edi-todo19-authorized-full-grid Rscript
+  R/package_tests/comprehensive_tests.R 40 2 incidence NA
+  InferenceIncidKKModifiedPoisson NA NA NA`. Keep the regeneration and
+  canonical reconciliation gate open; no run or result-file edit was made.
+  **Scratch-space recheck, 2026-10-21:** `/tmp` now reports 16 GiB free, so
+  the earlier 362 MiB headroom constraint is no longer current. The retained
+  `/tmp/edi-v105-todo19-current-DgbXhW/` still contains only the same 49,574-
+  byte all-family pilot and 6,413-byte Wald pilot, dated 2026-10-20, with no
+  run log or provenance sidecar. This metadata-only check reads no CSV payload
+  and does not establish full-grid results. Disk capacity alone no longer
+  blocks a fresh isolated candidate, but the estimated ~21-hour full grid,
+  current package/DLL provenance, and exact key/status reconciliation remain
+  gates; no workload was started.
   The historical investigation notes below record how the superseded SE
   hypothesis was ruled out.
 
@@ -1210,12 +3792,80 @@ range, since the plan files' internal numbering did not change.
   skips. This confirms the installed migration/capability contract but does
   not close the comprehensive-CSV regeneration/re-audit gate or validate a
   newer checkout/native pair.
+  **Fresh checkout-R/current-native migration rerun, 2026-10-20:**
+  `test-incid-kk-modified-poisson-migration-golden.R` passed all 35 assertions
+  with `pkgload::load_all("R/EDI", compile = FALSE)` against the user's
+  freshly rebuilt native DLL (SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`). This
+  revalidates the current R migration/capability contract only; the complete
+  incidence comprehensive-row regeneration and exact-key audit remain open.
   - [ ] After a provenance-pinned post-fix package is installed, regenerate
     and reconcile the `InferenceIncidKKModifiedPoisson` comprehensive rows:
     unsupported score/gradient/LR/Bartlett/parametric-bootstrap rows must be
     absent and the supported Wald rows must remain. Record exact result keys
     and package/DLL provenance before re-auditing.
-- [ ] TODO-20 (added 2026-09-23, same audit-triage wave; original
+  - **Limited pilot, 2026-10-20 (not the release gate):** the current R source
+    was loaded with `pkgload::load_all(..., compile = FALSE)` against the
+    user-rebuilt native DLL (SHA-256
+    `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`).
+    One `pima` / `KK21stepwise` / `beta_T=0` / Wald runner cell emitted 8
+    `ok` rows covering the four model/design-formula combinations. The CSV is
+    in `/tmp/edi-v105-todo19-current-DgbXhW/`; this source-overlay smoke run
+    neither audits historical keys nor proves absent unsupported rows, so the
+    checkbox above remains open pending full installed-package regeneration
+    and reconciliation.
+  - **Installed-package regression, 2026-10-20:** the reinstalled EDI 1.0.3
+    package passed `test-incid-kk-modified-poisson-migration-golden.R` (35
+    assertions) via `library(EDI)` with no checkout-R overlay. Its installed
+    `EDI.so` SHA-256 matched the checkout DLL above. This validates the focused
+    migration/capability contract on the installed package; it still does not
+    audit comprehensive result keys or unsupported-row absence.
+  - **Installed comprehensive pilot, 2026-10-20:** direct `Rscript` execution
+    of `R/package_tests/comprehensive_tests.R` against installed EDI 1.0.3 for
+    `pima` / `KK21stepwise` / `beta_T=0` / rep 1, with all method families
+    selected and narrow mode, emitted 64 rows (16 distinct calls across four
+    formula combinations), all `ok`. Asymptotic/Wald calls remained; no score,
+    gradient, likelihood-ratio, Bartlett, or parametric-bootstrap rows were
+    emitted. Slow methods skipped by narrow mode are not covered by this
+    pilot. CSV: `/tmp/edi-v105-todo19-current-DgbXhW/`;
+    SHA-256 `42308b5901487f4e3e842c8153fad697762b9503a279a3b54d7c51e6ab6bb3c2`.
+    This is one representative cell, not the full exact-key reconciliation,
+    so the release checkbox remains open.
+  **Pilot exact-key subset audit, 2026-10-20:** the 64-row all-family CSV
+  contains 64 unique `id`s, all `ok`, across four class/formula labels. Its
+  eight Wald rows have exactly the same `id` set and non-telemetry fields as
+  the separate eight-row Wald-only pilot; only timestamps, durations, epochs,
+  heartbeat, and `run_row_id` differ. This reconciles the isolated pilot
+  subset, not the full supported-incidence matrix, and does not establish
+  package provenance or normal-mode absence of every unsupported family.
+  **Source-roster cross-check, 2026-10-21:** a bounded parse of this artifact
+  confirms 16 rows for each of its four formula pairs (`model_formula` ×
+  `design_formula` in `{~1, ~.}`), each with a distinct `function_run`:
+  estimate; asymptotic p-value/CI; Wald p-value/CI; jackknife estimate and
+  Wald p-value/CI; randomization p-value at default and `delta=0.5`; and
+  Bayesian-bootstrap p-value (default, symmetric, Wald) and CI (default,
+  basic, Wald). All 64 IDs are unique and `status=ok`; the eight Wald-family
+  IDs equal those in the co-located Wald-only pilot. This verifies only the
+  observed pilot keys against the runner's operation set. It is still one
+  dataset/design/beta/replicate and has no EDI DLL hash, so the source-derived
+  430,080-row candidate roster is unverified against a full post-fix result.
+  The estimated 21.2-hour/318-MiB class-filtered run remains the only
+  identified closure path, pending adequate isolated-disk headroom and
+  provenance.
+  The installed migration golden was rerun with
+  `testthat::test_file(..., package = "EDI")` and passed 35 assertions against
+  EDI 1.0.3 (DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`).
+  Full provenance-pinned installed regeneration and exact-key reconciliation
+  remain the release gate; no canonical output was changed.
+  **Latest installed migration-golden recheck, 2026-10-21:**
+  `test-incid-kk-modified-poisson-migration-golden.R` passed all 35
+  expectations against installed EDI 1.0.3 with no failures, warnings, or
+  skips. Loaded `EDI.so` SHA-256 was
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  This confirms the installed migration/capability contract only; it does
+  not close the full comprehensive-row regeneration/reconciliation gate.
+- [x] TODO-20 (CLOSED 2026-10-21 by owner decision: not reproducible; added 2026-09-23, same audit-triage wave; original
   `fit_warm_keep` hypothesis **REFUTED 2026-09-23 by direct code trace,
   high confidence** — new alternative lead, medium confidence, not yet
   reproduced; tracked as an open investigation, not a fix plan, in
@@ -1285,13 +3935,70 @@ range, since the plan files' internal numbering did not change.
   not a Type-I-error test; the fixture also differs from the historical
   comprehensive-test DGP. Details and denominators are in
   `../bug_fix_plans/investigate_contin_quantile_regr_bootstrap_family_inflation.md`.
-  TODO-20 remains open without a fix or dismissal of the historical finding.
-- [ ] TODO-21 (added 2026-09-23, same audit-triage wave; reservoir-
-  singleton hypothesis **REFUTED 2026-09-23 by code trace AND direct
-  reproduction, high confidence on the code being correct — but the
-  historical inflation finding itself is now UNCONFIRMED, not
-  reproduced**; tracked as an open investigation, not a fix plan, in
-  `bug_fix_plans/investigate_incid_kk_gee_bootstrap_family_inflation.md`):
+  **Installed direct-reference recheck 2026-10-20:**
+  `Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-continuous-quantile-regr-reference-and-weighted-refit.R")'`
+  passed 14 assertions against EDI 1.0.3, covering independent unweighted and
+  weighted `quantreg::rq` references plus rank-deficient/insufficient-df
+  guards. It does not exercise the historical `~.` DGP or BRT p-value path,
+  and provides no Type-I-error replication or root-cause evidence. The exact
+  historical dataset/design/DGP/seed schedule remains unrecovered, so this
+  installed-package check does not dismiss or reproduce the 428-row finding.
+  **Aggregate reconciliation, 2026-10-20:** the checked-in audit baseline has
+  two distinct 428-row Quantile BRT cells. Its `~.` rows at
+  `R/package_tests/comprehensive_results_audit_baseline.csv:1137-1139` report
+  rejection rates 0.185 (ordinary), 0.285 (studentized), and 0.294
+  (symmetric-percentile-t), matching this plan's finding. Separate `~1` rows
+  at `:1153-1155` report 0.033 (ordinary), 0.047 (studentized), and 0.065
+  (smoothed); they are not the rows summarized by the plan. This resolves the
+  apparent formula-label discrepancy in favor of the existing `~.` target;
+  do not relabel either cell. The aggregate still lacks per-row dataset,
+  design, seed, and DGP provenance, so it does not recover the exact
+  historical run or establish a cause. No replay or correction to canonical
+  results is claimed. The linked plan now pins the inspected aggregate
+  baseline's SHA-256 and Git source commit and distinguishes the retained
+  50-case/12-draw TODO-20 pilot artifacts from that historical aggregate.
+  At this 2026-10-20 audit checkpoint, TODO-20 remained open without a fix or
+  dismissal of the historical finding; the owner later closed it as not
+  reproducible on 2026-10-21, as recorded above.
+  **Simulation redo, owner-requested:** Fresh 300-rep true-null simulation 2026-10-21 (Pima, n=120, tied and jittered glucose, ~1 and ~bmi+age, rand and three BRT variants): all 16 rejection rates 0.027-0.073, no tie effect; historical 0.185/0.285 NOT reproduced. Details in the linked investigation. **Owner decision 2026-10-21: closed as not reproducible.**
+  **Tie-sensitivity evidence reconciliation, 2026-10-21:** the tracked
+  audit-baseline target is specifically `model_formula=~.`: its 428 beta_T=0
+  rows report rejection rates 0.185 (ordinary BRT), 0.285 (studentized), and
+  0.294 (symmetric-percentile-t). The distinct `~1` cells are 0.033/0.047/0.065;
+  this resolves the formula-label ambiguity but not the anomaly's source. The
+  2026-10-14 retained pilot (`/tmp/edi-v105-todo20/same_draws.csv`, SHA-256
+  `9e119ac4cf6e35b82ab52d8842f3b9bb95e426ed9a067678f3d37560c186a398`, plus
+  summary `e78612509a57e2fcf7292d577ff4a2fcfdd5788388b1a08187f5753d74184c62`)
+  is 50 cases × 12 shared BRT draws across Quantile/OLS/RobustRegr on an
+  exploratory `~1` fixture. All 600 fits/SEs per estimator were finite and
+  within-case duplicate/tie correlations were near zero; with only 12 draws,
+  this is a fit/tie diagnostic, not a calibrated p-value or Type-I-error
+  comparison. The 2026-10-21 300-replicate tied-vs-jittered Pima run also uses
+  another dataset/design/formula set and B=101; its rates 0.027–0.073 with no
+  tie effect do not reproduce the historical `~.` cell. The 14-assertion
+  direct/weighted `quantreg::rq` reference test validates point-fit paths, not
+  the three BRT p-value methods or their coverage. The baseline is pinned
+  (SHA-256 `6daf9c3d6caff7bd09a65afef066de818e53dbe7d7e15b0a9b1dddac321cf125`,
+  commit `11f61e0a0dfa08b36c893cd7e9ced783662e9248`), but it is aggregate-only:
+  no exact historical dataset/design/DGP/seed-level rows are retained. Thus
+  confirmed without a new simulation: the candidate mechanism is with-
+  replacement BRT duplication/tie sensitivity (the separate `fit_warm_keep`
+  lead is refuted), the formula target is `~.`, and the existing pilots do
+  not support a Quantile-specific tie effect on their own fixtures. Historical
+  replay, calibrated coverage, and any causal disposition remain gated on
+  recovering the exact inputs and predeclaring case/draw counts, calibration
+  decision rules, multiplicity, estimator-parity tolerances, and tie-association
+  threshold. Do not substitute TODO-49's separate confidence-interval coverage
+  findings or `quantreg` SE discussion for this BRT p-value replay gate. No new
+  simulation, build, test run, or canonical output was made.
+- [x] TODO-21 (CLOSED 2026-10-21 by owner decision: historical inflation not reproducible; the separate 2026-10-20 scalar-resampling kernel defect stays on its own validation; added 2026-09-23, same audit-triage wave; pair-vs-singleton
+  grouping hypothesis **REFUTED 2026-09-23 by code trace AND direct
+  reproduction, with a separate scalar-resampling defect found 2026-10-20**.
+  The historical inflation claim was not reproduced and is closed by the
+  recorded owner decision; the missing original input limits independent
+  historical replay, but does not block that disposition. The separate
+  scalar-resampling fix still has its own native-provenance gate. Details in
+  `bug_fix_plans/investigate_incid_kk_gee_bootstrap_family_inflation.md`:
   `InferenceIncidKKGEE` shows the same consistent-direction
   bootstrap-family inflation shape as TODO-20
   (`compute_bayesian_bootstrap_two_sided_pval_wald` 0.314,
@@ -1299,16 +4006,22 @@ range, since the plan files' internal numbering did not change.
   `compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t` 0.185 —
   all vs. nominal 0.05, from historical `comprehensive_tests` CSV rows).
 
-  **Refuted**: read the full chain —
+  **Pair-grouping hypothesis refuted**: read the full chain —
   `design_matching_abstract.R:55-114` (separates reservoir-singleton
   indices from matched-pair row pairs, both cached in
   `init_matching_bootstrap_structure()`) and
   `bootstrap_match_indices.cpp:92-130`
-  (`draw_matching_bootstrap_sample_cpp`, the actual C++ resampler). This
-  is textbook-correct cluster bootstrap: reservoir singletons resampled
-  i.i.d. with replacement, matched pairs resampled as intact 2-member
-  units with fresh relabeled pair IDs. No mishandling of the singleton
-  case found.
+  (`draw_matching_bootstrap_sample_cpp`, the actual C++ resampler). Matched
+  pairs are preserved intact and receive fresh relabeled pair IDs. **New
+  source finding (2026-10-20):** direct R semantics show that
+  `sample(c(7L), size=4, replace=TRUE)` samples from `1:7`, not from the
+  singleton row index. The kernel used this form for reservoir indices. A
+  focused regression exposed the defect (4/4 sampled indices were not 7);
+  the checkout C++ source now samples positions and maps back to row indices.
+  The focused test against installed EDI 1.0.3 therefore fails on the old
+  native artifact. No native rebuild was run, so the source fix is not yet
+  validated. This finding does not establish that it caused the historical
+  .306/.314/.185 rates.
 
   **Direct reproduction could NOT reproduce the historical inflation
   either**: a fresh true-null `InferenceIncidKKGEE` fixture
@@ -1320,7 +4033,8 @@ range, since the plan files' internal numbering did not change.
   not inflated. Neither run is remotely close to the historical
   0.306-0.314.
 
-  **Open question, not yet checked**: the reproduction fixture used a
+  **Historical replay limitation (not a blocker to the recorded closure)**:
+  the reproduction fixture used a
   single simple covariate and default settings, while the flagged
   historical rows were at `model_formula=~1` AND `~.` (both flagged,
   different rates) on whatever specific dataset the harness used for
@@ -1334,17 +4048,111 @@ range, since the plan files' internal numbering did not change.
   classes (`InferenceCountPoissonKKGEE`, `InferenceOrdinalKKGEE`,
   `InferencePropKKGEE`) show the same historical pattern.
 
-  **Bottom line**: this may be resolved/noise, may need the exact
-  triggering dataset to reproduce, or may not be a real defect at all —
-  genuinely unclear. Do not write a plan file without first pulling the
-  exact historical dataset/design/formula and confirming the inflation
-  reproduces on it.
-  - [ ] Recover the stamped historical input or obtain an owner-approved
-    equivalent with dataset, design, both formulas, DGP, seed schedule,
-    commit/runtime, denominator, and pooling rules. Replay the flagged rates;
-    if they reproduce, check the three KKGEE siblings and near-collinearity
-    before deciding whether to create a fix plan. Do not infer a defect from
-    the simplified null pilots.
+  **Recorded disposition**: the 2026-10-21 owner decision closes the
+  historical-inflation claim as not reproducible on the available evidence.
+  The original trigger remains unverified because the stamped input is
+  unavailable; this limits historical attribution but does not leave TODO-21
+  open. If the investigation is reopened, recover the stamped input or an
+  owner-approved equivalent with dataset, design, both formulas, DGP, seed
+  schedule, commit/runtime, denominator, and pooling rules before replaying
+  the flagged rates or checking the three KKGEE siblings. Keep that optional
+  historical replay separate from validation of the scalar-resampling fix.
+  **Independent resampling-invariant check, 2026-10-20:** the focused
+  `test-matching-bootstrap-draw-grouping-and-match-stats-kernels-reference.R`
+  passed 1,216 expectations against installed EDI 1.0.3. Its 200-draw fixture
+  verifies reservoir singleton sampling and intact matched-pair resampling
+  with fresh pair IDs. This supports the already-refuted singleton-handling
+  hypothesis only; it does not replay the historical KKGEE rates or supply
+  current-checkout native provenance. The exact stamped historical input (or
+  an owner-approved equivalent preserving dataset, design, both formulae,
+  DGP, seeds, runtime, denominator, and pooling rule) is still required.
+  No historical CSV, broad simulation, or canonical output was read or
+  written.
+  **Current installed-artifact singleton regression recheck, 2026-10-20:**
+  the same focused test passed 1,216 expectations with 0 failures, warnings,
+  or skips against installed EDI 1.0.3. The loaded `EDI.so` SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041` matches
+  checkout `R/EDI/src/EDI.so` byte-for-byte. It validates the singleton-index
+  resampling fix plus intact-pair/RNG invariants in the available artifact;
+  the hash match does not provide a build manifest. It does not reproduce or
+  attribute the historical rates. The stamped input and complete DGP, seeds,
+  denominator, and pooling provenance remain the blocker; no build/install,
+  simulation, historical CSV, or canonical output was used.
+  **Additional focused installed-package validation, 2026-10-20:**
+  `test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R`
+  passed 342 expectations (0 failures/warnings/skips; exit 0) against EDI
+  1.0.3 at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`.
+  Loaded DLL: `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  MD5 `a75519a9256c0b3121398032314291d4`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  Checkout HEAD when recorded: `4f7a6e4ca82829e880c15a76699701a95e5e83b9`.
+  This tests the installed artifact, not the checkout's native library, and
+  does not establish or attribute the historical .306/.314/.185 rates. Their
+  stamped raw input, DGP, seeds, denominator, and pooling rule remain missing;
+  keep the historical-attribution gate open.
+  **Current installed-artifact regression recheck, 2026-10-20:** the focused
+  `test-matching-bootstrap-draw-grouping-and-match-stats-kernels-reference.R`
+  passed 1,225 expectations across seven test blocks (0 failures, warnings,
+  or skips) against installed EDI 1.0.3. Command:
+  `Rscript -e 'cat("R:", R.version.string, "\nEDI:", as.character(utils::packageVersion("EDI")), "\npath:", find.package("EDI"), "\n"); testthat::test_file("R/package_tests/testthat_bulk/test-matching-bootstrap-draw-grouping-and-match-stats-kernels-reference.R", reporter="summary")'`.
+  R was `R Under development (unstable) (2026-10-13 r90668)`; package path
+  was `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. The installed
+  `libs/EDI.so` SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  byte-identical to checkout `R/EDI/src/EDI.so`. This newer run preserves the
+  earlier 1,216-expectation record above; neither run provides a build
+  manifest or reproduces/attributes the historical inflation. The stamped
+  input and complete DGP, seeds, denominator, and pooling provenance remain
+  the historical-attribution blocker. No build/install, broad simulation,
+  historical CSV, or canonical output was used.
+  **Checkout-R-source overlay recheck, 2026-10-20:** after
+  `pkgload::load_all("R/EDI", compile=FALSE, quiet=TRUE)`, the same focused
+  match-stat/reservoir test passed 1,225 expectations in seven blocks (0
+  failures/warnings/skips), with R Under development (2026-10-13 r90668), EDI
+  1.0.3, and namespace source path `/home/kapelner/workspace/EDI/R/EDI`.
+  Loaded existing DLL MD5: `8b3ca30492d7b1c790deeebe94b201ad`. This is
+  checkout-R-source evidence only; it does not validate the modified checkout
+  C++ fix or reproduce/attribute `.306/.314/.185`. The stamped historical
+  input and full DGP, seed/RNG state, denominator, and pooling provenance (or
+  maintainer-approved equivalent) remain open. No build/install, simulation,
+  historical CSV, or canonical output was used.
+  **Retained-input provenance recheck, 2026-10-20:** the 403-byte workspace
+  audit stamp (SHA-256
+  `ea3dd4ef6872c4a7e398fb20469ba438ed59d6f781bfe684811adf7b05a93b70`)
+  records only response-CSV names/sizes/mtime epochs; its incidence entry
+  expects 561,975,056 bytes at epoch `1790497128`. Metadata-only filename
+  checks found the current full CSV (525,863,531 bytes), older same-name
+  copies (525,208,409 and 27,124,848 bytes), and an identical copy of the
+  current file; none matches the stamp. No class-filtered historical
+  `InferenceIncidKKGEE` CSV or approved replacement manifest was found. The
+  1,225-expectation source-overlay test is resampling-mechanics evidence, not
+  empirical reproduction of the historical rates. Details are in the linked
+  plan. No large CSV, R process, simulation, or canonical output was used.
+  **Simulation redo, owner-requested:** Fresh 300-rep true-null simulation 2026-10-21 (Pima, n=148, KK21stepwise, ~1 and ~bmi+age, BB default/Wald and three BRT variants): rejection rates 0.043-0.067 at 0.05; historical .306/.314/.185 NOT reproduced. Details in the linked investigation. **Owner decision 2026-10-21: closed as not reproducible; the scalar-resampling kernel defect stays on its own validation.**
+  **Paired/singleton evidence reconciliation, 2026-10-21:** the focused
+  `test-matching-bootstrap-draw-grouping-and-match-stats-kernels-reference.R`
+  was rerun against installed EDI 1.0.3 and passed with no failures, warnings,
+  or skips. Its singleton fixture requires a sole reservoir row (`7`) to be
+  repeated, leaves the matched pair `[1,2]` intact with a fresh pair ID, and
+  the seeded reference checks preserve multi-row reservoir order/RNG state.
+  The loaded DLL SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94` matches
+  checkout `R/EDI/src/EDI.so`; its 2026-10-21 00:56 +0300 mtime is after the
+  modified C++ source's 2026-10-20 04:57 +0300 mtime, but no build manifest
+  proves the source revision. This current installed behavior supports the
+  separate scalar singleton-index fix and the structural claim that pairs
+  stay intact; the tests measure neither Type-I error/coverage nor runtime
+  performance. No retained artifact supplies a paired-vs-singleton timing
+  comparison. The 300-replicate Pima result is a statistical calibration
+  sample on a replacement fixture, not performance data or a replay of the
+  missing historical run. The only TODO-21-named `/tmp` CSV is a 298-byte
+  header with no attempt rows; the stamped historical CSV (561,975,056 bytes)
+  remains absent, and the tracked aggregate does not reproduce .306/.314/.185.
+  Thus grouping itself is refuted and current singleton mechanics pass the
+  installed regression, while historical inflation attribution/closure still
+  requires that stamped input or the maintainer's explicit disposition. No
+  benchmark, simulation, historical CSV, build, install, or canonical output
+  was performed for this recheck.
 - [x] TODO-22 (added 2026-09-23/24, found and fixed by a separate session
   working concurrently in this repo — not this file's own investigation;
   recorded here at user request so it has a release home): **KK survival
@@ -1462,6 +4270,325 @@ range, since the plan files' internal numbering did not change.
   TODO-5's broad coverage calibration and TODO-7's installed
   comprehensive-results regeneration also remain open, so this release item
   stays unchecked.
+  **Post-HEAD installed-native recheck, 2026-10-20:**
+  `test-rmst-se-mean-diff-kernel-and-complete-randomization-draw-kernels-reference.R`
+  passed 17 assertions with 0 failures, warnings, or skips against installed
+  EDI 1.0.3. The installed `EDI.so` SHA-256 is
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`; its
+  embedded build timestamp is `2026-10-19 23:31:50 IDT` (mtime
+  `23:47:15 IDT`), after checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` (`21:03:16 IDT`). The changed
+  native source, R helper, and test file are clean at HEAD. This supports
+  focused runtime validation of the user's reported post-HEAD reinstall, but
+  the package embeds no Git SHA; exact-source artifact provenance is still
+  insufficient for linked TODO-3. TODO-5 calibration and TODO-7 regeneration
+  remain open. No build/install, snapshot, or canonical output write was done.
+  **Checkout-R source overlay, 2026-10-20:** reran
+  `test-rmst-se-mean-diff-kernel-and-complete-randomization-draw-kernels-reference.R`
+  (17 assertions) after `pkgload::load_all("R/EDI", compile = FALSE,
+  quiet = TRUE)`; all passed with 0 failures, warnings, or skips. EDI reported
+  version 1.0.3 and loaded a temporary copy of the existing installed native
+  DLL. The installed DLL SHA-256 is
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`
+  (mtime `2026-10-19 23:47:15 +0300`). The relevant R helper, native source,
+  and test are clean at HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`.
+  This is focused checkout-R/installed-native runtime evidence, not proof
+  that the DLL was built from exact HEAD; the package embeds no Git SHA. It
+  does not close TODO-3's provenance gate, TODO-5's calibration, or TODO-7's
+  comprehensive regeneration. No build/install or canonical output write.
+  **Installed R-helper edge recheck, 2026-10-20:** the shared-horizon test
+  also covers an all-censored control arm and passed all 8 expectations
+  against installed EDI 1.0.3 (0 failures, warnings, or skips). The
+  `survival::survfit` reference confirms the all-censored arm's RMST is the
+  shared `tau`, and the R weighted-difference helper matches the reference
+  contrast. Installed `EDI.so` SHA-256 is
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  (mtime `2026-10-20 09:38:02 +0300`); checkout HEAD is
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This validates the installed R
+  helper only, not native-kernel behavior. A read-only `cmp` found the
+  installed DLL byte-identical to the ignored checkout artifact
+  `R/EDI/src/EDI.so` (same SHA-256 above; `cmp` exit 0). This establishes
+  binary equality to the local artifact, but the ignored `.so` has no embedded
+  build manifest/Git SHA, so its tracked-source build revision is not
+  authenticated and the exact-source/native gate remains open. No
+  build/install or canonical output write; TODO-3/5/7 remain open.
+  **Latest installed-native recheck, 2026-10-20:** the user's later reinstall
+  resolves to EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI` under R-devel
+  `r90668`; loaded `EDI.so` SHA-256 is
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+  (mtime `2026-10-20 10:40:08 +0300`). With that installed package attached,
+  `test-rmst-se-mean-diff-kernel-and-complete-randomization-draw-kernels-reference.R`
+  passed 17 expectations with no failures, warnings, or skips. The relevant
+  tracked native/R/test files remain clean at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, but the package and DLL do not
+  embed a Git SHA, so this current runtime check still cannot authenticate the
+  binary against exact HEAD. TODO-3 provenance, TODO-5 calibration, and TODO-7
+  regeneration remain open. No build/install or canonical output write.
+  **Coverage-accounting audit, 2026-10-20:** the linked plan's BCa diagnostic
+  reports both finite-only rates (33/35 and 34/36) and all-replication rates
+  after counting invalid intervals as noncoverage (33/120 and 34/120). The
+  generic `SimulationFrameworkReport` does not implement that policy: its
+  finite-calibration test uses five CI rows, excludes two non-finite intervals,
+  and reports `n_cov=3`, coverage 2/3, with the binomial denominator 3. Existing
+  RMST tests verify estimates, intervals, and fallback routing on fixed
+  fixtures, not empirical coverage classification. No RMST calibration raw
+  rows or driver were found in the targeted `/tmp` filename audit, so the
+  stored tabulation is not independently reproducible from retained artifacts.
+  Use an explicit all-replication denominator and record invalid counts in
+  TODO-5 acceptance; no calibration was run.
+  **Checkout-R source-overlay recheck, 2026-10-20:** ran the existing
+  `test-simulation-report-finite-calibration-reference.R` after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; it passed with
+  no failures. Runtime was R Under development (2026-10-13 r90668), EDI 1.0.3,
+  checkout namespace `/home/kapelner/workspace/EDI/R/EDI`; temporary loaded
+  DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This is focused checkout-R/installed-native evidence for the generic
+  report's finite-only denominator, not all-attempts RMST calibration or a
+  regenerated empirical result. TODO-5 calibration and TODO-7 row regeneration
+  remain open. No build/install, simulation, or canonical output write.
+  **One-key pilot preflight, 2026-10-20 (not run):** selected exact current
+  manifest key `rep=1, beta_T=0, dataset=diamonds, response=survival,
+  design=Bernoulli, design_formula=~1,
+  InferenceSurvivalRestrictedMeanDiff [design_formula=~1],
+  compute_wald_confidence_interval`. The `/tmp` runbook is
+  `/tmp/edi-todo23-rmst-pilot-preflight-20261020.md`. The runner has no
+  formula selector, so its one-rep `wald` invocation also emits the companion
+  `~.` branch and any other wald-family attempts; preserve all rows/statuses,
+  including invalid intervals. This was a bounded row-retention diagnostic,
+  not a coverage estimate; no R process or output had been created at preflight
+  time while the R slot was reserved. TODO-5 remains open for its multi-method
+  120-rep study, all-attempts denominator, and owner-approved
+  precision/acceptance criteria.
+  **Completed isolated diagnostic pilot, 2026-10-20:** the later scratch run
+  `/tmp/edi-todo23-rmst-pilot.0alSnq/` emitted one rep for the designated
+  `diamonds × beta_T=0 × survival × Bernoulli` case, with both `~1` and `~.`
+  formula branches and Wald p-value/CI attempts. Its `run.log` ends with
+  “All tests complete!”; the output CSV is 3,361 bytes. No matching provenance
+  sidecar or package/source/native identity receipt is present. This confirms
+  only that the isolated one-rep harness path completed; it is diagnostic,
+  not coverage/acceptance or a provenance-pinned cohort. No CSV payload was
+  read and no canonical result was changed.
+  **Acceptance criteria (owner decision 2026-10-21, TODO-5 calibration):**
+  - **Denominator:** accept on the **all-attempts** denominator. Every attempted
+    replicate counts; an invalid, non-finite or missing interval counts as
+    noncoverage (the BCa diagnostic is 33/35 = 94% finite-only but 33/120 = 27.5%
+    all-attempts, the gap being almost entirely invalid intervals). The generic
+    `SimulationFrameworkReport` finite-only rate (invalid excluded) is not
+    acceptance evidence for this item.
+  - **Invalid fraction:** report the invalid count per method family and cap it
+    separately: a family fails if more than 5% of attempts yield an invalid
+    interval (5% cap confirmed by the owner 2026-10-21: keep 5%, conventional and strict).
+  - **Precision / replicates:** target a 95% binomial half-width of about 2
+    points at coverage 0.95, i.e. at least 457 attempted replicates per method
+    family (120 replicates gives only about +/-4 points). A family passes when
+    its exact binomial interval for all-attempts coverage contains 0.95.
+  **Invalid-fraction diagnostic, 2026-10-21:** the retained seed-23002,
+  120-attempt installed-package summary reports ordinary BCa with 85/120
+  invalid intervals (70.8%) and Bayesian BCa with 84/120 (70.0%); the other
+  listed methods report 120 finite intervals. A separate seed-23003
+  four-method diagnostic explicitly reports 120/120 finite intervals. These
+  summaries show that the proposed 5% cap would reject the two BCa families
+  in the pilot, but they are not source/native-pinned and do not establish
+  full calibration. No raw per-replicate RMST rows or driver were found for
+  independent reconstruction. The 5% cap is now confirmed (owner, 2026-10-21), so the BCa families must
+  cut their invalid rate below 5% to pass; the gate
+  still requires a provenance-pinned post-fix run with at least 457 attempts
+  per family and all-attempts coverage analysis.
+  **Diagnostics follow-up (v1.1.0):** `release_v1_1_0.md → TODO-3` (diagnostics
+  chain; `optimizer_diagnostics_report.md` failure mode 8, non-finite bootstrap
+  replicates, and `public_diagnostics_api_spec.md`) should record a typed reason
+  per invalid interval, making the 5% cap diagnosable. It will not itself bring
+  the BCa invalid rate under 5%.
+  **Source-derived operation-roster preflight, 2026-10-20 (scratch only):**
+  `/tmp/edi-todo23-source-attempt-operation-manifest.csv` contains 18 current
+  source-derived full-route survival CI `function_run` candidates, compared
+  in `/tmp/edi-todo23-source-attempt-comparison.csv` and
+  `/tmp/edi-todo23-source-attempt-comparison.txt`. Thirteen match explicit
+  historical CI labels; the plan's grouped rand-bootstrap-t wildcard does
+  not specify the exact BRT membership, and the source roster also includes
+  a Bayesian-bootstrap studentized candidate not individually named there.
+  The historical target is 16 keys, so the exact roster cannot be recovered
+  from the current wildcard/table without guessing. Maintainer input is
+  needed to provide or approve the exact historical `function_run` keys
+  before an anti-join. This manifest is operation-level only, not a complete
+  result-key/reconciliation or post-fix artifact receipt. TODO-7 remains open;
+  no canonical CSV was read or written for this preflight.
+  **Expanded full-grid source preflight, 2026-10-20 (scratch only):**
+  `/tmp/edi-todo23-source-attempt-full-key-manifest.csv` expands the 18
+  current operation candidates over the current runner defaults: 9 survival
+  datasets, `beta_T` 0 and 0.5, default `Nrep=40`, seven tested designs, and
+  `~1`/`~.` design-formula paths. The 10,080 source case dimensions produce
+  181,440 unique candidate full keys. Generator and summary:
+  `/tmp/edi-todo23-full-key-manifest.R` and
+  `/tmp/edi-todo23-source-attempt-full-key-summary.txt`. A 16-operation
+  roster on this same grid would conditionally contain 161,280 keys, not a
+  historical target; `Nrep=40` is a current-source default, not an attested
+  historical run setting. The exact historical 16 operation names and grid
+  dimensions remain unresolved, so no exact key anti-join is possible. Keep
+  historical row reconciliation and TODO-7 open pending the exact approved
+  historical roster/grid. No canonical CSV was read or written for this
+  preflight.
+  **Read-only retained-artifact reconciliation audit, 2026-10-21:** the
+  canonical `R/package_tests/comprehensive_tests_results_nc_1_survival.csv`
+  remains the recorded pre-fix artifact (372,209,537 bytes; mtime
+  2026-09-27), and no matching comprehensive-run provenance sidecar is
+  present beside it. The retained source-derived manifest has 181,440
+  candidate keys for 18 current-source operations; the 161,280-key count for
+  16 operations is conditional on the current default grid and is not an
+  attested historical target. The exact historical `function_run` roster and
+  grid/attempt dimensions are still missing, including the maintainer's
+  choice resolving the grouped rand-bootstrap-t wildcard and studentized
+  Bayesian-bootstrap candidate. Obtain that approved roster and historical
+  grid before an exact anti-join; after TODO-56 releases shared artifacts,
+  regenerate to an isolated output with provenance and reconcile full keys,
+  statuses, and obsolete-method removals. No result payload was read or
+  modified; TODO-23 remains unchecked.
+  **Operation-label reconciliation detail, 2026-10-21:** the linked plan's
+  historical table names these 13 CI operations exactly:
+  `compute_wald_confidence_interval`,
+  `compute_asymp_confidence_interval`,
+  `compute_subsampling_confidence_interval`,
+  `compute_bayesian_bootstrap_confidence_interval_bca`,
+  `compute_bayesian_bootstrap_confidence_interval_wald`,
+  `compute_bayesian_bootstrap_confidence_interval`,
+  `compute_bayesian_bootstrap_confidence_interval_basic`,
+  `compute_bootstrap_confidence_interval`,
+  `compute_bootstrap_confidence_interval_bca`,
+  `compute_bootstrap_confidence_interval_basic`,
+  `compute_m_out_of_n_bootstrap_confidence_interval`,
+  `compute_bootstrap_confidence_interval_studentized`, and
+  `compute_jackknife_wald_confidence_interval`. Its
+  `compute_rand_bootstrap_confidence_interval*` row is an aggregate wildcard,
+  not a list of exact keys; `compute_rand_two_sided_pval(custom)` is a
+  separate p-value reference and is not a CI operation. The 18 current
+  source candidates are the 13 exact names above plus
+  `compute_bayesian_bootstrap_confidence_interval_studentized` and four
+  current BRT names: `compute_rand_bootstrap_confidence_interval`,
+  `compute_rand_bootstrap_confidence_interval_studentized`,
+  `compute_rand_bootstrap_confidence_interval_symmetric-percentile-t`, and
+  `compute_rand_bootstrap_confidence_interval_smoothed`. This resolves the
+  source-candidate comparison, but source alone did not establish which of
+  the five additional names appeared in the historical 16-operation summary.
+  The plan's historical coverage table does not declare the original
+  dataset/design/formula/beta/replicate grid or `Nrep`; the current 9-dataset,
+  seven-design, two-formula grid and `Nrep=40` are source defaults only. The
+  retained-artifact scan below now identifies the low-coverage summary's
+  exact 16 operation names, but not whether that summary or every raw-present
+  CI operation defines release reconciliation, nor an authoritative single-
+  run grid. Maintainer approval is still required before anti-join or
+  regeneration; no historical grid is inferred from the merged raw union.
+  **Retained-artifact operation/grid reconciliation, 2026-10-21 (read-only):**
+  the 756,199-byte `R/package_tests/comprehensive_results_audit_baseline.csv`
+  (mtime 2026-09-24) has exactly 16 `low_coverage` rows for this class. They
+  are the 13 explicit CI names listed above plus three BRT names:
+  `compute_rand_bootstrap_confidence_interval`,
+  `compute_rand_bootstrap_confidence_interval_studentized`, and
+  `compute_rand_bootstrap_confidence_interval_smoothed`. Their summary Ns are
+  583, 511, and 583 respectively. Thus the historical wildcard maps to these
+  three in the low-coverage summary; it does not include the fourth
+  `compute_rand_bootstrap_confidence_interval_symmetric-percentile-t`, and
+  the summary has no row for
+  `compute_bayesian_bootstrap_confidence_interval_studentized`.
+  **However,** the 372,209,537-byte canonical raw survival CSV (mtime
+  2026-09-27) contains all five additional exact `function_run` labels as
+  successful rows: 1,565 rows for Bayesian studentized, and 592 rows for
+  each of the four BRT variants. Across the 18 source-candidate operations,
+  the filtered metadata inventory finds 20,496 rows, all status `ok`; the
+  observed union spans rep 1–50, beta 0/0.5, three datasets
+  (`abalone`, `diamonds`, `pte_example`), seven designs, two formulas (`~1`,
+  `~.`), 52 observed case-context cells, and 1,610 rep-context keys. This is
+  an observed union, not a complete Cartesian grid: the raw file spans
+  18 distinct GitHub commit IDs and timestamps from 2026-08-24 through
+  2026-09-27, with no matching comprehensive-run provenance sidecar. The
+  16-name audit summary therefore resolves its own coverage-report roster,
+  but the merged raw table proves the two omitted methods also had historical
+  result rows. `comprehensive_suite_coverage.csv` contributes only a
+  class-level workflow count (50,850 rows), not operation-level keys. These
+  artifact dimensions differ from the current-source preflight's nine
+  datasets and `Nrep=40`; neither may be silently substituted for a
+  provenance-pinned historical run manifest. **Maintainer choice required
+  before reconciliation:** confirm whether TODO-23's affected-method target
+  is the audit's exact 16 low-coverage operations (explicitly excluding the
+  two raw-present methods above), or all 18 source/raw candidate CI operations;
+  also confirm which historical run/grid and attempt statuses define the
+  anti-join, rather than treating the merged raw union as a single run. No
+  result payload was read, no fit/regeneration or canonical write occurred,
+  and TODO-23 remains open.
+  **Scenario-independent key reconciliation guard, 2026-10-21:** added
+  `validate_todo23_attempt_reconciliation.R` and a standalone pure-R
+  reference test. The helper exact-key anti-joins an explicitly supplied
+  expected roster against event and result rows, surfaces missing/extra and
+  duplicate results, permits completed retries, and reports orphan terminals
+  and starts without terminals. Its fixture passed 11 assertions with
+  `load_helpers=FALSE` and no EDI package/native load. This validates only
+  reconciliation mechanics; it neither selects TODO-23's historical
+  operation/grid target nor resolves the empirical scenario freeze. The
+  calibration, current-native provenance, and stale-row regeneration gates
+  remain open; no canonical results were read or written.
+  **Attempt-lifecycle overlap regression, 2026-10-21:** extended the existing
+  standalone pure-R reconciliation test with `started, started, terminal` for
+  one operation key. It asserts that the overlapping start is still reported
+  as unclosed/overlapping even when the single terminal and result counts
+  match. The focused file passed all 38 expectations; its existing bulk
+  correctness/coverage manifest entries were confirmed. This validates one
+  previously unasserted lifecycle branch only; the 16-vs-18 historical
+  operation/grid choice, provenance-pinned post-fix artifact, calibration,
+  and canonical reconciliation remain open. No fit, simulation, build/install,
+  or canonical result access/write occurred.
+  **Pure-R reconciliation recheck, 2026-10-21:** the standalone
+  `test-todo23-attempt-reconciliation-reference.R` passed 50 assertions with
+  0 failures/warnings/skips under
+  `timeout 120s Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo23-attempt-reconciliation-reference.R")'`.
+  It sources the pure-R reconciler directly; test SHA-256
+  `682fb06990de0ab8f1203470d6638d8fb1d2c5b202c24a3c2797f8fa354dc7e2`, helper
+  SHA-256 `8529ed5ff430755d7ea0457052864e544ff796a27bbc81c999163ad55171e03d`.
+  This validates synthetic exact-key and attempt-lifecycle mechanics only; no
+  historical result artifact, calibration, or canonical output was read or
+  written. The 16-vs-18 historical roster choice, provenance-pinned current
+  run, calibration, and stale-row reconciliation remain open.
+  **Retained-artifact provenance follow-up, 2026-10-21:** the 18-operation
+  source candidate `/tmp/edi-todo23-source-attempt-operation-manifest.csv`
+  has SHA-256
+  `0096afb20a18676b0e879aee122d931529fb542730fc447400d779d84104ba10`; its
+  comparison CSV SHA-256 is
+  `35f771c6d354cbd20fb4362d80f3f02bd879639b26d9347b81e39a208cd0bcd7` (text
+  SHA-256 `86a6860c7508fac8e461a551de01928a8a211826f2702a389f510c3ed4389d5a`).
+  The expanded current-source candidate
+  `/tmp/edi-todo23-source-attempt-full-key-manifest.csv` has 181,440 keys and
+  SHA-256 `99871ef30ab3ebd065edb527d5e9424d5dc08de6aeb4351d8dd8192b155b4a5b`;
+  generator/summary are `/tmp/edi-todo23-full-key-manifest.R` and
+  `/tmp/edi-todo23-source-attempt-full-key-summary.txt`. Its 9 datasets,
+  beta 0/0.5, default 40 reps, seven designs, and two formulas are not
+  historical run provenance; 16 operations/161,280 keys is conditional only.
+  The sole scratch result is
+  `/tmp/edi-todo23-rmst-pilot.0alSnq/comprehensive_tests_results_nc_1_survival_filtered_design-Bernoulli_class-InferenceSurvivalRestrictedMeanDiff_dataset-diamonds_beta-0_rep-1_family-wald.csv`:
+  four rows across `~1`/`~.` (Wald p-value and CI; SHA-256
+  `7ae942b4e7073ce6b390ab27feb5285b7d0920d31ca443645e85eb99ef2e7c32`). Its
+  completed run log SHA-256 is
+  `b68f7a92810821c9fb41fa7e04cfe9f74308c1a4b3eba2b354ce678bd7e89864` and
+  reports EDI 1.0.3; CSV commit metadata is `4f7a6e4ca82829e880c15a76699701a95e5e83b9`.
+  No attempt-event receipt, run sidecar, package/library identity, or DLL hash
+  accompanies it, so this is not provenance-pinned calibration/reconciliation.
+  The canonical `R/package_tests/comprehensive_tests_results_nc_1_survival.csv`
+  is the pre-fix mixed artifact (372,209,537 bytes, mtime 2026-09-27, 18
+  commits; no matching run sidecar). Only recorded metadata was used here; its
+  row payload was not read or merged. The maintainer must choose the exact
+  16 low-coverage operations versus all 18 current/raw-present operations and
+  supply/approve the historical grid and attempt/status roster. Then run the
+  full affected slice in an isolated directory with current package/R/DLL
+  identity and event receipt before exact-key reconciliation. TODO-23 remains
+  open; no canonical artifact was read or changed.
+  **Pure-R validator contract recheck, 2026-10-21:** with no R/Rscript
+  process active beforehand and no compile/install, the parent reran
+  `test-todo14-attempt-result-provenance-reference.R` (12 expectations) and
+  `test-todo23-attempt-reconciliation-reference.R` (50 expectations); both
+  completed cleanly. These synthetic tests cover generic receipt/result
+  provenance and TODO-23 exact-key/event-lifecycle mechanics only. They do
+  not attest retained RMST outputs, resolve the 16-vs-18 operation/grid
+  decision, validate current native provenance, or provide empirical
+  calibration evidence. The post-fix full run and reconciliation remain open.
   - [ ] Re-run the predeclared multi-method coverage calibration with a
     provenance-pinned post-fix package, and evaluate invalid intervals rather
     than dropping them. Then validate the shared-horizon behavior on current
@@ -1584,11 +4711,120 @@ range, since the plan files' internal numbering did not change.
   artifact; it is not a rebuilt-checkout native validation and does not close
   the separate TODO-8 50-rep, two-formula-by-three-operation result matrix.
   No comprehensive run or canonical output was touched.
-  - [ ] Regenerate the documented 50-rep matrix (two formulas × three
-    jackknife operations) into a fresh `/tmp` output using a provenance-pinned
-    post-fix package; audit exact keys and statuses, then perform separately
-    authorized canonical reconciliation without overwriting the existing
-    filtered rows.
+  **Isolated installed-package matrix, 2026-10-20:** the exact 50-rep,
+  two-formula/three-operation matrix was run into
+  `/tmp/edi-todo26-matrix-9NDMSE/`; all 300 unique rows were `ok`, with finite
+  estimates/CI endpoints and p-values in [0,1]. The result summaries showed no
+  catastrophic outlier, but no threshold is inferred. The installed package
+  was EDI 1.0.3, build stamp 2026-10-19 23:31:50 IDT, DLL MD5
+  `dfd5bf4384b5a0cc0d430fd70dab2a59`; the CSV's `github_commit_id` is the
+  harness checkout SHA, not the loaded package/DLL source revision. See the
+  linked plan for exact command, output SHA, metrics, and the distinction
+  between installed evidence and current-head native validation. This advances
+  the isolated matrix only; canonical reconciliation remains separately
+  authorized and open.
+  **Additional installed-package reference check, 2026-10-20:**
+  `test-kk-weibull-marginal-cpp-and-survreg-fits-cluster-robust-se-agreement-and-guards-reference.R`
+  passed 19 assertions (0 failures, warnings, or skips) against installed
+  EDI 1.0.3. The deterministic `set.seed(8)`, `n=80` test compares the C++
+  treatment estimate and cluster-robust SE to an independent `survreg`
+  reference, plus no-cluster/missing-treatment guards. R-devel r90668;
+  library `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; DLL MD5
+  `a75519a9256c0b3121398032314291d4`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`;
+  checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This DLL differs
+  from the one used for the 300-row isolated matrix (MD5
+  `dfd5bf4384b5a0cc0d430fd70dab2a59`), so this adds an installed-package
+  estimator-reference check only; it is neither historical-result parity nor
+  current-checkout native validation. It does not close TODO-26's linked
+  TODO-8 canonical regeneration/reconciliation gate.
+  **Post-reinstall focused installed-package recheck, 2026-10-20:** the
+  jackknife arm-event and no-event/fit-failure guard tests passed 16 and 4
+  assertions, respectively; the independent C++/`survreg` estimator-reference
+  test passed 19 (39 total, no failures, warnings, or skips). Installed EDI
+  remains version 1.0.3 (Built 2026-10-20 07:40:04 UTC); loaded DLL MD5
+  `8b3ca30492d7b1c790deeebe94b201ad`, SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  byte-identical to ignored checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This improves focused installed
+  validation only; no package Git SHA attests the installed R-layer source.
+  The isolated matrix's source provenance and formula-specific truth review,
+  plus separately authorized exact-key canonical reconciliation, remain open.
+  **Checkout-R source-overlay recheck, 2026-10-20:** the independent
+  `test-kk-weibull-marginal-cpp-and-survreg-fits-cluster-robust-se-agreement-and-guards-reference.R`
+  passed all 19 assertions (0 failures, warnings, or skips) after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. The deterministic
+  `n=80`, seed-8 C++ estimate/cluster-robust-SE comparison against independent
+  `survival::survreg` and its guard checks therefore passed with checkout R
+  sources. The loaded temporary DLL MD5 `8b3ca30492d7b1c790deeebe94b201ad`
+  matches the installed/checkout DLL, SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  No build/install, matrix run, or canonical write occurred. This adds
+  focused source-overlay evidence only; authenticated installed R-layer
+  provenance and formula-specific truth review for the isolated matrix, and
+  separately authorized exact-key canonical reconciliation, remain open.
+  **Matrix-era provenance search, 2026-10-20:** the documented isolated output
+  directory contains only the CSV (no provenance sidecar, install log, or
+  package-source manifest); the prepared `/tmp/edi-todo26-ready-BouNHE/` tree
+  contains a runbook only. The current installed 1.0.3 build is later than the
+  matrix and its DLL SHA-256 `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+  differs from the matrix-era DLL MD5 recorded above. Retrospective installed
+  R-layer attribution is therefore unavailable. Safe rerun gate: after
+  TODO-56 is terminal, pin installed R-layer/source, package/library, DLL,
+  runner, and helper identities in a fresh manifest/sidecar, then regenerate
+  only into a new isolated directory; canonical reconciliation remains
+  separately authorized. No CSV payload was read and no rerun or canonical
+  write occurred.
+  **Class-specific formula-routing regression, 2026-10-21:** broadened the
+  existing coverage-truth registry test to include
+  `InferenceSurvivalKKWeibullMarginal` with its `DesignFixedBinaryMatch`
+  registry entry. The focused file passed 76 expectations while its
+  `library(EDI)` attachment was suppressed; no EDI package or native code was
+  loaded. The stubbed-simulator assertions pin `design_formula=~1` to
+  `real_X=NULL`, `~.` to the real toy covariate matrix, and bare labels to the
+  adjusted cache entry, while checking registry `mc_n=3000`. This verifies
+  formula-aware dispatch only, not the historical `coverage_truth` numbers.
+  The original `test-comprehensive-proportion-coverage-truth-reference.R`
+  remains registered in `R/package_tests/ci/test_runtimes.csv` for correctness
+  (120 seconds) and coverage (240 seconds). This is only its existing
+  registration, not the separate TODO-10 retry/cache/RNG assertions; neither
+  registration establishes measured line hits.
+  For this matrix's `beta_T=0` stratum, source review derives the analytical
+  treatment-coefficient truth as exactly zero for both `~1` and `~.`. The
+  serialized formula-specific `coverage_truth` values are one-replicate fitted
+  estimates from the MC truth generator, not exact truth; the retained CSV is
+  diagnostic only for truth, and no coverage impact is inferred. Matrix-era
+  package/R/DLL provenance and TODO-8 exact-key/canonical reconciliation
+  remain open; canonical values are unchanged.
+  - [ ] Complete TODO-8 reconciliation. The 2026-10-20 isolated run already
+    contains all 300 expected keys/statuses, but its `github_commit_id` is the
+    harness checkout SHA, not the installed package's source revision; the
+    installed EDI 1.0.3 build/DLL identity is recorded but does not authenticate
+    the R-layer source used for the fix. The linked plan also records the
+    formula-specific `coverage_truth` values. Source inspection of
+    `R/package_tests/_dataset_load.R` and
+    `R/package_tests/comprehensive_tests.R` establishes the exact null target
+    (`0`) for both formula paths; the stored values are one-replicate MC fitted
+    estimates and remain diagnostic only. Do not infer a coverage-count impact
+    or rewrite them as canonical truth. Obtain/verify the post-fix
+    package-source provenance; rerun the matrix only if that provenance cannot
+    be established for the existing output. Then perform a separately authorized
+    exact-key canonical reconciliation without overwriting the existing
+    filtered rows. No rerun or canonical write is authorized by this note.
+  **Independent read-only matrix audit, 2026-10-21:** the extant isolated CSV
+  was rehashed and checked against the declared grid: 300/300 unique keys and
+  IDs, reps 1–50 × two formula labels × three jackknife operations, all
+  `status=ok`; `error_message` is the serialized missing marker `NA`. The
+  matrix directory contains only that 220,422-byte CSV (SHA-256
+  `b017896390779fd24afed7f3126d8633c65de0bd7b11fbe5b607dcef694fe4ed`), with
+  no sidecar, install log, or source manifest. The prepared `/tmp` runbook
+  directory cited in the linked plan was absent at this check. The existing
+  300/300 comparison is against the pre-fix canonical cohort and establishes
+  key coverage only—not installed R-source identity or merge authorization.
+  The analytical null truth is now established as zero; the matrix's stochastic
+  `coverage_truth` fields are diagnostic estimates, and no coverage impact is
+  inferred. Keep provenance and separately authorized canonical reconciliation
+  open.
 - [x] TODO-27 (added 2026-09-24, conclusively refuted 2026-10-08):
   **Historical audit output reported** moderate Type-I error inflation
   (~2.6× nominal, reject rate ~0.13) for
@@ -1861,7 +5097,8 @@ baseline as expected/benign.
   below `8e-7`; the better reference-start fits had higher reported gradients
   (0.0475 and 0.0313), so convergence/gradient interpretation remains part of
   TODO-31's residual. Its linked plan records the full kernel-level settings
-  and results. TODO-50 stays open pending TODO-31 resolution and canonical
+  and results. TODO-50 stays open pending TODO-31's broader validation/native
+  gate and canonical
   comprehensive-CSV reconciliation.
   **Read-only TODO-31 row/provenance inventory 2026-10-18:** the root
   canonical count CSV contains 14,206 matching `InferenceCountKKGLMM` rows
@@ -1878,10 +5115,57 @@ baseline as expected/benign.
   CSV `github_commit_id` records source HEAD, not the native library actually
   loaded, so this inventory establishes stale source attribution, not native
   artifact identity; separately record the built/loaded native artifact on
-  regeneration. No result CSV or baseline was changed. Policy resolution,
-  current-head native validation, and row regeneration/audit remain open.
-  - [ ] Close TODO-31's Poisson local-optimum/start-policy decision, validate
-    the selected policy on the broader four-kernel grid, and reconcile the
+  regeneration. No result CSV or baseline was changed. The 1.0.5 acceptance
+  policy is owner-approved; current-head native validation and row
+  regeneration/audit remain open.
+  **Coverage-denominator reconciliation note, 2026-10-21:** after the
+  provenance-stamped CountKKGLMM/OrdinalKKCLMM rows are regenerated with native
+  provenance, recompute the affected coverage findings using current
+  `audit_one()` semantics and reconcile attempts with finite truth, finite
+  bounds, and covered counts. A separate read-only audit of retained
+  ZeroInflatedPoisson rows found status-ok attempts with finite truth but
+  missing intervals; the saved aggregates used only finite-bound denominators,
+  unlike the current source rule, which counts those attempts as uncovered.
+  This is an audit-pipeline/version warning, not evidence about the targeted
+  KKGLMM/ordinal rows and not a replacement for the TODO-31 native-validation or
+  TODO-50 provenance-stamped regeneration gates.
+  **TODO-50 retained-artifact disposition, 2026-10-21:** the two canonical
+  files contain 83,327 targeted rows total (14,206 CountKKGLMM + 69,121
+  OrdinalKKCLMM); all are `ok` with unique `id`/`run_row_id`, but every row's
+  `github_commit_id` predates fix `e706c6f67a6798eea666921155c259a751476feb`
+  and current HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. Count CSV:
+  mtime 2026-09-27 11:17:02 +0300, SHA-256
+  `684e7fa07ea616d0743c226bae4a5300360ad7906d6d166872e4399ec144fba3`;
+  ordinal CSV: mtime 2026-10-09 01:12:24 +0300, SHA-256
+  `5da4c24e4e078bb47c18f8d8a5f78775c511d46c05e11bed40e0fe67c74111ce`.
+  The canonical rows do not bind loaded-DLL identity. The retained 29,440-row
+  candidate-strata CSV has SHA-256
+  `5d0760ec7b2e750fe096c28bd67b5a38d309a67aaa856c3d5fc15974fab662bb`
+  (mtime 2026-10-20 14:56:52 +0300), but lacks `function_run` and attempt
+  identities; its README supplies neither generator nor source hashes and
+  cites the now-dirty `comprehensive_tests.R`, so it is not current-source
+  attestation. No post-fix comprehensive output/sidecar is retained. CI
+  `38808821543` at descendant commit `430c19bcdb0702d998c79f9058c449449034134c`
+  is regression/build evidence only, not row reconciliation. Exact
+  reconciliation therefore awaits an isolated post-fix run with package/R/DLL
+  provenance and complete attempted-key/terminal-state output; no result file
+  was changed and TODO-50 remains open.
+  **TODO-50 inventory recheck, 2026-10-21 (read-only):** only
+  `/tmp/edi-todo50-source-strata.8DTD1J/` remains under the matching `/tmp`
+  prefix, with README plus the 29,440-row candidate-strata CSV. The candidate
+  and canonical CSV hashes still match the recorded inventory. Current raw
+  source hashes are `comprehensive_tests.R`
+  `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221` and
+  `_dataset_load.R`
+  `7e3cf603ef384c369c4435dc5ca0b541d9248bbda9e5db7f3c17b2b41628bdda`;
+  however, the candidate README has no generator/source hashes, so its
+  29,440 strata cannot be attributed to those current bytes. The canonical
+  files remain without adjacent run-provenance sidecars. This does not add a
+  current-source attempt roster or post-fix result output. The full
+  `function_run`/terminal-outcome roster, provenance-stamped regeneration,
+  and exact reconciliation remain open; no result or canonical file changed.
+  - [ ] Validate the owner-approved 20-vs-320 parameter bound on the broader
+    four-kernel grid with current-head native provenance, and reconcile the
     provenance-stamped CountKKGLMM/OrdinalKKCLMM comprehensive rows; then
     confirm TODO-50's historical umbrella findings remain dispositioned in
     the baseline audit.
@@ -1933,11 +5217,78 @@ baseline as expected/benign.
     and seed/provenance, or obtain approval for a replacement targeted study.
     Test the six named groups and seven-class addendum separately; implement
     no shared fix unless a common mechanism is reproduced.
-  - [ ] For the historical `InferencePropBetaRegr` lead, run the six corrected
-    one-replicate proportion-response pilots in isolated `/tmp` outputs; time
-    the B=151 generic LR-bootstrap cell first. Inspect the actual affected
-    p-value/coverage results before deciding whether a post-fix calibration
-    study or source change is warranted.
+  - [x] Run the six corrected one-replicate proportion-response pilots in
+    isolated `/tmp` outputs, timing B=151 first. All 63 result rows are `ok`
+    with no errors; `FixedBinaryMatch` skips `design_formula=~1` as expected
+    and runs `design_formula=~.` with both model formulas. Full per-cell counts, durations, output
+    roots, and the remaining calibration limitation are in the linked plan.
+  - [ ] Inspect these pilot outputs against an owner-approved calibration
+    criterion, then decide whether a larger post-fix calibration study or a
+    source change is warranted. Six one-replicate cells cannot establish
+    calibration or resolve the missing historical replay provenance.
+  - [x] Fix the filtered-runner beta no-op: an explicit `beta_T=0.3` filter
+    was silently skipped because the default sweep contains only `0` and
+    `0.5`. The runner now uses the explicit filter as its sole beta value and
+    rejects malformed/non-finite values; the focused regression passes 8
+    assertions. The first corrected Bernoulli B=151 pilot completed with 18
+    `ok` result rows (6 parametric-bootstrap, 12 companion bootstrap). The
+    full six-cell pilot produced 63 error-free rows; `FixedBinaryMatch` skips
+    `design_formula=~1` because that design path lacks covariates. Malformed beta
+    CLI input now fails closed. These pilots validate execution/timing only.
+    **checkout-source recheck 2026-10-20:**
+    `pkgload::load_all("R/EDI", compile = FALSE)` followed by
+    `testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-beta-filter-reference.R")`
+    passed 8 expectations (0 failures, warnings, or skips). The beta helper
+    was sourced from this checkout; available installed EDI 1.0.3 was at
+    `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, built
+    2026-10-19 23:31:50 IDT under R-devel r90668, `EDI.so` MD5
+    `dfd5bf4384b5a0cc0d430fd70dab2a59`. No compile/install occurred; this is
+    filter-contract evidence only and adds no historical or calibration claim.
+    The post-fix calibration/source decision remains open. Isolated artifacts:
+    `/tmp/edi-v105-todo52-pilot-fixed-beta-NuLaVN/`.
+    **Read-only artifact integrity recheck, 2026-10-20:** all six isolated
+    CSVs were present and parseable (63 rows total; all `status=ok`, no
+    nonempty `error_message`); all report checkout commit
+    `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. SHA-256 values and exact
+    per-design/family counts are recorded in the linked plan. No package/DLL
+    provenance sidecar exists in those roots, so this confirms retained bytes
+    and row/status integrity only—not installed-binary identity, calibration,
+    or a reproducible historical replay.
+  **Source/reference/artifact gate audit, 2026-10-21:** the plan's source
+  review rules out only TODO-28's stale `cached_design_matrix` mechanism; it
+  does not establish a shared cause across the six named findings or the
+  heterogeneous seven-class KKGLMM/KKCLMM addendum. Existing independent
+  estimator references (including the `betareg`/quasibinomial/G-computation
+  proportion-class suite) check estimator/interval behavior, not the flagged
+  method-family rejection/coverage cells. The eight-assertion beta-filter
+  regression validates explicit `beta_T` selection in the runner, not
+  inference calibration. The retained 63-row pilot matrix is exclusively
+  `InferencePropBetaRegr`, `airquality`, `beta_T=0.3`, one outer replicate,
+  across Bernoulli/FixedBinaryMatch and `lik_ratio`,
+  `parametric_bootstrap` (B=151), and Wald; it establishes execution and
+  `status=ok`/error-free outputs, not null behavior or nominal size. Its CSVs
+  carry the checkout commit but have no package/DLL provenance sidecar; the
+  historical row-level CSVs retain some cell labels and run metadata but not
+  assignments, outcomes, or RNG state sufficient for exact replay. Thus the
+  next gate is to recover the original per-cell fixture/DGP/seed/provenance or
+  obtain maintainer approval of a replacement study and its calibration
+  criterion, then study the flagged groups separately before proposing any
+  source change. No independent calibration reference, additional source
+  defect, or post-fix full-grid artifact was established here; no test,
+  simulation, or canonical result access was performed for this audit.
+  **Independent pilot-key audit, 2026-10-21 (read-only):** rechecked the six
+  retained CSVs and run logs. The combined 63 rows have 63 unique full keys
+  (`rep`, `beta_T`, dataset, response, design, inference-class/formula label,
+  and function run), with per-file counts 6/18/6/9/12/12, `rep=1`,
+  `beta_T=0.3`, `airquality`, `InferencePropBetaRegr`, and `status=ok` in all
+  rows; serialized `error_message` is `NA`. Each pilot has an adjacent
+  `run.log` showing its filtered arguments and terminal completion. The
+  malformed-beta log is only a rejected-input smoke check. No pilot directory
+  contains a package/DLL provenance sidecar or RNG-state receipt, so the
+  checkout commit does not authenticate the loaded package or enable exact
+  replay. This closes only the observed pilot key/status check, not recovery
+  of historical DGP/seed/assignment inputs or the owner-approved replacement
+  study/calibration-criterion gate. No canonical artifact was changed.
 
 - [ ] TODO-31 (added 2026-09-24, from an audit of test-file comments; four
   tests pin it as `SUSPECTED SOURCE BUG (pinned, not fixed)`): **Random-effect
@@ -1989,15 +5340,159 @@ baseline as expected/benign.
   **Optimizer-mode limitation, 2026-10-18:** the new exact-NLL test currently
   calls the kernel with its default L-BFGS optimizer; it does not exercise the
   production `InferenceCountKKGLMM` Newton path. A saved Newton probe using the
-  added GLM beta candidate reports exact NLL 312.754654 versus 312.749004 for
-  the `glmer` candidate at seed 41003 (gap about 0.00565, above the linked
-  plan's 1e-3 material threshold; gradient norm 1.731). This probe is not a
+  added GLM beta candidate reports a 40-node kernel objective (`neg_loglik`)
+  of 312.754654 versus 312.749004 for the `glmer`-started fit at seed 41003
+  (gap about 0.00565, above the linked plan's 1e-3 material threshold;
+  gradient norm 1.731). These are not independently integrated exact NLLs.
+  This probe is not a
   current-checkout native validation, but it means the present change does not
   yet establish optimizer-independent acceptance. The sigma-by-n runner also
   labels `strictly_worse` at 1e-6 while the plan's material threshold is
   1e-3; compare raw likelihood gaps under the declared threshold before
-  interpreting its classification. Keep TODO-31 open until the Newton path
-  is covered and the optimizer policy passes the full grid.
+  interpreting its classification. The owner-approved 1.0.5 policy keeps the
+  default and optimizer/start behavior unchanged; validate its 20-vs-320 bound
+  on the broader grid with current-source/native provenance before closing
+  TODO-31.
+  **Metric reconciliation, 2026-10-20:** the old probe and the new exact-NLL
+  regression use the same Poisson GLMM fixture (seed 41003; `n=200`, 40 groups
+  of five), but they are not the same numerical cell. The probe fitted at
+  `n_gh=40` and compared approximate kernel objectives for supplied GLM and
+  glmer starts; its 312.754654 result has a finite-quadrature gradient norm
+  of 1.731. The regression fits at `n_gh=320` and compares independently
+  integrated exact marginal NLL to the `glmer(nAGQ=25)` parameter candidate.
+  A read-only installed-artifact rerun confirms this distinction: for a cold
+  Newton fit at `n_gh=40`, reported objective was 312.754653511, but exact
+  integrated NLL was 312.919277091 versus 312.828220611 at the glmer candidate
+  (gap 0.091056480); at `n_gh=320`, exact NLL was 312.828220610 (gap
+  `-1e-9`) and gradient norm `2.47e-8`. The seed-41008 Newton/L-BFGS exact
+  gaps at 320 nodes were `4.245e-6` / `4.333e-6`; all four seed/optimizer
+  cases pass the test's `1e-4` exact-NLL allowance. Thus the older 0.00565
+  is a 40-node approximate-objective gap, while the new test's 1e-4 is an
+  independently integrated high-quadrature criterion; neither supersedes the
+  other. The test uses installed EDI 1.0.3 `EDI.so` SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`,
+  byte-identical to checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; this identity does not attest
+  the source/build chain. The 1.0.5 optimizer/start behavior is owner-approved
+  and unchanged; the broader four-kernel grid, current-source/native provenance,
+  and comprehensive-row gates remain open.
+  **Fixed-coordinate contract subgate, 2026-10-20:** the same focused
+  Poisson GLMM test now supplies a caller warm start and fixes the log-sigma
+  coordinate at `log(0.6)`. It requires exact preservation of the fixed value
+  and agreement between the reported kernel objective and independent exact
+  marginal NLL within `1e-6`. The file passed 24 assertions (0 failures,
+  warnings, or skips) against installed EDI 1.0.3; no build/install occurred.
+  This is a policy-neutral fixed-parameter contract check, not evidence that
+  the 40-node Newton cold fit meets the glmer candidate or that the source/build
+  chain is current. The owner-approved optimizer/start policy remains unchanged
+  for 1.0.5; four-kernel sigma-by-n characterization, current-source/native
+  provenance, and comprehensive-row reconciliation remain open.
+  **Fresh installed-native exact-NLL regression rerun, 2026-10-20:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-poisson-glmm-fit-quadrature-convergence-and-glmer-agreement-reference.R", package = "EDI")`
+  passed all 29 expectations (0 failures, warnings, or skips) against installed
+  EDI 1.0.3. The installed `EDI.so` SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041` is
+  byte-identical to checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This focused run covers the
+  320-node seed-41003/41008 exact-NLL fixtures under Newton and L-BFGS; it does
+  not itself validate the 1.0.5 20-vs-320 acceptance bound, current-source/native
+  provenance, or the broader grid/canonical-row gates. The owner-approved
+  optimizer/start policy remains unchanged.
+  **Installed-package exact-NLL regression recheck, 2026-10-21:** reran the
+  same focused file via `timeout 180s Rscript -e` with `library(EDI)` and
+  `testthat::test_file(..., reporter = "summary")`; all 29 expectations passed
+  (0 failures, warnings, or skips). Runtime package was EDI 1.0.3 from
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded `EDI.so`
+  MD5 `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`,
+  mtime `2026-10-21 09:43:34 +0300`. The focused test file SHA-256 was
+  `40111009586499512e27258409339c8e25f5ecbcb01889c0918432678606eef2`;
+  checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This is a
+  newer/different installed artifact than the 2026-10-20 run, but does not
+  attest its R-source/build chain or validate current-checkout native code.
+  No build/install or canonical result generation occurred. The 20-vs-320
+  parameter bound, broader four-kernel grid, current-source/native provenance,
+  and comprehensive-row reconciliation remain open.
+  **Installed production-quadrature measurement, 2026-10-20:** the installed
+  EDI 1.0.3 namespace (`Built: R 4.7.0; x86_64-pc-linux-gnu;
+  2026-10-20 07:40:04 UTC`) was exercised on the existing `n=200`, 40-group,
+  five-observation/group fixtures at seeds 41003 and 41008, using the shipped
+  20-node setting and `optimization_alg="newton_raphson"`. The loaded DLL
+  SHA-256 (`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`)
+  matches checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; the namespace still reports
+  version 1.0.3, so this identity alone does not prove the source/build chain.
+  Both fits reported `converged=TRUE`: seed 41003 had gradient norm 0.01319449,
+  reported 20-node NLL 312.0581, independent exact marginal NLL 312.8483, and
+  exact NLL 312.8282 at the `glmer(nAGQ=25)` candidate (gap +0.0201086); seed
+  41008 had gradient norm 0.008018855, reported NLL 378.0112, exact NLL
+  379.5786, and reference exact NLL 379.5325 (gap +0.0460531). These are
+  measurements, not the 1.0.5 pass/fail metric: the owner-approved acceptance
+  is 20-vs-320 parameter agreement, bounded at `0.75` SE per coefficient and
+  `0.10` for log sigma; `1e-4` exact-NLL remains only the optimizer-correctness
+  gate at 320 nodes. The existing optimizer and start policy are unchanged for
+  1.0.5. Retain the broader four-kernel sigma-by-n, current-source/native, and
+  comprehensive-row gates until validated with the required provenance.
+  **40-node criterion-scope check, 2026-10-20:** a minimal checkout-R
+  source-overlay (`pkgload::load_all("R/EDI", compile = FALSE)`) at seed
+  41003, `n=200`, 40 groups of five, `n_gh=40`, Newton requested reported
+  `converged=TRUE` in two iterations with gradient norm `1.73142`. The kernel
+  NLL `312.7547` matched an independently coded R 40-node Gauss-Hermite
+  evaluation; that approximation was `0.2912` lower at the returned fit than
+  at the `glmer(nAGQ=25)` parameters (`313.0458`). Independent exact NLL
+  reversed the ranking: `312.9193` versus `312.8282` (gap `+0.09106`). This
+  exceeds the `1e-3` grid marker and `1e-4` exact-NLL allowance numerically,
+  but the former was used for boundary-stop classification and the latter is
+  the optimizer-correctness gate at 320 nodes. This is a non-boundary 40-node
+  diagnostic, not an accepted pass/fail cell. The shipped default is 20 nodes;
+  its exact-NLL gap is not the approved 1.0.5 comparator. The owner-approved
+  criterion is 20-vs-320 parameter agreement, with coefficient differences
+  bounded by `0.75` SE and log-sigma difference by `0.10`. Do not change shared
+  optimizer or convergence policy for 1.0.5. Validate the bound with
+  current-source/native provenance and complete the broader grid and result-row
+  reconciliation gates.
+  **Owner decision 2026-10-21 (cheap option for 1.0.5):** the 20-node (shipped)
+  acceptance is agreement with the 320-node optimum, not the 1e-4 exact-NLL rule
+  (which at 20 fixed nodes would measure quadrature error, not optimizer quality).
+  The default node count, optimizer and start policy are NOT changed in 1.0.5.
+  The 1e-4 exact-NLL rule stays as the optimizer-correctness gate at 320 nodes.
+  **Measured baseline 2026-10-21** (installed EDI 1.0.3, Poisson GLMM, seeds
+  41001:41010, Newton and L-BFGS agree to ~1e-3 SE): 20-node vs 320-node optimum,
+  max |intercept diff| 0.67 SE, max |slope diff| 0.62 SE (seed 41005), max |log
+  sigma diff| 0.084 (seeds 41007/41009 about 0.07); 40 nodes is no better (slope
+  up to 0.44 SE, log sigma up to 0.084). Two fits reported `converged = FALSE`
+  (seed 41007 Newton at 20 nodes; seed 41001 Newton at 40 nodes). A tight
+  tolerance therefore cannot gate the shipped setting; the 1.0.5 criterion is
+  the owner-approved non-regression bound at the measured level (|coefficient
+  diff| <= 0.75 SE and |log sigma diff| <= 0.10 on these ten fixtures) plus documentation of the
+  limitation. Real accuracy is deferred to adaptive quadrature, scheduled for
+  v1.2.0 as `performance_profiling_and_upgrades.md → TODO-153`. The numeric bound
+  was confirmed by the owner 2026-10-21 ("do (1) and revisit after todo153"):
+  |coefficient diff| <= 0.75 SE and |log sigma diff| <= 0.10, enforced by
+  `R/package_tests/testthat_bulk/test-poisson-glmm-20-node-vs-320-node-bound.R`
+  (seeds 41001:41010, Newton, 20 vs 320 nodes; 20 assertions pass on installed
+  EDI 1.0.3). **Revisit the bound after `performance_profiling_and_upgrades.md →
+  TODO-153` (adaptive quadrature, v1.2.0) lands.**
+  **Installed-package bound recheck, 2026-10-21:** reran that test with
+  `timeout 180s Rscript -e` and `library(EDI)`; all 20 assertions passed in
+  5.4 seconds. Installed EDI 1.0.3 came from
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded DLL SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`
+  (MD5 `bfea6f47ab8b27618d5d8633e9021f91`, mtime
+  `2026-10-21 09:43:34 +0300`), byte-identical to the ignored checkout
+  `R/EDI/src/EDI.so`. Test-file SHA-256 was
+  `96cf46c3b67ed6a219aeaaff4a871062b48f09f102452447543db1cd8be32509`;
+  checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This rechecks the
+  ten fixed Poisson seeds against the installed artifact, but neither DLL
+  equality nor this test proves the binary's build/source chain. The broader
+  four-kernel grid, current-source/native provenance, and comprehensive-row
+  reconciliation remain open; no build/install or canonical output occurred.
+  **Diagnostics follow-up (v1.1.0):** `release_v1_1_0.md → TODO-3` (diagnostics
+  chain) should surface this gap: `optimizer_diagnostics_report.md` failure mode
+  6 (quadrature/node-count inadequacy, currently undetected) and mode 2
+  (`converged = (niter < maxit)` mislabeling, which can hide the two
+  `converged = FALSE` fits above), via `→ TODO-1` and `SolverDiagnostics`
+  (`→ TODO-3`). Debugging aid only; adaptive quadrature stays the fix.
   **Read-only canonical-row provenance inventory 2026-10-18:** the count
   artifact has 14,206 `InferenceCountKKGLMM` rows (all `ok`, 14,206 distinct
   `id`s/307 `case_id`s, 2026-08-24–2026-09-27) and 22 distinct recorded
@@ -2011,12 +5506,37 @@ baseline as expected/benign.
   the source HEAD, not the native library loaded, so this does not establish
   native provenance or current-native acceptance. Keep the optimizer policy,
   native grid, and post-fix row regeneration/audit gates open.
-  - [ ] Resolve Poisson local-optimum cases at seeds 41003/41008 with an
-    optimizer/start policy that preserves already-correct fits, or obtain an
-    explicit scope decision separating that issue from the boundary-collapse
-    finding. Validate the selected policy on the broader four-kernel sigma-by-n
-    grid, then run current-head native tests and reconcile provenance-stamped
-    CountKKGLMM/OrdinalKKCLMM comprehensive rows.
+  **Read-only source/artifact identity audit, 2026-10-21:** the approved
+  20-vs-320 bound currently has a passing 20-assertion test only for ten
+  Poisson GLMM seeds, against an earlier installed EDI 1.0.3 DLL (`0e513077…`).
+  The prior 160-fit four-kernel grid is installed-package evidence without a
+  current-source build receipt; no provenance-stamped broader-grid output was
+  found in the bounded `/tmp` search. Current source files are clean at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; current installed and ignored
+  checkout `EDI.so` match at SHA-256 `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`
+  (14,727,184 bytes, 2026-10-21 14:12 +0300), but no build manifest attests
+  that DLL to the four source hashes. The existing post-fix CI run covers
+  focused fixture regressions, not the broad 20-vs-320 grid. Keep current-
+  source/native four-kernel bound validation and post-fix comprehensive-row
+  reconciliation open; no test, build, install, or canonical output was run
+  for this audit.
+  - [ ] Validate the owner-approved 20-vs-320 parameter bound (coefficient
+    differences <= 0.75 SE; log-sigma difference <= 0.10) on the broader
+    four-kernel sigma-by-n grid with current-head native provenance, then
+    reconcile provenance-stamped CountKKGLMM/OrdinalKKCLMM comprehensive rows.
+  **Ordinal CLMM representative-bound fixture, 2026-10-21:** broadened the
+  existing seeded ordinal CLMM reference file with one 40-group × 5-observation
+  fixture (seed 301). The 20-node slope is within 0.75 of the 320-node
+  treatment-coefficient SE and log sigma differs by at most 0.10; the 320-node
+  slope/log sigma also satisfy the existing independent `ordinal::clmm(nAGQ=25)`
+  reference tolerances. The focused file passed 38 expectations against
+  installed EDI 1.0.3 (library DLL SHA-256
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`). This
+  DLL matches ignored checkout `EDI.so`, but no build/source receipt exists;
+  classify as diagnostic installed-artifact coverage only. It covers one
+  ordinal CLMM fixture, not current-source/native acceptance, the other
+  non-Poisson kernels, the broader sigma-by-n grid, or comprehensive-row
+  reconciliation. No build/install or canonical output occurred.
 - [x] TODO-32 (added 2026-09-24, source fixed 2026-10-08): **`InferenceOrdinalRidit(
   reference = "treatment")` now uses a non-degenerate symmetric estimand** —
   `../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
@@ -2048,8 +5568,11 @@ baseline as expected/benign.
   TODO-1..4`. Previously, `high_precision_confirm_and_refine_ci_bound()` set
   `u2 <- m` on acceptance, right for a lower bound and wrong for an upper
   bound. The loop now branches by bound direction, and a controlled public-API
-  regression exercises both directions. Real-data reproduction of the inner
-  loop remains open. **Installed-package coverage recheck 2026-10-14:** a
+  regression exercises both directions by stubbing
+  `compute_randomization_ci_pval_cached`; it verifies controlled public
+  orchestration with injected p-values, not a real-data permutation-backed
+  trigger. Real-data reproduction of the inner loop remains open.
+  **Installed-package coverage recheck 2026-10-14:** a
   tier-1 `InferenceContinOLS` simulation (n=32, true effect 1, nominal 90%,
   500 replications, r=201, sequential MC plus full-precision confirmation)
   covered 461/500 (92.2%; exact 95% interval 89.49%-94.39%), including
@@ -2091,12 +5614,176 @@ baseline as expected/benign.
   This validates current R source against the installed native artifact, not a
   rebuilt checkout or a real-data trigger. The TODO-56-gated `trees` search
   below remains open; no trigger search or comprehensive output was run here.
-  - [ ] After TODO-56 terminates and host load is suitable, run the bounded
-    20-seed `trees` public-API search and retain a candidate only if it enters
-    upper-bound inner refinement with finite full-precision endpoints that
-    bracket the threshold. If a trigger is found, preserve replay inputs and
+  - [x] Bounded 20-seed `trees` public-API trigger search, 2026-10-19:
+    installed EDI 1.0.3, seeds 20261081:20261100, `r=1001`,
+    `pval_epsilon=0.005`; 0 errors and 0 eligible upper-bound inner-refinement
+    triggers. All upper calls stopped at the cheap p-span check, with two
+    fresh full-precision endpoint evaluations and zero midpoint evaluations.
+    No candidate/replay RDS was produced. The invocation returned normally,
+    but the scratch metadata has no explicit exit-code footer. Script,
+    metadata, and CSV are under `/tmp/edi-todo33-ready-20261016/`; their
+    SHA-256s are `4cedea54f53f0c3a7a6397fb165c25d5b72270d332b6c095b48121279a08645c`,
+    `cbaf672d1b8587ab6c337b72560aea29a5291365df013eb39a6b771fa208fe97`, and
+    `b99e918046108aca4cfc52971b8534be3d78f3d65d52ffaf8dc631033f071f3e`,
+    respectively. This closes only the bounded-search substep: it found no
+    real-data trigger and does not establish branch inaccessibility or validate
+    current-checkout native code. TODO-33 remains open pending a
+    trigger-producing fixture; if one is found, preserve replay inputs and
     pause for review before the old-branch counterfactual or repeated-trial
     coverage study.
+  **Installed-package recheck, 2026-10-20:**
+  `Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-rand-ci-bisection-and-high-precision-refinement-reference.R", reporter = "summary")'`
+  passed 37 expectations against EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` MD5
+  `a75519a9256c0b3121398032314291d4`. This is controlled/stubbed p-value and
+  cache-contract evidence only; no model/permutation fit, real-data trigger,
+  or calibration was run. It does not close TODO-1 or the trigger/replay gate.
+  **Early-stopped-cache isolation regression, 2026-10-20:** broadened the
+  linked bisection reference file with a fixture that places tolerance-small
+  noisy Monte-Carlo endpoint p-values in the caller cache, then verifies that
+  full-precision confirmation uses its own cache and refines to an independent
+  step crossing. It also checks that full-precision evaluations share their
+  fresh cache without changing the two caller-cache entries. The focused file
+  passed 37 expectations (0 failures, warnings, or skips) with
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; p-values are
+  stubbed, with no model/permutation fit or calibration run. This closes only
+  the test-contract gap; the real-data trigger/replay gate remains open and
+  TODO-33 stays unchecked.
+  **Additional bounded packaged-data search, 2026-10-21:** the retained
+  `datasets::CO2` probe screened 8 new seeds on `uptake ~ conc + Treatment +
+  Plant` (n=84; `r=501`, epsilon 0.005, sequential MC). All calls were
+  error-free; cheap-span, full-span, and upper-width conditions occurred
+  6/8, 1/8, and 6/8 times, with 0 joint triggers. Every confirmation used
+  two full-precision endpoints and no midpoint; no trigger bundle was saved.
+  The exact settings, command, log hash, loaded DLL provenance, and strict
+  joint trigger definition are recorded in
+  `../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md`. This is
+  another bounded negative screen, not evidence of unreachability or coverage;
+  TODO-33 remains open for a real trigger, old-branch replay, and repeated-trial
+  coverage comparison.
+  **Installed-package diagnostic rerun, 2026-10-21:** the focused test file
+  was run with `Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-rand-ci-bisection-and-high-precision-refinement-reference.R")'`
+  against installed EDI 1.0.3 (welcome banner): 6 failures, 0 warnings, 0
+  skips, 54 passes. This does not validate current-checkout R source; no DLL
+  hash/path was captured. The then-current fixture diagnostics saw 11 scorer
+  records vs 3 cached full calls, t0s lengths 500 and 50 vs the 501-draw
+  oracle, two full-call p-value/oracle discrepancies (0.2480 vs 0.251 and
+  0.0533 vs 0.251), and the unresolved 4.43 vs 4.04 upper-bound difference.
+  The test instrumentation was then corrected to distinguish the MC control
+  requested by the outer call from the control active at scorer entry; that
+  correction is unvalidated. Current-source validation is still needed to
+  determine whether these are stale-installed-R-layer effects or genuine
+  behavior. TODO-33 remains unchecked; do not treat these results as a trigger,
+  replay, or calibration result.
+  **Current-checkout-R/current-user-native focused recheck, 2026-10-21:** after
+  confirming no R/Rscript process was active and 16 GiB remained on `/tmp`,
+  ran the focused reference file through
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` followed by
+  `testthat::test_file("R/package_tests/testthat_bulk/test-rand-ci-bisection-and-high-precision-refinement-reference.R", reporter = "summary")`.
+  The test completed successfully with no failures reported. The loaded EDI
+  namespace was `/home/kapelner/workspace/EDI/R/EDI`, version 1.0.3; the
+  temporary DLL was `/tmp/RtmpFsnInz/pkgload25ba783c6/EDI.so`, MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`,
+  byte-identical to both checkout `R/EDI/src/EDI.so` and installed EDI's
+  `libs/EDI.so`. No compilation, install, or canonical output write occurred.
+  This validates the corrected focused fixture against checkout R and the
+  current user-built native library only; it does not establish a real-data
+  strict-refinement trigger or close old-branch replay and repeated-trial
+  coverage gates. TODO-33 remains unchecked.
+  **Negative-search provenance contract, 2026-10-21:** added a TODO-33-only
+  pure-R sidecar helper and extended the existing bisection/refinement
+  reference test. Completed searches, including zero-trigger searches, now
+  have a contract for before/after package/source-payload/DLL/checkout
+  provenance, the actual search-runner SHA-256, run settings/environment,
+  input data, all per-seed results, and trigger replay paths (which may be
+  empty). The focused filtered test passed 9 expectations with installed EDI
+  1.0.3; this is a pure-R contract test and does not establish current-checkout
+  package provenance or validate a real-data search. A scratch integration is
+  staged at `/tmp/edi_todo33_trigger_search_with_provenance_20261021.R`; it
+  preserves the existing trigger-positive replay branch and writes a separate
+  no-overwrite sidecar. No real-data workload, build/install, or canonical
+  output write was performed. TODO-33 remains unchecked pending a real
+  permutation-backed trigger/replay and repeated-trial coverage evidence.
+  **Synthetic positive trigger/replay fixture, 2026-10-21:** broadened the
+  existing public-CI fixed-permutation test with a deterministic 8-by-501
+  assignment matrix that reaches upper strict refinement. The test writes and
+  reloads a replay bundle plus positive-trigger sidecar, then recomputes the
+  upper endpoint from the serialized inputs using a plain-R permutation oracle.
+  It also reproduces the pre-fix upper update from parent commit
+  `362c5d28fa6233d99d6d6815d1bffa02f5aa33ab`; the old result is on the accepted
+  side while the fixed endpoint is on the rejected side. The exact test passed
+  35 expectations through checkout R loaded with
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; there was no
+  build/install, real-data search, or canonical output write. This is synthetic
+  branch/replay and branch-divergence evidence only, not a natural-data trigger
+  or coverage result. The real-data old-branch replay and repeated-trial
+  coverage gates remain open; TODO-33 remains unchecked.
+  **Per-seed sidecar fail-closed guard, 2026-10-21:** the TODO-33 search
+  sidecar helper now rejects duplicate/missing seeds and missing trigger
+  outcomes before computing `trigger_count`; otherwise repeated or unknown
+  seed results could distort the search denominator/count. The existing
+  `test-rand-ci-bisection-and-high-precision-refinement-reference.R` now
+  covers both invalid cases. Its installed-package run exposed three failures
+  in the unrelated refinement-fixture section; the complete file then passed
+  with checkout R loaded via
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. This validates
+  the pure-R sidecar contract without a build, real-data search, or canonical
+  output write; TODO-33's real-data trigger/replay and coverage gates remain
+  open.
+  **Installed-layer failure detail for that sidecar-guard turn, 2026-10-21:**
+  the failing file was the same TODO-33 refinement reference file named above;
+  the installed-package output captured three failures in its unrelated
+  `scored_upper` fixture: expected length 3 but received 0; the `t0s` vector
+  comparison had lengths 0 vs 3; and indexing `scored_upper[[i]]` failed with
+  `subscript out of bounds` at test line 347. The captured reporter output did
+  not include a total expectation count, so none is inferred here. This is
+  distinct from the earlier installed diagnostic recorded above (6 failures,
+  54 passes), and from the 9-expectation installed sidecar-only test and the
+  later complete-file checkout-R/source-overlay pass. It does not change the
+  TODO-33 real-data trigger/replay or coverage gates.
+  **Failure triage:** these three errors are a single stale-installed-R-layer
+  cascade, not independent regressions or an invalid fixture. The installed
+  EDI 1.0.3 R layer does not propagate the supplied full-precision control
+  (`mc_enable = FALSE`) to the inference object's active MC state. The fixture
+  filters scorer records by that active control, so `scored_upper` is empty;
+  the 0-vs-3 `vapply` mismatch and subsequent out-of-bounds access follow. The
+  current checkout's `compute_randomization_ci_pval_cached()` scopes the passed
+  control onto the private state, and the recorded complete-file source-overlay
+  pass supports the fixture under current R source. This explains the installed
+  result only: the real-data trigger/replay and repeated-trial coverage gates
+  remain open.
+  **Positive-trigger replay-path guard, 2026-10-21:** the sidecar constructor
+  now rejects positive trigger results with no replay path and any supplied
+  replay path that is missing or a directory. A focused inline `Rscript -e`
+  test sourced `R/package_tests/todo33_trigger_search_provenance.R` and passed
+  6 expectations against installed EDI 1.0.3: negative-result/empty-path
+  acceptance, positive-result/empty-path rejection, nonexistent-file
+  rejection, and existing-bundle acceptance. This was a pure-R helper test;
+  no source load, build/install, model/permutation run, or canonical output
+  write occurred. No path-per-trigger rule was added because the current
+  schema does not associate replay paths with seed rows. This closes only the
+  validator subgate; the real-data trigger/replay/counterfactual and
+  repeated-trial coverage gates remain open, so TODO-33 remains unchecked.
+  **Retained trigger/replay inventory correction, 2026-10-21 (read-only):**
+  the CO2 negative-screen log's temporary `pkgload` DLL MD5
+  (`ea0e2f72d87d401db15557e0ecc151c9`) is not today's checkout/installed
+  artifact (both currently hash MD5 `a07120a2c7181f9992aa1c4993fcffdf`,
+  SHA-256 `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`).
+  The retained CO2 (8 seeds), mcycle (6), and swiss (6) logs are all negative
+  searches with 0 joint triggers; none has a provenance sidecar, trigger
+  replay path, or saved assignment/permutation inputs. The older trees bundle
+  likewise has no retained candidate or candidate inputs. The synthetic
+  replay fixture is not a natural-data trigger. Thus no real-data failure can
+  be reproduced from the retained artifacts. The next acceptance is a
+  provenance-stamped trigger-producing search on the approved source/native
+  pair, retaining exact replay inputs; then compare the current and old branch
+  before the separately required repeated-trial coverage assessment. Details
+  and retained log hashes are in
+  `../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md`. This
+  correction does not close the real-data trigger, replay, or coverage gates;
+  no search, build/install, or canonical write was performed.
 - [x] TODO-34 (added 2026-09-24, same audit; fixed 2026-10-07): **Interval-censored `compute_shared_icen()` blanket cache guard**
   — `../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
   TODO-1..4`. After `compute_estimate(estimate_only = TRUE)`, a later full
@@ -2109,13 +5796,203 @@ baseline as expected/benign.
 
 - [x] TODO-37 (added 2026-09-24, fixed 2026-10-07): **`inference_class_accepts_model_formula()` is always FALSE** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-3`. The predicate now inspects the effective R6 initializer, including inherited and lazy component methods. `run_all_inference_build_tasks()` now expands requested formulas for eligible classes; the focused regression test passes without compilation.
 
-- [x] TODO-38 (added 2026-09-24, test-comment audit; **reproduced 2026-09-24 under valgrind: heap overflow from an unvalidated `warm_start_params` length**, see plan TODO-4; **ZOIB kernel length checks implemented and verified 2026-09-24**, sibling source sweep completed 2026-10-09; installed-native recheck 2026-10-14): **Fresh-process crash in `fast_zero_one_inflated_beta_cpp()`** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-4`. In a fresh Rscript the kernel returned `neg_loglik = NaN` and `coefficients = NULL` on ordinary data (8/8 seeds) but not inside testthat, suggesting undefined behavior in the C++ kernel. The direct input-validation test passed 9 assertions against the reinstalled EDI package and under Valgrind Memcheck; the CRAN fast-math test passed 2 assertions. Codex did not compile/build/install. The class was previously verified not to pass malformed starts; the broad sibling-kernel validation remains tracked separately.
+- [ ] TODO-38 (added 2026-09-24, test-comment audit; **reproduced 2026-09-24 under valgrind: heap overflow from an unvalidated `warm_start_params` length**, see plan TODO-4; **ZOIB kernel length checks implemented and verified 2026-09-24**, sibling source sweep completed 2026-10-09; installed-native recheck 2026-10-14): **Fresh-process crash in `fast_zero_one_inflated_beta_cpp()`** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-4`. In a fresh Rscript the kernel returned `neg_loglik = NaN` and `coefficients = NULL` on ordinary data (8/8 seeds) but not inside testthat, suggesting undefined behavior in the C++ kernel. The direct input-validation test passed 9 assertions against the reinstalled EDI package and under Valgrind Memcheck; the CRAN fast-math test passed 2 assertions. Codex did not compile/build/install. The class was previously verified not to pass malformed starts; the broad sibling-kernel validation remains tracked separately.
   **Source implementation status 2026-10-09:** the ZOIB native guard remains
   fixed, and the successor plan `mixed_kernel_warm_start_shape_guards.md`
   records completed audit, native guard, orphaned-R-helper, and focused-test
   source work (TODO-1..4). Rebuilt-native kernel tests, ASAN/Valgrind, and
   installed comprehensive-CSV reconciliation (TODO-5..6) remain release
   gates, so this checkbox deliberately stays unchecked.
+  **Re-audit 2026-10-19 (unchecked; was wrongly `[x]`):** ZOIB guard
+  (`fast_zero_one_inflated_beta.cpp:434-435`) and its test exist. NOT DONE:
+  `mixed_kernel_warm_start_shape_guards.md` TODO-5 (rebuilt-native kernel
+  validation of the sibling kernels) and TODO-6 (ASAN/Valgrind and installed
+  comprehensive-CSV reconciliation).
+  **Matching-native ZOIB recheck, 2026-10-20:** the checkout's EDI 1.0.3
+  install recorded under TODO-63 (DLL SHA-256
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`)
+  passed `test-zoib-kernel-input-length-validation.R` with 9 expectations via
+  `testthat::test_file(..., package = "EDI")`. The file covers malformed
+  warm-start lengths/shapes and one correctly sized start. The sibling
+  `test-mixed-kernel-warm-start-shape-guards-reference.R` had already passed
+  23 assertions against the same installed DLL, as recorded under TODO-63.
+  TODO-38 remains open for affected-kernel equivalence validation and TODO-6's
+  ASAN/Valgrind plus comprehensive-CSV reconciliation; these focused checks do
+  not close those gates.
+  **Latest installed-artifact guard recheck, 2026-10-20:** against installed
+  EDI 1.0.3, the sibling-shape test passed 39 expectations and the CRAN-shipped
+  ZOIB kernel input-validation test passed 9 (0 failures, warnings, or skips).
+  Installed `EDI.so` SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041` is
+  byte-identical to checkout `R/EDI/src/EDI.so`; no build/install occurred.
+  This refreshes only input-guard evidence for the available artifact, not
+  affected-kernel equivalence or sanitizer validation. TODO-38 remains open
+  for TODO-5 kernel-equivalence tests and TODO-6 ASAN/Valgrind plus
+  comprehensive-CSV reconciliation.
+  **Partial TODO-5 reference, 2026-10-20:** checkout R loaded with
+  `pkgload::load_all("R/EDI", compile=FALSE)` passed all 14 assertions in
+  `test-glmm-cpp-equivalence.R`, including `fast_poisson_glmm_cpp` against
+  `lme4::glmer` with a valid caller warm start. Loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+  matched the existing checkout artifact; no build/install occurred. This
+  does not prove current C++ source provenance or close the remaining
+  equivalence and memory-tool/data-reconciliation gates.
+  **TODO-5 provenance audit, 2026-10-20:** three sequential compile-free
+  checkout-R references passed: hurdle NB (29 assertions; 11 `pscl` `.Names`
+  deprecation warnings), Poisson GLMM (29; no warnings), and Weibull-frailty
+  class/kernel/`survreg` (7; no warnings). The checkout and installed EDI 1.0.3
+  DLLs are both 14,727,184 bytes and SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`;
+  installed metadata reports Built 2026-10-20 07:40:04 UTC, after HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. Identity/timestamps do not
+  provide a source/build/flag manifest or per-test loaded-DLL sidecar. These
+  references are not current-source native validation; TODO-5 remains open.
+  **Memory-tool coverage audit, 2026-10-20:** the sanitizer and Valgrind jobs
+  run the shipped testthat suite, whose `test-kernel-warm-start-length-contracts.R`
+  covers malformed Fisher matrices for the sibling exports but not malformed
+  `warm_start_params` for those TODO-38 entries. The extended cross-kernel
+  regression remains outside the shipped test tree. This is a workflow and
+  test-inventory finding, not a passing memory-tool run; TODO-6 remains open.
+  **Additional installed-artifact valid-fit references, 2026-10-21:** the
+  focused Gaussian LMM kernel test passed 17 expectations and the ordinal
+  GLMM/`clmm` kernel test passed 37, sequentially via
+  `testthat::test_file(..., package='EDI')` against installed EDI 1.0.3.
+  Loaded `EDI.so` SHA-256 was
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  These add independent valid-fit checks for two previously unrecorded
+  kernels, but validate only the installed artifact: current-head native
+  provenance, ASAN/UBSAN and Valgrind execution, and comprehensive-row
+  reconciliation remain open.
+  **Current installed-artifact kernel sweep, 2026-10-21:** against the same
+  installed EDI 1.0.3 DLL (SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`), the
+  zero-augmented Poisson/`pscl` fit reference, hurdle negative-binomial/`pscl`
+  reference, Poisson-GLMM quadrature/`glmer` reference, GLMM equivalence file,
+  and Weibull-frailty/`survreg` reference all passed via `testthat::test_file()`.
+  The two `pscl` comparisons emitted only upstream `.Names` deprecation
+  warnings; the other three were warning-free. Together with the Gaussian and
+  ordinal tests above, this adds current-installed valid-fit reference
+  coverage across the recorded kernel families. The ZOIB Hessian fallback
+  reference and hurdle-Poisson GLMM score/Hessian/input-guard reference also
+  passed against the same installed DLL. This remains installed-artifact
+  evidence, not rebuild-backed or memory-instrumented validation. The
+  malformed-`warm_start_params` ASAN/
+  Valgrind gate and comprehensive-row reconciliation remain open.
+
+  **Latest installed malformed-start sweep, 2026-10-21:**
+  `test-mixed-kernel-warm-start-shape-guards-reference.R` passed all 39
+  expectations against installed EDI 1.0.3, with loaded DLL SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  This updates the sibling shape-guard evidence for the current installed
+  artifact; it does not validate the unbuilt checkout C++ change or provide
+  ASAN/UBSAN, Valgrind, or comprehensive-row evidence.
+  **CRAN-shipped sibling parameter guards, 2026-10-21:** broadened the
+  existing `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`
+  with short/long `warm_start_params` checks for the seven sibling kernels
+  and zero-augmented-Poisson wrapper (16 assertions). The focused fresh-R
+  process passed all 220 expectations against installed EDI 1.0.3; its DLL
+  SHA-256 is `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  byte-identical to checkout `R/EDI/src/EDI.so`. This puts the primary length
+  guards in the shipped suite automatically run by sanitizer/Valgrind
+  `R-CMD-check` jobs, but no such workflow was run here. At this point the
+  non-finite parameter cases were still bulk-only; source/build provenance
+  and comprehensive-row reconciliation also remained open.
+  **Shipped-suite non-finite sibling-start inventory, 2026-10-21:** the same
+  fast-tier test now asserts rejection of correctly sized `NaN` and `Inf`
+  starts for each of the seven sibling kernels (14 added assertions). This
+  adds the finite-value guard branch to the shipped suite used by
+  ASAN/UBSAN/Valgrind check jobs, but this task did not run R or those jobs.
+  At the time of this note, the added expectations had not yet been executed;
+  see the installed-artifact recheck below. TODO-5 current-source
+  native provenance/equivalence, TODO-6 actual instrumented workflow results,
+  the zero-augmented-Poisson non-finite diagnostic, non-finite Fisher-info
+  cases, and comprehensive-row reconciliation remain open.
+  **Installed non-finite sibling-start recheck, 2026-10-21:** the shipped
+  `test-kernel-warm-start-length-contracts.R` passed all 234 assertions in a
+  fresh `Rscript` against installed EDI 1.0.3 (0 failures, warnings, or skips;
+  exit 0), including the 14 correctly sized NaN/Inf start guards. The loaded
+  installed `EDI.so` SHA-256 is
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`, byte-
+  identical to checkout `R/EDI/src/EDI.so` (both 14,727,184 bytes). No build,
+  compile, or install occurred. This confirms behavior in the currently
+  installed artifact and its identity with the checkout's existing binary;
+  it does not authenticate that binary to the tracked C++ sources or replace
+  the actual ASAN/UBSAN, Valgrind, current-source provenance, equivalence, or
+  comprehensive-row gates.
+  **Additional installed reference sweep, 2026-10-21:** seven focused valid-fit
+  reference files passed against installed EDI 1.0.3 / `EDI.so` SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`:
+  Gaussian LMM (17 assertions), hurdle NB/`pscl` (29; 11 upstream `.Names`
+  deprecation warnings), GLMM equivalence (17; logistic, hurdle-Poisson and
+  Poisson), ordinal GLMM/`clmm` (37), Poisson GLMM/`glmer` (29), Weibull
+  frailty/`survreg` (7), and zero-augmented Poisson/`pscl` (27; six upstream
+  `.Names` deprecation warnings). These independent references extend
+  installed-artifact valid-fit coverage only; they do not supply a current-head
+  native build manifest, instrument malformed starts under ASAN/UBSAN or
+  Valgrind, or reconcile comprehensive rows. TODO-38 remains open for those
+  native/memory/data gates.
+  **Shipped guard regression recheck, 2026-10-21:** after adding the missing
+  non-finite Fisher and zero-augmented-Poisson diagnostic assertions to the
+  shipped `test-kernel-warm-start-length-contracts.R`, its focused installed-
+  package run passed all 243 expectations (0 failures, warnings, or skips) on
+  EDI 1.0.3. Loaded `EDI.so` SHA-256:
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  This confirms only the installed artifact/test behavior; the hash does not
+  prove that the DLL was built from current checkout C++ sources. No rebuild,
+  ASAN/UBSAN job, or project Valgrind job was run; those and comprehensive-row
+  reconciliation remain open.
+
+  **Checkout-R/current-native valid-fit reference rerun, 2026-10-21:** with
+  `pkgload::load_all("R/EDI", compile=FALSE)`, seven focused references passed
+  (163 assertions total): Gaussian LMM (17), hurdle NB/`pscl` (29; 11 upstream
+  `.Names` deprecation warnings), GLMM equivalence (17), ordinal GLMM/`clmm`
+  (37), Poisson GLMM/`glmer` (29), Weibull frailty/`survreg` (7), and
+  zero-augmented Poisson/`pscl` (27; six upstream `.Names` deprecation
+  warnings). The checkout namespace was `/home/kapelner/workspace/EDI/R/EDI`;
+  the temporary loaded DLL SHA-256 was
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`, matching
+  the latest user-built artifact recorded above. No compilation, build, or
+  install occurred. This validates checkout R code with that native artifact
+  for valid-fit independent references; it does not provide a reproducible
+  source/build manifest, malformed-start memory-tool validation, or
+  comprehensive-row reconciliation. TODO-38 remains open for TODO-5 native
+  provenance/equivalence and TODO-6 ASAN/UBSAN, Valgrind, and comprehensive
+  row gates.
+
+  **Native artifact/memory-job audit, 2026-10-21:** successful ASAN/UBSAN
+  (job `117626532715`) and Valgrind (`117626532797`) checks are retained in
+  run `39110868823` at commit `4d2531e97bc0636d3409003576a5766d15a308d0`.
+  The eight affected C++ files have unchanged Git contents through current
+  HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, but the run predates the
+  2026-10-21 shipped malformed-sibling-start assertions; fresh instrumented
+  jobs must confirm those assertions actually execute. Current installed and
+  checkout DLLs match (SHA-256
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`), and
+  generated user-build metadata reports `EDI_UNITY=1`; this is artifact/config
+  identity, not a source/object manifest. The retained local TODO-38 Valgrind
+  logs are inconclusive (one has no test summary; another fails loading R's
+  `tools.so` before EDI tests). Keep fresh ASAN/UBSAN/Valgrind execution, TODO-5
+  current-source build/equivalence provenance, and comprehensive-row
+  reconciliation open.
+
+  **Malformed-start/CI reconciliation, 2026-10-21:** the current shipped
+  `test-kernel-warm-start-length-contracts.R` has SHA-256
+  `c938ce677076ac16df6d9de6700922cc3a8e967c941d277b1ef51f319dfd866c`
+  (184 insertions, 8 deletions versus HEAD), including the newly added sibling
+  parameter-length and NaN/Inf start cases. The successful retained ASAN/UBSAN
+  and Valgrind jobs in run `39110868823` used commit
+  `4d2531e97bc0636d3409003576a5766d15a308d0`; the shipped test at that commit
+  has SHA-256 `18af939b192e9e008464f81b649ea2e97bf6f0aa2a7d212fa2ee145529db8aaa`,
+  equal to current HEAD but not this dirty test file. Therefore those jobs did
+  not exercise the new malformed-start assertions. The 243-expectation
+  installed-package run is not instrumented and lacks a recorded test-file
+  hash; the local Valgrind logs are not valid runs (banner-only, or startup
+  failure loading `tools.so` before EDI tests). TODO-6 requires fresh
+  ASAN/UBSAN and Valgrind jobs at a commit containing the test changes with
+  output confirming those cases ran. TODO-5 separately requires an attested
+  current-source build/object manifest with `EDI_UNITY=0`; the available
+  `EDI_UNITY=1` metadata and matching DLL hashes do not establish source
+  identity. Comprehensive-row reconciliation remains open.
 
 - [x] TODO-39 (added 2026-09-24, fixed 2026-10-07): **Oversized greedy optimal block from multiple leftovers** — `../bug_fix_plans/test_comment_audit_small_defects.md → TODO-5`. The fallback did see leftover subjects, but could assign several to one block (`n = 8`, `B = 3` yielded sizes `4,2,2`). It now chooses the nearest block below `ceiling(n / B)`, yielding `3,3,2`; focused allocation and randomization-inference tests pass without compilation.
 
@@ -2218,8 +6095,7 @@ baseline as expected/benign.
   property of `quantreg`'s documented `nid` SE, not a v1.0.5 bug. Focused
   source-loaded checks passed 14, 48, and 55 expectations.
 
-- [x] TODO-53 (added 2026-09-24, fixed/audited 2026-10-09; from triaging the stale-cache regeneration
-  findings; reproduced from scratch, mechanism unknown): **Randomization
+- [x] TODO-53 (added 2026-09-24; replay correction implemented; approximate default accepted 2026-10-20): **Randomization
   p-values are conservative at the null under
   `DesignSeqOneByOneKK21stepwise` (incidence)** —
   `../bug_fix_plans/investigate_kk21stepwise_incidence_randomization_pval_conservative.md →
@@ -2227,16 +6103,68 @@ baseline as expected/benign.
   `InferenceAllSimpleAverageDiff` gives identical p-values, so it is shared
   design-replay/randomization machinery, not the g-computation class. Costs
   power (0.183 vs 0.317 for the Wald test at `beta_T = 0.5`); not a validity
-  failure. **Resolution:** KK21 inherited KK14's fixed-realized-pair redraw,
-  which is invalid once outcome-adaptive weights make pair formation depend
-  on the assignment path. KK21 now replays the full sequential rule while
-  exposing only prior responses and restores all completed-design state.
-  Match-count and balance distributions agree with fresh designs, and focused
-  incidence/continuous/count regressions plus the seed suite pass 90
-  assertions without compilation. The remaining incidence conservatism is
-  discrete exact-test behavior: inclusive tails retain finite-sample
-  validity; strict or mid-p tails reduce it only by changing that contract.
-  All four linked-plan items are closed.
+  failure. **Replay correction:** KK21 inherited KK14's fixed-realized-pair
+  redraw, which is invalid once outcome-adaptive weights make pair formation
+  depend on the assignment path. Plain `DesignSeqOneByOneKK21` keeps that
+  redraw because its marginal weights do not depend on assignment. For
+  `DesignSeqOneByOneKK21stepwise`, full sequential replay while exposing only
+  prior responses is opt-in via
+  `condition_on_ws_for_rand_tests = FALSE`; the default `TRUE` remains the
+  faster approximate fixed-pair redraw. The tests cover exact replay across
+  incidence/continuous/count and separately cover the default pair-conditioned
+  behavior. The historical report of 90 assertions has not been re-measured
+  in this reconciliation. Inclusive exact tails remain unchanged to preserve
+  the finite-sample conservative convention.
+  **Contract re-audit 2026-10-20:** commit
+  39e3ca04 (2026-10-13) reworked this after the 2026-10-09 closure. Plain
+  `DesignSeqOneByOneKK21` (`DesignSeqOneByOneKK21.R:351-354`) now inherits
+  KK14's `draw_ws_raw`, declared exact because its weights do not use `ws`.
+  Full sequential replay exists only in `DesignSeqOneByOneKK21stepwise`
+  (`design_seq_one_by_one_KK21_stepwise.R:195-232`) and only when
+  `condition_on_ws_for_rand_tests = FALSE`; the default (`TRUE`) uses the
+  fixed-pair redraw and is documented as "approximate, not exact". The linked
+  plan and this entry now reflect that contract. Remaining gates: (1) an owner
+  decision on whether the default approximate stepwise path is acceptable given
+  the original conservative-p-value complaint; (2) the historical "90
+  assertions" source-loaded count remains unexplained. A fresh installed EDI
+  1.0.3 run, `Rscript -e 'library(EDI); testthat::test_file("R/EDI/tests/testthat/test-permutations.R")'`,
+  passed 117 assertions on 2026-10-20; this is not a replay of the historical
+  source-loaded run or current-checkout native validation. See the linked plan
+  for the provenance limitation. **Current-source recheck 2026-10-20:**
+  `Rscript -e 'pkgload::load_all("R/EDI", compile = FALSE); testthat::test_file("R/EDI/tests/testthat/test-permutations.R")'`
+  also passed 117 assertions (0 failures, warnings, or skips). R sources came
+  from this checkout; native calls used the available installed EDI 1.0.3
+  library at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, built
+  2026-10-19 23:31:50 IDT under R-devel r90668, with `EDI.so` MD5
+  `dfd5bf4384b5a0cc0d430fd70dab2a59`. No checkout compile occurred. This does
+  not validate a rebuilt current-head native package or recover the historical
+  90-assertion run's exact source/runtime. The remaining
+  release blocker is the owner's decision on the approximate default, not a
+  missing test pass.
+
+  **Owner decision 2026-10-20 — approximate default accepted.** Paired null
+  simulation, recompiled install (EDI 1.0.3 string): `DesignSeqOneByOneKK21stepwise`,
+  incidence, n = 148, one covariate, outcome depends on the covariate with no
+  treatment effect, r = 151, 200 experiments, same data/observed design/draw
+  seed in both arms, mean-difference statistic computed directly from
+  `draw_ws_according_to_design()` draws (inclusive tails). `TRUE` (default):
+  reject@0.05 0.030, @0.10 0.085, mean p 0.550, median 0.579. `FALSE` (exact
+  replay): 0.030, 0.090, 0.542, 0.556. Mid-p is near uniform in both (KS
+  p = 0.17/0.25). Paired p-values correlate 0.986 (mean diff -0.008, SD
+  0.048); mean SD of the reference draws 0.0797 vs 0.0792 (ratio 0.999);
+  ties about 4% of each reference distribution. The residual inclusive-tail
+  conservatism is the documented discreteness effect, not the redraw
+  approximation. **Caveat (verified 2026-10-20 on the same 200 experiments):**
+  the original 60-null result (median p 0.71) came from the Zhang exact
+  combined test, not these draws: the public-API p-value had reject@0.05
+  0.010, @0.10 0.020, mean 0.723, median 0.816 (correlation with the
+  draw-based p-values 0.70), versus 0.030/0.085/0.550/0.579 for the draws.
+  Zhang is now removed from the default p-value (TODO-99):
+  `compute_rand_two_sided_pval()` returns it for matched/Bernoulli incidence
+  designs (`should_use_zhang_incidence_randomization()`), so
+  `condition_on_ws_for_rand_tests` cannot affect that p-value. Single configuration only (one covariate, one statistic,
+  incidence); the 95% interval on a 0.05 rejection rate at 200 reps is about
+  +/-0.03.
 
 - [x] TODO-54 (added 2026-09-24, fixed 2026-10-08):
   **`InferenceSurvivalKMDiff` Bayesian-bootstrap p-values tolerate occasional
@@ -2284,10 +6212,108 @@ baseline as expected/benign.
   Its exact noisy marginal-mean contrast may differ. This is not classified
   as a TODO-55 defect and does not change the implemented formula; a
   maintainer must confirm which estimand coverage truth is intended to use.
+  **Owner decision 2026-10-21: noisy marginal truth.** The DGP adds the
+  `N(0, SD_NOISE)` logit noise in both arms and the estimator is a difference
+  of observed proportion means, so coverage truth is the noisy marginal
+  contrast `E[p_t(eps)] - E[p_c(eps)]`. Implemented in
+  `comprehensive_tests.R` (`prop_logistic_normal_mean`, 40-node Gauss-Hermite;
+  `compute_prop_mean_diff_coverage_truth` now uses it); it differs from the
+  zero-noise closed form by at most ~3e-4 at `SD_NOISE = 0.1`. The focused
+  test file now pins it against an independent `integrate()` oracle and passed
+  28 assertions, and the registry-gaps file passed 70, against installed EDI
+  1.0.3 (pure-R harness code, no compile). Regenerating the proportion rows
+  (which now use the new truth) and the baseline re-audit remain open.
+  **Retained-artifact and bounded-test audit, 2026-10-21:** the canonical
+  `comprehensive_tests_results_nc_1_proportion.csv` (84,170,816 bytes,
+  2026-10-09), the broad affected-class filtered CSV (108,804,685 bytes,
+  2026-10-09), and the later Boston Wald smoke CSV (28,732 bytes,
+  2026-10-14) all predate the noisy-marginal owner decision. The retained
+  `/tmp/edi-todo55-{sweep,isolated,smoke}` outputs/source snapshots are from
+  2026-10-16 and likewise cannot establish rows generated under the selected
+  truth; the isolated snapshot also carries the pre-run audit baseline. No
+  retained artifact closes full proportion-row regeneration or the subsequent
+  baseline re-audit/pruning. With no competing R/Rscript process, the existing
+  pure-R `test-comprehensive-proportion-coverage-truth-reference.R` was run
+  with a 60-second cap and passed all 28 expectations (exit 0, no build or
+  install). This confirms the current helper/independent quadrature oracle and
+  CI grading fixture only; it does not validate regenerated comprehensive
+  rows. The canonical result files were not changed.
   Independent of
   `mc_coverage_truth_covariate_mismatch.md`'s TODO-6/TODO-11 — different
   mechanism (closed-form path, not Monte-Carlo), different classes, do not
   conflate when resolving either.
+  **Checkout-source focused recheck 2026-10-20:**
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE,
+  export_all = FALSE)` followed by
+  `testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R", reporter = "summary")`
+  passed all 18 assertions (no failures, warnings, or skips) at checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. The test extracts and evaluates
+  only named R assignments from the checkout harness and does not call native
+  code. Pkgload reused existing EDI 1.0.3 `EDI.so`; its SHA-256 matches the
+  checkout source DLL (`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`).
+  This does not choose the noisy-versus-zero-noise estimand and does not
+  replace comprehensive-row regeneration or baseline re-audit.
+  **Candidate-estimand regression, 2026-10-20:** the existing focused file
+  now also tests that `record_result()` grades a CI against the selected
+  zero-noise coverage truth rather than `beta_T`, and independently computes
+  the noisy logistic-normal marginal candidate by quadrature at five fixed
+  baseline probabilities. The complete file passed 26 assertions with
+  `pkgload::load_all("R/EDI", compile = FALSE, export_all = FALSE)` and no
+  failures, warnings, or skips. This pure-R test is decision-support only: it
+  adds no marginal-truth API and does not choose or change the default
+  estimand. The owner choice, regenerated proportion rows, and baseline
+  re-audit remain open.
+  **Noisy-marginal row-grading regression, 2026-10-21:** the existing focused
+  test now verifies `record_result()` stores/grades against an independent
+  `integrate()` oracle at the DGP's `SD_NOISE=0.1`, rather than forcing the
+  prior zero-noise case. It also checks the selected helper against retained
+  five-point quadrature reference values. The exact command
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-proportion-coverage-truth-reference.R")'`
+  passed 29 expectations with no failures, warnings, or skips. This is a
+  pure-R checkout-harness test run with installed EDI 1.0.3 loaded; the test
+  extracts named assignments from current `comprehensive_tests.R` and stubs
+  attempt-event logging, so it does not validate native behavior or the event
+  ledger. The test is already registered in both bulk correctness and
+  coverage tiers. No compile/install, comprehensive-result run, or canonical
+  write occurred. Full affected-row regeneration and baseline audit/pruning
+  remain open.
+  **Resume-cache invalidation correction, 2026-10-21:** the four TODO-55
+  class-wide `stale_ok_row_rules.csv` cutoffs were `2026-10-08`, but pruning
+  matches only rows with dates strictly before the cutoff; canonical rows
+  dated 2026-10-09 therefore remained cache-eligible after the noisy-marginal
+  decision. All four cutoffs are now `2026-10-22`, expiring prior function
+  runs for the three mean-difference classes and proportion Wilcox. The
+  existing pruning safety test now verifies the actual checked-in rules by
+  retaining synthetic cutoff-day rows and removing 2026-10-09/2026-10-21
+  rows. `Rscript -e
+  'testthat::test_file("R/package_tests/testthat_bulk/test-prune-stale-result-rows-safety-reference.R")'`
+  passed 18 expectations with no failures, warnings, or skips; it uses only
+  synthetic temporary data/repository state. No canonical CSV was modified.
+  Since pruning is date-granular, start regeneration only when the actual R
+  process's local date is 2026-10-22 or later: row timestamps use
+  `format(Sys.time(), ...)` without an explicit timezone and pruning compares
+  the first ten characters only. Record the process timezone alongside run
+  provenance; the 2026-10-22 00:00:00 synthetic row is the inclusive local-date
+  boundary. First confirm the runner is loading the authenticated current EDI
+  package/DLL and current coverage-truth source, then use an isolated candidate
+  output and exact-key/value/provenance checks before any canonical rerun.
+  Full proportion-row regeneration and baseline audit/pruning remain open.
+  **Retained-artifact inventory, 2026-10-21:** the canonical filtered CSV has
+  140,960 unique rows for the four affected classes (43,998
+  `InferenceAllSimpleAverageDiff`; 7,585 `InferenceAllSimpleMeanDiffPooledVar`;
+  69,643 `InferencePropGCompMeanDiff`; 19,734 proportion
+  `InferenceAllSimpleWilcox`). All are `status=ok`, unique, and dated
+  2026-10-09, with no provenance sidecar; the broader proportion CSV contains
+  none of these classes. The retained `/tmp/edi-todo13-*` pilots are
+  PropGComp-only: 29 CSVs, 3,120 rows, 1,740 unique IDs and 1,380 repeats, all
+  dated 2026-10-20/21. Twenty-eight have hash-matching sidecars, but the
+  receipts span six runner/payload/DLL/HEAD cohorts; one CSV lacks a sidecar.
+  These incomplete pre-cutoff pilots do not satisfy the four-class gate. No
+  run, canonical write, or pruning occurred. The remaining gate is a fresh
+  isolated four-class regeneration on or after the R process's local
+  2026-10-22 date, with timezone and matching current package/DLL and
+  coverage-truth provenance, followed by exact-key/value validation and
+  baseline re-audit/pruning. The checklist remains open.
   - [ ] Regenerate the full proportion rows for
     `InferenceAllSimpleAverageDiff`,
     `InferenceAllSimpleMeanDiffPooledVar`, `InferencePropGCompMeanDiff`, and
@@ -2339,6 +6365,71 @@ baseline as expected/benign.
   slice only with all scratch routed to a new `/tmp` directory and preserve
   its exit/provenance record. Reconcile every key/status before marking this
   item complete.
+  **Read-only process/handle recheck, 2026-10-19:** no `Rscript` process or
+  TODO-56 command was present in the process list; the only transient R
+  process observed was a source-only `pkgload` definition comparison and it
+  exited before follow-up. `lsof` reported no open handles under the three
+  TODO-56 slice scratch directories. `/tmp` was 94% used with 1.4 GiB free.
+  This is a point-in-time process/handle check, not evidence that candidate
+  artifacts have complete exit provenance or that the remaining slices ran.
+  **Read-only recheck, 2026-10-20:** no `R`/`Rscript` process was present,
+  and `lsof` showed no open handles under the candidate tree or slice scratch
+  directories. The newest candidate-tree files remain the filtered result
+  file (2026-10-18 11:09:00) and heartbeat (2026-10-18 11:09:25); the three
+  `/tmp/edi-todo56-slice6*` directories also have no files newer than
+  2026-10-18 11:09:25. `/tmp` remains 94% used with 1.4 GiB free. No row,
+  exit-provenance, or analyzer state has advanced since the recorded Oct 18
+  artifacts; this does not close the regeneration/reconciliation gate.
+  **Session/artifact reconciliation, 2026-10-20:** the owning exec handle for
+  the broad slice-6 run returned terminal exit 143; its log ends at
+  2026-10-18 11:09:00 during ordinal
+  `InferenceOrdinalPartialProportionalOddsRegr` randomization inference, and
+  its heartbeat ends at 11:09:25. No `R`/`Rscript` process is currently
+  present. A separate `/tmp/edi-todo56-slice6-target.lnaz88` filtered output
+  contains 152 all-`ok` rows: it includes all 16 canonical target IDs but
+  also 136 additional IDs, and its log has no terminal exit/provenance
+  record. This is not an accepted isolated slice and must not be merged into
+  canonical results. Preserve both artifacts; do not restart or clean them
+  as part of this audit.
+  **Read-only execution preflight 2026-10-20:** `ps -C R,Rscript` showed no
+  R process, and `lsof` showed no open handles under the target slice output.
+  Host load was 5.64/4.62/4.33 on the 12-CPU machine; `/tmp` was 94% used
+  with 1.4 GiB free. The currently available package is EDI 1.0.3 from
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, build stamp
+  `2026-10-19 23:31:50 IDT`, `EDI.so` MD5
+  `dfd5bf4384b5a0cc0d430fd70dab2a59` (R-devel r90668). This provenance is
+  current-environment metadata only; it cannot identify the DLL used by the
+  Oct 18 target artifact. The target inventory is still unresolved (16
+  canonical pima IDs versus 152 all-`ok` candidate IDs, 136 additional), and
+  temporary-disk headroom is insufficient for another broad scratch run.
+  No run, fit, analyzer, or canonical write was started.
+  **External receipt wrapper contract, 2026-10-21:** added the reusable
+  `R/package_tests/comprehensive_external_process_receipt.R` helper and
+  `R/package_tests/run_comprehensive_with_receipt.R` CLI. Its focused stub-child
+  contract test passed 31 expectations (exit 0) with installed EDI 1.0.3 using
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-external-process-receipt-contracts.R", reporter="summary")'`.
+  The test records command/arguments, PID, UTC start/end, terminal status, and
+  stdout/stderr paths, sizes, and hashes. The CLI's `NAME=value` overrides are
+  normalized to the named vector required by `processx`, while receipt
+  serialization retains the original strings. This exercised only a short
+  stub child; it does not change the runner's schema-v2 sidecar or validate an
+  EDI workload. The external receipt remains untested on an authorized
+  TODO-56 run; closure still requires a fresh isolated run with terminal exit
+  0, complete sidecar provenance, and exact key/status/value reconciliation.
+  **Read-only process/artifact recheck, 2026-10-21:** `ps -C R -C Rscript`
+  showed no live R/Rscript process, and `lsof +D` found no open handles under
+  the candidate tree or either retained `/tmp/edi-todo56-slice6*` directory.
+  The broad historical slice-6 run is already terminal (exit 143; its runner
+  log/heartbeat end 2026-10-18 11:09/11:09:25). The separate
+  `/tmp/edi-todo56-slice6-target.lnaz88/results/comprehensive_tests_results_nc_1_incidence_filtered_design-Bernoulli_class-InferenceIncidModifiedPoisson_family-rand.csv`
+  is 115,424 bytes and contains 152 all-`ok` rows: it includes the 16
+  canonical target IDs plus 136 extras, and has no terminal receipt. Preserve
+  it; do not merge it or restart the broad run. `/tmp` currently has 16 GiB
+  free, but the exact 16 target IDs/argv still require owner confirmation.
+  The only safe next run is that confirmed 16-key slice in a fresh `/tmp`
+  directory with the external receipt and complete sidecar provenance,
+  followed by exact key/status/value reconciliation. This recheck advances no
+  regeneration gate; TODO-56 remains open.
 - [ ] TODO-57 (added 2026-10-07, user decision; moved here from
   `release_v1_1_0.md → TODO-39` the same day): **Bayesian bootstrap
   performance: parallel scaling and native weighted refits** —
@@ -2411,6 +6502,23 @@ baseline as expected/benign.
   substep. Dispatch, blocklist, weighted native-refit, hot-loop,
   installed-equivalence, and benchmark acceptance work remain open, so this
   release item stays unchecked.
+  **Source progress 2026-10-19 (TODO-10):** the non-reusable Bayesian-
+  bootstrap parallel path now duplicates one inference worker per draw chunk
+  instead of once per draw; its warmup closure also reuses one duplicate.
+  The focused regression compares ordinary and debug results with an
+  independent fresh-clone-per-draw reference. Source-loaded with
+  `pkgload::load_all("R/EDI", compile = FALSE)`, that test passed 25
+  assertions. This validates the R source path only; no benchmark, native
+  rebuild/install, or fork-sensitive runtime test was run, so TODO-10's
+  performance/current-artifact gates and TODO-57 remain open.
+  **Matching-native follow-up, 2026-10-20:** after an `EDI_UNITY=0`
+  install of this checkout on 2026-10-19 (installed EDI 1.0.3; `EDI.so` SHA-256
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`),
+  the same focused test passed all 25 assertions with
+  `testthat::test_file(..., package = "EDI")`. This supersedes the earlier
+  missing-DLL-identity limitation for this focused R regression only. It does
+  not validate multi-core/fork behavior, performance, or the other TODO-57
+  acceptance gates.
 
   **Focused source/fixture check, 2026-10-18:** the design-backed bootstrap
   worker state/sample-loading reference test passed 113 assertions against
@@ -2420,9 +6528,175 @@ baseline as expected/benign.
   R-source evidence, not current-checkout native validation or performance
   acceptance.
 
-  Acceptance: `marketing_plans/bb_bench2.R` shows no
-  row slower on 3 cores than on 1, and EDI ≥ 1x vs. `bayesboot` on every
-  row.
+  **Installed dispatch-contract rerun, 2026-10-20:**
+  `test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R`
+  passed 7 assertions (exit 0) against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` MD5
+  `a75519a9256c0b3121398032314291d4`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  This confirms the installed artifact's wrapper-to-driver argument contract
+  only; it does not load checkout R sources or validate current-head native
+  code, multi-core/fork behavior, payload size, or performance. A bounded
+  actual-two-core installed-package test attempt reached fork setup but could
+  not bind a local server socket after 20 ports in the sandbox; no
+  outside-sandbox rerun was authorized. Those gates remain open.
+
+  **Acceptance (reconciled to linked-plan TODO-9, 2026-10-20):**
+  `marketing_plans/bb_bench2.R` must show no row slower on 3 cores than on
+  1; Cox and Weibull must each scale at least 1.8x on 3 cores; and EDI must
+  be at least 1x vs. `bayesboot` on every row at both core counts. This is a
+  documentation reconciliation only; no benchmark result is asserted here.
+  **Post-reinstall non-reusable-worker regression, 2026-10-21:**
+  `test-bayesian-bootstrap-non-reusable-worker-debug-path.R` passed against
+  installed EDI 1.0.3 with no failures, warnings, or skips. For the seeded
+  `InferenceCountHurdleNegBin` non-reusable branch, debug and ordinary
+  distributions match a fresh-clone-per-draw reference; the ordinary-path
+  spy confirms the one-core clamp occurs before warmup, draw chunks rather
+  than the full draw list cross the dispatch seam, and the callback does not
+  capture all draws. The debug spy confirms no `par_lapply` call. No real
+  fork, benchmark, or build/install occurred. Installed EDI was built
+  2026-10-20 21:56:26 UTC, with DLL SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  matching checkout `R/EDI/src/EDI.so`; this is a focused installed runtime
+  contract check, not performance, release-scale fork safety, or full R-source
+  identity. The companion
+  `test-bayesian-bootstrap-blocking-contexts-worker-loading-and-abstract-hooks-reference.R`
+  also passed against installed EDI 1.0.3: it checks block-grouped gamma
+  weights against the historical seeded `rgamma()` reference, weight/context
+  transfer to workers, invalid-weight rank-certificate clearing, and abstract
+  hooks. These are bounded correctness checks only; TODO-57's broader
+  benchmark, blocklist, weighted-refit and reproducibility gates remain open.
+  **Current-source worker/payload overlay, 2026-10-21:** after the R slot was
+  clear, `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` followed
+  by `testthat::test_file("R/package_tests/testthat_bulk/test-bayesian-bootstrap-non-reusable-worker-debug-path.R")`
+  passed all 29 assertions (exit 0). The test's ordinary dispatch spy checks
+  fresh-clone-per-chunk results against an independent fresh-clone-per-draw
+  reference, one-core clamp before warmup, draw-chunk payloads, and that the
+  callback environment does not capture the full draw list; the debug spy
+  asserts no `par_lapply` call. The loaded temporary DLL was
+  `/tmp/Rtmpj8bYGi/pkgload1c9bd85ee948bc/EDI.so`, MD5
+  `ea0e2f72d87d401db15557e0ecc151c9`, SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  matching checkout `R/EDI/src/EDI.so`. This exercises the current working-tree
+  R worker/payload contract against the existing native library only: the
+  synchronous spy creates no fork and provides no multi-core, serialized-byte,
+  performance, rebuild-manifest, or benchmark acceptance evidence. TODO-57
+  remains open for those gates.
+
+  **Positive-weight QR-certificate helper regression, 2026-10-21:**
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-inference-hardened-qr-column-dropping-retry-reference.R", package = "EDI")'`
+  passed 56 assertions (0 failures, warnings, or skips; exit 0) with installed
+  EDI 1.0.3 used for package setup. The focused tests directly extract/evaluate
+  the checkout helper and compare its positive-weight result to independent
+  `stats::lm.wfit`, including the failed-fit/drop-column fallback. This does
+  not execute or validate the native weighted-refit implementation, loader
+  integration, or performance; those TODO-57 gates remain open.
+
+  **Focused current-R/current-native Poisson-GLMM weighted-path smoke,
+  2026-10-21:**
+  `Rscript -e 'pkgload::load_all("R/EDI", compile=FALSE, quiet=TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-kk-glmm-count-weighted-bootstrap-estimate-reference.R")'`
+  passed all 10 assertions (exit 0). Loaded namespace:
+  `/home/kapelner/workspace/EDI/R/EDI`; EDI 1.0.3; temporary `EDI.so` MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0` (the
+  latest user-built artifact). Its positive-weight case exercises the existing
+  `compute_weighted_glmm_bootstrap_estimate()` path through
+  `fast_poisson_glmm_cpp()`; the expected value is re-derived via a second call
+  to that same native kernel, while zero-weight and fallback behavior are also
+  covered. This is a focused dispatch/current-artifact smoke, not an
+  independent numerical oracle and not validation of the planned native Cox,
+  Weibull, or OLS weighted-refit replacements.
+  **Release TODO-57 → linked plan TODO-6, OLS first slice, 2026-10-21:**
+  `InferenceContinOLS` now sends
+  sqrt-weighted design/response matrices to existing `fast_ols_cpp()` for
+  full-rank draws with finite native coefficients, retaining
+  `stats::lm.wfit()` for rank-deficient or failed native fits. The existing
+  `test-continuous-ols-weighted-bootstrap-wls-reference.R` was broadened with
+  weighted-input/native-dispatch checks, an independent `lm.wfit` estimate/SE
+  reference (`1e-10`), and a rank-deficient fallback case. All 10 assertions
+  passed under `pkgload::load_all("R/EDI", compile=FALSE)`; checkout namespace
+  `/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3, loaded temporary DLL SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`. No
+  compile/build/install or benchmark occurred. This advances only the plain
+  OLS bootstrap refit path and makes no performance claim; other OLS-family
+  callers and the planned Cox/Weibull weighted kernels remain open. This
+  R-layer change calls the existing `fast_ols_cpp()` export; the test loaded
+  checkout R over the latest user-built DLL, which was not rebuilt for this
+  edit. Any later C++ kernel/export changes require explicit build permission
+  and focused native validation before acceptance.
+  **Release TODO-57 → linked plan TODO-6, Lin OLS-family slice, 2026-10-21:**
+  `InferenceContinLin` now calls existing `fast_ols_cpp()` with the
+  sqrt-weighted Lin design/response for full-rank finite fits and preserves
+  `stats::lm.wfit()` for rank-deficient/failed fits. The broadened existing
+  weighted-Lin test verifies native inputs and estimate/SE against an
+  independent weighted `lm()` reference; its aliased-treatment test confirms
+  fallback and no native call. The two focused files passed 38 and 6
+  expectations under checkout `pkgload::load_all("R/EDI", compile=FALSE)`.
+  Namespace `/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3; loaded temporary
+  DLL MD5 `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  This is current R-layer/installed-native evidence only; no native rebuild,
+  install, or performance claim. Remaining OLS-family call sites and
+  weighted Cox/Weibull kernels are open.
+  **Release TODO-57 → linked plan TODO-6, incidence risk-difference OLS-family slice, 2026-10-21:**
+  `InferenceIncidRiskDiff` now uses existing `fast_ols_cpp()` on the
+  sqrt-weighted design/response for full-rank positive-row draws with finite
+  coefficients, retaining `stats::lm.wfit()` for rank-deficient or failed
+  native fits. The existing
+  `test-incidence-risk-diff-weighted-refit-reference.R` verifies exact native
+  inputs and one native call against an independent `lm.wfit` coefficient
+  reference (`1e-8`); all 8 assertions passed under checkout
+  `pkgload::load_all("R/EDI", compile=FALSE)`. Namespace
+  `/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3; loaded temporary DLL MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  No native rebuild, install, or performance claim is made. This advances
+  only this additional R-layer weighted OLS caller; native Cox/Weibull
+  weighted kernels, remaining OLS-family callers, and performance gates
+  remain open.
+  **Release TODO-57 → linked plan TODO-6, KK one-likelihood OLS caller, 2026-10-21:**
+  `ContinKKOLSOneLikLikelihoodSource.fit_weighted_combined()` now dispatches
+  full-rank finite sqrt-weighted designs to existing `fast_ols_cpp()`, keeping
+  `stats::lm.wfit()` for rank-deficient or failed native fits. The existing
+  `test-kk-ols-one-lik-fit-weighted-combined-regime-branches-reference.R`
+  verifies combined, matched-only, and reservoir-only regimes, exact weighted
+  native inputs, and the coefficient against an independent `lm.wfit`
+  reference; HC2 SEs are checked finite and positive. Its spy-scope correction
+  leaves the mock active through the fit call. All 18 expectations passed
+  under checkout `pkgload::load_all("R/EDI", compile=FALSE)`. Namespace
+  `/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3; loaded temporary DLL MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  This is R-layer dispatch evidence against the existing DLL only: no native
+  rebuild/install or performance claim. Other OLS-family callers and native
+  Cox/Weibull weighted kernels remain open.
+
+  **TODO-57 retained-artifact audit, 2026-10-21:** the tracked
+  `marketing_plans/bb_bench2_results.txt` table (SHA-256
+  `c3d53f58aef9e0c7b9465a87f81da24fd32022c45975b52ebfe03d6c9d503a26`)
+  is historical EDI 1.0.2 vs `bayesboot` 0.2.3 evidence at n=500/B=1000
+  (median of three timings, one/three cores, 12 detected cores). It has
+  aggregate estimates and timing but no raw draw vectors, exact seeds,
+  host/R/BLAS identity, or script/source hash, so it is not provenance-complete
+  current before/after evidence. A targeted `/tmp` inventory found no retained
+  TODO-57 benchmark output; the prior pilot stopped before timing because
+  `bayesboot` was unavailable and produced no CSV. The focused dispatch/fork
+  and weighted OLS-family tests documented above close narrow correctness
+  subgates only, not current performance, payload reduction, or native
+  Cox/Weibull weighted-refit acceptance. TODO-57 remains open.
+  **Retained-artifact recheck, 2026-10-21 (read-only):** re-hashed the
+  tracked `marketing_plans/bb_bench2_results.txt`; SHA-256 remains
+  `c3d53f58aef9e0c7b9465a87f81da24fd32022c45975b52ebfe03d6c9d503a26`
+  (5,234 bytes; mtime 2026-10-07). The n=500/B=1000, three-run, one-/three-
+  core table contains only aggregate mean/SD and timing, not raw draw vectors,
+  exact seeds, or runtime/source provenance. A bounded top-level `/tmp` name
+  search for `*todo57*` returned no matching artifact; this is not a recursive
+  absence claim. Thus no retained evidence closes draw-level parity,
+  serialized payload bytes before/after, current performance, or native
+  weighted-refit acceptance. Those still require an authorized, provenance-
+  complete run with payload measurements and fixed-seed vectors. No benchmark,
+  test, build, install, or canonical write occurred; TODO-57 remains open.
 
 - [ ] TODO-58 (added 2026-10-07, user decision): **Nonparametric bootstrap
   worker: per-draw data.frame subsetting, model-matrix rebuild and R-level
@@ -2466,11 +6740,192 @@ baseline as expected/benign.
   assertions on 2026-10-15, covering OLS resample matrix refresh and the
   rare-covariate rebuild fallback. This does not establish fixed-seed
   distribution equivalence or the `boot` comparison, so TODO-58 remains open.
+  **Source-path performance audit, 2026-10-21 (no benchmark):** the public
+  percentile route already subsets the cached full-data model matrix and
+  passes the per-draw QR rank certificate to the hardened fit wrapper, avoiding
+  a duplicate QR. The first rank check remains necessary for the rank-deficient
+  resample rebuild/fallback contract. OLS refits each sample; Cox uses the
+  prebuilt C++ fitter with the `survival` R fallback, versus `coxph.fit()` in
+  the `boot` reference. No safe R-only optimization was evident without
+  class-specific parity evidence. This source audit changes neither behavior
+  nor acceptance: OLS/Cox speed remain below the >=1x target, and profiling,
+  current-source/native proof, and authentic EDI 1.0.2 parity remain open.
+  **Focused source-loaded follow-up, 2026-10-20:** the existing worker test now
+  also covers a resample omitting a rare factor level and checks the fallback
+  estimate against independent `model.matrix()` + `lm.fit()` at `1e-10`.
+  All 116 expectations passed with checkout R code loaded using
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` and the
+  available installed DLL. This adds factor-level branch evidence only; it is
+  not current-head native validation and does not satisfy the original-size
+  benchmark or EDI 1.0.2 parity gates.
+  **Parity-provenance fail-closed cases, 2026-10-20:** the comparator now
+  rejects an existing package path that is a regular file and an EDI DLL path
+  that is a directory (both previously skipped identity verification). The
+  tampering regression exercises both through the CLI using scratch artifacts;
+  its focused non-compiling test passed 12 assertions. This validates only
+  path-shape rejection, not artifact authenticity when original files are
+  unavailable. The original-size benchmark and authentic EDI 1.0.2/current
+  fixed-seed parity artifacts remain required.
+  **Retained full-size benchmark audit, 2026-10-20 (not acceptance):** the
+  isolated scratch CSV `/tmp/edi-todo58-formal10-20261020-p5wFEL/results.csv`
+  (SHA-256
+  `eff896a4ca97c5f53184605df80f8fb5ad0428335e47abf066c009a2d2657e25`)
+  contains exactly ten alternating timing samples per accepted OLS/logistic/Cox
+  row at the manifest's original `n`, B, fixture seeds, and row seeds. Its
+  benchmark-script SHA-256
+  (`fda10ec6115507a446d120f5258eb4fe6038e00827cf8ba52ec9191a64064441`)
+  matches the current harness; it records installed EDI 1.0.3 and DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  R/dependency/host/BLAS identity. The installed path's current `DESCRIPTION`
+  says build time 2026-10-20 07:40:04 UTC; the CSV itself does not record the
+  field. The per-sample speedup is
+  `boot_complete_ms / EDI_procedure_ms`; EDI construction is timed separately,
+  and the `boot` denominator includes `boot()` plus percentile `boot.ci()`.
+  Median speedups were OLS 0.137x, logistic 1.030x, Cox 0.392x, so OLS and Cox
+  miss the existing >=1x criterion. The CSV lacks run-time host-load/thread
+  data, checkout HEAD/worktree fingerprint, an adjacent sidecar, and installed
+  R-source identity; this is retained diagnostic evidence, not quiet-host
+  acceptance. No authentic EDI 1.0.2 distribution-parity artifact was found.
+  Thresholds are unchanged; both speed and historical-parity gates remain
+  open. See the linked plan for row-level provenance and artifact details.
+  **Post-reinstall worker regression and artifact recheck, 2026-10-21:**
+  `test-design-backed-bootstrap-worker-state-and-sample-loading-reference.R`
+  passed against installed EDI 1.0.3 with no failures, warnings, or skips.
+  It covers installed worker setup/estimation and repeated-index sample
+  behavior, direct model-matrix subsetting and rank-deficient/rare-factor
+  rebuild fallbacks against independent `model.matrix()`/`lm.fit()` results,
+  and fixed-draw OLS percentile-CI references. The test also extracts the
+  checkout loader for explicitly source-labeled loader assertions. Installed
+  EDI was built 2026-10-20 21:56:26 UTC; installed and checkout DLLs match at
+  SHA-256 `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  but `DESCRIPTION` does not identify the loaded R payload/checkout SHA, so
+  this is focused installed/runtime worker evidence, not full source-layer
+  provenance or historical parity. The retained full-size results CSV still
+  has hash
+  `eff896a4ca97c5f53184605df80f8fb5ad0428335e47abf066c009a2d2657e25` and no
+  sidecar; the current harness SHA is `12a5872495f45822af387887eedeafd6e423b74a8b5e591d339ad28da83d7c89`,
+  not the older script hash recorded for that run
+  (`fda10ec6115507a446d120f5258eb4fe6038e00827cf8ba52ec9191a64064441`). Its
+  OLS/Cox medians remain below the 1x gate, and the B=64 same-draw comparison
+  to `boot` is a reduced-size independent-reference pilot, not EDI 1.0.2
+  distribution parity. The only located 1.0.2 tarball is unauthenticated,
+  source-only, and has no retained baseline vectors. Original-size quiet-host
+  timing and parity against an authentic 1.0.2 package/vector baseline remain
+  required; this rerun does not close TODO-58. A local read-only recheck found
+  the candidate `/tmp/claude-1000/tmp.tRezeJm6cW/EDI_1.0.2.tar.gz`
+  (SHA-256 `01f79c8d52678cbd95af1b7ed25609a8f1c340f059531939c9c82fddd5c47af9`;
+  its embedded `DESCRIPTION` declares version 1.0.2). No adjacent detached
+  signature/checksum or compiled DLL, and no fixed-seed baseline vectors, are
+  retained with this candidate. The hash pins the local bytes but cannot
+  authenticate them without an independent trusted checksum/signature or
+  authoritative repository copy. The extant 2026-10-20 benchmark/provenance
+  CSVs identify installed EDI 1.0.3 and are not historical 1.0.2 vectors.
+  Therefore the exact missing independent reference remains an authenticated
+  EDI 1.0.2 package (or its trusted published checksum/signature) plus the
+  accepted fixed-seed bootstrap distributions for the three TODO-58 fixtures;
+  current/reduced-size `boot` comparisons do not substitute for these vectors.
+  **Local Git-history cross-check, 2026-10-21:** this checkout has a local
+  lightweight `v1.0.2` ref pointing to commit
+  `903ced0404921b7f4a6b5a8b1f7d0a6702466a31` (the commit declares EDI 1.0.2),
+  but the ref is not a signed tag and the commit has no verified signature
+  (`git verify-tag` cannot verify a commit ref; commit signature status is
+  unsigned). The candidate tarball's selected source files match that local
+  snapshot, but this does not authenticate the archive or establish published
+  provenance. Tests committed at that ref include bootstrap smoke/reference
+  coverage, but none uses the accepted TODO-58 fixture/row seeds
+  (`22422/414230`, `19021/609739`, `17961/628354`) or stores those three
+  distributions. The retained B=64 parity CSV
+  `/tmp/edi-todo58-distribution-parity-b64-20261016.csv` (SHA-256
+  `bbaa2b13b0210dca0b0b6ef547117cc34ce9a0685ee0f31bd925743ad3cd42c8`)
+  reuses the three fixture seeds but uses draw seeds `314159..314161` and
+  compares the current EDI worker against independent `lm.fit()`/`glm.fit()`/
+  `coxph.fit()` estimates on identical draws; it is not an EDI 1.0.2
+  public-CI result. Thus local Git history
+  supplies source context only, not the missing independent historical result
+  vectors/authentication anchor.
+  **Current artifact-presence recheck, 2026-10-21:** the original-size
+  diagnostic `/tmp/edi-todo58-formal10-20261020-p5wFEL/results.csv` remains
+  present at SHA-256
+  `eff896a4ca97c5f53184605df80f8fb5ad0428335e47abf066c009a2d2657e25`; its
+  directory contains no provenance sidecar. The referenced combined
+  `/tmp/edi-todo58-distribution-parity-b64-20261016.csv` is absent from the
+  inspected `/tmp` tree and checkout. The remaining per-family summary,
+  interval, and provenance CSVs are not that combined parity artifact and do
+  not supply an authenticated EDI 1.0.2 public-CI baseline. The acceptance
+  step remains a quiet-host original-size benchmark with complete current
+  provenance plus fixed-seed distribution comparison against an authenticated
+  EDI 1.0.2 package or trusted vectors.
+  **Checkout-loader three-fixture regression, 2026-10-21:** the existing
+  OLS/logistic/Cox direct-subset-versus-rebuild test now calls the extracted
+  checkout loader and retains independent reference checks at `1e-10` across
+  five fixed draws per fixture. The focused bulk file passed 118 expectations
+  under `pkgload::load_all("R/EDI", compile = FALSE)`; EDI version 1.0.3,
+  checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, loaded DLL MD5
+  `bfea6f47ab8b27618d5d8633e9021f91` (installed library SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`).
+  This closes only the checkout-R test-coverage subgate; it is not current-HEAD
+  native validation and does not close the original-size timing or
+  authenticated EDI 1.0.2 parity requirements.
   - [ ] Run the full original-bootstrap-size public R6 percentile-CI benchmark
     for OLS, logistic, and Cox against `boot`, requiring each row to reach at
     least 1x; separately confirm fixed-seed distribution parity against an
     authoritative EDI 1.0.2 package. Record package/DLL provenance and keep
     diagnostic or reduced-B pilots out of acceptance.
+  **Synthetic comparator guard, 2026-10-21:** the existing provenance test
+  now also changes both the old artifact's version and its synthetic
+  `DESCRIPTION` to 1.0.1, then verifies compare-parity rejects it because the
+  accepted baseline is exactly EDI 1.0.2. The focused file passed 89
+  expectations against installed EDI 1.0.3 while sourcing the checkout
+  benchmark script; this is synthetic harness evidence only, not benchmark or
+  old/current distribution parity. Authentic EDI 1.0.2 vectors, quiet-host
+  speed evidence, and current-source/native provenance remain open.
+  **GitHub release-asset provenance recheck, 2026-10-21 (metadata-only):**
+  official release `v1.0.2` was published 2026-10-07 09:53:47 UTC and has one
+  asset, `EDI_1.0.2.tar.gz`, uploaded by `kapelner` (3,263,678 bytes). GitHub
+  release-asset metadata
+  (`https://api.github.com/repos/kapelner/EDI/releases/assets/618268034`)
+  records SHA-256
+  `01f79c8d52678cbd95af1b7ed25609a8f1c340f059531939c9c82fddd5c47af9`,
+  matching the existing local candidate's size/hash; release:
+  `https://github.com/kapelner/EDI/releases/tag/v1.0.2`. The tag ref points
+  directly to unsigned commit `903ced0404921b7f4a6b5a8b1f7d0a6702466a31`,
+  but the GitHub asset digest independently pins the uploaded source bytes.
+  The only Actions run for that commit was Copilot Setup Steps
+  (#37603732050), and its artifact metadata has `total_count=0`; no native
+  binary or seed-vector artifact is attached to the release. Thus
+  EDI 1.0.2 source authenticity is established, superseding the earlier
+  “unauthenticated local candidate” status, but the accepted full vectors are
+  still absent: OLS `n=1000, B=1000`, seeds `22422/414230`; logistic
+  `n=1000, B=500`, `19021/609739`; Cox `n=500, B=500`, `17961/628354`.
+  A local 2026-10-21 inventory found the retained 10-sample EDI 1.0.3-vs-`boot`
+  file `/tmp/edi-todo58-formal10-20261020-p5wFEL/results.csv` (31 lines
+  including header; SHA-256
+  `eff896a4ca97c5f53184605df80f8fb5ad0428335e47abf066c009a2d2657e25`).
+  It contains interval/timing rows, not raw bootstrap vectors; the retained
+  per-case files likewise contain interval/provenance summaries only. No
+  accepted EDI 1.0.2 parity vectors were found locally. This does not satisfy
+  the separate quiet-host timing gate, so the full parity gate remains open.
+  The remaining parity step requires a controlled run against the authenticated
+  source and preservation of the three length-B distributions plus RNG/package
+  provenance, followed by exact comparison with current EDI. No download, R
+  execution, build, or install occurred; TODO-58 remains open.
+  **Acceptance-artifact recheck, 2026-10-21 (read-only):** the retained
+  `results.csv` is still 31 lines (10 timing samples for each accepted
+  original-size OLS/logistic/Cox row), SHA-256
+  `eff896a4ca97c5f53184605df80f8fb5ad0428335e47abf066c009a2d2657e25`.
+  It records EDI 1.0.3/DLL, R and dependency versions, host OS/kernel/CPU,
+  BLAS, accepted B/seeds, timings, and a benchmark-script hash. It has no
+  sidecar, checkout/worktree identity, host-load, CPU-affinity, or thread-state
+  data; the recorded script SHA differs from both current worktree and HEAD
+  script hashes. It is full-size diagnostic evidence but not quiet-host/current-
+  provenance acceptance, and its OLS/Cox medians (0.137x/0.392x) fail the
+  fixed >=1x criterion (logistic 1.030x passes). The other retained CSVs are
+  per-case interval/provenance summaries, not vectors; the combined B=64
+  parity artifact is absent. Though the official release digest authenticates
+  the EDI 1.0.2 source tarball, there are no accepted OLS B=1000, logistic
+  B=500, or Cox B=500 vectors from it. No existing artifact establishes the
+  required timing and parity gates without new execution; TODO-58 remains
+  unchecked and acceptance thresholds are unchanged.
 
 - [ ] TODO-59 (added 2026-10-07, user decision): **Design construction
   overhead: `packageVersion()` disk read and eager covariate ingestion** —
@@ -2509,8 +6964,160 @@ baseline as expected/benign.
   design matrix's stale flag. This prevents a sequential Pocock--Simon design
   from carrying a manually materialized prefix covariate matrix into final
   inference after later arrivals. A regression checks an eight-row enrollment
-  after a four-row materialization; it remains unexecuted here because this
-  task forbids R execution.
+  after a four-row materialization. **Checkout-R source-overlay recheck,
+  2026-10-20:** the containing test file passed with no failures, warnings, or
+  skips via `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE,
+  export_all = FALSE)` followed by `testthat::test_file(...)`. The checkout R
+  namespace used the existing installed native DLL (SHA-256
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`,
+  identical to `R/EDI/src/EDI.so`); no build or install occurred. This verifies
+  the stale-prefix refresh/OLS-reference regression only; it does not satisfy
+  TODO-5's installed timing or EDI 1.0.2 parity gates. Details are in
+  `../bug_fix_plans/design_construction_overhead.md`.
+  **Installed benchmark diagnostic 2026-10-19 (not acceptance):** the exact
+  `n=1000`, `batch=100`, seven-repeat command completed against installed EDI
+  1.0.3 with 12-core affinity. Host load was 3.81/4.23/4.23 at start and
+  3.94/4.23/4.23 at finish, so the quiet-host requirement was not met. Median
+  iBCRD full construction was 1.45 ms (within 1.5 ms); blocking full
+  construction was 3.65 ms (over 2.5 ms; min/max 3.23/3.89 ms). The package
+  DLL SHA-256 was
+  `2de0c2d4918cb7fbd74d35a05c32893bfe58b00429a09d3ae6851c0e43c6946a`;
+  this was installed EDI 1.0.3 under R-devel, not a rebuilt checkout, and no
+  authentic EDI 1.0.2 assignment-weight comparison was made. The CSV and
+  provenance sidecar are in `/tmp/edi-todo59-design-bench-LIsn6K/`, with
+  SHA-256s `be8d37c0715d4422904d95d5d4b117d07573f43f52690b209c9ab72776f75ba4`
+  and `855f3c7f4ef79852a1a66cd05510bb8902b0f11a1b3e2f8fd9af7902ecc66c88`.
+  The harness retains median/min/max, not each repeat. This is diagnostic
+  only; TODO-59 remains open for a quiet-host acceptance run and the EDI 1.0.2
+  parity comparison.
+  **Provenance-gate smoke check, 2026-10-20:** the benchmark sidecar now
+  records the complete porcelain worktree status (including untracked paths)
+  and SHA-256 of the tracked `git diff --binary HEAD`, alongside checkout HEAD
+  and DLL identity. A bounded source-loaded invocation (`n=5`, `batch=1`, one
+  repeat) verified both fields without replacing any acceptance output. Its
+  `/tmp` CSV and sidecar hashes are
+  `e785cc58d05a0f33874db7b0ea0b7053e322cf8d9c39cd78e6501c6c6a7a631b` and
+  `5728a707b4f604c7abe56878acfe5448624cfc0acb00a718d2620ab7c2cdaa69`.
+  This checks metadata emission only; it is not timing evidence, and status
+  reports untracked paths without hashing their contents. The quiet-host
+  timing target and authentic EDI 1.0.2 fixed-seed parity input remain open.
+  **Failure-path hardening and focused test, 2026-10-20:** a missing/failing
+  Git status command now reports `<unavailable>` instead of being mistaken
+  for a clean checkout. `test-benchmark-design-construction-provenance-reference.R`
+  passed 17 assertions covering clean, dirty tracked, untracked-path, and
+  unavailable-command cases. The untracked-path check confirms porcelain
+  status includes the path while the tracked-diff digest remains unchanged.
+  It creates only a temporary Git repository; no full timing benchmark or
+  canonical output was run or modified.
+  **Untracked-source content provenance regression, 2026-10-20:** porcelain
+  status and the tracked-diff digest alone did not distinguish different
+  contents at an unchanged untracked path. The sidecar now also records a
+  SHA-256 over the path/content manifest for nonignored untracked files. The
+  focused provenance fixture passed 24 expectations, including a mutation
+  that changes only untracked contents while leaving the status text and
+  tracked-diff digest unchanged. This deterministic harness check is not a
+  timing run; only the quiet-host timing target and authentic EDI 1.0.2
+  fixed-seed assignment parity remain for TODO-59.
+  **Current artifact/provenance audit, 2026-10-21:** the preserved Oct 19
+  CSV and sidecar still match the hashes above. They remain diagnostic, not
+  acceptance evidence: recorded host load was 3.81/4.23/4.23 at start and
+  3.94/4.23/4.23 at finish (not a quiet host), blocking median was 3.65 ms
+  against the 2.5 ms cap, and the recorded DLL SHA-256
+  (`2de0c2d4918cb7fbd74d35a05c32893bfe58b00429a09d3ae6851c0e43c6946a`)
+  differs from the current installed EDI 1.0.3 DLL. The current installed
+  package was built 2026-10-20 21:56:26 UTC; its DLL matches checkout
+  `R/EDI/src/EDI.so` at SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`, but
+  the worktree is dirty, so the old run's HEAD/DLL metadata does not establish
+  current source provenance. The focused
+  `test-benchmark-design-construction-provenance-reference.R` was rerun
+  against installed EDI 1.0.3 and passed all 31 assertions; it exercises
+  provenance helpers only, not timing. A candidate EDI 1.0.2 source archive
+  previously found in `/tmp` has no trusted checksum/provenance and contains
+  no native binary or retained assignment vectors, so it is not an
+  authoritative parity baseline. Both the quiet-host timing run with current
+  provenance and fixed-seed parity against an authentic EDI 1.0.2 baseline
+  remain required; this audit does not close TODO-59.
+  **Preserved timing-artifact reconciliation, 2026-10-21 (read-only):**
+  rechecked `/tmp/edi-todo59-design-bench-LIsn6K/timings.csv` and its
+  provenance sidecar. Their SHA-256 hashes still match
+  `be8d37c0715d4422904d95d5d4b117d07573f43f52690b209c9ab72776f75ba4` and
+  `855f3c7f4ef79852a1a66cd05510bb8902b0f11a1b3e2f8fd9af7902ecc66c88`.
+  The sidecar authenticates the run parameters (`n=1000`, `batch=100`, seven
+  repeats, seed 5901), EDI 1.0.3/R-devel environment, HEAD, host load and
+  affinity, and the then-loaded native DLL hash
+  `2de0c2d4918cb7fbd74d35a05c32893bfe58b00429a09d3ae6851c0e43c6946a`.
+  It predates the harness's checkout-status/diff and R-layer manifest fields;
+  it records medians/minima/maxima rather than per-repeat samples. The stored
+  medians remain 1.45 ms for iBCRD and 3.65 ms for blocking, so the latter
+  misses the 2.5 ms ceiling; the host load (3.81/4.23/4.23 at start,
+  3.94/4.23/4.23 at finish) also fails the quiet-host condition. Read-only
+  hashing now confirms the installed and checkout DLLs match at
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  distinct from the artifact's older DLL, so that timing is not attributable
+  to the current installed artifact. No authentic EDI 1.0.2 fixed-seed
+  assignment-weight vectors or trusted installed baseline were found in the
+  retained evidence; the candidate source archive remains unauthenticated and
+  contains no native binary or vectors. The remaining tests are therefore a
+  quiet-host acceptance-settings run with the current installed package and
+  complete sidecar provenance, plus fixed-seed assignment-weight comparison
+  against an authenticated EDI 1.0.2 package or provenance-pinned reference
+  vectors. Both criteria remain unchanged; this reconciliation does not close
+  TODO-59 and no timing run or canonical output write occurred.
+  **Retained-run completeness audit, 2026-10-21:** among the other local
+  TODO-59 timing CSVs, `/tmp/edi_v105_todo59_design_construction.csv` is an
+  unproven candidate with the acceptance `n=1000`, `batch=100`; its
+  iBCRD/blocking full-workflow medians are 0.83/1.91 ms (SHA-256
+  `f002a5077eea71948e19b99532585e90b3639d143e1122c8240a1d6d205f29be`). It
+  has no sidecar or raw repeat rows, so its repeat count, host load, package/
+  DLL identity, and checkout provenance cannot be established; passing point
+  medians alone do not meet the quiet-host gate. The older 10/09, 10/15, and
+  10/16 summary CSVs also lack sidecars; the latter installed/pinned-core
+  blocking medians are 5.90–6.88 ms, above the 2.5 ms cap. The only
+  provenance-bearing acceptance-sized timing remains the 10/19 artifact
+  above (high load, 3.65 ms blocking, stale DLL identity); the 10/20
+  provenance smoke used `n=5`, `batch=1`, one repeat, source-loaded code, and
+  load 4.24, so it is metadata-only, not acceptance. No retained run can
+  establish both quiet-host threshold performance and current package
+  identity. On the parity side, the source-only candidate and unsigned local
+  `v1.0.2` commit contain no recorded TODO-59 fixed-seed assignment vector;
+  the checked-in expected vector has no independent 1.0.2 run provenance.
+  Therefore neither open gate can be closed from existing artifacts without
+  the missing baseline and a provenance-complete acceptance run.
+  **Closure recipe and decision boundary, 2026-10-21:** when an authorized
+  quiet-host slot is available, run the installed-package harness (do not set
+  `EDI_BENCH_SOURCE`) with a unique scratch output:
+  `Rscript R/benchmark/benchmark_design_construction.R 1000 100 7 /tmp/edi-todo59-acceptance-<unique>.csv`.
+  Preserve both CSV and `.provenance.txt` hashes. The sidecar must identify
+  installed EDI and its loaded R-namespace payload, DLL SHA-256, checkout
+  HEAD/worktree/tracked and untracked manifests, R/session and thread settings,
+  host load and CPU affinity at start/end, and exact run parameters. Require
+  iBCRD median <= 1.5 ms and blocking median <= 2.5 ms across the seven
+  repeats; do not reuse or overwrite the diagnostic artifacts. “Quiet host”
+  has no numeric load cutoff in the acceptance text. The maintainer must
+  choose a numeric cutoff only if one is required for machine-verifiable
+  acceptance; otherwise the existing qualitative quiet-window requirement
+  stands. Fixed-seed parity separately requires an authenticated EDI 1.0.2
+  package or trusted provenance-pinned assignment vectors for the concrete
+  designs in `test-seed-reproducibility-all-designs.R`; the unsigned local
+  source ref is not an adequate anchor. Both gates remain open; no timing or
+  parity run was performed for this note.
+  **Current-artifact identity recheck, 2026-10-21 (read-only):** the retained
+  Oct 19 acceptance CSV/sidecar hashes still match
+  `be8d37c0715d4422904d95d5d4b117d07573f43f52690b209c9ab72776f75ba4` /
+  `855f3c7f4ef79852a1a66cd05510bb8902b0f11a1b3e2f8fd9af7902ecc66c88`, and
+  the Oct 20 `n=5`, `batch=1`, one-repeat source-loaded provenance smoke
+  hashes still match `e785cc58d05a0f33874db7b0ea0b7053e322cf8d9c39cd78e6501c6c6a7a631b` /
+  `5728a707b4f604c7abe56878acfe5448624cfc0acb00a718d2620ab7c2cdaa69`.
+  Their recorded DLL hashes (`2de0c2d4…` and `5a0b9497…`) differ from the
+  currently installed EDI 1.0.3 DLL and checkout `R/EDI/src/EDI.so`, which
+  now match at SHA-256
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`
+  (installed DESCRIPTION Built: 2026-10-21 11:12:19 UTC). This confirms the
+  earlier stale-artifact limitation; the smoke is metadata-only and the Oct
+  19 timing still fails quiet-host/blocking thresholds. No run/test occurred.
+  Both the quiet-host acceptance timing and authenticated EDI 1.0.2
+  fixed-seed parity gates remain open.
   - [ ] On a quiet host, verify the installed package/DLL identity and run
     the installed `n=1000`, `batch=100`, seven-repeat timing with provenance;
     require iBCRD <= 1.5 ms and blocking <= 2.5 ms. Separately compare
@@ -2568,6 +7175,111 @@ baseline as expected/benign.
   including the missing-first-stratum versus literal-`"NA"` case; the
   installed build metadata does not identify the checkout SHA, so it is not
   proof that the current source revision was built.
+  **Source-loaded regression, 2026-10-19:** ran
+  `pkgload::load_all("R/EDI", quiet = TRUE, compile = FALSE)` followed by
+  `testthat::test_file("R/package_tests/testthat_bulk/test-pocock-simon-level-rows-and-binary-match-structure-reference.R")`;
+  67 passed, 0 failed/warned/skipped. This validates the current checkout's R
+  source against the installed EDI 1.0.3 native library, not rebuilt native
+  code. The performance, identity, and EDI 1.0.2 parity gates below remain.
+  **Source-loaded recheck 2026-10-20:** reran the same focused test separately
+  with `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE,
+  export_all = FALSE)`; it passed 67 expectations (10 test blocks, no
+  failures/warnings/skips). R was `R Under development (unstable)
+  (2026-10-13 r90668)`, and the namespace path was the checkout
+  `/home/kapelner/workspace/EDI/R/EDI`. Pkgload used a temporary copy of the
+  available EDI 1.0.3 DLL; `R/EDI/src/EDI.so` and installed
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` both had
+  SHA-256 `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+  No compile/install occurred. This reconfirms the first-arrival missing-
+  stratum fix at the checkout R layer only; it does not satisfy current-head
+  native matching, the isolated timing criterion, or authentic EDI 1.0.2
+  assignment-vector parity.
+  **Installed benchmark diagnostic 2026-10-20 (not acceptance):** ran
+  `Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5 /tmp/edi-v105-todo60-bench-n8DtfP/benchmark.csv`
+  against installed EDI 1.0.3 (Built 2026-10-19 20:31:50 UTC; R-devel
+  r90668). Per-arrival medians at t=10/100/500/1000 were 0.50/0.70/0.45/0.65
+  ms; whole-sequence median was 509.95 ms. The <=0.5 ms checkpoint limit
+  fails at t=100 and t=1000. No competing R job/user process was visible at
+  start, but host load ranged 3.19--3.64 on 12 CPUs, so this was not a
+  strictly idle/acceptance-clean run. Checkout HEAD was
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; relevant source/test/benchmark
+  files were clean and no local build occurred. Installed DLL SHA-256:
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+  CSV: `/tmp/edi-v105-todo60-bench-n8DtfP/benchmark.csv` (SHA-256
+  `3a8fab5447a1aabe261597c62f25a393ca5eeab27d3d1542cbe219ce04fec88b`).
+  This diagnostic does not close the timing gate; authentic EDI 1.0.2
+  fixed-seed assignment-vector parity remains open.
+  **Benchmark provenance safeguard, 2026-10-20:** the optional CSV output now
+  refuses to overwrite an existing CSV or sidecar and writes an adjacent
+  `.provenance.txt` record containing parameters/seeds, package/library/DLL
+  path and SHA-256, checkout HEAD plus worktree status/tracked-diff SHA-256,
+  R/platform/session, thread environment, and start/end host load and CPU
+  affinity. `test-pocock-simon-benchmark-provenance-reference.R` passed 15
+  assertions for clean, dirty, and unavailable Git states without running the
+  benchmark. No timing result, native build, or canonical output was produced.
+  **Post-reinstall installed regression and artifact audit, 2026-10-21:**
+  `test-pocock-simon-level-rows-and-binary-match-structure-reference.R`
+  passed all 67 expectations against installed EDI 1.0.3 (no failures,
+  warnings, or skips), including the first missing-stratum/literal-`"NA"`
+  case, fixed-seed assignment fixture, and zero matrix-builder calls during
+  enrollment followed by one on first post-enrollment access. The installed
+  package was built 2026-10-20 21:56:26 UTC; installed and checkout
+  `R/EDI/src/EDI.so` are byte-identical (SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`). The
+  installed package has no embedded checkout/R-source hash, so this is
+  current installed-behavior evidence, not complete source provenance.
+  Retained timing CSVs are summary-only and lack run provenance: the Oct 20
+  `benchmark.csv` SHA-256 is
+  `3a8fab5447a1aabe261597c62f25a393ca5eeab27d3d1542cbe219ce04fec88b`, with
+  stdout retained but no adjacent sidecar; it recorded 0.50/0.70/0.45/0.65 ms
+  and failed the t=100 and t=1000 caps on a loaded host. The older Oct 14
+  `edi_v105_todo60_pocock_simon_arrivals.csv` SHA-256 is
+  `e075920b5c927a384a2cc40b2db12600de2f1f4f3964259e66a794544822ca4c`, also
+  with no sidecar. The candidate EDI 1.0.2 source archive remains
+  unauthenticated, lacks a native binary, and supplies no retained assignment
+  vectors. Thus the isolated, provenance-pinned timing acceptance and
+  fixed-seed parity against an authentic 1.0.2 baseline remain open; this
+  focused rerun does not close TODO-60.
+  **Acceptance-matrix audit and installed rerun, 2026-10-21:** reran the
+  focused `test-pocock-simon-level-rows-and-binary-match-structure-reference.R`
+  against installed EDI 1.0.3; all 67 expectations passed (no failures,
+  warnings, or skips). This covers the eight-row late-level/missing-value
+  fixture, including the expected vector `c(1,0,0,1,0,1,0,0)`, and verifies
+  deferred model-matrix construction. That expected vector is a checkout test
+  expectation, not an independently captured EDI 1.0.2 result, so the
+  baseline-parity matrix row remains **unverified**. The timing row also
+  remains open: the Oct 20 run misses the 0.5 ms caps at t=100 and t=1000;
+  the Oct 14 values (0.35/0.35/0.35/0.40 ms) have no sidecar and cannot
+  establish their run conditions. The report already has a full n=1000,
+  ten-warmed-run context table (EDI 3136 ms, carat 4.41 ms, Minirand 1054.50
+  ms), but it is historical and not a parity/acceptance result; refresh is
+  still required by the run protocol. The current harness can write a sidecar
+  with DLL, HEAD, tracked-diff, worktree status, session, and host data, but
+  its tracked-diff hash does not hash untracked file contents and it records
+  no fingerprint for the installed package's R namespace. **Harness follow-up,
+  2026-10-21:** the optional sidecar now also records the loaded EDI namespace
+  path and a deterministic SHA-256 over sorted relative paths and per-file
+  hashes under the installed namespace's `R/` directory. The focused
+  provenance test passed 23 expectations, including a synthetic changed-file
+  digest check and the actually loaded namespace. This closes the instrumentation
+  gap for future runs only; it does not retroactively authenticate either
+  retained timing CSV. No benchmark, build, or install ran. Neither retained
+  timing CSV has an adjacent sidecar. Smallest useful next check is therefore
+  not another correctness rerun: obtain an authenticated EDI 1.0.2 package or
+  independently recorded vectors, then compare the exact fixture before any
+  authorized rebuild/isolated timing run. TODO-60 remains open.
+  **Operation-count guard validation:** the focused level-rows test, including
+  the operation-count assertions, passed 86 expectations across 10 test blocks
+  against installed EDI 1.0.3. Installed and checkout `R/EDI/src/EDI.so` are
+  byte-identical with SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`; the
+  exact invocation is not recorded here. This is installed-package correctness
+  evidence, not a timing result or proof that the current checkout R source was
+  loaded. The guard checks that later arrivals key only their current values,
+  counts-row growth tracks newly observed levels, and model-matrix builds are
+  deferred until access; it does not bound level-map lookup or matrix
+  resize/copy cost. The isolated timing and authentic EDI 1.0.2 parity gates
+  remain open.
   - [ ] After TODO-56 is terminal, run
     `Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5` on an
     idle host; record installed package/DLL identity and host provenance, and
@@ -2575,6 +7287,23 @@ baseline as expected/benign.
     material upward trend. Separately verify fixed-seed assignment-vector
     identity against an authentic EDI 1.0.2 package and refresh the full
     n=1000 report context; do not use a carat ratio as an acceptance gate.
+
+  **Current artifact/source reconciliation, 2026-10-21 (read-only):** the
+  retained Oct 20 `benchmark.csv` (SHA-256
+  `3a8fab5447a1aabe261597c62f25a393ca5eeab27d3d1542cbe219ce04fec88b`) has
+  only its CSV and stdout retained, no adjacent sidecar. Its checkpoint medians
+  0.50/0.70/0.45/0.65 ms at t=10/100/500/1000 miss the 0.5 ms cap at t=100
+  and t=1000; host load was 3.19--3.64 on 12 CPUs. The 86-expectation
+  operation-count test result is installed EDI 1.0.3 evidence, with no exact
+  invocation recorded; it checks prefix re-keying and deferred matrix builds
+  but does not prove current checkout R behavior or bound map-lookup/resize
+  work. Current-source inspection confirms the preallocated compatible-row
+  path, incremental level registration, and Pocock--Simon matrix-build opt-out.
+  The 23-assertion sidecar test makes future run provenance available but
+  cannot authenticate the retained CSV retroactively. Next, obtain trusted
+  EDI 1.0.2 fixed-seed assignment vectors for parity; then, when an authorized
+  quiet-host slot is available, run the documented acceptance command with a
+  fresh CSV path and sidecar. TODO-60 remains open.
 
 - [x] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
   `nonbimatch` squared distances with a `double.xmax` diagonal** —
@@ -2655,10 +7384,193 @@ baseline as expected/benign.
   it is diagnostic only and does not replace the canonical Zhang parity or
   artifact-synchronization gates. Harness/result are preserved in `/tmp` and
   described in the linked plan.
+  **Section-parser guard, 2026-10-20:** the extracted pure parser rejects an
+  explicitly empty `--sections=` rather than falling back to the exhaustive
+  default. Its focused contract test passed 9 assertions; both shard planners
+  validated the refreshed inventory. No benchmark or report generation was
+  run, and the canonical Zhang parity/tolerance and report-sync gates below
+  remain open.
+  **Current parser and report-artifact recheck, 2026-10-21:** the focused
+  `test-benchmark-model-fit-section-selection-contract-reference.R` reran
+  against installed EDI 1.0.3 and passed all 9 assertions; no benchmark or
+  report generation ran. The two tracked Markdown copies remain different
+  (SHA-256 `27c0153604eadd3ba9578a63457e1ba4106e42a1ed0181e834fc46021dc69ab1`
+  in `R/package_metadata/` and
+  `9cf7b03ae0dbc13e4a67ea38c374d80cad8fed700f2ecbe50efd979d40624a7e` in
+  `R/benchmark/`), while the two HTML copies are byte-identical (SHA-256
+  `ae366ee3a325ac42e70dacd55e736d3743529fe6e3680f309973403d3d0f0408`). Both
+  Markdown copies still show the unsplit Zhang row (2.44 ms EDI vs. 0.96 ms
+  Fisher, 0.39x); the generated artifacts therefore remain stale relative to
+  the construction/procedure methodology. The owner-approved numeric parity
+  tolerance and synchronized report regeneration remain open.
+  **Loaded R-layer identity follow-up, 2026-10-21:** the benchmark report
+  previously recorded the installed package path but not a fingerprint for
+  the loaded namespace's R payload. `benchmark_model_fits.R` now emits the
+  namespace path, payload file count, and deterministic SHA-256 manifest in
+  both compilation-context branches. The focused section-selection/provenance
+  test passed 24 expectations, including a loaded-namespace digest and
+  synthetic payload-change check. No benchmark/report generation ran and no
+  generated report was changed. This binds future report generation only;
+  TODO-62's owner-approved parity criteria and canonical report synchronization
+  remain open.
+  **Mixed `all` selector validation, 2026-10-21:** the section parser now
+  validates every supplied name before honoring `all`, so a typo such as
+  `--sections=all,modles` fails instead of silently selecting every section;
+  `all` combined with a valid name remains accepted. The focused
+  `test-benchmark-model-fit-section-selection-contract-reference.R` passed
+  against installed EDI 1.0.3 after adding both cases. No benchmark or report
+  generation ran; the numeric parity and report-synchronization gates remain
+  open.
+  **Three-pair artifact identity recheck, 2026-10-21 (read-only):** the
+  retained diagnostic under `/tmp/edi-todo62-paired3.1o5VF5/` records the
+  canonical seed-45265, n=1000 fixture and EDI 1.0.3, but only three pairs.
+  Its recorded installed-DLL SHA-256 is
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  unlike the currently inspected installed/checkout DLL
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`.
+  The diagnostic median `Fisher / EDI` procedure ratio is 0.2002, below the
+  approved `>=1` speed target; its `0.00441339774953` maximum log-bound
+  difference is evidence, not an approved endpoint tolerance. Thus it cannot
+  establish current-provenance acceptance or resolve the owner choice of
+  endpoint metric/bound. The tracked reports still contain the stale Zhang
+  row; their HTML copies match but their Markdown copies differ as noted
+  above. No benchmark, regeneration, or canonical report update occurred.
   - [ ] Set and record an owner-approved numeric Zhang parity tolerance;
     rerun the canonical fixture and confirm both parity and report rows.
     Only then regenerate and synchronize all four tracked reports from the
     harness (never by hand-editing generated artifacts).
+  **Owner-criteria provenance check, 2026-10-21:** the project already has an
+  owner-approved numeric speed target in `release_v1_2_0.md → TODO-29` and
+  `canonical_parity_resampling_rows.md → TODO-3`: existing-object EDI CI
+  procedure time must be no more than `1x` `fisher.test`, and the complete EDI
+  row must be no more than `1.5x` the comparator after construction is
+  reported separately. With this report's convention, that is
+  `Fisher / EDI >= 1` for procedure speed and `EDI total / Fisher <= 1.5` for
+  the whole row. The retained 30-pair median Fisher/EDI ratio `0.208x` (IQR
+  `0.188–0.246`) is below the approved procedure target. The remaining owner
+  decision is the cross-implementation CI endpoint error metric and numeric
+  Zhang-vs-`fisher.test` bound: the canonical maximum absolute log-bound
+  discrepancy `0.00441339775` is evidence, not a selected tolerance, and
+  `pval_epsilon=1e-6` controls inversion precision, not endpoint parity.
+  The `1e-12` summation-order constraint in `release_v1_2_0.md → TODO-29`
+  and `canonical_parity_resampling_rows.md → TODO-3`, plus the `1e-10`
+  current-interval comparison in TODO-3, preserve EDI implementation parity;
+  neither is a Zhang-vs-Fisher endpoint acceptance bound.
+  Installed EDI 1.0.3 deterministic tests passed 49 assertions for
+  statistics, scalar p-values, internal CI crossing/bracketing, plus 5 for
+  serial/parallel CI agreement. They verify null-p-value parity with
+  `fisher.test` at `1e-8` and internal behavior, but do not compare CI
+  endpoints against Fisher under an approved endpoint bound. After the owner
+  selects that endpoint criterion, collect current-provenance paired canonical
+  timing and verify the already-approved speed target.
+  **Read-only gate audit, 2026-10-21:** the canonical seed-45265 fixture's
+  maximum absolute log-bound discrepancy is 0.00441339775 (Zhang bounds
+  ~0.132031/0.667727; Fisher ~0.127618/0.668427). The noncanonical seed
+  20261015 discrepancy is 0.00642 and is diagnostic only. The preserved
+  canonical timing has 30 alternating pairs, median procedure times 7.750 ms
+  (Zhang) vs. 1.717 ms (Fisher), paired Fisher/Zhang ratio 0.208x (IQR
+  0.188–0.246); its installed package was EDI 1.0.3 but the preserved metadata
+  lacks source revision and DLL hash, so it does not validate the current
+  installed artifact. All four tracked reports still contain the old unsplit
+  timing row; Markdown copies differ in content while HTML copies match.
+  Therefore a current-provenance paired run, the remaining owner-selected
+  endpoint criterion, and a report reconciliation policy are still required
+  before the harness regenerates the canonical reports. The procedure-speed
+  target is already specified by TODO-29; the existing timing evidence falls
+  short of it. No benchmark or canonical report was changed in this audit.
+  **Bounded canonical-fixture diagnostic, 2026-10-21:** a standalone
+  installed-package run reconstructed seed 45265 (`n=1000`, four covariates,
+  table vector `348,303,152,197`, `num_cores=1`), warmed both procedures, then
+  collected three randomized interleaved fresh-object Zhang / Fisher pairs;
+  construction was timed separately. Median procedure times were 4.029 ms
+  (Zhang) and 1.474 ms (Fisher), with median paired Fisher/Zhang ratio 0.200;
+  the maximum absolute log-bound difference was 0.00441339775. This small
+  diagnostic is not an acceptance run: host load average was about 4.96 at
+  start/end and the Zhang pair times ranged from 3.820 to 7.362 ms. It does
+  not select the owner-approved endpoint metric/tolerance or provide
+  acceptance-grade timing; its median Fisher/EDI ratio is below the existing
+  TODO-29 procedure-speed target. It also does not resolve report-copy
+  reconciliation. The successful run exited 0 under a 90-second timeout,
+  with outputs isolated under `/tmp/edi-todo62-paired3.1o5VF5/`; no tracked
+  benchmark CSV or report was written. Provenance: installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; installed R-layer
+  manifest SHA256 `cb1b1b5812cee41799ef53c1f0af1271d5a7c48e45b975b1954889e777cc76cd`
+  (3 files); loaded DLL SHA256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`.
+  Checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9` with a dirty
+  worktree; checkout Zhang R/C++ source SHA256s were
+  `2886d74494573365c7b3cc3f4ba0a07325c42a789b04daff303ec925ced24542` /
+  `bf7bdd64ae9313b78b2c87f2a158d39c550f6bd047b2529aa033ae8a53b95dfd`.
+  Raw paired samples SHA256:
+  `c067a45211e180b6895bf9f5acb6cd8898a16f91c57375dcd48af89afd4df2e2`;
+  construction samples SHA256:
+  `eb85e26c4a47dcf9d664dfca079ef9ea11bf33c07a0642e9db127ba3aeee4ba6`;
+  summary SHA256:
+  `ebfca1686048e4575228fb389375e4d44f96ede983b1f329f347dae6b9df3951`;
+  metadata SHA256:
+  `8f562db148b743a20abd44cb446894c8ff51f844ea8d6077b611806ec72d0911`.
+
+  **Maintainer decision brief (read-only audit, 2026-10-21):** the linked
+  benchmark times `compute_exact_confidence_interval()` and times
+  `log(stats::fisher.test(tab)$conf.int)` separately; it does not calculate
+  or assert endpoint agreement. `pval_epsilon=1e-6` is the CI inversion
+  precision, not the cross-implementation endpoint tolerance. Existing
+  endpoint observations are max absolute differences on the log-odds-ratio
+  scale: `0.00441339775` for canonical seed 45265 and `0.00642` for one
+  noncanonical fixture. Possible explicit endpoint gates are (a) `<=0.005`,
+  which is just above the canonical observation but below the noncanonical
+  one, or (b) `<=0.01`, which admits both observed cases (about a 1% relative
+  odds-bound difference); these are choices, not validated guarantees. The
+  owner-approved speed criteria and the retained timing failure are recorded
+  in the preceding Owner-criteria provenance check; they are not open choices.
+  Thus only the cross-method endpoint metric and tolerance remain for
+  maintainer selection.
+
+  Report copies also need explicit reconciliation: all four still show the
+  obsolete unsplit Zhang row `2.44 ms` vs. `0.96 ms` (`0.39x`). The HTML
+  copies are byte-identical (SHA-256
+  `ae366ee3a325ac42e70dacd55e736d3743529fe6e3680f309973403d3d0f0408`), but
+  the Markdown copies differ (package-metadata SHA-256
+  `27c0153604eadd3ba9578a63457e1ba4106e42a1ed0181e834fc46021dc69ab1`,
+  benchmark SHA-256
+  `9cf7b03ae0dbc13e4a67ea38c374d80cad8fed700f2ecbe50efd979d40624a7e`).
+  Besides the stale Zhang row, `R/package_metadata/benchmark_model_fits.md`
+  has the updated BinaryMatch row (537/890 ms, 1.66x) while
+  `R/benchmark/benchmark_model_fits.md` retains 639/453 ms (0.71x); metadata
+  also contains the Oct 14 design-construction and Pocock–Simon context
+  sections absent from the benchmark copy. Their shared procedure table also
+  has conflicting OLS-kernel wiring descriptions. These differences mean the
+  Markdown files cannot be treated as interchangeable. After the endpoint
+  choice and a provenance-current canonical rerun, regenerate via the
+  harness, then reconcile the Markdown-only sections deliberately and verify
+  the Zhang row and required columns in all four files. No benchmark/report
+  generation or overwrite was performed for this audit.
+
+  **Retained paired-artifact inventory, 2026-10-21 (read-only):** the two
+  earlier 30-pair CSVs under `/tmp/todo62_paired_zhang_20261016_01/` and
+  `_02/` are still present (31 lines each including the header); their SHA-256
+  values are `a1a2d53a8eb2bc7452a70593eda93b0b6968163e97875834065e7b5d299a15bd`
+  and `c12065cd6aaad584dbf421661b1c95fa4615835aff19003302aba6b5b38f6c79`.
+  Their shared metadata SHA-256 is
+  `08efbed2bf50da36f28eb24cca1580109c142a89b55e2d5f9274a2c1e5b9b85c`;
+  it records EDI 1.0.3, DLL path/mtime, R/platform, thread limits and the
+  canonical seed-45265 fixture, but no DLL hash, checkout/source revision, or
+  loaded-R-payload fingerprint. Their procedure medians were EDI/Fisher
+  9.420/1.413 ms (`0.149x`) and 7.750/1.717 ms (`0.208x`), with construction
+  separate; both fail the approved `Fisher / EDI >= 1` target. Although the
+  current installed and checkout DLLs match at SHA-256
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`, that
+  cannot authenticate these Oct. 16 runs. The previously recorded isolated
+  full-section output directories for 15 procedure and 6 design cases are no
+  longer present. The separately recorded current-provenance three-pair
+  canonical diagnostic above is still only diagnostic (small sample and
+  host-load variation), not a substitute for the full section output or an
+  acceptance timing run. The tracked reports remain the stale unsplit
+  snapshots described above: HTML copies are byte-identical, Markdown copies
+  differ. Therefore the owner-selected endpoint metric/tolerance, a
+  provenance-current acceptance run, and harness-based report regeneration
+  plus deliberate Markdown reconciliation remain open. No benchmark/report
+  generation or canonical write occurred in this inventory.
 
 - [ ] TODO-63 (added 2026-10-07, user decision): **C++ kernels accept a
   `warm_start_beta` of the wrong length and corrupt the heap** —
@@ -2720,11 +7632,203 @@ baseline as expected/benign.
   `2026-10-18 04:23 +0300`, before the binding edit (`06:19`) and the two
   new Python tests (`06:04`). Do not treat runs against that extension as
   validation of the current binding/source changes.
+  **Static wrapper-test crosswalk, 2026-10-19:** all 63 exported wrappers
+  accepting `warm_start_fisher_info` are referenced by the permanent contract
+  test in malformed-matrix rejection or documented bypass/no-op assertions.
+  Normalizing namespaced R call heads corrected an earlier undercount; this is
+  test-presence evidence only and does not replace executing the tests against
+  matching native code.
+  **Matching-native R validation, 2026-10-20:** the checkout was installed
+  with `EDI_UNITY=0 R CMD INSTALL --no-multiarch R/EDI` on 2026-10-19
+  (installed package version 1.0.3; `EDI.so` SHA-256
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`,
+  19,810,248 bytes, mtime 2026-10-19 23:47:15 +0300). Against that installed
+  package, the CRAN contract file
+  `test-kernel-warm-start-length-contracts.R` passed all 204 expectations
+  (`testthat::test_file(..., package = "EDI")`), and the extended
+  `test-mixed-kernel-warm-start-shape-guards-reference.R` passed 23. This
+  closes the matching-native R malformed-start contract gate only. Python
+  wrong-length-start validation and sanitizer/Valgrind CI remain open; no
+  result against the previously timestamped Python extension is substituted.
+  **Additional installed-package sibling revalidation, 2026-10-20:** eight
+  focused tests passed (64 assertions) for log-identity binomial, probit,
+  robust weighted, ordinal, ordinal probit/cauchit/cloglog, Weibull,
+  negative-binomial, and weighted log-identity binomial wrong-length guards;
+  the ZINB sibling test passed seven more assertions. These ran against EDI
+  1.0.3 at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, with
+  `EDI.so` at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  SHA-256 `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  (MD5 `a75519a9256c0b3121398032314291d4`). This identity differs from the
+  earlier recorded installed DLL, so these results apply only to the package
+  loaded in this run and do not establish checkout-native equivalence. No
+  build/install was run; ASAN/UBSAN and Valgrind remain open.
+  **Fresh user-managed rebuild with checkout-R overlay, 2026-10-20:** the
+  installed namespace-only CRAN contract reported 12 failures / 184 passes;
+  the failures were missing R wrapper functions in the installed R layer, not
+  wrong-length guards returning incorrectly. Re-running with
+  `pkgload::load_all("R/EDI", compile = FALSE)` against the same native
+  library passed all 204 CRAN expectations, plus 64 assertions across the
+  eight sibling files and 7 ZINB assertions (275 total, no failures). The
+  loaded overlay DLL at `/tmp/RtmpHlgw5S/pkgload99164b557f1e/EDI.so` had
+  SHA-256 `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  matching the freshly installed binary and checkout `R/EDI/src/EDI.so`.
+  This closes the R-source/native malformed-start runtime gate for these
+  cases. The installed R-layer mismatch and sanitizer/Valgrind CI remain open.
+  Local Python-extension provenance is not established; the same-source CI
+  record below separately closes the Python wrong-length suite-validation
+  subgate. No build/install was performed by the agent.
+  **User-reinstalled package recheck, 2026-10-20:** using `library(EDI)` with
+  no source overlay, `test-kernel-warm-start-length-contracts.R` passed all
+  204 expectations. The installed package is EDI 1.0.3 and its DLL SHA-256 is
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`, equal
+  to `R/EDI/src/EDI.so`. This confirms the installed R layer now contains the
+  wrappers missing in the earlier namespace-only run and closes the matching
+  installed-package R contract gate. The local Python extension remains
+  unproven, although the same-source CI record below closes the Python
+  wrong-length suite-validation subgate. Sanitizer/Valgrind CI remains open;
+  the user, not this agent, performed the rebuild/install.
+  **Local installed-package Memcheck, 2026-10-20:** the same 204-expectation
+  CRAN contract passed under Valgrind Memcheck against EDI 1.0.3. Test output
+  is in `/tmp/edi-v105-todo63-installed-valgrind-20261020.log`; the main R
+  process's Memcheck log, `/tmp/edi-v105-todo63-valgrind-2.log`, reports
+  `ERROR SUMMARY: 0 errors from 0 contexts` (the traced child-process logs
+  also report zero). This is a local
+  check of the installed malformed-start contract, not the project's
+  `R-CMD-check-valgrind` or sanitizer CI job; those release gates remain open.
+  **Existing-extension Python warm-start recheck, 2026-10-20:** the targeted
+  node `python/tests/test_fast_logistic_regression.py::test_wrong_length_warm_start_beta_raises_value_error`
+  passed (`1 passed in 0.37s`) using Python 3.14.4 and the existing
+  `edi-kernels` 1.0.2 extension at
+  `python/.venv/lib/python3.14/site-packages/edi_kernels/_core.cpython-314-x86_64-linux-gnu.so`
+  (SHA-256
+  `ea216d1626310beedcacc18bccf6419207da78c34ac1a5b41f1cea983b83de05`,
+  mtime `2026-10-18 11:17 +0300`). The package initializer came from checkout
+  `python/src/edi_kernels/__init__.py`; the relevant Python sources/tests are
+  clean at HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. Although the
+  extension timestamp follows the recorded source edits, no build manifest or
+  embedded commit ties it to this checkout. This is a focused smoke of that
+  existing binary, not rebuild-backed Python validation or sanitizer
+  evidence. No build/install occurred.
+  **Same-source Python CI validation, 2026-10-18:** successful Build
+  `edi_kernels` wheels run [39110868916](https://github.com/kapelner/EDI/actions/runs/39110868916)
+  tested commit `4d2531e97bc0636d3409003576a5766d15a308d0`; its Python
+  coverage job 117626532957 successfully installed the editable package and
+  ran the complete `python -m pytest tests -q --cov=edi_kernels` suite. The
+  workflow source specifies `pip install -e "./python[test]"`. The full suite
+  includes the logistic, ordinal-CLMM, and dependent-censoring malformed-start
+  tests. `git diff --name-status 4d2531e97bc0636d3409003576a5766d15a308d0
+  HEAD -- R/EDI/src python` is empty, so relevant sources/tests are unchanged
+  at HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This closes the Python
+  suite validation subgate based on same-source CI, not the local extension
+  provenance. R targeted compile/relink validation and ASAN/UBSAN/Valgrind CI
+  remain open; no artifact download or local build/install was done.
+  **Focused checkout-R length-contract recheck, 2026-10-20:** ran
+  `Rscript -e 'pkgload::load_all("R/EDI", compile=FALSE, recompile=FALSE, quiet=TRUE); testthat::test_file("R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R", reporter="summary")'`.
+  All 204 expectations passed, with 0 failures, warnings, or skips. Checkout
+  HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; the test source SHA-256
+  is `b8cc1c438592d58760bca872a5de58219caf2d0c434bb1eb5eb686a9cd0c1171`.
+  The loaded source-overlay DLL was
+  `/tmp/RtmpoVXB57/pkgloadf58b237eaac1a/EDI.so`, SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  byte-identical to both checkout `R/EDI/src/EDI.so` and the installed EDI
+  1.0.3 DLL at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`. This
+  exercised checkout R definitions against that already-built native artifact
+  with compilation/recompilation disabled; it is not an installed-library R
+  layer run and does not substitute for the separately authorized
+  installed-build/relink or sanitizer/Valgrind gates. No build/install was
+  performed here.
+  **Current installed-native identity and contract, 2026-10-21:** read-only
+  SHA-256 checks show installed
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` and
+  checkout `R/EDI/src/EDI.so` are byte-identical at
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`
+  (14,727,184 bytes; mtimes differ by 0.04 seconds). The installed RDB is
+  newer than the guarded R sources. Against `library(EDI)` with no source
+  overlay, `test-kernel-warm-start-length-contracts.R` passed all 204
+  expectations. The guarded C++ files and contract assertions are unchanged
+  from the successful ASAN/UBSAN and Valgrind CI SHA; the current test diff
+  only qualifies eight wrapper calls with `EDI:::`. This strengthens
+  current-installed behavior and native identity evidence, but file identity
+  does not reveal the build's `EDI_UNITY` setting or authenticate the RDB's
+  exact source contents. Keep the checkbox open pending explicit build-mode/
+  installed-source provenance and final gate review; no build/install was run
+  in this audit.
+  **Read-only build-metadata audit, 2026-10-21:** installed DESCRIPTION
+  identifies EDI 1.0.3, R 4.7.0, x86_64 Linux, and Built time
+  `2026-10-20 21:56:26 UTC`; the DLL ELF `.comment` identifies GCC 15.2.0.
+  Checkout `src/Makevars` was generated at `2026-10-21 00:56:26 +0300`, seconds
+  before the DLL, and currently lists `unity_01.o` through `unity_10.o`. This
+  records the current generated object layout and strongly suggests unity-mode
+  configuration for that install, but without its configure/install log it
+  does not prove the actual compile command, `EDI_UNITY` environment, or
+  compiler flags. The build metadata has no source-tree digest/commit record;
+  current HEAD is `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, while
+  `kk21_stepwise_survival.cpp` has a later uncommitted worktree edit timestamp
+  than the DLL. Thus the hash-equal artifacts do not authenticate the entire
+  current worktree as build input. The 204-expectation installed test above is
+  tied to DLL SHA-256 `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`;
+  targeted rebuild/relink and sanitizer/Valgrind gates remain open.
+  **Build-provenance field audit, 2026-10-21:** current
+  `/usr/local/lib/R/etc/Makeconf` records `CXX20=g++`,
+  `CXX20STD=-std=gnu++20`, tuned `CXX20FLAGS` (`-O3 -march=native
+  -funroll-loops -fno-math-errno -fno-semantic-interposition -fno-plt`, with
+  empty `LTO`), and `SHLIB_OPENMP_CXXFLAGS=-fopenmp`; generated `PKG_CXXFLAGS`
+  add `-DNDEBUG -DEIGEN_NO_DEBUG`. The current generated header says
+  `EDI_UNITY=1`, while the earlier documented `EDI_UNITY=0` install identifies
+  a different DLL hash, so there is no evidence current DLL `ae4f...` came
+  from a per-file build. These configuration snapshots do not establish the
+  effective compiler/linker command used for that binary.
+  `edi_build_info_cpp()` reports compiler version and configured C++ flags but
+  omits the generated UNITY value; neither it nor saved artifacts binds the
+  DLL to a source-tree/dirty-state digest, exact compiler executable/toolchain,
+  or complete build log. Approval-gated closure needs an authorized
+  `EDI_UNITY=0` build/install plus a manifest tying the installed DLL hash to
+  checkout revision/dirty state, per-source hashes, effective compile/link
+  commands, and compiler/toolchain versions. No build was run for this audit.
+  **Latest installed/staged identity recheck, 2026-10-21:** read-only SHA-256
+  checks now find installed and checkout `EDI.so` byte-identical at
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`
+  (both dated 09:43), differing from the prior installed-test identity
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`. This
+  current identity does not authenticate the DLL used by those earlier tests
+  or bind the binary to checkout/build inputs. No test, build, or install was
+  performed for this check; current-source/build provenance and
+  sanitizer/Valgrind gates remain open.
+  **Current contract-test diff recheck, 2026-10-21 (pending at inventory):**
+  the shared worktree now has a `+184/-8` diff in
+  `R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R`, superseding
+  the earlier note that the diff only qualified eight wrapper calls. The new
+  block adds short/long and non-finite `warm_start_params` cases for seven
+  mixed-model kernels, short/long start checks and finite-value diagnostics
+  for zero-augmented Poisson, and non-finite Fisher-information cases for the
+  seven mixed-model kernels plus zero-augmented Poisson. These are uncommitted
+  test assertions and were not run or treated as validation in this audit.
+  The affected C++ files remain clean at HEAD; checkout and installed DLLs
+  currently match at SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`, which
+  still does not identify their build inputs. The new assertions need focused
+  execution against the matching native artifact; the approved `EDI_UNITY=0`
+  build/install manifest and sanitizer/Valgrind CI remain release gates.
+  **Installed current-identity contract rerun, 2026-10-21:** after that
+  inventory, `Rscript -e 'library(EDI); testthat::test_file("R/EDI/tests/testthat/test-kernel-warm-start-length-contracts.R", package="EDI")'`
+  passed all 243 expectations (0 failures, warnings, or skips) against installed
+  EDI 1.0.3. The loaded DLL path was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`; a
+  read-only SHA-256 check immediately after the run found installed and
+  checkout `R/EDI/src/EDI.so` identical at
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`.
+  This validates the current contract-test diff against the available installed
+  artifact and supersedes the pending test status above. It does not attest
+  that this DLL was built from current C++ sources or establish build flags;
+  the `EDI_UNITY=0` source/build manifest and sanitizer/Valgrind CI gates
+  remain open. No build/install or source overlay was used.
   - [ ] After an explicitly authorized `EDI_UNITY=0` build/install, run the
-    full malformed-start contract against the matching native library, the
-    Python wrong-length-start suite, and the sanitizer/Valgrind CI jobs; retain
-    per-wrapper results and verify no malformed start reaches an unchecked
-    dereference.
+  R kernel-equivalence tests and sanitizer/Valgrind CI jobs; retain per-wrapper
+  results and verify no malformed start reaches an unchecked dereference.
+  The Python wrong-length-start suite has same-source coverage above; rerun it
+  if any of the validated C++ sources, Python bindings, or Python tests change.
 
 - [x] TODO-64 (added 2026-10-07, filed on the model's initiative under the
   standing "add found bugs to v1.0.5" instruction; delete if unwanted):
@@ -2808,6 +7912,15 @@ baseline as expected/benign.
   so this relies on the user's rebuild report plus timestamp and clean source
   tree rather than an artifact SHA attestation. This validates current native
   coercion/symbol mapping and closes the original dispatch-wiring acceptance.
+  **TODO-6 post-HEAD installed-native recheck, 2026-10-20:** the independent
+  n=40 OLS-IVWC reference test passed 27 assertions (0 failures, warnings, or
+  skips) against installed EDI 1.0.3. Its `edi_build_info_cpp()` timestamp is
+  `2026-10-19 23:31:50 IDT` (`EDI.so` mtime `23:47:15 IDT`), later than the
+  current HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9` at `21:03:16 IDT`;
+  the relevant R/native/test files are clean at HEAD. This closes the
+  non-fallback public-fit validation gate for the user's reported rebuild,
+  retaining the no-embedded-Git-SHA provenance caveat. No compile/install or
+  canonical result write was performed.
   - [x] **Nested OLS-IVWC numerical fixture gate** — although the existing
     50-draw fast/worker parity case is finite and non-vacuous for dispatch
     parity, its three matched pairs and three-column matched design use the
@@ -2824,6 +7937,21 @@ baseline as expected/benign.
     user-reported rebuild evidence, not an artifact-SHA attestation. No
     canonical outputs are involved. See
     `../bug_fix_plans/dead_randomization_fast_paths.md → TODO-6`.
+    **Fixture non-vacuity assertion, 2026-10-20:** the independent HC2
+    reference test was strengthened to require different matched/reservoir
+    estimates and an IVWC result distinct from both, with exact agreement to
+    the weighted reference formula. It passed 31 assertions (0 failures,
+    warnings, or skips) using `testthat::test_file(...)` against installed
+    EDI 1.0.3. **Current-native recheck, 2026-10-20:** reran the same focused
+    test; all 31 assertions passed with no failures, warnings, or skips. The
+    loaded `EDI.so` (14,727,184 bytes; mtime `2026-10-20 09:38:02 +0300`)
+    SHA-256 `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+    (MD5 `a75519a9256c0b3121398032314291d4`) is byte-identical to checkout
+    `R/EDI/src/EDI.so` at HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`.
+    This closes the current-native artifact identity gate for the non-fallback
+    OLS-IVWC fixture. The package embeds no Git SHA, but the installed and
+    checkout DLL hashes match exactly. No compile/install or canonical result
+    write occurred.
 
 - [x] TODO-65 (added 2026-10-08, user decision): **KK21 ordinal weight
   kernels: unprotected `wrap()` temporaries in an R callback in
@@ -2869,10 +7997,18 @@ baseline as expected/benign.
   used here. TODO-65 is closed for the GC-safety bug; optional linked TODO-4
   remains open and is not part of this release closure.
 
-- [x] TODO-66 (added 2026-10-08; serial-dispatch fix and runtime gates
-  completed 2026-10-18):
+- [ ] TODO-66 (added 2026-10-08; serial-dispatch fix and bounded runtime
+  checks recorded 2026-10-18; release closure still gated):
   **`InferenceCountHurdleNegBin`'s non-reusable-worker multi-core Bayesian
   bootstrap (`num_cores = 2`, `debug = TRUE`) hangs intermittently.**
+
+  **Residual release gate (2026-10-20 reconciliation):** the linked
+  `bayesian_bootstrap_performance.md` still requires release-scale
+  runtime-manifest or sanitizer validation. The focused/source-loaded checks
+  and three bounded fresh-process runs below do not satisfy that gate. A
+  read-only process recheck found no active R/Rscript process and none of the
+  recorded 2026-10-16 parent/worker PIDs; this resolves no cause of the
+  historical hang.
 
   Found 2026-10-08 while replacing `InferencePropZeroOneInflatedBetaRegr`
   as the fixture in `test-bayesian-bootstrap-non-reusable-worker-debug-
@@ -3028,6 +8164,73 @@ baseline as expected/benign.
     before warmup and does not fork. The serial clamp removes the affected
     path; it does not claim to identify the underlying historical fork/OpenMP
     runtime failure. Do not retry the old real-fork path in-process.
+  **Matching-native focused recheck, 2026-10-20:** after the user installed
+  this checkout with `EDI_UNITY=0` on 2026-10-19, the same 25-assertion
+  regression passed against installed EDI 1.0.3. Its loaded `EDI.so` SHA-256
+  was `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+  This closes the native-artifact identity gap for the focused R contract
+  only; release-scale runtime-manifest or sanitizer validation and diagnosis
+  of the historical fork/OpenMP hang remain open.
+  **Read-only sanitizer/runtime artifact audit, 2026-10-20:** the bounded
+  `/tmp` filename search found the debug-stress script and a parser output,
+  but no TODO-66 Valgrind/ASAN/UBSAN report or release-scale runtime manifest.
+  The focused regression is under `R/package_tests/testthat_bulk/`; the
+  `R-CMD-check-sanitizers` and `R-CMD-check-valgrind` jobs run package `R CMD
+  check`, which does not include this non-CRAN bulk suite (`run_bulk_tests.R`
+  documents that the separate bulk workflow is its only runner). Thus generic
+  sanitizer-job success would not cover this TODO-66 contract. Safe next
+  action: obtain an authorized, current-source instrumented run of this
+  focused test or a provenance-stamped release-scale runtime manifest; do not
+  retry the historical real-fork path.
+  **Installed focused-test recheck, 2026-10-21:** the serial dispatch-spy
+  test passed all 29 expectations against installed EDI 1.0.3 after the
+  user's latest rebuild. Its loaded native library is byte-identical to
+  checkout `R/EDI/src/EDI.so` (SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`). The
+  test uses a synchronous dispatch stub and does not exercise real fork or
+  explain the historical hang. It adds current native identity for this
+  focused path only; source/build-flag authentication and approved
+  release-scale or instrumented validation remain open.
+  **Bulk-CI artifact correction, 2026-10-21:** successful
+  `test-bulk-non-cran` run
+  [#39135640739](https://github.com/kapelner/EDI/actions/runs/39135640739)
+  completed build, all five correctness shards, and the final gate at commit
+  `c55198fef97b7ed24f1ea41e6556c7b88715b3ca`. Its shard plan assigned this
+  focused test to shard 2, and the timing artifact records it complete in
+  1.617 seconds. This corrects the earlier bounded `/tmp`-search statement:
+  a release-scale manifest exists for that commit. It does not validate the
+  current dirty checkout, whose bootstrap R sources and focused test have
+  subsequent uncommitted changes, nor authenticate the currently installed
+  R definitions/build flags. It also does not diagnose the historical
+  real-fork/OpenMP failure or provide sanitizer evidence. The outer TODO
+  remains open pending current-tree validation and the residual runtime or
+  instrumentation gate; the historical real-fork path must not be rerun.
+  **Current dirty-source overlay validation, 2026-10-21:** the focused test
+  was then run with `pkgload::load_all("R/EDI", compile = FALSE)` followed by
+  `testthat::test_file("R/package_tests/testthat_bulk/test-bayesian-bootstrap-non-reusable-worker-debug-path.R")`;
+  all 29 expectations passed. The loaded temporary DLL was
+  `/tmp/Rtmpifikdb/pkgload1be79250995391/EDI.so`, SHA-256
+  `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`,
+  matching checkout `R/EDI/src/EDI.so`. This exercises current checkout R
+  sources against that existing native library, without compilation. The
+  ordinary dispatch spy invokes `lapply` synchronously, so this is bounded
+  dispatch/reference evidence only: it does not enter the historical real-
+  fork/OpenMP path, authenticate native build flags, or provide sanitizer or
+  release-scale validation. Keep the corresponding gates and outer TODO open.
+  **Retained-trace/current-gate audit, 2026-10-21 (read-only):** a targeted
+  `/tmp` search found no remaining TODO-66 stress script or raw hang trace.
+  Historical plan records remain the Oct 16 `do_select` parent with two
+  `futex_wait_queue` children and the Oct 18 ordinary-path hang in 3/3
+  B=151 attempts; those are not live processes or natural exits. The present
+  checkout clamps non-reusable work to one core before warmup, and its
+  29-assertion focused test uses a synchronous spy, intentionally avoiding
+  the unsafe fork. Bulk CI run #39135640739 completed all five correctness
+  shards at older commit `c55198fef97b7ed24f1ea41e6556c7b88715b3ca`; its
+  shard timing is not sanitizer or current-dirty-source validation. The safe
+  next step is a current-tree bulk-CI/instrumented run of the deterministic
+  serial-clamp contract when authorized, not a rerun of the historical real-
+  fork case. Native build-flag authentication and release-scale/instrumented
+  validation remain open.
 
 - [ ] TODO-67 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B1`):
@@ -3074,12 +8277,102 @@ baseline as expected/benign.
   compile/build/install was run. TODO-67 remains open only for TODO-5's
   KK21 survival-weight comparison and affected package_tests benchmark/CSV
   regeneration.
-  - [ ] Review/approve or replace the linked plan's TODO-5 replacement-fixture
-    and mASMD proposal, and set any acceptance threshold; then run the
-    `survreg`-referenced KK21 survival-weight comparison and regenerate/re-audit
-    every affected benchmark row with current-code package and native-library
+  **Available installed-artifact oracle recheck, 2026-10-20:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R")`
+  against installed EDI 1.0.3 reported one failure and one pass: the censored
+  fixture returned 6.1 versus the independent `survival::survreg` reference
+  6.45, while the uncensored fixture passed. The loaded library was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; `EDI.so` SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  identical to ignored checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. The artifact mtime follows the
+  tracked source mtimes, but no build manifest or embedded commit attests its
+  source revision. Treat this as an installed-artifact result, not proof of a
+  current-source regression or a passing current-source native gate. It does
+  not resolve the required old/new survival-weight comparison, replacement
+  fixture/metric approval, or benchmark/CSV reconciliation. No build,
+  simulation, or canonical write occurred.
+  **Reduced-fit tolerance boundary regression, 2026-10-21:** the owner
+  selected `1e-6` (instead of `1e-8`) for
+  `weibull_reduced_fit_for_score_test()`. A source-aligned pure-R Newton
+  port found a deterministic censored fixture with `set.seed(4)`, `n=120`,
+  alternating treatment, `x ~ N(0,1)`, `time ~ Weibull(shape=1.4,
+  scale=exp(0.35*treatment+0.55*x))`, and `event ~ Bernoulli(0.8)`: at
+  `1e-8` the fit exits nonconverged at gradient norm `3.0732792e-7` although
+  parameters match `survreg` within `1.7e-9`; at `1e-6` it converges at the
+  same point. The independent score is `5.0684842`; the strict-tolerance
+  FWL fallback is `4.1726661`. This case extends the existing
+  `survreg`-reference test. Its installed-package run had two failures and
+  one pass (old censored case `6.1` vs `6.45`, uncensored pass, seed-4 case
+  `4.17` vs `5.07`) against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; the loaded DLL
+  SHA-256 was `ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`
+  (mtime `2026-10-21 00:56:31 +0300`), identical to ignored
+  `R/EDI/src/EDI.so`. The changed C++ source mtime is
+  `2026-10-21 05:59:03 +0300`, so these are pre-edit artifact results, not
+  current-source failures. Native validation remains open: after explicit
+  rebuild/install permission, rebuild with `EDI_UNITY=0`, capture package/DLL
+  provenance, and rerun the focused test. TODO-67 remains open for both this
+  native check and TODO-5's owner-approved matching-quality comparison and
+  affected benchmark/CSV regeneration; no compilation or install was run.
+  **Seed-4 fixture/oracle review, 2026-10-21:** the new boundary assertion is
+  behavior-discriminating rather than a hard-coded answer. It regenerates
+  `set.seed(4L)`, `n=120` data and computes the expected one-covariate score
+  using an independently optimized `survival::survreg(dist="weibull")`
+  reduced-model MLE followed by explicit score-test arithmetic; the native
+  KK21 call supplies only the value under test. The recorded source-aligned
+  port has gradient norm `3.0732792e-7` and parameters within `1.7e-9` of
+  `survreg`; at `1e-8` it falls back to score `4.1726661`, whereas the
+  independent score at the selected `1e-6` tolerance is `5.0684842`. Their
+  `0.8958181` separation is about 89,600 times the test's `1e-5` equality
+  tolerance, so the stale strict-tolerance fallback does fail this assertion.
+  The assertion intentionally checks the public score outcome rather than
+  pinning an internal gradient or tolerance constant, so a different valid
+  convergence path can pass. It establishes regression sensitivity and
+  independent-oracle structure only: the available installed-DLL failure was
+  recorded before the C++ source edit, while the earlier passing CI predates
+  this seed-4 addition. The checkout-R overlay run below used an existing
+  DLL and does not attest that it contains the edited C++ tolerance.
+  **Checkout-R overlay / existing-DLL oracle recheck, 2026-10-21:**
+  after confirming no other R/Rscript process was live and 16 GiB remained on
+  `/tmp`, ran the focused test with
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` followed by
+  `testthat::test_file("R/package_tests/testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R", reporter = "summary")`.
+  All three fixture expectations passed. The loaded namespace was
+  `/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3; temporary DLL
+  `/tmp/RtmpLa2Vjo/pkgload21ddb3f6f/EDI.so` had MD5
+  `bfea6f47ab8b27618d5d8633e9021f91` and SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`,
+  byte-identical to checkout and installed `EDI.so`. Compilation, install,
+  and canonical result writes were not performed. The matching hash proves
+  only which existing DLL was loaded; no build manifest attests that it was
+  built from the edited `kk21_stepwise_survival.cpp`. Treat this as checkout-R
+  regression evidence over an existing artifact, not validation of the
+  changed `1e-6` native tolerance. That native gate remains open pending an
+  authorized `EDI_UNITY=0` rebuild/install with source/build provenance and a
+  rerun of the focused test. TODO-5's owner-approved matching-quality
+  comparison and affected benchmark/CSV regeneration remain open.
+  - [ ] Owner decision before TODO-5: recover the historical fixture/generator,
+    seed, options, and metric, or explicitly approve the proposed replacement
+    and choose its paired-case count/seed schedule;
+    approve/replace mASMD as primary outcome and set its numeric acceptance
+    rule; decide whether matched fraction/pair count is a required guard (and
+    its denominator), and specify denominator/handling for failed or
+    nonestimable paired cases.
+    Then run the `survreg`-referenced old/new survival-weight comparison,
+    retaining attempted case rows/statuses, and regenerate/re-audit every
+    affected benchmark row with current-code package and native-library
     provenance. The proposal is not an approved estimand, and the installed
     EDI 1.0.3 binary and CI at 430c19bc do not validate current HEAD.
+  **Bounded historical-artifact lookup, 2026-10-21:** no tracked output or
+  generator for `project_kk21_speedup_vs_glm_weights_20261008` was found;
+  exact-string Git-history hits are documentation edits only. The known
+  TODO-67 `/tmp` files are the seed-4 reduced-fit tolerance fixture/search
+  script and unrelated CI timing CSVs, not paired old/new survival-weight or
+  matching-quality inputs. Thus the original seeds/options/metric are not
+  recoverable from this bounded repo/history/scratch check; retrieving the
+  external project inputs or approving the replacement fixture, metric, and
+  acceptance rules remains a maintainer choice. No benchmark was run.
 
 - [ ] TODO-68 (added 2026-10-09, user decision; from the algorithm-catalog
   sweep, `../new_feature_plans/algorithm_choice_audit.md → TODO-B2`):
@@ -3109,6 +8402,145 @@ baseline as expected/benign.
   passed against EDI 1.0.3 (128 assertions total). Only TODO-4's installed `rand`/
   `rand_bootstrap` CSV regeneration and coverage/documentation reconciliation
   remains, so this release checkbox stays unchecked.
+  **Post-HEAD installed-package focused recheck, 2026-10-20:**
+  `test-rand-ci-bisection-and-high-precision-refinement-reference.R` passed
+  30 assertions and `test-rand-bootstrap-ci-closed-form-and-bisection-failed-guards-reference.R`
+  passed 9 (39 total, 0 failures, warnings, or skips) against installed EDI
+  1.0.3 at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. The DLL
+  SHA-256 is `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`;
+  its embedded build time is `2026-10-19 23:31:50 IDT` (mtime
+  `23:47:15 IDT`), after HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`
+  (`21:03:16 IDT`). There is no embedded Git SHA, and the current checkout's
+  `inference_all_abstract_rand_ci.R` is modified, so this is artifact-specific
+  focused test evidence—not validation of that uncommitted diff or proof of
+  exact source identity. Comprehensive-row regeneration/reconciliation
+  remains open; no build/install or canonical output write was done.
+  **Checkout-source rerun, 2026-10-20:** both focused tests were then rerun
+  after `pkgload::load_all("R/EDI", compile = FALSE)`: the rand-CI bisection/
+  high-precision suite passed 30 assertions and the bootstrap-CI
+  closed-form/failure-guard suite passed 9 (39 total; 0 failures, warnings,
+  or skips). The loaded package reported version 1.0.3 and used the existing
+  installed native DLL, whose SHA-256 is
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+  Because `inference_all_abstract_rand_ci.R` is uncommitted in the shared
+  worktree, this is focused checkout-R/installed-native evidence, not proof
+  of native parity or canonical-row correctness. No compilation, install,
+  or canonical write occurred. **Current-checkout source/current-native
+  recheck, 2026-10-20:** reran the same two focused tests after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. The
+  bisection/high-precision suite passed 37 assertions and the bootstrap-CI
+  closed-form/failure-guard suite passed 9 (46 total; no failures, warnings,
+  or skips). Checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`;
+  the loaded DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`
+  matched both the user-rebuilt installed DLL and checkout `R/EDI/src/EDI.so`
+  byte-for-byte. This closes focused checkout-R/current-native provenance
+  for these tests only. Comprehensive-row regeneration, exact-key
+  reconciliation, and coverage/documentation updates remain open; no
+  build/install or canonical output write occurred.
+  **Eligibility-helper correction, 2026-10-20:** class proxies now preserve
+  registered R6 ancestry, fixing a false static `rand_bootstrap` CI eligibility
+  prediction for the count-KK hurdle class under KK21. The source-derived
+  helper now agrees with the runner for the KK21/Bernoulli comparison. The
+  focused `test-comprehensive-rand-ci-eligibility-reference.R` passed 42
+  expectations with checkout R loaded via
+  `pkgload::load_all("R/EDI", compile = FALSE)`. This validates eligibility
+  classification only; full-grid row regeneration, exact-key/status
+  reconciliation, and coverage/documentation updates remain open.
+  **Retained-artifact scope/provenance audit, 2026-10-21:** the affected
+  `function_run` allowlist is exactly
+  `compute_rand_confidence_interval`,
+  `compute_rand_bootstrap_confidence_interval`, and its
+  `_studentized`, `_symmetric-percentile-t`, and `_smoothed` variants.
+  The 2026-10-16 inventory records 44,905/4,877/2,038/19,349 targeted rows
+  in the continuous/count/proportion/survival CSVs (71,169 total), all with
+  `status=ok` and complete seven-field keys. Continuous has 83 duplicate
+  keys (82 with conflicting historical result/status/coverage signatures)
+  and 3 duplicate `run_row_id`s; the other three files have no duplicate
+  seven-field keys. Current CSVs are gitignored; their mtimes are
+  2026-10-09 01:11 (continuous), 2026-09-27 11:17 (count), 2026-10-09 01:11
+  (proportion), and 2026-09-27 11:19 (survival), all before the latest
+  focused current-native evidence. These timestamps do not attest package,
+  source, or native identity, and the retained rows have no established
+  post-fix provenance. Key-wise upsert is unsafe: after a provenance-stamped
+  post-fix regeneration, replace each affected CI slice as a whole, preserve
+  non-target rows, then verify exact keys, coverage, and fresh
+  `run_row_id` uniqueness. No result payload was read or changed in this
+  audit; TODO-68 remains open.
+  **Run-readiness reconciliation, 2026-10-21:** the retained source-derived
+  candidate roster `/tmp/edi_todo68_rand_ci_candidate_attempt_roster.csv`
+  (SHA-256
+  `749f554ba93659b5c7e4d9f70e953bdeaf243780b57eac4e32027dec9fae3f2f`;
+  generated by `/tmp/edi_todo68_generate_candidate_manifest.R`, SHA-256
+  `ff730b1d8e99bc12df90acaa7d64555092ed23481556771a4cd4debe46a96ec5`)
+  has 635,680 unique candidate keys: 160,800 `compute_rand_confidence_interval`,
+  123,600 plain `compute_rand_bootstrap_confidence_interval`, 116,080 each
+  studentized and symmetric-percentile-t, and 119,120 smoothed. It spans
+  10 datasets, 7 designs, 2 formulas, 2 beta values, reps 1:40, and four
+  response types. Its generator derives current source guards and labels, but
+  explicitly marks keys conditional on successful case setup; it is not an
+  actual-attempt roster. Exact seven-field matching against the four retained
+  raw CSVs finds 71,169 targeted rows but only 21,857 unique keys matched to
+  the current candidate roster; 49,229 raw unique keys are outside that
+  roster, while 613,823 candidate keys have no retained counterpart. This
+  reflects different/mixed historical grids and does not establish missing
+  or erroneous post-fix attempts. The 71,169 raw rows break down by method as
+  26,480 rand CI, 11,293 plain bootstrap-rand CI, 11,112 studentized, 11,111
+  symmetric-percentile-t, and 11,173 smoothed. Their four CSVs total
+  1,460,583,836 bytes. Summed retained per-row durations are 505,497.808
+  seconds (140.416 hours of cumulative row time), not a single-run wall time
+  or a valid runtime forecast; no whole-slice run-level timing log was found,
+  and no estimate is extrapolated from unrelated runs.
+  Before any whole-slice regeneration, preserve a fresh isolated output and
+  adjacent provenance sidecar binding output hashes to the exact invocation,
+  candidate-manifest/generator hashes, full seven-field expected and actual
+  attempt keys plus setup/skip/error/status outcomes, source/runner/eligibility
+  helper hashes, checkout HEAD and dirty/untracked-source digest, R version
+  and platform, installed EDI R namespace/version/path and native DLL path/hash,
+  dependency versions, `RNGkind()` and seed before sampling, sampled input and
+  assignment fingerprints, `Nrep` and all grid/filter arguments, thread and
+  environment settings, start/end host load and CPU affinity, and terminal
+  completion/timeout record. Do not merge into canonical CSVs until actual
+  attempts reconcile to the approved scope with no unexplained duplicates,
+  missing keys, or status discrepancies. This audit did not read result
+  payloads or change outputs; TODO-68 remains open.
+  **Retained isolated-slice artifact audit, 2026-10-21:** the existing
+  scratch outputs `/tmp/edi-todo68-rand-reps1to40.WXrm3D/` and
+  `/tmp/edi-todo68-brt-reps1to40.n9uAFr/` contain one complete 40-replicate
+  `diamonds` / continuous / Bernoulli / `InferenceContinOLS` run per family
+  at `beta_T=0.5`. Each output has 480 unique seven-field keys over reps 1:40,
+  four model/design-formula labels, and three emitted operations; every row is
+  `status=ok`. The `rand` file includes the CI operation plus both public
+  p-value operations; the `rand_bootstrap` file includes its plain CI and two
+  p-value operations, but no studentized, symmetric-percentile-t, or smoothed
+  CI variant. Result/sidecar SHA-256 pairs are respectively
+  `11658067064b9de3c36898195b2127cb5660d83cc0a271f91ddf2c4aed99d36f` /
+  `5790b1a983ae34a11dad72e178f38568c15866c7946005ed77de7f1c811bd864` and
+  `8885a6dca4f3382178f7f5d24b17f448b3d2e0c108fc89a2aa1175045451a6cd` /
+  `7bcca9017991471d4a2fc82353e5f3a11b6b90ba381411310290863ca7d62a27`.
+  The sidecars bind the fresh outputs to command arguments, checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, checkout-diff SHA-256
+  `88775848fae74c2ced98070ab6663d9496444aa3440b9fdd38ecbf6b8e233360`,
+  runner SHA-256 `660dae16378ce533bf1d7bb816b2e7933b989bff838e93907889ec0cbf024159`,
+  EDI 1.0.3 checkout namespace, R-devel `r90668`, and existing DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This is provenance-stamped execution evidence for one scratch selector,
+  not a candidate-vs-attempt anti-join or full-grid reconciliation; it does
+  not cover other strata or the omitted bootstrap-CI variants and is not
+  canonical data. TODO-68 remains open.
+  **Focused checkout-R regression, 2026-10-21:** after confirming the R/Rscript
+  process table was clear, ran only
+  `test-rand-ci-bisection-and-high-precision-refinement-reference.R` after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. The test file
+  completed with no failures. Loaded EDI 1.0.3 from checkout namespace
+  `/home/kapelner/workspace/EDI/R/EDI`; temporary DLL
+  `/tmp/RtmpcPZaxM/pkgload242616505/EDI.so`, MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  This validates focused checkout R-layer behavior against the existing
+  user-built native DLL only. It does not close comprehensive `rand` /
+  `rand_bootstrap` row regeneration, exact-key reconciliation, or coverage /
+  documentation updates. No build/install or canonical output write occurred.
   - [ ] Regenerate the affected `rand` and `rand_bootstrap` comprehensive rows
     using the corrected inversion, reconcile every affected result key and
     coverage claim, and update documentation only from the reconciled output.
@@ -3209,6 +8641,40 @@ baseline as expected/benign.
   path. See `../bug_fix_plans/algorithm_sweep_verified_findings.md → TODO-7`
   for the source-path audit.
 
+  **Checkout-R source-overlay verification 2026-10-20:** reran the two
+  authoritative focused files separately with
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE, export_all = FALSE)`
+  followed by `testthat::test_file(..., reporter = "summary")`. The
+  `test-ordinal-kk-clmm-weighted-logit-reference.R` file passed 16 assertions;
+  `test-ordinal-kk-clmm-link-helpers-and-weighted-estimate-reference.R` passed
+  34. The loaded namespace path was the checkout `R/EDI`; pkgload loaded a
+  temporary copy of the existing native `EDI.so`. Its source
+  `R/EDI/src/EDI.so` and installed
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` had the
+  same SHA-256 (`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`);
+  installed package version was 1.0.3. No build, compile, or install occurred.
+  This confirms the focused R-source paths against that reused native binary,
+  not a new native build or current-head native CLMM estimate validation.
+  Comprehensive CLMM-row reconciliation remains gated on TODO-31's
+  current-head native point-estimate validation, as noted above.
+
+  **Installed-package focused CLMM recheck, 2026-10-20:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-ordinal-kk-clmm-link-helpers-and-weighted-estimate-reference.R")`
+  passed 34 assertions with 0 failures, warnings, or skips against installed
+  EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. This exercises the
+  weighted logit/probit CLMM estimate path against `ordinal::clmm`, link
+  helpers, and the cloglog point-estimate sign on a small seeded fixture; it
+  is not calibration or row-regeneration evidence. Loaded `EDI.so` SHA-256
+  was `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`,
+  byte-identical to ignored checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. No build manifest or embedded
+  Git SHA ties the binary to those tracked sources, and this installed-package
+  test does not attest exact installed R-source identity. It therefore does
+  not close TODO-31's current-head native gate. No build/install or canonical
+  output write occurred; comprehensive-row regeneration and reconciliation
+  remain open.
+
   **Exploratory out-of-scope formula check (2026-10-16; does not expand
   acceptance):** an isolated installed-package pilot for the logit
   `InferenceOrdinalKKCLMM` case (`model_formula=~.`, `FixedBinaryMatch`,
@@ -3241,6 +8707,141 @@ baseline as expected/benign.
   shared result paths, rerun the affected classes and all ten BB methods in
   isolated `/tmp` scratch with package/library/DLL provenance, then reconcile every
   affected key against canonical results.
+  **Compile-free test-inventory check, 2026-10-20:** the five focused
+  weighted-ordinal tests cited by the implementation are present in both the
+  correctness and coverage runtime manifests; `plan_shards.py --check-only`
+  validated the full inventories (1,158 correctness and 1,410 coverage
+  files). This confirms test discovery only, not execution or numerical
+  acceptance.
+
+  **Source-only attempt-scope audit, 2026-10-20:** the five affected classes
+  are dispatched only for KK designs (`FixedBinaryMatch` is explicitly in
+  that harness branch), and their source class components supply the
+  `BayesianBootstrap` capability. The ten harness labels are the five CI
+  calls (default/percentile, basic, Wald, BCA, studentized) and five p-value
+  calls (default/percentile, symmetric, Wald, BCA, studentized). This proves
+  source eligibility, not an actual attempt: the runner still gates the calls
+  on live capability, inference/family filters, slow-path policy, and
+  `NARROW_MODE` (which suppresses typed BCA/studentized calls). An all-ten
+  attempt needs a matching class/family filter, the slow-path override, and
+  narrow mode off; every expected key must then have a terminal result or an
+  explicit skip/error reason.
+
+  The runner outer loop has both
+  `design_formula=~1` and `~.`, while each affected class is separately called
+  with both `model_formula=~1` and `~.`. The existing 50-row scratch candidate
+  manifest selects one class-formula stratum but omits the outer design-formula
+  suffix; it is not an exact runner key manifest. The prior pilot paragraph
+  explicitly excludes its `model_formula=~.` scenario, but does not say whether
+  the outer `design_formula=~.` stratum is also excluded. The owner has since
+  selected `(design_formula=~., model_formula=~1)` for this bounded 50-key
+  target; see the read-only exact-key audit below. A no-fit source inventory
+  at `/tmp/edi-todo76-source-potential-manifest.csv` lists all 200 possible
+  class × method × formula-pair keys for the case; these are source-potential
+  keys conditional on runtime gates, not results. Reconciliation must filter
+  the selected pair and compare exact composite keys and terminal outcomes,
+  including `skip_reason`, rather than relying on row counts. This audit
+  performed no assignment/outcome generation, fit, or canonical write.
+
+  **Candidate-key validator unit test, 2026-10-20:**
+  `test-todo76-result-key-validation-reference.R` passed all 62 expectations
+  in six test blocks (0 failures, warnings, or skips; exit 0). This standalone
+  pure-R check exercises explicit formula-pair scope, full result-key identity
+  (including `design_formula` and `beta_T`), delimiter-safe key encoding, and
+  fail-closed behavior for missing/duplicate/extra/malformed rows. It validates
+  the reconciliation helper, not candidate data, an owner-approved formula
+  scope, a fit, or comprehensive result reconciliation. R was
+  `R Under development (unstable) (2026-10-13 r90668)`; checkout HEAD was
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. Helper SHA-256:
+  `176afe5807a550769948a0c21dfd80085da2e859722bf384cd27357579d967b4`;
+  test SHA-256:
+  `314877af4cfe265fb165465617319e586bb9d18908420c8de0dc90033afcbab6`.
+  `testthat::test_file()` attached installed EDI 1.0.3 from
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, whose loaded DLL
+  SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`;
+  the validator assertions exercise only the sourced pure-R helper and do not
+  call native code. No build/install, result generation, or canonical output
+  write occurred.
+
+  **Installed pure-R validator recheck, 2026-10-21:** after confirming the
+  R/Rscript process table was idle, reran
+  `timeout 60s Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo76-result-key-validation-reference.R", reporter="summary")'`.
+  All 62 expectations passed in six blocks (0 failures, warnings, or skips;
+  exit 0). This sources and tests the validator helper only; no fit, native
+  call, candidate output, or canonical artifact is involved. It did not
+  resolve the owner’s accepted `design_formula`/`model_formula` pair scope at
+  that time; the owner has since selected a pair, as recorded below. The test
+  also does not reconcile retained rows, status usability, or provenance
+  against the 200-key source-potential inventory. Those output acceptance
+  gates remain open.
+
+  **Finite-beta validator branch recheck, 2026-10-21:** broadened the
+  existing pure-R fixture with non-finite `beta_T` cases for both the expected
+  manifest (`Inf`) and candidate (`-Inf`), asserting each existing specific
+  rejection. Rerunning the focused `testthat::test_file()` exited 0 with 79
+  expectations and no failures, warnings, or skips. This is deterministic
+  exact-key-validator coverage only; it does not validate candidate rows,
+  attempt eligibility, native behavior, or reconciliation, and leaves the
+  selected-slice regeneration gate open. No build/install or result generation
+  occurred.
+
+  **Selected-pair retained-artifact reconciliation audit, 2026-10-21
+  (read-only):** applying the owner-selected pair
+  (`design_formula=~.`, `model_formula=~1`) to the bounded case
+  (`FixedBinaryMatch` / ordinal / diamonds / beta 0 / rep 1) yields 50 expected
+  keys (five classes × ten methods). The 200-key source-potential manifest
+  (`/tmp/edi-todo76-source-potential-manifest.csv`, SHA-256
+  `20e9ca64c7da1558402484fc6ac301bda98edccee8df299a8973688329d987b6`)
+  contains all four formula pairs; the older 50-row candidate manifest
+  (`/tmp/edi-todo76-source-candidate-manifest.csv`, SHA-256
+  `ed349ad283a669a7934a23cfc1a20c6f8f6636f7da041341f4c36b0cf7533f86`)
+  has no `design_formula` field and is therefore not an exact pair-specific
+  manifest. Parsing the retained `/tmp/edi-todo76-*` result CSVs by their
+  embedded formula labels finds 62 rows for the selected case but only 46
+  distinct full keys: all ten method keys appear for each of the four CLMM
+  links, while the GLMM has only six (the four BCA/studentized CI/p-value keys
+  are absent). The GLMM’s retained abalone rows and the `model_formula=~.`
+  CLMM rows are outside this selected case/pair. The 16 duplicate keys are
+  repeated logit-CLMM attempts; their numeric outcomes agree, but the files
+  differ in empty versus missing `skip_reason`, so they cannot be collapsed
+  by row count alone. Among the 62 selected-case rows, 14 carry errors (5
+  `numeric_instability`, 9 `timeout`); all report `status=ok`, underscoring
+  that status alone is not a usable-result criterion. Every selected row has
+  `github_commit_id=NA`; the retained directories have no companion package,
+  source, or DLL provenance manifest. The validator can check the explicit
+  pair and exact keys and reject duplicates, but does not establish status
+  usability or artifact provenance; its 62 unit expectations use synthetic
+  inputs, not these rows. Safe next step: prepare a 50-key manifest with both
+  formula columns explicit, then regenerate the complete selected slice in a
+  fresh `/tmp` tree with package/source/DLL provenance and reconcile each key
+  and terminal outcome before any canonical comparison. No run, baseline, or
+  canonical result was changed in this audit.
+  **Current artifact-presence recheck, 2026-10-21:** the previously audited
+  `/tmp/edi-todo76-*` result CSVs are no longer present. The only weighted
+  ordinal result CSV found is the retained exploratory `~.`/`~.` pilot under
+  `scratch/edi-todo76-pilot-oDZJ2b/`; it contains three confidence-interval
+  attempts (default, basic, Wald), each `skip_reason=timeout` with `result=NA`
+  and `status=ok`, and no p-value rows. Its recorded commit ID is
+  `430c19bcdb0702d998c79f9058c449449034134c`, but it has no package/DLL
+  provenance sidecar and is outside the owner-selected
+  `design_formula=~.` / `model_formula=~1` acceptance stratum. Thus none of
+  the selected 50 exact keys has a currently retained result row or matching
+  provenance sidecar; the prior 62-row reconciliation is historical evidence
+  only. No canonical result was changed.
+  **Retained-manifest inventory, 2026-10-21 (read-only):** the 200-key
+  source-potential manifest remains at
+  `/tmp/edi-todo76-source-potential-manifest.csv` (SHA-256
+  `20e9ca64c7da1558402484fc6ac301bda98edccee8df299a8973688329d987b6`); the
+  selected formula pair is 50 keys. The older 50-row candidate manifest
+  (`/tmp/edi-todo76-source-candidate-manifest.csv`, SHA-256
+  `ed349ad283a669a7934a23cfc1a20c6f8f6636f7da041341f4c36b0cf7533f86`)
+  omits `design_formula` and is not pair-exact. The only retained result is
+  the three-row `~.`/`~.` timeout pilot (CSV SHA-256
+  `ae5b59d562287b2f0fc819a72399028ff849bbf8b4d8f459a248308d8dbe92e4`), so
+  0/50 selected keys are present. The focused validator test is synthetic
+  only; fresh current-source candidate/result reconciliation remains open.
+
   - [ ] For the predeclared affected grid (KKGLMM and all four KKCLMM links),
     rerun all ten Bayesian-bootstrap procedures with commit, package, and DLL
     provenance; classify every skipped/error row by `skip_reason`, and
@@ -3260,6 +8861,132 @@ baseline as expected/benign.
   passed 4 each against EDI 1.0.3. The installed native wrapper exercised the
   weighted kernel arguments. Codex did not rebuild/install; comprehensive
   result regeneration and reconciliation remain open.
+  **Post-HEAD installed-native recheck, 2026-10-20:**
+  `test-incidence-kk-cond-logit-glmm-class-data-assembly-matches-joint-kernel-reference.R`
+  passed 31 assertions with 0 failures, warnings, or skips against installed
+  EDI 1.0.3. This exercises weighted bootstrap estimate calls for both OneLik
+  and IVWC against the joint kernel. The installed DLL SHA-256 is
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`; its
+  embedded build time (`2026-10-19 23:31:50 IDT`) and mtime (`23:47:15 IDT`)
+  are after checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`
+  (`21:03:16 IDT`), and the relevant class/native/test files are clean at
+  HEAD. This relies on the user's reported reinstall because the package
+  embeds no Git SHA. Comprehensive result regeneration and exact
+  key/status reconciliation remain open; no build/install, snapshot, or
+  canonical output write was done here.
+  **Expected-key inventory, 2026-10-20 (no simulation):** the documented
+  2-class × 2-model-formula × 2-design-formula × 10-method grid expands to 80
+  unique exact keys, including runner-generated `case_id`s. The inventory is
+  preserved under `/tmp/edi-todo77-expected-keys.iZAd6E/`; SHA-256
+  `2c4228350bd76332ccc609fe30567cd6b1e60f48ee1ed255f74343c51c17563c`.
+  Its expected key set exactly matches the existing 80-row diagnostic CSV
+  (CSV SHA-256 `91a0b9780e6654df6148b132c9e828199099f84a8fa47e1f6c3bd617a7837759`),
+  but those rows still lack commit and package/DLL provenance. The runner has
+  a dirty beta-filter diff; its case-ID helper block is unchanged, and the
+  scratch manifest records the runner SHA and dirty status. This is a future
+  reconciliation aid, not result/acceptance evidence. No simulation or
+  canonical result write was performed.
+  **Expanded current-worktree focused rerun, 2026-10-20:** the same
+  class-data-assembly test passed all seven blocks, 64 expectations total
+  (0 failures, warnings, or skips), after loading checkout R with
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. Runtime was
+  R Under development (2026-10-13 r90668), package version 1.0.3, namespace
+  source `/home/kapelner/workspace/EDI/R/EDI`; loaded existing DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; the run's test
+  file SHA-256 was
+  `d86c09a717c2f2bfbb2641ea0f9dc9f7135c62391e7780800e979d542526a1c3`.
+  This is focused checkout-R/test-worktree evidence only; compile=FALSE
+  reused the existing DLL and does not establish its build-to-source linkage.
+  The full affected-row regeneration and exact key/status reconciliation
+  remain open. No build/install or canonical output write occurred.
+  **Read-only artifact/provenance recheck, 2026-10-21:** no newer provenance-
+  pinned result artifact was identified. The retained source-derived
+  80-key inventory and matching 80-row diagnostic CSV remain a candidate-key
+  aid only; the CSV lacks commit/package/DLL provenance and cannot establish
+  post-fix execution. The next in-scope step remains gated on TODO-56
+  terminality and a provenance-recorded post-fix package: regenerate both
+  affected classes across both design formulas, both model formulas, and all
+  ten Bayesian-bootstrap procedures, then reconcile every exact key and
+  terminal status/reason against canonical outputs. No result generation or
+  canonical write occurred in this audit.
+  **Read-only terminal-contract check, 2026-10-21:** the retained diagnostic
+  candidate at
+  `/tmp/edi-todo77-reconcile.yQTUzj/R/package_tests/comprehensive_tests_results_nc_1_incidence_filtered_design-KK21stepwise_class-InferenceIncidKKCondLogitGLMM_OneLik_IVWC_dataset-pima_beta-0_rep-1_family-bayesian_bootstrap.csv`
+  has 80 rows and 80 unique full keys matching the expected inventory; all
+  rows are `method_family=bayesian_bootstrap` and `status=ok`. Its recorded
+  skip reasons are blank=38, `nonestimable`=32, and `numeric_instability`=10;
+  the new terminal-field validator accepts these rows without discarding the
+  explicit reasons. However, all 80 `github_commit_id` values are missing and
+  the candidate directory contains no provenance sidecar. Its SHA-256 is
+  `91a0b9780e6654df6148b132c9e828199099f84a8fa47e1f6c3bd617a7837759`
+  (mtime 2026-10-16 04:54:07 +0300); this remains unauthenticated diagnostic
+  evidence and cannot close the post-fix package/DLL provenance or terminal
+  regeneration gate. No result or canonical output was changed.
+  **Public-driver regression, 2026-10-21:** the existing class-data reference
+  test compares a seeded `B=2` OneLik Bayesian-bootstrap distribution with
+  direct weighted `fast_clogit_plus_glmm_cpp` evaluations from the same draws.
+  The fixture now guards nonempty discordant/GLMM blocks and nonconstant draw
+  weights, and exercises both `debug=TRUE` and the ordinary `debug=FALSE`
+  distribution route on a fresh object (so the debug cache cannot short-circuit
+  that route). The focused file passed 75 expectations (0 failures, warnings,
+  or skips) with installed EDI 1.0.3. The direct weighted-kernel calculation
+  independently exercises the public driver's draw/weight wiring; separate
+  joint-kernel tests compare unweighted regimes against `glmer` and
+  conditional-logit references. This installed-package test does not attest
+  current checkout R/native provenance or replace the all-method
+  comprehensive regeneration and exact key/status reconciliation gate below.
+  No build, install, or result artifact was produced.
+  **Candidate-only source-potential roster, 2026-10-21:** the existing pure-R
+  candidate-key helper was exercised for the explicit TODO-77 incidence case:
+  2 classes × 2 model formulas × 2 design formulas × 10 source-audited
+  Bayesian-bootstrap labels = 80 unique full keys. The test verifies the key
+  schema and formula-pair coverage while deliberately omitting status, expected
+  status, and skip-reason fields. These are source-potential candidates only;
+  runtime setup/support and slow-skip rules still determine actual attempts.
+  The focused validator test passed 71 expectations (0 failures, warnings, or
+  skips) with installed EDI 1.0.3. It did not fit models, generate result rows,
+  or establish current-checkout native provenance; comprehensive regeneration
+  and exact key/status reconciliation remain open. No canonical artifact was
+  changed.
+  **Current artifact-presence recheck, 2026-10-21:** the cited diagnostic CSV
+  under `/tmp/edi-todo77-reconcile.yQTUzj/` is no longer present, and no
+  TODO-77 result CSV or provenance sidecar was found in the inspected `/tmp`,
+  `R/package_tests`, or `scratch` locations. The 80/80 key comparison and
+  status counts above remain historical audit evidence, not a currently
+  retained result cohort. The expected-key manifest remains at
+  `/tmp/edi-todo77-expected-keys.iZAd6E/expected_keys.csv` with SHA-256
+  `2c4228350bd76332ccc609fe30567cd6b1e60f48ee1ed255f74343c51c17563c`;
+  current-provenance result rows and their matching sidecar are still absent.
+  **Inventory detail, 2026-10-21:** the previously cited diagnostic CSV and
+  its containing directory/sidecar are absent from the inspected `/tmp` and
+  repository locations. The historical 80/80 match had all `github_commit_id`
+  values `NA` and no sidecar, so it is inadmissible as post-fix evidence. The
+  expected-key manifest remains present (23,677 bytes, SHA-256
+  `2c4228350bd76332ccc609fe30567cd6b1e60f48ee1ed255f74343c51c17563c`), and
+  its adjacent inventory note records only a source-derived key comparison,
+  not run provenance. The manifest records an older runner fingerprint; current
+  `R/package_tests/comprehensive_tests.R` is modified (SHA-256
+  `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`, versus
+  the manifest's runner SHA `0f4612616ec1362c6e8b100a1c2fec32c417f86b8c4bf8ce8c317f5eaa13b92a`).
+  The current installed DLL SHA-256
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`
+  matches checkout `R/EDI/src/EDI.so`, but no run record ties it to the
+  historical rows. Keep
+  TODO-77 open for a fresh provenance-stamped run and exact 80-key/status/
+  reason reconciliation; no run or canonical result write occurred.
+  **Shared terminal-validator edge, 2026-10-21:** the comprehensive-result
+  validator now recognizes the runner's anchored timeout terminal message
+  rather than rejecting any successful row whose diagnostic merely contains
+  the word `timeout`. This aligns artifact acceptance with the cache
+  classifier's documented exact-marker rule; the existing synthetic
+  output-directory/terminal-fields test now covers a non-timeout diagnostic
+  containing that word while retaining the explicit `status=ok` timeout
+  rejection. The focused test passed with no failures, warnings, or skips;
+  it creates only temporary fixtures and no fit or result artifact. The test
+  is already registered in correctness and coverage tiers. This shared
+  validator contract does not close TODO-77's missing provenance-stamped
+  result rows or its full exact-key/status reconciliation gate.
   - [ ] After TODO-56 is terminal and a post-fix package with recorded
     source/DLL provenance is available, regenerate both affected classes
     across all ten Bayesian-bootstrap p-value and confidence-interval
@@ -3335,8 +9062,7 @@ baseline as expected/benign.
   unrounded `covmat$ISMB` treatment entry. Estimate-only calls retain cached
   component variances for IVWC rather than replacing them with `NA`; a later
   full call can still calculate the combined SE. A focused covariance-extractor
-  regression was added. This remains unchecked pending R execution; this host's
-  `Rscript` cannot load `libmkl_gf_lp64.so.2`.
+  regression was added.
 
 - [x] TODO-83 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F15): **`InferenceAllKKMeanDiffIVWC` randomization null is the plain mean difference** —
@@ -3396,7 +9122,7 @@ baseline as expected/benign.
   **Source implementation completed 2026-10-10:** estimate-only IVWC calls now
   request finite matched-pair and reservoir variances for the combination, while
   still omitting only the final combined SE. A focused mock regression covers
-  the estimate-only branch and its closed-form IVWC point estimate. This remains
+  the estimate-only branch and its closed-form IVWC point estimate.
   The shared matched/reservoir test passed 12 assertions and the CRAN migration
   golden passed 36 against installed EDI 1.0.3; no compile/install was needed.
   See the linked algorithm-sweep plan.
@@ -3463,8 +9189,8 @@ baseline as expected/benign.
   and byte-identical to that generated artifact. The focused command
   `Rscript -e 'testthat::test_file("R/EDI/tests/testthat/test-cross-platform-reproducibility-digests.R")'`
   passed 18 assertions, zero failures/warnings/skips, against installed EDI
-  1.0.3. The external macOS digest comparison is still required; this item
-  remains unchecked pending that cross-platform confirmation. Utility-kernel
+  1.0.3. (Historical: at this point the external macOS digest comparison was
+  still required; it was closed 2026-10-15, below.) Utility-kernel
   coverage passed 25 assertions; the all-design seed suite passed 25
   assertions (1 CRAN-only skip) and verifies same-host repeatability.
   **Cross-platform confirmation, closed 2026-10-15:** the `R-CMD-check`
@@ -3502,8 +9228,33 @@ baseline as expected/benign.
   `design_optimal_annealing_search.cpp`; both moved to the portable
   shuffle in the same source change and are covered by
   `cross_platform_reproducibility.md → TODO-4`'s "every class" extension.
-  The NEWS line announcing the one-time draw change is still to be
-  written (release step).
+  At this point in the 2026-10-15 record, the NEWS line was pending; it was
+  added later in `R/EDI/NEWS.md:12-13` (see final acceptance below).
+  **Final cross-platform acceptance, 2026-10-20:** R-CMD-check run
+  [39110868823](https://github.com/kapelner/EDI/actions/runs/39110868823)
+  on commit `4d2531e97bc0636d3409003576a5766d15a308d0` completed the
+  cross-platform comparison successfully. Its eight leg artifacts contain
+  all 14 design-digest keys (the original six plus the eight added rows for
+  `DesignFixediBCRD`, `DesignFixedBlocking`, and three sequential designs'
+  assignment/redraw digests); each key is present on all eight Linux/macOS/
+  Windows legs and has one identical digest across legs and thread counts
+  1/2/4. All four recorded inference floats were also compared on eight legs;
+  maximum observed range was `2.22e-16` (closed-form estimate and CI lower
+  bound), with exact agreement for the upper bound and randomization p-value.
+  The committed `test-local-rng-permutations.R` golden is in the R test suite
+  run; the workflow completed successfully. The cross-platform CI artifacts
+  and comparison job therefore close the newly added digest/golden gate.
+  `R/EDI/NEWS.md:12-13` announces the one-time seed-pinned draw change.
+  `stratified_bootstrap_indices_cpp` and optimal/annealing coverage remain in
+  the broader `cross_platform_reproducibility.md` TODO-4 extension for
+  v1.1.0; they are not part of this v1.0.5 TODO-91 fixture's acceptance set.
+  **Re-audit 2026-10-20:** the 2026-10-18 CI commit precedes checkout HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, but a scoped diff confirms no
+  changes to `R/EDI/src`, either digest/golden test, the R-CMD-check workflow,
+  or `R/EDI/NEWS.md` since the tested SHA. Thus the successful CI artifacts
+  apply to the current TODO-91 source and fixture. The announcement is present
+  in NEWS, and the remaining bootstrap/annealing all-class extension belongs
+  to v1.1.0's linked TODO-4, not this v1.0.5 acceptance row.
 
 - [x] TODO-92 (added 2026-10-09, user decision; algorithm-sweep
   verification F19): **Firth penalty has the wrong sign** —
@@ -3605,7 +9356,7 @@ baseline as expected/benign.
     OpenMP maximum for the R build and preserves the explicit `num_cores`
     argument for the Python `EDI_CORE_ONLY` build. The shared parallelization
     threshold now follows the same policy. Source-level audit passes; native
-    runtime verification remains pending a rebuild. The new regression test
+    runtime verification (historical note: completed 2026-10-14, below). The new regression test
     reproduces the old installed-binary failure (maximum falls from 2 to 1),
     as expected before rebuilding.
   - **Tests required:**
@@ -3649,20 +9400,305 @@ baseline as expected/benign.
   unchanged per-class effective component and method golden. *(maintenance)*:
   no output or behavior change. Placed here rather than v1.1.0 by user
   decision as cleanup work, an exception to this file's bug-fix-only rule.
-- [ ] TODO-98 (added 2026-10-19, user decision; found while preparing the
-  HUJI seminar survival demo): **Randomization inference under left-/interval-
-  censoring returns silent wrong results.** — `../bug_fix_plans/rand_inference_general_censoring_silent_results.md
-  → TODO-1..5`. A δ ≠ 0 null shift moves only `y`, not `y_L`/`y_R`, so censored
-  rows stay unshifted. The shared guard against this runs only with asserts on
-  (`SimulationFramework` turns them off by default). With asserts off,
-  Cox and log-rank randomization p-values at δ ≠ 0 are computed silently:
-  0.438 and 0.408 on the plan's fixture, where both should error. Weibull's own
-  always-on guard is swallowed by the randomization CI's `tryCatch(..., NA)`.
-  As a result, `compute_rand_confidence_interval()` returns a finite interval
-  built from NA p-values: (-0.147, 0.749) on the current source, asserts on.
-  Also covers the Weibull parametric-bootstrap LR returning a silent `NA`
-  under general censoring. Fix scope: errors instead of silent results.
-  Supporting the shift is deferred.
+  **Decision gate, 2026-10-20:** the linked AST graph test covers all 106
+  concrete classes against TODO-1's golden and confirms three packaging-only
+  edges plus the real `Jackknife`↔`NonparametricBootstrap` cycle; it does not
+  select the shared-component boundaries. Before TODO-3, the maintainer must
+  approve component grouping/names and the cycle-break strategy. The proposed
+  `ResamplingCore`/`BootstrapCIHelpers` names are examples only; preserve the
+  TODO-1 method/component golden. No refactor or API change is authorized by
+  this audit.
+  **Boundary/cycle-break options audit, 2026-10-21:** current source and the
+  AST acceptance test show three separable concerns: the actual
+  `Jackknife`↔`NonparametricBootstrap` cycle: `Jackknife` calls
+  `approximate_jackknife_distribution_beta_hat_T_private()` and
+  `bootstrap_estimates_extreme()`, while `NonparametricBootstrap` calls
+  `assert_jackknife_supported()` and `normalize_jackknife_unit()`. Resampling
+  cache/draw-worker helpers (`get/set_cached_resampling_distribution()`,
+  `get_resampling_draw_contract()`,
+  `load_resampling_draw_into_worker()`) are implemented under
+  `RandomizationTest` but called by bootstrap components; design-backed
+  bootstrap-worker helpers are also called by `Wald`. The graph confirms the
+  real acyclic spine `RandomizationCI → RandomizationTest`,
+  `RandomizationBootstrap → NonparametricBootstrap`,
+  `RandomizationBootstrapCI → RandomizationBootstrap`,
+  `LikelihoodTests → Wald`, and
+  `ParametricLikelihoodBootstrap → LikelihoodTests`; the three audited
+  zero-call packaging edges remain `Wald → Jackknife`,
+  `NonparametricBootstrap → RandomizationCI`, and
+  `BayesianBootstrap → RandomizationBootstrapCI`.
+  Candidate boundaries for owner review are (a) one neutral resampling-support
+  component containing the shared cache/worker and cross-cycle helpers, which
+  makes the dependency DAG simple but risks an overly broad mixed-responsibility
+  component; (b) separate cache/worker and jackknife-bootstrap support
+  components, which are narrower but require confirming the extracted methods
+  have no back-calls or state ownership tied to their current providers; or
+  (c) retain existing component names and choose one-way ownership for the
+  cross-called helpers, which minimizes new registry surface but may couple
+  unrelated capabilities. These are options, not a selected architecture.
+  TODO-1's fixture compares each class's effective component list as well as
+  public/private method-owner bindings. Adding a helper component to a class's
+  resolved set would therefore change the golden even if methods and outputs
+  remain identical. The owner must specify helper grouping/ownership and how
+  the exact existing component-set golden is preserved; do not weaken or
+  regenerate that golden implicitly. After that choice, TODO-3/4 can move
+  bodies without edits to method logic, and TODO-7 must prove exact golden
+  equality plus clean acyclic dependency validation. No source, test, or
+  golden changed in this audit.
+- [x] TODO-98 (added 2026-10-19; source fix and focused validation completed
+  2026-10-19):
+  **Randomization inference under left-/interval-
+  censoring returns silent wrong results.** —
+  `../bug_fix_plans/rand_inference_general_censoring_silent_results.md
+  → TODO-1..5`.
+
+  The shared nonzero-δ guard is now active with assertions disabled;
+  randomization CI rejects unsupported general censoring before inversion;
+  and Weibull parametric-bootstrap LR p-value/CI methods fail explicitly.
+  Documentation and regressions cover a mixed exact/right/left/interval
+  fixture, assertions-off calls across all six general-censoring-capable
+  survival classes, and unaffected right-censored controls. The focused
+  source-loaded test passed 24 assertions with no failures, warnings, or
+  skips. Its temporary native DLL MD5 matches the installed EDI 1.0.3 DLL;
+  no native source changed. See the linked plan for command and provenance.
+
+  Supporting actual shifts of censoring bounds remains deferred.
+
+- [ ] TODO-99 (added 2026-10-20, user decision; found while checking TODO-53):
+  **`compute_rand_two_sided_pval()` must always use the `w` draws, not the Zhang
+  exact test** — `../bug_fix_plans/investigate_kk21stepwise_incidence_randomization_pval_conservative.md`.
+  The Zhang-dispatch branch (2026-08-23) returned `compute_exact_two_sided_pval_rand("Zhang")`
+  for incidence on Bernoulli/matched designs, ignoring the draws; it is far more
+  conservative (200 KK21stepwise nulls: reject@0.05 1% vs 3%, median p 0.82 vs
+  0.58) and made `condition_on_ws_for_rand_tests` irrelevant for incidence.
+  **Source done 2026-10-20 (R-only):** removed in `InferenceRand`'s method
+  (`inference_all_abstract_rand.R`) and the `InferenceRandCI` and KK-GEE
+  overrides, which now use Zhang only for an explicit `type`. The
+  `transform_responses` guard for Zhang-eligible incidence is kept; the
+  non-eligible-incidence refusal and the CI's Zhang path are unchanged. A
+  nonzero `delta` now errors for incidence on this path. Roxygen and NEWS
+  updated; the 6 dispatch test files were rewritten to pin the draw-based path
+  and `migration-harness` now uses `r = 12` (the draw path needs >= 10 finite
+  draws). Focused files pass source-loaded with `pkgload::load_all(compile =
+  FALSE)` against the user's recompiled `EDI.so`. **Wide dispatch regression,
+  2026-10-20:**
+  `test-incidence-classes-rand-two-sided-pval-zhang-eligible-dispatch-sweep-reference.R`
+  passed 30 expectations across six Zhang-eligible classes on Bernoulli and
+  KK14 designs, checking finite reproducible draw-based p-values, nonzero-
+  delta refusal, and explicit Zhang access. It used checkout R with
+  compilation disabled and native DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Remaining: regenerate and reconcile comprehensive incidence `rand` rows
+  (p-values and coverage change). No CI decision/change is needed because
+  incidence randomization CIs are already disabled; see
+  `incidence_randomization_cis.md`.
+  **Companion dispatch/guard regression, 2026-10-20:** six additional
+  focused files passed 47 assertions with checkout R loaded using
+  `pkgload::load_all("R/EDI", compile = FALSE)` against the same rebuilt
+  native DLL: extended Robins, log-binomial, Wald/CMH, KK g-computation risk
+  difference, non-Zhang-eligible incidence refusal, and the Zhang eligibility
+  predicate. Together with the 30-assertion wide class sweep, all 77
+  assertions passed with no failures, warnings, or skips. Comprehensive
+  incidence `rand` result-row regeneration and exact-key reconciliation remain
+  open.
+
+  **Post-reinstall installed-library recheck, 2026-10-20:** reran
+  `testthat::test_file("R/package_tests/testthat_bulk/test-incidence-classes-rand-two-sided-pval-zhang-eligible-dispatch-sweep-reference.R", reporter = "summary")`
+  against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Result remains 24
+  pass / 6 fail: the same nonzero-`delta` refusal failures for Probit,
+  BinomialIdentityRiskDiff, ModifiedPoisson, KKCondLogitOneLik,
+  KKCondLogitIVWC, and KKNewcombeRiskDiff. R was
+  `R Under development (unstable) (2026-10-13 r90668)`; installed DLL MD5
+  `8b3ca30492d7b1c790deeebe94b201ad`, SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Direct namespace-body inspection confirms the installed R layer still has
+  default Zhang dispatch in `InferenceRand`, `InferenceRandCI`, and
+  `InferenceMixinKKGEEShared`; the checkout source reserves it for explicit
+  `type`. Thus the native DLL hash is not proof that the changed R definitions
+  were installed. The same 30 assertions pass with checkout R loaded using
+  `pkgload::load_all(..., compile = FALSE)` over the installed native DLL.
+  Package metadata says `Built: R 4.7.0; x86_64-pc-linux-gnu; 2026-10-20
+  07:40:04 UTC` (10:40:04 +0300), before the dirty checkout edits at
+  10:45:20 (`inference_all_abstract_rand_ci.R` and
+  `inference_mixin_kk_gee_shared.R`) and 10:48:54
+  (`inference_all_abstract_rand.R`); `NEWS.md` was edited at 10:48:09.
+  This timestamps the installed R layer as predating those edits. The matching
+  DLL SHA-256 proves native identity only, not R-source freshness.
+  Keep TODO-99 open until this same test passes against installed checkout R
+  definitions and comprehensive incidence `rand` rows are regenerated and
+  reconciled.
+
+  **Current-checkout source-overlay rerun, 2026-10-21:** after confirming no
+  competing R/Rscript process, reran the 30-assertion wide dispatch regression
+  with `pkgload::load_all("R/EDI", compile = FALSE)` and the existing native
+  DLL. It passed (exit 0; no failures, warnings, or skips). This validates the
+  current R dispatch layer against the present DLL only; it does not reconcile
+  comprehensive incidence `rand` rows or replace a correctly installed
+  package. Exact-key regeneration and reconciliation remain open.
+
+  **Scratch artifact audit, 2026-10-20:** the isolated directory
+  `/tmp/edi-todo99-one-rep-GHPmHC` contains a 3-line CSV (SHA-256
+  `e1ca008813ad51ca4d76ab2e56eddd6c768c1e5c1f2257453b4b940bf9e61fb9`) for
+  the single `cars`/Bernoulli/`InferenceIncidProbitRegr` attempt. Its two rows
+  (`compute_rand_two_sided_pval` and `delta=0.5`) both have `status=ok`; the
+  nonzero-delta row returns p=0.1878905773 rather than an error. The CSV has
+  no companion provenance sidecar and records only checkout commit metadata,
+  not the loaded EDI R payload or DLL identity. Source tracing confirms the
+  label comes from `safe_call("compute_rand_two_sided_pval(delta=0.5)",
+  seq_des_inf$compute_rand_two_sided_pval(..., delta = 0.5, ...))`: this is the
+  public class method, not an internal/helper dispatch. The runner loads
+  `library(EDI)` and does not source checkout R definitions, so the row
+  reflects whichever installed EDI namespace was active then; the CSV alone
+  cannot tie that namespace to a package path/build. Therefore this scratch
+  output is not evidence that the current source guard failed, and it cannot
+  satisfy TODO-99; do not reconcile it into canonical results. The minimal
+  installed-layer validation is the existing focused dispatch test
+  `test-incidence-classes-rand-two-sided-pval-zhang-eligible-dispatch-sweep-reference.R`
+  against the freshly installed package, after verifying the loaded namespace
+  contains the checkout definitions. The output is retained only as a
+  provenance-unresolved artifact requiring attribution.
+
+  **Source-overlay focused recheck, 2026-10-20:** after confirming no active
+  R/Rscript processes, ran
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` followed by
+  `testthat::test_file("R/package_tests/testthat_bulk/test-incidence-classes-rand-two-sided-pval-zhang-eligible-dispatch-sweep-reference.R", reporter = "summary")`.
+  All 30 expectations passed with no failures, warnings, or skips. Runtime
+  output reports EDI 1.0.3; inspection confirms
+  `InferenceIncidProbitRegr`'s public method environment is the loaded `EDI`
+  namespace and its body contains the nonzero-incidence-delta guard. Its class
+  definition explicitly supplies
+  `InferenceRandCI$public_methods$compute_rand_two_sided_pval` as the public
+  override (`inference_incidence_probit.R`); this is not a private harness
+  helper. The loaded native library was
+  `/tmp/Rtmp6ux7PA/pkgload13700a7e8ce483/EDI.so`, SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This validates checkout R definitions over that native library only; it
+  does not close the separate installed-R-layer or comprehensive-row gates.
+
+  **Expected-outcome validator, 2026-10-21:** added the TODO-99-specific
+  `validate_comprehensive_incidence_rand_pvalue_result_artifact()` wrapper
+  and `validate_comprehensive_incidence_rand_pvalue_expected_outcomes()`
+  check. After generic provenance, exact-key, and terminal-field validation,
+  the narrow check binds non-`NA` manifest `expected_status` and
+  `expected_skip_reason` values to matching result rows. Its synthetic pure-R
+  test passed 8 expectations, including rejecting a standard-statistic
+  `delta=0.5` row recorded as `ok` or with the wrong skip reason. This closes
+  only the expected-outcome validator subgate; current-source comprehensive
+  incidence `rand` regeneration and exact-key/status reconciliation remain
+  open.
+
+  **Artifact-wrapper regression, 2026-10-21:** the focused
+  `test-comprehensive-incidence-rand-attempt-manifest-reference.R` now also
+  creates a temporary results CSV and schema-2 provenance sidecar, invokes
+  `validate_comprehensive_incidence_rand_pvalue_result_artifact()` against
+  exact expected keys, accepts the valid artifact, and rejects a wrong-status
+  row. The whole file passed against installed EDI 1.0.3 via
+  `Rscript -e 'testthat::test_file(...)'` (no build/install); this is synthetic
+  pure-R validator integration, not current-source dispatch or result
+  generation. It closes only that validator subgate. Runtime eligibility,
+  provenance-stamped full incidence-`rand` regeneration, exact-key/status
+  reconciliation, and explicit authorization before canonical updates remain
+  open.
+
+  **Installed-package R-layer recheck, 2026-10-20:** after confirming the R
+  process table was idle, ran the same six-class dispatch test directly with
+  `library(EDI)` (no `pkgload`, source overlay, build, or install). The installed
+  package is EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. The installed
+  `InferenceIncidProbitRegr$public_methods$compute_rand_two_sided_pval` closure
+  has environment `EDI`, but its body does not contain the
+  `delta nonzero not supported for incidence` guard. The test result was 24
+  passed / 6 failed: the only failures were the expected nonzero-delta error
+  assertions for Probit, BinomialIdentityRiskDiff, ModifiedPoisson,
+  KKCondLogitOneLik, KKCondLogitIVWC, and KKNewcombeRiskDiff. Installed DLL
+  path: `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`;
+  SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This reproduces the stale installed-R-layer mismatch: matching native DLL
+  bytes do not establish that the checkout's changed R definitions are
+  installed. The installed-R-layer gate remains open pending a user-managed
+  install of those definitions and a passing rerun; comprehensive row
+  regeneration/reconciliation remains separate.
+
+  **Post-reinstall installed-package R-layer recheck, 2026-10-21:** after
+  confirming no R/Rscript process was active, ran the same focused test against
+  the installed package only (no source loading, build, or install):
+  `timeout 90s Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-incidence-classes-rand-two-sided-pval-zhang-eligible-dispatch-sweep-reference.R", reporter="summary")'`.
+  All 30 expectations passed, with no failures, warnings, or skips. The loaded
+  package is EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; its DLL is
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`, MD5
+  `ea0e2f72d87d401db15557e0ecc151c9`. The installed Probit public method body
+  now contains the nonzero-delta incidence guard, unlike the stale R layer
+  observed on 2026-10-20. This closes the focused installed-R-layer dispatch
+  subgate. Comprehensive incidence `rand` row regeneration and exact-key
+  reconciliation remain open; no canonical output was written.
+  **Signed-shift boundary regression, 2026-10-21:** extended the same
+  six-class test with `delta=-0.3` refusal assertions (the prior test covered
+  only positive `delta=0.3`). The focused installed-package run passed all 36
+  expectations with no failures, warnings, or skips; `library(EDI)` loaded
+  EDI 1.0.3 from
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, and the installed
+  Probit public-method body contained the guard. This closes only the
+  two-sign argument-boundary subgate; comprehensive current-source incidence
+  `rand` result regeneration and exact-key/status reconciliation remain open.
+
+  **Retained-artifact reconciliation audit, 2026-10-21 (read-only):** the
+  `/tmp/edi-todo99-incidence-rand-preflight/` roster has 189,280 unique
+  candidate keys, but is a structural upper bound and stale against the
+  current dirty runner: recorded `comprehensive_tests.R` SHA-256
+  `39f1abc8e492b2307ed4229b1bf36d42021464af1521578e4683aaf3d3de7189` versus
+  current `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`.
+  The 525,863,531-byte canonical incidence CSV (about 502 MiB, dated
+  2026-10-09) has no matching provenance sidecar. It contains 17,746
+  incidence-rand p-value rows across 14 historical commit IDs; 14,470 match
+  the stale candidate roster (6,983 plain calls and 7,487 delta calls), with
+  no duplicate canonical keys. The only isolated output is the known two-row
+  cars/Bernoulli/Probit CSV, without a receipt sidecar or loaded R/DLL identity.
+  No complete current-source artifact is available. Regenerate the runtime
+  expected manifest from the stabilized runner, execute the full incidence
+  `rand` slice with attempt events/provenance into isolated output, and
+  validate exact keys/statuses. Any canonical reconciliation remains a
+  separate explicitly authorized gate; no R, build, merge, or canonical write
+  occurred in this audit.
+
+  **Manifest/runner wiring audit, 2026-10-21 (read-only; partially superseded
+  by the artifact-wrapper regression above):** `trail callers` and exhaustive
+  `rg` show the incidence-rand attempt-manifest builder is called only by its
+  synthetic reference test, not by the comprehensive runner. The wrapper was
+  not yet directly tested at that audit; the later synthetic CSV+sidecar
+  regression above now exercises it and closes only the validator-integration
+  subgate. The fixture supplies expected keys/statuses synthetically, and the
+  wrapper still has no production-runner caller. It does not establish
+  runtime eligibility or current-source completeness. The substantive gate
+  still requires runner-produced runtime attempt/eligibility records and
+  provenance in isolated output, exact-key/status reconciliation, and
+  separate explicit authorization before canonical-row updates. No run or
+  artifact write was performed.
+
+  **Attempt-event/result reconciliation contract, 2026-10-21:** the TODO-99
+  artifact validator now requires the attempt-event CSV named by the run
+  receipt, checks its resolved path/byte count/SHA-256, and reconciles keyed
+  events and results to the caller-supplied expected manifest. Each expected
+  operation must have one `started` and one `terminal` event, a matching
+  terminal result, and the expected status; missing/extra/duplicate keys,
+  unpaired events, and status mismatches are rejected. The focused pure-R
+  `test-comprehensive-incidence-rand-attempt-manifest-reference.R` passed 14
+  expectations against installed EDI 1.0.3 using synthetic `/tmp` artifacts.
+  Unkeyed `setup_skipped`/`setup_failure` events are retained only as context
+  and are not counted as operation attempts. A follow-up source audit found
+  `design_formula` in scope at all three `setup_skipped` emission sites; they
+  now record its deparsed value. The outer `setup_failure` event already
+  recorded `model_formula`. A focused pure-R source/writer regression passed
+  with no failures, verifying all three calls pass formula context and the
+  writer preserves it. These events remain unkeyed because setup failure has
+  no inference/function operation key, so formula context does not identify a
+  specific inference-method attempt. The
+  expected manifest is still caller-supplied, and the validator has no
+  production-runner caller. Runtime eligibility/full-roster completeness,
+  current-source isolated regeneration and reconciliation, and separate
+  authorization before canonical updates remain open.
 
 ## Standing constraints
 

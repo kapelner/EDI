@@ -44,16 +44,23 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
 			# message("In InferenceRandCI$compute_rand_two_sided_pval")
 			# message("Class: ", class(self)[1])
+			if (isTRUE(delta != 0) &&
+					private$des_obj_priv_int$response_type == "incidence" &&
+					is.null(private$custom_randomization_statistic_function)) {
+				stop("randomization tests with delta nonzero not supported for incidence", call. = FALSE)
+			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertLogical(na.rm)
 			}
 			if (should_run_asserts()) {
-				if (private$should_use_zhang_incidence_randomization()){
-					if (!identical(transform_responses, "none")) {
-						stop("transform_responses is not supported for incidence randomization inference.")
-					}
-					rand_type = if (is.null(type)) "Zhang" else type
+				if (private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
+					stop("transform_responses is not supported for incidence randomization inference.")
+				}
+				# Exact incidence tests only when explicitly requested via `type`; the
+				# default p-value always comes from the randomization draws.
+				if (!is.null(type) && private$should_use_zhang_incidence_randomization()){
+					rand_type = type
 					exact_args = private$normalize_exact_inference_args(
 						rand_type,
 						args_for_type = args_for_type
@@ -180,10 +187,20 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   rationale and \code{R/package_metadata/new_feature_plans/} for the deeper,
 		#'   not-yet-implemented redesign (anytime-valid confidence sequences) this pass is
 		#'   a pragmatic stopgap for.
+		#'   A randomization CI is not available for left- or interval-censored survival
+		#'   data: the nonzero-\eqn{\delta} null shifts required by inversion are not
+		#'   implemented for censoring bounds.
 		#' @return Randomization CI. Bounds may be conservative (wider than necessary) when the
 		#'   p-value inversion cannot be completed within the search radius; see
 		#'   \code{ci_search_control} for details.
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, type = NULL, args_for_type = NULL, ci_search_control = NULL){
+			if (isTRUE(private$has_general_censoring)) {
+				stop(
+					"Randomization confidence intervals with nonzero null shifts are not yet supported for ",
+					"left-/interval-censored survival data.",
+					call. = FALSE
+				)
+			}
 			if (inference_is_ordinal_model_coefficient_class(class(self)[1L])) {
 				stop(
 					"Randomization confidence intervals are not implemented for ordinal model-coefficient estimands.",
@@ -372,6 +389,14 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				cache_key = private$normalize_delta_for_cache(delta, ci_search_control$pval_cache_resolution)
 				if (!is.null(ci_pval_cache[[cache_key]])) return(ci_pval_cache[[cache_key]])
 			}
+			# The CI search control is also the control consumed by the inference
+			# object's sequential-MC p-value path. Keep the copy's current setting
+			# visible for this call so high-precision confirmation's mc_enable=FALSE
+			# request actually evaluates the complete fixed permutation set.
+			obj_private = inf_obj$.__enclos_env__$private
+			old_mc_control = obj_private$randomization_mc_control
+			obj_private$randomization_mc_control = ci_search_control
+			on.exit({ obj_private$randomization_mc_control = old_mc_control }, add = TRUE)
 			pval = tryCatch(
 				as.numeric(inf_obj$compute_rand_two_sided_pval(
 					r,

@@ -60,11 +60,26 @@ test_that("negative log-likelihood, score and Hessian kernels equal the hand int
 	expect_equal(unname(h), unname(t(h)), tolerance = 1e-6)
 })
 
-test_that("a fit warm-started at its own solution stays there (Newton polish reports its bookkeeping)", {
+test_that("a fit warm-started from the ordinal-package reference stays at the independent solution", {
 	f <- fx(302L)
-	r <- K("fast_ordinal_glmm_cpp")(f$X, f$y, f$g, 3L, 0L)
-	p <- c(as.numeric(r$alpha), as.numeric(r$b), as.numeric(r$log_sigma))
-	r2 <- K("fast_ordinal_glmm_cpp")(f$X, f$y, f$g, 3L, 0L, warm_start_params = p)
+	r <- K("fast_ordinal_glmm_cpp")(f$X, f$y, f$g, 3L, 0L, n_gh = 80L)
+	ref_thresholds <- unname(f$mm$alpha)
+	warm_start <- c(
+		ref_thresholds[1L], log(diff(ref_thresholds)),
+		unname(coef(f$mm)["x"]), log(sqrt(as.numeric(ordinal::VarCorr(f$mm)$g)))
+	)
+	r2 <- K("fast_ordinal_glmm_cpp")(
+		f$X, f$y, f$g, 3L, 0L, n_gh = 80L, warm_start_params = warm_start
+	)
+	p2 <- c(as.numeric(r2$alpha), as.numeric(r2$b), as.numeric(r2$log_sigma))
+	# The valid warm-start fit must agree with both independent oracles, not
+	# only with another call to the same EDI kernel.
+	thresholds2 <- c(p2[1L], p2[1L] + exp(p2[2L]))
+	expect_equal(p2[3L], unname(coef(f$mm)["x"]), tolerance = 1e-4)
+	expect_equal(thresholds2, unname(f$mm$alpha), tolerance = 1e-3)
+	expect_equal(p2[4L], log(sqrt(as.numeric(ordinal::VarCorr(f$mm)$g))), tolerance = 1e-3)
+	expect_equal(as.numeric(r2$neg_loglik), -as.numeric(logLik(f$mm)), tolerance = 1e-4)
+	expect_equal(as.numeric(r2$neg_loglik), hand_nll(p2, f), tolerance = 1e-6)
 	expect_equal(as.numeric(r2$neg_loglik), as.numeric(r$neg_loglik), tolerance = 1e-6)
 	expect_equal(as.numeric(r2$b), as.numeric(r$b), tolerance = 1e-4)
 	expect_true(all(c("newton_polish_attempted", "newton_polish_accepted", "newton_polish_iterations", "variance_boundary_hit") %in% names(r)))

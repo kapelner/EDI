@@ -89,6 +89,29 @@ test_that("compute_estimate(estimate_only=TRUE) matches an independent unweighte
 	expect_equal(est, unname(ref_fit$coefficients[2L]), tolerance = 1e-4)
 })
 
+test_that("robust-SE fitting leaves fixed-input estimates and jackknife replicates unchanged", {
+	des <- make_kk_modpois_fixture(seed = 20261020L)
+	plain <- InferenceIncidKKModifiedPoisson$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
+	robust <- InferenceIncidKKModifiedPoisson$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
+
+	plain_est <- as.numeric(plain$compute_estimate(estimate_only = TRUE))[1L]
+	robust$compute_asymp_confidence_interval()
+	robust_priv <- robust$.__enclos_env__$private
+	robust_est <- as.numeric(robust_priv$cached_values$beta_hat_T)[1L]
+	expect_equal(robust_est, plain_est, tolerance = 1e-5)
+
+	# The public jackknife API uses estimate-only refits for both the original
+	# estimate and every fixed leave-one-out/matched-set replicate.
+	# Compare an untouched object with one that has already populated its
+	# robust-variance fit cache: no RNG or comprehensive-run dispatch is involved.
+	plain_jack <- plain$approximate_jackknife_distribution_beta_hat_T(unit = "auto")
+	robust_jack <- robust$approximate_jackknife_distribution_beta_hat_T(unit = "auto")
+	expect_gt(length(plain_jack), 1L)
+	expect_true(all(is.finite(plain_jack)))
+	expect_equal(robust_jack, plain_jack, tolerance = 1e-5)
+	expect_equal(robust$compute_jackknife_estimate(unit = "auto"), plain$compute_jackknife_estimate(unit = "auto"), tolerance = 1e-5)
+})
+
 test_that("get_degrees_of_freedom() reports n - ncol(X) after a full fit", {
 	des <- make_kk_modpois_fixture(seed = 20260921L)
 	inf <- InferenceIncidKKModifiedPoisson$new(des, model_formula = ~ x1 + x2, verbose = FALSE)
@@ -104,6 +127,26 @@ test_that("KK modified Poisson exposes robust Wald inference only", {
 	priv <- inf$.__enclos_env__$private
 	expect_false(priv$supports_likelihood_tests())
 	expect_false(priv$supports_lik_ratio_param_bootstrap())
+	# Pin the same Wald-only contract through the public capability API and the
+	# registry metadata used by suite/dispatch consumers.
+	capabilities <- inf$capabilities()
+	expect_true("wald" %in% capabilities)
+	expect_false(any(c("likelihood_tests", "parametric_likelihood_bootstrap") %in% capabilities))
+	expect_false(any(inf$supports(c("likelihood_tests", "parametric_likelihood_bootstrap"))))
+	metadata <- EDI:::get_inference_class_metadata("InferenceIncidKKModifiedPoisson")
+	expect_identical(metadata$likelihood_tier, "none")
+	# Bartlett is a separate suite-dispatch route, so pin its public methods
+	# absent as well as checking the general likelihood capability flags.
+	bartlett_methods <- c(
+		"compute_lik_ratio_bartlett_exact_two_sided_pval",
+		"compute_lik_ratio_bartlett_exact_confidence_interval",
+		"compute_lik_ratio_bartlett_approx_two_sided_pval",
+		"compute_lik_ratio_bartlett_approx_confidence_interval"
+	)
+	expect_false(any(vapply(bartlett_methods, function(method) is.function(inf[[method]]), logical(1))))
+	expect_false(EDI:::inference_class_supports_bartlett_exact(
+		"InferenceIncidKKModifiedPoisson", des
+	))
 	expect_identical(inf$get_supported_testing_types(), "wald")
 	expect_error(inf$set_testing_type("score"), "does not support", ignore.case = TRUE)
 	expect_false(is.function(inf$compute_lik_ratio_bootstrap_two_sided_pval))

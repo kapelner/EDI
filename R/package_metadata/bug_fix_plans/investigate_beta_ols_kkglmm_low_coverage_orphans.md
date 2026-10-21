@@ -155,39 +155,155 @@ replicates until pilot timing supports it. Use the checkout runner
 the family argument is exactly `lik_ratio`, `parametric_bootstrap`, or
 `wald`, and run
 each tuple independently for each of the two designs (six pilot invocations
-total). The runner normally hard-wires its CSV under `R/package_tests/`, so
-do not launch the raw command directly: evaluate the parsed runner in-memory
-with `script_path` fixed to the checkout script and `results_file` overridden
-to `<scratch-root>/<design>/<family>/results.csv`. This preserves the harness
-logic without editing the runner or touching canonical results. The
-`fork=FALSE` argument is already part of the harness's supported CLI and
-keeps this narrow pilot in one process. Note that `r=151` is a separate
+total). The runner now supports a fail-closed output-directory override:
+`comprehensive_tests.R` sources `comprehensive_results_path.R` and resolves
+`results_file` from `EDI_COMPREHENSIVE_RESULTS_DIR` (current source lines
+926–932). Pre-create a unique scratch output directory and set that variable
+in the isolated child before runner evaluation; the resolved filename keeps
+the harness's normal filtered basename. The focused
+`test-comprehensive-results-output-directory-override-reference.R` passes
+the default-path, scratch-override, and typo-fails-closed cases (3
+assertions). The `fork=FALSE` argument is already part of the harness's
+supported CLI and keeps this narrow pilot in one process. Note that `r=151` is a separate
 runner constant: the LR parametric-bootstrap call uses `B=151` for each
 formula path even when outer `Nrep=1`, so time the first such cell before
 proceeding with the other parametric-bootstrap pilot calls or expanding to
 100 outer replicates. The ordinary nonparametric `bootstrap` family is not
 the historical LR-bootstrap method under investigation.
 
-**Runner-isolation warning (2026-10-16):** the in-memory instruction above
-must not be implemented as one unrestricted `eval(parse(file=...))`. The
-runner begins with `rm(list=ls())`, selects its script path from process
-arguments/current directory, may enter watchdog setup, and later assigns
-`results_file` unconditionally to the canonical `R/package_tests/` path
-(lines 926-931) before the write path. A future pilot must use an isolated
-evaluation/copy strategy that preserves the checkout `repo_root`, avoids
-watchdog relaunch/`quit()` behavior, and intercepts or replaces the output
-path after runner initialization but before any result loop/write. Verify
-the resolved output path is under that invocation's unique scratch directory
-before starting each call. No corrected pilot has run yet; the six-cell
-matrix remains held until TODO-56 is confirmed terminal.
+**Runner-isolation update (2026-10-19):** the current results assignment is
+`results_file = resolve_comprehensive_results_file(default_results_file)`;
+the old in-memory AST rewriters in `/tmp/edi-todo52-preflight.R` and
+`/tmp/edi-todo52-safe-launcher.R` both fail closed with
+`results_file RHS changed shape` before evaluating any runner expression.
+Do not alter their checks and treat them as ready to execute. Refresh the
+dry-run to validate the built-in environment override and all output, lock,
+heartbeat, and watchdog paths under one unique scratch root. Continue using
+an isolated child: the runner starts with `rm(list=ls())`, consults process
+arguments/current directory, and has watchdog setup/exit behavior. No pilot
+invocation was run for this update; the six-cell matrix remains held until
+TODO-56 is confirmed terminal.
+
+**No-fit path-helper verification, 2026-10-19:** parsed the runner, result-path
+helper, and watchdog helper files without evaluating the runner. In an
+isolated `/tmp` root, the result-path resolver preserved the filtered basename
+under the configured `EDI_COMPREHENSIVE_RESULTS_DIR`; the runner's derived
+`<results_file>.lock` path and configured `COMPREHENSIVE_HEARTBEAT_LOG` path
+also resolved under that root. Given a marker path under the same root,
+`comprehensive_watchdog_outcomes_path()` resolved `outcomes.rds` beside it.
+The path assertions passed. This was static/helper evidence only: it did not
+launch `run_comprehensive_tests_watchdog()`, exercise the runner's live lock,
+heartbeat, marker, or restart lifecycle, nor establish that the watchdog's
+`tempfile()` run directory is rooted there. The six-cell installed pilot
+remains unrun and held pending confirmed TODO-56 termination; time the first
+`B=151` parametric-bootstrap cell before proceeding. No canonical output was
+read or written by this check.
 
 **Hold reconciliation (2026-10-16):** one Bernoulli/`lik_ratio` invocation
 was briefly started after a process poll returned no R workers, then
 interrupted with SIGINT when the TODO-56 owner reported that its worker was
 still live. It exited 130 before any result CSV was created; its scratch
-directory is empty. No other valid pilot invocation was started. Keep the
-full matrix held until the TODO-56 owner confirms a clean terminal result and
-log.
+directory is empty. At that point no other valid pilot invocation had been
+started; the full matrix remained held until TODO-56 was confirmed terminal.
+
+**Beta-filter no-op defect and first valid pilot, 2026-10-20:** the initial
+attempts used the prescribed `beta_T=0.3` CLI filter, but the harness still
+iterated only its default `beta_T_values = c(0, 0.5)`. Every attempt therefore
+skipped the replicate loop, exited successfully, and emitted no CSV; the
+result was a runner defect, not evidence about the model. The harness now
+parses an explicit finite beta filter and uses that value as the sole sweep
+value, while malformed explicit values fail closed. The focused regression
+test passed 8 assertions. After a process audit found no live R/Rscript task,
+all six corrected pilot invocations completed against installed EDI 1.0.3,
+each in its own `EDI_COMPREHENSIVE_RESULTS_DIR` under `/tmp`:
+
+| Design | Family | CSV rows | Status |
+|---|---|---:|---|
+| Bernoulli | `parametric_bootstrap` | 18 (6 parametric + 12 companion bootstrap) | all `ok` |
+| FixedBinaryMatch | `parametric_bootstrap` | 9 (3 parametric + 6 companion bootstrap) | all `ok` |
+| Bernoulli | `lik_ratio` | 12 | all `ok` |
+| Bernoulli | `wald` | 12 | all `ok` |
+| FixedBinaryMatch | `lik_ratio` | 6 | all `ok` |
+| FixedBinaryMatch | `wald` | 6 | all `ok` |
+
+The total is 63 `ok` rows with zero error messages. For `FixedBinaryMatch`,
+the `design_formula=~1` path is correctly skipped because it has no
+covariates; its `design_formula=~.` path runs with both top-level model
+formulas. Bernoulli exercises both design-formula paths. The two B=151 calls
+took 13.81 seconds (Bernoulli) and 11.72 seconds (FixedBinaryMatch) for the
+slowest logged likelihood-ratio bootstrap p-value calls. A direct
+malformed-CLI smoke run with `beta_T=nonsense` exited
+1 with `beta_T filter must be NA or one finite number`, before the runner
+could silently expand to the default sweep. Both correctness/coverage
+shard-manifest checks passed. The six isolated roots are
+`/tmp/edi-v105-todo52-pilot-fixed-beta-` followed by `NuLaVN`, `peSPjs`,
+`wcsHC8`, `u5ZCAA`, `k4Uvvw`, and `6BUiAV`; no canonical results file was
+targeted. This is pilot execution/timing evidence only, not a calibration
+conclusion; a post-fix calibration study and source-change decision remain
+open.
+
+**No-fit watchdog lifecycle smoke (2026-10-20):** exercised the current
+`run_comprehensive_tests_watchdog()` helper with a synthetic child, not the
+comprehensive runner. The first worker wrote an in-flight marker then exited
+23; the supervisor recorded a `crash` outcome and restarted once; the second
+worker read that outcome, wrote an external sentinel, and exited 0. The
+supervisor returned 0 and the sentinel was exactly `1\ncrash\n`. The scratch
+root `/tmp/edi-todo52-watchdog-lifecycle-5c6bb65027fa7/` contains only the
+534-byte child script and 8-byte sentinel; their SHA-256s are respectively
+`661c5b6f62255628108213494465aa62fc2b62b0d54d7f7c049de07a06f2f2b5` and
+`f141a1009310e80fc797d341bffe47b532fb8c3293f221f94880e02247e2da1f`.
+The tested helper SHA-256 is
+`6059cbe88972f252e884c9c26c3b13876a13ca5f3f5b6b2a78e44fd0f50a3157`.
+This validates only marker/outcome crash-restart flow with a no-fit child; it
+does not exercise the actual comprehensive runner's lock, heartbeat, result
+CSV, or live fitting path and is not calibration evidence.
+
+**Focused beta-filter regression rerun (2026-10-20):**
+`testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-beta-filter-reference.R")`
+passed all eight expectations while attaching installed EDI 1.0.3. The test
+sources the checkout's helper directly, so this is helper-level evidence, not
+a run of the full comprehensive CLI or current-native validation. No runner
+or canonical results file was invoked.
+
+**Retained pilot-artifact integrity recheck (read-only), 2026-10-20:**
+enumerated the six isolated result CSVs and read their rows with `read.csv`;
+the row counts and status/error totals match the pilot table above (63 rows,
+all `ok`, no nonempty `error_message`). Every CSV reports the same
+`github_commit_id`, `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, equal to this
+checkout's `HEAD`. The output files' SHA-256 values are:
+
+| Design | Family | Rows | SHA-256 |
+|---|---|---:|---|
+| FixedBinaryMatch | `wald` | 6 | `38daae6f187f757e51e726d5cdbb2dd705525e6b174027266042f812c53eb393` |
+| Bernoulli | `parametric_bootstrap` | 18 | `e3d360eaf4a74d5545082040e19ad4719fc7846009b5d0a5c5e6ebc4c708a5aa` |
+| FixedBinaryMatch | `lik_ratio` | 6 | `de274d7dff178de001a8ec222ca3a88a1b2d5fc4e344abfa1cdd35a23a18009f` |
+| FixedBinaryMatch | `parametric_bootstrap` | 9 | `2f5d4351166b1f0b4414823ff659d072d4cd22d55af2296528e8e27fd7c6dbe7` |
+| Bernoulli | `wald` | 12 | `0f66ae73f1ca41f5dedf9f85092a8d171f38f42c208edd0600a63c32646ba673` |
+| Bernoulli | `lik_ratio` | 12 | `b27d42b7acd97dd48bc74611d1df358066df4b0860dd8622bfe10b5f7c7fa60d` |
+
+No RDS/JSON/hash/provenance sidecar was present in these six output roots;
+the adjacent `run.log` files are the retained execution record. Thus this
+recheck confirms current artifact bytes, row/status completeness, and the
+runner-recorded source commit, but cannot independently prove the installed
+package/DLL identity or recreate RNG inputs. It does not establish
+calibration, resolve the historical replay, or close the owner-approved
+post-fix study gate. No artifact was changed.
+
+**Independent pilot-key audit (read-only), 2026-10-21:** re-enumerated the
+six retained CSVs and their adjacent `run.log` files. Across the six CSVs,
+the full key (`rep`, `beta_T`, `dataset`, `response_type`, `design`,
+`inference_class`, `function_run`) is unique for all 63 rows; each file has
+its recorded 6/18/6/9/12/12 rows, every row has `rep=1`, `beta_T=0.3`,
+`dataset=airquality`, class `InferencePropBetaRegr`, and `status=ok`. The CSV
+`error_message` field is the serialized missing marker `NA`. The logs confirm
+the filtered run arguments and terminal “All tests complete” messages; the
+separate malformed-beta log is a rejected-input smoke check, not a pilot.
+The directories contain no package/DLL provenance sidecar or RNG-state
+receipt; `github_commit_id` identifies the harness checkout only. This
+confirms pilot key/status completeness, not historical replay or calibration.
+The historical flagged cells' exact DGP/seed/assignment inputs and an
+owner-approved calibration criterion for a replacement study remain missing.
+No result artifact or canonical file was modified.
 
 The lower-priority KKGLMM/KKCLMM check is also affirmative and must remain
 in scope. The same baseline has flagged rows for `InferenceContinKKGLMM`

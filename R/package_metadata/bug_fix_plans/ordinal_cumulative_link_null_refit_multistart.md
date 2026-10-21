@@ -259,6 +259,30 @@ TODO-1's independent Bug 1 true-null checks remain a separate open item below.
   interval, confidence level, and replicate/finite-denominator target. Do not
   infer these from the reporting functions.
 
+  **Owner-decision tradeoff, clarified 2026-10-21:** Option A adopts the
+  existing comprehensive-audit screen as-is (combined binomial-size evidence,
+  BH `q = 0.05`, and its 30-row minimum). This is the quickest path and keeps
+  the established audit convention, but it is a significance/multiple-testing
+  rule, not a practical-equivalence margin: a non-significant result does not
+  establish that the rejection rate is sufficiently close to nominal, and
+  the 30-row floor is not a precision target. Option B sets an explicit
+  acceptable rejection-rate interval, confidence level, and required number
+  of valid null replicates (finite denominator). It makes the desired
+  calibration tolerance and precision auditable, but requires the maintainer
+  to choose each policy value and enough independent null runs to resolve it.
+  No option or numeric criterion is selected here.
+
+  **Run-replay metadata guard, 2026-10-20:** the comprehensive-run provenance
+  snapshot now records `RNGkind()` and the current `.Random.seed` in both its
+  before/after snapshots. The focused output-directory/provenance test checks
+  that these values match the state at capture time and passed against
+  installed EDI 1.0.3 with checkout R helper code (R-devel `r90668`, loaded
+  DLL SHA-256 `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`;
+  no compile/build/install). This improves replay metadata for future harness
+  runs only; it does not parameterize the runner's fixed seed or establish
+  independent-seed Type-I calibration. The owner-selected rejection rule,
+  interval/confidence level, and finite-denominator target remain open.
+
   **Focused source-loaded regression recheck (2026-10-18):** ran
   `test-ordinal-cloglog-lik-test-null-refit-multistart-reference.R` (5
   assertions) and
@@ -276,6 +300,56 @@ TODO-1's independent Bug 1 true-null checks remain a separate open item below.
   `compute_lik_ratio_bootstrap_two_sided_pval()`, and Bartlett approximation.
   Keep TODO-1 open for those true-null checks and TODO-6 open for its separate
   comprehensive regeneration/re-audit.
+
+  **Installed-package focused regression recheck (2026-10-20):** the two
+  null-refit selection tests and the test for the second
+  `simulate_under_lik_null()` closure were run with
+  `Rscript -e 'library(EDI); files <- c("R/package_tests/testthat_bulk/test-ordinal-cloglog-lik-test-null-refit-multistart-reference.R", "R/package_tests/testthat_bulk/test-ordinal-stereotype-logit-lik-test-null-refit-multistart-reference.R", "R/package_tests/testthat_bulk/test-ordinal-cloglog-stereotype-simulate-under-lik-null-fit-null-multistart-reference.R"); for (f in files) testthat::test_file(f, reporter = "summary")'`.
+  All 18 expectations passed against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Its loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` has
+  SHA-256 `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`,
+  byte-identical to checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. The tests exercise both
+  constrained-refit closures with mocked optimizer outcomes; the small
+  fixture fits only construct the likelihood specifications. This confirms
+  installed-package multistart behavior, not source-to-install R provenance
+  or post-fix Type-I calibration for the three TODO-1 methods. No Type-I
+  simulation, rebuild/install, or canonical write occurred; TODO-1 and TODO-6
+  remain open.
+  **Current-checkout/current-native recheck (2026-10-20):** reran the two
+  constrained-null-refit selection tests and the second
+  `simulate_under_lik_null()` closure test after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. All 18
+  assertions passed with no failures, warnings, or skips. R-devel was `r90668`,
+  namespace path `/home/kapelner/workspace/EDI/R/EDI`, and checkout HEAD was
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. Loaded temporary DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`; a
+  read-only SHA-256/`cmp -s` check confirmed it matches the user-rebuilt
+  installed DLL and checkout `R/EDI/src/EDI.so` byte-for-byte. Source hashes:
+  `5c39d290c701c9adf1927a68ded0c74ec870a1ec6ccc83e20a4e6dcf481cf265`
+  (`inference_ordinal_cloglog.R`) and
+  `19caa53074f3b14b00ea02f9fa3c78cfd7150cf813b79feef2a237081327a361`
+  (`inference_ordinal_stereotype_logit.R`). Test hashes:
+  `cff0c7ecac12b27eb327169b8fdca21f23d83ab713d3804c84976793be61e961`,
+  `2418540991e6b49fd8ebbafc2e86e600b2cc21c6b96506c1cca8fff4203a86e3`, and
+  `8db673b81466d53184e1fea6661a68d23b1a875383e2575fefee49ac12053f64` for the
+  cloglog selector, stereotype-logit selector, and closure tests respectively.
+  This closes the focused checkout-R/current-native provenance gap for these
+  selection tests only. It does not address TODO-1's independent null
+  calibration/acceptance policy or TODO-6's comprehensive-row regeneration and
+  reconciliation. No build/install or canonical result write occurred.
+  **Constrained-coordinate regression, 2026-10-21:** extended the focused
+  Cloglog null-refit fixture to assert that both candidate fits receive
+  `fixed_idx = spec$j` and `fixed_values = -delta` (for the fixture,
+  `delta = 0.3`), and that the selected fit retains that constrained value.
+  `test-ordinal-cloglog-lik-test-null-refit-multistart-reference.R` passed all
+  8 expectations against installed EDI 1.0.3. This is installed-package
+  regression evidence only; it does not establish current-checkout R-layer
+  provenance or true-null rejection calibration. No simulation,
+  build/install, or canonical result write occurred; TODO-1's acceptance/
+  calibration and TODO-6's comprehensive regeneration/reconciliation remain
+  open.
 - [x] TODO-2 (2026-09-23, completed): Read all 6 originally-suspected
   classes' `generate_mod()`/`compute_estimate()` for the same
   `-attempt$fit$b[1]`-style negation Cloglog has, and cross-checked which
@@ -287,14 +361,15 @@ TODO-1's independent Bug 1 true-null checks remain a separate open item below.
   right method family but doesn't negate (likely Bug 1, not Bug 2, pending
   TODO-1's extension). The other four classes' flags are on unrelated
   mechanisms (Bayesian bootstrap / rand_bootstrap), out of scope here.
-- [x] TODO-2b: TODO-2 only checked the 6 classes this session's audit
-  happened to flag on `bad_type1_error`, not every class in the package
-  that might share `simulate_param_boot_ordinal_y()` with a negating
-  native convention (a class with no `bad_type1_error` finding could still
-  be miscalibrated if nothing forced a wrong-signed replicate to be
-  extreme enough to flag, e.g. small `n` or few audited rows). Grep every
-  ordinal class for the shared helper and the negation pattern together
-  before considering this bug fully scoped.
+- [x] TODO-2b: Exhaustive indexed source grep found four production callers
+  of `simulate_param_boot_ordinal_y()`: Cauchit, Cloglog, Ordered Probit,
+  and Proportional Odds. Reviewing each call site found that only
+  `InferenceOrdinalCloglogRegr` negates the native slope block before
+  calling the helper; the other three pass their fitted parameter vector
+  unchanged. Thus the Cloglog fix covers the only additional shared-helper
+  caller with the sign mismatch identified by this source audit. This is a
+  caller/sign-convention scope check, not a calibration result; TODO-1 and
+  TODO-6 remain separate release gates.
 - [x] TODO-3: Implement Option A or B (undecided — see "Proposed fix")
   for `InferenceOrdinalCloglogRegr`; extend to whatever TODO-2b finds.
 - [x] TODO-4: Re-run this plan's exact repro
@@ -437,32 +512,29 @@ TODO-1's independent Bug 1 true-null checks remain a separate open item below.
     a flagged `biased_estimate` cell for it was out of scope for that
     fork and remains uninvestigated.
 
-- [x] TODO-12 (added 2026-09-24, found via direct code comparison against
-  this plan's own already-fixed Bug 1 — high confidence, not yet
-  reproduced): **`InferenceOrdinalContRatioRegr`'s likelihood-ratio
-  `fit_null` is still single-start — the exact Bug-1 vulnerability, never
-  patched for this class.** `get_likelihood_test_spec()`'s `fit_null`
-  closure (`inference_ordinal_stereotype_logit.R:748-762`, in
-  `OrdinalContinuationRatioLikelihoodSource`) calls
-  `fast_continuation_ratio_regression_cpp()` exactly once per delta, from
-  a single warm start (`start %||% private$get_fit_warm_start_for_length(...)`),
-  with no fallback/retry and no comparison against a second start. This is
-  structurally identical to the pre-fix Stereotype-logit `fit_null` (see
-  "Bug 1" above) — same delta-constrained-refit multimodality risk this
-  plan already diagnosed and fixed for the Stereotype sibling by trying a
-  second start (`full_start`: full-fit params with the treatment
-  coordinate pinned to `delta`, nudged by `1e-3`) and keeping whichever
-  refit reaches the lower `neg_loglik`
-  (`inference_ordinal_stereotype_logit.R:313-334`). Directly explains the
-  candidate mechanism for `InferenceOrdinalContRatioRegr`'s 9-family
-  `pval_miscalibration` audit finding (parametric-bootstrap/
-  likelihood-ratio methods specifically — a stalled-in-a-worse-local-optimum
-  null refit inflates the LR statistic and biases p-values low, same as
-  Bug 1's original symptom). Fix: apply the identical two-start-then-
-  `which.min(neg_loglik)` pattern to this `fit_null`, reusing the same
-  `full_start` construction (note `j_treat`/`ctx$full_params` are already
-  in scope here). Then reproduce and confirm against this class's audit
-  CSVs the same way TODO-1 verified Bug 1's fix.
+- [x] TODO-12 (added 2026-09-24; implementation completed in the 2026-10-09
+  closeout): the direct code comparison found that
+  `InferenceOrdinalContRatioRegr`'s likelihood-ratio `fit_null` was
+  single-start, matching the original Bug-1 vulnerability. The constrained
+  observed and simulated fits now use two starts and retain the lower
+  `neg_loglik`; the existing focused regression mocks the optimizer and
+  verifies that the better second start is selected.
+
+  **Installed-package focused regression recheck (2026-10-20):**
+  `R/EDI/tests/testthat/test-continuation-ratio-null-refit-multistart.R`
+  passed all 4 expectations with 0 failures, warnings, or skips. The test
+  ran against installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, built with R
+  4.7.0 on 2026-10-20. Its loaded DLL
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` has
+  MD5 `8b3ca30492d7b1c790deeebe94b201ad` and SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This confirms the deterministic two-start selection contract in that
+  installed artifact; it is not a true-null rejection-rate calibration or
+  current-checkout native validation. Checkout HEAD was
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. No rebuild/install,
+  simulation, or canonical output write occurred; TODO-1 and TODO-6 remain
+  open.
 
 - [x] TODO-13 (added 2026-09-24, cross-class reconciliation fork against
   a fresh full-package audit re-run — high confidence pattern, mechanism

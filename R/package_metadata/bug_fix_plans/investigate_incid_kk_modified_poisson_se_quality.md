@@ -224,6 +224,43 @@ reproduction, the *magnitude* still isn't pinned down precisely.
   authorized package rebuild; obsolete score/gradient/LR/Bartlett rows for
   this class must disappear.
 
+### Source-loaded harden-retry and manifest check (2026-10-20)
+
+`test-kk-modified-poisson-likelihood-spec-harden-retry-and-guards-reference.R`
+passed all 25 assertions after `pkgload::load_all("R/EDI", compile = FALSE)`.
+The test deliberately makes the first covariate-adjusted fit return `NULL`,
+then verifies that harden mode retries with the two-column treatment-only
+matrix and matches an independent Poisson GLM estimate; without hardening, it
+verifies there is no retry and the result is nonestimable. This demonstrates
+the R-source branch behavior with the existing native ABI; it is not a line-
+coverage measurement and does not change the canonical registry percentage.
+Loaded native DLL SHA-256 was
+`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224` (matching
+the installed EDI 1.0.3 DLL). The test is listed in both correctness and
+coverage runtime inventories; check-only shard planning passed for correctness
+(1,158 files, 5 shards) and coverage (1,410 files, 101 shards). The standalone
+coverage-registry regression checks also passed. No coverage report was
+generated, and no canonical coverage row or result CSV was modified.
+
+### Fresh migration-golden recheck (2026-10-20)
+
+`test-incid-kk-modified-poisson-migration-golden.R` passed all 35 assertions
+with `pkgload::load_all("R/EDI", compile = FALSE)` against the user's freshly
+rebuilt native DLL (SHA-256
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`). This
+revalidates the current checkout R migration/capability contract; it does not
+regenerate or reconcile the comprehensive incidence CSV. The result-family
+audit remains open, and no canonical CSV was modified.
+
+### Additional installed migration-golden check
+
+The updated `test-incid-kk-modified-poisson-migration-golden.R`, including the
+explicit `likelihood_tier == "none"` metadata assertion, passed 36
+expectations against installed EDI 1.0.3 after sourcing the checkout's pure-R
+fixture helper. This is mixed-provenance test evidence, not a source-loaded or
+rebuilt-checkout validation. The exact invocation and loaded DLL hash were not
+captured. No build/install or canonical result write occurred.
+
 ### Installed-results artifact preflight (2026-10-18)
 
 A filename-only search found no class-filtered
@@ -239,6 +276,76 @@ remove only this class's obsolete score/gradient/LR/Bartlett/parametric-
 bootstrap rows, and verify the Wald rows remain. Preserve the canonical file
 until that generation and key-level audit are authorized and complete.
 
+**Additional isolated-artifact inventory, 2026-10-20:** a narrower
+one-replicate diagnostic was found at
+`/tmp/edi-v105-todo19-scratch/package_tests/comprehensive_tests_results_nc_1_incidence_filtered_design-KK21stepwise_class-InferenceIncidKKModifiedPoisson_dataset-pima_beta-0_rep-1_family-wald.csv`
+(mtime 2026-10-16 05:03, SHA-256
+`c44b0987fa353e3e3ba635b2af8a98e19010b2bc8178249d1f4940ab0bfa269d`). It has
+eight unique `id`s, all `status=ok`, and exactly four
+`(model_formula, design_formula)` combinations times two Wald functions
+(p-value and CI). Its `github_commit_id` is `NA`; it is explicitly filtered
+to the Wald family and one Pima/KK21stepwise/replicate/beta-zero fixture, so
+it cannot establish that obsolete likelihood-family rows disappear from the
+complete canonical incidence matrix or provide package/DLL provenance. This
+refines the earlier filename-only preflight: a small filtered Wald diagnostic
+exists, but the required post-fix complete class matrix and row-key audit are
+still absent. No full-file scan or canonical result modification was made.
+
+### Exact-key subset reconciliation and migration recheck (2026-10-20)
+
+The installed-package migration golden passed 35 assertions with
+`Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-incid-kk-modified-poisson-migration-golden.R", package = "EDI")'`
+against EDI 1.0.3; the loaded native DLL SHA-256 was
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+No build/install or canonical write occurred.
+
+Read-only reconciliation of the two isolated pilot artifacts in
+`/tmp/edi-v105-todo19-current-DgbXhW/` found 64/64 unique `id` keys and
+`status=ok`, spanning four class/formula labels. No score, gradient,
+likelihood-ratio, Bartlett, or parametric-bootstrap function rows appeared.
+The eight `method_family=wald` rows in the 64-row all-family artifact have
+the same eight keys and inference results as the co-located 8-row Wald-only
+artifact. The co-located Wald-only CSV SHA-256 is
+`49345f6d1777a41417805c9a55498cb1cd40c72cc2954f5ee6a3408da59b09ec`.
+The older, separately located Wald-only artifact described above is the
+`todo19-scratch` file with SHA-256
+`c44b0987fa353e3e3ba635b2af8a98e19010b2bc8178249d1f4940ab0bfa269d`; it is
+not the co-located DgbXhW artifact. Their run telemetry and commit-provenance
+fields differ. The all-family artifact records checkout commit
+`4f7a6e4ca82829e880c15a76699701a95e5e83b9`, but neither it nor the co-located
+Wald-only CSV records an EDI DLL hash, so this pilot does not establish native
+binary provenance. The all-family CSV SHA-256 is
+`42308b5901487f4e3e842c8153fad697762b9503a279a3b54d7c51e6ab6bb3c2`.
+This closes only the exact-key subset check for the one-replicate Pima /
+KK21stepwise / beta-zero pilot, not the full supported-incidence matrix or
+the complete absence audit under normal (non-narrow) execution. Full
+provenance-pinned installed regeneration and canonical key reconciliation
+remain open.
+
+### Bootstrap-support regression after the user's reinstall (2026-10-20)
+
+The focused capability/migration checks were rerun in both package modes:
+
+- Installed EDI 1.0.3: `test-incid-kk-modified-poisson-migration-golden.R`
+  passed 35 expectations; `test-parametric-bootstrap-lr-all-capable-classes.R`
+  passed 257, with the existing Weibull frailty loggamma quarantine skip.
+- Checkout R overlay: the same two files passed 35 and 257 expectations,
+  respectively, with that same single quarantine skip, after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`.
+
+Both runs loaded the same native library bytes: installed path
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` and
+checkout-overlay path under `/tmp/RtmpWlx0He/pkgload3568541e9/EDI.so` had
+MD5 `8b3ca30492d7b1c790deeebe94b201ad` and SHA-256
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+The capability census confirms the advertised bootstrap-capable class set
+has working smoke cases; the migration golden checks the modified-Poisson
+class's post-migration contract. This confirms the latest installed R layer
+and the current checkout R overlay for these focused support contracts. It
+does not regenerate or reconcile comprehensive rows. The sole release gate
+remains a provenance-pinned complete supported-incidence matrix and
+key-level audit; no canonical CSV was changed.
+
 ## Standing constraints
 
 No `R CMD INSTALL`/rebuild of `R/EDI` without being asked in that turn;
@@ -248,3 +355,29 @@ must state explicitly whether it used the real `comprehensive_tests.R` DGP
 or an approximation — the approximation-vs-real distinction already caused
 one non-reproduction in this investigation and must not be glossed over
 again.
+
+### Candidate-count and next-slice audit (2026-10-21)
+
+Read-only inspection reconfirmed that the retained `/tmp/edi-v105-todo19-current-DgbXhW/`
+all-family pilot has 64 unique IDs, `status=ok` on all rows, and 16 distinct
+`function_run` values for each of its four model/design-formula labels. Its
+eight Wald rows match the co-located Wald-only pilot's key set. The CSV has
+64/64 nonmissing `github_commit_id` values, but neither pilot CSV has a
+schema-v2 provenance sidecar or records package version/DLL SHA-256. The
+all-family CSV SHA-256 remains
+`42308b5901487f4e3e842c8153fad697762b9503a279a3b54d7c51e6ab6bb3c2`.
+
+The `430,080` figure is a conditional candidate count, not a retained
+430,080-row manifest: 26,880 current-source class/formula labels (12 datasets
+× 2 beta values × 40 reps × 7 designs × 2 model formulas × 2 design formulas)
+times the 16 operations observed in the single Pima/KK21stepwise/beta-zero
+pilot. That one-cell operation roster is not evidence that every operation is
+eligible on every grid cell. A minimal next authentic slice would be a fresh,
+isolated, normal-mode (not `narrow`) run for that same one-cell selector using
+a provenance-pinned post-fix package and the current runner, retaining the
+schema-v2 sidecar and reconciling all formula-specific keys/statuses. Such a
+slice could check normal-mode unsupported-row absence for that cell only; it
+would not close the full-grid requirement. Current `/tmp` availability is
+363 MiB against the prior 318 MiB output estimate, leaving too little headroom
+for a safe full run plus sidecar/log/temp files. No run, canonical-row access,
+or canonical write was performed in this audit.

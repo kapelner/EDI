@@ -89,6 +89,121 @@ and the CI's own draws.
   `dd43c5d0e11708aea17ba82b900f66d1`, timestamp 2026-10-18 03:57:33 +0300).
   This is current R-source/installed-native evidence only; it does not validate
   a current-checkout native build or regenerate the comprehensive results.
+  **Post-HEAD installed-package recheck, 2026-10-20:** reran both focused
+  tests with `testthat::test_file(..., package = "EDI")`: the rand-CI
+  bisection/high-precision test passed 30 assertions, and the bootstrap-CI
+  closed-form/failure-guard test passed 9 (39 total; 0 failures, warnings, or
+  skips). Installed EDI is version 1.0.3 from
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; its `EDI.so` SHA-256
+  is `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`,
+  embedded build time `2026-10-19 23:31:50 IDT`, mtime `23:47:15 IDT`. The
+  build postdates HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`
+  (`21:03:16 IDT`), but the package embeds no Git SHA; the checkout's
+  `inference_all_abstract_rand_ci.R` also has an uncommitted change, so this
+  installed-package run is not claimed as validation of that worktree diff.
+  It adds focused artifact evidence only; TODO-4's comprehensive-row
+  regeneration/reconciliation remains open. No build/install or canonical
+  output write was performed.
+  **Focused checkout-source refresh, 2026-10-20:** repeated the same two
+  focused files via `pkgload::load_all("R/EDI", compile = FALSE)` followed
+  by `testthat::test_file()`: the rand-CI bisection/high-precision test passed
+  30 assertions and the bootstrap-CI closed-form/failure-guard test passed 9
+  (39 total; 0 failures, warnings, or skips). `load_all()` reported EDI 1.0.3
+  and loaded `/tmp/Rtmplddi1a/pkgload21b3d676d/EDI.so`; the corresponding
+  installed library DLL at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` has
+  SHA-256 `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+  The current R source `inference_all_abstract_rand_ci.R` is modified in the
+  shared worktree, so these results exercise that checkout source with the
+  existing installed native library; they do not establish native/source
+  build parity or validate comprehensive rows. No compile/install occurred.
+  **Installed-package focused recheck after the 2026-10-20 native build:**
+  ran the same two test files directly against installed EDI using
+  `testthat::test_file(..., package = "EDI")`, without source loading. The
+  bisection/high-precision file passed 37 expectations and the bootstrap
+  closed-form/failure-guard file passed 9 (46 total; 0 failures, warnings, or
+  skips). The fixed-permutation public-CI test checks both returned-bound
+  two-sided p-values against `alpha` and the CI/test duality at zero; the
+  bootstrap file checks `alpha` forwarding to bound expansion, bisection, and
+  MC stopping, plus the affine shortcut's `alpha` threshold. Installed EDI
+  reported version 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; its loaded DLL is
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`, 14,727,184
+  bytes, mtime 2026-10-20 09:38:02 +0300, MD5
+  `a75519a9256c0b3121398032314291d4`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  Checkout `R/EDI/src/EDI.so` is byte-identical. The package carries no
+  embedded Git SHA, and `inference_all_abstract_rand_ci.R` remains modified in
+  the worktree, so this validates the installed package/artifact only, not
+  that uncommitted R diff. TODO-4's comprehensive-row regeneration, exact-key
+  reconciliation, and coverage/documentation update remain open; no timing,
+  build/install, or canonical output write occurred.
+  **Current-checkout source/current-native recheck, 2026-10-20:** reran the
+  same two focused tests after `pkgload::load_all("R/EDI", compile = FALSE,
+  quiet = TRUE)`. The bisection/high-precision suite passed 37 assertions and
+  the bootstrap-CI closed-form/failure-guard suite passed 9 (46 total; no
+  failures, warnings, or skips). R-devel was `r90668`, namespace path was
+  `/home/kapelner/workspace/EDI/R/EDI`, and checkout HEAD was
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. Loaded DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`;
+  read-only SHA-256 and `cmp -s` checks confirmed it matches both the
+  user-rebuilt installed DLL and checkout `R/EDI/src/EDI.so`. The source hashes
+  were `0692be524ec0c7c8c84ea2d23c44bdfe3e8672dfd32c5bee3093a4c82a016229`
+  (`inference_all_abstract_rand_ci.R`) and
+  `b28ea7c67853e4362b888282a94b36b609f0499d3aad6ad7e613574eb031d36c`
+  (`inference_all_abstract_rand_bootstrap_ci.R`); the test hashes were
+  `9ab218cd084ace499bc071e6a0fc04ff188af40babeccd473c35b8fcafe45105` and
+  `1f476c0430ac489ca2cc03495841e2630b588e5b8a308832acb2cee53f3e6441`.
+  This closes focused checkout-R/current-native provenance for those tests
+  only. Comprehensive-row regeneration, exact-key reconciliation, and
+  coverage/documentation updates remain open. No build/install or canonical
+  output write occurred.
+  **Focused checkout-source refresh, 2026-10-21:** after confirming no other
+  R/Rscript process was active, ran only
+  `test-rand-ci-bisection-and-high-precision-refinement-reference.R` after
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. The test file
+  completed with no failures. Loaded EDI 1.0.3 from checkout namespace
+  `/home/kapelner/workspace/EDI/R/EDI`; its temporary DLL was
+  `/tmp/RtmpcPZaxM/pkgload242616505/EDI.so`, MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  This is focused current checkout-R/current-user-native evidence for this
+  test file only; it does not close the comprehensive-row regeneration,
+  exact-key reconciliation, or coverage/documentation gates. No build,
+  install, source/test edit, or canonical output write occurred.
+  **Retained isolated-slice artifact audit, 2026-10-21:** the existing
+  scratch outputs `/tmp/edi-todo68-rand-reps1to40.WXrm3D/` and
+  `/tmp/edi-todo68-brt-reps1to40.n9uAFr/` contain one complete 40-replicate
+  `diamonds` / continuous / Bernoulli / `InferenceContinOLS` run per family
+  at `beta_T=0.5`. Each output has 480 unique seven-field keys over reps 1:40,
+  four model/design-formula labels, and three emitted operations; every row is
+  `status=ok`. The `rand` file includes the CI operation plus both public
+  p-value operations; the `rand_bootstrap` file includes its plain CI and two
+  p-value operations, but no studentized, symmetric-percentile-t, or smoothed
+  CI variant. The result/sidecar SHA-256 pairs are respectively
+  `11658067064b9de3c36898195b2127cb5660d83cc0a271f91ddf2c4aed99d36f` /
+  `5790b1a983ae34a11dad72e178f38568c15866c7946005ed77de7f1c811bd864` and
+  `8885a6dca4f3382178f7f5d24b17f448b3d2e0c108fc89a2aa1175045451a6cd` /
+  `7bcca9017991471d4a2fc82353e5f3a11b6b90ba381411310290863ca7d62a27`.
+  Both run sidecars bind their output path/hash and fresh-file state
+  to command arguments, checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`,
+  checkout diff SHA-256 `88775848fae74c2ced98070ab6663d9496444aa3440b9fdd38ecbf6b8e233360`,
+  runner SHA-256 `660dae16378ce533bf1d7bb816b2e7933b989bff838e93907889ec0cbf024159`,
+  EDI 1.0.3 checkout namespace, R-devel `r90668`, and existing DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  This is provenance-stamped execution evidence for one scratch selector, not
+  a candidate-vs-attempt anti-join or full-grid reconciliation; it does not
+  cover other strata or the omitted bootstrap-CI variants and is not canonical
+  data. The full TODO-4 gate remains open.
+  **Exact-key check of retained isolated slices, 2026-10-21:** independently
+  parsed each CSV and compared its seven-field keys against the slice's exact
+  selector: reps 1:40 × four observed model/design-formula labels × three
+  family-specific emitted operations, with beta 0.5, diamonds, continuous,
+  and Bernoulli fixed. Both `rand` and `rand_bootstrap` artifacts have 480/480
+  expected keys, zero missing or extra keys, no duplicate keys, and all rows
+  `status=ok`. This closes only exact-key/status validation for those two
+  retained scratch slices; it does not establish full-grid attempt coverage,
+  cover the omitted bootstrap-CI variants, or validate/update canonical rows.
 - [ ] TODO-4: Regenerate the `rand` / `rand_bootstrap` CI rows of the
   `comprehensive_tests` CSVs, and re-run any coverage tables or docs that
   quote randomization-CI coverage.
@@ -108,3 +223,16 @@ and the CI's own draws.
   as a whole in each affected CSV, preserve non-target rows, and verify
   targeted cell coverage plus fresh `run_row_id` uniqueness. This audit does
   not close TODO-4: the current canonical rows have not been regenerated.
+
+  **Runner-eligibility reconciliation, 2026-10-20:** the static CI-attempt
+  helper had constructed class proxies without their R6 parent ancestry, so
+  its capability result could disagree with the comprehensive runner. It now
+  follows the registered class-parent chain. The focused regression
+  `R/package_tests/testthat_bulk/test-comprehensive-rand-ci-eligibility-reference.R`
+  passed 42 expectations after loading checkout R sources with
+  `pkgload::load_all("R/EDI", compile = FALSE)`. In particular, static
+  eligibility now agrees with the runner for KK21/Bernoulli: the count-KK
+  hurdle class has no `rand_bootstrap` CI attempt under KK21, while the
+  Bernoulli comparison retains the eligible path. This is helper/runner
+  eligibility evidence only; it does not regenerate results or close TODO-4's
+  full affected-row reconciliation gate.

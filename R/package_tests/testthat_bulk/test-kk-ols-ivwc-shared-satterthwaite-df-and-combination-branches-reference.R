@@ -178,6 +178,17 @@ test_that("real OLS-IVWC fit uses estimable matched and reservoir regressions an
 	expect_true(is.finite(ref$matched$beta) && is.finite(ref$reservoir$beta))
 	expect_true(ref$matched$ssq > 0 && ref$reservoir$ssq > 0)
 	expect_true(ref$w_matched > 0 && ref$w_matched < 1)
+	# Make the combination non-vacuous, not merely finite: both estimated
+	# components differ, so a strict inverse-variance weight must land between
+	# them rather than reproducing either component estimate.
+	expect_gt(abs(ref$matched$beta - ref$reservoir$beta), 1e-8)
+	expect_gt(abs(ref$beta - ref$matched$beta), 1e-8)
+	expect_gt(abs(ref$beta - ref$reservoir$beta), 1e-8)
+	expect_equal(
+		ref$beta,
+		ref$w_matched * ref$matched$beta + (1 - ref$w_matched) * ref$reservoir$beta,
+		tolerance = 1e-12
+	)
 
 	actual_beta <- f$inf$compute_estimate(estimate_only = FALSE)
 	expect_equal(actual_beta, ref$beta, tolerance = 1e-8)

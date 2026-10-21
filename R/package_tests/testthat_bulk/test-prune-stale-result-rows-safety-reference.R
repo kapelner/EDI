@@ -41,11 +41,32 @@ testthat::test_that("stale result pruning is dry-run safe and applies only match
 	run_git(c("commit", "-q", "-m", "post-fix"))
 	post_fix <- system2("git", c("-C", root, "rev-parse", "HEAD"), stdout = TRUE)
 
+	checked_in_rules <- data.table::fread(find_repo_file(file.path("R", "package_tests", "stale_ok_row_rules.csv")))
+	todo55_classes <- c("AllSimpleAverageDiff", "AllSimpleMeanDiffPooledVar", "PropGCompMeanDiff", "AllSimpleWilcox")
+	todo55_rules <- checked_in_rules[
+		response_type == "proportion" & class %in% todo55_classes &
+			grepl("TODO-55", tracked_in, fixed = TRUE)
+	]
+	testthat::expect_setequal(todo55_rules$class, todo55_classes)
+	testthat::expect_identical(as.character(todo55_rules$before_timestamp), rep("2026-10-22", 4L))
+	testthat::expect_true(all(grepl("noisy-marginal owner decision", todo55_rules$reason, fixed = TRUE)))
+	testthat::expect_true(all(is.na(todo55_rules$function_run) | !nzchar(todo55_rules$function_run)))
+
+	todo55_plan_path <- file.path(root, "R", "package_metadata", "bug_fix_plans", "prop_mean_diff_closed_form_truth_stale.md")
+	dir.create(dirname(todo55_plan_path), recursive = TRUE)
+	testthat::expect_true(file.copy(
+		find_repo_file(file.path("R", "package_metadata", "bug_fix_plans", "prop_mean_diff_closed_form_truth_stale.md")),
+		todo55_plan_path
+	))
+
 	rules <- data.table::data.table(
 		response_type = "incidence", class = "Example", function_run = "",
 		before_timestamp = "2026-10-16", tracked_in = paste0("commit:", post_fix),
 		reason = "synthetic class-wide stale coverage truth fixture"
 	)
+	rules[, before_timestamp := as.character(before_timestamp)]
+	todo55_rules[, before_timestamp := as.character(before_timestamp)]
+	rules <- data.table::rbindlist(list(rules, todo55_rules), use.names = TRUE)
 	data.table::fwrite(rules, file.path(harness_dir, "stale_ok_row_rules.csv"))
 	rows <- data.table::data.table(
 		id = c("stale-error", "stale-ok-estimate", "stale-ok-ci", "cutoff-day", "fresh-ok", "other-class", "fresh-error"),
@@ -60,6 +81,20 @@ testthat::test_that("stale result pruning is dry-run safe and applies only match
 	csv <- file.path(harness_dir, "comprehensive_tests_results_nc_1_incidence.csv")
 	data.table::fwrite(rows, csv)
 	original_bytes <- readBin(csv, what = "raw", n = file.info(csv)$size)
+	todo55_cases <- expand.grid(
+		inference_class = paste0("Inference", todo55_classes),
+		timestamp = c("2026-10-09 12:00:00", "2026-10-21 12:00:00", "2026-10-22 00:00:00"),
+		function_run = c("estimate", "compute_confidence_interval_asymp", "compute_rand_two_sided_pval"),
+		stringsAsFactors = FALSE
+	)
+	proportion_rows <- data.table::as.data.table(todo55_cases)
+	proportion_rows[, `:=`(
+		id = paste(inference_class, timestamp, function_run, sep = "|"),
+		status = "ok", github_commit_id = post_fix, response_type = "proportion"
+	)]
+	proportion_csv <- file.path(harness_dir, "comprehensive_tests_results_nc_1_proportion.csv")
+	data.table::fwrite(proportion_rows, proportion_csv)
+	proportion_original_bytes <- readBin(proportion_csv, what = "raw", n = file.info(proportion_csv)$size)
 
 	run_pruner <- function(args = character()) {
 		out <- system2(file.path(R.home("bin"), "Rscript"), c(pruner, args), stdout = TRUE, stderr = TRUE)
@@ -72,14 +107,23 @@ testthat::test_that("stale result pruning is dry-run safe and applies only match
 	testthat::expect_identical(dry_run$status, 0L)
 	testthat::expect_match(dry_run$output, "would be removed")
 	testthat::expect_identical(readBin(csv, what = "raw", n = file.info(csv)$size), original_bytes)
+	testthat::expect_identical(readBin(proportion_csv, what = "raw", n = file.info(proportion_csv)$size), proportion_original_bytes)
 
 	checked <- run_pruner("--check-rules")
 	testthat::expect_identical(checked$status, 0L)
-	testthat::expect_match(checked$output, "all 1 rule")
+	testthat::expect_match(checked$output, "all 5 rule")
 
 	applied <- run_pruner("--apply")
 	testthat::expect_identical(applied$status, 0L)
 	remaining <- data.table::fread(csv)
 	testthat::expect_setequal(remaining$id, c("cutoff-day", "fresh-ok", "other-class", "fresh-error"))
+	proportion_remaining <- data.table::fread(proportion_csv)
+	testthat::expect_length(unique(proportion_remaining$timestamp), 1L)
+	testthat::expect_identical(
+		format(unique(proportion_remaining$timestamp), "%Y-%m-%d %H:%M:%S", tz = "UTC"),
+		"2026-10-22 00:00:00"
+	)
+	testthat::expect_equal(nrow(proportion_remaining), length(todo55_classes) * 3L)
 	testthat::expect_false(file.exists(paste0(csv, ".prune_tmp")))
+	testthat::expect_false(file.exists(paste0(proportion_csv, ".prune_tmp")))
 })

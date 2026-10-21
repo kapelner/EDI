@@ -190,6 +190,41 @@ are fixed here because they are still exported and registered.
   this R-only fix; installed comprehensive CSV regeneration remains a release
   reconciliation step.
 
+  **Installed-package CLMM focused recheck, 2026-10-20:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-ordinal-kk-clmm-link-helpers-and-weighted-estimate-reference.R")`
+  passed 34 assertions with no failures, warnings, or skips against installed
+  EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. The test exercises
+  weighted logit/probit random-intercept estimates against `ordinal::clmm`,
+  link helpers, and a cloglog point-estimate sign check on a small seeded
+  fixture; it is not calibration or comprehensive-row evidence. Loaded `EDI.so`
+  SHA-256 was `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`,
+  byte-identical to ignored checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. The package has no embedded Git
+  SHA or build manifest, so this does not prove the binary was built from
+  those tracked sources or attest installed R-source identity. No build,
+  calibration, regeneration, or canonical output write occurred; TODO-31's
+  current-head native gate and comprehensive result reconciliation remain open.
+
+  **Selected-pair artifact inventory, 2026-10-21 (read-only):** the retained
+  source-potential manifest `/tmp/edi-todo76-source-potential-manifest.csv`
+  has 200 keys across all four formula pairs (SHA-256
+  `20e9ca64c7da1558402484fc6ac301bda98edccee8df299a8973688329d987b6`). The
+  owner-selected pair `design_formula=~.`, `model_formula=~1` contains 50
+  candidate keys. The older 50-row candidate manifest
+  `/tmp/edi-todo76-source-candidate-manifest.csv` (SHA-256
+  `ed349ad283a669a7934a23cfc1a20c6f8f6636f7da041341f4c36b0cf7533f86`)
+  lacks `design_formula`, so it cannot stand for that exact pair. No result
+  CSV remains under `/tmp/edi-todo76-*`; the only retained result CSV in the
+  inspected locations is the 3-row scratch `~.`/`~.` pilot (SHA-256
+  `ae5b59d562287b2f0fc819a72399028ff849bbf8b4d8f459a248308d8dbe92e4`). Its
+  rows are all timeout/NA with `status=ok`, old commit
+  `430c19bcdb0702d998c79f9058c449449034134c`, and no package/source/DLL
+  sidecar; all are outside the selected formula pair. Thus zero of the 50
+  selected keys are currently present. Validator tests remain synthetic
+  contract evidence only; current-source candidate/result reconciliation and
+  provenance-matched regeneration remain open. No result artifact changed.
+
 - [ ] TODO-8 (F14): **KK clogit+GLMM Bayesian bootstraps fit glmmTMB (Laplace)
   on all rows**, while the point estimate uses clogit + 20-node GH
   (`inference_incidence_KK_cond_logit_glmm_abstract.R:~103-151`). Reported
@@ -230,6 +265,93 @@ are fixed here because they are still exported and registered.
   checkout source or close the still-open comprehensive regeneration and
   affected-key reconciliation. No build/install or canonical output write was
   performed.
+
+  **Post-HEAD installed-native recheck, 2026-10-20:** reran
+  `test-incidence-kk-cond-logit-glmm-class-data-assembly-matches-joint-kernel-reference.R`
+  against installed EDI 1.0.3; all 31 assertions passed with 0 failures,
+  warnings, or skips. This exercises both OneLik and IVWC weighted
+  `compute_estimate_with_bootstrap_weights()` paths against the weighted joint
+  native kernel. Installed `EDI.so` SHA-256 is
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`, with
+  embedded build timestamp `2026-10-19 23:31:50 IDT` and file mtime
+  `23:47:15 IDT`; both postdate HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` (`21:03:16 IDT`). The relevant
+  class R files, native source/registration, and test file are clean at HEAD.
+  This recheck uses the user's reported post-HEAD reinstall, but the package
+  embeds no Git SHA. It does not close comprehensive row regeneration or
+  canonical key/status reconciliation. No build/install or output snapshot
+  was produced.
+
+  **Checkout-R/source-overlay focused recheck, 2026-10-20:**
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` followed by
+  `testthat::test_file("R/package_tests/testthat_bulk/test-incidence-kk-cond-logit-glmm-class-data-assembly-matches-joint-kernel-reference.R")`
+  passed all 31 assertions (0 failures, warnings, or skips). This exercises
+  the current checkout R dispatch and weighted-data assembly for OneLik and
+  IVWC against the weighted joint kernel; the test includes the six-seed
+  direct joint-kernel reference and IVWC reservoir exclusion. The loaded
+  temporary `EDI.so` SHA-256, checkout `R/EDI/src/EDI.so`, and installed
+  `EDI.so` all match at
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`;
+  checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This is focused
+  source/native-overlay evidence only; no comprehensive result rows were
+  regenerated or reconciled, and no build/install occurred. TODO-77's
+  comprehensive-result gate remains open.
+
+  **Expanded current-worktree regression rerun, 2026-10-20:** reran the same
+  class data-assembly test after `pkgload::load_all("R/EDI", compile = FALSE,
+  quiet = TRUE)`. All seven test blocks passed, totaling 64 expectations
+  (0 failures, warnings, or skips). The loaded package was EDI 1.0.3 under R
+  Under development (2026-10-13 r90668); namespace source path was the
+  checkout `/home/kapelner/workspace/EDI/R/EDI`. The existing loaded native
+  DLL at `/tmp/RtmpBotKE4/pkgload321072731/EDI.so` had SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+  Checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`; the worktree
+  test file SHA-256 was
+  `d86c09a717c2f2bfbb2641ea0f9dc9f7135c62391e7780800e979d542526a1c3`.
+  This is a rerun of the current checkout R/test worktree against an existing
+  native DLL with compilation disabled; it does not establish that the DLL
+  was built from the checkout or close comprehensive-row regeneration and
+  exact key/status reconciliation. No build/install or canonical output write
+  occurred.
+
+  **Public-driver regression, 2026-10-21:** the existing class-data reference
+  test checks a seeded `B=2` OneLik distribution against direct weighted
+  `fast_clogit_plus_glmm_cpp` evaluations from the same draws. The fixture now
+  asserts nonempty discordant and GLMM blocks and nonconstant draw weights.
+  It exercises both the diagnostic `debug=TRUE` route and, on a fresh
+  inference object to avoid the debug result cache, the ordinary
+  `debug=FALSE` distribution driver. The focused file passed 75 expectations
+  (0 failures, warnings, or skips) against installed EDI 1.0.3. The direct
+  weighted-kernel calculation is an independent invocation path for the
+  public-driver/weight-mapping contract; separate joint-kernel tests anchor
+  the unweighted kernel regimes against `glmer` and conditional-logit
+  references. This does not attest current checkout R/native provenance or
+  replace comprehensive affected-row regeneration and exact key/status
+  reconciliation. No build/install or artifact regeneration occurred.
+
+  **TODO-76 candidate-key finite-beta guard test, 2026-10-21:** broadened the
+  existing pure-R `test-todo76-result-key-validation-reference.R` fixture to
+  exercise the validator's separate non-finite `beta_T` checks for manifest
+  and candidate inputs (`Inf` and `-Inf`, respectively). The focused test
+  passed all 79 expectations (0 failures, warnings, or skips). This confirms
+  those deterministic validator branches only; it is not evidence of
+  selected-row execution, current-native behavior, or comprehensive result
+  reconciliation. No build/install or result generation occurred.
+
+  **Candidate-only key-universe check, 2026-10-21:** extended the existing
+  pure-R `test-todo76-result-key-validation-reference.R` with the separately
+  scoped TODO-77 case (`pima`, incidence, `KK21stepwise`, rep 1, beta 0). Its
+  explicit axes produce 80 unique full keys (two affected classes × two model
+  formulas × two design formulas × ten Bayesian-bootstrap labels), including
+  all four formula pairs. The fixture verifies the full key columns and
+  uniqueness and intentionally contains no `status`, `expected_status`, or
+  `skip_reason`; the existing generator is a source-potential cross-product,
+  not a claim that setup succeeded or every call was attempted. Focused command
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo76-result-key-validation-reference.R", reporter="summary")'`
+  passed 71 expectations (0 failures, warnings, or skips). This is pure-R
+  candidate-key evidence only, not fit execution, current-native provenance,
+  or comprehensive result reconciliation. No build/install or artifact
+  generation occurred.
 
   **Comprehensive-results readiness audit, 2026-10-16 (read-only):** the
   checkout contains no `comprehensive_tests_results*.csv`. The available
@@ -372,7 +494,48 @@ are fixed here because they are still exported and registered.
   values are missing, so the scratch rows remain structurally useful but
   unprovenanced and cannot be accepted or copied into canonical results.
 
-- [ ] TODO-9 (F2): **`.cox_simulate_stratified` hazard mis-scaling**
+  **Expected-key inventory, 2026-10-20 (no simulation):** generated a separate
+  80-row key manifest at
+  `/tmp/edi-todo77-expected-keys.iZAd6E/expected_keys.csv` by expanding the
+  documented 2-class × 2-model-formula × 2-design-formula × 10-method grid and
+  applying `build_comprehensive_case_id()` from the runner. Its SHA-256 is
+  `2c4228350bd76332ccc609fe30567cd6b1e60f48ee1ed255f74343c51c17563c`; the
+  adjacent `MANIFEST.txt` records the runner SHA, source HEAD, and comparison.
+  The expected set matched the existing 80-row diagnostic CSV exactly (80/80
+  unique composite keys; existing CSV SHA-256 remains
+  `91a0b9780e6654df6148b132c9e828199099f84a8fa47e1f6c3bd617a7837759`). The
+  runner has a dirty beta-filter diff, but its case-ID helper block is
+  unchanged; the inventory records the dirty status. This gives an explicit
+  future reconciliation input, not execution/result evidence: the old rows
+  still lack `github_commit_id` and package/DLL provenance, and neither file
+  is canonical.
+
+  **Artifact/provenance inventory recheck, 2026-10-21 (read-only):** the
+  80-key manifest remains available at
+  `/tmp/edi-todo77-expected-keys.iZAd6E/expected_keys.csv` with SHA-256
+  `2c4228350bd76332ccc609fe30567cd6b1e60f48ee1ed255f74343c51c17563c`
+  (23,677 bytes; the on-disk digest matches). Its adjacent `MANIFEST.txt`
+  records HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, the older runner
+  SHA, and the historical 80/80 set-equality check against the diagnostic
+  CSV.
+  The previously cited diagnostic CSV and its containing directory/sidecar
+  are now absent; bounded inventories found no replacement TODO-77 CSV or
+  provenance sidecar in the inspected `/tmp` and repository locations. The
+  historical 80/80 key match and terminal-status counts remain in prior audit
+  notes, but all commit IDs were `NA` and no sidecar recorded package/library/
+  DLL identity, so that run is inadmissible as post-fix acceptance evidence.
+  The current runner also differs from the manifest's recorded runner
+  fingerprint (current `comprehensive_tests.R` is modified and hashes
+  `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`, versus
+  the manifest's runner SHA `0f4612616ec1362c6e8b100a1c2fec32c417f86b8c4bf8ce8c317f5eaa13b92a`);
+  the current installed DLL SHA-256
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`
+  matches checkout `R/EDI/src/EDI.so`, but is not linked to the historical
+  execution. A fresh provenance-stamped run and exact
+  80-key/status/reason reconciliation remain required; no run or canonical
+  result write occurred in this recheck.
+
+- [x] TODO-9 (F2, closed after installed validation 2026-10-14): **`.cox_simulate_stratified` hazard mis-scaling**
   (`helper_survival_fits.R:592-615`). The baseline is normalized by the stratum's
   max risk, but subject risk by the global max, so the hazard shrinks by
   exp(M_s − M_g) in strata without the global max. Result: 61% of simulated

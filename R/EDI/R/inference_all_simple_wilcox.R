@@ -403,6 +403,20 @@ SimpleWilcoxSource = list(
 #' explicit non-estimability rather than computing a (statistically unreliable)
 #' delete-1 jackknife of the Hodges-Lehmann functional.
 #'
+#' @section Heavily tied count and ordinal data:
+#' On small-integer count or ordinal data the Hodges-Lehmann estimate often
+#' lands exactly on 0. The randomization and bootstrap-family p-values then use
+#' the package's deterministic inclusive-tail rule, which returns exactly 1 for
+#' every such draw: in a direct reproduction, every zero-estimate null draw gave
+#' \code{p_rand == 1}. These p-values are therefore conservative (discrete and
+#' coarse), not anti-conservative; the Wald-family and exact rank-based p-values
+#' are unaffected. The same degeneracy makes resampling-family confidence
+#' intervals unreliable on such data (coverage was observed well below nominal,
+#' about 48-57\% against 95\%), so prefer the rank-based interval or
+#' \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
+#' when the data are heavily tied. A Wilcoxon-specific randomized remedy is
+#' deferred.
+#'
 #' @references Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
 #'   Based on Rank Tests." \emph{The Annals of Mathematical Statistics}, 34(2),
 #'   598-611, \doi{10.1214/aoms/1177704172}, for the Hodges-Lehmann estimator;

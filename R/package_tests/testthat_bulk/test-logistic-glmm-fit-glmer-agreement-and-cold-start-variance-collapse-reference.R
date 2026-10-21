@@ -18,7 +18,23 @@ fx <- function() {
 	d <- data.frame(y = y, x = X[, 2], g = factor(g))
 	m1 <- suppressWarnings(suppressMessages(lme4::glmer(y ~ x + (1 | g), family = binomial, data = d, nAGQ = 25)))
 	list(X = X, y = y, g = as.integer(g), glmer = m1,
+		G = G,
 		p_glmer = c(unname(lme4::fixef(m1)), log(as.data.frame(lme4::VarCorr(m1))$sdcor)))
+}
+hand_nll <- function(p, dat) {
+	beta <- p[1:2]
+	sigma <- exp(p[3])
+	-sum(vapply(seq_len(dat$G), function(k) {
+		i <- dat$g == k
+		eta0 <- drop(dat$X[i, , drop = FALSE] %*% beta)
+		group_prob <- integrate(function(u) {
+			vapply(u, function(u0) {
+				pr <- plogis(eta0 + u0)
+				prod(pr^dat$y[i] * (1 - pr)^(1 - dat$y[i]))
+			}, numeric(1)) * dnorm(u, mean = 0, sd = sigma)
+		}, lower = -Inf, upper = Inf, rel.tol = 1e-10)$value
+		log(group_prob)
+	}, numeric(1)))
 }
 
 test_that("started at glmer's optimum, the fit stays there: same estimates, log sigma, likelihood and standard errors", {
@@ -29,6 +45,11 @@ test_that("started at glmer's optimum, the fit stays there: same estimates, log 
 	expect_equal(as.numeric(r$log_sigma), f$p_glmer[3], tolerance = 2e-2)
 	ref_nll <- K("get_logistic_glmm_neg_loglik_cpp")(f$X, f$y, f$g, f$p_glmer, 40L)
 	expect_equal(as.numeric(r$neg_loglik), ref_nll, tolerance = 1e-3)
+	# Independent base-R integration of each group's Bernoulli likelihood over
+	# its normal random intercept; 40 GH nodes make the quadrature discrepancy
+	# negligible at this tolerance for the fixed fixture.
+	p_fit <- c(as.numeric(r$b), as.numeric(r$log_sigma))
+	expect_equal(as.numeric(r$neg_loglik), hand_nll(p_fit, f), tolerance = 1e-3)
 	expect_equal(sqrt(diag(r$vcov))[1:2], unname(sqrt(diag(as.matrix(vcov(f$glmer)))))[1:2], tolerance = 0.15)
 	# The score is small at the solution.
 	expect_lt(max(abs(K("get_logistic_glmm_score_cpp")(f$X, f$y, f$g, c(as.numeric(r$b), as.numeric(r$log_sigma)), 40L)[1:2])), 0.5)

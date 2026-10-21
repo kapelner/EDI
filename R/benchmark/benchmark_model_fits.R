@@ -6,27 +6,7 @@ options(warn = -1)
 #   Rscript benchmark/benchmark_model_fits.R --sections=procedures,designs
 # or:
 #   Rscript benchmark/benchmark_model_fits.R --sections procedures,designs
-BENCHMARK_SECTION_NAMES = c("models", "wald", "utility", "procedures", "designs")
-parse_benchmark_sections = function(args = commandArgs(trailingOnly = TRUE)) {
-    inline = sub("^--?sections=", "", args[grepl("^--?sections=", args)])
-    flag = which(args %in% c("--sections", "-sections"))
-    if (length(flag) > 0L && any(flag == length(args))) {
-        stop("`--sections` requires a comma-separated value")
-    }
-    separate = if (length(flag) > 0L) args[flag + 1L] else character(0)
-    requested = trimws(unlist(strsplit(c(inline, separate), ",", fixed = TRUE)))
-    requested = requested[nzchar(requested)]
-    if (length(requested) == 0L || "all" %in% tolower(requested)) {
-        return(BENCHMARK_SECTION_NAMES)
-    }
-    requested = unique(tolower(requested))
-    invalid = setdiff(requested, BENCHMARK_SECTION_NAMES)
-    if (length(invalid) > 0L) {
-        stop("Unknown benchmark section(s): ", paste(invalid, collapse = ", "),
-             ". Choose from: ", paste(c("all", BENCHMARK_SECTION_NAMES), collapse = ", "))
-    }
-    requested
-}
+source("benchmark/benchmark_sections.R")
 BENCHMARK_SECTIONS = parse_benchmark_sections()
 run_benchmark_section = function(section) section %in% BENCHMARK_SECTIONS
 
@@ -2429,6 +2409,75 @@ env_flag = function(var, default) {
   if (is.na(val) || !nzchar(val)) default else val
 }
 
+benchmark_edi_sha256_file = function(path) {
+  if (length(path) != 1L || is.na(path) || !file.exists(path) || dir.exists(path)) {
+    return("<unavailable>")
+  }
+  commands = list(
+    list(command = Sys.which("sha256sum"), args = character()),
+    list(command = Sys.which("shasum"), args = "-a 256"),
+    list(command = Sys.which("openssl"), args = c("dgst", "-sha256")),
+    list(command = Sys.which("certutil"), args = c("-hashfile", shQuote(path), "SHA256"))
+  )
+  for (entry in commands) {
+    if (!nzchar(entry$command)) next
+    args = c(entry$args, if (!identical(entry$command, Sys.which("certutil"))) shQuote(path))
+    output = tryCatch(suppressWarnings(system2(entry$command, args, stdout = TRUE, stderr = FALSE)),
+                      error = function(e) character())
+    status = attr(output, "status")
+    if (!length(output) || (!is.null(status) && !identical(as.integer(status), 0L))) next
+    hashes = tolower(unlist(regmatches(output, gregexpr("[[:xdigit:]]{64}", output, perl = TRUE)),
+                            use.names = FALSE))
+    if (length(hashes)) return(hashes[[1L]])
+  }
+  "<unavailable>"
+}
+
+benchmark_edi_r_layer_identity = function(namespace_path = tryCatch(
+  getNamespaceInfo(asNamespace("EDI"), "path"), error = function(e) "<unavailable>")) {
+  unavailable = list(path = "<unavailable>", file_count = NA_integer_,
+                     manifest_sha256 = "<unavailable>")
+  if (!is.character(namespace_path) || length(namespace_path) != 1L || is.na(namespace_path) ||
+      identical(namespace_path, "<unavailable>") || !dir.exists(namespace_path)) return(unavailable)
+  namespace_path = tryCatch(normalizePath(namespace_path, winslash = "/", mustWork = TRUE),
+                            error = function(e) NA_character_)
+  if (is.na(namespace_path)) return(unavailable)
+  r_path = file.path(namespace_path, "R")
+  if (!dir.exists(r_path)) return(unavailable)
+  r_path = tryCatch(normalizePath(r_path, winslash = "/", mustWork = TRUE),
+                    error = function(e) NA_character_)
+  if (is.na(r_path)) return(unavailable)
+  relative_paths = sort(list.files(r_path, all.files = TRUE, recursive = TRUE,
+                                  full.names = FALSE, include.dirs = FALSE))
+  if (!length(relative_paths)) return(unavailable)
+  full_paths = file.path(r_path, relative_paths)
+  info = file.info(full_paths)
+  if (anyNA(info$isdir) || any(info$isdir) || any(!file.exists(full_paths))) return(unavailable)
+  normalized_paths = tryCatch(normalizePath(full_paths, winslash = "/", mustWork = TRUE),
+                              error = function(e) character())
+  prefix = paste0(r_path, "/")
+  if (length(normalized_paths) != length(full_paths) || any(!startsWith(normalized_paths, prefix))) {
+    return(unavailable)
+  }
+  hashes = vapply(full_paths, benchmark_edi_sha256_file, character(1L), USE.NAMES = FALSE)
+  if (any(!grepl("^[[:xdigit:]]{64}$", hashes))) return(unavailable)
+  manifest = tempfile("edi-model-fit-r-layer-manifest-")
+  on.exit(unlink(manifest), add = TRUE)
+  writeLines(paste(relative_paths, tolower(hashes), sep = "\t"), manifest, useBytes = TRUE)
+  digest = benchmark_edi_sha256_file(manifest)
+  if (!grepl("^[[:xdigit:]]{64}$", digest)) return(unavailable)
+  list(path = namespace_path, file_count = length(relative_paths), manifest_sha256 = tolower(digest))
+}
+
+benchmark_edi_r_layer_report_lines = function(identity) {
+  c(
+    paste0("*   **EDI R namespace path:** `", identity$path, "`"),
+    paste0("*   **EDI R namespace file count:** `", identity$file_count, "`"),
+    paste0("*   **EDI R namespace payload SHA-256:** `", identity$manifest_sha256, "`")
+  )
+}
+benchmark_edi_r_layer = benchmark_edi_r_layer_identity()
+
 compile_context_lines = function() {
   if (exists("edi_build_info_cpp", mode = "function")) {
     info = tryCatch(edi_build_info_cpp(), error = function(e) NULL)
@@ -2446,6 +2495,7 @@ compile_context_lines = function() {
         "",
         paste0("*   **EDI shared object:** `", so_path, "`"),
         paste0("*   **EDI shared object mtime:** `", if (!is.null(so_info)) format(so_info$mtime) else "unknown", "`"),
+        benchmark_edi_r_layer_report_lines(benchmark_edi_r_layer),
         paste0("*   **Capture method:** `", info$capture_method, "`"),
         paste0("*   **Build timestamp:** `", info$build_timestamp, "`"),
         paste0("*   **Build host:** `", info$build_host, "`"),
@@ -2506,6 +2556,7 @@ compile_context_lines = function() {
     "**Default install vs. this build:** every standard install of EDI (CRAN, R-universe, or GitHub source) uses the portable build (`EDI_PORTABLE=1`, no `-march=native`/`-mtune=native` or `-O3` override), so results match across platforms. The timings below come from the build listed in this section; when it shows `EDI_PORTABLE=0`, they are from the opt-in tuned build described in the README's \"Tuning Local Builds\" section, and a default install may run slower.",
     "",
     paste0("*   **EDI library path:** `", system.file(package = "EDI"), "`"),
+    benchmark_edi_r_layer_report_lines(benchmark_edi_r_layer),
     paste0("*   **R version:** `", R.version.string, "`"),
     paste0("*   **R `CXX20`:** `", cmd_config("CXX20"), "`"),
     paste0("*   **R `CXX20STD`:** `", cmd_config("CXX20STD"), "`"),

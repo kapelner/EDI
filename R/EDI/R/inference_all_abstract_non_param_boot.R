@@ -1336,7 +1336,41 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			contract = private$get_resampling_draw_contract(operation)
 			chunk_n = max(1L, min(as.integer(actual_cores), as.integer(n_draws)))
 			chunk_id = ceiling(seq_len(n_draws) / ceiling(n_draws / chunk_n))
-			chunks = split(seq_len(n_draws), chunk_id)
+			# Keep the existing logical chunk boundaries and IDs: mirai seeds each
+			# logical chunk from private$seed + chunk_id, and the fork backend's
+			# static assignment gives each worker its existing contiguous stream.
+			logical_chunks = lapply(sort(unique(chunk_id)), function(i) {
+				idxs = which(chunk_id == i)
+				list(id = as.integer(i), draws = draws[idxs])
+			})
+			# `par_lapply()` chooses fork before mirai, then a lazy fork cluster on
+			# Unix when neither backend has been configured. Group the unchanged
+			# logical chunks so each dispatched job is one worker's complete payload;
+			# this makes worker/template initialization once per worker (and avoids
+			# shipping the full `draws` list in every task).
+			global_cl = get_global_fork_cluster()
+			global_mirai_cores = get_global_mirai_cores()
+			backend = if (as.integer(actual_cores) <= 1L) {
+				"serial"
+			} else if (!is.null(global_cl)) {
+				"fork"
+			} else if (!is.null(global_mirai_cores)) {
+				"mirai"
+			} else if (.Platform$OS.type == "unix") {
+				"fork"
+			} else {
+				"serial"
+			}
+			worker_n = if (backend == "fork" && !is.null(global_cl)) {
+				min(chunk_n, length(global_cl))
+			} else if (backend == "mirai") {
+				min(chunk_n, as.integer(global_mirai_cores))
+			} else {
+				chunk_n
+			}
+			worker_n = max(1L, as.integer(worker_n))
+			batch_id = ceiling(seq_along(logical_chunks) / ceiling(length(logical_chunks) / worker_n))
+			worker_batches = split(logical_chunks, batch_id)
 			# Serial dispatch only (chunk_n == 1L): reuse a cached worker across
 			# repeated calls for the SAME operation instead of re-`duplicate()`-ing
 			# the design/inference object every call. This matters for callers that
@@ -1348,76 +1382,93 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			# plain-bootstrap/jackknife/Bayesian-bootstrap distribution call, which
 			# already only invokes this once per computation and gets no benefit
 			# from reuse anyway) can observe a stale worker from a different
-			# operation. The parallel path (chunk_n > 1L) is untouched.
+			# operation. Parallel batches always create their own worker state.
 			reuse_key = if (chunk_n == 1L) operation else NULL
-			get_worker_state = function() {
-				cached = private$cached_values$reusable_bootstrap_worker
-				if (!is.null(reuse_key) && !is.null(cached) && identical(cached$key, reuse_key)) {
-					return(cached$state)
+			run_worker_batch = function(batch) {
+				get_worker_state = function() {
+					cached = private$cached_values$reusable_bootstrap_worker
+					if (!is.null(reuse_key) && !is.null(cached) && identical(cached$key, reuse_key)) {
+						return(cached$state)
+					}
+					state = private$create_reusable_bootstrap_worker()
+					if (!is.null(reuse_key)) {
+						private$cached_values$reusable_bootstrap_worker = list(key = reuse_key, state = state)
+					}
+					state
 				}
-				state = private$create_reusable_bootstrap_worker()
-				if (!is.null(reuse_key)) {
-					private$cached_values$reusable_bootstrap_worker = list(key = reuse_key, state = state)
-				}
-				state
-			}
-			run_chunk = function(idxs) {
-				worker_state = get_worker_state()
-				# This hot loop has already validated the state once, so resolve the
-				# estimator-specific hooks here and keep per-draw dispatch minimal.
+				worker_state = if (identical(backend, "serial")) get_worker_state() else private$create_reusable_bootstrap_worker()
 				load_draw = private[[contract$loader]]
 				estimate_draw = private[[contract$estimator]]
-				out = numeric(length(idxs))
-				current_k = 0L
-				inside_draw_fit = FALSE
-				chunk_error_handler = function(e){
-					# The normal path has one tryCatch for this chunk, not one per
-					# draw. Preserve the old per-draw error -> NA behavior by marking
-					# the failing draw and running the remainder under the slow path.
-					# Deadline/control conditions and errors outside the fit block must
-					# still abort exactly as before.
-					if (!isTRUE(inside_draw_fit)) stop(e)
-					out[current_k] <<- private$resampling_error_to_na(e)
-				}
-				tryCatch({
-					for (k in seq_along(idxs)) {
-						private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
-						current_k = k
-						boot_draw = draws[[idxs[[k]]]]
-						inside_draw_fit = TRUE
-						if (length(loader_args)) {
-							do.call(load_draw, c(list(worker_state = worker_state, draw = boot_draw), loader_args))
-						} else {
-							load_draw(worker_state, boot_draw)
-						}
-						out[k] = estimate_draw(worker_state)
-						inside_draw_fit = FALSE
-						private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+				process_logical_chunk = function(task) {
+					draw_chunk = task$draws
+					out = numeric(length(draw_chunk))
+					current_k = 0L
+					inside_draw_fit = FALSE
+					chunk_error_handler = function(e){
+						# Keep the established fast one-guard path and recover the
+						# failing draw plus the remaining suffix under per-draw catches.
+						if (!isTRUE(inside_draw_fit)) stop(e)
+						out[current_k] <<- private$resampling_error_to_na(e)
 					}
-				}, error = chunk_error_handler)
-				if (current_k > 0L && current_k < length(idxs)) {
-					for (k in seq.int(current_k + 1L, length(idxs))) {
-						private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
-						boot_draw = draws[[idxs[[k]]]]
-						out[k] = tryCatch({
+					tryCatch({
+						for (k in seq_along(draw_chunk)) {
+							private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+							current_k = k
+							inside_draw_fit = TRUE
 							if (length(loader_args)) {
-								do.call(load_draw, c(list(worker_state = worker_state, draw = boot_draw), loader_args))
+								do.call(load_draw, c(list(worker_state = worker_state, draw = draw_chunk[[k]]), loader_args))
 							} else {
-								load_draw(worker_state, boot_draw)
+								load_draw(worker_state, draw_chunk[[k]])
 							}
-							estimate_draw(worker_state)
-						}, error = private$resampling_error_to_na)
-						private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+							out[k] = estimate_draw(worker_state)
+							inside_draw_fit = FALSE
+							private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+						}
+					}, error = chunk_error_handler)
+					if (current_k > 0L && current_k < length(draw_chunk)) {
+						for (k in seq.int(current_k + 1L, length(draw_chunk))) {
+							private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+							out[k] = tryCatch({
+								if (length(loader_args)) {
+									do.call(load_draw, c(list(worker_state = worker_state, draw = draw_chunk[[k]]), loader_args))
+								} else {
+									load_draw(worker_state, draw_chunk[[k]])
+								}
+								estimate_draw(worker_state)
+							}, error = private$resampling_error_to_na)
+							private$check_bootstrap_replicate_deadline(paste0(operation, " replicate"))
+						}
 					}
+					out
 				}
-				out
+				unlist(lapply(batch, function(task) {
+					# The old mirai path seeded each logical chunk independently;
+					# batching chunks by daemon must retain that exact seed assignment.
+					if (identical(backend, "mirai") && !is.null(private$seed)) {
+						set.seed(private$seed + task$id)
+					}
+					process_logical_chunk(task)
+				}), use.names = FALSE)
 			}
+			# A fresh environment prevents FUN from retaining this method's full
+			# `draws` binding. Each task serializes only its worker-batch slice and
+			# the inference template needed to initialize that worker.
+			runner_env = list2env(list(
+				private = private,
+				contract = contract,
+				operation = operation,
+				loader_args = loader_args,
+				backend = backend,
+				reuse_key = reuse_key,
+				tryCatch = tryCatch
+			), parent = asNamespace("EDI"))
+			environment(run_worker_batch) = runner_env
 			if (actual_cores <= 1L) {
-				return(as.numeric(run_chunk(seq_len(n_draws))))
+				return(as.numeric(run_worker_batch(worker_batches[[1L]])))
 			}
 			as.numeric(unlist(private$par_lapply(
-				chunks,
-				run_chunk,
+				worker_batches,
+				run_worker_batch,
 				n_cores = actual_cores,
 				budget = 1L,
 				show_progress = show_progress

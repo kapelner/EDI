@@ -54,3 +54,27 @@ test_that(".state_for_current_cell() snapshots the current cell's parameters and
 	st_norep <- priv$.state_for_current_cell()
 	expect_null(st_norep$rep)
 })
+
+test_that("a failed result flush retains pending rows for a retry, then clears them after append", {
+	sim <- sim_fixture()
+	priv <- sim$.__enclos_env__$private
+	queued <- data.table::data.table(id = c("row-1", "row-2"), status = c("ok", "ok"))
+	priv$pending_file_rows <- list(queued)
+
+	# A CSV path below a nonexistent /tmp parent reliably fails before creating
+	# or partially appending a file, so the retry contract is tested without
+	# touching repository or canonical result outputs.
+	missing_parent <- tempfile("edi-pending-flush-missing-")
+	expect_false(dir.exists(missing_parent))
+	priv$results_filename <- file.path(missing_parent, "results.csv")
+	expect_error(priv$.flush_pending_to_disk(), "Cannot open|cannot open|No such file")
+	expect_length(priv$pending_file_rows, 1L)
+	expect_identical(priv$pending_file_rows[[1L]], queued)
+
+	results_path <- tempfile("edi-pending-flush-retry-", fileext = ".csv")
+	on.exit(unlink(results_path), add = TRUE)
+	priv$results_filename <- results_path
+	priv$.flush_pending_to_disk()
+	expect_length(priv$pending_file_rows, 0L)
+	expect_equal(data.table::fread(results_path), queued)
+})

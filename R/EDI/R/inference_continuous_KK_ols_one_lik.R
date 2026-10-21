@@ -69,9 +69,10 @@ ContinKKOLSOneLikLikelihoodSource = list(
 		#'   subject-or-block weights, used by \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}
 		#'   and the reused nonparametric-bootstrap worker path. Weights are expanded from
 		#'   subject/block level to the matched-pair and reservoir row level via
-		#'   \code{kk_pair_and_reservoir_bootstrap_weights()}, then a weighted OLS
-		#'   (\code{\link[stats]{lm.wfit}}) is fit on the same stacked design as
-		#'   \code{compute_estimate()}. If the weights are effectively constant (no resampling
+		#'   \code{kk_pair_and_reservoir_bootstrap_weights()}, then fits weighted OLS on
+		#'   the same stacked design as \code{compute_estimate()}. Full-rank draws use
+		#'   the native OLS kernel; \code{stats::lm.wfit()} is the compatibility fallback.
+		#'   If the weights are effectively constant (no resampling
 		#'   variation), falls back to the unweighted \code{compute_estimate()} result rather than
 		#'   refitting. Non-finite or non-positive weighted rows are dropped before fitting; if no
 		#'   estimable rows remain, returns \code{NA_real_}.
@@ -506,7 +507,23 @@ ContinKKOLSOneLikLikelihoodSource = list(
 			reduced = private$reduce_design_matrix_once(X_comb, j_treat, cache_key = "kk_ols_combined_reduced_design_weighted")
 			X_comb = reduced$X
 			j_treat = reduced$j_treat
-			fit = tryCatch(stats::lm.wfit(x = X_comb, y = y_comb, w = w_comb), error = function(e) NULL)
+			sqrt_w = sqrt(w_comb)
+			X_weighted = X_comb * sqrt_w
+			y_weighted = as.numeric(y_comb * sqrt_w)
+			beta_native = tryCatch({
+				if (ncol(X_weighted) > 0L && qr(X_weighted)$rank == ncol(X_weighted)) {
+					fit_native = fast_ols_cpp(X_weighted, y_weighted)
+					beta = as.numeric(fit_native$b)
+					if (length(beta) == ncol(X_comb) && all(is.finite(beta))) beta else NULL
+				} else {
+					NULL
+				}
+			}, error = function(e) NULL)
+			fit = if (!is.null(beta_native)) {
+				list(coefficients = beta_native)
+			} else {
+				tryCatch(stats::lm.wfit(x = X_comb, y = y_comb, w = w_comb), error = function(e) NULL)
+			}
 			coef_vec = if (is.null(fit)) NULL else as.numeric(fit$coefficients)
 			if (is.null(coef_vec) || length(coef_vec) < j_treat || !is.finite(coef_vec[j_treat])) {
 				return(if (estimate_only) NA_real_ else list(beta = NA_real_, se = NA_real_))

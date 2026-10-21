@@ -6,7 +6,7 @@
 > `seed_for_index` and the worker-count invariance tests. Coordinate with
 > `TODO-18` (`consolidate_parallelization_code.md`), which extracts the
 > worker single-threading setup this pool reuses. Release: v1.1.0
-> (`release_v1_1_0.md → TODO-51`). Found by
+> (`release_v1_2_0.md → TODO-32`). Found by
 > `../audits/further_optimizations.md → section 3, "InferenceSuite's
 > per-task fork roughly doubles its CPU"` (2026-10-15).
 

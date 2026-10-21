@@ -339,16 +339,18 @@ CI-inversion contracts, or retain the current deterministic contract and
 defer this fix until a candidate satisfies the existing gate. This memo does
 not select a statistic, relax acceptance, or modify TODO-4's parity scope.
 
-**Maintainer decision record — pending (no option selected):**
+**Maintainer decision record — DECIDED 2026-10-21: defer the remedy (owner decision, this session).** Rationale: no candidate has met the conditional-size gate, a generic mid-p is ruled out, and the tied-data p-values are conservative, not anti-conservative. The deterministic inclusive-tail method stays; the conservatism is documented in the `InferenceAllSimpleWilcox` roxygen.
 
-- [ ] **Authorize design work** on a Wilcoxon-scoped randomized/conditional
+- [ ] (not selected) **Authorize design work** on a Wilcoxon-scoped randomized/conditional
   procedure. Before implementation, specify the target null/statistic,
   auxiliary-randomness and reproducibility contract, how p-values and CIs
   relate (including CI inversion), and retain TODO-4 nondegenerate parity
   plus TODO-5 conditional-size acceptance.
-- [ ] **Defer the remedy.** Keep the current deterministic inclusive-tail
-  contract and leave TODO-3 through TODO-7 and release TODO-17 open until a
-  candidate preserves the HL target and passes the existing acceptance gates.
+- [x] **Defer the remedy (SELECTED 2026-10-21).** Keep the current deterministic inclusive-tail
+  contract. Release TODO-17 is closed as deferred for v1.0.5; keep TODO-3
+  through TODO-7 unselected and inactive here. Reopen design work only if a
+  future candidate preserves the HL target and passes the existing acceptance
+  gates (tracked in `release_v1_5_0.md → TODO-1`).
 
 Record the maintainer, date, selected option, and rationale here when decided.
 Neither option authorizes a generic mid-p change; the evidence above shows

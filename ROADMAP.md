@@ -246,6 +246,18 @@ for the full index.
   about 30% of random seeds produce `NA` on heavily censored data because
   one non-finite bootstrap replicate poisons the whole p-value, unlike the
   non-parametric bootstrap on the same data.
+- **[Randomization inference under left-/interval-censoring](R/package_metadata/bug_fix_plans/rand_inference_general_censoring_silent_results.md)** —
+  a nonzero-δ randomization null shifts only exact event times, not censoring
+  intervals. Instead of erroring, some paths return silent wrong numbers: Cox and log-rank
+  p-values when asserts are off (the default in simulations), and a finite
+  Weibull randomization CI built from failed p-values. These will error clearly
+  until the shift itself is supported.
+- **[Inference component dependency cleanup](R/package_metadata/new_feature_plans/inference_component_dependency_cleanup.md)**
+  *(maintenance)* — each inference component's declared dependencies copy
+  the old inheritance ladder (e.g. Wald "requires" Jackknife but never calls
+  it), while real cross-component calls go undeclared and form cycles.
+  Shared resampling helpers move into their own component and dependencies
+  match actual use. Every class keeps exactly the same methods.
 
 ---
 

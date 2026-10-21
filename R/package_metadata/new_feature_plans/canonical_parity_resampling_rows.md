@@ -1,13 +1,13 @@
 # Canonical Parity for the Five Slow Procedure Rows: Profiles of Both Sides, What Is Borrowable, and the Gates
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-43..46`;
+> **Release:** v1.2.0 (moved from v1.1.0 on 2026-10-20, user decision) (`../future_release_plans/release_v1_2_0.md → TODO-27..30`;
 > 2026-10-07, user decision). Parity gates and the canonical-package
 > borrowings for the five rows of the 2026-10-07 procedure table that EDI
 > loses. The mechanical fixes they depend on are already planned elsewhere
 > and are referenced, not duplicated: `release_v1_0_5.md → TODO-3` (OLS kernel
 > wiring), `→ TODO-58` (bootstrap worker), `→ TODO-57`'s plan TODO-7 (hot
 > loop), `→ TODO-62` (harness construction column), `→ TODO-64` (dead fast
-> paths); `release_v1_1_0.md → TODO-40` (closed-form nulls), `→ TODO-42`
+> paths); `release_v1_2_0.md → TODO-24` (closed-form nulls), `→ TODO-26`
 > (permutation signature). New here: the per-instance byte-compilation tax
 > of R6 (TODO-46), the `fisher.test` log-density precompute (TODO-45), the
 > `boot` percentile definition and per-draw warm starts (TODO-44), and the

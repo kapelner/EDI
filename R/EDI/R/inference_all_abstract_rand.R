@@ -267,8 +267,26 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' @param show_progress  	Show progress.
 		#' @param permutations  	Pre-computed permutations.
 		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
+		#' @details For survival outcomes with left- or interval-censoring, a nonzero
+		#'   \code{delta} is not supported and the call errors. The current null-shift
+		#'   implementation shifts exact/right-censored response times but not censoring
+		#'   bounds.
+		#'
+		#'   The p-value always comes from randomization draws of the assignment vector
+		#'   \eqn{w} from the design, for every response type including incidence on
+		#'   matched-pair and Bernoulli designs. (Before EDI 1.0.5 such incidence designs
+		#'   instead returned the Zhang exact combined test, which does not use the draws
+		#'   and was markedly more conservative; it is still available explicitly through
+		#'   the \code{type = "Zhang"} argument of classes that offer it.) At least 10
+		#'   finite reference statistics are required, otherwise \code{NA} is returned.
+		#'   A nonzero \code{delta} is not supported for incidence responses.
 		#' @return 	Randomization p-value.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps){
+			if (isTRUE(delta != 0) &&
+					private$des_obj_priv_int$response_type == "incidence" &&
+					is.null(private$custom_randomization_statistic_function)) {
+				stop("randomization tests with delta nonzero not supported for incidence", call. = FALSE)
+			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertLogical(na.rm)
@@ -276,22 +294,13 @@ InferenceRand = R6::R6Class("InferenceRand",
 					stop("Randomization tests are not supported for incidence. Use Zhang method.")
 				}
 			}
-			# Zhang-dispatch branch (added 2026-08-23, per user request) --
-			# mirrors `compute_rand_confidence_interval()`'s own identical
-			# branch exactly: a matched-pair or Bernoulli incidence design
-			# with no custom randomization statistic reports its "rand"
-			# p-value via the Zhang exact combined test
-			# (`compute_exact_two_sided_pval_rand()`, already used by this
-			# same mixin's CI-side counterpart and by `InferenceIncidExactZhang`
-			# itself) rather than the plain permutation machinery below, which
-			# was never built to handle incidence responses at all. Closes
-			# the asymmetry where a "rand" CI could come back for a row whose
-			# "rand" p-value always came back `NA` even though it was
-			# actually computable the same way the CI was.
-			if (private$should_use_zhang_incidence_randomization()) {
-				exact_args = private$normalize_exact_inference_args("Zhang", args_for_type = NULL, pval_epsilon = NULL)
-				return(private$compute_exact_two_sided_pval_rand("Zhang", delta, exact_args))
-			}
+			# The p-value always comes from the randomization draws (w vectors), including
+			# for incidence responses on matched-pair and Bernoulli designs. A
+			# Zhang exact-combined-test dispatch used to live here (added 2026-08-23);
+			# it ignored the design draws and was far more conservative than the draw-based
+			# test (200 KK21stepwise nulls: reject@0.05 1% vs 3%, median p 0.82 vs 0.58),
+			# so it was removed 2026-10-20 (user decision). The Zhang test remains available
+			# explicitly via `type = "Zhang"` (RandCI classes) and the exact-inference API.
 			mc_control_for_perms = private$randomization_mc_control
 			defer_permutation_generation_for_mc =
 				is.null(permutations) &&
@@ -981,6 +990,12 @@ InferenceRand = R6::R6Class("InferenceRand",
 			y_shifted
 		},
 		setup_randomization_template_and_shifts = function(delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
+			# This is a correctness guard, not an input assertion: keep it active
+			# even when optional assertions are disabled, since censored response
+			# bounds are not shifted by the current implementation.
+			if (isTRUE(private$has_general_censoring) && isTRUE(delta != 0)) {
+				stop("randomization tests with delta nonzero are not yet supported for left-/interval-censored survival data.", call. = FALSE)
+			}
 			# `y_delta` (and the plain `base_template_y`/`base_template_dead`
 			# vectors below) are all the reused-worker fast path -- the common
 			# case, hit on every sequential-MC batch -- actually reads off this
@@ -994,13 +1009,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 			# `duplicate()` for a template they'll never use.
 			if (should_run_asserts() && delta != 0) {
 				if (private$des_obj_priv_int$response_type == "incidence" && is.null(private$custom_randomization_statistic_function)) stop("randomization tests with delta nonzero not supported for incidence")
-				# shift_randomization_responses() below only shifts the plain
-				# y vector; for a censored subject y is NA (the value lives in
-				# y_L/y_R instead), so a nonzero-delta null shift would
-				# silently be a no-op for every censored row rather than an
-				# error. Block it explicitly instead of returning a quietly
-				# wrong null-shifted statistic.
-				if (isTRUE(private$has_general_censoring)) stop("randomization tests with delta nonzero are not yet supported for left-/interval-censored survival data.")
 			}
 			y_delta = if (delta != 0) {
 				private$shift_randomization_responses(

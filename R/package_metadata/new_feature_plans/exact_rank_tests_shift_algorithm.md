@@ -1,6 +1,6 @@
 # Exact Small-Sample Rank Tests via the Streitberg–Röhmel Shift Algorithm
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-41`;
+> **Release:** v1.2.0 (moved from v1.1.0 on 2026-10-20, user decision) (`../future_release_plans/release_v1_2_0.md → TODO-25`;
 > 2026-10-07, user decision). Additive: a new C++ kernel plus a new `type`
 > value on the existing randomization p-value / CI entry points; default
 > path unchanged until the decision-gated TODO-6. No Phase 0 dependency.

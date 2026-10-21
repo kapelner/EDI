@@ -61,8 +61,113 @@ sha256_file = function(path) {
   }
   "<unavailable>"
 }
+read_benchmark_r_layer_state = function(package_path) {
+  unavailable = list(path = "<unavailable>", file_count = NA_integer_,
+                     files = "<unavailable>", manifest_sha256 = "<unavailable>")
+  if (length(package_path) != 1L || is.na(package_path) || !dir.exists(package_path)) {
+    return(unavailable)
+  }
+  r_path = file.path(package_path, "R")
+  if (!dir.exists(r_path)) return(unavailable)
+  r_path = tryCatch(normalizePath(r_path, winslash = "/", mustWork = TRUE),
+                    error = function(e) NA_character_)
+  if (is.na(r_path)) return(unavailable)
+  relative_paths = sort(list.files(r_path, all.files = TRUE, recursive = TRUE,
+                                   full.names = FALSE, include.dirs = FALSE))
+  if (!length(relative_paths)) return(unavailable)
+  full_paths = file.path(r_path, relative_paths)
+  info = file.info(full_paths)
+  if (anyNA(info$isdir) || any(info$isdir) || any(!file.exists(full_paths))) {
+    return(unavailable)
+  }
+  hashes = vapply(full_paths, sha256_file, character(1L), USE.NAMES = FALSE)
+  if (any(!grepl("^[[:xdigit:]]{64}$", hashes))) return(unavailable)
+  entries = paste(relative_paths, tolower(hashes), sep = "\t")
+  manifest_path = tempfile("edi-design-benchmark-r-layer-manifest-")
+  on.exit(unlink(manifest_path), add = TRUE)
+  writeLines(entries, manifest_path, useBytes = TRUE)
+  manifest_sha256 = sha256_file(manifest_path)
+  if (!grepl("^[[:xdigit:]]{64}$", manifest_sha256)) return(unavailable)
+  list(path = r_path, file_count = length(entries), files = entries,
+       manifest_sha256 = tolower(manifest_sha256))
+}
+read_benchmark_git_state = function(git_command = Sys.which("git"), git_args_prefix = character()) {
+  if (length(git_command) != 1L || is.na(git_command) || !nzchar(git_command)) {
+    return(list(status = "<unavailable>", tracked_diff_sha256 = "<unavailable>",
+                untracked_content_sha256 = "<unavailable>"))
+  }
+  status = tryCatch(
+    suppressWarnings(system2(git_command,
+      c(git_args_prefix, "status", "--porcelain=v1", "--untracked-files=all"),
+      stdout = TRUE, stderr = FALSE)),
+    error = function(e) NULL
+  )
+  status_code = if (is.null(status)) NA_integer_ else attr(status, "status")
+  status_failed = is.null(status) || (!is.null(status_code) && !identical(as.integer(status_code), 0L))
+  status_text = if (status_failed) {
+    "<unavailable>"
+  } else if (!length(status)) {
+    "<clean>"
+  } else {
+    paste(status, collapse = " | ")
+  }
+
+  diff_file = tempfile("edi-design-benchmark-git-diff-")
+  on.exit(unlink(diff_file), add = TRUE)
+  diff_code = tryCatch(
+    suppressWarnings(system2(git_command, c(git_args_prefix, "diff", "--binary", "HEAD"),
+                             stdout = diff_file, stderr = FALSE)),
+    error = function(e) NA_integer_
+  )
+  diff_sha256 = if (isTRUE(as.integer(diff_code) == 0L)) sha256_file(diff_file) else "<unavailable>"
+
+  untracked_paths = tryCatch(
+    suppressWarnings(system2(git_command,
+      c(git_args_prefix, "ls-files", "--others", "--exclude-standard"),
+      stdout = TRUE, stderr = FALSE)),
+    error = function(e) NULL
+  )
+  untracked_code = if (is.null(untracked_paths)) NA_integer_ else attr(untracked_paths, "status")
+  untracked_failed = is.null(untracked_paths) ||
+    (!is.null(untracked_code) && !identical(as.integer(untracked_code), 0L))
+  untracked_sha256 = "<unavailable>"
+  if (!untracked_failed) {
+    repository_root = tryCatch(
+      suppressWarnings(system2(git_command,
+        c(git_args_prefix, "rev-parse", "--show-toplevel"), stdout = TRUE, stderr = FALSE)),
+      error = function(e) NULL
+    )
+    root_code = if (is.null(repository_root)) NA_integer_ else attr(repository_root, "status")
+    root_failed = is.null(repository_root) || !length(repository_root) ||
+      (!is.null(root_code) && !identical(as.integer(root_code), 0L))
+    if (!root_failed) {
+      entries = vapply(untracked_paths, function(path) {
+        full_path = file.path(repository_root[[1L]], path)
+        if (!file.exists(full_path) || dir.exists(full_path)) return(NA_character_)
+        paste(path, sha256_file(full_path), sep = "\t")
+      }, character(1L))
+      if (all(!is.na(entries)) && all(!grepl("<unavailable>$", entries))) {
+        manifest_file = tempfile("edi-design-benchmark-untracked-manifest-")
+        on.exit(unlink(manifest_file), add = TRUE)
+        writeLines(entries, manifest_file, useBytes = TRUE)
+        untracked_sha256 = sha256_file(manifest_file)
+      }
+    }
+  }
+  list(status = status_text, tracked_diff_sha256 = diff_sha256,
+       untracked_content_sha256 = untracked_sha256)
+}
 benchmark_edi_dll_path = loaded_edi_dll_path()
 benchmark_edi_dll_sha256 = sha256_file(benchmark_edi_dll_path)
+benchmark_edi_namespace_path = tryCatch(
+  normalizePath(getNamespaceInfo(asNamespace("EDI"), "path"), winslash = "/", mustWork = TRUE),
+  error = function(e) "<unavailable>"
+)
+benchmark_edi_r_layer = read_benchmark_r_layer_state(benchmark_edi_namespace_path)
+if (!grepl("^[[:xdigit:]]{64}$", benchmark_edi_r_layer$manifest_sha256)) {
+  stop("Could not authenticate the loaded EDI R namespace payload.", call. = FALSE)
+}
+benchmark_git_state = read_benchmark_git_state()
 read_benchmark_host_state = function() {
   loadavg = tryCatch(readLines("/proc/loadavg", warn = FALSE, n = 1L), error = function(e) character())
   status = tryCatch(readLines("/proc/self/status", warn = FALSE), error = function(e) character())
@@ -184,9 +289,16 @@ if (length(args) >= 4L) {
     paste("parameters: n=", n, " batch=", batch, " repeats=", repeats, " seed=5901", sep = ""),
     paste("EDI version:", as.character(utils::packageVersion("EDI"))),
     paste("EDI library:", find.package("EDI")),
+    paste("EDI R namespace path:", benchmark_edi_r_layer$path),
+    paste("EDI R namespace payload files:", benchmark_edi_r_layer$file_count),
+    paste("EDI R namespace payload manifest SHA-256:", benchmark_edi_r_layer$manifest_sha256),
+    paste("EDI R namespace payload file SHA-256:", paste(benchmark_edi_r_layer$files, collapse = " | ")),
     paste("EDI native DLL:", benchmark_edi_dll_path),
     paste("EDI native DLL SHA-256:", benchmark_edi_dll_sha256),
     paste("checkout HEAD:", checkout_commit[[1L]]),
+    paste("checkout worktree status (porcelain):", benchmark_git_state$status),
+    paste("checkout tracked diff from HEAD SHA-256:", benchmark_git_state$tracked_diff_sha256),
+    paste("checkout untracked content manifest SHA-256:", benchmark_git_state$untracked_content_sha256),
     paste("R:", R.version.string),
     paste("platform:", R.version$platform),
     paste("host:", paste(Sys.info(), collapse = " | ")),

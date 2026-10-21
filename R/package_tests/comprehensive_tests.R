@@ -25,6 +25,8 @@ script_path = if (length(script_file_arg)) {
 script_dir = dirname(script_path)
 repo_root = normalizePath(file.path(script_dir, ".."), mustWork = TRUE)
 repo_path = function(...) file.path(repo_root, ...)
+source(file.path(script_dir, "comprehensive_rand_ci_eligibility.R"), local = TRUE)
+source(file.path(script_dir, "comprehensive_result_cache_classification.R"), local = TRUE)
 
 # fork=FALSE (default when run as a script): each call runs in this
 # process, which avoids the per-call cost of forking and of R's GC
@@ -778,7 +780,9 @@ if (!is.na(DESIGN_TYPE_FILTER) && !(DESIGN_TYPE_FILTER %in% ALL_DESIGN_TYPES)) {
 }
 INFERENCE_CLASS_FILTER = if (length(args) >= 5 && args[5] != "NA") as.character(args[5]) else NA_character_
 DATASET_FILTER = if (length(args) >= 6 && args[6] != "NA") as.character(args[6]) else NA_character_
-BETA_T_FILTER = if (length(args) >= 7 && args[7] != "NA") as.numeric(args[7]) else NA_real_
+source(file.path(script_dir, "comprehensive_beta_filter.R"), local = TRUE)
+source(file.path(script_dir, "comprehensive_run_provenance.R"), local = TRUE)
+BETA_T_FILTER = if (length(args) >= 7) parse_comprehensive_beta_filter(args[7]) else NA_real_
 REP_FILTER = if (length(args) >= 8 && args[8] != "NA") as.integer(args[8]) else NA_integer_
 canonicalize_test_family_filter = function(value){
 	value = as.character(value)
@@ -894,7 +898,7 @@ run_debug_resampling = Sys.getenv("COMPREHENSIVE_DEBUG_RESAMPLING", "0") %in% c(
 # actually executes the normally-skipped operation instead of skipping it.
 force_run_slow_paths = Sys.getenv("COMPREHENSIVE_FORCE_SLOW_PATHS", "0") %in% c("1", "true", "TRUE", "yes", "YES")
 param_boot_ci_max_root_iterations = 0L
-beta_T_values = c(0, 0.5)
+beta_T_values = resolve_comprehensive_beta_values(c(0, 0.5), BETA_T_FILTER)
 SD_NOISE = 0.1
 pending_rep_header = NULL
 pending_beta_header = NULL
@@ -930,6 +934,19 @@ default_results_file = if (is.na(RESPONSE_TYPE_FILTER)) {
 	repo_path("package_tests", paste0("comprehensive_tests_results_nc_", NUM_CORES, "_", RESPONSE_TYPE_FILTER, filtered_results_suffix, ".csv"))
 }
 results_file = resolve_comprehensive_results_file(default_results_file)
+attempt_manifest_env = Sys.getenv("EDI_COMPREHENSIVE_ATTEMPT_MANIFEST", unset = "")
+attempt_manifest_writer = if (nzchar(attempt_manifest_env)) {
+	new_comprehensive_attempt_manifest_writer(
+		attempt_manifest_env,
+		results_file = results_file,
+		checkout_root = normalizePath(file.path(script_dir, "..", ".."), winslash = "/", mustWork = TRUE)
+	)
+} else {
+	NULL
+}
+run_provenance_started_at = Sys.time()
+run_provenance_before = capture_comprehensive_run_provenance(repo_root, script_path)
+run_results_file_before = comprehensive_result_file_identity(results_file, include_sha256 = FALSE)
 existing_results_dt = if (file.exists(results_file)) data.table::fread(results_file) else data.table::data.table()
 run_row_id = if ("run_row_id" %in% colnames(existing_results_dt) && nrow(existing_results_dt) > 0L) {
 	as.integer(max(existing_results_dt$run_row_id, na.rm = TRUE))
@@ -939,11 +956,13 @@ run_row_id = if ("run_row_id" %in% colnames(existing_results_dt) && nrow(existin
 
 serialize_beta_T = function(value){
 	# vectorized (not just scalar) so it can be used to bulk-build cache keys from a results data.table
-	ifelse(
-		is.na(value),
-		"NA",
-		ifelse(is.numeric(value), format(as.numeric(value), scientific = TRUE, digits = 17), as.character(value))
-	)
+	serialized = if (is.numeric(value)) {
+		format(as.numeric(value), scientific = TRUE, digits = 17)
+	} else {
+		as.character(value)
+	}
+	serialized[is.na(value)] = "NA"
+	serialized
 }
 
 round_result_field = function(value){
@@ -971,23 +990,14 @@ current_github_commit_id = function(){
 
 GITHUB_COMMIT_ID = current_github_commit_id()
 
-# One-line startup reminder only -- never mutates the result CSVs (dry run,
-# no --apply), so it's safe to run even while another process is appending
-# rows to the same files. Pruning itself stays a deliberate manual step
-# (see prune_stale_result_rows.R's own header) -- this just keeps staleness
-# drift visible on every run instead of silently accumulating between manual
-# prunes. Never blocks the actual test run if it fails for any reason.
-tryCatch({
-	prune_check_output = system2(
-		"Rscript",
-		c(shQuote(repo_path("package_tests", "prune_stale_result_rows.R"))),
-		stdout = TRUE, stderr = TRUE
-	)
-	prune_summary_line = grep("stale row\\(s\\)", prune_check_output, value = TRUE)
-	if (length(prune_summary_line)) {
-		message("[prune-check] ", prune_summary_line[1], " (run `Rscript package_tests/prune_stale_result_rows.R --apply` to clean up)")
-	}
-}, error = function(e) invisible(NULL))
+# One-line startup reminder only -- never mutates result CSVs (dry run, no
+# --apply). For an explicitly isolated run, EDI_COMPREHENSIVE_SKIP_PRUNE_CHECK=1
+# skips this scan only when EDI_COMPREHENSIVE_RESULTS_DIR points outside the
+# checkout; it does not change or bypass the manual pruning command.
+run_comprehensive_startup_prune_check(
+	pruner_path = repo_path("package_tests", "prune_stale_result_rows.R"),
+	checkout_root = normalizePath(file.path(script_dir, "..", ".."), mustWork = TRUE)
+)
 
 stable_text_checksum = function(value){
 	text = paste(as.character(value), collapse = "\r")
@@ -1216,6 +1226,50 @@ build_result_key = function(rep_val, beta_val, dataset_val, response_val, design
 	)
 }
 
+record_comprehensive_attempt_event = function(
+	event_type,
+	function_run = NA_character_,
+	status = NA_character_,
+	skip_reason = NA_character_,
+	error_message = NA_character_,
+	rep_value = if (exists("rep_curr", inherits = TRUE)) get("rep_curr", inherits = TRUE) else NA_integer_,
+	beta_value = if (exists("beta_T", inherits = TRUE)) get("beta_T", inherits = TRUE) else NA_real_,
+	dataset_value = if (exists("dataset_name", inherits = TRUE)) get("dataset_name", inherits = TRUE) else NA_character_,
+	response_value = if (exists("response_type", inherits = TRUE)) get("response_type", inherits = TRUE) else NA_character_,
+	design_value = if (exists("design_type", inherits = TRUE)) get("design_type", inherits = TRUE) else NA_character_,
+	model_formula_value = NA_character_,
+	inference_value = if (exists("inference_result_label", inherits = TRUE)) get("inference_result_label", inherits = TRUE) else NA_character_
+) {
+	if (is.null(attempt_manifest_writer)) return(invisible(NULL))
+	function_run = as.character(function_run)[1L]
+	has_operation_key = !is.na(function_run) && nzchar(function_run) &&
+		!is.na(rep_value) && !is.na(beta_value) && !is.na(dataset_value) &&
+		!is.na(response_value) && !is.na(design_value) && !is.na(inference_value)
+	row_id = if (has_operation_key) {
+		build_result_key(rep_value, beta_value, dataset_value, response_value,
+			design_value, inference_value, function_run)
+	} else {
+		NA_character_
+	}
+	attempt_manifest_writer(
+		event_type,
+		key = list(
+			id = row_id,
+			rep = rep_value,
+			beta_T = beta_value,
+			dataset = dataset_value,
+			response_type = response_value,
+			design = design_value,
+			model_formula = model_formula_value,
+			inference_class = inference_value,
+			function_run = function_run
+		),
+		status = status,
+		skip_reason = skip_reason,
+		error_message = error_message
+	)
+}
+
 completed_rows_cache = new.env(parent = emptyenv())
 
 mark_row_completed = function(rep_val, beta_val, dataset_val, response_val, design_val, inference_val, function_run_val){
@@ -1251,11 +1305,26 @@ is_confirmed_timeout = function(dataset_val, response_val, design_val, inference
 }
 
 if (nrow(existing_results_dt) > 0L) {
-	rows_to_cache = if ("status" %in% colnames(existing_results_dt)) {
-		existing_results_dt[status == "ok"]
-	} else {
-		existing_results_dt
+	existing_row_classes = classify_comprehensive_existing_result_rows(existing_results_dt)
+	# Seed timeout knowledge first, before excluding these rows from the
+	# completed-row cache. This preserves the opt-in cross-replicate skip after a
+	# resumed run while leaving the same row eligible for timeout-cache logic.
+	if (skip_repeat_after_timeout && length(existing_row_classes$confirmed_timeout_rows) > 0L) {
+		timeout_rows = existing_results_dt[existing_row_classes$confirmed_timeout_rows]
+		timeout_keys = timeout_cache_key(
+			timeout_rows$dataset,
+			timeout_rows$response_type,
+			timeout_rows$design,
+			timeout_rows$inference_class,
+			timeout_rows$function_run
+		)
+		for (tkey in timeout_keys) {
+			confirmed_timeout_cache[[tkey]] <- TRUE
+		}
+		message(sprintf("Seeded confirmed_timeout_cache with %d already-timed-out combination(s) from the resumed results file.", length(unique(timeout_keys))))
 	}
+
+	rows_to_cache = existing_results_dt[existing_row_classes$completed_rows]
 	if (nrow(rows_to_cache) > 0L) {
 		# Vectorized key construction (build_result_key is vectorized over all 7 args) instead of
 		# subsetting the data.table one row at a time, which dominates startup cost on large result files.
@@ -1274,33 +1343,6 @@ if (nrow(existing_results_dt) > 0L) {
 		}
 		for (key in keys) {
 			completed_rows_cache[[key]] <- TRUE
-		}
-		# Seed confirmed_timeout_cache from the resumed CSV too -- otherwise a
-		# timeout recorded by an EARLIER (e.g. killed and relaunched) process
-		# invocation is invisible to this fresh process's in-memory cache: a
-		# resumed row returns at is_row_completed() (above is_confirmed_timeout()
-		# in safe_call()) without ever reaching handle_timeout(), so the
-		# confirmed-slow fact never gets (re-)learned here, and every relaunch
-		# re-pays the full timeout for every already-known-slow combination
-		# instead of skipping it. Found 2026-09-10 after a 3+ hour run showed
-		# zero cache hits despite hundreds of confirmed timeouts -- the run had
-		# been killed and relaunched (different Nrep) partway through, and the
-		# resumed rows never seeded this process's fresh, empty cache.
-		if (skip_repeat_after_timeout && "error_message" %in% colnames(rows_to_cache)) {
-			timeout_rows = rows_to_cache[grepl("timeout", error_message, ignore.case = TRUE)]
-			if (nrow(timeout_rows) > 0L) {
-				timeout_keys = timeout_cache_key(
-					timeout_rows$dataset,
-					timeout_rows$response_type,
-					timeout_rows$design,
-					timeout_rows$inference_class,
-					timeout_rows$function_run
-				)
-				for (tkey in timeout_keys) {
-					confirmed_timeout_cache[[tkey]] <- TRUE
-				}
-				message(sprintf("Seeded confirmed_timeout_cache with %d already-timed-out combination(s) from the resumed results file.", length(unique(timeout_keys))))
-			}
 		}
 	}
 }
@@ -1464,7 +1506,7 @@ is_test_family_filter_active = function(){
 }
 
 should_run_test_family = function(test_family){
-	!is_test_family_filter_active() || identical(TEST_FAMILY_FILTER, test_family)
+	comprehensive_should_run_test_family(test_family, TEST_FAMILY_FILTER)
 }
 
 inference_banner = function(inf_name, mf = NULL){
@@ -1636,6 +1678,11 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 			status = status
 		)
 	), use.names = TRUE)
+	record_comprehensive_attempt_event(
+		"terminal", function_run = function_run, status = status,
+		skip_reason = skip_reason_for_result(status, error_message_chr),
+		error_message = error_message_chr, inference_value = inference_class
+	)
 	if (identical(status, "ok")) {
 		mark_row_completed(rep_curr, beta_T, dataset_name, response_type, design_type, inference_class, function_run)
 	}
@@ -2196,16 +2243,29 @@ safe_call = function(label, expr){
 			inference_result_label,
 			label
 		)) {
+		record_comprehensive_attempt_event(
+			"skipped_completed", function_run = label,
+			skip_reason = "completed_cache"
+		)
 			return(invisible(NULL))
 	}
 	if (is_slow_operation(label)) {
+		record_comprehensive_attempt_event(
+			"skipped_slow", function_run = label,
+			skip_reason = "slow_path"
+		)
 		message("          Skipping ", label, " (too slow for this response/class path)")
 		return(invisible(NULL))
 	}
 	if (is_confirmed_timeout(dataset_name, response_type, design_type, inference_result_label, label)) {
+		record_comprehensive_attempt_event(
+			"skipped_confirmed_timeout", function_run = label,
+			skip_reason = "confirmed_timeout_cache"
+		)
 		message("          Skipping ", label, " (already timed out earlier this run)")
 		return(invisible(NULL))
 	}
+	record_comprehensive_attempt_event("started", function_run = label)
 
 	if (!is.null(pending_rep_header)) { message(pending_rep_header); pending_rep_header <<- NULL }
 	if (!is.null(pending_beta_header)) { message(pending_beta_header); pending_beta_header <<- NULL }
@@ -3072,7 +3132,22 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		}
 	}
 
-	if (supports_randomization_ci && should_run_test_family("rand") && !skip_slow && !skip_rand && !skip_ci_rand && !skip_rand_slow && !skip_rand_ci_slow && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
+	rand_ci_attempts = comprehensive_rand_ci_attempted_functions(
+		response_type = response_type,
+		supports_randomization_ci = supports_randomization_ci,
+		supports_randomization_bootstrap = supports_randomization_bootstrap,
+		test_family_filter = TEST_FAMILY_FILTER,
+		skip_slow = skip_slow,
+		skip_rand = skip_rand,
+		skip_rand_slow = skip_rand_slow,
+		skip_ci_rand = skip_ci_rand,
+		skip_rand_ci_slow = skip_rand_ci_slow,
+		skip_brt_ci = skip_brt_ci,
+		skip_brt_ci_smoothed_slow = skip_brt_ci_smoothed_slow,
+		skip_brt_ci_typed_slow = skip_brt_ci_typed_slow,
+		test_compute_confidence_interval_rand = test_compute_confidence_interval_rand
+	)
+	if ("compute_rand_confidence_interval" %in% rand_ci_attempts){
 		safe_call("compute_rand_confidence_interval", seq_des_inf$compute_rand_confidence_interval(r = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 	}
 	# Bootstrap randomization test (BRT): row bootstrap + fresh assignment draw from the design
@@ -3119,11 +3194,11 @@ call_direct_asymp = function(method_name, testing_type, ...){
 	# response_type's own filter already excludes incidence (BRT-CI's other
 	# structural-failure case) from this block entirely, so that message
 	# never reaches here regardless.
-	if (supports_randomization_bootstrap && should_run_test_family("rand_bootstrap") && !skip_slow && !skip_brt_ci && !skip_rand && !skip_ci_rand && test_compute_confidence_interval_rand && response_type %in% c("continuous", "proportion", "count", "survival")){
+	if ("compute_rand_bootstrap_confidence_interval" %in% rand_ci_attempts){
 		safe_call("compute_rand_bootstrap_confidence_interval", seq_des_inf$compute_rand_bootstrap_confidence_interval(B = r, pval_epsilon = pval_epsilon, show_progress = FALSE))
 		for (brt_ci_type in c("studentized", "symmetric-percentile-t", "smoothed")) {
-			if (brt_ci_type == "smoothed" && skip_brt_ci_smoothed_slow) next
-			if (brt_ci_type %in% c("studentized", "symmetric-percentile-t") && skip_brt_ci_typed_slow) next
+			brt_ci_function = paste0("compute_rand_bootstrap_confidence_interval_", brt_ci_type)
+			if (!(brt_ci_function %in% rand_ci_attempts)) next
 			safe_call(paste0("compute_rand_bootstrap_confidence_interval_", brt_ci_type),
 					  seq_des_inf$compute_rand_bootstrap_confidence_interval(B = r, type = brt_ci_type, pval_epsilon = pval_epsilon, show_progress = FALSE))
 		}
@@ -3396,11 +3471,30 @@ compute_incid_risk_ratio_coverage_truth = function(dataset_name, beta_T_val){
 compute_incid_log_risk_ratio_coverage_truth = function(dataset_name, beta_T_val){
 	log(compute_incid_risk_ratio_coverage_truth(dataset_name, beta_T_val))
 }
+# E[plogis(qlogis(p) + shift + eps)] for eps ~ N(0, sd_noise), by 40-node Gauss-Hermite
+# (Golub-Welsch). The integrand is smooth and sd_noise is small, so this is accurate to
+# ~1e-12; it is vectorised over p, which a per-subject integrate() would not be.
+prop_logistic_normal_mean = function(p, shift, sd_noise){
+	n_gh = 40L
+	J = matrix(0, n_gh, n_gh)
+	off = sqrt(seq_len(n_gh - 1L) / 2)
+	J[cbind(seq_len(n_gh - 1L), seq_len(n_gh - 1L) + 1L)] = off
+	J[cbind(seq_len(n_gh - 1L) + 1L, seq_len(n_gh - 1L))] = off
+	es = eigen(J, symmetric = TRUE)
+	w = es$vectors[1L, ]^2
+	z = sqrt(2) * sd_noise * es$values
+	as.numeric(vapply(stats::qlogis(p) + shift, function(eta) sum(w * stats::plogis(eta + z)), numeric(1)))
+}
+# Owner decision 2026-10-21 (release_v1_0_5.md TODO-55): coverage truth is the NOISY MARGINAL
+# mean contrast. The DGP (apply_treatment_effect_and_noise) adds eps ~ N(0, SD_NOISE) inside the
+# logit in BOTH arms, so the estimator -- a difference of observed proportion means -- targets
+# E[p_t(eps)] - E[p_c(eps)], not the zero-noise conditional contrast plogis(qlogis(p)+beta)-p
+# (the two differ by up to ~3e-4 at SD_NOISE = 0.1).
 compute_prop_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 	y_p = datasets_and_response_models[[dataset_name]]$y_original$proportion
 	p_base = pmin(0.95, pmax(0.05, y_p))
-	p_t = stats::plogis(stats::qlogis(p_base) + beta_T_val)
-	mean(p_t - p_base)
+	mean(prop_logistic_normal_mean(p_base, beta_T_val, SD_NOISE) -
+		prop_logistic_normal_mean(p_base, 0, SD_NOISE))
 }
 compute_survival_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 	# DGP is a multiplicative time shift (y_t = y_c * exp(bt)), not additive, so the naive
@@ -3972,7 +4066,18 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		FixedGreedyDOptimalD =  DesignFixedGreedyDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula),
 		FixedGreedyDOptimalA =  DesignFixedGreedyDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula, objective = "A", interest = "all"),
 		stop("Unsupported design_type: ", design_type)
-	), error = function(e){ message("    Skipping design (creation error): ", e$message); NULL })
+	), error = function(e){
+		record_comprehensive_attempt_event(
+			"setup_skipped", error_message = conditionMessage(e),
+			rep_value = rep_curr, beta_value = beta_T,
+			dataset_value = dataset_name, response_value = response_type,
+			design_value = design_type,
+			model_formula_value = paste(deparse(design_formula), collapse = " "),
+			inference_value = NA_character_
+		)
+		message("    Skipping design (creation error): ", e$message)
+		NULL
+	})
 	if (is.null(des_obj)) return(invisible(NULL))
 
 	add_response_for_subject = function(t, y_t, dead_t){
@@ -3995,7 +4100,18 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 				add_response_for_subject(t, y_t, dead[t])
 			}
 			TRUE
-		}, error = function(e){ message("    Skipping design (seq error): ", e$message); FALSE })
+		}, error = function(e){
+			record_comprehensive_attempt_event(
+				"setup_skipped", error_message = conditionMessage(e),
+				rep_value = rep_curr, beta_value = beta_T,
+				dataset_value = dataset_name, response_value = response_type,
+				design_value = design_type,
+				model_formula_value = paste(deparse(design_formula), collapse = " "),
+				inference_value = NA_character_
+			)
+			message("    Skipping design (seq error): ", e$message)
+			FALSE
+		})
 		if (!seq_ok) return(invisible(NULL))
 	} else {
 		# It is a DesignFixed but not a DesignSeqOneByOne
@@ -4016,6 +4132,14 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 			setup_err = setup_fixed_design(des_obj)
 		}
 		if (!is.null(setup_err)) {
+			record_comprehensive_attempt_event(
+				"setup_skipped", error_message = conditionMessage(setup_err),
+				rep_value = rep_curr, beta_value = beta_T,
+				dataset_value = dataset_name, response_value = response_type,
+				design_value = design_type,
+				model_formula_value = paste(deparse(design_formula), collapse = " "),
+				inference_value = NA_character_
+			)
 			message("    Skipping design: ", conditionMessage(setup_err))
 			return(invisible(NULL))
 		}
@@ -4284,6 +4408,15 @@ for (dataset_name in names(datasets_and_response_models)){
 							run_tests_for_response(response_type, design_type = design_type, dataset_name = dataset_name, model_formula = model_formula),
 							error = function(e){
 								message("  FATAL ERROR in run_tests_for_response(", response_type, ", ", design_type, ", ", dataset_name, "): ", e$message)
+					record_comprehensive_attempt_event(
+						"setup_failure", function_run = "run_tests_for_response",
+						status = "error", error_message = conditionMessage(e),
+									rep_value = rep_curr, beta_value = beta_T,
+						dataset_value = dataset_name, response_value = response_type,
+								design_value = design_type,
+								model_formula_value = paste(deparse(model_formula), collapse = " "),
+								inference_value = NA_character_
+					)
 								# Previously this message was the ONLY record of the failure -- nothing
 								# was ever written to results_dt/the results CSV, so every case this
 								# (response_type, design_type, dataset, formula) call would have covered
@@ -4292,9 +4425,10 @@ for (dataset_name in names(datasets_and_response_models)){
 								# schema's own error_message column, so a whole-call crash is as visible
 								# in the CSV as a single compute_*() call's failure already is. Built by
 								# hand rather than via record_result()/build_result_key()/
-								# build_comprehensive_case_id(), deliberately: those rely on per-replicate
-								# globals (beta_T, rep_curr) that have no meaningful value here (the crash
-								# happened before any replicate ran), and an error handler that itself
+								# build_comprehensive_case_id(), deliberately: those require an inference
+								# operation key, which a response/design setup failure does not have. The
+								# outer replicate, beta, and formula context is still recorded above; an
+								# error handler that itself
 								# errors would propagate uncaught and abort the whole script.
 								run_row_id <<- run_row_id + 1L
 								results_dt <<- data.table::rbindlist(list(
@@ -4352,6 +4486,37 @@ for (dataset_name in names(datasets_and_response_models)){
 }
 message("\n\n----------------------All tests complete!")
 write_results_if_needed(force = TRUE)
+run_provenance_after = capture_comprehensive_run_provenance(repo_root, script_path)
+run_results_file_after = comprehensive_result_file_identity(results_file, include_sha256 = TRUE)
+attempt_manifest_provenance = if (is.null(attempt_manifest_writer)) {
+	list(
+		enabled = FALSE,
+		path = NA_character_,
+		identity = list(exists = FALSE, bytes = 0, sha256 = NA_character_)
+	)
+} else {
+	list(
+		enabled = TRUE,
+		path = normalizePath(attempt_manifest_env, winslash = "/", mustWork = TRUE),
+		identity = comprehensive_result_file_identity(attempt_manifest_env, include_sha256 = TRUE)
+	)
+}
+run_provenance_file = comprehensive_run_provenance_sidecar_path(results_file, run_provenance_started_at, Sys.getpid())
+write_comprehensive_run_provenance(
+	run_provenance_file,
+	list(
+		schema_version = 2L,
+		results_file = normalizePath(results_file, winslash = "/", mustWork = FALSE),
+		command_args = args,
+		results_file_before = run_results_file_before,
+		results_file_after = run_results_file_after,
+		started_at_utc = format(run_provenance_started_at, "%Y-%m-%dT%H:%M:%OS6Z", tz = "UTC"),
+		completed_at_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS6Z", tz = "UTC"),
+		attempt_manifest = attempt_manifest_provenance,
+		before = run_provenance_before,
+		after = run_provenance_after
+	)
+)
 
 unset_num_cores()
 rm(list=ls())

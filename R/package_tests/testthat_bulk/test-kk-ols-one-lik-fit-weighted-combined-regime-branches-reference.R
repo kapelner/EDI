@@ -36,7 +36,7 @@ mk_fixture <- function(seed = 1L, n = 30L) {
 	list(inf = inf, priv = priv, n = n)
 }
 
-ref_weighted_beta <- function(priv, weights, regime) {
+ref_weighted_inputs <- function(priv, weights, regime) {
 	kk_w <- EDI:::kk_pair_and_reservoir_bootstrap_weights(priv, weights)
 	KK <- priv$cached_values$KKstats
 	m <- KK$m; nRT <- KK$nRT; nRC <- KK$nRC; nR <- nRT + nRC
@@ -56,15 +56,39 @@ ref_weighted_beta <- function(priv, weights, regime) {
 		w_comb <- kk_w$reservoir_weights
 		j <- 2L
 	}
-	fit <- stats::lm.wfit(x = X_comb, y = y_comb, w = w_comb)
-	unname(fit$coefficients[j])
+	list(X = X_comb, y = y_comb, w = w_comb, j = j)
+}
+
+ref_weighted_beta <- function(priv, weights, regime) {
+	d <- ref_weighted_inputs(priv, weights, regime)
+	fit <- stats::lm.wfit(x = d$X, y = d$y, w = d$w)
+	unname(fit$coefficients[d$j])
+}
+
+with_weighted_fast_ols_spy <- function(inputs, fit_call) {
+	fast_ols <- get("fast_ols_cpp", envir = asNamespace("EDI"))
+	state <- new.env(parent = emptyenv())
+	state$calls <- 0L
+	local_mocked_bindings(fast_ols_cpp = function(X, y, ...) {
+		state$calls <- state$calls + 1L
+		expect_equal(unname(X), unname(inputs$X * sqrt(inputs$w)), tolerance = 0)
+		expect_equal(as.numeric(y), as.numeric(inputs$y * sqrt(inputs$w)), tolerance = 0)
+		fast_ols(X, y, ...)
+	}, .package = "EDI")
+	value <- fit_call()
+	list(calls = state$calls, value = value)
 }
 
 test_that("combined regime (m>0, nRT>0, nRC>0): the weighted estimate matches an independent lm.wfit reference exactly", {
 	f <- mk_fixture(1L)
 	weights <- runif(f$n, 0.5, 2)
-	est <- f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
+	inputs <- ref_weighted_inputs(f$priv, weights, "combined")
+	spy <- with_weighted_fast_ols_spy(inputs, function() {
+		f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
+	})
+	est <- spy$value
 	expect_equal(as.numeric(est), ref_weighted_beta(f$priv, weights, "combined"), tolerance = 1e-8)
+	expect_equal(spy$calls, 1L)
 	se <- f$priv$last_weighted_refit$s_beta_hat_T
 	expect_true(is.finite(se) && se > 0)
 })
@@ -74,8 +98,13 @@ test_that("matched-pairs-only regime (nRT=nRC=0): the weighted estimate matches 
 	weights <- runif(f$n, 0.5, 2)
 	f$priv$cached_values$KKstats$nRT <- 0L
 	f$priv$cached_values$KKstats$nRC <- 0L
-	est <- f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
+	inputs <- ref_weighted_inputs(f$priv, weights, "matched")
+	spy <- with_weighted_fast_ols_spy(inputs, function() {
+		f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
+	})
+	est <- spy$value
 	expect_equal(as.numeric(est), ref_weighted_beta(f$priv, weights, "matched"), tolerance = 1e-8)
+	expect_equal(spy$calls, 1L)
 	se <- f$priv$last_weighted_refit$s_beta_hat_T
 	expect_true(is.finite(se) && se > 0)
 })
@@ -84,8 +113,13 @@ test_that("reservoir-only regime (m=0): the weighted estimate matches an indepen
 	f <- mk_fixture(3L)
 	weights <- runif(f$n, 0.5, 2)
 	f$priv$cached_values$KKstats$m <- 0L
-	est <- f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
+	inputs <- ref_weighted_inputs(f$priv, weights, "reservoir")
+	spy <- with_weighted_fast_ols_spy(inputs, function() {
+		f$inf$compute_estimate_with_bootstrap_weights(weights, estimate_only = FALSE)
+	})
+	est <- spy$value
 	expect_equal(as.numeric(est), ref_weighted_beta(f$priv, weights, "reservoir"), tolerance = 1e-8)
+	expect_equal(spy$calls, 1L)
 	se <- f$priv$last_weighted_refit$s_beta_hat_T
 	expect_true(is.finite(se) && se > 0)
 })

@@ -139,6 +139,31 @@ studentized-statistic checks, it still shows no Quantile-specific signal.
 It does not test the historical comprehensive-test DGP or resolve its
 inflation result.
 
+**Installed direct-reference recheck 2026-10-20:**
+`Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-continuous-quantile-regr-reference-and-weighted-refit.R")'`
+passed 14 assertions against installed EDI 1.0.3. The fixture compares the
+unweighted estimate, SE, CI, and p-value to an independent `quantreg::rq`
+fit; checks the bootstrap-weighted estimate/SE against weighted `rq`; and
+covers rank-deficient and insufficient-df behavior. This is source/API
+reference evidence for the direct and weighted-refit paths only: it does not
+exercise the historical `model_formula = ~.` DGP, the three BRT p-value
+methods, or their Type-I-error rates. It therefore establishes no root cause
+and does not resolve the historical 428-row finding or its missing exact
+dataset/design/DGP/seed provenance.
+
+**Checkout-R source-loaded recheck 2026-10-20:**
+`Rscript -e 'pkgload::load_all("R/EDI", compile=FALSE, quiet=TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-continuous-quantile-regr-reference-and-weighted-refit.R", package="EDI")'`
+passed 14 assertions (0 failures, warnings, or skips) against the current
+checkout's R source. The test has no native-kernel calls; this adds current-R
+source/API evidence for the same direct and weighted-refit reference paths,
+not rebuilt-package or native validation. Test SHA-256:
+`81ec3fa8dfc168ae73bb653174f3bdd6943dab87f86d0a3610367f1c22424915`;
+quantile class source SHA-256:
+`d4d91801d945450d1b59458da4f01342473d0ea54cd35ca8b3dc1188889d5421`.
+The historical `model_formula = ~.` DGP, the three BRT p-value methods, and
+their Type-I-error rates remain untested by this fixture, so TODO-20's
+historical-result and cause gates remain open.
+
 - [x] Constructed a true-null fixture for `InferenceContinQuantileRegr`, drew
   several BRT (with-replacement) resamples, and inspected whether the
   resampled design's tie/duplication pattern correlates with `beta_hat_T` or
@@ -199,10 +224,18 @@ simple tie-count/fit-failure mechanism on that fixture, not a calibration
 test: 12 draws give a two-sided p-value floor of 2/12, and the fixture does
 not match the historical `~.` comprehensive-test cell.
 
-The historical audit baseline reports 428 null rows for `~.` with rejection
-rates 0.185 for `compute_rand_bootstrap_two_sided_pval` and 0.285 for its
-studentized variant (0.294 for symmetric-percentile-t). These aggregates
-strongly warrant replication, but do not identify a code defect. Once the
+**Aggregate reconciliation, 2026-10-20:** the checked-in audit baseline
+contains two distinct 428-row Quantile BRT cells. Rows 1137-1139 are labeled
+`~.` and report rejection rates 0.185 for
+`compute_rand_bootstrap_two_sided_pval`, 0.285 for its studentized variant,
+and 0.294 for symmetric-percentile-t; these match the finding above and the
+existing replay target. Separate rows 1153-1155 are labeled `~1` and report
+0.033 for ordinary, 0.047 for studentized, and 0.065 for smoothed BRT. The
+apparent formula-label discrepancy came from comparing only the latter block;
+the aggregate supports retaining `~.` as the target, not relabeling either
+cell. It remains aggregate-only: it has no per-row dataset, design, seed, or
+DGP fields and does not recover the exact historical run. These matching
+statistics warrant replication but do not identify a code defect. Once the
 active comprehensive run is idle, first recover the exact historical cell's
 dataset, design, formula, DGP, and seed schedule. Then freeze identical
 assignments/outcomes and actual BRT draw indices for a small independent
@@ -212,6 +245,31 @@ A mismatch on identical inputs points to implementation; parity plus
 recurrent calibration failure points toward estimator/inference instability.
 Do not use this fixture or its 12-draw diagnostics to dismiss the historical
 finding, and do not run the reproduction while TODO-56 is saturating CPU.
+
+**Historical-cell artifact search 2026-10-20:** read-only inspection of the
+checked-in `R/package_tests/comprehensive_results_audit_baseline.csv` found
+both aggregate 428-row BRT cells: `~.` at rows 1137-1139, matching the
+reported 0.185/0.285/0.294 rejection rates, and a separate `~1` cell at rows
+1153-1155 with 0.033/0.047/0.065 rates. This resolves the formula-label
+question in favor of the plan's existing `~.` target. The aggregate contains
+no per-row dataset, design, seed, or DGP fields. The existing
+`/tmp/edi-v105-todo20/` contains the matched-draw tie-sensitivity fixture and
+its run log, not the historical comprehensive rows. A bounded `/tmp` filename
+search found no separate TODO-20 raw result artifact. Thus the target formula
+is clarified, but the exact historical inputs remain unrecovered; the replay
+gate cannot yet be labeled an exact reproduction.
+
+**Artifact provenance pin, 2026-10-20:** the inspected baseline file is
+756,199 bytes with SHA-256
+`6daf9c3d6caff7bd09a65afef066de818e53dbe7d7e15b0a9b1dddac321cf125`; Git
+attributes its last change to `11f61e0a0dfa08b36c893cd7e9ced783662e9248`
+(`more tests`, 2026-09-24). The retained `/tmp/edi-v105-todo20/run.log` and
+`summary.csv` describe the 2026-10-14 installed-EDI 1.0.3 matched-draw
+tie-sensitivity pilot (50 cases × 12 draws), not the 428-row comprehensive
+artifact. The directory contains the pilot script, its per-draw and summary
+outputs, and within-case correlations only. These checks pin the aggregate
+source and distinguish the pilot from the historical run; they do not add
+historical input or per-case provenance.
 
 ### Matched-control replay runbook (prepared; not yet authorized to execute)
 
@@ -279,3 +337,26 @@ difference from matched OLS/RobustRegr controls weakens the tie-manufacturing
 hypothesis but does not, by itself, erase the historical finding. Keep
 TODO-21's `InferenceIncidKKGEE` study separate: share only a later cross-family
 synthesis, not fixtures, thresholds, or acceptance conclusions.
+
+## Fresh true-null simulation 2026-10-21 (300 reps; does NOT reproduce the inflation)
+
+`InferenceContinQuantileRegr`, Pima (Tr+Te) rows, n=120, `DesignFixedBernoulli`,
+response = glucose (integer, heavily tied) vs the same response with +/-0.4
+uniform jitter (ties broken), true null, B/r = 101, 300 seeds per cell, installed
+EDI 1.0.3 (no compile). Rejection rate at 0.05 (SE about 1.3 points):
+
+| formula | ties | rand | BRT percentile | BRT studentized | BRT sym-pct-t |
+|---|---|---|---|---|---|
+| ~1 | yes | 0.050 | 0.050 | 0.067 | 0.067 |
+| ~1 | no | 0.063 | 0.067 | 0.073 | 0.060 |
+| ~bmi+age | yes | 0.057 | 0.053 | 0.047 | 0.027 |
+| ~bmi+age | no | 0.053 | 0.043 | 0.047 | 0.040 |
+
+All 16 rates lie in 0.027-0.073, no p-value method differs between tied and
+jittered data, and medians are 0.44-0.55. The historical 0.185 / 0.285 was not
+reproduced and the tie-manufacturing hypothesis is not supported. Limits: one
+dataset and design, fixed n, B=101; the original harness cell was never
+recovered. Suggested disposition (owner's call): close as not reproducible.
+Scratch script `sim2021.R` and output were in the session scratchpad.
+
+**Closed 2026-10-21 by owner decision: not reproducible.** The remaining open boxes above are moot; no code change, and no documentation of BRT as unsuitable for quantile-regression classes.

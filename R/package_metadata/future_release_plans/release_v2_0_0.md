@@ -439,7 +439,7 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   - **Deprecation path (last 1.x release):** a warning on Rcpp-typed sources
     that shows the equivalent Eigen signature, plus a migration-guide entry
     (`TODO-9`).
-  - **Depends on:** `release_v1_1_0.md → TODO-49`, which ships the Eigen
+  - **Depends on:** `release_v1_2_0.md → TODO-31`, which ships the Eigen
     source form and the batched kernel.
   - Then delete the legacy branch of the signature detection in
     `install_stat_cpp()` and update the roxygen `@param`.

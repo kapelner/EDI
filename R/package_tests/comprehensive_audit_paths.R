@@ -34,10 +34,12 @@ resolve_comprehensive_audit_paths <- function(
 }
 
 # A baseline replacement is suite-wide: absent response files would make all
-# of their prior findings look resolved. This checks file presence/nonemptiness
-# only; the caller must still ensure each input is a complete result file.
+# of their prior findings look resolved. This checks file presence, required
+# result columns, and at least one row only; the caller must still establish
+# that each input is a complete, provenance-valid result file.
 validate_comprehensive_audit_baseline_inputs <- function(files) {
-  if (!is.character(files) || !length(files) || is.null(names(files)) || any(!nzchar(names(files)))) {
+  if (!is.character(files) || !length(files) || is.null(names(files)) ||
+      anyNA(names(files)) || any(!nzchar(names(files))) || anyDuplicated(names(files))) {
     stop("files must be a named character vector of response-level paths.", call. = FALSE)
   }
   present <- file.exists(files)
@@ -48,6 +50,26 @@ validate_comprehensive_audit_baseline_inputs <- function(files) {
     stop(
       "Refusing --write-baseline: missing or empty response-level inputs for: ",
       paste(missing_types, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  required_columns <- c(
+    "inference_class", "function_run", "status", "result", "result_1", "result_2",
+    "beta_T", "coverage_truth", "beta_T_in_confidence_interval", "error_message"
+  )
+  has_one_result_row <- vapply(files, function(path) {
+    first_row <- tryCatch(
+      utils::read.csv(path, nrows = 1L, check.names = FALSE, stringsAsFactors = FALSE),
+      error = function(e) NULL
+    )
+    !is.null(first_row) && nrow(first_row) == 1L && all(required_columns %in% names(first_row))
+  }, logical(1L))
+  invalid <- !has_one_result_row
+  if (any(invalid)) {
+    invalid_types <- names(files)[invalid]
+    stop(
+      "Refusing --write-baseline: response-level inputs must have the result schema and at least one data row for: ",
+      paste(invalid_types, collapse = ", "),
       call. = FALSE
     )
   }

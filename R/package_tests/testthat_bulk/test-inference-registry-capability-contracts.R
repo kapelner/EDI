@@ -18,6 +18,8 @@ test_that("inference registry exposes coherent metadata for representative famil
 	expect_identical(EDI:::infer_inference_response_types("InferencePropBetaRegr"), "proportion")
 	expect_true(EDI:::infer_inference_requires_kk_matching_design("InferenceCountPoissonKKGEE"))
 	expect_false(EDI:::infer_inference_requires_kk_matching_design("InferenceContinOLS"))
+	expect_true(EDI:::infer_inference_requires_kk_matching_design("InferenceIncidExactBinomial"))
+	expect_true(EDI:::get_inference_class_metadata("InferenceIncidExactBinomial")$requires_kk_matching_design)
 })
 
 test_that("effective components and capabilities include inherited contracts", {

@@ -1,6 +1,6 @@
 # Batched C++ Loop for the Custom Randomization Statistic
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-49`,
+> **Release:** v1.2.0 (moved from v1.1.0 on 2026-10-20, user decision) (`../future_release_plans/release_v1_2_0.md → TODO-31`,
 > added 2026-10-13, user decision). Randomization-inference CPU core: one new
 > C++ export plus R-side wiring in `InferenceRandCustom`; no new algorithm.
 > No Phase 0 dependency. The pattern already exists for the design side:

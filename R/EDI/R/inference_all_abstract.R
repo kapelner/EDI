@@ -839,6 +839,13 @@ Inference = R6::R6Class("Inference",
 					}
 					invisible(NULL)
 				}
+				# Do not let the worker wrapper's lexical environment retain X, chunks,
+				# or other parent-call temporaries. The payload for a worker is the
+				# assigned chunk plus the FUN it actually needs, not the whole batch.
+				deadline_env = new.env(parent = baseenv())
+				deadline_env$has_deadline = has_deadline
+				deadline_env$deadline = deadline
+				environment(check_deadline) = deadline_env
 				# In the comprehensive-test harness the parent process owns the timeout.
 				# Do deadline-bound work serially so socket/fork workers cannot hide a slow
 				# chunk from R.utils::withTimeout or stale worker options.
@@ -870,6 +877,11 @@ Inference = R6::R6Class("Inference",
 					check_deadline()
 					out
 				}
+				run_chunk_env = new.env(parent = asNamespace("EDI"))
+				run_chunk_env$FUN = FUN
+				run_chunk_env$budget = budget
+				run_chunk_env$check_deadline = check_deadline
+				environment(RUN_CHUNK) = run_chunk_env
 				flatten_chunk_results = function(results) {
 					if (length(results) == 0L) return(list())
 					unlist(results, recursive = FALSE, use.names = FALSE)

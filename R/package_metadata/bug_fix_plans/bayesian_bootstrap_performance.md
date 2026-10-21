@@ -235,6 +235,45 @@ repeat-run runtime validation remains required before release closure.
 No hang occurred. This is a small repeat-run smoke check, not the longer
 release-scale runtime-manifest or sanitizer validation; TODO-66 remains open.
 
+**Current-artifact follow-up, 2026-10-18:** after the user rebuilt the
+installed EDI 1.0.3 library, the checkout-R overlay run of
+`test-bayesian-bootstrap-non-reusable-worker-debug-path.R` passed all 25
+assertions (0 failures, warnings, or skips). `pkgload::load_all(...,
+compile = FALSE)` loaded a temporary DLL with MD5
+`c07ee5a3a9d9b1909684dee3bb345cfe`, matching the installed DLL. Three separate
+fresh R processes then exercised the ordinary `InferenceCountHurdleNegBin`
+path with `num_cores = 4` and `B = 16`; each completed under 60 seconds with
+16 finite values. The regression verifies the non-reusable branch clamps to
+one worker before warmup and does not fork. These are bounded safety checks,
+not the release-scale runtime-manifest or sanitizer validation; TODO-66 stays
+open, and the historical fork/OpenMP failure is not claimed as diagnosed.
+
+**Checkout-R overlay recheck, 2026-10-21:** the focused test was rerun with
+`timeout 180s Rscript -e 'pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-bayesian-bootstrap-non-reusable-worker-debug-path.R")'`;
+it exited 0 with 29 passes and no failures, warnings, or skips. This exercises
+the checked-out R dispatcher against an existing DLL; the test replaces
+`par_lapply` with a synchronous spy and does not enter the historical real-
+fork/OpenMP path. This invocation did not record a temporary DLL hash, so it
+is not native build provenance. It provides focused source-overlay dispatch
+evidence only and does not close sanitizer, historical-hang diagnosis, or
+release-scale instrumented validation.
+
+**Retained-trace/current-gate audit, 2026-10-21 (read-only):** a targeted
+`/tmp` search found no remaining TODO-66 debug-stress script, process trace,
+or hang log. The retained historical records remain the Oct 16 parent/worker
+`do_select`/`futex_wait_queue` trace and the Oct 18 standalone ordinary-path
+hangs (3/3 at B=151, four forked workers); neither is a live process or a
+successful exit. Current checkout R clamps the non-reusable worker to one
+core before warmup, and the focused checkout-source test passed 29 assertions
+through a synchronous dispatch spy, so it deliberately does not recreate the
+unsafe fork. The recorded bulk-CI run covers the older commit
+`c55198fef97b7ed24f1ea41e6556c7b88715b3ca`, not subsequent dirty sources;
+its test-shard timing is not sanitizer or fork-lifecycle evidence. Safe next
+step: use the existing deterministic serial-clamp contract in a current-tree
+bulk-CI/instrumented run when authorized; do not retry the historical real-
+fork reproduction. Current-source native build-flag authentication and the
+release-scale/instrumented gate remain open.
+
 - [ ] TODO-1: **Benchmark harness, before any change.** Promote the
   scratch timing (1 vs. 3 cores, B ∈ {1000, 5000}, OLS / logistic / Cox /
   Weibull / median regression / difference in means / beta regression) to
@@ -349,6 +388,76 @@ release-scale runtime-manifest or sanitizer validation; TODO-66 remains open.
      `bayesboot` here). Measure whether calling `rq.fit` directly with
      pre-built matrices is enough before writing a kernel.
 
+  **Release TODO-57 → linked plan TODO-6, OLS first slice, 2026-10-21:**
+  `InferenceContinOLS` now uses the existing
+  `fast_ols_cpp()` on the sqrt-weighted design and response when the weighted
+  design is full rank and the native coefficients are finite. Rank-deficient
+  or failed native fits retain the prior `stats::lm.wfit()` path, preserving
+  alias behavior. The broadened existing
+  `test-continuous-ols-weighted-bootstrap-wls-reference.R` checks the weighted
+  inputs passed to the native kernel, estimate and weighted SE against an
+  independent `lm.wfit` reference (tolerance `1e-10`), and the rank-deficient
+  fallback. It passed 10 assertions after
+  `pkgload::load_all("R/EDI", compile=FALSE)`; checkout R namespace, EDI 1.0.3,
+  loaded DLL SHA-256 `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  No compilation/build/install occurred. This advances only the plain OLS
+  class's Bayesian weighted-refit path; other OLS-family call sites and the
+  Cox/Weibull kernels remain unimplemented. This is an R-layer dispatch change
+  to the existing `fast_ols_cpp()` export; the test loaded checkout R over the
+  latest user-built DLL, which was not rebuilt for this edit. No performance
+  claim is made, and broader weighted-kernel validation remains required
+  before closure.
+
+  **Release TODO-57 → linked plan TODO-6, Lin OLS-family slice, 2026-10-21:**
+  `InferenceContinLin` now uses existing `fast_ols_cpp()` on the
+  sqrt-weighted design/response for full-rank finite fits, retaining
+  `stats::lm.wfit()` for rank-deficient or failed native fits. The existing
+  weighted-Lin reference fixture now checks the native weighted inputs and
+  compares the estimate and weighted SE to an independent `lm()` weighted-fit
+  reference; its treatment-alias fixture asserts the native path is skipped
+  and the prior NA fallback remains. The two focused files passed 38 and 6
+  expectations respectively after checkout `pkgload::load_all("R/EDI",
+  compile = FALSE)`. Loaded namespace was
+  `/home/kapelner/workspace/EDI/R/EDI` (EDI 1.0.3); the temporary DLL MD5 was
+  `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  This validates the checkout R dispatch against the existing user-built DLL;
+  no native rebuild, install, or performance claim is made. The other OLS
+  family call sites and planned Cox/Weibull weighted kernels remain open.
+
+  **Release TODO-57 → linked plan TODO-6, incidence risk-difference OLS-family slice, 2026-10-21:**
+  `InferenceIncidRiskDiff` now uses existing `fast_ols_cpp()` on the
+  sqrt-weighted design and response when the positive-row weighted design is
+  full rank and the returned coefficients are finite; deficient/failed native
+  attempts retain `stats::lm.wfit()` as fallback. The existing
+  `test-incidence-risk-diff-weighted-refit-reference.R` was extended to assert
+  exact native inputs and one native call, while comparing the treatment
+  coefficient with an independent `lm.wfit` reference (`1e-8`). The focused
+  test passed 8 assertions across four test blocks after checkout
+  `pkgload::load_all("R/EDI", compile=FALSE)`. Namespace
+  `/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3; temporary DLL MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  No compile/build/install or performance claim is made. This is a further
+  R-layer OLS-family caller only; native Cox/Weibull weighted kernels,
+  remaining weighted callers, and performance acceptance remain open.
+
+  **Release TODO-57 → linked plan TODO-6, KK one-likelihood OLS caller, 2026-10-21:**
+  `ContinKKOLSOneLikLikelihoodSource.fit_weighted_combined()` now dispatches
+  full-rank finite sqrt-weighted designs to the existing `fast_ols_cpp()`;
+  rank-deficient/error cases keep the `stats::lm.wfit()` fallback. The
+  existing `test-kk-ols-one-lik-fit-weighted-combined-regime-branches-reference.R`
+  now keeps its native-call spy active around the fit and checks the combined,
+  matched-only, and reservoir-only regimes against an independent `lm.wfit`
+  coefficient reference, with finite-positive HC2 SE checks. All 18
+  expectations passed under checkout `pkgload::load_all("R/EDI",
+  compile=FALSE)`. Namespace `/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3;
+  temporary DLL MD5 `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  This validates the R-layer dispatch against the existing DLL only; no native
+  rebuild/install or performance claim is made. Other OLS-family callers and
+  the planned native Cox/Weibull weighted kernels remain open.
+
 - [ ] TODO-7: **Thin the per-draw hot loop (F5).**
   - When the full-sample fit dropped no columns, call the weighted kernel
     directly for each draw and fall back to
@@ -399,6 +508,35 @@ release-scale runtime-manifest or sanitizer validation; TODO-66 remains open.
   and takes the rebuild path. This is checkout-source evidence for that
   loader's QR/rank behavior, not native/current-package validation or a
   performance measurement; TODO-7's native gates remain open.
+
+  **Positive-weight QR-certificate helper regression, 2026-10-21:**
+  `test-inference-hardened-qr-column-dropping-retry-reference.R` passed 56
+  assertions (`testthat::test_file(..., package = "EDI")`; exit 0), with
+  installed EDI 1.0.3 used for package setup. The added tests extract and
+  evaluate the checkout's hardened-fit helper directly: a full-rank,
+  strictly-positive-weight case checks one QR certificate and coefficients
+  against independent `stats::lm.wfit` at `1e-10`; a forced failed certified
+  fit and failed all-column fallback checks retry/drop-column behavior,
+  certificate reuse, and the same independent reference. This is source-helper
+  contract evidence only; it does not execute the Bayesian loader or native
+  weighted refit and does not close TODO-7's current-build/runtime or
+  performance gates.
+
+**TODO-6 focused Poisson-GLMM weighted-path smoke, 2026-10-21:**
+`Rscript -e 'pkgload::load_all("R/EDI", compile=FALSE, quiet=TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-kk-glmm-count-weighted-bootstrap-estimate-reference.R")'`
+passed all 10 assertions. The loaded namespace was checkout
+`/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3; the temporary `EDI.so` had
+MD5 `bfea6f47ab8b27618d5d8633e9021f91` and SHA-256
+`0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`, the
+latest user-built artifact. The positive-weight case exercises the existing
+`compute_weighted_glmm_bootstrap_estimate()` route through
+`fast_poisson_glmm_cpp()` and compares its dispatch result to a second call
+with the same native kernel; the remaining cases cover zero weights and
+mocked fallback behavior. This is a focused current-R/current-native path
+smoke, not an independent numerical oracle or evidence that TODO-6's planned
+Cox/Weibull/OLS native weighted-refit replacements have been implemented.
+Those equivalence and performance gates remain open; no build/install or
+benchmark was run.
 
 - [ ] TODO-8 *(stretch — decide after TODO-7's numbers)*: **Batched C++
   replicate loop** for the GLM families (logistic, Poisson, probit, NB,
@@ -537,6 +675,136 @@ replace the pre-change benchmark harness (TODO-1), source validation for the
 pending refactors, or the full before/after comparison (TODO-9); no TODO
 checkbox above is closed by this check alone.
 
+**TODO-10 source/test child, 2026-10-19:** the ordinary non-reusable
+Bayesian-bootstrap path now groups replicate indices by worker chunk and
+duplicates `inf_template` once per chunk, then refreshes the draw-specific
+Bayesian-bootstrap context and weights before each estimate. Its warmup
+closure likewise reuses one duplicate for its repeated warmup calls. The
+shared weighted-refit wrapper and the per-class mutation audit above remain
+the cache/warm-start isolation basis; no broad cache clear was added. The
+existing non-reusable-worker test now compares the ordinary and debug results
+with a manually reconstructed fresh-clone-per-draw reference for
+`InferenceCountHurdleNegBin`. That focused test passed 25 assertions against
+installed EDI 1.0.3. A source-loaded rerun also passed 25 assertions with
+`pkgload::load_all("R/EDI", compile = FALSE)` followed by
+`testthat::test_file(...)`; this exercised checkout R code against the
+installed EDI 1.0.3 native artifact. The loaded DLL path/hash was not captured,
+so this is not rebuilt-native provenance or performance validation. This
+closes only the one-worker-chunk source/test child of TODO-10. The six
+inheriting classes, true multi-core equivalence, benchmark acceptance, and
+the separate nonparametric-bootstrap/jackknife audit remain open; the release
+TODO-57 remains unchecked.
+
+**Matching-native follow-up, 2026-10-20:** installed this checkout with
+`EDI_UNITY=0` on 2026-10-19 (EDI 1.0.3; `EDI.so` SHA-256
+`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`) and
+reran the focused non-reusable-worker debug-path regression with
+`testthat::test_file(..., package = "EDI")`: all 25 assertions passed. This
+resolves only the native-artifact identity gap for that focused R contract;
+it is not performance or multi-core/fork acceptance and does not close
+TODO-57.
+
+**Dispatch contract audit 2026-10-20:** the focused
+`test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R`
+was run as
+`Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R")'`
+and passed seven assertions against installed EDI 1.0.3. It verifies the existing
+Bayesian wrapper delegates unchanged draws/core/progress arguments to the
+shared reusable-worker driver with `operation = "bayesian_boot"` and no
+loader arguments. Adjacent coverage already checks worker draw loading and
+weighted-refit cache isolation. No separate contract defect was found in
+those existing behaviors. This test does not validate TODO-2's unimplemented
+per-worker template/per-chunk draw-slice payload reduction or its serialized-
+bytes-before/after measure; adding a test for that new behavior without the
+source change would only encode an unmet implementation requirement. Thus
+performance is not the only remaining work: source TODO-2/3/5/6/7 and the
+installed-equivalence checks remain open alongside the benchmark gates.
+
+**Installed native dispatch-contract rerun, 2026-10-20:** the same focused
+test completed with exit status 0 and 7 assertions against installed EDI
+1.0.3 at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. The loaded
+`EDI.so` at
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` had MD5
+`a75519a9256c0b3121398032314291d4` and SHA-256
+`dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+This confirms that installed artifact's wrapper-to-driver argument contract;
+it does not load the checkout R source or establish current-checkout native,
+actual-fork, payload-size, or performance acceptance. Separately, the bounded
+actual-two-core test was attempted against the same installed package but the
+sandbox could not bind the local fork-cluster socket after 20 ports; no
+outside-sandbox rerun was authorized. Keep the actual-fork/performance gates
+open.
+
+**Reusable-worker public parity regression, 2026-10-20:** the existing
+`test-bayesian-bootstrap-debug-distribution-contract.R` now adds a fixed-seed
+public-path check for `InferenceAllSimpleAverageDiff` (`n=12`, `B=9`, one
+core). It confirms the class selects the reusable strategy, observes the
+real worker-state factory on the ordinary non-debug call, and requires exact
+replicate-vector identity with the same-seed serial debug path. The focused
+file passed 29 assertions after
+`pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. The loaded
+temporary `EDI.so` SHA-256 matched the installed EDI 1.0.3 DLL at
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`:
+`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+This establishes the checkout R public non-debug route reaches a reusable
+worker and preserves serial/debug draw order on this small fixture. It does
+not validate current-head native code, multi-core/fork behavior, serialized
+payload size, or performance; TODO-57 remains open.
+
+**TODO-57 bounded two-core request follow-up, 2026-10-20:** the same
+`InferenceAllSimpleAverageDiff` fixture now also requests `num_cores = 2` on
+the non-debug public path at `B = 9`, then compares its replicate vector
+exactly with the serial debug vector. The focused test was run under a
+60-second hard timeout, selecting only this test via `testthat::test_file(...,
+desc = "non-debug public distribution uses the reusable worker and preserves
+draw order")` after `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`;
+it passed all 8 assertions. The class opts into the reusable-worker path, and
+its weighted estimate is pure R, unlike the non-reusable duplicate-per-draw
+path implicated in the historical fork/OpenMP hang. However, the production
+routine's warm-up policy can reduce `actual_cores` to one when
+`t_boot_warmup * B` does not exceed the estimated fork-overhead threshold;
+at this deliberately tiny B, the test does not establish that a fork was
+actually entered. It is bounded request-path/order evidence only, not
+multi-core backend parity or hang-safety acceptance. A separate, slightly
+larger bounded case with observed `actual_cores == 2` and external timeout is
+still needed to close that child; no broad simulation, build, or install was
+run.
+
+**TODO-57 actual two-core fork follow-up, 2026-10-20:** the focused test now
+initializes the public two-worker fork cluster with `set_num_cores(2L)` and
+instruments the reusable Bayesian dispatch seam. It asserts that the public
+non-debug `B = 9` call passes `actual_cores == 2L` to the reusable-worker
+driver and that its full replicate vector exactly equals the fixed-seed
+serial/debug vector. The successful bounded command was:
+
+```sh
+timeout 60s Rscript -e 'pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-bayesian-bootstrap-debug-distribution-contract.R", desc = "non-debug public distribution uses the reusable worker and preserves draw order")'
+```
+
+It passed all 9 assertions outside the sandbox. The checkout R sources were
+loaded with `compile = FALSE`; the run reported EDI 1.0.3 and used the loaded
+native DLL `/tmp/RtmphAd5qY/pkgload8c99c742aaa67/EDI.so` (MD5
+`dfd5bf4384b5a0cc0d430fd70dab2a59`). The sandboxed attempt could not bind a
+local server socket; the approved outside-sandbox run completed. This is
+small-fixture fork/result-order evidence only. It does not validate current-
+head native code, performance, serialized payload, broader public procedures,
+or the historical non-reusable/OpenMP hazard; the release acceptance remains
+open for those current-head and performance gates.
+
+**TODO-10 nonparametric/jackknife path audit, 2026-10-20:** the generic
+non-reusable nonparametric-bootstrap loop and its debug fallback call
+`bootstrap_subset_inference()` once per draw; the non-reusable jackknife loop
+uses the same helper once per deletion. That helper duplicates both the
+design and inference object, subsets response/design state, resets matching
+and model caches, and clears fit/cache fields before fitting. Thus both paths
+do reconstruct per-draw objects, but not through the Bayesian path's simple
+`inf_template$duplicate()` pattern. This confirms TODO-10 item 5's audit
+target; it does not establish that a chunk-reused subset object can preserve
+the current isolation contract. No source change or new fixture is justified
+without an independent seeded fresh-subset reference covering state changes
+across draws. The Bayesian chunk-clone change remains scoped to its path; no
+nonparametric or jackknife parallel behavior was changed or validated here.
+
 **TODO-1 pilot blocker, 2026-10-14:** the promoted harness is available at
 `R/benchmark/benchmark_bayesian_bootstrap_performance.R` and supports a
 bounded pilot before the full B/core grid. The pilot command
@@ -548,6 +816,49 @@ installed and no benchmark result CSV was produced. Do not retry the pilot or
 full grid until `bayesboot` is already available; installing it requires user
 approval. TODO-1 therefore remains open/blocked on this dependency, and TODO-9
 cannot use a matching pre-change harness result yet.
+
+**TODO-1 provenance guard, 2026-10-20:** the benchmark wrapper's Git-status
+error path previously converted command failure to `character()`, which made
+`length(source_status) > 0L` false and recorded an unavailable worktree as
+clean. The wrapper now records status as `<unavailable>` and the dirty flag as
+`NA` on Git-status failure; clean and dirty states remain distinct. The new
+focused provenance reference test passed 13 assertions against installed EDI
+1.0.3; it parses and evaluates only the benchmark helper, using temporary Git
+repositories, and makes no benchmark calls. Correctness and coverage shard
+inventories validate at 1,164 files/6 shards and 1,416 files/102 shards. This
+closes only the wrapper's status-reporting defect; the `bayesboot` dependency,
+pilot, benchmark grid, and performance acceptance remain open. No compile,
+install, benchmark, or canonical-output write occurred.
+
+**TODO-57 retained-artifact audit, 2026-10-21:** the tracked historical table
+`marketing_plans/bb_bench2_results.txt` (SHA-256
+`c3d53f58aef9e0c7b9465a87f81da24fd32022c45975b52ebfe03d6c9d503a26`) records
+EDI 1.0.2 versus `bayesboot` 0.2.3 at n=500/B=1000, median of three runs,
+one and three cores, and 12 detected cores. It reports aggregate draw
+mean/SD and timings, not raw replicate vectors; it does not retain exact RNG
+seeds, host/R/BLAS identity, or a script/source hash. It is historical context,
+not a provenance-complete current before/after comparison. A targeted `/tmp`
+inventory found no TODO-57 benchmark output; the prior bounded pilot is
+recorded as stopping before timing because `bayesboot` was unavailable, with
+no result CSV. Existing focused dispatch/fork and weighted OLS-family tests
+advance narrow correctness subgates only; they do not establish current
+performance, serialized payload reduction, or native Cox/Weibull weighted
+kernels. No benchmark, download, build, or install occurred in this audit;
+TODO-57's primary performance and native-validation gates remain open.
+
+**Retained-artifact recheck, 2026-10-21 (read-only):** re-hashed the tracked
+`marketing_plans/bb_bench2_results.txt`; SHA-256 remains
+`c3d53f58aef9e0c7b9465a87f81da24fd32022c45975b52ebfe03d6c9d503a26` (5,234
+bytes, mtime 2026-10-07). Its summary still describes n=500/B=1000 and the
+three-run, one-/three-core aggregate comparison, with no seeds, raw draws, or
+environment/source identity. A bounded `/tmp` top-level name search for
+`*todo57*` returned no files or directories; this confirms no plainly named
+retained benchmark/payload artifact at that level, not a recursive absence
+claim. The available table therefore cannot support draw-level parity,
+serialized-bytes-before/after, current performance, or native weighted-refit
+acceptance. A new authorized, provenance-complete run (including payload
+measurements and fixed-seed vectors) is still required; no benchmark or code
+was run/changed in this recheck.
 
 ## Out of scope
 

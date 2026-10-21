@@ -21,6 +21,12 @@ methods.
 * `DesignFixedOptimal` bootstrap replays reuse the observed solver
   (`brt_solver` overrides).
 * Jackknife inference is centred on the jackknife estimate.
+* `compute_rand_two_sided_pval()` always uses randomization draws of `w`. For
+  incidence responses on matched-pair and Bernoulli designs it used to return
+  the Zhang exact combined test, which ignored the draws and was much more
+  conservative (200 simulated nulls: 1% vs 3% rejections at 0.05). The Zhang
+  test remains available through `type = "Zhang"`; a nonzero `delta` is
+  refused for incidence.
 * Methods that cannot give a valid answer now error: KK modified Poisson is
   Wald-only, smoothed randomization bootstrap is refused for categorical and
   bounded refits, exact tests refuse bootstrap weights, and

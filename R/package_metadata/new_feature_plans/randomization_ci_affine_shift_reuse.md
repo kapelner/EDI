@@ -247,7 +247,44 @@ is O(r) arithmetic and MC is moot.
   number of distribution computations in one CI (spy on
   `get_randomization_distribution_prefix`) — expect exactly 1 for a tier-1
   class, ≥ 10 for Wilcoxon. Lives in `test-ci-rand.R` or a new
-  `test-rand-ci-affine-reuse.R`.
+  `test-rand-ci-affine-reuse.R`. **Full-r warm-up under enabled CI Monte
+  Carlo, 2026-10-20:** the original one-distribution CI test explicitly set
+  `mc_enable = FALSE`, so it did not lock the TODO-3 requirement that an
+  affine cache warm-up temporarily disable sequential stopping even when the
+  caller's CI controls enable it. Added a focused public-CI regression to
+  `test-ci-rand.R`: with `r=99` and `mc_batch_size=20`, it records prefix
+  requests and asserts a complete `r` request with `batch_size=NULL` while
+  the temporary randomization MC control is disabled, verifies both cached
+  affine vectors have length `r`, and checks the prior private MC control is
+  restored. Source-overlay `pkgload::load_all("R/EDI", compile=FALSE)` plus
+  `testthat::test_file("R/package_tests/testthat_bulk/test-ci-rand.R")`
+  passed 86 expectations (0 failures, warnings, or skips). The R source was
+  from this checkout; native calls used the available installed EDI 1.0.3
+  library, so this is source-overlay contract evidence, not current-head
+  native validation. This adds no decision about the performance target,
+  default CI procedure, or optional TODO-8.
+  **Nonzero-null cache-write guard, 2026-10-20:** extended the same focused
+  test file to call the public randomization p-value path at `delta = 0.1`
+  before any delta-zero warm-up, then assert `t0s_rand`,
+  `t0s_rand_slopes`, and `t0s_rand_permutation_signature` remain `NULL`.
+  The source-overlay run now passes 89 expectations (0 failures, warnings,
+  or skips) with `compile = FALSE`. As above, native calls resolve to
+  installed EDI 1.0.3, so current-head native validation remains outstanding.
+  This correctness guard does not resolve or revise the measured-speed
+  target; the maintainer target decision and TODO-6 benchmark reconciliation
+  remain open.
+  **Current-checkout source/native recheck, 2026-10-20:** reran the complete
+  `test-ci-rand.R` file after loading checkout R with
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; it finished
+  `DONE` with no failures. The namespace was
+  `/home/kapelner/workspace/EDI/R/EDI`; the temporary loaded DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  matching the user-rebuilt installed artifact and checkout `R/EDI/src/EDI.so`
+  as independently byte-verified under release TODO-3. This supplies current
+  checkout-R coverage for the affine reference/CI tests against the matching
+  native artifact, but is not performance acceptance and does not resolve the
+  maintainer's target choice or TODO-6 benchmark reconciliation. No compile or
+  install occurred.
 - [x] **TODO-5: Tier 2 (opt-in after numerical verification).** Completed
   2026-10-09: fixed-permutation numerical checks select
   `InferenceContinKKOLSOneLik` at `1e-10`; `InferenceContinKKOLSIVWC` and
@@ -260,7 +297,8 @@ is O(r) arithmetic and MC is moot.
 - [ ] **TODO-6: Benchmark + doc.** The benchmark script
   `R/benchmark/benchmark_randomization_ci_affine_reuse.R` and README/roxygen
   documentation were added 2026-10-09. A full source-loaded, `compile = FALSE`
-  run completed 2026-10-13 with three interleaved repetitions per cell at
+  run completed 2026-10-13 with three measured repetitions per route and cell
+  in fixed affine-then-general order (no unmeasured warm-up; not interleaved) at
   `n ∈ {100, 500, 1000}`, `r ∈ {201, 1001, 2001}`. The measured affine/general
   median speedup ranges were 1.13–1.59× for `InferenceAllSimpleAverageDiff`
   and 1.05–2.14× for `InferenceContinOLS`; thus the projected 20–30× is not
@@ -305,16 +343,27 @@ is O(r) arithmetic and MC is moot.
   cache-key builder, which retains its old hash-on-omitted/NULL behavior for
   other callers. The stable-signature regression now checks precomputed-key
   identity, full-content mutation sensitivity, and the NULL signature. The
-  edited R files parse and their scoped `git diff --check` is clean; the
-  installed EDI 1.0.3 cannot validate unbuilt checkout edits, so the focused
-  test remains unrun pending an authorized source/native validation path. No
+  edited R files parse and their scoped `git diff --check` is clean; at this
+  point the installed EDI 1.0.3 could not validate unbuilt checkout edits, so
+  the focused test remained unrun pending a source/native validation path. No
   benchmark followed this change; it makes no speedup claim and leaves the
   20–30× target open. **CI inventory cross-check, 2026-10-18:** at checkout
   `66379c40`, `test-ci-rand.R` is scheduled in the correctness tier (5.0 s)
   and coverage tier (9.8 s); the stable-signature regression is scheduled in
   correctness (1 s) and coverage (`bootstrap`). These manifest rows establish
   that CI will schedule the focused tests, not that a particular branch was
-  exercised or that the unbuilt cache-key change passed. After authorized
+  exercised or that the unbuilt cache-key change passed. **Checkout-source
+  test, 2026-10-20:** `pkgload::load_all("R/EDI", compile = FALSE)` followed
+  by `testthat::test_file("R/package_tests/testthat_bulk/test-stable-signature-full-content-hash-sensitivity-and-cache-key-components-reference.R")`
+  passed 37 expectations (0 failures, warnings, or skips). The namespace path
+  was `/home/kapelner/workspace/EDI/R/EDI`; the temporary loaded `EDI.so` had
+  MD5 `8b3ca30492d7b1c790deeebe94b201ad`, matching the installed EDI 1.0.3
+  DLL (SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`). No
+  compilation or install occurred. This closes the source-loaded
+  cache-key-correctness subgate only; it does not supply benchmark evidence,
+  meet the 20–30× target, or resolve the maintainer's target/documentation
+  decision. After authorized
   native validation, retain the current full paired benchmark protocol and
   report its result separately; neither the manifest nor the prior installed
   EDI 1.0.3 profile closes the speed/documentation gate.
@@ -362,6 +411,29 @@ is O(r) arithmetic and MC is moot.
   TODO-2 remain open. Record owner, date, selected option, and rationale here.
   This is a target/acceptance decision only, not benchmark evidence or
   authorization to run another benchmark.
+
+  **Installed correctness recheck, 2026-10-20:** ran
+  `testthat::test_file("R/package_tests/testthat_bulk/test-ci-rand.R")`
+  against installed EDI 1.0.3 (no source loading/build). The complete focused
+  affine-randomization/CI reference suite passed. `find.package("EDI")` was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded DLL was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  SHA-256 `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  This adds installed-artifact correctness evidence only; it does not resolve
+  the performance target or owner decision, nor validate checkout R source.
+
+  **Post-reinstall focused correctness rerun, 2026-10-21:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-ci-rand.R",
+  reporter = "summary")` completed `DONE` (exit 0) against installed EDI
+  1.0.3, without `pkgload`, build, or install. The package path was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; the loaded native
+  DLL was 14,727,184 bytes with SHA-256
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`, and
+  installed `DESCRIPTION` reports Built `2026-10-21 11:12:19 UTC`. This
+  rechecks the focused public affine-CI correctness contracts on the latest
+  installed artifact only. It does not establish that installed R sources
+  match checkout, validate a current-checkout/native pair, measure speed, or
+  resolve the 20–30× target/documentation decision; TODO-2 remains open.
 
 - [x] **TODO-7: Reconcile the KK-GEE mixin read site.** Completed 2026-10-09:
   the never-populated legacy `t0s_rand + delta` branch was removed from the

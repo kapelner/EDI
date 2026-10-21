@@ -161,7 +161,34 @@ documented default change under the standing constraint.
   rare-covariate rank-deficient fallback versus rebuild at `1e-10`, matching
   vector renumbering, and survival event indicators. This validates the
   installed worker behavior, not the three performance-fixture distribution
-  comparison or the `boot` speed gate.
+  comparison or the `boot` speed gate. **Rare-factor extension, 2026-10-20:**
+  the existing bulk fixture now also omits a rare factor level from a draw,
+  asserts that the direct matrix override is cleared and the design rebuilds,
+  then compares the treatment estimate with an independent `model.matrix()` +
+  `lm.fit()` reference at `1e-10`. The whole test file passed 116/116
+  expectations after loading current checkout R sources via
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; the loaded DLL
+  was the temporary `EDI.so` under `/tmp/Rtmp.../pkgload...`, so this is R
+  source against the available installed native code, not a current-head
+  native validation. TODO-3/TODO-6 and release TODO-58 remain open.
+  **Checkout-loader three-fixture equality, 2026-10-21:** the existing
+  OLS/logistic/Cox comparison now invokes the loader definition extracted
+  from checkout R, rather than the installed package's loader. The same five
+  seeded draws per fixture still compare direct-subset estimates against both
+  the forced rebuild and independent `lm.fit()`/`glm.fit()`/`coxph()` at
+  `1e-10`. The focused file passed 118 expectations via
+  `timeout 300s Rscript -e 'pkgload::load_all("R/EDI", compile = FALSE,
+  quiet = TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-design-backed-bootstrap-worker-state-and-sample-loading-reference.R", package = "EDI")'`.
+  EDI reported version 1.0.3, checkout R namespace `/home/kapelner/workspace/EDI/R/EDI`,
+  checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and the
+  `pkgload` DLL `/tmp/RtmpriL676/pkgload375a7d910/EDI.so` with MD5
+  `bfea6f47ab8b27618d5d8633e9021f91`, matching the installed library DLL;
+  installed DLL SHA-256 is
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+  This closes the checkout-R three-fixture equality-test subgate only. The
+  loaded native library is the available installed artifact, not a rebuild
+  from current HEAD; original-size speed and authenticated EDI 1.0.2 parity
+  remain open.
 
 - [ ] TODO-4: **Skip the per-draw R `qr()` when the full-data design is
   full rank (F3).** Same change as `bayesian_bootstrap_performance.md →
@@ -194,6 +221,35 @@ documented default change under the standing constraint.
   propagation. The source regression passed with the installed-package test
   harness, but evaluates the checkout dispatcher separately; it is not a
   native/current-package validation. This checkbox remains open.
+
+  **TODO-58 loader-QR audit, 2026-10-20:** the remaining loader QR is not a
+  duplicate of the hardened-fit QR. For each new bootstrap row-index sample,
+  the loader checks the exact augmented matrix `[1, treatment, X_subset]`
+  before deciding whether it may retain the direct base-matrix subset. It
+  stores an exact `mode = "unweighted"` matrix certificate when full rank;
+  the fit helper consumes that same certificate to avoid a second QR. An
+  identical subsequent sample reuses the exact prior certificate and makes
+  no QR call. A repeated-row deficient draw must still be rank-checked before
+  selecting direct-matrix reuse; it clears `worker_priv$X` and the certificate
+  and marks the design matrix stale so the established rebuild-and-harden
+  fallback remains intact. Parent full rank alone cannot certify a bootstrap
+  sample, because resampling may omit levels/rows or duplicate observations.
+  Thus there is no safe QR removal in this loader without moving an equivalent
+  rank check or changing the required deficient-draw fallback. The existing
+  `test-design-backed-bootstrap-worker-state-and-sample-loading-reference.R`
+  regression `checkout sample loader reuses only an exact prior full-rank
+  matrix certificate` passed 9 assertions with:
+
+  ```sh
+  timeout 60s Rscript -e 'pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE); dll <- getLoadedDLLs()[["EDI"]][["path"]]; cat("DLL:", dll, "\n"); cat("MD5:", unname(tools::md5sum(dll)), "\n"); testthat::test_file("R/package_tests/testthat_bulk/test-design-backed-bootstrap-worker-state-and-sample-loading-reference.R", desc = "checkout sample loader reuses only an exact prior full-rank matrix certificate")'
+  ```
+
+  Checkout R code was loaded without compilation; EDI reported version 1.0.3
+  and loaded DLL `/tmp/RtmpN9KmwG/pkgload322599c37/EDI.so`, MD5
+  `a75519a9256c0b3121398032314291d4`. This verifies the exact-certificate
+  reuse and deficient-draw fallback contract only. No loader edit is
+  justified by this optimization request; TODO-58's benchmark and authentic
+  EDI 1.0.2 parity gates remain open.
 
 - [ ] TODO-5: **Fast-path hook + wire `compute_ols_bootstrap_parallel_cpp` (F5).**
   Add a `compute_fast_bootstrap_distr()` dispatch in the non-parametric
@@ -286,7 +342,191 @@ documented default change under the standing constraint.
   edit the canonical report from this pilot. Run the full 10-sample, original-B
   public-procedure comparison only in a quiet window.
 
+  **Parity-comparator provenance guard, 2026-10-20 (harness subgate only):**
+  `validate_parity_provenance()` checks the recorded package version against
+  the referenced `DESCRIPTION` and recomputes the DLL SHA-256 when those
+  referenced files still exist. The focused
+  `test-todo58-parity-provenance-guard-reference.R` passed 8 assertions using
+  temporary synthetic package/DLL artifacts: a matching pair is accepted,
+  while changed DLL bytes and a changed package version are rejected. This
+  verifies the comparator's local tamper-detection path only; it does not
+  authenticate artifacts after their source files are unavailable, establish
+  that either artifact is an authentic EDI installation, or provide any
+  EDI 1.0.2 distribution-parity evidence. TODO-6's original-size benchmark
+  and authentic 1.0.2 parity gates remain open.
+
+  **Exact historical-baseline version guard, 2026-10-21:** broadened the
+  existing synthetic comparator fixture with a coherent wrong-version case:
+  both the old artifact's recorded package version and its synthetic
+  `DESCRIPTION` say 1.0.1. The comparator rejects it because the baseline
+  contract requires exactly EDI 1.0.2. The focused file passed 89
+  expectations against installed EDI 1.0.3; it sources the checked-out
+  benchmark script and tests synthetic artifacts, not a benchmark or EDI
+  distribution parity. This closes only the exact-version rejection test gap;
+  authentic 1.0.2 artifacts/vectors, quiet-host original-size timing, and
+  current-source/native provenance remain open.
+
+  **Retained full-size public benchmark, 2026-10-20 (failed speed gate):**
+  read-only validation of `/tmp/edi-todo58-formal10-20261020-p5wFEL/results.csv`
+  (SHA-256
+  `eff896a4ca97c5f53184605df80f8fb5ad0428335e47abf066c009a2d2657e25`)
+  found 30 rows: exactly one sample numbered 1–10 for each accepted case,
+  with no duplicate `(case, sample)` keys and all rows using the manifest's
+  original `n`, `B`, fixture seed, and row seed. The recorded benchmark-script
+  SHA-256
+  (`fda10ec6115507a446d120f5258eb4fe6038e00827cf8ba52ec9191a64064441`)
+  matches the current harness. The output identifies installed EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, with DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  plus R-devel `r90668`, boot 1.3.32, survival 3.8.12, Linux/WSL2 host
+  identity, and MKL BLAS identity. At this audit, that installed path's
+  `DESCRIPTION` says it was built 2026-10-20 07:40:04 UTC; the CSV itself
+  does not record that field. For each of ten alternating timing
+  samples, `speedup` is `boot_complete_ms / EDI_procedure_ms`: the EDI timer
+  covers the public `compute_bootstrap_confidence_interval()` call only
+  (inference construction is separate), while the `boot` timer includes
+  `boot::boot()` plus `boot.ci(type = "perc")`. Both sides restart from the
+  accepted row seed; this is timing interleaving, not shared-index distribution
+  parity. Median speedups are OLS 0.137x, logistic 1.030x, and Cox 0.392x.
+  Thus the artifact establishes that OLS and Cox still miss the >=1x target;
+  only logistic clears it. The CSV has no adjacent provenance sidecar, run
+  timestamp, host-load/CPU-affinity/thread record, checkout HEAD/worktree
+  fingerprint, or installed R-source/build identity. It therefore does not
+  establish a quiet-host acceptance run despite carrying package/DLL, R,
+  dependency, host, BLAS, script, and exact case-key provenance. No paired
+  parity RDS or authentic installed EDI 1.0.2 package was found in the
+  retained artifacts; do not treat this timing output as parity evidence.
+  The artifact remains diagnostic and does not change thresholds or close
+  TODO-6 / release TODO-58.
+
+  **Retained per-fixture interval files, 2026-10-21 (not historical parity):**
+  a bounded read-only inventory found
+  `/tmp/edi_todo58_ols_b1000_20261020_{intervals,provenance}.csv`,
+  `/tmp/edi_todo58_logistic_b500_20261020_{intervals,provenance}.csv`,
+  `/tmp/edi_todo58_cox_b500_20261020_{intervals,provenance}.csv`, and
+  `/tmp/edi_todo58_ols_b1000_20261020.csv`. Their small provenance
+  rows identify installed EDI 1.0.3, DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  `boot` 1.3.32, `survival` 3.8.12, R-devel `r90668`, and MKL BLAS; they do
+  not identify an installed R-layer payload or an EDI 1.0.2 artifact. The
+  interval files compare the EDI public interval, type-8 quantiles of EDI's
+  own draws, an independent full `boot` stream, and `boot.ci()` applied to
+  EDI's draws. EDI's public intervals agree with its own type-8 draw
+  quantiles (exactly for OLS/Cox and within about 2.2e-11 for logistic),
+  while the independent stream and `boot.ci` interpolation differ slightly.
+  These are current-version diagnostic/reference outputs, not source-pinned
+  old/new EDI distribution parity. The full-size timing CSV remains the only
+  retained 10-sample public benchmark artifact and still lacks a sidecar,
+  quiet-host evidence, and installed R-source identity.
+
+  **Threshold provenance check, 2026-10-21:** Git history/blame traces the
+  acceptance `OLS percentile CI >= 1x boot; logistic and Cox >= 1x boot` to
+  the plan's initial 2026-10-07 user-decision commit
+  `7083f7e328abe0af547c9c25766cb57ba1328def`. No later threshold change or
+  alternative speed target was found in the linked plan/release history. The
+  existing target is therefore retained; the recorded full-size medians
+  (OLS 0.137x, logistic 1.030x, Cox 0.392x) leave OLS/Cox below it. No
+  authentic EDI 1.0.2 package, source-pinned old/new parity RDS, or equivalent
+  historical distribution artifact was found in the tracked inventory or the
+  targeted retained TODO-58 scratch paths. Both TODO-6 parity and OLS/Cox
+  speed gates remain open; no benchmark was run during this audit.
+
+  **Source-path performance audit, 2026-10-21 (no benchmark):** the public
+  percentile route obtains bootstrap estimates through
+  `approximate_bootstrap_distribution_beta_hat_T()` and the reusable
+  design-backed worker. The loader already subsets the cached full-data model
+  matrix rather than rebuilding the formula/model matrix, and passes its
+  per-draw rank certificate to `fit_with_hardened_qr_column_dropping()` so
+  that wrapper need not repeat the same QR. The loader's per-draw rank check
+  cannot safely be removed: deficient bootstrap samples must retain the
+  historical rebuild-and-harden fallback. OLS still refits each resample;
+  Cox uses the prebuilt C++ fitter with the `survival` R fallback, while the
+  benchmark reference calls `survival::coxph.fit()`. No correctness-preserving
+  R-only optimization was evident from this path audit; reducing loader data
+  frame allocations would need class-specific parity evidence because the
+  shared loader also refreshes the worker design state. The OLS/Cox >=1x speed
+  gate remains failed/open, and profiling, authentic historical parity, and
+  current-source/native validation remain outstanding. No behavior or
+  acceptance threshold changed.
+
+  **GitHub release-asset provenance, 2026-10-21 (metadata-only):** the
+  official GitHub release `v1.0.2`
+  (https://github.com/kapelner/EDI/releases/tag/v1.0.2; published
+  2026-10-07 09:53:47 UTC) has one uploaded asset,
+  `EDI_1.0.2.tar.gz`, size 3,263,678 bytes. GitHub's release-asset API
+  (https://api.github.com/repos/kapelner/EDI/releases/assets/618268034)
+  records uploader `kapelner` and digest
+  `sha256:01f79c8d52678cbd95af1b7ed25609a8f1c340f059531939c9c82fddd5c47af9`,
+  matching the existing local candidate's size and SHA-256. The release tag
+  ref points directly to commit `903ced0404921b7f4a6b5a8b1f7d0a6702466a31`
+  (not an annotated/signed tag); the asset digest authenticates the released
+  source bytes, but no native binary or bootstrap vectors are attached. The
+  only Actions run on that commit was Copilot Setup Steps
+  (https://github.com/kapelner/EDI/actions/runs/37603732050), whose artifact
+  metadata reports zero artifacts. The accepted vectors remain absent:
+  OLS `n=1000, B=1000`, fixture/row seeds `22422/414230`; logistic
+  `n=1000, B=500`, `19021/609739`; Cox `n=500, B=500`, `17961/628354`.
+  The accepted manifest is defined in
+  `R/benchmark/benchmark_todo58_public_bootstrap_ci.R::todo58_case_manifest()`.
+  A local 2026-10-21 inventory found the retained 10-sample EDI 1.0.3-vs-`boot`
+  artifact at `/tmp/edi-todo58-formal10-20261020-p5wFEL/results.csv`
+  (SHA-256 `eff896a4ca97c5f53184605df80f8fb5ad0428335e47abf066c009a2d2657e25`);
+  it stores interval/timing summaries, not raw bootstrap vectors. The other
+  retained per-case files are interval and provenance summaries only. No
+  accepted EDI 1.0.2 parity vectors were found locally. These timing artifacts
+  do not satisfy the separate quiet-host timing gate. Therefore source-archive
+  provenance is now established, but TODO-58 still
+  requires a controlled run against this authenticated 1.0.2 source, retention
+  of all three full distributions and RNG/package provenance, and exact parity
+  comparison with current EDI. No archive download, R run, build, or install
+  occurred during this audit.
+
+  **Benchmark/parity acceptance recheck, 2026-10-21 (read-only):** the
+  retained `/tmp/edi-todo58-formal10-20261020-p5wFEL/results.csv` is present,
+  31 lines (header + 30 samples: 10 each for OLS, logistic, Cox), and still
+  hashes to `eff896a4ca97c5f53184605df80f8fb5ad0428335e47abf066c009a2d2657e25`.
+  It uses the accepted original-size manifest exactly: OLS
+  `n=1000/B=1000/22422/414230`, logistic `1000/500/19021/609739`, Cox
+  `500/500/17961/628354`. It records installed EDI 1.0.3 and DLL SHA-256,
+  R/dependency versions, OS/kernel/architecture, BLAS, script path/hash, and
+  construction/procedure/`boot` timings. The directory contains only this CSV;
+  there is no `.provenance.rds` sidecar. Its recorded script SHA-256
+  `fda10ec6115507a446d120f5258eb4fe6038e00827cf8ba52ec9191a64064441`
+  matches neither the current worktree harness
+  (`12a5872495f45822af387887eedeafd6e423b74a8b5e591d339ad28da83d7c89`)
+  nor the tracked-HEAD harness
+  (`ba7c13741384b9863b9baa5b9da2fef6d129851f85869bb1522b8a754f6d5b19`),
+  and the CSV has no checkout/worktree identity, host-load, CPU-affinity, or
+  thread-state fields. The current worktree harness now defines sidecar
+  capture for loaded R-payload fingerprint, checkout status/diff identity,
+  and host load/CPU affinity, but no retained run exercises those fields yet.
+  Thus the old file is a full-size diagnostic, not
+  quiet-host/current-source acceptance: OLS and Cox medians
+  remain below the fixed 1x threshold (0.137x and 0.392x; logistic is 1.030x).
+  The currently retained per-case CSVs are interval/provenance summaries, not
+  bootstrap distributions; the previously cited combined B=64 parity CSV is
+  absent. The locally retained EDI 1.0.2 source tarball is authenticated by
+  the official GitHub release digest recorded above, but no accepted full-B
+  vectors from that source exist. Consequently no artifact establishes both
+  original-size timing acceptance and exact historical parity without new
+  execution; thresholds and open gates are unchanged.
+
 ## Out of scope
+
+- **Generic clone/subset fallback, audit 2026-10-20:** the ordinary
+  resampling dispatcher uses the reusable worker only for inference classes
+  that explicitly implement and pass `supports_reusable_bootstrap_worker()`;
+  its fallback still calls `bootstrap_subset_inference()` per draw. That
+  helper duplicates both the design and inference objects, and is also used
+  by debug/reporting and other bootstrap families. A class-agnostic shortcut
+  here is not a safe extension of the OLS/logistic/Cox worker optimization:
+  those callers have different worker contracts and error/reporting behavior.
+  Keep the fallback unchanged. Any future extension must first name the
+  eligible inference classes and preserve their fixed-draw results and
+  diagnostics against the existing clone path; add class-specific independent
+  parity tests before measuring performance. This audit does not change
+  TODO-58 acceptance or close its original-size public benchmark and EDI 1.0.2
+  parity gates.
 
 - The BCa jackknife cost (`type = "bca"` default): a definitional cost,
   revisit only if the percentile floor above is reached and BCa still

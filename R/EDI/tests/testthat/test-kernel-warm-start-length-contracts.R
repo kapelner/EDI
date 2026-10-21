@@ -35,7 +35,7 @@ bad_beta_calls <- list(
 	fast_beta_regression_weighted_cpp = function(b) fast_beta_regression_weighted_cpp(X, y_prop, rep(1, n), warm_start_beta = b),
 	fast_beta_regression_with_var_cpp = function(b) fast_beta_regression_with_var_cpp(X, y_prop, warm_start_beta = b),
 	fast_continuation_ratio_regression_cpp = function(b) fast_continuation_ratio_regression_cpp(X, y_ordinal, warm_start_beta = b),
-	fast_continuation_ratio_regression_weighted_cpp = function(b) fast_continuation_ratio_regression_weighted_cpp(X, y_ordinal, rep(1, n), warm_start_beta = b),
+	fast_continuation_ratio_regression_weighted_cpp = function(b) EDI:::fast_continuation_ratio_regression_weighted_cpp(X, y_ordinal, rep(1, n), warm_start_beta = b),
 	fast_continuation_ratio_regression_with_var_cpp = function(b) fast_continuation_ratio_regression_with_var_cpp(X, y_ordinal, warm_start_beta = b),
 	fast_log_binomial_regression_cpp = function(b) fast_log_binomial_regression_cpp(X, y_binary, warm_start_beta = b),
 	fast_log_binomial_regression_weighted_cpp = function(b) fast_log_binomial_regression_weighted_cpp(X, y_binary, rep(1, n), warm_start_beta = b),
@@ -49,7 +49,7 @@ bad_beta_calls <- list(
 	fast_poisson_regression_with_var_cpp = function(b) fast_poisson_regression_with_var_cpp(X, y_count, warm_start_beta = b),
 	fast_quasipoisson_regression_with_var_cpp = function(b) fast_quasipoisson_regression_with_var_cpp(X, y_count, warm_start_beta = b),
 	fast_probit_regression_cpp = function(b) fast_probit_regression_cpp(X, y_binary, warm_start_beta = b),
-	fast_probit_regression_weighted_cpp = function(b) fast_probit_regression_weighted_cpp(X, y_binary, rep(1, n), warm_start_beta = b),
+	fast_probit_regression_weighted_cpp = function(b) EDI:::fast_probit_regression_weighted_cpp(X, y_binary, rep(1, n), warm_start_beta = b),
 	fast_probit_regression_with_var_cpp = function(b) fast_probit_regression_with_var_cpp(X, y_binary, warm_start_beta = b),
 	fast_gaussian_lmm_cpp = function(b) EDI:::fast_gaussian_lmm_cpp(
 		X, seq_len(n) / 10, pair_group_id, warm_start_beta = b
@@ -195,7 +195,7 @@ test_that("working-weight and Fisher-information starts have the same boundary c
 		fast_probit_regression_cpp = function(w) fast_probit_regression_cpp(
 			X, y_binary, maxit = 20L, warm_start_weights = w
 		),
-		fast_probit_regression_weighted_cpp = function(w) fast_probit_regression_weighted_cpp(
+		fast_probit_regression_weighted_cpp = function(w) EDI:::fast_probit_regression_weighted_cpp(
 			X, y_binary, rep(1, n), maxit = 20L, warm_start_weights = w
 		),
 		fast_probit_regression_with_var_cpp = function(w) fast_probit_regression_with_var_cpp(
@@ -310,13 +310,13 @@ test_that("remaining exported kernels reject malformed Fisher-information dimens
 		fast_identity_binomial_regression_with_var_cpp = function() fast_identity_binomial_regression_with_var_cpp(
 			X, y_binary, j = 2L, warm_start_fisher_info = bad_fisher
 		),
-		fast_hurdle_negbin_cpp = function() fast_hurdle_negbin_cpp(
+		fast_hurdle_negbin_cpp = function() EDI:::fast_hurdle_negbin_cpp(
 			X, y_count, X, warm_start_fisher_info = bad_fisher
 		),
 		fast_hurdle_negbin_with_var_cpp = function() fast_hurdle_negbin_with_var_cpp(
 			X, y_count, X, j = 2L, warm_start_fisher_info = bad_fisher
 		),
-		fast_truncated_negbin_count_cpp = function() fast_truncated_negbin_count_cpp(
+		fast_truncated_negbin_count_cpp = function() EDI:::fast_truncated_negbin_count_cpp(
 			X, y_count_positive, warm_start_fisher_info = bad_fisher
 		),
 		fast_hurdle_poisson_glmm_cpp = function() EDI:::fast_hurdle_poisson_glmm_cpp(
@@ -333,7 +333,7 @@ test_that("remaining exported kernels reject malformed Fisher-information dimens
 		fast_logistic_regression_with_var_cpp = function() fast_logistic_regression_with_var_cpp(
 			X, y_binary, j = 2L, warm_start_fisher_info = bad_fisher
 		),
-		fast_continuation_ratio_regression_weighted_cpp = function() fast_continuation_ratio_regression_weighted_cpp(
+		fast_continuation_ratio_regression_weighted_cpp = function() EDI:::fast_continuation_ratio_regression_weighted_cpp(
 			X, y_ordinal, rep(1, n), warm_start_fisher_info = bad_fisher
 		),
 		fast_continuation_ratio_regression_with_var_cpp = function() fast_continuation_ratio_regression_with_var_cpp(
@@ -361,7 +361,7 @@ test_that("remaining exported kernels reject malformed Fisher-information dimens
 			X, y_binary, optimization_alg = "irls",
 			warm_start_fisher_info = bad_fisher
 		),
-		fast_probit_regression_weighted_cpp_IRLS = function() fast_probit_regression_weighted_cpp(
+		fast_probit_regression_weighted_cpp_IRLS = function() EDI:::fast_probit_regression_weighted_cpp(
 			X, y_binary, rep(1, n), optimization_alg = "irls",
 			warm_start_fisher_info = bad_fisher
 		),
@@ -443,7 +443,7 @@ test_that("remaining exported kernels reject malformed Fisher-information dimens
 		function(info) fast_probit_regression_cpp(
 			X, y_binary, optimization_alg = "lbfgs", warm_start_fisher_info = info
 		),
-		function(info) fast_probit_regression_weighted_cpp(
+		function(info) EDI:::fast_probit_regression_weighted_cpp(
 			X, y_binary, rep(1, n), optimization_alg = "lbfgs",
 			warm_start_fisher_info = info
 		),
@@ -487,5 +487,181 @@ test_that("survival and ordinal CLMM kernels reject malformed parameter starts",
 			X, y_time, y_dead, warm_start_params = numeric(2L * ncol(X) + 4L)
 		),
 		"warm_start_params must have length"
+	)
+})
+
+test_that("mixed-model kernels reject short and long model-parameter starts", {
+	# These seven kernels previously consumed caller starts before checking their
+	# dimensions, causing out-of-bounds access or silently accepting a malformed
+	# vector. Keep both sides of the length contract in the shipped, fast suite;
+	# every call fails at the input guard, before optimization.
+	bad_param_calls <- list(
+		fast_gaussian_lmm_cpp = list(
+			call = function(z) EDI:::fast_gaussian_lmm_cpp(
+				X, seq_len(n) / 10, pair_group_id, warm_start_params = z
+			),
+			n_params = ncol(X) + 2L
+		),
+		fast_hurdle_negbin_cpp = list(
+			call = function(z) EDI:::fast_hurdle_negbin_cpp(
+				X, y_count, X, warm_start_params = z
+			),
+			n_params = ncol(X) + 1L
+		),
+		fast_hurdle_poisson_glmm_cpp = list(
+			call = function(z) EDI:::fast_hurdle_poisson_glmm_cpp(
+				X, y_count, group_id, j_T = 1L, warm_start_params = z
+			),
+			n_params = ncol(X) + 1L
+		),
+		fast_logistic_glmm_cpp = list(
+			call = function(z) EDI:::fast_logistic_glmm_cpp(
+				X, y_binary, group_id, j_T = 1L, warm_start_params = z
+			),
+			n_params = ncol(X) + 1L
+		),
+		fast_ordinal_glmm_cpp = list(
+			call = function(z) EDI:::fast_ordinal_glmm_cpp(
+				X, y_ordinal, group_id, K = 3L, j_T = 1L,
+				warm_start_params = z
+			),
+			n_params = (3L - 1L) + ncol(X) + 1L
+		),
+		fast_poisson_glmm_cpp = list(
+			call = function(z) EDI:::fast_poisson_glmm_cpp(
+				X, y_count, group_id, j_T = 1L, warm_start_params = z
+			),
+			n_params = ncol(X) + 1L
+		),
+		fast_weibull_frailty_cpp = list(
+			call = function(z) EDI:::fast_weibull_frailty_cpp(
+				X, y_time, y_dead, group_id, warm_start_params = z
+			),
+			n_params = ncol(X) + 2L
+		)
+	)
+
+	for (name in names(bad_param_calls)) {
+		case <- bad_param_calls[[name]]
+		expect_error(
+			case$call(numeric(case$n_params - 1L)),
+			"warm_start_params must have length",
+			info = paste(name, "short")
+		)
+		expect_error(
+			case$call(numeric(case$n_params + 1L)),
+			"warm_start_params must have length",
+			info = paste(name, "long")
+		)
+		# Keep non-finite starts on the shipped sanitizer/Valgrind test path;
+		# these fail at the native argument guard before fitting begins.
+		for (bad_value in list(NaN, Inf)) {
+			bad_start <- numeric(case$n_params)
+			bad_start[[1L]] <- bad_value
+			expect_error(
+				case$call(bad_start),
+				"warm_start_params must contain only finite values",
+				info = paste(name, "non-finite", bad_value)
+			)
+		}
+	}
+
+	# The zero-augmented Poisson wrapper has its own public error contract for
+	# malformed argument shapes; unlike optimizer failures, this guard throws.
+	expect_error(
+		fast_zero_augmented_poisson_cpp(
+			X, y_count, X, is_hurdle = FALSE,
+			warm_start_params = numeric(2L * ncol(X) - 1L)
+		),
+		"warm_start_params must have length"
+	)
+	expect_error(
+		fast_zero_augmented_poisson_cpp(
+			X, y_count, X, is_hurdle = FALSE,
+			warm_start_params = numeric(2L * ncol(X) + 1L)
+		),
+		"warm_start_params must have length"
+	)
+
+	# Keep finite-value Fisher guards on the shipped sanitizer/Valgrind path.
+	# Each matrix has the exact expected dimensions so the finite-value guard,
+	# not a shape guard, is the behavior under test.
+	bad_fisher_calls <- list(
+		fast_gaussian_lmm_cpp = list(
+			call = function(H) EDI:::fast_gaussian_lmm_cpp(
+				X, seq_len(n) / 10, pair_group_id, warm_start_fisher_info = H
+			),
+			n_params = ncol(X) + 2L
+		),
+		fast_hurdle_negbin_cpp = list(
+			call = function(H) EDI:::fast_hurdle_negbin_cpp(
+				X, y_count, X, warm_start_fisher_info = H
+			),
+			n_params = ncol(X) + 1L
+		),
+		fast_hurdle_poisson_glmm_cpp = list(
+			call = function(H) EDI:::fast_hurdle_poisson_glmm_cpp(
+				X, y_count, group_id, j_T = 1L, warm_start_fisher_info = H
+			),
+			n_params = ncol(X) + 1L
+		),
+		fast_logistic_glmm_cpp = list(
+			call = function(H) EDI:::fast_logistic_glmm_cpp(
+				X, y_binary, group_id, j_T = 1L, warm_start_fisher_info = H
+			),
+			n_params = ncol(X) + 1L
+		),
+		fast_ordinal_glmm_cpp = list(
+			call = function(H) EDI:::fast_ordinal_glmm_cpp(
+				X, y_ordinal, group_id, K = 3L, j_T = 1L,
+				warm_start_fisher_info = H
+			),
+			n_params = (3L - 1L) + ncol(X) + 1L
+		),
+		fast_poisson_glmm_cpp = list(
+			call = function(H) EDI:::fast_poisson_glmm_cpp(
+				X, y_count, group_id, j_T = 1L, warm_start_fisher_info = H
+			),
+			n_params = ncol(X) + 1L
+		),
+		fast_weibull_frailty_cpp = list(
+			call = function(H) EDI:::fast_weibull_frailty_cpp(
+				X, y_time, y_dead, group_id, warm_start_fisher_info = H
+			),
+			n_params = ncol(X) + 2L
+		)
+	)
+	for (name in names(bad_fisher_calls)) {
+		case <- bad_fisher_calls[[name]]
+		bad_fisher <- diag(case$n_params)
+		bad_fisher[[1L, 1L]] <- Inf
+		expect_error(
+			case$call(bad_fisher),
+			"warm_start_fisher_info must contain only finite values",
+			info = name
+		)
+	}
+
+	# The ZAP wrapper returns a diagnostic result for native finite-value
+	# failures instead of throwing, so assert its established message contract.
+	bad_zap_start <- numeric(2L * ncol(X))
+	bad_zap_start[[1L]] <- NaN
+	zap_fit <- fast_zero_augmented_poisson_cpp(
+		X, y_count, X, is_hurdle = FALSE,
+		warm_start_params = bad_zap_start
+	)
+	expect_match(
+		zap_fit$exception_message,
+		"warm_start_params must contain only finite values"
+	)
+	bad_zap_fisher <- diag(2L * ncol(X))
+	bad_zap_fisher[[1L, 1L]] <- Inf
+	zap_fit <- fast_zero_augmented_poisson_cpp(
+		X, y_count, X, is_hurdle = FALSE,
+		warm_start_fisher_info = bad_zap_fisher
+	)
+	expect_match(
+		zap_fit$exception_message,
+		"warm_start_fisher_info must contain only finite values"
 	)
 })

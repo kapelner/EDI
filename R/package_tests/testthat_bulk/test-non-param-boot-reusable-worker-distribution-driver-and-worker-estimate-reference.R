@@ -72,18 +72,45 @@ test_that("serial worker reuse is keyed by operation and survives across calls u
 	expect_equal(log$created, 3L)
 })
 
-test_that("multi-core runs split the draws into contiguous chunks and never cache a worker", {
+test_that("multi-core runs send contiguous draw slices and initialize one worker per batch", {
 	f <- np_fx(); log <- wire(f)
 	chunks_seen <- NULL
+	dispatch_seen <- NULL
 	stub_priv(f$p, "par_lapply", function(X, FUN, n_cores, budget, show_progress, ...) {
 		chunks_seen <<- X
+		dispatch_seen <<- list(FUN = FUN, batches = X)
 		lapply(X, FUN)
 	})
 	out <- f$p$compute_reusable_bootstrap_worker_distribution(as.list(1:7), actual_cores = 3L)
-	expect_equal(chunks_seen, list(`1` = 1:3, `2` = 4:6, `3` = 7L))    # ceiling(7 / 3) = 3 draws per chunk
+	expect_equal(lapply(chunks_seen, function(batch) {
+		lapply(batch, function(task) unlist(task$draws, use.names = FALSE))
+	}), list(`1` = list(1:3), `2` = list(4:6), `3` = list(7L)))       # ceiling(7 / 3) = 3 draws per logical chunk
 	expect_equal(out, 10 * (1:7))
-	expect_equal(log$created, 3L)                                       # one worker per chunk
+	expect_equal(log$created, 3L)                                       # one worker state per worker batch
 	expect_null(f$p$cached_values$reusable_bootstrap_worker)
+
+	# Capture and serialize the production par_lapply boundary, not a lookalike
+	# task closure. The current FUN's fresh runner environment must not retain
+	# the full draws binding; every logical task in a worker batch carries only
+	# its assigned draw slice. Compare with the legacy full-draws-per-task shape.
+	current_env <- as.list(environment(dispatch_seen$FUN), all.names = TRUE)
+	expect_false("draws" %in% names(current_env))
+	current_payloads <- lapply(seq_along(dispatch_seen$batches), function(i) {
+		serialize(list(FUN = dispatch_seen$FUN, batch = dispatch_seen$batches[[i]]), NULL, xdr = FALSE)
+	})
+	expect_true(all(lengths(current_payloads) > 0L))
+	expect_equal(lapply(dispatch_seen$batches, function(batch) {
+		lapply(batch, function(task) unlist(task$draws, use.names = FALSE))
+	}), list(`1` = list(1:3), `2` = list(4:6), `3` = list(7L)))
+	legacy_fun <- local({
+		full_draws <- as.list(1:7)
+		function(batch) invisible(full_draws)
+	})
+	legacy_payloads <- lapply(seq_along(dispatch_seen$batches), function(i) {
+		serialize(list(FUN = legacy_fun, batch = seq_len(7L)), NULL, xdr = FALSE)
+	})
+	expect_true(all(lengths(legacy_payloads) > 0L))
+	expect_lt(sum(lengths(current_payloads)), sum(lengths(legacy_payloads)))
 	# More cores than draws: one draw per chunk.
 	chunks_seen <- NULL
 	f$p$compute_reusable_bootstrap_worker_distribution(as.list(1:2), actual_cores = 8L)
@@ -157,11 +184,18 @@ source_worker_distribution_fixture <- function(fail_draws = numeric()){
 	eval_env = new.env(parent = baseenv())
 	eval_env$private = new.env(parent = emptyenv())
 	eval_env$private$cached_values = list()
+	eval_env$fork_cluster = NULL
+	eval_env$mirai_cores = NULL
+	eval_env$get_global_fork_cluster = function() eval_env$fork_cluster
+	eval_env$get_global_mirai_cores = function() eval_env$mirai_cores
+	eval_env$creation_log = integer()
 	eval_env$private$get_resampling_draw_contract = function(operation) {
 		list(loader = "load_draw", estimator = "estimate_draw")
 	}
 	eval_env$private$create_reusable_bootstrap_worker = function() {
+		eval_env$creation_log = c(eval_env$creation_log, length(eval_env$creation_log) + 1L)
 		worker_state = new.env(parent = emptyenv())
+		worker_state$id = length(eval_env$creation_log)
 		worker_state$current = NULL
 		worker_state
 	}
@@ -176,6 +210,11 @@ source_worker_distribution_fixture <- function(fail_draws = numeric()){
 		invisible(NULL)
 	}
 	eval_env$private[["estimate_draw"]] = function(worker_state) 10 * worker_state$current
+	eval_env$private$par_lapply = function(X, FUN, n_cores, budget, show_progress, ...) {
+		eval_env$captured_batches = X
+		eval_env$captured_fun = FUN
+		lapply(X, FUN)
+	}
 	eval_env$tryCatch_calls = 0L
 	eval_env$tryCatch = function(expr, ...) {
 		eval_env$tryCatch_calls = eval_env$tryCatch_calls + 1L
@@ -205,4 +244,55 @@ test_that("checkout chunk guard still propagates resampling control conditions",
 		stop("resampling reached elapsed time limit")
 	}
 	expect_error(f$run(list(1, 2), actual_cores = 1L), "reached elapsed time limit")
+})
+
+test_that("checkout fork dispatch sends worker-local draw slices and creates one worker per node", {
+	f = source_worker_distribution_fixture()
+	# With two persistent nodes and three unchanged logical chunks, static fork
+	# assignment gives the first node two contiguous chunks and the second one.
+	f$fork_cluster = list("node-1", "node-2")
+	out = f$run(as.list(1:7), actual_cores = 3L)
+	expect_equal(out, 10 * (1:7))
+	expect_equal(length(f$creation_log), 2L)
+	expect_equal(length(f$captured_batches), 2L)
+	expect_equal(length(f$captured_batches[[1L]]), 2L)
+	expect_equal(length(f$captured_batches[[2L]]), 1L)
+	expect_equal(unlist(lapply(f$captured_batches, function(batch) {
+	lapply(batch, function(task) unlist(task$draws, use.names = FALSE))
+	}), use.names = FALSE), 1:7)
+	fun_env = environment(f$captured_fun)
+	expect_false(exists("draws", envir = fun_env, inherits = FALSE))
+	expect_false(exists("draws", envir = parent.env(fun_env), inherits = FALSE))
+})
+
+test_that("checkout worker batches preserve per-draw error recovery across logical chunks", {
+	f = source_worker_distribution_fixture(fail_draws = 5)
+	f$fork_cluster = list("node-1", "node-2")
+	out = f$run(as.list(1:7), actual_cores = 3L)
+	expect_equal(out, c(10, 20, 30, 40, NA_real_, 60, 70))
+	expect_equal(length(f$creation_log), 2L)
+})
+
+test_that("checkout mirai batching preserves each original logical-chunk seed", {
+	f = source_worker_distribution_fixture()
+	f$mirai_cores = 2L
+	f$private$seed = 71L
+	f$private[["estimate_draw"]] = function(worker_state) 10 * worker_state$current + runif(1L)
+	out = f$run(as.list(1:7), actual_cores = 3L)
+	expect_equal(length(f$creation_log), 2L)
+	expect_equal(length(f$captured_batches), 2L)
+	expect_equal(unlist(lapply(f$captured_batches, function(batch) {
+	lapply(batch, function(task) unlist(task$draws, use.names = FALSE))
+	}), use.names = FALSE), 1:7)
+	# The three logical chunks remain 1:3, 4:6, 7 and each gets the same
+	# private$seed + logical chunk id as before daemon-level batching.
+	expected = numeric(7L)
+	for (i in seq_len(3L)) {
+		set.seed(71L + i)
+		idxs = switch(as.character(i), "1" = 1:3, "2" = 4:6, "3" = 7L)
+		expected[idxs] = 10 * idxs + vapply(idxs, function(x) runif(1L), numeric(1L))
+	}
+	expect_equal(out, expected, tolerance = 0)
+	fun_env = environment(f$captured_fun)
+	expect_false(exists("draws", envir = fun_env, inherits = FALSE))
 })

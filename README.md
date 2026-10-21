@@ -164,8 +164,10 @@ treatment that was actually assigned, and the observed outcome — rather than
 a fresh design you're about to randomize. Load it into a matching `Design`
 subclass by passing the recorded assignment vector to
 `assign_w_to_all_subjects(w_precomputed = ...)`, then run the inference
-procedure appropriate to how the data were collected. Here, a stratified-block
-design with a survival (time-to-event) outcome:
+procedure appropriate to how the data were collected. Here, a trial that was
+block-randomized by sex, with a survival (time-to-event) outcome. The `Design`
+must match how the assignment was actually made, because randomization
+inference re-runs that design to build its null distribution:
 
 ```r
 library(EDI)
@@ -175,11 +177,18 @@ X = data.frame(
     age = rnorm(n, 60, 8),
     sex = factor(sample(c("M", "F"), n, replace = TRUE))
 )
-w = rbinom(n, 1, 0.5)                # the treatment actually assigned, historically
+# the treatment actually assigned, historically: block-randomized by sex,
+# i.e. within each sex, half the subjects (rounded) were treated
+w = integer(n)
+for (s in levels(X$sex)) {
+    idx = which(X$sex == s)
+    w[idx] = sample(rep(0 : 1, length.out = length(idx)))
+}
 event_time = rexp(n, 0.1)            # observed time (event or censoring)
 event_occurred = rbinom(n, 1, 0.8)   # 1 = death/event observed, 0 = right-censored
 
-des = DesignFixedBlocking$new(n = n, response_type = "survival", strata_cols = "sex")
+des = DesignFixedBlocking$new(n = n, response_type = "survival", strata_cols = "sex",
+                              equal_block_sizes = FALSE) # the two strata need not be the same size
 des$add_all_subjects_to_experiment(X)
 des$assign_w_to_all_subjects(w_precomputed = w)
 des$add_all_subject_responses(
@@ -198,7 +207,7 @@ inf$compute_score_confidence_interval()
 
 # Nonparametric bootstrap p-value and confidence interval
 inf$set_seed(42)
-inf$compute_bootstrap_two_sided_pval()
+inf$compute_bootstrap_two_sided_pval(type = "percentile") # the default (BCa) is NA with only two blocks
 inf$compute_bootstrap_confidence_interval()
 
 # Randomization (design-based) test and its inverted confidence interval

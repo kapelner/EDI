@@ -64,6 +64,187 @@ test_that("OLS affine slopes match the per-permutation QR reference", {
 	expect_equal(p$cached_values$t0s_rand_slopes, reference, tolerance = 1e-12)
 })
 
+rand_ols_ci_reference <- function(y, w_obs, X_covars, W, alpha) {
+	# Independent base-R least-squares reference for the documented sharp-null
+	# response y - delta*w_obs + delta*w_perm. `lm.fit` is applied to an
+	# explicitly assembled design matrix; this does not call EDI's estimator,
+	# cached affine values, or CI/p-value methods.
+	fit_treatment_coef <- function(response, w) {
+		X <- cbind(`(Intercept)` = 1, treatment = as.numeric(w), X_covars)
+		fit <- stats::lm.fit(X, as.numeric(response))
+		if (fit$rank < ncol(X) || !is.finite(fit$coefficients[2L])) return(NA_real_)
+		unname(fit$coefficients[2L])
+	}
+
+	t_obs <- fit_treatment_coef(y, w_obs)
+	w_draws <- as.matrix(W)
+	A <- C <- rep(NA_real_, ncol(w_draws))
+	for (b in seq_len(ncol(w_draws))) {
+		w_b <- as.numeric(w_draws[, b])
+		A[b] <- fit_treatment_coef(y, w_b)
+		C[b] <- fit_treatment_coef(w_b - w_obs, w_b)
+	}
+	ref_pval <- function(delta) {
+		t0 <- A + delta * C
+		finite <- is.finite(t0)
+		n_finite <- sum(finite)
+		if (!is.finite(t_obs) || n_finite == 0L) return(NA_real_)
+		min(1, max(2 / n_finite,
+			2 * min(sum(t0[finite] >= t_obs) / n_finite,
+				sum(t0[finite] <= t_obs) / n_finite)))
+	}
+
+	stopifnot(is.finite(t_obs), ref_pval(t_obs) >= alpha)
+	find_outer_rejected_endpoint <- function(lower) {
+		inner <- t_obs
+		outer <- t_obs + if (lower) -8 else 8
+		stopifnot(ref_pval(outer) < alpha)
+		for (i in seq_len(50L)) {
+			mid <- (inner + outer) / 2
+			if (ref_pval(mid) >= alpha) inner <- mid else outer <- mid
+		}
+		outer
+	}
+	ci <- c(find_outer_rejected_endpoint(TRUE), find_outer_rejected_endpoint(FALSE))
+	names(ci) <- paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+	attr(ci, "reference_pval") <- ref_pval
+	ci
+}
+
+test_that("OLS randomization CI inversion matches an independent reference with and without covariates", {
+	# A compact, deterministic Bernoulli fixture. Use a fixed, non-vacuous draw
+	# subset from its 2^8 assignment space, excluding the observed allocation and
+	# its complement so floating-point ties do not dominate the finite-sample tail.
+	des <- affine_rand_fixture(seed = 20261020L, n = 8L)
+	w_obs <- as.numeric(des$get_w())
+	des_priv <- des$.__enclos_env__$private
+	y <- as.numeric(des_priv$y)
+	X_covars <- as.matrix(des_priv$Xraw)
+	W_all <- t(as.matrix(expand.grid(rep(list(0:1), length(w_obs)))))
+	observed_col <- which(colSums(abs(W_all - w_obs)) == 0)
+	complement_col <- which(colSums(abs(W_all - (1 - w_obs))) == 0)
+	set.seed(20261021L)
+	W <- W_all[, sample(setdiff(seq_len(ncol(W_all)), c(observed_col, complement_col)), 64L), drop = FALSE]
+	perms <- list(w_mat = W)
+	alpha <- 0.2
+	ref_1 <- rand_ols_ci_reference(y, w_obs, matrix(numeric(0), nrow = length(y), ncol = 0L), W, alpha)
+	ref_dot <- rand_ols_ci_reference(y, w_obs, X_covars, W, alpha)
+	expect_true(all(is.finite(ref_1)) && ref_1[1L] < ref_1[2L])
+	expect_true(all(is.finite(ref_dot)) && ref_dot[1L] < ref_dot[2L])
+	expect_gt(abs(ref_1[1L] - ref_dot[1L]) + abs(ref_1[2L] - ref_dot[2L]), 1e-4)
+
+	for (formula_case in list(list(formula = ~1, reference = ref_1), list(formula = ~., reference = ref_dot))) {
+		inf <- InferenceContinOLS$new(des, model_formula = formula_case$formula, verbose = FALSE)
+		inf$num_cores <- 1L
+		priv <- inf$.__enclos_env__$private
+		unlockBinding("generate_permutations", priv)
+		priv$generate_permutations <- function(r) {
+			stopifnot(as.integer(r) == ncol(perms$w_mat))
+			perms
+		}
+		ci <- inf$compute_rand_confidence_interval(
+			alpha = alpha, r = ncol(W), pval_epsilon = 0.001,
+			show_progress = FALSE,
+			ci_search_control = list(seed = "none", mc_enable = FALSE, high_precision_confirm = FALSE)
+		)
+		for (delta in c(-0.73, 0.18, 1.13)) {
+			expect_equal(
+				inf$compute_rand_two_sided_pval(r = ncol(W), delta = delta,
+					show_progress = FALSE, permutations = perms),
+				attr(formula_case$reference, "reference_pval")(delta),
+				tolerance = 1e-12
+			)
+		}
+		expect_named(ci, c("10%", "90%"))
+		expect_equal(
+			as.numeric(ci), as.numeric(formula_case$reference), tolerance = 0.01,
+			info = paste("model_formula", paste(deparse(formula_case$formula), collapse = ""),
+				"actual", paste(signif(unname(ci), 8), collapse = ","),
+				"reference", paste(signif(unname(formula_case$reference), 8), collapse = ","))
+		)
+		expect_lt(ci[1L], ci[2L])
+	}
+})
+
+rand_ols_bootstrap_ci_reference <- function(y, w_obs, X_covars, draws, alpha) {
+	# Independent definition-level reference: refit OLS with lm.fit for each
+	# supplied bootstrap row/assignment draw, form the sharp-null statistic at
+	# each delta, and invert its two-sided empirical tail directly. It does not
+	# call EDI's affine-coefficient or CI-inversion helpers.
+	fit_two_responses <- function(i_b, w_b) {
+		X_b <- cbind(1, as.numeric(w_b), X_covars[i_b, , drop = FALSE])
+		fit <- stats::lm.fit(X_b, cbind(y[i_b], w_obs[i_b]))
+		if (fit$rank < ncol(X_b)) return(c(NA_real_, NA_real_))
+		unname(fit$coefficients[2L, ])
+	}
+
+	X_obs <- cbind(1, w_obs, X_covars)
+	fit_obs <- stats::lm.fit(X_obs, y)
+	stopifnot(fit_obs$rank == ncol(X_obs), is.finite(fit_obs$coefficients[2L]))
+	t_obs <- unname(fit_obs$coefficients[2L])
+	coefs <- lapply(draws, function(draw) fit_two_responses(draw$i_b, draw$w_b))
+	A <- vapply(coefs, `[[`, numeric(1), 1L)
+	c_slope <- 1 - vapply(coefs, `[[`, numeric(1), 2L)
+	ok <- is.finite(A) & is.finite(c_slope)
+	A <- A[ok]
+	c_slope <- c_slope[ok]
+	stopifnot(length(A) > 2 / alpha)
+
+	pval <- function(delta) {
+		t0 <- A + delta * c_slope
+		min(1, max(2 / length(t0), 2 * min(sum(t0 >= t_obs), sum(t0 <= t_obs)) / length(t0)))
+	}
+	breaks <- sort(unique((t_obs - A[abs(c_slope) >= 1e-12]) / c_slope[abs(c_slope) >= 1e-12]))
+	stopifnot(length(breaks) >= 2L)
+	span <- max(1, diff(range(breaks)))
+	probes <- c(breaks[1L] - span, (breaks[-1L] + breaks[-length(breaks)]) / 2, breaks[length(breaks)] + span)
+	accepted <- vapply(probes, pval, numeric(1)) >= alpha
+	stopifnot(!accepted[1L], !accepted[length(accepted)], any(accepted))
+	inside <- which(accepted)
+	ci <- c(breaks[inside[1L] - 1L], breaks[inside[length(inside)]])
+	names(ci) <- paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+	ci
+}
+
+test_that("OLS percentile randomization-bootstrap CI matches independent refits with and without covariates", {
+	des <- affine_rand_fixture(seed = 20261022L, n = 8L)
+	w_obs <- as.numeric(des$get_w())
+	des_priv <- des$.__enclos_env__$private
+	y <- as.numeric(des_priv$y)
+	X_covars <- as.matrix(des_priv$Xraw)
+	set.seed(20261023L)
+	B <- 32L
+	draws <- lapply(seq_len(B), function(i) {
+		i_b <- sample.int(length(y), length(y), replace = TRUE)
+		w_b <- integer(length(y))
+		w_b[sample.int(length(y), size = sample(seq_len(length(y) - 1L), 1L), replace = FALSE)] <- 1L
+		list(i_b = i_b, w_b = w_b)
+	})
+	alpha <- 0.2
+
+	for (formula_case in list(
+		list(formula = ~1, X = matrix(numeric(0), nrow = length(y), ncol = 0L)),
+		list(formula = ~., X = X_covars)
+	)) {
+		reference <- rand_ols_bootstrap_ci_reference(y, w_obs, formula_case$X, draws, alpha)
+		inf <- InferenceContinOLS$new(des, model_formula = formula_case$formula, verbose = FALSE)
+		inf$num_cores <- 1L
+		priv <- inf$.__enclos_env__$private
+		unlockBinding("generate_rand_bootstrap_draws", priv)
+		priv$generate_rand_bootstrap_draws <- function(B, bootstrap_type = NULL, materialize_w = TRUE) {
+			stopifnot(as.integer(B) == length(draws), isTRUE(materialize_w))
+			draws
+		}
+		ci <- inf$compute_rand_bootstrap_confidence_interval(
+			alpha = alpha, B = length(draws), pval_epsilon = 0.01,
+			show_progress = FALSE, type = "percentile"
+		)
+		expect_named(ci, c("10%", "90%"))
+		expect_equal(as.numeric(ci), as.numeric(reference), tolerance = 1e-10)
+		expect_lt(ci[1L], ci[2L])
+	}
+})
+
 test_that("affine CI reuse performs one distribution computation and matches the uncached search", {
 	des <- affine_rand_fixture(seed = 2003L, n = 24L)
 	fast <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
@@ -91,6 +272,41 @@ test_that("affine CI reuse performs one distribution computation and matches the
 	ci_slow <- slow$compute_rand_confidence_interval(alpha = 0.2, r = 99L, pval_epsilon = 0.02, show_progress = FALSE, ci_search_control = ctrl)
 	expect_identical(n_distribution_calls, 1L)
 	expect_equal(as.numeric(ci_fast), as.numeric(ci_slow), tolerance = 0.02)
+})
+
+test_that("affine CI warm-up forces a full distribution when sequential MC is enabled", {
+	des <- affine_rand_fixture(seed = 2007L, n = 24L)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	prefix_requests <- list()
+	original_prefix <- p$get_randomization_distribution_prefix
+	unlockBinding("get_randomization_distribution_prefix", p)
+	p$get_randomization_distribution_prefix <- function(r, delta, transform_responses, show_progress,
+		permutations, cache_key, batch_size = NULL, zero_one_logit_clamp = .Machine$double.eps){
+		prefix_requests[[length(prefix_requests) + 1L]] <<- list(
+			r = as.integer(r), batch_size = batch_size,
+			mc_enabled = isTRUE(p$randomization_mc_control$mc_enable)
+		)
+		original_prefix(r, delta, transform_responses, show_progress,
+			permutations, cache_key, batch_size, zero_one_logit_clamp)
+	}
+	ctrl <- list(
+		mc_enable = TRUE, mc_batch_size = 20L, mc_min_draws = 40L,
+		mc_conf_level = 0.99, high_precision_confirm = FALSE, seed = "none"
+	)
+	ci <- inf$compute_rand_confidence_interval(
+		alpha = 0.2, r = 99L, pval_epsilon = 0.02, show_progress = FALSE,
+		ci_search_control = ctrl
+	)
+	expect_length(ci, 2L)
+	expect_true(all(is.finite(ci)))
+	expect_true(any(vapply(prefix_requests, function(request){
+		request$r == 99L && is.null(request$batch_size) && !request$mc_enabled
+	}, logical(1))))
+	expect_length(p$cached_values$t0s_rand, 99L)
+	expect_length(p$cached_values$t0s_rand_slopes, 99L)
+	expect_null(p$randomization_mc_control)
 })
 
 test_that("affine CI refreshes a complete cache from different permutations", {
@@ -144,6 +360,21 @@ test_that("non-affine estimators and an early-stopped MC prefix never populate t
 	)
 	invisible(inf$compute_rand_two_sided_pval(r = 199L, delta = 0, show_progress = FALSE))
 	expect_null(p$cached_values$t0s_rand)
+})
+
+test_that("a nonzero-null p-value call cannot seed the delta-zero affine cache", {
+	des <- affine_rand_fixture(seed = 2008L, n = 24L)
+	inf <- InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
+	inf$num_cores <- 1L
+	p <- inf$.__enclos_env__$private
+	perms <- p$generate_permutations(51L)
+	invisible(inf$compute_rand_two_sided_pval(
+		r = 51L, delta = 0.1, transform_responses = "none",
+		show_progress = FALSE, permutations = perms
+	))
+	expect_null(p$cached_values$t0s_rand)
+	expect_null(p$cached_values$t0s_rand_slopes)
+	expect_null(p$cached_values$t0s_rand_permutation_signature)
 })
 
 make_exact_fisher_2x2 <- function(w, y) {
@@ -433,14 +664,17 @@ test_that("Zhang incidence inference is available through the exact API; randomi
 	)
 	ci_exact_serial <- inf_serial$compute_exact_confidence_interval(alpha = 0.10, pval_epsilon = 0.01)
 	ci_exact_parallel <- inf_parallel$compute_exact_confidence_interval(alpha = 0.10, pval_epsilon = 0.01)
-	p_rand <- inf_rand$compute_rand_two_sided_pval(delta = 0)
+	# Since 2026-10-20 the default rand p-value comes from the w draws, not the
+	# Zhang test; the Zhang test is reachable explicitly via type = "Zhang".
+	p_rand <- inf_rand$compute_rand_two_sided_pval(delta = 0, show_progress = FALSE)
+	p_rand_zhang <- inf_rand$compute_rand_two_sided_pval(delta = 0, type = "Zhang")
 	p_exact <- inf_serial$compute_exact_two_sided_pval_for_treatment_effect(delta = 0)
 
 	expect_length(ci_exact_serial, 2)
 	expect_true(all(is.finite(ci_exact_serial)))
 	expect_equal(ci_exact_parallel, ci_exact_serial, tolerance = 1e-8)
-	expect_true(is.finite(p_rand))
-	expect_equal(p_exact, p_rand, tolerance = 1e-12)
+	expect_true(is.finite(p_rand) && p_rand > 0 && p_rand <= 1)
+	expect_equal(p_exact, p_rand_zhang, tolerance = 1e-12)
 })
 
 test_that("Fisher exact inference matches fisher.test for iBCRD incidence", {

@@ -1,6 +1,6 @@
 # Closed-Form Randomization Nulls: Exact PMFs and Exact Conditional Moments Where They Exist
 
-> **Release:** v1.1.0 (`../future_release_plans/release_v1_1_0.md → TODO-40`;
+> **Release:** v1.2.0 (moved from v1.1.0 on 2026-10-20, user decision) (`../future_release_plans/release_v1_2_0.md → TODO-24`;
 > 2026-10-07, user decision). Additive: new `type` values on the existing
 > randomization p-value / CI entry points, default path unchanged until the
 > decision-gated TODO-7. No new response type, no new estimator. No Phase 0

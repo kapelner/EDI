@@ -62,3 +62,26 @@ test_that("the -3 start and default cold start select the same finite optimum as
 		expect_equal(as.numeric(r$b), as.numeric(good$b), tolerance = 1e-4)
 	}
 })
+
+test_that("the default quadrature is within the recorded bound of 320 nodes on the seeded CLMM fixture", {
+	f <- fx(301L)
+	# The seeded latent-logistic fixture is deterministic under the default R
+	# RNG convention described in vignette("reproducibility"); ordinal::clmm
+	# supplies the independent high-accuracy fit reference.
+	r320 <- K("fast_ordinal_clmm_cpp")(
+		f$X, f$y, f$g, 3L, 0L, n_gh = 320L
+	)
+	r20 <- K("fast_ordinal_clmm_cpp")(
+		f$X, f$y, f$g, 3L, 0L, n_gh = 20L
+	)
+	expect_true(r320$converged)
+	expect_true(r20$converged)
+	expect_equal(as.numeric(r320$b), unname(coef(f$mm)["x"]), tolerance = 0.1)
+	expect_equal(as.numeric(r320$log_sigma), f$clmm_logsig, tolerance = 0.02)
+	expect_true(is.finite(as.numeric(r320$ssq_b_T)) && as.numeric(r320$ssq_b_T) > 0)
+	expect_lte(
+		abs(as.numeric(r20$b) - as.numeric(r320$b)) / sqrt(as.numeric(r320$ssq_b_T)),
+		0.75
+	)
+	expect_lte(abs(as.numeric(r20$log_sigma) - as.numeric(r320$log_sigma)), 0.10)
+})

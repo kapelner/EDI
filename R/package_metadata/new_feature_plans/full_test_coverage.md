@@ -680,6 +680,23 @@ is explicitly not the target** -- see Non-goals below.
   triage is classified as straightforward executable kernel coverage; it
   remains pending at 613/778 lines (78.79%) until a later full report
   identifies and measures the remaining response-type/stepwise branches.
+
+  **Newer full-artifact status, 2026-10-21:** GitHub Actions run
+  `39135640699` completed on 2026-10-18 at source commit
+  `c55198fef97b7ed24f1ea41e6556c7b88715b3ca`; all 101 shard jobs and the
+  merge job succeeded, including both report-artifact upload steps. The
+  newer scheduled run `39558157827` (2026-10-21) was check-only: its plan,
+  shards, and merge jobs were skipped, so it is not a newer coverage report.
+  This supersedes run `38808821546` as the newest successful full cohort,
+  but the merged artifact was not available in the current workspace: the
+  artifact API request could not connect, and no downloaded report was
+  produced. The local checkout is now HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` with a dirty worktree, so the
+  run's commit identity does not attest the current checkout either. Keep
+  TODO-7's row-level classification/coverage status unchanged until the
+  merged report is retrieved and reconciled against the tracked registry
+  and prior full report; focused tests and run success alone do not establish
+  branch movement.
 - **TODO-8.** For genuinely-defensive/impossible-state `stop()`/assertion
   branches (the kind CLAUDE.md's own guardrail-pattern documents
   elsewhere in this codebase), decide case by case: (a) write a test that

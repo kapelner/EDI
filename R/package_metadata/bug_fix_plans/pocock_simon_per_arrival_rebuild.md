@@ -170,6 +170,40 @@ one with `NA` strata values).
   cannot supply the plan's isolated installed-1.0.2 comparison, and the
   baseline-vector half of TODO-5 remains open.
 
+  **Installed focused correctness recheck, 2026-10-20:**
+  `test-pocock-simon-level-rows-and-binary-match-structure-reference.R`
+  passed against installed EDI 1.0.3 (`testthat::test_file(...,
+  package="EDI")`; 67 expectations, 0 failures/warnings/skips). This is the
+  bounded regression for incremental level discovery, stable count-row
+  mapping, and the first-arrival missing stratum versus a literal `"NA"`
+  category, including the fixed-seed assignment-vector fixture. The loaded
+  package path was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; its DLL was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  14,727,184 bytes, mtime 2026-10-20 09:38:02 +0300, MD5
+  `a75519a9256c0b3121398032314291d4`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  Checkout `R/EDI/src/EDI.so` is byte-identical. The package has no embedded
+  Git SHA; checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`,
+  and an unrelated native source file is modified in the worktree. This
+  validates the available installed artifact's focused behavior, not a new
+  current-head native build. No source loading, build/install, benchmark, or
+  result regeneration occurred. TODO-5's isolated per-arrival timing and
+  authentic EDI 1.0.2 assignment-vector comparison remain open.
+
+  **Model-matrix deferral call-count regression, 2026-10-20:** broadened the
+  existing `test-pocock-simon-level-rows-and-binary-match-structure-reference.R`
+  fixture to spy on the private model-matrix builder. It asserts zero builder
+  calls across Pocock–Simon enrollment and exactly one on first post-enrollment
+  access, while retaining the fixed-seed assignment, incremental level-map,
+  and independent fit checks. The focused file passed with checkout R loaded
+  via `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`; namespace
+  `/home/kapelner/workspace/EDI/R/EDI`, temporary DLL SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`, package
+  version 1.0.3. No build/install occurred. This proves the R-layer deferral
+  contract for the fixture, not timing acceptance, current-head native build
+  provenance, or authentic EDI 1.0.2 assignment-vector parity.
+
 ### TODO-5 post-gate run protocol (prepared 2026-10-16)
 
 Do not run until TODO-56 is terminal, the current checkout has an explicitly
@@ -185,9 +219,12 @@ benchmark stdout and its optional CSV together as one isolated run record.
    covariate seed 6001 and assignment seed 6002; the harness reports
    per-arrival median/min/max at `t={10,100,500,1000}` and whole-sequence
    median. Require each checkpoint median `<= 0.5 ms` and no material
-   increasing trend from t=10 to t=1000. Preserve the printed result and
-   record the host/load fields above; the existing harness does not emit each
-   replicate's raw timing, so do not describe min/max as a confidence interval.
+  increasing trend from t=10 to t=1000. Preserve the printed result; when an
+  output CSV path is supplied, the harness now writes an adjacent provenance
+  sidecar with package/DLL hash, checkout HEAD and tracked-diff/worktree state,
+  seeds, R/platform/session, relevant thread environment, and host load/CPU
+  affinity at start and finish. The harness still does not emit each
+  replicate's raw timing, so do not describe min/max as a confidence interval.
 
 2. For semantic parity, run the same explicit fixture in an isolated EDI
    1.0.2 environment and the rebuilt checkout: the eight-row factor fixture
@@ -214,6 +251,9 @@ benchmark stdout and its optional CSV together as one isolated run record.
 
 This protocol is readiness documentation only: no benchmark or package
 execution was performed while TODO-56/rebuild authorization gates remain.
+The optional output sidecar/helper has a focused test for clean, dirty, and
+unavailable Git-command states; it does not itself validate the current
+installed benchmark artifact.
 
 ## Implementation and validation (2026-10-09)
 
@@ -253,6 +293,22 @@ that both enroll and map to different level rows.  TODO-2 remains open until
 that added regression is run against a rebuilt package; the earlier 53-test
 result did not cover this first-arrival case.
 
+**Source-loaded follow-up, 2026-10-20:** the focused reference file, including
+the first-arrival missing-stratum regression, passed 67/67 expectations after
+loading current checkout R sources with
+`pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE, export_all = FALSE)`;
+the 10 test blocks had no failures, warnings, or skips. The namespace path was
+`/home/kapelner/workspace/EDI/R/EDI`; pkgload used a temporary copy of the
+available EDI 1.0.3 native DLL. R was `R Under development (unstable)
+(2026-10-13 r90668)`. Checkout `R/EDI/src/EDI.so` and installed
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` had the
+same SHA-256:
+`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`. No
+compile or install occurred. This validates the R fix against that native
+library, not a matching current-head build. TODO-2's source behavior is
+confirmed; TODO-5's installed timing, authentic 1.0.2 assignment-vector
+parity, and release-provenance gates remain open.
+
 TODO-5 remains open for the prohibited installed-package rebuild and report
 refresh. Its additional “within 10x of carat” criterion is infeasible under
 the same item allowing up to 0.5 ms per arrival: 1000 public R calls at that
@@ -276,6 +332,65 @@ not validation of newer checkout source. The test checks correctness and
 stable mappings; it does not count operations or establish timing acceptance.
 TODO-5 remains open for the isolated, provenance-pinned timing run and the
 authentic EDI 1.0.2 assignment-vector replay described above.
+
+**Installed benchmark diagnostic, 2026-10-20 (not acceptance):** ran
+`Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5 /tmp/edi-v105-todo60-bench-n8DtfP/benchmark.csv`
+against installed EDI 1.0.3 (Built 2026-10-19 20:31:50 UTC; R-devel
+r90668). Per-arrival medians at t=10/100/500/1000 were 0.50/0.70/0.45/0.65
+ms; whole-sequence median was 509.95 ms. The strict <=0.5 ms checkpoint
+criterion fails at t=100 and t=1000. No R job or competing user process was
+visible at start, but system load ranged 3.19--3.64 on 12 CPUs, so this was
+not a strictly idle/acceptance-clean run. The recorded checkout HEAD was
+`4f7a6e4ca82829e880c15a76699701a95e5e83b9`; the relevant implementation,
+focused-test, and benchmark files were clean, and no local build occurred.
+Installed DLL SHA-256 was
+`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`.
+The retained CSV is `/tmp/edi-v105-todo60-bench-n8DtfP/benchmark.csv`
+(SHA-256 `3a8fab5447a1aabe261597c62f25a393ca5eeab27d3d1542cbe219ce04fec88b`).
+This diagnostic does not close the timing gate; the authentic EDI 1.0.2
+assignment-vector comparison remains open as well.
+
+**Installed R-layer provenance follow-up, 2026-10-21:** the optional
+benchmark sidecar now records the loaded EDI namespace path and a deterministic
+SHA-256 over the sorted relative paths and per-file hashes under its `R/`
+directory. The focused provenance test passed 23 expectations, including a
+synthetic payload-change check and a digest of the actually loaded installed
+namespace. This closes the harness's prior installed-R-layer fingerprint gap;
+it does not authenticate historical timing CSVs, establish timing acceptance,
+or supply EDI 1.0.2 assignment vectors. No benchmark, build, or install ran.
+TODO-5 remains open.
+
+**Operation-count guard validation:** the focused level-rows reference test,
+including the operation-count assertions, passed 86 expectations across 10
+test blocks against installed EDI 1.0.3. The installed and checkout
+`R/EDI/src/EDI.so` files have SHA-256
+`ae4fddafdadfaad9209b6a7e5c7617963eb4150f2e7e95841aec81b232f68d94`. The
+exact invocation is not recorded here. This is installed-package test evidence,
+not a timing result or proof that the current checkout R source was loaded.
+The assertions guard against re-keying the enrolled prefix and accidental
+matrix construction; they do not bound named-map lookup or matrix resize/copy
+cost. TODO-5's isolated timing and authentic EDI 1.0.2 parity gates remain
+open.
+
+**Current artifact/source reconciliation, 2026-10-21 (read-only):** the
+retained Oct 20 `/tmp/edi-v105-todo60-bench-n8DtfP/benchmark.csv` remains
+SHA-256 `3a8fab5447a1aabe261597c62f25a393ca5eeab27d3d1542cbe219ce04fec88b`;
+only its 237-byte CSV and 184-byte stdout are present, with no adjacent
+provenance sidecar. Its per-arrival medians (0.50/0.70/0.45/0.65 ms at
+t=10/100/500/1000) miss the <=0.5 ms limit at t=100 and t=1000, and the
+recorded host load was 3.19--3.64 on 12 CPUs. The operation-count test result
+(86 expectations) is installed EDI 1.0.3 evidence with no recorded invocation;
+it does not establish current checkout R behavior or bound level-map lookup
+and matrix resize/copy costs. Static inspection of current R source confirms
+the compatible-schema preallocated row path, incremental level registration,
+and Pocock--Simon opt-out from assignment-time model-matrix rebuilds, but this
+does not authenticate a timed run. The 23-assertion sidecar test validates
+future instrumentation only and cannot retroactively authenticate the CSV.
+Next, obtain an authenticated EDI 1.0.2 fixed-seed assignment-vector baseline
+for parity; then, in an authorized quiet-host window, run the installed
+acceptance command from TODO-5 with a fresh output path and its provenance
+sidecar. No benchmark, build, install, or canonical write occurred in this
+audit.
 
 ## Out of scope
 

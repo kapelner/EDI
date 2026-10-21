@@ -32,6 +32,28 @@ test_that("count coefficients, theta and hurdle coefficients equal pscl::hurdle 
 	}
 })
 
+test_that("valid count warm starts preserve the independent pscl hurdle fit in both wrappers", {
+	f <- fx(6L)
+	hu <- suppressWarnings(pscl::hurdle(y ~ x1 + x2 | x1, data = f$d, dist = "negbin", zero.dist = "binomial"))
+	start <- c(unname(coef(hu))[1:3], log(unname(hu$theta)))
+	full <- K("fast_hurdle_negbin_with_var_cpp")(
+		f$X, f$y, f$Xh, 2L,
+		warm_start_params = start,
+		smart_cold_start = FALSE
+	)
+	lean <- K("fast_hurdle_negbin_cpp")(
+		f$X, f$y, f$Xh,
+		warm_start_params = start,
+		smart_cold_start = FALSE
+	)
+	for (r in list(full, lean)) {
+		expect_true(r$converged && r$hurdle_converged)
+		expect_equal(as.numeric(r$b), unname(coef(hu))[1:3], tolerance = 2e-3)
+		expect_equal(as.numeric(r$theta_hat), unname(hu$theta), tolerance = 5e-3)
+		expect_equal(as.numeric(r$hurdle_b), unname(coef(hu))[4:5], tolerance = 2e-3)
+	}
+})
+
 test_that("the reported variances are those of the requested coefficient in each part (1-based j)", {
 	f <- fx(4L)
 	hu <- suppressWarnings(pscl::hurdle(y ~ x1 + x2 | x1, data = f$d, dist = "negbin", zero.dist = "binomial"))

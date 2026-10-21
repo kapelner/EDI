@@ -73,10 +73,16 @@ test_that("smoothed BRT rejects categorical model refits while preserving real-v
 		expect_false("smoothed" %in% inf$get_supported_rand_bootstrap_pval_types())
 		expect_false("smoothed" %in% inf$get_supported_rand_bootstrap_ci_types())
 		expect_true("percentile" %in% inf$get_supported_rand_bootstrap_pval_types())
+		# A rejected request must not perturb the caller's stream: validation
+		# happens before any bootstrap draw or estimator fit is attempted.
+		rng_before <- .Random.seed
 		expect_error(inf$compute_rand_bootstrap_two_sided_pval(B = 3L, type = "smoothed", show_progress = FALSE),
 		             paste0("not supported for ", response_type, " responses"))
+		expect_identical(.Random.seed, rng_before)
+		rng_before <- .Random.seed
 		expect_error(inf$compute_rand_bootstrap_confidence_interval(B = 3L, type = "smoothed", show_progress = FALSE),
 		             paste0("not supported for ", response_type, " responses"))
+		expect_identical(.Random.seed, rng_before)
 		expect_error(priv$add_rand_bootstrap_smooth_noise(y, rep(0.1, n), response_type),
 		             paste0("not supported for ", response_type, " responses"))
 		expect_error(inf$approximate_rand_bootstrap_distribution_beta_hat_T(
@@ -85,7 +91,10 @@ test_that("smoothed BRT rejects categorical model refits while preserving real-v
 		if (identical(response_type, "ordinal")) {
 			jt <- InferenceOrdinalJonckheereTerpstraTest$new(des, verbose = FALSE)
 			expect_false("smoothed" %in% jt$get_supported_rand_bootstrap_pval_types())
+			expect_false("smoothed" %in% jt$get_supported_rand_bootstrap_ci_types())
 			expect_error(jt$compute_rand_bootstrap_two_sided_pval(B = 3L, type = "smoothed", show_progress = FALSE),
+			             "not supported for ordinal responses")
+			expect_error(jt$compute_rand_bootstrap_confidence_interval(B = 3L, type = "smoothed", show_progress = FALSE),
 			             "not supported for ordinal responses")
 		}
 	}
@@ -99,7 +108,10 @@ test_that("historically flagged smoothed classes follow their response and estim
 	incid_des$add_all_subject_responses(rbinom(n, 1L, 0.5))
 	incid_inf <- InferenceIncidKKCondLogitOneLik$new(incid_des, verbose = FALSE)
 	expect_false("smoothed" %in% incid_inf$get_supported_rand_bootstrap_pval_types())
+	expect_false("smoothed" %in% incid_inf$get_supported_rand_bootstrap_ci_types())
 	expect_error(incid_inf$compute_rand_bootstrap_two_sided_pval(B = 3L, type = "smoothed", show_progress = FALSE),
+	             "not supported for incidence responses")
+	expect_error(incid_inf$compute_rand_bootstrap_confidence_interval(B = 3L, type = "smoothed", show_progress = FALSE),
 	             "not supported for incidence responses")
 
 	set.seed(1802L)
@@ -110,7 +122,10 @@ test_that("historically flagged smoothed classes follow their response and estim
 	ordinal_des$add_all_subject_responses(as.integer(cut(rlogis(n), c(-Inf, -1, 0.4, 1.5, Inf))))
 	ordinal_inf <- InferenceOrdinalGCompMeanDiff$new(ordinal_des, verbose = FALSE)
 	expect_false("smoothed" %in% ordinal_inf$get_supported_rand_bootstrap_pval_types())
+	expect_false("smoothed" %in% ordinal_inf$get_supported_rand_bootstrap_ci_types())
 	expect_error(ordinal_inf$compute_rand_bootstrap_two_sided_pval(B = 3L, type = "smoothed", show_progress = FALSE),
+	             "not supported for ordinal responses")
+	expect_error(ordinal_inf$compute_rand_bootstrap_confidence_interval(B = 3L, type = "smoothed", show_progress = FALSE),
 	             "not supported for ordinal responses")
 
 	set.seed(1803L)

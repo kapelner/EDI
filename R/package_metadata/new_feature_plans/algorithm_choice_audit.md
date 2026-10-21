@@ -778,12 +778,13 @@ none of these numbers should be quoted as a measured result.
 - [x] TODO-6: **Cox tie-handling verification** (row L): DONE 2026-10-09.
   `fast_coxph_regression.cpp` is Breslow throughout (fit, neg-ll-only,
   robust sandwich), documented and parity-tested against
-  `coxph(ties = "breslow")`. Remaining follow-up: (a) **owner decision**:
-  offer Efron as an option or default (an accuracy change, not a speed change;
-  needs CSV and oracle regeneration). Follow-ups (b) and (c) were completed
+  `coxph(ties = "breslow")`. Remaining follow-up: (a) **owner decision made 2026-10-19**:
+  Efron as the default with `ties = "breslow"` exposed (an accuracy change,
+  not a speed change; needs CSV and oracle regeneration), implemented under
+  `release_v1_1_0.md → TODO-52` / audit TODO-39. Follow-ups (b) and (c) were completed
   under v1.0.5 TODO-69: the equivalence references and both R fallbacks now
   explicitly select Breslow.
-- [ ] TODO-7: Re-run this audit's method (not its conclusions) whenever a
+- [ ] TODO-7 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-52`, as a per-release pass): Re-run this audit's method (not its conclusions) whenever a
   new kernel family ships, and after each Prototype item resolves through
   the harness, to keep the summary table current.
 - [ ] TODO-8 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Replace the "Estimated speedup multiples" section's
@@ -1140,14 +1141,20 @@ target (AB), and the three `type`s from the bug sweep.
   prerequisite for exposing anything new, and it would have caught row L's
   silent Efron fallback. Design it once in the inference base classes, not
   per class.
-- [ ] TODO-39 (not scheduled: waits on the owner decision in TODO-6(a)): **`ties` for the Cox family** (row L). This is the owner decision
-  in TODO-6(a), now framed as "expose, and choose a default". It depends on
+- [ ] TODO-39 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-52`; owner decision made 2026-10-19: **Efron default, `ties = "breslow"` exposed**): **`ties` for the Cox family** (row L). This resolves the owner decision
+  in TODO-6(a). It depends on
   TODO-69 in `release_v1_0_5.md` (pin Breslow in the fallbacks first).
 - [ ] TODO-40 (scheduled with adaptive GH, `../future_release_plans/release_v1_2_0.md → TODO-11` (`performance_profiling_and_upgrades.md → TODO-153`)): **Quadrature dial** for GLMM/LMM/frailty (row C), shipped with
   adaptive GH (`performance_profiling_and_upgrades.md → TODO-153`). It should
   not ship before adaptive GH: a dial whose only cheap setting is plain
   low-node GH would invite inaccurate fits.
-- [ ] TODO-41 (not scheduled): Audit the exposed implementation toggles (`use_rcpp`,
+- [ ] TODO-41 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-52`): Audit the exposed implementation toggles (`use_rcpp`,
   `smart_cold_start_default`): every reachable path must fit the same model as
   the default, enforced by a parity test per toggle. Document them as
   developer options.
+- [ ] TODO-42 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-33`): **Amortize across runs** (lever 8 of "Beyond algorithm
+  choice"). Survey which pure-function results are recomputed across calls
+  and sessions, plan, then implement only approved caches.
+- [ ] TODO-43 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-34`): **Anytime results** (lever 9):
+  `randomization_ci_search_precision.md → TODO-2..6`, anytime-valid
+  confidence sequences in the randomization-CI search.

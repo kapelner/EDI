@@ -11,8 +11,8 @@
 > check results as assumption gates in its selection table; this plan
 > stands alone as the **absolute** half of model criticism ("does this
 > model's own assumptions hold"), the sibling is the **relative** half
-> ("which candidate fits best"). **Release target: v1.1.0**
-> (`release_v1_1_0.md → TODO-17z`; moved from v2.0.0 `TODO-6g` on
+> ("which candidate fits best"). **Release target: v1.3.0** (moved from v1.1.0 on 2026-10-20, user decision, via a brief stop in v1.2.0; the text below describing v1.1.0 predates the move)
+> (`release_v1_3_0.md → TODO-5..14`; moved from v2.0.0 `TODO-6g` on
 > 2026-09-05, user decision, resolving TODO-1(e)): this is the lighter
 > half — no fold/split substrate needed, checks are in-sample — so the
 > declaration contract and the pilot batteries ship in 1.x alongside the
@@ -305,9 +305,16 @@ front-door workflow.
   dropped 2026-09-06)** —
   discovery, and one rendering table with `SolverDiagnostics` rows
   (coordinate with `public_diagnostics_api_spec.md`).
-- [ ] TODO-3: **Pilot batteries** per §3's table, plus the
-  known-violation recovery tests; per-class rollout beyond the pilots
-  tracked as its own ledger thereafter.
+- [ ] TODO-3: **Pilot batteries** per §3's table, plus the known-violation recovery tests; per-class rollout beyond the pilots tracked as its own ledger thereafter. **Split 2026-10-20 into nine per-family items** (one per row of §3, class lists from §3B), each with its own known-violation recovery test; release homes in `release_v1_3_0.md → TODO-6..14`:
+  - [ ] TODO-3a: Cox PH / stratified Cox (6 classes) — `release_v1_3_0.md → TODO-6`.
+  - [ ] TODO-3b: Poisson / quasi-Poisson / robust-Poisson (4 classes) — `release_v1_3_0.md → TODO-7`.
+  - [ ] TODO-3c: Negative binomial / ZINB / hurdle (7 classes) — `release_v1_3_0.md → TODO-8`.
+  - [ ] TODO-3d: Incidence GLM family (logit / probit / log / identity / modified-Poisson links) (6 classes) — `release_v1_3_0.md → TODO-9`.
+  - [ ] TODO-3e: Ordinal regression family (proportional-odds, adjacent-category, continuation-ratio, cauchit / cloglog / probit / stereotype links) (8 classes) — `release_v1_3_0.md → TODO-10`.
+  - [ ] TODO-3f: OLS / robust (7 classes) — `release_v1_3_0.md → TODO-11`.
+  - [ ] TODO-3g: Beta / ZOIB / fractional logit (3 classes) — `release_v1_3_0.md → TODO-12`.
+  - [ ] TODO-3h: GEE (quasi tier) (4 classes) — `release_v1_3_0.md → TODO-13`.
+  - [ ] TODO-3i: GLMM classes (12 classes) — `release_v1_3_0.md → TODO-14`.
 - [ ] TODO-4: **Formula-grid wiring** (consume the sibling's grid engine
   once it exists, or a minimal local grid if this plan ships first per
   TODO-1(e)).

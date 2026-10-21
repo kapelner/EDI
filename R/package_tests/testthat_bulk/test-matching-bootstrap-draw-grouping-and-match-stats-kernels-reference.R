@@ -39,6 +39,47 @@ test_that("the matching bootstrap handles an empty reservoir", {
 	expect_equal(r$m_vec_b, c(1L, 1L, 2L, 2L))
 })
 
+test_that("multi-row reservoir draws preserve the existing seeded sample and RNG state", {
+	reservoir <- c(7L, 13L, 29L)
+	seed <- 20261020L
+	set.seed(seed)
+	expected <- sample(reservoir, 12L, replace = TRUE)
+	expected_rng <- .Random.seed
+	set.seed(seed)
+	r <- K("draw_matching_bootstrap_sample_cpp")(reservoir, matrix(integer(0), 0L, 2L), 12L)
+	expect_identical(as.integer(r$i_b), as.integer(expected))
+	expect_identical(.Random.seed, expected_rng)
+})
+
+test_that("a singleton reservoir unit is resampled with replacement without changing pair units", {
+	set.seed(31)
+	r <- K("draw_matching_bootstrap_sample_cpp")(7L, matrix(c(1, 2), 1, 2), 4L)
+	expect_length(r$i_b, 6L)
+	expect_equal(as.integer(r$i_b[1:4]), rep(7L, 4L))
+	expect_equal(r$m_vec_b, c(rep(0L, 4L), 1L, 1L))
+	expect_equal(as.integer(r$i_b[5:6]), c(1L, 2L))
+})
+
+test_that("singleton reservoir and multiple pair draws follow the seeded reference order", {
+	reservoir <- 7L
+	pair_rows <- matrix(c(1L, 2L, 3L, 4L, 5L, 6L), ncol = 2L, byrow = TRUE)
+	n_reservoir <- 4L
+	seed <- 20261021L
+	set.seed(seed)
+	expected_reservoir <- reservoir[sample.int(length(reservoir), n_reservoir, replace = TRUE)]
+	expected_pair_ids <- sample.int(nrow(pair_rows), nrow(pair_rows), replace = TRUE)
+	expected_pairs <- pair_rows[expected_pair_ids, , drop = FALSE]
+	expected_rng <- .Random.seed
+	expected_i_b <- c(expected_reservoir, as.integer(t(expected_pairs)))
+	expected_m_vec_b <- c(rep(0L, n_reservoir), rep(seq_len(nrow(pair_rows)), each = 2L))
+
+	set.seed(seed)
+	r <- K("draw_matching_bootstrap_sample_cpp")(reservoir, pair_rows, n_reservoir)
+	expect_identical(as.integer(r$i_b), expected_i_b)
+	expect_identical(as.integer(r$m_vec_b), expected_m_vec_b)
+	expect_identical(.Random.seed, expected_rng)
+})
+
 test_that("grouping gives pairs a shared cluster id, reservoir / NA units their own, with the active and reservoir flags", {
 	g <- K("compute_matching_grouping_cpp")(c(1, 1, 2, 2, 0, 0, NA))
 	expect_equal(as.numeric(g$cluster_id), c(1, 1, 2, 2, 3, 4, 5))

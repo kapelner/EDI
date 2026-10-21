@@ -52,6 +52,68 @@ test_that("debug = TRUE reproduces the non-debug distribution and its full summa
 	expect_equal(dbg$prop_illegal_values, 0)
 })
 
+test_that("non-debug public distribution uses the reusable worker and preserves draw order", {
+	des = bbdebug_design()
+	make_traced = function(num_cores = 1L, trace_dispatch = FALSE) {
+		obj = InferenceAllSimpleAverageDiff$new(des)
+		obj$num_cores = num_cores
+		obj$set_seed(20261020L)
+		private = obj$.__enclos_env__$private
+		expect_true(private$use_reusable_bootstrap_worker())
+		trace = new.env(parent = emptyenv())
+		trace$created = 0L
+		original_create = private$create_bootstrap_worker_state
+		unlockBinding("create_bootstrap_worker_state", private)
+		assign("create_bootstrap_worker_state", function(...) {
+			trace$created = trace$created + 1L
+			original_create(...)
+		}, envir = private)
+		lockBinding("create_bootstrap_worker_state", private)
+		if (isTRUE(trace_dispatch)) {
+			trace$actual_cores = integer()
+			unlockBinding("compute_bayesian_bootstrap_distribution_with_reused_workers", private)
+			assign("compute_bayesian_bootstrap_distribution_with_reused_workers", function(draws, actual_cores, show_progress = FALSE) {
+				trace$actual_cores = c(trace$actual_cores, as.integer(actual_cores))
+				private$compute_reusable_bootstrap_worker_distribution(
+					draws = draws,
+					actual_cores = actual_cores,
+					show_progress = show_progress,
+					operation = "bayesian_boot"
+				)
+			}, envir = private)
+			lockBinding("compute_bayesian_bootstrap_distribution_with_reused_workers", private)
+		}
+		list(obj = obj, trace = trace)
+	}
+
+	production = make_traced()
+	values = as.numeric(production$obj$approximate_bayesian_bootstrap_distribution_beta_hat_T(
+		B = 9L, show_progress = FALSE
+	))
+	expect_gt(production$trace$created, 0L)
+
+	debug_serial = make_traced()
+	debug_values = debug_serial$obj$approximate_bayesian_bootstrap_distribution_beta_hat_T(
+		B = 9L, show_progress = FALSE, debug = TRUE
+	)
+	expect_identical(values, debug_values$values)
+	expect_identical(debug_values$num_errors, rep(0L, 9L))
+
+	# The selected fixture is pure R in the weighted estimator, and the history
+	# of the fork hang is specific to the non-reusable duplicate-per-draw path.
+	# Still tear down any lazily created workers unconditionally like the
+	# adjacent multi-core debug test does.
+	on.exit(unset_num_cores(), add = TRUE)
+	set_num_cores(2L)
+	two_core_request = make_traced(num_cores = 2L, trace_dispatch = TRUE)
+	two_core_values = as.numeric(two_core_request$obj$approximate_bayesian_bootstrap_distribution_beta_hat_T(
+		B = 9L, show_progress = FALSE
+	))
+	expect_identical(two_core_request$obj$num_cores, 2L)
+	expect_identical(two_core_request$trace$actual_cores, 2L)
+	expect_identical(two_core_values, debug_values$values)
+})
+
 test_that("debug = TRUE under multi-core dispatch reproduces the single-core distribution", {
 	# obj_parallel$num_cores <- 2L below drives par_lapply() into its lazy-fork-
 	# cluster branch (inference_all_abstract.R's par_lapply()), which stores a

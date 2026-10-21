@@ -62,6 +62,13 @@ test_that("the ML fit equals lme4::lmer(REML = FALSE): coefficients, variance co
 	skip_if_not_installed("lme4")
 	f <- fx()
 	r <- K("fast_gaussian_lmm_cpp")(f$X, f$y, f$g)
+	# Exercise the affected kernel's valid warm-start branch against the same
+	# independent lme4 reference. The vector is the documented p + 2 layout:
+	# beta, log(sigma_e), log(sigma_b); it is finite and exactly sized.
+	warm_start <- c(0.9, 0.4, -0.2, log(0.7), log(0.9))
+	r_warm <- K("fast_gaussian_lmm_cpp")(
+		f$X, f$y, f$g, warm_start_params = warm_start
+	)
 	d <- data.frame(y = f$y, x1 = f$X[, 2], x2 = f$X[, 3], g = factor(f$g))
 	fit <- suppressMessages(lme4::lmer(y ~ x1 + x2 + (1 | g), data = d, REML = FALSE))
 	expect_true(r$converged)
@@ -71,6 +78,11 @@ test_that("the ML fit equals lme4::lmer(REML = FALSE): coefficients, variance co
 	expect_equal(sqrt(as.numeric(r$vcov[2, 2])), sqrt(as.matrix(vcov(fit))[2, 2]), tolerance = 5e-3)
 	# The score vanishes at the ML solution.
 	expect_lt(max(abs(K("get_gaussian_lmm_score_cpp")(f$X, f$y, f$g, as.numeric(r$params)))), 5e-2)
+	expect_true(r_warm$converged)
+	expect_equal(as.numeric(r_warm$b)[1:3], unname(lme4::fixef(fit)), tolerance = 2e-3)
+	expect_equal(exp(as.numeric(r_warm$params)[4:5]), rev(as.data.frame(lme4::VarCorr(fit))$sdcor), tolerance = 2e-3)
+	expect_equal(as.numeric(r_warm$neg_loglik), -as.numeric(logLik(fit)), tolerance = 1e-5)
+	expect_equal(sqrt(as.numeric(r_warm$vcov[2, 2])), sqrt(as.matrix(vcov(fit))[2, 2]), tolerance = 5e-3)
 })
 
 test_that("groups larger than a pair are rejected", {

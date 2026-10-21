@@ -65,8 +65,24 @@ test_that("a warm_start_params of the wrong length throws the length error", {
 	expect_error(f(d$X, d$y, warm_start_params = c(0.1, 0.2)), "warm_start_params must have length ncol\\(X\\) \\+ 1")
 })
 
-test_that("well-formed inputs do not trigger any guard and the fit converges", {
+test_that("a valid warm start agrees with a direct zero-truncated NB likelihood fit", {
 	d <- fx(seed = 37L)
-	r <- f(d$X, d$y)
+	p <- ncol(d$X)
+	nll <- function(par) {
+		mu <- as.numeric(exp(d$X %*% par[seq_len(p)]))
+		theta <- exp(par[p + 1L])
+		-sum(stats::dnbinom(d$y, size = theta, mu = mu, log = TRUE) -
+				log1p(-stats::dnbinom(0, size = theta, mu = mu)))
+	}
+	reference <- stats::optim(
+		c(log(mean(d$y)), 0, log(2)), nll, method = "BFGS",
+		control = list(reltol = 1e-12)
+	)
+	r <- f(d$X, d$y,
+		warm_start_params = reference$par + c(0.05, -0.05, 0.1),
+		smart_cold_start = TRUE)
+
 	expect_true(r$converged)
+	expect_equal(as.numeric(r$params), reference$par, tolerance = 2e-3)
+	expect_equal(as.numeric(r$neg_ll), reference$value, tolerance = 1e-5)
 })

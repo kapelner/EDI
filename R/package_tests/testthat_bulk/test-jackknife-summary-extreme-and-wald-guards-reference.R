@@ -52,6 +52,38 @@ test_that("compute_jackknife_summary caches 'jackknife_extreme_summary' when se_
 	expect_identical(f$inf$get_nonestimable_reason(), "jackknife_extreme_summary")
 })
 
+test_that("compute_jackknife_summary rejects finite draws when jackknife bias exceeds twice its standard error", {
+	f <- smd_boot_fixture()
+	theta_hat <- as.numeric(f$inf$compute_estimate(estimate_only = TRUE))[1L]
+	jack <- theta_hat + c(0.099, 0.100, 0.101, 0.102)
+	n_units <- length(jack)
+	jack_bar <- mean(jack)
+	bias_j <- (n_units - 1) * (jack_bar - theta_hat)
+	se_j <- sqrt(((n_units - 1) / n_units) * sum((jack - jack_bar)^2))
+
+	# Independently establish that the replicate-level extreme checks do not explain
+	# this result; the final |bias_j| > 2 * se_j clause is the intended guard.
+	# AverageDiff inherits the fallback EDI separation threshold rather than
+	# defining a class-local bootstrap threshold.
+	max_abs <- EDI:::EDI_SEPARATION_THRESHOLD
+	scale_ref <- max(1, abs(theta_hat), stats::median(abs(jack)))
+	jack_width <- diff(stats::quantile(jack, probs = c(0.025, 0.975), names = FALSE, type = 8))
+	expect_true(all(is.finite(jack)))
+	expect_true(all(abs(jack) < max_abs))
+	expect_true(jack_width < max_abs * scale_ref)
+	expect_true(is.finite(theta_hat - bias_j) && abs(theta_hat - bias_j) < max_abs)
+	expect_true(se_j < max_abs)
+	expect_gt(abs(bias_j), 2 * se_j)
+
+	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", f$priv)
+	f$priv$approximate_jackknife_distribution_beta_hat_T_private <- function(unit = "auto") jack
+	s <- f$priv$compute_jackknife_summary("observation")
+	expect_true(all(is.na(c(s$estimate, s$bias, s$std_error))))
+	expect_equal(s$distribution, jack, tolerance = 0)
+	expect_true(f$inf$is_nonestimable("se"))
+	expect_identical(f$inf$get_nonestimable_reason(), "jackknife_extreme_summary")
+})
+
 test_that("compute_jackknife_wald_two_sided_pval/CI cache 'jackknife_estimate_unavailable' when the cached summary estimate is NA", {
 	for (harden in c(TRUE, FALSE)) {
 		f <- smd_boot_fixture()

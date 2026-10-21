@@ -58,3 +58,26 @@ test_that("approximate_randomization_distribution_beta_hat_T(): delta = 0 on bot
 	inf <- InferenceIncidRiskDiff$new(des, verbose = FALSE)
 	expect_no_error(inf$approximate_randomization_distribution_beta_hat_T(r = 20, delta = 0, show_progress = FALSE))
 })
+
+test_that("public incidence randomization p-value rejects a nonzero shift before generating draws", {
+	set.seed(4L)
+	n <- 20L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "incidence", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	des$add_all_subject_responses(rbinom(n, 1L, 0.5))
+	inf <- InferenceIncidRiskDiff$new(des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	draw_calls <- 0L
+	unlockBinding("generate_permutations", priv)
+	priv$generate_permutations <- function(...) {
+		draw_calls <<- draw_calls + 1L
+		stop("sentinel: permutation generation was reached", call. = FALSE)
+	}
+
+	expect_error(
+		inf$compute_rand_two_sided_pval(delta = 0.3, show_progress = FALSE),
+		"randomization tests with delta nonzero not supported for incidence"
+	)
+	expect_identical(draw_calls, 0L)
+})

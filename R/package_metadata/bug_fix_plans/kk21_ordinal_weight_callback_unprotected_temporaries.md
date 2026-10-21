@@ -145,7 +145,7 @@ distance), R errors, or a segfault, all nondeterministic.
   block: the test explicitly skips gctorture when `R_COVR=true`. Therefore
   the current-HEAD native-validation gate is satisfied; optional TODO-4
   remains independent and open.
-- [ ] **TODO-4 (optional, performance):** the helper exists only to reach
+- [x] **TODO-4 (optional, performance; found already implemented in source 2026-10-20 — `multivariate_ordinal_tstat` in `kk21_weights.cpp` calls `fast_ordinal_regression_internal(X, y)` directly, no R callback or `wrap()` remains; the speed gain itself was not benchmarked):** the helper exists only to reach
   `fast_ordinal_regression_internal` in `fast_ordinal_regression.cpp`
   through R. Declaring that C++ entry point and calling it directly removes
   the R round-trip per covariate per subject (the reason the non-speedup

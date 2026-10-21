@@ -3,7 +3,7 @@ library(EDI)
 
 skip_if_not_installed("survival")
 
-make_mismatched_followup_rmst_fixture <- function() {
+make_mismatched_followup_rmst_fixture <- function(all_censored_control = FALSE) {
 	set.seed(72301L)
 	n <- 24L
 	des <- DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
@@ -15,6 +15,10 @@ make_mismatched_followup_rmst_fixture <- function() {
 	y[w == 0] <- seq(0.5, 4, length.out = sum(w == 0))
 	y[w == 1] <- seq(0.5, 10, length.out = sum(w == 1))
 	dead <- rep(c(1, 0, 1), length.out = n)
+	if (isTRUE(all_censored_control)) {
+		dead[w == 0] <- 0L
+		dead[w == 1] <- rep(c(1L, 0L), length.out = sum(w == 1))
+	}
 	des$add_all_subject_responses(
 		ifelse(dead == 1, y, NA_real_),
 		ifelse(dead == 0, y, NA_real_),
@@ -62,6 +66,33 @@ test_that("zero bootstrap weights determine the shared horizon from retained row
 	expect_equal(
 		priv$weighted_survival_stat_diff(weights, "restricted_mean"),
 		expected,
+		tolerance = 1e-10
+	)
+})
+
+test_that("an all-censored arm contributes the shared horizon to weighted RMST", {
+	f <- make_mismatched_followup_rmst_fixture(all_censored_control = TRUE)
+	inf <- InferenceSurvivalRestrictedMeanDiff$new(f$des, verbose = FALSE)
+	priv <- inf$.__enclos_env__$private
+	tau <- min(max(f$y[f$w == 0]), max(f$y[f$w == 1]))
+	fit <- survival::survfit(survival::Surv(f$y, f$dead) ~ f$w)
+	tab <- summary(fit, rmean = tau)$table
+	expected_control <- unname(tab["f$w=0", "rmean"])
+	expected_difference <- unname(tab["f$w=1", "rmean"] - tab["f$w=0", "rmean"])
+
+	expect_equal(tau, 4)
+	expect_equal(expected_control, tau, tolerance = 1e-10)
+	expect_equal(
+		priv$weighted_survival_stat_for_group(
+			f$y[f$w == 0], f$dead[f$w == 0], rep(1, sum(f$w == 0)),
+			requested_stat = "restricted_mean", tau = tau
+		),
+		expected_control,
+		tolerance = 1e-10
+	)
+	expect_equal(
+		priv$weighted_survival_stat_diff(rep(1, length(f$y)), "restricted_mean"),
+		expected_difference,
 		tolerance = 1e-10
 	)
 })

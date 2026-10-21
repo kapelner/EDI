@@ -54,6 +54,51 @@ test_that("inference class registry has one canonical metadata entry per generat
 	}
 })
 
+test_that("concrete inference component and method-owner surface matches its pre-cleanup baseline", {
+	EDI:::populate_inference_class_registry()
+	ns = asNamespace("EDI")
+	class_names = sort(names(EDI:::inference_class_registry_as_list()))
+	actual = lapply(class_names, function(name) {
+		metadata = EDI:::get_inference_class_metadata(name)
+		if (!identical(metadata$abstract, FALSE)) return(NULL)
+
+		generator = get(name, envir = ns, inherits = FALSE)
+		public_owners = private_owners = character()
+		current = generator
+		while (!is.null(current)) {
+			owner = current$classname
+			public_owners = c(
+				public_owners,
+				paste0(names(current$public_methods) %||% character(), "@", owner)
+			)
+			private_owners = c(
+				private_owners,
+				paste0(names(current$private_methods) %||% character(), "@", owner)
+			)
+			current = current$get_inherit()
+		}
+
+		data.frame(
+			class = name,
+			components = paste(EDI:::get_effective_components(name), collapse = "|"),
+			public_methods = paste(sort(unique(public_owners)), collapse = "|"),
+			private_methods = paste(sort(unique(private_owners)), collapse = "|"),
+			stringsAsFactors = FALSE
+		)
+	})
+	actual = Filter(Negate(is.null), actual)
+	actual = do.call(rbind, actual)
+	rownames(actual) = NULL
+
+	expected = utils::read.csv(
+		testthat::test_path("fixtures", "inference_component_registry_baseline.csv"),
+		stringsAsFactors = FALSE,
+		check.names = FALSE
+	)
+	rownames(expected) = NULL
+	expect_identical(actual, expected)
+})
+
 test_that("inference class metadata rejects missing fields and invalid tiers", {
 	valid = EDI:::get_inference_class_metadata("Inference")
 	expect_silent(EDI:::validate_inference_class_metadata(valid))

@@ -80,6 +80,65 @@ test_that("parallel policy: forced-serial rules per operation, response type and
 	})
 })
 
+test_that("parallel policy: survival bootstrap blocklist and incidence response gate match the declared contract", {
+	f <- Z("edi_parallel_dispatch_policy")
+	ns <- asNamespace("EDI")
+	# Literal source-derived roster: if a survival inference class is added or
+	# renamed, this test requires an explicit review of the serial policy.
+	survival_classes <- c(
+		"InferenceSurvivalCoxPHRegr",
+		"InferenceSurvivalDepCensTransformRegr",
+		"InferenceSurvivalGehanWilcox",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
+		"InferenceSurvivalKMDiff",
+		"InferenceSurvivalKKLWACoxPHIVWC",
+		"InferenceSurvivalKKLWACoxPHOneLik",
+		"InferenceSurvivalKKRankRegrIVWC",
+		"InferenceSurvivalKKStratCoxPHIVWC",
+		"InferenceSurvivalKKStratCoxPHOneLik",
+		"InferenceSurvivalKKWeibullMarginal",
+		"InferenceSurvivalLogRank",
+		"InferenceSurvivalRestrictedMeanDiff",
+		"InferenceSurvivalStratCoxPHRegr",
+		"InferenceSurvivalWeibullRegr"
+	)
+	serial_survival <- c(
+		"InferenceSurvivalCoxPHRegr",
+		"InferenceSurvivalDepCensTransformRegr",
+		"InferenceSurvivalGehanWilcox",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
+		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
+		"InferenceSurvivalKMDiff",
+		"InferenceSurvivalLogRank",
+		"InferenceSurvivalRestrictedMeanDiff",
+		"InferenceSurvivalStratCoxPHRegr",
+		"InferenceSurvivalWeibullRegr"
+	)
+	actual_survival <- ls(ns, pattern = "^InferenceSurvival")
+	actual_survival <- actual_survival[vapply(
+		actual_survival, function(x) inherits(get(x, ns), "R6ClassGenerator"), logical(1)
+	)]
+	expect_setequal(actual_survival, survival_classes)
+	expect_false(anyDuplicated(serial_survival) > 0L)
+	for (cls in survival_classes) {
+		expect_identical(
+			f(cls, "survival", "bootstrap")$force_serial,
+			cls %in% serial_survival,
+			info = cls
+		)
+	}
+	# Incidence alone is an independent serial gate for both bootstrap and
+	# randomization-CI operations; class-prefix behavior is not needed here.
+	expect_true(f("CustomInference", "incidence", "bootstrap")$force_serial)
+	expect_true(f("CustomInference", "incidence", "rand_ci")$force_serial)
+	expect_false(f("CustomInference", "count", "bootstrap")$force_serial)
+})
+
 test_that("core count precedence: explicit override, then fork cluster, then mirai cores, then 1", {
 	saved <- list(o = env$num_cores_override, f = env$global_fork_cluster, m = env$global_mirai_num_cores)
 	on.exit({ env$num_cores_override <- saved$o; env$global_fork_cluster <- saved$f; env$global_mirai_num_cores <- saved$m }, add = TRUE)

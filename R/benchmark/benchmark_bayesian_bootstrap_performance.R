@@ -36,6 +36,24 @@ if (!file.exists(benchmark)) stop("Could not find marketing_plans/bb_bench2.R")
 rscript = Sys.which("Rscript")
 if (!nzchar(rscript)) stop("Rscript is not on PATH")
 
+read_benchmark_worktree_state = function(repo_root, git_command = Sys.which("git")) {
+  if (length(git_command) != 1L || is.na(git_command) || !nzchar(git_command)) {
+    return(list(status = "<unavailable>", dirty = NA))
+  }
+  status = tryCatch(
+    suppressWarnings(system2(git_command,
+      c("-C", repo_root, "status", "--porcelain", "--untracked-files=no"),
+      stdout = TRUE, stderr = FALSE)),
+    error = function(e) NULL
+  )
+  status_code = if (is.null(status)) NA_integer_ else attr(status, "status")
+  status_failed = is.null(status) ||
+    (!is.null(status_code) && !identical(as.integer(status_code), 0L))
+  if (status_failed) return(list(status = "<unavailable>", dirty = NA))
+  if (!length(status)) return(list(status = "<clean>", dirty = FALSE))
+  list(status = paste(status, collapse = ";"), dirty = TRUE)
+}
+
 csv_paths = character()
 results = list()
 for (B in B_values) {
@@ -75,11 +93,8 @@ source_commit = tryCatch(
   system2("git", c("-C", repo_root, "rev-parse", "HEAD"), stdout = TRUE, stderr = FALSE),
   error = function(e) character()
 )
-source_status = tryCatch(
-  system2("git", c("-C", repo_root, "status", "--porcelain", "--untracked-files=no"), stdout = TRUE, stderr = FALSE),
-  error = function(e) character()
-)
 if (!length(source_commit)) source_commit = NA_character_
+source_state = read_benchmark_worktree_state(repo_root)
 suppressPackageStartupMessages(library("EDI"))
 edi_dll = getLoadedDLLs()[["EDI"]]
 edi_dll_path = if (is.null(edi_dll)) NA_character_ else unname(edi_dll[["path"]])
@@ -92,8 +107,8 @@ package_versions = vapply(benchmark_packages, function(pkg) {
 provenance = data.frame(
   measured_at_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
   source_commit = source_commit[[1L]],
-  source_worktree_dirty = length(source_status) > 0L,
-  source_worktree_status = paste(source_status, collapse = ";"),
+  source_worktree_dirty = source_state$dirty,
+  source_worktree_status = source_state$status,
   installed_edi_version = as.character(utils::packageVersion("EDI")),
   installed_edi_path = normalizePath(find.package("EDI"), winslash = "/"),
   installed_edi_dll_path = edi_dll_path,

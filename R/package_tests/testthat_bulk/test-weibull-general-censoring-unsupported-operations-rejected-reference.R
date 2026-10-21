@@ -30,6 +30,29 @@ rc_fx <- function(seed = 1L, n = 40L) {
 	des
 }
 
+mixed_general_censoring_fx <- function(seed = 11L, n = 60L) {
+	stopifnot(n %% 4L == 0L)
+	set.seed(seed)
+	des <- DesignFixedBernoulli$new(n = n, response_type = "survival", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	time <- rexp(n, rate = exp(0.3 * w))
+	type <- rep(c("exact", "right", "left", "interval"), length.out = n)
+	ys <- rep(NA_real_, n)
+	y_Ls <- rep(NA_real_, n)
+	y_Rs <- rep(NA_real_, n)
+	ys[type == "exact"] <- time[type == "exact"]
+	y_Ls[type == "right"] <- time[type == "right"]
+	y_Rs[type == "right"] <- Inf
+	y_Ls[type == "left"] <- 0
+	y_Rs[type == "left"] <- time[type == "left"]
+	y_Ls[type == "interval"] <- time[type == "interval"]
+	y_Rs[type == "interval"] <- time[type == "interval"] + rexp(sum(type == "interval"))
+	des$add_all_subject_responses(ys = ys, y_Ls = y_Ls, y_Rs = y_Rs)
+	des
+}
+
 test_that("general censoring rejects compute_estimate_with_bootstrap_weights() for genuinely non-constant weights (a constant-weights call short-circuits to the ordinary estimate first)", {
 	des <- ic_fx()
 	inf <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
@@ -66,6 +89,19 @@ test_that("general censoring rejects compute_lik_ratio_bartlett_approx_two_sided
 	)
 })
 
+test_that("general censoring rejects parametric-bootstrap LR p-values and confidence intervals", {
+	des <- ic_fx(seed = 5L, n = 18L)
+	inf <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
+	expect_error(
+		inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 1L, min_number_usable_samples = 1L),
+		"Parametric-bootstrap LR calibration is not yet supported for left-/interval-censored survival data"
+	)
+	expect_error(
+		inf$compute_lik_ratio_bootstrap_confidence_interval(B = 1L, min_number_usable_samples = 1L, max_root_iterations = 0L),
+		"Parametric-bootstrap LR calibration is not yet supported for left-/interval-censored survival data"
+	)
+})
+
 test_that("general censoring rejects compute_rand_two_sided_pval() only for a nonzero delta; delta = 0 still runs", {
 	des <- ic_fx()
 	inf <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
@@ -76,6 +112,42 @@ test_that("general censoring rejects compute_rand_two_sided_pval() only for a no
 	inf2 <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
 	pv0 <- inf2$compute_rand_two_sided_pval(delta = 0, r = 15, show_progress = FALSE)
 	expect_true(is.finite(pv0))
+})
+
+test_that("left/interval-censoring randomization guards stay active with assertions disabled", {
+	asserts_on_entry <- EDI:::should_run_asserts()
+	on.exit(EDI::toggle_asserts(asserts_on_entry), add = TRUE)
+	EDI::toggle_asserts(FALSE)
+
+	des <- mixed_general_censoring_fx()
+	expect_true(des$has_general_censoring())
+	generators <- list(
+		Cox = InferenceSurvivalCoxPHRegr,
+		Gehan = InferenceSurvivalGehanWilcox,
+		KMDiff = InferenceSurvivalKMDiff,
+		LogRank = InferenceSurvivalLogRank,
+		RMST = InferenceSurvivalRestrictedMeanDiff,
+		Weibull = InferenceSurvivalWeibullRegr
+	)
+	for (method_name in names(generators)) {
+		generator <- generators[[method_name]]
+		inf <- generator$new(des, verbose = FALSE)
+		if (method_name %in% c("Cox", "LogRank", "Weibull")) {
+			expect_error(
+				inf$compute_rand_two_sided_pval(delta = 0.3, r = 3L, show_progress = FALSE),
+				"not yet supported for left-/interval-censored survival data"
+			)
+		} else {
+			expect_error(inf$compute_rand_two_sided_pval(delta = 0.3, r = 3L, show_progress = FALSE))
+		}
+	}
+	weibull <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
+	expect_error(
+		weibull$compute_rand_confidence_interval(r = 3L, show_progress = FALSE),
+		"Randomization confidence intervals with nonzero null shifts are not yet supported"
+	)
+	right_censored <- InferenceSurvivalLogRank$new(rc_fx(seed = 12L, n = 18L), verbose = FALSE)
+	expect_true(is.finite(right_censored$compute_rand_two_sided_pval(delta = 0.3, r = 15L, show_progress = FALSE)))
 })
 
 test_that("none of the four guards fire on an ordinary right-censored design", {
@@ -96,4 +168,6 @@ test_that("none of the four guards fire on an ordinary right-censored design", {
 
 	inf4 <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
 	expect_true(is.finite(inf4$compute_rand_two_sided_pval(delta = 0.3, r = 15, show_progress = FALSE)))
+	inf5 <- InferenceSurvivalWeibullRegr$new(des, verbose = FALSE)
+	expect_true(is.finite(inf5$compute_lik_ratio_bootstrap_two_sided_pval(B = 5L, show_progress = FALSE)))
 })

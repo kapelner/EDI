@@ -1,21 +1,12 @@
 library(testthat)
 library(EDI)
 
-# InferenceIncidKKGCompRiskDiff/InferenceIncidKKGCompRiskRatio pin compute_rand_two_sided_pval to
-# InferenceRandCI's version (fix_inference_hierarchy.md, the KK GComp migration's Progress 2026-08-18
-# entry): "compute_rand_two_sided_pval pin wrong on the first pass -- copied the non-KK sibling's
-# InferenceRand pin without verifying it against this class's actual legacy resolution; an R6 ancestor
-# walk showed the real legacy chain resolves to InferenceRandCI instead (which correctly handles
-# incidence data; InferenceRand's version refuses it outright)." Unlike InferenceIncidExtendedRobins's
-# analogous fix (already regression-guarded this session), this class's Zhang-eligible state IS
-# reachable through its own real constructor: a KK matching-on-the-fly design gives has_match_
-# structure = TRUE directly, no private-state injection needed. Despite 10 existing test files
-# referencing this class (fitting/weighted-estimate/CI/bootstrap/jackknife paths), a codebase-wide grep
-# confirmed none of them call compute_rand_two_sided_pval() at all, so this specific pin has never been
-# exercised. Verified against an independent reference: InferenceIncidLogRegr (an already-correctly-
-# pinned class) computes the bit-identical Zhang p-value on the same y/w/match-structure, since the
-# Zhang exact test depends only on the data and match structure, never the calling class's own
-# point estimator.
+# Since 2026-10-20 compute_rand_two_sided_pval() always draws w vectors from the design (user decision):
+# the Zhang exact-combined-test dispatch it used to take for Zhang-eligible incidence designs ignored the
+# draws and was far more conservative (200 KK21stepwise nulls: reject@0.05 1% vs 3%, median p 0.82 vs 0.58).
+# This file pins that InferenceIncidKKGCompRiskDiff/RiskRatio uses the draw-based path on a Zhang-eligible design: the p-value is finite, in (0, 1],
+# reproducible under a fixed seed, a nonzero delta is refused for incidence (additive shifts are not defined
+# for 0/1 outcomes), and the Zhang test is still reachable explicitly via type = "Zhang".
 
 fx <- function(seed = 1L, n = 20L) {
 	set.seed(seed)
@@ -26,30 +17,23 @@ fx <- function(seed = 1L, n = 20L) {
 	des
 }
 
-test_that("InferenceIncidKKGCompRiskDiff on a real KK design is genuinely Zhang-eligible and compute_rand_two_sided_pval() matches an independent reference class exactly, across several deltas", {
-	des <- fx(1L)
-	inf_gc <- InferenceIncidKKGCompRiskDiff$new(des, verbose = FALSE)
-	expect_true(inf_gc$.__enclos_env__$private$should_use_zhang_incidence_randomization())
+check_draw_based_pval <- function(inf, info) {
+	expect_true(inf$.__enclos_env__$private$should_use_zhang_incidence_randomization(), info = info)
+	set.seed(11L); pv1 <- inf$compute_rand_two_sided_pval(delta = 0, show_progress = FALSE)
+	set.seed(11L); pv2 <- inf$compute_rand_two_sided_pval(delta = 0, show_progress = FALSE)
+	expect_true(is.finite(pv1) && pv1 > 0 && pv1 <= 1, info = info)
+	expect_identical(pv1, pv2, info = info)
+	expect_error(inf$compute_rand_two_sided_pval(delta = 0.3, show_progress = FALSE), "delta nonzero not supported for incidence", info = info)
+	pz <- inf$compute_rand_two_sided_pval(delta = 0, type = "Zhang")
+	expect_true(is.finite(pz) && pz > 0 && pz <= 1, info = info)
+}
 
-	inf_ref <- InferenceIncidLogRegr$new(des, verbose = FALSE)
-	for (delta in c(0, 0.3, -0.4)) {
-		pv_gc <- inf_gc$compute_rand_two_sided_pval(delta = delta)
-		pv_ref <- inf_ref$compute_rand_two_sided_pval(delta = delta)
-		expect_true(is.finite(pv_gc))
-		expect_equal(pv_gc, pv_ref, tolerance = 1e-12, info = paste("delta =", delta))
-	}
+test_that("InferenceIncidKKGCompRiskDiff on a Zhang-eligible design: compute_rand_two_sided_pval() uses the randomization draws, is reproducible, refuses nonzero delta, and type = 'Zhang' still works", {
+	inf <- InferenceIncidKKGCompRiskDiff$new(fx(1L), verbose = FALSE)
+	check_draw_based_pval(inf, "InferenceIncidKKGCompRiskDiff")
 })
 
-test_that("InferenceIncidKKGCompRiskRatio (the risk-ratio sibling) is likewise Zhang-eligible and matches the same independent reference exactly", {
-	des <- fx(2L)
-	inf_gc <- InferenceIncidKKGCompRiskRatio$new(des, verbose = FALSE)
-	expect_true(inf_gc$.__enclos_env__$private$should_use_zhang_incidence_randomization())
-
-	inf_ref <- InferenceIncidLogRegr$new(des, verbose = FALSE)
-	for (delta in c(0, 0.2, -0.3)) {
-		pv_gc <- inf_gc$compute_rand_two_sided_pval(delta = delta)
-		pv_ref <- inf_ref$compute_rand_two_sided_pval(delta = delta)
-		expect_true(is.finite(pv_gc))
-		expect_equal(pv_gc, pv_ref, tolerance = 1e-12, info = paste("delta =", delta))
-	}
+test_that("InferenceIncidKKGCompRiskRatio on a Zhang-eligible design: compute_rand_two_sided_pval() uses the randomization draws, is reproducible, refuses nonzero delta, and type = 'Zhang' still works", {
+	inf <- InferenceIncidKKGCompRiskRatio$new(fx(2L), verbose = FALSE)
+	check_draw_based_pval(inf, "InferenceIncidKKGCompRiskRatio")
 })

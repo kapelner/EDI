@@ -37,16 +37,23 @@ fx <- function(seed = 1L, n = 60L) {
 test_that("when the second (nudged-full-fit) start converges to the lower neg_loglik, its fit is returned, not the first start's", {
 	spec <- fx(1L)
 	call_n <- 0L
+	constrained <- list()
 	local_mocked_bindings(
 		fast_ordinal_cloglog_regression_cpp = function(X, y, fixed_idx, fixed_values, warm_start_params, warm_start_fisher_info = NULL, smart_cold_start = TRUE) {
 			call_n <<- call_n + 1L
-			if (call_n == 1L) list(params = rep(0, length(warm_start_params)), neg_loglik = 100) else list(params = rep(1, length(warm_start_params)), neg_loglik = 50)
+			constrained[[call_n]] <<- list(idx = fixed_idx, value = fixed_values)
+			params <- rep(if (call_n == 1L) 0 else 1, length(warm_start_params))
+			params[fixed_idx] <- fixed_values
+			list(params = params, neg_loglik = if (call_n == 1L) 100 else 50)
 		},
 		.package = "EDI"
 	)
 	res <- spec$fit_null(0.3)
 	expect_equal(res$neg_loglik, 50)
 	expect_equal(call_n, 2L)  # both starts are always tried
+	expect_identical(lapply(constrained, `[[`, "idx"), list(spec$j, spec$j))
+	expect_equal(vapply(constrained, function(x) x$value, numeric(1)), c(-0.3, -0.3))
+	expect_equal(res$params[spec$j], -0.3)
 })
 
 test_that("when the first (caller-supplied/warm-started) start converges to the lower neg_loglik, its fit is returned instead", {

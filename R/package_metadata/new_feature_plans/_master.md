@@ -731,7 +731,7 @@ it as double although 50 of 51 kernels want integers; the kernel itself is
 fix a real collision bug and was never re-timed. Fix: store the signature
 with the cached set, no-op subset, integer storage, an immutability audit
 with a debug recheck. Bit-preserving. Release index:
-`release_v1_1_0.md → TODO-42`.
+`release_v1_2_0.md → TODO-26`.
 
 **Dead randomization fast paths (added 2026-10-07, filed on the model's
 initiative while scoping the item above):**
@@ -762,7 +762,7 @@ settles the two "no canonical R implementation" rand-CI rows:
 exact-only and infeasible at n = 1000, `ri2` has no grid inversion; a
 Wilcoxon rand-CI row against `coin::wilcox_test(conf.int = TRUE)` (147 s
 vs EDI 17 s) is the one fair addition. Release index:
-`release_v1_1_0.md → TODO-43..46`.
+`release_v1_2_0.md → TODO-27..30`.
 
 **KK21 ordinal weight callback: unprotected `wrap()` temporaries (added
 2026-10-08, user decision):**
@@ -1000,7 +1000,7 @@ already stated there:**
 - **5AH. `ModelDiagnostics` — per-model assumption batteries** (added
   2026-09-02, user decision; split 2026-09-02 from a briefly combined
   plan; **moved to v1.1.0 on 2026-09-05, user decision**) →
-  `release_v1_1_0.md → TODO-17z` (was `release_v2_0_0.md → TODO-6g`).
+  `release_v1_3_0.md → TODO-5..14` (was `release_v2_0_0.md → TODO-6g`).
   `model_diagnostics_framework.md`. The *absolute* half of model
   criticism: each class declares its own assumption checks in the
   registry like capabilities (Cox PH via Schoenfeld, Poisson
@@ -1176,7 +1176,7 @@ already stated there:**
   estimand)`; `results_table` itself is untouched.
 - **5AK. Closed-form randomization nulls** (added 2026-10-07, user
   decision; from the `coin` comparison in the 2026-10-07 benchmark
-  investigation) → `release_v1_1_0.md → TODO-40`.
+  investigation) → `release_v1_2_0.md → TODO-24`.
   `exact_randomization_nulls_closed_form.md`: a registry of (class, design)
   pairs whose randomization null is closed-form (hypergeometric on
   `DesignFixediBCRD` with binary `y`, convolution over blocks, binomial on
@@ -1188,7 +1188,7 @@ already stated there:**
   Default stays Monte Carlo; the default switch is decision-gated (plan
   TODO-7). Depends on nothing; `5AL` depends on its hook.
 - **5AL. Exact small-sample rank tests, Streitberg–Röhmel shift algorithm**
-  (added 2026-10-07, user decision) → `release_v1_1_0.md → TODO-41`.
+  (added 2026-10-07, user decision) → `release_v1_2_0.md → TODO-25`.
   `exact_rank_tests_shift_algorithm.md`: one C++ kernel returning the exact
   PMF of an integer-scored two-sample linear rank statistic with ties
   (`O(n · n_T · S)`, size rule, overflow guard), wired through `5AK`'s hook
@@ -1227,7 +1227,7 @@ already stated there:**
   greedy, D/A-optimal, pair-switching and rerandomization draws depend on
   the thread count, and the vignette claims they don't).
 - **5AO. Batched C++ loop for the custom randomization statistic** (added
-  2026-10-13, user decision) → `release_v1_1_0.md → TODO-49`.
+  2026-10-13, user decision) → `release_v1_2_0.md → TODO-31`.
   `custom_rand_stat_batched_cpp_loop.md`: `InferenceRandCustom`'s
   randomization distribution loops over `w_mat` in R, so compiled user
   statistics still pay one R ↔ C++ round trip per permutation, per CI

@@ -53,6 +53,11 @@
 args = commandArgs(trailingOnly = TRUE)
 mode = if (length(args) >= 1L) args[1] else "help"
 
+# TODO-12's accepted paired sweep is the source-derived 240-key roster; fail
+# closed if strict enumeration silently drops every candidate or a later edit
+# changes the cohort without updating the plan and this contract.
+RESAMPLING_NONDEGENERATE_EXPECTED_KEY_COUNT = 240L
+
 repo_root = function(){
 	script = sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])
 	if (is.na(script) || !nzchar(script)) return(getwd())
@@ -86,10 +91,74 @@ sweep_distribution = function(obj, key, r){
 	values
 }
 
-validate_sweep_snapshot = function(snapshot, expected_keys, r, context = "snapshot"){
+# Keep enough provenance with each snapshot to establish that a comparison
+# used the same package release and native ABI. The R-source manifest is
+# retained separately because --source intentionally changes that layer.
+sweep_capture_provenance = function(use_source_tree){
+	ns = asNamespace("EDI")
+	package_path = normalizePath(getNamespaceInfo(ns, "path"), winslash = "/", mustWork = TRUE)
+	package_description = read.dcf(file.path(package_path, "DESCRIPTION"))
+	package_version = unname(package_description[1L, "Version"])
+	if (!length(package_version) || is.na(package_version) || !nzchar(package_version)) {
+		stop("could not identify the loaded EDI package version", call. = FALSE)
+	}
+	dll = getLoadedDLLs()[["EDI"]]
+	if (is.null(dll) || is.null(dll[["path"]]) || !nzchar(dll[["path"]])) {
+		stop("could not identify the loaded EDI native library", call. = FALSE)
+	}
+	dll_path = normalizePath(dll[["path"]], winslash = "/", mustWork = TRUE)
+	r_path = file.path(package_path, "R")
+	if (!dir.exists(r_path)) stop("could not identify the loaded EDI R source directory", call. = FALSE)
+	r_files = sort(list.files(r_path, recursive = TRUE, full.names = TRUE))
+	r_files = r_files[!dir.exists(r_files)]
+	if (!length(r_files)) stop("loaded EDI R layer directory contains no files", call. = FALSE)
+	r_md5 = unname(tools::md5sum(r_files))
+	names(r_md5) = substring(r_files, nchar(r_path) + 2L)
+	list(
+		package_version = package_version,
+		package_path = package_path,
+		source_tree = isTRUE(use_source_tree),
+		native_dll_path = dll_path,
+		native_dll_md5 = unname(tools::md5sum(dll_path)),
+		r_layer_kind = if (any(grepl("\\.[Rr]$", r_files))) "source-files" else "installed-lazyload",
+		r_layer_file_md5 = r_md5
+	)
+}
+
+validate_sweep_provenance = function(provenance, context = "snapshot"){
+	if (!is.list(provenance) ||
+	    length(provenance$package_version) != 1L || is.na(provenance$package_version) || !nzchar(provenance$package_version) ||
+	    length(provenance$package_path) != 1L || is.na(provenance$package_path) || !nzchar(provenance$package_path) ||
+	    !is.logical(provenance$source_tree) || length(provenance$source_tree) != 1L || is.na(provenance$source_tree) ||
+	    length(provenance$native_dll_path) != 1L || is.na(provenance$native_dll_path) || !nzchar(provenance$native_dll_path) ||
+	    length(provenance$native_dll_md5) != 1L || is.na(provenance$native_dll_md5) ||
+	    !grepl("^[[:xdigit:]]{32}$", provenance$native_dll_md5) ||
+	    !is.character(provenance$r_layer_kind) || length(provenance$r_layer_kind) != 1L || is.na(provenance$r_layer_kind) ||
+	    !(provenance$r_layer_kind %in% c("source-files", "installed-lazyload")) ||
+	    !is.character(provenance$r_layer_file_md5) || !length(provenance$r_layer_file_md5) ||
+	    is.null(names(provenance$r_layer_file_md5)) || anyNA(names(provenance$r_layer_file_md5)) ||
+	    any(!nzchar(names(provenance$r_layer_file_md5))) || anyNA(provenance$r_layer_file_md5) ||
+	    any(!grepl("^[[:xdigit:]]{32}$", provenance$r_layer_file_md5))) {
+		stop(context, " is missing valid EDI package/native/R-source provenance", call. = FALSE)
+	}
+	invisible(provenance)
+}
+
+validate_sweep_snapshot = function(snapshot, expected_keys, r, context = "snapshot",
+	                                expected_key_count = RESAMPLING_NONDEGENERATE_EXPECTED_KEY_COUNT){
 	if (!is.list(snapshot) || is.null(names(snapshot))) stop(context, " is not a named distribution list", call. = FALSE)
 	if (anyDuplicated(names(snapshot))) stop(context, " has duplicate keys", call. = FALSE)
+	if (!is.character(expected_keys) || !length(expected_keys) || anyNA(expected_keys) || any(!nzchar(expected_keys))) {
+		stop(context, " expected manifest must contain non-empty character keys", call. = FALSE)
+	}
 	if (anyDuplicated(expected_keys)) stop(context, " expected manifest has duplicate keys", call. = FALSE)
+	if (length(expected_keys) != expected_key_count) {
+		stop(sprintf("%s expected manifest must contain exactly %d source-derived keys", context,
+		             expected_key_count), call. = FALSE)
+	}
+	if (!is.numeric(r) || length(r) != 1L || is.na(r) || !is.finite(r) || r < 1 || r != floor(r)) {
+		stop("r must be one positive integer", call. = FALSE)
+	}
 	missing = setdiff(expected_keys, names(snapshot))
 	extra = setdiff(names(snapshot), expected_keys)
 	if (length(missing) || length(extra)) {
@@ -138,6 +207,7 @@ record = function(out_path, use_source_tree){
 	} else {
 		suppressMessages(library(EDI))
 	}
+	provenance = sweep_capture_provenance(use_source_tree)
 	load_sweep_enumeration(root)
 
 	snapshot = list()
@@ -169,6 +239,7 @@ record = function(out_path, use_source_tree){
 	}
 	validate_sweep_snapshot(snapshot, expected_keys, RESAMPLING_NONDEGENERATE_R, "recorded sweep")
 	attr(snapshot, "expected_keys") = expected_keys
+	attr(snapshot, "provenance") = provenance
 	saveRDS(snapshot, out_path)
 	cat("wrote", length(snapshot), "distributions to", out_path, "\n")
 }
@@ -183,7 +254,7 @@ max_abs_difference = function(b, a){
 
 # Classifies each changed entry so a reviewer is not left to eyeball raw
 # `identical()` output:
-#   * "fixed"  -- was a point mass / all-NA, now varies. What a fix should do.
+#   * "fixed"  -- was a finite point mass, now varies. What a fix should do.
 #   * "noise"  -- still the same shape, differing only at the last bits. Some KK
 #                 compound kernels are not bit-reproducible run to run on this
 #                 platform at all (see the noise-floor recipe in the header), so
@@ -196,7 +267,10 @@ max_abs_difference = function(b, a){
 classify_change = function(b, a, noise_tolerance){
 	b_uniq = length(unique(b[is.finite(b)]))
 	a_uniq = length(unique(a[is.finite(a)]))
-	if (b_uniq <= 1L && a_uniq > 1L) return("fixed")
+	# A baseline with no finite draws is not evidence of a collapsed
+	# distribution. Keep that transition visible as MOVED instead of claiming
+	# the cache fix restored variation.
+	if (b_uniq == 1L && a_uniq > 1L) return("fixed")
 	if (max_abs_difference(b, a) <= noise_tolerance) return("noise")
 	"MOVED"
 }
@@ -204,6 +278,16 @@ classify_change = function(b, a, noise_tolerance){
 compare = function(before_path, after_path, noise_tolerance = 1e-8){
 	before = readRDS(before_path)
 	after = readRDS(after_path)
+	before_provenance = attr(before, "provenance", exact = TRUE)
+	after_provenance = attr(after, "provenance", exact = TRUE)
+	validate_sweep_provenance(before_provenance, "before snapshot")
+	validate_sweep_provenance(after_provenance, "after snapshot")
+	if (!identical(before_provenance$package_version, after_provenance$package_version)) {
+		stop("before/after package versions differ", call. = FALSE)
+	}
+	if (!identical(before_provenance$native_dll_md5, after_provenance$native_dll_md5)) {
+		stop("before/after native EDI DLLs differ", call. = FALSE)
+	}
 	before_keys = attr(before, "expected_keys", exact = TRUE)
 	after_keys = attr(after, "expected_keys", exact = TRUE)
 	if (is.null(before_keys) || is.null(after_keys)) stop("both snapshots must carry their source-derived expected_keys manifest", call. = FALSE)

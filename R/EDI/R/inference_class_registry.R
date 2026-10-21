@@ -171,7 +171,12 @@ EDI_INFERENCE_REQUIRES_KK_MATCHING_DESIGN_OVERRIDES = c(
 	# that InferenceIncidKKGCompRiskDiff/RiskRatio needed this override for
 	# (tune_EDI_for_this_machine()'s benchmark grid crashing on CI, this
 	# time 2026-08-26).
-	"InferenceOrdinalPairedSignTest"
+	"InferenceOrdinalPairedSignTest",
+	# Exact binomial incidence inference is restricted by its explicit
+	# design_compatibility_reason() to DesignFixedBinaryMatch or KK designs.
+	# Its class name has no "KK" prefix, so keep the registry requirement in
+	# sync with that public constructor contract.
+	"InferenceIncidExactBinomial"
 )
 
 EDI_EXACT_INCIDENCE_CLASS_NAMES = c(

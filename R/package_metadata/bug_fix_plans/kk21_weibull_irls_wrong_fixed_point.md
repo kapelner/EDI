@@ -219,3 +219,105 @@ weight/matching evidence. No native comparison or canonical CSV regeneration
 was run for this audit; preserve the TODO-5 gate until a current-code native
 run, with old/new implementation identities and row-level provenance, is
 available.
+
+### Historical-artifact lookup (2026-10-21)
+
+A bounded read-only check found no tracked result/generator for
+`project_kk21_speedup_vs_glm_weights_20261008`: the exact-string Git-history
+hits are documentation edits, and `git ls-files` contains only the KK21
+source/tests/plans, not the referenced memory-project artifact. The known
+TODO-67 files under `/tmp` are the seed-4 reduced-fit tolerance fixture and
+search script plus an unrelated CI `timings.csv` set; none records paired
+old/new survival weights, matching outcomes, the historical seed/options, or
+an acceptance metric. This bounded search does not rule out an external
+project copy. The TODO-5 owner choice therefore remains: retrieve and identify
+that original input/metric package, or approve the proposed replacement and
+its paired-case/seed and acceptance rules. No benchmark or simulation was
+run.
+
+**TODO-5 owner-decision packet (2026-10-20; pending, no run):**
+- **Fixture choice:** recover the original `project_kk21_speedup_vs_glm_weights_20261008`
+  input/generator, seed, method options, and metric if possible. If those are
+  unavailable, explicitly approve the proposed multi-covariate extension of
+  the seed-6721 fixture as a *replacement*; do not label it a historical
+  replay.
+- **Primary outcome candidate:** mean absolute standardized mean difference
+  (mASMD) over the prespecified matching covariates in the matched sample;
+  lower is better. Approve or replace this metric. Set a numeric acceptance
+  threshold on the paired difference
+  `delta = mASMD_corrected - mASMD_old`—either a minimum improvement
+  (`delta <= -delta_min`) or an explicit noninferiority/equivalence margin.
+  Also decide whether matched fraction/pair count is a required guard, since
+  balance alone can look better when fewer units are matched. No values for
+  these thresholds are inferred here.
+- **Required paired comparison:** on each same fixture replicate, hold the
+  generated covariates, latent survival/censoring draws, row order, RNG
+  streams, KK21 options, and matching procedure fixed; change only the old
+  versus corrected survival-weight implementation. Allow assignments and
+  matched pairs to differ as the effect under study. Record both weight
+  vectors and ranks, assignments, resulting matched pairs, mASMD, matched
+  fraction/pair count, status/errors, and the per-replicate `delta`; summarize
+  paired deltas only after retaining the case-level rows. `survreg`-reference
+  ranks remain a diagnostic, not the acceptance outcome.
+- **Decision needed before execution:** approve the fixture path, primary
+  metric, numeric threshold (and any matched-fraction guard). Then run the
+  paired comparison with old/new implementation identities and row-level
+  provenance. This packet specifies no threshold and authorizes no run.
+
+### Available installed-artifact oracle recheck (2026-10-20)
+
+The checked-in bounded stepwise Weibull MLE oracle test was run against the
+available installed package:
+`Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R")'`.
+It reported one failure and one pass. The censored fixture returned score
+statistic 6.1 versus the independent `survival::survreg` reference 6.45; the
+uncensored fixture passed. Installed EDI 1.0.3 was loaded from
+`/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; its `EDI.so` SHA-256
+was `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+byte-identical to ignored checkout `R/EDI/src/EDI.so`. That artifact's mtime
+was 2026-10-20 10:40 +0300, after the tracked Weibull source mtimes; however,
+no build manifest or embedded commit ties it to those tracked sources. This is
+an installed-artifact observation, not proof that current source regressed or
+that the artifact contains the intended fix. No build, simulation, comparison
+of old versus corrected weights or matching quality, or canonical result write
+occurred. The existing historical/replacement fixture and matching-quality
+metric gate remains unchanged.
+
+### Checkout-R overlay / existing-DLL oracle recheck (2026-10-21)
+
+After confirming no other R/Rscript process was live and 16 GiB remained on
+`/tmp`, ran the focused oracle test with checkout R definitions and no source
+compilation:
+`TMPDIR=/tmp Rscript -e 'pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE); dll <- getLoadedDLLs()[["EDI"]][["path"]]; cat("EDI version:", as.character(utils::packageVersion("EDI")), "\nnamespace:", normalizePath(find.package("EDI")), "\nDLL:", dll, "\nMD5:", unname(tools::md5sum(dll)), "\nSHA256:", system2("sha256sum", dll, stdout = TRUE), "\n"); testthat::test_file("R/package_tests/testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R", reporter = "summary")'`.
+All three fixture expectations passed. The loaded namespace was
+`/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3; the temporary loaded DLL
+`/tmp/RtmpLa2Vjo/pkgload21ddb3f6f/EDI.so` had MD5
+`bfea6f47ab8b27618d5d8633e9021f91` and SHA-256
+`0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`.
+The SHA-256 matches both checkout `R/EDI/src/EDI.so` and the user-installed
+EDI 1.0.3 library DLL. `pkgload` used `compile = FALSE`; no build/install or
+canonical result write occurred. This is a checkout-R regression run over an
+existing native artifact, not proof that the DLL contains the edited
+`kk21_stepwise_survival.cpp` tolerance change: the matching hash establishes
+artifact identity only, with no build manifest tying it to that source
+revision. The `1e-6` native tolerance gate therefore remains open pending an
+authorized `EDI_UNITY=0` rebuild/install with source/build provenance and a
+rerun of this focused test. TODO-5's owner-approved old/new matching-quality
+comparison and affected benchmark/CSV regeneration remain open.
+
+### Reduced-fit tolerance decision (2026-10-21)
+
+The owner selected `1e-6` (rather than `1e-8`) as the convergence tolerance
+for `weibull_reduced_fit_for_score_test()`. The seed-4 censored regression in
+`test-kk21-stepwise-survival-weibull-mle-score-reference.R` exercises this
+boundary through the public score result and compares it to an independent
+`survival::survreg`-based score oracle. Its `1e-5` comparison tolerance is
+only the numerical equality bound for that score oracle; it is not the
+optimizer convergence tolerance. The release TODO-67 row records the same
+owner choice and fixture evidence. The checkout-R overlay test passed against
+the identified existing DLL, but no build provenance establishes that DLL was
+compiled from the selected `1e-6` source change. Thus the decision and test
+contract are aligned, while native validation remains open pending an
+authorized `EDI_UNITY=0` rebuild/install with source/build provenance and a
+focused rerun. The separate TODO-5 matching-quality and output-reconciliation
+gates also remain open.

@@ -118,15 +118,22 @@ InferenceMixinKKGEEShared = list(
 			}
 		},
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
+			if (isTRUE(delta != 0) &&
+					private$des_obj_priv_int$response_type == "incidence" &&
+					is.null(private$custom_randomization_statistic_function)) {
+				stop("randomization tests with delta nonzero not supported for incidence", call. = FALSE)
+			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertLogical(na.rm)
 			}
-			if (should_run_asserts() && private$should_use_zhang_incidence_randomization()){
-				if (!identical(transform_responses, "none")) {
-					stop("transform_responses is not supported for incidence randomization inference.")
-				}
-				rand_type = if (is.null(type)) "Zhang" else type
+			if (should_run_asserts() && private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
+				stop("transform_responses is not supported for incidence randomization inference.")
+			}
+			# Exact incidence tests only when explicitly requested via `type`; the
+			# default p-value always comes from the randomization draws.
+			if (should_run_asserts() && !is.null(type) && private$should_use_zhang_incidence_randomization()){
+				rand_type = type
 				exact_args = private$normalize_exact_inference_args(
 					rand_type,
 					args_for_type = args_for_type

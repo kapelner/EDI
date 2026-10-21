@@ -51,3 +51,40 @@ for (fn in c("get_hurdle_poisson_glmm_score_cpp", "get_hurdle_poisson_glmm_hessi
 		})
 	})
 }
+
+test_that("hurdle-Poisson GLMM valid fit matches an independent marginal likelihood", {
+	d <- fx()
+	fit <- K("fast_hurdle_poisson_glmm_cpp")(
+		d$X, d$y, d$g, j_T = 1L,
+		warm_start_params = d$params,
+		n_gh = 40L,
+		maxit = 1000L,
+		eps_g = 1e-8
+	)
+
+	expect_true(isTRUE(fit$converged))
+	expect_false(isTRUE(fit$hit_iteration_cap))
+	expect_true(all(is.finite(fit$params)))
+
+	# The fitted component is conditional on positive counts: zeros are omitted,
+	# and each positive Poisson mass is divided by P(Y > 0). Integrate the
+	# random intercept directly in base R, independently of the kernel's GH rule.
+	positive <- which(d$y > 0)
+	groups <- sort(unique(d$g[positive]))
+	sigma <- exp(fit$log_sigma)
+	group_log_marginal <- vapply(groups, function(g) {
+		ix <- positive[d$g[positive] == g]
+		Xg <- d$X[ix, , drop = FALSE]
+		yg <- d$y[ix]
+		marginal <- stats::integrate(function(z) {
+			vapply(z, function(z_value) {
+				lambda <- drop(exp(Xg %*% fit$b + sigma * z_value))
+				log_conditional <- sum(stats::dpois(yg, lambda, log = TRUE) - log(-expm1(-lambda)))
+				exp(log_conditional + stats::dnorm(z_value, log = TRUE))
+			}, numeric(1))
+		}, lower = -Inf, upper = Inf, rel.tol = 1e-10)$value
+		log(marginal)
+	}, numeric(1))
+
+	expect_equal(unname(fit$neg_loglik), -sum(group_log_marginal), tolerance = 2e-5)
+})

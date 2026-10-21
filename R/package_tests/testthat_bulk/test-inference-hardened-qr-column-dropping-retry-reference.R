@@ -231,3 +231,72 @@ test_that("a failed certified fit retains the hardened rank-deficient fallback",
 	expect_lt(length(out_deficient$keep), ncol(X_deficient))
 	expect_true(environment(fit_helper)$qr_calls >= 2L)
 })
+
+test_that("strictly positive bootstrap weights use one rank QR and preserve the lm.wfit solution", {
+	fit_helper = checkout_hardened_fit_helper()
+	X = design_matrix(collinear = FALSE)
+	y = as.numeric(0.8 * X[, 1L] - 0.35 * X[, 2L] + 0.7 * X[, 3L] + sin(seq_len(nrow(X))))
+	weights = seq(0.4, 1.6, length.out = nrow(X))
+	stopifnot(all(weights > 0))
+	ref = stats::lm.wfit(x = X, y = y, w = weights)
+	fit_count = 0L
+	fit_fun = function(X_fit, keep) {
+		fit_count <<- fit_count + 1L
+		WX = sweep(X_fit, 1L, weights, `*`)
+		list(coefficients = as.numeric(solve(crossprod(X_fit, WX), crossprod(X_fit, weights * y))), ok = TRUE)
+	}
+	priv = environment(fit_helper)$private
+	priv$bootstrap_qr_rank_certificate = NULL
+	priv$bootstrap_qr_positive_weights = TRUE
+	out = fit_helper(
+		X, fit_fun,
+		function(mod, X_fit, keep) isTRUE(mod$ok) && all(is.finite(mod$coefficients)),
+		required_cols = 1:2
+	)
+
+	# The helper's QR wrapper counts only its own rank check; lm.wfit above is
+	# the independent weighted-least-squares reference for the preserved fit.
+	expect_equal(environment(fit_helper)$qr_calls, 1L)
+	expect_equal(fit_count, 1L)
+	expect_identical(priv$bootstrap_qr_rank_certificate$mode, "weighted_positive")
+	expect_identical(unname(priv$bootstrap_qr_rank_certificate$X), unname(X))
+	expect_equal(out$keep, seq_len(ncol(X)))
+	expect_equal(out$fit$coefficients, unname(ref$coefficients), tolerance = 1e-10)
+})
+
+test_that("an unusable positive-weight certified fit falls back through QR retries", {
+	fit_helper = checkout_hardened_fit_helper()
+	X = design_matrix(collinear = FALSE)
+	y = as.numeric(0.2 * X[, 1L] + 0.5 * X[, 2L] - 0.6 * X[, 3L] + cos(seq_len(nrow(X))))
+	weights = seq(0.7, 1.3, length.out = nrow(X))
+	stopifnot(all(weights > 0))
+	fit_count = 0L
+	keeps = list()
+	fit_fun = function(X_fit, keep) {
+		fit_count <<- fit_count + 1L
+		keeps[[fit_count]] <<- keep
+		WX = sweep(X_fit, 1L, weights, `*`)
+		coefficients = as.numeric(solve(crossprod(X_fit, WX), crossprod(X_fit, weights * y)))
+		# Model an unusable first full-column attempt; the retry policy should
+		# drop a non-required column and accept the next fit.
+		list(coefficients = coefficients, ok = fit_count >= 3L)
+	}
+	priv = environment(fit_helper)$private
+	priv$bootstrap_qr_rank_certificate = NULL
+	priv$bootstrap_qr_positive_weights = TRUE
+	out = fit_helper(
+		X, fit_fun,
+		function(mod, X_fit, keep) isTRUE(mod$ok) && all(is.finite(mod$coefficients)),
+		required_cols = 1:2
+	)
+	ref = stats::lm.wfit(x = out$X, y = y, w = weights)
+
+	expect_equal(environment(fit_helper)$qr_calls, 1L)
+	expect_equal(fit_count, 3L)
+	expect_equal(keeps[[1L]], seq_len(ncol(X)))
+	expect_equal(keeps[[2L]], seq_len(ncol(X)))
+	expect_lt(length(out$keep), ncol(X))
+	expect_true(all(1:2 %in% out$keep))
+	expect_equal(out$keep, keeps[[3L]])
+	expect_equal(out$fit$coefficients, unname(ref$coefficients), tolerance = 1e-10)
+})

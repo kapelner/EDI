@@ -70,8 +70,10 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > kernel; the A/B harness's two Prototype items are "win uncertain")
 > follow their consumer or theme instead.
 >
+> **Second lighten pass (2026-10-20, user decision):** TODO-40, -41, -42, -43, -44, -45, -46, -49, -51, -53, -54 and TODO-17z moved to `release_v1_2_0.md → TODO-24..35` (stubs below). The stay-list in the next paragraph predates this pass; TODO-17z no longer applies.
+>
 > **Stays / added here (1.1.0):** TODO-1, TODO-3, TODO-5 (core), TODO-16,
-> TODO-17y, TODO-17z, TODO-17d (nominal vignette — ownership resolved to
+> TODO-17y, TODO-17d (nominal vignette — ownership resolved to
 > `_master.md`, see that entry), plus **TODO-17a/17b** below — the audit
 > backlog's smallest inference-side items, each now with an owning plan:
 > `count_exposure_offset.md`, `heteroskedasticity_robust_standard_errors.md`
@@ -175,7 +177,7 @@ Algorithm choice *(added 2026-10-15, user decision)*:
 accurate, with no new user options (`TODO-50`). The speed-only items and the
 items that need the A/B harness are in `release_v1_2_0.md → TODO-22, -23`.
 
-InferenceSuite performance *(added 2026-10-15, user decision; from
+InferenceSuite performance **[moved to `release_v1_2_0.md → TODO-32` on 2026-10-20]** *(added 2026-10-15, user decision; from
 `../audits/further_optimizations.md` section 3)*:
 `inference_suite_worker_pool.md` (`TODO-51`). `run_all_inference()` moves
 from one forked child per task to a pool of long-lived workers, about
@@ -195,7 +197,7 @@ day** (user decision) as `release_v1_0_5.md → TODO-57`, with its owning plan
 now in `../bug_fix_plans/`. It fixes a misfiring performance path that already
 shipped, so it falls under the 2026-09-23 split rule.
 
-Exact and closed-form randomization inference *(added 2026-10-07, user
+Exact and closed-form randomization inference **[TODO-40..42 moved to `release_v1_2_0.md → TODO-24..26` on 2026-10-20]** *(added 2026-10-07, user
 decision; from the `coin` comparison in the 2026-10-07 benchmark
 investigation)*: `exact_randomization_nulls_closed_form.md` (`TODO-40`:
 hypergeometric / binomial / convolution PMFs and Strasser–Weber exact
@@ -209,7 +211,7 @@ re-hashing and re-copying the cached permutation set on every call; kept
 in this release by user decision although the 2026-09-23 split rule would
 place it in v1.0.5.
 
-Canonical parity for the resampling rows *(added 2026-10-07, user
+Canonical parity for the resampling rows **[TODO-43..46 moved to `release_v1_2_0.md → TODO-27..30` on 2026-10-20]** *(added 2026-10-07, user
 decision)*: `canonical_parity_resampling_rows.md` (`TODO-43..46`) profiles
 both sides of the five procedure-table rows EDI loses (mean-difference
 randomization test vs `coin`; OLS / logistic / Cox percentile bootstrap vs
@@ -305,14 +307,14 @@ randomization CI for a linear statistic costs one null distribution instead
 of ~20–35.
 
 `custom_rand_stat_batched_cpp_loop.md` (added 2026-10-13, user decision;
-`→ TODO-1..7`; see `TODO-49` below) — moves `InferenceRandCustom`'s
+`→ TODO-1..7`; moved to `release_v1_2_0.md → TODO-31` on 2026-10-20) — moves `InferenceRandCustom`'s
 per-permutation loop over `w_mat` from R into one C++ call that dereferences
 the user's compiled statistic once, the pattern
 `design_optimal_annealing_search.cpp` already uses for `custom_objective`.
 
 The honest-inference-after-model-selection family's no-substrate half
 (moved from v2.0.0 on 2026-09-05, user decision; see `TODO-17y` /
-`TODO-17z` below): `model_selection_framework.md` **Phase A** — the
+`TODO-17z`, which moved to `release_v1_3_0.md → TODO-5..14` on 2026-10-20): `model_selection_framework.md` **Phase A** — the
 `ModelSelection` workflow and the **selection-inclusive randomization
 test** on fixed designs — and `model_diagnostics_framework.md` — the
 `ModelDiagnostics` declaration contract and pilot batteries. The finding
@@ -995,29 +997,15 @@ ticked in their **owning plans**; this list is the release index.
   ordinal) are left to TODO-9, and whether that remainder still belongs
   in 2.0.0 or fits v1.4.0 better is an open question, not yet resolved.
   **Additive:** a new workflow object beside `InferenceSuite`; no default
-  of any existing class changes. Consumes TODO-17z's check results as
-  assumption gates once both exist (the gate is optional for the pilot;
+  of any existing class changes. Consumes TODO-17z's check results (now `release_v1_3_0.md → TODO-5..14`)
+  as assumption gates once both exist; with 17z in v1.2.0 the optional gate
+  waits for that release (the gate is optional for the pilot;
   the assumption-light fallback class is mandatory regardless).
   Externally: this is the scoped deliverable of the R Consortium ISC
   proposal (`new_research_ideas/grants/26_10_01_RcISC/isc_grant.qmd`; the
   earlier LaTeX draft was deleted 2026-09-07), re-scoped 2026-09-06 to
   this widened Phase A and carrying no blinding claims.
-- [ ] TODO-17z: **`ModelDiagnostics` — declaration contract + pilot
-  batteries** (moved from `release_v2_0_0.md → TODO-6g` on 2026-09-05,
-  user decision, resolving that plan's TODO-1(e)):
-  `model_diagnostics_framework.md → TODO-1..6`. Each class declares its
-  own assumption checks in the registry (Schoenfeld/PH for Cox,
-  overdispersion for Poisson, proportionality for cumulative logit,
-  separation/calibration for logistic — surfacing the existing internal
-  separation guard), returning typed results with a pre-specified gate
-  threshold per check (the `blindable` tag was dropped 2026-09-06),
-  rendered in one report with
-  `SolverDiagnostics`' numerical rows. Checks are in-sample and need no
-  fold/split substrate. **Sequenced after TODO-3** (`SolverDiagnostics`)
-  for the shared report surface; independent of TODO-17y (each is useful
-  alone; together they give TODO-17y its diagnose-then-choose gate). The
-  per-class rollout beyond the pilots is a ledger inside the plan.
-  Additive.
+- [ ] ~~TODO-17z~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..14`** (user decision, lighten-1.1.0 pass 2): `ModelDiagnostics` — declaration contract + pilot batteries.
 - [ ] TODO-18: **Consolidate duplicated parallelization primitives**
   (added 2026-09-07, user decision): `consolidate_parallelization_code.md
   → TODO-1..4`. Maintenance, not a feature — no output/behavior change.
@@ -1229,161 +1217,20 @@ ticked in their **owning plans**; this list is the release index.
   add new v1.1.0 capability or depend on this release's Phase 0 decisions
   — see `release_v1_0_5.md` for full detail on each.
 
-- [ ] TODO-40 (added 2026-10-07, user decision): **Closed-form
-  randomization nulls: exact PMFs and exact conditional moments where they
-  exist** — `exact_randomization_nulls_closed_form.md → TODO-1..7`.
+- [ ] ~~TODO-40~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-24`** (user decision, lighten-1.1.0 pass 2): Closed-form randomization nulls: exact PMFs and exact conditional moments where they exist.
 
-  From the `coin` comparison in the 2026-10-07 benchmark investigation.
-  For statistics that are functions of the treated-arm sum, the
-  randomization null is closed-form on several designs: hypergeometric on
-  `DesignFixediBCRD` (fixed `n_T`, binary `y`), a convolution of
-  hypergeometrics on blocking designs, binomial on discordant matched
-  pairs, two independent binomials on Bernoulli designs; and for general
-  `y` the exact mean and finite-population variance of the statistic
-  (Strasser & Weber 1999). EDI draws `r` permutations for all of them
-  (14 ms generation + 0.7 ms kernel at n = r = 1000). The existing Zhang
-  exact dispatch (`should_use_zhang_incidence_randomization()`) covers
-  only Bernoulli/matched incidence designs and uses a "minlike" two-sided
-  ordering, not the doubled-tail ordering of the Monte Carlo path.
-  Delivers: a registry of (class, design) closed forms; an exact-null hook
-  next to the Zhang dispatch; `type = "exact_null"` (PMF) and
-  `"asymptotic_null"` (moments) on `compute_rand_two_sided_pval()`; a
-  closed-form bracket for the randomization CI search (feeds v1.0.5's
-  affine-shift plan). Default stays Monte Carlo; the default switch is the
-  plan's decision-gated TODO-7 (listed in the standing constraint below).
-  Independent of every other item; `TODO-41` depends on its hook.
-
-- [ ] TODO-41 (added 2026-10-07, user decision): **Exact small-sample
-  rank tests via the Streitberg–Röhmel shift algorithm** —
-  `exact_rank_tests_shift_algorithm.md → TODO-1..6`. Depends on
-  `TODO-40`'s hook (its plan's TODO-2).
-
-  `InferenceAllSimpleWilcox` has no exact inference: its asymptotic
-  p-value and Hodges–Lehmann CI call `stats::wilcox.test(exact = FALSE)`
-  (`inference_all_simple_wilcox.R:80,106`) and its randomization p-value is
-  Monte Carlo. `coin` gives exact p-values for any integer-scored linear
-  rank statistic, with ties, via the shift algorithm (Streitberg & Röhmel
-  1986): a dynamic program over subjects counting `k`-subsets by score
-  sum, `O(n · n_T · S)`. Delivers: one C++ kernel
-  `exact_linear_rank_pmf_cpp(scores, n_T)` (midranks × 2 for ties, size
-  rule `n_T · S ≤ 10^8`, overflow guard), the exact rank-sum p-value and
-  exact HL CI through `TODO-40`'s hook, block convolution and the
-  signed-rank subset-sum for matched designs, benchmark rows against
-  `wilcox.test(exact = TRUE)` and `coin`. `coin` and `exactRankTests` are
-  GPL-2 only against EDI's GPL-3: reimplemented from the papers, `coin`
-  used only as a test oracle. Default stays as is; the small-`n` exact
-  default is the plan's decision-gated TODO-6 (standing constraint below).
-
-  **References (roxygen-ready in the house `@references` style; rotate into
-  the kernel's and `InferenceAllSimpleWilcox`'s docs when implemented; use
-  `\enc{Röhmel}{Roehmel}` if `R CMD check` objects to the non-ASCII name):**
-
-  ```
-  #' @references Streitberg, B., and Röhmel, J. (1986). "Exact distributions for
-  #'   permutation and rank tests: An introduction to some recently published
-  #'   algorithms." \emph{Statistical Software Newsletter}, 12(1), 10-17, for the
-  #'   shift algorithm that computes the exact null distribution of an
-  #'   integer-scored linear rank statistic by a dynamic program over subjects.
-  #'   Streitberg, B., and Röhmel, J. (1987). "Exakte Verteilungen für Rang- und
-  #'   Randomisierungstests im allgemeinen c-Stichprobenproblem." \emph{EDV in
-  #'   Medizin und Biologie}, 18(1), 12-19, for the extension to tied scores and
-  #'   the general c-sample problem. See also Hothorn, T., Hornik, K., van de
-  #'   Wiel, M. A., and Zeileis, A. (2006). "A Lego system for conditional
-  #'   inference." \emph{The American Statistician}, 60(3), 257-263,
-  #'   \doi{10.1198/000313006X118430}, for the same algorithm as implemented in
-  #'   \pkg{coin} (GPL-2; used here only as a test oracle, no code reused).
-  ```
+- [ ] ~~TODO-41~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-25`** (user decision, lighten-1.1.0 pass 2): Exact small-sample rank tests via the Streitberg–Röhmel shift algorithm.
 
 
-- [ ] TODO-42 (added 2026-10-07, user decision; kept here although the
-  2026-09-23 split rule would place it in `release_v1_0_5.md`): **Sign the
-  permutation set once at generation; never re-hash or re-copy it per
-  call** — `../bug_fix_plans/permutation_signature_once.md → TODO-1..7`.
+- [ ] ~~TODO-42~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-26`** (user decision, lighten-1.1.0 pass 2): Sign the permutation set once at generation; never re-hash or re-copy it per call.
 
-  Root cause of the "R6 mean difference is 0.57x of `coin`" benchmark row.
-  `build_randomization_distribution_cache_key()` calls
-  `stable_signature(permutations)` on every p-value call and every CI
-  bisection step: `serialize()` + xxhash64 over the 8 MB double matrix
-  (7.5 ms + 1 ms) against a 0.7 ms kernel; `subset_permutations()` copies
-  the whole matrix even when nothing is subset (7.4 ms); and
-  `generate_permutations()` stores the kernel's integer matrix as double
-  (L755), doubling its size although 50 of 51 kernels want integers (16
-  cannot accept a double at all, see `release_v1_0_5.md → TODO-64`).
-  `stable_signature()` became a full-content hash on 2026-09-21 to fix a
-  real collision bug and was never re-timed. Fix: store the signature with
-  the cached set, no-op subset, integer storage end to end, an
-  immutability audit with a debug-mode recheck. Bit-preserving. Acceptance:
-  repeat p-value call ≤ 2 ms from 12 ms. Shares its integer-storage step
-  with v1.0.5's `TODO-64` and multiplies with v1.0.5's `TODO-2` and
-  `TODO-3`; otherwise independent.
+- [ ] ~~TODO-43~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-27`** (user decision, lighten-1.1.0 pass 2): Mean-difference randomization row at parity with `coin`.
 
-- [ ] TODO-43 (added 2026-10-07, user decision): **Mean-difference
-  randomization row at parity with `coin`** —
-  `canonical_parity_resampling_rows.md → TODO-1`.
+- [ ] ~~TODO-44~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-28`** (user decision, lighten-1.1.0 pass 2): Bootstrap CI rows at parity with `boot`.
 
-  Both sides profiled 2026-10-07. `coin::oneway_test(approximate)` spends
-  most of its time in its own S4 layer (92% under `new`/`initialize`; the
-  `libcoin` engine is a quarter to a third of the total). EDI's 23 ms row is
-  construction 3 + generation 12 (cached per design) + `stable_signature`
-  10.5 **per call** + `subset_permutations` copy 5.5 per call + a kernel
-  that costs 4.7 ms on the stored double matrix but 1.1 ms on an integer
-  one. Nothing is borrowable from `coin` (GPL-2 only; engine slower than
-  EDI's generation + kernel). Gate: after `TODO-42` and `TODO-40` land,
-  fresh-object row ≥ 1x `coin`, repeat call ≤ 2 ms, `"asymptotic_null"`
-  row ≥ 1x `coin`'s asymptotic default. Also fixes the two rand-CI rows'
-  comparators: `coin::oneway_test(conf.int = TRUE)` **errors** (coin has
-  CIs only for rank tests), so add a Wilcoxon rand-CI row against
-  `coin::wilcox_test(conf.int = TRUE, approximate)` (147 s vs EDI 17 s at
-  n = 1000) and state the near-misses in the methodology text.
+- [ ] ~~TODO-45~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-29`** (user decision, lighten-1.1.0 pass 2): Zhang exact CI at parity with `fisher.test`.
 
-- [ ] TODO-44 (added 2026-10-07, user decision): **Bootstrap CI rows at
-  parity with `boot`** — `canonical_parity_resampling_rows.md → TODO-2`.
-
-  Per draw, EDI's kernels already beat `boot`'s statistics: `lm.fit` 0.305
-  vs `fast_ols_cpp` 0.275 ms, `glm.fit` 4.2 vs 0.39 (warm), `coxph.fit`
-  0.87 vs 0.75. The R6 worker adds 3.1–3.2 ms per draw on every row, and
-  that cost is **independent of the byte compiler** (3.49 ms/draw JIT on vs
-  3.51 off). Fixes are `release_v1_0_5.md → TODO-58`, `→ TODO-3` and
-  `→ TODO-57`'s plan TODO-7. New here: warm-start every per-draw logistic
-  and Cox refit from the full-data fit; adopt `boot`'s `norm.inter()`
-  percentile endpoints (`boot` is License: Unlimited) behind an argument so
-  EDI's percentile interval reproduces `boot.ci(type = "perc")` exactly.
-  Gate: all three rows ≥ 1x `boot`, logistic ≥ 3x (arithmetic: 275 vs 167–289
-  ms, 195 vs 755, 375 vs 260–510).
-
-- [ ] TODO-45 (added 2026-10-07, user decision): **Zhang exact CI at parity
-  with `fisher.test`** — `canonical_parity_resampling_rows.md → TODO-3`.
-
-  The inversion is already at parity (2.1 ms on an existing object vs 2.8
-  for `fisher.test(conf.int = TRUE)`; ~14 kernel calls at 0.155 ms); the row
-  loses on construction, which `release_v1_0_5.md → TODO-62` separates and
-  `TODO-46` reduces. Borrowable from `stats::fisher.test` (R core, GPL-2 |
-  GPL-3): precompute `logdc = dhyper(support, log = TRUE)` once per table
-  and evaluate each noncentrality as `exp(logdc + log(ncp) * support)`;
-  EDI's kernel recomputes four `lgamma` per support point per call.
-  Tolerance-equal to 1e-12 (standing constraint below). Also compare
-  `fisher.test`'s two `uniroot` calls on one-sided tails with EDI's
-  bisection on the two-sided p-value.
-
-- [ ] TODO-46 (added 2026-10-07, user decision; kept here although the
-  2026-09-23 split rule could place parts in `release_v1_0_5.md`): **R6
-  construction and the per-instance byte-compilation tax** —
-  `canonical_parity_resampling_rows.md → TODO-4`.
-
-  Measured 2026-10-07: an `InferenceContinOLS` instance carries 398 function
-  bindings; a synthetic R6 class with the same method count instantiates in
-  1.6 ms, EDI's classes in 1.4–4.7 ms. **R6's environment rebinding discards
-  bytecode** (verified: `environment<-` on a compiled closure returns an
-  uncompiled one), so every instance starts with none of its methods
-  compiled and R's JIT recompiles them on first use, per instance and per
-  duplicated worker; pre-compiling the generator does not help. Per fresh
-  object this is 60–150 ms in the bootstrap paths (JIT adds 50–90 ms), paid
-  ~90 times by `InferenceSuite$run_all_inference()`. Items: measure per
-  class; make `Inference$initialize()`'s checks per-class (60% of Zhang's
-  construction); *decision-gated* thin-method architecture
-  (`function(...) .impl(self, private, ...)` over compiled namespace
-  functions, emitted by `define_inference_class()`); persistent compiled
-  workers across resampling calls.
+- [ ] ~~TODO-46~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-30`** (user decision, lighten-1.1.0 pass 2): R6 construction and the per-instance byte-compilation tax.
 
 - [ ] TODO-47 (added 2026-10-09, user decision): **Covariate coefficient
   table on the supporting likelihood classes** —
@@ -1439,30 +1286,7 @@ ticked in their **owning plans**; this list is the release index.
     portable build by default for every install, with `EDI_PORTABLE=0` as
     the opt-in tuned build. See the plan and NEWS.
 
-- [ ] TODO-49 (added 2026-10-13, user decision): **Batched C++ loop for the
-  custom randomization statistic** — `custom_rand_stat_batched_cpp_loop.md →
-  TODO-1..7`. `InferenceRandCustom$compute_fast_randomization_distr()` loops
-  over `w_mat` in R and crosses R ↔ C++ once per permutation, even when the
-  user supplied compiled C++. A new serial export,
-  `compute_custom_rand_stat_distr_xptr_cpp()` in
-  `user_compiled_fn_shims.cpp`, dereferences the `user_compiled_fns.h`
-  pointer once and loops in C++. This is the pattern
-  `design_optimal_annealing_search.cpp:152-155` already uses for
-  `DesignFixedOptimal`'s `custom_objective`. R functions, pre-compiled
-  Rcpp functions and Rcpp-typed source strings keep the R loop.
-  - **Decision D1 (resolved 2026-10-13, user decision): option (b).** Source
-    strings may now also use the Eigen-typed `user_compiled_fns.h`
-    signature. Those sources, and XPtrs, get the C++ loop. Existing
-    Rcpp-typed sources are unchanged, so the change is additive. Making the
-    Eigen signature the only one is breaking and is deferred to
-    `release_v2_0_0.md → TODO-7b`.
-  - **Gate:** bit-for-bit equality with the R loop (2- and 3-argument forms,
-    `delta` 0 and non-zero, fork and `mirai` workers). The speedup is
-    measured through TODO-4b's noise-floor harness before any number is
-    published.
-  - **Depends on:** `cached_cpp_compile()` (landed 2026-10-13), the
-    per-process compile memo that stopped `cppFunction`/`cppXPtr` from
-    leaving one `file*.cpp` per call in `tempdir()`.
+- [ ] ~~TODO-49~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-31`** (user decision, lighten-1.1.0 pass 2): Batched C++ loop for the custom randomization statistic.
 
 - [ ] TODO-50 (added 2026-10-15, user decision): **Algorithm audit: wins on
   both speed and accuracy, no new options** — `algorithm_choice_audit.md →
@@ -1499,23 +1323,37 @@ ticked in their **owning plans**; this list is the release index.
     grid, Monte Carlo CMH variance) are documented default changes (see
     Standing constraints).
 
-- [ ] TODO-51 (added 2026-10-15, user decision): **InferenceSuite worker
-  pool** — `inference_suite_worker_pool.md → TODO-1..5`.
-  `run_all_inference(num_cores > 1)` forks one `mcparallel()` child per
-  task, which roughly doubles its CPU (measured 2026-10-15: 369 s against
-  ~194 s in-process at the same contention, about 1.1 s per task, median
-  task 0.5 s). It moves to `num_cores` long-lived forked workers with a
-  rolling dispatch. It keeps the per-task `max_secs_per_class` kill by PID
-  (the killed worker is replaced, the others are untouched) and avoids
-  `clusterApply()` / `stopCluster()`.
-  - **Seeding:** each task is seeded with `seed_for_index`, so results no
-    longer depend on worker count or scheduling. This is a documented draw
-    change for bootstrap and randomization rows at `num_cores > 1`.
-  - **Gate:** `identical()` results across `num_cores = 1, 2, 4` (all
-    columns but `fit_secs`); hang and crash injection tests; the existing
-    `run_all_inference` tests unchanged.
-  - **Depends on:** `TODO-48` (2) for `seed_for_index` and the invariance
-    suite. Shares the worker single-threading helper with `TODO-18`.
+- [ ] ~~TODO-51~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-32`** (user decision, lighten-1.1.0 pass 2): InferenceSuite worker pool.
+
+- [ ] TODO-52 (added 2026-10-19, user decision): **Algorithm-audit leftovers**
+  — `algorithm_choice_audit.md → TODO-39, -41, -7`, the three audit items
+  that had no release slot.
+  - **TODO-39:** `ties` for the Cox family (row L). **Owner decision
+    2026-10-19: Efron becomes the default and `ties = "breslow"` is exposed
+    as an option** (matches `survival::coxph`; more accurate under heavy
+    ties; few users yet, so the default change is cheap now). Scope: Efron in
+    `fast_coxph_regression.cpp` (log-likelihood, gradient, Hessian, neg-ll-only
+    and the robust sandwich all on the same form), a `ties` argument across
+    the Cox family (`"efron"` default, `"breslow"`), the two R fallbacks and
+    the oracle references switched to follow `ties`, and the chosen method
+    recorded through `TODO-48`'s algorithm provenance. **Documented default
+    change**: every Cox estimate on tied data moves, so `package_tests` CSVs,
+    parity tests and the Breslow reference oracles are regenerated, and
+    NEWS states it. Prerequisite `release_v1_0_5.md → TODO-69` is done.
+  - **TODO-41:** audit the exposed implementation toggles (`use_rcpp`,
+    `smart_cold_start_default`, and any other): every reachable path must fit
+    the same model as the default, enforced by one parity test per toggle.
+    Document them as developer options.
+  - **TODO-7:** re-run the audit's *method* (not its conclusions) as the
+    release-close pass, after the v1.1.0 kernels land, to refresh the summary
+    table and the exposure column (audit TODO-37). Recurs per release.
+  - **Gate:** parity tests for TODO-41; for TODO-39, regenerated Cox tests plus a
+    tied-data test per `ties` value against `coxph(ties = ...)`, and
+    untied data identical under both values.
+
+- [ ] ~~TODO-53~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-33`** (user decision, lighten-1.1.0 pass 2): Amortize across runs.
+
+- [ ] ~~TODO-54~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-34`** (user decision, lighten-1.1.0 pass 2): Anytime results.
 
 ## Standing constraints
 
@@ -1531,11 +1369,7 @@ numerical-equivalence rule in
 `../new_feature_plans/cross_platform_reproducibility.md → Release-to-release
 equivalence`, no longer bit-for-bit — except where a plan explicitly documents a
 default change (currently TODO-11's class deletion, pending its
-deprecation decision; TODO-40's exact-null default switch, its plan's
-TODO-7, and TODO-41's small-n exact default, its plan's TODO-6, both
-decision-gated and off until the user accepts them; and TODO-45's
-precomputed hypergeometric log-densities in the Zhang exact kernel, its
-plan's TODO-3, tolerance-equal to 1e-12; and TODO-48's reproducibility work, whose TODO-3 tie tolerance changes p-values only where a tie was resolved by rounding, its plan's TODO-3, documented when it lands, and its plan's TODO-6 tie-tolerant optimizer comparisons, if measurement adopts them, which change seed-pinned draws of the optimizer designs once; and TODO-50's algorithm-audit items that move results beyond the equivalence tiers because the old algorithm was inaccurate (clamped normal tails, the 19-point φ grid, Monte Carlo CMH variance), documented per item when it lands; its derivative, start and NPMLE changes need no exception when they land inside the iterative-solver tier). TODO-4b is narrowed to measurement infrastructure
+deprecation decision; the exact-null, small-n exact and Zhang-kernel default changes formerly listed here (TODO-40, -41, -45) moved to `release_v1_2_0.md → TODO-24, -25, -29` and are restated there; and TODO-48's reproducibility work, whose TODO-3 tie tolerance changes p-values only where a tie was resolved by rounding, its plan's TODO-3, documented when it lands, and its plan's TODO-6 tie-tolerant optimizer comparisons, if measurement adopts them, which change seed-pinned draws of the optimizer designs once; and TODO-50's algorithm-audit items that move results beyond the equivalence tiers because the old algorithm was inaccurate (clamped normal tails, the 19-point φ grid, Monte Carlo CMH variance), documented per item when it lands; its derivative, start and NPMLE changes need no exception when they land inside the iterative-solver tier). TODO-4b is narrowed to measurement infrastructure
 only in this release (`performance_profiling_and_upgrades.md →
 TODO-132..135, 175`, all infrastructure-only, no gate needed); the
 result-changing performance items formerly gated here

@@ -300,7 +300,7 @@ actual SE source for `InferenceCountKKGLMM` to confirm it bypasses the
 jackknife inflation. Flagged as the most promising concrete next step in
 this whole count-family investigation thread.
 
-**Net: TODO-7 remains genuinely open.** Not promoted to `release_v1_5_0.md`
+**Net (historical; TODO-7 was resolved 2026-09-24 as benign, see the TODO-7 checkbox below): TODO-7 remains genuinely open.** Not promoted to `release_v1_5_0.md`
 — no class in the broad-undercoverage bucket (NegBin, ZeroInflatedPoisson,
 Hurdle×2, ZeroInflatedNegBin, QuasiPoisson) has a root cause confirmed to
 a specific line; only the narrower, more mechanistic `InferenceCountKKGLMM`

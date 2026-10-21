@@ -281,10 +281,11 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   gate can be closed from the available artifacts alone. The post-fix
   10-seed logistic check is positive fixture evidence, not the required
   four-kernel sigma-by-n rate characterization. The existing grid still has
-  two materially worse Poisson cold-start fits (seeds 41003 and 41008), so
-  TODO-1 needs either a validated start/reference policy with an optimizer-
-  and unaffected-fit regression check, or an explicit decision to split that
-  non-boundary local-optimum issue from the original boundary-collapse scope.
+  two materially worse Poisson cold-start fits (seeds 41003 and 41008). The
+  2026-10-21 owner decision below resolves the 1.0.5 policy: retain the shipped
+  20-node default and optimizer/start behavior, and use a 20-vs-320 parameter
+  non-regression comparison. The broader four-kernel sigma-by-n validation and
+  current-source/native and comprehensive-row gates remain open.
   **Policy-neutral acceptance candidate, 2026-10-18:** the existing Poisson
   fit reference test already provides an independent exact marginal-likelihood
   evaluator and a `glmer(nAGQ = 25)` parameter candidate. Extend its fixture
@@ -294,6 +295,132 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   outcome without prescribing a beta-start or optimizer policy; it does not
   certify a global optimum. Add it with the corresponding fix, since the
   current cold-start implementation is known to fail the comparison.
+  **Quadrature/metric reconciliation, 2026-10-20:** the later focused test
+  now checks both Newton and L-BFGS for seeds 41003/41008 after fitting with
+  320-point Gauss-Hermite quadrature, and compares the independent exact
+  marginal NLL to the exact NLL at the `glmer(nAGQ=25)` parameters within
+  `1e-4`. This is the same fixture as the older Newton diagnostic, but not the
+  same optimizer cell: that diagnostic used 40-point quadrature and compared
+  approximate kernel objectives. At seed 41003 the saved 40-node GLM-start
+  objective was 312.754654 versus 312.749005 for the glmer start (gap
+  0.005649; gradient norm 1.731), not independently integrated exact NLL.
+  On the current installed artifact, a cold Newton fit at 40 nodes has exact
+  NLL 312.919277 versus 312.828221 at the glmer candidate (gap 0.091056),
+  while the 320-node cold Newton exact NLL is 312.828221 (gap below `1e-9`).
+  Therefore the high-quadrature exact-NLL regression does not erase the
+  separate 40-node optimizer diagnostic. The owner decision below uses the
+  20-vs-320 parameter comparison for 1.0.5; it does not make the 40-node
+  diagnostic an acceptance cell. Installed EDI 1.0.3 DLL SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`
+  matches checkout `R/EDI/src/EDI.so` byte-for-byte at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, but this is not source/build
+  provenance. **Fixed-coordinate contract regression, 2026-10-20:** the same
+  focused file now also supplies a caller warm start while fixing the
+  log-sigma coordinate, then checks that the returned coordinate is exactly
+  the fixed value and that the reported objective matches the independent
+  exact integral within `1e-6`. The 24-assertion file passed (0 failures,
+  warnings, or skips) against installed EDI 1.0.3, with no build/install.
+  This covers the existing fixed-parameter contract only; it neither changes
+  nor selects an optimizer/start policy, and does not settle the known
+  production-quadrature 40-node Newton diagnostic. The installed-artifact
+  result is not current-source/native provenance. TODO-1's broader four-kernel
+  grid and TODO-6's canonical-row regeneration/audit remain open.
+  **Fresh installed-native exact-NLL regression rerun, 2026-10-20:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-poisson-glmm-fit-quadrature-convergence-and-glmer-agreement-reference.R", package = "EDI")`
+  passed all 29 expectations (0 failures, warnings, or skips) against installed
+  EDI 1.0.3. This exercises both optimizers on the two predeclared 320-node
+  cold-start fixtures (seeds 41003/41008), the fixed-coordinate contract, and
+  independent exact-NLL comparisons; it does not test the separate 40-node
+  diagnostic. Installed `EDI.so`
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` has
+  SHA-256 `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  byte-identical to checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This is focused installed-native
+  evidence, not full source/build provenance or validation of the broader
+  four-kernel grid. That grid and TODO-6 canonical-row regeneration/audit
+  remain open.
+  **Installed-package exact-NLL regression recheck, 2026-10-21:** reran the
+  same focused file via `timeout 180s Rscript -e` with `library(EDI)` and
+  `testthat::test_file(..., reporter = "summary")`; all 29 expectations passed
+  (0 failures, warnings, or skips). Runtime package was EDI 1.0.3 from
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`; loaded `EDI.so`
+  MD5 `bfea6f47ab8b27618d5d8633e9021f91`, SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`,
+  mtime `2026-10-21 09:43:34 +0300`; test-file SHA-256
+  `40111009586499512e27258409339c8e25f5ecbcb01889c0918432678606eef2`;
+  checkout HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This is a newer,
+  distinct installed-artifact recheck, not proof that installed R definitions
+  or the binary were built from current checkout. The 20-vs-320 parameter
+  bound, four-kernel grid, current-source/native provenance, and comprehensive-
+  row reconciliation remain open.
+  **40-node criterion-scope check, 2026-10-20:** a minimal source-overlay
+  reproducer (`pkgload::load_all("R/EDI", compile = FALSE)`) at seed 41003,
+  `n=200`, 40 groups of five, `n_gh=40`, Newton requested, gives
+  `converged=TRUE` after two iterations but gradient norm `1.73142`. The
+  reported NLL `312.7547` agrees with a separately coded R 40-node
+  Gauss-Hermite evaluation; that approximation is `0.2912` lower at the fit
+  than at the `glmer(nAGQ=25)` parameters (`313.0458`). Independent exact
+  integration reverses the ordering: `312.9193` at the fit versus `312.8282`
+  at `glmer`, gap `+0.09106`. This exceeds both the grid's `1e-3` materiality
+  marker and the `1e-4` exact-NLL allowance if applied, but neither is an
+  approved criterion for this cell: `1e-3` was used for the boundary-stop
+  grid classification, while `1e-4` is the optimizer-correctness gate at 320
+  nodes. The 40-node fit is non-boundary, and the shipped wrapper default is
+  20 nodes. The 2026-10-21 owner decision sets the 1.0.5 acceptance to
+  20-vs-320 parameter agreement: each coefficient differs by at most `0.75`
+  standard errors and log sigma by at most `0.10`; the 40-node result is
+  diagnostic, not a separate acceptance cell. Validate that bound with
+  current-source/native provenance as part of the remaining native gate; do
+  not change shared optimizer/convergence policy for 1.0.5. The current test indicates
+  the shared Newton-to-L-BFGS fallback can report convergence on an
+  iteration-under-cap/function-decrease stop despite the large gradient, so
+  that behavior is diagnostic evidence, not an authorized fix.
+  **Installed-package 20-vs-320 bound recheck, 2026-10-21:**
+  `timeout 180s Rscript -e` with `library(EDI)` ran
+  `test-poisson-glmm-20-node-vs-320-node-bound.R`; all 20 expectations passed
+  in 5.4 seconds (10 fixed seeds, checking coefficient differences in SE and
+  log-sigma differences). Installed EDI 1.0.3 DLL SHA-256
+  `0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0`
+  (MD5 `bfea6f47ab8b27618d5d8633e9021f91`, mtime
+  `2026-10-21 09:43:34 +0300`) was byte-identical to ignored checkout
+  `R/EDI/src/EDI.so`; test-file SHA-256
+  `96cf46c3b67ed6a219aeaaff4a871062b48f09f102452447543db1cd8be32509`,
+  HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This is installed-artifact
+  acceptance evidence, not source/build provenance; identical bytes do not
+  establish how the DLL was built. The broader four-kernel grid,
+  current-source/native provenance, and comprehensive-row reconciliation
+  remain open. No build/install or canonical output occurred.
+  **Read-only four-kernel artifact/source identity audit, 2026-10-21:** the
+  20-vs-320 bound test evidence above was initially limited to the ten Poisson
+  GLMM seeds. The earlier 160-fit four-kernel
+  sigma-by-n grid was run against installed EDI 1.0.3 and has no retained
+  current-source build receipt. No provenance-stamped broad-grid output was
+  found in the bounded `/tmp` search. The four current source files are clean
+  at HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`, with SHA-256:
+  `fast_ordinal_clmm.cpp` `8f4be0f55e6ad7e8991e10cb9c28336b747d234f627371d1f8e7722b35abdf36`,
+  `fast_ordinal_glmm.cpp` `b334c9bfaeab15fed070770ea5a61c19f1fa3a5004e9dfb406099c83b1ad98d3`,
+  `fast_logistic_glmm.cpp` `a0ad6f1102bb504af9d60b834274a6c743f18696cb7ea29b1d73b3d767562920`,
+  and `fast_poisson_glmm.cpp` `4631fa72397500f4cbd56442e6216d7512c876173b94f0c46e1172bdbd955191`.
+  Current ignored checkout and installed `EDI.so` are byte-identical at SHA-256
+  `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`
+  (14,727,184 bytes; 2026-10-21 14:12 +0300), but no build manifest ties
+  those bytes to the four source hashes. This differs from the `0e513077…`
+  DLL recorded for the earlier Poisson bound recheck, so that test does not
+  establish behavior of the currently installed artifact. Keep the current-
+  source/native four-kernel bound/grid and comprehensive-row gates open.
+  **Ordinal CLMM representative-bound fixture, 2026-10-21:** broadened the
+  existing seeded ordinal CLMM reference test with a single `n=200`, 40-group,
+  five-observations/group fixture (seed 301). It compares 20- and 320-node
+  fits under the approved slope bound (difference divided by the 320-node
+  treatment-coefficient SE <= 0.75) and log-sigma bound (<= 0.10), and checks
+  the 320-node fit against the existing independent `ordinal::clmm(nAGQ=25)`
+  reference. The focused file passed 38 expectations against installed EDI
+  1.0.3; installed DLL SHA-256 is `f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`,
+  identical to ignored checkout `EDI.so` but without a build/source receipt.
+  This is diagnostic installed-artifact evidence for one ordinal CLMM fixture,
+  not current-source/native acceptance or the four-kernel sigma-by-n grid.
+  Ordinal GLMM, logistic GLMM, the broader grid, and comprehensive-row gates
+  remain open; no build/install or canonical output occurred.
   For TODO-6, the canonical count file
   `R/package_tests/comprehensive_tests_results_nc_1_count.csv` has 14,206
   `InferenceCountKKGLMM` text matches and mtime 2026-09-27; the canonical
@@ -332,7 +459,7 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   loaded native-library build; even a descendant HEAD would not prove which
   `EDI.so` was loaded. Record the exact source revision and native artifact
   identity at regeneration. This snapshot is not post-fix native evidence;
-  keep TODO-1 policy/grid validation and TODO-6 regeneration/audit open.
+  keep TODO-1's broader grid validation and TODO-6 regeneration/audit open.
 
   **Post-fix CI provenance check 2026-10-16:** GitHub Actions run
   `38808821543` (`test-bulk-non-cran`) completed successfully at commit
@@ -367,6 +494,159 @@ cases are recorded below. Affected KK comprehensive-row regeneration
   resolved. This path check does not waive either TODO-31's TODO-1/TODO-6 gates
   or TODO-76's result-regeneration gate; no test, build, install, or CSV run was
   performed for this note.
+
+  **Post-policy regeneration sequence, 2026-10-20 (planning only):** after
+  TODO-31's owner-approved 20-vs-320 acceptance bound is validated on the
+  broader four-kernel grid and present in a user-rebuilt/reinstalled EDI,
+  reuse—not recreate—the source-strata inventory
+  `/tmp/edi-todo50-source-strata.8DTD1J/todo50_expected_current_source_strata.csv`
+  (SHA-256 `5d0760ec7b2e750fe096c28bd67b5a38d309a67aaa856c3d5fc15974fab662bb`).
+  It has 29,440 rows: 6,400 `InferenceCountKKGLMM`/count strata and 5,760
+  strata for each of `InferenceOrdinalKKCLMM`, `InferenceOrdinalKKCLMMCauchit`,
+  `InferenceOrdinalKKCLMMCloglog`, and `InferenceOrdinalKKCLMMProbit`.
+  Use the comprehensive harness's response/class filters to regenerate only
+  these five classes into a fresh `/tmp` directory via
+  `EDI_COMPREHENSIVE_RESULTS_DIR`; do not point the run at canonical result
+  files. Retain each output's comprehensive-run provenance sidecar: its
+  before/after records bind checkout HEAD and diff, runner/helper hashes, EDI
+  version/path, loaded DLL path/SHA-256, arguments, and output identity.
+  Expand the source strata through the harness's attempted-function
+  eligibility rather than treating each stratum as one result row. Reconcile
+  complete expected row keys (including `function_run`, replicate, and
+  `beta_T`; use row `id`, not `case_id`, as the unique row key), duplicates,
+  missing/extra keys, and statuses against scratch candidates; then run the
+  existing comprehensive audit before any separately authorized canonical
+  merge. This temporary inventory is not runtime-success evidence or
+  permission to update canonical results. No rows, fits, or canonical files
+  were generated or changed for this sequence. TODO-31's optimizer/native
+  gate and TODO-6's post-fix reconciliation remain open.
+
+  **Source-only attempted-key audit, 2026-10-20:** the existing source-strata
+  CSV is internally unique (29,440 rows, zero duplicate rows), but is not an
+  exact result-key manifest: its columns stop at class/response/dataset/
+  design/`beta_T`/replicate/design formula/class formula and contain no
+  `function_run`. The only existing source helper that expands attempted
+  functions from eligibility fields,
+  `comprehensive_rand_ci_attempt_manifest()`, covers the randomization-CI
+  branch only, not the complete set emitted by the comprehensive runner.
+  For the full matrix, `comprehensive_tests.R` first reads each dataset's
+  `X` and response vector, constructs the design, realizes assignments
+  (`add_one_subject_to_experiment_and_assign()` or
+  `assign_w_to_all_subjects()`), applies treatment effect/noise, and adds
+  outcomes before constructing each inference object. The subsequent
+  `run_inference_checks_impl()` derives attempted labels from that live
+  object's private `supports_*` methods, design capabilities, formula-aware
+  slow-path flags, and testing-type support. Therefore the full exact
+  `function_run` inventory cannot be recovered from the 29,440 strata and
+  static eligibility files alone under the no-assignment/no-outcome
+  constraint; a source-only cross-product would be only a candidate superset,
+  not proof of attempted keys. No candidate function-key manifest was
+  written. Exact expansion must be emitted by the actual post-policy harness
+  run (or by a future runner mode sharing its live gate decisions), then
+  reconciled with the run's provenance sidecar and outputs.
+
+  **Read-only retained-count CI denominator reconciliation 2026-10-21:**
+  checked the retained `comprehensive_tests_results_nc_1_count.csv` rows for
+  the zero-inflated negative-binomial class against the current and prior
+  audit aggregates in `/tmp/edi-todo9-audit.NnBBLg/`. The current source
+  `audit_one()` denominator is every `status == "ok"` CI attempt with finite
+  `coverage_truth`; a non-finite interval is retained as uncovered. The
+  aggregate snapshots instead use the finite-bound counts shown below. Each
+  retained row set below had finite truth on every status-ok attempt:
+
+  | formula | `function_run` | retained attempts | finite bounds / covered | retained rate under current source rule | current aggregate | prior aggregate |
+  |---|---|---:|---:|---:|---:|---:|
+  | `~.` | `compute_gradient_confidence_interval` | 381 | 118 / 104 | 104/381 = 0.273 | 0.881 / 118 | absent |
+  | `~.` | `compute_lik_ratio_confidence_interval` | 381 | 118 / 98 | 98/381 = 0.257 | 0.831 / 118 | 0.851 / 87 |
+  | `~.` | `compute_score_confidence_interval` | 381 | 118 / 102 | 102/381 = 0.268 | 0.864 / 118 | 0.885 / 87 |
+  | `~.` | `compute_wald_confidence_interval` | 381 | 74 / 64 | 64/381 = 0.168 | 0.865 / 74 | 0.877 / 73 |
+  | `~1` | `compute_bayesian_bootstrap_confidence_interval_basic` | 348 | 319 / 291 | 291/348 = 0.836 | 0.912 / 319 | 0.907 / 237 |
+  | `~1` | `compute_bootstrap_confidence_interval_basic` | 304 | 262 / 239 | 239/304 = 0.786 | 0.912 / 262 | 0.906 / 180 |
+  | `~1` | `compute_bootstrap_confidence_interval_studentized` | 304 | 230 / 210 | 210/304 = 0.691 | 0.913 / 230 | 0.906 / 170 |
+  | `~1` | `compute_lik_ratio_confidence_interval` | 381 | 349 / 303 | 303/381 = 0.795 | 0.868 / 349 | 0.908 / 250 |
+
+  Thus the saved aggregate denominators do not reconcile with the current
+  source rule for these retained rows; the distinction is not evidence about
+  Poisson GLMM fit quality or a resolution of TODO-31's start/optimizer
+  policy. The retained CSV records source `github_commit_id` but not the EDI
+  package version or loaded DLL path/hash, and prior raw attempts are not
+  retained separately. These historical results therefore do not establish
+  current-runtime provenance. Keep TODO-31's current-source/native validation
+  and TODO-50's regeneration/reconciliation gates open.
+
+  **Read-only retained-count CI denominator reconciliation, continued
+  2026-10-21:** the next two ZeroInflatedPoisson `~.` rows in the same
+  retained count file and aggregate snapshots have the same denominator
+  conflict. Counts below use status-ok attempts with finite truth; the current
+  source rule includes attempts with missing interval bounds as uncovered.
+
+  | formula | `function_run` | retained attempts | finite bounds / covered | retained rate under current source rule | current aggregate | prior aggregate |
+  |---|---|---:|---:|---:|---:|---:|
+  | `~.` | `compute_asymp_confidence_interval` | 379 | 125 / 108 | 108/379 = 0.285 | 0.864 / 125 | 0.854 / 103 |
+  | `~.` | `compute_gradient_confidence_interval` | 381 | 146 / 126 | 126/381 = 0.331 | 0.863 / 146 | 0.853 / 109 |
+  | `~.` | `compute_lik_ratio_confidence_interval` | 381 | 146 / 126 | 126/381 = 0.331 | 0.863 / 146 | 0.853 / 109 |
+  | `~.` | `compute_score_confidence_interval` | 381 | 146 / 126 | 126/381 = 0.331 | 0.863 / 146 | 0.853 / 109 |
+  | `~.` | `compute_wald_confidence_interval` | 381 | 125 / 108 | 108/381 = 0.285 | 0.864 / 125 | 0.854 / 103 |
+  | `~1` | `compute_asymp_confidence_interval` | 381 | 351 / 327 | 327/381 = 0.858 | no low-coverage finding | no low-coverage finding |
+  | `~1` | `compute_gradient_confidence_interval` | 381 | 351 / 316 | 316/381 = 0.829 | 0.900 / 351 | 0.900 / 260 |
+  | `~1` | `compute_lik_ratio_bartlett_approx_confidence_interval` | 381 | 349 / 293 | 293/381 = 0.770 | 0.840 / 349 | 0.837 / 258 |
+  | `~1` | `compute_lik_ratio_bartlett_confidence_interval` | 381 | 350 / 293 | 293/381 = 0.770 | 0.837 / 350 | 0.834 / 259 |
+  | `~1` | `compute_lik_ratio_confidence_interval` | 381 | 351 / 311 | 311/381 = 0.816 | 0.886 / 351 | 0.896 / 260 |
+  | `~1` | `compute_rand_bootstrap_confidence_interval` | 195 | 172 / 170 | 170/195 = 0.872 | 0.988 / 172 (reported OVER) | 0.988 / 172 (reported OVER) |
+  | `~1` | `compute_rand_bootstrap_confidence_interval_smoothed` | 195 | 178 / 153 | 153/195 = 0.785 | 0.860 / 178 | 0.860 / 178 |
+  | `~1` | `compute_score_confidence_interval` | 381 | 351 / 315 | 315/381 = 0.827 | 0.897 / 351 | 0.896 / 260 |
+
+  The missing-bound rows have `numeric_instability` skip reasons. The ZIP
+  `~1` asymptotic row has 30 such attempts; absence from the saved low-coverage
+  findings is not a pass, and no fresh aggregate was generated under the
+  current denominator rule. In particular, the randomization-bootstrap row's
+  saved finite-bound aggregate reports OVER (0.988), while the current-source
+  all-attempt retained rate is 0.872; this denominator-driven reversal is not
+  a re-run of the coverage audit or a pass/fail determination. Historical
+  attempts are not separately retained for replay, and the CSV's source
+  commit ID does not bind an EDI package version or loaded DLL path/hash.
+  These rows do not establish current-runtime behavior and do not change the
+  open TODO-31 native/grid-validation or TODO-50 regeneration/reconciliation
+  gates.
+
+  **TODO-50 retained-artifact disposition, 2026-10-21:** the targeted rows in
+  the canonical count and ordinal CSVs total 83,327 (14,206 and 69,121); all
+  have status `ok` and unique `id`/`run_row_id`, but every recorded source
+  commit predates sigma-start fix `e706c6f67a6798eea666921155c259a751476feb`
+  and current HEAD `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. The count file
+  is 329,319,605 bytes, mtime 2026-09-27 11:17:02 +0300, SHA-256
+  `684e7fa07ea616d0743c226bae4a5300360ad7906d6d166872e4399ec144fba3`; the
+  ordinal file is 417,165,307 bytes, mtime 2026-10-09 01:12:24 +0300, SHA-256
+  `5da4c24e4e078bb47c18f8d8a5f78775c511d46c05e11bed40e0fe67c74111ce`.
+  Neither records loaded-DLL identity. The only retained candidate inventory,
+  `/tmp/edi-todo50-source-strata.8DTD1J/todo50_expected_current_source_strata.csv`,
+  has 29,440 unique strata (SHA-256
+  `5d0760ec7b2e750fe096c28bd67b5a38d309a67aaa856c3d5fc15974fab662bb`, mtime
+  2026-10-20 14:56:52 +0300), but no `function_run`/attempt identities. Its
+  README has no generator or source hashes and points to
+  `comprehensive_tests.R`, which is now dirty, so it is not reproducible
+  current-source attestation. No post-fix comprehensive result/sidecar was
+  found; CI run `38808821543` at descendant commit `430c19bcdb0702d998c79f9058c449449034134c`
+  is build/regression evidence only, not row reconciliation. Therefore exact
+  post-fix reconciliation cannot proceed from retained artifacts: regenerate
+  the affected rows in an isolated directory with current package/R and DLL
+  provenance, then reconcile the complete attempted keys and terminal states.
+  No result or canonical file was changed; TODO-50 remains open.
+
+  **TODO-50 artifact recheck, 2026-10-21 (read-only):** the only matching
+  `/tmp/edi-todo50-*` directory is still
+  `/tmp/edi-todo50-source-strata.8DTD1J/`, containing only its README and
+  29,440-row candidate-strata CSV. The CSV and both canonical result-file
+  hashes still match the inventory above. Current raw source hashes are
+  `comprehensive_tests.R` `72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`
+  and `_dataset_load.R`
+  `7e3cf603ef384c369c4435dc5ca0b541d9248bbda9e5db7f3c17b2b41628bdda`, but
+  the candidate README records neither generator nor source hashes and cannot
+  bind its strata to these current bytes. The canonical count/ordinal CSVs
+  still have no adjacent run-provenance sidecars. This confirms no retained
+  post-fix attempt roster or current-source-complete output beyond the
+  candidate strata; all regeneration and exact reconciliation gates above
+  remain open. No result or canonical file was changed.
 
 ## Cross-links (kept in sync 2026-09-24)
 

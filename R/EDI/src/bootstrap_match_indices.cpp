@@ -104,9 +104,13 @@ List draw_matching_bootstrap_sample_cpp(
 		m_vec_b[j] = 0;
 	}
 	if (n_reservoir > 0) {
-		IntegerVector i_reservoir_b = sample_fn(i_reservoir, Named("size", n_reservoir), Named("replace", true));
+		// Sampling a length-one numeric vector directly in R means sample(x)
+		// draws from 1:x, not from the singleton x. Sample positions instead,
+		// then map those positions back to the original row indices.
+		IntegerVector reservoir_positions = seq_len(i_reservoir.size());
+		IntegerVector sampled_positions = sample_fn(reservoir_positions, Named("size", n_reservoir), Named("replace", true));
 		for (int j = 0; j < n_reservoir; ++j) {
-			i_b[j] = i_reservoir_b[j];
+			i_b[j] = i_reservoir[sampled_positions[j] - 1];
 		}
 	}
 

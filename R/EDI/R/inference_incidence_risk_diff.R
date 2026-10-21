@@ -123,7 +123,8 @@ InferenceIncidRiskDiff = define_inference_class(
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
 		#' @description Refits the linear-probability model by weighted least squares
-		#'   (\code{stats::lm.wfit()}) under subject/block resampling weights
+		#'   under subject/block resampling weights (using the native OLS kernel for
+		#'   full-rank draws and \code{stats::lm.wfit()} as the compatibility fallback)
 		#'   (nonparametric-bootstrap replicate weights or Bayesian-bootstrap Dirichlet
 		#'   weights, both expanded to row weights via
 		#'   \code{expand_subject_or_block_weights_to_row_weights()}) and returns the
@@ -146,11 +147,26 @@ InferenceIncidRiskDiff = define_inference_class(
 					w_fit = row_weights
 					ok = is.finite(w_fit) & w_fit > 0 & is.finite(private$y)
 					if (sum(ok) <= ncol(X_fit)) return(NULL)
-					stats::lm.wfit(
-						x = X_fit[ok, , drop = FALSE],
-						y = as.numeric(private$y[ok]),
-						w = as.numeric(w_fit[ok])
-					)
+					X_sub = X_fit[ok, , drop = FALSE]
+					y_sub = as.numeric(private$y[ok])
+					w_sub = as.numeric(w_fit[ok])
+					sqrt_w = sqrt(w_sub)
+					X_weighted = X_sub * sqrt_w
+					y_weighted = y_sub * sqrt_w
+					beta_native = tryCatch({
+						if (ncol(X_weighted) > 0L && qr(X_weighted)$rank == ncol(X_weighted)) {
+							fit_native = fast_ols_cpp(X_weighted, y_weighted)
+							beta = as.numeric(fit_native$b)
+							if (length(beta) == ncol(X_sub) && all(is.finite(beta))) beta else NULL
+						} else {
+							NULL
+						}
+					}, error = function(e) NULL)
+					if (!is.null(beta_native)) {
+						list(coefficients = beta_native)
+					} else {
+						stats::lm.wfit(x = X_sub, y = y_sub, w = w_sub)
+					}
 				},
 				fit_ok = function(mod, X_fit, keep){
 					j_treat = match(2L, keep)

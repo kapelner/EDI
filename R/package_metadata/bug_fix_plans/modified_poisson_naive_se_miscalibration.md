@@ -121,6 +121,55 @@ version's.
   but writes only a filtered CSV. It does not regenerate the canonical
   historical result CSVs or their derived aggregates, so TODO 6 remains open.
 
+**External process-exit receipt gate, 2026-10-21:** the comprehensive runner's
+schema-v2 RDS sidecar records command arguments, before/after package/source/
+DLL identities, result-file identity, and optional attempt-manifest identity,
+but it cannot record its own terminal process exit status. The sidecar is
+written only on the normal completion path. The `fork=FALSE` watchdog obtains
+the worker's `processx::get_exit_status()` and propagates it through the outer
+R process's `quit(status=...)`, but its temporary watchdog directory is removed
+on return and no durable success-exit receipt is retained by the runner.
+Therefore a completed-looking CSV/heartbeat (or even a provenance sidecar)
+alone does not prove exit 0. For the future isolated TODO-6 regeneration, retain
+an external supervisor receipt in the same fresh `/tmp` run directory with the
+exact command/arguments and relevant environment, parent/worker PIDs, UTC
+start/end, terminal exit code, stdout/stderr log paths and SHA-256 hashes, and
+paths plus SHA-256 hashes for the result CSV, schema-v2 provenance sidecar,
+and attempt manifest. Accept the run only with a terminal exit code of 0,
+complete/stable sidecar provenance, and a passing exact-key/status/value audit.
+A killed/timed-out process or missing receipt is partial evidence and must not
+be merged or used to replace canonical aggregates. This is a run-bundle
+requirement, not a request to change the runner's in-process provenance schema;
+no workload or result artifact was created for this note.
+
+**External receipt wrapper contract, 2026-10-21:** the reusable
+`R/package_tests/comprehensive_external_process_receipt.R` helper and
+`R/package_tests/run_comprehensive_with_receipt.R` CLI write an atomic external
+running marker and terminal receipt with command/arguments, PID, UTC bounds,
+exit status, and stdout/stderr paths, byte counts, and SHA-256 hashes. The CLI
+accepts `NAME=value` environment overrides; the helper converts these to the
+named vector required by `processx` for child launch while preserving the
+original `NAME=value` vector in receipt provenance. After diagnosing the
+initial CLI failure (`processx` rejected the unnamed override vector), the
+focused stub-child contract test passed 31 expectations with installed EDI
+1.0.3 (exact command:
+`Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-external-process-receipt-contracts.R", reporter="summary")'`). It exercised only the helper/CLI and a short stub child, not an EDI workload, build, or install. The receipt remains external to the runner's schema-v2 sidecar and has not yet been exercised on an authorized TODO-56 run. TODO-56 still requires a fresh isolated run bundle, terminal exit 0, complete sidecar provenance, and exact key/status/value audit.
+
+**Read-only process/artifact recheck, 2026-10-21:** `ps -C R -C Rscript`
+showed no live R/Rscript process, and `lsof +D` found no open handles in the
+candidate tree or either retained `/tmp/edi-todo56-slice6*` directory. The
+broad historical slice-6 run is terminal with exit 143; its runner log and
+heartbeat end at 2026-10-18 11:09:00 and 11:09:25. The separate
+`/tmp/edi-todo56-slice6-target.lnaz88/results/comprehensive_tests_results_nc_1_incidence_filtered_design-Bernoulli_class-InferenceIncidModifiedPoisson_family-rand.csv`
+contains 152 all-`ok` rows, including the 16 canonical target IDs and 136
+additional IDs, but no terminal receipt. It is retained evidence only and must
+not be merged. `/tmp` currently has 16 GiB free; the exact 16 IDs/argv remain
+owner-gated. Do not restart the broad run. A future bounded run requires the
+confirmed 16-key scope, fresh `/tmp` output, external terminal receipt,
+complete schema-v2 provenance, and exact key/status/value reconciliation.
+No process was started or stopped and no result artifacts were changed in
+this audit.
+
 ## Files changed
 
 - `R/EDI/R/inference_incidence_modified_poisson.R`

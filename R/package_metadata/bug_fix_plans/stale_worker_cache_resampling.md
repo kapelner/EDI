@@ -388,6 +388,24 @@ written to eliminate elsewhere in this codebase.
   these 13 smoothed keys; the remaining 183-absent/373-new differences still
   need row-level evidence and disposition before a baseline write.
 
+  **Additional historical subset classification (2026-10-19; read-only):**
+  comparing `/tmp/edi-todo9-audit.NnBBLg/baseline.before.csv` with that
+  directory's scratch-generated `comprehensive_results_audit_baseline.csv`
+  reproduces the 183 absent / 373 new key counts. Of the new keys, 29 are
+  `pval_miscalibration` findings for proportion
+  `InferencePropBetaRegr`, across 18 distinct p-value functions and the
+  `~.`, `~1`, and `NA` formula strata. Their source input is the symlinked
+  `R/package_tests/comprehensive_tests_results_nc_1_proportion.csv`; its
+  mtime is 2026-10-09 01:11:31 +0300, and the scratch audit stamp records
+  84,170,816 bytes / mtime epoch 1791497491. This predates the Oct 11
+  null-fit warm-start change tracked by TODO-52, but the CSV has no verified
+  source or native-DLL provenance. Disposition: **historical/pre-fix,
+  current status unknown; not droppable from the baseline**. These rows
+  cannot establish a current defect or justify accepting current behavior;
+  only a provenance-pinned post-fix regeneration and key-level comparison
+  can resolve them. The classification does not alter the baseline and does
+  not close TODO-7.
+
   **Isolated-output integration audit (2026-10-18):**
   `comprehensive_tests.R` now passes its computed canonical filename through
   `resolve_comprehensive_results_file()`. Setting
@@ -415,6 +433,42 @@ written to eliminate elsewhere in this codebase.
   baseline comparison, and keep its baseline/stamp separate; filtered shards
   alone are insufficient. No run, audit, pruning, or baseline write was
   performed for this integration check.
+
+  **Scratch baseline-write regressions (2026-10-20):**
+  `test-comprehensive-audit-output-directory-override-reference.R` now has
+  two CLI cases using isolated scratch inputs: a partial response artifact
+  set must refuse `--write-baseline` without replacing an existing baseline
+  or stamp; a complete synthetic response set must write its baseline and
+  stamp only under `EDI_COMPREHENSIVE_RESULTS_DIR`, not beside the copied
+  runner. These exercise scratch-path refusal/routing only. The full
+  canonical audit was not run and no canonical baseline was written. The
+  tests extend the earlier output-isolation check only for synthetic
+  artifacts; they do not reconcile the canonical inputs. The exact-key
+  comparison gate remains the previously recorded 183 baseline findings
+  absent / 373 new findings, requiring row-level evidence and disposition
+  before any baseline rewrite.
+
+  **Structural input preflight, 2026-10-21:** the six-file write guard now
+  also requires the result schema and at least one data row per response CSV
+  (header plus first row only). The focused scratch-path test passes 39
+  assertions, including rejection of header-only/wrong-schema files without
+  replacing baseline/stamp sentinels. This prevents structurally empty inputs
+  from reaching the writer, but does not establish complete expected keys,
+  valid terminal outcomes, or current source/package/DLL provenance. The
+  six-response provenance/key reconciliation remains open; the 183
+  baseline-only and 373 finding-only differences are unresolved, and no
+  canonical baseline write is authorized.
+
+  **Scratch-evidence availability recheck (2026-10-21; read-only):** the
+  previously cited `/tmp/edi-todo9-audit.NnBBLg` directory and its finding
+  table are absent from the current environment. The recorded exact-key join
+  (2,165 unique baseline keys; 2,355 unique finding keys; 1,982 common,
+  183 baseline-only, and 373 finding-only) is therefore historical and
+  unauthenticated here, not a currently inspectable or reproducible result.
+  The original CSV inputs were gitignored artifacts without source/package/
+  native-DLL provenance. Reconciliation still requires a provenance-stamped
+  regeneration of all six complete response inputs, followed by exact-key
+  disposition of every difference; no baseline promotion is authorized.
 
 - [x] TODO-8: Once the affected-class list is final (TODO-1), decide
   whether any already-published example, vignette, or documentation output
@@ -564,6 +618,51 @@ written to eliminate elsewhere in this codebase.
   snapshots or close the release-wide sweep/classification gate. No compile,
   build, install, shared-result operation, or canonical write occurred.
 
+  **Installed-native regression recheck, 2026-10-20:** the focused
+  `test-reused-worker-private-cache-reset.R` passed all 55 assertions (0
+  failures, warnings, or skips) via `testthat::test_file()` against installed
+  EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. The installed
+  `DESCRIPTION` SHA-256 is
+  `4a90096cefbca36c7f68d2d53af5821ed7747fa20d0d359880bcd704372998f0`;
+  loaded `EDI.so` SHA-256 is
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`.
+  The DLL is byte-identical to checkout `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` (`cmp -s` succeeded); the
+  checkout `DESCRIPTION` hash differs, and this byte match does not establish
+  the DLL's source/build provenance. This is installed-artifact evidence for
+  the focused reset contract only, not the release-wide paired sweep or a
+  reproducible current-source/native build attestation. No build, install,
+  canonical output, or sweep snapshot was produced.
+
+  **Sweep-provenance contract (2026-10-20):** new snapshots now record the
+  loaded EDI package version and namespace path, native DLL path and MD5, and
+  a per-file MD5 manifest for the loaded R layer (source files in `--source`
+  mode, installed lazy-load files otherwise). `compare` rejects snapshots
+  without valid provenance and refuses pairs with different EDI versions or
+  native DLLs; the R-layer manifest remains separately inspectable because
+  pre/post source changes are intentional. The focused sweep-contract test
+  passed 24 assertions against installed EDI 1.0.3. This validates the
+  provenance recorder/comparator contract only: no distribution sweep or
+  RDS snapshot was produced. A separate `pkgload::load_all(...,
+  compile=FALSE)` probe verified `--source` mode records the 211 source R
+  files and the already-loaded DLL MD5 `dfd5bf4384b5a0cc0d430fd70dab2a59`.
+  Neither check fills the missing comparable pre/post run or closes TODO-9.
+
+  **Comparator classification guard (2026-10-20):** static review found that
+  `classify_change()` treated an all-NA baseline as a point mass because zero
+  finite unique values satisfied the old `<= 1` condition. That could label
+  an all-NA-to-varying transition as a confirmed cache fix without any finite
+  baseline evidence. The comparator now reserves `fixed` for a finite
+  single-valued baseline becoming variable; an all-NA transition remains
+  `MOVED` for investigation. The sweep-contract regression pins both cases
+  (finite point mass → `fixed`; all-NA → `MOVED`). Its focused file was run
+  against installed EDI 1.0.3: the new classification assertions passed, but
+  two pre-existing strict-enumeration expectations failed because that
+  installed registry marks `InferenceIncidExactBinomial` differently from
+  the checkout. No sweep snapshots were produced; the comparable pre/post
+  artifacts and full classification remain open.
+
 ## Status
 
 TODO-1 through TODO-6 **shipped** 2026-09-22 (commits `811e0683`,
@@ -591,6 +690,171 @@ and is tracked at `release_v1_0_5.md → TODO-12` (was
 `release_v1_1_0.md → TODO-34`). Its focused regressions pass. The item stays
 open until the release-wide pre/post bit-for-bit sweep can use a comparable
 clean baseline.
+
+**TODO-12 sweep-enumeration metadata correction, 2026-10-20:** the
+`InferenceIncidExactBinomial` registry record was missing its KK-matching
+requirement even though its explicit compatibility guard accepts only
+`DesignFixedBinaryMatch` or KK-capable designs. Added the class to
+`EDI_INFERENCE_REQUIRES_KK_MATCHING_DESIGN_OVERRIDES` and extended
+`test-inference-registry-capability-contracts.R` to assert both the inferred
+flag and resolved registry metadata. The focused test passed 43 expectations
+with checkout R code loaded using `compile = FALSE`; this used installed EDI
+1.0.3 native artifact, but exercised registry/R metadata only. This corrects
+the declared arm-routing flag. A no-draw strict-enumeration smoke then loaded
+the runner helpers, completed registry candidate enumeration across all arms
+and response types, routed ExactBinomial only to the `kk` arm, and constructed
+its targeted KK-incidence candidate without error. That candidate was not a
+reusable worker (`0` distribution keys); no distribution was called and no
+snapshot was written. This does not run the runner's `record` mode or validate
+the expected manifest against the old snapshots. No canonical artifacts were
+read or written. The release-wide paired sweep, current-native verification,
+and result reconciliation remain open.
+
+**Persistent strict-candidate exclusion regression, 2026-10-20:** extended
+the existing sweep-contract bulk test to exercise the runner's loaded
+`resampling_nondegenerate_cases()` with the real arm and fixture helpers.
+`InferenceIncidExactBinomial` is excluded from Bernoulli incidence; on the
+KK-incidence fixture it constructs under `strict = TRUE` but produces zero
+reusable-worker cases. No resampling distribution is invoked and no snapshot
+is written. The test passed 28 expectations with checkout R sources loaded
+using `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` on R 4.7.0
+and the installed EDI 1.0.3 native artifact (temporary DLL MD5
+`dfd5bf4384b5a0cc0d430fd70dab2a59`). It was run via
+`testthat::test_file("R/package_tests/testthat_bulk/test-reused-worker-bitforbit-sweep-contracts.R")`;
+the loaded DLL path was `/tmp/RtmpIYt73c/pkgload6ca786d46ea00/EDI.so` with
+the same MD5. Runner, fixture, and test SHA-256 values
+were `71f66399796a1534c31301c74f635c8ac5555cc0914e9fb452e8adc6173928b1`,
+`5c1a428134aee72b969d06f446171d34a8d28bfb88e399b641ee7562109f2d53`, and
+`cea8912eddcfa57e7bc512542646daeb68d9e2f8565135fe2e0a5b750a4487b4`.
+This pins the ExactBinomial exclusion from the expected-key candidate set; it
+does not establish full manifest completeness, paired parity, or current-native
+validation. The same fixture also asserts that snapshot validation rejects a
+duplicated expected-key manifest, covering the explicit duplicate-manifest
+guard without running a distribution or recording a sweep.
+
+**TODO-12 retained-artifact acceptance check, 2026-10-20:** read-only
+inspection found the recorded `before-1.rds`, `before-2.rds`, and
+`after-refined-v2.rds` under `/tmp/edi-todo12-paired-53rKFp/` and
+`/tmp/edi-todo12-refined-9EdvIW/`. Their SHA-256 values match the recorded
+hashes, and each contains 240 uniquely named entries; however, all three lack
+both the `expected_keys` and `provenance` attributes required by the current
+comparator. These artifacts cannot be promoted to acceptance by adding
+metadata after the fact: their internal key-set consistency is not proof that
+the current strict source-derived manifest and run-time provenance match.
+The existing comparator had no focused assertion for its missing-manifest
+guard, so the sweep-contract test now checks that it fails closed when
+`expected_keys` is absent. The full focused test passed 31 expectations with
+checkout R loaded via `pkgload::load_all(..., compile = FALSE)`; two unrelated
+registry assertions fail against the stale installed EDI 1.0.3 when run
+without that overlay. This test makes no distribution call and writes no
+snapshot. Release-wide paired parity and current-native verification remain
+open; no artifact or canonical result was modified.
+
+**Live `/tmp` snapshot inventory (2026-10-21):** the previously recorded
+`/tmp/edi-todo12-paired-53rKFp/before-1.rds`,
+`/tmp/edi-todo12-paired-53rKFp/before-2.rds`, and
+`/tmp/edi-todo12-refined-9EdvIW/after-refined-v2.rds` paths are absent. A
+read-only search of 669 `/tmp` RDS files found no match for their recorded
+SHA-256 values (`2ed850bfe71a073e36ee0aa6d264049a1062d131accbc7a9f44bbb171e14250e`,
+`865e7580b555079a0359fec20e9ad455fd004de67d572b5bc3648c734789d83f`, and
+`222a87ce4aac5304cdc9790c39bae4167cfa876ec2e8e117d4e7c861a2a1fb63`). The
+remaining TODO-12-prefixed RDS files are synthetic contract fixtures or
+staged `testthat-problems.rds`, not 240-key run snapshots. The historical
+audit found 240 unique entries and matching key sets, but those files lacked
+the current comparator's `expected_keys` and `provenance` attributes; that
+check cannot be reproduced on extant artifacts. Current identity is HEAD
+`4f7a6e4ca82829e880c15a76699701a95e5e83b9`, runner SHA-256
+`f22124b58abc774b1a66b174cf18007b8048ac3a62b929e77805c9d606b19a45`. The
+three fresh `r=15` snapshots (720 evaluations total) are still required. The
+user explicitly prohibited this workload in the current assignment, so fresh
+explicit approval is required before launch. No R run or artifact mutation
+occurred in this audit.
+
+**Current installed sweep-contract recheck, 2026-10-20:** attached installed
+EDI 1.0.3 at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI` and ran
+`testthat::test_file("R/package_tests/testthat_bulk/test-reused-worker-bitforbit-sweep-contracts.R")`.
+All 31 expectations passed, including installed-registry routing, mocked
+constructor/distribution failures, key/NA/provenance rejection, and the
+all-NA classification guard. The test sources the current checkout sweep
+runner (`scripts/reused_worker_bitforbit_sweep.R`, SHA-256
+`4510d0e8a56ffa681c84e3de8e7057b44c87f8bb581c88b8f0114ffb8c5e6bdf`) and
+uses the installed namespace for registry lookups; test SHA-256 is
+`a63dd474cf8f907112d1dcba0c56999180badf124b50484845646f84382ca922`.
+Installed DESCRIPTION SHA-256 is
+`9bc2620857fc1dce03c0cf8f0ce91f51c2385da011fb8d8c6f4264ef9c9231c5`; loaded
+`EDI.so` SHA-256 is
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+This deterministic contract test calls no resampling distribution and writes
+no sweep snapshot. It newly confirms the harness guards against the current
+installed package, but does not exercise the `cached_mod` reset on an actual
+reused-worker draw, reconcile the retained RDS files, or close release-wide
+paired parity/current-native provenance.
+
+**Positive paired-comparison contract, 2026-10-20:** extended the existing
+bulk sweep-contract test with a two-key synthetic successful comparison. Both
+snapshots have the same expected-key manifest, package version, and native-DLL
+digest, while their provenance intentionally distinguishes installed lazy-load
+R code from checkout source R code; one distribution is unchanged and the
+other is substantively moved. The comparator reports one bit-identical and
+one `MOVED` entry. The focused command
+`Rscript -e 'pkgload::load_all("R/EDI", compile=FALSE, quiet=TRUE); testthat::test_file("R/package_tests/testthat_bulk/test-reused-worker-bitforbit-sweep-contracts.R")'`
+passed 37 expectations with no failures, warnings, or skips. Namespace:
+`/home/kapelner/workspace/EDI/R/EDI`, EDI 1.0.3, R Under development
+`(2026-10-13 r90668)`; loaded temporary DLL
+`/tmp/RtmpgfEUCP/pkgloadcdc3fc016909/EDI.so`, MD5
+`8b3ca30492d7b1c790deeebe94b201ad`. Test SHA-256
+`32fa2407c994826374e3c2cb56717a2173e8f354231799a97b081989ab39ab9a`.
+This validates comparator acceptance only: it generates no sweep distributions
+or snapshots and does not close paired parity, retained-artifact
+reconciliation, or current-native validation.
+
+**TODO-12 720-distribution preflight, 2026-10-21:** the proposed workload is
+three snapshots of the exact 240-key source-derived roster: two same-source
+pre-fix recordings for the noise floor, then one post-fix recording. Each key
+is `class|arm|response_type|production/forced`; enumeration reuses the
+nondegenerate fixture/registry helpers, strict arm/design construction, and
+reusable-worker capability checks (not a hand-built Cartesian roster). The
+fixture contract is `r = 15`, seed `20260922`, arms Bernoulli/KK/blocking, and
+the six response types continuous/incidence/count/proportion/ordinal/survival.
+Acceptance requires all three snapshots to contain the same 240 unique keys,
+each numeric length 15 with no infinite non-NA values; the two pre snapshots
+establish repeat noise, and pre/post comparison must preserve key and NA
+patterns and classify every changed distribution for review. Provenance must
+pin the package version and identical native DLL across all snapshots while
+externally recording the exact R source, fixture, runner, seed, HEAD/worktree
+state, and run inputs. The earlier 240-entry snapshots and staging directories
+named above are no longer present under their recorded `/tmp` paths; the
+bounded current `/tmp` inventory found only tiny synthetic comparator fixtures,
+not usable paired distributions. At preflight, HEAD was
+`4f7a6e4ca82829e880c15a76699701a95e5e83b9`, the working-tree runner SHA-256
+was `4510d0e8a56ffa681c84e3de8e7057b44c87f8bb581c88b8f0114ffb8c5e6bdf`, and
+the fixture SHA-256 was
+`5c1a428134aee72b969d06f446171d34a8d28bfb88e399b641ee7562109f2d53`. The
+installed and staged `EDI.so` files currently match at SHA-256
+`0e5130770d0a74d86c26ba220c64561dffb71003510b678522ca860b7f37efc0` (both
+dated 2026-10-21 09:43), but these point-in-time identities do not authenticate
+the absent historical snapshots or define the historical pre-fix source
+bundle. No workload, R test, canonical write, or output generation was done;
+the three-snapshot run remains pending explicit approval and a frozen,
+reproducible pre/post input bundle.
+
+**Checkout-R cache-reset regression recheck, 2026-10-20:**
+`test-reused-worker-private-cache-reset.R` passed all 55 assertions (0
+failures, warnings, or skips) after loading checkout R sources with
+`pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` and running
+`testthat::test_file(...)`. The test covers structural/context-preserving
+cache reset and fresh-versus-reused OLS estimates for randomization,
+bootstrap, and randomization-bootstrap draws. Runtime provenance: R Under
+development (2026-10-13 r90668), EDI 1.0.3, namespace
+`/home/kapelner/workspace/EDI/R/EDI`; the loaded temporary DLL MD5 was
+`8b3ca30492d7b1c790deeebe94b201ad`. This matches installed and ignored
+checkout `EDI.so` SHA-256
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+No build/install, sweep, or result write occurred. This strengthens the
+focused source-overlay cache-reset check only; it is distinct from the
+release-wide 614-file paired sweep on identical fixtures and RNG seeds. That
+sweep, classification review, and its native/provenance requirements remain
+open.
 
 TODO-7 (CSV regeneration and baseline rewrite) remains open and is owned by
 the earlier release TODO-9. TODO-8's published-output audit is complete:

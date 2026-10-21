@@ -29,10 +29,19 @@ test_that("weighted linear-probability refit matches an independent lm.wfit() re
 	f <- risk_diff_fixture(101)
 	weights <- runif(f$n, 0.5, 2)
 
+	fast_ols <- get("fast_ols_cpp", envir = asNamespace("EDI"))
+	native_calls <- 0L
+	local_mocked_bindings(fast_ols_cpp = function(X, y, ...) {
+		native_calls <<- native_calls + 1L
+		expect_equal(X, f$X * sqrt(weights), tolerance = 0)
+		expect_equal(y, as.numeric(f$y) * sqrt(weights), tolerance = 0)
+		fast_ols(X, y, ...)
+	}, .package = "EDI")
 	est_pkg <- as.numeric(f$inf$compute_estimate_with_bootstrap_weights(weights))
 	ref <- stats::lm.wfit(f$X, f$y, w = weights)
 	est_ref <- unname(ref$coefficients[2])
 	expect_equal(est_pkg, est_ref, tolerance = 1e-8)
+	expect_equal(native_calls, 1L)
 
 	# Documented contract: no SE is ever cached for a single bootstrap replicate.
 	expect_true(is.na(f$inf$.__enclos_env__$private$weighted_refit_se()))

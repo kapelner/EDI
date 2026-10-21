@@ -112,6 +112,18 @@
   with `--error-exitcode=99`; the run exited 0. The CRAN fast-math test also
   passed 2 assertions. Codex did not compile/build/install. The separate
   successor plan's broader sibling-kernel validation gates remain open.
+  **Repeat against current installed package 2026-10-20:**
+  `testthat::test_file("R/package_tests/testthat_bulk/test-fast-zero-one-inflated-beta-cpp-input-validation-guards-reference.R", reporter="summary")`
+  passed all 9 assertions (0 failures, warnings, or skips) against EDI 1.0.3
+  at `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, R
+  `R Under development (unstable) (2026-10-13 r90668)`. The loaded `EDI.so`
+  path is `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`,
+  MD5 `a75519a9256c0b3121398032314291d4`, SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`;
+  checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This is an
+  installed-package repeat only, not a build from that checkout or a
+  sanitizer run; it does not close the successor plan's rebuilt-native,
+  ASAN/Valgrind, or installed-CSV gates.
 - [x] **TODO-5: `DesignFixedOptimalBlocks` (blockTools/greedy path) trailing
   incomplete block.** When `n` is not a multiple of `B`, leftover subjects
   reach the nearest-neighbour fallback, but its unrestricted choices can put

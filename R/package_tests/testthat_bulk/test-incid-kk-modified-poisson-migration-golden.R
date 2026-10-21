@@ -109,4 +109,10 @@ test_that("InferenceAbstractKKMarginalIncid base is marked migrated", {
 	EDI:::populate_inference_class_registry()
 	metadata = EDI:::get_inference_class_metadata("InferenceAbstractKKMarginalIncid")
 	expect_identical(metadata$parent, "Inference")
+
+	# The KK Modified-Poisson leaf uses a Poisson working likelihood only for
+	# estimation; its release contract must not classify that working model as
+	# an inferential likelihood (TODO-19).
+	modified_poisson = EDI:::get_inference_class_metadata("InferenceIncidKKModifiedPoisson")
+	expect_identical(modified_poisson$likelihood_tier, "none")
 })

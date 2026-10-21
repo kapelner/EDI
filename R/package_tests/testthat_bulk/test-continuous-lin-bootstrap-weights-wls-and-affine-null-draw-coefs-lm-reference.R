@@ -29,6 +29,15 @@ ref_wls <- function(wt, keep = rep(TRUE, n)) {
 test_that("weighted refit equals lm(y ~ w * Xc, weights) and caches beta, weighted SE and df", {
 	f <- mk()
 	set.seed(1); wt <- rexp(n)
+	X_fit <- f$p$reduce_design_matrix_preserving_treatment(f$p$build_lin_design_matrix())$X
+	fast_ols <- get("fast_ols_cpp", envir = asNamespace("EDI"))
+	native_calls <- 0L
+	local_mocked_bindings(fast_ols_cpp = function(X, y, ...) {
+		native_calls <<- native_calls + 1L
+		expect_equal(X, X_fit * sqrt(wt), tolerance = 0)
+		expect_equal(y, as.numeric(f$p$y) * sqrt(wt), tolerance = 0)
+		fast_ols(X, y, ...)
+	}, .package = "EDI")
 	est <- f$inf$compute_estimate_with_bootstrap_weights(wt)
 	expect_equal(est, ref_wls(wt), tolerance = 1e-8)
 	# the public wrapper runs isolated; call the underlying implementation to inspect the cache it fills
@@ -38,6 +47,7 @@ test_that("weighted refit equals lm(y ~ w * Xc, weights) and caches beta, weight
 	fit <- lm(y ~ w * (x1 + x2), data = data.frame(y = y, w = w, Xc), weights = wt)
 	se_ref <- sqrt(sum(wt * resid(fit)^2) / (n - 6) * solve(crossprod(model.matrix(fit) * sqrt(wt)))[2, 2])
 	expect_equal(f$p$cached_values$s_beta_hat_T, se_ref, tolerance = 1e-8)
+	expect_equal(native_calls, 2L)
 })
 
 test_that("estimate_only skips the variance and clears cached SE/df", {

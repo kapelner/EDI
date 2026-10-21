@@ -65,13 +65,60 @@ test_that("cold Poisson GLMM fit is no worse than the glmer candidate on known l
 			data = d, nAGQ = 25))
 		p_glmer <- c(unname(lme4::fixef(m)),
 			log(as.data.frame(lme4::VarCorr(m))$sdcor[1L]))
-		r <- K("fast_poisson_glmm_cpp")(f$X, f$y, f$g, 0L, n_gh = 320L)
-		p_cold <- c(as.numeric(r$b), as.numeric(r$log_sigma))
+		ref_nll <- exact_nll(p_glmer, f)
+		for (algorithm in c("newton", "lbfgs")) {
+			r <- K("fast_poisson_glmm_cpp")(f$X, f$y, f$g, 0L,
+				n_gh = 320L, optimization_alg = algorithm)
+			p_cold <- c(as.numeric(r$b), as.numeric(r$log_sigma))
 
-		expect_true(r$converged)
-		expect_true(exact_nll(p_cold, f) <= exact_nll(p_glmer, f) + 1e-4,
-			info = paste("seed", seed))
+			expect_true(r$converged, info = paste("seed", seed, algorithm))
+			expect_true(exact_nll(p_cold, f) <= ref_nll + 1e-4,
+				info = paste("seed", seed, algorithm))
+		}
 	}
+})
+
+test_that("Poisson GLMM multistart honors a fixed log-sigma with a caller warm start", {
+	f <- poisson_glmm_cold_start_fixture(41003L)
+	fixed_log_sigma <- log(0.6)
+	r <- K("fast_poisson_glmm_cpp")(
+		f$X, f$y, f$g, 0L,
+		warm_start_params = c(0.4, 0.3, log(0.9)),
+		smart_cold_start = TRUE,
+		n_gh = 320L,
+		fixed_idx = 3L,
+		fixed_values = fixed_log_sigma,
+		optimization_alg = "newton"
+	)
+	p_fit <- c(as.numeric(r$b), as.numeric(r$log_sigma))
+
+	expect_true(r$converged)
+	expect_identical(as.numeric(r$log_sigma), fixed_log_sigma)
+	expect_equal(as.numeric(r$neg_loglik), exact_nll(p_fit, f), tolerance = 1e-6)
+})
+
+test_that("a valid unconstrained Poisson GLMM warm start reaches the glmer reference", {
+	f <- poisson_glmm_cold_start_fixture(41003L)
+	d <- data.frame(y = f$y, x = f$X[, 2], g = factor(f$g))
+	m <- suppressMessages(lme4::glmer(y ~ x + (1 | g), family = poisson,
+		data = d, nAGQ = 25))
+	r <- K("fast_poisson_glmm_cpp")(
+		f$X, f$y, f$g, 0L,
+		warm_start_params = c(0.4, 0.3, log(0.9)),
+		smart_cold_start = FALSE,
+		n_gh = 320L,
+		optimization_alg = "newton"
+	)
+	p_fit <- c(as.numeric(r$b), as.numeric(r$log_sigma))
+	p_glmer <- c(unname(lme4::fixef(m)),
+		log(as.data.frame(lme4::VarCorr(m))$sdcor[1L]))
+	ref_nll <- exact_nll(p_glmer, f)
+
+	expect_true(r$converged)
+	expect_equal(as.numeric(r$b), unname(lme4::fixef(m)), tolerance = 2e-2)
+	expect_equal(as.numeric(r$log_sigma), p_glmer[3L], tolerance = 2e-2)
+	expect_equal(as.numeric(r$neg_loglik), exact_nll(p_fit, f), tolerance = 1e-6)
+	expect_lte(exact_nll(p_fit, f), ref_nll + 1e-4)
 })
 
 test_that("ssq_b_T is vcov[j_T + 1, j_T + 1] for a 0-based j_T, and NaN for an out-of-range index", {

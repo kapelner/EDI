@@ -119,12 +119,16 @@ test_that("generate_mod wires the full-data multistart selector into ordinary fi
 	y <- as.integer(cut(0.9 * w + rlogis(n), c(-Inf, -1, 0.4, 1.5, Inf)))
 	des$add_all_subject_responses(y)
 	inf <- InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~1, verbose = FALSE)
+	set.seed(9124L)
+	rng_before <- .Random.seed
 	mod <- inf$.__enclos_env__$private$generate_mod()
+	expect_identical(.Random.seed, rng_before)
 
 	# The lower-level selector tests above prove how candidate fits are
 	# selected; this integration assertion guards the ordinary full-data
-	# generate_mod() call site. It is not a calibration estimate or a claim
-	# about the separate repeated randomization/bootstrap refit paths.
+	# generate_mod() call site and confirms it leaves the caller's RNG stream
+	# untouched. It is not a calibration estimate or a claim about the separate
+	# repeated randomization/bootstrap refit paths.
 	expect_true(length(mod$b) >= 2L && is.finite(mod$b[2L]))
 	expect_true(mod$multistart_n_tried > 1L)
 	expect_true(is.character(mod$multistart_selected_start) && nzchar(mod$multistart_selected_start))

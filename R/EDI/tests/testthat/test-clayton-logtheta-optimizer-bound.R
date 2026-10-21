@@ -63,6 +63,25 @@ test_that("Clayton objective and gradient share the same upper log-theta bound",
 	)), 4L)
 })
 
+test_that("the upper log-theta cap leaves the near-independence tail open", {
+	source = clayton_optimizer_source()
+	skip_if(is.na(source), "native source tree is unavailable")
+	# The kernel caps only the high-dependence tail. Do not copy the R
+	# fallback's lower rejection threshold into this native likelihood.
+	expect_match(source, "return std::min(log_theta, CLAYTON_MAX_LOG_THETA);", fixed = TRUE)
+
+	d = clayton_bound_fixture()
+	params = c(0, 0, -20)
+	score = EDI:::get_clayton_weibull_aft_score_cpp(
+		d$X, d$y, d$dead, d$pair_idx, d$singleton_rows, params
+	)
+	expect_true(all(is.finite(score)))
+	# At theta = exp(-20), the association score is small but nonzero; a lower
+	# clamp that flattened this region would erase this near-independence signal.
+	expect_gt(abs(tail(score, 1L)), 1e-12)
+	expect_lt(abs(tail(score, 1L)), 1e-6)
+})
+
 test_that("rebuilt Clayton optimizer terminates an unsafe upper-bound start", {
 	d = clayton_bound_fixture()
 	probe = EDI:::fast_clayton_weibull_aft_optim_cpp(

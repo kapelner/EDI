@@ -36,11 +36,20 @@ test_that("fast_poisson_glmm_cpp matches lme4::glmer (Poisson, n_gh=20, nAGQ=20)
 	beta_cpp  <- as.numeric(res_cpp$b)
 	beta_lme4 <- as.numeric(lme4::fixef(res_lme4))
 	lsig_lme4 <- log(sqrt(as.numeric(lme4::VarCorr(res_lme4)$grp[1])))
+	res_cpp_warm <- EDI:::fast_poisson_glmm_cpp(
+		X, y, as.integer(group_id), j_T = 1L,
+		warm_start_params = c(beta_lme4, lsig_lme4), smart_cold_start = TRUE,
+		n_gh = 20L)
 
 	expect_equal(beta_cpp, beta_lme4,   tolerance = 1e-3, label = "Poisson GLMM betas")
 	expect_equal(res_cpp$log_sigma, lsig_lme4, tolerance = 1e-3, label = "Poisson GLMM log_sigma")
 	expect_true(res_cpp$converged)
 	expect_true(is.finite(res_cpp$ssq_b_T))
+	expect_true(res_cpp_warm$converged)
+	expect_equal(as.numeric(res_cpp_warm$b), beta_lme4, tolerance = 1e-3,
+		label = "warm-started Poisson GLMM betas")
+	expect_equal(res_cpp_warm$log_sigma, lsig_lme4, tolerance = 1e-3,
+		label = "warm-started Poisson GLMM log_sigma")
 })
 
 test_that("fast_logistic_glmm_cpp matches lme4::glmer (Binomial, n_gh=20, nAGQ=20)", {
@@ -100,9 +109,20 @@ test_that("fast_hurdle_poisson_glmm_cpp matches glmmTMB truncated_poisson (n_gh=
 	beta_cpp  <- as.numeric(res_cpp$b)
 	beta_tmb  <- as.numeric(glmmTMB::fixef(res_tmb)$cond)
 	lsig_tmb  <- log(sqrt(as.numeric(glmmTMB::VarCorr(res_tmb)$cond$grp[1])))
+	# Exercise the affected kernel's correctly sized p + 1 warm-start path
+	# against the same independent truncated-Poisson GLMM reference.
+	res_cpp_warm <- EDI:::fast_hurdle_poisson_glmm_cpp(
+		X, y, as.integer(group_id), j_T = 1L,
+		warm_start_params = c(beta_tmb, lsig_tmb), smart_cold_start = FALSE,
+		n_gh = 7L)
 
 	expect_equal(beta_cpp, beta_tmb,           tolerance = 2e-3, label = "Hurdle-Poisson betas")
 	expect_equal(res_cpp$log_sigma, lsig_tmb,  tolerance = 2e-3, label = "Hurdle-Poisson log_sigma")
 	expect_true(res_cpp$converged)
 	expect_true(is.finite(res_cpp$ssq_b_T))
+	expect_true(res_cpp_warm$converged)
+	expect_equal(as.numeric(res_cpp_warm$b), beta_tmb, tolerance = 2e-3,
+		label = "warm-started Hurdle-Poisson GLMM betas")
+	expect_equal(res_cpp_warm$log_sigma, lsig_tmb, tolerance = 2e-3,
+		label = "warm-started Hurdle-Poisson GLMM log_sigma")
 })

@@ -45,6 +45,12 @@ test_that("weights that keep only treatment-arm rows alias the treatment coeffic
 	f <- mk()
 	wt <- ifelse(w == 1, 1, 0)
 	stopifnot(sum(w == 1) > 0, sum(w == 0) > 0)
+	fast_ols <- get("fast_ols_cpp", envir = asNamespace("EDI"))
+	native_calls <- 0L
+	local_mocked_bindings(fast_ols_cpp = function(...) {
+		native_calls <<- native_calls + 1L
+		fast_ols(...)
+	}, .package = "EDI")
 
 	est <- f$inf$compute_estimate_with_bootstrap_weights(wt)
 	expect_true(is.na(est))
@@ -61,4 +67,5 @@ test_that("weights that keep only treatment-arm rows alias the treatment coeffic
 	expect_true(is.na(f$p$cached_values$beta_hat_T))
 	expect_true(is.na(f$p$cached_values$s_beta_hat_T))
 	expect_true(is.na(f$p$cached_values$df))
+	expect_equal(native_calls, 0L)
 })

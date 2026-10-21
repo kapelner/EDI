@@ -57,9 +57,25 @@ test_that("the fits agree with pscl::zeroinfl and pscl::hurdle (hurdle zero coef
 	expect_equal(as.numeric(rz$params), unname(coef(zi)), tolerance = 2e-3)
 	expect_equal(-as.numeric(rz$neg_loglik) - sum(lfactorial(f$y)), as.numeric(logLik(zi)), tolerance = 1e-4)
 	expect_equal(unname(sqrt(diag(rz$vcov))), unname(sqrt(diag(vcov(zi)))), tolerance = 5e-3)
+	# A correctly shaped caller start must still reach the independent fit; the
+	# shape-guard regression alone only exercises rejected starts on this kernel.
+	rz_warm <- K("fast_zero_augmented_poisson_cpp")(
+		f$X, f$y, f$Xz, FALSE, warm_start_params = p0
+	)
+	expect_true(rz_warm$converged)
+	expect_equal(as.numeric(rz_warm$params), unname(coef(zi)), tolerance = 2e-3)
+	expect_equal(-as.numeric(rz_warm$neg_loglik) - sum(lfactorial(f$y)), as.numeric(logLik(zi)), tolerance = 1e-4)
 	hu <- pscl::hurdle(y ~ x1 + x2 | x1, data = d, dist = "poisson", zero.dist = "binomial")
 	rh <- K("fast_zero_augmented_poisson_cpp")(f$X, f$y, f$Xz, TRUE)
 	expect_equal(as.numeric(rh$params)[1:3], unname(coef(hu))[1:3], tolerance = 2e-3)
 	expect_equal(as.numeric(rh$params)[4:5], -unname(coef(hu))[4:5], tolerance = 2e-3)
 	expect_equal(-as.numeric(rh$neg_loglik) - sum(lfactorial(f$y)), as.numeric(logLik(hu)), tolerance = 1e-4)
+	rh_start <- c(p0[1:3], -p0[4:5])
+	rh_warm <- K("fast_zero_augmented_poisson_cpp")(
+		f$X, f$y, f$Xz, TRUE, warm_start_params = rh_start
+	)
+	expect_true(rh_warm$converged)
+	expect_equal(as.numeric(rh_warm$params)[1:3], unname(coef(hu))[1:3], tolerance = 2e-3)
+	expect_equal(as.numeric(rh_warm$params)[4:5], -unname(coef(hu))[4:5], tolerance = 2e-3)
+	expect_equal(-as.numeric(rh_warm$neg_loglik) - sum(lfactorial(f$y)), as.numeric(logLik(hu)), tolerance = 1e-4)
 })

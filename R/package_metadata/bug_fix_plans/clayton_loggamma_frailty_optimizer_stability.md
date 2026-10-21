@@ -24,12 +24,22 @@ session) traced the mechanism; it was not fixed.
 
 `compute_lik_ratio_bartlett_approx_two_sided_pval` →
 `InferenceExtBartlettApprox$get_bartlett_factor_approx`
-(`inference_ext_bartlett_approx.R:53-94`) runs `B=99` Monte-Carlo null
-replicates (`run_param_bootstrap_replicates`,
+(`inference_ext_bartlett_approx.R:53-94`) runs the caller-supplied number of
+Monte-Carlo null replicates (`run_param_bootstrap_replicates`,
 `inference_all_abstract_param_boot.R:582-696`), each calling
 `simulate_under_lik_null` (`inference_survival_GLMM_weibull_frailty_
 loggamma.R:840-920`), which does two `fast_clayton_weibull_aft_optim_cpp`
 refits (full + null-constrained) per replicate.
+
+**Replicate-count provenance correction:** the public method's default is
+`B=99`, but the standard comprehensive runner sets `r=151` and explicitly
+passes `B=r` to this method (`R/package_tests/comprehensive_tests.R:851,
+2994-2996`; that call pattern is present in tracked history from 2026-09-07).
+Accordingly, the historical production outliers are likely B=151 if they came
+from that runner, not B=99. The surviving matching-class raw rows are for
+`design_formula=~.` and do not include the reported `~1` rep-1/rep-13 timing
+rows or their per-case provenance, so B=151 for those exact outliers remains
+unproven.
 
 Two compounding issues in that C++ optimizer
 (`src/fast_survival_models_optim.cpp`):
@@ -50,7 +60,7 @@ Two compounding issues in that C++ optimizer
 3. **Cascading fallback only on this family's fit path.**
    `.fit_clayton_weibull_aft` (`helper_survival_fits.R:243-399`), when no
    warm start is cached (true for a fresh replicate object — the common
-   case inside the B=99 loop), tries 3 C++ LBFGS starts, then 3 R
+   case inside the Bartlett replicate loop), tries 3 C++ LBFGS starts, then 3 R
    `optim(BFGS)` starts, then 3 R `optim(Nelder-Mead, maxit=10000)` starts.
    The sibling normal-frailty fit (`.fit_weibull_frailty`, same file,
    line 503) is a thin direct pass-through with no cascade. When (1)+(2)
@@ -186,6 +196,26 @@ recheck; TODO-56 remains active, the original per-case RNG/outcome context is
 unavailable, and the numeric runtime ceiling plus per-formula estimate/SE/
 Bartlett-p tolerances still require maintainer approval before the gated run.
 
+**Git-archive artifact audit, 2026-10-20 (read-only):** the full archived
+survival snapshot was found at
+`R/package_tests/todo56_mp_resume_20261016/R/package_tests/comprehensive_tests_results_nc_1_survival.csv`
+(blob `7e5fbce1b396dc1d5f70e094b1ff4fa482c7339a`, 372,209,537 bytes). Git
+history adds it in `05117b6bea93921669f061067a9eefb9d22cb8ac` and deletes it
+in `a9dfb148`. It records case context, result, elapsed time, commit, and
+timestamp, but not per-case `.Random.seed`/`RNGkind`, assignments, generated
+outcomes, or a row-data hash. Its approximate-Bartlett rows for the target
+class at reps 1 and 13 are for `design_formula=~.` (2.216s, p=0.831; 2.502s,
+p=0.266; status `ok`), not the original `~1` reps reported at 178.7s and
+159.7s. They therefore do not reproduce those cases or recover their input
+realizations. A targeted all-ref object-name search found only the sibling
+archived heartbeat log
+`R/package_tests/todo56_mp_resume_20261016/tmp/RtmpE4vyta/comprehensive_tests_heartbeat_23.log`
+(blob `cdf9cf4e8a894afa65b419cff4edb6507795f8dd`, 437,415 bytes); its content
+is epoch timestamps only. This adds a historical full-sweep artifact but
+does not close the original-seed gate. Keep the historical-replay versus
+owner-approved deterministic-replacement choice open; no benchmark, fit, or
+replacement run was made.
+
 - [x] TODO-4: Confirm no golden-test point-estimate drift from the new
   bound. `test-clayton-logtheta-optimizer-bound.R` passed against the
   reinstalled package on 2026-10-14, including the censored fixture's
@@ -232,3 +262,71 @@ Bartlett-p tolerances still require maintainer approval before the gated run.
   by the constrained-refit regression. On 2026-10-14, the user's reinstalled
   package passed the direct bound/golden regression; Codex did not compile or
   install.
+- **Independence-tail regression, 2026-10-20:** the focused CRAN test now
+  checks that the checkout source's `clamp_clayton_log_theta()` remains a
+  one-sided upper cap and that the native score at `log_theta = -20` is finite,
+  small, and nonzero. The test passed 22 expectations with no failures,
+  warnings, or skips against installed EDI 1.0.3; `edi_build_info_cpp()`
+  reported build timestamp `2026-10-19 23:31:50 IDT`. The source assertion
+  protects the current cap definition; the runtime score check is evidence for
+  that installed artifact only, not an exact current-checkout native-build
+  attestation. This adds no timing or calibration evidence and does not close
+  TODO-3's historical-replay/owner-acceptance gate. No compile/install ran.
+- **Post-rebuild native recheck, 2026-10-20:** reran
+  `R/EDI/tests/testthat/test-clayton-logtheta-optimizer-bound.R` against
+  installed EDI 1.0.3; all 22 expectations passed with no failures, warnings,
+  or skips. The loaded DLL was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`
+  (14,727,184 bytes; mtime `2026-10-20 09:38:02 +0300`; SHA-256
+  `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`,
+  MD5 `a75519a9256c0b3121398032314291d4`). It is byte-identical to checkout
+  `R/EDI/src/EDI.so` at HEAD
+  `4f7a6e4ca82829e880c15a76699701a95e5e83b9` (same size and SHA-256). This
+  establishes that the focused runtime check used the same DLL bytes present
+  in the checkout; it does not reproduce the historical production sample or
+  provide the maintainer-approved timing/parity thresholds still required by
+  TODO-3. No compile/install or timing run occurred.
+- **Checkout-R source-overlay recheck, 2026-10-20:** after confirming no
+  concurrent R/Rscript workload remained, ran
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)` followed by
+  `testthat::test_file("R/EDI/tests/testthat/test-clayton-logtheta-optimizer-bound.R",
+  reporter = "summary")`. All 22 expectations passed with no failures,
+  warnings, or skips. The R namespace was the checkout at
+  `/home/kapelner/workspace/EDI/R/EDI`; R was `R Under development (unstable)
+  (2026-10-13 r90668)`. The temporary loaded DLL SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  matching the installed user-rebuilt EDI 1.0.3 DLL and checkout
+  `R/EDI/src/EDI.so`. This verifies the checkout-R assertions and focused
+  optimizer/golden behavior against those DLL bytes; it is not an independent
+  compiler-input attestation, historical-sample replay, or timing/parity
+  acceptance. No build, compile, install, timing run, or canonical output
+  change occurred.
+  **Filtered-artifact metadata recheck, 2026-10-20 (read-only):** the retained
+  `/tmp/edi-v105-todo6.kCbSHR` tree contains exactly six files: the filtered
+  comprehensive runner, its dataset/pruning/helper files, the 13-replicate
+  filtered CSV (40,109 bytes, 53 lines), and the separate filtered rep-1 CSV
+  (3,529 bytes, 5 lines). The 13-replicate CSV header has case/result,
+  commit, timestamp, duration, and heartbeat fields, but no RNG state,
+  assignment/outcome hash, or provenance sidecar; the tree contains no saved
+  original sample or run bundle. This confirms that these filtered outputs
+  cannot reconstruct the full-run reps 1/13 input or establish exact historical
+  replay. No CSV payload was copied or changed, and no fit was run.
+  **Tracked-source RNG/provenance audit, 2026-10-20 (read-only):** searched
+  the linked plan/release record, tracked package test and metadata paths, and
+  the comprehensive runner, dataset loader, and current provenance helper for
+  the class, reported outlier durations, RNG state, seed schedules, and input
+  hashes. The runner starts with `set.seed(1)`, then `_dataset_load.R` samples
+  the `diamonds` rows with `slice_sample()` before any individual inference
+  case; this is a whole-run starting seed, not the missing case-start state or
+  a hash of that sampled input. The current provenance helper snapshots
+  `.Random.seed`/`RNGkind()` at run boundaries, after dataset loading, and does
+  not add retroactive information to the historical artifacts. The reviewed
+  TODO records propose a deterministic one-replicate-per-formula replacement
+  but explicitly require approval; no approval is recorded there. Thus the
+  recoverable evidence is the configured run-start seed, historical case
+  labels/results/timings/commit metadata, and filtered-probe outputs—not the
+  original sample/assignment or an approved replacement. Remaining inputs are
+  the original per-case RNG state plus `RNGkind()`, sampled-row or generated
+  outcome/assignment hash, and compatible package/data/harness provenance; or
+  maintainer approval of a replacement seed/data protocol and acceptance
+  thresholds. No test/fitting or artifact write occurred.

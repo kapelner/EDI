@@ -225,6 +225,17 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   native-build provenance; TODO-4 remains blocked on historical-denominator
   reconciliation or an explicitly approved current-native rerun. No files in
   either result directory were modified.
+  **Paired-seed data-integrity recheck, 2026-10-20 (read-only):** reparsed
+  the hash-verified CSVs above and confirmed that both configurations contain
+  the same 400 unique seed IDs (1001--1400), with no duplicate or missing
+  seeds. On that aligned seed set, 104 seeds have finite estimate/LR-p-value
+  pairs in both configurations, 120 only at `n=100`, 73 only at `n=50`, and
+  103 in neither. This documents the current per-configuration fit-usability
+  pattern without treating the different-`n` datasets as paired observations
+  or explaining the missing historical 386/400 and 169/400 denominators. The
+  CSV hashes remain `e07fb683…ddd051` (`n=100`) and
+  `5992e43b…7eff4` (`n=50`); provenance and the historical-data gap remain
+  unchanged, so TODO-4 is still blocked. No result files were modified.
 - [x] TODO-5: Audit and, where estimates move, re-derive (not just
   re-record) every golden/reference value touching
   `InferenceOrdinalStereotypeLogitRegr` in
@@ -250,6 +261,33 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   miss the reproduced failure. The search therefore remains restricted by
   call site (one full-data fit) rather than by an unsafe coefficient gate;
   repeated randomization/bootstrap refits retain their one-start paths.
+  **Installed-package focused recheck, 2026-10-20:**
+  `test-stereotype-logit-full-fit-multistart.R` passed all 17 expectations
+  with `testthat::test_file()` against installed EDI 1.0.3. R was
+  `R-devel r90668`; package metadata reports Built `2026-10-20 06:33:10
+  UTC`, and the loaded DLL was
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so`
+  (SHA-256 `dd9dd9a4c3c13619c473b29c6e90fd4b44d75903e25e6fa5ab78c91457c18716`,
+  MD5 `a75519a9256c0b3121398032314291d4`). Checkout HEAD was
+  `4f7a6e4ca828`; the test was not source-loaded, so this is installed-package
+  evidence and does not establish that the installed R implementation matches
+  current checkout source or validate a current-checkout/native build. No
+  compilation or installation occurred; TODO-4, TODO-7, and TODO-8 remain
+  open.
+  **Checkout-source focused recheck, 2026-10-20:**
+  `pkgload::load_all("R/EDI", compile = FALSE, recompile = FALSE)` followed
+  by `testthat::test_file("R/EDI/tests/testthat/test-stereotype-logit-full-fit-multistart.R",
+  package = "EDI")` passed all 17 expectations (0 failures, warnings, or
+  skips). R was R-devel `r90668`; package version was 1.0.3 and the loaded
+  namespace was `/home/kapelner/workspace/EDI/R/EDI`. The loaded temporary
+  `EDI.so` SHA-256 was
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`,
+  matching checkout `R/EDI/src/EDI.so`. This validates the checkout R-layer
+  full-fit multistart regression against that existing native DLL, not the
+  missing post-fix 400-null calibration or class-wide comprehensive CSV
+  regeneration/reconciliation. No compilation or installation occurred;
+  TODO-4, TODO-7, and TODO-8 remain open. Captured output is
+  `/tmp/todo8-stereotype-multistart-source-20261020.log`.
 - [ ] TODO-7: Update `inference_ordinal_stereotype_logit.R`'s class-level
   roxygen (rewritten 2026-09-21 with the post-refit-fix Type-I/coverage
   numbers) with the post-multi-start numbers from TODO-4, and regenerate
@@ -303,6 +341,59 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   The current post-fix calibration and provenance gates (TODO-4/7) still
   precede this regeneration, and no run or audit was performed for this
   integration check.
+
+  **Installed null-refit-selection regression, 2026-10-20:**
+  `test-ordinal-stereotype-logit-lik-test-null-refit-multistart-reference.R`
+  passed all 5 assertions (0 failures/warnings/skips; exit 0) against installed
+  EDI 1.0.3 at
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`. Loaded
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI/libs/EDI.so` had MD5
+  `8b3ca30492d7b1c790deeebe94b201ad` and SHA-256
+  `db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`;
+  checkout HEAD was `4f7a6e4ca82829e880c15a76699701a95e5e83b9`. This fixture
+  mocks the two constrained-null starts and verifies selection of the lower
+  `neg_loglik`, the first-start winner, single-start nonconvergence fallback,
+  and both-start failure. It is a focused null-refit contract only: it does
+  not regenerate class-wide comprehensive rows, measure Type-I error/coverage,
+  reconcile the historical usable-fit denominators, or establish that the
+  installed R layer matches checkout source. TODO-8 remains gated on the full
+  result inventory and TODO-4/7's valid post-fix calibration/documentation.
+
+  **Retained-artifact inventory, 2026-10-21 (read-only):** the previously
+  named `/tmp/edi-todo8-400-null-reinstall-20261014T173835Z/`,
+  `/tmp/edi-todo8-400-null-installed-20261014T142934Z/`, and
+  `/tmp/edi_todo8_n100k5.csv` are no longer present; only the 1,249-byte
+  `/tmp/todo8-stereotype-multistart-source-20261020.log` remains from the
+  TODO-8-named files checked. Four ignored, filtered class CSVs survive under
+  `R/package_tests/` (line counts include headers): beta-0 parametric
+  bootstrap 556 lines, SHA-256
+  `46479a28cf5acf36f52b6365cec75a9766be4d0f080ce80eb07d8392b42db6ff`;
+  bootstrap 133 lines, `362c25a221608db8030cda91330fda2315dc8e6c1c61363b97eca27f2a7bb7be`;
+  jackknife 508 lines, `9fdd6ffb04c2a72a9659c44deec521b2dae5b6f5c395afe1cf9e52e9ccc56cca`;
+  and rand 163 lines, `298511ebeb8200d997f5f24d003b403032cac2c7ea7b6cc9bc20876d753de011`.
+  Their recorded mtimes are Sep 8 (three slices) and Sep 21 (the beta-0
+  parametric-bootstrap slice), all before the Oct 8 ordinary full-fit
+  multi-start implementation; none is a complete all-`function_run` class
+  shard or has a current source/DLL provenance receipt. The two documented
+  Oct 14 study cohorts (400 rows each at n=100 and n=50) are also absent now;
+  they were null-calibration diagnostics, not comprehensive-runner output.
+  These surviving files therefore provide neither an exact current-source
+  reconciliation nor a complete expected-key roster. Keep TODO-8 open behind
+  TODO-4/7; after those gates, produce an installed, provenance-stamped
+  all-`function_run` class shard and reconcile it in an isolated complete
+  ordinal audit input set. Do not update canonical CSVs/baseline from these
+  stale partial files.
+
+  **Ordinal artifact parity recheck, 2026-10-21 (read-only):** the bounded
+  inventory also finds `comprehensive_tests_results_nc_1_ordinal.csv.pre_stereotype_merge.bak`
+  (437,321,222 bytes; mtime 2026-09-21) and two Bernoulli/diamonds filtered
+  class outputs (rand-custom, mtime 2026-09-23; and rand, also mtime
+  2026-09-23). All precede the 2026-10-08 ordinary-fit multi-start change;
+  the large backup is a pre-change snapshot, while the two filtered files are
+  narrow dataset/family slices. None can validate the post-fix optimum
+  selection, post-fix calibration, or full class result-key inventory. No
+  newly retained artifact closes TODO-8 without the TODO-4/7 calibration and
+  provenance gates; canonical CSV/baseline changes remain unauthorized.
 
 - [ ] TODO-9 (added 2026-09-24, found via a dedicated cross-class
   investigation fork re-auditing the ordinal cluster — **flag

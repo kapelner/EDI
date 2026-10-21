@@ -389,8 +389,13 @@ audit_one = function(path, rt) {
 		lp[, response_type := rt]
 	}
 
-	ci = dt[grepl("confidence_interval", function_run, fixed = TRUE) & status == "ok"]
-	ci[, `:=`(lo = suppressWarnings(as.numeric(result_1)), hi = suppressWarnings(as.numeric(result_2)))]
+	ci_attempts = dt[grepl("confidence_interval", function_run, fixed = TRUE) & status %in% c("ok", "error")]
+	ci_attempts[, `:=`(
+		lo = suppressWarnings(as.numeric(result_1)),
+		hi = suppressWarnings(as.numeric(result_2)),
+		truth = suppressWarnings(as.numeric(coverage_truth))
+	)]
+	ci = ci_attempts[status == "ok"]
 	fin = ci[is.finite(lo) & is.finite(hi)]
 	rev = fin[lo > hi, .(n = .N), by = .(class, formula, function_run)]
 	if (nrow(rev)) out[[length(out) + 1L]] = rev[, finding("reversed_ci", rt, class, formula, function_run, sprintf("%d rows", n))]
@@ -402,14 +407,35 @@ audit_one = function(path, rt) {
 	deg = fin[, .(n = .N, nz = sum((hi - lo) < 1e-6), frac = mean((hi - lo) < 1e-6)), by = .(class, formula, function_run)][n >= 10L & nz >= 5L & frac >= 0.02]
 	if (nrow(deg)) out[[length(out) + 1L]] = deg[, finding("degenerate_ci", rt, class, formula, function_run, sprintf("%.0f%% of %d rows zero-width", 100 * frac, n))]
 
-	# --- coverage candidates ---
-	cov = ci[!is.na(beta_T_in_confidence_interval), {
-		n = .N
-		k = sum(as.logical(beta_T_in_confidence_interval))
-		coverage = k / n
-		p_cov = stats::binom.test(k, n, p = COVERAGE_TARGET, alternative = "two.sided")$p.value
-		list(n = n, coverage = coverage, p_cov = p_cov)
-	}, by = .(class, formula, function_run)][n >= COVERAGE_MIN_N]
+	# --- coverage candidates and explicit attempt accounting ---
+	# Only recorded attempted calls with known finite truth are auditable here;
+	# absent rows require a separate expected-attempt manifest. A status=error
+	# row is a recorded failed CI attempt, so it remains in the denominator as
+	# noncoverage. A returned but malformed/non-finite interval is likewise
+	# invalid rather than silently dropped. Skips are not attempted calls.
+	ci_cov = ci_attempts[is.finite(truth)]
+	coverage_attempts = if (nrow(ci_cov)) {
+		ci_cov[, {
+			invalid = status != "ok" | !is.finite(lo) | !is.finite(hi) | lo > hi |
+				is.na(beta_T_in_confidence_interval)
+			covered = !invalid & as.logical(beta_T_in_confidence_interval)
+			n_attempted = .N
+			n_covered = sum(covered)
+			n_invalid = sum(invalid)
+			n = n_attempted
+			coverage = n_covered / n_attempted
+			p_cov = stats::binom.test(n_covered, n_attempted, p = COVERAGE_TARGET, alternative = "two.sided")$p.value
+			list(n = n, n_attempted = n_attempted, n_covered = n_covered, n_invalid = n_invalid,
+				coverage = coverage, p_cov = p_cov)
+		}, by = .(class, formula, function_run)][, response_type := rt]
+	} else {
+		data.table()
+	}
+	cov = if (nrow(coverage_attempts)) {
+		coverage_attempts[n_attempted >= COVERAGE_MIN_N]
+	} else {
+		data.table()
+	}
 	if (nrow(cov)) {
 		cov[, p_combined := vapply(p_cov, function(p) acat_combine(p), numeric(1))]
 		cov[, response_type := rt]
@@ -461,6 +487,7 @@ audit_one = function(path, rt) {
 		pval_candidates = if (nrow(pm)) pm else data.table(),
 		power_candidates = if (nrow(lp)) lp else data.table(),
 		coverage_candidates = if (nrow(cov)) cov else data.table(),
+		coverage_attempts = coverage_attempts,
 		bias_candidates = if (nrow(bias_tbl)) bias_tbl else data.table()
 	)
 }
@@ -501,6 +528,17 @@ if (nrow(power_candidates)) {
 }
 
 coverage_candidates = rbindlist(lapply(per_file, `[[`, "coverage_candidates"), fill = TRUE)
+coverage_attempt_summary = rbindlist(lapply(per_file, `[[`, "coverage_attempts"), fill = TRUE)
+coverage_attempt_summary_path = file.path(dirname(baseline_path), "comprehensive_coverage_attempt_summary.csv")
+if (!nrow(coverage_attempt_summary)) {
+	coverage_attempt_summary = data.table(
+		response_type = character(), class = character(), formula = character(), function_run = character(),
+		n_attempted = integer(), n_covered = integer(), n_invalid = integer(), coverage = numeric(), p_cov = numeric()
+	)
+}
+setorder(coverage_attempt_summary, response_type, class, formula, function_run)
+fwrite(coverage_attempt_summary[, .(response_type, class, formula, function_run,
+	n_attempted, n_covered, n_invalid, coverage, p_cov)], coverage_attempt_summary_path)
 coverage_findings = data.table()
 if (nrow(coverage_candidates)) {
 	coverage_candidates[, pass := bh_reject(p_combined, COVERAGE_FDR_Q)]

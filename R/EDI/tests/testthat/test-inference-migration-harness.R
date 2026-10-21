@@ -174,10 +174,12 @@ test_that("custom randomization migration golden tests compare distribution and 
 	))
 	# Incidence deliberately no longer compares legacy vs. migrated bit-for-bit
 	# (fix_custom_randomization_statistic.md TODO-1): InferenceCustomRand now
-	# composes RandomizationCI (not just RandomizationTest), which pulls in the
-	# Zhang exact-combined-test dispatch for Bernoulli/matched incidence
-	# designs (see should_use_zhang_incidence_randomization()'s has_private_
-	# method("compute_exact_two_sided_pval_rand") check). CustomRandLegacy
+	# composes RandomizationCI (not just RandomizationTest), so it supports
+	# incidence randomization p-values for Bernoulli/matched incidence designs
+	# (see should_use_zhang_incidence_randomization()'s has_private_
+	# method("compute_exact_two_sided_pval_rand") check; since 2026-10-20 the
+	# p-value comes from the w draws, which need r >= 10 finite draws, hence
+	# r = 12 below). CustomRandLegacy
 	# above deliberately mimics the OLD RandomizationTest-only shape and so
 	# still reports "unsupported" for incidence; that is the expected,
 	# intentional divergence this test now documents rather than treats as a
@@ -187,11 +189,11 @@ test_that("custom randomization migration golden tests compare distribution and 
 	migrated_incidence = CustomRandMigrated$new(design_incidence)
 	legacy_pval_result = inference_migration_call_optional_method(
 		legacy_incidence, "compute_rand_two_sided_pval",
-		list(delta = 0, r = 9L, show_progress = FALSE, permutations = make_permutations(12L, 9L))
+		list(delta = 0, r = 12L, show_progress = FALSE, permutations = make_permutations(12L, 12L))
 	)
 	migrated_pval_result = inference_migration_call_optional_method(
 		migrated_incidence, "compute_rand_two_sided_pval",
-		list(delta = 0, r = 9L, show_progress = FALSE, permutations = make_permutations(12L, 9L))
+		list(delta = 0, r = 12L, show_progress = FALSE, permutations = make_permutations(12L, 12L))
 	)
 	expect_identical(legacy_pval_result$status, "unsupported")
 	expect_identical(migrated_pval_result$status, "ok")

@@ -596,6 +596,119 @@ not run the 20,000-draw simulation or call native code. Thus it strengthens
 source-level dispatch evidence only; comprehensive result regeneration and
 baseline re-audit remain open.
 
+**Deterministic MC-truth retry/cache/RNG regression, 2026-10-21:** the same
+focused registry test now also drives the bounded retry loop with a stubbed
+sequence of implausible finite, non-finite, and plausible MC results. Its
+independent test-side seed oracle checks the per-attempt seed states derived
+from the complete cache key; assertions cover accepting and caching only the
+first plausible result, a cache hit without a fourth fit, exhausting all five
+attempts without caching, and restoring the caller's `.Random.seed`. The
+focused command
+`Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R")'`
+passed 89 expectations (0 failures, warnings, or skips; exit 0) with installed
+EDI 1.0.3 attached. The test evaluates selected current harness assignments
+in a local fixture and stubs MC fitting; it calls no native kernel and runs
+no calibration. This is only deterministic source-contract evidence; affected
+result regeneration and baseline re-audit remain open.
+
+**Adjacent ordinal attempt-roster input contract, 2026-10-21:** the same
+source-only test file also checks the reduced ordinal expected-attempt roster
+fixture's explicit-flag guards: omitting `skip_slow` or supplying a nonlogical
+`has_compute_estimate` is rejected with the helper's documented errors. The
+focused `testthat::test_file(...)` run passed with no failures, warnings, or
+skips against installed EDI 1.0.3; this roster assertion parses the runner and
+calls the pure-R manifest helper, not an inference fitter or native kernel.
+It guards fixture validity only: it does not establish concrete runtime class
+capabilities, emitted-attempt completeness, comprehensive row regeneration,
+or baseline re-audit.
+
+**Default-formula dispatch regression, 2026-10-20:** broadened the same
+registry test to cover the bare `InferenceIncidLogRegr` label. The harness
+defaults bare fixed-formula labels to `~.`, so this path must forward the
+real covariate matrix just like an explicit `model_formula=~.` label. The
+focused test passed 53 expectations after loading installed EDI 1.0.3
+(`Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R")'`;
+loaded DLL MD5 `dfd5bf4384b5a0cc0d430fd70dab2a59`). The test evaluates selected
+assignments from the current `comprehensive_tests.R` in a stub environment;
+it does not call the installed package or native code and makes no coverage
+or calibration claim. TODO-4/5 regeneration and TODO-6 matched-Cox
+convergence/policy remain open.
+
+**Checkout-R source-overlay recheck, 2026-10-20:** the same test passed 53
+expectations with checkout R sources loaded by
+`pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE)`. R was
+`R Under development (unstable) (2026-10-13 r90668)`, and the loaded
+namespace path was `/home/kapelner/workspace/EDI/R/EDI` (package version
+1.0.3). `comprehensive_tests.R` SHA-256 was
+`0f4612616ec1362c6e8b100a1c2fec32c417f86b8c4bf8ce8c317f5eaa13b92a`; the
+test SHA-256 was
+`e392d6fafe916fdc2f15daf088aef6f83c79a3b5eb32990014c3b789c2d9510b`.
+The loaded temporary DLL SHA-256 was
+`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`,
+matching the existing installed EDI DLL. The test parses the current harness
+and evaluates only selected assignments in a stub environment; the MC fit is
+stubbed, so no native fitting or calibration run occurred. This is
+source-level harness-dispatch evidence only; result regeneration and baseline
+re-audit remain open. No build/install or canonical result write occurred.
+
+**Cache adjustment-set isolation regression, 2026-10-20:** extended the
+same focused test with a paired `model_formula=~.` / `model_formula=~1`
+case for the same class, dataset, effect, and response. It confirms that the
+real-covariate and intercept-only routes receive distinct MC truths, pass
+`real_X` versus `NULL` to the stub, and each reuse only its own cached value.
+`Rscript -e 'library(EDI); testthat::test_file("R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R")'`
+passed 59 expectations (0 failures, warnings, or skips) against installed
+EDI 1.0.3. The test evaluates selected current-checkout harness assignments
+with a stubbed MC fit; it does not fit models, call native kernels, or
+validate calibration. The linked result-regeneration and baseline
+reconciliation gates remain open.
+
+**Bounded actual-attempt artifact audit, 2026-10-20:** read-only inspection of
+the existing source-overlay pilot at `/tmp/edi-todo10-row-pilot.WQ09ZP`
+reconciled its four selected `compute_estimate` natural keys exactly: two
+`InferenceSurvivalKMDiff`/`cars`/survival/Bernoulli rows (design formula
+`~1`, `~.`) and two `InferenceOrdinalRidit`/`diamonds`/ordinal/Bernoulli rows
+with the same formula pair. Each CSV had two unique full keys, both `status=ok`,
+unique `id` and `run_row_id`, and no missing, extra, or duplicate keys against
+the explicitly reconstructed four-key target. For both CSVs, the sidecar's
+recorded path, byte count, and SHA-256 match the file; the before/after R
+version, EDI version, DLL hash, checkout HEAD/diff hash, and runner hash also
+match. Provenance records R-devel `r90668`, EDI 1.0.3, checkout HEAD
+`4f7a6e4ca82829e880c15a76699701a95e5e83b9`, and DLL SHA-256
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`.
+CSV/sidecar hashes are `e467af71f4ae3755d5e97bf8f403d8e91d11880b531c962845eae114ad77bbc5` /
+`b0397e49108d5610b405d6f134327f937f71736f17750768cd81012139c6511e` for the
+survival slice and `aa042a5bdac1ca0a30be61065a2250070672e7c59ec4245928956c83785da3e5` /
+`a677c6ddf0d115320981d016c01f9e0c47b51ae6271d389108450b2d86dadc41` for the
+ordinal slice. Important limitation: these retained sidecars use provenance
+schema 1, whereas the current `validate_comprehensive_result_artifact()`
+requires schema 2, so this manual identity/key audit is not current-validator
+acceptance. It is limited to these two estimate-only cases and does not
+reconcile the full affected class/family/dataset/beta/replicate grid or the
+baseline audit. No fit was rerun and no artifact or canonical output was
+written. The next bounded step is to produce these same isolated candidate
+rows with the current schema-2 harness sidecar, then continue to the full
+accepted result matrix and baseline re-audit.
+
+**Retained-artifact inventory recheck, 2026-10-21:** the schema-2 cohort at
+`/tmp/edi-todo10-schema2.HNmaUs` remains limited to four selected
+`compute_estimate` rows for SurvivalKMDiff/cars and OrdinalRidit/diamonds
+(two design formulas per slice). The CSV and sidecar hashes match the
+recorded pilot, but the sidecars identify only the captured run: their runner
+SHA-256 is `39f1abc8e492b2307ed4229b1bf36d42021464af1521578e4683aaf3d3de7189`,
+while the current raw `comprehensive_tests.R` file hashes to
+`72cd9d6b5f7afe58b5113eb7c7f1836a03e0b98cd386c09ef025c0f7b56d1221`. The
+20,160-row source case lattice is candidate scope, not an emitted-attempt
+roster: setup/class eligibility, `function_run` emission, and runtime skips
+remain unresolved. Canonical `R/package_tests/comprehensive_tests_results_nc_1_survival.csv`
+(372,209,537 bytes; 2026-09-27) and `..._ordinal.csv` (417,165,307 bytes;
+2026-10-09) have no adjacent provenance sidecars. Thus no current-source
+complete or reconcilable result exists beyond the four-key pilot. Full
+attempt-roster derivation, setup/outcome capture, current-source schema-2
+regeneration, exact key/status/value reconciliation, and baseline re-audit
+remain open. This inventory was read-only; no result or canonical file was
+changed.
+
 ## TODO-11 (added 2026-09-25, investigated at user request from the live TODO-4 re-run's first partial results): `PropBetaRegr`/`PropFractionalLogit` residual under-coverage on `ionosphere` is NOT TODO-6's mechanism -- a distinct, likely real, small-sample CI-calibration gap
 
 The TODO-4 re-run's first batch (proportion only so far, `ionosphere`
@@ -672,3 +785,35 @@ not a blanket harness problem, it is specific to at least
    about real-estimator CI under-coverage at high covariate counts on a
    *converged*, trustworthy truth. Different mechanism, different classes,
    should be tracked and (if warranted) fixed independently.
+
+**Read-only artifact/provenance audit, 2026-10-21:** the only retained
+proportion comprehensive-results snapshot located for this finding is the
+ignored local file
+`R/package_tests/comprehensive_tests_results_nc_1_proportion.csv` (84,170,816
+bytes; SHA-256
+`cd5bbd589816657930eb8e4aa5ae92b9f4fe8de02084dcfa21548a37d9edc6ba`, mtime
+2026-10-09). Its 1,438 `ionosphere`, beta_T=0.5 rows for the two affected
+classes comprise 854 `PropBetaRegr` rows and 584 `PropFractionalLogit` rows.
+Rows cite checkout commit `95e5203765fde92b5d501c0e93139603c2a95bf1`
+(2026-09-23), but the snapshot has no provenance sidecar and no loaded
+package/DLL identity; its recorded temporary heartbeat log is absent. It is
+therefore historical exploratory evidence, not a provenance-matched
+post-fix comparison. The retained `/tmp/edi-todo7-coverage-20261018/merged-coverage.rds`
+and `/tmp/edi-todo10-coverage-merged-391356/merged-coverage.rds` are code-
+coverage reports, not statistical CI-coverage runs, and do not close this
+gap. The observed ionosphere pattern remains about 0.79--0.81 for asymptotic,
+Wald, likelihood-ratio, and subsampling CIs, versus 1.00 for
+jackknife-Wald/LR-bootstrap; it is consistent with, but does not prove, a
+high-p/n SE limitation. No lower-covariate-count dataset comparison with
+matched runtime provenance was found.
+
+**Acceptance gap remains:** run a provenance-matched beta_T=0.5 comparison
+for both classes on at least one lower-p/n dataset (the plan's examples are
+`pima`/`boston`), with enough replicates and the same coverage-truth
+construction, to determine whether under-coverage is ionosphere-specific or
+also appears at lower covariate counts. Then obtain the maintainer's
+disposition: either document a reproducible high-p/n small-sample limitation,
+or investigate a finite-sample correction to the beta/fractional-logit SE
+formula. If the lower-p/n slice also under-covers, reopen the shared
+truth/SE-bug hypothesis before choosing either path. No simulation or result
+file modification occurred for this audit.

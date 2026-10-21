@@ -223,6 +223,10 @@ test_that("direct-subset bootstrap estimates match rebuilt matrices on OLS, logi
 		kind <- kinds[[j]]
 		fixture <- bootstrap_matrix_fixture(kind, n = 1000L, seed = seeds[[j]])
 		p <- fixture$inf$.__enclos_env__$private
+		# Evaluate the checkout loader definition instead of trusting the installed
+		# package's R layer; the installed native fitters remain the execution
+		# backend under compile=FALSE.
+		checkout_loader <- checkout_design_backed_sample_loader(p)
 		direct_state <- p$create_design_backed_bootstrap_worker_state()
 		rebuilt_state <- p$create_design_backed_bootstrap_worker_state()
 		# Removing the cached full-data matrix makes the loader mark the design
@@ -232,10 +236,10 @@ test_that("direct-subset bootstrap estimates match rebuilt matrices on OLS, logi
 		set.seed(seeds[[j]] + 1000L)
 		draws <- replicate(5L, sample.int(fixture$n, fixture$n, replace = TRUE), simplify = FALSE)
 		for (indices in draws) {
-			p$load_bootstrap_sample_into_design_backed_worker(direct_state, indices)
+			checkout_loader(direct_state, indices)
 			direct <- p$compute_bootstrap_worker_estimate(direct_state)
 
-			p$load_bootstrap_sample_into_design_backed_worker(rebuilt_state, indices)
+			checkout_loader(rebuilt_state, indices)
 			rebuilt_priv <- rebuilt_state$worker$.__enclos_env__$private
 			rebuilt_priv$X <- rebuilt_priv$get_X()
 			rebuilt <- p$compute_bootstrap_worker_estimate(rebuilt_state)
@@ -248,6 +252,56 @@ test_that("direct-subset bootstrap estimates match rebuilt matrices on OLS, logi
 			expect_equal(direct, reference, tolerance = 1e-10)
 		}
 	}
+})
+
+test_that("TODO-58 planned OLS public percentile CI matches the boot lm.fit statistic on fixed draws", {
+	n <- 1000L
+	B <- 31L
+	fixture_seed <- 22422L
+	row_seed <- 414230L
+	set.seed(fixture_seed)
+	X <- matrix(stats::rnorm(n * 5L), n, 5L)
+	X[, 1L] <- 1
+	beta <- stats::rnorm(5L) * 0.5
+	n_treat <- floor(n / 2L)
+	w <- sample(c(rep(1, n_treat), rep(0, n - n_treat)))
+	y <- drop(X %*% beta + 0.5 * w + stats::rnorm(n, 0, 0.5))
+	X_cov <- as.data.frame(X[, -1L, drop = FALSE])
+	names(X_cov) <- paste0("x", seq_len(ncol(X_cov)))
+	des <- DesignFixediBCRD$new(n = n, response_type = "continuous", verbose = FALSE)
+	des$add_all_subjects_to_experiment(X_cov)
+	des$assign_w_to_all_subjects(as.numeric(w))
+	des$add_all_subject_responses(y)
+
+	# This is the OLS fixture and n from the TODO-58 runner. Generate one
+	# explicit, seeded index set through the design's actual resampling method,
+	# then evaluate the exact statistic used by the runner's boot::boot reference.
+	set.seed(row_seed)
+	indices <- lapply(seq_len(B), function(i) {
+		as.integer(des$.__enclos_env__$private$draw_bootstrap_indices()$i_b)
+	})
+	X_full <- cbind(`(Intercept)` = 1, treatment = w, as.matrix(X_cov))
+	reference <- vapply(indices, function(idx) {
+		unname(stats::lm.fit(X_full[idx, , drop = FALSE], y[idx])$coefficients[2L])
+	}, numeric(1L))
+
+	inf <- InferenceContinOLS$new(des, model_formula = ~., verbose = FALSE)
+	inf$num_cores <- 1L
+	set.seed(row_seed)
+	observed <- inf$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = FALSE)
+	expect_equal(as.numeric(observed), reference, tolerance = 1e-10)
+
+	# The public CI uses the same predeclared percentile probabilities and EDI's
+	# type-8 quantile rule. A fresh inference object ensures this exercises the
+	# public procedure rather than a previously cached distribution.
+	ci_inf <- InferenceContinOLS$new(des, model_formula = ~., verbose = FALSE)
+	ci_inf$num_cores <- 1L
+	set.seed(row_seed)
+	observed_ci <- ci_inf$compute_bootstrap_confidence_interval(
+		B = B, type = "percentile", show_progress = FALSE
+	)
+	reference_ci <- stats::quantile(reference, probs = c(0.025, 0.975), names = FALSE, type = 8)
+	expect_equal(as.numeric(observed_ci), as.numeric(reference_ci), tolerance = 1e-10)
 })
 
 test_that("a bootstrap sample that makes a rare covariate constant falls back to the rebuild path", {
@@ -282,6 +336,33 @@ test_that("a bootstrap sample that makes a rare covariate constant falls back to
 	direct_estimate <- p$compute_bootstrap_worker_estimate(ws)
 	direct_reference <- unname(stats::lm.fit(cbind(1, w[direct_idx], x[direct_idx], rare[direct_idx]), y[direct_idx])$coefficients[2L])
 	expect_equal(direct_estimate, direct_reference, tolerance = 1e-10)
+
+	# A factor level present in the base model matrix but absent from the draw
+	# leaves an all-zero direct-subset column. The reusable worker must rebuild
+	# from the subset, just as the historical formula/model.matrix path did.
+	set.seed(291L)
+	factor_x <- rnorm(n)
+	segment <- factor(c(rep("common", n - 1L), "rare"), levels = c("common", "rare"))
+	factor_des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", verbose = FALSE)
+	factor_des$add_all_subjects_to_experiment(data.frame(x = factor_x, segment = segment))
+	factor_des$assign_w_to_all_subjects()
+	factor_w <- as.numeric(factor_des$get_w())
+	factor_y <- 1.5 * factor_w + 0.4 * factor_x + 0.7 * as.numeric(segment == "rare") + rnorm(n, sd = 0.2)
+	factor_des$add_all_subject_responses(factor_y)
+	factor_inf <- InferenceContinOLS$new(factor_des, model_formula = ~., harden = TRUE, verbose = FALSE)
+	factor_p <- factor_inf$.__enclos_env__$private
+	factor_ws <- factor_p$create_design_backed_bootstrap_worker_state()
+	factor_idx <- seq_len(n - 1L) # the draw omits the sole observation at the rare factor level
+	factor_p$load_bootstrap_sample_into_design_backed_worker(factor_ws, factor_idx)
+	expect_null(factor_ws$worker_priv$X)
+	expect_true(factor_ws$worker_des_priv$model_matrix_stale)
+	factor_estimate <- factor_p$compute_bootstrap_worker_estimate(factor_ws)
+	factor_df <- data.frame(treatment = factor_w[factor_idx], x = factor_x[factor_idx])
+	# `segment` is constant in this draw, so the independent reference uses
+	# the reduced model matrix after removing that nonestimable term.
+	factor_reference_X <- stats::model.matrix(~ treatment + x, data = factor_df)
+	factor_reference <- unname(stats::lm.fit(factor_reference_X, factor_y[factor_idx])$coefficients["treatment"])
+	expect_equal(factor_estimate, factor_reference, tolerance = 1e-10)
 })
 
 test_that("the indices may be a bare vector or a list draw with i_b (and an optional m_vec_b override)", {

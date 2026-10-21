@@ -162,8 +162,10 @@ filter), which is a direct equality test.
   materially improve the 1.5 ms ceiling. The raw-covariate copy remains
   intentional because exposed imputed data must not alias caller-mutable
   input. No low-risk allocation removal is supported by this source audit;
-  do not edit or benchmark it while TODO-56 is active. Keep TODO-5 open for
-  the quiet-host acceptance rerun and fixed-seed 1.0.2 assignment comparison.
+  do not edit or benchmark it based on this probe alone. At the time of this
+  audit, defer timing while TODO-56's CPU-intensive study is active. Keep
+  TODO-5 open for the quiet-host acceptance rerun and fixed-seed 1.0.2
+  assignment comparison.
 
   **Parity-artifact audit 2026-10-18:** the searched installed library and
   retained temporary R-library copies identify as EDI 1.0.3; no installed
@@ -196,9 +198,116 @@ filter), which is a direct equality test.
   iBCRD; 1.91 ms blocking) are within the 1.5/2.5 ms caps, while the exact
   settings on 2026-10-15 measured 4.15/6.12 ms and the three CPU-pinned
   2026-10-16 runs measured 2.86–3.09/5.98–6.88 ms, above both caps. Per the
-  source/stage audit above, do not benchmark while TODO-56 remains active;
-  the quiet-host acceptance rerun and authentic EDI 1.0.2 assignment parity
-  remain open.
+  source/stage audit above, these measurements do not justify a speculative
+  allocation change. The quiet-host acceptance rerun and authentic EDI 1.0.2
+  assignment parity remain open.
+
+  **Operational recheck, 2026-10-20:** the linked release checklist's
+  read-only TODO-56 recheck found no `R`/`Rscript` process or open handles in
+  the candidate/slice directories; the sequential pilot runs were also
+  confirmed to terminate. This supersedes the earlier CPU-contention deferral
+  only: TODO-56's artifact/reconciliation gate remains open, and those facts
+  do not establish a quiet host during a future run or provide new timing
+  evidence. TODO-5 can proceed once the host is otherwise quiet and the
+  installed package/DLL identity is recorded; no benchmark was run for this
+  update.
+  **Reproducibility-gate improvement, 2026-10-20:** the benchmark sidecar
+  now records `git status --porcelain=v1 --untracked-files=all` and a SHA-256
+  of `git diff --binary HEAD`, in addition to HEAD and DLL identity. A bounded
+  source-loaded smoke invocation (`n=5`, `batch=1`, one repeat) emitted both
+  fields to `/tmp/edi-todo59-provenance-smoke-20261020.csv.provenance.txt`;
+  the CSV and sidecar hashes are `e785cc58d05a0f33874db7b0ea0b7053e322cf8d9c39cd78e6501c6c6a7a631b`
+  and `5728a707b4f604c7abe56878acfe5448624cfc0acb00a718d2620ab7c2cdaa69`.
+  The smoke test used checkout R sources with `compile=FALSE`, installed EDI
+  1.0.3's existing DLL (SHA-256
+  `5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`), and
+  records a dirty worktree plus tracked-diff hash
+  `0a4793d6e51ba10d15ef569f83e3d5a4a4a3a1aea029b0d5cd9d0077faace6a9`.
+  This is metadata-path verification only, not a performance measurement or
+  acceptance run. The status lists untracked paths but does not hash their
+  contents. The quiet-host timing and authentic EDI 1.0.2 fixed-seed weight
+  baseline remain missing.
+  **Provenance failure-path hardening, 2026-10-20:** `read_benchmark_git_state()`
+  now distinguishes a failed/unavailable Git status command from a successful
+  empty status, and marks the diff digest unavailable when Git cannot run. The
+  focused source-level test
+  `test-benchmark-design-construction-provenance-reference.R` passed 17
+  assertions for a clean temporary repository, a dirty tracked file, an
+  untracked path (with tracked-diff digest unchanged), and a missing Git
+  executable. It writes only its temporary repository under the system temp
+  directory; no full benchmark or canonical output was used.
+**Untracked-source content provenance regression, 2026-10-20:** the prior
+status field captured untracked paths but did not distinguish different
+contents at the same path, while the tracked-diff hash correctly excludes
+untracked files. The harness now hashes a sorted Git untracked-file
+path/content manifest and records that digest in the sidecar. The existing
+temporary-repository test was extended to prove the digest changes when only
+an untracked file's contents change, while status and tracked-diff digest stay
+the same. It passed 24 expectations against installed EDI 1.0.3; it exercises
+only the parsed Git-state helper and does not launch the timing benchmark. The
+quiet-host timing and authentic EDI 1.0.2 assignment-parity gates remain open.
+
+**Preserved-run reconciliation (2026-10-20):** the Oct 19 acceptance-settings
+CSV and provenance sidecar are still present under
+`/tmp/edi-todo59-design-bench-LIsn6K/`; their SHA-256 hashes match the values
+recorded above, and their rows reproduce the logged 1.45 ms iBCRD and 3.65 ms
+blocking medians (`n=1000`, `batch=100`, seven repeats). This confirms the
+artifact/summary linkage, not a quiet-host acceptance result: the recorded
+load was 3.81/4.23/4.23 at start and 3.94/4.23/4.23 at finish. Its EDI 1.0.3
+DLL hash (`2de0c2d4918cb7fbd74d35a05c32893bfe58b00429a09d3ae6851c0e43c6946a`)
+differs from the currently installed EDI 1.0.3 build (2026-10-20 07:40:04 UTC;
+SHA-256
+`db4b05da3ee1ad1a19f8f023e6036fe88d0fb45b8e0ef9d6be98908eea520041`), which
+matches checkout `R/EDI/src/EDI.so`; the Oct 19 sidecar records HEAD but not
+the worktree diff fingerprint now emitted by the harness. At this audit, load
+was 5.14/5.17/5.14 on 12 visible CPUs and no R/Rscript process was live, so no
+timing run was started. The explicit 1.5/2.5 ms ceilings are unchanged; a
+current quiet-host run with installed DLL and checkout status/diff provenance,
+plus an authentic EDI 1.0.2 fixed-seed assignment artifact, remain the exact
+acceptance inputs.
+
+**Closure recipe and unresolved dependencies (2026-10-21):** when the user
+authorizes the run in a quiet window, execute the installed-package harness
+with a unique, previously nonexistent scratch CSV path, e.g.
+`Rscript R/benchmark/benchmark_design_construction.R 1000 100 7 /tmp/edi-todo59-acceptance-<unique>.csv`.
+Do not set `EDI_BENCH_SOURCE`; the paired `.provenance.txt` must show the
+installed package and loaded R-namespace payload, native DLL hash, checkout
+HEAD/status/diff and untracked-content manifest, R/session information,
+thread environment, host load/affinity at both ends, and exact `n=1000`,
+`batch=100`, seven repeats, seed 5901. Reconcile all ten output stages and
+require the median `iBCRD construction + registration + assignment` to be
+<= 1.5 ms and `blocking construction + registration + assignment` <= 2.5 ms;
+retain the CSV and sidecar hashes without replacing older diagnostic artifacts.
+The plan defines “quiet host” qualitatively but gives no numeric load cutoff;
+if release acceptance needs a mechanically enforced threshold, the maintainer
+must specify it before the run rather than deriving one from the failed
+high-load measurements. The independent parity gate additionally needs an
+authenticated EDI 1.0.2 package (or trusted checksum/signature) and recorded
+same-seed assignment vectors for every concrete randomization-capable design
+in `test-seed-reproducibility-all-designs.R`. Existing fixed-seed unit tests
+and the unsigned local `v1.0.2` source ref do not supply that historical
+artifact. No benchmark, package install, or source change was made for this
+recipe; both acceptance gates remain open.
+
+**Current-artifact identity recheck, 2026-10-21 (read-only):** the retained
+Oct 19 acceptance-sized timing CSV and sidecar still hash to
+`be8d37c0715d4422904d95d5d4b117d07573f43f52690b209c9ab72776f75ba4` and
+`855f3c7f4ef79852a1a66cd05510bb8902b0f11a1b3e2f8fd9af7902ecc66c88`;
+their run DLL SHA-256 remains `2de0c2d4918cb7fbd74d35a05c32893bfe58b00429a09d3ae6851c0e43c6946a`.
+The Oct 20 provenance-smoke CSV/sidecar also retain their recorded hashes
+`e785cc58d05a0f33874db7b0ea0b7053e322cf8d9c39cd78e6501c6c6a7a631b` and
+`5728a707b4f604c7abe56878acfe5448624cfc0acb00a718d2620ab7c2cdaa69`; that
+`n=5`, `batch=1`, one-repeat source-loaded smoke used DLL SHA-256
+`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224` and
+load 4.24, so it is metadata-only. The installed package reports
+`Built: 2026-10-21 11:12:19 UTC`; its DLL and checkout `R/EDI/src/EDI.so`
+currently have the same SHA-256,
+`f7cf39dec10be2caaf84f8813d38e2b0d1d8be1b9a070b0f30bd42f62d9006c7`.
+Thus both retained runs use a different native artifact from the current
+installation/checkout. Matching current DLL bytes do not attest the dirty
+checkout's R payload or repair either run's host conditions. The quiet-host
+acceptance run and authenticated EDI 1.0.2 fixed-seed assignment parity remain
+open; no benchmark or test was run for this recheck.
 
 ## Implementation and validation (2026-10-09)
 
@@ -237,6 +346,18 @@ when `model_matrix_stale` is true. A focused regression materializes four of
 eight rows, completes enrollment, then verifies that OLS construction receives
 all eight rows and its estimate agrees with `lm.fit`. This is source-level
 validation only; the installed benchmark gate remains TODO-5.
+
+Focused source-overlay recheck (2026-10-20):
+`pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE, export_all = FALSE)`
+followed by `testthat::test_file("R/package_tests/testthat_bulk/test-pocock-simon-level-rows-and-binary-match-structure-reference.R", reporter = "summary")`
+completed successfully with no failures, warnings, or skips. The tested R
+namespace was loaded from the checkout; pkgload reused a temporary copy of
+the existing `EDI.so`. Checkout `R/EDI/src/EDI.so` and installed EDI 1.0.3's
+`libs/EDI.so` had identical SHA-256
+`5a0b94978e5d9150d2aa6f69df7135a164fe032b3a3e301495c5cfd7f6ca3224`. This
+checks the stale-prefix refresh and OLS reference against that reused native
+artifact, not a rebuilt checkout. It does not alter the quiet-host timing or
+authentic EDI 1.0.2 assignment-parity gates.
 
 ## Out of scope
 
