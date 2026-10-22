@@ -161,7 +161,14 @@ test_that("reason-to-procedure routing keeps primary-fit and out-of-scope reason
 	expect_identical(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("kk_count_gee_jackknife_wald_calibration_unavailable"), "jackknife")
 	expect_null(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("subsampling_original_estimate_unavailable"))
 	expect_null(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("jackknife_original_risk_ratio_unavailable"))
-	expect_null(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("gradient_test_unavailable"))
+	# 2026-10-22 (TODO-116 lik-test stage): likelihood-test failures now map to the testing type;
+	# a failed Wald test stays primary.
+	expect_identical(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("gradient_test_unavailable"), "gradient")
+	expect_identical(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("lik_ratio_bartlett_exact_test_unavailable"), "lik_ratio_bartlett_exact")
+	expect_identical(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("lik_ratio_confidence_interval_unavailable"), "lik_ratio")
+	expect_identical(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("dep_cens_transform_score_pvalue_unstable"), "score")
+	expect_null(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("wald_test_unavailable"))
+	expect_null(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("test_inversion_confidence_interval_unavailable"))
 	expect_identical(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("rand_bootstrap_ci_bisection_failed"), "rand_bootstrap_ci")
 	expect_identical(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("bootstrap_bca_unstable_bias"), "bootstrap")
 	expect_null(getFromNamespace("edi_resampling_procedure_for_reason", "EDI")("bootstrap_original_standard_error_unavailable"))

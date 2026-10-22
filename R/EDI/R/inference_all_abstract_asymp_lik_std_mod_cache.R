@@ -160,7 +160,7 @@ StandardModelCacheSource = list(
 				}
 				edi_warn_lik_test_unavailable_once(self, private, testing_type, delta, reason = "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification)")
 				if (!isTRUE(self$is_nonestimable())) {
-					private$cache_nonestimable_estimate("likelihood_test_spec_unavailable")
+					edi_record_procedure_failure(self, private, "likelihood_test_spec_unavailable", stage = "estimate", procedure = edi_lik_test_procedure(testing_type)) # TODO-116 (2026-10-22): spec missing with a valid Wald fit is a lik-test failure
 				}
 				return(NA_real_)
 			}
@@ -173,7 +173,7 @@ StandardModelCacheSource = list(
 			)
 			if (!is.finite(p_value)) edi_warn_lik_test_unavailable_once(self, private, testing_type, delta)
 			if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
-				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
+				edi_record_procedure_failure(self, private, paste0(testing_type, "_test_unavailable"), stage = "se") # TODO-116 (2026-10-22): keeps the Wald state
 			}
 			p_value
 		},

@@ -36,7 +36,9 @@ InferenceExtSequentialMCPval = list(
 		# mc_enable = TRUE and a finite mc_stop_threshold). Both SMC call sites
 		# return NULL immediately when this is FALSE.
 		sequential_mc_control_enabled = function(mc_ctrl){
-			!is.null(mc_ctrl) && isTRUE(mc_ctrl$mc_enable) && is.finite(mc_ctrl$mc_stop_threshold)
+			# isTRUE(): a missing threshold gives is.finite(NULL) = logical(0), which
+			# would make this NA and break the caller's `if`.
+			!is.null(mc_ctrl) && isTRUE(mc_ctrl$mc_enable) && isTRUE(is.finite(mc_ctrl$mc_stop_threshold))
 		},
 		# TRUE iff the two-sided randomization-pval confidence band for the current
 		# (possibly partial) null distribution `t0s` excludes `threshold`, i.e. we

@@ -4,7 +4,8 @@ library(EDI)
 # get_memoized_likelihood_test_pval / compute_likelihood_test_two_sided_pval on a real InferenceAsympLik host with a synthetic
 # specification: LR p = chisq_1 upper tail of 2 * (null nll - full nll); score p = chisq_1 upper tail of s_j^2 / (I_jj - I_jn I_nn^-1 I_nj);
 # Bartlett-corrected LR divides the statistic by a (stubbed) factor;
-# results are cached per (type, delta[, B]); unusable pieces give NA and a nonestimable flag.
+# results are cached per (type, delta[, B]); unusable pieces give NA and (since TODO-116, 2026-10-22) a
+# procedure_failure_reason entry instead of a nonestimable flag.
 
 mk <- function() {
 	set.seed(1); n <- 30L
@@ -81,13 +82,18 @@ test_that("the Bartlett-approx cache is keyed by B: changing B recomputes with t
 	expect_equal(a, pchisq(4 / 1, 1, lower.tail = FALSE), tolerance = 1e-8); expect_equal(b, pchisq(4 / 2, 1, lower.tail = FALSE), tolerance = 1e-8)
 })
 
-test_that("unsupported testing types error; a missing spec is NA and flags the fit nonestimable; unusable p-values flag the SE", {
+# 2026-10-22 (TODO-116 lik-test stage): a missing spec / unusable p-value on a valid Wald fit is a
+# lik_ratio procedure failure -- recorded under procedure_failure_reason$lik_ratio; the fit stays
+# estimable and its Wald SE is kept (previously: nonestimable flags).
+test_that("unsupported testing types error; a missing spec or unusable p-value is NA and records a lik_ratio procedure failure", {
 	h <- host_with_spec(mk(), spec_for())
 	expect_error(h$p$get_memoized_likelihood_test_pval(0, "wald", spec = spec_for()), "Unsupported testing_type: wald")
 	g <- mk(); unlockBinding("get_likelihood_test_spec", g$p); g$p$get_likelihood_test_spec <- function() NULL
 	expect_true(is.na(g$p$compute_likelihood_test_two_sided_pval(0, "lik_ratio")))
-	expect_true(isTRUE(g$inf$is_nonestimable()))
+	expect_false(isTRUE(g$inf$is_nonestimable()))
+	expect_identical(g$p$cached_values$procedure_failure_reason$lik_ratio, "likelihood_test_spec_unavailable")
 	k <- host_with_spec(mk(), spec_for(full_nll = NA_real_))
 	expect_true(is.na(k$p$compute_likelihood_test_two_sided_pval(0, "lik_ratio")))
-	expect_true(isTRUE(k$inf$is_nonestimable("se")))
+	expect_false(isTRUE(k$inf$is_nonestimable("se")))
+	expect_identical(k$p$cached_values$procedure_failure_reason$lik_ratio, "lik_ratio_test_unavailable")
 })

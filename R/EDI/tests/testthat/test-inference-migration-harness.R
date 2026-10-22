@@ -213,7 +213,9 @@ test_that("migrated custom randomization host exposes only randomization-test/CI
 
 	expect_true(all(randomization_methods %in% methods))
 	expect_equal(intersect(disallowed_methods, methods), character())
-	expect_identical(EDI:::get_effective_components("InferenceCustomRand"), c("RandomizationTest", "RandomizationCI"))
+	# ResamplingCore (v1.0.5 TODO-97) arrives as RandomizationTest's dependency;
+	# it adds private helpers only, no capability or public method.
+	expect_identical(EDI:::get_effective_components("InferenceCustomRand"), c("ResamplingCore", "RandomizationTest", "RandomizationCI"))
 	expect_identical(EDI:::get_effective_capabilities("InferenceCustomRand"), c("randomization_test", "randomization_ci"))
 	expect_silent(EDI:::mark_custom_randomization_classes_migrated("InferenceCustomRand"))
 	expect_identical(

@@ -113,23 +113,31 @@ partial_likelihood_expected_component_families = list(
 # it to TRUE via ParametricLikelihoodBootstrap's delegating default -- out of
 # scope for this fix, so param_bootstrap_public below deliberately excludes
 # the two Bartlett-approx private methods, not just checking public surface.
+# v1.0.5 TODO-97 (2026-10-22): the resampling-family direct components below
+# list RandomizationCI/RandomizationBootstrapCI/Jackknife explicitly (they were
+# implied through packaging-only dependency edges that were removed), and the
+# resolved stacks gain ResamplingCore. The component sets are otherwise
+# unchanged; in the OneLik KK entries Jackknife now resolves before
+# KKPassThrough because Wald no longer pulls Jackknife in.
 partial_likelihood_expected_extracted_cox_targets = list(
 	InferenceSurvivalCoxPHRegr = list(
-		target_direct_components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
+		target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
 		target_components = c(
-			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"Jackknife", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap",
-			"StandardModelCache", "CoxPartialLikelihood"
+			"ResamplingCore", "RandomizationTest", "RandomizationCI",
+			"NonparametricBootstrap", "RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald",
+			"LikelihoodTests", "ParametricLikelihoodBootstrap", "StandardModelCache",
+			"CoxPartialLikelihood"
 		)
 	),
 	InferenceSurvivalStratCoxPHRegr = list(
-		target_direct_components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
+		target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
 		target_components = c(
-			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"Jackknife", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap",
-			"StandardModelCache", "CoxPartialLikelihood", "StratifiedCoxPartialLikelihood"
+			"ResamplingCore", "RandomizationTest", "RandomizationCI",
+			"NonparametricBootstrap", "RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald",
+			"LikelihoodTests", "ParametricLikelihoodBootstrap", "StandardModelCache",
+			"CoxPartialLikelihood", "StratifiedCoxPartialLikelihood"
 		)
 	)
 )
@@ -151,12 +159,12 @@ partial_likelihood_expected_extracted_conditional_logit_targets = list(
 		# treatment as the LWA Cox IVWC entry below): the estimator privates
 		# call the conditional_logit_fit_* free functions directly, so no
 		# ConditionalLogitPartialLikelihood component methods are composed.
-		target_direct_components = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
+		target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "Wald", "IncidKKCondLogitIVWC"),
 		target_components = c(
-			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"Jackknife", "Wald", "KKPassThrough", "KKCompound",
-			"IncidKKCondLogitIVWC"
+			"ResamplingCore", "RandomizationTest", "RandomizationCI",
+			"NonparametricBootstrap", "RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald",
+			"KKPassThrough", "KKCompound", "IncidKKCondLogitIVWC"
 		)
 	),
 	InferenceIncidKKCondLogitOneLik = list(
@@ -168,12 +176,13 @@ partial_likelihood_expected_extracted_conditional_logit_targets = list(
 		# direct component and KKPassThrough/ParametricLikelihoodBootstrap
 		# arrive via the new IncidKKCondLogitOneLikLikelihood component's
 		# dependencies.
-		target_direct_components = c("BayesianBootstrap", "IncidKKCondLogitOneLikLikelihood"),
+		target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "IncidKKCondLogitOneLikLikelihood"),
 		target_components = c(
-			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"KKPassThrough", "Jackknife", "Wald", "LikelihoodTests",
-			"ParametricLikelihoodBootstrap", "IncidKKCondLogitOneLikLikelihood"
+			"ResamplingCore", "RandomizationTest", "RandomizationCI",
+			"NonparametricBootstrap", "RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "KKPassThrough",
+			"Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap",
+			"IncidKKCondLogitOneLikLikelihood"
 		)
 	),
 	InferenceOrdinalKKCondAdjCatLogitRegr = list(
@@ -192,12 +201,12 @@ partial_likelihood_expected_extracted_lwa_cox_targets = list(
 		# treatment as the non-KK Cox entries above: BayesianBootstrap and Wald
 		# are explicit direct components and KKCompound arrives as the
 		# component's dependency, so these carry the full resolved chain.
-		target_direct_components = c("BayesianBootstrap", "Wald", "KKLWACoxIVWCPartialLikelihood"),
+		target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "Wald", "KKLWACoxIVWCPartialLikelihood"),
 		target_components = c(
-			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"Jackknife", "Wald", "KKPassThrough", "KKCompound",
-			"KKLWACoxIVWCPartialLikelihood"
+			"ResamplingCore", "RandomizationTest", "RandomizationCI",
+			"NonparametricBootstrap", "RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "Wald",
+			"KKPassThrough", "KKCompound", "KKLWACoxIVWCPartialLikelihood"
 		)
 	),
 	InferenceSurvivalKKLWACoxPHOneLik = list(
@@ -205,12 +214,13 @@ partial_likelihood_expected_extracted_lwa_cox_targets = list(
 		# BayesianBootstrap is an explicit direct component and KKPassThrough
 		# arrives as the component's dependency, same treatment as the LWA
 		# Cox IVWC entry above.
-		target_direct_components = c("BayesianBootstrap", "KKLWACoxOneLikPartialLikelihood"),
+		target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "KKLWACoxOneLikPartialLikelihood"),
 		target_components = c(
-			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"KKPassThrough", "Jackknife", "Wald", "LikelihoodTests",
-			"ParametricLikelihoodBootstrap", "KKLWACoxOneLikPartialLikelihood"
+			"ResamplingCore", "RandomizationTest", "RandomizationCI",
+			"NonparametricBootstrap", "RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "KKPassThrough",
+			"Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap",
+			"KKLWACoxOneLikPartialLikelihood"
 		)
 	)
 )
@@ -223,12 +233,13 @@ partial_likelihood_expected_extracted_lwa_cox_targets = list(
 # arrives as the component's dependency.
 partial_likelihood_expected_extracted_strat_cox_one_lik_targets = list(
 	InferenceSurvivalKKStratCoxPHOneLik = list(
-		target_direct_components = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
+		target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "SurvivalKKStratCoxOneLikPartialLikelihood"),
 		target_components = c(
-			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
-			"RandomizationBootstrap", "RandomizationBootstrapCI", "BayesianBootstrap",
-			"KKPassThrough", "Jackknife", "Wald", "LikelihoodTests",
-			"ParametricLikelihoodBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"
+			"ResamplingCore", "RandomizationTest", "RandomizationCI",
+			"NonparametricBootstrap", "RandomizationBootstrap", "RandomizationBootstrapCI",
+			"BayesianBootstrap", "Jackknife", "KKPassThrough",
+			"Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap",
+			"SurvivalKKStratCoxOneLikPartialLikelihood"
 		)
 	)
 )

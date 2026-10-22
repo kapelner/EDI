@@ -27,7 +27,13 @@ test_that("shape, storage mode, and assignment values", {
 test_that("second call with the same r returns the cached object unchanged (no redraw)", {
 	set.seed(1); a <- pr(f, 30L); set.seed(999); b <- pr(f, 30L)
 	expect_identical(a, b)
-	expect_true(any(a$w_mat != pr(f, 31L)$w_mat[, 1:30]))            # a different r is a separate draw
+	# 2026-10-22 (TODO-112): draws are now seeded from the design seed (seed = 1L here) inside a
+	# .Random.seed save/restore, so a different r is still a separate cache entry / draw but it
+	# restarts the same seeded stream: its first 30 columns reproduce the r = 30 draw exactly.
+	# (Before TODO-112 the draw used the global RNG state, so the prefixes differed.)
+	a31 <- pr(f, 31L)
+	expect_identical(dim(a31$w_mat), c(f$n, 31L))                     # a different r is a separate draw
+	expect_identical(a$w_mat, a31$w_mat[, 1:30])                      # ... from the same seeded stream
 })
 
 test_that("the cache lives on the design: other inference objects on the same design see the same permutations; another design does not", {

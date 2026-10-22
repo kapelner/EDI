@@ -34,7 +34,11 @@ test_that("a forced error from compute_lik_ratio_confidence_interval_impl() is c
 	expect_true(all(is.na(ci)))
 	expect_length(ci, 2L)
 	expect_identical(names(ci), c("2.5%", "97.5%"))
-	expect_identical(priv$cached_values$nonestimable_reason, "lik_ratio_confidence_interval_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): the failed LR inversion is recorded as a lik_ratio
+	# procedure failure; the Wald estimate/SE stay valid and the object stays estimable.
+	expect_identical(priv$cached_values$procedure_failure_reason$lik_ratio, "lik_ratio_confidence_interval_unavailable")
+	expect_false(inf$is_nonestimable())
+	expect_true(all(is.finite(inf$compute_wald_confidence_interval(alpha = 0.05))))
 })
 
 test_that("without the forced failure, the same fixture's lik-ratio CI computes normally (sanity check the mocked test above isn't masking something already broken)", {

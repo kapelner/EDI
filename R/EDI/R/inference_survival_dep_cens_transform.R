@@ -289,7 +289,7 @@ SurvivalDepCensTransformSource = list(
 				# dispatcher, correct regardless of the configured testing_type.
 				asymp = tryCatch(self$compute_asymp_two_sided_pval(delta), error = function(e) NA_real_)
 				if (is.finite(asymp) && asymp > 0.05 && p < 0.01) {
-					private$cache_nonestimable_se("dep_cens_transform_score_pvalue_unstable")
+					edi_record_procedure_failure(self, private, "dep_cens_transform_score_pvalue_unstable", stage = "se") # TODO-116 (2026-10-22)
 					return(NA_real_)
 				}
 				p
@@ -305,12 +305,12 @@ SurvivalDepCensTransformSource = list(
 					error = function(e){
 						msg = if (length(e$message) == 0L) "" else e$message
 						if (!grepl("'names' attribute", msg, fixed = TRUE)) stop(e)
-						private$cache_nonestimable_se("dep_cens_transform_lik_ratio_ci_unavailable")
+						edi_record_procedure_failure(self, private, "dep_cens_transform_lik_ratio_ci_unavailable", stage = "se") # TODO-116 (2026-10-22)
 						c(NA_real_, NA_real_)
 					}
 				)
 				if (length(ci) != 2L || !all(is.finite(as.numeric(ci[1:2])))) {
-					private$cache_nonestimable_se("dep_cens_transform_lik_ratio_ci_unavailable")
+					edi_record_procedure_failure(self, private, "dep_cens_transform_lik_ratio_ci_unavailable", stage = "se") # TODO-116 (2026-10-22)
 					ci = c(NA_real_, NA_real_)
 				}
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")

@@ -33,7 +33,10 @@ test_that("compute_score_two_sided_pval flags disagreement with the asymptotic t
 
 	res <- inf$compute_score_two_sided_pval(0)
 	expect_true(is.na(res))
-	expect_identical(inf$get_nonestimable_reason(), "dep_cens_transform_score_pvalue_unstable")
+	# 2026-10-22 (TODO-116 lik-test stage): a score-test failure, not a primary-fit failure --
+	# recorded under procedure_failure_reason$score; the object stays estimable.
+	expect_identical(p$cached_values$procedure_failure_reason$score, "dep_cens_transform_score_pvalue_unstable")
+	expect_false(inf$is_nonestimable())
 })
 
 test_that("compute_score_two_sided_pval passes through a score p-value that agrees with the asymptotic test", {
@@ -58,7 +61,10 @@ test_that("compute_lik_ratio_confidence_interval catches the documented '\"names
 
 	ci <- inf$compute_lik_ratio_confidence_interval(0.05)
 	expect_true(all(is.na(ci)))
-	expect_identical(inf$get_nonestimable_reason(), "dep_cens_transform_lik_ratio_ci_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): a lik_ratio-test failure, not a primary-fit failure --
+	# recorded under procedure_failure_reason$lik_ratio; the object stays estimable.
+	expect_identical(p$cached_values$procedure_failure_reason$lik_ratio, "dep_cens_transform_lik_ratio_ci_unavailable")
+	expect_false(inf$is_nonestimable())
 })
 
 test_that("compute_lik_ratio_confidence_interval also rejects a malformed/non-finite CI from the impl", {
@@ -69,5 +75,8 @@ test_that("compute_lik_ratio_confidence_interval also rejects a malformed/non-fi
 
 	ci <- inf$compute_lik_ratio_confidence_interval(0.05)
 	expect_true(all(is.na(ci)))
-	expect_identical(inf$get_nonestimable_reason(), "dep_cens_transform_lik_ratio_ci_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): a lik_ratio-test failure, not a primary-fit failure --
+	# recorded under procedure_failure_reason$lik_ratio; the object stays estimable.
+	expect_identical(p$cached_values$procedure_failure_reason$lik_ratio, "dep_cens_transform_lik_ratio_ci_unavailable")
+	expect_false(inf$is_nonestimable())
 })

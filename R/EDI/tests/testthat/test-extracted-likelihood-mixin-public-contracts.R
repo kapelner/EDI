@@ -125,8 +125,12 @@ test_that("public likelihood tests report an unavailable specification as non-es
 	expect_warning(p_value <- inf$compute_score_two_sided_pval(delta = 0), class = "edi_lik_test_unavailable_warning")
 
 	expect_true(is.na(p_value))
-	expect_true(inf$is_nonestimable("estimate"))
-	expect_equal(inf$get_nonestimable_reason(), "likelihood_test_spec_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): a missing likelihood spec on a valid Wald fit is a
+	# failure of the score test, not of the primary fit -- the Wald state is kept and the reason
+	# is recorded under procedure_failure_reason$score.
+	expect_false(inf$is_nonestimable())
+	expect_true(all(is.finite(inf$compute_wald_confidence_interval(alpha = 0.05))))
+	expect_equal(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$score, "likelihood_test_spec_unavailable")
 })
 
 make_no_likelihood_spec_std_mod_cache_logit_inference <- function(des){
@@ -178,8 +182,12 @@ test_that("StandardModelCache likelihood tests report an unavailable specificati
 	expect_warning(p_value <- inf$compute_score_two_sided_pval(delta = 0), class = "edi_lik_test_unavailable_warning")
 
 	expect_true(is.na(p_value))
-	expect_true(inf$is_nonestimable("estimate"))
-	expect_equal(inf$get_nonestimable_reason(), "likelihood_test_spec_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): a missing likelihood spec on a valid Wald fit is a
+	# failure of the score test, not of the primary fit -- the Wald state is kept and the reason
+	# is recorded under procedure_failure_reason$score.
+	expect_false(inf$is_nonestimable())
+	expect_true(all(is.finite(inf$compute_wald_confidence_interval(alpha = 0.05))))
+	expect_equal(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$score, "likelihood_test_spec_unavailable")
 })
 
 test_that("StandardModelCache likelihood tests still hard-stop when the class does not support likelihood tests at all", {

@@ -32,6 +32,10 @@ test_that("compute_likelihood_test_two_sided_pval() caches '<testing_type>_test_
 
 		pv <- f$priv$compute_likelihood_test_two_sided_pval(0, testing_type)
 		expect_true(is.na(pv), info = testing_type)
-		expect_identical(f$inf$get_nonestimable_reason(), paste0(testing_type, "_test_unavailable"), info = testing_type)
+		# 2026-10-22 (TODO-116 lik-test stage): recorded under procedure_failure_reason[[testing_type]];
+		# the Wald estimate/SE stay valid and the object stays estimable.
+		expect_identical(f$priv$cached_values$procedure_failure_reason[[testing_type]], paste0(testing_type, "_test_unavailable"), info = testing_type)
+		expect_false(f$inf$is_nonestimable(), info = testing_type)
+		expect_true(is.finite(f$inf$compute_wald_two_sided_pval(0)), info = testing_type)
 	}
 })

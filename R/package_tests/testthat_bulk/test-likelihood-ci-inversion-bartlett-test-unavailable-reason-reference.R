@@ -32,8 +32,11 @@ test_that("an unavailable Bartlett-approx test at the estimate caches 'lik_ratio
 
 	ci <- f$priv$invert_test_pval_confidence_interval(0.05, "lik_ratio_bartlett_approx")
 	expect_equal(ci, c(NA_real_, NA_real_))
-	expect_true(f$inf$is_nonestimable("se"))
-	expect_identical(f$inf$get_nonestimable_reason(), "lik_ratio_bartlett_approx_test_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): a failed Bartlett test keeps the Wald state; the reason
+	# is recorded under procedure_failure_reason$lik_ratio_bartlett_approx.
+	expect_false(f$inf$is_nonestimable())
+	expect_true(is.finite(f$priv$cached_values$s_beta_hat_T))
+	expect_identical(f$priv$cached_values$procedure_failure_reason$lik_ratio_bartlett_approx, "lik_ratio_bartlett_approx_test_unavailable")
 })
 
 test_that("an unavailable Bartlett-exact test at the estimate caches 'lik_ratio_bartlett_exact_test_unavailable' and returns NA", {
@@ -43,6 +46,9 @@ test_that("an unavailable Bartlett-exact test at the estimate caches 'lik_ratio_
 
 	ci <- f$priv$invert_test_pval_confidence_interval(0.05, "lik_ratio_bartlett_exact")
 	expect_equal(ci, c(NA_real_, NA_real_))
-	expect_true(f$inf$is_nonestimable("se"))
-	expect_identical(f$inf$get_nonestimable_reason(), "lik_ratio_bartlett_exact_test_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): a failed Bartlett test keeps the Wald state; the reason
+	# is recorded under procedure_failure_reason$lik_ratio_bartlett_exact.
+	expect_false(f$inf$is_nonestimable())
+	expect_true(is.finite(f$priv$cached_values$s_beta_hat_T))
+	expect_identical(f$priv$cached_values$procedure_failure_reason$lik_ratio_bartlett_exact, "lik_ratio_bartlett_exact_test_unavailable")
 })

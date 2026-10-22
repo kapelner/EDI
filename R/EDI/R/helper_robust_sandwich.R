@@ -461,7 +461,32 @@ edi_resampling_procedure_for_reason = function(reason) {
 	if (grepl("^subsampling_", reason)) return("subsampling")
 	if (grepl("^randomization_", reason)) return("randomization")
 	if (grepl("^m_out_of_n_", reason)) return("m_out_of_n")
+	# Likelihood tests (2026-10-22, TODO-116 lik-test stage): a failed score /
+	# gradient / LR / Bartlett test or test-inversion CI is a failure of that
+	# test, owned by the procedure named after the testing type. "wald_*"
+	# reasons are deliberately not mapped (a failed Wald test is the primary
+	# fit failing). Shared reasons ("test_inversion_confidence_interval_
+	# unavailable", "*likelihood_test_spec_unavailable") carry no testing type
+	# and are routed with an explicit `procedure = edi_lik_test_procedure(.)`.
+	lik = regmatches(reason, regexec("^(lik_ratio_bartlett_approx|lik_ratio_bartlett_exact|score|gradient|lik_ratio)_(test_unavailable|confidence_interval_unavailable|ci_inversion_failed)$", reason))[[1L]]
+	if (length(lik) == 3L) return(lik[2L])
+	if (grepl("^dep_cens_transform_score_", reason)) return("score")
+	if (grepl("^dep_cens_transform_lik_ratio_", reason)) return("lik_ratio")
 	NULL
+}
+
+#' Procedure name for a likelihood testing type (TODO-116)
+#'
+#' Returns \code{testing_type} when it names a likelihood test (score,
+#' gradient, lik_ratio, or a Bartlett-corrected LR) and \code{NULL} otherwise
+#' (Wald, unknown, NULL), so a Wald failure is never reclassified away from the
+#' primary fit.
+#'
+#' @keywords internal
+#' @noRd
+edi_lik_test_procedure = function(testing_type) {
+	tt = as.character(testing_type %||% NA_character_)[1L]
+	if (!is.na(tt) && tt %in% c("score", "gradient", "lik_ratio", "lik_ratio_bartlett_approx", "lik_ratio_bartlett_exact")) tt else NULL
 }
 
 #' Record a bootstrap-family procedure failure without wiping the Wald state

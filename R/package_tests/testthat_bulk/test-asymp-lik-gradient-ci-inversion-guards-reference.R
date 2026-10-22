@@ -29,7 +29,10 @@ test_that("invert_gradient_ci_uniroot caches 'gradient_test_unavailable' when th
 
 	ci <- p$invert_gradient_ci_uniroot(0.05)
 	expect_true(all(is.na(ci)))
-	expect_identical(f$inf$get_nonestimable_reason(), "gradient_test_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): recorded as a gradient procedure failure; the Wald
+	# state is kept and the object stays estimable.
+	expect_identical(f$priv$cached_values$procedure_failure_reason$gradient, "gradient_test_unavailable")
+	expect_false(f$inf$is_nonestimable())
 })
 
 test_that("invert_gradient_ci_uniroot caches 'gradient_ci_inversion_failed' when pval_invert_ci_cpp() errors", {
@@ -38,5 +41,8 @@ test_that("invert_gradient_ci_uniroot caches 'gradient_ci_inversion_failed' when
 
 	ci <- f$priv$invert_gradient_ci_uniroot(0.05)
 	expect_length(ci, 2L)
-	expect_identical(f$inf$get_nonestimable_reason(), "gradient_ci_inversion_failed")
+	# 2026-10-22 (TODO-116 lik-test stage): recorded as a gradient procedure failure; the Wald
+	# state is kept and the object stays estimable.
+	expect_identical(f$priv$cached_values$procedure_failure_reason$gradient, "gradient_ci_inversion_failed")
+	expect_false(f$inf$is_nonestimable())
 })

@@ -518,7 +518,7 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			# estimator privates call the conditional_logit_fit_* free functions
 			# directly, so no ConditionalLogitPartialLikelihood component methods
 			# are composed; same treatment as the LWA Cox IVWC entry.
-			target_direct_components = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
+			target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "Wald", "IncidKKCondLogitIVWC"),
 			notes = "KK incidence conditional-logit IVWC estimator; depends on KK pass-through/compound behavior plus conditional-logit fit helpers."
 		),
 		InferenceIncidKKCondLogitOneLik = list(
@@ -530,7 +530,7 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			# explicit direct component and KKPassThrough/
 			# ParametricLikelihoodBootstrap arrive via the new
 			# IncidKKCondLogitOneLikLikelihood component's dependencies.
-			target_direct_components = c("BayesianBootstrap", "IncidKKCondLogitOneLikLikelihood"),
+			target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "IncidKKCondLogitOneLikLikelihood"),
 			notes = "KK incidence conditional-logit one-likelihood estimator; migrate after conditional-logit null-fit and likelihood-test contracts are declared."
 		),
 		InferenceOrdinalKKCondAdjCatLogitRegr = list(
@@ -550,7 +550,7 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			# ParametricLikelihoodBootstrap added 2026-09-19, same bug/fix shape as
 			# TODO-13 but for a different component -- see the factory call's own
 			# comment in inference_survival_coxph.R.
-			target_direct_components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
+			target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
 			notes = "Non-KK Cox proportional-hazards estimator currently inherits standard-model-cache likelihood behavior."
 		),
 		InferenceSurvivalStratCoxPHRegr = list(
@@ -559,7 +559,7 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			component_family = "CoxPartialLikelihood",
 			# ParametricLikelihoodBootstrap added 2026-09-19: see the matching
 			# InferenceSurvivalCoxPHRegr entry's comment above.
-			target_direct_components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
+			target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
 			notes = "Non-KK stratified Cox PH estimator should share the Cox partial-likelihood component family while preserving stratification-specific caches."
 		),
 		InferenceSurvivalKKLWACoxPHIVWC = list(
@@ -570,7 +570,7 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			# BayesianBootstrap and Wald are explicit direct components (same
 			# treatment as the non-KK Cox entries), and KKCompound arrives as
 			# the component's dependency rather than a direct entry.
-			target_direct_components = c("BayesianBootstrap", "Wald", "KKLWACoxIVWCPartialLikelihood"),
+			target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "Wald", "KKLWACoxIVWCPartialLikelihood"),
 			notes = "KK LWA Cox IVWC estimator combines matched cluster-robust Cox and reservoir Cox components."
 		),
 		InferenceSurvivalKKLWACoxPHOneLik = list(
@@ -581,7 +581,7 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			# treatment as the LWA Cox IVWC entry above): BayesianBootstrap is an
 			# explicit direct component and KKPassThrough arrives as the
 			# component's dependency rather than a direct entry.
-			target_direct_components = c("BayesianBootstrap", "KKLWACoxOneLikPartialLikelihood"),
+			target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "KKLWACoxOneLikPartialLikelihood"),
 			notes = "KK LWA Cox one-likelihood estimator uses a combined marginal Cox partial likelihood with cluster-robust variance."
 		),
 		InferenceSurvivalKKStratCoxPHIVWC = list(
@@ -598,7 +598,7 @@ EDI_QUASI_ROBUST_CLASS_NAMES = c(
 			# treatment as the LWA Cox OneLik entry above): BayesianBootstrap is an
 			# explicit direct component and KKPassThrough arrives as the
 			# component's dependency rather than a direct entry.
-			target_direct_components = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
+			target_direct_components = c("RandomizationCI", "RandomizationBootstrapCI", "BayesianBootstrap", "Jackknife", "SurvivalKKStratCoxOneLikPartialLikelihood"),
 			notes = "KK stratified Cox one-likelihood estimator combines matched sets and reservoir subjects in one stratified Cox partial likelihood."
 		)
 	)

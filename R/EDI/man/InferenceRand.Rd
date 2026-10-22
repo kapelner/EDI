@@ -21,8 +21,8 @@ For survival outcomes with left- or interval-censoring, a nonzero
   A nonzero \code{delta} is not supported for incidence responses.
 }
 \keyword{internal}
-\section{Super class}{
-\code{\link[EDI:Inference]{Inference}} -> \code{InferenceRand}
+\section{Super classes}{
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceResamplingCore]{InferenceResamplingCore}} -> \code{InferenceRand}
 }
 \section{Methods}{
 \subsection{Public methods}{

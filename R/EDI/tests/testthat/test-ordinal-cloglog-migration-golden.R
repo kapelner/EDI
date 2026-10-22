@@ -110,6 +110,9 @@ test_that("InferenceOrdinalCloglogRegr passes the shallow migration gate", {
 	expect_identical(
 		EDI:::get_effective_components("InferenceOrdinalCloglogRegr"),
 		c(
+			# v1.0.5 TODO-97 (2026-10-22): RandomizationTest and NonparametricBootstrap
+			# now depend on the shared ResamplingCore helper component.
+			"ResamplingCore",
 			"RandomizationTest",
 			"RandomizationCI",
 			"NonparametricBootstrap",

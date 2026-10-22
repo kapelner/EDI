@@ -18,6 +18,7 @@ edi_r_source_files = function() {
 
 canonical_component_names = function() {
 	c(
+		"ResamplingCore",
 		"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
 		"RandomizationBootstrap", "RandomizationBootstrapCI",
 		"BayesianBootstrap", "Jackknife", "Wald",
@@ -458,18 +459,20 @@ test_that("parametric likelihood bootstrap metadata is lazy until a stub or load
 	expect_true("compute_lik_ratio_bootstrap_two_sided_pval" %in% EDI:::component_public_names(component))
 	expect_true("parametric_likelihood_bootstrap" %in% EDI:::get_effective_capabilities("InferenceParamBootstrap"))
 	expect_identical(EDI:::inference_component_load_trace("InferenceParamBootstrap"), character())
+	# v1.0.5 TODO-97 (2026-10-22): Wald's dependency is NonparametricBootstrap
+	# (was the packaging-only Jackknife), so the loaded chain follows it.
 
 	loaded = EDI:::load_inference_component("ParametricLikelihoodBootstrap", class_name = "InferenceParamBootstrap")
 	expect_true("compute_lik_ratio_bootstrap_two_sided_pval" %in% names(loaded$public))
 	expect_identical(
 		EDI:::inference_component_load_trace("InferenceParamBootstrap"),
-		c("Jackknife", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap")
+		c("ResamplingCore", "NonparametricBootstrap", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap")
 	)
 	again = EDI:::load_inference_component("ParametricLikelihoodBootstrap", class_name = "InferenceParamBootstrap")
 	expect_identical(names(again$public), names(loaded$public))
 	expect_identical(
 		EDI:::inference_component_load_trace("InferenceParamBootstrap"),
-		c("Jackknife", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap")
+		c("ResamplingCore", "NonparametricBootstrap", "Wald", "LikelihoodTests", "ParametricLikelihoodBootstrap")
 	)
 })
 

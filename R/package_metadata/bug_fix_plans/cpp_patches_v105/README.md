@@ -49,6 +49,7 @@ Rd for those functions needs `roxygenize` afterwards (not hand-edited here).
 | 11 | `11-noise-mat-empty-other-kernels.patch` | coordinator add-on (optional) | `rand_bootstrap_ols_parallel.cpp`, `rand_bootstrap_mean_diff_parallel.cpp`, `fast_wilcox_hl.cpp`, `fast_robust_regression.cpp` |
 | 12 | `12-ordinal-scale-aware-convergence.patch` | 107 | NEW `ordinal_scale_guard.h`; `fast_ordinal_regression.cpp`, `fast_ordinal_cauchit_regression.cpp`, `fast_ordinal_cloglog_regression.cpp`, `fast_ordinal_probit_regression.cpp`, `fast_adjacent_category_logit.cpp`, `fast_continuation_ratio_regression.cpp` |
 | 13 | WITHDRAWN (patch file deleted) | 118 | the kernel `generate_permutations_blocking_cpp` was deleted instead (owner decision 2026-10-22) |
+| 14 | `14-log-binomial-active-set-step.patch` | 128 | `fast_log_binomial_regression.cpp` |
 
 `*.REFERENCE-ONLY.patch` show what `compileAttributes()` should produce for `R/RcppExports.R`;
 do NOT apply them; regenerate instead (they exist so the regeneration can be diffed).
@@ -245,3 +246,31 @@ Known limits / risks of the companions
   from the installed build (see release_v1_0_5.md TODO-118, G1).
 - Not written: a C++ rejection sampler for `DesignFixedRerandomization` (prob_T != 0.5 or odd n). The serial R loop was replaced by a
   vectorized R batch sampler (`generate_rerandomized_w_batch`), so a native version is only an optional OpenMP speedup.
+
+### 14 log-binomial-active-set-step (TODO-128), written 2026-10-22, UNCOMPILED
+- Purpose: the constrained-binomial Fisher-scoring loops (`fit_constrained_binomial_cpp_impl` and `_weighted_cpp_impl`; log
+  and identity links) have no boundary handling beyond step halving. When a row sits on the mean-support boundary
+  (log link: `eta >= -1e-8`) and the Newton step pushes it outward, halving shrinks the step to ~1e-8, the tiny accepted step
+  passes the relative-change test and the fit reports `converged = TRUE` where it started. Seen on a 120-row synthetic set
+  with 4 covariates (TODO-128's `make_todo128_design()`): every warm-started leave-one-out refit returned the full-data
+  estimate (jackknife SE 0.025 vs 0.225 from cold starts), a third of Bayesian-bootstrap draws equalled the full-data estimate,
+  and the cold full-data fit itself stopped early (log-lik -79.77821 vs -79.77803; on a 200-row seed: -120.404 vs -119.958,
+  treatment coefficient 0.249 vs 0.283).
+- Change: (1) `project_increment_off_active_bounds()` replaces the increment by its XtWX-metric projection onto
+  `{d : X_A d = 0}` for rows within 1e-6 of the boundary that the step would push outward (zero-weight rows excluded in the
+  weighted loop); (2) convergence is tested on the full (projected) increment when the line search had to damp the step, and
+  on the actual step otherwise (bit-identical to the old test when `step == 1`). Interior fits form no active set, so their
+  arithmetic is unchanged.
+- Validated only as an R prototype (`/tmp/claude-1000/todo128/proto.R`, harnesses `r11.R`, `r13.R`): boundary full fits reach
+  a higher log-likelihood than Nelder-Mead; warm- and cold-started leave-one-out fits agree to ~1e-7 (was 0.06); interior fits
+  are identical to the unpatched prototype. Known limitation: near the boundary Fisher scoring converges slowly; on the
+  200-row seed about 20% of leave-one-out fits needed more than `maxit = 200` iterations (they converge, slowly), so those
+  fits would now report `converged = FALSE` (NA) where the unpatched kernel falsely reported convergence. Consider a larger
+  `maxit` for the log link or observed-information Newton steps if that rate matters.
+- Risk: changes boundary fits of `InferenceIncidLogBinomial` and `InferenceIncidBinomialIdentityRiskDiff` (full-data estimates
+  too, toward the MLE), so it needs the owner's decision under the numerical-equivalence rule. Needs `<vector>` (added) and
+  Eigen's `completeOrthogonalDecomposition` (in `<Eigen/Dense>`, already included via RcppEigen / the core header).
+- Verify (after user compile of `fast_log_binomial_regression.cpp`): `test-log-binomial-jackknife-history-independence.R`
+  (must still pass), the R-side boundary rule (`logbin_feasible_warm_start_args()`, could then be relaxed), and on
+  `make_todo128_design()` with `~.`: full fit `converged`, `max(X %*% b) <= -1e-8`, and log-lik >= -79.7781.
+

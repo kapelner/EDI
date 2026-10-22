@@ -31,7 +31,7 @@ seq_des_inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 101)
 }
 \keyword{internal}
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{InferenceRandBootstrapCI}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceResamplingCore]{InferenceResamplingCore}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{\link[EDI:InferenceRandCI]{InferenceRandCI}} -> \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}} -> \code{\link[EDI:InferenceRandBootstrap]{InferenceRandBootstrap}} -> \code{InferenceRandBootstrapCI}
 }
 \section{Methods}{
 \subsection{Public methods}{

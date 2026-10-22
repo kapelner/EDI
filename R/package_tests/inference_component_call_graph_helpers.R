@@ -322,3 +322,121 @@ inference_component_call_graph <- function(source_root, ns = asNamespace("EDI"))
 		classes = concrete
 	)
 }
+
+# Reviewed deltas against the TODO-1 golden
+# (testthat_bulk/fixtures/inference_component_registry_baseline.csv), shared by
+# the call-graph acceptance test and test-inference-class-registry.R so both
+# compare the same surface the same way. `actual` and `baseline` are data frames
+# with columns class/components/public_methods/private_methods; testthat's
+# expectations must be attached by the caller.
+inference_component_expect_reviewed_registry_baseline <- function(actual, baseline) {
+	actual <- actual[order(actual$class), , drop = FALSE]
+	baseline <- baseline[order(baseline$class), , drop = FALSE]
+	# TODO-98 added these private guard methods after TODO-1's frozen baseline.
+	# Keep that reviewed additive delta explicit rather than silently rewriting
+	# the golden; unrelated method/component drift still fails the comparison.
+	weibull_class <- "InferenceSurvivalWeibullRegr"
+	weibull_row <- which(baseline$class == weibull_class)
+	weibull_methods <- strsplit(baseline$private_methods[[weibull_row]], "|", fixed = TRUE)[[1L]]
+	weibull_methods <- c(weibull_methods, paste0(c(
+		"param_boot_compute_lik_ratio_bootstrap_confidence_interval",
+		"param_boot_compute_lik_ratio_bootstrap_two_sided_pval",
+		"stop_weibull_parametric_bootstrap_for_general_censoring"
+	), "@", weibull_class))
+	baseline$private_methods[[weibull_row]] <- paste(sort(unique(weibull_methods)), collapse = "|")
+	# v1.0.5 TODO-57 (2026-10-22) added the NonparametricBootstrap private method
+	# finalize_bootstrap_statistics_matrix, bound on the same host as its sibling
+	# approximate_bootstrap_statistics_beta_hat_T. Reviewed additive delta.
+	baseline$private_methods <- vapply(baseline$private_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		anchor <- grep("^approximate_bootstrap_statistics_beta_hat_T@", x, value = TRUE)
+		if (!length(anchor)) return(s)
+		host <- sub("^[^@]*@", "", anchor[1L])
+		paste(sort(unique(c(x, paste0("finalize_bootstrap_statistics_matrix@", host)))), collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
+	# v1.0.5 TODO-97 decision 2 (2026-10-22) deleted the dynamic-dispatch
+	# helper load_resampling_draw_into_worker(); its five callers call their
+	# own loader directly. Reviewed removal delta: the method disappears from
+	# every class that had it, on the same host, and nothing else changes.
+	baseline$private_methods <- vapply(baseline$private_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		paste(x[!startsWith(x, "load_resampling_draw_into_worker@")], collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
+	# v1.0.5 TODO-97 Option A (2026-10-22) added the ResamplingCore component
+	# (shared resampling cache/contract, jackknife-unit validators, extreme-
+	# estimate guard, NULL create_bootstrap_worker_state() default) and
+	# rewrote component dependencies to the measured call graph. Reviewed
+	# deltas, each asserted exactly below rather than by refreshing the golden:
+	# (1) components: ResamplingCore is added to every class that composed any
+	#     resampling/Wald component (103 of 106) and to none of the three exact
+	#     incidence classes; with it removed, every list equals the old list.
+	#     The order is unchanged except for the classes in
+	#     `todo97_reordered`, where a declared dependency now forces a
+	#     component earlier (e.g. Wald -> NonparametricBootstrap places
+	#     NonparametricBootstrap before Wald in the Count composite classes);
+	#     there the set is unchanged and a source-loaded before/after dispatch
+	#     comparison showed every method still binds the same body (the one
+	#     binding that would have changed, InferenceCustomAsymp's four
+	#     reusable-worker hooks, is pinned by host overrides with the old
+	#     NonparametricBootstrap bodies).
+	# (2) methods: the classes that gain ResamplingCore without previously
+	#     composing the components its methods came from gain those methods,
+	#     on their own host: InferenceCustomRand (and its subclass
+	#     InferenceRandCustom) gain the jackknife-unit validators, the extreme
+	#     guard and the worker-state default; InferenceCustomBoot gains the two
+	#     jackknife-unit validators its NonparametricBootstrap code already
+	#     called. No method is removed or rehosted.
+	todo97_reordered <- c(
+		"InferenceContinKKOLSOneLik", "InferenceContinKKQuantileRegrOneLik",
+		"InferenceCountKKCondPoissonOneLik", "InferenceCountKKHurdlePoissonOneLik",
+		"InferenceCountPoissonKKGEE", "InferenceCountQuasiPoisson",
+		"InferenceCountRobustPoisson", "InferenceCustomAsymp",
+		"InferenceIncidKKCondLogitOneLik", "InferenceIncidKKGEE",
+		"InferenceOrdinalKKGEE", "InferencePropKKGEE",
+		"InferencePropKKQuantileRegrOneLik", "InferenceSurvivalKKLWACoxPHOneLik",
+		"InferenceSurvivalKKStratCoxPHOneLik"
+	)
+	todo97_no_core <- c("InferenceIncidExactBinomial", "InferenceIncidExactFisher", "InferenceIncidExactZhang")
+	todo97_added_private <- list(
+		InferenceCustomRand = c("assert_jackknife_supported", "bootstrap_estimates_extreme",
+			"create_bootstrap_worker_state", "normalize_jackknife_unit"),
+		InferenceRandCustom = c("assert_jackknife_supported", "bootstrap_estimates_extreme",
+			"create_bootstrap_worker_state", "normalize_jackknife_unit"),
+		InferenceCustomBoot = c("assert_jackknife_supported", "normalize_jackknife_unit")
+	)
+	todo97_host <- c(InferenceCustomRand = "InferenceCustomRand",
+		InferenceRandCustom = "InferenceCustomRand", InferenceCustomBoot = "InferenceCustomBoot")
+	for (class_name in names(todo97_added_private)) {
+		row <- which(baseline$class == class_name)
+		x <- strsplit(baseline$private_methods[[row]], "|", fixed = TRUE)[[1L]]
+		expect_false(any(paste0(todo97_added_private[[class_name]], "@", todo97_host[[class_name]]) %in% x), info = class_name)
+		baseline$private_methods[[row]] <- paste(sort(unique(c(x,
+			paste0(todo97_added_private[[class_name]], "@", todo97_host[[class_name]])))), collapse = "|")
+	}
+	# v1.0.5 TODO-128 (2026-10-22) added the InferenceIncidLogBinomial private
+	# helper logbin_feasible_warm_start_args (boundary-safe warm starts), on its
+	# own host. Reviewed additive delta (recorded 2026-10-22 by the TODO-116
+	# lik-test agent, which found it unrecorded; TODO-116 itself adds no method).
+	logbin_row <- which(baseline$class == "InferenceIncidLogBinomial")
+	logbin_methods <- strsplit(baseline$private_methods[[logbin_row]], "|", fixed = TRUE)[[1L]]
+	expect_false("logbin_feasible_warm_start_args@InferenceIncidLogBinomial" %in% logbin_methods)
+	baseline$private_methods[[logbin_row]] <- paste(sort(unique(c(logbin_methods,
+		"logbin_feasible_warm_start_args@InferenceIncidLogBinomial"))), collapse = "|")
+	rownames(actual) <- rownames(baseline) <- NULL
+	expect_identical(nrow(actual), 106L)
+	expect_identical(actual$class, baseline$class)
+	new_components <- strsplit(actual$components, "|", fixed = TRUE)
+	old_components <- strsplit(baseline$components, "|", fixed = TRUE)
+	has_core <- vapply(new_components, function(x) "ResamplingCore" %in% x, logical(1L))
+	expect_identical(sum(has_core), 103L)
+	expect_identical(sort(actual$class[!has_core]), sort(todo97_no_core))
+	without_core <- lapply(new_components, setdiff, "ResamplingCore")
+	reordered <- actual$class %in% todo97_reordered
+	expect_identical(without_core[!reordered], old_components[!reordered])
+	expect_identical(lapply(without_core[reordered], sort), lapply(old_components[reordered], sort))
+	expect_false(any(mapply(identical, without_core[reordered], old_components[reordered])),
+		info = "a listed reordered class is back in its old order; drop it from todo97_reordered")
+	actual$components <- baseline$components <- NULL
+	expect_identical(actual, baseline)
+	invisible(TRUE)
+}

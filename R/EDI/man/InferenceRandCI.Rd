@@ -18,7 +18,7 @@ Tsiatis, A. A. (1990). Estimating regression parameters using linear
 }
 \keyword{internal}
 \section{Super classes}{
-\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI}
+\code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceResamplingCore]{InferenceResamplingCore}} -> \code{\link[EDI:InferenceRand]{InferenceRand}} -> \code{InferenceRandCI}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -172,8 +172,18 @@ non-negative, one-tailed-by-construction statistic (squared difference, chi-squa
   or count, \code{InferencePropGCompMeanDiff}, \code{InferenceOrdinalRidit},
   \code{InferenceOrdinalJonckheereTerpstraTest}) refuses this method with an error
   instead of returning bounds on another scale; its randomization p-value and
-  randomization-bootstrap CI remain available. Endpoints carry Monte Carlo
-  error (of order \code{1/sqrt(r)} in p-value units).
+  randomization-bootstrap CI remain available. The same refusal applies on
+  survival responses to classes whose estimate is a raw-scale (time-unit) mean
+  difference or Hodges-Lehmann shift, since the survival search inverts a
+  log-time shift.
+
+  \strong{Monte Carlo error.} The reference distribution uses \code{r} random
+  allocations, so the p-value at each candidate \eqn{\delta} and hence both
+  endpoints carry Monte Carlo error (of order \code{1/sqrt(r)} in p-value
+  units); repeated calls with fresh draws give slightly different endpoints, and
+  an interval that looks inconsistent with the randomization p-value near the
+  \code{alpha} boundary usually reflects this noise. Increase \code{r} to reduce
+  it. No Monte Carlo standard error is returned with the interval.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceRandCI$compute_rand_confidence_interval(

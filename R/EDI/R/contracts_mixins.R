@@ -1835,6 +1835,8 @@ EDI_COMPONENT_SPECS = list(
 					provides_private_methods = c(
 						"is_log_binomial_fit_reasonable",
 						"get_complexity_tier",
+						"create_bootstrap_worker_state",
+						"logbin_feasible_warm_start_args",
 						"compute_treatment_estimate_during_randomization_inference",
 						"supports_reusable_bootstrap_worker",
 						"supports_lik_ratio_param_bootstrap",

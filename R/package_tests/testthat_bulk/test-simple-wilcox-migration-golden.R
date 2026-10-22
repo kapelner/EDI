@@ -144,11 +144,19 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 	# the fix) -- confirmed by hand: wilcox.test(yT, yC, conf.level = 0.95)
 	# on this design's data reproduces the old value exactly. This is the
 	# actual 80% interval (conf.level = 0.8).
+	# Tolerance 1e-4 for this column only (2026-10-22, release_v1_0_5.md G6 #15,
+	# owner decision: loosen the affected column). The interval is
+	# stats::wilcox.test()'s own, found by uniroot() at its default
+	# tol.root = 1e-4, so its last digits move with the R build: under R-devel
+	# (2026-10-13 r90668) EDI and a direct wilcox.test() call agree exactly but
+	# differ from the pinned values by a mean relative 4.4e-5. Every other
+	# column stays at 1e-8.
 	expect_simple_wilcox_golden(
 		"asymptotic confidence interval",
 		"compute_asymp_confidence_interval",
 		list(alpha = 0.2),
-		c(-0.0226825070361196, 0.8491562829742763)
+		c(-0.0226825070361196, 0.8491562829742763),
+		tolerance = 1e-4
 	)
 	expect_simple_wilcox_golden(
 		"asymptotic p-value",

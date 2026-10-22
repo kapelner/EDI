@@ -49,13 +49,17 @@ IncidenceLogBinomialLikelihoodSource = list(
 				required_cols = 2L,
 				fit_fun = function(X_fit, keep){
 					j_treat = match(2L, keep)
+					ws_args = private$logbin_feasible_warm_start_args(X_fit, list(
+						warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
+						warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit))
+					))
 					res = tryCatch(
 						fast_log_binomial_regression_weighted_cpp(
 							X = X_fit,
 							y = as.numeric(private$y),
 							weights = as.numeric(row_weights),
-							warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit)),
+							warm_start_beta = ws_args$warm_start_beta,
+							warm_start_fisher_info = ws_args$warm_start_fisher_info,
 							smart_cold_start = private$smart_cold_start_default
 						),
 						error = function(e) NULL
@@ -119,14 +123,14 @@ IncidenceLogBinomialLikelihoodSource = list(
 					msg = if (length(e$message) == 0L) "" else e$message
 					if (grepl("'names' attribute", msg, fixed = TRUE) ||
 					    grepl("must be the same length as the vector", msg, fixed = TRUE)) {
-						private$cache_nonestimable_se("score_confidence_interval_unavailable")
+						edi_record_procedure_failure(self, private, "score_confidence_interval_unavailable", stage = "se") # TODO-116 (2026-10-22)
 						return(c(NA_real_, NA_real_))
 					}
 					stop(e)
 				}
 			)
 			if (length(ci) < 2L || !all(is.finite(ci[1:2]))) {
-				private$cache_nonestimable_se("score_confidence_interval_unavailable")
+				edi_record_procedure_failure(self, private, "score_confidence_interval_unavailable", stage = "se") # TODO-116 (2026-10-22)
 				return(c(NA_real_, NA_real_))
 			}
 			ci
@@ -147,14 +151,14 @@ IncidenceLogBinomialLikelihoodSource = list(
 					msg = if (length(e$message) == 0L) "" else e$message
 					if (grepl("'names' attribute", msg, fixed = TRUE) ||
 					    grepl("must be the same length as the vector", msg, fixed = TRUE)) {
-						private$cache_nonestimable_se("gradient_confidence_interval_unavailable")
+						edi_record_procedure_failure(self, private, "gradient_confidence_interval_unavailable", stage = "se") # TODO-116 (2026-10-22)
 						return(c(NA_real_, NA_real_))
 					}
 					stop(e)
 				}
 			)
 			if (length(ci) < 2L || !all(is.finite(ci[1:2]))) {
-				private$cache_nonestimable_se("gradient_confidence_interval_unavailable")
+				edi_record_procedure_failure(self, private, "gradient_confidence_interval_unavailable", stage = "se") # TODO-116 (2026-10-22)
 				return(c(NA_real_, NA_real_))
 			}
 			ci
@@ -208,6 +212,50 @@ IncidenceLogBinomialLikelihoodSource = list(
 			TRUE
 		},
 		get_complexity_tier = function() "heavy",
+		# TODO-128 (2026-10-22): jackknife and nonparametric-bootstrap workers
+		# warm-start from the full-data fit (cached_mod), not from whatever
+		# fit_warm_start the object holds when the worker is built. The Fisher-
+		# scoring fit stops at a relative step of 1e-6 and converges only
+		# linearly, so leave-one-out refits from different starts disagree by
+		# ~1e-7 per fold, which the jackknife amplifies (n - 1)-fold. A
+		# randomization call refits the observed statistic on this object and
+		# overwrites fit_warm_start (compute_treatment_estimate_during_
+		# randomization_inference() below), which made a later jackknife differ
+		# by ~1e-11 from a fresh one. In a fresh call cached_mod is exactly what
+		# shared() stored as fit_warm_start, so fresh results are unchanged.
+		# Workers whose dispatch policy is cold ignore the base warm start.
+		create_bootstrap_worker_state = function(){
+			worker_state = private$create_design_backed_bootstrap_worker_state()
+			op = private$active_resampling_operation
+			full_fit = private$cached_mod
+			if ((identical(op, "jackknife") || identical(op, "non_param_boot")) &&
+			    !is.null(full_fit) && length(full_fit$b) && all(is.finite(full_fit$b))) {
+				worker_state$base_fit_warm_start = as.numeric(full_fit$b)
+				worker_state$base_fit_warm_start_type = "beta"
+				worker_state$base_fit_warm_start_fisher = full_fit$fisher_information %||% full_fit$XtWX
+			}
+			worker_state
+		},
+		# TODO-128 (2026-10-22): drop a warm start that sits on (or beyond) the
+		# exp(X b) < 1 boundary of the problem being fit. The C++ Fisher-scoring
+		# loop has no active-set step: from such a start the Newton step leaves
+		# the feasible region, step halving shrinks it to almost nothing, and the
+		# tiny accepted step passes the relative-change test, so the fit reports
+		# converged = TRUE at its starting point. When the full-data fit has a
+		# subject on the boundary, every warm-started leave-one-out, bootstrap
+		# or Dirichlet-weighted refit therefore returned the full-data estimate
+		# unchanged (jackknife SE ~9x too small, a third of Bayesian-bootstrap
+		# draws exactly at beta_hat_T). An interior start is passed through
+		# untouched, so fits that never reach the boundary are bit-identical.
+		logbin_feasible_warm_start_args = function(X_fit, ws_args, boundary_eta = -1e-6){
+			start = ws_args$warm_start_beta
+			if (is.null(start) || is.null(X_fit) || length(start) != ncol(X_fit)) return(ws_args)
+			eta_max = suppressWarnings(max(as.numeric(as.matrix(X_fit) %*% as.numeric(start))))
+			if (is.finite(eta_max) && eta_max <= boundary_eta) return(ws_args)
+			ws_args$warm_start_beta = NULL
+			ws_args$warm_start_fisher_info = NULL
+			ws_args
+		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_X_colnames)){
 				private$shared(estimate_only = TRUE)
@@ -223,7 +271,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 				X_cov = X_data[, intersect(X_cols, colnames(X_data)), drop = FALSE]
 				X = cbind(1, treatment = private$w, X_cov)
 			}
-			ws_args = private$get_backend_warm_start_args(ncol(X))
+			ws_args = private$logbin_feasible_warm_start_args(X, private$get_backend_warm_start_args(ncol(X)))
 			res = tryCatch(
 				fast_log_binomial_regression_cpp(
 					X = X, y = as.numeric(private$y),
@@ -370,7 +418,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 			X_full = private$logbin_X_full_cache
 			
 			if (!private$harden) {
-				ws_args = private$get_backend_warm_start_args(ncol(X_full))
+				ws_args = private$logbin_feasible_warm_start_args(X_full, private$get_backend_warm_start_args(ncol(X_full)))
 				if (estimate_only) {
 					res = tryCatch(
 						fast_log_binomial_regression_cpp(
@@ -420,7 +468,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 				required_cols = 2L, # intercept and treatment
 				fit_fun = function(X_fit, keep){
 					j_treat = which(keep == 2L)
-					ws_args = private$get_backend_warm_start_args(ncol(X_fit))
+					ws_args = private$logbin_feasible_warm_start_args(X_fit, private$get_backend_warm_start_args(ncol(X_fit)))
 					if (estimate_only) {
 						res = tryCatch(
 							fast_log_binomial_regression_cpp(

@@ -102,8 +102,11 @@ test_that("an unavailable test at the estimate caches a nonestimable SE and retu
 	f$priv$get_memoized_likelihood_test_pval <- function(...) NA_real_
 	ci <- f$priv$invert_test_pval_confidence_interval(0.05, "score")
 	expect_equal(ci, c(NA_real_, NA_real_))
-	expect_true(f$inf$is_nonestimable("se"))
-	expect_equal(f$inf$get_nonestimable_reason(), "score_test_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): the failed score test keeps the Wald state; the reason
+	# is recorded under procedure_failure_reason$score.
+	expect_false(f$inf$is_nonestimable())
+	expect_true(is.finite(f$priv$cached_values$s_beta_hat_T))
+	expect_equal(f$priv$cached_values$procedure_failure_reason$score, "score_test_unavailable")
 
 	g <- logit_ci_fixture()
 	unlockBinding("compute_estimate", g$inf)

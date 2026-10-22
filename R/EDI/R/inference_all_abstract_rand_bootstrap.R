@@ -571,7 +571,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			# Clopper-Pearson 99% band around the p-value clears the mc_stop_threshold on
 			# one side. Activated by brt_mc_control (set by CI inversion or the user).
 			mc_ctrl = private$brt_mc_control
-			if (!is.null(mc_ctrl) && isTRUE(mc_ctrl$mc_enable) && is.finite(mc_ctrl$mc_stop_threshold)) {
+			if (!is.null(mc_ctrl) && isTRUE(mc_ctrl$mc_enable) && isTRUE(is.finite(mc_ctrl$mc_stop_threshold))) {
 				# Ensure w_b is materialized so the prefix cache gives consistent per-draw values.
 				if (is.null(rand_bootstrap_draws)) {
 					if (!is.null(private$seed)) {

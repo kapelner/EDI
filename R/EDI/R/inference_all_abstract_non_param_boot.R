@@ -1417,7 +1417,14 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			# already only invokes this once per computation and gets no benefit
 			# from reuse anyway) can observe a stale worker from a different
 			# operation. Parallel batches always create their own worker state.
-			reuse_key = if (chunk_n == 1L) operation else NULL
+			# The key also carries the caller's active resampling operation
+			# (TODO-128, 2026-10-22): the plain bootstrap and the jackknife both
+			# pass operation = "non_param_boot", but duplicate() fixes the worker's
+			# warm-start switch from the active operation's dispatch policy (e.g.
+			# InferenceIncidLogBinomial: cold for "non_param_boot" at n < 500, warm
+			# for "jackknife"). Sharing one cached worker made a jackknife run after
+			# a BCa bootstrap refit cold, so its answer depended on call history.
+			reuse_key = if (chunk_n == 1L) paste0(operation, "|", private$active_resampling_operation %||% "") else NULL
 			run_worker_batch = function(batch) {
 				get_worker_state = function() {
 					cached = private$cached_values$reusable_bootstrap_worker

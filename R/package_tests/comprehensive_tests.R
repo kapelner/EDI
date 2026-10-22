@@ -872,14 +872,16 @@ if (!SAFE_CALL_FORK) {
 # recomputes, as fork=TRUE always does).
 REUSE_RESAMPLING_DRAWS = !SAFE_CALL_FORK &&
 	!(tolower(Sys.getenv("COMPREHENSIVE_REUSE_RESAMPLING_DRAWS", "1")) %in% c("0", "false", "f", "no", "n"))
-# Not the jackknife caches (jack_distr_cache, bayes_jack_distr_cache): a
-# jackknife's leave-one-out refits start from the object's warm state, so
-# one cached by an earlier BCa call can differ from a fresh one
-# (InferenceIncidLogBinomial: up to ~1e-1 relative on 2026-10-22;
-# release_v1_0_5.md TODO-128).
+# jack_distr_cache is reused again since TODO-128 (release_v1_0_5.md,
+# 2026-10-22): the serial reused worker is now keyed by the active resampling
+# operation, so a jackknife no longer inherits a bootstrap worker's warm/cold
+# start, and log-binomial refits drop warm starts already on the exp(Xb) < 1
+# boundary; a cached jackknife now equals a fresh one. bayes_jack_distr_cache
+# stays out until its own history independence is checked.
 REUSED_RESAMPLING_CACHES = c(
 	"boot_distr_cache", "boot_stats_cache", "bayes_boot_distr_cache", "bayes_boot_stats_cache",
-	"m_out_of_n_boot_distr_cache", "subsampling_distr_cache", "rand_boot_distr_cache"
+	"m_out_of_n_boot_distr_cache", "subsampling_distr_cache", "rand_boot_distr_cache",
+	"jack_distr_cache"
 )
 HEARTBEAT_LOG_FILE = Sys.getenv(
 	"COMPREHENSIVE_HEARTBEAT_LOG",

@@ -633,6 +633,7 @@ R/package_tests/testthat_bulk/test-km-diff-general-censoring-bayesian-bootstrap-
 R/package_tests/testthat_bulk/test-km-diff-weighted-restricted-mean-stat.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-km-group-and-diff-kernels-restricted-mean-median-and-arm-split-survfit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-km-rmst-general-censoring.R,correctness,7.8,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-lazy-component-raw-clone-isolation.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-lik-ratio-param-bootstrap-preflight-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-likelihood-ci-inversion-bartlett-test-unavailable-reason-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-likelihood-ci-inversion-profile-references.R,correctness,1,measured_with_30_percent_headroom
@@ -1330,13 +1331,13 @@ R/EDI/tests/testthat/test-kk21-beta-std-lgamma.R,coverage,1,measured_with_30_per
 R/EDI/tests/testthat/test-kk21-negbin-fast-digamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-weighted-crossprod.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-km-median-canonical.R,coverage,1,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-lazy-component-raw-clone-isolation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-lik-ratio-ci-degenerate-inversion.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-lik-test-unavailable-warning.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-likelihood-test-memoization.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-local-machine-tuning-correctness.R,coverage,1.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-local-rng-permutations.R,coverage,1.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-local-rng-sample-int.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-log-binomial-jackknife-history-independence.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-log-hazard-ratio-randomization-ci-disabled.R,coverage,3.4,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logbin-var-reuses-fisher.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-logistic-cleanup.R,coverage,1,measured_with_30_percent_headroom
@@ -2103,6 +2104,7 @@ R/package_tests/testthat_bulk/test-km-diff-general-censoring-bayesian-bootstrap-
 R/package_tests/testthat_bulk/test-km-diff-weighted-restricted-mean-stat.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-group-and-diff-kernels-restricted-mean-median-and-arm-split-survfit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-rmst-general-censoring.R,coverage,11.7,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-lazy-component-raw-clone-isolation.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-lik-ratio-param-bootstrap-preflight-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-likelihood-ci-inversion-bartlett-test-unavailable-reason-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-likelihood-ci-inversion-profile-references.R,coverage,240,bootstrap

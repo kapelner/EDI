@@ -188,25 +188,45 @@ the right code together.
   `ResamplingCore` and `BootstrapCIHelpers` remain examples, not a settled
   architecture. Keep TODO-1's exact per-class method/component golden as an
   invariant; no refactor or dependency rewrite should precede this choice.
-- [ ] TODO-3: **Extract shared infrastructure.** Move the cycle-causing shared
+- [x] TODO-3: **Extract shared infrastructure.** Move the cycle-causing shared
   helpers into new component(s), for example `ResamplingCore` (resampling
   cache and draw/worker contract) and `BootstrapCIHelpers`. The original
   components then depend on them. No method body changes; moves only.
-- [ ] TODO-4: **Rewrite the dependencies** to match TODO-2's graph. Drop
+  **Done 2026-10-22 (Option A):** one `ResamplingCore` component
+  (`inference_all_abstract_resampling_core.R`) holds the resampling cache and
+  draw-contract helpers, `normalize_jackknife_unit`/`assert_jackknife_supported`,
+  `bootstrap_estimates_extreme` with its threshold field, and the `NULL`
+  `create_bootstrap_worker_state()` default. Details, golden delta and tests:
+  `release_v1_0_5.md → TODO-97`.
+- [x] TODO-4: **Rewrite the dependencies** to match TODO-2's graph. Drop
   `Wald → Jackknife`, `NonparametricBootstrap → RandomizationCI` and
   `BayesianBootstrap → RandomizationBootstrapCI` if they are confirmed
   packaging-only. Add explicit `components = c(...)` entries to classes so
   TODO-1's golden is unchanged.
+  **Done 2026-10-22:** the three edges dropped; new edges `Jackknife`,
+  `BayesianBootstrap`, `Wald` → `NonparametricBootstrap`,
+  `RandomizationBootstrap` → `RandomizationTest`, and `RandomizationTest`,
+  `NonparametricBootstrap` → `ResamplingCore`. 94 classes list the formerly
+  implied components; the golden changes only by the reviewed delta recorded in
+  the TODO-97 entry (`ResamplingCore` added, 15 forced reorders, 3 classes gain
+  Core methods).
 - [ ] TODO-5: **Retire the ladder parents behind the sources where possible.**
   A source class that still `inherit`s from another ladder class only to make
   its own code load should stop doing so once TODO-4 lands. Keep the
   existing guardrail test that enumerates retained ladder generators in sync.
-- [ ] TODO-6: **Guard against regression.** Add a test that fails when a
+- [x] TODO-6: **Guard against regression.** Add a test that fails when a
   declared dependency has zero calls, or when a component calls another
   component's method without declaring it, directly or transitively.
-- [ ] TODO-7: **Verify.** TODO-1 golden identical; the inference contract and
+  **Done 2026-10-22** in `test-inference-component-call-graph-acceptance-reference.R`,
+  restricted to the resampling/Wald/likelihood family components; virtual-hook
+  edges (caller defines the hook, or the hook's base is in its closure) are
+  accepted.
+- [x] TODO-7: **Verify.** TODO-1 golden identical; the inference contract and
   static-cleanup guardrail suites pass; the pre-push structural gates pass.
   No `comprehensive_tests` rerun is needed, because no computation changes.
+  **Done 2026-10-22** with the reviewed golden delta (not "identical"; see
+  TODO-97), an acyclicity test, and the focused suites listed in the TODO-97
+  entry. The pre-push hook itself was not run.
 
 ## Non-goals
 

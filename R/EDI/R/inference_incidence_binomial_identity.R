@@ -108,7 +108,7 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 			tryCatch(
 				private$compute_lik_ratio_confidence_interval_impl(alpha),
 				error = function(e){
-					private$cache_nonestimable_se("lik_ratio_confidence_interval_unavailable")
+					edi_record_procedure_failure(self, private, "lik_ratio_confidence_interval_unavailable", stage = "se") # TODO-116 (2026-10-22)
 					ci = c(NA_real_, NA_real_)
 					names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 					ci

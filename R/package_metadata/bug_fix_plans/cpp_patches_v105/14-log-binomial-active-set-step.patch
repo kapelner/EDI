@@ -1,0 +1,124 @@
+--- a/R/EDI/src/fast_log_binomial_regression.cpp
++++ b/R/EDI/src/fast_log_binomial_regression.cpp
+@@ -11,6 +11,7 @@
+ #include <limits>
+ #include <stdexcept>
+ #include <optional>
++#include <vector>
+ 
+ #ifndef EDI_CORE_ONLY
+ using namespace Rcpp;
+@@ -135,6 +136,51 @@
+   return ll;
+ }
+ 
++// TODO-128 (v1.0.5 patch 14): active-set projection of the IRLS increment.
++// Rows whose linear predictor already sits within kActiveMargin of the
++// mean-support boundary (eta -> 0 for the log link; 0 or 1 for the identity
++// link) and whose unconstrained increment would push them further out are
++// held fixed: the increment d is replaced by the XtWX-metric projection of d
++// onto { d' : X_A d' = 0 }, i.e. d - H^{-1} X_A' (X_A H^{-1} X_A')^+ X_A d.
++// Without it the step-halving line search shrinks an outward step to ~1e-8,
++// the tiny accepted step passes the relative-change test, and the fit reports
++// converged = TRUE at (or near) its start: warm-started refits from a
++// boundary full-data fit returned the full-data estimate unchanged. Rows with
++// zero observation weight never constrain (they are absent from the
++// likelihood). Interior fits never form an active set, so they are unchanged.
++constexpr double kActiveMargin = 1e-6;
++
++inline Eigen::VectorXd project_increment_off_active_bounds(const Eigen::LDLT<Eigen::MatrixXd>& ldlt,
++                                                           const Eigen::MatrixXd& X_free,
++                                                           const Eigen::VectorXd& eta,
++                                                           const Eigen::VectorXd& d,
++                                                           BinomialConstrainedLink link_type,
++                                                           const Eigen::VectorXd* obs_weights = nullptr) {
++  const Eigen::VectorXd delta_eta = X_free * d;
++  std::vector<int> active;
++  for (int i = 0; i < (int)eta.size(); ++i) {
++    if (obs_weights != nullptr && !((*obs_weights)[i] > 0.0)) continue;
++    bool outward = false;
++    if (link_type == BinomialConstrainedLink::kLog) {
++      outward = eta[i] >= kMaxEtaLog - kActiveMargin && delta_eta[i] > 0.0;
++    } else {
++      outward = (eta[i] >= kMaxMu - kActiveMargin && delta_eta[i] > 0.0) ||
++                (eta[i] <= kMinMu + kActiveMargin && delta_eta[i] < 0.0);
++    }
++    if (outward) active.push_back(i);
++  }
++  if (active.empty()) return d;
++  const int p_free = (int)X_free.cols();
++  Eigen::MatrixXd XA((int)active.size(), p_free);
++  for (int k = 0; k < (int)active.size(); ++k) XA.row(k) = X_free.row(active[k]);
++  const Eigen::MatrixXd HinvXAt = ldlt.solve(XA.transpose());
++  const Eigen::MatrixXd S = XA * HinvXAt;
++  const Eigen::VectorXd lambda = S.completeOrthogonalDecomposition().solve(XA * d);
++  Eigen::VectorXd d_proj = d - HinvXAt * lambda;
++  if (!all_finite_vec(d_proj)) return d;
++  return d_proj;
++}
++
+ } // namespace
+ 
+ // fit_constrained_binomial_cpp_impl / _weighted_cpp_impl / _with_var_cpp_impl
+@@ -253,10 +299,14 @@
+       return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
+     }
+ 
++    // TODO-128: hold rows already on the mean-support boundary fixed.
++    const Eigen::VectorXd delta_beta = project_increment_off_active_bounds(
++      ldlt, X_free, eta, beta_free_target - beta_free, link_type);
++
+     // Precompute the step direction in eta-space once per IRLS iteration so
+     // each backtracking probe is a cheap O(n) vector-add + scalar scan rather
+     // than a full O(n*p) GEMV inside loglik_constrained_binomial.
+-    const Eigen::VectorXd delta_eta = X_free * (beta_free_target - beta_free);
++    const Eigen::VectorXd delta_eta = X_free * delta_beta;
+ 
+     double step = 1.0;
+ 
+@@ -270,7 +320,7 @@
+       eta_try.noalias() = eta + step * delta_eta;
+       const double ll_new = loglik_from_eta(eta_try, y, link_type);
+       if (std::isfinite(ll_new) && ll_new >= ll_curr - 1e-10) {
+-        beta_free_new = beta_free + step * (beta_free_target - beta_free);
++        beta_free_new = beta_free + step * delta_beta;
+         beta_new = expand_free_params(beta_free_new, beta, fixed_spec);
+         ll_curr = ll_new;  // carry forward — avoids recomputing at next iter start
+         accepted = true;
+@@ -279,7 +329,11 @@
+       step *= 0.5;
+     }
+     if (!accepted) break;
+-    if ((beta_free_new - beta_free).norm() / (beta_free_new.norm() + 1e-10) < tol) {
++    // TODO-128: test the full (projected) increment, not the damped step. A
++    // step that line-search halving shrank to ~1e-8 is a stall, not
++    // convergence. When step == 1 this is the old test, bit for bit.
++    const double increment_norm = (step == 1.0) ? (beta_free_new - beta_free).norm() : delta_beta.norm();
++    if (increment_norm / (beta_free_new.norm() + 1e-10) < tol) {
+       beta = beta_new;
+       beta_free = beta_free_new;
+       converged = true;
+@@ -443,7 +497,9 @@
+       return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
+     }
+ 
+-    const Eigen::VectorXd delta_beta = beta_free_target - beta_free;
++    // TODO-128: hold rows already on the mean-support boundary fixed.
++    const Eigen::VectorXd delta_beta = project_increment_off_active_bounds(
++      ldlt, X_free, eta, beta_free_target - beta_free, link_type, &obs_weights);
+     const Eigen::VectorXd delta_eta = X_free * delta_beta;
+     double step = 1.0;
+     Eigen::VectorXd beta_new = beta;
+@@ -464,7 +520,11 @@
+       step *= 0.5;
+     }
+     if (!accepted) break;
+-    if ((beta_free_new - beta_free).norm() / (beta_free_new.norm() + 1e-10) < tol) {
++    // TODO-128: test the full (projected) increment, not the damped step. A
++    // step that line-search halving shrank to ~1e-8 is a stall, not
++    // convergence. When step == 1 this is the old test, bit for bit.
++    const double increment_norm = (step == 1.0) ? (beta_free_new - beta_free).norm() : delta_beta.norm();
++    if (increment_norm / (beta_free_new.norm() + 1e-10) < tol) {
+       beta = beta_new;
+       beta_free = beta_free_new;
+       converged = true;

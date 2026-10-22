@@ -1407,8 +1407,10 @@ InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(
 	# component's own methods too -- same fix as InferenceIncidLogRegr's
 	# migration earlier in this push). ZeroAugmentedCountLikelihood already
 	# declares dependencies = "CountLikelihoodPlumbing"; ParametricLikelihood
-	# Bootstrap pulls in LikelihoodTests -> Wald -> Jackknife separately;
-	# BayesianBootstrap pulls the rand/bootstrap chain.
+	# Bootstrap pulls in LikelihoodTests -> Wald -> NonparametricBootstrap.
+	# Since v1.0.5 TODO-97 the randomization CI / rand-bootstrap CI and
+	# Jackknife components are listed explicitly (they used to arrive through
+	# packaging-only dependency edges).
 	components = c(
 		"RandomizationCI",
 		"RandomizationBootstrapCI",

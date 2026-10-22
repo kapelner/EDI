@@ -96,7 +96,14 @@ test_that("concrete inference component and method-owner surface matches its pre
 		check.names = FALSE
 	)
 	rownames(expected) = NULL
-	expect_identical(actual, expected)
+	# Compare through the same reviewed deltas (TODO-98, TODO-57, v1.0.5
+	# TODO-97) as the call-graph acceptance test, rather than refreshing the
+	# frozen golden.
+	helper_path = testthat::test_path("..", "inference_component_call_graph_helpers.R")
+	skip_if_not(file.exists(helper_path), "call-graph helpers not available from this test directory")
+	helpers = new.env(parent = environment())
+	sys.source(helper_path, envir = helpers)
+	helpers$inference_component_expect_reviewed_registry_baseline(actual, expected)
 })
 
 test_that("inference class metadata rejects missing fields and invalid tiers", {
@@ -426,7 +433,8 @@ test_that("custom randomization behavior manifest records target metadata", {
 	expect_identical(record$migration_status, "migrated")
 	expect_setequal(record$migration_evidence, c("method_snapshot", "golden_randomization"))
 	expect_identical(EDI:::get_direct_components("InferenceCustomRand"), "RandomizationCI")
-	expect_identical(EDI:::get_effective_components("InferenceCustomRand"), c("RandomizationTest", "RandomizationCI"))
+	# ResamplingCore (v1.0.5 TODO-97) arrives as RandomizationTest's dependency.
+	expect_identical(EDI:::get_effective_components("InferenceCustomRand"), c("ResamplingCore", "RandomizationTest", "RandomizationCI"))
 	expect_identical(EDI:::get_effective_capabilities("InferenceCustomRand"), c("randomization_test", "randomization_ci"))
 	expect_setequal(record$intentional_public_methods, c(
 		"approximate_randomization_distribution_beta_hat_T",

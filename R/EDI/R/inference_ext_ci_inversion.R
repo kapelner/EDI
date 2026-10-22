@@ -31,7 +31,7 @@ InferenceExtCIInversion = list(
 		# the inverted CI is missing, out of order, doesn't bracket `est`, or is
 		# absurdly wide. `unavailable_reason` is the nonestimable-SE reason cached
 		# when neither the inverted CI nor the Wald fallback is usable.
-		finalize_inverted_ci = function(ci_vals, alpha, est, wald_ci, unavailable_reason, testing_type = NULL){
+		finalize_inverted_ci = function(ci_vals, alpha, est, wald_ci, unavailable_reason, testing_type = NULL, procedure = edi_lik_test_procedure(testing_type)){
 			ci = if (length(ci_vals) == 2L) sort(as.numeric(ci_vals[1:2]), na.last = TRUE) else c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			# An exact ci[1] == ci[2] is the root-finder's "test rejects at its own
@@ -66,14 +66,24 @@ InferenceExtCIInversion = list(
 					# TODO-115: the Wald interval is returned under a likelihood label; say so.
 					if (!is.null(testing_type)) edi_warn_ci_wald_fallback_once(self, private, testing_type, bad_reason)
 				} else {
-					private$cache_nonestimable_se(unavailable_reason)
+					# 2026-10-22 (TODO-116): a failed inversion is a failure of the
+					# likelihood test, not of the primary fit -- record it under
+					# procedure_failure_reason[[testing_type]] and keep the Wald state
+					# (falls back to cache_nonestimable_se when Wald itself is invalid).
+					edi_record_procedure_failure(self, private, unavailable_reason, stage = "se", procedure = procedure)
 					ci = c(NA_real_, NA_real_)
 				}
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			}
 			ci
 		},
-		invert_test_pval_confidence_interval = function(alpha, testing_type = private$testing_type, bartlett_B = NULL){
+		# `failure_testing_type` (TODO-116, 2026-10-22): the likelihood test a caller
+		# actually asked for when it falls back here with the configured (possibly
+		# "wald") testing_type -- the gradient / LR inverters on a NULL spec or a
+		# non-finite full log-likelihood. It only changes how a failure is RECORDED
+		# (reason + procedure_failure_reason owner), never the p-value function
+		# inverted or when a Wald-fallback warning is issued.
+		invert_test_pval_confidence_interval = function(alpha, testing_type = private$testing_type, bartlett_B = NULL, failure_testing_type = NULL){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
 			est = self$compute_estimate()
 			if (!is.finite(est)) return(c(NA_real_, NA_real_))
@@ -119,7 +129,8 @@ InferenceExtCIInversion = list(
 			p_est = tryCatch(pval_fn(est), error = function(e) { edi_note_lik_test_failure(private, testing_type_for_note, e); NA_real_ })
 			if (!is.finite(p_est)) {
 				if (!identical(testing_type, "wald")) edi_warn_lik_test_unavailable_once(self, private, testing_type, est)
-				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
+				failure_type = if (identical(testing_type, "wald") && !is.null(edi_lik_test_procedure(failure_testing_type))) failure_testing_type else testing_type
+				edi_record_procedure_failure(self, private, paste0(failure_type, "_test_unavailable"), stage = "se") # TODO-116 (2026-10-22)
 				return(c(NA_real_, NA_real_))
 			}
 
@@ -132,13 +143,14 @@ InferenceExtCIInversion = list(
 				upper_seed = upper_seed
 			)
 
-			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "test_inversion_confidence_interval_unavailable", testing_type = testing_type_for_note)
+			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "test_inversion_confidence_interval_unavailable", testing_type = testing_type_for_note,
+				procedure = edi_lik_test_procedure(testing_type) %||% edi_lik_test_procedure(failure_testing_type))
 		},
 
 		invert_gradient_ci_uniroot = function(alpha){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
-			if (is.null(spec)) return(private$invert_test_pval_confidence_interval(alpha))
+			if (is.null(spec)) return(private$invert_test_pval_confidence_interval(alpha, failure_testing_type = "gradient"))
 
 			est = self$compute_estimate()
 			if (!is.finite(est)) return(c(NA_real_, NA_real_))
@@ -165,7 +177,7 @@ InferenceExtCIInversion = list(
 			p_est = tryCatch(pval_fn(est), error = function(e) { edi_note_lik_test_failure(private, "gradient", e); NA_real_ })
 			if (!is.finite(p_est)) {
 				edi_warn_lik_test_unavailable_once(self, private, "gradient", est)
-				private$cache_nonestimable_se("gradient_test_unavailable")
+				edi_record_procedure_failure(self, private, "gradient_test_unavailable", stage = "se") # TODO-116 (2026-10-22)
 				return(c(NA_real_, NA_real_))
 			}
 			# p_est < alpha (test rejects at its own estimate) is left to
@@ -185,7 +197,7 @@ InferenceExtCIInversion = list(
 				),
 				error = function(e) {
 					edi_note_lik_test_failure(private, "gradient", paste0("CI root search failed: ", conditionMessage(e)), overwrite = FALSE)
-					private$cache_nonestimable_se("gradient_ci_inversion_failed")
+					edi_record_procedure_failure(self, private, "gradient_ci_inversion_failed", stage = "se") # TODO-116 (2026-10-22)
 					numeric(0)
 				}
 			)
@@ -195,7 +207,7 @@ InferenceExtCIInversion = list(
 		invert_lik_ratio_ci_newton = function(alpha){
 			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
-			if (is.null(spec)) return(private$invert_test_pval_confidence_interval(alpha))
+			if (is.null(spec)) return(private$invert_test_pval_confidence_interval(alpha, failure_testing_type = "lik_ratio"))
 
 			est = self$compute_estimate()
 			if (!is.finite(est)) return(c(NA_real_, NA_real_))
@@ -209,7 +221,7 @@ InferenceExtCIInversion = list(
 				include_full_negloglik = TRUE
 			), error = function(e) list(full_negloglik = NA_real_))
 			full_negloglik = full_eval$full_negloglik %||% NA_real_
-			if (!is.finite(full_negloglik)) return(private$invert_test_pval_confidence_interval(alpha))
+			if (!is.finite(full_negloglik)) return(private$invert_test_pval_confidence_interval(alpha, failure_testing_type = "lik_ratio"))
 
 			se = private$get_standard_error()
 			step = if (is.finite(se) && se > 0) se else max(abs(est), 1)

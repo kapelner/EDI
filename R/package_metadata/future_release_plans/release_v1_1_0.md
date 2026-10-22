@@ -1555,7 +1555,7 @@ ticked in their **owning plans**; this list is the release index.
     `edi_rebind_lazy_components_after_clone()` (`R/EDI/R/contracts_mixins.R`,
     roxygen + body about L2809-2944) was kept for v1.0.5 as belt and braces
     and is now a no-op (asserted by
-    `tests/testthat/test-lazy-component-raw-clone-isolation.R`).
+    `package_tests/testthat_bulk/test-lazy-component-raw-clone-isolation.R`).
   - Work:
     1. Delete `edi_rebind_lazy_components_after_clone()` (plus any
        marker-reading code that only it uses; check first), and the `source_private` threading in

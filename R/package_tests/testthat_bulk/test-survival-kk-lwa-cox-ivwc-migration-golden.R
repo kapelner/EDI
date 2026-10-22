@@ -60,6 +60,12 @@ test_that("InferenceSurvivalKKLWACoxPHIVWC migration produces identical outputs"
 	des = survival_kk_lwa_cox_golden_design()
 	legacy = Legacy$new(des)
 	migrated = InferenceSurvivalKKLWACoxPHIVWC$new(des)
+	# 2026-10-22 (TODO-116 lik-test stage): original call ordering restored. A same-day workaround
+	# ran the legacy-only dropped likelihood-test labels on a throwaway legacy probe because their
+	# failures ("score_test_unavailable" etc.) went through cache_nonestimable_se() and flagged the
+	# shared legacy object nonestimable, which then made a later rand failure wipe its estimate (NA
+	# jackknife vs the migrated class's finite one). Likelihood-test failures are now recorded via
+	# edi_record_procedure_failure() and keep the Wald state, so the shared object is unaffected.
 	for (label in names(inference_migration_method_calls)) {
 		spec = inference_migration_method_calls[[label]]
 		legacy$set_seed(20260817L)

@@ -156,6 +156,12 @@ test_that("search bounds bracket the estimate and expose the Wald fallback inter
 	f <- ci_priv()
 	ref_ci <- sort(as.numeric(f$inf$compute_asymp_confidence_interval(alpha = 0.1)))   # populate the asymptotic cache first
 	ctrl <- f$priv$normalize_randomization_ci_search_control(NULL, r = 201, pval_epsilon = 0.005)
+	# 2026-10-22 (TODO-100): build_randomization_ci_search_bounds() now evaluates the randomization
+	# p-value at the centre (accepted-seed search) under this control, so the control must carry
+	# mc_stop_threshold = alpha exactly as compute_rand_confidence_interval() sets it before calling
+	# this helper. Without it sequential_mc_control_enabled() is NA, the p-value errors to NA and the
+	# helper returns NA bounds with the Wald fallback.
+	ctrl$mc_stop_threshold <- 0.05
 	set.seed(2)
 	b <- f$priv$build_randomization_ci_search_bounds(f$inf, r = 201L, alpha = 0.05, transform_arg = "none",
 		permutations = NULL, ci_search_control = ctrl, ci_pval_cache = new.env())

@@ -1,6 +1,12 @@
 library(testthat)
 library(EDI)
 
+# 2026-10-22 (TODO-116 lik-test stage): these wrapper failures are failures of the likelihood test,
+# not of the primary fit -- the reason is now recorded under
+# cached_values$procedure_failure_reason$<testing_type> and the Wald estimate/SE stay valid
+# (is_nonestimable() FALSE). Assertions below were updated from get_nonestimable_reason().
+proc_fail <- function(inf, proc) inf$.__enclos_env__$private$cached_values$procedure_failure_reason[[proc]]
+
 # InferenceIncidLogBinomial$compute_gradient_confidence_interval(): the exact same message-filtered error-catching
 # wrapper shape already covered for this class's compute_score_confidence_interval() sibling
 # (test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R) -- only
@@ -24,8 +30,8 @@ test_that("a bad 'names' attribute error from _impl is caught and converted to a
 	p$compute_gradient_confidence_interval_impl <- function(alpha) stop("bad 'names' attribute on replacement")
 	ci <- inf$compute_gradient_confidence_interval(0.05)
 	expect_true(all(is.na(ci)))
-	expect_identical(inf$get_nonestimable_reason(), "gradient_confidence_interval_unavailable")
-	expect_true(inf$is_nonestimable("se"))
+	expect_identical(proc_fail(inf, "gradient"), "gradient_confidence_interval_unavailable")
+	expect_false(inf$is_nonestimable())
 })
 
 test_that("a replacement-length-mismatch error from _impl is caught the same way", {
@@ -35,7 +41,8 @@ test_that("a replacement-length-mismatch error from _impl is caught the same way
 	p$compute_gradient_confidence_interval_impl <- function(alpha) stop("replacement must be the same length as the vector")
 	ci <- inf$compute_gradient_confidence_interval(0.05)
 	expect_true(all(is.na(ci)))
-	expect_identical(inf$get_nonestimable_reason(), "gradient_confidence_interval_unavailable")
+	expect_identical(proc_fail(inf, "gradient"), "gradient_confidence_interval_unavailable")
+	expect_false(inf$is_nonestimable())
 })
 
 test_that("an UNRELATED error from _impl propagates instead of being swallowed", {
@@ -53,7 +60,8 @@ test_that("a non-error but non-finite/too-short _impl result is also nonestimabl
 	p$compute_gradient_confidence_interval_impl <- function(alpha) c(NA_real_, NA_real_)
 	ci <- inf$compute_gradient_confidence_interval(0.05)
 	expect_true(all(is.na(ci)))
-	expect_identical(inf$get_nonestimable_reason(), "gradient_confidence_interval_unavailable")
+	expect_identical(proc_fail(inf, "gradient"), "gradient_confidence_interval_unavailable")
+	expect_false(inf$is_nonestimable())
 
 	inf2 <- fx()
 	p2 <- inf2$.__enclos_env__$private
@@ -61,7 +69,8 @@ test_that("a non-error but non-finite/too-short _impl result is also nonestimabl
 	p2$compute_gradient_confidence_interval_impl <- function(alpha) 0.5              # length 1: too short
 	ci2 <- inf2$compute_gradient_confidence_interval(0.05)
 	expect_true(all(is.na(ci2)))
-	expect_identical(inf2$get_nonestimable_reason(), "gradient_confidence_interval_unavailable")
+	expect_identical(proc_fail(inf2, "gradient"), "gradient_confidence_interval_unavailable")
+	expect_false(inf2$is_nonestimable())
 })
 
 test_that("the ordinary successful path is unaffected", {

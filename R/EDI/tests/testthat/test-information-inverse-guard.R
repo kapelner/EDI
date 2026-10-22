@@ -138,6 +138,10 @@ test_that("Negative Binomial maps a guarded singular covariance to typed SE non-
 	w <- des$get_w()
 	x <- des$.__enclos_env__$private$Xraw[["x"]]
 	des$add_all_subject_responses(as.integer(rpois(n, exp(0.3 + 0.2 * w + 0.1 * x))))
+	# The production gradient tolerance (1e-10) never converges on an exactly
+	# collinear design (the gradient norm is NaN), so the fit would be dropped
+	# before the information guard is reached; use the native default here.
+	testthat::local_mocked_bindings(NEGBIN_FIT_EPS_G = 1e-6, .package = "EDI")
 	inf <- InferenceCountNegBin$new(des, verbose = FALSE)
 	private <- inf$.__enclos_env__$private
 	private$harden <- FALSE

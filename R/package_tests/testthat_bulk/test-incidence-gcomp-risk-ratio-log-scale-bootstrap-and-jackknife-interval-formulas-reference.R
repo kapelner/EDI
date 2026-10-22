@@ -57,10 +57,16 @@ test_that("jackknife log SE is sqrt(((k-1)/k) * sum((log j - mean)^2)) over the 
 })
 
 test_that("jackknife log SE is NA (and flagged) with fewer than two usable replicates or zero spread", {
+	# 2026-10-22 (TODO-116): a jackknife failure is now a procedure failure recorded via
+	# edi_record_procedure_failure(): the valid Wald state is kept (is_nonestimable() stays FALSE)
+	# and the reason goes to cached_values$procedure_failure_reason$jackknife, instead of
+	# cache_nonestimable_se() flagging the object nonestimable.
 	one <- mk(jack = c(1.2, NA, 0)); expect_true(is.na(one$p$compute_rr_jackknife_log_se()))
-	expect_true(isTRUE(one$inf$is_nonestimable("se")))
+	expect_false(isTRUE(one$inf$is_nonestimable("any")))
+	expect_identical(one$p$cached_values$procedure_failure_reason$jackknife, "jackknife_too_few_positive_risk_ratio_estimates")
 	same <- mk(jack = rep(1.4, 10)); expect_true(is.na(same$p$compute_rr_jackknife_log_se()))
-	expect_true(isTRUE(same$inf$is_nonestimable("se")))
+	expect_false(isTRUE(same$inf$is_nonestimable("any")))
+	expect_identical(same$p$cached_values$procedure_failure_reason$jackknife, "jackknife_log_risk_ratio_standard_error_unavailable")
 })
 
 test_that("an unavailable point estimate short-circuits the bootstrap intervals to NA", {

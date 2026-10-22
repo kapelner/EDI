@@ -34,8 +34,13 @@ test_that("a NULL likelihood-test spec caches the documented nonestimable reason
 
 	pv <- priv$compute_likelihood_test_two_sided_pval(delta = 0, testing_type = "lik_ratio_bartlett_exact")
 	expect_true(is.na(pv))
-	expect_true(inf$is_nonestimable("estimate"))
-	expect_equal(inf$get_nonestimable_reason(), "likelihood_test_spec_unavailable")
+	# 2026-10-22 (TODO-116 lik-test stage): on a valid Wald fit a NULL spec is a failure of this
+	# likelihood test only -- recorded under procedure_failure_reason[[testing_type]]; the Wald
+	# estimate/SE stay and the object stays estimable. (A NULL spec on an already-failed primary fit
+	# keeps the old nonestimable path -- see the next test.)
+	expect_false(inf$is_nonestimable())
+	expect_true(is.finite(inf$compute_estimate()))
+	expect_equal(priv$cached_values$procedure_failure_reason$lik_ratio_bartlett_exact, "likelihood_test_spec_unavailable")
 })
 
 test_that("an already-cached nonestimable reason from an earlier failure is NOT overwritten by this guard", {
