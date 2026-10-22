@@ -1332,6 +1332,7 @@ R/EDI/tests/testthat/test-kk21-negbin-fast-digamma.R,coverage,1,measured_with_30
 R/EDI/tests/testthat/test-kk21-weighted-crossprod.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-km-median-canonical.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-lik-ratio-ci-degenerate-inversion.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-lik-test-procedure-failure-keeps-wald-state-todo116.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-lik-test-unavailable-warning.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-likelihood-test-memoization.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-local-machine-tuning-correctness.R,coverage,1.2,measured_with_30_percent_headroom
