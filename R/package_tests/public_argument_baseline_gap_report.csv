@@ -3,7 +3,7 @@
 "build_cox_data_cache_cpp","function","","","","",3,"dead;X;y",FALSE,FALSE,TRUE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "build_stratified_cox_data_cache_cpp","function","","","","",4,"dead;strata;X;y",FALSE,FALSE,TRUE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "compute_coxph_rand_bootstrap_cpp","function","","","","",6,"dead;delta;i_mat;num_cores;w_mat;y0",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
-"create_model_matrix_from_features","function","","","","",2,"data;formula",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
+"create_model_matrix_from_features","function","","","","",2,"data;formula",FALSE,FALSE,TRUE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "exact_jonckheere_terpstra_pval_cpp","function","","","","",2,"w;y",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "expand_adjacent_category_data_cpp","function","","","","",4,"K;strata;w;y",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "expand_continuation_ratio_data_cpp","function","","","","",4,"K;strata;w;y",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
