@@ -1,3 +1,22 @@
+# TODO-111: a warm start at (or very near) the optimum can make lbfgs return
+# converged = FALSE with a NaN gradient norm (seen on covariate-free fits, where
+# the observed-w refit starts exactly at the already-optimal point); a cold
+# start converges. Retry cold, only when a warm-started fit failed (not
+# converged / non-finite coefficients), so fits that already work are
+# bit-identical. A plain function (not a private method) so the component's
+# private-method contract is unchanged.
+weibull_fit_with_cold_retry = function(private, X, y, dead, warm_start_params = NULL, warm_start_fisher_info = NULL,
+                                       estimate_only = FALSE, smart_cold_start = TRUE, optimization_alg = "lbfgs") {
+	fit = function(ws, wsf) private$weibull_kernel_fit(
+		X = X, y = y, dead = dead, warm_start_params = ws, warm_start_fisher_info = wsf,
+		estimate_only = estimate_only, smart_cold_start = smart_cold_start, optimization_alg = optimization_alg
+	)
+	res = fit(warm_start_params, warm_start_fisher_info)
+	warm_failed = is.null(res) || !isTRUE(res$converged) || !all(is.finite(if (is.null(res$b)) res$params else res$b))
+	if (warm_failed && !is.null(warm_start_params)) res = fit(NULL, NULL)
+	res
+}
+
 #' Weibull likelihood component source
 #'
 #' Source list for the \code{SurvivalWeibullLikelihood} component composed by \code{InferenceSurvivalWeibullRegr}.
@@ -251,8 +270,8 @@ SurvivalWeibullLikelihoodSource = list(
 			n_params = ncol(X) + 1L
 			ws_args = private$get_backend_warm_start_args(n_params)
 			
-			res = private$weibull_kernel_fit(
-				X = X, y = private$y, dead = private$dead,
+			res = weibull_fit_with_cold_retry(
+				private, X = X, y = private$y, dead = private$dead,
 				warm_start_params = ws_args$start_params,
 				warm_start_fisher_info = ws_args$warm_start_fisher_info,
 				smart_cold_start = private$smart_cold_start_default,
@@ -392,8 +411,8 @@ SurvivalWeibullLikelihoodSource = list(
 				fit_fun = function(X_fit){
 					n_params = ncol(X_fit) + 1L
 					ws_args = private$get_backend_warm_start_args(n_params)
-					res = private$weibull_kernel_fit(
-						X = X_fit, y = private$y, dead = private$dead,
+					res = weibull_fit_with_cold_retry(
+						private, X = X_fit, y = private$y, dead = private$dead,
 						warm_start_params = ws_args$start_params,
 						warm_start_fisher_info = ws_args$warm_start_fisher_info,
 						smart_cold_start = private$smart_cold_start_default,
@@ -502,11 +521,19 @@ SurvivalWeibullLikelihoodSource = list(
 #' inf$set_seed(1)
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceSurvivalWeibullRegr = define_inference_class(
 	classname = "InferenceSurvivalWeibullRegr",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalWeibullLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"SurvivalWeibullLikelihood"
+	),
 	public = list(
 		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			private$stop_weibull_parametric_bootstrap_for_general_censoring()
@@ -597,4 +624,36 @@ NULL
 
 #' @R6method InferenceSurvivalWeibullRegr$supports_rand_pval_for_incidence
 #' @template rand-supports-pval-incidence
+NULL
+
+#' @R6method InferenceSurvivalWeibullRegr$compute_lik_ratio_bootstrap_two_sided_pval
+#' @description Computes a parametric-bootstrap likelihood-ratio p-value for the
+#'   treatment effect (see \code{InferenceParamBootstrap}). Not available under
+#'   general (non-right) censoring.
+#' @param delta Null treatment effect. Default 0.
+#' @param B Number of bootstrap replicates. Default 199.
+#' @param show_progress Logical; show a progress bar. Default \code{FALSE}.
+#' @param min_number_usable_samples Minimum number of usable bootstrap
+#'   replicates required to return a finite p-value. Default \code{5L}.
+#' @param max_attempts_per_replicate Maximum number of simulation/refit
+#'   retries per bootstrap replicate. Default \code{2L}.
+#' @return A scalar p-value, or \code{NA_real_} if the computation fails.
+NULL
+
+#' @R6method InferenceSurvivalWeibullRegr$compute_lik_ratio_bootstrap_confidence_interval
+#' @description Computes a confidence interval by inverting the
+#'   parametric-bootstrap likelihood-ratio p-value (see
+#'   \code{InferenceParamBootstrap}). Not available under general (non-right)
+#'   censoring.
+#' @param alpha Significance level. Default 0.05.
+#' @param B Bootstrap replicates per p-value evaluation. Default 199.
+#' @param show_progress Logical; show a progress bar. Default \code{FALSE}.
+#' @param min_number_usable_samples Minimum number of usable bootstrap
+#'   replicates required within each p-value evaluation. Default \code{5L}.
+#' @param max_attempts_per_replicate Maximum number of simulation/refit
+#'   retries per bootstrap replicate. Default \code{2L}.
+#' @param root_tolerance Effect-scale tolerance for the inversion root; if
+#'   \code{NULL}, proportional to the Wald standard error.
+#' @param max_root_iterations Maximum bisection iterations per bound. Default \code{8L}.
+#' @return Named two-element numeric vector with the confidence-interval bounds.
 NULL

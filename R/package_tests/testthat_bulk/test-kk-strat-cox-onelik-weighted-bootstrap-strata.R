@@ -5,7 +5,7 @@ library(survival)
 # InferenceSurvivalKKStratCoxPHOneLik$compute_estimate_with_bootstrap_weights()
 # (inference_survival_KK_strat_cox.R) dispatches to weighted_cox_bootstrap_surrogate_fit()
 # with an explicit `strata` argument (matched pairs share a stratum id;
-# reservoir singletons each get their own distinct stratum) -- a code path
+# all reservoir subjects share one common stratum) -- a code path
 # distinct from the already-covered KK-LWA-Cox-OneLik (no strata argument at
 # all). Grepped "KKStratCox" together with "bootstrap_weights" across
 # testthat/testthat_bulk/R/EDI/tests/testthat: only name-existence checks in
@@ -38,8 +38,12 @@ reference_strata_for <- function(priv) {
 	strata <- m_vec
 	res_idx <- which(strata == 0L)
 	if (length(res_idx) > 0L) {
-		max_m <- max(strata)
-		strata[res_idx] <- max_m + seq_along(res_idx)
+		# All reservoir subjects share ONE stratum (an unstratified Cox term over
+		# the reservoir), matching the point estimate in shared_combined_likelihood().
+		# Distinct singleton strata (the pre-2026-10-22 behaviour) would contribute
+		# nothing to the partial likelihood and drop the reservoir information.
+		max_m <- if (any(strata > 0L)) max(strata) else 0L
+		strata[res_idx] <- max_m + 1L
 	}
 	strata
 }

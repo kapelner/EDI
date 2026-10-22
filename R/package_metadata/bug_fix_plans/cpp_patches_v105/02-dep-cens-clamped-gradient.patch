@@ -1,0 +1,16 @@
+--- a/R/EDI/src/fast_survival_models_optim.cpp
++++ b/R/EDI/src/fast_survival_models_optim.cpp
+@@ -354,6 +354,13 @@
+         grad[2 * m_p] = - d_ll_d_log_sigma_event;
+         grad[2 * m_p + 1] = - d_ll_d_log_sigma_cens;
+         grad[2 * m_p + 2] = - d_ll_d_atanh_rho;
++        // TODO-111 (fourth pass): the objective clamps atanh(rho) to [-3, 3], so
++        // it is flat in that coordinate once |params[2p+2]| >= 3. The analytic
++        // gradient above was not zeroed there, so LBFGS kept pushing a flat
++        // coordinate, threw, and returned NaN (19% of bootstrap-like resamples).
++        // Zeroing it also zeroes the matching row/column of the finite-difference
++        // hessian() below (it differences this gradient).
++        if (std::abs(params[2 * m_p + 2]) >= 3.0) grad[2 * m_p + 2] = 0.0;
+ 
+         return -loglik;
+     }

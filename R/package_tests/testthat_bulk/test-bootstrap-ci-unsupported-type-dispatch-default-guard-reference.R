@@ -34,8 +34,8 @@ test_that("harden = TRUE: an unrecognized (but assertChoice-legal) bootstrap CI 
 
 	ci <- inf$compute_bootstrap_confidence_interval(type = "bogus_type", B = 30L, show_progress = FALSE)
 	expect_true(all(is.na(ci)))
-	expect_true(inf$is_nonestimable("estimate"))
-	expect_equal(inf$get_nonestimable_reason(), "bootstrap_ci_unavailable")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_ci_unavailable")
 })
 
 test_that("harden = FALSE: the same unrecognized type raises the raw 'Unsupported bootstrap CI type' error instead", {

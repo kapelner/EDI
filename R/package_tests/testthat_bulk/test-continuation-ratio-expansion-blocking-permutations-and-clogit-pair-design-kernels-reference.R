@@ -2,8 +2,7 @@ library(testthat)
 library(EDI)
 
 # C++ kernels: expand_continuation_ratio_data_cpp (stacked "continued past cut" rows, checked against
-# a hand-written expansion), generate_permutations_blocking_cpp (per-stratum fixed treated counts,
-# within-stratum exchangeability), collect_discordant_pairs_cpp (discordant matched-pair differences
+# a hand-written expansion), collect_discordant_pairs_cpp (discordant matched-pair differences
 # for conditional logistic regression) and build_matching_combined_clogit_design_cpp (pair rows
 # [0 | t_diff | X_diff] stacked over reservoir rows [1 | w | X]).
 
@@ -23,28 +22,6 @@ test_that("continuation-ratio expansion emits, per subject, one row per cut up t
 	expect_length(got$y, sum(pmin(y, Kc - 1L)))
 	# The top category never contributes a terminal (0) row; category 1 contributes exactly one 0-row.
 	expect_equal(sum(got$y == 0), sum(y < Kc))
-})
-
-test_that("blocking permutations treat exactly round(prob_T * stratum size) units per stratum in every column", {
-	set.seed(1)
-	st <- list(1:4, 5:8, 9:12, 13:15)
-	for (pT in c(0.5, 0.25)) {
-		res <- K("generate_permutations_blocking_cpp")(15L, 200L, pT, st)
-		W <- res$w_mat
-		expect_equal(dim(W), c(15L, 200L))
-		expect_null(res$m_mat)
-		expect_true(all(W %in% c(0L, 1L)))
-		for (s in st) expect_true(all(colSums(W[s, , drop = FALSE]) == round(pT * length(s))), info = paste(pT, length(s)))
-	}
-})
-
-test_that("within a stratum the treated subset is uniformly random (marginal treatment rate = n_T / size)", {
-	set.seed(2)
-	W <- K("generate_permutations_blocking_cpp")(15L, 4000L, 0.5, list(1:4, 5:8, 9:12, 13:15))$w_mat
-	expect_equal(rowMeans(W)[1:12], rep(0.5, 12), tolerance = 0.06)
-	expect_equal(rowMeans(W)[13:15], rep(2 / 3, 3), tolerance = 0.06)          # 2 of 3 treated
-	# The draws differ across columns.
-	expect_gt(length(unique(apply(W, 2, paste, collapse = ""))), 50L)
 })
 
 pair_fixture <- function() {

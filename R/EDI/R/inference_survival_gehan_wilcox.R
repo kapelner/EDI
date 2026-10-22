@@ -39,7 +39,13 @@
 InferenceSurvivalGehanWilcox = define_inference_class(
 	classname = "InferenceSurvivalGehanWilcox",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.

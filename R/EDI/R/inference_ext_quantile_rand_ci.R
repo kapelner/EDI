@@ -27,6 +27,15 @@ InferenceExtQuantileRandCI = list(
 				assertNumeric(pval_epsilon, lower = .Machine$double.xmin, upper = 1)
 				assertCount(r, positive = TRUE)
 			}
+			# TODO-119 / G6: same exact-0/1 refusal as the generic randomization CI,
+			# raised outside the tryCatch below so it is not turned into NA bounds.
+			if (inference_randomization_ci_exact_zero_one_refusal(
+				private$des_obj$get_response_type(),
+				inference_uses_model_scale_randomization_transform(self),
+				private$y
+			)) {
+				inference_stop_rand_ci_exact_zero_one(class(self)[1L])
+			}
 			private$nsim_rand = as.integer(r)
 			tryCatch(
 				private$ci_exact_zhang_combined(alpha, pval_epsilon),

@@ -20,19 +20,21 @@ attribute-only markers are not missed. See the implementation comment
 below for the full mechanism.}
 }
 \description{
-\code{install_lazy_inference_component()} permanently binds each real
-(non-stub) implementation it installs to whichever object triggered the
-install, via \code{environment(value) = parent.frame()}. R6's
-\code{clone()} correctly rebinds every method present in the class
-generator's original method list, but a lazily-installed method is
-injected into \code{private}/\code{self} at runtime and is invisible to
-that bookkeeping, so a clone keeps calling back into the ORIGINAL
-object's data (e.g. a Bayesian-bootstrap worker clone silently reading
-the pre-clone object's \code{current_bayesian_bootstrap_context}, always
-\code{NULL}, instead of its own). Call this right after \code{self$clone()}
-to repoint every already-installed lazy-component method (public and
-private) at the clone's own enclosing environment; state fields
-(\code{owns_state}) are left untouched since \code{clone()} already
-copies their current values correctly.
+Since 2026-10-22 (TODO-125) this is a no-op kept for one release:
+\code{install_lazy_inference_component()} now closes each installed
+method over the calling stub's own R6 enclosing environment, which R6's
+\code{clone()} remaps by itself. Before that, installed methods were
+closed over \code{parent.frame()} (the stub's call frame, a child of the
+enclosing environment); R6's \code{clone()} only remaps a function whose
+environment is \code{identical()} to one of the object's enclosing
+environments, so a clone kept calling back into the ORIGINAL object's
+data (e.g. a Bayesian-bootstrap worker clone silently reading the
+pre-clone object's \code{current_bayesian_bootstrap_context}, always
+\code{NULL}, instead of its own). This helper repoints any
+already-installed lazy-component method (public and private) that is not
+closed over one of the clone's own enclosing environments at the clone's
+leaf enclosing environment; state fields (\code{owns_state}) are left
+untouched since \code{clone()} already copies their current values
+correctly.
 }
 \keyword{internal}

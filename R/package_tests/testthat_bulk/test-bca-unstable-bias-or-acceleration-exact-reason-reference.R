@@ -33,14 +33,16 @@ test_that("ci_bca() caches 'bootstrap_bca_unstable_bias_or_acceleration' when z0
 	f <- bca_fixture()
 	ci <- f$priv$ci_bca(extreme_boot_distr, 0.05, extreme_est)
 	expect_true(all(is.na(ci)))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_bca_unstable_bias_or_acceleration")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_bca_unstable_bias_or_acceleration")
 })
 
 test_that("pval_bca() caches the same exact reason", {
 	f <- bca_fixture(seed = 2L)
 	pv <- f$priv$pval_bca(extreme_boot_distr, extreme_est, 0.2)
 	expect_true(is.na(pv))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_bca_unstable_bias_or_acceleration")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_bca_unstable_bias_or_acceleration")
 })
 
 test_that("ci_bayesian_bca() caches 'bayesian_bootstrap_bca_unstable_bias_or_acceleration' when z0 is extreme", {
@@ -48,7 +50,8 @@ test_that("ci_bayesian_bca() caches 'bayesian_bootstrap_bca_unstable_bias_or_acc
 	f$priv$current_bayesian_bootstrap_context <- list(row_to_unit = seq_len(f$n), unit_group_id = rep(1L, f$n), n_units = f$n)
 	ci <- f$priv$ci_bayesian_bca(extreme_boot_distr, 0.05, extreme_est)
 	expect_true(all(is.na(ci)))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_bca_unstable_bias_or_acceleration")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_bca_unstable_bias_or_acceleration")
 })
 
 test_that("pval_bayesian_bca() caches the same exact reason", {
@@ -56,5 +59,6 @@ test_that("pval_bayesian_bca() caches the same exact reason", {
 	f$priv$current_bayesian_bootstrap_context <- list(row_to_unit = seq_len(f$n), unit_group_id = rep(1L, f$n), n_units = f$n)
 	pv <- f$priv$pval_bayesian_bca(extreme_boot_distr, extreme_est, 0.2)
 	expect_true(is.na(pv))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_bca_unstable_bias_or_acceleration")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_bca_unstable_bias_or_acceleration")
 })

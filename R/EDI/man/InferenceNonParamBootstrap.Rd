@@ -61,6 +61,18 @@ This implements the same minimum-volatility idea used in PTE's
   scan admissible intermediate sizes and choose a stable region of the
   target statistic rather than assuming one exponent is uniformly optimal.
 }
+\section{Minimum B for BCa confidence intervals}{
+
+\code{type = "bca"} needs a large enough B. The BCa-adjusted tail probabilities
+must stay more than two order statistics from the ends of the bootstrap
+distribution; with the default two-sided \code{alpha = 0.05} and B of about 100
+the nominal tail holds only about 2.5 order statistics, so the interval is
+frequently \code{NA} (reason \code{"bootstrap_bca_adjustment_on_boundary"}, reported once per
+object per type by an \code{edi_bootstrap_bca_boundary_warning}). Use B of 501
+or more for \code{"bca"}, or \code{type = "percentile"} for small B. The same
+guidance applies to \code{compute_bayesian_bootstrap_confidence_interval(type = "bca")}.
+}
+
 \section{Design-specific validity caveats for the nonparametric bootstrap}{
 
 Nonparametric bootstrap methods are not supported for \code{DesignSeqOneByOne}
@@ -206,6 +218,7 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 <details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
@@ -221,6 +234,7 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
@@ -788,7 +802,12 @@ method (Hall 1992; Davidson & MacKinnon 1999).
 \code{"bca"}: bias-corrected and accelerated p-value via closed-form CI
 inversion using the jackknife acceleration and bias-correction constants;
 second-order accurate (Efron 1987; Efron & Tibshirani 1993).}
-      \item{\code{na.rm}}{Remove non-finite bootstrap replicates. Default FALSE.}
+      \item{\code{na.rm}}{Remove non-finite bootstrap replicates. Default FALSE, in which case a
+single non-finite replicate makes the p-value \code{NA} (with a once-per-object warning of class
+\code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were non-finite). The
+confidence-interval method always drops non-finite replicates, so it can be finite
+when this p-value is \code{NA}; \code{na.rm = TRUE} drops them here too, subject to
+\code{min_number_usable_samples}.}
       \item{\code{show_progress}}{A flag indicating whether a progress bar should be displayed.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples
 required after filtering. Default 5. Must be less than or equal to \code{B}.}
@@ -839,7 +858,13 @@ possibly skewed bootstrap distribution --- strictly worse than \code{"percentile
 \code{"basic"} for shape-adaptivity, and strictly worse than
 \code{"symmetric-percentile-t"} for accuracy, since studentizing (not the
 absolute-value pooling) is what buys the \eqn{O(n^\{-1\})} improvement.
-\code{"symmetric-percentile-t"} is the CI-worthy symmetric variant.}
+\code{"symmetric-percentile-t"} is the CI-worthy symmetric variant.
+\strong{Minimum B for \code{"bca"}:} the BCa adjusted tail probabilities must stay
+more than two order statistics (2/(B + 1)) inside the sample range, so at small B
+the interval is \code{NA} (reason \code{"bootstrap_bca_adjustment_on_boundary"}, with
+one \code{edi_bootstrap_bca_boundary_warning} per object). B of about 501 or more is
+recommended for \code{"bca"}; at B of about 100 it is NA for many datasets. Use
+\code{type = "percentile"} when a small B is needed.}
       \item{\code{na.rm}}{Remove non-finite bootstrap replicates.
 Default TRUE. Non-finite replicates are always removed internally.}
       \item{\code{show_progress}}{Show progress bar.}

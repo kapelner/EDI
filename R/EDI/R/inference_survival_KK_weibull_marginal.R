@@ -417,7 +417,14 @@ SurvivalKKWeibullMarginalSource = list(
 InferenceSurvivalKKWeibullMarginal = define_inference_class(
 	classname = "InferenceSurvivalKKWeibullMarginal",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"SurvivalKKWeibullMarginal"
+	),
 	public = list(
 		# Pinned from InferenceRand, NOT InferenceRandCI: RandCI's richer version
 		# calls super$compute_rand_two_sided_pval(), which resolves against this

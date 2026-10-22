@@ -16,7 +16,14 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 	# this abstract base as plain R6::R6Class -- none call `super$...()`
 	# anywhere in their own bodies (verified by grep), so migrating this one
 	# definition fixes all four at once, same as the KKCondLogitGLMM family.
-	components = c("BayesianBootstrap", "Wald", "KKPassThrough"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"KKPassThrough"
+	),
 	public = list(
 		# Pinned from InferenceRandCI (confirmed via the pre-migration R6
 		# ancestor walk, same verification step and same resolution as
@@ -114,6 +121,11 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		supports_likelihood_tests = function() FALSE,
 		use_rcpp = TRUE,
 		max_abs_reasonable_coef = 1e4,
+		# LBFGS gradient tolerance for fast_ordinal_clmm_cpp (observed fit and randomization refits).
+		# 1e-3 reported converged = TRUE with a treatment error vs ordinal::clmm of median 0.05-0.07
+		# log-odds (max 0.5); 1e-6 gives ~2e-4 (bug_fix_plans/optimize_likelihood_newton_false_nonconvergence.md,
+		# Survey 2, "CLMM tolerance").  Overridable by subclasses.
+		clmm_eps_g = 1e-6,
 		best_X_colnames = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (private$use_rcpp) {
@@ -158,7 +170,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 					j_T        = 0L,
 					link       = private$clmm_link(),
 					estimate_only = TRUE,
-					eps_g      = 1e-3
+					eps_g      = private$clmm_eps_g
 				),
 				error = function(e) NULL
 			)
@@ -267,7 +279,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 					estimate_only = estimate_only,
 					warm_start_params = start,
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_alpha + ncol(X_fit) + 1L),
-					eps_g         = 1e-3
+					eps_g         = private$clmm_eps_g
 				),
 				error = function(e) NULL
 			)

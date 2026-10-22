@@ -46,7 +46,13 @@
 InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 	classname = "InferenceIncidMiettinenNurminenRiskDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
@@ -137,6 +143,7 @@ InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		#' @param pval_epsilon Bisection tolerance for CI bounds.
 		compute_asymp_confidence_interval = function(alpha = 0.05, pval_epsilon = 1e-7){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
@@ -153,6 +160,7 @@ InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 		#'   \code{delta}} (see class documentation for the full method).
 		#' @param delta The null treatment effect on the risk-difference scale.
 		compute_asymp_two_sided_pval = function(delta = 0){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1)
 			}

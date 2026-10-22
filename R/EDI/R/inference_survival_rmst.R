@@ -3,8 +3,10 @@
 #' Fits a non-parametric treatment-effect estimator for censored survival
 #' responses: the difference in \strong{restricted mean survival time} (RMST)
 #' between the treated and control arms, \eqn{\hat\mu_T(\tau) - \hat\mu_C(\tau)},
-#' where both arms use the same truncation horizon \eqn{\tau}, chosen as the
-#' smaller of their maximum follow-up times, and each RMST is the area under its
+#' where both arms use the same truncation horizon \eqn{\tau}. By default
+#' \eqn{\tau} is the smaller of the two arms' maximum follow-up times; it can
+#' be fixed by the user (e.g. \code{tau = 36} for "RMST at 36 months") via the
+#' \code{tau} constructor argument. Each RMST is the area under its
 #' Kaplan-Meier survival curve up to that horizon
 #' (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
 #' computed by trapezoidal integration of the step-function KM curve. The
@@ -16,6 +18,18 @@
 #' Randomization confidence intervals are not supported (the RMST-difference
 #' units are not commensurate with the randomization CI bisection algorithm's
 #' transformed-scale null search).
+#'
+#' \strong{Left- or interval-censored data.} The survival curve then comes from
+#' a Turnbull NPMLE (\code{interval::icfit()}) rather than Kaplan-Meier. Exact
+#' events are folded in as degenerate intervals \eqn{[y, y]} (they are not
+#' dropped), right-censored subjects are \eqn{[y_L, \infty)}, and any row that
+#' cannot be used is excluded with a warning. Both arms are integrated to one
+#' shared horizon \eqn{\tau}: the user's \code{tau}, or by default the smaller
+#' of the two arms' largest finite observed endpoints. Within a Turnbull
+#' interval the curve is not identified; it is taken to step down at the
+#' interval's left endpoint. An arm with no events before \eqn{\tau} has RMST
+#' equal to \eqn{\tau}. Bayesian-bootstrap re-estimation is not available on
+#' this path (\code{icfit()} has no weights argument).
 #'
 #' @references Royston, P., and Parmar, M. K. B. (2013). "Restricted mean
 #'   survival time: an alternative to the hazard ratio for the design and
@@ -42,7 +56,13 @@
 InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 	classname = "InferenceSurvivalRestrictedMeanDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
@@ -58,11 +78,36 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		#'   design's imputed covariates.
 		#' @param verbose If TRUE, print additional information.
 		#' @param smart_cold_start_default Whether to use smart cold start values by default.
-		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL) {
+		#' @param tau Optional user-chosen restriction horizon \eqn{\tau} (a single finite
+		#'   positive number, on the response's time scale). If \code{NULL} (default) the
+		#'   shared horizon is the smaller of the two arms' maximum follow-up times, as before.
+		#'   If given, \eqn{\tau} must not exceed that smaller maximum (the KM curve is not
+		#'   identified past an arm's last observation); the point estimate, Greenwood
+		#'   standard error, Bayesian/nonparametric bootstrap and randomization paths all use
+		#'   this same \eqn{\tau}. In a resample whose smaller arm maximum falls below
+		#'   \code{tau}, the smaller maximum is used for that resample. For left-/interval-
+		#'   censored data the Turnbull step function is integrated exactly up to \code{tau}.
+		initialize = function(des_obj, model_formula = NULL, verbose = FALSE, smart_cold_start_default = NULL, tau = NULL) {
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "survival")
 			}
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
+			if (!is.null(tau)) {
+				if (!is.numeric(tau) || length(tau) != 1L || !is.finite(tau) || tau <= 0) {
+					stop("`tau` must be NULL or a single finite positive number.", call. = FALSE)
+				}
+				max_t = private$rmst_arm_max_time(private$w == 1)
+				max_c = private$rmst_arm_max_time(private$w == 0)
+				arm_max = min(max_t, max_c)
+				if (is.finite(arm_max) && tau > arm_max) {
+					stop(
+						"`tau` (", format(tau), ") exceeds the smaller of the two arms' maximum follow-up times (",
+						format(arm_max), "); the RMST difference is not identified beyond it.",
+						call. = FALSE
+					)
+				}
+				private$rmst_tau = as.numeric(tau)
+			}
 		},
 		#' @description Computes the class-specific mean or survival contrast; see
 		#'   \code{\link[EDI:InferenceMLEorKMSummaryTable]{InferenceMLEorKMSummaryTable}}.
@@ -79,12 +124,13 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 					# interval-identifiability convention.
 					assert_interval_installed(class(self)[1L])
 					private$cached_values$beta_hat_T = turnbull_npmle_stat_diff(
-						private$y_L, private$y_R, private$w, "restricted_mean"
+						private$y_L, private$y_R, private$w, "restricted_mean", y = private$y, tau = private$rmst_tau
 					)
 				} else {
+					trunc = private$truncate_at_horizon(private$y, private$dead)
 					private$cached_values$beta_hat_T = get_survival_stat_diff(
-						private$y,
-						private$dead,
+						trunc$y,
+						trunc$dead,
 						private$w,
 						"restricted_mean"
 					)
@@ -211,12 +257,31 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			# re-dispatches through compute_estimate() per replicate.
 			if (isTRUE(private$has_general_censoring)) return(NULL)
 			if (delta != 0 && !identical(transform_responses, "log")) return(NULL)
+			# A user-set tau: the native kernel has no tau argument, so fall back to
+			# the generic loop (which re-dispatches through compute_estimate()).
+			if (!is.null(private$rmst_tau)) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
 			if (is.null(mats)) return(NULL)
 			compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
 				as.numeric(y0_full), as.integer(private$dead), mats$i_mat, mats$w_mat,
 				as.numeric(delta), TRUE, mats$noise_mat, private$n_cpp_threads(ncol(mats$w_mat))
 			)
+		},
+		rmst_tau = NULL,
+		rmst_arm_max_time = function(idx){
+			if (isTRUE(private$has_general_censoring)) {
+				v = c(private$y_L[idx], private$y_R[idx])
+			} else {
+				v = private$y[idx]
+			}
+			v = v[is.finite(v)]
+			if (length(v)) max(v) else NA_real_
+		},
+		truncate_at_horizon = function(y, dead){
+			tau = private$rmst_tau
+			if (is.null(tau)) return(list(y = y, dead = dead))
+			over = y > tau
+			list(y = pmin(y, tau), dead = ifelse(over, 0L, dead))
 		},
 		weighted_survival_stat_for_group = function(y, dead, row_weights, requested_stat = c("median", "restricted_mean"), tau = NULL){
 			requested_stat = match.arg(requested_stat)
@@ -264,6 +329,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 					max(private$y[valid & idx_t]),
 					max(private$y[valid & idx_c])
 				)
+				if (!is.null(private$rmst_tau)) shared_tau = min(shared_tau, private$rmst_tau)
 			}
 			stat_t = private$weighted_survival_stat_for_group(
 				private$y[idx_t], private$dead[idx_t], row_weights[idx_t],
@@ -287,9 +353,10 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				private$cached_values$s_beta_hat_T = NA_real_
 				return(invisible(NULL))
 			}
+			trunc = private$truncate_at_horizon(private$y, private$dead)
 			se_val = get_restricted_mean_se_diff(
-				private$y,
-				private$dead,
+				trunc$y,
+				trunc$dead,
 				private$w
 			)
 			if (is.na(se_val) || se_val <= 0) {

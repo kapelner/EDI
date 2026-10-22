@@ -1,0 +1,42 @@
+--- a/R/EDI/src/fast_survival_stats.cpp
++++ b/R/EDI/src/fast_survival_stats.cpp
+@@ -540,6 +540,10 @@
+ //' Sharp-null shift is multiplicative on treated times (exp(delta)). Uses an inline
+ //' pure-C++ KM calculator — no R objects inside the loop, so OpenMP is safe.
+ //' @param do_rmst TRUE for RMST-diff, FALSE for median (KM-diff).
++//' @param rmst_tau Optional user RMST horizon (TODO-108). \code{NA} (default) keeps the
++//'   shared horizon \code{min(arm maxima)}; a finite value uses
++//'   \code{min(rmst_tau, arm maxima)} (equivalent to right-truncating at tau).
++//'   Ignored when \code{do_rmst} is FALSE.
+ //' @keywords internal
+ // [[Rcpp::export]]
+ NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
+@@ -550,7 +554,8 @@
+     double delta,
+     bool do_rmst,
+     Rcpp::Nullable<Rcpp::NumericMatrix> noise_mat,
+-    int num_cores) {
++    int num_cores,
++    double rmst_tau = NA_REAL) {
+ 
+   const int n = i_mat.nrow();
+   const int nsim = i_mat.ncol();
+@@ -561,6 +566,9 @@
+     Rcpp::stop("compute_survival_stat_diff_rand_bootstrap_parallel_cpp: y0 contains "
+                "NA/NaN event times; survival kernels require finite (effective) times.");
+   }
++  if (do_rmst && std::isfinite(rmst_tau) && rmst_tau <= 0.0) {
++    Rcpp::stop("compute_survival_stat_diff_rand_bootstrap_parallel_cpp: rmst_tau must be positive.");
++  }
+   std::vector<double> results_vec(nsim, NA_REAL);
+   const double* y0_ptr = y0.begin();
+   const int* dead_ptr = dead.begin();
+@@ -611,6 +619,8 @@
+         for (int i = 1; i < nt; ++i) max_t = std::max(max_t, y_t[i].time);
+         for (int i = 1; i < nc; ++i) max_c = std::max(max_c, y_c[i].time);
+         shared_tau = std::min(max_t, max_c);
++        // TODO-108: a user horizon can only shorten the shared horizon.
++        if (std::isfinite(rmst_tau)) shared_tau = std::min(shared_tau, rmst_tau);
+       }
+       double stat_t = km_stat_inline(
+         y_t.data(), nt, do_rmst, utimes_t, sprobs_t, shared_tau);

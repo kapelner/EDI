@@ -88,11 +88,11 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			jack_summary = private$compute_jackknife_summary(unit = unit)
 			se_j = jack_summary$std_error
 			if (!is.finite(jack_summary$estimate)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_se("jackknife_estimate_unavailable")
+				if (isTRUE(private$harden)) private$cache_procedure_failure("jackknife", "jackknife_estimate_unavailable")
 				return(NA_real_)
 			}
 			if (!is.finite(se_j) || se_j <= 0) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_se("jackknife_standard_error_unavailable")
+				if (isTRUE(private$harden)) private$cache_procedure_failure("jackknife", "jackknife_standard_error_unavailable")
 				return(NA_real_)
 			}
 			theta_j = as.numeric(jack_summary$estimate)[1L]
@@ -127,11 +127,11 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			if (!is.finite(jack_summary$estimate)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_se("jackknife_estimate_unavailable")
+				if (isTRUE(private$harden)) private$cache_procedure_failure("jackknife", "jackknife_estimate_unavailable")
 				return(ci)
 			}
 			if (!is.finite(se_j) || se_j <= 0) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_se("jackknife_standard_error_unavailable")
+				if (isTRUE(private$harden)) private$cache_procedure_failure("jackknife", "jackknife_standard_error_unavailable")
 				return(ci)
 			}
 			theta_j = as.numeric(jack_summary$estimate)[1L]
@@ -157,70 +157,16 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		jackknife_always_nonestimable = function(){
 			FALSE
 		},
-		normalize_jackknife_unit = function(unit = "auto"){
-			unit = tolower(as.character(unit)[1L])
-			valid = c("auto", "observation", "cluster", "block", "pair", "matched_set")
-			if (should_run_asserts()) {
-				assertChoice(unit, valid)
-			}
-			unit
-		},
-		resolve_jackknife_unit = function(unit = "auto"){
-			unit = private$normalize_jackknife_unit(unit)
-			if (unit != "auto") return(unit)
-			design_obj = private$des_obj
-			is_matching_design = isTRUE(design_obj$is_matching_design())
-			is_cluster_design = design_obj$is_a_cluster_capable()
-			is_blocking_design = isTRUE(design_obj$is_blocking_design())
-			if (is_matching_design) {
-				if (isTRUE(private$is_KK)) "matched_set" else "pair"
-			} else if (is_cluster_design) {
-				"cluster"
-			} else if (is_blocking_design) {
-				"block"
-			} else {
-				"observation"
-			}
-		},
-		jackknife_block_size_gt_one_unsupported = function(unit = "auto"){
-			resolved_unit = private$resolve_jackknife_unit(unit)
-			design_obj = private$des_obj
-			is_blocking_design = isTRUE(design_obj$is_blocking_design())
-			if (resolved_unit == "block") return(FALSE)
-			if (resolved_unit %in% c("pair", "matched_set")) return(FALSE)
-			if (resolved_unit == "cluster" && !is_blocking_design) return(FALSE)
-			if (!is_blocking_design) return(FALSE)
-			block_ids = tryCatch(design_obj$get_block_ids(), error = function(e) NULL)
-			if (is.null(block_ids)) return(FALSE)
-			block_ids = as.integer(block_ids)
-			block_ids = block_ids[is.finite(block_ids) & block_ids > 0L]
-			if (!length(block_ids)) return(FALSE)
-			any(as.integer(table(block_ids)) > 1L)
-		},
-		mark_jackknife_nonestimable_if_block_unsupported = function(unit = "auto"){
-			if (!private$jackknife_block_size_gt_one_unsupported(unit = unit)) return(FALSE)
-			private$cache_nonestimable_se("jackknife_block_size_gt_one_not_supported")
-			TRUE
-		},
-		assert_jackknife_supported = function(unit = "auto"){
-			unit = private$normalize_jackknife_unit(unit)
-			design_obj = private$des_obj
-			is_blocking_design = isTRUE(design_obj$is_blocking_design())
-			is_matching_design = isTRUE(design_obj$is_matching_design())
-			is_cluster_design = design_obj$is_a_cluster_capable()
-			if (should_run_asserts()) {
-				if (unit == "block" && !is_blocking_design) {
-					stop("jackknife unit = 'block' requires a blocking design.", call. = FALSE)
-				}
-				if (unit %in% c("pair", "matched_set") && !is_matching_design) {
-					stop("jackknife unit = '", unit, "' requires a matching design.", call. = FALSE)
-				}
-				if (unit == "cluster" && !is_cluster_design) {
-					stop("jackknife unit = 'cluster' requires a clustered design.", call. = FALSE)
-				}
-			}
-			invisible(NULL)
-		},
+		# normalize_jackknife_unit() and assert_jackknife_supported() moved
+		# unchanged to ResamplingCore (v1.0.5 TODO-97, 2026-10-22): both this
+		# component and NonparametricBootstrap call them, and they were the
+		# NonparametricBootstrap -> Jackknife half of the old dependency cycle.
+		# resolve_jackknife_unit(), jackknife_block_size_gt_one_unsupported() and
+		# mark_jackknife_nonestimable_if_block_unsupported() live only in
+		# NonparametricBootstrap (every class with Jackknife also has it). The
+		# duplicate copies here were removed 2026-10-22 so there is one path: the
+		# NonparametricBootstrap body re-raises EDI resampling control conditions
+		# (interrupts/timeouts) from get_block_ids() and swallows only other errors.
 		jackknife_cache_key = function(unit = "auto"){
 			private$resolve_jackknife_unit(unit)
 		},
@@ -249,19 +195,19 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			jack = as.numeric(private$approximate_jackknife_distribution_beta_hat_T_private(unit = unit))
 			n_units = length(jack)
 			if (n_units <= 1L) {
-				private$cache_nonestimable_se("jackknife_too_few_replicate_estimates")
+				private$cache_procedure_failure("jackknife", "jackknife_too_few_replicate_estimates")
 				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = numeric(0))
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
 			if (any(!is.finite(jack))) {
-				private$cache_nonestimable_se("jackknife_nonfinite_replicate_estimates")
+				private$cache_procedure_failure("jackknife", "jackknife_nonfinite_replicate_estimates")
 				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = jack)
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
 			if (private$bootstrap_estimates_extreme(jack, est = theta_hat)) {
-				private$cache_nonestimable_se("jackknife_extreme_finite_estimates")
+				private$cache_procedure_failure("jackknife", "jackknife_extreme_finite_estimates")
 				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = jack)
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
@@ -275,7 +221,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 			    abs(theta_j) > private$bootstrap_extreme_estimate_threshold ||
 			    se_j > private$bootstrap_extreme_estimate_threshold ||
 			    abs(bias_j) > 2 * se_j) {
-				private$cache_nonestimable_se("jackknife_extreme_summary")
+				private$cache_procedure_failure("jackknife", "jackknife_extreme_summary")
 				summary = list(estimate = NA_real_, bias = NA_real_, std_error = NA_real_, distribution = jack)
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)

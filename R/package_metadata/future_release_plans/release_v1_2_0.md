@@ -599,9 +599,11 @@ Ticked in owning plans; this list is the index.
     TODO-156` (Besag–Clifford) and audit TODO-5 (saddlepoint early stop):
     compare, don't assume.
 
-- [ ] ~~TODO-35~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..14`** (user decision; split into one contract item and nine per-family pilot items): `ModelDiagnostics` — declaration contract + pilot batteries.
+- [ ] ~~TODO-35~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..6`** (user decision; split into a contract item and a single Incidence GLM pilot item, the other eight families going to v2.0.0): `ModelDiagnostics` — declaration contract + pilot batteries.
 
 ## Standing constraints
+
+**Documented default changes carried here from v1.1.0 (2026-10-22, when TODO-24, -25 and -29 moved):** TODO-24's exact-null default switch (its plan's TODO-7) and TODO-25's small-n exact default (its plan's TODO-6) are decision-gated and off until the user accepts them; TODO-29's precomputed hypergeometric log-densities in the Zhang exact kernel (its plan's TODO-3) are tolerance-equal to 1e-12. TODO-34's `mc_method` default flip, if it clears its gate, is a documented default change under the equivalence tiers.
 
 Additive; defaults preserved under the numerical-equivalence rule
 (`../new_feature_plans/cross_platform_reproducibility.md → Release-to-release

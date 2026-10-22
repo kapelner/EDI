@@ -27,7 +27,14 @@
 InferenceSurvivalKKRankRegrIVWC = define_inference_class(
 	classname = "InferenceSurvivalKKRankRegrIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SurvivalKKRankRegrIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"SurvivalKKRankRegrIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count KK migration this stretch.

@@ -44,7 +44,7 @@ test_that("jackknife RR: a null value <= 0 is unavailable, an unusable original 
 	for (d in c(0, -1, NA)) {
 		g <- rr_fx()
 		expect_true(is.na(g$inf$compute_jackknife_wald_two_sided_pval(d)))
-		expect_identical(g$inf$get_nonestimable_reason(), "jackknife_log_risk_ratio_null_unavailable")
+		expect_false(g$inf$is_nonestimable("any")); expect_identical(g$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["jackknife"]], "jackknife_log_risk_ratio_null_unavailable")   # TODO-116: procedure failure, Wald intact
 	}
 	h <- rr_fx()
 	unlockBinding("compute_estimate", h$inf); h$inf$compute_estimate <- function(estimate_only = FALSE) -0.2
@@ -56,12 +56,12 @@ test_that("jackknife RR: a null value <= 0 is unavailable, an unusable original 
 	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", k$p)
 	k$p$approximate_jackknife_distribution_beta_hat_T_private <- function(unit = "auto") c(1.2, NA, -1)   # one usable positive value
 	expect_true(is.na(k$p$compute_rr_jackknife_log_se("auto")))
-	expect_identical(k$inf$get_nonestimable_reason(), "jackknife_too_few_positive_risk_ratio_estimates")
+	expect_false(k$inf$is_nonestimable("any")); expect_identical(k$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["jackknife"]], "jackknife_too_few_positive_risk_ratio_estimates")   # TODO-116: procedure failure, Wald intact
 	l <- rr_fx()
 	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", l$p)
 	l$p$approximate_jackknife_distribution_beta_hat_T_private <- function(unit = "auto") rep(1.3, 10)     # zero spread
 	expect_true(is.na(l$p$compute_rr_jackknife_log_se("auto")))
-	expect_identical(l$inf$get_nonestimable_reason(), "jackknife_log_risk_ratio_standard_error_unavailable")
+	expect_false(l$inf$is_nonestimable("any")); expect_identical(l$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["jackknife"]], "jackknife_log_risk_ratio_standard_error_unavailable")   # TODO-116: procedure failure, Wald intact
 })
 
 stub_mn <- function(f, draws) {
@@ -89,15 +89,15 @@ test_that("m-out-of-n RR interval and p-value equal the centred-pivot formulas o
 test_that("m-out-of-n RR: null <= 0, no positive draws, or too few usable draws are unavailable", {
 	f <- rr_fx()
 	expect_true(is.na(f$p$compute_rr_m_out_of_n_bootstrap_two_sided_pval(0, B = 50L, m = 15L, show_progress = FALSE)))
-	expect_identical(f$inf$get_nonestimable_reason(), "m_out_of_n_log_risk_ratio_null_unavailable")
+	expect_false(f$inf$is_nonestimable("any")); expect_identical(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_log_risk_ratio_null_unavailable")   # TODO-116: procedure failure, Wald intact
 	g <- rr_fx(); stub_mn(g, c(NA, -1, 0))
 	expect_true(all(is.na(g$p$compute_rr_m_out_of_n_bootstrap_confidence_interval(0.05, B = 50L, m = 15L, show_progress = FALSE))))
-	expect_identical(g$inf$get_nonestimable_reason(), "resampling_too_few_finite_estimates")
+	expect_false(g$inf$is_nonestimable("any")); expect_identical(g$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "resampling_too_few_finite_estimates")   # TODO-116: procedure failure, Wald intact
 	h <- rr_fx(); stub_mn(h, c(1.1, 1.2, 1.3))                                         # fewer than min_number_usable_samples = 5
 	expect_true(all(is.na(h$p$compute_rr_m_out_of_n_bootstrap_confidence_interval(0.05, B = 50L, m = 15L, show_progress = FALSE))))
-	expect_identical(h$inf$get_nonestimable_reason(), "m_out_of_n_too_few_finite_estimates")
+	expect_false(h$inf$is_nonestimable("any")); expect_identical(h$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_too_few_finite_estimates")   # TODO-116: procedure failure, Wald intact
 	k <- rr_fx(); stub_mn(k, c(1.1, 1.2, 1.3))
 	expect_true(is.na(k$p$compute_rr_m_out_of_n_bootstrap_two_sided_pval(1, B = 50L, m = 15L, show_progress = FALSE)))
-	expect_identical(k$inf$get_nonestimable_reason(), "m_out_of_n_too_few_finite_estimates")
+	expect_false(k$inf$is_nonestimable("any")); expect_identical(k$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_too_few_finite_estimates")
 	expect_error(rr_fx()$p$compute_rr_m_out_of_n_bootstrap_confidence_interval(0.05, B = 50L, m = 2L, show_progress = FALSE), "must satisfy")   # size below the minimum
 })

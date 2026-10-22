@@ -1,3 +1,15 @@
+# Null fit when beta_T is the only Cox parameter (TODO-121, as TODO-115 for the
+# clogit sibling): no optimisation, b = delta. The partial likelihood uses the
+# Breslow rule, the same as the C++ fitter that produced the full fit.
+kk_cox_fully_fixed_null_fit = function(X, y, dead, strata, delta){
+	delta = as.numeric(delta)[1L]
+	if (!is.finite(delta)) return(NULL)
+	nll = .cox_neg_loglik_breslow_r(X, y, dead, delta, strata = strata)
+	if (!is.finite(nll)) return(NULL)
+	list(b = delta, coefficients = delta, params = delta, neg_ll = nll, neg_loglik = nll,
+		converged = TRUE, fixed_all = TRUE)
+}
+
 # Static leaf source (2026-08-18 migration, fix_inference_hierarchy.md "KK And
 # IVWC Estimators"): formerly a plain leaf on
 # `InferenceKKPassThroughCompoundNoParamBootstrap`; the KK compound layer now
@@ -300,7 +312,14 @@ SurvivalKKStratCoxIVWCSource = list(
 InferenceSurvivalKKStratCoxPHIVWC = define_inference_class(
 	classname = "InferenceSurvivalKKStratCoxPHIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SurvivalKKStratCoxIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"SurvivalKKStratCoxIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count KK migration this stretch.
@@ -424,8 +443,10 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 			strata = m_vec
 			res_idx = which(strata == 0L)
 			if (length(res_idx) > 0L) {
-				max_m = max(strata)
-				strata[res_idx] = max_m + seq_along(res_idx)
+				# One shared reservoir stratum, identical to the point estimate in
+				# shared_combined_likelihood() (singleton strata contribute nothing).
+				max_m = if (any(strata > 0L)) max(strata) else 0L
+				strata[res_idx] = max_m + 1L
 			}
 			X_cov = private$get_X()
 			X_fit = if (ncol(as.matrix(X_cov)) > 0) cbind(treatment = private$w, X_cov) else matrix(private$w, ncol = 1, dimnames = list(NULL, "treatment"))
@@ -444,6 +465,21 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
+			# TODO-121: honor the configured testing type. This override used to
+			# return the Wald interval for every type, so score / lik_ratio /
+			# gradient requests were silently served Wald under another label.
+			tt = self$get_testing_type()
+			if (!identical(tt, "wald")) {
+				return(switch(
+					tt,
+					score = private$compute_score_confidence_interval_impl(alpha),
+					gradient = private$compute_gradient_confidence_interval_impl(alpha),
+					lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+					lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+					lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
+					stop(class(self)[1], ": unsupported testing_type \"", tt, "\".", call. = FALSE)
+				))
+			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
 		},
@@ -452,6 +488,19 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 		compute_asymp_two_sided_pval = function(delta = 0){
 			if (should_run_asserts()) {
 				assertNumeric(delta)
+			}
+			# TODO-121: honor the configured testing type (see the CI above).
+			tt = self$get_testing_type()
+			if (!identical(tt, "wald")) {
+				return(switch(
+					tt,
+					score = private$compute_score_two_sided_pval_impl(delta),
+					gradient = private$compute_gradient_two_sided_pval_impl(delta),
+					lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+					lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+					lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
+					stop(class(self)[1], ": unsupported testing_type \"", tt, "\".", call. = FALSE)
+				))
 			}
 			private$shared_combined_likelihood(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -544,6 +593,10 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 				X = X_fit, y = y, dead = dead, strata = strata, j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
+					# TODO-121 (same as TODO-115): beta_T is the only parameter, so
+					# nothing is free and the solver rejects the empty free set;
+					# the null fit is the fixed point b = delta.
+					if (ncol(X_fit) == 1L) return(kk_cox_fully_fixed_null_fit(X_fit, y, dead, strata, delta))
 					warm = start %||% private$get_fit_warm_start_for_length("params", ncol(X_fit))
 					fast_stratified_coxph_regression_cpp(
 						X = X_fit, y = y, dead = dead, strata = strata,
@@ -603,6 +656,7 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 			list(
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
+					if (ncol(X_fit) == 1L) return(kk_cox_fully_fixed_null_fit(X_fit, y_sim, dead_sim, strata, d))
 					res = tryCatch(
 						fast_stratified_coxph_regression_cpp(
 							X = X_fit, y = y_sim, dead = dead_sim, strata = strata,
@@ -651,7 +705,13 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 InferenceSurvivalKKStratCoxPHOneLik = define_inference_class(
 	classname = "InferenceSurvivalKKStratCoxPHOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"SurvivalKKStratCoxOneLikPartialLikelihood"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count KK migration this stretch.

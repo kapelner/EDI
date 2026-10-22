@@ -22,7 +22,10 @@ test_that("plain fit equals weighted coxph and returns the fit object", {
 	m <- ref()
 	expect_equal(r$beta_hat, unname(coef(m)["treatment"]), tolerance = 1e-7)
 	expect_equal(r$coefficients, coef(m), tolerance = 1e-7)
-	expect_s3_class(r$fit, "coxph")
+	# unstratified/unclustered fits take the coxph.fit() fast path (plan TODO-6.1)
+	# and return its raw fit list; stratified/clustered fits keep the coxph object.
+	expect_true(is.list(r$fit))
+	expect_s3_class(f(time, dead, X, wt, strata = rep(1:3, length.out = n))$fit, "coxph")
 })
 
 test_that("non-positive weights and NA strata/cluster rows are removed before fitting", {

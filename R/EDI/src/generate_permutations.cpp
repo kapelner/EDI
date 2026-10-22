@@ -194,27 +194,6 @@ Eigen::MatrixXi generate_permutations_ibcrd_internal(int n, int nsim, double pro
 	return w_mat;
 }
 
-Eigen::MatrixXi generate_permutations_blocking_internal(
-	int n, int nsim, double prob_T, const std::vector<std::vector<int>>& strata_indices, std::uint32_t seed) {
-	edi_rng::RRng rng(seed);
-	Eigen::MatrixXi w_mat(n, nsim);
-	int* w_ptr = w_mat.data();
-	int num_strata = static_cast<int>(strata_indices.size());
-	for (int b = 0; b < nsim; ++b) {
-		int* w_col = w_ptr + (size_t)b * n;
-		for (int s = 0; s < num_strata; ++s) {
-			const std::vector<int>& idxs = strata_indices[static_cast<std::size_t>(s)];
-			int m = static_cast<int>(idxs.size());
-			int n_T = static_cast<int>(std::round(m * prob_T));
-			std::vector<int> w_stratum(static_cast<std::size_t>(m));
-			for (int i = 0; i < m; ++i) w_stratum[static_cast<std::size_t>(i)] = (i < n_T) ? 1 : 0;
-			edi_rng::fisher_yates_shuffle(w_stratum.begin(), w_stratum.end(), rng);
-			for (int i = 0; i < m; ++i) w_col[idxs[static_cast<std::size_t>(i)] - 1] = w_stratum[static_cast<std::size_t>(i)];
-		}
-	}
-	return w_mat;
-}
-
 Eigen::MatrixXi generate_permutations_efron_internal(
 	int n, int nsim, double prob_T, double weighted_coin_prob, std::uint32_t seed) {
 	edi_rng::RRng rng(seed);
@@ -491,31 +470,6 @@ List generate_permutations_bernoulli_cpp(int n, int nsim, double prob_T) {
 // [[Rcpp::export]]
 List generate_permutations_ibcrd_cpp(int n, int nsim, double prob_T) {
 	Eigen::MatrixXi w_mat = generate_permutations_ibcrd_internal(n, nsim, prob_T, edi_rng::draw_seed_from_r());
-	return List::create(_["w_mat"] = w_mat, _["m_mat"] = R_NilValue);
-}
-
-//' Generate blocked randomization permutations
-//'
-//' See generate_permutations_matching_cpp for the reproducibility
-//'   note that applies to every function in this file.
-//'
-//' @param n Number of subjects.
-//' @param nsim Number of randomization draws (columns of the returned matrix) to generate.
-//' @param prob_T Probability of assignment to treatment.
-//' @param strata_indices List of integer vectors, one per stratum, holding the
-//'   (1-based) indices of the subjects in that stratum.
-//' @return A list with \code{w_mat}, an \code{n} x \code{nsim} integer matrix whose
-//'   columns are independent 0/1 treatment-assignment draws, and \code{m_mat}
-//'   (always \code{NULL}).
-//' @keywords internal
-// [[Rcpp::export]]
-List generate_permutations_blocking_cpp(int n, int nsim, double prob_T, List strata_indices) {
-	std::vector<std::vector<int>> strata(strata_indices.size());
-	for (int s = 0; s < strata_indices.size(); ++s) {
-		IntegerVector idxs = strata_indices[s];
-		strata[static_cast<std::size_t>(s)].assign(idxs.begin(), idxs.end());
-	}
-	Eigen::MatrixXi w_mat = generate_permutations_blocking_internal(n, nsim, prob_T, strata, edi_rng::draw_seed_from_r());
 	return List::create(_["w_mat"] = w_mat, _["m_mat"] = R_NilValue);
 }
 

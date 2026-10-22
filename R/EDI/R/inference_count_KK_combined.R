@@ -57,7 +57,14 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 	# 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC Estimators", "Migrate
 	# KK GEE and GLMM classes"): flipped from the hybrid `inherit =
 	# InferenceParamBootstrap` state, same fix as InferenceContinKKGLMM above.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"KKGLMM"
+	),
 	# capabilities = "likelihood_ratio" is required explicitly -- same
 	# rationale as every class composing ParametricLikelihoodBootstrap
 	# directly (bypassing StandardModelCache) this stretch.
@@ -202,11 +209,22 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		#'   \code{alpha}. The default is 0.05.
 		#' @return A length-2 numeric vector \code{c(lower, upper)} on the log-rate scale.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
+			# TODO-121: score / gradient used to fall through to Wald silently. They
+			# now use the model likelihood test, calibrated like lik_ratio (max with the
+			# design Wald value), and warn (edi_lik_test_wald_fallback) if the model
+			# test is unavailable.
+			owner = list(self = self, private = private)
 			switch(
 				self$get_testing_type(),
 				wald = self$compute_wald_confidence_interval(alpha = alpha),
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
-				self$compute_wald_confidence_interval(alpha = alpha)
+				score = .conservative_kk_onelik_ci(
+					tryCatch(private$compute_score_confidence_interval_impl(alpha), error = function(e) c(NA_real_, NA_real_)),
+					self$compute_wald_confidence_interval(alpha = alpha), alpha = alpha, owner = owner, label = "score"),
+				gradient = .conservative_kk_onelik_ci(
+					tryCatch(private$compute_gradient_confidence_interval_impl(alpha), error = function(e) c(NA_real_, NA_real_)),
+					self$compute_wald_confidence_interval(alpha = alpha), alpha = alpha, owner = owner, label = "gradient"),
+				stop("Unsupported testing_type for ", class(self)[1L], ": ", self$get_testing_type())
 			)
 		},
 		#' @description Asymptotic two-sided p-value, dispatching to
@@ -218,11 +236,18 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		#'   any treatment effect at all.
 		#' @return Numeric scalar p-value in \eqn{[0, 1]}.
 		compute_asymp_two_sided_pval = function(delta = 0){
+			owner = list(self = self, private = private)
 			switch(
 				self$get_testing_type(),
 				wald = self$compute_wald_two_sided_pval(delta = delta),
 				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
-				self$compute_wald_two_sided_pval(delta = delta)
+				score = .conservative_kk_onelik_pval(
+					tryCatch(private$compute_score_two_sided_pval_impl(delta), error = function(e) NA_real_),
+					self$compute_wald_two_sided_pval(delta = delta), owner = owner, label = "score"),
+				gradient = .conservative_kk_onelik_pval(
+					tryCatch(private$compute_gradient_two_sided_pval_impl(delta), error = function(e) NA_real_),
+					self$compute_wald_two_sided_pval(delta = delta), owner = owner, label = "gradient"),
+				stop("Unsupported testing_type for ", class(self)[1L], ": ", self$get_testing_type())
 			)
 		}
 	),
@@ -459,16 +484,19 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 					as.numeric(get_poisson_glmm_score_cpp(X_fit, y, group_id, params))
 				},
 				observed_information = function(fit){
+					# TODO-121: get_poisson_glmm_hessian_cpp() returns the Hessian of the
+					# LOG-likelihood (negative definite); information is its negation. The
+					# un-negated matrix made the score test garbage (p .246 vs LR .028).
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				fisher_information = function(fit){
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				information = function(fit){
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				neg_loglik = function(fit){
 					as.numeric(fit$neg_loglik %||% fit$neg_ll)

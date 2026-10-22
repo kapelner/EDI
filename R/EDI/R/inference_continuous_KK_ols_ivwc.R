@@ -101,14 +101,17 @@ ContinKKOLSIVWCSource = list(
 			nRT = KKstats$nRT
 			nRC = KKstats$nRC
 			if (m > 0){
-				private$ols_for_matched_pairs(estimate_only = estimate_only)
+				# The IVW weights need each component's variance, so the component
+				# fits always compute it even when only the point estimate is wanted
+				# (TODO-124); estimate_only still skips the combined SE/df below.
+				private$ols_for_matched_pairs(estimate_only = FALSE)
 			}
 			beta_m = private$cached_values$beta_T_matched
 			ssq_m  = private$cached_values$ssq_beta_T_matched
 			df_m   = private$cached_values$df_beta_T_matched
 			m_ok   = !is.null(beta_m) && is.finite(beta_m) && !is.null(ssq_m) && is.finite(ssq_m) && ssq_m > 0
 			if (nRT > 0 && nRC > 0){
-				private$ols_for_reservoir(estimate_only = estimate_only)
+				private$ols_for_reservoir(estimate_only = FALSE)
 			}
 			beta_r = private$cached_values$beta_T_reservoir
 			ssq_r  = private$cached_values$ssq_beta_T_reservoir
@@ -266,7 +269,14 @@ ContinKKOLSIVWCSource = list(
 InferenceContinKKOLSIVWC = define_inference_class(
 	classname = "InferenceContinKKOLSIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "ContinKKOLSIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"ContinKKOLSIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count KK migration this session.

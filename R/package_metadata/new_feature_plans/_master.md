@@ -1000,7 +1000,7 @@ already stated there:**
 - **5AH. `ModelDiagnostics` — per-model assumption batteries** (added
   2026-09-02, user decision; split 2026-09-02 from a briefly combined
   plan; **moved to v1.1.0 on 2026-09-05, user decision**) →
-  `release_v1_3_0.md → TODO-5..14` (was `release_v2_0_0.md → TODO-6g`).
+  `release_v1_3_0.md → TODO-5..6` (was `release_v2_0_0.md → TODO-6g`).
   `model_diagnostics_framework.md`. The *absolute* half of model
   criticism: each class declares its own assumption checks in the
   registry like capabilities (Cox PH via Schoenfeld, Poisson

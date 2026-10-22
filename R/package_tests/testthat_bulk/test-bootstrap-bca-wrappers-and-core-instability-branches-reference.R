@@ -63,10 +63,13 @@ test_that("non-finite jackknife draws are dropped; fewer than two usable ones ma
 	expect_equal(f$p$ci_bca(boot, 0.05, est), ref_ci(boot, jack, est, 0.05), tolerance = 1e-9)
 	g <- fx(0.5)
 	expect_equal(g$p$ci_bca(boot, 0.05, est), c(NA_real_, NA_real_))
-	expect_equal(g$p$cached_values$nonestimable_reason, "bootstrap_bca_jackknife_unavailable")
+	# TODO-116: a BCa/jackknife failure is a bootstrap-procedure failure; the Wald state stays valid.
+	expect_false(isTRUE(g$p$cached_values$nonestimable))
+	expect_equal(g$p$cached_values$procedure_failure_reason$bootstrap, "bootstrap_bca_jackknife_unavailable")
 	h <- fx(c(0.5, NA))
 	expect_true(is.na(h$p$pval_bca(boot, est, 0.2)))
-	expect_equal(h$p$cached_values$nonestimable_reason, "bootstrap_bca_jackknife_unavailable")
+	expect_false(isTRUE(h$p$cached_values$nonestimable))
+	expect_equal(h$p$cached_values$procedure_failure_reason$bootstrap, "bootstrap_bca_jackknife_unavailable")
 })
 
 test_that("a block-size > 1 jackknife that is unsupported gets its own reason", {
@@ -74,7 +77,9 @@ test_that("a block-size > 1 jackknife that is unsupported gets its own reason", 
 	unlockBinding("jackknife_block_size_gt_one_unsupported", f$p)
 	f$p$jackknife_block_size_gt_one_unsupported <- function(unit = "auto") TRUE
 	expect_true(all(is.na(f$p$ci_bca(boot, 0.05, est))))
-	expect_equal(f$p$cached_values$nonestimable_reason, "jackknife_block_size_gt_one_not_supported")
+	# TODO-116: a jackknife gating failure is procedure-specific; it must not mark the fit nonestimable.
+	expect_false(isTRUE(f$p$cached_values$nonestimable))
+	expect_equal(f$p$cached_values$procedure_failure_reason$jackknife, "jackknife_block_size_gt_one_not_supported")
 })
 
 test_that("core: extreme bias (|z0| > 2.5) or acceleration (|a| > 1) is unstable; boundary adjustments are rejected", {

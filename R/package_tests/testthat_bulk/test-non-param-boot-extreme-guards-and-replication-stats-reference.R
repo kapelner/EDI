@@ -57,18 +57,51 @@ test_that("bootstrap_confidence_interval_extreme applies the magnitude, scaled-w
 	expect_false(ext(c(0, 4), est = 0, max_abs = NA))                        # invalid max_abs -> 1e6
 })
 
+test_that("TODO-101: the absolute CI width cap scales with the outcome's units", {
+	# Outcome in large units (sd ~ 60): a width-20 interval is ~0.3 sd and must not be flagged.
+	set.seed(101)
+	n <- 40L
+	des <- DesignFixedBernoulli$new(n = n, response_type = "continuous", seed = 101)
+	des$add_all_subjects_to_experiment(data.frame(x = rnorm(n)))
+	des$assign_w_to_all_subjects()
+	w <- des$get_w()
+	y <- 1000 + 60 * rnorm(n) + 30 * w
+	des$add_all_subject_responses(y)
+	inf <- InferenceAllSimpleAverageDiff$new(des)
+	inf$num_cores <- 1L
+	priv <- inf$.__enclos_env__$private
+	expect_gt(priv$bootstrap_outcome_scale(), 40)
+	expect_false(priv$bootstrap_confidence_interval_extreme(c(0, 20), est = 10))
+	expect_true(priv$bootstrap_confidence_interval_extreme(c(0, 20 * priv$bootstrap_outcome_scale()), est = 10))
+	ci <- inf$compute_bootstrap_confidence_interval(type = "percentile", B = 200L, show_progress = FALSE)
+	expect_true(all(is.finite(ci)))
+	expect_gt(diff(ci), 5)  # the interval really is wider than the old absolute cap
+	expect_false(isTRUE(identical(inf$get_nonestimable_reason(), "bootstrap_extreme_confidence_interval")))
+	# Unit-scale outcomes keep the historical cap of 5.
+	f <- boot_priv()
+	expect_equal(f$priv$bootstrap_outcome_scale(), 1)
+})
+
 test_that("missing_bootstrap_ci returns a named NA interval and caches the reason at the requested stage", {
 	f <- boot_priv()
-	ci <- f$priv$missing_bootstrap_ci(0.1, "bootstrap_unavailable_reason", stage = "estimate")
+	ci <- f$priv$missing_bootstrap_ci(0.1, "unmapped_unavailable_reason", stage = "estimate")
 	expect_equal(names(ci), c("5%", "95%"))
 	expect_true(all(is.na(ci)))
 	expect_true(f$inf$is_nonestimable("estimate"))
 
 	f2 <- boot_priv()
-	f2$priv$missing_bootstrap_ci(0.05, "se_reason", stage = "se")
+	f2$priv$missing_bootstrap_ci(0.05, "unmapped_se_reason", stage = "se")
 	expect_true(f2$inf$is_nonestimable("se"))
 	expect_false(f2$inf$is_nonestimable("estimate"))
 	expect_error(f2$priv$missing_bootstrap_ci(0.05, "x", stage = "bogus"))
+
+	# TODO-116: a core bootstrap-procedure reason is a procedure failure, not a primary nonestimable state
+	# (reasons outside the core bootstrap family, as above, keep the historical nonestimable behavior).
+	f3 <- boot_priv()
+	ci3 <- f3$priv$missing_bootstrap_ci(0.1, "bootstrap_unavailable_reason", stage = "estimate")
+	expect_true(all(is.na(ci3)))
+	expect_false(f3$inf$is_nonestimable("any"))
+	expect_identical(f3$priv$cached_values$procedure_failure_reason$bootstrap, "bootstrap_unavailable_reason")
 })
 
 test_that("renumber_match_ids compacts positive ids in ascending order and zeroes unmatched entries", {

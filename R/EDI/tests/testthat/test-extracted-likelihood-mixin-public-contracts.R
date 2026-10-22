@@ -82,7 +82,8 @@ make_no_likelihood_spec_logit_inference <- function(des){
 test_that("public score CI falls back to the Wald interval when inversion cannot bracket", {
 	inf = make_constant_score_pval_logit_inference(make_public_contract_logit_design(seed = 11L))
 
-	ci = inf$compute_score_confidence_interval(alpha = 0.1)
+	# TODO-115: the substitution is deliberate but no longer silent (value unchanged).
+	expect_warning(ci <- inf$compute_score_confidence_interval(alpha = 0.1), class = "edi_lik_test_wald_fallback")
 	wald_ci = inf$compute_wald_confidence_interval(alpha = 0.1)
 
 	expect_true(all(is.finite(ci)))
@@ -120,7 +121,8 @@ test_that("public information preferences select available score-test informatio
 test_that("public likelihood tests report an unavailable specification as non-estimable", {
 	inf = make_no_likelihood_spec_logit_inference(make_public_contract_logit_design(seed = 13L))
 
-	p_value = inf$compute_score_two_sided_pval(delta = 0)
+	# TODO-115: the unexplained NA now comes with a classed warning (value unchanged).
+	expect_warning(p_value <- inf$compute_score_two_sided_pval(delta = 0), class = "edi_lik_test_unavailable_warning")
 
 	expect_true(is.na(p_value))
 	expect_true(inf$is_nonestimable("estimate"))
@@ -172,7 +174,8 @@ test_that("StandardModelCache likelihood tests report an unavailable specificati
 	# already produces.
 	inf = make_no_likelihood_spec_std_mod_cache_logit_inference(make_public_contract_logit_design(seed = 14L))
 
-	p_value = inf$compute_score_two_sided_pval(delta = 0)
+	# TODO-115: the unexplained NA now comes with a classed warning (value unchanged).
+	expect_warning(p_value <- inf$compute_score_two_sided_pval(delta = 0), class = "edi_lik_test_unavailable_warning")
 
 	expect_true(is.na(p_value))
 	expect_true(inf$is_nonestimable("estimate"))

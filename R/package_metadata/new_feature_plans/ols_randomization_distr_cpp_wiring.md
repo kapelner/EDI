@@ -209,8 +209,17 @@ the kernel inputs at the boundary, and return the batch distribution (or
   provenance gap for this test file only; it does not decide TODO-4's eight
   unused exports or TODO-6's Lin stretch target. No compilation, installation,
   or canonical output write occurred.
-- [ ] **TODO-4: Dead-kernel triage.** For the remaining exports below
+- [x] **TODO-4: Dead-kernel triage.** For the remaining exports below
   without a production caller, decide *wire in* or *delete*, and do it.
+  **DONE in source 2026-10-22 (owner decision, release_v1_0_5.md G6 #3 (a)):**
+  the seven kernels marked **deleted** in the table below were removed by hand
+  (functions, five now-empty `.cpp` files, `RcppExports.cpp`/`.R` entries, two
+  bisection Rd files, the profiler case, and
+  `test-bootstrap-index-fillin-and-bisection-loop.R`); their useful assertions
+  were migrated to `compute_wilcox_hl_distr_parallel_cpp`,
+  `match_stats_from_indices_cpp` and `bisection_ci_parallel_cpp`. Nothing was
+  compiled; the user's next rebuild removes them from the installed build.
+  The history below predates the decision and is kept as the audit trail.
   A Graft caller audit on 2026-10-14 found direct test/benchmark/profiler
   references for these exports, so “unreferenced” here means no production
   inference path, not no repository references. In particular,
@@ -237,14 +246,14 @@ the kernel inputs at the boundary, and return the batch distribution (or
   | --- | --- | --- |
   | `compute_ols_distr_parallel_cpp` | `ols_distr_parallel.cpp` | **wire** (TODO-1) |
   | `compute_ols_bootstrap_parallel_cpp` | `ols_distr_parallel.cpp` | **retain** — already wired to ordinary OLS percentile bootstrap via `compute_fast_non_param_bootstrap_distr()`; distinct from randomization-bootstrap kernel |
-  | `compute_wilcox_distr_parallel_cpp` | `fast_wilcox_parallel.cpp` | **delete** — superseded by the live `compute_wilcox_hl_distr_parallel_cpp` (`inference_all_simple_wilcox.R:262`) |
-  | `compute_wilcox_distr_from_list_parallel_cpp` | `fast_wilcox_parallel.cpp` | **delete**, same reason |
-  | `base_bootstrap_loop_cpp` | `base_bootstrap_loop.cpp` | **delete** — the reusable-bootstrap-worker path replaced it |
-  | `matching_bootstrap_loop_cpp` | `kk_bootstrap_loop.cpp` | **delete**, same |
-  | `fill_i_b_with_matches_loop_cpp` | `KK_bootstrap_helper_fillin.cpp` | **delete** (also O(m·n); not worth fixing) |
-  | `bisection_ci_parallel_cpp` | `bisection_ci.cpp` | **retain as compatibility shim unless the maintainer explicitly chooses deprecation/removal** — its internal help topic says it is kept for backwards compatibility; its legacy OpenMP/R-callback implementation is not a production path |
-  | `bisection_ci_single_bound_cpp` | `bisection_ci.cpp` | **delete after internal-contract migration** — no production caller; help topic marks it internal |
-  | `bisection_ci_loop_cpp` | `bisection_ci_loop.cpp` | **delete**, same |
+  | `compute_wilcox_distr_parallel_cpp` | `fast_wilcox_parallel.cpp` | **DELETED 2026-10-22** (file removed) — superseded by the live `compute_wilcox_hl_distr_parallel_cpp` (`inference_all_simple_wilcox.R:262`) |
+  | `compute_wilcox_distr_from_list_parallel_cpp` | `fast_wilcox_parallel.cpp` | **DELETED 2026-10-22**, same reason |
+  | `base_bootstrap_loop_cpp` | `base_bootstrap_loop.cpp` | **DELETED 2026-10-22** (file removed) — the reusable-bootstrap-worker path replaced it |
+  | `matching_bootstrap_loop_cpp` | `kk_bootstrap_loop.cpp` | **DELETED 2026-10-22** (file removed), same |
+  | `fill_i_b_with_matches_loop_cpp` | `KK_bootstrap_helper_fillin.cpp` | **DELETED 2026-10-22** (file removed; also O(m·n); not worth fixing) |
+  | `bisection_ci_parallel_cpp` | `bisection_ci.cpp` | **RETAINED 2026-10-22** (owner decision) — **retain as compatibility shim unless the maintainer explicitly chooses deprecation/removal** — its internal help topic says it is kept for backwards compatibility; its legacy OpenMP/R-callback implementation is not a production path |
+  | `bisection_ci_single_bound_cpp` | `bisection_ci.cpp` | **DELETED 2026-10-22** after internal-contract migration — no production caller; help topic marks it internal |
+  | `bisection_ci_loop_cpp` | `bisection_ci_loop.cpp` | **DELETED 2026-10-22** (file removed), same |
   **Source-only caller disposition audit, corrected 2026-10-18:** The earlier
   2026-10-16 note incorrectly classified `compute_ols_bootstrap_parallel_cpp`
   as having no production caller. The current caller is
@@ -397,7 +406,8 @@ the kernel inputs at the boundary, and return the batch distribution (or
   generally short enough that per-call overhead and timer resolution explain
   much of the small-cell spread; permutation generation was outside the
   timed call on both paths.
-- [ ] **TODO-6 (stretch): Lin.** A `compute_lin_distr_parallel_cpp` that
+- [x] **TODO-6 (stretch): Lin.** (CLOSED here 2026-10-22 by maintainer
+  decision: deferred to `release_v1_1_0.md → TODO-57`.) A `compute_lin_distr_parallel_cpp` that
   builds `[1, w_b, Xc, w_b·Xc]` per replicate (the interaction block is
   the only thing that changes with `w_b`, and it is `diag(w_b)·Xc`, so
   `XᵀX` blocks update in O(np²) per replicate — or defer to the FWL plan).

@@ -40,7 +40,8 @@ test_that("'lik_ratio_bootstrap_spec_unavailable' fires when get_likelihood_test
 
 	pval <- inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(inf$get_nonestimable_reason(), "lik_ratio_bootstrap_spec_unavailable")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "lik_ratio_bootstrap_spec_unavailable")
 })
 
 test_that("'lik_ratio_bootstrap_observed_lr_invalid' fires when the observed evaluation is flagged invalid", {
@@ -51,7 +52,8 @@ test_that("'lik_ratio_bootstrap_observed_lr_invalid' fires when the observed eva
 
 	pval <- inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(inf$get_nonestimable_reason(), "lik_ratio_bootstrap_observed_lr_invalid")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "lik_ratio_bootstrap_observed_lr_invalid")
 })
 
 test_that("'lik_ratio_bootstrap_observed_negloglik_nonfinite' fires when the observed full/null negloglik is non-finite", {
@@ -62,7 +64,8 @@ test_that("'lik_ratio_bootstrap_observed_negloglik_nonfinite' fires when the obs
 
 	pval <- inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(inf$get_nonestimable_reason(), "lik_ratio_bootstrap_observed_negloglik_nonfinite")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "lik_ratio_bootstrap_observed_negloglik_nonfinite")
 })
 
 test_that("'lik_ratio_bootstrap_observed_lr_nonfinite' fires when the derived LR statistic is non-finite", {
@@ -74,7 +77,8 @@ test_that("'lik_ratio_bootstrap_observed_lr_nonfinite' fires when the derived LR
 
 	pval <- inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(inf$get_nonestimable_reason(), "lik_ratio_bootstrap_observed_lr_nonfinite")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "lik_ratio_bootstrap_observed_lr_nonfinite")
 })
 
 test_that("'lik_ratio_bootstrap_observed_lr_extreme' fires when param_bootstrap_lr_extreme(lr_obs) is TRUE", {
@@ -87,7 +91,8 @@ test_that("'lik_ratio_bootstrap_observed_lr_extreme' fires when param_bootstrap_
 
 	pval <- inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(inf$get_nonestimable_reason(), "lik_ratio_bootstrap_observed_lr_extreme")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "lik_ratio_bootstrap_observed_lr_extreme")
 })
 
 test_that("'lik_ratio_bootstrap_too_few_converged_samples' fires when too few replicate LR statistics converge", {
@@ -110,5 +115,6 @@ test_that("'lik_ratio_bootstrap_too_few_converged_samples' fires when too few re
 
 	pval <- inf$compute_lik_ratio_bootstrap_two_sided_pval(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(inf$get_nonestimable_reason(), "lik_ratio_bootstrap_too_few_converged_samples")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "lik_ratio_bootstrap_too_few_converged_samples")
 })

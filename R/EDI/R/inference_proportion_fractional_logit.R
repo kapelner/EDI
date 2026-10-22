@@ -51,6 +51,7 @@
 #' inf = InferencePropFractionalLogit$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferencePropFractionalLogit = define_inference_class(
 	classname = "InferencePropFractionalLogit",
@@ -68,7 +69,14 @@ InferencePropFractionalLogit = define_inference_class(
 	# together these transitively resolve to the full 10-component manifest
 	# target without listing every name directly (same shape as every other
 	# migrated class composing BayesianBootstrap + Wald).
-	components = c("BayesianBootstrap", "Wald", "StandardModelCache"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"StandardModelCache"
+	),
 	# No explicit `capabilities` needed: this class does not compose
 	# ParametricLikelihoodBootstrap (the only consumer requiring
 	# "likelihood_ratio" pre-declared), and its own

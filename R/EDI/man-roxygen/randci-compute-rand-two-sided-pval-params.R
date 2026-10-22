@@ -12,4 +12,6 @@
 #' @param type Optional incidence-specific exact randomization type.
 #' @param args_for_type Optional arguments keyed by \code{type}.
 #' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
-#' @return A two-sided p-value.
+#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+#'   use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.
+#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).

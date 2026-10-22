@@ -11,19 +11,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// fill_i_b_with_matches_loop_cpp
-void fill_i_b_with_matches_loop_cpp(IntegerVector& i_b, const IntegerVector& m_vec, const IntegerVector& ms_b, int i_b_idx);
-RcppExport SEXP _EDI_fill_i_b_with_matches_loop_cpp(SEXP i_bSEXP, SEXP m_vecSEXP, SEXP ms_bSEXP, SEXP i_b_idxSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector& >::type i_b(i_bSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type m_vec(m_vecSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type ms_b(ms_bSEXP);
-    Rcpp::traits::input_parameter< int >::type i_b_idx(i_b_idxSEXP);
-    fill_i_b_with_matches_loop_cpp(i_b, m_vec, ms_b, i_b_idx);
-    return R_NilValue;
-END_RCPP
-}
 // eigen_Xt_times_X_cpp
 Eigen::MatrixXd eigen_Xt_times_X_cpp(const Eigen::Map<Eigen::MatrixXd>& X);
 RcppExport SEXP _EDI_eigen_Xt_times_X_cpp(SEXP XSEXP) {
@@ -136,24 +123,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// base_bootstrap_loop_cpp
-NumericVector base_bootstrap_loop_cpp(const NumericMatrix& X, const NumericVector& y, const NumericVector& dead, const NumericVector& w, const IntegerMatrix& indices, Function duplicate_inference_fn, Function compute_estimate_fn, int num_cores);
-RcppExport SEXP _EDI_base_bootstrap_loop_cpp(SEXP XSEXP, SEXP ySEXP, SEXP deadSEXP, SEXP wSEXP, SEXP indicesSEXP, SEXP duplicate_inference_fnSEXP, SEXP compute_estimate_fnSEXP, SEXP num_coresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type dead(deadSEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type w(wSEXP);
-    Rcpp::traits::input_parameter< const IntegerMatrix& >::type indices(indicesSEXP);
-    Rcpp::traits::input_parameter< Function >::type duplicate_inference_fn(duplicate_inference_fnSEXP);
-    Rcpp::traits::input_parameter< Function >::type compute_estimate_fn(compute_estimate_fnSEXP);
-    Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(base_bootstrap_loop_cpp(X, y, dead, w, indices, duplicate_inference_fn, compute_estimate_fn, num_cores));
-    return rcpp_result_gen;
-END_RCPP
-}
 // beta_loglik_cpp
 double beta_loglik_cpp(SEXP y, const Eigen::Map<Eigen::VectorXd>& mu, const double phi, const Eigen::Map<Eigen::VectorXd>& wt);
 RcppExport SEXP _EDI_beta_loglik_cpp(SEXP ySEXP, SEXP muSEXP, SEXP phiSEXP, SEXP wtSEXP) {
@@ -227,43 +196,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type transform_responses(transform_responsesSEXP);
     Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
     rcpp_result_gen = Rcpp::wrap(bisection_ci_parallel_cpp(pval_fn, r, l_lower, u_lower, l_upper, u_upper, pval_th, tol, transform_responses, num_cores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// bisection_ci_single_bound_cpp
-double bisection_ci_single_bound_cpp(Function pval_fn, int r, double l, double u, double pval_th, double tol, std::string transform_responses, bool lower, int num_cores);
-RcppExport SEXP _EDI_bisection_ci_single_bound_cpp(SEXP pval_fnSEXP, SEXP rSEXP, SEXP lSEXP, SEXP uSEXP, SEXP pval_thSEXP, SEXP tolSEXP, SEXP transform_responsesSEXP, SEXP lowerSEXP, SEXP num_coresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Function >::type pval_fn(pval_fnSEXP);
-    Rcpp::traits::input_parameter< int >::type r(rSEXP);
-    Rcpp::traits::input_parameter< double >::type l(lSEXP);
-    Rcpp::traits::input_parameter< double >::type u(uSEXP);
-    Rcpp::traits::input_parameter< double >::type pval_th(pval_thSEXP);
-    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    Rcpp::traits::input_parameter< std::string >::type transform_responses(transform_responsesSEXP);
-    Rcpp::traits::input_parameter< bool >::type lower(lowerSEXP);
-    Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(bisection_ci_single_bound_cpp(pval_fn, r, l, u, pval_th, tol, transform_responses, lower, num_cores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// bisection_ci_loop_cpp
-double bisection_ci_loop_cpp(Function pval_fn, int r, double l, double u, double pval_th, double tol, std::string transform_responses, bool lower);
-RcppExport SEXP _EDI_bisection_ci_loop_cpp(SEXP pval_fnSEXP, SEXP rSEXP, SEXP lSEXP, SEXP uSEXP, SEXP pval_thSEXP, SEXP tolSEXP, SEXP transform_responsesSEXP, SEXP lowerSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Function >::type pval_fn(pval_fnSEXP);
-    Rcpp::traits::input_parameter< int >::type r(rSEXP);
-    Rcpp::traits::input_parameter< double >::type l(lSEXP);
-    Rcpp::traits::input_parameter< double >::type u(uSEXP);
-    Rcpp::traits::input_parameter< double >::type pval_th(pval_thSEXP);
-    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    Rcpp::traits::input_parameter< std::string >::type transform_responses(transform_responsesSEXP);
-    Rcpp::traits::input_parameter< bool >::type lower(lowerSEXP);
-    rcpp_result_gen = Rcpp::wrap(bisection_ci_loop_cpp(pval_fn, r, l, u, pval_th, tol, transform_responses, lower));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -3614,34 +3546,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// compute_wilcox_distr_parallel_cpp
-NumericVector compute_wilcox_distr_parallel_cpp(const Eigen::Map<Eigen::MatrixXi>& w_mat, SEXP y, double delta, int num_cores);
-RcppExport SEXP _EDI_compute_wilcox_distr_parallel_cpp(SEXP w_matSEXP, SEXP ySEXP, SEXP deltaSEXP, SEXP num_coresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::MatrixXi>& >::type w_mat(w_matSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
-    Rcpp::traits::input_parameter< double >::type delta(deltaSEXP);
-    Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_wilcox_distr_parallel_cpp(w_mat, y, delta, num_cores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// compute_wilcox_distr_from_list_parallel_cpp
-NumericVector compute_wilcox_distr_from_list_parallel_cpp(const List& permutations, SEXP y, double delta, int num_cores);
-RcppExport SEXP _EDI_compute_wilcox_distr_from_list_parallel_cpp(SEXP permutationsSEXP, SEXP ySEXP, SEXP deltaSEXP, SEXP num_coresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const List& >::type permutations(permutationsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type y(ySEXP);
-    Rcpp::traits::input_parameter< double >::type delta(deltaSEXP);
-    Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_wilcox_distr_from_list_parallel_cpp(permutations, y, delta, num_cores));
-    return rcpp_result_gen;
-END_RCPP
-}
 // get_zero_augmented_poisson_score_cpp
 Eigen::VectorXd get_zero_augmented_poisson_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, const Eigen::Map<Eigen::MatrixXd>& Xzi, const Eigen::Map<Eigen::VectorXd>& params, bool is_hurdle);
 RcppExport SEXP _EDI_get_zero_augmented_poisson_score_cpp(SEXP XSEXP, SEXP ySEXP, SEXP XziSEXP, SEXP paramsSEXP, SEXP is_hurdleSEXP) {
@@ -3887,20 +3791,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type nsim(nsimSEXP);
     Rcpp::traits::input_parameter< double >::type prob_T(prob_TSEXP);
     rcpp_result_gen = Rcpp::wrap(generate_permutations_ibcrd_cpp(n, nsim, prob_T));
-    return rcpp_result_gen;
-END_RCPP
-}
-// generate_permutations_blocking_cpp
-List generate_permutations_blocking_cpp(int n, int nsim, double prob_T, List strata_indices);
-RcppExport SEXP _EDI_generate_permutations_blocking_cpp(SEXP nSEXP, SEXP nsimSEXP, SEXP prob_TSEXP, SEXP strata_indicesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    Rcpp::traits::input_parameter< int >::type nsim(nsimSEXP);
-    Rcpp::traits::input_parameter< double >::type prob_T(prob_TSEXP);
-    Rcpp::traits::input_parameter< List >::type strata_indices(strata_indicesSEXP);
-    rcpp_result_gen = Rcpp::wrap(generate_permutations_blocking_cpp(n, nsim, prob_T, strata_indices));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -4173,25 +4063,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const NumericVector& >::type w(wSEXP);
     rcpp_result_gen = Rcpp::wrap(kk21_stepwise_ordinal_weights_cpp(X, y, w));
-    return rcpp_result_gen;
-END_RCPP
-}
-// matching_bootstrap_loop_cpp
-NumericVector matching_bootstrap_loop_cpp(const NumericMatrix& X, const NumericVector& y, const NumericVector& w, const IntegerVector& original_m_vec, const IntegerMatrix& indices, int m, Function duplicate_inference_fn, Function compute_estimate_fn, int num_cores);
-RcppExport SEXP _EDI_matching_bootstrap_loop_cpp(SEXP XSEXP, SEXP ySEXP, SEXP wSEXP, SEXP original_m_vecSEXP, SEXP indicesSEXP, SEXP mSEXP, SEXP duplicate_inference_fnSEXP, SEXP compute_estimate_fnSEXP, SEXP num_coresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type w(wSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type original_m_vec(original_m_vecSEXP);
-    Rcpp::traits::input_parameter< const IntegerMatrix& >::type indices(indicesSEXP);
-    Rcpp::traits::input_parameter< int >::type m(mSEXP);
-    Rcpp::traits::input_parameter< Function >::type duplicate_inference_fn(duplicate_inference_fnSEXP);
-    Rcpp::traits::input_parameter< Function >::type compute_estimate_fn(compute_estimate_fnSEXP);
-    Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(matching_bootstrap_loop_cpp(X, y, w, original_m_vec, indices, m, duplicate_inference_fn, compute_estimate_fn, num_cores));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -5315,7 +5186,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_EDI_fill_i_b_with_matches_loop_cpp", (DL_FUNC) &_EDI_fill_i_b_with_matches_loop_cpp, 4},
     {"_EDI_eigen_Xt_times_X_cpp", (DL_FUNC) &_EDI_eigen_Xt_times_X_cpp, 1},
     {"_EDI_eigen_compute_single_entry_on_diagonal_of_inverse_matrix_cpp", (DL_FUNC) &_EDI_eigen_compute_single_entry_on_diagonal_of_inverse_matrix_cpp, 2},
     {"_EDI_eigen_Xt_times_diag_w_times_X_cpp", (DL_FUNC) &_EDI_eigen_Xt_times_diag_w_times_X_cpp, 2},
@@ -5325,14 +5195,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_mean_cpp", (DL_FUNC) &_EDI_mean_cpp, 1},
     {"_EDI_var_cpp", (DL_FUNC) &_EDI_var_cpp, 1},
     {"_EDI_atkinson_assign_weight_cpp", (DL_FUNC) &_EDI_atkinson_assign_weight_cpp, 5},
-    {"_EDI_base_bootstrap_loop_cpp", (DL_FUNC) &_EDI_base_bootstrap_loop_cpp, 8},
     {"_EDI_beta_loglik_cpp", (DL_FUNC) &_EDI_beta_loglik_cpp, 4},
     {"_EDI_beta_dev_resids_cpp", (DL_FUNC) &_EDI_beta_dev_resids_cpp, 4},
     {"_EDI_beta_aic_cpp", (DL_FUNC) &_EDI_beta_aic_cpp, 4},
     {"_EDI_draw_binary_match_assignments_cpp", (DL_FUNC) &_EDI_draw_binary_match_assignments_cpp, 4},
     {"_EDI_bisection_ci_parallel_cpp", (DL_FUNC) &_EDI_bisection_ci_parallel_cpp, 10},
-    {"_EDI_bisection_ci_single_bound_cpp", (DL_FUNC) &_EDI_bisection_ci_single_bound_cpp, 9},
-    {"_EDI_bisection_ci_loop_cpp", (DL_FUNC) &_EDI_bisection_ci_loop_cpp, 8},
     {"_EDI_bootstrap_indices_cpp", (DL_FUNC) &_EDI_bootstrap_indices_cpp, 2},
     {"_EDI_bootstrap_m_indices_cpp", (DL_FUNC) &_EDI_bootstrap_m_indices_cpp, 5},
     {"_EDI_draw_matching_bootstrap_sample_cpp", (DL_FUNC) &_EDI_draw_matching_bootstrap_sample_cpp, 3},
@@ -5536,8 +5403,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_compute_wilcox_hl_distr_parallel_cpp", (DL_FUNC) &_EDI_compute_wilcox_hl_distr_parallel_cpp, 6},
     {"_EDI_compute_wilcox_matching_ivwc_bootstrap_parallel_cpp", (DL_FUNC) &_EDI_compute_wilcox_matching_ivwc_bootstrap_parallel_cpp, 6},
     {"_EDI_compute_wilcox_hl_rand_bootstrap_parallel_cpp", (DL_FUNC) &_EDI_compute_wilcox_hl_rand_bootstrap_parallel_cpp, 8},
-    {"_EDI_compute_wilcox_distr_parallel_cpp", (DL_FUNC) &_EDI_compute_wilcox_distr_parallel_cpp, 4},
-    {"_EDI_compute_wilcox_distr_from_list_parallel_cpp", (DL_FUNC) &_EDI_compute_wilcox_distr_from_list_parallel_cpp, 4},
     {"_EDI_get_zero_augmented_poisson_score_cpp", (DL_FUNC) &_EDI_get_zero_augmented_poisson_score_cpp, 5},
     {"_EDI_get_zero_augmented_poisson_hessian_cpp", (DL_FUNC) &_EDI_get_zero_augmented_poisson_hessian_cpp, 5},
     {"_EDI_fast_zero_augmented_poisson_cpp", (DL_FUNC) &_EDI_fast_zero_augmented_poisson_cpp, 13},
@@ -5554,7 +5419,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_generate_permutations_matching_cpp", (DL_FUNC) &_EDI_generate_permutations_matching_cpp, 3},
     {"_EDI_generate_permutations_bernoulli_cpp", (DL_FUNC) &_EDI_generate_permutations_bernoulli_cpp, 3},
     {"_EDI_generate_permutations_ibcrd_cpp", (DL_FUNC) &_EDI_generate_permutations_ibcrd_cpp, 3},
-    {"_EDI_generate_permutations_blocking_cpp", (DL_FUNC) &_EDI_generate_permutations_blocking_cpp, 4},
     {"_EDI_generate_permutations_efron_cpp", (DL_FUNC) &_EDI_generate_permutations_efron_cpp, 4},
     {"_EDI_generate_permutations_atkinson_cpp", (DL_FUNC) &_EDI_generate_permutations_atkinson_cpp, 5},
     {"_EDI_generate_permutations_pocock_simon_cpp", (DL_FUNC) &_EDI_generate_permutations_pocock_simon_cpp, 6},
@@ -5576,7 +5440,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_kk21_stepwise_negbin_weights_cpp", (DL_FUNC) &_EDI_kk21_stepwise_negbin_weights_cpp, 3},
     {"_EDI_kk21_ordinal_weights_cpp", (DL_FUNC) &_EDI_kk21_ordinal_weights_cpp, 2},
     {"_EDI_kk21_stepwise_ordinal_weights_cpp", (DL_FUNC) &_EDI_kk21_stepwise_ordinal_weights_cpp, 3},
-    {"_EDI_matching_bootstrap_loop_cpp", (DL_FUNC) &_EDI_matching_bootstrap_loop_cpp, 9},
     {"_EDI_compute_matching_reservoir_stats_cpp", (DL_FUNC) &_EDI_compute_matching_reservoir_stats_cpp, 3},
     {"_EDI_compute_matching_grouping_cpp", (DL_FUNC) &_EDI_compute_matching_grouping_cpp, 1},
     {"_EDI_compute_cluster_ids_cpp", (DL_FUNC) &_EDI_compute_cluster_ids_cpp, 1},

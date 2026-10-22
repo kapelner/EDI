@@ -171,7 +171,14 @@ KKNewcombeRiskDiffIVWCSource = list(
 InferenceIncidKKNewcombeRiskDiff = define_inference_class(
 	classname = "InferenceIncidKKNewcombeRiskDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "KKNewcombeRiskDiffIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"KKNewcombeRiskDiffIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRandCI (NOT InferenceRand, breaking with the
 		# continuous InferenceAllKKMeanDiffIVWC template): for incidence

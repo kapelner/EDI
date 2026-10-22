@@ -18,34 +18,43 @@ fx <- function(seed = 1L, n = 40L) {
 	InferenceCountNegBin$new(d, verbose = FALSE)
 }
 
+# TODO-116: the stubs now signal a classed `edi_unsupported_procedure` warning, record
+# cached_values$unsupported_procedure_reason, and leave is_nonestimable() / the Wald caches alone.
+unsup_reason <- function(inf) inf$.__enclos_env__$private$cached_values$unsupported_procedure_reason
+unsup <- function(inf, expr) {
+	val <- NULL
+	expect_warning(val <- expr, class = "edi_unsupported_procedure")
+	val
+}
+
 test_that("every jackknife method returns NA (or an all-NA CI) and flags the same explicit non-estimability reason", {
 	inf <- fx()
-	expect_true(is.na(inf$compute_jackknife_estimate()))
-	expect_identical(inf$get_nonestimable_reason(), "negbin_jackknife_not_supported")
-	expect_true(inf$is_nonestimable("se"))
+	expect_true(is.na(unsup(inf, inf$compute_jackknife_estimate())))
+	expect_identical(unsup_reason(inf), "negbin_jackknife_not_supported")
+	expect_false(inf$is_nonestimable("se"))
 
 	inf2 <- fx()
-	expect_true(is.na(inf2$compute_jackknife_bias_estimate()))
-	expect_identical(inf2$get_nonestimable_reason(), "negbin_jackknife_not_supported")
+	expect_true(is.na(unsup(inf2, inf2$compute_jackknife_bias_estimate())))
+	expect_identical(unsup_reason(inf2), "negbin_jackknife_not_supported")
 
 	inf3 <- fx()
-	expect_true(is.na(inf3$compute_jackknife_std_error()))
-	expect_identical(inf3$get_nonestimable_reason(), "negbin_jackknife_not_supported")
+	expect_true(is.na(unsup(inf3, inf3$compute_jackknife_std_error())))
+	expect_identical(unsup_reason(inf3), "negbin_jackknife_not_supported")
 
 	inf4 <- fx()
-	expect_true(is.na(inf4$compute_jackknife_wald_two_sided_pval(delta = 0.5)))
-	expect_identical(inf4$get_nonestimable_reason(), "negbin_jackknife_not_supported")
+	expect_true(is.na(unsup(inf4, inf4$compute_jackknife_wald_two_sided_pval(delta = 0.5))))
+	expect_identical(unsup_reason(inf4), "negbin_jackknife_not_supported")
 
 	inf5 <- fx()
-	ci <- inf5$compute_jackknife_wald_confidence_interval(alpha = 0.1)
+	ci <- unsup(inf5, inf5$compute_jackknife_wald_confidence_interval(alpha = 0.1))
 	expect_true(all(is.na(ci)))
 	expect_identical(names(ci), c("5%", "95%"))
-	expect_identical(inf5$get_nonestimable_reason(), "negbin_jackknife_not_supported")
+	expect_identical(unsup_reason(inf5), "negbin_jackknife_not_supported")
 })
 
 test_that("the alpha argument controls the returned CI's percentage labels even though the bounds are always NA", {
 	inf <- fx()
-	ci <- inf$compute_jackknife_wald_confidence_interval(alpha = 0.2)
+	ci <- unsup(inf, inf$compute_jackknife_wald_confidence_interval(alpha = 0.2))
 	expect_identical(names(ci), c("10%", "90%"))
 	expect_true(all(is.na(ci)))
 })
@@ -55,6 +64,7 @@ test_that("the jackknife methods report non-estimability independently of any pr
 	est <- inf$compute_estimate()
 	skip_if(!is.finite(est), "fixture's ordinary fit did not converge on this platform")
 	expect_false(inf$is_nonestimable("any"))                          # the real fit succeeded
-	expect_true(is.na(inf$compute_jackknife_estimate()))              # jackknife is still refused regardless
-	expect_identical(inf$get_nonestimable_reason(), "negbin_jackknife_not_supported")
+	expect_true(is.na(unsup(inf, inf$compute_jackknife_estimate())))  # jackknife is still refused regardless
+	expect_identical(unsup_reason(inf), "negbin_jackknife_not_supported")
+	expect_false(inf$is_nonestimable("any"))                          # ...without flipping the primary state
 })

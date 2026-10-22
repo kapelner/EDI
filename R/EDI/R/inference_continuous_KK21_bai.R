@@ -40,7 +40,14 @@
 InferenceBaiAdjustedTKK21 = define_inference_class(
 	classname = "InferenceBaiAdjustedTKK21",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"BaiAdjustedT"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other KK migration this stretch.

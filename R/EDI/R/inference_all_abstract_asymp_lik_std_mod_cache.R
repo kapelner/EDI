@@ -125,7 +125,7 @@ StandardModelCacheSource = list(
 				if (warm_enabled && is.null(start) && !is.null(cache_state)) start = cache_state$start
 				fit = tryCatch(
 					if (accepts_start) spec$fit_null(delta, start = start) else spec$fit_null(delta),
-					error = function(e) NULL
+					error = function(e) { edi_note_lik_test_failure(private, edi_lik_test_type_from_cache_key(cache_key), e); NULL }
 				)
 				extract_start = spec$extract_start %||% function(fit_obj) NULL
 				last_start <<- if (warm_enabled && accepts_start) tryCatch(extract_start(fit), error = function(e) NULL) else NULL
@@ -137,6 +137,7 @@ StandardModelCacheSource = list(
 			}
 		},
 		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) {
 				# A class that structurally never supports likelihood tests
@@ -157,6 +158,7 @@ StandardModelCacheSource = list(
 				if (!isTRUE(private$supports_likelihood_tests())) {
 					stop(class(self)[1], " does not expose a likelihood-test specification.", call. = FALSE)
 				}
+				edi_warn_lik_test_unavailable_once(self, private, testing_type, delta, reason = "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification)")
 				if (!isTRUE(self$is_nonestimable())) {
 					private$cache_nonestimable_estimate("likelihood_test_spec_unavailable")
 				}
@@ -169,6 +171,7 @@ StandardModelCacheSource = list(
 				warm_cache_key = paste0("likelihood_test:", testing_type),
 				bartlett_B = bartlett_B
 			)
+			if (!is.finite(p_value)) edi_warn_lik_test_unavailable_once(self, private, testing_type, delta)
 			if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
 				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
 			}

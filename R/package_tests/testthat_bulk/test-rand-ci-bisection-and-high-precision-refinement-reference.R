@@ -260,7 +260,7 @@ test_that("public CI reaches strict refinement on the fixed-permutation p-value 
 	unlockBinding("compute_randomization_ci_pval_cached", p)
 	unlockBinding("high_precision_confirm_and_refine_ci_bound", p)
 	unlockBinding("compute_two_sided_randomization_pval_from_t0s", p)
-	p$compute_two_sided_randomization_pval_from_t0s <- function(t0s, t) {
+	p$compute_two_sided_randomization_pval_from_t0s <- function(t0s, t, alternative = "two.sided") {  # TODO-113 added `alternative`
 		if (isTRUE(track$inside_refinement)) {
 			active_mc_control <- p$randomization_mc_control
 			track$scorer_calls[[length(track$scorer_calls) + 1L]] <- list(
@@ -271,7 +271,7 @@ test_that("public CI reaches strict refinement on the fixed-permutation p-value 
 				lower = track$active_bound_lower
 			)
 		}
-		original_scorer(t0s, t)
+		original_scorer(t0s, t, alternative)
 	}
 	p$compute_randomization_ci_pval_cached <- function(inf_obj, r, delta, transform_responses, permutations, ci_search_control, ci_pval_cache) {
 		old_delta <- track$active_delta

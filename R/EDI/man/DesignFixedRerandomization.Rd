@@ -72,13 +72,12 @@ in one batched call, computes \eqn{M(w)} for all of them via
 \code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
 
 \strong{Pure-R fallback (unbalanced or odd \eqn{n}, \code{obj_val_cutoff} mode
-only).} Draws one candidate at a time via \code{generate_one_rerandomized_w()} in an
-unbounded \code{repeat} loop that accepts the first candidate with
-\eqn{M(w) \le a}. \strong{Unlike the C++ fast path, this fallback has no draw-count
-safety limit}: if \code{obj_val_cutoff} is set tight enough that acceptance
-probability under the base randomization law is extremely small for this \eqn{n}/
-covariate structure, this loop can run for a very long time (in principle
-indefinitely) before finding an acceptable draw.
+only).} Draws candidates in vectorized batches (independent Bernoulli(\code{prob_T})
+assignments, or a fixed-size random subset when \code{prob_T = 0.5} with odd \eqn{n}),
+scores each batch at once, and keeps the first \eqn{r} candidates with
+\eqn{M(w) \le a}. Candidates with an empty arm are rejected. Like the C++ fast path
+it stops with an error after \code{max(1000 r, 1e5)} candidates if fewer than
+\eqn{r} are acceptable.
 }
 \examples{
 des = DesignFixedRerandomization$new(n = 10, response_type = 'continuous')

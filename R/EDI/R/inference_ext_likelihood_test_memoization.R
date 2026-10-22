@@ -31,7 +31,7 @@ InferenceExtLikelihoodTestMemoization = list(
 				if (!is.null(start) && length(start) == 0L) start = NULL
 				fit = tryCatch(
 					if (accepts_start) spec$fit_null(delta, start = start) else spec$fit_null(delta),
-					error = function(e) NULL
+					error = function(e) { edi_note_lik_test_failure(private, edi_lik_test_type_from_cache_key(cache_key), e); NULL }
 				)
 				extract_start = spec$extract_start %||% function(fit_obj) {
 					fit_obj$params %||% fit_obj$b %||% {
@@ -80,7 +80,7 @@ InferenceExtLikelihoodTestMemoization = list(
 
 			if (isTRUE(include_null_fit) && is.null(entry$null_fit)) {
 				fit_null = private$make_warm_fit_null_wrapper(spec, cache_key = warm_cache_key)
-				null_fit = tryCatch(fit_null(delta), error = function(e) NULL)
+				null_fit = tryCatch(fit_null(delta), error = function(e) { edi_note_lik_test_failure(private, testing_type, e); NULL })
 				null_params = if (!is.null(null_fit)) {
 					null_fit$params %||% null_fit$b %||% {
 						co = null_fit$coefficients
@@ -88,6 +88,7 @@ InferenceExtLikelihoodTestMemoization = list(
 					}
 				} else NULL
 				if (is.null(null_fit) || is.null(null_params) || length(null_params) < j || !is.finite(null_params[j])) {
+					edi_note_lik_test_failure(private, testing_type, paste0("the null-restricted refit at delta = ", format(delta), " failed or returned no usable fit"), overwrite = FALSE)
 					entry$invalid = TRUE
 					private$set_likelihood_test_eval_entry(testing_type, delta, entry)
 					return(entry)
@@ -106,19 +107,19 @@ InferenceExtLikelihoodTestMemoization = list(
 			}
 
 			if (isTRUE(include_score) && !is.null(entry$null_fit) && is.null(entry$score)) {
-				entry$score = tryCatch(spec$score(entry$null_fit), error = function(e) NULL)
+				entry$score = tryCatch(spec$score(entry$null_fit), error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("score evaluation failed: ", conditionMessage(e))); NULL })
 			}
 
 			if (isTRUE(include_information) && !is.null(entry$null_fit) && is.null(entry$information)) {
-				entry$information = tryCatch(private$get_score_test_information_matrix(spec, entry$null_fit), error = function(e) NULL)
+				entry$information = tryCatch(private$get_score_test_information_matrix(spec, entry$null_fit), error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("information-matrix evaluation failed: ", conditionMessage(e))); NULL })
 			}
 
 			if (isTRUE(include_full_negloglik) && is.null(entry$full_negloglik)) {
-				entry$full_negloglik = tryCatch(spec$neg_loglik(spec$full_fit), error = function(e) NA_real_)
+				entry$full_negloglik = tryCatch(spec$neg_loglik(spec$full_fit), error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("full-model log-likelihood failed: ", conditionMessage(e))); NA_real_ })
 			}
 
 			if (isTRUE(include_null_negloglik) && !is.null(entry$null_fit) && is.null(entry$null_negloglik)) {
-				entry$null_negloglik = tryCatch(spec$neg_loglik(entry$null_fit), error = function(e) NA_real_)
+				entry$null_negloglik = tryCatch(spec$neg_loglik(entry$null_fit), error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("null-model log-likelihood failed: ", conditionMessage(e))); NA_real_ })
 			}
 
 			private$set_likelihood_test_eval_entry(testing_type, delta, entry)
@@ -195,7 +196,7 @@ InferenceExtLikelihoodTestMemoization = list(
 				if (!is.finite(f_nll) || !is.finite(n_nll)) return(NA_real_)
 				factor = tryCatch(
 					private$get_bartlett_factor_approx(spec = spec, delta = delta, full_fit = spec$full_fit, null_fit = entry$null_fit, B = bartlett_B_resolved),
-					error = function(e) NULL
+					error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("Bartlett factor failed: ", conditionMessage(e))); NULL }
 				)
 				if (is.null(factor) || length(factor) != 1L || !is.finite(factor) || factor <= 0) return(NA_real_)
 				res = likelihood_ratio_test_from_negloglik_cpp(f_nll, n_nll, df = 1L)
@@ -210,7 +211,7 @@ InferenceExtLikelihoodTestMemoization = list(
 				if (!is.finite(f_nll) || !is.finite(n_nll)) return(NA_real_)
 				factor = tryCatch(
 					private$get_bartlett_factor_exact(spec = spec, delta = delta, full_fit = spec$full_fit, null_fit = entry$null_fit),
-					error = function(e) NULL
+					error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("Bartlett factor failed: ", conditionMessage(e))); NULL }
 				)
 				if (is.null(factor) || length(factor) != 1L || !is.finite(factor) || factor <= 0) return(NA_real_)
 				res = likelihood_ratio_test_from_negloglik_cpp(f_nll, n_nll, df = 1L)
@@ -228,8 +229,10 @@ InferenceExtLikelihoodTestMemoization = list(
 		},
 
 		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) {
+				edi_warn_lik_test_unavailable_once(self, private, testing_type, delta, reason = "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification)")
 				if (!isTRUE(self$is_nonestimable())) {
 					private$cache_nonestimable_estimate("likelihood_test_spec_unavailable")
 				}
@@ -242,6 +245,7 @@ InferenceExtLikelihoodTestMemoization = list(
 				warm_cache_key = paste0("likelihood_test:", testing_type),
 				bartlett_B = bartlett_B
 			)
+			if (!is.finite(p_value)) edi_warn_lik_test_unavailable_once(self, private, testing_type, delta)
 			if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
 				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
 			}

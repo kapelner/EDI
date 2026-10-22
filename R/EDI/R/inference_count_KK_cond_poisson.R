@@ -14,18 +14,107 @@
 	invisible(NULL)
 }
 
-.conservative_kk_onelik_pval = function(model_p, design_p){
+# TODO-121: the conservative rule returns max(model, design). When the model
+# (score / LR / gradient) quantity is unavailable the design-based Wald value
+# used to be returned silently under the score / LR label. Warn (classed,
+# once per object and testing type) so the substitution is never silent.
+.warn_kk_onelik_model_test_unavailable = function(owner, label){
+	if (is.null(owner) || is.null(label)) return(invisible(FALSE))
+	priv = owner$private
+	if (!is.null(priv$active_resampling_operation)) return(invisible(FALSE))
+	warned = priv$cached_values$lik_test_wald_fallback_warned %||% character()
+	if (label %in% warned) return(invisible(FALSE))
+	priv$cached_values$lik_test_wald_fallback_warned = c(warned, label)
+	warning(structure(
+		class = c("edi_lik_test_wald_fallback", "warning", "condition"),
+		list(
+			message = paste0(
+				class(owner$self)[1L], ": the ", label, " test could not be computed from the model ",
+				"likelihood, so the returned value is the design-based Wald value, NOT a ",
+				label, " test. Use testing_type = \"wald\" explicitly if that is what you want. ",
+				"Suppress with suppressWarnings(expr, classes = \"edi_lik_test_wald_fallback\")."
+			),
+			call = NULL
+		)
+	))
+	invisible(TRUE)
+}
+
+# Likelihood-test spec for the pairs-only / reservoir-only fallback fits of
+# InferenceCountKKCondPoissonOneLik (TODO-121): those fits set no combined
+# likelihood context, so get_likelihood_test_spec() returned NULL and score / LR
+# were silently served by the Wald path. Pairs-only is the conditional
+# (binomial-logit) likelihood with beta_T as the intercept; reservoir-only is an
+# ordinary Poisson-log likelihood. Both are fit / refit-under-null with glm.fit.
+kk_cpoisson_glm_fallback_spec = function(ctx){
+	Z = as.matrix(ctx$Z)
+	y = as.numeric(ctx$y)
+	size = ctx$size
+	j = as.integer(ctx$j_treat)
+	binom = identical(ctx$fallback, "pairs_only")
+	nll = function(b){
+		eta = as.numeric(Z %*% b)
+		if (binom) {
+			-sum(y * eta - size * (pmax(eta, 0) + log1p(exp(-abs(eta)))))
+		} else {
+			-sum(y * eta - exp(eta) - lgamma(y + 1))
+		}
+	}
+	weights_at = function(b){
+		eta = as.numeric(Z %*% b)
+		if (binom) { pr = stats::plogis(eta); list(res = y - size * pr, w = size * pr * (1 - pr)) }
+		else { mu = exp(eta); list(res = y - mu, w = mu) }
+	}
+	make_fit = function(b) list(b = b, params = b, converged = TRUE, neg_loglik = nll(b))
+	fit_with_fixed = function(delta){
+		delta = as.numeric(delta)[1L]
+		if (!is.finite(delta)) return(NULL)
+		if (ncol(Z) == 1L) return(make_fit(delta))
+		g = tryCatch(suppressWarnings(stats::glm.fit(
+			x = Z[, -j, drop = FALSE],
+			y = if (binom) y / size else y,
+			weights = if (binom) size else rep(1, length(y)),
+			offset = delta * Z[, j],
+			family = if (binom) stats::binomial() else stats::poisson()
+		)), error = function(e) NULL)
+		if (is.null(g) || !isTRUE(g$converged) || !all(is.finite(g$coefficients))) return(NULL)
+		b = numeric(ncol(Z)); b[j] = delta; b[-j] = g$coefficients
+		make_fit(b)
+	}
+	full = tryCatch(suppressWarnings(stats::glm.fit(
+		x = Z, y = if (binom) y / size else y,
+		weights = if (binom) size else rep(1, length(y)),
+		family = if (binom) stats::binomial() else stats::poisson()
+	)), error = function(e) NULL)
+	if (is.null(full) || !isTRUE(full$converged) || !all(is.finite(full$coefficients))) return(NULL)
+	info = function(fit) crossprod(Z, Z * weights_at(as.numeric(fit$b))$w)
+	list(
+		dat = NULL, fallback = ctx$fallback, X = Z, y = y, j = j,
+		full_fit = make_fit(as.numeric(full$coefficients)),
+		fit_null = function(delta, start = NULL) fit_with_fixed(delta),
+		extract_start = function(fit) as.numeric(fit$params %||% fit$b),
+		score = function(fit) as.numeric(crossprod(Z, weights_at(as.numeric(fit$b))$res)),
+		observed_information = info, fisher_information = info, information = info,
+		neg_loglik = function(fit) nll(as.numeric(fit$b))
+	)
+}
+
+.conservative_kk_onelik_pval = function(model_p, design_p, owner = NULL, label = NULL){
+	if (length(model_p) != 1L || !is.finite(model_p)) {
+		if (length(design_p) == 1L && is.finite(design_p)) .warn_kk_onelik_model_test_unavailable(owner, label)
+	}
 	vals = as.numeric(c(model_p, design_p))
 	vals = vals[is.finite(vals)]
 	if (!length(vals)) return(NA_real_)
 	min(1, max(0, max(vals)))
 }
 
-.conservative_kk_onelik_ci = function(model_ci, design_ci, alpha = 0.05){
+.conservative_kk_onelik_ci = function(model_ci, design_ci, alpha = 0.05, owner = NULL, label = NULL){
 	model_ci = as.numeric(model_ci)
 	design_ci = as.numeric(design_ci)
 	ok_model = length(model_ci) >= 2L && all(is.finite(model_ci[1:2]))
 	ok_design = length(design_ci) >= 2L && all(is.finite(design_ci[1:2]))
+	if (!ok_model && ok_design) .warn_kk_onelik_model_test_unavailable(owner, label)
 	ci = c(NA_real_, NA_real_)
 	names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 	if (!ok_model && !ok_design) return(ci)
@@ -467,7 +556,14 @@ CountKKHurdlePoissonIVWCSource = list(
 InferenceCountKKHurdlePoissonIVWC = define_inference_class(
 	classname = "InferenceCountKKHurdlePoissonIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "CountKKHurdlePoissonIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"CountKKHurdlePoissonIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRand for the same flattened-super$ reason as
 		# InferenceSurvivalKKWeibullMarginal/InferenceSurvivalCoxPHRegr; RandCI's
@@ -677,7 +773,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha)
+			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "score")
 		},
 		#' @description Computes a design-conservative likelihood-ratio confidence interval.
 		#' @param alpha Significance level.
@@ -692,7 +788,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha)
+			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "lik_ratio")
 		},
 		#' @description Computes a design-conservative gradient confidence interval.
 		#' @param alpha Significance level.
@@ -707,7 +803,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha)
+			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "gradient")
 		},
 		#' @description Compute the configured asymptotic two-sided p-value for the
 		#'   one-likelihood hurdle-Poisson treatment coefficient, delegating to Wald,
@@ -748,7 +844,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design)
+			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "score")
 		},
 		#' @description Computes a design-conservative likelihood-ratio p-value.
 		#' @param delta Null treatment effect value.
@@ -763,7 +859,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design)
+			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "lik_ratio")
 		},
 		#' @description Computes a design-conservative gradient p-value.
 		#' @param delta Null treatment effect value.
@@ -778,7 +874,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design)
+			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "gradient")
 		},
 		#' @description Compute the Wald confidence interval for the one-likelihood
 		#'   hurdle-Poisson treatment coefficient, falling back to bootstrap when the
@@ -1464,7 +1560,13 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 InferenceCountKKHurdlePoissonOneLik = define_inference_class(
 	classname = "InferenceCountKKHurdlePoissonOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "CountKKHurdlePoissonOneLikLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"CountKKHurdlePoissonOneLikLikelihood"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count/continuous KK migration this stretch.
@@ -1663,7 +1765,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha)
+			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "score")
 		},
 		#' @description Computes a design-adjusted likelihood-ratio confidence interval.
 		#' @param alpha Numeric. Significance level (default 0.05).
@@ -1678,7 +1780,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha)
+			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "lik_ratio")
 		},
 		#' @description Computes a design-adjusted gradient confidence interval.
 		#' @param alpha Numeric. Significance level (default 0.05).
@@ -1693,7 +1795,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha)
+			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "gradient")
 		},
 		#' @description Computes a design-adjusted score p-value.
 		#' @param delta Numeric. Null treatment effect value (default 0).
@@ -1708,7 +1810,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design)
+			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "score")
 		},
 		#' @description Computes a design-adjusted likelihood-ratio p-value.
 		#' @param delta Numeric. Null treatment effect value (default 0).
@@ -1723,7 +1825,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design)
+			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "lik_ratio")
 		},
 		#' @description Computes a design-adjusted gradient p-value.
 		#' @param delta Numeric. Null treatment effect value (default 0).
@@ -1738,7 +1840,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			private$cached_values$s_beta_hat_T = se_design
 			private$cached_values$df = df_design
 			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design)
+			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "gradient")
 		}
 		# approximate_bootstrap_distribution_beta_hat_T's old eval(body(...))
 		# restatement dropped as a verified no-op (same argument as
@@ -1933,6 +2035,9 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			private$cached_values$beta_hat_T = as.numeric(mod$b[1L])
 			private$cached_values$s_beta_hat_T = NA_real_
 			private$cached_values$df = NA_real_
+			private$cached_values$likelihood_test_context = list(
+				fallback = "pairs_only", Z = X, y = as.numeric(yT_v), size = as.numeric(n_k_v), j_treat = 1L
+			)
 			TRUE
 		},
 		try_reservoir_only = function(estimate_only, y_r_v, w_r_v, X_r_v){
@@ -1964,6 +2069,9 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 			private$cached_values$beta_hat_T = as.numeric(mod$b[j_treat])
 			if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(as.numeric(mod$ssq_b_j))
 			private$cached_values$df = NA_real_
+			private$cached_values$likelihood_test_context = list(
+				fallback = "reservoir_only", Z = as.matrix(X_fit), y = as.numeric(y_r_v), size = NULL, j_treat = as.integer(j_treat)
+			)
 			TRUE
 		},
 		weighted_cpoisson_neg_loglik = function(params, dat){
@@ -2128,6 +2236,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			dat         = spec$dat
+			if (is.null(dat)) return(NULL)  # pairs-only / reservoir-only fallback spec: no combined simulator
 			params_null = as.numeric(null_fit$params %||% null_fit$b)
 			p           = ncol(dat$X_diff_v)
 			beta_0      = params_null[1L]
@@ -2176,6 +2285,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 		get_likelihood_test_spec = function(){
 			private$shared_combined_cpoisson(estimate_only = FALSE)
 			dat = private$cached_values$likelihood_test_context
+			if (!is.null(dat) && !is.null(dat$fallback)) return(kk_cpoisson_glm_fallback_spec(dat))
 			if (is.null(dat) || is.null(private$cached_mod)) return(NULL)
 			list(
 				dat = dat,
@@ -2281,7 +2391,13 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 InferenceCountKKCondPoissonOneLik = define_inference_class(
 	classname = "InferenceCountKKCondPoissonOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "CountKKCondPoissonOneLikLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"CountKKCondPoissonOneLikLikelihood"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count/continuous KK migration this stretch.

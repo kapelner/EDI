@@ -174,50 +174,56 @@ ZeroAugmentedCountLikelihoodSource = list(
 		#' @description Zero-augmented mixture fits are too unstable under delete-one
 		#'   refits for jackknife inference; report explicit non-estimability.
 		compute_jackknife_estimate = function(unit = "auto"){
-			private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
+			private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
 			NA_real_
 		},
 		compute_jackknife_bias_estimate = function(unit = "auto"){
-			private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
+			private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
 			NA_real_
 		},
 		compute_jackknife_std_error = function(unit = "auto"){
-			private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
+			private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
 			NA_real_
 		},
 		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
-			private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
+			private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
 			NA_real_
 		},
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-			private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
+			private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
 		},
 		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
 			if (!is.null(type) && identical(tolower(type), "bca")) {
-				private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
+				private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
 				return(NA_real_)
 			}
 			private$nonparam_boot_compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 		},
 		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
 			if (!is.null(type) && identical(tolower(type), "bca")) {
-				return(private$missing_bootstrap_ci(alpha, "zero_augmented_poisson_jackknife_not_supported", stage = "se"))
+				private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
+				ci = c(NA_real_, NA_real_)
+				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+				return(ci)
 			}
 			private$nonparam_boot_compute_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
 		},
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			if (!is.null(type) && identical(tolower(type), "bca")) {
-				private$cache_nonestimable_se("zero_augmented_poisson_jackknife_not_supported")
+				private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
 				return(NA_real_)
 			}
 			private$bayesian_boot_compute_bayesian_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 		},
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			if (!is.null(type) && identical(tolower(type), "bca")) {
-				return(private$missing_bootstrap_ci(alpha, "zero_augmented_poisson_jackknife_not_supported", stage = "se"))
+				private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
+				ci = c(NA_real_, NA_real_)
+				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+				return(ci)
 			}
 			private$bayesian_boot_compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 		}
@@ -360,10 +366,30 @@ ZeroAugmentedCountLikelihoodSource = list(
 		safe_zero_augmented_vcov_se = function(fit, j_treat = 2L){
 			v = tryCatch({
 				vc = fit$vcov
-				if (is.null(vc) || length(dim(vc)) != 2L ||
-						nrow(vc) < j_treat || ncol(vc) < j_treat ||
-						zero_augmented_data_has_no_mle(private$y, identical(private$za_description(), "Hurdle Poisson")) ||
-						zero_augmented_fit_is_degenerate(as.matrix(vc), as.numeric(fit$params %||% NA_real_))) {
+				params_fit = as.numeric(fit$params %||% NA_real_)
+				# 2026-10-22: a zero-INFLATED fit whose zero-inflation block alone
+				# is unidentified (e.g. the zi treatment coefficient running to
+				# -Inf because one arm has no excess zeros) used to have its whole
+				# vcov rejected (rcond ~1e-12), discarding a perfectly estimable
+				# count-model treatment SE (pscl/glmmTMB report it finite and equal
+				# to the EDI inverse-information entry). Re-test degeneracy on the
+				# count-coefficient (+ dispersion) sub-block only. Hurdle fits keep
+				# the whole-matrix test (test-degenerate-fit-threshold-calibration).
+				degenerate = is.null(vc) || length(dim(vc)) != 2L ||
+					nrow(vc) < j_treat || ncol(vc) < j_treat ||
+					zero_augmented_data_has_no_mle(private$y, identical(private$za_description(), "Hurdle Poisson")) ||
+					zero_augmented_fit_is_degenerate(as.matrix(vc), params_fit)
+				if (degenerate && !is.null(vc) && length(dim(vc)) == 2L && all(is.finite(vc)) &&
+						!grepl("Hurdle", private$za_description(), fixed = TRUE)) {
+					p_cond = length(fit$coefficients$cond)
+					n_par = length(params_fit)
+					if (p_cond >= j_treat && nrow(vc) == n_par && n_par > p_cond) {
+						idx = seq_len(p_cond)
+						if (grepl("Negative Binomial", private$za_description(), fixed = TRUE)) idx = c(idx, n_par)
+						degenerate = zero_augmented_fit_is_degenerate(as.matrix(vc)[idx, idx, drop = FALSE], params_fit)
+					}
+				}
+				if (degenerate) {
 					private$cached_values$fit_degenerate = TRUE
 					NA_real_
 				} else {
@@ -1131,6 +1157,31 @@ ZeroAugmentedCountLikelihoodSource = list(
 					private$cached_values$model_fit_failure = private$zero_augmented_failed_fit_diagnostics(
 						fit %||% list(), exception_message = fit_error
 					)
+					if (!is_hurdle) {
+						# 2026-10-22 (release_v1_0_5.md TODO-4): the default
+						# Newton->LBFGS fit can stall just above the gradient
+						# tolerance from the smart cold start (|grad| ~5e-8 vs
+						# 1e-8, params already equal to pscl's to 6 digits) and
+						# be flagged unconverged; one cold retry from the plain
+						# start (no warm start, smart_cold_start = FALSE)
+						# converges (|grad| ~1e-9..1e-12). Mirrors the hurdle
+						# recovery below.
+						fit_retry = tryCatch(
+							fast_zero_augmented_poisson_cpp(
+								X_fit, as.numeric(private$y), Xzi_fit,
+								is_hurdle = FALSE,
+								warm_start_params = NULL,
+								warm_start_fisher_info = NULL,
+								smart_cold_start = FALSE,
+								estimate_only = estimate_only, optimization_alg = private$optimization_alg
+							),
+							error = function(e) NULL
+						)
+						if (!is.null(fit_retry) && isTRUE(fit_retry$converged)) {
+							private$cached_values$model_fit_failure$recovered_by = "plain_cold_start_retry"
+							fit = fit_retry
+						}
+					}
 					if (is_hurdle) {
 						fit_recovered = private$fit_hurdle_poisson_components_independently(
 							X_fit, Xzi_fit, estimate_only = estimate_only
@@ -1358,7 +1409,14 @@ InferenceCountZeroAugmentedPoissonAbstract = define_inference_class(
 	# declares dependencies = "CountLikelihoodPlumbing"; ParametricLikelihood
 	# Bootstrap pulls in LikelihoodTests -> Wald -> Jackknife separately;
 	# BayesianBootstrap pulls the rand/bootstrap chain.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "ZeroAugmentedCountLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"ZeroAugmentedCountLikelihood"
+	),
 	metadata = list(abstract = TRUE, likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
 	overrides = list(
 		public = c(

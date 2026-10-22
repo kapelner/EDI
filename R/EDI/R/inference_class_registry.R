@@ -117,6 +117,99 @@ inference_is_log_hazard_ratio_class = function(name) {
 		name %in% EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES
 }
 
+# TODO-119 (2026-10-22): classes whose estimand is a raw-scale quantity (a mean
+# difference of the proportion / count / ordinal score, or a rank / probability
+# effect) for EVERY response type they support, so the generic randomization CI
+# -- which inverts a logit shift (proportion), a log shift (count) or an
+# additive shift of the integer levels (ordinal) -- can never return bounds on
+# the estimand's own scale. Excluded from the `randomization_ci` capability and
+# refused on a direct call. Classes that also serve continuous responses
+# (e.g. InferenceAllSimpleAverageDiff) keep the capability and are refused per
+# response type by `inference_randomization_ci_scale_mismatch()`.
+EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES = c(
+	"InferencePropGCompMeanDiff",
+	"InferenceOrdinalGCompMeanDiff",
+	"InferenceOrdinalJonckheereTerpstraTest",
+	"InferenceOrdinalPairedSignTest",
+	"InferenceOrdinalRidit"
+)
+
+# Returns a character reason when the generic randomization-CI inversion would
+# put its bounds on a different scale than `compute_estimate()` for this class
+# and response type, else NULL. `classes` is `class(self)`; `is_model_scale` is
+# `inference_uses_model_scale_randomization_transform(self)`.
+inference_randomization_ci_scale_mismatch = function(classes, resp_type, is_model_scale) {
+	if (any(classes %in% EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES)) {
+		return(paste0(
+			"its estimand is a raw-scale mean difference / rank effect, but the sharp null is imposed as ",
+			switch(resp_type, proportion = "a logit shift", count = "a log (multiplicative) shift",
+				ordinal = "an additive shift of the integer levels (a step-function p-value)", "a shift on another scale"),
+			", so the inverted delta bounds are not bounds on the estimand"
+		))
+	}
+	if (resp_type %in% c("proportion", "count")) {
+		tags = unlist(EDI_INFERENCE_ESTIMAND_TAGS[intersect(classes, names(EDI_INFERENCE_ESTIMAND_TAGS))], use.names = FALSE)
+		raw_scale = length(tags) > 0L && any(tags %in% c("mean_difference", "hodges_lehmann_shift"))
+		if (!isTRUE(is_model_scale) || raw_scale) {
+			return(paste0(
+				"the search inverts a ", if (identical(resp_type, "proportion")) "logit" else "log",
+				" shift of the ", resp_type, " response, but this class's estimate is on the raw response scale, ",
+				"so the delta bounds are not on the scale of the estimate (or of its asymptotic CI)"
+			))
+		}
+	}
+	# TODO-119 audit (2026-10-22): survival responses are inverted on a log-time
+	# shift, so a raw-scale (time-unit) mean-difference / Hodges-Lehmann estimate
+	# is also on a different scale than the delta bounds (e.g. generic
+	# InferenceAllSimpleAverageDiff on survival: asymptotic CI [-3.3, 2.7] vs rand
+	# CI [-0.38, 0.93]). Model-scale survival classes (log_time_ratio) are unaffected.
+	if (identical(resp_type, "survival")) {
+		tags = unlist(EDI_INFERENCE_ESTIMAND_TAGS[intersect(classes, names(EDI_INFERENCE_ESTIMAND_TAGS))], use.names = FALSE)
+		if (length(tags) > 0L && any(tags %in% c("mean_difference", "hodges_lehmann_shift"))) {
+			return(paste0(
+				"the search inverts a log-time shift of the survival response, but this class's estimate is on the raw ",
+				"time scale, so the delta bounds are not on the scale of the estimate (or of its asymptotic CI)"
+			))
+		}
+	}
+	NULL
+}
+
+# TODO-119 / G6 (2026-10-22): the proportion randomization CI imposes the sharp
+# null as a LOGIT shift (`shift_randomization_responses()`, transform "logit").
+# An exact 0 or 1 response is clamped to about +-36 on the logit scale and cannot
+# move for |delta| << 36, so p(delta) is flat for those units and the search hits
+# its boundary or excludes the estimate. Returns TRUE when the CI search would
+# use that logit shift (proportion, model-scale class) and `y` holds an exact 0/1
+# (within `zero_one_logit_clamp`, the same notion `logit()` clamps with).
+inference_randomization_ci_exact_zero_one_refusal = function(resp_type, is_model_scale, y, zero_one_logit_clamp = .Machine$double.eps) {
+	if (!identical(resp_type, "proportion") || !isTRUE(is_model_scale)) return(FALSE)
+	y = suppressWarnings(as.numeric(y))
+	y = y[is.finite(y)]
+	length(y) > 0L && any(y <= zero_one_logit_clamp | y >= 1 - zero_one_logit_clamp)
+}
+
+# Signals the classed refusal for the case above. Shared by the generic
+# randomization CI and the Zhang-combined quantile CI so both refuse alike.
+inference_stop_rand_ci_exact_zero_one = function(class_name) {
+	stop(structure(
+		class = c("edi_rand_ci_exact_zero_one_refused", "error", "condition"),
+		list(call = NULL, message = paste0(
+			"Randomization confidence intervals are not supported for ", class_name,
+			" when the proportion response contains exact 0 or 1 values: the randomization CI imposes ",
+			"the sharp null as a shift on the logit scale, and exact 0/1 responses cannot be shifted ",
+			"there (they are clamped to about +-36 on the logit scale), so the p-value is flat in delta ",
+			"for those units and the inverted bounds would be wrong. Use a likelihood-based CI ",
+			"(compute_score_confidence_interval(), compute_gradient_confidence_interval(), ",
+			"compute_lik_ratio_bartlett_confidence_interval()) where the class provides them, the ",
+			"asymptotic/Wald CI (compute_asymp_confidence_interval()), or a bootstrap CI ",
+			"(compute_bootstrap_confidence_interval(), compute_rand_bootstrap_confidence_interval()). ",
+			"The randomization p-value at delta = 0 remains available. ",
+			"See TODO-119 in R/package_metadata/future_release_plans/release_v1_0_5.md."
+		))
+	))
+}
+
 EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 	exclusions = list(
 		# ordLORgee supplies the primary estimate, but the current non-uniform
@@ -140,7 +233,7 @@ EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 	# wrong axis for them (see EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES above).
 	# Only the plain randomization CI is excluded; the randomization-bootstrap
 	# CI is a percentile interval on the estimate's own scale and stays.
-	for (class_name in EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES) {
+	for (class_name in c(EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES, EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES)) {
 		exclusions[[class_name]] = unique(c(
 			exclusions[[class_name]],
 			"randomization_ci"
@@ -589,6 +682,9 @@ EDI_INFERENCE_HIERARCHY_MIGRATION_MANIFEST = new.env(parent = emptyenv())
 
 EDI_INFERENCE_ABSTRACT_CLASS_NAMES = c(
 	"Inference",
+	# v1.0.5 TODO-97 (2026-10-22): ResamplingCore's component source, the
+	# ladder parent of InferenceRand.
+	"InferenceResamplingCore",
 	"InferenceAsymp",
 	"InferenceJackknife",
 	"InferenceNonParamBootstrap",
@@ -1071,6 +1167,7 @@ infer_inference_estimand_type = function(generator, name = generator$classname) 
 infer_inference_direct_components = function(name) {
 	switch(
 		name,
+		InferenceResamplingCore = "ResamplingCore",
 		InferenceRand = "RandomizationTest",
 		InferenceRandCI = "RandomizationCI",
 		InferenceNonParamBootstrap = "NonparametricBootstrap",
@@ -1086,7 +1183,14 @@ infer_inference_direct_components = function(name) {
 		InferenceParamBootstrap = "ParametricLikelihoodBootstrap",
 		InferenceAsympLikStdModCache = "StandardModelCache",
 		InferenceAsympLikStdModCacheNoParamBootstrap = "StandardModelCache",
-			InferenceCountZeroAugmentedPoissonAbstract = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "ZeroAugmentedCountLikelihood"),
+			InferenceCountZeroAugmentedPoissonAbstract = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"ZeroAugmentedCountLikelihood"
+			),
 			# BayesianBootstrap added 2026-09-15: this hand-maintained switch had
 			# drifted out of sync with these two classes' own define_inference_
 			# class(components=...) declarations (inference_count_quasipoisson.R/
@@ -1100,80 +1204,405 @@ infer_inference_direct_components = function(name) {
 			# InferenceSurvivalGLMMWeibullFrailtyNormalOneLik, was a false
 			# positive from the audit script's own regex choking on parentheses
 			# inside a code comment, not a real discrepancy).
-			InferenceCountQuasiPoisson = c("Wald", "CountCompositeLikelihood", "BayesianBootstrap", "MarginalEstimand"),
-			InferenceCountRobustPoisson = c("Wald", "CountCompositeLikelihood", "RobustSandwich", "BayesianBootstrap"),
-			InferenceOrdinalPropOddsRegr = c(
+			InferenceCountQuasiPoisson = c(
+				"Jackknife",
+				"Wald",
+				"CountCompositeLikelihood",
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
 				"BayesianBootstrap",
+				"MarginalEstimand"
+			),
+			InferenceCountRobustPoisson = c(
+				"Jackknife",
+				"Wald",
+				"CountCompositeLikelihood",
+				"RobustSandwich",
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap"
+			),
+			InferenceOrdinalPropOddsRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
 				"ParametricLikelihoodBootstrap",
 				"OrdinalProportionalOddsLikelihood"
 			),
 			InferenceOrdinalAdjCatLogitRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
 				"BayesianBootstrap",
+				"Jackknife",
 				"ParametricLikelihoodBootstrap",
 				"OrdinalAdjacentCategoryLikelihood"
 			),
 			InferenceOrdinalCloglogRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
 				"BayesianBootstrap",
+				"Jackknife",
 				"ParametricLikelihoodBootstrap",
 				"OrdinalCloglogLikelihood"
 			),
 			InferenceOrdinalCauchitRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
 				"BayesianBootstrap",
+				"Jackknife",
 				"ParametricLikelihoodBootstrap",
 				"OrdinalCauchitLikelihood"
 			),
-			InferenceOrdinalStereotypeLogitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalStereotypeLikelihood"),
-			InferenceOrdinalContRatioRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalContinuationRatioLikelihood"),
-			InferenceOrdinalOrderedProbitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalOrderedProbitLikelihood"),
-			InferenceIncidLogRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood", "MarginalEstimand"),
-			InferenceIncidProbitRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceProbitLikelihood"),
-			InferenceIncidLogBinomial = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogBinomialLikelihood"),
-			InferenceIncidModifiedPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceModifiedPoissonLikelihood"),
-			InferenceIncidBinomialIdentityRiskDiff = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceBinomialIdentityLikelihood", "MarginalEstimand"),
-			InferenceIncidGCompAbstract = "IncidenceGComputation",
-			InferenceSurvivalWeibullRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalWeibullLikelihood"),
-			InferenceSurvivalDepCensTransformRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalDepCensTransform"),
-			InferenceSurvivalKKWeibullMarginal = c("BayesianBootstrap", "Wald", "SurvivalKKWeibullMarginal"),
-			InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = c("BayesianBootstrap", "Wald", "SurvivalGLMMWeibullFrailtyLoggammaIVWC"),
-			InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalGLMMWeibullFrailtyLoggammaOneLik"),
-			InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = c("BayesianBootstrap", "Wald", "SurvivalGLMMWeibullFrailtyNormalIVWC"),
-			InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = c(
-				"BayesianBootstrap", "ParametricLikelihoodBootstrap",
-				"SurvivalGLMMWeibullFrailtyNormalOneLikLeaf", "SurvivalGLMMWeibullFrailtyNormalOneLik"
+			InferenceOrdinalStereotypeLogitRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"OrdinalStereotypeLikelihood"
 			),
-			InferenceCountPoissonKKGEE = "KKGEE",
-		InferenceIncidKKGEE = "KKGEE",
-		InferenceOrdinalKKGEE = "KKGEE",
-		InferencePropKKGEE = "KKGEE",
+			InferenceOrdinalContRatioRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"OrdinalContinuationRatioLikelihood"
+			),
+			InferenceOrdinalOrderedProbitRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"OrdinalOrderedProbitLikelihood"
+			),
+			InferenceIncidLogRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"IncidenceLogisticLikelihood",
+				"MarginalEstimand"
+			),
+			InferenceIncidProbitRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"IncidenceProbitLikelihood"
+			),
+			InferenceIncidLogBinomial = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"IncidenceLogBinomialLikelihood"
+			),
+			InferenceIncidModifiedPoisson = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"IncidenceModifiedPoissonLikelihood"
+			),
+			InferenceIncidBinomialIdentityRiskDiff = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"IncidenceBinomialIdentityLikelihood",
+				"MarginalEstimand"
+			),
+			InferenceIncidGCompAbstract = "IncidenceGComputation",
+			InferenceSurvivalWeibullRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"SurvivalWeibullLikelihood"
+			),
+			InferenceSurvivalDepCensTransformRegr = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"SurvivalDepCensTransform"
+			),
+			InferenceSurvivalKKWeibullMarginal = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"Wald",
+				"SurvivalKKWeibullMarginal"
+			),
+			InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"Wald",
+				"SurvivalGLMMWeibullFrailtyLoggammaIVWC"
+			),
+			InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"SurvivalGLMMWeibullFrailtyLoggammaOneLik"
+			),
+			InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"Wald",
+				"SurvivalGLMMWeibullFrailtyNormalIVWC"
+			),
+			InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"BayesianBootstrap",
+				"Jackknife",
+				"ParametricLikelihoodBootstrap",
+				"SurvivalGLMMWeibullFrailtyNormalOneLikLeaf",
+				"SurvivalGLMMWeibullFrailtyNormalOneLik"
+			),
+			InferenceCountPoissonKKGEE = c(
+				"RandomizationCI",
+				"RandomizationBootstrapCI",
+				"Jackknife",
+				"KKGEE"
+			),
+		InferenceIncidKKGEE = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"Jackknife",
+			"KKGEE"
+		),
+		InferenceOrdinalKKGEE = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"Jackknife",
+			"KKGEE"
+		),
+		InferencePropKKGEE = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"Jackknife",
+			"KKGEE"
+		),
 		InferenceKKPassThroughCompound = "KKCompound",
 		InferenceKKPassThroughCompoundNoParamBootstrap = "KKCompound",
 		InferenceCustomRand = "RandomizationCI",
-		InferenceAllSimpleAverageDiff = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
-		InferenceAllSimpleMeanDiffPooledVar = c("BayesianBootstrap", "Wald", "SimpleMeanDifferencePooledVar"),
-		InferenceAllKKMeanDiffIVWC = c("BayesianBootstrap", "Wald", "KKMeanDifferenceIVWC"),
-		InferenceIncidKKNewcombeRiskDiff = c("BayesianBootstrap", "Wald", "KKNewcombeRiskDiffIVWC"),
-		InferenceCountKKHurdlePoissonIVWC = c("BayesianBootstrap", "Wald", "CountKKHurdlePoissonIVWC"),
-		InferenceContinKKRobustRegrIVWC = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrIVWC"),
-		InferenceContinKKOLSIVWC = c("BayesianBootstrap", "Wald", "ContinKKOLSIVWC"),
-		InferenceSurvivalKKRankRegrIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKRankRegrIVWC"),
-		InferenceSurvivalKKLWACoxPHIVWC = c("BayesianBootstrap", "Wald", "KKLWACoxIVWCPartialLikelihood"),
-		InferenceSurvivalKKLWACoxPHOneLik = c("BayesianBootstrap", "KKLWACoxOneLikPartialLikelihood"),
-		InferenceBaiAdjustedTKK14 = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
-		InferenceSurvivalKKStratCoxPHIVWC = c("BayesianBootstrap", "Wald", "SurvivalKKStratCoxIVWC"),
-		InferenceSurvivalKKStratCoxPHOneLik = c("BayesianBootstrap", "SurvivalKKStratCoxOneLikPartialLikelihood"),
-		InferenceContinKKOLSOneLik = c("BayesianBootstrap", "ContinKKOLSOneLikLikelihood"),
-		InferenceContinKKRobustRegrOneLik = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrOneLik"),
-		InferenceContinKKQuantileRegrOneLik = c("BayesianBootstrap", "Wald", "KKQuantileRegrOneLik"),
-		InferencePropKKQuantileRegrOneLik = c("BayesianBootstrap", "Wald", "KKQuantileRegrOneLik"),
-		InferenceCountKKHurdlePoissonOneLik = c("BayesianBootstrap", "CountKKHurdlePoissonOneLikLikelihood"),
-		InferenceCountKKCondPoissonOneLik = c("BayesianBootstrap", "CountKKCondPoissonOneLikLikelihood"),
-		InferenceIncidKKCondLogitOneLik = c("BayesianBootstrap", "IncidKKCondLogitOneLikLikelihood"),
-		InferenceIncidKKCondLogitIVWC = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
-		InferenceIncidKKGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
-		InferenceIncidKKGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
-		InferenceContinKKQuantileRegrIVWC = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
-		InferencePropKKQuantileRegrIVWC = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
-		InferenceBaiAdjustedTKK21 = c("BayesianBootstrap", "Wald", "BaiAdjustedT"),
+		InferenceAllSimpleAverageDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"SimpleMeanDifference"
+		),
+		InferenceAllSimpleMeanDiffPooledVar = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"SimpleMeanDifferencePooledVar"
+		),
+		InferenceAllKKMeanDiffIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKMeanDifferenceIVWC"
+		),
+		InferenceIncidKKNewcombeRiskDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKNewcombeRiskDiffIVWC"
+		),
+		InferenceCountKKHurdlePoissonIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"CountKKHurdlePoissonIVWC"
+		),
+		InferenceContinKKRobustRegrIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"ContinKKRobustRegrIVWC"
+		),
+		InferenceContinKKOLSIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"ContinKKOLSIVWC"
+		),
+		InferenceSurvivalKKRankRegrIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"SurvivalKKRankRegrIVWC"
+		),
+		InferenceSurvivalKKLWACoxPHIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKLWACoxIVWCPartialLikelihood"
+		),
+		InferenceSurvivalKKLWACoxPHOneLik = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"KKLWACoxOneLikPartialLikelihood"
+		),
+		InferenceBaiAdjustedTKK14 = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"BaiAdjustedT"
+		),
+		InferenceSurvivalKKStratCoxPHIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"SurvivalKKStratCoxIVWC"
+		),
+		InferenceSurvivalKKStratCoxPHOneLik = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"SurvivalKKStratCoxOneLikPartialLikelihood"
+		),
+		InferenceContinKKOLSOneLik = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ContinKKOLSOneLikLikelihood"
+		),
+		InferenceContinKKRobustRegrOneLik = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"ContinKKRobustRegrOneLik"
+		),
+		InferenceContinKKQuantileRegrOneLik = c(
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKQuantileRegrOneLik"
+		),
+		InferencePropKKQuantileRegrOneLik = c(
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKQuantileRegrOneLik"
+		),
+		InferenceCountKKHurdlePoissonOneLik = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"CountKKHurdlePoissonOneLikLikelihood"
+		),
+		InferenceCountKKCondPoissonOneLik = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"CountKKCondPoissonOneLikLikelihood"
+		),
+		InferenceIncidKKCondLogitOneLik = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"IncidKKCondLogitOneLikLikelihood"
+		),
+		InferenceIncidKKCondLogitIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"IncidKKCondLogitIVWC"
+		),
+		InferenceIncidKKGCompRiskDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"IncidenceKKGComputation"
+		),
+		InferenceIncidKKGCompRiskRatio = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"IncidenceKKGComputation"
+		),
+		InferenceContinKKQuantileRegrIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKQuantileRegrIVWC"
+		),
+		InferencePropKKQuantileRegrIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKQuantileRegrIVWC"
+		),
+		InferenceBaiAdjustedTKK21 = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"BaiAdjustedT"
+		),
 		# 2026-08-19 (inference_suite_inspect.md audit, RandomizationBootstrapCI
 		# capability item): corrected from the stale "RandomizationBootstrap"
 		# (p-value only) -- both real factory calls compose
@@ -1182,8 +1611,20 @@ infer_inference_direct_components = function(name) {
 		# compute_rand_bootstrap_confidence_interval genuinely. Only surfaced
 		# now because RandomizationBootstrapCI previously provided no
 		# capability of its own, so this mismatch was invisible.
-		InferenceAllSimpleWilcox = c("RandomizationBootstrapCI", "Wald", "SimpleWilcox"),
-		InferenceAllKKWilcoxIVWC = c("RandomizationBootstrapCI", "Wald", "KKWilcoxIVWC"),
+		InferenceAllSimpleWilcox = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"Jackknife",
+			"Wald",
+			"SimpleWilcox"
+		),
+		InferenceAllKKWilcoxIVWC = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"Jackknife",
+			"Wald",
+			"KKWilcoxIVWC"
+		),
 		# Both Cox entries list BayesianBootstrap explicitly: their factory calls
 		# compose c("BayesianBootstrap", <cox component>) (the bootstrap layer is
 		# NOT in the Cox components' dependency chains -- see the 2026-08-17
@@ -1191,10 +1632,24 @@ infer_inference_direct_components = function(name) {
 		# so or effective/target components drift from the assembled reality.
 		# ParametricLikelihoodBootstrap added 2026-09-19 -- see the factory
 		# call's own comment in inference_survival_coxph.R.
-		InferenceSurvivalCoxPHRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
+		InferenceSurvivalCoxPHRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"CoxPartialLikelihood"
+		),
 		# ParametricLikelihoodBootstrap added 2026-09-19 -- see the matching
 		# InferenceSurvivalCoxPHRegr comment above.
-		InferenceSurvivalStratCoxPHRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
+		InferenceSurvivalStratCoxPHRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"StratifiedCoxPartialLikelihood"
+		),
 		# The following classes compose components directly via their own
 		# define_inference_class(components = ...) call (no intermediate
 		# algorithmic abstract base), so their direct_components here must
@@ -1205,11 +1660,41 @@ infer_inference_direct_components = function(name) {
 		# "wald" from get_supported_testing_types()). Found investigating
 		# spurious "every design/inference combo was filtered out" simulation
 		# warnings and CMH/get_standard_error test warnings.
-		InferenceContinRobustRegr = c("BayesianBootstrap", "Wald"),
-		InferenceIncidWald = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
-		InferencePropGCompMeanDiff = c("BayesianBootstrap", "Jackknife"),
-		InferenceSurvivalLogRank = c("BayesianBootstrap", "Wald"),
-		InferencePropQuantileRegr = c("BayesianBootstrap", "Wald"),
+		InferenceContinRobustRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceIncidWald = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"SimpleMeanDifference"
+		),
+		InferencePropGCompMeanDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife"
+		),
+		InferenceSurvivalLogRank = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferencePropQuantileRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
 		# Updated 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC
 		# Estimators", "Migrate KK GEE and GLMM classes"): mirrors the
 		# factory reality after InferenceAbstractKKCondLogitGLMM flipped from
@@ -1224,29 +1709,118 @@ infer_inference_direct_components = function(name) {
 		# three leaves have their own direct_components entry, by design --
 		# same pattern as every other InferenceAsympLikStdModCache-style
 		# leaf).
-		InferenceAbstractKKCondLogitGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
-		InferenceSurvivalGehanWilcox = c("BayesianBootstrap", "Wald"),
-		InferenceIncidCMH = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+		InferenceAbstractKKCondLogitGLMM = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"KKPassThrough"
+		),
+		InferenceSurvivalGehanWilcox = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceIncidCMH = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"SimpleMeanDifference"
+		),
 		# Updated 2026-08-19 (fix_inference_hierarchy.md "Partial-Likelihood
 		# Estimators", "Migrate KK partial-likelihood classes"): mirrors the
 		# factory reality after flipping from `inherit = InferenceAsympLik`
 		# to `inherit = Inference` with `BayesianBootstrap`/`Wald` composed
 		# explicitly (same class of stale-switch-entry gap fixed repeatedly
 		# this stretch for the KKGLMM family).
-		InferenceOrdinalKKCondAdjCatLogitRegr = c("BayesianBootstrap", "Wald", "OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
-		InferenceOrdinalRidit = c("BayesianBootstrap", "Wald"),
-		InferenceOrdinalGCompMeanDiff = c("BayesianBootstrap", "Wald"),
-		InferenceSurvivalRestrictedMeanDiff = c("BayesianBootstrap", "Wald"),
-		InferenceIncidExtendedRobins = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
-		InferenceContinQuantileRegr = c("BayesianBootstrap", "Wald"),
-		InferenceOrdinalJonckheereTerpstraTest = c("BayesianBootstrap", "Wald"),
-		InferenceIncidNewcombeRiskDiff = c("BayesianBootstrap", "Wald"),
-		InferenceSurvivalKMDiff = c("BayesianBootstrap", "Wald"),
-		InferenceIncidRiskDiff = c("BayesianBootstrap", "Wald"),
-		InferenceOrdinalPartialProportionalOddsRegr = c("BayesianBootstrap", "Wald"),
+		InferenceOrdinalKKCondAdjCatLogitRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"OrdinalConditionalLogitPartialLikelihood",
+			"KKPassThrough"
+		),
+		InferenceOrdinalRidit = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceOrdinalGCompMeanDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceSurvivalRestrictedMeanDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceIncidExtendedRobins = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"SimpleMeanDifference"
+		),
+		InferenceContinQuantileRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceOrdinalJonckheereTerpstraTest = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceIncidNewcombeRiskDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceSurvivalKMDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceIncidRiskDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceOrdinalPartialProportionalOddsRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
 		InferenceAbstractQuantileRandCI = "QuantileRandomizationCI",
-		InferenceCustomAsymp = c("Wald", "NonparametricBootstrap"),
-		InferenceCustomBoot = "NonparametricBootstrap",
+		InferenceCustomAsymp = c("Jackknife", "Wald", "RandomizationCI"),
+		InferenceCustomBoot = c("RandomizationCI", "NonparametricBootstrap"),
 		# Updated 2026-08-19 (fix_inference_hierarchy.md "Partial-Likelihood
 		# Estimators", "Migrate KK partial-likelihood classes"): mirrors the
 		# factory reality after flipping from `inherit = InferenceAsympLik`
@@ -1255,7 +1829,14 @@ infer_inference_direct_components = function(name) {
 		# (InferenceOrdinalKKCLMM/...Probit/...Cauchit/...Cloglog) via
 		# resolve_inference_components()'s parent-chain walk (none of them
 		# have their own direct_components entry, by design).
-		InferenceAbstractKKOrdinalCLMM = c("BayesianBootstrap", "Wald", "KKPassThrough"),
+		InferenceAbstractKKOrdinalCLMM = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKPassThrough"
+		),
 		# Added 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
 		# Estimators", "ModifiedPoisson full-likelihood migration"): this
 		# class was previously plain R6 (raw-splicing InferenceMixinKKPassThrough,
@@ -1266,10 +1847,35 @@ infer_inference_direct_components = function(name) {
 		# InferenceIncidKKModifiedPoisson and InferenceIncidKKGCompAbstract
 		# (both plain-R6 descendants) via resolve_inference_components()'s
 		# parent-chain walk.
-		InferenceAbstractKKMarginalIncid = c("BayesianBootstrap", "Wald", "KKPassThrough"),
-		InferenceIncidMiettinenNurminenRiskDiff = c("BayesianBootstrap", "Wald"),
-		InferenceIncidGCompRiskDiff = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
-		InferenceIncidGCompRiskRatio = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
+		InferenceAbstractKKMarginalIncid = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKPassThrough"
+		),
+		InferenceIncidMiettinenNurminenRiskDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald"
+		),
+		InferenceIncidGCompRiskDiff = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"IncidenceGComputation"
+		),
+		InferenceIncidGCompRiskRatio = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"IncidenceGComputation"
+		),
 		# 2026-08-19 (fix_inference_hierarchy.md "KK And IVWC Estimators",
 		# "Migrate KK GEE and GLMM classes"): flipped from the hybrid
 		# `inherit = InferenceParamBootstrap` state (which reached
@@ -1277,9 +1883,30 @@ infer_inference_direct_components = function(name) {
 		# needing no entry here) to composing components directly -- must
 		# mirror the define_inference_class(components = ...) call exactly,
 		# same rationale as the direct-composition classes documented above.
-		InferenceContinKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
-		InferenceCountKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
-		InferenceOrdinalKKGLMM = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+		InferenceContinKKGLMM = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"KKGLMM"
+		),
+		InferenceCountKKGLMM = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"KKGLMM"
+		),
+		InferenceOrdinalKKGLMM = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"KKGLMM"
+		),
 		# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 		# migration ladders): flipped from `inherit =
 		# InferenceAsympLikStdModCacheNoParamBootstrap` (a deep algorithmic-
@@ -1287,9 +1914,32 @@ infer_inference_direct_components = function(name) {
 		# StandardModelCache component directly -- must mirror the
 		# define_inference_class(components = ...) call exactly, same
 		# rationale as every other direct-composition class documented above.
-		InferencePropFractionalLogit = c("BayesianBootstrap", "Wald", "StandardModelCache"),
-		InferencePropBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
-		InferencePropZeroOneInflatedBetaRegr = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
+		InferencePropFractionalLogit = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"StandardModelCache"
+		),
+		InferencePropBetaRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"StandardModelCache",
+			"MarginalEstimand"
+		),
+		InferencePropZeroOneInflatedBetaRegr = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"StandardModelCache",
+			"MarginalEstimand"
+		),
 		# 2026-08-23 (marginal_estimand_report.md TODO-5): direct component
 		# only -- ZeroAugmentedCountLikelihood/CountLikelihoodPlumbing/etc.
 		# arrive via the inherited InferenceCountZeroAugmentedPoissonAbstract
@@ -1299,16 +1949,57 @@ infer_inference_direct_components = function(name) {
 		# same convention as every other entry in this switch.
 		InferenceCountZeroInflatedPoisson = "MarginalEstimand",
 		InferenceCountHurdlePoisson = "MarginalEstimand",
-		InferenceCountPoisson = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing", "MarginalEstimand"),
-		InferenceCountNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
-		InferenceCountHurdleNegBin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
-		InferenceContinLin = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
-		InferenceContinOLS = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
+		InferenceCountPoisson = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"CountLikelihoodPlumbing",
+			"MarginalEstimand"
+		),
+		InferenceCountNegBin = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"CountLikelihoodPlumbing"
+		),
+		InferenceCountHurdleNegBin = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"CountLikelihoodPlumbing"
+		),
+		InferenceContinLin = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap"
+		),
+		InferenceContinOLS = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap"
+		),
 		# 2026-08-21: the last per-class-ladder migration -- flipped from
 		# `inherit = InferenceAsympLik, components = "KKPassThrough"` (the
 		# hybrid state) to full shallow composition; must mirror the
 		# define_inference_class(components = ...) call exactly.
-		InferenceOrdinalPairedSignTest = c("BayesianBootstrap", "Wald", "KKPassThrough"),
+		InferenceOrdinalPairedSignTest = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"Wald",
+			"KKPassThrough"
+		),
 		character()
 	)
 }

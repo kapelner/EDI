@@ -12,10 +12,14 @@ Candidate optimizations beyond what has already been done:
   ordinal, hurdle and other families. See `perf_experiments_final.md` (in
   `EDI_priv`, under `R/package_metadata/audits/`).
 
-Nothing below has been measured yet. Each item says what it would test, why it
-might help, and how to adopt it if it wins.
+Sections 1–4 and 6 have been measured; each has a dated "Result"
+subsection, and the [Suggested order](#suggested-order) at the end gives the
+status of each. Section 5 has not been tried. Each section says what it
+would test, why it might help, and how to adopt it if it wins.
 
 ## Where the remaining time goes
+
+### Before `fork=FALSE` (2026-10-14)
 
 From the `/usr/bin/time -v` output of the R-build benchmark in
 [R_OPTIMIZATION.md](../R_OPTIMIZATION.md#measured-results) (PGO build, one
@@ -32,6 +36,103 @@ addressed. The test harness forks a child per call (`safe_call()` via
 `parallel::mcparallel()`) from a process with up to ~1.8 GB resident, so fork
 plus copy-on-write page faults are the prime suspect. `EDI`'s own parallel
 paths fork too, so this is not only a test-harness artifact.
+
+Section 3 confirmed this, and in-process `safe_call()` (`fork=FALSE`, now
+the default) removed it.
+
+### Under `fork=FALSE` (2026-10-18)
+
+System time is no longer a bucket: the quiet in-process run in section 3
+used 2,126 s user and 32 s system (~1.5%). The time is now in the tests
+themselves. By test family, for the six-class mix in-process at `nc = 2`
+(2,166 calls, 4,144 s summed call time, all rows identical to `fork=TRUE`):
+
+| Family | Calls | Seconds | Share |
+| --- | --- | --- | --- |
+| Bootstrap | 688 | 1,575 | 38% |
+| Bayesian bootstrap | 400 | 1,258 | 30% |
+| Bartlett | 84 | 692 | 17% |
+| Estimate | 60 | 214 | 5% |
+| Randomization | 148 | 160 | 4% |
+| Parametric bootstrap | 54 | 119 | 3% |
+| Jackknife | 132 | 55 | 1% |
+| Everything else (asymptotic, Wald, score, LR, …) | 600 | 71 | 2% |
+
+Resampling (bootstrap, Bayesian, parametric, jackknife, randomization) is
+76% of the time (83% in the `nc = 4` run, which outside load slowed
+unevenly). Time is concentrated:
+the slowest 10% of calls take 58%, and the 1,402 calls under 1 s take 10%.
+Two leads follow from this, both about repeated work rather than code
+speed:
+
+- **The harness recomputed the same bootstrap draws for every variant.
+  Fixed 2026-10-22 (user decision): `fork=FALSE` now reuses them; details
+  below the original finding.** Within one inference object, the
+  percentile, basic, wald and BCa variants of the CI and the p-value all
+  use the same B = 151 draws, and EDI caches them (called directly: 9.9 s
+  for the first variant, at most 0.25 s for the next three). The harness
+  discards that cache: section 3's per-call restore undoes every field a
+  call writes, just as a forked child's cache was always lost. Computing
+  the draws once per object would cut the summed call time by about 36% at
+  `nc = 2` (24% Bayesian, 12% ordinary bootstrap; estimated by keeping the
+  slowest such call per object). Keeping *only* the resampling caches is
+  narrower than section 3's keep-state run (615 / 2,166 identical): if each
+  object's draws are seeded (`private$seed`), a recompute reproduces the
+  same draws, so results should not change. That is unverified. Costs:
+  later variants then test the cached path rather than a cold computation,
+  and only `fork=FALSE` can do it (`fork=TRUE` would need the parent to
+  precompute), so the two modes would no longer be identical.
+
+  **Implemented 2026-10-22.** Under `fork=FALSE`, `safe_call()`'s restore
+  now puts back the resampling-distribution caches a call added
+  (`REUSED_RESAMPLING_CACHES`: ordinary, Bayesian (with its studentized
+  statistics), m-out-of-n, subsampling and randomization bootstrap) and the
+  `rand_boot_draws_counter` that names cached draw sets.
+  `COMPREHENSIVE_REUSE_RESAMPLING_DRAWS=0` restores cold calls; `fork=TRUE`
+  is always cold. Two things found while checking it:
+
+  - The draw counter must be kept too. Restoring it gave the smoothed
+    randomization-bootstrap p-value and CI the same draw ID with different
+    noise, so the CI read the p-value's cache (12 rows changed, e.g. an
+    upper endpoint 0.519 → 0.501). A real session never restores the
+    counter, so this was a harness artifact.
+  - Jackknife caches are *not* reused. A jackknife cached by an earlier BCa
+    call was computed from different warm-start state, and
+    `InferenceIncidLogBinomial`'s leave-one-out refits are sensitive to it
+    (24 jackknife rows changed; one estimate −0.000112 vs −0.0000978).
+
+  Identity check, six-class mix, `nc = 1`, reuse vs. cold (both
+  `fork=FALSE`, EDI installed 2026-10-21): 2,159 / 2,166 rows identical.
+  The other 7 are `InferenceIncidLogBinomial` BCa intervals and bootstrap
+  p-values that differ by at most 6e-8 relative: warm-start residue in
+  state the restore does not cover (cold calls are not perfectly fresh
+  either). The five other classes were checked with jackknife reuse still
+  on (all identical), and incidence alone with the final configuration.
+  Timing from these runs is unreliable (load average 17–23 from other
+  work, and the cold run got the worse of it): summed call time was 24–69%
+  lower with reuse; the clean `nc = 2` estimate above (~36%) stands.
+
+  Per-call timings change meaning: the first variant on an object carries
+  the draws, so a later variant's cold-equivalent time is the first
+  variant's duration plus its own. Slow-path decisions can still be made
+  from the CSV that way.
+- **EDI copies the inference object for every draw in classes without a
+  reusable worker.** `InferenceCountHurdleNegBin` takes 0.103 s per draw
+  against 0.057 s on one reused copy, with identical estimates, so its
+  plain Bayesian bootstrap (12.6 s at B = 151) is slower than the
+  studentized one (8.9 s), which also refits an SE per draw. Not a
+  regression (present since the initial commit). Tracked as
+  `bayesian_bootstrap_performance.md → F7 / TODO-10`
+  (`release_v1_0_5.md → TODO-57`); this speeds up users' runs too. Other
+  classes also show plain ≫ studentized medians (`InferenceOrdinalContRatioRegr`
+  2.2 vs 0.3 s, `InferencePropBetaRegr` 2.2 vs 0.4 s,
+  `InferenceContinQuantileRegr` 2.5 vs 1.0 s); that may only be the
+  studentized path stopping early because those classes cannot compute a
+  per-draw SE, and has not been checked.
+
+While profiling this, a standalone `num_cores = 4` Bayesian bootstrap on
+`InferenceCountHurdleNegBin` hung 3 of 3 times (fork after OpenMP); that is
+recorded under `release_v1_0_5.md → TODO-66`.
 
 ## 1. Replace the memory allocator (no rebuild)
 
@@ -755,9 +856,24 @@ ideally native Linux, or try an interpreter-heavy workload (the R6-heavy
    forks). A
    native-Linux
    comparison is still open. `InferenceSuite`'s per-task fork about doubles
-   its CPU (1.1 s per task); a long-lived worker pool is planned for v1.1.0
+   its CPU (1.1 s per task); a long-lived worker pool is planned for v1.2.0
    (`release_v1_2_0.md → TODO-32`, `inference_suite_worker_pool.md`).
 3. ~~Section 4~~ and ~~section 6~~: tried 2026-10-14, no measurable gain
    (see their result subsections).
-4. Section 5: a larger engineering effort, only if the earlier results point
-   to compiled-code hot paths as the remaining bottleneck.
+4. Repeated work (see [Under `fork=FALSE`](#under-forkfalse-2026-10-18)):
+   sharing bootstrap draws across the harness's variant calls is done
+   (2026-10-22, about 36% of test time; `fork=FALSE` only). In EDI: one copy
+   per worker instead of per draw, and caching the ordinary bootstrap's
+   studentized statistics (`bayesian_bootstrap_performance.md → TODO-10,
+   TODO-11`). After draw reuse, the next two items (investigated
+   2026-10-22, both in v1.1.0): Bartlett CIs (~26% of the six-class mix;
+   the inversion runs ~46 factor simulations where ~10 would do, and the
+   harness computes each one twice: `release_v1_1_0.md → TODO-58`), and the
+   coverage-truth simulation billed to the first `compute_estimate` per
+   object (~9%; it runs an unused 201-draw randomization test on 20,000
+   rows, and switching to `asymp_pval` is 10–20x faster with identical
+   truths: `release_v1_1_0.md → TODO-59`).
+5. Section 5: a larger engineering effort, only if the earlier results point
+   to compiled-code hot paths as the remaining bottleneck. The 2026-10-18
+   profile points the other way: the time is in recomputed draws and
+   per-draw R overhead, not compiled code layout.

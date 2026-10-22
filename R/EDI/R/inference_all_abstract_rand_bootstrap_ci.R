@@ -132,7 +132,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 				"none"
 			)
 			missing_ci = function(reason){
-				private$cache_nonestimable_se(reason)
+				edi_record_procedure_failure(self, private, reason, "se")
 				ci = c(NA_real_, NA_real_)
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				ci
@@ -187,7 +187,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 				}, error = function(e) NULL)
 				if (!is.null(ci_closed)) {
 					if (length(ci_closed) != 2L) {
-						private$cache_nonestimable_se("rand_bootstrap_ci_closed_form_unavailable")
+						edi_record_procedure_failure(self, private, "rand_bootstrap_ci_closed_form_unavailable", "se")
 						ci_closed = c(NA_real_, NA_real_)
 					}
 					names(ci_closed) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
@@ -321,7 +321,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 				private$invert_rand_bootstrap_test_bisection(est, u, alpha, pval_epsilon, FALSE, show_progress, evaluate_pval, ci_timeout_deadline)
 			)
 			if (length(ci) != 2L || !all(is.finite(ci[1:2]))) {
-				private$cache_nonestimable_se("rand_bootstrap_ci_bisection_failed")
+				edi_record_procedure_failure(self, private, "rand_bootstrap_ci_bisection_failed", "se")
 				ci = c(NA_real_, NA_real_)
 			}
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")

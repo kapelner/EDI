@@ -48,7 +48,12 @@
 InferenceOrdinalKKGEE = define_inference_class(
 	classname = "InferenceOrdinalKKGEE",
 	inherit = Inference,
-	components = "KKGEE",
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"Jackknife",
+		"KKGEE"
+	),
 	public = list(
 		#' @description Initialize KK ordinal GEE inference, validate the ordinal
 		#'   matched/reservoir design, and prepare the \code{multgee::ordLORgee}
@@ -355,7 +360,14 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 	# component directly, plus `BayesianBootstrap`/`ParametricLikelihoodBootstrap`
 	# -- same hybrid-state fix as InferenceContinKKGLMM/InferenceCountKKGLMM
 	# earlier this stretch.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"KKGLMM"
+	),
 	# capabilities = "likelihood_ratio" is required explicitly -- same
 	# rationale as every class composing ParametricLikelihoodBootstrap
 	# directly (bypassing StandardModelCache) this stretch.

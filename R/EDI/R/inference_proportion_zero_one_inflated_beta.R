@@ -65,6 +65,7 @@
 #' inf = InferencePropZeroOneInflatedBetaRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 	classname = "InferencePropZeroOneInflatedBetaRegr",
@@ -72,7 +73,15 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 	# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 	# migration ladders): like InferencePropBetaRegr, no pre-registered
 	# per-class component existed for this class -- declared inline.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"StandardModelCache",
+		"MarginalEstimand"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(
@@ -354,6 +363,10 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 		# entirely (created dynamically on first assignment).
 		cached_mod = NULL,
 		cached_vc_params = NULL,
+		# Reusable-worker fallback only (TODO-1 option (a), 2026-10-22): when the
+		# direct estimate_only fit on the full-rank candidate matrix was already
+		# non-finite, generate_mod() skips refitting that identical matrix.
+		zoib_skip_full_fit_ncol = NULL,
 		best_X_colnames = NULL,
 		best_X_zero_one_colnames = NULL,
 		model_formula_zero_one = NULL,
@@ -565,7 +578,19 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			invisible(worker_state)
 		},
 		compute_bootstrap_worker_estimate = function(worker_state){
-			fallback = function(){
+			fallback = function(known_failed_full_fit = FALSE){
+				wp = worker_state$worker_priv
+				if (isTRUE(known_failed_full_fit)) {
+					# The direct fit just failed on the full-rank candidate matrix with
+					# the exact inputs generate_mod()'s first two attempts (rank-certificate
+					# and full-keep) would use: same X, X_zero_one, y, and warm state
+					# (resampling fits never update the warm state), and estimate_only only
+					# skips the post-fit Hessian. Those p-column refits are deterministic
+					# repeats of a non-finite fit, so skip them and enter the column-
+					# dropping loop directly. Results are unchanged.
+					wp$zoib_skip_full_fit_ncol = ncol(worker_state$runtime$X)
+					on.exit(wp$zoib_skip_full_fit_ncol <- NULL, add = TRUE)
+				}
 				as.numeric(worker_state$worker$compute_estimate(estimate_only = TRUE))[1L]
 			}
 			if (!isTRUE(worker_state$runtime$fast_path_ready)) return(fallback())
@@ -587,9 +612,8 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 				error = function(e) NULL
 			)
 			j_treat = worker_state$spec$j_treat
-			if (is.null(res) || length(res$b) < j_treat || !is.finite(res$b[j_treat])) {
-				return(fallback())
-			}
+			if (is.null(res) || length(res$b) < j_treat) return(fallback())
+			if (!is.finite(res$b[j_treat])) return(fallback(known_failed_full_fit = TRUE))
 			if (!identical(worker_state$worker$get_estimand(), "marginal_mean_diff")) {
 				return(as.numeric(res$b[j_treat]))
 			}
@@ -666,6 +690,8 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 				X_full = X_full,
 				required_cols = 2L,
 				fit_fun = function(X_fit, keep){
+					if (!is.null(private$zoib_skip_full_fit_ncol) &&
+							ncol(X_fit) == private$zoib_skip_full_fit_ncol) return(NULL)
 					j_treat = which(keep == 2L)
 					if (is.null(private$best_X_zero_one_colnames)) {
 						X_zero_one_full = private$build_component_matrix(private$model_formula_zero_one)

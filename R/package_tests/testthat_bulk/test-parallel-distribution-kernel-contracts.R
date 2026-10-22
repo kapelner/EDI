@@ -1,10 +1,8 @@
 library(testthat)
 library(EDI)
 
-wilcox_location_stat <- function(y, w, delta = 0) {
-	y_shifted <- y + ifelse(w == 1L, delta, 0)
-	r <- rank(y_shifted, ties.method = "average")
-	mean(r[w == 1L]) - mean(r[w == 0L])
+wilcox_hl_stat <- function(y, w, delta = 0) {
+	median(outer(y[w == 1L] + delta, y[w == 0L], "-"))
 }
 
 test_that("parallel OLS distribution agrees with separate lm fits", {
@@ -182,7 +180,11 @@ test_that("OLS randomization p-values and CIs agree with the reused-worker fallb
 	expect_equal(as.numeric(ci_fast), as.numeric(ci_slow), tolerance = 0.02)
 })
 
-test_that("parallel Wilcoxon matrix and list kernels agree with rank definition", {
+# Migrated 2026-10-22 (TODO-3): the rank-mean Wilcoxon kernels
+# compute_wilcox_distr_parallel_cpp / _from_list_ were deleted as unused; their
+# tied-response, delta-shift and one-arm edge cases now run against the live
+# Hodges-Lehmann kernel that InferenceAllSimpleWilcox dispatches to.
+test_that("parallel Wilcoxon HL kernel agrees with its definition on tied responses", {
 	y <- c(1, 2, 2, 5, 8, 13)
 	w_mat <- cbind(
 		c(0L, 1L, 0L, 1L, 0L, 1L),
@@ -190,16 +192,15 @@ test_that("parallel Wilcoxon matrix and list kernels agree with rank definition"
 		c(0L, 0L, 1L, 1L, 1L, 0L)
 	)
 	for (delta in c(0, 0.4)) {
-		expected <- vapply(seq_len(ncol(w_mat)), function(j) wilcox_location_stat(y, w_mat[, j], delta), numeric(1))
-		matrix_result <- EDI:::compute_wilcox_distr_parallel_cpp(w_mat, y, delta, 2L)
-		list_result <- EDI:::compute_wilcox_distr_from_list_parallel_cpp(
-			lapply(seq_len(ncol(w_mat)), function(j) list(w = w_mat[, j])), y, delta, 2L
-		)
-		expect_equal(matrix_result, expected)
-		expect_equal(list_result, expected)
+		expected <- vapply(seq_len(ncol(w_mat)), function(j) wilcox_hl_stat(y, w_mat[, j], delta), numeric(1))
+		for (cores in c(1L, 2L)) {
+			expect_equal(EDI:::compute_wilcox_hl_distr_parallel_cpp(w_mat, y, delta, 0L, 1e-8, cores), expected,
+				info = paste("delta =", delta, "cores =", cores))
+		}
 	}
 	degenerate <- cbind(rep(0L, length(y)), rep(1L, length(y)))
-	expect_true(all(is.na(EDI:::compute_wilcox_distr_parallel_cpp(degenerate, y, 0, 1L))))
+	expect_true(all(is.na(EDI:::compute_wilcox_hl_distr_parallel_cpp(degenerate, y, 0, 0L, 1e-8, 1L))))
+	expect_true(all(is.na(EDI:::compute_wilcox_hl_distr_parallel_cpp(degenerate, y, 0.4, 0L, 1e-8, 2L))))
 })
 
 test_that("parallel ridit kernel is stable across core counts and reference modes", {

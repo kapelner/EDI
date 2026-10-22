@@ -69,6 +69,7 @@
 #' inf = InferencePropBetaRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferencePropBetaRegr = define_inference_class(
 	classname = "InferencePropBetaRegr",
@@ -79,7 +80,15 @@ InferencePropBetaRegr = define_inference_class(
 	# extraction line existed in this file before this migration), so its
 	# public=/private= content is declared inline directly rather than
 	# hoisted into a separate registered component.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StandardModelCache", "MarginalEstimand"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"StandardModelCache",
+		"MarginalEstimand"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(

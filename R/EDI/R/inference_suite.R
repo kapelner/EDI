@@ -1587,7 +1587,19 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 				# with no explanation).
 				failure_notes = c(
 					if (!is.null(ci$error)) sprintf("CI (%s) failed: %s", ci$method, ci$error),
-					if (!is.null(pv$error)) sprintf("p-value (%s) failed: %s", pv$method, pv$error)
+					if (!is.null(pv$error)) sprintf("p-value (%s) failed: %s", pv$method, pv$error),
+					# TODO-116: an unsupported or gated procedure returns NA
+					# WITHOUT flagging the primary fit nonestimable (so the row
+					# stays "ok"); surface the recorded reason when the
+					# CI/p-value came back NA, so the NA is explained.
+					if (is.na(ci$lower) || is.na(ci$upper) || is.na(pv$pval)) {
+						cv = tryCatch(inf_obj$.__enclos_env__$private$cached_values, error = function(e) NULL)
+						pf = unlist(cv$procedure_failure_reason, use.names = FALSE)
+						up = cv$unsupported_procedure_reason
+						rs = unique(as.character(c(up, pf)))
+						rs = rs[!is.na(rs) & nzchar(rs)]
+						if (length(rs) > 0L) sprintf("unavailable (%s)", paste(rs, collapse = ", "))
+					}
 				)
 				list(
 					status = "ok", cov_model = cov_model, estimate = as.numeric(estimate), se = se,

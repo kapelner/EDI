@@ -96,11 +96,20 @@
 #' inf$set_seed(1)
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceCountPoisson = define_inference_class(
 	classname = "InferenceCountPoisson",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing", "MarginalEstimand"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"CountLikelihoodPlumbing",
+		"MarginalEstimand"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
 	overrides = list(
 		public = c(

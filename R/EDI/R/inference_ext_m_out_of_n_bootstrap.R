@@ -158,7 +158,7 @@ InferenceExtMOutOfNBootstrap = list(
 				), m[setdiff(names(m), c("method", "B", "alpha"))]))
 				m = selection$m_optimal
 				if (!is.numeric(m) || length(m) != 1L || !is.finite(m)) {
-					private$cache_nonestimable_estimate("m_out_of_n_m_selection_failed")
+					edi_record_procedure_failure(self, private, "m_out_of_n_m_selection_failed", "estimate")
 					return(NA_real_)
 				}
 			}
@@ -173,11 +173,11 @@ InferenceExtMOutOfNBootstrap = list(
 				scaling = scaling
 			)
 			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate(pivot$reason)
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = "m_out_of_n")
 				return(NA_real_)
 			}
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("m_out_of_n_too_few_finite_estimates")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "m_out_of_n_too_few_finite_estimates", "estimate")
 				return(NA_real_)
 			}
 			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$est, delta = delta, n_units = pivot$n_units, scaling = scaling)
@@ -238,7 +238,7 @@ InferenceExtMOutOfNBootstrap = list(
 				scaling = scaling
 			)
 			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate"))
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "m_out_of_n"))
 				return(c(NA_real_, NA_real_))
 			}
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {

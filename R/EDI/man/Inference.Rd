@@ -33,6 +33,7 @@ Defaults to the global budget unless overridden on the object.}
     \item \href{#method-Inference-is_nonestimable}{\code{Inference$is_nonestimable()}}
     \item \href{#method-Inference-get_nonestimable_reason}{\code{Inference$get_nonestimable_reason()}}
     \item \href{#method-Inference-get_nonestimable_stage}{\code{Inference$get_nonestimable_stage()}}
+    \item \href{#method-Inference-get_summary}{\code{Inference$get_summary()}}
     \item \href{#method-Inference-duplicate}{\code{Inference$duplicate()}}
     \item \href{#method-Inference-get_response}{\code{Inference$get_response()}}
     \item \href{#method-Inference-get_treatment}{\code{Inference$get_treatment()}}
@@ -44,6 +45,7 @@ Defaults to the global budget unless overridden on the object.}
     \item \href{#method-Inference-set_optimization_alg}{\code{Inference$set_optimization_alg()}}
     \item \href{#method-Inference-get_optimization_alg}{\code{Inference$get_optimization_alg()}}
     \item \href{#method-Inference-set_seed}{\code{Inference$set_seed()}}
+    \item \href{#method-Inference-clear_randomization_cache}{\code{Inference$clear_randomization_cache()}}
     \item \href{#method-Inference-clone}{\code{Inference$clone()}}
   }
 }
@@ -294,6 +296,27 @@ result as non-estimable.
 }
 
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Inference-get_summary"></a>}}
+\if{latex}{\out{\hypertarget{method-Inference-get_summary}{}}}
+\subsection{\code{Inference$get_summary()}}{
+  Prints a coefficient summary table (Estimate / Std. Error /
+statistic / p-value) for the most recent fit and returns it invisibly. Works for
+every inference class: model-based classes show the full coefficient table when
+coefficient names and a covariance matrix are available, otherwise (including
+classes without a fitted model, such as randomization-only classes) a one-row
+treatment summary. Pieces that are unavailable (e.g. a Wald standard error) are
+shown as \code{NA}; this method never errors because one is missing.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Inference$get_summary()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly, the printed summary as a numeric matrix.
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Inference-duplicate"></a>}}
 \if{latex}{\out{\hypertarget{method-Inference-duplicate}{}}}
 \subsection{\code{Inference$duplicate()}}{
@@ -489,7 +512,14 @@ as a fallback or primary optimization algorithm.}
 \if{html}{\out{<a id="method-Inference-set_seed"></a>}}
 \if{latex}{\out{\hypertarget{method-Inference-set_seed}{}}}
 \subsection{\code{Inference$set_seed()}}{
-  Set the seed for reproducibility.
+  Set the seed for reproducibility. The seed governs the
+  parallel resampling workers and the randomization-test draws
+  (\code{compute_rand_two_sided_pval()}, \code{compute_rand_confidence_interval()}):
+  the randomization permutations are drawn from this seed (falling back to the
+  design's own \code{seed} when none is set here), inside a save/restore of the
+  caller's global \code{.Random.seed}, and the seed is part of the design-level
+  permutation-cache key. Without any seed the draws come from the global RNG
+  stream at the first call and are then cached on the design.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Inference$set_seed(seed)}
@@ -501,6 +531,23 @@ as a fallback or primary optimization algorithm.}
       \item{\code{seed}}{Integer seed for reproducibility.}
     }
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Inference-clear_randomization_cache"></a>}}
+\if{latex}{\out{\hypertarget{method-Inference-clear_randomization_cache}{}}}
+\subsection{\code{Inference$clear_randomization_cache()}}{
+  Drop the design-level cache of randomization permutations
+  (shared by every inference object built on this design), so the next
+  randomization p-value / confidence interval redraws its permutations.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Inference$clear_randomization_cache()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    \code{self}, invisibly.
   }
 }
 

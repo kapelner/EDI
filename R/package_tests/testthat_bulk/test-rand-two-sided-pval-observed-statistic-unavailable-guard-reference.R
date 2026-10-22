@@ -37,8 +37,9 @@ test_that("harden = TRUE: a non-finite observed treatment statistic caches the d
 
 	pval <- inf$compute_rand_two_sided_pval(r = 20L)
 	expect_true(is.na(pval))
-	expect_true(inf$is_nonestimable("estimate"))
-	expect_equal(inf$get_nonestimable_reason(), "randomization_observed_statistic_unavailable")
+	# TODO-116: a randomization-procedure failure keeps the Wald state intact.
+	expect_false(isTRUE(inf$is_nonestimable("estimate")))
+	expect_equal(priv$cached_values$procedure_failure_reason[["randomization"]], "randomization_observed_statistic_unavailable")
 })
 
 test_that("harden = FALSE: the same non-finite observed statistic returns NA but does NOT cache any nonestimable reason", {
@@ -63,7 +64,7 @@ test_that("a wrong-length (not length-1) observed statistic also triggers the gu
 
 	pval <- inf$compute_rand_two_sided_pval(r = 20L)
 	expect_true(is.na(pval))
-	expect_equal(inf$get_nonestimable_reason(), "randomization_observed_statistic_unavailable")
+	expect_equal(priv$cached_values$procedure_failure_reason[["randomization"]], "randomization_observed_statistic_unavailable")
 })
 
 test_that("a well-formed finite observed statistic does not trigger the guard", {

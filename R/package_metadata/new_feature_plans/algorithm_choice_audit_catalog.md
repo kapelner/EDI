@@ -1171,7 +1171,7 @@ Files are in `R/EDI/src/`. "Dead" means the R package never calls the function (
 | generate_permutations.cpp:135 `generate_permutations_matching_internal` | null draws for a KK matched design: within-pair coin flip, reservoir Bernoulli | 1 uniform per pair and per reservoir unit | O(n) per draw, O(nB) total | E | Keep. Exact enumeration option for small m: TODO-6 |
 | generate_permutations.cpp:170 `generate_permutations_bernoulli_internal` | i.i.d. Bernoulli(prob_T) assignments | `unif_rand() < prob_T` per subject | O(nB) words | E | Keep (bit-packing 32 coins per word for prob_T = ½ breaks the stream for no material gain) |
 | generate_permutations.cpp:181 `generate_permutations_ibcrd_internal` | complete randomization: n_T of n | full Fisher–Yates via `std::shuffle` of a 1^{n_T}0^{n−n_T} template; copies the template every b | O(n) per draw | NEW-sampling-primitives | Keep algorithmically (a partial shuffle saves ≤2× RNG words, and libstdc++ already draws two positions per word); **portability**: TODO-3 |
-| generate_permutations.cpp:197 `generate_permutations_blocking_internal` | stratified complete randomization | `std::shuffle` per stratum | O(n) per draw | NEW-sampling-primitives | Keep; TODO-3 |
+| [DELETED 2026-10-22] generate_permutations.cpp:197 `generate_permutations_blocking_internal` | stratified complete randomization | `std::shuffle` per stratum | O(n) per draw | NEW-sampling-primitives | Keep; TODO-3 |
 | generate_permutations.cpp:218 `generate_permutations_efron_internal` | Efron biased-coin null draws | sequential simulation of the design rule | O(n) per draw | NEW-seq-design-null-draws | Keep (optimal) |
 | generate_permutations.cpp:240 `generate_permutations_atkinson_internal` + :80 `compute_atkinson_weight_internal` | Atkinson D_A-optimal biased-coin null draws | per draw, per t: rebuild the (t−1)×(p+2) design `[w,1,X]`, form XᵀX (O(tp²)), FullPivLU + full inverse (O(p³)), read 1 row. Column-selection QR hoisted out of the B loop (:251) | **O(B·(n²p²/2 + n p³))** | NEW-seq-design-null-draws | **Adopt** (TODO-5): block-inverse / Schur identity gives O(n²p² once + B·n·p²) |
 | generate_permutations.cpp:27,46,57 `which_cols_vary_subset_int`, `extract_submatrix_int`, `find_independent_cols_int` | per-t column selection for Atkinson | scan + FullPivHouseholderQR rank | O(n·(tp + tp² )) once, not per draw | A-adjacent (linear algebra) | Keep (already hoisted; rank-revealing QR is correct here) |
@@ -2324,7 +2324,7 @@ Notation: n subjects, p covariates, r design draws, B resamples, |R| = KK reserv
 | option | speed | disadvantages |
 |---|---|---|
 | **Current**: `replicate(r, randomizr::*_ra)` | R overhead per draw dominates (ms × r) | slow for r in the thousands |
-| Existing C++ `generate_permutations_blocking_cpp` (and cluster variants) | ~O(rn) native | different RNG stream (draws not identical); **must match randomizr's odd-block-size rounding rule** or the design distribution changes |
+| Existing C++ `generate_permutations_blocking_cpp` [DELETED 2026-10-22] (and cluster variants) | ~O(rn) native | different RNG stream (draws not identical); **must match randomizr's odd-block-size rounding rule** or the design distribution changes |
 | Urn: C++ kernel with running counts | O(rn) instead of O(rn²) R work | new kernel; RNG stream differs (the distribution is the same) |
 
 **(m) Autotuning search** (tune_EDI_for_this_machine)

@@ -170,17 +170,34 @@ permutation-drawing logic; it duplicates the design object
 `draw_ws_according_to_design(r)` — the exact same entry point
 `assign_w_to_all_subjects()` uses. Consequences:
 
-- **RNG/seed-reproducibility of a randomization p-value or CI is exactly
-  whatever the underlying `Design` subclass's is** — and every concrete
-  design is currently seed-reproducible (see above).
-- **Draw reuse / caching:** the generated permutation matrix is cached,
-  keyed on `r` and a stable signature of the design's structural parameters
-  (class, `n`, `prob_T`, `m`, `strata_cols`). A second call for the same
-  `r` against a structurally-identical design reuses the cached matrix
-  rather than drawing again — so, for example, computing both a randomization
-  p-value and a randomization confidence interval (which internally makes
-  several p-value evaluations at different `delta`) against the same object
-  draws the reference permutation set **once**, not once per evaluation.
+- **Seeding.** The permutations are drawn under an *effective seed*: the
+  inference object's `set_seed()` (or constructor `seed`) if set, otherwise
+  the design's own `seed`. The draw runs inside a save/restore of the
+  caller's `.Random.seed`, so a randomization p-value or CI is reproducible
+  given that seed whatever the global RNG state was, and the call leaves the
+  caller's RNG stream untouched. (The duplicated design itself has no seed, so
+  before this was wired in the draws came from whatever the global stream held
+  at the first call.) With neither seed set the draws come from the global
+  stream at the first call, as before. The draw mechanism is the underlying
+  `Design` subclass's, which is seed-reproducible for every concrete design
+  (see above).
+- **Draw reuse / caching:** the generated permutation matrix is cached on the
+  design, keyed on `r`, the effective seed and a stable signature of the
+  design's structural parameters (class, `n`, `prob_T`, `m`, `strata_cols`).
+  A second call for the same `r` and seed against a structurally-identical
+  design reuses the cached matrix rather than drawing again -- so, for
+  example, computing both a randomization p-value and a randomization
+  confidence interval (which internally makes several p-value evaluations at
+  different `delta`) against the same object draws the reference permutation
+  set **once**. Inference objects with different seeds on one design no longer
+  share draws. Call `inference$clear_randomization_cache()` to drop the
+  design's cached permutations and force a redraw.
+- **Custom permutations.** `permutations = list(w_mat = <n x r numeric 0/1
+  matrix>, m_mat = NULL)` can be passed to the randomization methods to
+  supply the draws directly (bypassing both the draw and the cache).
+- **Caveat.** A *seeded* design's `draw_ws_according_to_design()` (reached via
+  `maybe_set_seed()`) calls `set.seed()` on the global RNG and does not
+  restore it, so it overwrites the caller's stream.
 
 ## Bootstrap resampling
 

@@ -488,7 +488,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			if (is.list(t) && "b" %in% names(t)) t = t$b[1]
 			t = as.numeric(t)[1]
 			if (length(t) != 1 || !is.finite(t)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("rand_bootstrap_observed_statistic_unavailable")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "rand_bootstrap_observed_statistic_unavailable", "estimate")
 				return(NA_real_)
 			}
 			type_lc = tolower(type)

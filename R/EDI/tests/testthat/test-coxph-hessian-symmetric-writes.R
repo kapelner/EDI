@@ -149,7 +149,7 @@ test_that("InferenceSurvivalStratCoxPHRegr score test returns a finite p-value a
 	add_all_subject_responses_seq(des, y, deads = rep(1L, n))
 
 	for (form in list(~1, ~x1)) {
-		inf <- InferenceSurvivalStratCoxPHRegr$new(des, model_formula = form, verbose = FALSE)
+		inf <- suppressWarnings(InferenceSurvivalStratCoxPHRegr$new(des, model_formula = form, verbose = FALSE))  # TODO-110 matched-design warning
 		p <- inf$compute_score_two_sided_pval()
 		ci <- inf$compute_score_confidence_interval()
 

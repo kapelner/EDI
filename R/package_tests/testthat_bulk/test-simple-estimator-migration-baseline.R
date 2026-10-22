@@ -22,12 +22,26 @@ simple_estimator_expected_classes = c(
 # 312->315) from private fields/methods added to shared bases since the last
 # snapshot update; re-confirmed via EDI:::simple_estimator_behavior_manifest()
 # against the real registry, not guessed.
+# 2026-10-22: +1 public on every class (clear_randomization_cache(), Inference; seeded
+# randomization draws) and +6 private owners on every class: effective_draw_seed,
+# seed_global_rng_for_draws (seeded randomization draws), bootstrap_outcome_scale,
+# signal_unsupported_procedure + cache_procedure_failure (TODO-116 procedure-failure
+# handling), cluster_independence_warned (cluster-design independence warning).
+# Counts re-confirmed via EDI:::simple_estimator_behavior_manifest().
+# 2026-10-22 (later): +1 private owner on every class for
+# finalize_bootstrap_statistics_matrix (v1.0.5 TODO-57 bootstrap-statistics cache,
+# NonparametricBootstrap). Re-confirmed via the manifest: 327/330/338/311/324.
+# 2026-10-22 (v1.0.5 TODO-97): -1 private owner on every class for the deleted
+# load_resampling_draw_into_worker() dispatcher (decision 2); the ResamplingCore
+# extraction itself moves methods between components without changing any class's
+# private owner set. Re-confirmed via EDI:::simple_estimator_behavior_manifest()
+# after the refactor: 326/329/337/310/323.
 simple_estimator_expected_current = list(
 	InferenceAllSimpleAverageDiff = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 64L,
-		private_owner_count = 320L,
+		public_count = 65L,
+		private_owner_count = 326L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -39,8 +53,8 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleMeanDiffPooledVar = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 64L,
-		private_owner_count = 323L,
+		public_count = 65L,
+		private_owner_count = 329L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -52,8 +66,8 @@ simple_estimator_expected_current = list(
 	InferenceAllKKMeanDiffIVWC = list(
 		family = "simple_mean_difference",
 		parent = "Inference",
-		public_count = 64L,
-		private_owner_count = 331L,
+		public_count = 65L,
+		private_owner_count = 337L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -66,8 +80,8 @@ simple_estimator_expected_current = list(
 	InferenceAllSimpleWilcox = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 58L,
-		private_owner_count = 304L,
+		public_count = 59L,
+		private_owner_count = 310L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",
@@ -78,8 +92,8 @@ simple_estimator_expected_current = list(
 	InferenceAllKKWilcoxIVWC = list(
 		family = "wilcoxon_rank",
 		parent = "Inference",
-		public_count = 58L,
-		private_owner_count = 317L,
+		public_count = 59L,
+		private_owner_count = 323L,
 		duplicate_private_owner_count = 0L,
 		target_components = c(
 			"RandomizationTest", "RandomizationCI", "NonparametricBootstrap",

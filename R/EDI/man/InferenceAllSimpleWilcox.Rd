@@ -125,6 +125,22 @@ Reports the jackknife-Wald confidence interval as
   \code{$compute_jackknife_estimate()}; see
   \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}.
 }
+\section{Heavily tied count and ordinal data}{
+
+On small-integer count or ordinal data the Hodges-Lehmann estimate often
+lands exactly on 0. The randomization and bootstrap-family p-values then use
+the package's deterministic inclusive-tail rule, which returns exactly 1 for
+every such draw: in a direct reproduction, every zero-estimate null draw gave
+\code{p_rand == 1}. These p-values are therefore conservative (discrete and
+coarse), not anti-conservative; the Wald-family and exact rank-based p-values
+are unaffected. The same degeneracy makes resampling-family confidence
+intervals unreliable on such data (coverage was observed well below nominal,
+about 48-57\% against 95\%), so prefer the rank-based interval or
+\code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
+when the data are heavily tied. A Wilcoxon-specific randomized remedy is
+deferred.
+}
+
 \examples{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 6, response_type = "continuous")
 seq_des$add_one_subject_to_experiment_and_assign(MASS::biopsy[1, 2 : 10])
@@ -169,6 +185,7 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -181,6 +198,7 @@ Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>

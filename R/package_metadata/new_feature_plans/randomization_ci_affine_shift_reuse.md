@@ -5,8 +5,13 @@
 > split; 2026-08-30, user decision). R-level inference change with no new kernel;
 > no Phase 0 dependency. Bit-for-bit on the default path is **not** the goal
 > here — the goal is the *same estimator and the same p-value to floating
-> point* at 20–30× less work; see "Equivalence contract" below for exactly
-> what is and is not preserved.
+> point* with one full distribution per CI instead of ~20–35; see
+> "Equivalence contract" below for exactly what is and is not preserved.
+> **Target restated 2026-10-22 (owner decision, release_v1_0_5.md G6 #2 (a)):**
+> the original "20–30× faster" was a projection of avoided distribution work,
+> not a runtime ratio. Measured end-to-end CI speedups are workload-specific,
+> about 1.1–1.6× (average difference) and 1.05–2.1× (OLS); the remaining time is
+> slope/cache bookkeeping, per-delta p-value work and allocation. Accepted as is.
 >
 > **Ownership:** this plan owns the plain randomization CI
 > (`compute_confidence_interval_rand()` → `compute_rand_confidence_interval()`
@@ -294,7 +299,8 @@ is O(r) arithmetic and MC is moot.
   `InferenceAllKKMeanDiffIVWC`: run TODO-4(a) against them first; flip the
   predicate to `TRUE` only for those that pass to `1e-10` across the fixture
   set. Record the result here either way.
-- [ ] **TODO-6: Benchmark + doc.** The benchmark script
+- [x] **TODO-6: Benchmark + doc.** (Closed 2026-10-22: owner accepted the
+  measured 1.05–2.14× and restated the target; see the header note.) The benchmark script
   `R/benchmark/benchmark_randomization_ci_affine_reuse.R` and README/roxygen
   documentation were added 2026-10-09. A full source-loaded, `compile = FALSE`
   run completed 2026-10-13 with three measured repetitions per route and cell

@@ -28,11 +28,18 @@
 #' inf = InferenceIncidRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceIncidRiskDiff = define_inference_class(
 	classname = "InferenceIncidRiskDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the randomization-CI layer's two-sided p-value contract
 		#'   (\code{InferenceRandCI}'s version, not

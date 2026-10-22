@@ -68,13 +68,12 @@
 #' \code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
 #'
 #' \strong{Pure-R fallback (unbalanced or odd \eqn{n}, \code{obj_val_cutoff} mode
-#' only).} Draws one candidate at a time via \code{generate_one_rerandomized_w()} in an
-#' unbounded \code{repeat} loop that accepts the first candidate with
-#' \eqn{M(w) \le a}. \strong{Unlike the C++ fast path, this fallback has no draw-count
-#' safety limit}: if \code{obj_val_cutoff} is set tight enough that acceptance
-#' probability under the base randomization law is extremely small for this \eqn{n}/
-#' covariate structure, this loop can run for a very long time (in principle
-#' indefinitely) before finding an acceptable draw.
+#' only).} Draws candidates in vectorized batches (independent Bernoulli(\code{prob_T})
+#' assignments, or a fixed-size random subset when \code{prob_T = 0.5} with odd \eqn{n}),
+#' scores each batch at once, and keeps the first \eqn{r} candidates with
+#' \eqn{M(w) \le a}. Candidates with an empty arm are rejected. Like the C++ fast path
+#' it stops with an error after \code{max(1000 r, 1e5)} candidates if fewer than
+#' \eqn{r} are acceptable.
 #'
 #' @references Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
 #'   covariate balance in experiments." \emph{The Annals of Statistics}, 40(2),
@@ -226,11 +225,68 @@ DesignFixedRerandomization = define_design_class(
 				}
 				private$S_inv = solve(S)
 			}
-			w_mat = matrix(NA_real_, nrow = n, ncol = r)
-			for (j in seq_len(r)){
-				w_mat[, j] = private$generate_one_rerandomized_w()
+			private$generate_rerandomized_w_batch(r)
+		},
+		# Batched rejection sampler for the unbalanced / odd-n case (TODO-118). Same
+		# candidate law as generate_one_rerandomized_w() (fixed n_T = round(n * prob_T)
+		# shuffle when prob_T == 0.5, else independent Bernoulli(prob_T)), but candidates
+		# are drawn and scored in vectorized batches, and the accepted columns are the
+		# first r acceptable candidates in draw order. A candidate with an empty arm has
+		# no defined objective and is rejected. Bounded like the C++ path: errors after
+		# max(1000 * r, 1e5) candidates instead of looping forever.
+		generate_rerandomized_w_batch = function(r){
+			n = self$get_n()
+			X = private$X[1:n, , drop = FALSE]
+			p_T = private$prob_T
+			n_T_fixed = round(n * p_T)
+			cutoff = if (is.null(private$obj_val_cutoff)) Inf else private$obj_val_cutoff
+			col_sums_X = colSums(X)
+			max_cand = max(r * 1000, 1e5)
+			batch = as.integer(min(max(2L * r, 512L), 20000L, max(1L, floor(2e7 / n))))
+			accepted = vector("list", 0L)
+			n_found = 0L
+			n_tried = 0
+			while (n_found < r && n_tried < max_cand){
+				B = as.integer(min(batch, ceiling(max_cand - n_tried)))
+				if (p_T == 0.5){
+					# uniformly random subset of size n_T_fixed per column: rank of iid uniforms
+					U = matrix(stats::runif(n * B), n, B)
+					W = matrix(0, n, B)
+					if (n_T_fixed > 0){
+						ord = apply(U, 2L, order)
+						idx = ord[seq_len(n_T_fixed), , drop = FALSE] + rep((seq_len(B) - 1L) * n, each = n_T_fixed)
+						W[idx] = 1
+					}
+				} else {
+					W = matrix(as.numeric(stats::runif(n * B) < p_T), n, B)
+				}
+				n_tried = n_tried + B
+				nT = colSums(W)
+				ok = nT >= 1 & nT <= n - 1
+				sum_T = crossprod(X, W)
+				diff = sweep(sum_T, 2L, pmax(nT, 1), "/") - sweep(col_sums_X - sum_T, 2L, pmax(n - nT, 1), "/")
+				obj = if (private$objective == "mahal_dist"){
+					colSums(diff * (private$S_inv %*% diff))
+				} else if (private$objective == "abs_sum_diff"){
+					colSums(abs(diff))
+				} else {
+					stop("Unsupported objective")
+				}
+				keep = which(ok & is.finite(obj) & obj <= cutoff)
+				if (length(keep)){
+					keep = utils::head(keep, r - n_found)
+					accepted[[length(accepted) + 1L]] = W[, keep, drop = FALSE]
+					n_found = n_found + length(keep)
+				}
 			}
-			w_mat
+			if (n_found < r){
+				stop(
+					"DesignFixedRerandomization could not find ", r, " acceptable allocation(s) ",
+					"within ", format(max_cand, scientific = FALSE), " candidate draws (only ", n_found, " found). ",
+					"Loosen obj_val_cutoff."
+				)
+			}
+			do.call(cbind, accepted)
 		},
 		generate_one_rerandomized_w = function(){
 			n = self$get_n()

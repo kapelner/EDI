@@ -28,35 +28,40 @@ test_that("jackknife_always_nonestimable() is TRUE for the KK Wilcox IVWC class"
 	expect_true(f$inf$.__enclos_env__$private$jackknife_always_nonestimable())
 })
 
-test_that("KK Wilcox IVWC jackknife methods return NA and cache the class-specific 'kk_'-prefixed reason at the right stage", {
+# TODO-116: unsupported-procedure stubs signal a classed `edi_unsupported_procedure` warning, return NA, record
+# cached_values$unsupported_procedure_reason, and leave is_nonestimable() and the Wald caches untouched.
+unsup <- function(expr) { val <- NULL; expect_warning(val <- expr, class = "edi_unsupported_procedure"); val }
+unsup_reason <- function(inf) inf$.__enclos_env__$private$cached_values$unsupported_procedure_reason
+
+test_that("KK Wilcox IVWC jackknife methods return NA, warn, and record the class-specific 'kk_'-prefixed reason without touching primary state", {
 	reason <- "kk_wilcox_hl_jackknife_not_supported"
 
 	f <- kk_wilcox_fx(seed = 2L)
-	expect_true(is.na(f$inf$compute_jackknife_estimate()))
-	expect_true(f$inf$is_nonestimable("estimate"))
-	expect_identical(f$inf$get_nonestimable_reason(), reason)
+	expect_true(is.na(unsup(f$inf$compute_jackknife_estimate())))
+	expect_false(f$inf$is_nonestimable("any"))
+	expect_identical(unsup_reason(f$inf), reason)
 
 	g <- kk_wilcox_fx(seed = 3L)
-	expect_true(is.na(g$inf$compute_jackknife_bias_estimate()))
-	expect_true(g$inf$is_nonestimable("estimate"))
-	expect_identical(g$inf$get_nonestimable_reason(), reason)
+	expect_true(is.na(unsup(g$inf$compute_jackknife_bias_estimate())))
+	expect_false(g$inf$is_nonestimable("any"))
+	expect_identical(unsup_reason(g$inf), reason)
 
 	for (m in list(function(i) i$compute_jackknife_std_error(), function(i) i$compute_jackknife_wald_two_sided_pval(0.1))) {
 		h <- kk_wilcox_fx(seed = 4L)
-		expect_true(is.na(m(h$inf)))
-		expect_true(h$inf$is_nonestimable("se"))
+		expect_true(is.na(unsup(m(h$inf))))
+		expect_false(h$inf$is_nonestimable("se"))
 		expect_false(h$inf$is_nonestimable("estimate"))
-		expect_identical(h$inf$get_nonestimable_reason(), reason)
+		expect_identical(unsup_reason(h$inf), reason)
 	}
 
 	k <- kk_wilcox_fx(seed = 5L)
-	ci <- k$inf$compute_jackknife_wald_confidence_interval(0.1)
+	ci <- unsup(k$inf$compute_jackknife_wald_confidence_interval(0.1))
 	expect_length(ci, 2L)
 	expect_true(all(is.na(ci)))
-	expect_true(k$inf$is_nonestimable("se"))
+	expect_false(k$inf$is_nonestimable("se"))
 
 	# the unit argument is accepted and ignored, same contract as the simple-Wilcox sibling
-	expect_true(is.na(kk_wilcox_fx(seed = 6L)$inf$compute_jackknife_estimate(unit = "observation")))
+	expect_true(is.na(unsup(kk_wilcox_fx(seed = 6L)$inf$compute_jackknife_estimate(unit = "observation"))))
 })
 
 test_that("KK Wilcox fast randomization accepts the dispatcher's double permutation matrices", {

@@ -10,6 +10,7 @@ exact_incidence_baseline_public_methods = c(
 	"approximate_randomization_distribution_beta_hat_T",
 	"approximate_subsampling_distribution_beta_hat_T",
 	"capabilities",
+	"clear_randomization_cache",
 	"clone",
 	"compute_asymp_confidence_interval",
 	"compute_asymp_two_sided_pval",
@@ -45,6 +46,9 @@ exact_incidence_baseline_public_methods = c(
 	"get_optimization_alg",
 	"get_response",
 	"get_response_type",
+	# 2026-10-22: get_summary() (TODO-114) and clear_randomization_cache() now
+	# live on the Inference base class, so every generator inherits them.
+	"get_summary",
 	# 2026-08-19 (inference_suite_inspect.md audit, "Add real
 	# get_supported_*_types() accessor methods" TODO): six new public
 	# accessors added to the NonparametricBootstrap/BayesianBootstrap/
@@ -86,16 +90,17 @@ exact_incidence_baseline_public_methods = c(
 # deeper ancestor (`InferenceRandCI`'s own Zhang-exact-CI private methods,
 # `InferenceNonParamBootstrap`'s jackknife triplet) and are unaffected by
 # the `InferenceExact` deletion.
+# 2026-10-22: resolve_jackknife_unit, jackknife_block_size_gt_one_unsupported and
+# mark_jackknife_nonestimable_if_block_unsupported are no longer duplicated: the
+# Jackknife copies were removed and only the NonparametricBootstrap copies remain.
 exact_incidence_baseline_duplicate_private_owners = c(
 	"normalize_exact_inference_args",
-	"assert_exact_inference_params",
-	"resolve_jackknife_unit",
-	"jackknife_block_size_gt_one_unsupported",
-	"mark_jackknife_nonestimable_if_block_unsupported"
+	"assert_exact_inference_params"
 )
 
 exact_binomial_migrated_public_methods = c(
 	"capabilities",
+	"clear_randomization_cache",
 	"clone",
 	"compute_asymp_confidence_interval",
 	"compute_asymp_two_sided_pval",
@@ -113,6 +118,7 @@ exact_binomial_migrated_public_methods = c(
 	"get_optimization_alg",
 	"get_response",
 	"get_response_type",
+	"get_summary",
 	"get_treatment",
 	"initialize",
 	"is_nonestimable",

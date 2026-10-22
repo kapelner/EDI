@@ -43,8 +43,8 @@ test_that("harden = TRUE: an unstable studentized interval caches 'bootstrap_uns
 
 	ci <- f$inf$compute_bootstrap_confidence_interval(type = "studentized", show_progress = FALSE)
 	expect_true(all(is.na(ci)))
-	expect_true(f$inf$is_nonestimable("se"))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_unstable_studentized_interval")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_unstable_studentized_interval")
 })
 
 test_that("harden = FALSE: the same unstable studentized interval raises the raw error instead", {

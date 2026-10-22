@@ -33,7 +33,12 @@
 InferenceIncidKKGEE = define_inference_class(
 	classname = "InferenceIncidKKGEE",
 	inherit = Inference,
-	components = "KKGEE",
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"Jackknife",
+		"KKGEE"
+	),
 	public = list(
 		#' @description Initialize KK binary-response GEE inference, validate the
 		#'   matched/reservoir design, and prepare the exchangeable-working-correlation

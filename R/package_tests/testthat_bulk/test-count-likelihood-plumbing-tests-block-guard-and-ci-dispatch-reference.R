@@ -119,8 +119,9 @@ test_that("the block-size guard makes every asymptotic output unavailable and re
 	unlockBinding("count_likelihood_block_asymp_unsupported", f$priv)
 	f$priv$count_likelihood_block_asymp_unsupported <- function() TRUE
 	expect_true(f$priv$mark_count_likelihood_block_asymp_nonestimable())
-	expect_true(f$inf$is_nonestimable("se"))
-	expect_equal(f$inf$get_nonestimable_reason(), "count_likelihood_asymp_block_size_gt_one_not_supported")
+	# TODO-116: the gate is procedure-specific (asymptotic path); the fitted state is not cleared.
+	expect_false(f$inf$is_nonestimable("any"))
+	expect_equal(f$priv$cached_values$procedure_failure_reason$count_likelihood_asymp, "count_likelihood_asymp_block_size_gt_one_not_supported")
 	expect_true(is.finite(f$priv$cached_values$beta_hat_T) || is.na(f$priv$cached_values$beta_hat_T))
 
 	expect_true(is.na(f$priv$get_standard_error()))

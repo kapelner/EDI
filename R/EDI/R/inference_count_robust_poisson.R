@@ -28,11 +28,20 @@
 #' inf = InferenceCountRobustPoisson$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceCountRobustPoisson = define_inference_class(
 	classname = "InferenceCountRobustPoisson",
 	inherit = Inference,
-	components = c("CountCompositeLikelihood", "RobustSandwich", "BayesianBootstrap", "Wald"),
+	components = c(
+		"CountCompositeLikelihood",
+		"RobustSandwich",
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.

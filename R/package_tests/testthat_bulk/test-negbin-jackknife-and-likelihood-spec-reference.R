@@ -26,15 +26,18 @@ nb_loglik <- function(par, X, y) {
 }
 
 test_that("every jackknife method reports the explicit unsupported state", {
+	# TODO-116: stubs warn (edi_unsupported_procedure), return NA, record the reason, and do NOT set the nonestimable flag.
 	f <- nb_fixture()
-	expect_true(is.na(f$inf$compute_jackknife_estimate()))
-	expect_true(is.na(f$inf$compute_jackknife_bias_estimate()))
-	expect_true(is.na(f$inf$compute_jackknife_std_error()))
-	expect_true(is.na(f$inf$compute_jackknife_wald_two_sided_pval(delta = 0.1)))
-	ci <- f$inf$compute_jackknife_wald_confidence_interval(alpha = 0.1)
+	unsup <- function(expr) { val <- NULL; expect_warning(val <- expr, class = "edi_unsupported_procedure"); val }
+	expect_true(is.na(unsup(f$inf$compute_jackknife_estimate())))
+	expect_true(is.na(unsup(f$inf$compute_jackknife_bias_estimate())))
+	expect_true(is.na(unsup(f$inf$compute_jackknife_std_error())))
+	expect_true(is.na(unsup(f$inf$compute_jackknife_wald_two_sided_pval(delta = 0.1))))
+	ci <- unsup(f$inf$compute_jackknife_wald_confidence_interval(alpha = 0.1))
 	expect_true(all(is.na(ci)))
 	expect_equal(names(ci), c("5%", "95%"))
-	expect_true(f$inf$is_nonestimable("se"))
+	expect_identical(f$priv$cached_values$unsupported_procedure_reason, "negbin_jackknife_not_supported")
+	expect_false(f$inf$is_nonestimable("se"))
 })
 
 test_that("likelihood spec's neg_loglik, score and information match independent numeric references", {

@@ -46,7 +46,7 @@ test_that("any non-finite jackknife replicate is nonestimable, with the raw dist
 	res <- f$priv$compute_jackknife_summary(unit = "auto")
 	expect_true(is.na(res$estimate)); expect_true(is.na(res$bias)); expect_true(is.na(res$std_error))
 	expect_equal(res$distribution, jack)
-	expect_equal(f$inf$get_nonestimable_reason(), "jackknife_nonfinite_replicate_estimates")
+	expect_equal(f$priv$cached_values$procedure_failure_reason$jackknife, "jackknife_nonfinite_replicate_estimates")
 })
 
 test_that("a jackknife replicate exceeding bootstrap_extreme_estimate_threshold is nonestimable", {
@@ -56,7 +56,7 @@ test_that("a jackknife replicate exceeding bootstrap_extreme_estimate_threshold 
 
 	res <- f$priv$compute_jackknife_summary(unit = "auto")
 	expect_true(is.na(res$estimate))
-	expect_equal(f$inf$get_nonestimable_reason(), "jackknife_extreme_finite_estimates")
+	expect_equal(f$priv$cached_values$procedure_failure_reason$jackknife, "jackknife_extreme_finite_estimates")
 })
 
 test_that("fewer than 2 replicate estimates records the SE-stage reason under both harden settings", {
@@ -73,8 +73,8 @@ test_that("fewer than 2 replicate estimates records the SE-stage reason under bo
 			expect_identical(res$bias, NA_real_)
 			expect_identical(res$std_error, NA_real_)
 			expect_length(res$distribution, 0L)
-			expect_true(f$inf$is_nonestimable("se"))
-			expect_identical(f$inf$get_nonestimable_reason(), "jackknife_too_few_replicate_estimates")
+			expect_false(f$inf$is_nonestimable("any"))
+			expect_identical(f$priv$cached_values$procedure_failure_reason$jackknife, "jackknife_too_few_replicate_estimates")
 		}
 	}
 })

@@ -26,9 +26,8 @@ test_that("a NULL likelihood-test spec is nonestimable with the documented reaso
 	p$get_likelihood_test_spec <- function() NULL
 	out <- p$run_param_bootstrap_estimate_batch(B = 5, max_attempts_per_replicate = 1, show_progress = FALSE)
 	expect_null(out)
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_spec_unavailable")
-	expect_true(inf$is_nonestimable("any"))
-	expect_true(inf$is_nonestimable("se"))                                    # cache_nonestimable_se(): stage = "se", unlike the other two branches below
+expect_identical(p$cached_values$procedure_failure_reason[["param_bootstrap"]], "param_bootstrap_estimate_spec_unavailable")   # TODO-116: procedure failure, Wald intact
+	expect_false(inf$is_nonestimable("any"))
 })
 
 test_that("a spec with a non-finite raw (anchor) estimate is nonestimable with its own reason and returns NULL", {
@@ -41,8 +40,8 @@ test_that("a spec with a non-finite raw (anchor) estimate is nonestimable with i
 	p$get_likelihood_test_spec <- function() bad_spec
 	out <- p$run_param_bootstrap_estimate_batch(B = 5, max_attempts_per_replicate = 1, show_progress = FALSE)
 	expect_null(out)
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_raw_estimate_nonfinite")
-	expect_true(inf$is_nonestimable("estimate"))
+expect_identical(p$cached_values$procedure_failure_reason[["param_bootstrap"]], "param_bootstrap_estimate_raw_estimate_nonfinite")   # TODO-116: procedure failure, Wald intact
+	expect_false(inf$is_nonestimable("estimate"))
 })
 
 test_that("a spec with an extreme raw (anchor) estimate is nonestimable with its own reason and returns NULL", {
@@ -55,7 +54,8 @@ test_that("a spec with an extreme raw (anchor) estimate is nonestimable with its
 	p$get_likelihood_test_spec <- function() extreme_spec
 	out <- p$run_param_bootstrap_estimate_batch(B = 5, max_attempts_per_replicate = 1, show_progress = FALSE)
 	expect_null(out)
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_raw_estimate_extreme")
+expect_identical(p$cached_values$procedure_failure_reason[["param_bootstrap"]], "param_bootstrap_estimate_raw_estimate_extreme")   # TODO-116: procedure failure, Wald intact
+	expect_false(inf$is_nonestimable("estimate"))
 })
 
 test_that("an already-recorded nonestimable('estimate') reason is not overwritten by a later preflight failure", {

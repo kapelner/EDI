@@ -114,14 +114,14 @@ test_that("bca dispatch gates cleanly to a documented nonestimable reason on thi
 	obj1$set_seed(111L)
 	pv_bca = obj1$compute_bayesian_bootstrap_two_sided_pval(B = 61L, type = "bca", show_progress = FALSE)
 	expect_true(is.na(pv_bca))
-	expect_true(obj1$is_nonestimable())
-	expect_identical(obj1$get_nonestimable_reason(), "bayesian_bootstrap_bca_adjustment_on_boundary")
+	expect_false(obj1$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(obj1$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_bca_adjustment_on_boundary")
 
 	obj2 = InferenceAllSimpleAverageDiff$new(des)
 	obj2$num_cores = 1L
 	obj2$set_seed(321L)
-	ci_bca = obj2$compute_bayesian_bootstrap_confidence_interval(alpha = 0.05, B = 41L, type = "bca", show_progress = FALSE)
+	ci_bca = suppressWarnings(obj2$compute_bayesian_bootstrap_confidence_interval(alpha = 0.05, B = 41L, type = "bca", show_progress = FALSE), classes = "edi_bootstrap_bca_boundary_warning")
 	expect_true(all(is.na(ci_bca)))
-	expect_true(obj2$is_nonestimable())
-	expect_identical(obj2$get_nonestimable_reason(), "bayesian_bootstrap_bca_ci_unavailable")
+	expect_false(obj2$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(obj2$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_bca_adjustment_on_boundary")  # TODO-101: specific reason survives the generic fallback
 })

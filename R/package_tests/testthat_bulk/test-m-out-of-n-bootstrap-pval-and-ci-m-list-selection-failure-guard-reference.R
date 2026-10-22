@@ -26,7 +26,7 @@ test_that("under harden = TRUE (the default), a failed m selection makes the p-v
 	stub_failed_selection(inf)
 	pv <- inf$compute_m_out_of_n_bootstrap_two_sided_pval(delta = 0, B = 10, m = list(), show_progress = FALSE)
 	expect_true(is.na(pv))
-	expect_identical(inf$get_nonestimable_reason(), "m_out_of_n_m_selection_failed")
+	expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_m_selection_failed")   # TODO-116: procedure failure, Wald intact
 })
 
 test_that("under harden = TRUE, a failed m selection makes the CI all-NA with the same reason, correctly-labelled alpha percentages", {
@@ -35,7 +35,7 @@ test_that("under harden = TRUE, a failed m selection makes the CI all-NA with th
 	ci <- inf$compute_m_out_of_n_bootstrap_confidence_interval(alpha = 0.1, B = 10, m = list(), show_progress = FALSE)
 	expect_true(all(is.na(ci)))
 	expect_identical(names(ci), c("5%", "95%"))
-	expect_identical(inf$get_nonestimable_reason(), "m_out_of_n_m_selection_failed")
+	expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_m_selection_failed")   # TODO-116: procedure failure, Wald intact
 })
 
 test_that("under harden = FALSE, both methods return typed nonestimable results", {
@@ -45,8 +45,8 @@ test_that("under harden = FALSE, both methods return typed nonestimable results"
 	stub_failed_selection(inf)
 	pv <- inf$compute_m_out_of_n_bootstrap_two_sided_pval(delta = 0, B = 10, m = list(), show_progress = FALSE)
 	expect_identical(pv, NA_real_)
-	expect_identical(inf$get_nonestimable_reason(), "m_out_of_n_m_selection_failed")
-	expect_true(inf$is_nonestimable("estimate"))
+	expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_m_selection_failed")   # TODO-116: procedure failure, Wald intact
+	expect_false(isTRUE(inf$is_nonestimable("estimate")))
 
 	inf2 <- fx()
 	p2 <- inf2$.__enclos_env__$private
@@ -55,8 +55,8 @@ test_that("under harden = FALSE, both methods return typed nonestimable results"
 	ci <- inf2$compute_m_out_of_n_bootstrap_confidence_interval(alpha = 0.1, B = 10, m = list(), show_progress = FALSE)
 	expect_true(all(is.na(ci)))
 	expect_identical(names(ci), c("5%", "95%"))
-	expect_identical(inf2$get_nonestimable_reason(), "m_out_of_n_m_selection_failed")
-	expect_true(inf2$is_nonestimable("estimate"))
+	expect_identical(inf2$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_m_selection_failed")   # TODO-116: procedure failure, Wald intact
+	expect_false(isTRUE(inf2$is_nonestimable("estimate")))
 })
 
 test_that("an empty selector result uses the same typed failure instead of an if-condition error", {
@@ -68,7 +68,7 @@ test_that("an empty selector result uses the same typed failure instead of an if
 		}
 		stub_failed_selection(inf, numeric(0))
 		expect_identical(inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 10, m = list(), show_progress = FALSE), NA_real_)
-		expect_identical(inf$get_nonestimable_reason(), "m_out_of_n_m_selection_failed")
+		expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_m_selection_failed")   # TODO-116: procedure failure, Wald intact
 	}
 })
 

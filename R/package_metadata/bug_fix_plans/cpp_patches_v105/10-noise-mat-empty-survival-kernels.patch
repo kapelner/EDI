@@ -1,0 +1,84 @@
+--- a/R/EDI/src/fast_survival_stats.cpp
++++ b/R/EDI/src/fast_survival_stats.cpp
+@@ -569,13 +569,12 @@
+   double* res_ptr = results_vec.data();
+   const double mult = std::exp(delta);
+ 
+-  const bool has_noise = noise_mat.isNotNull();
++  // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
++  // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
+   NumericMatrix noise_m;
+-  const double* noise_ptr = nullptr;
+-  if (has_noise) {
+-    noise_m = NumericMatrix(noise_mat);
+-    noise_ptr = noise_m.begin();
+-  }
++  if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
++  const bool has_noise = noise_m.size() > 0;
++  const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
+ 
+ #pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
+   {
+--- a/R/EDI/src/fast_logrank.cpp
++++ b/R/EDI/src/fast_logrank.cpp
+@@ -180,13 +180,12 @@
+   const double mult = std::exp(delta);
+   const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
+ 
+-  const bool has_noise = noise_mat.isNotNull();
++  // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
++  // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
+   NumericMatrix noise_m;
+-  const double* noise_ptr = nullptr;
+-  if (has_noise) {
+-    noise_m = NumericMatrix(noise_mat);
+-    noise_ptr = noise_m.begin();
+-  }
++  if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
++  const bool has_noise = noise_m.size() > 0;
++  const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
+ 
+ #pragma omp parallel if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
+   {
+--- a/R/EDI/src/fast_coxph_regression.cpp
++++ b/R/EDI/src/fast_coxph_regression.cpp
+@@ -1181,13 +1181,12 @@
+     std::vector<double> results(nsim, NA_REAL);
+     double* res_ptr = results.data();
+ 
+-    const bool has_noise = noise_mat.isNotNull();
++    // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
++    // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
+     NumericMatrix noise_m;
+-    const double* noise_ptr = nullptr;
+-    if (has_noise) {
+-        noise_m = NumericMatrix(noise_mat);
+-        noise_ptr = noise_m.begin();
+-    }
++    if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
++    const bool has_noise = noise_m.size() > 0;
++    const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
+ 
+ #pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
+     {
+--- a/R/EDI/src/fast_weibull_regression.cpp
++++ b/R/EDI/src/fast_weibull_regression.cpp
+@@ -669,13 +669,12 @@
+     std::vector<double> results(nsim, NA_REAL);
+     double* res_ptr = results.data();
+ 
+-    const bool has_noise = noise_mat.isNotNull();
++    // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
++    // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
+     NumericMatrix noise_m;
+-    const double* noise_ptr = nullptr;
+-    if (has_noise) {
+-        noise_m = NumericMatrix(noise_mat);
+-        noise_ptr = noise_m.begin();
+-    }
++    if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
++    const bool has_noise = noise_m.size() > 0;
++    const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
+ 
+ #pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
+     {

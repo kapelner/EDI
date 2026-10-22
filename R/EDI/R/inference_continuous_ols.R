@@ -21,6 +21,30 @@
 #' inference path specifically) homoskedastic, approximately normal errors;
 #' the randomization-inference path relies only on randomization of \eqn{W}.
 #'
+#' @section Blocking designs:
+#' On a blocking design
+#' (\code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}} and relatives)
+#' the regression-type inference classes do \emph{not} add block fixed effects
+#' (or block-by-treatment interactions) automatically: the model uses only the
+#' covariate matrix. Whether the blocks enter the regression therefore depends
+#' on how they were supplied: not at all with \code{m=}; as dummies when the
+#' blocking column is a factor/character (or few-level integer) covariate; as a
+#' single linear term when it is numeric. Randomization, bootstrap and
+#' jackknife inference are block-aware regardless; only the model-based
+#' (asymptotic, likelihood) path ignores the blocks.
+#'
+#' When the proportion treated is the same in every block, the pooled
+#' treatment estimate of a linear model is unbiased and its model-based SE is
+#' conservative (it is inflated by the block variation it fails to remove), at a
+#' cost in power. If the proportion treated differs across blocks (for example
+#' \code{equal_block_sizes = FALSE} with very small blocks and an extreme
+#' \code{prob_T}, where per-block rounding changes the allocation, or a
+#' user-supplied \code{m}), the pooled treated-vs-control comparison is
+#' confounded by block (Simpson's paradox) and can be biased; then include the
+#' blocking covariate(s) explicitly as factor covariates. For non-linear models
+#' (GLM, ordinal, survival) omitting blocks changes the estimand to a
+#' block-marginal effect. See \code{DesignFixedBlocking}.
+#'
 #' @references Rosenbaum, P. R. (2002). \emph{Observational Studies} (2nd
 #'   ed.). Springer, for the OLS mean-difference estimator's design-based
 #'   justification under randomization.
@@ -39,7 +63,13 @@
 InferenceContinOLS = define_inference_class(
 	classname = "InferenceContinOLS",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
@@ -359,6 +389,19 @@ InferenceContinOLS = define_inference_class(
 			if (is.null(private$cached_values$df)) private$shared()
 			private$cached_values$df
 		},
+		# TODO-103: on cluster-randomized designs replace the homoskedastic
+		# independent-subjects SE with a CR2 (Bell-McCaffrey) cluster-robust SE
+		# (Satterthwaite df, G - 1 fallback). No-op when the design has no usable cluster ids.
+		apply_cluster_robust_se = function(X_fit, j, coef_hat){
+			ids = design_cluster_ids_for_inference(private$des_obj, private$des_obj_priv_int, nrow(X_fit))
+			if (is.null(ids)) return(invisible(FALSE))
+			cr = cluster_robust_cr2_variance(X_fit, private$y, coef_hat, ids, j)
+			if (is.null(cr)) return(invisible(FALSE))
+			private$cached_values$s_beta_hat_T = sqrt(cr$ssq)
+			private$cached_values$df = cr$df
+			private$cached_values$cluster_robust_se_applied = TRUE
+			invisible(TRUE)
+		},
 		shared = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
@@ -373,6 +416,7 @@ InferenceContinOLS = define_inference_class(
 					private$cached_values$beta_hat_T = as.numeric(res$b[2])
 					private$cached_values$s_beta_hat_T = if (is.finite(res$ssq_b_2)) sqrt(res$ssq_b_2) else NA_real_
 					private$cached_values$df = nrow(X_full) - ncol(X_full)
+					private$apply_cluster_robust_se(X_full, 2L, as.numeric(res$b))
 					private$cached_values$likelihood_test_context = list(X = X_full, j_treat = 2L, full_fit = res)
 					private$cached_mod = res
 				}
@@ -405,6 +449,7 @@ InferenceContinOLS = define_inference_class(
 
 			private$cached_values$s_beta_hat_T = if (is.finite(attempt$fit$ssq_b_2)) sqrt(attempt$fit$ssq_b_2) else NA_real_
 			private$cached_values$df = nrow(attempt$X) - ncol(attempt$X)
+			private$apply_cluster_robust_se(attempt$X, 2L, as.numeric(attempt$fit$b))
 			
 			private$cached_values$likelihood_test_context = list(
 				X = attempt$X,

@@ -122,11 +122,14 @@ test_that("class treatment reference reports the same non-degenerate effect orie
 	ctrl <- InferenceOrdinalRidit$new(des, reference = "control", verbose = FALSE)
 	trt <- InferenceOrdinalRidit$new(des, reference = "treatment", verbose = FALSE)
 	expect_gt(ctrl$compute_estimate(), 0.1)
-	# Checking "clearly significant", not an exact p-value: 0.01 had no real
-	# margin against the actual value on this fixture (observed ~0.0111).
-	expect_lt(ctrl$compute_asymp_two_sided_pval(0), 0.05)
+	# TODO-106: the SE now includes the reference arm's variance (DeLong), so the
+	# p-value tracks wilcox.test(correct = FALSE) (observed ~0.051 here, was 0.011).
+	y_obs <- des$get_y()
+	p_wil <- suppressWarnings(wilcox.test(y_obs[w == 1], y_obs[w == 0], correct = FALSE)$p.value)
+	expect_lt(abs(ctrl$compute_asymp_two_sided_pval(0) - p_wil), 0.01)
+	expect_lt(ctrl$compute_asymp_two_sided_pval(0), 0.10)
 	expect_equal(trt$compute_estimate(), ctrl$compute_estimate(), tolerance = 1e-12)
-	expect_lt(trt$compute_asymp_two_sided_pval(0), 0.05)
+	expect_equal(trt$compute_asymp_two_sided_pval(0), ctrl$compute_asymp_two_sided_pval(0), tolerance = 1e-10)
 	permutations <- ctrl$.__enclos_env__$private$generate_permutations(25L)
 	d_ctrl <- ctrl$.__enclos_env__$private$compute_fast_randomization_distr(
 		des$get_y(), permutations, delta = 0, transform_responses = "none"

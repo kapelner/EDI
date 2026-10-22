@@ -76,7 +76,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 			n_params = ncol(X) + length(sort(unique(private$y))) - 1L
 			ws_args = private$get_backend_warm_start_args(n_params)
 			ws_fisher = ws_args$warm_start_fisher_info
-			res = fast_ordinal_probit_regression_cpp(
+			res = ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
 				X = X, y = as.numeric(private$y),
 				warm_start_params = ws_args$start_params,
 				warm_start_fisher_info = ws_fisher,
@@ -117,7 +117,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 			# Parametric bootstrap: use observed fit as anchor
 			ws_args = private$get_backend_warm_start_args(length(params_null))
 			full_res = tryCatch(
-				fast_ordinal_probit_regression_cpp(
+				ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
 					X_fit, y_sim,
 					warm_start_params = ws_args$start_params,
 					warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -134,7 +134,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 				fit_null = function(d, start = NULL){
 					ws_args_null = private$get_backend_warm_start_args(length(params_null))
 					res = tryCatch(
-						fast_ordinal_probit_regression_cpp(
+						ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
 							X_fit, y_sim,
 							warm_start_params = start %||% full_fit_boot$params,
 							warm_start_fisher_info = ws_args_null$warm_start_fisher_info,
@@ -163,7 +163,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 				fit_null = function(delta, start = NULL){
 					ws_args = private$get_backend_warm_start_args(length(ctx$full_params))
 					res = tryCatch(
-						fast_ordinal_probit_regression_cpp(
+						ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
 							X_fit, y,
 							fixed_idx = j_treat, fixed_values = delta,
 							warm_start_params = start %||% ws_args$start_params,
@@ -203,7 +203,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 					ws_args = private$get_backend_warm_start_args(n_params)
 					if (estimate_only) {
 						ws_fisher = ws_args$warm_start_fisher_info
-						res = fast_ordinal_probit_regression_cpp(
+						res = ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
 							X_fit, private$y,
 							warm_start_params = ws_args$start_params,
 							warm_start_fisher_info = ws_fisher,
@@ -213,7 +213,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 						if (is.null(res) || length(res) == 0) return(NULL)
 						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = ws_fisher)
 					} else {
-						res = fast_ordinal_probit_regression_with_var_cpp(
+						res = ordinal_fit_scaled(fast_ordinal_probit_regression_with_var_cpp,
 							X_fit, private$y,
 							warm_start_params = ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -306,11 +306,19 @@ OrdinalOrderedProbitLikelihoodSource = list(
 #' inf = InferenceOrdinalOrderedProbitRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceOrdinalOrderedProbitRegr = define_inference_class(
 	classname = "InferenceOrdinalOrderedProbitRegr",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalOrderedProbitLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"OrdinalOrderedProbitLikelihood"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "ordinal"),
 	overrides = list(
 		public = c(

@@ -468,7 +468,13 @@ test_that("full proportion rand candidate inventory has source-derived count and
 	})
 	names(design_capabilities) <- proportion_designs
 	expect_true(all(vapply(design_capabilities, function(x) "randomization_test" %in% x, logical(1))))
-	expect_true(all(vapply(design_capabilities, function(x) "randomization_ci" %in% x, logical(1))))
+	# TODO-119 (2026-10-22): InferencePropGCompMeanDiff is in
+	# EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES, so the registry no longer grants
+	# it `randomization_ci` (the logit-shift inversion cannot bound a raw mean
+	# difference). The candidate lattice therefore carries NO randomization-CI
+	# rows for it: capability is read from the registry, not assumed.
+	expect_false(any(vapply(design_capabilities, function(x) "randomization_ci" %in% x, logical(1))))
+	expect_true(comprehensive_rand_ci_refused_for_scale_mismatch(target_class))
 
 	nrep <- 40L
 	cases <- expand.grid(
@@ -491,7 +497,7 @@ test_that("full proportion rand candidate inventory has source-derived count and
 	}, logical(1))
 	cases$supports_randomization_ci <- vapply(cases$design, function(d) {
 		"randomization_ci" %in% design_capabilities[[d]]
-	}, logical(1))
+	}, logical(1)) & !comprehensive_rand_ci_refused_for_scale_mismatch(target_class)
 	cases$supports_randomization_bootstrap <- vapply(cases$design, function(d) {
 		"randomization_bootstrap" %in% design_capabilities[[d]]
 	}, logical(1))
@@ -516,7 +522,7 @@ test_that("full proportion rand candidate inventory has source-derived count and
 
 	expect_identical(nrow(cases), 14400L)
 	expect_true(all(cases$supports_randomization_test))
-	expect_true(all(cases$supports_randomization_ci))
+	expect_false(any(cases$supports_randomization_ci))
 	expect_length(unique(cases$inference_class), 4L)
 	expect_setequal(
 		unique(paste(cases$model_formula, cases$design_formula, sep = "||")),
@@ -529,17 +535,21 @@ test_that("full proportion rand candidate inventory has source-derived count and
 	pvalue_manifest <- comprehensive_rand_pvalue_attempt_manifest(cases, runner_path)
 	ci_manifest <- comprehensive_rand_ci_attempt_manifest(cases)
 	combined <- rbind(pvalue_manifest, ci_manifest)
+	# 14400 candidate contexts x 2 p-value operations = 28800 p-value keys. The
+	# 14400 compute_rand_confidence_interval keys (1 per context) that used to
+	# be emitted are removed by the TODO-119 refusal: 28800 + 0 = 28800
+	# (was 28800 + 14400 = 43200).
 	expect_identical(nrow(pvalue_manifest), 28800L)
-	expect_identical(nrow(ci_manifest), 14400L)
-	expect_identical(nrow(combined), 43200L)
+	expect_identical(nrow(ci_manifest), 0L)
+	expect_identical(nrow(combined), 28800L)
 	expect_false(anyNA(combined[c(
 		"rep", "beta_T", "dataset", "response_type", "design", "inference_class", "function_run"
 	)]))
 	expect_setequal(combined$function_run, c(
 		"compute_rand_two_sided_pval",
-		"compute_rand_two_sided_pval(delta=0.5)",
-		"compute_rand_confidence_interval"
+		"compute_rand_two_sided_pval(delta=0.5)"
 	))
+	expect_false("compute_rand_confidence_interval" %in% combined$function_run)
 
 	# Project using the exact pure key definitions from the runner. This is an
 	# inventory conditional on successful case setup, not proof that those rows
@@ -602,7 +612,8 @@ test_that("full proportion rand candidate inventory has source-derived count and
 		force_run_slow_paths = TRUE,
 		test_family_filter = "rand"
 	)
-	expect_identical(nrow(generated), 43200L)
+	expect_identical(nrow(generated), 28800L)
+	expect_false("compute_rand_confidence_interval" %in% generated$function_run)
 	expect_identical(attr(generated, "candidate_context_count"), 14400L)
 	expect_setequal(generated$id, combined$id)
 	expect_setequal(generated$function_run, combined$function_run)

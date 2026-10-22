@@ -7,8 +7,10 @@
 Fits a non-parametric treatment-effect estimator for censored survival
 responses: the difference in \strong{restricted mean survival time} (RMST)
 between the treated and control arms, \eqn{\hat\mu_T(\tau) - \hat\mu_C(\tau)},
-where both arms use the same truncation horizon \eqn{\tau}, chosen as the
-smaller of their maximum follow-up times, and each RMST is the area under its
+where both arms use the same truncation horizon \eqn{\tau}. By default
+\eqn{\tau} is the smaller of the two arms' maximum follow-up times; it can
+be fixed by the user (e.g. \code{tau = 36} for "RMST at 36 months") via the
+\code{tau} constructor argument. Each RMST is the area under its
 Kaplan-Meier survival curve up to that horizon
 (\eqn{\hat\mu(\tau) = \int_0^\tau \hat S(t)\,dt}),
 computed by trapezoidal integration of the step-function KM curve. The
@@ -20,6 +22,18 @@ back to a nonparametric bootstrap interval rather than returning \code{NA}.
 Randomization confidence intervals are not supported (the RMST-difference
 units are not commensurate with the randomization CI bisection algorithm's
 transformed-scale null search).
+
+\strong{Left- or interval-censored data.} The survival curve then comes from
+a Turnbull NPMLE (\code{interval::icfit()}) rather than Kaplan-Meier. Exact
+events are folded in as degenerate intervals \eqn{[y, y]} (they are not
+dropped), right-censored subjects are \eqn{[y_L, \infty)}, and any row that
+cannot be used is excluded with a warning. Both arms are integrated to one
+shared horizon \eqn{\tau}: the user's \code{tau}, or by default the smaller
+of the two arms' largest finite observed endpoints. Within a Turnbull
+interval the curve is not identified; it is taken to step down at the
+interval's left endpoint. An arm with no events before \eqn{\tau} has RMST
+equal to \eqn{\tau}. Bayesian-bootstrap re-estimation is not available on
+this path (\code{icfit()} has no weights argument).
 }
 \examples{
 \donttest{
@@ -63,6 +77,7 @@ Royston, P., and Parmar, M. K. B. (2013). "Restricted mean
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -75,6 +90,7 @@ Royston, P., and Parmar, M. K. B. (2013). "Restricted mean
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
@@ -99,7 +115,8 @@ Royston, P., and Parmar, M. K. B. (2013). "Restricted mean
   des_obj,
   model_formula = NULL,
   verbose = FALSE,
-  smart_cold_start_default = NULL
+  smart_cold_start_default = NULL,
+  tau = NULL
 )}
     \if{html}{\out{</div>}}
   }
@@ -113,6 +130,15 @@ reused. If a formula is provided, a new design matrix is constructed from the
 design's imputed covariates.}
       \item{\code{verbose}}{If TRUE, print additional information.}
       \item{\code{smart_cold_start_default}}{Whether to use smart cold start values by default.}
+      \item{\code{tau}}{Optional user-chosen restriction horizon \eqn{\tau} (a single finite
+positive number, on the response's time scale). If \code{NULL} (default) the
+shared horizon is the smaller of the two arms' maximum follow-up times, as before.
+If given, \eqn{\tau} must not exceed that smaller maximum (the KM curve is not
+identified past an arm's last observation); the point estimate, Greenwood
+standard error, Bayesian/nonparametric bootstrap and randomization paths all use
+this same \eqn{\tau}. In a resample whose smaller arm maximum falls below
+\code{tau}, the smaller maximum is used for that resample. For left-/interval-
+censored data the Turnbull step function is integrated exactly up to \code{tau}.}
     }
     \if{html}{\out{</div>}}
   }

@@ -95,19 +95,19 @@ InferenceExtParamBootstrapEstimate = list(
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec) || is.null(spec$full_fit) || is.null(spec$j) || length(spec$j) != 1L) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("param_bootstrap_estimate_spec_unavailable")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_spec_unavailable", "se")
 				return(NULL)
 			}
 			j = as.integer(spec$j)
 			raw_estimate = private$extract_param_bootstrap_estimate_coef(spec$full_fit, j)
 			if (!is.finite(raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_estimate("param_bootstrap_estimate_raw_estimate_nonfinite")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_raw_estimate_nonfinite", "estimate")
 				return(NULL)
 			}
 			if (private$param_bootstrap_estimate_extreme(raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_estimate("param_bootstrap_estimate_raw_estimate_extreme")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_raw_estimate_extreme", "estimate")
 				return(NULL)
 			}
 

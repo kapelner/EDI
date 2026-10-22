@@ -150,7 +150,7 @@ KKWilcoxIVWCSource = list(
 		#   jackknife contract this method participates in.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_estimate = function(unit = "auto"){
-			private$cache_nonestimable_estimate("kk_wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("kk_wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
 		# @description Reports the jackknife bias-correction estimate as
@@ -161,7 +161,7 @@ KKWilcoxIVWCSource = list(
 		#   jackknife contract.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_bias_estimate = function(unit = "auto"){
-			private$cache_nonestimable_estimate("kk_wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("kk_wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
 		# @description Reports the jackknife standard error as non-estimable for
@@ -171,7 +171,7 @@ KKWilcoxIVWCSource = list(
 		#   jackknife contract.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_std_error = function(unit = "auto"){
-			private$cache_nonestimable_se("kk_wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("kk_wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
 		# @description Reports the jackknife-Wald p-value as non-estimable here,
@@ -180,7 +180,7 @@ KKWilcoxIVWCSource = list(
 		# @param delta Null treatment-effect value. Default 0.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
-			private$cache_nonestimable_se("kk_wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("kk_wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
 		# @description Reports the jackknife-Wald confidence interval as
@@ -190,7 +190,7 @@ KKWilcoxIVWCSource = list(
 		# @param alpha Significance level. Default 0.05.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-			private$cache_nonestimable_se("kk_wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("kk_wilcox_hl_jackknife_not_supported")
 			c(NA_real_, NA_real_)
 		}
 	),
@@ -549,7 +549,13 @@ KKWilcoxIVWCSource$private = kk_wilcox_source_private[
 InferenceAllKKWilcoxIVWC = define_inference_class(
 	classname = "InferenceAllKKWilcoxIVWC",
 	inherit = Inference,
-	components = c("RandomizationBootstrapCI", "Wald", "KKWilcoxIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"Jackknife",
+		"Wald",
+		"KKWilcoxIVWC"
+	),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),

@@ -38,7 +38,8 @@ test_that("'bootstrap_too_few_finite_estimates' fires when the percentile-path d
 
 	pval <- f$inf$compute_bootstrap_two_sided_pval(type = "percentile", na.rm = TRUE, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_too_few_finite_estimates")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_too_few_finite_estimates")
 })
 
 test_that("'bootstrap_too_few_finite_standard_errors' fires when the studentized-path theta vector has too few finite draws", {
@@ -50,7 +51,8 @@ test_that("'bootstrap_too_few_finite_standard_errors' fires when the studentized
 
 	pval <- f$inf$compute_bootstrap_two_sided_pval(type = "studentized", na.rm = TRUE, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_too_few_finite_standard_errors")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_too_few_finite_standard_errors")
 })
 
 test_that("'bootstrap_extreme_finite_estimates' fires when the bootstrap distribution is implausibly extreme", {
@@ -60,7 +62,8 @@ test_that("'bootstrap_extreme_finite_estimates' fires when the bootstrap distrib
 
 	pval <- f$inf$compute_bootstrap_two_sided_pval(type = "percentile", min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_extreme_finite_estimates")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_extreme_finite_estimates")
 })
 
 test_that("'bootstrap_original_standard_error_unavailable' fires when infer_original_se() is unusable", {
@@ -87,5 +90,6 @@ test_that("'bootstrap_pvalue_unavailable' fires when the bca path's pval_bca() i
 
 	pval <- f$inf$compute_bootstrap_two_sided_pval(type = "bca", min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_pvalue_unavailable")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_pvalue_unavailable")
 })

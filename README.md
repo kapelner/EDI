@@ -597,7 +597,7 @@ cannot help:
 **Where a GPU could still help.** The GPU-shaped computations are the
 embarrassingly parallel outer loops: one small kernel over many independent
 permutations or resamples (`ols_distr_parallel.cpp`,
-`fast_wilcox_parallel.cpp`, `ridit_distr_parallel.cpp`,
+`fast_wilcox_hl.cpp`, `ridit_distr_parallel.cpp`,
 `kk_compound_distr_parallel.cpp`, the bootstrap loops), the pairwise-distance
 and design-search kernels behind `DesignFixedOptimal`, matching, and
 rerandomization, and `SimulationFramework`'s replicate loop. For simple

@@ -41,7 +41,14 @@
 InferenceSurvivalKKLWACoxPHIVWC = define_inference_class(
 	classname = "InferenceSurvivalKKLWACoxPHIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "KKLWACoxIVWCPartialLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"KKLWACoxIVWCPartialLikelihood"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count KK migration this stretch.
@@ -132,7 +139,13 @@ NULL
 InferenceSurvivalKKLWACoxPHOneLik = define_inference_class(
 	classname = "InferenceSurvivalKKLWACoxPHOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "KKLWACoxOneLikPartialLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"KKLWACoxOneLikPartialLikelihood"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count KK migration this stretch.

@@ -1,0 +1,64 @@
+--- a/R/EDI/src/fast_coxph_regression.cpp
++++ b/R/EDI/src/fast_coxph_regression.cpp
+@@ -366,6 +366,16 @@
+             step *= 0.5;
+             ll_candidate = eval_ll_candidate(step);
+         }
++        // Survey 2 (optimize_likelihood_newton_false_nonconvergence.md): beta was
++        // assigned unconditionally, so a candidate that did not decrease the
++        // negative log-likelihood could be accepted and one DGP-2 fit diverged to
++        // bT = 166 while reporting converged = TRUE. Reject a clearly
++        // non-decreasing (or non-finite) candidate after the step-halving and
++        // stop at the current beta (converged stays FALSE, old_ll still belongs
++        // to beta). A candidate within `tol` of ll is still taken, so fits at the
++        // optimum keep their previous trajectory and the |old_ll - ll| < tol
++        // convergence test fires on the next pass as before.
++        if (!(ll_candidate < ll + tol)) break;
+         beta = beta_candidate;
+     }
+ 
+@@ -646,7 +656,7 @@
+     std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
+     bool smart_cold_start = true,
+     bool estimate_only = false,
+-    int maxit = 20,
++    int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
+     double tol = 1e-9,
+     std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
+     std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
+@@ -700,7 +710,7 @@
+     std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
+     bool smart_cold_start = true,
+     bool estimate_only = false,
+-    int maxit = 20,
++    int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
+     double tol = 1e-9,
+     std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
+     std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
+@@ -796,7 +806,7 @@
+     Nullable<NumericVector> warm_start_beta = R_NilValue,
+     bool smart_cold_start = true,
+     bool estimate_only = false,
+-    int maxit = 20,
++    int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
+     double tol = 1e-9,
+     Nullable<IntegerVector> fixed_idx = R_NilValue,
+     Nullable<NumericVector> fixed_values = R_NilValue,
+@@ -845,7 +855,7 @@
+                                Nullable<NumericVector> warm_start_beta = R_NilValue,
+                                bool smart_cold_start = true,
+                                bool estimate_only = false,
+-                               int maxit = 20,
++                               int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
+                                double tol = 1e-9,
+                                Nullable<IntegerVector> cluster = R_NilValue,
+                                Nullable<IntegerVector> fixed_idx = R_NilValue,
+@@ -898,7 +908,7 @@
+     Nullable<NumericVector> warm_start_beta = R_NilValue,
+     bool smart_cold_start = true,
+     bool estimate_only = false,
+-    int maxit = 20,
++    int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
+     double tol = 1e-9,
+     Nullable<IntegerVector> fixed_idx = R_NilValue,
+     Nullable<NumericVector> fixed_values = R_NilValue,

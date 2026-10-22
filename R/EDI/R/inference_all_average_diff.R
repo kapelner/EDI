@@ -377,7 +377,14 @@ SimpleMeanDifferenceSource = list(
 InferenceAllSimpleAverageDiff = define_inference_class(
 	classname = "InferenceAllSimpleAverageDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"SimpleMeanDifference"
+	),
 	public = list(
 		# Uses the randomization-CI layer's two-sided p-value contract
 		# (InferenceRandCI's version, not InferenceRand's): for

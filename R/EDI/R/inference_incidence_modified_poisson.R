@@ -434,11 +434,19 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 #' inf = InferenceIncidModifiedPoisson$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceIncidModifiedPoisson = define_inference_class(
 	classname = "InferenceIncidModifiedPoisson",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceModifiedPoissonLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"IncidenceModifiedPoissonLikelihood"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(

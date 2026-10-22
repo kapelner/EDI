@@ -2,6 +2,16 @@
 #'
 #' Abstract class for bootstrap-based inference.
 #'
+#' @section Minimum B for BCa confidence intervals:
+#' \code{type = "bca"} needs a large enough B. The BCa-adjusted tail probabilities
+#' must stay more than two order statistics from the ends of the bootstrap
+#' distribution; with the default two-sided \code{alpha = 0.05} and B of about 100
+#' the nominal tail holds only about 2.5 order statistics, so the interval is
+#' frequently \code{NA} (reason \code{"bootstrap_bca_adjustment_on_boundary"}, reported once per
+#' object per type by an \code{edi_bootstrap_bca_boundary_warning}). Use B of 501
+#' or more for \code{"bca"}, or \code{type = "percentile"} for small B. The same
+#' guidance applies to \code{compute_bayesian_bootstrap_confidence_interval(type = "bca")}.
+#'
 #' @section Design-specific validity caveats for the nonparametric bootstrap:
 #' Nonparametric bootstrap methods are not supported for \code{DesignSeqOneByOne}
 #' designs and their subclasses, except the concrete
@@ -470,7 +480,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					iter_val = withCallingHandlers(
 						tryCatch({
 							if (!is.null(worker_state)) {
-								private$load_resampling_draw_into_worker("non_param_boot", worker_state, boot_draw)
+								private$load_non_param_bootstrap_draw_into_worker(worker_state = worker_state, draw = boot_draw)
 								private$estimate_bootstrap_worker(worker_state)
 							} else {
 								sub_inf = private$bootstrap_subset_inference(boot_draw, smooth = FALSE)
@@ -587,7 +597,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 						function() {
 							worker_state = private$create_reusable_bootstrap_worker()
 							boot_draw = boot_draws[[1L]]
-							private$load_resampling_draw_into_worker("non_param_boot", worker_state, boot_draw)
+							private$load_non_param_bootstrap_draw_into_worker(worker_state = worker_state, draw = boot_draw)
 							tryCatch(private$estimate_bootstrap_worker(worker_state), error = private$resampling_error_to_na)
 						}
 					} else {
@@ -673,7 +683,12 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   \code{"bca"}: bias-corrected and accelerated p-value via closed-form CI
 		#'   inversion using the jackknife acceleration and bias-correction constants;
 		#'   second-order accurate (Efron 1987; Efron & Tibshirani 1993).
-		#' @param na.rm  				Remove non-finite bootstrap replicates. Default FALSE.
+		#' @param na.rm  				Remove non-finite bootstrap replicates. Default FALSE, in which case a
+		#'   single non-finite replicate makes the p-value \code{NA} (with a once-per-object warning of class
+		#'   \code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were non-finite). The
+		#'   confidence-interval method always drops non-finite replicates, so it can be finite
+		#'   when this p-value is \code{NA}; \code{na.rm = TRUE} drops them here too, subject to
+		#'   \code{min_number_usable_samples}.
 		#' @param show_progress  		A flag indicating whether a progress bar should be displayed.
 		#'
 		#' @return 	A bootstrap two-sided p-value.
@@ -697,6 +712,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			est = est[1]
 			private$clear_nonestimable_state()
+			edi_clear_procedure_failure(private, "bootstrap")
 			if (type %in% c("studentized", "bootstrap-t")) {
 				boot_stats = private$approximate_bootstrap_statistics_beta_hat_T(
 					B = B,
@@ -710,21 +726,24 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				boot_stats = NULL
 			}
 			if (isTRUE(na.rm)) boot_distr = boot_distr[is.finite(boot_distr)]
-			else if (any(!is.finite(boot_distr))) return(NA_real_)
+			else if (any(!is.finite(boot_distr))) {
+				edi_warn_bootstrap_nonfinite_na_once(self, private, boot_distr)
+				return(NA_real_)
+			}
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				if (isTRUE(private$harden)) {
 					if (!is.null(boot_stats)) {
 						# studentized path: empty because SEs are missing, not because estimates are missing
-						private$cache_nonestimable_se("bootstrap_too_few_finite_standard_errors")
+						edi_record_procedure_failure(self, private, "bootstrap_too_few_finite_standard_errors", "se")
 					} else {
-						private$cache_nonestimable_estimate("bootstrap_too_few_finite_estimates")
+						edi_record_procedure_failure(self, private, "bootstrap_too_few_finite_estimates", "estimate")
 					}
 				}
 				return(NA_real_)
 			}
 			if (length(boot_distr) == 0L) return(NA_real_)
 			if (private$bootstrap_estimates_extreme(boot_distr, est = est)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("bootstrap_extreme_finite_estimates")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_extreme_finite_estimates", "estimate")
 				return(NA_real_)
 			}
 			if (type == "percentile") {
@@ -736,7 +755,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					sum(boot_null <= est) / n_bs
 				)))
 				if (!is.finite(pval)) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("bootstrap_pvalue_unavailable")
+					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_pvalue_unavailable", "estimate")
 					return(NA_real_)
 				}
 				pval
@@ -748,7 +767,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				n_bs = length(D_boot)
 				pval = min(1, max(2 / n_bs, mean(D_boot >= D_obs)))
 				if (!is.finite(pval)) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("bootstrap_pvalue_unavailable")
+					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_pvalue_unavailable", "estimate")
 					return(NA_real_)
 				}
 				pval
@@ -776,7 +795,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					error = function(e) numeric(0)
 				)
 					if (length(t_boot) < as.integer(min_number_usable_samples)) {
-						if (isTRUE(private$harden)) private$cache_nonestimable_se("bootstrap_unstable_studentized_standard_errors")
+						if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_unstable_studentized_standard_errors", "se")
 						return(NA_real_)
 					}
 					if (private$studentized_interval_scale_unstable(
@@ -786,7 +805,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 						est = est,
 						alpha = 0.05
 					)) {
-						if (isTRUE(private$harden)) private$cache_nonestimable_se("bootstrap_unstable_studentized_standard_errors")
+						if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_unstable_studentized_standard_errors", "se")
 						return(NA_real_)
 					}
 					min(1, max(2 / length(t_boot), mean(t_boot >= t_obs)))
@@ -796,15 +815,15 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					private$pval_bca(boot_distr, est, delta),
 					error = function(e) {
 						if (isTRUE(private$harden)) {
-							private$cache_nonestimable_estimate("bootstrap_pvalue_unavailable")
+							edi_record_procedure_failure(self, private, "bootstrap_pvalue_unavailable", "estimate")
 							return(NA_real_)
 						}
 						stop(e)
 					}
 				)
 				if (!is.finite(pval) && isTRUE(private$harden)) {
-					if (!isTRUE(self$is_nonestimable())) {
-						private$cache_nonestimable_estimate("bootstrap_pvalue_unavailable")
+					if (!isTRUE(self$is_nonestimable()) && !edi_has_procedure_failure(private, "bootstrap")) {
+						edi_record_procedure_failure(self, private, "bootstrap_pvalue_unavailable", "estimate")
 					}
 					return(NA_real_)
 				}
@@ -835,6 +854,12 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   \code{"symmetric-percentile-t"} for accuracy, since studentizing (not the
 		#'   absolute-value pooling) is what buys the \eqn{O(n^\{-1\})} improvement.
 		#'   \code{"symmetric-percentile-t"} is the CI-worthy symmetric variant.
+		#'   \strong{Minimum B for \code{"bca"}:} the BCa adjusted tail probabilities must stay
+		#'   more than two order statistics (2/(B + 1)) inside the sample range, so at small B
+		#'   the interval is \code{NA} (reason \code{"bootstrap_bca_adjustment_on_boundary"}, with
+		#'   one \code{edi_bootstrap_bca_boundary_warning} per object). B of about 501 or more is
+		#'   recommended for \code{"bca"}; at B of about 100 it is NA for many datasets. Use
+		#'   \code{type = "percentile"} when a small B is needed.
 		#' @param na.rm                                   Remove non-finite bootstrap replicates.
 		#'   Default TRUE. Non-finite replicates are always removed internally.
 		#' @param show_progress  		Show progress bar.
@@ -858,6 +883,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				stop("Bootstrap confidence interval returned NA bounds")
 			}
 			est = est[1]
+			edi_clear_procedure_failure(private, "bootstrap")
+			private$cached_values$ci_call_failure_reason = NA_character_
+			on.exit({private$cached_values$ci_call_failure_reason <- NULL; private$cached_values$ci_call_ctx <- NULL}, add = TRUE)
 			# BCa only needs theta (not se), so route it through the parallel bootstrap path.
 			# studentized/symmetric-percentile-t need se per replicate → serial statistics path.
 			boot_stats = if (type %in% c("studentized", "bootstrap-t", "symmetric-percentile-t", "prepivoted", "double-bootstrap", "calibrated", "smoothed")) {
@@ -872,6 +900,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				list(theta = self$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress), se = NULL)
 			}
 			boot_distr = boot_stats$theta
+			private$cached_values$ci_call_ctx = list(B = B, alpha = alpha, all_finite = all(is.finite(boot_distr)))
 			boot_distr = boot_distr[is.finite(boot_distr)]
 			if (type %in% c("studentized", "bootstrap-t", "symmetric-percentile-t")) {
 				se_boot = boot_stats$se
@@ -972,7 +1001,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		# Cache for bootstrap distributions
 		boot_distr_cache = list(),
 		jack_distr_cache = list(),
-		bootstrap_extreme_estimate_threshold = EDI_SEPARATION_THRESHOLD,
+		# bootstrap_extreme_estimate_threshold (with bootstrap_estimates_extreme()
+		# and the NULL default of create_bootstrap_worker_state()) moved unchanged
+		# to ResamplingCore (v1.0.5 TODO-97, 2026-10-22).
 		bootstrap_extreme_ci_width_threshold = 5,
 		# 2026-08-19 (inference_suite_inspect.md audit): the single source of
 		# truth for compute_bootstrap_two_sided_pval()/compute_bootstrap_
@@ -1045,13 +1076,20 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		},
 		mark_jackknife_nonestimable_if_block_unsupported = function(unit = "auto"){
 			if (!private$jackknife_block_size_gt_one_unsupported(unit = unit)) return(FALSE)
-			private$cache_nonestimable_se("jackknife_block_size_gt_one_not_supported")
+			private$cache_procedure_failure("jackknife", "jackknife_block_size_gt_one_not_supported")
 			TRUE
 		},
-		missing_bootstrap_ci = function(alpha, reason, stage = c("estimate", "se")){
+		missing_bootstrap_ci = function(alpha, reason, stage = c("estimate", "se"), procedure = NULL){
 			stage = match.arg(stage)
-			if (identical(stage, "se")) private$cache_nonestimable_se(reason)
-			else private$cache_nonestimable_estimate(reason)
+			# Keep-first (TODO-101): a specific reason already recorded during this CI call
+			# (e.g. BCa boundary) must not be overwritten by the generic fallback.
+			cf = private$cached_values$ci_call_failure_reason
+			if (is.character(cf) && !is.na(cf)) NULL
+			else {
+				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason)
+				else edi_record_procedure_failure(self, private, reason, stage, procedure = procedure)
+				if (is.character(cf)) private$cached_values$ci_call_failure_reason = reason
+			}
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
@@ -1074,17 +1112,13 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			if (private$is_resampling_control_condition(e)) stop(e)
 			NA_real_
 		},
-		bootstrap_estimates_extreme = function(theta, est = NA_real_, max_abs = private$bootstrap_extreme_estimate_threshold){
-			theta = as.numeric(theta)
-			theta = theta[is.finite(theta)]
-			if (!length(theta)) return(FALSE)
-			max_abs = as.numeric(max_abs)[1L]
-			if (!is.finite(max_abs) || max_abs <= 0) max_abs = EDI_SEPARATION_THRESHOLD
-			if (any(abs(theta) > max_abs)) return(TRUE)
-			scale_ref = max(1, abs(as.numeric(est)[1L]), stats::median(abs(theta)), na.rm = TRUE)
-			if (!is.finite(scale_ref) || scale_ref <= 0) scale_ref = 1
-			theta_width = diff(stats::quantile(theta, probs = c(0.025, 0.975), names = FALSE, type = 8))
-			is.finite(theta_width) && theta_width > max_abs * scale_ref
+		bootstrap_outcome_scale = function(){
+			y = tryCatch(suppressWarnings(as.numeric(private$y)), error = function(e) numeric(0))
+			y = y[is.finite(y)]
+			if (length(y) < 2L) return(1)
+			s = stats::sd(y)
+			if (!is.finite(s)) return(1)
+			max(1, s)
 		},
 		bootstrap_confidence_interval_extreme = function(ci, est = NA_real_, max_abs = private$bootstrap_extreme_estimate_threshold){
 			ci = as.numeric(ci)
@@ -1095,7 +1129,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			scale_ref = max(1, abs(as.numeric(est)[1L]), na.rm = TRUE)
 			width = abs(diff(ci[1:2]))
 			scaled_max_width = max_abs * scale_ref
-			absolute_max_width = as.numeric(private$bootstrap_extreme_ci_width_threshold)[1L]
+			# The absolute cap is expressed in units of the outcome's spread, floored at 1 so
+			# outcomes with sd <= 1 keep the historical cap of 5 and outcomes in larger units
+			# (months, points, dollars) get a proportionally wider cap (TODO-101).
+			absolute_max_width = as.numeric(private$bootstrap_extreme_ci_width_threshold)[1L] * private$bootstrap_outcome_scale()
 			if (!is.finite(absolute_max_width) || absolute_max_width <= 0) absolute_max_width = Inf
 			max_width = min(scaled_max_width, absolute_max_width, na.rm = TRUE)
 			if (!is.finite(max_width) || max_width <= 0) max_width = scaled_max_width
@@ -1103,9 +1140,6 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		},
 		supports_reusable_bootstrap_worker = function(){
 			FALSE
-		},
-		create_bootstrap_worker_state = function(){
-			NULL
 		},
 		# Reusable-worker contract:
 		# * create_bootstrap_worker_state() returns a list containing the worker object;
@@ -1751,6 +1785,36 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				}
 				return(list(theta = theta, se = rep(NA_real_, length(theta))))
 			}
+			# Cache the UNFILTERED B x 2 matrix (release v1.0.5 TODO-57 -> plan
+			# TODO-11), keyed by B and smooth, so a studentized CI followed by a
+			# studentized p-value on one object share one set of resamples (the
+			# Bayesian side does the same with bayes_boot_stats_cache).  A
+			# require_se = TRUE entry also serves a later require_se = FALSE request
+			# with the same B and smooth (its theta column is identical); the
+			# reverse is not possible because an se-less entry has no se column.
+			# na.rm is applied on the way out so different na.rm values share an
+			# entry.  Wholesale cached_values resets (set_optimization_alg(),
+			# duplicate()) drop the entry together with the plain distribution cache.
+			stats_cache_key = paste0("stats::", as.character(B), "::", if (isTRUE(smooth)) "smooth" else "plain")
+			stats_cache = private$cached_values$boot_stats_cache
+			cached_stats = stats_cache[[paste0(stats_cache_key, "::se")]]
+			if (is.null(cached_stats) && !isTRUE(require_se)) cached_stats = stats_cache[[paste0(stats_cache_key, "::nose")]]
+			if (!is.null(cached_stats)) {
+				if (!isTRUE(require_se)) cached_stats[, 2L] = NA_real_  # a require_se = FALSE caller gets NA SEs, as on a fresh run
+				return(private$finalize_bootstrap_statistics_matrix(cached_stats, na.rm = na.rm, require_se = require_se))
+			}
+			if (!is.null(private$seed)) {
+				# Same save/set.seed/restore block as
+				# approximate_bootstrap_distribution_beta_hat_T(): seeded objects give
+				# reproducible studentized results without disturbing the caller's RNG.
+				had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+				if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+				on.exit(
+					if (had_seed) assign(".Random.seed", old_seed, envir = .GlobalEnv) else rm(".Random.seed", envir = .GlobalEnv),
+					add = TRUE
+				)
+				set.seed(private$seed)
+			}
 			n = private$des_obj$get_n()
 			stats_mat = matrix(NA_real_, nrow = B, ncol = 2L)
 			pb = NULL
@@ -1765,6 +1829,11 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				private$check_bootstrap_replicate_deadline("Bootstrap statistic replicate")
 				if (!is.null(pb)) utils::setTxtProgressBar(pb, b)
 			}
+			if (is.null(private$cached_values$boot_stats_cache)) private$cached_values$boot_stats_cache = list()
+			private$cached_values$boot_stats_cache[[paste0(stats_cache_key, if (isTRUE(require_se)) "::se" else "::nose")]] = stats_mat
+			private$finalize_bootstrap_statistics_matrix(stats_mat, na.rm = na.rm, require_se = require_se)
+		},
+		finalize_bootstrap_statistics_matrix = function(stats_mat, na.rm = TRUE, require_se = FALSE){
 			if (isTRUE(na.rm)) {
 				ok = is.finite(stats_mat[, 1L])
 				if (isTRUE(require_se)) ok = ok & is.finite(stats_mat[, 2L]) & stats_mat[, 2L] > 0
@@ -1884,11 +1953,15 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				} else {
 					"bootstrap_bca_jackknife_unavailable"
 				}
-				private$cache_nonestimable_se(reason)
+				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason) else edi_record_procedure_failure(self, private, reason, "se")
+				if (is.character(private$cached_values$ci_call_failure_reason)) private$cached_values$ci_call_failure_reason = reason
 				return(c(NA_real_, NA_real_))
 			}
 			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
-				private$cache_nonestimable_se(reason)
+				edi_record_procedure_failure(self, private, reason, "se")
+				if (is.character(private$cached_values$ci_call_failure_reason)) private$cached_values$ci_call_failure_reason = reason
+				ctx = private$cached_values$ci_call_ctx
+				if (!is.null(ctx) && isTRUE(ctx$all_finite)) edi_warn_bca_boundary_once(self, private, ctx$B, "bca", reason, ctx$alpha)
 				c(NA_real_, NA_real_)
 			})
 		},
@@ -1972,11 +2045,11 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				} else {
 					"bootstrap_bca_jackknife_unavailable"
 				}
-				private$cache_nonestimable_se(reason)
+				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason) else edi_record_procedure_failure(self, private, reason, "se")
 				return(NA_real_)
 			}
 			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bootstrap_bca_", on_failure = function(reason){
-				private$cache_nonestimable_se(reason)
+				edi_record_procedure_failure(self, private, reason, "se")
 				NA_real_
 			})
 		}

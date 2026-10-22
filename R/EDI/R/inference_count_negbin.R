@@ -42,11 +42,19 @@
 #' inf = InferenceCountNegBin$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceCountNegBin = define_inference_class(
 	classname = "InferenceCountNegBin",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"CountLikelihoodPlumbing"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
 	overrides = list(
 		public = c(
@@ -205,7 +213,7 @@ InferenceCountNegBin = define_inference_class(
 		#'   jackknife inference; report explicit non-estimability.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_estimate = function(unit = "auto"){
-			private$cache_nonestimable_se("negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("negbin_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Report that the jackknife bias estimate is unavailable for
@@ -214,7 +222,7 @@ InferenceCountNegBin = define_inference_class(
 		#'   jackknife contract.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_bias_estimate = function(unit = "auto"){
-			private$cache_nonestimable_se("negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("negbin_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Report that the jackknife standard error is unavailable for
@@ -223,7 +231,7 @@ InferenceCountNegBin = define_inference_class(
 		#'   jackknife contract.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_std_error = function(unit = "auto"){
-			private$cache_nonestimable_se("negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("negbin_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Reports that jackknife-Wald p-values are unavailable here; see
@@ -231,7 +239,7 @@ InferenceCountNegBin = define_inference_class(
 		#' @param delta Null treatment-effect value. Default 0.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
-			private$cache_nonestimable_se("negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("negbin_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Reports that jackknife-Wald intervals are unavailable here; see
@@ -239,7 +247,7 @@ InferenceCountNegBin = define_inference_class(
 		#' @param alpha Significance level. Default 0.05.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-			private$cache_nonestimable_se("negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("negbin_jackknife_not_supported")
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
@@ -276,7 +284,7 @@ InferenceCountNegBin = define_inference_class(
 					warm_start_params = ws_args$start_params,
 					warm_start_fisher_info = ws_args$warm_start_fisher_info,
 					smart_cold_start = private$smart_cold_start_default,
-					optimization_alg = private$optimization_alg,
+					optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G,
 					fixed_idx    = if (has_vc) as.integer(ncol(X) + 1L) else NULL,
 					fixed_values = if (has_vc) as.numeric(private$cached_vc_params) else NULL
 				),
@@ -312,7 +320,7 @@ InferenceCountNegBin = define_inference_class(
 				fast_neg_bin_cpp(
 					X = X_fit, y = y_sim,
 					smart_cold_start = private$smart_cold_start_default,
-					optimization_alg = private$optimization_alg
+					optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G
 				),
 				error = function(e) NULL
 			)
@@ -331,7 +339,7 @@ InferenceCountNegBin = define_inference_class(
 							warm_start_params = start %||% c(as.numeric(full_res$b), log(as.numeric(full_res$theta_hat))),
 							fixed_idx = j, fixed_values = d,
 							smart_cold_start = TRUE,
-							optimization_alg = private$optimization_alg
+							optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G
 						),
 						error = function(e) NULL
 					)
@@ -382,7 +390,7 @@ InferenceCountNegBin = define_inference_class(
 						fixed_idx = j_treat,
 						fixed_values = delta,
 						smart_cold_start = private$smart_cold_start_default,
-						optimization_alg = private$optimization_alg
+						optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G
 					)
 				},
 				extract_start = function(fit){
@@ -433,7 +441,7 @@ InferenceCountNegBin = define_inference_class(
 							warm_start_params = ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
 							smart_cold_start = private$smart_cold_start_default,
-							optimization_alg = private$optimization_alg
+							optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G
 						),
 						error = function(e) NULL
 					)
@@ -451,7 +459,7 @@ InferenceCountNegBin = define_inference_class(
 							warm_start_params = ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
 							smart_cold_start = private$smart_cold_start_default,
-							optimization_alg = private$optimization_alg
+							optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G
 						),
 						error = function(e) NULL
 					)
@@ -489,7 +497,7 @@ InferenceCountNegBin = define_inference_class(
 								warm_start_params = ws_args$start_params,
 								warm_start_fisher_info = ws_args$warm_start_fisher_info,
 								smart_cold_start = private$smart_cold_start_default,
-								optimization_alg = private$optimization_alg
+								optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G
 							),
 							error = function(e) NULL
 						)
@@ -505,7 +513,7 @@ InferenceCountNegBin = define_inference_class(
 								warm_start_params = ws_args$start_params,
 								warm_start_fisher_info = ws_args$warm_start_fisher_info,
 								smart_cold_start = private$smart_cold_start_default,
-								optimization_alg = private$optimization_alg
+								optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G
 							),
 							error = function(e) NULL
 						)
@@ -546,3 +554,9 @@ InferenceCountNegBin = define_inference_class(
 		}
 	)
 )
+
+# Gradient-norm tolerance for the unweighted negative-binomial fits. The C++
+# default (1e-6) stopped ~1e-3 short of the MLE on the treatment coefficient
+# (TODO-116); 1e-10 matches MASS::glm.nb to ~1e-6 for a couple of extra
+# L-BFGS iterations.
+NEGBIN_FIT_EPS_G = 1e-10

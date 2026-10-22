@@ -60,7 +60,14 @@
 InferenceContinKKQuantileRegrIVWC = define_inference_class(
 	classname = "InferenceContinKKQuantileRegrIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "KKQuantileRegrIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"KKQuantileRegrIVWC"
+	),
 	metadata = list(likelihood_tier = "none"),
 	overrides = list(
 		public = c(

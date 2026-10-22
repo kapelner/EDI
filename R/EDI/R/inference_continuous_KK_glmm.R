@@ -40,7 +40,14 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 	# R6-inheriting BayesianBootstrap/ParametricLikelihoodBootstrap instead of
 	# composing them) -- same hybrid-state fix as InferenceOrdinalPropOddsRegr/
 	# InferenceOrdinalAdjCatLogitRegr earlier this stretch.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKGLMM"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"KKGLMM"
+	),
 	# capabilities = "likelihood_ratio" is required explicitly -- same
 	# rationale as every class composing ParametricLikelihoodBootstrap
 	# directly (bypassing StandardModelCache) this stretch.
@@ -180,8 +187,20 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 		#' @param alpha The confidence level of the interval is \eqn{1 -
 		#'   \code{alpha}}. Default \code{0.05}.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			private$shared(estimate_only = FALSE)
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			# TODO-121: dispatch on the testing type (was: always Wald).
+			switch(
+				private$testing_type,
+				wald = {
+					private$shared(estimate_only = FALSE)
+					private$compute_z_or_t_ci_from_s_and_df(alpha)
+				},
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
+				stop("Unsupported testing_type: ", private$testing_type)
+			)
 		},
 		#' @description Computes a two-sided Wald p-value for
 		#'   \eqn{H_0: \beta_T = \code{delta}} using the fitted-model estimate
@@ -189,8 +208,20 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 		#'   \code{$compute_asymp_confidence_interval()} inverts).
 		#' @param delta The null treatment-effect value. Default \code{0}.
 		compute_asymp_two_sided_pval = function(delta = 0){
-			private$shared(estimate_only = FALSE)
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			# TODO-121: dispatch on the testing type (was: always Wald).
+			switch(
+				private$testing_type,
+				wald = {
+					private$shared(estimate_only = FALSE)
+					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+				},
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
+				stop("Unsupported testing_type: ", private$testing_type)
+			)
 		}
 	),
 	private = list(

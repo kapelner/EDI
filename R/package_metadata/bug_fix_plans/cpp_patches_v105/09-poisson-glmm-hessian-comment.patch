@@ -1,0 +1,16 @@
+--- a/R/EDI/src/fast_poisson_glmm.cpp
++++ b/R/EDI/src/fast_poisson_glmm.cpp
+@@ -598,7 +598,12 @@
+ 	return -grad;
+ }
+ 
+-// ── R-exported: observed information (Hessian of neg_ll) at par ─────────────
++// ── R-exported: Hessian of the LOG-LIKELIHOOD at par ────────────────────────
++// TODO-121: this returns -obj.hessian(par) = -Hess(neg_ll) = Hess(log-lik), i.e.
++// the NEGATIVE of the observed information (the old comment said "Hessian of
++// neg_ll", which is the opposite sign). Comment-only change: the returned sign
++// is deliberately unchanged because R already negates it
++// (inference_count_KK_combined.R).
+ // [[Rcpp::export]]
+ Eigen::MatrixXd get_poisson_glmm_hessian_cpp(
+ 	const NumericMatrix& X_r,

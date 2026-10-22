@@ -139,6 +139,27 @@ Inference = R6::R6Class("Inference",
 				private$model_formula = model_formula
 				# Path #3: final numeric design matrix
 				private$X = create_model_matrix_from_features(private$model_formula, X_imp_analysis)
+				# TODO-111: a zero-column covariate frame (data.table) reports nrow 0,
+				# so the helper returns a 0 x 0 matrix; rebuild it as t x 0.
+				if (ncol(private$X) == 0L && nrow(private$X) != des_obj$get_t()) {
+					private$X = matrix(NA_real_, nrow = des_obj$get_t(), ncol = 0L)
+				}
+				# TODO-103: a user formula that uses the cluster column is collinear with
+				# treatment under cluster assignment (treatment is constant within cluster).
+				cl_col = tryCatch(private$des_obj_priv_int$cluster_col, error = function(e) NULL)
+				if (length(cl_col) == 1L && isTRUE(tryCatch(des_obj$is_a_cluster_capable(), error = function(e) FALSE)) &&
+					cl_col %in% all.vars(model_formula)) {
+					warning(structure(
+						class = c("edi_cluster_col_in_model_formula_warning", "warning", "condition"),
+						list(message = paste0(
+							"model_formula uses the cluster column '", cl_col, "' on a cluster-randomized design. ",
+							"Treatment is constant within clusters, so treatment is collinear (aliased) with the cluster ",
+							"indicators: the treatment coefficient will be a between-cluster contrast of the remaining ",
+							"clusters or not identifiable. Drop '", cl_col, "' from model_formula (it is excluded from the ",
+							"default covariates for this reason) and use cluster-robust / cluster-aware inference instead. ",
+							"Suppress with suppressWarnings(expr, classes = \"edi_cluster_col_in_model_formula_warning\")."),
+							call = NULL)))
+				}
 			}
 			
 			private$verbose = verbose
@@ -252,6 +273,50 @@ Inference = R6::R6Class("Inference",
 		#' @return A character scalar or \code{NULL}.
 		get_nonestimable_stage = function(){
 			private$cached_values$nonestimable_stage
+		},
+		#' @description Prints a coefficient summary table (Estimate / Std. Error /
+		#' statistic / p-value) for the most recent fit and returns it invisibly. Works for
+		#' every inference class: model-based classes show the full coefficient table when
+		#' coefficient names and a covariance matrix are available, otherwise (including
+		#' classes without a fitted model, such as randomization-only classes) a one-row
+		#' treatment summary. Pieces that are unavailable (e.g. a Wald standard error) are
+		#' shown as \code{NA}; this method never errors because one is missing.
+		#' @return Invisibly, the printed summary as a numeric matrix.
+		get_summary = function(){
+			est_ret = NULL
+			cv0 = private$cached_values
+			if (is.null(cv0$beta_hat_T) || (is.null(cv0$summary_table) && is.null(cv0$s_beta_hat_T))) {
+				est_ret = tryCatch(
+					self$compute_estimate(estimate_only = FALSE),
+					error = function(e) tryCatch(self$compute_estimate(), error = function(e2) NULL)
+				)
+			}
+			fallback = private$cached_values$model_fit_fallback
+			if (is.list(fallback) && isTRUE(fallback$used)) {
+				cat("Model fit fallback: ", fallback$fitted_model, "\n", sep = "")
+				if (!is.null(fallback$requested_model)) cat("Requested model: ", fallback$requested_model, "\n", sep = "")
+				if (!is.null(fallback$reason)) cat("Fallback reason: ", fallback$reason, "\n", sep = "")
+				if (length(fallback$omitted_conditional %||% character(0))) {
+					cat("Omitted conditional covariates: ", paste(fallback$omitted_conditional, collapse = ", "), "\n", sep = "")
+				}
+				if (length(fallback$omitted_auxiliary %||% character(0))) {
+					cat("Omitted auxiliary covariates: ", paste(fallback$omitted_auxiliary, collapse = ", "), "\n", sep = "")
+				}
+				cat("Omitted coefficient rows are shown as NA because those terms were not included in the fallback fit.\n")
+			}
+			tab = edi_build_summary_table(self, private, est_ret)
+			mod = private$cached_mod
+			if (!is.null(mod) && is.object(mod) && is.null(private$cached_values$summary_table)) {
+				# A genuine fitted-model object (lm, glm, ...): its own summary method is richest.
+				shown = tryCatch({print(summary(mod)); TRUE}, error = function(e) FALSE)
+				if (!shown) print(tab)
+			} else {
+				print(tab)
+			}
+			if (isTRUE(private$cached_values$nonestimable)) {
+				cat("Note: the most recent fit was flagged non-estimable (", private$cached_values$nonestimable_reason %||% "no reason recorded", ").\n", sep = "")
+			}
+			invisible(tab)
 		},
 		#' @description Duplicate this inference object
 		#' @param verbose 	A flag indicating whether messages should be displayed.
@@ -399,9 +464,24 @@ Inference = R6::R6Class("Inference",
 		get_optimization_alg = function(){
 			private$optimization_alg
 		},
-		#' @description Set the seed for reproducibility.
+		#' @description Set the seed for reproducibility. The seed governs the
+		#'   parallel resampling workers and the randomization-test draws
+		#'   (\code{compute_rand_two_sided_pval()}, \code{compute_rand_confidence_interval()}):
+		#'   the randomization permutations are drawn from this seed (falling back to the
+		#'   design's own \code{seed} when none is set here), inside a save/restore of the
+		#'   caller's global \code{.Random.seed}, and the seed is part of the design-level
+		#'   permutation-cache key. Without any seed the draws come from the global RNG
+		#'   stream at the first call and are then cached on the design.
 		#' @param seed Integer seed for reproducibility.
-		set_seed = function(seed) { private$seed = seed }
+		set_seed = function(seed) { private$seed = seed },
+		#' @description Drop the design-level cache of randomization permutations
+		#'   (shared by every inference object built on this design), so the next
+		#'   randomization p-value / confidence interval redraws its permutations.
+		#' @return \code{self}, invisibly.
+		clear_randomization_cache = function() {
+			private$des_obj_priv_int$permutations_cache = list()
+			invisible(self)
+		}
 		),
 	active = list(
 		#' @field num_cores Current number of cores for this inference object.
@@ -595,6 +675,7 @@ Inference = R6::R6Class("Inference",
 		optimization_alg_allow_irls = FALSE,
 		optimization_alg_default = "lbfgs",
 		active_resampling_operation = NULL,
+		cluster_independence_warned = NULL,
 		fit_warm_start_enabled = TRUE,
 		null_fit_warm_start_enabled = TRUE,
 		reusable_bootstrap_worker_enabled = TRUE,
@@ -816,6 +897,41 @@ Inference = R6::R6Class("Inference",
 			private$cached_values$nonestimable_reason = as.character(reason)[1L]
 			private$cached_values$nonestimable_stage = "estimate"
 			if (is.null(private$cached_values$df)) private$cached_values$df = NA_real_
+			invisible(NULL)
+		},
+		# A request for a procedure this class does not support (documented
+		# stub). Unlike cache_nonestimable_se()/cache_nonestimable_estimate()
+		# it must NOT touch the estimate/SE/df caches or the nonestimable
+		# state: the fit itself is fine, only the requested procedure is not
+		# available (TODO-116). It signals a classed warning
+		# (edi_unsupported_procedure) so callers are not silently handed NA,
+		# and records the reason for diagnostics.
+		signal_unsupported_procedure = function(reason){
+			reason = as.character(reason)[1L]
+			private$cached_values$unsupported_procedure_reason = reason
+			warning(structure(
+				class = c("edi_unsupported_procedure", "warning", "condition"),
+				list(
+					message = sprintf("%s: this procedure is not supported by %s (%s); returning NA.",
+						class(self)[1L], class(self)[1L], reason),
+					call = NULL,
+					reason = reason
+				)
+			))
+			invisible(NULL)
+		},
+		# A failure that belongs to ONE procedure (jackknife, a bootstrap CI,
+		# a gated asymptotic path, ...) while the primary fit is fine. Unlike
+		# cache_nonestimable_se()/cache_nonestimable_estimate() it never
+		# touches the estimate/SE/df caches or the nonestimable flag, so the
+		# Wald SE, p-value and is_nonestimable() are unchanged (TODO-116). The
+		# reason is kept per procedure in
+		# cached_values$procedure_failure_reason[[procedure]].
+		cache_procedure_failure = function(procedure, reason){
+			pf = private$cached_values$procedure_failure_reason
+			if (!is.list(pf)) pf = list()
+			pf[[as.character(procedure)[1L]]] = as.character(reason)[1L]
+			private$cached_values$procedure_failure_reason = pf
 			invisible(NULL)
 		},
 		cache_nonestimable_se = function(reason = "standard_error_unavailable"){
@@ -1326,3 +1442,50 @@ Inference = R6::R6Class("Inference",
 		}
 	)
 )
+
+# Builds the coefficient summary printed by get_summary(). Never errors: every
+# unavailable piece (SE, df, names, vcov) degrades to NA or to a one-row
+# treatment summary.
+edi_build_summary_table = function(self, private, est_ret = NULL){
+	cv = private$cached_values
+	st = cv$summary_table
+	if ((is.matrix(st) || is.data.frame(st)) && nrow(st) > 0L) return(st)
+	df = suppressWarnings(as.numeric(cv$df))
+	use_t = length(df) == 1L && is.finite(df) && df > 0
+	cn = if (use_t) c("Estimate", "Std. Error", "t value", "Pr(>|t|)") else c("Estimate", "Std. Error", "z value", "Pr(>|z|)")
+	pfun = function(stat) if (use_t) 2 * stats::pt(-abs(stat), df) else 2 * stats::pnorm(-abs(stat))
+	mod = private$cached_mod
+	plain = is.list(mod) && !is.object(mod)
+	cf = cv$full_coefficients
+	V = cv$full_vcov
+	if (plain && is.null(cf) && length(mod$b) > 0L && !is.null(names(mod$b))) cf = mod$b
+	if (plain && is.null(V) && is.matrix(mod$vcov)) V = mod$vcov
+	# Only trust a full table when the treatment coefficient is identifiable by name;
+	# some classes (e.g. KK OLS) carry internally generated column names.
+	tn = cv$treatment_coef_name_used %||% "treatment"
+	if (!is.null(cf) && !is.null(names(cf)) && length(cf) > 0L && tn %in% names(cf)) {
+		cf = stats::setNames(suppressWarnings(as.numeric(cf)), names(cf))
+		se = rep(NA_real_, length(cf))
+		if (is.matrix(V) && nrow(V) == length(cf)) {
+			dv = diag(V)
+			se = ifelse(is.finite(dv) & dv > 0, sqrt(dv), NA_real_)
+		}
+		stat = cf / se
+		tab = cbind(cf, se, stat, pfun(stat))
+		dimnames(tab) = list(names(cf), cn)
+		return(tab)
+	}
+	est = cv$beta_hat_T
+	if (is.null(est)) est = est_ret
+	est = suppressWarnings(as.numeric(est))
+	if (length(est) != 1L) est = NA_real_
+	se = cv$s_beta_hat_T
+	if (is.null(se) && is.function(private$get_standard_error)) {
+		se = tryCatch(private$get_standard_error(), error = function(e) NULL)
+	}
+	se = suppressWarnings(as.numeric(se))
+	if (length(se) != 1L || !is.finite(se) || se <= 0) se = NA_real_
+	stat = est / se
+	tab = matrix(c(est, se, stat, pfun(stat)), nrow = 1L, dimnames = list("treatment", cn))
+	tab
+}

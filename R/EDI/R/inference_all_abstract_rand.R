@@ -1,10 +1,27 @@
+# Tail-count -> randomization p-value. "two.sided" is the historical doubled
+# smaller tail (floor 2/n, cap 1); "greater"/"less" are the single tails
+# (floor 1/n), for non-negative / one-tailed-by-construction statistics
+# (TODO-113). A plain function, not a private method, because
+# compute_rand_two_sided_pval() is spliced into mixins whose contracts list
+# the private methods they need.
+rand_pval_from_tail_counts = function(n_ge, n_le, n, alternative = "two.sided"){
+	switch(alternative,
+		greater = min(1, max(1 / n, n_ge / n)),
+		less = min(1, max(1 / n, n_le / n)),
+		min(1, max(2 / n, 2 * min(n_ge / n, n_le / n)))
+	)
+}
+
 #' Randomization-based Inference
 #'
 #' Abstract class for randomization-based inference.
 #'
 #' @keywords internal
 InferenceRand = R6::R6Class("InferenceRand",
-	inherit = Inference,
+	# Legacy-ladder parent only (component sources take direct methods): keeps
+	# the ResamplingCore helpers that moved out of this source on every ladder
+	# generator (v1.0.5 TODO-97).
+	inherit = InferenceResamplingCore,
 	lock_objects = FALSE,
 	public = list(
 		#' @description Computes the randomization distribution of the treatment effect estimate under the sharp null.
@@ -56,6 +73,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 				private$sequential_mc_control_enabled(mc_control_for_perms) &&
 				as.integer(mc_control_for_perms$mc_batch_size) < as.integer(r)
 			if (is.null(permutations) && !defer_permutation_generation_for_mc) permutations = private$generate_permutations(r)
+			if (defer_permutation_generation_for_mc) {
+				restore_draw_rng = private$seed_global_rng_for_draws()
+				on.exit(restore_draw_rng(), add = TRUE)
+			}
 			setup = private$setup_randomization_template_and_shifts(delta, transform_responses, zero_one_logit_clamp)
 			if (!isTRUE(debug) && !is.null(permutations) && private$has_private_method("compute_fast_randomization_distr")) {
 				fast_distr = tryCatch(
@@ -129,8 +150,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 									sample(private$w)
 								}
 								# Load into worker
-								private$load_resampling_draw_into_worker(
-									operation = "rand",
+								private$load_randomization_draw_into_worker(
 									worker_state = worker_state,
 									draw = perm_w,
 									delta = delta,
@@ -267,6 +287,16 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' @param show_progress  	Show progress.
 		#' @param permutations  	Pre-computed permutations.
 		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
+		#' @param alternative One of \code{"two.sided"} (default), \code{"greater"} or
+		#'   \code{"less"}. The default is \eqn{\min(1, \max(2/B, 2\min(P(T_0 \ge t),
+		#'   P(T_0 \le t))))} over the \eqn{B} finite reference statistics \eqn{T_0}
+		#'   (no +1 correction; a floor of \eqn{2/B}), which assumes a signed, roughly
+		#'   symmetric statistic. For a non-negative, one-tailed-by-construction
+		#'   statistic (a squared difference, a chi-square or omnibus statistic, an
+		#'   absolute value) the doubled smaller tail is wrong -- it counts the
+		#'   uninformative lower tail as evidence -- so pass \code{"greater"}, which
+		#'   returns the upper-tail p-value \eqn{\max(1/B, P(T_0 \ge t))} (no doubling);
+		#'   \code{"less"} returns \eqn{\max(1/B, P(T_0 \le t))}.
 		#' @details For survival outcomes with left- or interval-censoring, a nonzero
 		#'   \code{delta} is not supported and the call errors. The current null-shift
 		#'   implementation shifts exact/right-censored response times but not censoring
@@ -281,7 +311,8 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   finite reference statistics are required, otherwise \code{NA} is returned.
 		#'   A nonzero \code{delta} is not supported for incidence responses.
 		#' @return 	Randomization p-value.
-		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps){
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
+			alternative = match.arg(alternative, c("two.sided", "greater", "less"))
 			if (isTRUE(delta != 0) &&
 					private$des_obj_priv_int$response_type == "incidence" &&
 					is.null(private$custom_randomization_statistic_function)) {
@@ -307,6 +338,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 				private$sequential_mc_control_enabled(mc_control_for_perms) &&
 				as.integer(mc_control_for_perms$mc_batch_size) < as.integer(r)
 			if (is.null(permutations) && !defer_permutation_generation_for_mc) permutations = private$generate_permutations(r)
+			if (defer_permutation_generation_for_mc) {
+				restore_draw_rng = private$seed_global_rng_for_draws()
+				on.exit(restore_draw_rng(), add = TRUE)
+			}
 			if (identical(transform_responses, "none")) {
 				transform_responses = switch(
 					private$des_obj_priv_int$response_type,
@@ -334,22 +369,22 @@ InferenceRand = R6::R6Class("InferenceRand",
 				t = private$compute_treatment_estimate_during_randomization_inference()
 				if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
 				if (length(t) != 1 || !is.finite(t)) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_observed_statistic_unavailable")
+					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_observed_statistic_unavailable", "estimate")
 					return(NA_real_)
 				}
 				na_t0s = !is.finite(t0s)
 				nsim_adj = sum(!na_t0s)
 				if (nsim_adj == 0L) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_too_few_finite_estimates")
+					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_too_few_finite_estimates", "estimate")
 					return(NA_real_)
 				}
-				return(min(1, max(2 / nsim_adj, 2 * min(sum(t0s >= t, na.rm = TRUE) / nsim_adj, sum(t0s <= t, na.rm = TRUE) / nsim_adj))))
+				return(rand_pval_from_tail_counts(sum(t0s >= t, na.rm = TRUE), sum(t0s <= t, na.rm = TRUE), nsim_adj, alternative))
 			}
 			private$ensure_resampling_distribution_cache("rand")
 			t = private$compute_treatment_estimate_during_randomization_inference()
 			if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
 			if (length(t) != 1 || !is.finite(t)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_observed_statistic_unavailable")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_observed_statistic_unavailable", "estimate")
 				return(NA_real_)
 			}
 			mc_pval = private$compute_two_sided_pval_with_sequential_mc(
@@ -360,7 +395,8 @@ InferenceRand = R6::R6Class("InferenceRand",
 				show_progress = show_progress,
 				permutations = permutations,
 				cache_key = cache_key,
-				zero_one_logit_clamp = zero_one_logit_clamp
+				zero_one_logit_clamp = zero_one_logit_clamp,
+				alternative = alternative
 			)
 			if (!is.null(mc_pval)) return(mc_pval)
 			t0s = private$get_randomization_distribution_prefix(
@@ -375,7 +411,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			private$cache_additive_delta_shift_distribution(
 				t0s, r, delta, transform_responses, permutations
 			)
-			private$compute_two_sided_randomization_pval_from_t0s(t0s, t)
+			private$compute_two_sided_randomization_pval_from_t0s(t0s, t, alternative)
 		}
 		),
 	private = c(InferenceExtSequentialMCPval$private, list(
@@ -746,15 +782,15 @@ InferenceRand = R6::R6Class("InferenceRand",
 				)
 			), use.names = FALSE))
 		},
-		compute_two_sided_randomization_pval_from_t0s = function(t0s, t){
+		compute_two_sided_randomization_pval_from_t0s = function(t0s, t, alternative = "two.sided"){
 			na_t0s = !is.finite(t0s)
 			nsim_adj = sum(!na_t0s)
 			min_required = max(10L, as.integer(length(t0s) * 0.10))
 			if (nsim_adj < min_required) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_too_few_finite_estimates")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_too_few_finite_estimates", "estimate")
 				return(NA_real_)
 			}
-			min(1, max(2 / nsim_adj, 2 * min(sum(t0s >= t, na.rm = TRUE) / nsim_adj, sum(t0s <= t, na.rm = TRUE) / nsim_adj)))
+			rand_pval_from_tail_counts(sum(t0s >= t, na.rm = TRUE), sum(t0s <= t, na.rm = TRUE), nsim_adj, alternative)
 		},
 		compute_two_sided_randomization_pval_band = function(t0s, t, conf_level){
 			valid = is.finite(t0s)
@@ -808,9 +844,11 @@ InferenceRand = R6::R6Class("InferenceRand",
 			}
 			cached[seq_len(target)]
 		},
-		compute_two_sided_pval_with_sequential_mc = function(t, r, delta, transform_responses, show_progress, permutations, cache_key, zero_one_logit_clamp = .Machine$double.eps){
+		compute_two_sided_pval_with_sequential_mc = function(t, r, delta, transform_responses, show_progress, permutations, cache_key, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			mc_control = private$randomization_mc_control
 			if (!private$sequential_mc_control_enabled(mc_control)) return(NULL)
+			# The early-stopping band is the two-sided one; single-tail p-values use the full r draws.
+			if (!identical(alternative, "two.sided")) return(NULL)
 			batch_size = min(as.integer(r), as.integer(mc_control$mc_batch_size))
 			min_draws = min(as.integer(r), as.integer(mc_control$mc_min_draws))
 			if (batch_size <= 0L || min_draws <= 0L || batch_size >= as.integer(r)) return(NULL)
@@ -854,6 +892,32 @@ InferenceRand = R6::R6Class("InferenceRand",
 				if (length(t0s) >= as.integer(r)) return(p_hat)
 			}
 		},
+		# TODO-112: the seed that governs randomization draws. The inference
+		# seed (`set_seed()` / constructor `seed`) wins; the design's own seed
+		# is the fallback. NULL means "unseeded" (draws come from the caller's
+		# global RNG stream, as before).
+		effective_draw_seed = function(){
+			s = private$seed
+			if (is.null(s)) s = private$des_obj_priv_int$seed
+			if (is.null(s) || length(s) != 1L || !is.finite(suppressWarnings(as.numeric(s)))) return(NULL)
+			as.integer(s)
+		},
+		# Seeds the global RNG with the effective seed for the rest of the
+		# calling frame (sequential-MC path draws w per batch instead of via
+		# generate_permutations()) and restores the caller's stream on exit.
+		# Returns a restore function; no-op when unseeded.
+		seed_global_rng_for_draws = function(){
+			seed = private$effective_draw_seed()
+			if (is.null(seed)) return(function() invisible(NULL))
+			had = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+			if (had) old = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+			set.seed(seed)
+			function() {
+				if (had) assign(".Random.seed", old, envir = .GlobalEnv)
+				else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(".Random.seed", envir = .GlobalEnv)
+				invisible(NULL)
+			}
+		},
 		generate_permutations = function(r){
 			if (should_run_asserts()) {
 				assertCount(r, positive = TRUE)
@@ -865,10 +929,15 @@ InferenceRand = R6::R6Class("InferenceRand",
 				m = private$des_obj_priv_int$m,
 				strata_cols = private$des_obj_priv_int$strata_cols
 			))
-			cache_key = paste0(as.integer(r), "|", design_sig)
+			draw_seed = private$effective_draw_seed()
+			# The effective seed is part of the key: two inference objects with
+			# different seeds on one design must not share draws (TODO-112).
+			cache_key = paste0(as.integer(r), "|", if (is.null(draw_seed)) "unseeded" else draw_seed, "|", design_sig)
 			cached = private$des_obj_priv_int$permutations_cache[[cache_key]]
 			if (!is.null(cached)) return(cached)
 			des_template = private$des_obj$duplicate()
+			restore_rng = private$seed_global_rng_for_draws()
+			on.exit(restore_rng(), add = TRUE)
 			w_mat = des_template$draw_ws_according_to_design(as.integer(r))
 			if (!is.matrix(w_mat)) {
 				w_mat = matrix(as.numeric(w_mat), nrow = private$n)
@@ -892,9 +961,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 			}
 			paste(as.integer(r), delta_key, transform_responses, perm_sig, sep = "|")
 		},
-		get_resampling_draw_contract = function(operation){
-			resampling_draw_contract(operation)
-		},
+		# get_resampling_draw_contract(), ensure_resampling_distribution_cache(),
+		# get_cached_resampling_distribution() and
+		# set_cached_resampling_distribution() moved unchanged to ResamplingCore
+		# (inference_all_abstract_resampling_core.R, v1.0.5 TODO-97, 2026-10-22).
 		# Reentrant session boundary for `cached_values$reusable_rand_worker`
 		# (see `compute_randomization_distr_via_reused_worker_states()`'s
 		# `reuse_key` comment for why cross-delta reuse is safe). A depth
@@ -917,35 +987,6 @@ InferenceRand = R6::R6Class("InferenceRand",
 			private$cached_values$rand_worker_reuse_depth = depth
 			if (depth <= 0L) private$cached_values$reusable_rand_worker = NULL
 			invisible(NULL)
-		},
-		ensure_resampling_distribution_cache = function(operation){
-			private$cached_values = resampling_distribution_cache_ensure(
-				private$cached_values,
-				operation
-			)
-			invisible(private$cached_values)
-		},
-		get_cached_resampling_distribution = function(operation, cache_key){
-			resampling_distribution_cache_get(
-				private$cached_values,
-				operation,
-				cache_key
-			)
-		},
-		set_cached_resampling_distribution = function(operation, cache_key, value){
-			private$cached_values = resampling_distribution_cache_set(
-				private$cached_values,
-				operation,
-				cache_key,
-				value
-			)
-			invisible(value)
-		},
-		load_resampling_draw_into_worker = function(operation, worker_state, draw, ...){
-			contract = private$get_resampling_draw_contract(operation)
-			loader = private[[contract$loader]]
-			do.call(loader, c(list(worker_state = worker_state, draw = draw), list(...)))
-			invisible(worker_state)
 		},
 		load_randomization_draw_into_worker = function(worker_state, draw, delta, transform_responses, setup, zero_one_logit_clamp = .Machine$double.eps){
 			perm_w = if (is.list(draw) && !is.null(draw$w)) draw$w else draw

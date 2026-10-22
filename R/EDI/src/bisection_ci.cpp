@@ -89,25 +89,3 @@ NumericVector bisection_ci_parallel_cpp(
 	bounds[1] = edi::bisection_ci_search(pvalue, l_upper, u_upper, pval_th, tol, false);
 	return bounds;
 }
-
-
-//' Single-threaded helper for computing one CI bound
-//'
-//' @keywords internal
-// [[Rcpp::export]]
-double bisection_ci_single_bound_cpp(
-	Function pval_fn,
-	int r,
-	double l,
-	double u,
-	double pval_th,
-	double tol,
-	std::string transform_responses,
-	bool lower,
-	int num_cores = 1
-) {
-	auto pvalue = [&](double delta) {
-		return as<double>(pval_fn(r, delta, transform_responses, num_cores));
-	};
-	return edi::bisection_ci_search(pvalue, l, u, pval_th, tol, lower);
-}

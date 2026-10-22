@@ -38,7 +38,9 @@ test_that("percentile interval: type-8 quantiles of the finite draws with alpha 
 test_that("percentile interval is unavailable with too few finite draws or a failing draw generator", {
 	f <- dc_fx(); stub_draws(f, c(0.1, 0.2, NA))
 	expect_true(all(is.na(f$p$dep_cens_percentile_bootstrap_ci(0.05, 50L, 10, FALSE))))
-	expect_identical(f$inf$get_nonestimable_reason(), "dep_cens_transform_bootstrap_ci_unstable")
+	# TODO-116: a failing bootstrap CI is a procedure failure; Wald state intact.
+	expect_false(f$inf$is_nonestimable("any"))
+	expect_identical(f$p$cached_values$procedure_failure_reason[["bootstrap"]], "dep_cens_transform_bootstrap_ci_unstable")
 	g <- dc_fx(); stub_draws(g, seq(-100, 100, length.out = 50))
 	expect_true(all(is.finite(g$p$dep_cens_percentile_bootstrap_ci(0.05, 50L, 10, FALSE))))
 	h <- dc_fx()

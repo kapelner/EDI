@@ -256,14 +256,16 @@ test_that("OLS and tied-rank randomization distributions agree with R above the 
 			w <- f$w_mat[, b]
 			unname(lm.fit(cbind(1, w, f$X), f$y + delta * w)$coefficients[2])
 		}, numeric(1))
-		expected_rank <- vapply(seq_len(ncol(f$w_mat)), function(b) {
+		# Tied ordinal responses through the live Hodges-Lehmann kernel (migrated
+		# 2026-10-22 from the deleted rank-mean Wilcoxon kernels, TODO-3).
+		expected_hl <- vapply(seq_len(ncol(f$w_mat)), function(b) {
 			w <- f$w_mat[, b]
-			r <- rank(f$y_ord + delta * w)
-			mean(r[w == 1L]) - mean(r[w == 0L])
+			median(outer(f$y_ord[w == 1L] + delta, f$y_ord[w == 0L], "-"))
 		}, numeric(1))
 		expect_equal(EDI:::compute_ols_distr_parallel_cpp(f$X, f$y, f$w_mat, delta, 2L), expected_ols, tolerance = 1e-10)
-		expect_equal(EDI:::compute_wilcox_distr_parallel_cpp(f$w_mat, as.numeric(f$y_ord), delta, 2L), expected_rank)
-		expect_equal(EDI:::compute_wilcox_distr_from_list_parallel_cpp(lapply(seq_len(ncol(f$w_mat)), function(b) list(w = f$w_mat[, b])), as.numeric(f$y_ord), delta, 2L), expected_rank)
+		for (cores in c(1L, 2L)) {
+			expect_equal(EDI:::compute_wilcox_hl_distr_parallel_cpp(f$w_mat, as.numeric(f$y_ord), delta, 0L, 1e-8, cores), expected_hl)
+		}
 	}
 })
 
@@ -273,6 +275,5 @@ test_that("bisection nonfinite midpoints move the conservative search boundary",
 	pval <- function(r, delta, transform_responses, num_cores) {
 		if (delta %in% c(.5, 1.5)) NA_real_ else min(delta, 2 - delta)
 	}
-	expect_equal(EDI:::bisection_ci_single_bound_cpp(pval, 1L, 0, 1, .6, .01, "none", TRUE, 2L), .6, tolerance = .01)
 	expect_equal(EDI:::bisection_ci_parallel_cpp(pval, 1L, 0, 1, 1, 2, .6, .01, "none", 2L), c(.6, 1.4), tolerance = .01)
 })

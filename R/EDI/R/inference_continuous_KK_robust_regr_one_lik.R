@@ -595,7 +595,14 @@ ContinKKRobustRegrOneLikSource = list(
 InferenceContinKKRobustRegrOneLik = define_inference_class(
 	classname = "InferenceContinKKRobustRegrOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrOneLik"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"ContinKKRobustRegrOneLik"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other continuous KK migration this stretch (RandCI's Zhang dispatch

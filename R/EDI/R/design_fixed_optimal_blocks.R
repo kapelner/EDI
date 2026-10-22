@@ -260,9 +260,7 @@ DesignFixedOptimalBlocks = define_design_class(
 				self$assert_all_subjects_arrived()
 			}
 			block_ids = private$get_or_compute_block_ids()
-			w_mat = replicate(r, as.numeric(as.character(randomizr::block_ra(blocks = block_ids, prob = private$prob_T))))
-			storage.mode(w_mat) = "numeric"
-			w_mat
+			block_ra_batch(block_ids, private$prob_T, r)
 		},
 		# draw_bootstrap_indices is provided by the BlockingStructure component (see
 		# `components` above); proven byte-identical to this class's former hand-rolled

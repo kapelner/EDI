@@ -28,6 +28,30 @@
 #' the exchangeable resampling unit for a valid bootstrap variance/interval estimate is
 #' therefore the cluster, not the subject.
 #'
+#' \strong{Cluster-aware asymptotic inference.} \code{cluster_col} is an
+#' assignment-unit label and is excluded from the default \code{~ .} covariate
+#' formula. \code{\link[EDI:InferenceContinOLS]{InferenceContinOLS}} and
+#' \code{\link[EDI:InferenceContinLin]{InferenceContinLin}} use a CR2
+#' (Bell-McCaffrey) cluster-robust standard error with Bell-McCaffrey (Satterthwaite) degrees of
+#' freedom (G - 1 if that cannot be computed) on this design. A user
+#' \code{model_formula} that uses the cluster column warns
+#' (\code{edi_cluster_col_in_model_formula_warning}), because treatment is
+#' collinear with the cluster indicators. Other regression-based inference classes still treat subjects as
+#' independent in their Wald/score/LR standard errors; for those use randomization
+#' (\code{compute_rand_*}), the cluster-resampling bootstrap
+#' (\code{compute_bootstrap_*}), or the cluster jackknife
+#' (\code{compute_jackknife_wald_*(unit = "cluster")}).
+#'
+#' \strong{Interim warning.} Until per-class cluster-robust variances exist, such a
+#' class emits one warning per inference object and procedure family (Wald; or
+#' likelihood-based: score, gradient, likelihood-ratio, Bartlett and the parametric
+#' bootstrap) saying subjects are treated as independent, so SEs, p-values and CIs
+#' may be too narrow. OLS and Lin are silent for Wald inference (CR2), but their
+#' likelihood-based and parametric-bootstrap procedures still warn. Randomization,
+#' bootstrap and jackknife routes do not warn. The condition has class
+#' \code{edi_cluster_independence_warning}; silence it with
+#' \code{suppressWarnings(expr, classes = "edi_cluster_independence_warning")}.
+#'
 #' @references Middleton, J. A., and Aronow, P. M. (2015). "Unbiased estimation of the
 #'   average treatment effect in cluster-randomized experiments." \emph{Statistics,
 #'   Politics and Policy}, 6(1-2), 39-75, \doi{10.1515/spp-2013-0002}. See also
@@ -104,8 +128,14 @@ DesignFixedCluster = define_design_class(
 				}
 			}
 
-			# Use randomizr::cluster_ra for canonical cluster randomization
-			w_mat = replicate(r, as.numeric(as.character(randomizr::cluster_ra(clusters = cluster_ids, prob = private$prob_T))))
+			# Batched cluster-level complete randomization (same law as
+			# randomizr::cluster_ra: floor/ceiling of K * prob_T treated clusters with random
+			# rounding, uniformly random subset), all r draws in one vectorized pass in one RNG
+			# stream (seed-determined, independent of core count), expanded to subjects.
+			# release_v1_0_5.md TODO-118. Not bit-identical to the old replicate(cluster_ra).
+			cluster_f = factor(cluster_ids)
+			w_clust = block_ra_batch(rep.int(1L, nlevels(cluster_f)), private$prob_T, r)
+			w_mat = w_clust[as.integer(cluster_f), , drop = FALSE]
 			storage.mode(w_mat) = "numeric"
 			w_mat
 		}

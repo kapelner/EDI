@@ -69,6 +69,7 @@ SimpleWilcoxSource = list(
 		#   the same distribution.
 		# @param delta Null treatment effect. Default 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			private$shared(estimate_only = FALSE)
 			yT = as.numeric(private$y[private$w == 1])
 			yC = as.numeric(private$y[private$w == 0])
@@ -94,6 +95,7 @@ SimpleWilcoxSource = list(
 		#   two coincide asymptotically).
 		# @param alpha Significance level. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			private$shared(estimate_only = FALSE)
 			ci = private$cached_values$wilcox_conf_int
 			# The cached interval is the 95% one computed in shared(); reusing it for any other
@@ -165,7 +167,7 @@ SimpleWilcoxSource = list(
 		#   jackknife contract this method participates in.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_estimate = function(unit = "auto"){
-			private$cache_nonestimable_estimate("wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
 		# @description Reports the jackknife bias-correction estimate as
@@ -176,7 +178,7 @@ SimpleWilcoxSource = list(
 		#   jackknife contract.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_bias_estimate = function(unit = "auto"){
-			private$cache_nonestimable_estimate("wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
 		# @description Reports the jackknife standard error as non-estimable for
@@ -186,7 +188,7 @@ SimpleWilcoxSource = list(
 		#   jackknife contract.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_std_error = function(unit = "auto"){
-			private$cache_nonestimable_se("wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
 		# @description Reports the jackknife-Wald p-value as non-estimable here,
@@ -195,7 +197,7 @@ SimpleWilcoxSource = list(
 		# @param delta Null treatment-effect value. Default 0.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
-			private$cache_nonestimable_se("wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("wilcox_hl_jackknife_not_supported")
 			NA_real_
 		},
 		# @description Reports the jackknife-Wald confidence interval as
@@ -205,7 +207,7 @@ SimpleWilcoxSource = list(
 		# @param alpha Significance level. Default 0.05.
 		# @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-			private$cache_nonestimable_se("wilcox_hl_jackknife_not_supported")
+			private$signal_unsupported_procedure("wilcox_hl_jackknife_not_supported")
 			c(NA_real_, NA_real_)
 		}
 	),
@@ -441,7 +443,13 @@ SimpleWilcoxSource = list(
 InferenceAllSimpleWilcox = define_inference_class(
 	classname = "InferenceAllSimpleWilcox",
 	inherit = Inference,
-	components = c("RandomizationBootstrapCI", "Wald", "SimpleWilcox"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"Jackknife",
+		"Wald",
+		"SimpleWilcox"
+	),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),

@@ -64,7 +64,9 @@ test_that("subsampling p-value: two-sided empirical tail of the centred pivot at
 		expect_equal(f$p$compute_rr_subsampling_two_sided_pval(delta, B = 101, b = 50L), ref, tolerance = 1e-12, info = delta)
 	}
 	expect_true(is.na(f$p$compute_rr_subsampling_two_sided_pval(0, B = 101))); expect_true(is.na(f$p$compute_rr_subsampling_two_sided_pval(-2, B = 101)))
-	expect_true(isTRUE(f$inf$is_nonestimable("estimate")))
+	# TODO-116: an invalid null is a subsampling-procedure failure; Wald state intact.
+	expect_false(isTRUE(f$inf$is_nonestimable("estimate")))
+	expect_identical(f$p$cached_values$procedure_failure_reason[["subsampling"]], "subsampling_log_risk_ratio_null_unavailable")
 })
 
 test_that("subsampling CI is a positive, ordered, percent-named interval and NA when too few usable draws remain", {

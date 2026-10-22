@@ -663,7 +663,12 @@ OrdinalStereotypeLikelihoodSource = list(
 #' small-sample excess comes from the likelihood being multimodal: in a few
 #' percent of \eqn{n = 50} fits the reported point estimate sits at a local
 #' optimum whose likelihood is below that of another optimum, which makes the
-#' LR statistic at the estimate positive rather than zero. For small samples,
+#' LR statistic at the estimate positive rather than zero. Since 2026-10-08
+#' the ordinary full-data fit screens deterministic and data-seeded local
+#' starts and keeps the lowest converged negative log-likelihood, so the
+#' figures above predate that change and have not yet been re-measured; the
+#' repeated randomization and weighted-bootstrap refits remain single-start.
+#' For small samples,
 #' prefer the better-calibrated alternatives on this class:
 #' \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap
 #' calibration via the class's own null simulation; ~6-7\% Type-I error) and
@@ -693,11 +698,19 @@ OrdinalStereotypeLikelihoodSource = list(
 #'   regression} (Wikipedia).
 #'
 #' @name InferenceOrdinalStereotypeLogitRegr
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceOrdinalStereotypeLogitRegr = define_inference_class(
 	classname = "InferenceOrdinalStereotypeLogitRegr",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalStereotypeLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"OrdinalStereotypeLikelihood"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "ordinal"),
 	overrides = list(
 		public = c(
@@ -782,11 +795,10 @@ OrdinalContinuationRatioLikelihoodSource = list(
 			n_params = (length(sort(unique(private$y))) - 1L) + ncol(X_fit)
 			ws_args = private$get_backend_warm_start_args(n_params)
 			res = tryCatch(
-				fast_continuation_ratio_regression_weighted_cpp(
-					X = X_fit,
+				ordinal_fit_scaled(fast_continuation_ratio_regression_weighted_cpp, linpred_sign = 1, warm_arg = "warm_start_beta", X = X_fit,
 					y = as.numeric(private$y),
 					weights = row_weights,
-					warm_start_beta = ws_args$warm_start_beta,
+					warm_start_params = ws_args$warm_start_beta,
 					warm_start_fisher_info = ws_args$warm_start_fisher_info
 				),
 				error = function(e) NULL
@@ -830,9 +842,8 @@ OrdinalContinuationRatioLikelihoodSource = list(
 			n_params = (length(sort(unique(private$y))) - 1L) + ncol(X)
 			ws_args = private$get_backend_warm_start_args(n_params)
 			res = tryCatch(
-				fast_continuation_ratio_regression_cpp(
-					X = X, y = as.numeric(private$y),
-					warm_start_beta = ws_args$warm_start_beta,
+				ordinal_fit_scaled(fast_continuation_ratio_regression_cpp, linpred_sign = 1, warm_arg = "warm_start_beta", X = X, y = as.numeric(private$y),
+					warm_start_params = ws_args$warm_start_beta,
 					warm_start_fisher_info = ws_args$warm_start_fisher_info
 				),
 				error = function(e) NULL
@@ -858,16 +869,14 @@ OrdinalContinuationRatioLikelihoodSource = list(
 					n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
 					ws_args = private$get_backend_warm_start_args(n_params)
 					if (estimate_only) {
-						res = fast_continuation_ratio_regression_cpp(
-							X_fit, private$y,
-							warm_start_beta = ws_args$warm_start_beta,
+						res = ordinal_fit_scaled(fast_continuation_ratio_regression_cpp, linpred_sign = 1, warm_arg = "warm_start_beta", X_fit, private$y,
+							warm_start_params = ws_args$warm_start_beta,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info
 						)
 						list(b = res$b, ssq_b_j = NA_real_, fisher_information = res$fisher_information)
 					} else {
-						res = fast_continuation_ratio_regression_with_var_cpp(
-							X_fit, private$y,
-							warm_start_beta = ws_args$warm_start_beta,
+						res = ordinal_fit_scaled(fast_continuation_ratio_regression_with_var_cpp, linpred_sign = 1, warm_arg = "warm_start_beta", X_fit, private$y,
+							warm_start_params = ws_args$warm_start_beta,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info
 						)
 						list(
@@ -924,10 +933,9 @@ OrdinalContinuationRatioLikelihoodSource = list(
 					n_params = length(ctx$full_params)
 					fit_from = function(ws){
 						res = tryCatch(
-							fast_continuation_ratio_regression_cpp(
-								X_fit, y,
+							ordinal_fit_scaled(fast_continuation_ratio_regression_cpp, linpred_sign = 1, warm_arg = "warm_start_beta", X_fit, y,
 								fixed_idx = j_treat, fixed_values = delta,
-								warm_start_beta = ws,
+								warm_start_params = ws,
 								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
 								smart_cold_start = private$smart_cold_start_default
 							),
@@ -997,9 +1005,8 @@ OrdinalContinuationRatioLikelihoodSource = list(
 
 			ws   = private$get_fit_warm_start_for_length("beta", n_params) %||% params_null
 			full = tryCatch(
-				fast_continuation_ratio_regression_cpp(
-					X = X_fit, y = y_sim,
-					warm_start_beta = ws,
+				ordinal_fit_scaled(fast_continuation_ratio_regression_cpp, linpred_sign = 1, warm_arg = "warm_start_beta", X = X_fit, y = y_sim,
+					warm_start_params = ws,
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
 				),
 				error = function(e) NULL
@@ -1012,9 +1019,8 @@ OrdinalContinuationRatioLikelihoodSource = list(
 				fit_null = function(d, start = NULL){
 					fit_from = function(ws){
 						f2 = tryCatch(
-							fast_continuation_ratio_regression_cpp(
-								X = X_fit, y = y_sim,
-								warm_start_beta = ws,
+							ordinal_fit_scaled(fast_continuation_ratio_regression_cpp, linpred_sign = 1, warm_arg = "warm_start_beta", X = X_fit, y = y_sim,
+								warm_start_params = ws,
 								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
 								fixed_idx = j, fixed_values = d
 							),
@@ -1089,11 +1095,19 @@ OrdinalContinuationRatioLikelihoodSource = list(
 #' inf = InferenceOrdinalContRatioRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceOrdinalContRatioRegr = define_inference_class(
 	classname = "InferenceOrdinalContRatioRegr",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalContinuationRatioLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"OrdinalContinuationRatioLikelihood"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "ordinal"),
 	overrides = list(
 		public = c(

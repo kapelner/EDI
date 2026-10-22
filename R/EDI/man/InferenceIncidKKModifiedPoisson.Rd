@@ -95,7 +95,6 @@ Zou, G. (2004). "A Modified Poisson Regression Approach to
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-compute_wald_confidence_interval'><code>InferenceAbstractKKMarginalIncid$compute_wald_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-compute_wald_two_sided_pval'><code>InferenceAbstractKKMarginalIncid$compute_wald_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-get_mod'><code>InferenceAbstractKKMarginalIncid$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-get_summary'><code>InferenceAbstractKKMarginalIncid$get_summary()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-get_supported_bayesian_bootstrap_ci_types'><code>InferenceAbstractKKMarginalIncid$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-get_supported_bayesian_bootstrap_pval_types'><code>InferenceAbstractKKMarginalIncid$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKMarginalIncid.html#method-InferenceAbstractKKMarginalIncid-get_supported_bootstrap_ci_types'><code>InferenceAbstractKKMarginalIncid$get_supported_bootstrap_ci_types()</code></a></li>
@@ -113,6 +112,7 @@ Zou, G. (2004). "A Modified Poisson Regression Approach to
 <details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -125,6 +125,7 @@ Zou, G. (2004). "A Modified Poisson Regression Approach to
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>

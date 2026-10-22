@@ -299,7 +299,14 @@ KKMeanDifferenceIVWCSource$public = Filter(Negate(is.null), KKMeanDifferenceIVWC
 InferenceAllKKMeanDiffIVWC = define_inference_class(
 	classname = "InferenceAllKKMeanDiffIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "KKMeanDifferenceIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"KKMeanDifferenceIVWC"
+	),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),

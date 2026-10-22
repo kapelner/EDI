@@ -131,12 +131,20 @@ DesignFixedBlockedCluster = define_design_class(
 
 			cluster_ids = as.character(private$Xraw[[private$cluster_col]])
 
-			# Use randomizr::block_and_cluster_ra for canonical blocked and clustered randomization
-			w_mat = replicate(r, as.numeric(as.character(randomizr::block_and_cluster_ra(
-				blocks = strata_keys,
-				clusters = cluster_ids,
-				prob = private$prob_T
-			))))
+			# Batched block_and_cluster_ra: block_ra over clusters within blocks (same law:
+			# per-block floor/ceiling of K_b * prob_T treated clusters with random rounding),
+			# all r draws in one vectorized pass in one RNG stream (seed-determined,
+			# independent of core count), expanded to subjects. release_v1_0_5.md TODO-118.
+			# Not bit-identical to the old replicate(block_and_cluster_ra).
+			cluster_f = factor(cluster_ids)
+			cluster_idx = as.integer(cluster_f)
+			first_row = match(seq_len(nlevels(cluster_f)), cluster_idx)
+			clust_blocks = strata_keys[first_row]
+			if (any(strata_keys != clust_blocks[cluster_idx])) {
+				stop("Clusters must be nested within blocks (a cluster spans more than one block).")
+			}
+			w_clust = block_ra_batch(clust_blocks, private$prob_T, r)
+			w_mat = w_clust[cluster_idx, , drop = FALSE]
 			storage.mode(w_mat) = "numeric"
 			w_mat
 		}

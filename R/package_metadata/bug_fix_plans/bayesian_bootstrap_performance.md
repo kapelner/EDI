@@ -184,6 +184,26 @@ until TODO-66's rebuilt-checkout safety gate is passed; multi-core before/
 after performance evidence also requires the TODO-1 harness, whose pilot is
 currently blocked because `bayesboot` is unavailable.
 
+**F8. The ordinary bootstrap's per-replicate-SE path has no cache and no
+seed.** Found 2026-10-22. The plain ordinary bootstrap
+(`approximate_bootstrap_distribution_beta_hat_T()`) caches its distribution
+by `B` and honors `private$seed`, and so does the Bayesian bootstrap,
+including its studentized statistics (`bayes_boot_stats_cache`). But
+`approximate_bootstrap_statistics_beta_hat_T()`
+(`inference_all_abstract_non_param_boot.R`), which serves the types that
+need a per-replicate SE (`studentized`, `bootstrap-t`,
+`symmetric-percentile-t`) or smoothed draws (`smoothed`), resamples from
+the global RNG on every call and stores nothing. On one
+`InferenceCountHurdleNegBin` object (n = 80, B = 151, 1 core, installed EDI
+1.0.3): the studentized CI took 3.28 s, then the studentized p-value took
+3.55 s, recomputing everything. So:
+
+- a user's studentized CI and studentized p-value come from different
+  resamples, unlike every other CI/p-value pair in EDI;
+- each call pays the full cost;
+- setting `private$seed` does not make these types reproducible, while it
+  does for the plain bootstrap.
+
 ## Proposal
 
 Fix in order of payoff per unit of risk: the dispatch machinery first
@@ -208,6 +228,10 @@ default change.
   equivalence is asserted to a stated tolerance against the R engine on
   the test fixtures, the same as the existing
   `test-rcpp-fitting-equivalence.R` pattern.
+- TODO-11 changes results by design: a studentized p-value computed after
+  a studentized CI will reuse the CI's resamples instead of drawing new
+  ones, and seeded objects will seed this path. This plan documents that
+  as a default change; the per-call values stay valid bootstrap results.
 
 ## TODOs
 
@@ -679,6 +703,43 @@ benchmark was run.
   context/weight refresh and the conditional QR-certificate invalidation;
   any route through `compute_bayesian_bootstrap_worker_estimate()` must call
   the draw loader first because that helper reads the worker's stored weights.
+
+- [ ] TODO-11 (added 2026-10-22, user decision): **Cache and seed the
+  ordinary bootstrap's statistics path (F8).**
+  1. In `approximate_bootstrap_statistics_beta_hat_T()`, cache the
+     `theta`/`se` matrix keyed by `B`, `smooth` and `require_se`, the way
+     the Bayesian side keys `bayes_boot_stats_cache` (`"stats::" + B`). A
+     `require_se = TRUE` entry can also serve a later `require_se = FALSE`
+     request with the same `B` and `smooth`.
+  2. Cache the unfiltered matrix and apply `na.rm` on the way out, as the
+     Bayesian path does, so calls with different `na.rm` share one entry.
+  3. Wrap the resampling in the same `private$seed` save/`set.seed`/restore
+     block as `approximate_bootstrap_distribution_beta_hat_T()`.
+  4. Make sure every cache invalidation that clears the plain distribution
+     cache (for example `set_optimization_alg()` clearing `cached_values`,
+     and `duplicate()`'s keep-list) treats the new entry the same way, and
+     that `debug = TRUE` paths still bypass it.
+  5. Tests:
+     - a studentized CI followed by a studentized p-value on one object
+       computes the statistics once and both use the same resamples;
+     - with a seed set, two fresh objects give identical studentized
+       results;
+     - a different `B` or `smooth` misses the cache.
+  6. Default change (see "Bit-for-bit vs. tolerance"): record it in NEWS.
+     Results for `studentized`, `bootstrap-t`, `symmetric-percentile-t` and
+     `smoothed` change for any caller that runs more than one of them on
+     an object, or sets a seed.
+  7. Check whether the jackknife-based paths (BCa's acceleration) and
+     `compute_m_out_of_n_bootstrap_*` / subsampling have the same gap.
+
+**TODO-11 source implementation, 2026-10-22:** items 1-6 are implemented in
+`inference_all_abstract_non_param_boot.R` (statistics cache keyed by B/smooth,
+unfiltered matrix with `na.rm` on output, seed save/restore, `duplicate()` and
+`cached_values` resets drop it) with NEWS and
+`test-non-param-boot-statistics-cache-and-seed-reference.R` (15 assertions,
+`load_all(compile = FALSE)`). Item 7 (jackknife / m-out-of-n / subsampling) is
+not audited. Checkbox left open pending that audit and installed-package
+validation.
 
 **Installed-package regression check, 2026-10-14:** the Bayesian-bootstrap
 weight-draw/manual-loop reference passed 24 assertions; worker-loading and

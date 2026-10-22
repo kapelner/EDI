@@ -22,6 +22,32 @@ variance of \eqn{\hat\beta_T} -- \eqn{(X'X)^{-1} X'\,\mathrm{diag}(e_i^2)\,X\,
 homoskedastic OLS variance and not a binomial likelihood, and no
 likelihood-ratio or parametric-bootstrap methods are exposed.
 }
+\section{Blocking designs}{
+
+On a blocking design
+(\code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}} and relatives)
+the regression-type inference classes do \emph{not} add block fixed effects
+(or block-by-treatment interactions) automatically: the model uses only the
+covariate matrix. Whether the blocks enter the regression therefore depends
+on how they were supplied: not at all with \code{m=}; as dummies when the
+blocking column is a factor/character (or few-level integer) covariate; as a
+single linear term when it is numeric. Randomization, bootstrap and
+jackknife inference are block-aware regardless; only the model-based
+(asymptotic, likelihood) path ignores the blocks.
+
+When the proportion treated is the same in every block, the pooled
+treatment estimate of a linear model is unbiased and its model-based SE is
+conservative (it is inflated by the block variation it fails to remove), at a
+cost in power. If the proportion treated differs across blocks (for example
+\code{equal_block_sizes = FALSE} with very small blocks and an extreme
+\code{prob_T}, where per-block rounding changes the allocation, or a
+user-supplied \code{m}), the pooled treated-vs-control comparison is
+confounded by block (Simpson's paradox) and can be biased; then include the
+blocking covariate(s) explicitly as factor covariates. For non-linear models
+(GLM, ordinal, survival) omitting blocks changes the estimand to a
+block-marginal effect. See \code{DesignFixedBlocking}.
+}
+
 \examples{
 \donttest{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
@@ -50,6 +76,7 @@ inf$compute_estimate()
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -62,6 +89,7 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
@@ -201,7 +229,8 @@ no treatment effect).}
 \if{latex}{\out{\hypertarget{method-InferenceIncidRiskDiff-compute_estimate_with_bootstrap_weights}{}}}
 \subsection{\code{InferenceIncidRiskDiff$compute_estimate_with_bootstrap_weights()}}{
   Refits the linear-probability model by weighted least squares
-  (\code{stats::lm.wfit()}) under subject/block resampling weights
+  under subject/block resampling weights (using the native OLS kernel for
+  full-rank draws and \code{stats::lm.wfit()} as the compatibility fallback)
   (nonparametric-bootstrap replicate weights or Bayesian-bootstrap Dirichlet
   weights, both expanded to row weights via
   \code{expand_subject_or_block_weights_to_row_weights()}) and returns the

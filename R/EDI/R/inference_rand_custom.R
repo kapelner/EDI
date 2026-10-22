@@ -18,13 +18,13 @@
 #' machinery on this class, so no other action needs disabling.
 #'
 #' The confidence interval inverts tests under an additive shift \eqn{\delta}
-#' of the treated responses, so its endpoints are intended to be interpreted
-#' on the additive response-effect scale, not necessarily in the units of the
-#' supplied statistic. \strong{Current limitation:} the search is seeded from the
-#' observed statistic. If that statistic is not on the \eqn{\delta} scale
-#' (for example, a t statistic), the returned interval may be invalid. Until
-#' this is fixed, use the CI only with a statistic whose observed value is on
-#' the additive response-effect scale.
+#' of the treated responses, so it is a confidence interval for the additive
+#' effect \eqn{\delta} on the response scale, whatever the statistic's own
+#' units (a t statistic, or \code{-10 * mean difference}, give the same
+#' interval). The search is centred on the observed difference in mean
+#' response, not on the statistic's observed value. The statistic must respond
+#' to the shift (be monotone in \eqn{\delta}); if the test rejects every
+#' \eqn{\delta} tried the CI errors instead of returning a rejected band.
 #'
 #' @param des_obj A Design object whose subjects are assigned and responses
 #'   recorded.
@@ -87,6 +87,22 @@ InferenceRandCustom = define_inference_class(
 	),
 	private = list(
 		custom_randomization_statistic_function = NULL,
+		# The statistic is in arbitrary units, so the randomization-CI search
+		# (which inverts an additive shift delta of y) must be centred on the
+		# observed difference in mean response and scaled by its Welch SE, not on
+		# the statistic's own value.
+		get_randomization_ci_delta_scale_seed = function(){
+			y = as.numeric(private$y)
+			w = as.numeric(private$w)
+			y1 = y[w == 1]
+			y0 = y[w == 0]
+			if (length(y1) < 1L || length(y0) < 1L) return(NULL)
+			est = mean(y1) - mean(y0)
+			v1 = if (length(y1) > 1L) stats::var(y1) / length(y1) else NA_real_
+			v0 = if (length(y0) > 1L) stats::var(y0) / length(y0) else NA_real_
+			se = sqrt(sum(c(v1, v0), na.rm = TRUE))
+			list(est = est, se = se)
+		},
 		compiled_cpp_stat_fn = NULL,
 		compiled_cpp_stat_src = NULL,
 		# Ported unchanged from the removed InferenceRand$set_custom_

@@ -35,8 +35,8 @@ test_that("harden = TRUE: a degenerate (zero-variance) bootstrap distribution ca
 
 	ci <- inf$compute_bootstrap_confidence_interval(type = "percentile", B = 50L, show_progress = FALSE)
 	expect_true(all(is.na(ci)))
-	expect_true(inf$is_nonestimable("se"))
-	expect_equal(inf$get_nonestimable_reason(), "bootstrap_degenerate_confidence_interval")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_degenerate_confidence_interval")
 })
 
 test_that("harden = FALSE: the same degenerate bootstrap distribution raises the raw error instead", {

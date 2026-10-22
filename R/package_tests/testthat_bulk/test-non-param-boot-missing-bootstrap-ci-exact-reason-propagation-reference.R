@@ -8,7 +8,10 @@ library(EDI)
 # asserting that get_nonestimable_reason() actually returns the SAME string it was given -- confirmed
 # via a zero-hit grep for get_nonestimable_reason()/nonestimable_reason in that file. This closes the
 # exact-propagation gap directly: the "reason" argument must pass through unchanged to whichever of
-# cache_nonestimable_estimate()/cache_nonestimable_se() the "stage" argument selects.
+# cache_nonestimable_estimate()/cache_nonestimable_se() the "stage" argument selects. TODO-116: reasons
+# of the core bootstrap family ("bootstrap_*" etc.) are routed to procedure_failure_reason instead, so this
+# plumbing test uses unmapped reason strings (the mapped case is covered in
+# test-non-param-boot-extreme-guards-and-replication-stats-reference.R).
 
 boot_priv <- function(n = 20L, seed = 123L) {
 	set.seed(seed)
@@ -24,12 +27,12 @@ boot_priv <- function(n = 20L, seed = 123L) {
 
 test_that("stage = 'estimate' propagates the exact reason string via get_nonestimable_reason()", {
 	f <- boot_priv()
-	f$priv$missing_bootstrap_ci(0.1, "bootstrap_unavailable_reason", stage = "estimate")
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_unavailable_reason")
+	f$priv$missing_bootstrap_ci(0.1, "unmapped_unavailable_reason", stage = "estimate")
+	expect_identical(f$inf$get_nonestimable_reason(), "unmapped_unavailable_reason")
 })
 
 test_that("stage = 'se' propagates the exact reason string via get_nonestimable_reason()", {
 	f <- boot_priv()
-	f$priv$missing_bootstrap_ci(0.05, "se_reason", stage = "se")
-	expect_identical(f$inf$get_nonestimable_reason(), "se_reason")
+	f$priv$missing_bootstrap_ci(0.05, "unmapped_se_reason", stage = "se")
+	expect_identical(f$inf$get_nonestimable_reason(), "unmapped_se_reason")
 })

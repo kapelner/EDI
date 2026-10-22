@@ -28,7 +28,7 @@
 InferenceCustomAsymp = define_inference_class(
 	classname = "InferenceCustomAsymp",
 	inherit = Inference,
-	components = c("Wald", "NonparametricBootstrap"),
+	components = c("Jackknife", "Wald", "RandomizationCI"),
 	public = list(
 		#' @description Calls the user-defined fit callback for this custom inference path; see
 		#'   \code{\link[EDI:InferenceCustomAsymp]{InferenceCustomAsymp}}.
@@ -71,7 +71,7 @@ InferenceCustomAsymp = define_inference_class(
 		},
 		# @description Computes a randomization two-sided p-value. Delegates to
 		#   the `RandomizationCI`-provided dispatch (Zhang incidence support,
-		#   type/args_for_type) since `NonparametricBootstrap` pulls in both
+		#   type/args_for_type) since this class composes both
 		#   `RandomizationTest` and `RandomizationCI`, and the two provide
 		#   conflicting `compute_rand_two_sided_pval` implementations.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
@@ -119,6 +119,26 @@ InferenceCustomAsymp = define_inference_class(
 		get_degrees_of_freedom = function(){
 			private$run_custom_fit(estimate_only = FALSE)
 			private$cached_values$df
+		},
+		# v1.0.5 TODO-97 (2026-10-22): before the component dependency rewrite
+		# this class listed NonparametricBootstrap after Wald, so the
+		# NonparametricBootstrap defaults of these four reusable-worker hooks
+		# beat Wald's design-backed overrides: a user fit() is never run on a
+		# reused design-backed worker. Wald now depends on NonparametricBootstrap
+		# and therefore always composes after it, so the same defaults are
+		# restated here (bodies identical to NonparametricBootstrap /
+		# ResamplingCore) to keep that behavior unchanged.
+		supports_reusable_bootstrap_worker = function(){
+			FALSE
+		},
+		create_bootstrap_worker_state = function(){
+			NULL
+		},
+		load_bootstrap_sample_into_worker = function(worker_state, indices){
+			stop("Reusable bootstrap workers are not implemented for this class.")
+		},
+		compute_bootstrap_worker_estimate = function(worker_state){
+			stop("Reusable bootstrap workers are not implemented for this class.")
 		}
 	),
 	overrides = list(
@@ -221,7 +241,7 @@ NULL
 InferenceCustomBoot = define_inference_class(
 	classname = "InferenceCustomBoot",
 	inherit = Inference,
-	components = "NonparametricBootstrap",
+	components = c("RandomizationCI", "NonparametricBootstrap"),
 	public = list(
 		#' @description Calls the user-defined fit callback for this custom inference path; see
 		#'   \code{\link[EDI:InferenceCustomAsymp]{InferenceCustomAsymp}}.
@@ -252,7 +272,7 @@ InferenceCustomBoot = define_inference_class(
 		},
 		# @description Computes a randomization two-sided p-value. Delegates to
 		#   the `RandomizationCI`-provided dispatch (Zhang incidence support,
-		#   type/args_for_type) since `NonparametricBootstrap` pulls in both
+		#   type/args_for_type) since this class composes both
 		#   `RandomizationTest` and `RandomizationCI`, and the two provide
 		#   conflicting `compute_rand_two_sided_pval` implementations.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval

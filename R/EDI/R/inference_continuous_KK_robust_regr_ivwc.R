@@ -438,7 +438,14 @@ ContinKKRobustRegrIVWCSource = list(
 InferenceContinKKRobustRegrIVWC = define_inference_class(
 	classname = "InferenceContinKKRobustRegrIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "ContinKKRobustRegrIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"ContinKKRobustRegrIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count KK migration this session (RandCI's Zhang

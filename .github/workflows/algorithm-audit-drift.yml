@@ -1,0 +1,79 @@
+# Monthly algorithm-audit drift check. Read-only: no R, no compile, no commits.
+# Opens/updates ONE issue labelled `algorithm-audit-drift`; closes it when clean.
+# Procedure and guardrails: R/package_metadata/new_feature_plans/algorithm_audit_runbook.md
+#
+# Note: GitHub disables scheduled workflows after 60 days of repo inactivity.
+
+name: algorithm-audit-drift
+
+on:
+  schedule:
+    - cron: "0 6 21 * *"   # 06:00 UTC on the 21st of every month
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LABEL: algorithm-audit-drift
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the kernel-drift check reads full git history
+
+      - name: Run drift checks
+        run: python3 .github/scripts/algorithm_audit_drift.py --out drift_report.md
+
+      - name: Upload report
+        uses: actions/upload-artifact@v7
+        with:
+          name: drift-report
+          path: drift_report.md
+
+      - name: Open, update, or close the tracking issue
+        run: |
+          gh label create "$LABEL" --color BFD4F2 \
+            --description "Monthly algorithm-audit drift report" 2>/dev/null || true
+          existing=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          status=$(head -n 1 drift_report.md)
+          tail -n +3 drift_report.md > issue_body.md
+          if [ "$status" = "FLAGGED" ]; then
+            if [ -n "$existing" ]; then
+              gh issue edit "$existing" --body-file issue_body.md
+            else
+              gh issue create --title "Algorithm audit drift ($(date -u +%Y-%m-%d))" \
+                --label "$LABEL" --body-file issue_body.md
+            fi
+          elif [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "Drift check is clean as of $(date -u +%Y-%m-%d)."
+          fi
+
+  notify-failure:
+    # A crashed or cancelled run must not be mistaken for a clean month.
+    needs: drift
+    if: ${{ always() && needs.drift.result != 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FAIL_LABEL: algorithm-audit-drift-failure
+    steps:
+      - name: Open or comment on the failure issue
+        run: |
+          gh label create "$FAIL_LABEL" --color D93F0B -R "$GITHUB_REPOSITORY" \
+            --description "The algorithm-audit drift workflow itself failed" 2>/dev/null || true
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          msg="The drift workflow did not complete ($(date -u +%Y-%m-%d), result: ${{ needs.drift.result }}). No drift result exists for this month. Run: $url"
+          existing=$(gh issue list -R "$GITHUB_REPOSITORY" --label "$FAIL_LABEL" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" -R "$GITHUB_REPOSITORY" --body "$msg"
+          else
+            gh issue create -R "$GITHUB_REPOSITORY" --title "Algorithm audit drift workflow failed" \
+              --label "$FAIL_LABEL" --body "$msg"
+          fi

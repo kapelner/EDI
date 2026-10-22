@@ -35,9 +35,12 @@ test_that("categorical strata columns become their string values, joined with '|
 	expect_equal(two, paste(X$g, X$h, sep = "|"))
 	# Default strata columns are every raw covariate, in order.
 	expect_equal(keys_of(blocking_design(X, B_target = NULL)), paste(X$g, X$h, sep = "|"))
-	# With the default block target (largest divisor of n at most sqrt(n) = 3), a
-	# column whose addition would exceed the target is skipped.
-	expect_equal(keys_of(blocking_design(X, strata_cols = c("g", "h"))), as.character(X$g))
+	# TODO-102: named strata_cols with an unset B_target use ALL named columns (no cap).
+	expect_equal(keys_of(blocking_design(X, strata_cols = c("g", "h"))), paste(X$g, X$h, sep = "|"))
+	# With an explicit target (3), or the default cap when strata_cols is NULL (largest divisor of
+	# n at most sqrt(n) = 3), a column whose addition would exceed the target is skipped.
+	expect_equal(keys_of(blocking_design(X, strata_cols = c("g", "h"), B_target = 3L)), as.character(X$g))
+	expect_equal(keys_of(blocking_design(X)), as.character(X$g))
 })
 
 test_that("missing categorical values become the literal key 'NA'", {

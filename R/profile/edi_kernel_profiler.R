@@ -1288,14 +1288,6 @@ get_kernel = function(name) {
              fn   = function() EDI:::generate_permutations_ibcrd_cpp(1000L, 1000L, 0.5))
     }),
 
-    generate_permutations_blocking = local({
-        n_blocks = 10L; block_size = 100L; n = n_blocks * block_size
-        strata_indices = lapply(seq_len(n_blocks), function(i) as.integer(((i - 1L) * block_size + 1L):(i * block_size)))
-        list(desc = "generate_permutations_blocking_cpp(n=1000L, nsim=500L, prob_T=0.5, 10 blocks x 100)",
-             REPS = 300L,
-             fn   = function() EDI:::generate_permutations_blocking_cpp(n, 500L, 0.5, strata_indices))
-    }),
-
     generate_permutations_matching = local({
         n_pairs = 500L
         m_vec = as.integer(rep(seq_len(n_pairs), each = 2L))
@@ -1372,18 +1364,6 @@ get_kernel = function(name) {
         list(desc = "randomization_loop_cpp(r=200L, stub_fns, num_cores=1L)",
              REPS = 100000L,
              fn   = function() EDI:::randomization_loop_cpp(200L, dup_design_fn, dup_inference_fn, run_rand_iter_fn, 1L))
-    }),
-
-    base_bootstrap_loop = local({
-        d = make_data(100L, "continuous")
-        indices = EDI:::bootstrap_indices_cpp(100L, 50L)
-        dup_inference_fn    = function() NULL
-        compute_estimate_fn = function(data) as.numeric(fast_ols_cpp(data$X, data$y)$b[2L])
-        list(desc = "base_bootstrap_loop_cpp(X_bm, y_bm, dead=NA, w_bm, indices, ols_fns, num_cores=1L) [n=100, B=50]",
-             REPS = 2000L,
-             fn   = function() EDI:::base_bootstrap_loop_cpp(d$X_bm, d$y_bm, as.numeric(rep(NA, 100L)),
-                                                              as.numeric(d$w_bm), indices,
-                                                              dup_inference_fn, compute_estimate_fn, 1L))
     }),
 
     # ================================================================

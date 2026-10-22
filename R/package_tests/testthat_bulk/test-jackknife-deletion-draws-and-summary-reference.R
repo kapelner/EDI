@@ -115,12 +115,12 @@ test_that("summary is unavailable when the original estimate, replicates or summ
 	f2 <- smd_boot_fixture()
 	stub_jack(f2, c(0.1, NA, 0.2, 0.3))
 	expect_true(all_na(f2$priv$compute_jackknife_summary("observation")))
-	expect_true(f2$inf$is_nonestimable("se"))
+	expect_false(f2$inf$is_nonestimable("any"))   # TODO-116: jackknife-only failure; Wald state kept
 
 	f3 <- smd_boot_fixture()
 	stub_jack(f3, c(0.1, 0.2, 5e6))                    # extreme finite replicate
 	expect_true(all_na(f3$priv$compute_jackknife_summary("observation")))
-	expect_true(f3$inf$is_nonestimable("se"))
+	expect_false(f3$inf$is_nonestimable("any"))
 
 	f4 <- smd_boot_fixture()
 	stub_jack(f4, c(-40, 40, -30, 30))                 # |bias| > 2 * se or extreme summary

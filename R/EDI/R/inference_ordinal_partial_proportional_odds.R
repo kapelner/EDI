@@ -29,11 +29,18 @@
 #'   \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the full proportional-odds
 #'   model this generalizes (see
 #'   \code{\link[EDI:InferenceOrdinalPropOddsRegr]{InferenceOrdinalPropOddsRegr}}).
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 	classname = "InferenceOrdinalPartialProportionalOddsRegr",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
@@ -61,6 +68,10 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			if (should_run_asserts()) {
 				assertNoCensoring(private$any_censoring)
 				assertCharacter(nonparallel, null.ok = TRUE)
+			}
+			if ("treatment" %in% nonparallel) {
+				warning("'treatment' in `nonparallel` is ignored: the treatment effect is always fit as a single parallel (proportional-odds) term.", call. = FALSE)
+				nonparallel = setdiff(nonparallel, "treatment")
 			}
 			private$nonparallel = unique(nonparallel)
 		},
@@ -451,6 +462,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 				colnames(X_fit) = "treatment"
 			}
 			
+			X_fit = private$center_scale_covariates(X_fit)
 			start_len = ncol(X_fit) + nlevels(ordered(private$y)) - 1L
 			res = tryCatch(
 				fast_ordinal_regression_with_var_cpp(
@@ -461,7 +473,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 				),
 				error = function(e) NULL
 			)
-			if (is.null(res) || length(res$b) < 1 || !is.finite(res$b[1]) || (isTRUE(private$harden) && !is.null(res$converged) && !res$converged)){
+			if (is.null(res) || length(res$b) < 1 || !is.finite(res$b[1]) || (!is.null(res$converged) && !isTRUE(res$converged))){
 				return(NULL)
 			}
 			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = res$fisher_information)
@@ -482,7 +494,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			}
 			ok = is.finite(row_weights) & row_weights > 0 & is.finite(as.numeric(private$y))
 			if (!any(ok)) return(NULL)
-			X_fit = X_fit[ok, , drop = FALSE]
+			X_fit = private$center_scale_covariates(X_fit[ok, , drop = FALSE])
 			y_fit = as.numeric(private$y[ok])
 			w_fit = as.numeric(row_weights[ok])
 			start_len = ncol(X_fit) + length(sort(unique(y_fit))) - 1L
@@ -497,7 +509,27 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 				error = function(e) NULL
 			)
 			if (is.null(res) || length(res$b) < 1 || !is.finite(res$b[1])) return(NULL)
+			if (!is.null(res$converged) && !isTRUE(res$converged)) return(NULL)
 			list(beta = as.numeric(res$b[1]), se = NA_real_)
+		},
+
+		# Centers and scales every covariate column (all but column 1, the
+		# treatment indicator) before the fast solver. The solver's tolerance is
+		# not scale-invariant: on uncentred covariates (e.g. mean 100) it stops
+		# early while still reporting converged = TRUE and returns a treatment
+		# coefficient that is off by up to ~0.7 (TODO-107). Centering/scaling the
+		# OTHER columns leaves the treatment coefficient and its SE unchanged.
+		center_scale_covariates = function(X_fit){
+			if (ncol(X_fit) < 2L) return(X_fit)
+			cols = 2:ncol(X_fit)
+			for (j in cols){
+				v = X_fit[, j]
+				m = mean(v)
+				s = stats::sd(v)
+				if (!is.finite(s) || s < 1e-12) s = 1
+				X_fit[, j] = (v - m) / s
+			}
+			X_fit
 		},
 
 		main_formula = function(term_names){
@@ -526,7 +558,6 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			if (!check_package_installed("VGAM")) return(NULL)
 
 			all_terms = unique(c("treatment", parallel_covars, nonparallel_covars))
-			par_terms = unique(c("treatment", parallel_covars))
 			# When every term is parallel, VGAM::cumulative()'s formula-based
 			# `parallel = ~a+b+c` spec is semantically equivalent to `parallel =
 			# TRUE` but numerically more fragile for this model (confirmed:
@@ -535,7 +566,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			# converged value under `parallel = TRUE`, even on unweighted
 			# data). Use the boolean form whenever there is no nonparallel
 			# split to express.
-			parallel_spec = if (length(nonparallel_covars) == 0L) TRUE else private$parallel_formula(par_terms)
+			parallel_spec = private$vgam_parallel_spec(nonparallel_covars)
 
 			mod = tryCatch(
 				suppressWarnings(
@@ -554,20 +585,22 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			)
 			if (is.null(mod)) return(NULL)
 
-			private$extract_common_treatment_fit(
-				mod,
-				coef_getter = VGAM::Coef,
-				vcov_getter = VGAM::vcov
+			private$finalize_vgam_fit(
+				private$extract_common_treatment_fit(
+					mod,
+					coef_getter = VGAM::Coef,
+					vcov_getter = VGAM::vcov
+				),
+				mod
 			)
 		},
 		fit_vgam_weighted = function(dat, parallel_covars, nonparallel_covars){
 			if (!check_package_installed("VGAM")) return(NULL)
 			all_terms = unique(c("treatment", parallel_covars, nonparallel_covars))
-			par_terms = unique(c("treatment", parallel_covars))
 			# See fit_vgam()'s identical comment: prefer the boolean `parallel =
 			# TRUE` over the equivalent-but-more-fragile formula form whenever
 			# there is no nonparallel split to express.
-			parallel_spec = if (length(nonparallel_covars) == 0L) TRUE else private$parallel_formula(par_terms)
+			parallel_spec = private$vgam_parallel_spec(nonparallel_covars)
 			mod = tryCatch(
 				suppressWarnings(
 					VGAM::vglm(
@@ -582,10 +615,41 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 				error = function(e) NULL
 			)
 			if (is.null(mod)) return(NULL)
-			out = private$extract_common_treatment_fit(mod, coef_getter = VGAM::Coef, vcov_getter = VGAM::vcov)
+			out = private$finalize_vgam_fit(
+				private$extract_common_treatment_fit(mod, coef_getter = VGAM::Coef, vcov_getter = VGAM::vcov),
+				mod
+			)
 			if (is.null(out)) return(NULL)
 			out$se = NA_real_
 			out
+		},
+
+		# VGAM::cumulative() models logit P(Y <= j) = alpha_j + beta' x, whereas
+		# the fast solver, ordinal::clm and MASS::polr use alpha_j - beta' x.
+		# The VGAM treatment coefficient is therefore negated (the SE is
+		# unchanged) so every backend reports the same sign. TODO-107.
+		# A fit with a non-finite log-likelihood or a numerically-zero SE (the
+		# signature of a degenerate/unidentified VGAM fit) is rejected so the
+		# cascade falls through to clm/polr instead of reporting a ~1e-6-wide CI.
+		finalize_vgam_fit = function(out, mod){
+			if (is.null(out)) return(NULL)
+			ll = tryCatch(as.numeric(VGAM::logLik(mod)), error = function(e) NA_real_)
+			if (length(ll) != 1L || !is.finite(ll)) return(NULL)
+			if (is.finite(out$se) && out$se < 1e-6) return(NULL)
+			out$beta = -out$beta
+			out
+		},
+
+		# `parallel = FALSE ~ <nonparallel terms>` frees ONLY the named
+		# covariates across thresholds; every other term (treatment included)
+		# stays parallel and the intercepts keep their per-threshold values.
+		# The previous `parallel = ~ treatment + <parallel covars>` also made the
+		# intercepts parallel, which degenerates the fit (TODO-107).
+		vgam_parallel_spec = function(nonparallel_covars){
+			if (length(nonparallel_covars) == 0L) return(TRUE)
+			rhs = stats::reformulate(termlabels = nonparallel_covars)[[2L]]
+			f = stats::as.formula(call("~", FALSE, rhs), env = baseenv())
+			f
 		},
 
 		fit_clm = function(dat, parallel_covars, nonparallel_covars){

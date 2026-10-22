@@ -26,7 +26,8 @@ test_that("'randomization_too_few_finite_estimates' fires when finite draws fall
 
 	res <- f$priv$compute_two_sided_randomization_pval_from_t0s(t0s, t = 0.3)
 	expect_true(is.na(res))
-	expect_identical(f$inf$get_nonestimable_reason(), "randomization_too_few_finite_estimates")
+	expect_false(isTRUE(f$inf$is_nonestimable("estimate")))   # TODO-116: procedure failure, Wald intact
+	expect_identical(f$priv$cached_values$procedure_failure_reason[["randomization"]], "randomization_too_few_finite_estimates")
 })
 
 test_that("just enough finite draws (at min_required) does NOT trigger the guard", {

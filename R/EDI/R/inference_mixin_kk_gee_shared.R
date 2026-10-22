@@ -168,7 +168,7 @@ InferenceMixinKKGEEShared = list(
 			t = private$compute_treatment_estimate_during_randomization_inference()
 			if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
 			if (length(t) != 1 || !is.finite(t)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("randomization_observed_statistic_unavailable")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_observed_statistic_unavailable", "estimate")
 				return(NA_real_)
 			}
 			mc_pval = private$compute_two_sided_pval_with_sequential_mc(
@@ -209,7 +209,7 @@ InferenceMixinKKGEEShared = list(
 				error = function(e) NA_real_
 			)
 			if (!is.finite(p) || p < 0 || p > 1) {
-				private$cache_nonestimable_se("kk_count_gee_jackknife_wald_calibration_unavailable")
+				edi_record_procedure_failure(self, private, "kk_count_gee_jackknife_wald_calibration_unavailable", "se")
 				return(NA_real_)
 			}
 			p
@@ -220,7 +220,7 @@ InferenceMixinKKGEEShared = list(
 				error = function(e) c(NA_real_, NA_real_)
 			)
 			if (length(ci) < 2L || any(!is.finite(ci[1:2])) || ci[1] > ci[2]) {
-				private$cache_nonestimable_se("kk_count_gee_jackknife_wald_calibration_unavailable")
+				edi_record_procedure_failure(self, private, "kk_count_gee_jackknife_wald_calibration_unavailable", "se")
 				ci = c(NA_real_, NA_real_)
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				return(ci)

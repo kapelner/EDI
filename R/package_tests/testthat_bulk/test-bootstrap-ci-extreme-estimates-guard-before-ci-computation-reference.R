@@ -36,8 +36,8 @@ test_that("harden = TRUE: an extreme raw bootstrap distribution caches 'bootstra
 
 	ci <- inf$compute_bootstrap_confidence_interval(type = "percentile", B = 50L, show_progress = FALSE)
 	expect_true(all(is.na(ci)))
-	expect_true(inf$is_nonestimable("estimate"))
-	expect_identical(inf$get_nonestimable_reason(), "bootstrap_extreme_finite_estimates")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_extreme_finite_estimates")
 })
 
 test_that("harden = FALSE: the same extreme raw bootstrap distribution raises the raw error instead", {

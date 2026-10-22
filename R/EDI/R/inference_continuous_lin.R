@@ -26,6 +26,8 @@
 #' not on any particular outcome model; the working linear model need not be
 #' correctly specified.
 #'
+#' @inheritSection InferenceContinOLS Blocking designs
+#'
 #' @references Lin, W. (2013). "Agnostic notes on regression adjustments to
 #'   experimental data: Reexamining Freedman's critique." \emph{The Annals of
 #'   Applied Statistics}, 7(1), 295-318, \doi{10.1214/12-AOAS583}.
@@ -47,7 +49,13 @@
 InferenceContinLin = define_inference_class(
 	classname = "InferenceContinLin",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "continuous", supports_additive_delta_shift = TRUE),
 	overrides = list(
 		public = c(
@@ -287,15 +295,18 @@ InferenceContinLin = define_inference_class(
 		},
 		get_centered_covariates = function(){
 			des_priv = private$des_obj_priv_int
-			# Design-level cache: NULL = not computed, list() = computed with p=0, list(Xc=...) = computed
-			if (!is.null(des_priv$lin_centered_covariates)) {
-				cached = des_priv$lin_centered_covariates
-				return(if (length(cached) == 0L) NULL else cached)
-			}
 			X = as.matrix(private$X)
 			p = ncol(X)
+			# Design-level cache keyed on the covariate matrix actually used (TODO-104):
+			# a second Lin object on the same design with a different model_formula must
+			# not reuse the first one's centered covariates.
+			cache_key = list(dim = dim(X), colnames = colnames(X), s1 = colSums(X), s2 = colSums(X * X))
+			cached = des_priv$lin_centered_covariates
+			if (!is.null(cached) && identical(cached$key, cache_key)) {
+				return(if (p == 0L) NULL else cached$result)
+			}
 			if (p == 0L){
-				des_priv$lin_centered_covariates = list()  # sentinel: computed, no covariates
+				des_priv$lin_centered_covariates = list(key = cache_key, result = NULL)
 				return(NULL)
 			}
 			if (is.null(colnames(X))){
@@ -305,7 +316,7 @@ InferenceContinLin = define_inference_class(
 			Xc = as.matrix(Xc)
 			colnames(Xc) = colnames(X)
 			result = list(Xc = Xc)
-			des_priv$lin_centered_covariates = result
+			des_priv$lin_centered_covariates = list(key = cache_key, result = result)
 			result
 		},
 		shared = function(estimate_only = FALSE){
@@ -363,6 +374,22 @@ InferenceContinLin = define_inference_class(
 			private$cached_values$beta_hat_T = beta_hat
 			private$cached_values$s_beta_hat_T = if (is.finite(ssq_hat)) sqrt(ssq_hat) else NA_real_
 			private$cached_values$df = nrow(X_fit) - ncol(X_fit)
+			# TODO-103: CR2 cluster-robust SE for the treatment coefficient on
+			# cluster-randomized designs (replaces subject-level HC2).
+			cluster_ids = design_cluster_ids_for_inference(private$des_obj, private$des_obj_priv_int, nrow(X_fit))
+			if (!is.null(cluster_ids)) {
+				cr = cluster_robust_cr2_variance(X_fit, private$y, coef_hat, cluster_ids, j_treat)
+				if (!is.null(cr)) {
+					private$cached_values$s_beta_hat_T = sqrt(cr$ssq)
+					private$cached_values$df = cr$df
+					private$cached_values$cluster_robust_se_applied = TRUE
+					vcov_hc2 = cr$vcov
+					colnames(vcov_hc2) = rownames(vcov_hc2) = coef_names
+					std_err = sqrt(pmax(diag(vcov_hc2), 0))
+					names(std_err) = coef_names
+					z_vals = coef_hat / std_err
+				}
+			}
 			private$cached_values$full_coefficients = coef_hat
 			private$cached_values$full_vcov = vcov_hc2
 			private$cached_values$lin_estimate_only_complete = TRUE

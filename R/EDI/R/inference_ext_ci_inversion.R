@@ -31,7 +31,7 @@ InferenceExtCIInversion = list(
 		# the inverted CI is missing, out of order, doesn't bracket `est`, or is
 		# absurdly wide. `unavailable_reason` is the nonestimable-SE reason cached
 		# when neither the inverted CI nor the Wald fallback is usable.
-		finalize_inverted_ci = function(ci_vals, alpha, est, wald_ci, unavailable_reason){
+		finalize_inverted_ci = function(ci_vals, alpha, est, wald_ci, unavailable_reason, testing_type = NULL){
 			ci = if (length(ci_vals) == 2L) sort(as.numeric(ci_vals[1:2]), na.last = TRUE) else c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			# An exact ci[1] == ci[2] is the root-finder's "test rejects at its own
@@ -50,10 +50,21 @@ InferenceExtCIInversion = list(
 			wald_width = if (length(wald_ci) >= 2L && all(is.finite(wald_ci[1:2]))) abs(diff(as.numeric(wald_ci[1:2]))) else NA_real_
 			width_floor = if (is.finite(wald_width) && wald_width > 0) 1e-3 * wald_width else sqrt(.Machine$double.eps) * max(1, abs(est))
 			degenerate = length(ci) == 2L && all(is.finite(ci[1:2])) && (ci[2L] - ci[1L]) <= width_floor
-			if (length(ci) < 2L || !all(is.finite(ci[1:2])) || degenerate || ci[1L] > est || ci[2L] < est || any(abs(ci[1:2]) > private$likelihood_ci_max_abs)) {
+			bad_reason = if (length(ci) < 2L || !all(is.finite(ci[1:2]))) {
+				"the root search returned no finite bounds"
+			} else if (degenerate) {
+				"the root search returned a zero-width interval (the test rejects at its own estimate)"
+			} else if (ci[1L] > est || ci[2L] < est) {
+				"the inverted interval does not contain the estimate"
+			} else if (any(abs(ci[1:2]) > private$likelihood_ci_max_abs)) {
+				"the inverted interval is implausibly wide"
+			} else NULL
+			if (!is.null(bad_reason)) {
 				fallback = sort(as.numeric(wald_ci[1:2]), na.last = TRUE)
 				if (length(fallback) >= 2L && all(is.finite(fallback)) && fallback[1L] <= est && fallback[2L] >= est && all(abs(fallback[1:2]) <= private$likelihood_ci_max_abs)) {
 					ci = fallback
+					# TODO-115: the Wald interval is returned under a likelihood label; say so.
+					if (!is.null(testing_type)) edi_warn_ci_wald_fallback_once(self, private, testing_type, bad_reason)
 				} else {
 					private$cache_nonestimable_se(unavailable_reason)
 					ci = c(NA_real_, NA_real_)
@@ -63,6 +74,7 @@ InferenceExtCIInversion = list(
 			ci
 		},
 		invert_test_pval_confidence_interval = function(alpha, testing_type = private$testing_type, bartlett_B = NULL){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			est = self$compute_estimate()
 			if (!is.finite(est)) return(c(NA_real_, NA_real_))
 
@@ -74,6 +86,7 @@ InferenceExtCIInversion = list(
 			upper_seed = if (length(wald_ci) >= 2L && is.finite(wald_ci[[2L]])) wald_ci[[2L]] else NA_real_
 
 			testing_type = private$normalize_testing_type(testing_type)
+			testing_type_for_note = testing_type
 			spec = private$get_likelihood_test_spec()
 			bartlett_types = c("lik_ratio_bartlett_approx", "lik_ratio_bartlett_exact")
 			pval_fn = if (!is.null(spec) && testing_type %in% c("score", "gradient", "lik_ratio", bartlett_types)) {
@@ -91,6 +104,11 @@ InferenceExtCIInversion = list(
 					)
 				}
 			} else {
+				# TODO-115: no likelihood specification -> Wald p-values are inverted under a
+				# likelihood label (the returned CI is Wald-based). Keep the value, say so.
+				if (is.null(spec) && !identical(testing_type, "wald")) {
+					edi_warn_ci_wald_fallback_once(self, private, testing_type, "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification), so Wald p-values were inverted")
+				}
 				function(delta) self$compute_asymp_two_sided_pval(delta)
 			}
 
@@ -98,8 +116,9 @@ InferenceExtCIInversion = list(
 			# at the fitted estimate.  In particular, some Cox score paths expose
 			# an explicit non-estimable standard error and otherwise pass NA values
 			# into the C++ root search, which may return an empty endpoint vector.
-			p_est = tryCatch(pval_fn(est), error = function(e) NA_real_)
+			p_est = tryCatch(pval_fn(est), error = function(e) { edi_note_lik_test_failure(private, testing_type_for_note, e); NA_real_ })
 			if (!is.finite(p_est)) {
+				if (!identical(testing_type, "wald")) edi_warn_lik_test_unavailable_once(self, private, testing_type, est)
 				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
 				return(c(NA_real_, NA_real_))
 			}
@@ -113,10 +132,11 @@ InferenceExtCIInversion = list(
 				upper_seed = upper_seed
 			)
 
-			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "test_inversion_confidence_interval_unavailable")
+			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "test_inversion_confidence_interval_unavailable", testing_type = testing_type_for_note)
 		},
 
 		invert_gradient_ci_uniroot = function(alpha){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) return(private$invert_test_pval_confidence_interval(alpha))
 
@@ -142,8 +162,9 @@ InferenceExtCIInversion = list(
 				)
 			}
 
-			p_est = tryCatch(pval_fn(est), error = function(e) NA_real_)
+			p_est = tryCatch(pval_fn(est), error = function(e) { edi_note_lik_test_failure(private, "gradient", e); NA_real_ })
 			if (!is.finite(p_est)) {
+				edi_warn_lik_test_unavailable_once(self, private, "gradient", est)
 				private$cache_nonestimable_se("gradient_test_unavailable")
 				return(c(NA_real_, NA_real_))
 			}
@@ -163,14 +184,16 @@ InferenceExtCIInversion = list(
 					upper_seed = upper_seed
 				),
 				error = function(e) {
+					edi_note_lik_test_failure(private, "gradient", paste0("CI root search failed: ", conditionMessage(e)), overwrite = FALSE)
 					private$cache_nonestimable_se("gradient_ci_inversion_failed")
 					numeric(0)
 				}
 			)
-			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "gradient_confidence_interval_unavailable")
+			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "gradient_confidence_interval_unavailable", testing_type = "gradient")
 		},
 
 		invert_lik_ratio_ci_newton = function(alpha){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) return(private$invert_test_pval_confidence_interval(alpha))
 
@@ -262,9 +285,9 @@ InferenceExtCIInversion = list(
 				lower_seed     = lower_seed,
 				upper_seed     = upper_seed,
 				j              = j
-			), error = function(e) numeric(0))
+			), error = function(e) { edi_note_lik_test_failure(private, "lik_ratio", paste0("CI Newton inversion failed: ", conditionMessage(e)), overwrite = FALSE); numeric(0) })
 
-			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "lik_ratio_confidence_interval_unavailable")
+			private$finalize_inverted_ci(ci_vals, alpha, est, wald_ci, "lik_ratio_confidence_interval_unavailable", testing_type = "lik_ratio")
 		}
 	)
 )

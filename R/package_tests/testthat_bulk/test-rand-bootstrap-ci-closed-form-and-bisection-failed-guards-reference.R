@@ -36,7 +36,8 @@ test_that("'rand_bootstrap_ci_closed_form_unavailable' fires when closed_form_ci
 
 	ci <- f$inf$compute_rand_bootstrap_confidence_interval(B = 25L, show_progress = FALSE, type = "percentile")
 	expect_true(all(is.na(ci)))
-	expect_identical(f$inf$get_nonestimable_reason(), "rand_bootstrap_ci_closed_form_unavailable")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "rand_bootstrap_ci_closed_form_unavailable")
 })
 
 test_that("'rand_bootstrap_ci_bisection_failed' fires when bounds are finite but both bisection calls fail", {
@@ -50,7 +51,8 @@ test_that("'rand_bootstrap_ci_bisection_failed' fires when bounds are finite but
 
 	ci <- f$inf$compute_rand_bootstrap_confidence_interval(B = 25L, show_progress = FALSE, type = "percentile")
 	expect_true(all(is.na(ci)))
-	expect_identical(f$inf$get_nonestimable_reason(), "rand_bootstrap_ci_bisection_failed")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "rand_bootstrap_ci_bisection_failed")
 })
 
 test_that("the generic bootstrap-randomization search forwards alpha to expansion, stopping, and bisection", {

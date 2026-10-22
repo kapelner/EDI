@@ -68,21 +68,21 @@ SurvivalDepCensTransformSource = list(
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_estimate = function(unit = "auto"){
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
-			private$cache_nonestimable_se("dep_cens_transform_jackknife_not_supported")
+			private$signal_unsupported_procedure("dep_cens_transform_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Reports jackknife bias estimate as unavailable for this model.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_bias_estimate = function(unit = "auto"){
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
-			private$cache_nonestimable_se("dep_cens_transform_jackknife_not_supported")
+			private$signal_unsupported_procedure("dep_cens_transform_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Reports jackknife standard error as unavailable for this model.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_std_error = function(unit = "auto"){
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
-			private$cache_nonestimable_se("dep_cens_transform_jackknife_not_supported")
+			private$signal_unsupported_procedure("dep_cens_transform_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Reports jackknife Wald two-sided p-value as unavailable for this model.
@@ -90,7 +90,7 @@ SurvivalDepCensTransformSource = list(
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
-			private$cache_nonestimable_se("dep_cens_transform_jackknife_not_supported")
+			private$signal_unsupported_procedure("dep_cens_transform_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Reports jackknife Wald confidence interval as unavailable for this model.
@@ -98,7 +98,7 @@ SurvivalDepCensTransformSource = list(
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
-			private$cache_nonestimable_se("dep_cens_transform_jackknife_not_supported")
+			private$signal_unsupported_procedure("dep_cens_transform_jackknife_not_supported")
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
@@ -115,7 +115,7 @@ SurvivalDepCensTransformSource = list(
 		#' @param zero_one_logit_clamp Numerical clamp for logit transforms near 0/1.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps){
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
-			private$cache_nonestimable_se("dep_cens_transform_randomization_not_supported")
+			private$signal_unsupported_procedure("dep_cens_transform_randomization_not_supported")
 			NA_real_
 		},
 		#' @description Reports randomization confidence interval as unavailable for this model.
@@ -126,7 +126,7 @@ SurvivalDepCensTransformSource = list(
 		#' @param ci_search_control Optional control list for the randomization-CI search.
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, ci_search_control = NULL){
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
-			private$cache_nonestimable_se("dep_cens_transform_randomization_not_supported")
+			private$signal_unsupported_procedure("dep_cens_transform_randomization_not_supported")
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci
@@ -134,12 +134,12 @@ SurvivalDepCensTransformSource = list(
 		#' @description Bootstrap confidence interval with numerical validation only;
 		#'   finite bootstrap endpoints are never replaced by a Wald interval.
 		#' @param alpha Significance level. Default 0.05.
-		#' @param B Number of bootstrap replicates. Default 1000.
+		#' @param B Number of bootstrap replicates. Default 501.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
 		#' @param type Optional bootstrap CI type. Default NULL.
-		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE, type = NULL){
+		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE, type = NULL){
 			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 			# migration ladders): was `super$compute_bootstrap_confidence_interval(...)`,
 			# relying on classic R6 inheritance reaching NonparametricBootstrap's
@@ -172,11 +172,11 @@ SurvivalDepCensTransformSource = list(
 		},
 		#' @description Basic bootstrap confidence interval with numerical validation only.
 		#' @param alpha Significance level. Default 0.05.
-		#' @param B Number of bootstrap replicates. Default 1000.
+		#' @param B Number of bootstrap replicates. Default 501.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
-		compute_bootstrap_confidence_interval_basic = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
+		compute_bootstrap_confidence_interval_basic = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
 			# `super$compute_bootstrap_confidence_interval_basic()`/`_bca()` were
 			# pre-existing, genuinely broken calls: no class anywhere in the
 			# package -- classic ladder or composed -- has ever defined those two
@@ -207,11 +207,11 @@ SurvivalDepCensTransformSource = list(
 		},
 		#' @description BCa bootstrap confidence interval with numerical validation only.
 		#' @param alpha Significance level. Default 0.05.
-		#' @param B Number of bootstrap replicates. Default 1000.
+		#' @param B Number of bootstrap replicates. Default 501.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
-		compute_bootstrap_confidence_interval_bca = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
+		compute_bootstrap_confidence_interval_bca = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
 			private$dep_cens_validate_bootstrap_ci(
 				self$compute_bootstrap_confidence_interval(
 					alpha = alpha, B = B, type = "bca", min_number_usable_samples = min_number_usable_samples,
@@ -224,11 +224,11 @@ SurvivalDepCensTransformSource = list(
 		#'   fit has no replicate standard-error estimator, so this returns the
 		#'   numerically validated basic-bootstrap interval.
 		#' @param alpha Significance level. Default 0.05.
-		#' @param B Number of bootstrap replicates. Default 1000.
+		#' @param B Number of bootstrap replicates. Default 501.
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
-		compute_bootstrap_confidence_interval_studentized = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
+		compute_bootstrap_confidence_interval_studentized = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
 			ci = tryCatch(
 				self$compute_bootstrap_confidence_interval_basic(
 					alpha = alpha, B = B, min_number_usable_samples = min_number_usable_samples,
@@ -248,7 +248,7 @@ SurvivalDepCensTransformSource = list(
 		#' @param zero_one_logit_clamp Numerical clamp for logit transforms near 0/1.
 		approximate_randomization_distribution_beta_hat_T = function(r = 501, delta = 0, transform_responses = "none", show_progress = TRUE, permutations = NULL, debug = FALSE, zero_one_logit_clamp = .Machine$double.eps){
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
-			private$cache_nonestimable_se("dep_cens_transform_randomization_not_supported")
+			private$signal_unsupported_procedure("dep_cens_transform_randomization_not_supported")
 			rep(NA_real_, as.integer(r))
 		},
 		#' @description Wald confidence interval for the event-submodel log-time-ratio
@@ -329,7 +329,7 @@ SurvivalDepCensTransformSource = list(
 		# explanation. cached_vc_params was previously undeclared entirely.
 		cached_mod = NULL,
 		max_abs_reasonable_coef = 1e4,
-		dep_cens_percentile_bootstrap_ci = function(alpha = 0.05, B = 1000, min_number_usable_samples = 10, show_progress = TRUE){
+		dep_cens_percentile_bootstrap_ci = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE){
 			theta = tryCatch(
 				self$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress),
 				error = function(e) numeric()
@@ -337,12 +337,12 @@ SurvivalDepCensTransformSource = list(
 			theta = as.numeric(theta)
 			theta = theta[is.finite(theta)]
 			if (length(theta) < as.integer(min_number_usable_samples)) {
-				private$cache_nonestimable_estimate("dep_cens_transform_bootstrap_ci_unstable")
+				edi_record_procedure_failure(self, private, "dep_cens_transform_bootstrap_ci_unstable", "estimate")
 				out = c(NA_real_, NA_real_)
 			} else {
 				out = as.numeric(stats::quantile(theta, probs = c(alpha / 2, 1 - alpha / 2), names = FALSE, type = 8))
 				if (length(out) < 2L || !all(is.finite(out))) {
-					private$cache_nonestimable_estimate("dep_cens_transform_bootstrap_ci_unstable")
+					edi_record_procedure_failure(self, private, "dep_cens_transform_bootstrap_ci_unstable", "estimate")
 					out = c(NA_real_, NA_real_)
 				}
 			}
@@ -356,7 +356,7 @@ SurvivalDepCensTransformSource = list(
 			# relation to a Wald interval.  Those data-dependent checks suppress
 			# bootstrap rejections selectively.  Genuine numerical failure remains
 			# unavailable for every CI type.
-			private$cache_nonestimable_se("dep_cens_transform_bootstrap_ci_unstable")
+			edi_record_procedure_failure(self, private, "dep_cens_transform_bootstrap_ci_unstable", "se")
 			out = c(NA_real_, NA_real_)
 			names(out) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			out
@@ -394,6 +394,23 @@ SurvivalDepCensTransformSource = list(
 			}
 			private$set_fit_warm_start(res$b, "params", fisher = res$fisher_information)
 			as.numeric(res$b[2])
+		},
+		# Retry ladder for a non-converged dep-cens fit; see generate_mod().
+		dep_cens_fit_retry = function(X_fit, failed = NULL, estimate_only = FALSE){
+			n_params = 2L * ncol(X_fit) + 3L
+			fit = function(...) tryCatch(fast_dep_cens_transform_optim_cpp(
+				y = private$y, dead = private$dead, X = X_fit, ...), error = function(e) NULL)
+			cold = fit(warm_start_params = rep(0, n_params), smart_cold_start = FALSE)
+			if (!is.null(cold) && isTRUE(cold$converged)) return(cold)
+			if (!isTRUE(estimate_only)) return(NULL)
+			drift = function(r) if (!is.null(r) && length(r$b) == n_params && is.finite(r$b[n_params])) r$b[n_params] else NA_real_
+			a = drift(failed); if (!is.finite(a)) a = drift(cold)
+			bound = if (is.finite(a) && a < 0) -3 else 3
+			b_ols = tryCatch(as.numeric(stats::lm.fit(X_fit, log(as.numeric(private$y)))$coefficients), error = function(e) NULL)
+			if (is.null(b_ols) || length(b_ols) != ncol(X_fit) || !all(is.finite(b_ols))) b_ols = rep(0, ncol(X_fit))
+			res = fit(warm_start_params = c(b_ols, b_ols, 0, 0, bound), smart_cold_start = FALSE,
+				estimate_only = TRUE, fixed_idx = as.integer(n_params), fixed_values = bound)
+			if (!is.null(res) && isTRUE(res$converged) && is.finite(res$b[2L])) res else NULL
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
@@ -470,7 +487,21 @@ SurvivalDepCensTransformSource = list(
 						warm_start_fisher_info = warm_fisher,
 						smart_cold_start = private$smart_cold_start_default
 					), error = function(e) NULL)
-					if (is.null(res) || !isTRUE(res$converged)) return(NULL)
+					if (is.null(res) || !isTRUE(res$converged)) {
+						# TODO-111 (fourth pass): the C++ objective clamps atanh(rho)
+						# to [-3, 3] but its analytic gradient is not zeroed there, so
+						# whenever the MLE sits on the rho boundary (common on
+						# bootstrap resamples of small / zero-covariate fits) LBFGS
+						# keeps pushing a flat coordinate and throws -> value NaN,
+						# converged = FALSE (~45% of replicates at n = 40).  Retry:
+						# (1) a cold zero start (can find an interior optimum), then
+						# (2) for estimate-only fits, the smooth constrained problem
+						# with atanh(rho) pinned at the boundary the failed fit drifted to.
+						# Converged first fits never reach this branch (bit-identical).
+						retry = private$dep_cens_fit_retry(X_fit, failed = res, estimate_only = estimate_only)
+						if (is.null(retry)) return(NULL)
+						res = retry
+					}
 					list(
 						b = as.numeric(res$b),
 						neg_loglik = as.numeric(res$neg_loglik),
@@ -671,11 +702,19 @@ SurvivalDepCensTransformSource = list(
 #' inf = InferenceSurvivalDepCensTransformRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceSurvivalDepCensTransformRegr = define_inference_class(
 	classname = "InferenceSurvivalDepCensTransformRegr",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalDepCensTransform"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"SurvivalDepCensTransform"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "survival"),
 	overrides = list(
 		public = c(

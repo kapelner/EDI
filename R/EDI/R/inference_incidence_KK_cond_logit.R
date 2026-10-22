@@ -1,3 +1,12 @@
+# Null fit when every parameter is fixed (beta_T is the only column, TODO-115):
+# no optimisation, b = delta. Minimal fit object for the LR/score code.
+kk_clogit_fully_fixed_null_fit = function(delta){
+	delta = as.numeric(delta)[1L]
+	if (!is.finite(delta)) return(NULL)
+	list(b = delta, params = delta, converged = TRUE, hit_iteration_cap = FALSE,
+		gradient_norm = 0, fixed_all = TRUE)
+}
+
 conditional_logit_prepare_combined_design = function(private_env, KKstats) {
 	m = KKstats$m
 	nRT = KKstats$nRT
@@ -449,8 +458,10 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 		},
 		supports_likelihood_tests = function() TRUE,
 		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) {
+				edi_warn_lik_test_unavailable_once(self, private, testing_type, delta, reason = "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification)")
 				if (!isTRUE(self$is_nonestimable())) {
 					private$cache_nonestimable_estimate("kk_clogit_combined_likelihood_test_spec_unavailable")
 				}
@@ -463,6 +474,7 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 				warm_cache_key = paste0("likelihood_test:", testing_type),
 				bartlett_B = bartlett_B
 			)
+			if (!is.finite(p_value)) edi_warn_lik_test_unavailable_once(self, private, testing_type, delta)
 			if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
 				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
 			}
@@ -481,6 +493,10 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 				j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
+					# TODO-115: beta_T is the only parameter -> nothing is free, so
+					# the null "fit" is the fixed point b = delta (the solver rejects
+					# an empty free set).
+					if (ncol(X_fit) == 1L) return(kk_clogit_fully_fixed_null_fit(delta))
 					fit = tryCatch(
 						fast_logistic_regression_with_var_cpp(
 							X = X_fit,
@@ -562,6 +578,7 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 			list(
 				full_fit = full_res,
 				fit_null = function(d, start = NULL){
+					if (ncol(X) == 1L) return(kk_clogit_fully_fixed_null_fit(d))
 					fit = tryCatch(
 						fast_logistic_regression_with_var_cpp(
 							X = X, y = y_sim, j = j,
@@ -647,7 +664,13 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 InferenceIncidKKCondLogitOneLik = define_inference_class(
 	classname = "InferenceIncidKKCondLogitOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "IncidKKCondLogitOneLikLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"IncidKKCondLogitOneLikLikelihood"
+	),
 	public = list(
 		# Pinned from InferenceRandCI (incidence class -- Lesson 3): the
 		# non-KK sibling InferenceIncidRiskDiff and every other incidence KK
@@ -922,7 +945,14 @@ IncidKKCondLogitIVWCSource = list(
 InferenceIncidKKCondLogitIVWC = define_inference_class(
 	classname = "InferenceIncidKKCondLogitIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "IncidKKCondLogitIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"IncidKKCondLogitIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRandCI (NOT InferenceRand): incidence classes
 		# keep RandCI's Zhang-dispatch-aware version -- Lesson 3, same as the

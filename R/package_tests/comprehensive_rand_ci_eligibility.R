@@ -6,6 +6,49 @@ comprehensive_should_run_test_family <- function(test_family, filter = NA_charac
 	!(!is.na(filter) && !identical(filter, test_family))
 }
 
+# TODO-119 (2026-10-22): the generic randomization CI is refused (and the
+# `randomization_ci` capability removed) for classes whose estimand is on a
+# different scale than the sharp-null shift. Read the roster from the package
+# registry rather than hard-coding it, so a harness candidate lattice can never
+# emit or expect `compute_rand_confidence_interval` rows for those classes.
+# Randomization p-values and randomization-bootstrap CIs are unaffected.
+comprehensive_rand_ci_refused_for_scale_mismatch <- function(class_name) {
+	if (!requireNamespace("EDI", quietly = TRUE)) stop("EDI must be loaded", call. = FALSE)
+	class_name %in% EDI:::EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES
+}
+
+# TODO-119 / G6 (2026-10-22): compute_rand_confidence_interval() also refuses
+# (classed error `edi_rand_ci_exact_zero_one_refused`) when a model-scale
+# (logit-shift) proportion class sees an exact 0 or 1 response. Unlike the
+# scale-mismatch refusal this is data-dependent, so it cannot be a capability
+# exclusion; the harness evaluates the package's own predicate on the live
+# response instead of hard-coding a class/dataset list. Callers pass
+# `is_model_scale` = EDI:::inference_uses_model_scale_randomization_transform(obj)
+# and the response the inference object holds. Both the generic
+# InferenceRandCI$compute_rand_confidence_interval() and the Zhang-combined
+# InferenceExtQuantileRandCI (InferencePropKKQuantileRegrIVWC) refuse (owner
+# decision 2026-10-22), so the harness no longer passes `uses_generic_rand_ci`;
+# the argument stays for callers that need to exclude a non-refusing override.
+# The current harness DGP (_dataset_load.R + apply_treatment_effect_and_noise())
+# keeps every proportion response strictly inside (0, 1), so today this never
+# fires; it guards against a future dataset/DGP change turning the refusal into
+# error rows.
+comprehensive_rand_ci_refused_for_exact_zero_one <- function(response_type, is_model_scale, y, uses_generic_rand_ci = TRUE) {
+	if (!requireNamespace("EDI", quietly = TRUE)) stop("EDI must be loaded", call. = FALSE)
+	isTRUE(uses_generic_rand_ci) &&
+		isTRUE(EDI:::inference_randomization_ci_exact_zero_one_refusal(response_type, is_model_scale, y))
+}
+
+# TRUE when `inf_obj$compute_rand_confidence_interval` is the generic
+# InferenceRandCI implementation (the one carrying the TODO-119 refusals).
+# Compares function bodies only; no estimator method is invoked.
+comprehensive_rand_ci_uses_generic_implementation <- function(inf_obj) {
+	if (!requireNamespace("EDI", quietly = TRUE)) stop("EDI must be loaded", call. = FALSE)
+	fn <- tryCatch(inf_obj$compute_rand_confidence_interval, error = function(e) NULL)
+	is.function(fn) &&
+		identical(body(fn), body(EDI:::InferenceRandCI$public_methods$compute_rand_confidence_interval))
+}
+
 comprehensive_rand_ci_attempted_functions <- function(
 	response_type,
 	supports_randomization_ci,
@@ -320,7 +363,8 @@ comprehensive_rand_ci_class_attempts <- function(
 		(!forced && class_formula_match(get_local("brt_ci_typed")))
 	comprehensive_rand_ci_attempted_functions(
 		response_type = response_type,
-		supports_randomization_ci = "randomization_ci" %in% capabilities,
+		supports_randomization_ci = "randomization_ci" %in% capabilities &&
+			!comprehensive_rand_ci_refused_for_scale_mismatch(class_name),
 		supports_randomization_bootstrap = "randomization_bootstrap" %in% capabilities,
 		test_family_filter = test_family_filter,
 		skip_slow = FALSE,

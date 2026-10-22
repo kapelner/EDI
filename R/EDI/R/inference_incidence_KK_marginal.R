@@ -334,7 +334,13 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 InferenceIncidKKGCompRiskDiff = define_inference_class(
 	classname = "InferenceIncidKKGCompRiskDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"IncidenceKKGComputation"
+	),
 	private = list(
 		build_design_matrix = function(){
 			private$create_design_matrix()
@@ -419,7 +425,13 @@ NULL
 InferenceIncidKKGCompRiskRatio = define_inference_class(
 	classname = "InferenceIncidKKGCompRiskRatio",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Jackknife", "IncidenceKKGComputation"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"IncidenceKKGComputation"
+	),
 	private = list(
 		build_design_matrix = function(){
 			private$create_design_matrix()

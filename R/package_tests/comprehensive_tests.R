@@ -860,6 +860,27 @@ if (!SAFE_CALL_FORK) {
 	# runs). safe_call() records these instead of running them again.
 	watchdog_outcomes = if (nzchar(WATCHDOG_MARKER)) comprehensive_watchdog_read_outcomes(WATCHDOG_MARKER) else list()
 }
+# fork=FALSE only: keep the resampling distributions a call computed on the
+# inference object (EDI caches them by B), so the other CI / p-value
+# variants on that object reuse the same draws, as they would in a user's
+# session, instead of recomputing them (about a third of test time,
+# further_optimizations.md, "Under fork=FALSE"). Only these caches survive
+# safe_call()'s per-call restore; fits, warm starts and everything else are
+# still undone. The first variant on an object pays for the draws; a later
+# variant's cold-equivalent time is the first variant's time plus its own.
+# COMPREHENSIVE_REUSE_RESAMPLING_DRAWS=0 restores cold calls (each variant
+# recomputes, as fork=TRUE always does).
+REUSE_RESAMPLING_DRAWS = !SAFE_CALL_FORK &&
+	!(tolower(Sys.getenv("COMPREHENSIVE_REUSE_RESAMPLING_DRAWS", "1")) %in% c("0", "false", "f", "no", "n"))
+# Not the jackknife caches (jack_distr_cache, bayes_jack_distr_cache): a
+# jackknife's leave-one-out refits start from the object's warm state, so
+# one cached by an earlier BCa call can differ from a fresh one
+# (InferenceIncidLogBinomial: up to ~1e-1 relative on 2026-10-22;
+# release_v1_0_5.md TODO-128).
+REUSED_RESAMPLING_CACHES = c(
+	"boot_distr_cache", "boot_stats_cache", "bayes_boot_distr_cache", "bayes_boot_stats_cache",
+	"m_out_of_n_boot_distr_cache", "subsampling_distr_cache", "rand_boot_distr_cache"
+)
 HEARTBEAT_LOG_FILE = Sys.getenv(
 	"COMPREHENSIVE_HEARTBEAT_LOG",
 	file.path(tempdir(), paste0("comprehensive_tests_heartbeat_", Sys.getpid(), ".log"))
@@ -2309,36 +2330,49 @@ safe_call = function(label, expr){
 		}
 
 		handle_success = function(result){
+			# TODO-127 (v1.0.5, 2026-10-22): stop the clock HERE, as soon as the
+			# method has returned, and use this one duration for every row
+			# below. The checks that follow call is_truth_anomalous_result() ->
+			# get_coverage_truth(), whose first call per (class, covariate set,
+			# beta_T) runs a Monte Carlo truth simulation (seconds to minutes);
+			# measuring after it billed that simulation to the method being
+			# timed (0.01 s compute_estimate rows recorded as 3-86 s). The end
+			# epoch is pinned too, so the sleep adjustment covers the same
+			# window. The truth is still computed lazily, only for results
+			# that need it, so no call does extra work.
+			method_end_elapsed = unname(proc.time()[["elapsed"]])
+			method_end_epoch = as.numeric(Sys.time())
+			method_duration_sec = method_end_elapsed - start_elapsed
 			if (should_record_nonestimable_as_missing(seq_des_inf, label, result)) {
 				msg = nonestimable_error_message(seq_des_inf, label)
 				message("Recording missing output for ", label, " as ok (explicitly non-estimable).")
-				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+				duration_time_sec = method_duration_sec
 				cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
-						record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+						record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg, end_epoch = method_end_epoch)
 				return(invisible(NULL))
 			}
 			if (is_allowed_missing_output(label, result)) {
 				msg = "Allowed missing output: ordinal asymptotic p-value not estimable"
 				message("Recording missing output for ", label, " as ok (ordinal asymptotic p-value not estimable).")
-				duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+				duration_time_sec = method_duration_sec
 				cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
-				record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+				record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg, end_epoch = method_end_epoch)
 				return(invisible(NULL))
 			}
 				if (has_invalid_numeric(result)) {
 					msg = paste0("Invalid output detected (NA/NaN/Inf) in ", label)
 					message("Recording missing output for ", label, " as ok: ", msg)
-					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+					duration_time_sec = method_duration_sec
 					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
-					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg, end_epoch = method_end_epoch)
 					return(invisible(NULL))
 				}
 				if (is_rejected_zero_zero_confidence_interval(label, result)) {
 					msg = paste0("Degenerate confidence interval [0, 0] detected in ", label)
 					message("Skipping ", label, " (non-fatal): ", msg)
-					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+					duration_time_sec = method_duration_sec
 					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
-					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg, end_epoch = method_end_epoch)
 					return(invisible(NULL))
 				}
 				if (is_truth_anomalous_result(label, result) &&
@@ -2348,22 +2382,22 @@ safe_call = function(label, expr){
 						"; stage=se; reason=dep_cens_transform_truth_anomalous_result_unstable"
 					)
 					message("Recording missing output for ", label, " as ok (explicitly non-estimable): ", msg)
-					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+					duration_time_sec = method_duration_sec
 					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
-					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+					record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg, end_epoch = method_end_epoch)
 					return(invisible(NULL))
 				}
 				if (is_truth_anomalous_result(label, result)) {
 					msg = paste0("Truth-based anomaly filter in ", label)
 					message("Recording missing output for ", label, " as ok (truth-based anomaly filter).")
-					duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
+					duration_time_sec = method_duration_sec
 					cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
-						record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg)
+						record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, NA_character_, status = "ok", duration_time_sec = duration_time_sec, error_message = msg, end_epoch = method_end_epoch)
 					return(invisible(NULL))
 				}
 				result = snap_small_numeric_to_zero(result)
-			duration_time_sec = unname(proc.time()[["elapsed"]]) - start_elapsed
-			record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, result, status = "ok", duration_time_sec = duration_time_sec)
+			duration_time_sec = method_duration_sec
+			record_result(dataset_name, dataset_n_rows, dataset_n_cols, response_type, design_type, inference_result_label, label, result, status = "ok", duration_time_sec = duration_time_sec, end_epoch = method_end_epoch)
 			cat("            ", paste(format(result, digits = 3), collapse = " "), estimate_error_annotation(label, result), "\n", sep = "")
 			cat(sprintf("              (Duration: %.3gs)\n", duration_time_sec))
 			flush.console()
@@ -2555,6 +2589,16 @@ safe_call = function(label, expr){
 			# call rerun before a spurious timeout is recorded.
 			if (nzchar(WATCHDOG_MARKER) && as.numeric(Sys.time()) - start_epoch >= FUNCTION_TIMEOUT_SEC) Sys.sleep(2)
 			if (nzchar(WATCHDOG_MARKER)) unlink(WATCHDOG_MARKER)
+			kept_draws = if (REUSE_RESAMPLING_DRAWS) {
+				post = state_envs[[2L]]$cached_values
+				if (is.list(post)) post[intersect(REUSED_RESAMPLING_CACHES, names(post))] else NULL
+			}
+			# Draw sets are cached under IDs built from this counter
+			# ("rand_boot_draws_<k>"). Keep it advancing with the caches, or the
+			# next call would reuse an ID for different draws and hit the
+			# wrong cache entry (seen 2026-10-22: smoothed rand-bootstrap CI
+			# reading the smoothed p-value's noise).
+			kept_draws_counter = if (REUSE_RESAMPLING_DRAWS) state_envs[[2L]]$rand_boot_draws_counter
 			for (i in seq_along(state_envs)) {
 				e = state_envs[[i]]
 				saved = saved_state[[i]]
@@ -2562,6 +2606,19 @@ safe_call = function(label, expr){
 				if (length(added)) rm(list = added, envir = e)
 				for (k in names(saved)) assign(k, saved[[k]], envir = e)
 			}
+			# Put back the resampling caches only (REUSE_RESAMPLING_DRAWS),
+			# merging entries so a call that cleared cached_values loses none.
+			if (length(kept_draws)) {
+				cv = state_envs[[2L]]$cached_values
+				if (!is.list(cv)) cv = list()
+				for (nm in names(kept_draws)) {
+					merged = if (is.list(cv[[nm]])) cv[[nm]] else list()
+					for (key in names(kept_draws[[nm]])) merged[[key]] = kept_draws[[nm]][[key]]
+					cv[[nm]] = merged
+				}
+				state_envs[[2L]]$cached_values = cv
+			}
+			if (!is.null(kept_draws_counter)) state_envs[[2L]]$rand_boot_draws_counter = kept_draws_counter
 			if (had_seed) {
 				assign(".Random.seed", old_seed, envir = .GlobalEnv)
 			} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
@@ -3132,9 +3189,22 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		}
 	}
 
+	# TODO-119 / G6: the plain rand CI refuses exact 0/1 proportions for
+	# logit-shift classes. Treat that as an expected, non-attempted path (like
+	# the scale-mismatch capability exclusion) via the package's own predicate;
+	# only the plain CI is affected -- BRT CIs and the custom CI keep running.
+	rand_ci_exact_zero_one_refused = supports_randomization_ci &&
+		comprehensive_rand_ci_refused_for_exact_zero_one(
+			response_type,
+			EDI:::inference_uses_model_scale_randomization_transform(seq_des_inf),
+			seq_des_inf$.__enclos_env__$private$y
+		)
+	if (rand_ci_exact_zero_one_refused) {
+		message("    Skipping compute_rand_confidence_interval (TODO-119: exact 0/1 proportion response with a logit-shift class is refused)")
+	}
 	rand_ci_attempts = comprehensive_rand_ci_attempted_functions(
 		response_type = response_type,
-		supports_randomization_ci = supports_randomization_ci,
+		supports_randomization_ci = supports_randomization_ci && !rand_ci_exact_zero_one_refused,
 		supports_randomization_bootstrap = supports_randomization_bootstrap,
 		test_family_filter = TEST_FAMILY_FILTER,
 		skip_slow = skip_slow,

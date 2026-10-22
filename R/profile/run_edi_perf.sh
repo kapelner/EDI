@@ -152,7 +152,6 @@ KERNELS=(
     generate_permutations_bernoulli
     generate_permutations_efron
     generate_permutations_ibcrd
-    generate_permutations_blocking
     generate_permutations_matching
     generate_permutations_atkinson
     generate_permutations_pocock_simon
@@ -162,7 +161,6 @@ KERNELS=(
     draw_binary_match_assignments
     draw_matching_bootstrap_sample
     randomization_loop
-    base_bootstrap_loop
 )
 
 TOTAL=${#KERNELS[@]}

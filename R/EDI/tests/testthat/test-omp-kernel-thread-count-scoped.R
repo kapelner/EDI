@@ -31,7 +31,7 @@ test_that("OpenMP kernels scope thread counts instead of changing global state",
 		"fast_logrank.cpp", "fast_robust_regression.cpp",
 		"fast_stereotype_logit.cpp", "fast_survival_stats.cpp",
 		"fast_weibull_regression.cpp", "fast_wilcox_hl.cpp",
-		"fast_wilcox_parallel.cpp", "kk_compound_distr_parallel.cpp",
+		"kk_compound_distr_parallel.cpp",
 		"ols_distr_parallel.cpp", "rand_bootstrap_mean_diff_parallel.cpp",
 		"rand_bootstrap_ols_parallel.cpp", "ridit_distr_parallel.cpp",
 		"simple_mean_diff_parallel.cpp"

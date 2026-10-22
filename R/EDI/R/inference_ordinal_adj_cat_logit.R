@@ -1,6 +1,7 @@
 # Interim class (documentation demoted to plain comments): only consumed via
 # inference_component_source_parts() below; the composed class is documented on the
 # final define_inference_class() assignment.
+#' @inheritSection InferenceContinOLS Blocking designs
 InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLikStdModCache,
@@ -108,8 +109,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 			}
 
 			n_params = ncol(X) + length(sort(unique(private$y))) - 1L
-			res = fast_adjacent_category_logit_cpp(
-				X = X, y = as.numeric(private$y),
+			res = ordinal_fit_scaled(fast_adjacent_category_logit_cpp, linpred_sign = -1, X = X, y = as.numeric(private$y),
 				warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 				warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
 			)
@@ -137,8 +137,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				best_X_cols = private$best_Xmm_colnames,
 				fit_fun = function(X_fit, keep){
 					n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
-					res = fast_adjacent_category_logit_cpp(
-						X_fit, private$y,
+					res = ordinal_fit_scaled(fast_adjacent_category_logit_cpp, linpred_sign = -1, X_fit, private$y,
 						warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 						warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
 					)
@@ -156,15 +155,13 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 					warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
 					warm_fisher = private$get_fit_warm_start_fisher(n_params)
 					if (estimate_only) {
-						res = fast_adjacent_category_logit_cpp(
-							X_fit, private$y,
+						res = ordinal_fit_scaled(fast_adjacent_category_logit_cpp, linpred_sign = -1, X_fit, private$y,
 							warm_start_params = warm_start_params,
 							warm_start_fisher_info = warm_fisher
 						)
 						list(b = res$b, ssq_b_j = NA_real_, params = res$params)
 					} else {
-						res = fast_adjacent_category_logit_with_var_cpp(
-							X_fit, private$y,
+						res = ordinal_fit_scaled(fast_adjacent_category_logit_with_var_cpp, linpred_sign = -1, X_fit, private$y,
 							warm_start_params = warm_start_params,
 							warm_start_fisher_info = warm_fisher
 						)
@@ -213,8 +210,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				fit_null = function(delta, start = NULL){
 					n_params = length(ctx$full_params)
 					res = tryCatch(
-						fast_adjacent_category_logit_cpp(
-							X_fit, y,
+						ordinal_fit_scaled(fast_adjacent_category_logit_cpp, linpred_sign = -1, X_fit, y,
 							fixed_idx = j_treat, fixed_values = delta,
 							warm_start_params = start %||% private$get_fit_warm_start_for_length("params", n_params),
 							warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
@@ -270,8 +266,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 
 			ws   = private$get_fit_warm_start_for_length("params", n_params) %||% params_null
 			full = tryCatch(
-				fast_adjacent_category_logit_cpp(
-					X = X_fit, y = y_sim,
+				ordinal_fit_scaled(fast_adjacent_category_logit_cpp, linpred_sign = -1, X = X_fit, y = y_sim,
 					warm_start_params = ws,
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
 				),
@@ -283,8 +278,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 				fit_null = function(d, start = NULL){
 					ws2 = start %||% private$get_fit_warm_start_for_length("params", n_params) %||% params_null
 					f2  = tryCatch(
-						fast_adjacent_category_logit_cpp(
-							X = X_fit, y = y_sim,
+						ordinal_fit_scaled(fast_adjacent_category_logit_cpp, linpred_sign = -1, X = X_fit, y = y_sim,
 							warm_start_params = ws2,
 							warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
 							fixed_idx = j, fixed_values = d
@@ -342,7 +336,14 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 	InferenceOrdinalAdjCatLogitRegr = define_inference_class(
 		classname = "InferenceOrdinalAdjCatLogitRegr",
 		inherit = Inference,
-		components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalAdjacentCategoryLikelihood"),
+		components = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			"OrdinalAdjacentCategoryLikelihood"
+		),
 		public = list(
 			compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 		),

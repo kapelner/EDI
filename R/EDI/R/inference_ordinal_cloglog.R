@@ -15,7 +15,7 @@
 	best_nll = primary_nll
 	for (start in starts) {
 		candidate = tryCatch(
-			fast_ordinal_cloglog_regression_cpp(
+			ordinal_fit_scaled(fast_ordinal_cloglog_regression_cpp, linpred_sign = 1,
 				X, y, warm_start_params = start,
 				warm_start_fisher_info = NULL,
 				smart_cold_start = FALSE, estimate_only = TRUE
@@ -33,7 +33,7 @@
 	if (estimate_only) return(best)
 
 	refit = tryCatch(
-		fast_ordinal_cloglog_regression_with_var_cpp(
+		ordinal_fit_scaled(fast_ordinal_cloglog_regression_with_var_cpp, linpred_sign = 1,
 			X, y, warm_start_params = best$params,
 			warm_start_fisher_info = NULL, smart_cold_start = FALSE
 		),
@@ -48,6 +48,7 @@
 # Interim class (documentation demoted to plain comments): only consumed via
 # inference_component_source_parts() below; the composed class is documented on the
 # final define_inference_class() assignment.
+#' @inheritSection InferenceContinOLS Blocking designs
 InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLikStdModCache,
@@ -125,7 +126,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 			}
 			n_params = ncol(X) + length(sort(unique(private$y))) - 1L
 			ws_fisher = private$get_fit_warm_start_fisher(n_params)
-			res = fast_ordinal_cloglog_regression_cpp(
+			res = ordinal_fit_scaled(fast_ordinal_cloglog_regression_cpp, linpred_sign = 1,
 				X = X, y = as.numeric(private$y),
 				warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 				warm_start_fisher_info = ws_fisher,
@@ -178,7 +179,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 			X_fit    = spec$X
 			j        = spec$j
 			full_res = tryCatch(
-				fast_ordinal_cloglog_regression_cpp(
+				ordinal_fit_scaled(fast_ordinal_cloglog_regression_cpp, linpred_sign = 1,
 					X_fit, y_sim,
 					smart_cold_start = private$smart_cold_start_default
 				),
@@ -193,7 +194,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 				fit_null = function(d, start = NULL){
 					fit_from = function(ws){
 						res = tryCatch(
-							fast_ordinal_cloglog_regression_cpp(
+							ordinal_fit_scaled(fast_ordinal_cloglog_regression_cpp, linpred_sign = 1,
 								X_fit, y_sim,
 								warm_start_params = ws,
 								fixed_idx = j, fixed_values = -d,
@@ -240,7 +241,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 					n_params = length(ctx$full_params)
 					fit_from = function(ws){
 						res = tryCatch(
-							fast_ordinal_cloglog_regression_cpp(
+							ordinal_fit_scaled(fast_ordinal_cloglog_regression_cpp, linpred_sign = 1,
 								X_fit, y,
 								fixed_idx = j_treat, fixed_values = -delta,
 								warm_start_params = ws,
@@ -292,7 +293,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 					warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
 					warm_fisher = private$get_fit_warm_start_fisher(n_params)
 					if (estimate_only) {
-						res = fast_ordinal_cloglog_regression_cpp(
+						res = ordinal_fit_scaled(fast_ordinal_cloglog_regression_cpp, linpred_sign = 1,
 							X_fit, private$y,
 							warm_start_params = warm_start_params,
 							warm_start_fisher_info = warm_fisher,
@@ -303,7 +304,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 						res = .cloglog_full_data_multistart(X_fit, private$y, res, TRUE)
 						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = warm_fisher)
 					} else {
-						res = fast_ordinal_cloglog_regression_with_var_cpp(
+						res = ordinal_fit_scaled(fast_ordinal_cloglog_regression_with_var_cpp, linpred_sign = 1,
 							X_fit, private$y,
 							warm_start_params = warm_start_params,
 							warm_start_fisher_info = warm_fisher,
@@ -382,7 +383,10 @@ InferenceOrdinalCloglogRegr = define_inference_class(
 	classname = "InferenceOrdinalCloglogRegr",
 	inherit = Inference,
 	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
 		"BayesianBootstrap",
+		"Jackknife",
 		"ParametricLikelihoodBootstrap",
 		"OrdinalCloglogLikelihood"
 	),

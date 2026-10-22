@@ -32,8 +32,9 @@ test_that("the result is cached on the design's private env and reused on later 
 	f <- mk(X)
 	expect_null(f$p$des_obj_priv_int$lin_centered_covariates)
 	a <- f$p$get_centered_covariates()
-	expect_identical(f$p$des_obj_priv_int$lin_centered_covariates, a)
-	f$p$des_obj_priv_int$lin_centered_covariates <- list(Xc = matrix(1, n, 1, dimnames = list(NULL, "sentinel")))
+	expect_identical(f$p$des_obj_priv_int$lin_centered_covariates$result, a)
+	# the cache entry is keyed on the covariate matrix (TODO-104); a planted result under the matching key wins
+	f$p$des_obj_priv_int$lin_centered_covariates$result <- list(Xc = matrix(1, n, 1, dimnames = list(NULL, "sentinel")))
 	expect_identical(colnames(f$p$get_centered_covariates()$Xc), "sentinel")        # cache wins over recomputation
 	expect_identical(colnames(f$p$build_lin_design_matrix()), c("(Intercept)", "treatment", "sentinel", "treatment:sentinel"))
 })
@@ -41,8 +42,28 @@ test_that("the result is cached on the design's private env and reused on later 
 test_that("with no covariates the helper returns NULL and caches an empty-list sentinel", {
 	f <- mk(NULL)
 	expect_null(f$p$get_centered_covariates())
-	expect_identical(f$p$des_obj_priv_int$lin_centered_covariates, list())
+	expect_null(f$p$des_obj_priv_int$lin_centered_covariates$result)
+	expect_false(is.null(f$p$des_obj_priv_int$lin_centered_covariates$key))
 	expect_null(f$p$get_centered_covariates())                                          # sentinel round-trips to NULL
+})
+
+test_that("TODO-104: two Lin objects with different model formulas on one design do not share centered covariates", {
+	set.seed(104); n2 <- 60L
+	X3 <- data.frame(x1 = rnorm(n2), x2 = rnorm(n2), x3 = rbinom(n2, 1, 0.5))
+	des <- DesignFixedBernoulli$new(response_type = "continuous", n = n2, seed = 104L, verbose = FALSE)
+	des$add_all_subjects_to_experiment(X3); des$assign_w_to_all_subjects()
+	w <- des$get_w(); y <- rnorm(n2) + w * (1 + X3$x1) + X3$x1 + 0.7 * X3$x2 + 0.5 * X3$x3
+	des$add_all_subject_responses(y)
+	ref <- function(cols) { xc <- scale(as.matrix(X3[, cols, drop = FALSE]), scale = FALSE); unname(coef(lm(y ~ w * xc))[["w"]]) }
+	for (ord in list(c("a", "b"), c("b", "a"))) {
+		est <- list()
+		for (k in ord) {
+			inf <- if (k == "a") InferenceContinLin$new(des, model_formula = ~ x1, verbose = FALSE) else InferenceContinLin$new(des, model_formula = ~ ., verbose = FALSE)
+			est[[k]] <- inf$compute_estimate()
+		}
+		expect_equal(est$a, ref("x1"), tolerance = 1e-8)
+		expect_equal(est$b, ref(c("x1", "x2", "x3")), tolerance = 1e-8)
+	}
 })
 
 test_that("design matrix is [1, w, Xc, w * Xc] with the documented column names", {

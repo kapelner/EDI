@@ -105,22 +105,37 @@ InferenceCountKKGLMMLegacyOrig = define_inference_class("InferenceCountKKGLMM",
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
+			# TODO-121 (mirrored from the live class): score / gradient use the model test.
+			owner = list(self = self, private = private)
 			switch(
 				self$get_testing_type(),
 				wald = self$compute_wald_confidence_interval(alpha = alpha),
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
-				self$compute_wald_confidence_interval(alpha = alpha)
+				score = .conservative_kk_onelik_ci(
+					tryCatch(private$compute_score_confidence_interval_impl(alpha), error = function(e) c(NA_real_, NA_real_)),
+					self$compute_wald_confidence_interval(alpha = alpha), alpha = alpha, owner = owner, label = "score"),
+				gradient = .conservative_kk_onelik_ci(
+					tryCatch(private$compute_gradient_confidence_interval_impl(alpha), error = function(e) c(NA_real_, NA_real_)),
+					self$compute_wald_confidence_interval(alpha = alpha), alpha = alpha, owner = owner, label = "gradient"),
+				stop("Unsupported testing_type for ", class(self)[1L], ": ", self$get_testing_type())
 			)
 		},
 		#' @description Uses the shared asymptotic two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
+			owner = list(self = self, private = private)
 			switch(
 				self$get_testing_type(),
 				wald = self$compute_wald_two_sided_pval(delta = delta),
 				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
-				self$compute_wald_two_sided_pval(delta = delta)
+				score = .conservative_kk_onelik_pval(
+					tryCatch(private$compute_score_two_sided_pval_impl(delta), error = function(e) NA_real_),
+					self$compute_wald_two_sided_pval(delta = delta), owner = owner, label = "score"),
+				gradient = .conservative_kk_onelik_pval(
+					tryCatch(private$compute_gradient_two_sided_pval_impl(delta), error = function(e) NA_real_),
+					self$compute_wald_two_sided_pval(delta = delta), owner = owner, label = "gradient"),
+				stop("Unsupported testing_type for ", class(self)[1L], ": ", self$get_testing_type())
 			)
 		}
 	),
@@ -348,16 +363,18 @@ InferenceCountKKGLMMLegacyOrig = define_inference_class("InferenceCountKKGLMM",
 					as.numeric(get_poisson_glmm_score_cpp(X_fit, y, group_id, params))
 				},
 				observed_information = function(fit){
+					# TODO-121 (mirrored from the live class): the C++ routine returns the
+					# Hessian of the LOG-likelihood (negative definite); information is its negation.
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				fisher_information = function(fit){
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				information = function(fit){
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				neg_loglik = function(fit){
 					as.numeric(fit$neg_loglik %||% fit$neg_ll)

@@ -1,0 +1,357 @@
+{
+  "_comment": "Audit row -> the kernel files its verdict rests on. Bare *.cpp/*.h names are under R/EDI/src, *.R under R/EDI/R. `reviewed` is the date the row's verdict was last re-checked; the drift check lists commits to these files since then. After re-reviewing a row, bump its `reviewed` date. See new_feature_plans/algorithm_audit_runbook.md. `exempt` files need no row: `infrastructure` makes no algorithm choice; `unassigned_kernels` is for algorithm kernels no row covers yet (empty as of 2026-10-22: rows A-AC cover everything; rows N-AC were mapped by file-name and row-text inference and are a first pass for the owner to refine). Patterns use fnmatch. The check fails on any R/EDI/src *.cpp/*.h that is neither mapped nor listed.",
+  "max_age_days": 180,
+  "exempt": {
+    "infrastructure": [
+      "RNG.h",
+      "RcppExports.cpp",
+      "_helper_functions.cpp",
+      "_helper_functions.h",
+      "_helper_functions_core.h",
+      "build_info.cpp",
+      "edi_build_flags.h",
+      "edi_locked_binding.cpp",
+      "edi_simd.h",
+      "internal_fn_decls.h",
+      "na_real_core.h",
+      "omp_control.cpp",
+      "omp_policy.h",
+      "r_seed_draw.h",
+      "result_key_store.cpp",
+      "result_map.h",
+      "result_map_rcpp.h",
+      "test_smart_starts.cpp",
+      "unity_*.cpp",
+      "user_compiled_fn_shims.cpp",
+      "user_compiled_fns.h",
+      "get_column_types.cpp",
+      "which_cols_vary.cpp",
+      "simulation_dgp.cpp",
+      "imputation_helpers.cpp"
+    ],
+    "unassigned_kernels": []
+  },
+  "rows": {
+    "A": {
+      "title": "Convex/concave likelihood optimization",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_logistic_regression.cpp",
+        "fast_probit_regression.cpp",
+        "fast_poisson_regression.cpp",
+        "fast_negbin_regression.cpp",
+        "fast_log_binomial_regression.cpp",
+        "fast_ordinal_regression.cpp",
+        "fast_weibull_regression.cpp",
+        "fast_beta_regression.cpp",
+        "fast_survival_models_optim.cpp",
+        "fast_math_utils.cpp"
+      ]
+    },
+    "B": {
+      "title": "Nonconcave mixture likelihoods",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_zinb.cpp",
+        "fast_zero_augmented_poisson.cpp",
+        "fast_hurdle_negbin.cpp",
+        "fast_hurdle_poisson_glmm.cpp",
+        "fast_zero_one_inflated_beta.cpp"
+      ]
+    },
+    "C": {
+      "title": "GLMM/LMM/frailty marginal likelihood (GH quadrature)",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_gaussian_lmm.cpp",
+        "fast_logistic_glmm.cpp",
+        "fast_poisson_glmm.cpp",
+        "fast_ordinal_glmm.cpp",
+        "fast_ordinal_clmm.cpp",
+        "fast_weibull_frailty.cpp",
+        "fast_clogit_plus_glmm.cpp",
+        "_glmm_engine.h",
+        "_glmm_links.h"
+      ]
+    },
+    "D": {
+      "title": "Randomization/bootstrap CI search",
+      "reviewed": "2026-10-22",
+      "files": [
+        "inference_all_abstract_rand_ci.R",
+        "inference_ext_ci_inversion.R",
+        "inference_all_abstract_rand_bootstrap_ci.R",
+        "bisection_ci.cpp",
+        "bisection_ci_search.h",
+        "randomization_loop.cpp"
+      ]
+    },
+    "E": {
+      "title": "Small permutation p-values",
+      "reviewed": "2026-10-22",
+      "files": [
+        "inference_all_abstract_rand.R",
+        "generate_permutations.cpp",
+        "exchangeable_resampling_draws.cpp",
+        "zhang_exact_speedups.cpp"
+      ]
+    },
+    "F": {
+      "title": "Design allocation search (DesignFixedOptimal)",
+      "reviewed": "2026-10-22",
+      "files": [
+        "design_fixed_optimal.R",
+        "design_fixed_optimal_blocks.R",
+        "optimal_design_search.cpp",
+        "design_optimal_annealing_search.cpp",
+        "optimal_blocks_distance.cpp"
+      ]
+    },
+    "G": {
+      "title": "Matching (pairs, k = 2)",
+      "reviewed": "2026-10-22",
+      "files": [
+        "binary_match_search.cpp",
+        "compute_mahal_distances.cpp",
+        "pair_dist_helpers.cpp",
+        "compute_weighted_distances.cpp"
+      ]
+    },
+    "H": {
+      "title": "Sequential nearest-match designs",
+      "reviewed": "2026-10-22",
+      "files": [
+        "atkinson_assign.cpp",
+        "pocock_simon_assign.cpp",
+        "kk21_weights.cpp",
+        "match_data_compute_speedup.cpp",
+        "design_seq_one_by_one_atkinson.R",
+        "design_seq_one_by_one_pocock_simon.R"
+      ]
+    },
+    "I": {
+      "title": "Rerandomization acceptance-rejection",
+      "reviewed": "2026-10-22",
+      "files": [
+        "rerandomization_helpers.cpp",
+        "design_fixed_rerandomization.R"
+      ]
+    },
+    "J": {
+      "title": "Bootstrap resampling loops",
+      "reviewed": "2026-10-22",
+      "files": [
+        "bootstrap_indices.cpp",
+        "bootstrap_match_indices.cpp",
+        "inference_all_abstract_non_param_boot.R",
+        "inference_all_abstract_param_boot.R",
+        "inference_all_abstract_bayesian_bootstrap.R"
+      ]
+    },
+    "K": {
+      "title": "GEE working-correlation structure",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_gee.cpp",
+        "inference_mixin_kk_gee_shared.R",
+        "inference_count_KK_gee.R"
+      ]
+    },
+    "L": {
+      "title": "Cox partial-likelihood tie handling",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_coxph_regression.cpp",
+        "inference_survival_coxph.R",
+        "inference_survival_strat_cox.R",
+        "inference_survival_KK_strat_cox.R"
+      ]
+    },
+    "M": {
+      "title": "Deterministic CI inverters (score/gradient/Bartlett-LR)",
+      "reviewed": "2026-10-22",
+      "files": [
+        "lrt_ci_newton.cpp",
+        "bisection_ci.cpp",
+        "inference_ext_ci_inversion.R",
+        "miettinen_nurminen_speedups.cpp",
+        "newcombe_speedups.cpp"
+      ]
+    },
+    "N": {
+      "title": "FD derivatives where analytic forms exist",
+      "reviewed": "2026-10-22",
+      "files": [
+        "log_lik_nb.cpp",
+        "beta_regression_helpers.cpp",
+        "fast_log_binomial_regression.cpp",
+        "fast_ordinal_glmm.cpp",
+        "fast_ordinal_clmm.cpp",
+        "fast_zinb.cpp"
+      ]
+    },
+    "O": {
+      "title": "Special functions and floating-point accuracy",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_erfc.h",
+        "fast_gamma_functions.h",
+        "zero_one_logit_transform.h",
+        "fast_math_utils.cpp"
+      ]
+    },
+    "P": {
+      "title": "Separable / closed-form models fit by a generic optimizer",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_continuation_ratio_regression.cpp",
+        "fast_ols.cpp",
+        "fast_zero_one_inflated_beta.cpp",
+        "fast_hurdle_poisson_glmm.cpp",
+        "cmh_speedups.cpp"
+      ]
+    },
+    "Q": {
+      "title": "Sort-and-sweep statistics; presorting in resampling",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_logrank.cpp",
+        "fast_survival_stats.cpp",
+        "fast_jonckheere_terpstra.cpp",
+        "fast_gehan_wilcox.cpp",
+        "fast_wilcox_hl.cpp",
+        "fast_ridit_analysis.cpp",
+        "survival_rank_record.h",
+        "survival_strata_ids.cpp"
+      ]
+    },
+    "R": {
+      "title": "Exact discrete nulls and enumeration",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_jonckheere_terpstra.cpp",
+        "zhang_exact_speedups.cpp",
+        "optimal_design_search.cpp"
+      ]
+    },
+    "S": {
+      "title": "Randomization/sequential-design draws, sampling, RNG",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_shuffle.cpp",
+        "fast_sample_int.cpp",
+        "random_block_size_speedups.cpp",
+        "sample_mode.cpp",
+        "atkinson_assign.cpp",
+        "spbr_speedups.cpp",
+        "design_fixed_greedy.cpp",
+        "greedy_pairwise_swap_engine.h",
+        "kk_cluster_ids.cpp"
+      ]
+    },
+    "T": {
+      "title": "Forward-stepwise selection (KK21)",
+      "reviewed": "2026-10-22",
+      "files": [
+        "kk21_stepwise_survival.cpp",
+        "kk21_weights.cpp",
+        "fast_beta_regression.cpp"
+      ]
+    },
+    "U": {
+      "title": "Distances and small dense linear algebra",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_matrix_rank.cpp",
+        "qr_reduce_design_matrix.cpp",
+        "fast_scale_cols.cpp",
+        "compute_mahal_distances.cpp",
+        "optimal_blocks_distance.cpp",
+        "sample_bootstrap_distr_weighted_distances.cpp"
+      ]
+    },
+    "V": {
+      "title": "Refit economics in CI searches and replicate loops",
+      "reviewed": "2026-10-22",
+      "files": [
+        "kk_bootstrap_reservoir_stats.cpp",
+        "rand_bootstrap_mean_diff_parallel.cpp",
+        "rand_bootstrap_ols_parallel.cpp",
+        "simple_mean_diff_parallel.cpp",
+        "ols_distr_parallel.cpp",
+        "ridit_distr_parallel.cpp",
+        "kk_compound_distr_parallel.cpp",
+        "fast_bai_parallel.cpp",
+        "fast_kk_wilcox_parallel.cpp",
+        "build_kk_combined_clogit_design.cpp",
+        "build_kk_combined_ols_design.cpp",
+        "kk_lin_match_data.cpp",
+        "compute_all_subject_data.cpp"
+      ]
+    },
+    "W": {
+      "title": "Quantile-regression LP and rank estimators",
+      "reviewed": "2026-10-22",
+      "files": [
+        "inference_all_abstract_quantile_rand_ci.R",
+        "inference_ext_quantile_rand_ci.R"
+      ]
+    },
+    "X": {
+      "title": "Robust regression",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_robust_regression.cpp",
+        "robust_post_fit_speedups.cpp"
+      ]
+    },
+    "Y": {
+      "title": "Interval-censored NPMLE",
+      "reviewed": "2026-10-22",
+      "files": [
+        "helper_inference_survival_turnbull.R"
+      ]
+    },
+    "Z": {
+      "title": "Boundary / constrained MLE, cold starts",
+      "reviewed": "2026-10-22",
+      "files": [
+        "optimization_starts.h",
+        "_negbin_boundary_convergence.h",
+        "fast_adjacent_category_logit.cpp",
+        "fast_coxph_regression.cpp",
+        "fast_log_binomial_regression.cpp",
+        "fast_zinb.cpp"
+      ]
+    },
+    "AA": {
+      "title": "Nonconcave non-mixture likelihoods",
+      "reviewed": "2026-10-22",
+      "files": [
+        "fast_stereotype_logit.cpp",
+        "fast_ordinal_cauchit_regression.cpp",
+        "fast_ordinal_cloglog_regression.cpp",
+        "fast_ordinal_probit_regression.cpp",
+        "ordinal_fixed_link_helpers.h",
+        "fast_ordinal_regression_internal.h",
+        "fast_cpoisson_combined.cpp",
+        "fast_adjacent_category_logit.cpp"
+      ]
+    },
+    "AB": {
+      "title": "Variance estimators",
+      "reviewed": "2026-10-22",
+      "files": [
+        "gcomp_speedups.cpp",
+        "helper_robust_sandwich.R"
+      ]
+    },
+    "AC": {
+      "title": "Infrastructure algorithms (LPT scheduling, tuning, imputation)",
+      "reviewed": "2026-10-22",
+      "files": [
+        "inference_suite.R"
+      ]
+    }
+  }
+}

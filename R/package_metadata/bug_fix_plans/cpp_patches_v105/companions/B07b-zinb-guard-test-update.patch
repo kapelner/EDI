@@ -1,0 +1,23 @@
+--- a/R/EDI/tests/testthat/test-information-inverse-guard.R
++++ b/R/EDI/tests/testthat/test-information-inverse-guard.R
+@@ -126,7 +126,19 @@
+ 		X_singular, Xzi, y_count, estimate_only = FALSE
+ 	)
+ 	expect_false(zinb$information_invertible)
+-	expect_true(all(is.nan(zinb$vcov)))
++	if (is.null(zinb$covariance_type)) {
++		# kernels without cpp patch 07 (TODO-4 ZINB note): the whole covariance is NaN
++		expect_true(all(is.nan(zinb$vcov)))
++	} else {
++		# cpp patch 07: pseudo-inverse covariance; only coordinates loading on the null
++		# direction (the duplicated columns 3 and 4: x, x_duplicate) are NaN, the identified
++		# intercept / treatment / zero-inflation / dispersion block is finite.
++		expect_identical(zinb$covariance_type, "pseudo_inverse_identified_coordinates")
++		dup = c(3L, 4L); ok = setdiff(seq_len(nrow(zinb$vcov)), dup)
++		expect_true(all(is.nan(zinb$vcov[dup, ])))
++		expect_true(all(is.nan(zinb$vcov[, dup])))
++		expect_true(all(is.finite(zinb$vcov[ok, ok])))
++	}
+ })
+ 
+ test_that("Negative Binomial maps a guarded singular covariance to typed SE non-estimability", {

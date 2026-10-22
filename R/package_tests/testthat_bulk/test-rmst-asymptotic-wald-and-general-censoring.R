@@ -151,7 +151,7 @@ test_that("general (interval-/left-) censoring routes compute_estimate through t
   des <- general_censoring_design()
   inf <- InferenceSurvivalRestrictedMeanDiff$new(des, verbose = FALSE)
   reference <- EDI:::turnbull_npmle_stat_diff(
-    des$get_y_L(), des$get_y_R(), des$get_w(), "restricted_mean"
+    des$get_y_L(), des$get_y_R(), des$get_w(), "restricted_mean", y = des$get_y()
   )
   expect_equal(inf$compute_estimate(estimate_only = TRUE), reference, tolerance = 1e-8)
 })
@@ -187,4 +187,65 @@ test_that("general censoring rejects Bayesian-bootstrap weighted estimation and 
   expect_identical(ci, c(-9, 9))
   expect_identical(inf2$compute_asymp_two_sided_pval(), 0.5)
   expect_true(is.na(inf2$.__enclos_env__$private$cached_values$s_beta_hat_T))
+})
+
+# ---- TODO-109: Turnbull path must keep exact events and use one shared tau ----
+
+turnbull_km_area <- function(time, status, tau) {
+  fit <- survival::survfit(survival::Surv(time, status) ~ 1)
+  tt <- c(0, fit$time[fit$time < tau], tau)
+  ss <- c(1, fit$surv[fit$time < tau])
+  sum(ss * diff(tt))
+}
+
+test_that("Turnbull RMST keeps exact events (degenerate [t,t] intervals) and matches KM on exact+right-censored data", {
+  skip_if_not_installed("interval")
+  skip_if_not_installed("survival")
+  y1 <- c(2, 4, 7, 9, 12); d1 <- c(1, 1, 0, 1, 0)   # treated
+  y0 <- c(1, 3, 5, 6, 8);  d0 <- c(1, 0, 1, 1, 1)   # control
+  y <- c(y1, y0); dead <- c(d1, d0); w <- rep(c(1, 0), each = 5)
+  y_exact <- ifelse(dead == 1, y, NA_real_)
+  y_L <- ifelse(dead == 1, NA_real_, y); y_R <- ifelse(dead == 1, NA_real_, Inf)
+  tau <- min(max(y1), max(y0))
+  ref <- turnbull_km_area(y1, d1, tau) - turnbull_km_area(y0, d0, tau)
+  got <- EDI:::turnbull_npmle_stat_diff(y_L, y_R, w, "restricted_mean", y = y_exact)
+  expect_equal(got, ref, tolerance = 1e-8)
+  # Dropping y (the old behaviour) silently discards the exact events.
+  expect_warning(old <- EDI:::turnbull_npmle_stat_diff(y_L, y_R, w, "restricted_mean"), "excluded")
+  expect_false(isTRUE(all.equal(old, ref)))
+})
+
+test_that("Turnbull RMST uses one shared tau across arms and integrates all the way to it", {
+  skip_if_not_installed("interval")
+  skip_if_not_installed("survival")
+  # Treated follow-up goes to 20, control only to 6; shared tau must be 6.
+  y1 <- c(3, 8, 15, 20); d1 <- c(1, 1, 1, 0)
+  y0 <- c(1, 2, 4, 6);   d0 <- c(1, 1, 1, 0)
+  y <- c(y1, y0); dead <- c(d1, d0); w <- rep(c(1, 0), each = 4)
+  y_exact <- ifelse(dead == 1, y, NA_real_)
+  y_L <- ifelse(dead == 1, NA_real_, y); y_R <- ifelse(dead == 1, NA_real_, Inf)
+  ref <- turnbull_km_area(y1, d1, 6) - turnbull_km_area(y0, d0, 6)
+  expect_equal(EDI:::turnbull_npmle_stat_diff(y_L, y_R, w, "restricted_mean", y = y_exact), ref, tolerance = 1e-8)
+  # Explicit tau is honoured and integrates to tau even past the last event.
+  ref5 <- turnbull_km_area(y1, d1, 5) - turnbull_km_area(y0, d0, 5)
+  expect_equal(EDI:::turnbull_npmle_stat_diff(y_L, y_R, w, "restricted_mean", y = y_exact, tau = 5), ref5, tolerance = 1e-8)
+})
+
+test_that("Turnbull-path RMST and KM-median estimates depend on exact-event times", {
+  skip_if_not_installed("interval")
+  mk <- function(ys) {
+    y_Ls <- c(NA, 3, 2, NA, 4, 3, NA, NA, 1, 2)
+    y_Rs <- c(NA, Inf, 5, NA, Inf, 6, NA, NA, 4, 7)
+    des <- DesignFixedBernoulli$new(n = 10L, response_type = "survival", verbose = FALSE)
+    des$add_all_subjects_to_experiment(data.frame(x = 1:10))
+    des$overwrite_all_subject_assignments(c(0, 0, 0, 1, 1, 1, 0, 1, 0, 1))
+    des$add_all_subject_responses(ys, y_Ls, y_Rs)
+    des
+  }
+  d1 <- mk(c(1, NA, NA, 2.5, NA, NA, 3.5, 6, NA, NA))
+  d2 <- mk(c(0.5, NA, NA, 4.5, NA, NA, 1.0, 9, NA, NA))
+  r <- function(d) InferenceSurvivalRestrictedMeanDiff$new(d, verbose = FALSE)$compute_estimate(estimate_only = TRUE)
+  m <- function(d) InferenceSurvivalKMDiff$new(d, verbose = FALSE)$compute_estimate(estimate_only = TRUE)
+  expect_false(isTRUE(all.equal(r(d1), r(d2))))
+  expect_false(isTRUE(all.equal(m(d1), m(d2))))
 })

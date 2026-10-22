@@ -76,7 +76,6 @@ R/package_tests/testthat_bulk/test-bootstrap-ci-extreme-interval-guard-reference
 R/package_tests/testthat_bulk/test-bootstrap-ci-studentized-interval-scale-instability-guard-reference.R,correctness,1.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bootstrap-ci-unsupported-type-dispatch-default-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bootstrap-debug-worker-crash-warning-and-all-invalid-stop-reference.R,correctness,1,measured_with_30_percent_headroom
-R/package_tests/testthat_bulk/test-bootstrap-index-fillin-and-bisection-loop.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bootstrap-studentized-pivot-filtering-ci-formulas-and-interval-scale-instability-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bootstrap-studentized-pivots-numerically-unstable-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bootstrap-studentized-unstable-standard-errors-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -106,6 +105,7 @@ R/package_tests/testthat_bulk/test-component-validator-name-field-guards-referen
 R/package_tests/testthat_bulk/test-comprehensive-audit-output-directory-override-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-beta-filter-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-excluded-from-duration-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-external-process-receipt-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-rand-attempt-manifest-reference.R,correctness,120,bootstrap
@@ -1503,7 +1503,6 @@ R/package_tests/testthat_bulk/test-bootstrap-ci-extreme-interval-guard-reference
 R/package_tests/testthat_bulk/test-bootstrap-ci-studentized-interval-scale-instability-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bootstrap-ci-unsupported-type-dispatch-default-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bootstrap-debug-worker-crash-warning-and-all-invalid-stop-reference.R,coverage,240,bootstrap
-R/package_tests/testthat_bulk/test-bootstrap-index-fillin-and-bisection-loop.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bootstrap-studentized-pivot-filtering-ci-formulas-and-interval-scale-instability-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bootstrap-studentized-pivots-numerically-unstable-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bootstrap-studentized-unstable-standard-errors-guard-reference.R,coverage,240,bootstrap
@@ -1533,6 +1532,7 @@ R/package_tests/testthat_bulk/test-component-validator-name-field-guards-referen
 R/package_tests/testthat_bulk/test-comprehensive-audit-output-directory-override-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-beta-filter-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-coverage-mc-registry-gaps-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-coverage-truth-excluded-from-duration-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-external-process-receipt-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-kk-glmm-bayesian-bootstrap-selection-contracts.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-incidence-rand-attempt-manifest-reference.R,coverage,240,bootstrap

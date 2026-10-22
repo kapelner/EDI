@@ -40,8 +40,11 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#' @param type Optional incidence-specific exact randomization type.
 		#' @param args_for_type Optional arguments keyed by \code{type}.
 		#' @param zero_one_logit_clamp The clamping amount for exact 0 and 1 values when logging
-		#' @return A two-sided p-value.
-		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps){
+		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+		#'   see \code{InferenceRand$compute_rand_two_sided_pval()}. Use \code{"greater"} for a
+		#'   non-negative, one-tailed-by-construction statistic (squared difference, chi-square).
+		#' @return A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			# message("In InferenceRandCI$compute_rand_two_sided_pval")
 			# message("Class: ", class(self)[1])
 			if (isTRUE(delta != 0) &&
@@ -95,7 +98,8 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				na.rm = na.rm,
 				show_progress = show_progress,
 				permutations = permutations,
-				zero_one_logit_clamp = zero_one_logit_clamp
+				zero_one_logit_clamp = zero_one_logit_clamp,
+				alternative = alternative
 			)
 		},
 		#' @description Computes a randomization-based confidence interval by inverting the
@@ -147,6 +151,27 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   \code{InferenceSuite} never offers it for them; their randomization p-value and
 		#'   randomization-bootstrap CI are unaffected).
 		#'
+		#'   \strong{Estimand scale.} The shift scale must be the estimand's own scale. For
+		#'   proportion, count and ordinal responses the sharp null is a logit shift, a
+		#'   log (multiplicative) shift and an additive shift of the integer levels
+		#'   respectively, so a class whose estimate is a raw-scale mean difference or a
+		#'   rank effect (for example \code{InferenceAllSimpleAverageDiff} on a proportion
+		#'   or count, \code{InferencePropGCompMeanDiff}, \code{InferenceOrdinalRidit},
+		#'   \code{InferenceOrdinalJonckheereTerpstraTest}) refuses this method with an error
+		#'   instead of returning bounds on another scale; its randomization p-value and
+		#'   randomization-bootstrap CI remain available. The same refusal applies on
+		#'   survival responses to classes whose estimate is a raw-scale (time-unit) mean
+		#'   difference or Hodges-Lehmann shift, since the survival search inverts a
+		#'   log-time shift.
+		#'
+		#'   \strong{Monte Carlo error.} The reference distribution uses \code{r} random
+		#'   allocations, so the p-value at each candidate \eqn{\delta} and hence both
+		#'   endpoints carry Monte Carlo error (of order \code{1/sqrt(r)} in p-value
+		#'   units); repeated calls with fresh draws give slightly different endpoints, and
+		#'   an interval that looks inconsistent with the randomization p-value near the
+		#'   \code{alpha} boundary usually reflects this noise. Increase \code{r} to reduce
+		#'   it. No Monte Carlo standard error is returned with the interval.
+		#'
 		#' @references Tsiatis, A. A. (1990). Estimating regression parameters using linear
 		#'   rank tests for censored data. \emph{The Annals of Statistics}, 18(1), 354-372,
 		#'   \doi{10.1214/aos/1176347504}. Wei, L. J., Ying, Z., and Lin, D. Y. (1990).
@@ -190,6 +215,9 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   A randomization CI is not available for left- or interval-censored survival
 		#'   data: the nonzero-\eqn{\delta} null shifts required by inversion are not
 		#'   implemented for censoring bounds.
+		#'   A randomization CI is refused for proportion responses that contain exact 0 or 1
+		#'   values when the sharp null is imposed on the logit scale (exact 0/1 cannot be
+		#'   shifted there); use a likelihood-based, asymptotic or bootstrap CI instead.
 		#' @return Randomization CI. Bounds may be conservative (wider than necessary) when the
 		#'   p-value inversion cannot be completed within the search radius; see
 		#'   \code{ci_search_control} for details.
@@ -280,6 +308,21 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				private$assert_no_incidence_only_randomization_args(resp_type, type, args_for_type)
 			}
 			is_glm = inference_uses_model_scale_randomization_transform(self)
+			# TODO-119: refuse when the shift scale is not the estimand's scale.
+			scale_mismatch = inference_randomization_ci_scale_mismatch(class(self), resp_type, is_glm)
+			if (!is.null(scale_mismatch)) {
+				stop(
+					"Randomization confidence intervals are not supported for ", class(self)[1L],
+					" with ", resp_type, " responses: ", scale_mismatch, ". The randomization p-value and the ",
+					"randomization-bootstrap CI remain available. See TODO-119 in ",
+					"R/package_metadata/future_release_plans/release_v1_0_5.md.",
+					call. = FALSE
+				)
+			}
+			# TODO-119 / G6: exact 0/1 proportions cannot be shifted on the logit scale.
+			if (inference_randomization_ci_exact_zero_one_refusal(resp_type, is_glm, private$y)) {
+				inference_stop_rand_ci_exact_zero_one(class(self)[1L])
+			}
 			temp_inf = if (resp_type %in% c("count", "proportion", "survival")) self$duplicate() else self
 			transform_arg = "none"
 			
@@ -326,7 +369,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					stop("Randomization CI search failed to bracket the target p-value within the configured search radius.")
 				}
 				if (identical(fallback_mode, "na") || length(fallback_ci) < 2L || !all(is.finite(fallback_ci[1:2]))) {
-					private$cache_nonestimable_se("rand_ci_search_bounds_failed")
+					edi_record_procedure_failure(self, private, "rand_ci_search_bounds_failed", "se")
 					ci = c(NA_real_, NA_real_)
 				} else {
 					ci = sort(fallback_ci[1:2])
@@ -350,7 +393,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				if (length(fallback_ci) >= 2L && all(is.finite(fallback_ci[1:2]))) {
 					ci = sort(fallback_ci[1:2])
 				} else {
-					private$cache_nonestimable_se("rand_ci_bisection_failed")
+					edi_record_procedure_failure(self, private, "rand_ci_bisection_failed", "se")
 					ci = c(NA_real_, NA_real_)
 				}
 			}
@@ -561,6 +604,18 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			if (!is.finite(se_guess) && all(is.finite(asym_ci))) se_guess = max(abs(asym_ci - est)) / max(stats::qnorm(1 - alpha), .Machine$double.eps)
 			if (!is.finite(se_guess) || se_guess <= 0) se_guess = response_scale / sqrt(max(1, obj_private$n))
 			if (!is.finite(se_guess) || se_guess <= 0) se_guess = response_scale
+			# A class whose compute_estimate() is not on the additive-delta scale
+			# (e.g. InferenceRandCustom with a t statistic) supplies a delta-scale
+			# centre and SE through this optional hook; the search is centred there
+			# and the Wald/asymptotic seeds (which are on the statistic's scale) are
+			# not used.
+			delta_seed = if (is.function(obj_private$get_randomization_ci_delta_scale_seed)) obj_private$get_randomization_ci_delta_scale_seed() else NULL
+			if (!is.null(delta_seed) && is.finite(delta_seed$est) && is.finite(delta_seed$se) && delta_seed$se > 0) {
+				est = as.numeric(delta_seed$est)
+				se_guess = as.numeric(delta_seed$se)
+				wald_ci = c(NA_real_, NA_real_)
+				asym_ci = c(NA_real_, NA_real_)
+			}
 			default_seed_ci = sort(c(est - 2 * se_guess, est + 2 * se_guess))
 			fallback_ci = if (all(is.finite(wald_ci))) wald_ci else if (all(is.finite(asym_ci))) asym_ci else c(NA_real_, NA_real_)
 			seed_ci = switch(ci_search_control$seed,
@@ -572,6 +627,38 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			)
 			max_radius = max(ci_search_control$max_radius_se_mult * se_guess, ci_search_control$max_radius_scale_mult * response_scale, 1)
 			min_radius = min(max(se_guess, 10 * .Machine$double.eps), max_radius)
+			# The inversion needs an interior point that the test accepts (p >= alpha).
+			# If the centre is rejected, look for an accepted delta on a coarse grid
+			# around it; if there is none, do not bisect inside a band of rejected
+			# deltas (that returns a "CI" no accepted delta lies in).
+			pval_at_est = private$compute_randomization_ci_pval_cached(inf_obj, r, est, transform_arg, permutations, ci_search_control, ci_pval_cache)
+			if (!is.finite(pval_at_est) || pval_at_est < alpha) {
+				grid = est + se_guess * c(-0.5, 0.5, -1, 1, -2, 2, -4, 4, -8, 8)
+				grid = grid[abs(grid - est) <= max_radius]
+				best_pval = if (is.finite(pval_at_est)) pval_at_est else -Inf
+				best_delta = est
+				for (g in grid) {
+					private$check_randomization_ci_deadline(ci_search_control, "Randomization CI seed search")
+					pg = private$compute_randomization_ci_pval_cached(inf_obj, r, g, transform_arg, permutations, ci_search_control, ci_pval_cache)
+					if (is.finite(pg) && pg > best_pval) { best_pval = pg; best_delta = g }
+					if (is.finite(pg) && pg >= alpha) break
+				}
+				if (best_pval < alpha) {
+					# No finite p-value at any delta tried: the randomization statistic is
+					# unavailable (not "rejected everywhere"), so keep the historical
+					# behaviour -- NA bounds, which the caller turns into the fallback
+					# CI or an NA CI flagged non-estimable -- rather than erroring.
+					# Only a finite-but-all-rejected search is an error.
+					if (all(is.finite(fallback_ci)) || !is.finite(best_pval)) {
+						return(list(est = est, l = NA_real_, u = NA_real_, fallback_ci = fallback_ci))
+					}
+					stop("Randomization CI search could not find any shift delta with randomization p-value >= alpha (best p = ",
+						signif(best_pval, 3), " at delta = ", signif(best_delta, 4),
+						"); the test rejects every delta tried, so no confidence interval can be inverted. ",
+						"Check that the statistic responds to an additive shift of the treated responses.", call. = FALSE)
+				}
+				est = best_delta
+			}
 			l = max(seed_ci[1], est - max_radius)
 			u = min(seed_ci[2], est + max_radius)
 			if (!is.finite(l) || l >= est) l = est - min_radius

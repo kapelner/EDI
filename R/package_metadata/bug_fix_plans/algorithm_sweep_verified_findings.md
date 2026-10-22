@@ -160,7 +160,7 @@ are fixed here because they are still exported and registered.
 
 ## Group B — resampling calibrated against the wrong target
 
-- [x] TODO-7 (F13): **Ordinal KK random-effects Bayesian bootstraps use a
+- [x] TODO-7 (F13; **implementation done, release acceptance still open**: CSV regeneration and TODO-31's native CLMM validation, tracked at `release_v1_0_5.md → TODO-76`): **Ordinal KK random-effects Bayesian bootstraps use a
   fixed-effects fit** (`inference_ordinal_KK_clmm_abstract.R:~169`,
   `inference_ordinal_KK_combined.R:~460`). `InferenceOrdinalKKGLMM` reports
   0.583 (matches `ordinal::clmm`), but BB replicates are about 0.414 and the BB

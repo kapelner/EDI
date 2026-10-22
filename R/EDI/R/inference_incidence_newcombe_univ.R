@@ -68,7 +68,13 @@ newcombe_independent_ci_stable_r = function(x_t, n_t, x_c, n_c, alpha) {
 InferenceIncidNewcombeRiskDiff = define_inference_class(
 	classname = "InferenceIncidNewcombeRiskDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
@@ -140,6 +146,7 @@ InferenceIncidNewcombeRiskDiff = define_inference_class(
 		#'   for the full formula), via \code{newcombe_independent_ci_cpp}.
 		#' @param alpha The significance level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
@@ -163,6 +170,7 @@ InferenceIncidNewcombeRiskDiff = define_inference_class(
 		#'   \eqn{1}.
 		#' @param delta The null risk difference.
 		compute_asymp_two_sided_pval = function(delta = 0){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, any.missing = FALSE)
 			}

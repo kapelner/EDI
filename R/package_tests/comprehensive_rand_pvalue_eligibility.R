@@ -443,7 +443,9 @@ comprehensive_proportion_rand_candidate_manifest <- function(
 	case_grid$skip_rand_delta_pval_slow <- FALSE
 	pvalue <- comprehensive_rand_pvalue_attempt_manifest(case_grid, runner_path)
 	ci_cases <- case_grid
-	ci_cases$supports_randomization_ci <- TRUE
+	# TODO-119: the class is refused by the registry (logit-shift inversion cannot
+	# bound a raw mean difference), so the candidate lattice emits no CI keys.
+	ci_cases$supports_randomization_ci <- !comprehensive_rand_ci_refused_for_scale_mismatch("InferencePropGCompMeanDiff")
 	ci_cases$supports_randomization_bootstrap <- FALSE
 	ci_cases$skip_ci_rand <- FALSE
 	ci_cases$skip_rand_ci_slow <- FALSE

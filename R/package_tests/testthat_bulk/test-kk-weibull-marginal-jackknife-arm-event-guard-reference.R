@@ -41,7 +41,7 @@ test_that("a matched-set deletion that removes one arm's only event is nonestima
 	expect_true(is.na(jack[bad_fold]))
 	expect_lt(max(abs(jack), na.rm = TRUE), 2)
 	expect_true(is.na(f$inf$compute_jackknife_estimate("matched_set")))
-	expect_identical(f$inf$get_nonestimable_reason(), "jackknife_nonfinite_replicate_estimates")
+	expect_identical(f$priv$cached_values$procedure_failure_reason$jackknife, "jackknife_nonfinite_replicate_estimates")
 })
 
 test_that("weighted refits reject effective samples with no event in one arm", {

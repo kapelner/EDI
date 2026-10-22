@@ -48,8 +48,8 @@ test_that("compute_jackknife_summary caches 'jackknife_extreme_summary' when se_
 	s <- f$priv$compute_jackknife_summary("observation")
 	expect_true(all(is.na(c(s$estimate, s$bias, s$std_error))))
 	expect_identical(length(s$distribution), 4L)
-	expect_true(f$inf$is_nonestimable("se"))
-	expect_identical(f$inf$get_nonestimable_reason(), "jackknife_extreme_summary")
+	expect_false(f$inf$is_nonestimable("any"))
+	expect_identical(f$priv$cached_values$procedure_failure_reason$jackknife, "jackknife_extreme_summary")
 })
 
 test_that("compute_jackknife_summary rejects finite draws when jackknife bias exceeds twice its standard error", {
@@ -80,8 +80,8 @@ test_that("compute_jackknife_summary rejects finite draws when jackknife bias ex
 	s <- f$priv$compute_jackknife_summary("observation")
 	expect_true(all(is.na(c(s$estimate, s$bias, s$std_error))))
 	expect_equal(s$distribution, jack, tolerance = 0)
-	expect_true(f$inf$is_nonestimable("se"))
-	expect_identical(f$inf$get_nonestimable_reason(), "jackknife_extreme_summary")
+	expect_false(f$inf$is_nonestimable("any"))
+	expect_identical(f$priv$cached_values$procedure_failure_reason$jackknife, "jackknife_extreme_summary")
 })
 
 test_that("compute_jackknife_wald_two_sided_pval/CI cache 'jackknife_estimate_unavailable' when the cached summary estimate is NA", {
@@ -95,7 +95,7 @@ test_that("compute_jackknife_wald_two_sided_pval/CI cache 'jackknife_estimate_un
 		pval <- f$inf$compute_jackknife_wald_two_sided_pval(delta = 0, unit = "observation")
 		expect_true(is.na(pval))
 		if (harden) {
-			expect_identical(f$inf$get_nonestimable_reason(), "jackknife_estimate_unavailable")
+			expect_identical(f$priv$cached_values$procedure_failure_reason$jackknife, "jackknife_estimate_unavailable")
 		} else {
 			expect_false(isTRUE(f$inf$is_nonestimable()))
 		}
@@ -113,7 +113,7 @@ test_that("compute_jackknife_wald_two_sided_pval/CI cache 'jackknife_standard_er
 		ci <- f$inf$compute_jackknife_wald_confidence_interval(unit = "observation")
 		expect_true(all(is.na(ci)))
 		if (harden) {
-			expect_identical(f$inf$get_nonestimable_reason(), "jackknife_standard_error_unavailable")
+			expect_identical(f$priv$cached_values$procedure_failure_reason$jackknife, "jackknife_standard_error_unavailable")
 		} else {
 			expect_false(isTRUE(f$inf$is_nonestimable()))
 		}

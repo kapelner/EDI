@@ -44,11 +44,20 @@
 #' inf = InferenceCountQuasiPoisson$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceCountQuasiPoisson = define_inference_class(
 	classname = "InferenceCountQuasiPoisson",
 	inherit = Inference,
-	components = c("CountCompositeLikelihood", "BayesianBootstrap", "Wald", "MarginalEstimand"),
+	components = c(
+		"CountCompositeLikelihood",
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"MarginalEstimand"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.

@@ -51,6 +51,14 @@ actually preparing a submission-candidate tarball, not on every push.
    see the script's own comments). This script is meant to be run by a human
    on their own machine, not executed by an agent (win-builder/mac-builder
    hosts are outside any sandboxed network allowlist).
+1a. **Algorithm-audit gate.** No open `algorithm-audit-drift` issue and no
+   row past its max age (the monthly drift check's output; see
+   `../new_feature_plans/algorithm_audit_runbook.md`). Run
+   `python3 .github/scripts/algorithm_audit_drift.py --release-gate` (needs
+   `gh auth login`; exit 0 = pass, 1 = fail, 2 = could not be determined, which
+   is not a pass). Do this before step 7. It also covers a failed drift
+   workflow (`algorithm-audit-drift-failure` issue). A release that adds or
+   changes kernels also gets the audit's full pass first (audit TODO-7).
 2. **Measure the CRAN-facing check profile** on the release-candidate tree
    (`NOT_CRAN=false R CMD check --as-cran` from a clean checkout — never run
    this without being explicitly asked in that turn; it compiles the whole

@@ -93,6 +93,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		#' @description Computes a 1 - \code{alpha} confidence interval.
 		#' @param alpha The confidence level in the computed confidence interval is 1 - \code{alpha}.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
@@ -103,12 +104,14 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
 		compute_asymp_two_sided_pval = function(delta = NULL){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			private$shared(estimate_only = FALSE)
 			private$compute_effect_pvalue(delta)
 		},
 		#' @description Computes a Wald two-sided p-value for the treatment effect.
 		#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
 		compute_wald_two_sided_pval = function(delta = NULL){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			private$shared(estimate_only = FALSE)
 			private$compute_effect_pvalue(delta)
 		},
@@ -116,6 +119,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha The confidence level in the computed confidence interval is 1 - \code{alpha}.
 		compute_wald_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
@@ -338,20 +342,20 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			jack = jack[is.finite(jack) & jack > 0]
 			n_units = length(jack)
 			if (n_units <= 1L) {
-				private$cache_nonestimable_se("jackknife_too_few_positive_risk_ratio_estimates")
+				edi_record_procedure_failure(self, private, "jackknife_too_few_positive_risk_ratio_estimates", "se")
 				return(NA_real_)
 			}
 			log_jack = log(jack)
 			var_j = ((n_units - 1) / n_units) * sum((log_jack - mean(log_jack))^2)
 			if (!is.finite(var_j) || var_j <= 0) {
-				private$cache_nonestimable_se("jackknife_log_risk_ratio_standard_error_unavailable")
+				edi_record_procedure_failure(self, private, "jackknife_log_risk_ratio_standard_error_unavailable", "se")
 				return(NA_real_)
 			}
 			sqrt(var_j)
 		},
 		compute_rr_jackknife_wald_two_sided_pval = function(delta = 1, unit = "auto"){
 			if (!is.finite(delta) || delta <= 0) {
-				private$cache_nonestimable_se("jackknife_log_risk_ratio_null_unavailable")
+				edi_record_procedure_failure(self, private, "jackknife_log_risk_ratio_null_unavailable", "se")
 				return(NA_real_)
 			}
 			est = as.numeric(self$compute_estimate(estimate_only = TRUE))[1L]
@@ -420,16 +424,16 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		},
 		compute_rr_subsampling_two_sided_pval = function(delta = 1, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL){
 			if (!is.finite(delta) || delta <= 0) {
-				private$cache_nonestimable_estimate("subsampling_log_risk_ratio_null_unavailable")
+				edi_record_procedure_failure(self, private, "subsampling_log_risk_ratio_null_unavailable", "estimate")
 				return(NA_real_)
 			}
 			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress)
 			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate(pivot$reason)
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = "subsampling")
 				return(NA_real_)
 			}
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("subsampling_too_few_finite_estimates")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "subsampling_too_few_finite_estimates", "estimate")
 				return(NA_real_)
 			}
 			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n")
@@ -439,7 +443,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			pivot = private$compute_rr_resampling_pivot(self$approximate_subsampling_distribution_beta_hat_T, "b", b, B, subsampling_type, show_progress)
 			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate"))
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "subsampling"))
 				return(ci)
 			}
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
@@ -455,16 +459,16 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 		},
 		compute_rr_m_out_of_n_bootstrap_two_sided_pval = function(delta = 1, B = 501, m = NULL, show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL){
 			if (!is.finite(delta) || delta <= 0) {
-				private$cache_nonestimable_estimate("m_out_of_n_log_risk_ratio_null_unavailable")
+				edi_record_procedure_failure(self, private, "m_out_of_n_log_risk_ratio_null_unavailable", "estimate")
 				return(NA_real_)
 			}
 			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress)
 			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate(pivot$reason)
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = "m_out_of_n")
 				return(NA_real_)
 			}
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("m_out_of_n_too_few_finite_estimates")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "m_out_of_n_too_few_finite_estimates", "estimate")
 				return(NA_real_)
 			}
 			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n")
@@ -474,7 +478,7 @@ InferenceIncidGCompAbstract = R6::R6Class("InferenceIncidGCompAbstract",
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			pivot = private$compute_rr_resampling_pivot(self$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T, "m", m, B, bootstrap_type, show_progress)
 			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate"))
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "m_out_of_n"))
 				return(ci)
 			}
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {

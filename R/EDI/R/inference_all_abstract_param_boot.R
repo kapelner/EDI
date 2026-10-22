@@ -62,6 +62,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#'   retries per bootstrap replicate. Default \code{2L}.
 		#' @return A scalar p-value, or \code{NA_real_} if the computation fails.
 		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			private$active_resampling_operation = "param_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (!isTRUE(private$supports_lik_ratio_param_bootstrap())){
@@ -83,7 +84,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("lik_ratio_bootstrap_spec_unavailable")
+					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_spec_unavailable", "se")
 				return(NA_real_)
 			}
 
@@ -96,23 +97,23 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			)
 			if (isTRUE(eval_obs$invalid)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("lik_ratio_bootstrap_observed_lr_invalid")
+					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_observed_lr_invalid", "se")
 				return(NA_real_)
 			}
 			if (!is.finite(eval_obs$full_negloglik) || !is.finite(eval_obs$null_negloglik)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("lik_ratio_bootstrap_observed_negloglik_nonfinite")
+					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_observed_negloglik_nonfinite", "se")
 				return(NA_real_)
 			}
 			lr_obs = 2 * (eval_obs$null_negloglik - eval_obs$full_negloglik)
 			if (!is.finite(lr_obs)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("lik_ratio_bootstrap_observed_lr_nonfinite")
+					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_observed_lr_nonfinite", "se")
 				return(NA_real_)
 			}
 			if (private$param_bootstrap_lr_extreme(lr_obs)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("lik_ratio_bootstrap_observed_lr_extreme")
+					edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_observed_lr_extreme", "se")
 				return(NA_real_)
 			}
 			null_fit = eval_obs$null_fit
@@ -162,7 +163,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				used_deterministic_mode = isTRUE(deterministic_mode)
 			)
 			if (n_finite < as.integer(min_number_usable_samples)) {
-				private$cache_nonestimable_se("lik_ratio_bootstrap_too_few_converged_samples")
+				edi_record_procedure_failure(self, private, "lik_ratio_bootstrap_too_few_converged_samples", "se")
 				return(NA_real_)
 			}
 			n_exceed = sum(finite_lr >= lr_obs)
@@ -204,6 +205,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#'   finite outer bracket. Default \code{8L}.
 		#' @return Named two-element numeric vector with the confidence-interval bounds.
 		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			private$active_resampling_operation = "param_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (!isTRUE(private$supports_lik_ratio_param_bootstrap_confidence_interval())){
@@ -373,6 +375,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#'   retries per bootstrap replicate. Default \code{2L}.
 		#' @return A scalar bias-corrected estimate, or \code{NA_real_} if the computation fails.
 		compute_param_bootstrap_estimate = function(B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			private$active_resampling_operation = "param_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (!isTRUE(private$supports_param_bootstrap_estimate())){
@@ -398,14 +401,14 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			if (is.null(batch)) return(NA_real_)
 			if (batch$n_success < as.integer(min_number_usable_samples)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("param_bootstrap_estimate_too_few_usable_replicates")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_too_few_usable_replicates", "se")
 				return(NA_real_)
 			}
 
 			theta = 2 * batch$raw_estimate - mean(batch$finite_reps)
 			if (!is.finite(theta) || private$param_bootstrap_estimate_extreme(theta, est = batch$raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_estimate("param_bootstrap_estimate_extreme_bias_correction")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_extreme_bias_correction", "estimate")
 				return(NA_real_)
 			}
 			theta
@@ -443,6 +446,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#'   retries per bootstrap replicate. Default \code{2L}.
 		#' @return Named two-element numeric vector with the confidence-interval bounds.
 		compute_param_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			private$active_resampling_operation = "param_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (!isTRUE(private$supports_param_bootstrap_estimate())){
@@ -469,7 +473,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			)
 			if (is.null(batch) || batch$n_success < as.integer(min_number_usable_samples)) {
 				if (!is.null(batch) && !isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("param_bootstrap_estimate_too_few_usable_replicates")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_too_few_usable_replicates", "se")
 				ci = c(NA_real_, NA_real_)
 				names(ci) = ci_names
 				return(ci)
@@ -481,7 +485,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			names(ci) = ci_names
 			if (private$param_bootstrap_confidence_interval_extreme(ci, est = batch$raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_estimate("param_bootstrap_estimate_extreme_confidence_interval")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_extreme_confidence_interval", "estimate")
 				ci[] = NA_real_
 			}
 			ci
@@ -519,6 +523,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#'   retries per bootstrap replicate. Default \code{2L}.
 		#' @return A scalar p-value, or \code{NA_real_} if the computation fails.
 		compute_param_bootstrap_pval = function(delta, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			private$active_resampling_operation = "param_boot"
 			on.exit(private$active_resampling_operation <- NULL, add = TRUE)
 			if (!isTRUE(private$supports_param_bootstrap_estimate())){
@@ -544,14 +549,14 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			)
 			if (is.null(batch) || batch$n_success < as.integer(min_number_usable_samples)) {
 				if (!is.null(batch) && !isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_se("param_bootstrap_estimate_too_few_usable_replicates")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_too_few_usable_replicates", "se")
 				return(NA_real_)
 			}
 
 			t_delta = 2 * batch$raw_estimate - as.numeric(delta)[1L]
 			if (!is.finite(t_delta) || private$param_bootstrap_estimate_extreme(t_delta, est = batch$raw_estimate)) {
 				if (!isTRUE(self$is_nonestimable("estimate")))
-					private$cache_nonestimable_estimate("param_bootstrap_estimate_extreme_pvalue_reflection")
+					edi_record_procedure_failure(self, private, "param_bootstrap_estimate_extreme_pvalue_reflection", "estimate")
 				return(NA_real_)
 			}
 			n = length(batch$finite_reps)

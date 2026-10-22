@@ -189,7 +189,38 @@ range, since the plan files' internal numbering did not change.
   closes the exact-seed R-level parity regression gap only, not the current
   checkout R-layer attestation, performance target, tuning exclusion, or
   end-to-end tuning gate. TODO-1 remains open.
-- [ ] TODO-2 (added 2026-08-30, user decision): **Randomization CI
+  **Owner chose G6 #1 option (a), retry-chain optimization implemented, 2026-10-22:**
+  in `compute_bootstrap_worker_estimate()` (`inference_proportion_zero_one_inflated_beta.R`,
+  R layer only, no C++), when the direct estimate_only fit on the full-rank
+  candidate matrix is non-finite, the ordinary fallback now skips its two
+  deterministic refits of that same p-column matrix (rank-certificate attempt
+  and full-keep attempt) and enters the column-dropping loop directly (private
+  flag `zoib_skip_full_fit_ncol`, scoped by `on.exit`; `generate_mod()`'s
+  `fit_fun` returns NULL for that width). Justification: resampling fits never
+  update the warm start and `estimate_only` only skips the post-fit Hessian, so
+  the skipped fits repeat the failed one. Exact fixture (seed 20264492, n=50),
+  native-call COUNTS (primary metric; load_all compile=FALSE): reusable 68 ->
+  60, legacy 60 (24 extra fallback calls reduced to the 8 unavoidable p=3
+  fits, now equal to legacy's count); all 50 draws and the whole summary
+  bit-identical to forced-legacy. Wall clock (indicative only, hosts noisy):
+  5.84s reusable vs 7.85s legacy in the same run (earlier 11.05 vs 6.62s).
+  Non-NA fixtures exist at n=50: seeds 1 and 3 (estimate ~0.55; calls 51 vs
+  51, 0.4s vs 1.3s, summaries identical); seeds 2, 20264493, 20264507 and
+  20264492 at n=80 are NA. Added a call-count test to
+  `test-zoib-jackknife-reusable-worker-migration-golden.R` (84 assertions
+  pass). Remaining: exact tuning fixture is still NA (so TODO-5 exclusion
+  removal and TODO-6 tuning run stay open, exclusion list untouched);
+  re-timing on a quiet host and a current native build.
+  **Status 2026-10-22 (final audit):** what is left is one owner question and
+  user-run timing. G6 #30: remove the ZOIB `jackknife` entry from
+  `EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS` (`local_machine_tuning_axes.R`
+  ~L261, a one-line R edit, plan TODO-5) now, given that call counts equal
+  legacy and the NA of the exact tuning fixture is the documented contract on
+  both routes; or keep it until a non-NA exact tuning fixture exists. Recommendation:
+  remove it now. Then G2: re-time on a quiet host with the current build, and the
+  plan TODO-6 end-to-end tuning run. G4 does not apply (no comprehensive slice for
+  the ZOIB jackknife); the "parity fixture" item is done (seeds 1 and 3).
+- [x] TODO-2 (added 2026-08-30, user decision): **Randomization CI
   affine-shift reuse** — `randomization_ci_affine_shift_reuse.md →
   TODO-1..7` (plus a decision-gated TODO-8). The fast path at
   `inference_all_abstract_rand.R:436` (`t0s = t0s_rand + delta`) is dead —
@@ -354,9 +385,56 @@ range, since the plan files' internal numbering did not change.
   artifact only. It does not prove installed R-source identity/current-source
   native parity, measure performance, or resolve the target/documentation
   decision; TODO-2 stays open.
-- [ ] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
+  **Status 2026-10-22 (final audit):** still NOT decided by the owner. Two
+  questions: G6 #2 (accept/restate the measured 1.05-2.14x OLS and 1.13-1.59x
+  average-difference gains vs keep 20-30x and authorize more optimization;
+  recommendation accept/restate) and G6 #31 (the linked plan's decision-gated
+  TODO-8, direct order-statistic inversion: the owner asked about it but did not
+  decide; it buys exactness, not wall time, and moves CI endpoints, so
+  recommendation defer to v1.1.0). Once both are answered: the restated docs are
+  agent-doable; a G2 re-time is needed only if (b) is chosen.
+  **CLOSED 2026-10-22 by owner decision (G6 #2, option (a)): accept and
+  restate.** The 20–30× figure was a projection of avoided distribution work,
+  not a runtime ratio. The measured end-to-end speedups (1.1–1.6× average
+  difference, 1.05–2.14× OLS) are accepted as workload-specific, and the
+  linked plan's header and its TODO-6 now say so. No package roxygen, NEWS or
+  vignette text claimed 20–30× (checked by grep), so no user-facing doc change
+  was needed. The plan's TODO-8 (direct order-statistic inversion) was always
+  out of TODO-2's scope and is decided separately under G6 #31.
+- [x] TODO-3 (added 2026-08-30, user decision): **Wire the unused OLS
   randomization-distribution kernel; triage dead kernels** —
   `ols_randomization_distr_cpp_wiring.md → TODO-1..6`.
+  **DECIDED 2026-10-22 (G6 #3 option (a), delete; G6 #4 defer).** Deleted by
+  hand (no compileAttributes, roxygenize or compile), after a repo-wide grep
+  re-confirmed no production caller, `NAMESPACE` export or Python binding:
+  `compute_wilcox_distr_parallel_cpp`,
+  `compute_wilcox_distr_from_list_parallel_cpp`, `base_bootstrap_loop_cpp`,
+  `matching_bootstrap_loop_cpp`, `fill_i_b_with_matches_loop_cpp`,
+  `bisection_ci_single_bound_cpp`, `bisection_ci_loop_cpp`. Five source files
+  became empty and were removed (`fast_wilcox_parallel.cpp`,
+  `base_bootstrap_loop.cpp`, `kk_bootstrap_loop.cpp`,
+  `KK_bootstrap_helper_fillin.cpp`, `bisection_ci_loop.cpp`); unity groups
+  are globbed by `configure`, so no file list needed editing. Also removed:
+  their `RcppExports.cpp` prototypes/wrappers/registration rows,
+  `RcppExports.R` wrappers, the two bisection Rd files, the file-local
+  Wilcoxon helpers and the `match_stats_from_indices_cpp` forward declaration
+  in `kk_bootstrap_loop.cpp` (the definition in `bootstrap_match_indices.cpp`
+  stays), the `base_bootstrap_loop` profiler entry, and
+  `test-bootstrap-index-fillin-and-bisection-loop.R`. **Kept:**
+  `bisection_ci_parallel_cpp` (compatibility shim) with
+  `edi::bisection_ci_search` and `bisection_ci_search.h`,
+  `compute_wilcox_hl_distr_parallel_cpp`, `compute_ols_bootstrap_parallel_cpp`,
+  `compute_ols_distr_parallel_cpp`. **Migrated assertions:** tied-response,
+  delta-shift, one-arm `NA` and 1-vs-2-core Wilcoxon cases now run on the HL
+  kernel; the matching loop's exact paired/reservoir assertions now call
+  `match_stats_from_indices_cpp` directly; the bisection tail, missing-midpoint,
+  discontinuity, validation, callback-error and tiny/huge-scale regressions
+  now run through `bisection_ci_parallel_cpp`. The edited tests passed against
+  installed EDI 1.0.3 (66 + 45 + 14 + 69 + 13 + 40 expectations, 0 failures).
+  **Lin stretch (TODO-6 / G6 #4): DECIDED 2026-10-22, deferred to v1.1.0**
+  (`release_v1_1_0.md → TODO-57`); closed for 1.0.5. ~~**Remaining:** the user
+  rebuilds EDI and reruns the affected tests; then this box can be checked.~~
+  (Superseded 2026-10-22: done, see the rebuild note at the end of this entry.)
   **Historical status, now corrected:** `compute_ols_distr_parallel_cpp`
   (`src/ols_distr_parallel.cpp:15`) was exported but unused, while
   `InferenceContinOLS` fell through to the R-level reused-worker loop
@@ -475,9 +553,12 @@ range, since the plan files' internal numbering did not change.
     no independent compiler-input manifest/source-hash-at-build record was
     captured, so they should not be generalized into full source-to-binary
     provenance or broad TODO-3 completion.
-  - [ ] Decide the disposition of the eight genuinely unused exports; only
+  - [x] Decide the disposition of the eight genuinely unused exports; only
     after approval, migrate their direct tests/benchmarks, update Rcpp
     registration/generated wrappers, and verify no production callers remain.
+    **DONE 2026-10-22:** owner chose delete (G6 #3 (a)); seven deleted,
+    `bisection_ci_parallel_cpp` kept as the compatibility shim (see the
+    DECIDED note at the top of this entry). Uncompiled until the user rebuilds.
     **Read-only inventory recheck, 2026-10-20:** the exact names are
     `compute_wilcox_distr_parallel_cpp`,
     `compute_wilcox_distr_from_list_parallel_cpp`,
@@ -515,8 +596,23 @@ range, since the plan files' internal numbering did not change.
     separate `compute_ols_distr_parallel_cpp` wiring and live
     `compute_ols_bootstrap_parallel_cpp` percentile-bootstrap caller are not
     deletion candidates.
-  - [ ] Obtain the separate owner decision on TODO-6's Lin stretch target and
-    align the release claim with that decision.
+  - [x] Obtain the separate owner decision on TODO-6's Lin stretch target and
+    align the release claim with that decision. **DECIDED 2026-10-22:**
+    deferred to v1.1.0 (`release_v1_1_0.md → TODO-57`), closed for 1.0.5.
+  - [x] User rebuild of EDI (removes the seven kernels from the installed
+    build), then rerun `test-parallel-distribution-kernel-contracts.R`,
+    `test-resampling-parallel-threshold-contracts.R`,
+    `test-resampling-callback-recovery-contracts.R`,
+    `test-resampling-kernel-contracts.R`,
+    `test-bisection-tail-and-discontinuity-regressions.R` and
+    `test-omp-kernel-thread-count-scoped.R`. After that, check TODO-3.
+    **Done 2026-10-22:** against the user's rebuilt EDI 1.0.3 (built
+    2026-10-22 07:15 UTC), `getDLLRegisteredRoutines("EDI")` lists none of
+    the seven deleted kernels (nor `generate_permutations_blocking_cpp`) and
+    still lists `bisection_ci_parallel_cpp`. The six files passed 66, 45, 14,
+    69, 13 and 40 expectations, with 0 failures, errors, skips or warnings
+    (`NOT_CRAN=true`, `test_file` in an env whose parent is the EDI
+    namespace). TODO-3 is closed.
 - [ ] TODO-4 (added 2026-08-30; source fixed 2026-10-08; validation in progress 2026-10-20): **Guard the unguarded
   information-matrix inverses** — `../bug_fix_plans/guard_unguarded_information_inverse.md
   → TODO-1..6`. Correctness, not performance. `fast_negbin_regression.cpp:485`
@@ -824,6 +920,91 @@ range, since the plan files' internal numbering did not change.
   generic `min_eigenvalue_information` diagnostic was never populated. That
   historical no-op was later removed under TODO-51; it was unrelated to this
   TODO's miscalibration investigation.
+  **ZINB NA Wald SE investigation, 2026-10-22 (TODO-111 third pass):** the
+  `invert_free_information()` guard is NOT too strict (no relative-rank
+  patch needed). Two causes, both a ZI-block identification problem with a
+  finite, pscl/glmmTMB-agreeing count-treatment SE: (a) zi treatment coef
+  running to -Inf (information still "invertible", rcond ~1e-12): R-side
+  `safe_zero_augmented_vcov_se()` discarded the whole vcov — FIXED in R
+  (degeneracy re-tested on the count(+theta) sub-block for non-hurdle fits;
+  `test-zinb-zi-block-unidentified-count-se.R`). (b) zi intercept and zi
+  treatment columns exactly collinear (zi only in one arm; eigenvalue
+  -4e-15, `information_invertible = FALSE`) — the guard is correct, but
+  the count SE is estimable: a pseudo-inverse of the information (drop
+  eigenvalues < 1e-10 * max) reproduces pscl's SE exactly (0.4818, 0.2881);
+  C++ patch NOT applied (no compile), see the agent report. Separate open
+  item: ZIP `compute_estimate()` NA (`zero_augmented_poisson_fit_unavailable`)
+  on some n=100 zero-inflated draws where pscl converges.
+  **ZIP NA estimate, 2026-10-22 (resolved in R):** NOT a degeneracy-test
+  issue. The default Newton->LBFGS fit from the smart cold start stalled at
+  |grad| ~5.6e-8 (seed 6) / 1.7e-6 (seed 19) vs tol 1e-8, was flagged
+  `converged = FALSE` (params already equal pscl's to 6 digits), and the
+  estimate was discarded. A plain cold retry (`smart_cold_start = FALSE`, no
+  warm start) converges (|grad| 1e-12/2e-9). Fixed in
+  `inference_count_zero_augmented_poisson_abstract.R` (non-hurdle one-shot
+  retry, mirrors the hurdle recovery); test
+  `test-zip-newton-stall-cold-retry.R` (estimate + model-based SE = pscl).
+  Failure rate over seeds 1..20: n=40 0/20, n=100 2/20 -> 0/20, n=200 0/20;
+  n=300 0/20 after. Optional C++ follow-up (not applied): accept the Newton
+  terminal state when the step-size criterion fires with |grad| < ~1e-5.
+  **Newton false-non-convergence survey, 2026-10-22 (read-mostly; no C++
+  compiled/edited, no R changed):** installed kernels called with
+  `optimization_alg = "newton_raphson"`, n in {40,100,200} x {balanced,
+  8%-treated, near-separated} x 30 seeds (90 fits/cell), reference =
+  pscl/MASS/betareg/ordinal/survreg loglik. FALSE = converged FALSE with
+  |grad| < 1e-4 and |loglik gap to reference| < 1e-3 (parameters equal to
+  <=3e-8 for Weibull). False counts /90 at n=40,100,200 (tol): hurdle-Poisson
+  7,10,10 (1e-8); ZIP 3,8,9 (1e-8); Poisson(nr) 17,16,13 (1e-8); Weibull(nr)
+  19,22,32 (1e-8; 5.6% at n=200 with tol 1e-6); beta 0,0,5 (1e-6); NB(nr)
+  0,0,4 (1e-6); ordinal logit 0,0,3 / probit 0,0,1 (1e-6); stereotype 0,0,1.
+  Zero: adjacent-cat, continuation-ratio, ordinal cloglog/cauchit, ZOIB. TRUE
+  failures (all |grad| >= 4.96e-4): ZINB n=40 6/90, hurdle-NB n=40 3/90,
+  stereotype 12,8,8. Max |grad| of FALSE cases 5.15e-5 (beta) else <=4.2e-6;
+  min |grad| of TRUE failures 4.96e-4. Only ZIP/hurdle-Poisson/ZINB/hurdle-NB/
+  stereotype/ZOIB reach Newton by default policy (others default lbfgs/irls;
+  KK21 Weibull weights call Newton unconditionally, tol 1e-6, `-1`/false on
+  non-convergence). A cold retry in R (flip smart_cold_start) rescued 15/20
+  ZIP, 24/27 hurdle, 33/46 Poisson, 63/73 Weibull, 5/5 beta, 4/4 NB, 4/4
+  ordinal: NOT enough; the C++ fix is the real one. MECHANISM CORRECTION: in
+  an R port of the routine the dominant exit is the LINE-SEARCH-FAILURE
+  `break` (68 of 79 non-converged exits vs 11 step-size exits): at
+  |grad| ~1e-7 the predicted decrease 0.5 g'H^-1 g (~1e-17) is below the
+  rounding of a loglik of ~90, so `candidate < current` never holds. The
+  proposed patch must therefore cover BOTH the step-size exit and the
+  `if (!accepted) break;` exit. Proposed patch (accept iff stalled and
+  `gnorm < min(1e-4, 10 * tol * lambda_max(H))`, H observed Hessian at the
+  final params): offline on the survey it rescues 100% of FALSE cases (the
+  plain "|grad| < 1e-5" rule misses 3/5 beta) and accepts 0/39 TRUE failures;
+  max gnorm/(tol*lambda_max) over FALSE cases is 2.06, over TRUE >= 3e2; the
+  absolute 1e-4 cap blocks the degenerate hurdle-NB divergence
+  (|grad| 2e12, lambda 3e24, ratio 6.6e-5). Full diff in the 2026-10-22
+  survey report; still to do: apply + targeted compile + re-run the survey.
+  **Source-work audit, 2026-10-22 (no code change):** re-checked every
+  remaining sub-item for R-only work. The R side is complete: the ZINB
+  unidentified-ZI-block fix and the ZIP cold-retry fix live in
+  `inference_count_zero_augmented_poisson_abstract.R`, with tests
+  `test-zinb-zi-block-unidentified-count-se.R` and
+  `test-zip-newton-stall-cold-retry.R` (both untracked/uncommitted; `parse()`
+  check of the class file and both tests passed; not executed this pass, so
+  their pass status here is unverified). Nothing else left is R/test/doc
+  only. Remaining, all gated: (1) Newton false-non-convergence C++ patch and
+  ZINB information pseudo-inverse C++ patch, uncompiled (G1, user build); (2)
+  linked-plan TODO-3 exhaustive before/after `with_var` replay, Python
+  positive-fit parity, and Bartlett per-replicate diagnostics (need the G1
+  native build of the current checkout plus G4-style captured reruns); (3)
+  checkbox stays unchecked. Gates-section row unchanged (partly; G1, G4).
+  **Fifth pass 2026-10-22 (test only, no source change):** appended to
+  `test-zero-covariate-kk-survival.R` a sweep of all 10 KK / frailty survival
+  classes (StratCox/LWACox OneLik+IVWC, RankRegrIVWC, WeibullMarginal, 4 frailty)
+  x {`DesignFixedBinaryMatch`, `DesignSeqOneByOneKK14`} x {zero, constant column}
+  asserting `get_X()` is n x 0 and `compute_estimate()` is finite. UNVERIFIED:
+  `parse()` OK only; the installed EDI is v1.0.3 (lacks the TODO-111 R fixes; the
+  pre-existing `model_formula = ~ 1` test also fails against it), so the new test
+  could not be run meaningfully without a G1 user build. The DepCens zero-covariate
+  question is answered above (not a zero-column bug; bootstrap loss fixed in R,
+  C++ patch 02 uncompiled). Remaining gated: patch 02 / Newton / ZINB C++ (G1),
+  run of the new test (G1 build), full class x procedure grid beyond the
+  representative subset (optional, slow; G8 CSV/doc follow-ups).
 - [x] TODO-5 (added 2026-09-04, found empirically; fully reconciled
   2026-10-09): **Randomization CI
   construction audit** — `../new_feature_plans/randomization_ci_construction_audit.md →
@@ -849,7 +1030,7 @@ range, since the plan files' internal numbering did not change.
   `[x]`; the cosmetic test-comment fix (TODO-3) was completed 2026-10-09,
   so all linked TODOs are checked. The one substantively complete item among
   TODO-1..6.
-- [ ] TODO-6 (added 2026-09-11, source fixed 2026-10-08; exact production timing pending; found via a comprehensive-test-harness
+- [x] TODO-6 (added 2026-09-11, source fixed 2026-10-08; CLOSED 2026-10-22 on existing evidence by owner decision, `~.` stall moved to TODO-126; found via a comprehensive-test-harness
   timing investigation, not a user report): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
   optimizer stability** — `../bug_fix_plans/clayton_loggamma_frailty_optimizer_stability.md
   → TODO-1..4`. A ~200× bimodal slowdown (0.5-1s vs. 150-180s, same
@@ -909,7 +1090,8 @@ range, since the plan files' internal numbering did not change.
   the DLL. No fit was run while TODO-56 is active. The historical seed/RNG
   context remains unavailable, and no numeric runtime ceiling or parity
   tolerances have been maintainer-approved.
-  - [ ] Recover the historical sample/seed and package provenance (or obtain
+  - [ ] (superseded 2026-10-22 by the G6 #6 close-on-existing-evidence decision; not required for 1.0.5)
+    Recover the historical sample/seed and package provenance (or obtain
     approval for a deterministic replacement), and obtain a maintainer-approved
     numeric runtime bound plus explicit point-estimate/SE/Bartlett-p parity
     criteria for both `~1` and `~.`. After TODO-56 releases the shared paths,
@@ -1010,6 +1192,16 @@ range, since the plan files' internal numbering did not change.
   of a replacement protocol, plus explicit runtime and estimate/SE/Bartlett-p
   criteria for both formulas. No fit, benchmark, build/install, or canonical
   write occurred in this recheck.
+  **CLOSED 2026-10-22 by owner decision (G6 #6, option (a)): close on the
+  existing evidence.** The historical inputs can never be replayed, so the
+  replay/criteria gate is dropped. Evidence accepted: the root cause (no
+  dependence-parameter cap; gradient inconsistent with the clipped objective)
+  is fixed in `fast_survival_models_optim.cpp`; the golden censored outputs and
+  native boundary fit in `test-clayton-logtheta-optimizer-bound.R` pass (22
+  expectations) on the user-rebuilt package; the filtered `~1` probe took
+  0.36-0.38 s per approximate Bartlett p-value versus the historical
+  159.7-178.7 s. The separate `~.` stall (>5:24 in the generic Bartlett
+  p-value path, not this TODO's approximate path) moves to TODO-126.
 - [x] TODO-7 (added 2026-09-17, fixed 2026-10-08; found via a raw `comprehensive_tests`
   results-CSV audit, not a user report): **`KKQuantileRegrOneLik`
   randomization CI** — `../bug_fix_plans/KKQuantileRegrOneLik_rand_ci.md → TODO-1..6`.
@@ -1190,6 +1382,14 @@ range, since the plan files' internal numbering did not change.
   inventory. No new retained artifact closes TODO-8 without TODO-4/7
   calibration and provenance; do not update canonical CSV/baseline from
   these files.
+  **Roxygen staleness fix, 2026-10-22 (text only):** the class roxygen in
+  `inference_ordinal_stereotype_logit.R` described the multimodal
+  point-estimate problem in the present tense without mentioning the Oct 8
+  full-fit multi-start; added a sentence stating the fit now multi-starts,
+  that the quoted figures predate it and are not re-measured, and that
+  resampling refits stay single-start. `parse()` OK; Rd NOT regenerated (so
+  Rd lags this sentence until the documentation batch). Calibration numbers
+  (TODO-4) still pending, so TODO-7/8 remain open.
 - [ ] TODO-9 (added 2026-09-22, found via a raw `comprehensive_tests`
   results-CSV audit, not a user report; three new checks —
   `biased_estimate`, `bad_type1_error`, `low_power` — added to
@@ -2452,6 +2652,13 @@ range, since the plan files' internal numbering did not change.
     merge key. Require exact key-set equality, validate provenance, statuses,
     finite CI endpoints and coverage fields, then merge/deduplicate only the
     complete target set.
+  - **Target correction 2026-10-22 (final audit):** the 43,200-key target quoted
+    above predates TODO-119. `InferencePropGCompMeanDiff` is now in
+    `EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES` (`inference_class_registry.R`), so its
+    `compute_rand_confidence_interval` rows are refused and no longer emitted or
+    expected. The regeneration target is the two `rand` p-value calls only (28,800
+    keys, as in the G4 slice note); prune the 988 stale 2026-09-09 rand-CI rows with
+    `prune_stale_result_rows.R`. Still gated on G4/G7 only.
 - [ ] TODO-14 (added 2026-09-22, surfaced the same way as TODO-13 — the
   new KK-design fixture arm was the first thing to exercise
   `estimate_only = TRUE` on this class with both components simultaneously
@@ -3441,7 +3648,8 @@ range, since the plan files' internal numbering did not change.
     deterministic inclusive-tail method and document the conservatism (roxygen
     on `InferenceAllSimpleWilcox`). No generic mid-p change. TODO-3..7 of the linked
     plan stay open until a candidate passes the conditional-size gate. This item
-    stays unchecked as a deferred-to-later-release item: the resampling CI
+    is closed for 1.0.5 as a deferred-to-later-release item (`release_v1_5_0.md → TODO-1`;
+    wording corrected 2026-10-22, it previously said "stays unchecked"): the resampling CI
     undercoverage (~48-57%) from the same mechanism is also deferred and is
     documented, not fixed.
   - [ ] (superseded by the deferral above) Obtain a maintainer decision on the Wilcoxon-specific remedy or an
@@ -5218,7 +5426,7 @@ baseline as expected/benign.
   equivalence (37), and zero-augmented-Poisson diagnostic (14) all passed
   against the user's reinstalled EDI package (reported version 1.0.3); no
   Codex compile/build/install was run.
-- [ ] TODO-52 (added 2026-09-24, promoted from asides inside
+- [x] TODO-52 (added 2026-09-24, promoted from asides inside
   `bootstrap_worker_stale_design_matrix.md`'s (TODO-28) cross-class sweep,
   same reason and same pattern as TODO-50/51 — user asked for a double-check
   sweep of this file for orphans and buried secrets; tracked as an open
@@ -5318,6 +5526,20 @@ baseline as expected/benign.
   replay. This closes only the observed pilot key/status check, not recovery
   of historical DGP/seed/assignment inputs or the owner-approved replacement
   study/calibration-criterion gate. No canonical artifact was changed.
+  - **CLOSED 2026-10-22 by owner decision (G6 #25, option (a)): close the
+    investigation and let the G4 audit decide.** (Moved here 2026-10-22 from
+    TODO-49, where it had been misplaced.) The flagged historical cells
+    cannot be replayed, and no common mechanism was found. The post-G4 audit of
+    the regenerated CSVs re-checks coverage, p-value calibration and bias for
+    these classes under current code. Any class still flagged there gets its own
+    focused TODO. Classes to check in that audit (listed in the G4 runbook):
+    `InferencePropBetaRegr`, `InferencePropZeroOneInflatedBetaRegr`,
+    `InferenceContinKKOLSOneLik`, `InferenceContinKKRobustRegrOneLik`,
+    `InferencePropKKGLMM`, the three `InferenceAbstractKKCondLogitGLMM`
+    subclasses, and the seven-class KKGLMM/KKCLMM addendum. The two unchecked
+    sub-items above (historical-cell recovery / replacement study; owner-approved
+    calibration criterion for the pilots) are superseded by this decision and are
+    not required for 1.0.5.
 
 - [ ] TODO-31 (added 2026-09-24, from an audit of test-file comments; four
   tests pin it as `SUSPECTED SOURCE BUG (pinned, not fixed)`): **Random-effect
@@ -5566,6 +5788,13 @@ baseline as expected/benign.
   ordinal CLMM fixture, not current-source/native acceptance, the other
   non-Poisson kernels, the broader sigma-by-n grid, or comprehensive-row
   reconciliation. No build/install or canonical output occurred.
+  **CLMM tolerance note 2026-10-22:** the KK CLMM classes' `eps_g = 1e-3`
+  (observed + randomization refits) is now `private$clmm_eps_g = 1e-6` in
+  `inference_ordinal_KK_clmm_abstract.R` (R only; treatment error vs
+  `ordinal::clmm` median ~3e-2 -> ~5e-4; estimates move). Test:
+  `test-ordinal-kk-clmm-gradient-tolerance-matches-clmm.R`. Evidence in
+  `../bug_fix_plans/optimize_likelihood_newton_false_nonconvergence.md`
+  ("CLMM tolerance").
 - [x] TODO-32 (added 2026-09-24, source fixed 2026-10-08): **`InferenceOrdinalRidit(
   reference = "treatment")` now uses a non-degenerate symmetric estimand** —
   `../bug_fix_plans/ridit_treatment_reference_degenerate_estimate.md →
@@ -5591,7 +5820,7 @@ baseline as expected/benign.
   platform wheel jobs. This closes linked TODO-6; Python CI provides aggregate
   suite status rather than a per-file result. No local build or artifact
   download was performed.
-- [ ] TODO-33 (added 2026-09-24, core fix and regression added 2026-10-07; real-data validation still open): **Randomization-CI
+- [x] TODO-33 (added 2026-09-24, core fix and regression added 2026-10-07; CLOSED 2026-10-22 on synthetic trigger/replay evidence by owner decision, G6 #23): **Randomization-CI
   high-precision refinement ignores `lower`** —
   `../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md →
   TODO-1..4`. Previously, `high_precision_confirm_and_refine_ci_bound()` set
@@ -5813,6 +6042,16 @@ baseline as expected/benign.
   `../bug_fix_plans/rand_ci_high_precision_refinement_upper_bound.md`. This
   correction does not close the real-data trigger, replay, or coverage gates;
   no search, build/install, or canonical write was performed.
+  **CLOSED 2026-10-22 by owner decision (G6 #23, option (a)): accept the
+  synthetic trigger/replay evidence.** The fix is the direction branch in
+  `high_precision_confirm_and_refine_ci_bound()`. It is exercised in both
+  directions by the forced-trigger public-API regression and the analytic
+  crossing fixture (30 assertions), plus the shared-cache contract test
+  (37). The 500-replication OLS coverage check (92.2% at nominal 90%) and
+  roughly 255 real-data CI calls on `mtcars`, `airquality` and `trees` showed
+  no errors. The real-data trigger search and the larger idle-host coverage
+  study are dropped: the natural trigger is rare and would rerun the same
+  code.
 - [x] TODO-34 (added 2026-09-24, same audit; fixed 2026-10-07): **Interval-censored `compute_shared_icen()` blanket cache guard**
   — `../bug_fix_plans/interval_censored_compute_shared_cache_guard.md →
   TODO-1..4`. After `compute_estimate(estimate_only = TRUE)`, a later full
@@ -6123,6 +6362,8 @@ baseline as expected/benign.
   factorization reuse. The residual finite-sample calibration behavior is a
   property of `quantreg`'s documented `nid` SE, not a v1.0.5 bug. Focused
   source-loaded checks passed 14, 48, and 55 expectations.
+  (2026-10-22 final audit: the TODO-52 close note that had been placed here was
+  moved to the end of TODO-52, where it belongs.)
 
 - [x] TODO-53 (added 2026-09-24; replay correction implemented; approximate default accepted 2026-10-20): **Randomization
   p-values are conservative at the null under
@@ -6462,10 +6703,13 @@ baseline as expected/benign.
 - [ ] TODO-57 (added 2026-10-07, user decision; moved here from
   `release_v1_1_0.md → TODO-39` the same day): **Bayesian bootstrap
   performance: parallel scaling and native weighted refits** —
-  `../bug_fix_plans/bayesian_bootstrap_performance.md → TODO-1..10`.
+  `../bug_fix_plans/bayesian_bootstrap_performance.md → TODO-1..11`.
 
-  A `bayesboot` comparison at n = 500, B = 1000 found two problems. A third
-  (TODO-10, added 2026-10-18) came from profiling `comprehensive_tests.R`.
+  A `bayesboot` comparison at n = 500, B = 1000 found two problems. Two
+  more came from profiling `comprehensive_tests.R`: the per-draw copy
+  (TODO-10, added 2026-10-18) and the ordinary bootstrap's uncached,
+  unseeded studentized statistics (TODO-11, added 2026-10-22; a documented
+  default change).
   - **EDI's Bayesian bootstrap does not scale with cores.**
     - The serial blocklist in `get_parallel_dispatch_policy()` pins
       logistic, Cox, Weibull and every other non-KK survival class to one
@@ -6701,6 +6945,20 @@ baseline as expected/benign.
   rebuild/install or performance claim. Other OLS-family callers and native
   Cox/Weibull weighted kernels remain open.
 
+  **Release TODO-57 → linked plan TODO-6.1 interim Cox fast path, 2026-10-22:**
+  `weighted_cox_bootstrap_surrogate_fit()` (R/globals.R) now calls
+  `survival::coxph.fit()` (Efron, default control, weights, warm start) for
+  unstratified/unclustered draws, falling back to the formula `coxph()` path on
+  error or non-finite treatment coefficient; stratified/clustered fits are
+  unchanged. Callers use only `beta_hat`; `$fit` is now the raw coxph.fit list
+  on the fast path. New `test-weighted-cox-surrogate-coxph-fit-fast-path.R`
+  (6 assertions, vs formula `coxph`, 1e-8) and the existing Cox surrogate,
+  KK-LWA, KK-strat-Cox, dep-cens tests passed under
+  `load_all(compile=FALSE)`. Audit: no weights exist in
+  `fast_coxph_regression.cpp` and Weibull has no weighted kernel, so the native
+  Cox/Weibull kernels (plan TODO-6.1/6.2, a C++ change plus rebuild) are NOT
+  done and were not attempted (stale per-file `.o` beside `unity_NN.o`). Also
+  open: TODO-2/3/5 dispatch, TODO-1 harness, TODO-9 benchmarks. No timing run.
   **TODO-57 retained-artifact audit, 2026-10-21:** the tracked
   `marketing_plans/bb_bench2_results.txt` table (SHA-256
   `c3d53f58aef9e0c7b9465a87f81da24fd32022c45975b52ebfe03d6c9d503a26`)
@@ -6726,6 +6984,29 @@ baseline as expected/benign.
   weighted-refit acceptance. Those still require an authorized, provenance-
   complete run with payload measurements and fixed-seed vectors. No benchmark,
   test, build, install, or canonical write occurred; TODO-57 remains open.
+  **Source work, linked plan TODO-11 (ordinary-bootstrap statistics cache and
+  seed), 2026-10-22:** `approximate_bootstrap_statistics_beta_hat_T()` now
+  caches the unfiltered B x 2 (theta, se) matrix in
+  `cached_values$boot_stats_cache` keyed by `B` and `smooth` (a `require_se`
+  entry also serves a later `require_se = FALSE` request, with SEs blanked;
+  `na.rm` is applied on the way out via the new private
+  `finalize_bootstrap_statistics_matrix()`, registered in
+  `NonparametricBootstrap`'s component spec) and runs under the same
+  `private$seed` save/`set.seed`/restore block as the plain distribution. The
+  entry is dropped with `cached_values` resets and is not carried by
+  `duplicate()`. New `test-non-param-boot-statistics-cache-and-seed-reference.R`
+  (15 assertions: cache reuse, `na.rm` sharing, B/smooth miss, seeded
+  reproducibility and RNG restore, `duplicate()`) passed, as did the existing
+  statistics-driver, studentized-guard, smoothed/calibrated and two component-
+  contract tests, under `pkgload::load_all("R/EDI", compile = FALSE)`. NEWS
+  entry added (documented default change). Plan item 7 (jackknife / m-out-of-n
+  / subsampling gap) was not audited beyond noting those paths already have
+  their own distribution caches. Still open, not doable here: native Cox/Weibull
+  weighted kernels (plan TODO-6.1/6.2, C++ plus build: G1), TODO-1/TODO-9
+  benchmark harness runs and acceptance (need an owner-authorized run: G4-style
+  benchmark gate, not a build), TODO-2/3/5 dispatch changes (real fork/mirai
+  validation, G1 build plus owner-authorized fork runs). TODO-57 stays
+  'partly done, source work left' only for those gated items.
 
 - [ ] TODO-58 (added 2026-10-07, user decision): **Nonparametric bootstrap
   worker: per-draw data.frame subsetting, model-matrix rebuild and R-level
@@ -7151,6 +7432,17 @@ baseline as expected/benign.
     the installed `n=1000`, `batch=100`, seven-repeat timing with provenance;
     require iBCRD <= 1.5 ms and blocking <= 2.5 ms. Separately compare
     fixed-seed assignment weights against an authentic EDI 1.0.2 package.
+  - [ ] Fixed-seed `w` parity vs authentic EDI 1.0.2 (G3). **Script written
+    2026-10-22:** `R/benchmark/benchmark_todo59_60_w_draw_parity.R` (all 24
+    design classes, assign + draw paths, 60 cases; documented 1.0.5 draw
+    changes are EXPECTED-DIFFER, everything else must match). Commands:
+    `dump-parity $P/w_edi102.rds --lib ~/R/edi102 --expect-version 1.0.2`, then
+    `dump-parity $P/w_current.rds`, then
+    `compare-parity $P/w_edi102.rds $P/w_current.rds` (exit 0 = pass); full
+    block and case classification in the G3 runbook. Self-test against
+    installed EDI 1.0.3 only (DLL SHA-256 `1aee5cb8…5720`): two dumps
+    60/60 ok, `--self-test` compare 60/60 exact, exit 0; a tampered must-match
+    case made it exit 1. Not yet run against 1.0.2 (not installed).
 
 - [ ] TODO-60 (added 2026-10-07, user decision): **Pocock–Simon: O(t) work
   per arrival (O(n²) per trial)** —
@@ -7333,6 +7625,28 @@ baseline as expected/benign.
   EDI 1.0.2 fixed-seed assignment vectors for parity; then, when an authorized
   quiet-host slot is available, run the documented acceptance command with a
   fresh CSV path and sidecar. TODO-60 remains open.
+
+  **Source-loaded re-verification, 2026-10-22:** re-read the plan and current
+  source; plan TODO-1..4 are implemented (no further R changes needed). With
+  `pkgload::load_all("R/EDI", compile = FALSE, quiet = TRUE, export_all = FALSE)`
+  all seven `test-pocock-simon-*` files in `package_tests/testthat_bulk`
+  passed with 0 failures/errors/warnings/skips (assign-kernels 43, benchmark
+  provenance 23, level-rows 86, index-guard 4, marginal-balance replay 16,
+  redraw-w guards 7 and 5 expectations). No build/install, no timing run
+  (host load average was ~9.7, so a timing sample would not be acceptance
+  evidence). Open and unchanged: idle-host timing acceptance and authentic
+  EDI 1.0.2 fixed-seed parity. Box stays unchecked.
+
+  **Parity script, 2026-10-22:** the shared TODO-59/60 script
+  `R/benchmark/benchmark_todo59_60_w_draw_parity.R` covers Pocock-Simon as
+  must-match on three fixtures (the test-file 2-level stratum at n=16; this
+  plan's benchmark fixture, four factor strata, covariate seed 6001 and
+  assignment seed 6002, at n=60; and a late-seen level plus missing stratum
+  values not on the first arrival, n=24), each on the per-arrival assign path
+  and on `draw_ws_according_to_design(r = 4)`. A first-arrival missing stratum
+  is deliberately not a case (1.0.2 dropped that column, fixed 2026-10-12).
+  Commands are in the G3 runbook. Self-tested against installed EDI 1.0.3 only
+  (60/60 exact); not yet run against 1.0.2.
 
 - [x] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
   `nonbimatch` squared distances with a `double.xmax` diagonal** —
@@ -8681,6 +8995,14 @@ baseline as expected/benign.
   endpoint cases, and a stable direct-upper-tail Wilson calculation. The
   focused source test passed all 18 assertions against installed EDI 1.0.3;
   no compile or install was needed. See the linked algorithm-sweep plan.
+  **Independent check added 2026-10-22:** the equality assertions compare the
+  implementation with `newcombe_pval_ref`, a near-copy of it, so they are partly
+  circular. A new test in `test-incid-newcombe-hybrid-wilson-score-reference.R`
+  bounds the p-values against `prop.test(correct = FALSE)` in log10 (90/100 vs
+  10/100: Newcombe 3.95e-33 vs 1.12e-29, asserted below it and above 1e-40;
+  75/100 vs 40/100: 4.35e-7 vs 5.55e-7, asserted within 0.5 log10). The file
+  passed 21 assertions against installed EDI 1.0.3. The bands are loose by
+  design (different statistics) and were set around the observed values.
 
 - [x] TODO-74 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F12, OneLik): **`InferenceContinKKRobustRegrOneLik` randomization null ≠ observed estimator** —
@@ -8692,7 +9014,12 @@ baseline as expected/benign.
   already fallen back to M. Focused regressions pin MM estimate-only and
   weighted-refit parity. The focused weighted-fit (6 assertions) and
   randomization/refit (10 assertions) tests passed against installed EDI
-  1.0.3; see the linked algorithm-sweep plan.
+  1.0.3; see the linked algorithm-sweep plan. **Tests:**
+  `test-continuous-robust-regr-weighted-bootstrap-reference.R`,
+  `test-continuous-robust-regr-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R`,
+  `test-kk-robust-regr-one-lik-weighted-combined-fit-reference.R`
+  (all in `R/package_tests/testthat_bulk/`; assertion counts above are not
+  attributed per file).
 
 - [x] TODO-75 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F21): **Dependent-censoring bootstrap CI is biased toward non-rejection** —
@@ -8706,7 +9033,11 @@ baseline as expected/benign.
   focused references are synchronized. Installed EDI 1.0.3 validation passed
   the wrapper-wiring test (8 assertions), endpoint-validation guards (11), and
   studentized instability guard (2); no compile/install was needed. See the
-  linked algorithm-sweep plan.
+  linked algorithm-sweep plan. **Tests** (`R/package_tests/testthat_bulk/`):
+  `test-dep-cens-transform-compute-bootstrap-ci-basic-and-bca-wrapper-wiring-reference.R`,
+  `test-dep-cens-transform-bootstrap-ci-validation-and-fallback-reference.R`,
+  `test-dep-cens-transform-bootstrap-ci-validation-zero-exclusion-width-guard-and-wald-fallback-reference.R`,
+  `test-dep-cens-transform-studentized-bootstrap-ci-unstable-guard-reference.R`.
 
 - [ ] TODO-76 (added 2026-10-09, user decision; algorithm-sweep
   verification F13): **Ordinal KK random-effects Bayesian bootstrap fits a fixed-effects model** —
@@ -9142,7 +9473,10 @@ baseline as expected/benign.
   and unbounded-tail regressions are added. The exact CI/search suite (49
   assertions), parallel-bounds suite (5), and nonfinite-point guard (5) passed
   against installed EDI 1.0.3; no compile/install was needed. See the linked
-  algorithm-sweep plan.
+  algorithm-sweep plan. **Tests** (`R/package_tests/testthat_bulk/`; per-file
+  assertion counts not attributed): `test-zhang-exact-incidence-stats-pvalues-and-ci-search-reference.R`,
+  `test-exact-zhang-combined-pval-reference.R`,
+  `test-exact-fisher-incidence-tables-strata-and-htest-reference.R`.
 
 - [x] TODO-81 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F23): **`DesignFixedOptimal` BRT replays a weaker solver than the observed allocation's** —
@@ -9209,7 +9543,13 @@ baseline as expected/benign.
   command: `Rscript -e 'source("/tmp/edi_f7_class_cov_installed.R")'`; the
   temporary runner uses installed EDI and does not load or compile the
   checkout. No compile/install was run. See the linked plan for native direct
-  fixture details.
+  fixture details. **Provenance (2026-10-22):** the original runner `/tmp/edi_f7_class_cov_installed.R`
+  was never archived and is gone. A reconstruction from the recorded DGP is now
+  committed as `R/package_tests/kk_wilcox_ivwc_hl_coverage_smoke.R` (installed EDI,
+  no compile/install). Its seed and outcome model differ from the original, so
+  it does not reproduce 281/300; on installed EDI 1.0.3 it gave 282/300 = 94.0%
+  coverage, SD(est) = 0.2446 (136 s), consistent with the 93.7% above and far
+  from the pre-fix 80.7%. The script exits nonzero below 90%.
 
 - [x] TODO-85 (added 2026-10-09, user decision; closed after installed validation 2026-10-14; algorithm-sweep
   verification F11): **KK hurdle-Poisson IVWC placeholder SEs of 1.0** —
@@ -9260,6 +9600,9 @@ baseline as expected/benign.
   now states that their sandwich-plus-delta Wald SE conditions on the empirical
   covariate distribution, excludes target-population covariate sampling
   variation, and is distinct from the absent likelihood-ratio/score tier.
+  **Evidence:** documentation only (roxygen in `inference_incidence_gcomp.R`,
+  `inference_proportion_gcomp.R`, `inference_incidence_KK_marginal.R` and
+  related files); no test pins the wording.
 
 - [x] TODO-89 (added 2026-10-09, user decision; algorithm-sweep
   verification F26): **Exact-binomial CI (Clopper–Pearson) and p-value are coherent** —
@@ -9283,7 +9626,10 @@ baseline as expected/benign.
   `R CMD INSTALL R/EDI` then installed the current checkout; its `make` phase
   reported no stale objects. `test-jonckheere-exact-enumeration.R` passed all
   33 assertions against that installed checkout, including the direct native
-  guard and public fallback.
+  guard and public fallback. **Scope note (2026-10-22):** the polynomial DP the
+  finding prefers was *not* built; this ships the guard-plus-interrupt minimum
+  the finding allows (with an asymptotic fallback). The DP is audit TODO-15,
+  scheduled in `release_v1_1_0.md → TODO-50`.
 
 - [x] TODO-91 (added 2026-10-09, user decision; algorithm-sweep
   verification F3): **`std::shuffle` / `<random>` draws are stdlib-dependent** —
@@ -9397,7 +9743,11 @@ baseline as expected/benign.
   the model fit only; all g-computation implementations standardize its
   predictions equally over retained empirical covariate rows, and the public
   KK documentation records that sample-conditional convention alongside
-  TODO-88's Wald-SE description.
+  TODO-88's Wald-SE description. **Tests** (`R/package_tests/testthat_bulk/`):
+  `test-kk-gcomp-incidence-weighted-estimate-fit-with-sandwich-and-usability-predicates-reference.R`
+  ("weighted g-computation refits the model but standardizes equally over
+  empirical covariates (RD and RR)") and
+  `test-incidence-gcomp-weighted-risk-difference-reference.R`.
 
 
 - [x] TODO-95 (added 2026-10-11, user decision; found while scoping
@@ -9557,6 +9907,40 @@ baseline as expected/benign.
   bodies without edits to method logic, and TODO-7 must prove exact golden
   equality plus clean acyclic dependency validation. No source, test, or
   golden changed in this audit.
+  **Owner decisions, 2026-10-22:** Option A (one neutral `ResamplingCore`
+  component) confirmed. Decision 1 (duplicated helpers) is DONE now, ahead of
+  the refactor: the `Jackknife` copies of `resolve_jackknife_unit`,
+  `jackknife_block_size_gt_one_unsupported` and
+  `mark_jackknife_nonestimable_if_block_unsupported` were deleted, leaving the
+  `NonparametricBootstrap` copies (every class with `Jackknife` also has it).
+  The only body difference was in `jackknife_block_size_gt_one_unsupported`:
+  the surviving copy re-raises EDI control conditions (interrupts, timeouts)
+  from `get_block_ids()` and swallows only other errors. This removes the
+  remaining `Jackknife`↔`NonparametricBootstrap` duplicate edges. NEWS entry
+  added. Tests: new regression in
+  `test-jackknife-unit-resolution-block-guard-and-cluster-ids-reference.R`;
+  `test-exact-incidence-migration-baseline.R` duplicate list updated (110
+  expectations pass); the call-graph acceptance test records TODO-57's
+  `finalize_bootstrap_statistics_matrix` as a reviewed additive delta (23
+  pass); about 45 component, registry and migration-baseline files pass with
+  `load_all(compile = FALSE)`.
+  **Decision 2, DECIDED and DONE 2026-10-22: option (b), drop the
+  dispatcher.** `load_resampling_draw_into_worker()` (which dispatched via
+  `private[[contract$loader]]`, invisible to the call-graph checker) was
+  deleted; its five call sites (one in `RandomizationTest`, two each in
+  `NonparametricBootstrap` and `BayesianBootstrap`) call their own loader
+  directly. `EDI_RESAMPLING_DRAW_CONTRACTS$loader` stays as checked metadata.
+  `test-load-resampling-draw-into-worker-dispatch-reference.R` was rewritten
+  to assert the dispatcher is gone, nothing calls it, and every contract
+  loader names a real private method.
+  **Decision 3, DECIDED 2026-10-22: option (a).** Move the `NULL` default of
+  `create_bootstrap_worker_state()` from `NonparametricBootstrap` into
+  `ResamplingCore` when that component is created (TODO-3 of the plan). The
+  overrides (`Wald`, the cached-likelihood base and about 10 leaf classes)
+  must still win: verify merge order through the method-owner golden, which
+  records the bound host of each method; do not assume it.
+  Still open for the owner: timing of the `ResamplingCore` refactor itself
+  (recommended: last in 1.0.5 after G4/G5, or defer to v1.1.0).
 - [x] TODO-98 (added 2026-10-19; source fix and focused validation completed
   2026-10-19):
   **Randomization inference under left-/interval-
@@ -9825,7 +10209,7 @@ baseline as expected/benign.
   validator contract subgate. The expected-manifest, runtime-eligibility,
   full-roster, provenance, and canonical authorization gates remain open.
 
-- [ ] TODO-100 (added 2026-10-21, user decision; found while writing the
+- [x] TODO-100 (added 2026-10-21, user decision; found while writing the
   Technion seminar slide on `InferenceRandCustom`):
   **Custom-statistic randomization CI is searched on the statistic's scale,
   not δ's** — `../bug_fix_plans/custom_rand_ci_statistic_scale.md → TODO-1..4`.
@@ -9834,6 +10218,2108 @@ baseline as expected/benign.
   δ = 0 (p = 0.144). The p-values themselves are correct. The search seeds on
   `compute_estimate()` (the t value) and never checks that its seed is
   accepted.
+  - DONE 2026-10-22 (not committed): `build_randomization_ci_search_bounds()`
+    (`inference_all_abstract_rand_ci.R`) takes an optional delta-scale seed
+    hook (`get_randomization_ci_delta_scale_seed`), implemented by
+    `InferenceRandCustom` as the observed mean difference with its Welch SE,
+    and now evaluates p at the centre; if rejected it scans a coarse grid for
+    an accepted delta, and otherwise returns the fallback CI or errors clearly.
+    Roxygen of `InferenceRandCustom` rewritten (limitation note removed).
+    Regression tests added to `tests/testthat/test-rand-custom-delta-shift.R`
+    (mean diff, Welch t, `-10 * mean diff` give the same CI covering 0;
+    always-rejected statistic errors/NA). Verified source-loaded
+    (`load_all(compile = FALSE)`): that file passes; 4 neighbouring
+    rand-CI bulk tests pass (0 failures). NOT verified: the exact plan fixture
+    (`DesignFixedRerandomization`; I used `DesignFixedBernoulli`, n = 60);
+    `custom_randomization_statistic_cpp` path not exercised; Rd not
+    regenerated (no roxygenize by rule); the new test was not run against the
+    pre-fix source to see it fail.
+  - VERIFIED 2026-10-22 (follow-up; no build, no tree files touched except
+    the test file): scratch copies of the pure-R source under `$TMPDIR`
+    (`DESCRIPTION`/`NAMESPACE`/`R/` plus the existing `EDI.so`), one with the
+    two R files taken from `git show HEAD:`, loaded with
+    `pkgload::load_all(compile = FALSE)`. Against HEAD the new tests FAIL
+    (Welch-t / `-10*mean diff` CI came back (-1.67,-0.49)/(-1.08,0.71)
+    mismatches, the always-rejected statistic returned a CI instead of
+    erroring, the cpp CI was (-4.82,-4.21)); against the fixed source all 21
+    expectations pass. The exact plan fixture (`DesignFixedRerandomization`,
+    n = 60, seed 1; observed mean diff 0.4518, t 1.5047) reproduces the bug at
+    HEAD (Welch-t CI (1.353, 1.808), excludes 0) and gives (-0.167, 1.081)
+    after the fix, identical to the mean-difference CI (r = 499; the plan's
+    (-0.24, 1.09) is a different MC draw). Two tests added to
+    `test-rand-custom-delta-shift.R`: that fixture (t CI covers 0 and matches
+    the mean-difference CI) and a `custom_randomization_statistic_cpp`
+    `-10 * mean diff` source-string case (needs Rcpp compile of a tiny user
+    function; `skip_on_cran()`, so it runs only with `NOT_CRAN=true`; fails at
+    HEAD, passes fixed). Remaining: `man/InferenceRandCustom.Rd` is not
+    regenerated (roxygenize deferred by rule), so the TODO-4 roxygen text is in
+    the R source only until the next doc regeneration.
+
+    Note (2026-10-22, golden-regression fix): the "could not find any shift delta"
+    error now fires only when finite p-values were all below alpha; if no p-value
+    at any delta is finite (statistic unavailable, e.g. KK OLS IVWC / OneLik and
+    Robust-Regr fixtures whose observed randomization statistic is NA) the search
+    returns NA bounds as before (caller uses the fallback CI or an NA CI). This
+    restored the four contin-KK and the BAI migration goldens.
+- [x] TODO-101 (added 2026-10-21, user decision; found by the agent harness
+  audit, `marketing_plans/agent_harness_audit.md` tier 1, runs T30, T31, T35):
+  **Bootstrap CIs silently return `c(NA, NA)` whenever they are wider than 5
+  outcome units.** The cutoff is set in the base class:
+  `inference_all_abstract_non_param_boot.R:976` has
+  `bootstrap_extreme_ci_width_threshold = 5`.
+  `bootstrap_confidence_interval_extreme()` (L1089-1103) then takes
+  `max_width = min(EDI_SEPARATION_THRESHOLD * max(1, |est|), 5)`, which is
+  always 5. No subclass overrides it.
+  - It is an absolute width in the outcome's own units, so a reasonable
+    interval fails because of the units it is measured in. Seen in the
+    harness: a KM median difference in months (T30), an RMST difference at
+    36 months (T31; rescaling to years makes it work), and a cluster-trial
+    score difference about 6.4 points wide (T35).
+  - Under `harden = TRUE` (the default) the interval comes back as NA with no
+    warning, and the object is marked non-estimable
+    (`get_nonestimable_reason()` = `"bootstrap_extreme_confidence_interval"`).
+    In T35 that also made later jackknife calls on the same object return NA.
+  - Fix: make the guard scale-free, e.g. relative to the bootstrap SD or to
+    |est|. Check whether the Bayesian bootstrap
+    (`inference_all_abstract_bayesian_bootstrap.R` L469-515) and the
+    parametric bootstrap thresholds have the same unit dependence. Add a
+    regression test with an outcome measured in large units.
+  - DONE 2026-10-22. Only the non-parametric base guard had an absolute width
+    cap (the Bayesian bootstrap and every m-out-of-n / subsampling / g-comp
+    path call the same `bootstrap_confidence_interval_extreme()`; the
+    parametric `param_bootstrap_confidence_interval_extreme()` has no absolute
+    cap, only `max_abs * max(1, |est|)` = 1e6-scale, so it needed no change).
+    The cap is now `bootstrap_extreme_ci_width_threshold (5) *
+    bootstrap_outcome_scale()`, where the new private helper returns
+    `max(1, sd(private$y))` (1 when y is missing/constant). Default change,
+    deliberately minimal: outcomes with sd <= 1 reproduce 1.0.0 exactly
+    (cap 5); only outcomes with sd > 1 get a proportionally wider cap, so
+    previously-NA intervals on those outcomes now return. Contract list in
+    `contracts_mixins.R` updated. Test added in
+    `test-non-param-boot-extreme-guards-and-replication-stats-reference.R`
+    (large-unit outcome, sd ~ 60, percentile CI wider than 5 now finite).
+    Verified source-loaded (`pkgload::load_all(compile = FALSE)`): that file,
+    `test-bootstrap-ci-extreme-interval-guard-reference.R` and
+    `test-m-out-of-n-prw-subsampling.R` all pass, 0 failures. Not run: the
+    full bulk suite, the harness runs T30/T31/T35 themselves, and any
+    comprehensive_tests CSV regeneration. Limitation: the scale is sd(y), so a
+    log-odds-scale interval wider than 5 on a binary outcome is still flagged
+    (unchanged from 1.0.0).
+
+  - NOTE 2026-10-22 (bootstrap-CI NA follow-up): a BCa boundary NA no longer has its reason overwritten by the generic `bootstrap_standard_error_ci_unavailable` (keep-first per CI call, also for the Bayesian CI), and emits one `edi_bootstrap_bca_boundary_warning` per object; minimum-B (>= 501) guidance added to the roxygen. Guard threshold and default type unchanged (maintainer decision). Test: `test-bootstrap-bca-boundary-reason-and-warning-todo101.R`.
+- [x] TODO-102 (added 2026-10-21, user decision; found by the agent harness
+  audit, run T15): **`DesignFixedBlocking` silently drops the user's strata
+  when n is prime.** In `design_fixed_blocking.R:138-140` the default
+  `B_target` is `largest_divisor_at_most(n, floor(sqrt(n)))`. For a prime n
+  that is 1, so the greedy key construction adds no strata columns, and
+  `strata_cols = "sex"` gives a single block with no warning.
+  - Seen at n = 61, 67, 71 and 97. At n = 67 the "sex-blocked" step came out
+    18/16 within one sex.
+  - The workaround was `B_target = 2, exact_num_blocks = TRUE`.
+  - Fix: an explicit `strata_cols` should never be discarded silently. When
+    the user names strata, either default to using all of them (`B_target =
+    NULL` behaviour) or warn whenever the final block count is smaller than
+    the number of strata cells requested. Also check composite n whose
+    largest small divisor is far below the number of strata cells. Add a
+    regression test at prime n.
+  - **Done 2026-10-22 (Option B; intentional default behavior change, user
+    decision, 1.0.0 compatibility explicitly waived).** When `strata_cols` is
+    named and `B_target` is left unset, `DesignFixedBlocking$initialize` now
+    resolves `B_target` to `NULL`, so ALL named strata are used (the block
+    count is whatever their cross-classification gives). `strata_cols = NULL`
+    keeps the old default (largest divisor of n at most floor(sqrt(n))), and
+    so does `exact_num_blocks = TRUE` with `B_target` unset (it needs a numeric
+    target). An explicit `B_target` is unchanged. The earlier warn-only
+    machinery (`B_target_is_default`, skipped-column warning, two registry
+    fields) was removed.
+  - `equal_block_sizes = TRUE` (the default) interaction: with no cap the
+    cells may not be equal-sized. The existing add-subjects-time check in
+    `get_strata_keys()` already errors (lazily, at first `get_block_ids()`/
+    draw); its message now names n, block count and strata_cols and says to
+    set `equal_block_sizes = FALSE`. Behavior with `strata_cols` = 2-level sex,
+    alternating: n = 61, 67, 71, 97 -> default errors (sizes 30/31, 33/34,
+    35/36, 48/49); `equal_block_sizes = FALSE` -> 2 blocks; `B_target = 2` ->
+    constructor error (n not divisible by 2) unless `equal_block_sizes =
+    FALSE`, then 2 blocks. n = 58 with a 3-level stratum: default errors
+    (19/19/20); `equal_block_sizes = FALSE` -> 3 blocks; explicit `B_target =
+    2` -> 1 block (explicit cap, unchanged, silent). Docs: `@param B_target`
+    and `@param equal_block_sizes` roxygen updated (Rd not regenerated).
+    Tests: `package_tests/testthat_bulk/test-design-fixed-blocking-default-b-target-drops-strata-warning.R`
+    rewritten; `test-blocking-strata-key-construction-reference.R` updated
+    (old default-cap expectation on named strata). Verified source-loaded with
+    `pkgload::load_all(compile = FALSE)`; installed package not rebuilt.
+
+### Agent-harness tier-1 findings, verified 2026-10-22 (TODO-103..119)
+
+These came from the agent harness audit
+(`private/marketing_plans/agent_harness_audit.md`, tier 1). Each was checked
+against the source on 2026-10-22, and against the installed EDI 1.0.3, whose
+R/C++ source equals HEAD 478104b0. Repro scripts are in
+`/tmp/claude-1000/verify_tier1/<group>/`. Unless a TODO says otherwise, it was
+reproduced at runtime. All were added at the user's request ("verify each
+against the source").
+
+- [x] TODO-103 (added 2026-10-22, user decision; harness T35): **Asymptotic
+  SEs ignore clustering on cluster designs.**
+  - **Current state (2026-10-22):** OLS/Lin are done in R (cluster id out of
+    `~ .`, CR2 SE with Bell-McCaffrey Satterthwaite df, once-per-object
+    independence warning, warning for a cluster column in a user formula,
+    docs). Remaining: per-class CR2 for GLM/Cox/etc. (deferred feature,
+    `release_v1_1_0.md` TODO-55, not a 1.0.5 blocker); a sweep of all classes
+    for the warning; Rd regeneration. Kind: maintainer decision (close the box
+    with TODO-55 split out) plus Rd regeneration.
+  - `InferenceContinOLS` uses a homoskedastic variance
+    (`inference_continuous_ols.R:362-415`), and `InferenceContinLin` uses
+    subject-level HC2 (`inference_continuous_lin.R:12-16, 311ff`). Neither
+    uses the design's cluster ids.
+  - On `cluster_trial.csv` (20 schools, `model_formula = ~pretest`), Lin's SE
+    is 0.605 against a cluster-jackknife SE of 1.627, about 2.7× too narrow.
+    For reference: CR1 SE 1.53, clubSandwich CR2 SE 1.57 (Satterthwaite df
+    17.6), lmer SE 1.61.
+  - `DesignFixedCluster`'s docs (`design_fixed_cluster.R:13, 24-29`) mention
+    only the cluster bootstrap. Nothing says that Wald/LR/score SEs treat
+    subjects as independent.
+  - Related: under the default `~ .`, `cluster_col` enters the model matrix.
+    With a factor school, OLS adds 19 school dummies that are collinear with
+    treatment, and hardening reduces the treatment coefficient to a contrast
+    between two schools (3.155 = `lm(score ~ treatment + pretest + school)`).
+  - Fix:
+    - Add a CR2 (Bell-McCaffrey) sandwich clustered on the design's cluster
+      ids, with G−1 or Satterthwaite df, for regression classes on
+      `is_a_cluster_capable()` designs. Generalize `helper_robust_sandwich.R`
+      with a `cluster=` argument.
+    - Until then, warn on cluster designs, and document that rand / bootstrap
+      / `jackknife(unit = "cluster")` are the cluster-aware routes.
+    - Mark `cluster_col` as assignment-only so it stays out of `~ .`.
+  - **Partial progress 2026-10-22 (box left unchecked).** Done (uncommitted,
+    R only): (a) `cluster_col` is excluded from the default `~ .` analysis
+    columns (`design_abstract.R`, model-matrix build), so no school dummies;
+    (b) new `cluster_robust_cr2_variance()` and
+    `design_cluster_ids_for_inference()` in `helper_robust_sandwich.R`
+    (CR2 with G-1 df; NULL if <3 clusters or ids unavailable, which falls back
+    to the old SE); (c) `InferenceContinOLS` (`apply_cluster_robust_se`) and
+    `InferenceContinLin` use CR2 SE and G-1 df on `is_a_cluster_capable()`
+    designs. **Default change:** OLS/Lin Wald SE, p and CI on cluster designs
+    are now cluster-robust (wider); the OLS/Lin default covariate set no longer
+    contains the cluster id. (d) `DesignFixedCluster` docs state this and name
+    the cluster-aware routes. Test:
+    `package_tests/testthat_bulk/test-cluster-design-ols-lin-cr2-se-and-cluster-col-assignment-only.R`
+    (CR2 matches an independent reference to 1e-8; 9 expectations pass, plus
+    neighbouring cluster/jackknife/hierarchy tests). Satterthwaite df is not
+    implemented (G-1 used) [superseded below: Follow-up (2) implemented
+    Bell-McCaffrey Satterthwaite df]. **Still open:** CR2 for the other
+    regression classes (GLM, Cox, etc.), the interim warning for them
+    [superseded below: Follow-up implemented it], user-supplied
+    `model_formula` containing the cluster column (not stripped) [still not
+    stripped, but now warns; see Follow-up (2)], Rd not
+    regenerated, and the cluster_trial.csv numbers (SE ~1.6) not re-checked
+    [superseded below: re-checked, SE 1.581, df 17.64].
+  - **Follow-up 2026-10-22: interim warning implemented (box stays
+    unchecked; per-class CR2 is now tracked separately as
+    `release_v1_1_0.md → TODO-55`).** New free helper
+    `edi_warn_cluster_independence_once(self, private, family)` in
+    `helper_robust_sandwich.R`: on `is_a_cluster_capable()` designs it emits ONE
+    classed warning (`edi_cluster_independence_warning`; suppress with
+    `suppressWarnings(expr, classes = ...)`) per object per family. Silent on
+    non-cluster designs and whenever `private$active_resampling_operation` is
+    set (rand / bootstrap / jackknife / param-boot workers). Message names
+    `compute_rand_*`, `compute_bootstrap_*` (resamples whole clusters, verified)
+    and `compute_jackknife_wald_*(unit = "cluster")`. Families: (1) `"wald"`,
+    hooked in `InferenceAsymp` (`compute_wald_*_impl`,
+    `compute_z_or_t_*_from_s_and_df`); skipped when
+    `cached_values$cluster_robust_se_applied` (set by OLS/Lin CR2), so OLS/Lin
+    Wald is silent. (2) `"likelihood"` (score / gradient / LR / Bartlett and the
+    parametric bootstrap), hooked in `inference_ext_ci_inversion.R`
+    (3 inverters), `compute_likelihood_test_two_sided_pval` (memoization
+    component + std_mod_cache + KK_ols_one_lik + KK_cond_logit overrides) and
+    the 5 `compute_lik_ratio_bootstrap_*` / `compute_param_bootstrap_*` publics;
+    this family warns for ALL classes including OLS/Lin. New private field
+    `cluster_independence_warned` in `inference_all_abstract.R`. Roxygen on
+    `DesignFixedCluster` updated (Rd not regenerated). Test:
+    `package_tests/testthat_bulk/test-cluster-design-independence-warning-asymp-and-likelihood-paths.R`
+    (18 expectations: logit/Poisson/Cox warn once; OLS/Lin Wald silent; LR and
+    param-boot warn once incl. OLS/Lin; non-cluster silent; rand/bootstrap
+    silent). **Known gaps:** classes that override the Wald/likelihood path
+    without the shared helpers (e.g. Wald-only classes with fully custom public
+    methods, `InferenceCountCompositeLikelihood` and other custom `*_impl`
+    overrides, GEE/GLMM mixins) do not warn; no sweep over all classes was run.
+  - **Follow-up 2026-10-22 (2): Satterthwaite df and user formula (box stays
+    unchecked; OLS/Lin items are done, per-class CR2 is v1.1.0 TODO-55).**
+    `cluster_robust_cr2_variance()` now returns Bell-McCaffrey (Satterthwaite)
+    df under the identity working model (G-1 fallback if not finite; NULL if
+    <3 clusters). On `cluster_trial.csv` (`score ~ treatment + pretest`) the
+    helper gives SE 1.581, df 17.64, identical to clubSandwich CR2 Satterthwaite
+    (SE 1.58, df 17.6, p 0.07). **Default change:** OLS/Lin df on cluster
+    designs is non-integer Satterthwaite rather than G-1 (CIs/p slightly
+    wider); NEWS v1.0.5 line added. A user `model_formula` using the cluster
+    column (even `as.character(school)`) used to be silently accepted and gave a
+    meaningless aliased contrast; it now emits the classed warning
+    `edi_cluster_col_in_model_formula_warning` at construction (not an error,
+    not stripped). Tests added to the cr2 test file (independent df reference,
+    clubSandwich match, fallback, formula warning). Rd not regenerated.
+  - **Sweep note 2026-10-22 (3) (box stays unchecked; G6 #8, G8).** Runtime sweep
+    (scratch `/tmp/claude-1000/todo103/sweep.R`, current source via
+    `load_all(compile = FALSE)`) of every non-KK, non-IVWC concrete class on a
+    20x10 `DesignFixedCluster`, calling `compute_asymp_confidence_interval()`
+    and `compute_asymp_two_sided_pval()` and counting
+    `edi_cluster_independence_warning`: all regression and Wald classes already
+    warned once; OLS/Lin silent (CR2). Gaps found (custom public Wald methods
+    that bypass the shared helpers) and fixed in R by adding
+    `edi_warn_cluster_independence_once(self, private, "wald")` as the first
+    line of the public asymp (and, for the G-computation classes, `compute_wald_*`)
+    methods of: `InferenceAllSimpleMeanDiffPooledVar`, `InferenceAllSimpleWilcox`,
+    `InferenceIncidNewcombeRiskDiff`, `InferenceIncidMiettinenNurminenRiskDiff`,
+    the incidence/ordinal/proportion G-computation classes. Re-sweep: each now
+    warns once. KK/matching-only classes could not be swept on a cluster design
+    (they require a KK design) and are not cluster-capable, so no change.
+    `InferenceCountHurdlePoisson` showed 0 only because its fit is degenerate on
+    the sweep data (SE unavailable, bootstrap fallback); not a code gap.
+    `InferenceCountZeroInflatedNegBin` errored in the sweep (swallowed by the
+    harness; `get_estimand` not a function) and is **unverified/unexamined**.
+    Test added to the independence-warning file (new `test_that` for these 7
+    classes). **Unverified:** that new test reported an ERROR (not a failure) in
+    the one run made before the installed EDI vanished mid-session (a
+    `00LOCK-EDI` appeared, so the user's build is running and I stopped per
+    CLAUDE.md); the error was not diagnosed and the test must be re-run
+    (`test_file` on the file, parent env `asNamespace("EDI")`). The other 7 tests
+    of that file (17 expectations) and the 6 CR2 tests passed in the same
+    session. Rd not regenerated. Remaining, all gated: per-class CR2 (v1.1.0
+    TODO-55), the owner's close-the-box decision (G6 #8), Rd regeneration (G8).
+    Gates row unchanged (G6, G8).
+  - **Closed 2026-10-22 (final audit; box checked).** Owner decision (G6 #8,
+    2026-10-22): close the box with per-class CR2 tracked as
+    `release_v1_1_0.md → TODO-55` (entry exists) and accept the documented
+    non-integer Satterthwaite df default change on cluster designs (NEWS line
+    present). The "unverified ERROR" above was fixed (the new test's data helper
+    lacked ordinal/proportion branches); re-run in the final audit with
+    `load_all(compile = FALSE)`: the independence-warning file passes 8 tests / 25
+    expectations, the CR2 file 6 tests / 16 expectations, 0 failures/errors. Rd
+    regeneration (G8) ran clean twice 2026-10-22. `InferenceCountZeroInflatedNegBin`:
+    a direct call of `compute_asymp_two_sided_pval()` /
+    `compute_asymp_confidence_interval()` on a 20x10 `DesignFixedCluster` with the
+    installed rebuilt package raised no `get_estimand` error; its SE was unavailable
+    on that data (falls back to bootstrap, like the hurdle case), so it is a
+    degenerate-fit observation, not a code gap. Only the commit remains.
+
+- [x] TODO-104 (added 2026-10-22, user decision; found while verifying T35):
+  **`InferenceContinLin` reuses one model formula's centered covariates for
+  another, silently giving the wrong estimate.**
+  - `get_centered_covariates()` caches the centered X on the design object
+    (`des_priv$lin_centered_covariates`, `inference_continuous_lin.R:288-309`).
+    The cache key does not include `model_formula`.
+  - So a second Lin object on the same design returns the first one's
+    estimate. On `blocked_continuous.csv` with `DesignFixedBernoulli`:
+    - lm gives 1.263 for `~x1` and 1.163 for `~x1+x2+x3`;
+    - `Lin(~x1)` then `Lin(~.)` returns 1.263 and 1.263;
+    - in the reverse order it returns 1.163 and 1.163.
+  - Fix: key the cache on `model_formula` and the covariate columns, or move
+    it to the inference object. Add a regression test that builds two Lin
+    objects with different formulas on one design.
+  - DONE 2026-10-22: the design-level cache is now `list(key, result)` with
+    key = dim, colnames, colSums(X), colSums(X^2) of the model's X; a mismatch
+    recomputes. Regression test added to
+    `test-continuous-lin-design-matrix-and-centered-covariates-cache-lin-interaction-reference.R`
+    (fails on HEAD, passes now); the two cache-format tests there were updated.
+
+- [ ] TODO-105 (added 2026-10-22, user decision; harness T16, T17, T20, T44):
+  **Regression inference on blocking designs adds no block fixed effects, and
+  this is not documented.**
+  - **Current state (2026-10-22):** documentation (37 regression classes plus
+    `DesignFixedBlocking`) and the integer `strata_cols` categorical fix are
+    done. Remaining: the `add_block_fixed_effects` opt-in (maintainer
+    decision; default must stay FALSE) and Rd regeneration (~38 Rd files
+    drift). Earlier "STILL OPEN" lists below are superseded by PARTIAL 2/3,
+    except the opt-in.
+  - Regression classes use only the covariate model matrix
+    (`inference_all_abstract.R:1054-1086`). Only CMH and ExtendedRobins read
+    `get_block_ids()`. Rand, bootstrap and jackknife are block-aware.
+  - Whether blocks enter the model depends on how they were supplied: not at
+    all with `m=`, as dummies with a factor `strata_cols`, and as a linear
+    term with a numeric one.
+  - `design_fixed_blocking.R:22-24` says the analysis should "account for the
+    blocking structure", but no inference class does so automatically.
+  - Consequence: with EDI's equal within-block proportions this is not a
+    validity bug. The estimate is unbiased and the SE is conservative (a
+    simulation with block SD 2 gave 100% coverage and SE about 2× the true
+    SD). The cost is power.
+  - Related usability bug: an integer `strata_cols = "site"` is treated as
+    continuous and quantile-binned into 2 bins, so `get_block_ids()` gives 2
+    blocks rather than 4 sites (also seen in T02).
+  - Fix:
+    - Add an `add_block_fixed_effects = TRUE` option that appends dummies from
+      `get_block_ids()` (deduplicated against X) for OLS/Lin/robust/quantile
+      and the GLM families; for Lin, also interact them. At minimum, document
+      the behaviour on each regression class and on `DesignFixedBlocking`.
+    - Treat few-level integer or character `strata_cols` as categorical, or
+      warn when one is binned.
+  - PARTIAL 2026-10-22 (box left open): roxygen "Blocking designs" paragraph
+    added to `InferenceContinOLS` and `InferenceContinLin` only (Rd not
+    regenerated); behaviour-pinning test
+    `test-regression-no-implicit-block-fixed-effects.R` (OLS, factor
+    strata_cols, installed pkg: passes). STILL OPEN: the same note on the other
+    regression classes and `DesignFixedBlocking` (design_fixed_blocking.R was
+    off-limits, TODO-102); the `add_block_fixed_effects` opt-in (maintainer
+    decision: default must stay FALSE); the integer `strata_cols` binning
+    warning/categorical treatment (lives in design strata-key code).
+  - PARTIAL 2 2026-10-22 (box still open): integer `strata_cols` item DONE.
+    `get_strata_keys()` (design_blocking_abstract.R) now treats an
+    integer-valued numeric strata column with <= 10 distinct values as
+    categorical (constant `BLOCKING_MAX_INTEGER_LEVELS_AS_CATEGORICAL`); if
+    that would exceed `B_target` it falls back to quantile binning as before.
+    Roxygen for `strata_cols` and a NEWS Breaking-changes line added; test
+    `test-blocking-integer-strata-categorical.R` (fails before, passes after).
+    No warning is emitted. Rd not regenerated. STILL OPEN: `add_block_fixed_effects`
+    opt-in (maintainer decision), and the no-block-FE note on the remaining
+    regression classes / `DesignFixedBlocking`.
+  - PARTIAL 3 2026-10-22 (box still open; doc item DONE, opt-in remains the
+    maintainer's decision): the OLS paragraph is now a `@section Blocking
+    designs` (source topic `InferenceContinOLS`), reused via `@inheritSection`
+    in `InferenceContinLin` and 36 other non-KK regression classes (count,
+    incidence, g-comp, ordinal, proportion, quantile, robust, survival); the
+    `DesignFixedBlocking` class doc now has a "How inference accounts for the
+    blocks" section. Earlier wording "unbiased" was corrected to require equal
+    treated proportion across blocks. Verified by simulation: equal allocation
+    -> mean est ~0, SE ~2.5x true SD (conservative, coverage 100%); blocks of
+    size 2/20 with prob_T = 0.8 -> mean OLS estimate 0.29 under a true effect of
+    0 (Simpson bias; per-block floor rule). Rd not regenerated; roxygen drift
+    will appear in ~38 Rd files when regenerated. `add_block_fixed_effects`
+    would touch the same 37 classes (plus KK/IVWC/OneLik variants if wanted).
+  - Review 2026-10-22 (no source change): re-audited the remaining items; every
+    decision-independent piece (class docs, `DesignFixedBlocking` docs, integer
+    `strata_cols` categorical fix, tests, NEWS) is already done, so nothing
+    further was edited. What remains is gated: (1) the `add_block_fixed_effects`
+    opt-in (default FALSE) is G6 #7 (recommendation: defer, docs shipped; if
+    deferred, open a v1.1.0 TODO and close this box); (2) Rd regeneration (~38
+    Rd files) is G8. Classification stays "partly" (G6, G8).
+
+- [ ] TODO-106 (added 2026-10-22, user decision; harness T28, T29, T49):
+  **`InferenceOrdinalRidit`'s asymptotic SE ignores the reference arm's
+  sampling variance.**
+  - **Current state (2026-10-22):** R class fixed (`ridit_delong_se()`),
+    tested. Remaining is a C++ patch gated on a user build (G1):
+    `fast_ridit_analysis_result()` in `R/EDI/src/fast_ridit_analysis.cpp` still
+    returns the old `se`, so the C++ `$se` field and the Python kernel
+    (`python/cpp/bindings_ordinal.cpp`) are wrong until it is patched; also
+    update the Python docs.
+  - `fast_ridit_analysis_result()` (`src/fast_ridit_analysis.cpp:149-166`)
+    and the treatment-reference branch (`inference_ordinal_ridit.R:246-251`,
+    added by TODO-32) use sd(target-arm scores)/√n, which treats the
+    reference CDF as known.
+  - On `likert.csv`:
+
+    | Method | SE | p |
+    |---|---|---|
+    | Control reference | 0.0269 | .003 |
+    | Treatment reference | 0.0321 | .013 |
+    | DeLong | 0.0419 | .057 |
+    | `wilcox.test` | — | .058 |
+
+  - Null rejection rate at α = .05: 14.75% for the current SE, 3.75% for
+    DeLong.
+  - The pooled-reference SE errs the other way and is too large; the correct
+    value is (n_C/N) × the DeLong SE.
+  - Fix: use the DeLong variance Var(V10)/n_T + Var(V01)/n_C for the control
+    and treatment references, and (n_C/N) times that for pooled. Update the
+    Python kernel and the docs (lines 25-27). Tests: p within 0.01 of
+    `wilcox.test(correct = FALSE)`, and a null type-I simulation.
+  - Status 2026-10-22 (PARTIAL, R side done, left unchecked): the R class now
+    overrides the SE with `ridit_delong_se()` (`inference_ordinal_ridit.R`,
+    DeLong; (n_C/N) x for pooled) and the roxygen was updated. Verified: 1000-rep
+    null sim (n=40, control ref) type-I 19.3% old SE vs 5.7% new; p within 0.01
+    of `wilcox.test(correct = FALSE)`; control and treatment refs identical.
+    Tests: `tests/testthat/test-ordinal-ridit-delong-se.R` (new) and the
+    treatment-reference degeneracy bulk test (fixture p moved .011 -> .051).
+    STILL OPEN: `fast_ridit_analysis_result()` in `src/fast_ridit_analysis.cpp`
+    still returns the old `se` (not changed: no safe targeted-compile path,
+    stale per-file .o beside unity_NN.o), so the Python kernel and the C++
+    `$se` field remain wrong; patch the C++ (compute V10/V01 from `scores`
+    of the opposite reference) and update the Python binding/docs.
+  - Review 2026-10-22 (no source change): re-audited; the R side (class,
+    roxygen, tests) is complete and nothing decision-independent is left. What
+    remains is gated: (1) the C++ `fast_ridit_analysis_result()` SE change is
+    prepared as patch 06 (+ companion C06 and `test-ridit-kernel-se-equals-delong.R`)
+    and needs the user build (G1); (2) the Python binding/pyi constants, CHANGELOG
+    and `.postN` release for patch 06 need the G6 #28 approval (G6); (3) Rd
+    regeneration (G8). Classification stays "partly" (G1, G8; G6 for the Python
+    release only).
+
+- [ ] TODO-107 (added 2026-10-22, user decision; harness T28, T49):
+  **`InferenceOrdinalPartialProportionalOddsRegr`'s VGAM backend flips the
+  sign and has a degenerate parallel constraint.**
+  - **Current state (2026-10-22):** all R work is done. VGAM sign and
+    parallel spec are fixed, and `ordinal_fit_scaled()` centers/scales
+    covariates at every solver call site of PropOdds, PPO, Cauchit, Cloglog,
+    OrderedProbit, AdjCatLogit and ContRatio (Stereotype unaffected);
+    `ordinal_po_refit_centered_scaled()` is now only a thin wrapper over it.
+    Remaining: a C++ patch gated on a user build (G1), scale-aware convergence
+    in the ordinal kernels (the R wrapper then becomes a no-op safety net);
+    the 0.4606 vs 0.4492 case is unreproduced (data not in repo); TODO-18
+    re-open hypothesis unverified; Rd regeneration.
+  - Sign flip: `fit_vgam()`/`fit_vgam_weighted()`
+    (`inference_ordinal_partial_proportional_odds.R:525-589`) return VGAM's
+    `cumulative()` coefficient (α_j + βx) unchanged, while the fast solver,
+    clm and polr use α_j − βx.
+    - VGAM is reached even when `nonparallel` is empty, because the fast
+      solver does not converge on uncentred covariates and line 464 rejects
+      the unconverged fit.
+    - Result on `likert.csv`: EDI gives −0.4492, while polr gives +0.4492.
+  - Degenerate fit: line 538's `parallel = ~ treatment + …` also makes the
+    intercepts parallel. With `nonparallel = "baseline_score"` that gives
+    logLik NaN, SE 2.2e-7 and a CI 1e-6 wide.
+    - The correct spec is `parallel = FALSE ~ <nonparallel>`.
+  - Sibling bug: `InferenceOrdinalPropOddsRegr`
+    (`inference_ordinal_proportional_odds.R:220-263`) and the weighted fast
+    path (line 499) ignore `res$converged`, so they report an unconverged
+    0.4606 against the MLE of 0.4492.
+  - Fix:
+    - use `cumulative(reverse = TRUE)` or negate the coefficient;
+    - fix the parallel formula;
+    - reject a fit with non-finite logLik or a tiny SE;
+    - warn when `nonparallel` contains `"treatment"`;
+    - center and scale internally in the fast solver, and honour
+      `converged`.
+  - Re-open TODO-18. Its `~.` / nonzero-β_T coverage collapse matches this
+    sign flip; that is a hypothesis, not yet verified.
+  - STATUS 2026-10-22 (R side done, box left open): VGAM coefficient negated;
+    `parallel = FALSE ~ <nonparallel>` (new `vgam_parallel_spec()`; matches
+    `ordinal::clm` logLik exactly); `finalize_vgam_fit()` rejects non-finite
+    logLik / SE < 1e-6; `nonparallel = "treatment"` warns and is dropped; PPO
+    fast path centers/scales covariates and honours `converged`; PropOdds
+    `generate_mod` and weighted path honour an explicit `converged = FALSE`
+    (cold centered/scaled refit with exact back-mapping in
+    `ordinal_po_refit_centered_scaled()` [superseded below: that helper's alpha
+    mapping had the wrong sign and it is now a thin wrapper over
+    `ordinal_fit_scaled()`]). Tests:
+    `test-partial-odds-vgam-sign-and-parallel-spec-reference.R` (new); two
+    older tests that enshrined the flipped sign were corrected.
+    STILL OPEN: (a) C++ `fast_ordinal_regression_*_cpp` reports
+    `converged = TRUE` on uncentred covariates while the treatment coefficient
+    is off by up to ~0.7 (covariate mean 1e3), so `InferenceOrdinalPropOddsRegr`
+    (no internal scaling yet [superseded below: scaled via
+    `ordinal_fit_scaled()`]) still returned e.g. -0.679 vs polr -0.666 at
+    covariate mean 100; fix the tolerance/convergence test in C++ or scale in
+    PropOdds. (b) the 0.4606 vs 0.4492 `likert.csv` case was not reproduced
+    (data not in repo). (c) TODO-18 re-open hypothesis unverified.
+  - STATUS 2026-10-22 (follow-up, item (a) R-level DONE, box left open):
+    new `ordinal_fit_scaled()` / `ordinal_center_scale_plan()` in
+    `inference_ordinal_proportional_odds.R` center/scale all non-treatment
+    columns before the fast solver and map params, Fisher/observed info and
+    vcov back exactly (warm starts mapped forward; fixed treatment coef
+    unchanged; verified Hessian/vcov agree to 1e-8 with the C++ Hessian at the
+    mapped params). Used at every solver call site of
+    `InferenceOrdinalPropOddsRegr` (estimate/SE, randomization, weighted
+    bootstrap, lik-test fit_null, param-boot) and of Cauchit, Cloglog (sign
+    `linpred_sign = +1`; its linear predictor is alpha + x'beta) and
+    OrderedProbit. Also FIXED: the earlier `ordinal_po_refit_centered_scaled`
+    mapped alpha with the wrong sign (alpha_s = alpha - m'beta; only b/SE
+    were tested before). Scaling is skipped (bit-identical to before) when
+    every column has |mean| <= sd and sd in [0.25, 4].
+    Numbers (n=200, covariate shift 0/100/1e4, clm treatment = 1.2855):
+    PropOdds before 1.2849/1.1920/1.1843, after 1.2849/1.2855/1.2855 (SE
+    0.2813 everywhere; polr itself gives SE NaN at 1e4); Cauchit before
+    1.291/1.282/0.000, after 1.291/1.292/1.292; Cloglog before
+    0.805/0.734/0.000, after 0.805/0.806/0.806; OrderedProbit before
+    0.744/0.674/0.000, after 0.744/0.744/0.744. STILL AFFECTED (own solver
+    signatures, not touched): AdjCatLogit (0.897/0.827/0.490), ContRatio
+    (1.130/1.041/0.637) [superseded below: both fixed in follow-up 2];
+    Stereotype is unaffected. Tests:
+    `test-ordinal-fast-solver-uncentred-covariates-reference.R` (new).
+    STILL OPEN (C++): make `fast_ordinal_regression_*_cpp` (and the
+    cauchit/cloglog/probit/adjacent-category/continuation-ratio kernels)
+    scale-aware: in the convergence test use a relative gradient
+    (||g_j|| / max(1, sd(X_j)) per beta block, or equivalently solve in
+    standardized-X coordinates internally and back-map as ordinal_fit_scaled
+    does) and report converged = FALSE when the raw gradient_norm exceeds tol
+    on the unscaled problem; then ordinal_fit_scaled becomes a no-op safety
+    net. AdjCat/ContRatio need the same R wrapper once their warm-start
+    argument names (warm_start_beta) are adapted.
+  - STATUS 2026-10-22 (follow-up 2, AdjCat + ContRatio R-level DONE, box left
+    open): `ordinal_fit_scaled()` gained `warm_arg` (name of the solver's
+    full-parameter warm-start argument; ContRatio's `warm_start_beta` is the
+    FULL c(alpha, beta) vector, not beta only) and now calls the solver via
+    `do.call`; it also maps `beta_full` and `X_aug` back for the
+    continuation-ratio solvers. Mappings (verified from the C++ sources and
+    against `VGAM::vglm(acat(parallel=TRUE, reverse=FALSE))` /
+    `cratio(parallel=TRUE)`): AdjCat log p~_k = sum_{j>=k}(alpha_j - x'beta),
+    so `linpred_sign = -1` (alpha_s = alpha - m'beta); ContRatio
+    logit P(continue past j) = alpha_j + x'beta, so `linpred_sign = +1`
+    (alpha_s = alpha + m'beta). Applied at all 7 solver call sites of
+    `InferenceOrdinalAdjCatLogitRegr` and all 7 of `InferenceOrdinalContRatioRegr`
+    (estimate/SE, randomization, weighted bootstrap/worker, lik-test null refit,
+    param-boot full + null). Numbers (n=200, shift 0/100/1e4): AdjCat before
+    0.8969/0.8269/0.4900, after 0.8969/0.8968/0.8968 (SE 0.2058/0.2058/0.2058);
+    ContRatio before 1.1301/1.0414/0.6367, after 1.1301/1.1300/1.1300 (SE
+    0.2507/0.2507/0.2507); shift 0 and well-scaled data are bit-identical.
+    Tests: `test-ordinal-adjcat-contratio-uncentred-covariates-reference.R`
+    (new; fails before, passes after). Still open: the C++ convergence fix
+    (items above); the wrapper then becomes a no-op safety net. Note ContRatio
+    class code previously stored `res$b` (length p) as its "beta" warm start in
+    the randomization/generate_mod paths, which the length check discards;
+    not changed.
+  - STATUS 2026-10-22 (C++ patch written, UNCOMPILED, box left open): the
+    scale-aware convergence for the six kernels is now patch 12,
+    `bug_fix_plans/cpp_patches_v105/12-ordinal-scale-aware-convergence.patch`
+    (`git apply --check` OK; nothing compiled, `R/EDI/src` untouched). New
+    `ordinal_scale_guard.h` + one hunk in each of logit, cauchit, cloglog,
+    probit, adjacent-category, continuation-ratio: when covariates are badly
+    scaled (R `ordinal_center_scale_plan()` rule) and the affine-invariant
+    Newton decrement g'H^-1 g exceeds max(1e-6, tol), `converged` is set FALSE
+    (params untouched). This replaces the plan above of rescaling inside C++:
+    a post-hoc certificate, so well-scaled fits stay bit-identical. Remaining
+    (all gated on G1, user build): compile the 6 files, run the two
+    uncentred-covariate reference tests; Rd regeneration (G8) unaffected (no
+    signature change). Still unreproduced: the 0.4606 vs 0.4492 case (data not
+    in repo); TODO-18 re-open hypothesis unverified. No R/test changes this pass
+    (a test would only pass after the compile; the existing two reference tests
+    cover the R wrapper).
+
+- [ ] TODO-108 (added 2026-10-22, user decision; harness T31; verified by
+  reading the source only): **RMST has no user-settable horizon τ.**
+  - **Current state (2026-10-22):** `tau` is implemented in R and tested
+    (26 expectations); the Turnbull default-tau defect was fixed under
+    TODO-109. Remaining: a performance-only C++ patch gated on a user build
+    (G1), `rmst_tau` in `compute_survival_stat_diff_rand_bootstrap_parallel_cpp`
+    (with a user `tau` it falls back to the slower generic loop); the
+    `survRM2::rmst2` cross-check once survRM2 is installed; Rd regeneration.
+  - `InferenceSurvivalRestrictedMeanDiff$initialize()`
+    (`inference_survival_rmst.R:61`) takes no τ, so "RMST at 36 months" cannot
+    be requested.
+  - The private helper already accepts τ (`:221, :241`). TODO-23's plan
+    deliberately deferred this
+    (`bug_fix_plans/rmst_mismatched_truncation_horizon.md` TODO-4).
+  - Fix: add `tau = NULL`, where NULL keeps the current default. A given τ
+    must be > 0 and ≤ the minimum of the arm maxima. Thread it through:
+    - the R weighted path;
+    - `fast_survival_stats.cpp` (point estimate and Greenwood SE);
+    - the rand/bootstrap kernels;
+    - the Turnbull path.
+  - Test against `survRM2::rmst2(tau =)`.
+  - **Status 2026-10-22 (implemented in R, box left unchecked):**
+    `InferenceSurvivalRestrictedMeanDiff$new(..., tau = NULL)` added and
+    validated (single finite positive number, <= min arm max follow-up).
+    No C++ change was needed: the native kernels already use
+    `min(arm maxima)`, so R right-truncates `(y, dead)` at `tau`
+    (`y -> min(y, tau)`, events past `tau` -> censored) before calling
+    `get_survival_stat_diff()` / `get_restricted_mean_se_diff()`. Threaded
+    through estimate, Greenwood SE, Bayesian-bootstrap weighted R path,
+    generic non-parametric-bootstrap/randomization workers (truncate at point
+    of use, so raw resampled `y` is fine), and the Turnbull helpers (exact
+    integration to `tau`). Tests: `tests/testthat/test-rmst-user-settable-tau.R`
+    (26 expectations; reference is an independent `survfit` area, not
+    `survRM2`, which is not installed). Default (tau unset) unchanged.
+    Remaining: (a) the fast native randomization kernel
+    `compute_survival_stat_diff_rand_bootstrap_parallel_cpp` has no `tau`
+    argument, so with a user `tau` it returns NULL and uses the slower generic
+    loop (C++ patch: add `double rmst_tau` and apply
+    `min(rmst_tau, arm max)` inside `km_stat_inline`, which already supports
+    `rmst_tau`); (b) `survRM2::rmst2` cross-check once survRM2 is installed;
+    (c) Rd regeneration (roxygen edited, not run); (d) TODO-109 Turnbull
+    default-tau defects untouched [superseded: fixed under TODO-109].
+  - **Review 2026-10-22 (source pass, no code changed):** re-checked what is
+    possible without a native build or owner decision. R `tau` support, class
+    and `@param tau` roxygen (incl. the Turnbull-to-`tau` sentence) and
+    `tests/testthat/test-rmst-user-settable-tau.R` are complete.
+    `cpp_patches_v105/05-rmst-tau.patch` and
+    `companions/A05-rmst-tau-R-callsite.patch` both still pass
+    `git apply --check`; the fast-kernel test is staged in `companions/`. Nothing
+    further is writable. Still gated: G1 (build patch 05, `compileAttributes()`,
+    apply A05, run the kernel test) and G8 (`survRM2::rmst2` cross-check;
+    survRM2 is not installed here); Rd regeneration. Gate-table row 108
+    (partly, G1+G8) unchanged. Box left unchecked.
+
+- [ ] TODO-109 (added 2026-10-22, user decision; harness T33; verified by
+  reading the source only): **The Turnbull (interval-censored) RMST/median
+  path silently drops exact events, and still uses a separate τ per arm.**
+  - **Current state (2026-10-22):** both defects fixed in R only (no C++) and
+    tested. Remaining: Rd regeneration and an installed-package/CI run (roxygen
+    text written, see the later note). Kind: Rd regeneration + CI gate.
+  - The agent's claim was wrong. Interval-censored data does go through a
+    Turnbull NPMLE (`inference_survival_rmst.R:74-83`), not a naive
+    computation. Reading that path turned up two real defects:
+    1. **Exact events are dropped.** Exact responses are stored in `y` with
+       `y_L`/`y_R` NA (`design_abstract.R:327-333`). But only `y_L`/`y_R`
+       are passed on, and `turnbull_npmle_group_stat` keeps only rows with a
+       finite `y_L` and `y_R > y_L` (`helper_inference_survival_turnbull.R:31`).
+       - The package's own test fixture
+         (`test-rmst-asymptotic-wald-and-general-censoring.R:133-157`) mixes
+         in exact events "so the Turnbull fit is well identified", and those
+         events are discarded. The test passes only because its reference is
+         built the same way.
+       - `InferenceSurvivalKMDiff` (`:275`) shares the helper.
+    2. **τ is still per arm.** τ = max(finite R) is computed per arm (`:52-54`).
+       The integration also stops at the last left endpoint ≤ τ (`:55-64`)
+       rather than at τ. TODO-23's audit missed this file.
+  - Fix:
+    - fold exact events in as y_L = y_R = y;
+    - warn on any excluded row;
+    - use one shared τ and integrate all the way to it;
+    - fix the class docs (`:5-8`) and the test reference.
+  - The verifier could not run R, so before fixing, run the repro (change
+    only the exact events' times; the estimate should not change today).
+  - **Source fix 2026-10-22 (R only, uncommitted, no C++ involved):**
+    - Repro confirmed at HEAD: changing only exact-event times left RMST diff
+      at 1 and KM median diff at 1.5; after the fix they move
+      (1.375 -> 2.525 and 2.5 -> 1.0).
+    - `helper_inference_survival_turnbull.R`: exact events are folded in as
+      [y, y] (new optional `y` arg of `turnbull_npmle_stat_diff`); `y_R == y_L`
+      is accepted; unusable rows are excluded with a warning; RMST uses one
+      shared tau (min of arm horizons, or the caller's `tau`) and integrates
+      all the way to it. Call sites in `inference_survival_rmst.R` and
+      `inference_survival_km_diff.R` now pass `y = private$y`.
+    - Tests: 3 new in `test-rmst-asymptotic-wald-and-general-censoring.R`
+      (fail at HEAD, pass now); `test-turnbull-disjoint-interval-reference.R`
+      and `test-statistical-helper-contracts.R` updated for the new contract.
+    - Default change: all-censored arm RMST is now the horizon, not NA.
+    - Still open: roxygen text for the Turnbull path (not touched, to avoid
+      clashing with TODO-108 edits; Rd not regenerated), CI/installed-package
+      run. Box left unchecked.
+    - **2026-10-22 (later) roxygen done:** added a "Left- or interval-censored
+      data" paragraph to `InferenceSurvivalRestrictedMeanDiff`
+      (`inference_survival_rmst.R`: exact events folded in as [y, y], excluded
+      rows warn, one shared tau, left-endpoint step convention, all-censored
+      arm = tau, no Bayesian bootstrap) and a clause in
+      `InferenceSurvivalKMDiff` (`inference_survival_km_diff.R`). parse()
+      checked only; Rd not regenerated. Remaining, gated: Rd regeneration (G8)
+      and installed-package/CI run (G5). Box left unchecked.
+    - **2026-10-22 final audit:** Rd regenerated (G8 ran clean twice). Installed-package
+      run done against the user's rebuilt EDI (built 08:25 UTC, sha256 `d7a71aa1...`):
+      `testthat_bulk/test-rmst-asymptotic-wald-and-general-censoring.R` 10 tests / 25
+      expectations, `test-statistical-helper-contracts.R` 9 / 37,
+      `test-turnbull-disjoint-interval-reference.R` 5 / 20; 0 failures/errors/skips.
+      Remaining: CI on the commit (G5) and the owner's acceptance of the
+      all-censored-arm = horizon default change (G6 #29).
+
+- [x] TODO-110 (added 2026-10-22, user decision; harness T34; verified by
+  reading the source only): **`InferenceSurvivalStratCoxPHRegr` ignores the
+  pairs on matched designs without saying so, and the KK stratified Cox
+  bootstrap uses different reservoir strata from its point estimate.**
+  - StratCoxPHRegr stratifies on low-cardinality covariates
+    (`compute_strata_info(X)`, `inference_survival_strat_cox.R:117-131, 265`).
+    That is documented, but the class never looks at the pairing, so on a
+    matched design it is not `coxph(... + strata(pair))`.
+    - The pair-stratified class is `InferenceSurvivalKKStratCoxPHOneLik`,
+      which T34 confirmed matches coxph.
+    - Fix: when `is_a_kk_matching_capable()`, warn once and point to the KK
+      class, and add a `@seealso` link.
+  - In `inference_survival_KK_strat_cox.R`, the point estimate puts the
+    reservoir in a single stratum (`:486-487`, `max_m + 1L`). The
+    Bayesian-bootstrap refit gives each reservoir subject its own stratum
+    (`:425-429`), and singleton strata contribute nothing.
+    - Fix: use one shared reservoir stratum in both places.
+    - Test: weights all equal to 1 should reproduce the point estimate.
+  - DONE 2026-10-22 (uncommitted, R only, no C++ change, no roxygenize):
+    - `InferenceSurvivalStratCoxPHRegr$initialize` now `warning()`s (once per
+      construction) when `des_obj$is_a_kk_matching_capable()`, pointing to
+      `InferenceSurvivalKKStratCoxPHOneLik`; roxygen gained a "Matched
+      designs" section and `@seealso` (Rd not regenerated; roxygenize pending).
+      Default behaviour change: constructing it on a matched design now warns.
+    - KK strat Cox Bayesian-bootstrap refit now uses one shared reservoir
+      stratum (`max_m + 1L`), as the point estimate does. Repro: before the
+      fix the unit-weight refit gave 0.0607 vs point estimate 0.5787; after,
+      0.5787.
+    - Tests: `tests/testthat/test-strat-cox-matched-design-todo110.R`
+      (fails 2/4 on HEAD, 4/4 pass now); `test-coxph-hessian-symmetric-writes.R`
+      line 152 wraps the intended warning in `suppressWarnings`.
+
+- [ ] TODO-111 (added 2026-10-22, user decision; harness T34; reproduced):
+  **The KK and frailty survival classes crash when the covariate frame has
+  zero columns.**
+  - **Current state (2026-10-22):** fixed in R (design builds an n×0 `X`) with
+    a regression test; no C++ needed. Remaining: the smoke test covers
+    `DesignFixedBinaryMatch` only (not every procedure or matching design), and
+    `InferenceSurvivalDepCensTransformRegr` returning NA with zero covariates
+    is uninvestigated. Kind: test-coverage / investigation, no build needed.
+    **(Superseded 2026-10-22, final audit: the DepCens zero-covariate case was
+    investigated in the later passes below, not reproduced as a zero-column NA, and
+    its rho-boundary retry was fixed in R; the KK/frailty x match/KK14 sweep
+    `test-zero-covariate-kk-survival.R` passed 6 tests / 214 expectations on the
+    rebuilt EDI (G1 note). Remaining: C++ patch 02 (G1) and the owner's acceptance
+    that the representative-subset smoke test closes the coverage item (G6 #34).
+    `R/EDI/NEWS.md` ~L177 still says DepCens "still returns `NA` there"; that line
+    is stale and needs a doc fix.)** **(NEWS fixed 2026-10-22: the bullet now says
+    DepCens gives finite estimate / Wald / score / LR with zero covariates and its
+    bootstrap retries rho-boundary fits.)**
+  - Setup: `DesignFixedBinaryMatch(m = pair_id)` with
+    `add_all_subjects_to_experiment(data.frame(row.names = 1:n))`.
+  - `get_X()` returns 0×0 rather than n×0.
+  - Four classes fail with "X row count must match w size." (from
+    `compute_zhang_match_data_cpp`, `src/zhang_exact_speedups.cpp:122`, via
+    `.compute_kk_basic_match_data_cached`):
+    - `InferenceSurvivalKKStratCoxPHOneLik`
+    - `InferenceSurvivalKKLWACoxPHOneLik`
+    - `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik`
+    - `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
+  - `InferenceSurvivalCoxPHRegr` works.
+  - A single constant column also gives a 0×0 `get_X()`, but those classes
+    then run.
+  - T34's workaround was a random placeholder covariate.
+  - Fix: `get_X()` should return an n×0 matrix. Add a zero-covariate smoke
+    test over every KK and frailty class, for each procedure.
+  - **Fixed 2026-10-22 (R only, uncommitted; no C++ change needed).**
+    - Root cause: `create_model_matrix_from_features()` returns
+      `matrix(NA, nrow = nrow(data), ncol = 0)`, and a zero-column
+      data.table reports `nrow() == 0`, so `private$X` was 0×0. The design
+      (`design_abstract.R`, `covariate_impute_if_necessary_and_then_create_model_matrix`)
+      now rebuilds it as `t`×0 when `ncol == 0` and `nrow != t`. The exported
+      helper's signature is unchanged (no Rd drift).
+    - All four classes in the entry now run, as do the IVWC variants,
+      `InferenceSurvivalKKWeibullMarginal`, `InferenceSurvivalKKRankRegrIVWC`
+      and `InferenceSurvivalCoxPHRegr` (checked with zero columns and with one
+      constant column).
+    - Regression test: `tests/testthat/test-zero-covariate-kk-survival.R`
+      (fails on HEAD, passes now).
+    - **Procedure sweep 2026-10-22 (second pass).** Scratch survey
+      (n = 40, r = 21, B = 101; zero columns / one constant column / one
+      real covariate; `DesignFixedBinaryMatch`, `DesignSeqOneByOneKK14`,
+      `DesignFixedBernoulli`; all 6 KK classes + 8 non-KK survival classes
+      with estimate, Wald p/CI, rand p, bootstrap p/CI, jackknife p, score
+      and LR; the 4 frailty classes with estimate + Wald only) found **no
+      error** from zero-column handling in any procedure. Every NA / error
+      has a non-zero-column cause:
+      - "not supported" by design (not zero-column): KK classes on
+        `DesignFixedBernoulli` (need a matching design); rand / bootstrap /
+        jackknife on `DesignSeqOneByOne` (KK14); score / LR on classes with no
+        likelihood tier (IVWC, `KKWeibullMarginal`);
+        `InferenceSurvivalDepCensTransformRegr` rand and jackknife
+        (`dep_cens_transform_*_not_supported`).
+      - Bootstrap p-value NA at tiny n, identical with one real covariate:
+        `compute_bootstrap_two_sided_pval()` defaults to `na.rm = FALSE`, so
+        one non-finite replicate gives NA silently, while the CI
+        (`na.rm = TRUE`) is finite (checked on DepCensTransformRegr:
+        p = NA, `na.rm = TRUE` gives 0.69); BCa boundary NA
+        (`bootstrap_bca_adjustment_on_boundary`) for LWA / Weibull marginal.
+      - `InferenceSurvivalDepCensTransformRegr`: NOT reproduced as NA with
+        zero columns -- estimate, Wald, score and LR are finite with zero and
+        constant columns; the NA seen earlier is rand / jackknife (unsupported
+        by design) and the `na.rm = FALSE` bootstrap p-value above. (It is
+        NA for estimate / Wald on KK14 with one real covariate, unrelated to
+        zero columns.)
+      - Second zero-column bug, fixed: a user `model_formula` (e.g. `~ 1`)
+        on a zero-column design built X via `create_model_matrix_from_features()`
+        in `Inference$initialize` and got 0 x 0 again, so the same
+        "X row count must match w size." crash; rebuilt as t x 0 there
+        (`inference_all_abstract.R`). `create_model_matrix_from_features()`
+        itself is unchanged: it only sees a zero-column data.table
+        (`nrow == 0`), so it cannot know n without a signature change.
+      - Open, not zero-column: `InferenceSurvivalWeibullRegr` randomization
+        p-value is NA on a covariate-free fit
+        (`randomization_observed_statistic_unavailable`): the warm-started
+        lbfgs refit at the already-optimal point returns `converged = FALSE`,
+        gradient norm NaN (a cold start converges). Not fixed (kernel-level).
+      - Open, same pattern, not exercised: `build_component_matrix()` in
+        `inference_count_hurdle.R`, `inference_count_zero_augmented_poisson_abstract.R`
+        and `inference_proportion_zero_one_inflated_beta.R` call
+        `create_model_matrix_from_features(model_formula, X_imp)` with a
+        non-default formula on the raw data.table, so they likely give 0 x 0
+        on zero-column designs too.
+      - Test: `test-zero-covariate-kk-survival.R` now also covers Wald, rand
+        (r = 21), jackknife (no error + finite) and bootstrap (no error) for
+        3 KK classes on `DesignFixedBinaryMatch`, Wald on KK14, Wald on
+        Bernoulli with 3 non-KK classes, a frailty Wald on KK14, and the
+        `model_formula = ~ 1` path. The box stays unchecked: the committed
+        test is a representative subset, not every class x procedure.
+    - **Third pass 2026-10-22 (R only, uncommitted).**
+      - FIXED `InferenceSurvivalWeibullRegr` covariate-free randomization p-value
+        NA: a warm-started lbfgs refit at the already-optimal point returned
+        `converged = FALSE` (NaN gradient norm). The same failure also made
+        `compute_estimate()` NA after a randomization call (the refits leave the
+        optimum as warm start; `generate_mod` then fails identically). New file-level
+        helper `weibull_fit_with_cold_retry()` in `inference_survival_weibull.R`
+        retries cold only when a warm-started fit failed, used by
+        `compute_treatment_estimate_during_randomization_inference` and
+        `generate_mod` (so bootstrap / jackknife refits, which go through
+        `compute_estimate`, are covered). Bit-identical where the warm start works
+        (checked: estimate / rand p / Wald p with a real covariate, 17 digits).
+        Not covered: the `fit_null` score / LR refits (start from the supplied
+        or cached start, no failure observed). Siblings `InferenceSurvivalCoxPHRegr`,
+        `StratCoxPHRegr`: finite rand p and estimate on zero / constant columns;
+        `DepCensTransformRegr` rand is unsupported by design.
+      - `build_component_matrix()` in hurdle / ZI / ZAP-abstract / ZOIB: NOT a bug.
+        The 0 x 0 matrix from `create_model_matrix_from_features()` is caught by
+        the `ncol == 0` branch, which builds the intercept + treatment matrix from
+        `private$w` (n rows). Verified: Hurdle Poisson / NegBin, ZIP, ZINB, ZOIB give
+        finite estimate, Wald and rand p on zero and constant columns with default,
+        `~ 1` and `~ 1` + second-component formula. ZAP has no concrete class.
+        No code change; guard test added.
+      - `compute_bootstrap_two_sided_pval()` default `na.rm = FALSE` (roxygen:
+        "Remove non-finite bootstrap replicates. Default FALSE."; no stated
+        rationale); `compute_bootstrap_confidence_interval()` defaults `na.rm = TRUE`.
+        Not changed (TODO-116 owner).
+      - Tests: `test-todo111-weibull-cold-retry-and-zero-col-components.R` (Weibull
+        part fails on the pre-fix copy, passes now; the count / ZOIB part passes
+        both ways).
+    - **Fourth pass 2026-10-22 (R only, uncommitted).**
+      - FIXED `InferenceSurvivalDepCensTransformRegr` losing ~45% of bootstrap
+        replicates (zero-covariate, n = 40, B = 101: 44-49 of 101 non-finite). Root
+        cause is not warm start, ties or the intercept-only design: the C++
+        objective clamps atanh(rho) to [-3, 3] but its analytic gradient is not
+        zeroed in the clamped region, so when a resample's MLE lies on the rho
+        boundary LBFGS keeps pushing a flat coordinate, throws, and returns
+        value NaN / converged = FALSE after 2000 iterations (the full-data fit
+        and Wald/score/LR are unaffected; its MLE is interior). Fix in
+        `generate_mod()` via new private `dep_cens_fit_retry()`: only when the
+        first fit did not converge, (1) cold zero start, then (2) for
+        estimate-only fits the smooth problem with atanh(rho) pinned at the
+        boundary (+-3) the failed fit drifted to. Recovers 44/44 failed
+        replicates (0/101 non-finite); converged replicates are bit-identical;
+        point estimate unchanged. Proper C++ fix (not applied, needs a user
+        build): zero the atanh(rho) gradient (and Hessian row/col) when
+        |atanh_rho| >= 3 in `DepCensTransformLikelihood::operator()`, as done
+        for Clayton log-theta. Test: `test-dep-cens-transform-rho-boundary-retry.R`.
+        `test-bootstrap-nonfinite-na-warning-todo116.R` used this bug as its
+        non-finite fixture and now needs another fixture.
+      - `KKStratCoxPHOneLik` seed-2 "estimate NA but bootstrap p finite": NOT
+        reproduced (60 seeds, match/KK14, ordering of 9 procedures, after a
+        DepCens bootstrap on the same design: estimate always finite). By code
+        `compute_bootstrap_two_sided_pval()` returns NA when the original
+        estimate is non-finite, so p finite with estimate NA is impossible in one
+        consistent state; the sweep observation was a transient or mis-read.
+
+- [ ] TODO-112 (added 2026-10-22, user decision; harness T24, T28, T43, T48,
+  T49): **Randomization p-values and CIs ignore both the design seed and
+  `Inference$set_seed()`, and the design-level permutation cache ignores the
+  seed.**
+  - **Current state (2026-10-22):** R fix done and tested in-process (rand
+    draws seeded from `set_seed()` or the design seed, seed in the cache key,
+    `clear_randomization_cache()` added, docs corrected). Two-`callr`-session
+    1-vs-2-core test written and passing (2026-10-22 note below), including
+    verified `num_cores > 1` worker-path rand draws. Remaining: Rd
+    regeneration; acceptance of the default change (#29); CI.
+  - Why the seeds are lost:
+    - `generate_permutations()` draws from `des_obj$duplicate()`
+      (`inference_all_abstract_rand.R:871-872`), and `duplicate()` sets the
+      clone's seed to NULL (`design_abstract.R:906`).
+    - `set_seed()` is only read in the parallel worker wrapper
+      (`inference_all_abstract.R:890-960`).
+    - So the draws come from whatever the global RNG state is at the first
+      call.
+  - Two fresh Rscript sessions with `set_seed(1)` give p = .076 and .132.
+    `set.seed(1)` immediately before the first call is reproducible.
+  - The cache (`permutations_cache`, keyed on r and the design signature
+    only, `:862-869, :881`) then returns the same draws to every later
+    inference object on that design, whatever the seed: `set.seed(1)`,
+    `set.seed(2)` and `set.seed(3)` all gave p = .0721.
+  - `vignettes/reproducibility.Rmd` (~165-176) claims rand p/CI are
+    seed-reproducible, which is false. `design_abstract.R:73-74` contradicts
+    the vignette.
+  - Separate from TODO-95, which was about thread counts.
+  - Fix:
+    - seed the draws from the inference seed, falling back to the design
+      seed, inside a `.Random.seed` save/restore;
+    - put the effective seed in the cache key;
+    - add `clear_randomization_cache()`;
+    - correct the docs, and document the
+      `permutations = list(w_mat =, m_mat = NULL)` format.
+  - Also document that a seeded design's `draw_ws_according_to_design()`
+    overwrites the global RNG stream (`design_abstract.R:1180`).
+  - Test: two `callr` sessions at 1 and 2 cores.
+  - **Status 2026-10-22 (partially done, box left open).** R side done:
+    `generate_permutations()` (`inference_all_abstract_rand.R`) now draws
+    under `private$effective_draw_seed()` (inference `set_seed()`, else the
+    design seed) inside a `.Random.seed` save/restore; the seed is in the
+    cache key (`r|seed|design_sig`, `unseeded` when none); the sequential-MC
+    deferred path (both `compute_rand_two_sided_pval()` and
+    `approximate_randomization_distribution_beta_hat_T()`) seeds the global
+    RNG the same way for the call; `clear_randomization_cache()` added to
+    `Inference` (`inference_all_abstract.R`); `set_seed()`,
+    `design_abstract.R` and `vignettes/reproducibility.Rmd` docs corrected
+    (permutations format and the seeded-design global-RNG overwrite
+    documented). Tests: `tests/testthat/test-rand-seed-reproducibility.R`
+    (4 tests; fail before, pass after). Default-number change: seeded
+    designs / `set_seed()` users get different (now reproducible) rand
+    p/CI values than before; unseeded behaviour unchanged. Open: Rd/man
+    regeneration for the new method and `set_seed` doc; the literal
+    two-`callr`-session 1-vs-2-core test (installed EDI is stale, so only
+    in-process tests were run); parallel-worker (`num_cores > 1`) rand
+    draws not independently verified; the unseeded cache is still shared
+    across inference objects on a design (cleared by
+    `clear_randomization_cache()`).
+  - **Two-session core-count test, 2026-10-22: PASS, no core-count
+    dependence found.** New
+    `R/package_tests/testthat_bulk/test-rand-seed-core-count-invariance-two-session.R`
+    (`skip_on_cran`, `skip_if_not_installed("callr")`,
+    `skip_if_prepush_no_parallel`, ~10 s). It runs one child R process with
+    `set_num_cores(1)` and one with `set_num_cores(2)` (core count set before
+    any design/inference is built; global RNG perturbed differently in each)
+    and asserts `identical()` on: rand p with only the design seed and with
+    `set_seed(3)` (`InferenceContinOLS`, iBCRD, fast C++ path); the rand CI
+    under `set_seed()`; rand p on a seeded `DesignFixedGreedy`;
+    `draw_ws_according_to_design(16)` for seeded iBCRD, Greedy, BinaryMatch
+    and Rerandomization (`obj_val_cutoff = 0.1`); and the R-worker path
+    (`InferenceCountPoisson`, no fast kernel, r = 301) with the design seed,
+    with `set_seed()`, and through the deferred sequential-MC path.
+    `par_lapply` is instrumented in the child to prove the 2-core session
+    really dispatched `n_cores = 2`. 17/17 expectations pass against the
+    installed build (11:25 today) and again with the children overlaying the
+    current R sources via `pkgload::load_all(compile = FALSE)`
+    (`EDI_TODO112_LOAD_ALL=<repo>/R/EDI`). Ad-hoc probes (not in the test)
+    also matched across 1/2 cores: a count rand CI at r = 201 (MC-enabled CI
+    search) and a seeded bootstrap CI (B = 201).
+
+- [x] TODO-113 (added 2026-10-22, user decision; harness T43):
+  **`compute_rand_two_sided_pval` doubles the smaller tail for every
+  statistic, including non-negative custom ones.**
+  - **Current state (2026-10-22):** DONE (`alternative` argument added, tested,
+    NEWS entry present). Not done by design: auto-detection of non-negative
+    statistics, one-sided CI inversion, and `alternative` on classes that
+    override `compute_rand_two_sided_pval`. Rd regeneration pending.
+  - The formula is `min(1, max(2/n, 2*min(P(T0>=t), P(T0<=t))))`
+    (`inference_all_abstract_rand.R:749-758, :346`). It is capped at 1, so
+    the "exceeds 1" report was wrong.
+  - It is wrong for a non-negative `InferenceRandCustom` omnibus statistic:
+    - With (mean diff)² at its null 2.5% quantile, EDI gives p = .051, while
+      the correct upper-tail p is .975.
+    - Under the null, 56% of rejections came from the lower tail.
+    - T43's global p of .059 is about 2× the upper-tail p.
+  - Fix: add `alternative = c("two.sided", "greater", "less")`, at least for
+    `InferenceRandCustom`. Document that the default assumes a signed,
+    roughly symmetric statistic. Document the exact formula (no +1, 2/n
+    floor). Relates to TODO-100 (custom-statistic CI scale).
+  - DONE 2026-10-22: `alternative = "two.sided"` (default, unchanged) /
+    `"greater"` / `"less"` added as the last argument of
+    `InferenceRand$compute_rand_two_sided_pval` and the `InferenceRandCI`
+    wrapper (so every RandCI class incl. `InferenceRandCustom`), threaded
+    through the affine-reuse path, the sequential-MC path (single-tail skips
+    early stopping, which is a two-sided band) and
+    `compute_two_sided_randomization_pval_from_t0s`. Single tails are
+    `max(1/B, P)` (no doubling). Shared helper `rand_pval_from_tail_counts()`
+    (plain function, not private, to keep mixin contracts untouched).
+    Roxygen documents the exact formula (no +1, 2/B floor); Rd not regenerated.
+    Repro: |mean diff|^2 with observed diff ~0: default p = .12, upper tail
+    p = .94. Tests in `test-rand-custom-delta-shift.R`. Not done: no
+    auto-detection of non-negative statistics (default unchanged), CI
+    inversion still uses the two-sided p, other classes that override
+    `compute_rand_two_sided_pval` with their own signature do not take
+    `alternative`, NEWS entry. (2026-10-22 final audit: the NEWS entry was added
+    later, `R/EDI/NEWS.md` ~L123; the "Not done: NEWS entry" clause is stale. The
+    other "not done" items are by design, per the current-state line.)
+
+- [x] TODO-114 (added 2026-10-22, user decision; harness T42 and 5 other
+  runs): **`get_summary()` is broken for most classes.**
+  - **Current state (2026-10-22):** DONE (base-class `get_summary()` always
+    returns and prints a table; sweep test added). Remaining, optional: full
+    coefficient tables for fast-C++ paths with unnamed `b`; Rd regeneration for
+    the new base method.
+  - It is defined once, in `InferenceAsymp`
+    (`inference_all_abstract_asymp.R:110-151`), and has three defects:
+    1. Classes that never set `cached_mod` print "No model available (call
+       compute_estimate() first)" even after `compute_estimate()` has run.
+    2. Fast C++ paths print their raw internal list (`$b`, `$XtX`, …).
+    3. It always returns `invisible(NULL)`.
+  - Sweep of 65 applicable classes:
+
+    | Behaviour | Classes |
+    |---|---|
+    | "No model available" | 32 |
+    | Raw list dump | 25 |
+    | Real table | 4 (Lin, HurdlePoisson, ZINB, ZIP) |
+    | No method | 4 |
+
+  - Fix: always return, and print, a named coefficient table (Estimate / SE /
+    stat / p), as `InferenceMLEorKMSummaryTable$shared` already does
+    (`inference_all_abstract_mle_or_KM_summary_table.R:126-133`). Classes
+    with no model should return a one-row treatment summary or error
+    clearly.
+  - Test over `applicable_inference_class_names()`.
+  - DONE 2026-10-22: `get_summary()` moved to the `Inference` base (the
+    `InferenceAsymp` override is removed) so classes with no method (e.g.
+    `InferenceRandCustom`) work too. It always returns the printed table
+    invisibly (numeric matrix: Estimate / Std. Error / z or t / p). Full
+    coefficient table when a prebuilt `summary_table` exists, or names + vcov
+    are available and the coefficient `treatment` is identifiable; otherwise a
+    one-row `treatment` summary (SE/p = NA if no Wald SE). Never errors on a
+    missing SE; does not call the Wald hooks, so no cluster-independence
+    warning. Helper `edi_build_summary_table()` in `inference_all_abstract.R`.
+    Tests: `tests/testthat/test-get-summary-all-classes.R` (57 sweep classes
+    failed before; skips GLMM/Bayes/Exact/GEE/Stan/IVWC for cost).
+    Remaining (optional): per-class full coefficient tables for fast-C++ paths
+    that carry unnamed `b` (needs names plumbed from the design matrix); Rd
+    for the new base `get_summary` needs roxygenize.
+
+- [ ] TODO-115 (added 2026-10-22, user decision; harness T39):
+  **`InferenceIncidKKCondLogitOneLik` returns NA score and LR tests and CIs,
+  with no warning, when `beta_T` is the only free parameter.**
+  - **Current state (2026-10-22):** the core NA bug, the NA-lik-test warning and
+    the CI Wald-fallback warning are fixed in R. The siblings are resolved:
+    CondPoisson and StratCox under TODO-121, KK OLS OneLik (no longer NA) under
+    TODO-122; Hurdle returns Wald via the documented max rule. Remaining
+    (maintainer decision): whether the conservative-max Wald return should warn,
+    and verifying KK OLS score == LR == gradient equality against an independent
+    reference. Rd regeneration pending.
+  - When is `beta_T` the only parameter? With `~1` on an all-matched design,
+    or after hardening drops every covariate. This happened in about 5 of 60
+    rare-outcome reps with the default formula.
+  - In that case `fit_null` (`inference_incidence_KK_cond_logit.R:483-505`)
+    fixes every parameter. The C++ code throws "at least one parameter must
+    remain free" (`src/_helper_functions_core.h:570-572`), and the
+    `tryCatch` at line 494 turns that into NULL and NA.
+  - Both tests are well defined: computed by hand they match clogit (LR p
+    .3627, score p .3657).
+  - Fix: when `ncol(X_fit) == 1`, return the fixed fit `b = delta` without
+    calling the solver. Audit the other no-intercept likelihood sources
+    (conditional Poisson, stratified Cox) for the same pattern. Warn whenever
+    a likelihood test is NA while Wald is finite.
+  - The Cox score/LR tests in T41 were fine.
+  - STATUS 2026-10-22 (partial, box left open): FIXED the core bug in
+    `inference_incidence_KK_cond_logit.R`: new file-level helper
+    `kk_clogit_fully_fixed_null_fit(delta)` returns the fixed fit `b = delta`
+    without calling the solver when `ncol(X) == 1`, used by both
+    `get_likelihood_test_spec()$fit_null` and `simulate_under_lik_null()$fit_null`.
+    Repro (40 matched pairs, `~1`): score/LR p were NA, now .4386/.4370,
+    identical to `survival::clogit` sctest/logtest; CIs finite. Test:
+    `tests/testthat/test-incid-kk-cond-logit-onelik-single-param-lik-tests.R`
+    (fails 7 before, passes 8 after; includes hand-computed conditional LR at
+    delta = 0.5). STILL OPEN: (a) warn whenever a likelihood test is NA while
+    Wald is finite (not implemented); (b) sibling audit found that on the same
+    all-matched `~1` design `InferenceCountKKCondPoissonOneLik`,
+    `InferenceCountKKHurdlePoissonOneLik` and `InferenceSurvivalKKStratCoxPHOneLik`
+    return score and LR p-values numerically identical to the Wald p-value
+    (e.g. CondPoisson delta = .2: .649863 for Wald/score/LR) and
+    `InferenceContinKKOLSOneLik` has NA Wald/score/LR there [superseded: fixed
+    under TODO-122; the later note below says it is no longer NA]; cause not yet
+    diagnosed (CondPoisson pairs-only path sets no `likelihood_test_context`).
+  - STATUS 2026-10-22 (b) (agent, uncommitted): item (a) DONE. General guard:
+    free functions in `R/helper_robust_sandwich.R`
+    (`edi_warn_lik_test_unavailable_once()`, `edi_note_lik_test_failure()`,
+    `edi_lik_test_type_from_cache_key()`) emit the classed warning
+    `edi_lik_test_unavailable_warning` (fields `testing_type`, `reason`; once per
+    object and testing type) when a score / gradient / LR / Bartlett p-value is
+    NA while the Wald p-value is finite. Wired into the four
+    `compute_likelihood_test_two_sided_pval()` definitions (memoization ext,
+    std-mod-cache, KK OLS OneLik, KK cond-logit OneLik) and the p_est-NA exits
+    of `invert_test_pval_confidence_interval()` / `invert_gradient_ci_uniroot()`
+    (always before `cache_nonestimable_*`, which blanks Wald). Silent in
+    resampling workers (`active_resampling_operation`), when the estimate is
+    non-estimable, when Wald is NA too, and where `edi_lik_test_wald_fallback`
+    already fired. Swallowed errors are recorded in
+    `cached_values$likelihood_test_failure_reason` (named by testing type) at the
+    memoized-eval and warm-fit-wrapper tryCatch sites and quoted in the message.
+    Returned values unchanged. Test: `tests/testthat/test-lik-test-unavailable-warning.R`.
+    STILL OPEN under TODO-115: (b) the all-matched `~1` sibling findings above
+    (CondPoisson/Hurdle/StratCox Wald==score==LR, KK OLS OneLik NA) were handled
+    by TODO-121/122 for CondPoisson/StratCox only; not re-audited here
+    [superseded by the (c) note below: KK OLS no longer NA (TODO-122); Hurdle is
+    the documented max rule, not a missing spec]. Also not
+    covered by the guard: LR / Bartlett CI inversion that silently falls back to
+    the Wald interval in `finalize_inverted_ci()` (no NA is returned there), and
+    `invert_test_pval_confidence_interval()` with a NULL spec (Wald p-values under
+    a likelihood label).
+  - STATUS 2026-10-22 (c) (agent, uncommitted; box left open): CI half DONE.
+    Both substitutions are deliberate fallbacks (comment on `finalize_inverted_ci()`
+    in `inference_ext_ci_inversion.R`; `fix_inference_hierarchy.md` ~L1320), not
+    accidents, but were silent. New free function
+    `edi_warn_ci_wald_fallback_once(self, private, testing_type, reason)`
+    (`helper_robust_sandwich.R`) emits the classed warning `edi_lik_ci_wald_fallback`
+    (inherits `edi_lik_test_wald_fallback`; fields `testing_type`, `reason`), once per
+    object and testing type (shares the `lik_test_wald_fallback_warned` ledger with
+    the p-value fallback, so no double warning), never in a resampling worker, and
+    records `cached_values$ci_fallback_reason` (named by testing type; also set in
+    workers). `finalize_inverted_ci()` gained an optional `testing_type` argument
+    (passed by all three inverters; NULL = old silent behavior for direct callers) and
+    now names the reason: no finite bounds / zero-width (test rejects at its own
+    estimate) / does not contain estimate / implausibly wide. `invert_test_pval_confidence_interval()`
+    warns when the spec is NULL and the type is not wald. Swallowed CI-search errors
+    are recorded via `edi_note_lik_test_failure()` and quoted. Returned intervals are
+    unchanged. Test: `tests/testthat/test-ci-wald-fallback-warning.R` (4 fail before /
+    all 7 pass after). Updated one assertion that enshrined silence:
+    `test-extracted-likelihood-mixin-public-contracts.R` ("public score CI falls back to
+    the Wald interval") now expects the warning. Sibling re-verification (all-matched
+    `~1`, 40 pairs): `InferenceCountKKHurdlePoissonOneLik` Wald/score/LR/gradient
+    p-values are identical (delta 0: .0746134; delta .3: .00516974) BECAUSE of the
+    documented conservative `max(model, design)` rule, not a missing spec: the model
+    tests are finite and smaller (delta 0: score .06926, LR .06489; delta .3: .003398,
+    .003396), so the Wald value is returned under the score/LR label without a
+    warning (by design, documented in the roxygen of `compute_lik_ratio_*`; the
+    returned value is the maximum, consider surfacing it if desired).
+    `InferenceContinKKOLSOneLik` is no longer NA: Wald .925281, score = LR = gradient
+    .924285 at delta 0 (.409498 vs .399005 at delta .3); score/LR/gradient being equal
+    to 6 digits is unexplained (not verified against an independent reference).
+    Remaining: decide whether the conservative-max Wald return should warn; verify the
+    KK OLS score == LR == gradient equality.
+
+- [ ] TODO-116 (added 2026-10-22, user decision; harness T42):
+  **Stubs for unsupported procedures return NA silently and also clear a
+  valid cached SE; separately, the NegBin fit stops short of the MLE.**
+  - **Current state (2026-10-22):** R side done (classed-warning stubs that no
+    longer clear caches; NegBin passes `eps_g = 1e-10`, matching `glm.nb` to
+    ~1e-6). Remaining: an optional C++ patch gated on a user build (G1),
+    changing the `eps_g` default in `fast_neg_bin_cpp` /
+    `fast_neg_bin_with_var_cpp`; plus open R audits (block-size gating helpers
+    and ~140 `cache_nonestimable_se` uses, NegBin jackknife with convergence
+    checks, hurdle/ZAP NB fits).
+  - `InferenceCountNegBin`'s five jackknife methods
+    (`inference_count_negbin.R:204-246`) are documented stubs that return NA
+    through `cache_nonestimable_se()`. That helper
+    (`inference_all_abstract.R:821-829`) clears the valid cached
+    `s_beta_hat_T`. The next asymptotic CI therefore re-fits from a warm
+    start and changes:
+    - before the jackknife call: [−0.65169, 0.22591];
+    - after it: [−0.65097, 0.22677].
+  - The same stub pattern appears about 35 times: HurdleNegBin, ZAP,
+    DepCensTransform, SimpleWilcox, KKWilcoxIVWC.
+  - The documented reason ("numerically unstable") did not hold on T42's
+    data: all 150 delete-one refits converged, giving a jackknife SE of
+    0.2157 against an asymptotic SE of 0.2239.
+  - The NegBin fit stops short of the MLE: est −0.21289 (nll 266.3410) vs
+    MASS −0.21111 (nll 266.3409).
+  - Fix:
+    - stubs should `stop()` with a classed condition, or at least warn;
+    - a request for an unsupported procedure must not clear the
+      estimate/SE caches;
+    - consider allowing the NegBin jackknife with per-replicate convergence
+      checks;
+    - tighten the `fast_neg_bin_with_var_cpp` convergence criterion to
+      match `glm.nb` to 1e-5.
+  - Progress 2026-10-22 (agent, uncommitted; box left open):
+    - DONE stubs: new `Inference` private helper
+      `signal_unsupported_procedure(reason)` emits a classed warning
+      (`edi_unsupported_procedure`) and returns NA without touching
+      estimate/SE/df/nonestimable state. Wired into the documented stubs of
+      InferenceCountNegBin, InferenceCountHurdleNegBin (+ Poisson inherits
+      none), InferenceCountZeroAugmentedPoissonAbstract (ZIP/ZINB/ZAP,
+      incl. the two `bca` stubs), InferenceSurvivalDepCensTransformRegr
+      (jackknife and randomization), InferenceAllSimpleWilcox,
+      InferenceAllKKWilcoxIVWC.
+    - DONE NegBin: R-side `eps_g = 1e-10` (`NEGBIN_FIT_EPS_G`) on all
+      unweighted `fast_neg_bin_cpp`/`fast_neg_bin_with_var_cpp` calls in
+      `inference_count_negbin.R`; matches `glm.nb` to ~1e-6. C++ default
+      (1e-6) left unchanged; `eps_f` is unused by the kernel.
+    - Tests: `test-unsupported-procedure-stubs-and-negbin-mle.R`.
+    - OPEN: block-size gating helpers (`jackknife_block_size_gt_one_not_supported`
+      x2, `count_likelihood_asymp_block_size_gt_one_not_supported`) still use
+      `cache_nonestimable_se`; remaining ~140 `cache_nonestimable_se` uses
+      are genuine fit-failure paths and were not audited for cache clearing;
+      NegBin jackknife with per-replicate convergence checks not done;
+      hurdle/ZAP/helper_glm_fit NB fits not tightened.
+  - Progress 2026-10-22 (second agent, uncommitted; box left open):
+    - New private `Inference$cache_procedure_failure(procedure, reason)`
+      (inference_all_abstract.R): records
+      `cached_values$procedure_failure_reason[[procedure]]` and touches no
+      estimate/SE/df cache and no nonestimable flag.
+    - DONE the three block-size gating helpers
+      (`mark_jackknife_nonestimable_if_block_unsupported` in
+      inference_all_abstract_jackknife.R and inference_all_abstract_non_param_boot.R,
+      identical edit; `mark_count_likelihood_block_asymp_nonestimable` in
+      inference_all_abstract_count_likelihood.R), plus the generic jackknife
+      failures in inference_all_abstract_jackknife.R
+      (`compute_jackknife_summary` too-few/nonfinite/extreme/extreme-summary,
+      jackknife-Wald p-value/CI `*_estimate_unavailable` /
+      `*_standard_error_unavailable`) and the block-size reason in
+      `ci_bca`/`pval_bca`/`missing_bootstrap_ci` (non_param_boot).
+      Wald SE/p-value/CI unchanged and `is_nonestimable()` stays FALSE after
+      any of these; the reason is under `procedure_failure_reason`.
+    - AUDIT of the 294 `cache_nonestimable_se/estimate` call sites:
+      165 genuine primary-fit failures (class i), ~100 resampling/lik-test
+      procedure failures (class ii, NOT yet converted: bootstrap/Bayesian/param
+      bootstrap/m-out-of-n/subsampling/rand-CI/rr-jackknife/KK-GEE jackknife/
+      dep-cens/lik-test inversion paths), 24 unclear (class iii: weighted-refit
+      workers, randomization observed statistic, KK Wilcox/Wilcox asymptotic).
+      Not converted because ~196 test files assert `get_nonestimable_reason()`
+      for those reasons and the lik-test files overlap TODO-115.
+    - Tests: `test-procedure-failure-keeps-wald-state-todo116.R`; updated
+      assertions in 8 bulk tests that enshrined the SE-wiping behavior.
+    - **Bootstrap p-value NA explains itself (2026-10-22, R only, uncommitted):**
+      `compute_bootstrap_two_sided_pval` / `compute_bayesian_bootstrap_two_sided_pval`
+      keep `na.rm = FALSE` (returned values unchanged) but now emit one classed
+      `edi_bootstrap_nonfinite_na_warning` per object ("k of B replicates non-finite;
+      na.rm = TRUE would drop them"). Evidence: zero-covariate DepCensTransform n = 40,
+      B = 101: 49/101 and 46/101 non-finite, p NA vs 0.69 / 0.11 with na.rm = TRUE; CI
+      silently drops them. Changing the default is a maintainer decision (not made).
+      Test: `test-bootstrap-nonfinite-na-warning-todo116.R`.
+  - Progress 2026-10-22 (third agent, uncommitted; box left open):
+    - Seven stale bulk tests (plus `test-dep-cens-transform-randomization-methods-
+      not-supported-reference.R`, found by grep) updated to the stage-1 contract:
+      stub returns NA, warns `edi_unsupported_procedure`, records
+      `cached_values$unsupported_procedure_reason`, `is_nonestimable()` stays FALSE.
+      They enshrined the old nonestimable state; no stub needed to stay nonestimable.
+    - Real stage-1 miss fixed: the two ZIP/ZINB/ZAP `type = "bca"` CI guards
+      (`compute_bootstrap_confidence_interval`, `compute_bayesian_bootstrap_confidence_interval`)
+      still went through `missing_bootstrap_ci(stage = "se")` and wiped the SE; now
+      `signal_unsupported_procedure` + named NA CI like the p-value guards.
+    - Suite: `run_all_inference_one_class` rows stay `ok` for unsupported/gated
+      procedures, but `message` now says `unavailable (<reason>)` (from
+      `unsupported_procedure_reason` / `procedure_failure_reason`, read via the private
+      `cached_values` the suite already reads) when the CI or p-value is NA. No new
+      public method. Test: `test-suite-unsupported-procedure-message-todo116.R`.
+    - OPEN: `test-simple-estimator-migration-baseline.R` pins public/private counts
+      (now +1 public, +6 private per class from concurrent uncommitted work, incl. the
+      two TODO-116 private helpers); needs a snapshot refresh by whoever finalizes.
+      Class (ii)/(iii) sites (~95) still unconverted.
+  - Progress 2026-10-22 (fourth agent, stage 4, uncommitted; box left open):
+    - CORE bootstrap-family procedure failures converted: a failing nonparametric
+      bootstrap (`compute_bootstrap_two_sided_pval`, non-block `ci_bca`/`pval_bca`,
+      `missing_bootstrap_ci`), Bayesian bootstrap (p-value, `pval_bayesian_bca`,
+      CI via `missing_bootstrap_ci`), parametric bootstrap
+      (`compute_param_bootstrap_{estimate,confidence_interval,pval}`), LR-calibrated
+      bootstrap (`compute_lik_ratio_bootstrap_two_sided_pval`), randomization
+      bootstrap p-value and its CI now return the same NA/warnings but write only
+      `cached_values$procedure_failure_reason[[procedure]]` (procedures `bootstrap`,
+      `bayesian_bootstrap`, `param_bootstrap`, `lik_ratio_bootstrap`, `rand_bootstrap`,
+      `rand_bootstrap_ci`); Wald estimate/SE/p-value/CI and `is_nonestimable()` unchanged.
+      New free helpers in `helper_robust_sandwich.R`: `edi_record_procedure_failure(self,
+      private, reason, stage)` (decides by reason prefix; falls back to the old
+      `cache_nonestimable_*` when the primary state is already nonestimable or the cached
+      Wald estimate/SE is non-finite, and computes the Wald estimate first if it was never
+      computed; primary-fit reasons `*_estimate_unavailable` and
+      `*_original_standard_error_unavailable` are never reclassified),
+      `edi_resampling_procedure_for_reason`, `edi_clear_procedure_failure`,
+      `edi_has_procedure_failure`. Stale per-procedure reasons are cleared at the start of the
+      nonparametric/Bayesian p-value calls only.
+    - Tests: new `test-bootstrap-family-procedure-failure-keeps-wald-state-todo116.R`
+      (fails before / passes after); 17 bulk guard tests updated from "wipes SE, sets
+      nonestimable" to "Wald intact, reason under procedure_failure_reason".
+    - STILL OPEN (left for a later pass): rand_ci_* (`inference_all_abstract_rand_ci.R`),
+      quantile rand CI, likelihood-test inversion (TODO-115), KK-GEE mixin (contract-list
+      edits), risk-ratio resampling, subsampling / m-out-of-n ext files, gcomp
+      `missing_bootstrap_ci` callers with subsampling/m-out-of-n reasons, individual-class
+      sites, `bootstrap_original_standard_error_unavailable` /
+      `bayesian_bootstrap_original_standard_error_unavailable` (Wald SE itself invalid, kept
+      as primary), the 24 class-(iii) sites. Param-bootstrap failures do not clear a stale
+      `procedure_failure_reason` on re-run.
+  - Progress 2026-10-22 (fifth agent, stage 5, R only, uncommitted; box left open):
+    - Converted the two `rand_ci_*` sites in `inference_all_abstract_rand_ci.R`
+      (`rand_ci_search_bounds_failed`, `rand_ci_bisection_failed`) from
+      `cache_nonestimable_se` to `edi_record_procedure_failure`; the helper
+      `edi_resampling_procedure_for_reason` maps `^rand_ci_` to procedure `rand_ci`.
+      Wald state and `is_nonestimable()` unchanged on those failures. No existing test
+      referenced these reasons. Test added to
+      `test-bootstrap-family-procedure-failure-keeps-wald-state-todo116.R` (file run via
+      `pkgload::load_all(compile = FALSE)` with the existing `src/EDI.so`: all pass).
+    - Not done, and why: the rest of the STILL OPEN list (quantile rand CI, lik-test
+      inversion, KK-GEE mixin, risk-ratio resampling, subsampling/m-out-of-n, gcomp callers,
+      class-(iii) sites) needs per-site reason inspection and updates to many bulk tests
+      asserting `get_nonestimable_reason()`; lik-test inversion overlaps TODO-115 (G6 #11).
+      NegBin jackknife with convergence checks and hurdle/ZAP NB `eps_g` tightening are
+      behavior changes left for the owner/G2 timing; the C++ default change (patch 04) stays
+      G1-gated (no new patch needed). Remaining gates: G1 (patch 04 build), G8 (Rd regen).
+
+  - Progress 2026-10-22 (sixth agent, stage 6, R only, uncommitted; box left open):
+    - Helper: `edi_record_procedure_failure(..., procedure = NULL)` gained an explicit
+      owner for reasons shared across procedures (never applied to `*_estimate_unavailable` /
+      `*_original_standard_error_unavailable`); `missing_bootstrap_ci(..., procedure = NULL)`
+      forwards it. New reason-to-procedure mappings: `^kk_count_gee_jackknife_` and the three RR
+      jackknife reasons -> `jackknife`; `^subsampling_` -> `subsampling`; `^m_out_of_n_` ->
+      `m_out_of_n`; `^randomization_` -> `randomization`; `^dep_cens_transform_bootstrap_` ->
+      `bootstrap`.
+    - Group 1 quantile rand CI: nothing to convert. `inference_ext_quantile_rand_ci.R` has no
+      `cache_nonestimable_*` call (errors become `c(NA, NA)` without touching state).
+    - Group 2 KK-GEE mixin: converted the two `kk_count_gee_jackknife_wald_calibration_unavailable`
+      sites (procedure `jackknife`) and `randomization_observed_statistic_unavailable`.
+      Left: `kk_gee_fit_failed`, `kk_gee_estimate_unavailable`, `kk_gee_standard_error_unavailable`
+      (genuine primary-fit failures).
+    - Group 3 risk-ratio resampling (both gcomp abstracts): converted jackknife too-few-positive /
+      log-SE / null, subsampling and m-out-of-n null, too-few-finite and the shared pivot reason
+      (`missing_bootstrap_ci` and direct callers). Left: `jackknife_original_risk_ratio_unavailable`
+      (the RR estimate itself is unusable, so primary) and `resampling_original_estimate_unavailable`.
+    - Group 4 subsampling / m-out-of-n ext files: all five sites each converted
+      (`*_selection_failed`, pivot reasons incl. `*_high_replicate_failure_rate`, too-few-finite;
+      the `*_extreme_confidence_interval` CI reasons route via `missing_bootstrap_ci`). Original-estimate
+      reasons stay primary.
+    - Group 5 gcomp callers: covered by the mappings above (no remaining direct
+      `cache_nonestimable` caller with subsampling / m-out-of-n reasons; ordinal / proportion gcomp had none).
+    - Group 6 class-(iii): converted the four randomization-family sites in
+      `inference_all_abstract_rand.R` (observed statistic, too-few-finite), the three
+      dep-cens `dep_cens_transform_bootstrap_ci_unstable` sites, and the three
+      `param_bootstrap_estimate_{spec_unavailable,raw_estimate_nonfinite,raw_estimate_extreme}`
+      sites. Deliberately left: all `*_weighted_*` refit workers (they run on
+      `duplicate()`d workers and `run_isolated_weighted_refit` rolls the cache back, so they cannot
+      clear the primary fit); `kk_clogit_combined_randomization_observed_statistic_unavailable`
+      (the observed statistic IS the cached Wald estimate, helper would fall back anyway);
+      simple Wilcox `wilcox_empty_treatment_arm` / `wilcox_fit_unavailable` (the asymptotic
+      estimator itself); `jackknife_/bootstrap_/bayesian_bootstrap_original_*_unavailable`;
+      lik-test inversion (`inference_ext_ci_inversion.R`, memoization) -> TODO-115.
+    - Tests updated (old "wipes SE / nonestimable" -> "Wald intact, reason under
+      `procedure_failure_reason`"): kk-gee-shared-extractors, gcomp-incidence-rr-jackknife-and-m-out-of-n,
+      incidence-gcomp-risk-ratio-jackknife-wald-and-subsampling-log-pivot, incid-gcomp-risk-ratio-subsampling-null,
+      m-out-of-n and prw-subsampling selection-failure guards, m-out-of-n-prw-subsampling,
+      rand-two-sided-pval-observed-statistic, randomization-pval-from-t0s-too-few-finite,
+      dep-cens-transform-bootstrap-ci-validation, param-bootstrap-estimate-batch-preflight; routing
+      assertions in `test-bootstrap-family-procedure-failure-keeps-wald-state-todo116.R`.
+    - Tests run (load_all compile = FALSE; `library(EDI)` unavailable mid-session because a user
+      install held `00LOCK-EDI`, so only load_all was used): all the files above plus the
+      dep-cens (7), param-bootstrap-estimate (3), rand-two-sided-pval (3), kk-gee (8), incid-kk-gee,
+      test-rand-bootstrap.R (43) and both TODO-116 test files: 0 failures. Two unrelated reds:
+      `test-kk-gee-parity.R` (1 failure, backend-vs-rcpp tolerance comparison; no failure path involved,
+      UNVERIFIED as pre-existing) and `test-simple-estimator-migration-baseline.R` (private_owner_count
+      +1 for each of 5 classes; this stage added no private method, so the +1 comes from concurrent
+      work; snapshot NOT refreshed). Everything else (full bulk sweep) unrun.
+
+- [x] TODO-117 (added 2026-10-22, user decision; harness T50):
+  **`Design$any_censoring()` treats responses not yet recorded as
+  censored.**
+  - It is `any(is.na(private$y))` (`design_abstract.R:481-483`), and y
+    starts as all NA. So before any data exists, discovery
+    (`inference_suite.R:20`) and the per-class gates
+    (`inference_all_simple_mean_diff_pooled_var.R:134`,
+    `inference_all_simple_wilcox.R:224`) exclude PooledVar and Wilcox for
+    every response type, giving 20 applicable classes instead of 22 for an
+    ordinal BinaryMatch design.
+  - Sequential designs are also refused mid-trial.
+  - Fix: `any(is.na(private$y) & !is.na(private$y_L))`, or FALSE for
+    non-survival responses. Add a separate `responses_not_yet_recorded`
+    state.
+  - Test: `applicable_inference_class_names()` gives the same list before
+    and after `add_all_subject_responses()`.
+  - DONE 2026-10-22: `any_censoring()` is now
+    `any(is.na(y) & !is.na(y_L))` (FALSE for non-survival types and for
+    not-yet-recorded subjects; right-, left- and interval-censored rows
+    still TRUE). Test: `test-design-any-censoring-unrecorded.R` (failed
+    before, passes after; ordinal Bernoulli went 12 -> 14 applicable classes
+    pre-response, now 14 before and after). No separate
+    `responses_not_yet_recorded` state added (not needed). Not changed:
+    `get_effective_dead()` still uses `!is.na(y)` (it is only valid on
+    recorded data).
+
+- [x] TODO-118 (added 2026-10-22, user decision; harness T48):
+  **Null assignment draws for blocked (and similar) designs are generated
+  one draw at a time in R, so adding cores does not help.**
+  - **Current state (2026-10-22):** R done for `DesignFixedBlocking`,
+    `OptimalBlocks`, `Cluster` and `BlockedCluster` (`block_ra_batch()`,
+    singleton-block fix, `set_num_cores` doc, tests). Remaining C++ patches
+    gated on a user build (G1): `DesignFixedRerandomization`'s serial pure-R
+    rejection loop for prob_T != 0.5 or odd n needs a C++ rejection sampler,
+    and the `std::round` item is moot: the unused kernel
+    `generate_permutations_blocking_cpp` (+ `_internal`) was DELETED on the
+    owner's decision 2026-10-22 (patch 13 withdrawn). Rd regeneration pending.
+  - `DesignFixedBlocking$draw_ws_raw` (`design_fixed_blocking.R:192`) runs
+    `replicate(r, randomizr::block_ra(...))`, about 0.6 ms per draw. This
+    happens in the main process inside `generate_permutations()`, before any
+    `set_num_cores` parallelism.
+  - At r = 2000 the draws are 80% of the runtime. With 1 core the test takes
+    0.84 s; with 2 cores it takes 1.36 s.
+  - The batched kernel `generate_permutations_blocking_cpp`
+    (`generate_permutations.cpp:512`, since deleted) does the same 2000 draws in 0.004 s,
+    but is only used when randomizr is absent [superseded below: it is now
+    unused by R entirely, since `block_ra_batch()` replaced both paths].
+  - Fix: make the batched kernel the default, about 15-20× faster end to end.
+    - First match `block_ra`'s random rounding when m·prob_T is not a whole
+      number.
+    - Seed per draw index (see TODO-95).
+    - Re-pin the golden tests and add a distribution-equivalence test.
+    - Then fix the other `replicate(r, …)` loops: `optimal_blocks:263`,
+      `cluster:108`, `blocked_cluster:135`, and the `sample()` fallbacks in
+      greedy / binary_match / rerandomization / pair_switching /
+      greedy_d_optimal.
+  - Document that `set_num_cores` parallelizes the statistic, not the
+    draws.
+  - **Progress 2026-10-22 (partially done, box left open):** DONE for
+    `DesignFixedBlocking` and `DesignFixedOptimalBlocks`: new internal
+    `block_ra_batch()` (`design_fixed_blocking.R`) draws all r columns in one
+    vectorized pass (one RNG stream in the main process, so results depend only
+    on the seed, never on `set_num_cores`). It reproduces `block_ra`'s law
+    exactly, including random rounding (m = ceil with probability frac(N·p),
+    floor when ceil == N). `randomizr` is no longer needed for these designs.
+    n=200, r=2000: 2.05 s -> 0.13 s (about 15x); 1 vs 2 cores now identical.
+    NOT bit-identical to the old `replicate(block_ra)` path under a seed:
+    seed-pinned `DesignFixedBlocking` draws changed (re-pinned the one
+    `cross_platform_digests.csv` row). Tests: `test-blocking-batched-draws.R`.
+    The C++ kernel `generate_permutations_blocking_cpp` is now unused by R and
+    still rounds deterministically (`std::round`), unlike `block_ra`.
+    STILL OPEN: `cluster:108`, `blocked_cluster:135` replicate loops, the
+    `sample()` fallbacks (greedy / binary_match / rerandomization /
+    pair_switching / greedy_d_optimal), and the `set_num_cores` doc note
+    [superseded by part 2: cluster/blocked_cluster batched, `set_num_cores` doc
+    done, `sample()` fallbacks left unchanged by decision; part 2 also fixed
+    the singleton-block bug in `block_ra_batch`].
+  - **Progress 2026-10-22 (part 2; box left open):** DONE:
+    `DesignFixedCluster` and `DesignFixedBlockedCluster` `draw_ws_raw` now use
+    `block_ra_batch()` over clusters (one block for the cluster design; the
+    cluster's block key for the blocked-cluster design), expanded to subjects.
+    Same law as `cluster_ra` / `block_and_cluster_ra` (checked in
+    `test-cluster-batched-draws.R` against the randomizr functions with
+    tolerances); the blocked-cluster design keeps an explicit "clusters must be
+    nested within blocks" error. Cluster design n=200, 50 clusters, r=2000:
+    about 1.08 s (replicate of cluster_ra) vs 0.04 s. Seed-pinned draws of these
+    two designs changed (not bit-identical); no digest row in
+    `cross_platform_digests.csv` involved them, so none re-pinned.
+    Also fixed a bug in the previous `block_ra_batch`: a singleton block
+    (N == 1) was never treated (randomizr treats it as Bernoulli(prob)); an
+    earlier test had enshrined the wrong behavior and was corrected. This
+    changes seed-pinned `DesignFixedBlocking`/`OptimalBlocks` draws only for
+    designs with singleton blocks (no digest row affected).
+    `set_num_cores` roxygen (`globals.R`) now says which designs parallelize
+    their draws (OpenMP kernels: greedy, pair-switching, binary-match,
+    rerandomization balanced even-n path, optimal searches) and which do not
+    (batched-R blocking / optimal-blocks / cluster / blocked-cluster). Rd not
+    regenerated.
+    `sample()` fallbacks, investigated and left unchanged: the greedy,
+    binary_match, pair_switching and greedy_d_optimal `replicate(r, sample())`
+    lines, and the first one in rerandomization, run only when there are no
+    usable covariates (degenerate pure-BCRD fallback); the real draws go to
+    OpenMP C++ kernels, so these are not a bottleneck. STILL OPEN:
+    (a) `DesignFixedRerandomization` pure-R rejection loop
+    (`generate_one_rerandomized_w`) for prob_T != 0.5 or odd n, a genuine serial
+    per-draw R loop; batching needs a C++ rejection sampler for the unbalanced
+    case (C++ not touched); (b) the no-covariate BCRD fallbacks could share one
+    batched helper but would change seed-pinned draws for little gain;
+    (c) the unused `generate_permutations_blocking_cpp` still rounds
+    deterministically; (d) thread-count dependence of the C++ kernels is
+    TODO-95.
+  - **Progress 2026-10-22 (part 3; box left open):** DONE (R only, no native
+    build): the `DesignFixedRerandomization` fallback for prob_T != 0.5 or odd n
+    no longer loops one draw at a time. New private
+    `generate_rerandomized_w_batch()` (`design_fixed_rerandomization.R`) draws
+    candidates in vectorized batches (same candidate law as
+    `generate_one_rerandomized_w()`: Bernoulli(prob_T), or fixed
+    `round(n*prob_T)` subset when prob_T == 0.5), scores each batch with
+    matrix algebra and keeps the first r acceptable columns. Differences from
+    the old loop: a candidate with an empty arm is rejected (old code would
+    error on an NaN objective), the search is bounded at `max(1000 r, 1e5)`
+    candidates and errors like the C++ path (old loop was unbounded), and
+    seed-pinned draws on this path change (no digest row covers it).
+    `generate_one_rerandomized_w()` kept (a bulk test calls it). Roxygen
+    paragraph "Pure-R fallback" reworded (parse only; Rd not regenerated).
+    Test: `test-rerandomization-batched-fallback.R` (cutoff respected for
+    0.3/0.7/odd n and abs_sum_diff, Bernoulli mean, impossible-cutoff error,
+    seed reproducibility); run with the checkout class sourced over the STALE
+    installed EDI v1.0.3 (14 expectations pass); against the installed package
+    alone it skips, so it is not evidence for the installed build. Native
+    version dropped from the plan: it would only add OpenMP on top of the
+    batched R sampler (optional). The `std::round` item was first written as patch 13, then WITHDRAWN: on the
+    owner's decision 2026-10-22 the unused kernel `generate_permutations_blocking_cpp`
+    and `generate_permutations_blocking_internal` were hand-deleted from
+    `generate_permutations.cpp`, `RcppExports.cpp`, `RcppExports.R`,
+    `man/generate_permutations_blocking_cpp.Rd`, the two bare-kernel tests
+    (in `test-continuation-ratio-expansion-blocking-...-reference.R`) and the
+    profiler entries (UNCOMPILED, nothing built). The installed build still
+    contains the kernel until the user's next rebuild (G1); no R code calls it.
+    REMAINING: G1 (the user's next rebuild takes the deletion), G8 (Rd
+    regeneration for the `set_num_cores` and rerandomization roxygen). Fix is
+    otherwise complete; classification stays "partly" only for those gates.
+  - **Closed 2026-10-22 (final audit; box checked).** Both remaining gates are now
+    met. G1: the user's second rebuild (installed `EDI.so` built 2026-10-22 08:25:10
+    UTC = 11:25 IDT, sha256 `d7a71aa152a0697f1f5be0953c7dbc08c62302c93ba921de6ebe1b2d998ec67c`)
+    postdates the source deletion (`generate_permutations.cpp` 09:41 IDT,
+    `RcppExports.cpp` 10:04 IDT), and `nm -D` of that DLL shows no
+    `generate_permutations_blocking*` symbol. G8: roxygenize ran clean twice on
+    2026-10-22; `man/set_num_cores.Rd` and `man/DesignFixedRerandomization.Rd` carry
+    the new text, and `man/generate_permutations_blocking_cpp.Rd` is deleted. Only
+    the commit remains.
+
+- [ ] TODO-119 (added 2026-10-22, user decision; harness T27, T49):
+  **Randomization CIs come back on the wrong scale for proportion, count and
+  ordinal responses.**
+  - **Current state (2026-10-22):** the "refuse" option is implemented (scale-
+    mismatched classes error and lose the `randomization_ci` capability), tested
+    and in NEWS. Remaining: maintainer decision whether to invert on the
+    estimand's own scale instead of refusing; audit of other ordinal and
+    quantile/ZOIB classes; "CI contains estimate / same scale" sweep test;
+    `rand` CSV regeneration (G4); MC-SE attribute/doc; Rd regeneration.
+  - `compute_rand_confidence_interval()` inverts a sharp-null shift δ on a
+    transformed scale. It then returns the δ bounds as if they were bounds on
+    the class's estimand. Three cases:
+    1. **Non-GLM proportion and count classes** (for example
+       `InferenceAllSimpleAverageDiff`) invert on `logit(clamp(y))` or
+       `log1p(y)` (`inference_all_abstract_rand_ci.R:286-292`), with no
+       back-transform (`:340-358`).
+       - T27: estimate 0.100, randomization CI [0.030, 8.39], centred on the
+         logit mean difference of 3.96. Exact 0s and 1s are clamped to ±36.
+       - Counts: estimate −0.16, randomization CI [−0.26, 0.23].
+    2. **Model-scale classes with a raw-scale estimand.**
+       `InferencePropGCompMeanDiff` is hard-listed at `:15`, so its δ is a
+       logit shift. It gives [0.04, 0.99] against an asymptotic CI of
+       [0.03, 0.17].
+    3. **Ordinal rank estimands** (`InferenceOrdinalRidit`,
+       `InferenceOrdinalJonckheereTerpstraTest`, probably
+       `InferenceOrdinalGCompMeanDiff`). These use an additive shift of the
+       integer levels (`inference_all_abstract_rand.R:989`), so p(δ) is a
+       step function. The "CI" is about [0, 1] Likert points and includes 0
+       even though p(0) = .04.
+  - Fix: for each class, either invert on the estimand's own scale or refuse
+    and drop the `randomization_ci` capability, as the Cox and incidence cases
+    already do. Use a class-level "estimand scale == shift scale" contract.
+  - Test: the randomization CI must contain the estimate, sit on the same
+    scale as the asymptotic CI, and stay within the parameter space. Then
+    regenerate the affected `rand` CSV rows.
+  - Not a bug (checked, harness T19, T36): randomization CIs that look
+    "narrower than the randomization p" are Monte Carlo noise. Endpoint SD at
+    r = 1000 is 0.04-0.08, coverage over 1000 reps was 94.7%, and the CI and
+    the test agree on the same draws in 99.7% of reps. The agents re-tested
+    endpoints with fresh draws, because `set_seed()` doesn't control the
+    draws (TODO-112). Doc item: say in `compute_rand_confidence_interval()`
+    that endpoints carry Monte Carlo error. Consider returning r and an
+    endpoint MC-SE attribute.
+  - Done 2026-10-22 (refuse option; checkbox left open): the CI now errors
+    for scale-mismatched cases via `inference_randomization_ci_scale_mismatch()`
+    (`inference_class_registry.R`): raw-scale (`mean_difference` /
+    `hodges_lehmann_shift`) or non-model-scale classes on proportion/count
+    (`InferenceAllSimpleAverageDiff` etc.), and
+    `EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES` (`InferencePropGCompMeanDiff`,
+    `InferenceOrdinalGCompMeanDiff/JonckheereTerpstraTest/PairedSignTest/Ridit`),
+    which also lose the `randomization_ci` capability. Test:
+    `test-rand-ci-estimand-scale-mismatch-refused.R`. Roxygen note added
+    (Rd not regenerated); NEWS "Breaking changes" line added.
+    **Open:** no inversion on the estimand's own scale (raw-scale classes on
+    proportion/count lose the rand CI entirely); non-GLM classes with mixed
+    response types still advertise the capability and fail per response type;
+    other ordinal classes (e.g. average diff of scores) and
+    quantile-regression/ZOIB model-scale classes not audited for scale;
+    "CI contains estimate / same scale as asymptotic" sweep test and `rand`
+    CSV regeneration not done; MC-SE attribute not added.
+  - **DECIDED 2026-10-22 (G6): refuse exact 0/1 proportions.** The randomization
+    CI for logit-shift proportion classes (BetaRegr, FractionalLogit,
+    QuantileRegr, ZeroOneInflatedBetaRegr and other model-scale proportion
+    classes, plus the KK proportion model classes -- KK ones unverified) now
+    errors (class `edi_rand_ci_exact_zero_one_refused`) when any response is an
+    exact 0 or 1 (within `zero_one_logit_clamp`): the logit shift cannot move
+    them, so p(delta) is flat and the search hits +-12 or excludes the estimate
+    (ZOIB: [0.875, 12.8] vs estimate 0.58). Interior data is unaffected. The
+    message names score / gradient / Bartlett-LR, asymptotic and bootstrap CIs.
+    Implemented as `inference_randomization_ci_exact_zero_one_refusal()`
+    (`inference_class_registry.R`) called from `compute_rand_confidence_interval()`;
+    tests appended to `test-rand-ci-estimand-scale-mismatch-refused.R` (passed with
+    `load_all(compile = FALSE)`). The p-value at nonzero user-chosen delta is
+    unchanged. Harness `comprehensive_rand_ci_eligibility.R` not edited (G4):
+    proportion rand-CI rows on exact 0/1 datasets will now error. Box stays open.
+  - Source work 2026-10-22 (audit + sweep test; decision-independent, refuse
+    option only; no C++): R-level audit run on n=40, r=51 with
+    `pkgload::load_all(compile = FALSE)` (existing `.so`; unverified against a
+    fresh build). Findings: (1) ordinal model-coefficient classes already excluded;
+    ordinal generic classes (AllSimpleAverageDiff, AllSimpleWilcox) use a
+    same-scale additive shift and contained the estimate; (2) PropQuantileRegr
+    (fit on logit(y)), PropBetaRegr, CountPoisson, Weibull survival: CI contains
+    estimate on the estimate's scale; (3) NEW gap fixed: generic raw-scale
+    classes on survival responses (`InferenceAllSimpleAverageDiff`/`Wilcox`/
+    `KKMeanDiffIVWC` etc.) inverted a log-time shift against a time-scale
+    estimate (asymptotic CI [-3.3, 2.7] vs rand [-0.38, 0.93]);
+    `inference_randomization_ci_scale_mismatch()` now refuses survival with a
+    `mean_difference`/`hodges_lehmann_shift` tag (KM/RMST/Gehan/LogRank already
+    refuse per class); (4) OPEN, not changed: `InferencePropZeroOneInflatedBetaRegr`
+    with exact 0/1 responses gives degenerate/search-boundary-limited rand CIs
+    (2 of 3 seeds hit the +-12 boundary; one excluded the estimate, [0.875, 12.8]
+    vs est 0.58) because exact 0/1 are clamped to +-36 on the logit shift; interior
+    y is fine. Needs a decision (refuse when any exact 0/1 under a logit shift, or
+    invert differently; G6). Same clamp affects any logit-shift class with exact
+    0/1 responses. Tests: `test-rand-ci-estimand-scale-mismatch-refused.R` gains
+    survival registry expectations and a "CI contains estimate" sweep (6
+    class/response cases; needs `NOT_CRAN=true`); file passes (35 expectations,
+    run 2026-10-22). Still gated: invert-vs-refuse (G6 #10), ZOIB exact-0/1
+    disposition (G6), harness lattice for the new survival refusals and `rand`
+    CSV regeneration/pruning (G4), MC-SE attribute/doc, Rd regeneration (G8),
+    NEWS line for the survival refusal not added (NEWS.md under concurrent edit).
+  - Harness consistency (2026-10-22): `package_tests/comprehensive_rand_ci_eligibility.R`
+    gains `comprehensive_rand_ci_refused_for_scale_mismatch()` (reads
+    `EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES`); the proportion candidate
+    generator and `comprehensive_rand_ci_class_attempts()` use it, so a
+    regenerated run neither attempts nor expects `compute_rand_confidence_interval`
+    for the five classes (live harness already gated on the capability;
+    ordinal responses are never in the rand-CI response set). Candidate
+    lattice: 14400 contexts, 28800 p-value + 0 CI = 28800 keys (was 43200).
+    Results CSVs untouched; prune the 988 stale `compute_rand_confidence_interval`
+    ok rows of `InferencePropGCompMeanDiff` (dated 2026-09-09, already covered by
+    the TODO-55 proportion rule) on the next regeneration.
+  - Exact 0/1 harness + tests (2026-10-22): no comprehensive_tests row hits the
+    G6 refusal -- all 9 harness proportion datasets (diamonds, pte_example,
+    ionosphere, abalone, iris, boston, fuel, cars, airquality) have a [0.1, 0.9]
+    baseline and a logit-scale DGP, observed range about [0.07, 0.955] at
+    beta_T 0 and 0.5. Guard added anyway: `comprehensive_rand_ci_eligibility.R`
+    gains `comprehensive_rand_ci_refused_for_exact_zero_one()` (wraps the
+    registry predicate) and `comprehensive_rand_ci_uses_generic_implementation()`;
+    `run_inference_checks_impl()` skips only the plain rand CI (with a message)
+    when the predicate fires on the live `private$y`. BRT and custom CIs still run.
+    Verified live: BetaRegr, FractionalLogit, QuantileRegr, ZOIB, KKGEE, KKGLMM and
+    KKQuantileRegrOneLik refuse on exact 0/1 and run on interior data.
+    `InferencePropKKQuantileRegrIVWC` does NOT refuse: it overrides the rand CI
+    with the Zhang-combined `InferenceExtQuantileRandCI`, so the harness does not
+    skip it. That path runs a logit-scale quantile fit on exact 0/1 data, which is
+    still open (legacy IVWC). New test_that in
+    `test-comprehensive-rand-ci-eligibility-reference.R`. No unit/bulk test failed
+    from the refusal (about 22 candidate files run with `load_all(compile = FALSE)`).
+    InferenceSuite and SimulationFramework already catch the classed error as a
+    per-row error with NA bounds; no source change. No CSVs regenerated (G4).
+  - **Status 2026-10-22 (final audit).** Superseding the "does NOT refuse ... still
+    open" sentence above: `InferencePropKKQuantileRegrIVWC` now refuses too
+    (`inference_ext_quantile_rand_ci.R` calls
+    `inference_randomization_ci_exact_zero_one_refusal()` before the Zhang path;
+    NEWS v1.0.5 says so; test "Zhang-combined quantile rand CI (KK quantile IVWC)
+    also refuses exact 0/1 proportions" in `test-rand-ci-estimand-scale-mismatch-refused.R`).
+    Decided by the owner (G6 #10 second half): refuse. Still open: (1) G6 #10 first
+    half, invert on the estimand's own scale (new v1.1.0 TODO) vs keep refusing;
+    (2) agent-doable (NEWS survival-refusal line under Bug fixes and the MC-SE
+    "Monte Carlo error" roxygen paragraph DONE 2026-10-22, roxygen only, `parse()`
+    OK, Rd NOT regenerated: needs a G8 re-run): a NEWS line for the survival raw-scale refusal, the MC-SE
+    sentence in `compute_rand_confidence_interval()` docs, and the non-GLM
+    mixed-response classes that still advertise `randomization_ci` (see above);
+    (3) G4/G9 rows, prune and capability matrix. Rd (G8) is done.
+
+- [ ] TODO-120 (added 2026-10-22, user decision): **One default `B` for
+  the dependent-censoring bootstrap.** `InferenceSurvivalDepCensTransformRegr`'s
+  four bootstrap CI methods (`compute_bootstrap_confidence_interval`,
+  `_basic`, `_bca`, `_studentized`) and its private
+  `dep_cens_percentile_bootstrap_ci()` defaulted to `B = 1000`, while its
+  inherited `compute_bootstrap_two_sided_pval()` and every other bootstrap
+  method in EDI default to 501. The cache in
+  `approximate_bootstrap_distribution_beta_hat_T()` is keyed by `B`, so a
+  CI and a p-value called with defaults built two distributions from
+  different draws. The 1000 dates from the initial commit (`ff079d54`) with
+  no recorded reason.
+  - **Current state (2026-10-22):** source and tests done (all defaults 501,
+    NEWS recorded). Remaining only: regenerate man pages and run the dep-cens
+    bootstrap tests on a rebuilt package. Kind: Rd regeneration + CI gate.
+  - Source done 2026-10-22: all five defaults and the four `@param B`
+    lines are now 501; the stub default in
+    `test-dep-cens-transform-compute-bootstrap-ci-basic-and-bca-wrapper-wiring-reference.R`
+    follows. Recorded under NEWS "Breaking changes".
+  - **Default change** (standing constraint): this class's default
+    bootstrap CIs change. `B = 1000` restores them.
+  - Tests added 2026-10-22: `tests/testthat/test-dep-cens-bootstrap-default-B.R`
+    (all four methods + `dep_cens_percentile_bootstrap_ci` share the
+    inherited p-value method's default 501; default and explicit `B`
+    forwarded unchanged by the wrappers). 14 expectations pass, source-loaded
+    with `compile = FALSE`. These methods do no `B` validation of their own
+    (the shared bootstrap abstract does), so no invalid-`B` test here.
+  - [x] Regenerate the man pages (roxygen) and run the dep-cens bootstrap
+    tests on a rebuilt package. Not done: no build was requested.
+    **Done 2026-10-22 (final audit):** roxygenize ran clean twice (G8); against the
+    user's rebuilt installed EDI (built 2026-10-22 08:25 UTC, sha256 `d7a71aa1...`),
+    `test-dep-cens-bootstrap-default-B.R` (2 tests / 14 expectations) and
+    `testthat_bulk/test-dep-cens-transform-compute-bootstrap-ci-basic-and-bca-wrapper-wiring-reference.R`
+    (8 expectations) pass with 0 failures/errors. The box stays unchecked only for
+    the owner's acceptance of the default change (G6 #29) and CI on the commit (G5).
+
+- [ ] TODO-121 (added 2026-10-22, user decision; found while fixing TODO-115 on
+  an all-matched `~1` design, not yet diagnosed): **Silent Wald fallback: score
+  and LR p-values are numerically identical to Wald.**
+  - **Current state (2026-10-22):** R fixes done for StratCox, CondPoisson,
+    LWA-Cox, Loggamma/GLMM OneLik, Cont/Count KK GLMM and the shared cond-logit
+    GLMM (dispatch plus `edi_lik_test_wald_fallback` warning); the Loggamma
+    null-fit divergence has an R floor fix. Remaining: maintainer decision on
+    the Hurdle/Poisson/CountKKGLMM `max(model, Wald)` rule; a C++ patch gated on
+    a user build (G1): stable `logA` in `ClaytonWeibullLikelihood`; Rd
+    regeneration. Earlier "Open" / "NOT fixed" / "Remaining" lines below are
+    superseded by the second and third batches.
+  - Classes: `InferenceCountKKCondPoissonOneLik`,
+    `InferenceCountKKHurdlePoissonOneLik`, `InferenceSurvivalKKStratCoxPHOneLik`.
+  - Observed (TODO-115 sibling probe, 2026-10-22): on a design with no
+    covariates, `testing_type = "score"` and `"lik_ratio"` return the same
+    p-value as Wald (e.g. `InferenceCountKKCondPoissonOneLik`: .2069923 at
+    delta = 0 and .649863 at delta = .2, all three types). For the Poisson class
+    the likelihood-test spec appears to be NULL on this path (the pairs-only
+    fit sets no `likelihood_test_context`), so the request is silently served by
+    the Wald path.
+  - Why it matters: worse than an NA. The user receives a number labeled as a
+    score or LR p-value that is not one, with no warning.
+  - Fix: (1) diagnose each class (confirm the spec is NULL / the fallback site;
+    check whether covariate-bearing designs are affected too, and which other
+    `*OneLik` classes share the pattern, including the Cox classes in
+    `inference_survival_coxph.R` / `inference_survival_strat_cox.R` and the
+    GLMM/LWA-Cox classes, which TODO-115's probe did not cover); (2) either
+    supply a real likelihood spec (as TODO-115 did for
+    `InferenceIncidKKCondLogitOneLik` with
+    `kk_clogit_fully_fixed_null_fit(delta)`) or, where a likelihood test is not
+    available, stop returning Wald under a score/LR label: error or return NA
+    with a classed warning, never a silent substitute; (3) add a test that
+    asserts score/LR differ from Wald on a design where they should (compare
+    against an independent reference) and that an unsupported request is
+    flagged, not substituted.
+  - Related: the TODO-115 follow-up item "warn whenever a likelihood test is NA
+    while Wald is finite" is not covered here; keep it with TODO-115.
+  - Diagnosis + fix 2026-10-22 (source-loaded, `compile = FALSE`; no C++ changed):
+    - `InferenceSurvivalKKStratCoxPHOneLik`: a real spec existed, but
+      `compute_asymp_two_sided_pval()` / `compute_asymp_confidence_interval()`
+      in `SurvivalKKStratCoxOneLikPartialLikelihoodSource`
+      (`inference_survival_KK_strat_cox.R`, ~L445-480) ignored
+      `get_testing_type()` and always returned Wald. Fixed by dispatching to the
+      `*_impl` score/gradient/LR/Bartlett methods. That exposed the TODO-115
+      pattern (beta_T the only parameter -> empty free set -> NA), fixed with
+      `kk_cox_fully_fixed_null_fit()` (Breslow neg-loglik from
+      `.cox_neg_loglik_breslow_r`, the rule the C++ fitter uses) in the spec's
+      and the simulator's `fit_null`. Verified vs `survival::coxph(strata())`
+      sctest/logtest (~1) and nested-coxph LR with offset (covariates, delta != 0).
+    - `InferenceCountKKCondPoissonOneLik`: spec was NULL on the pairs-only
+      (`try_pairs_only`) and reservoir-only (`try_reservoir_only`) fallback fits
+      (they set no `likelihood_test_context`), so the model p was NA and the
+      `.conservative_kk_onelik_pval()` max rule silently kept the design Wald
+      value (`inference_count_KK_cond_poisson.R`). Fixed with
+      `kk_cpoisson_glm_fallback_spec()` (binomial-logit for pairs, Poisson for
+      reservoir; glm.fit null refits), verified vs `glm` anova Rao/LRT. Mixed
+      pairs+reservoir designs already had a spec.
+    - `.conservative_kk_onelik_pval()/_ci()` now take `owner`/`label` and emit a
+      classed once-per-object warning `edi_lik_test_wald_fallback` when the model
+      test is unavailable but the design value is returned (wired into both
+      OneLik count classes' score/LR/gradient p-value and CI methods).
+    - DECISION NEEDED: `InferenceCountKKHurdlePoissonOneLik` (and the Poisson class
+      on designs with a real spec) still return numbers identical to Wald by
+      the documented design-conservative rule max(model p, jackknife-inflated Wald
+      p): the model score/LR p-values ARE computed (e.g. .6425/.6416 vs Wald .6849)
+      but the larger Wald value wins. Not changed; the user must decide whether
+      that rule should stay (docs say "never anti-conservative").
+    - Same dispatch bug, NOT fixed (outside the three): `InferenceSurvivalKKLWACoxPHOneLik`
+      (`inference_survival_KK_lwa_cox_one_lik_abstract.R` ~L112),
+      `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
+      (`inference_survival_GLMM_weibull_frailty_loggamma.R` ~L591),
+      `InferenceContinKKGLMM` (`inference_continuous_KK_glmm.R` ~L191),
+      `InferenceIncidKKCondLogitGLMMOneLik`
+      (`inference_incidence_KK_cond_logit_glmm_abstract.R` ~L180; NA on a
+      covariate design for other reasons), and `InferenceCountKKGLMM`
+      (`inference_count_KK_combined.R` ~L220: score/gradient fall to Wald).
+      `InferenceContinKKQuantileRegrOneLik`/`RobustRegrOneLik`/
+      `InferencePropKKQuantileRegrOneLik` only support Wald (honest).
+      `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik`, `InferenceContinKKOLSOneLik`
+      (NA on ~1 is TODO-122) and `InferenceIncidKKCondLogitOneLik` dispatch correctly.
+    - Tests: `tests/testthat/test-onelik-lik-test-wald-fallback.R` (40
+      expectations; fail on HEAD, pass now).
+    - Open: fix the classes in the "NOT fixed" bullet (same one-line dispatch)
+      [superseded: done in the second batch]; decide the Hurdle/Poisson max rule;
+      roxygen/Rd for the new warning not run.
+  - Second batch 2026-10-22 (source-loaded, `compile = FALSE`; no C++ changed, no
+    commit): dispatch on `private$testing_type` (wald -> existing Wald path;
+    score/gradient/lik_ratio/Bartlett -> the `*_impl` methods) added to
+    `compute_asymp_two_sided_pval()/_confidence_interval()` of
+    `InferenceSurvivalKKLWACoxPHOneLik`, `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`
+    (OneLik source only, not the IVWC one), `InferenceContinKKGLMM` and the shared
+    `InferenceAbstractKKCondLogitGLMM` (covers `InferenceIncidKKCondLogitGLMMOneLik`,
+    `InferencePropKKGLMM`, and the legacy `InferenceIncidKKCondLogitGLMMIVWC`, which
+    now also serves model score/LR instead of Wald). Per-class copies, no shared helper.
+    - `InferenceSurvivalKKLWACoxPHOneLik` on `~1`: beta_T the only parameter -> NA
+      (TODO-115 pattern); fixed with `kk_cox_fully_fixed_null_fit(..., strata = NULL)` in
+      the spec's and the simulator's `fit_null`. Matches `survival::coxph` sctest/logtest
+      (Breslow, no strata) on `~1` and nested-coxph LR on `~x1`.
+    - `InferenceCountKKGLMM`: score and gradient now dispatch (conservative
+      max(model, Wald) rule like its lik_ratio, `edi_lik_test_wald_fallback` if the model
+      test is NA). Found a real bug: its Poisson-GLMM spec returned
+      `get_poisson_glmm_hessian_cpp()` (Hessian of the LOG-likelihood, negative
+      definite) as the information matrix, so the score test was garbage (p .246 vs LR
+      .028 vs Wald .031 on the probe; NA on `~1`). Fixed in R by negating (score p now
+      .029). No C++ change (the C++ comment "observed information (Hessian of neg_ll)"
+      is misleading about the sign: it returns -hess(neg_ll)).
+    - `InferenceContinKKGLMM` "score returned 0": a fixture artifact, not a bug. With
+      `~1`, KK14 forms zero pairs (all reservoir), so sigma_e and tau are not separately
+      identified (information rank 1) and the score statistic is meaningless. Use `~x1`
+      for a pairs+reservoir fixture. Same reason `InferenceIncidKKCondLogitGLMMOneLik`
+      is all-NA on `~1` KK14. On `~x1` all three types are finite and in the same
+      ballpark; Cont LR matches glmmTMB (ML) LR.
+    - Remaining: Loggamma-frailty `lik_ratio` at delta = 0 on the all-matched `~x1`
+      probe is NA (null refit diverges: frailty log-theta -> -16, loglik NaN). Honest
+      NA, not a substitution; a null-fit optimizer issue (C++/fit), not fixed
+      [superseded: R-side fix in the third batch below; only the C++ remainder is
+      open].
+    - Tests: `tests/testthat/test-onelik-lik-test-dispatch-glmm-lwa.R` (106
+      expectations; 26+ fail on HEAD, all pass now). Neighbours pass:
+      registry-component-drift, extracted-likelihood-mixin-public-contracts,
+      static-cleanup-guardrails, onelik-lik-test-wald-fallback, zero-covariate-kk-survival,
+      parametric-bootstrap-lr-smoke-families, kk-bootstrap-method-inheritance.
+    - STILL OPEN (box stays unchecked): the Hurdle/Poisson/CountKKGLMM max-rule
+      decision (model score/LR are now computed but the larger Wald value wins);
+      Loggamma null-fit divergence above; roxygen/Rd not run.
+
+  - Third batch 2026-10-22 (Loggamma null-fit divergence; source-loaded, `compile = FALSE`;
+    NO C++ changed or compiled, no commit):
+    - Diagnosis: on the all-matched `~x1` fixture (n = 40, seed 2) the beta_T = 0 null profile is
+      monotone in log(theta) (52.289 at -4, 52.2762 at -12, 52.27615 in the limit), i.e. the true
+      null MLE is the no-frailty boundary theta -> 0. The kernel's lower tail is unbounded and it
+      evaluates `logA = log(e^{theta h1} + e^{theta h2} - 1)` directly (`fast_survival_models_optim.cpp`,
+      `log_sum_exp_clayton`), which cancels to 0 for theta << 1e-4 (loglik NaN, error ~1e-16/theta^2);
+      the warm-started null fit ran to log-theta -16.2 and returned NaN after 2000 iterations, so the
+      LR was NA while Wald .00004 / score .00008 / gradient .0088 were finite. The full fit sits at
+      log-theta -0.39 (nll 46.911).
+    - Fix (R only): `.clayton_weibull_null_fit_robust()` (top of
+      `inference_survival_GLMM_weibull_frailty_loggamma.R`), used by the OneLik spec `fit_null` and by
+      `simulate_under_lik_null()`'s `fit_null`. It calls the kernel exactly as before first; only if
+      that is NULL / unconverged / non-finite / past a documented log-theta floor of -12
+      (`.CLAYTON_LOG_THETA_NULL_FLOOR`, same bound as the R fallback fitter) does it multi-start:
+      log-theta FIXED at -12 (the no-frailty limit) from the warm start and from the cold
+      no-frailty Weibull start, plus a free cold start; best finite neg-loglik with log-theta >= -12
+      wins; result tagged `log_theta_null_floor_fallback`.
+    - Result: failing fixture W/S/LR/G = .00004/.00008/.00105/.00881 (LR stat 10.73, was NA);
+      KK14 fixture unchanged (.50572/.50294/.50955/.51205, null fit bit-identical pass-through);
+      true-variance-0 fixtures (gsd = 0, seeds 2,3, KK14 seed 2): LR .455/.116/.733 vs Wald
+      .453/.101/.736, LR stat >= 0.
+    - Tests: `tests/testthat/test-weibull-frailty-loggamma-null-boundary.R` (19 expectations; 9 fail
+      with the original kernel call, all pass now). Neighbours pass: clayton-logtheta-optimizer-bound,
+      onelik-lik-test-dispatch-glmm-lwa, weibull-frailty-normal, zero-covariate-kk-survival,
+      kernel-warm-start-length-contracts, warm-start-dispatch-policy-refactor,
+      reused-worker-resampling-nondegenerate.
+    - C++ REMAINDER (not done): compute `logA` as `log1p(expm1(theta h1) + expm1(theta h2))` (stable as
+      theta -> 0) and/or bound log-theta below in the kernel, so the free full fit is also exact for
+      log-theta < -12 (full fits there, e.g. gsd = 0 seed 2 at -14.9, remain on the unstable
+      branch; the null floor makes LR slightly conservative-by-construction in that case). The
+      R floor can then be lowered/removed.
+    - Still open: max-rule decision above; roxygen/Rd for new warning not run; box stays unchecked.
+  - Review 2026-10-22 (late; no source change): re-checked the remaining items. All of them are gated: (a) the
+    Hurdle/Poisson/CountKKGLMM `max(model p, Wald)` rule is owner decision G6 (gates item 11; recommended keep, no
+    warning when a model value was computed), so no decision-independent code remains; (b) the stable `logA`
+    (patch 03) and the `get_poisson_glmm_hessian_cpp` comment (patch 09) are written but need the G1 targeted
+    compile; (c) Rd for the `edi_lik_test_wald_fallback` warning waits for the roxygenize batch. Source-loaded
+    (`compile = FALSE`) re-run of `test-onelik-lik-test-wald-fallback.R`, `test-onelik-lik-test-dispatch-glmm-lwa.R`
+    and `test-weibull-frailty-loggamma-null-boundary.R`: 0 failed, 0 errors, 0 skipped. Gates row unchanged (G6, G1, G8).
+- [x] TODO-122 (added 2026-10-22, user decision; found while fixing TODO-115,
+  not yet diagnosed): **`InferenceContinKKOLSOneLik` returns NA for Wald, score
+  and LR even though the estimate is finite.**
+  - **Current state (2026-10-22):** DONE. Score/LR NA on `~1` was the
+    fully-fixed null fit (fixed with `kk_ols_fully_fixed_null_fit()`); Wald was
+    already finite. No C++ change; nothing remains except Rd if roxygen changed.
+  - Observed (TODO-115 sibling probe, 2026-10-22): on an all-matched design
+    with no covariates (`~1`), the estimate is finite but the Wald, score and LR
+    p-values are all NA.
+  - Fix: diagnose why the SE is not produced on this path (suspect a
+    zero-covariate or fully-fixed-null case as in TODO-115, or a rank or
+    variance step that returns NA for a single-column X), fix it so Wald, score
+    and LR are finite and agree with an independent reference (`lm`/GLS on the
+    pairs), check the same configuration with covariates, and add a test. If
+    the cause is shared with TODO-111 (zero-column covariate frames) or
+    TODO-115, fix them together and cross-reference.
+  - DONE 2026-10-22. Diagnosis: on an all-matched design with `~1` the stacked
+    design has one column (beta_T), so the score/LR null fit
+    (`get_likelihood_test_spec()$fit_null`, `inference_continuous_KK_ols_one_lik.R`)
+    fixes every parameter and `fast_ols_with_var_cpp` throws "at least one
+    parameter must remain free"; the error was swallowed upstream and the
+    score/LR p-values and CIs became NA. Same pattern as TODO-115. Wald was
+    already finite in the probe on the current tree (HC2 SE fine for 1 column);
+    covariate-bearing and reservoir designs were unaffected (checked). Not shared
+    with TODO-111. Fix: `kk_ols_fully_fixed_null_fit()` (b = delta) used when
+    `ncol(X) == 1`, in both `fit_null` closures (spec and
+    `simulate_under_lik_null`). No C++ change, no default change.
+    Test: `test-contin-kk-ols-onelik-single-param-lik-tests.R` (fails 14
+    expectations before, passes after; references are the pair-difference
+    regression with sigma^2 = var(d), chi-square(1)).
+
+- [ ] TODO-123 (added 2026-10-22, user decision via the sweep; found by the ZIP NA
+  investigation under TODO-4): **`optimize_likelihood_newton` reports false
+  non-convergence at the optimum** —
+  `../bug_fix_plans/optimize_likelihood_newton_false_nonconvergence.md`. The Newton
+  routine returns `converged = FALSE` when it is already at the optimum to ~6 digits
+  (line-search failure, or step-size exit with gradient just above tol), the LBFGS
+  fallback does not beat it, and R discards the fit. Survey: false-failure rates up to
+  10/90 (hurdle-Poisson, ZIP), 13-17/90 (Poisson via Newton), 19-32/90 (Weibull via
+  Newton at tol 1e-8), a few percent for beta/NB/ordinal at n = 200; ZINB, hurdle-NB
+  and stereotype failures at n = 40 are real and must stay failures.
+  - R-side recoveries exist for ZIP and hurdle. This TODO is the proper C++ fix
+    (Hessian-scaled `newton_stalled_at_optimum` rule, covering both the line-search and
+    step-size exits); the patch text and the evidence (179 false cases rescued, 0 of 39
+    true failures accepted) are in the plan file. Needs a user build (G1, targeted
+    compile) and a re-run of the survey.
+  - Review 2026-10-22 (source-only, no build): the "not surveyed" kernels WERE surveyed
+    afterwards (plan file, "Survey 2"): GLMM/LMM Newton stalls (15/15) are covered by
+    patch 01; Cox NR/LBFGS false failures are `maxit` budget, covered by patch 08
+    (`maxit` 20 -> 100 + descent guard); pure LBFGS has no stall pattern (no patch
+    needed); CLMM `eps_g` 1e-3 -> 1e-6 already landed R-side. Both patches pass
+    `git apply --check` against the current tree. No decision-independent source work
+    remains: everything left is G1 (apply 01+08, targeted compile) and re-running the
+    survey/stepwise-Weibull `sim.R` (expect `step_same` = 1, `n_uni_diff` = 0).
+    Optional, not done: cold-retry in the stepwise Weibull helper (C++).
+
+- [x] TODO-124 (added 2026-10-22; found by the migration-golden regression agent,
+  investigated and fixed the same day): **"Randomization p-value NA vs NA" in the
+  four KK continuous goldens (OLS/robust IVWC and OneLik) -- mostly a fixture quirk,
+  one real IVWC bug.** Current state: FIXED (R only, uncommitted) for
+  `InferenceContinKKOLSIVWC`; no code change needed for the OneLik classes.
+  - The golden NA is a fixture artifact: the shared migration harness calls
+    `compute_rand_two_sided_pval(r = 9)`, and
+    `compute_two_sided_randomization_pval_from_t0s()` (inference_all_abstract_rand.R,
+    `min_required = max(10L, ...)`) returns NA by design below 10 finite draws. With
+    r >= 101 both OneLik classes (and robust IVWC) give finite randomization p-values,
+    CIs, jackknife SEs on DesignSeqOneByOneKK14 and DesignFixedBinaryMatch (n = 60).
+    So the goldens' randomization_pval/ci/bootstrap columns are vacuous (NA vs NA) for
+    every class that uses r = 9; consider r = 19+ for a few representative goldens.
+  - Real bug (legacy class): `InferenceContinKKOLSIVWC$shared()` called
+    `ols_for_matched_pairs/ols_for_reservoir(estimate_only = estimate_only)`; in
+    estimate-only mode `fit_ols_with_treatment` returns `ssq = NA`, so the IVW weights
+    were undefined and `compute_estimate(estimate_only = TRUE)` was NA on a fresh object
+    (it only looked fine after a full `compute_estimate()` had filled the cache). That
+    made every randomization / bootstrap / jackknife / rand-bootstrap refit NA for this
+    class. Fix: inference_continuous_KK_ols_ivwc.R `shared()` now always computes the
+    component variances (robust IVWC already did this); estimate_only still skips the
+    combined SE/df.
+  - Regression tests: tests/testthat/test-contin-kk-estimate-only-rand.R (fresh
+    estimate-only finite and equal to full estimate; finite rand p within 0.15 of Wald;
+    fully finite randomization distribution; all four classes). Before: OLS IVWC fails,
+    the other three pass. After: all pass. The four goldens and neighbours pass.
+  - Remains: (a) bootstrap CI (`compute_bootstrap_confidence_interval`, B = 101) came
+    back NA for several seeds on DesignFixedBinaryMatch n = 60 for the OneLik classes,
+    robust IVWC AND `InferenceContinOLS` although the bootstrap distribution was fully
+    finite -- generic, seed-dependent, not investigated (separate from this TODO);
+    (b) the OLS IVWC bootstrap-worker path was not separately re-profiled after the fix
+    beyond the finite checks; (c) IVWC is a legacy class, not to be published.
+
+- [ ] TODO-125 (added 2026-10-22, user decision; asked for as "TODO-120", but
+  120-124 were already taken; found while drafting the R Journal note,
+  `private/papers/RJournal/`): **A raw `$clone()` of an inference object
+  leaves lazily installed methods pointing at the original object. Fix it at
+  the source by closing installed methods over the object's enclosing
+  environment.**
+  - Mechanism: `R6:::remap_func_envs()` (R6 2.6.1) repoints a function during
+    `clone()` only if its environment is `identical()` to one of the
+    object's enclosing environments.
+    - `install_lazy_inference_component()` (`contracts_mixins.R:2926`) sets
+      `method_env = parent.frame()`. That is the stub's call frame, a child
+      of the enclosing environment, so `clone()` skips those methods.
+    - Standalone repro: `private/papers/RJournal/mre/mre1_clone_trap.R`.
+    - Team learning:
+      `.trail/learnings/2026-10-22-r6-clone-remap-rule-and-edi-adam.md`.
+  - Evidence on the installed package: `InferenceContinOLS` after
+    `compute_estimate()` and one `compute_bootstrap_confidence_interval(B = 50)`.
+    Script: `private/papers/RJournal/mre/edi_clone_check.R`.
+
+    | Copy made with | Methods still reaching the original |
+    |---|---|
+    | `inf$duplicate()` (calls the rebind helper) | 0 |
+    | `inf$clone()` (public, R6-provided) | 14 public, 79 private |
+
+  - Why it matters: internal copies are correct today only because
+    `duplicate()` is the sole internal clone site
+    (`inference_all_abstract.R:327`) and the only caller of
+    `edi_rebind_lazy_components_after_clone()`. A user's direct `clone()`,
+    or any future internal `clone()`, silently reads and writes the
+    original's state. This is the same bug class as the 2026-08-20
+    bootstrap-worker failure.
+  - Steps:
+    1. In `install_lazy_inference_component()`, replace
+       `method_env = parent.frame()` with `method_env = self$.__enclos_env__`.
+       This is the enclosing environment for both public and private
+       methods. Stubs are `function(...)`, so their frame holds only `...`,
+       and `self`/`private`/`super` resolve exactly as before.
+       - The refit-isolation wrapper copies `environment(orig)`
+         (`inference_all_abstract.R:591`), and `private$weighted_refit_impl`
+         stores `orig`, so both follow automatically and R6 remaps them.
+       - A marker lost on a clone becomes harmless: the installer re-runs as
+         a cached no-op and never overwrites a real method, only remaining
+         stubs.
+    2. Audit every component method for a free `...` that it doesn't declare
+       as a formal, the only way a method could depend on the stub frame.
+       Running `codetools::findGlobals()` over the component sources is
+       enough. None are expected; fix any found.
+    3. Add a regression test. Build an inference object, call
+       `compute_estimate()` and a bootstrap, then `cl = inf$clone()`. Assert
+       that no public or private method's environment chain reaches
+       `inf$.__enclos_env__`. Assert also that changing the clone's state is
+       visible to the clone's methods and not to the original's. Cover at
+       least one lazy class per response type and a plain
+       `R6::R6Class(inherit = <class>)` user subclass, whose private env is
+       locked, which is the attribute-marker path.
+    4. Keep `edi_rebind_lazy_components_after_clone()` for this release as
+       belt and braces; it should now be a no-op. Assert that in the test.
+       Remove it in the next release, together with the `source_private`
+       threading in `duplicate()` (about 90 lines).
+    5. Run the clone and bootstrap tests
+       (`test-incidence-logit-bootstrap-fast-path.R` found the original bug)
+       and the full bulk suite, since the change touches every lazy class
+       (88 of 104 exported inference classes).
+  - Related, for the unlock decision in the R Journal note:
+    `install_weighted_refit_isolation()` (`inference_all_abstract.R:592-595`)
+    unlocks through `get("unlockBinding", envir = asNamespace("base"))`, a
+    third route alongside R-level `unlockBinding()` and
+    `edi_unlock_binding_cpp()`, and never re-locks the binding.
+  - Payoff: public `clone()` becomes correct, a class of silent state bugs
+    goes away, and the R Journal note can say EDI follows its own advice.
+  - **2026-10-22, steps 1-4 implemented (uncommitted; step 5 partly).**
+    - Step 1, with one correction to the entry: `method_env` is the calling
+      stub's closure environment, `parent.env(parent.frame())`, with a
+      fallback to `self$.__enclos_env__`. It is not `self$.__enclos_env__`
+      outright. R6 closes an inherited method over the enclosing env of the
+      class level that defines it, not the leaf's, and `super` differs per
+      level. For a stub inherited by a user subclass, the leaf env would
+      change what `super$...` means. 52 component methods use `super`.
+      The stub's closure env is still an enclosing env, so `clone()` remaps
+      it. The entry's other claims held: the stubs are `function(...)`, the
+      refit wrapper follows `environment(orig)`, and a marker lost on a clone
+      is harmless.
+    - Step 2, audit: `codetools::findGlobals` over all 959 component
+      functions found 0 free `...`. It also found no `parent.env(` or
+      `sys.function` idioms. Separately, 9 lazy stubs are shadowed by
+      subclass overrides, and none is called via `super$`.
+    - Step 3: new `R/EDI/tests/testthat/test-lazy-component-raw-clone-isolation.R`.
+      It covers 7 classes (one per response type plus KK OLS) and a plain
+      R6 user subclass. It passes on current sources with 14,216
+      expectations. With the old `parent.frame()` line patched back in it
+      fails 2,539.
+    - Step 4: the rebind helper is kept and now skips any function already
+      closed over one of the clone's enclosing envs. Before, it forced
+      inherited methods onto the leaf env, which changed `super` on a user
+      subclass's `duplicate()`. The test asserts the helper is a no-op.
+      `test-edi-rebind-lazy-components-after-clone-reference.R` (bulk) had
+      pinned the pre-fix trap and was updated.
+    - Step 5: the clone, bootstrap, worker and contract tests pass, plus a
+      bounded bulk sample. `test-simple-estimator-migration-baseline.R`
+      fails +1 private owner on all 5 classes. The cause is
+      `finalize_bootstrap_statistics_matrix`, which is concurrent uncommitted
+      work, not TODO-125, so the snapshot was not refreshed.
+    - Remaining: the full bulk suite (G5) and Rd regeneration of
+      `edi_rebind_lazy_components_after_clone.Rd` (G8, roxygen text
+      changed). Removal of the helper is planned for the next release:
+      filed 2026-10-22 as `release_v1_1_0.md → TODO-60`.
+
+- [ ] TODO-126 (added 2026-10-22, owner decision; split out of TODO-6):
+  **Generic Bartlett p-value stall for
+  `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` with formula `~.`.**
+  - During TODO-6's 2026-10-14 filtered timing probe (survival, KK21stepwise,
+    diamonds, `beta_T = 0`), a two-formula attempt stalled for more than
+    5 min 24 s in the generic Bartlett p-value on `~.` and was interrupted.
+    The approximate Bartlett p-value that TODO-6 fixed was not the path
+    involved.
+  - Steps:
+    1. Reproduce on a fresh, seeded draw under a hard timeout, recording the
+       case-start `.Random.seed`, `RNGkind()`, B, and the installed DLL hash.
+    2. Profile where the time goes (null refits, Bartlett correction
+       replicates, or an optimizer fallback cascade) and whether the
+       Clayton/loggamma cap from TODO-6 is reached on these refits.
+    3. Fix or bound the slow path; add a regression test with a timeout.
+  - Gates: G2 (quiet-host timing) for the reproduction; G1 if the fix is
+    native.
+
+- [ ] TODO-127 (added 2026-10-22, user decision; moved from
+  `release_v1_1_0.md → TODO-59` item 3; test harness only, no package
+  change): **`comprehensive_tests.R` bills the coverage-truth simulation to
+  the method being timed.** The first numeric result per (class, covariate
+  set, `beta_T`) makes `handle_success()` call `get_coverage_truth()` (via
+  `is_truth_anomalous_result()`) before `duration_time_sec` is taken, so
+  that row's duration includes a Monte Carlo truth simulation (a
+  `SimulationFramework` run at `mc_n = 20000` for `COVERAGE_MC_SPEC`
+  classes). Measured 2026-10-22 with an instrumented scratch copy on a
+  quiet machine: `compute_estimate` takes 0.01–0.03 s but was recorded as
+  3.1–16.9 s (12–86 s under load) for `InferenceOrdinalContRatioRegr`,
+  `InferencePropBetaRegr` and `InferenceSurvivalStratCoxPHRegr`. Those
+  durations feed `comprehensive_suite_slowest_cases.csv` and the slow-path
+  registry's evidence, so a fast method can look slow. Results, truths and
+  coverage are unaffected.
+  - Fix: compute the truth outside the timed window (before
+    `start_elapsed`, or time it and subtract it), in both `fork=TRUE` and
+    `fork=FALSE` paths and on every `handle_*()` route that reaches
+    `get_coverage_truth()`. Consider recording the truth time in its own
+    column if the report should still show it.
+  - Test: rerun the three classes above with `TEST_FAMILY_FILTER =
+    estimate`; the first `compute_estimate` row per object must match the
+    later ones (~0.01–0.1 s), and all other columns must be unchanged.
+  - Then regenerate the affected duration fields with the next baseline
+    run. The speed-up of the truth itself stays in v1.1.0 (TODO-59).
+
+- [ ] TODO-128 (added 2026-10-22, user decision; found while validating
+  harness draw reuse, `../audits/further_optimizations.md`): **The
+  covariate-adjusted `InferenceIncidLogBinomial` jackknife depends on the
+  call history.** The same jackknife on the same object gives different
+  answers depending on which methods ran before it, so a user's result is
+  not reproducible from the call alone.
+  - Evidence (six-class mix, `pte_example`, Bernoulli, `nc = 1`, installed
+    EDI 1.0.3). Run A computed each jackknife fresh in its own call. Run B
+    reused the jackknife that an earlier BCa bootstrap call on the same
+    object had cached (`jack_distr_cache`), as a normal user session does.
+    All 24 jackknife rows (estimate, Wald p-value, Wald CI) differed:
+    - with covariates (`model_formula=~.`): 4e-7 to 6e-5 absolute. At
+      `beta_T = 0` with `design_formula=~.`, the estimate was −0.000112 vs.
+      −0.0000978, the p-value 0.99953 vs. 0.99959, and the CI −0.375711 vs.
+      −0.375698;
+    - without covariates (`~1`): at most 1.5e-11, i.e. noise.
+    The other five classes in the mix showed no such difference.
+  - Likely cause: the leave-one-out refits start from whatever warm-start
+    state the object holds (the BCa call's earlier fits leave different
+    state than a fresh call), and the log-binomial fit with covariates
+    stops well short of its optimum, possibly at the `exp(Xβ) < 1` boundary.
+    An optimizer converged to its usual tolerance would agree to ~1e-8
+    from any reasonable start. Not yet confirmed.
+  - Work:
+    1. Reproduce standalone: one object, jackknife estimate fresh vs. after
+       `compute_bootstrap_confidence_interval(type = "bca")`; record the
+       per-fold estimates and which folds differ.
+    2. Find why the folds stop early (tolerance, iteration cap, boundary
+       handling or step halving in the log-binomial fitter) and fix it, or
+       make every leave-one-out refit start from the full-data fit so the
+       result is deterministic.
+    3. Test: the jackknife estimate, SE and CI are identical (or ≤1e-8)
+       regardless of prior calls, for `~1` and `~.` formulas.
+    4. Check whether the same fitter feeds other resampling paths
+       (bootstrap refits, randomization refits) with the same sensitivity.
+    5. Once fixed, `comprehensive_tests.R` can add `jack_distr_cache` back
+       to `REUSED_RESAMPLING_CACHES`; it is left out because of this.
 
 ## Standing constraints
 
@@ -9846,8 +12332,10 @@ a TODO above explicitly documents a default change (TODO-2, TODO-3,
 TODO-56, TODO-57's native weighted refits — its owning plan's TODO-6
 (and TODO-8 if pursued), TODO-58's direct model-matrix subsetting (its
 plan's TODO-3, tolerance-equal with a bit-preserving rebuild fallback),
-TODO-61's unsquared matching objective (its plan's TODO-2,
-decision-gated, off until the user accepts it), and TODO-64's Poisson
+TODO-61's unsquared matching objective (its plan's TODO-2; shipped ON:
+`match_objective = "distance"` is the default, accepted implicitly under the
+"queue and complete all v1.0.5 TODOs" instruction; explicit confirmation is G6
+#42), and TODO-64's Poisson
 kernel only if its plan's TODO-3 chooses to write it rather than delete
 the dead method (tolerance-equal), and the 2026-10-09 correctness fixes
 TODO-67 (KK21 survival weights move to the correct Weibull MLE), TODO-68
@@ -9889,3 +12377,765 @@ checklists then had no unfinished work. This is a historical snapshot, not a
 current aggregate: later per-item reconciliations above control the present
 checkboxes. Superseded TODO-28 checklist items are closed with explicit
 dispositions in its plan rather than left as apparent subtasks.
+
+## Source-complete TODOs gated on a check (compiled 2026-10-22)
+
+Regenerated 2026-10-22 (evening) after every numbered TODO (1-124) was
+investigated; it replaces the early-day version. Built from the entries' own
+checkboxes, "Current state (2026-10-22)" lines and newest dated notes, with every
+command checked against the scripts in the repo (read-only; nothing here was
+run). Anything not verifiable is marked `(unverified)`. Commands are the
+maintainer's to run: no agent may build, benchmark or regenerate results without
+being asked in that turn (top-level `CLAUDE.md`). Paths are relative to the repo
+root `/home/kapelner/workspace/EDI` unless a `cd` is shown.
+
+### How to use this section
+
+1. Find your TODO in "Per-TODO status" to see its class and which gates it waits on.
+2. Open gates in the order of the diagram; each runbook lists prerequisites, exact
+   commands, the evidence that means "passed", and which boxes to check afterwards.
+3. G6 is questions only (numbered, with a recommendation each); answer them first,
+   because several unblock source work that must land before G1/G4.
+4. Never check a box on a gate that lacks the evidence listed in its runbook; add a
+   dated note to the TODO (what ran, build/DLL identity, result, artifact paths).
+5. Nothing today is committed (see "Uncommitted state"); gates G5 and the provenance
+   in G1/G4 assume you commit first, in the scoped groups suggested at the end.
+
+### Dependency diagram
+
+    G6 decisions --> last source edits / patch choice
+    G8 Rd regen --+
+    G10 manifest -+--> scoped commits --> G5 push + CI (hook + workflows)
+    G9 drift CSVs +
+    G8/G9/G10 --> G1 build (+ C++ patch bundle) --> G7 (TODO-56 terminal) --> G4 regen + audit
+    G1 --> G2 timing (quiet host)      G3 1.0.2 baseline (quiet host) --> G2/G3 parity
+    If a C++ patch changes an exported signature (04, 05, 08): after G1 re-run G8 and G9.
+
+### Classification of the 127 TODOs (final audit 2026-10-22)
+
+Superseded the evening table (73/30/14/7 of 124). Each open TODO is filed under its
+most blocking class: NEEDS-DECISION if any owner question is open, else OPEN-SOURCE
+if agent-doable source/test/doc work is left, else GATED (only user-run gates).
+Secondary work is listed per row in "Per-TODO status".
+
+| Class | Count | TODOs |
+|---|---|---|
+| DONE (checked) | 79 | 3 5 6 7 11 15 17 20 21 22 24 25 27 28 29 30 32 33 34 35 36 37 39-49 51 52 53 54 61 64 65 69-75 78-96 98 100-104 110 113 114 117 118 122 124 |
+| NEEDS-DECISION | 27 | 1 2 4 8 10 12 14 16 18 23 56 57 58 62 67 97 105 106 109 111 112 115 116 119 120 121 123 |
+| OPEN-SOURCE (agent-doable, no decision pending) | 4 | 59 60 126 127 |
+| GATED (user-run gates only) | 17 | 9 13 19 26 31 38 50 55 63 66 68 76 77 99 107 108 125 |
+
+(79 + 27 + 4 + 17 = 127; TODO-125, 126 and 127 were added 2026-10-22. Boxes checked in
+the final audit: TODO-103 and TODO-118, with dated evidence notes in the entries.)
+
+### Uncommitted state (verified `git status --porcelain`, HEAD `478104b0`)
+
+All of it is uncommitted: 205 entries, 159 modified and 46 untracked. Look at these
+before committing:
+
+- `R/package_metadata/bug_fix_plans/cpp_patches_v105/` (patches 01-12, 13 withdrawn; `companions/`:
+  4 diffs + 6 tests, `README.md`): UNCOMPILED, UNTESTED C++ (see G1).
+- `R/package_metadata/bug_fix_plans/optimize_likelihood_newton_false_nonconvergence.md`
+  (TODO-123 evidence; patch 01 text).
+- New tests: 31 files in `R/EDI/tests/testthat/` and 8 in
+  `R/package_tests/testthat_bulk/` (all new `test-*.R`; they change the CI shard
+  inventory, see G10).
+- Also untracked and unrelated to the 1.0.5 TODOs: `.github/workflows/algorithm-audit-drift.yml`
+  (adds a scheduled workflow, has `workflow_dispatch`), `.github/scripts/algorithm_audit_drift.py`,
+  `R/package_metadata/audits/{algorithm_audit_row_map,comparator_versions}.json`,
+  `R/package_metadata/new_feature_plans/algorithm_audit_runbook.md`. Commit them
+  separately or leave them out of the 1.0.5 commits.
+
+Suggested scoped commit groups (by family; a suggestion only, per memory
+`feedback_python_package_release_workflow`: scoped commits, never push/tag without
+a separate go-ahead):
+
+1. Bootstrap/resampling core: TODO-1, 8, 9, 12, 13, 14, 53, 99, 101, 112, 113, 116, 120.
+2. Rand-CI scale and inversion: TODO-68, 100, 119 (+ `comprehensive_rand_ci_eligibility.R`).
+3. Likelihood tests / OneLik: TODO-115, 121, 122, 111, 124, 19, 56.
+4. Ordinal: TODO-16, 31 (CLMM `clmm_eps_g`), 32, 106, 107.
+5. Survival: TODO-23, 26, 108, 109, 110, 117 (+ Turnbull helper).
+6. Designs/blocking/cluster: TODO-102, 103, 105, 118, 59, 60.
+7. Count/ZIP/NegBin/Newton R-side: TODO-4, 116, 123 (R side only).
+8. Tests/CI infrastructure: new test files, `test_runtimes.csv` (G10), drift CSVs (G9).
+9. Plans/docs only: this file, `cpp_patches_v105/`, bug-fix plans, NEWS.
+10. C++ patches: applied only after G1 passes, one commit per patch family.
+
+Rd/man regeneration (G8) should be its own commit after commit group 1-7.
+
+### Per-TODO status (open TODOs; the 79 done ones are in the table above; rows refreshed by the final audit 2026-10-22)
+
+Gate key: G1 build, G2 timing, G3 1.0.2 parity, G4 CSV regen/audit, G5 CI, G6
+decision, G7 TODO-56 release, G8 Rd, G9 drift CSVs, G10 manifest.
+
+| TODO | Class | Gates | What remains |
+|---|---|---|---|
+| 1 | decision | G6 #30, G2 (G1 for native re-time) | G6 #1 decided (a), retry chain optimized (calls 68 -> 60 = legacy); parity fixture done (seeds 1, 3); left: remove the ZOIB jackknife tuning exclusion (#30), quiet-host re-time and plan TODO-6 tuning run. G4 n/a |
+| 2 | done | — | CLOSED 2026-10-22 (G6 #2 (a)): measured 1.05-2.14x accepted, target restated in the plan; plan TODO-8 is G6 #31 |
+| 4 | decision | G6 #26, G1, G4 | patch 01 + 07 (+B07/B07b) uncompiled; `with_var` before/after replay, Python parity and Bartlett diagnostics after the build |
+| 8 | decision | G6 #32 (or #20), G4 | 400-seed null calibration rerun (plan TODO-4) needs an approved protocol; Rd sentence is in (G8 done) |
+| 9 | gated | G4, G7 | stale-worker rand/bootstrap rows; 341 new + 183 absent keys unexplained; no provenance on retained raw inputs |
+| 10 | decision | G6 #19, G4 | MC-truth rows; target population, covariate cap/Firth, ionosphere disposition |
+| 12 | decision | G6 #28, G1, G4/G7 | release-wide bit-for-bit sweep (`scripts/reused_worker_bitforbit_sweep.R`, 720 evaluations; user prohibited it, fresh approval needed) + native provenance |
+| 13 | gated | G4, G7 | regenerate the proportion `rand` p-value family (28,800 keys; GComp rand-CI rows now refused, prune the 988 stale ones); exact key reconciliation |
+| 14 | decision | G6 #33, G4, G7 | provenance-matched 8,640-key IVWC rand run; FixedBinaryMatch `~1` keys on `pte_example` are structurally impossible (predeclared skip needs approval); multi-hour run authorization |
+| 16 | decision | G6 #20, G4 (+ calibration simulation) | ordinal Type-I calibration acceptance rule/denominator; Cloglog calibration run (no runbook; see Final audit) |
+| 18 | decision | G6 #20, #35, G4, G7 (+ calibration simulation) | agent-doable first: finish the dispatch/support cross-reference and continuous-bandwidth investigation (plan TODO-1/2); 9 vs 16 cells; plan TODO-3 historical reproduction impossible (drop) |
+| 19 | gated | G4 | ModifiedPoisson comprehensive rows (~21 h, 26,880 labels); migration golden passes |
+| 23 | decision | G6 #22, #36, G1, G4 (+ calibration simulation) | shared-horizon RMST: coverage calibration (>=457 reps/family), 16-vs-18-operation target, targeted-compile criterion waiver, survival rows |
+| 26 | gated | G1, G4/G7 | KK Weibull marginal 300-row regeneration after a provenance-stamped build; canonical merge needs separate authorization |
+| 31 | gated | G1, G4 (+ four-kernel grid validation) | GLMM/CLMM sigma collapse; CLMM `eps_g` 1e-3 -> 1e-6 (R only) shifts CLMM rows; owner-approved 20-vs-320 bound on the four-kernel grid with native provenance |
+| 38 | gated | G1, G4, G5 | ASAN/UBSAN + Valgrind at a commit with the malformed-start tests (retained run 39110868823 predates them); attested `EDI_UNITY=0` build; row reconciliation |
+| 50 | gated | G1, G4 | CountKKGLMM/OrdinalKKCLMM rows (83,327 retained rows predate the fix); 20-vs-320 bound on four-kernel grid |
+| 55 | gated | G4, G7 | four proportion classes (140,960 rows) after TODO-56 terminal; run on a local date >= 2026-10-22, record the timezone |
+| 56 | decision | G6 #5, G4, G7 | owner must confirm the exact 16 target IDs/argv; run that slice with receipt; then terminal |
+| 57 | decision | G6 #37, G1, G2, G4 | keep in 1.0.5 or defer. Agent-doable R slices still open in `bayesian_bootstrap_performance.md`: plan TODO-1 (harness into `R/benchmark/`), TODO-2 (per-worker draws), TODO-3 (cost-model gate), TODO-7 (hot loop), TODO-11 item 7 audit; native weighted Cox/Weibull refits (C++ not written; G1); plan TODO-8 stretch |
+| 58 | decision | G6 #38, G2, G3 | >=1x target almost certainly unmet (OLS 0.137x, Cox 0.392x, no safe R-only optimization); quiet-host timing; authentic 1.0.2 parity (script exists) |
+| 59 | open-source | G2, G3 (G6 #43 optional) | `w`-draw parity script written 2026-10-22 (`benchmark_todo59_60_w_draw_parity.R`, see G3); user: run G3 parity; iBCRD <= 1.5 ms, blocking <= 2.5 ms at n=1000 (last loaded-host blocking 3.65 ms) |
+| 60 | open-source | G2, G3 | same `w`-parity script (written 2026-10-22; Pocock-Simon cases are must-match); user: run G3 parity; Pocock-Simon <= 0.5 ms/arrival at t=100 and 1000 (loaded-host medians 0.45-0.70 ms) |
+| 62 | decision | G6 #21, #39, G2 | Zhang exact-CI endpoint metric/tolerance; approved speed target (Fisher/EDI >= 1) measured 0.149-0.208x; which of the two diverging report copies is canonical |
+| 63 | gated | G1, G5 | `EDI_UNITY=0` build, R kernel-equivalence tests, sanitizer/Valgrind with per-wrapper results |
+| 66 | gated | G1, G5 | current-tree bulk run of the serial-clamp contract; build-flag authentication |
+| 67 | decision | G6 #24, G1, G4 | matching-quality replacement protocol; native tolerance edit (today's build postdates it; re-run `test-kk21-stepwise-survival-weibull-mle-score-reference.R` for the native sub-gate); regenerate affected benchmark rows |
+| 68 | gated | G4 | `rand`/`rand_bootstrap` CI rows regenerated; docs only from reconciled output (optional agent prep: formula-pair candidate manifest) |
+| 76 | gated | G1, G4, G7 | KKGLMM and four KKCLMM links, ten Bayesian-bootstrap procedures; land after TODO-31 and after TODO-56 frees the shared paths |
+| 77 | gated | G1, G4, G7 | both KK clogit+GLMM classes, ten Bayesian-bootstrap procedures (80 keys); needs a provenance-stamped post-fix build |
+| 97 | decision | G6 #18 | Option A confirmed; decision 1 (duplicated jackknife helpers merged, verified in source) and decision 2 (b) (dispatcher dropped) DONE; decision 3 (a) decided; timing decided 2026-10-22: refactor now (in progress) |
+| 99 | gated | G4 | incidence `rand` p-value rows; setup-context validator subgate closed |
+| 105 | decision | G6 #7 | `add_block_fixed_effects` opt-in (default FALSE): build now or defer (recommended: defer, file a v1.1.0 TODO, close the box); Rd done |
+| 106 | decision | G6 #28, G1 | C++ ridit SE (patch 06 + C06) uncompiled; Python constants/CHANGELOG/`.postN` release needs approval |
+| 107 | gated | G1 | scale-aware ordinal kernel convergence: patch 12 written (uncompiled), needs user build + 2 reference tests; 0.4606 vs 0.4492 case unreproduced (data not in repo; hand the TODO-18 hypothesis to the post-G4 audit) |
+| 108 | gated | G1 (+ `survRM2` install) | RMST `tau` C++ arg (patch 05 + A05 call-site + kernel test); `survRM2::rmst2` cross-check needs `survRM2`, not installed here (install it or drop the cross-check) |
+| 109 | decision | G6 #29, G5 | Rd done; installed-package run done in the final audit (3 files, 82 expectations, 0 failures); left: CI on the commit and acceptance of the all-censored-arm = horizon default change |
+| 111 | decision | G6 #34, G1 | DepCens zero-covariate investigated and fixed in R; KK/frailty x match/KK14 sweep passed 214/214 on the rebuilt EDI; left: patch 02 (G1), accept the representative-subset smoke test (#34), stale `NEWS.md` ~L177 DepCens sentence (agent doc fix) |
+| 112 | decision | G6 #29, G5 | Rd done; two-`callr`-session 1-vs-2-core rand test written and passing 2026-10-22 (`test-rand-seed-core-count-invariance-two-session.R`, incl. verified `num_cores > 1` worker-path draws; no core-count dependence); acceptance of the seeded rand p/CI default change; CI |
+| 115 | decision | G6 #11 | warn on conservative-max Wald return? (recommended no); agent-doable: independent-reference check (lm/GLS on pair differences) of KK OLS score == LR == gradient |
+| 116 | decision | G6 #40, G1 (patch 04 optional) | agent-doable: lik-test inversion conversion (`inference_ext_ci_inversion.R`, memoization), confirm the `test-simple-estimator-migration-baseline.R` snapshot refresh, look at the `test-kk-gee-parity.R` single failure; owner: NegBin jackknife enable, hurdle/ZAP NB `eps_g`, apply patch 04? |
+| 119 | decision | G6 #10, #41, G4, G9 | exact-0/1 refusal DECIDED (refuse) and implemented incl. `InferencePropKKQuantileRegrIVWC`; open: invert-vs-refuse (v1.1.0 TODO recommended), MC-SE attribute vs docs; agent-doable: NEWS line for the survival raw-scale refusal, MC-SE doc sentence, non-GLM mixed-response classes still advertising `randomization_ci`; `rand` rows/prune and capability matrix |
+| 120 | decision | G6 #29, G5 | Rd done; dep-cens bootstrap tests pass on the rebuilt EDI (final audit); left: acceptance of the B 1000 -> 501 default change, CI |
+| 121 | decision | G6 #11, G1 | keep the max rule? (recommended keep); stable `logA` (patch 03) and comment (patch 09) uncompiled |
+| 123 | decision | G6 #16, G1 | patch 01 (+08 Cox guard, needs #16) uncompiled (both `git apply --check` clean 2026-10-22); re-run the false-failure survey after build; optional C++ cold retry in the stepwise Weibull helper |
+| 125 | gated | G5 | steps 1-4 done 2026-10-22; Rd done (G8 re-run); left: full bulk suite run (G5); rebind-helper removal filed as `release_v1_1_0.md` TODO-60 (2026-10-22) |
+| 126 | open-source | G2 (G1 if the fix is native) | NEW 2026-10-22 (from TODO-6): `~.` stall in the generic Bartlett p-value for the loggamma-frailty OneLik class; reproduce under a seeded hard timeout, profile, fix |
+| 127 | open-source | G4 (duration fields) | NEW 2026-10-22 (from v1.1.0 TODO-59 item 3): `comprehensive_tests.R` bills the coverage-truth simulation to the timed method; move the truth outside the timed window (fork and non-fork paths), re-run three classes with `TEST_FAMILY_FILTER = estimate`; duration fields regenerate with the next baseline run |
+
+### G1. Native build of the current checkout, with provenance (+ the uncompiled C++ patch bundle)
+
+TODOs: 4, 12, 23, 31, 38, 50, 57, 63, 66, 67, 76, 106, 107, 108, 116, 118, 121, 123.
+Why it is a gate: the installed `EDI.so` has no source-revision binding; the tree
+holds stale per-file `.o` beside the 10 `unity_NN.o`, so an agent cannot relink.
+
+Prerequisites:
+- G6 answered for the patch choices (questions 16, 26, 27 and 40(c) for patch 04; #25 is TODO-52, closed) so you know which patches to apply.
+- Idle host and no other build: `uptime`; `pgrep -fa 'R CMD|cc1plus|g\+\+'` prints nothing.
+- Record the source state first: `git rev-parse HEAD; git status --porcelain | wc -l`.
+
+Step 1, apply the patch bundle (README: `R/package_metadata/bug_fix_plans/cpp_patches_v105/README.md`).
+All patches were `git apply --check`ed when written; re-check right before applying:
+
+    cd /home/kapelner/workspace/EDI
+    P=R/package_metadata/bug_fix_plans/cpp_patches_v105
+    for f in $P/0[1-9]-*.patch $P/10-*.patch; do case $f in *REFERENCE-ONLY*) continue;; esac; git apply --check "$f" || echo "FAILS: $f"; done
+    # apply the ones you chose, in numeric order (05+10 and 08+10 touch distant hunks of one file; sequential apply was checked)
+    git apply $P/01-newton-stall.patch      # repeat for 02 03 04 05 06 07 08 09 10 (11 optional)
+
+Order and what each verifies (tests named in the README; run them in step 4):
+
+| # | Patch | TODO | Verification tests |
+|---|---|---|---|
+| 01 | newton-stall (`_helper_functions_core.h`, header: ~100 `.cpp` include it) | 123 | `test-zip-newton-stall-cold-retry.R`, `test-zinb-zero-inflation-boundary.R`, `test-negbin-weighted.R`, `test-kernel-warm-start-length-contracts.R`, `test-rcpp-fitting-equivalence.R`, `test-rcpp-fitting-real-data.R`, `test-hurdle-poisson-glmm-buffer-reuse.R`, `test-poisson-glmm-buffer-reuse.R`, companion `test-newton-stall-false-nonconvergence.R` |
+| 02 | dep-cens clamped gradient | 111 | `test-dep-cens-transform-rho-boundary-retry.R`, `test-dep-cens-transform-fast-pnorm.R`, `test-dep-cens-bootstrap-default-B.R`, companion `test-depcens-clayton-kernel-numerics.R` (post-patch <= 2/101 failures) |
+| 03 | Clayton stable `logA` | 121 | `test-clayton-logtheta-optimizer-bound.R`, `test-weibull-frailty-loggamma-null-boundary.R`, same companion as 02 (R floor `.CLAYTON_LOG_THETA_NULL_FLOOR` stays) |
+| 04 | NegBin `eps_g` default 1e-10 (+`RcppExports.R`, via `compileAttributes()`; 04b is reference only) | 116 | `test-unsupported-procedure-stubs-and-negbin-mle.R`, `test-negbin-weighted.R`, `test-negbin-std-lgamma-likelihoods.R`, `test-negbin-distinct-y-hessian.R`, `test-negbin-gemv-gradient.R` |
+| 05 | RMST `rmst_tau` arg (`compileAttributes()`) | 108 | `test-rmst-user-settable-tau.R`, `test-brt-smoothed-survival-stat-diff-kernel.R`; then `git apply companions/A05-rmst-tau-R-callsite.patch` and companion `test-rmst-tau-fast-kernel.R` |
+| 06 | ridit DeLong SE (+ Python binding/pyi) | 106 | `test-ordinal-ridit-delong-se.R`; then `git apply companions/C06-ridit-delong-se-test-constants.patch` and companion `test-ridit-kernel-se-equals-delong.R`; Python `test_fast_ridit_analysis.py` |
+| 07 | ZINB pseudo-inverse (highest design risk) | 4 | `test-zinb-zi-block-unidentified-count-se.R`, `test-information-inverse-guard.R`, `test-information-inverse-edge-cases.R`, `test-information-inverse-inference-typed-guards.R`, `test-zinb-zero-inflation-boundary.R`; companions: `git apply companions/B07-zinb-safe-vcov-subblock.patch` (R only, safe BEFORE the build), after the build `B07b-zinb-guard-test-update.patch` and `test-zinb-pseudo-inverse-identified-coordinates.R` |
+| 08 | Cox Newton descent guard, `maxit` 20 -> 100 (+`RcppExports.R`) | 123 | `test-coxph-robust-vcov.R`, `test-coxph-hessian-symmetric-writes.R`, `test-cox-risk-set-cache-invalidation.R`, `test-strat-cox-matched-design-todo110.R`, `test-brt-smoothed-coxph-kernel.R`; companion `test-cox-newton-descent-guard.R` |
+| 09 | `get_poisson_glmm_hessian_cpp` comment only | 121 | none beyond compiling |
+| 10 | `noise_mat` empty-matrix hardening, 4 survival kernels | add-on | `test-brt-smoothed-noise-mat-plumbing.R` and the per-kernel `test-brt-smoothed-*-kernel.R`; add a `matrix(0, 0, 0)` test |
+| 11 | same, 4 other kernels (optional) | add-on | same family |
+
+README's overall order: B07 (R only) -> apply patches and build -> `Rcpp::compileAttributes()`
+for 04/05/08 -> A05, B07b, C06 -> copy the companion test files into the live test
+directory (the README does not name it; `R/EDI/tests/testthat/` is where the TODO-specific
+tests live (unverified)) -> run with `EDI_REQUIRE_CPP_PATCHES=true` so a probe-skip becomes a failure.
+Not covered by the bundle: TODO-57, TODO-3 (TODO-118's patch 13 was withdrawn: kernel deleted).
+
+Step 2, build. Use your usual build tooling. Agent-safe/provenance form, from `CLAUDE.md`
+(`EDI_UNITY=0` must be on the line; `makevars_serial` exists and holds only `MAKEFLAGS = -j1`, because
+`~/.R/Makevars` has `-j10` that beats `MAKEFLAGS`; drop the `R_MAKEVARS_USER` part if you want your usual parallel build):
+
+    cd /home/kapelner/workspace/EDI/R
+    Rscript -e 'Rcpp::compileAttributes("EDI")'        # only if 04/05/08 applied; this is what the hook's fast_roxygenize.R also runs
+    EDI_UNITY=0 R_MAKEVARS_USER=$PWD/package_tests/ci/makevars_serial \
+      R CMD INSTALL --no-byte-compile --no-html --no-demo --no-help EDI
+
+This is the same incremental install `scripts/pre-push` runs (reuses existing `.o`; a stale `.o`
+whose `.cpp` is older is not rebuilt, and header dependency tracking for patch 01 is unverified).
+For a guaranteed clean `EDI_UNITY=0` object set add `--preclean` (full compile of 119 files, minutes,
+single-threaded with `makevars_serial`; it deletes the per-file `.o`s, so agents can no longer relink).
+Duration: not recorded in any entry.
+
+Step 3, record provenance (the entries require it):
+
+    cd /home/kapelner/workspace/EDI
+    EDI_SO=$(Rscript -e 'cat(system.file("libs", "EDI.so", package = "EDI"))'); sha256sum "$EDI_SO"
+    Rscript -e 'cat(as.character(packageVersion("EDI")), packageDescription("EDI")$Built, "\n")'
+    git rev-parse HEAD; git status --porcelain | sha256sum
+
+Step 4, verify:
+
+    cd /home/kapelner/workspace/EDI
+    NOT_CRAN=true EDI_REQUIRE_CPP_PATCHES=true Rscript -e 'for (f in c("R/EDI/tests/testthat/test-zip-newton-stall-cold-retry.R")) testthat::test_file(f, reporter = "summary")'   # list the files from the table above
+    # whole suite exactly as the hook runs it (~10-11 min):
+    ( cd R/EDI/tests && NOT_CRAN=true EDI_PREPUSH_NO_PARALLEL=true Rscript ../../../scripts/run_prepush_r_tests.R )
+
+Passed when: every named test file reports 0 failures/0 errors with no probe-skips under
+`EDI_REQUIRE_CPP_PATCHES=true`; the hook-style run finishes without failures and `R/EDI/tests/.prepush_errors` reports none; the survey scripts quoted in the README (paths under `/tmp/claude-1000/`,
+which may no longer exist) give 179/179 false cases rescued and 0/39 true failures accepted for patch 01.
+
+After it passes: check the "native build" sub-item of TODO-4, 63 (still needs G5), 66 (G5), 106, 108,
+116 (only if 04 chosen), 121, 123; note the DLL SHA-256, `git rev-parse HEAD` and the patch list on each.
+TODO-12/31/50/67/76 keep their G4/G6 items. TODO-57 still needs new C++ written first (TODO-107 has patch 12, TODO-118 patch 13 withdrawn: kernel deleted).
+Python side (patch 06): `python/CHANGELOG.md` entry and a `.postN` bump per the release workflow memory;
+do not push or tag without a separate go-ahead.
+
+**Post-install verification 2026-10-22** (agent, after the owner's "I reinstalled EDI"; no build, install or compile by the agent; sources not edited):
+
+- Install facts: `library(EDI)` loads, `packageVersion` 1.0.3 (source DESCRIPTION also 1.0.3), library
+  `/home/kapelner/R/x86_64-pc-linux-gnu-library/4.7/EDI`, `Built: R 4.7.0 ... 2026-10-22 06:36:38 UTC`. `libs/EDI.so` mtime
+  09:36:41 IDT (sha256 `c6d3c748f3f65afc9d51b569c0a0a86382ba26410a6b8f9df2a91d1dbdbded62`); R code
+  rdb 09:36:51. Newest `src/` file is `edi_build_flags.h` (09:36:38, build-generated); newest hand-edited `.cpp` is
+  2026-10-21 05:59, so the build postdates every `src/` edit. `git rev-parse HEAD` 478104b0, 336 dirty paths in the repo, 0 under `R/EDI/src`.
+- Patch bundle: NONE of patches 01-12 is in the build (13 withdrawn). `git status --porcelain R/EDI/src` is empty and `git apply --check -R` fails for all
+  of 01-13 (every one of 01-12 still forward-applies); `src/ordinal_scale_guard.h` (patch 12) does not exist; 119 per-file `.o` exist beside the
+  unity objects (unverified whether stale). Pre-existing, already-committed source (not the patch): `fast_survival_stats.cpp` already has an
+  `rmst_tau` parameter, so `test-rmst-user-settable-tau.R` passes without patch 05. Patch 05's native tau/Greenwood work and the rest of the bundle remain unapplied.
+- Everything below therefore verifies R-side and already-committed C++ code only, not the patch bundle. `EDI_REQUIRE_CPP_PATCHES` was not set
+  (it would turn probe-skips into failures). Run as `NOT_CRAN=true`, `library(EDI)` attached, `testthat::test_file(..., env = new.env(parent = asNamespace("EDI")))`
+  (with the default env, tests that call internal functions fail with "could not find function"; that is a harness artifact, not a regression).
+
+| Test file | Tests / expectations | Failed / errors / skipped |
+|---|---|---|
+| `test-zero-covariate-kk-survival.R` (new sweep) | 6 / 214 | 0 / 0 / 0 |
+| `test-zinb-zi-block-unidentified-count-se.R` | 1 / 8 | 0 / 0 / 0 |
+| `test-zip-newton-stall-cold-retry.R` | 1 / 8 | 0 / 0 / 0 |
+| `test-rmst-user-settable-tau.R` | 7 / 26 | 0 / 0 / 0 |
+| `test-ordinal-ridit-delong-se.R` | 3 / 28 | 0 / 0 / 0 |
+| `test-bootstrap-family-procedure-failure-keeps-wald-state-todo116.R` | 13 / 107 | 0 / 0 / 0 |
+| `test-bootstrap-nonfinite-na-warning-todo116.R` | 5 / 23 | 0 / 0 / 0 |
+| `test-procedure-failure-keeps-wald-state-todo116.R` | 4 / 34 | 0 / 0 / 0 |
+| `test-suite-unsupported-procedure-message-todo116.R` | 1 / 5 | 0 / 0 / 0 |
+| `testthat_bulk/test-ordinal-fast-solver-uncentred-covariates-reference.R` | 6 / 21 | 0 / 0 / 0 |
+| `testthat_bulk/test-ordinal-adjcat-contratio-uncentred-covariates-reference.R` | 4 / 26 | 0 / 0 / 0 |
+| `testthat_bulk/test-non-param-boot-statistics-cache-and-seed-reference.R` (TODO-57 slice, guessed by name) | 4 / 15 | 0 / 0 / 0 |
+| `testthat_bulk/test-weighted-cox-surrogate-coxph-fit-fast-path.R` (TODO-57 slice, guessed by name) | 2 / 6 | 0 / 0 / 0 |
+
+- First (default-env) run errors, rmst x2 and ridit x1, were `could not find function "get_survival_stat_diff"/"get_restricted_mean_se_diff"/"ridit_delong_se"`;
+  all three passed on re-run with the namespace env. Caveat: `test-ordinal-ridit-delong-se.R` and `test-rmst-user-settable-tau.R` passing on an
+  unpatched build means they do not detect the missing patches 05/06 (or those parts are already in the committed source); do not read them as patch-06/05 evidence.
+- Not run: tests for patches 01-13 (patch absent), `test-ordinal-*` scale-guard tests of patch 12, TODO-1 ZOIB, 118, 119; no whole-suite hook run; no
+  `EDI_REQUIRE_CPP_PATCHES=true` run; no provenance-complete record for the sha above beyond the facts listed here.
+- Eligibility: no TODO box is ticked here. The R-side/test evidence above may support the non-native parts of the zero-covariate KK survival sweep, the
+  TODO-116 R tests and the TODO-57 R slices; items needing the bundle (4, 106, 107, 108, 121, 123, 118 native parts) still need the patches applied and a rebuild,
+  and TODO-57's native refits, draw-level parity and benchmarks remain gated as before.
+
+**Second rebuild, checked by the final audit 2026-10-22:** the installed `EDI.so` is now the user's second
+rebuild (`Built: R 4.7.0 ... 2026-10-22 08:25:10 UTC`, file mtime 11:25:13 IDT, sha256
+`d7a71aa152a0697f1f5be0953c7dbc08c62302c93ba921de6ebe1b2d998ec67c`), superseding the `c6d3c748...` build above.
+It postdates every `src/` edit (newest hand edits: `RcppExports.cpp` 10:04, `bisection_ci.cpp` 10:04,
+`generate_permutations.cpp` 09:41 IDT) and every R edit except `inference_all_abstract_jackknife.R` (11:31, the
+TODO-97 decision-1 helper merge; R-only, picked up by `load_all(compile = FALSE)`, not yet by the installed
+package). `nm -D` shows no `generate_permutations_blocking*` symbol, so the TODO-3/TODO-118 deletions are in the
+binary (TODO-118 closed on this). The C++ patch bundle is STILL NOT APPLIED: `git status R/EDI/src` shows only
+the TODO-3/118 deletions (5 deleted `.cpp`, 3 shrunk files, -205 lines); for every patch 01-12 (and 04b/08b)
+`git apply --check` succeeds and `git apply --check -R` fails; `src/ordinal_scale_guard.h` (patch 12) does not
+exist; the patch-13 file is gone (withdrawn). So G1 proper (apply chosen patches, build, provenance, step-4
+tests) remains entirely open.
+
+### G2. Quiet-host timing runs (installed package, provenance sidecar)
+
+TODOs: 58, 59, 60, 62; also 1, 2, 6, 57 once their decisions are made.
+Prerequisites: G1 done (installed package = current checkout); `uptime` load near 0 (the entries rejected a
+sample taken at load ~9.7); no agents, builds or CI runners; output paths must not exist (the scripts refuse to overwrite).
+
+    cd /home/kapelner/workspace/EDI
+    OUT=$(mktemp -d /tmp/edi-g2-XXXXXX)
+    Rscript R/benchmark/benchmark_design_construction.R 1000 100 7 $OUT/design.csv        # args: n batch repeats output_csv; writes design.csv.provenance.txt
+    Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5 $OUT/pocock.csv       # args: n batch repeats output_csv (the entries' form)
+    Rscript R/benchmark/benchmark_todo58_public_bootstrap_ci.R benchmark $OUT/todo58.csv  # ten alternating EDI/boot samples; writes todo58.csv.provenance.rds
+    cd R && Rscript benchmark/benchmark_model_fits.R --sections=procedures,designs         # TODO-62
+
+Cautions: `benchmark_model_fits.R` must be started from `R/` (it `source()`s `benchmark/benchmark_sections.R`
+by relative path, so the old repo-root command would fail) and it OVERWRITES the tracked reports
+`R/package_metadata/benchmark_model_fits.md` and `benchmark_model_fits_R.html`; run it only when you mean
+to refresh them (a full run is ~90 min; the two-section run is shorter, no duration recorded). The first
+three scripts load the installed package; with `EDI_BENCH_SOURCE=1` they would `load_all(compile = FALSE)`
+the checkout instead, which is not acceptance evidence.
+
+Passed when: TODO-59 iBCRD median <= 1.5 ms and blocking median <= 2.5 ms at n=1000; TODO-60 <= 0.5 ms
+per arrival at t=100 and t=1000; TODO-58 each of OLS/logistic/Cox >= 1x `boot` at original B; TODO-62
+Zhang row within the owner-chosen metric (G6 #21). Each CSV has its provenance sidecar naming the DLL SHA-256 from G1.
+Then: check the timing sub-items of TODO-58/59/60/62 (boxes close only after G3 too for 58/59/60); add the
+medians, host load and sidecar paths to each note; if `benchmark_model_fits*` changed, review `git diff --stat`
+and commit the reports with TODO-62 (or `git checkout -- <them>` if the run was exploratory).
+
+### G3. Authentic EDI 1.0.2 baseline and fixed-seed parity
+
+TODOs: 58, 59, 60. The local `v1.0.2` tag and the repo-root `EDI_1.0.2.tar.gz` are not authenticated baselines.
+Prerequisites: quiet host; internet; a full compile of 1.0.2 (yours to run; memory `project_cran_status`).
+
+    mkdir -p ~/R/edi102
+    Rscript -e 'install.packages("EDI", lib = "~/R/edi102", repos = "https://cloud.r-project.org")'
+    Rscript -e 'cat(as.character(packageVersion("EDI", lib.loc = "~/R/edi102")))'      # must print 1.0.2
+    # if CRAN now serves a newer EDI, install the archived tarball instead (unverified URL):
+    # Rscript -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/EDI/EDI_1.0.2.tar.gz", repos = NULL, type = "source", lib = "~/R/edi102")'
+
+TODO-58 parity (script exists: `R/benchmark/benchmark_todo58_public_bootstrap_ci.R`; tolerance 1e-10):
+
+    cd /home/kapelner/workspace/EDI; P=$(mktemp -d /tmp/edi-g3-XXXXXX)
+    EDI_LIB=$HOME/R/edi102 Rscript R/benchmark/benchmark_todo58_public_bootstrap_ci.R dump-parity 1.0.2 $P/edi102.rds
+    Rscript R/benchmark/benchmark_todo58_public_bootstrap_ci.R dump-parity "$(Rscript -e 'cat(as.character(packageVersion("EDI")))')" $P/current.rds
+    Rscript R/benchmark/benchmark_todo58_public_bootstrap_ci.R compare-parity $P/edi102.rds $P/current.rds
+
+Passed when `compare-parity` exits 0 (every case `max_abs_diff <= 1e-10`, same finite pattern, same case keys).
+TODO-59/60 (`w` draws for every design class, fixed seeds; script exists since 2026-10-22:
+`R/benchmark/benchmark_todo59_60_w_draw_parity.R`; ~6 s per dump, light CPU, each dump in its own fresh R process):
+
+    cd /home/kapelner/workspace/EDI; P=$(mktemp -d /tmp/edi-g3w-XXXXXX)
+    Rscript R/benchmark/benchmark_todo59_60_w_draw_parity.R dump-parity $P/w_edi102.rds --lib ~/R/edi102 --expect-version 1.0.2
+    Rscript R/benchmark/benchmark_todo59_60_w_draw_parity.R dump-parity $P/w_current.rds
+    Rscript R/benchmark/benchmark_todo59_60_w_draw_parity.R compare-parity $P/w_edi102.rds $P/w_current.rds
+
+60 cases = 30 configurations (all 24 exported, randomization-capable design classes, plus three TODO-60
+Pocock-Simon fixtures and extra blocking/rerandomization/binary-match configurations) x two paths (`assign`:
+`assign_w_to_all_subjects()` or per-arrival `add_one_subject_to_experiment_and_assign()`; `draw`:
+`draw_ws_according_to_design(r = 4)`, `r = 1` for `DesignFixedOptimal`). Passed when `compare-parity` exits 0: every
+must-match case is identical (`max |diff| <= 1e-10`, same ok/error status, same case keys). Cases changed on purpose
+in 1.0.5 are printed as EXPECTED-DIFFER with their reason and never fail: Fisher-Yates (fixed iBCRD both paths;
+SPBR and seq iBCRD draw path), TODO-95 (greedy, D-optimal, pair-switching, rerandomization), TODO-118 (blocking x3,
+optimal blocks, cluster, blocked cluster, rerandomization prob_T=0.3/odd n), TODO-102 (blocking with named strata),
+TODO-61 (default binary match), and the new RandomBlockSize `draw_ws_raw` override. Must-match includes every
+Pocock-Simon case (TODO-60), Bernoulli (fixed/seq), Factorial, Optimal, Efron, Atkinson, KK14, KK21, KK21stepwise, Urn,
+the assign path of SPBR/seq iBCRD/RandomBlockSize, and `DesignFixedBinaryMatch(match_objective = "squared_distance")`
+(the argument is passed only when the loaded EDI has it). Self-checked 2026-10-22 against installed EDI 1.0.3 only
+(two dumps + `compare-parity ... --self-test`: 60/60 exact; a tampered must-match case exits 1); never run against 1.0.2.
+If a must-match case FAILs, investigate before closing (it is an undocumented draw change, or a wrong classification).
+Then: check the parity sub-items of TODO-58/59/60 and, with G2 also done, the TODOs themselves.
+
+### G4. Class-filtered comprehensive-CSV regeneration and audit
+
+Prerequisites: G1 (provenance-stamped current build) and G7 (shared result paths free; never write into
+`R/package_tests/comprehensive_tests_results_nc_*.csv` while TODO-56's run is in flight); an empty output dir per
+slice; disk space; for long slices run detached (`nohup ... &` is fine for you; agents must use `run_in_background`).
+Positional arguments of `comprehensive_tests.R` (verified in its parser): 1 Nrep, 2 NUM_CORES,
+3 response type (continuous|incidence|proportion|count|survival|ordinal|NA), 4 design (NA = all), 5 inference class,
+6 dataset, 7 beta_T, 8 rep, 9 test family (`rand`, `rand_bootstrap`, `bayesian_bootstrap`, `lik_ratio`, ...), 10 `narrow`.
+`EDI_COMPREHENSIVE_RESULTS_DIR` must name an EXISTING directory; the audit honours the same variable
+(raw CSVs, baseline and stamp all live there).
+
+    cd /home/kapelner/workspace/EDI
+    D=/tmp/edi_regen_todo19; mkdir -p $D
+    EDI_COMPREHENSIVE_RESULTS_DIR=$D Rscript R/package_tests/comprehensive_tests.R 40 2 incidence NA InferenceIncidKKModifiedPoisson NA NA NA   # TODO-19, ~21 h
+    # same run with an external receipt (what TODO-56 used; flags verified from the script header):
+    Rscript R/package_tests/run_comprehensive_with_receipt.R --receipt $D/receipt.json --stdout $D/out.log --stderr $D/err.log \
+      --env EDI_COMPREHENSIVE_RESULTS_DIR=$D --command Rscript R/package_tests/comprehensive_tests.R 40 2 incidence NA InferenceIncidKKModifiedPoisson NA NA NA
+    EDI_COMPREHENSIVE_RESULTS_DIR=$D Rscript R/package_tests/audit_comprehensive_results.R --force   # read-only gate; --force ignores the unchanged-files stamp
+    Rscript R/package_tests/prune_stale_result_rows.R            # DRY RUN of stale-row removal; --apply rewrites the canonical CSVs (separate approval)
+
+Slices (class/response family; each entry records its exact arguments; row counts from the entries):
+
+| TODO | Slice |
+|---|---|
+| 8, 10, 16, 18 | ordinal stereotype-logit, survival/ordinal MC-truth, ordinal Type-I and smoothed-bootstrap cells |
+| 9, 12, 13 | stale-worker-cache rand/bootstrap rows, one combined pass; proportion `rand` family (`~1` and `~.`) |
+| 14 | survival `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC` rand, 8,640 keys |
+| 19 | incidence `InferenceIncidKKModifiedPoisson`, 26,880 labels |
+| 23, 26 | survival rows (300 rows for 26: `InferenceSurvivalKKWeibullMarginal`) |
+| 31, 50, 76 | CLMM rows drift because `eps_g` is now 1e-6; CountKKGLMM / OrdinalKKCLMM; KKGLMM + four KKCLMM links, ten BB procedures |
+| 55 | proportion `InferenceAllSimpleAverageDiff`, `InferenceAllSimpleMeanDiffPooledVar`, `InferencePropGCompMeanDiff`, `InferenceAllSimpleWilcox`, 140,960 rows |
+| 56 | incidence `InferenceIncidModifiedPoisson`, the owner-confirmed 16-key slice (see G7) |
+| 68, 99 | `rand`/`rand_bootstrap` CI rows; incidence `rand` p-value rows |
+| 77 | both KK clogit+GLMM classes, ten BB procedures, 80 keys |
+
+Slice-specific changes since the early-day version:
+- TODO-119 (G4; also the logit-shift classes now refusing exact 0/1 proportions, DECIDED 2026-10-22: refuse): `rand` CI rows for the five scale-mismatch classes (`EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES`)
+  are now NOT emitted or expected (candidate lattice 14,400 contexts, 28,800 keys, was 43,200); expect their old
+  `compute_rand_confidence_interval` rows to be absent, and prune the 988 stale
+  `InferencePropGCompMeanDiff` rows (dated 2026-09-09) with `prune_stale_result_rows.R`.
+- TODO-31: CLMM estimates move (treatment error vs `ordinal::clmm` median ~3e-2 -> ~5e-4).
+- TODO-109/103/112/113/115/121: documented default changes (all-censored RMST arm = horizon; OLS/Lin cluster df
+  Satterthwaite; seeded rand p/CI differ from before; warnings added) can move audit counts; read the NEWS entries.
+- TODO-124: the migration goldens' rand columns are vacuous at `r = 9` (see G6 #13).
+- TODO-52 (closed 2026-10-22, handed to this audit): check coverage, p-value calibration and bias flags for
+  `InferencePropBetaRegr`, `InferencePropZeroOneInflatedBetaRegr`, `InferenceContinKKOLSOneLik`,
+  `InferenceContinKKRobustRegrOneLik`, `InferencePropKKGLMM`, the `InferenceAbstractKKCondLogitGLMM` subclasses and the
+  KKGLMM/KKCLMM addendum classes. Open a focused TODO for any class still flagged.
+
+Passed when, for each slice: exit 0; the receipt/provenance sidecar names the G1 DLL and source; exact key and
+status reconciliation against the canonical CSV shows no unexplained missing or extra key; the audit reports no
+finding absent from `comprehensive_results_audit_baseline.csv`. Only then, as a separately approved step,
+`Rscript R/package_tests/audit_comprehensive_results.R --write-baseline` (it also validates its inputs).
+Afterwards check the "regenerate" sub-item of the listed TODOs and add the directory, key counts and audit output;
+the boxes close only if no other gate (G6 criteria, G7) is still listed in the table.
+
+### G5. CI runs on a commit that contains the change (hook + workflows)
+
+TODOs: 38, 63, 66, 109, 112, 120. Prerequisite: scoped commits made (this repo has `core.hooksPath=scripts`).
+What `scripts/pre-push` does (verified in the script; fail-fast, bypass with `git push --no-verify`):
+
+| Step | Runs when | Notes |
+|---|---|---|
+| `refresh_manifest.py` | always | rewrites `R/package_tests/ci/test_runtimes.csv`; not auto-committed |
+| `plan_shards.py correctness\|coverage --check-only` | tests, `ci/`, hook or bulk/coverage workflow changed | fails on stale inventory or oversize estimates |
+| doc-link check `scripts/check_doc_links.py` | README/CHANGELOG/REFERENCES/roxygen changed | |
+| `check_references_sync.R` then `cd R && Rscript fast_roxygenize.R` | roxygen `#'` or `[[Rcpp::export]]` lines changed | regenerates Rd/NAMESPACE (G8); fails on a documentation warning |
+| `scripts/check_*_for_cran.R` static checks | R package files changed | |
+| `check_unity_build_safety.sh` | `.cpp/.h` changed | ~30-40 s |
+| `R CMD INSTALL --no-byte-compile --no-html --no-demo --no-help R/EDI` | R tests or package_tests changed | incremental install into your library: a push IS a build (it uses whatever `EDI_UNITY`/Makevars is in your env) |
+| `scripts/run_structural_checks.R` | R files changed | wiring/drift/adversarial/parity, ~25 s |
+| `scripts/run_prepush_r_tests.R` (`EDI_PREPUSH_NO_PARALLEL=true`) | R files changed | ~10-11 min, 20 min timeout |
+| `drift_artifacts.sh regenerate` (up to 5 attempts), then auto-`git commit` of drifted CSVs, then smoke `run_comprehensive_suite.R`, `analyze_comprehensive_suite.R`, `check_comprehensive_suite_quality_gates.R ci` | `R/package_tests/` or R files changed | a hook-made commit is not in the push already resolved: run `git push` again |
+| python tests + python coverage floor | `python/` or `R/EDI/src` `.cpp/.h` changed | |
+
+Preferred entry: `./scripts/gitpush_with_hooks_safe.sh` (pre-commits manifest and drift CSVs, then `git push`).
+
+    cd /home/kapelner/workspace/EDI
+    git push                        # or ./scripts/gitpush_with_hooks_safe.sh ; needs your separate go-ahead
+    gh run list --limit 8           # (unverified: gh not run here)
+    gh run watch <id>; gh run view <id> --log-failed
+
+Workflows (`.github/workflows/`): `R-CMD-check.yaml` (jobs R-CMD-check, repro-compare, no-suggests, incoming,
+`R-CMD-check-sanitizers`, `R-CMD-check-valgrind`) runs on push/PR to main/master touching R/EDI paths and has NO
+`workflow_dispatch` (re-run via `gh run rerun <id>` or the UI). `workflow_dispatch` exists on `test-bulk-non-cran.yml`,
+`test-coverage-R-advanced.yml`, `test-coverage-R.yaml` (also nightly), `build-wheels.yml`, `algorithm-audit-drift.yml`
+(untracked), `diagnose-windows-donttest.yml`, `copilot-setup-steps.yml`:
+`gh workflow run test-bulk-non-cran.yml` (unverified).
+Passed when (per TODO): 38, sanitizer AND Valgrind jobs green at a commit containing the new malformed-start tests, with log
+output showing those cases ran (the older local Valgrind logs were banner-only); 63, the same plus per-wrapper results;
+66, `test-bulk-non-cran` green on the current tree including the serial-clamp test; 109/112/120, R-CMD-check and bulk green.
+Check the CI sub-items and record the run IDs.
+
+### G6. Owner decisions (answer, then the TODO can proceed)
+
+Each: question; options; recommendation. (Q12 and Q14 come from the maintainer brief; the entries do not contain them.)
+
+1. TODO-1: the reusable ZOIB jackknife is slower on the diagnosed fixture. (a) Optimize the retry chain, then re-time;
+   (b) accept the unmet target, document, keep the legacy route for tuning. Recommend (b).
+   **DECIDED 2026-10-22: owner chose (a); implemented (calls 68 -> 60 = legacy), see TODO-1 note.**
+2. TODO-2: measured affine-reuse speedups are 1.1-2.1x vs the projected 20-30x. (a) Accept and restate as workload-specific;
+   (b) keep 20-30x and authorize more optimization. Recommend (a).
+   **DECIDED 2026-10-22: (a) accept and restate; TODO-2 closed.** Plan TODO-8 is #31.
+3. TODO-3a: eight unused exports. (a) Delete (touches Rcpp registration, unity grouping, Rd, tests); (b) keep for 1.0.5 and file a
+   v1.1.0 TODO. Recommend (b).
+   **DECIDED 2026-10-22: owner chose (a); seven kernels deleted, `bisection_ci_parallel_cpp` kept as shim; see TODO-3 note.**
+4. TODO-3b / TODO-6 stretch: build the Lin randomization kernel now or defer. Recommend defer.
+   **DECIDED 2026-10-22: deferred to v1.1.0 (`release_v1_1_0.md → TODO-57`); closed for 1.0.5.**
+5. TODO-56: confirm the exact 16 target IDs and argv for the one safe slice (preserve the 152-row partial run; do not merge or
+   restart the broad run). Recommend confirm as listed in the entry.
+6. TODO-6: approve a replacement protocol and numeric runtime/estimate/SE/Bartlett criteria (original inputs are gone). DECIDED 2026-10-22: close on existing evidence; `~.` stall moved to TODO-126.
+7. TODO-105: build `add_block_fixed_effects` (default FALSE) now or document-only and defer. Recommend defer (docs shipped).
+8. TODO-103: close the box with per-class CR2 tracked in v1.1.0 TODO-55; accept the default change to non-integer Satterthwaite df
+   on cluster designs. Recommend yes to both.
+9. TODO-114 / v1.1.0 TODO-56: full `get_summary()` coefficient tables for fast-C++ paths. Recommend defer.
+10. TODO-119: invert randomization CIs on the estimand's own scale (new v1.1.0 TODO) or keep refusing. Recommend keep refusing now. Exact 0/1 proportions on the logit shift: DECIDED 2026-10-22: refuse.
+11. TODO-115/121: the `max(model p, Wald)` rule for Hurdle/CondPoisson/CountKKGLMM. (a) Keep (documented "never anti-conservative");
+    (b) return the model p. And should a conservative-max Wald return warn? Recommend keep, no warning when a model value was computed.
+12. BCa small-B policy: (a) document; (b) percentile fallback; (c) relax the guard (the 5% invalid-interval cap was confirmed 2026-10-21).
+    Recommend (a).
+13. TODO-124: raise `r` from 9 to >= 19 (finite-draw floor is 10) in a few representative migration goldens so the rand columns are not
+    NA vs NA. Recommend yes, a few representatives.
+14. Bootstrap p-value `na.rm` default (FALSE kept, classed warning added) and a fractional-validity guard. Recommend keep FALSE
+    with the warning; any guard in v1.1.0.
+15. Wilcox golden under R-devel at 1e-5: loosen that tolerance or re-record. Recommend loosen only the affected column.
+16. TODO-123 patch 08: apply Cox descent guard and `maxit` 20 -> 100 (the BRT literal 20 stays; changing it alters bootstrap NA rates).
+    Recommend apply, leave BRT.
+17. Whether the registry-baseline fixture regeneration done during the sweep is acceptable. Recommend accept only after `git diff` shows
+    only the five refused classes and the new capability rows.
+18. TODO-97: the component-boundary option and three sub-decisions: which body wins for duplicated helpers; loader-injection signature;
+    hook-default move. ~~The early-day text says Option A was chosen, but the entry does not record it: confirm.~~
+    **PARTLY DECIDED 2026-10-22 (recorded in the TODO-97 entry):** Option A (one neutral `ResamplingCore` component) confirmed;
+    decision 1 (duplicated helpers) DONE: the `InferenceNonParamBootstrap` bodies of `resolve_jackknife_unit`,
+    `jackknife_block_size_gt_one_unsupported` and `mark_jackknife_nonestimable_if_block_unsupported` win, Jackknife copies removed
+    (verified: one definition each in `inference_all_abstract_non_param_boot.R`). Decision 2 DECIDED and DONE 2026-10-22: option
+    (b), drop the `load_resampling_draw_into_worker()` dispatcher (call sites call their own loader). Decision 3 DECIDED 2026-10-22:
+    option (a), move the `create_bootstrap_worker_state()` NULL default into `ResamplingCore` when that component is created.
+    Timing DECIDED 2026-10-22: do the `ResamplingCore` refactor now, in 1.0.5 (owner instruction; an agent is implementing
+    plan TODO-3..7). G6 #18 is fully decided.
+19. TODO-10: matched-Cox MC-truth target population (finite empirical rows vs specified superpopulation), covariate cap or Firth, and the
+    PropBeta/FractionalLogit `ionosphere` disposition (plan TODO-11).
+20. TODO-16/18: acceptance rule and denominator for ordinal/smoothed-bootstrap Type-I calibration (cells, DGP, per-cell vs simultaneous,
+    confidence level, >= 500 estimable cases per stratum).
+21. TODO-62: Zhang exact-CI endpoint error metric and numeric tolerance.
+22. TODO-23: go-ahead for the coverage-calibration simulation (criteria already set: all-attempts coverage, <= 5% invalid, >= 457 reps).
+23. TODO-33: accept synthetic trigger/replay evidence or approve a larger real-data search and coverage study on an idle host. DECIDED 2026-10-22: accept and close.
+24. TODO-67: recover the KK21 speedup fixture/metric or approve the replacement (mASMD, threshold, matched-fraction guard, seed schedule).
+25. TODO-52: provenance recovery or approval of a replacement targeted study. DECIDED 2026-10-22: close; G4 audit decides.
+26. Patch 07 (ZINB pseudo-inverse; the 1e-6 null-loading threshold is a judgment call and vcov goes all-NaN -> partly finite): apply?
+    Recommend apply only with the B07/B07b companions and a review of the TODO-4 guard tests.
+27. Patch 11 (optional `noise_mat` hardening, 4 non-survival kernels): apply with 10? Recommend yes (same bug pattern).
+28. TODO-12: approve the release-wide bit-for-bit sweep (720 evaluations); TODO-108/106 Python: approve a `.postN` release for patch 06.
+29. Accept the documented default changes: TODO-109 all-censored RMST arm = horizon (was NA); TODO-112 seeded rand p/CI now reproducible but
+    different; TODO-120 dep-cens bootstrap default B 501. Recommend accept (NEWS entries exist).
+
+Status of #1-#29 after the final audit 2026-10-22: DECIDED #1 (a), #3 (a), #4 (defer), #6 (close), #8 (close TODO-103,
+accept Satterthwaite df; box checked), #9 (deferred: `release_v1_1_0.md → TODO-56` exists), #23 (close), #25 (close), #10
+second half (exact 0/1: refuse, incl. `InferencePropKKQuantileRegrIVWC`). STILL OPEN: #2, #5, #7, #10 first half, #11, #12,
+#13, #14, #15, #16, #17, #18 (refactor timing only), #19, #20, #21, #22, #24, #26, #27, #28, #29. #19 also covers the
+ionosphere PropBeta/FractionalLogit choice that TODO-16's entry repeats.
+
+Added by the final audit 2026-10-22 (buried in entries, not in the list above):
+
+30. TODO-1: remove the ZOIB `jackknife` entry from `EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS` (`local_machine_tuning_axes.R` ~L261,
+    plan TODO-5, one R line) now, or keep it until a non-NA exact tuning fixture exists? Call counts now equal legacy and the NA
+    is the documented contract on both routes. Recommend remove now; then the plan TODO-6 tuning run is G2.
+31. TODO-2 / plan `randomization_ci_affine_shift_reuse.md` TODO-8 (direct order-statistic inversion, "decision-gated, optional"):
+    (a) adopt in 1.0.5; (b) defer to v1.1.0; (c) drop. It buys exactness, not wall time, and moves CI endpoints (a default change).
+    Recommend (b).
+32. TODO-8: the stereotype-logit 400-seed null calibration (plan TODO-4) cannot be replayed (386/400 historical vs 224/400 current
+    denominator unreconciled). (a) Approve a fresh provenance-pinned rerun (n=100 and n=50, per-seed status/error stage/elapsed)
+    on the G1 build under the #20 rule; (b) close on the 2026-10-14 numbers. Recommend (a), folded into #20.
+33. TODO-14: the 8,640-key gate rejects any skip "unless independently approved before the run", but the FixedBinaryMatch `~1`
+    setup cannot run on `pte_example` (no pair ids). (a) Approve those keys as a predeclared expected skip with counts in the
+    manifest; (b) shrink the manifest; (c) supply a pairing source. Recommend (a). Also authorize the multi-hour (~3.5-4.1 h) run.
+34. TODO-111: accept the representative-subset zero-covariate smoke test (KK/frailty classes x match/KK14, 214 expectations pass)
+    as closing the coverage item, or require every procedure x every matching design? Recommend accept.
+35. TODO-18: calibrate (a) only the 9 cells the plan names or (b) all 16 source-supported cells (4,500 vs 8,000 estimable outer
+    cases at B=101)? And drop plan TODO-3 (historical reproduction; inputs are gone)? Recommend (a) and drop.
+36. TODO-23: (i) is the affected-method target the audit's 16 low-coverage operations or all 18 source/raw candidate CI
+    operations, and which run/grid/attempt statuses define the anti-join? Recommend all 18, reconciled against a fresh
+    current-source run, not the merged historical union. (ii) Waive linked-plan TODO-3's targeted-compile criterion in favour of
+    CI run 38808821543 plus the G1 build? Recommend waive.
+37. TODO-57: (a) keep all of it in 1.0.5 (R slices plan TODO-1/2/3/7, TODO-11 item 7 audit, native weighted Cox/Weibull refits,
+    fork/mirai validation runs); (b) ship the R slices already done and move plan TODO-2/3/5/6 (native)/7/8/9 to v1.1.0.
+    Recommend (b): large, needs a build and owner-authorized fork runs.
+38. TODO-58: the >=1x-vs-`boot` target is almost certainly unmet (full-size diagnostic OLS 0.137x, logistic 1.030x, Cox 0.392x;
+    "no safe R-only optimization"). (a) Restate the target as workload-specific / move speed acceptance to v1.1.0 and close on G3
+    parity; (b) keep >=1x and authorize more optimization (overlaps TODO-57 plan TODO-7). Recommend (a).
+39. TODO-62: (i) the owner-approved procedure-speed target (Fisher/EDI >= 1) measured 0.149-0.208x in every run: restate/defer
+    vs optimize the Zhang CI? Recommend restate/defer. (ii) The two Markdown report copies disagree (BinaryMatch row, Oct 14
+    sections, OLS-kernel text): which is canonical? Recommend regenerate both from the harness in the G2 run. (#21 metric:
+    recommend (b) <= 0.01 max abs log-bound difference, which admits both observed cases 0.0044 and 0.0064.)
+40. TODO-116: (a) enable the NegBin jackknife with per-replicate convergence checks? (b) tighten hurdle/ZAP/`helper_glm_fit` NB
+    `eps_g` like NegBin? Recommend defer both to v1.1.0 (default changes, unvalidated). (c) Apply patch 04 (NegBin `eps_g`
+    default 1e-10, a default change)? Recommend apply with its listed tests in G1.
+41. TODO-119: Monte Carlo SE of the rand CI as a returned attribute or docs only? Recommend docs only now, attribute in v1.1.0.
+42. TODO-61 (checked): explicitly confirm the shipped default `match_objective = "distance"` (unsquared; changes ~22% of matched
+    pairs vs 1.0.x), which was accepted only implicitly. Recommend confirm.
+43. TODO-59 (optional): numeric quiet-host cutoff for G2 ("the maintainer must choose a numeric cutoff only if one is required").
+    Recommend 1-minute load average < 1.0 with nothing else running.
+44. TODO-124 (checked) left an unowned finding: bootstrap CIs came back NA for several seeds on `DesignFixedBinaryMatch` n = 60 for
+    the OneLik classes, robust IVWC and `InferenceContinOLS` ("generic, seed-dependent, not investigated"). (a) Open a 1.0.5
+    TODO and investigate; (b) file it for v1.1.0. Recommend (a) as an agent investigation (cheap, may be a real bootstrap bug).
+
+### G7. TODO-56 release of the shared result paths
+
+TODO-56 is itself open. Until it is terminal nothing may write the canonical result paths (gates G4 for 9, 12, 13, 14, 18, 26, 55, 76, 77; 26 and 76 added by the final audit).
+Steps: answer G6 #5; start from a fresh `/tmp` directory (16 GiB were free at the last check); run only the confirmed 16-key slice with the
+external receipt and complete sidecar provenance (command shape in G4); reconcile exact key/status/value; leave the existing 152-row
+partial directory untouched.
+Passed when the receipt shows terminal completion, the 16 target IDs reconcile exactly, and the audit shows no new finding. Then check
+TODO-56 and note that the shared paths are free; G4 may then start for 9, 12, 13, 14, 18, 26, 55, 76, 77.
+
+### G8. Rd / roxygen regeneration
+
+Many entries edited roxygen without running it: TODO-8, 100, 102, 103, 105, 107, 108, 109, 110, 111, 112, 113, 114, 115, 118, 119, 120,
+121, 124 (found by scanning the entries for "Rd not regenerated"/similar; confirm with the command below). The memory note
+`feedback_no_interim_roxygenize` is satisfied: the doc batches are finished.
+
+    cd /home/kapelner/workspace/EDI
+    git diff -U0 HEAD -- 'R/EDI/R/*.R' 'R/EDI/src/*.cpp' | grep -cE "^[+-]#'|^[+-].*\[\[Rcpp::export"   # >0 means the hook will regenerate
+    Rscript R/package_tests/check_references_sync.R
+    cd R && Rscript fast_roxygenize.R        # regenerates R/EDI/man/*.Rd, NAMESPACE, RcppExports; no compilation
+    cd .. && python3 scripts/check_doc_links.py
+
+Expected: ~38 Rd files drift from TODO-105 alone, plus new Rd for `clear_randomization_cache()` and `get_summary`. Passed when
+`fast_roxygenize.R` prints no documentation warning, `git status --short R/EDI/man R/EDI/NAMESPACE` shows only expected files, and the
+link check passes. Commit Rd as its own commit. Then check the "Rd regeneration" sub-items of the TODOs above.
+
+**Result 2026-10-22 (roxygen agent):** ran `cd R && Rscript fast_roxygenize.R` three times (no compile; script only does compileAttributes + roxygenize via sys.source). First run: 35 warnings: (a) `compute_rand_two_sided_pval(alternative)` undocumented for ~31 classes, fixed by adding `@param alternative` to templates `man-roxygen/rand-compute-rand-two-sided-pval-params.R` and `randci-compute-rand-two-sided-pval-params.R`; (b) `InferenceSurvivalWeibullRegr` wrappers `compute_lik_ratio_bootstrap_two_sided_pval` / `_confidence_interval` undocumented, fixed with `@R6method` blocks at the end of `inference_survival_weibull.R`; (c) TODO-111's `weibull_fit_with_cold_retry()` had been inserted between the roxygen block and `SurvivalWeibullLikelihoodSource` (stray Rd "no name and/or title"), moved above the block. Final run: 0 warnings. `check_doc_links.py`: no new broken links (external URLs unverifiable in sandbox, non-blocking). Result: 129 Rd modified, 3 Rd deleted (bisection_ci_loop_cpp, bisection_ci_single_bound_cpp, generate_permutations_blocking_cpp; their cpp exports were removed by other staged work), RcppExports.R/.cpp shrink by 8 deleted wrappers (-204 lines). NAMESPACE unchanged. NOT done: Rd not committed; `check_references_sync.R` not run; tests (`test-bisection-tail-and-discontinuity-regressions.R`, `test-resampling-callback-recovery-contracts.R`, `test-bootstrap-index-fillin-and-bisection-loop.R`, `comprehensive_suite_coverage.csv`) ~~still call the removed `EDI:::*_cpp` functions (owned by the agent that deleted them)~~ **(corrected by the 2026-10-22 final audit: stale. The surviving bulk tests mention the deleted kernels only in comments; `test-bootstrap-index-fillin-and-bisection-loop.R` was deleted, but the generated `comprehensive_suite_{registry,coverage,internal_surfaces,baseline_audit}.csv` still list it / the deleted kernels, a G9 item.)**
+
+**Re-run 2026-10-22 (roxygen agent 2):** after TODO-125/119/quantile-rand-CI roxygen edits and the seven deleted C++ kernels, ran `cd R && Rscript fast_roxygenize.R` once (script re-read: compileAttributes + roxygenize via sys.source + Rd post-process; no compile/install/load_all). 0 documentation warnings, so no roxygen fixes were needed. Only content change: `man/edi_rebind_lazy_components_after_clone.Rd` (TODO-125 no-op description); it is now in the modified set (133 entries under man/NAMESPACE/RcppExports, previously 132). `RcppExports.R`, `src/RcppExports.cpp` and `NAMESPACE` byte-identical before/after (compileAttributes agrees with the hand-edited exports). No Rd added or deleted (369 files). `inference_class_registry.R` / `inference_ext_quantile_rand_ci.R` have no roxygen diff vs HEAD; the `inference_all_abstract_rand_ci.R` roxygen was already in the Rd. `check_doc_links.py`: no new broken links (external URLs unverifiable in sandbox). Still open: Rd commit, `check_references_sync.R`.
+
+### G9. Stale generated artifacts (drift CSVs)
+
+Known stale: `capability_matrix.csv/.json` (five refused classes lose `randomization_ci`); `public_api_inventory.csv` gains 112 rows
+(`clear_randomization_cache` x103, `get_summary` x9); `checkmate_argument_contracts.csv` `source_line` shifts; the whole
+argument-combination chain downstream of them.
+
+    cd /home/kapelner/workspace/EDI
+    bash R/package_tests/drift_artifacts.sh regenerate      # runs 12 generators in dependency order (load_all with compile = FALSE; no build)
+    git status --short R/package_tests | head -40; git diff --stat -- R/package_tests
+    git add <the listed artifacts> && git commit -m "regenerate package_tests drift artifacts"     # `drift_artifacts.sh list` prints them
+    bash R/package_tests/drift_artifacts.sh check           # git diff --exit-code: passes only after the regenerated CSVs are committed
+    # the minimal case only:
+    cd R && Rscript package_tests/capability_matrix.R
+
+Prerequisite: the checkout needs a loadable `R/EDI/src/EDI.so`; after G1 patches that change exported signatures, run this after G1
+because `run_public_argument_combinations.R` calls into compiled code (unverified). Passed when `check` exits 0 on the committed state and
+the diff shows only the expected rows. The pre-push hook performs the same regeneration and auto-commits drift (G5).
+
+### G10. CI manifest refresh
+
+Needed because 39 new test files change the inventory.
+
+    cd /home/kapelner/workspace/EDI
+    python3 R/package_tests/ci/refresh_manifest.py                   # rewrites R/package_tests/ci/test_runtimes.csv; no R, no compile
+    python3 R/package_tests/ci/plan_shards.py correctness --check-only
+    python3 R/package_tests/ci/plan_shards.py coverage --check-only
+    git diff --stat -- R/package_tests/ci/test_runtimes.csv
+
+Passed when both `--check-only` calls exit 0 (no inventory drift, no oversized estimate; new rows carry conservative unmeasured
+estimates). Commit `test_runtimes.csv` with the new tests (commit group 8).
+
+### Partly-done items with source work left (not gated only)
+
+Superseded by "Final audit 2026-10-22 → Remaining agent-doable work" below. Since the evening list: TODO-3 and TODO-118 are
+DONE; TODO-103's sweep, TODO-109's roxygen and TODO-111's DepCens/zero-covariate work are done; TODO-107's C++ is written as
+patch 12 (gated on G1); TODO-105's opt-in is a decision (G6 #7). Still true: TODO-57's native weighted Cox/Weibull refits are
+unwritten C++ (and its R slices are open, G6 #37); bundle-covered but unapplied: 4, 106, 108, 111 (02), 116 (04, optional),
+121, 123, 107 (12).
+
+### Contradictions between the entries and the early-day gate lists
+
+- The early-day section omitted TODO-1, 2, 3, 4, 6, 56, 97 and 103-124 from its per-TODO table and its "partly done" list missed
+  108, 109, 111, 116, 118, 119, 121, 123; fixed above.
+- (Resolved 2026-10-22, removed by the final audit: TODO-97 Option A is now recorded in the entry, with decisions 1-3 settled.)
+- G3: the early-day text said the parity script was "to be written"; one exists for TODO-58
+  (`benchmark_todo58_public_bootstrap_ci.R`, modes `dump-parity`/`compare-parity`); the TODO-59/60 `w`-draw parity script was written 2026-10-22 (`benchmark_todo59_60_w_draw_parity.R`).
+- G2: the early-day `Rscript R/benchmark/benchmark_model_fits.R` from the repo root fails (relative `source()`); run it from `R/`.
+- G1: the early-day command used `--preclean`, which per `CLAUDE.md` removes the per-file `.o` objects; it is now optional.
+- G5: the early-day text implied pushes trigger the sanitizer jobs via `workflow_dispatch`; `R-CMD-check.yaml` has none (path-filtered
+  push/PR only), and the local hook itself runs an incremental `R CMD INSTALL`.
+- TODO-106 and TODO-116's "C++ remainder" entries in the early-day subsection are now covered by patches 06 and 04; TODO-107 by
+  patch 12; TODO-3 and TODO-118 are done (kernels deleted, rebuilt); only TODO-57's native refits have no patch.
+  TODO-121's `get_poisson_glmm_hessian_cpp` comment is patch 09.
+- TODO-115 entry says "Remaining: ... KK OLS score == LR == gradient equality"; TODO-122 (DONE) says nothing remains: not contradictory, but
+  the independent-reference check of TODO-122's fix is tracked only under TODO-115.
+- TODO-31's CLMM `eps_g` change is R-only (`clmm_eps_g`), so TODO-31 needs G1 only for its native GLMM validation, not for this change.
+- Found by the final audit 2026-10-22 and fixed in the entries: TODO-52's close note sat inside TODO-49 (moved); TODO-33's and
+  TODO-6's titles still said "validation/timing pending" (corrected); TODO-6's and TODO-52's unchecked sub-items were superseded by
+  the close decisions (marked); TODO-17 said "stays unchecked" under a checked box (reworded); TODO-3 kept a stale "Remaining:
+  rebuild" line (struck); TODO-13's 43,200-key target predated the GComp refusal (now 28,800); TODO-113 said "Not done: NEWS
+  entry" although NEWS has it; TODO-111's current-state line predated its own later passes; TODO-119 said the KK quantile IVWC
+  class does not refuse exact 0/1 although source, NEWS and a test show it does; the standing constraints said TODO-61's objective
+  is "off until the user accepts it" although `match_objective = "distance"` is the shipped default.
+- Not fixed (outside this file) [NEWS sentence and G8 note fixed 2026-10-22 by the docs batch; the G9 CSV part stays open]: `R/EDI/NEWS.md` ~L177 still says DepCens "still returns `NA`" with zero covariates (stale, TODO-111).
+  The G8 "Result" note says three bulk tests still call the deleted `EDI:::*_cpp` kernels: stale, they now mention them only in
+  comments; but `testthat_bulk/test-bootstrap-index-fillin-and-bisection-loop.R` was deleted and the generated
+  `comprehensive_suite_{registry,coverage,internal_surfaces,baseline_audit}.csv` still list it / the deleted kernels (G9).
+- Gates without a runbook: the calibration/validation simulations of TODO-8 (400-seed null), 16 (Cloglog null), 18 (smoothed-BRT
+  null roster), 23 (>= 457 reps/family RMST coverage) and 31/50 (four-kernel sigma-by-n grid) are not comprehensive-CSV slices, so
+  G4's runbook does not cover them; each entry carries its own protocol, to be run after the G6 answers (#20, #22, #32, #35, #36)
+  and G1.
+
+### Final audit 2026-10-22
+
+Read-only audit of all 127 entries plus cheap checks (grep, `git apply --check`, `nm`, and a few single test files run against
+the installed rebuilt package or `load_all(compile = FALSE)`; no build, install, compile, roxygenize, comprehensive run or
+benchmark). C++ patch bundle: NOT applied (01-12 all still forward-apply; see the G1 "Second rebuild" note).
+
+**Counts.** DONE 79 (two boxes checked by this audit: TODO-103, TODO-118); NEEDS-DECISION 27; OPEN-SOURCE (agent-doable, no
+decision pending) 4; GATED (user-run gates only) 17; total 127. Exact lists in "Classification of the 127 TODOs".
+
+**Every remaining owner decision** (G6 numbers; full wording above; R = recommendation):
+
+1. #2 TODO-2: accept/restate measured 1.05-2.14x (a) or keep 20-30x and optimize (b). R: (a).
+2. #31 TODO-2 plan TODO-8 order-statistic inversion: adopt / defer to v1.1.0 / drop. R: defer.
+3. #30 TODO-1: remove the ZOIB jackknife tuning exclusion now, or wait for a non-NA exact fixture. R: remove now.
+4. #5 TODO-56: confirm the exact 16 target IDs/argv for the one safe slice. R: confirm as listed in the entry.
+5. #7 TODO-105: build `add_block_fixed_effects` now or defer. R: defer, file v1.1.0 TODO, close the box.
+6. #10 TODO-119: invert rand CIs on the estimand's own scale (new v1.1.0 TODO) or keep refusing. R: keep refusing in 1.0.5.
+7. #41 TODO-119: MC-SE as an attribute or docs only. R: docs now, attribute in v1.1.0.
+8. #11 TODO-115/121: keep the `max(model p, Wald)` rule (a) or return the model p (b); warn on a conservative-max Wald return?
+   R: keep, no warning when a model value was computed.
+9. #12 BCa small-B policy: document / percentile fallback / relax the guard. R: document.
+10. #13 TODO-124: raise `r` 9 -> >= 19 in a few migration goldens. R: yes, a few representatives.
+11. #44 TODO-124's unowned finding (bootstrap CI NA for some seeds, FixedBinaryMatch n=60, OneLik/robust IVWC/ContinOLS): open a
+    1.0.5 TODO and investigate, or file for v1.1.0. R: open a 1.0.5 agent investigation.
+12. #14 bootstrap p-value `na.rm` default: keep FALSE with the classed warning; any fractional-validity guard in v1.1.0. R: as stated.
+13. #15 Wilcox golden under R-devel at 1e-5: loosen the affected column or re-record. R: loosen only that column.
+14. #16 TODO-123 patch 08 (Cox descent guard, `maxit` 20 -> 100; BRT literal 20 stays): apply? R: apply.
+15. #26 patch 07 (ZINB pseudo-inverse; 1e-6 threshold; vcov all-NaN -> partly finite): apply? R: only with B07/B07b and a review
+    of the TODO-4 guard tests.
+16. #27 patch 11 (optional `noise_mat` hardening, 4 non-survival kernels) with patch 10? R: yes.
+17. #40 TODO-116: (a) NegBin jackknife enable, (b) hurdle/ZAP NB `eps_g` tighten: R: defer both to v1.1.0; (c) apply patch 04
+    (NegBin `eps_g` default 1e-10): R: apply with its tests in G1.
+18. #17 accept the registry-baseline fixture regeneration done during the sweep? R: only after `git diff` shows just the five refused
+    classes and the new capability rows.
+19. #18 TODO-97: timing of the `ResamplingCore` refactor (last in 1.0.5 after G4/G5, or v1.1.0). R: defer to v1.1.0.
+20. #19 TODO-10: matched-Cox MC-truth target population, covariate cap or Firth, ionosphere PropBeta/FractionalLogit disposition
+    (also raised in TODO-16). Options in `mc_coverage_truth_covariate_mismatch.md` (~L192-245): convergence check, covariate cap
+    (e.g. 5-8 covariates for the KK-matched StratCox family, harness and truth alike), or wait for Firth. R (audit's, the plan
+    records none as decided): covariate cap for the KK-matched high-covariate classes in 1.0.5, Firth in v1.1.0; document the
+    ionosphere high-p/n under-coverage as a limitation rather than an SE correction.
+21. #20 TODO-16/18 Type-I acceptance rule. R: Clopper-Pearson 95% per method and stratum, 500 outer datasets per stratum, finite-p
+    denominator with attempted/nonestimable counts shown, `~1` and `~.` as separate strata.
+22. #32 TODO-8: approve a fresh provenance-pinned 400-seed null rerun on the G1 build under the #20 rule, or close on the
+    2026-10-14 numbers. R: rerun, folded into #20.
+23. #35 TODO-18: 9 named cells vs all 16; drop plan TODO-3 (historical reproduction impossible). R: 9 cells, drop.
+24. #22 TODO-23: go-ahead for the coverage-calibration simulation. R: go ahead after G1.
+25. #36 TODO-23: 16 vs 18 operations and the anti-join definition; waive the targeted-compile criterion for CI 38808821543 + G1.
+    R: all 18 against a fresh run; waive.
+26. #21 TODO-62 endpoint metric. R: (b) <= 0.01 max abs log-bound difference.
+27. #39 TODO-62: unmet Fisher/EDI >= 1 speed target (0.149-0.208x) and which report copy is canonical. R: restate/defer the target;
+    regenerate both copies from the harness.
+28. #38 TODO-58: unmet >= 1x vs `boot` (OLS 0.137x, Cox 0.392x). R: restate as workload-specific / defer speed acceptance to v1.1.0,
+    close on G3 parity.
+29. #37 TODO-57: keep the remaining R slices + native refits in 1.0.5, or ship the done R slices and defer the rest. R: defer.
+30. #43 TODO-59 (optional): numeric quiet-host cutoff. R: 1-minute load average < 1.0.
+31. #24 TODO-67: approve the replacement matching-quality protocol (historical fixture unrecoverable). R: mASMD primary, paired
+    fixed-seed ~200 cases, matched-fraction guard, nonestimable cases in the denominator.
+32. #33 TODO-14: approve the impossible FixedBinaryMatch `~1`/`pte_example` keys as a predeclared skip, and the multi-hour run. R: yes.
+33. #34 TODO-111: accept the representative-subset zero-covariate smoke test. R: accept.
+34. #28 TODO-12: approve the 720-evaluation bit-for-bit sweep; TODO-106: approve a Python `.postN` release for patch 06. R: approve
+    both, after G1 (push/tag still needs its own go-ahead).
+35. #29 accept the documented default changes of TODO-109 (all-censored RMST arm = horizon), 112 (seeded rand p/CI differ), 120
+    (dep-cens bootstrap B 501). R: accept.
+36. #42 TODO-61 (checked): explicitly confirm the shipped `match_objective = "distance"` default. R: confirm.
+
+**Remaining agent-doable work** (no build needed unless noted; none of it was done by this audit, which changed no source or tests):
+
+- TODO-18: finish the dispatch/support cross-reference and continuous-bandwidth investigation (plan TODO-1/2) before calibration.
+- TODO-59/60: write the fixed-seed 1.0.2-vs-current `w`-draw parity script for G3 (light CPU). DONE 2026-10-22: `R/benchmark/benchmark_todo59_60_w_draw_parity.R` (commands in G3).
+- ~~TODO-112: write and run the two-`callr`-session 1-vs-2-core rand reproducibility test; verify `num_cores > 1` rand draws.~~
+  Done 2026-10-22: passes, no core-count dependence.
+- TODO-115: independent-reference check (lm/GLS on pair differences) of KK OLS OneLik score == LR == gradient.
+- TODO-116: lik-test inversion procedure-failure conversion (`inference_ext_ci_inversion.R`, memoization); confirm the
+  `test-simple-estimator-migration-baseline.R` snapshot refresh; diagnose the single `test-kk-gee-parity.R` failure.
+- TODO-119: ~~NEWS line for the survival raw-scale refusal; MC-SE sentence in `compute_rand_confidence_interval()` docs~~ (done
+  2026-10-22; Rd regeneration needed, G8); fix or stop
+  advertising `randomization_ci` on the non-GLM mixed-response classes that fail per response type.
+- ~~TODO-111: fix the stale `R/EDI/NEWS.md` ~L177 DepCens sentence.~~ Done 2026-10-22.
+- ~~TODO-125: file the rebind-helper removal as a `release_v1_1_0.md` TODO.~~ Done 2026-10-22: `release_v1_1_0.md → TODO-60`.
+- TODO-126: reproduce under a seeded hard timeout, profile, fix (timing evidence needs a quiet host, G2).
+- TODO-127: move the coverage-truth simulation out of the timed window in `comprehensive_tests.R` (fork and non-fork paths); re-run
+  the three named classes with `TEST_FAMILY_FILTER = estimate`.
+- TODO-67: re-run `test-kk21-stepwise-survival-weibull-mle-score-reference.R` against today's build for the native sub-gate.
+- TODO-68 (optional prep): rebuild the candidate-key manifest with the full formula-pair key.
+- Conditional on answers: TODO-1 one-line exclusion removal (#30); TODO-2 restated docs (#2 (a)); TODO-57 R slices (#37 (a));
+  TODO-124 finding investigation (#44 (a)); TODO-105 v1.1.0 TODO filing (#7 defer).
+- Doc: write a runbook for the calibration/validation simulations (TODO-8, 16, 18, 23, 31/50), which no gate covers.
+
+**What the user must run, per gate** (order as in the dependency diagram; commit in scoped groups first, then G10/G9 before G5):
+
+- G6 (answer the 36 questions above): unblocks 1, 2, 4, 8, 10, 12, 14, 16, 18, 23, 56, 57, 58, 62, 67, 97, 105, 106, 109, 111,
+  112, 115, 116, 119, 120, 121, 123 and the patch choice for G1.
+- G8: already ran clean twice 2026-10-22; left: commit the Rd/NAMESPACE/RcppExports changes, run `check_references_sync.R`, and
+  re-run after G1 only if patches 04/05/08 change exported signatures. No TODO is waiting on G8 alone any more.
+- G10: `python3 R/package_tests/ci/refresh_manifest.py`, then both `plan_shards.py ... --check-only`. Verified 2026-10-22: both
+  checks currently FAIL (correctness: 9 new bulk files missing; coverage: 42 files missing). Unblocks G5 (all of 38, 63, 66, 109,
+  112, 120, 125).
+- G9: `bash R/package_tests/drift_artifacts.sh regenerate`, review, commit, `check`. Clears the capability matrix (119), public API
+  inventory (114), and the deleted kernels/test still listed in the comprehensive-suite CSVs (3, 118). Unblocks a clean G5.
+- G1 (apply the chosen patches 01-12 per the G6 answers, build with `EDI_UNITY=0`, record provenance, run the step-4 tests with
+  `EDI_REQUIRE_CPP_PATCHES=true` and the hook-style suite): unblocks 4, 12, 23, 26, 31, 38, 50, 63, 66, 67, 76, 77, 106, 107, 108,
+  111, 116 (if 04), 121, 123; 57 and 126 only if their native work is pursued. TODO-108 also needs `survRM2` installed (or its
+  cross-check dropped).
+- G7 (TODO-56's confirmed 16-key slice with receipt, after #5): frees the shared result paths for 9, 12, 13, 14, 18, 26, 55, 76, 77.
+- G4 (after G1 and G7): class-filtered regeneration + audit for 8, 9, 10, 12, 13, 14, 16, 18, 19, 23, 26, 31, 50, 55, 56, 67, 68, 76,
+  77, 99, 119, and TODO-127's duration fields; the post-G4 audit also covers TODO-52's handed-off classes and TODO-107's TODO-18
+  hypothesis. Calibration simulations (no runbook yet): 8, 16, 18, 23, 31/50.
+- G2 (quiet host, after G1): 1, 58, 59, 60, 62, 126 (and 2 / 57 only if more optimization is chosen).
+- G3 (authentic EDI 1.0.2 install): 58, 59, 60 (59/60 `w`-parity script written 2026-10-22: `benchmark_todo59_60_w_draw_parity.R`).
+- G5 (push + CI on the commits; needs a separate push go-ahead): 38, 63, 66, 109, 112, 120, 125.

@@ -306,11 +306,26 @@ public_methods_for_capability = list(
 )
 
 EDI_COMPONENT_SPECS = list(
+	# v1.0.5 TODO-97 (2026-10-22, Option A): shared resampling helpers that
+	# RandomizationTest, NonparametricBootstrap, Jackknife and BayesianBootstrap
+	# all call, moved unchanged out of those sources so every `dependencies`
+	# entry below is an edge the component's code actually calls and the
+	# component graph is acyclic. It depends on nothing and calls only package
+	# functions, root state, and its own methods.
+	ResamplingCore = list(
+		status = "active",
+		source_name = "InferenceResamplingCore",
+		file = "inference_all_abstract_resampling_core.R",
+		dependencies = character(),
+		owns_state = "bootstrap_extreme_estimate_threshold",
+		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
+		declare_body_references_optional = TRUE
+	),
 	RandomizationTest = list(
 		status = "active",
 		source_name = "InferenceRand",
 		file = "inference_all_abstract_rand.R",
-		dependencies = character(),
+		dependencies = "ResamplingCore",
 		owns_state = "randomization_mc_control",
 		provides_capabilities = "randomization_test",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
@@ -330,10 +345,10 @@ EDI_COMPONENT_SPECS = list(
 		load_policy = "lazy",
 		source_name = "InferenceNonParamBootstrap",
 		file = "inference_all_abstract_non_param_boot.R",
-		dependencies = "RandomizationCI",
+		# Was "RandomizationCI" (the legacy ladder parent), which it never calls.
+		dependencies = "ResamplingCore",
 		owns_state = c(
 			"boot_distr_cache", "jack_distr_cache",
-			"bootstrap_extreme_estimate_threshold",
 			"bootstrap_extreme_ci_width_threshold",
 			"bootstrap_pval_types", "bootstrap_ci_types"
 		),
@@ -385,8 +400,8 @@ EDI_COMPONENT_SPECS = list(
 			"mark_jackknife_nonestimable_if_block_unsupported",
 			"missing_bootstrap_ci", "check_bootstrap_replicate_deadline",
 			"is_resampling_control_condition", "resampling_error_to_na",
-			"bootstrap_estimates_extreme", "bootstrap_confidence_interval_extreme",
-			"supports_reusable_bootstrap_worker", "create_bootstrap_worker_state",
+			"bootstrap_outcome_scale", "bootstrap_confidence_interval_extreme",
+			"supports_reusable_bootstrap_worker",
 			"validate_bootstrap_worker_state", "create_reusable_bootstrap_worker",
 			"load_bootstrap_draw_into_worker", "load_non_param_bootstrap_draw_into_worker",
 			"estimate_bootstrap_worker", "create_design_backed_bootstrap_worker_state",
@@ -401,13 +416,13 @@ EDI_COMPONENT_SPECS = list(
 			"get_cluster_jackknife_ids", "build_jackknife_deletion_draws",
 			"bootstrap_subset_inference", "bootstrap_replication_stats",
 			"approximate_bootstrap_statistics_beta_hat_T",
+			"finalize_bootstrap_statistics_matrix",
 			"approximate_jackknife_distribution_beta_hat_T_private",
 			"ci_from_boot_distribution", "studentized_interval_scale_unstable",
 			"studentized_bootstrap_pivots", "ci_studentized",
 			"ci_symmetric_studentized", "ci_bca", "ci_calibrated_bootstrap",
 			"ci_smoothed_bootstrap", "infer_original_se", "pval_bca",
 			"boot_distr_cache", "jack_distr_cache",
-			"bootstrap_extreme_estimate_threshold",
 			"bootstrap_extreme_ci_width_threshold",
 			"bootstrap_pval_types", "bootstrap_ci_types"
 		),
@@ -420,7 +435,9 @@ EDI_COMPONENT_SPECS = list(
 		load_policy = "lazy",
 		source_name = "InferenceRandBootstrap",
 		file = "inference_all_abstract_rand_bootstrap.R",
-		dependencies = "NonparametricBootstrap",
+		# It calls RandomizationTest helpers directly (the shift/sequential-MC
+		# and randomization-worker paths), so that edge is now declared.
+		dependencies = c("NonparametricBootstrap", "RandomizationTest"),
 		owns_state = c("rand_boot_draws_counter", "brt_mc_control", "rand_bootstrap_pval_types"),
 		provides_public_methods = c(
 			"approximate_rand_bootstrap_distribution_beta_hat_T",
@@ -482,7 +499,9 @@ EDI_COMPONENT_SPECS = list(
 		load_policy = "lazy",
 		source_name = "InferenceBayesianBootstrap",
 		file = "inference_all_abstract_bayesian_bootstrap.R",
-		dependencies = "RandomizationBootstrapCI",
+		# Was "RandomizationBootstrapCI" (the legacy ladder parent), which it
+		# never calls; it calls NonparametricBootstrap's CI/worker helpers.
+		dependencies = "NonparametricBootstrap",
 		owns_state = c(
 			"current_bayesian_bootstrap_context",
 			"current_bayesian_bootstrap_subject_or_block_weights",
@@ -520,7 +539,9 @@ EDI_COMPONENT_SPECS = list(
 		status = "active",
 		source_name = "InferenceJackknife",
 		file = "inference_all_abstract_jackknife.R",
-		dependencies = character(),
+		# One-way edge: approximate_jackknife_distribution_beta_hat_T_private()
+		# and the jackknife-unit helpers are NonparametricBootstrap's.
+		dependencies = "NonparametricBootstrap",
 		provides_capabilities = "jackknife",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
 		declare_body_references_optional = TRUE
@@ -529,7 +550,9 @@ EDI_COMPONENT_SPECS = list(
 		status = "active",
 		source_name = "InferenceAsymp",
 		file = "inference_all_abstract_asymp.R",
-		dependencies = "Jackknife",
+		# Was "Jackknife" (the legacy ladder parent), which it never calls; it
+		# calls the design-backed bootstrap-worker helpers.
+		dependencies = "NonparametricBootstrap",
 		owns_state = "cached_mod",
 		provides_capabilities = "wald",
 		allowed_likelihood_tiers = EDI_COMPONENT_ALLOWED_LIKELIHOOD_TIERS,
@@ -2031,7 +2054,7 @@ EDI_COMPONENT_SPECS = list(
 					),
 					provides_private_methods = c(
 						"nonparam_boot_compute_bootstrap_confidence_interval",
-						"dep_cens_percentile_bootstrap_ci", "dep_cens_validate_bootstrap_ci",
+						"dep_cens_percentile_bootstrap_ci", "dep_cens_validate_bootstrap_ci", "dep_cens_fit_retry",
 						"compute_treatment_estimate_during_randomization_inference",
 						"supports_reusable_bootstrap_worker", "supports_likelihood_tests",
 						"get_likelihood_test_spec", "generate_mod", "supports_lik_ratio_param_bootstrap",
@@ -2808,20 +2831,22 @@ load_inference_component = function(component_name, class_name = "<global>", ns 
 #' Re-bind already-installed lazy-component methods on a freshly cloned
 #' \code{Inference} object to that clone's own \code{self}/\code{private}.
 #'
-#' \code{install_lazy_inference_component()} permanently binds each real
-#' (non-stub) implementation it installs to whichever object triggered the
-#' install, via \code{environment(value) = parent.frame()}. R6's
-#' \code{clone()} correctly rebinds every method present in the class
-#' generator's original method list, but a lazily-installed method is
-#' injected into \code{private}/\code{self} at runtime and is invisible to
-#' that bookkeeping, so a clone keeps calling back into the ORIGINAL
-#' object's data (e.g. a Bayesian-bootstrap worker clone silently reading
-#' the pre-clone object's \code{current_bayesian_bootstrap_context}, always
-#' \code{NULL}, instead of its own). Call this right after \code{self$clone()}
-#' to repoint every already-installed lazy-component method (public and
-#' private) at the clone's own enclosing environment; state fields
-#' (\code{owns_state}) are left untouched since \code{clone()} already
-#' copies their current values correctly.
+#' Since 2026-10-22 (TODO-125) this is a no-op kept for one release:
+#' \code{install_lazy_inference_component()} now closes each installed
+#' method over the calling stub's own R6 enclosing environment, which R6's
+#' \code{clone()} remaps by itself. Before that, installed methods were
+#' closed over \code{parent.frame()} (the stub's call frame, a child of the
+#' enclosing environment); R6's \code{clone()} only remaps a function whose
+#' environment is \code{identical()} to one of the object's enclosing
+#' environments, so a clone kept calling back into the ORIGINAL object's
+#' data (e.g. a Bayesian-bootstrap worker clone silently reading the
+#' pre-clone object's \code{current_bayesian_bootstrap_context}, always
+#' \code{NULL}, instead of its own). This helper repoints any
+#' already-installed lazy-component method (public and private) that is not
+#' closed over one of the clone's own enclosing environments at the clone's
+#' leaf enclosing environment; state fields (\code{owns_state}) are left
+#' untouched since \code{clone()} already copies their current values
+#' correctly.
 #'
 #' @param i The freshly cloned \code{Inference} object.
 #' @param source_private The pre-clone source object's own \code{private}
@@ -2873,10 +2898,27 @@ edi_rebind_lazy_components_after_clone = function(i, source_private = NULL) {
 	if (!is.null(source_private)) loaded = unique(c(loaded, read_marker(source_private)))
 	if (!length(loaded)) return(invisible(i))
 	new_env = i$.__enclos_env__
+	# 2026-10-22 (release_v1_0_5.md TODO-125): installed methods are now closed
+	# over one of the object's own enclosing envs, so clone() has already
+	# remapped them and this helper must be a no-op. A function already closed
+	# over ANY of the clone's enclosing envs (the leaf's or an inherited
+	# level's) is left alone: forcing it onto the leaf env would change what
+	# `super` means inside an inherited method (R6 closes inherited methods
+	# over their defining level's env), which this helper used to do on
+	# duplicate() of a user subclass.
+	clone_enclos_envs = list()
+	enc = new_env
+	while (is.environment(enc)) {
+		clone_enclos_envs[[length(clone_enclos_envs) + 1L]] = enc
+		sup = get0("super", envir = enc, inherits = FALSE)
+		enc = if (is.environment(sup)) sup$.__enclos_env__ else NULL
+	}
 	rebind_fn_env = function(env, name) {
 		if (!exists(name, envir = env, inherits = FALSE)) return(invisible(NULL))
 		val = get(name, envir = env, inherits = FALSE)
 		if (!is.function(val)) return(invisible(NULL))
+		val_env = environment(val)
+		for (e in clone_enclos_envs) if (identical(val_env, e)) return(invisible(NULL))
 		environment(val) = new_env
 		# Reassigning a rebound method's closure environment after clone()
 		# (this function's whole purpose) requires reassigning an existing R6
@@ -2933,7 +2975,34 @@ install_lazy_inference_component = function(self, private, class_name, component
 		return(invisible(get_lazy_component_dispatch(component_name, class_name)))
 	}
 	dispatch = get_lazy_component_dispatch(component_name, class_name)
-	method_env = parent.frame()
+	# 2026-10-22 (release_v1_0_5.md TODO-125): close every installed method
+	# over the calling stub's own closure environment -- an R6 enclosing
+	# environment of this object -- NOT over parent.frame(), the stub's call
+	# frame. R6's clone() (R6:::remap_func_envs, R6 2.6.1) only repoints a
+	# function whose environment is identical() to one of the object's
+	# enclosing envs, so a method closed over the stub frame (a CHILD of the
+	# enclosing env) was skipped and a raw `$clone()` kept reading and writing
+	# the ORIGINAL object's state. The stubs are `function(...)`, so their
+	# frame held only `...`, and no component method uses a `...` it does not
+	# declare (audited with codetools::findGlobals over all 959 component
+	# functions), so lookups are unchanged.
+	# Why the stub's closure env and not `self$.__enclos_env__`: R6 closes an
+	# INHERITED method over the enclosing env of the class level that defines
+	# it, not the leaf's, and `super` differs per level. A stub inherited from
+	# a parent class (e.g. any plain `R6::R6Class(inherit = <EDI class>)` user
+	# subclass) lives in the parent level's env; closing the real method over
+	# the leaf env would silently change what `super$...` means inside it (52
+	# component methods use `super`). The stub's closure env keeps self,
+	# private AND super exactly as before, and is still an enclosing env that
+	# clone() remaps. With this, clone() handles installed methods (and the
+	# weighted-refit wrapper, which copies environment(orig)) by itself, and
+	# edi_rebind_lazy_components_after_clone() is a no-op kept for one release.
+	method_env = parent.env(parent.frame())
+	if (!identical(get0("self", envir = method_env, inherits = FALSE), self)) {
+		# Not called from a stub closed over this object's enclosing env;
+		# fall back to the leaf enclosing env, which clone() also remaps.
+		method_env = self$.__enclos_env__
+	}
 	assign_method = function(env, name, value) {
 		if (is.function(value)) environment(value) = method_env
 		if (exists(name, envir = env, inherits = FALSE)) {

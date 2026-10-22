@@ -1,0 +1,21 @@
+--- a/R/EDI/R/RcppExports.R
++++ b/R/EDI/R/RcppExports.R
+@@ -862,15 +862,15 @@
+     .Call(`_EDI_build_stratified_cox_data_cache_cpp`, X, y, dead, strata)
+ }
+ 
+-fast_coxph_regression_prebuilt_cpp <- function(cox_data_xptr, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 20L, tol = 1e-9, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
++fast_coxph_regression_prebuilt_cpp <- function(cox_data_xptr, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-9, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
+     .Call(`_EDI_fast_coxph_regression_prebuilt_cpp`, cox_data_xptr, warm_start_beta, smart_cold_start, estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
+ }
+ 
+-fast_coxph_regression_cpp <- function(X, y, dead, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 20L, tol = 1e-9, cluster = NULL, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
++fast_coxph_regression_cpp <- function(X, y, dead, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-9, cluster = NULL, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
+     .Call(`_EDI_fast_coxph_regression_cpp`, X, y, dead, warm_start_beta, smart_cold_start, estimate_only, maxit, tol, cluster, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
+ }
+ 
+-fast_stratified_coxph_regression_cpp <- function(X, y, dead, strata, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 20L, tol = 1e-9, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
++fast_stratified_coxph_regression_cpp <- function(X, y, dead, strata, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-9, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
+     .Call(`_EDI_fast_stratified_coxph_regression_cpp`, X, y, dead, strata, warm_start_beta, smart_cold_start, estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
+ }
+ 

@@ -149,7 +149,7 @@ InferenceExtPRWSubsampling = list(
 				), b[setdiff(names(b), c("method", "B", "alpha"))]))
 				b = selection$b_optimal
 				if (!is.numeric(b) || length(b) != 1L || !is.finite(b)) {
-					private$cache_nonestimable_estimate("subsampling_b_selection_failed")
+					edi_record_procedure_failure(self, private, "subsampling_b_selection_failed", "estimate")
 					return(NA_real_)
 				}
 			}
@@ -164,11 +164,11 @@ InferenceExtPRWSubsampling = list(
 				scaling = scaling
 			)
 			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate(pivot$reason)
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = "subsampling")
 				return(NA_real_)
 			}
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("subsampling_too_few_finite_estimates")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "subsampling_too_few_finite_estimates", "estimate")
 				return(NA_real_)
 			}
 			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$est, delta = delta, n_units = pivot$n_units, scaling = scaling)
@@ -229,7 +229,7 @@ InferenceExtPRWSubsampling = list(
 				scaling = scaling
 			)
 			if (!isTRUE(pivot$ok)) {
-				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate"))
+				if (isTRUE(private$harden)) return(private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = "subsampling"))
 				return(c(NA_real_, NA_real_))
 			}
 			if (length(pivot$finite) < as.integer(min_number_usable_samples)) {

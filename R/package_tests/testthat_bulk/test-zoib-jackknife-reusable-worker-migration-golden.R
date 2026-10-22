@@ -208,7 +208,7 @@ test_that("ZOIB jackknife extreme-summary NA decision is identical for equal fin
 		list(
 			summary = inf$.__enclos_env__$private$compute_jackknife_summary(unit = "auto"),
 			estimate = inf$compute_jackknife_estimate(),
-			reason = inf$get_nonestimable_reason()
+			reason = inf$.__enclos_env__$private$cached_values$procedure_failure_reason$jackknife
 		)
 	})
 	expect_true(all(is.finite(jack)))
@@ -262,8 +262,8 @@ test_that("ZOIB exact diagnosed tuning seed preserves finite jackknife draws acr
 	expect_identical(new_summary$bias, NA_real_)
 	expect_identical(new_summary$std_error, NA_real_)
 	expect_identical(new_summary, old_summary)
-	expect_identical(instances$reusable$get_nonestimable_reason(), "jackknife_extreme_summary")
-	expect_identical(instances$legacy$get_nonestimable_reason(), "jackknife_extreme_summary")
+	expect_identical(instances$reusable$.__enclos_env__$private$cached_values$procedure_failure_reason$jackknife, "jackknife_extreme_summary")
+	expect_identical(instances$legacy$.__enclos_env__$private$cached_values$procedure_failure_reason$jackknife, "jackknife_extreme_summary")
 	for (method in c(
 		"compute_jackknife_estimate",
 		"compute_jackknife_std_error",
@@ -271,4 +271,49 @@ test_that("ZOIB exact diagnosed tuning seed preserves finite jackknife draws acr
 	)) {
 		expect_identical(instances$reusable[[method]](), instances$legacy[[method]](), info = method)
 	}
+})
+
+test_that("ZOIB reusable jackknife skips futile full-matrix refits after a failed direct fit (TODO-1 option (a))", {
+	# On the exact diagnosed tuning seed 8 of 50 direct leave-one-out fits are
+	# non-finite. The ordinary fallback used to refit the identical failed
+	# p-column matrix twice before dropping a column (24 extra native calls).
+	# The reusable route now skips those two deterministic repeats, so it must
+	# make no more native calls than the forced-legacy route while returning
+	# bit-identical draws. Call COUNTS are the metric (wall clock is host-noisy).
+	ns <- asNamespace("EDI")
+	design <- get("edi_tuning_synthetic_experiment", envir = ns)("proportion", n = 50L, seed = 20264492L)
+	zoib_generator <- get("InferencePropZeroOneInflatedBetaRegr", envir = ns)
+	LegacyZOIB <- R6::R6Class(
+		"LegacyZOIBCallCountReference",
+		inherit = zoib_generator,
+		lock_objects = FALSE,
+		private = list(supports_reusable_bootstrap_worker = function() FALSE)
+	)
+	orig <- get("fast_zero_one_inflated_beta_cpp", envir = ns)
+	n_calls <- 0L
+	unlockBinding("fast_zero_one_inflated_beta_cpp", ns)
+	assign("fast_zero_one_inflated_beta_cpp", function(...) {
+		n_calls <<- n_calls + 1L
+		orig(...)
+	}, envir = ns)
+	lockBinding("fast_zero_one_inflated_beta_cpp", ns)
+	on.exit({
+		unlockBinding("fast_zero_one_inflated_beta_cpp", ns)
+		assign("fast_zero_one_inflated_beta_cpp", orig, envir = ns)
+		lockBinding("fast_zero_one_inflated_beta_cpp", ns)
+	}, add = TRUE)
+	measure <- function(generator) {
+		inf <- generator$new(design, verbose = FALSE)
+		inf$num_cores <- 1L
+		n_calls <<- 0L
+		summary <- inf$.__enclos_env__$private$compute_jackknife_summary(unit = "auto")
+		list(summary = summary, calls = n_calls, priv = inf$.__enclos_env__$private)
+	}
+	reusable <- measure(zoib_generator)
+	legacy <- measure(LegacyZOIB)
+	expect_identical(reusable$summary$distribution, legacy$summary$distribution)
+	expect_identical(reusable$summary, legacy$summary)
+	expect_lte(reusable$calls, legacy$calls)
+	# The skip flag is scoped to the fallback and must not leak.
+	expect_null(reusable$priv$zoib_skip_full_fit_ncol)
 })

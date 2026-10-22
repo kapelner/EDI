@@ -127,6 +127,21 @@ test_that("Newcombe p-value resolves strong and small effects on a log-alpha sca
 	expect_lt(precise_p, 1e-5)
 })
 
+test_that("Newcombe p-value agrees with prop.test in order of magnitude (independent of newcombe_pval_ref)", {
+	# prop.test(correct = FALSE) is a different statistic (pooled-variance score test), so this is a
+	# loose log10 band, not equality; it pins the old failure (p collapsing to 1 or to the alpha
+	# floor) without reusing the reference function. Observed: Newcombe 3.95e-33 vs prop.test 1.12e-29
+	# (strong), 4.35e-7 vs 5.55e-7 (moderate).
+	strong = make_newcombe_fixed_counts_fixture(90L, 100L, 10L, 100L)$compute_asymp_two_sided_pval()
+	strong_prop = prop.test(c(90, 10), c(100, 100), correct = FALSE)$p.value
+	expect_lt(strong, strong_prop)
+	expect_gt(strong, 1e-40)
+
+	moderate = make_newcombe_fixed_counts_fixture(75L, 100L, 40L, 100L)$compute_asymp_two_sided_pval()
+	moderate_prop = prop.test(c(75, 40), c(100, 100), correct = FALSE)$p.value
+	expect_lt(abs(log10(moderate) - log10(moderate_prop)), 0.5)
+})
+
 test_that("Newcombe p-value rejects a missing null value", {
 	f = make_newcombe_fixture(seed = 20261002)
 	inf = InferenceIncidNewcombeRiskDiff$new(f$des)

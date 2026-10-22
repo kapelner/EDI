@@ -20,16 +20,15 @@ scalar \code{double}, using the same convention as
 Only a randomization test and randomization confidence interval are
 available -- there is no package point-estimator, Wald path, or bootstrap
 machinery on this class, so no other action needs disabling.
-}
-\details{
+
 The confidence interval inverts tests under an additive shift \eqn{\delta}
-of the treated responses, so its endpoints are intended to be interpreted
-on the additive response-effect scale, not necessarily in the units of the
-supplied statistic. \strong{Current limitation:} the search is seeded from
-the observed statistic. If that statistic is not on the \eqn{\delta} scale
-(for example, a t statistic), the returned interval may be invalid. Until
-this is fixed, use the CI only with a statistic whose observed value is on
-the additive response-effect scale.
+of the treated responses, so it is a confidence interval for the additive
+effect \eqn{\delta} on the response scale, whatever the statistic's own
+units (a t statistic, or \code{-10 * mean difference}, give the same
+interval). The search is centred on the observed difference in mean
+response, not on the statistic's observed value. The statistic must respond
+to the shift (be monotone in \eqn{\delta}); if the test rejects every
+\eqn{\delta} tried the CI errors instead of returning a rejected band.
 }
 \section{Super classes}{
 \code{\link[EDI:Inference]{Inference}} -> \code{\link[EDI:InferenceCustomRand]{InferenceCustomRand}} -> \code{InferenceRandCustom}
@@ -54,6 +53,7 @@ the additive response-effect scale.
 <details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
@@ -68,6 +68,7 @@ the additive response-effect scale.
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>

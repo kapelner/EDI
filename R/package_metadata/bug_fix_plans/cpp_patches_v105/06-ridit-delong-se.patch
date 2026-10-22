@@ -1,0 +1,126 @@
+--- a/R/EDI/src/fast_ridit_analysis.cpp
++++ b/R/EDI/src/fast_ridit_analysis.cpp
+@@ -87,6 +87,67 @@
+     return RiditScoreData{scores, levels, ref_p};
+ }
+ 
++// TODO-106: DeLong (1988) standard error of the Mann-Whitney contrast
++// theta - 1/2, a line-for-line port of ridit_delong_se() in
++// R/EDI/R/inference_ordinal_ridit.R:
++//   Var(V10)/n_T + Var(V01)/n_C, V10_i = control-CDF midrank (ridit) of treated
++//   subject i, V01_j = 1 - treated-CDF midrank of control subject j, sample
++//   variances (n - 1). A pooled reference is scaled by n_C / N.
++// ridit scores under the control (resp. treatment) reference ARE the CDF
++// midranks above (cumsum(p) - p/2, unseen categories scored by the mass below),
++// so they are taken from fast_ridit_scores_from_ref_indices. `cur_ref` holds the
++// scores already computed for `reference` (control/treatment) and is reused.
++// Returns NA when either arm is empty and 0 when either arm has a single subject
++// (same conventions as the R function).
++double ridit_delong_se_from_scores(const int* y_ptr,
++                                   const int* w_ptr,
++                                   int n,
++                                   const std::string& reference,
++                                   const RiditScoreData& cur_ref) {
++    std::vector<int> idx_t, idx_c;
++    idx_t.reserve(static_cast<std::size_t>(n));
++    idx_c.reserve(static_cast<std::size_t>(n));
++    for (int i = 0; i < n; ++i) {
++        if (w_ptr[i] == 1) idx_t.push_back(i);
++        else if (w_ptr[i] == 0) idx_c.push_back(i);
++    }
++    const int n_t = static_cast<int>(idx_t.size());
++    const int n_c = static_cast<int>(idx_c.size());
++    if (n_t < 1 || n_c < 1) return NA_REAL;
++    if (n_t < 2 || n_c < 2) return 0.0;
++
++    RiditScoreData tmp_ctrl, tmp_trt;
++    const RiditScoreData* ctrl_ref = &cur_ref;  // scores w.r.t. the control CDF
++    const RiditScoreData* trt_ref = &cur_ref;   // scores w.r.t. the treated CDF
++    if (reference != "control") {
++        tmp_ctrl = fast_ridit_scores_from_ref_indices(y_ptr, n, idx_c);
++        ctrl_ref = &tmp_ctrl;
++    }
++    if (reference != "treatment") {
++        tmp_trt = fast_ridit_scores_from_ref_indices(y_ptr, n, idx_t);
++        trt_ref = &tmp_trt;
++    }
++
++    // Sample variance (denominator m - 1) of v, two-pass like stats::var.
++    auto sample_var = [](const std::vector<double>& v) {
++        double mean = 0.0;
++        for (double x : v) mean += x;
++        mean /= static_cast<double>(v.size());
++        double ss = 0.0;
++        for (double x : v) ss += (x - mean) * (x - mean);
++        return ss / static_cast<double>(v.size() - 1);
++    };
++    std::vector<double> v10, v01;
++    v10.reserve(idx_t.size());
++    v01.reserve(idx_c.size());
++    for (int i : idx_t) v10.push_back(ctrl_ref->scores[static_cast<std::size_t>(i)]);
++    for (int j : idx_c) v01.push_back(1.0 - trt_ref->scores[static_cast<std::size_t>(j)]);
++
++    double se = std::sqrt(sample_var(v10) / n_t + sample_var(v01) / n_c);
++    if (reference == "pooled") se *= static_cast<double>(n_c) / static_cast<double>(n_t + n_c);
++    return se;
++}
++
+ }  // namespace
+ 
+ struct RiditAnalysisResult {
+@@ -147,23 +208,15 @@
+     double mean_ridit_c = (n_c > 0) ? sum_c / n_c : NA_REAL;
+ 
+     const bool treatment_reference = (reference == "treatment");
+-    const double target_mean = treatment_reference ? mean_ridit_c : mean_ridit_t;
+-    const int target_n = treatment_reference ? n_c : n_t;
+-    double target_var = 0.0;
+-    if (target_n > 1) {
+-        for (int i = 0; i < n; ++i) {
+-            if ((treatment_reference && w[i] == 0) || (!treatment_reference && w[i] == 1)) {
+-                const double diff = scores[static_cast<std::size_t>(i)] - target_mean;
+-                target_var += diff * diff;
+-            }
+-        }
+-        target_var /= (target_n - 1);
+-    }
++    // TODO-106: was sd(target-arm scores)/sqrt(n), which treats the reference
++    // CDF as known (type-I error 14.75% vs 3.75% for DeLong at alpha = .05).
++    const double se_delong = ridit_delong_se_from_scores(
++        y.data(), w.data(), n, reference, ridit_data);
+ 
+     return RiditAnalysisResult{
+         mean_ridit_t, mean_ridit_c,
+         treatment_reference ? 0.5 - mean_ridit_c : mean_ridit_t - 0.5,
+-        target_n > 0 ? std::sqrt(target_var / target_n) : NA_REAL,
++        se_delong,
+         ridit_data.scores, ridit_data.levels, ridit_data.ref_p
+     };
+ }
+--- a/python/cpp/bindings_ordinal.cpp
++++ b/python/cpp/bindings_ordinal.cpp
+@@ -838,8 +838,11 @@
+     "'treatment', or 'pooled'), then compares treatment/control mean ridits. "
+     "The estimate is mean_ridit_t - 0.5 for control/pooled references and "
+     "0.5 - mean_ridit_c for a treatment reference, so positive values always "
+-    "mean higher treated outcomes. The SE uses the corresponding comparison "
+-    "arm's ridit scores. No R-side roxygen "
++    "mean higher treated outcomes. The SE is the DeLong (1988) standard error "
++    "of the underlying Mann-Whitney contrast, Var(V10)/n_T + Var(V01)/n_C "
++    "(times n_C/N for a pooled reference), which includes the sampling "
++    "variability of the reference arm (same as the R class InferenceOrdinalRidit). "
++    "No R-side roxygen "
+     "documents this raw kernel directly (fast_ridit_analysis.cpp has none); "
+     "parameters are named for their role in the algorithm above.\n\n"
+     "Parameters\n"
+--- a/python/src/edi_kernels/_core.pyi
++++ b/python/src/edi_kernels/_core.pyi
+@@ -1082,7 +1082,7 @@
+     """
+ def fast_ridit_analysis(w: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], y: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], reference: str = 'control') -> dict:
+     """
+-    Ridit analysis (Bross 1958): assigns each subject a ridit score relative to the empirical distribution of the reference group ('control', 'treatment', or 'pooled'), then compares treatment/control mean ridits. The estimate is mean_ridit_t - 0.5 for control/pooled references and 0.5 - mean_ridit_c for a treatment reference, so positive values always mean higher treated outcomes. The SE uses the corresponding comparison arm's ridit scores. No R-side roxygen documents this raw kernel directly (fast_ridit_analysis.cpp has none); parameters are named for their role in the algorithm above.
++    Ridit analysis (Bross 1958): assigns each subject a ridit score relative to the empirical distribution of the reference group ('control', 'treatment', or 'pooled'), then compares treatment/control mean ridits. The estimate is mean_ridit_t - 0.5 for control/pooled references and 0.5 - mean_ridit_c for a treatment reference, so positive values always mean higher treated outcomes. The SE is the DeLong (1988) standard error of the underlying Mann-Whitney contrast, Var(V10)/n_T + Var(V01)/n_C (times n_C/N for a pooled reference), which includes the sampling variability of the reference arm (same as the R class InferenceOrdinalRidit). No R-side roxygen documents this raw kernel directly (fast_ridit_analysis.cpp has none); parameters are named for their role in the algorithm above.
+     
+     Parameters
+     ----------

@@ -5,6 +5,20 @@
 \title{Randomization-based Inference}
 \description{
 Abstract class for randomization-based inference.
+
+For survival outcomes with left- or interval-censoring, a nonzero
+  \code{delta} is not supported and the call errors. The current null-shift
+  implementation shifts exact/right-censored response times but not censoring
+  bounds.
+
+  The p-value always comes from randomization draws of the assignment vector
+  \eqn{w} from the design, for every response type including incidence on
+  matched-pair and Bernoulli designs. (Before EDI 1.0.5 such incidence designs
+  instead returned the Zhang exact combined test, which does not use the draws
+  and was markedly more conservative; it is still available explicitly through
+  the \code{type = "Zhang"} argument of classes that offer it.) At least 10
+  finite reference statistics are required, otherwise \code{NA} is returned.
+  A nonzero \code{delta} is not supported for incidence responses.
 }
 \keyword{internal}
 \section{Super class}{
@@ -22,6 +36,7 @@ Abstract class for randomization-based inference.
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
@@ -37,6 +52,7 @@ Abstract class for randomization-based inference.
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
@@ -131,7 +147,8 @@ values. Runs serially. Default \code{FALSE}.}
   na.rm = TRUE,
   show_progress = TRUE,
   permutations = NULL,
-  zero_one_logit_clamp = .Machine$double.eps
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
 )}
     \if{html}{\out{</div>}}
   }
@@ -145,6 +162,16 @@ values. Runs serially. Default \code{FALSE}.}
       \item{\code{show_progress}}{Show progress.}
       \item{\code{permutations}}{Pre-computed permutations.}
       \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{alternative}}{One of \code{"two.sided"} (default), \code{"greater"} or
+\code{"less"}. The default is \eqn{\min(1, \max(2/B, 2\min(P(T_0 \ge t),
+P(T_0 \le t))))} over the \eqn{B} finite reference statistics \eqn{T_0}
+(no +1 correction; a floor of \eqn{2/B}), which assumes a signed, roughly
+symmetric statistic. For a non-negative, one-tailed-by-construction
+statistic (a squared difference, a chi-square or omnibus statistic, an
+absolute value) the doubled smaller tail is wrong -- it counts the
+uninformative lower tail as evidence -- so pass \code{"greater"}, which
+returns the upper-tail p-value \eqn{\max(1/B, P(T_0 \ge t))} (no doubling);
+\code{"less"} returns \eqn{\max(1/B, P(T_0 \le t))}.}
     }
     \if{html}{\out{</div>}}
   }

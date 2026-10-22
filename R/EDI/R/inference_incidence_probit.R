@@ -346,11 +346,19 @@ IncidenceProbitLikelihoodSource = list(
 #' inf = InferenceIncidProbitRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceIncidProbitRegr = define_inference_class(
 	classname = "InferenceIncidProbitRegr",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceProbitLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"IncidenceProbitLikelihood"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(

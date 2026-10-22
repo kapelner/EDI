@@ -22,7 +22,9 @@ silently fall back to a nonparametric bootstrap instead of returning
 provided for the log-rank p-value on the same fitted survival curves. For
 \strong{left- or interval-censored} data, the point estimate instead comes
 from a Turnbull NPMLE median contrast (\code{interval::icfit()}, via
-\code{turnbull_npmle_stat_diff()}), which has no closed-form standard error —
+\code{turnbull_npmle_stat_diff()}; exact events are folded in as degenerate
+intervals \eqn{[y, y]} rather than dropped, and unusable rows are excluded
+with a warning), which has no closed-form standard error —
 inference on that path relies entirely on the bootstrap fallback described
 above. Randomization confidence intervals are not supported (the median
 difference's units are not commensurate with the randomization CI bisection
@@ -96,6 +98,7 @@ Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -108,6 +111,7 @@ Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>

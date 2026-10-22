@@ -59,13 +59,28 @@ test_that("block-size guard: only observation-level deletion inside multi-member
 	expect_false(n2$p$jackknife_block_size_gt_one_unsupported("observation"))
 })
 
-test_that("marking: an unsupported block size caches a nonestimable SE with the documented reason", {
+test_that("block-size guard has one path: get_block_ids() control conditions propagate, other errors are swallowed", {
+	# 2026-10-22: the Jackknife duplicate (which swallowed every error) was removed.
+	e1 <- fx_block(); unlockBinding("get_block_ids", e1$des)
+	e1$des$get_block_ids <- function() stop("block ids unavailable")
+	expect_false(e1$p$jackknife_block_size_gt_one_unsupported("observation"))
+	e2 <- fx_block(); unlockBinding("get_block_ids", e2$des)
+	e2$des$get_block_ids <- function() stop("bootstrap reached elapsed time limit")
+	expect_error(e2$p$jackknife_block_size_gt_one_unsupported("observation"), "reached elapsed time limit")
+	# Only one definition is bound: the NonparametricBootstrap copy.
+	expect_null(EDI:::InferenceJackknife$private_methods$jackknife_block_size_gt_one_unsupported)
+})
+
+test_that("marking: an unsupported block size records a jackknife-only failure and does not make the fit nonestimable (TODO-116)", {
 	b <- fx_block()
 	expect_false(b$p$mark_jackknife_nonestimable_if_block_unsupported("auto"))
 	expect_false(b$inf$is_nonestimable("any"))
+	se0 <- b$inf$compute_asymp_confidence_interval()
 	expect_true(b$p$mark_jackknife_nonestimable_if_block_unsupported("observation"))
-	expect_true(b$inf$is_nonestimable("se"))
-	expect_identical(b$inf$get_nonestimable_reason(), "jackknife_block_size_gt_one_not_supported")
+	expect_false(b$inf$is_nonestimable("any"))
+	expect_null(b$inf$get_nonestimable_reason())
+	expect_identical(b$p$cached_values$procedure_failure_reason$jackknife, "jackknife_block_size_gt_one_not_supported")
+	expect_identical(b$inf$compute_asymp_confidence_interval(), se0)
 })
 
 test_that("cluster jackknife ids are the design's cluster labels for cluster designs and NULL otherwise", {

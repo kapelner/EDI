@@ -58,7 +58,7 @@ test_that("compute_bootstrap_confidence_interval_basic() retains a finite basic 
 # suite (the precedent studentized-CI test stubs compute_bootstrap_confidence_interval_basic itself).
 stub_generic <- function(f, val) {
 	unlockBinding("compute_bootstrap_confidence_interval", f$inf)
-	f$inf$compute_bootstrap_confidence_interval <- function(alpha = 0.05, B = 1000, type = "percentile", ...) val
+	f$inf$compute_bootstrap_confidence_interval <- function(alpha = 0.05, B = 501, type = "percentile", ...) val
 	invisible(f)
 }
 

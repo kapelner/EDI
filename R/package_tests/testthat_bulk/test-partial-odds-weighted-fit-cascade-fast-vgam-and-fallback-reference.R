@@ -48,7 +48,7 @@ test_that("weighted fast fit drops zero / non-finite weights and returns NULL wh
 	expect_null(f$p$fit_fast_proportional_odds_weighted(f$Xc, rep(NA_real_, f$n)))
 })
 
-test_that("VGAM weighted fit equals the weighted polr coefficient in magnitude for integer weights, without an SE", {
+test_that("VGAM weighted fit equals the weighted polr coefficient for integer weights, without an SE", {
 	skip_if_not_installed("VGAM")
 	f <- po_fx()
 	set.seed(2); wt <- sample(1:3, f$n, TRUE)
@@ -56,12 +56,13 @@ test_that("VGAM weighted fit equals the weighted polr coefficient in magnitude f
 	v <- f$p$fit_vgam_weighted(dat, colnames(f$Xc), character(0))
 	expect_false(is.null(v))
 	ref <- suppressWarnings(MASS::polr(ordered(f$y) ~ f$w + f$Xc, weights = wt, method = "logistic"))
-	expect_equal(abs(v$beta), abs(unname(coef(ref)[1])), tolerance = 1e-2)             # VGAM models P(Y >= k): opposite sign
-	expect_equal(sign(v$beta), -sign(unname(coef(ref)[1])))
+	# VGAM's alpha + beta x coefficient is negated to polr's convention (TODO-107): same sign.
+	expect_equal(v$beta, unname(coef(ref)[1]), tolerance = 1e-2)
+	expect_equal(sign(v$beta), sign(unname(coef(ref)[1])))
 	expect_true(is.na(v$se))
 })
 
-test_that("VGAM weighted fit also converges for fractional weights, matching weighted polr in magnitude", {
+test_that("VGAM weighted fit also converges for fractional weights, matching weighted polr", {
 	# This test's original premise -- that fractional weights make vglm() fail
 	# outright -- was never a real property of fractional weights; it was an
 	# artifact of fit_vgam_weighted() using VGAM::cumulative()'s formula-based
@@ -77,8 +78,8 @@ test_that("VGAM weighted fit also converges for fractional weights, matching wei
 	v <- f$p$fit_vgam_weighted(dat, colnames(f$Xc), character(0))
 	expect_false(is.null(v))
 	ref <- suppressWarnings(MASS::polr(ordered(f$y) ~ f$w + f$Xc, weights = wt, method = "logistic"))
-	expect_equal(abs(v$beta), abs(unname(coef(ref)[1])), tolerance = 1e-2)
-	expect_equal(sign(v$beta), -sign(unname(coef(ref)[1])))
+	expect_equal(v$beta, unname(coef(ref)[1]), tolerance = 1e-2)
+	expect_equal(sign(v$beta), sign(unname(coef(ref)[1])))
 	expect_true(is.na(v$se))
 })
 

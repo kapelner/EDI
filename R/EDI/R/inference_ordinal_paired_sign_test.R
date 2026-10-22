@@ -68,7 +68,14 @@ InferenceOrdinalPairedSignTest = define_inference_class("InferenceOrdinalPairedS
 	# private$compute_z_or_t_{ci,two_sided_pval}_from_s_and_df directly and
 	# never used any InferenceAsympLik likelihood machinery; its
 	# supports_likelihood_tests() has always been FALSE).
-	components = c("BayesianBootstrap", "Wald", "KKPassThrough"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"KKPassThrough"
+	),
 	public = list(
 		#' @description Uses the shared randomization-test two-sided p-value
 		#'   contract; see \code{\link[EDI:InferenceRand]{InferenceRand}}.

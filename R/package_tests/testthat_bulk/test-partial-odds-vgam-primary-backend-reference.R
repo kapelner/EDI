@@ -41,18 +41,20 @@ ppo_vgam_reference <- function(y, w, x1, weights = NULL) {
 	mod <- if (is.null(weights)) {
 		VGAM::vglm(
 			y ~ treatment + x1,
-			family = VGAM::cumulative(link = "logitlink", parallel = ~treatment),
+			family = VGAM::cumulative(link = "logitlink", parallel = FALSE ~ x1),
 			data = dat, trace = FALSE, model = FALSE
 		)
 	} else {
 		dat$.wt__ <- weights
 		VGAM::vglm(
 			y ~ treatment + x1,
-			family = VGAM::cumulative(link = "logitlink", parallel = ~treatment),
+			family = VGAM::cumulative(link = "logitlink", parallel = FALSE ~ x1),
 			data = dat, weights = .wt__, trace = FALSE, model = FALSE
 		)
 	}
-	beta <- VGAM::Coef(mod)[["treatment"]]
+	# VGAM models logit P(Y <= j) = alpha_j + beta x; negate to the clm/polr
+	# (alpha_j - beta x) convention EDI reports (TODO-107).
+	beta <- -VGAM::Coef(mod)[["treatment"]]
 	se <- suppressWarnings(sqrt(VGAM::vcov(mod)["treatment", "treatment"]))
 	list(beta = beta, se = se)
 }

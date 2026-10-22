@@ -258,3 +258,49 @@ test_that("class eligibility preserves inherited sequential-design bootstrap exc
 		"compute_rand_bootstrap_confidence_interval"
 	)
 })
+
+test_that("TODO-119 scale-mismatch classes never get a randomization-CI attempt", {
+	refused <- EDI:::EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES
+	expect_gt(length(refused), 0L)
+	expect_true(all(vapply(refused, comprehensive_rand_ci_refused_for_scale_mismatch, logical(1))))
+	expect_false(comprehensive_rand_ci_refused_for_scale_mismatch("InferenceContinOLS"))
+
+	# Even if the capability were (wrongly) reported, the helper forces the
+	# class out of the compute_rand_confidence_interval roster; p-values and
+	# randomization-bootstrap CIs are separate functions and are not touched.
+	args <- list(
+		class_name = "InferencePropGCompMeanDiff",
+		response_type = "proportion",
+		design_class = "DesignFixedBernoulli",
+		model_formula = "~1",
+		test_family_filter = "rand",
+		slow_path_rules = list(),
+		additional_slow_paths = list(),
+		force_run_slow_paths = TRUE
+	)
+	expect_false("compute_rand_confidence_interval" %in% do.call(comprehensive_rand_ci_class_attempts, args))
+	for (cls in setdiff(refused, "InferencePropGCompMeanDiff")) {
+		args$class_name <- cls
+		args$response_type <- "ordinal"
+		expect_false("compute_rand_confidence_interval" %in% do.call(comprehensive_rand_ci_class_attempts, args))
+	}
+	# A class outside the list keeps the attempt (control).
+	args$class_name <- "InferenceContinOLS"
+	args$response_type <- "continuous"
+	expect_true("compute_rand_confidence_interval" %in% do.call(comprehensive_rand_ci_class_attempts, args))
+})
+
+test_that("TODO-119 / G6 exact 0/1 proportion refusal is read from the package predicate", {
+	f <- comprehensive_rand_ci_refused_for_exact_zero_one
+	expect_true(f("proportion", TRUE, c(0, 0.4, 0.6)))
+	expect_true(f("proportion", TRUE, c(0.4, 1)))
+	expect_false(f("proportion", TRUE, c(0.05, 0.5, 0.95)))
+	expect_false(f("proportion", FALSE, c(0, 0.5, 1)))
+	expect_false(f("continuous", TRUE, c(0, 1)))
+	# classes overriding the generic rand CI (no refusal there) are not skipped
+	expect_false(f("proportion", TRUE, c(0, 0.5, 1), uses_generic_rand_ci = FALSE))
+	generic <- EDI:::InferenceRandCI$public_methods$compute_rand_confidence_interval
+	expect_true(comprehensive_rand_ci_uses_generic_implementation(list(compute_rand_confidence_interval = generic)))
+	expect_false(comprehensive_rand_ci_uses_generic_implementation(list(compute_rand_confidence_interval = function(...) NULL)))
+	expect_false(comprehensive_rand_ci_uses_generic_implementation(list()))
+})

@@ -20,7 +20,14 @@
 InferenceIncidExtendedRobins = define_inference_class(
 	classname = "InferenceIncidExtendedRobins",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifference"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"SimpleMeanDifference"
+	),
 	public = list(
 		#' @description Uses the randomization-CI layer's two-sided p-value contract
 		#'   (\code{InferenceRandCI}'s version, not \code{InferenceRand}'s): for

@@ -343,8 +343,14 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   promotes the per-class rollout ledger to scoped v2.0.0 work.
 - [ ] TODO-6i (added 2026-09-10, user decision): **`ModelDiagnostics`
   full-roster rollout + visualization** — `model_diagnostics_framework.md
-  → TODO-7..8`. TODO-7 extends the v1.1.0 pilot's nine class families to
-  all 66 `likelihood_tier != "none"` classes (verified against
+  → TODO-7..8`. **Amended 2026-10-22 (user decision):** the pilot was cut to the
+  Incidence GLM family (v1.3.0), so this item also owns the other eight
+  pilot families, each with its own known-violation recovery test: Cox,
+  Poisson / quasi-Poisson / robust-Poisson, NB / ZINB / hurdle, ordinal
+  (Brant exempt for continuation-ratio), OLS / robust, Beta / ZOIB /
+  fractional logit, GEE, GLMM (54 classes), plus the four new families (6
+  classes). TODO-7 extends the pilot to the remaining 60 of the 66
+  `likelihood_tier != "none"` classes (verified against
   `public_api_inventory.csv`; four new families beyond the pilot: Weibull
   parametric survival, dependent-censoring transform, conditional logistic
   matched-set, quantile regression joint-likelihood), plus documents the
@@ -352,7 +358,8 @@ live in `release_v4_0_0.md`. Nothing else in this release depends on them.
   TODO-8 is the visualization layer the pilot's own TODO-5 never detailed:
   one `ggplot2` diagnostic plot per check type, HTML embedding in the
   shared report row, optional `plotly`/`DT` interactivity. Depends on the
-  v1.1.0 pilot's declaration contract (TODO-2) actually landing first.
+  declaration contract (`release_v1_3_0.md → TODO-5`) and the Incidence pilot
+  actually landing first.
 - [ ] TODO-6j (added 2026-09-10, user decision): **`DesignDiagnostics`
   (new)** — `design_diagnostics_framework.md → TODO-1..7`. The design-side
   sibling `model_diagnostics_framework.md` itself flagged as out of scope:

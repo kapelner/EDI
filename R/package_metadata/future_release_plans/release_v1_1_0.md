@@ -70,7 +70,7 @@ the v1.1.0 scope as a second kernel/perf lane, `TODO-4b` below.
 > kernel; the A/B harness's two Prototype items are "win uncertain")
 > follow their consumer or theme instead.
 >
-> **Second lighten pass (2026-10-20, user decision):** TODO-40, -41, -42, -43, -44, -45, -46, -49, -51, -53, -54 and TODO-17z moved to `release_v1_2_0.md → TODO-24..35` (stubs below). The stay-list in the next paragraph predates this pass; TODO-17z no longer applies.
+> **Second lighten pass (2026-10-20, user decision):** TODO-40, -41, -42, -43, -44, -45, -46, -49, -51, -53, -54 and TODO-17z moved to `release_v1_2_0.md → TODO-24..35` (stubs below). The stay-list in the next paragraph already excludes TODO-17z.
 >
 > **Stays / added here (1.1.0):** TODO-1, TODO-3, TODO-5 (core), TODO-16,
 > TODO-17y, TODO-17d (nominal vignette — ownership resolved to
@@ -314,7 +314,7 @@ the user's compiled statistic once, the pattern
 
 The honest-inference-after-model-selection family's no-substrate half
 (moved from v2.0.0 on 2026-09-05, user decision; see `TODO-17y` /
-`TODO-17z`, which moved to `release_v1_3_0.md → TODO-5..14` on 2026-10-20): `model_selection_framework.md` **Phase A** — the
+`TODO-17z`, which moved to `release_v1_3_0.md → TODO-5..6` on 2026-10-20): `model_selection_framework.md` **Phase A** — the
 `ModelSelection` workflow and the **selection-inclusive randomization
 test** on fixed designs — and `model_diagnostics_framework.md` — the
 `ModelDiagnostics` declaration contract and pilot batteries. The finding
@@ -997,7 +997,7 @@ ticked in their **owning plans**; this list is the release index.
   ordinal) are left to TODO-9, and whether that remainder still belongs
   in 2.0.0 or fits v1.4.0 better is an open question, not yet resolved.
   **Additive:** a new workflow object beside `InferenceSuite`; no default
-  of any existing class changes. Consumes TODO-17z's check results (now `release_v1_3_0.md → TODO-5..14`)
+  of any existing class changes. Consumes TODO-17z's check results (now `release_v1_3_0.md → TODO-5..6`)
   as assumption gates once both exist; with 17z in v1.2.0 the optional gate
   waits for that release (the gate is optional for the pilot;
   the assumption-light fallback class is mandatory regardless).
@@ -1005,7 +1005,7 @@ ticked in their **owning plans**; this list is the release index.
   proposal (`new_research_ideas/grants/26_10_01_RcISC/isc_grant.qmd`; the
   earlier LaTeX draft was deleted 2026-09-07), re-scoped 2026-09-06 to
   this widened Phase A and carrying no blinding claims.
-- [ ] ~~TODO-17z~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..14`** (user decision, lighten-1.1.0 pass 2): `ModelDiagnostics` — declaration contract + pilot batteries.
+- [ ] ~~TODO-17z~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..6`** (user decision, lighten-1.1.0 pass 2): `ModelDiagnostics` — declaration contract + pilot batteries.
 - [ ] TODO-18: **Consolidate duplicated parallelization primitives**
   (added 2026-09-07, user decision): `consolidate_parallelization_code.md
   → TODO-1..4`. Maintenance, not a feature — no output/behavior change.
@@ -1326,34 +1326,253 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] ~~TODO-51~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-32`** (user decision, lighten-1.1.0 pass 2): InferenceSuite worker pool.
 
 - [ ] TODO-52 (added 2026-10-19, user decision): **Algorithm-audit leftovers**
-  — `algorithm_choice_audit.md → TODO-39, -41, -7`, the three audit items
-  that had no release slot.
-  - **TODO-39:** `ties` for the Cox family (row L). **Owner decision
-    2026-10-19: Efron becomes the default and `ties = "breslow"` is exposed
-    as an option** (matches `survival::coxph`; more accurate under heavy
-    ties; few users yet, so the default change is cheap now). Scope: Efron in
-    `fast_coxph_regression.cpp` (log-likelihood, gradient, Hessian, neg-ll-only
-    and the robust sandwich all on the same form), a `ties` argument across
-    the Cox family (`"efron"` default, `"breslow"`), the two R fallbacks and
-    the oracle references switched to follow `ties`, and the chosen method
-    recorded through `TODO-48`'s algorithm provenance. **Documented default
-    change**: every Cox estimate on tied data moves, so `package_tests` CSVs,
-    parity tests and the Breslow reference oracles are regenerated, and
-    NEWS states it. Prerequisite `release_v1_0_5.md → TODO-69` is done.
+  — `algorithm_choice_audit.md → TODO-41, -7` (and TODO-39, now `TODO-61`
+  below), the audit items that had no release slot.
+  - **TODO-39:** moved 2026-10-22 to its own TODO, **v1.1.0 TODO-61** below
+    (Cox `ties`: Efron default, `ties = "breslow"` exposed).
   - **TODO-41:** audit the exposed implementation toggles (`use_rcpp`,
     `smart_cold_start_default`, and any other): every reachable path must fit
     the same model as the default, enforced by one parity test per toggle.
     Document them as developer options.
   - **TODO-7:** re-run the audit's *method* (not its conclusions) as the
     release-close pass, after the v1.1.0 kernels land, to refresh the summary
-    table and the exposure column (audit TODO-37). Recurs per release.
-  - **Gate:** parity tests for TODO-41; for TODO-39, regenerated Cox tests plus a
-    tied-data test per `ties` value against `coxph(ties = ...)`, and
-    untied data identical under both values.
+    table and the exposure column (audit TODO-37). Recurs per release. Also
+    ships the monthly drift-check workflow (`algorithm-audit-drift.yml`, 21st
+    of each month) and its runbook; see the amended audit TODO-7. The files are
+    drafted (2026-10-22); remaining here are the first manual run and triage.
+  - **Gate:** parity tests for TODO-41, and the audit re-run plus the first
+    drift-workflow run for TODO-7. (TODO-39's gate moved to TODO-61.)
+
+- [ ] TODO-61 (added 2026-10-19 as a bullet of TODO-52, user decision; split into its own TODO 2026-10-22; audit `algorithm_choice_audit.md → TODO-39`, row L): **Cox `ties`: Efron becomes the default, `ties = "breslow"` exposed**
+  - **Owner decision 2026-10-19:** Efron is the default and `ties = "breslow"` stays available (matches `survival::coxph`; more accurate under heavy ties; few users yet, so the default change is cheap now). Not yet implemented: today the kernel is Breslow-only and the R fallbacks are pinned to `ties = "breslow"` (`release_v1_0_5.md → TODO-69`, done, which is the prerequisite).
+  - **Scope:**
+    1. Efron in `fast_coxph_regression.cpp`: log-likelihood, gradient, Hessian, the neg-ll-only path and the robust sandwich, all on the same form.
+    2. A `ties` argument across the Cox family (`"efron"` default, `"breslow"`).
+    3. The two R fallbacks and the oracle references follow `ties`.
+    4. The chosen method is recorded through `TODO-48`'s algorithm provenance.
+  - **Documented default change:** every Cox estimate on tied data moves. `package_tests` CSVs, parity tests and the Breslow reference oracles are regenerated, and NEWS states it. Open: confirm there is no deprecation period for the changed default.
+  - **Gate:** regenerated Cox tests; a tied-data test per `ties` value against `coxph(ties = ...)`; untied data identical under both values.
 
 - [ ] ~~TODO-53~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-33`** (user decision, lighten-1.1.0 pass 2): Amortize across runs.
 
 - [ ] ~~TODO-54~~ **→ moved 2026-10-20 to `release_v1_2_0.md → TODO-34`** (user decision, lighten-1.1.0 pass 2): Anytime results.
+
+- [ ] TODO-55 (added 2026-10-22, maintainer decision; new capability and
+  **default behavior change** for v1.1.0, not a bug-fix-only item):
+  **Cluster-robust (CR2) variance for the remaining regression classes on
+  cluster designs.**
+  - Background: `release_v1_0_5.md → TODO-103` gave OLS and Lin a CR2 SE on
+    `is_a_cluster_capable()` designs and added an interim warning
+    (`edi_cluster_independence_warning`) for every other asymptotic class and for
+    all likelihood-based / parametric-bootstrap procedures. This TODO removes
+    the warning class by class as each gets a real clustered variance.
+    **Depends on v1.0.5 TODO-103** (OLS/Lin CR2, `cluster_robust_cr2_variance()`
+    and `design_cluster_ids_for_inference()` in `helper_robust_sandwich.R`, and
+    the warning hook).
+  - Scope, in order:
+    1. GLMs: logistic, Poisson, negative binomial (and quasi/robust Poisson),
+       reusing and generalizing `helper_robust_sandwich.R` (clustered score
+       sandwich with a CR2-style leverage adjustment).
+    2. Cox: clustered score-residual sandwich (see the existing
+       `test-cox-cluster-constrained-sandwich-reference.R` kernels).
+    3. Ordinal and mixed/other classes.
+  - Satterthwaite df (G-1 df is the OLS/Lin interim choice); decide and
+    document per class.
+  - LR / score / gradient / Bartlett tests and the parametric bootstrap have no
+    simple clustered version: document them as not cluster-aware and keep the
+    interim warning for those paths (the "likelihood" family), pointing to
+    randomization, cluster bootstrap and `compute_jackknife_wald_*(unit = "cluster")`.
+  - **Default change:** Wald SE, p and CI move (wider) on cluster designs, so
+    this needs validation and a NEWS entry, and regenerated CSVs. Validation
+    target: `cluster_trial.csv` (20 schools, `~pretest`): Lin SE 0.605
+    pre-fix vs cluster-jackknife 1.627; CR1 1.53, clubSandwich CR2 1.57
+    (Satterthwaite df 17.6), lmer 1.61. Add a coverage check (cluster-correlated
+    DGP) per class before the warning is dropped for it.
+  - Gate: per-class reference test against an independent CR2 implementation
+    (1e-8, as for OLS/Lin), warning-removal test, and a documented exception
+    under the standing default-change gate below.
+
+- [ ] TODO-56 (added 2026-10-22, maintainer decision; new capability and
+  output-format standardization, not a bug fix): **Full per-coefficient
+  `get_summary()` tables for every class, with a stable format.**
+  - Background: v1.0.5 TODO-114 moved `get_summary()` to the `Inference` base
+    class and made it always print and return a table. It builds a full
+    per-coefficient table only when named coefficients and a vcov exist and the
+    `treatment` coefficient is identifiable by name (helper
+    `edi_build_summary_table()` in `inference_all_abstract.R`); every other class
+    falls back to a one-row `treatment` table. The fast-C++ classes hit the
+    fallback because their coefficient vector `b` is unnamed, and KK OLS because
+    its columns carry generated names (`x1..x4`).
+  - Scope:
+    1. Pass the design matrix's column names through the fast-C++ paths so `b`
+       and the vcov carry names, and add the coefficient/vcov/df plumbing each
+       class needs to produce a full table (intercept, treatment, covariates).
+       Start with the OLS, logistic, Poisson, Cox, ordinal and KK families.
+    2. Give every class the same layout: the `treatment` row always present
+       and first; the same four columns (Estimate / Std. Error / statistic / p);
+       statistic and p-value labels that follow the class's own distribution
+       (z vs t) consistently.
+    3. Record which variance produced the SE and p (Wald, cluster-robust CR2,
+       randomization-only with no SE, none) as an attribute or header line, so
+       two classes' tables are not compared as if they were the same inference.
+       Consider returning a classed object with a `print` method rather than a
+       bare matrix, so the layout can evolve without breaking callers.
+    4. Extend the all-class sweep test beyond v1.0.5's coverage (which skips
+       the GLMM, Bayes, Exact, GEE, Stan and IVWC families for cost) and
+       assert the `treatment`-row contract on every applicable class.
+  - Depends on v1.0.5 TODO-114. Interacts with TODO-55 (cluster-robust SEs
+    change what the table's SE column means; the method attribute from step 3
+    should report CR2 where applied).
+  - Output-format change: document in `NEWS.md`. Callers that read the old
+    one-row fallback or the printed text of `get_summary()` may be affected.
+
+- [ ] TODO-57 (added 2026-10-22, maintainer decision; moved from v1.0.5
+  TODO-3's Lin stretch item, which is closed there; performance feature, not
+  a bug fix): **Native randomization-distribution kernel for
+  `InferenceContinLin`.**
+  - Background: v1.0.5 TODO-3 wired `InferenceContinOLS` to its native batch
+    kernel (`compute_ols_distr_parallel_cpp`; measured 43x one-core and 54x
+    four-core speedups). `InferenceContinLin` defines
+    `compute_fast_randomization_distr()` (`inference_continuous_lin.R`), but it
+    delegates to the R reused-worker loop, so Lin's randomization p-value and
+    CI still pay the R/R6 per-replicate overhead.
+  - Scope (from `../new_feature_plans/ols_randomization_distr_cpp_wiring.md`
+    → TODO-6): a `compute_lin_distr_parallel_cpp` that builds
+    `[1, w_b, Xc, w_b·Xc]` per replicate. Only the interaction block
+    `diag(w_b)·Xc` changes with `w_b`, so the `XᵀX` blocks can update in
+    O(np²) per replicate. Alternatively fold it into
+    `ols_distr_kernel_fwl.md`'s scope (v1.2.0) if that plan lands first.
+  - Must match the reused-worker path: same hardened covariate block, the same
+    `NA` for one-arm or rank-deficient permutations, and fast/worker parity
+    tests on the OLS pattern (`test-parallel-distribution-kernel-contracts.R`).
+  - Interacts with the affine-shift reuse (`randomization_ci_affine_shift_reuse.md`):
+    Lin is tier 1 there, so the kernel speeds up the one full delta = 0
+    distribution per CI, not every bisection step.
+
+- [ ] TODO-58 (added 2026-10-22, user decision; from
+  `../audits/further_optimizations.md`, "Under fork=FALSE"; performance,
+  partly a documented default change): **Bartlett-corrected
+  likelihood-ratio intervals: stop over-solving the inversion, and stop the
+  harness computing each one twice.** After bootstrap-draw reuse, Bartlett
+  CIs were ~26% of `comprehensive_tests.R` time on the six-class mix (36
+  calls, 10–82 s each; the matching p-values take ~0.8 s).
+  Findings (2026-10-22, installed EDI 1.0.3, `InferenceCountHurdleNegBin`,
+  n = 80, unless noted):
+  - **One CI runs ~46 Bartlett-factor simulations; the p-value runs 1.**
+    `compute_lik_ratio_bartlett_approx_confidence_interval()` inverts the
+    approximate-Bartlett p-value (`invert_test_pval_confidence_interval()`),
+    and every new `delta` re-simulates `B = 99` null datasets
+    (`get_bartlett_factor_approx()`). The root search keeps refining to ~7
+    significant digits: −0.94 was evaluated ~9 times and 0.1025 ~10 times.
+    That precision is far below the factor's own Monte Carlo error at
+    `B = 99`. CI 3.58 s vs. p-value 0.16 s here; plain LR CI 0.02 s.
+  - **The harness computes every Bartlett CI twice.** None of the four
+    classes in the mix that support Bartlett (`InferenceCountHurdleNegBin`,
+    `InferenceIncidLogBinomial`, `InferenceOrdinalContRatioRegr`,
+    `InferencePropBetaRegr`) has an exact factor, so
+    `compute_lik_ratio_bartlett_confidence_interval()` ("best available")
+    dispatches to the approx CI. 18 / 18 harness pairs returned identical
+    results with near-identical times. For a user it is free: called right
+    after the approx CI on the same object it took 0.06 s with zero new
+    simulations (the likelihood-test memo in
+    `inference_ext_likelihood_test_memoization.R` hits). The harness pays
+    twice because `safe_call()`'s in-process restore wipes that memo.
+  Work:
+  1. **EDI: a Monte-Carlo-aware stopping rule for the Bartlett-approx
+     inversion.** Stop when the bracket is narrow relative to the
+     interval's scale (for example 1e-3 × the Wald SE) instead of
+     near-machine precision, and seed the search from the uncorrected LR
+     endpoints (`invert_lik_ratio_ci_newton()`), where the corrected
+     endpoint usually lies close by. Target ~10 factor simulations per CI
+     (~4x faster). Endpoints move by less than the new tolerance, which is
+     still a **default change** under the bit-for-bit standing constraint:
+     document it in NEWS and in the two Bartlett CI method docs. Check the
+     exact-factor and score/gradient inversions that share the helper keep
+     their current tolerance unless measured to be over-solved too.
+  2. **Harness: stop paying twice.** Options, in order of preference:
+     (a) when `supports_bartlett_likelihood_ratio_exact()` is `FALSE`, keep
+     the likelihood-test memo entries for `lik_ratio_bartlett_approx` across
+     the approx-CI → best-available-CI pair only (the way
+     `REUSED_RESAMPLING_CACHES` keeps bootstrap draws), then check the pair
+     stays identical and no other likelihood rows change, since the memo
+     also carries null-fit warm starts (the jackknife-reuse lesson of
+     2026-10-22); (b) skip the best-available call for those classes and
+     record it as a duplicate of the approx result. Expected: about half
+     of the Bartlett time, ~13% of the suite.
+  3. Re-measure the six-class mix (quiet machine) and update
+     `further_optimizations.md`.
+
+- [ ] TODO-59 (added 2026-10-22, user decision; from
+  `../audits/further_optimizations.md`, "Under fork=FALSE"; test harness
+  only, no package change): **Make the coverage-truth simulation cheap and
+  stop billing it to `compute_estimate`.** After bootstrap-draw reuse,
+  `compute_estimate` rows were ~9% of suite time, but only the first per
+  object was slow (12–86 s under load; 3–17 s on a quiet machine) and the
+  rest took 0.01–0.1 s. Findings (2026-10-22, instrumented scratch copy of
+  the harness, quiet machine):
+  - **The slow part is the coverage truth, not the estimate.** The first
+    numeric result per (class, covariate set, `beta_T`) makes
+    `handle_success()` call `get_coverage_truth()`
+    (`is_truth_anomalous_result()`), inside the call's timed window. The
+    estimate itself took 0.01–0.03 s. The three slow classes are exactly
+    the three in the mix with a `COVERAGE_MC_SPEC` entry
+    (`InferenceOrdinalContRatioRegr`, `InferencePropBetaRegr`,
+    `InferenceSurvivalStratCoxPHRegr`, all `mc_n = 20000`); the other three
+    use a closed form or have no truth.
+  - **Almost all of that is an unused randomization test.**
+    `compute_mc_coverage_truth_simframe()` runs `SimulationFramework` with
+    `inference_types_and_params = list(rand_pval = list())`, i.e. a
+    201-draw randomization test on the 20,000-row dataset, then reads only
+    `res$estimate`. Switching to `asymp_pval` cut each truth from 3.1–16.9
+    s to 0.2–0.9 s, and all 28 truths (3 classes × objects × `beta_T`) were
+    bit-identical, since the estimate is computed before any inference
+    type.
+  Work:
+  1. Request the cheapest type that each spec class supports:
+     `asymp_pval` when `supports_asymp_inference()`, else `rand_pval` with a
+     tiny `r` (the estimate does not depend on it). A class that supports
+     neither must still return a truth, not zero rows (the framework drops
+     rows with no valid inference type).
+  2. Verify every `COVERAGE_MC_SPEC` class (not just these three) returns
+     an identical truth before and after, at both `beta_T` values and with
+     and without real covariates.
+  3. ~~Take the truth computation out of the call's timed window~~ **→ moved
+     2026-10-22 to `release_v1_0_5.md → TODO-127`** (user decision: it fixes
+     wrong recorded durations, so it is a harness correctness fix, not an
+     optimization).
+  4. Optional: persist truths to disk keyed by `coverage_truth_cache_key()`.
+     Since 2026-10-16 each truth is simulated under its own seed, so it is
+     deterministic and could be reused across processes and runs. Needs
+     invalidation on any change to the DGP, the spec table or EDI's
+     estimator.
+
+- [ ] TODO-60 (added 2026-10-22, filed from `release_v1_0_5.md → TODO-125`
+  step 4, user decision there; cleanup, no behaviour change): **Remove the
+  post-clone rebind helper now that lazy components survive `clone()`.**
+  - Background: v1.0.5 TODO-125 made `install_lazy_inference_component()`
+    close each installed method over the calling stub's own R6 enclosing
+    environment, which R6's `clone()` remaps itself. The helper
+    `edi_rebind_lazy_components_after_clone()` (`R/EDI/R/contracts_mixins.R`,
+    roxygen + body about L2809-2944) was kept for v1.0.5 as belt and braces
+    and is now a no-op (asserted by
+    `tests/testthat/test-lazy-component-raw-clone-isolation.R`).
+  - Work:
+    1. Delete `edi_rebind_lazy_components_after_clone()` (plus any
+       marker-reading code that only it uses; check first), and the `source_private` threading in
+       `Inference$duplicate()` (`R/EDI/R/inference_all_abstract.R`, the call
+       `edi_rebind_lazy_components_after_clone(i, source_private = private)`
+       right after `self$clone()`); about 90 lines in all. Update the comments
+       that point at the helper (`contracts_mixins.R` near the installer,
+       `inference_class_registry.R` ~L1671).
+    2. Tests: drop the helper's no-op assertion from
+       `test-lazy-component-raw-clone-isolation.R` (keep its raw-`clone()`
+       isolation checks) and delete or rewrite
+       `package_tests/testthat_bulk/test-edi-rebind-lazy-components-after-clone-reference.R`.
+    3. Regenerate Rd (removes `man/edi_rebind_lazy_components_after_clone.Rd`)
+       and the `comprehensive_suite_{registry,coverage,internal_surfaces,baseline_audit}.csv`
+       rows that list the helper.
+    4. Run the clone, bootstrap and worker tests and the full bulk suite
+       (the change touches every lazy class).
 
 ## Standing constraints
 

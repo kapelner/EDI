@@ -221,11 +221,18 @@ incidence_gcomp_overrides = list(
 #' inf = InferenceIncidGCompRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceIncidGCompRiskDiff = define_inference_class(
 	classname = "InferenceIncidGCompRiskDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"IncidenceGComputation"
+	),
 	public = incidence_gcomp_generic_alias_overrides,
 	private = c(incidence_gcomp_worker_overrides, list(
 		get_supported_testing_types_impl = function() "wald",
@@ -323,11 +330,18 @@ NULL
 #' inf = InferenceIncidGCompRiskRatio$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceIncidGCompRiskRatio = define_inference_class(
 	classname = "InferenceIncidGCompRiskRatio",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Jackknife", "IncidenceGComputation"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"IncidenceGComputation"
+	),
 	public = incidence_gcomp_generic_alias_overrides,
 	private = c(incidence_gcomp_worker_overrides, list(
 		get_supported_testing_types_impl = function() "wald",

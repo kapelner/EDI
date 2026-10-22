@@ -413,11 +413,20 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 #' inf = InferenceIncidBinomialIdentityRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 	classname = "InferenceIncidBinomialIdentityRiskDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceBinomialIdentityLikelihood", "MarginalEstimand"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"IncidenceBinomialIdentityLikelihood",
+		"MarginalEstimand"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(

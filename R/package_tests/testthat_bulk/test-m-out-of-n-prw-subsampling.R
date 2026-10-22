@@ -102,8 +102,9 @@ test_that("m-out-of-n and PRW CIs reject extreme finite intervals under hardenin
 
 	m_ci = inf$compute_m_out_of_n_bootstrap_confidence_interval(B = 21, m = 8, show_progress = FALSE)
 	expect_true(all(is.na(m_ci)))
-	expect_true(inf$is_nonestimable("estimate"))
-	expect_match(inf$get_nonestimable_reason(), "m_out_of_n_extreme_confidence_interval", fixed = TRUE)
+	# TODO-116: a resampling-procedure failure keeps the Wald state (not nonestimable).
+	expect_false(isTRUE(inf$is_nonestimable("estimate")))
+	expect_match(inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_extreme_confidence_interval", fixed = TRUE)
 
 	inf_sub = build_resampling_smoke_inference()
 	priv_sub = inf_sub$.__enclos_env__$private
@@ -115,8 +116,8 @@ test_that("m-out-of-n and PRW CIs reject extreme finite intervals under hardenin
 	priv_sub$bootstrap_extreme_ci_width_threshold = 1e-12
 	sub_ci = inf_sub$compute_subsampling_confidence_interval(B = 21, b = 8, show_progress = FALSE)
 	expect_true(all(is.na(sub_ci)))
-	expect_true(inf_sub$is_nonestimable("estimate"))
-	expect_match(inf_sub$get_nonestimable_reason(), "subsampling_extreme_confidence_interval", fixed = TRUE)
+	expect_false(isTRUE(inf_sub$is_nonestimable("estimate")))
+	expect_match(inf_sub$.__enclos_env__$private$cached_values$procedure_failure_reason[["subsampling"]], "subsampling_extreme_confidence_interval", fixed = TRUE)
 })
 
 test_that("minimum-volatility selector is shared by m and b methods", {
@@ -240,14 +241,14 @@ test_that("m-out-of-n bootstrap and PRW subsampling gate on replicate failure fr
 
 	p_mn <- inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 300, show_progress = FALSE)
 	expect_true(is.na(p_mn))
-	expect_true(inf$is_nonestimable())
-	expect_equal(inf$get_nonestimable_reason(), "m_out_of_n_high_replicate_failure_rate")
+	expect_false(isTRUE(inf$is_nonestimable()))
+	expect_equal(inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["m_out_of_n"]], "m_out_of_n_high_replicate_failure_rate")
 
 	inf2 <- ext_env$HighFailureResamplingProbe$new(des, verbose = FALSE)
 	p_sub <- inf2$compute_subsampling_two_sided_pval(B = 300, show_progress = FALSE)
 	expect_true(is.na(p_sub))
-	expect_true(inf2$is_nonestimable())
-	expect_equal(inf2$get_nonestimable_reason(), "subsampling_high_replicate_failure_rate")
+	expect_false(isTRUE(inf2$is_nonestimable()))
+	expect_equal(inf2$.__enclos_env__$private$cached_values$procedure_failure_reason[["subsampling"]], "subsampling_high_replicate_failure_rate")
 })
 
 test_that("PRW subsampling applies a finite-population correction so Type-I error is not inflated", {

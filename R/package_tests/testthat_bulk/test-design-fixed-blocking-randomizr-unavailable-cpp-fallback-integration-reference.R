@@ -1,18 +1,11 @@
 library(testthat)
 library(EDI)
 
-# DesignFixedBlocking$draw_ws_raw() (design_fixed_blocking.R:189-199) dispatches to
-# randomizr::block_ra() when that package is installed, or falls back to the internal
-# generate_permutations_blocking_cpp() kernel otherwise. Existing coverage exercises each
-# side separately -- the randomizr-installed path via several class-level tests (skip_if_
-# not_installed("randomizr")), and generate_permutations_blocking_cpp() itself as a bare
-# kernel call (test-continuation-ratio-expansion-blocking-permutations-and-clogit-pair-
-# design-kernels-reference.R) -- but nothing exercises DesignFixedBlocking's own draw_ws_
-# raw() dispatch with randomizr unavailable, i.e. the fallback actually wired up end to end
-# through the class's public API. Reached via with_mocked_bindings(check_package_installed
-# = function(pkg) FALSE, .package = "EDI"), independent reference: every stratum must get
-# exactly round(prob_T * stratum_size) treated subjects, the same invariant the kernel-level
-# test already checks for the bare kernel.
+# DesignFixedBlocking$draw_ws_raw() uses the internal batched block_ra_batch() helper (TODO-118),
+# which does not depend on randomizr at all (the old generate_permutations_blocking_cpp() kernel
+# was deleted 2026-10-22). This test pins that behaviour end to end through the public API with
+# randomizr mocked as unavailable: every stratum must get exactly round(prob_T * stratum_size)
+# treated subjects.
 
 test_that("with randomizr (mocked as) unavailable, assign_w_to_all_subjects() still balances every block via the C++ fallback", {
 	set.seed(1)

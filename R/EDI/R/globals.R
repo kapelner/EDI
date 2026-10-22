@@ -331,7 +331,36 @@ weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, stra
       error = function(e) NULL
     )
   }
-  fit = tryCatch(
+  # Interim fast path (bayesian_bootstrap_performance.md TODO-6.1): for the
+  # unstratified, unclustered fit call survival::coxph.fit() directly on the
+  # prebuilt matrix. This skips the per-draw formula/model-frame build and the
+  # unused concordance computation; it is the same Efron-ties partial
+  # likelihood with the same default control as survival::coxph(). Any error,
+  # missing or non-finite treatment coefficient falls through to the original
+  # formula path below.
+  fit = NULL
+  if (is.null(strata) && is.null(cluster)) {
+    fit = tryCatch(
+      suppressWarnings(survival::coxph.fit(
+        x = X_fit,
+        y = survival::Surv(as.numeric(time[ok]), as.numeric(dead[ok])),
+        strata = NULL, offset = NULL,
+        init = if (is.null(cox_init)) rep(0, ncol(X_fit)) else cox_init,
+        control = survival::coxph.control(),
+        weights = as.numeric(row_weights[ok]),
+        method = "efron",
+        rownames = NULL
+      )),
+      error = function(e) NULL
+    )
+    fast_coef = if (is.null(fit)) NULL else fit$coefficients
+    if (is.null(fast_coef) || is.null(names(fast_coef)) ||
+        !("treatment" %in% names(fast_coef)) ||
+        !is.finite(fast_coef[["treatment"]])) {
+      fit = NULL
+    }
+  }
+  if (is.null(fit)) fit = tryCatch(
     fit_cox(cox_init),
     error = function(e) NULL
   )
@@ -588,6 +617,23 @@ settle_mirai_tasks = function(tasks, timeout_secs = 60) {
 #'
 #' If you want to change the default policy, use
 #' \code{set_parallel_dispatch_policy()}.
+#'
+#' \strong{Which design draws use the workers.} \code{set_num_cores()} always
+#' parallelizes the downstream statistic (randomization/bootstrap loops in
+#' Inference objects) where the dispatcher allows it, but only some designs
+#' parallelize the \emph{null assignment draws} themselves. Draws that run in
+#' native OpenMP kernels use the cores:
+#' \code{DesignFixedGreedy}, \code{DesignFixedMatchingGreedyPairSwitching},
+#' \code{DesignFixedBinaryMatch}, \code{DesignFixedRerandomization} (balanced,
+#' even-\code{n} rejection sampler) and the optimal-design searches
+#' (\code{DesignFixedGreedyDOptimal}, \code{DesignFixedOptimal}). Draws made in
+#' vectorized R in the main process do not: \code{DesignFixedBlocking},
+#' \code{DesignFixedOptimalBlocks}, \code{DesignFixedCluster} and
+#' \code{DesignFixedBlockedCluster} generate all \code{r} assignments in one
+#' batched pass whose result depends only on the seed, so extra cores neither
+#' speed up nor change those draws. The no-covariate fallbacks of the matching,
+#' greedy and rerandomization designs (plain complete randomization) are also
+#' serial R.
 #' 
 #' @param num_cores Integer number of worker processes to make available.
 #' @param force_mirai If \code{TRUE}, forces the use of the \code{mirai} package

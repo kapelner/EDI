@@ -788,7 +788,14 @@ SurvivalGLMMWeibullFrailtyNormalOneLikSource = list(
 InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = define_inference_class(
 	classname = "InferenceSurvivalGLMMWeibullFrailtyNormalIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SurvivalGLMMWeibullFrailtyNormalIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"SurvivalGLMMWeibullFrailtyNormalIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as the
 		# other survival KK migrations (RandCI's Zhang dispatch never applies).
@@ -892,18 +899,13 @@ InferenceSurvivalGLMMWeibullFrailtyNormalOneLik = define_inference_class(
 	classname = "InferenceSurvivalGLMMWeibullFrailtyNormalOneLik",
 	inherit = Inference,
 	components = c(
-		"BayesianBootstrap", "ParametricLikelihoodBootstrap",
-		# Component order is load-bearing here: SurvivalGLMMWeibullFrailtyNormalOneLikLeaf
-		# is listed BEFORE SurvivalGLMMWeibullFrailtyNormalOneLik so the abstract's
-		# fuller initialize() (which handles use_rcpp/optimization_alg/
-		# init_kk_passthrough) resolves LAST and wins the collision -- the
-		# leaf's own initialize() was a `self$set_optimization_alg(...)` call
-		# immediately followed by `super$initialize()`, which under a flat
-		# composition has no path back into the abstract component's own
-		# initialize (Lesson 1 corollary); the leaf's own pre-call is also
-		# redundant regardless, since the abstract's initialize calls
-		# set_optimization_alg() itself (with allow_irls = FALSE) right after.
-		"SurvivalGLMMWeibullFrailtyNormalOneLikLeaf", "SurvivalGLMMWeibullFrailtyNormalOneLik"
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"SurvivalGLMMWeibullFrailtyNormalOneLikLeaf",
+		"SurvivalGLMMWeibullFrailtyNormalOneLik"
 	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every

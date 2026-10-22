@@ -6,6 +6,80 @@ number tracks `R/EDI/DESCRIPTION`'s `Version` field (see
 "Versioning" checklist item) — a `.postN` suffix is used for
 Python-packaging-only changes that don't touch `R/EDI/src/*.cpp`.
 
+## [1.0.5] - Unreleased
+
+Kernel-level changes in `R/EDI/src/*.cpp` since the `py-v1.0.2` tag, so per
+the versioning rule above this is a real version, not a `.postN`. It tracks
+the 1.0.5 correctness release described in `R/EDI/NEWS.md`; the Python
+bindings compile the same kernel sources and inherit these fixes verbatim.
+Fixes that live only in the R layer are described in `R/EDI/NEWS.md` and do
+not apply here. Seeded output is unchanged: the portable Fisher-Yates shuffle
+and thread-count-independent draws affect only R-side designs, and no shuffle
+or permutation function is exposed in Python.
+
+### Changed
+
+- `fast_wilcox_hl`: the Hodges-Lehmann variance is recalibrated. The
+  rank-sum variance was too small by a factor of 2 pi / 3 in the balanced
+  case, and the matched-pairs Walsh variance now carries the same factor.
+  Standard errors and confidence intervals change.
+- `fast_ridit_analysis`: a category missing from the reference group now
+  scores the cumulative reference mass below it instead of averaging the
+  neighbouring ridits. With `reference="treatment"` the estimate is
+  `0.5 - mean_ridit_c` (SE from the control arm), so the estimate keeps the
+  treated-minus-control orientation for every `reference`.
+- `fast_gee`: the exchangeable correlation estimate matches geepack's
+  Pearson dispersion correction, is clamped to +/-0.95, and no longer
+  changes when all weights are rescaled together. Estimates move.
+- Warm starts are validated: a `warm_start_beta`, `warm_start_params` or
+  `warm_start_fisher_info` of the wrong length (or non-finite) now raises an
+  error instead of being silently ignored. This covers the beta, Cox, GEE,
+  zero-inflated negative binomial, zero-augmented Poisson and ordinal
+  kernels. `fast_coxph_regression` also now passes `warm_start_fisher_info`
+  through to the optimizer.
+- `fixed_idx` / `fixed_values` are validated up front (length mismatch and
+  out-of-range indices raise) in the kernels that accept them. Indices are
+  1-based, as the corrected docstrings now say.
+
+### Fixed
+
+- `fast_clayton_weibull_aft_optim`: the dependence parameter is capped at
+  `log_theta = 6` (`log_theta_at_upper_bound` reports a capped optimum), a
+  stale-gradient bug is fixed, and the likelihood ratios are overflow-safe.
+- Multi-start fitting for the Poisson GLMM, logistic GLMM and ordinal CLMM
+  kernels.
+- `fast_logistic_glmm`: the Hessian entry for `log_sigma` applied `sigma`
+  twice.
+- `fast_zinb_with_var`, `fast_zero_augmented_poisson_with_var` and
+  `fast_beta_regression`: a singular or non-finite free information block now
+  returns a `NaN` covariance and `information_invertible = False` instead of
+  inverting blindly. `fast_zinb` runs this check on every fit, not only at
+  boundary estimates.
+
+### Documentation
+
+- Docstrings and the `.pyi` stubs describe the ridit orientation, the
+  Clayton `log_theta` cap, `information_invertible`, and the 1-based
+  `fixed_idx` convention.
+
+### Packaging and build
+
+- 32-bit ARM builds (piwheels) now compile one source file per translation
+  unit with a single-slot compile pool and lower GCC garbage-collector
+  thresholds, after 1.0.1 and 1.0.2 ran out of memory there. Other platforms
+  keep the unity build.
+- OpenMP kernels no longer call `omp_set_num_threads`; they scope the thread
+  count to each parallel region, so the global OpenMP setting is not changed
+  by a kernel call. Numerical results are unaffected.
+
+### Tests
+
+- New or updated Python tests cover the Clayton/Weibull AFT optimizer,
+  dependent-censoring transform, logistic and Poisson GLMMs, logistic
+  regression, ordinal CLMM, ridit analysis, general Weibull regression,
+  zero-augmented Poisson, zero-inflated negative binomial, GEE pairs and
+  singletons, and the survival statistic difference.
+
 ## [1.0.2] - 2026-09-24
 
 Kernel-level changes in `R/EDI/src/*.cpp` since the `v1.0.1` tag, so per the

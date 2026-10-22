@@ -63,6 +63,7 @@
 #' inf = InferenceCountZeroInflatedPoisson$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceCountZeroInflatedPoisson = define_inference_class(
 	classname = "InferenceCountZeroInflatedPoisson",
@@ -286,6 +287,7 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 #' inf = InferenceCountZeroInflatedNegBin$new(seq_des, model_formula = ~ x1)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin",
 	lock_objects = FALSE,

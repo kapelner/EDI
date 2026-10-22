@@ -37,6 +37,7 @@ Tsiatis, A. A. (1990). Estimating regression parameters using linear
 <details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
@@ -52,6 +53,7 @@ Tsiatis, A. A. (1990). Estimating regression parameters using linear
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
@@ -76,7 +78,8 @@ Tsiatis, A. A. (1990). Estimating regression parameters using linear
   permutations = NULL,
   type = NULL,
   args_for_type = NULL,
-  zero_one_logit_clamp = .Machine$double.eps
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
 )}
     \if{html}{\out{</div>}}
   }
@@ -97,11 +100,14 @@ and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumption
       \item{\code{type}}{Optional incidence-specific exact randomization type.}
       \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
       \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+see \code{InferenceRand$compute_rand_two_sided_pval()}. Use \code{"greater"} for a
+non-negative, one-tailed-by-construction statistic (squared difference, chi-square).}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A two-sided p-value.
+    A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
   }
 }
 
@@ -157,6 +163,17 @@ and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumption
   family — which also do not advertise the \code{randomization_ci} capability, so
   \code{InferenceSuite} never offers it for them; their randomization p-value and
   randomization-bootstrap CI are unaffected).
+
+  \strong{Estimand scale.} The shift scale must be the estimand's own scale. For
+  proportion, count and ordinal responses the sharp null is a logit shift, a
+  log (multiplicative) shift and an additive shift of the integer levels
+  respectively, so a class whose estimate is a raw-scale mean difference or a
+  rank effect (for example \code{InferenceAllSimpleAverageDiff} on a proportion
+  or count, \code{InferencePropGCompMeanDiff}, \code{InferenceOrdinalRidit},
+  \code{InferenceOrdinalJonckheereTerpstraTest}) refuses this method with an error
+  instead of returning bounds on another scale; its randomization p-value and
+  randomization-bootstrap CI remain available. Endpoints carry Monte Carlo
+  error (of order \code{1/sqrt(r)} in p-value units).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceRandCI$compute_rand_confidence_interval(
@@ -204,7 +221,13 @@ way to notice on its own; see
 \code{high_precision_confirm_and_refine_ci_bound()}'s own comment for the full
 rationale and \code{R/package_metadata/new_feature_plans/} for the deeper,
 not-yet-implemented redesign (anytime-valid confidence sequences) this pass is
-a pragmatic stopgap for.}
+a pragmatic stopgap for.
+A randomization CI is not available for left- or interval-censored survival
+data: the nonzero-\eqn{\delta} null shifts required by inversion are not
+implemented for censoring bounds.
+A randomization CI is refused for proportion responses that contain exact 0 or 1
+values when the sharp null is imposed on the logit scale (exact 0/1 cannot be
+shifted there); use a likelihood-based, asymptotic or bootstrap CI instead.}
     }
     \if{html}{\out{</div>}}
   }

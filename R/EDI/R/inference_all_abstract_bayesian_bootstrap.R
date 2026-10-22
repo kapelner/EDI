@@ -125,7 +125,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 					iter_val = withCallingHandlers(
 						tryCatch({
 							if (!is.null(worker_state)) {
-								private$load_resampling_draw_into_worker("bayesian_boot", worker_state, draw)
+								private$load_bayesian_bootstrap_draw_into_worker(worker_state = worker_state, draw = draw)
 								private$compute_bayesian_bootstrap_worker_estimate(worker_state)
 							} else {
 								worker_inf$.__enclos_env__$private$current_bayesian_bootstrap_context = draw$context
@@ -206,7 +206,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 					function() {
 						worker_state = private$create_bootstrap_worker_state()
 						draw = draws[[1L]]
-						private$load_resampling_draw_into_worker("bayesian_boot", worker_state, draw)
+						private$load_bayesian_bootstrap_draw_into_worker(worker_state = worker_state, draw = draw)
 						tryCatch(private$compute_bayesian_bootstrap_worker_estimate(worker_state), error = function(e) NA_real_)
 					}
 				} else {
@@ -314,6 +314,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				return(NA_real_)
 			}
 			private$clear_nonestimable_state()
+			edi_clear_procedure_failure(private, "bayesian_bootstrap")
 			if (type == "bca" && private$mark_jackknife_nonestimable_if_block_unsupported(unit = "auto")) {
 				return(NA_real_)
 			}
@@ -339,11 +340,11 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 					error = function(e) numeric(0)
 				)
 				if (length(t_boot) < as.integer(min_number_usable_samples)) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_se("bayesian_bootstrap_unstable_studentized_standard_errors")
+					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_unstable_studentized_standard_errors", "se")
 					return(NA_real_)
 				}
 				if (private$bootstrap_estimates_extreme(boot_stats$theta, est = est)) {
-					if (isTRUE(private$harden)) private$cache_nonestimable_estimate("bayesian_bootstrap_extreme_finite_estimates")
+					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_extreme_finite_estimates", "estimate")
 					return(NA_real_)
 				}
 				t_obs = abs(est - delta) / se_hat
@@ -356,15 +357,16 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			)
 			if (isTRUE(na.rm)) boot_distr = boot_distr[is.finite(boot_distr)]
 			else if (any(!is.finite(boot_distr))) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("bayesian_bootstrap_nonfinite_estimates")
+				edi_warn_bootstrap_nonfinite_na_once(self, private, boot_distr, fn = "compute_bayesian_bootstrap_two_sided_pval")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_nonfinite_estimates", "estimate")
 				return(NA_real_)
 			}
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("bayesian_bootstrap_too_few_finite_estimates")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_too_few_finite_estimates", "estimate")
 				return(NA_real_)
 			}
 			if (private$bootstrap_estimates_extreme(boot_distr, est = est)) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_estimate("bayesian_bootstrap_extreme_finite_estimates")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_extreme_finite_estimates", "estimate")
 				return(NA_real_)
 			}
 			if (type == "percentile") {
@@ -385,18 +387,18 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				p_value = tryCatch(
 					private$pval_bayesian_bca(boot_distr, est, delta, weighting_unit_type = weighting_unit_type),
 					error = function(e) {
-						if (isTRUE(private$harden)) private$cache_nonestimable_se("bayesian_bootstrap_bca_pvalue_unavailable")
+						if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_bca_pvalue_unavailable", "se")
 						NA_real_
 					}
 				)
-				if (!is.finite(p_value) && isTRUE(private$harden) && !isTRUE(self$is_nonestimable())) {
-					private$cache_nonestimable_se("bayesian_bootstrap_bca_pvalue_unavailable")
+				if (!is.finite(p_value) && isTRUE(private$harden) && !isTRUE(self$is_nonestimable()) && !edi_has_procedure_failure(private, "bayesian_bootstrap")) {
+					edi_record_procedure_failure(self, private, "bayesian_bootstrap_bca_pvalue_unavailable", "se")
 				}
 				return(p_value)
 			}
 			se_boot = stats::sd(boot_distr)
 			if (!is.finite(se_boot) || se_boot <= 0) {
-				if (isTRUE(private$harden)) private$cache_nonestimable_se("bayesian_bootstrap_standard_error_unavailable")
+				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_standard_error_unavailable", "se")
 				return(NA_real_)
 			}
 			n_bs = length(boot_distr)
@@ -438,6 +440,9 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				assertChoice(type, private$bayesian_bootstrap_ci_types)
 			}
 			est = as.numeric(self$compute_estimate())[1L]
+			edi_clear_procedure_failure(private, "bayesian_bootstrap")
+			private$cached_values$ci_call_failure_reason = NA_character_
+			on.exit({private$cached_values$ci_call_failure_reason <- NULL; private$cached_values$ci_call_ctx <- NULL}, add = TRUE)
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			if (!is.finite(est)) {
@@ -475,6 +480,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				show_progress = show_progress,
 				weighting_unit_type = weighting_unit_type
 			)
+			private$cached_values$ci_call_ctx = list(B = B, alpha = alpha, all_finite = all(is.finite(boot_distr)))
 			boot_distr = boot_distr[is.finite(boot_distr)]
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_too_few_finite_estimates", stage = "estimate"))
@@ -786,18 +792,21 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_bca_jackknife_unavailable", stage = "se"))
 			}
 			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bayesian_bootstrap_bca_", on_failure = function(reason){
-				private$missing_bootstrap_ci(alpha, reason, stage = "se")
+				ci_na = private$missing_bootstrap_ci(alpha, reason, stage = "se")
+				ctx = private$cached_values$ci_call_ctx
+				if (!is.null(ctx) && isTRUE(ctx$all_finite)) edi_warn_bca_boundary_once(self, private, ctx$B, "bca", reason, ctx$alpha)
+				ci_na
 			})
 		},
 		pval_bayesian_bca = function(boot_distr, est, delta, weighting_unit_type = NULL) {
 			jack = private$approximate_bayesian_jackknife_distribution_beta_hat_T(weighting_unit_type = weighting_unit_type)
 			jack = jack[is.finite(jack)]
 			if (length(jack) < 2L) {
-				private$cache_nonestimable_se("bayesian_bootstrap_bca_jackknife_unavailable")
+				edi_record_procedure_failure(self, private, "bayesian_bootstrap_bca_jackknife_unavailable", "se")
 				return(NA_real_)
 			}
 			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bayesian_bootstrap_bca_", on_failure = function(reason){
-				private$cache_nonestimable_se(reason)
+				edi_record_procedure_failure(self, private, reason, "se")
 				NA_real_
 			})
 		},

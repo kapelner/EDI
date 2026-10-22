@@ -27,8 +27,10 @@ outcome exceeds a randomly selected control subject's outcome
 to \code{\link[EDI:InferenceOrdinalJonckheereTerpstraTest]{InferenceOrdinalJonckheereTerpstraTest}}'s
 superiority measure but referenced against a chosen distribution rather than
 always symmetric between the two arms. Standard errors and p-values come
-from \code{fast_ridit_analysis_cpp}'s asymptotic formula, not a resampling
-approximation.
+from the DeLong (1988) asymptotic variance of the underlying Mann-Whitney
+contrast, Var(V10)/n_T + Var(V01)/n_C (times n_C/N for a pooled reference),
+which accounts for the sampling variability of the reference arm; they are
+not a resampling approximation.
 }
 \examples{
 set.seed(1)
@@ -72,6 +74,7 @@ Bross, I. D. J. (1958). "How to Use Ridit Analysis."
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -84,6 +87,7 @@ Bross, I. D. J. (1958). "How to Use Ridit Analysis."
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
@@ -232,7 +236,7 @@ computes variance components regardless of its value.}
 \subsection{\code{InferenceOrdinalRidit$compute_asymp_confidence_interval()}}{
   Computes the asymptotic confidence interval for the
   oriented ridit treatment effect, using
-  \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
+  the DeLong asymptotic standard error.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -256,7 +260,7 @@ computes variance components regardless of its value.}
 \subsection{\code{InferenceOrdinalRidit$compute_asymp_two_sided_pval()}}{
   Computes a two-sided Wald p-value for the oriented ridit
   contrast (i.e. \code{delta = 0} tests the null of no group difference), using
-  \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
+  the DeLong asymptotic standard error.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalRidit$compute_asymp_two_sided_pval(delta = 0)}

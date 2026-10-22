@@ -74,6 +74,15 @@ routine upgrade. Objects saved before this field existed self-initialize
 it to the currently loaded version the first time it is read, rather than
 erroring on the missing field.
 
+\strong{Randomization inference and the seed.} A seeded design's
+\code{draw_ws_according_to_design()} calls \code{maybe_set_seed()}, i.e.
+\code{set.seed()} on the global RNG, and does not restore the caller's
+stream. Randomization p-values/CIs draw their permutations from a
+\code{duplicate()} (which has no seed) under the inference object's
+\code{set_seed()}, falling back to this design's \code{seed}, inside a
+\code{.Random.seed} save/restore; see
+\code{Inference$set_seed()} and \code{clear_randomization_cache()}.
+
 \strong{RNG/reproducibility caveat.} \code{private$seed} is consumed only
 once, inside \code{maybe_set_seed()} at construction time, and is
 \emph{not} re-applied on \code{readRDS()}. Continuing to enroll subjects
@@ -482,7 +491,11 @@ interval upper bound.}
 \if{html}{\out{<a id="method-Design-any_censoring"></a>}}
 \if{latex}{\out{\hypertarget{method-Design-any_censoring}{}}}
 \subsection{\code{Design$any_censoring()}}{
-  Checks if the experiment has any censored responses
+  Checks if the experiment has any censored responses.
+  A subject is censored only when a censored response was actually
+  recorded for it (\code{y} is \code{NA} while \code{y_L} is not);
+  a subject whose response has not been recorded yet (all of
+  \code{y}, \code{y_L}, \code{y_R} are \code{NA}) is not censored.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{Design$any_censoring()}

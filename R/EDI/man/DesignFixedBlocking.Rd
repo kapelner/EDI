@@ -7,13 +7,13 @@
 A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that first partitions
 subjects into blocks (strata) formed from covariates, then randomizes treatment
 \strong{independently within each block} at probability \code{prob_T} (via
-\code{\link[randomizr]{block_ra}} when \pkg{randomizr} is installed, else an internal
-\code{generate_permutations_blocking_cpp()} fallback). Blocking on a covariate removes
+the same per-block law as \code{\link[randomizr]{block_ra}}, drawn for all
+\code{r} draws at once in vectorized R). Blocking on a covariate removes
 its between-block variation from the treatment-effect comparison (comparisons are
 always within-block), improving precision relative to unblocked randomization whenever
-the blocking covariate(s) are prognostic of the outcome, at the cost of requiring the
-analysis to account for the blocking structure (e.g. via a block/stratum fixed effect
-or a CMH-type test). This differs from
+the blocking covariate(s) are prognostic of the outcome. See the section
+\dQuote{How inference accounts for the blocks} for which inference routes respect the
+blocks and which do not. This differs from
 \code{\link[EDI:DesignFixedBlockedCluster]{DesignFixedBlockedCluster}}, which
 randomizes whole \emph{clusters} of subjects together within each block rather than
 subjects individually.
@@ -38,16 +38,50 @@ sizes unconditionally, regardless of this flag. An explicit \code{m} (one block 
 subject) bypasses covariate-derived block construction entirely.
 
 \strong{Within-block randomization and bootstrap.} Within each block, treatment is
-assigned independently via \code{\link[randomizr]{block_ra}}'s complete random
-assignment (subject to rounding, \code{prob_T} of each block's subjects are treated);
-the internal C++ fallback (\code{generate_permutations_blocking_cpp()}) is used only
-if \pkg{randomizr} is not installed. \code{draw_bootstrap_indices()} resamples
+assigned independently with \code{\link[randomizr]{block_ra}}'s complete random
+assignment law (subject to rounding, \code{prob_T} of each block's subjects are treated;
+a fractional \code{N * prob_T} is rounded up with probability equal to its fractional
+part). All \code{r} draws are generated in one batched, vectorized pass in the main
+process from a single RNG stream, so results depend only on \code{seed}, never on
+\code{set_num_cores()} (which parallelizes the statistic, not the draws). \code{draw_bootstrap_indices()} resamples
 \emph{within} each block by default (\code{bootstrap_type = "within_blocks"} or
 \code{NULL}, via \code{stratified_bootstrap_indices_cpp()}), or resamples whole blocks
 with replacement otherwise (via \code{resample_group_rows_cpp()}) — mirroring the
 block structure in the resampling scheme, analogous to the cluster-level bootstrap in
 \code{DesignFixedBlockedCluster}.
 }
+\section{How inference accounts for the blocks}{
+
+\itemize{
+  \item \strong{Block-aware:} randomization inference (re-draws within blocks),
+    the bootstrap and the jackknife (resample within blocks), and the
+    block-stratified tests \code{InferenceIncidCMH} and
+    \code{InferenceIncidExtendedRobins}.
+  \item \strong{Not block-aware:} the regression-type classes (OLS, Lin, robust,
+    quantile, GLM, ordinal, survival regressions, ...) add \emph{no} block fixed
+    effects automatically; the blocks enter the model only if the blocking column is
+    itself supplied as a covariate. There is currently no option to add them.
+  \item \strong{Unadjusted estimators.} If the same proportion is treated in every
+    block, an unadjusted pooled estimator (e.g. the mean difference or OLS) stays
+    unbiased and its asymptotic SE is conservative: it does not remove the
+    between-block variance, so intervals over-cover and power is lost.
+  \item \strong{Caveat: unequal allocation across blocks.} The per-block rule treats
+    \code{floor(N * prob_T)} or \code{ceiling(N * prob_T)} subjects, and
+    \code{floor} when \code{ceiling(N * prob_T) == N} (and \code{N > 1}). With
+    \code{equal_block_sizes = TRUE} and moderate \code{prob_T} the proportion
+    treated is essentially the same in all blocks, but with
+    \code{equal_block_sizes = FALSE} (or a user-supplied \code{m}) very small blocks
+    combined with a large \code{prob_T} are treated at a lower proportion than
+    large blocks (e.g. \code{prob_T = 0.8}: a block of 2 treats exactly 1 subject).
+    If block size or membership is also related to the outcome, the pooled
+    treated-versus-control comparison is then confounded by block (Simpson's
+    paradox) and \emph{the estimate itself} can be biased; adjust for blocks
+    (include the blocking covariate(s) as factor covariates) in that case. A
+    simulation (blocks of size 2, 20, 2, 20, block effects 2, 4, 6, 8,
+    \code{prob_T = 0.8}, true effect 0) gave a mean OLS estimate of about 0.29.
+}
+}
+
 \examples{
 des = DesignFixedBlocking$new(n = 20, response_type = 'continuous',
   strata_cols = 'x2', equal_block_sizes = FALSE)
@@ -166,7 +200,12 @@ Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{strata_cols}}{A character vector of column names to use for stratification.
-If `NULL` (the default), all available covariate columns are used.}
+If `NULL` (the default), all available covariate columns are used. Character and
+factor columns form one stratum per level. A numeric column that is integer-valued
+with at most 10 distinct values (for example a site code 1..4) is also treated as
+categorical, one stratum per value; other numeric columns are quantile-binned into
+`preferred_num_bins_for_continuous_covariate` bins. (Changed in 1.0.5: an integer
+site code used to be binned, e.g. 4 sites into 2 blocks.)}
       \item{\code{response_type}}{"continuous", "incidence", "proportion", "count", "survival", or
 "ordinal".}
       \item{\code{prob_T}}{Probability of treatment assignment.}
@@ -178,12 +217,20 @@ are added greedily in order, each column being included only if it does not push
 the total number of unique blocks beyond this target. For categorical covariates
 their natural levels are used; for continuous covariates
 `preferred_num_bins_for_continuous_covariate` quantile bins are used. Earlier columns
-are always preferred over later ones. When `n` is known at construction time, the
-default is the largest divisor of `n` that is at most `floor(sqrt(n))` (so the
-default always satisfies `equal_block_sizes = TRUE`); if `n` is not yet known, it
-is resolved to `floor(sqrt(n))` when subjects are added. Set `B_target = NULL` to
-use all columns unconditionally. An explicitly supplied `B_target` that does not
-divide `n` still errors immediately when `equal_block_sizes = TRUE`.
+are always preferred over later ones. Default: if you name `strata_cols`
+explicitly and leave `B_target` unset, it behaves like `B_target = NULL`: ALL named
+columns are used and the number of blocks is whatever their cross-classification
+gives (named strata are never silently dropped, e.g. at prime `n`). Note that with
+`equal_block_sizes = TRUE` this errors when the cells are not equal-sized (for
+example 2 sex cells at odd `n`); set `equal_block_sizes = FALSE` or pass an
+explicit `B_target`. If `strata_cols = NULL` (all covariates available) the default
+is the largest divisor of `n` that is at most `floor(sqrt(n))` (so it always
+satisfies `equal_block_sizes = TRUE`); if `n` is not yet known it is resolved to
+`floor(sqrt(n))` when subjects are added. The same cap is used when
+`exact_num_blocks = TRUE` and `B_target` is unset. Set `B_target = NULL` to use all
+columns unconditionally. An explicitly supplied `B_target` that does not divide `n`
+still errors immediately when `equal_block_sizes = TRUE`. (Changed in 1.0.5: before,
+the sqrt-based cap also applied to named `strata_cols`.)
 Set `exact_num_blocks = TRUE` to hard fail if the final key construction
 does not produce exactly `B_target` blocks.}
       \item{\code{exact_num_blocks}}{Whether to require the greedy key construction to produce
@@ -192,7 +239,9 @@ exactly `B_target` blocks. Default `FALSE`.}
 subjects. Default `TRUE`. When `TRUE` and both `n` and `B_target` are known at
 construction time, an error is raised immediately if `n` is not divisible by
 `B_target`. A second check fires when subjects are added: if the covariate-based
-strata produce unequal block counts the design errors at that point. Set to
+strata produce unequal block sizes the design errors at that point with a message
+suggesting `equal_block_sizes = FALSE`. This is the usual outcome when named
+`strata_cols` are used without `B_target` and the strata cells do not divide `n`. Set to
 `FALSE` to allow unequal blocks (note that `InferenceIncidCMH` and
 `InferenceIncidExtendedRobins` still require equal block sizes regardless).}
       \item{\code{m}}{Optional integer vector of explicit block identifiers, one per subject.

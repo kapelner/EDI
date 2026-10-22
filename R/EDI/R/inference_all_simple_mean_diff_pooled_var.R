@@ -52,6 +52,7 @@ SimpleMeanDifferencePooledVarSource = list(
 		#   asymptotic confidence-interval contract this participates in.
 		# @param alpha Confidence level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
@@ -71,6 +72,7 @@ SimpleMeanDifferencePooledVarSource = list(
 		#   asymptotic two-sided p-value contract this participates in.
 		# @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(delta)
 			}
@@ -230,7 +232,14 @@ SimpleMeanDifferencePooledVarSource = list(
 InferenceAllSimpleMeanDiffPooledVar = define_inference_class(
 	classname = "InferenceAllSimpleMeanDiffPooledVar",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SimpleMeanDifferencePooledVar"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"SimpleMeanDifferencePooledVar"
+	),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),

@@ -62,6 +62,7 @@
 #' inf = InferenceCountHurdlePoisson$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceCountHurdlePoisson = define_inference_class(
 	classname = "InferenceCountHurdlePoisson",
@@ -267,11 +268,19 @@ InferenceCountHurdlePoisson = define_inference_class(
 #' inf = InferenceCountHurdleNegBin$new(seq_des, model_formula = ~ x1)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceCountHurdleNegBin = define_inference_class(
 	classname = "InferenceCountHurdleNegBin",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CountLikelihoodPlumbing"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"CountLikelihoodPlumbing"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio", response_types = "count"),
 	overrides = list(
 		public = c(
@@ -444,7 +453,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#'   jackknife inference; report explicit non-estimability.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_estimate = function(unit = "auto"){
-			private$cache_nonestimable_se("hurdle_negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("hurdle_negbin_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Report that the jackknife bias estimate is unavailable for
@@ -453,7 +462,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#'   jackknife contract.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_bias_estimate = function(unit = "auto"){
-			private$cache_nonestimable_se("hurdle_negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("hurdle_negbin_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Report that the jackknife standard error is unavailable for
@@ -462,7 +471,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#'   jackknife contract.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_std_error = function(unit = "auto"){
-			private$cache_nonestimable_se("hurdle_negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("hurdle_negbin_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Reports that jackknife-Wald p-values are unavailable here; see
@@ -470,7 +479,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#' @param delta Null treatment-effect value. Default 0.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_two_sided_pval = function(delta = 0, unit = "auto"){
-			private$cache_nonestimable_se("hurdle_negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("hurdle_negbin_jackknife_not_supported")
 			NA_real_
 		},
 		#' @description Reports that jackknife-Wald intervals are unavailable here; see
@@ -478,7 +487,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#' @param alpha Significance level. Default 0.05.
 		#' @param unit Deletion unit. Default \code{"auto"}.
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
-			private$cache_nonestimable_se("hurdle_negbin_jackknife_not_supported")
+			private$signal_unsupported_procedure("hurdle_negbin_jackknife_not_supported")
 			ci = c(NA_real_, NA_real_)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			ci

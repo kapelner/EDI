@@ -38,7 +38,8 @@ test_that("'bootstrap_unstable_studentized_standard_errors' fires when studentiz
 
 	pval <- f$inf$compute_bootstrap_two_sided_pval(type = "studentized", min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_unstable_studentized_standard_errors")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_unstable_studentized_standard_errors")
 })
 
 test_that("'bootstrap_unstable_studentized_standard_errors' fires when studentized_interval_scale_unstable() flags the interval", {
@@ -52,5 +53,6 @@ test_that("'bootstrap_unstable_studentized_standard_errors' fires when studentiz
 
 	pval <- f$inf$compute_bootstrap_two_sided_pval(type = "studentized", min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bootstrap_unstable_studentized_standard_errors")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bootstrap_unstable_studentized_standard_errors")
 })

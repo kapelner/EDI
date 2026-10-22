@@ -473,6 +473,7 @@ IncidenceLogisticLikelihoodSource = list(
 #' inf$set_seed(1)
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceIncidLogRegr = define_inference_class(
 	classname = "InferenceIncidLogRegr",
@@ -492,7 +493,15 @@ InferenceIncidLogRegr = define_inference_class(
 	# declares `dependencies = "StandardModelCache"`; `ParametricLikelihood
 	# Bootstrap` pulls in `LikelihoodTests` -> `Wald` -> `Jackknife`
 	# separately; `BayesianBootstrap` pulls the rand/bootstrap chain.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogisticLikelihood", "MarginalEstimand"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"IncidenceLogisticLikelihood",
+		"MarginalEstimand"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(

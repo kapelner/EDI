@@ -1,19 +1,6 @@
 library(testthat)
 library(EDI)
 
-test_that("match-index fill helper selects both members of sampled pairs", {
-	i_b = integer(6)
-	result = EDI:::fill_i_b_with_matches_loop_cpp(
-		i_b,
-		as.integer(c(1, 1, 2, 2, 0, 0)),
-		as.integer(c(2, 1)),
-		0L
-	)
-
-	expect_null(result)
-	expect_identical(i_b, as.integer(c(3, 4, 1, 2, 0, 0)))
-})
-
 test_that("matching linear-data kernels separate pairs and reservoir", {
 	X = cbind(x1 = 1:6, x2 = c(2, 4, 6, 8, 10, 12))
 	y = c(10, 4, 20, 8, 30, 12)
@@ -75,53 +62,6 @@ test_that("combined KK OLS builder has the documented row scaling and layout", {
 	expect_equal(as.numeric(result$y_comb), c(yd / s, yr))
 })
 
-test_that("base bootstrap loop resamples all fields and handles callback results", {
-	X = cbind(a = 1:3, b = 4:6)
-	indices = matrix(as.integer(c(1, 2, 3, 3, 3, 1, 2, 1, 2)), nrow = 3, byrow = TRUE)
-	dup = function() new.env(parent = emptyenv())
-	estimate = function(d) {
-		expect_named(d, c("y", "dead", "X", "w", "inf_obj"))
-		expect_identical(colnames(d$X), colnames(X))
-		c(mean(d$y), 999)
-	}
-	observed = EDI:::base_bootstrap_loop_cpp(
-		X, c(2, 4, 8), c(0, 1, 0), c(1, 0, 1), indices, dup, estimate, 2L
-	)
-	expect_equal(observed, c(mean(c(2, 4, 8)), mean(c(8, 8, 2)), mean(c(4, 2, 4))))
-
-	empty_result = EDI:::base_bootstrap_loop_cpp(
-		X, 1:3, rep(0, 3), c(1, 0, 1), indices[1, , drop = FALSE],
-		function() NULL, function(d) numeric(), 1L
-	)
-	expect_true(is.na(empty_result))
-})
-
-test_that("matching bootstrap loop passes match statistics and handles invalid objects", {
-	X = cbind(x = 1:6)
-	y = c(10, 4, 20, 8, 30, 12)
-	w = c(1, 0, 0, 1, 1, 0)
-	m_vec = as.integer(c(1, 1, 2, 2, 0, 0))
-	indices = matrix(as.integer(c(1, 2, 3, 4, 5, 6, 3, 4, 1, 2, 6, 5)), nrow = 2, byrow = TRUE)
-
-	observed = EDI:::matching_bootstrap_loop_cpp(
-		X, y, w, m_vec, indices, 2L,
-		function() new.env(parent = emptyenv()),
-		function(stats) {
-			expect_true(stats$thread_safe_inf_obj_valid)
-			expect_true(is.environment(stats$inf_obj))
-			c(mean(stats$y_matched_diffs), 123)
-		},
-		2L
-	)
-	expect_length(observed, 2)
-	expect_true(all(is.finite(observed)))
-
-	invalid = EDI:::matching_bootstrap_loop_cpp(
-		X, y, w, m_vec, indices, 2L, function() NULL, function(stats) 1, 1L
-	)
-	expect_true(all(is.na(invalid)))
-})
-
 test_that("randomization loop reuses duplicated objects and returns first estimate", {
 	design_calls = 0L
 	inference_calls = 0L
@@ -143,15 +83,9 @@ test_that("randomization loop reuses duplicated objects and returns first estima
 })
 
 test_that("bisection kernels call the requested interfaces and return bounded values", {
-	pval3 = function(r, delta, transform_responses) {
-		expect_identical(r, 7L)
-		expect_identical(transform_responses, "none")
-		delta
-	}
-	expect_equal(EDI:::bisection_ci_loop_cpp(pval3, 7L, 0, 1, 0.5, 0.01, "none", TRUE), 0.5, tolerance = 0.02)
-	pval3_upper = function(r, delta, transform_responses) pval3(r, 1 - delta, transform_responses)
-	expect_equal(EDI:::bisection_ci_loop_cpp(pval3_upper, 7L, 0, 1, 0.5, 0.01, "none", FALSE), 0.5, tolerance = 0.02)
-
+	# bisection_ci_loop_cpp / bisection_ci_single_bound_cpp were deleted
+	# 2026-10-22 (TODO-3); their shared search is exercised through the
+	# retained bisection_ci_parallel_cpp shim.
 	pval4 = function(r, delta, transform_responses, num_cores) {
 		expect_identical(c(r, num_cores), c(9L, 3L))
 		expect_identical(transform_responses, "log")
@@ -159,9 +93,8 @@ test_that("bisection kernels call the requested interfaces and return bounded va
 	}
 	parallel = EDI:::bisection_ci_parallel_cpp(pval4, 9L, -1, 0, 0, 1, 0.5, 0.01, "log", 3L)
 	expect_equal(parallel, c(-0.5, 0.5), tolerance = 0.02)
-	expect_equal(EDI:::bisection_ci_single_bound_cpp(pval4, 9L, -1, 0, 0.5, 0.01, "log", TRUE, 3L), -0.5, tolerance = 0.02)
 
+	# A nonfinite endpoint p-value stops each search at its outside endpoint.
 	nonfinite_endpoint = function(r, delta, transform_responses, num_cores) NA_real_
-	expect_equal(EDI:::bisection_ci_single_bound_cpp(nonfinite_endpoint, 1L, 0, 1, 0.5, 0.01, "none", TRUE, 1L), 0)
-	expect_equal(EDI:::bisection_ci_single_bound_cpp(nonfinite_endpoint, 1L, 0, 1, 0.5, 0.01, "none", FALSE, 1L), 1)
+	expect_equal(EDI:::bisection_ci_parallel_cpp(nonfinite_endpoint, 1L, 0, 1, 1, 2, 0.5, 0.01, "none", 1L), c(0, 2))
 })

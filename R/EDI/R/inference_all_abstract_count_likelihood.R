@@ -220,7 +220,7 @@ CountLikelihoodPlumbingSource = list(
 			if (is.null(private$cached_values$beta_hat_T)) {
 				try(private$shared(estimate_only = TRUE), silent = TRUE)
 			}
-			private$cache_nonestimable_se("count_likelihood_asymp_block_size_gt_one_not_supported")
+			private$cache_procedure_failure("count_likelihood_asymp", "count_likelihood_asymp_block_size_gt_one_not_supported")
 			TRUE
 		},
 			count_likelihood_missing_ci = function(alpha = 0.05){

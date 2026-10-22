@@ -258,6 +258,7 @@ CoxPartialLikelihoodSource = list(
 #' @concept Cox regression
 #' @concept Cox proportional hazards
 #' @concept proportional hazards regression
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceSurvivalCoxPHRegr = define_inference_class(
 	classname = "InferenceSurvivalCoxPHRegr",
@@ -290,7 +291,14 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 	# InferenceSurvivalWeibullRegr template (inference_survival_weibull.R), so
 	# CoxPartialLikelihood's own dependency subtree still resolves/merges last
 	# per this class's pre-existing ordering comment below.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "CoxPartialLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"CoxPartialLikelihood"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}. Deliberately pulled from

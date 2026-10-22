@@ -11,6 +11,11 @@ library(EDI)
 # ordinary point estimate ends up cached even though the randomization call itself still reports
 # non-estimable. No test anywhere called either method.
 
+# TODO-116: the stubs warn (`edi_unsupported_procedure`), return NA, record
+# cached_values$unsupported_procedure_reason, and do not set the nonestimable flag.
+unsup <- function(expr) { val <- NULL; expect_warning(val <- expr, class = "edi_unsupported_procedure"); val }
+unsup_reason <- function(inf) inf$.__enclos_env__$private$cached_values$unsupported_procedure_reason
+
 fx <- function(seed = 2L, n = 60L) {
 	set.seed(seed)
 	des <- DesignFixediBCRD$new(n = n, response_type = "survival", verbose = FALSE)
@@ -19,18 +24,20 @@ fx <- function(seed = 2L, n = 60L) {
 	InferenceSurvivalDepCensTransformRegr$new(des, verbose = FALSE)
 }
 
-test_that("compute_rand_two_sided_pval always returns NA and flags 'dep_cens_transform_randomization_not_supported'", {
+test_that("compute_rand_two_sided_pval always returns NA and records 'dep_cens_transform_randomization_not_supported'", {
 	inf <- fx()
-	expect_true(is.na(inf$compute_rand_two_sided_pval()))
-	expect_identical(inf$get_nonestimable_reason(), "dep_cens_transform_randomization_not_supported")
+	expect_true(is.na(unsup(inf$compute_rand_two_sided_pval())))
+	expect_false(inf$is_nonestimable("any"))
+	expect_identical(unsup_reason(inf), "dep_cens_transform_randomization_not_supported")
 	# the point estimate is still cached as a documented side effect
 	expect_true(is.finite(inf$.__enclos_env__$private$cached_values$beta_hat_T))
 })
 
-test_that("compute_rand_confidence_interval always returns an all-NA CI and flags the same reason", {
+test_that("compute_rand_confidence_interval always returns an all-NA CI and records the same reason", {
 	inf <- fx(seed = 3L)
-	ci <- inf$compute_rand_confidence_interval(alpha = 0.1)
+	ci <- unsup(inf$compute_rand_confidence_interval(alpha = 0.1))
 	expect_true(all(is.na(ci)))
 	expect_identical(names(ci), c("5%", "95%"))
-	expect_identical(inf$get_nonestimable_reason(), "dep_cens_transform_randomization_not_supported")
+	expect_false(inf$is_nonestimable("any"))
+	expect_identical(unsup_reason(inf), "dep_cens_transform_randomization_not_supported")
 })

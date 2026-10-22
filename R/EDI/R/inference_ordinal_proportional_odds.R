@@ -1,6 +1,7 @@
 # Interim class (documentation demoted to plain comments): only consumed via
 # inference_component_source_parts() below; the composed class is documented on the
 # final define_inference_class() assignment.
+#' @inheritSection InferenceContinOLS Blocking designs
 InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLikStdModCache,
@@ -40,7 +41,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 			n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
 			ws_args = private$get_backend_warm_start_args(n_params)
 			res = tryCatch(
-				fast_ordinal_regression_weighted_cpp(
+				ordinal_fit_scaled(fast_ordinal_regression_weighted_cpp,
 					X = X_fit,
 					y = as.numeric(private$y),
 					weights = as.numeric(row_weights),
@@ -66,6 +67,12 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 			#     always replaced with NA, starving the Bayesian-bootstrap
 			#     studentized/BCa variants of a per-replicate SE.
 			if (is.null(res) || length(res$b) < 1L || !is.finite(res$b[1L])){
+				private$cached_values$beta_hat_T = NA_real_
+				private$cached_values$s_beta_hat_T = NA_real_
+				private$cached_values$df = NA_real_
+				return(NA_real_)
+			}
+			if (!is.null(res$converged) && !isTRUE(res$converged)) {
 				private$cached_values$beta_hat_T = NA_real_
 				private$cached_values$s_beta_hat_T = NA_real_
 				private$cached_values$df = NA_real_
@@ -101,7 +108,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 			n_params = ncol(X) + length(sort(unique(private$y))) - 1L
 			ws_args = private$get_backend_warm_start_args(n_params)
 			ws_fisher = ws_args$warm_start_fisher_info
-			res = fast_ordinal_regression_cpp(
+			res = ordinal_fit_scaled(fast_ordinal_regression_cpp,
 				X = X, y = as.numeric(private$y),
 				warm_start_params = ws_args$start_params,
 				warm_start_fisher_info = ws_fisher,
@@ -141,7 +148,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 			# Parametric bootstrap: use observed fit as anchor
 			ws_args = private$get_backend_warm_start_args(length(params_null))
 			full_res = tryCatch(
-				fast_ordinal_regression_cpp(
+				ordinal_fit_scaled(fast_ordinal_regression_cpp,
 					X_fit, y_sim,
 					warm_start_params = ws_args$start_params,
 					warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -158,7 +165,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 				fit_null = function(d, start = NULL){
 					ws_args_null = private$get_backend_warm_start_args(length(params_null))
 					res = tryCatch(
-						fast_ordinal_regression_cpp(
+						ordinal_fit_scaled(fast_ordinal_regression_cpp,
 							X_fit, y_sim,
 							warm_start_params = start %||% full_fit_boot$params,
 							warm_start_fisher_info = ws_args_null$warm_start_fisher_info,
@@ -187,7 +194,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 				fit_null = function(delta, start = NULL){
 					ws_args = private$get_backend_warm_start_args(length(ctx$full_params))
 					res = tryCatch(
-						fast_ordinal_regression_cpp(
+						ordinal_fit_scaled(fast_ordinal_regression_cpp,
 							X_fit, y,
 							warm_start_params = start %||% ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -228,7 +235,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 					if (estimate_only) {
 						ws_fisher = ws_args$warm_start_fisher_info
 						res = tryCatch(
-							fast_ordinal_regression_cpp(
+							ordinal_fit_scaled(fast_ordinal_regression_cpp,
 								X_fit, private$y,
 								warm_start_params = ws_args$start_params,
 								warm_start_fisher_info = ws_fisher,
@@ -240,7 +247,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = ws_fisher)
 					} else {
 						res = tryCatch(
-							fast_ordinal_regression_with_var_cpp(
+							ordinal_fit_scaled(fast_ordinal_regression_with_var_cpp,
 								X_fit, private$y,
 								warm_start_params = ws_args$start_params,
 								warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -248,7 +255,12 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 							),
 							error = function(e) NULL
 						)
-						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
+						# TODO-107: an explicitly unconverged fit is not reported as the
+						# MLE; retry cold on centered/scaled covariates (maps back exactly).
+						if (!is.null(res) && !is.null(res$converged) && !isTRUE(res$converged)) {
+							res = ordinal_po_refit_centered_scaled(X_fit, private$y, private$smart_cold_start_default)
+						}
+						list(converged = res$converged, b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
@@ -258,6 +270,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 					# the last covariate's coefficient instead of treatment's,
 					# whenever design_formula included covariates.
 					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
+					if (!is.null(mod$converged) && !isTRUE(mod$converged)) return(FALSE)
 					if (estimate_only) return(TRUE)
 					is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0
 				}
@@ -330,7 +343,14 @@ OrdinalProportionalOddsLikelihoodSource = inference_component_source_parts(Infer
 InferenceOrdinalPropOddsRegr = define_inference_class(
 	classname = "InferenceOrdinalPropOddsRegr",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "OrdinalProportionalOddsLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"OrdinalProportionalOddsLikelihood"
+	),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
@@ -389,3 +409,122 @@ NULL
 #' @R6method InferenceOrdinalPropOddsRegr$compute_rand_two_sided_pval
 #' @template rand-compute-rand-two-sided-pval-params
 NULL
+
+# TODO-107: the C++ ordinal solver's convergence test is not scale-aware, so on
+# uncentred covariates (e.g. mean 100) it stops early while still reporting
+# converged = TRUE, with a treatment coefficient off by up to ~0.7. These
+# helpers centre and scale every non-treatment column (all but column 1) before
+# calling any of fast_ordinal_regression_{,with_var_,weighted_}cpp and map the
+# fit back to the ORIGINAL parameterization exactly. Parameters are
+# theta = (alpha, beta) under eta_k = alpha_k - x'beta; with X_s = (X - m) / sc the scaled parameters are
+# alpha_s = alpha - sum(beta m), beta_s = beta * sc, i.e. theta_s = M theta.
+# The treatment column is untouched (m = 0, sc = 1) so its coefficient, SE and
+# neg_loglik are identical. Warm starts given in the original parameterization
+# are mapped forward (theta_s = M theta, I_s = M^-T I M^-1). When every column
+# is already well scaled (|mean| <= sd and sd in [0.25, 4]) the data are passed
+# through untouched, so well-scaled inputs keep bit-identical behaviour.
+ordinal_center_scale_plan = function(X, force = FALSE){
+	p = ncol(X)
+	if (p < 2L) return(NULL)
+	Xc = X[, -1L, drop = FALSE]
+	m = colMeans(Xc)
+	sc = apply(Xc, 2L, stats::sd)
+	bad = !is.finite(sc) | sc < 1e-12
+	if (!force && all(is.finite(m)) && all(bad | (abs(m) <= sc & sc >= 0.25 & sc <= 4))) return(NULL)
+	m[!is.finite(m)] = 0
+	sc[bad] = 1
+	list(m = c(0, m), sc = c(1, sc), sgn = -1)
+}
+
+ordinal_center_scale_M = function(plan, n_par, p){
+	n_alpha = n_par - p
+	M = diag(n_par)
+	M[seq_len(n_alpha), n_alpha + seq_len(p)] = plan$sgn * matrix(plan$m, n_alpha, p, byrow = TRUE)
+	M[cbind(n_alpha + seq_len(p), n_alpha + seq_len(p))] = plan$sc
+	M
+}
+
+# `linpred_sign` is the sign of x'beta in the solver's linear predictor
+# (-1: eta_k = alpha_k - x'beta, the logit/cauchit/probit solvers; +1: the
+# cloglog solver, eta_k = alpha_k + x'beta).
+# `warm_arg` is the NAME of the solver's full-parameter warm-start argument
+# ("warm_start_params" for the cumulative/adjacent-category solvers,
+# "warm_start_beta" for the continuation-ratio solvers, where it also holds the
+# FULL c(alpha, beta) vector). The adjacent-category logit solver uses
+# linpred_sign = -1 (log p~_k = sum_{j>=k}(alpha_j - x'beta)); the
+# continuation-ratio solvers use linpred_sign = +1 (logit P(continue past j) =
+# alpha_j + x'beta).
+# Calls `fit_fun` (one of the fast ordinal C++ solvers) on centred/scaled
+# covariates and returns its result in the original parameterization.
+ordinal_fit_scaled = function(fit_fun, X, y, warm_start_params = NULL, warm_start_fisher_info = NULL,
+		fixed_idx = NULL, fixed_values = NULL, force = FALSE, linpred_sign = -1,
+		warm_arg = "warm_start_params", ...){
+	p = ncol(X)
+	plan = ordinal_center_scale_plan(X, force = force)
+	if (!is.null(plan)) plan$sgn = linpred_sign
+	# a fixed non-treatment parameter would need its own value mapped; only the
+	# treatment coefficient (index n_alpha + 1) is ever fixed, which is unchanged
+	if (!is.null(plan) && length(fixed_idx) > 0L) {
+		n_alpha_guess = length(unique(y)) - 1L
+		if (any(fixed_idx != n_alpha_guess + 1L)) plan = NULL
+	}
+	if (is.null(plan)) {
+		args = list(X, y, warm_start_fisher_info = warm_start_fisher_info,
+			fixed_idx = fixed_idx, fixed_values = fixed_values, ...)
+		args[warm_arg] = list(warm_start_params)
+		return(do.call(fit_fun, args))
+	}
+	X_s = sweep(sweep(X, 2L, plan$m, "-"), 2L, plan$sc, "/")
+	ws = NULL
+	wf = NULL
+	if (!is.null(warm_start_params) && length(warm_start_params) >= p + 1L) {
+		n_par = length(warm_start_params)
+		M0 = ordinal_center_scale_M(plan, n_par, p)
+		ws = as.numeric(M0 %*% as.numeric(warm_start_params))
+		if (!is.null(warm_start_fisher_info) && all(dim(warm_start_fisher_info) == n_par)) {
+			Mi = solve(M0)
+			wf = crossprod(Mi, warm_start_fisher_info %*% Mi)
+		}
+	}
+	args = list(X_s, y, warm_start_fisher_info = wf,
+		fixed_idx = fixed_idx, fixed_values = fixed_values, ...)
+	args[warm_arg] = list(ws)
+	res = do.call(fit_fun, args)
+	if (is.null(res) || is.null(res$params)) return(res)
+	n_par = length(res$params)
+	n_alpha = n_par - p
+	M = ordinal_center_scale_M(plan, n_par, p)
+	res$params = as.numeric(solve(M, as.numeric(res$params)))
+	res$b = res$params[n_alpha + seq_len(p)]
+	if (n_alpha > 0L) res$alpha = res$params[seq_len(n_alpha)]
+	# continuation-ratio solvers also return the full vector as beta_full and
+	# the augmented design (whose covariate columns were the scaled ones)
+	if (!is.null(res$beta_full)) res$beta_full = res$params
+	if (is.matrix(res$X_aug) && ncol(res$X_aug) == n_par) {
+		jj = n_alpha + seq_len(p)
+		res$X_aug[, jj] = sweep(sweep(res$X_aug[, jj, drop = FALSE], 2L, plan$sc, "*"), 2L, plan$m, "+")
+	}
+	Mi = NULL
+	for (nm in c("fisher_information", "observed_information", "information")) {
+		A = res[[nm]]
+		if (is.matrix(A) && all(dim(A) == n_par)) res[[nm]] = crossprod(M, A %*% M)
+	}
+	V = res$vcov
+	if (is.matrix(V) && all(dim(V) == n_par)) {
+		Mi = solve(M)
+		res$vcov = Mi %*% V %*% t(Mi)
+	}
+	res
+}
+
+# Cold refit of the unweighted proportional-odds model on centered and
+# scaled covariate columns (all but column 1 = treatment), with the fit
+# mapped back to the original parameterization. The treatment coefficient and
+# SE are unaffected by rescaling the other columns.
+ordinal_po_refit_centered_scaled = function(X_fit, y, smart_cold_start){
+	if (ncol(X_fit) < 2L) return(NULL)
+	tryCatch(
+		ordinal_fit_scaled(fast_ordinal_regression_with_var_cpp, X_fit, y, force = TRUE, smart_cold_start = smart_cold_start),
+		error = function(e) NULL
+	)
+}

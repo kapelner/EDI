@@ -26,7 +26,14 @@ InferenceAbstractKKMarginalIncid = define_inference_class(
 	# captures its own directly-defined layer, not anything inherited, so
 	# this migration does not affect it (verified: no `super$...()` calls
 	# anywhere in inference_incidence_KK_gcomp_abstract.R).
-	components = c("BayesianBootstrap", "Wald", "KKPassThrough"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"KKPassThrough"
+	),
 	metadata = list(likelihood_tier = "none"),
 	public = list(
 		# Pinned from InferenceRandCI (confirmed via the pre-migration R6

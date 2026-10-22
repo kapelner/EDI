@@ -92,7 +92,8 @@ test_that("lean GLM summary preserves coefficient inference", {
 })
 
 test_that("Turnbull helpers handle insufficient groups and compute contrasts", {
-  expect_true(is.na(EDI:::turnbull_npmle_group_stat(c(1, NA), c(2, 3))))
+  expect_warning(g <- EDI:::turnbull_npmle_group_stat(c(1, NA), c(2, 3)), "excluded 1 row")
+  expect_true(is.na(g))
   expect_true(is.na(EDI:::turnbull_npmle_stat_diff(c(1, 2), c(2, 3), c(1, 1))))
   skip_if_not_installed("interval")
   L <- c(1, 2, 3, 4, 2, 3, 4, 5)

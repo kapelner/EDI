@@ -70,6 +70,15 @@
 #' it to the currently loaded version the first time it is read, rather than
 #' erroring on the missing field.
 #'
+#' \strong{Randomization inference and the seed.} A seeded design's
+#' \code{draw_ws_according_to_design()} calls \code{maybe_set_seed()}, i.e.
+#' \code{set.seed()} on the global RNG, and does not restore the caller's
+#' stream. Randomization p-values/CIs draw their permutations from a
+#' \code{duplicate()} (which has no seed) under the inference object's
+#' \code{set_seed()}, falling back to this design's \code{seed}, inside a
+#' \code{.Random.seed} save/restore; see
+#' \code{Inference$set_seed()} and \code{clear_randomization_cache()}.
+#'
 #' \strong{RNG/reproducibility caveat.} \code{private$seed} is consumed only
 #' once, inside \code{maybe_set_seed()} at construction time, and is
 #' \emph{not} re-applied on \code{readRDS()}. Continuing to enroll subjects
@@ -475,11 +484,23 @@ Design = R6::R6Class("Design",
 				}
 			}
 		},
-		#' @description Checks if the experiment has any censored responses
+		#' @description Checks if the experiment has any censored responses.
+		#'   A subject is censored only when a censored response was actually
+		#'   recorded for it (\code{y} is \code{NA} while \code{y_L} is not);
+		#'   a subject whose response has not been recorded yet (all of
+		#'   \code{y}, \code{y_L}, \code{y_R} are \code{NA}) is not censored.
 		#'
 		#' @return  \code{TRUE} if any censored.
 		any_censoring = function(){
-			any(is.na(private$y))
+			# y_L is only ever non-NA for survival rows recorded with bounds
+			# (add_one_subject_response / add_all_subject_responses), so this is
+			# FALSE for every non-survival response type and for not-yet-recorded
+			# subjects (TODO-117).
+			n_yL = length(private$y_L)
+			if (n_yL == 0L) return(FALSE)
+			y = private$y
+			if (length(y) != n_yL) y = y[seq_len(n_yL)]
+			any(is.na(y) & !is.na(private$y_L))
 		},
 		#' @description Checks if the experiment has any left- or
 		#'   interval-censored survival responses -- i.e. any subject whose
@@ -1097,11 +1118,22 @@ Design = R6::R6Class("Design",
 			# subset.  Counting all columns is cheap and avoids an intermediate
 			# data.table dispatch/copy solely for the count.
 			analysis_col = !startsWith(names(private$Ximp), ".assignment_only_")
+			# TODO-103: the cluster id column is an assignment-unit label, not a
+			# covariate; under the default `~ .` it would enter the model matrix as
+			# collinear school dummies and distort the treatment coefficient.
+			if (!is.null(private$cluster_col) && length(private$cluster_col) == 1L) {
+				analysis_col = analysis_col & names(private$Ximp) != private$cluster_col
+			}
 			num_unique_values_per_column = count_unique_values_cpp(private$Ximp)
 			cols_for_model = which(analysis_col & num_unique_values_per_column > 1)
 			Ximp_for_model = private$Ximp[, .SD, .SDcols = cols_for_model]
 			# now we need to update the numeric model matrix which may have expanded due to new factors, new missingness cols, etc
 			private$X = create_model_matrix_from_features(private$design_formula, Ximp_for_model)
+			# TODO-111: a zero-column data.table reports nrow() == 0, so the helper returns
+			# a 0 x 0 matrix; downstream KK/frailty code needs n x 0.
+			if (ncol(private$X) == 0L && nrow(private$X) != private$t){
+				private$X = matrix(NA_real_, nrow = private$t, ncol = 0L)
+			}
 			# Ensure it is a numeric matrix (not character)
 			if (should_run_asserts()) {
 				if (ncol(private$X) > 0 && is.character(private$X)){

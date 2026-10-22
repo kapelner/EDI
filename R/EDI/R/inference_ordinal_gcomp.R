@@ -27,11 +27,18 @@
 #' inf = InferenceOrdinalGCompMeanDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceOrdinalGCompMeanDiff = define_inference_class(
 	classname = "InferenceOrdinalGCompMeanDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
@@ -100,6 +107,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		#'   unavailable. Identical to \code{$compute_wald_confidence_interval()}.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
@@ -123,6 +131,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		#'   unavailable. Identical to \code{$compute_wald_two_sided_pval()}.
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(delta)
 			}
@@ -144,6 +153,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		#'   generic "asymptotic" dispatch.
 		#' @param alpha The significance level (default 0.05).
 		compute_wald_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
@@ -167,6 +177,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		#'   "asymptotic" dispatch.
 		#' @param delta The null treatment effect (default 0).
 		compute_wald_two_sided_pval = function(delta = 0){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(delta)
 			}

@@ -135,6 +135,15 @@ StratifiedCoxPartialLikelihoodSource = list(
 #' log-hazard-ratio estimator units are not commensurate with the randomization
 #' CI bisection algorithm's log-time-ratio/AFT-effect null search).
 #'
+#' @section Matched designs:
+#' This class never looks at the pairing: on a matched design (for example
+#' \code{DesignFixedBinaryMatch}) it is \strong{not}
+#' \code{coxph(... + strata(pair))}, and a warning is issued at construction.
+#' Use \code{\link[EDI:InferenceSurvivalKKStratCoxPHOneLik]{InferenceSurvivalKKStratCoxPHOneLik}}
+#' for the pair-stratified Cox model.
+#'
+#' @seealso \code{\link[EDI:InferenceSurvivalKKStratCoxPHOneLik]{InferenceSurvivalKKStratCoxPHOneLik}}
+#'
 #' @examples
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
 #' for (i in 1:10) {
@@ -143,6 +152,7 @@ StratifiedCoxPartialLikelihoodSource = list(
 #' seq_des$add_all_subject_responses(runif(10))
 #' inf = InferenceSurvivalStratCoxPHRegr$new(seq_des)
 #' inf$compute_estimate()
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceSurvivalStratCoxPHRegr = define_inference_class(
 	classname = "InferenceSurvivalStratCoxPHRegr",
@@ -172,7 +182,14 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 	# helpers were literal NULLs, "attempt to apply non-function" on every
 	# call. Listed before StratifiedCoxPartialLikelihood, preserving the same
 	# "Cox component resolves/merges last" ordering.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "StratifiedCoxPartialLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"StratifiedCoxPartialLikelihood"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}. Pinned from
@@ -202,6 +219,10 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			self$set_optimization_alg(optimization_alg, allow_irls = FALSE)
 			super$initialize(des_obj, verbose = verbose, model_formula = model_formula, smart_cold_start_default = smart_cold_start_default)
 			private$use_rcpp = use_rcpp
+			if (isTRUE(des_obj$is_a_kk_matching_capable())) {
+				warning("InferenceSurvivalStratCoxPHRegr stratifies on low-cardinality covariates and ignores the matched pairs of this design; ",
+					"it is NOT coxph(... + strata(pair)). Use InferenceSurvivalKKStratCoxPHOneLik for a pair-stratified Cox model.", call. = FALSE)
+			}
 		},
 		#' @description Computes an asymptotic confidence interval using the configured likelihood-backed test.
 		#' @param alpha Significance level 1 - \code{alpha}. Default 0.05.

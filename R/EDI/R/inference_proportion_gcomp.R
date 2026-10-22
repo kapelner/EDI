@@ -45,11 +45,17 @@
 #' inf = InferencePropGCompMeanDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferencePropGCompMeanDiff = define_inference_class(
 	classname = "InferencePropGCompMeanDiff",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Jackknife"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
@@ -190,6 +196,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @description Computes a 1 - \code{alpha} confidence interval.
 		#' @param alpha The confidence level in the computed confidence interval is 1 - \code{alpha}.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
@@ -205,6 +212,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta The null mean difference. Defaults to 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1)
 			}
@@ -219,6 +227,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @description Computes a Wald two-sided p-value for the treatment effect.
 		#' @param delta The null mean difference. Defaults to 0.
 		compute_wald_two_sided_pval = function(delta = 0){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1)
 			}
@@ -228,6 +237,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @description Computes a Wald confidence interval for the treatment effect.
 		#' @param alpha The significance level. Default 0.05.
 		compute_wald_confidence_interval = function(alpha = 0.05){
+			edi_warn_cluster_independence_once(self, private, "wald")
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}

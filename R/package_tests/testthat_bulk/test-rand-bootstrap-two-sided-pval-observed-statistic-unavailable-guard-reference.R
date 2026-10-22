@@ -28,7 +28,8 @@ test_that("'rand_bootstrap_observed_statistic_unavailable' fires when the observ
 
 	pval <- f$inf$compute_rand_bootstrap_two_sided_pval(B = 25L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "rand_bootstrap_observed_statistic_unavailable")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "rand_bootstrap_observed_statistic_unavailable")
 })
 
 test_that("'rand_bootstrap_observed_statistic_unavailable' fires when the observed statistic is a length-0 vector", {
@@ -38,5 +39,6 @@ test_that("'rand_bootstrap_observed_statistic_unavailable' fires when the observ
 
 	pval <- f$inf$compute_rand_bootstrap_two_sided_pval(B = 25L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "rand_bootstrap_observed_statistic_unavailable")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "rand_bootstrap_observed_statistic_unavailable")
 })

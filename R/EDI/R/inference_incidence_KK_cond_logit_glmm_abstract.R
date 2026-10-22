@@ -45,7 +45,14 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 	# -- none of the three call `super$...()` anywhere in their own bodies
 	# (verified by grep), so no generic-alias overrides were needed for this
 	# migration.
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "KKPassThrough"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"KKPassThrough"
+	),
 	# capabilities = "likelihood_ratio" is required explicitly -- same
 	# rationale as every class composing ParametricLikelihoodBootstrap
 	# directly (bypassing StandardModelCache) this stretch.
@@ -171,15 +178,39 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			private$shared(estimate_only = FALSE)
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			# TODO-121: dispatch on the testing type (was: always Wald).
+			switch(
+				private$testing_type,
+				wald = {
+					private$shared(estimate_only = FALSE)
+					private$compute_z_or_t_ci_from_s_and_df(alpha)
+				},
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
+				stop("Unsupported testing_type: ", private$testing_type)
+			)
 		},
 		#' @description Uses the shared asymptotic two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta Numeric. Null treatment effect value (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
-			private$shared(estimate_only = FALSE)
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			# TODO-121: dispatch on the testing type (was: always Wald).
+			switch(
+				private$testing_type,
+				wald = {
+					private$shared(estimate_only = FALSE)
+					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+				},
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
+				stop("Unsupported testing_type: ", private$testing_type)
+			)
 		}
 	),
 	private = list(

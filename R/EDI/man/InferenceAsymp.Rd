@@ -21,7 +21,6 @@ Abstract class for asymptotic inference.
     \item \href{#method-InferenceAsymp-compute_wald_confidence_interval}{\code{InferenceAsymp$compute_wald_confidence_interval()}}
     \item \href{#method-InferenceAsymp-compute_estimate}{\code{InferenceAsymp$compute_estimate()}}
     \item \href{#method-InferenceAsymp-get_mod}{\code{InferenceAsymp$get_mod()}}
-    \item \href{#method-InferenceAsymp-get_summary}{\code{InferenceAsymp$get_summary()}}
     \item \href{#method-InferenceAsymp-clone}{\code{InferenceAsymp$clone()}}
   }
 }
@@ -91,6 +90,7 @@ Abstract class for asymptotic inference.
 <details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -103,6 +103,7 @@ Abstract class for asymptotic inference.
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
@@ -292,19 +293,6 @@ estimate and SE. Calls \code{compute_estimate()} first if needed.
   }
   \subsection{Returns}{
     The cached model object (type depends on the concrete class).
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-InferenceAsymp-get_summary"></a>}}
-\if{latex}{\out{\hypertarget{method-InferenceAsymp-get_summary}{}}}
-\subsection{\code{InferenceAsymp$get_summary()}}{
-  Prints a summary of the model from the last call that produced the
-treatment estimate and SE.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{InferenceAsymp$get_summary()}
-    \if{html}{\out{</div>}}
   }
 }
 

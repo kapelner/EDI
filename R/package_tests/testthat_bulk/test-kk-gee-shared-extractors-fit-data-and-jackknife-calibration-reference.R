@@ -147,13 +147,14 @@ test_that("jackknife-Wald wrappers pass valid results and otherwise cache an una
 		unlockBinding("compute_jackknife_wald_two_sided_pval", g$inf)
 		g$inf$compute_jackknife_wald_two_sided_pval <- local({ b <- bad; function(delta = 0) b })
 		expect_true(is.na(g$p$compute_kk_gee_jackknife_wald_two_sided_pval(0)))
-		expect_identical(g$inf$get_nonestimable_reason(), "kk_count_gee_jackknife_wald_calibration_unavailable")
+		expect_false(isTRUE(g$inf$is_nonestimable("se")))
+		expect_identical(g$p$cached_values$procedure_failure_reason[["jackknife"]], "kk_count_gee_jackknife_wald_calibration_unavailable")
 	}
 	h <- gee_fx()
 	unlockBinding("compute_jackknife_wald_two_sided_pval", h$inf)
 	h$inf$compute_jackknife_wald_two_sided_pval <- function(delta = 0) stop("boom")
 	expect_true(is.na(h$p$compute_kk_gee_jackknife_wald_two_sided_pval(0)))
-	expect_true(h$inf$is_nonestimable("se"))
+	expect_false(isTRUE(h$inf$is_nonestimable("se")))
 
 	f$inf$compute_jackknife_wald_confidence_interval <- function(alpha = 0.05) c("2.5%" = -1, "97.5%" = 2)
 	expect_equal(f$p$compute_kk_gee_jackknife_wald_confidence_interval(0.05), c("2.5%" = -1, "97.5%" = 2))
@@ -164,6 +165,6 @@ test_that("jackknife-Wald wrappers pass valid results and otherwise cache an una
 		ci <- g$p$compute_kk_gee_jackknife_wald_confidence_interval(0.1)
 		expect_true(all(is.na(ci)))
 		expect_equal(names(ci), c("5%", "95%"))
-		expect_true(g$inf$is_nonestimable("se"))
+		expect_false(isTRUE(g$inf$is_nonestimable("se")))
 	}
 })

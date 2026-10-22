@@ -165,6 +165,7 @@ Collate:
     'inference_ext_minimum_volatility_selector.R'
     'inference_ext_m_out_of_n_bootstrap.R'
     'inference_ext_prw_subsampling.R'
+    'inference_all_abstract_resampling_core.R'
     'inference_all_abstract_non_param_boot.R'
     'inference_all_abstract_rand_bootstrap.R'
     'inference_all_abstract_rand_bootstrap_ci.R'

@@ -14,6 +14,16 @@
 # "full"` (real Gaussian likelihood with an exact, not merely
 # higher-order-accurate, Bartlett factor) -- first full (non-Cox-partial)
 # one-likelihood KK class migrated this stretch.
+# Null fit when beta_T is the only column of the stacked design (TODO-122):
+# every parameter is fixed, no optimisation, b = delta. The C++ solver
+# (fast_ols_with_var_cpp) throws "at least one parameter must remain free".
+kk_ols_fully_fixed_null_fit = function(delta, y, X){
+	delta = as.numeric(delta)[1L]
+	if (!is.finite(delta)) return(NULL)
+	rss = sum((y - X %*% delta)^2)
+	list(b = delta, sigma2_hat = rss / length(y), converged = TRUE, fixed_all = TRUE)
+}
+
 #' KK combined-likelihood OLS inference component source.
 #'
 #' @noRd
@@ -261,6 +271,7 @@ ContinKKOLSOneLikLikelihoodSource = list(
 			list(
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
+					if (ncol(X_fit) == 1L) return(kk_ols_fully_fixed_null_fit(d, y_sim, X_fit))
 					tryCatch(
 						fast_ols_with_var_cpp(
 							X = X_fit, y = y_sim, j = j,
@@ -303,6 +314,9 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
+					# TODO-122: beta_T is the only column (all-matched, no covariates):
+					# nothing is left to optimise, and the C++ solver throws.
+					if (ncol(X_fit) == 1L) return(kk_ols_fully_fixed_null_fit(delta, y, X_fit))
 					fast_ols_with_var_cpp(
 						X = X_fit,
 						y = y,
@@ -337,8 +351,10 @@ ContinKKOLSOneLikLikelihoodSource = list(
 		# Copied from InferenceAsympLikStdModCache to avoid multiple inheritance issues
 		# while still using the shared infrastructure.
 		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
+			edi_warn_cluster_independence_once(self, private, "likelihood")
 			spec = private$get_likelihood_test_spec()
 			if (is.null(spec)) {
+				edi_warn_lik_test_unavailable_once(self, private, testing_type, delta, reason = "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification)")
 				if (!isTRUE(self$is_nonestimable())) {
 					private$cache_nonestimable_estimate("likelihood_test_spec_unavailable")
 				}
@@ -351,6 +367,7 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				warm_cache_key = paste0("likelihood_test:", testing_type),
 				bartlett_B = bartlett_B
 			)
+			if (!is.finite(p_value)) edi_warn_lik_test_unavailable_once(self, private, testing_type, delta)
 			if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
 				private$cache_nonestimable_se(paste0(testing_type, "_test_unavailable"))
 			}
@@ -620,7 +637,13 @@ ContinKKOLSOneLikLikelihoodSource = list(
 InferenceContinKKOLSOneLik = define_inference_class(
 	classname = "InferenceContinKKOLSOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ContinKKOLSOneLikLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ContinKKOLSOneLikLikelihood"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival/count/continuous KK migration this stretch.

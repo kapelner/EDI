@@ -1,3 +1,27 @@
+# DeLong (1988) standard error of the Mann-Whitney contrast theta - 1/2, where
+# theta = P(Y_T > Y_C) + 0.5 P(Y_T = Y_C): Var(V10)/n_T + Var(V01)/n_C, with V10_i the
+# control-CDF midrank (ridit) of treated subject i and V01_j = 1 - the treated-CDF
+# midrank of control subject j. The pooled-reference ridit contrast equals
+# (n_C / N) (theta - 1/2), so its SE is (n_C / N) times the DeLong SE.
+ridit_delong_se = function(y, w, reference = "control"){
+	y_t = y[w == 1L]
+	y_c = y[w == 0L]
+	n_t = length(y_t)
+	n_c = length(y_c)
+	if (n_t < 1L || n_c < 1L) return(NA_real_)
+	if (n_t < 2L || n_c < 2L) return(0)
+	cats = sort(unique(y))
+	cdf_mid = function(ref_y) {
+		p = tabulate(match(ref_y, cats), nbins = length(cats)) / length(ref_y)
+		cumsum(p) - p / 2
+	}
+	v10 = cdf_mid(y_c)[match(y_t, cats)]
+	v01 = 1 - cdf_mid(y_t)[match(y_c, cats)]
+	se = sqrt(stats::var(v10) / n_t + stats::var(v01) / n_c)
+	if (identical(reference, "pooled")) se = se * n_c / (n_t + n_c)
+	se
+}
+
 #' Ridit Analysis for Ordinal Responses
 #'
 #' Performs Ridit analysis (Relative to an Identified Distribution unit) for
@@ -23,8 +47,10 @@
 #' to \code{\link[EDI:InferenceOrdinalJonckheereTerpstraTest]{InferenceOrdinalJonckheereTerpstraTest}}'s
 #' superiority measure but referenced against a chosen distribution rather than
 #' always symmetric between the two arms. Standard errors and p-values come
-#' from \code{fast_ridit_analysis_cpp}'s asymptotic formula, not a resampling
-#' approximation.
+#' from the DeLong (1988) asymptotic variance of the underlying Mann-Whitney
+#' contrast, Var(V10)/n_T + Var(V01)/n_C (times n_C/N for a pooled reference),
+#' which accounts for the sampling variability of the reference arm; they are
+#' not a resampling approximation.
 #'
 #' @references Bross, I. D. J. (1958). "How to Use Ridit Analysis."
 #'   \emph{Biometrics}, 14(1), 18-38, \doi{10.2307/2527727}, for the ridit
@@ -51,7 +77,13 @@
 InferenceOrdinalRidit = define_inference_class(
 	classname = "InferenceOrdinalRidit",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald"
+	),
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
@@ -184,7 +216,7 @@ InferenceOrdinalRidit = define_inference_class(
 		},
 		#' @description Computes the asymptotic confidence interval for the
 		#'   oriented ridit treatment effect, using
-		#'   \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
+		#'   the DeLong asymptotic standard error.
 		#' @param alpha Significance level.
 		#' @return A numeric vector of length 2.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -193,7 +225,7 @@ InferenceOrdinalRidit = define_inference_class(
 		},
 		#' @description Computes a two-sided Wald p-value for the oriented ridit
 		#'   contrast (i.e. \code{delta = 0} tests the null of no group difference), using
-		#'   \code{fast_ridit_analysis_cpp}'s asymptotic standard error.
+		#'   the DeLong asymptotic standard error.
 		#' @param delta The null value (centered at 0, so delta=0 means Ridit=0.5).
 		#' @return The p-value.
 		compute_asymp_two_sided_pval = function(delta = 0){
@@ -238,20 +270,19 @@ InferenceOrdinalRidit = define_inference_class(
 			}
 			private$cached_values$mean_ridit_t = res$mean_ridit_t
 			private$cached_values$mean_ridit_c = res$mean_ridit_c
+			# The estimate is the same Mann-Whitney contrast theta - 1/2 under the control and
+			# treatment references (theta - 1/2 scaled by n_C / N under the pooled one), so
+			# the SE must be the DeLong one that includes the reference arm's sampling
+			# variability; sd(target-arm scores) / sqrt(n) treats the reference CDF as known.
 			if (identical(private$reference, "treatment")) {
-				# A reference population's own mean ridit is exactly 0.5. Compare
-				# controls against the treated reference and reverse the sign so the
-				# estimand keeps the package-wide positive-treatment orientation.
 				private$cached_values$beta_hat_T = as.numeric(0.5 - res$mean_ridit_c)
-				if (!estimate_only) {
-					control_scores = as.numeric(res$scores)[as.integer(private$w) == 0L]
-					private$cached_values$s_beta_hat_T = if (length(control_scores) > 1L) {
-						stats::sd(control_scores) / sqrt(length(control_scores))
-					} else if (length(control_scores) == 1L) 0 else NA_real_
-				}
 			} else {
 				private$cached_values$beta_hat_T = res$estimate
-				if (!estimate_only) private$cached_values$s_beta_hat_T = res$se
+			}
+			if (!estimate_only) {
+				private$cached_values$s_beta_hat_T = ridit_delong_se(
+					as.integer(private$y), as.integer(private$w), private$reference
+				)
 			}
 			private$cached_values$scores       = res$scores
 		},

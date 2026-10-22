@@ -30,7 +30,8 @@ test_that("'param_bootstrap_estimate_too_few_usable_replicates' fires on compute
 
 	res <- inf$compute_param_bootstrap_estimate(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(res))
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_too_few_usable_replicates")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "param_bootstrap_estimate_too_few_usable_replicates")
 })
 
 test_that("'param_bootstrap_estimate_extreme_bias_correction' fires when the bias-corrected theta is flagged extreme", {
@@ -43,7 +44,8 @@ test_that("'param_bootstrap_estimate_extreme_bias_correction' fires when the bia
 
 	res <- inf$compute_param_bootstrap_estimate(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(res))
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_extreme_bias_correction")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "param_bootstrap_estimate_extreme_bias_correction")
 })
 
 test_that("'param_bootstrap_estimate_too_few_usable_replicates' fires on compute_param_bootstrap_confidence_interval()", {
@@ -54,7 +56,8 @@ test_that("'param_bootstrap_estimate_too_few_usable_replicates' fires on compute
 
 	ci <- inf$compute_param_bootstrap_confidence_interval(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(all(is.na(ci)))
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_too_few_usable_replicates")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "param_bootstrap_estimate_too_few_usable_replicates")
 })
 
 test_that("'param_bootstrap_estimate_extreme_confidence_interval' fires when the reflected CI is flagged extreme", {
@@ -67,7 +70,8 @@ test_that("'param_bootstrap_estimate_extreme_confidence_interval' fires when the
 
 	ci <- inf$compute_param_bootstrap_confidence_interval(B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(all(is.na(ci)))
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_extreme_confidence_interval")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "param_bootstrap_estimate_extreme_confidence_interval")
 })
 
 test_that("'param_bootstrap_estimate_too_few_usable_replicates' fires on compute_param_bootstrap_pval()", {
@@ -78,7 +82,8 @@ test_that("'param_bootstrap_estimate_too_few_usable_replicates' fires on compute
 
 	pval <- inf$compute_param_bootstrap_pval(delta = 0, B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_too_few_usable_replicates")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "param_bootstrap_estimate_too_few_usable_replicates")
 })
 
 test_that("'param_bootstrap_estimate_extreme_pvalue_reflection' fires when the reflected delta statistic is flagged extreme", {
@@ -91,5 +96,6 @@ test_that("'param_bootstrap_estimate_extreme_pvalue_reflection' fires when the r
 
 	pval <- inf$compute_param_bootstrap_pval(delta = 0, B = 20L, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(inf$get_nonestimable_reason(), "param_bootstrap_estimate_extreme_pvalue_reflection")
+	expect_false(inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "param_bootstrap_estimate_extreme_pvalue_reflection")
 })

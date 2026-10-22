@@ -1,6 +1,7 @@
 # Interim class (documentation demoted to plain comments): only consumed via
 # inference_component_source_parts() below; the composed class is documented on the
 # final define_inference_class() assignment.
+#' @inheritSection InferenceContinOLS Blocking designs
 InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 	lock_objects = FALSE,
 	inherit = InferenceAsympLikStdModCache,
@@ -78,7 +79,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 			}
 			n_params = ncol(X) + length(sort(unique(private$y))) - 1L
 			ws_fisher = private$get_fit_warm_start_fisher(n_params)
-			res = fast_ordinal_cauchit_regression_cpp(
+			res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
 				X = X, y = as.numeric(private$y),
 				warm_start_params = private$get_fit_warm_start_for_length("params", n_params),
 				warm_start_fisher_info = ws_fisher,
@@ -116,7 +117,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 			X_fit    = spec$X
 			j        = spec$j
 			full_res = tryCatch(
-				fast_ordinal_cauchit_regression_cpp(
+				ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
 					X_fit, y_sim,
 					smart_cold_start = private$smart_cold_start_default
 				),
@@ -130,7 +131,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
 					res = tryCatch(
-						fast_ordinal_cauchit_regression_cpp(
+						ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
 							X_fit, y_sim,
 							warm_start_params = start %||% full_fit_boot$params,
 							fixed_idx = j, fixed_values = d,
@@ -157,7 +158,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 				full_fit = full_fit,
 				fit_null = function(delta, start = NULL){
 					res = tryCatch(
-						fast_ordinal_cauchit_regression_cpp(
+						ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
 							X_fit, y,
 							fixed_idx = j_treat, fixed_values = delta,
 							warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$full_params)),
@@ -197,7 +198,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 					warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
 					warm_fisher = private$get_fit_warm_start_fisher(n_params)
 					if (estimate_only) {
-						res = fast_ordinal_cauchit_regression_cpp(
+						res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
 							X_fit, private$y,
 							warm_start_params = warm_start_params,
 							warm_start_fisher_info = warm_fisher,
@@ -207,7 +208,7 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 						if (is.null(res) || length(res) == 0) return(NULL)
 						list(b = res$b, ssq_b_j = NA_real_, params = res$params, fisher_information = warm_fisher)
 					} else {
-						res = fast_ordinal_cauchit_regression_with_var_cpp(
+						res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_with_var_cpp,
 							X_fit, private$y,
 							warm_start_params = warm_start_params,
 							warm_start_fisher_info = warm_fisher,
@@ -286,7 +287,10 @@ InferenceOrdinalCauchitRegr = define_inference_class(
 	classname = "InferenceOrdinalCauchitRegr",
 	inherit = Inference,
 	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
 		"BayesianBootstrap",
+		"Jackknife",
 		"ParametricLikelihoodBootstrap",
 		"OrdinalCauchitLikelihood"
 	),

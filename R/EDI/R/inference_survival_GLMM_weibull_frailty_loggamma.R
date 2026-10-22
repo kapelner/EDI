@@ -3,6 +3,75 @@
 # compound layer arrives through the registered KKCompound component (this
 # component's declared dependency); this source holds only the class's own
 # estimator overrides.
+# Lower bound on the Clayton dependence log(theta) for NULL refits (TODO-121 third batch).
+# As theta -> 0 the Clayton/loggamma-frailty likelihood degenerates to the independent
+# (no-frailty) Weibull likelihood, so a constrained null fit whose frailty variance is
+# really zero has its optimum AT that boundary (log-theta drifts to -16 and beyond).
+# The native kernel evaluates logA = log(exp(theta*h1) + exp(theta*h2) - 1) directly,
+# which cancels catastrophically for theta << 1e-4 (inner -> 0, loglik NaN), and its
+# lower tail is deliberately unbounded.  Below this floor the likelihood is within
+# ~1e-5 of its theta -> 0 limit but still numerically exact, and the R fallback fitter
+# (.fit_clayton_weibull_aft) uses the same -12 bound.
+.CLAYTON_LOG_THETA_NULL_FLOOR = -12
+
+# Robust null refit for the Clayton-copula Weibull AFT kernel.  Tries the caller's warm
+# start first (so well-behaved fits are bit-identical to the plain kernel call); if that
+# errors, does not converge, has a non-finite objective, or ran past the log-theta floor
+# it falls back to multi-start: (a) log-theta FIXED at the floor (the no-frailty limit)
+# from the warm start and from the cold no-frailty Weibull start, (b) a free cold start.
+# The best finite objective among valid candidates (log-theta >= floor) is kept.
+.clayton_weibull_null_fit_robust = function(X, y, dead, pair_idx, singleton_rows, j, delta,
+		warm_start_params, warm_start_fisher_info = NULL, optimization_alg = "lbfgs"){
+	n_par = ncol(X) + 2L
+	lt_idx = n_par
+	floor_lt = .CLAYTON_LOG_THETA_NULL_FLOOR
+	run = function(start, fixed_idx, fixed_values, fisher = NULL){
+		tryCatch(
+			fast_clayton_weibull_aft_optim_cpp(
+				X = X, y = y, dead = dead,
+				pair_idx = pair_idx, singleton_rows = singleton_rows,
+				warm_start_params = start,
+				warm_start_fisher_info = fisher,
+				estimate_only = FALSE,
+				optimization_alg = optimization_alg,
+				fixed_idx = fixed_idx, fixed_values = fixed_values
+			),
+			error = function(e) NULL
+		)
+	}
+	is_valid = function(f){
+		if (is.null(f) || !isTRUE(f$converged)) return(FALSE)
+		nll = as.numeric(f$neg_loglik %||% f$value)
+		par = as.numeric(f$params %||% f$par)
+		length(nll) == 1L && is.finite(nll) && length(par) == n_par && all(is.finite(par)) &&
+			par[lt_idx] >= floor_lt - 1e-8
+	}
+	primary = run(warm_start_params, j, delta, warm_start_fisher_info)
+	if (is_valid(primary)) return(primary)
+
+	warm = as.numeric(warm_start_params)
+	if (length(warm) != n_par || !all(is.finite(warm))) warm = NULL
+	cold = tryCatch({
+		st = .extract_survreg_start(y, dead, X[, -1L, drop = FALSE])
+		c(unname(st$beta), st$log_sigma, log(0.5))
+	}, error = function(e) NULL)
+	if (!is.null(cold) && (length(cold) != n_par || !all(is.finite(cold)))) cold = NULL
+	cands = list()
+	clamp_start = function(s){ s[j] = delta; s[lt_idx] = floor_lt; s }
+	if (!is.null(warm)) cands[[length(cands) + 1L]] = run(clamp_start(warm), c(j, lt_idx), c(delta, floor_lt))
+	if (!is.null(cold)) {
+		cands[[length(cands) + 1L]] = run(clamp_start(cold), c(j, lt_idx), c(delta, floor_lt))
+		cs = cold; cs[j] = delta
+		cands[[length(cands) + 1L]] = run(cs, j, delta)
+	}
+	ok = Filter(is_valid, cands)
+	if (length(ok) == 0L) return(primary)  # nothing valid: hand back the original (caller handles NA)
+	nll = vapply(ok, function(f) as.numeric(f$neg_loglik %||% f$value), numeric(1))
+	best = ok[[which.min(nll)]]
+	best$log_theta_null_floor_fallback = TRUE
+	best
+}
+
 #' GLMM Weibull log-gamma-frailty IVWC component source
 #'
 #' Source list for the KK inverse-variance-weighted-combination (IVWC) Weibull log-gamma-frailty survival component.
@@ -473,7 +542,14 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = define_inference_class(
 	classname = "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "Wald", "SurvivalGLMMWeibullFrailtyLoggammaIVWC"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"SurvivalGLMMWeibullFrailtyLoggammaIVWC"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as the
 		# other survival KK migrations (RandCI's Zhang dispatch never applies).
@@ -581,8 +657,20 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
-			private$shared()
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			# TODO-121: dispatch on the testing type (was: always Wald).
+			switch(
+				private$testing_type,
+				wald = {
+					private$shared()
+					private$compute_z_or_t_ci_from_s_and_df(alpha)
+				},
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
+				stop("Unsupported testing_type: ", private$testing_type)
+			)
 		},
 		#' @description Compute the one-likelihood Clayton-copula survival
 		#'   asymptotic p-value for the treatment effect using the fitted dependence
@@ -592,8 +680,20 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 			if (should_run_asserts()) {
 				assertNumeric(delta)
 			}
-			private$shared()
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			# TODO-121: dispatch on the testing type (was: always Wald).
+			switch(
+				private$testing_type,
+				wald = {
+					private$shared()
+					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+				},
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
+				stop("Unsupported testing_type: ", private$testing_type)
+			)
 		},
 		# 2026-08-19 (fix_inference_hierarchy.md "Static Cleanup", "Ban
 		# eval(body(Inference...))"): removed the redundant
@@ -712,18 +812,15 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 					warm_start_params = start %||% private$get_fit_warm_start_for_length("params", start_len)
 					if (length(warm_start_params) == 0L) warm_start_params = ctx$start
 					warm_fisher = private$get_fit_warm_start_fisher(start_len)
-					fast_clayton_weibull_aft_optim_cpp(
-						X = X,
-						y = y,
-						dead = dead,
-						pair_idx = pair_idx,
-						singleton_rows = singleton_rows,
+					# TODO-121 third batch: robust to the log-theta -> -Inf (no-frailty)
+					# boundary, where the native kernel's likelihood is NaN.
+					.clayton_weibull_null_fit_robust(
+						X = X, y = y, dead = dead,
+						pair_idx = pair_idx, singleton_rows = singleton_rows,
+						j = j_treat, delta = delta,
 						warm_start_params = warm_start_params,
 						warm_start_fisher_info = warm_fisher,
-						estimate_only = FALSE,
-						optimization_alg = private$optimization_alg,
-						fixed_idx = j_treat,
-						fixed_values = delta
+						optimization_alg = private$optimization_alg
 					)
 				},
 				extract_start = function(fit){
@@ -930,13 +1027,12 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 				fit_null = function(d, start = NULL){
 					warm = start %||% full_par
 					tryCatch(
-						fast_clayton_weibull_aft_optim_cpp(
+						.clayton_weibull_null_fit_robust(
 							X = X, y = y_sim, dead = dead_sim,
 							pair_idx = pair_idx, singleton_rows = singleton_rows,
+							j = j, delta = d,
 							warm_start_params = warm,
-							estimate_only = FALSE,
-							optimization_alg = private$optimization_alg,
-							fixed_idx = j, fixed_values = d
+							optimization_alg = private$optimization_alg
 						),
 						error = function(e) NULL
 					)
@@ -1007,7 +1103,14 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = define_inference_class(
 	classname = "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "SurvivalGLMMWeibullFrailtyLoggammaOneLik"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"SurvivalGLMMWeibullFrailtyLoggammaOneLik"
+	),
 	public = list(
 		# Pinned from InferenceRand -- same flattened-super$ rationale as every
 		# other survival KK migration this stretch.

@@ -32,7 +32,8 @@ test_that("pval_bayesian_bca() caches 'bayesian_bootstrap_bca_jackknife_unavaila
 
 	res <- f$priv$pval_bayesian_bca(boot_distr = rnorm(50, 0.5, 0.2), est = 0.5, delta = 0)
 	expect_true(is.na(res))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_bca_jackknife_unavailable")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_bca_jackknife_unavailable")
 })
 
 test_that("ci_bayesian_bca() reports 'bayesian_bootstrap_bca_jackknife_unavailable' as an NA CI when fewer than 2 finite jackknife replicates remain", {
@@ -42,5 +43,6 @@ test_that("ci_bayesian_bca() reports 'bayesian_bootstrap_bca_jackknife_unavailab
 
 	ci <- f$priv$ci_bayesian_bca(boot_distr = rnorm(50, 0.5, 0.2), alpha = 0.05, est = 0.5)
 	expect_true(all(is.na(ci)))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_bca_jackknife_unavailable")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_bca_jackknife_unavailable")
 })

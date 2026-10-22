@@ -72,10 +72,11 @@ test_that("KM median difference and RMST difference per resample match survfit; 
 		ref <- vapply(seq_len(f$B), function(b) km(f$y[f$i_mat[, b]], f$dead[f$i_mat[, b]], f$w_mat[, b], spec[2]), 0)
 		expect_equal(as.numeric(got), ref, tolerance = 1e-8, info = spec[1])
 	}
-	par <- K("compute_survival_stat_diff_rand_bootstrap_parallel_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, FALSE, matrix(0, 0, 0), 1L)
+	# noise_mat must be NULL (not an empty matrix, which the kernel reads out of bounds)
+	par <- K("compute_survival_stat_diff_rand_bootstrap_parallel_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, FALSE, NULL, 1L)
 	ser <- K("compute_survival_stat_diff_rand_bootstrap_serial_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, "median")
 	expect_equal(as.numeric(par), as.numeric(ser), tolerance = 1e-12)
-	par_rmst <- K("compute_survival_stat_diff_rand_bootstrap_parallel_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, TRUE, matrix(0, 0, 0), 1L)
+	par_rmst <- K("compute_survival_stat_diff_rand_bootstrap_parallel_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, TRUE, NULL, 1L)
 	ser_rmst <- K("compute_survival_stat_diff_rand_bootstrap_serial_cpp")(f$y, f$dead, f$i_mat, f$w_mat, 0, "restricted_mean")
 	expect_equal(as.numeric(par_rmst), as.numeric(ser_rmst), tolerance = 1e-12)
 })

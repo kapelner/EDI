@@ -110,7 +110,12 @@ user_sub_fixture <- function(seed = 5L, n = 24L) {
 	UserSub$new(des, model_formula = ~1, verbose = FALSE)
 }
 
-test_that("a raw clone() does not inherit the attribute-stored marker (locked private env) and still resolves state-reading methods to the source's own state until rebound, then to its own state after rebind", {
+# 2026-10-22 (release_v1_0_5.md TODO-125): install_lazy_inference_component() now closes installed
+# methods over the calling stub's own R6 enclosing env instead of the stub's call frame, so R6's own
+# clone() remaps them. The test below used to pin the pre-fix trap (a raw clone's method reading the
+# SOURCE's state until rebound); it now pins the fixed behavior: the raw clone reads its OWN state
+# immediately, and the rebind helper (kept for one release) is a no-op on it.
+test_that("a raw clone() does not inherit the attribute-stored marker (locked private env) but already resolves state-reading methods to its own state; the rebind helper is then a no-op", {
 	src <- user_sub_fixture(seed = 3L, n = 30L)
 	src_priv <- src$.__enclos_env__$private
 	expect_true(environmentIsLocked(src_priv))
@@ -126,23 +131,28 @@ test_that("a raw clone() does not inherit the attribute-stored marker (locked pr
 	clone_ctx <- list(row_to_unit = c(1L, 2L, 2L, 3L), unit_group_id = c(1L, 2L, 3L), n_units = 3L)
 	clone_priv$current_bayesian_bootstrap_context <- clone_ctx
 
-	# Pre-rebind: the clone's copy of the method is still bound to the SOURCE's environment, so it
-	# reads src_ctx (n_units = 2), not clone_priv's own clone_ctx (n_units = 3) -- a length-3 weight
-	# vector (valid for the clone's own context) is rejected because the function actually validated
-	# against the source's n_units = 2.
-	expect_error(clone_priv$expand_subject_or_block_weights_to_row_weights(c(1, 1, 1)))
-	# A length-2 vector (valid only for the STALE source context) is accepted, proving the read really
-	# does come from the source, and reproduces the source's own expansion.
-	expect_equal(clone_priv$expand_subject_or_block_weights_to_row_weights(c(5, 9)), c(5, 5, 9))
+	# Pre-rebind (TODO-125 fix): the clone's copy of the method already reads the clone's OWN
+	# clone_ctx (n_units = 3), not the source's src_ctx (n_units = 2) -- a length-2 vector (valid only
+	# for the source's context) is rejected, and the clone's own expansion matches a hand-computed
+	# independent reference.
+	expect_error(clone_priv$expand_subject_or_block_weights_to_row_weights(c(5, 9)))
+	expect_equal(clone_priv$expand_subject_or_block_weights_to_row_weights(c(2, 4, 6)), c(2, 4, 4, 6))
+	# The method is closed over one of the CLONE's own enclosing envs (R6 closes an inherited method
+	# over its defining level's env, so for this user subclass it is not necessarily the leaf's).
+	clone_enclos <- list(raw_clone$.__enclos_env__)
+	while (is.environment(clone_enclos[[length(clone_enclos)]]$super)) {
+		clone_enclos[[length(clone_enclos) + 1L]] <- clone_enclos[[length(clone_enclos)]]$super$.__enclos_env__
+	}
+	env_before <- environment(clone_priv$expand_subject_or_block_weights_to_row_weights)
+	expect_true(any(vapply(clone_enclos, function(e) identical(env_before, e), logical(1L))))
 
 	result <- edi_ns("edi_rebind_lazy_components_after_clone")(raw_clone, source_private = src_priv)
 	expect_identical(result, raw_clone)
 	expect_true("BayesianBootstrap" %in% attr(clone_priv, marker_name, exact = TRUE))
-	expect_identical(environment(clone_priv$expand_subject_or_block_weights_to_row_weights), raw_clone$.__enclos_env__)
+	# No-op: the rebind leaves the (already correct) closure environment alone.
+	expect_identical(environment(clone_priv$expand_subject_or_block_weights_to_row_weights), env_before)
 
-	# Post-rebind: the clone's own context (n_units = 3) is now what's read -- a length-2 vector (only
-	# valid pre-rebind) is now rejected, and the correct row-expansion for the clone's own context
-	# matches a hand-computed independent reference.
+	# Post-rebind: still the clone's own context.
 	expect_error(clone_priv$expand_subject_or_block_weights_to_row_weights(c(5, 9)))
 	expect_equal(clone_priv$expand_subject_or_block_weights_to_row_weights(c(2, 4, 6)), c(2, 4, 4, 6))
 	# The source itself is untouched by any of this.

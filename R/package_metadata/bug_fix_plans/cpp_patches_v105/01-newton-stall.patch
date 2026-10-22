@@ -1,0 +1,75 @@
+--- a/R/EDI/src/_helper_functions_core.h
++++ b/R/EDI/src/_helper_functions_core.h
+@@ -1410,6 +1410,28 @@
+     return llt.info() == Eigen::Success;
+ }
+ 
++// TODO-123 (optimize_likelihood_newton_false_nonconvergence.md): accept a Newton
++// terminal state that stalled at (numerically) the optimum. The gradient is a
++// SUM over observations, so the absolute `tol` is not scale-free; tol * lambda_max(H)
++// is the gradient size that corresponds to a parameter error of ~tol
++// (|theta - theta*| ~ H^-1 g). 10x slack plus an absolute cap of 1e-4.
++// Returns false for any non-finite quantity, so true failures are never loosened.
++template <typename LikelihoodFunctor>
++inline bool newton_stalled_at_optimum(LikelihoodFunctor& fun,
++                                      const Eigen::VectorXd& params,
++                                      double gnorm,
++                                      double tol) {
++    if (!std::isfinite(gnorm)) return false;
++    Eigen::MatrixXd H = hessian_for_opt(fun, params);
++    if (!H.allFinite()) return false;
++    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(
++        0.5 * (H + H.transpose()), Eigen::EigenvaluesOnly);
++    if (es.info() != Eigen::Success) return false;
++    const double lam_max = es.eigenvalues().cwiseAbs().maxCoeff();
++    if (!std::isfinite(lam_max)) return false;
++    return gnorm < std::min(1e-4, 10.0 * tol * std::max(1.0, lam_max));
++}
++
+ template <typename LikelihoodFunctor>
+ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
+                                                       Eigen::VectorXd params,
+@@ -1423,6 +1445,9 @@
+     // out to the non-converged fallback return, so that path can report a
+     // gradient norm too without a re-evaluation.
+     double last_grad_norm = std::numeric_limits<double>::quiet_NaN();
++    // TODO-123: set only by the line-search-failure exit; the singular-Hessian
++    // and non-finite exits never set it, so they are never loosened.
++    bool stalled = false;
+ 
+     for (int iter = 0; iter < maxit; ++iter) {
+         edi_check_R_user_interrupt_every(iter);
+@@ -1463,7 +1488,7 @@
+             }
+             step_scale *= 0.5;
+         }
+-        if (!accepted) break;
++        if (!accepted) { stalled = true; break; }
+ 
+         fit.niter = iter + 1;
+         if ((step_scale * step).norm() < tol) {
+@@ -1478,7 +1503,10 @@
+             last_grad_norm = grad_post.allFinite() ? grad_post.norm() : last_grad_norm;
+             fit.params = params;
+             fit.gradient_norm = last_grad_norm;
+-            fit.converged = (last_grad_norm < tol);
++            // TODO-123: also accept a step-size exit whose gradient is within
++            // the Hessian-scaled tolerance (false non-convergence at the optimum).
++            fit.converged = (last_grad_norm < tol) ||
++                            newton_stalled_at_optimum(fun, params, last_grad_norm, tol);
+             fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
+             return fit;
+         }
+@@ -1492,7 +1520,11 @@
+     // needs no special-casing, matching the template's analysis.
+     fit.params = params;
+     fit.value = likelihood_value(fun, params);
+-    fit.converged = (last_grad_norm < tol);
++    // TODO-123: a line-search failure (stalled) exactly at the optimum is
++    // converged when the gradient passes the Hessian-scaled rule. params and
++    // last_grad_norm refer to the same point on that exit (params not updated).
++    fit.converged = (last_grad_norm < tol) ||
++                    (stalled && newton_stalled_at_optimum(fun, params, last_grad_norm, tol));
+     fit.hit_iteration_cap = (fit.niter >= maxit) && !fit.converged;
+     fit.gradient_norm = last_grad_norm;
+     return fit;

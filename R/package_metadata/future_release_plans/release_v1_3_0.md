@@ -15,10 +15,10 @@ many-by-many family: all two-arm, one assignment per subject, on the
 existing design factory.
 
 **Retitled 2026-10-20 (user decision).** v1.3.0 now has two themes: the design
-extensions above, and the `ModelDiagnostics` declaration contract plus the
-nine-family pilot batteries (`model_diagnostics_framework.md`; moved here from
-v1.1.0 `TODO-17z` via v1.2.0 `TODO-35`, split into a contract item and one item
-per family so each is a reviewable unit). The two halves are independent.
+extensions above, and the `ModelDiagnostics` declaration contract plus a single pilot
+family, the Incidence GLM battery (`model_diagnostics_framework.md`; moved here
+from v1.1.0 `TODO-17z` via v1.2.0 `TODO-35`; **cut to Incidence-only on 2026-10-22**,
+user decision, with the other eight pilot families moving to v2.0.0). The two halves are independent.
 
 ## In scope (by plan)
 
@@ -45,9 +45,9 @@ per family so each is a reviewable unit). The two halves are independent.
 ### Model diagnostics (added 2026-10-20)
 - `model_diagnostics_framework.md → TODO-1..6` — registry-declared assumption
   checks returning typed results with pre-specified gate thresholds, one shared
-  report with `SolverDiagnostics`, then the nine pilot families (57 classes).
-  The full 66-class roster, the four new families and the visualization layer
-  stay in v2.0.0 (`release_v2_0_0.md → TODO-5c`).
+  report with `SolverDiagnostics`, then the Incidence GLM pilot (6 classes).
+  The other eight pilot families, the four new families (all 60 remaining
+  classes) and the visualization layer are v2.0.0 (`release_v2_0_0.md → TODO-6i`).
 
 ## Implementation TODOs (dependency order)
 
@@ -69,54 +69,15 @@ per family so each is a reviewable unit). The two halves are independent.
   - **Formula-grid wiring** (plan TODO-4): checks run across `~w`, `~w + .`, `~w * .` and splines, shown per cell.
   - **Shared report surface** (plan TODO-2, with `public_diagnostics_api_spec.md`): one table with `SolverDiagnostics`' rows, so a user sees "converged fine, PH violated" as one row; minimal assumption table and plain HTML (plan TODO-5; the plot layer is v2.0.0).
   - **Documentation** (plan TODO-6): vignette fronting the report-alongside-prespecified-analysis workflow, roxygen.
-  - **Gate:** a toy class declares one check end to end; the report renders it with a `SolverDiagnostics` row; `no_declared_checks` and the none-tier rule are tested.
+  - **Gate:** a toy class declares one check end to end; the report renders it with a `SolverDiagnostics` row; `no_declared_checks` and the none-tier rule are tested. **Because only one real family ships here, also test the contract against two contrasting toy-class shapes** (test-only, no shipped battery): a residual-based check that returns a plot object (the Schoenfeld shape) and a per-component check with one result per cutpoint (the Brant shape). This is what keeps the v2.0.0 families from forcing a contract redesign.
   - **Depends on:** `release_v1_1_0.md → TODO-3` (`SolverDiagnostics`). `release_v1_1_0.md → TODO-17y`'s optional assumption gate consumes these results.
-- [ ] TODO-6 (added 2026-10-20, user decision): **Pilot battery: Cox PH / stratified Cox** (`model_diagnostics_framework.md → TODO-3`, family 1 of 9; 6 classes).
-  - **Classes:** `InferenceSurvivalCoxPHRegr`, `InferenceSurvivalStratCoxPHRegr`, `InferenceSurvivalKKLWACoxPHIVWC`, `InferenceSurvivalKKLWACoxPHOneLik`, `InferenceSurvivalKKStratCoxPHIVWC`, `InferenceSurvivalKKStratCoxPHOneLik`.
-  - **Checks:** proportional hazards via scaled Schoenfeld residuals (Grambsch–Therneau); covariate functional form.
-  - **Known-violation recovery test:** simulated time-varying-effect data must be flagged by the PH check; proportional-hazards data must pass at the nominal rate. Each check also gets a no-violation test at the nominal false-flag rate.
-  - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-7 (added 2026-10-20, user decision): **Pilot battery: Poisson / quasi-Poisson / robust-Poisson** (`model_diagnostics_framework.md → TODO-3`, family 2 of 9; 4 classes).
-  - **Classes:** `InferenceCountPoisson`, `InferenceCountQuasiPoisson`, `InferenceCountRobustPoisson`, `InferenceCountKKCondPoissonOneLik`.
-  - **Checks:** overdispersion (Cameron–Trivedi); zero-inflation against the observed zero count. Lighter on `InferenceCountRobustPoisson`: the mean-model functional-form check applies, the overdispersion check matters less because its SE is already dispersion-robust.
-  - **Known-violation recovery test:** overdispersed and zero-inflated simulated counts must be flagged; equidispersed data must pass. Each check also gets a no-violation test at the nominal false-flag rate.
-  - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-8 (added 2026-10-20, user decision): **Pilot battery: Negative binomial / ZINB / hurdle** (`model_diagnostics_framework.md → TODO-3`, family 3 of 9; 7 classes).
-  - **Classes:** `InferenceCountNegBin`, `InferenceCountZeroInflatedNegBin`, `InferenceCountZeroInflatedPoisson`, `InferenceCountHurdleNegBin`, `InferenceCountHurdlePoisson`, `InferenceCountKKHurdlePoissonIVWC`, `InferenceCountKKHurdlePoissonOneLik`.
-  - **Checks:** dispersion-parameter adequacy; mixture-component support.
-  - **Known-violation recovery test:** data with a mis-specified dispersion or an unsupported zero-inflation component must be flagged; correctly specified data must pass. Each check also gets a no-violation test at the nominal false-flag rate.
-  - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-9 (added 2026-10-20, user decision): **Pilot battery: Incidence GLM family (logit / probit / log / identity / modified-Poisson links)** (`model_diagnostics_framework.md → TODO-3`, family 4 of 9; 6 classes).
+- *Moved to v2.0.0 on 2026-10-22 (user decision, pilot cut to Incidence only):* the Cox, Poisson / quasi-Poisson / robust-Poisson, NB / ZINB / hurdle, ordinal, OLS / robust, Beta / ZOIB / fractional logit, GEE and GLMM batteries (previously TODO-6..8 and 10..14). Their class lists and checks are kept in `model_diagnostics_framework.md §3B` and `release_v2_0_0.md → TODO-6i`.
+- [ ] TODO-6 (added 2026-10-20, user decision; sole pilot family since 2026-10-22): **Pilot battery: Incidence GLM family (logit / probit / log / identity / modified-Poisson links)** (`model_diagnostics_framework.md → TODO-3`, the only pilot family; 6 classes).
   - **Classes:** `InferenceIncidLogRegr`, `InferenceIncidProbitRegr`, `InferenceIncidLogBinomial`, `InferenceIncidModifiedPoisson`, `InferenceIncidKKModifiedPoisson`, `InferenceIncidBinomialIdentityRiskDiff`.
   - **Checks:** separation (surfacing the existing internal `EDI_SEPARATION_THRESHOLD` / `is_separated_coefficient_magnitude()` machinery as a user-visible diagnostic); calibration (Hosmer–Lemeshow-style plus calibration plots); link linearity. Log- and identity-link members additionally need a boundary check, since fitted probabilities can leave [0, 1] under those links.
   - **Known-violation recovery test:** completely separated data and a nonlinear-link truth must be flagged; for log/identity links a fit with out-of-range fitted probabilities must be flagged. Each check also gets a no-violation test at the nominal false-flag rate.
   - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-10 (added 2026-10-20, user decision): **Pilot battery: Ordinal regression family (proportional-odds, adjacent-category, continuation-ratio, cauchit / cloglog / probit / stereotype links)** (`model_diagnostics_framework.md → TODO-3`, family 5 of 9; 8 classes).
-  - **Classes:** `InferenceOrdinalPropOddsRegr`, `InferenceOrdinalAdjCatLogitRegr`, `InferenceOrdinalCauchitRegr`, `InferenceOrdinalCloglogRegr`, `InferenceOrdinalContRatioRegr`, `InferenceOrdinalOrderedProbitRegr`, `InferenceOrdinalStereotypeLogitRegr`, `InferenceOrdinalKKCondAdjCatLogitRegr`.
-  - **Checks:** Brant proportionality test for the proportional-odds and adjacent-category members; category-collapsibility sanity across all. Continuation-ratio is proportional-odds-exempt by construction (sequential-logit form): its battery is the lighter functional-form / link check only, never Brant.
-  - **Known-violation recovery test:** non-proportional-odds data must be flagged by Brant for the members that carry it; continuation-ratio must never be run through Brant; proportional data must pass. Each check also gets a no-violation test at the nominal false-flag rate.
-  - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-11 (added 2026-10-20, user decision): **Pilot battery: OLS / robust** (`model_diagnostics_framework.md → TODO-3`, family 6 of 9; 7 classes).
-  - **Classes:** `InferenceContinOLS`, `InferenceContinLin`, `InferenceContinKKOLSIVWC`, `InferenceContinKKOLSOneLik`, `InferenceContinRobustRegr`, `InferenceContinKKRobustRegrIVWC`, `InferenceContinKKRobustRegrOneLik`.
-  - **Checks:** residual structure, heteroskedasticity, influence, with the honest caveat stated in the report that under HC/sandwich SEs several classical checks matter less for the treatment coefficient.
-  - **Known-violation recovery test:** heteroskedastic data and a single high-leverage point must be flagged; well-behaved data must pass. Each check also gets a no-violation test at the nominal false-flag rate.
-  - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-12 (added 2026-10-20, user decision): **Pilot battery: Beta / ZOIB / fractional logit** (`model_diagnostics_framework.md → TODO-3`, family 7 of 9; 3 classes).
-  - **Classes:** `InferencePropBetaRegr`, `InferencePropZeroOneInflatedBetaRegr`, `InferencePropFractionalLogit`.
-  - **Checks:** boundary-mass adequacy; precision-submodel checks.
-  - **Known-violation recovery test:** data with excess boundary mass or a wrong precision submodel must be flagged; correctly specified data must pass. Each check also gets a no-violation test at the nominal false-flag rate.
-  - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-13 (added 2026-10-20, user decision): **Pilot battery: GEE (quasi tier)** (`model_diagnostics_framework.md → TODO-3`, family 8 of 9; 4 classes).
-  - **Classes:** `InferenceCountPoissonKKGEE`, `InferenceIncidKKGEE`, `InferenceOrdinalKKGEE`, `InferencePropKKGEE`.
-  - **Checks:** working-correlation adequacy.
-  - **Known-violation recovery test:** data with a misspecified within-cluster correlation must be flagged; data matching the working structure must pass. Each check also gets a no-violation test at the nominal false-flag rate.
-  - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-14 (added 2026-10-20, user decision): **Pilot battery: GLMM classes** (`model_diagnostics_framework.md → TODO-3`, family 9 of 9; 12 classes).
-  - **Classes:** `InferenceContinKKGLMM`, `InferenceCountKKGLMM`, `InferenceOrdinalKKGLMM`, `InferenceOrdinalKKCLMM`, `InferenceOrdinalKKCLMMCauchit`, `InferenceOrdinalKKCLMMCloglog`, `InferenceOrdinalKKCLMMProbit`, `InferencePropKKGLMM`, `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`, `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`, `InferenceSurvivalGLMMWeibullFrailtyNormalIVWC`, `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik`.
-  - **Checks:** random-effect distribution and variance-component sanity (a boundary or collapsed σ is reported, not hidden; see v1.0.5 TODO-31).
-  - **Known-violation recovery test:** non-normal random effects and a collapsed variance component must be flagged; correctly specified data must pass. Each check also gets a no-violation test at the nominal false-flag rate.
-  - **Depends on:** `TODO-5` (contract).
-- [ ] TODO-15: **Release mechanics** per `release.md`.
+- [ ] TODO-7: **Release mechanics** per `release.md`.
 
 ## Standing constraints
 

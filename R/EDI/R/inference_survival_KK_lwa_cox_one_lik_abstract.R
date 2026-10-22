@@ -104,8 +104,20 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
 			}
-			private$shared_combined_likelihood(estimate_only = FALSE)
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			# TODO-121: dispatch on the testing type (was: always Wald).
+			switch(
+				private$testing_type,
+				wald = {
+					private$shared_combined_likelihood(estimate_only = FALSE)
+					private$compute_z_or_t_ci_from_s_and_df(alpha)
+				},
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
+				stop("Unsupported testing_type: ", private$testing_type)
+			)
 		},
 		#' @description Compute an asymptotic two-sided p-value.
 		#' @param delta Null treatment effect value.
@@ -113,8 +125,20 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 			if (should_run_asserts()) {
 				assertNumeric(delta)
 			}
-			private$shared_combined_likelihood(estimate_only = FALSE)
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			# TODO-121: dispatch on the testing type (was: always Wald).
+			switch(
+				private$testing_type,
+				wald = {
+					private$shared_combined_likelihood(estimate_only = FALSE)
+					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+				},
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
+				stop("Unsupported testing_type: ", private$testing_type)
+			)
 		}
 	),
 	private = list(
@@ -155,6 +179,8 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 			list(
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
+					# TODO-121: beta_T the only parameter -> nothing free; null fit is b = d.
+					if (ncol(X_fit) == 1L) return(kk_cox_fully_fixed_null_fit(X_fit, y_sim, dead_sim, NULL, d))
 					res = tryCatch(
 						fast_coxph_regression_cpp(
 							X = X_fit, y = y_sim, dead = dead_sim,
@@ -189,6 +215,9 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 				j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
+					# TODO-121 (as TODO-115): beta_T the only parameter -> nothing free;
+					# the null fit is the fixed point b = delta.
+					if (ncol(X_fit) == 1L) return(kk_cox_fully_fixed_null_fit(X_fit, y, dead, NULL, delta))
 					warm_start_beta = start %||% private$get_fit_warm_start_for_length("params", ncol(X_fit))
 					fast_coxph_regression_cpp(
 						X = X_fit,

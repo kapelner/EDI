@@ -174,6 +174,10 @@ DESIGN_BLOCKING_STRUCTURE_PUBLIC = list(
 		}
 	)
 
+# Numeric strata columns that are integer-valued with at most this many distinct
+# values are treated as categorical (one stratum per value) rather than binned.
+BLOCKING_MAX_INTEGER_LEVELS_AS_CATEGORICAL = 10L
+
 DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 		assert_min_block_size = function(n, B) {
 			if (should_run_asserts() && floor(n / B) < 2L) {
@@ -201,9 +205,17 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 			} else {
 				NULL
 			}
-			col_to_str = function(col, num_bins = private$preferred_num_bins_for_continuous_covariate) {
+			# TODO-105: integer-valued numeric columns with few distinct values (e.g. a
+			# site code 1..4) are categorical labels, not continuous covariates.
+			is_few_level_integer = function(vec) {
+				if (!is.numeric(vec)) return(FALSE)
+				v = vec[is.finite(vec)]
+				if (length(v) == 0L || any(v != round(v))) return(FALSE)
+				length(unique(v)) <= BLOCKING_MAX_INTEGER_LEVELS_AS_CATEGORICAL
+			}
+			col_to_str = function(col, num_bins = private$preferred_num_bins_for_continuous_covariate, categorical_ok = TRUE) {
 				vec = private$Xraw[[col]]
-				if (is.numeric(vec)) {
+				if (is.numeric(vec) && !(categorical_ok && is_few_level_integer(vec))) {
 					probs = seq(0, 1, length.out = num_bins + 1)
 					breaks = unique(stats::quantile(vec, probs = probs, na.rm = TRUE))
 					s = if (length(breaks) > 1) as.character(cut(vec, breaks = breaks, include.lowest = TRUE)) else as.character(vec)
@@ -222,8 +234,14 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 			}
 			choose_column_keys = function(keys, col) {
 				vec = private$Xraw[[col]]
+				# few-level integer column: categorical if that fits the target,
+				# otherwise fall back to quantile binning (target-driven if exact)
+				if (is_few_level_integer(vec)) {
+					cat_keys = append_key(keys, col_to_str(col))
+					if (is.null(target) || length(unique(cat_keys)) <= target) return(cat_keys)
+				}
 				if (!isTRUE(private$exact_num_blocks) || is.null(target) || !is.numeric(vec)) {
-					return(append_key(keys, col_to_str(col)))
+					return(append_key(keys, col_to_str(col, categorical_ok = FALSE)))
 				}
 				max_bins = max(1L, min(n, target))
 				candidate_bins = unique(c(
@@ -233,7 +251,7 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 				best_keys = keys
 				best_num_blocks = length(unique(keys))
 				for (num_bins in candidate_bins) {
-					candidate_keys = append_key(keys, col_to_str(col, num_bins = num_bins))
+					candidate_keys = append_key(keys, col_to_str(col, num_bins = num_bins, categorical_ok = FALSE))
 					num_blocks = length(unique(candidate_keys))
 					if (num_blocks > target) next
 					if (isTRUE(private$equal_block_sizes) && !has_equal_block_sizes(candidate_keys)) next
@@ -264,7 +282,11 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 				if (length(block_counts) > 1L && any(block_counts != block_counts[1L])) {
 					stop("equal_block_sizes = TRUE but the strata produced unequal block sizes (",
 						paste(sort(unique(block_counts)), collapse = ", "),
-						"). Set equal_block_sizes = FALSE or adjust your covariate binning.")
+						") for n = ", n, " (", length(block_counts), " blocks from strata_cols = ",
+						paste(strata_cols, collapse = ", "), "). Because strata_cols was named without ",
+						"B_target, all of it is used and the block sizes are determined by the data. ",
+						"Set equal_block_sizes = FALSE to allow unequal blocks, or adjust the strata_cols / ",
+						"covariate binning (or pass an explicit B_target) so that every block has the same size.")
 				}
 			}
 			if (isTRUE(private$exact_num_blocks)) {

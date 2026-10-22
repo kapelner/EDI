@@ -45,7 +45,8 @@ test_that("'bayesian_bootstrap_nonfinite_estimates' fires when na.rm = FALSE and
 
 	pval <- f$inf$compute_bayesian_bootstrap_two_sided_pval(type = "percentile", na.rm = FALSE, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_nonfinite_estimates")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_nonfinite_estimates")
 })
 
 test_that("'bayesian_bootstrap_too_few_finite_estimates' fires when too few finite draws remain after na.rm = TRUE", {
@@ -55,7 +56,8 @@ test_that("'bayesian_bootstrap_too_few_finite_estimates' fires when too few fini
 
 	pval <- f$inf$compute_bayesian_bootstrap_two_sided_pval(type = "percentile", na.rm = TRUE, min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_too_few_finite_estimates")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_too_few_finite_estimates")
 })
 
 test_that("'bayesian_bootstrap_extreme_finite_estimates' fires when the distribution is implausibly extreme", {
@@ -65,7 +67,8 @@ test_that("'bayesian_bootstrap_extreme_finite_estimates' fires when the distribu
 
 	pval <- f$inf$compute_bayesian_bootstrap_two_sided_pval(type = "percentile", min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_extreme_finite_estimates")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_extreme_finite_estimates")
 })
 
 test_that("'bayesian_bootstrap_standard_error_unavailable' fires on the wald fallback path when sd(boot_distr) is unusable", {
@@ -75,7 +78,8 @@ test_that("'bayesian_bootstrap_standard_error_unavailable' fires on the wald fal
 
 	pval <- f$inf$compute_bayesian_bootstrap_two_sided_pval(type = "wald", min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_standard_error_unavailable")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_standard_error_unavailable")
 })
 
 test_that("'bayesian_bootstrap_original_standard_error_unavailable' fires when infer_original_se() is unusable", {
@@ -103,7 +107,8 @@ test_that("'bayesian_bootstrap_unstable_studentized_standard_errors' fires when 
 
 	pval <- f$inf$compute_bayesian_bootstrap_two_sided_pval(type = "studentized", min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_unstable_studentized_standard_errors")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_unstable_studentized_standard_errors")
 })
 
 test_that("'bayesian_bootstrap_bca_pvalue_unavailable' fires when pval_bayesian_bca() itself errors", {
@@ -115,5 +120,6 @@ test_that("'bayesian_bootstrap_bca_pvalue_unavailable' fires when pval_bayesian_
 
 	pval <- f$inf$compute_bayesian_bootstrap_two_sided_pval(type = "bca", min_number_usable_samples = 5L, show_progress = FALSE)
 	expect_true(is.na(pval))
-	expect_identical(f$inf$get_nonestimable_reason(), "bayesian_bootstrap_bca_pvalue_unavailable")
+	expect_false(f$inf$is_nonestimable("any"))  # TODO-116: procedure failure keeps the Wald state
+	expect_identical(unname(unlist(f$inf$.__enclos_env__$private$cached_values$procedure_failure_reason)), "bayesian_bootstrap_bca_pvalue_unavailable")
 })

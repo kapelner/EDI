@@ -536,11 +536,19 @@ IncidenceLogBinomialLikelihoodSource = list(
 #' inf = InferenceIncidLogBinomial$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @inheritSection InferenceContinOLS Blocking designs
 #' @export
 InferenceIncidLogBinomial = define_inference_class(
 	classname = "InferenceIncidLogBinomial",
 	inherit = Inference,
-	components = c("BayesianBootstrap", "ParametricLikelihoodBootstrap", "IncidenceLogBinomialLikelihood"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"ParametricLikelihoodBootstrap",
+		"IncidenceLogBinomialLikelihood"
+	),
 	metadata = list(likelihood_tier = "full", capabilities = "likelihood_ratio"),
 	overrides = list(
 		public = c(

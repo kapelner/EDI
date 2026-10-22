@@ -75,7 +75,12 @@ at \eqn{n = 50} with 3 categories (169 converged fits). Part of the
 small-sample excess comes from the likelihood being multimodal: in a few
 percent of \eqn{n = 50} fits the reported point estimate sits at a local
 optimum whose likelihood is below that of another optimum, which makes the
-LR statistic at the estimate positive rather than zero. For small samples,
+LR statistic at the estimate positive rather than zero. Since 2026-10-08
+the ordinary full-data fit screens deterministic and data-seeded local
+starts and keeps the lowest converged negative log-likelihood, so the
+figures above predate that change and have not yet been re-measured; the
+repeated randomization and weighted-bootstrap refits remain single-start.
+For small samples,
 prefer the better-calibrated alternatives on this class:
 \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap
 calibration via the class's own null simulation; ~6-7\% Type-I error) and
@@ -94,6 +99,32 @@ non-uniform weighted hook fits a cumulative-logit surrogate rather than the
 stereotype likelihood. It will remain disabled until the native weighted
 stereotype-logit backend described in the package implementation plan lands.
 }
+\section{Blocking designs}{
+
+On a blocking design
+(\code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}} and relatives)
+the regression-type inference classes do \emph{not} add block fixed effects
+(or block-by-treatment interactions) automatically: the model uses only the
+covariate matrix. Whether the blocks enter the regression therefore depends
+on how they were supplied: not at all with \code{m=}; as dummies when the
+blocking column is a factor/character (or few-level integer) covariate; as a
+single linear term when it is numeric. Randomization, bootstrap and
+jackknife inference are block-aware regardless; only the model-based
+(asymptotic, likelihood) path ignores the blocks.
+
+When the proportion treated is the same in every block, the pooled
+treatment estimate of a linear model is unbiased and its model-based SE is
+conservative (it is inflated by the block variation it fails to remove), at a
+cost in power. If the proportion treated differs across blocks (for example
+\code{equal_block_sizes = FALSE} with very small blocks and an extreme
+\code{prob_T}, where per-block rounding changes the allocation, or a
+user-supplied \code{m}), the pooled treated-vs-control comparison is
+confounded by block (Simpson's paradox) and can be biased; then include the
+blocking covariate(s) explicitly as factor covariates. For non-linear models
+(GLM, ordinal, survival) omitting blocks changes the estimand to a
+block-marginal effect. See \code{DesignFixedBlocking}.
+}
+
 \references{
 Anderson, J. A. (1984). "Regression and Ordered Categorical
   Variables." \emph{Journal of the Royal Statistical Society, Series B},
@@ -121,6 +152,7 @@ Anderson, J. A. (1984). "Regression and Ordered Categorical
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
@@ -136,6 +168,7 @@ Anderson, J. A. (1984). "Regression and Ordered Categorical
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
@@ -209,7 +242,8 @@ values. Runs serially. Default \code{FALSE}.}
   na.rm = TRUE,
   show_progress = TRUE,
   permutations = NULL,
-  zero_one_logit_clamp = .Machine$double.eps
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
 )}
     \if{html}{\out{</div>}}
   }
@@ -229,6 +263,8 @@ values. Runs serially. Default \code{FALSE}.}
       \item{\code{permutations}}{Pre-computed permutations.}
       \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
       \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"}; use
+\code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
     }
     \if{html}{\out{</div>}}
   }

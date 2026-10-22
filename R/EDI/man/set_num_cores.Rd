@@ -36,6 +36,23 @@ expect a universal "more cores is faster" rule.
 
 If you want to change the default policy, use
 \code{set_parallel_dispatch_policy()}.
+
+\strong{Which design draws use the workers.} \code{set_num_cores()} always
+parallelizes the downstream statistic (randomization/bootstrap loops in
+Inference objects) where the dispatcher allows it, but only some designs
+parallelize the \emph{null assignment draws} themselves. Draws that run in
+native OpenMP kernels use the cores:
+\code{DesignFixedGreedy}, \code{DesignFixedMatchingGreedyPairSwitching},
+\code{DesignFixedBinaryMatch}, \code{DesignFixedRerandomization} (balanced,
+even-\code{n} rejection sampler) and the optimal-design searches
+(\code{DesignFixedGreedyDOptimal}, \code{DesignFixedOptimal}). Draws made in
+vectorized R in the main process do not: \code{DesignFixedBlocking},
+\code{DesignFixedOptimalBlocks}, \code{DesignFixedCluster} and
+\code{DesignFixedBlockedCluster} generate all \code{r} assignments in one
+batched pass whose result depends only on the seed, so extra cores neither
+speed up nor change those draws. The no-covariate fallbacks of the matching,
+greedy and rerandomization designs (plain complete randomization) are also
+serial R.
 }
 \examples{
 set_num_cores(2)

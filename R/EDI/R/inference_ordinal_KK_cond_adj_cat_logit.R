@@ -63,7 +63,15 @@ InferenceOrdinalKKCondAdjCatLogitRegr = define_inference_class(
 	# must be listed directly, same as every other Wald-only KK IVWC class
 	# (e.g. InferenceAllKKMeanDiffIVWC's `c("BayesianBootstrap", "Wald",
 	# "KKMeanDifferenceIVWC")`).
-	components = c("BayesianBootstrap", "Wald", "OrdinalConditionalLogitPartialLikelihood", "KKPassThrough"),
+	components = c(
+		"RandomizationCI",
+		"RandomizationBootstrapCI",
+		"BayesianBootstrap",
+		"Jackknife",
+		"Wald",
+		"OrdinalConditionalLogitPartialLikelihood",
+		"KKPassThrough"
+	),
 	public = list(
 		# Pinned from InferenceRandCI (confirmed via the pre-migration R6
 		# ancestor walk, same verification step as the KKCondLogitGLMM

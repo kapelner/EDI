@@ -781,12 +781,32 @@ none of these numbers should be quoted as a measured result.
   `coxph(ties = "breslow")`. Remaining follow-up: (a) **owner decision made 2026-10-19**:
   Efron as the default with `ties = "breslow"` exposed (an accuracy change,
   not a speed change; needs CSV and oracle regeneration), implemented under
-  `release_v1_1_0.md → TODO-52` / audit TODO-39. Follow-ups (b) and (c) were completed
+  `release_v1_1_0.md → TODO-61` / audit TODO-39. Follow-ups (b) and (c) were completed
   under v1.0.5 TODO-69: the equivalence references and both R fallbacks now
   explicitly select Breslow.
 - [ ] TODO-7 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-52`, as a per-release pass): Re-run this audit's method (not its conclusions) whenever a
   new kernel family ships, and after each Prototype item resolves through
   the harness, to keep the summary table current.
+  **Cadence and triggers (amended 2026-10-22, owner decision).** Two layers;
+  procedure and guardrails in `algorithm_audit_runbook.md`:
+  - *Full pass* (re-run the method on every flagged row): at each release
+    close (the original trigger), when a new kernel family ships, and after
+    each Prototype item resolves through the harness (TODO-1).
+  - *Drift check* (mechanical, read-only): **monthly, the 21st at 06:00 UTC**,
+    `.github/workflows/algorithm-audit-drift.yml`. It runs three checks and
+    opens or updates one issue labelled `algorithm-audit-drift`; it commits
+    nothing and closes the issue when clean:
+    1. comparator versions: CRAN vs `audits/comparator_versions.json`, with
+       keyword-filtered NEWS since the pinned version;
+    2. kernel drift: `git log` since each row's `reviewed` date over the files
+       in `audits/algorithm_audit_row_map.json`;
+    3. plan-state hygiene: every audit TODO's `release_vX.md → TODO-N` target
+       must exist and not be a moved-stub, and every unchecked TODO needs a tag.
+  - *Re-review trigger:* a flag means "re-look", not "wrong". A row is cleared
+    by re-reviewing it, then bumping its `reviewed` date and re-pinning
+    (`--snapshot`) in the same commit.
+  - *Done when:* the workflow is on `main`, has run once (manual dispatch),
+    and the first issue has been triaged.
 - [ ] TODO-8 (scheduled in `../future_release_plans/release_v1_2_0.md → TODO-23`): **Replace the "Estimated speedup multiples" section's
   theoretical figures with measured ones** as each Prototype item's A/B
   report lands (TODO-2..5 above); until then that section's numbers must
@@ -1141,13 +1161,14 @@ target (AB), and the three `type`s from the bug sweep.
   prerequisite for exposing anything new, and it would have caught row L's
   silent Efron fallback. Design it once in the inference base classes, not
   per class.
-- [ ] TODO-39 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-52`; owner decision made 2026-10-19: **Efron default, `ties = "breslow"` exposed**): **`ties` for the Cox family** (row L). This resolves the owner decision
+- [ ] TODO-39 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-61`; owner decision made 2026-10-19: **Efron default, `ties = "breslow"` exposed**): **`ties` for the Cox family** (row L). This resolves the owner decision
   in TODO-6(a). It depends on
   TODO-69 in `release_v1_0_5.md` (pin Breslow in the fallbacks first).
 - [ ] TODO-40 (scheduled with adaptive GH, `../future_release_plans/release_v1_2_0.md → TODO-11` (`performance_profiling_and_upgrades.md → TODO-153`)): **Quadrature dial** for GLMM/LMM/frailty (row C), shipped with
   adaptive GH (`performance_profiling_and_upgrades.md → TODO-153`). It should
   not ship before adaptive GH: a dial whose only cheap setting is plain
   low-node GH would invite inaccurate fits.
+  **Laplace (2026-10-22, user question):** expose Laplace as the cheapest setting of this one dial (the `nAGQ = 1` analogue), not as a separate algorithm choice. The default stays at the accurate end (adaptive GH). It passes the public-option gate (registry rows, roxygen, provenance via TODO-38) before it ships, and the fitted object records which setting ran.
 - [ ] TODO-41 (scheduled in `../future_release_plans/release_v1_1_0.md → TODO-52`): Audit the exposed implementation toggles (`use_rcpp`,
   `smart_cold_start_default`): every reachable path must fit the same model as
   the default, enforced by a parity test per toggle. Document them as

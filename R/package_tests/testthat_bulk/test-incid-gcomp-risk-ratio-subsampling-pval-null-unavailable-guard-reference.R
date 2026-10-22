@@ -28,7 +28,9 @@ test_that("a non-positive or non-finite null delta is nonestimable with the shar
 		inf <- rr_fx()
 		pv <- inf$compute_subsampling_two_sided_pval(delta = d, B = 20, show_progress = FALSE)
 		expect_true(is.na(pv), info = paste("delta =", d))
-		expect_identical(inf$get_nonestimable_reason(), "subsampling_log_risk_ratio_null_unavailable", info = paste("delta =", d))
+		# TODO-116: a bad null is a subsampling-procedure failure; Wald state stays intact.
+		expect_false(inf$is_nonestimable("any"), info = paste("delta =", d))
+		expect_identical(inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["subsampling"]], "subsampling_log_risk_ratio_null_unavailable", info = paste("delta =", d))
 	}
 })
 
@@ -44,5 +46,6 @@ test_that("calling the private method directly reproduces the identical guard be
 	p <- inf$.__enclos_env__$private
 	pv <- p$compute_rr_subsampling_two_sided_pval(delta = -0.5, B = 20, show_progress = FALSE)
 	expect_true(is.na(pv))
-	expect_identical(inf$get_nonestimable_reason(), "subsampling_log_risk_ratio_null_unavailable")
+	expect_false(inf$is_nonestimable("any"))
+	expect_identical(p$cached_values$procedure_failure_reason[["subsampling"]], "subsampling_log_risk_ratio_null_unavailable")
 })

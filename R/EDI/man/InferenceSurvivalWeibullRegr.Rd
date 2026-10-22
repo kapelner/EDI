@@ -50,6 +50,32 @@ Whether \code{compute_rand_two_sided_pval()} is actually
   \code{compute_rand_two_sided_pval()}'s own guard, so the two can
   never drift apart.
 }
+\section{Blocking designs}{
+
+On a blocking design
+(\code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}} and relatives)
+the regression-type inference classes do \emph{not} add block fixed effects
+(or block-by-treatment interactions) automatically: the model uses only the
+covariate matrix. Whether the blocks enter the regression therefore depends
+on how they were supplied: not at all with \code{m=}; as dummies when the
+blocking column is a factor/character (or few-level integer) covariate; as a
+single linear term when it is numeric. Randomization, bootstrap and
+jackknife inference are block-aware regardless; only the model-based
+(asymptotic, likelihood) path ignores the blocks.
+
+When the proportion treated is the same in every block, the pooled
+treatment estimate of a linear model is unbiased and its model-based SE is
+conservative (it is inflated by the block variation it fails to remove), at a
+cost in power. If the proportion treated differs across blocks (for example
+\code{equal_block_sizes = FALSE} with very small blocks and an extreme
+\code{prob_T}, where per-block rounding changes the allocation, or a
+user-supplied \code{m}), the pooled treated-vs-control comparison is
+confounded by block (Simpson's paradox) and can be biased; then include the
+blocking covariate(s) explicitly as factor covariates. For non-linear models
+(GLM, ordinal, survival) omitting blocks changes the estimand to a
+block-marginal effect. See \code{DesignFixedBlocking}.
+}
+
 \examples{
 \donttest{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'survival')
@@ -98,12 +124,15 @@ Comparable Python API:
   \itemize{
     \item \href{#method-InferenceSurvivalWeibullRegr-approximate_randomization_distribution_beta_hat_T}{\code{InferenceSurvivalWeibullRegr$approximate_randomization_distribution_beta_hat_T()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-supports_rand_pval_for_incidence}{\code{InferenceSurvivalWeibullRegr$supports_rand_pval_for_incidence()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bootstrap_two_sided_pval}{\code{InferenceSurvivalWeibullRegr$compute_lik_ratio_bootstrap_two_sided_pval()}}
+    \item \href{#method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bootstrap_confidence_interval}{\code{InferenceSurvivalWeibullRegr$compute_lik_ratio_bootstrap_confidence_interval()}}
     \item \href{#method-InferenceSurvivalWeibullRegr-clone}{\code{InferenceSurvivalWeibullRegr$clone()}}
   }
 }
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_confidence_interval'><code>Inference$compute_asymp_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_asymp_two_sided_pval'><code>Inference$compute_asymp_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_estimate'><code>Inference$compute_estimate()</code></a></li>
@@ -119,6 +148,7 @@ Comparable Python API:
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
@@ -170,6 +200,84 @@ values. Runs serially. Default \code{FALSE}.}
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalWeibullRegr$supports_rand_pval_for_incidence()}
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bootstrap_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bootstrap_two_sided_pval}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$compute_lik_ratio_bootstrap_two_sided_pval()}}{
+  Computes a parametric-bootstrap likelihood-ratio p-value for the
+  treatment effect (see \code{InferenceParamBootstrap}). Not available under
+  general (non-right) censoring.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalWeibullRegr$compute_lik_ratio_bootstrap_two_sided_pval(
+  delta = 0,
+  B = 199,
+  show_progress = FALSE,
+  min_number_usable_samples = 5L,
+  max_attempts_per_replicate = 2L
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{delta}}{Null treatment effect. Default 0.}
+      \item{\code{B}}{Number of bootstrap replicates. Default 199.}
+      \item{\code{show_progress}}{Logical; show a progress bar. Default \code{FALSE}.}
+      \item{\code{min_number_usable_samples}}{Minimum number of usable bootstrap
+replicates required to return a finite p-value. Default \code{5L}.}
+      \item{\code{max_attempts_per_replicate}}{Maximum number of simulation/refit
+retries per bootstrap replicate. Default \code{2L}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A scalar p-value, or \code{NA_real_} if the computation fails.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bootstrap_confidence_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalWeibullRegr-compute_lik_ratio_bootstrap_confidence_interval}{}}}
+\subsection{\code{InferenceSurvivalWeibullRegr$compute_lik_ratio_bootstrap_confidence_interval()}}{
+  Computes a confidence interval by inverting the
+  parametric-bootstrap likelihood-ratio p-value (see
+  \code{InferenceParamBootstrap}). Not available under general (non-right)
+  censoring.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalWeibullRegr$compute_lik_ratio_bootstrap_confidence_interval(
+  alpha = 0.05,
+  B = 199,
+  show_progress = FALSE,
+  min_number_usable_samples = 5L,
+  max_attempts_per_replicate = 2L,
+  root_tolerance = NULL,
+  max_root_iterations = 8L
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Significance level. Default 0.05.}
+      \item{\code{B}}{Bootstrap replicates per p-value evaluation. Default 199.}
+      \item{\code{show_progress}}{Logical; show a progress bar. Default \code{FALSE}.}
+      \item{\code{min_number_usable_samples}}{Minimum number of usable bootstrap
+replicates required within each p-value evaluation. Default \code{5L}.}
+      \item{\code{max_attempts_per_replicate}}{Maximum number of simulation/refit
+retries per bootstrap replicate. Default \code{2L}.}
+      \item{\code{root_tolerance}}{Effect-scale tolerance for the inversion root; if
+\code{NULL}, proportional to the Wald standard error.}
+      \item{\code{max_root_iterations}}{Maximum bisection iterations per bound. Default \code{8L}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Named two-element numeric vector with the confidence-interval bounds.
   }
 }
 

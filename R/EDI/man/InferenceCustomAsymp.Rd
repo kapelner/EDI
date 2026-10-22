@@ -4,7 +4,7 @@
 \alias{InferenceCustomAsymp}
 \title{Internal base for user-defined asymptotic inference extensions}
 \value{
-A two-sided p-value.
+A two-sided p-value (a single-tail p-value when \code{alternative} is not \code{"two.sided"}).
 }
 \description{
 \code{InferenceCustomAsymp} is intentionally not exported. Extension packages
@@ -49,6 +49,7 @@ rather than EDI private fields.
 \if{html}{\out{<details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -61,6 +62,7 @@ rather than EDI private fields.
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-initialize'><code>Inference$initialize()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
@@ -89,7 +91,8 @@ rather than EDI private fields.
   permutations = NULL,
   type = NULL,
   args_for_type = NULL,
-  zero_one_logit_clamp = .Machine$double.eps
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
 )}
     \if{html}{\out{</div>}}
   }
@@ -110,6 +113,8 @@ and Ying 2003); see \code{compute_rand_confidence_interval()} for the assumption
       \item{\code{type}}{Optional incidence-specific exact randomization type.}
       \item{\code{args_for_type}}{Optional arguments keyed by \code{type}.}
       \item{\code{zero_one_logit_clamp}}{The clamping amount for exact 0 and 1 values when logging}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"};
+use \code{"greater"} for a non-negative, one-tailed-by-construction statistic.}
     }
     \if{html}{\out{</div>}}
   }

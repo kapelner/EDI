@@ -97,7 +97,6 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_last_param_bootstrap_diagnostics'><code>InferenceAbstractKKCondLogitGLMM$get_last_param_bootstrap_diagnostics()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceAbstractKKCondLogitGLMM$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_mod'><code>InferenceAbstractKKCondLogitGLMM$get_mod()</code></a></li>
-  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_summary'><code>InferenceAbstractKKCondLogitGLMM$get_summary()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bayesian_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bayesian_bootstrap_pval_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bootstrap_ci_types()</code></a></li>
@@ -117,6 +116,7 @@ inf$compute_estimate()
 <details><summary>+ inherited public methods from Inference</summary>
 <ul>
   <li><a href='../../EDI/html/Inference.html#method-Inference-capabilities'><code>Inference$capabilities()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-clear_randomization_cache'><code>Inference$clear_randomization_cache()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_confidence_interval'><code>Inference$compute_exact_confidence_interval()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-compute_exact_two_sided_pval_for_treatment_effect'><code>Inference$compute_exact_two_sided_pval_for_treatment_effect()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-duplicate'><code>Inference$duplicate()</code></a></li>
@@ -129,6 +129,7 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_treatment'><code>Inference$get_treatment()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-is_nonestimable'><code>Inference$is_nonestimable()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-set_optimization_alg'><code>Inference$set_optimization_alg()</code></a></li>
