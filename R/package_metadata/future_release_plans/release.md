@@ -81,6 +81,93 @@ actually preparing a submission-candidate tarball, not on every push.
    `new_feature_plans/` or `../bug_fix_plans/` to `../finished_features/`, per the standing
    constraint.
 
+## Regression checks against the previous release (every release)
+
+Added 2026-10-23 (owner decision). Two manual checks compare this release
+against the reports committed with the previous one. They are too slow for
+the pre-push hook and too noisy (benchmarks) for shared CI runners, so they
+are a release step. Run both after the release build is installed and the
+comprehensive results are regenerated and merged, and before the release
+push. Each release's own plan file records the results (commands, ratios,
+allowlisted items and their reasons).
+
+**Rule for both:** a flagged row either matches an intentional change made in
+this release (recorded with its reason: `--allow` for benchmarks, a row in
+the path-audit allowlist) or it blocks the release until it is explained or
+fixed. Never allowlist something only because it is inconvenient.
+
+### Benchmarks (R and Python)
+
+- **Host:** quiet machine, 1-minute load average below 1.0, nothing else
+  running (never during a comprehensive-suite run).
+- **Build:** time on the same build flavor as the baseline. The baseline
+  report records its flags (`EDI_PORTABLE=0` / `-march=native` as of
+  2026-10). The comparison tool warns when the flags differ; a portable vs
+  native mismatch makes the R comparison informational only.
+- **Baseline:** `B=$(mktemp -d)`, then
+  `git show HEAD:R/package_metadata/benchmark_model_fits.md > $B/benchmark_model_fits.md`
+  and the same for `python/benchmark/benchmark_model_fits_python.html`
+  (or point the tool at `git:<previous-release-tag>:<path>`).
+- **Python build:** the Python benchmark CMake-builds its own extension into
+  `/tmp/edi_py_build_check` from the current C++ sources (a full compile the
+  first time). Build it before the quiet window; it needs
+  `~/.venvs/edi-py-bench/bin/python` (statsmodels). Check its log says
+  "built OK", or every EDI column comes out NA.
+- **Run (both from `R/`, full runs only):**
+  `( cd R && Rscript benchmark/benchmark_model_fits.R )` (about 90 min; a
+  `--sections` run rewrites the tracked report with only those sections, so
+  never use it for the release run), then
+  `( cd R && ~/.venvs/edi-py-bench/bin/python benchmark/benchmark_model_fits_python.py )`.
+- **Compare:**
+  `Rscript R/benchmark/compare_benchmark_runs.R --old $B/benchmark_model_fits.md --new R/package_metadata/benchmark_model_fits.md --part R --normalize-host`
+  and the same with `--part Python` against the Python HTML. Flags a row at
+  >= 1.25x slower and >= 0.05 ms slower, or a time that became NA. Exit 0
+  pass, 1 regression, 2 usage/parse error. Re-run the benchmark once before
+  believing a single flagged row (noise). The host factor printed by
+  `--normalize-host` should be about 0.8-1.25.
+- **Know what it cannot see:** the benchmark rows mostly call C++ kernels
+  directly with default arguments, so slowdowns that live in R classes
+  (tolerances, retries, seeding, design re-solves) do not show up. List
+  those in the release's plan file instead.
+- **After it passes:** commit the regenerated reports
+  (`R/package_metadata/benchmark_model_fits.md`,
+  `benchmark_model_fits_R.html`, the Python HTML, and the `R/benchmark/`
+  copies) with the release; they are the next release's baseline.
+
+### Path audits
+
+- **Needs:** the release build installed (it reads the registry live) and the
+  regenerated comprehensive results merged into the canonical
+  `R/package_tests/comprehensive_tests_results_nc_*.csv` (it pools only
+  those; `_filtered_` files and per-run dirs are ignored). Run it from `R/`.
+- **Generate into a scratch dir** (tracked files untouched):
+
+      S=/tmp/edi_path_audits_$(date -u +%Y%m%dT%H%M%SZ); mkdir -p $S
+      cp R/package_tests/path_audits_source.R R/package_tests/path_audits_nonestimability_defaults.csv $S/
+      for f in R/package_tests/comprehensive_tests_results_nc_*.csv; do case $f in *_filtered_*) ;; *) ln -s "$PWD/$f" $S/ ;; esac; done
+      ( cd R && Rscript $S/path_audits_source.R ) 2>&1 | tee $S/gen.log
+      Rscript R/package_tests/compare_path_audits.R --new-dir $S --out-dir $S/compare
+
+  (about 1 min, about 4 GB RAM). Baseline defaults to `HEAD`; pass the
+  previous release tag to compare against it.
+- **Pass:** exit 0 / `RESULT: PASS`, and no `path_audits: could not ...`
+  warnings in `gen.log`. A worsening is: supported -> unsupported or not
+  implemented, a lost cell or row, lost guaranteed status, newly SLOW, an
+  estimable rate down by more than 0.02 (n >= 30 on both sides) or to 0%.
+- **Allowlist:** `R/package_tests/path_audits_regression_allowlist.csv`, one
+  row per intentional change with its TODO/NEWS source and reason. A cell
+  that only lost observations usually means results are not merged yet:
+  re-run after the merge instead of allowlisting it.
+- **Caveat (2026-10-23):** the audit counts a failure only for rows flagged
+  non-estimable or `status=error`; an unflagged NA recorded as `status=ok`
+  counts as estimable, so estimability can be overstated on resampling paths
+  (see `load_nonestimability_stats()` in `path_audits_source.R`). An
+  "improved" cell is not proof of a fix.
+- **After it passes:** copy `path_audits.html` and
+  `path_audits_nonestimability_defaults.csv` from `$S` into
+  `R/package_tests/`, re-run the compare with the default `--new-dir`, and
+  commit both with the release.
+
 ## Coordination with the Python package
 
 `edi_kernels` (PyPI) ships from the same commit family as the matching CRAN

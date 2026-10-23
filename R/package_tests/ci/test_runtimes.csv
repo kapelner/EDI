@@ -46,6 +46,7 @@ R/package_tests/testthat_bulk/test-bayesian-bootstrap-original-estimate-unavaila
 R/package_tests/testthat_bulk/test-bayesian-bootstrap-symmetric-studentized-bca-types.R,correctness,1.5,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bayesian-bootstrap-two-sided-pval-nonestimable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-bca-unstable-bias-or-acceleration-exact-reason-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-benchmark-compare-runs.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-benchmark-design-construction-provenance-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-benchmark-model-fit-section-selection-contract-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-beta-helper-safeguard-references.R,correctness,1,measured_with_30_percent_headroom
@@ -102,6 +103,7 @@ R/package_tests/testthat_bulk/test-coin-cross-validation-rank.R,correctness,13.6
 R/package_tests/testthat_bulk/test-coin-cross-validation-survival.R,correctness,13.4,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-combine-component-slot-collision-and-host-override-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-collisions-and-host-override-rules-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-compare-path-audits-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1341,6 +1343,7 @@ R/EDI/tests/testthat/test-kk-gee-fallback.R,coverage,1,measured_with_30_percent_
 R/EDI/tests/testthat/test-kk-ivwc-compound-focused-regression.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-mean-diff-ivwc-binary-match-bootstrap-todo130.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-ols-se.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk-robust-fallbacks.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R,coverage,1.8,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-beta-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
@@ -1537,6 +1540,7 @@ R/package_tests/testthat_bulk/test-bayesian-bootstrap-original-estimate-unavaila
 R/package_tests/testthat_bulk/test-bayesian-bootstrap-symmetric-studentized-bca-types.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bayesian-bootstrap-two-sided-pval-nonestimable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-bca-unstable-bias-or-acceleration-exact-reason-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-benchmark-compare-runs.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-benchmark-design-construction-provenance-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-benchmark-model-fit-section-selection-contract-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-helper-safeguard-references.R,coverage,1,measured_with_30_percent_headroom
@@ -1593,6 +1597,7 @@ R/package_tests/testthat_bulk/test-coin-cross-validation-rank.R,coverage,38.9,me
 R/package_tests/testthat_bulk/test-coin-cross-validation-survival.R,coverage,39.9,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-combine-component-slot-collision-and-host-override-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-combine-design-component-slot-merge-order-collisions-and-host-override-rules-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-compare-path-audits-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-body-reference-parsers-and-declared-name-contracts-inference-and-design-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-reference-contract-completion-and-source-file-lookup-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-component-validator-name-field-guards-reference.R,coverage,240,bootstrap

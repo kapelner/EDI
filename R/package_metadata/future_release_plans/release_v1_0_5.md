@@ -13897,7 +13897,14 @@ sample taken at load ~9.7); no agents, builds or CI runners; output paths must n
     Rscript R/benchmark/benchmark_design_construction.R 1000 100 7 $OUT/design.csv        # args: n batch repeats output_csv; writes design.csv.provenance.txt
     Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5 $OUT/pocock.csv       # args: n batch repeats output_csv (the entries' form)
     Rscript R/benchmark/benchmark_todo58_public_bootstrap_ci.R benchmark $OUT/todo58.csv  # ten alternating EDI/boot samples; writes todo58.csv.provenance.rds
-    cd R && Rscript benchmark/benchmark_model_fits.R --sections=procedures,designs         # TODO-62
+    ( cd R && Rscript benchmark/benchmark_model_fits.R )                                      # TODO-62 + regression check: full run, all 5 sections
+    ( cd R && $HOME/.venvs/edi-py-bench/bin/python benchmark/benchmark_model_fits_python.py ) # Python report (builds its own _core; pre-build it, see below)
+
+Benchmark regression check (added 2026-10-23 at the owner's request): save the committed reports as the baseline before
+the two runs above, then run `R/benchmark/compare_benchmark_runs.R` on each new report. The exact commands, the pass rule
+and the list of intentional 1.0.5 slowdowns are in "Closing audit 2026-10-23", runbook step 7, "Benchmark regression
+check". The full run replaces the earlier `--sections=procedures,designs` form, because a `--sections` run rewrites the
+tracked `.md`/HTML with only the selected sections.
 
 Cautions: `benchmark_model_fits.R` must be started from `R/` (it `source()`s `benchmark/benchmark_sections.R`
 by relative path, so the old repo-root command would fail) and it OVERWRITES the tracked reports
@@ -13911,7 +13918,8 @@ per arrival at t=100 and t=1000; TODO-58 each of OLS/logistic/Cox >= 1x `boot` a
 Zhang row within the owner-chosen metric (G6 #21). Each CSV has its provenance sidecar naming the DLL SHA-256 from G1.
 Then: check the timing sub-items of TODO-58/59/60/62 (boxes close only after G3 too for 58/59/60); add the
 medians, host load and sidecar paths to each note; if `benchmark_model_fits*` changed, review `git diff --stat`
-and commit the reports with TODO-62 (or `git checkout -- <them>` if the run was exploratory).
+and commit the reports with TODO-62 (or `git checkout -- <them>` if the run was exploratory). Commit them only
+after the regression check passes.
 
 ### G3. Authentic EDI 1.0.2 baseline and fixed-seed parity
 
@@ -15191,14 +15199,60 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
      rules, 20-vs-320 bound).
    - Closes, after the separately approved canonical merge: 8, 9, 10, 12, 13, 14, 16, 18, 19, 23, 26, 31, 38 (rows
      part), 50, 55, 67, 68, 76, 77, 99, 119, 127, 128, 129 (rows part) and 131 (rows part).
-7. **G2 (quiet host: 1-min load < 1.0, nothing else running, after G1; never during G4).**
+6a. **Path audits: regenerate + regression check (added 2026-10-23; after step 6's separately approved canonical
+   merge and G7, on the G1-installed package; before G5).**
+   - Why here: `R/package_tests/path_audits_source.R` takes its NTS / not-implemented cells live from the *installed*
+     EDI registry (TODO-119's dropped `randomization_ci` capability shows only on the G1 install). Its estimability
+     cells pool only the non-filtered `R/package_tests/comprehensive_tests_results_nc_*.csv` next to the script. Those
+     files are gitignored, and `_filtered_` files and the per-run `EDI_COMPREHENSIVE_RESULTS_DIR` dirs are ignored, so
+     G4/G7 rows count only after the merge. It is not a `drift_artifacts.sh` artifact (G9 does not touch it). Cost:
+     about 50 s on one core and 3.6 GB RSS (measured 2026-10-23). Do not overlap it with G2 timing runs.
+   - Generate into a scratch dir (tracked files untouched). It must run from `R/`: the script reads
+     `package_tests/comprehensive_tests.R` relative to the working directory for `ADDITIONAL_TEST_SLOW_PATHS`, and from
+     the repo root it only warns and silently drops those SLOW cells:
+
+         S=/tmp/edi_path_audits_$(date -u +%Y%m%dT%H%M%SZ); mkdir -p $S
+         cp R/package_tests/path_audits_source.R R/package_tests/path_audits_nonestimability_defaults.csv $S/
+         for f in R/package_tests/comprehensive_tests_results_nc_*.csv; do case $f in *_filtered_*) ;; *) ln -s "$PWD/$f" $S/ ;; esac; done
+         ( cd R && Rscript $S/path_audits_source.R ) 2>&1 | tee $S/gen.log
+
+     The output must have no `path_audits: could not ...` warnings.
+   - Compare against the committed baseline (`git show HEAD:` of both outputs; pass `--baseline-ref <sha>` for another
+     commit): `Rscript R/package_tests/compare_path_audits.R --new-dir $S --out-dir $S/compare`.
+   - Pass: exit 0 and `RESULT: PASS`. Every worse cell or row must match a row of
+     `R/package_tests/path_audits_regression_allowlist.csv`. That file holds the intentional 1.0.5 changes, each with
+     its TODO/NEWS source and reason: TODO-119 rand-CI refusals and capability removals, the incidence `delta`
+     refusal, KK modified Poisson Wald-only, smoothed BRT and exact-test bootstrap-weight refusals, the KKCondAdjCat
+     Bayesian-bootstrap drop, TODO-31 CLMM, TODO-128 log-binomial KKT, robust-regression non-finite input and TODO-129
+     Weibull-frailty jitter.
+     - "Worse" means one of: a supported cell became NTS/N/A/not implemented; a cell or row disappeared; ✓ was lost; a
+       cell became SLOW; an observed cell became "unknown"; the estimable rate fell by more than 0.02 with both n >= 30
+       (`--rate-tol`, `--min-n`), or fell to 0%; or a defaults-CSV nonestimable rate rose.
+     - Exit 1: triage each listed row. A real regression gets a TODO. An intentional change missing from the allowlist
+       gets an allowlist row (owner OK) with its TODO and reason.
+     - `lost_observations` usually means the class's rows are not merged yet. Re-run after the merge rather than
+       allowlisting. A 2026-10-23 dry run (today's local CSVs, installed 1.0.3) showed 120 such cells for
+       `InferenceIncidModifiedPoisson` (the G7 slice) and `InferencePropGCompMeanDiff`, plus 16 small (2-3 point)
+       estimability drops from row pruning; all 53 support removals were allowlisted.
+     - Allowlist entries that matched nothing are listed for information only.
+   - Caveat (TODO-116): the audit counts as failures only rows marked "Explicitly non-estimable" and `status=error`
+     rows. The harness records an unflagged `NA` as `status=ok` ("Invalid output detected"), and that counts as
+     estimable. Since 1.0.5, a failed procedure no longer flags the object, so expect apparent estimability gains on
+     resampling paths: an "improved" cell does not prove a fix.
+   - Then copy the outputs into place:
+     `cp $S/path_audits.html $S/path_audits_nonestimability_defaults.csv R/package_tests/`. The CSV changes only when the
+     pooled row count grew, because the script treats it as a high-water mark. Review with
+     `git diff --stat -- R/package_tests/path_audits*`, re-run the compare with the default `--new-dir` (exit 0), and
+     commit both files with the G4 merge before G5. Closes: no box; it is release evidence for 119 and the G4 rows.
+7. **G2 (quiet host: 1-min load < 1.0, nothing else running, after G1 and the Python extension build; never during G4).**
    - Commands: `OUT=$(mktemp -d /tmp/edi-g2-XXXXXX)`, then:
      - `Rscript R/benchmark/benchmark_design_construction.R 1000 100 7 $OUT/design.csv` (59);
      - `Rscript R/benchmark/benchmark_pocock_simon_arrivals.R 1000 20 5 $OUT/pocock.csv` (60);
      - `Rscript R/benchmark/benchmark_todo58_public_bootstrap_ci.R benchmark $OUT/todo58.csv` (58);
      - `Rscript R/benchmark/benchmark_bayesian_bootstrap_performance.R 500 3 3 1000,5000 $OUT/bb.csv` (57);
-     - `cd R && Rscript benchmark/benchmark_model_fits.R --sections=procedures,designs` (62; overwrites the tracked
-       reports);
+     - (62) is covered by the full `benchmark_model_fits.R` run in "Benchmark regression check" below. Do not also run
+       `--sections=procedures,designs`: a `--sections` run rewrites the tracked report with only those sections, which
+       drops the models/wald/utility tables;
      - `Rscript -e 'library(EDI); tune_EDI_for_this_machine(effort = "standard")'` (1, plan TODO-6). It may persist a
        tuning profile (unverified); add `families = "InferencePropZeroOneInflatedBetaRegr", dry_run = TRUE` for a
        scoped check.
@@ -15209,6 +15263,90 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
      - 58 and 57: recorded with a sidecar (no speed threshold);
      - 1: the ZOIB jackknife axis completes and yields a policy.
    - Closes: 1, 57 and 62; the timing half of 58, 59 and 60.
+   - **Benchmark regression check, R + Python (owner request 2026-10-23).** Same quiet window, after G1 and after the
+     Python extension build. Every command is the maintainer's to run.
+     - Baseline. The committed reports are the baseline: R last regenerated 2026-10-07 (`70b55982`; the `.md` was last
+       edited in `a26a62fe`, 2026-10-15) and Python on 2026-09-24 (`11f61e0a`). First check that
+       `git status --short R/package_metadata/benchmark_model_fits* R/benchmark/benchmark_model_fits* python/benchmark`
+       prints nothing; the runs overwrite these files. Then:
+
+           B=$OUT/bench_baseline; mkdir -p $B; git rev-parse HEAD > $B/REF
+           git show HEAD:R/package_metadata/benchmark_model_fits.md > $B/benchmark_model_fits.md
+           git show HEAD:R/package_metadata/benchmark_model_fits_R.html > $B/benchmark_model_fits_R.html
+           git show HEAD:python/benchmark/benchmark_model_fits_python.html > $B/benchmark_model_fits_python.html
+
+     - Python extension build (a full compile; yours to run before the quiet window, not during it). The Python
+       benchmark does not use the pip-installed `edi_kernels`. At start-up it CMake-builds its own `_core` (Release,
+       `-O3 -march=native`, 56 `R/EDI/src` files plus the `python/cpp` bindings, `-j4`) into `/tmp/edi_py_build_check`.
+       Pre-build that directory so the benchmark's own build step is an up-to-date no-op:
+
+           PY=$HOME/.venvs/edi-py-bench/bin/python   # has numpy/scipy/pandas/statsmodels/sksurv/lifelines/pybind11; system python3 lacks statsmodels
+           cmake -S python -B /tmp/edi_py_build_check -DCMAKE_BUILD_TYPE=Release -DPython_EXECUTABLE=$PY -Dpybind11_DIR=$($PY -c 'import pybind11; print(pybind11.get_cmake_dir())')
+           cmake --build /tmp/edi_py_build_check -j4
+
+     - Runs. Both must start from `R/`. The R one sources `benchmark/benchmark_sections.R` relatively and writes
+       `package_metadata/benchmark_model_fits{.md,_R.html}`; the Python one syncs its section into
+       `package_metadata/benchmark_model_fits.md` only when started from `R/`. Run R first, then Python, so the `.md`
+       ends with both fresh sections. The R run is all five sections, about 90 min; the Python duration has not been
+       recorded.
+
+           ( cd R && Rscript benchmark/benchmark_model_fits.R ) 2>&1 | tee $OUT/bench_R.log
+           ( cd R && $PY benchmark/benchmark_model_fits_python.py ) 2>&1 | tee $OUT/bench_py.log
+           grep -E 'EDI Python kernels: built OK|Wrote ' $OUT/bench_py.log   # a failed build makes every EDI column NA
+
+     - Compare (`R/benchmark/compare_benchmark_runs.R`, base R; tests in
+       `testthat_bulk/test-benchmark-compare-runs.R`). Defaults: flag a row when the EDI time is >= 1.25x the old time AND
+       at least 0.05 ms slower, or when it had a time and is now NA. The floor is 0.05 ms, not 5 ms, because 88% of
+       the 224 timed baseline rows are under 5 ms (median 0.29 ms). `--normalize-host` divides each ratio by the median
+       new/old Canonical Time ratio, which no EDI change affects.
+
+           Rscript R/benchmark/compare_benchmark_runs.R --old $B/benchmark_model_fits.md --new R/package_metadata/benchmark_model_fits.md --part R --normalize-host --tsv $OUT/cmp_R.tsv | tee $OUT/cmp_R.txt
+           Rscript R/benchmark/compare_benchmark_runs.R --old $B/benchmark_model_fits_python.html --new python/benchmark/benchmark_model_fits_python.html --normalize-host --tsv $OUT/cmp_py.tsv | tee $OUT/cmp_py.txt
+
+       Exit status: 0 = no unexplained regression, 1 = at least one, 2 = usage or parse error. A row that was renamed
+       shows as `removed` + `added`. These are listed but do not fail the run unless `--fail-on-removed` is given; the
+       procedure rows were relabelled between the 2026-10-07 HTML and the 2026-10-15 `.md`.
+     - Like-for-like caveat. The R baseline was measured on an `EDI_PORTABLE=0` build (`-O3 -march=native`). The G1
+       command above does not set `EDI_PORTABLE`, so it gives the portable default. The tool prints a WARNING when the
+       two reports' `EDI_PORTABLE` differ. If it does, every row's ratio includes the build-flag effect: either rebuild
+       with `EDI_PORTABLE=0` for the timing run, or treat the R comparison as informational. The host factor line should
+       be near 1 (about 0.8-1.25); otherwise the host is not comparable, so re-run when it is quiet.
+     - Pass: each run exits 0. Or every flagged row (after one re-run of the benchmark, to rule out noise) is one of the
+       intentional 1.0.5 changes below, re-run with `--allow '<row regex>'`, with the reason added to this note. A
+       flagged row that matches none of them is a regression to explain or fix before release.
+     - Intentional changes (from `NEWS.md`, the plan and `cpp_patches_v105/README.md`) and whether these reports can
+       show them. The benchmark rows call the bare C++ kernels with their default arguments; only the
+       procedures/designs rows go through R6:
+       - Patch 04 (TODO-116): `fast_neg_bin_cpp` / `fast_neg_bin_with_var_cpp` default `eps_g` 1e-6 -> 1e-10. The R rows
+         call them with the default (`benchmark_model_fits.R` L555, L1319). `InferenceCountNegBin` in models + wald (R)
+         may get slower: allow `InferenceCountNegBin`. The Python bindings keep their own `eps_g = 1e-6` default
+         (`bindings_count.cpp`), so a Python NegBin slowdown is not explained by this.
+       - Patch 14 (TODO-128): log/identity-binomial active-set projection + KKT gate. It costs extra only when a row is
+         near the mean boundary; otherwise it is bit-identical. `InferenceIncidLogBinomial` and
+         `InferenceIncidBinomialIdentityRiskDiff` (R and Python, models + wald) may move.
+       - Patch 08: Cox `maxit` 20 -> 100 plus a descent guard. Only fits that used to hit the cap run longer
+         (Cox / stratified Cox rows).
+       - Patch 01 (TODO-123): one extra Hessian per previously-unconverged Newton fit. Patch 12 (TODO-107): no cost
+         on well-scaled covariates; the benchmark covariates are N(0, 1). Patch 15: a read-only finite-input scan
+         (bit-identical). None of these is expected to flag.
+       - Not visible in these reports, so these do not explain a flagged row:
+         - KK CLMM (TODO-31, G6 #45): fits about 1.4-1.5x and randomization refits 2.7-2.9x slower. The tighter
+           tolerance and gradient acceptance are set in the R class, and the `InferenceOrdinalCLMM (pairs)` /
+           `InferenceOrdinalKKCLMM` rows call `fast_ordinal_clmm_cpp` with defaults.
+         - `DesignFixedOptimalBlocks` BRT replay re-solve (G6 #51 / TODO-131): no optimal-blocks or BRT row.
+         - `InferenceSurvivalKKRankRegrIVWC` seeded `aftsrr` and Weibull-frailty jitter seeding (TODO-129): R-side, no
+           rows.
+         - RMST with a user `tau` (generic loop): the row uses the default `tau`.
+       - Expected speedups, not regressions: the C++ OLS randomization kernel; the Pocock-Simon and iBCRD/blocking
+         design work (TODO-59/60).
+     - After it passes: regenerate the second copies (G6 #39, "regenerate both copies from the harness") with
+       `cp R/package_metadata/benchmark_model_fits.md R/benchmark/benchmark_model_fits.md` and
+       `cp R/package_metadata/benchmark_model_fits_R.html R/benchmark/benchmark_model_fits_R.html`. The README and
+       roxygen link the `R/benchmark/` HTML; no script writes either `R/benchmark/` copy. This drops the hand-added
+       2026-10-14 design/Pocock-Simon sections of the old `R/benchmark/` `.md`; TODO-59/60's G2 CSVs supersede them.
+       Then commit the four regenerated reports and
+       `python/benchmark/benchmark_model_fits_python.html` with TODO-62 (this run also refreshes TODO-62's
+       procedures/designs report), plus `$OUT/cmp_*.txt` excerpts in the TODO-62 note.
 8. **G3 (EDI 1.0.2; quiet host; a full compile of 1.0.2 into `~/R/edi102` is yours to run).**
    - Install: the commands in G3, after which `packageVersion` must print 1.0.2.
    - TODO-58: `EDI_LIB=$HOME/R/edi102 ... dump-parity 1.0.2`, `dump-parity <current>`, then `compare-parity` (exit 0).
@@ -15217,8 +15355,8 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
    - Closes: 58, 59 and 60 (with G2).
 9. **G5 (push + CI; needs your separate push go-ahead).** (Decision 1 / G6 #17 is no longer a prerequisite: accepted
    2026-10-23.)
-   - Commit the G4 merges and G2 reports, then run `./scripts/gitpush_with_hooks_safe.sh`. The hook runs an incremental
-     `R CMD INSTALL`, so do not push while a G2/G4 run is using the installed package.
+   - Commit the G4 merges, the step 6a path-audit outputs and G2 reports, then run
+     `./scripts/gitpush_with_hooks_safe.sh`. The hook runs an incremental `R CMD INSTALL`, so do not push while a G2/G4 run is using the installed package.
    - Then `gh run list --limit 8`, `gh run watch <id>`, and `gh workflow run test-bulk-non-cran.yml` (TODO-66).
    - Optional local sanitizer evidence (a full compile under `/tmp/edi-san`; the CI jobs remain the literal gate):
      `EDI_SAN_BULK_TESTS=test-bayesian-bootstrap-non-reusable-worker-debug-path.R scripts/sanitizer_valgrind_check.sh prepare build-asan test-asan build-vg test-vg manifest report`.
@@ -15270,7 +15408,9 @@ and 1 is untracked (`test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R`). Re
 10. Harness + calibration (TODO-10/14/126/127/67/68): `comprehensive_tests.R`, `validate_todo14_*.R` + their 2 tests,
     `calibration/` (8 files, incl. the 2026-10-23 TODO-31/50 R8 runner), `benchmark_todo67_kk21_matching_quality.R`, `todo68_generate_candidate_manifest_formula_pair.R`,
     new bulk tests `test-comprehensive-{coverage-truth-mc-inference-type,kk-matched-cox-covariate-cap}-reference.R` and
-    `test-type1-calibration-summary-reference.R`, the 2 modified coverage-truth tests, and the
+    `test-type1-calibration-summary-reference.R`, the 2 modified coverage-truth tests, the step 6a path-audit
+    checker (`compare_path_audits.R`, `path_audits_regression_allowlist.csv`,
+    `testthat_bulk/test-compare-path-audits-reference.R`; untracked), and the
     `inference_proportion_{beta,fractional_logit}.R` roxygen (ionosphere, TODO-10).
 11. NEWS (`R/EDI/NEWS.md`). Alternatively, split its hunks into groups 1-10.
 12. Rd (G8): the 18 `R/EDI/man/*.Rd` (the 17 plus `DesignFixedOptimalBlocks.Rd`; re-stage
