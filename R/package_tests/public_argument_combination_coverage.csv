@@ -9303,7 +9303,7 @@
 "InferenceSurvivalKKStratCoxPHIVWC::compute_m_out_of_n_bootstrap_two_sided_pval","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","compute_m_out_of_n_bootstrap_two_sided_pval",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalKKLWACoxPHIVWC::get_supported_bayesian_bootstrap_ci_types","r6_public_method","InferenceSurvivalKKLWACoxPHIVWC","get_supported_bayesian_bootstrap_ci_types",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalKKStratCoxPHOneLik::approximate_m_out_of_n_bootstrap_distribution_beta_hat_T","r6_public_method","InferenceSurvivalKKStratCoxPHOneLik","approximate_m_out_of_n_bootstrap_distribution_beta_hat_T",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
-"robust_survreg_with_surv_object","function","","",4,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
+"robust_survreg_with_surv_object","function","","",5,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik::compute_estimate","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","compute_estimate",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik::compute_estimate_with_bootstrap_weights","r6_public_method","InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik","compute_estimate_with_bootstrap_weights",2,TRUE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE
 "InferenceSurvivalWeibullRegr::clear_randomization_cache","r6_public_method","InferenceSurvivalWeibullRegr","clear_randomization_cache",0,FALSE,FALSE,0,0,0,0,0,0,0,0,0,0,0,0,0,FALSE,FALSE

@@ -9492,7 +9492,7 @@
 "pocock_simon_redraw_w_cpp","function","","","","",5,"num_levels_total;p_best;prob_T;weights;x_levels_matrix",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "robust_negbinreg","function","","","","",2,"data_obj;form_obj",FALSE,TRUE,FALSE,FALSE,"",FALSE
 "robust_survreg","function","","","","",5,"cov_matrix_or_vector;dead;dist;num_max_iter;y",FALSE,TRUE,FALSE,TRUE,"",FALSE
-"robust_survreg_with_surv_object","function","","","","",4,"cov_matrix_or_vector;dist;num_max_iter;surv_object",FALSE,TRUE,FALSE,TRUE,"",FALSE
+"robust_survreg_with_surv_object","function","","","","",5,"cov_matrix_or_vector;dist;jitter_seed;num_max_iter;surv_object",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "sample_mode","function","","","","",1,"data",FALSE,FALSE,FALSE,TRUE,"",FALSE
 "set_cold_start_dispatch_policy","function","","","","",2,"policy;reset",TRUE,TRUE,FALSE,FALSE,"",FALSE
 "set_num_cores","function","","","","",2,"force_mirai;num_cores",TRUE,TRUE,TRUE,FALSE,"",FALSE
