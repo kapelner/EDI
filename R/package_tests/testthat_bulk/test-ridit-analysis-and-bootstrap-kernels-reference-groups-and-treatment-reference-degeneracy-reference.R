@@ -3,7 +3,7 @@ library(EDI)
 
 # fast_ridit_scores_cpp / fast_ridit_analysis_cpp / compute_ridit_rand_bootstrap_parallel_cpp:
 # ridit scores r_k = P(Y < k) + P(Y = k) / 2 in a reference group, the estimate (mean treated ridit - 0.5)
-# and its SE (sd(treated scores) / sqrt(n_T)), for reference = "control" and "pooled" against hand
+# and its DeLong SE (TODO-106 / cpp patch 06; was sd(treated scores) / sqrt(n_T) before the patch), for reference = "control" and "pooled" against hand
 # computations; the bootstrap kernel against the same statistic per replicate. A treatment reference
 # uses 0.5 - mean control ridit, preserving the treated-minus-control orientation while avoiding the
 # reference group's own identically-0.5 mean.
@@ -32,7 +32,10 @@ test_that("control-reference analysis: scores, reference proportions, group mean
 	expect_equal(r$mean_ridit_c, 0.5, tolerance = 1e-12)                   # the reference group's mean ridit is 1/2
 	expect_equal(r$mean_ridit_t, mean(sc[f$w == 1]), tolerance = 1e-12)
 	expect_equal(r$estimate, mean(sc[f$w == 1]) - 0.5, tolerance = 1e-12)
-	expect_equal(r$se, sd(sc[f$w == 1]) / sqrt(40), tolerance = 1e-12)
+	# DeLong SE for this fixture, computed in R 2026-10-22 as
+	#   EDI:::ridit_delong_se(as.integer(f$y), as.integer(f$w), "control")
+	expect_equal(r$se, 0.0597673440656908, tolerance = 1e-10)
+	expect_equal(r$se, EDI:::ridit_delong_se(as.integer(f$y), as.integer(f$w), "control"), tolerance = 1e-12)
 	expect_gt(r$estimate, 0)                                                # the fixture has a positive effect
 })
 
@@ -72,7 +75,10 @@ test_that("pooled-reference analysis scores against all subjects", {
 	sc <- ridit_scores(f$y, f$y)
 	expect_equal(as.numeric(r$scores), sc, tolerance = 1e-12)
 	expect_equal(r$estimate, mean(sc[f$w == 1]) - 0.5, tolerance = 1e-12)
-	expect_equal(r$se, sd(sc[f$w == 1]) / sqrt(40), tolerance = 1e-12)
+	# pooled DeLong SE = (n_C / N) * DeLong; computed in R 2026-10-22 as
+	#   EDI:::ridit_delong_se(as.integer(f$y), as.integer(f$w), "pooled")   (= 0.0597673440656908 / 2)
+	expect_equal(r$se, 0.0298836720328454, tolerance = 1e-10)
+	expect_equal(r$se, EDI:::ridit_delong_se(as.integer(f$y), as.integer(f$w), "pooled"), tolerance = 1e-12)
 	expect_equal(as.numeric(r$ref_p), as.numeric(table(factor(f$y, levels = 1:4)) / f$n), tolerance = 1e-12)
 })
 
@@ -100,7 +106,10 @@ test_that("treatment-reference analysis uses the control comparison mean and pre
 	expect_equal(r$mean_ridit_t, 0.5, tolerance = 1e-12)
 	expect_equal(r$estimate, 0.5 - r$mean_ridit_c, tolerance = 1e-12)
 	expect_equal(r$estimate, r_control$estimate, tolerance = 1e-12)
-	expect_equal(r$se, sd(r$scores[f$w == 0]) / sqrt(sum(f$w == 0)), tolerance = 1e-12)
+	# treatment reference: the DeLong SE is reference-invariant (equals the control-reference SE);
+	# computed in R 2026-10-22 as EDI:::ridit_delong_se(as.integer(f$y), as.integer(f$w), "treatment")
+	expect_equal(r$se, 0.0597673440656908, tolerance = 1e-10)
+	expect_equal(r$se, r_control$se, tolerance = 1e-12)
 	expect_gt(r$estimate, 0.05)
 	set.seed(9)
 	i_mat <- vapply(1:4, function(b) sample(f$n, f$n, TRUE), integer(f$n))

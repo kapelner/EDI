@@ -1082,7 +1082,7 @@ def fast_qnorm(p: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"
     """
 def fast_ridit_analysis(w: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], y: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], reference: str = 'control') -> dict:
     """
-    Ridit analysis (Bross 1958): assigns each subject a ridit score relative to the empirical distribution of the reference group ('control', 'treatment', or 'pooled'), then compares treatment/control mean ridits. The estimate is mean_ridit_t - 0.5 for control/pooled references and 0.5 - mean_ridit_c for a treatment reference, so positive values always mean higher treated outcomes. The SE uses the corresponding comparison arm's ridit scores. No R-side roxygen documents this raw kernel directly (fast_ridit_analysis.cpp has none); parameters are named for their role in the algorithm above.
+    Ridit analysis (Bross 1958): assigns each subject a ridit score relative to the empirical distribution of the reference group ('control', 'treatment', or 'pooled'), then compares treatment/control mean ridits. The estimate is mean_ridit_t - 0.5 for control/pooled references and 0.5 - mean_ridit_c for a treatment reference, so positive values always mean higher treated outcomes. The SE is the DeLong (1988) standard error of the underlying Mann-Whitney contrast, Var(V10)/n_T + Var(V01)/n_C (times n_C/N for a pooled reference), which includes the sampling variability of the reference arm (same as the R class InferenceOrdinalRidit). No R-side roxygen documents this raw kernel directly (fast_ridit_analysis.cpp has none); parameters are named for their role in the algorithm above.
     
     Parameters
     ----------

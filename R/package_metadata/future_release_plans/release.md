@@ -158,11 +158,21 @@ fixed. Never allowlist something only because it is inconvenient.
   row per intentional change with its TODO/NEWS source and reason. A cell
   that only lost observations usually means results are not merged yet:
   re-run after the merge instead of allowlisting it.
-- **Caveat (2026-10-23):** the audit counts a failure only for rows flagged
-  non-estimable or `status=error`; an unflagged NA recorded as `status=ok`
-  counts as estimable, so estimability can be overstated on resampling paths
-  (see `load_nonestimability_stats()` in `path_audits_source.R`). An
-  "improved" cell is not proof of a fix.
+- **Counting rule (fixed 2026-10-23):** a row counts as non-estimable when
+  it is flagged "Explicitly non-estimable", has `status=error`, or is a
+  `status=ok` row whose recorded result is missing or non-finite ("Invalid
+  output detected", "Allowed missing output", a degenerate CI, a non-fatal
+  numerical message). Refusals and skips (`Skipping ...`, timeouts, "not
+  supported", "must implement", "requires", the truth-anomaly filter) are not
+  failures. See `classify_nonestimability_rows()` in `path_audits_source.R`.
+  Before the fix an unflagged NA counted as estimable. Outputs are stamped
+  with the rule version (`PATH_AUDIT_COUNTING_RULE`: an HTML comment and a
+  `counting_rule` column in the defaults CSV). The defaults CSV is rewritten
+  whenever its stamp differs, even if the row count did not grow.
+  `compare_path_audits.R` reports a stamp mismatch, and the allowlist row
+  `counting_rule_2026_10_23` then excuses rate drops only (not support or
+  cell changes). It stops matching once both sides carry the same stamp.
+  If you bump the rule, add a matching `counting_rule_change` allowlist row.
 - **After it passes:** copy `path_audits.html` and
   `path_audits_nonestimability_defaults.csv` from `$S` into
   `R/package_tests/`, re-run the compare with the default `--new-dir`, and

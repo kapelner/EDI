@@ -100,6 +100,20 @@ test_that("KKRankRegrIVWC: seeded bootstrap duplicates across fresh objects, lea
 	expect_true(b$untouched)
 	expect_true(any(is.finite(a$boot)))
 	expect_identical(a[c("ci", "boot", "boot_ci")], b[c("ci", "boot", "boot_ci")])
+})
+
+test_that("KKRankRegrIVWC: the seeded bootstrap does not depend on the core count", {
+	skip_if_not_installed("aftgee")
+	skip_on_cran()
+	# cores = 2L spawns real parallel workers, so this needs the shared guard.
+	skip_if_prepush_no_parallel()
+	des = make_kk_rank_regr_match_design()
+	calls = list(
+		ci = function(inf) inf$compute_asymp_confidence_interval(),
+		boot = function(inf) inf$approximate_bootstrap_distribution_beta_hat_T(B = 11, show_progress = FALSE),
+		boot_ci = function(inf) inf$compute_bootstrap_confidence_interval(B = 11, type = "percentile", show_progress = FALSE)
+	)
+	a = kk_rank_regr_run(des, 5L, 1L, calls)
 	c2 = kk_rank_regr_run(des, 5L, 1L, calls, cores = 2L)
 	expect_true(c2$untouched)
 	expect_identical(a[c("ci", "boot", "boot_ci")], c2[c("ci", "boot", "boot_ci")])

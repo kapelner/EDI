@@ -23,6 +23,12 @@ quantile_ci_coverage_fixture <- function(m = 4L, nRT = 0L, nRC = 0L,
                          asym_error = asym_error, estimate_error = estimate_error)
   private$cached_values <- list(KKstats = list(m = m, nRT = nRT, nRC = nRC),
                                s_beta_hat_T = se)
+  # This fixture composes the component alone, so members it normally inherits
+  # from its dependencies have to be stubbed: the design (read by the TODO-119
+  # exact-0/1 refusal) and the Randomization component's draw seeding (TODO-129),
+  # which returns the function that restores the caller's RNG.
+  private$des_obj <- list(get_response_type = function() "continuous")
+  private$seed_global_rng_for_draws <- function() function() invisible(NULL)
   private$compute_rand_pval_matched_pairs <- function(delta) {
     if (private$cached_values$KKstats$m == 0L) stop("matched provider must not be called")
     exp(-abs(delta - private$fixture$estimate))

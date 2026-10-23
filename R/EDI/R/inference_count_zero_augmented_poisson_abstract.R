@@ -379,7 +379,17 @@ ZeroAugmentedCountLikelihoodSource = list(
 					nrow(vc) < j_treat || ncol(vc) < j_treat ||
 					zero_augmented_data_has_no_mle(private$y, identical(private$za_description(), "Hurdle Poisson")) ||
 					zero_augmented_fit_is_degenerate(as.matrix(vc), params_fit)
-				if (degenerate && !is.null(vc) && length(dim(vc)) == 2L && all(is.finite(vc)) &&
+				# cpp patch 07 (TODO-4 ZINB note): on a singular free information block the
+				# kernel returns a pseudo-inverse covariance whose NON-identified
+				# coordinates are NaN rows/columns. Then only the count(+theta) sub-block
+				# must be finite (tested below by zero_augmented_fit_is_degenerate(), which
+				# rejects non-finite input). Current kernels never emit the tag, so the
+				# original all(is.finite(vc)) requirement is unchanged for them.
+				covariance_type = if (is.list(fit)) fit$covariance_type else NULL
+				pinv_identified = is.character(covariance_type) && length(covariance_type) == 1L &&
+					covariance_type %in% c("pseudo_inverse_identified_coordinates", "pseudo_inverse_zero_inflation_unidentified")
+				vc_finite_enough = !is.null(vc) && length(dim(vc)) == 2L && (all(is.finite(vc)) || pinv_identified)
+				if (degenerate && vc_finite_enough &&
 						!grepl("Hurdle", private$za_description(), fixed = TRUE)) {
 					p_cond = length(fit$coefficients$cond)
 					n_par = length(params_fit)

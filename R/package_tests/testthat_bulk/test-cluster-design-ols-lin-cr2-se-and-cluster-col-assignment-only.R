@@ -1,5 +1,5 @@
 library(testthat)
-suppressMessages(pkgload::load_all("/home/kapelner/workspace/EDI/R/EDI", compile = FALSE, quiet = TRUE))
+library(EDI)
 
 # TODO-103: on cluster-randomized designs InferenceContinOLS / InferenceContinLin use a
 # CR2 (Bell-McCaffrey) cluster-robust SE with G - 1 df, and cluster_col is kept out of `~ .`.

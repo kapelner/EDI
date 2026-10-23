@@ -27,6 +27,15 @@ inline double log_sum_exp_clayton(double a, double b) {
     double m = a;
     if (b > m) m = b;
     if (0.0 > m) m = 0.0;
+    // TODO-121 (third batch): for small theta*h the direct form below cancels
+    // (e^a + e^b - 1 -> 1 + a + b, error ~1e-16/theta^2 in the loglik, NaN for
+    // theta << 1e-4). log1p(expm1(a) + expm1(b)) is exact there. Gated at
+    // m <= 1 so fits with larger theta*h keep the original formula (bit-identical);
+    // above that threshold the subtraction of 1 loses nothing.
+    if (m <= 1.0) {
+        const double s = std::expm1(a) + std::expm1(b);
+        if (s > -1.0) return std::log1p(s);
+    }
     double inner = std::exp(a - m) + std::exp(b - m) - std::exp(-m);
     if (inner <= 0) return m + std::log(std::numeric_limits<double>::min());
     return m + std::log(inner);
@@ -354,6 +363,13 @@ public:
         grad[2 * m_p] = - d_ll_d_log_sigma_event;
         grad[2 * m_p + 1] = - d_ll_d_log_sigma_cens;
         grad[2 * m_p + 2] = - d_ll_d_atanh_rho;
+        // TODO-111 (fourth pass): the objective clamps atanh(rho) to [-3, 3], so
+        // it is flat in that coordinate once |params[2p+2]| >= 3. The analytic
+        // gradient above was not zeroed there, so LBFGS kept pushing a flat
+        // coordinate, threw, and returned NaN (19% of bootstrap-like resamples).
+        // Zeroing it also zeroes the matching row/column of the finite-difference
+        // hessian() below (it differences this gradient).
+        if (std::abs(params[2 * m_p + 2]) >= 3.0) grad[2 * m_p + 2] = 0.0;
 
         return -loglik;
     }

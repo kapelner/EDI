@@ -114,8 +114,9 @@ repeated work rather than code speed:
     `InferenceIncidLogBinomial`'s leave-one-out refits were sensitive to it
     (24 jackknife rows changed; one estimate −0.000112 vs −0.0000978;
     `release_v1_0_5.md → TODO-128`). After the TODO-128 fix the same day,
-    `jack_distr_cache` is reused again; `bayes_jack_distr_cache` stays out
-    until its history independence is checked.
+    `jack_distr_cache` is reused again. `bayes_jack_distr_cache` stays out:
+    checked 2026-10-23, the Bayesian jackknife still depends on call history
+    (`release_v1_1_0.md → TODO-74`).
 
   Identity check, six-class mix, `nc = 1`, reuse vs. cold (both
   `fork=FALSE`, EDI installed 2026-10-21): 2,159 / 2,166 rows identical.

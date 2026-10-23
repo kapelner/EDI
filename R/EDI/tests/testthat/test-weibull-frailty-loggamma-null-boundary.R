@@ -65,7 +65,14 @@ test_that("pairs + reservoir KK14 fixture is unchanged by the robust null refit"
 	inf = InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$new(make_t121c(~ x1, kk14 = TRUE), verbose = FALSE)
 	inf$compute_estimate()
 	p = pv4(inf)
-	expect_equal(unname(p), c(0.50572, 0.50294, 0.50955, 0.51205), tolerance = 2e-4)
+	# 2026-10-23 post-build verification (G1, cpp patch 03 / TODO-121 3rd batch): Wald was
+	# 0.50572. This fit sits at log(theta) = -8.92, inside patch 03's stable-logA gate; the old
+	# logA cancellation noise swamped the tiny log-theta information (I_tt ~ 1.7e-7), so the
+	# finite-difference Hessian effectively dropped the beta_T/log-theta coupling (SE 0.3165,
+	# = survreg's conditional-on-theta SE 0.31683). The patched kernel gives the full-information
+	# SE 0.32638, matching an R central-difference Hessian of the score (0.32655, stable for
+	# h = 1e-2..1e-5). Score / LR / gradient are unchanged.
+	expect_equal(unname(p), c(0.51851, 0.50294, 0.50955, 0.51205), tolerance = 2e-4)
 	# well-behaved fit returns the plain kernel result: no fallback marker
 	expect_null(lr_stat(inf)$f0$log_theta_null_floor_fallback)
 })

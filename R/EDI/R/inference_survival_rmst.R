@@ -262,15 +262,19 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			# re-dispatches through compute_estimate() per replicate.
 			if (isTRUE(private$has_general_censoring)) return(NULL)
 			if (delta != 0 && !identical(transform_responses, "log")) return(NULL)
-			# A user-set tau: the native kernel has no tau argument, so fall back to
-			# the generic loop (which re-dispatches through compute_estimate()).
-			if (!is.null(private$rmst_tau)) return(NULL)
+			# A user-set tau (TODO-108): the native kernel takes a trailing `rmst_tau`
+			# argument only once cpp patch 05 is built. An older installed binary has
+			# no such formal, so a user tau keeps the generic loop (NULL = no fast path).
+			kernel_has_tau = "rmst_tau" %in% names(formals(compute_survival_stat_diff_rand_bootstrap_parallel_cpp))
+			if (!is.null(private$rmst_tau) && !kernel_has_tau) return(NULL)
 			mats = private$rand_bootstrap_draw_matrices(rand_bootstrap_draws)
 			if (is.null(mats)) return(NULL)
-			compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
+			args = list(
 				as.numeric(y0_full), as.integer(private$dead), mats$i_mat, mats$w_mat,
 				as.numeric(delta), TRUE, mats$noise_mat, private$n_cpp_threads(ncol(mats$w_mat))
 			)
+			if (kernel_has_tau) args$rmst_tau = if (is.null(private$rmst_tau)) NA_real_ else as.numeric(private$rmst_tau)
+			do.call(compute_survival_stat_diff_rand_bootstrap_parallel_cpp, args)
 		},
 		rmst_tau = NULL,
 		rmst_arm_max_time = function(idx){

@@ -843,9 +843,9 @@ are fixed here because they are still exported and registered.
   1.0.3 build produced the six fixed-seed digests now committed in
   `R/EDI/tests/testthat/fixtures/cross_platform_digests.csv`; the focused
   cross-platform digest test passed all 18 assertions on Linux, including
-  thread-count invariance and exact fixture matches. The macOS comparison has
-  not yet run, so cross-platform confirmation remains the only outstanding
-  platform gate and this plan item remains unchecked.
+  thread-count invariance and exact fixture matches. (Historical: the macOS
+  comparison had not yet run at that point; it was closed 2026-10-15 on 8 CI
+  legs, see `release_v1_0_5.md → TODO-91`.)
 
 - [x] TODO-23 (F19): **Firth penalty has the wrong sign** in
   `evaluate_penalized_neg_loglik_at`

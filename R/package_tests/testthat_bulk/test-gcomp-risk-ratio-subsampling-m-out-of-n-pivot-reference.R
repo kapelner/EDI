@@ -74,12 +74,19 @@ test_that("subsampling RR interval and p-value match the same log-centered refer
 })
 
 test_that("nonpositive nulls, too few usable draws and an unusable original estimate give NA with a cached reason", {
+	# TODO-116: a nonpositive null is a failure of the resampling procedure, not of
+	# the primary fit, so the Wald state survives and the reason is filed under the
+	# owning procedure instead of flipping is_nonestimable().
 	f <- rr_fixture()
 	expect_true(is.na(f$inf$compute_m_out_of_n_bootstrap_two_sided_pval(delta = -1, B = 40, m = 15, show_progress = FALSE)))
-	expect_true(f$inf$is_nonestimable("estimate"))
+	expect_false(f$inf$is_nonestimable("estimate"))
+	expect_equal(f$priv$cached_values$procedure_failure_reason$m_out_of_n,
+		"m_out_of_n_log_risk_ratio_null_unavailable")
 	f0 <- rr_fixture()
 	expect_true(is.na(f0$inf$compute_subsampling_two_sided_pval(delta = 0, B = 40, b = 15, show_progress = FALSE)))
-	expect_true(f0$inf$is_nonestimable("estimate"))
+	expect_false(f0$inf$is_nonestimable("estimate"))
+	expect_equal(f0$priv$cached_values$procedure_failure_reason$subsampling,
+		"subsampling_log_risk_ratio_null_unavailable")
 
 	f2 <- rr_fixture()
 	ci <- f2$inf$compute_m_out_of_n_bootstrap_confidence_interval(B = 40, m = 15, min_number_usable_samples = 1000L, show_progress = FALSE)

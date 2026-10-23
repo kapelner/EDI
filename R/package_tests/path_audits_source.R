@@ -769,6 +769,81 @@ audit_classes = lapply(audit_classes, function(r) {
 })
 
 # ── HTML renderer ─────────────────────────────────────────────────────────────
+# Version of the row-counting rule in classify_nonestimability_rows(). It is
+# stamped into path_audits.html (an HTML comment) and into the defaults CSV
+# (`counting_rule` column) so compare_path_audits.R can tell a rate move that
+# comes from a rule change apart from one that comes from the package, and so
+# maybe_update_default_stats() rewrites a defaults CSV written under an older
+# rule even when the pooled row count did not grow. Bump it whenever the
+# definition of a failed / refused row changes. Outputs without a stamp were
+# written under the pre-2026-10-23 rule.
+PATH_AUDIT_COUNTING_RULE = "2026-10-23"
+
+# Adds design_refused_row / refused_row / failed_row to a pooled results
+# table (by reference; also returns it). Rule 2026-10-23 (owner decision,
+# before G4):
+#   failed = "Explicitly non-estimable" self-report, OR status == "error",
+#            OR a status == "ok" row whose recorded result is missing / non-
+#            finite and whose error_message is not a refusal or skip.
+# The third clause is new. comprehensive_tests.R records every NA/NaN/Inf
+# result as status = "ok" with an error_message ("Invalid output detected
+# (NA/NaN/Inf) in ...", "Allowed missing output: ...", "Degenerate confidence
+# interval [0, 0] ...", or a non-fatal numerical message such as "... failed
+# to converge"), and result_1/result_2 left NA. Since v1.0.5 TODO-116 a failed
+# resampling / likelihood-test procedure keeps the Wald state and returns NA
+# without flagging the object, so those rows no longer carry the "Explicitly
+# non-estimable" prefix; under the old rule they all counted as estimable
+# (272,744 of 3,248,242 pooled rows on 2026-10-23).
+# Refusals and skips are NOT failures (they stay in n as before; only the
+# DesignSeqOneByOne stub below is removed from n): the harness's
+# "Skipping <class>: ..." data/design refusals, "Skipped due to timeout",
+# structural limitations ("must implement", "not implemented", "... not
+# supported ...", "... requires ...", "is only supported / available",
+# including the TODO-119 rand-CI refusals), the truth-based anomaly filter
+# (the method returned a finite value; the harness blanked it as implausible,
+# which is an accuracy finding, not non-estimability) and the infrastructure
+# "ignoring SIGPIPE signal".
+PATH_AUDIT_REFUSAL_MESSAGE_RE = paste(
+  "^Skipping ", "^Skipped due to timeout", "must implement", "not implemented",
+  "not supported", "is only (supported|available)", " requires ", "^Truth-based anomaly filter",
+  "ignoring SIGPIPE signal",
+  sep = "|"
+)
+classify_nonestimability_rows = function(dt) {
+  msg = if ("error_message" %in% names(dt)) as.character(dt$error_message) else rep(NA_character_, nrow(dt))
+  status = if ("status" %in% names(dt)) as.character(dt$status) else rep(NA_character_, nrow(dt))
+  has_msg = !is.na(msg) & nzchar(msg)
+  num = function(col) if (col %in% names(dt)) suppressWarnings(as.numeric(dt[[col]])) else rep(NA_real_, nrow(dt))
+  # Result columns: result_1 holds the scalar (estimate / p-value) or the CI
+  # lower bound, result_2 the CI upper bound. The harness never writes a
+  # partial result (has_invalid_numeric() blanks the whole row), but check
+  # both bounds of a CI row anyway. Without result_1, fall back to parsing
+  # the space-separated `result` column.
+  if ("result_1" %in% names(dt)) {
+    r1 = num("result_1"); r2 = num("result_2")
+    is_ci = grepl("confidence_interval", as.character(dt$function_run), fixed = TRUE)
+    nonfinite_result = !is.finite(r1) | (is_ci & !is.finite(r2))
+  } else if ("result" %in% names(dt)) {
+    nonfinite_result = vapply(strsplit(as.character(dt$result), "[[:space:],]+"), function(p) {
+      p = p[nzchar(p) & !is.na(p)]
+      !length(p) || any(!is.finite(suppressWarnings(as.numeric(p))))
+    }, logical(1))
+  } else {
+    nonfinite_result = rep(FALSE, nrow(dt))
+  }
+  explicit_nonestimable = has_msg & grepl("^Explicitly non-estimable", msg)
+  design_refused_row = !is.na(status) & status == "error" &
+    has_msg & msg == "This method is not supported for DesignSeqOneByOne designs."
+  refused_row = has_msg & !explicit_nonestimable & grepl(PATH_AUDIT_REFUSAL_MESSAGE_RE, msg, perl = TRUE)
+  error_row = !is.na(status) & status == "error"
+  na_ok_row = (is.na(status) | status == "ok") & nonfinite_result & !refused_row
+  data.table::set(dt, j = "explicit_nonestimable", value = explicit_nonestimable)
+  data.table::set(dt, j = "design_refused_row", value = design_refused_row)
+  data.table::set(dt, j = "refused_row", value = refused_row & !error_row)
+  data.table::set(dt, j = "failed_row", value = !design_refused_row & (explicit_nonestimable | error_row | na_ok_row))
+  invisible(dt)
+}
+
 load_nonestimability_stats = function(result_dir = "package_tests") {
   defaults_file = file.path(result_dir, "path_audits_nonestimability_defaults.csv")
   stats_env_from_rates = function(rates) {
@@ -808,7 +883,17 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
     } else {
       sum(as.numeric(default_rates$n), na.rm = TRUE)
     }
-    if (is.finite(current_total) && current_total > default_total) {
+    # High-water mark on the pooled row count, but only between snapshots
+    # written under the same counting rule: a snapshot from an older rule
+    # (no `counting_rule` column, or a different value) is always replaced,
+    # because its rates are not comparable even when the row count is equal.
+    default_rule = if (is.null(default_rates) || !"counting_rule" %in% names(default_rates)) {
+      NA_character_
+    } else {
+      as.character(default_rates$counting_rule[1])
+    }
+    rule_changed = !identical(default_rule, PATH_AUDIT_COUNTING_RULE)
+    if (is.finite(current_total) && (rule_changed || current_total > default_total)) {
       utils::write.csv(rates, defaults_file, row.names = FALSE)
       return(invisible(TRUE))
     }
@@ -828,7 +913,10 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
   required = c("inference_class", "function_run", "error_message")
   if (!all(required %in% names(dt))) return(load_default_stats())
   dt[, base_class := sub(" [\\(\\[].*$", "", inference_class)]
-  dt[, explicit_nonestimable := grepl("^Explicitly non-estimable", error_message)]
+  # Row classification lives in classify_nonestimability_rows() (above); see
+  # its comment for the 2026-10-23 rule. The history below still applies to
+  # the design-refused and status == "error" parts of it.
+  classify_nonestimability_rows(dt)
   # Two DIFFERENT reasons a row can carry status == "error", conflated until
   # 2026-09-17 (found via a comprehensive_tests results audit): (1) a
   # structural design/method incompatibility -- apply_inference_design_
@@ -850,19 +938,14 @@ load_nonestimability_stats = function(result_dir = "package_tests") {
   # or a misleadingly-inflated percentage. Every other error (2), self-
   # reported or not, now counts against the numerator -- "estimability"
   # means "produced a usable result," and an uncaught exception did not.
-  dt[, design_refused_row := !is.na(status) & status == "error" &
-    !is.na(error_message) & error_message == "This method is not supported for DesignSeqOneByOne designs."]
-  dt[, failed_row := if ("status" %in% names(dt)) {
-    !design_refused_row & (explicit_nonestimable | (!is.na(status) & status == "error"))
-  } else {
-    explicit_nonestimable
-  }]
+  # Since 2026-10-23 an unflagged NA recorded as status == "ok" counts too.
   rates = dt[, .(
     n = sum(!design_refused_row),
     nonestimable = sum(failed_row, na.rm = TRUE)
   ), by = .(base_class, function_run)]
   rates[, rate := data.table::fifelse(n > 0L, nonestimable / n, NA_real_)]
   rates[, design_refused := n == 0L]
+  rates[, counting_rule := PATH_AUDIT_COUNTING_RULE]
   data.table::setorder(rates, base_class, function_run)
   maybe_update_default_stats(rates)
   stats_env = stats_env_from_rates(rates)
@@ -1089,7 +1172,7 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
       if (is.null(info)) return(default_title)
       estimable_rate = 1 - info$rate
       sprintf(
-        "%s; observed approx estimable rate %.1f%%; explicit non-estimable rate %.1f%% (%d/%d rows)",
+        "%s; observed approx estimable rate %.1f%%; non-estimable rate %.1f%% (%d/%d rows)",
         default_title, 100 * estimable_rate, 100 * info$rate, as.integer(info$nonestimable), as.integer(info$n)
       )
     }
@@ -1855,6 +1938,7 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
   })
 
   html = paste0('<!DOCTYPE html><html><head><meta charset="utf-8">
+  <!-- edi-path-audit-counting-rule: ', PATH_AUDIT_COUNTING_RULE, ' -->
   <title>EDI v', edi_version, ' Comprehensive Tests Coverage Audit</title>
   <style>
     body{font-family:sans-serif;font-size:13px;margin:16px}
@@ -1953,7 +2037,7 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
   </script>
   </head><body>
   <h2>EDI v', edi_version, ' Comprehensive Tests Coverage Audit</h2>
-  <p style="color:#555">Generated ', format(Sys.Date()), '. Green-to-yellow attempted cells use empirical explicit-nonestimability rates from main
+  <p style="color:#555">Generated ', format(Sys.Date()), '. Green-to-yellow attempted cells use empirical nonestimability rates (counting rule ', PATH_AUDIT_COUNTING_RULE, ': a row fails when it is flagged non-estimable, errored, or recorded a missing/non-finite result that was not a refusal or skip) from main
   <code>comprehensive_tests_results*.csv</code> files in <code>package_tests/</code>; focused <code>_filtered_</code> runs are excluded.
   Dark green means the method is theoretically guaranteed under the comprehensive-test contract.
   rand/rci/brt columns: NTS for response types where randomization is not theoretically supported (incidence/ordinal: rand=NTS; count: rci/brt_ci=NTS).

@@ -75,6 +75,11 @@ test_that("TODO-119 sweep: where a randomization CI is returned it contains the 
 		list("InferenceAllSimpleAverageDiff", "ordinal", sample(1:5, n, TRUE)),
 		list("InferenceSurvivalWeibullRegr", "survival", rexp(n, 0.2))
 	)
+	# Drop only the quantreg-backed case when quantreg is absent (sanitizer /
+	# valgrind install no Suggests), so the rest of the sweep still runs there.
+	if (!requireNamespace("quantreg", quietly = TRUE)) {
+		cases = Filter(function(cs) cs[[1]] != "InferencePropQuantileRegr", cases)
+	}
 	for (cs in cases) {
 		inf = make_scale_mismatch_inference(cs[[1]], cs[[2]], cs[[3]])
 		est = inf$compute_estimate()
@@ -136,6 +141,9 @@ test_that("randomization CI is not refused on strictly interior proportions; non
 })
 
 test_that("Zhang-combined quantile rand CI (KK quantile IVWC) also refuses exact 0/1 proportions", {
+	# The quantile classes refuse to initialize without quantreg, and the
+	# sanitizer / valgrind jobs install no Suggests.
+	skip_if_not_installed("quantreg")
 	gen = tryCatch(get("InferencePropKKQuantileRegrIVWC"), error = function(e) NULL)
 	skip_if(is.null(gen), "InferencePropKKQuantileRegrIVWC not available")
 	make_kk_prop = function(y_fun) {

@@ -70,7 +70,16 @@ test_that("DesignFixedBlocking draws: valid, reproducible by seed, independent o
 	expect_identical(w1, make_blocking_design_t118(c(10, 10, 9, 7))$d$draw_ws_according_to_design(200L))
 	# different seed differs
 	expect_false(identical(w1, make_blocking_design_t118(c(10, 10, 9, 7), seed = 12L)$d$draw_ws_according_to_design(200L)))
-	# core count does not change the draws
+})
+
+test_that("DesignFixedBlocking draws do not depend on the core count", {
+	# set_num_cores(2L) spawns real mirai daemons, and set_num_cores() is one of
+	# the documented hang sites (see start_mirai_daemons_bounded() in globals.R),
+	# so this has to carry the shared worker-test guard.
+	skip_if_prepush_no_parallel()
+	x = make_blocking_design_t118(c(10, 10, 9, 7))
+	d = x$d
+	w1 = d$draw_ws_according_to_design(200L)
 	on.exit(unset_num_cores(), add = TRUE)
 	set_num_cores(1L); wa = d$draw_ws_according_to_design(200L)
 	set_num_cores(2L); wb = d$draw_ws_according_to_design(200L)

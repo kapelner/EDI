@@ -10036,8 +10036,13 @@ baseline as expected/benign.
   `generate_permutations.cpp`, `spbr_speedups.cpp` and
   `random_block_size_speedups.cpp` Fisher--Yates sites; the six earlier
   fixture rows are byte-identical, the eight new rows were generated on
-  Linux, pass at 1/2/4 threads locally, and get their first cross-platform
-  confirmation on the next CI run (reopen this item if that run disagrees).
+  Linux and pass at 1/2/4 threads locally. **Cross-platform confirmation of the
+  eight new rows, 2026-10-23:** `R-CMD-check` runs 38808821525 (commit
+  `430c19bc`) and 39665080870 (commit `478104b0`) succeeded on every job,
+  including both macOS and both Windows legs, and the committed fixture at each
+  of those commits already held all 14 rows. The digest test is part of the
+  suite those legs run (inferred from the suite layout; the per-leg logs were
+  not re-read). Reopen this item if a later run disagrees.
   Still outside the digests: `stratified_bootstrap_indices_cpp` (a
   bootstrap path, not a design draw) and the annealing search in
   `design_optimal_annealing_search.cpp`; both moved to the portable
@@ -12093,6 +12098,24 @@ against the source").
       and the remaining primary-failure sites are deliberate.
     - NegBin jackknife and hurdle/ZAP `eps_g` are in `release_v1_1_0.md → TODO-67`.
     - Left: patch 04 at G1 (with `compileAttributes()`) and its five NegBin tests.
+  - **Path-audit counting fixed 2026-10-23 (owner decision, before G4).** After this TODO a failed procedure
+    returns NA without flagging the object. The harness records that as `status=ok`, so the path audit counted it
+    as estimable.
+    - Fix: `classify_nonestimability_rows()` in `R/package_tests/path_audits_source.R` also counts a `status=ok`
+      row with a missing or non-finite `result_1`/`result_2` (either CI bound) as non-estimable. Refusals and
+      skips are not failures and stay in `n`.
+    - Outputs are stamped `PATH_AUDIT_COUNTING_RULE = "2026-10-23"`. The defaults CSV is rewritten when its stamp
+      differs, even if the row count did not grow.
+    - `compare_path_audits.R` and the allowlist gained an optional `counting_rule_change` column. Row
+      `counting_rule_2026_10_23` excuses rate drops only, and only across a stamp change.
+    - Tests: `test-compare-path-audits-reference.R`, 0 failures.
+    - Scratch run on today's local CSVs (`/tmp/claude-1000/pa_fix`), old rule vs new rule:
+      - 2,136 of 5,692 observed cells changed; none rose.
+      - 1,849 fell by more than 0.02; 444 fell to 0%.
+      - Mostly Nonparam Boot (1,219) and Jackknife (313); Model-Based 308.
+      - Against HEAD the rule row covers 1,583 cell drops and 661 defaults rows.
+    - Some 0% cells are unsupported-procedure stubs that always return NA (e.g. CountHurdleNegBin and
+      CountHurdlePoisson jackknife). Marking them not-implemented in the registry is a separate item.
 - [x] TODO-117 (added 2026-10-22, user decision; harness T50):
   **`Design$any_censoring()` treats responses not yet recorded as
   censored.**
@@ -13196,6 +13219,8 @@ against the source").
       `REUSED_RESAMPLING_CACHES`. To close: start the Bayesian jackknife
       refits from the full-data fit (as the ordinary path now does), or
       recheck after patch 14; then repeat this check and add the cache.
+      **Moved to `release_v1_1_0.md → TODO-74` (2026-10-23, user decision;
+      v1.0.5 is closed).** Not a v1.0.5 blocker.
 
 - [ ] TODO-129 (added 2026-10-22, owner decision G6 #44; split out of TODO-124's
   "Remains (a)"): **Bootstrap CIs come back NA for some seeds on
@@ -13885,6 +13910,52 @@ the TODO-3/118 deletions (5 deleted `.cpp`, 3 shrunk files, -205 lines); for eve
 `git apply --check` succeeds and `git apply --check -R` fails; `src/ordinal_scale_guard.h` (patch 12) does not
 exist; the patch-13 file is gone (withdrawn). So G1 proper (apply chosen patches, build, provenance, step-4
 tests) remains entirely open.
+
+**Post-build verification 2026-10-23 (agent; triage of the 7 not-OK files of the post-build run).** Build under
+test: patches 01-12, 14, 15 + B07, `EDI_UNITY=0`, installed `Built ... 2026-10-23 09:10:40 UTC`, `EDI.so` sha256
+`df9ba43e...` (`R/EDI/src/EDI.so` identical, checked before every `load_all(compile = FALSE)`); A05/B07b/C06 and the six
+companion tests were applied after the build. Runner: `/tmp/claude-1000/g1_fix/run2.R` (`NOT_CRAN=true`,
+`EDI_REQUIRE_CPP_PATCHES=true`, namespace env, `package = "EDI"`), both `library(EDI)` and `load_all(compile = FALSE)`.
+Proposed C++ diffs (NOT applied; `git apply --check` OK; `src/` untouched) are in `/tmp/claude-1000/g1_fix/`.
+
+| File | Cause | Class | Change / status |
+|---|---|---|---|
+| `test-cox-newton-descent-guard.R` (2 fail) | Patch 08's guard is compiled but cannot fire: `compute_cox_neg_ll_only()` (used by the step-halving and the guard) sums the risk set as a forward running difference (`r_exp -= exp_eta[j]`), which cancels once one subject dominates (bT = 166: the w = 1 subject has `eta - max_eta = 0`, the rest ~ -160). Candidate neg-ll -509 vs true +363.7 (R replica of both sums), so the step is accepted. Pre-existing C++ bug that patch 08 relied on | (c) C++ | NOT FIXED. `proposed-08c-cox-neg-ll-backward-sum.patch` (sum backwards, as `compute_cox_ll_grad_hess_fast` does) |
+| `test-depcens-clayton-kernel-numerics.R` (2 fail) | Patch 02 works partly: 38 -> 15/101 failures (README expected <= 2). All 15 end at `atanh(rho) = +-3 + 1e-14`, `value = NaN`, `niter = maxit`: LBFGSpp's strong-Wolfe line search still throws at the clamp kink. Pinning `atanh(rho)` at +-3 converges on all 15. Not a regression (the R retry ladder still rescues). Caveat: the side reached is not always the best (resample 37: Newton finds -3.07, nll 57.97, vs 60.98 at +3) | (c) C++, patch incomplete | NOT FIXED. `proposed-02b-depcens-clamp-boundary-refit.patch` (refit with rho pinned when LBFGS ends at the clamp unconverged). Alternative: relax the test to "finite params" and leave the rest to the R retry. Owner decides |
+| `test-information-inverse-guard.R` (4 fail) | (i) NB (3): needs the post-build R change `negbin_fit_cpp()` eps fallback (`inference_count_negbin.R` 13:03, after the build). (ii) ZINB (1): B07b expected a finite zi block, but this Poisson fixture is at the ZI boundary (`zero_inflation_at_boundary = TRUE`, zi intercept -10). `zinb_zi_information_spec()` conditions on the zi coordinates, so they are NaN, as on the existing boundary path. Patch 07 is correct; only the duplicated columns are on the null eigenvector | (i) (b); (ii) (a) B07b expectation wrong | Test edited (dated comment): zi coordinates expected NaN when at the boundary. library: 3 NB fails (stale installed R, expected); load_all: 37/37 pass |
+| `testthat_bulk/test-ordinal-adjcat-contratio-uncentred-covariates-reference.R` (1 error) | **Patch 12 regression.** `ordinal_covariates_badly_scaled()` checks every column, including the binary treatment (R's `ordinal_center_scale_plan()` skips column 1). A 0/1 column with mean > 0.5 has \|mean\| > sd, so the Newton-decrement certificate (<= 1e-6) runs on ordinary data and downgrades LBFGS fits that stop at decrement ~1e-5 (params ~3e-4 off). The CR kernel checks augmented rows (treatment mean 0.523 here). Measured on well-scaled data, 52% treated, n = 200: non-converged PO 92/100, Cauchit 91, Cloglog 85, Probit 68, CR 10, AdjCat 8 (0/100 at exactly 50%, except CR 8). Class level, Bernoulli designs, 20 seeds: NA estimate/SE PropOdds 7, Cloglog 7, Cauchit 8, OrderedProbit 4 | (c) C++ regression, **release-blocking** | NOT FIXED. `proposed-12b-ordinal-scale-guard-skip-binary.patch` (skip 0/1 columns; CR checks subject-level `X`). Needs a rebuild of the 6 ordinal `.cpp` |
+| `test-rmst-tau-fast-kernel.R` (1 skip) | needs A05 (R side, applied after the build) | (b) | No change. load_all: 8/8 pass |
+| `test-strat-cox-matched-design-todo110.R` (1 error) | runner artifact: `local_mocked_bindings()` without `.package` needs `testing_package()`, which `test_file()` without `package =` does not set (`test_check` does) | runner | No change. 4/4 pass in both modes with `package = "EDI"` |
+| `test-weibull-frailty-loggamma-null-boundary.R` (1 fail) | Wald p 0.50572 -> 0.51851. The fit sits at log(theta) = -8.92, inside patch 03's gate. The old logA noise swamped I_tt (~1.7e-7), so the FD Hessian dropped the beta_T/log-theta coupling (old SE 0.3165, which is survreg's conditional SE 0.31683). The new SE 0.32638 matches an R central-difference Hessian of the score (0.32655, stable for h = 1e-2..1e-5). Score/LR/gradient unchanged | (a) patch 03, intended | Fixture constant updated (dated comment). 19/19 pass in both modes |
+
+R/test edits: `test-information-inverse-guard.R` and `test-weibull-frailty-loggamma-null-boundary.R` only. No R source fixes
+were needed. Not done (out of scope): a rebuild for 08c/02b/12b; the patch-12 scale-guard rerun of
+`test-ordinal-fast-solver-uncentred-covariates-reference.R` after 12b; a sweep of the 10 other `local_mocked_bindings()`
+calls without `.package` (fine under `test_check`).
+
+**Owner decision 2026-10-23 on the three proposed diffs.** 12b and 08c are now bundle patches
+`cpp_patches_v105/12b-ordinal-scale-guard-skip-binary.patch` and `cpp_patches_v105/08c-cox-neg-ll-backward-sum.patch`,
+APPLIED to `R/EDI/src` (`git apply --check` then `git apply`, both clean; nothing compiled). Files to recompile
+(`EDI_UNITY=0`, no `--preclean`): `fast_ordinal_regression.cpp`, `fast_ordinal_cauchit_regression.cpp`,
+`fast_ordinal_cloglog_regression.cpp`, `fast_ordinal_probit_regression.cpp`, `fast_adjacent_category_logit.cpp`,
+`fast_continuation_ratio_regression.cpp` (all include the edited `ordinal_scale_guard.h`) and `fast_coxph_regression.cpp`.
+No exported signature changed, so no `compileAttributes()`. 02b is NOT applied: it moved to
+`cpp_patches_v105/deferred_v110/02b-depcens-clamp-boundary-refit.patch` (`release_v1_1_0.md → TODO-156`), and
+`test-depcens-clayton-kernel-numerics.R` was relaxed (probe <= 25, expectation <= 20 of 101; pre-patch 38) because the R
+retry ladder rescues the 15 clamp stalls. After the user's rebuild, rerun: `test-cox-newton-descent-guard.R`,
+`test-depcens-clayton-kernel-numerics.R`, `test-information-inverse-guard.R` (under `library(EDI)`), `test-rmst-tau-fast-kernel.R`,
+`testthat_bulk/test-ordinal-adjcat-contratio-uncentred-covariates-reference.R`,
+`test-ordinal-fast-solver-uncentred-covariates-reference.R`, then the hook-style suite and the R3 C1 smoke.
+
+**Rebuild verification 2026-10-23 (G1 complete).** First rebuild (13:28 UTC) recompiled only
+`fast_continuation_ratio_regression.cpp` and `fast_coxph_regression.cpp`: R's `make` does not track the
+`ordinal_scale_guard.h` dependency, so the hook suite failed 3 PropOdds checks (NA estimate, kernel `converged = FALSE` at
+52% treated). After `touch` of the other 5 ordinal `.cpp` files and a second incremental rebuild (`EDI_UNITY=0`), installed
+`EDI.so` sha256 `f57727272e5e38c8f3f8f7debf324bc19b5c9bcbb1c97fe78e2d14ddc9b18111` (= `R/EDI/src/EDI.so`). Results
+(`/tmp/claude-1000/g1_post3/`): the 56 post-build files with `EDI_REQUIRE_CPP_PATCHES=true` 2,765 expectations, 0 failed,
+0 skipped, 0 errors; hook-style suite 9,057 pass, 0 fail, 18 skip, 40 warnings (the expected classed lik-test fallback
+warnings), exit 0; R3 C1 smoke (`todo18_smoothed_brt_null.R --cells C1 --smoke`) exit 0, non-degenerate null for
+`InferenceContinKKRobustRegrOneLik` (p = 0.76/0.67 and 0.19/0.10 percentile/smoothed; mechanics only).
 
 ### G2. Quiet-host timing runs (installed package, provenance sidecar)
 
@@ -15111,6 +15182,12 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
      `test-information-inverse-inference-typed-guards.R`, `test-information-inverse-edge-cases.R`,
      `test-zinb-zero-inflation-boundary.R` and `test-zinb-zi-block-unidentified-count-se.R`. Record which assertions
      patch 07 changes; only `test-information-inverse-guard.R` L125-129 is expected to change (README step 1).
+     **Done 2026-10-23 (unpatched baseline):** installed EDI 1.0.3 built 2026-10-23 08:16:38 UTC, `EDI.so` sha256
+     `28b9581fc9979f2bc95a9198d29360b307ceb9f29cb19dfd69860adcc5983384`; all five pass with 0 failures/errors/skips
+     (33, 30, 11, 10, 8 expectations). Per-test results: `/tmp/claude-1000/g1_pre/todo4_guard_tests_unpatched.csv`.
+     The L125-129 block asserts `fast_zinb_cpp(X_singular, ...)` gives `information_invertible = FALSE` and an
+     all-NaN vcov; after patch 07 (+ B07) the vcov is expected to become partly finite, so that block should fail
+     post-build until B07b's updated expectation is applied (README step 1).
    - (b) Apply the patches in order:
 
          P=R/package_metadata/bug_fix_plans/cpp_patches_v105
@@ -15136,6 +15213,9 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
      - TODO-129 (owner overrides): `test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R` and
        `test-robust-survreg-jitter-rng-todo129.R` (sources only so far; confirm on the built package);
      - TODO-67: `testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R`;
+     - TODO-21 follow-up (added 2026-10-23): the 2026-10-20 scalar singleton-index resampling fix's native-provenance
+       recheck, `testthat_bulk/test-matching-bootstrap-draw-grouping-and-match-stats-kernels-reference.R` (1,216
+       expectations on the 2026-10-20 artifact), re-run on this build;
      - TODO-63: the kernel-equivalence set `test-kernel-warm-start-length-contracts.R`,
        `test-zoib-kernel-input-length-validation.R`, `test-mixed-kernel-warm-start-shape-guards-reference.R` and
        `test-glmm-cpp-equivalence.R`;
@@ -15235,13 +15315,17 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
        `InferenceIncidModifiedPoisson` (the G7 slice) and `InferencePropGCompMeanDiff`, plus 16 small (2-3 point)
        estimability drops from row pruning; all 53 support removals were allowlisted.
      - Allowlist entries that matched nothing are listed for information only.
-   - Caveat (TODO-116): the audit counts as failures only rows marked "Explicitly non-estimable" and `status=error`
-     rows. The harness records an unflagged `NA` as `status=ok` ("Invalid output detected"), and that counts as
-     estimable. Since 1.0.5, a failed procedure no longer flags the object, so expect apparent estimability gains on
-     resampling paths: an "improved" cell does not prove a fix.
+   - Counting fixed 2026-10-23 (TODO-116; was a caveat). A `status=ok` row with a missing or non-finite result now
+     counts as non-estimable unless its message is a refusal or skip (`classify_nonestimability_rows()` in
+     `path_audits_source.R`). Outputs carry the rule stamp `2026-10-23`. The first compare against an unstamped
+     baseline prints `counting rule changed`. Allowlist row `counting_rule_2026_10_23` then excuses rate drops only;
+     support and cell changes are still checked. Expect about 1.8k cells to drop, mostly bootstrap and jackknife.
+     Real rate regressions in G4 are hidden in that one compare. To avoid that, the owner can commit outputs
+     recounted from the pre-G4 CSVs first (owner call).
    - Then copy the outputs into place:
      `cp $S/path_audits.html $S/path_audits_nonestimability_defaults.csv R/package_tests/`. The CSV changes only when the
-     pooled row count grew, because the script treats it as a high-water mark. Review with
+     pooled row count grew (a high-water mark) or its `counting_rule` stamp differs. The first stamped run always
+     rewrites it, so run it only on the fully merged CSVs; on a partial pool it drops rows. Review with
      `git diff --stat -- R/package_tests/path_audits*`, re-run the compare with the default `--new-dir` (exit 0), and
      commit both files with the G4 merge before G5. Closes: no box; it is release evidence for 119 and the G4 rows.
 7. **G2 (quiet host: 1-min load < 1.0, nothing else running, after G1 and the Python extension build; never during G4).**

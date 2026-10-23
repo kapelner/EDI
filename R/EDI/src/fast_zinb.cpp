@@ -757,6 +757,55 @@ LikelihoodFitResult fast_zinb_internal(const Eigen::Ref<const Eigen::MatrixXd>& 
     return fit;
 }
 
+// TODO-4 ZINB note (release_v1_0_5.md, 2026-10-22): when the free information
+// block is exactly singular because the zero-inflation block is unidentified
+// (e.g. zi intercept and zi treatment columns exactly collinear: zi only in one
+// arm), invert_free_information() correctly rejects it, but the COUNT-model
+// standard errors are still estimable and equal pscl's. This returns the
+// symmetric pseudo-inverse of the information (eigenvalues with
+// |lambda| <= rel_tol * max|lambda| dropped) with every row/column of a
+// coordinate that loads on the dropped (null) eigenvectors set to NaN: a
+// coordinate e_i orthogonal to the null space is an estimable function, so its
+// covariance is the same under any generalized inverse, whereas the
+// pseudo-inverse would otherwise return a finite but meaningless (min-norm)
+// variance for a genuinely non-identified coordinate (e.g. a duplicated
+// column). `null_load_tol` is on the squared loading sum_k u_k[i]^2.
+static inline Eigen::MatrixXd identified_pseudo_inverse_free_information(
+        const Eigen::MatrixXd& info,
+        double rel_tol = 1e-10,
+        double null_load_tol = 1e-6) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    if (info.rows() != info.cols() || info.rows() == 0 || !info.allFinite()) {
+        return Eigen::MatrixXd::Constant(info.rows(), info.cols(), nan);
+    }
+    const int m = static_cast<int>(info.rows());
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(0.5 * (info + info.transpose()));
+    if (es.info() != Eigen::Success) {
+        return Eigen::MatrixXd::Constant(m, m, nan);
+    }
+    const Eigen::VectorXd evals = es.eigenvalues();
+    const double max_abs = evals.cwiseAbs().maxCoeff();
+    if (!(max_abs > 0.0)) return Eigen::MatrixXd::Constant(m, m, nan);
+    Eigen::VectorXd inv_evals = Eigen::VectorXd::Zero(m);
+    Eigen::VectorXd null_load = Eigen::VectorXd::Zero(m);
+    for (int k = 0; k < m; ++k) {
+        if (std::abs(evals[k]) > rel_tol * max_abs) {
+            inv_evals[k] = 1.0 / evals[k];
+        } else {
+            null_load += es.eigenvectors().col(k).cwiseAbs2();
+        }
+    }
+    Eigen::MatrixXd pinv = es.eigenvectors() * inv_evals.asDiagonal() * es.eigenvectors().transpose();
+    pinv = (0.5 * (pinv + pinv.transpose())).eval();
+    for (int i = 0; i < m; ++i) {
+        if (null_load[i] > null_load_tol) {
+            pinv.row(i).setConstant(nan);
+            pinv.col(i).setConstant(nan);
+        }
+    }
+    return pinv;
+}
+
 // Portable (EDI_CORE_ONLY-safe) sibling of fast_zinb_cpp below: fits via
 // fast_zinb_internal, then always takes the extra
 // ZeroInflatedNegBin::hessian(params) call, guarded against a singular or
@@ -799,6 +848,9 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
     Eigen::MatrixXd H_free = subset_matrix(hess, information_spec.free_idx, information_spec.free_idx);
     bool information_invertible = false;
     Eigen::MatrixXd cov_free = invert_free_information(H_free, information_invertible);
+    // information_invertible stays FALSE (the guard is correct); only the
+    // identified (estimable) coordinates get a finite covariance.
+    if (!information_invertible) cov_free = identified_pseudo_inverse_free_information(H_free);
     Eigen::MatrixXd vcov = expand_free_covariance(n_par, information_spec, cov_free, true);
 
     return edi::ResultMap()
@@ -916,8 +968,12 @@ List fast_zinb_cpp(const Eigen::Map<Eigen::MatrixXd>& X, const Eigen::Map<Eigen:
     Eigen::MatrixXd guarded_covariance = invert_free_information(
         information_free, information_invertible);
     if (!information_invertible) {
+        // Singular block: keep information_invertible = FALSE but return the
+        // pseudo-inverse covariance for identified coordinates (NaN elsewhere).
+        guarded_covariance = identified_pseudo_inverse_free_information(information_free);
         out["vcov"] = expand_free_covariance(
             p_cond + p_zi + 1, information_spec, guarded_covariance, true);
+        out["covariance_type"] = "pseudo_inverse_identified_coordinates";
     } else if (fit.dispersion_at_poisson_boundary || fit.zero_inflation_at_boundary) {
         // Keep the existing covariance calculation on accepted fits. The
         // helper above is deliberately only the accept/reject gate here, so

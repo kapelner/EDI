@@ -3229,8 +3229,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // compute_survival_stat_diff_rand_bootstrap_parallel_cpp
-NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(const NumericVector& y0, const IntegerVector& dead, const IntegerMatrix& i_mat, const IntegerMatrix& w_mat, double delta, bool do_rmst, Rcpp::Nullable<Rcpp::NumericMatrix> noise_mat, int num_cores);
-RcppExport SEXP _EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp(SEXP y0SEXP, SEXP deadSEXP, SEXP i_matSEXP, SEXP w_matSEXP, SEXP deltaSEXP, SEXP do_rmstSEXP, SEXP noise_matSEXP, SEXP num_coresSEXP) {
+NumericVector compute_survival_stat_diff_rand_bootstrap_parallel_cpp(const NumericVector& y0, const IntegerVector& dead, const IntegerMatrix& i_mat, const IntegerMatrix& w_mat, double delta, bool do_rmst, Rcpp::Nullable<Rcpp::NumericMatrix> noise_mat, int num_cores, double rmst_tau);
+RcppExport SEXP _EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp(SEXP y0SEXP, SEXP deadSEXP, SEXP i_matSEXP, SEXP w_matSEXP, SEXP deltaSEXP, SEXP do_rmstSEXP, SEXP noise_matSEXP, SEXP num_coresSEXP, SEXP rmst_tauSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -3242,7 +3242,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type do_rmst(do_rmstSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type noise_mat(noise_matSEXP);
     Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_survival_stat_diff_rand_bootstrap_parallel_cpp(y0, dead, i_mat, w_mat, delta, do_rmst, noise_mat, num_cores));
+    Rcpp::traits::input_parameter< double >::type rmst_tau(rmst_tauSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_survival_stat_diff_rand_bootstrap_parallel_cpp(y0, dead, i_mat, w_mat, delta, do_rmst, noise_mat, num_cores, rmst_tau));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -5384,7 +5385,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_get_survival_stat_diff", (DL_FUNC) &_EDI_get_survival_stat_diff, 4},
     {"_EDI_get_restricted_mean_se_for_group", (DL_FUNC) &_EDI_get_restricted_mean_se_for_group, 2},
     {"_EDI_get_restricted_mean_se_diff", (DL_FUNC) &_EDI_get_restricted_mean_se_diff, 3},
-    {"_EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp", (DL_FUNC) &_EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp, 8},
+    {"_EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp", (DL_FUNC) &_EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp, 9},
     {"_EDI_compute_survival_stat_diff_rand_bootstrap_serial_cpp", (DL_FUNC) &_EDI_compute_survival_stat_diff_rand_bootstrap_serial_cpp, 6},
     {"_EDI_get_weibull_frailty_neg_loglik_cpp", (DL_FUNC) &_EDI_get_weibull_frailty_neg_loglik_cpp, 7},
     {"_EDI_get_weibull_frailty_score_cpp", (DL_FUNC) &_EDI_get_weibull_frailty_score_cpp, 7},

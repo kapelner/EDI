@@ -279,7 +279,7 @@ InferenceCountNegBin = define_inference_class(
 			ws_args = private$get_backend_warm_start_args(ncol(X) + 1L)
 			has_vc = isTRUE(is.finite(private$cached_vc_params))
 			res = tryCatch(
-				fast_neg_bin_cpp(
+				negbin_fit_cpp(
 					X = X, y = as.integer(private$y),
 					warm_start_params = ws_args$start_params,
 					warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -317,7 +317,7 @@ InferenceCountNegBin = define_inference_class(
 			X_fit    = spec$X
 			j        = spec$j
 			full_res = tryCatch(
-				fast_neg_bin_cpp(
+				negbin_fit_cpp(
 					X = X_fit, y = y_sim,
 					smart_cold_start = private$smart_cold_start_default,
 					optimization_alg = private$optimization_alg, eps_g = NEGBIN_FIT_EPS_G
@@ -334,7 +334,7 @@ InferenceCountNegBin = define_inference_class(
 				full_fit = full_fit_boot,
 				fit_null = function(d, start = NULL){
 					res = tryCatch(
-						fast_neg_bin_cpp(
+						negbin_fit_cpp(
 							X = X_fit, y = y_sim,
 							warm_start_params = start %||% c(as.numeric(full_res$b), log(as.numeric(full_res$theta_hat))),
 							fixed_idx = j, fixed_values = d,
@@ -382,7 +382,7 @@ InferenceCountNegBin = define_inference_class(
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
 					ws_args = private$get_backend_warm_start_args(ncol(X_fit) + 1L)
-					fast_neg_bin_cpp(
+					negbin_fit_cpp(
 						X = X_fit,
 						y = as.integer(y),
 						warm_start_params = start %||% ws_args$start_params,
@@ -436,7 +436,7 @@ InferenceCountNegBin = define_inference_class(
 				ws_args = private$get_backend_warm_start_args(ncol(X_full) + 1L)
 				if (estimate_only) {
 					res = tryCatch(
-						fast_neg_bin_cpp(
+						negbin_fit_cpp(
 							X = X_full, y = as.integer(private$y),
 							warm_start_params = ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -454,7 +454,7 @@ InferenceCountNegBin = define_inference_class(
 					res$j_treat = 2L
 				} else {
 					res = tryCatch(
-						fast_neg_bin_with_var_cpp(
+						negbin_fit_with_var_cpp(
 							X = X_full, y = as.integer(private$y),
 							warm_start_params = ws_args$start_params,
 							warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -492,7 +492,7 @@ InferenceCountNegBin = define_inference_class(
 					ws_args = private$get_backend_warm_start_args(ncol(X_fit) + 1L)
 					if (estimate_only) {
 						res = tryCatch(
-							fast_neg_bin_cpp(
+							negbin_fit_cpp(
 								X = X_fit, y = as.integer(private$y),
 								warm_start_params = ws_args$start_params,
 								warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -508,7 +508,7 @@ InferenceCountNegBin = define_inference_class(
 						     dispersion_at_poisson_boundary = res$dispersion_at_poisson_boundary)
 					} else {
 						res = tryCatch(
-							fast_neg_bin_with_var_cpp(
+							negbin_fit_with_var_cpp(
 								X = X_fit, y = as.integer(private$y),
 								warm_start_params = ws_args$start_params,
 								warm_start_fisher_info = ws_args$warm_start_fisher_info,
@@ -556,7 +556,28 @@ InferenceCountNegBin = define_inference_class(
 )
 
 # Gradient-norm tolerance for the unweighted negative-binomial fits. The C++
-# default (1e-6) stopped ~1e-3 short of the MLE on the treatment coefficient
-# (TODO-116); 1e-10 matches MASS::glm.nb to ~1e-6 for a couple of extra
-# L-BFGS iterations.
+# default (1e-6) stops ~1e-3 short of the MLE on the treatment coefficient
+# (TODO-116); 1e-10 matches MASS::glm.nb to ~1e-6 when the optimizer can get
+# there. Often it cannot: it then runs to the 1000-iteration cap and ends with
+# a NaN gradient, reporting the fit unconverged. Measured over 40 seeded
+# Poisson-like datasets per size, 1e-10 converged 7/40 (n = 20), 14/40
+# (n = 50), 15/40 (n = 100) and 22/40 (n = 300), where 1e-6 converged 40/40 at
+# every size. So the tight tolerance is a target, not a requirement: the fits
+# below go through negbin_fit_cpp()/negbin_fit_with_var_cpp(), which refit at
+# the fallback rather than hand back an unconverged fit (which generate_mod()
+# turns into a NULL model and hence an NA estimate). Drop the fallback only
+# once the kernel can reach 1e-10 reliably, and re-measure those rates.
 NEGBIN_FIT_EPS_G = 1e-10
+NEGBIN_FIT_EPS_G_FALLBACK = 1e-6
+
+# A failed tight fit costs ~0.3 ms, against ~0.1 ms for a fallback fit, so the
+# second attempt is not worth caching per object.
+negbin_fit_with_eps_fallback = function(fit_fun, ..., eps_g = NEGBIN_FIT_EPS_G){
+	res = fit_fun(..., eps_g = eps_g)
+	if (isTRUE(res$converged) || eps_g >= NEGBIN_FIT_EPS_G_FALLBACK) return(res)
+	fallback = fit_fun(..., eps_g = NEGBIN_FIT_EPS_G_FALLBACK)
+	# Still unconverged: hand back the tight fit so callers see the original failure.
+	if (isTRUE(fallback$converged)) fallback else res
+}
+negbin_fit_cpp = function(...) negbin_fit_with_eps_fallback(fast_neg_bin_cpp, ...)
+negbin_fit_with_var_cpp = function(...) negbin_fit_with_eps_fallback(fast_neg_bin_with_var_cpp, ...)

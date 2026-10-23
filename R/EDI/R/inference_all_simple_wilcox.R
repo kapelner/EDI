@@ -411,8 +411,13 @@ SimpleWilcoxSource = list(
 #' the package's deterministic inclusive-tail rule, which returns exactly 1 for
 #' every such draw: in a direct reproduction, every zero-estimate null draw gave
 #' \code{p_rand == 1}. These p-values are therefore conservative (discrete and
-#' coarse), not anti-conservative; the Wald-family and exact rank-based p-values
-#' are unaffected. The same degeneracy makes resampling-family confidence
+#' coarse), not anti-conservative. The asymptotic and Wald p-values are the same
+#' rank-sum test (\code{stats::wilcox.test(exact = FALSE)}, normal approximation
+#' with continuity correction) and do not use the Hodges-Lehmann estimate, so
+#' they are not degenerate: in a true-null simulation (n = 40, 600 replicates;
+#' Poisson(0.5), Poisson(2) and a 3-level ordinal response, where the estimate
+#' was exactly 0 in 98\%, 73\% and 99\% of replicates) their rejection rates at
+#' 0.05 were 0.052, 0.042 and 0.038. The same degeneracy makes resampling-family confidence
 #' intervals unreliable on such data (coverage was observed well below nominal,
 #' about 48-57\% against 95\%), so prefer the rank-based interval or
 #' \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}

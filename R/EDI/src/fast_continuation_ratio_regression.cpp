@@ -6,6 +6,7 @@
 #include <Rcpp.h>
 #include <RcppEigen.h>
 #endif
+#include "ordinal_scale_guard.h"
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -192,6 +193,12 @@ ContinuationRatioFit fast_continuation_ratio_internal(
 	}
 
 	result.fit = optimize_fixed_likelihood(fun, beta, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_start_ptr);
+	// G1 post-build 2026-10-23: inspect the SUBJECT-level covariates (as R's
+	// ordinal_center_scale_plan() does), not the augmented rows: replicating each
+	// subject min(y, K-1) times shifts column means (treatment 0.50 -> 0.52 on the
+	// TODO-107 fixture) and made the rule fire on well-scaled data.
+	if (result.fit.converged && ordinal_covariates_badly_scaled(X) &&
+		!ordinal_newton_decrement_ok(fun, result.fit.params, fixed_spec, tol)) result.fit.converged = false;
 	return result;
 }
 

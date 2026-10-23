@@ -5,4 +5,3 @@
 # changing these.
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -DNDEBUG -DEIGEN_NO_DEBUG
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) -fstack-protector
-OBJECTS = unity_01.o unity_02.o unity_03.o unity_04.o unity_05.o unity_06.o unity_07.o unity_08.o unity_09.o unity_10.o build_info.o RcppExports.o

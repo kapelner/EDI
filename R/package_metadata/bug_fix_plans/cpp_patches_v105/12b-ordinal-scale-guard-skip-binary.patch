@@ -1,0 +1,36 @@
+--- a/R/EDI/src/ordinal_scale_guard.h	2026-10-23 13:35:46.712986178 +0300
++++ b/R/EDI/src/ordinal_scale_guard.h	2026-10-23 13:36:27.193047362 +0300
+@@ -35,6 +35,18 @@
+         const double sd = std::sqrt(ss / (n - 1.0));
+         if (!std::isfinite(m) || !std::isfinite(sd)) return true;
+         if (sd <= 0.0) continue; // constant column: not a scaling problem
++        // G1 post-build 2026-10-23: a 0/1 column (the treatment, a dummy) is never a
++        // scaling problem, but with more than half ones its mean exceeds its sd, so
++        // the |mean| > sd rule fired on ordinary designs (52% treated: 92/100
++        // well-scaled PO fits, 68-91/100 probit/cloglog/cauchit, downgraded to
++        // converged = FALSE; ~35% NA estimates at class level). R's
++        // ordinal_center_scale_plan() never looks at the treatment column.
++        bool zero_one = true;
++        for (int i = 0; i < X.rows() && zero_one; ++i) {
++            const double v = X(i, j);
++            zero_one = (v == 0.0 || v == 1.0);
++        }
++        if (zero_one) continue;
+         if (std::fabs(m) > sd || sd < 0.25 || sd > 4.0) return true;
+     }
+     return false;
+--- a/R/EDI/src/fast_continuation_ratio_regression.cpp	2026-10-23 13:35:46.720986190 +0300
++++ b/R/EDI/src/fast_continuation_ratio_regression.cpp	2026-10-23 13:36:27.193047362 +0300
+@@ -193,7 +193,11 @@
+ 	}
+ 
+ 	result.fit = optimize_fixed_likelihood(fun, beta, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_start_ptr);
+-	if (result.fit.converged && ordinal_covariates_badly_scaled(result.X_aug, result.n_alpha) &&
++	// G1 post-build 2026-10-23: inspect the SUBJECT-level covariates (as R's
++	// ordinal_center_scale_plan() does), not the augmented rows: replicating each
++	// subject min(y, K-1) times shifts column means (treatment 0.50 -> 0.52 on the
++	// TODO-107 fixture) and made the rule fire on well-scaled data.
++	if (result.fit.converged && ordinal_covariates_badly_scaled(X) &&
+ 		!ordinal_newton_decrement_ok(fun, result.fit.params, fixed_spec, tol)) result.fit.converged = false;
+ 	return result;
+ }

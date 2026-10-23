@@ -825,15 +825,15 @@ build_stratified_cox_data_cache_cpp <- function(X, y, dead, strata) {
     .Call(`_EDI_build_stratified_cox_data_cache_cpp`, X, y, dead, strata)
 }
 
-fast_coxph_regression_prebuilt_cpp <- function(cox_data_xptr, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 20L, tol = 1e-9, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
+fast_coxph_regression_prebuilt_cpp <- function(cox_data_xptr, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-9, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
     .Call(`_EDI_fast_coxph_regression_prebuilt_cpp`, cox_data_xptr, warm_start_beta, smart_cold_start, estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
 }
 
-fast_coxph_regression_cpp <- function(X, y, dead, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 20L, tol = 1e-9, cluster = NULL, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
+fast_coxph_regression_cpp <- function(X, y, dead, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-9, cluster = NULL, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
     .Call(`_EDI_fast_coxph_regression_cpp`, X, y, dead, warm_start_beta, smart_cold_start, estimate_only, maxit, tol, cluster, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
 }
 
-fast_stratified_coxph_regression_cpp <- function(X, y, dead, strata, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 20L, tol = 1e-9, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
+fast_stratified_coxph_regression_cpp <- function(X, y, dead, strata, warm_start_beta = NULL, smart_cold_start = TRUE, estimate_only = FALSE, maxit = 100L, tol = 1e-9, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "newton_raphson", warm_start_fisher_info = NULL) {
     .Call(`_EDI_fast_stratified_coxph_regression_cpp`, X, y, dead, strata, warm_start_beta, smart_cold_start, estimate_only, maxit, tol, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info)
 }
 
@@ -2271,7 +2271,7 @@ get_negbin_regression_expected_hessian_cpp <- function(X, y, params) {
 #' X = matrix(rnorm(100), 10, 10)
 #' y = rpois(10, 2)
 #' fast_neg_bin_with_var_cpp(X, y)
-fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
+fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-10, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_neg_bin_with_var_cpp`, X, y, warm_start_params, smart_cold_start, maxit, eps_f, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only)
 }
 
@@ -2295,7 +2295,7 @@ fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold
 #' X = matrix(rnorm(100), 10, 10)
 #' y = rpois(10, 2)
 #' fast_neg_bin_cpp(X, y)
-fast_neg_bin_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
+fast_neg_bin_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-10, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_neg_bin_cpp`, X, y, warm_start_params, smart_cold_start, maxit, eps_f, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only)
 }
 
@@ -3818,9 +3818,13 @@ get_restricted_mean_se_diff <- function(y, dead, w) {
 #' Sharp-null shift is multiplicative on treated times (exp(delta)). Uses an inline
 #' pure-C++ KM calculator — no R objects inside the loop, so OpenMP is safe.
 #' @param do_rmst TRUE for RMST-diff, FALSE for median (KM-diff).
+#' @param rmst_tau Optional user RMST horizon (TODO-108). \code{NA} (default) keeps the
+#'   shared horizon \code{min(arm maxima)}; a finite value uses
+#'   \code{min(rmst_tau, arm maxima)} (equivalent to right-truncating at tau).
+#'   Ignored when \code{do_rmst} is FALSE.
 #' @keywords internal
-compute_survival_stat_diff_rand_bootstrap_parallel_cpp <- function(y0, dead, i_mat, w_mat, delta, do_rmst, noise_mat, num_cores) {
-    .Call(`_EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp`, y0, dead, i_mat, w_mat, delta, do_rmst, noise_mat, num_cores)
+compute_survival_stat_diff_rand_bootstrap_parallel_cpp <- function(y0, dead, i_mat, w_mat, delta, do_rmst, noise_mat, num_cores, rmst_tau = NA_real_) {
+    .Call(`_EDI_compute_survival_stat_diff_rand_bootstrap_parallel_cpp`, y0, dead, i_mat, w_mat, delta, do_rmst, noise_mat, num_cores, rmst_tau)
 }
 
 compute_survival_stat_diff_rand_bootstrap_serial_cpp <- function(y0, dead, i_mat, w_mat, delta, requested_stat) {

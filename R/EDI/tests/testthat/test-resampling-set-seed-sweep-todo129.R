@@ -48,9 +48,11 @@ sweep129_cases = list(
 	# ~40 s for both blocks (25 x 5 outer resamples, each with an inner bootstrap).
 	calibrated_boot_ci = list(cls = "InferenceContinOLS", rt = "continuous", kind = "ibcrd", heavy = TRUE,
 		call = function(inf) inf$compute_bootstrap_confidence_interval(B = 25, type = "calibrated", show_progress = FALSE)),
-	quantile_ivwc_rand_ci = list(cls = "InferenceContinKKQuantileRegrIVWC", rt = "continuous", kind = "match",
+	# `needs`: a Suggests package the class refuses to initialize without. The
+	# sanitizer / valgrind jobs install no Suggests, so both blocks below skip.
+	quantile_ivwc_rand_ci = list(cls = "InferenceContinKKQuantileRegrIVWC", rt = "continuous", kind = "match", needs = "quantreg",
 		call = function(inf) inf$compute_rand_confidence_interval(r = 15, show_progress = FALSE)),
-	prop_quantile_ivwc_rand_ci = list(cls = "InferencePropKKQuantileRegrIVWC", rt = "proportion", kind = "match",
+	prop_quantile_ivwc_rand_ci = list(cls = "InferencePropKKQuantileRegrIVWC", rt = "proportion", kind = "match", needs = "quantreg",
 		call = function(inf) inf$compute_rand_confidence_interval(r = 15, show_progress = FALSE))
 )
 
@@ -66,6 +68,7 @@ for (case_name in names(sweep129_cases)) {
 		case = sweep129_cases[[case_name]]
 		test_that(paste0("TODO-129 sweep: seeded ", case_name, " is reproducible and leaves the caller's RNG alone"), {
 			if (isTRUE(case$heavy)) skip_on_cran()
+			if (!is.null(case$needs)) skip_if_not_installed(case$needs)
 			des = make_sweep129_design(case$rt, case$kind)
 			set.seed(1L); a = sweep129_run(case, des, seed = 5L)
 			set.seed(2L); before = .Random.seed
@@ -76,6 +79,7 @@ for (case_name in names(sweep129_cases)) {
 		})
 		test_that(paste0("TODO-129 sweep: unseeded ", case_name, " still draws from the caller's RNG stream"), {
 			if (isTRUE(case$heavy)) skip_on_cran()
+			if (!is.null(case$needs)) skip_if_not_installed(case$needs)
 			des = make_sweep129_design(case$rt, case$kind)
 			set.seed(3L); a = sweep129_run(case, des, seed = NULL)
 			set.seed(3L); b = sweep129_run(case, des, seed = NULL)

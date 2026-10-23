@@ -126,7 +126,28 @@ test_that("rebuilt count kernels return NaN covariance for duplicated columns", 
 		X_singular, Xzi, y_count, estimate_only = FALSE
 	)
 	expect_false(zinb$information_invertible)
-	expect_true(all(is.nan(zinb$vcov)))
+	if (is.null(zinb$covariance_type)) {
+		# kernels without cpp patch 07 (TODO-4 ZINB note): the whole covariance is NaN
+		expect_true(all(is.nan(zinb$vcov)))
+	} else {
+		# cpp patch 07: pseudo-inverse covariance; only coordinates loading on the null
+		# direction (the duplicated columns 3 and 4: x, x_duplicate) are NaN, the identified
+		# intercept / treatment / zero-inflation / dispersion block is finite.
+		expect_identical(zinb$covariance_type, "pseudo_inverse_identified_coordinates")
+		# 2026-10-23 post-build verification (G1, patch 07 + B07b): y_count is Poisson, so the
+		# fit lands on the zero-inflation boundary (zero_inflation_at_boundary = TRUE, zi
+		# intercept -10). zinb_zi_information_spec() then conditions on the zi coordinates
+		# and expand_free_covariance() leaves them NaN, exactly as on the pre-existing
+		# invertible boundary path ("observed_conditional_on_zero_inflation_boundary"); B07b
+		# assumed they would be finite. Only intercept / treatment / dispersion are finite here.
+		dup = c(3L, 4L)
+		zi = if (isTRUE(zinb$zero_inflation_at_boundary)) ncol(X_singular) + seq_len(ncol(Xzi)) else integer(0)
+		ok = setdiff(seq_len(nrow(zinb$vcov)), c(dup, zi))
+		expect_true(all(is.nan(zinb$vcov[dup, ])))
+		expect_true(all(is.nan(zinb$vcov[, dup])))
+		if (length(zi)) expect_true(all(is.nan(zinb$vcov[zi, ])))
+		expect_true(all(is.finite(zinb$vcov[ok, ok])))
+	}
 })
 
 test_that("Negative Binomial maps a guarded singular covariance to typed SE non-estimability", {
@@ -138,10 +159,6 @@ test_that("Negative Binomial maps a guarded singular covariance to typed SE non-
 	w <- des$get_w()
 	x <- des$.__enclos_env__$private$Xraw[["x"]]
 	des$add_all_subject_responses(as.integer(rpois(n, exp(0.3 + 0.2 * w + 0.1 * x))))
-	# The production gradient tolerance (1e-10) never converges on an exactly
-	# collinear design (the gradient norm is NaN), so the fit would be dropped
-	# before the information guard is reached; use the native default here.
-	testthat::local_mocked_bindings(NEGBIN_FIT_EPS_G = 1e-6, .package = "EDI")
 	inf <- InferenceCountNegBin$new(des, verbose = FALSE)
 	private <- inf$.__enclos_env__$private
 	private$harden <- FALSE

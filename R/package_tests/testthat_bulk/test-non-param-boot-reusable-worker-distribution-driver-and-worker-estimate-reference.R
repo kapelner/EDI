@@ -64,7 +64,9 @@ test_that("serial worker reuse is keyed by operation and survives across calls u
 	f$p$compute_reusable_bootstrap_worker_distribution(list(1, 2), 1L, operation = "non_param_boot")
 	f$p$compute_reusable_bootstrap_worker_distribution(list(3), 1L, operation = "non_param_boot")
 	expect_equal(log$created, 1L)                                       # same operation: cached worker reused
-	expect_equal(f$p$cached_values$reusable_bootstrap_worker$key, "non_param_boot")
+	# TODO-128: the key is "<operation>|<active resampling operation>"; the suffix is
+	# empty here because this unit fixture drives the driver with no operation active.
+	expect_equal(f$p$cached_values$reusable_bootstrap_worker$key, "non_param_boot|")
 	f$p$compute_reusable_bootstrap_worker_distribution(list(4), 1L, operation = "jackknife")
 	expect_equal(log$created, 2L)                                       # a different operation gets its own worker
 	f$p$cached_values$reusable_bootstrap_worker <- NULL

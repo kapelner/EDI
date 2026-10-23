@@ -8,6 +8,7 @@
 #include <RcppEigen.h>
 #endif
 #include "ordinal_fixed_link_helpers.h"
+#include "ordinal_scale_guard.h"
 #include <algorithm>
 #include <vector>
 #include <optional>
@@ -162,6 +163,8 @@ edi::ResultMap fast_ordinal_probit_regression_internal(
 
     LikelihoodFitResult fit = optimize_fixed_likelihood(model, params, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_start_ptr);
     params = fit.params;
+    if (fit.converged && ordinal_covariates_badly_scaled(X) &&
+        !ordinal_newton_decrement_ok(model, fit.params, fixed_spec, tol)) fit.converged = false;
 
     if (estimate_only) {
         return edi::ResultMap()

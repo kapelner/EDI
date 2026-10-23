@@ -1,5 +1,5 @@
 library(testthat)
-suppressMessages(pkgload::load_all("/home/kapelner/workspace/EDI/R/EDI", compile = FALSE, quiet = TRUE))
+library(EDI)
 
 # TODO-103 interim warning: classes whose Wald SE / likelihood-based procedures treat
 # subjects as independent warn ONCE per object per procedure family on cluster designs.

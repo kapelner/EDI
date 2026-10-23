@@ -1,0 +1,39 @@
+--- a/R/EDI/src/fast_survival_models_optim.cpp	2026-10-23 13:35:46.708986172 +0300
++++ b/R/EDI/src/fast_survival_models_optim.cpp	2026-10-23 13:36:12.033024622 +0300
+@@ -767,6 +767,36 @@
+     } catch (...) {
+         return edi::ResultMap().set("converged", false).set("hit_iteration_cap", false).set("error", std::string("unknown"));
+     }
++    // TODO-111 fifth pass (proposed 2026-10-23, G1 post-build): patch 02 stopped the
++    // NaN params, but LBFGSpp's strong-Wolfe line search still throws at the
++    // |atanh(rho)| = 3 clamp kink (15/101 on the DepCens test fixture, all ending at
++    // |atanh rho| = 3 + 1e-14 with value NaN, niter = maxit). The objective is flat
++    // beyond the clamp, so refit with atanh(rho) pinned at that clamp (the profile fit
++    // converged on all 15). Interior fits never reach this branch (bit-identical).
++    {
++        const int rho_idx = 2 * p + 2;
++        bool rho_fixed = false;
++        for (int i = 0; i < (int)fixed_spec.fixed_idx.size(); ++i)
++            if (fixed_spec.fixed_idx[i] == rho_idx) rho_fixed = true;
++        if (!fit.converged && !rho_fixed && fit.params.size() == total && fit.params.allFinite() &&
++            std::abs(fit.params[rho_idx]) >= 3.0 - 1e-8) {
++            const int nf = (int)fixed_spec.fixed_idx.size();
++            Eigen::VectorXi fi(nf + 1);
++            Eigen::VectorXd fv(nf + 1);
++            for (int i = 0; i < nf; ++i) { fi[i] = fixed_spec.fixed_idx[i] + 1; fv[i] = fixed_spec.fixed_values[i]; }
++            fi[nf] = rho_idx + 1;  // make_fixed_param_spec takes one-based indices
++            fv[nf] = std::copysign(3.0, fit.params[rho_idx]);
++            FixedParamSpec spec_b = make_fixed_param_spec(total, fi, fv);
++            try {
++                LikelihoodFitResult fit_b = optimize_fixed_likelihood(
++                    fun, apply_fixed_values(fit.params, spec_b), spec_b, maxit, reltol,
++                    optimization_alg, "lbfgs", 0, nullptr);
++                if (fit_b.converged && std::isfinite(fit_b.value)) fit = fit_b;
++            } catch (...) {
++                // keep the original (unconverged) fit; the R retry ladder stays the safety net
++            }
++        }
++    }
+     params = fit.params;
+ 
+     edi::ResultMap out;

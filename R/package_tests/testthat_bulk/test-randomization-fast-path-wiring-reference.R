@@ -53,16 +53,28 @@ make_rand_custom <- function() {
 	InferenceRandCustom$new(d, custom_randomization_statistic_function = welch, verbose = FALSE)
 }
 
+ols_ivwc_hc2_component_reference <- function(X, y, j_treat) {
+	XtX_inv <- solve(crossprod(X))
+	beta <- as.numeric(XtX_inv %*% crossprod(X, y))
+	resid <- as.numeric(y - X %*% beta)
+	leverage <- rowSums((X %*% XtX_inv) * X)
+	meat <- crossprod(X, X * (resid^2 / (1 - leverage)))
+	vcov <- XtX_inv %*% meat %*% XtX_inv
+	list(beta = beta[j_treat], ssq = vcov[j_treat, j_treat])
+}
+
 ols_ivwc_rand_statistic_reference <- function(y, w, m, X) {
 	# Independent raw-data oracle for this fixture's estimate-only randomization
-	# statistic. There are 3 matched pairs and the matched OLS design has 3
-	# columns (intercept + 2 covariates), so the implementation's n <= p
-	# fallback is the unadjusted mean of the treated-minus-control pair diffs.
-	# This is distinct from the documented public point estimate, which combines
-	# matched and reservoir fits by IVWC. The inherited randomization method calls
-	# estimate_only = TRUE, so component variances (and therefore that combination)
-	# are not computed; track that estimand discrepancy separately from TODO-64's
-	# fast-path parity requirement.
+	# statistic: the same IVWC combination as the documented public point
+	# estimate. Until TODO-124 the randomization refit passed estimate_only
+	# through to the component fits, leaving the IVW weights undefined and the
+	# statistic silently equal to the matched-only fallback; the components now
+	# always compute their variances, so the two estimands agree.
+	# There are 3 matched pairs and the matched OLS design has 3 columns
+	# (intercept + 2 covariates), so the matched component still takes the
+	# implementation's n <= p fallback: the unadjusted mean of the
+	# treated-minus-control pair diffs, with var(diffs) / #pairs as its variance.
+	# The reservoir component is an HC2 OLS fit on the unmatched subjects.
 	y <- as.numeric(y)
 	w <- as.integer(w)
 	m <- as.integer(m)
@@ -84,7 +96,24 @@ ols_ivwc_rand_statistic_reference <- function(y, w, m, X) {
 	if (nrow(matched_design) > ncol(matched_design) || qr(matched_design)$rank < ncol(matched_design)) {
 		stop("seeded OLS-IVWC fixture no longer takes the documented fallback")
 	}
-	mean(matched_y)
+	beta_matched <- mean(matched_y)
+	ssq_matched <- var(matched_y) / length(matched_y)
+	reservoir <- m == 0L
+	res <- ols_ivwc_hc2_component_reference(
+		cbind(1, w[reservoir], X[reservoir, , drop = FALSE]), y[reservoir], 2L
+	)
+	matched_ok <- is.finite(beta_matched) && is.finite(ssq_matched) && ssq_matched > 0
+	reservoir_ok <- is.finite(res$beta) && is.finite(res$ssq) && res$ssq > 0
+	if (matched_ok && reservoir_ok) {
+		w_star <- res$ssq / (res$ssq + ssq_matched)
+		w_star * beta_matched + (1 - w_star) * res$beta
+	} else if (matched_ok) {
+		beta_matched
+	} else if (reservoir_ok) {
+		res$beta
+	} else {
+		NA_real_
+	}
 }
 
 cases <- list(

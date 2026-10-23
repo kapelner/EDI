@@ -109,22 +109,30 @@ double compute_cox_neg_ll_only(const CoxData& data, const std::vector<double>& b
     workspace.eta.noalias() = data.matrix_map() * beta_map;
     const double max_eta = workspace.eta.maxCoeff();
     workspace.exp_eta.array() = (workspace.eta.array() - max_eta).exp();
-    double r_exp = workspace.exp_eta.sum();
+    // G1 post-build 2026-10-23 (follow-up to patch 08): accumulate the risk-set
+    // sum BACKWARDS, as compute_cox_ll_grad_hess_fast does. The old forward
+    // running difference (r_exp = sum; r_exp -= exp_eta[j]) cancels once one
+    // subject dominates (eta - max_eta = 0 for it, ~ -160 for the rest): after
+    // it leaves the risk set r_exp is rounding noise, safe_r clamps to 1e-100,
+    // and the step-halving line search (and patch 08's descent guard, which
+    // both use this function) saw neg-ll -509 where the truth is +363.7 on the
+    // Survey 2 DGP-2 fixture, so the bT = 166 step was accepted.
+    double S0 = 0.0;
     double neg_ll = 0.0;
-    int j = 0;
-    for (size_t k = 0; k < data.unique_event_times.size(); ++k) {
+    int data_idx = n - 1;
+    for (int k = (int)data.unique_event_times.size() - 1; k >= 0; --k) {
         const double tk = data.unique_event_times[k];
-        while (j < n && data.y[j] < tk) {
-            r_exp -= workspace.exp_eta[j];
-            ++j;
+        while (data_idx >= 0 && data.y[data_idx] >= tk) {
+            S0 += workspace.exp_eta[data_idx];
+            --data_idx;
         }
         double sum_eta_dk = 0.0;
         const int count_dk = data.event_counts[k];
-        for (int m = j; m < n && data.y[m] == tk; ++m) {
+        for (int m = data_idx + 1; m < n && data.y[m] == tk; ++m) {
             if (data.dead[m] > 0.5) sum_eta_dk += workspace.eta[m];
         }
-        if (count_dk > 0) {
-            const double safe_r = std::max(r_exp, 1e-100);
+        if (count_dk > 0 && S0 > 0) {
+            const double safe_r = std::max(S0, 1e-100);
             neg_ll -= (sum_eta_dk - count_dk * (std::log(safe_r) + max_eta));
         }
     }
@@ -366,6 +374,16 @@ CoxFitResult cox_newton_raphson(
             step *= 0.5;
             ll_candidate = eval_ll_candidate(step);
         }
+        // Survey 2 (optimize_likelihood_newton_false_nonconvergence.md): beta was
+        // assigned unconditionally, so a candidate that did not decrease the
+        // negative log-likelihood could be accepted and one DGP-2 fit diverged to
+        // bT = 166 while reporting converged = TRUE. Reject a clearly
+        // non-decreasing (or non-finite) candidate after the step-halving and
+        // stop at the current beta (converged stays FALSE, old_ll still belongs
+        // to beta). A candidate within `tol` of ll is still taken, so fits at the
+        // optimum keep their previous trajectory and the |old_ll - ll| < tol
+        // convergence test fires on the next pass as before.
+        if (!(ll_candidate < ll + tol)) break;
         beta = beta_candidate;
     }
 
@@ -646,7 +664,7 @@ edi::ResultMap fast_coxph_regression_internal(
     std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
     bool smart_cold_start = true,
     bool estimate_only = false,
-    int maxit = 20,
+    int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
     double tol = 1e-9,
     std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
     std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
@@ -700,7 +718,7 @@ edi::ResultMap fast_stratified_coxph_regression_internal(
     std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
     bool smart_cold_start = true,
     bool estimate_only = false,
-    int maxit = 20,
+    int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
     double tol = 1e-9,
     std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
     std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
@@ -796,7 +814,7 @@ List fast_coxph_regression_prebuilt_cpp(
     Nullable<NumericVector> warm_start_beta = R_NilValue,
     bool smart_cold_start = true,
     bool estimate_only = false,
-    int maxit = 20,
+    int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
     double tol = 1e-9,
     Nullable<IntegerVector> fixed_idx = R_NilValue,
     Nullable<NumericVector> fixed_values = R_NilValue,
@@ -845,7 +863,7 @@ List fast_coxph_regression_cpp(const Eigen::MatrixXd& X, const Eigen::VectorXd& 
                                Nullable<NumericVector> warm_start_beta = R_NilValue,
                                bool smart_cold_start = true,
                                bool estimate_only = false,
-                               int maxit = 20,
+                               int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
                                double tol = 1e-9,
                                Nullable<IntegerVector> cluster = R_NilValue,
                                Nullable<IntegerVector> fixed_idx = R_NilValue,
@@ -898,7 +916,7 @@ List fast_stratified_coxph_regression_cpp(
     Nullable<NumericVector> warm_start_beta = R_NilValue,
     bool smart_cold_start = true,
     bool estimate_only = false,
-    int maxit = 20,
+    int maxit = 100,  // Survey 2: was 20 (cap exits 1-3 iterations short)
     double tol = 1e-9,
     Nullable<IntegerVector> fixed_idx = R_NilValue,
     Nullable<NumericVector> fixed_values = R_NilValue,
@@ -1181,13 +1199,12 @@ NumericVector compute_coxph_rand_bootstrap_parallel_cpp(
     std::vector<double> results(nsim, NA_REAL);
     double* res_ptr = results.data();
 
-    const bool has_noise = noise_mat.isNotNull();
+    // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
+    // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
     NumericMatrix noise_m;
-    const double* noise_ptr = nullptr;
-    if (has_noise) {
-        noise_m = NumericMatrix(noise_mat);
-        noise_ptr = noise_m.begin();
-    }
+    if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
+    const bool has_noise = noise_m.size() > 0;
+    const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
 
 #pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     {

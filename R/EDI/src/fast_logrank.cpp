@@ -180,13 +180,12 @@ NumericVector compute_logrank_rand_bootstrap_parallel_cpp(
   const double mult = std::exp(delta);
   const bool use_parallel = should_parallelize_replicates(nsim, n, num_cores);
 
-  const bool has_noise = noise_mat.isNotNull();
+  // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
+  // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
   NumericMatrix noise_m;
-  const double* noise_ptr = nullptr;
-  if (has_noise) {
-    noise_m = NumericMatrix(noise_mat);
-    noise_ptr = noise_m.begin();
-  }
+  if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
+  const bool has_noise = noise_m.size() > 0;
+  const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
 
 #pragma omp parallel if(use_parallel) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
   {

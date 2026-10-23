@@ -41,9 +41,22 @@
 # row_regex must use source = cells. Allowlist entries that matched
 # nothing are listed (informational, they do not fail the check).
 #
+# Counting-rule changes: path_audits_source.R stamps the version of its row-
+# counting rule (PATH_AUDIT_COUNTING_RULE) into the HTML (an
+# "edi-path-audit-counting-rule" comment) and the defaults CSV
+# (`counting_rule` column); outputs without a stamp are rule "pre-2026-10-23".
+# An allowlist row with a non-empty `counting_rule_change` column applies only
+# when the baseline's rule differs from the new outputs' rule AND the new rule
+# equals that value, and it may only list the rate kinds (estimability_drop,
+# nonestimable_rate_up). It is one-time by construction: once outputs written
+# under the new rule are committed as the baseline, both sides carry the same
+# rule and the row matches nothing. Such a row is the only kind allowed a
+# broad class_regex outside `source = cells`.
+#
 # Note on the defaults CSV: path_audits_source.R rewrites it only when the
-# pooled result row count exceeds the cached snapshot's (a high-water mark),
-# so after a pruning or a partial merge it may legitimately stay byte-equal
+# pooled result row count exceeds the cached snapshot's (a high-water mark)
+# or the snapshot was written under another counting rule, so after a
+# pruning or a partial merge it may legitimately stay byte-equal
 # to the baseline. The HTML is always regenerated and carries the rates of
 # every rendered cell, so the HTML comparison is the primary check.
 #
@@ -221,6 +234,22 @@ read_path_audits_defaults = function(text) {
 	d[, c(need, "design_refused")]
 }
 
+PA_RULE_UNSTAMPED = "pre-2026-10-23"
+PA_RATE_KINDS = c("estimability_drop", "nonestimable_rate_up")
+
+pa_html_counting_rule = function(html) {
+	m = regmatches(html, regexpr("edi-path-audit-counting-rule: *[^ >]+", html))
+	if (!length(m)) return(PA_RULE_UNSTAMPED)
+	sub("^edi-path-audit-counting-rule: *", "", m[1L])
+}
+
+pa_defaults_counting_rule = function(text) {
+	d = utils::read.csv(text = paste(text, collapse = "\n"), stringsAsFactors = FALSE, colClasses = "character")
+	if (!"counting_rule" %in% names(d) || !nrow(d)) return(PA_RULE_UNSTAMPED)
+	r = unique(d$counting_rule[nzchar(d$counting_rule)])
+	if (!length(r)) PA_RULE_UNSTAMPED else r[1L]
+}
+
 PA_SUPPORTED = c("guaranteed", "observed", "unknown", "slow")
 PA_UNSUPPORTED = c("nts", "na", "not_implemented")
 
@@ -312,7 +341,8 @@ compare_path_audit_defaults = function(base, new, rate_tol = 0.02, min_n = 30) {
 read_path_audit_allowlist = function(path) {
 	if (is.null(path) || !nzchar(path) || !file.exists(path)) {
 		return(data.frame(id = character(), source = character(), class_regex = character(), row_regex = character(),
-			column_regex = character(), kinds = character(), tracked_in = character(), reason = character(), stringsAsFactors = FALSE))
+			column_regex = character(), kinds = character(), tracked_in = character(), reason = character(),
+			counting_rule_change = character(), stringsAsFactors = FALSE))
 	}
 	a = utils::read.csv(path, stringsAsFactors = FALSE, colClasses = "character", na.strings = character())
 	need = c("id", "source", "class_regex", "row_regex", "column_regex", "kinds", "tracked_in", "reason")
@@ -322,12 +352,22 @@ read_path_audit_allowlist = function(path) {
 	if (any(bad)) stop("allowlist rows need non-empty class_regex, column_regex, tracked_in and reason: ", paste(a$id[bad], collapse = ", "))
 	if (anyDuplicated(a$id)) stop("duplicate allowlist ids: ", paste(unique(a$id[duplicated(a$id)]), collapse = ", "))
 	if (!all(a$source %in% c("cells", "defaults", "*"))) stop("allowlist source must be cells, defaults or *")
+	if (!"counting_rule_change" %in% names(a)) a$counting_rule_change = rep("", nrow(a))
+	a$counting_rule_change = trimws(a$counting_rule_change)
+	rule_rows = nzchar(a$counting_rule_change)
+	if (any(rule_rows)) {
+		ok = vapply(strsplit(a$kinds[rule_rows], "|", fixed = TRUE), function(k) all(trimws(k) %in% PA_RATE_KINDS), logical(1))
+		if (!all(ok)) stop("counting_rule_change rows may only list the rate kinds (", paste(PA_RATE_KINDS, collapse = ", "), "): ",
+			paste(a$id[rule_rows][!ok], collapse = ", "))
+	}
 	a
 }
 
 # Adds `allowlisted` (id of the first matching entry, "" if none) to the
-# worse rows of a comparison; returns list(cmp, used_ids).
-apply_path_audit_allowlist = function(cmp, allow, source) {
+# worse rows of a comparison; returns list(cmp, used_ids). `rule_change` is
+# the new counting rule when it differs from the baseline's, else NULL; rows
+# with a non-empty counting_rule_change apply only when it equals that value.
+apply_path_audit_allowlist = function(cmp, allow, source, rule_change = NULL) {
 	cmp$allowlisted = ""
 	used = character()
 	if (!nrow(cmp) || !nrow(allow)) return(list(cmp = cmp, used = used))
@@ -336,6 +376,8 @@ apply_path_audit_allowlist = function(cmp, allow, source) {
 		for (j in seq_len(nrow(allow))) {
 			a = allow[j, ]
 			if (!(a$source %in% c("*", source))) next
+			crc = if (is.null(a$counting_rule_change)) "" else a$counting_rule_change
+			if (!is.na(crc) && nzchar(crc) && !identical(crc, rule_change)) next
 			kinds = trimws(strsplit(a$kinds, "|", fixed = TRUE)[[1L]])
 			if (!("*" %in% kinds || cmp$kind[i] %in% kinds)) next
 			if (!grepl(a$class_regex, cls[i], perl = TRUE)) next
@@ -408,16 +450,25 @@ run_compare_path_audits = function(args = commandArgs(trailingOnly = TRUE)) {
 		new_csv = readLines(file.path(opt$new_dir, csv_name), warn = FALSE)
 		allow = read_path_audit_allowlist(opt$allowlist)
 		list(base_html = base_html, base_csv = base_csv, base_label = base_label,
-			new_html = new_html, new_csv = new_csv, allow = allow)
+			new_html = new_html, new_csv = new_csv, allow = allow,
+			base_rule_html = pa_html_counting_rule(paste(base_html, collapse = "\n")),
+			new_rule_html = pa_html_counting_rule(paste(new_html, collapse = "\n")),
+			base_rule_csv = pa_defaults_counting_rule(base_csv), new_rule_csv = pa_defaults_counting_rule(new_csv))
 	}, error = function(e) { message("compare_path_audits: ", conditionMessage(e)); NULL })
 	if (is.null(res)) return(2L)
 	cells = compare_path_audit_cells(parse_path_audits_html(res$base_html), parse_path_audits_html(res$new_html), opt$rate_tol, opt$min_n)
 	defs = compare_path_audit_defaults(read_path_audits_defaults(res$base_csv), read_path_audits_defaults(res$new_csv), opt$rate_tol, opt$min_n)
-	ac = apply_path_audit_allowlist(cells, res$allow, "cells")
-	ad = apply_path_audit_allowlist(defs, res$allow, "defaults")
+	rule_cells = if (identical(res$base_rule_html, res$new_rule_html)) NULL else res$new_rule_html
+	rule_defs = if (identical(res$base_rule_csv, res$new_rule_csv)) NULL else res$new_rule_csv
+	ac = apply_path_audit_allowlist(cells, res$allow, "cells", rule_cells)
+	ad = apply_path_audit_allowlist(defs, res$allow, "defaults", rule_defs)
 	cells = ac$cmp; defs = ad$cmp
 	cat(sprintf("path audit comparison: baseline = %s, new = %s, rate_tol = %g, min_n = %g\n",
 		res$base_label, normalizePath(opt$new_dir), opt$rate_tol, opt$min_n))
+	if (!is.null(rule_cells) || !is.null(rule_defs)) {
+		cat(sprintf("counting rule changed: html %s -> %s, defaults CSV %s -> %s; rate drops are matched against counting_rule_change allowlist rows only for this comparison\n",
+			res$base_rule_html, res$new_rule_html, res$base_rule_csv, res$new_rule_csv))
+	}
 	cat(pa_summary_lines(cells, "cells   "), sep = "\n")
 	cat(pa_summary_lines(defs, "defaults"), sep = "\n")
 	if (identical(res$base_csv, res$new_csv)) {

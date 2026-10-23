@@ -172,6 +172,12 @@ testthat::test_that("checked-in allowlist is well formed and every entry names a
 		}
 		kinds <- strsplit(allow$kinds[i], "|", fixed = TRUE)[[1L]]
 		testthat::expect_true(all(kinds %in% c("*", known_kinds)), info = allow$id[i])
+		# a counting-rule-change row may only excuse rate moves (enforced by the
+		# reader too) and only while the baseline's counting rule differs
+		if (nzchar(allow$counting_rule_change[i])) {
+			testthat::expect_true(all(kinds %in% c("estimability_drop", "nonestimable_rate_up")), info = allow$id[i])
+			next
+		}
 		# a broad class regex must be confined by row_regex, which only cells honour
 		if (allow$class_regex[i] %in% c(".+", ".*", ".")) {
 			testthat::expect_identical(allow$source[i], "cells", info = allow$id[i])
@@ -183,6 +189,39 @@ testthat::test_that("checked-in allowlist is well formed and every entry names a
 	testthat::expect_true(all(vapply(rand_ci$column_regex, grepl, logical(1), x = "Exact > Randomization > vanilla > ci", perl = TRUE)))
 	no_fn <- rand_ci$source == "cells"
 	testthat::expect_true(all(vapply(rand_ci$column_regex[!no_fn], grepl, logical(1), x = "compute_rand_confidence_interval", perl = TRUE)))
+})
+
+testthat::test_that("counting_rule_change allowlist rows apply only across a counting-rule change and only to rate kinds", {
+	pa <- load_compare_path_audits()
+	testthat::expect_identical(pa$pa_html_counting_rule("<html><head><meta charset=\"utf-8\"></head></html>"), "pre-2026-10-23")
+	testthat::expect_identical(pa$pa_html_counting_rule("<html><head>\n  <!-- edi-path-audit-counting-rule: 2026-10-23 -->\n<title>x</title>"), "2026-10-23")
+	testthat::expect_identical(pa$pa_defaults_counting_rule(c('"base_class","function_run","n","nonestimable","rate"', '"A","f",1,0,0')), "pre-2026-10-23")
+	testthat::expect_identical(pa$pa_defaults_counting_rule(c('"base_class","function_run","n","nonestimable","rate","design_refused","counting_rule"',
+		'"A","f",1,0,0,FALSE,"2026-10-23"')), "2026-10-23")
+	f <- tempfile(fileext = ".csv")
+	on.exit(unlink(f), add = TRUE)
+	writeLines(c(
+		"id,source,class_regex,row_regex,column_regex,kinds,tracked_in,reason,counting_rule_change",
+		"specific,cells,^ContinFoo$,,^col_a$,support_removed,TODO-1,specific,",
+		"rule,*,.+,,.+,estimability_drop|nonestimable_rate_up,TODO-2,rule change,2026-10-23"
+	), f)
+	allow <- pa$read_path_audit_allowlist(f)
+	cells <- data.frame(class = "ContinFoo", row_label = "~w", column = c("col_a", "col_b", "col_c"), change = "worse",
+		kind = c("support_removed", "estimability_drop", "support_removed"), stringsAsFactors = FALSE)
+	same <- pa$apply_path_audit_allowlist(cells, allow, "cells", NULL)
+	testthat::expect_identical(same$cmp$allowlisted, c("specific", "", ""))
+	changed <- pa$apply_path_audit_allowlist(cells, allow, "cells", "2026-10-23")
+	# the rule row excuses only the rate drop, never a support removal
+	testthat::expect_identical(changed$cmp$allowlisted, c("specific", "rule", ""))
+	other <- pa$apply_path_audit_allowlist(cells, allow, "cells", "2099-01-01")
+	testthat::expect_identical(other$cmp$allowlisted, c("specific", "", ""))
+	defs <- data.frame(class = "InferenceContinFoo", row_label = "", column = "compute_x", change = "worse",
+		kind = "nonestimable_rate_up", stringsAsFactors = FALSE)
+	testthat::expect_identical(pa$apply_path_audit_allowlist(defs, allow, "defaults", "2026-10-23")$cmp$allowlisted, "rule")
+	testthat::expect_identical(pa$apply_path_audit_allowlist(defs, allow, "defaults", NULL)$cmp$allowlisted, "")
+	writeLines(c("id,source,class_regex,row_regex,column_regex,kinds,tracked_in,reason,counting_rule_change",
+		"bad,*,.+,,.+,support_removed,TODO-1,too broad,2026-10-23"), f)
+	testthat::expect_error(pa$read_path_audit_allowlist(f), "rate kinds")
 })
 
 testthat::test_that("CLI exits 0 on allowlisted-only worsening, 1 otherwise, 2 on bad input", {
@@ -243,4 +282,85 @@ testthat::test_that("committed path audit compared with itself has no change", {
 	d <- pa$read_path_audits_defaults(csv)
 	testthat::expect_gt(nrow(d), 1000L)
 	testthat::expect_true(all(pa$compare_path_audit_defaults(d, d)$change == "unchanged"))
+})
+
+# load_nonestimability_stats() and its row classifier live in
+# path_audits_source.R, whose top level renders the whole audit (it needs the
+# installed EDI). Evaluate only the definitions this test needs.
+load_path_audit_counting <- function() {
+	src <- find_compare_path_audits_repo_file(file.path("R", "package_tests", "path_audits_source.R"))
+	exprs <- parse(src, keep.source = FALSE)
+	want <- c("PATH_AUDIT_COUNTING_RULE", "PATH_AUDIT_REFUSAL_MESSAGE_RE", "classify_nonestimability_rows", "load_nonestimability_stats")
+	env <- new.env(parent = globalenv())
+	for (e in exprs) {
+		if (is.call(e) && (identical(e[[1L]], as.name("=")) || identical(e[[1L]], as.name("<-"))) &&
+			is.name(e[[2L]]) && as.character(e[[2L]]) %in% want) eval(e, env)
+	}
+	testthat::expect_true(all(vapply(want, exists, logical(1), envir = env, inherits = FALSE)))
+	env
+}
+
+testthat::test_that("load_nonestimability_stats counts unflagged NA results as non-estimable but not refusals or skips", {
+	testthat::skip_if_not_installed("data.table")
+	pc <- load_path_audit_counting()
+	dir <- tempfile("edi-path-audit-counting-")
+	dir.create(dir)
+	on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+	ci <- "compute_bootstrap_confidence_interval"
+	pv <- "compute_bootstrap_two_sided_pval"
+	cls <- "InferenceContinFoo (model_formula=~x)"
+	row <- function(fn, status, r1, r2, msg, klass = cls) data.frame(function_run = fn, inference_class = klass,
+		result_1 = r1, result_2 = r2, error_message = msg, status = status, stringsAsFactors = FALSE)
+	rows <- rbind(
+		row(ci, "ok", -0.3, 0.4, NA),                                                           # finite: estimable
+		row(ci, "ok", NA, NA, paste0("Invalid output detected (NA/NaN/Inf) in ", ci)),         # TODO-116 NA: FAILED (new)
+		row(ci, "ok", NA, NA, paste0("Explicitly non-estimable in ", ci, "; stage=se; reason=x")), # FAILED
+		row(ci, "error", NA, NA, "boom"),                                                      # FAILED
+		row(ci, "error", NA, NA, "This method is not supported for DesignSeqOneByOne designs."), # out of n
+		row(ci, "ok", NA, NA, "Randomization confidence intervals are not supported for InferenceContinFoo due to x"), # refusal
+		row(ci, "ok", NA, NA, "Skipped due to timeout after 60 seconds"),                      # skip
+		row(ci, "ok", NA, NA, "Skipping InferenceIncidExactBinomial: design has no realized matched pairs."), # skip
+		row(ci, "ok", NA, NA, paste0("Truth-based anomaly filter in ", ci)),                   # accuracy filter, not NA output
+		row(ci, "ok", NA, NA, "InferenceContinFoo must implement get_standard_error() to support Wald-type inference"), # refusal
+		row(ci, "ok", NA, NA, NA),                                                             # bare NA: FAILED (fallback)
+		row(ci, "ok", -0.3, NA, ""),                                                           # half a CI: FAILED
+		row(ci, "ok", NA, NA, paste0("Degenerate confidence interval [0, 0] detected in ", ci)), # FAILED
+		row(pv, "ok", 0.2, NA, NA),                                                            # scalar: result_2 NA is fine
+		row(pv, "ok", NA, NA, "Allowed missing output: ordinal asymptotic p-value not estimable"), # FAILED
+		row(pv, "ok", NA, NA, "Weibull regression failed to converge")                         # numerical non-fatal: FAILED
+	)
+	utils::write.csv(rows, file.path(dir, "comprehensive_tests_results_nc_1_continuous.csv"), row.names = FALSE)
+	# focused runs are never pooled
+	utils::write.csv(row(ci, "ok", NA, NA, "Invalid output detected (NA/NaN/Inf)"),
+		file.path(dir, "comprehensive_tests_results_nc_1_continuous_filtered_rep-1.csv"), row.names = FALSE)
+	# a larger snapshot written under the old rule (no counting_rule column)
+	defaults <- file.path(dir, "path_audits_nonestimability_defaults.csv")
+	writeLines(c('"base_class","function_run","n","nonestimable","rate","design_refused"',
+		'"InferenceContinFoo","compute_bootstrap_confidence_interval",1000,0,0,FALSE'), defaults)
+	st <- pc$load_nonestimability_stats(dir)
+	got <- get("InferenceContinFoo||compute_bootstrap_confidence_interval", envir = st)
+	testthat::expect_identical(got$n, 12L)
+	testthat::expect_identical(got$nonestimable, 6L)
+	testthat::expect_equal(got$rate, 6 / 12)
+	testthat::expect_false(got$design_refused)
+	got_pv <- get("InferenceContinFoo||compute_bootstrap_two_sided_pval", envir = st)
+	testthat::expect_identical(c(got_pv$n, got_pv$nonestimable), c(3L, 2L))
+	# formula-scoped key uses the same rule
+	got_f <- get("InferenceContinFoo||~x||compute_bootstrap_confidence_interval", envir = st)
+	testthat::expect_identical(c(got_f$n, got_f$nonestimable), c(12L, 6L))
+	# an old-rule snapshot is replaced even though its row count was larger
+	d <- utils::read.csv(defaults, stringsAsFactors = FALSE)
+	testthat::expect_true(all(d$counting_rule == pc$PATH_AUDIT_COUNTING_RULE))
+	testthat::expect_identical(d$n[d$function_run == ci], 12L)
+	# same rule: the high-water mark holds again (a larger same-rule snapshot is kept)
+	d$n[d$function_run == ci] <- 5000L
+	utils::write.csv(d, defaults, row.names = FALSE)
+	pc$load_nonestimability_stats(dir)
+	testthat::expect_identical(utils::read.csv(defaults, stringsAsFactors = FALSE)$n[d$function_run == ci], 5000L)
+	# classifier directly: refusal rows are flagged, never failed
+	dt <- data.table::as.data.table(rows)
+	pc$classify_nonestimability_rows(dt)
+	testthat::expect_false(any(dt$failed_row & dt$refused_row))
+	testthat::expect_identical(sum(dt$refused_row), 5L)
+	testthat::expect_identical(sum(dt$design_refused_row), 1L)
 })

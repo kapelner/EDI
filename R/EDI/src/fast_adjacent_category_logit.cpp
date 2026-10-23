@@ -6,6 +6,7 @@
 #include <Rcpp.h>
 #include <RcppEigen.h>
 #endif
+#include "ordinal_scale_guard.h"
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
@@ -241,7 +242,10 @@ LikelihoodFitResult fast_adjacent_category_logit_internal(
 		info_start_ptr = &info_start;
 	}
 
-	return optimize_fixed_likelihood(fun, params, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_start_ptr);
+	LikelihoodFitResult fit = optimize_fixed_likelihood(fun, params, fixed_spec, maxit, tol, optimization_alg, "lbfgs", 0, info_start_ptr);
+	if (fit.converged && ordinal_covariates_badly_scaled(X) &&
+		!ordinal_newton_decrement_ok(fun, fit.params, fixed_spec, tol)) fit.converged = false;
+	return fit;
 }
 
 #ifndef EDI_CORE_ONLY

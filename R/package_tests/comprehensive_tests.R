@@ -879,7 +879,7 @@ REUSE_RESAMPLING_DRAWS = !SAFE_CALL_FORK &&
 # boundary; a cached jackknife now equals a fresh one. bayes_jack_distr_cache
 # stays out: checked 2026-10-23, the Bayesian jackknife still depends on call
 # history (InferenceIncidLogBinomial with covariates, up to 3.4e-7; see
-# TODO-128).
+# release_v1_1_0.md TODO-74).
 REUSED_RESAMPLING_CACHES = c(
 	"boot_distr_cache", "boot_stats_cache", "bayes_boot_distr_cache", "bayes_boot_stats_cache",
 	"m_out_of_n_boot_distr_cache", "subsampling_distr_cache", "rand_boot_distr_cache",

@@ -1,0 +1,42 @@
+--- a/R/EDI/src/fast_coxph_regression.cpp	2026-10-23 13:35:46.704986166 +0300
++++ b/R/EDI/src/fast_coxph_regression.cpp	2026-10-23 13:36:08.997020063 +0300
+@@ -109,22 +109,30 @@
+     workspace.eta.noalias() = data.matrix_map() * beta_map;
+     const double max_eta = workspace.eta.maxCoeff();
+     workspace.exp_eta.array() = (workspace.eta.array() - max_eta).exp();
+-    double r_exp = workspace.exp_eta.sum();
++    // G1 post-build 2026-10-23 (follow-up to patch 08): accumulate the risk-set
++    // sum BACKWARDS, as compute_cox_ll_grad_hess_fast does. The old forward
++    // running difference (r_exp = sum; r_exp -= exp_eta[j]) cancels once one
++    // subject dominates (eta - max_eta = 0 for it, ~ -160 for the rest): after
++    // it leaves the risk set r_exp is rounding noise, safe_r clamps to 1e-100,
++    // and the step-halving line search (and patch 08's descent guard, which
++    // both use this function) saw neg-ll -509 where the truth is +363.7 on the
++    // Survey 2 DGP-2 fixture, so the bT = 166 step was accepted.
++    double S0 = 0.0;
+     double neg_ll = 0.0;
+-    int j = 0;
+-    for (size_t k = 0; k < data.unique_event_times.size(); ++k) {
++    int data_idx = n - 1;
++    for (int k = (int)data.unique_event_times.size() - 1; k >= 0; --k) {
+         const double tk = data.unique_event_times[k];
+-        while (j < n && data.y[j] < tk) {
+-            r_exp -= workspace.exp_eta[j];
+-            ++j;
++        while (data_idx >= 0 && data.y[data_idx] >= tk) {
++            S0 += workspace.exp_eta[data_idx];
++            --data_idx;
+         }
+         double sum_eta_dk = 0.0;
+         const int count_dk = data.event_counts[k];
+-        for (int m = j; m < n && data.y[m] == tk; ++m) {
++        for (int m = data_idx + 1; m < n && data.y[m] == tk; ++m) {
+             if (data.dead[m] > 0.5) sum_eta_dk += workspace.eta[m];
+         }
+-        if (count_dk > 0) {
+-            const double safe_r = std::max(r_exp, 1e-100);
++        if (count_dk > 0 && S0 > 0) {
++            const double safe_r = std::max(S0, 1e-100);
+             neg_ll -= (sum_eta_dk - count_dk * (std::log(safe_r) + max_eta));
+         }
+     }

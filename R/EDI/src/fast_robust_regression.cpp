@@ -80,6 +80,15 @@ RobustModelResult fast_robust_regression_internal(
     }
     int n = X.rows();
     int p = X.cols();
+    // Non-finite input used to flow through the IRLS (Eigen QR / MAD / weights)
+    // and come back as a 0 coefficient, which R callers could not tell from a
+    // genuine estimate (release_v1_0_5.md TODO-131: NA KK pair differences gave
+    // an all-zero BRT null). Refuse it instead. Callers inside OpenMP regions
+    // (compute_robust_rand_bootstrap_parallel_cpp) must pre-check and skip, since
+    // an exception escaping a parallel region terminates the process.
+    if (!X.allFinite() || !y.allFinite()) {
+        throw std::invalid_argument("fast_robust_regression: X and y must be finite (non-finite input is nonestimable)");
+    }
     require_length(warm_start_beta, p, "warm_start_beta");
     require_length(warm_start_weights, n, "warm_start_weights");
     require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
@@ -443,13 +452,12 @@ NumericVector compute_robust_rand_bootstrap_parallel_cpp(
     std::vector<double> results(nsim, NA_REAL);
     double* res_ptr = results.data();
 
-    const bool has_noise = noise_mat.isNotNull();
+    // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
+    // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
     NumericMatrix noise_m;
-    const double* noise_ptr = nullptr;
-    if (has_noise) {
-        noise_m = NumericMatrix(noise_mat);
-        noise_ptr = noise_m.begin();
-    }
+    if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
+    const bool has_noise = noise_m.size() > 0;
+    const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
 
 #pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
     {
@@ -476,6 +484,10 @@ NumericVector compute_robust_rand_bootstrap_parallel_cpp(
                 n_c += (1 - wt);
             }
             if (n_t < 2 || n_c < 2) continue;
+            // Non-finite resampled responses/covariates: the draw is nonestimable
+            // (stays NA). Checked here because the IRLS core now throws on them and
+            // must not be entered from inside the parallel region (TODO-131).
+            if (!y_b.allFinite() || !X_b.allFinite()) continue;
 
             RobustModelResult res = fast_robust_regression_internal(
                 X_b, y_b,

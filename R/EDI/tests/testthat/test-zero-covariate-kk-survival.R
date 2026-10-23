@@ -37,6 +37,9 @@ test_that("KK and frailty survival classes run with zero covariates", {
 		"InferenceSurvivalKKRankRegrIVWC",
 		"InferenceSurvivalKKWeibullMarginal",
 		"InferenceSurvivalCoxPHRegr")
+	# InferenceSurvivalKKRankRegrIVWC refuses to initialize without aftgee, and
+	# the sanitizer / valgrind jobs install no Suggests; the rest still run there.
+	if (!requireNamespace("aftgee", quietly = TRUE)) classes = setdiff(classes, "InferenceSurvivalKKRankRegrIVWC")
 	for (cls in classes){
 		inf = get(cls)$new(des, verbose = FALSE)
 		est = tryCatch(inf$compute_estimate(), error = function(e) e)
@@ -144,6 +147,7 @@ test_that("every KK and frailty survival class gives a finite estimate with zero
 		"InferenceSurvivalKKRankRegrIVWC", "InferenceSurvivalKKWeibullMarginal",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalOneLik", "InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik",
 		"InferenceSurvivalGLMMWeibullFrailtyNormalIVWC", "InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC")
+	if (!requireNamespace("aftgee", quietly = TRUE)) classes = setdiff(classes, "InferenceSurvivalKKRankRegrIVWC")
 	for (kind in c("match", "seq_kk14")) for (cc in c(FALSE, TRUE)) {
 		des = .zc_design(kind, cc)
 		expect_identical(dim(des$get_X()), c(40L, 0L), info = paste(kind, cc))

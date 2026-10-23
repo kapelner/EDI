@@ -440,6 +440,49 @@ once TODO-1 is recorded; everything from TODO-5 on assumes v1.0.0 has shipped
 (shallow hierarchy, frozen kernels). Per the standing constraint, TODOs are
 ticked in their **owning plans**; this list is the release index.
 
+- [ ] TODO-74 (added 2026-10-23, user decision; moved here first because
+  v1.0.5 is closed; split out of `release_v1_0_5.md → TODO-128`):
+  **The Bayesian jackknife depends on call history.** *(reproducibility
+  fix; small numeric change)*
+  - Problem: `approximate_bayesian_jackknife_distribution_beta_hat_T()`
+    (`R/EDI/R/inference_all_abstract_bayesian_bootstrap.R`, the BCa
+    acceleration for the Bayesian bootstrap) refits on
+    `self$duplicate(make_fork_cluster = FALSE)`, so the leave-one-out refits
+    inherit whatever warm-start state earlier calls left on the object.
+    v1.0.5 TODO-128 fixed this for the ordinary jackknife (reused-worker
+    cache keyed by operation; log-binomial workers seeded from the full-data
+    fit), but that fix does not reach this path. A user's Bayesian BCa
+    interval or p-value can therefore change with what ran before it.
+  - Evidence (2026-10-23, installed EDI built 2026-10-22 19:33 UTC, before
+    patch 14): simulated n = 100, three covariates, 100 folds; fresh object
+    vs. the same object after a Bayesian bootstrap CI, a BCa bootstrap CI, a
+    jackknife estimate and an LR CI, with `bayes_jack_distr_cache` cleared
+    before recomputing. `InferenceCountHurdleNegBin` identical for `~1` and
+    `~.`; `InferenceIncidLogBinomial` `~1` max |diff| 1.7e-13, `~.`
+    **3.4e-7**. On `pte_example` the six-class harness mix with the cache
+    reused was 2,166 / 2,166 identical to cold, so those data do not
+    trigger it.
+  - Work:
+    1. Recheck with patch 14 built (it was compiling at 2026-10-23 12:20
+       IDT). If converged log-binomial fits make the folds start-independent,
+       the difference may vanish without an R change; record the result.
+    2. If it remains: make the refits independent of prior state, mirroring
+       TODO-128, e.g. seed `inf_work` from the full-data fit (`cached_mod`)
+       or clear its inherited warm-start state before the loop. Check other
+       classes whose Bayesian-bootstrap dispatch policy is warm.
+    3. Test: the Bayesian jackknife (and the Bayesian BCa CI built from it)
+       on a fresh object equals the one computed after the calls above, for
+       log-binomial `~1` and `~.` (≤ 1e-8, ideally identical). Extend
+       `test-log-binomial-jackknife-history-independence.R` or add a sibling.
+    4. Add `bayes_jack_distr_cache` to `REUSED_RESAMPLING_CACHES` in
+       `R/package_tests/comprehensive_tests.R` and repeat the harness
+       identity check (cold vs. reuse, `fork=FALSE`).
+  - Default change: only where results currently depend on history (the
+    fresh-object result should stay bit-identical); note in NEWS if any
+    fresh-object output moves.
+  - Pointers: `release_v1_0_5.md → TODO-128` (2026-10-23 note);
+    `../audits/further_optimizations.md` (draw reuse).
+
 - [ ] TODO-1: **Phase 0 decision batch** (ask the user, no code — one
   sitting, in this order because decisions cascade; this is `_master.md`
   Phase 0 verbatim, minus `marginal_estimand_report.md → TODO-1`, which
@@ -1835,6 +1878,27 @@ ticked in their **owning plans**; this list is the release index.
     they are, with the reason recorded here.
   - Pointer: `release_v1_0_5.md → TODO-97` (closing-audit note 2026-10-23);
     plan TODO-5.
+
+- [ ] TODO-156 (added 2026-10-23, owner decision at G1 of v1.0.5):
+  **DepCens kernel stalls at the atanh(rho) clamp.** After v1.0.5 patch 02,
+  15 of 101 zero-covariate resamples (design seed 111,
+  `test-depcens-clayton-kernel-numerics.R`) still end unconverged at
+  `|atanh(rho)| = 3 + 1e-14` with `value = NaN`: LBFGSpp's strong-Wolfe line
+  search throws at the clamp kink. Not a user-visible bug in v1.0.5 (the R
+  retry ladder in `generate_mod()` rescues all of them), but the retries cost
+  time in resampling loops.
+  - Candidate fix: `R/package_metadata/bug_fix_plans/cpp_patches_v105/deferred_v110/02b-depcens-clamp-boundary-refit.patch`
+    (refit with atanh(rho) pinned at the clamp when LBFGS ends there
+    unconverged; `git apply --check` clean on 2026-10-23). Known caveat: it
+    refits at the clamp on the side LBFGS reached, which is not always the
+    better side (resample 37: Newton finds atanh(rho) = -3.07, nll 57.97,
+    vs 60.98 at +3). Fit both sides and keep the lower nll, or replace the
+    hard clamp with a smooth reparameterization.
+  - Acceptance: kernel failures <= 2/101 on the test fixture (tighten the
+    test's `expect_lte(bad, 20L)` back to 2), nll at the returned fit no worse
+    than the R-retry result on every resample, interior fits bit-identical.
+  - Pointer: `release_v1_0_5.md → G1` (post-build verification, owner
+    decision 2026-10-23).
 
 ## Standing constraints
 

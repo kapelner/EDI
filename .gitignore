@@ -1,3 +1,4 @@
+.trail/
 R/benchmark/benchmark_todo59_60_w_draw_parity.R
 R/package_tests/bulk_test_file_timings.csv
 R/package_tests/_archived_comprehensive_tests_results_20260821/*
@@ -170,15 +171,9 @@ graft/
 # Private research notes — not for public repo history
 /private/
 
-# Notes about /private/ material (grants, papers, marketing, talks) belong in the
-# EDI_research_projects repo's own .trail/learnings/, never here. The harness's
-# write log under .trail/.claude/ stays local.
-/.trail
-
-# Belt-and-suspenders: already covered by the blanket rule above, named
-# explicitly in case that rule ever narrows
-R/package_metadata/new_research_ideas/grants/26_10_01_RcISC/isc_grant.pdf
-R/package_metadata/new_research_ideas/grants/26_10_01_RcISC/isc_grant.html
+# trail learnings about this repo's code are committed; the write log under
+# .trail/.claude/ stays local.
+/.trail/.claude/
 
 # Local shell, Git, and editor configuration
 .bash_profile
