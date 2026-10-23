@@ -1259,6 +1259,7 @@ R/EDI/tests/testthat/test-continuation-ratio-null-refit-multistart.R,coverage,30
 R/EDI/tests/testthat/test-continuation-ratio-objective-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-continuation-ratio-weighted.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-count-family-audit-excluded-bugs.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-cox-newton-descent-guard.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-cox-risk-set-cache-invalidation.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-coxph-hessian-symmetric-writes.R,coverage,1.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-coxph-robust-vcov.R,coverage,1,measured_with_30_percent_headroom
@@ -1269,6 +1270,7 @@ R/EDI/tests/testthat/test-degenerate-fit-threshold-calibration.R,coverage,30,boo
 R/EDI/tests/testthat/test-dep-cens-bootstrap-default-B.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-dep-cens-transform-fast-pnorm.R,coverage,1.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-dep-cens-transform-rho-boundary-retry.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-depcens-clayton-kernel-numerics.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-design-abstract-hierarchy.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-design-any-censoring-unrecorded.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-design-blocking-structure-bootstrap-golden.R,coverage,1,measured_with_30_percent_headroom
@@ -1373,6 +1375,7 @@ R/EDI/tests/testthat/test-negbin-expected-trigamma-recurrence.R,coverage,1,measu
 R/EDI/tests/testthat/test-negbin-gemv-gradient.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-negbin-std-lgamma-likelihoods.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-negbin-weighted.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-newton-stall-false-nonconvergence.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-observational-design-resampling-capabilities.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ols-hc2-hat-vectorized.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ols-symmetric-crossprod-dsyrk.R,coverage,1,measured_with_30_percent_headroom
@@ -1435,6 +1438,8 @@ R/EDI/tests/testthat/test-resampling-draw-contracts.R,coverage,1,measured_with_3
 R/EDI/tests/testthat/test-resampling-set-seed-sweep-todo129.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-reused-worker-private-cache-reset.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-ridit-kernel-se-equals-delong.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-rmst-tau-fast-kernel.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rmst-user-settable-tau.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-robust-regression-mad.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-robust-regression-xtx-cache.R,coverage,1,measured_with_30_percent_headroom
@@ -1487,6 +1492,7 @@ R/EDI/tests/testthat/test-zero-one-inflated-beta-fast-math.R,coverage,1,measured
 R/EDI/tests/testthat/test-zhang-fisher-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-operator-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-poisson-boundary-score-length.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-zinb-pseudo-inverse-identified-coordinates.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zinb-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-zero-inflation-boundary.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-zi-block-unidentified-count-se.R,coverage,30,bootstrap
