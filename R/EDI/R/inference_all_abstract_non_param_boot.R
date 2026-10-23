@@ -11,6 +11,11 @@
 #' object per type by an \code{edi_bootstrap_bca_boundary_warning}). Use B of 501
 #' or more for \code{"bca"}, or \code{type = "percentile"} for small B. The same
 #' guidance applies to \code{compute_bayesian_bootstrap_confidence_interval(type = "bca")}.
+#' This small-B guard is deliberate: it is not relaxed, and EDI does not silently
+#' substitute a percentile interval. When it trips the interval is returned as
+#' \code{c(NA, NA)} (with the warning above) and counts as an invalid interval;
+#' EDI's coverage calibration fails a CI method that returns an invalid interval
+#' in more than 5\% of attempts, which BCa at small B can exceed.
 #'
 #' @section Design-specific validity caveats for the nonparametric bootstrap:
 #' Nonparametric bootstrap methods are not supported for \code{DesignSeqOneByOne}
@@ -195,8 +200,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   0.7 is a first-pass default; for unstable paths prefer the
 		#'   minimum-volatility selector.
 		#'
-		#' @return A numeric two-sided p-value, or \code{NA_real_} if the path is
-		#'   non-estimable.
+		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
+		#'   fails (recorded as a failure of this procedure only; the Wald estimate
+		#'   and standard error are kept).
 		compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
 			private$compute_m_out_of_n_bootstrap_two_sided_pval_impl(delta = delta, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, scaling = scaling)
 		},
@@ -223,7 +229,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   exponent is too brittle for a specific estimator/design path.
 		#'
 		#' @return A length-2 numeric confidence interval, or
-		#'   \code{c(NA_real_, NA_real_)} if the path is non-estimable.
+		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
+		#'   failure of this procedure only; the Wald estimate and standard error are
+		#'   kept).
 		compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
 			private$compute_m_out_of_n_bootstrap_confidence_interval_impl(alpha = alpha, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, scaling = scaling)
 		},
@@ -314,8 +322,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   0.7 is a first-pass default; for unstable paths prefer the
 		#'   minimum-volatility selector.
 		#'
-		#' @return A numeric two-sided p-value, or \code{NA_real_} if the path is
-		#'   non-estimable.
+		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
+		#'   fails (recorded as a failure of this procedure only; the Wald estimate
+		#'   and standard error are kept).
 		compute_subsampling_two_sided_pval = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
 			private$compute_subsampling_two_sided_pval_impl(delta = delta, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, scaling = scaling)
 		},
@@ -343,7 +352,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   estimator/design path.
 		#'
 		#' @return A length-2 numeric confidence interval, or
-		#'   \code{c(NA_real_, NA_real_)} if the path is non-estimable.
+		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
+		#'   failure of this procedure only; the Wald estimate and standard error are
+		#'   kept).
 		compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
 			private$compute_subsampling_confidence_interval_impl(alpha = alpha, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, scaling = scaling)
 		},
@@ -1973,6 +1984,18 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			})
 		},
 		ci_calibrated_bootstrap = function(alpha, B, type, est, show_progress = TRUE, na.rm = TRUE){
+			# v1.0.5 TODO-129 sweep: the outer calibration resamples below drew
+			# from the caller's global RNG stream; honour set_seed() with the same
+			# save/set.seed/restore block as approximate_bootstrap_distribution_beta_hat_T().
+			if (!is.null(private$seed)) {
+				had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+				if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+				on.exit(
+					if (had_seed) assign(".Random.seed", old_seed, envir = .GlobalEnv) else rm(".Random.seed", envir = .GlobalEnv),
+					add = TRUE
+				)
+				set.seed(private$seed)
+			}
 			n_outer = max(25L, min(as.integer(B), 101L))
 			n_inner = max(25L, min(as.integer(B), 51L))
 			alpha_grid = unique(pmin(0.49, pmax(.Machine$double.eps, c(alpha / 4, alpha / 2, alpha, min(0.25, alpha * 1.5), min(0.4, alpha * 2)))))

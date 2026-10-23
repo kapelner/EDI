@@ -85,8 +85,10 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 		#'   matching distance) or \code{"abs_sum_diff"} (sum of absolute standardized
 		#'   mean differences); see class documentation for the exact criteria.
 		#' @param match_objective Matching objective used to form pairs.
-		#'   \code{"distance"} (default) matches \pkg{nbpMatching};
-		#'   \code{"squared_distance"} reproduces EDI through version 1.0.4.
+		#'   \code{"distance"} (default) minimizes the total unsquared distance, as
+		#'   \pkg{nbpMatching} does; \code{"squared_distance"} reproduces EDI through
+		#'   version 1.0.4. The default changed in 1.0.5 and alters about 22\% of
+		#'   matched pairs relative to 1.0.x (measured at n = 1000, p = 4).
 		#' @param n_iter Number of swap iterations. \code{Inf} (default) uses exhaustive
 		#'   best-improvement search guaranteed to reach a strict local optimum. A positive
 		#'   integer runs that many stochastic random-pair iterations with patience-based
@@ -141,6 +143,28 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 		n_iter    = NULL,
 		bms = NULL,
 		ensure_pair_structure_computed = function(){
+			# Bootstrap-randomization replay (2026-10-23, TODO-18 C1 finding; same
+			# defect as DesignFixedBinaryMatch): the resampling machinery installs the
+			# resampled pair ids `m_vec_b` as private$m on a duplicated design whose
+			# private$bms still holds the ORIGINAL sample's row pairs. Overwriting m
+			# from that stale bms (below) made replay draws ignore the resampled pairs
+			# (measured: 4-14 of 20 resampled pairs per draw without exactly one
+			# treated). When m is a complete pairing that bms does not match, rebuild
+			# bms from m instead.
+			if (!is.null(private$bms) && !is.null(private$m)) {
+				m_vec = as.integer(private$m)
+				n_m = length(m_vec)
+				pairs = private$bms$indicies_pairs
+				bms_matches_m = is.matrix(pairs) && ncol(pairs) == 2L && 2L * nrow(pairs) == n_m &&
+					all(pairs >= 1L & pairs <= n_m) && !anyDuplicated(as.vector(pairs)) &&
+					all(m_vec[pairs[, 1L]] == m_vec[pairs[, 2L]])
+				m_is_pairing = n_m > 0L && !anyNA(m_vec) && all(m_vec > 0L) &&
+					all(tabulate(match(m_vec, unique(m_vec))) == 2L)
+				if (!isTRUE(bms_matches_m) && isTRUE(m_is_pairing)) {
+					pair_ids = sort(unique(m_vec))
+					private$bms = list(indicies_pairs = t(vapply(pair_ids, function(pid) which(m_vec == pid), integer(2L))))
+				}
+			}
 			if (is.null(private$bms)) {
 				n = self$get_n()
 				private$ensure_model_matrix_current()

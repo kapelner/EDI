@@ -21,7 +21,7 @@
 # from the warm start and from the cold no-frailty Weibull start, (b) a free cold start.
 # The best finite objective among valid candidates (log-theta >= floor) is kept.
 .clayton_weibull_null_fit_robust = function(X, y, dead, pair_idx, singleton_rows, j, delta,
-		warm_start_params, warm_start_fisher_info = NULL, optimization_alg = "lbfgs"){
+		warm_start_params, warm_start_fisher_info = NULL, optimization_alg = "lbfgs", jitter_seed = NULL){
 	n_par = ncol(X) + 2L
 	lt_idx = n_par
 	floor_lt = .CLAYTON_LOG_THETA_NULL_FLOOR
@@ -52,7 +52,7 @@
 	warm = as.numeric(warm_start_params)
 	if (length(warm) != n_par || !all(is.finite(warm))) warm = NULL
 	cold = tryCatch({
-		st = .extract_survreg_start(y, dead, X[, -1L, drop = FALSE])
+		st = .extract_survreg_start(y, dead, X[, -1L, drop = FALSE], jitter_seed = jitter_seed)
 		c(unname(st$beta), st$log_sigma, log(0.5))
 	}, error = function(e) NULL)
 	if (!is.null(cold) && (length(cold) != n_par || !all(is.finite(cold)))) cold = NULL
@@ -235,7 +235,8 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 					fit_m = .fit_clayton_weibull_aft(
 						y = private$y[i_matched], dead = private$dead[i_matched],
 						X = X_cand_m, pair_id = m_vec[i_matched], estimate_only = TRUE,
-						optimization_alg = private$optimization_alg
+						optimization_alg = private$optimization_alg,
+						jitter_seed = private$effective_draw_seed()
 					)
 					if (!is.null(fit_m) && is.finite(fit_m$beta)) beta_m = fit_m$beta
 				}
@@ -266,7 +267,8 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 				}
 				if (!is.finite(beta_r)) {
 					fit_r = .fit_standard_weibull_aft_from_matrix(
-						y = y_r, dead = dead_r, X = X_r, estimate_only = TRUE
+						y = y_r, dead = dead_r, X = X_r, estimate_only = TRUE,
+						jitter_seed = private$effective_draw_seed()
 					)
 					if (!is.null(fit_r) && is.finite(fit_r$beta)) beta_r = fit_r$beta
 				}
@@ -418,7 +420,8 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 				optimization_alg = private$optimization_alg,
 				starts = if (!is.null(private$get_fit_warm_start_for_length("params", n_params))) 
 				             list(private$get_fit_warm_start_for_length("params", n_params)) else NULL,
-				warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
+				warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+				jitter_seed = private$effective_draw_seed()
 			)
 			
 			if (!is.null(fit) && is.finite(fit$beta)){
@@ -471,7 +474,8 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 					estimate_only = estimate_only,
 					starts = if (!is.null(private$get_fit_warm_start_for_length("params", n_params)))
 					             list(private$get_fit_warm_start_for_length("params", n_params)) else NULL,
-					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
+					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+					jitter_seed = private$effective_draw_seed()
 				)
 				if (!is.null(fit) && is.finite(fit$beta) && (estimate_only || (is.finite(fit$ssq) && fit$ssq > 0))){
 					private$cached_values$beta_T_reservoir = fit$beta
@@ -820,7 +824,8 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 						j = j_treat, delta = delta,
 						warm_start_params = warm_start_params,
 						warm_start_fisher_info = warm_fisher,
-						optimization_alg = private$optimization_alg
+						optimization_alg = private$optimization_alg,
+						jitter_seed = private$effective_draw_seed()
 					)
 				},
 				extract_start = function(fit){
@@ -925,7 +930,8 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 					estimate_only = estimate_only,
 					starts = if (!is.null(private$get_fit_warm_start_for_length("params", n_params))) 
 					             list(private$get_fit_warm_start_for_length("params", n_params)) else NULL,
-					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
+					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+					jitter_seed = private$effective_draw_seed()
 				)
 				if (!is.null(fit) && is.finite(fit$beta) && (isTRUE(estimate_only) || (is.finite(fit$ssq) && fit$ssq > 0))){
 					private$cached_values$beta_hat_T = fit$beta
@@ -1032,7 +1038,8 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 							pair_idx = pair_idx, singleton_rows = singleton_rows,
 							j = j, delta = d,
 							warm_start_params = warm,
-							optimization_alg = private$optimization_alg
+							optimization_alg = private$optimization_alg,
+							jitter_seed = private$effective_draw_seed()
 						),
 						error = function(e) NULL
 					)

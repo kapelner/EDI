@@ -81,7 +81,10 @@ test_that("nonlogit KK CLMM classes recover the ordinal::clmm random-effect fit 
 	for (link in names(class_by_link)) {
 		# More groups stabilize the heavy-tailed Cauchit random-effect estimate.
 		f <- fx(307L, link = link, n = 400L)
-		mm <- suppressWarnings(ordinal::clmm(y ~ w + x + (1 | g), data = f$d, link = link, nAGQ = 25))
+		# ordinal::clmm fits log-log when asked for "cloglog" (and vice versa); the
+		# 2026-10-22 TODO-31 diagnosis (G6 #45). Use the probed clmm name for EDI's link.
+		mm <- suppressWarnings(ordinal::clmm(y ~ w + x + (1 | g), data = f$d,
+			link = EDI:::ordinal_clmm_link_name(link), nAGQ = 25))
 		inf <- new_inf(unname(class_by_link[[link]]), f$des)
 		beta <- unname(inf$compute_estimate())
 		priv <- inf$.__enclos_env__$private
@@ -99,8 +102,11 @@ test_that("nonlogit KK CLMM classes recover the ordinal::clmm random-effect fit 
 		# optimizer. The 0.15 coefficient and 0.2 log-sigma tolerances allow for
 		# 20-vs-25-node quadrature and link-specific optimizer differences; the
 		# non-collapse bound independently rules out the historical -3 basin.
-		expect_equal(beta, unname(coef(mm)["w"]), tolerance = 0.15, scale = 1, info = link)
-		expect_equal(as.numeric(fit$log_sigma), ref_log_sigma, tolerance = 0.2, info = link)
+		# 2026-10-22 (v1.0.5 TODO-31): with the reference now asked for the correctly named
+		# link and the KK CLMM fit stationary (clmm_eps_g 1e-12), measured |diff| is <= 4e-5
+		# (treatment) and <= 1.3e-4 (log sigma) on all three links; tightened from 0.15 / 0.2.
+		expect_equal(beta, unname(coef(mm)["w"]), tolerance = 3e-3, scale = 1, info = link)
+		expect_equal(as.numeric(fit$log_sigma), ref_log_sigma, tolerance = 2e-2, scale = 1, info = link)
 		expect_true(as.numeric(fit$log_sigma) > -2.5, info = link)
 	}
 })

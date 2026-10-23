@@ -374,7 +374,9 @@ An empty vector always returns \code{NA} variance.}
       \item{\code{delta}}{The null mean difference. Defaults to 0.}
       \item{\code{B}}{Number of bootstrap samples.}
       \item{\code{type}}{Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
-      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates.}
+      \item{\code{na.rm}}{Whether to remove non-finite bootstrap replicates. Default
+\code{FALSE}: any non-finite replicate makes the p-value \code{NA}, with a
+once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.}
       \item{\code{boundary_tol}}{Resample screening threshold for boundary mass near 0/1.}
       \item{\code{max_boundary_mass}}{Reject a resample when at least this fraction is near the boundary.}
       \item{\code{sep_tol}}{Separation tolerance used to reject nearly perfectly separated resamples.}

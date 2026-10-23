@@ -81,6 +81,15 @@ prepare() {
     fi
     [ -f "$W/tests/testthat/$t" ] || { echo "test file not found: $t" >&2; exit 2; }
   done
+  # Preflight: warn if a selected test (or the helpers/setup files testthat loads
+  # with it) reads files by relative path; those would fail in this /tmp copy.
+  local hits
+  hits="$( cd "$W/tests/testthat" && grep -nE 'test_path|system\.file|\.\./|readRDS|read\.csv|fread|source\(|getwd|list\.files|file\.exists|load_all' \
+      $TESTS $BULK_TESTS helper-*.R setup-*.R 2>/dev/null | grep -vE ':[0-9]+:[[:space:]]*#' || true )"
+  if [ -n "$hits" ]; then
+    echo "WARNING: possible repo-relative file access (add the fixture to prepare if a test fails):" >&2
+    echo "$hits" >&2
+  fi
   git -C "$REPO" rev-parse HEAD | tee "$W/logs/checkout_sha.txt"
   # Dirty-tree fingerprint: the plan requires the tested tree to be identifiable.
   { git -C "$REPO" status --porcelain; git -C "$REPO" diff HEAD -- R/EDI; } | sha256sum | cut -d' ' -f1 \

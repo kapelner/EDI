@@ -144,6 +144,13 @@ KKMeanDifferenceIVWCSource = list(
 				w_mat[, b] = w[i_b]
 				m_mat[, b] = c(rep(0L, n_reservoir), m_vec_b_matched)
 			}
+			# The kernel maps w_mat/m_mat as integer and y_mat as double
+			# matrices. Assigning a double-stored w (e.g. DesignFixedBinaryMatch)
+			# into w_mat silently promotes it to double, which Rcpp rejects with
+			# "Wrong R type for mapped matrix" (TODO-130, 2026-10-22).
+			storage.mode(w_mat) = "integer"
+			storage.mode(m_mat) = "integer"
+			storage.mode(y_mat) = "double"
 			res = compute_matching_compound_bootstrap_parallel_cpp(
 				w_mat,
 				m_mat,

@@ -174,8 +174,10 @@ Mahalanobis distance between treated/control means, also used as the
 matching distance) or \code{"abs_sum_diff"} (sum of absolute standardized
 mean differences); see class documentation for the exact criteria.}
       \item{\code{match_objective}}{Matching objective used to form pairs.
-\code{"distance"} (default) matches \pkg{nbpMatching};
-\code{"squared_distance"} reproduces EDI through version 1.0.4.}
+\code{"distance"} (default) minimizes the total unsquared distance, as
+\pkg{nbpMatching} does; \code{"squared_distance"} reproduces EDI through
+version 1.0.4. The default changed in 1.0.5 and alters about 22\% of
+matched pairs relative to 1.0.x (measured at n = 1000, p = 4).}
       \item{\code{n_iter}}{Number of swap iterations. \code{Inf} (default) uses exhaustive
 best-improvement search guaranteed to reach a strict local optimum. A positive
 integer runs that many stochastic random-pair iterations with patience-based

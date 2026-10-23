@@ -248,8 +248,11 @@ family.}
 and \code{"bca"} (bias-corrected and accelerated via leave-one-unit-out
 Bayesian jackknife).}
       \item{\code{na.rm}}{If \code{TRUE}, discard non-finite bootstrap replicates before
-computing the p-value. Otherwise, any non-finite replicate returns
-\code{NA}.}
+computing the p-value. Default \code{FALSE}, in which case any non-finite
+replicate returns \code{NA} (with a once-per-object warning of class
+\code{edi_bootstrap_nonfinite_na_warning} saying how many replicates were
+non-finite). The confidence-interval method drops non-finite replicates
+by default, so it can be finite when this p-value is \code{NA}.}
       \item{\code{show_progress}}{A flag indicating whether a progress bar should be displayed.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite Bayesian-bootstrap
 replicates required after filtering. Default 5.}
@@ -294,9 +297,15 @@ scheme. See
 \code{"studentized"} / \code{"bootstrap-t"} (pivots by replicate SE from
 \code{compute_estimate_with_bootstrap_weights(..., estimate_only = FALSE)}),
 and \code{"bca"} (bias-corrected and accelerated via leave-one-unit-out
-Bayesian jackknife).}
-      \item{\code{na.rm}}{If \code{TRUE}, discard non-finite bootstrap replicates before
-constructing the interval.}
+Bayesian jackknife). As for the nonparametric bootstrap, \code{"bca"}
+needs B of about 501 or more: at small B the adjusted tail probabilities
+fall within two order statistics of the ends of the bootstrap
+distribution and the interval is \code{c(NA, NA)} (reason
+\code{"bayesian_bootstrap_bca_adjustment_on_boundary"}, one
+\code{edi_bootstrap_bca_boundary_warning} per object); use
+\code{type = "percentile"} for small B.}
+      \item{\code{na.rm}}{If \code{TRUE} (default), discard non-finite bootstrap
+replicates before constructing the interval.}
       \item{\code{show_progress}}{A flag indicating whether a progress bar should be displayed.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite Bayesian-bootstrap
 replicates required after filtering. Default 5.}

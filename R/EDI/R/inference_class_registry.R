@@ -134,6 +134,20 @@ EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES = c(
 	"InferenceOrdinalRidit"
 )
 
+# TODO-119 capability audit (2026-10-22): survival-only classes whose own
+# compute_rand_confidence_interval() override always refuses (LogRank /
+# GehanWilcox / RestrictedMeanDiff / KMDiff stop() on the unit mismatch;
+# DepCensTransformRegr signals an unsupported procedure and returns NA bounds).
+# Like the log-hazard-ratio classes they serve only survival responses, so
+# they lose the `randomization_ci` capability at class level (below).
+EDI_RAND_CI_CLASS_OVERRIDE_REFUSING_CLASSES = c(
+	"InferenceSurvivalDepCensTransformRegr",
+	"InferenceSurvivalGehanWilcox",
+	"InferenceSurvivalKMDiff",
+	"InferenceSurvivalLogRank",
+	"InferenceSurvivalRestrictedMeanDiff"
+)
+
 # Returns a character reason when the generic randomization-CI inversion would
 # put its bounds on a different scale than `compute_estimate()` for this class
 # and response type, else NULL. `classes` is `class(self)`; `is_model_scale` is
@@ -173,6 +187,56 @@ inference_randomization_ci_scale_mismatch = function(classes, resp_type, is_mode
 		}
 	}
 	NULL
+}
+
+# TODO-119 capability audit (2026-10-22): registered lineage (the class plus its
+# registry ancestors) of an inference class, for the name-only path of
+# inference_response_type_excluded_capabilities(). Walks the registry env
+# directly (no inference_class_registry_as_list() copy) because
+# get_effective_capabilities() calls this on every des_obj-aware lookup.
+inference_registered_class_lineage = function(name) {
+	lineage = name
+	current = name
+	while (exists(current, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)) {
+		parent = get(current, envir = EDI_INFERENCE_CLASS_REGISTRY, inherits = FALSE)$parent
+		if (is.null(parent) || parent %in% lineage) break
+		lineage = c(lineage, parent)
+		current = parent
+	}
+	lineage
+}
+
+# TODO-119 capability audit (2026-10-22): capabilities that class `name`
+# (lineage `classes`, static capabilities `capabilities`) advertises at class
+# level but statically refuses for `response_type`. Only `randomization_ci`
+# today, for (a) incidence (compute_rand_confidence_interval() refuses every
+# incidence response, 2026-08-27, incidence_randomization_cis.md) and (b) the
+# shift-scale mismatches of inference_randomization_ci_scale_mismatch(), which
+# is the same predicate the CI itself refuses with. The data-dependent exact-0/1
+# refusal (inference_randomization_ci_exact_zero_one_refusal()) cannot be
+# decided from (class, response type), so it is NOT applied here: logit-shift
+# proportion classes keep advertising `randomization_ci` and refuse per data set
+# with class `edi_rand_ci_exact_zero_one_refused`.
+inference_response_type_excluded_capabilities = function(name, response_type, classes = NULL, capabilities = NULL) {
+	if (!is.character(response_type) || length(response_type) != 1L || is.na(response_type)) return(character())
+	if (is.null(capabilities)) capabilities = get_effective_capabilities(name)
+	if (!("randomization_ci" %in% capabilities)) return(character())
+	if (identical(response_type, "incidence")) return("randomization_ci")
+	if (is.null(classes)) classes = inference_registered_class_lineage(name)
+	is_model_scale = inference_model_scale_randomization_transform_for(classes, capabilities)
+	if (!is.null(inference_randomization_ci_scale_mismatch(classes, response_type, is_model_scale))) {
+		return("randomization_ci")
+	}
+	character()
+}
+
+# Class-level capabilities restricted to one response type: the static
+# (class-name) capabilities minus inference_response_type_excluded_capabilities().
+# Used by the capability matrix and by tests; live/des_obj-aware callers get the
+# same answer from get_effective_capabilities(name, des_obj).
+get_effective_capabilities_for_response_type = function(name, response_type) {
+	capabilities = get_effective_capabilities(name)
+	setdiff(capabilities, inference_response_type_excluded_capabilities(name, response_type, capabilities = capabilities))
 }
 
 # TODO-119 / G6 (2026-10-22): the proportion randomization CI imposes the sharp
@@ -233,7 +297,8 @@ EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 	# wrong axis for them (see EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES above).
 	# Only the plain randomization CI is excluded; the randomization-bootstrap
 	# CI is a percentile interval on the estimate's own scale and stays.
-	for (class_name in c(EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES, EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES)) {
+	for (class_name in c(EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES, EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES,
+			EDI_RAND_CI_CLASS_OVERRIDE_REFUSING_CLASSES)) {
 		exclusions[[class_name]] = unique(c(
 			exclusions[[class_name]],
 			"randomization_ci"
@@ -2290,7 +2355,10 @@ apply_inference_design_restrictions = function(self, des_obj) {
 #'   name-only caller for that class.
 #' @param des_obj Optional design object. Capabilities the design rules out
 #'   (see \code{get_design_excluded_inference_capabilities()}) are removed from
-#'   the answer. If \code{NULL} and a live inference object is available, its
+#'   the answer, as are capabilities the class refuses for the design's
+#'   response type (\code{randomization_ci} on an incidence response or on a
+#'   response whose randomization-CI shift scale differs from the estimand's
+#'   scale). If \code{NULL} and a live inference object is available, its
 #'   own design is used.
 #' @param live_obj Optional: an already-constructed inference object to use
 #'   for the live-gate refinement, separate from \code{name}. Use this (with
@@ -2325,6 +2393,19 @@ get_effective_capabilities = function(name, des_obj = NULL, live_obj = NULL) {
 		assign(name, capabilities, envir = EDI_INFERENCE_EFFECTIVE_CAPABILITIES_CACHE)
 	}
 	capabilities = setdiff(capabilities, get_design_excluded_inference_capabilities(des_obj))
+	# TODO-119 (2026-10-22): when the design fixes the response type, drop the
+	# capabilities this class statically refuses for it (randomization_ci on a
+	# scale-mismatched or incidence response), so $supports()/InferenceSuite/
+	# SimulationFramework never offer a CI that compute_rand_confidence_interval()
+	# would refuse. The name-only call (no des_obj) keeps the class-level union.
+	response_type = if (is.null(des_obj)) NULL else tryCatch(des_obj$get_response_type(), error = function(e) NULL)
+	if (!is.null(response_type)) {
+		capabilities = setdiff(capabilities, inference_response_type_excluded_capabilities(
+			name, response_type,
+			classes = if (is.null(live_obj)) NULL else class(live_obj),
+			capabilities = capabilities
+		))
+	}
 	if (is.null(live_obj)) return(capabilities)
 	# The live gate is authoritative for the capabilities it covers,
 	# regardless of what the static/mixin-composition set said -- it can

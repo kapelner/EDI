@@ -119,7 +119,9 @@ SurvivalWeibullLikelihoodSource = list(
 		#' @param delta Null treatment effect value.
 		#' @param B Number of Bayesian-bootstrap replicates.
 		#' @param type Bootstrap p-value type.
-		#' @param na.rm Whether to drop non-finite replicate estimates.
+		#' @param na.rm Whether to remove non-finite bootstrap replicates. Default
+		#'   \code{FALSE}: any non-finite replicate makes the p-value \code{NA}, with a
+		#'   once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.
 		#' @param show_progress Whether to print a progress bar.
 		#' @param min_number_usable_samples Minimum number of finite replicates required.
 		#' @param weighting_unit_type Resampling unit type for the bootstrap weights.

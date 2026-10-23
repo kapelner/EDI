@@ -203,6 +203,22 @@ if [ "$roxygen_touched" = "1" ]; then
 		abort_push
 	fi
 	rm -f "$roxy_out"
+
+	# fast_roxygenize.R regenerated the files below in place but does not commit
+	# them. If they now differ from HEAD (or roxygen created new Rd files), the
+	# commit being pushed carries stale docs/exports: stop and have them
+	# committed, rather than auto-committing generated docs or exports
+	# (2026-10-23).
+	generated_paths=(R/EDI/man R/EDI/NAMESPACE R/EDI/R/RcppExports.R R/EDI/src/RcppExports.cpp)
+	stale_generated="$(git diff --name-only HEAD -- "${generated_paths[@]}")"
+	new_rd="$(git ls-files --others --exclude-standard -- R/EDI/man)"
+	if [ -n "$stale_generated" ] || [ -n "$new_rd" ]; then
+		echo "pre-push: regenerated docs/exports are not committed:" >&2
+		[ -n "$stale_generated" ] && printf '  modified:  %s\n' $stale_generated >&2
+		[ -n "$new_rd" ] && printf '  untracked: %s\n' $new_rd >&2
+		echo "pre-push: commit them (e.g. 'git add R/EDI/man R/EDI/NAMESPACE R/EDI/R/RcppExports.R R/EDI/src/RcppExports.cpp && git commit') and push again." >&2
+		abort_push
+	fi
 else
 	echo "pre-push: no roxygen-relevant changes, skipping fast_roxygenize.R."
 fi

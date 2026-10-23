@@ -214,6 +214,9 @@ the right code together.
   A source class that still `inherit`s from another ladder class only to make
   its own code load should stop doing so once TODO-4 lands. Keep the
   existing guardrail test that enumerates retained ladder generators in sync.
+  **Deferred 2026-10-23 to v1.1.0:** outside the owner's 1.0.5 "do it now"
+  instruction (TODO-3/4/6/7); filed as `../future_release_plans/release_v1_1_0.md
+  → TODO-73` (background, scope, acceptance there).
 - [x] TODO-6: **Guard against regression.** Add a test that fails when a
   declared dependency has zero calls, or when a component calls another
   component's method without declaring it, directly or transitively.

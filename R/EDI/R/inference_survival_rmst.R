@@ -169,7 +169,12 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				row_weights,
 				requested_stat = "restricted_mean"
 			)
-			private$cached_values$s_beta_hat_T = NA_real_
+			# Weighted Greenwood-type SE (2026-10-23, TODO-23 R4 smoke finding): this
+			# used to be hard-coded NA, so the studentized / bootstrap-t Bayesian
+			# bootstrap CI and p-value were silently nonestimable for RMST (no error,
+			# no warning). Unit weights reproduce compute_s_beta_hat_T() exactly.
+			private$cached_values$s_beta_hat_T = if (isTRUE(estimate_only)) NA_real_ else
+				private$weighted_restricted_mean_se_diff(row_weights)
 			private$cached_values$beta_hat_T
 		},
 		#' @description Computes a \eqn{1-\alpha} level Wald confidence interval for
@@ -341,6 +346,35 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			)
 			if (!is.finite(stat_t) || !is.finite(stat_c)) return(NA_real_)
 			as.numeric(stat_t - stat_c)
+		},
+		# Frequency-weighted version of the C++ get_restricted_mean_se_diff() (Uno et
+		# al. Greenwood-type variance, sum_j A(t_j)^2 d_j / (n_j (n_j - d_j)) per arm,
+		# arms combined in quadrature) with weighted at-risk/event counts, on the same
+		# shared horizon as weighted_survival_stat_diff(). Unit weights give exactly
+		# get_restricted_mean_se_diff() on the horizon-truncated data.
+		weighted_restricted_mean_se_diff = function(row_weights){
+			idx_t = private$w == 1
+			idx_c = private$w == 0
+			valid = is.finite(private$y) & is.finite(private$dead) &
+				is.finite(row_weights) & row_weights > 0
+			if (!any(valid & idx_t) || !any(valid & idx_c)) return(NA_real_)
+			tau = min(max(private$y[valid & idx_t]), max(private$y[valid & idx_c]))
+			if (!is.null(private$rmst_tau)) tau = min(tau, private$rmst_tau)
+			arm_var = function(sel){
+				y = private$y[sel]; d = as.numeric(private$dead[sel]); wt = as.numeric(row_weights[sel])
+				ut = sort(unique(y))
+				n_j = vapply(ut, function(t) sum(wt[y >= t]), numeric(1L))
+				d_j = vapply(ut, function(t) sum(wt[y == t & d == 1]), numeric(1L))
+				ev = d_j > 0 & ut < tau
+				if (!any(ev)) return(0)
+				t_e = ut[ev]; n_e = n_j[ev]; d_e = d_j[ev]
+				S_after = cumprod(1 - d_e / n_e)
+				A = rev(cumsum(rev(S_after * (c(t_e[-1L], tau) - t_e))))
+				ok = n_e - d_e > 1e-12 * n_e
+				sum(A[ok]^2 * d_e[ok] / (n_e[ok] * (n_e[ok] - d_e[ok])))
+			}
+			se = sqrt(arm_var(valid & idx_t) + arm_var(valid & idx_c))
+			if (is.finite(se) && se > 0) se else NA_real_
 		},
 		compute_s_beta_hat_T = function(){
 			if (isTRUE(private$has_general_censoring)) {

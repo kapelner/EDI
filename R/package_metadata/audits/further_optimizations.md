@@ -40,30 +40,43 @@ paths fork too, so this is not only a test-harness artifact.
 Section 3 confirmed this, and in-process `safe_call()` (`fork=FALSE`, now
 the default) removed it.
 
-### Under `fork=FALSE` (2026-10-18)
+### Under `fork=FALSE` (2026-10-18; table updated 2026-10-22)
 
 System time is no longer a bucket: the quiet in-process run in section 3
 used 2,126 s user and 32 s system (~1.5%). The time is now in the tests
-themselves. By test family, for the six-class mix in-process at `nc = 2`
-(2,166 calls, 4,144 s summed call time, all rows identical to `fork=TRUE`):
+themselves. By test family, for the six-class mix in-process at `nc = 1`
+(2,166 calls), cold vs. with bootstrap-draw reuse. Measured 2026-10-22 on a
+quiet machine (outside load ~3 on top of the six test processes), EDI
+rebuilt 2026-10-22 19:33 UTC (includes TODO-11 and TODO-128), committed
+harness (TODO-127: truth simulation no longer timed). All 2,166 rows
+identical between the two runs.
 
-| Family | Calls | Seconds | Share |
-| --- | --- | --- | --- |
-| Bootstrap | 688 | 1,575 | 38% |
-| Bayesian bootstrap | 400 | 1,258 | 30% |
-| Bartlett | 84 | 692 | 17% |
-| Estimate | 60 | 214 | 5% |
-| Randomization | 148 | 160 | 4% |
-| Parametric bootstrap | 54 | 119 | 3% |
-| Jackknife | 132 | 55 | 1% |
-| Everything else (asymptotic, Wald, score, LR, …) | 600 | 71 | 2% |
+| Family | Calls | Cold (s) | With reuse (s) | Share with reuse |
+| --- | --- | --- | --- | --- |
+| Bootstrap | 688 | 1,010 | 640 | 38% |
+| Bartlett | 84 | 597 | 583 | 35% |
+| Bayesian bootstrap | 400 | 547 | 193 | 11% |
+| Randomization | 148 | 116 | 117 | 7% |
+| Parametric bootstrap | 54 | 105 | 107 | 6% |
+| Jackknife | 132 | 42 | 3 | 0.2% |
+| Estimate | 60 | 2 | 2 | 0.1% |
+| Everything else (asymptotic, Wald, score, LR, …) | 600 | 54 | 40 | 2% |
+| **Total** | 2,166 | **2,474** | **1,687** | |
 
-Resampling (bootstrap, Bayesian, parametric, jackknife, randomization) is
-76% of the time (83% in the `nc = 4` run, which outside load slowed
-unevenly). Time is concentrated:
-the slowest 10% of calls take 58%, and the 1,402 calls under 1 s take 10%.
-Two leads follow from this, both about repeated work rather than code
-speed:
+Draw reuse cut summed call time by 32% and wall time by 33% (821 s → 552
+s). Bartlett CIs are now the largest single item (two methods, 294 s and
+274 s; `release_v1_1_0.md → TODO-58`), followed by the ordinary bootstrap's
+studentized CI (153 s). The "Estimate" row fell from 214–447 s in earlier
+runs to 2 s because TODO-127 moved the coverage-truth simulation out of the
+timed window; that simulation still runs, untimed
+(`release_v1_1_0.md → TODO-59` makes it cheap).
+
+Before draw reuse (2026-10-18, `nc = 2`, 4,144 s summed, older EDI), the
+split was bootstrap 38%, Bayesian bootstrap 30%, Bartlett 17%, estimate 5%
+(really the truth simulation), randomization 4%, parametric bootstrap 3%,
+jackknife 1%, everything else 2%: resampling was 76% of the time, and the
+slowest 10% of calls took 58%. Two leads followed from that, both about
+repeated work rather than code speed:
 
 - **The harness recomputed the same bootstrap draws for every variant.
   Fixed 2026-10-22 (user decision): `fork=FALSE` now reuses them; details
@@ -96,10 +109,13 @@ speed:
     noise, so the CI read the p-value's cache (12 rows changed, e.g. an
     upper endpoint 0.519 → 0.501). A real session never restores the
     counter, so this was a harness artifact.
-  - Jackknife caches are *not* reused. A jackknife cached by an earlier BCa
-    call was computed from different warm-start state, and
-    `InferenceIncidLogBinomial`'s leave-one-out refits are sensitive to it
-    (24 jackknife rows changed; one estimate −0.000112 vs −0.0000978).
+  - Jackknife caches were at first *not* reused. A jackknife cached by an
+    earlier BCa call was computed from different warm-start state, and
+    `InferenceIncidLogBinomial`'s leave-one-out refits were sensitive to it
+    (24 jackknife rows changed; one estimate −0.000112 vs −0.0000978;
+    `release_v1_0_5.md → TODO-128`). After the TODO-128 fix the same day,
+    `jack_distr_cache` is reused again; `bayes_jack_distr_cache` stays out
+    until its history independence is checked.
 
   Identity check, six-class mix, `nc = 1`, reuse vs. cold (both
   `fork=FALSE`, EDI installed 2026-10-21): 2,159 / 2,166 rows identical.
@@ -110,7 +126,15 @@ speed:
   on (all identical), and incidence alone with the final configuration.
   Timing from these runs is unreliable (load average 17–23 from other
   work, and the cold run got the worse of it): summed call time was 24–69%
-  lower with reuse; the clean `nc = 2` estimate above (~36%) stands.
+  lower with reuse.
+
+  **Final check, 2026-10-22, on the rebuilt EDI** (built 19:33 UTC, with
+  TODO-11's `boot_stats_cache` and the TODO-128 fix) and the committed
+  harness (reuse list including `boot_stats_cache` and `jack_distr_cache`),
+  quiet machine: **2,166 / 2,166 rows identical** between reuse and cold,
+  including the incidence jackknife and BCa rows that differed before. No
+  watchdog events. Summed call time 2,474 s → 1,687 s (−32%), wall 821 s →
+  552 s (−33%); the per-family table above is from these two runs.
 
   Per-call timings change meaning: the first variant on an object carries
   the draws, so a later variant's cold-equivalent time is the first
@@ -860,13 +884,15 @@ ideally native Linux, or try an interpreter-heavy workload (the R6-heavy
    (`release_v1_2_0.md → TODO-32`, `inference_suite_worker_pool.md`).
 3. ~~Section 4~~ and ~~section 6~~: tried 2026-10-14, no measurable gain
    (see their result subsections).
-4. Repeated work (see [Under `fork=FALSE`](#under-forkfalse-2026-10-18)):
+4. Repeated work (see [Under `fork=FALSE`](#under-forkfalse-2026-10-18-table-updated-2026-10-22)):
    sharing bootstrap draws across the harness's variant calls is done
-   (2026-10-22, about 36% of test time; `fork=FALSE` only). In EDI: one copy
+   (2026-10-22; measured −32% summed call time and −33% wall on a quiet
+   machine, all 2,166 rows identical; `fork=FALSE` only). In EDI: one copy
    per worker instead of per draw, and caching the ordinary bootstrap's
    studentized statistics (`bayesian_bootstrap_performance.md → TODO-10,
    TODO-11`). After draw reuse, the next two items (investigated
-   2026-10-22, both in v1.1.0): Bartlett CIs (~26% of the six-class mix;
+   2026-10-22, both in v1.1.0): Bartlett CIs (35% of the six-class mix after
+   reuse;
    the inversion runs ~46 factor simulations where ~10 would do, and the
    harness computes each one twice: `release_v1_1_0.md → TODO-58`), and the
    coverage-truth simulation billed to the first `compute_estimate` per

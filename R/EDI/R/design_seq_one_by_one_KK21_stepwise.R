@@ -382,7 +382,7 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 				#sometimes the weibull is unstable... so try other distributions... this doesn't matter since we are just trying to get weights
 				#and we are not relying on the model assumptions
 				for (dist in c("weibull", "lognormal", "loglogistic")){
-					surv_regr_mod = robust_survreg_with_surv_object(response_obj, covariate_data_matrix, dist = dist)
+					surv_regr_mod = robust_survreg_with_surv_object(response_obj, covariate_data_matrix, dist = dist, jitter_seed = private$seed)
 					if (is.null(surv_regr_mod)){
 						break
 					}

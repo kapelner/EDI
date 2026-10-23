@@ -160,6 +160,19 @@ inference_migration_method_calls = list(
 	param_boot_ci = list(method = "compute_lik_ratio_bootstrap_confidence_interval", args = list(alpha = 0.2, B = 9L, show_progress = FALSE))
 )
 
+# The default method calls use r = 9 randomization draws, below the
+# finite-draw floor of 10 in compute_two_sided_randomization_pval_from_t0s(),
+# so their randomization_pval / randomization_ci columns compare NA with NA.
+# Representative goldens (one per response family, TODO-124 / G6 #13) use
+# this variant so those columns are compared non-vacuously.
+inference_migration_method_calls_with_rand_r = function(r = 19L) {
+	calls = inference_migration_method_calls
+	for (label in c("randomization_distr", "randomization_ci", "randomization_pval")) {
+		calls[[label]]$args$r = as.integer(r)
+	}
+	calls
+}
+
 inference_migration_unsupported_error = function(err) {
 	msg = conditionMessage(err)
 	# "temporarily disabled" covers compute_rand_confidence_interval()'s

@@ -21,7 +21,10 @@ name-only caller for that class.}
 
 \item{des_obj}{Optional design object. Capabilities the design rules out
 (see \code{get_design_excluded_inference_capabilities()}) are removed from
-the answer. If \code{NULL} and a live inference object is available, its
+the answer, as are capabilities the class refuses for the design's
+response type (\code{randomization_ci} on an incidence response or on a
+response whose randomization-CI shift scale differs from the estimand's
+scale). If \code{NULL} and a live inference object is available, its
 own design is used.}
 
 \item{live_obj}{Optional: an already-constructed inference object to use

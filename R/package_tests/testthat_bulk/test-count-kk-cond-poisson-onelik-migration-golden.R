@@ -63,14 +63,21 @@ test_that("InferenceCountKKCondPoissonOneLik migration produces identical output
 	des = count_kk_cpoisson_onelik_golden_design()
 	legacy = Legacy$new(des)
 	migrated = InferenceCountKKCondPoissonOneLik$new(des)
-	for (label in names(inference_migration_method_calls)) {
-		spec = inference_migration_method_calls[[label]]
+	# r = 19 (not the default 9): randomization columns compared non-vacuously
+	# (finite-draw floor is 10; TODO-124 / G6 #13).
+	method_calls = inference_migration_method_calls_with_rand_r(19L)
+	rand_values = list()
+	for (label in names(method_calls)) {
+		spec = method_calls[[label]]
 		legacy$set_seed(20260819L)
 		legacy_result = inference_migration_with_seed(20260819L,
 			inference_migration_call_optional_method(legacy, spec$method, spec$args))
 		migrated$set_seed(20260819L)
 		migrated_result = inference_migration_with_seed(20260819L,
 			inference_migration_call_optional_method(migrated, spec$method, spec$args))
+		if (startsWith(label, "randomization_") && identical(migrated_result$status, "ok")) {
+			rand_values[[label]] = migrated_result$value
+		}
 		if (legacy_result$status %in% c("absent", "unsupported") &&
 				migrated_result$status %in% c("absent", "unsupported")) {
 			next
@@ -80,6 +87,10 @@ test_that("InferenceCountKKCondPoissonOneLik migration produces identical output
 			expect_equal(migrated_result$value, legacy_result$value, tolerance = 1e-6, info = label)
 		}
 	}
+	# Non-vacuity guard: with r = 19 the randomization p-value and CI are finite,
+	# so the equality checks above actually compared numbers.
+	expect_true(isTRUE(is.finite(rand_values$randomization_pval)), info = "randomization_pval finite at r = 19")
+	expect_true(length(rand_values$randomization_ci) == 2L && all(is.finite(rand_values$randomization_ci)), info = "randomization_ci finite at r = 19")
 })
 
 test_that("InferenceCountKKCondPoissonOneLik is marked migrated", {

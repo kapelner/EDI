@@ -554,9 +554,12 @@ InferenceMixinKKGEEShared = list(
 			std_err_arg = if (is.character(std_err)) std_err[1] else "san.se"
 			tryCatch({
 				dat_geepack = data.frame(y = fit_data$y_sorted, fit_data$dat)
-				X_geepack = cbind(`(Intercept)` = 1, as.matrix(fit_data$dat))
-				ws_args = private$gee_warm_start_args(ncol(X_geepack))
 
+				# No `start =` (2026-10-22): geeglm() forwards its whole call,
+				# `start` included, to model.frame(), so any length-p warm-start
+				# beta fails with "variable lengths differ (found for '(start)')"
+				# and every geepack refit after the first warm start was cached
+				# (jackknife, bootstrap, randomization) silently returned NULL.
 				utils::capture.output(mod <- suppressMessages(suppressWarnings(
 					geepack::geeglm(
 						y ~ .,
@@ -564,8 +567,7 @@ InferenceMixinKKGEEShared = list(
 						data   = dat_geepack,
 						id     = fit_data$id_sorted,
 						corstr = "exchangeable",
-						std.err = std_err_arg,
-						start  = ws_args$warm_start_beta
+						std.err = std_err_arg
 					)
 				)))
 				mod
@@ -603,8 +605,7 @@ InferenceMixinKKGEEShared = list(
 			}
 			if (!requireNamespace("geepack", quietly = TRUE)) return(NULL)
 			dat_geepack = data.frame(y = y_kept, dat_kept, check.names = FALSE)
-			X_geepack = cbind(`(Intercept)` = 1, as.matrix(dat_geepack[, setdiff(colnames(dat_geepack), "y"), drop = FALSE]))
-			ws_args = private$gee_warm_start_args(ncol(X_geepack))
+			# No `start =` here either: see fit_gee_on_data (geeglm model.frame bug).
 			tryCatch({
 				utils::capture.output(mod <- suppressMessages(suppressWarnings(
 					geepack::geeglm(
@@ -614,8 +615,7 @@ InferenceMixinKKGEEShared = list(
 						weights = weights_kept,
 						id     = id_sorted,
 						corstr = "exchangeable",
-						std.err = "san.se",
-						start  = ws_args$warm_start_beta
+						std.err = "san.se"
 					)
 				)))
 				mod

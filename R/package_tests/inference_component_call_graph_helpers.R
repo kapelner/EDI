@@ -422,6 +422,27 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 	expect_false("logbin_feasible_warm_start_args@InferenceIncidLogBinomial" %in% logbin_methods)
 	baseline$private_methods[[logbin_row]] <- paste(sort(unique(c(logbin_methods,
 		"logbin_feasible_warm_start_args@InferenceIncidLogBinomial"))), collapse = "|")
+	# v1.0.5 TODO-31 (2026-10-22; bug_fix_plans/clmm_sigma_collapse_false_convergence.md
+	# TODO-4, G6 #45 (iii)(a)) added the private stationarity-acceptance helper
+	# clmm_accept_fit on InferenceAbstractKKOrdinalCLMM, inherited by its four
+	# concrete link leaves. Reviewed additive delta on the abstract host.
+	for (clmm_class in c("InferenceOrdinalKKCLMM", "InferenceOrdinalKKCLMMProbit",
+			"InferenceOrdinalKKCLMMCauchit", "InferenceOrdinalKKCLMMCloglog")) {
+		clmm_row <- which(baseline$class == clmm_class)
+		clmm_methods <- strsplit(baseline$private_methods[[clmm_row]], "|", fixed = TRUE)[[1L]]
+		expect_false("clmm_accept_fit@InferenceAbstractKKOrdinalCLMM" %in% clmm_methods, info = clmm_class)
+		baseline$private_methods[[clmm_row]] <- paste(sort(unique(c(clmm_methods,
+			"clmm_accept_fit@InferenceAbstractKKOrdinalCLMM"))), collapse = "|")
+	}
+	# v1.0.5 TODO-23 (2026-10-23; calibration finding) added the private helper
+	# weighted_restricted_mean_se_diff on InferenceSurvivalRestrictedMeanDiff, the
+	# weighted SE used by the studentized Bayesian-bootstrap path. Reviewed
+	# additive delta on its own host (no subclasses).
+	rmst_row <- which(baseline$class == "InferenceSurvivalRestrictedMeanDiff")
+	rmst_methods <- strsplit(baseline$private_methods[[rmst_row]], "|", fixed = TRUE)[[1L]]
+	expect_false("weighted_restricted_mean_se_diff@InferenceSurvivalRestrictedMeanDiff" %in% rmst_methods)
+	baseline$private_methods[[rmst_row]] <- paste(sort(unique(c(rmst_methods,
+		"weighted_restricted_mean_se_diff@InferenceSurvivalRestrictedMeanDiff"))), collapse = "|")
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

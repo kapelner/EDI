@@ -125,7 +125,27 @@ not something this class can diagnose further.
 default (\code{bootstrap_type = "within_blocks"} or \code{NULL}, via
 \code{stratified_bootstrap_indices_cpp()}) or resamples whole blocks otherwise (via
 \code{resample_group_rows_cpp()}), mirroring the block structure in the resampling
-scheme, as in \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}.
+scheme, as in \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}. The
+bootstrap randomization test replays the whole mechanism on each resample: the
+cached blocking is keyed on the covariate rows it was solved on, so a resample
+re-solves the optimal blocking on its own covariates (same \code{method},
+\code{B}, \code{dist} and \code{roi_solver}, under that replay draw's seed) and the
+assignment is drawn within the new blocks. This costs one block solve per replay
+draw; ordinary draws on unchanged data reuse the cached blocks.
+
+\strong{Cost of randomization-bootstrap replay.} Because every replay draw of a
+randomization-bootstrap confidence interval or p-value re-solves the blocking on
+that draw's resampled covariates, the per-draw cost is the cost of one block solve
+for the chosen \code{method}. Measured extra time per replay draw (one machine,
+indicative only): about 6 ms for \code{"K-way"} (\eqn{n = 40}, \eqn{B = 5}) and
+about 21 ms at \eqn{n = 400}, \eqn{B = 20}; about 27-33 ms for \code{"greedy"}
+(\eqn{n = 40} to \eqn{200}); but about 1.7 s for \code{"ompr"} at \eqn{n = 12},
+\eqn{B = 3} and about 79 s at \eqn{n = 16}, \eqn{B = 4}, growing rapidly with
+\eqn{n}. With the exact \code{"ompr"} method, randomization-bootstrap replays are
+therefore very slow (hours for a few hundred draws at \eqn{n = 16}). When such
+inference is needed, prefer a heuristic method (\code{"K-way"} or
+\code{"greedy"}), or use \code{"ompr"} only with a small number of bootstrap
+replicates.
 }
 \examples{
 if (requireNamespace("anticlust", quietly = TRUE)) {

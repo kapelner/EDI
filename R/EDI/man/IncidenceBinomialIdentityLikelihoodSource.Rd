@@ -28,8 +28,10 @@ Likelihood-ratio confidence interval for \eqn{\beta_T} by test
   inversion (find the set of \code{delta} not rejected at level
   \code{alpha} by the likelihood-ratio test); see
   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} for the shared
-  inversion contract. Falls back to a nonestimable result (\code{NA}
-  bounds) if the underlying root-finding fails.
+  inversion contract. If the underlying root-finding fails, returns
+  \code{NA} bounds and records a likelihood-ratio procedure failure; the
+  Wald estimate, standard error and \code{is_nonestimable()} are kept
+  (unless the Wald fit itself is unusable).
 }
 \details{
 Source list for the \code{IncidenceBinomialIdentityLikelihood} component composed by \code{InferenceIncidBinomialIdentityRiskDiff}.

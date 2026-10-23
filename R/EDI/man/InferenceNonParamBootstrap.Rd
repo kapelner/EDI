@@ -71,6 +71,11 @@ frequently \code{NA} (reason \code{"bootstrap_bca_adjustment_on_boundary"}, repo
 object per type by an \code{edi_bootstrap_bca_boundary_warning}). Use B of 501
 or more for \code{"bca"}, or \code{type = "percentile"} for small B. The same
 guidance applies to \code{compute_bayesian_bootstrap_confidence_interval(type = "bca")}.
+This small-B guard is deliberate: it is not relaxed, and EDI does not silently
+substitute a percentile interval. When it trips the interval is returned as
+\code{c(NA, NA)} (with the warning above) and counts as an invalid interval;
+EDI's coverage calibration fails a CI method that returns an invalid interval
+in more than 5\% of attempts, which BCa at small B can exceed.
 }
 
 \section{Design-specific validity caveats for the nonparametric bootstrap}{
@@ -357,8 +362,9 @@ estimates required after filtering. Default 5.}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A numeric two-sided p-value, or \code{NA_real_} if the path is
-  non-estimable.
+    A numeric two-sided p-value, or \code{NA_real_} if the procedure
+  fails (recorded as a failure of this procedure only; the Wald estimate
+  and standard error are kept).
   }
 }
 
@@ -403,7 +409,9 @@ estimates required after filtering. Default 5.}
   }
   \subsection{Returns}{
     A length-2 numeric confidence interval, or
-  \code{c(NA_real_, NA_real_)} if the path is non-estimable.
+  \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
+  failure of this procedure only; the Wald estimate and standard error are
+  kept).
   }
 }
 
@@ -544,8 +552,9 @@ estimates required after filtering. Default 5.}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A numeric two-sided p-value, or \code{NA_real_} if the path is
-  non-estimable.
+    A numeric two-sided p-value, or \code{NA_real_} if the procedure
+  fails (recorded as a failure of this procedure only; the Wald estimate
+  and standard error are kept).
   }
 }
 
@@ -590,7 +599,9 @@ estimates required after filtering. Default 5.}
   }
   \subsection{Returns}{
     A length-2 numeric confidence interval, or
-  \code{c(NA_real_, NA_real_)} if the path is non-estimable.
+  \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
+  failure of this procedure only; the Wald estimate and standard error are
+  kept).
   }
 }
 

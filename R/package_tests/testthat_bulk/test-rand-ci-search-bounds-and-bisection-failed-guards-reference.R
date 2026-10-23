@@ -12,6 +12,20 @@ library(EDI)
 # Both reached via InferenceAllSimpleAverageDiff, mocking the exact private helper each site calls
 # (unlockBinding) -- bypassing the real permutation/bisection machinery entirely, the same technique
 # already used elsewhere in this suite for analogous unreachable-in-practice failure paths.
+#
+# 2026-10-22 (TODO-116): both guards now go through edi_record_procedure_failure() (procedure
+# "rand_ci"). With a valid Wald fit they no longer flip the object to nonestimable: the Wald
+# estimate/SE are kept, is_nonestimable() stays FALSE, get_nonestimable_reason() stays NULL, and
+# the reason is recorded under cached_values$procedure_failure_reason$rand_ci instead.
+
+expect_rand_ci_procedure_failure <- function(f, reason) {
+	expect_false(f$inf$is_nonestimable())
+	expect_null(f$inf$get_nonestimable_reason())
+	expect_true(is.finite(f$inf$compute_estimate()))
+	se <- f$priv$cached_values$s_beta_hat_T
+	expect_true(is.null(se) || is.finite(se))
+	expect_identical(f$priv$cached_values$procedure_failure_reason$rand_ci, reason)
+}
 
 smd_fixture <- function(n = 20L, seed = 1L) {
 	set.seed(seed)
@@ -34,7 +48,7 @@ test_that("'rand_ci_search_bounds_failed' fires when the search fails to bracket
 
 	ci <- f$inf$compute_rand_confidence_interval(r = 21L, show_progress = FALSE, ci_search_control = list(fallback = "na"))
 	expect_true(all(is.na(ci)))
-	expect_identical(f$inf$get_nonestimable_reason(), "rand_ci_search_bounds_failed")
+	expect_rand_ci_procedure_failure(f, "rand_ci_search_bounds_failed")
 })
 
 test_that("'rand_ci_bisection_failed' fires when both bounds are finite but both bisection calls fail with no fallback", {
@@ -48,5 +62,5 @@ test_that("'rand_ci_bisection_failed' fires when both bounds are finite but both
 
 	ci <- f$inf$compute_rand_confidence_interval(r = 21L, show_progress = FALSE)
 	expect_true(all(is.na(ci)))
-	expect_identical(f$inf$get_nonestimable_reason(), "rand_ci_bisection_failed")
+	expect_rand_ci_procedure_failure(f, "rand_ci_bisection_failed")
 })

@@ -103,8 +103,11 @@ IncidenceLogBinomialLikelihoodSource = list(
 		#' @description Score confidence interval for \eqn{\beta_T} by test inversion
 		#'   of the score test (find the set of \code{delta} not rejected at level
 		#'   \code{alpha}); see \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}
-		#'   for the shared inversion contract. Falls back to a nonestimable result
-		#'   (\code{NA} bounds) if the underlying root-finding fails or degenerates.
+		#'   for the shared inversion contract. If the underlying root-finding
+		#'   fails or degenerates, returns \code{NA} bounds and records a score
+		#'   procedure failure; the Wald estimate, standard error and
+		#'   \code{is_nonestimable()} are kept (unless the Wald fit itself is
+		#'   unusable).
 		#' @param alpha Two-sided miscoverage rate; the returned interval targets
 		#'   \code{1 - alpha} coverage.
 		compute_score_confidence_interval = function(alpha = 0.05){
@@ -138,8 +141,10 @@ IncidenceLogBinomialLikelihoodSource = list(
 		#' @description Gradient confidence interval for \eqn{\beta_T} by test
 		#'   inversion of the gradient test; see
 		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} for the shared
-		#'   inversion contract. Falls back to a nonestimable result (\code{NA}
-		#'   bounds) if the underlying root-finding fails or degenerates.
+		#'   inversion contract. If the underlying root-finding fails or
+		#'   degenerates, returns \code{NA} bounds and records a gradient procedure
+		#'   failure; the Wald estimate, standard error and \code{is_nonestimable()}
+		#'   are kept (unless the Wald fit itself is unusable).
 		#' @param alpha Two-sided miscoverage rate; the returned interval targets
 		#'   \code{1 - alpha} coverage.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
@@ -460,6 +465,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 					j_treat = 2L,
 					full_neg_loglik = res$neg_ll
 				)
+				edi_warn_binomial_mle_boundary_once(self, private, X_full, res$b, "log") # TODO-128: warning only, no numeric change
 				return(res)
 			}
 
@@ -518,6 +524,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 					j_treat = attempt$fit$j_treat,
 					full_neg_loglik = attempt$fit$neg_ll
 				)
+				edi_warn_binomial_mle_boundary_once(self, private, attempt$X, attempt$fit$b, "log") # TODO-128: warning only, no numeric change
 			} else {
 				private$cached_values$likelihood_test_context = NULL
 			}
@@ -555,7 +562,10 @@ IncidenceLogBinomialLikelihoodSource = list(
 #' is implausible — the same practical limitation as the identity-link
 #' sibling \code{\link[EDI:InferenceIncidBinomialIdentityRiskDiff]{
 #' InferenceIncidBinomialIdentityRiskDiff}}, here applying to the upper rather
-#' than both tails of the probability scale. Validity requires the
+#' than both tails of the probability scale. When the full-data MLE is on
+#' that boundary (some fitted probability equal to 1), the object warns once
+#' (\code{edi_binomial_mle_boundary_warning}) that Wald and score standard
+#' errors and intervals may be unreliable. Validity requires the
 #' multiplicative log-linear risk model to be correctly specified over the
 #' covariate range observed.
 #'

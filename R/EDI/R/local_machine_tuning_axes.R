@@ -259,16 +259,13 @@ EDI_TUNING_WARM_START_OPERATION_CALLS = list(
 #' @keywords internal
 #' @noRd
 EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS = list(
-	# 2026-08-27, reconciled 2026-10-11: InferencePropZeroOneInflatedBetaRegr's
-	# jackknife remains excluded pending its exact n = 50 parity/performance
-	# gate. The class now has a two-matrix reusable-worker implementation, but
-	# an unusable direct fit still pays the ordinary hardened fallback. The
-	# diagnosed small-n tuning fixture has no y = 0/1 boundary observations;
-	# its direct-fit/fallback behavior and the resulting total jackknife cost
-	# have not been re-measured. Keep the exclusion until reusable_bootstrap.md
-	# TODO-3/4 establish both exact parity and the required speedup, then remove
-	# this entry under that plan's TODO-5.
-	jackknife = "InferencePropZeroOneInflatedBetaRegr"
+	# Currently empty. History: InferencePropZeroOneInflatedBetaRegr's
+	# jackknife was excluded 2026-08-27 for cost. Removed 2026-10-22
+	# (reusable_bootstrap.md TODO-5, owner decision G6 #30): after the
+	# retry-chain optimization the reusable worker's native-call count on the
+	# diagnosed n = 50 fixture equals legacy (60 vs 60), its draws are
+	# bit-identical to forced-legacy, and the fixture's NA estimate is the
+	# documented contract on both routes.
 )
 
 #' Does a class (its own generator or an ancestor) define this public method?

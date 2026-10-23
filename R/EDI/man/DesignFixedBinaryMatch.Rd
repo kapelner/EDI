@@ -218,8 +218,11 @@ split per pair.}
 covariate correlation/scale) if \code{TRUE} (default), else
 Euclidean distance on the raw covariate matrix.}
       \item{\code{match_objective}}{Matching objective. \code{"distance"} (default)
-matches \pkg{nbpMatching}; \code{"squared_distance"} reproduces EDI
-through version 1.0.4.}
+minimizes the total unsquared distance, as \pkg{nbpMatching} does;
+\code{"squared_distance"} reproduces EDI through version 1.0.4. The
+default changed in 1.0.5 and alters about 22\% of matched pairs
+relative to 1.0.x (measured at n = 1000, p = 4), so seeded designs and
+their downstream results differ from earlier versions.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{m}}{Optional integer vector of explicit matched-pair identifiers, one per

@@ -196,3 +196,26 @@ test_that("ordinal KK GEE randomization p-value is estimable for >2-level respon
 	expect_true(is.finite(pval))
 	expect_true(pval >= 0 && pval <= 1)
 })
+
+test_that("geepack (use_rcpp = FALSE) refits survive a cached warm start (2026-10-22)", {
+	skip_if_not_installed("geepack")
+	# geeglm() forwards `start` to model.frame(); passing the cached length-p
+	# warm-start beta made every refit after the first fail with "variable
+	# lengths differ (found for '(start)')", so the count jackknife-Wald p-value
+	# and every weighted refit on the geepack path came back NA.
+	set.seed(20260423)
+	des <- make_kk_design_for_gee_test("count")
+	des$add_all_subject_responses(simulate_kk_response_for_gee_test(des, "poisson"))
+	inf <- InferenceCountPoissonKKGEE$new(des, use_rcpp = FALSE, verbose = FALSE)
+	expect_true(is.finite(inf$compute_estimate()))
+	p <- inf$compute_asymp_two_sided_pval()
+	expect_true(is.finite(p))
+	expect_null(inf$.__enclos_env__$private$cached_values$procedure_failure_reason$jackknife)
+	jk <- inf$.__enclos_env__$private$cached_values$jackknife_summary$matched_set$distribution
+	expect_true(all(is.finite(jk)))
+	priv <- inf$.__enclos_env__$private
+	w <- rep(1, des$get_n())
+	w[1:2] <- 0
+	expect_true(is.finite(priv$fit_weighted_gee_with_fallback(w)))
+	expect_true(is.finite(priv$fit_weighted_gee_with_fallback(rep(1, des$get_n()))))
+})

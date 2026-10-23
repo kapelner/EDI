@@ -82,6 +82,20 @@ InferenceMixinKKPassThrough = list(
 					if (is.null(m_vec)) m_vec = rep(0L, n)
 					m_vec = as.integer(m_vec)
 					m_vec[is.na(m_vec)] = 0L
+					# v1.0.5 TODO-129: honour set_seed() like the base class's
+					# approximate_bootstrap_distribution_beta_hat_T() (same
+					# save/set.seed/restore block). Before, the matched-pair draws
+					# (and the fast paths' draws) came from the caller's global RNG
+					# stream, so a seeded object was not reproducible.
+					if (!is.null(private$seed)) {
+						had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+						if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+						on.exit(
+							if (had_seed) assign(".Random.seed", old_seed, envir = .GlobalEnv) else rm(".Random.seed", envir = .GlobalEnv),
+							add = TRUE
+						)
+						set.seed(private$seed)
+					}
 					# Check if subclass provides a C++ OpenMP dispatcher to bypass the slow R loop
 					if (!isTRUE(debug) && private$has_private_method("compute_fast_bootstrap_distr")) {
 						fast_distr = private$compute_fast_bootstrap_distr(B, i_reservoir, n_reservoir, m, y, w, m_vec)

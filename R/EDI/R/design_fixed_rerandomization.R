@@ -29,7 +29,8 @@
 #' squared Mahalanobis distance between treated and control covariate means,
 #' \eqn{M(w) = (\bar X_T - \bar X_C)^\top S^{-1} (\bar X_T - \bar X_C)}, where \eqn{S} is
 #' the sample covariance of all covariates (ridge-regularized by \eqn{10^{-6}I} if
-#' \eqn{|\det S| < 10^{-10}}), computed once and cached in \code{private$S_inv}.
+#' \eqn{|\det S| < 10^{-10}}), cached in \code{private$S_inv} and recomputed
+#' whenever the covariate matrix changes (e.g. on a bootstrap-randomization replay).
 #' \code{objective = "abs_sum_diff"} instead uses the sum of absolute mean differences,
 #' \eqn{M(w) = \sum_j |\bar X_{T,j} - \bar X_{C,j}|}, with no correlation adjustment.
 #' Only these two objectives are supported; any other value errors at draw time.
@@ -142,6 +143,7 @@ DesignFixedRerandomization = define_design_class(
 		prop_acceptable = NULL,
 		objective = NULL,
 		S_inv = NULL,
+		S_inv_source_X = NULL,
 		draw_ws_raw = function(r = 100){
 			private$maybe_set_seed()
 			if (should_run_asserts()) {
@@ -156,14 +158,7 @@ DesignFixedRerandomization = define_design_class(
 			}
 			# prop_acceptable path: draw r/prop_acceptable randomizations, return r with lowest obj vals
 			if (!is.null(private$prop_acceptable)) {
-				if (private$objective == "mahal_dist" && is.null(private$S_inv)){
-					X = private$X[1:n, , drop = FALSE]
-					S = var(X)
-					if (abs(det(S)) < 1e-10){
-						S = S + diag(1e-6, ncol(X))
-					}
-					private$S_inv = solve(S)
-				}
+				private$ensure_S_inv_current(n)
 				X = private$X[1:n, , drop = FALSE]
 				n_draw = round(r / private$prop_acceptable)
 				ext_seed = if (!is.null(private$seed)) private$seed else sample.int(.Machine$integer.max, 1L)
@@ -217,15 +212,25 @@ DesignFixedRerandomization = define_design_class(
 				return(w_mat[, seq_len(r), drop = FALSE])
 			}
 			# Fallback pure-R for unbalanced or odd-n cases
-			if (private$objective == "mahal_dist" && is.null(private$S_inv)){
-				X = private$X[1:n, , drop = FALSE]
-				S = var(X)
-				if (abs(det(S)) < 1e-10){
-					S = S + diag(1e-6, ncol(X))
-				}
-				private$S_inv = solve(S)
-			}
+			private$ensure_S_inv_current(n)
 			private$generate_rerandomized_w_batch(r)
+		},
+		# Bootstrap-randomization replay (2026-10-23, release_v1_0_5.md TODO-131):
+		# a duplicated design whose X was replaced by a bootstrap resample kept the
+		# ORIGINAL sample's cached S_inv, so the prop_acceptable and unbalanced/odd-n
+		# paths scored candidates with a covariance the balanced C++ path (which
+		# recomputes from X) does not use. Key the cache on the X it was built from.
+		ensure_S_inv_current = function(n){
+			if (private$objective != "mahal_dist") return(invisible(NULL))
+			X = private$X[1:n, , drop = FALSE]
+			if (!is.null(private$S_inv) && identical(private$S_inv_source_X, X)) return(invisible(NULL))
+			S = var(X)
+			if (abs(det(S)) < 1e-10){
+				S = S + diag(1e-6, ncol(X))
+			}
+			private$S_inv = solve(S)
+			private$S_inv_source_X = X
+			invisible(NULL)
 		},
 		# Batched rejection sampler for the unbalanced / odd-n case (TODO-118). Same
 		# candidate law as generate_one_rerandomized_w() (fixed n_T = round(n * prob_T)

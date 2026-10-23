@@ -432,6 +432,49 @@ edi_warn_bca_boundary_once = function(self, private, B, type = "bca", reason, al
 	invisible(TRUE)
 }
 
+#' Warn once per object when a constrained-binomial MLE sits on the
+#' parameter-space boundary (TODO-128, v1.0.5)
+#'
+#' Called right after the full-data fit of \code{InferenceIncidLogBinomial}
+#' (log link: \eqn{\exp(X\beta) \le 1}, bound at \eqn{\eta = 0}) and
+#' \code{InferenceIncidBinomialIdentityRiskDiff} (identity link: bounds at
+#' \eqn{\mu = 0} and \eqn{\mu = 1}). If any fitted linear predictor lies
+#' within \code{margin} of a bound (the fitting kernels stop \code{1e-8}
+#' short of it), the MLE is on the boundary, so the Wald and score standard
+#' errors and intervals, which assume an interior maximum, may be
+#' unreliable. Emits one classed warning
+#' \code{edi_binomial_mle_boundary_warning} (fields \code{link},
+#' \code{n_on_boundary}) at most once per inference object. Never changes any
+#' returned value. Silent while a resampling operation is active.
+#'
+#' @keywords internal
+#' @noRd
+edi_warn_binomial_mle_boundary_once = function(self, private, X_fit, b, link = c("log", "identity"), margin = 1e-6) {
+	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	if (isTRUE(private$cached_values$binomial_mle_boundary_warned)) return(invisible(FALSE))
+	if (is.null(X_fit) || is.null(b)) return(invisible(FALSE))
+	link = match.arg(link)
+	eta = tryCatch(as.numeric(as.matrix(X_fit) %*% as.numeric(b)), error = function(e) NULL)
+	if (!length(eta) || anyNA(eta)) return(invisible(FALSE))
+	edge = 1e-8 + margin
+	n_on_boundary = if (link == "log") sum(eta >= -edge) else sum(eta >= 1 - edge) + sum(eta <= edge)
+	if (n_on_boundary == 0L) return(invisible(FALSE))
+	private$cached_values$binomial_mle_boundary_warned = TRUE
+	bound_txt = if (link == "log") "fitted probability exp(X b) = 1" else "fitted probability 0 or 1"
+	msg = paste0(
+		class(self)[1L], ": the maximum-likelihood estimate is on the boundary of the parameter space (",
+		n_on_boundary, " subject(s) at ", bound_txt, "). Wald and score standard errors, p-values and ",
+		"confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap ",
+		"(compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. ",
+		"Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\")."
+	)
+	warning(structure(
+		class = c("edi_binomial_mle_boundary_warning", "warning", "condition"),
+		list(message = msg, call = NULL, link = link, n_on_boundary = n_on_boundary)
+	))
+	invisible(TRUE)
+}
+
 #' Resampling procedure that owns a failure reason (TODO-116)
 #'
 #' Maps a resampling-failure reason string to the procedure it belongs to

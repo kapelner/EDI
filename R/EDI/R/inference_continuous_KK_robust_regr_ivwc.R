@@ -247,6 +247,11 @@ ContinKKRobustRegrIVWCSource = list(
 		# estimate_only = TRUE forces "M" (fast, no LQS phase) for the point estimate.
 		fit_rlm_with_treatment = function(X, y, j_treat, estimate_only = FALSE){
 			if (nrow(X) <= ncol(X)) return(NULL)
+			# fast_robust_regression_cpp() silently returns a 0 coefficient on
+			# non-finite input (2026-10-23, release_v1_0_5.md TODO-131; same guard
+			# as InferenceContinKKRobustRegrOneLik's fit_rlm()). Non-finite rows
+			# mean the fit is not estimable, never beta = 0.
+			if (any(!is.finite(y)) || any(!is.finite(X))) return(NULL)
 			ctrl = private$resolve_rlm_control(X)
 			if (private$use_rcpp) {
 				method_to_try = if (estimate_only || isTRUE(private$rlm_force_M)) "M" else private$rlm_method

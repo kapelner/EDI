@@ -121,7 +121,27 @@
 #' default (\code{bootstrap_type = "within_blocks"} or \code{NULL}, via
 #' \code{stratified_bootstrap_indices_cpp()}) or resamples whole blocks otherwise (via
 #' \code{resample_group_rows_cpp()}), mirroring the block structure in the resampling
-#' scheme, as in \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}.
+#' scheme, as in \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}. The
+#' bootstrap randomization test replays the whole mechanism on each resample: the
+#' cached blocking is keyed on the covariate rows it was solved on, so a resample
+#' re-solves the optimal blocking on its own covariates (same \code{method},
+#' \code{B}, \code{dist} and \code{roi_solver}, under that replay draw's seed) and the
+#' assignment is drawn within the new blocks. This costs one block solve per replay
+#' draw; ordinary draws on unchanged data reuse the cached blocks.
+#'
+#' \strong{Cost of randomization-bootstrap replay.} Because every replay draw of a
+#' randomization-bootstrap confidence interval or p-value re-solves the blocking on
+#' that draw's resampled covariates, the per-draw cost is the cost of one block solve
+#' for the chosen \code{method}. Measured extra time per replay draw (one machine,
+#' indicative only): about 6 ms for \code{"K-way"} (\eqn{n = 40}, \eqn{B = 5}) and
+#' about 21 ms at \eqn{n = 400}, \eqn{B = 20}; about 27-33 ms for \code{"greedy"}
+#' (\eqn{n = 40} to \eqn{200}); but about 1.7 s for \code{"ompr"} at \eqn{n = 12},
+#' \eqn{B = 3} and about 79 s at \eqn{n = 16}, \eqn{B = 4}, growing rapidly with
+#' \eqn{n}. With the exact \code{"ompr"} method, randomization-bootstrap replays are
+#' therefore very slow (hours for a few hundred draws at \eqn{n = 16}). When such
+#' inference is needed, prefer a heuristic method (\code{"K-way"} or
+#' \code{"greedy"}), or use \code{"ompr"} only with a small number of bootstrap
+#' replicates.
 #'
 #' @references Higgins, M. J., Sävje, F., and Sekhon, J. S. (2016). "Improving massive
 #'   experiments with threshold blocking." \emph{Proceedings of the National Academy of
@@ -253,6 +273,7 @@ DesignFixedOptimalBlocks = define_design_class(
 		dist_spec = NULL,
 		roi_solver = NULL,
 		block_ids = NULL,
+		block_solve_key = NULL,
 		distance_matrix = NULL,
 		draw_ws_raw = function(r = 100){
 			private$maybe_set_seed()
@@ -262,6 +283,46 @@ DesignFixedOptimalBlocks = define_design_class(
 			block_ids = private$get_or_compute_block_ids()
 			block_ra_batch(block_ids, private$prob_T, r)
 		},
+		# Bootstrap-randomization replay (2026-10-23, release_v1_0_5.md TODO-131,
+		# G6 #51 DECIDED by owner): the resampling machinery hands a duplicated
+		# design the bootstrap rows (Xraw/Ximp/X/m subset by i_b) while its cached
+		# private$block_ids still indexes the ORIGINAL rows. The replay must run the
+		# design's own mechanism on the resample, so the optimal blocking is
+		# RE-SOLVED on the resampled covariates (same method/B/dist/roi_solver) and
+		# the assignment is drawn within the new blocks. Detection is by data, not
+		# by the carried block ids: block_solve_key records the covariate rows the
+		# cached solve was run on; normal draws on unchanged data hit the cache.
+		# (Replaces the same-day carried-ids rebuild from private$m, which kept the
+		# observed blocks; that path is gone -- re-solving is always available.)
+		optimal_block_solve_key = function(n){
+			src = if (!is.null(private$Xraw)) private$Xraw else private$Ximp
+			cols = if (is.null(src)) list() else lapply(seq_len(length(src)), function(j) src[[j]][seq_len(min(n, length(src[[j]])))])
+			list(n = as.integer(n), names = names(src), cols = cols)
+		},
+		# The design's own covariate matrix for the CURRENT (resampled) rows, built
+		# from Ximp exactly as covariate_impute_if_necessary_and_then_create_model_matrix()
+		# builds private$X (analysis columns, constants dropped, design_formula),
+		# without re-imputing and without touching private$X: on a reusable BRT
+		# worker private$X holds the INFERENCE's model-formula matrix, not the design's.
+		optimal_block_resolve_covariates = function(n){
+			if (is.null(private$Ximp) || NROW(private$Ximp) < n) private$ensure_model_matrix_current()
+			src = private$Ximp
+			cols = lapply(seq_len(length(src)), function(j) src[[j]][seq_len(n)])
+			names(cols) = names(src)
+			keep = !startsWith(names(cols), ".assignment_only_")
+			if (!is.null(private$cluster_col) && length(private$cluster_col) == 1L) {
+				keep = keep & names(cols) != private$cluster_col
+			}
+			keep = keep & vapply(cols, function(col) length(unique(col)) > 1L, logical(1L))
+			if (!any(keep)) return(matrix(NA_real_, nrow = n, ncol = 0L))
+			df = as.data.frame(cols[keep], check.names = FALSE, stringsAsFactors = FALSE)
+			X = create_model_matrix_from_features(private$design_formula, df)
+			if (ncol(X) > 0L) {
+				X = X[, apply(X, 2L, function(col) length(unique(col)) > 1L), drop = FALSE]
+			}
+			if (ncol(X) == 0L) return(matrix(NA_real_, nrow = n, ncol = 0L))
+			X
+		},
 		# draw_bootstrap_indices is provided by the BlockingStructure component (see
 		# `components` above); proven byte-identical to this class's former hand-rolled
 		# version via test-design-blocking-structure-bootstrap-golden.R before removal.
@@ -270,20 +331,39 @@ DesignFixedOptimalBlocks = define_design_class(
 			invisible(NULL)
 		},
 		get_or_compute_block_ids = function(){
-			if (!is.null(private$block_ids)) {
-				return(private$block_ids)
-			}
 			n = self$get_n()
+			resolve = FALSE
+			if (!is.null(private$block_ids)) {
+				key = private$optimal_block_solve_key(n)
+				# A NULL key means block_ids of unknown provenance (an object saved
+				# before 2026-10-23): re-solve once rather than trust rows it may
+				# not index. The solvers are deterministic, so on unchanged data
+				# this reproduces the same blocks.
+				if (!is.null(private$block_solve_key) && identical(private$block_solve_key, key)) {
+					return(private$block_ids)
+				}
+				resolve = !is.null(private$block_solve_key)
+				# Drop the stale solve and its row-indexed distance matrix first, so
+				# a failed re-solve leaves nothing for a later draw to reuse.
+				private$block_ids = NULL
+				private$block_solve_key = NULL
+				private$distance_matrix = NULL
+			}
 			if (should_run_asserts()) {
 				private$assert_feasible_block_sizes(n)
 			}
-			private$ensure_model_matrix_current()
-			X = private$X[seq_len(n), , drop = FALSE]
+			if (resolve) {
+				X = private$optimal_block_resolve_covariates(n)
+			} else {
+				private$ensure_model_matrix_current()
+				X = private$X[seq_len(n), , drop = FALSE]
+			}
 			if (ncol(X) == 0L) {
 				private$block_ids = factor(rep(seq_len(private$B), length.out = n))
+				private$block_solve_key = private$optimal_block_solve_key(n)
 				return(private$block_ids)
 			}
-			private$block_ids = switch(private$method,
+			block_ids = switch(private$method,
 				greedy = private$solve_greedy_blocks(X),
 				`K-way` = private$solve_kway_blocks(X),
 				ompr = {
@@ -291,6 +371,12 @@ DesignFixedOptimalBlocks = define_design_class(
 					private$solve_optimal_blocks(D)
 				}
 			)
+			private$block_ids = block_ids
+			private$block_solve_key = private$optimal_block_solve_key(n)
+			# On a re-solve, private$m (where get_block_ids() caches block ids) still
+			# holds the ids the resampled units carried; point it at the blocks the
+			# replayed assignment is actually balanced within.
+			if (resolve && !is.null(private$m)) private$m = as.integer(block_ids)
 			private$block_ids
 		},
 			get_or_compute_distance_matrix = function(X){
@@ -329,11 +415,20 @@ DesignFixedOptimalBlocks = define_design_class(
 			assg_df   = blockTools::assignment(block_out)$assg[[1L]]
 			id_cols   = grep("^Treatment", colnames(assg_df), value = TRUE)
 			block_ids = integer(n)
-			# Only complete rows become blocks 1..B; blockTools' trailing incomplete row (and any
-			# row beyond B) is left at 0 for the nearest-neighbour fallback below.
-			for (b in seq_len(min(nrow(assg_df), B))) {
-				ids = as.integer(unlist(assg_df[b, id_cols]))
+			# Only complete rows become blocks 1..B; blockTools' incomplete row (and any
+			# complete row beyond the B-th) is left at 0 for the nearest-neighbour fallback
+			# below. Complete rows are numbered consecutively: blockTools does not always
+			# put its incomplete row last (seen on bootstrap resamples with duplicated
+			# rows, 2026-10-23), and indexing labels by row position then left one label
+			# empty, so the capacity-limited fallback below ran out of eligible
+			# neighbours ("replacement has length zero"). Identical labels whenever the
+			# incomplete row is last.
+			b = 0L
+			for (row in seq_len(nrow(assg_df))) {
+				if (b >= B) break
+				ids = as.integer(unlist(assg_df[row, id_cols]))
 				if (length(ids) != n_tr || anyNA(ids)) next
+				b = b + 1L
 				block_ids[ids] = b
 			}
 			# Assign leftover subjects to the nearest block with room for one extra
@@ -346,8 +441,13 @@ DesignFixedOptimalBlocks = define_design_class(
 				for (i in unassigned) {
 					eligible_blocks = which(block_sizes < max_size)
 					assigned = which(block_ids %in% eligible_blocks)
-					dists = rowSums(sweep(X[assigned, , drop = FALSE], 2, X[i, ])^2)
-					b = block_ids[assigned[which.min(dists)]]
+					b = if (length(assigned) == 0L) {
+						# only empty blocks have room (fewer than B complete blockTools rows)
+						eligible_blocks[which.min(block_sizes[eligible_blocks])]
+					} else {
+						dists = rowSums(sweep(X[assigned, , drop = FALSE], 2, X[i, ])^2)
+						block_ids[assigned[which.min(dists)]]
+					}
 					block_ids[i] = b
 					block_sizes[b] = block_sizes[b] + 1L
 				}

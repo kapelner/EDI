@@ -1,4 +1,7 @@
 # Internal fitters for dependent-censoring/Weibull-AFT and Cox-related simulation machinery.
+# `jitter_seed` (G6 #50, 2026-10-23): the calling object's seed (inference seed,
+# else design seed; NULL when unseeded), passed through to
+# robust_survreg_with_surv_object() so its restart jitter is seeded from it.
 
 .weibull_aft_margin_terms = function(y, eta, sigma){
 	y = pmax(as.numeric(y), .Machine$double.xmin)
@@ -18,10 +21,13 @@
 	m + log(inner)
 }
 
-.extract_survreg_start = function(y, dead, X){
+.extract_survreg_start = function(y, dead, X, jitter_seed = NULL){
 	full_names = c("(Intercept)", colnames(X))
 	warm_start_beta = stats::setNames(rep(0, length(full_names)), full_names)
 	start_log_sigma = 0
+	# With zero events the Weibull MLE does not exist; a (jittered) fit can still
+	# report convergence at a degenerate point, so return the zero start (TODO-129).
+	if (sum(as.numeric(dead) > 0, na.rm = TRUE) == 0L) return(list(beta = warm_start_beta, log_sigma = start_log_sigma))
 
 	mod_fast = tryCatch(fast_weibull_regression(y, dead, X), error = function(e) NULL)
 	if (!is.null(mod_fast) && !is.null(mod_fast$coefficients)){
@@ -33,7 +39,7 @@
 		return(list(beta = warm_start_beta, log_sigma = start_log_sigma))
 	}
 
-	mod = robust_survreg_with_surv_object(survival::Surv(y, dead), X)
+	mod = robust_survreg_with_surv_object(survival::Surv(y, dead), X, jitter_seed = jitter_seed)
 	if (is.null(mod)) return(list(beta = warm_start_beta, log_sigma = start_log_sigma))
 
 	mod_coef = c(mod$coefficients, "log(scale)" = log(mod$scale))
@@ -45,7 +51,7 @@
 	list(beta = warm_start_beta, log_sigma = start_log_sigma)
 }
 
-.fit_standard_weibull_aft_from_matrix = function(y, dead, X, estimate_only = FALSE, starts = NULL, warm_start_fisher_info = NULL){
+.fit_standard_weibull_aft_from_matrix = function(y, dead, X, estimate_only = FALSE, starts = NULL, warm_start_fisher_info = NULL, jitter_seed = NULL){
 	if (length(y) == 0L || sum(dead) == 0L) return(NULL)
 	mod_fast = tryCatch(
 		fast_weibull_regression(
@@ -68,7 +74,7 @@
 		}
 	}
 
-	mod = robust_survreg_with_surv_object(survival::Surv(y, dead), X)
+	mod = robust_survreg_with_surv_object(survival::Surv(y, dead), X, jitter_seed = jitter_seed)
 	if (is.null(mod) || is.null(mod$coefficients) || is.null(mod$var)) return(NULL)
 
 	mod_coef = c(mod$coefficients, "log(scale)" = log(mod$scale))
@@ -83,15 +89,20 @@
 	list(beta = beta, ssq = ssq)
 }
 
-.extract_lognormal_start = function(y, dead, X, event_indicator){
+.extract_lognormal_start = function(y, dead, X, event_indicator, jitter_seed = NULL){
 	full_names = c("(Intercept)", colnames(X))
 	warm_start_beta = stats::setNames(rep(0, length(full_names)), full_names)
 	start_log_sigma = 0
+	# With zero events (all censored) the lognormal MLE does not exist; since the
+	# 2026-10-22 restart jitter a degenerate survreg can still "converge", so
+	# reject it and return the zero start (TODO-129).
+	if (sum(as.numeric(event_indicator) > 0, na.rm = TRUE) == 0L) return(list(beta = warm_start_beta, log_sigma = start_log_sigma))
 
 	mod = robust_survreg_with_surv_object(
 		survival::Surv(y, event_indicator),
 		X,
-		dist = "lognormal"
+		dist = "lognormal",
+		jitter_seed = jitter_seed
 	)
 	if (is.null(mod)) return(list(beta = warm_start_beta, log_sigma = start_log_sigma))
 
@@ -104,7 +115,7 @@
 	list(beta = warm_start_beta, log_sigma = start_log_sigma)
 }
 
-.fit_dep_cens_transform_model = function(y, dead, X, estimate_only = FALSE, optimization_alg = "lbfgs"){
+.fit_dep_cens_transform_model = function(y, dead, X, estimate_only = FALSE, optimization_alg = "lbfgs", jitter_seed = NULL){
 	optimization_alg = .normalize_optimizer_algorithm(optimization_alg, allow_irls = FALSE, default = "lbfgs")
 	y = pmax(as.numeric(y), .Machine$double.xmin)
 	dead = as.integer(dead > 0)
@@ -123,8 +134,8 @@
 	num_beta = ncol(X)
 	log_y = log(y)
 
-	start_event = .extract_lognormal_start(y, dead, X, dead)
-	start_cens = .extract_lognormal_start(y, dead, X, 1L - dead)
+	start_event = .extract_lognormal_start(y, dead, X, dead, jitter_seed = jitter_seed)
+	start_cens = .extract_lognormal_start(y, dead, X, 1L - dead, jitter_seed = jitter_seed)
 	base_start = c(
 		unname(start_event$beta),
 		unname(start_cens$beta),
@@ -240,7 +251,7 @@
 	list(coefficients = coefficients, vcov = vcov_full)
 }
 
-.fit_clayton_weibull_aft = function(y, dead, X, pair_id, include_singletons = FALSE, starts = NULL, estimate_only = FALSE, optimization_alg = "lbfgs", warm_start_fisher_info = NULL){
+.fit_clayton_weibull_aft = function(y, dead, X, pair_id, include_singletons = FALSE, starts = NULL, estimate_only = FALSE, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, jitter_seed = NULL){
 	optimization_alg = .normalize_optimizer_algorithm(optimization_alg, allow_irls = FALSE, default = "lbfgs")
 	y = as.numeric(y)
 	dead = as.integer(dead > 0)
@@ -327,7 +338,7 @@
 
 	if (is.null(starts)){
 		X_no_int = X[rows_used, -1L, drop = FALSE]
-		start = .extract_survreg_start(y[rows_used], dead[rows_used], X_no_int)
+		start = .extract_survreg_start(y[rows_used], dead[rows_used], X_no_int, jitter_seed = jitter_seed)
 		start_par_base = c(unname(start$beta), start$log_sigma)
 		starts = list(
 			c(start_par_base, log(0.10)),

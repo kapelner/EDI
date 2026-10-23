@@ -48,7 +48,9 @@ test_that("nonlogit KK CLMM weighted refits agree with cumulative-link mixed lik
     candidates <- lapply(c(-5, -3, -1, 0, 1), function(log_sigma) {
       tryCatch(suppressWarnings(ordinal::clmm(
         ordered(y) ~ w + (1 | group_id), weights = row_weights,
-        link = links[[class_name]], nAGQ = 20L, Hess = FALSE,
+        # ordinal::clmm's cloglog/loglog names are swapped upstream (v1.0.5 TODO-31,
+        # G6 #45): ask clmm for the name that fits EDI's link; clm above is correct.
+        link = EDI:::ordinal_clmm_link_name(links[[class_name]]), nAGQ = 20L, Hess = FALSE,
         start = c(coef(fixed_start), log_sigma)
       )), error = function(e) NULL)
     })

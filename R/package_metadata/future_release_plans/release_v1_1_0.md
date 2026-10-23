@@ -1574,6 +1574,268 @@ ticked in their **owning plans**; this list is the release index.
     4. Run the clone, bootstrap and worker tests and the full bulk suite
        (the change touches every lazy class).
 
+- [ ] TODO-62 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #31`;
+  from v1.0.5 TODO-2): **Direct order-statistic inversion for randomization
+  CIs.**
+  - Background: v1.0.5 TODO-2 shipped the affine-shift reuse for
+    randomization CIs (measured 1.05-2.14x, target restated, G6 #2). The
+    owning plan's decision-gated optional item
+    `../new_feature_plans/randomization_ci_affine_shift_reuse.md → TODO-8`
+    (direct order-statistic inversion: `p(δ)` is a step function whose jumps
+    are the sorted shifted statistics, so the CI endpoint can be read off the
+    order statistics instead of bisected) was deferred here. It buys
+    exactness, not wall time.
+  - Scope: implement plan TODO-8 for the tier-1 (affine) classes as an
+    opt-in or a documented default change. It moves CI endpoints from the
+    bisection tolerance to the exact jump. Keep the bisection path as the
+    fallback for non-affine classes. Add tests against the bisection result
+    (within its tolerance) and against brute-force `p(δ)` evaluation at the
+    jump points.
+  - Standing constraint: endpoints move, so it is a documented default change
+    if made the default.
+  - Pointer: `release_v1_0_5.md → TODO-2` (closed) and G6 #31.
+
+- [ ] TODO-63 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #37`;
+  moved from v1.0.5 TODO-57): **Bayesian-bootstrap performance remainder.**
+  - Background: v1.0.5 TODO-57 shipped the R slices that were done (for
+    example plan TODO-11's statistics cache and seed). Option (b) of G6 #37
+    moved the rest here because it is large and needs a build plus
+    owner-authorized fork/mirai runs.
+  - Scope (`../bug_fix_plans/bayesian_bootstrap_performance.md`):
+    - TODO-2: ship each worker only its slice of draws.
+    - TODO-3: a cost-model gate that can say no.
+    - TODO-5: audit the bootstrap serial blocklist.
+    - TODO-6: native weighted Cox/Weibull refits (C++; a documented default
+      change per v1.0.5's standing constraints).
+    - TODO-7: thin the per-draw hot loop.
+    - TODO-8: the batched-C++ stretch, decided after TODO-7's numbers.
+    - TODO-9: re-run the comparison and update the claims.
+    - The TODO-11 item 7 audit: jackknife / m-out-of-n / subsampling
+      statistics-cache gap.
+  - Not moved: plan TODO-1 (benchmark harness into `R/benchmark/`). G6 #37
+    did not name it, so it stays with v1.0.5 TODO-57. If it is not done in
+    1.0.5, it moves here as the "before" baseline for TODO-2..9.
+  - Acceptance: plan TODO-9's before/after table on the TODO-1 harness rows,
+    with fixed-seed draw parity, serialized payload bytes and fork/mirai
+    validation runs.
+  - Pointer: `release_v1_0_5.md → TODO-57`, G6 #37.
+
+- [ ] TODO-64 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #7`;
+  from v1.0.5 TODO-105): **`add_block_fixed_effects` opt-in for regression
+  inference on blocking designs.**
+  - Background: regression classes on `DesignFixedBlocking` add no block
+    fixed effects. v1.0.5 TODO-105 documented this on 37 regression classes
+    and on `DesignFixedBlocking`, and made few-level integer `strata_cols`
+    categorical. With equal within-block allocation the cost is power, not
+    validity (simulated: coverage 100%, SE about 2x the true SD). With
+    unequal allocation and the per-block floor rule there is Simpson bias.
+  - Scope: an `add_block_fixed_effects = FALSE` (default) option that appends
+    dummies from `get_block_ids()`, deduplicated against X. It covers
+    OLS/Lin/robust/quantile and the GLM families (37 classes; KK/IVWC/OneLik
+    variants only if wanted). For Lin, also interact them. Add tests for
+    power gain and unchanged default results. Update the "Blocking designs"
+    section (`@inheritSection` from `InferenceContinOLS`).
+  - Default stays FALSE (additive, no default change).
+  - Pointer: `release_v1_0_5.md → TODO-105` (closed by the deferral).
+
+- [ ] TODO-65 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #10`;
+  from v1.0.5 TODO-119): **Randomization CI inversion on the estimand's own
+  scale.**
+  - Background: v1.0.5 TODO-119 found that `compute_rand_confidence_interval()`
+    inverts a sharp-null shift on a transformed scale (logit, log-time,
+    rank) and returned those bounds as bounds on the class's estimand. v1.0.5
+    refuses instead: the five classes in
+    `EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES` error and lose the
+    `randomization_ci` capability, and exact 0/1 proportions are refused on
+    the logit shift.
+  - Scope: for each refused class, define a sharp-null family on the
+    estimand's own scale (for example an additive shift on the
+    proportion/mean scale, or a multiplicative one for ratio estimands),
+    invert it, and restore the capability. Use the class-level
+    "estimand scale == shift scale" contract proposed in TODO-119. Also
+    audit the other ordinal and quantile/ZOIB classes. Add a "CI contains the
+    estimate, on the same scale" sweep test. Regenerate the `rand` CI rows
+    and the capability matrix.
+  - Pointer: `release_v1_0_5.md → TODO-119`, G6 #10.
+
+- [ ] TODO-66 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #41`;
+  from v1.0.5 TODO-119): **Return the Monte Carlo SE of randomization CI
+  endpoints.**
+  - Background: randomization CI endpoints carry Monte Carlo error from the
+    `r` draws. Differences such as "CI narrower than the randomization p
+    implies" are MC noise. v1.0.5 documents this in
+    `compute_rand_confidence_interval()` (docs only, G6 #41).
+  - Scope: return `r` and an endpoint MC-SE as attributes of the CI (for
+    example from the binomial SE of the p-value at each endpoint divided by
+    the local slope of `p(δ)`, or by batching the draws). Test it against
+    the empirical endpoint SD over seeds. Additive: the CI values do not
+    change.
+  - Pointer: `release_v1_0_5.md → TODO-119`, G6 #41.
+
+- [ ] TODO-67 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #40`
+  (a)(b); from v1.0.5 TODO-116): **NegBin jackknife with convergence checks;
+  tighter NB `eps_g` in hurdle/ZAP/`helper_glm_fit`.**
+  - Background: v1.0.5 TODO-116 made the unsupported-procedure stubs
+    classed-warning and cache-safe. It passes `eps_g = 1e-10` for
+    `InferenceCountNegBin` (matches `glm.nb` to ~1e-6), and patch 04 moves
+    the native NegBin defaults (G6 #40 (c), G1). `InferenceCountNegBin`'s
+    five jackknife methods are still documented stubs that return NA. All
+    150 delete-one refits converged on the investigated data, giving a
+    usable jackknife SE.
+  - Scope:
+    (a) Enable the NegBin jackknife with per-replicate convergence checks:
+    a non-converged fold makes the result nonestimable with a classed
+    reason, never a silent NA.
+    (b) Tighten the NB `eps_g` used by the hurdle-NegBin, ZAP and
+    `helper_glm_fit` NB fits the way NegBin was.
+    Both are default changes: validate against `glm.nb` / `pscl` references
+    and regenerate the affected rows.
+  - Pointer: `release_v1_0_5.md → TODO-116`, G6 #40.
+
+- [ ] TODO-68 (added 2026-10-22, owner decisions `release_v1_0_5.md → G6 #38,
+  #39`; from v1.0.5 TODO-58 and TODO-62): **Speed acceptance for the
+  restated bootstrap and Zhang targets.**
+  - Background: v1.0.5 restated both speed targets as workload-specific and
+    closes those TODOs on parity/correctness:
+    - TODO-58: public bootstrap CI >= 1x vs `boot`. Measured on full-size
+      diagnostics: OLS 0.137x, logistic 1.030x, Cox 0.392x; "no safe R-only
+      optimization". TODO-58 closes on G3 parity.
+    - TODO-62: Fisher/EDI >= 1 for the Zhang exact CI. Measured 0.149-0.208x
+      in every run. TODO-62 closes on the #21 endpoint metric and the G2
+      report.
+  - Scope, only if a follow-up optimization is warranted:
+    - Profile both paths on the G2 quiet host.
+    - Decide per workload whether >= 1x is reachable (native refit loops
+      overlap TODO-63's plan TODO-7; Zhang CI inversion cost).
+    - Either optimize, or record the final workload-specific targets in the
+      benchmark docs and close.
+  - Pointer: `release_v1_0_5.md → TODO-58`, `→ TODO-62`, G6 #38/#39.
+
+- [ ] TODO-69 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #19`;
+  from v1.0.5 TODO-10): **Firth bias reduction for the KK-matched Cox
+  classes, then lift the harness covariate cap.**
+  - Background: the MC coverage truth for `InferenceSurvivalKKStratCoxPHOneLik`
+    and `InferenceSurvivalKKLWACoxPHOneLik` on `~.` (24 covariates, ~74
+    pairs) did not converge across constructions, which is consistent with
+    severe small-pairs attenuation bias
+    (`../bug_fix_plans/mc_coverage_truth_covariate_mismatch.md`,
+    "Recommendation"). v1.0.5 caps the harness covariates for these classes
+    (test rows and MC truth alike; G4 runbook R7) instead.
+  - Scope: once this release's Firth track lands for Cox / stratified Cox
+    (TODO-4 step 4, `firth_penalties_report.md → TODO-2..5`; the Firth-Cox
+    score is derived in that report's appendix), apply it to the two
+    KK-matched classes. Then re-run the R7 convergence check without the cap
+    and lift or keep the cap.
+  - Pointer: `release_v1_0_5.md → TODO-10`, G6 #19.
+
+- [ ] TODO-70 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #48`;
+  from v1.0.5 TODO-126): **Native Clayton optimizer iteration limit /
+  fallback start at large n.**
+  - Background: v1.0.5 TODO-126's investigation (2026-10-22) found that, at
+    n = 3000 with ~25 covariates scaled by 1/ncol, the native Clayton
+    Weibull LBFGS hits its 2000-iteration cap on about 2/3 of starts
+    (log-theta ~0.83, far from its bound). Most candidates then fall to
+    three R BFGS fits (1.1-4.7 s each, all converge), about 6 s per
+    randomization draw. This is a performance finding, not a correctness
+    bug. The harness side is fixed in 1.0.5 by G6 #47 (cheap truth
+    inference type).
+  - Scope: raise `maxit` for the native Clayton fit at large n, and/or seed
+    the R BFGS fallback with the capped native iterate instead of a cold
+    start. Either changes estimates at the tolerance level. Validate against
+    the current R-BFGS results (tolerance-equal) and time on a quiet host.
+    Needs a build.
+  - Pointer: `release_v1_0_5.md → TODO-126`, G6 #48; scripts and logs of
+    the investigation were in `/tmp/claude-1000/todo126/` (scratch; may be
+    gone).
+
+- [ ] TODO-71 (added 2026-10-22, owner decision `release_v1_0_5.md → G6 #14`):
+  **Fractional-validity guard for bootstrap p-values with `na.rm`.**
+  - Background: v1.0.5 keeps the bootstrap p-value `na.rm = FALSE` default
+    and adds a classed warning (G6 #14). With `na.rm = TRUE`, a p-value can
+    be formed from a small surviving fraction of replicates without any
+    guard.
+  - Scope: add a minimum valid-replicate fraction for `na.rm = TRUE`. Below
+    it the p-value is nonestimable with a classed reason, mirroring the 5%
+    invalid-interval cap used for CIs. Decide the threshold and whether it
+    is user-settable. Test boundary fractions. This is a default change only
+    for `na.rm = TRUE` calls below the threshold, so document it.
+  - Pointer: `release_v1_0_5.md → G6 #14` (maintainer-brief item; no v1.0.5
+    TODO entry carries it).
+
+- [x] TODO-72 (added 2026-10-22, deferred from `release_v1_0_5.md → TODO-129`
+  / G6 #50, coordinator default; owner may override):
+  **Estimator-internal RNG in `InferenceSurvivalKKRankRegrIVWC`.**
+  **Moved back to v1.0.5 TODO-129 on 2026-10-23, done** (owner override of
+  G6 #50: every `aftsrr` call runs under a deterministic seed derived from the
+  object seed and the fitted data, caller RNG restored; see
+  `release_v1_0_5.md → TODO-129`, "Owner override 2026-10-23"). Nothing left
+  here.
+  - Background: this legacy IVWC class (never published; see the IVWC
+    policy) computes its IVWC weights from `aftgee::aftsrr(se = "ISMB")`, a
+    multiplier bootstrap that draws from the caller's global RNG inside the
+    estimator. So `compute_estimate()` and every randomization /
+    randomization-CI evaluation advance the caller's `.Random.seed`, and a
+    seeded randomization CI differs by caller seed (2% at r = 7, TODO-129
+    seed sweep). The resampling draws themselves are seeded correctly.
+  - Scope: wrap the `aftsrr` call in the same save / deterministic
+    `set.seed()` / restore pattern used by v1.0.5's fix for
+    `robust_survreg_with_surv_object()`'s restart jitter (fixed constant, or
+    the inference/design seed when set). This changes the class's seeded
+    and unseeded estimates once (the ISMB variance draws change), so it is a
+    documented default change. Alternatively drop the class's ISMB
+    dependence (e.g. `se = "ZLMB"` or a deterministic sandwich) or retire
+    the class with the other legacy IVWC classes. Test: `compute_estimate()`
+    leaves `.Random.seed` untouched and is identical under different caller
+    seeds.
+  - Pointer: `release_v1_0_5.md → TODO-129` (seed sweep note), G6 #50.
+
+- [ ] TODO-73 (added 2026-10-23, deferred from `release_v1_0_5.md → TODO-97`
+  closing audit; plan `../new_feature_plans/inference_component_dependency_cleanup.md
+  → TODO-5`): **Retire the legacy ladder parents behind the component
+  sources where possible.** *(maintenance; no output or behavior change)*
+  - Background: v1.0.5 TODO-97 (plan TODO-3/4/6/7, done 2026-10-22) added the
+    neutral `ResamplingCore` component and rewrote every component's
+    `dependencies` in `EDI_COMPONENT_SPECS` to the measured call graph
+    (acyclic; guarded by `test-inference-component-call-graph-acceptance-reference.R`).
+    The retained legacy ladder is still a single `inherit` chain:
+    `Inference` → `InferenceResamplingCore` → `InferenceRand` →
+    `InferenceRandCI` → `InferenceNonParamBootstrap` → `InferenceRandBootstrap`
+    → `InferenceRandBootstrapCI` → `InferenceBayesianBootstrap` →
+    `InferenceJackknife` → `InferenceAsymp` → `InferenceMLEorKMSummaryTable` →
+    `InferenceAsympLik` → `InferenceParamBootstrap` (plus
+    `InferenceAbstractQuantileRandCI`, which inherits a KK pass-through
+    generator). Each link now only reproduces packaging order, not a real
+    dependency (e.g. `InferenceNonParamBootstrap` inherits `InferenceRandCI`
+    although its component depends only on `ResamplingCore`). The owner's
+    "do it now" instruction for 1.0.5 named plan TODO-3/4/6/7 only, and plan
+    TODO-5 is phrased "where possible", so it was left out of 1.0.5.
+  - Scope: for each ladder generator whose `inherit` exists only so its own
+    code loads, re-parent it to its real dependency (or to `Inference` /
+    `InferenceResamplingCore`) per the component graph. Keep every concrete
+    class's effective component list and method-owner bindings exactly
+    equal to the TODO-1 registry/method golden (the reviewed
+    `inference_component_expect_reviewed_registry_baseline()` fixture in
+    `R/package_tests/inference_component_call_graph_helpers.R`); a change to
+    a ladder generator's own inherited method set is a reviewed delta, not a
+    silent regeneration. Keep the retained-ladder guardrail
+    (`testthat_bulk/test-inference-class-registry.R`, "retained legacy ladder
+    generators are enumerated, real, and have no concrete descendants", and
+    `EDI_INFERENCE_ABSTRACT_CLASS_NAMES`, which
+    `tests/testthat/test-static-cleanup-guardrails.R` keys on) in sync. Check
+    the DESCRIPTION Collate order still loads each file, regenerate the
+    ladder Rd "Super classes" sections (G8-style roxygenize, twice: the
+    first pass leaves new superclass links unlinked), and add a NEWS
+    "Internal" line. R-only; no build needed beyond `load_all(compile =
+    FALSE)` for tests.
+  - Acceptance: registry/method golden unchanged (or only a reviewed delta
+    on the abstract ladder generators themselves), call-graph acceptance and
+    acyclicity tests pass, the component/registry/migration-baseline suites
+    pass, and the retained-ladder guardrail passes. Generators that cannot
+    be re-parented without changing a concrete class's bindings stay as
+    they are, with the reason recorded here.
+  - Pointer: `release_v1_0_5.md → TODO-97` (closing-audit note 2026-10-23);
+    plan TODO-5.
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update

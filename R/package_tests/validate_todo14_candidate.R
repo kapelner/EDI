@@ -242,6 +242,56 @@ todo14_source_candidate_manifest <- function(
 	manifest
 }
 
+# G6 #33 (decided 2026-10-22): the FixedBinaryMatch x pte_example x
+# design_formula=~1 keys are a predeclared expected skip. The runner's
+# FixedBinaryMatch constructor supplies no matched-pair ids and pte_example has
+# no pair-id column, so that setup cannot run. The keys stay in the 8,640-key
+# manifest and are counted separately; validators accept them only when they
+# are passed explicitly as `approved_skips`.
+.todo14_formula_label <- function(inference_class) {
+	label <- sub("^.*\\[design_formula=(.*)\\]$", "\\1", as.character(inference_class))
+	label[label == as.character(inference_class)] <- NA_character_
+	gsub("[[:space:]]", "", label)
+}
+
+todo14_predeclared_approved_skips <- function(manifest) {
+	manifest <- .todo14_read_table(manifest, "manifest")
+	missing <- setdiff(c("id", .todo14_key_columns), names(manifest))
+	if (length(missing)) stop("manifest is missing column(s): ", paste(missing, collapse = ", "), call. = FALSE)
+	keep <- as.character(manifest$design) == "FixedBinaryMatch" &
+		as.character(manifest$dataset) == "pte_example" &
+		.todo14_formula_label(manifest$inference_class) %in% "~1"
+	out <- manifest[keep, c("id", .todo14_key_columns), drop = FALSE]
+	out$skip_rule <- rep("G6#33: FixedBinaryMatch design_formula=~1 on pte_example (no matched-pair ids)", nrow(out))
+	rownames(out) <- NULL
+	out
+}
+
+# Normalise `approved_skips` (NULL, a character vector of ids, or a table with
+# an id column and/or the natural-key columns) to a character id vector. A
+# table that carries both must agree with the serialized natural key.
+.todo14_approved_skip_ids <- function(approved_skips) {
+	if (is.null(approved_skips)) return(character())
+	if (is.character(approved_skips)) {
+		ids <- approved_skips
+	} else {
+		approved_skips <- .todo14_read_table(approved_skips, "approved_skips")
+		has_keys <- all(.todo14_key_columns %in% names(approved_skips))
+		if (!"id" %in% names(approved_skips) && !has_keys) {
+			stop("approved_skips must carry an id column or every natural-key column", call. = FALSE)
+		}
+		built <- if (has_keys) .todo14_build_id(approved_skips) else NULL
+		ids <- if ("id" %in% names(approved_skips)) as.character(approved_skips$id) else built
+		if (!is.null(built) && (anyNA(ids) || any(ids != built))) {
+			stop("approved_skips id differs from its natural-key fields", call. = FALSE)
+		}
+	}
+	ids <- as.character(ids)
+	if (anyNA(ids) || any(!nzchar(trimws(ids)))) stop("approved_skips contains missing/empty ids", call. = FALSE)
+	if (anyDuplicated(ids)) stop("approved_skips contains duplicate ids", call. = FALSE)
+	ids
+}
+
 .todo14_provenance_problem <- function(provenance, expected_provenance) {
 	problems <- character()
 	if (!is.list(provenance) || !all(c("before", "after") %in% names(provenance))) {
@@ -304,9 +354,17 @@ todo14_source_candidate_manifest <- function(
 #' dll_path and dll_sha256. `expected_provenance` contains the approved values
 #' for those same fields; callers must not treat an unverified/old DLL as the
 #' target.
-validate_todo14_candidate <- function(manifest, candidate, provenance, expected_provenance) {
+#'
+#' `approved_skips` (2026-10-22, G6 #33) lists manifest keys that were approved
+#' as expected skips before the run (see todo14_predeclared_approved_skips()).
+#' Each such key may be absent from the candidate (the runner's setup skip
+#' writes no result row) or present as a skip row (status ok, nonempty
+#' skip_reason, no results); it is never accepted with a result. Every other
+#' key keeps the full success contract. Approved-skip counts are returned.
+validate_todo14_candidate <- function(manifest, candidate, provenance, expected_provenance, approved_skips = NULL) {
 	manifest <- .todo14_read_table(manifest, "manifest")
 	candidate <- .todo14_read_table(candidate, "candidate")
+	approved_ids <- .todo14_approved_skip_ids(approved_skips)
 	issue_rows <- list()
 	add_issue <- function(check, detail, row = NA_integer_, id = NA_character_) {
 		issue_rows[[length(issue_rows) + 1L]] <<- data.frame(
@@ -332,7 +390,6 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 	}
 
 	if (nrow(manifest) != 8640L) add_issue("manifest_row_count", paste("expected 8640 rows; found", nrow(manifest)))
-	if (nrow(candidate) != 8640L) add_issue("candidate_row_count", paste("expected 8640 rows; found", nrow(candidate)))
 	if (anyNA(manifest$candidate_status) || any(as.character(manifest$candidate_status) !=
 			"candidate_only_requires_setup_and_runtime_eligibility")) {
 		add_issue("manifest_candidate_status", "manifest must remain explicitly candidate-only pending setup/runtime eligibility")
@@ -390,6 +447,16 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 
 	missing_ids <- setdiff(manifest_ids[.todo14_nonempty(manifest_ids)], candidate_ids[.todo14_nonempty(candidate_ids)])
 	extra_ids <- setdiff(candidate_ids[.todo14_nonempty(candidate_ids)], manifest_ids[.todo14_nonempty(manifest_ids)])
+	for (id in setdiff(approved_ids, manifest_ids)) {
+		add_issue("approved_skip_not_in_manifest", "approved skip key is not in the manifest", id = id)
+	}
+	approved_absent_ids <- intersect(missing_ids, approved_ids)
+	missing_ids <- setdiff(missing_ids, approved_ids)
+	expected_candidate_rows <- 8640L - length(approved_absent_ids)
+	if (nrow(candidate) != expected_candidate_rows) {
+		add_issue("candidate_row_count", paste0("expected ", expected_candidate_rows, " rows (8640 minus ",
+			length(approved_absent_ids), " absent approved skips); found ", nrow(candidate)))
+	}
 	for (id in missing_ids) add_issue("missing_id", "expected attempt is absent", id = id)
 	for (id in extra_ids) add_issue("unexpected_id", "candidate id is not in manifest", id = id)
 
@@ -407,15 +474,27 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 	group_key <- function(data) paste(.todo14_beta_token(data$beta_T), data$dataset, data$response_type,
 		data$design, data$inference_class, data$function_run, sep = "||")
 	manifest_groups <- unique(group_key(manifest))
+	approved_absent_rows <- manifest[manifest_ids %in% approved_absent_ids, , drop = FALSE]
 	for (g in manifest_groups) {
 		mrep <- sort(unique(suppressWarnings(as.integer(as.character(manifest$rep[group_key(manifest) == g])))))
-		crep <- sort(unique(suppressWarnings(as.integer(as.character(candidate$rep[group_key(candidate) == g])))))
+		crep <- sort(unique(suppressWarnings(as.integer(as.character(c(
+			candidate$rep[group_key(candidate) == g],
+			approved_absent_rows$rep[group_key(approved_absent_rows) == g]
+		))))))
 		if (!identical(mrep, 1:40)) add_issue("manifest_replicates", paste("manifest group does not contain reps 1:40:", g))
 		if (!identical(crep, 1:40)) add_issue("candidate_replicates", paste("candidate group does not contain reps 1:40:", g))
 	}
 
+	approved_row <- candidate_ids %in% approved_ids
 	for (i in seq_len(nrow(candidate))) {
 		row <- candidate[i, , drop = FALSE]
+		if (approved_row[i]) {
+			# Approved skip present as a row: it must be a skip, never a result.
+			has_result <- .todo14_nonempty(row$result_1) || .todo14_nonempty(row$result_2)
+			if (!identical(as.character(row$status), "ok") || !.todo14_nonempty(row$skip_reason) || has_result) {
+				add_issue("approved_skip_not_skipped", "approved skip key must be absent or a status=ok skip row with skip_reason and no results", i, candidate_ids[i])
+			}
+		}
 		if (!identical(as.character(row$response_type), "survival")) add_issue("wrong_response_type", "expected survival", i, candidate_ids[i])
 		beta_value <- suppressWarnings(as.numeric(as.character(row$beta_T)))
 		if (!is.finite(beta_value) || !(beta_value %in% c(0, 0.5))) add_issue("wrong_beta_T", "beta_T is outside the TODO-14 target set", i, candidate_ids[i])
@@ -423,9 +502,11 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 		if (!(as.character(row$design) %in% c("KK21stepwise", "FixedBinaryMatch"))) add_issue("wrong_design", "design is outside the TODO-14 eligible set", i, candidate_ids[i])
 		if (!(as.character(row$inference_class) %in% .todo14_expected_classes)) add_issue("wrong_inference_class", "unexpected IVWC formula label", i, candidate_ids[i])
 		if (!(as.character(row$function_run) %in% .todo14_expected_functions)) add_issue("wrong_function_run", "function_run is outside the TODO-14 rand set", i, candidate_ids[i])
-		if (!identical(as.character(row$status), "ok")) add_issue("status_not_ok", "status must be ok", i, candidate_ids[i])
-		if (.todo14_nonempty(row$error_message)) add_issue("error_message_present", "error_message must be empty/NA", i, candidate_ids[i])
-		if (.todo14_nonempty(row$skip_reason)) add_issue("skip_reason_present", "skip_reason must be empty/NA for a successful candidate row", i, candidate_ids[i])
+		if (!approved_row[i]) {
+			if (!identical(as.character(row$status), "ok")) add_issue("status_not_ok", "status must be ok", i, candidate_ids[i])
+			if (.todo14_nonempty(row$error_message)) add_issue("error_message_present", "error_message must be empty/NA", i, candidate_ids[i])
+			if (.todo14_nonempty(row$skip_reason)) add_issue("skip_reason_present", "skip_reason must be empty/NA for a successful candidate row", i, candidate_ids[i])
+		}
 		if (!identical(as.character(row$method_family), "rand")) add_issue("wrong_method_family", "method_family must be rand", i, candidate_ids[i])
 		if (!identical(as.character(row$coverage_scope), "comprehensive_workflow")) add_issue("wrong_coverage_scope", "coverage_scope must be comprehensive_workflow", i, candidate_ids[i])
 		if (!identical(as.character(row$argument_coverage_kind), "not_argument_combination")) add_issue("wrong_argument_coverage_kind", "argument_coverage_kind must be not_argument_combination", i, candidate_ids[i])
@@ -441,7 +522,7 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 	}
 
 	function_run <- as.character(candidate$function_run)
-	pval_rows <- which(function_run %in% .todo14_expected_functions[1:2])
+	pval_rows <- which(function_run %in% .todo14_expected_functions[1:2] & !approved_row)
 	pvals <- suppressWarnings(as.numeric(as.character(candidate$result_1[pval_rows])))
 	bad_pval <- !is.finite(pvals) | pvals < 0 | pvals > 1
 	for (j in which(bad_pval)) {
@@ -449,7 +530,7 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 		add_issue("invalid_p_value", "p-value result_1 must be finite and in [0,1]", i, candidate_ids[i])
 	}
 
-	ci_rows <- which(function_run == "compute_rand_confidence_interval")
+	ci_rows <- which(function_run == "compute_rand_confidence_interval" & !approved_row)
 	ci_lo <- suppressWarnings(as.numeric(as.character(candidate$result_1[ci_rows])))
 	ci_hi <- suppressWarnings(as.numeric(as.character(candidate$result_2[ci_rows])))
 	truth <- suppressWarnings(as.numeric(as.character(candidate$coverage_truth[ci_rows])))
@@ -475,6 +556,12 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 		issues = issues,
 		missing_ids = missing_ids,
 		extra_ids = extra_ids,
-		counts = list(manifest_rows = nrow(manifest), candidate_rows = nrow(candidate), issues = nrow(issues))
+		approved_skip_ids = approved_ids,
+		counts = list(
+			manifest_rows = nrow(manifest), candidate_rows = nrow(candidate), issues = nrow(issues),
+			approved_skips = length(approved_ids),
+			approved_skips_absent = length(approved_absent_ids),
+			approved_skips_present_as_skip_rows = sum(approved_row)
+		)
 	)
 }

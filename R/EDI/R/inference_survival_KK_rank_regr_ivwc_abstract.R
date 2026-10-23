@@ -293,7 +293,7 @@ SurvivalKKRankRegrIVWCSource = list(
 						formula_try = paste(formula_try, "+", paste(colnames(X_covs), collapse = " + "))
 					}
 					mod_try = tryCatch({
-						suppressMessages(aftgee::aftsrr(as.formula(formula_try), id = id, data = dat_try, se = se_method, B = bootstrap_reps))
+						.kk_rank_regr_aftsrr_seeded(private$effective_draw_seed(), "matched", formula_try, dat_try, clustered = TRUE, se = se_method, B = bootstrap_reps)
 					}, error = function(e) NULL)
 					beta_try = private$extract_term_estimate(mod_try, "w")
 					se_try = if (need_variance) private$extract_term_se(mod_try, "w") else 1
@@ -305,7 +305,7 @@ SurvivalKKRankRegrIVWCSource = list(
 				}
 			} else {
 				mod = tryCatch({
-					suppressMessages(aftgee::aftsrr(as.formula(formula_str), id = id, data = dat, se = se_method, B = bootstrap_reps))
+					.kk_rank_regr_aftsrr_seeded(private$effective_draw_seed(), "matched", formula_str, dat, clustered = TRUE, se = se_method, B = bootstrap_reps)
 				}, error = function(e) NULL)
 			}
 			if (is.null(mod)) return(invisible(NULL))
@@ -340,7 +340,7 @@ SurvivalKKRankRegrIVWCSource = list(
 						formula_try = paste(formula_try, "+", paste(colnames(X_covs), collapse = " + "))
 					}
 					mod_try = tryCatch({
-						suppressMessages(aftgee::aftsrr(as.formula(formula_try), data = dat_try, se = se_method, B = bootstrap_reps))
+						.kk_rank_regr_aftsrr_seeded(private$effective_draw_seed(), "reservoir", formula_try, dat_try, clustered = FALSE, se = se_method, B = bootstrap_reps)
 					}, error = function(e) NULL)
 					beta_try = private$extract_term_estimate(mod_try, "w")
 					se_try = if (need_variance) private$extract_term_se(mod_try, "w") else 1
@@ -352,7 +352,7 @@ SurvivalKKRankRegrIVWCSource = list(
 				}
 			} else {
 				mod = tryCatch({
-					suppressMessages(aftgee::aftsrr(as.formula(formula_str), data = dat, se = se_method, B = bootstrap_reps))
+					.kk_rank_regr_aftsrr_seeded(private$effective_draw_seed(), "reservoir", formula_str, dat, clustered = FALSE, se = se_method, B = bootstrap_reps)
 				}, error = function(e) NULL)
 			}
 			if (is.null(mod)) return(invisible(NULL))
@@ -387,3 +387,46 @@ KKSurvivalRankRegressionSource = list(
 		}
 	)
 )
+
+# Estimator-internal RNG (TODO-129 / G6 #50, owner decision 2026-10-23).
+# aftgee::aftsrr(se = "ISMB") is a multiplier bootstrap that draws from R's
+# global RNG, so this class's IVWC weights (and hence its estimate, SE,
+# randomization and bootstrap results) used to depend on, and advance, the
+# caller's .Random.seed. Every aftsrr call now runs inside a save /
+# set.seed(<deterministic seed>) / restore block. The seed is derived from the
+# object's seed (TODO-112 rule: inference seed, else design seed; a fixed
+# constant when neither is set), the component ("matched" / "reservoir") and
+# the exact data and formula being fitted. A refit on a randomization or
+# bootstrap replicate therefore gets its own seed that depends only on that
+# replicate's data (i.e. on the draw, never on the worker or core count), and
+# the caller's RNG state is restored afterwards.
+.kk_rank_regr_aftsrr_unseeded_base = 20261023L
+
+.kk_rank_regr_aftsrr_seed = function(base_seed, component, formula_str, dat){
+	base = if (is.null(base_seed)) .kk_rank_regr_aftsrr_unseeded_base else as.integer(base_seed)
+	h = digest::digest(list(base, component, formula_str, dat), algo = "xxhash32")
+	# 7 hex digits < 2^28: always a valid positive integer seed
+	strtoi(substr(h, 1L, 7L), base = 16L)
+}
+
+# `clustered = TRUE` passes the data's `id` column as aftsrr's cluster id
+# (written literally so aftsrr's match.call()/model.frame() resolve it in `dat`).
+.kk_rank_regr_aftsrr_seeded = function(base_seed, component, formula_str, dat, clustered, se, B){
+	seed = .kk_rank_regr_aftsrr_seed(base_seed, component, formula_str, dat)
+	had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+	old_seed = if (had_seed) get(".Random.seed", envir = .GlobalEnv, inherits = FALSE) else NULL
+	on.exit({
+		if (had_seed) {
+			assign(".Random.seed", old_seed, envir = .GlobalEnv)
+		} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+			rm(".Random.seed", envir = .GlobalEnv)
+		}
+	}, add = TRUE)
+	set.seed(seed, kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
+	formula_obj = stats::as.formula(formula_str)
+	if (clustered) {
+		suppressMessages(aftgee::aftsrr(formula_obj, id = id, data = dat, se = se, B = B))
+	} else {
+		suppressMessages(aftgee::aftsrr(formula_obj, data = dat, se = se, B = B))
+	}
+}

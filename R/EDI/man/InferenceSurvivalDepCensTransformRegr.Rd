@@ -35,8 +35,9 @@ hard-unsupported (each randomization draw would require a full
 dependent-censoring likelihood refit, too unstable/slow for the
 comprehensive test suite; jackknife bias correction is unstable for this
 likelihood on small censored samples) — every jackknife/randomization
-method returns \code{NA} and marks the result nonestimable rather than
-computing a value. Nonparametric-bootstrap confidence intervals are
+method returns \code{NA} with a classed \code{edi_unsupported_procedure}
+warning rather than computing a value; the estimate, standard error and
+\code{is_nonestimable()} are left untouched. Nonparametric-bootstrap confidence intervals are
 computed and returned whenever both endpoints are finite; they are never
 replaced based on width, sign, or agreement with a Wald interval. Numerical
 failures return \code{NA}. Bayesian-bootstrap weighted re-estimation

@@ -19,6 +19,11 @@ EDI is not related to Electronic Data Interchange (the business-document
 exchange standard) or to equity, diversity, and inclusion; it is a statistics
 package for the design and analysis of randomized experiments.
 
+**EDI replaces the SeqExpMatch package.** SeqExpMatch is deprecated and no longer
+maintained; every one of its designs and inference procedures, including the
+Kapelner and Krieger matching-on-the-fly designs, is available in EDI, which is
+faster, more general and actively maintained.
+
 ## Installation
 
 Requires R >= 3.5.0 (R >= 4.0.0 recommended for best performance — newer

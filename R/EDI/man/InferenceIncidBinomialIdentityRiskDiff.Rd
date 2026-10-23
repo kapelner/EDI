@@ -22,7 +22,10 @@ Because the identity link does not constrain fitted probabilities to
 nonestimable when the fitted linear predictor produces implausible
 coefficients (see \code{private$is_identity_binomial_fit_reasonable()});
 this is a real practical limitation of the identity link relative to
-logit/probit, not a bug. Validity requires the additive risk-difference
+logit/probit, not a bug. When the full-data MLE is on the boundary (some
+fitted probability equal to 0 or 1), the object warns once
+(\code{edi_binomial_mle_boundary_warning}) that Wald and score standard
+errors and intervals may be unreliable. Validity requires the additive risk-difference
 model to be correctly specified over the covariate range actually observed
 (an identity-link fit can be well-behaved in-sample yet imply
 out-of-range probabilities for other covariate values).

@@ -26,6 +26,15 @@ parametric-likelihood-bootstrap calibration of the likelihood-ratio test.
 and are handled by \code{sanitize_beta_response()}'s boundary adjustment
 before fitting.
 
+\strong{Known limitation: many covariates relative to \eqn{n}.} With a
+large adjustment set the model-based standard error is anti-conservative.
+In EDI's comprehensive simulations on a 33-covariate dataset with
+\eqn{n = 148} (\code{model_formula = ~ .}), the Wald and other
+model-based intervals covered about 0.79-0.85 at nominal 0.95, while the
+resampling-based intervals over-covered. No small-sample SE
+correction is applied; with many covariates relative to \eqn{n}, prefer a
+smaller adjustment set or a resampling interval.
+
 \strong{Estimand.} Composes
 \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
 (\code{set_estimand()}/\code{get_estimand()}/\code{get_supported_estimands()}).

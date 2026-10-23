@@ -68,6 +68,12 @@ make_no_likelihood_spec_logit_inference <- function(des){
 		NoLikelihoodSpecLogit = R6Class(
 			"NoLikelihoodSpecLogit",
 			inherit = InferenceIncidLogRegr,
+			# The private method below re-evaluates a component's own body here,
+			# so this class's methods must resolve EDI internals the way the
+			# component does in the package. Without this the body only sees the
+			# search path, where internals are absent from an installed EDI --
+			# load_all() exports them, so the gap shows up only in pre-push/CI.
+			parent_env = asNamespace("EDI"),
 			private = list(
 				get_likelihood_test_spec = function() NULL,
 				compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){

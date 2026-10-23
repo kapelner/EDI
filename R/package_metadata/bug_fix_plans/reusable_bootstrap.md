@@ -486,11 +486,15 @@ TODO-1 acceptance gate was changed.
       closes the exact-fixture current-R regression subgate only; TODO-3's
       performance target, TODO-5's exclusion removal, and TODO-6's tuning run
       remain open.
-- [ ] TODO-5: Remove the now-unnecessary `jackknife = "InferencePropZeroOneInflatedBetaRegr"`
+- [x] TODO-5: Remove the now-unnecessary `jackknife = "InferencePropZeroOneInflatedBetaRegr"`
       entry from `EDI_TUNING_WARM_START_OPERATION_EXCLUSIONS`
       (`local_machine_tuning_axes.R`) once TODO-3/4 confirm the fix, so the
       tuning harness resumes actually benchmarking this class's jackknife
       cold/warm-start policy like every other class's.
+      **DONE 2026-10-22** by owner decision (release_v1_0_5.md G6 #30): call
+      counts equal legacy (60 vs 60) and the exact fixture's NA is the
+      documented contract on both routes. The list is now empty; the family
+      filter test asserts the class is included. TODO-6 remains.
 - [ ] TODO-6: Re-run `tune_EDI_for_this_machine(effort = "standard")` end to
       end once this lands, to confirm the jackknife warm-start axis for this
       class now completes at a normal pace and produces a real (not

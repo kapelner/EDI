@@ -31,6 +31,15 @@ test surface is exposed). Validity requires that the conditional mean is
 correctly specified on the logit scale; unlike beta regression, no
 assumption is made about the conditional variance or shape of \eqn{Y_i}'s
 distribution.
+
+\strong{Known limitation: many covariates relative to \eqn{n}.} With a
+large adjustment set the model-based standard error is anti-conservative.
+In EDI's comprehensive simulations on a 33-covariate dataset with
+\eqn{n = 148} (\code{model_formula = ~ .}), the Wald and other
+model-based intervals covered about 0.79-0.85 at nominal 0.95, while the
+resampling-based intervals over-covered. No small-sample SE
+correction is applied; with many covariates relative to \eqn{n}, prefer a
+smaller adjustment set or a resampling interval.
 }
 \section{Blocking designs}{
 

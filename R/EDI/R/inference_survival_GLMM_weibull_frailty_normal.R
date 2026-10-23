@@ -224,7 +224,8 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 						y = private$y[i_reservoir],
 						dead = private$dead[i_reservoir],
 						X = X_r,
-						estimate_only = estimate_only
+						estimate_only = estimate_only,
+						jitter_seed = private$effective_draw_seed()
 					)
 					if (!is.null(fit_r) && is.finite(fit_r$beta)){
 						beta_r = fit_r$beta
@@ -315,7 +316,8 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 						y = private$y[i_reservoir],
 						dead = private$dead[i_reservoir],
 						X = X_fit,
-						estimate_only = estimate_only
+						estimate_only = estimate_only,
+						jitter_seed = private$effective_draw_seed()
 					)
 					res
 				},

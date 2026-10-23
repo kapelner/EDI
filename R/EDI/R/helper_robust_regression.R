@@ -31,6 +31,24 @@ robust_survreg = function(y, dead, cov_matrix_or_vector, dist = "weibull", num_m
 	robust_survreg_with_surv_object(survival::Surv(y, dead), cov_matrix_or_vector, dist = dist, num_max_iter = num_max_iter)
 }
 
+# Fixed seed for robust_survreg_with_surv_object()'s restart jitter (internal;
+# TODO-129 estimator-internal RNG, 2026-10-22). Used when the caller passes no
+# jitter_seed (no inference/design seed is set).
+.robust_survreg_jitter_seed = 20261022L
+# Offset added to a caller-supplied jitter_seed (the inference seed, else the
+# design seed; G6 #50 owner decision 2026-10-23) so the jitter stream is not
+# the same stream the object's own draws use under that seed.
+.robust_survreg_jitter_seed_offset = 7919L
+
+# Resolves robust_survreg_with_surv_object()'s jitter_seed argument to the seed
+# actually passed to set.seed(): NULL / NA / non-numeric -> the fixed constant;
+# otherwise (seed + offset) reduced into the positive integer range.
+.robust_survreg_resolve_jitter_seed = function(jitter_seed){
+	s = if (is.null(jitter_seed) || length(jitter_seed) != 1L) NA_real_ else suppressWarnings(as.numeric(jitter_seed))
+	if (!is.finite(s)) return(.robust_survreg_jitter_seed)
+	as.integer((round(s) + .robust_survreg_jitter_seed_offset) %% 2147483647)
+}
+
 #' Robust Parametric Survival Regression (AFT) with Warm-Start and Random-Restart Fallback
 #'
 #' Fits a parametric accelerated-failure-time (AFT) survival regression via
@@ -56,7 +74,14 @@ robust_survreg = function(y, dead, cov_matrix_or_vector, dist = "weibull", num_m
 #'     independent standard-normal jitter, \code{init + rnorm(length(init))},
 #'     after every failed attempt) until a fit with no \code{NA} coefficients is
 #'     obtained or \code{num_max_iter} attempts are exhausted, at which point
-#'     \code{NULL} is returned.
+#'     \code{NULL} is returned. The jitter is drawn from its own seeded
+#'     stream: \code{jitter_seed} plus a fixed internal offset when
+#'     \code{jitter_seed} is given (EDI's inference and design classes pass
+#'     their \code{set_seed()} / design seed), otherwise a fixed internal seed.
+#'     The caller's \code{.Random.seed} is saved before the first jitter and
+#'     restored on exit, so the fit is deterministic for given data and
+#'     \code{jitter_seed} and does not consume or advance the caller's
+#'     random-number stream.
 #' }
 #' \code{survreg.control(maxiter = 100, rel.tolerance = 1e-9, outer.max = 10)} is
 #' used throughout (tighter than \code{survreg}'s own defaults) to reduce the
@@ -71,6 +96,11 @@ robust_survreg = function(y, dead, cov_matrix_or_vector, dist = "weibull", num_m
 #'   the closed-form warm start.
 #' @param  num_max_iter  		Maximum number of random-restart attempts if the (possibly
 #'   warm-started) direct fit fails or does not converge (default 50).
+#' @param  jitter_seed  Optional integer seed for the random-restart jitter
+#'   (default \code{NULL}). When supplied, the jitter stream is seeded from
+#'   \code{jitter_seed} plus a fixed internal offset, so the same
+#'   \code{jitter_seed} gives the same fit; when \code{NULL}, a fixed internal
+#'   seed is used. Either way the caller's \code{.Random.seed} is left unchanged.
 #' @return  The fitted \code{\link[survival]{survreg}} model object, or \code{NULL} if no
 #'   attempt converged to a fit with no \code{NA} coefficients within \code{num_max_iter} tries.
 #' @examples
@@ -80,7 +110,7 @@ robust_survreg = function(y, dead, cov_matrix_or_vector, dist = "weibull", num_m
 #' surv = survival::Surv(y, dead)
 #' robust_survreg_with_surv_object(surv, X)
 #' @export
-robust_survreg_with_surv_object = function(surv_object, cov_matrix_or_vector, dist = "weibull", num_max_iter = 50){
+robust_survreg_with_surv_object = function(surv_object, cov_matrix_or_vector, dist = "weibull", num_max_iter = 50, jitter_seed = NULL){
 	surv_reg_formula = surv_object ~ .
 	X_mat = as.matrix(cov_matrix_or_vector)
 
@@ -122,6 +152,26 @@ robust_survreg_with_surv_object = function(surv_object, cov_matrix_or_vector, di
 
 	init = rep(0, ncol(cov_matrix_or_vector_data_frame) + 1)
 	num_iter = 1
+	# The restart jitter is estimator-internal randomness: it must not consume
+	# or advance the caller's global RNG stream, and the same data must give
+	# the same fit whatever the caller's seed (TODO-129 / G6 estimator-internal
+	# RNG, 2026-10-22). On the first jitter, save .Random.seed, draw every
+	# jitter from a seeded stream, and restore the caller's state on exit.
+	# Fits that never need a jitter never touch the RNG (unchanged behavior).
+	# The stream is seeded from jitter_seed (the calling object's seed) plus a
+	# fixed offset when given, else from a fixed constant (G6 #50, 2026-10-23).
+	jitter_rng_saved = FALSE
+	jitter_had_seed = FALSE
+	jitter_old_seed = NULL
+	on.exit({
+		if (jitter_rng_saved){
+			if (jitter_had_seed){
+				assign(".Random.seed", jitter_old_seed, envir = .GlobalEnv)
+			} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)){
+				rm(".Random.seed", envir = .GlobalEnv)
+			}
+		}
+	}, add = TRUE)
 	repeat {
 		tryCatch({
 			mod = suppressWarnings(survival::survreg(
@@ -141,6 +191,12 @@ robust_survreg_with_surv_object = function(surv_object, cov_matrix_or_vector, di
 		}, error = function(e){})
 		if (num_iter >= num_max_iter){
 			break
+		}
+		if (!jitter_rng_saved){
+			jitter_had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+			if (jitter_had_seed) jitter_old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+			jitter_rng_saved = TRUE
+			set.seed(.robust_survreg_resolve_jitter_seed(jitter_seed), kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
 		}
 		init = init + stats::rnorm(length(init))
 		num_iter = num_iter + 1

@@ -68,6 +68,21 @@ inf_rows = lapply(inf_names, function(nm) {
 	m = ns$get_inference_class_metadata(nm)
 	if (isTRUE(m$abstract) || !isTRUE(m$exported)) return(NULL)
 	caps = tryCatch(ns$get_effective_capabilities(nm), error = function(e) character())
+	# TODO-119 (2026-10-22): capabilities are response-type-aware. A class
+	# advertises a capability only if it serves it for at least one of its
+	# response types; partial refusals are listed per response type in
+	# `capabilities_refused_by_response_type` ("<response_type>:<capability>").
+	# The data-dependent exact-0/1 rand-CI refusal is not represented.
+	refused = unlist(lapply(m$response_types, function(rt) {
+		ex = tryCatch(ns$inference_response_type_excluded_capabilities(nm, rt, capabilities = caps), error = function(e) character())
+		if (length(ex)) paste0(rt, ":", ex) else character()
+	}), use.names = FALSE)
+	if (length(m$response_types)) {
+		served = unique(unlist(lapply(m$response_types, function(rt) {
+			setdiff(caps, ns$inference_response_type_excluded_capabilities(nm, rt, capabilities = caps))
+		}), use.names = FALSE))
+		caps = intersect(caps, served)
+	}
 	methods = unique(unlist(method_map[intersect(names(method_map), caps)], use.names = FALSE))
 	data.frame(
 		inference_class = nm,
@@ -81,6 +96,7 @@ inf_rows = lapply(inf_names, function(nm) {
 		supports_general_censoring = flag(m$supports_general_censoring),
 		capabilities = collapse(caps),
 		public_methods = collapse(methods),
+		capabilities_refused_by_response_type = collapse(refused),
 		required_packages = collapse(m$required_packages),
 		stringsAsFactors = FALSE
 	)
@@ -127,6 +143,8 @@ json_obj = list(
 		"R/package_tests/capability_matrix.R (EDI ", as.character(utils::packageVersion("EDI")), "). ",
 		"inference_classes[].design_families lists the registry's static design compatibility; ",
 		"design_level_exclusions is the per-instance rule applied on top. ",
+		"inference_classes[].capabilities_refused_by_response_type lists '<response_type>:<capability>' pairs ",
+		"the class refuses (e.g. randomization_ci on a scale-mismatched response); ",
 		"public_methods are the R6 methods each capability exposes. ",
 		"Docs: https://kapelner.github.io/EDI/"
 	),

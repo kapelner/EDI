@@ -22,6 +22,11 @@ EDI is not related to Electronic Data Interchange (the business-document
 exchange standard) or to equity, diversity, and inclusion; it is a statistics
 package for the design and analysis of randomized experiments.
 
+**EDI replaces the SeqExpMatch package.** SeqExpMatch is deprecated and no longer
+maintained; every one of its designs and inference procedures, including the
+Kapelner and Krieger matching-on-the-fly designs, is available in EDI, which is
+faster, more general and actively maintained.
+
 This repo hosts the eponymous R package `EDI` under [`R/EDI`](R/EDI), with R6
 classes for designs, inference, and simulation. It also hosts the distinct
 Python package [`edi_kernels`](python/README.md), built with `pybind11` and no

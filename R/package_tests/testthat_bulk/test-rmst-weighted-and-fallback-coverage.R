@@ -35,7 +35,12 @@ test_that("weighted RMST integrates the censored Kaplan-Meier steps", {
   # A weighted refit must not leak into the ordinary estimate.
   expect_equal(inf$compute_estimate(estimate_only = TRUE),
                rmst_weighted_coverage_fit()$compute_estimate(estimate_only = TRUE), tolerance = 1e-12)
-  expect_true(is.na(inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T))
+  # 2026-10-23 (TODO-23 R4): the weighted refit now carries the frequency-weighted
+  # Greenwood-type RMST SE (was hard-coded NA, which left the studentized Bayesian
+  # bootstrap silently nonestimable); see test-rmst-bayesian-bootstrap-studentized-weighted-se.R.
+  se_w <- inf$.__enclos_env__$private$last_weighted_refit$s_beta_hat_T
+  expect_true(is.finite(se_w) && se_w > 0)
+  expect_equal(se_w, inf$.__enclos_env__$private$weighted_restricted_mean_se_diff(7 * weights), tolerance = 1e-12)
 })
 
 test_that("uncensored weighted RMST equals the weighted arm-mean contrast at the shared horizon", {

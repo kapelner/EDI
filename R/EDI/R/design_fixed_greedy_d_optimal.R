@@ -310,12 +310,20 @@ DesignFixedGreedyDOptimal = define_design_class(
 				# exactly n_T treated (consistent with the kernel path's treated count).
 				return(replicate(r, sample(c(rep(1, n_T), rep(0, n - n_T)))))
 			}
-			if (is.null(private$P)){
+			X_now = private$X[1:n, , drop = FALSE]
+			# Bootstrap-randomization replay (2026-10-23, release_v1_0_5.md
+			# TODO-131): a duplicated design whose X was replaced by a bootstrap
+			# resample still carried the ORIGINAL sample's cached P/H (n x n,
+			# indexed by the original rows), so the replayed search optimized the
+			# wrong rows' information matrix. Key the cache on the X it was built
+			# from and rebuild whenever X changed.
+			if (is.null(private$P) || !identical(private$P_source_X, X_now)){
 				# Shared with DesignFixedOptimal (helper_optimal_shared.R); the
 				# construction is golden-locked to remain bit-identical to the
 				# pre-extraction (and pre-merge) classes.
+				private$P_source_X = X_now
 				PH = build_optimal_design_P_H(
-					X = private$X[1:n, , drop = FALSE],
+					X = X_now,
 					interest = if (private$use_A_kernel && identical(private$interest_kind, "subset")) private$interest else "all",
 					prior_precision = private$prior_precision,
 					standardize_covariates = private$standardize_covariates,

@@ -2,6 +2,15 @@
 # (link) scale rather than the raw response scale, so compute_rand_two_sided_pval()
 # knows not to double-apply a response-scale transform.
 inference_uses_model_scale_randomization_transform = function(inf_obj) {
+	capabilities = tryCatch(inf_obj$capabilities(), error = function(e) character())
+	inference_model_scale_randomization_transform_for(class(inf_obj), capabilities)
+}
+
+# Same decision from a class lineage and a capability vector, without an
+# object (TODO-119 capability audit, 2026-10-22): lets
+# get_effective_capabilities() decide the randomization-CI scale mismatch from
+# the registry alone, and avoids recursing through inf_obj$capabilities().
+inference_model_scale_randomization_transform_for = function(classes, capabilities) {
 	model_scale_capabilities = c(
 		"standard_model_cache",
 		"count_likelihood_plumbing",
@@ -9,11 +18,8 @@ inference_uses_model_scale_randomization_transform = function(inf_obj) {
 		"kk_glmm",
 		"kk_passthrough"
 	)
-	capabilities = tryCatch(inf_obj$capabilities(), error = function(e) character())
 	any(model_scale_capabilities %in% capabilities) ||
-		inherits(inf_obj, "InferencePropQuantileRegr") ||
-		inherits(inf_obj, "InferencePropGCompMeanDiff") ||
-		inherits(inf_obj, "InferenceCountHurdleNegBin")
+		any(c("InferencePropQuantileRegr", "InferencePropGCompMeanDiff", "InferenceCountHurdleNegBin") %in% classes)
 }
 
 #' Randomization-based Confidence Intervals

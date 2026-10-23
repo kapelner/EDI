@@ -8,7 +8,8 @@ robust_survreg_with_surv_object(
   surv_object,
   cov_matrix_or_vector,
   dist = "weibull",
-  num_max_iter = 50
+  num_max_iter = 50,
+  jitter_seed = NULL
 )
 }
 \arguments{
@@ -24,6 +25,12 @@ the closed-form warm start.}
 
 \item{num_max_iter}{Maximum number of random-restart attempts if the (possibly
 warm-started) direct fit fails or does not converge (default 50).}
+
+\item{jitter_seed}{Optional integer seed for the random-restart jitter
+(default \code{NULL}). When supplied, the jitter stream is seeded from
+\code{jitter_seed} plus a fixed internal offset, so the same
+\code{jitter_seed} gives the same fit; when \code{NULL}, a fixed internal
+seed is used. Either way the caller's \code{.Random.seed} is left unchanged.}
 }
 \value{
 The fitted \code{\link[survival]{survreg}} model object, or \code{NULL} if no
@@ -53,7 +60,14 @@ near-collinear design matrices:
     independent standard-normal jitter, \code{init + rnorm(length(init))},
     after every failed attempt) until a fit with no \code{NA} coefficients is
     obtained or \code{num_max_iter} attempts are exhausted, at which point
-    \code{NULL} is returned.
+    \code{NULL} is returned. The jitter is drawn from its own seeded
+    stream: \code{jitter_seed} plus a fixed internal offset when
+    \code{jitter_seed} is given (EDI's inference and design classes pass
+    their \code{set_seed()} / design seed), otherwise a fixed internal seed.
+    The caller's \code{.Random.seed} is saved before the first jitter and
+    restored on exit, so the fit is deterministic for given data and
+    \code{jitter_seed} and does not consume or advance the caller's
+    random-number stream.
 }
 \code{survreg.control(maxiter = 100, rel.tolerance = 1e-9, outer.max = 10)} is
 used throughout (tighter than \code{survreg}'s own defaults) to reduce the

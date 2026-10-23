@@ -28,7 +28,7 @@ Description: Implements a comprehensive suite of experimental designs, both
     handled automatically via built-in imputation. Core numerical routines
     are implemented in C++ via 'Rcpp' for speed on large designs and
     simulation studies. Machine-specific tuning for optimization is
-    included.
+    included. EDI replaces the 'SeqExpMatch' package.
 License: GPL-3
 Encoding: UTF-8
 Language: en-US

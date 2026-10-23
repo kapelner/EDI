@@ -8,7 +8,7 @@
  
  #ifndef EDI_CORE_ONLY
  using namespace Rcpp;
-@@ -135,6 +136,51 @@
+@@ -135,6 +136,131 @@
    return ll;
  }
  
@@ -57,13 +57,140 @@
 +  return d_proj;
 +}
 +
++// TODO-128 step 2 (v1.0.5 patch 14, owner decision 2026-10-22): KKT convergence
++// gate. The log-likelihood is concave and the mean-support constraints are
++// linear in beta, so a point satisfying the KKT conditions is the constrained
++// MLE. At a point where some rows sit within kActiveMargin of a bound, the fit
++// is converged only if (i) the Newton-metric projected increment
++// d = H^{-1}(g - C' lambda) onto { d : C d = 0 } (C = the signed near-bound
++// rows of X_free, g = score, H = Fisher information) satisfies
++// |d| / (|beta_free| + 1e-10) <= kKktTolFactor * tol (the same scale as the
++// loop's relative-change test), and (ii) every multiplier lambda is
++// >= -kKktLambdaRelTol * max(1, max|lambda|), i.e. each held bound is
++// genuinely binding (the score points outward there). Otherwise the fit
++// reports converged = false (honest NA downstream). Points with no row near a
++// bound never reach the gate, so interior fits are bit-identical.
++constexpr double kKktTolFactor = 10.0;
++constexpr double kKktLambdaRelTol = 1e-3;
++
++struct BoundKktVerdict {
++  bool ok = true;
++  int n_active = 0;
++};
++
++// Rows within kActiveMargin of a mean-support bound (zero-weight rows excluded:
++// they are absent from the likelihood), signed +1 for an upper bound (log:
++// eta -> 0; identity: mu -> 1) and -1 for a lower bound (identity: mu -> 0).
++inline int collect_near_bound_rows(const Eigen::VectorXd& eta,
++                                   BinomialConstrainedLink link_type,
++                                   const Eigen::VectorXd* obs_weights = nullptr,
++                                   std::vector<int>* rows = nullptr,
++                                   std::vector<double>* signs = nullptr) {
++  int count = 0;
++  for (int i = 0; i < (int)eta.size(); ++i) {
++    if (obs_weights != nullptr && !((*obs_weights)[i] > 0.0)) continue;
++    double s = 0.0;
++    if (link_type == BinomialConstrainedLink::kLog) {
++      if (eta[i] >= kMaxEtaLog - kActiveMargin) s = 1.0;
++    } else if (eta[i] >= kMaxMu - kActiveMargin) {
++      s = 1.0;
++    } else if (eta[i] <= kMinMu + kActiveMargin) {
++      s = -1.0;
++    }
++    if (s == 0.0) continue;
++    ++count;
++    if (rows != nullptr) rows->push_back(i);
++    if (signs != nullptr) signs->push_back(s);
++  }
++  return count;
++}
++
++// KKT verdict at the current iterate, from this iteration's Fisher information
++// (ldlt) and unconstrained Fisher-scoring increment d0 = target - beta_free
++// (H d0 = g, so no extra likelihood or information evaluation is needed).
++inline BoundKktVerdict kkt_verdict_at_bounds(const Eigen::LDLT<Eigen::MatrixXd>& ldlt,
++                                             const Eigen::MatrixXd& X_free,
++                                             const Eigen::VectorXd& eta,
++                                             const Eigen::VectorXd& d0,
++                                             const Eigen::VectorXd& beta_free,
++                                             BinomialConstrainedLink link_type,
++                                             double tol,
++                                             const Eigen::VectorXd* obs_weights = nullptr) {
++  BoundKktVerdict out;
++  std::vector<int> rows;
++  std::vector<double> signs;
++  out.n_active = collect_near_bound_rows(eta, link_type, obs_weights, &rows, &signs);
++  if (out.n_active == 0) return out;
++  Eigen::MatrixXd C(out.n_active, (int)X_free.cols());
++  for (int k = 0; k < out.n_active; ++k) C.row(k) = signs[k] * X_free.row(rows[k]);
++  const Eigen::MatrixXd HinvCt = ldlt.solve(C.transpose());
++  const Eigen::MatrixXd S = C * HinvCt;
++  const Eigen::VectorXd lambda = S.completeOrthogonalDecomposition().solve(C * d0);
++  const Eigen::VectorXd d = d0 - HinvCt * lambda;
++  if (!all_finite_vec(lambda) || !all_finite_vec(d)) {
++    out.ok = false;
++    return out;
++  }
++  const double crit = d.norm() / (beta_free.norm() + 1e-10);
++  const double lambda_floor = -kKktLambdaRelTol * std::max(1.0, lambda.cwiseAbs().maxCoeff());
++  out.ok = (crit <= kKktTolFactor * tol) && (lambda.minCoeff() >= lambda_floor);
++  return out;
++}
++
  } // namespace
  
  // fit_constrained_binomial_cpp_impl / _weighted_cpp_impl / _with_var_cpp_impl
-@@ -253,10 +299,14 @@
-       return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
+@@ -187,6 +313,7 @@
+   Eigen::VectorXd beta_free = subset_vector(beta, fixed_spec.free_idx);
+ 
+   bool converged = false;
++  bool kkt_confirm_pending = false;  // TODO-128 step 2: see the KKT gate below
+   Eigen::VectorXd mu = Eigen::VectorXd::Constant(n, y.mean());
+   Eigen::VectorXd w = Eigen::VectorXd::Constant(n, 1.0);
+   Eigen::VectorXd z_adj(n);
+@@ -196,7 +323,7 @@
+   double ll_curr = loglik_constrained_binomial(X, y, beta, link_type);
+ 
+   int iterations = 0;
+-  for (int iter = 0; iter < maxit; ++iter) {
++  for (int iter = 0; iter < maxit || kkt_confirm_pending; ++iter) {
+     edi_check_R_user_interrupt_every(iter);
+     iterations = iter + 1;
+     const Eigen::VectorXd eta = eta_fixed + X_free * beta_free;
+@@ -241,22 +368,41 @@
+         XtWX = weighted_crossprod(X_free, w);
+         ldlt.compute(XtWX);
+         if (ldlt.info() != Eigen::Success) {
+-          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
++          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
+         }
+       } else {
+-        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
++        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
+       }
      }
  
+     Eigen::VectorXd beta_free_target = ldlt.solve(XtWz);
+     if (ldlt.info() != Eigen::Success || !all_finite_vec(beta_free_target)) {
+-      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
++      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
+     }
+ 
++    // TODO-128 step 2: KKT gate at a point with a row near a bound (see
++    // kkt_verdict_at_bounds()). Skipped on the first iteration, whose
++    // information may come from a warm start rather than from this point.
++    if (iter > 0) {
++      const BoundKktVerdict kkt = kkt_verdict_at_bounds(ldlt, X_free, eta, beta_free_target - beta_free, beta_free, link_type, tol);
++      if (kkt.n_active > 0 && kkt.ok) {
++        converged = true;
++        break;
++      }
++      if (kkt_confirm_pending) {
++        converged = (kkt.n_active == 0);
++        break;
++      }
++    }
++
 +    // TODO-128: hold rows already on the mean-support boundary fixed.
 +    const Eigen::VectorXd delta_beta = project_increment_off_active_bounds(
 +      ldlt, X_free, eta, beta_free_target - beta_free, link_type);
@@ -76,7 +203,7 @@
  
      double step = 1.0;
  
-@@ -270,7 +320,7 @@
+@@ -270,7 +416,7 @@
        eta_try.noalias() = eta + step * delta_eta;
        const double ll_new = loglik_from_eta(eta_try, y, link_type);
        if (std::isfinite(ll_new) && ll_new >= ll_curr - 1e-10) {
@@ -85,7 +212,7 @@
          beta_new = expand_free_params(beta_free_new, beta, fixed_spec);
          ll_curr = ll_new;  // carry forward — avoids recomputing at next iter start
          accepted = true;
-@@ -279,7 +329,11 @@
+@@ -279,9 +425,19 @@
        step *= 0.5;
      }
      if (!accepted) break;
@@ -97,19 +224,107 @@
 +    if (increment_norm / (beta_free_new.norm() + 1e-10) < tol) {
        beta = beta_new;
        beta_free = beta_free_new;
++      // TODO-128 step 2: next to a bound a small increment is only a
++      // candidate; the KKT gate at the top of one more iteration decides.
++      if (collect_near_bound_rows(eta_try, link_type) > 0) {
++        kkt_confirm_pending = true;
++        continue;
++      }
        converged = true;
-@@ -443,7 +497,9 @@
-       return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
+       break;
+     }
+@@ -295,13 +451,20 @@
+   // gradient here to reuse "for free" -- see fast_robust_regression.cpp for
+   // the same reasoning. hit_iteration_cap is still meaningful without
+   // touching `converged`'s definition.
++  // TODO-128 step 2: rows on a bound at the returned beta, and the capability
++  // marker kkt_converged (converged after the KKT gate; same value as
++  // converged) that tells callers this kernel has the gate.
++  const Eigen::VectorXd eta_returned = X * beta;
++  const int n_active_bounds = collect_near_bound_rows(eta_returned, link_type);
+   if (estimate_only) {
+     const bool converged_out = converged && all_finite_vec(beta);
+     return edi::ResultMap()
+       .set("b", beta)
+       .set("converged", converged_out)
+       .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
+-      .set("num_iter", iterations);
++      .set("num_iter", iterations)
++      .set("kkt_converged", converged_out)
++      .set("n_active_bounds", n_active_bounds);
+   }
+ 
+   Eigen::VectorXd eta = X * beta;
+@@ -323,7 +486,9 @@
+     .set("num_iter", iterations)
+     .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
+     .set("converged", converged_out)
+-    .set("fisher_information", weighted_crossprod(X, w));
++    .set("fisher_information", weighted_crossprod(X, w))
++    .set("kkt_converged", converged_out)
++    .set("n_active_bounds", n_active_bounds);
+ }
+ 
+ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const Eigen::MatrixXd>& X,
+@@ -371,6 +536,7 @@
+   Eigen::VectorXd beta_free = subset_vector(beta, fixed_spec.free_idx);
+ 
+   bool converged = false;
++  bool kkt_confirm_pending = false;  // TODO-128 step 2: see the KKT gate below
+   Eigen::VectorXd mu = Eigen::VectorXd::Constant(n, y.mean());
+   Eigen::VectorXd w = Eigen::VectorXd::Constant(n, 1.0);
+   Eigen::VectorXd z_adj(n);
+@@ -386,7 +552,7 @@
+   double ll_curr = weighted_loglik_constrained_binomial(X, y, obs_weights, beta, link_type);
+ 
+   int iterations = 0;
+-  for (int iter = 0; iter < maxit; ++iter) {
++  for (int iter = 0; iter < maxit || kkt_confirm_pending; ++iter) {
+     edi_check_R_user_interrupt_every(iter);
+     iterations = iter + 1;
+     const Eigen::VectorXd eta = eta_fixed + X_free * beta_free;
+@@ -431,19 +597,36 @@
+         XtWX = weighted_crossprod(X_free, w_eff);
+         ldlt.compute(XtWX);
+         if (ldlt.info() != Eigen::Success) {
+-          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
++          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
+         }
+       } else {
+-        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
++        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
+       }
+     }
+ 
+     Eigen::VectorXd beta_free_target = ldlt.solve(XtWz);
+     if (ldlt.info() != Eigen::Success || !all_finite_vec(beta_free_target)) {
+-      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations);
++      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
      }
  
 -    const Eigen::VectorXd delta_beta = beta_free_target - beta_free;
++    // TODO-128 step 2: KKT gate at a point with a row near a bound (see
++    // kkt_verdict_at_bounds()). Skipped on the first iteration, whose
++    // information may come from a warm start rather than from this point.
++    if (iter > 0) {
++      const BoundKktVerdict kkt = kkt_verdict_at_bounds(ldlt, X_free, eta, beta_free_target - beta_free, beta_free, link_type, tol, &obs_weights);
++      if (kkt.n_active > 0 && kkt.ok) {
++        converged = true;
++        break;
++      }
++      if (kkt_confirm_pending) {
++        converged = (kkt.n_active == 0);
++        break;
++      }
++    }
++
 +    // TODO-128: hold rows already on the mean-support boundary fixed.
 +    const Eigen::VectorXd delta_beta = project_increment_off_active_bounds(
 +      ldlt, X_free, eta, beta_free_target - beta_free, link_type, &obs_weights);
      const Eigen::VectorXd delta_eta = X_free * delta_beta;
      double step = 1.0;
      Eigen::VectorXd beta_new = beta;
-@@ -464,7 +520,11 @@
+@@ -464,9 +647,19 @@
        step *= 0.5;
      }
      if (!accepted) break;
@@ -121,4 +336,88 @@
 +    if (increment_norm / (beta_free_new.norm() + 1e-10) < tol) {
        beta = beta_new;
        beta_free = beta_free_new;
++      // TODO-128 step 2: next to a bound a small increment is only a
++      // candidate; the KKT gate at the top of one more iteration decides.
++      if (collect_near_bound_rows(eta_try, link_type, &obs_weights) > 0) {
++        kkt_confirm_pending = true;
++        continue;
++      }
        converged = true;
+       break;
+     }
+@@ -476,13 +669,20 @@
+ 
+   // NOT redefined to gradient-norm-based -- see the unweighted variant above
+   // for the same reasoning (optimizer_diagnostics_report.md TODO-4).
++  // TODO-128 step 2: rows on a bound at the returned beta, and the capability
++  // marker kkt_converged (converged after the KKT gate; same value as
++  // converged) that tells callers this kernel has the gate.
++  const Eigen::VectorXd eta_returned = X * beta;
++  const int n_active_bounds = collect_near_bound_rows(eta_returned, link_type, &obs_weights);
+   if (estimate_only) {
+     const bool converged_out = converged && all_finite_vec(beta);
+     return edi::ResultMap()
+       .set("b", beta)
+       .set("converged", converged_out)
+       .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
+-      .set("num_iter", iterations);
++      .set("num_iter", iterations)
++      .set("kkt_converged", converged_out)
++      .set("n_active_bounds", n_active_bounds);
+   }
+ 
+   Eigen::VectorXd eta = X * beta;
+@@ -505,7 +705,9 @@
+     .set("num_iter", iterations)
+     .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
+     .set("converged", converged_out)
+-    .set("fisher_information", weighted_crossprod(X, w_eff));
++    .set("fisher_information", weighted_crossprod(X, w_eff))
++    .set("kkt_converged", converged_out)
++    .set("n_active_bounds", n_active_bounds);
+ }
+ 
+ edi::ResultMap fit_constrained_binomial_with_var_cpp_impl(const Eigen::Ref<const Eigen::MatrixXd>& X,
+@@ -526,6 +728,9 @@
+   const int num_iter = *fit.get_if<int>("num_iter");
+   Eigen::VectorXd beta = *fit.get_if<Eigen::VectorXd>("b");
+   Eigen::VectorXd w = *fit.get_if<Eigen::VectorXd>("working_weights");
++  // TODO-128 step 2: carry the KKT capability marker and active-bound count.
++  const int* n_active_bounds_ptr = fit.get_if<int>("n_active_bounds");
++  const int n_active_bounds = (n_active_bounds_ptr != nullptr) ? *n_active_bounds_ptr : 0;
+ 
+   if (!converged || !all_finite_vec(beta) || !all_finite_vec(w)) {
+     return edi::ResultMap()
+@@ -536,7 +741,9 @@
+       .set("ssq_b_j", std::numeric_limits<double>::quiet_NaN())
+       .set("converged", false)
+       .set("hit_iteration_cap", hit_iteration_cap)
+-      .set("num_iter", num_iter);
++      .set("num_iter", num_iter)
++      .set("kkt_converged", false)
++      .set("n_active_bounds", n_active_bounds);
+   }
+ 
+   FixedParamSpec fixed_spec = make_fixed_param_spec((int)X.cols(), fixed_idx, fixed_values);
+@@ -558,7 +765,9 @@
+       .set("ssq_b_j", std::numeric_limits<double>::quiet_NaN())
+       .set("converged", false)
+       .set("hit_iteration_cap", hit_iteration_cap)
+-      .set("num_iter", num_iter);
++      .set("num_iter", num_iter)
++      .set("kkt_converged", false)
++      .set("n_active_bounds", n_active_bounds);
+   }
+ 
+   int free_j = -1;
+@@ -574,7 +783,9 @@
+     .set("num_iter", num_iter)
+     .set("fisher_information", fisher_information)
+     .set("neg_ll", -loglik_constrained_binomial(X, y, beta, link_type))
+-    .set("logLik", loglik_constrained_binomial(X, y, beta, link_type));
++    .set("logLik", loglik_constrained_binomial(X, y, beta, link_type))
++    .set("kkt_converged", true)
++    .set("n_active_bounds", n_active_bounds);
+ }
+ 
+ namespace {

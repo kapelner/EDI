@@ -235,6 +235,11 @@ ContinKKRobustRegrOneLikSource = list(
 		# estimator: randomization draws are compared with the observed statistic.
 		fit_rlm = function(X, y, j_treat, estimate_only = FALSE){
 			if (nrow(X) <= ncol(X)) return(NULL)
+			# fast_robust_regression_cpp() silently returns a 0 coefficient on
+			# non-finite input (2026-10-23, TODO-18 C1: NA pair differences from a
+			# stale FixedBinaryMatch replay pairing gave an all-zero BRT null).
+			# Non-finite rows mean the fit is not estimable, never beta = 0.
+			if (any(!is.finite(y)) || any(!is.finite(X))) return(NULL)
 			ctrl = private$resolve_rlm_control(X)
 			if (private$use_rcpp) {
 				method_to_try = if (isTRUE(private$rlm_force_M)) "M" else private$rlm_method
@@ -472,6 +477,9 @@ ContinKKRobustRegrOneLikSource = list(
 			X_comb = X_comb[ok, , drop = FALSE]
 			y_comb = y_comb[ok]
 			w_comb = w_comb[ok]
+			# Non-finite covariates would reach fast_robust_regression_cpp(), which
+			# silently returns a 0 coefficient on them (2026-10-23, TODO-131).
+			if (any(!is.finite(X_comb))) return(NA_real_)
 			reduced = private$reduce_design_matrix_once(X_comb, j_treat, cache_key = "kk_robust_combined_reduced_design_weighted")
 			X_comb = reduced$X
 			j_treat = reduced$j_treat

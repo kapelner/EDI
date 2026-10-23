@@ -130,8 +130,9 @@ InferenceExtPRWSubsampling = list(
 		#'   0.7 is a first-pass default; for unstable paths prefer the
 		#'   minimum-volatility selector.
 		#'
-		#' @return A numeric two-sided p-value, or \code{NA_real_} if the path is
-		#'   non-estimable.
+		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
+		#'   fails (recorded as a failure of this procedure only; the Wald estimate
+		#'   and standard error are kept).
 		compute_subsampling_two_sided_pval_impl = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1)
@@ -197,7 +198,9 @@ InferenceExtPRWSubsampling = list(
 		#'   estimator/design path.
 		#'
 		#' @return A length-2 numeric confidence interval, or
-		#'   \code{c(NA_real_, NA_real_)} if the path is non-estimable.
+		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
+		#'   failure of this procedure only; the Wald estimate and standard error are
+		#'   kept).
 		compute_subsampling_confidence_interval_impl = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n"){
 			if (should_run_asserts()) {
 				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)

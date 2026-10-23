@@ -107,6 +107,13 @@ InferenceContinRobustRegr = define_inference_class(
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 			X_fit = private$build_design_matrix()
+			# fast_robust_regression_cpp() silently returns a 0 coefficient on
+			# non-finite input (2026-10-23, release_v1_0_5.md TODO-131). Non-finite
+			# rows make the fit nonestimable (NA), never beta = 0.
+			if (any(!is.finite(X_fit)) || any(!is.finite(as.numeric(private$y))) || any(!is.finite(row_weights))) {
+				private$set_failed_fit_cache()
+				return(NA_real_)
+			}
 			if (private$use_rcpp) {
 				# MASS::rlm's default wt.method = "inv.var" transforms (X, y) by sqrt(weight)
 				# and runs ordinary (unweighted) M-estimation on the transformed data; this
@@ -268,7 +275,11 @@ InferenceContinRobustRegr = define_inference_class(
 		},
 		fit_rlm_model = function(X_fit, estimate_only = FALSE, warm_start = FALSE){
 			ws_args = if (warm_start) private$get_backend_warm_start_args(ncol(X_fit)) else list()
-			
+			# fast_robust_regression_cpp() silently returns a 0 coefficient on
+			# non-finite input (2026-10-23, release_v1_0_5.md TODO-131): treat
+			# non-finite rows as a failed (nonestimable) fit, never beta = 0.
+			if (any(!is.finite(X_fit)) || any(!is.finite(as.numeric(private$y)))) return(NULL)
+
 			if (private$use_rcpp) {
 				tryCatch(
 					fast_robust_regression_cpp(
@@ -390,10 +401,20 @@ InferenceContinRobustRegr = define_inference_class(
 			} else {
 				matrix(numeric(0), nrow = private$n, ncol = 0L)
 			}
-			compute_robust_rand_bootstrap_parallel_cpp(
+			# The parallel kernel runs the same IRLS as fast_robust_regression_cpp(),
+			# which returns a 0 coefficient on non-finite input (2026-10-23,
+			# TODO-131): a non-finite resampled response/covariate makes every
+			# affected draw nonestimable (NA), never 0.
+			bad_row = !is.finite(as.numeric(y0_full))
+			if (ncol(Xc) > 0L) bad_row = bad_row | rowSums(!is.finite(Xc)) > 0L
+			bad_draw = vapply(seq_len(ncol(mats$i_mat)), function(b) any(bad_row[mats$i_mat[, b]]), logical(1L))
+			if (!is.null(mats$noise_mat)) bad_draw = bad_draw | colSums(!is.finite(mats$noise_mat)) > 0L
+			out = compute_robust_rand_bootstrap_parallel_cpp(
 				as.numeric(y0_full), Xc, mats$i_mat, mats$w_mat,
 				as.numeric(delta), private$rlm_method, mats$noise_mat, private$n_cpp_threads(ncol(mats$w_mat))
 			)
+			out[bad_draw] = NA_real_
+			out
 		}
 	),
 	overrides = list(

@@ -107,7 +107,7 @@ test_that("external receipt CLI preserves explicit environment and child status"
 		command = identical(receipt$command, command),
 		args = identical(receipt$args, child_args),
 		env = identical(receipt$env_overrides, env_override),
-		env_inherits_parent = identical(receipt$env_inherits_parent, FALSE),
+		env_inherits_parent = identical(receipt$env_inherits_parent, TRUE),
 		supervisor_pid = is.numeric(receipt$supervisor_pid) && length(receipt$supervisor_pid) == 1L && receipt$supervisor_pid > 0,
 		exit_status = identical(receipt$exit_status, 7L),
 		stdout = file.exists(stdout_path) && identical(readLines(stdout_path, warn = FALSE), "receipt-env-visible"),
@@ -120,11 +120,31 @@ test_that("external receipt CLI preserves explicit environment and child status"
 	expect_identical(receipt$command, command, info = failure_info)
 	expect_identical(receipt$args, child_args, info = failure_info)
 	expect_identical(receipt$env_overrides, env_override, info = failure_info)
-	expect_false(receipt$env_inherits_parent, info = failure_info)
+	expect_true(receipt$env_inherits_parent, info = failure_info)
 	expect_true(is.numeric(receipt$supervisor_pid) && length(receipt$supervisor_pid) == 1L && receipt$supervisor_pid > 0, info = failure_info)
 	expect_identical(receipt$exit_status, 7L, info = failure_info)
 	expect_identical(readLines(stdout_path, warn = FALSE), "receipt-env-visible", info = failure_info)
 	expect_identical(receipt$stdout$sha256, receipt_test_sha256(stdout_path), info = failure_info)
 	expect_identical(receipt$stderr$sha256, receipt_test_sha256(stderr_path), info = failure_info)
 	expect_false(file.exists(paste0(receipt_path, ".running")), info = failure_info)
+})
+
+test_that("--env extends the parent environment instead of replacing it (2026-10-23)", {
+	# Before the fix the child saw only the --env variables, lost HOME and
+	# R_LIBS_USER, and could not load the installed EDI.
+	scratch <- tempfile("edi-external-receipt-env-", tmpdir = "/tmp")
+	if (!dir.create(scratch)) stop("could not create scratch directory")
+	withr::defer(unlink(scratch, recursive = TRUE), envir = environment())
+	withr::local_envvar(RECEIPT_TEST_INHERITED = "inherited-visible")
+	stdout_path <- file.path(scratch, "out.log")
+	receipt <- run_comprehensive_external_process_with_receipt(
+		command = file.path(R.home("bin"), "Rscript"),
+		args = c("-e", "cat(Sys.getenv('RECEIPT_TEST_INHERITED'), Sys.getenv('RECEIPT_TEST_ADDED'))"),
+		receipt_path = file.path(scratch, "r.rds"),
+		stdout_path = stdout_path,
+		stderr_path = file.path(scratch, "err.log"),
+		env = "RECEIPT_TEST_ADDED=added-visible"
+	)
+	expect_identical(receipt$exit_status, 0L)
+	expect_identical(readLines(stdout_path, warn = FALSE), "inherited-visible added-visible")
 })

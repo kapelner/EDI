@@ -50,12 +50,66 @@ Rd for those functions needs `roxygenize` afterwards (not hand-edited here).
 | 12 | `12-ordinal-scale-aware-convergence.patch` | 107 | NEW `ordinal_scale_guard.h`; `fast_ordinal_regression.cpp`, `fast_ordinal_cauchit_regression.cpp`, `fast_ordinal_cloglog_regression.cpp`, `fast_ordinal_probit_regression.cpp`, `fast_adjacent_category_logit.cpp`, `fast_continuation_ratio_regression.cpp` |
 | 13 | WITHDRAWN (patch file deleted) | 118 | the kernel `generate_permutations_blocking_cpp` was deleted instead (owner decision 2026-10-22) |
 | 14 | `14-log-binomial-active-set-step.patch` | 128 | `fast_log_binomial_regression.cpp` |
+| 15 | `15-robust-regression-nonfinite-input.patch` (written 2026-10-23) | 131 | `fast_robust_regression.cpp` |
 
 `*.REFERENCE-ONLY.patch` show what `compileAttributes()` should produce for `R/RcppExports.R`;
 do NOT apply them; regenerate instead (they exist so the regeneration can be diffed).
 `src/RcppExports.cpp` carries no default arguments, so patch 04 changes nothing there.
 TODO-57/3 are NOT in this bundle (not requested; TODO-107 is patch 12; patch 13 for TODO-118 was withdrawn, see below); the CLMM
 `eps_g` change was R-only (`clmm_eps_g`), so no C++ patch is needed.
+
+## Owner-approved for G1 (decided 2026-10-22; "accept all" on `release_v1_0_5.md → G6`)
+
+**Approval status:**
+
+| Patch | Decision | Condition |
+|---|---|---|
+| 04 | G6 #40 (c) | apply with its listed tests (see note 04). Only the default in `fast_neg_bin_cpp`/`_with_var_cpp` changes; #40 (a)(b) are deferred to `release_v1_1_0.md → TODO-67` |
+| 07 | G6 #26 | ONLY together with companions B07 and B07b, and only after the TODO-4 guard-test review in step 1 below. If that review finds a test the pseudo-inverse legitimately breaks beyond what B07b updates, stop and skip 07 + B07b (B07 alone is harmless: it is inert without the tag) |
+| 08 | G6 #16 | apply. The BRT Cox kernel's literal `20` (~L1220) is NOT changed |
+| 10 + 11 | G6 #27 | apply 11 together with 10 |
+| 14 | G6 #46 (owner, 2026-10-22) | apply, with the KKT convergence gate folded in (note 14). Expected: some hard boundary log-binomial fits now report non-convergence |
+
+Not owner-gated (each is already in its TODO's scope, G1 only): 01 (TODO-123), 02 (TODO-111), 03 (TODO-121), 05 (TODO-108,
+with A05), 06 (TODO-106, with C06; the Python `.postN` release is approved by G6 #28, but push/tag need their own go-ahead),
+09 (TODO-121, comment only), 12 (TODO-107), 15 (TODO-131; added 2026-10-23). 13 is withdrawn. Never apply `04b`/`08b` (REFERENCE-ONLY).
+
+**Exact apply order** (from the repo root; run `git apply --check --directory=. <file>` immediately before each apply,
+because the R tree changes under other agents):
+
+1. Review the TODO-4 guard tests (G6 #26 precondition) before anything else. Do this by reading, plus running them on the
+   unpatched build: `test-information-inverse-guard.R`, `test-information-inverse-inference-typed-guards.R`,
+   `test-information-inverse-edge-cases.R`, `test-zinb-zero-inflation-boundary.R`, `test-zinb-zi-block-unidentified-count-se.R`.
+   Record which assertions patch 07 changes. Only `test-information-inverse-guard.R` L125-129 is expected (B07b).
+2. `companions/B07-zinb-safe-vcov-subblock.patch` (R only; safe before the kernel).
+3. C++ patches, in this order: `01`, `02`, `03`, `04`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `14`, `15`.
+   - 02/03 share `fast_survival_models_optim.cpp`. 05/10 share `fast_survival_stats.cpp`. 08/10 share
+     `fast_coxph_regression.cpp`. 11/15 share `fast_robust_regression.cpp` (distant hunks; either order composes, see
+     note 15).
+   - Verified 2026-10-22 (check only, nothing applied): one `git apply --check --directory=.` with all thirteen files in
+     this order passed against the working tree.
+   - Re-verified 2026-10-23 with 15 appended (check only, nothing applied): one `git apply --check --directory=.` with
+     all fourteen files (01-12, 14, 15) in this order passed, and so did the same call with
+     `companions/B07-zinb-safe-vcov-subblock.patch` prepended (step 2 then step 3).
+4. Targeted compile (`EDI_UNITY=0`) of every touched `.cpp`, then relink, as in "Compile / relink pattern". Patch 01 is a
+   header change: recompile every file that instantiates `optimize_likelihood_newton`. Patch 12 adds `ordinal_scale_guard.h`
+   plus 6 `.cpp`. If the per-file `.o` files are missing, STOP and ask.
+5. `Rcpp::compileAttributes()`. Patches 04, 05 and 08 change exported formals/defaults. Diff the regenerated
+   `R/RcppExports.R` against `04b`/`08b`; do not apply those two.
+6. R/Python companions: `companions/A05-rmst-tau-R-callsite.patch`, `companions/B07b-zinb-guard-test-update.patch`,
+   `companions/C06-ridit-delong-se-test-constants.patch`.
+7. Copy the six companion tests into `R/EDI/tests/testthat/`:
+   - `test-newton-stall-false-nonconvergence.R`
+   - `test-depcens-clayton-kernel-numerics.R`
+   - `test-rmst-tau-fast-kernel.R`
+   - `test-ridit-kernel-se-equals-delong.R`
+   - `test-zinb-pseudo-inverse-identified-coordinates.R`
+   - `test-cox-newton-descent-guard.R`
+8. Run them with `EDI_REQUIRE_CPP_PATCHES=true`, plus each patch's "Verify" list below. That includes patch 04's NegBin
+   tests, 10/11's per-kernel BRT tests plus a new `matrix(0, 0, 0)` noise test, 14's
+   `test-log-binomial-jackknife-history-independence.R`, and 15's robust-regression list (note 15).
+9. Because 04/05/08 change exported signatures, re-run G8 (roxygen) and G9 (drift CSVs) afterwards, as
+   `release_v1_0_5.md`'s dependency diagram requires.
 
 ## Per-patch notes
 
@@ -181,6 +235,26 @@ TODO-57/3 are NOT in this bundle (not requested; TODO-107 is patch 12; patch 13 
 - Risk: none for NULL/non-empty input (identical behaviour). Verify: `test-brt-smoothed-noise-mat-plumbing.R` and the per-kernel
   `test-brt-smoothed-{survival-stat-diff,logrank,coxph,weibull,ols,mean-diff,wilcox,robust-regr}-kernel.R`; add a test passing `matrix(0, 0, 0)`.
 
+### 15 robust-regression-nonfinite-input (TODO-131), written 2026-10-23, UNCOMPILED
+- Not owner-gated beyond G1 (in TODO-131's scope). The user applies and builds it; agents do not compile.
+- Purpose: `fast_robust_regression_internal()` ran its IRLS on non-finite `X`/`y` and returned a 0 coefficient, which
+  callers could not tell from a real estimate (TODO-18 cell C1: `NA` KK pair differences from the stale `FixedBinaryMatch`
+  replay pairing gave an identically 0 BRT null). The R callers now pre-check (R-side guards, 2026-10-23); this patch makes
+  the kernel itself refuse such input.
+- Change: (1) `fast_robust_regression_internal()` throws `std::invalid_argument` when `X` or `y` has a non-finite entry
+  (exported `fast_robust_regression_cpp()` turns it into an R error, which every R caller already catches with `tryCatch`
+  -> `NULL` -> nonestimable; the Python binding in `python/cpp/bindings_continuous.cpp` gets a `ValueError`). (2)
+  `compute_robust_rand_bootstrap_parallel_cpp()` checks each draw's assembled `X_b`/`y_b` before calling the core and skips
+  a non-finite draw (result stays `NA`), because an exception must not escape the OpenMP region.
+- Finite input is bit-identical (the check only reads). No exported signature change, so no `compileAttributes()`; only
+  `fast_robust_regression.cpp` recompiles. Composes with patch 11 (same file, distant hunks) in either order: checked with
+  `patch` on scratch copies.
+- Verify (after user compile, `EDI_UNITY=0`): `R/package_tests/testthat_bulk/test-robust-regression-nonfinite-input-nonestimable.R`
+  (R-side guards; must still pass), `test-brt-matched-pair-replay-uses-resampled-pairs.R`, the robust kernel tests
+  (`R/EDI/tests/testthat/test-kk-robust-regr-use-rcpp.R`, `test-robust-regression-mad.R`, `test-robust-regression-xtx-cache.R`,
+  `test-brt-smoothed-robust-regr-kernel.R`), and by hand `fast_robust_regression_cpp(cbind(1, c(0, 1, 0, 1)), c(1, NA, 2, 3))`
+  must error instead of returning a coefficient.
+
 ## Not written
 None of the nine requested patches was skipped. Not in scope / not written: TODO-107 (six-kernel scale-aware convergence), TODO-118, TODO-57, TODO-3,
 and an R-side companion for 05 and 07 (described above, R files are being edited concurrently).
@@ -208,6 +282,7 @@ To run a companion test by hand: `NOT_CRAN=true Rscript -e 'testthat::test_file(
 | 06 ridit DeLong SE | 1) build 06; 2) `git apply companions/C06-ridit-delong-se-test-constants.patch`; 3) copy `test-ridit-kernel-se-equals-delong.R` | C06 rewrites the tests that pin the old SE: `python/tests/test_fast_ridit_analysis.py` (`R_SE` 0.0487241695783548 -> 0.086836566958365; the treatment-reference `expected_se` (sd/sqrt(n) of control scores) -> constant 0.086836566958365; new pooled constant 0.0424534327352006 = R_SE * 22/45 plus a new test) and three `r$se` lines in `R/package_tests/testthat_bulk/test-ridit-analysis-and-bootstrap-kernels-reference-groups-and-treatment-reference-degeneracy-reference.R` (fixture `fx()`: control and treatment 0.0597673440656908, pooled 0.0298836720328454). All constants were computed 2026-10-22 with `EDI:::ridit_delong_se()` (comments in the patch say how). Apply C06 only together with the built patch (it would fail the suite before). The new test file asserts kernel `se == ridit_delong_se()` for control/treatment/pooled on `fx()`, the missing-interior-level fixture (0.237992909558247), a one-subject-arm case and 20 random fixtures; it self-skips pre-patch via a numeric probe (pre-patch kernel se is 0.04305201 vs DeLong 0.0597673 on `fx()` control). The R class keeps `ridit_delong_se()`. A `python/CHANGELOG.md` entry and `.postN` bump are still needed (not written). No other test under `R/EDI/tests` or `R/package_tests` pins `fast_ridit_analysis_cpp()$se` (grepped). |
 | 07 zinb pseudo-inverse | 1) `git apply companions/B07-zinb-safe-vcov-subblock.patch` (safe to apply BEFORE the kernel: it changes nothing unless `fit$covariance_type` is the tag); 2) build 07; 3) `git apply companions/B07b-zinb-guard-test-update.patch`; 4) copy `test-zinb-pseudo-inverse-identified-coordinates.R` | B07 edits `safe_zero_augmented_vcov_se()`: the rescue branch accepts a vcov that is not all-finite only when `fit$covariance_type` is `"pseudo_inverse_identified_coordinates"` (the tag patch 07 actually emits, and the only place it does so is `fast_zinb_cpp`; `fast_zinb_with_var_internal` emits NO tag, see risks) or `"pseudo_inverse_zero_inflation_unidentified"` (the name suggested in the task, harmless alias); the existing sub-block test `zero_augmented_fit_is_degenerate(vc[idx, idx])` (count coefs + theta for ZINB) then decides, and it already rejects non-finite input, so a duplicated COUNT column still yields NA SE (the aliased pair is inside `idx`). Untagged kernels: condition is the old `all(is.finite(vc))`, bit-identical. B07b updates the only TODO-4 guard test that asserts an all-NaN ZINB vcov: `test-information-inverse-guard.R` L125-129 (`fast_zinb_cpp` with duplicated `x`/`x_duplicate`): untagged keeps `all(is.nan(vcov))`; tagged expects NaN rows/cols 3,4 and a finite remaining block. Other tests checked and left alone: `test-information-inverse-inference-typed-guards.R` L79 (ZINB duplicated count column: the class SE stays NA because the duplicated columns sit in the count sub-block, so this test should still pass; unverified), `test-information-inverse-edge-cases.R` (NB only), `test-zinb-zero-inflation-boundary.R` (boundary path neutering the zi block; information is invertible there, so untouched; re-run), `test-zinb-zi-block-unidentified-count-se.R` (pscl SE equality; re-run). The new test file checks a zero-inflation block with an exactly duplicated column (count/theta SEs equal pscl within 5%, duplicated zi rows NaN), a duplicated count column (NaN rows 3,4), and the untagged/tagged `safe_zero_augmented_vcov_se()` behavior at unit level (skips until B07 is applied). |
 | 08 Cox guard | `test-cox-newton-descent-guard.R` (after building 08) | Cold Newton Cox on survey fixture n=40 DGP 2 seed 15 (`cox_data` copied from `/tmp/claude-1000/tsurvey2/run_cox.R`): pre-patch reports `converged = TRUE` with bT = 166.03 (reproduced); post-patch must not report converged with bT off 3.385873 (coxph/LBFGS value) by >1e-3; a DGP-1 fixture keeps its previous path (bT 0.682037781). A second test asserts the `maxit` formal is 100 for both Cox kernels (08b). Probe: skip while the divergent TRUE is reproduced. |
+| 14 log-binomial active set + KKT gate | `R/package_tests/testthat_bulk/test-log-binomial-constrained-mle-nloptr-reference-todo128.R` (already in the tree; after building 14) | `InferenceIncidLogBinomial` full-data fits (`~ .`) against an nloptr SLSQP constrained MLE (`X b <= -1e-8`, three starts): interior seed 11 n=200 (runs now: log-lik within 1e-6, coefficients 1e-4) and boundary seeds 20261022/120, 7/200, 20/120 (log-lik within 1e-4, coefficients 1e-3, kernel `converged` and `kkt_converged` TRUE, `n_active_bounds >= 1`). Probe: the `kkt_converged` field; skips pre-patch, fails under `EDI_REQUIRE_CPP_PATCHES=true`. |
 
 Suggested order overall: B07 (R only) -> build the patches you want -> `compileAttributes()` -> the R/Python companion diffs (A05, B07b, C06) ->
 copy the five new test files -> run them with `EDI_REQUIRE_CPP_PATCHES=true`. Not covered: patches 04, 09, 10, 11 have no
@@ -247,7 +322,8 @@ Known limits / risks of the companions
 - Not written: a C++ rejection sampler for `DesignFixedRerandomization` (prob_T != 0.5 or odd n). The serial R loop was replaced by a
   vectorized R batch sampler (`generate_rerandomized_w_batch`), so a native version is only an optional OpenMP speedup.
 
-### 14 log-binomial-active-set-step (TODO-128), written 2026-10-22, UNCOMPILED
+### 14 log-binomial-active-set-step (TODO-128), written 2026-10-22, KKT gate added 2026-10-22, UNCOMPILED
+- **Owner decision 2026-10-22: APPLY at G1** (the G6 question is closed). The user applies and builds it; agents do not compile.
 - Purpose: the constrained-binomial Fisher-scoring loops (`fit_constrained_binomial_cpp_impl` and `_weighted_cpp_impl`; log
   and identity links) have no boundary handling beyond step halving. When a row sits on the mean-support boundary
   (log link: `eta >= -1e-8`) and the Newton step pushes it outward, halving shrinks the step to ~1e-8, the tiny accepted step
@@ -259,18 +335,64 @@ Known limits / risks of the companions
 - Change: (1) `project_increment_off_active_bounds()` replaces the increment by its XtWX-metric projection onto
   `{d : X_A d = 0}` for rows within 1e-6 of the boundary that the step would push outward (zero-weight rows excluded in the
   weighted loop); (2) convergence is tested on the full (projected) increment when the line search had to damp the step, and
-  on the actual step otherwise (bit-identical to the old test when `step == 1`). Interior fits form no active set, so their
-  arithmetic is unchanged.
-- Validated only as an R prototype (`/tmp/claude-1000/todo128/proto.R`, harnesses `r11.R`, `r13.R`): boundary full fits reach
-  a higher log-likelihood than Nelder-Mead; warm- and cold-started leave-one-out fits agree to ~1e-7 (was 0.06); interior fits
-  are identical to the unpatched prototype. Known limitation: near the boundary Fisher scoring converges slowly; on the
-  200-row seed about 20% of leave-one-out fits needed more than `maxit = 200` iterations (they converge, slowly), so those
-  fits would now report `converged = FALSE` (NA) where the unpatched kernel falsely reported convergence. Consider a larger
-  `maxit` for the log link or observed-information Newton steps if that rate matters.
+  on the actual step otherwise (bit-identical to the old test when `step == 1`); (3) **KKT convergence gate**
+  (`collect_near_bound_rows()`, `kkt_verdict_at_bounds()`): at a point where some row is within 1e-6 of a bound (log: eta -> 0;
+  identity: mu -> 0 or 1, signed), a fit is converged only if (i) the Newton-metric projected increment
+  `H^{-1}(g - C' lambda)` onto `{d : C d = 0}` (C = the signed near-bound rows, `H d0 = g` reuses the iteration's own
+  information and Fisher-scoring increment, no extra evaluation) is `<= 10 * tol` relative to `|beta_free|` (the scale of the
+  loop's relative-change test) and (ii) every multiplier `lambda >= -1e-3 * max(1, max|lambda|)` (each held bound genuinely
+  binding: the score points outward there). The gate runs at the top of every iteration after the first whose current point
+  has a near-bound row (a pass stops the fit as converged: this also ends the Fisher-scoring 2-cycle seen next to the bound,
+  where alternate full and half steps never pass the 1e-6 increment test), and when the increment test passes at a near-bound
+  point the loop runs one more iteration whose gate decides (`kkt_confirm_pending`; a fail is a stall and returns
+  `converged = FALSE`, honest NA downstream). The log-likelihood is concave and the bounds are linear in beta, so a KKT point
+  is the constrained MLE. (4) New result fields: `kkt_converged` (same value as `converged`; its presence is the capability
+  marker that tells R a built DLL has the gate; also `FALSE` on the early-return failure paths) and `n_active_bounds` (rows
+  within 1e-6 of a bound at the returned beta), on the plain, weighted, `estimate_only` and `_with_var` results.
+  Points with no row near a bound never reach the gate or the projection, so interior fits are bit-identical (b, converged,
+  num_iter).
+- Validated only as an R prototype that mirrors the C++ loop line by line (`/tmp/claude-1000/todo128b/proto_kkt.R`;
+  unpatched mode reproduces the installed kernel to 1e-11; harnesses `r1.R`, `r2.R`, `r4.R`, `r6.R`, outputs `r4_final.txt`,
+  `r6_final.txt`; reference = nloptr SLSQP with `X b <= -1e-8`, three starts):
+  - 28 synthetic boundary datasets (`make_todo128_design()`, seeds with a full-data row on the bound, n = 120/200): the
+    UNPATCHED kernel reports `converged = TRUE` on all 28 but is short of the constrained MLE on 23 (log-lik gaps up to 0.50,
+    treatment coefficient off by up to 0.065); the KKT check, evaluated at the unpatched kernel's answer, rejects all 23 and
+    also the 3 whose log-lik is within 2e-6 but whose coefficients have not converged (projected increment 1.4e-5..1.7e-4
+    relative), and accepts the 2 that are genuinely at the MLE. Patch 14 without the gate converged on 26/28; with the gate
+    28/28, all at the reference (log-lik within 1.4e-5, coefficients within 2.4e-4, median ~1.5e-5), in fewer iterations.
+  - Leave-one-out (60 folds, four boundary seeds): warm-from-full and cold fits agree to 1.7e-6..1.3e-4 in the treatment
+    coefficient; the unpatched warm refits are KKT-valid on 0/60, 1/60, 39/50, 0/60 folds. On seed 25 (n = 200) 6/60 warm and
+    13/60 cold folds still hit `maxit = 100` without reaching the bound (interior Fisher-scoring oscillation, not a boundary
+    stall; several converge by `maxit = 1000`): those become NA where the unpatched kernel reported a (mostly false) convergence.
+  - Crafted non-optimal boundary point (interior MLE shifted so one y = 1 row sits 5e-7 inside the bound): rejected by both
+    conditions (projected increment 0.30, lambda -17.7).
+  - Interior fits: 69/69 log-link (unweighted + exponential weights) and 30/30 identity-link fits bit-identical to the
+    unpatched loop (b, converged, iterations).
+  - Weighted log boundary refits (20 Dirichlet-style draws with 10 zero weights): unpatched converged 13, KKT-valid 5;
+    patched 13 converged, log-lik up to 1.4 higher.
+- `InferenceIncidBinomialIdentityRiskDiff` (same two loops, `kIdentity`, bounds at `kMinMu = 1e-8` and `kMaxMu = 1 - 1e-8`):
+  covered by the same code; `collect_near_bound_rows()` signs lower-bound rows -1 and upper-bound rows +1, and the projection
+  and gate treat both. Prototype on three identity sets whose MLE puts a covariate stratum at mu = 0: the unpatched kernel
+  falsely converges (log-lik gaps 0.56..2.25, gate rejects); patch 14 alone converges on all three but on two of them with a
+  wrong active set (a held row with multiplier -744 / -3.99, log-lik short by 4.7e-4 / 4.0e-5); the gate turns those two into
+  `converged = FALSE` and accepts the third (at the reference to 8e-6). In practice the class rarely reaches such fits (its OLS
+  smart cold start is often infeasible, and QR column dropping then removes the offending column). Possible follow-up (not in
+  this patch): drop rows with negative multipliers from the projection's active set (a full active-set step), which would let
+  those fits converge instead of returning NA.
+- Known limitation (unchanged): Fisher scoring converges linearly and can oscillate near the bound; the gate's 10 * tol stop
+  removes the boundary 2-cycle, but interior oscillation still exhausts `maxit` on some resampled fits (above). A larger `maxit`
+  for the log link or observed-information Newton steps would address it.
 - Risk: changes boundary fits of `InferenceIncidLogBinomial` and `InferenceIncidBinomialIdentityRiskDiff` (full-data estimates
-  too, toward the MLE), so it needs the owner's decision under the numerical-equivalence rule. Needs `<vector>` (added) and
-  Eigen's `completeOrthogonalDecomposition` (in `<Eigen/Dense>`, already included via RcppEigen / the core header).
-- Verify (after user compile of `fast_log_binomial_regression.cpp`): `test-log-binomial-jackknife-history-independence.R`
-  (must still pass), the R-side boundary rule (`logbin_feasible_warm_start_args()`, could then be relaxed), and on
-  `make_todo128_design()` with `~.`: full fit `converged`, `max(X %*% b) <= -1e-8`, and log-lik >= -79.7781.
+  too, toward the MLE; some boundary refits become NA). Needs `<vector>` (added) and Eigen's `completeOrthogonalDecomposition`
+  (in `<Eigen/Dense>`, already included via RcppEigen / the core header). `std::max` comes through the existing includes (the
+  file already uses it). No exported signature changes, so no `compileAttributes()`; only `fast_log_binomial_regression.cpp`
+  recompiles. The Python binding uses the same `*_impl` functions and simply gains the two result fields.
+- Verify (after user compile of `fast_log_binomial_regression.cpp`, `EDI_UNITY=0`): with `EDI_REQUIRE_CPP_PATCHES=true`,
+  `R/package_tests/testthat_bulk/test-log-binomial-constrained-mle-nloptr-reference-todo128.R` (interior block runs today; the
+  boundary block keys on the `kkt_converged` field and skips with a message naming this patch until it is built; dry-run
+  against the R prototype in place of the kernel: 33/33 pass; against the unpatched numbers with the field faked: 8 failures),
+  `test-log-binomial-boundary-mle-warning-todo128.R` (R-only warning, must still pass), `test-log-binomial-jackknife-history-
+  independence.R` (must still pass), the kernel tests `test-log-and-identity-binomial-kernels-glm-fixed-coefficients-working-
+  weights-and-iteration-cap-reference.R` and `test-binomial-link-score-hessian-and-identity-fit-kernels-reference.R`, and the
+  R-side boundary rule (`logbin_feasible_warm_start_args()`, could then be relaxed).
 

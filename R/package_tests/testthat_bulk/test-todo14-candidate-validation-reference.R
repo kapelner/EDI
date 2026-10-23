@@ -331,3 +331,106 @@ test_that("TODO-14 candidate validation is read-only and checks the full key/res
 	expect_identical(unname(tools::md5sum(manifest_path)), manifest_hash)
 	expect_identical(unname(tools::md5sum(candidate_path)), candidate_hash)
 })
+
+# 2026-10-22 (G6 #33, G4-C runbook R5): the FixedBinaryMatch x pte_example x
+# design_formula=~1 keys are a predeclared expected skip. They stay in the
+# 8,640-key manifest and are accepted as skips only via `approved_skips`.
+test_that("TODO-14 approved_skips accepts exactly the predeclared FixedBinaryMatch ~1 pte_example skip", {
+	runner_path <- testthat::test_path("..", "comprehensive_tests.R")
+	dataset_source_path <- testthat::test_path("..", "_dataset_load.R")
+	manifest <- todo14_source_candidate_manifest(runner_path, dataset_source_path)
+	approved <- todo14_predeclared_approved_skips(manifest)
+	# 40 reps x 2 beta_T values x 3 rand operations, one formula arm.
+	expect_equal(nrow(approved), 240L)
+	expect_identical(unique(approved$design), "FixedBinaryMatch")
+	expect_identical(unique(approved$dataset), "pte_example")
+	expect_identical(unique(approved$inference_class), .todo14_expected_classes[1L])
+	expect_setequal(unique(approved$beta_T), c(0, 0.5))
+	expect_true(all(approved$id %in% manifest$id))
+
+	candidate <- manifest[!manifest$id %in% approved$id, , drop = FALSE]
+	candidate$run_row_id <- seq_len(nrow(candidate))
+	candidate$status <- "ok"
+	candidate$error_message <- NA_character_
+	candidate$skip_reason <- NA_character_
+	candidate$method_family <- "rand"
+	candidate$coverage_scope <- "comprehensive_workflow"
+	candidate$argument_coverage_kind <- "not_argument_combination"
+	candidate$github_commit_id <- paste(rep("a", 40), collapse = "")
+	candidate$timestamp <- "2026-10-22 12:00:00 UTC"
+	is_ci <- candidate$function_run == "compute_rand_confidence_interval"
+	candidate$result_1 <- ifelse(is_ci, -1, 0.25)
+	candidate$result_2 <- ifelse(is_ci, 1, NA_real_)
+	candidate$coverage_truth <- candidate$beta_T
+	candidate$beta_T_in_confidence_interval <- is_ci
+	snapshot <- list(
+		checkout_sha = paste(rep("a", 40), collapse = ""), r_version = "R 4.5.0",
+		package_version = "1.0.3", library_path = "/tmp/fake-library/EDI",
+		dll_path = "/tmp/fake-library/EDI/libs/EDI.so", dll_sha256 = paste(rep("b", 64), collapse = "")
+	)
+	provenance <- list(before = snapshot, after = snapshot)
+
+	# Without approval the absent group is a gate failure, as before.
+	unapproved <- validate_todo14_candidate(manifest, candidate, provenance, snapshot)
+	expect_false(unapproved$ok)
+	expect_setequal(unapproved$missing_ids, approved$id)
+	expect_true(all(c("missing_id", "candidate_row_count", "candidate_replicates") %in% unapproved$issues$check))
+
+	# With approval (as a key table, or as bare ids) the same candidate passes.
+	accepted <- validate_todo14_candidate(manifest, candidate, provenance, snapshot, approved_skips = approved)
+	expect_true(accepted$ok, info = paste(unique(accepted$issues$check), collapse = ", "))
+	expect_length(accepted$missing_ids, 0L)
+	expect_equal(accepted$counts$approved_skips, 240L)
+	expect_equal(accepted$counts$approved_skips_absent, 240L)
+	expect_equal(accepted$counts$approved_skips_present_as_skip_rows, 0L)
+	expect_equal(accepted$counts$candidate_rows, 8640L - 240L)
+	expect_true(validate_todo14_candidate(manifest, candidate, provenance, snapshot, approved_skips = approved$id)$ok)
+
+	# An approved key may also appear as an explicit skip row ...
+	skip_row <- manifest[manifest$id == approved$id[1L], , drop = FALSE]
+	skip_row$run_row_id <- nrow(candidate) + 1L
+	skip_row$status <- "ok"
+	skip_row$error_message <- "FixedBinaryMatch setup needs matched-pair ids"
+	skip_row$skip_reason <- "setup_skipped"
+	skip_row$method_family <- "rand"
+	skip_row$coverage_scope <- "comprehensive_workflow"
+	skip_row$argument_coverage_kind <- "not_argument_combination"
+	skip_row$github_commit_id <- snapshot$checkout_sha
+	skip_row$timestamp <- "2026-10-22 12:00:00 UTC"
+	skip_row$result_1 <- NA_real_
+	skip_row$result_2 <- NA_real_
+	skip_row$coverage_truth <- NA_real_
+	skip_row$beta_T_in_confidence_interval <- NA
+	with_skip_row <- rbind(candidate, skip_row)
+	skip_row_result <- validate_todo14_candidate(manifest, with_skip_row, provenance, snapshot, approved_skips = approved)
+	expect_true(skip_row_result$ok, info = paste(unique(skip_row_result$issues$check), collapse = ", "))
+	expect_equal(skip_row_result$counts$approved_skips_present_as_skip_rows, 1L)
+	expect_equal(skip_row_result$counts$approved_skips_absent, 239L)
+
+	# ... but never with a result: approved keys must be skipped.
+	attempted <- skip_row
+	attempted$skip_reason <- NA_character_
+	attempted$error_message <- NA_character_
+	attempted$result_1 <- 0.3
+	attempted_result <- validate_todo14_candidate(manifest, rbind(candidate, attempted), provenance, snapshot, approved_skips = approved)
+	expect_false(attempted_result$ok)
+	expect_true("approved_skip_not_skipped" %in% attempted_result$issues$check)
+
+	# Approval covers only its own keys: a missing non-approved key still fails.
+	other_missing <- validate_todo14_candidate(manifest, candidate[-1L, , drop = FALSE], provenance, snapshot, approved_skips = approved)
+	expect_false(other_missing$ok)
+	expect_setequal(other_missing$missing_ids, candidate$id[1L])
+	expect_true(all(c("missing_id", "candidate_row_count") %in% other_missing$issues$check))
+
+	# An approved key outside the manifest, or a stale id, fails closed.
+	stray <- validate_todo14_candidate(manifest, candidate, provenance, snapshot,
+		approved_skips = c(approved$id, "not||a||manifest||key"))
+	expect_false(stray$ok)
+	expect_true("approved_skip_not_in_manifest" %in% stray$issues$check)
+	tampered <- approved
+	tampered$id[1L] <- paste0(tampered$id[1L], "||x")
+	expect_error(validate_todo14_candidate(manifest, candidate, provenance, snapshot, approved_skips = tampered),
+		"differs from its natural-key fields")
+	expect_error(validate_todo14_candidate(manifest, candidate, provenance, snapshot,
+		approved_skips = rep(approved$id[1L], 2L)), "duplicate ids")
+})

@@ -8,7 +8,8 @@
 > distribution-free, and resampling-based) matched to each design and
 > response type: continuous, incidence (binary), count, proportion, survival
 > with censoring, and ordinal. Core estimation kernels are C++ (Eigen +
-> LBFGS++). Not related to Electronic Data Interchange.
+> LBFGS++). Replaces the deprecated SeqExpMatch package. Not related to
+> Electronic Data Interchange.
 
 Key facts:
 

@@ -37,6 +37,13 @@ InferenceExtQuantileRandCI = list(
 				inference_stop_rand_ci_exact_zero_one(class(self)[1L])
 			}
 			private$nsim_rand = as.integer(r)
+			# v1.0.5 TODO-129 sweep: the sign-flip / permutation draws in
+			# compute_rand_pval_matched_pairs()/compute_rand_pval_reservoir() came
+			# from the caller's global RNG stream. Seed them like every other
+			# randomization procedure (TODO-112: inference seed, else design seed;
+			# caller's RNG restored on exit; no-op when unseeded).
+			restore_draw_rng = private$seed_global_rng_for_draws()
+			on.exit(restore_draw_rng(), add = TRUE)
 			tryCatch(
 				private$ci_exact_zhang_combined(alpha, pval_epsilon),
 				error = function(e) c(NA_real_, NA_real_)

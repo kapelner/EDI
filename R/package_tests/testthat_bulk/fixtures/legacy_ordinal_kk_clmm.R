@@ -149,7 +149,8 @@ InferenceAbstractKKOrdinalCLMMLegacyOrig = define_inference_class(
 					# snapshot. The live class now uses private$clmm_eps_g = 1e-6 (a deliberate
 					# accuracy fix, not a migration change), so this fixture mirrors it; with
 					# 1e-3 here the golden compared two optimizer tolerances, not two hierarchies.
-					eps_g      = 1e-6
+					# 2026-10-22 (TODO-31 plan TODO-3, G6 #45 (iii)(a)): clmm_eps_g is now 1e-12.
+					eps_g      = 1e-12
 				),
 				error = function(e) NULL
 			)
@@ -288,7 +289,7 @@ InferenceAbstractKKOrdinalCLMMLegacyOrig = define_inference_class(
 					estimate_only = estimate_only,
 					warm_start_params = start,
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_alpha + ncol(X_fit) + 1L),
-					eps_g         = 1e-6 # 2026-10-22: mirrors clmm_eps_g (TODO-31); was 1e-3
+					eps_g         = 1e-12 # 2026-10-22: mirrors clmm_eps_g (TODO-31; 1e-3 -> 1e-6 -> 1e-12)
 				),
 				error = function(e) NULL
 			)

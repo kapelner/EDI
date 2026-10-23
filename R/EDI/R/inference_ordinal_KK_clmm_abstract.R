@@ -1,5 +1,26 @@
 #' Abstract class for ordinal CLMM-based Inference in KK designs
 #'
+#' @details
+#' The random-intercept standard deviation \eqn{\sigma_b} may be estimated at
+#' the lower boundary (\eqn{\sigma_b \to 0}, reported as a log-sigma near
+#' \eqn{-5}). That is a legitimate maximum-likelihood estimate when the
+#' likelihood decreases as \eqn{\sigma_b^2} leaves 0; the fit then equals the
+#' fixed-effects cumulative-link fit.
+#'
+#' A native fit is accepted only if the optimizer reports convergence and the
+#' gradient norm of the objective is at most \eqn{10^{-4}}; the optimizer runs
+#' with a tight tolerance (\code{1e-12}) so that this normally holds. Otherwise
+#' the fit is retried once with Newton-Raphson from the returned parameters; if
+#' that also fails the gradient test, the estimate is \code{NA} with
+#' nonestimable reason \code{"kk_clmm_rcpp_not_stationary"}.
+#'
+#' The \pkg{ordinal} package's \code{clmm()} (used by the weighted
+#' Bayesian-bootstrap refits and by \code{use_rcpp = FALSE}) fits the log-log
+#' model when asked for \code{link = "cloglog"} and vice versa (observed in
+#' \pkg{ordinal} 2026.7.26; \code{clm()} is correct). EDI detects this once per
+#' session with a small probe and passes \code{clmm()} the link name that fits
+#' the complementary log-log model.
+#'
 #' @keywords internal
 InferenceAbstractKKOrdinalCLMM = define_inference_class(
 	classname = "InferenceAbstractKKOrdinalCLMM",
@@ -125,7 +146,17 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 		# 1e-3 reported converged = TRUE with a treatment error vs ordinal::clmm of median 0.05-0.07
 		# log-odds (max 0.5); 1e-6 gives ~2e-4 (bug_fix_plans/optimize_likelihood_newton_false_nonconvergence.md,
 		# Survey 2, "CLMM tolerance").  Overridable by subclasses.
-		clmm_eps_g = 1e-6,
+		# 2026-10-22 (v1.0.5 TODO-31, G6 #45 (iii)(a); bug_fix_plans/
+		# clmm_sigma_collapse_false_convergence.md TODO-3, E6): 1e-6 -> 1e-12. The kernel's
+		# L-BFGS stops on LBFGSpp's relative-f test (delta = eps_g) and reports converged = TRUE
+		# through `niter < maxit`, so at 1e-6 every fit stopped with gradient norm median 1e-2
+		# and treatment up to 6.4e-3 (median 2e-4) from the stationary point. At 1e-12 the
+		# gradient norm is median 7e-6 (max 4.8e-5) and the treatment is within 2.4e-6 of a
+		# Newton-polished optimum, at ~3x kernel time.
+		clmm_eps_g = 1e-12,
+		# Stationarity acceptance (TODO-4): a native fit is used only if its gradient norm is
+		# <= this; otherwise one Newton retry, then NA (kk_clmm_rcpp_not_stationary).
+		clmm_gradient_accept = 1e-4,
 		best_X_colnames = NULL,
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (private$use_rcpp) {
@@ -161,21 +192,65 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			y_levels = sort(unique(private$y))
 			K = length(y_levels)
 			y = as.integer(match(private$y, y_levels))
-			fit = tryCatch(
-				fast_ordinal_clmm_cpp(
-					X          = X_fit,
-					y          = y,
-					group_id   = as.integer(group_id),
-					K          = K,
-					j_T        = 0L,
-					link       = private$clmm_link(),
-					estimate_only = TRUE,
-					eps_g      = private$clmm_eps_g
-				),
-				error = function(e) NULL
+			call_args = list(
+				X          = X_fit,
+				y          = y,
+				group_id   = as.integer(group_id),
+				K          = K,
+				j_T        = 0L,
+				link       = private$clmm_link(),
+				estimate_only = TRUE,
+				eps_g      = private$clmm_eps_g
 			)
-			if (is.null(fit) || !isTRUE(fit$converged)) return(NA_real_)
+			fit = tryCatch(do.call(fast_ordinal_clmm_cpp, call_args), error = function(e) NULL)
+			fit = private$clmm_accept_fit(fit, call_args)$fit
+			if (is.null(fit)) return(NA_real_)
 			as.numeric(fit$b[1L])
+		},
+		# v1.0.5 TODO-31 TODO-4 (bug_fix_plans/clmm_sigma_collapse_false_convergence.md):
+		# the kernel's `converged` is LBFGSpp's lenient flag (relative-f stop counts as
+		# converged), so accept a native fit only if it is also stationary: converged and
+		# gradient_norm <= clmm_gradient_accept. Otherwise retry once with Newton from the
+		# returned parameters, keeping the retry only if it does not worsen the objective
+		# and passes the same test. A lower-boundary (sigma -> 0) fit passes only when it is
+		# a KKT point: the soft variance penalty has a stationary point near log sigma = -5
+		# only when the tau-score is positive. Returns list(fit, reason); fit is NULL when
+		# rejected, with reason kk_clmm_rcpp_failed (no usable fit) or
+		# kk_clmm_rcpp_not_stationary (a converged fit that is not stationary).
+		clmm_accept_fit = function(fit, call_args){
+			gradient_ok = function(f) !is.null(f) && all(is.finite(c(f$alpha, f$b, f$log_sigma))) &&
+				isTRUE(is.finite(f$gradient_norm) && f$gradient_norm <= private$clmm_gradient_accept)
+			if (isTRUE(fit$converged) && gradient_ok(fit)) return(list(fit = fit, reason = NULL))
+			reason = if (!is.null(fit) && isTRUE(fit$converged)) "kk_clmm_rcpp_not_stationary" else "kk_clmm_rcpp_failed"
+			start = if (is.null(fit)) NULL else as.numeric(c(fit$alpha, fit$b, fit$log_sigma))
+			if (is.null(start) || !length(start) || !all(is.finite(start))) return(list(fit = NULL, reason = reason))
+			retry_args = call_args
+			retry_args$warm_start_params = start
+			retry_args$warm_start_fisher_info = NULL
+			retry_args$optimization_alg = "newton_raphson"
+			# Same eps_g as the fit (1e-12 in production), but never looser than 1e-6 so the
+			# retry can reach the acceptance threshold when a subclass loosens clmm_eps_g.
+			retry_args$eps_g = min(call_args$eps_g %||% 1e-6, 1e-6)
+			retry =tryCatch(do.call(fast_ordinal_clmm_cpp, retry_args), error = function(e) NULL)
+			no_worse = !is.null(retry) && isTRUE(is.finite(retry$neg_loglik)) &&
+				(!isTRUE(is.finite(fit$neg_loglik)) || retry$neg_loglik <= fit$neg_loglik + 1e-10)
+			# The retry is judged by its gradient alone: Newton's own `converged` is the strict
+			# `gnorm < eps_g`, which a 1e-12 tolerance usually misses (numerical-Hessian floor
+			# ~1e-10..1e-6) even at a stationary point. The kernel computes the SE only for a
+			# `converged` fit, so when an SE is wanted and missing, re-evaluate once from the
+			# retry's optimum with Newton at eps_g = clmm_gradient_accept (met at the start).
+			if (!(no_worse && gradient_ok(retry))) return(list(fit = NULL, reason = reason))
+			if (!isTRUE(call_args$estimate_only) && !isTRUE(is.finite(retry$ssq_b_T))) {
+				se_args = retry_args
+				se_args$warm_start_params = as.numeric(c(retry$alpha, retry$b, retry$log_sigma))
+				se_args$eps_g = private$clmm_gradient_accept
+				se_fit = tryCatch(do.call(fast_ordinal_clmm_cpp, se_args), error = function(e) NULL)
+				if (gradient_ok(se_fit) && isTRUE(se_fit$neg_loglik <= retry$neg_loglik + 1e-10)) retry = se_fit
+			}
+			retry$kernel_converged = retry$converged
+			retry$converged = TRUE
+			retry$clmm_newton_retry = TRUE
+			list(fit = retry, reason = NULL)
 		},
 		clmm_link = function() stop(class(self)[1], " must implement clmm_link()"),
 		compute_weighted_clmm_estimate = function(row_weights, estimate_only = FALSE){
@@ -268,25 +343,28 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			n_alpha  = K - 1L
 			j_T      = 0L  # treatment is always first column of X_fit
 			start = private$clmm_warm_start(X_fit, y, n_alpha)
-			fit = tryCatch(
-				fast_ordinal_clmm_cpp(
-					X             = X_fit,
-					y         = y,
-					group_id      = as.integer(group_id),
-					K             = K,
-					j_T           = j_T,
-					link          = private$clmm_link(),
-					estimate_only = estimate_only,
-					warm_start_params = start,
-					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_alpha + ncol(X_fit) + 1L),
-					eps_g         = private$clmm_eps_g
-				),
-				error = function(e) NULL
+			call_args = list(
+				X             = X_fit,
+				y         = y,
+				group_id      = as.integer(group_id),
+				K             = K,
+				j_T           = j_T,
+				link          = private$clmm_link(),
+				estimate_only = estimate_only,
+				warm_start_params = start,
+				warm_start_fisher_info = private$get_fit_warm_start_fisher(n_alpha + ncol(X_fit) + 1L),
+				eps_g         = private$clmm_eps_g
 			)
-			if (is.null(fit) || !isTRUE(fit$converged)) {
-				private$cache_nonestimable_estimate("kk_clmm_rcpp_failed")
+			fit = tryCatch(do.call(fast_ordinal_clmm_cpp, call_args), error = function(e) NULL)
+			accepted = private$clmm_accept_fit(fit, call_args)
+			fit = accepted$fit
+			if (is.null(fit)) {
+				private$cache_nonestimable_estimate(accepted$reason)
 				return(invisible(NULL))
 			}
+			# Diagnostic (TODO-31): the variance sits at the lower boundary (sigma -> 0). With
+			# the stationarity acceptance above this is a certified KKT point, not a failure.
+			private$cached_values$clmm_variance_boundary = isTRUE(fit$log_sigma <= -4.5)
 			beta_hat_T = as.numeric(fit$b[j_T + 1L])
 			if (!is.finite(beta_hat_T) || abs(beta_hat_T) > private$max_abs_reasonable_coef) {
 				private$cache_nonestimable_estimate("kk_clmm_rcpp_nonestimable")
@@ -371,12 +449,20 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 			)
 			fixed_terms = setdiff(colnames(dat), c("y", "group_id"))
 			clmm_formula = stats::as.formula(paste("y ~", paste(c(fixed_terms, "(1 | group_id)"), collapse = " + ")))
+			# v1.0.5 TODO-31 (G6 #45 (ii)(a)): ordinal::clmm's cloglog/loglog names are
+			# swapped upstream; ask clmm for the name that fits EDI's link. NA (probe
+			# undecided) -> refuse; the caller then falls back to fit_clm_fallback().
+			clmm_link_name = ordinal_clmm_link_name(private$clmm_link())
+			if (is.na(clmm_link_name)) {
+				warn_ordinal_clmm_link_unverified(private$clmm_link())
+				return(NULL)
+			}
 			tryCatch({
 				utils::capture.output(mod <- suppressMessages(suppressWarnings(
 					ordinal::clmm(
 						clmm_formula,
 						data = dat,
-						link = private$clmm_link()
+						link = clmm_link_name
 					)
 				)))
 				mod

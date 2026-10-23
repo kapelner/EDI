@@ -79,8 +79,10 @@
 # current runner does not provide a proven mapping from those events to every
 # affected operation key.
 .todo14_reconcile_candidate_eligibility <- function(
-	candidate_manifest, eligibility_manifest, expected_manifest, events, results
+	candidate_manifest, eligibility_manifest, expected_manifest, events, results,
+	approved_skips = NULL
 ) {
+	approved_ids <- .todo14_approved_skip_ids(approved_skips)
 	key_columns <- c("rep", "beta_T", "dataset", "response_type", "design", "inference_class")
 	manifest_columns <- c(key_columns, "function_run")
 	eligibility_column <- "eligibility"
@@ -133,8 +135,17 @@
 	}
 	valid_dispositions <- c("attempt", "skipped_completed", "skipped_slow", "skipped_confirmed_timeout")
 	disposition <- as.character(eligibility_manifest[[eligibility_column]])
-	if (anyNA(disposition) || any(!disposition %in% valid_dispositions)) {
+	# G6 #33 (2026-10-22): "approved_setup_skip" is legal only for keys passed in
+	# approved_skips, and every approved key must carry it.
+	if (anyNA(disposition) || any(!disposition %in% c(valid_dispositions, "approved_setup_skip"))) {
 		stop("eligibility_manifest has missing or unsupported dispositions; setup-level outcomes require an explicit key mapping", call. = FALSE)
+	}
+	if (length(setdiff(approved_ids, as.character(eligibility_manifest$id)))) {
+		stop("approved_skips contains key(s) outside the source candidate inventory", call. = FALSE)
+	}
+	is_approved <- as.character(eligibility_manifest$id) %in% approved_ids
+	if (any(is_approved != (disposition == "approved_setup_skip"))) {
+		stop("approved_setup_skip dispositions must equal exactly the approved_skips keys", call. = FALSE)
 	}
 	attempt_ids <- eligibility_ids[disposition == "attempt"]
 	if (!length(attempt_ids)) stop("eligibility_manifest has no eligible operation attempts", call. = FALSE)
@@ -149,11 +160,46 @@
 	if (anyNA(events$event_type)) stop("attempt manifest contains missing event types", call. = FALSE)
 	event_type <- as.character(events$event_type)
 	setup_rows <- which(event_type %in% c("setup_skipped", "setup_failure"))
-	if (length(setup_rows)) {
+	approved_setup_contexts <- character()
+	if (length(setup_rows) && length(approved_ids)) {
+		# A setup_skipped event carries (rep, beta_T, dataset, response_type,
+		# design, model_formula) and no operation key. Map it to the approved
+		# keys of that context; any setup event that maps to no approved key (or
+		# a setup_failure) still fails closed.
+		if (!"model_formula" %in% names(events)) {
+			stop("setup events need a model_formula field to map to approved skips", call. = FALSE)
+		}
+		context_key <- function(rep, beta, dataset, response, design, formula) paste(
+			suppressWarnings(as.integer(as.character(rep))), .todo14_beta_token(beta),
+			as.character(dataset), as.character(response), as.character(design),
+			gsub("[[:space:]]", "", as.character(formula)), sep = "||")
+		approved_rows <- eligibility_manifest[is_approved, , drop = FALSE]
+		approved_context <- context_key(approved_rows$rep, approved_rows$beta_T, approved_rows$dataset,
+			approved_rows$response_type, approved_rows$design, .todo14_formula_label(approved_rows$inference_class))
+		setup_events <- events[setup_rows, , drop = FALSE]
+		setup_context <- context_key(setup_events$rep, setup_events$beta_T, setup_events$dataset,
+			setup_events$response_type, setup_events$design, setup_events$model_formula)
+		unmapped <- event_type[setup_rows] != "setup_skipped" | !setup_context %in% approved_context |
+			(!is.na(setup_events$id) & nzchar(as.character(setup_events$id)))
+		if (any(unmapped)) {
+			stop(sprintf(
+				"%d unmapped setup-level event(s) (%s) cannot be reconciled to operation keys; provide a proven row-level setup eligibility mapping",
+				sum(unmapped), paste(unique(event_type[setup_rows][unmapped]), collapse = ", ")
+			), call. = FALSE)
+		}
+		if (anyDuplicated(setup_context) || !setequal(setup_context, approved_context)) {
+			stop("each approved setup-skip context requires exactly one setup_skipped event", call. = FALSE)
+		}
+		approved_setup_contexts <- unique(setup_context)
+		events <- events[-setup_rows, , drop = FALSE]
+		event_type <- event_type[-setup_rows]
+	} else if (length(setup_rows)) {
 		stop(sprintf(
 			"%d unmapped setup-level event(s) (%s) cannot be reconciled to operation keys; provide a proven row-level setup eligibility mapping",
 			length(setup_rows), paste(unique(event_type[setup_rows]), collapse = ", ")
 		), call. = FALSE)
+	} else if (length(approved_ids)) {
+		stop("approved setup-skip keys have no setup_skipped event", call. = FALSE)
 	}
 	allowed_events <- c("started", "terminal", "skipped_completed", "skipped_slow", "skipped_confirmed_timeout")
 	if (any(!event_type %in% allowed_events)) stop("attempt manifest contains an unsupported event type", call. = FALSE)
@@ -197,6 +243,8 @@
 			if (any(key_types %in% valid_dispositions[-1L])) {
 				stop("attempt-eligible key also has a runtime skip event", call. = FALSE)
 			}
+		} else if (disposition[i] == "approved_setup_skip") {
+			if (length(key_events)) stop("approved setup-skip key must have no operation events", call. = FALSE)
 		} else if (length(key_events) != 1L || !identical(key_types, disposition[i])) {
 			stop("each runtime-ineligible candidate requires exactly one matching keyed skip event", call. = FALSE)
 		}
@@ -223,15 +271,17 @@
 			state$unclosed_starts != 0L | state$orphan_terminals != 0L | state$overlapping_starts != 0L)) {
 		stop("each attempt-eligible key must have exactly one well-formed started/terminal pair", call. = FALSE)
 	}
-	skip_index <- which(disposition != "attempt")
+	skip_index <- which(!disposition %in% c("attempt", "approved_setup_skip"))
 	skip_event_index <- match(eligibility_ids[skip_index], event_ids)
 	runtime_skips <- eligibility_manifest[skip_index, c("id", manifest_columns, eligibility_column), drop = FALSE]
 	runtime_skips$event_seq <- if (length(skip_event_index)) events$event_seq[skip_event_index] else integer()
 	runtime_skips$skip_reason <- if (length(skip_event_index)) events$skip_reason[skip_event_index] else character()
 	list(
 		attempt_count = length(attempt_ids),
-		runtime_skip_counts = table(factor(disposition[disposition != "attempt"], levels = valid_dispositions[-1L])),
+		runtime_skip_counts = table(factor(disposition[!disposition %in% c("attempt", "approved_setup_skip")], levels = valid_dispositions[-1L])),
 		runtime_skips = runtime_skips,
+		approved_skip_count = sum(is_approved),
+		approved_setup_skip_contexts = approved_setup_contexts,
 		reconciliation = reconciliation
 	)
 }
@@ -241,7 +291,10 @@
 #' `candidate_manifest` is a source-derived key inventory only. The explicit
 #' `eligibility_manifest` must classify every candidate as an attempt or one
 #' keyed runtime skip; `expected_manifest` must equal its attempt subset. Setup
-#' events are rejected until the runner proves their mapping to operation keys.
+#' events are rejected until the runner proves their mapping to operation keys,
+#' except (2026-10-22, G6 #33) `setup_skipped` events whose context maps onto
+#' keys passed in `approved_skips`; those keys carry eligibility
+#' "approved_setup_skip", have no operation events, and are counted apart.
 #' The result CSV and raw attempt-event CSV must both be bound by the run sidecar.
 #' `expected_provenance` pins the run to the approved checkout, R version,
 #' EDI package location/version, and native DLL hash.
@@ -252,7 +305,8 @@ validate_todo14_attempt_result_artifact <- function(
 	expected_manifest,
 	expected_provenance = NULL,
 	candidate_manifest = NULL,
-	eligibility_manifest = NULL
+	eligibility_manifest = NULL,
+	approved_skips = NULL
 ) {
 	key_columns <- c("rep", "beta_T", "dataset", "response_type", "design", "inference_class")
 	manifest_columns <- c(key_columns, "function_run")
@@ -359,7 +413,8 @@ validate_todo14_attempt_result_artifact <- function(
 		eligibility_manifest = eligibility_manifest,
 		expected_manifest = expected_manifest,
 		events = events,
-		results = results
+		results = results,
+		approved_skips = approved_skips
 	)
 	invisible(list(
 		results_file = validated$results_file,
@@ -368,6 +423,7 @@ validate_todo14_attempt_result_artifact <- function(
 		status_counts = table(factor(results$status, levels = c("ok", "error"))),
 		provenance = provenance,
 		reconciliation = eligibility_reconciliation$reconciliation,
-		eligibility = eligibility_reconciliation[c("attempt_count", "runtime_skip_counts", "runtime_skips")]
+		eligibility = eligibility_reconciliation[c("attempt_count", "runtime_skip_counts", "runtime_skips",
+			"approved_skip_count", "approved_setup_skip_contexts")]
 	))
 }

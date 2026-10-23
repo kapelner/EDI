@@ -4,7 +4,25 @@
 \alias{InferenceAbstractKKOrdinalCLMM}
 \title{Abstract class for ordinal CLMM-based Inference in KK designs}
 \description{
-Abstract class for ordinal CLMM-based Inference in KK designs
+The random-intercept standard deviation \eqn{\sigma_b} may be estimated at
+the lower boundary (\eqn{\sigma_b \to 0}, reported as a log-sigma near
+\eqn{-5}). That is a legitimate maximum-likelihood estimate when the
+likelihood decreases as \eqn{\sigma_b^2} leaves 0; the fit then equals the
+fixed-effects cumulative-link fit.
+
+A native fit is accepted only if the optimizer reports convergence and the
+gradient norm of the objective is at most \eqn{10^{-4}}; the optimizer runs
+with a tight tolerance (\code{1e-12}) so that this normally holds. Otherwise
+the fit is retried once with Newton-Raphson from the returned parameters; if
+that also fails the gradient test, the estimate is \code{NA} with
+nonestimable reason \code{"kk_clmm_rcpp_not_stationary"}.
+
+The \pkg{ordinal} package's \code{clmm()} (used by the weighted
+Bayesian-bootstrap refits and by \code{use_rcpp = FALSE}) fits the log-log
+model when asked for \code{link = "cloglog"} and vice versa (observed in
+\pkg{ordinal} 2026.7.26; \code{clm()} is correct). EDI detects this once per
+session with a small probe and passes \code{clmm()} the link name that fits
+the complementary log-log model.
 }
 \keyword{internal}
 \section{Super class}{

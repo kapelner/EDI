@@ -106,8 +106,12 @@ test_that("warm-start families equal an independent has-method-and-not-excluded 
 		expect_setequal(got$class, ref)
 		expect_equal(got$response_type, live$response_type[match(got$class, live$class)], info = op)
 	}
+	# The ZOIB jackknife exclusion was removed 2026-10-22 (G6 #30): the class
+	# is benchmarked on jackknife like every other jackknife-capable class.
+	expect_null(excl[["jackknife"]])
 	jk <- ns("edi_tuning_warm_start_families")("jackknife")
-	expect_false("InferencePropZeroOneInflatedBetaRegr" %in% jk$class)
+	if ("InferencePropZeroOneInflatedBetaRegr" %in% live$class)
+		expect_true("InferencePropZeroOneInflatedBetaRegr" %in% jk$class)
 	nb <- ns("edi_tuning_warm_start_families")("non_param_boot")
 	if ("InferencePropZeroOneInflatedBetaRegr" %in% live$class)
 		expect_true("InferencePropZeroOneInflatedBetaRegr" %in% nb$class)

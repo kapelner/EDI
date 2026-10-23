@@ -141,7 +141,9 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		#' @param delta The null treatment effect (default 0).
 		#' @param B The number of bootstrap samples (default 501).
 		#' @param type Bootstrap p-value type. See \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
-		#' @param na.rm Whether to remove NA values. (default \code{FALSE}).
+		#' @param na.rm Whether to remove non-finite bootstrap replicates. Default
+		#'   \code{FALSE}: any non-finite replicate makes the p-value \code{NA}, with a
+		#'   once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
 		compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L){
 			if (is.null(delta)){
@@ -153,7 +155,9 @@ InferenceIncidKKGCompAbstract = R6::R6Class("InferenceIncidKKGCompAbstract",
 		#' @param delta The null treatment effect. Defaults to 0 for RD and 1 for RR.
 		#' @param B The number of Bayesian-bootstrap samples (default 501).
 		#' @param type Bayesian-bootstrap p-value type. See \code{InferenceBayesianBootstrap$compute_bayesian_bootstrap_two_sided_pval}.
-		#' @param na.rm Whether to remove NA values. (default \code{FALSE}).
+		#' @param na.rm Whether to remove non-finite bootstrap replicates. Default
+		#'   \code{FALSE}: any non-finite replicate makes the p-value \code{NA}, with a
+		#'   once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 			if (is.null(delta)){

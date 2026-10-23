@@ -68,10 +68,17 @@ Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}} for
   for the shared Wald contract. Fits the model first if not already
   cached.
 
-Computes a score two-sided p-value, falling back to the asymptotic test when unavailable.
+Computes a score two-sided p-value. Returns \code{NA} when
+  the score test fails, or when it is implausibly small next to the Wald
+  p-value (score below 0.01 while Wald is above 0.05); that case is
+  recorded as a score procedure failure, and the Wald estimate, standard
+  error and \code{is_nonestimable()} are kept.
 
-Computes a likelihood-ratio confidence interval, reporting
-  unstable inversion failures as explicitly non-estimable.
+Computes a likelihood-ratio confidence interval. If the
+  inversion fails or is unstable, returns \code{NA} bounds and records a
+  likelihood-ratio procedure failure; the Wald estimate, standard error
+  and \code{is_nonestimable()} are kept (unless the Wald fit itself is
+  unusable).
 }
 \details{
 Source list for the dependent-censoring transformation survival component.

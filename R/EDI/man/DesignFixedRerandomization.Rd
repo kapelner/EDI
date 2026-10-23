@@ -33,7 +33,8 @@ randomization law).
 squared Mahalanobis distance between treated and control covariate means,
 \eqn{M(w) = (\bar X_T - \bar X_C)^\top S^{-1} (\bar X_T - \bar X_C)}, where \eqn{S} is
 the sample covariance of all covariates (ridge-regularized by \eqn{10^{-6}I} if
-\eqn{|\det S| < 10^{-10}}), computed once and cached in \code{private$S_inv}.
+\eqn{|\det S| < 10^{-10}}), cached in \code{private$S_inv} and recomputed
+whenever the covariate matrix changes (e.g. on a bootstrap-randomization replay).
 \code{objective = "abs_sum_diff"} instead uses the sum of absolute mean differences,
 \eqn{M(w) = \sum_j |\bar X_{T,j} - \bar X_{C,j}|}, with no correlation adjustment.
 Only these two objectives are supported; any other value errors at draw time.

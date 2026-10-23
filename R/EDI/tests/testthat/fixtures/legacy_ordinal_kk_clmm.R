@@ -145,7 +145,10 @@ InferenceAbstractKKOrdinalCLMMLegacyOrig = define_inference_class(
 					j_T        = 0L,
 					link       = private$clmm_link(),
 					estimate_only = TRUE,
-					eps_g      = 1e-3
+					# 2026-10-22 (v1.0.5 TODO-31): was 1e-3 in the verbatim pre-migration
+					# snapshot; mirrors the live private$clmm_eps_g (1e-12 since plan TODO-3,
+					# G6 #45 (iii)(a)) so a golden compares hierarchies, not optimizer tolerances.
+					eps_g      = 1e-12
 				),
 				error = function(e) NULL
 			)
@@ -284,7 +287,7 @@ InferenceAbstractKKOrdinalCLMMLegacyOrig = define_inference_class(
 					estimate_only = estimate_only,
 					warm_start_params = start,
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_alpha + ncol(X_fit) + 1L),
-					eps_g         = 1e-3
+					eps_g         = 1e-12 # 2026-10-22: mirrors clmm_eps_g (TODO-31); was 1e-3
 				),
 				error = function(e) NULL
 			)

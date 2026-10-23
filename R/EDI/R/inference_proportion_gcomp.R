@@ -247,7 +247,9 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @description Computes a bootstrap two-sided p-value for the treatment effect.
 		#' @param delta The null mean difference. Defaults to 0.
 		#' @param B Number of bootstrap samples.
-		#' @param na.rm Whether to remove non-finite bootstrap replicates.
+		#' @param na.rm Whether to remove non-finite bootstrap replicates. Default
+		#'   \code{FALSE}: any non-finite replicate makes the p-value \code{NA}, with a
+		#'   once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.
 		#' @param boundary_tol Resample screening threshold for boundary mass near 0/1.
 		#' @param max_boundary_mass Reject a resample when at least this fraction is near the boundary.
 		#' @param sep_tol Separation tolerance used to reject nearly perfectly separated resamples.
@@ -345,6 +347,19 @@ InferencePropGCompMeanDiff = define_inference_class(
 				min_group_n = as.integer(min_group_n)
 			)
 			on.exit({private$bootstrap_screening_control = old_bootstrap_screening}, add = TRUE)
+			# v1.0.5 TODO-129 sweep: honour set_seed() like the base class's
+			# approximate_bootstrap_distribution_beta_hat_T() (same
+			# save/set.seed/restore block). Before, the serial and debug paths
+			# drew from the caller's global RNG stream.
+			if (!is.null(private$seed)) {
+				had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+				if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+				on.exit(
+					if (had_seed) assign(".Random.seed", old_seed, envir = .GlobalEnv) else rm(".Random.seed", envir = .GlobalEnv),
+					add = TRUE
+				)
+				set.seed(private$seed)
+			}
 			draw_one = function(worker_state){
 				attempt = 1L
 				repeat {

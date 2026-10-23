@@ -877,7 +877,9 @@ REUSE_RESAMPLING_DRAWS = !SAFE_CALL_FORK &&
 # operation, so a jackknife no longer inherits a bootstrap worker's warm/cold
 # start, and log-binomial refits drop warm starts already on the exp(Xb) < 1
 # boundary; a cached jackknife now equals a fresh one. bayes_jack_distr_cache
-# stays out until its own history independence is checked.
+# stays out: checked 2026-10-23, the Bayesian jackknife still depends on call
+# history (InferenceIncidLogBinomial with covariates, up to 3.4e-7; see
+# TODO-128).
 REUSED_RESAMPLING_CACHES = c(
 	"boot_distr_cache", "boot_stats_cache", "bayes_boot_distr_cache", "bayes_boot_stats_cache",
 	"m_out_of_n_boot_distr_cache", "subsampling_distr_cache", "rand_boot_distr_cache",
@@ -3608,7 +3610,32 @@ COVERAGE_CLOSED_FORM = list(
 # mc_coverage_truth_covariate_mismatch.md). NULL keeps the original single
 # synthetic-covariate behavior, which is already correct for an `~1`
 # (no-adjustment) per-row fit.
-compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_type, dataset_name, beta_T_val, mc_n, real_X = NULL){
+#
+# `inference_type`: the SimulationFramework inference type requested only so
+# that the replication produces a result row. The truth reads nothing but
+# `res$estimate`, which SimulationFramework computes with
+# `compute_estimate()` BEFORE it runs any inference type, so the type does
+# not change the estimate. It used to be `rand_pval` (r_rand = 201
+# randomization refits), which at mc_n = 3000 with ~25 covariates took
+# ~20 min for InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik (TODO-126).
+# The default is now the cheap `asymp_pval`; see
+# coverage_mc_truth_inference_type(). If the class does not support that
+# type (zero result rows), the same draw is replayed with `rand_pval` from
+# the same RNG state, so the estimate is unchanged either way.
+COVERAGE_MC_TRUTH_DEFAULT_INFERENCE_TYPE = "asymp_pval"
+# Classes whose MC truth must keep the old `rand_pval` request. Empty: the
+# 2026-10-22 same-seed check (TODO-126 follow-up) found identical truths
+# under `rand_pval` and `asymp_pval` for every class it covered.
+COVERAGE_MC_TRUTH_RAND_PVAL_CLASSES = character(0)
+coverage_mc_truth_inference_type = function(class_name){
+	if (length(class_name) == 1L && !is.na(class_name) && class_name %in% COVERAGE_MC_TRUTH_RAND_PVAL_CLASSES) {
+		return("rand_pval")
+	}
+	COVERAGE_MC_TRUTH_DEFAULT_INFERENCE_TYPE
+}
+compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_type, dataset_name, beta_T_val, mc_n, real_X = NULL,
+		inference_type = coverage_mc_truth_inference_type(tryCatch(class_gen$classname, error = function(e) NA_character_)),
+		inference_params = NULL){
 	y_base = datasets_and_response_models[[dataset_name]]$y_original[[response_type]]
 	p_mc = if (is.null(real_X)) 1L else ncol(real_X)
 	custom_data = function(state, rep){
@@ -3637,26 +3664,63 @@ compute_mc_coverage_truth_simframe = function(class_gen, design_gen, response_ty
 		y = vapply(seq_len(n), function(i) apply_treatment_effect_and_noise(y_lin[i], w[i], response_type), numeric(1))
 		list(y = y, dead = dead_mc)
 	}
-	# SimulationFramework also writes <stem>__staging.csv, <stem>__elapsed.rds
-	# and a <stem>__cache/ dir next to results_filename; remove all of them.
-	results_filename = tempfile(fileext = ".csv")
-	on.exit(unlink(Sys.glob(paste0(sub("\\.csv$", "", results_filename), "*")), recursive = TRUE, force = TRUE), add = TRUE)
-	sim = SimulationFramework$new(
-		response_type = response_type,
-		design_classes_and_params = list(design_gen),
-		inference_classes_and_params = list(class_gen),
-		inference_types_and_params = list(rand_pval = list()),
-		n = mc_n, p = p_mc, Nrep_W = 1L, Nrep_Y_w = 1L,
-		betaT = beta_T_val,
-		custom_replication_data_generator = custom_data,
-		custom_apply_treatment_and_noise = custom_apply,
-		results_filename = results_filename,
-		continue_from_last_result_row = FALSE,
-		verbose = FALSE,
-		stop_on_error = FALSE
-	)
-	sim$run()
-	res = SimulationFrameworkReport$new(sim)$get_results()
+	run_simframe_once = function(inf_type){
+		# SimulationFramework also writes <stem>__staging.csv, <stem>__elapsed.rds
+		# and a <stem>__cache/ dir next to results_filename; remove all of them.
+		results_filename = tempfile(fileext = ".csv")
+		on.exit(unlink(Sys.glob(paste0(sub("\\.csv$", "", results_filename), "*")), recursive = TRUE, force = TRUE), add = TRUE)
+		inference_types_and_params = list(list())
+		names(inference_types_and_params) = inf_type
+		# `inference_params` (TODO-10): constructor arguments for the class,
+		# e.g. the capped model_formula; passed by class name.
+		inference_spec = if (length(inference_params)) {
+			stats::setNames(list(inference_params), class_gen$classname)
+		} else {
+			list(class_gen)
+		}
+		sim = SimulationFramework$new(
+			response_type = response_type,
+			design_classes_and_params = list(design_gen),
+			inference_classes_and_params = inference_spec,
+			inference_types_and_params = inference_types_and_params,
+			n = mc_n, p = p_mc, Nrep_W = 1L, Nrep_Y_w = 1L,
+			betaT = beta_T_val,
+			custom_replication_data_generator = custom_data,
+			custom_apply_treatment_and_noise = custom_apply,
+			results_filename = results_filename,
+			continue_from_last_result_row = FALSE,
+			verbose = FALSE,
+			stop_on_error = FALSE
+		)
+		sim$run()
+		SimulationFrameworkReport$new(sim)$get_results()
+	}
+	if (identical(inference_type, "rand_pval")) {
+		res = run_simframe_once("rand_pval")
+	} else {
+		# Replay from the same RNG state if the cheap type yields no row (the
+		# class does not support it), so the fallback sees the same draw.
+		had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+		if (had_seed) entry_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+		first_warnings = list()
+		res = withCallingHandlers(
+			run_simframe_once(inference_type),
+			warning = function(w) {
+				first_warnings[[length(first_warnings) + 1L]] <<- w
+				invokeRestart("muffleWarning")
+			}
+		)
+		if (nrow(res)) {
+			for (w in first_warnings) warning(w)
+		} else {
+			if (had_seed) {
+				assign(".Random.seed", entry_seed, envir = .GlobalEnv)
+			} else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+				rm(".Random.seed", envir = .GlobalEnv)
+			}
+			res = run_simframe_once("rand_pval")
+		}
+	}
 	if (!nrow(res)) {
 		class_label  = tryCatch(class_gen$classname, error = function(e) NA_character_)
 		design_label = tryCatch(design_gen$classname, error = function(e) NA_character_)
@@ -3685,6 +3749,12 @@ COVERAGE_MC_SPEC = list(
 	# response-qualified because InferenceAllSimpleWilcox is also run on other
 	# response families whose truth must not be replaced by a proportion fit.
 	InferenceAllSimpleWilcox__proportion = list(rt = "proportion", design = quote(DesignFixedBernoulli), gen = quote(InferenceAllSimpleWilcox), mc_n = 20000L),
+	# Known limitation, not a truth bug (TODO-10, G6 #19 decided 2026-10-22):
+	# on `ionosphere` (33 covariates, n = 148, `~.`) PropBetaRegr and
+	# PropFractionalLogit model-based CIs cover ~0.79-0.85 while resampling CIs
+	# over-cover. The MC truth converges (0.37-0.43 across schemes/seeds), so
+	# the anti-conservative high-p/n SE is documented in the class roxygen and
+	# left uncorrected; expect those audit flags.
 	InferencePropBetaRegr                = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropBetaRegr),                mc_n = 20000L),
 	InferencePropFractionalLogit         = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropFractionalLogit),         mc_n = 20000L),
 	InferencePropZeroOneInflatedBetaRegr = list(rt = "proportion", design = quote(DesignFixedBernoulli),  gen = quote(InferencePropZeroOneInflatedBetaRegr), mc_n = 20000L),
@@ -3774,6 +3844,47 @@ COVERAGE_TRUTH_UNAVAILABLE = c(
 	"InferenceSurvivalKKStratCoxPHOneLik"
 )
 
+# TODO-10 (G6 #19, decided 2026-10-22; release_v1_0_5.md G4-C runbook R7):
+# covariate cap for the two KK-matched Cox classes above. Their `~.` fits put
+# ~24 covariates against ~74 matched pairs (diamonds), the attenuation regime
+# of mc_coverage_truth_covariate_mismatch.md (option 2, "5-8 covariates"). The
+# cap keeps the design (matching) on the full covariate set and restricts the
+# Cox adjustment set to the first K columns of the dataset's X, via an explicit
+# model_formula, in BOTH the per-row `~.` fits (run_tests_for_response()) and
+# the MC truth (get_coverage_truth()); K is part of the truth cache key. The
+# classes stay in COVERAGE_TRUTH_UNAVAILABLE until the capped-truth
+# convergence check (runbook R7) passes. Firth is release_v1_1_0.md TODO-69.
+KK_MATCHED_COX_COVARIATE_CAP_CLASSES = c(
+	"InferenceSurvivalKKLWACoxPHOneLik",
+	"InferenceSurvivalKKStratCoxPHOneLik"
+)
+KK_MATCHED_COX_COVARIATE_CAP_K = 6L
+comprehensive_covariate_cap_k = function(base_class){
+	if (length(base_class) == 1L && !is.na(base_class) && base_class %in% KK_MATCHED_COX_COVARIATE_CAP_CLASSES) {
+		return(KK_MATCHED_COX_COVARIATE_CAP_K)
+	}
+	NA_integer_
+}
+# `~ first K columns of X` (backquoted: model.matrix names such as
+# "cutVery Good" or "color^4" are not syntactic). NULL when X has no columns.
+comprehensive_capped_model_formula = function(X, k){
+	cols = colnames(X)
+	if (!length(cols) || is.na(k) || k < 1L) return(NULL)
+	cols = cols[seq_len(min(as.integer(k), length(cols)))]
+	stats::reformulate(sprintf("`%s`", cols))
+}
+# The per-row model_formula for a KK survival class: the capped formula for a
+# cap class on the `~.` arm, the design formula unchanged otherwise.
+comprehensive_kk_survival_model_formula = function(class_name, model_formula, X){
+	k = comprehensive_covariate_cap_k(class_name)
+	if (is.na(k) || is.null(model_formula) ||
+			!identical(gsub("[[:space:]]", "", paste(deparse(model_formula), collapse = "")), "~.")) {
+		return(model_formula)
+	}
+	capped = comprehensive_capped_model_formula(X, k)
+	if (is.null(capped)) model_formula else capped
+}
+
 # TODO-32 (mc_coverage_truth_covariate_mismatch.md): shared by
 # get_coverage_truth() and get_estimate_logging_theta() so their
 # .coverage_truth_cache keys can never drift apart again -- they did once
@@ -3787,8 +3898,13 @@ coverage_truth_uses_real_covariates = function(inference_class){
 	# direct unit check, not by comprehensive_tests itself). Plain alternation.
 	!grepl("~1\\)|~1\\]", inference_class)
 }
-coverage_truth_cache_key = function(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint = NA_character_){
-	paste(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint, sep = "||")
+coverage_truth_cache_key = function(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint = NA_character_,
+		covariate_cap = NA_integer_){
+	key = paste(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint, sep = "||")
+	# TODO-10: a capped truth gets its own key (and so its own seed). Uncapped
+	# keys are unchanged, so no other class's truth or seed moves.
+	if (length(covariate_cap) == 1L && !is.na(covariate_cap)) key = paste0(key, "||covariate_cap=", as.integer(covariate_cap))
+	key
 }
 
 # Deterministic seed in [0, 2^31 - 1) from a coverage-truth cache key
@@ -3841,7 +3957,13 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 		# fit as `~.` per run_tests_for_response()'s own default), adjusts for
 		# the real covariates and must be matched here.
 		use_real_covariates = coverage_truth_uses_real_covariates(inference_class)
-		key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint)
+		# TODO-10: same first-K cap as the per-row `~.` fit (see
+		# KK_MATCHED_COX_COVARIATE_CAP_CLASSES); NA for every other class.
+		covariate_cap = if (use_real_covariates) comprehensive_covariate_cap_k(base_class) else NA_integer_
+		key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint, covariate_cap)
+		mc_inference_params = if (is.na(covariate_cap)) NULL else {
+			list(model_formula = comprehensive_capped_model_formula(datasets_and_response_models[[dataset_name]]$X, covariate_cap))
+		}
 		if (exists(key, envir = .coverage_truth_cache, inherits = FALSE)) {
 			return(get(key, envir = .coverage_truth_cache, inherits = FALSE))
 		}
@@ -3895,13 +4017,15 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 		}, add = TRUE)
 		for (attempt in seq_len(max_mc_attempts)) {
 			set.seed((coverage_truth_seed(key) + attempt) %% .Machine$integer.max)
-			truth = tryCatch(
-				compute_mc_coverage_truth_simframe(
+			truth = tryCatch({
+				mc_args = list(
 					eval(spec$gen), eval(spec$design), spec$rt, dataset_name, beta_T_val, spec$mc_n,
 					real_X = if (use_real_covariates) datasets_and_response_models[[dataset_name]]$X else NULL
-				),
-				error = function(e) NA_real_
-			)
+				)
+				# TODO-10: only a capped class passes inference_params.
+				if (!is.null(mc_inference_params)) mc_args$inference_params = mc_inference_params
+				do.call(compute_mc_coverage_truth_simframe, mc_args)
+			}, error = function(e) NA_real_)
 			if (length(truth) && is.finite(truth) && mc_truth_is_plausible(truth, spec$rt)) break
 			truth = NA_real_
 		}
@@ -4014,7 +4138,9 @@ get_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val,
 	if (exists(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE)) {
 		return(get(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE))
 	}
-	coverage_key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, coverage_truth_uses_real_covariates(inference_class), response_type_hint)
+	coverage_uses_real_covariates = coverage_truth_uses_real_covariates(inference_class)
+	coverage_key = coverage_truth_cache_key(base_class, dataset_name, beta_T_val, coverage_uses_real_covariates, response_type_hint,
+		if (coverage_uses_real_covariates) comprehensive_covariate_cap_k(base_class) else NA_integer_)
 	if (exists(coverage_key, envir = .coverage_truth_cache, inherits = FALSE)) {
 		return(get(coverage_key, envir = .coverage_truth_cache, inherits = FALSE))
 	}
@@ -4365,8 +4491,15 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 			for (kk_surv_class in select_kk_survival_class_generators(should_run_inference_label)){
 				class_name = kk_surv_class$classname
 				inference_banner(class_name)
+				# TODO-10: the KK-matched Cox classes fit `~.` on the first
+				# KK_MATCHED_COX_COVARIATE_CAP_K covariates (same cap as their MC truth).
+				kk_surv_model_formula = comprehensive_kk_survival_model_formula(class_name, model_formula, X_design)
+				if (!identical(kk_surv_model_formula, model_formula)) {
+					message("    TODO-10 covariate cap (K = ", KK_MATCHED_COX_COVARIATE_CAP_K, "): ", class_name,
+						" fits model_formula = ", paste(deparse(kk_surv_model_formula), collapse = " "))
+				}
 				err_msg = tryCatch({
-					run_inference_checks(kk_surv_class$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+					run_inference_checks(kk_surv_class$new(des_obj, model_formula = kk_surv_model_formula), response_type, design_type, dataset_name, n_X, p_X)
 					NULL
 				}, error = function(e) if (length(e$message) == 0L) "" else e$message)
 				if (!is.null(err_msg)){

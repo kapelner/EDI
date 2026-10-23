@@ -33,7 +33,10 @@ column-dropping and a coefficient-magnitude cap
 is implausible — the same practical limitation as the identity-link
 sibling \code{\link[EDI:InferenceIncidBinomialIdentityRiskDiff]{
 InferenceIncidBinomialIdentityRiskDiff}}, here applying to the upper rather
-than both tails of the probability scale. Validity requires the
+than both tails of the probability scale. When the full-data MLE is on
+that boundary (some fitted probability equal to 1), the object warns once
+(\code{edi_binomial_mle_boundary_warning}) that Wald and score standard
+errors and intervals may be unreliable. Validity requires the
 multiplicative log-linear risk model to be correctly specified over the
 covariate range observed.
 

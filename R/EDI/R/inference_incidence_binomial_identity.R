@@ -95,8 +95,10 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 		#'   inversion (find the set of \code{delta} not rejected at level
 		#'   \code{alpha} by the likelihood-ratio test); see
 		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} for the shared
-		#'   inversion contract. Falls back to a nonestimable result (\code{NA}
-		#'   bounds) if the underlying root-finding fails.
+		#'   inversion contract. If the underlying root-finding fails, returns
+		#'   \code{NA} bounds and records a likelihood-ratio procedure failure; the
+		#'   Wald estimate, standard error and \code{is_nonestimable()} are kept
+		#'   (unless the Wald fit itself is unusable).
 		#' @param alpha Two-sided miscoverage rate; the returned interval targets
 		#'   \code{1 - alpha} coverage.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
@@ -329,6 +331,7 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 				# SE, not because the point estimate differs from conditional.
 				attempt$fit$X = attempt$X
 				attempt$fit$vcov = if (!is.null(attempt$fit$fisher_information)) tryCatch(solve(attempt$fit$fisher_information), error = function(e) NULL) else NULL
+				edi_warn_binomial_mle_boundary_once(self, private, attempt$X, attempt$fit$b, "identity") # TODO-128: warning only, no numeric change
 			} else {
 				private$cached_values$likelihood_test_context = NULL
 			}
@@ -357,7 +360,10 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 #' nonestimable when the fitted linear predictor produces implausible
 #' coefficients (see \code{private$is_identity_binomial_fit_reasonable()});
 #' this is a real practical limitation of the identity link relative to
-#' logit/probit, not a bug. Validity requires the additive risk-difference
+#' logit/probit, not a bug. When the full-data MLE is on the boundary (some
+#' fitted probability equal to 0 or 1), the object warns once
+#' (\code{edi_binomial_mle_boundary_warning}) that Wald and score standard
+#' errors and intervals may be unreliable. Validity requires the additive risk-difference
 #' model to be correctly specified over the covariate range actually observed
 #' (an identity-link fit can be well-behaved in-sample yet imply
 #' out-of-range probabilities for other covariate values).

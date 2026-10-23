@@ -50,6 +50,9 @@ truth_fixture <- function() {
 		"COVERAGE_TRUTH_UNAVAILABLE",
 		"coverage_truth_uses_real_covariates",
 		"coverage_truth_cache_key",
+		# TODO-10 (2026-10-22): get_coverage_truth()/get_estimate_logging_theta() read the matched-Cox covariate cap.
+		"KK_MATCHED_COX_COVARIATE_CAP_CLASSES", "KK_MATCHED_COX_COVARIATE_CAP_K",
+		"comprehensive_covariate_cap_k", "comprehensive_capped_model_formula",
 		"coverage_truth_seed",
 		"get_coverage_mc_spec",
 		"get_coverage_truth",

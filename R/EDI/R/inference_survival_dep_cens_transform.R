@@ -271,7 +271,11 @@ SurvivalDepCensTransformSource = list(
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Computes a score two-sided p-value, falling back to the asymptotic test when unavailable.
+		#' @description Computes a score two-sided p-value. Returns \code{NA} when
+		#'   the score test fails, or when it is implausibly small next to the Wald
+		#'   p-value (score below 0.01 while Wald is above 0.05); that case is
+		#'   recorded as a score procedure failure, and the Wald estimate, standard
+		#'   error and \code{is_nonestimable()} are kept.
 		#' @param delta Null treatment-effect value. Default 0.
 			compute_score_two_sided_pval = function(delta = 0){
 				# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
@@ -294,8 +298,11 @@ SurvivalDepCensTransformSource = list(
 				}
 				p
 			},
-			#' @description Computes a likelihood-ratio confidence interval, reporting
-			#'   unstable inversion failures as explicitly non-estimable.
+			#' @description Computes a likelihood-ratio confidence interval. If the
+			#'   inversion fails or is unstable, returns \code{NA} bounds and records a
+			#'   likelihood-ratio procedure failure; the Wald estimate, standard error
+			#'   and \code{is_nonestimable()} are kept (unless the Wald fit itself is
+			#'   unusable).
 			#' @param alpha Significance level. Default 0.05.
 			compute_lik_ratio_confidence_interval = function(alpha = 0.05){
 				# Same super$-through-a-composed-class fix as elsewhere in this
@@ -677,8 +684,9 @@ SurvivalDepCensTransformSource = list(
 #' dependent-censoring likelihood refit, too unstable/slow for the
 #' comprehensive test suite; jackknife bias correction is unstable for this
 #' likelihood on small censored samples) — every jackknife/randomization
-#' method returns \code{NA} and marks the result nonestimable rather than
-#' computing a value. Nonparametric-bootstrap confidence intervals are
+#' method returns \code{NA} with a classed \code{edi_unsupported_procedure}
+#' warning rather than computing a value; the estimate, standard error and
+#' \code{is_nonestimable()} are left untouched. Nonparametric-bootstrap confidence intervals are
 #' computed and returned whenever both endpoints are finite; they are never
 #' replaced based on width, sign, or agreement with a Wald interval. Numerical
 #' failures return \code{NA}. Bayesian-bootstrap weighted re-estimation

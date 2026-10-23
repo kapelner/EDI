@@ -36,6 +36,14 @@ methods.
   CIs than before; unseeded behaviour is unchanged. New
   `clear_randomization_cache()` on `Inference` drops the cached draws (the
   unseeded cache is still shared by all inference objects on a design).
+* More resampling paths now use `set_seed()` (global RNG state saved and
+  restored): the KK matched-pair bootstrap (every KK class on a matching
+  design), `InferencePropGCompMeanDiff`'s bootstrap, the `"calibrated"`,
+  `"double-bootstrap"` and `"prepivoted"` bootstrap CIs, and the randomization
+  CI of `InferenceContinKKQuantileRegrIVWC` / `InferencePropKKQuantileRegrIVWC`
+  (inference seed, else design seed). Before, these drew from, and advanced,
+  the caller's RNG stream even on a seeded object. Seeded results change once
+  and are now reproducible; unseeded behaviour is unchanged.
 * `compute_rand_confidence_interval()` now errors, instead of returning bounds
   on the wrong scale, for classes whose estimate is a raw-scale mean difference
   or rank effect on proportion, count and ordinal responses
@@ -44,6 +52,15 @@ methods.
   `InferenceOrdinalJonckheereTerpstraTest`, `InferenceOrdinalGCompMeanDiff`,
   `InferenceOrdinalPairedSignTest`). The randomization p-value and
   randomization-bootstrap CI are unchanged.
+* `capabilities()` / `supports()` no longer advertise `randomization_ci` for a
+  (class, response type) pair whose randomization CI is refused (for example
+  `InferenceAllSimpleAverageDiff` on proportions, counts or survival, and
+  incidence responses), so `InferenceSuite`, `SimulationFramework` and other
+  capability-driven callers no longer attempt it. The survival-only classes
+  `InferenceSurvivalLogRank`, `InferenceSurvivalGehanWilcox`,
+  `InferenceSurvivalRestrictedMeanDiff`, `InferenceSurvivalKMDiff` and
+  `InferenceSurvivalDepCensTransformRegr`, whose randomization CI always
+  refuses, no longer advertise it at all.
 * On cluster designs `InferenceContinOLS` and `InferenceContinLin` Wald
   inference uses a CR2 cluster-robust SE with Bell-McCaffrey (Satterthwaite)
   degrees of freedom instead of G - 1 (matches
@@ -62,7 +79,9 @@ methods.
 * Randomization intervals invert at `alpha`, not `alpha / 2` (they were too
   wide); the default `pval_epsilon` drops from 0.005 to 1e-6.
 * Binary matching minimizes plain distance, as `nbpMatching` does;
-  `match_objective = "squared_distance"` restores the old pairs.
+  `match_objective = "squared_distance"` restores the old pairs. This is the
+  new default (`match_objective = "distance"`) and changes about 22% of
+  matched pairs versus 1.0.x (measured at n = 1000, p = 4).
 * KK21 survival weights come from a correct Weibull AFT fit.
 * `InferenceSurvivalRestrictedMeanDiff` truncates both arms at one horizon.
   On the interval-censored (Turnbull) path exact events are now used (they
@@ -130,6 +149,60 @@ methods.
 
 ## Bug fixes
 
+* Randomization-bootstrap tests and intervals redrew each resample's assignment
+  from the original sample's cached design structure instead of the resample's.
+  On `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching` the
+  resampled pairs could get 0 or 2 treated subjects (for
+  `InferenceContinKKRobustRegrOneLik` the null distribution was identically 0
+  and the p-value always 2/(B+1); `InferenceContinKKOLSOneLik` returned `NA`).
+  On `DesignFixedOptimalBlocks` assignments were balanced within blocks of the
+  original rows; the replay now re-solves the optimal blocking on each
+  resample's covariates (same `method`, `B`, `dist` and `roi_solver`) and
+  draws the assignment within the new blocks, so every replay draw pays one
+  block solve (a draw whose solve fails is recorded as `NA`). That adds
+  roughly 6-35 ms per draw for `method = "K-way"` or `"greedy"`, but seconds
+  to minutes per draw for the exact `method = "ompr"` (about 1.7 s at
+  `n = 12`, about 79 s at `n = 16`), so randomization-bootstrap replays with
+  `ompr` are very slow; use a heuristic method or a small number of bootstrap
+  replicates there (see `?DesignFixedOptimalBlocks`).
+  `DesignFixedGreedyDOptimal` and
+  `DesignFixedRerandomization` (`prop_acceptable`, or `prob_T != 0.5` / odd
+  `n`) reused the original sample's criterion matrix / covariance on the
+  resample. Randomization-bootstrap results on these designs change.
+* `DesignFixedOptimalBlocks(method = "greedy")` could stop with "replacement
+  has length zero" when `blockTools` listed its incomplete block before a
+  complete one (seen on bootstrap resamples with duplicated rows). Complete
+  blocks are now numbered consecutively; blockings that previously succeeded
+  are unchanged.
+* `InferenceSurvivalRestrictedMeanDiff`'s Bayesian-bootstrap studentized and
+  bootstrap-t intervals and p-values were always `NA` (no weighted SE); they
+  now use a frequency-weighted Greenwood-type SE, which equals the Wald SE at
+  unit weights.
+* `InferenceContinRobustRegr`, `InferenceContinKKRobustRegrOneLik` and
+  `InferenceContinKKRobustRegrIVWC` returned a treatment estimate of 0 when a
+  fit (including a resampled or randomization-bootstrap fit) received a
+  non-finite response or covariate; such fits are now non-estimable (`NA`).
+* `robust_survreg()` / `robust_survreg_with_surv_object()` restart jitter (used
+  when `survreg` fails from its first start, e.g. inside the GLMM Weibull
+  frailty classes and the KK21 survival designs) now draws from its own seeded
+  stream and restores the caller's RNG state. The stream is seeded from the
+  calling object's seed (`set_seed()`, else the design seed) plus a fixed
+  offset, so the same seed gives the same fit, or from a fixed internal seed
+  when no seed is set; new argument `jitter_seed` of
+  `robust_survreg_with_surv_object()`. Before, it drew from and advanced the
+  caller's RNG stream, so such fits depended on the caller's seed. Fits that
+  need no restart are unchanged.
+* `InferenceSurvivalKKRankRegrIVWC` (legacy IVWC) results did not duplicate:
+  its IVWC weights come from `aftgee::aftsrr(se = "ISMB")`, a multiplier
+  bootstrap that drew from and advanced the caller's RNG, so the estimate, SE,
+  randomization and bootstrap results changed from call to call. Each `aftsrr`
+  fit now runs under a deterministic seed derived from the object's seed
+  (`set_seed()`, else the design seed, else a fixed constant) and the fitted
+  data, with the caller's RNG state restored; results now duplicate across
+  calls and fresh objects and do not depend on the core count. Seeded and
+  unseeded results of this class change once.
+* `InferenceAllKKMeanDiffIVWC`'s bootstrap errored "Wrong R type for mapped
+  matrix" on `DesignFixedBinaryMatch` (double-stored assignments); fixed.
 * Ridit `reference = "treatment"` always returned 0; interior levels misscored.
 * `InferenceOrdinalRidit` SE is now the DeLong variance (pooled reference:
   (n_C/N) times it); the old SE treated the reference arm as known and gave
@@ -207,6 +280,18 @@ methods.
   `edi_unsupported_procedure` (documented unsupported procedures, e.g. the
   `InferenceCountNegBin` jackknife, return `NA` with a warning and no longer
   clear the valid cached estimate and SE). Returned values are unchanged.
+* A failed resampling or likelihood-test procedure (bootstrap, Bayesian or
+  parametric bootstrap, jackknife, m-out-of-n, subsampling, randomization CI,
+  score/LR/gradient p-values and intervals) still returns `NA`, but no longer
+  marks the whole object non-estimable: the failure is recorded for that
+  procedure only, and the Wald estimate, SE and `is_nonestimable()` are kept
+  (unless the Wald fit itself is unusable).
+* `InferenceIncidLogBinomial` and `InferenceIncidBinomialIdentityRiskDiff`
+  warn once per object (`edi_binomial_mle_boundary_warning`) when the
+  full-data MLE is on the parameter-space boundary (a fitted probability at
+  1, or at 0 or 1 for the identity link), where Wald and score SEs and
+  intervals may be unreliable; bootstrap or likelihood-ratio intervals are
+  suggested. Returned values are unchanged.
 * `InferenceCountNegBin` fit stopped short of the MLE (-0.2129 vs `MASS::glm.nb`
   -0.2111); the tolerance is tightened and now matches to about 1e-6.
   Hurdle/ZAP NB fits are not tightened.
@@ -232,8 +317,32 @@ methods.
   capped at 1e6 cells.
 * Crashes: GC faults in the KK21 ordinal and match kernels;
   `InferenceRandCustom` compile cache.
+* `InferenceOrdinalKKCLMMCloglog`: the weighted Bayesian-bootstrap refits and
+  `use_rcpp = FALSE` fitted the log-log model, because `ordinal::clmm()`
+  swaps the `"cloglog"` and `"loglog"` link names (seen in ordinal
+  2026.7.26; `clm()` is correct). EDI now probes the mapping once per session
+  and asks `clmm()` for the name that fits the cloglog model, so these paths
+  match the native estimate (example: 0.208 before, 0.087 now, native 0.087).
+  If the probe cannot decide, the `clmm()` fit is skipped with warning class
+  `edi_clmm_link_unverified`. The native cloglog fit was already correct; when
+  it reports a random-intercept SD near 0, that is the maximum-likelihood
+  estimate.
+* KK CLMM classes (all four links) reported `converged = TRUE` for fits that
+  had not reached a stationary point (gradient norm around 1e-2), because the
+  optimizer's relative-change stop counted as convergence. The optimizer
+  tolerance is now 1e-12 (was 1e-6). A fit is accepted only if its gradient
+  norm is at most 1e-4; otherwise it is retried once with Newton-Raphson, and
+  if that fails too, the result is `NA` with the new nonestimable reason
+  `kk_clmm_rcpp_not_stationary`. Estimates move by up to about 6e-3 (median
+  about 2e-4).
 
 ## Performance
+
+* The tighter KK CLMM tolerance makes these fits slower. A full fit takes
+  about 1.5x as long (n = 200: about 44 ms before, 64 ms now). Randomization
+  refits take about 2.8x as long (n = 200, r = 200: 3.7 s before, 10.1 s now,
+  measured on a loaded machine). The first cloglog `ordinal::clmm()` refit in
+  a session also runs a one-time probe of about 2 s.
 
 * Cached per-permutation slopes, a C++ OLS randomization kernel, batched
   Bayesian-bootstrap weights, lazy model matrices; OpenMP kernels respect the

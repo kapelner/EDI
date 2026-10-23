@@ -18,7 +18,8 @@ home:
     sequential randomized experimental designs (blocking, optimal designs,
     matching-on-the-fly, covariate-adaptive randomization) with matched
     exact, asymptotic, and randomization inference for continuous, count,
-    proportion, survival, and ordinal responses.
+    proportion, survival, and ordinal responses. EDI replaces the SeqExpMatch
+    package.
 
 navbar:
   structure:

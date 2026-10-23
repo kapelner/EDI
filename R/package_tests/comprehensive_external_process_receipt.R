@@ -40,9 +40,12 @@ run_comprehensive_external_process_with_receipt <- function(
 	}
 	# Keep the receipt's stable NAME=value representation, but processx expects
 	# its `env` argument as a named character vector.
+	# The leading "current" makes processx extend the parent environment rather
+	# than replace it; without it the child lost HOME/R_LIBS_USER and could not
+	# load the installed EDI (found 2026-10-23 while smoke-testing the G4-C runners).
 	env_for_child <- if (is.null(env)) NULL else {
 		separator <- regexpr("=", env, fixed = TRUE)
-		stats::setNames(substring(env, separator + 1L), substring(env, 1L, separator - 1L))
+		c("current", stats::setNames(substring(env, separator + 1L), substring(env, 1L, separator - 1L)))
 	}
 	if (!is.function(sha256_file)) stop("sha256_file must be a function", call. = FALSE)
 
@@ -84,7 +87,7 @@ run_comprehensive_external_process_with_receipt <- function(
 		command = command,
 		args = args,
 		env_overrides = env,
-		env_inherits_parent = is.null(env),
+		env_inherits_parent = TRUE,  # "current" is always passed to processx (2026-10-23)
 		wd = if (is.null(wd)) NULL else normalizePath(wd, winslash = "/", mustWork = TRUE),
 		supervisor_pid = as.numeric(Sys.getpid()),
 		pid = pid,

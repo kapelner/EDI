@@ -241,3 +241,70 @@ test_that("TODO-14 post-run validation binds exact results, attempt lifecycle, v
 		"attempt manifest bytes or SHA-256"
 	)
 })
+
+# 2026-10-22 (G6 #33, G4-C runbook R5): setup_skipped events for the approved
+# FixedBinaryMatch x pte_example x ~1 contexts reconcile to the approved keys.
+test_that("TODO-14 attempt reconciliation maps approved setup skips and nothing else", {
+	approved <- expand.grid(
+		rep = 1:2, beta_T = 0.5, dataset = "pte_example", response_type = "survival",
+		design = "FixedBinaryMatch", inference_class = .todo14_expected_classes[1L],
+		function_run = .todo14_expected_functions, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE
+	)
+	approved$id <- .todo14_build_id(approved)
+	attempted <- data.frame(
+		rep = 1L, beta_T = 0.5, dataset = "pte_example", response_type = "survival",
+		design = "FixedBinaryMatch", inference_class = .todo14_expected_classes[2L],
+		function_run = "compute_rand_two_sided_pval", stringsAsFactors = FALSE
+	)
+	attempted$id <- .todo14_build_id(attempted)
+	candidate_manifest <- rbind(attempted, approved[names(attempted)])
+	candidate_manifest$candidate_status <- "candidate_only_requires_setup_and_runtime_eligibility"
+	candidate_manifest$scope_source <- "checked_in_runner_defaults_without_cli_filters"
+	eligibility <- candidate_manifest[c("id", .todo14_key_columns)]
+	eligibility$eligibility <- ifelse(eligibility$id %in% approved$id, "approved_setup_skip", "attempt")
+
+	op_event <- function(type, seq, status = NA_character_) data.frame(
+		event_seq = seq, event_type = type, id = attempted$id, attempted[.todo14_key_columns],
+		model_formula = "~.", status = status, skip_reason = NA_character_, error_message = NA_character_,
+		stringsAsFactors = FALSE
+	)
+	setup_event <- function(rep, seq, type = "setup_skipped", formula = "~1") data.frame(
+		event_seq = seq, event_type = type, id = NA_character_, rep = rep, beta_T = 0.5,
+		dataset = "pte_example", response_type = "survival", design = "FixedBinaryMatch",
+		inference_class = NA_character_, function_run = NA_character_, model_formula = formula,
+		status = NA_character_, skip_reason = NA_character_,
+		error_message = "FixedBinaryMatch setup needs matched-pair ids", stringsAsFactors = FALSE
+	)
+	events <- rbind(op_event("started", 1L), op_event("terminal", 2L, "ok"), setup_event(1L, 3L), setup_event(2L, 4L))
+	results <- attempted
+	results$status <- "ok"
+	expected <- attempted
+	reconcile <- function(ev, skips = approved, elig = eligibility) .todo14_reconcile_candidate_eligibility(
+		candidate_manifest, elig, expected, ev, results,
+		approved_skips = skips
+	)
+
+	ok <- reconcile(events)
+	expect_equal(ok$attempt_count, 1L)
+	expect_equal(ok$approved_skip_count, 6L)
+	expect_length(ok$approved_setup_skip_contexts, 2L)
+	expect_equal(sum(ok$runtime_skip_counts), 0L)
+
+	# The approved_setup_skip disposition is illegal without approved_skips
+	# (setup events without approval keep failing closed: test above).
+	expect_error(reconcile(events, skips = NULL), "must equal exactly the approved_skips keys")
+	# A setup skip outside the approved contexts (here the ~. arm), a
+	# setup_failure, a missing or duplicated setup event all fail closed.
+	expect_error(reconcile(rbind(events, setup_event(1L, 5L, formula = "~."))), "unmapped setup-level")
+	expect_error(reconcile(rbind(events, setup_event(1L, 5L, type = "setup_failure"))), "unmapped setup-level")
+	expect_error(reconcile(events[-4L, ]), "exactly one setup_skipped event")
+	expect_error(reconcile(rbind(events, setup_event(2L, 5L))), "exactly one setup_skipped event")
+	expect_error(reconcile(events[1:2, ]), "no setup_skipped event")
+	# An approved key may not also have operation events, and the
+	# approved_setup_skip disposition must match approved_skips exactly.
+	stray_op <- op_event("started", 6L)
+	stray_op$id <- approved$id[1L]
+	stray_op[.todo14_key_columns] <- approved[1L, .todo14_key_columns]
+	expect_error(reconcile(rbind(events, stray_op)), "must have no operation events")
+	expect_error(reconcile(events, skips = approved[-1L, ]), "must equal exactly the approved_skips keys")
+})

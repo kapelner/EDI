@@ -138,8 +138,9 @@ InferenceExtMOutOfNBootstrap = list(
 		#'   0.7 is a first-pass default; for unstable paths prefer the
 		#'   minimum-volatility selector.
 		#'
-		#' @return A numeric two-sided p-value, or \code{NA_real_} if the path is
-		#'   non-estimable.
+		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
+		#'   fails (recorded as a failure of this procedure only; the Wald estimate
+		#'   and standard error are kept).
 		compute_m_out_of_n_bootstrap_two_sided_pval_impl = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
 			private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap p-value setup")
 			if (should_run_asserts()) {
@@ -205,7 +206,9 @@ InferenceExtMOutOfNBootstrap = list(
 		#'   exponent is too brittle for a specific estimator/design path.
 		#'
 		#' @return A length-2 numeric confidence interval, or
-		#'   \code{c(NA_real_, NA_real_)} if the path is non-estimable.
+		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
+		#'   failure of this procedure only; the Wald estimate and standard error are
+		#'   kept).
 		compute_m_out_of_n_bootstrap_confidence_interval_impl = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n"){
 			private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap CI setup")
 			if (should_run_asserts()) {

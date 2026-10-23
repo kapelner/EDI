@@ -108,8 +108,11 @@ DesignFixedBinaryMatch = define_design_class(
 		#'   covariate correlation/scale) if \code{TRUE} (default), else
 		#'   Euclidean distance on the raw covariate matrix.
 		#' @param match_objective Matching objective. \code{"distance"} (default)
-		#'   matches \pkg{nbpMatching}; \code{"squared_distance"} reproduces EDI
-		#'   through version 1.0.4.
+		#'   minimizes the total unsquared distance, as \pkg{nbpMatching} does;
+		#'   \code{"squared_distance"} reproduces EDI through version 1.0.4. The
+		#'   default changed in 1.0.5 and alters about 22\% of matched pairs
+		#'   relative to 1.0.x (measured at n = 1000, p = 4), so seeded designs and
+		#'   their downstream results differ from earlier versions.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param m Optional integer vector of explicit matched-pair identifiers, one per
@@ -190,6 +193,7 @@ DesignFixedBinaryMatch = define_design_class(
 				self$assert_all_subjects_arrived()
 			}
 			private$ensure_matching_structure_computed()
+			private$sync_binary_match_structure_with_m()
 			n = self$get_n()
 			if (is.null(private$m)){
 				# No covariates: fall back to BCRD
@@ -251,6 +255,32 @@ DesignFixedBinaryMatch = define_design_class(
 				}, integer(2L)))
 				private$bms = list(indicies_pairs = pairs)
 				private$reset_matching_caches()
+				invisible(NULL)
+			},
+			# Bootstrap-randomization replay (2026-10-23, TODO-18 C1 finding): the
+			# resampling machinery installs the resampled pair ids `m_vec_b` as
+			# private$m on a duplicated design, but the duplicated private$bms still
+			# holds the ORIGINAL sample's row pairs. Drawing from that stale bms
+			# randomized within pairs of the wrong rows, so a resampled pair could get
+			# 0 or 2 treated subjects (NA pair differences; KK robust regression then
+			# returned an identically 0 null distribution). Rebuild bms from private$m
+			# whenever bms is not a partition of 1..n into m-consistent pairs.
+			sync_binary_match_structure_with_m = function(){
+				m_vec = private$m
+				if (is.null(m_vec)) return(invisible(NULL))
+				m_vec = as.integer(m_vec)
+				n = length(m_vec)
+				pairs = private$bms$indicies_pairs
+				consistent = !is.null(pairs) && is.matrix(pairs) && ncol(pairs) == 2L &&
+					2L * nrow(pairs) == n && n > 0L &&
+					all(pairs >= 1L & pairs <= n) && !anyDuplicated(as.vector(pairs)) &&
+					all(m_vec[pairs[, 1L]] == m_vec[pairs[, 2L]])
+				if (isTRUE(consistent)) return(invisible(NULL))
+				if (anyNA(m_vec) || any(tabulate(match(m_vec, unique(m_vec))) != 2L)) {
+					stop("DesignFixedBinaryMatch: private$m does not define matched pairs (each id exactly twice); cannot draw within-pair assignments.")
+				}
+				pair_ids = sort(unique(m_vec))
+				private$bms = list(indicies_pairs = t(vapply(pair_ids, function(pid) which(m_vec == pid), integer(2L))))
 				invisible(NULL)
 			}
 		)
