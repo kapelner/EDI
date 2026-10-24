@@ -13331,7 +13331,7 @@ against the source").
       and `InferencePropKKQuantileRegrIVWC`): the Zhang sign-flip/permutation
       draws were unseeded; fixed with `private$seed_global_rng_for_draws()`
       (TODO-112 contract: inference seed, else design seed).
-    - Regression test: new `tests/testthat/test-resampling-set-seed-sweep-todo129.R`
+    - Regression test: new `R/package_tests/testthat_bulk/test-resampling-set-seed-sweep-todo129.R`
       (6 parametrized cases: KK pass-through bootstrap, PropGComp bootstrap
       and its debug path, calibrated CI, both quantile IVWC rand CIs; seeded
       = reproducible with the caller's RNG untouched; unseeded = still drawn
@@ -14055,6 +14055,17 @@ Positional arguments of `comprehensive_tests.R` (verified in its parser): 1 Nrep
     EDI_COMPREHENSIVE_RESULTS_DIR=$D Rscript R/package_tests/audit_comprehensive_results.R --force   # read-only gate; --force ignores the unchanged-files stamp
     Rscript R/package_tests/prune_stale_result_rows.R            # DRY RUN of stale-row removal; --apply rewrites the canonical CSVs (separate approval)
 
+The audit line above is a no-op on a slice dir (it reads only unfiltered `nc_<cores>_<type>.csv` names; found at G7,
+2026-10-23). Merge step (added 2026-10-23; after a slice passes): `Rscript R/package_tests/merge_comprehensive_slice_results.R --slice-dir $D`
+(dry run; exit 0/1/2), then `--out-dir $O` (empty dir outside the checkout) + `EDI_COMPREHENSIVE_RESULTS_DIR=$O Rscript
+R/package_tests/audit_comprehensive_results.R --force` (this is the real per-slice audit), then `--apply` (separate approval;
+backup `<file>.pre_slice_merge_<stamp>.bak`, atomic rename). It keys on `id` (`build_result_key()`), searches every
+`comprehensive_tests_results_nc_*.csv` (filtered too), replaces a key where it lives, appends new keys to the unfiltered
+nc_<N>_<type>.csv, and never deletes rows. It blocks on a missing receipt or exit != 0, sidecar DLL != installed EDI.so,
+duplicate or multi-file keys, schema mismatch, or `--expect-keys` mismatch. Keys found only in `_filtered_` files are
+reported; the audits do not read them. Caveat: the 2-core slice commands write nc_2 files, while the audit and pruner read
+nc_1 only. Test: `testthat_bulk/test-merge-comprehensive-slice-results-reference.R` (64 pass).
+
 Slices (class/response family; each entry records its exact arguments; row counts from the entries):
 
 | TODO | Slice |
@@ -14414,6 +14425,13 @@ Common rules (R1-R7):
   the pre-fix native binary (none is installed).
 - Closes: TODO-67's sub-item "Owner decision before TODO-5 ..." and linked plan TODO-5 after this run plus the
   regeneration of affected benchmark rows.
+- **Full run 2026-10-23 (G1 build, DLL `f5772727...`; `~/edi_regen/batch_20261023T144230Z/r6_todo67_kk21_matching`,
+  receipt exit 0, about 13 min): PASS** under the owner-approved rules. 200/200 cases estimable in both arms; injection
+  verified 200/200; mean mASMD old 0.0814 vs corrected 0.0778; mean paired delta -0.0036, 95% CI [-0.0085, 0.0013]
+  (upper bound <= 0.01); matched fraction 0.8692 -> 0.8693 (guard 0.02). (The summary still says "proposed margins,
+  owner to confirm"; the margins were confirmed 2026-10-23, so that line is stale text in the script.) Native sub-gate
+  `test-kk21-stepwise-survival-weibull-mle-score-reference.R` on the G1 build: 3 pass, 0 fail. Left: regenerate the
+  affected benchmark rows (G2).
 
 **R7. TODO-10: matched-Cox covariate cap and MC truth (G6 #19).**
 - Classes: `InferenceSurvivalKKStratCoxPHOneLik` and `InferenceSurvivalKKLWACoxPHOneLik`. These are the two in
@@ -14491,6 +14509,44 @@ Common rules (R1-R7):
   G1 build.
 - Closes (with G1 provenance): the "Validate the owner-approved 20-vs-320 parameter bound ... four-kernel grid" half of
   the TODO-31 and TODO-50 sub-items. The CountKKGLMM/OrdinalKKCLMM row reconciliation stays with G7 + G4.
+- **Full run 2026-10-23 (G1 build, DLL `f5772727...`, HEAD a3b253f9; `~/edi_regen/batch_20261023T144230Z/r8_todo31_50_quadrature`,
+  receipt exit 0, about 2.5 min): NOT PASSED.** All 160 cells usable, 0 errors. clmm, ordinal_glmm and logistic_glmm pass
+  every stratum with large margin (max coef diff 0.004 SE, max |dlog sigma| 0.033). poisson_glmm fails at n = 120:
+  sigma 0.6 one seed out (41004, |dlog sigma| 0.1046), sigma 0.9 three seeds out (41004-41006, |dlog sigma| up to 0.171;
+  coef diff up to 0.721 SE, inside 0.75). At n = 200 it passes but close to the bound (coef 0.67 SE at sigma 0.9).
+  The bulk test only covers n = 200, sigma 0.9. Reading: 20 non-adaptive nodes are not enough for the Poisson GLMM
+  with 5-subject clusters at n = 120 (24 clusters). Owner decision needed: raise the Poisson kernel's default `n_gh`
+  (and re-time), or narrow the bound's scope to the documented settings. TODO-31/50's grid sub-item stays open.
+- **Owner decision 2026-10-24: raise the Poisson default, measure first.** Node-count scan, same grid, poisson_glmm only,
+  low node count 30/40/60/80 vs 320 (installed unity build `80b24441...`; scratchpad
+  `r8_poisson_ngh_scan/`, all exit 0). Worst |dlog sigma| / worst coef diff (SE) over the 4 strata:
+  20: 0.171 / 0.72 (FAIL); 30: 0.326 / 0.51 (FAIL, 5 seeds out; GH error is not monotone in the node count);
+  40: 0.084 / 0.48 (PASS, thin margin); 60: 0.064 / 0.16 (PASS); 80: 0.040 / 0.18 (PASS). Single-fit cost, newton,
+  sigma 0.9, groups of 5 (ms per fit at 20/40/60/80 nodes): n = 120: 14/21/35/54; n = 200: 24/48/69/85;
+  n = 1000: 126/206/295/348, i.e. 60 nodes costs about 2.3-2.8x the 20-node fit. Recommendation: 60. Change sites:
+  `fast_poisson_glmm.cpp` default args (L344, L537, L578, L613; RcppExports regen + targeted rebuild) and the explicit
+  `n_gh = 20L` in `inference_count_KK_combined.R:471` (the other calls take the C++ default). Then rerun R8 and move the
+  bulk bound test to the n = 120, sigma 0.9 cells. Hurdle Poisson (7 nodes) is a separate kernel not covered by R8.
+- **Done 2026-10-24 (owner: "do 1"): Poisson default 20 -> 60.** `fast_poisson_glmm.cpp` 4 defaults, `inference_count_KK_combined.R:471`,
+  and the 3 Poisson lines of `R/RcppExports.R` (hand-edited to what `compileAttributes()` emits; R callers take the
+  default from there, so the change is live without a rebuild; the C++ defaults only matter after the owner's next
+  build). `test-count-kk-glmm-production-default-dispatch-contracts.R` pin updated 20L -> 60L. 29 Poisson/CountKKGLMM
+  test files, checkout R with `compile = FALSE` over the installed unity DLL `80b24441...`: 2,352 pass, 1 fail (that
+  pin, now fixed: 6/6), 1 skip. Still open: Python binding default (`python/cpp/bindings_glmm.cpp:133,177`, still 20),
+  R8 rerun at the new default, bulk bound test on n = 120 / sigma 0.9, G2 re-timing. Doc error found: the class roxygen
+  (`inference_count_KK_combined.R:18`) says "adaptive" Gauss-Hermite; the kernel is non-adaptive (fixed nodes
+  sqrt(2) sigma x_k, `fast_poisson_glmm.cpp:285`).
+- **Follow-ups done 2026-10-24.** Python binding default 20 -> 60 (`bindings_glmm.cpp` py::arg + docstring);
+  `python/tests/test_fast_poisson_glmm.py` re-pinned from R at the new default (the old pins were first reproduced
+  exactly with `n_gh = 20L`, proving the numpy dataset matches); not run, the `edi_kernels` extension is not built here.
+  Roxygen wording fixed ("(non-adaptive) Gauss-Hermite quadrature with 60 fixed nodes"); parse OK, Rd not regenerated
+  (G8). Bulk test `test-poisson-glmm-20-node-vs-320-node-bound.R` rewritten to the n = 120 (24 groups), sigma 0.9 cell at
+  the wrapper default (no `n_gh` passed); 21/21 pass, 10/10 seeds usable (file name kept so the CI runtime manifest does
+  not drift; rename optional). G2 intentional-slowdown list updated. **R8 rerun at shipped defaults: PASS.** Receipt
+  runs, installed unity DLL `80b24441...`, scratchpad `r8_rerun_20261024/`, both exit 0: poisson_glmm at 60 nodes, all 4
+  strata pass (worst coef 0.16 SE, worst |dlog sigma| 0.064, 40/40 usable); clmm, ordinal_glmm, logistic_glmm at 20
+  nodes, all 12 strata pass (worst coef 0.004 SE, |dlog sigma| 0.033). The TODO-31/50 four-kernel grid sub-item can
+  close. Remaining: G2 timing (quiet host) and the CountKKGLMM row regeneration (G4/G7).
 
 Scripts still to write, all agent work (the struck ones were written 2026-10-22 and smoke-tested only):
 - ~~`R/package_tests/calibration/summarize_type1_calibration.R` plus its reference test~~
@@ -14809,6 +14865,44 @@ external receipt and complete sidecar provenance (command shape in G4); reconcil
 partial directory untouched.
 Passed when the receipt shows terminal completion, the 16 target IDs reconcile exactly, and the audit shows no new finding. Then check
 TODO-56 and note that the shared paths are free; G4 may then start for 9, 12, 13, 14, 18, 26, 55, 76, 77.
+
+**G7 run 2026-10-23 (on the G1 build, `EDI.so` `f5772727...`).** Command (argv reconstructed from the
+`/tmp/edi-todo56-slice6-target.lnaz88` runner log: pima only, beta_T 0 and 0.5, rand family):
+`run_comprehensive_with_receipt.R --receipt $D/receipt.rds ... --env EDI_COMPREHENSIVE_RESULTS_DIR=$D --command Rscript
+R/package_tests/comprehensive_tests.R 1 1 incidence Bernoulli InferenceIncidModifiedPoisson pima NA NA rand`,
+`D=$HOME/edi_regen/g7_todo56`. Receipt: completed, exit 0, 14:38:19-14:44:54 UTC; schema-2 provenance sidecar written.
+- Keys: 16 rows, 16 unique IDs, all 16 present in the canonical file. They live in
+  `comprehensive_tests_results_nc_1_incidence_filtered_class-InferenceIncidModifiedPoisson.csv` (48,872 rows), NOT in
+  `comprehensive_tests_results_nc_1_incidence.csv`. 0 missing, 0 extra.
+- Status: the 8 `compute_rand_two_sided_pval` rows stay `ok`. The 8 `compute_rand_two_sided_pval(delta=0.5)` rows go
+  `ok -> error` ("randomization tests with delta nonzero not supported for incidence"). Explained: before db0d284a the
+  incidence-delta refusal sat only behind `should_run_asserts()`, so the harness (asserts off) recorded a meaningless
+  shifted-statistic p-value; v1.0.5 refuses up front in `compute_rand_two_sided_pval()` (`inference_all_abstract_rand.R`
+  ~L319; TODO-99 public-entrypoint guard). Intentional refusal; it counts as a refusal, not a failure, under the
+  path-audit counting rule.
+- Values: all 8 `ok` p-values differ from the 2026-10-09 rows (commit 56bbb43f) and are now on the k/151 lattice.
+  Explained by TODO-99: the old default dispatched Zhang-eligible incidence rand p-values to the exact Zhang p-value
+  (continuous, non-lattice, and identical across model formulas because it does not use the model fit); v1.0.5 keeps
+  the default draw-based (exact Zhang is explicit). TODO-112 seeding then fixes the draws. This also discharges the
+  TODO-99 learning's open point ("changed comprehensive incidence `rand` rows") for these 16 keys.
+- Audit: `audit_comprehensive_results.R --force` on `$D` printed "no raw comprehensive_tests_results_nc_1_*.csv present --
+  nothing to audit" (exit 0). It reads only the unfiltered `nc_<cores>_<type>.csv` names, so a per-slice audit is a
+  no-op for every G4 slice. The merge tool (`merge_comprehensive_slice_results.R`, being written 2026-10-23) gets an
+  `--out-dir` mode so the audit can run on a merged scratch copy. G7 stays open until that audit runs and the value
+  change is explained.
+
+**G7 merge 2026-10-24 (owner decision: option 1).** The 16 keys were also in the untracked Sep 10 file
+`comprehensive_tests_results_nc_1_filtered_design-Bernoulli_family-rand.csv` (160 rows, all incidence/Bernoulli/rand,
+pre-TODO-99); the merge tool blocks on keys in more than one file. (1) Removed those 16 lines from the Sep 10 file (144
+rows kept byte-identical; backup `.pre_g7_dedup_20261024T160441Z.bak`). Its other 144 rows are pre-TODO-99 too and
+are not regenerated here. (2) The installed `EDI.so` had changed to the owner's unity rebuild (`80b24441...`,
+2026-10-23 15:08-15:12 UTC; no C++ source change after the G1 build), so the merge tool blocked on the DLL check. Reran
+the slice on that build (receipt exit 0, 16:06-16:10 UTC, HEAD 61d4dc0a); its 16 rows are identical to the G1-build rows
+(same status, max |result diff| 0). (3) Dry run, then `--apply --target-file
+comprehensive_tests_results_nc_1_incidence_filtered_class-InferenceIncidModifiedPoisson.csv`: 16 replaced, 0 appended,
+0 blocking (ok->ok 8, ok->error 8); applied file byte-identical to the preview; backup
+`.pre_slice_merge_20261024T161114Z.bak`. The audit and path audits do not read `_filtered_` files, so no audit covers
+these rows (unchanged from before). G7's 16-key slice is merged; TODO-56 can close on it.
 
 ### G8. Rd / roxygen regeneration
 
@@ -15410,6 +15504,10 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
          `InferenceIncidBinomialIdentityRiskDiff` (R and Python, models + wald) may move.
        - Patch 08: Cox `maxit` 20 -> 100 plus a descent guard. Only fits that used to hit the cap run longer
          (Cox / stratified Cox rows).
+       - TODO-31/50 R8 (owner decision 2026-10-24): Poisson GLMM default `n_gh` 20 -> 60, in R (`RcppExports.R`,
+         `inference_count_KK_combined.R`) and in the Python binding (`bindings_glmm.cpp`). Measured single-fit cost
+         about 2.3-2.8x (n = 120/200/1000: 14->35, 24->69, 126->295 ms). Any row that calls `fast_poisson_glmm_cpp`
+         (or the Python `fast_poisson_glmm`) with the default, and `InferenceCountKKGLMM` in procedures, may get slower: allow them.
        - Patch 01 (TODO-123): one extra Hessian per previously-unconverged Newton fit. Patch 12 (TODO-107): no cost
          on well-scaled covariates; the benchmark covariates are N(0, 1). Patch 15: a read-only finite-input scan
          (bit-identical). None of these is expected to flag.

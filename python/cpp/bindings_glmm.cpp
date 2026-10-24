@@ -130,7 +130,7 @@ void bind_glmm(py::module_& m) {
     py::arg("warm_start_params") = py::none(),
     py::arg("smart_cold_start") = true,
     py::arg("estimate_only") = false,
-    py::arg("n_gh") = 20,
+    py::arg("n_gh") = 60,
     py::arg("maxit") = 300,
     py::arg("eps_g") = 1e-6,
     py::arg("fixed_idx") = py::none(),
@@ -174,7 +174,7 @@ void bind_glmm(py::module_& m) {
     "    if a warm start is provided.\n"
     "estimate_only : bool, default False\n"
     "    If True, skip variance-component calculations.\n"
-    "n_gh : int, default 20\n"
+    "n_gh : int, default 60\n"
     "    Number of Gauss-Hermite quadrature nodes used to integrate out the random\n"
     "    intercept.\n"
     "maxit : int, default 300\n"

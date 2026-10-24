@@ -702,6 +702,7 @@ R/package_tests/testthat_bulk/test-matching-linear-incomplete-pairs.R,correctnes
 R/package_tests/testthat_bulk/test-matching-ols-degenerate-geometry.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-matching-structure-bootstrap-draws-and-cluster-ids-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-mean-var-cpp-empty-and-singleton-edge-cases-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-merge-comprehensive-slice-results-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-metadata-and-migration-record-name-field-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-metadata-validators-field-type-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-milp-solve-a-dinkelbach-brute-force-optimum-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -948,6 +949,7 @@ R/package_tests/testthat_bulk/test-resampling-extension-contracts.R,correctness,
 R/package_tests/testthat_bulk/test-resampling-kernel-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-numerical-inversion.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-parallel-threshold-contracts.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-resampling-set-seed-sweep-todo129.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-reservoir-statistic-boundary-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resolve-component-dependencies-duplicate-direct-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resolve-component-dependencies-transitive-duplicate-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1435,7 +1437,6 @@ R/EDI/tests/testthat/test-rerandomization-batched-fallback.R,coverage,30,bootstr
 R/EDI/tests/testthat/test-rerandomization-objective-contiguous-indicts.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rerandomization-search-early-stop.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-resampling-draw-contracts.R,coverage,1,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-resampling-set-seed-sweep-todo129.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-reused-worker-private-cache-reset.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-ridit-kernel-se-equals-delong.R,coverage,30,bootstrap
@@ -2202,6 +2203,7 @@ R/package_tests/testthat_bulk/test-matching-linear-incomplete-pairs.R,coverage,1
 R/package_tests/testthat_bulk/test-matching-ols-degenerate-geometry.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-matching-structure-bootstrap-draws-and-cluster-ids-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-mean-var-cpp-empty-and-singleton-edge-cases-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-merge-comprehensive-slice-results-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-metadata-and-migration-record-name-field-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-metadata-validators-field-type-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-milp-solve-a-dinkelbach-brute-force-optimum-reference.R,coverage,240,bootstrap
@@ -2448,6 +2450,7 @@ R/package_tests/testthat_bulk/test-resampling-extension-contracts.R,coverage,1,m
 R/package_tests/testthat_bulk/test-resampling-kernel-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-numerical-inversion.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resampling-parallel-threshold-contracts.R,coverage,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-resampling-set-seed-sweep-todo129.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-reservoir-statistic-boundary-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-resolve-component-dependencies-duplicate-direct-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-resolve-component-dependencies-transitive-duplicate-guard-reference.R,coverage,240,bootstrap

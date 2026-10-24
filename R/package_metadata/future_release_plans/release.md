@@ -134,6 +134,37 @@ fixed. Never allowlist something only because it is inconvenient.
   `benchmark_model_fits_R.html`, the Python HTML, and the `R/benchmark/`
   copies) with the release; they are the next release's baseline.
 
+### Merging slice results into the canonical CSVs
+
+- **Tool:** `R/package_tests/merge_comprehensive_slice_results.R --slice-dir D`
+  (D = the slice's `EDI_COMPREHENSIVE_RESULTS_DIR`, with `receipt.rds`, the
+  filtered CSV and its `.provenance-*.rds`). Exit 0 clean, 1 blocking issue,
+  2 usage/parse error. Reports go to D (or `--report-dir`), never the repo.
+- **Key:** the `id` column (`build_result_key()` in `comprehensive_tests.R`).
+  Every `comprehensive_tests_results_nc_*.csv` in `R/package_tests/` (filtered
+  or not) is searched. An existing key is replaced in place (its last
+  occurrence) in the file that holds it. A new key is appended to the
+  unfiltered `nc_<N>_<type>.csv`. Rows are never deleted.
+- **Three steps:**
+  1. dry run (default): replaced / identical / added / missing-in-slice
+     keys per file, status transitions, value changes, where each key lives.
+  2. `--out-dir $O` (an empty dir outside the checkout): merged copies plus
+     links to the other `nc_1_<type>.csv` files and a copy of the audit
+     baseline, then
+     `EDI_COMPREHENSIVE_RESULTS_DIR=$O Rscript R/package_tests/audit_comprehensive_results.R --force`.
+  3. `--apply`: takes the runner's `<file>.lock`, writes a
+     `<file>.pre_slice_merge_<stamp>.bak`, then writes a temp file and renames
+     it over the original. A second `--apply` is a no-op.
+- **Blocks:** missing receipt or exit status != 0, missing sidecar
+  (`--allow-no-receipt` waives both, dry run only), sidecar DLL != installed
+  `EDI.so`, a duplicate slice key, a key found in more than one results file,
+  an `id` that is not the runner's key, a column-set mismatch,
+  `--expect-keys` mismatch.
+- **Know:** the results audit and the path audits read only unfiltered
+  `nc_1_<type>.csv`. Keys that live only in `_filtered_` files are reported
+  but stay invisible to both. `--target-file F` compares against one file
+  only, which is useful for an exact reconciliation.
+
 ### Path audits
 
 - **Needs:** the release build installed (it reads the registry live) and the

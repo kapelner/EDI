@@ -41,14 +41,15 @@ def _synthetic_data():
     return X, y, group_id
 
 
-# R reference, EDI 1.0.5, re-pinned 2026-10-11 after the multistart over
-# log_sigma (e706c6f6) landed on a marginally better optimum. Via:
+# R reference, EDI 1.0.5, re-pinned 2026-10-24 when the default n_gh went 20 -> 60
+# (G4-C R8 node-count scan; the 2026-10-11 20-node pins were reproduced exactly with
+# n_gh = 20L on this dataset before re-pinning). Via:
 #   EDI:::fast_poisson_glmm_cpp(X, y, group_id, j_T = 1L)
-R_B = np.array([0.39648727353815, 0.325086056494597, -0.181513483406603])
-R_LOG_SIGMA = -0.988051338398773
-R_NEG_LOGLIK = 344.026113686333
-R_VCOV_00 = 0.0100496694130413
-R_VCOV_11 = 0.0127773949511875
+R_B = np.array([0.396505411462932, 0.32504298400233, -0.181494048503991])
+R_LOG_SIGMA = -0.98803693350734
+R_NEG_LOGLIK = 344.026120170644
+R_VCOV_00 = 0.0100496726397232
+R_VCOV_11 = 0.0127772516541618
 
 
 def test_matches_r_fixture():

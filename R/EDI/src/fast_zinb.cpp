@@ -853,8 +853,8 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
     if (!information_invertible) cov_free = identified_pseudo_inverse_free_information(H_free);
     Eigen::MatrixXd vcov = expand_free_covariance(n_par, information_spec, cov_free, true);
 
-    return edi::ResultMap()
-        .set("params", fit.params)
+    edi::ResultMap out;
+    out.set("params", fit.params)
         .set("vcov", vcov)
         .set("information_invertible", information_invertible)
         .set("converged", fit.converged)
@@ -867,6 +867,18 @@ edi::ResultMap fast_zinb_with_var_internal(const Eigen::Ref<const Eigen::MatrixX
             .set("dispersion_at_poisson_boundary", fit.dispersion_at_poisson_boundary)
             .set("zero_inflation_at_boundary", fit.zero_inflation_at_boundary)
             .set("reduced_model", fit.reduced_model);
+    // Same labels, same branches as the R-facing fast_zinb_cpp() below, so a
+    // caller of either binding reads the returned covariance the same way.
+    // Left unset when the information block is invertible away from a
+    // boundary, which is the ordinary observed-information covariance.
+    if (!information_invertible) {
+        out.set("covariance_type", std::string("pseudo_inverse_identified_coordinates"));
+    } else if (fit.dispersion_at_poisson_boundary || fit.zero_inflation_at_boundary) {
+        out.set("covariance_type", std::string(fit.zero_inflation_at_boundary
+            ? "observed_conditional_on_zero_inflation_boundary"
+            : "observed_conditional_on_poisson_boundary"));
+    }
+    return out;
 }
 
 #ifndef EDI_CORE_ONLY

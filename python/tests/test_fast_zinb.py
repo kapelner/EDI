@@ -81,9 +81,25 @@ def test_result_shape_and_types():
 
 
 def test_with_var_rejects_a_duplicated_information_column():
+    # The kernel keeps information_invertible False on a singular block but now
+    # returns the pseudo-inverse covariance of the identified coordinates, so
+    # only the unidentified ones are NaN: the duplicated count column and its
+    # copy, plus the zero-inflation block when the fit sits on that boundary.
+    # Mirrors R's test-information-inverse-guard.R.
     Xc, Xz, y = _synthetic_data()
     Xc_singular = np.column_stack([Xc, Xc[:, -1]])
     res = fast_zinb_with_var(Xc_singular, Xz, y)
 
     assert res["information_invertible"] is False
-    assert np.isnan(res["vcov"]).all()
+    assert res["covariance_type"] == "pseudo_inverse_identified_coordinates"
+    vcov = res["vcov"]
+    n_cond = Xc_singular.shape[1]
+    unidentified = {n_cond - 2, n_cond - 1}
+    if res["zero_inflation_at_boundary"]:
+        unidentified |= set(range(n_cond, n_cond + Xz.shape[1]))
+    identified = sorted(set(range(vcov.shape[0])) - unidentified)
+
+    for i in unidentified:
+        assert np.isnan(vcov[i, :]).all()
+        assert np.isnan(vcov[:, i]).all()
+    assert np.isfinite(vcov[np.ix_(identified, identified)]).all()

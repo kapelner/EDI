@@ -15,8 +15,8 @@
 #' within-pair correlation induced by matching. \eqn{\beta_T} is a log-rate
 #' (log relative risk) treatment effect: \eqn{\exp(\hat\beta_T)} is the
 #' estimated rate ratio. The random effect is integrated out of the marginal
-#' likelihood by adaptive Gauss-Hermite quadrature rather than a Laplace
-#' approximation.
+#' likelihood by (non-adaptive) Gauss-Hermite quadrature with 60 fixed nodes
+#' rather than a Laplace approximation.
 #'
 #' \strong{Likelihood tier.} \code{likelihood_tier = "full"}: both Wald
 #' (model-based standard error) and likelihood-ratio testing types are
@@ -468,7 +468,7 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 						smart_cold_start = private$smart_cold_start_default,
 						j_T = j_treat - 1L,
 						estimate_only = FALSE,
-						n_gh = 20L,
+						n_gh = 60L,
 						maxit = 300L,
 						eps_g = 1e-6,
 						fixed_idx = j_treat,

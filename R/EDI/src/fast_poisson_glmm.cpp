@@ -341,7 +341,7 @@ edi::ResultMap fast_poisson_glmm_internal(
 	std::optional<Eigen::VectorXd> warm_start_params = std::nullopt,
 	bool smart_cold_start = true,
 	bool estimate_only = false,
-	int n_gh = 20,
+	int n_gh = 60,
 	int maxit = 300,
 	double eps_g = 1e-6,
 	std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
@@ -534,7 +534,7 @@ List fast_poisson_glmm_cpp(
 	Nullable<NumericVector> warm_start_params = R_NilValue,
 	bool smart_cold_start = true,
 	bool estimate_only = false,
-	int n_gh = 20,
+	int n_gh = 60,
 	int maxit = 300,
 	double eps_g = 1e-6,
 	Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
@@ -575,7 +575,7 @@ Eigen::VectorXd get_poisson_glmm_score_cpp(
 	const NumericVector& y_r,
 	const IntegerVector& group_id_r,
 	const NumericVector& par_r,
-	int n_gh = 20
+	int n_gh = 60
 ) {
 	if (X_r.rows() != y_r.size() || X_r.rows() != group_id_r.size()) {
 		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
@@ -610,7 +610,7 @@ Eigen::MatrixXd get_poisson_glmm_hessian_cpp(
 	const NumericVector& y_r,
 	const IntegerVector& group_id_r,
 	const NumericVector& par_r,
-	int n_gh = 20
+	int n_gh = 60
 ) {
 	if (X_r.rows() != y_r.size() || X_r.rows() != group_id_r.size()) {
 		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",

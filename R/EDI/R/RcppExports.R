@@ -3272,15 +3272,15 @@ expand_adjacent_category_data_cpp <- function(y, w, strata, K) {
     .Call(`_EDI_expand_adjacent_category_data_cpp`, y, w, strata, K)
 }
 
-fast_poisson_glmm_cpp <- function(X_r, y_r, group_id_r, j_T, warm_start_params = NULL, smart_cold_start = TRUE, estimate_only = FALSE, n_gh = 20L, maxit = 300L, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, row_weights = NULL) {
+fast_poisson_glmm_cpp <- function(X_r, y_r, group_id_r, j_T, warm_start_params = NULL, smart_cold_start = TRUE, estimate_only = FALSE, n_gh = 60L, maxit = 300L, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, row_weights = NULL) {
     .Call(`_EDI_fast_poisson_glmm_cpp`, X_r, y_r, group_id_r, j_T, warm_start_params, smart_cold_start, estimate_only, n_gh, maxit, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, row_weights)
 }
 
-get_poisson_glmm_score_cpp <- function(X_r, y_r, group_id_r, par_r, n_gh = 20L) {
+get_poisson_glmm_score_cpp <- function(X_r, y_r, group_id_r, par_r, n_gh = 60L) {
     .Call(`_EDI_get_poisson_glmm_score_cpp`, X_r, y_r, group_id_r, par_r, n_gh)
 }
 
-get_poisson_glmm_hessian_cpp <- function(X_r, y_r, group_id_r, par_r, n_gh = 20L) {
+get_poisson_glmm_hessian_cpp <- function(X_r, y_r, group_id_r, par_r, n_gh = 60L) {
     .Call(`_EDI_get_poisson_glmm_hessian_cpp`, X_r, y_r, group_id_r, par_r, n_gh)
 }
 

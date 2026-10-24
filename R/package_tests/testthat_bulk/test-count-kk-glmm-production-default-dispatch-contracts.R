@@ -18,7 +18,7 @@ test_that("default Count KK GLMM routes to the Poisson kernel with shipped setti
 	with_builtin_glmm_dispatch_policies({
 		cpp_wrapper <- get("fast_poisson_glmm_cpp", envir = asNamespace("EDI"))
 		default_n_gh <- eval(formals(cpp_wrapper)$n_gh, envir = environment(cpp_wrapper))
-		expect_identical(default_n_gh, 20L)
+		expect_identical(default_n_gh, 60L) # 20 -> 60 in v1.0.5 (G4-C R8 node-count scan)
 
 		seen <- new.env(parent = emptyenv())
 		local_mocked_bindings(
@@ -48,7 +48,7 @@ test_that("default Count KK GLMM routes to the Poisson kernel with shipped setti
 		expect_identical(seen$args$smart_cold_start, TRUE)
 		expect_identical(seen$args$estimate_only, TRUE)
 		# The production call leaves n_gh unspecified; the real Rcpp wrapper's
-		# default above supplies the shipped 20-node quadrature setting.
+		# default above supplies the shipped 60-node quadrature setting.
 		expect_false("n_gh" %in% names(seen$args))
 	})
 })

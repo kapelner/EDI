@@ -1,28 +1,28 @@
-# TODO-31 (release_v1_0_5.md): non-regression bound for the shipped 20-node
+# TODO-31 (release_v1_0_5.md): non-regression bound for the shipped default-node
 # Gauss-Hermite Poisson GLMM against its own 320-node optimum. The 1e-4 exact-NLL
-# rule applies at 320 nodes; at 20 fixed nodes the gap is quadrature error, not
-# optimizer error. Bound = measured level (2026-10-21) plus a thin margin; revisit
-# after adaptive quadrature (performance_profiling_and_upgrades.md TODO-153).
-# The bound is on accuracy, not on convergence reliability: the fixed 20-node
-# Newton fit is borderline at some seeds (seed 41007 stops at the iteration cap
-# locally, and seed 41006 returned a non-finite fit on the CI runner, making the
-# comparison NaN). A seed enters the bound only when both fits are finite and
-# converged. Which seeds fail differs by platform (7 of 10 were usable on the
-# CI runner, 9 locally), because the multi-start fit picks its winner by an
-# objective that is noisy at 20 nodes; the R callers already treat a
-# non-converged kernel fit as a failure and fall back to glmmTMB. At least 5
-# of the 10 seeds must be usable so the test cannot pass vacuously. The bounds
-# were measured on exactly these 10 seeds; adding seeds widens the measured
-# log-sigma gap (0.146 over 40 seeds), so do not extend the seed range
-# without re-measuring.
-test_that("20-node Poisson GLMM stays within the recorded bound of the 320-node optimum", {
+# rule applies at 320 nodes; at the default fixed nodes the gap is quadrature
+# error, not optimizer error. Revisit after adaptive quadrature
+# (performance_profiling_and_upgrades.md TODO-153).
+# History: the default was 20 nodes and this test checked n = 200 (40 groups of 5),
+# sigma 0.9, where 20 nodes passed narrowly. The G4-C R8 grid (2026-10-23) found 20
+# nodes out of bound at n = 120 (24 groups of 5): |log sigma diff| up to 0.171 at
+# sigma 0.9. The node-count scan (2026-10-24) passed at 40, 60 and 80 nodes (30 was
+# worse than 20: fixed-node GH error is not monotone in the node count), and the
+# default became 60. This test now checks the failing cell, n = 120, sigma 0.9, at
+# the wrapper's default node count (no n_gh passed), so it pins whatever ships.
+# Measured at 60 nodes on these 10 seeds: 10 of 10 usable, max |log sigma diff|
+# 0.064, max |coef diff| 0.14 SE. A seed enters the bound only when both fits are
+# finite and converged (the R callers treat a non-converged kernel fit as a failure
+# and fall back to glmmTMB); at least 5 of the 10 must be usable so the test cannot
+# pass vacuously. Do not extend the seed range without re-measuring.
+test_that("default-node Poisson GLMM stays within the recorded bound of the 320-node optimum at n = 120, sigma 0.9", {
 	K <- function(x) get(x, envir = asNamespace("EDI"))
 	fit <- K("fast_poisson_glmm_cpp")
 	usable <- 0L
 	skipped <- integer(0)
 	for (seed in 41001:41010) {
 		set.seed(seed)
-		n <- 200L; G <- 40L
+		n <- 120L; G <- 24L
 		g <- rep(seq_len(G), each = 5L)
 		x <- rnorm(n)
 		u <- rnorm(G, sd = 0.9)[g]
@@ -30,16 +30,16 @@ test_that("20-node Poisson GLMM stays within the recorded bound of the 320-node 
 		y <- as.numeric(rpois(n, exp(0.4 + 0.3 * x + u)))
 		g <- as.integer(g)
 		r320 <- fit(X, y, g, 1L, n_gh = 320L, optimization_alg = "newton")
-		r20  <- fit(X, y, g, 1L, n_gh = 20L,  optimization_alg = "newton")
+		rdef <- fit(X, y, g, 1L, optimization_alg = "newton")
 		ok <- function(r) isTRUE(r$converged) && all(is.finite(c(r$b, r$log_sigma)))
-		if (!ok(r320) || !ok(r20) || !all(is.finite(diag(as.matrix(r320$vcov))[1:2]))) {
+		if (!ok(r320) || !ok(rdef) || !all(is.finite(diag(as.matrix(r320$vcov))[1:2]))) {
 			skipped <- c(skipped, seed)
 			next
 		}
 		usable <- usable + 1L
 		se <- sqrt(diag(as.matrix(r320$vcov)))[1:2]
-		d_se <- abs(as.numeric(r20$b) - as.numeric(r320$b)) / se
-		d_ls <- abs(as.numeric(r20$log_sigma) - as.numeric(r320$log_sigma))
+		d_se <- abs(as.numeric(rdef$b) - as.numeric(r320$b)) / se
+		d_ls <- abs(as.numeric(rdef$log_sigma) - as.numeric(r320$log_sigma))
 		expect_lte(max(d_se), 0.75, label = paste("max |coef diff| in SE, seed", seed))
 		expect_lte(d_ls, 0.10, label = paste("|log sigma diff|, seed", seed))
 	}
