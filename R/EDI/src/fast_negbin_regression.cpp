@@ -400,6 +400,17 @@ Eigen::MatrixXd get_negbin_regression_expected_hessian_cpp(const Eigen::Map<Eige
     return fun.expected_hessian(params);
 }
 
+// eps_g: TODO-116 wanted 1e-10 to match MASS::glm.nb to ~1e-6, but the
+// optimizer usually cannot reach that gradient norm: it runs to the iteration
+// cap and ends with a NaN gradient, so the fit is reported unconverged.
+// Measured over 40 seeded Poisson-like datasets per size, the 1e-10 default
+// converged 7/40 (n = 20), 15/40 (n = 100) and 22/40 (n = 300), against 40/40
+// at every size for 1e-6. The tight tolerance is therefore opt-in per call,
+// not the default: InferenceCountNegBin asks for NEGBIN_FIT_EPS_G and refits
+// at the fallback when that fit does not converge (negbin_fit_with_eps_fallback()).
+// This has to sit above the roxygen block: inside the parameter list the Rcpp
+// attribute parser reads its words as parameters, and between the roxygen
+// block and the export tag it detaches the docs from the function.
 //' Fast Negative Binomial Regression with Variance (C++ Backend)
 //'
 //' Fits the same mean/dispersion-parameterized negative-binomial regression as
@@ -454,15 +465,6 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		bool smart_cold_start = false,
 		int maxit = 1000,
 		double eps_f = 1e-8,
-		// TODO-116 wanted 1e-10 here to match MASS::glm.nb to ~1e-6, but the
-		// optimizer usually cannot reach that gradient norm: it runs to the
-		// iteration cap and ends with a NaN gradient, so the fit is reported
-		// unconverged. Measured over 40 seeded Poisson-like datasets per size,
-		// the 1e-10 default converged 7/40 (n = 20), 15/40 (n = 100) and 22/40
-		// (n = 300), against 40/40 at every size for 1e-6. The tight tolerance
-		// is therefore opt-in per call, not the default: InferenceCountNegBin
-		// asks for NEGBIN_FIT_EPS_G and refits at the fallback when that fit
-		// does not converge (see negbin_fit_with_eps_fallback()).
 		double eps_g = 1e-6,
 		Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
 		Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,

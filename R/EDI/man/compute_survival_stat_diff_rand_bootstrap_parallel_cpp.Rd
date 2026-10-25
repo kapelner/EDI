@@ -15,11 +15,17 @@ compute_survival_stat_diff_rand_bootstrap_parallel_cpp(
   delta,
   do_rmst,
   noise_mat,
-  num_cores
+  num_cores,
+  rmst_tau = NA_real_
 )
 }
 \arguments{
 \item{do_rmst}{TRUE for RMST-diff, FALSE for median (KM-diff).}
+
+\item{rmst_tau}{Optional user RMST horizon (TODO-108). \code{NA} (default) keeps the
+shared horizon \code{min(arm maxima)}; a finite value uses
+\code{min(rmst_tau, arm maxima)} (equivalent to right-truncating at tau).
+Ignored when \code{do_rmst} is FALSE.}
 }
 \description{
 Parallel BRT kernel for KM-diff (median) and RMST-diff.

@@ -1440,6 +1440,7 @@ R/EDI/tests/testthat/test-resampling-draw-contracts.R,coverage,1,measured_with_3
 R/EDI/tests/testthat/test-reused-worker-private-cache-reset.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-reused-worker-resampling-nondegenerate.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-ridit-kernel-se-equals-delong.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-rmst-rand-bootstrap-ci-disabled.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rmst-tau-fast-kernel.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rmst-user-settable-tau.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-robust-regression-mad.R,coverage,1,measured_with_30_percent_headroom
