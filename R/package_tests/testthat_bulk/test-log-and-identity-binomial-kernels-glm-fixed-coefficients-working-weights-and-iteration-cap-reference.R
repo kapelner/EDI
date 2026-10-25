@@ -53,7 +53,13 @@ test_that("maxit = 1 reports the iteration cap and non-convergence; a normal run
 
 test_that("the log-binomial kernel also exposes estimate_only; the identity kernel does not take it", {
 	e <- K("fast_log_binomial_regression_cpp")(X, y, estimate_only = TRUE)
-	expect_named(e, c("b", "converged", "hit_iteration_cap", "num_iter"), ignore.order = TRUE)
+	# kkt_converged / n_active_bounds are the TODO-128 KKT-gate markers the
+	# kernel reports on both the estimate_only and the full return path.
+	expect_named(
+		e,
+		c("b", "converged", "hit_iteration_cap", "num_iter", "kkt_converged", "n_active_bounds"),
+		ignore.order = TRUE
+	)
 	expect_equal(as.numeric(e$b), as.numeric(K("fast_log_binomial_regression_cpp")(X, y)$b), tolerance = 1e-8)
 	expect_false("estimate_only" %in% names(formals(K("fast_identity_binomial_regression_cpp"))))
 })

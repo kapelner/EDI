@@ -19,8 +19,8 @@ a pair, \eqn{W_{ij}} is the treatment indicator, and \eqn{b_i \sim
 within-pair correlation induced by matching. \eqn{\beta_T} is a log-rate
 (log relative risk) treatment effect: \eqn{\exp(\hat\beta_T)} is the
 estimated rate ratio. The random effect is integrated out of the marginal
-likelihood by adaptive Gauss-Hermite quadrature rather than a Laplace
-approximation.
+likelihood by (non-adaptive) Gauss-Hermite quadrature with 60 fixed nodes
+rather than a Laplace approximation.
 
 \strong{Likelihood tier.} \code{likelihood_tier = "full"}: both Wald
 (model-based standard error) and likelihood-ratio testing types are

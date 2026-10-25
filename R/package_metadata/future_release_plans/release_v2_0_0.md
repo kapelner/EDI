@@ -106,6 +106,15 @@ decision batch still records the yes/no for each.
   (former TODO-13) still runs; implementation is 2.0.0. Group-sequential
   designs are "very common" in medicine and tech (design audit #18) — this
   is the highest-value 2.0.0 item after multi-arm.
+- `streaming_inference.md` (added 2026-10-25, user decision) — a fast
+  streaming estimation layer **separate from the `Inference*` classes**, with
+  an estimate-only path and an estimate+stderr path; per-family capability
+  tiers (`exact` / `warm_start` / `none`), batch-vs-streamed equivalence and
+  speed benchmarks, and the rule that randomization and bootstrap inference
+  are recomputed by the inference classes rather than streamed. It shares its state object with `SequentialMonitor` above,
+  and its retained state must be serializable for `release_v4_0_0.md`'s
+  shared backend. Pairs with `release_v1_1_0.md → TODO-158` (the
+  `SeqOneByOneObservationalDesign` split).
 - Rides on it: two-arm **response-adaptive randomization** (Thompson /
   DBCD / ERADE / CARA; design audit #5, theoretical audit 2D), which needs
   the same response-dependent replay and a new inference contract

@@ -3,9 +3,9 @@
 # runbook R4 Part B). Promoted 2026-10-22 from the scratch file
 # /tmp/edi-todo23-full-key-manifest.R (6,835 bytes, dated 2026-10-20), adapted:
 #   * paths come from the repository instead of hard-coded /tmp files;
-#   * the 18 current-source CI operations are built in (TODO-23 entry,
+#   * the 14 current-source CI operations are built in (TODO-23 entry,
 #     "Operation-label reconciliation detail, 2026-10-21"; owner decision G6 #36:
-#     all 18 operations) instead of /tmp/edi-todo23-source-attempt-operation-manifest.csv,
+#     all 14 operations) instead of /tmp/edi-todo23-source-attempt-operation-manifest.csv,
 #     which can still be supplied with --operations;
 #   * output goes to a fresh --out-dir outside the checkout.
 # The parsing logic (datasets with a survival response, TESTED_DESIGNS, Nrep and
@@ -13,7 +13,7 @@
 #
 # It is source-only: it parses comprehensive_tests.R and _dataset_load.R, does
 # not load EDI, and lists CANDIDATE keys (rep x beta_T x dataset x design x
-# formula x 18 operations). Setup skips or class-ineligible designs in a real run
+# formula x 14 operations). Setup skips or class-ineligible designs in a real run
 # surface as missing keys in the reconciliation and must be explained there.
 #
 # Usage:
@@ -34,11 +34,10 @@ TODO23_OPERATIONS <- c(
 	"compute_m_out_of_n_bootstrap_confidence_interval",
 	"compute_bootstrap_confidence_interval_studentized",
 	"compute_jackknife_wald_confidence_interval",
-	"compute_bayesian_bootstrap_confidence_interval_studentized",
-	"compute_rand_bootstrap_confidence_interval",
-	"compute_rand_bootstrap_confidence_interval_studentized",
-	"compute_rand_bootstrap_confidence_interval_symmetric-percentile-t",
-	"compute_rand_bootstrap_confidence_interval_smoothed"
+	"compute_bayesian_bootstrap_confidence_interval_studentized"
+	# The four compute_rand_bootstrap_confidence_interval* operations were dropped
+	# 2026-10-25 (G4-C R4A): RMST now refuses them (log-time-ratio scale, not the
+	# RMST difference), so they are no longer CI operations of this class.
 )
 
 TODO23_KEY_COLUMNS <- c("rep", "beta_T", "dataset", "response_type", "design", "inference_class")
@@ -99,7 +98,7 @@ todo23_expected_roster <- function(repo, operations = TODO23_OPERATIONS, nrep = 
 		stop("expected direct RMST runner call not found")
 	}
 	functions <- unique(as.character(operations))
-	if (length(functions) != 18L || anyDuplicated(operations)) stop("operation roster must contain 18 unique candidate function_run values")
+	if (length(functions) != 14L || anyDuplicated(operations)) stop("operation roster must contain 14 unique candidate function_run values")
 
 	cases <- expand.grid(
 		rep = seq_len(nrep_used), beta_T = betas, dataset = survival_datasets,

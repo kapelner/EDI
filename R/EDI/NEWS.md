@@ -149,6 +149,14 @@ methods.
 
 ## Bug fixes
 
+* `InferenceSurvivalRestrictedMeanDiff$compute_rand_bootstrap_confidence_interval()`
+  (every `type`) now stops with class `edi_rand_bootstrap_ci_scale_mismatch_refused`,
+  and the class no longer advertises `randomization_bootstrap_ci`. The interval
+  inverted a multiplicative time shift, so its bounds were for a log-time ratio,
+  not the RMST difference (coverage 77-92% in the TODO-23 study). The plain
+  randomization CI was already refused for this reason. The randomization and
+  randomization-bootstrap p-values are unchanged.
+
 * Randomization-bootstrap tests and intervals redrew each resample's assignment
   from the original sample's cached design structure instead of the resample's.
   On `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching` the

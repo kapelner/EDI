@@ -17,7 +17,10 @@
 #' back to a nonparametric bootstrap interval rather than returning \code{NA}.
 #' Randomization confidence intervals are not supported (the RMST-difference
 #' units are not commensurate with the randomization CI bisection algorithm's
-#' transformed-scale null search).
+#' transformed-scale null search). Randomization-bootstrap confidence intervals
+#' (every type) are refused for the same reason: they invert a log-time shift,
+#' so their bounds are for a log-time ratio. The randomization and
+#' randomization-bootstrap p-values at \eqn{\delta = 0} remain available.
 #'
 #' \strong{Left- or interval-censored data.} The survival curve then comes from
 #' a Turnbull NPMLE (\code{interval::icfit()}) rather than Kaplan-Meier. Exact

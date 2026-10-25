@@ -454,7 +454,16 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		bool smart_cold_start = false,
 		int maxit = 1000,
 		double eps_f = 1e-8,
-		double eps_g = 1e-10,  // TODO-116: was 1e-6; matches MASS::glm.nb to ~1e-6 (eps_f is unused by the kernel)
+		// TODO-116 wanted 1e-10 here to match MASS::glm.nb to ~1e-6, but the
+		// optimizer usually cannot reach that gradient norm: it runs to the
+		// iteration cap and ends with a NaN gradient, so the fit is reported
+		// unconverged. Measured over 40 seeded Poisson-like datasets per size,
+		// the 1e-10 default converged 7/40 (n = 20), 15/40 (n = 100) and 22/40
+		// (n = 300), against 40/40 at every size for 1e-6. The tight tolerance
+		// is therefore opt-in per call, not the default: InferenceCountNegBin
+		// asks for NEGBIN_FIT_EPS_G and refits at the fallback when that fit
+		// does not converge (see negbin_fit_with_eps_fallback()).
+		double eps_g = 1e-6,
 		Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue,
 		Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue,
 		std::string optimization_alg = "lbfgs",
@@ -522,7 +531,7 @@ List fast_neg_bin_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 //' y = rpois(10, 2)
 //' fast_neg_bin_cpp(X, y)
 // [[Rcpp::export]]
-List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = false, int maxit = 1000, double eps_f = 1e-8, double eps_g = 1e-10, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
+List fast_neg_bin_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Nullable<NumericVector> warm_start_params = R_NilValue, bool smart_cold_start = false, int maxit = 1000, double eps_f = 1e-8, double eps_g = 1e-6, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
 	IntegerVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXi> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
 
 

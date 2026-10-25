@@ -3209,7 +3209,9 @@ call_direct_asymp = function(method_name, testing_type, ...){
 	rand_ci_attempts = comprehensive_rand_ci_attempted_functions(
 		response_type = response_type,
 		supports_randomization_ci = supports_randomization_ci && !rand_ci_exact_zero_one_refused,
-		supports_randomization_bootstrap = supports_randomization_bootstrap,
+		# G4-C R4A: the BRT CIs also need the CI capability (RMST keeps only the p-value).
+		supports_randomization_bootstrap = supports_randomization_bootstrap &&
+			supports_inference_capability(seq_des_inf, "randomization_bootstrap_ci"),
 		test_family_filter = TEST_FAMILY_FILTER,
 		skip_slow = skip_slow,
 		skip_rand = skip_rand,

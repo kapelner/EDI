@@ -17,7 +17,7 @@
 #   default 999; see TODO23_BCA_FAMILIES); the default-named bootstrap and Bayesian-
 #   bootstrap families pass type = "percentile" explicitly. m-out-of-n m and subsampling b use
 #   comprehensive_tests.R's default_small_resampling_size() rule.
-#   Families: the 18 TODO-23 CI operations (TODO23_OPERATIONS in todo23_expected_roster.R).
+#   Families: the 14 TODO-23 CI operations (18 until 2026-10-25, when RMST began refusing the 4 rand-bootstrap CIs) (TODO23_OPERATIONS in todo23_expected_roster.R).
 #   Pass per family (owner criteria 2026-10-21): coverage on the ALL-ATTEMPTS
 #   denominator (invalid / non-finite / missing / error = noncovering), exact
 #   binomial 95% interval contains 0.95, and invalid <= 5% of attempts.
@@ -28,7 +28,7 @@
 # Mode `reconcile` (Part B, plan TODO-7): exact-key reconciliation of a FRESH
 #   current-source comprehensive survival slice for InferenceSurvivalRestrictedMeanDiff
 #   (run with EDI_COMPREHENSIVE_RESULTS_DIR=$RUN and EDI_COMPREHENSIVE_ATTEMPT_MANIFEST=$RUN/attempt_events.csv)
-#   against the expected 18-operation roster rebuilt from the current source
+#   against the expected 14-operation roster rebuilt from the current source
 #   (todo23_expected_roster.R), using reconcile_todo23_attempts() from
 #   R/package_tests/validate_todo23_attempt_reconciliation.R. Rows/events for
 #   other classes or operations are counted as out of scope and excluded.
@@ -119,10 +119,6 @@ todo23_family_call <- function(family, inf, alpha, B, m, B_bca = B) {
 		compute_bayesian_bootstrap_confidence_interval_wald = inf$compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = "wald", na.rm = TRUE, show_progress = FALSE),
 		compute_bayesian_bootstrap_confidence_interval_bca = inf$compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = "bca", na.rm = TRUE, show_progress = FALSE),
 		compute_bayesian_bootstrap_confidence_interval_studentized = inf$compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = "studentized", na.rm = TRUE, show_progress = FALSE),
-		compute_rand_bootstrap_confidence_interval = inf$compute_rand_bootstrap_confidence_interval(alpha = alpha, B = B, show_progress = FALSE),
-		compute_rand_bootstrap_confidence_interval_studentized = inf$compute_rand_bootstrap_confidence_interval(alpha = alpha, B = B, type = "studentized", show_progress = FALSE),
-		`compute_rand_bootstrap_confidence_interval_symmetric-percentile-t` = inf$compute_rand_bootstrap_confidence_interval(alpha = alpha, B = B, type = "symmetric-percentile-t", show_progress = FALSE),
-		compute_rand_bootstrap_confidence_interval_smoothed = inf$compute_rand_bootstrap_confidence_interval(alpha = alpha, B = B, type = "smoothed", show_progress = FALSE),
 		stop("unknown family ", family)
 	)
 }
@@ -287,7 +283,7 @@ reconcile_mode <- function(args) {
 	}
 	status_tab <- table(results$status[res_scope], useNA = "ifany")
 	lines <- c(
-		"TODO-23 Part B reconciliation (G4-C R4): fresh current-source run vs 18-operation expected roster",
+		"TODO-23 Part B reconciliation (G4-C R4): fresh current-source run vs 14-operation expected roster",
 		paste0("run_dir=", run_dir), paste0("results=", results_path, " sha256=", calib_sha256(results_path)),
 		paste0("events=", events_path, " sha256=", calib_sha256(events_path)),
 		todo23_roster_summary_lines(manifest, file.path(out_dir, "todo23_expected_roster.csv")),

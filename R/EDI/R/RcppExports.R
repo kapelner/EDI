@@ -2271,7 +2271,7 @@ get_negbin_regression_expected_hessian_cpp <- function(X, y, params) {
 #' X = matrix(rnorm(100), 10, 10)
 #' y = rpois(10, 2)
 #' fast_neg_bin_with_var_cpp(X, y)
-fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-10, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
+fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_neg_bin_with_var_cpp`, X, y, warm_start_params, smart_cold_start, maxit, eps_f, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only)
 }
 
@@ -2295,7 +2295,7 @@ fast_neg_bin_with_var_cpp <- function(X, y, warm_start_params = NULL, smart_cold
 #' X = matrix(rnorm(100), 10, 10)
 #' y = rpois(10, 2)
 #' fast_neg_bin_cpp(X, y)
-fast_neg_bin_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-10, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
+fast_neg_bin_cpp <- function(X, y, warm_start_params = NULL, smart_cold_start = FALSE, maxit = 1000L, eps_f = 1e-8, eps_g = 1e-6, fixed_idx = NULL, fixed_values = NULL, optimization_alg = "lbfgs", warm_start_fisher_info = NULL, estimate_only = FALSE) {
     .Call(`_EDI_fast_neg_bin_cpp`, X, y, warm_start_params, smart_cold_start, maxit, eps_f, eps_g, fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only)
 }
 

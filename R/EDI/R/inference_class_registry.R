@@ -134,6 +134,32 @@ EDI_RAND_CI_SHIFT_SCALE_MISMATCH_CLASSES = c(
 	"InferenceOrdinalRidit"
 )
 
+# G4-C R4A (2026-10-25): classes whose randomization-bootstrap CI (every type:
+# percentile, studentized, symmetric-percentile-t, smoothed) inverts a shift on a
+# different scale than compute_estimate(). For RestrictedMeanDiff the survival
+# shift is multiplicative in time (transform "log"), so the bounds are for a
+# log-time ratio, not the RMST difference (R4 measured the mismatch; the class
+# already refuses the plain randomization CI for the same reason). No shift of
+# censored times moves the RMST difference by exactly delta, so there is no
+# drop-in fix. Excluded from the `randomization_bootstrap_ci` capability and
+# refused on a direct call; the randomization-bootstrap p-value at delta = 0 stays.
+EDI_RAND_BOOTSTRAP_CI_SCALE_MISMATCH_CLASSES = c(
+	"InferenceSurvivalRestrictedMeanDiff"
+)
+
+inference_stop_rand_bootstrap_ci_scale_mismatch = function(class_name) {
+	stop(structure(
+		class = c("edi_rand_bootstrap_ci_scale_mismatch_refused", "error", "condition"),
+		list(call = NULL, message = paste0(
+			"Randomization-bootstrap confidence intervals are not supported for ", class_name,
+			": the interval inverts a multiplicative (log-time) shift of the survival response, so its ",
+			"bounds are for a log-time ratio, not the restricted-mean-survival-time difference this class ",
+			"estimates. Use compute_asymp_confidence_interval() or compute_bootstrap_confidence_interval(). ",
+			"The randomization and randomization-bootstrap p-values at delta = 0 remain available."
+		))
+	))
+}
+
 # TODO-119 capability audit (2026-10-22): survival-only classes whose own
 # compute_rand_confidence_interval() override always refuses (LogRank /
 # GehanWilcox / RestrictedMeanDiff / KMDiff stop() on the unit mismatch;
@@ -292,6 +318,9 @@ EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 			"randomization_ci",
 			"randomization_bootstrap_ci"
 		))
+	}
+	for (class_name in EDI_RAND_BOOTSTRAP_CI_SCALE_MISMATCH_CLASSES) {
+		exclusions[[class_name]] = unique(c(exclusions[[class_name]], "randomization_bootstrap_ci"))
 	}
 	# Log-hazard-ratio estimands: the AFT-scale randomization CI is on the
 	# wrong axis for them (see EDI_LOG_HAZARD_RATIO_INFERENCE_CLASSES above).

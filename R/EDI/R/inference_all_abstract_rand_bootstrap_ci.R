@@ -103,6 +103,10 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					call. = FALSE
 				)
 			}
+			# G4-C R4A: shift scale is not the estimand's scale (all types).
+			if (any(class(self) %in% EDI_RAND_BOOTSTRAP_CI_SCALE_MISMATCH_CLASSES)) {
+				inference_stop_rand_bootstrap_ci_scale_mismatch(class(self)[1L])
+			}
 			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling_replay("Bootstrap randomization inference")

@@ -13739,7 +13739,7 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 16 | gated | G1, G4-C R1, G4 | R1 Cloglog null Type-I (6 cells) + ordinal slice |
 | 18 | gated | G1 (recheck R3 C1), G4-C R3, G7/G4 | R3 9-cell smoothed-BRT null; investigation and C1 fix done (TODO-131) |
 | 19 | gated | G4 | `InferenceIncidKKModifiedPoisson` rows (~21 h, 26,880 labels) |
-| 23 | gated | G1, G4-C R4 (A + B) | R4 coverage (460 reps, `--B-bca 999`) + 18-operation reconciliation; Bayesian studentized SE needs G1 |
+| 23 | gated | G1, G4-C R4 (A + B) | R4 coverage (460 reps, `--B-bca 999`) + 14-operation reconciliation (18 before the R4A refusal); Bayesian studentized SE needs G1 |
 | 26 | gated | G1, G7, G4 | `InferenceSurvivalKKWeibullMarginal` 300 rows; canonical merge needs a separate go-ahead |
 | 31 | gated | G1, G4-C R8, G7, G4 | Runner written 2026-10-23 (G4-C R8, smoke-tested only; was open-source). Rows: four KKCLMM classes + ten cloglog BB procedures. Owner action (non-blocking): send the upstream clmm report |
 | 38 | gated | G1, G4, G5 | Sanitizer + Valgrind green at a commit containing the malformed-start tests (CI jobs, or locally `scripts/sanitizer_valgrind_check.sh`); row reconciliation |
@@ -14324,7 +14324,7 @@ Common rules (R1-R7):
   - Run a fresh current-source survival slice for `InferenceSurvivalRestrictedMeanDiff` (not the merged historical union):
     `EDI_COMPREHENSIVE_RESULTS_DIR=$D Rscript R/package_tests/comprehensive_tests.R 40 2 survival NA InferenceSurvivalRestrictedMeanDiff NA NA NA`.
     Use the receipt wrapper as in G4.
-  - Build the expected roster for all 18 operations from the current source with the scratch generator
+  - Build the expected roster for all 14 operations (18 before the 2026-10-25 R4A refusal) from the current source with the scratch generator
     `/tmp/edi-todo23-full-key-manifest.R`. It was present on 2026-10-22 (6,835 bytes, dated Oct 20) but is not in the
     repo. An agent should copy it under `R/package_tests/` before the run, since `/tmp` can be cleared. Re-run it on the
     current source, because the entry calls its 2026-10-20 output stale against the current checkout.
@@ -14547,6 +14547,60 @@ Common rules (R1-R7):
   strata pass (worst coef 0.16 SE, worst |dlog sigma| 0.064, 40/40 usable); clmm, ordinal_glmm, logistic_glmm at 20
   nodes, all 12 strata pass (worst coef 0.004 SE, |dlog sigma| 0.033). The TODO-31/50 four-kernel grid sub-item can
   close. Remaining: G2 timing (quiet host) and the CountKKGLMM row regeneration (G4/G7).
+
+**G4-C batch failures, investigated 2026-10-25 (batch `~/edi_regen/batch_20261023T144230Z`; none is a 1.0.5 regression).**
+The owner's unity reinstall (2026-10-23 15:08-15:12 UTC) broke three runs mid-flight: R1 `bartlett` (DESCRIPTION missing),
+R4B (worker died 15:08:37), R3 N3-N7 (all 15,000 rows "lazy-load database ... EDI.rdb is corrupt"). N3-N7 rerun started
+2026-10-25 (scratchpad `r3_rerun_N3_N7`, unity build `80b24441...`, receipt exit 0, 5,000/5,000 rows ok): N3 6.6/6.4%,
+N6 7.0/7.0%, N7 5.8/5.8% PASS (percentile/smoothed); N4 (KKHurdlePoissonOneLik `~1`, FixedBinaryMatch) 7.6/7.2% and N5
+(CountPoisson `~.`) 7.6/7.6% FAIL_ANTICONSERVATIVE, both marginal (CP lower 0.051-0.054). N5 is the C2 high-p/n
+mechanism (diamonds `~.`); N4 is unexplained but marginal. Smoothed vs percentile discordance <= 0.4% in every cell, so
+smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to rerun.
+- R1 `~.` (direct LR 12.0%, CI 9.3-15.2%): not a regression. Pre-1.0.5 canonical rows (50 reps): all five model-based
+  tests (asymp/wald/score/LR/gradient) 16% at `~.`, 6% at `~1`. Long-standing finite-sample behavior of the `~.` fit.
+  R1 also did NOT measure TODO-16's target: the `lik_ratio` family emits only `compute_lik_ratio_two_sided_pval` and the
+  LR CI, no `compute_lik_ratio_bootstrap_two_sided_pval` / `compute_param_bootstrap_pval` rows. Find the family that does.
+- R2 n100_K5 (12.9%): limitation, not a bug or regression (agent investigation, code claims verified). df = 1 is correct
+  (`inference_ext_likelihood_test_memoization.R:189`); a 41-start, ungated LR still gives 11.5% (46/400) with non-uniform
+  p (KS p 7.5e-4), so the chi-square(1) reference is anti-conservative for this 9-parameter model at n = 100. Prior
+  2026-10-14 n100_K5 run: 8.5% (19/224), Fisher p 0.14 vs now. Secondary real issues: (a) the usability gate
+  (`stereotype_fit_is_usable()`, unscaled `rcond(information_free)` <= sqrt(eps), L290) is scale-driven (scaled rcond of
+  rejected vs kept fits 0.021 vs 0.025) and causes 30-38% non-estimable; at n50 it flatters the PASS (rejected seeds 13.3%
+  vs kept 4.6%; ungated 5.8%); (b) the QR column-dropping fallback silently drops covariate x1 in 33/248 (n100) and
+  27/280 (n50) results, leaving a treatment-only stereotype model whose LR is non-regular at the null.
+- R3 C2 (OLS `~.`, BRT 13.4-14.2%): limitation of unstudentized BRT at high p/n, not OLS SE inflation. diamonds `~.` =
+  24 columns at n = 148; a resample has ~94 distinct rows, so refits overfit and the null SD shrinks (replica: 0.71 x true
+  SD, predicting ~16.5% rejection; `~1` ratio 1.02). OLS `~.` Wald on the same DGP rejects 4.15%. Percentile vs smoothed
+  discordance 2.4%: smoothing (TODO-18's fix) is not implicated. No canonical baseline rows exist for this cell.
+- R4A (RMST rand-bootstrap CIs 92.4 / 91.5 / 77.4%): real pre-existing bug, not a regression (pre-fix TODO-23 table
+  already 0.857-0.937). (1) Scale: survival rand-bootstrap CIs invert a multiplicative time shift (`transform_arg = "log"`,
+  `inference_all_abstract_rand_bootstrap_ci.R:131`), i.e. a log-time-ratio interval, while the class estimates an RMST
+  difference; the class already refuses `compute_rand_confidence_interval` for exactly this reason
+  (`inference_survival_rmst.R:252`) but not the rand-bootstrap variants. (2) Studentized: null draws recompute the default
+  tau per draw (~10 vs observed ~4), so the pivot SE is ~1.85x too large; fixed tau = 4 fixes the studentized/percentile
+  gap on a test replicate.
+- **R4A done 2026-10-25 (owner chose the refusal; agent; uncommitted, R-only, no rebuild):** all four
+  `compute_rand_bootstrap_confidence_interval*` types now stop for `InferenceSurvivalRestrictedMeanDiff` with class
+  `edi_rand_bootstrap_ci_scale_mismatch_refused` (`EDI_RAND_BOOTSTRAP_CI_SCALE_MISMATCH_CLASSES` +
+  `inference_stop_rand_bootstrap_ci_scale_mismatch()` in `inference_class_registry.R`, checked at the top of
+  `compute_rand_bootstrap_confidence_interval()`), and the class no longer advertises `randomization_bootstrap_ci`.
+  The rand and rand-bootstrap p-values at delta = 0 are untouched. Test:
+  `R/EDI/tests/testthat/test-rmst-rand-bootstrap-ci-disabled.R`. R4's roster is now **14 operations** (the four were
+  the last entries of `TODO23_OPERATIONS`, so the other 14 families keep their seeds); the pass rule applies to those
+  14. Rd not regenerated (`man/InferenceSurvivalRestrictedMeanDiff.Rd`). Existing comprehensive-results rows for these
+  four RMST operations are now stale (refused), same kind of row change as TODO-99. The per-draw tau fix is a v1.1.0
+  TODO. Uncensored-only ungating considered and deferred (see v1.1.0 TODO).
+  Follow-up same day: Rd regenerated (`InferenceSurvivalRestrictedMeanDiff.Rd`, plus `InferenceCountKKGLMM.Rd` for the
+  60-node wording) via `fast_roxygenize.R` minus `compileAttributes()`, because a peer's uncommitted
+  `fast_negbin_regression.cpp` edit puts a comment inside the `fast_neg_bin_with_var_cpp` parameter list, which
+  Rcpp's attribute parser turns into a broken `RcppExports.R/.cpp` (fix the comment before the next
+  `compileAttributes()`). `comprehensive_tests.R` now also requires `randomization_bootstrap_ci` before attempting
+  the BRT CIs (only RMST changes; ordinal model-coefficient classes already produced none). Rows dropped, backups
+  `*.pre_r4a_drop_20261025T001904Z.bak`: `nc_1_survival` 2,368, `nc_2_..._boston_family-rand_bootstrap` 48,
+  `nc_4_..._boston_family-rand_bootstrap` 36. `capability_matrix.csv/.json` regenerated (RMST row only);
+  3 RMST `low_coverage` rows removed from `comprehensive_results_audit_baseline.csv`.
+Owner decisions pending: R2/R3-C2/R1 as documented limitations vs re-scoping cells, R2 gate and
+column-dropping fixes (1.0.5 or v1.1.0), RMST per-draw tau fix (filed as v1.1.0 TODO).
 
 Scripts still to write, all agent work (the struck ones were written 2026-10-22 and smoke-tested only):
 - ~~`R/package_tests/calibration/summarize_type1_calibration.R` plus its reference test~~

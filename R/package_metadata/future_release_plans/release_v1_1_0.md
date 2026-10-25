@@ -1925,3 +1925,65 @@ file's own standing constraints restate this gate. TODO-9b's
 `qubo_backend` defaults to `"none"`, which must reproduce 1.0.0's MILP → SA
 results (allocations exact, per the equivalence rule); every external backend is opt-in and falls back to the
 classical solver with a warning, never silently.
+
+- [ ] TODO-157 (added 2026-10-25, owner decision at G4-C R4A of v1.0.5):
+  **RMST randomization-bootstrap: per-draw tau, and a possible
+  uncensored-only CI.** v1.0.5 refuses every
+  `compute_rand_bootstrap_confidence_interval*` type for
+  `InferenceSurvivalRestrictedMeanDiff` (the survival shift is a log-time
+  ratio, not the RMST difference). Two follow-ups:
+  - Per-draw tau: with the default horizon, each null draw recomputes tau as
+    the smaller arm's maximum follow-up (~10 in R4 vs ~4 observed), so the
+    studentized pivot's SE is ~1.85x too large. Hold tau at the observed
+    value in every draw (fast kernel `fast_survival_stats.cpp` `rmst_tau` arg
+    plus the R slow path). This also affects the rand-bootstrap p-value at
+    delta = 0; measure its null rejection (5% CP rule) before and after.
+    Needs a rebuild.
+  - Uncensored-only CI (optional): with no censoring, the RMST difference at
+    a fixed tau is the mean difference of z = min(y, tau), so the sharp null
+    "z shifted by delta" is invertible. It needs its own statistic (the mean
+    difference of the pre-truncated z, with no re-truncation and no tau
+    recompute) and an additive transform, not the log path. Validate the
+    coverage with an R4-style study before enabling. The censored case stays
+    refused.
+  - Pointer: `release_v1_0_5.md → G4-C batch failures, R4A`.
+
+- [ ] TODO-158 (added 2026-10-25, owner decision): **Split
+  `ObservationalDesign` into `FixedObservationalDesign` and
+  `SeqOneByOneObservationalDesign`.** Today the observational family
+  (`ObservationalDesign`, `ObservationalDesignBlocks`,
+  `ObservationalDesignMatching`) inherits `DesignFixed`, so the whole table
+  and the observed `w` arrive in one `add_all_subjects_to_experiment()` call.
+  There is no way to record subjects as they arrive. The sequential family
+  cannot stand in: `add_one_subject_to_experiment_and_assign()` calls the
+  design's own `assign_wt()` (`design_seq_one_by_one_abstract.R:218-235`), a
+  randomization step.
+  - Rename (owner decision 2026-10-25: all three get the `Fixed` prefix and
+    stay fixed designs): `ObservationalDesign` → `FixedObservationalDesign`,
+    `ObservationalDesignBlocks` → `FixedObservationalDesignBlocks`,
+    `ObservationalDesignMatching` → `FixedObservationalDesignMatching`. Keep
+    each old name as a deprecated alias for one release (warn once, same
+    class object). Update the registry entries, docs, examples, tests and
+    NEWS under the new names.
+  - New: `SeqOneByOneObservationalDesign`, inheriting the sequential
+    one-by-one base. It exposes a recording method,
+    `add_one_subject(x_new, w_new)`, that stores the externally observed `w`
+    with no draw, and a matching hook for `y`. `assign_wt()` errors with a
+    clear message.
+  - Capability flags: both classes answer FALSE to `supports_randomization_draw()`
+    and `supports_resampling_replay()` (and keep the existing
+    `supports_resampling()` behavior), so randomization and
+    bootstrap-randomization inference stay blocked and asymptotic,
+    nonparametric-bootstrap and Bayesian-bootstrap inference work unchanged.
+  - Touch points to check first: `design_class_registry.R:81-83` (the
+    `"none"` entries), `inference_all_abstract.R:~115` and `~1157` (flag
+    reads), `design_component_registry.R`, `inference_suite.R`,
+    `simulations_framework.R`, and the sequential evolving-schema tests,
+    which may assume sequential means randomized. Run `trail callers` on
+    `ObservationalDesign` with `--depth all` before editing. Also check the
+    `InferenceKK*` classes, which may assume a sequential KK design.
+  - Tests: a sequential-observational design fed the same rows as the fixed
+    one gives identical asymptotic estimates and SEs; every randomization
+    method errors with the standard message; the deprecated alias works and
+    warns once; add the new class to the wiring and registry gates.
+  - Out of scope: streaming or warm-start refits (separate decision).
