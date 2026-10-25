@@ -434,3 +434,27 @@ test_that("TODO-14 approved_skips accepts exactly the predeclared FixedBinaryMat
 	expect_error(validate_todo14_candidate(manifest, candidate, provenance, snapshot,
 		approved_skips = rep(approved$id[1L], 2L)), "duplicate ids")
 })
+
+test_that("R5 re-scope approved skips cover FixedBinaryMatch ~1 everywhere and wide-dataset ~. rand CIs only", {
+	manifest <- todo14_source_candidate_manifest(
+		testthat::test_path("..", "comprehensive_tests.R"),
+		testthat::test_path("..", "_dataset_load.R")
+	)
+	skips <- todo14_r5_rescope_approved_skips(manifest)
+	fml <- .todo14_formula_label(skips$inference_class)
+	fbm <- skips$design == "FixedBinaryMatch" & fml == "~1"
+	# 9 datasets x 40 reps x 2 beta_T x 3 function_runs; the wide rand CIs are
+	# 4 datasets x 2 designs x 40 reps x 2 beta_T, with no overlap (FBM ~1 vs ~.).
+	expect_equal(sum(fbm), 2160L)
+	expect_equal(sum(!fbm), 640L)
+	expect_equal(nrow(skips), 2800L)
+	expect_false(anyDuplicated(skips$id) > 0L)
+	expect_true(all(skips$id %in% manifest$id))
+	expect_true(all(skips$function_run[!fbm] == "compute_rand_confidence_interval"))
+	expect_true(all(fml[!fbm] == "~."))
+	expect_setequal(unique(skips$dataset[!fbm]), TODO14_R5_RESCOPE_WIDE_DATASETS)
+	# the G6 #33 pte_example skip is a subset
+	expect_true(all(todo14_predeclared_approved_skips(manifest)$id %in% skips$id))
+	# the rand p-values are never skipped outside FixedBinaryMatch ~1
+	expect_false(any(skips$function_run[!fbm] != "compute_rand_confidence_interval"))
+})

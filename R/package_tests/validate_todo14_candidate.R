@@ -267,6 +267,34 @@ todo14_predeclared_approved_skips <- function(manifest) {
 	out
 }
 
+# R5 re-scope (owner decision 2026-10-25), on top of G6 #33:
+# (a) every FixedBinaryMatch x design_formula=~1 key, not only pte_example: the
+#     runner skips that setup on all nine datasets ("no covariates provided to
+#     run the binary matching algorithm"), so the G6 #33 skip was too narrow;
+# (b) compute_rand_confidence_interval x design_formula=~. on the four wide
+#     datasets, where nearly every call hit the runner's per-call timeout (R5
+#     batch 2026-10-23/25: 419 of 536 timeouts). The two rand p-values stay
+#     gated everywhere.
+TODO14_R5_RESCOPE_WIDE_DATASETS <- c("fuel", "ionosphere", "diamonds", "cars")
+
+todo14_r5_rescope_approved_skips <- function(manifest) {
+	manifest <- .todo14_read_table(manifest, "manifest")
+	missing <- setdiff(c("id", .todo14_key_columns), names(manifest))
+	if (length(missing)) stop("manifest is missing column(s): ", paste(missing, collapse = ", "), call. = FALSE)
+	formula_label <- .todo14_formula_label(manifest$inference_class)
+	fbm_no_covariates <- as.character(manifest$design) == "FixedBinaryMatch" & formula_label %in% "~1"
+	wide_rand_ci <- as.character(manifest$function_run) == "compute_rand_confidence_interval" &
+		formula_label %in% "~." & as.character(manifest$dataset) %in% TODO14_R5_RESCOPE_WIDE_DATASETS
+	out <- manifest[fbm_no_covariates | wide_rand_ci, c("id", .todo14_key_columns), drop = FALSE]
+	out$skip_rule <- ifelse(
+		fbm_no_covariates[fbm_no_covariates | wide_rand_ci],
+		"G6#33 + R5 re-scope 2026-10-25: FixedBinaryMatch design_formula=~1 (no covariates to match on)",
+		"R5 re-scope 2026-10-25: rand CI on design_formula=~. for a wide dataset (per-call timeout)"
+	)
+	rownames(out) <- NULL
+	out
+}
+
 # Normalise `approved_skips` (NULL, a character vector of ids, or a table with
 # an id column and/or the natural-key columns) to a character id vector. A
 # table that carries both must agree with the serialized natural key.

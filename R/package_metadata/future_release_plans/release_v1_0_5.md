@@ -14556,6 +14556,36 @@ N6 7.0/7.0%, N7 5.8/5.8% PASS (percentile/smoothed); N4 (KKHurdlePoissonOneLik `
 (CountPoisson `~.`) 7.6/7.6% FAIL_ANTICONSERVATIVE, both marginal (CP lower 0.051-0.054). N5 is the C2 high-p/n
 mechanism (diamonds `~.`); N4 is unexplained but marginal. Smoothed vs percentile discordance <= 0.4% in every cell, so
 smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to rerun.
+- R5 stopped by the owner 2026-10-25 00:40 UTC (SIGTERM; batch log `end r5 FixedBinaryMatch exit=143`): KK21stepwise
+  complete (4,320 rows), FixedBinaryMatch 1,659/2,160, receipt left `.running`. 33.4 h used vs the 3.5-4.1 h estimate;
+  18 h of it were 536 calls that hit the 120 s cap (419 rand CI, all `~.` on fuel/ionosphere/diamonds/cars). Each is
+  written as `skip_reason = timeout`, which `validate_todo14_candidate()` rejects, so R5 as scoped cannot pass.
+  Proposed re-scope (owner decision pending): approved skips for those rand-CI keys, rerun with
+  `COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT=1`, both designs in parallel, resuming from the existing CSVs.
+- **R5 re-scope DECIDED 2026-10-25 (owner) and relaunched fresh.** Approved skips =
+  `todo14_r5_rescope_approved_skips(manifest)` in `validate_todo14_candidate.R` (2,800 of 8,640 keys): (a) every
+  FixedBinaryMatch x `design_formula=~1` key, 2,160. G6 #33 had only the 240 pte_example ones, but the runner skips
+  that setup on all nine datasets ("no covariates provided to run the binary matching algorithm"), so 1,920 keys
+  would have failed as missing; (b) `compute_rand_confidence_interval` x `~.` x {fuel, ionosphere, diamonds, cars} x
+  both designs, 640. The two rand p-values stay gated everywhere else. Test added to
+  `test-todo14-candidate-validation-reference.R`. Not resumed: the old rows span commits `a3b253f9` (KK21) and
+  `61d4dc0a` (FBM) and older DLLs, and the validator requires one checkout sha. Fresh run: 18 design x dataset jobs,
+  6 parallel x 2 cores, `COMPREHENSIVE_FUNCTION_TIMEOUT_SEC=600`, `COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT=1`, launched
+  2026-10-25 00:47 UTC on HEAD `436ca96b` (dirty tree) and installed DLL `e15007df...` (built 00:40 UTC). Launcher and
+  output: scratchpad `r5_rescope_launch.sh`, `r5_rescope_20261025T004722Z/` (tmpfs; copy out when done). Expected
+  about 4-5 h wall. Risk: a p-value that still exceeds 600 s leaves a timeout row (fails validation) and, with
+  skip-repeat, skips the rest of its combination. Validation must merge the 18 per-job CSVs. The run's provenance
+  is this build, so it counts for G1 only if G1 is re-checked on `e15007df...`.
+- **R5 re-scoped run RESULT 2026-10-25: FAIL, narrowly (owner decision needed).** All 18 jobs exit 0, finished
+  05:54 UTC (5.1 h wall). Copied to `~/edi_regen/r5_rescope_20261025T004722Z/` (merged candidate, validation rds,
+  issues csv, `r5_validate.R`). The merge offsets the per-file `run_row_id` counter per job (original kept as
+  `source_run_row_id`). Every `~1` cell and every narrow-dataset cell passes. What is left:
+  (1) p-values on `~.` x FBM {cars, fuel, ionosphere} and KK21 {cars} still exceed 600 s on some reps: 8 timeout
+  rows, and 470 keys absent because skip-repeat dropped the rest of each combination. Median per-call times where
+  they ran are 14-151 s, the tail is over 600 s. KK21 fuel/ionosphere/diamonds and FBM diamonds p-values all pass.
+  (2) 13 approved rand-CI keys (KK21 ionosphere/cars/diamonds `~.`) completed with results, and the validator rejects
+  results on approved keys. (3) Owner commit `b95312a9` (CSV-only) landed mid-run: 1,869 rows carry `436ca96b`,
+  3,522 carry `b95312a9`. The package payload, runner and DLL sha are identical across all 18 jobs.
 - R1 `~.` (direct LR 12.0%, CI 9.3-15.2%): not a regression. Pre-1.0.5 canonical rows (50 reps): all five model-based
   tests (asymp/wald/score/LR/gradient) 16% at `~.`, 6% at `~1`. Long-standing finite-sample behavior of the `~.` fit.
   R1 also did NOT measure TODO-16's target: the `lik_ratio` family emits only `compute_lik_ratio_two_sided_pval` and the
