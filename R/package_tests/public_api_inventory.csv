@@ -313,7 +313,7 @@
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","unavailable_inference_classes_due_to_missing_packages","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","warm_all_subject_data_cache","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedFactorial","r6_class","DesignFixedFactorial","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedFactorial","r6_public_method","DesignFixedFactorial","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,FALSE,TRUE,"",TRUE
+"DesignFixedFactorial","r6_public_method","DesignFixedFactorial","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","add_all_subjects_to_experiment","DesignFixed","inherited",1,"X_all",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","add_one_subject_response","Design","inherited",4,"t;y;y_L;y_R",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","any_censoring","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
@@ -358,7 +358,7 @@
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedFactorial","r6_public_method","DesignFixedFactorial","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,FALSE,TRUE,"",TRUE
+"DesignFixedFactorial","r6_public_method","DesignFixedFactorial","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -614,7 +614,7 @@
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","unavailable_inference_classes_due_to_missing_packages","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","warm_all_subject_data_cache","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimal","r6_class","DesignFixedOptimal","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedOptimal","r6_public_method","DesignFixedOptimal","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,FALSE,TRUE,"",TRUE
+"DesignFixedOptimal","r6_public_method","DesignFixedOptimal","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","add_all_subjects_to_experiment","DesignFixed","inherited",1,"X_all",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","add_one_subject_response","Design","inherited",4,"t;y;y_L;y_R",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","any_censoring","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
@@ -664,7 +664,7 @@
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedOptimal","r6_public_method","DesignFixedOptimal","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,FALSE,TRUE,"",TRUE
+"DesignFixedOptimal","r6_public_method","DesignFixedOptimal","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","prepare_for_resampling_replay","DesignFixedOptimal","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -676,7 +676,7 @@
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","warm_all_subject_data_cache","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_class","DesignFixedOptimalBlocks","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","add_all_subject_matched_pair_ids","DesignFixedOptimalBlocks","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,FALSE,TRUE,"",TRUE
+"DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","add_all_subjects_to_experiment","DesignFixed","inherited",1,"X_all",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","add_one_subject_response","Design","inherited",4,"t;y;y_L;y_R",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","any_censoring","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
@@ -726,7 +726,7 @@
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","is_complete_blocking_design","DesignFixedOptimalBlocks","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,FALSE,TRUE,"",TRUE
+"DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","set_m","DesignFixedOptimalBlocks","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -9301,7 +9301,7 @@
 "mn_pvalue_cpp","function","","","","",7,"delta;n_c;n_t;p_c_obs;p_t_obs;x_c;x_t",FALSE,TRUE,FALSE,TRUE,"",FALSE
 "newcombe_independent_ci_cpp","function","","","","",5,"alpha;n1;n2;x1;x2",FALSE,TRUE,FALSE,FALSE,"",FALSE
 "ObservationalDesign","r6_class","ObservationalDesign","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesign","r6_public_method","ObservationalDesign","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,FALSE,TRUE,"",TRUE
+"ObservationalDesign","r6_public_method","ObservationalDesign","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","add_all_subjects_to_experiment","DesignFixed","inherited",1,"X_all",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","add_one_subject_response","Design","inherited",4,"t;y;y_L;y_R",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","any_censoring","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
@@ -9345,7 +9345,7 @@
 "ObservationalDesign","r6_public_method","ObservationalDesign","is_blocking_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesign","r6_public_method","ObservationalDesign","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,FALSE,TRUE,"",TRUE
+"ObservationalDesign","r6_public_method","ObservationalDesign","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","supports","Design","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -9357,7 +9357,7 @@
 "ObservationalDesign","r6_public_method","ObservationalDesign","warm_all_subject_data_cache","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_class","ObservationalDesignBlocks","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","add_all_subject_matched_pair_ids","ObservationalDesignBlocks","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,FALSE,TRUE,"",TRUE
+"ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","add_all_subjects_to_experiment","DesignFixed","inherited",1,"X_all",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","add_one_subject_response","Design","inherited",4,"t;y;y_L;y_R",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","any_censoring","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
@@ -9407,7 +9407,7 @@
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","is_complete_blocking_design","ObservationalDesignBlocks","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","is_matching_design","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,FALSE,TRUE,"",TRUE
+"ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","set_m","ObservationalDesignBlocks","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE
@@ -9421,7 +9421,7 @@
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","warm_all_subject_data_cache","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_class","ObservationalDesignMatching","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","add_all_subject_matched_pair_ids","ObservationalDesignMatching","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,FALSE,TRUE,"",TRUE
+"ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","add_all_subject_responses","DesignFixed","inherited",3,"y_Ls;y_Rs;ys",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","add_all_subjects_to_experiment","DesignFixed","inherited",1,"X_all",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","add_one_subject_response","Design","inherited",4,"t;y;y_L;y_R",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","any_censoring","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
@@ -9473,7 +9473,7 @@
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","is_complete_blocking_design","ObservationalDesignMatching","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","is_fixed_sample_size","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","is_matching_design","ObservationalDesignMatching","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,FALSE,TRUE,"",TRUE
+"ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","overwrite_all_subject_assignments","DesignFixed","inherited",1,"w",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","prepare_for_resampling_replay","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","randomization_family","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","set_m","ObservationalDesignMatching","class_local",1,"m",TRUE,FALSE,FALSE,TRUE,"",TRUE
