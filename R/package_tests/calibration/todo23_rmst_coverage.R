@@ -269,12 +269,21 @@ reconcile_mode <- function(args) {
 		" (run comprehensive_tests.R with EDI_COMPREHENSIVE_ATTEMPT_MANIFEST=", events_path, ")")
 	manifest <- todo23_expected_roster(repo_root, TODO23_OPERATIONS, nrep = if (nzchar(opt$nrep)) as.integer(opt$nrep) else NULL)
 	utils::write.csv(manifest, file.path(out_dir, "todo23_expected_roster.csv"), row.names = FALSE, na = "")
+	# Owner-approved structural skips (todo23_structural_skips()) leave the
+	# roster; a result for one of them then shows up as result_extra.
+	skips <- todo23_structural_skips(manifest)
+	utils::write.csv(skips, file.path(out_dir, "todo23_structural_skips.csv"), row.names = FALSE, na = "")
+	skip_id <- do.call(paste, c(skips[c(TODO23_KEY_COLUMNS, "function_run")], sep = "\r"))
+	manifest_id <- do.call(paste, c(manifest[c(TODO23_KEY_COLUMNS, "function_run")], sep = "\r"))
+	manifest <- manifest[!manifest_id %in% skip_id, , drop = FALSE]
 	results <- utils::read.csv(results_path, stringsAsFactors = FALSE, check.names = FALSE)
 	events <- utils::read.csv(events_path, stringsAsFactors = FALSE, check.names = FALSE, na.strings = "")
 	in_scope <- function(df) startsWith(as.character(df$inference_class), "InferenceSurvivalRestrictedMeanDiff") &
 		as.character(df$function_run) %in% TODO23_OPERATIONS
 	res_scope <- in_scope(results)
 	ev_scope <- !is.na(events$function_run) & in_scope(events)
+	# startsWith(NA, ...) is NA: an event without an inference_class is out of scope.
+	ev_scope[is.na(ev_scope)] <- FALSE
 	rec <- reconcile_todo23_attempts(manifest, events[ev_scope | is.na(events$function_run), , drop = FALSE],
 		results[res_scope, , drop = FALSE], key_columns = TODO23_KEY_COLUMNS)
 	for (nm in c("result_missing", "result_extra", "result_duplicates", "event_missing", "event_extra",
@@ -287,6 +296,9 @@ reconcile_mode <- function(args) {
 		paste0("run_dir=", run_dir), paste0("results=", results_path, " sha256=", calib_sha256(results_path)),
 		paste0("events=", events_path, " sha256=", calib_sha256(events_path)),
 		todo23_roster_summary_lines(manifest, file.path(out_dir, "todo23_expected_roster.csv")),
+		paste0("structural_skips_removed=", nrow(skips), " (",
+			paste(names(table(skips$skip_reason)), table(skips$skip_reason), sep = ":", collapse = ","),
+			"; todo23_structural_skips.csv); expected_keys_after_skips=", nrow(manifest)),
 		paste0("result_rows_in_scope=", sum(res_scope), " out_of_scope=", sum(!res_scope)),
 		paste0("event_rows_in_scope=", sum(ev_scope), " unkeyed_or_setup=", sum(is.na(events$function_run))),
 		paste0("in_scope_result_status=", paste(names(status_tab), status_tab, sep = ":", collapse = ",")),

@@ -665,9 +665,18 @@ OrdinalStereotypeLikelihoodSource = list(
 #' optimum whose likelihood is below that of another optimum, which makes the
 #' LR statistic at the estimate positive rather than zero. Since 2026-10-08
 #' the ordinary full-data fit screens deterministic and data-seeded local
-#' starts and keeps the lowest converged negative log-likelihood, so the
-#' figures above predate that change and have not yet been re-measured; the
+#' starts and keeps the lowest converged negative log-likelihood; the
 #' repeated randomization and weighted-bootstrap refits remain single-start.
+#' Re-measured with that change (EDI 1.0.5 null study, 400 datasets per
+#' cell, nominal 5\%): 12.9\% Type-I error at \eqn{n = 100} with 5
+#' categories (11.5\% even with 41 starts and every fit kept, with
+#' non-uniform null p-values), so with this many parameters the chi-square(1)
+#' reference is anti-conservative at that \eqn{n}; about 5-6\% at
+#' \eqn{n = 50} with 3 categories. In those runs 30-38\% of fits were
+#' reported non-estimable by the fit-usability check, and in roughly 10-12\%
+#' of the reported results the rank-deficiency fallback had dropped the
+#' covariate, leaving a treatment-only model; both behaviors are scheduled
+#' for revision in EDI 1.1.0.
 #' For small samples,
 #' prefer the better-calibrated alternatives on this class:
 #' \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap

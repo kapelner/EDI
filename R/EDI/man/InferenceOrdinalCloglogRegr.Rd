@@ -47,6 +47,15 @@ Whether \code{compute_rand_two_sided_pval()} is actually
 
 Computes a randomization-based p-value.
 }
+\details{
+Calibration (EDI 1.0.5 null study, 500 datasets per cell, nominal 5\%): with
+covariates (\code{~ .}) at small n the likelihood-based tests are
+anti-conservative (direct likelihood ratio 12.0\%, Bartlett-corrected 10.8\%,
+likelihood-ratio bootstrap 8.2\%); without covariates (\code{~ 1}) they are
+calibrated (5.4\%, 5.6\%, 5.2\%).
+\code{compute_param_bootstrap_pval()} is conservative (2.8\% at \code{~ 1},
+0.6\% at \code{~ .}), so it controls false positives but loses power.
+}
 \references{
 Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models); McCullagh, P. (1980).

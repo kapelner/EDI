@@ -171,10 +171,6 @@ graft/
 # Private research notes — not for public repo history
 /private/
 
-# trail learnings about this repo's code are committed; the write log under
-# .trail/.claude/ stays local.
-/.trail/.claude/
-
 # Local shell, Git, and editor configuration
 .bash_profile
 .bashrc
@@ -208,3 +204,11 @@ marketing_plans/
 
 # TODO-55/56 comprehensive_tests resume/snapshot scratch trees (never source)
 /R/package_tests/todo5[56]_*/
+
+# pdflatex/latexmk run from the repo root with no job name leaves these
+# empty-basename artifacts behind (root only, so a real .log elsewhere is
+# still tracked normally).
+/.aux
+/.fdb_latexmk
+/.fls
+/.log

@@ -19,7 +19,7 @@
 # itself is the fit's estimate, which SimulationFramework computes before any
 # inference type (so it equals the harness's asymp_pval truth).
 #
-# Pass (agent proposal, runbook R7; unverified as owner choices), per class x dataset x beta_T:
+# Pass (owner-approved 2026-10-23, closing-audit decision 2; runbook R7), per class x dataset x beta_T:
 #   (a) at the largest mc_n, every pair of estimates (2 schemes x 3 seeds) differs by
 #       <= 2 * sqrt(se_i^2 + se_j^2);
 #   (b) for every scheme x seed, |est(largest mc_n) - est(second-largest mc_n)| < se(largest mc_n).
@@ -55,7 +55,10 @@ todo10_harness_env <- function(repo_root) {
 	env
 }
 
-todo10_fit_truth <- function(class_name, dataset, D, beta_val, scheme, mc_n, K, harness, inference_type = "asymp_ci") {
+# class_names may name several classes: SimulationFramework builds the
+# DesignFixedBinaryMatch design (the nbpMatching cost) once and fits every
+# class on that same assignment and response; res$inference holds the class.
+todo10_fit_truth <- function(class_names, dataset, D, beta_val, scheme, mc_n, K, harness, inference_type = "asymp_ci") {
 	y_base <- D$y_original[["survival"]]
 	real_X <- as.data.frame(D$X)[, seq_len(min(K, ncol(D$X))), drop = FALSE]
 	n0 <- length(y_base)
@@ -86,7 +89,7 @@ todo10_fit_truth <- function(class_name, dataset, D, beta_val, scheme, mc_n, K, 
 	sim <- SimulationFramework$new(
 		response_type = "survival",
 		design_classes_and_params = list(DesignFixedBinaryMatch),
-		inference_classes_and_params = list(get(class_name, envir = asNamespace("EDI"))),
+		inference_classes_and_params = lapply(class_names, get, envir = asNamespace("EDI")),
 		inference_types_and_params = itp,
 		n = mc_n, p = ncol(real_X), Nrep_W = 1L, Nrep_Y_w = 1L,
 		betaT = beta_val,
@@ -109,11 +112,10 @@ main <- function(args) {
 		"  [--seeds 1:3] [--seed-base 10000] [--schemes block,bootstrap] [--timeout-sec 0] [--smoke]",
 		"--smoke: --datasets pte_example --betas 0.5 --mc-n 200,300,400 --seeds 1:2 (mechanics only).", sep = "\n")
 	opt <- calib_parse_args(args, defaults = list(out_dir = "", classes = paste(TODO10_CLASSES, collapse = ","),
-		datasets = "all", betas = "0,0.5", K = "6", mc_n = "3000,6000,12000", seeds = "1:3", seed_base = "10000",
+		datasets = "all", betas = "0.5", K = "6", mc_n = "3000,6000,12000", seeds = "1:3", seed_base = "10000",
 		schemes = "block,bootstrap", timeout_sec = "0"), flags = "smoke", usage = usage)
 	if (opt$smoke) {
 		if (identical(opt$datasets, "all")) opt$datasets <- "pte_example"
-		if (identical(opt$betas, "0,0.5")) opt$betas <- "0.5"
 		if (identical(opt$mc_n, "3000,6000,12000")) opt$mc_n <- "200,300,400"
 		if (identical(opt$seeds, "1:3")) opt$seeds <- "1:2"
 	}
@@ -147,31 +149,47 @@ main <- function(args) {
 	cat("EDI", prov$edi_package_version, "from", prov$edi_package_path, "DLL sha256", prov$edi_dll_sha256, "\n")
 	write_row <- calib_row_writer(file.path(out_dir, "rows.csv"), ROW_COLUMNS)
 
-	for (cls in classes) for (ds in datasets) for (b in betas) for (sch in schemes) for (mc_n in mc_ns) for (s in seed_idx) {
+	# One shared fit per dataset x beta x scheme x mc_n x seed covers every class
+	# (same seed, so the same rows, censoring, assignment and matching). A class
+	# with no asymp_ci row falls back to asymp_pval in a fit of its own.
+	class_res <- function(v, cls) {
+		if (is.null(v) || !nrow(v$res)) return(v$res[0L, , drop = FALSE])
+		v$res[as.character(v$res$inference) == cls, , drop = FALSE]
+	}
+	for (ds in datasets) for (b in betas) for (sch in schemes) for (mc_n in mc_ns) for (s in seed_idx) {
 		seed <- seed_base + s
-		base <- list(class = cls, dataset = ds, beta_T = b, scheme = sch, mc_n = mc_n, seed_index = s, seed = seed, K = K)
 		r <- calib_eval(function() {
 			set.seed(seed)
-			out <- todo10_fit_truth(cls, ds, datasets_all[[ds]], b, sch, mc_n, K, harness, "asymp_ci")
-			out$inference_type <- "asymp_ci"
-			if (!nrow(out$res)) {
+			out <- todo10_fit_truth(classes, ds, datasets_all[[ds]], b, sch, mc_n, K, harness, "asymp_ci")
+			out$inference_type <- stats::setNames(rep("asymp_ci", length(classes)), classes)
+			for (cls in classes) if (!nrow(class_res(out, cls))) {
 				set.seed(seed)
-				out <- todo10_fit_truth(cls, ds, datasets_all[[ds]], b, sch, mc_n, K, harness, "asymp_pval")
-				out$inference_type <- "asymp_pval"
+				fb <- todo10_fit_truth(cls, ds, datasets_all[[ds]], b, sch, mc_n, K, harness, "asymp_pval")
+				out$res <- rbind(out$res[as.character(out$res$inference) != cls, , drop = FALSE], fb$res, make.row.names = FALSE)
+				out$inference_type[[cls]] <- "asymp_pval"
 			}
 			out
-		}, is_ok = function(v) nrow(v$res) >= 1L && is.finite(as.numeric(v$res$estimate[1L])), timeout_sec = timeout)
+		}, is_ok = function(v) all(vapply(classes, function(cls) {
+			x <- class_res(v, cls)
+			nrow(x) >= 1L && is.finite(as.numeric(x$estimate[1L]))
+		}, logical(1L))), timeout_sec = timeout)
 		v <- r$value
-		est <- if (!is.null(v) && nrow(v$res)) as.numeric(v$res$estimate[1L]) else NA_real_
-		lo <- if (!is.null(v) && "ci_lo" %in% names(v$res) && nrow(v$res)) as.numeric(v$res$ci_lo[1L]) else NA_real_
-		hi <- if (!is.null(v) && "ci_hi" %in% names(v$res) && nrow(v$res)) as.numeric(v$res$ci_hi[1L]) else NA_real_
-		se <- if (is.finite(lo) && is.finite(hi)) (hi - lo) / (2 * stats::qnorm(0.975)) else NA_real_
-		write_row(c(base, list(covariates = if (is.null(v)) NA else paste(v$covariates, collapse = ";"), status = r$status,
-			estimate = est, se = se, ci_lo = lo, ci_hi = hi, inference_type = if (is.null(v)) NA else v$inference_type,
-			result_rows = if (is.null(v)) 0L else nrow(v$res), elapsed_sec = r$elapsed_sec,
-			warnings = calib_clean_msg(r$warnings), error_message = calib_clean_msg(r$error_message))))
-		cat(sprintf("%s %s beta %g %s mc_n %d seed %d: est %s se %s (%s, %.1fs)\n", cls, ds, b, sch, mc_n, seed,
-			format(signif(est, 5)), format(signif(se, 3)), r$status, r$elapsed_sec))
+		for (cls in classes) {
+			x <- class_res(v, cls)
+			base <- list(class = cls, dataset = ds, beta_T = b, scheme = sch, mc_n = mc_n, seed_index = s, seed = seed, K = K)
+			est <- if (nrow(x)) as.numeric(x$estimate[1L]) else NA_real_
+			lo <- if ("ci_lo" %in% names(x) && nrow(x)) as.numeric(x$ci_lo[1L]) else NA_real_
+			hi <- if ("ci_hi" %in% names(x) && nrow(x)) as.numeric(x$ci_hi[1L]) else NA_real_
+			se <- if (is.finite(lo) && is.finite(hi)) (hi - lo) / (2 * stats::qnorm(0.975)) else NA_real_
+			status <- if (identical(r$status, "ok") || is.finite(est)) r$status else "invalid"
+			# elapsed_sec is the shared fit's wall time (both classes together).
+			write_row(c(base, list(covariates = if (is.null(v)) NA else paste(v$covariates, collapse = ";"), status = status,
+				estimate = est, se = se, ci_lo = lo, ci_hi = hi, inference_type = if (is.null(v)) NA else v$inference_type[[cls]],
+				result_rows = nrow(x), elapsed_sec = r$elapsed_sec,
+				warnings = calib_clean_msg(r$warnings), error_message = calib_clean_msg(r$error_message))))
+			cat(sprintf("%s %s beta %g %s mc_n %d seed %d: est %s se %s (%s, %.1fs shared)\n", cls, ds, b, sch, mc_n, seed,
+				format(signif(est, 5)), format(signif(se, 3)), status, r$elapsed_sec))
+		}
 	}
 
 	rows <- calib_read_rows(file.path(out_dir, "rows.csv"))
@@ -182,7 +200,7 @@ main <- function(args) {
 		if (opt$smoke) "**SMOKE RUN: mechanics only, not evidence.**" else NULL, "",
 		sprintf("K = %d (first K harness covariates); mc_n = %s; schemes = %s; seeds = %s.", K, paste(mc_ns, collapse = ","),
 			paste(schemes, collapse = ","), calib_describe_ints(seed_base + seed_idx)),
-		"Pass (agent proposal): (a) all estimates at the largest mc_n agree pairwise within 2 combined MC SEs;",
+		"Pass (owner-approved 2026-10-23): (a) all estimates at the largest mc_n agree pairwise within 2 combined MC SEs;",
 		"(b) every scheme x seed moves < 1 MC SE between the two largest mc_n. Fail -> classes stay unavailable.",
 		sprintf("Overall: %s", if (all_pass) "PASS (classes may leave COVERAGE_TRUTH_UNAVAILABLE once the harness cap lands)" else
 			"NOT PASSED (keep both classes in COVERAGE_TRUTH_UNAVAILABLE)"), "",

@@ -344,6 +344,18 @@ methods.
   `kk_clmm_rcpp_not_stationary`. Estimates move by up to about 6e-3 (median
   about 2e-4).
 
+## Known limitations
+
+* `InferenceOrdinalCloglogRegr` null calibration (500 null datasets per cell,
+  `diamonds`, nominal 5%). With covariates (`~ .`) at small n, the
+  likelihood-based tests reject too often: the direct likelihood-ratio
+  p-value rejects 12.0%, the Bartlett-corrected one 10.8% and the
+  likelihood-ratio bootstrap one 8.2%. Without covariates (`~ 1`) all three
+  are calibrated (5.4%, 5.6% and 5.2%). The
+  parametric-bootstrap p-value (`compute_param_bootstrap_pval()`) is
+  conservative: 2.8% at `~ 1` and 0.6% at `~ .`. It does not inflate false
+  positives but loses power. Both are under review for 1.1.0.
+
 ## Performance
 
 * The tighter KK CLMM tolerance makes these fits slower. A full fit takes

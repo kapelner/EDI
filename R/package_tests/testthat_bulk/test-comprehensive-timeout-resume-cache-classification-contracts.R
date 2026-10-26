@@ -135,6 +135,21 @@ test_that("the opt-in attempt event ledger preserves operation and setup outcome
 		new_comprehensive_attempt_manifest_writer(results_file, results_file = results_file),
 		"separate from the comprehensive results CSV"
 	)
+
+	# A watchdog-relaunched worker (resume = TRUE) appends and continues event_seq.
+	resumed = new_comprehensive_attempt_manifest_writer(manifest_file, resume = TRUE)
+	resumed("started", key)
+	resumed("terminal", key, status = "ok")
+	events = utils::read.csv(manifest_file, stringsAsFactors = FALSE, na.strings = "")
+	expect_identical(events$event_seq, seq_len(13L))
+	expect_identical(events$event_type[12:13], c("started", "terminal"))
+
+	broken_file = file.path(scratch, "broken-events.csv")
+	writeLines("event_seq,event_type", broken_file)
+	expect_error(
+		new_comprehensive_attempt_manifest_writer(broken_file, resume = TRUE),
+		"different header"
+	)
 })
 
 test_that("the runner emits ledger events at live safe-call and setup boundaries", {

@@ -13957,6 +13957,16 @@ retry ladder rescues the 15 clamp stalls. After the user's rebuild, rerun: `test
 warnings), exit 0; R3 C1 smoke (`todo18_smoothed_brt_null.R --cells C1 --smoke`) exit 0, non-degenerate null for
 `InferenceContinKKRobustRegrOneLik` (p = 0.76/0.67 and 0.19/0.10 percentile/smoothed; mechanics only).
 
+**G1 recheck 2026-10-25 on the owner's 07:10 UTC unity rebuild: PASS.** Installed `EDI.so` sha256
+`c6d594988df44f7db24d3b40cd9fa15473165463c8a3ce1e1efe133df804e805` (= `R/EDI/src/EDI.so`), `Built ... 2026-10-25 07:10:16
+UTC`, HEAD `45fc1d2d` (18 dirty paths, none of them code: `git status R/EDI/src` is empty; the dirty R files are roxygen-only
+edits made after the build). No file under `R/EDI/{R,src,inst}`, DESCRIPTION or NAMESPACE changed between the prior build
+`e15007df...` (00:40 UTC) and this one, except the generated `src/Makevars{,.win}`. Results (`~/edi_regen/g1_recheck_20261025/`):
+the same 56 post-build files with `EDI_REQUIRE_CPP_PATCHES=true` give 2,765 expectations, 0 failed, 0 skipped, 0 errors. The
+hook-style suite gives 9,037 pass, 0 fail, 18 skip, 40 warnings (the expected classed lik-test fallbacks), exit 0, 5 min 31 s.
+The R3 C1 smoke exits 0 with the identical p-values (0.76/0.67, 0.19/0.10). R1 (both runs) and the R4A/R7 smokes ran on this
+DLL. R5 ran on `e15007df...`, which was built from the same source (owner accepted R5 on that basis 2026-10-26).
+
 ### G2. Quiet-host timing runs (installed package, provenance sidecar)
 
 TODOs: 58, 59, 60, 62; also 1, 2, 6, 57 once their decisions are made.
@@ -14183,6 +14193,41 @@ Common rules (R1-R7):
         --rows "$(ls $D/comprehensive_tests_results_*ordinal*.csv | paste -sd, -)"
 
 - Pass: the #20 rule in all 6 cells.
+- **RE-SCOPED 2026-10-25 (owner): gate on `~1` only.** Pass = the #20 rule in the `~1` cells. The `~.` cells are still
+  run and reported but do not gate: direct LR rejects 12.0% (CP 9.3-15.2%) at `~.` vs 5.4% at `~1`, and before 1.0.5
+  all five model-based tests rejected 16% at `~.` and 6% at `~1`, so this is long-standing small-sample behavior of the
+  `~.` fit, not a 1.0.5 regression. Known limitation (v1.1.0 follow-up): model-based tests for Cloglog with many
+  covariates at small n are anti-conservative.
+- **TODO-16 target measurement launched 2026-10-25.** The family that emits the LR-bootstrap and parametric-bootstrap
+  p-values is `parametric_bootstrap` (`compute_lik_ratio_bootstrap_two_sided_pval`, `compute_param_bootstrap_pval`;
+  B = harness `r` = 151). Neither p-value is on a Cloglog slow-skip list (only `pboot_ci` is), and the 1-rep smoke run
+  emitted all four rows per formula in 0.3-2.9 s. Run: `comprehensive_tests.R 500 2 ordinal Bernoulli
+  InferenceOrdinalCloglogRegr diamonds 0 NA parametric_bootstrap` under the receipt wrapper, output
+  `~/edi_regen/r1_todo16_pboot_<UTC stamp>/`. Gate: the #20 rule on `~1` (re-scope above).
+- **TODO-16 target RESULT 2026-10-25 (`~/edi_regen/r1_todo16_pboot_20261025T071458Z/`, 07:15-08:28 UTC, DLL
+  `c6d59498...` (built 2026-10-25 07:10 UTC), HEAD `45fc1d2d`): `~1` gate PASSES.** LR-bootstrap `~1` 26/500 = 5.2% (CP 3.4-7.5%) PASS; param-bootstrap `~1` 14/500
+  = 2.8% (CP 1.5-4.7%) CONSERVATIVE (not a failure). Not gated, `~.`: LR-bootstrap 41/499 = 8.2% (CP 6.0-11.0%)
+  anti-conservative, a smaller excess than the direct LR's 12.0%; param-bootstrap 3/499 = 0.6% (CP 0.1-1.7%), very
+  conservative. One non-finite p-value per method at `~.`. The param-bootstrap p-value's 0.6% at `~.` (2.8% at `~1`)
+  is worth a v1.1.0 look: it suggests a wide null distribution, not a calibrated test. R1 still needs the `bartlett`
+  rerun on this build before the whole of R1 can close. Owner: filed as v1.1.0 TODO-159 and documented (NEWS "Known
+  limitations", `InferenceOrdinalCloglogRegr` roxygen Details; the Rd regenerates at G8).
+- **R1 `bartlett` relaunched 2026-10-25.** The runbook command as written produces NO Bartlett rows: Cloglog is on the
+  package `bartlett_pval` slow list, so the runner skips both p-values. The 2026-10-23 run would have shown the same
+  had the reinstall not killed it. Forcing (`COMPREHENSIVE_FORCE_SLOW_PATHS=1`) also runs the Bartlett CIs (12-51 s
+  each, about 17 h for 500 reps), so a new harness-only env var `COMPREHENSIVE_SKIP_FUNCTIONS` (comma list of
+  function_run labels; `safe_call()` returns before running them) skips the two CIs. The p-values take 0.4-1.2 s.
+  Note: in the smoke run, the Bartlett and Bartlett-approx p-values were identical on every rep; check this at scale.
+  Output `~/edi_regen/r1_todo16_bartlett_<UTC stamp>/`.
+- **R1 `bartlett` RESULT 2026-10-25 (`~/edi_regen/r1_todo16_bartlett_20261025T150308Z/`, 15:05-16:08 UTC, DLL
+  `c6d59498...`, HEAD `45fc1d2d`): `~1` PASS.** Bartlett `~1` 28/500 = 5.6% (CP 3.8-8.0%) PASS. Not gated, `~.`: 54/499 = 10.8% (CP
+  8.2-13.9%), anti-conservative, about the same as the direct LR's 12.0%. The exact and approx p-values are identical
+  (999/1000; the other is the shared NA). That is by design: the default p-value uses the exact factor if the class
+  has one and falls back to the approx factor, and Cloglog has none. So only one Bartlett method was measured.
+- **R1 PASS under the `~1` re-scope:** direct LR 5.4%, LR-bootstrap 5.2%, Bartlett 5.6% all PASS; the param-bootstrap
+  p-value is 2.8%, CONSERVATIVE (not a failure). At `~.` every likelihood-based test is anti-conservative (8.2-12.0%);
+  the param bootstrap is 0.6%. Documented (NEWS, roxygen) and filed as v1.1.0 TODO-159. Provenance is
+  DLL `c6d59498...` (both R1 runs; checked from their provenance sidecars), so it counts once G1 is rechecked on `c6d59498...`.
 - Closes: TODO-16's sub-item "Calibrate direct LR, LR-bootstrap, and Bartlett-approx ..." (first half) and linked plan
   `ordinal_cumulative_link_null_refit_multistart.md → TODO-1`. Its "regenerate and re-audit" half is the ordinal G4 slice.
 
@@ -14556,6 +14601,82 @@ N6 7.0/7.0%, N7 5.8/5.8% PASS (percentile/smoothed); N4 (KKHurdlePoissonOneLik `
 (CountPoisson `~.`) 7.6/7.6% FAIL_ANTICONSERVATIVE, both marginal (CP lower 0.051-0.054). N5 is the C2 high-p/n
 mechanism (diamonds `~.`); N4 is unexplained but marginal. Smoothed vs percentile discordance <= 0.4% in every cell, so
 smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to rerun.
+- **CORRECTION 2026-10-25 (R4B smoke on `c6d59498...`): the reinstall did NOT kill R4B.** Its err.log line 46401 reads
+  `20:33:40 Watchdog: compute_rand_bootstrap_two_sided_pval ran 135s (limit 120s); killed worker ... restarting`, and line
+  46403 reads `refusing to overwrite an existing attempt manifest: .../attempt_events.csv`
+  (`comprehensive_results_path.R:56-58`). Every watchdog restart re-creates the attempt manifest, so the FIRST call over 120 s
+  ends any run that writes an attempt manifest. The 2026-10-25 smoke run died the same way (pte_example, FixedMatchingGreedy,
+  `~.`, beta 0.5, BRT studentized p-value). Other R4B harness defects the smoke run found (agent report, not yet fixed):
+  (1) the reconcile step fails with `events contains missing event types`. "started" events carry no inference_class, so the
+  scope filter is NA. Proposed fix in `todo23_rmst_coverage.R`: `ev_scope[is.na(ev_scope)] <- FALSE`; it worked on a patched
+  copy. (2) The audit reads only `nc_1_<type>.csv`, so on nc_2 output it prints "nothing to audit" and exits 0. That is
+  how R4B "passed" its audit on 10-23. Forced to read the file, it reports 10 findings, all already in the canonical audit
+  baseline. (3) The roster counts structural gaps as missing: FBM `~1` (setup skip) and the 6 nonparametric
+  bootstrap/subsampling CIs that KK21stepwise/SPBR don't support, 18,720 of 141,120 keys at Nrep 40. (4) The provenance
+  sidecar is written only at the end, so an aborted run has none. Estimated full run: 15-25 h (2 of 9 datasets measured).
+- **R4B harness fixes DONE 2026-10-25 (owner go-ahead; agent; uncommitted, R-only):**
+  - Manifest restart: `new_comprehensive_attempt_manifest_writer(..., resume = TRUE)` appends to an existing ledger
+    and continues event_seq. It checks the header and requires event_seq = 1..n. Only a watchdog-relaunched worker gets
+    `resume`: the supervisor sets `COMPREHENSIVE_ATTEMPT_MANIFEST_RESUME=1` on every launch after the first, and a
+    fresh run still refuses an existing file.
+  - Reconcile: an event with an NA inference_class is out of scope.
+  - Audit: under `EDI_COMPREHENSIVE_RESULTS_DIR`, a missing canonical `nc_1_<type>.csv` resolves to the dir's single
+    `nc_<N>_<type>[_filtered_...].csv`; more than one is an error. Results CSVs that map to no response type exit 1
+    instead of "nothing to audit".
+  - Structural gaps: `todo23_structural_skips()` in `todo23_expected_roster.R` (FBM `~1` plus the 6 nonparametric
+    bootstrap/subsampling CIs on KK21stepwise/SPBR). Reconcile removes them from the roster and writes
+    `todo23_structural_skips.csv`; a result for one of them shows up as result_extra.
+  - Tests: timeout/resume contracts 44, audit override 43, todo23 reconciliation 50, results override 113, todo10
+    roster 49, all passing.
+  - Smoke re-check: diamonds and pte_example (the two datasets it finished) reconcile with 0 missing, 0 extra and
+    0 mismatches. The audit now reads the nc_2 file and reports 1 NEW finding: RMST
+    `compute_bayesian_bootstrap_confidence_interval_studentized` coverage 0.615 over 52 rows (R4A measures that family
+    at 460 reps).
+- **R4A full run launched 2026-10-25 20:57 UTC:** `~/edi_regen/r4a_full_20261025T205704Z`, 460 reps, B 199,
+  B-bca 999.
+- **R4B relaunched 2026-10-25 21:04 UTC:** 9 parallel per-dataset jobs (NUM_CORES 1,
+  `COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT=1`, `COMPREHENSIVE_WATCHDOG_MAX_RESTARTS=1000`), one results dir and attempt
+  manifest per dataset, under `~/edi_regen/r4b_20261025T210410Z/<dataset>/` (launcher `~/edi_regen/r4b_launch.sh`).
+  Reconcile per dataset dir, then sum.
+- **R7 timing 2026-10-25 (c6d59498, under R4B load):** one mc_n = 12000 fit (KKStratCoxPH, pte_example, beta 0.5,
+  block, seed 10001) took 428 s, with 8.7 min wall and 10.4 GB peak RSS (`~/edi_regen/r7_time12000_20261025T211803Z`).
+  Owner decision same day: drop beta_T = 0 (the script default is now `--betas 0.5`), and share the design between
+  the two classes. One SimulationFramework fit now carries both classes, so DesignFixedBinaryMatch matches once per
+  dataset x scheme x mc_n x seed. A solo-class smoke gave estimates identical to the shared run. That is 54 shared
+  fits, about 4 h at 2 in parallel (~21 GB). Launch after R4A frees memory.
+- **G8 Cloglog Rd done 2026-10-25:** `fast_roxygenize.R`, including `compileAttributes()` (the negbin parameter-list
+  comment is gone), 0 warnings. Only `InferenceOrdinalCloglogRegr.Rd` changed (+9 lines, Calibration details);
+  RcppExports and NAMESPACE are unchanged.
+- **Sep 10 file retired 2026-10-25 (owner):** `comprehensive_tests_results_nc_1_filtered_design-Bernoulli_family-rand.csv`
+  (144 incidence rand p-value rows, pre-TODO-99, untracked) was renamed to
+  `...csv.retired_stale_pre_todo99_20261025T223118Z.bak`, so no `*.csv` glob reads it.
+- **TODO-19 merge BLOCKED 2026-10-25:** the 10-23 slice (`~/edi_regen/batch_20261023T144230Z/todo19_incid_kk_modified_poisson`,
+  exit 0, 13,200 rows) straddles the owner's 10-23 reinstall (sidecar DLL before f5772727, after 80b24441), and neither
+  is the installed c6d59498. It must be rerun on the current build (~15 h measured). The dry run also shows 13,145 value
+  changes, including estimate sign flips at the same key (e.g. pima KK21stepwise rep 1 `~1`: -0.110 -> 0.115), and
+  ok->error 650. Explain these at the rerun's audit before `--apply`. The merge also needs `--canonical-nc`, since there
+  is no nc_2 canonical file.
+- **R4A PASS 2026-10-26:** 14/14 families, 460/460 valid each, coverage 0.941-0.959, every CP interval contains 0.95.
+  Bayesian-bootstrap studentized 441/460 = 0.959 (CP 0.936-0.975), so the smoke audit's 0.615 is not a family-wide
+  miscalibration (`~/edi_regen/r4a_full_20261025T205704Z/coverage_summary.md`).
+- **R4B finished 2026-10-26 01:55 UTC (all 9 exit 0); reconcile and audit NOT accepted:**
+  - Reconcile (per dataset dir, `--nrep 40`; roster 113,760 keys after 27,360 skips = 12,640 per dataset): 8 datasets
+    complete (12,640/12,640, 0 extra, 0 duplicates, 0 status mismatches). cars has 320 of its own keys missing:
+    `compute_m_out_of_n_bootstrap_confidence_interval` and `compute_subsampling_confidence_interval`, `~.`,
+    FixedBinaryMatch and FixedMatchingGreedy, both betas, every rep. The harness skips these on purpose
+    ("too few exchangeable units": `default_small_resampling_size()` returns NA when the pair count / 2 < p_eff + 2).
+    Not attempted, so no events. A candidate third structural skip; owner to approve.
+  - Audit (`EDI_COMPREHENSIVE_RESULTS_DIR=<dir> audit_comprehensive_results.R --force`): 19-25 NEW findings per
+    dataset, nearly all low_coverage across every CI family, plus biased_estimate. Cause: a harness truth bug, not a
+    CI defect. `InferenceSurvivalRestrictedMeanDiff` has no `COVERAGE_MC_SPEC` / `COVERAGE_CLOSED_FORM` entry, so
+    `get_coverage_truth()` falls back to raw beta_T. At beta_T = 0 (truth 0, correct) coverage is 0.92-0.98 for the
+    model-based and bootstrap families (jackknife-Wald and m-out-of-n/subsampling 0.84-0.94). At beta_T = 0.5 the
+    estimand is the RMST difference (mean estimate 0.61-1.33 by dataset), not 0.5, so coverage collapses (0.03-0.05
+    on most datasets). Same signature as LogRank/GehanWilcox on 2026-09-06.
+  - An MC-spec entry alone is not a fix. RMST's default tau = min(arm maxima) shrinks with n. The simframe MC truth
+    on cars was 0.70 at mc_n 20000 (0.66-0.79 at 148-1000) vs a 0.61 per-rep mean estimate. Tried and reverted 2026-10-26.
+    The clean fix is a fixed `tau` (the class accepts `tau`, TODO-108) passed both to the per-row class and to the
+    MC spec's inference_params. That changes the R4B rows, so R4B needs a rerun (~5 h). Owner decision.
 - R5 stopped by the owner 2026-10-25 00:40 UTC (SIGTERM; batch log `end r5 FixedBinaryMatch exit=143`): KK21stepwise
   complete (4,320 rows), FixedBinaryMatch 1,659/2,160, receipt left `.running`. 33.4 h used vs the 3.5-4.1 h estimate;
   18 h of it were 536 calls that hit the 120 s cap (419 rand CI, all `~.` on fuel/ionosphere/diamonds/cars). Each is
@@ -14586,6 +14707,18 @@ smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to reru
   (2) 13 approved rand-CI keys (KK21 ionosphere/cars/diamonds `~.`) completed with results, and the validator rejects
   results on approved keys. (3) Owner commit `b95312a9` (CSV-only) landed mid-run: 1,869 rows carry `436ca96b`,
   3,522 carry `b95312a9`. The package payload, runner and DLL sha are identical across all 18 jobs.
+- **R5 PASS 2026-10-25 after owner decisions on (1)-(3).** (1) Approved skips widened to every rand function on `~.` x
+  {fuel, ionosphere, diamonds, cars} x both designs, the slow paths (1,920 keys; total 4,080 with FBM `~1`).
+  (2) An approved key may carry a result, which then gets the full success checks. (3) New
+  `accepted_checkout_shas` argument: rows may carry either listed commit and the checkout may move between them;
+  every other provenance field must stay fixed (`r5_validate.R` also asserts identical payload/runner/DLL sha across
+  jobs). Not rerun: the existing rows were re-validated. Result: 0 issues, 5,391 rows, 3,249 approved keys absent,
+  16 present as skip rows. Tests updated (`test-todo14-candidate-validation-reference.R` 116 pass; the two other
+  validator callers 33 and 22 pass). Provenance is DLL `e15007df...`, which the owner replaced at 07:10 UTC with `c6d59498...`. Checked 2026-10-25: no file under `R/EDI/{R,src,inst}`, DESCRIPTION or NAMESPACE changed between the two builds (00:40-07:10 UTC) except the generated `src/Makevars{,.win}` (build config; the current build is unity), so both builds compile the same source. The two DLL hashes differ only through the build mode. Later edits are roxygen comments only (`helper_glm_fit.R` usage `maxit`, not ours; Cloglog Details, ours).
+- **R5 provenance ACCEPTED 2026-10-26 (owner): "same source, different compile."** R5's rows (DLL `e15007df...`, 00:40 UTC
+  build) are accepted as equivalent to the installed `c6d59498...` (07:10 UTC unity build) without a rerun. Basis: no file
+  under `R/EDI/{R,src,inst}`, DESCRIPTION or NAMESPACE changed between the two builds except the generated
+  `src/Makevars{,.win}`, and the G1 recheck on `c6d59498` reproduced the same p-values. R5 stays PASS.
 - R1 `~.` (direct LR 12.0%, CI 9.3-15.2%): not a regression. Pre-1.0.5 canonical rows (50 reps): all five model-based
   tests (asymp/wald/score/LR/gradient) 16% at `~.`, 6% at `~1`. Long-standing finite-sample behavior of the `~.` fit.
   R1 also did NOT measure TODO-16's target: the `lik_ratio` family emits only `compute_lik_ratio_two_sided_pval` and the
@@ -14598,6 +14731,9 @@ smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to reru
   rejected vs kept fits 0.021 vs 0.025) and causes 30-38% non-estimable; at n50 it flatters the PASS (rejected seeds 13.3%
   vs kept 4.6%; ungated 5.8%); (b) the QR column-dropping fallback silently drops covariate x1 in 33/248 (n100) and
   27/280 (n50) results, leaving a treatment-only stereotype model whose LR is non-regular at the null.
+  **DECIDED 2026-10-26 (owner): defer (a) and (b) to 1.1.0** (`release_v1_1_0.md` TODO-160). R2 is documented as a
+  small-sample limitation in the `InferenceOrdinalStereotypeLogitRegr` roxygen (re-measured figures replace the
+  "not yet re-measured" sentence); the Rd regenerates with the next G8 pass.
 - R3 C2 (OLS `~.`, BRT 13.4-14.2%): limitation of unstudentized BRT at high p/n, not OLS SE inflation. diamonds `~.` =
   24 columns at n = 148; a resample has ~94 distinct rows, so refits overfit and the null SD shrinks (replica: 0.71 x true
   SD, predicting ~16.5% rejection; `~1` ratio 1.02). OLS `~.` Wald on the same DGP rejects 4.15%. Percentile vs smoothed

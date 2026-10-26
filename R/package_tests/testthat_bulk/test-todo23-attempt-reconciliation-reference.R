@@ -180,3 +180,32 @@ test_that("TODO-23 event sequence IDs must be finite and unique", {
 		"events contain missing, invalid, or duplicate event sequence values"
 	)
 })
+
+test_that("TODO-23 structural skips cover exactly the three owner-approved gaps", {
+	source(testthat::test_path("..", "calibration", "todo23_expected_roster.R"), local = TRUE)
+	grid <- expand.grid(
+		dataset = c("cars", "iris"),
+		design = c("FixedBinaryMatch", "FixedMatchingGreedy", "KK21stepwise", "Bernoulli"),
+		design_formula = c("~1", "~."),
+		function_run = c("compute_subsampling_confidence_interval", "compute_wald_confidence_interval"),
+		stringsAsFactors = FALSE
+	)
+	skips <- todo23_structural_skips(grid)
+	reason <- function(ds, des, fm, fn) {
+		hit <- skips[skips$dataset == ds & skips$design == des & skips$design_formula == fm & skips$function_run == fn, ]
+		if (nrow(hit)) hit$skip_reason else NA_character_
+	}
+	sub <- "compute_subsampling_confidence_interval"
+	wald <- "compute_wald_confidence_interval"
+	expect_identical(reason("iris", "FixedBinaryMatch", "~1", wald), "fbm_design_formula_1_setup_skipped")
+	expect_identical(reason("iris", "KK21stepwise", "~.", sub), "design_lacks_nonparametric_bootstrap")
+	expect_identical(reason("cars", "FixedBinaryMatch", "~.", sub), "too_few_exchangeable_units")
+	expect_identical(reason("cars", "FixedMatchingGreedy", "~.", sub), "too_few_exchangeable_units")
+	# The cars skip is limited to the subsample CIs, `~.`, and the matched-pair designs.
+	expect_true(is.na(reason("cars", "FixedMatchingGreedy", "~.", wald)))
+	expect_true(is.na(reason("cars", "FixedMatchingGreedy", "~1", sub)))
+	expect_true(is.na(reason("iris", "FixedMatchingGreedy", "~.", sub)))
+	expect_true(is.na(reason("cars", "Bernoulli", "~.", sub)))
+	# FBM ~1: 2 datasets x 2 operations; KK21stepwise subsampling: 2 x 2 formulas; cars: 2 designs.
+	expect_identical(nrow(skips), 10L)
+})

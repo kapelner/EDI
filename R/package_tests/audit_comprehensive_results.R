@@ -186,6 +186,14 @@ if (write_baseline) validate_comprehensive_audit_baseline_inputs(audit_paths$fil
 files = audit_paths$files
 files = files[file.exists(files)]
 if (!length(files)) {
+	# A results CSV the resolver could not map to a response type (e.g. a run
+	# without a response filter) must not pass as "nothing to audit".
+	stray = list.files(dirname(audit_paths$baseline), pattern = "^comprehensive_tests_results_nc_[0-9]+_.*\\.csv$")
+	if (nzchar(Sys.getenv("EDI_COMPREHENSIVE_RESULTS_DIR", unset = "")) && length(stray)) {
+		cat("audit_comprehensive_results: results CSV(s) present but none maps to a response type: ",
+			paste(stray, collapse = ", "), "\n", sep = "")
+		quit(status = 1L)
+	}
 	cat("audit_comprehensive_results: no raw comprehensive_tests_results_nc_1_*.csv present -- nothing to audit.\n")
 	quit(status = 0L)
 }

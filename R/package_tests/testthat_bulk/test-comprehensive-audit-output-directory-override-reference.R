@@ -31,6 +31,27 @@ test_that("audit inputs, baseline, and stamp route together to the existing scra
 	expect_identical(paths$stamp, file.path(scratch, ".comprehensive_results_audit_stamp"))
 })
 
+test_that("an isolated run directory resolves that run's nc_N / filtered results file", {
+	scratch <- tempfile("comprehensive-audit-ncN-")
+	dir.create(scratch)
+	on.exit(unlink(scratch, recursive = TRUE), add = TRUE)
+	withr::local_envvar(c(EDI_COMPREHENSIVE_RESULTS_DIR = scratch))
+	run_file <- file.path(scratch, "comprehensive_tests_results_nc_2_survival_filtered_class-InferenceSurvivalRestrictedMeanDiff.csv")
+	writeLines("header", run_file)
+	writeLines("header", paste0(run_file, ".provenance-1.rds"))
+	paths <- resolve_comprehensive_audit_paths("/repo/R/package_tests", c("survival", "ordinal"))
+	root <- normalizePath(scratch, winslash = "/")
+
+	expect_identical(paths$files[["survival"]], file.path(root, basename(run_file)))
+	expect_identical(paths$files[["ordinal"]], file.path(root, "comprehensive_tests_results_nc_1_ordinal.csv"))
+
+	writeLines("header", file.path(scratch, "comprehensive_tests_results_nc_4_survival.csv"))
+	expect_error(
+		resolve_comprehensive_audit_paths("/repo/R/package_tests", "survival"),
+		"more than one survival results CSV"
+	)
+})
+
 test_that("a missing scratch directory fails closed", {
 	withr::local_envvar(c(EDI_COMPREHENSIVE_RESULTS_DIR = file.path(tempdir(), "missing-audit-dir")))
 

@@ -11,7 +11,7 @@ fast_coxph_regression_cpp(
   warm_start_beta = NULL,
   smart_cold_start = TRUE,
   estimate_only = FALSE,
-  maxit = 20L,
+  maxit = 100L,
   tol = 1e-9,
   cluster = NULL,
   fixed_idx = NULL,

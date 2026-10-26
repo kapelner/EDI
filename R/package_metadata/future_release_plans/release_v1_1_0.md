@@ -1899,6 +1899,26 @@ ticked in their **owning plans**; this list is the release index.
     than the R-retry result on every resample, interior fits bit-identical.
   - Pointer: `release_v1_0_5.md → G1` (post-build verification, owner
     decision 2026-10-23).
+- [ ] TODO-160 (added 2026-10-26, owner decision at G4-C R2 of v1.0.5: defer
+  from 1.0.5): **Stereotype logit: scale-driven usability gate and silent
+  covariate dropping.** Found by the v1.0.5 R2 null study
+  (`todo8_stereotype_null_study.R`, 400 seeds per cell). Neither fix changes
+  the n = 100, K = 5 Type-I excess (12.9%; 11.5% with 41 starts, ungated),
+  which is documented as a small-sample limitation in the class roxygen.
+  - (a) `stereotype_fit_is_usable()` (`inference_ordinal_stereotype_logit.R`,
+    ~L290) rejects a fit when the unscaled `rcond(information_free)` <=
+    sqrt(eps). That measures covariate scale, not ill-conditioning (scaled
+    rcond of rejected vs kept fits 0.021 vs 0.025); 30-38% of fits come out
+    non-estimable, and at n = 50 the gate flatters the result (rejected seeds
+    13.3%, kept 4.6%, ungated 5.8%). Fix: scale the information matrix (e.g.
+    to a correlation-scale D^-1/2 I D^-1/2) before the rcond test.
+  - (b) The QR column-dropping fallback silently drops covariate x1 in 33/248
+    (n = 100) and 27/280 (n = 50) results, leaving a treatment-only model
+    whose LR is non-regular at the null. Fix: warn, or refuse the fit,
+    instead of dropping silently.
+  - Acceptance: rerun R2 (both cells); report the non-estimable rate and the
+    Type-I error with and without the gate; no silent column drops.
+  - Pointer: `release_v1_0_5.md → G4-C R2`.
 
 ## Standing constraints
 
@@ -1987,3 +2007,24 @@ classical solver with a warning, never silently.
     method errors with the standard message; the deprecated alias works and
     warns once; add the new class to the wiring and registry gates.
   - Out of scope: streaming or warm-start refits (separate decision).
+- [ ] TODO-159 (added 2026-10-25, owner decision at G4-C R1 of v1.0.5):
+  **Cloglog ordinal: anti-conservative likelihood tests at `~.`, and a
+  conservative parametric-bootstrap p-value.** v1.0.5 null study
+  (`InferenceOrdinalCloglogRegr`, Bernoulli, `diamonds`, beta_T = 0, 500 null
+  datasets per cell, B = 151; rows in `~/edi_regen/r1_todo16_pboot_20261025T071458Z/`):
+  - LR-bootstrap at `~.`: 41/499 = 8.2% (CP 6.0-11.0%). It still rejects too
+    often, but less than the direct LR test (12.0%). That fits the known
+    limitation already recorded for `~.` with many covariates (before 1.0.5
+    all five model-based tests rejected 16% at `~.`, 6% at `~1`). `~1` is
+    calibrated (5.2%). Bartlett at `~.` is 54/499 = 10.8% (CP 8.2-13.9%; `~1`
+    5.6%), so the correction barely helps there
+    (`~/edi_regen/r1_todo16_bartlett_20261025T150308Z/`).
+  - Parametric bootstrap (`compute_param_bootstrap_pval()`) is too
+    conservative: 14/500 = 2.8% at `~1`, 3/499 = 0.6% at `~.`. It won't
+    produce false positives, but it will miss real effects. Look into why
+    (null-distribution width; centering of the bootstrap statistic; whether
+    it is a test of `delta = 0` on the right scale), then fix or document.
+  - Also measure power at beta_T = 0.5 for both, and the small-n `~.`
+    excess at a larger n (the R1 re-scope gated only `~1`).
+  - Documented in v1.0.5: NEWS "Known limitations" and the
+    `InferenceOrdinalCloglogRegr` Details.

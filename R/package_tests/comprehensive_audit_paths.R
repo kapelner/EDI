@@ -23,11 +23,30 @@ resolve_comprehensive_audit_paths <- function(
   } else {
     audit_dir <- here
   }
+  files <- stats::setNames(
+    file.path(audit_dir, sprintf("comprehensive_tests_results_nc_1_%s.csv", response_types)),
+    response_types
+  )
+  # An isolated run directory holds one run, whatever its core count or
+  # filters (e.g. nc_2_survival_filtered_class-...): use that run's file for
+  # a response type when the canonical nc_1 name is absent.
+  if (nzchar(output_dir)) {
+    for (rt in response_types) {
+      if (file.exists(files[[rt]])) next
+      found <- list.files(
+        audit_dir,
+        pattern = sprintf("^comprehensive_tests_results_nc_[0-9]+_%s(_filtered_.*)?\\.csv$", rt),
+        full.names = TRUE
+      )
+      if (length(found) > 1L) {
+        stop("more than one ", rt, " results CSV in EDI_COMPREHENSIVE_RESULTS_DIR: ",
+          paste(basename(found), collapse = ", "), call. = FALSE)
+      }
+      if (length(found) == 1L) files[[rt]] <- found
+    }
+  }
   list(
-    files = stats::setNames(
-      file.path(audit_dir, sprintf("comprehensive_tests_results_nc_1_%s.csv", response_types)),
-      response_types
-    ),
+    files = files,
     baseline = file.path(audit_dir, "comprehensive_results_audit_baseline.csv"),
     stamp = file.path(audit_dir, ".comprehensive_results_audit_stamp")
   )

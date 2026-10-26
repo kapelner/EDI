@@ -407,14 +407,26 @@ test_that("TODO-14 approved_skips accepts exactly the predeclared FixedBinaryMat
 	expect_equal(skip_row_result$counts$approved_skips_present_as_skip_rows, 1L)
 	expect_equal(skip_row_result$counts$approved_skips_absent, 239L)
 
-	# ... but never with a result: approved keys must be skipped.
+	# ... or with a result (R5 re-scope 2026-10-25), held to the success checks:
+	# a valid p-value passes, an invalid one or a skip_reason next to a result fails.
 	attempted <- skip_row
 	attempted$skip_reason <- NA_character_
 	attempted$error_message <- NA_character_
 	attempted$result_1 <- 0.3
 	attempted_result <- validate_todo14_candidate(manifest, rbind(candidate, attempted), provenance, snapshot, approved_skips = approved)
-	expect_false(attempted_result$ok)
-	expect_true("approved_skip_not_skipped" %in% attempted_result$issues$check)
+	if (attempted$function_run %in% .todo14_expected_functions[1:2]) {
+		expect_true(attempted_result$ok, info = paste(unique(attempted_result$issues$check), collapse = ", "))
+		expect_equal(attempted_result$counts$approved_skips_present_as_skip_rows, 0L)
+		bad_result <- attempted
+		bad_result$result_1 <- 1.7
+		bad_result_check <- validate_todo14_candidate(manifest, rbind(candidate, bad_result), provenance, snapshot, approved_skips = approved)
+		expect_true("invalid_p_value" %in% bad_result_check$issues$check)
+	}
+	result_and_skip <- attempted
+	result_and_skip$skip_reason <- "timeout"
+	result_and_skip_check <- validate_todo14_candidate(manifest, rbind(candidate, result_and_skip), provenance, snapshot, approved_skips = approved)
+	expect_false(result_and_skip_check$ok)
+	expect_true("skip_reason_present" %in% result_and_skip_check$issues$check)
 
 	# Approval covers only its own keys: a missing non-approved key still fails.
 	other_missing <- validate_todo14_candidate(manifest, candidate[-1L, , drop = FALSE], provenance, snapshot, approved_skips = approved)
@@ -435,7 +447,7 @@ test_that("TODO-14 approved_skips accepts exactly the predeclared FixedBinaryMat
 		approved_skips = rep(approved$id[1L], 2L)), "duplicate ids")
 })
 
-test_that("R5 re-scope approved skips cover FixedBinaryMatch ~1 everywhere and wide-dataset ~. rand CIs only", {
+test_that("R5 re-scope approved skips cover FixedBinaryMatch ~1 everywhere and every wide-dataset ~. rand function", {
 	manifest <- todo14_source_candidate_manifest(
 		testthat::test_path("..", "comprehensive_tests.R"),
 		testthat::test_path("..", "_dataset_load.R")
@@ -443,18 +455,35 @@ test_that("R5 re-scope approved skips cover FixedBinaryMatch ~1 everywhere and w
 	skips <- todo14_r5_rescope_approved_skips(manifest)
 	fml <- .todo14_formula_label(skips$inference_class)
 	fbm <- skips$design == "FixedBinaryMatch" & fml == "~1"
-	# 9 datasets x 40 reps x 2 beta_T x 3 function_runs; the wide rand CIs are
-	# 4 datasets x 2 designs x 40 reps x 2 beta_T, with no overlap (FBM ~1 vs ~.).
+	# 9 datasets x 40 reps x 2 beta_T x 3 function_runs; the wide slow paths are
+	# 4 datasets x 2 designs x 3 function_runs x 40 reps x 2 beta_T, with no
+	# overlap (FBM ~1 vs ~.).
 	expect_equal(sum(fbm), 2160L)
-	expect_equal(sum(!fbm), 640L)
-	expect_equal(nrow(skips), 2800L)
+	expect_equal(sum(!fbm), 1920L)
+	expect_equal(nrow(skips), 4080L)
 	expect_false(anyDuplicated(skips$id) > 0L)
 	expect_true(all(skips$id %in% manifest$id))
-	expect_true(all(skips$function_run[!fbm] == "compute_rand_confidence_interval"))
+	expect_setequal(unique(skips$function_run[!fbm]), .todo14_expected_functions)
 	expect_true(all(fml[!fbm] == "~."))
 	expect_setequal(unique(skips$dataset[!fbm]), TODO14_R5_RESCOPE_WIDE_DATASETS)
 	# the G6 #33 pte_example skip is a subset
 	expect_true(all(todo14_predeclared_approved_skips(manifest)$id %in% skips$id))
-	# the rand p-values are never skipped outside FixedBinaryMatch ~1
-	expect_false(any(skips$function_run[!fbm] != "compute_rand_confidence_interval"))
+	# narrow datasets stay fully gated outside FixedBinaryMatch ~1
+	expect_false(any(skips$dataset[!fbm] %in% setdiff(.todo14_expected_datasets, TODO14_R5_RESCOPE_WIDE_DATASETS)))
+})
+
+test_that("accepted_checkout_shas admits rows and a mid-run checkout move only for the listed commits", {
+	sha_a <- strrep("a", 40L)
+	sha_b <- strrep("b", 40L)
+	snap <- function(sha) list(checkout_sha = sha, r_version = "R", package_version = "1", library_path = "/lib",
+		dll_path = "/lib/EDI.so", dll_sha256 = strrep("c", 64L))
+	moved <- list(before = snap(sha_a), after = snap(sha_b))
+	expect_true(any(grepl("changed during run: checkout_sha", .todo14_provenance_problem(moved, snap(sha_b)), fixed = TRUE)))
+	expect_length(.todo14_provenance_problem(moved, snap(sha_b), c(sha_a, sha_b)), 0L)
+	# the DLL may never move, whatever commits are accepted
+	dll_moved <- moved
+	dll_moved$after$dll_sha256 <- strrep("d", 64L)
+	expect_true(any(grepl("changed during run: dll_sha256", .todo14_provenance_problem(dll_moved, dll_moved$after, c(sha_a, sha_b)), fixed = TRUE)))
+	expect_error(validate_todo14_candidate(data.frame(), data.frame(), moved, snap(sha_b), accepted_checkout_shas = "nothex"),
+		"accepted_checkout_shas")
 })

@@ -271,10 +271,14 @@ todo14_predeclared_approved_skips <- function(manifest) {
 # (a) every FixedBinaryMatch x design_formula=~1 key, not only pte_example: the
 #     runner skips that setup on all nine datasets ("no covariates provided to
 #     run the binary matching algorithm"), so the G6 #33 skip was too narrow;
-# (b) compute_rand_confidence_interval x design_formula=~. on the four wide
-#     datasets, where nearly every call hit the runner's per-call timeout (R5
-#     batch 2026-10-23/25: 419 of 536 timeouts). The two rand p-values stay
-#     gated everywhere.
+# (b) all three rand functions x design_formula=~. on the four wide datasets
+#     (both designs): the slow paths. The rand CIs nearly always hit the
+#     per-call timeout (R5 batch 2026-10-23/25: 419 of 536 timeouts), and on the
+#     2026-10-25 re-scoped run the p-values still passed 600 s on some reps for
+#     FBM cars/fuel/ionosphere and KK21 cars. Owner widened (b) from the CI
+#     only to every function the same day.
+# An approved key may still carry a result; it is then held to the normal
+# success checks (see validate_todo14_candidate()).
 TODO14_R5_RESCOPE_WIDE_DATASETS <- c("fuel", "ionosphere", "diamonds", "cars")
 
 todo14_r5_rescope_approved_skips <- function(manifest) {
@@ -283,13 +287,12 @@ todo14_r5_rescope_approved_skips <- function(manifest) {
 	if (length(missing)) stop("manifest is missing column(s): ", paste(missing, collapse = ", "), call. = FALSE)
 	formula_label <- .todo14_formula_label(manifest$inference_class)
 	fbm_no_covariates <- as.character(manifest$design) == "FixedBinaryMatch" & formula_label %in% "~1"
-	wide_rand_ci <- as.character(manifest$function_run) == "compute_rand_confidence_interval" &
-		formula_label %in% "~." & as.character(manifest$dataset) %in% TODO14_R5_RESCOPE_WIDE_DATASETS
-	out <- manifest[fbm_no_covariates | wide_rand_ci, c("id", .todo14_key_columns), drop = FALSE]
+	wide_slow <- formula_label %in% "~." & as.character(manifest$dataset) %in% TODO14_R5_RESCOPE_WIDE_DATASETS
+	out <- manifest[fbm_no_covariates | wide_slow, c("id", .todo14_key_columns), drop = FALSE]
 	out$skip_rule <- ifelse(
-		fbm_no_covariates[fbm_no_covariates | wide_rand_ci],
+		fbm_no_covariates[fbm_no_covariates | wide_slow],
 		"G6#33 + R5 re-scope 2026-10-25: FixedBinaryMatch design_formula=~1 (no covariates to match on)",
-		"R5 re-scope 2026-10-25: rand CI on design_formula=~. for a wide dataset (per-call timeout)"
+		"R5 re-scope 2026-10-25: rand function on design_formula=~. for a wide dataset (slow path, per-call timeout)"
 	)
 	rownames(out) <- NULL
 	out
@@ -320,7 +323,7 @@ todo14_r5_rescope_approved_skips <- function(manifest) {
 	ids
 }
 
-.todo14_provenance_problem <- function(provenance, expected_provenance) {
+.todo14_provenance_problem <- function(provenance, expected_provenance, accepted_checkout_shas = NULL) {
 	problems <- character()
 	if (!is.list(provenance) || !all(c("before", "after") %in% names(provenance))) {
 		return("provenance must contain before and after snapshots")
@@ -354,7 +357,9 @@ todo14_r5_rescope_approved_skips <- function(manifest) {
 		before_value <- as.character(before_field)
 		after_value <- as.character(after_field)
 		expected_value <- as.character(expected_field)
-		if (!identical(before_value, after_value)) {
+		commit_change_accepted <- field == "checkout_sha" &&
+			all(c(before_value, after_value) %in% accepted_checkout_shas)
+		if (!identical(before_value, after_value) && !commit_change_accepted) {
 			problems <- c(problems, paste0("provenance changed during run: ", field))
 		}
 		if (!identical(after_value, expected_value)) {
@@ -387,12 +392,29 @@ todo14_r5_rescope_approved_skips <- function(manifest) {
 #' as expected skips before the run (see todo14_predeclared_approved_skips()).
 #' Each such key may be absent from the candidate (the runner's setup skip
 #' writes no result row) or present as a skip row (status ok, nonempty
-#' skip_reason, no results); it is never accepted with a result. Every other
-#' key keeps the full success contract. Approved-skip counts are returned.
-validate_todo14_candidate <- function(manifest, candidate, provenance, expected_provenance, approved_skips = NULL) {
+#' skip_reason, no results). Since the 2026-10-25 R5 re-scope it may also carry
+#' a result, which is then held to the full success contract like every other
+#' key. Approved-skip counts are returned.
+#'
+#' `accepted_checkout_shas` (2026-10-25, owner decision) lists extra commits a
+#' row may be stamped with, and that the checkout may move between during the
+#' run, when the run was split across a commit that did not change the code
+#' that ran. The caller must establish that (same package payload, runner and
+#' DLL sha in every job). `expected_provenance$checkout_sha` is always
+#' accepted; every other provenance field must still be unchanged.
+validate_todo14_candidate <- function(manifest, candidate, provenance, expected_provenance, approved_skips = NULL,
+		accepted_checkout_shas = NULL) {
 	manifest <- .todo14_read_table(manifest, "manifest")
 	candidate <- .todo14_read_table(candidate, "candidate")
 	approved_ids <- .todo14_approved_skip_ids(approved_skips)
+	if (!is.null(accepted_checkout_shas) && (!is.character(accepted_checkout_shas) || anyNA(accepted_checkout_shas) ||
+			!all(grepl("^[[:xdigit:]]{40}([[:xdigit:]]{24})?$", accepted_checkout_shas)))) {
+		stop("accepted_checkout_shas must be 40- or 64-character hexadecimal hashes", call. = FALSE)
+	}
+	accepted_checkout_shas <- unique(c(
+		if (is.list(expected_provenance) && .todo14_nonempty(expected_provenance$checkout_sha)) as.character(expected_provenance$checkout_sha),
+		accepted_checkout_shas
+	))
 	issue_rows <- list()
 	add_issue <- function(check, detail, row = NA_integer_, id = NA_character_) {
 		issue_rows[[length(issue_rows) + 1L]] <<- data.frame(
@@ -513,16 +535,14 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 		if (!identical(crep, 1:40)) add_issue("candidate_replicates", paste("candidate group does not contain reps 1:40:", g))
 	}
 
-	approved_row <- candidate_ids %in% approved_ids
+	# An approved key present as a clean skip row (status ok, skip_reason, no
+	# results) is accepted as a skip; any other approved row is treated as a
+	# result and gets the full success checks below.
+	has_result <- .todo14_nonempty(candidate$result_1) | .todo14_nonempty(candidate$result_2)
+	approved_row <- candidate_ids %in% approved_ids &
+		as.character(candidate$status) %in% "ok" & .todo14_nonempty(candidate$skip_reason) & !has_result
 	for (i in seq_len(nrow(candidate))) {
 		row <- candidate[i, , drop = FALSE]
-		if (approved_row[i]) {
-			# Approved skip present as a row: it must be a skip, never a result.
-			has_result <- .todo14_nonempty(row$result_1) || .todo14_nonempty(row$result_2)
-			if (!identical(as.character(row$status), "ok") || !.todo14_nonempty(row$skip_reason) || has_result) {
-				add_issue("approved_skip_not_skipped", "approved skip key must be absent or a status=ok skip row with skip_reason and no results", i, candidate_ids[i])
-			}
-		}
 		if (!identical(as.character(row$response_type), "survival")) add_issue("wrong_response_type", "expected survival", i, candidate_ids[i])
 		beta_value <- suppressWarnings(as.numeric(as.character(row$beta_T)))
 		if (!is.finite(beta_value) || !(beta_value %in% c(0, 0.5))) add_issue("wrong_beta_T", "beta_T is outside the TODO-14 target set", i, candidate_ids[i])
@@ -542,10 +562,10 @@ validate_todo14_candidate <- function(manifest, candidate, provenance, expected_
 		if (!.todo14_nonempty(row$timestamp)) add_issue("missing_timestamp", "timestamp must be nonempty", i, candidate_ids[i])
 	}
 
-	provenance_problems <- .todo14_provenance_problem(provenance, expected_provenance)
+	provenance_problems <- .todo14_provenance_problem(provenance, expected_provenance, accepted_checkout_shas)
 	for (problem in provenance_problems) add_issue("provenance", problem)
 	if (is.list(expected_provenance) && .todo14_nonempty(expected_provenance$checkout_sha)) {
-		wrong_commit <- which(as.character(candidate$github_commit_id) != as.character(expected_provenance$checkout_sha))
+		wrong_commit <- which(!(as.character(candidate$github_commit_id) %in% accepted_checkout_shas))
 		for (i in wrong_commit) add_issue("github_commit_id_mismatch", "row commit differs from captured checkout", i, candidate_ids[i])
 	}
 

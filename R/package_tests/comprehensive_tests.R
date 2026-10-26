@@ -922,6 +922,12 @@ run_debug_resampling = Sys.getenv("COMPREHENSIVE_DEBUG_RESAMPLING", "0") %in% c(
 # invocation (RESPONSE_TYPE_FILTER/INFERENCE_CLASS_FILTER/TEST_FAMILY_FILTER)
 # actually executes the normally-skipped operation instead of skipping it.
 force_run_slow_paths = Sys.getenv("COMPREHENSIVE_FORCE_SLOW_PATHS", "0") %in% c("1", "true", "TRUE", "yes", "YES")
+# Comma-separated function_run labels safe_call() skips outright (no row).
+# Pairs with COMPREHENSIVE_FORCE_SLOW_PATHS when a calibration needs only some
+# of a family's forced operations, e.g. R1 2026-10-25: the Cloglog Bartlett
+# p-values (~1 s) without the Bartlett CIs (12-51 s each).
+skip_function_labels = trimws(strsplit(Sys.getenv("COMPREHENSIVE_SKIP_FUNCTIONS", ""), ",", fixed = TRUE)[[1L]])
+skip_function_labels = skip_function_labels[nzchar(skip_function_labels)]
 param_boot_ci_max_root_iterations = 0L
 beta_T_values = resolve_comprehensive_beta_values(c(0, 0.5), BETA_T_FILTER)
 SD_NOISE = 0.1
@@ -964,7 +970,8 @@ attempt_manifest_writer = if (nzchar(attempt_manifest_env)) {
 	new_comprehensive_attempt_manifest_writer(
 		attempt_manifest_env,
 		results_file = results_file,
-		checkout_root = normalizePath(file.path(script_dir, "..", ".."), winslash = "/", mustWork = TRUE)
+		checkout_root = normalizePath(file.path(script_dir, "..", ".."), winslash = "/", mustWork = TRUE),
+		resume = nzchar(WATCHDOG_MARKER) && identical(Sys.getenv("COMPREHENSIVE_ATTEMPT_MANIFEST_RESUME", ""), "1")
 	)
 } else {
 	NULL
@@ -2240,6 +2247,10 @@ supports_direct_testing_type = function(testing_type){
 	}
 
 safe_call = function(label, expr){
+	if (label %in% skip_function_labels) {
+		message("          Skipping ", label, " (COMPREHENSIVE_SKIP_FUNCTIONS)")
+		return(invisible(NULL))
+	}
 	# setTimeLimit()/R.utils::withTimeout() cannot reliably interrupt a single
 	# long-running compiled C++ call: R only checks the elapsed-time deadline
 	# at R-level checkpoints (between statements / at loop iterations it
@@ -3787,6 +3798,19 @@ COVERAGE_MC_SPEC = list(
 	# is the DGP's multiplicative-time parameter. Its least-false target also
 	# depends on censoring and the fitted adjustment set.
 	InferenceSurvivalKMDiff              = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalKMDiff),              mc_n = 20000L),
+	# The RMST difference is an observed-time-scale contrast, not beta_T; with
+	# no entry the R4B run (2026-10-26) graded every CI against raw beta_T
+	# (~0.95 coverage at beta_T = 0, ~0.03-0.05 at 0.5). Both the per-row fit
+	# and this MC fit use the fixed horizon comprehensive_rmst_tau(): the
+	# default tau = min(arm maxima) grows with n, so an mc_n-sized fit would
+	# target a different horizon than a 148-row replicate. `fn` bypasses
+	# SimulationFramework, whose validity probe builds the class on a design
+	# with all-zero responses, where any positive tau exceeds the arm maxima
+	# and the constructor rejects it (every combo filtered, NA truth).
+	# mc_n 200000 (not 20000): one 20000-row fit put the truth within ~0.007 of
+	# the estimand (e.g. -0.007 at beta_T = 0 on cars), ~10% of a 148-row SE.
+	InferenceSurvivalRestrictedMeanDiff  = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalRestrictedMeanDiff),  mc_n = 200000L,
+		fn = quote(compute_rmst_mc_coverage_truth)),
 	InferenceSurvivalCoxPHRegr           = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalCoxPHRegr),           mc_n = 20000L),
 	InferenceSurvivalStratCoxPHRegr      = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalStratCoxPHRegr),      mc_n = 20000L),
 	InferenceSurvivalWeibullRegr         = list(rt = "survival",   design = quote(DesignFixedBernoulli),  gen = quote(InferenceSurvivalWeibullRegr),         mc_n = 20000L),
@@ -3900,6 +3924,43 @@ coverage_truth_uses_real_covariates = function(inference_class){
 	# direct unit check, not by comprehensive_tests itself). Plain alternation.
 	!grepl("~1\\)|~1\\]", inference_class)
 }
+# Fixed RMST horizon (G4-C R4B, 2026-10-26): the 60th percentile of the
+# dataset's baseline survival times. The class rejects a tau beyond the
+# smaller arm maximum; in 5,000 harness-style draws per dataset no replicate
+# fell short at 0.6, against 3/5000 on ionosphere at 0.75. The per-row
+# estimand then does not depend on n, and the MC truth targets the same
+# horizon (matched the 148-row mean estimate within 1 SE on 4 datasets).
+RMST_TAU_QUANTILE = 0.6
+comprehensive_rmst_tau = function(dataset_name){
+	as.numeric(stats::quantile(datasets_and_response_models[[dataset_name]]$y_original$survival, RMST_TAU_QUANTILE, names = FALSE))
+}
+# One mc_n-row fit of InferenceSurvivalRestrictedMeanDiff at that tau, under
+# the same survival DGP as compute_mc_coverage_truth_simframe(): recycled
+# baseline times, 15% random plus top-5% censoring, a balanced random
+# assignment, and the multiplicative exp(beta_T + eps) treatment shift.
+# get_coverage_truth() seeds it and restores the main stream.
+compute_rmst_mc_coverage_truth = function(dataset_name, beta_T_val, mc_n){
+	y_base = datasets_and_response_models[[dataset_name]]$y_original$survival
+	y_lin = rep(y_base, ceiling(mc_n / length(y_base)))[seq_len(mc_n)]
+	dead = rep(1L, mc_n)
+	t_f_mc = stats::quantile(y_lin, .95)
+	cens = stats::runif(mc_n) < prob_censoring | y_lin >= t_f_mc
+	y_lin[cens] = stats::runif(sum(cens), 0, y_lin[cens])
+	dead[cens] = 0L
+	w = sample(rep(c(0L, 1L), length.out = mc_n))
+	y = pmax(.Machine$double.eps, y_lin * exp(beta_T_val * w + stats::rnorm(mc_n, 0, SD_NOISE)))
+	des = DesignFixedBernoulli$new(n = mc_n, response_type = "survival", verbose = FALSE)
+	des$add_all_subjects_to_experiment(data.frame(x1 = stats::rnorm(mc_n)))
+	des$overwrite_all_subject_assignments(w)
+	# Vectorized: a per-subject add_one_subject_response() loop took > 9 min at 200000 rows.
+	des$add_all_subject_responses(
+		ys = ifelse(dead == 1L, y, NA_real_),
+		y_Ls = ifelse(dead == 0L, y, NA_real_),
+		y_Rs = ifelse(dead == 0L, Inf, NA_real_)
+	)
+	as.numeric(InferenceSurvivalRestrictedMeanDiff$new(des, tau = comprehensive_rmst_tau(dataset_name))$compute_estimate())
+}
+
 coverage_truth_cache_key = function(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint = NA_character_,
 		covariate_cap = NA_integer_){
 	key = paste(base_class, dataset_name, beta_T_val, use_real_covariates, response_type_hint, sep = "||")
@@ -4026,7 +4087,11 @@ get_coverage_truth = function(inference_class, dataset_name, beta_T_val, respons
 				)
 				# TODO-10: only a capped class passes inference_params.
 				if (!is.null(mc_inference_params)) mc_args$inference_params = mc_inference_params
-				do.call(compute_mc_coverage_truth_simframe, mc_args)
+				# A spec with its own `fn` fits the class directly (see
+				# compute_rmst_mc_coverage_truth()); every other spec goes
+				# through SimulationFramework.
+				if (is.null(spec$fn)) do.call(compute_mc_coverage_truth_simframe, mc_args) else
+					eval(spec$fn)(dataset_name, beta_T_val, spec$mc_n)
 			}, error = function(e) NA_real_)
 			if (length(truth) && is.finite(truth) && mc_truth_is_plausible(truth, spec$rt)) break
 			truth = NA_real_
@@ -4520,7 +4585,7 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		inference_banner("InferenceSurvivalLogRank")
 		run_inference_checks(InferenceSurvivalLogRank$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		inference_banner("InferenceSurvivalRestrictedMeanDiff")
-		run_inference_checks(InferenceSurvivalRestrictedMeanDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
+		run_inference_checks(InferenceSurvivalRestrictedMeanDiff$new(des_obj, model_formula = model_formula, tau = comprehensive_rmst_tau(dataset_name)), response_type, design_type, dataset_name, n_X, p_X)
 		inference_banner("InferenceSurvivalKMDiff")
 		run_inference_checks(InferenceSurvivalKMDiff$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		run_inference_checks_both_paths(InferenceSurvivalWeibullRegr, "InferenceSurvivalWeibullRegr", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)

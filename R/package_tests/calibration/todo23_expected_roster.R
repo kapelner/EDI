@@ -94,7 +94,8 @@ todo23_expected_roster <- function(repo, operations = TODO23_OPERATIONS, nrep = 
 	runner_text <- paste(readLines(runner_path, warn = FALSE), collapse = "\n")
 	if (!grepl("formulas_to_test\\s*=\\s*list\\(~\\s*1,\\s*~\\s*\\.\\)", runner_text)) stop("formula list source changed")
 	formula_labels <- c("~1", "~.")
-	if (!grepl("run_inference_checks\\(InferenceSurvivalRestrictedMeanDiff\\$new\\(des_obj, model_formula = model_formula\\)", runner_text)) {
+	# Further constructor arguments (the fixed tau, 2026-10-26) do not change the keys.
+	if (!grepl("run_inference_checks\\(InferenceSurvivalRestrictedMeanDiff\\$new\\(des_obj, model_formula = model_formula[,)]", runner_text)) {
 		stop("expected direct RMST runner call not found")
 	}
 	functions <- unique(as.character(operations))
@@ -117,6 +118,51 @@ todo23_expected_roster <- function(repo, operations = TODO23_OPERATIONS, nrep = 
 		design_formulas = formula_labels, operations = functions, case_count = nrow(cases)
 	)
 	manifest
+}
+
+# Structural gaps of the candidate roster, owner-approved 2026-10-25 as skips
+# (same idea as todo14_r5_rescope_approved_skips()): the runner never attempts
+# these keys, so they are not missing attempts.
+#   (a) FixedBinaryMatch x design_formula=~1: the matching design needs
+#       covariates, so the runner skips the whole setup (setup_skipped event).
+#   (b) The 6 nonparametric bootstrap / subsampling CIs on KK21stepwise and
+#       SPBR: the class's capabilities omit nonparametric_bootstrap for these
+#       sequential designs (skip_bootstrap in comprehensive_tests.R).
+#   (c) Owner-approved 2026-10-26: on cars, the m-out-of-n and subsampling CIs
+#       for design_formula=~. on the two matched-pair designs. The pair count
+#       is too small for a subsample (default_small_resampling_size() returns
+#       NA: "too few exchangeable units"), so the runner never calls them.
+# A result row for one of these keys is reported by the reconciliation as
+# result_extra.
+TODO23_NONPARAMETRIC_BOOTSTRAP_OPERATIONS <- c(
+	"compute_subsampling_confidence_interval",
+	"compute_bootstrap_confidence_interval",
+	"compute_bootstrap_confidence_interval_bca",
+	"compute_bootstrap_confidence_interval_basic",
+	"compute_m_out_of_n_bootstrap_confidence_interval",
+	"compute_bootstrap_confidence_interval_studentized"
+)
+TODO23_NO_NONPARAMETRIC_BOOTSTRAP_DESIGNS <- c("KK21stepwise", "SPBR")
+TODO23_SMALL_SUBSAMPLE_OPERATIONS <- c(
+	"compute_m_out_of_n_bootstrap_confidence_interval",
+	"compute_subsampling_confidence_interval"
+)
+TODO23_TOO_FEW_PAIRS_DATASETS <- "cars"
+TODO23_MATCHED_PAIR_DESIGNS <- c("FixedBinaryMatch", "FixedMatchingGreedy")
+
+todo23_structural_skips <- function(manifest) {
+	fbm_no_covariates <- manifest$design == "FixedBinaryMatch" & manifest$design_formula == "~1"
+	no_boot <- manifest$design %in% TODO23_NO_NONPARAMETRIC_BOOTSTRAP_DESIGNS &
+		manifest$function_run %in% TODO23_NONPARAMETRIC_BOOTSTRAP_OPERATIONS
+	too_few_pairs <- manifest$dataset %in% TODO23_TOO_FEW_PAIRS_DATASETS &
+		manifest$design %in% TODO23_MATCHED_PAIR_DESIGNS & manifest$design_formula == "~." &
+		manifest$function_run %in% TODO23_SMALL_SUBSAMPLE_OPERATIONS
+	keep <- fbm_no_covariates | no_boot | too_few_pairs
+	out <- manifest[keep, , drop = FALSE]
+	out$skip_reason <- ifelse(fbm_no_covariates[keep], "fbm_design_formula_1_setup_skipped",
+		ifelse(no_boot[keep], "design_lacks_nonparametric_bootstrap", "too_few_exchangeable_units"))
+	rownames(out) <- NULL
+	out
 }
 
 todo23_roster_summary_lines <- function(manifest, out_path = NA_character_) {

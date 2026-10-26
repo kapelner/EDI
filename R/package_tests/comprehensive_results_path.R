@@ -23,11 +23,15 @@ resolve_comprehensive_results_file <- function(
 # Optional append-only event ledger for the comprehensive runner. This is a
 # separate artifact: it deliberately does not add columns to the canonical
 # result CSV. Refuse to reuse an existing file so events from distinct runs
-# cannot be silently mixed.
+# cannot be silently mixed. The one exception is resume = TRUE, which the
+# watchdog sets (COMPREHENSIVE_ATTEMPT_MANIFEST_RESUME=1) only on a worker it
+# relaunched within the same run: that worker appends to the existing ledger
+# and continues its event_seq.
 new_comprehensive_attempt_manifest_writer <- function(
   path,
   results_file = NULL,
-  checkout_root = NULL
+  checkout_root = NULL,
+  resume = FALSE
 ) {
   if (length(path) != 1L || is.na(path) || !nzchar(path)) {
     stop("attempt manifest path must be one nonempty path.", call. = FALSE)
@@ -53,10 +57,6 @@ new_comprehensive_attempt_manifest_writer <- function(
       stop("attempt manifest must be written outside the checkout.", call. = FALSE)
     }
   }
-  if (file.exists(path) || dir.exists(path)) {
-    stop("refusing to overwrite an existing attempt manifest: ", path, call. = FALSE)
-  }
-
   header <- data.frame(
     event_seq = integer(), event_type = character(), id = character(), rep = integer(),
     beta_T = numeric(), dataset = character(), response_type = character(), design = character(),
@@ -64,8 +64,26 @@ new_comprehensive_attempt_manifest_writer <- function(
     skip_reason = character(), error_message = character(), event_epoch = numeric(),
     stringsAsFactors = FALSE
   )
-  utils::write.table(header, file = path, sep = ",", row.names = FALSE, col.names = TRUE, na = "", qmethod = "double")
-  event_seq <- 0L
+  if (dir.exists(path)) {
+    stop("refusing to overwrite an existing attempt manifest: ", path, call. = FALSE)
+  }
+  if (file.exists(path)) {
+    if (!isTRUE(resume)) {
+      stop("refusing to overwrite an existing attempt manifest: ", path, call. = FALSE)
+    }
+    existing <- utils::read.csv(path, stringsAsFactors = FALSE, na.strings = "")
+    if (!identical(names(existing), names(header))) {
+      stop("cannot resume an attempt manifest with a different header: ", path, call. = FALSE)
+    }
+    seq_values <- suppressWarnings(as.integer(existing$event_seq))
+    if (anyNA(seq_values) || anyDuplicated(seq_values) || (length(seq_values) && any(seq_values != seq_along(seq_values)))) {
+      stop("cannot resume an attempt manifest whose event_seq is not 1..n: ", path, call. = FALSE)
+    }
+    event_seq <- length(seq_values)
+  } else {
+    utils::write.table(header, file = path, sep = ",", row.names = FALSE, col.names = TRUE, na = "", qmethod = "double")
+    event_seq <- 0L
+  }
   function(event_type, key = list(), status = NA_character_, skip_reason = NA_character_, error_message = NA_character_) {
     event_types <- c(
       "started", "terminal", "skipped_completed", "skipped_slow",

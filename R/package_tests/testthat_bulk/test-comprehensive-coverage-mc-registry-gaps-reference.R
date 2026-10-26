@@ -31,7 +31,7 @@ registry_fixture <- function() {
 	e$DesignFixedBernoulli <- "fixed-bernoulli-generator"
 	e$DesignFixedBinaryMatch <- "fixed-binary-match-generator"
 	for (class_name in c(
-		"InferenceSurvivalKMDiff", "InferenceSurvivalKKWeibullMarginal", "InferenceIncidLogRegr",
+		"InferenceSurvivalKMDiff", "InferenceSurvivalRestrictedMeanDiff", "InferenceSurvivalKKWeibullMarginal", "InferenceIncidLogRegr",
 		"InferenceOrdinalCauchitRegr", "InferenceOrdinalCloglogRegr",
 		"InferenceOrdinalOrderedProbitRegr", "InferenceOrdinalAdjCatLogitRegr",
 		"InferenceOrdinalContRatioRegr", "InferenceOrdinalPartialProportionalOddsRegr"
@@ -43,7 +43,7 @@ registry_fixture <- function() {
 		"compute_incid_log_risk_ratio_coverage_truth", "compute_prop_mean_diff_coverage_truth",
 		"compute_survival_mean_diff_coverage_truth",
 		"COVERAGE_CLOSED_FORM", "COVERAGE_MC_SPEC", "COVERAGE_TRUTH_UNAVAILABLE",
-		"coverage_truth_uses_real_covariates", "coverage_truth_cache_key",
+		"coverage_truth_uses_real_covariates", "RMST_TAU_QUANTILE", "comprehensive_rmst_tau", "coverage_truth_cache_key",
 		# TODO-10 (2026-10-22): get_coverage_truth()/get_estimate_logging_theta() read the matched-Cox covariate cap.
 		"KK_MATCHED_COX_COVARIATE_CAP_CLASSES", "KK_MATCHED_COX_COVARIATE_CAP_K", "comprehensive_covariate_cap_k", "comprehensive_capped_model_formula",
 		"coverage_truth_seed", "get_coverage_mc_spec", "get_coverage_truth", "estimate_logging_theta_base_class",
@@ -167,6 +167,27 @@ test_that("TODO-26 KK Weibull matrix labels route formula-matched MC truth input
 		dataset_name = "toy", beta_T_val = 0, mc_n = 3000L,
 		real_X = e$datasets_and_response_models$toy$X
 	))
+})
+
+test_that("RMST truth is a direct MC fit, not SimulationFramework or raw beta_T", {
+	e <- registry_fixture()
+	seen <- list()
+	# SimulationFramework's validity probe rejects any fixed tau (all-zero probe
+	# responses), so RMST must route through its own `fn`.
+	e$compute_mc_coverage_truth_simframe <- function(...) stop("RMST must not use SimulationFramework")
+	e$compute_rmst_mc_coverage_truth <- function(dataset_name, beta_T_val, mc_n) {
+		seen[[length(seen) + 1L]] <<- list(dataset_name = dataset_name, beta_T_val = beta_T_val, mc_n = mc_n)
+		0.25
+	}
+	# toy survival = 1:4, so the fixed horizon is its 60th percentile, 2.8.
+	expect_equal(e$comprehensive_rmst_tau("toy"), 2.8)
+	for (fm in c("~1", "~.")) {
+		label <- paste0("InferenceSurvivalRestrictedMeanDiff [design_formula=", fm, "]")
+		expect_equal(e$get_coverage_truth(label, "toy", 0.5, "survival"), 0.25, info = fm)
+	}
+	expect_length(seen, 2L)
+	for (s in seen) expect_identical(s, list(dataset_name = "toy", beta_T_val = 0.5, mc_n = 200000L))
+	expect_false("InferenceSurvivalRestrictedMeanDiff" %in% e$COVERAGE_TRUTH_UNAVAILABLE)
 })
 
 test_that("unconverged matched-Cox truth is unavailable rather than raw beta_T", {

@@ -94,14 +94,19 @@ run_comprehensive_tests_watchdog = function(script_path){
 	}
 	restarts = 0L
 	suspend_restarts = 0L
+	launches = 0L
 	repeat {
+		# A relaunched worker appends to the attempt manifest its predecessor
+		# created instead of refusing it as another run's ledger.
+		launch_env = c(worker_env, COMPREHENSIVE_ATTEMPT_MANIFEST_RESUME = if (launches > 0L) "1" else "0")
+		launches = launches + 1L
 		# supervise = TRUE: processx's own helper kills the worker if this
 		# process dies by any means (e.g. SIGKILL, or a system2() timeout in
 		# run_comprehensive_suite.R), so a worker stuck in compiled code is
 		# not orphaned.
 		worker = processx::process$new(
 			file.path(R.home("bin"), "R"), worker_args,
-			env = worker_env, stdout = "", stderr = "", cleanup = TRUE,
+			env = launch_env, stdout = "", stderr = "", cleanup = TRUE,
 			supervise = TRUE
 		)
 		worker_pid = worker$get_pid()
