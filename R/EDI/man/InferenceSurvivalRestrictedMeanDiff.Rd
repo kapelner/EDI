@@ -26,6 +26,18 @@ transformed-scale null search). Randomization-bootstrap confidence intervals
 so their bounds are for a log-time ratio. The randomization and
 randomization-bootstrap p-values at \eqn{\delta = 0} remain available.
 
+\strong{The standard error assumes independent arms.} The Greenwood-type
+variance treats the two arms as independent samples, which is correct for
+Bernoulli assignment and complete randomization (\code{DesignSeqOneByOneBernoulli},
+\code{DesignFixedBernoulli}, \code{DesignFixedBCRD}, \code{DesignFixediBCRD},
+\code{DesignSeqOneByOneiBCRD}).
+Under every other design (blocking, stratified permuted blocks, matching,
+KK pairs, rerandomization, covariate-adaptive and other balancing designs) it
+ignores the balance the design enforces and is \strong{conservative}: Wald
+intervals over-cover and Wald p-values are too large. Randomization tests and
+bootstrap intervals that resample according to the design do not share this
+issue. Design-aware variances are planned.
+
 \strong{Left- or interval-censored data.} The survival curve then comes from
 a Turnbull NPMLE (\code{interval::icfit()}) rather than Kaplan-Meier. Exact
 events are folded in as degenerate intervals \eqn{[y, y]} (they are not
