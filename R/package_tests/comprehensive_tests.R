@@ -3940,10 +3940,14 @@ comprehensive_rmst_tau = function(dataset_name){
 # assignment, and the multiplicative exp(beta_T + eps) treatment shift.
 # get_coverage_truth() seeds it and restores the main stream.
 compute_rmst_mc_coverage_truth = function(dataset_name, beta_T_val, mc_n){
-	y_base = datasets_and_response_models[[dataset_name]]$y_original$survival
+	# Match run_tests_for_response(): rows trimmed to a multiple of 4, but the 95%
+	# censoring cutoff taken from the untrimmed y (TODO-164: pte_example 154 -> 152
+	# moved the truth by ~0.006).
+	y_full = datasets_and_response_models[[dataset_name]]$y_original$survival
+	y_base = y_full[seq_len(length(y_full) - length(y_full) %% 4L)]
 	y_lin = rep(y_base, ceiling(mc_n / length(y_base)))[seq_len(mc_n)]
 	dead = rep(1L, mc_n)
-	t_f_mc = stats::quantile(y_lin, .95)
+	t_f_mc = stats::quantile(y_full, .95)
 	cens = stats::runif(mc_n) < prob_censoring | y_lin >= t_f_mc
 	y_lin[cens] = stats::runif(sum(cens), 0, y_lin[cens])
 	dead[cens] = 0L

@@ -100,3 +100,15 @@ test_that("core p-value: a delta below every draw saturates at the 2 / B floor",
 	out <- f$p$bca_pval_core(boot, est, min(boot) - 1, jack, "bca_", function(reason) reason)
 	expect_equal(out, 2 / length(boot))
 })
+
+test_that("TODO-165: z0 uses the mid-rank bootstrap CDF, so ties at the estimate count half", {
+	f <- fx(jack)
+	lumpy <- rep(c(0.4, 0.5, 0.6), c(30, 340, 30))  # median-like: 85% of draws equal est
+	expect_equal(f$p$bca_midrank_cdf(lumpy, 0.5), 0.5)
+	expect_equal(f$p$bca_midrank_cdf(boot, est), mean(boot < est))  # continuous draws: unchanged
+	# strict P(boot < est) = 0.075 -> z0 = -1.44 shifts both BCa endpoints; mid-rank gives z0 = 0
+	ci <- f$p$bca_ci_core(lumpy, 0.05, 0.5, jack, "bca_", function(reason) reason)
+	expect_true(is.numeric(ci) && all(is.finite(ci)))
+	expect_lte(ci[1], 0.5)
+	expect_gte(ci[2], 0.5)
+})

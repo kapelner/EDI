@@ -33,10 +33,15 @@ InferenceExtBcaBootstrapCI = list(
 		# "unstable_bias_or_acceleration") -- the caller supplies `reason_prefix` so the
 		# cached nonestimable-reason string matches its own family's existing vocabulary
 		# ("bootstrap_bca_..." vs "bayesian_bootstrap_bca_...").
+		# Mid-rank bootstrap CDF at x: ties count half. With a discrete bootstrap
+		# distribution (medians, quantiles, counts) many replicates equal est exactly, and
+		# the strict mean(boot < est) biases z0 negative (Efron & Tibshirani 1993, 14.3).
+		bca_midrank_cdf = function(boot_distr, x){
+			p = mean(boot_distr < x) + 0.5 * mean(boot_distr == x)
+			pmin(1 - .Machine$double.eps, pmax(.Machine$double.eps, p))
+		},
 		bca_ci_core = function(boot_distr, alpha, est, jack, reason_prefix, on_failure){
-			p_less = mean(boot_distr < est)
-			p_less = pmin(1 - .Machine$double.eps, pmax(.Machine$double.eps, p_less))
-			z0 = stats::qnorm(p_less)
+			z0 = stats::qnorm(private$bca_midrank_cdf(boot_distr, est))
 			jack_bar = mean(jack)
 			num = sum((jack_bar - jack)^3)
 			den = 6 * (sum((jack_bar - jack)^2)^(3/2))
@@ -66,9 +71,7 @@ InferenceExtBcaBootstrapCI = list(
 		# bias-correction (z0) / acceleration (a) derivation; this additionally maps a
 		# tested null value `delta` through the same adjustment to get a two-sided p-value.
 		bca_pval_core = function(boot_distr, est, delta, jack, reason_prefix, on_failure){
-			p_less = mean(boot_distr < est)
-			p_less = pmin(1 - .Machine$double.eps, pmax(.Machine$double.eps, p_less))
-			z0 = stats::qnorm(p_less)
+			z0 = stats::qnorm(private$bca_midrank_cdf(boot_distr, est))
 			jack_bar = mean(jack)
 			num = sum((jack_bar - jack)^3)
 			den = 6 * (sum((jack_bar - jack)^2)^(3/2))
@@ -86,9 +89,7 @@ InferenceExtBcaBootstrapCI = list(
 			if (any(!is.finite(adj_ci)) || any(adj_ci <= 2 * prob_eps) || any(adj_ci >= 1 - 2 * prob_eps)) {
 				return(on_failure(paste0(reason_prefix, "adjustment_on_boundary")))
 			}
-			p_delta = mean(boot_distr < delta)
-			p_delta = pmin(1 - .Machine$double.eps, pmax(.Machine$double.eps, p_delta))
-			z_delta = stats::qnorm(p_delta)
+			z_delta = stats::qnorm(private$bca_midrank_cdf(boot_distr, delta))
 			s = z_delta - z0
 			denom = 1 + a * s
 			if (!is.finite(denom) || abs(denom) < sqrt(.Machine$double.eps)) {

@@ -1919,6 +1919,58 @@ ticked in their **owning plans**; this list is the release index.
   - Acceptance: rerun R2 (both cells); report the non-estimable rate and the
     Type-I error with and without the gate; no silent column drops.
   - Pointer: `release_v1_0_5.md → G4-C R2`.
+- [ ] TODO-161 (added 2026-10-27, owner decision at v1.0.5 TODO-163): **Design-aware
+  RMST variance.** `InferenceSurvivalRestrictedMeanDiff` keeps the independent-arms
+  Greenwood-type SE (`get_restricted_mean_se_diff()`) in 1.0.x, documented as
+  conservative on every design other than Bernoulli / BCRD / iBCRD. R4B measured
+  SD(estimate)/RMS(Wald SE) of 0.72 FixedBinaryMatch, 0.74 FixedMatchingGreedy,
+  0.80 KK21stepwise, 0.87 SPBR, 0.91 FixedBlocking (Bernoulli 0.97). Implement,
+  using each subject's RMST influence value in place of the outcome:
+  - Stratified randomization (SPBR, FixedBlocking): Shao, Yu & Zhong (Biometrika
+    2010) and Bugni, Canay & Shaikh (JASA 2018) show the usual variance is
+    conservative under strongly balancing designs, and they give the corrected
+    form. It is roughly the within-stratum variance of the influence values plus
+    a between-strata term weighted by how much balance the design enforces. For
+    permuted blocks the overstated part drops out entirely. Ye & Shao (JRSS-B
+    2020) do this for survival tests under covariate-adaptive randomization.
+  - Matched pairs (FixedBinaryMatch, FixedMatchingGreedy): Bai, Romano & Shaikh
+    (JASA 2022) give a variance estimator that compares adjacent pairs ("pairs of
+    pairs"). Plugging in influence values instead of outcomes extends it to RMST.
+  - KK21 (pairs plus reservoir): no off-the-shelf result known. The natural
+    analogue of the Kapelner & Krieger combination: treat the matched pairs as
+    above, the reservoir as two independent arms, and combine the two.
+  - Citations were given from memory: verify each (volume, pages, DOI) before
+    they go into roxygen `@references`.
+  - Acceptance: SD/RMS(SE) within 0.95-1.05 and Wald coverage 0.94-0.96 on each
+    design above in the R4B harness; Bernoulli/iBCRD results unchanged; remove the
+    "conservative" paragraph from the class roxygen for the designs covered.
+  - Pointer: `release_v1_0_5.md → TODO-163`.
+- [ ] TODO-162 (added 2026-10-27, owner decision at v1.0.5 TODO-162: defer, fix
+  (b)): **Block jackknife on SPBR / FixedBlocking leaves out whole strata.**
+  `resolve_jackknife_unit()` / `build_jackknife_deletion_draws()`
+  (`inference_all_abstract_non_param_boot.R`) use unit "block", and
+  `get_block_ids()` (`design_blocking_abstract.R`) returns STRATUM ids, so the
+  jackknife has G = 2-4 groups. The delete-a-group variance then has G - 1 df but
+  the CI and p-value use z. 1.0.5 canonical CSVs at beta 0: jackknife-Wald coverage
+  SPBR 0.838, FixedBlocking 0.860, other designs 0.953; 36/43 classes undercover
+  on SPBR by > 0.05. The bias correction `(G-1)*(jack_bar - theta)` also shifts the
+  centre when strata are very unequal (fuel 110/36/2: +0.08).
+  - Fix (b), owner-chosen: on `DesignSeqOneByOneSPBR`, make the jackknife unit the
+    permuted block (`block_size` = 4 subjects; ~37 units at n = 148), which is the
+    design's actual randomization unit. Partial trailing blocks: decide (own unit
+    or merge into the previous block). FixedBlocking has no permuted blocks: use
+    delete-one within strata or the t(G - 1) / minimum-group rule from rejected
+    fix (a); decide when implementing.
+  - Risk: `get_block_ids()` has other callers (design registry, blocking/optimal-
+    blocks designs, CMH and extended-Robins incidence classes, exchangeable
+    resampling units, nonparametric and Bayesian bootstrap, jackknife). Do not
+    change its meaning; add a separate accessor (e.g. `get_permuted_block_ids()`,
+    recorded at assignment time) and use it only in the jackknife unit resolver.
+    Run `trail callers` on both before editing.
+  - Acceptance: jackknife-Wald coverage at beta 0 on SPBR within 0.93-0.97 across
+    the suite; non-blocking designs bit-identical; regenerate SPBR / FixedBlocking
+    jackknife rows and retire the 1.0.5 baseline acceptances that cite TODO-162.
+  - Pointer: `release_v1_0_5.md → TODO-162` (repro, scratch `todo162/`).
 
 ## Standing constraints
 

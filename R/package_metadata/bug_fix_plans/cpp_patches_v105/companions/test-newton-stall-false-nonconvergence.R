@@ -64,13 +64,28 @@ fit_pois = function(seed, alg = NR) {
 probe = suppressWarnings(fit_pois(17L)$fit)
 stall_patch_applied = isTRUE(probe$converged)
 
-test_that("true failures stay unconverged: ZINB n = 40 survey seeds (hold before and after patch 01)", {
+test_that("ZINB n = 40 survey seeds never report FALSE convergence (hold before and after patch 01)", {
 	skip_on_cran()
+	# 2026-10-27: this used to assert `converged == FALSE` for each fixture, but
+	# whether a given fixture reports converged at all is optimizer-path (so
+	# BLAS/platform) dependent: all six report FALSE on local MKL while
+	# nearsep/26 reports TRUE on CI's OpenBLAS and on Windows, which failed every
+	# R-CMD-check job. What the guard is actually for is FALSE convergence -- the
+	# kernel claiming success while the score is nowhere near zero. Assert that
+	# invariant instead of the coin flip. At these fixtures max|score| is 3.7-12.4
+	# (measured), whereas a genuinely converged ZINB fit sits at ~0.008, so the
+	# 0.1 cutoff separates the two by more than an order of magnitude on both
+	# sides. A fixture that legitimately starts converging on some platform is
+	# then fine; one that reports success at a non-optimum still fails.
 	cases = list(c("unbal", 14L), c("unbal", 17L), c("unbal", 26L), c("nearsep", 11L), c("nearsep", 26L), c("nearsep", 30L))
 	for (cs in cases) {
 		d = gen_count("zinb", 40L, cs[1], as.integer(cs[2]))
 		fit = suppressWarnings(EDI:::fast_zinb_cpp(d$X, d$Xzi, d$y, optimization_alg = NR))
-		expect_false(isTRUE(fit$converged), info = paste(cs, collapse = "/"))
+		max_abs_score = suppressWarnings(max(abs(as.numeric(fit$score))))
+		false_convergence = isTRUE(fit$converged) && (!is.finite(max_abs_score) || max_abs_score >= 0.1)
+		expect_false(false_convergence,
+			info = paste0(paste(cs, collapse = "/"), ": converged = ", isTRUE(fit$converged),
+				", max|score| = ", format(max_abs_score)))
 	}
 })
 

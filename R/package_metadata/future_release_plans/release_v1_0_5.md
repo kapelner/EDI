@@ -13571,6 +13571,181 @@ against the source").
     rows added via `refresh_manifest.py` (both `plan_shards.py --check-only` pass).
   - Left: G1 (build + patch 15; recheck R3 cell C1), G4 (BRT rows on these designs change: regenerate), G5 CI, G8 Rd.
 
+The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/edi_regen/r4b_20261026T213023Z`,
+`InferenceSurvivalRestrictedMeanDiff`, fixed tau; see the G4 R4B notes). Each has an agent investigating.
+
+- [ ] TODO-161 (added 2026-10-27, R4B audit (a)): **RMST BCa bootstrap CIs return NA on 13-24% of rows at B = 151.**
+  Current state: DONE 2026-10-27, owner decision: ACCEPTED in the audit baseline (uncommitted). The three keys
+  (`low_coverage|survival|InferenceSurvivalRestrictedMeanDiff|NA|` + `compute_bootstrap_confidence_interval`,
+  `_bca`, `compute_bayesian_bootstrap_confidence_interval_bca`) were already in
+  `comprehensive_results_audit_baseline.csv` from the raw-beta era; their `detail` now carries the pooled R4B numbers
+  (0.735 / 0.735 / 0.750; 23% / 23% / 21% NA) and the reason. Keys unchanged, 3-line diff. Note: with
+  `EDI_COMPREHENSIVE_RESULTS_DIR` set, the audit reads its baseline from that run dir (none there), so the per-run
+  R4B audits listed every finding as NEW; the canonical-baseline check happens when the R4B rows merge (G4).
+  Investigation (agent, read-only; scratch `todo161/`): generic TODO-101 guard, no RMST bug.
+  - At B = 151 the guard fails when an adjusted tail is <= 2/152 = 0.0132, i.e. |z0| > 0.131 with a = 0. z0 noise SD
+    is 0.102, so pure noise around a true z0 of 0 gives 19.2% NA (0% at B = 501 and 1001). R4B observed 0.230
+    (bootstrap) and 0.213 (Bayesian BCa), flat across designs, datasets and beta. RMST (200 seeds on cars, iris,
+    airquality): no ties, |a| 0.002-0.006, mean |z0| 0.081-0.087 at B = 151 vs 0.030 at B = 1001. NA rate at B =
+    151 / 501 / 1001: cars 0.245 / 0 / 0, iris 0.195 / 0 / 0, airquality 0.27 / 0 / 0.
+  - Other survival classes are worse at B = 151 (cars / iris): LogRank 0.38 / 0.23, CoxPH 0.55 / 0.35, WeibullRegr
+    0.58 / 0.38 (larger |a|), KMDiff 0.68 / 0.60. KMDiff has real discreteness (1-3% of bootstrap values tie the
+    estimate, 18-32% distinct, true |z0| ~0.15-0.20) and is still 2.5-11% NA at B = 1001: candidate separate TODO.
+  - Suite-wide: canonical nc_1 CSVs all use r = 151; `compute_bootstrap_confidence_interval` NA median 0.22
+    (IQR 0.07-0.53). The baseline already holds RMST `low_coverage` keys for the bootstrap, `_bca` and Bayesian `_bca`
+    CIs (written before NA counted as noncoverage in db0d284a, but the keys match).
+  - Alternative: raise B to 501 for BCa-type calls only (comprehensive_tests.R ~L2971, the `_bca` entry at ~L2985,
+    Bayesian `_bca` and BCa p-values ~L3008-3085). Cost: RMST BCa-path calls are 5.0 h of 23 h; x3.3 adds ~11.6 h
+    (+50%) for this class, similar suite-wide relative to each class's BCa share.
+  - Not broken down: BCa p-values are NA on 38-42% of R4B rows (the p-value core also returns NA at |adj_z| > 8,
+    probably at beta 0.5).
+  - This class's default bootstrap type is BCa, so `compute_bootstrap_confidence_interval()` and `_bca` are one
+    computation (and the Bayesian BCa likewise). At the harness's B = 151 the TODO-101 boundary guard fires
+    (`edi_bootstrap_bca_boundary_warning`: "the nominal tail is only ~3.8 order statistics"); reproduced on
+    cars-like data (seeds 14, 25). The audit counts NA as noncoverage by design, so coverage reads 0.68-0.78; the
+    finite rows cover 0.94-0.96. NA rate before fixed tau (10-25 run): 20-76%.
+  - Same mechanism as TODO-129, where the guard and the BCa default were kept (TODO-101, maintainer decision).
+  - To decide: whether the NA rate is just the guard (|z0| noise at B = 151) or RMST-specific (e.g. a skewed or
+    discrete bootstrap distribution from the KM step function); options are accept in the audit baseline, raise the
+    harness B for BCa calls, or change the class's default type.
+- [ ] TODO-162 (added 2026-10-27, R4B audit (b)): **RMST jackknife-Wald undercovers on blocked designs at beta 0.**
+  Current state: OWNER DECISION 2026-10-27: DEFERRED to v1.1.0 with fix (b), the SPBR permuted block as the
+  jackknife unit (`release_v1_1_0.md` TODO-162). Fix (a) (t(G-1) df, min 3 groups) NOT applied. 1.0.5 ships the
+  current behavior, listed under NEWS Known limitations. Remaining in 1.0.5: accept the SPBR/FixedBlocking
+  jackknife-Wald undercoverage rows in the audit baseline, citing this TODO.
+  Earlier: INVESTIGATED 2026-10-27 (agent, read-only; scratch `todo162/`). SUITE-WIDE defect, not RMST-specific.
+  Recommendation: fix, do not baseline. Owner decision (fix shape and minimum group count).
+  - Mechanism: `resolve_jackknife_unit()` / `build_jackknife_deletion_draws()` (`inference_all_abstract_non_param_boot.R`
+    ~L1050, ~L1576) use unit "block" on blocking designs, and `get_block_ids()` (`design_blocking_abstract.R:92`)
+    returns STRATUM ids, not SPBR's size-4 permuted blocks. The harness median-splits two covariates, so G = 2-4
+    strata (SPBR: 3 on diamonds/fuel/cars/abalone, 4 elsewhere, e.g. fuel 110/36/2; FixedBlocking: 2 on
+    boston/diamonds/fuel, 1 on abalone/cars, which falls back to leave-one-out and covers 0.975). The unweighted
+    delete-a-group variance `((G-1)/G) sum (theta_i - theta_bar)^2` (`inference_all_abstract_jackknife.R` L215-218)
+    has G-1 = 2-3 df but the CI/p-value use z: theoretical coverage 0.855 (3 df), 0.811 (2 df), vs observed 0.76-0.85.
+  - Beta 0 vs 0.5: at 0.5 heterogeneous stratum effects inflate the SE (SPBR mean SE 0.15 vs SD 0.10), masking the
+    df problem; at 0 the SE is right on average (0.063 vs 0.064) but CV ~0.45. Separately, at beta 0.5 the jackknife
+    bias correction shifts the centre with unequal blocks (+0.080 fuel, +0.058 cars, +0.028 boston; see TODO-164).
+  - Suite-wide (canonical nc_1 CSVs, all response types): jackknife-Wald coverage at beta 0 is SPBR 0.838 (n=7361),
+    FixedBlocking 0.860 (n=4485), other designs 0.953; 36/43 classes undercover on SPBR by > 0.05, 74% on
+    FixedBlocking; InferenceAllSimpleAverageDiff 0.75 on SPBR. (So many of the accepted jackknife-Wald baseline rows
+    are this defect.)
+  - Repro (n=148, 2 prognostic binary strata, 300 reps): SPBR beta 0 z 0.830 vs t(G-1) 0.947; FixedBlocking 0.890
+    vs 0.973; Bernoulli leave-one-out fine.
+  - Proposed fix (not applied or run): in `compute_jackknife_summary`, return `df = G - 1` for block/cluster units
+    (Inf otherwise) and refuse when G < 3 (threshold: owner); the p-value (~L99) uses `pt(..., df)` and the CI
+    (~L138) `qt(1 - alpha/2, df)`. `df = Inf` gives pnorm/qnorm, so other designs keep their numbers (bit-identity
+    not verified). Does not fix the unequal-block bias-correction shift. Alternative: use the SPBR permuted block
+    (~37 units) as the unit, which changes `get_block_ids()` semantics. Either fix requires regenerating the
+    SPBR/FixedBlocking jackknife rows in every canonical CSV and updating the baseline (G4).
+  - Coverage at beta 0: SPBR 0.76-0.79, FixedBlocking 0.84-0.85; at beta 0.5: 0.89-0.95; other designs 0.93-0.97.
+    The jackknife p-value rejects ~0.076 under the null (pval_miscalibration on 8/9 datasets).
+  - The baseline accepts jackknife-Wald 0.81-0.93 for 15+ other classes, but the beta-0 / blocked-design pattern
+    has not been explained. Check the jackknife unit on SPBR / FixedBlocking (subject vs block), the variance
+    formula, and whether other classes show the same design pattern.
+- [ ] TODO-163 (added 2026-10-27, R4B audit (c)): **RMST Wald/asymptotic CIs slightly too wide; some bootstrap
+  p-values miscalibrated.** Current state: OWNER DECISION 2026-10-27: keep the unadjusted (independent-arms) SE in
+  1.0.x; document that it is conservative under every design other than Bernoulli / BCRD / iBCRD (roxygen paragraph
+  added to `inference_survival_rmst.R`, "The standard error assumes independent arms"; Rd in G8 batch). Design-aware
+  variances moved to v1.1.0 (`release_v1_1_0.md`, RMST design-aware variance TODO). Remaining: accept the findings in
+  the audit baseline and retire the stale raw-beta RMST rows.
+  Earlier: INVESTIGATED 2026-10-27 (agent, read-only; scratch `todo163/`).
+  Recommendation: accept in baseline, except the KK21stepwise Bayesian-bootstrap item below. Owner decision.
+  - Cause: `compute_s_beta_hat_T` (`inference_survival_rmst.R` L386-409) uses `get_restricted_mean_se_diff()`, a
+    per-arm Greenwood-type variance summed across independent arms (roxygen says so). It ignores pairing, blocking
+    and covariate balance, so it is the unadjusted two-sample SE; conservative under restricted designs is expected.
+  - SD(estimate)/RMS(Wald SE), `~.`: FixedBinaryMatch 0.72 (cov 0.986), FixedMatchingGreedy 0.74 (0.990),
+    KK21stepwise 0.80 (0.976), SPBR 0.87, FixedBlocking 0.91, Bernoulli 0.97 (0.951), iBCRD 0.98 (0.949). Under `~1`
+    the matching designs return to nominal (0.97-1.00); SPBR/FixedBlocking stay conservative (0.85-0.90; why not verified).
+  - Precedent: the baseline accepts OVER coverage for InferenceAllSimpleAverageDiff (wald/asymp 0.962, rand
+    0.969, rand-bootstrap 0.983-0.995) and KMDiff pval_miscalibration (asymp, Bayesian bootstrap, symmetric, jackknife).
+  - Bootstrap p-values at beta 0 (360 per cell): mostly conservative and design-specific (FixedMatchingGreedy `~.`
+    Bayesian studentized/symmetric/wald reject 0.008-0.011; FixedBlocking 0.014-0.058; SPBR `~1` 0.014-0.017);
+    Bernoulli and iBCRD calibrated (0.044-0.069). Exception, anti-conservative: KK21stepwise `~.` Bayesian bootstrap
+    rejects 0.083-0.099 (studentized, symmetric, wald, bca; ~3-4 SE above 0.05). Not traced: how Bayesian-bootstrap
+    weights treat KK21 pairs vs reservoir. Do NOT baseline this one without a follow-up.
+  - KK21 follow-up DONE 2026-10-27 (agent, scratch `todo163b/`): accept in baseline, not a bug. The Bayesian
+    bootstrap on KK21 (`build_bayesian_bootstrap_context`, `inference_all_abstract_bayesian_bootstrap.R` L551-615)
+    weights each matched pair as one Dirichlet unit and each reservoir subject as its own (~80 units for 148 rows),
+    which is correct: sim (200 reps, B = 199) SD/BB SE 1.02-1.03 on diamonds/fuel, wald p rejection 26/400 = 0.065
+    [0.043, 0.094]; per-subject weights would give 0.00-0.01. The mild excess fits a small-cluster effect (~80
+    units, SE behaves like t with ~40 df, +~0.007). R4B's 0.083-0.099 is that plus selecting the most extreme cell
+    (the five p-value types reject on the same reps, so one finding). Canonical CSVs: RMST 0.088 and KMDiff 0.082
+    on KK21 `~.`; other classes on KK21 are no worse than on Bernoulli. Correction: R4B ran no nonparametric
+    bootstrap on KK21stepwise.
+  - Stale baseline rows: the existing RMST entries are keyed formula `NA` from the old raw-beta truth (e.g.
+    "coverage 0.569 UNDER"); retire them when the new findings are recorded.
+  - Optional: one roxygen sentence that the SE is conservative under matched/blocked designs (G8 batch).
+  - Wald/asymp coverage 0.968-0.978 on 5 datasets (FixedBinaryMatch 0.986, FixedMatchingGreedy 0.975). Bootstrap
+    p-value findings: studentized / symmetric (both bootstrap kinds), Bayesian wald/bca, asymp/wald p on 2 datasets.
+  - Check the RMST variance estimator (KM-based, does it ignore the design's pairing/blocking?) against the
+    empirical SD of the estimate per design.
+- [ ] TODO-164 (added 2026-10-27, R4B audit (d)): **RMST estimate biased ~0.012 on 2 datasets.**
+  Current state: harness truth fix DONE 2026-10-27 (owner approved; uncommitted): `compute_rmst_mc_coverage_truth()`
+  now uses `y_full[seq_len(n - n %% 4)]` as the base rows and the 95% cutoff from the untrimmed y, as
+  `run_tests_for_response()` does. Harness parses; `test-comprehensive-coverage-mc-registry-gaps-reference.R` passes.
+  pte_example after the fix (4 seeds at 200k): beta 0.5 mean 0.5059 (per-row 4000-rep mean 0.5059), seeds
+  0.5015-0.5086; beta 0 mean -0.0003 (seeds -0.0057 to +0.0038). A single fit's MC sd is ~0.004 on this dataset, so
+  averaging seeded fits was NOT done (not approved; would cut it to ~0.002 at 4 fits). Changes the truth for
+  pte_example and iris only, so their R4B rows' coverage_truth is stale until rerun or rescored. The jackknife
+  part (fuel) stays open under TODO-162. Two separate causes, neither is finite-sample KM bias.
+  - pte_example (compute_estimate -0.0126): harness truth mismatch. `run_tests_for_response()` trims rows to a
+    multiple of 4 (L4255-4264, 154 -> 152) but `compute_rmst_mc_coverage_truth()` recycles all of `y_original`.
+    4000-rep sim at beta 0.5: per-row mean 0.5059 +/- 0.0017; 200k truth on the first 152 units 0.5058; harness
+    truth on 154 units 0.5120. The trim explains ~-0.006, the rest is truth MC noise (sd ~0.004 on this dataset, not
+    0.002). iris (150 -> 148) has the same mismatch, not flagged. The `~1`/`~.` rows correlate 0.81, so the audit's
+    t = -3.3 overstates the evidence. Proposed harness fix (comprehensive_tests.R ~L3943): trim `y_base` to a multiple
+    of 4 and take the 95% censoring cutoff from the untrimmed y (as per-row does); optionally average 2-4 seeded fits.
+    Not checked: whether `compute_mc_coverage_truth_simframe` (~L3652) has the same trim mismatch.
+  - fuel (compute_jackknife_estimate +0.0115; the plain estimate is clean): a package problem. On SPBR / FixedBlocking
+    the jackknife unit is the block. fuel's X1 correlates 0.93 with y, so median-split strata give blocks of 110 / 36
+    / 2 (B = 3). Leaving out the 110-row block leaves only times above tau (RMST diff exactly 0), and the unweighted
+    delete-a-group bias correction `(B-1)*(jack_bar - theta)` (`inference_all_abstract_jackknife.R` L215-217)
+    over-corrects (+0.084 mean shift over 60 SPBR draws; cancels at beta 0). The `|bias| > 2*se` guard misses it.
+    Proposed: refuse the block jackknife when the block count is small (e.g. `< 10`) in `compute_jackknife_summary`,
+    or a weighted delete-m_j jackknife (Busing et al. 1999). Either changes defaults for every class on blocking
+    designs. Related to TODO-162 (same unit, same designs).
+  - biased_estimate: mean bias +0.0115 (RMSE 0.090) on one dataset and -0.0126 (RMSE 0.125) on another, ~10% of an
+    SE. The 200,000-row truth's MC error is ~0.002, so the truth is not the explanation by itself.
+  - Check whether it is finite-sample KM/RMST bias under the harness's censoring (15% random plus every time at or
+    above the 95% quantile), a design effect (the truth is fitted under Bernoulli), or a tau / truth mismatch.
+- [ ] TODO-165 (added 2026-10-27, owner; found by the TODO-161 agent): **KMDiff BCa bootstrap CIs NA even at large B.**
+  Current state: CODE DONE 2026-10-27 (owner approved all three; uncommitted). (1) `get_bootstrap_dispatch_policy()`
+  (`globals.R`): `"^InferenceSurvivalKMDiff$"` and `"^Inference(Contin|Prop)(KK)?QuantileRegr(OneLik|IVWC)?$"`
+  (6 classes) -> percentile. (2) Mid-rank z0 for every class: new private `bca_midrank_cdf()` in
+  `inference_ext_bca_bootstrap_ci.R`, used for z0 in `bca_ci_core`/`bca_pval_core` and for z_delta in the p-value
+  core; added to `contracts_mixins.R` provided methods. Verified (load_all compile = FALSE): dispatch-policy structure
+  599/599, BCa reference 30/30 (new TODO-165 mid-rank test), bootstrap helper contracts 46/46, dispatch resolution
+  73/73. Remaining: NEWS (done, Bug fixes), Rd regeneration (G8), regenerate BCa rows in the canonical CSVs for classes
+  with ties (AllSimpleWilcox count/ordinal etc.) and KMDiff/QuantileRegr default-bootstrap rows (G4); retire the
+  raw-beta KMDiff baseline rows.
+  Original recommendation: default bootstrap
+  type -> percentile for this class (owner decision: changes 1.0.x default output). Mid-rank z0 does not help KMDiff.
+  - KMDiff estimates the difference in KM MEDIAN survival (`get_survival_stat_diff(..., "median")`). A bootstrap
+    median is an order statistic, so the distribution is lumpy (27% distinct values at B = 1001, 1.1% ties with the
+    estimate) and z0 is n^-1/4-rate noise, not a real bias correction: mean z0 -0.02, SD 0.16-0.17 at B = 1001;
+    |a| ~0.014.
+  - Sim (400 reps per cell, cars-like and iris, beta 0 / 0.5, harness DGP, truth from 5 x 400k fits; replication
+    matches EDI on 12 seeds). NA at B = 151 / 1001 and finite coverage: BCa 0.543 / 0.015, 0.969 / 0.954; BCa mid-rank
+    0.545 / 0.014; BCa without guard 0 NA, 0.954; percentile 0 NA, 0.960 / 0.960; basic 0 NA, 0.90 (0.88 on cars).
+  - Fix: add `"^InferenceSurvivalKMDiff$" = "percentile"` to the override list in `get_bootstrap_dispatch_policy()`
+    (`globals.R` ~L854; already used for AllSimpleWilcox etc.). The Bayesian bootstrap already defaults to percentile.
+  - Canonical `nc_1_survival.csv` (r = 151) still grades KMDiff on raw beta (stale at 0.5). At beta 0: bootstrap
+    default/`_bca` 55% NA (finite 0.980), `_basic` 0.886, Bayesian `_bca` 61% NA, Bayesian `_studentized` 100% NA.
+    KMDiff baseline rows (L737-752, formula NA) are raw-beta era: retire or rescore.
+  - Other classes (scan, 20 seeds, B = 1001): InferenceAllSimpleWilcox count/ordinal have 79% / 95% of bootstrap
+    values tied with the estimate (|z0| 1.6 to Inf; canonical `_bca` 97-98% NA; default already percentile): the
+    mid-rank z0 (`p_less = mean(boot < est) + 0.5 * mean(boot == est)` in both cores of
+    `inference_ext_bca_bootstrap_ci.R`) would fix it, but changes BCa for every class with ties. Contin/Prop
+    QuantileRegr: no ties but |z0| ~0.15, candidates for the same percentile override. ExactFisher/ExactBinomial
+    scan errored. Not verified: real harness datasets, non-Bernoulli designs, the BCa p-value core, the 100%-NA BCa
+    classes in the canonical CSVs.
+  - On cars / iris at B = 151, `InferenceSurvivalKMDiff` BCa returns NA on 0.68 / 0.60 of draws (RMST 0.245 /
+    0.195), and still 2.5-11% at B = 1001 (RMST 0). Unlike RMST it has real discreteness: 1-3% of bootstrap values
+    tie the estimate, only 18-32% of values are distinct, and the true |z0| is about 0.15-0.20, so the TODO-101
+    boundary guard fires on a genuine bias correction, not just noise. Scratch from TODO-161: `todo161/`.
+  - To decide: whether the BCa z0 should handle ties (e.g. mid-rank `mean(boot < est) + 0.5*mean(boot == est)`),
+    whether BCa is a sensible default for a step-function estimand, or accept.
+
 ## Standing constraints
 
 Same as `release_v1_1_0.md`'s standing constraints: default behavior with

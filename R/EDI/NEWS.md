@@ -149,6 +149,21 @@ methods.
 
 ## Bug fixes
 
+* BCa bootstrap intervals and p-values (plain and Bayesian bootstrap) now count
+  bootstrap values tied with the estimate as half below it when computing the
+  bias correction `z0`. With a discrete bootstrap distribution (counts, ordinal
+  outcomes, medians) the old strict `P(boot < est)` pushed `z0` away from 0 and
+  the interval was usually refused (`InferenceAllSimpleWilcox` on count and
+  ordinal data: 97-98% NA). Continuous bootstrap distributions are unaffected.
+
+* `InferenceSurvivalKMDiff` and the quantile-regression classes
+  (`InferenceContinQuantileRegr`, `InferencePropQuantileRegr` and their KK
+  variants) now default to the percentile bootstrap instead of BCa. Their
+  bootstrap distributions sit on a few observed values, so the BCa bias
+  correction is mostly noise: `InferenceSurvivalKMDiff` BCa intervals were NA
+  on 54% of datasets at `B = 151`. Percentile intervals cover at the nominal
+  level (0.96 in simulation). `type = "bca"` is still available.
+
 * `InferenceSurvivalRestrictedMeanDiff$compute_rand_bootstrap_confidence_interval()`
   (every `type`) now stops with class `edi_rand_bootstrap_ci_scale_mismatch_refused`,
   and the class no longer advertises `randomization_bootstrap_ci`. The interval
@@ -345,6 +360,19 @@ methods.
   about 2e-4).
 
 ## Known limitations
+
+* `InferenceSurvivalRestrictedMeanDiff`'s standard error treats the two arms
+  as independent. It is correct under Bernoulli assignment and complete
+  randomization, and conservative under every other design: Wald intervals
+  over-cover (about 0.98 on matching designs) and Wald p-values are too large.
+  Design-aware variances are planned for 1.1.0.
+
+* Jackknife standard errors, intervals and p-values on
+  `DesignSeqOneByOneSPBR` and `DesignFixedBlocking` leave out one stratum at a
+  time. With only a few strata the standard error is noisy, and the
+  intervals use normal quantiles, so they under-cover (about 0.84 and 0.86 at
+  nominal 0.95 in the comprehensive tests). 1.1.0 will leave out SPBR's
+  permuted blocks instead.
 
 * `InferenceOrdinalCloglogRegr` null calibration (500 null datasets per cell,
   `diamonds`, nominal 5%). With covariates (`~ .`) at small n, the

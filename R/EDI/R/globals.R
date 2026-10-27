@@ -875,6 +875,10 @@ get_bootstrap_dispatch_policy = function() {
       "^InferencePropFractionalLogit$" = "percentile",
 	      "^InferenceCountHurdleNegBin$" = "percentile",
       "^InferenceContinRobustRegr$" = "percentile",
+      # Median / quantile estimands: the bootstrap distribution sits on a few observed
+      # values, so z0 is noise and BCa hits its boundary guard (KMDiff 54% NA at B=151).
+      "^InferenceSurvivalKMDiff$" = "percentile",
+      "^Inference(Contin|Prop)(KK)?QuantileRegr(OneLik|IVWC)?$" = "percentile",
       "^InferenceCustom(Asymp|Rand|Boot)$" = "percentile"
     ),
     design_class_overrides = list(

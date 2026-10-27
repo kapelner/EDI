@@ -369,7 +369,7 @@ EDI_COMPONENT_SPECS = list(
 			"get_supported_bootstrap_ci_types"
 		),
 		provides_private_methods = c(
-			"bca_ci_core", "bca_pval_core", "resolve_resampling_unit",
+			"bca_midrank_cdf", "bca_ci_core", "bca_pval_core", "resolve_resampling_unit",
 			"get_exchangeable_units", "get_resampling_cluster_ids",
 			"get_resampling_strata_ids", "get_resampling_block_ids",
 			"resampling_effective_p", "resolve_resampling_size",
