@@ -13660,7 +13660,10 @@ root `/home/kapelner/workspace/EDI` unless a `cd` is shown.
     G10 manifest -+--> scoped commits --> G5 push + CI (hook + workflows)
     G9 drift CSVs +
     G8/G9/G10 --> G1 build (+ C++ patch bundle) --> G7 (TODO-56 terminal) --> G4 regen + audit
-    G1 --> G2 timing (quiet host)      G3 1.0.2 baseline (quiet host) --> G2/G3 parity
+    G4 merges + G7 --> path audits regen + compare_path_audits.R (closing runbook step 6a) --> G5
+    G1 --> G2 timing (quiet host, incl. the R and Python benchmark_model_fits reports) 
+    G3 1.0.2 baseline (quiet host) --> G2/G3 parity
+    Release gates (owner, 2026-10-26): G2's two benchmark reports and step 6a's path audits must pass before v1.0.5 ships.
     If a C++ patch changes an exported signature (04, 05, 08): after G1 re-run G8 and G9.
 
 ### Classification of the 131 TODOs (closing audit 2026-10-23)
@@ -14677,6 +14680,32 @@ smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to reru
     on cars was 0.70 at mc_n 20000 (0.66-0.79 at 148-1000) vs a 0.61 per-rep mean estimate. Tried and reverted 2026-10-26.
     The clean fix is a fixed `tau` (the class accepts `tau`, TODO-108) passed both to the per-row class and to the
     MC spec's inference_params. That changes the R4B rows, so R4B needs a rerun (~5 h). Owner decision.
+- **R4B fixed-tau harness fix DONE 2026-10-26 (owner decision), committed in `7dc68d41`:** per-row RMST and its truth
+  both use `tau = comprehensive_rmst_tau(dataset)` = the 0.6 quantile of the dataset's survival y (0/5000 draws had
+  an arm max below it; 0.75 failed 3/5000 on ionosphere). The truth is `compute_rmst_mc_coverage_truth()`: one
+  direct 200,000-row fit (vectorized `add_all_subject_responses`, < 1 s), routed by a `fn` field in
+  `COVERAGE_MC_SPEC` because the SimulationFramework validity probe builds the class on an all-zero response design
+  and so rejects any positive `tau` (package bug, log for 1.1.0). cars: 320 m-out-of-n/subsampling keys are the
+  third approved structural skip (`too_few_exchangeable_units`), roster now 113,440 keys after 27,680 skips.
+- **R4B rerun 2026-10-26 21:30 -> 2026-10-27 01:13 UTC (`~/edi_regen/r4b_20261026T213023Z`, all 9 exit 0):**
+  - Reconcile: PASS. 113,440/113,440 keys (12,640 per dataset, cars 12,320), all `ok`, 0 own-dataset missing,
+    0 extra, 0 duplicates, 0 terminal/result mismatches.
+  - Audit: 5-21 NEW findings per dataset (~40 distinct keys). All are categories the canonical baseline already
+    accepts for other classes; RMST shows up now only because it was graded on raw beta before. Owner decision:
+    (a) BCa boundary NA (all 9 datasets): this class's default bootstrap type is BCa, so the default call and
+    `_bca` are the same computation. At the harness's B = 151, 13-24% of rows hit the TODO-101 boundary guard
+    (reproduced: `edi_bootstrap_bca_boundary_warning`, "the nominal tail is only ~3.8 order statistics") and
+    return NA. The audit counts NA as noncoverage by design, giving 0.68-0.78; coverage of the finite rows is
+    0.94-0.96. Same mechanism as TODO-129. The NA rate predates fixed tau (20-76% in the 10-25 run).
+    (b) Jackknife-Wald undercoverage, blocked designs at beta 0: SPBR 0.76-0.79, FixedBlocking 0.84-0.85 (0.89-0.95
+    at beta 0.5; other designs 0.93-0.97), plus jackknife p-value miscalibration (reject ~0.076). The baseline
+    already accepts jackknife-Wald 0.81-0.93 for 15+ classes.
+    (c) Mild overcoverage of Wald/asymp (0.968-0.978 on 5 datasets; FixedBinaryMatch 0.986) and some bootstrap
+    p-value miscalibration (studentized/symmetric).
+    (d) biased_estimate on 2 datasets: bias about 0.012 vs RMSE 0.09-0.12 (~10% of an SE; the truth's MC error is
+    ~0.002).
+  - Valid-row coverage pooled over datasets and designs: 0.94-0.97 for every CI family except jackknife-Wald at
+    beta 0 (0.90-0.91).
 - R5 stopped by the owner 2026-10-25 00:40 UTC (SIGTERM; batch log `end r5 FixedBinaryMatch exit=143`): KK21stepwise
   complete (4,320 rows), FixedBinaryMatch 1,659/2,160, receipt left `.running`. 33.4 h used vs the 3.5-4.1 h estimate;
   18 h of it were 536 calls that hit the 120 s cap (419 rand CI, all `~.` on fuel/ionosphere/diamonds/cars). Each is

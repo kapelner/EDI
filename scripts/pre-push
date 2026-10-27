@@ -345,6 +345,21 @@ if [ "$run_r_tests" = "1" ]; then
 		abort_push
 	fi
 	echo
+
+	# Statistical-calibration check for the inference classes this push
+	# touched (R/package_metadata/new_feature_plans/calibration_gates.md):
+	# per-replicate CI/test agreement, CI-endpoint inversion and a
+	# large-effect sign check on synthetic data. Deterministic (fixed seeds);
+	# size and coverage are left to the scheduled calibration-fast-tier
+	# workflow. Seconds for one class, ~5 min if a header change selects
+	# every class. EDI_PREPUSH_CALIBRATION=skip skips it, =all checks every
+	# class.
+	echo "pre-push: R-relevant files changed -- calibration check for touched inference classes ..."
+	if ! timeout --foreground --kill-after=30s 900s Rscript R/package_tests/calibration/prepush_calibration_checks.R --changed-files "$changed_files_file"; then
+		echo "pre-push: calibration check FAILED (details above). A known, triaged failure goes in R/package_tests/calibration/prepush_calibration_known_failures.csv." >&2
+		abort_push
+	fi
+	echo
 fi
 
 if [ "$run_r_tests" = "1" ]; then

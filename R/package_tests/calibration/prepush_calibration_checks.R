@@ -216,6 +216,10 @@ for (rt in CAL_RESPONSE_TYPES) {
 	plan <- lapply(plan, function(cls) setdiff(cls, PREPUSH_EXCLUDED_CLASSES))
 	keep <- touched_classes(unlist(plan, use.names = FALSE))
 	if (!length(keep)) next
+	if ("--list-only" %in% args) {
+		cat(sprintf("%s: %s\n", rt, paste(keep, collapse = " ")))
+		next
+	}
 	n_classes <- n_classes + length(keep)
 	cat(sprintf("prepush_calibration: %-10s %d class(es): %s\n", rt, length(keep), paste(sub("^Inference", "", keep), collapse = ", ")))
 	for (rep in PREPUSH_NULL_REPS) {
@@ -224,6 +228,7 @@ for (rt in CAL_RESPONSE_TYPES) {
 	all_rows[[length(all_rows) + 1L]] <- cal_run_rep(rt, PREPUSH_N, 1L, plan, keep = keep,
 		effect = CAL_SIGN_EFFECT[[rt]], endpoints = TRUE)
 }
+if ("--list-only" %in% args) quit(status = 0L)
 if (!n_classes) {
 	cat("prepush_calibration: no inference class touched -- nothing to check.\n")
 	quit(status = 0L)

@@ -1,0 +1,146 @@
+name: calibration-fast-tier
+
+# Scheduled statistical-calibration monitor (design:
+# R/package_metadata/new_feature_plans/calibration_gates.md). Measures Type-I
+# error (size) and CI coverage of every fast analytic procedure (wald, score,
+# lik_ratio, gradient; ~1 and ~.) of every inference class on synthetic
+# sharp-null data, and goes red when any cell is significantly anti-
+# conservative: exact one-sided binomial, Bonferroni 0.01 / K over the run.
+# A monitor, never a required check: it runs on a schedule, not on pushes or
+# pull requests. A red run is triaged by hand (fix the bug, or add an
+# accepted-deviation row to calibration_fast_tier_accepted.csv).
+on:
+  schedule:
+    - cron: '17 1 * * *'   # nightly: n = 50 and 200
+    - cron: '17 4 * * 6'   # Saturdays: n = 1000
+  workflow_dispatch:
+    inputs:
+      ns:
+        description: 'Sample sizes, comma-separated'
+        default: '50,200'
+      reps:
+        description: 'Null replicates per cell'
+        default: '1000'
+      groups:
+        description: 'Groups to run (blank = all): continuous,incidence,proportion,count,count_kkglmm,ordinal,survival'
+        default: ''
+
+concurrency:
+  group: calibration-fast-tier
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+      - name: Plan shards
+        id: plan
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ns="${{ inputs.ns }}"; reps="${{ inputs.reps }}"; groups="${{ inputs.groups }}"
+          elif [ "${{ github.event.schedule }}" = "17 4 * * 6" ]; then
+            ns="1000"; reps="1000"; groups=""
+          else
+            ns="50,200"; reps="1000"; groups=""
+          fi
+          matrix="$(Rscript R/package_tests/calibration/plan_calibration_fast_tier.R --ns "$ns" --reps "$reps" --cores 4 --target-minutes 270 --groups "$groups")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "ns=$ns reps=$reps groups=${groups:-all}: $(echo "$matrix" | grep -o '"id"' | wc -l) shards"
+
+  # Compile EDI once and share it with every shard (same pattern and EDI_PORTABLE
+  # rationale as test-bulk-non-cran.yml's build job).
+  build:
+    runs-on: ubuntu-latest
+    env:
+      EDI_PORTABLE: 1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+      - name: Install current commit into an isolated library
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.edi-install-scratch"
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
+      - run: tar -czf edi-build.tar.gz .edi-install-scratch
+      - uses: actions/upload-artifact@v7
+        with:
+          name: calib-edi-build
+          path: edi-build.tar.gz
+
+  shards:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      EDI_PORTABLE: 1
+      NOT_CRAN: true
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+      - uses: actions/download-artifact@v8
+        with:
+          name: calib-edi-build
+          path: .
+      - name: Restore the pre-built library
+        run: |
+          tar -xzf edi-build.tar.gz
+          echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+      - name: Run shard ${{ matrix.id }}
+        run: |
+          Rscript R/package_tests/calibration/run_calibration_fast_tier.R \
+            --response-type "${{ matrix.response_type }}" --n "${{ matrix.n }}" --reps "${{ matrix.reps }}" \
+            --only "${{ matrix.only }}" --exclude "${{ matrix.exclude }}" \
+            --cores "$(nproc)" --out-dir "calib/${{ matrix.id }}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: calib-shard-${{ matrix.id }}
+          path: calib/${{ matrix.id }}
+          if-no-files-found: warn
+
+  analyze:
+    needs: [plan, shards]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: calib-shard-*
+          path: calib
+      - name: Size and coverage gate
+        run: |
+          Rscript R/package_tests/calibration/analyze_calibration_fast_tier.R \
+            --in-dir calib --out-dir calib-summary --summary-md "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: calibration-summary
+          path: calib-summary
+      - name: Fail if any shard did not finish
+        if: needs.shards.result != 'success'
+        run: |
+          echo "shards: ${{ needs.shards.result }} -- the gate above saw only the shards that finished." >> "$GITHUB_STEP_SUMMARY"
+          exit 1
