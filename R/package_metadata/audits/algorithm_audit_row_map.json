@@ -81,10 +81,9 @@
         "inference_all_abstract_rand_ci.R",
         "inference_ext_ci_inversion.R",
         "inference_all_abstract_rand_bootstrap_ci.R",
-        "bisection_ci.cpp",
-        "bisection_ci_search.h",
         "randomization_loop.cpp"
-      ]
+      ],
+      "note": "2026-10-23: bisection_ci.cpp / bisection_ci_search.h deleted (test-only kernel; the live randomization CI search is the R code listed here). Bootstrap-loop files deleted 2026-10-22 as dead code (v1.0.5 TODO-3)."
     },
     "E": {
       "title": "Small permutation p-values",
@@ -146,7 +145,8 @@
         "inference_all_abstract_non_param_boot.R",
         "inference_all_abstract_param_boot.R",
         "inference_all_abstract_bayesian_bootstrap.R"
-      ]
+      ],
+      "note": "2026-10-22: base_bootstrap_loop.cpp and kk_bootstrap_loop.cpp were deleted as dead code (no production caller); nothing replaced them (v1.0.5 TODO-3)."
     },
     "K": {
       "title": "GEE working-correlation structure",
@@ -172,7 +172,6 @@
       "reviewed": "2026-10-22",
       "files": [
         "lrt_ci_newton.cpp",
-        "bisection_ci.cpp",
         "inference_ext_ci_inversion.R",
         "miettinen_nurminen_speedups.cpp",
         "newcombe_speedups.cpp"
@@ -335,7 +334,8 @@
         "ordinal_fixed_link_helpers.h",
         "fast_ordinal_regression_internal.h",
         "fast_cpoisson_combined.cpp",
-        "fast_adjacent_category_logit.cpp"
+        "fast_adjacent_category_logit.cpp",
+        "ordinal_scale_guard.h"
       ]
     },
     "AB": {

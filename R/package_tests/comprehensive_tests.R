@@ -930,7 +930,24 @@ skip_function_labels = trimws(strsplit(Sys.getenv("COMPREHENSIVE_SKIP_FUNCTIONS"
 skip_function_labels = skip_function_labels[nzchar(skip_function_labels)]
 param_boot_ci_max_root_iterations = 0L
 beta_T_values = resolve_comprehensive_beta_values(c(0, 0.5), BETA_T_FILTER)
-SD_NOISE = 0.1
+# DGP noise SD, per response type (owner 2026-10-28): apply_treatment_effect_and_noise()
+# adds eps ~ N(0, sd) on each type's own scale (additive, logit, log-rate, log-time, ordinal
+# score x 5). Survival is 0.25, not 0.1: at 0.1 a matched pair of near-identical rows is
+# discordant with prob Phi(-0.5 / (sqrt(2) * 0.1)) ~ 2e-4, so pair-stratified Cox fits
+# (KKStratCoxPH) hit separation (20/30 diverged on abalone at n = 148; 0/30 at 0.25).
+SD_NOISE_BY_RESPONSE_TYPE = c(
+	continuous = 0.1,
+	incidence = 0.1,
+	proportion = 0.1,
+	count = 0.1,
+	survival = 0.25,
+	ordinal = 0.1
+)
+sd_noise_for = function(response_type){
+	sd = SD_NOISE_BY_RESPONSE_TYPE[response_type]
+	if (length(sd) != 1L || is.na(sd)) stop("no SD_NOISE_BY_RESPONSE_TYPE entry for response type: ", response_type)
+	unname(sd)
+}
 pending_rep_header = NULL
 pending_beta_header = NULL
 pending_dataset_header = NULL
@@ -1702,7 +1719,7 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 			r = as.integer(r),
 			pval_epsilon = pval_epsilon,
 			prob_censoring = prob_censoring,
-			sd_noise = SD_NOISE,
+			sd_noise = sd_noise_for(response_type),
 			num_cores = as.integer(NUM_CORES),
 			dataset_n_rows = as.integer(dataset_n_rows),
 			dataset_n_cols = as.integer(dataset_n_cols),
@@ -3469,7 +3486,7 @@ run_exhaustive_remaining_inference_classes = function(des_obj, response_type, de
 }
 
 apply_treatment_effect_and_noise = function(y_t, w_t, response_type){
-	eps = rnorm(1, 0, SD_NOISE)
+	eps = rnorm(1, 0, sd_noise_for(response_type))
 	bt = ifelse(w_t == 1, beta_T, 0)
 	if (response_type == "continuous") return(y_t + bt + eps)
 	if (response_type == "incidence") {
@@ -3510,7 +3527,7 @@ apply_treatment_effect_and_noise = function(y_t, w_t, response_type){
 		# but here y_t is already the ordinal level.
 		# Let's just do a simple shift and round.
 		# We use a larger noise multiplier (5x) to ensure some subjects jump categories,
-		# otherwise with SD_NOISE=0.1, matched pairs are almost always concordant.
+		# otherwise with sd_noise_for("ordinal") = 0.1, matched pairs are almost always concordant.
 		return(as.integer(max(1, round(y_t + bt + 5 * eps))))
 	}
 	stop("Unsupported response_type: ", response_type)
@@ -3573,15 +3590,16 @@ prop_logistic_normal_mean = function(p, shift, sd_noise){
 	as.numeric(vapply(stats::qlogis(p) + shift, function(eta) sum(w * stats::plogis(eta + z)), numeric(1)))
 }
 # Owner decision 2026-10-21 (release_v1_0_5.md TODO-55): coverage truth is the NOISY MARGINAL
-# mean contrast. The DGP (apply_treatment_effect_and_noise) adds eps ~ N(0, SD_NOISE) inside the
+# mean contrast. The DGP (apply_treatment_effect_and_noise) adds eps ~ N(0, sd_noise_for("proportion")) inside the
 # logit in BOTH arms, so the estimator -- a difference of observed proportion means -- targets
 # E[p_t(eps)] - E[p_c(eps)], not the zero-noise conditional contrast plogis(qlogis(p)+beta)-p
-# (the two differ by up to ~3e-4 at SD_NOISE = 0.1).
+# (the two differ by up to ~3e-4 at sd 0.1).
 compute_prop_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 	y_p = datasets_and_response_models[[dataset_name]]$y_original$proportion
 	p_base = pmin(0.95, pmax(0.05, y_p))
-	mean(prop_logistic_normal_mean(p_base, beta_T_val, SD_NOISE) -
-		prop_logistic_normal_mean(p_base, 0, SD_NOISE))
+	sd_prop = sd_noise_for("proportion")
+	mean(prop_logistic_normal_mean(p_base, beta_T_val, sd_prop) -
+		prop_logistic_normal_mean(p_base, 0, sd_prop))
 }
 compute_survival_mean_diff_coverage_truth = function(dataset_name, beta_T_val){
 	# DGP is a multiplicative time shift (y_t = y_c * exp(bt)), not additive, so the naive
@@ -3952,7 +3970,7 @@ compute_rmst_mc_coverage_truth = function(dataset_name, beta_T_val, mc_n){
 	y_lin[cens] = stats::runif(sum(cens), 0, y_lin[cens])
 	dead[cens] = 0L
 	w = sample(rep(c(0L, 1L), length.out = mc_n))
-	y = pmax(.Machine$double.eps, y_lin * exp(beta_T_val * w + stats::rnorm(mc_n, 0, SD_NOISE)))
+	y = pmax(.Machine$double.eps, y_lin * exp(beta_T_val * w + stats::rnorm(mc_n, 0, sd_noise_for("survival"))))
 	des = DesignFixedBernoulli$new(n = mc_n, response_type = "survival", verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x1 = stats::rnorm(mc_n)))
 	des$overwrite_all_subject_assignments(w)
@@ -4742,7 +4760,7 @@ for (dataset_name in names(datasets_and_response_models)){
 										r = as.integer(r),
 										pval_epsilon = pval_epsilon,
 										prob_censoring = prob_censoring,
-										sd_noise = SD_NOISE,
+										sd_noise = sd_noise_for(response_type),
 										num_cores = as.integer(NUM_CORES),
 										dataset_n_rows = NA_integer_,
 										dataset_n_cols = NA_integer_,

@@ -36,7 +36,8 @@ truth_fixture <- function() {
 	e$compute_mc_coverage_truth_simframe <- function(...) stop("MC truth was not stubbed by this test")
 	eval_comprehensive_assignments(c(
 		"serialize_beta_T",
-		"SD_NOISE",
+		"SD_NOISE_BY_RESPONSE_TYPE",
+		"sd_noise_for",
 		"prop_logistic_normal_mean",
 		"incid_p_base_and_treated",
 		"compute_incid_logit_coverage_truth",
@@ -80,7 +81,7 @@ test_that("proportion mean-difference truth is the noisy marginal contrast (owne
 	zero_noise <- mean(ref$p_t - ref$p_base)
 	# Independent oracle: integrate() per baseline, noise in both arms.
 	lnm <- function(p_i, shift) stats::integrate(
-		function(eps) stats::plogis(stats::qlogis(p_i) + shift + eps) * stats::dnorm(eps, 0, e$SD_NOISE),
+		function(eps) stats::plogis(stats::qlogis(p_i) + shift + eps) * stats::dnorm(eps, 0, e$sd_noise_for("proportion")),
 		-Inf, Inf, rel.tol = 1e-12)$value
 	expected <- mean(vapply(ref$p_base, function(p_i) lnm(p_i, beta) - lnm(p_i, 0), numeric(1)))
 
@@ -161,7 +162,7 @@ test_that("record_result stores coverage truth and checks the CI against it, not
 	ref <- logit_shift_reference(p, beta)
 	logistic_normal_mean <- function(p_i, shift) stats::integrate(
 		function(eps) stats::plogis(stats::qlogis(p_i) + shift + eps) *
-			stats::dnorm(eps, mean = 0, sd = e$SD_NOISE),
+			stats::dnorm(eps, mean = 0, sd = e$sd_noise_for("proportion")),
 		-Inf, Inf, rel.tol = 1e-12)$value
 	expected_truth <- mean(vapply(ref$p_base, function(p_i) {
 		logistic_normal_mean(p_i, beta) - logistic_normal_mean(p_i, 0)

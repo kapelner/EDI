@@ -444,6 +444,26 @@ range, since the plan files' internal numbering did not change.
   discontinuity, validation, callback-error and tiny/huge-scale regressions
   now run through `bisection_ci_parallel_cpp`. The edited tests passed against
   installed EDI 1.0.3 (66 + 45 + 14 + 69 + 13 + 40 expectations, 0 failures).
+  **Follow-up 2026-10-28 (owner decision: delete the kept shim).** Re-checked
+  that `bisection_ci_parallel_cpp` was dead in production: no R caller outside
+  the generated `RcppExports.R`, no `NAMESPACE` export, no Python binding, and
+  `edi::bisection_ci_search` was reachable only through it (the live
+  randomization CI search is the R code in `inference_all_abstract_rand_ci.R`
+  and `inference_ext_ci_inversion.R`). Deleted by hand, with no compile,
+  `compileAttributes` or roxygenize: `src/bisection_ci.cpp`,
+  `src/bisection_ci_search.h`, the `RcppExports.cpp` prototype/wrapper/
+  registration row, the `RcppExports.R` wrapper and roxygen block,
+  `man/bisection_ci_parallel_cpp.Rd`, the whole
+  `test-bisection-tail-and-discontinuity-regressions.R`, and the bisection
+  blocks in `test-resampling-kernel-contracts.R` and
+  `test-resampling-parallel-threshold-contracts.R`. **Consequence:** the
+  tail/discontinuity/validation assertions that pinned that search are gone, so
+  nothing in the suite now pins a C++ bisection. The installed EDI 1.0.3 still
+  contains the old symbol until the owner's next build, and the generated
+  `src/unity_05.cpp` still `#include`s the deleted file until `configure` runs
+  again. Registry CSVs under `R/package_tests` (`comprehensive_suite_*`,
+  `coverage_gap_registry.csv`) still list it and are left to the pre-push
+  regeneration.
   **Lin stretch (TODO-6 / G6 #4): DECIDED 2026-10-22, deferred to v1.1.0**
   (`release_v1_1_0.md → TODO-57`); closed for 1.0.5. ~~**Remaining:** the user
   rebuilds EDI and reruns the affected tests; then this box can be checked.~~
@@ -3978,6 +3998,8 @@ range, since the plan files' internal numbering did not change.
   per stratum (B=101) still require confirmation. Keep post-fix calibration
   and provenance-stamped comprehensive regeneration open; no run or result
   merge occurred.
+  - **AMENDED 2026-10-28 (owner):** the TODO-18 acceptance rule is simultaneous, Holm across the 18 cell x variant tests
+    (see runbook R3), replacing the per-cell no-multiplicity reading of #20 for this TODO only. TODO-16 (R1) keeps #20 as decided.
   - **DECIDED 2026-10-22 (G6 #35, #20):** calibrate only the 9 cells the plan names, and drop plan TODO-3 (historical
     reproduction). Acceptance follows the #20 rule (Clopper-Pearson 95% per variant x cell, at least 500 finite p-values,
     B = 101, paired percentile/smoothed). Procedure: G4-C runbook R3. The plan TODO-1/2 investigation comes first.
@@ -5040,6 +5062,46 @@ range, since the plan files' internal numbering did not change.
       - Not touched: under left-/interval-censoring the weighted path still errors (documented; `icfit()` has no weights).
       - BCa / type choice: the R4 script now pins `type = "percentile"` on the two default-named bootstrap families and
         uses `--B-bca` (default 999) for the two `_bca` families. Rationale and measurements are in G4-C runbook R4.
+    - **Status 2026-10-28 (agent; read-only on the run dirs, scratch only, no build, no canonical write):** the 16-vs-18
+      roster question is closed (18 on 2026-10-22; 14 after the R4A rand-bootstrap-CI refusal). Part A PASSED 2026-10-26
+      (14/14). Part B reconcile PASSED on the R4B rerun `~/edi_regen/r4b_20261026T213023Z` (113,440/113,440 keys).
+      Pooled audit done today:
+      - Rescoring, not a rerun: TODO-164's truth fix changes only `coverage_truth`. Its seed comes from the cache
+        key, so it reproduces exactly. Recomputing the truth with current harness code reproduced the stored truth on
+        the 7 unaffected datasets (|diff| < 1e-15) and the stored coverage flags on all 9. On iris and pte_example the
+        truth moved 0.002-0.008, which flips 74 and 64 rows. The rescored copies, scripts (`truth_check.R`,
+        `rescore.R`) and audit logs are in this session's scratchpad `todo23/`.
+      - Audit of all 9 datasets pooled (304,923 rows) against a copy of the canonical baseline: **3 NEW keys**, all
+        studentized: Bayesian studentized CI coverage 0.956 OVER (9,360 rows); Bayesian and nonparametric studentized
+        p-values, `pval_miscalibration`. Both p-values reject 0.044 at beta 0; the flag comes from the Fisher
+        p_large / AD tests, i.e. p-values piled toward 1. This is TODO-163's conservative independent-arms SE (the
+        Bayesian studentized SE is the same Greenwood form). Owner-accepted mechanism, but these keys are new.
+      - 9 canonical RMST baseline keys no longer occur and can be pruned: both `biased_estimate` keys (TODO-164's fix
+        cleared pte_example; fuel's jackknife bias is not significant pooled); Bayesian percentile CI `low_coverage`;
+        and the asymp, Bayesian, Bayesian-wald, rand-bootstrap, subsampling and wald p-value `pval_miscalibration`.
+        The other 16 RMST keys still occur, and their `detail` text is still from the raw-beta era.
+      - Pooled all-attempts CI coverage: 11 families 0.954-0.966 with 0 invalid; jackknife-Wald 0.924 (36 invalid;
+        TODO-162); the three BCa-type families 0.735/0.735/0.750 (TODO-161).
+      - **Left (each needs owner approval):** (1) merge R4B into canonical `nc_1_survival`
+        (`merge_comprehensive_slice_results.R`), using the rescored iris/pte_example rows or a 2-dataset rerun (~3.5 h);
+        (2) `--write-baseline` or a hand edit: add the 3 studentized keys, prune the 9, and refresh the 16 details
+        (TODO-161/162/163). Once both are done, check the sub-item above.
+      - **Owner 2026-10-28: (1) merge with the rescored rows; (2) update the baseline.**
+        - (2) DONE (agent; uncommitted). The RMST rows of `comprehensive_results_audit_baseline.csv` went from 25 to 19.
+          Added the 3 studentized keys, pruned the 9, and rewrote all 19 details as the pooled audit's text plus
+          "(R4B fixed-tau, 9 datasets ...)" and the accepting TODO (161 BCa NA, 162 jackknife, 163 conservative
+          SE/p-values). Hand edit (scratchpad `todo23/edit_baseline.R`): every non-RMST line is byte-identical. Not
+          `--write-baseline`, which refuses without all six response types and would rewrite every class. Verified:
+          the pooled R4B audit reports "OK -- 19 finding(s), all in the accepted baseline". Until (1) lands, an
+          audit of the canonical CSVs (old RMST rows) will list the 9 pruned keys as NEW and the 3 added as
+          resolved.
+        - (1) BLOCKED: `merge_comprehensive_slice_results.R` dry run (cars) refuses because the R4B sidecar DLL
+          `bc075596...` differs from the installed `EDI.so` `b8dd757a...` (reinstalled after the run). The dry run is
+          otherwise clean (cars: 33,413 new keys; canonical has no cars RMST rows). Canonical `nc_1_survival` holds 48,302
+          old RMST rows on diamonds/pte_example/abalone only. The merge replaces the 39,020 whose `id` is also an R4B
+          key (29,254 / 6,956 / 2,810). The other 9,282 (8,906 / 268 / 108) are stale and are not deleted by the
+          merge; prune them with `prune_stale_result_rows.R`, which is a separate approval. Owner decision: how to
+          treat the DLL mismatch. The rescored iris/pte_example CSVs also have no sidecar of their own.
 - [x] TODO-24 (added 2026-09-24, conclusively refuted 2026-10-08):
   **KK-matched Cox proportional-hazards undercoverage was a coverage-truth
   artifact, not a variance defect** —
@@ -5928,7 +5990,6 @@ baseline as expected/benign.
   **Owner decision 2026-10-21 (cheap option for 1.0.5):** the 20-node (shipped)
   acceptance is agreement with the 320-node optimum, not the 1e-4 exact-NLL rule
   (which at 20 fixed nodes would measure quadrature error, not optimizer quality).
-  The default node count, optimizer and start policy are NOT changed in 1.0.5.
   The 1e-4 exact-NLL rule stays as the optimizer-correctness gate at 320 nodes.
   **Measured baseline 2026-10-21** (installed EDI 1.0.3, Poisson GLMM, seeds
   41001:41010, Newton and L-BFGS agree to ~1e-3 SE): 20-node vs 320-node optimum,
@@ -13745,6 +13806,314 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     boundary guard fires on a genuine bias correction, not just noise. Scratch from TODO-161: `todo161/`.
   - To decide: whether the BCa z0 should handle ties (e.g. mid-rank `mean(boot < est) + 0.5*mean(boot == est)`),
     whether BCa is a sensible default for a step-function estimand, or accept.
+- [ ] TODO-166 (added 2026-10-28, owner; found by the calibration pre-push check, `calibration_gates.md`):
+  **`InferenceBaiAdjustedTKK14` / `InferenceBaiAdjustedTKK21` wald test ignores `delta`.**
+  Current state: DONE 2026-10-28 (owner approved; uncommitted). Return replaced by
+  `private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)`. Verified (load_all compile = FALSE):
+  `test-bai-thread-local-workspaces.R` passes; KK14/KK21 x `~1`/`~.`, null and effect reps: p at both CI endpoints
+  0.05, p at delta = 0 unchanged (0.4922 / 0.4644). The 4 Bai rows were removed from
+  `prepush_calibration_known_failures.csv`. Remaining: NEWS (Bug fixes), Rd unaffected (no roxygen change).
+  Investigation (agent, read-only; scratch `todo166/`):
+  - Cause: `inference_continuous_KK_bai_abstract.R:174-187`, `BaiAdjustedTSource$compute_asymp_two_sided_pval`
+    (the suite's "wald", `inference_suite.R:313`) uses `delta` only in `assertNumeric`; it returns
+    `2 * pnorm(-abs(beta_hat_T / s_beta_hat_T))`, i.e. always H0: 0. The CI uses
+    `compute_z_or_t_ci_from_s_and_df` (`inference_all_abstract_asymp.R:173`) correctly.
+  - Fix: replace the return with `private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)` (`:188`). Monkeypatched
+    on DesignFixedBinaryMatch n = 200: endpoint p 0.0500 exactly for KK14/KK21 x `~1`/`~.`; delta = 0 p unchanged
+    (0.272325 / 0.267528; df unset -> normal). Side effects: degenerate NaN -> NA; adds the cluster-independence
+    warn-once already on the CI path. Only these two classes use the `BaiAdjustedT` component; a namespace-wide scan
+    found no other real delta-ignoring p-value method.
+  - Synthetic sharp-null data (n = 200, p = 2, `R/package_tests/calibration/calibration_fast_tier_common.R`):
+    `compute_asymp_two_sided_pval_for_treatment_effect(delta = ci_a)` returns the same p as at `delta = 0`
+    (e.g. 0.4922 at both CI endpoints), so the CI is not the inversion of the test and any `delta != 0` test is wrong.
+  - Both `~1` and `~.`; listed in `prepush_calibration_known_failures.csv` (endpoint rows). Delete those rows once fixed.
+- [ ] TODO-167 (added 2026-10-28, owner; found by the calibration null baseline): **`InferenceContinKKGLMM` score CI
+  ~20% too narrow.** Current state: DONE 2026-10-28 (owner approved both; uncommitted).
+  `inference_continuous_KK_glmm.R`: `block_diag_information()` (L351-366) used by all three information accessors;
+  `fit_null` two-start (L373-403; switches only when nll improves by > 1e-4, so optimizer noise doesn't make
+  p(delta) jitter; `fast_gaussian_lmm_cpp` returns `neg_loglik`). Verified (load_all compile = FALSE): 6 test files
+  (22 tests) pass, no test changed; 200 null reps `~.`: score size / coverage / width 0.185 / 0.855 / 0.415 ->
+  0.075 / 0.925 / 0.542 (LR 0.075 / 0.925 / 0.539, Wald 0.080 / 0.920 / 0.534), agreement violations 12 -> 0,
+  score endpoint p within 0.005 of 0.05; LR `~1` pre-push effect rep p at ci_b 0.0183 -> 0.0500. Estimates, Wald
+  and LR p(0) identical on 12 reps. DEFAULT-OUTPUT CHANGE (score p / CI; LR CI where the warm chain stuck).
+  Remaining: NEWS; siblings with the same observed-Hessian-as-Fisher pattern (below) not changed. Pre-existing,
+  not caused by this: `lrt_ci_nr_cpp` non-convergence -> TODO-172.
+  Investigation (agent, read-only; scratch `todo167/`): Correction: the class refuses Bernoulli; the calibration plan runs it on BinaryMatch.
+  - Score: `observed_information` / `fisher_information` / `information` (`inference_continuous_KK_glmm.R:378-386`)
+    all return `get_gaussian_lmm_fisher_cpp`, a finite-difference OBSERVED Hessian at the null fit, where the
+    beta_T x log_sigma_b entry is non-zero (14.6 vs I[6,6] 1.9). The matrix is indefinite, the Schur complement goes
+    negative (NA on 68% of reps), and `score_test_with_ridge_fallback` (`inference_ext_information_matrix.R:184-219`)
+    ridges only until it is barely positive: effective information 41 vs correct 50.3 (Wald 1/SE^2 50.6). Size
+    0.257 on fallback reps, 0.031 otherwise. The expected information of a Gaussian LMM is block-diagonal.
+  - Proposed: zero the beta x variance-parameter blocks in all three accessors (`supports_fisher_information()` is
+    FALSE, `inference_all_abstract_asymp_lik.R:425`, so `observed_information` is what is used). 200 null reps `~.`:
+    score size / coverage / median width now 0.185 / 0.855 / 0.415, patched 0.075 / 0.925 / 0.542 (LR 0.075 /
+    0.925 / 0.539, Wald 0.081 / 0.920 / 0.534); endpoint p within 0.0015 of 0.05; agreement violations 12 -> 0.
+    Wald / LR unchanged; score p and CI change (default-output change).
+  - LR `~1` endpoint: `fit_null` (`:357`) warm-starts from the previous null fit (log_sigma_b -3.67); near
+    sigma_b = 0 the gradient is ~0, so the refit at ci_b stops at nll 320.75 vs optimum 319.90. Proposed: two
+    starts (warm + full-fit beta with beta_T = delta), keep the lower nll; monkeypatch gives endpoint p 0.0500 /
+    0.0500 (ci_b 1.2566 -> 1.2550).
+  - Same observed-Hessian-as-Fisher pattern: `InferenceCountKKGLMM` (`inference_count_KK_combined.R:486-500`;
+    non-Gaussian, block-zeroing only approximate), `InferenceIncidKKCondLogitGLMM*`
+    (`inference_incidence_KK_cond_logit_glmm_abstract.R:379-398`), `InferenceOrdinalKKGLMM`
+    (`inference_ordinal_KK_combined.R:724-732`); `InferencePropKKGLMM` not inspected.
+  - Null baseline (n = 200, 300 reps, `~.`, DesignFixedBernoulli): score size 0.213, coverage 0.813; the score CI is
+    ~20% narrower than wald / LR / gradient from the same fit; p at the CI endpoint 0.007. Pre-push also flags
+    agreement on `~.` (p = 0.0004 with a CI containing 0) and the LR endpoint on `~1` (p 0.018 at ci_b, effect rep).
+- [ ] TODO-168 (added 2026-10-28, owner; found by the calibration null baseline): **`InferenceIncidExtendedRobins`
+  wald undercovers on matched pairs.** Current state: INVESTIGATED 2026-10-28 (agent, read-only, installed 1.0.3;
+  scratch `todo168/`). Fix not applied, owner decision (changes default output).
+  - CHECKED AGAINST THE PAPER 2026-10-28 (Azriel, Krieger, Kapelner, arXiv:2607.05768, Sec. 2.3.2): the kernel is a
+    faithful implementation of Eq. 12 (per-block Robins, 1/B^2) + Eq. 13 (+ (1/n)(pT(1-pT) + pC(1-pC)), Jensen
+    bound); the BCRD case reproduces Prop. 1. So this is NOT a coding bug: it is the published estimator used
+    outside its range. The paper says V_Robins-ext "is conservative only for large samples, i.e. nB sufficiently
+    large", and its simulations (Sec. 3.2) find Robins "wildly missized", anti-conservative at nB = 2 -- the same
+    pattern as here. On pairs Eq. 12 is identically 0. The agent's "should divide by n/2" reading is wrong: 1/n is
+    the paper's Eq. 13. OWNER DECISION 2026-10-28: DOCUMENT the limitation, no code change. DONE (uncommitted):
+    class roxygen @details (estimator = paper Eqs. 12-13, conservative only for large blocks, pairs numbers,
+    prefer InferenceIncidCMH) + @references (arXiv:2607.05768, Robins 1988). Rd regenerated 2026-10-28 (uncommitted). Remaining: NEWS Known
+    limitations; the calibration fast tier will flag BinaryMatch cells -> add accepted-deviation rows citing this.
+  - CMH kernel (`compute_cmh_block_se_cpp`) also checked: it implements Eq. 8, 4/n^2 sum n1b n0b / (nB - 1), and
+    matches Prop. 1. Eq. 9 as printed in the paper omits the factor 4 (Eq. 8 and Prop. 1 both require it): typo
+    in the paper, not the code.
+  Agent's reading (superseded where it conflicts with the paper check above):
+  - `compute_extended_robins_block_se_cpp` (`src/cmh_speedups.cpp` ~L68-160, called from
+    `inference_incidence_extended_robins.R:123`): variance = a per-block plug-in term (L140-152) + `var_robbins_ext =
+    (pT(1-pT)+pC(1-pC))/n_total` (L155-158). On pairs every block proportion is 0/1, so the block term is exactly
+    0, and the addend divides by n_total, not n/2 per arm: half the independent-arms variance, no pairing term. No
+    source cited; unchanged since ff079d54. The formula is ignored (`~1` and `~.` identical).
+  - Null, n = 200, 300 reps, BinaryMatch: SD(est) 0.0726, mean SE 0.0494, paired sd(d_b)/sqrt(B) 0.0677; size 0.183
+    (Robins) vs 0.07 (paired z). Kernel on equal blocks, 2000 reps: block size 2 / 4 / 10 size 0.17 / 0.079 / 0.036
+    with this SE vs 0.055 / 0.064 / 0.064 with var(d_b)/B. Miscalibrated both ways by block size.
+  - Proposed: SE = sqrt(var(d_b) / B) (estimate = mean of per-block differences; needs B >= 2), in C++ or in R in
+    `get_standard_error` (no other caller). Changes wald SE/CI/p on every blocking design (~+37% SE on pairs):
+    documented default change, regenerate goldens, update the roxygen "block-stratified standard error" wording.
+    Not checked: the CMH kernel's within-block `var_cmh` just above (~L30-65).
+  - Null baseline, DesignFixedBinaryMatch, n = 200, 300 reps, `~.`: size 0.140, coverage 0.860. The CI and test
+    agree, so the SE itself is too small (does it use an independent-arms variance or ignore the pairing?).
+- [ ] TODO-169 (added 2026-10-28, owner; found by the calibration checks): **`InferenceCountZeroInflatedPoisson` /
+  `InferenceCountZeroInflatedNegBin` LR (and ZIP score) CIs not inverted from their tests.**
+  Current state: DONE 2026-10-28 (owner approved both; uncommitted). `inference_count_zero_augmented_poisson_abstract.R`:
+  vcov whitelist + theta dropped at the Poisson boundary (L389-401); `fit_null` two-start (L954-1003; the first fit
+  still propagates errors, only the extra full-fit refit is tryCatch'd). Verified (load_all compile = FALSE): 39
+  zero-inflated / hurdle test files (202 tests) pass, no test changed; 120 null reps before -> after: ZIP `~1` LR
+  coverage 0.917 -> 0.967, agreement 0.95 -> 1.00; ZINB `~.` LR 0.833 -> 0.932, 0.895 -> 1.00; ZINB `~1` LR
+  0.908 -> 0.967; ZINB Wald finite 19% -> 97.5% (`~.`), 70% -> 100% (`~1`); size unchanged 0.033-0.068. vs HEAD on
+  5 reps x ZIP/ZINB/Hurdle-Poisson x `~1`/`~.`: estimates and delta = 0 LR / score p bit-identical; ZINB gradient p
+  moves <= 2.5e-6 on boundary fits; ZINB Wald NA -> finite (= ZIP Wald) on boundary fits. DEFAULT-OUTPUT CHANGE
+  (LR / score / gradient CIs where the search had saturated; ZINB Wald now finite). Remaining: NEWS, canonical CSV
+  rows for these classes (G4). Investigation:
+  - Cause 1, warm-start chain stuck at a saturated zero-inflation fit. The LR p-value is right (fresh fits, rep 3
+    ZIP `~1`: true inversion ~[-0.249, 0.207]; reported CI [-0.249, -0.0057]). `lrt_ci_nr_cpp`
+    (`src/lrt_ci_newton.cpp:99`) refits the null at each delta, warm-started from the previous refit
+    (`make_warm_fit_null_wrapper`, `inference_ext_likelihood_test_memoization.R:21-53` -> `fit_null`,
+    `inference_count_zero_augmented_poisson_abstract.R:951`). At delta -0.481 the zero-inflation logits jump to
+    (-37.9, 23.1) (pi ~ 0) and every later refit stays there (gradient ~0) while reporting converged: null nll at
+    -0.249 is 122.935 vs true 122.672, and at -0.0057 the search sees p 0.0500 vs fresh 0.926. Score CI and p share
+    the warm key "likelihood_test:score" (`inference_ext_ci_inversion.R:105-113`), so the score p depends on whether
+    the CI ran first (ZINB `~.` rep 3: 0.3485 after the CI vs 0.4640 clean).
+    Proposed (R, monkeypatch-tested): in the zero-augmented `fit_null`, when `start` is given also refit from the
+    full fit with element j = delta and keep the lower nll (~2x CI cost). C++ alternative: clamp warm-start
+    zero-inflation logits to +/-10 in `fast_zero_augmented_poisson_cpp` / `fast_zinb_cpp`.
+  - Cause 2 (low yield), ZINB Wald SE NA at a boundary: the C++ vcov has NaN rows with `covariance_type`
+    "observed_conditional_on_poisson_boundary" / "..._zero_inflation_boundary", and `safe_zero_augmented_vcov_se`
+    (abstract.R:366-410, whitelist ~L389) only passes `pseudo_inverse_*`. Proposed: whitelist both
+    `observed_conditional_*` types and drop the dispersion index when `dispersion_at_poisson_boundary`; ZINB Wald
+    then equals ZIP Wald at the boundary.
+  - 120 null reps, before -> after both patches: ZIP `~1` LR coverage 0.917 -> 0.967, agreement 0.95 -> 1.00; ZINB
+    `~.` LR coverage 0.833 -> 0.932, agreement 0.895 -> 1.00; ZINB `~1` LR 0.908 -> 0.967; ZINB Wald finite 19% ->
+    96% (`~.`), 70% -> 100% (`~1`). Point estimates unchanged; LR / score / gradient CIs change where the search
+    hit the saturated region (default-output change).
+  - Gate harness gap: in the installed build `compute_lik_ratio_two_sided_pval` has formals `(...)`, so `cal_pval_at`
+    (`calibration_fast_tier_common.R:119`) skips the endpoint check for these classes (needs `delta` in formals).
+  - ZIP lik_ratio `~1`, null rep 3: p = 0.8865 while the CI [-0.249, -0.0057] excludes 0. ZIP score `~.`: p at ci_b
+    0.021. ZINB lik_ratio `~.` null baseline: coverage 0.803 while the test's size is 0.079.
+  - Low yield in the same baseline (reported, not gated): ZINB wald/gradient ~15% finite.
+- [ ] TODO-170 (added 2026-10-28, owner; found by the calibration pre-push check): **`InferenceAllSimpleWilcox` CI
+  doesn't match its test.** Current state: DONE 2026-10-28 (owner approved; uncommitted). Line 81 now
+  `wilcox.test(yT, yC, mu = delta, exact = FALSE)`; verified with load_all(compile = FALSE): wald-routing test passes,
+  endpoint p 0.0499 / 0.0500 (continuous / proportion). Count / ordinal exempted from the pre-push endpoint check
+  (`PREPUSH_ENDPOINT_EXEMPT` in `prepush_calibration_checks.R`), all 8 AllSimpleWilcox rows removed from
+  `prepush_calibration_known_failures.csv`, tie sentence added to the class docs, `calibration_gates.md` corrected.
+  Remaining: NEWS (Bug fixes: nonzero-delta wald/asymp p-value tested -delta); Rd regenerated 2026-10-28 (uncommitted).
+  Investigation (agent, read-only, installed 1.0.3; scratch `todo170/`): two causes.
+  - Continuous / proportion / uncensored survival: REAL BUG, the p-value tests the mirror hypothesis.
+    `inference_all_simple_wilcox.R:81` calls `wilcox.test(yT, yC - delta)`; a shift of delta needs `yC + delta`
+    (roxygen :67-69 says so). The CI (`wilcox.test(yT, yC, conf.int = TRUE, exact = FALSE)`, :108, :331) is the
+    correct HL inversion of the same test. Evidence: CI [-0.443, 0.167] gave class p 0.0002 / 0.84 at the endpoints
+    vs `wilcox.test(mu = d)` 0.0501 / 0.0501. Fix: `stats::wilcox.test(yT, yC, mu = delta, exact = FALSE)$p.value`;
+    monkeypatched, endpoint p 0.0499-0.0503 on 3 continuous + 3 proportion reps. delta = 0 output unchanged.
+  - Count / ordinal: EXPECTED. With 191-196 of 200 values tied, p(delta) is a step function jumping at integers
+    (e.g. p(-0.5) 0.69, p(0) 0.056, p(1e-6) 0); R's CI search lands endpoints on the jumps, so endpoint p is either
+    side of a jump (the sign fix doesn't change it). Proposed: exempt count/ordinal for this class from the
+    pre-push endpoint check (keep agreement + sign), say so in the known-failures reason, add one sentence to the
+    class's "Heavily tied count and ordinal data" docs, and correct `calibration_gates.md` ("HL interval is not the
+    inversion" is wrong).
+  - Every response type: p at the CI endpoint is far from 0.05 (continuous 0.34, proportion 0.017, count 0.025,
+    ordinal 0.016). The Hodges-Lehmann interval may legitimately come from a different construction than the
+    reported p-value (normal-approx rank-sum, ties); decide whether that's a bug or documented behaviour (then the
+    endpoint check should skip this class, or the CI should be the test inversion).
+- [ ] TODO-171 (added 2026-10-28, owner; found by the calibration pre-push check): **`InferenceCountKKGLMM` LR
+  p-value equals its Wald p-value exactly on every replicate.** Current state: INVESTIGATED 2026-10-28 (agent,
+  read-only; scratch `todo171/`): was by design. OWNER DECISION 2026-10-28: drop the max(model, Wald) rule to
+  match the sibling KK GLMM classes. DONE (uncommitted): `inference_count_KK_combined.R` lik_ratio CI / p-value and
+  the score / gradient branches of `compute_asymp_*` now return the model test (no `.conservative_kk_onelik_*`, so
+  the warning gap below is moot); class Details and LR method roxygen rewritten; the jackknife-inflated Wald SE is
+  unchanged. `test-onelik-lik-test-dispatch-glmm-lwa.R` updated (dispatched p == model p, LR != Wald) and passes
+  (load_all compile = FALSE); `test-warm-start-dispatch-policy-refactor.R` passes. DEFAULT-OUTPUT CHANGE: LR /
+  score / gradient p-values and CIs of this class get smaller / narrower. Remaining: NEWS (documented default
+  change), regenerate this class's rows in the canonical CSVs (G4). Rd regenerated 2026-10-28 (uncommitted).
+  Findings:
+  - LR is really computed (matches a direct deviance check to 10 digits) and then clamped:
+    `inference_count_KK_combined.R:198-202` returns `.conservative_kk_onelik_pval(p_LR, p_wald)` = max (CI :184-188 via
+    `.conservative_kk_onelik_ci`), and the design Wald SE is jackknife-inflated when larger. LR p is slightly below
+    Wald on every rep (0.94137288 vs 0.94137393), so max picks Wald. Documented in the class Details and both LR
+    method docs. Siblings `InferenceContinKKGLMM` / `InferenceIncidKKCondLogitGLMM*` have no clamp.
+  - Gap: :186 and :201 call the helpers without `owner` / `label`, so an NA LR refit falls back to Wald with no
+    `edi_lik_test_wald_fallback` warning (TODO-121's warning; score/gradient at :244-249 pass them). Proposed fix
+    (no numeric change): pass `owner = list(self = self, private = private), label = "lik_ratio"` at both sites.
+  - Optional, owner: drop the clamp to match siblings (default-output change). Calibration: the class needs
+    DesignFixedBinaryMatch (rejects Bernoulli); LR == Wald is expected for `.conservative_kk_onelik_*` classes.
+  - Not a calibration failure (synthetic size 0.067), but the LR path likely falls back to Wald silently. Find
+    whether the fallback is intended, and if so whether it's reported.
+- [ ] TODO-172 (added 2026-10-28, found by the TODO-167 agent): **`lrt_ci_nr_cpp` returns a bracket midpoint
+  when it fails to converge.** Current state: OPEN, not investigated.
+  - `InferenceContinKKGLMM` null rep 145 (seeds 5001-5200, `~.`, BinaryMatch, n = 200): LR lower endpoint -0.363
+    where p = 0.0034 (identical before and after the TODO-167 fix). `src/lrt_ci_newton.cpp` takes many tiny Newton
+    steps near the root; tol_p = 1e-7 is tighter than the null fit's precision, and on non-convergence it returns
+    the midpoint of a wide bracket instead of NA or a bisection result. Shared C++, so every LR CI may be affected.
+    Check: how often it fails across classes (calibration fast tier endpoint p), tol_p vs fit precision, fallback.
+
+- [ ] TODO-173 (added 2026-10-28, owner; found by the calibration pre-push check reseed): **`InferenceIncidKKCondLogitGLMMOneLik`
+  lik_ratio CI is not the inversion of its own LR test.** Current state: OPEN, not investigated.
+  - The 3 rows left for it in `prepush_calibration_known_failures.csv` (n = 200, BinaryMatch, seeds as in the pre-push check):
+    `~1` null rep 1: p at the upper endpoint 1.101 is 0.0037 (expected ~0.05); `~.` null rep 2: p = 0.0243 but the CI
+    [-1.642, 0.267] contains 0 (agreement), and p at the lower endpoint is 0.0086.
+  - Likely the TODO-167 mechanism: the LR CI search refits the null at each delta from the previous refit
+    (`fit_null`, `inference_incidence_KK_cond_logit_glmm_abstract.R:356-364`, warm start `start %||% ...`) and can get
+    stuck near the random-effect variance boundary. Candidate fix, as in TODO-167 (`inference_continuous_KK_glmm.R`):
+    a second start from the full fit with beta_T = delta, keeping it only when the nll improves by > 1e-4. Rule out
+    TODO-172 (`lrt_ci_nr_cpp` midpoint on non-convergence) first: check whether the search converged on these reps.
+  - Done when: the 3 rows reproduce no longer and are deleted from the known-failures CSV; the class's tests pass;
+    delta = 0 LR p unchanged. If the CI changes, NEWS (documented default change) and canonical CSV rows (G4).
+
+- [ ] TODO-174 (added 2026-10-28, owner; found investigating the 2 Stereotype rows in
+  `prepush_calibration_known_failures.csv`): **`pval_invert_ci_cpp` returns its Wald seed as a CI endpoint when the
+  bisection never moves.** Current state: OPEN, investigated; fix proposed, not applied.
+  - Example: `InferenceOrdinalStereotypeLogitRegr` score CI, pre-push null rep 1 (n = 200, Bernoulli, ordinal, `~1`):
+    lower endpoint = Wald lower exactly (-0.2390472; the upper is a genuine root); the class's own score p there is
+    0.034 (pre-push endpoint failure).
+  - Mechanism (`src/lrt_ci_newton.cpp:214`): p is evaluated at the Wald seed first; p(seed) = 0.034 <= alpha makes the
+    seed the outer bracket end `b`; every bisection midpoint then returns p > alpha, so `b` never moves and the seed is
+    returned. Nothing checks that the bracket shrank or that p(b) agrees with the p-values next to it. The p(seed) value
+    itself was wrong (history-dependent, TODO-175).
+  - Shared C++: every score / Bartlett / `invert_test_pval_confidence_interval` CI goes through it. Check how often a CI
+    endpoint equals the Wald endpoint bit-for-bit across classes, and decide the fallback (re-evaluate p(b), widen,
+    treat as failure -> `finalize_inverted_ci`'s Wald-fallback-with-warning or NA).
+  - **Investigated 2026-10-28 (agent, read-only; pure-R replica bit-identical to the C++; prototype diff
+    `/tmp/claude-1000/t174/fix.diff` (copy: session scratchpad `todo174_fix.diff`), not applied).** Survey (instrumented wrapper, `cal_run_rep(endpoints = TRUE)`,
+    n = 200, null reps 1-4, all 6 response types): 1,364 finite ends through `pval_invert_ci_cpp`; 4 equal the Wald seed
+    bit-for-bit -- 2 are this bug (Stereotype score rep 1 `~1` / `~.`: p(seed) 0.0337, inner point 7e-7 away p 0.0904,
+    p jumps across the seed), 2 are genuine roots at the seed (CountHurdleNegBin score, CountZeroInflatedNegBin LR; p
+    there ~ alpha). Callers: `invert_test_pval_confidence_interval` (:137; score, Bartlett, no-spec Wald-p and LR /
+    gradient fallbacks, incl. the count-likelihood classes) and `invert_gradient_ci_uniroot` (:190). `lrt_ci_nr_cpp` is
+    separate. The count Poisson classes' CIs equal to Wald come from the no-spec Wald-p inversion, not this bug.
+  - **Second mechanism found: an NA midpoint stops the bisection** and returns the unpolished outer point (6 ends):
+    `InferenceIncidLogBinomial` gradient rep 4 `~.`: CI [-0.275, **6.997**] (p there 2e-67; fixed: 0.2597);
+    `InferenceIncidBinomialIdentityRiskDiff` score reps 1-4 `~1`: upper = est + step (p 0.0476, slightly conservative) --
+    after one failed null refit every later p on that object is NA (0.1292 was finite before), i.e. a failed refit
+    poisons the warm cache. Class-side; the root finder can't fix it -> separate TODO (with TODO-175's warm-start work).
+  - Proposed fix (constants inside the function, no new exported args, no RcppExports change): (a) jump guard -- if the
+    bisection collapses onto the initial `b` (seed or step point) and |p(a) - p(b)| > 1e-3, restart the exponential search
+    outward from `b` keeping `a`; after 3 restarts return NA for that side (-> `finalize_inverted_ci` Wald fallback with
+    warning); (b) on an NA midpoint, halve back toward `a` (up to 20 times) instead of stopping. Re-evaluating p(seed)
+    doesn't help (memoized). Prototype: Stereotype score lower -0.2390 -> -0.2832 (p 0.0499 on the same object; fresh
+    0.763, so TODO-175 is still needed for a correct endpoint); LogBinomial as above; RiskDiff unchanged. Fix (a) alone
+    over 1,576 CI rows: exactly the 2 Stereotype rows change, the rest bit-identical. (b) narrows every CI that now ends
+    on an NA midpoint (less conservative). Cost: up to 60 extra p evaluations per restart, 20 per NA midpoint.
+    Default-output change: NEWS, canonical CSVs (G4), equivalence note. Assumes p continuous near the root.
+- [ ] TODO-175 (added 2026-10-28, owner; same investigation): **`InferenceOrdinalStereotypeLogitRegr` score / LR
+  p-value depends on evaluation history, not only on delta.** Current state: OPEN, investigated; fix proposed, not applied.
+  - Each delta-constrained null refit warm-starts from the previous one (memoized warm cache, `warm_cache_key =
+    "likelihood_test:score"` in `invert_test_pval_confidence_interval`, `R/inference_ext_ci_inversion.R`; the class's
+    `make_warm_fit_null_wrapper`). Same data, same delta, rep 1: score p(-0.239) = 0.034 after a grid scan vs 0.883 on a
+    fresh object; score p(0) = 0.028 vs 0.163; LR p(-0.239) = 0.031 vs 0.221 (neighbours -0.25 / -0.20: 0.22). The
+    multimodal null refit (memory `project_stereotype_multimodal_likelihood_20260921`) reached through the warm chain.
+  - Even fresh, the score p is non-monotone: 0.99 at -0.2, 0.16 at 0, 0.32 at 0.1, 0.99 at the estimate 0.497 -- a dip at
+    beta_T = 0, where the phi loadings are not identified (Davies). So {delta : p > alpha} need not be an interval.
+    Fresh LR p is smooth (lower root ~-0.64, matches the LR CI).
+  - Candidate fix, as TODO-167/169: a second start from the full fit with beta_T = delta, keep the lower nll; then
+    document the score CI's behaviour near 0 for this class.
+  - **Investigated 2026-10-28 (agent, read-only; prototype `$TMPDIR/t175/patch3.R`, not applied).** Channel:
+    `get_likelihood_test_spec()$fit_null` (~L461-510) gets `start` from `make_warm_fit_null_wrapper`
+    (`inference_ext_likelihood_test_memoization.R`) = the previous delta's null params per cache key; its existing
+    "two starts" are {that start, full fit with beta_T = delta}. On a fresh object `start` is NULL (= cold start),
+    which is the only reason fresh is right. Latent second channel: `get_fit_warm_start*` set by rand / bootstrap refits.
+    Rep 1 `~1`, delta = -0.239 (full nll 271.133): chained null nll 273.473 (a genuine local optimum, nuisance score
+    ~1e-3), fresh 271.880; the full-fit start alone also lands at 273.473. Cause: the null profile is multi-branch -- the
+    loadings saturate at gamma6 ~ -13 for beta_T > 0 and ~ +13 for beta_T < 0, and the full-fit start (and a chain
+    from the right) stays on the beta_T > 0 branch. Rep 11 has a third optimum at delta <= -1.22 that cold + full both
+    miss (LR p jumps 0.023 -> 0.109), so a 2-start fix is not enough.
+  - The dip at delta = 0 is genuine Davies non-identification: at beta_T = 0 the loadings drop out (with covariates
+    dropped, TODO-176); all 10 starts reach nll 272.1055354 +- 2e-9 with arbitrary gamma, and the score p ranges
+    0.163-0.555 with that gamma. The profile has a local maximum at 0, so the LR p is non-monotone too (0.225 / 0.163 /
+    0.278 at -0.2 / 0 / 0.1). Neither acceptance set is guaranteed to be an interval.
+  - Proposed fix: `fit_null` ignores `start` and the warm Fisher; deterministic starts = full fit with beta_T = delta
+    (first), cold, then `.stereotype_multistart_candidates(full_start)` with beta_T = delta (8 more at K = 4); a later
+    start wins only on an nll improvement > 1e-6 (matches `.stereotype_full_data_multistart`'s tolerance, so ties at 0
+    keep the MLE's loadings). Same treatment for the parametric-bootstrap `fit_null` in `simulate_under_lik_null`
+    (~L578-607). Prototype: chained == fresh on every row; rep 1 score p(-0.239) 0.8827 / 0.8827, p(0) 0.1632 unchanged,
+    score CI lower -0.239 -> -0.756, LR CI unchanged [-0.638, 1.243]. Endpoint check on the estimable reps in 1-25
+    (9 reps x 2 formulas): LR 18/18, score 16/18 (before: LR 14/16; score 16/16 only because the endpoint is evaluated on
+    the same chained object -- fresh p there 0.008-0.67). Cost: score CI 1.27 -> 2.20 s, LR CI 0.32 -> 0.52 s.
+  - Left after the fix: rep 25 score upper endpoint p = 0.022 -- the loadings drift along a flat boundary ridge (info min
+    eigenvalue 1e-8..6e-5, Schur complement 10.1 / -6.85 / 1.55), score p 0.093 / 0.044 / 0.000 / 0.019 on 0.67-0.75 while
+    the LR is smooth. Same root as TODO-176. Needs a documented limitation: score p at 0 is conditional on the chosen
+    phi; non-monotone score and LR p; score CI unreliable on a flat loading ridge; recommend the LR CI for this class.
+    Default-output change (score / LR CIs and p-values): NEWS + canonical CSV rows (G4) when applied.
+- [ ] TODO-176 (added 2026-10-28, owner; same investigation): **`InferenceOrdinalStereotypeLogitRegr` drops the
+  covariates in most fits.** Current state: OPEN, investigated; fix proposed, not applied; owner decision pending (below).
+  - Rep 1: `~1`, `~.` and `~x1` give the same estimate (0.497038), which is why both known-failure rows are identical.
+    The full `~.` fit converges (beta_T = -0.27, gradient norm 0.01) but one loading is saturated: an all-zero row /
+    column of the Fisher information (min eigenvalue ~ -3e-6; the fit's own `min_eigenvalue_information` is NaN).
+    `stereotype_fit_is_usable()` rejects it and `fit_with_hardened_qr_column_dropping()` (`generate_mod`, :364) drops
+    x1, x2 down to treatment only, whose fit is itself degenerate (a parameter at -13.1).
+  - Null reps 1-40 (same generator): 34/40 keep no covariate (incl. NA fits), 5 keep both; 15/40 `~.` estimates equal
+    `~1`; 22/40 `~1` and 19/40 `~.` estimates are NA. The class docs report 10-12% covariate drop and 30-38%
+    non-estimable (n = 100/50); this DGP (cumulative-logit y, so the stereotype model is misspecified) is worse.
+  - A saturated loading is not covariate rank deficiency. Options: handle the loading (fix at the boundary / drop it)
+    instead of dropping x1, x2, or report non-estimable rather than silently fitting treatment-only. Relates to the 1.1.0
+    revision the class docs promise. Other ordinal classes are fine (PropOdds `~.` matches `MASS::polr`).
+  - **Investigated 2026-10-28 (agent, read-only; prototype `/tmp/claude-1000/t176/patch.R`, diff
+    `/tmp/claude-1000/t176/proposed.diff`, copy in the session scratchpad `todo176_proposed.diff`; not applied).**
+    Loadings: phi_1 = 0, phi_K = 1, phi_j = sum_{r<=j-2} exp(gamma_r) / (1 + sum exp(gamma)) (`fast_stereotype_logit.cpp`
+    `compute_scores()`); gamma -> -inf merges adjacent categories, large gamma merges with 1 (information row -> 0).
+  - Two causes. (1) **The full fit is usually not the MLE** (cold-start artifact: at beta = 0 the loadings carry no
+    information and Newton walks a gamma to +-inf). Rep 1: EDI cold nll 265.597, beta_T -0.27, saturated; `VGAM::rrvglm`
+    264.668, beta_T 0.391, phi (0, 0.58, 0.62, 1) interior; EDI two-stage start (fit with gamma = 0, then free it)
+    264.668, 0.3908 (SE 0.671), PD. Over reps 1-40: cold saturates 39/40, worse nll than two-stage 35/40 (median 2.35,
+    max 12.2); where VGAM's optimum is ordered (26/40) two-stage matches it in 26, cold in 1. The multistart candidates
+    are offsets of the primary fit and never leave the boundary basin. C++ follow-up: `newton_stalled_at_optimum` reports
+    `converged = TRUE` at these non-optimal points. (2) **A genuine boundary MLE is treated as a failed fit**: in the
+    other 14/40 reps (and 37/40 treatment-only fits) the ordered MLE is on the boundary; the usability check (`chol` +
+    rcond > sqrt(eps)) is a coin flip on a ~0 eigenvalue (rep 1 full rejected at -3e-6, treatment-only accepted at
+    +3.9e-6 with gamma_2 = -13.1; reps 2/3 treatment-only rejected -> NA). 100% of NA estimates (~1 22/22, ~. 19/19) and
+    all 16 covariate-dropped ~. fits fail on that check alone.
+  - Recommended fix A + B: (A) an adjacent-category two-stage start (gamma fixed at 0, then released) as a candidate in
+    `.stereotype_full_data_multistart`; (B) in the unconstrained branch of `stereotype_fit_is_usable` (`fixed_idx =
+    NULL`), hold gamma-block eigen-directions with eigenvalue <= 1e-6 * max diag at the boundary, check PD / rcond on the
+    reduced information, take beta_T's SE from it (bit-identical to the C++ `ssq_b_1` when nothing is flat); null-refit
+    path and `require_information_pd = FALSE` unchanged. B alone must not ship (accepts the spurious cold points). Column
+    dropping then happens only for real QR rank deficiency. Reps 1-40, before -> A -> A+B: `~.` NA 19 -> 2 -> 0; keeps
+    x1+x2 5 -> 36 -> 40; `~1` NA 22 -> 22 -> 0; Wald p < .05 `~.` 1/21 -> 2/38 -> 2/40, `~1` 2/18 -> 2/18 -> 3/40. `~.`
+    A+B: sd(est) 0.394 vs RMS SE 0.397, estimates = VGAM / two-stage MLE (max diff 0.019). 400-rep check: `~.` Wald size
+    5.8% (boundary fits 5.3%, interior 6.0%); `~1` 9.3%, sd 0.475 vs SE 0.361 -- pre-existing (old estimable `~1`: sd
+    0.503 vs SE 0.362; the 2x4 table is nearly saturated, boundary MLE in 335/400).
+  - Owner decision: for `~1`, accept boundary fits too (A + B as prototyped) or report non-estimable when the
+    treatment-only fit is at the boundary. Default-output change (most adjusted estimates / SEs; ~half the NAs become
+    estimates; `full_neg_loglik` drops, so LR / score / gradient p move -- coordinate with TODO-175); re-measure the
+    class docs' "10-12% covariate drop / 30-38% non-estimable"; ~25% more multistart time (estimated, not measured).
 
 ## Standing constraints
 
@@ -14461,7 +14830,11 @@ Common rules (R1-R7):
   without one is labelled "fresh representative design").
 - Output: row CSV, `type1_summary.csv` (cell x variant), and paired discordances (percentile reject XOR smoothed reject)
   per cell.
-- Pass: the #20 rule for both variants in all 9 cells. Report discordances but do not gate on them. The bounded
+- Pass (**amended 2026-10-28, owner: simultaneous Holm**): Holm-adjusted one-sided exact binomial tests (H0: rejection rate
+  <= 0.05) across all 18 cell x variant tests at familywise alpha 0.05, with n_fin >= 500 in every row. Unadjusted per-cell
+  Clopper-Pearson (#20) is still reported but no longer gates; unadjusted, 18 tests at a true rate of exactly 0.05 would
+  false-fail about a third of the time. Implemented in `todo18_smoothed_brt_null.R` (`p_exceed`, `p_holm`, `holm_ok`
+  columns; not yet run). Report discordances but do not gate on them. The bounded
   categorical cases must still be rejected (existing tests `test-brt-smoothed-count-support.R`,
   `test-brt-smoothed-noise-mat-plumbing.R`).
 - Closes: TODO-18's sub-item "Finish the dispatch/support cross-reference ... run the predeclared matched calibration ..."
@@ -14778,7 +15151,21 @@ R4B (worker died 15:08:37), R3 N3-N7 (all 15,000 rows "lazy-load database ... ED
 N6 7.0/7.0%, N7 5.8/5.8% PASS (percentile/smoothed); N4 (KKHurdlePoissonOneLik `~1`, FixedBinaryMatch) 7.6/7.2% and N5
 (CountPoisson `~.`) 7.6/7.6% FAIL_ANTICONSERVATIVE, both marginal (CP lower 0.051-0.054). N5 is the C2 high-p/n
 mechanism (diamonds `~.`); N4 is unexplained but marginal. Smoothed vs percentile discordance <= 0.4% in every cell, so
-smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to rerun.
+smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to rerun. [Superseded 2026-10-28: R1 `bartlett` and the TODO-16 parametric-bootstrap target both reran 2026-10-25 on `c6d59498...` (PASS under the `~1` re-scope, see R1), and R4B reran 2026-10-26/27.]
+- **N4 rerun at 2,000 reps, 2026-10-28 (agent): PASS, so the 10-25 excess was mostly noise.** Run dir
+  `~/edi_regen/r3_N4_2000_20261028T191039Z/` (two receipt jobs, both exit 0). Installed unity build, EDI.so md5
+  `59f72778...` (sha256 `b8dd757a...` in provenance), checkout `421875f3` (dirty). Same runner and settings as 10-25
+  (`todo18_smoothed_brt_null.R --cells N4 --B 101`, diamonds n = 148, FixedBinaryMatch, `~1`, paired percentile/smoothed,
+  #20 per-cell CP rule) with `--target-finite 1000 --max-cases 1000` per job. New seed bases, disjoint from the 10-25
+  seeds (18600001-18600500): job A `--seed-base 58000000` (seeds 58600001-58601000), job B `--seed-base 59000000`
+  (59600001-59601000); draws/noise seeds are +1e7/+2e7. 2,000/2,000 finite per variant. Percentile 115/2000 = 5.75%
+  (CP 0.0477-0.0686), smoothed 113/2000 = 5.65% (CP 0.0468-0.0675): **PASS** both. One-sided exact p (H0 rate <= 0.05) is
+  0.071/0.101, so this passes under the amended Holm rule too. Discordance 0.1%. Pooled with 10-25 (500 cases, 38 and 36
+  rejections): 6.12% (CP 0.0521-0.0713) / 5.96% (0.0506-0.0696), FAIL by CP. Pooling is biased upward, because the
+  10-25 cell was rerun *because* it looked high, so the fresh 2,000 is the decision run. A small real excess (about
+  5.5-6%) is still plausible: the [0, 0.1] decile holds 239 of 2,000 p-values (about 200 expected). Recommendation: no
+  NEWS Known-limitations entry needed for N4 (the gating rule passes). Optional: one line noting about 6% empirical size
+  at n = 148 with B = 101, if the owner wants to be conservative.
 - **CORRECTION 2026-10-25 (R4B smoke on `c6d59498...`): the reinstall did NOT kill R4B.** Its err.log line 46401 reads
   `20:33:40 Watchdog: compute_rand_bootstrap_two_sided_pval ran 135s (limit 120s); killed worker ... restarting`, and line
   46403 reads `refusing to overwrite an existing attempt manifest: .../attempt_events.csv`
@@ -14822,6 +15209,54 @@ smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to reru
   the two classes. One SimulationFramework fit now carries both classes, so DesignFixedBinaryMatch matches once per
   dataset x scheme x mc_n x seed. A solo-class smoke gave estimates identical to the shared run. That is 54 shared
   fits, about 4 h at 2 in parallel (~21 GB). Launch after R4A frees memory.
+- **R7 full run 2026-10-27/28 (installed build `f060874a`, `--betas 0.5`, 2 jobs):**
+  `~/edi_regen/r7_full_20261027T2030Z_{a,b}` (a: abalone, airquality, boston, cars, diamonds; b: fuel, ionosphere,
+  iris, pte_example). Part b done (exit 0, 144/144 fits ok; median fit 9 s / 64 s / 477 s at mc_n 3000 / 6000 /
+  12000). Part a still running at the time of writing.
+  - Criterion (b) as approved is unsatisfiable: two independent fits differ with SD ~sqrt(3) * se_12000, so
+    P(|step| < 1 se) ~0.44 per scheme x seed and ~0.007 for all 6. Even KKLWACoxPH (seed SD half its SE) failed it.
+    Owner decision 2026-10-28: recompute the verdict with corrected (b): every scheme x seed |est_12000 - est_6000|
+    < 2 * sqrt(se_12000^2 + se_6000^2); (a) unchanged. Scratch script: scratchpad `r7/verdict.R`. Add an SE sanity
+    guard (fail a cell whose SE exceeds |estimate| / diverged fits) so a huge SE cannot pass vacuously.
+  - Part b, corrected: KKLWACoxPH passes all 4 datasets (max pair z 0.98-1.91, max step z 0.74-1.35).
+    KKStratCoxPH fails fuel (step z 3.19), iris (pair z 2.55; seed SD 0.44 vs SE 0.31), pte_example (pair z 3.75,
+    step z 4.03; SD 0.11 vs SE 0.049); ionosphere "passes" only because fits diverge (mean -15.2, SD 18.8, SE 550).
+  - Owner decision 2026-10-28: `InferenceSurvivalKKStratCoxPHOneLik` STAYS in `COVERAGE_TRUTH_UNAVAILABLE` for 1.0.5
+    (the list is per class; it fails every part-b dataset). Separation / Firth: `release_v1_1_0.md → TODO-69`.
+    KKLWACoxPH: removal from the list pending part a and an owner go-ahead for the harness edit.
+  - WSL crash 2026-10-28 killed part a after 140/180 rows (abalone, airquality, boston complete; cars 4/6 at 12000;
+    diamonds none). Owner reinstalled EDI (EDI.so md5 `59f72778...`, 04:49). Resumed into
+    `~/edi_regen/r7_resume_20261028_cars` (mc_n 12000, bootstrap, seeds 10002-10003) and
+    `~/edi_regen/r7_resume_20261028_diamonds` (full grid), both exit 0. MIXED BUILDS: parts a/b on `f060874a`, the
+    resume dirs on `59f72778` (no Cox-path changes between them). All 324 fits ok.
+  - Full corrected verdict (all 4 dirs; scripts in session-2 scratchpad `r7/verdict.R`, `r7/chisq.R`): KKStratCoxPH
+    fails every dataset; it diverges on abalone / airquality / boston / ionosphere (SE 64-550, estimates -10 to -24).
+    KKLWACoxPH passes corrected (a)+(b) on 5/9 and fails abalone (step z 2.16), boston (pair z 2.22), cars (pair 2.37,
+    step 2.97), diamonds (pair 3.12). Max-over-comparisons rules fail a converged truth ~half the time per dataset, so
+    this is expected noise. Chi-square alternative (6 top-mc_n estimates homogeneous, chi2_5; 6 steps zero, chi2_6):
+    KKLWACoxPH min p_homog 0.076 (diamonds), min p_step 0.069 (cars); all 9 datasets > 0.01; seed SD <= 0.05.
+    PENDING OWNER: adopt the chi-square rule (p > 0.01 each) and remove `InferenceSurvivalKKLWACoxPHOneLik` from
+    `COVERAGE_TRUTH_UNAVAILABLE`.
+  - WHY KKStratCoxPH fails (2026-10-28): harness survival DGP is `y_base * exp(0.5 w + eps)`, eps ~ N(0, 0.1). Pairs of
+    near-identical rows (recycled/resampled truth rows; matched pairs at n = 148) are discordant with prob
+    Phi(-0.5 / (sqrt(2) 0.1)) ~ 2e-4, so the pair-stratified partial likelihood is near-separated: estimates -7 to -70,
+    SE up to 6500, and the conditional target moves with mc_n and scheme (pte_example block -1.95 vs bootstrap -2.15).
+  - Epsilon-SD sim (session-2 scratchpad `eps/`, n = 148, 30 reps, abalone / ionosphere / pte_example / cars):
+    KKStratCoxPH divergences (|est| > 8 or SE > 5) at SD 0.1 / 0.25 / 0.5 / 1.0: abalone 20/0/0/0, ionosphere 10/0/0/0,
+    others 0. Identical-pair discordance 0.02% / 7.9% / 24% / 36%. KKLWACoxPH 0 divergences at every SD.
+  - Smoke of all 13 non-legacy survival classes (DesignFixedBinaryMatch, n = 148, 4 datasets x 5 reps, SD 0.1 vs 0.25,
+    asymp CI and p-value; 1,040 rows, 0 errors): no class blows up at 0.25. Pre-existing and noise-independent:
+    `InferenceSurvivalCoxPHRegr` returns NA estimate/CI/p-value on abalone, cars, ionosphere (15/20 at 0.1, 12/20 at
+    0.25; pte_example fine). Cause not investigated.
+  - OWNER DECISION 2026-10-28: per-response-type noise SD in the harness, survival 0.25, others unchanged at 0.1. DONE
+    (uncommitted): `SD_NOISE_BY_RESPONSE_TYPE` + `sd_noise_for()` in `comprehensive_tests.R` (DGP, result rows'
+    `sd_noise` column, proportion closed-form truth, RMST MC truth); `todo10_capped_truth_convergence.R`,
+    `todo18_smoothed_brt_null.R`, `analyze_comprehensive_tests.R` and 3 bulk tests updated. 16 `test-comprehensive-*`
+    files: 599 pass, 2 errors in `test-comprehensive-coverage-truth-excluded-from-duration-contracts.R`
+    (`skip_function_labels` not found in its `safe_call` fixture; not from this change, not checked on HEAD).
+  - CONSEQUENCE: every survival result and truth computed at SD 0.1 is now stale: canonical `nc_1_survival.csv`, the R4B
+    RMST rerun (fixed-tau truths), and the R7 truths above (KKLWACoxPH abalone median -4.4 at 0.1 vs -1.9 at 0.25).
+    R7 must be rerun at 0.25 (both classes; KKStratCoxPH may now converge) before G4's survival slice.
 - **G8 Cloglog Rd done 2026-10-25:** `fast_roxygenize.R`, including `compileAttributes()` (the negbin parameter-list
   comment is gone), 0 warnings. Only `InferenceOrdinalCloglogRegr.Rd` changed (+9 lines, Calibration details);
   RcppExports and NAMESPACE are unchanged.

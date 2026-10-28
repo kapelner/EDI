@@ -181,9 +181,7 @@ BaiAdjustedTSource = list(
 			if (is.null(private$cached_values$s_beta_hat_T)){
 			private$shared()
 			}
-			2 * stats::pnorm(
-			 -abs(private$cached_values$beta_hat_T / private$cached_values$s_beta_hat_T)
-			) #approximate by using N(0, 1) distribution
+			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		}
 	),
 	private = list(

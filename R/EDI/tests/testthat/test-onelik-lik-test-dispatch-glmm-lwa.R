@@ -135,9 +135,11 @@ test_that("CountKKGLMM: score / gradient dispatch to the model test; Poisson-GLM
 	# regression: the un-negated (negative definite) information made score p ~0.25 vs LR ~0.03
 	expect_lt(abs(pm[["score"]] - pm[["lik_ratio"]]), 0.03)
 	expect_lt(abs(pm[["gradient"]] - pm[["lik_ratio"]]), 0.03)
-	# dispatched value = design-conservative max(model, Wald) (documented rule), per type
+	# dispatched value = the model test itself, as in the sibling KK GLMM classes (TODO-171
+	# dropped the old max(model, Wald) rule, under which lik_ratio always equalled Wald)
 	p = pvals_by_type(inf)
-	for (tt in c("score", "lik_ratio", "gradient")) expect_equal(p[[tt]], max(pm[[tt]], p[["wald"]]), tolerance = 1e-8)
+	for (tt in c("score", "lik_ratio", "gradient")) expect_equal(p[[tt]], pm[[tt]], tolerance = 1e-8)
+	expect_false(isTRUE(all.equal(p[["lik_ratio"]], p[["wald"]], tolerance = 1e-8)))
 	# score CI no longer silently Wald-identical bookkeeping: it must be a valid interval
 	inf$set_testing_type("score")
 	ci = suppressWarnings(inf$compute_asymp_confidence_interval())

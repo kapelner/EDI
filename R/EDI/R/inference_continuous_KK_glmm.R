@@ -348,6 +348,22 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 			y = as.numeric(ctx$y)
 			group_id = as.integer(ctx$group_id)
 			j_treat = as.integer(ctx$j_treat)
+			# TODO-167: the observed Hessian at a null-restricted fit has non-zero
+			# beta x variance-parameter cross terms (residuals correlate with w),
+			# which made it indefinite and sent ~68% of score tests to the ridge
+			# fallback with a too-small effective information (score size 0.19).
+			# The Gaussian LMM's expected information is exactly block-diagonal
+			# between beta and (log_sigma_e, log_sigma_b), so zero those blocks.
+			block_diag_information = function(fit){
+				info = as.matrix(get_gaussian_lmm_fisher_cpp(X_fit, y, group_id, as.numeric(fit$b)))
+				k = ncol(X_fit)
+				if (nrow(info) > k) {
+					vc_idx = (k + 1L):nrow(info)
+					info[seq_len(k), vc_idx] = 0
+					info[vc_idx, seq_len(k)] = 0
+				}
+				info
+			}
 			list(
 				X = X_fit,
 				y = y,
@@ -355,19 +371,35 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 				j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
-					warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$start)) %||% ctx$start
-					fast_gaussian_lmm_cpp(
-						X = X_fit,
-						y = y,
-						group_id = group_id,
-						warm_start_params = warm_start_params,
-						estimate_only = FALSE,
-						maxit = 300L,
-						eps_g = 1e-6,
-						fixed_idx = j_treat,
-						fixed_values = delta,
-						optimization_alg = private$optimization_alg
-					)
+					run_fit = function(warm_start_params){
+						fast_gaussian_lmm_cpp(
+							X = X_fit,
+							y = y,
+							group_id = group_id,
+							warm_start_params = warm_start_params,
+							estimate_only = FALSE,
+							maxit = 300L,
+							eps_g = 1e-6,
+							fixed_idx = j_treat,
+							fixed_values = delta,
+							optimization_alg = private$optimization_alg
+						)
+					}
+					fit = run_fit(start %||% private$get_fit_warm_start_for_length("params", length(ctx$start)) %||% ctx$start)
+					if (is.null(start)) return(fit)
+					# TODO-167: a warm start from another null fit can sit at
+					# log_sigma_b near the sigma_b = 0 boundary, where the log-scale
+					# gradient vanishes and L-BFGS reports convergence at a
+					# non-optimum (LR p 0.018 at a CI endpoint). Also fit from the
+					# full-fit params with beta_T = delta and keep the lower nll. Switch
+					# only on a real improvement (> 1e-4): the two starts otherwise
+					# differ by optimizer noise (~1e-5), which makes p(delta) jitter
+					# and stalls lrt_ci_nr_cpp's Newton steps (tol_p = 1e-7).
+					full_start = as.numeric(ctx$start)
+					full_start[j_treat] = delta
+					fit2 = tryCatch(run_fit(full_start), error = function(e) NULL)
+					nll = function(f) if (is.null(f)) Inf else as.numeric(f$neg_loglik %||% f$neg_ll %||% Inf)[1L]
+					if (isTRUE(nll(fit2) < nll(fit) - 1e-4)) fit2 else fit
 				},
 				extract_start = function(fit){
 					as.numeric(fit$b)
@@ -376,13 +408,13 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 					as.numeric(get_gaussian_lmm_score_cpp(X_fit, y, group_id, as.numeric(fit$b)))
 				},
 				observed_information = function(fit){
-					as.matrix(get_gaussian_lmm_fisher_cpp(X_fit, y, group_id, as.numeric(fit$b)))
+					block_diag_information(fit)
 				},
 				fisher_information = function(fit){
-					as.matrix(get_gaussian_lmm_fisher_cpp(X_fit, y, group_id, as.numeric(fit$b)))
+					block_diag_information(fit)
 				},
 				information = function(fit){
-					as.matrix(get_gaussian_lmm_fisher_cpp(X_fit, y, group_id, as.numeric(fit$b)))
+					block_diag_information(fit)
 				},
 				neg_loglik = function(fit){
 					as.numeric(fit$neg_loglik %||% fit$neg_ll)

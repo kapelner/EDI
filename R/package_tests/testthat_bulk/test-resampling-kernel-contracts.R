@@ -81,20 +81,3 @@ test_that("randomization loop reuses duplicated objects and returns first estima
 	expect_identical(design_calls, 1L)
 	expect_identical(inference_calls, 1L)
 })
-
-test_that("bisection kernels call the requested interfaces and return bounded values", {
-	# bisection_ci_loop_cpp / bisection_ci_single_bound_cpp were deleted
-	# 2026-10-22 (TODO-3); their shared search is exercised through the
-	# retained bisection_ci_parallel_cpp shim.
-	pval4 = function(r, delta, transform_responses, num_cores) {
-		expect_identical(c(r, num_cores), c(9L, 3L))
-		expect_identical(transform_responses, "log")
-		1 - abs(delta)
-	}
-	parallel = EDI:::bisection_ci_parallel_cpp(pval4, 9L, -1, 0, 0, 1, 0.5, 0.01, "log", 3L)
-	expect_equal(parallel, c(-0.5, 0.5), tolerance = 0.02)
-
-	# A nonfinite endpoint p-value stops each search at its outside endpoint.
-	nonfinite_endpoint = function(r, delta, transform_responses, num_cores) NA_real_
-	expect_equal(EDI:::bisection_ci_parallel_cpp(nonfinite_endpoint, 1L, 0, 1, 1, 2, 0.5, 0.01, "none", 1L), c(0, 2))
-})

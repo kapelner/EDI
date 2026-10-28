@@ -18,7 +18,7 @@
 # the comprehensive harness's own null DGP -- datasets from
 # R/package_tests/_dataset_load.R (loaded as comprehensive_tests.R does) and
 # apply_treatment_effect_and_noise() parsed from comprehensive_tests.R, at
-# beta_T = 0, SD_NOISE from the harness. Default dataset `diamonds` (n = 148,
+# beta_T = 0, per-type SD_NOISE_BY_RESPONSE_TYPE from the harness. Default dataset `diamonds` (n = 148,
 # both continuous and count responses). Design: the harness's `FixedBinaryMatch`
 # (DesignFixedBinaryMatch) for the KK classes, which require a matched design,
 # and the harness's `Bernoulli` (DesignSeqOneByOneBernoulli) otherwise; design
@@ -73,7 +73,7 @@ ROW_COLUMNS <- c(
 todo18_harness_env <- function(repo_root) {
 	env <- new.env(parent = globalenv())
 	runner <- file.path(repo_root, "R", "package_tests", "comprehensive_tests.R")
-	calib_eval_harness_objects(runner, c("SD_NOISE", "apply_treatment_effect_and_noise"), env)
+	calib_eval_harness_objects(runner, c("SD_NOISE_BY_RESPONSE_TYPE", "sd_noise_for", "apply_treatment_effect_and_noise"), env)
 	assign("beta_T", 0, envir = env)
 	environment(env$apply_treatment_effect_and_noise) <- env
 	env
@@ -173,7 +173,7 @@ main <- function(args) {
 	all_seeds <- unlist(lapply(cells$seed_first, function(s) s + seq_len(max_cases) - 1L))
 	prov <- calib_capture_provenance(repo_root, script, out_dir, args, all_seeds, extra = list(
 		study = "TODO-18 smoothed-BRT null roster (G4-C R3)", smoke = opt$smoke, cells = cells, B = B,
-		target_finite = target, max_cases = max_cases, alpha = alpha, sd_noise = harness$SD_NOISE,
+		target_finite = target, max_cases = max_cases, alpha = alpha, sd_noise = harness$SD_NOISE_BY_RESPONSE_TYPE,
 		harness_runner_sha256 = calib_sha256(file.path(repo_root, "R", "package_tests", "comprehensive_tests.R")),
 		dataset_loader_sha256 = calib_sha256(file.path(repo_root, "R", "package_tests", "_dataset_load.R")),
 		dataset_rows_sha256 = calib_object_sha256(list(X = D$X, y = D$y_original))))
@@ -260,17 +260,26 @@ todo18_summarize <- function(rows, cells, guard, out_dir, alpha, target, smoke) 
 			discordance_rate = if (sum(both)) sum(xor(a, b)) / sum(both) else NA_real_, stringsAsFactors = FALSE)
 	}))
 	utils::write.csv(disc, file.path(out_dir, "discordance.csv"), row.names = FALSE, na = "NA")
-	pass <- nrow(t1) == 2L * nrow(cells) && all(t1$verdict == "PASS")
+	# Simultaneous acceptance (owner 2026-10-28, amending G6 #20 for TODO-18 only): Holm across all cell x variant tests.
+	# One-sided exact binomial p for H0: rejection rate <= alpha; a row with no finite p-values or below target fails outright.
+	t1$p_exceed <- vapply(seq_len(nrow(t1)), function(i) if (t1$n_fin[[i]] > 0L)
+		stats::binom.test(as.integer(t1$k[[i]]), as.integer(t1$n_fin[[i]]), p = alpha, alternative = "greater")$p.value else 0, numeric(1))
+	t1$p_holm <- stats::p.adjust(t1$p_exceed, method = "holm")
+	t1$holm_ok <- t1$p_holm >= alpha & t1$n_fin > 0L & t1$meets_target
+	pass <- nrow(t1) == 2L * nrow(cells) && all(t1$holm_ok)
+	pass_percell <- nrow(t1) == 2L * nrow(cells) && all(t1$verdict == "PASS")
 	writeLines(c(
 		"# TODO-18 smoothed-BRT true-null roster (G4-C R3)", "",
 		if (smoke) "**SMOKE RUN: mechanics only, not calibration evidence.**" else NULL, "",
-		sprintf("Overall (runbook R3 pass rule, #20 PASS for both variants in every selected cell): %s",
-			if (pass) "PASS" else "NOT PASSED"),
+		sprintf("Overall (Holm-adjusted one-sided exact binomial across all %d cell x variant tests, familywise alpha %g, n_fin >= target): %s",
+			nrow(t1), alpha, if (pass) "PASS" else "NOT PASSED"),
+		sprintf("Reported, not gating: unadjusted per-cell Clopper-Pearson (#20) PASS in every cell x variant: %s",
+			if (pass_percell) "yes" else "no"),
 		sprintf("Bounded categorical smoothed calls rejected: %s", paste(sprintf("%s=%s", guard$class, guard$smoothed_rejected),
 			collapse = ", ")),
 		"", "## Type-I (type1_summary.csv)", "",
 		calib_write_markdown_table(t1[c("cell", "class", "formula", "method", "n_att", "n_fin", "k", "rate", "cp_lower",
-			"cp_upper", "verdict", "meets_target")]),
+			"cp_upper", "verdict", "p_exceed", "p_holm", "holm_ok", "meets_target")]),
 		"", "## Paired discordances (discordance.csv; reported, not gated)", "", calib_write_markdown_table(disc),
 		"", "Notes:", paste0("- ", c(notes, "Dataset/design per cell are agent choices (cells.csv); the DGP is the harness null DGP.")))
 	, file.path(out_dir, "summary.md"))

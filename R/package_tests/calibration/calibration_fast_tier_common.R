@@ -115,12 +115,14 @@ cal_pval_method_name <- function(method) {
 }
 
 # p-value of the class's own test of H0: estimand = delta, or NA when the
-# method takes no `delta` or fails.
+# method takes no `delta` or fails. A method whose formals are `...` (several
+# likelihood-test wrappers) is called with `delta` too: it is forwarded to the
+# test, and a wrapper that drops it shows up as an endpoint failure.
 cal_pval_at <- function(inf_obj, method, delta) {
 	nm <- cal_pval_method_name(method)
 	if (is.na(nm) || !is.finite(delta)) return(NA_real_)
 	f <- inf_obj[[nm]]
-	if (!is.function(f) || !("delta" %in% names(formals(f)))) return(NA_real_)
+	if (!is.function(f) || !any(c("delta", "...") %in% names(formals(f)))) return(NA_real_)
 	args <- list(delta = delta)
 	if ("show_progress" %in% names(formals(f))) args$show_progress <- FALSE
 	p <- tryCatch(suppressWarnings(do.call(f, args)), error = function(e) NA_real_)

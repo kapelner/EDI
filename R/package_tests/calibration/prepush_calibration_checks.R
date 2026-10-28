@@ -55,6 +55,12 @@ PREPUSH_ENDPOINT_BAND <- c(0.7, 1.4) * CAL_ALPHA
 PREPUSH_AGREEMENT_SLACK <- 0.002
 # Too slow for a push (~190 s per replicate at n = 200); the CI tier covers it.
 PREPUSH_EXCLUDED_CLASSES <- c("InferenceCountKKGLMM")
+# Endpoint check skipped (agreement and sign still run): on heavily tied data the
+# rank-sum p-value is a step function of delta, and the CI endpoints sit on its
+# jumps, so the p-value at an endpoint is legitimately far from alpha.
+PREPUSH_ENDPOINT_EXEMPT <- data.frame(
+	response_type = c("count", "ordinal"),
+	inference_class = "InferenceAllSimpleWilcox")
 KNOWN_FAILURES_PATH <- file.path(script_dir, "prepush_calibration_known_failures.csv")
 
 args <- commandArgs(TRUE)
@@ -183,7 +189,9 @@ judge <- function(rows) {
 			add(r, "agreement", sprintf("rep %d: p = %.4g but CI [%.4g, %.4g] %s null %g", r$rep, r$pval, r$ci_a, r$ci_b,
 				if (excludes) "excludes" else "contains", r$null_value))
 		}
-		for (side in c("ci_a", "ci_b")) {
+		endpoint_exempt <- any(PREPUSH_ENDPOINT_EXEMPT$response_type == r$response_type &
+			PREPUSH_ENDPOINT_EXEMPT$inference_class == r$inference_class)
+		for (side in if (endpoint_exempt) character() else c("ci_a", "ci_b")) {
 			p_end <- r[[paste0("p_at_", side)]]
 			if (is.finite(p_end) && (p_end < PREPUSH_ENDPOINT_BAND[[1L]] || p_end > PREPUSH_ENDPOINT_BAND[[2L]])) {
 				add(r, "endpoint", sprintf("%s rep %d: p at %s = %.4g is %.4g, expected ~%g",

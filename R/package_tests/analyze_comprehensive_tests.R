@@ -258,7 +258,7 @@ X[beta_T != 0 & response_type == "ordinal" &
 	),
 	beta := {
 		y_o = datasets_and_response_models[[dataset]]$y_original$ordinal
-		mean(ordinal_expected_observed(y_o, beta_T[1], SD_NOISE) - ordinal_expected_observed(y_o, 0, SD_NOISE))
+		mean(ordinal_expected_observed(y_o, beta_T[1], sd_noise_for("ordinal")) - ordinal_expected_observed(y_o, 0, sd_noise_for("ordinal")))
 	}, by = c("dataset", "beta_T")]
 
 # ordinal — link-scale estimands are not identified from the observed-level

@@ -112,7 +112,7 @@ test_that("the MC truth uses the same capped formula and a K-specific cache key;
 })
 
 test_that("compute_mc_coverage_truth_simframe forwards inference_params to SimulationFramework by class name", {
-	e <- load_comprehensive_assignments(c("prob_censoring", "SD_NOISE", "apply_treatment_effect_and_noise",
+	e <- load_comprehensive_assignments(c("prob_censoring", "SD_NOISE_BY_RESPONSE_TYPE", "sd_noise_for", "apply_treatment_effect_and_noise",
 		"COVERAGE_MC_TRUTH_DEFAULT_INFERENCE_TYPE", "COVERAGE_MC_TRUTH_RAND_PVAL_CLASSES",
 		"coverage_mc_truth_inference_type", "compute_mc_coverage_truth_simframe"))
 	e$datasets_and_response_models <- list(toy = list(X = data.frame(a = 1:4), y_original = list(survival = c(1, 2, 3, 4))))

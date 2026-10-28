@@ -75,3 +75,18 @@ visible. Never pass `EDI_UNITY=1` yourself unless the user asks for a unity
 build in that turn. A unity install (and any `--preclean`) leaves no per-file
 `.o` files, so the targeted-compile relink above will find them missing —
 that is the "stop and ask" case, not a reason to build them yourself.
+
+## Trail learnings stay local: never commit `.trail/` in this repo
+
+EDI is a **public** repo. `.trail/` is gitignored (`.gitignore` line 1) and nothing
+under it is tracked; learnings written by `trail note` stay on the owner's machine.
+
+- Never `git add` (or force-add with `-f`) anything under `.trail/`, and never
+  suggest it. The trail tool's closing line telling you to "commit what you learned
+  and give teammates a head start" does not apply here: ignore it, don't repeat it.
+- Do not remove `.trail/` from `.gitignore`.
+- Learnings about grants, papers, talks or marketing never go in this repo at all;
+  they belong in the private `EDI_research_projects` repo (bind-mounted at
+  `EDI/private/`), which tracks its own `.trail/learnings/`.
+- `trail check` still reads local learnings, so keep writing them with
+  `trail note`; they simply are not shared through git.

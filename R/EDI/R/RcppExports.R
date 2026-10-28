@@ -57,31 +57,6 @@ draw_binary_match_assignments_cpp <- function(indices_pairs, n, r, num_cores) {
     .Call(`_EDI_draw_binary_match_assignments_cpp`, indices_pairs, n, r, num_cores)
 }
 
-#' Sequential computation of both CI bounds (called from R-level parallelism)
-#'
-#' This function is kept for backwards compatibility but the outer parallelism
-#' (running lower/upper bounds simultaneously) is now handled at the R level via
-#' parallel::mclapply, which is safe. Calling R functions from OpenMP threads is
-#' undefined behaviour in R and caused process crashes.
-#'
-#' @param pval_fn R function: pval_fn(nsim, delta, transform_responses, num_cores)
-#' @param r Number of randomization iterations
-#' @param l_lower Initial lower bound for lower CI bound search
-#' @param u_lower Initial upper bound for lower CI bound search (typically the estimate)
-#' @param l_upper Initial lower bound for upper CI bound search (typically the estimate)
-#' @param u_upper Initial upper bound for upper CI bound search
-#' @param pval_th P-value threshold (typically alpha for a two-sided CI)
-#' @param tol Tolerance for convergence (in p-value space)
-#' @param transform_responses String: "none", "log", or "logit"
-#' @param num_cores Passed through to pval_fn for inner parallelism
-#'
-#' @return Numeric vector of length 2: [lower_bound, upper_bound]
-#' @keywords internal
-#'
-bisection_ci_parallel_cpp <- function(pval_fn, r, l_lower, u_lower, l_upper, u_upper, pval_th, tol, transform_responses, num_cores = 1L) {
-    .Call(`_EDI_bisection_ci_parallel_cpp`, pval_fn, r, l_lower, u_lower, l_upper, u_upper, pval_th, tol, transform_responses, num_cores)
-}
-
 #' @note Seeded from one R::unif_rand() draw into edi_rng::RRng (RNG.h), a
 #'   portable re-implementation of R's own Mersenne-Twister generator -- a
 #'   given seed therefore produces identical draws in R and in any future

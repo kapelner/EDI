@@ -179,26 +179,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// bisection_ci_parallel_cpp
-NumericVector bisection_ci_parallel_cpp(Function pval_fn, int r, double l_lower, double u_lower, double l_upper, double u_upper, double pval_th, double tol, std::string transform_responses, int num_cores);
-RcppExport SEXP _EDI_bisection_ci_parallel_cpp(SEXP pval_fnSEXP, SEXP rSEXP, SEXP l_lowerSEXP, SEXP u_lowerSEXP, SEXP l_upperSEXP, SEXP u_upperSEXP, SEXP pval_thSEXP, SEXP tolSEXP, SEXP transform_responsesSEXP, SEXP num_coresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Function >::type pval_fn(pval_fnSEXP);
-    Rcpp::traits::input_parameter< int >::type r(rSEXP);
-    Rcpp::traits::input_parameter< double >::type l_lower(l_lowerSEXP);
-    Rcpp::traits::input_parameter< double >::type u_lower(u_lowerSEXP);
-    Rcpp::traits::input_parameter< double >::type l_upper(l_upperSEXP);
-    Rcpp::traits::input_parameter< double >::type u_upper(u_upperSEXP);
-    Rcpp::traits::input_parameter< double >::type pval_th(pval_thSEXP);
-    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    Rcpp::traits::input_parameter< std::string >::type transform_responses(transform_responsesSEXP);
-    Rcpp::traits::input_parameter< int >::type num_cores(num_coresSEXP);
-    rcpp_result_gen = Rcpp::wrap(bisection_ci_parallel_cpp(pval_fn, r, l_lower, u_lower, l_upper, u_upper, pval_th, tol, transform_responses, num_cores));
-    return rcpp_result_gen;
-END_RCPP
-}
 // bootstrap_indices_cpp
 Eigen::MatrixXi bootstrap_indices_cpp(int n, int B);
 RcppExport SEXP _EDI_bootstrap_indices_cpp(SEXP nSEXP, SEXP BSEXP) {
@@ -5200,7 +5180,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_beta_dev_resids_cpp", (DL_FUNC) &_EDI_beta_dev_resids_cpp, 4},
     {"_EDI_beta_aic_cpp", (DL_FUNC) &_EDI_beta_aic_cpp, 4},
     {"_EDI_draw_binary_match_assignments_cpp", (DL_FUNC) &_EDI_draw_binary_match_assignments_cpp, 4},
-    {"_EDI_bisection_ci_parallel_cpp", (DL_FUNC) &_EDI_bisection_ci_parallel_cpp, 10},
     {"_EDI_bootstrap_indices_cpp", (DL_FUNC) &_EDI_bootstrap_indices_cpp, 2},
     {"_EDI_bootstrap_m_indices_cpp", (DL_FUNC) &_EDI_bootstrap_m_indices_cpp, 5},
     {"_EDI_draw_matching_bootstrap_sample_cpp", (DL_FUNC) &_EDI_draw_matching_bootstrap_sample_cpp, 3},

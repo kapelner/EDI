@@ -20,12 +20,10 @@
 #'
 #' \strong{Likelihood tier.} \code{likelihood_tier = "full"}: both Wald
 #' (model-based standard error) and likelihood-ratio testing types are
-#' available. Because the GLMM likelihood alone does not encode the KK design's
-#' matched-pair randomization structure, the likelihood-ratio CI/p-value are
-#' conservatively widened/calibrated against the design-aware Wald result (see
-#' \code{compute_lik_ratio_confidence_interval()}/
-#' \code{compute_lik_ratio_two_sided_pval()}) so the model-based test is never
-#' anti-conservative relative to the design.
+#' available. The likelihood-ratio, score and gradient CIs/p-values are the
+#' GLMM's own model-based tests, as in the other KK GLMM classes; they are not
+#' widened against the Wald result (before 1.0.5 each reported the larger
+#' p-value / wider interval of the model test and the Wald test).
 #'
 #' \strong{Assumptions.} Count response modeled as conditionally Poisson given
 #' the random intercept (equidispersion conditional on \eqn{b_i}); pair-level
@@ -172,33 +170,20 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		},
 		#' @description Likelihood-ratio confidence interval for the treatment log-rate
 		#'   coefficient, inverting the GLMM's profile likelihood-ratio test against
-		#'   \eqn{\chi^2_1}. Because the GLMM likelihood does not itself account for the KK
-		#'   matched-pair design's randomization structure, this interval is conservatively
-		#'   widened to be at least as wide as the design-aware Wald interval
-		#'   (\code{compute_wald_confidence_interval()}) via \code{.conservative_kk_onelik_ci()} --
-		#'   guarding against the model-based interval being anti-conservative relative to the
-		#'   design.
+		#'   \eqn{\chi^2_1}.
 		#' @param alpha The confidence level in the computed confidence interval is 1 -
 		#'   \code{alpha}. The default is 0.05.
 		#' @return A length-2 numeric vector \code{c(lower, upper)} on the log-rate scale.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
-			ci_model = self$compute_lik_ratio_confidence_interval_generic(alpha = alpha)
-			ci_design = self$compute_wald_confidence_interval(alpha = alpha)
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha = alpha)
+			self$compute_lik_ratio_confidence_interval_generic(alpha = alpha)
 		},
 		#' @description Two-sided likelihood-ratio p-value for \eqn{H_0: \beta_T = \code{delta}},
-		#'   from the GLMM's profile likelihood-ratio test referred to \eqn{\chi^2_1}. As with
-		#'   \code{compute_lik_ratio_confidence_interval()}, this is conservatively calibrated
-		#'   (via \code{.conservative_kk_onelik_pval()}) against the design-aware Wald p-value so
-		#'   the model-based test cannot be anti-conservative relative to the KK matched-pair
-		#'   design.
+		#'   from the GLMM's profile likelihood-ratio test referred to \eqn{\chi^2_1}.
 		#' @param delta The null value of \eqn{\beta_T} to test against; 0 (the default) tests for
 		#'   any treatment effect at all.
 		#' @return Numeric scalar p-value in \eqn{[0, 1]}.
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
-			p_model = self$compute_lik_ratio_two_sided_pval_generic(delta = delta)
-			p_design = self$compute_wald_two_sided_pval(delta = delta)
-			.conservative_kk_onelik_pval(p_model, p_design)
+			self$compute_lik_ratio_two_sided_pval_generic(delta = delta)
 		},
 		#' @description Asymptotic confidence interval, dispatching to
 		#'   \code{compute_wald_confidence_interval()} or \code{compute_lik_ratio_confidence_interval()}
@@ -209,21 +194,14 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		#'   \code{alpha}. The default is 0.05.
 		#' @return A length-2 numeric vector \code{c(lower, upper)} on the log-rate scale.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			# TODO-121: score / gradient used to fall through to Wald silently. They
-			# now use the model likelihood test, calibrated like lik_ratio (max with the
-			# design Wald value), and warn (edi_lik_test_wald_fallback) if the model
-			# test is unavailable.
-			owner = list(self = self, private = private)
+			# TODO-121 / TODO-171: score, gradient and lik_ratio are the model's own
+			# tests, as in the sibling KK GLMM classes (no max with the Wald result).
 			switch(
 				self$get_testing_type(),
 				wald = self$compute_wald_confidence_interval(alpha = alpha),
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
-				score = .conservative_kk_onelik_ci(
-					tryCatch(private$compute_score_confidence_interval_impl(alpha), error = function(e) c(NA_real_, NA_real_)),
-					self$compute_wald_confidence_interval(alpha = alpha), alpha = alpha, owner = owner, label = "score"),
-				gradient = .conservative_kk_onelik_ci(
-					tryCatch(private$compute_gradient_confidence_interval_impl(alpha), error = function(e) c(NA_real_, NA_real_)),
-					self$compute_wald_confidence_interval(alpha = alpha), alpha = alpha, owner = owner, label = "gradient"),
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
 				stop("Unsupported testing_type for ", class(self)[1L], ": ", self$get_testing_type())
 			)
 		},
@@ -236,17 +214,12 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 		#'   any treatment effect at all.
 		#' @return Numeric scalar p-value in \eqn{[0, 1]}.
 		compute_asymp_two_sided_pval = function(delta = 0){
-			owner = list(self = self, private = private)
 			switch(
 				self$get_testing_type(),
 				wald = self$compute_wald_two_sided_pval(delta = delta),
 				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
-				score = .conservative_kk_onelik_pval(
-					tryCatch(private$compute_score_two_sided_pval_impl(delta), error = function(e) NA_real_),
-					self$compute_wald_two_sided_pval(delta = delta), owner = owner, label = "score"),
-				gradient = .conservative_kk_onelik_pval(
-					tryCatch(private$compute_gradient_two_sided_pval_impl(delta), error = function(e) NA_real_),
-					self$compute_wald_two_sided_pval(delta = delta), owner = owner, label = "gradient"),
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
 				stop("Unsupported testing_type for ", class(self)[1L], ": ", self$get_testing_type())
 			)
 		}

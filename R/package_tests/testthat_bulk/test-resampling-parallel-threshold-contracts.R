@@ -268,12 +268,3 @@ test_that("OLS and tied-rank randomization distributions agree with R above the 
 		}
 	}
 })
-
-test_that("bisection nonfinite midpoints move the conservative search boundary", {
-	# Missing midpoints are rejected on both tails of a two-sided p-value.
-	# The lower and upper searches must still find their .6 and 1.4 crossings.
-	pval <- function(r, delta, transform_responses, num_cores) {
-		if (delta %in% c(.5, 1.5)) NA_real_ else min(delta, 2 - delta)
-	}
-	expect_equal(EDI:::bisection_ci_parallel_cpp(pval, 1L, 0, 1, 1, 2, .6, .01, "none", 2L), c(.6, 1.4), tolerance = .01)
-})

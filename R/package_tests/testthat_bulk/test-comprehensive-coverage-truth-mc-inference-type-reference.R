@@ -13,7 +13,7 @@ comprehensive_exprs <- parse(comprehensive_path)
 
 mc_type_fixture <- function() {
 	e <- new.env(parent = globalenv())
-	wanted <- c("prob_censoring", "SD_NOISE", "apply_treatment_effect_and_noise",
+	wanted <- c("prob_censoring", "SD_NOISE_BY_RESPONSE_TYPE", "sd_noise_for", "apply_treatment_effect_and_noise",
 		"COVERAGE_MC_TRUTH_DEFAULT_INFERENCE_TYPE", "COVERAGE_MC_TRUTH_RAND_PVAL_CLASSES",
 		"coverage_mc_truth_inference_type", "compute_mc_coverage_truth_simframe")
 	remaining <- wanted

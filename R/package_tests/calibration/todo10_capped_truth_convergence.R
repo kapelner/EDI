@@ -50,7 +50,7 @@ ROW_COLUMNS <- c(
 todo10_harness_env <- function(repo_root) {
 	env <- new.env(parent = globalenv())
 	runner <- file.path(repo_root, "R", "package_tests", "comprehensive_tests.R")
-	calib_eval_harness_objects(runner, c("SD_NOISE", "prob_censoring", "apply_treatment_effect_and_noise"), env)
+	calib_eval_harness_objects(runner, c("SD_NOISE_BY_RESPONSE_TYPE", "sd_noise_for", "prob_censoring", "apply_treatment_effect_and_noise"), env)
 	environment(env$apply_treatment_effect_and_noise) <- env
 	env
 }
@@ -141,7 +141,7 @@ main <- function(args) {
 	prov <- calib_capture_provenance(repo_root, script, out_dir, args, seed_base + seed_idx, extra = list(
 		study = "TODO-10 capped matched-Cox MC truth convergence (G4-C R7)", smoke = opt$smoke, classes = classes,
 		datasets = datasets, betas = betas, K = K, mc_n = mc_ns, schemes = schemes,
-		sd_noise = harness$SD_NOISE, prob_censoring = harness$prob_censoring,
+		sd_noise = harness$sd_noise_for("survival"), prob_censoring = harness$prob_censoring,
 		harness_runner_sha256 = calib_sha256(file.path(repo_root, "R", "package_tests", "comprehensive_tests.R")),
 		dataset_loader_sha256 = calib_sha256(file.path(repo_root, "R", "package_tests", "_dataset_load.R")),
 		dataset_rows_sha256 = vapply(datasets, function(d) calib_object_sha256(list(X = datasets_all[[d]]$X,

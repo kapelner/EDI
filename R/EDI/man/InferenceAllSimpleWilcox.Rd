@@ -143,7 +143,9 @@ intervals unreliable on such data (coverage was observed well below nominal,
 about 48-57\% against 95\%), so prefer the rank-based interval or
 \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
 when the data are heavily tied. A Wilcoxon-specific randomized remedy is
-deferred.
+deferred. On such data the rank-sum p-value is a step function of
+\code{delta}, and the rank-based interval's endpoints sit on its jumps, so
+the p-value evaluated exactly at an endpoint can be far from \code{alpha}.
 }
 
 \examples{

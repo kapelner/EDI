@@ -96,7 +96,7 @@ default_triage = function(file, coverage_percent) {
 	base = basename(file)
 	performance = c(
 		"kk_bootstrap_loop.cpp", "base_bootstrap_loop.cpp", "bisection_ci_loop.cpp",
-		"bisection_ci.cpp", "randomization_loop.cpp", "ols_distr_parallel.cpp",
+		"randomization_loop.cpp", "ols_distr_parallel.cpp",
 		"ridit_distr_parallel.cpp", "fast_kk_wilcox_parallel.cpp",
 		"fast_wilcox_parallel.cpp", "KK_bootstrap_helper_fillin.cpp",
 		"kk_bootstrap_reservoir_stats.cpp", "kk_lin_match_data.cpp",

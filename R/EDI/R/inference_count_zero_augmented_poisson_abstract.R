@@ -387,7 +387,9 @@ ZeroAugmentedCountLikelihoodSource = list(
 				# original all(is.finite(vc)) requirement is unchanged for them.
 				covariance_type = if (is.list(fit)) fit$covariance_type else NULL
 				pinv_identified = is.character(covariance_type) && length(covariance_type) == 1L &&
-					covariance_type %in% c("pseudo_inverse_identified_coordinates", "pseudo_inverse_zero_inflation_unidentified")
+					covariance_type %in% c("pseudo_inverse_identified_coordinates", "pseudo_inverse_zero_inflation_unidentified",
+						# TODO-169: boundary fits carry NaN rows for the pinned (zi / theta) block.
+						"observed_conditional_on_poisson_boundary", "observed_conditional_on_zero_inflation_boundary")
 				vc_finite_enough = !is.null(vc) && length(dim(vc)) == 2L && (all(is.finite(vc)) || pinv_identified)
 				if (degenerate && vc_finite_enough &&
 						!grepl("Hurdle", private$za_description(), fixed = TRUE)) {
@@ -395,7 +397,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 					n_par = length(params_fit)
 					if (p_cond >= j_treat && nrow(vc) == n_par && n_par > p_cond) {
 						idx = seq_len(p_cond)
-						if (grepl("Negative Binomial", private$za_description(), fixed = TRUE)) idx = c(idx, n_par)
+						# theta is pinned (NaN row) at the Poisson boundary, so leave it out.
+						if (grepl("Negative Binomial", private$za_description(), fixed = TRUE) && !isTRUE(fit$dispersion_at_poisson_boundary)) idx = c(idx, n_par)
 						degenerate = zero_augmented_fit_is_degenerate(as.matrix(vc)[idx, idx, drop = FALSE], params_fit)
 					}
 				}
@@ -949,9 +952,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 				j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
-					warm_start_params = start %||% private$get_fit_warm_start_for_length("params", start_len)
 					warm_fisher = private$get_fit_warm_start_fisher(start_len)
-					fit = if (is_zinb) {
+					fit_from = function(warm_start_params) if (is_zinb) {
 						fast_zinb_cpp(
 							X = X_fit,
 							y = y,
@@ -978,6 +980,23 @@ ZeroAugmentedCountLikelihoodSource = list(
 							fixed_idx = j_treat,
 							fixed_values = delta
 						)
+					}
+					fit = fit_from(start %||% private$get_fit_warm_start_for_length("params", start_len))
+					# TODO-169 (2026-10-28): a start chained from the previous CI-search
+					# delta can sit where the zero-inflation logits have saturated
+					# (pi ~ 0, zero gradient), and the refit then "converges" there at a
+					# too-high nll -- the LR/score CI stops being the inversion of the
+					# test. Also refit from the full fit with element j set to delta and
+					# keep the lower nll.
+					full_start = as.numeric(private$cached_mod$params %||% NULL)
+					if (!is.null(start) && length(full_start) == start_len && all(is.finite(full_start))) {
+						full_start[j_treat] = delta
+						nll_of = function(f) {
+							v = if (is.null(f)) NA_real_ else suppressWarnings(as.numeric(f$neg_loglik %||% f$neg_ll %||% NA_real_)[1L])
+							if (is.finite(v)) v else Inf
+						}
+						alt = tryCatch(fit_from(full_start), error = function(e) NULL)
+						if (nll_of(alt) < nll_of(fit)) fit = alt
 					}
 					if (!is.null(fit) && is.null(fit$b) && is.null(fit$params) && !is.null(fit$coefficients)) {
 						fit$params = as.numeric(c(fit$coefficients$cond, fit$coefficients$zi))

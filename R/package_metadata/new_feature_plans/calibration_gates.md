@@ -58,7 +58,10 @@ Known failures: `prepush_calibration_known_failures.csv` (my call -- the owner
 did not rule on it). Listed failures are reported, not blocking; a listed
 failure that no longer reproduces on a checked class blocks until its row is
 deleted. Seeded 2026-10-26 by running every class (`--all
---write-known-failures`, ~5 min): 22 rows, see "Findings".
+--write-known-failures`, ~5 min): 22 rows, see "Findings". Reseeded 2026-10-28 against
+the working tree (`load_all(compile = FALSE)` via `R_PROFILE_USER`) after TODO-166/167/169/170/171 and the
+`cal_pval_at` fix (methods whose formals are `...` now get the endpoint check too): 5 rows left
+(`InferenceIncidKKCondLogitGLMMOneLik` lik_ratio, `InferenceOrdinalStereotypeLogitRegr` score).
 
 ## CI fast tier (`.github/workflows/calibration-fast-tier.yml`)
 
@@ -100,15 +103,20 @@ Null baseline, n = 200, 300 replicates (`~ .` only), Bonferroni K = 429:
 Pre-push checks over all classes (known-failures list):
 
 * `InferenceBaiAdjustedTKK14/21` wald: p at both CI endpoints equals p at 0 --
-  the test ignores `delta`.
+  the test ignores `delta`. FIXED 2026-10-28 (TODO-166).
 * `InferenceAllSimpleWilcox` wald (every response type): endpoint p far from
-  0.05 -- the HL interval is not the inversion of the test it reports.
+  0.05. The HL interval IS the inversion of the rank-sum test; the p-value was
+  wrong (`wilcox.test(yT, yC - delta)` tested a shift of -delta). FIXED
+  2026-10-28 (`mu = delta`, TODO-170). Count / ordinal stay off the endpoint
+  check for this class (`PREPUSH_ENDPOINT_EXEMPT`): with heavy ties the p-value
+  is a step function of delta and the endpoints sit on its jumps.
 * `InferenceContinKKGLMM` lik_ratio `~1`, `InferenceIncidKKCondLogitGLMMOneLik`
   lik_ratio, `InferenceCountZeroInflatedPoisson` lik_ratio `~1` (p = 0.89 with a
   CI excluding 0) and score `~.`, `InferenceOrdinalStereotypeLogitRegr` score:
   agreement/endpoint failures.
-* `InferenceCountKKGLMM` lik_ratio p equals its wald p exactly on every replicate
-  (LR likely falls back to Wald) -- not a calibration failure, worth a look.
+* `InferenceCountKKGLMM` lik_ratio p equals its wald p exactly on every replicate:
+  the class reported max(LR, Wald). Rule dropped 2026-10-28 to match the sibling
+  KK GLMM classes (TODO-171).
 * Harness "gross failures" that did NOT reproduce on synthetic data:
   CountKKGLMM size 0.50 (synthetic 0.067), KK LWA/stratified Cox, KKCLMMCloglog,
   KKQuantileRegr, pooled-variance mean diff, RMST diff, OLS/Lin.

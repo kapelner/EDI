@@ -6,6 +6,27 @@
 #' Legacy inference class. This class is retained for backwards compatibility
 #' and is not comprehensively tested by the package comprehensive-test harness.
 #'
+#' @details
+#' The standard error is the extended Robins (1988) variance estimator of
+#' Azriel, Krieger and Kapelner (2026, Equations 12-13): the per-block Robins
+#' bound plus a Jensen term. It is conservative only when blocks are large
+#' enough to estimate each block's success probabilities. With small blocks it
+#' is not: on matched pairs (block size 2) the per-block term is identically
+#' zero, and in a null simulation (n = 200, 100 pairs) the standard error was
+#' about 0.68 of the estimate's true standard deviation, giving a 5\% Wald test
+#' a size of about 0.14-0.18 and 95\% intervals about 86\% coverage. With
+#' blocks of about 10 or more it is conservative. For small blocks or matched
+#' pairs prefer \code{\link[EDI:InferenceIncidCMH]{InferenceIncidCMH}}, whose
+#' variance estimator is conservative in finite samples for any balanced
+#' design.
+#'
+#' @references
+#' Azriel, D., Krieger, A. M. and Kapelner, A. (2026). Optimal designs with
+#' robust inference for binary treatment effects. arXiv:2607.05768.
+#'
+#' Robins, J. M. (1988). Confidence intervals for causal parameters.
+#' \emph{Statistics in Medicine}, 7(7), 773-785.
+#'
 #' @examples
 #' seq_des = DesignSeqOneByOneRandomBlockSize$new(n = 20, response_type = 'incidence',
 #'   strata_cols = 'x1')

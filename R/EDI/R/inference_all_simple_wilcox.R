@@ -78,7 +78,7 @@ SimpleWilcoxSource = list(
 				return(private$cached_values$wilcox_asymp_pval)
 			}
 				pv = tryCatch(
-					stats::wilcox.test(yT, yC - delta, exact = FALSE)$p.value,
+					stats::wilcox.test(yT, yC, mu = delta, exact = FALSE)$p.value,
 					error = function(e) {
 						if (is_edi_control_condition(e)) stop(e)
 						NA_real_
@@ -422,7 +422,9 @@ SimpleWilcoxSource = list(
 #' about 48-57\% against 95\%), so prefer the rank-based interval or
 #' \code{\link[EDI:InferenceAllSimpleAverageDiff]{InferenceAllSimpleAverageDiff}}
 #' when the data are heavily tied. A Wilcoxon-specific randomized remedy is
-#' deferred.
+#' deferred. On such data the rank-sum p-value is a step function of
+#' \code{delta}, and the rank-based interval's endpoints sit on its jumps, so
+#' the p-value evaluated exactly at an endpoint can be far from \code{alpha}.
 #'
 #' @references Hodges, J. L., and Lehmann, E. L. (1963). "Estimates of Location
 #'   Based on Rank Tests." \emph{The Annals of Mathematical Statistics}, 34(2),
