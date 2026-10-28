@@ -53,7 +53,7 @@ Middleton, J. A., and Aronow, P. M. (2015). "Unbiased estimation of the
   average treatment effect in cluster-randomized experiments." \emph{Statistics,
   Politics and Policy}, 6(1-2), 39-75, \doi{10.1515/spp-2013-0002}, for
   blocked/clustered randomized-assignment inference; see also the \pkg{randomizr}
-  \href{https://declaredesign.org/r/randomizr/articles/randomizr_vignette.html}{package
+  \href{https://CRAN.R-project.org/package=randomizr/vignettes/randomizr_vignette.html}{package
   vignette} for the assignment-generation conventions this design relies on, and
   \href{https://en.wikipedia.org/wiki/Cluster_randomised_controlled_trial}{cluster
   randomized controlled trial} for orientation.

@@ -41,11 +41,11 @@ than EDI does.
 
 ### randomizr (and its companions estimatr, ri2)
 
-[`randomizr`](https://declaredesign.org/r/randomizr/) declares and draws
+[`randomizr`](https://CRAN.R-project.org/package=randomizr) declares and draws
 assignments — complete, simple, blocked, clustered, and blocked-clustered
 randomization — with a clean, widely used API, and it belongs to the
-DeclareDesign family where [`estimatr`](https://declaredesign.org/r/estimatr/)
-supplies design-based estimators and [`ri2`](https://declaredesign.org/r/ri2/)
+DeclareDesign family where [`estimatr`](https://CRAN.R-project.org/package=estimatr)
+supplies design-based estimators and [`ri2`](https://CRAN.R-project.org/package=ri2)
 supplies randomization inference. That family's philosophy is close to
 EDI's (the design should inform the analysis).
 
