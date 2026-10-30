@@ -352,9 +352,7 @@ test_that("survival expected attempts use runner/spec keys and retain only avail
 	expect_setequal(kk_design_types, c("KK21", "KK21stepwise", "KK14", "FixedBinaryMatch"))
 	available_spec_classes <- setdiff(names(source_spec)[vapply(source_spec, function(x) identical(x$rt, "survival"), logical(1))], unavailable)
 	survival_spec_classes <- names(source_spec)[vapply(source_spec, function(x) identical(x$rt, "survival"), logical(1))]
-	expect_setequal(intersect(survival_spec_classes, unavailable), c(
-		"InferenceSurvivalKKLWACoxPHOneLik", "InferenceSurvivalKKStratCoxPHOneLik"
-	))
+	expect_length(intersect(survival_spec_classes, unavailable), 0L)
 	expect_setequal(intersect(available_spec_classes, c(direct_classes, both_paths, kk_classes)), available_spec_classes)
 	expect_true("InferenceSurvivalLogRank" %in% direct_classes)
 	logrank_methods <- todo10_public_method_names(testthat::test_path("..", "..", "EDI", "R", "inference_survival_log_rank.R"), "InferenceSurvivalLogRank")
@@ -381,8 +379,8 @@ test_that("survival expected attempts use runner/spec keys and retain only avail
 	full_key <- c("function_run", "rep", "beta_T", "dataset", "response_type", "design", "inference_class")
 	allowed_classes <- available_spec_classes
 
-	expect_equal(length(allowed_classes), 10L)
-	expect_equal(nrow(roster), 272L)
+	expect_equal(length(allowed_classes), 13L)
+	expect_equal(nrow(roster), 320L)
 	expect_named(roster, full_key)
 	expect_equal(anyDuplicated(roster[full_key]), 0L)
 	expect_true(all(roster$response_type == "survival"))
@@ -448,9 +446,7 @@ test_that("TODO-10 production case lattice is source-derived and remains setup-c
 	expect_setequal(unique(lattice$design), eval(todo10_top_rhs("TESTED_DESIGNS"), envir = baseenv()))
 	expect_true(all(lattice$candidate_status ==
 		"candidate only; requires successful dataset/design/inference setup and runtime support"))
-	expect_setequal(attr(lattice, "excluded_truth_classes"), c(
-		"InferenceSurvivalKKLWACoxPHOneLik", "InferenceSurvivalKKStratCoxPHOneLik"
-	))
+	expect_length(attr(lattice, "excluded_truth_classes"), 0L)
 	source_spec <- eval(todo10_top_rhs("COVERAGE_MC_SPEC"), envir = baseenv())
 	expect_true(all(c("InferenceSurvivalKKLWACoxPHOneLik", "InferenceSurvivalKKStratCoxPHOneLik") %in%
 		names(source_spec)[vapply(source_spec, function(spec) identical(spec$rt, "survival"), logical(1))]))

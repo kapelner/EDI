@@ -29,14 +29,14 @@ cap_helpers <- c(
 	"comprehensive_kk_survival_model_formula"
 )
 
-test_that("the cap is K = 6, covers exactly the two KK-matched Cox classes, and they stay truth-unavailable", {
+test_that("the cap is K = 6, covers exactly the two KK-matched Cox classes, and they have MC truths", {
 	e <- load_comprehensive_assignments(cap_helpers)
 	expect_identical(e$KK_MATCHED_COX_COVARIATE_CAP_K, 6L)
 	expect_setequal(e$KK_MATCHED_COX_COVARIATE_CAP_CLASSES,
 		c("InferenceSurvivalKKStratCoxPHOneLik", "InferenceSurvivalKKLWACoxPHOneLik"))
-	# Removal from COVERAGE_TRUTH_UNAVAILABLE waits for the capped-truth
-	# convergence check (runbook R7).
-	expect_true(all(e$KK_MATCHED_COX_COVARIATE_CAP_CLASSES %in% e$COVERAGE_TRUTH_UNAVAILABLE))
+	# Released from COVERAGE_TRUTH_UNAVAILABLE 2026-10-30: the capped truth passed
+	# the runbook R7 chi^2 convergence check on all 9 datasets at survival SD 0.25.
+	expect_false(any(e$KK_MATCHED_COX_COVARIATE_CAP_CLASSES %in% e$COVERAGE_TRUTH_UNAVAILABLE))
 	expect_identical(e$comprehensive_covariate_cap_k("InferenceSurvivalKKStratCoxPHOneLik"), 6L)
 	expect_identical(e$comprehensive_covariate_cap_k("InferenceSurvivalKKLWACoxPHOneLik"), 6L)
 	expect_identical(e$comprehensive_covariate_cap_k("InferenceSurvivalCoxPHRegr"), NA_integer_)
@@ -74,12 +74,13 @@ test_that("the MC truth uses the same capped formula and a K-specific cache key;
 		calls[[length(calls) + 1L]] <<- list(class = class_gen$classname, real_X = real_X, inference_params = inference_params, mc_n = mc_n)
 		0.25
 	}
-	# Still unavailable: no MC call at all.
+	# A truth-unavailable class makes no MC call at all.
+	e$COVERAGE_TRUTH_UNAVAILABLE <- "InferenceSurvivalKKStratCoxPHOneLik"
 	expect_identical(e$get_coverage_truth("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.]", "toy", 0.5, "survival"), NA_real_)
 	expect_length(calls, 0L)
 
-	# Once released from COVERAGE_TRUTH_UNAVAILABLE (after the convergence
-	# check), the truth fits the capped formula against the full real X.
+	# Released from COVERAGE_TRUTH_UNAVAILABLE (as in the harness since R7 passed),
+	# the truth fits the capped formula against the full real X.
 	e$COVERAGE_TRUTH_UNAVAILABLE <- character(0)
 	expect_identical(e$get_coverage_truth("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.]", "toy", 0.5, "survival"), 0.25)
 	expect_length(calls, 1L)

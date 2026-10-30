@@ -177,7 +177,28 @@ test_that("compute_asymp_two_sided_pval and compute_asymp_confidence_interval di
 })
 
 test_that("compute_asymp_two_sided_pval and compute_asymp_confidence_interval dispatch to the approx Bartlett path when selected", {
-	inf <- make_logit_inference(seed = 107)
+	# compute_asymp_*() takes no B, so the approx path runs the impls' default B = 99
+	# bootstrap refits per p-value -- for the CI, per bisection step. Under covr that was
+	# ~30 min of a 75-min coverage shard (2026-10-29, shard 2 timed out). Only the
+	# dispatch is under test here, so lower the impls' default B in a subclass.
+	ext_env <- new.env(parent = globalenv())
+	ext_env$R6Class <- R6::R6Class
+	ext_env$InferenceIncidLogRegr <- InferenceIncidLogRegr
+	evalq({
+		SmallBBartlettLogit <- R6Class(
+			"SmallBBartlettLogit",
+			inherit = InferenceIncidLogRegr,
+			private = list(
+				compute_lik_ratio_bartlett_approx_two_sided_pval_impl = function(delta, B = 9){
+					super$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta, B = B)
+				},
+				compute_lik_ratio_bartlett_approx_confidence_interval_impl = function(alpha, B = 9){
+					super$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha, B = B)
+				}
+			)
+		)
+	}, envir = ext_env)
+	inf <- ext_env$SmallBBartlettLogit$new(make_logit_inference(seed = 107)$get_design_object(), verbose = FALSE)
 	inf$set_testing_type("lik_ratio_bartlett_approx")
 	inf$set_seed(4242)
 

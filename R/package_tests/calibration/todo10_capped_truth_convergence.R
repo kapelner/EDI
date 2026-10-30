@@ -19,11 +19,14 @@
 # itself is the fit's estimate, which SimulationFramework computes before any
 # inference type (so it equals the harness's asymp_pval truth).
 #
-# Pass (owner-approved 2026-10-23, closing-audit decision 2; runbook R7), per class x dataset x beta_T:
-#   (a) at the largest mc_n, every pair of estimates (2 schemes x 3 seeds) differs by
-#       <= 2 * sqrt(se_i^2 + se_j^2);
-#   (b) for every scheme x seed, |est(largest mc_n) - est(second-largest mc_n)| < se(largest mc_n).
-# If the check fails, the classes stay in COVERAGE_TRUTH_UNAVAILABLE.
+# Pass (owner-approved 2026-10-30, replacing the 2026-10-23 max-over-comparisons rule; runbook R7),
+# per class x dataset x beta_T, with every fit at the largest mc_n ok, |est| <= 8 and se <= 5:
+#   homogeneity: Q = sum((est_i - w_mean)^2 / se_i^2) over the 2 schemes x 3 seeds at the largest mc_n,
+#       Q ~ chi^2_{k-1}, p > 0.01;
+#   step: S = sum over scheme x seed of (est(largest) - est(second-largest))^2 / (se_largest^2 + se_prev^2),
+#       S ~ chi^2_k, p > 0.01.
+# The old rule (all pairs within 2 combined SE; every step < 1 SE) failed converged truths most of the time
+# (the step check alone passes with prob ~0.44^6). If the check fails, the classes stay in COVERAGE_TRUTH_UNAVAILABLE.
 # Runtime warning: DesignFixedBinaryMatch runs nbpMatching non-bipartite matching on
 # mc_n subjects (O(n^3) time, O(n^2) memory); mc_n = 12000 may be very slow or exceed
 # memory. Use --mc-n / --datasets / --classes to stage the run.
@@ -200,8 +203,8 @@ main <- function(args) {
 		if (opt$smoke) "**SMOKE RUN: mechanics only, not evidence.**" else NULL, "",
 		sprintf("K = %d (first K harness covariates); mc_n = %s; schemes = %s; seeds = %s.", K, paste(mc_ns, collapse = ","),
 			paste(schemes, collapse = ","), calib_describe_ints(seed_base + seed_idx)),
-		"Pass (owner-approved 2026-10-23): (a) all estimates at the largest mc_n agree pairwise within 2 combined MC SEs;",
-		"(b) every scheme x seed moves < 1 MC SE between the two largest mc_n. Fail -> classes stay unavailable.",
+		"Pass (owner-approved 2026-10-30): all fits at the largest mc_n ok with |est| <= 8 and se <= 5; chi^2 homogeneity",
+		"of those estimates p > 0.01; chi^2 of the steps between the two largest mc_n p > 0.01. Fail -> classes stay unavailable.",
 		sprintf("Overall: %s", if (all_pass) "PASS (classes may leave COVERAGE_TRUTH_UNAVAILABLE once the harness cap lands)" else
 			"NOT PASSED (keep both classes in COVERAGE_TRUTH_UNAVAILABLE)"), "",
 		calib_write_markdown_table(summ)), file.path(out_dir, "convergence_summary.md"))
@@ -218,16 +221,15 @@ todo10_convergence_summary <- function(rows, mc_ns) {
 		g <- rows[rows$class == groups$class[i] & rows$dataset == groups$dataset[i] & rows$beta_T == groups$beta_T[i], , drop = FALSE]
 		at_top <- g[g$mc_n == top, , drop = FALSE]
 		ok_top <- at_top$status == "ok" & is.finite(at_top$estimate) & is.finite(at_top$se)
-		pair_ok <- NA
-		max_pair_z <- NA_real_
+		se_guard_ok <- all(ok_top) && all(abs(at_top$estimate) <= 8 & at_top$se <= 5)
+		p_homog <- NA_real_
 		if (sum(ok_top) >= 2L) {
 			e <- at_top$estimate[ok_top]
 			s <- at_top$se[ok_top]
-			z <- outer(seq_along(e), seq_along(e), Vectorize(function(a, b) if (a < b) abs(e[a] - e[b]) / sqrt(s[a]^2 + s[b]^2) else NA_real_))
-			max_pair_z <- max(z, na.rm = TRUE)
-			pair_ok <- max_pair_z <= 2
+			w_mean <- sum(e / s^2) / sum(1 / s^2)
+			p_homog <- stats::pchisq(sum((e - w_mean)^2 / s^2), length(e) - 1L, lower.tail = FALSE)
 		}
-		step_ok <- NA
+		p_step <- NA_real_
 		max_step_z <- NA_real_
 		if (is.finite(prev)) {
 			key <- function(d) paste(d$scheme, d$seed_index)
@@ -235,9 +237,9 @@ todo10_convergence_summary <- function(rows, mc_ns) {
 			p <- g[g$mc_n == prev & g$status == "ok" & is.finite(g$estimate), , drop = FALSE]
 			m <- match(key(a), key(p))
 			if (length(m) && all(!is.na(m))) {
-				zz <- abs(a$estimate - p$estimate[m]) / a$se
-				max_step_z <- max(zz)
-				step_ok <- all(zz < 1)
+				zz <- (a$estimate - p$estimate[m]) / sqrt(a$se^2 + p$se[m]^2)
+				max_step_z <- max(abs(zz))
+				p_step <- stats::pchisq(sum(zz^2), length(zz), lower.tail = FALSE)
 			}
 		}
 		data.frame(class = groups$class[i], dataset = groups$dataset[i], beta_T = groups$beta_T[i],
@@ -245,9 +247,9 @@ todo10_convergence_summary <- function(rows, mc_ns) {
 			mean_estimate_top = if (any(ok_top)) mean(at_top$estimate[ok_top]) else NA_real_,
 			sd_estimate_top = if (sum(ok_top) >= 2L) stats::sd(at_top$estimate[ok_top]) else NA_real_,
 			mean_se_top = if (any(ok_top)) mean(at_top$se[ok_top]) else NA_real_,
-			max_pairwise_z_top = max_pair_z, pairwise_within_2se = pair_ok,
-			prev_mc_n = prev, max_step_z = max_step_z, step_below_1se = step_ok,
-			pass = isTRUE(pair_ok) && isTRUE(step_ok) && sum(ok_top) == nrow(at_top), stringsAsFactors = FALSE)
+			se_guard_ok = se_guard_ok, p_homog = p_homog,
+			prev_mc_n = prev, max_step_z = max_step_z, p_step = p_step,
+			pass = se_guard_ok && isTRUE(p_homog > 0.01) && isTRUE(p_step > 0.01), stringsAsFactors = FALSE)
 	}))
 }
 

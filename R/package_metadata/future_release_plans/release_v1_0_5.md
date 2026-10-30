@@ -5101,7 +5101,18 @@ range, since the plan files' internal numbering did not change.
           old RMST rows on diamonds/pte_example/abalone only. The merge replaces the 39,020 whose `id` is also an R4B
           key (29,254 / 6,956 / 2,810). The other 9,282 (8,906 / 268 / 108) are stale and are not deleted by the
           merge; prune them with `prune_stale_result_rows.R`, which is a separate approval. Owner decision: how to
-          treat the DLL mismatch. The rescored iris/pte_example CSVs also have no sidecar of their own.
+          treat the DLL mismatch.
+        - **Owner 2026-10-30: rerun R4B on the current install** (supersedes the rescored rows). Launched 10:39 UTC
+          with `~/edi_regen/r4b_launch.sh` (unchanged; 9 per-dataset jobs, NUM_CORES 1), output
+          `~/edi_regen/r4b_20261030T103958Z`. HEAD `c85ce459`; the harness files are clean and include the TODO-164
+          truth fix. Installed `EDI.so` SHA-256 is `55558eec694e...f736`. Do not reinstall EDI before every job exits:
+          a reinstall breaks the merge's DLL check and corrupted a live run's `.rdb` on 10-25. After it finishes:
+          reconcile per dataset, pooled audit against the canonical baseline, merge dry run, then `--apply` and the
+          prune (each separately approved).
+        - **STOPPED by the owner 2026-10-30, about 6 min in** (SIGTERM to the launcher and all 55 descendants; no
+          survivors). `r4b_20261030T103958Z` is partial. Each dataset has only `attempt_events.csv`, logs and a
+          `receipt.json.running` receipt, and no results CSV. Do not merge or reconcile from it. The R4B merge
+          (step 1) remains open. The rescored iris/pte_example CSVs also have no sidecar of their own.
 - [x] TODO-24 (added 2026-09-24, conclusively refuted 2026-10-08):
   **KK-matched Cox proportional-hazards undercoverage was a coverage-truth
   artifact, not a variance defect** —
@@ -13806,6 +13817,70 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     boundary guard fires on a genuine bias correction, not just noise. Scratch from TODO-161: `todo161/`.
   - To decide: whether the BCa z0 should handle ties (e.g. mid-rank `mean(boot < est) + 0.5*mean(boot == est)`),
     whether BCa is a sensible default for a step-function estimand, or accept.
+  - **G4 regeneration 2026-10-27/29 (agent): rows produced, reconciled and audited; NOT merged (owner-gated).**
+    Run dir `~/edi_regen/regen_todo165_20261027T221125Z/` (job dirs `partA/`, `partB_wilcox/`, `partB2/`, `partB3/`;
+    failed or crash-killed dirs moved to `dead_crash_20261028/`, `dead_failed_partB3/`; tools in `tools/`, `work/`;
+    tables in `analysis/`; audits in `audit_final_before/` vs `audit_final_merged/`). `r = B = 151`, 1 core, receipt
+    wrapper, per-job attempt manifest. Each job reproduces the canonical (dataset, beta, rep) layout of the keys it
+    replaces; `COMPREHENSIVE_SKIP_FUNCTIONS` keeps only the slice's functions.
+    - Slice. (A) Dispatch change: `InferenceSurvivalKMDiff` (default bootstrap CI/pval, asymp CI/pval since they
+      fall back to the default bootstrap, and the 4 plain/Bayesian `_bca` rows) and the QuantileRegr classes the
+      harness runs (`Contin`/`Prop` x plain/`KK...OneLik`; IVWC not run): default bootstrap CI/pval + 4 `_bca`.
+      (B) Mid-rank z0, limited to classes where ties occur. Evidence: a tie probe, i.e. a scratch R profile that
+      logged `sum(boot == est)` / `sum(boot == delta)` inside `bca_ci_core`/`bca_pval_core`, run through
+      `comprehensive_tests.R` (rep 1, beta 0, FixediBCRD + FixedBinaryMatch, diamonds/pte_example/abalone, all 6
+      types; `probe/`). Ties found: QuantileRegr (plain + Bayesian), KMDiff (both), incidence AllSimpleAverageDiff,
+      Wald, KKCondLogitOneLik, KKNewcombe, KKModifiedPoisson, LogRegr, ProbitRegr, MiettinenNurminen, Newcombe,
+      RiskDiff (boot), GCompRiskDiff/Ratio, BinomialIdentityRiskDiff (boot, delta ties), KKGCompRiskDiff/Ratio
+      (boot + Bayesian, delta ties); count AllSimpleAverageDiff, PoissonKKGEE, HurdleNegBin, KKCondPoissonOneLik,
+      KKHurdlePoissonOneLik (boot + Bayesian); ordinal AllSimpleAverageDiff; proportion PropGCompMeanDiff. No ties:
+      all continuous model classes, ordinal model classes, survival model classes, Bayesian flavor of everything
+      else. Added without probe evidence: AllSimpleWilcox (known ties; its bootstrap is on the harness slow list, run
+      with `COMPREHENSIVE_FORCE_SLOW_PATHS=1`) and OrdinalPairedSignTest (discrete; probe cut short). Not probed (slow-
+      listed `~.` paths, ordinal KK CLMMs): excluded. Functions per class: `_bca` CI + pval of the tied flavor, plus
+      the default CI + pval when the class default is BCa.
+    - Rows: A 39,456 (40 jobs), Wilcox 4,474 (50), B 62,856 (54 + 44 jobs) = 106,786 rows, 0 duplicate keys across
+      parts. Reconcile vs canonical: 80,823 in-scope canonical keys, 150 missing, all structural (current harness no
+      longer emits them: CountPoissonKKGEE `model_formula=~.` slow path and its KK21stepwise rows, PairedSignTest on
+      KK21stepwise, HurdleNegBin `~.` FBM/Bernoulli error rows); ~26k extra = new keys the canonical never had
+      (designs/reps/functions missing from the canonical layout, e.g. pima incidence FixedBlocking; the merge would
+      append them). All jobs exit 0, all rows `ok`, 0 status mismatches vs attempt manifests. 1,664 keys live in more
+      than one canonical file (1,650 QR continuous keys in both `nc_1_continuous.csv` and `nc_8_continuous.csv`): the
+      merge tool refuses these until that pre-existing duplication is resolved.
+    - **Builds (rows come from three installs; do not treat as one build).** A, Wilcox, partB2 (144 jobs): DLL sha256
+      `8e003531` (md5 `f060874a`, 2026-10-27). partB3 after the WSL crash (44 jobs): 37 jobs `b8dd757a` (md5 `59f72778`,
+      2026-10-28 04:49), 2 jobs `e2d14b8e` (md5 `c9a851cf`, owner reinstall 2026-10-28 22:23 UTC). 5 partB3 jobs
+      span that reinstall; their sidecar `after` says `e2d14b8e` but none restarted after it, so they ran on
+      `b8dd757a`. The source changes between the builds (Wilcox asymp `mu =`, ZI/Hurdle boundary-vcov and LR null
+      refit, CountKKGLMM, KK bai/GLMM continuous, ExtendedRobins, bisection_ci removal, FixedBlockedCluster) touch
+      none of the slice's bootstrap/BCa paths, so no regenerated row should differ by build. Not verified by rerun.
+    - Survival rows are stale: all 13 KMDiff jobs (Part A) ran at the old harness noise SD 0.1 (`sd_noise` = 0.1),
+      before the 2026-10-28 change to SD 0.25 for survival. Rerun them after R7 is rerun at 0.25; do not merge them.
+      Non-survival rows are unaffected. Jobs that straddled the harness edit (2026-10-28 20:32 UTC) died with a parse
+      error and were rerun.
+    - Headline (old canonical -> new; coverage over finite rows, NA counted separately). KMDiff default bootstrap
+      CI: NA 0.55 -> 0.00, coverage 0.97 (beta 0) / 0.96 (beta 0.5, MC truth; the old rows used raw beta);
+      default p-value at beta 0: 0.059 reject. KMDiff `_bca` stays ~55% NA (the mid-rank z0 does not help it, as
+      expected). QuantileRegr default bootstrap: NA 0.62-0.69 -> 0.00, CI coverage 0.98-1.00 (conservative),
+      p-value at beta 0: ContinQR 0.049, PropQR 0.048 (but audit-flagged at `~1`), **ContinKKQuantileRegrOneLik
+      0.100 (`~1` alone 0.175, audit-flagged)**; QR `_bca` NA ~0.63 (unchanged). AllSimpleWilcox `_bca`: count NA
+      0.99 -> 0.48 (beta 0) / 0.97 -> 0.71 (beta 0.5); ordinal 0.998 -> 0.58 / 0.93 -> 0.88; finite CIs cover 1.00 at
+      beta 0 and the p-value rejects 0.000 (very conservative, audit-flagged). Continuous Wilcox: no material change.
+      Incidence/count/ordinal/proportion tie classes: NA and coverage move by a few points, mostly noise; KK
+      incidence classes improve (KKCondLogitOneLik NA 0.68 -> 0.51-0.54, KKNewcombe 0.49-0.58 -> 0.28).
+    - Audit (`audit_comprehensive_results.R --force`, `EDI_COMPREHENSIVE_RESULTS_DIR` = merged copies of all 6
+      unfiltered CSVs + canonical baseline, vs the same on unmodified canonical copies): 3,144 -> 3,139 findings, 23
+      gone, 18 added. Gone: KMDiff and PropQR `~1` default bootstrap CI low_coverage; 21 incidence bootstrap p-value
+      low_power / pval_miscalibration findings. Added: QR default p-value miscalibration (ContinKKQR `~1`/`~.`,
+      ContinQR `~.` conservative, PropQR `~1` 0.090), PropKKQR Bayesian `_bca` low coverage (83 rows), Wilcox
+      count/ordinal `_bca` p-value miscalibration (conservative), count AllSimpleAverageDiff boot p-value ACAT flag,
+      CountPoissonKKGEE `~1` CI 0.76 over 75 rows, KMDiff default p-value ACAT p = 0.011, incidence RiskDiff `~.`
+      low_power. The unmodified canonical copies already give 1,168 findings not in the current baseline, so the
+      baseline is not in sync with the CSVs; compare before/after, not against the baseline alone.
+    - Remaining (owner): approve the merge per job dir (`merge_comprehensive_slice_results.R --slice-dir <job>`),
+      skipping the KMDiff jobs; resolve the nc_1/nc_8 duplicate keys first; decide on the extra (new) keys; rerun
+      KMDiff at SD 0.25; retire the raw-beta KMDiff baseline rows; follow up on ContinKKQuantileRegrOneLik's
+      percentile p-value (0.175 at `~1`).
 - [ ] TODO-166 (added 2026-10-28, owner; found by the calibration pre-push check, `calibration_gates.md`):
   **`InferenceBaiAdjustedTKK14` / `InferenceBaiAdjustedTKK21` wald test ignores `delta`.**
   Current state: DONE 2026-10-28 (owner approved; uncommitted). Return replaced by
@@ -14114,6 +14189,80 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     treatment-only fit is at the boundary. Default-output change (most adjusted estimates / SEs; ~half the NAs become
     estimates; `full_neg_loglik` drops, so LR / score / gradient p move -- coordinate with TODO-175); re-measure the
     class docs' "10-12% covariate drop / 30-38% non-estimable"; ~25% more multistart time (estimated, not measured).
+
+- [ ] TODO-177 (added 2026-10-29, owner; found by the TODO-174 agent): **`InferenceIncidBinomialIdentityRiskDiff`: one
+  failed null refit poisons the warm start, so every later p-value on the object is NA.** Current state: OPEN, investigated; fix
+  proposed, not applied.
+  - Score CI, incidence null reps 1-4, `~1`, n = 200, Bernoulli (calibration helpers): the first bisection midpoint
+    (0.13364) returns p = NA, so `pval_invert_ci_cpp` stops and returns the outer step point est + step as the upper
+    endpoint (p there 0.0476; slightly too wide, conservative). A fresh object gives p(0.13364) = 0.0548. On the same
+    object, after the failed refit every later delta returns NA, even 0.1292, which was finite moments earlier.
+  - So the failed refit's state (warm-start params / Fisher in the memoized cache or `set_fit_warm_start`) is stored and
+    reused. Fix class-side: never store a failed or non-finite refit as the warm start; on failure retry from the full
+    fit with the treatment coefficient at delta and from a cold start. TODO-174's NA-tolerant bisection cannot repair
+    this (every retreat point is NA). Check the other incidence classes sharing the same null refit / warm cache.
+  - Done when: the same-object and fresh p agree at every delta tried; the score CI upper endpoint is a real root
+    (p ~ 0.05 at both endpoints) on reps 1-4. Default-output change if the CI moves: NEWS, canonical CSV rows (G4).
+  - **Investigated 2026-10-30 (agent, read-only; diff `/tmp/claude-1000/t177/todo177_proposed.diff`, copy in the session
+    scratchpad `todo177_proposed.diff`; scratch `/tmp/claude-1000/t177/`; not applied).** Two stacked bugs:
+    (A) **Why the refit fails** (not a boundary: fitted p 0.38-0.52): `fit_null` always passes the full fit's warm
+    Fisher; `fit_constrained_binomial_cpp_impl` (`src/fast_log_binomial_regression.cpp` ~L352) uses it as X'WX on
+    iteration 0 with X'Wz from the current start; for the identity link the stale X'WX (808 vs 822) moves the target to
+    the wrong side, every line-search step is rejected, `converged = FALSE` after 1 iteration. Same delta / start
+    converges without the warm Fisher. (B) **Why everything after is NA:** RiskDiff uses the override
+    `make_warm_fit_null_wrapper` in `inference_all_abstract_asymp_lik_std_mod_cache.R` (~L113-138), which on failure
+    stores `extract_start(NULL)` = `numeric(0)` (not NULL); `start %||% ...` passes it, the C++ errors on length, the
+    fit is NULL again -> NA forever. The memoization-extension wrapper guards length 0; this one doesn't.
+  - Affected: RiskDiff and `InferenceIncidLogBinomial` (same kernel, same pattern; same-object p(0) NA after a score CI
+    in 36/50 and 13/50 rows of reps 1-25 x 2 formulas); `InferenceIncidLogRegr` / `InferenceIncidProbitRegr` store
+    absurd finite starts (logit c(1.5e8, 2850) from non-converged fits, caught by the fix; probit's C++ reports
+    `converged = TRUE` at a saturated intercept -- C++ follow-up); `InferenceCountNegBin` stores NaN starts through the
+    guarded wrapper (fixed). Not fixed here, history dependence through a warm start converging elsewhere (TODO-175
+    pattern): `InferenceCountHurdleNegBin` (p(0) 0.699 -> 0.819), `InferenceSurvivalDepCensTransformRegr` (0.131 -> 0.050).
+  - Fix (4 files): both warm wrappers -- a start is reusable only if non-empty and all finite; a refit is usable only if
+    non-NULL and not `converged = FALSE`; a failed warm-started refit is retried once with `start = NULL` (what a fresh
+    object does); a failure never overwrites the last good start. RiskDiff and LogBinomial `fit_null`: old call first
+    (identical when it converges), then full fit with beta_T = delta and no warm Fisher, then cold; drop a wrong-length
+    start. Reps 1-4 `~1`: score CI upper moves inward ~0.0015 (rep 1 0.138049 -> 0.136518), p at both ends 0.0500 (was
+    0.0476 at the upper), 0 NA on the same object (was 6/8 deltas), same object == fresh to 9e-8, p(0) unchanged. Reps
+    1-25: endpoints off by > 0.002: RiskDiff 29 -> 0, LogBinomial 10 -> 6; fresh p(0) bit-identical everywhere; LogRegr
+    bit-identical. Score-CI time unchanged.
+  - Left over: RiskDiff rep 5 `~.` IRLS hits the 100-iteration cap at interior mu (C++ cycling); rep 23 `~.` constrained
+    MLE on the boundary (score undefined); LogBinomial `~.` reps 2/9/16/17 = TODO-174 NA-midpoint case; probit
+    saturated `converged = TRUE`; HurdleNegBin / DepCensTransform history dependence -> new TODO. Default output: score
+    CIs move (RiskDiff 36/50 upper, 11/50 lower; LogBinomial 13/50), a few LR / gradient CIs; NEWS + G4. Check tests
+    `test-likelihood-test-memoization-null-fit-cache-warm-start-and-lazy-component-evaluation-reference.R` (expected to
+    pass, not run), `test-binomial-identity-weighted-refit-hardening-failure-nonestimable-reference.R`,
+    `test-log-binomial-jackknife-history-independence.R`.
+- [ ] TODO-178 (added 2026-10-29, owner; found while answering a question about TODO-175):
+  **`InferenceOrdinalStereotypeLogitRegr` randomization refits warm-start from the previous permutation and land in
+  wrong optima, changing the randomization p-value.** Current state: OPEN, measured, not investigated further.
+  - `compute_treatment_estimate_during_randomization_inference` (`inference_ordinal_stereotype_logit.R` ~:303-338)
+    fits each permuted-w dataset single-start from `get_backend_warm_start_args()` and then `set_fit_warm_start()`s its
+    own result, so each draw starts from the previous draw (and, in parallel, from whatever that worker did before).
+    The class docs say these refits "remain single-start". Same mechanism as TODO-175: the likelihood has a branch per
+    sign of beta_T, and permuted estimates sit around 0, where the chain crosses branches.
+  - Measured 2026-10-28 (scratch `rand_warm.R`, `~.`, n = 200, Bernoulli, 300 permutations, compared with the better
+    nll of a cold start and a start from the observed fit): refits differing by > 1e-3: rep 1 247/300, rep 8 252/299,
+    rep 10 193/299, rep 11 245/300. Randomization p (warm chain vs better start): rep 1 0.107 vs 0.330, rep 8 0.532 vs
+    0.813, rep 10 0.070 vs 0.060, rep 11 **0.047 vs 0.247** -- a false rejection on a null replicate. Reps 1, 8, 11 had
+    their covariates dropped (TODO-176), so re-measure after TODO-176.
+  - Fix candidates: start every permutation from the observed-data fit plus a cold / two-stage start (TODO-176's A),
+    keep the lowest nll; never chain. Results must also not depend on draw order or thread count (memory
+    `project_thread_count_reproducibility_20261011`). Check the same pattern in the class's bootstrap worker and in
+    other multimodal classes (KK GLMMs, zero-inflated). Cost: 2-3 fits per draw.
+  - Done when: randomization p is a function of the data and draws only (same with any draw order / core count), and
+    a null study shows size near alpha. Default-output change: NEWS, canonical CSV rows (G4).
+- [ ] TODO-179 (added 2026-10-30, owner; found by the first nightly calibration fast tier, run 40833827319,
+  commit c85ce459): **two anti-conservative cells that persist at n = 200, so not small-sample.** Current state: OPEN,
+  not investigated. Both are in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` at their observed
+  levels (the gate reopens only if they get significantly worse); remove those rows when fixed.
+  - `InferenceIncidLogBinomial` wald `~.`, Bernoulli: size 0.088 (n = 50), 0.090 (n = 200); coverage 0.912 / 0.910.
+    Same cell's gradient is at size 0.051 but coverage 0.913 at n = 50 (CI side: see TODO-174's NA-midpoint mechanism).
+  - `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` score `~1`, BinaryMatch: size 0.123 (n = 50), 0.086 (n = 200).
+    The `~.` and wald cells fail at n = 50 only.
+  - Done when: a 1000-rep null study at n = 200 shows size and coverage consistent with 0.05 / 0.95 at the fast tier's
+    Bonferroni level, or the residual is documented as honest and the accepted rows' reason is updated to say so.
 
 ## Standing constraints
 
@@ -15257,6 +15406,28 @@ smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to reru
   - CONSEQUENCE: every survival result and truth computed at SD 0.1 is now stale: canonical `nc_1_survival.csv`, the R4B
     RMST rerun (fixed-tau truths), and the R7 truths above (KKLWACoxPH abalone median -4.4 at 0.1 vs -1.9 at 0.25).
     R7 must be rerun at 0.25 (both classes; KKStratCoxPH may now converge) before G4's survival slice.
+  - **R7 rerun at SD 0.25, 2026-10-29 (installed build `b8dd757a`, same grid: `--betas 0.5`, K 6, mc_n
+    3000/6000/12000, seeds 1:3, block + bootstrap; 2 jobs):** `~/edi_regen/r7_sd025_20261029_{a,b}`, both exit 0,
+    empty stderr, 0 non-ok rows (a about 5.5 h, b about 4.3 h). Provenance does not record the SD. The runs started
+    22:09 UTC 10-28, after the harness edit at 20:32, so they used `sd_noise_for("survival")` = 0.25. Verdict
+    (session-3 scratchpad `r7sd025/verdict.R`): **all 18 class x dataset cells pass the chi^2 rule** (homogeneity of
+    the 6 mc_n = 12000 estimates ~ chi^2_5, and the 6 steps 6000 -> 12000 ~ chi^2_6, each p > 0.01). No divergence
+    anywhere: KKStratCoxPH's most extreme estimate at any mc_n is -2.75.
+    - KKLWACoxPH truths: abalone -1.901, airquality -1.162, boston -1.239, cars -0.676, diamonds -1.493,
+      fuel -1.370, ionosphere -1.639, iris -1.501, pte_example -1.413 (p_homog 0.081-0.92, p_step 0.044-0.96).
+    - KKStratCoxPH truths: abalone -2.500, airquality -2.497, boston -2.522, cars -0.828, diamonds -2.260,
+      fuel -1.846, ionosphere -2.521, iris -2.477, pte_example -1.593 (p_homog 0.049-0.82, p_step 0.076-0.99).
+      Weakest cells are abalone (p_homog 0.050) and pte_example (0.049; block -1.548 vs bootstrap -1.642).
+    - Under the older max-over-comparisons rules ((a) all pairs within 2 combined SE, corrected (b)), 10 of the 18 cells
+      fail at least one check. Those rules fail converged truths about half the time, as shown at SD 0.1.
+    - OWNER DECISIONS 2026-10-30: (1) ADOPTED the chi^2 rule as the R7 pass criterion, replacing (a)/(b). Done in
+      `todo10_capped_truth_convergence.R` (`todo10_convergence_summary()`: SE guard, `p_homog`, `p_step`). Rechecked on
+      the saved rows: all 18 cells pass at SD 0.25. At SD 0.1 the KKStratCoxPH fuel, ionosphere (SE guard) and
+      pte_example cells fail. (2) REMOVE both classes from `COVERAGE_TRUTH_UNAVAILABLE`, superseding the 2026-10-27
+      ruling made at SD 0.1. The 3 bulk tests are updated. The `comprehensive_tests.R` edit waits until the R4B run
+      `~/edi_regen/r4b_20261030T103958Z` (started 10:39 UTC, SD 0.25) finishes: editing the harness mid-run kills
+      running jobs with a parse error. (3) Then regenerate the survival slice at 0.25: nc_1_survival and the
+      13 TODO-165 KMDiff jobs. R4B RMST is already the run above.
 - **G8 Cloglog Rd done 2026-10-25:** `fast_roxygenize.R`, including `compileAttributes()` (the negbin parameter-list
   comment is gone), 0 warnings. Only `InferenceOrdinalCloglogRegr.Rd` changed (+9 lines, Calibration details);
   RcppExports and NAMESPACE are unchanged.

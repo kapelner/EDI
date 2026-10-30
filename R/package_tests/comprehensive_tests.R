@@ -3877,27 +3877,23 @@ COVERAGE_MC_SPEC = list(
 	InferenceOrdinalKKCLMMCauchit        = list(rt = "ordinal",    design = quote(DesignFixedBinaryMatch), gen = quote(InferenceOrdinalKKCLMMCauchit),       mc_n = 3000L)
 )
 
-# These matched Cox classes do not yet have a defensible numeric coverage
-# target in the high-covariate scenarios used by the harness. Block-recycled
-# and bootstrap-resampled real-X constructions converge to materially
-# different values, both far from the finite-sample estimator distribution.
-# Returning NA prevents the harness from silently grading intervals against
-# either an unconverged MC value or the known-wrong raw beta_T fallback.
-COVERAGE_TRUTH_UNAVAILABLE = c(
-	"InferenceSurvivalKKLWACoxPHOneLik",
-	"InferenceSurvivalKKStratCoxPHOneLik"
-)
+# Classes with no defensible numeric coverage target: the harness returns NA
+# instead of grading against an unconverged MC value or the raw beta_T fallback.
+# Empty since 2026-10-30: the two KK-matched Cox classes left it after their
+# capped MC truth passed the runbook R7 chi^2 convergence check on all 9
+# datasets at survival noise SD 0.25 (release_v1_0_5.md, G4-C R7).
+COVERAGE_TRUTH_UNAVAILABLE = character(0)
 
 # TODO-10 (G6 #19, decided 2026-10-22; release_v1_0_5.md G4-C runbook R7):
-# covariate cap for the two KK-matched Cox classes above. Their `~.` fits put
+# covariate cap for the two KK-matched Cox classes. Their `~.` fits put
 # ~24 covariates against ~74 matched pairs (diamonds), the attenuation regime
 # of mc_coverage_truth_covariate_mismatch.md (option 2, "5-8 covariates"). The
 # cap keeps the design (matching) on the full covariate set and restricts the
 # Cox adjustment set to the first K columns of the dataset's X, via an explicit
 # model_formula, in BOTH the per-row `~.` fits (run_tests_for_response()) and
 # the MC truth (get_coverage_truth()); K is part of the truth cache key. The
-# classes stay in COVERAGE_TRUTH_UNAVAILABLE until the capped-truth
-# convergence check (runbook R7) passes. Firth is release_v1_1_0.md TODO-69.
+# capped truth passed the convergence check (runbook R7) on 2026-10-30.
+# Firth is release_v1_1_0.md TODO-69.
 KK_MATCHED_COX_COVARIATE_CAP_CLASSES = c(
 	"InferenceSurvivalKKLWACoxPHOneLik",
 	"InferenceSurvivalKKStratCoxPHOneLik"

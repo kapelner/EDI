@@ -87,7 +87,9 @@ worse than the accepted level.
   design, inference_class, method, formula, n, metric, accepted_level, reason).
   The cell is then tested against `accepted_level` instead of 0.05 / 0.95, with
   the same test and 0.01 / K -- so it goes red again only when significantly
-  worse. Starts empty.
+  worse. Seeded 2026-10-30 from the first nightly run (40833827319, 40 failing cells -> 80 rows, owner
+  ruling: accept all with reasons): levels are the observed rates rounded 0.005 toward the conservative
+  side; n = 50-only cells are small-sample, the n = 200 defects cite TODO-168 / 175-176-178 / 179.
 
 ## Findings at build time (2026-10-26)
 

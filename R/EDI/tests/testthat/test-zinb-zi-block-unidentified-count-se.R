@@ -28,9 +28,14 @@ test_that("ZINB Wald SE is finite and matches pscl when only the zero-inflation 
 		se = inf$.__enclos_env__$private$get_standard_error()
 		expect_true(is.finite(se) && se > 0, info = paste("seed", sd))
 		d = data.frame(y = des$get_y(), w = des$get_w())
-		ref = suppressWarnings(pscl::zeroinfl(y ~ w | w, data = d, dist = "negbin"))
+		# The zi block is flat, so pscl's default reltol (~1.5e-8) stops ~1e-3 short of the
+		# optimum on the count coefficient (EDI's fit is the better one); converge it tightly.
+		# The estimate is compared on the SE scale: near 0 (seed 3) a relative tolerance is
+		# meaningless.
+		ref = suppressWarnings(pscl::zeroinfl(y ~ w | w, data = d, dist = "negbin",
+			control = pscl::zeroinfl.control(reltol = 1e-12, maxit = 1e5)))
 		sm = summary(ref)$coefficients$count
-		expect_equal(est, unname(sm["w", 1]), tolerance = 1e-3)
+		expect_lt(abs(est - unname(sm["w", 1])), 0.01 * unname(sm["w", 2]))
 		expect_equal(se, unname(sm["w", 2]), tolerance = 0.05)
 		p = inf$compute_asymp_two_sided_pval()
 		expect_true(is.finite(p) && p > 0 && p <= 1)

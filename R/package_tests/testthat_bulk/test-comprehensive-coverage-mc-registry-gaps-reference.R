@@ -190,8 +190,10 @@ test_that("RMST truth is a direct MC fit, not SimulationFramework or raw beta_T"
 	expect_false("InferenceSurvivalRestrictedMeanDiff" %in% e$COVERAGE_TRUTH_UNAVAILABLE)
 })
 
-test_that("unconverged matched-Cox truth is unavailable rather than raw beta_T", {
+test_that("a truth-unavailable class returns NA rather than raw beta_T", {
 	e <- registry_fixture()
+	# The harness list is empty since R7 passed (2026-10-30); exercise the guard directly.
+	e$COVERAGE_TRUTH_UNAVAILABLE <- "InferenceSurvivalKKStratCoxPHOneLik"
 	for (class_name in e$COVERAGE_TRUTH_UNAVAILABLE) {
 		label <- paste0(class_name, " [model_formula=~.]")
 		expect_true(is.na(e$get_coverage_truth(label, "toy", 0.5, "survival")), info = class_name)

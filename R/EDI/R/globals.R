@@ -16,7 +16,9 @@ edi_package_version = function(){
 # .cluster__ is the same pattern: weighted_weibull_bootstrap_surrogate_fit()
 # passes `cluster = .cluster__` to survival::survreg(), which resolves that
 # bare symbol against its own `data = dat` argument (dat$.cluster__) via NSE.
-utils::globalVariables(c(".wgt__", ".cluster__"))
+# `id` is the same pattern: .kk_rank_regr_aftsrr_seeded() passes `id = id` to
+# aftgee::aftsrr(), which resolves it as the cluster column dat$id.
+utils::globalVariables(c(".wgt__", ".cluster__", "id"))
 
 # `i`, `j`, `tvar`, `y`, `w` are ompr MILP modeling-DSL symbols used via NSE
 # inside `ompr::add_variable()`/`ompr::add_constraint()`/`ompr::sum_expr()`

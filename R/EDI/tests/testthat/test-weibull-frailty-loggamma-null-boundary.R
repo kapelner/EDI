@@ -72,7 +72,11 @@ test_that("pairs + reservoir KK14 fixture is unchanged by the robust null refit"
 	# = survreg's conditional-on-theta SE 0.31683). The patched kernel gives the full-information
 	# SE 0.32638, matching an R central-difference Hessian of the score (0.32655, stable for
 	# h = 1e-2..1e-5). Score / LR / gradient are unchanged.
-	expect_equal(unname(p), c(0.51851, 0.50294, 0.50955, 0.51205), tolerance = 2e-4)
+	# Wald rests on that tiny I_tt, so it moves ~5e-4 across BLAS / compiler flags (Windows,
+	# -march=native builds in CI): looser tolerance, still ~10x tighter than the 0.0128 gap to
+	# the pre-patch 0.50572.
+	expect_equal(unname(p[["wald"]]), 0.51851, tolerance = 2e-3)
+	expect_equal(unname(p[-1L]), c(0.50294, 0.50955, 0.51205), tolerance = 2e-4)
 	# well-behaved fit returns the plain kernel result: no fallback marker
 	expect_null(lr_stat(inf)$f0$log_theta_null_floor_fallback)
 })
