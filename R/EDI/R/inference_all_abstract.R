@@ -1039,22 +1039,19 @@ Inference = R6::R6Class("Inference",
 							stop(e)
 					})
 				} else if (!is.null(global_mirai_cores)){
-					requested_mirai_cores = min(n_cores, global_mirai_cores)
-					private$ensure_mirai_daemons(requested_mirai_cores)
-					on.exit(private$ensure_mirai_daemons(global_mirai_cores), add = TRUE)
+					ensure_mirai_daemons(global_mirai_cores)
 					seed_val = private$seed
-					tasks = lapply(seq_along(chunks), function(i) {
-						chunk = chunks[[i]]
+					submit_chunk = function(chunk, i) {
 						chunk_seed = if (!is.null(seed_val)) seed_val + i else NULL
 						mirai::mirai({
 							if (!is.null(chunk_seed)) set.seed(chunk_seed)
 							RUN_CHUNK(chunk)
 						}, RUN_CHUNK = RUN_CHUNK, chunk = chunk, chunk_seed = chunk_seed)
-					})
-					results = settle_mirai_tasks(tasks)
+					}
+					results = run_mirai_window(chunks, submit_chunk, min(n_cores, global_mirai_cores))
 					if (is.null(results)) {
 						stop(
-							"mirai daemons died (or timed out) while running inference chunks; ",
+							"mirai daemons died while running inference chunks; ",
 							"aborting instead of hanging. Rerun, use num_cores = 1, or investigate ",
 							"daemon launch failures (system load, memory pressure, R_LIBS ",
 							"visibility for workers)."
@@ -1077,18 +1074,6 @@ Inference = R6::R6Class("Inference",
 					flatten_chunk_results(parallel::parLapply(lazy_worker_cl, chunks, RUN_CHUNK))
 				}
 			},
-		ensure_mirai_daemons = function(n){
-			s = tryCatch(mirai::status(), error = function(e) list(connections = 0L))
-			n_running = if (is.numeric(s$connections) && length(s$connections) == 1L) as.integer(s$connections) else 0L
-			if (n_running != n) {
-				# Tear down any partial/stale daemons first, then relaunch via
-				# the bounded launcher -- never the blocking
-				# mirai::daemons(<numeric>) form (see start_mirai_daemons_bounded).
-				if (n_running > 0L) tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
-				start_mirai_daemons_bounded(n)
-			}
-			invisible(NULL)
-		},
 		stable_signature = function(obj){
 			# Memoization cache key over the FULL serialized content. An earlier
 			# strided ~258-byte subsample was O(1) but collided for distinct

@@ -523,6 +523,7 @@ make_configured_fork_cluster = function(n_cores) {
 # half-time, and error out loudly rather than ever hang.
 start_mirai_daemons_bounded = function(n, total_timeout_secs = 90) {
   n = as.integer(n)
+  edi_env$mirai_pool_target = NULL
   # dispatcher = FALSE deliberately: the mirai 2.x dispatcher is a
   # background thread in the host process, and every interaction with it
   # (compartment setup, status() queries, daemons(0) teardown) is a
@@ -543,7 +544,10 @@ start_mirai_daemons_bounded = function(n, total_timeout_secs = 90) {
       s = mirai::status()
       if (is.numeric(s$connections) && length(s$connections) == 1L) as.integer(s$connections) else 0L
     }, error = function(e) 0L)
-    if (conns >= n) return(invisible(NULL))
+    if (conns >= n) {
+      edi_env$mirai_pool_target = n
+      return(invisible(NULL))
+    }
     now = as.numeric(Sys.time())
     if (now > deadline) {
       if (conns >= 1L) {
@@ -552,6 +556,7 @@ start_mirai_daemons_bounded = function(n, total_timeout_secs = 90) {
         # than fail a run that can finish.
         warning("only ", conns, " of ", n, " mirai daemon(s) connected within ",
                 total_timeout_secs, "s; continuing with reduced parallelism")
+        edi_env$mirai_pool_target = n
         return(invisible(NULL))
       }
       tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
@@ -586,6 +591,7 @@ mirai_daemons_alive = function() {
 # launch time). Returns the resolved values on success; NULL if any task
 # fails to settle before the deadline (daemon death or timeout).
 settle_mirai_tasks = function(tasks, timeout_secs = 60) {
+  if (inherits(tasks, "mirai")) tasks = list(tasks)
   if (length(tasks) == 0L) return(list())
   deadline = as.numeric(Sys.time()) + timeout_secs
   repeat {
@@ -595,6 +601,169 @@ settle_mirai_tasks = function(tasks, timeout_secs = 60) {
     if (!mirai_daemons_alive() || as.numeric(Sys.time()) > deadline) return(NULL)
     Sys.sleep(0.1)
   }
+}
+
+# Seconds run_mirai_window() waits between finished chunks. Chunks of one batch
+# start together and can finish together, so long gaps are normal in a big
+# batch; the default only has to bound a hang, not detect it quickly.
+mirai_stall_timeout_secs = function() {
+  getOption("EDI.mirai_stall_timeout_secs", default = 21600)
+}
+
+# TRUE once stall_secs have passed since last_progress. Every loop polling mirai
+# tasks needs this as well as a liveness check: a wedged daemon stays connected,
+# so mirai_daemons_alive() alone never ends the wait.
+mirai_tasks_stalled = function(last_progress, stall_secs = mirai_stall_timeout_secs()) {
+  as.numeric(Sys.time()) - last_progress > stall_secs
+}
+
+# Fails a stalled poll. The pool goes down with the error, or the next call
+# would reuse the wedged daemon and stall again.
+stop_stalled_mirai_pool = function(stall_secs = mirai_stall_timeout_secs()) {
+  tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
+  edi_env$mirai_pool_target = NULL
+  stop(
+    "mirai tasks made no progress for ", stall_secs, "s, so the pool was ",
+    "stopped. A daemon may be wedged. If single tasks really run this long, ",
+    "raise options(EDI.mirai_stall_timeout_secs = <seconds>)."
+  )
+}
+
+# The one polling loop for mirai tasks. Runs submit(i) for i in seq_len(n) with
+# at most `window` in flight and calls on_ready(i, task) as each resolves, then
+# after_ready() once per poll that finished anything. Returns 0L when all are
+# done, or how many were still in flight if every daemon died; a stall raises
+# through stop_stalled_mirai_pool(). Whatever is in flight on any exit is
+# stopped, including when on_ready() itself raises.
+poll_mirai_tasks = function(n, submit, window, on_ready, after_ready = NULL,
+                            stall_secs = mirai_stall_timeout_secs(),
+                            poll_secs = 0.01, liveness_every_secs = 0) {
+  in_flight = list()
+  on.exit(invisible(lapply(in_flight, function(task) try(mirai::stop_mirai(task), silent = TRUE))), add = TRUE)
+  next_i = 1L
+  last_progress = as.numeric(Sys.time())
+  last_liveness_check = last_progress
+  repeat {
+    while (length(in_flight) < window && next_i <= n) {
+      in_flight[[as.character(next_i)]] = submit(next_i)
+      next_i = next_i + 1L
+    }
+    if (length(in_flight) == 0L) return(0L)
+    ready = names(in_flight)[!vapply(in_flight, mirai::unresolved, logical(1L))]
+    if (length(ready) == 0L) {
+      now = as.numeric(Sys.time())
+      if (now - last_liveness_check >= liveness_every_secs) {
+        last_liveness_check = now
+        if (!mirai_daemons_alive()) return(length(in_flight))
+      }
+      if (mirai_tasks_stalled(last_progress, stall_secs)) stop_stalled_mirai_pool(stall_secs)
+      Sys.sleep(poll_secs)
+      next
+    }
+    last_progress = as.numeric(Sys.time())
+    for (nm in ready) {
+      task = in_flight[[nm]]
+      in_flight[[nm]] = NULL
+      on_ready(as.integer(nm), task)
+    }
+    if (!is.null(after_ready)) after_ready()
+  }
+}
+
+# Run submit(chunk, i) for every chunk with at most `window` tasks in flight,
+# which caps concurrency without resizing the shared pool. Returns the values
+# in chunk order, or NULL if every daemon has died. There is deliberately no
+# overall timeout: a long batch on healthy daemons is not a failure. A task
+# whose daemon dies resolves at once to an errorValue while other daemons live
+# on, so that value has to stop here rather than be returned as a result. A
+# daemon that stays connected but never answers is caught only by stall_secs,
+# which restarts whenever a chunk finishes.
+run_mirai_window = function(chunks, submit, window, stall_secs = mirai_stall_timeout_secs()) {
+  n = length(chunks)
+  if (n == 0L) return(list())
+  collected = new.env(parent = emptyenv())
+  collected$results = vector("list", n)
+  tasks_left = poll_mirai_tasks(
+    n = n,
+    submit = function(i) submit(chunks[[i]], i),
+    window = window,
+    on_ready = function(i, task) collected$results[i] = list(task[]),
+    stall_secs = stall_secs
+  )
+  if (tasks_left > 0L) return(NULL)
+  results = collected$results
+  failed = which(vapply(results, mirai::is_error_value, logical(1L)))
+  if (length(failed) > 0L) {
+    stop(
+      "mirai chunk ", failed[1L], " of ", n, " failed (worker error or lost daemon): ",
+      paste(as.character(results[[failed[1L]]]), collapse = " ")
+    )
+  }
+  results
+}
+
+# Make the mirai pool usable for n workers: one silent relaunch, then a loud
+# failure, and never an unbounded wait. Reuses a pool of exactly n, and also a
+# short pool that start_mirai_daemons_bounded() accepted for this same n: that
+# launcher deliberately keeps a degraded pool, so tearing it down here would
+# repeat the launch wait on every call without gaining a daemon. A pool of any
+# other size is an intentional resize (SimulationFramework$run() sizes the pool
+# to its num_cores and restores the previous size on exit). always_configure re-sends the worker
+# settings and waits for them even when the pool is reused.
+ensure_mirai_daemons = function(n, always_configure = FALSE) {
+  n = as.integer(n)
+  for (attempt in 1:2) {
+    s = tryCatch(mirai::status(), error = function(e) list(connections = 0L))
+    n_running = if (is.numeric(s$connections) && length(s$connections) == 1L) as.integer(s$connections) else 0L
+    degraded_for_n = n_running >= 1L && n_running < n && identical(edi_env$mirai_pool_target, n)
+    reusable = n_running == n || degraded_for_n
+    if (reusable && !always_configure) return(invisible(NULL))
+    if (!reusable) {
+      if (n_running > 0L || attempt > 1L) tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
+      # Bounded launcher -- never the blocking mirai::daemons(<numeric>) form
+      # (see start_mirai_daemons_bounded). On attempt 1 a launch failure feeds
+      # the retry below instead of erroring out.
+      if (attempt == 1L) {
+        launch_err = tryCatch({ start_mirai_daemons_bounded(n); NULL }, error = function(e) e)
+        if (!is.null(launch_err)) next
+      } else {
+        start_mirai_daemons_bounded(n)
+      }
+    }
+    # Each daemon inherits OMP_NUM_THREADS=N from the parent; cap them at 1 so
+    # N daemons don't each spawn N OMP threads. everywhere() in mirai 2.x is
+    # asynchronous, so settle it before any real task is submitted;
+    # collect_mirai() must not be used here because it blocks with no timeout.
+    setup_tasks = tryCatch(
+      mirai::everywhere({
+        # Runs in the worker process only (not the user's session); these settings
+        # are meant to persist there for the worker's lifetime.
+        Sys.setenv(
+          OMP_NUM_THREADS        = 1L,
+          MKL_NUM_THREADS        = 1L,
+          OPENBLAS_NUM_THREADS   = 1L,
+          GOTO_NUM_THREADS       = 1L,
+          VECLIB_MAXIMUM_THREADS = 1L,
+          NUMEXPR_NUM_THREADS    = 1L
+        )
+        options(mc.cores = 1L)
+        if (requireNamespace("data.table", quietly = TRUE)) data.table::setDTthreads(1L)
+        if (requireNamespace("fixest", quietly = TRUE)) suppressWarnings(try(fixest::setFixest_nthreads(1L), silent = TRUE))
+        invisible(NULL)
+      }),
+      error = function(e) NULL
+    )
+    if (!is.null(settle_mirai_tasks(setup_tasks)) && mirai_daemons_alive()) return(invisible(NULL))
+    # Failed launch: tear down before retrying (or erroring out).
+    tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
+    edi_env$mirai_pool_target = NULL
+  }
+  stop(
+    "mirai daemons failed to start (twice): daemon processes died or never ",
+    "connected within 60s. Cannot use num_cores > 1 on the mirai backend; ",
+    "rerun serially (num_cores = 1) or investigate the daemon launch failure ",
+    "(e.g. system load, R_LIBS visibility for workers)."
+  )
 }
 
 #' Set the number of cores for parallelization
@@ -616,6 +785,12 @@ settle_mirai_tasks = function(tasks, timeout_secs = 60) {
 #' intervals, bootstrap for non-regression KK Wilcoxon inference, bootstrap for
 #' non-KK survival procedures, and bootstrap for incidence procedures. Do not
 #' expect a universal "more cores is faster" rule.
+#'
+#' On the \code{mirai} backend, inference stops the workers and fails with an
+#' error if no chunk of work finishes for six hours, and so does
+#' \code{SimulationFramework}, so a worker that has stopped responding cannot
+#' hang the session forever. Change that limit, in seconds,
+#' with \code{options(EDI.mirai_stall_timeout_secs = )}.
 #'
 #' If you want to change the default policy, use
 #' \code{set_parallel_dispatch_policy()}.
@@ -728,6 +903,7 @@ unset_num_cores = function() {
       tryCatch(mirai::daemons(0), error = function(e) invisible(NULL)) # Stop daemons
     }
     edi_env$global_mirai_num_cores = NULL
+    edi_env$mirai_pool_target = NULL
   }
   
   # Reset package threads to 1

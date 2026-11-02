@@ -558,6 +558,14 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     #'   cores.  Cell state is pushed to the daemons once at \code{run()}
     #'   start rather than re-serialized per dispatch.  If \pkg{mirai} is not
     #'   installed, execution falls back to serial with a warning.
+    #'
+    #'   On \pkg{mirai}, \code{run()} stops the daemons and fails with an error
+    #'   if no work unit or cache job finishes for six hours, because a worker
+    #'   that has stopped responding would otherwise hang it forever.  Healthy
+    #'   work is stopped too if nothing finishes in that time, so if a single
+    #'   unit can run longer, raise the limit first with
+    #'   \code{options(EDI.mirai_stall_timeout_secs = <seconds>)}; \code{Inf}
+    #'   turns it off.  The limit does not apply to the fork cluster.
     #'   Default \code{1}.
     #'
     #' @param results_filename Character scalar. The filename for the results
@@ -863,18 +871,30 @@ SimulationFramework = R6::R6Class("SimulationFramework",
       num_cores = private$num_cores
       set_package_threads(num_cores)
       
+      # A mirai pool at least as large as this run stays up: rebuilding it on
+      # entry and exit costs a full launch wait each way and gains nothing.
+      keep_mirai_pool = num_cores > 1L && !is.null(prev_global_mirai_cores) &&
+        num_cores <= prev_global_mirai_cores
+
       # If the simulation is running its own parallel loop, we force 
       # nested core budget to 1 to prevent N*M explosion.
       if (num_cores > 1L && prev_global_cores > 1L) {
-        set_num_cores(1L)
+        if (keep_mirai_pool) {
+          assign("num_cores_override", 1L, envir = ns$edi_env)
+          set_package_threads(1L)
+        } else {
+          set_num_cores(1L)
+        }
       }
       
       on.exit({
         set_package_threads(prev_threads)
+        # Restore the override first: get_num_cores() returns it when set, so
+        # it would otherwise report 1 and rebuild a pool that never went away.
+        assign("num_cores_override", prev_override, envir = ns$edi_env)
         if (get_num_cores() != prev_global_cores) {
            set_num_cores(prev_global_cores, force_mirai = !is.null(prev_global_mirai_cores))
         }
-        assign("num_cores_override", prev_override, envir = ns$edi_env)
       }, add = TRUE)
       has_pregen_designs = any(vapply(private$design_classes,
         design_class_generator_supports_batch_w_pregeneration, logical(1L)))
@@ -909,14 +929,19 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           # Mirai workers also return whole cell-reps, and cells complete out of
           # order across reps; drop the DGP/Task bars just like the fork path.
           private$n_progress_lines = 3L
-          private$.ensure_mirai_daemons(num_cores)
-          on.exit({
-            if (!is.null(prev_global_mirai_cores)) {
-              private$.ensure_mirai_daemons(prev_global_mirai_cores)
-            } else {
-              tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
-            }
-          }, add = TRUE)
+          ensure_mirai_daemons(
+            if (keep_mirai_pool) prev_global_mirai_cores else num_cores,
+            always_configure = TRUE
+          )
+          if (!keep_mirai_pool) {
+            on.exit({
+              if (!is.null(prev_global_mirai_cores)) {
+                ensure_mirai_daemons(prev_global_mirai_cores, always_configure = TRUE)
+              } else {
+                tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
+              }
+            }, add = TRUE)
+          }
         }
       }
       # Handle cleanup/setup
@@ -1379,59 +1404,45 @@ SimulationFramework = R6::R6Class("SimulationFramework",
             chunk_size = num_cores_to_use
             cache_chunks = split(seq_along(pending_cache_jobs), (seq_along(pending_cache_jobs) - 1L) %/% chunk_size)
             for (chunk_idxs in cache_chunks) {
-              jobs = lapply(chunk_idxs, function(jj) {
-                job_j = pending_cache_jobs[[jj]]
-                mirai::mirai({
-                  RUN_CACHE_JOB_DETACHED(
-                    job = job_j,
-                    seed = seed_j
-                  )
+              jobs_left = poll_mirai_tasks(
+                n = length(chunk_idxs),
+                submit = function(pos) {
+                  jj = chunk_idxs[[pos]]
+                  job_j = pending_cache_jobs[[jj]]
+                  mirai::mirai({
+                    RUN_CACHE_JOB_DETACHED(
+                      job = job_j,
+                      seed = seed_j
+                    )
+                  },
+                  RUN_CACHE_JOB_DETACHED = RUN_CACHE_JOB_DETACHED,
+                  job_j = job_j,
+                  seed_j = cache_job_seed(jj))
                 },
-                RUN_CACHE_JOB_DETACHED = RUN_CACHE_JOB_DETACHED,
-                job_j = job_j,
-                seed_j = cache_job_seed(jj))
-              })
-              names(jobs) = as.character(chunk_idxs)
-              completed = 0L
-              last_liveness_check = as.numeric(Sys.time())
-              while (completed < length(chunk_idxs)) {
-                ready = names(jobs)[!vapply(jobs, mirai::unresolved, logical(1L))]
-                if (length(ready) == 0L) {
-                  # A task whose daemons all died never resolves: check
-                  # liveness (throttled) instead of sleeping forever -- see
-                  # .mirai_daemons_alive / the CI hang this fixed.
-                  now = as.numeric(Sys.time())
-                  if (now - last_liveness_check > 5) {
-                    last_liveness_check = now
-                    if (!private$.mirai_daemons_alive()) {
-                      invisible(lapply(jobs, function(job) try(mirai::stop_mirai(job), silent = TRUE)))
-                      stop(
-                        "all mirai daemons died while ", length(jobs),
-                        " design/SE cache job(s) were still pending; aborting instead of hanging. ",
-                        "Rerun, or use num_cores = 1."
-                      )
-                    }
-                  }
-                  Sys.sleep(0.1)
-                  next
-                }
-                for (nm in ready) {
-                  job_res = tryCatch(jobs[[nm]][], error = function(e) e)
-                  job_idx = as.integer(nm)
+                window = length(chunk_idxs),
+                on_ready = function(pos, task) {
+                  job_res = tryCatch(task[], error = function(e) e)
                   if (!inherits(job_res, "error") &&
                       !inherits(job_res, "miraiError") &&
                       !inherits(job_res, "errorValue")) {
-                    mark_cache_job_done(pending_cache_jobs[[job_idx]])
+                    mark_cache_job_done(pending_cache_jobs[[chunk_idxs[[pos]]]])
                   } else {
-                    cache_jobs_done = cache_jobs_done + 1L
+                    run_env$cache_jobs_done = cache_jobs_done + 1L
                     if (isTRUE(private$verbose)) private$.draw_labeled_progress_bar(
                       "caching design/SE data",
                       cache_jobs_done / max(1L, n_cache_jobs)
                     )
                   }
-                  completed = completed + 1L
-                }
-                jobs[ready] = NULL
+                },
+                poll_secs = 0.1,
+                liveness_every_secs = 5
+              )
+              if (jobs_left > 0L) {
+                stop(
+                  "all mirai daemons died while ", jobs_left,
+                  " design/SE cache job(s) were still pending; aborting instead of hanging. ",
+                  "Rerun, or use num_cores = 1."
+                )
               }
             }
           } else if (use_parallel_workers) {
@@ -1523,7 +1534,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           }, .args = list(CELL_STATES__ = all_cell_states, RUN_FN__ = RUN_REP_DETACHED_G)),
           error = function(e) NULL
         )
-        if (!is.null(push_tasks) && !private$.settle_mirai_tasks(push_tasks)) {
+        if (!is.null(push_tasks) && is.null(settle_mirai_tasks(push_tasks))) {
           stop(
             "mirai daemons died (or timed out) while receiving the simulation ",
             "cell states; aborting instead of hanging. Rerun, or use num_cores = 1."
@@ -1544,7 +1555,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           # blocking collect on dead daemons would turn even a clean error
           # path into the silent CI hang this section exists to prevent.
           if (!is.null(cleanup_tasks)) {
-            private$.settle_mirai_tasks(cleanup_tasks, timeout_secs = 15)
+            settle_mirai_tasks(cleanup_tasks, timeout_secs = 15)
           }
         }, add = TRUE)
       }
@@ -1776,18 +1787,15 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         }
 
         # Modest oversubscription keeps every daemon busy while the main
-        # process records results and redraws progress between polls.
-        window_size = 2L * num_cores_to_use
-        in_flight = list()
-        next_unit = 1L
-        completed_units = 0L
+        # process records results and redraws progress between polls. On a
+        # shared pool larger than this run the window is the core limit, since
+        # spare daemons would otherwise run the oversubscribed units too.
+        pool_has_spare_daemons = keep_mirai_pool && prev_global_mirai_cores > num_cores_to_use
+        window_size = if (pool_has_spare_daemons) num_cores_to_use else 2L * num_cores_to_use
         cells_done_per_rep = integer(private$Nrep_W)
         frontier_rep = 0L      # contiguous fully-done reps from rep 1 (display only)
         active_reps_done = 0L
         last_rep_done_time = as.numeric(Sys.time())
-        stop_in_flight = function() {
-          invisible(lapply(in_flight, function(job) try(mirai::stop_mirai(job), silent = TRUE)))
-        }
         advance_frontier = function() {
           while (frontier_rep < private$Nrep_W) {
             nxt = frontier_rep + 1L
@@ -1798,79 +1806,60 @@ SimulationFramework = R6::R6Class("SimulationFramework",
         }
         advance_frontier()
 
-        last_liveness_check = as.numeric(Sys.time())
-        while (completed_units < n_units) {
-          while (length(in_flight) < window_size && next_unit <= n_units) {
-            in_flight[[as.character(next_unit)]] = submit_unit(next_unit)
-            next_unit = next_unit + 1L
+        on_unit_ready = function(u, task) {
+          rep_u = units[[u, 1L]]
+          ci_u  = units[[u, 2L]]
+          job_res = tryCatch(task[], error = function(e) e)
+          private$session_work_units_done = private$session_work_units_done + 1L
+          if (is_mirai_failed(job_res)) {
+            failed_error = private$.make_error_record(
+              stage = "worker_execution", rep = rep_u,
+              design = NA_character_, design_params = NULL,
+              inference = NA_character_, inference_params = NULL,
+              inference_type = NA_character_, inference_type_params = NULL,
+              message = mirai_err_msg(job_res),
+              metadata = list(cell_index = ci_u, rep = rep_u, backend = "mirai")
+            )
+            private$.append_errors(list(failed_error))
+            if (isTRUE(private$stop_on_error)) private$.abort_from_error_record(failed_error)
+            private$progress_count = private$progress_count + cell_tasks_count[[ci_u]]
+          } else {
+            private$.append_errors(job_res$errors)
+            if (!is.null(job_res$fatal_error)) private$.abort_from_error_record(job_res$fatal_error)
+            private$.record_batch(job_res$results_dt, job_res$skipped_count)
           }
-          ready = names(in_flight)[!vapply(in_flight, mirai::unresolved, logical(1L))]
-          if (length(ready) == 0L) {
-            # A task whose daemons all died never resolves: check liveness
-            # (throttled) instead of sleeping forever -- see
-            # .mirai_daemons_alive / the CI hang this fixed.
-            now = as.numeric(Sys.time())
-            if (now - last_liveness_check > 5) {
-              last_liveness_check = now
-              if (!private$.mirai_daemons_alive()) {
-                stop_in_flight()
-                stop(
-                  "all mirai daemons died with ", length(in_flight),
-                  " replication work unit(s) still in flight; aborting instead of hanging. ",
-                  "Rerun, or use num_cores = 1."
-                )
-              }
-            }
-            Sys.sleep(0.05)
-            next
-          }
-          for (nm in ready) {
-            u = as.integer(nm)
-            rep_u = units[[u, 1L]]
-            ci_u  = units[[u, 2L]]
-            job_res = tryCatch(in_flight[[nm]][], error = function(e) e)
-            completed_units = completed_units + 1L
-            private$session_work_units_done = private$session_work_units_done + 1L
-            if (is_mirai_failed(job_res)) {
-              failed_error = private$.make_error_record(
-                stage = "worker_execution", rep = rep_u,
-                design = NA_character_, design_params = NULL,
-                inference = NA_character_, inference_params = NULL,
-                inference_type = NA_character_, inference_type_params = NULL,
-                message = mirai_err_msg(job_res),
-                metadata = list(cell_index = ci_u, rep = rep_u, backend = "mirai")
-              )
-              private$.append_errors(list(failed_error))
-              if (isTRUE(private$stop_on_error)) {
-                stop_in_flight()
-                private$.abort_from_error_record(failed_error)
-              }
-              private$progress_count = private$progress_count + cell_tasks_count[[ci_u]]
-            } else {
-              private$.append_errors(job_res$errors)
-              if (!is.null(job_res$fatal_error)) {
-                stop_in_flight()
-                private$.abort_from_error_record(job_res$fatal_error)
-              }
-              private$.record_batch(job_res$results_dt, job_res$skipped_count)
-            }
-            cells_done_per_rep[[rep_u]] = cells_done_per_rep[[rep_u]] + 1L
-            if (cells_done_per_rep[[rep_u]] == active_cells_per_rep[[rep_u]]) {
-              active_reps_done = active_reps_done + 1L
-              now_t = as.numeric(Sys.time())
-              private$rep_elapsed_idx = private$rep_elapsed_idx + 1L
-              private$rep_elapsed_times[[private$rep_elapsed_idx]] = now_t - last_rep_done_time
-              last_rep_done_time = now_t
-              private$rep_start_capture = now_t
-              if (active_reps_done %% private$save_to_disk_every_n_rep == 0L) {
-                private$.flush_pending_to_disk()
-              }
+          run_env$cells_done_per_rep[[rep_u]] = cells_done_per_rep[[rep_u]] + 1L
+          if (cells_done_per_rep[[rep_u]] == active_cells_per_rep[[rep_u]]) {
+            run_env$active_reps_done = active_reps_done + 1L
+            now_t = as.numeric(Sys.time())
+            private$rep_elapsed_idx = private$rep_elapsed_idx + 1L
+            private$rep_elapsed_times[[private$rep_elapsed_idx]] = now_t - last_rep_done_time
+            run_env$last_rep_done_time = now_t
+            private$rep_start_capture = now_t
+            if (active_reps_done %% private$save_to_disk_every_n_rep == 0L) {
+              private$.flush_pending_to_disk()
             }
           }
-          in_flight[ready] = NULL
-          advance_frontier()
-          private$current_rep_idx = min(private$Nrep_W, frontier_rep + 1L)
-          private$.draw_progress()
+        }
+        units_left = poll_mirai_tasks(
+          n = n_units,
+          submit = submit_unit,
+          window = window_size,
+          on_ready = on_unit_ready,
+          after_ready = function() {
+            advance_frontier()
+            private$current_rep_idx = min(private$Nrep_W, frontier_rep + 1L)
+            private$.draw_progress()
+          },
+          poll_secs = 0.05,
+          liveness_every_secs = 5
+        )
+        if (units_left > 0L) {
+          stop(
+            "all mirai daemons died with ", units_left,
+            " replication work unit(s) still in flight; aborting instead of hanging. ",
+            "Rerun, or use num_cores = 1."
+          )
         }
         private$current_rep_idx = private$Nrep_W
       }
@@ -2104,87 +2093,6 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     progress_log_interval    = 0L,
     progress_bar_drawn       = NULL,
     n_progress_lines         = 5L,
-    # TRUE iff at least one mirai daemon connection is currently live.
-    # Daemon processes can die or fail to launch (observed intermittently on
-    # loaded CI runners, CI run 33521614693's gdb capture); every wait on a
-    # mirai task must treat "no connections" as fatal rather than blocking,
-    # because a task with no daemon left to run it never resolves.
-    .mirai_daemons_alive = function() {
-      s = tryCatch(mirai::status(), error = function(e) NULL)
-      is.list(s) && is.numeric(s$connections) && length(s$connections) == 1L &&
-        as.integer(s$connections) >= 1L
-    },
-    # Bounded replacement for mirai::collect_mirai(tasks), which blocks with
-    # no timeout and therefore hangs forever if the daemons die first.
-    # Returns TRUE iff every task resolved; FALSE on daemon death or timeout.
-    .settle_mirai_tasks = function(tasks, timeout_secs = 60) {
-      if (is.null(tasks)) return(TRUE)
-      if (!is.list(tasks) || inherits(tasks, "mirai")) tasks = list(tasks)
-      deadline = as.numeric(Sys.time()) + timeout_secs
-      repeat {
-        if (!any(vapply(tasks, mirai::unresolved, logical(1L)))) return(TRUE)
-        if (!private$.mirai_daemons_alive() || as.numeric(Sys.time()) > deadline) return(FALSE)
-        Sys.sleep(0.1)
-      }
-    },
-    .ensure_mirai_daemons = function(n) {
-      # One silent relaunch, then a loud failure. Never wait unboundedly:
-      # this method used to block forever in collect_mirai() when the
-      # daemons died before running the setup tasks -- the exact silent
-      # multi-hour CI hang diagnosed via scripts/test-hang-watchdog.sh
-      # (gdb: main thread parked on a nanonext condition variable, zero
-      # daemon processes alive; see R-CMD-check.yaml's watchdog steps).
-      for (attempt in 1:2) {
-        s = tryCatch(mirai::status(), error = function(e) list(connections = 0L))
-        n_running = if (is.numeric(s$connections) && length(s$connections) == 1L) as.integer(s$connections) else 0L
-        if (n_running != as.integer(n)) {
-          if (n_running > 0L || attempt > 1L) tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
-          # Bounded launcher -- never the blocking mirai::daemons(<numeric>)
-          # form (see start_mirai_daemons_bounded in globals.R). On attempt 1
-          # a launch failure feeds the retry below instead of erroring out.
-          if (attempt == 1L) {
-            launch_err = tryCatch({ start_mirai_daemons_bounded(n); NULL }, error = function(e) e)
-            if (!is.null(launch_err)) next
-          } else {
-            start_mirai_daemons_bounded(n)
-          }
-        }
-        # everywhere() in mirai 2.x is asynchronous; settle it before
-        # submitting real tasks.
-        setup_tasks = tryCatch(
-          mirai::everywhere({
-            # Runs in the worker process only (not the user's session); these settings
-            # are meant to persist there for the worker's lifetime.
-            Sys.setenv(
-              OMP_NUM_THREADS        = 1L,
-              MKL_NUM_THREADS        = 1L,
-              OPENBLAS_NUM_THREADS   = 1L,
-              GOTO_NUM_THREADS       = 1L,
-              VECLIB_MAXIMUM_THREADS = 1L,
-              NUMEXPR_NUM_THREADS    = 1L
-            )
-            options(mc.cores = 1L)
-            if (requireNamespace("data.table", quietly = TRUE)) data.table::setDTthreads(1L)
-            if (requireNamespace("fixest", quietly = TRUE)) suppressWarnings(try(fixest::setFixest_nthreads(1L), silent = TRUE))
-            invisible(NULL)
-          }),
-          error = function(e) NULL
-        )
-        # Bounded settle: wait up to 60s for the setup tasks, checking daemon
-        # liveness as we go (.settle_mirai_tasks); collect_mirai() must not
-        # be called while a task is unresolved -- it blocks with no timeout.
-        settled = private$.settle_mirai_tasks(setup_tasks)
-        if (settled && private$.mirai_daemons_alive()) return(invisible(NULL))
-        # Failed launch: tear down before retrying (or erroring out).
-        tryCatch(mirai::daemons(0), error = function(e) invisible(NULL))
-      }
-      stop(
-        "mirai daemons failed to start (twice): daemon processes died or never ",
-        "connected within 60s. Cannot run this simulation with num_cores > 1 on ",
-        "the mirai backend; rerun serially (num_cores = 1) or investigate the ",
-        "daemon launch failure (e.g. system load, R_LIBS visibility for workers)."
-      )
-    },
     # ── Design spec parsing ───────────────────────────────────────────────────
     .parse_design_classes_and_params = function(spec, eval_env) {
       if (is.null(spec)) {

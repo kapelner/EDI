@@ -13,14 +13,11 @@ library(EDI)
 # This file covers only the two branches that are safe to exercise WITHOUT
 # starting any daemon or background process: mirai_daemons_alive()'s
 # no-connection-yet path, and settle_mirai_tasks()'s empty-task-list
-# short-circuit. Both were confirmed via grep to have zero prior test
-# references (only a comment mentions make_configured_fork_cluster by name
-# elsewhere, not an actual call). The remaining functions
-# (make_configured_fork_cluster, start_mirai_daemons_bounded, and
-# mirai_daemons_alive/settle_mirai_tasks's daemon-connected branches) are
-# left untested -- deliberately, not an oversight -- since reliably
-# exercising them needs a real fork cluster or mirai daemon pool, which is
-# exactly the failure mode documented as historically flaky in the source.
+# short-circuit. start_mirai_daemons_bounded() and the daemon-connected
+# branches of mirai_daemons_alive()/settle_mirai_tasks() are covered with
+# doubles at the mirai:: boundary in
+# test-mirai-pool-ensure-degraded-resize-and-retry-reference.R and
+# test-mirai-window-submission-order-limit-and-daemon-death-reference.R.
 
 test_that("mirai_daemons_alive() returns FALSE when no mirai daemons are connected", {
 	# Guard: skip (don't fail) if some other process/test in this R session

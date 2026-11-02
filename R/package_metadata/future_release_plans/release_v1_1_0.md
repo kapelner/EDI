@@ -1051,7 +1051,8 @@ ticked in their **owning plans**; this list is the release index.
 - [ ] ~~TODO-17z~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..6`** (user decision, lighten-1.1.0 pass 2): `ModelDiagnostics` — declaration contract + pilot batteries.
 - [ ] TODO-18: **Consolidate duplicated parallelization primitives**
   (added 2026-09-07, user decision): `consolidate_parallelization_code.md
-  → TODO-1..4`. Maintenance, not a feature — no output/behavior change.
+  → TODO-3..4`; its TODO-1 and TODO-2 shipped in v1.0.5 (see below). Maintenance, not a
+  feature — no output/behavior change.
   `Inference$par_lapply` is already a shared chunked-map parallel helper
   reused by ~10 bootstrap/randomization classes, backed by shared
   construction/lifecycle helpers in `globals.R`; `SimulationFramework$run()`
@@ -1061,24 +1062,25 @@ ticked in their **owning plans**; this list is the release index.
   `mcparallel`/PID-kill dispatcher respectively — see
   `parallel_fork_cluster_test_safety.md`'s TODO-5). This item does **not**
   unify those three scheduler shapes; it extracts three sub-pieces that
-  duplicate across them and have already drifted: two inconsistent
-  `ensure_mirai_daemons` implementations, the mirai
-  poll/liveness-check/stop-on-death loop (written out at least twice),
-  and worker single-threading env-var setup (defined once for
-  `clusterCall()`, hand-rederived once for `mcparallel` children).
+  duplicate across them and have already drifted: worker single-threading
+  env-var setup (defined once for `clusterCall()`, hand-rederived once for
+  `mcparallel` children), and, until v1.0.5, the mirai
+  poll/liveness-check/stop-on-death loop and two inconsistent
+  `ensure_mirai_daemons` implementations.
   Independent of every other 1.1.0 item; no dependency on the decision
   batch. It rebases onto `release_v1_0_5.md → TODO-57` (Bayesian bootstrap
   performance), which ships first. The two meet only where `par_lapply`'s
   mirai branch calls `ensure_mirai_daemons`.
 
-  **Conditional split** (2026-10-07, user decision): **if**
-  `bayesian_bootstrap_performance.md → TODO-2` ends up changing
-  `ensure_mirai_daemons` (for example, to send the inference object once
-  per mirai daemon), then this item's sub-step
-  `consolidate_parallelization_code.md → TODO-1` (unify the two
-  `ensure_mirai_daemons` copies) moves to v1.0.5 under TODO-57 and lands
-  before that change. Its TODO-2..4 stay here. Otherwise, all of TODO-18
-  stays here.
+  **Scope reduced 2026-11-03** (owner request, `release_v1_0_5.md →
+  TODO-182`): the 2026-10-07 conditional split no longer applies, because
+  plan TODO-1 was pulled into v1.0.5 for a bug fix, not because of TODO-57.
+  One `ensure_mirai_daemons()` now lives in `globals.R`. TODO-182 also removed
+  the private `.settle_mirai_tasks` and `.mirai_daemons_alive`, and moved all
+  three polling sites onto `poll_mirai_tasks()` (plan TODO-2). Left for this
+  item: plan TODO-3 (worker single-threading setup) and TODO-4.
+  `ensure_mirai_daemons()` still inlines the worker env-var list, so count that
+  site too.
 - [ ] TODO-19: **"Lock-and-key" (Design/Inference) metaphor rotated into
   documentation** (added 2026-09-08, user decision; scope widened same day
   to every doc surface; went through several narrowing/refinement rounds
@@ -1210,10 +1212,9 @@ ticked in their **owning plans**; this list is the release index.
   already-shipped resampling dispatch that misfires (a serial blocklist with
   no recorded reason, per-job shipping of every draw, and a gate that never
   picks serial), plus R-side Cox, Weibull and OLS refits. That is a
-  v1.0.5-type fix under the 2026-09-23 split rule. TODO-18 below rebases
-  onto it. Their only contact point is `ensure_mirai_daemons`, and if
-  TODO-57 changes it, TODO-18's sub-step TODO-1 moves to v1.0.5 (see
-  TODO-18's conditional-split note).
+  v1.0.5-type fix under the 2026-09-23 split rule. TODO-18 above rebases
+  onto it. Their only contact point is `ensure_mirai_daemons`, already unified
+  in v1.0.5 (`release_v1_0_5.md → TODO-182`).
 - [ ] TODO-16: **Release mechanics**: see `release.md` for the full generic
   checklist (win-builder/mac-builder, check profile, submission artifacts,
   CHANGELOG, version bump, tagging/pushing/submitting go-ahead, post-

@@ -87,8 +87,26 @@ reference is anti-conservative at that \eqn{n}; about 5-6\% at
 \eqn{n = 50} with 3 categories. In those runs 30-38\% of fits were
 reported non-estimable by the fit-usability check, and in roughly 10-12\%
 of the reported results the rank-deficiency fallback had dropped the
-covariate, leaving a treatment-only model; both behaviors are scheduled
-for revision in EDI 1.1.0.
+covariate, leaving a treatment-only model. Both came from the category
+loadings: the ordered-score MLE is often on the boundary (a loading merged
+with a neighbouring category), where the information has a flat loading
+direction, and the cold start (at \eqn{\beta = 0}, where the loadings
+carry no information) usually stopped at such a point short of the MLE.
+Since EDI 1.0.5 the full-data fit also starts from the adjacent-category
+fit (all loadings equally spaced, then released), and a covariate-adjusted
+fit whose loadings are on the boundary is accepted, with the treatment
+standard error taken from the information with the flat loading
+directions held at the boundary. Covariates are then dropped only for real
+rank deficiency. In a null study (\eqn{n = 200}, 4 categories, two
+covariates) this kept both covariates in 40 of 40 fits (5 before) with no
+non-estimable fits, and gave 5.8\% Wald Type-I error over 400 datasets.
+A treatment-only fit (formula \code{~ 1}, or every covariate dropped) on
+the boundary is instead reported non-estimable (reason
+\code{stereotype_treatment_only_fit_at_loading_boundary}): its
+\eqn{2 \times K} table is nearly saturated and the Wald standard error is
+about 25\% too small there (9.3\% Type-I error), so no estimate is
+reported. With no covariates this is the common case (35 of 40 null fits
+in the study above); prefer a covariate-adjusted formula.
 For small samples,
 prefer the better-calibrated alternatives on this class:
 \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap

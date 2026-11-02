@@ -655,8 +655,7 @@ TODO-6 note (a future fork-after-OpenMP-lock safety pass for
 `SimulationFramework$run()`'s fork-cluster path) — that is a separate,
 larger project, deferred there on purpose. Release index:
 `release_v1_1_0.md → TODO-18`. Its TODO-1 (unify `ensure_mirai_daemons`)
-moves to v1.0.5 only if the Bayesian bootstrap performance plan below
-changes that function (2026-10-07, user decision).
+shipped in v1.0.5 under `release_v1_0_5.md → TODO-182` (2026-11-03).
 
 **Capability/slow-path registry hardening (added 2026-09-08, user
 decision; grew out of a `comprehensive_tests.R`/`path_audits.html`

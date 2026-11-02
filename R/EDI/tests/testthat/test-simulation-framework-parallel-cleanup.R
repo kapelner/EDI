@@ -114,3 +114,149 @@ test_that("mirai use blocks later fork clusters in the same R session", {
 		"Cannot switch from mirai-backed parallelism to fork-based parallelism"
 	)
 })
+
+test_that("a simulation no larger than the mirai pool reuses it instead of rebuilding it", {
+	skip_if_prepush_no_parallel()
+	skip_if_not_installed("mirai")
+	skip_on_cran()
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
+	ns = asNamespace("EDI")
+	old_mirai_used = ns$edi_env$mirai_has_been_used
+	on.exit({
+		unset_num_cores()
+		assign("mirai_has_been_used", old_mirai_used, envir = ns$edi_env)
+	}, add = TRUE)
+	set_num_cores(3L, force_mirai = TRUE)
+	daemon_pids = function() {
+		tasks = lapply(1:12, function(i) mirai::mirai({ Sys.sleep(0.2); Sys.getpid() }))
+		sort(unique(unlist(mirai::collect_mirai(tasks))))
+	}
+	pids_before = daemon_pids()
+
+	set.seed(11)
+	sim = SimulationFramework$new(
+		response_type = "continuous",
+		design_classes_and_params = list(DesignFixedBernoulli),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
+		inference_types_and_params = list(asymp_pval = list()),
+		n = 20L,
+		Nrep_W = 6L, Nrep_Y_w = 1L,
+		num_cores = 2L,
+		results_filename = tempfile(fileext = ".csv"),
+		verbose = FALSE,
+		continue_from_last_result_row = FALSE
+	)
+	sim$run()
+
+	expect_equal(nrow(SimulationFrameworkReport$new(sim)$get_results()), 6L)
+	expect_identical(daemon_pids(), pids_before)
+	expect_identical(get_num_cores(), 3L)
+})
+
+test_that("a simulation larger than the mirai pool grows it and restores the original size", {
+	skip_if_prepush_no_parallel()
+	skip_if_not_installed("mirai")
+	skip_on_cran()
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
+	ns = asNamespace("EDI")
+	old_mirai_used = ns$edi_env$mirai_has_been_used
+	on.exit({
+		unset_num_cores()
+		assign("mirai_has_been_used", old_mirai_used, envir = ns$edi_env)
+	}, add = TRUE)
+	set_num_cores(2L, force_mirai = TRUE)
+
+	set.seed(12)
+	sim = SimulationFramework$new(
+		response_type = "continuous",
+		design_classes_and_params = list(DesignFixedBernoulli),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
+		inference_types_and_params = list(asymp_pval = list()),
+		n = 20L,
+		Nrep_W = 6L, Nrep_Y_w = 1L,
+		num_cores = 3L,
+		results_filename = tempfile(fileext = ".csv"),
+		verbose = FALSE,
+		continue_from_last_result_row = FALSE
+	)
+	sim$run()
+
+	expect_equal(nrow(SimulationFrameworkReport$new(sim)$get_results()), 6L)
+	expect_identical(get_num_cores(), 2L)
+	expect_identical(mirai::status()$connections, 2L)
+})
+
+# Replaces one private worker function of this simulation with a call that never
+# returns, so one job wedges its daemon while the daemon stays connected.
+wedge_simulation_worker = function(sim, method) {
+	priv = sim$.__enclos_env__$private
+	wedged = priv[[method]]
+	body(wedged) = quote(Sys.sleep(1e6))
+	unlockBinding(method, priv)
+	assign(method, wedged, envir = priv)
+}
+
+expect_stall_stops_simulation = function(design, wedged_method) {
+	ns = asNamespace("EDI")
+	old_mirai_used = ns$edi_env$mirai_has_been_used
+	withr::defer({
+		unset_num_cores()
+		assign("mirai_has_been_used", old_mirai_used, envir = ns$edi_env)
+	}, envir = parent.frame())
+	withr::local_options(EDI.mirai_stall_timeout_secs = 2)
+	set_num_cores(2L, force_mirai = TRUE)
+
+	set.seed(13)
+	sim = SimulationFramework$new(
+		response_type = "continuous",
+		design_classes_and_params = list(design),
+		inference_classes_and_params = list(InferenceAllSimpleAverageDiff),
+		inference_types_and_params = list(asymp_pval = list()),
+		n = 20L,
+		Nrep_W = 6L, Nrep_Y_w = 1L,
+		num_cores = 2L,
+		# Fixed X is what sends pregeneration designs through the cache jobs.
+		random_X_draws = FALSE,
+		seed = 13L,
+		results_filename = tempfile(fileext = ".csv"),
+		verbose = FALSE,
+		continue_from_last_result_row = FALSE
+	)
+	wedge_simulation_worker(sim, wedged_method)
+
+	expect_error(sim$run(), "EDI.mirai_stall_timeout_secs")
+
+	# The wedged pool is gone, and the next use of the backend gets a working one.
+	expect_identical(mirai::status()$connections, 0L)
+	expect_identical(get_num_cores(), 2L)
+	ns$ensure_mirai_daemons(2L)
+	expect_identical(mirai::status()$connections, 2L)
+}
+
+test_that("a wedged replication stops the simulation instead of hanging it", {
+	skip_if_prepush_no_parallel()
+	skip_if_not_installed("mirai")
+	skip_on_cran()
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
+	expect_stall_stops_simulation(DesignFixedBernoulli, ".run_single_replication_in_worker")
+})
+
+test_that("a wedged cache job stops the simulation instead of hanging it", {
+	skip_if_prepush_no_parallel()
+	skip_if_not_installed("mirai")
+	skip_on_cran()
+	skip_if(
+		identical(Sys.getenv("R_COVR"), "true"),
+		"avoid spawning real mirai daemons under covr's gcov-instrumented build"
+	)
+	expect_stall_stops_simulation(DesignFixedBinaryMatch, ".run_simulation_cache_job")
+})

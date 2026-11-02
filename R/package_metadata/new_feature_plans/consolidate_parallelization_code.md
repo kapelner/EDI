@@ -135,7 +135,19 @@ costing correctness risk by being copy-pasted.
 
 ## Implementation TODOs
 
-- [ ] TODO-1: **Confirm and unify the two `ensure_mirai_daemons`
+- [x] TODO-1: **DONE 2026-11-02, pulled forward at the owner's direct request
+  after a degraded-pool bug: both copies treated any `n_running != n` as a
+  failure, so a short pool accepted by `start_mirai_daemons_bounded()` was torn
+  down and relaunched on every call.** Outcome (a): one free
+  `ensure_mirai_daemons(n, always_configure = FALSE)` in `globals.R`, both
+  private copies deleted. This is a behavior change, not the no-change merge
+  expected below: the launcher records the requested size in
+  `edi_env$mirai_pool_target` so a short pool for the same `n` is reused while a
+  different `n` still resizes, and `Inference` gains the retry and the worker
+  thread cap on relaunch. `SimulationFramework` passes `always_configure = TRUE`
+  to keep its setup round trip on reused pools; `par_lapply` skips it.
+
+  **Confirm and unify the two `ensure_mirai_daemons`
   implementations.** Read both (`Inference$ensure_mirai_daemons`,
   `SimulationFramework$.ensure_mirai_daemons`) side by side; determine
   whether the `SimulationFramework` version's extra 2-attempt
@@ -157,7 +169,18 @@ costing correctness risk by being copy-pasted.
   this TODO alone moves to v1.0.5 and lands before that change.
   TODO-2..4 stay in v1.1.0. Otherwise this TODO stays in v1.1.0 with the
   rest.
-- [ ] TODO-2: **Locate every mirai poll/liveness/stop-on-death site, then
+- [x] TODO-2: **DONE 2026-11-03 at the owner's direct request
+  (`release_v1_0_5.md → TODO-182`).** Three sites confirmed: `par_lapply`
+  (through `run_mirai_window()`) and both `SimulationFramework$run()` loops. All
+  now use `poll_mirai_tasks()` in `globals.R`. `settle_mirai_tasks()` stays: it
+  is a bounded wait for setup tasks, not this pattern. Divergence decisions: poll
+  interval (0.01s, 0.05s, 0.1s) and liveness throttle (every poll, 5s, 5s) stay
+  per site as arguments; the cache loop stays batched by calling the helper once
+  per batch; in-flight tasks are now stopped on every exit, which `par_lapply`
+  did not do before. Seeded simulation output through both loops was
+  byte-identical before and after.
+
+  **Locate every mirai poll/liveness/stop-on-death site, then
   extract one shared helper.** Start by confirming the full list via
   `graft grep` for the pattern's signature calls (`mirai::stop_mirai`,
   daemon-liveness checks against `mirai::status()`, non-blocking

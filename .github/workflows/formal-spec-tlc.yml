@@ -1,0 +1,43 @@
+name: Formal spec (TLC)
+
+# Model-checks the mirai pool lifecycle spec. Not a required check. TLC checks
+# the model, not the R code, so a green run does not show that globals.R still
+# matches the spec. globals.R is a trigger only so this job appears on changes
+# to that file, as a prompt to update the spec by hand.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "R/package_metadata/formal_specs/**"
+      - "R/EDI/R/globals.R"
+      - ".github/workflows/formal-spec-tlc.yml"
+  pull_request:
+    paths:
+      - "R/package_metadata/formal_specs/**"
+      - "R/EDI/R/globals.R"
+      - ".github/workflows/formal-spec-tlc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tlc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Latest stable release. Do not pin v1.8.0: it is a prerelease that
+      # upstream rebuilds in place, so its hash keeps changing.
+      TLA_TOOLS_URL: https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+      TLA_TOOLS_SHA256: 936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download TLC
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/tla2tools.jar" "$TLA_TOOLS_URL"
+          echo "$TLA_TOOLS_SHA256  $RUNNER_TEMP/tla2tools.jar" | sha256sum --check -
+
+      - name: Run all configs
+        run: bash R/package_metadata/formal_specs/mirai_lifecycle/run_configs.sh "$RUNNER_TEMP/tla2tools.jar"
