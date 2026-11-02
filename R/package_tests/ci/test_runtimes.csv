@@ -1215,6 +1215,8 @@ R/EDI/tests/testthat/test-bartlett-lr-ols-exact.R,coverage,2.1,measured_with_30_
 R/EDI/tests/testthat/test-bayesian-bootstrap-studentized-se-wiring.R,coverage,4.0,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bayesian-bootstrap.R,coverage,4.0,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-beta-regression-preallocated-eta-mu.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-binomial-identity-irls-cycle-guard-todo181-reference.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-binomial-identity-null-mle-boundary-score-nonestimable-todo181-reference.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-blocking-batched-draws.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-blocking-integer-strata-categorical.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-bootstrap-bca-boundary-reason-and-warning-todo101.R,coverage,30,bootstrap
@@ -1377,6 +1379,7 @@ R/EDI/tests/testthat/test-negbin-gemv-gradient.R,coverage,1,measured_with_30_per
 R/EDI/tests/testthat/test-negbin-std-lgamma-likelihoods.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-negbin-weighted.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-newton-stall-false-nonconvergence.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-null-refit-history-independence-hurdle-negbin-dep-cens.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-observational-design-resampling-capabilities.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ols-hc2-hat-vectorized.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-ols-symmetric-crossprod-dsyrk.R,coverage,1,measured_with_30_percent_headroom
@@ -1419,6 +1422,7 @@ R/EDI/tests/testthat/test-poisson-delta-eta-step-halving.R,coverage,1,measured_w
 R/EDI/tests/testthat/test-poisson-glmm-buffer-reuse.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-poisson-weighted-crossprod.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-poisson-xtwx-colmajor-dsyr.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-probit-saturated-fit-not-converged-todo181-reference.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-procedure-failure-keeps-wald-state-todo116.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-qr-reduce-preserve-cols.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rand-ci-capability-response-type-aware.R,coverage,30,bootstrap
@@ -1464,6 +1468,7 @@ R/EDI/tests/testthat/test-stereotype-logit-full-fit-multistart.R,coverage,30,boo
 R/EDI/tests/testthat/test-stereotype-logit-gemv-gradient.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-stereotype-logit-hessian-allocs.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-stereotype-logit-hessian-workspace.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-stereotype-logit-loading-boundary.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-stereotype-logit-null-refit-pd-gate.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-strat-cox-matched-design-todo110.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-stratified-bootstrap-integer-ids.R,coverage,1,measured_with_30_percent_headroom
