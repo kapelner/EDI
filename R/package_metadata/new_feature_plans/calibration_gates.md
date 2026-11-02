@@ -90,6 +90,14 @@ worse than the accepted level.
   worse. Seeded 2026-10-30 from the first nightly run (40833827319, 40 failing cells -> 80 rows, owner
   ruling: accept all with reasons): levels are the observed rates rounded 0.005 toward the conservative
   side; n = 50-only cells are small-sample, the n = 200 defects cite TODO-168 / 175-176-178 / 179.
+  2026-10-31: + 20 rows for the n = 1000 cells of the first Saturday run (41192592546): the same two defects
+  (ExtendedRobins, StereotypeLogit), nothing new.
+* Shard cores: until 2026-10-31 every shard ran single-core -- `--cores "$(nproc)"` printed 1 because GNU
+  nproc honours the job's OMP_NUM_THREADS=1 (now `nproc --all`). The per-rep timings in
+  `calibration_fast_tier_timings.csv` were sized for 4 cores and absorbed it at n = 50/200; at n = 1000 the
+  KKGLMM shards (36 reps, 215-335 min single-core) and two of three count shards hit the 340-min timeout.
+  Measured single-core s/rep at n = 1000: KKGLMM 360-560 (table: 1750), count 44 on reps 1:333 but > 61 on
+  334:1000 (table: 165). Tighten the table only after a 4-core run's timing.csv files are in.
 
 ## Findings at build time (2026-10-26)
 

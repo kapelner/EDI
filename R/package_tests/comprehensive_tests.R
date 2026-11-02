@@ -3883,6 +3883,18 @@ COVERAGE_MC_SPEC = list(
 # capped MC truth passed the runbook R7 chi^2 convergence check on all 9
 # datasets at survival noise SD 0.25 (release_v1_0_5.md, G4-C R7).
 COVERAGE_TRUTH_UNAVAILABLE = character(0)
+# Same, but only for a class's real-covariate (`~.`) arm; its `~1` arm is graded.
+# Empty: InferenceSurvivalKKStratCoxPHOneLik `~.` stays graded (owner, 2026-10-31)
+# and is documented as a known limitation instead. Its harness truth matches pairs
+# on the full X, which R7 has not yet validated (R7 matched on the capped K = 6
+# columns), and the per-row fit is attenuated at harness n, so expect low coverage
+# findings (release_v1_1_0.md TODO-163, with TODO-69 Firth).
+COVERAGE_TRUTH_UNAVAILABLE_REAL_COVARIATES = character(0)
+coverage_truth_unavailable = function(inference_class){
+	base_class = sub(" [\\(\\[].*$", "", inference_class)
+	base_class %in% COVERAGE_TRUTH_UNAVAILABLE ||
+		(base_class %in% COVERAGE_TRUTH_UNAVAILABLE_REAL_COVARIATES && coverage_truth_uses_real_covariates(inference_class))
+}
 
 # TODO-10 (G6 #19, decided 2026-10-22; release_v1_0_5.md G4-C runbook R7):
 # covariate cap for the two KK-matched Cox classes. Their `~.` fits put
@@ -4006,7 +4018,7 @@ get_coverage_mc_spec = function(base_class, response_type_hint = NA_character_){
 
 get_coverage_truth = function(inference_class, dataset_name, beta_T_val, response_type_hint = NA_character_){
 	base_class = sub(" [\\(\\[].*$", "", inference_class)
-	if (base_class %in% COVERAGE_TRUTH_UNAVAILABLE) return(NA_real_)
+	if (coverage_truth_unavailable(inference_class)) return(NA_real_)
 	closed_form_fn = COVERAGE_CLOSED_FORM[[base_class]]
 	# InferenceAllSimpleMeanDiffPooledVar computes the identical mean-
 	# difference estimand (yT_bar - yC_bar) as InferenceAllSimpleAverageDiff
@@ -4218,7 +4230,7 @@ precompute_screen_estimate_theta_cache = function(){
 
 get_estimate_logging_theta = function(inference_class, dataset_name, beta_T_val, response_type_hint){
 	base_class = estimate_logging_theta_base_class(inference_class)
-	if (base_class %in% COVERAGE_TRUTH_UNAVAILABLE) return(NA_real_)
+	if (coverage_truth_unavailable(inference_class)) return(NA_real_)
 	screen_key = screen_estimate_theta_key(base_class, dataset_name, beta_T_val, response_type_hint)
 	if (exists(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE)) {
 		return(get(screen_key, envir = .screen_estimate_theta_cache, inherits = FALSE))

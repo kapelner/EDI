@@ -43,6 +43,7 @@ registry_fixture <- function() {
 		"compute_incid_log_risk_ratio_coverage_truth", "compute_prop_mean_diff_coverage_truth",
 		"compute_survival_mean_diff_coverage_truth",
 		"COVERAGE_CLOSED_FORM", "COVERAGE_MC_SPEC", "COVERAGE_TRUTH_UNAVAILABLE",
+		"COVERAGE_TRUTH_UNAVAILABLE_REAL_COVARIATES", "coverage_truth_unavailable",
 		"coverage_truth_uses_real_covariates", "RMST_TAU_QUANTILE", "comprehensive_rmst_tau", "coverage_truth_cache_key",
 		# TODO-10 (2026-10-22): get_coverage_truth()/get_estimate_logging_theta() read the matched-Cox covariate cap.
 		"KK_MATCHED_COX_COVARIATE_CAP_CLASSES", "KK_MATCHED_COX_COVARIATE_CAP_K", "comprehensive_covariate_cap_k", "comprehensive_capped_model_formula",
@@ -199,6 +200,20 @@ test_that("a truth-unavailable class returns NA rather than raw beta_T", {
 		expect_true(is.na(e$get_coverage_truth(label, "toy", 0.5, "survival")), info = class_name)
 		expect_true(is.na(e$get_estimate_logging_theta(label, "toy", 0.5, "survival")), info = class_name)
 	}
+})
+
+test_that("an arm-level truth-unavailable class loses only its real-covariate arm", {
+	e <- registry_fixture()
+	# Empty in the harness (KKStratCoxPH `~.` stays graded since 2026-10-31); exercise the guard directly.
+	expect_length(e$COVERAGE_TRUTH_UNAVAILABLE_REAL_COVARIATES, 0L)
+	expect_false(e$coverage_truth_unavailable("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.]"))
+	e$COVERAGE_TRUTH_UNAVAILABLE_REAL_COVARIATES <- "InferenceSurvivalKKStratCoxPHOneLik"
+	expect_true(e$coverage_truth_unavailable("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.]"))
+	expect_true(e$coverage_truth_unavailable("InferenceSurvivalKKStratCoxPHOneLik"))
+	expect_false(e$coverage_truth_unavailable("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~1]"))
+	expect_false(e$coverage_truth_unavailable("InferenceSurvivalKKLWACoxPHOneLik [design_formula=~.]"))
+	expect_true(is.na(e$get_coverage_truth("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.]", "toy", 0.5, "survival")))
+	expect_true(is.na(e$get_estimate_logging_theta("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.]", "toy", 0.5, "survival")))
 })
 
 test_that("MC coverage truth uses a key-specific seed without advancing the caller RNG", {

@@ -241,7 +241,7 @@ todo10_source_exact_eligible <- function(class_name, specs, seen = character()) 
 	any(vapply(parents, todo10_source_exact_eligible, logical(1), specs = specs, seen = c(seen, class_name)))
 }
 
-todo10_survival_roster <- function(cases, source_spec, unavailable, kk_classes, kk_design_types, both_paths, estimate_labels, model_formulas, extra_function_runs = data.frame()) {
+todo10_survival_roster <- function(cases, source_spec, unavailable, kk_classes, kk_design_types, both_paths, estimate_labels, model_formulas, extra_function_runs = data.frame(), unavailable_real_covariates = character(0)) {
 	key_cols <- c("rep", "beta_T", "dataset", "design", "design_formula")
 	if (!is.data.frame(cases) || !all(key_cols %in% names(cases))) {
 		stop("cases must contain the runner's rep/beta/dataset/design/formula dimensions", call. = FALSE)
@@ -262,6 +262,7 @@ todo10_survival_roster <- function(cases, source_spec, unavailable, kk_classes, 
 		case_is_kk <- case$design[[1L]] %in% kk_design_types
 		classes <- if (case_is_kk) kk_classes else non_kk_classes
 		for (class_name in classes) {
+			if (class_name %in% unavailable_real_covariates && gsub(" ", "", case$design_formula[[1L]]) != "~1") next
 			class_model_formulas <- if (class_name %in% both_paths) model_formulas else NA_character_
 			labels <- if (length(class_model_formulas) == 1L && is.na(class_model_formulas)) {
 				paste0(class_name, " [design_formula=", case$design_formula[[1L]], "]")
@@ -375,7 +376,10 @@ test_that("survival expected attempts use runner/spec keys and retain only avail
 		design_formula = formula_labels,
 		stringsAsFactors = FALSE
 	)
-	roster <- todo10_survival_roster(cases, source_spec, unavailable, kk_classes, kk_design_types, both_paths, estimate_labels, model_formulas, extra_function_runs)
+	unavailable_real_covariates <- eval(todo10_top_rhs("COVERAGE_TRUTH_UNAVAILABLE_REAL_COVARIATES"), envir = baseenv())
+	expect_length(unavailable_real_covariates, 0L)
+	roster <- todo10_survival_roster(cases, source_spec, unavailable, kk_classes, kk_design_types, both_paths, estimate_labels, model_formulas, extra_function_runs,
+		unavailable_real_covariates)
 	full_key <- c("function_run", "rep", "beta_T", "dataset", "response_type", "design", "inference_class")
 	allowed_classes <- available_spec_classes
 
@@ -388,6 +392,8 @@ test_that("survival expected attempts use runner/spec keys and retain only avail
 	expect_equal(sum(roster$function_run != "compute_estimate"), 48L)
 	expect_true(all(!vapply(unavailable, function(x) any(startsWith(roster$inference_class, x)), logical(1))))
 	expect_true("InferenceSurvivalLogRank [design_formula=~1]" %in% roster$inference_class)
+	expect_true("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.]" %in% roster$inference_class)
+	expect_true("InferenceSurvivalKKStratCoxPHOneLik [design_formula=~1]" %in% roster$inference_class)
 	expect_true("InferenceSurvivalWeibullRegr (model_formula=~.) [design_formula=~.]" %in% roster$inference_class)
 	expect_true("InferenceSurvivalGLMMWeibullFrailtyNormalOneLik [design_formula=~.]" %in% roster$inference_class)
 	expect_true(any(

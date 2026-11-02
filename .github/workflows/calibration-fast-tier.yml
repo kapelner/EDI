@@ -106,12 +106,16 @@ jobs:
         run: |
           tar -xzf edi-build.tar.gz
           echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+      # `nproc --all`, not `nproc`: GNU nproc honours OMP_NUM_THREADS, which this job
+      # sets to 1 for the per-worker BLAS/OpenMP threads, so plain `nproc` printed 1 and
+      # every shard ran single-core against a plan sized for --cores 4. The Saturday
+      # n = 1000 run 41192592546 had its KKGLMM / count shards cancelled at the timeout.
       - name: Run shard ${{ matrix.id }}
         run: |
           Rscript R/package_tests/calibration/run_calibration_fast_tier.R \
             --response-type "${{ matrix.response_type }}" --n "${{ matrix.n }}" --reps "${{ matrix.reps }}" \
             --only "${{ matrix.only }}" --exclude "${{ matrix.exclude }}" \
-            --cores "$(nproc)" --out-dir "calib/${{ matrix.id }}"
+            --cores "$(nproc --all)" --out-dir "calib/${{ matrix.id }}"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

@@ -38,8 +38,10 @@ test_that("stereotype full-data multistart escapes a reproducible inferior optim
 
 	expect_gt(selected$multistart_improvement, 1)
 	expect_lt(selected$neg_loglik, primary$neg_loglik - 1)
-	expect_identical(selected$multistart_selected_start, "gamma_joint_1.5")
-	expect_identical(selected$multistart_n_tried, 7L)
+	# the adjacent-category two-stage start (TODO-176) is tried first and wins;
+	# before it, gamma_joint_1.5 of 7 starts did
+	expect_identical(selected$multistart_selected_start, "adjcat_two_stage")
+	expect_identical(selected$multistart_n_tried, 8L)
 	expect_true(usable(selected, require_standard_error = TRUE))
 })
 

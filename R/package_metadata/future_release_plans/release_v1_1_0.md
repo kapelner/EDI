@@ -1972,6 +1972,29 @@ ticked in their **owning plans**; this list is the release index.
     jackknife rows and retire the 1.0.5 baseline acceptances that cite TODO-162.
   - Pointer: `release_v1_0_5.md → TODO-162` (repro, scratch `todo162/`).
 
+- [ ] TODO-163 (added 2026-10-31, owner decision at v1.0.5 G4-C R7 / survival SD 0.25
+  regeneration): **`InferenceSurvivalKKStratCoxPHOneLik` on `~.`: small-sample
+  attenuation, anti-conservative tests, and an unvalidated coverage truth.**
+  - Evidence (`~/edi_regen/regen_survival_sd025_20261030T140038Z/`, beta 0.5,
+    asymp CI): median per-row estimate -1.92 (diamonds) and -2.09 (abalone), but
+    harness truth -2.62 / -2.59; coverage 0.29-0.85. At beta 0 (no truth needed):
+    param-bootstrap p-value rejects 0.377, LR-bootstrap 0.164, Bartlett 0.158.
+    KKLWACoxPH `~.` (0.85-0.94) and the KKStratCoxPH `~1` arm are fine.
+  - The harness truth (`get_coverage_truth()`) matches pairs on the FULL X and caps
+    only the Cox formula (as the per-row fits do). R7
+    (`todo10_capped_truth_convergence.R`) capped X before matching, so it validated a
+    different estimand (pte_example -1.59 vs harness -2.30). Before re-grading, fix
+    R7 to match on the full X and rerun its convergence check.
+  - 1.0.5 handling (owner, 2026-10-31): the `~.` arm stays graded against the harness
+    truth and is documented as a known limitation in NEWS. The arm-level exclusion
+    `COVERAGE_TRUTH_UNAVAILABLE_REAL_COVARIATES` (`comprehensive_tests.R`) exists but
+    is empty. Expect low-coverage audit findings for this arm until this TODO lands.
+  - Scope: do it together with TODO-69 (Firth for the KK-matched Cox classes). Check
+    whether Firth removes the attenuation and fixes the beta-0 type-I error; then
+    remove the class from the list and regrade from
+    `work/out/grid_kkcox_regrade_rows.csv`.
+  - Pointer: `release_v1_0_5.md` → G4-C R7 notes (2026-10-29 to 31).
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update

@@ -44,7 +44,11 @@ test_that("positive-definiteness and conditioning: singular / indefinite / ill-c
 		fit <- modifyList(good, list(fisher_information = m))
 		expect_false(usable(fit)); expect_true(usable(fit, require_information_pd = FALSE))
 	}
-	borderline <- diag(c(1, 1, 1e-6)); expect_true(usable(modifyList(good, list(fisher_information = borderline))))         # rcond 1e-6 > sqrt(eps)
+	# rcond 1e-6 > sqrt(eps). The small eigenvalue sits on an intercept: on the
+	# last (loading) coordinate of this treatment-only fit it is a loading at the
+	# boundary, which is non-estimable (TODO-176).
+	borderline <- diag(c(1e-6, 1, 1)); expect_true(usable(modifyList(good, list(fisher_information = borderline))))
+	expect_false(usable(modifyList(good, list(fisher_information = diag(c(1, 1, 1e-6))))))
 })
 
 test_that("fixed_idx removes the held-fixed parameters, then cascades away rows left all-zero before the PD check", {

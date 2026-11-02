@@ -197,6 +197,19 @@ inline Eigen::VectorXd project_increment_off_active_bounds(const Eigen::LDLT<Eig
 constexpr double kKktTolFactor = 10.0;
 constexpr double kKktLambdaRelTol = 1e-3;
 
+// TODO-181 (b) (v1.0.5, 2026-10-31): cycle guard. For the identity link the
+// Fisher-scoring map can overshoot with a Jacobian eigenvalue close to -1, so
+// the iterates zigzag around an interior MLE; every full step raises the
+// log-likelihood a little, the line search accepts it at step 1, and the fit
+// runs into maxit with interior mu (InferenceIncidBinomialIdentityRiskDiff,
+// incidence calibration rep 5, `~.`, null refit at delta = 0: 100 iterations,
+// relative change still ~1e-4). From iteration kCycleGuardStartIter on, when
+// the new increment points against the previous accepted step (a reversal),
+// the accepted step keeps being halved while the log-likelihood strictly
+// improves, which damps the oscillating component. Fits that converge within
+// kCycleGuardStartIter iterations, or that never reverse, are bit-identical.
+constexpr int kCycleGuardStartIter = 20;
+
 struct BoundKktVerdict {
   bool ok = true;
   int n_active = 0;
@@ -323,6 +336,8 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
   double ll_curr = loglik_constrained_binomial(X, y, beta, link_type);
 
   int iterations = 0;
+  Eigen::VectorXd prev_step_free;     // TODO-181 (b): last accepted step, for the cycle guard
+  bool have_prev_step = false;
   for (int iter = 0; iter < maxit || kkt_confirm_pending; ++iter) {
     edi_check_R_user_interrupt_every(iter);
     iterations = iter + 1;
@@ -405,6 +420,8 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
     const Eigen::VectorXd delta_eta = X_free * delta_beta;
 
     double step = 1.0;
+    // TODO-181 (b): see kCycleGuardStartIter.
+    const bool cycle_guard = (iter >= kCycleGuardStartIter) && have_prev_step && delta_beta.dot(prev_step_free) < 0.0;
 
     Eigen::VectorXd beta_new = beta;
     Eigen::VectorXd beta_free_new = beta_free;
@@ -414,8 +431,19 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
     while (step >= 1e-8) {
       edi_check_R_user_interrupt_every(step_iter++);
       eta_try.noalias() = eta + step * delta_eta;
-      const double ll_new = loglik_from_eta(eta_try, y, link_type);
+      double ll_new = loglik_from_eta(eta_try, y, link_type);
       if (std::isfinite(ll_new) && ll_new >= ll_curr - 1e-10) {
+        if (cycle_guard) {
+          Eigen::VectorXd eta_half(n);
+          while (step * 0.5 >= 1e-8) {
+            eta_half.noalias() = eta + (0.5 * step) * delta_eta;
+            const double ll_half = loglik_from_eta(eta_half, y, link_type);
+            if (!(std::isfinite(ll_half) && ll_half > ll_new)) break;
+            step *= 0.5;
+            ll_new = ll_half;
+            eta_try = eta_half;
+          }
+        }
         beta_free_new = beta_free + step * delta_beta;
         beta_new = expand_free_params(beta_free_new, beta, fixed_spec);
         ll_curr = ll_new;  // carry forward — avoids recomputing at next iter start
@@ -425,6 +453,8 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
       step *= 0.5;
     }
     if (!accepted) break;
+    prev_step_free = beta_free_new - beta_free;
+    have_prev_step = true;
     // TODO-128: test the full (projected) increment, not the damped step. A
     // step that line-search halving shrank to ~1e-8 is a stall, not
     // convergence. When step == 1 this is the old test, bit for bit.
@@ -552,6 +582,8 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
   double ll_curr = weighted_loglik_constrained_binomial(X, y, obs_weights, beta, link_type);
 
   int iterations = 0;
+  Eigen::VectorXd prev_step_free;     // TODO-181 (b): last accepted step, for the cycle guard
+  bool have_prev_step = false;
   for (int iter = 0; iter < maxit || kkt_confirm_pending; ++iter) {
     edi_check_R_user_interrupt_every(iter);
     iterations = iter + 1;
@@ -629,6 +661,8 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
       ldlt, X_free, eta, beta_free_target - beta_free, link_type, &obs_weights);
     const Eigen::VectorXd delta_eta = X_free * delta_beta;
     double step = 1.0;
+    // TODO-181 (b): see kCycleGuardStartIter.
+    const bool cycle_guard = (iter >= kCycleGuardStartIter) && have_prev_step && delta_beta.dot(prev_step_free) < 0.0;
     Eigen::VectorXd beta_new = beta;
     Eigen::VectorXd beta_free_new = beta_free;
     bool accepted = false;
@@ -636,8 +670,19 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     while (step >= 1e-8) {
       edi_check_R_user_interrupt_every(step_iter++);
       eta_try.noalias() = eta + step * delta_eta;
-      const double ll_new = weighted_loglik_from_eta(eta_try, y, obs_weights, link_type);
+      double ll_new = weighted_loglik_from_eta(eta_try, y, obs_weights, link_type);
       if (std::isfinite(ll_new) && ll_new >= ll_curr - 1e-10) {
+        if (cycle_guard) {
+          Eigen::VectorXd eta_half(n);
+          while (step * 0.5 >= 1e-8) {
+            eta_half.noalias() = eta + (0.5 * step) * delta_eta;
+            const double ll_half = weighted_loglik_from_eta(eta_half, y, obs_weights, link_type);
+            if (!(std::isfinite(ll_half) && ll_half > ll_new)) break;
+            step *= 0.5;
+            ll_new = ll_half;
+            eta_try = eta_half;
+          }
+        }
         beta_free_new = beta_free + step * delta_beta;
         beta_new = expand_free_params(beta_free_new, beta, fixed_spec);
         ll_curr = ll_new;
@@ -647,6 +692,8 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
       step *= 0.5;
     }
     if (!accepted) break;
+    prev_step_free = beta_free_new - beta_free;
+    have_prev_step = true;
     // TODO-128: test the full (projected) increment, not the damped step. A
     // step that line-search halving shrank to ~1e-8 is a stall, not
     // convergence. When step == 1 this is the old test, bit for bit.

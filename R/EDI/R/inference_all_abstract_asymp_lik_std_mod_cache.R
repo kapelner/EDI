@@ -193,7 +193,8 @@ StandardModelCacheSource = list(
 			
 			private$cached_mod = model_output
 			if (is.null(model_output)) {
-				private$cache_nonestimable_estimate("model_fit_unavailable")
+				# A class may name a more specific reason for its NULL fit.
+				private$cache_nonestimable_estimate(private$cached_values$generate_mod_nonestimable_reason %||% "model_fit_unavailable")
 				private$cached_values$df = NA_real_
 				return(invisible(NULL))
 			}

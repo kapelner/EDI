@@ -78,6 +78,59 @@
 	if (length(value) != 1L || !is.finite(value)) Inf else value
 }
 
+# Boundary (saturated) loadings. phi_1 = 0, phi_K = 1 and the interior scores are
+# phi_j = sum_{r <= j-2} exp(gamma_r) / (1 + sum_r exp(gamma_r)), so phi is ordered
+# by construction and the ordered-score MLE is on the boundary whenever the
+# unconstrained scores are not monotone: some gamma combination runs to +-Inf
+# (phi_k merged with a neighbour, or with 0 / 1) and its information is ~0.
+# That is a nuisance at its boundary, not covariate rank deficiency. Flat
+# directions are eigen-directions of the gamma block with eigenvalue <=
+# tol * max diag; the reduced information keeps every alpha/beta and the
+# remaining gamma directions (TODO-176).
+.stereotype_boundary_reduced_information = function(information, n_alpha, p, tol = 1e-6){
+	information = (information + t(information)) / 2
+	n_par = nrow(information)
+	n_gamma = n_par - n_alpha - p
+	if (n_gamma < 1L) return(list(information = information, n_flat = 0L))
+	ab = seq_len(n_alpha + p)
+	gi = n_alpha + p + seq_len(n_gamma)
+	eg = eigen(information[gi, gi, drop = FALSE], symmetric = TRUE)
+	flat = eg$values <= tol * max(abs(diag(information)))
+	if (!any(flat)) return(list(information = information, n_flat = 0L))
+	T = matrix(0, n_par, length(ab) + sum(!flat))
+	T[ab, ab] = diag(length(ab))
+	if (any(!flat)) T[gi, length(ab) + seq_len(sum(!flat))] = eg$vectors[, !flat, drop = FALSE]
+	list(information = crossprod(T, information %*% T), n_flat = sum(flat))
+}
+
+# Number of intercepts K - 1 from the parameter count (K - 1) + p + (K - 2).
+.stereotype_n_alpha = function(information, p){
+	as.integer(max(1, (nrow(information) - p + 1) %/% 2))
+}
+
+# A treatment-only fit whose loadings sit at the boundary: reported
+# non-estimable (owner ruling 2026-10-31, TODO-176).
+.stereotype_treatment_only_fit_at_boundary = function(fit){
+	if (is.null(fit) || length(fit$b) != 1L || is.null(fit$fisher_information)) return(FALSE)
+	information = suppressWarnings(as.matrix(fit$fisher_information))
+	if (nrow(information) < 1L || nrow(information) != ncol(information) || any(!is.finite(information))) return(FALSE)
+	.stereotype_boundary_reduced_information(information, .stereotype_n_alpha(information, 1L), 1L)$n_flat > 0L
+}
+
+# Variance of beta_T from the boundary-reduced information, or NA when it is not
+# positive definite / well conditioned. With no flat loading direction it is the
+# C++ ssq_b_1 unchanged.
+.stereotype_boundary_ssq_b_1 = function(fit, n_alpha, p){
+	information = suppressWarnings(as.matrix(fit$fisher_information))
+	if (!length(information) || any(!is.finite(information))) return(suppressWarnings(as.numeric(fit$ssq_b_1)[1L]))
+	red = .stereotype_boundary_reduced_information(information, n_alpha, p)
+	if (red$n_flat == 0L) return(suppressWarnings(as.numeric(fit$ssq_b_1)[1L]))
+	ch = tryCatch(chol(red$information), error = function(e) NULL)
+	rc = tryCatch(rcond(red$information), error = function(e) NA_real_)
+	if (is.null(ch) || !is.finite(rc) || rc <= sqrt(.Machine$double.eps)) return(NA_real_)
+	chol2inv(ch)[n_alpha + 1L, n_alpha + 1L]
+}
+
 .stereotype_full_data_multistart = function(
 	X, y, primary_fit, estimate_only, fit_is_usable,
 	fit_cpp = fast_stereotype_logit_cpp,
@@ -86,6 +139,24 @@
 ){
 	primary_nll = .stereotype_multistart_nll(primary_fit)
 	candidates = .stereotype_multistart_candidates(primary_fit$params, X, y)
+	# Adjacent-category start: all loadings fixed at gamma = 0 (equally spaced
+	# phi), then released. The other candidates are offsets of the primary fit;
+	# the cold primary (beta = 0, where the loadings carry no information) walks a
+	# loading to +-Inf at a non-optimal stationary point in 39/40 null fits at
+	# n = 200 (median 2.4, max 12.2 neg-loglik units above the MLE), and offsets
+	# around that point never leave its basin (TODO-176).
+	K = length(sort(unique(y)))
+	n_alpha = K - 1L
+	if (K >= 3L && length(primary_fit$params) == n_alpha + ncol(X) + (K - 2L)) {
+		gamma_idx = n_alpha + ncol(X) + seq_len(K - 2L)
+		adjcat = tryCatch(
+			fit_cpp(X, y, fixed_idx = gamma_idx, fixed_values = rep(0, K - 2L), estimate_only = TRUE),
+			error = function(e) NULL
+		)
+		if (!is.null(adjcat) && all(is.finite(adjcat$params))) {
+			candidates = c(list(adjcat_two_stage = as.numeric(adjcat$params)), candidates)
+		}
+	}
 	best_screen = NULL
 	best_label = "primary"
 	best_start = NULL
@@ -132,7 +203,7 @@
 				error = function(e) NULL
 			)
 			if (!is.null(candidate_full)) {
-				candidate_full$ssq_b_j = candidate_full$ssq_b_1
+				candidate_full$ssq_b_j = .stereotype_boundary_ssq_b_1(candidate_full, n_alpha, ncol(X))
 				lik_fit = tryCatch(
 					fit_cpp(
 						X, y,
@@ -286,6 +357,21 @@ OrdinalStereotypeLikelihoodSource = list(
 					}
 					if (length(free_idx) < 1L) return(FALSE)
 					information_free = information[free_idx, free_idx, drop = FALSE]
+					if (is.null(fixed_idx)) {
+						# Unconstrained fit: a saturated loading is a boundary MLE, not a
+						# failed fit -- check the information with its flat loading
+						# directions held at the boundary (TODO-176). Owner ruling
+						# 2026-10-31: a treatment-only fit (`~ 1`, or every covariate
+						# dropped) at the boundary is reported non-estimable instead: its
+						# 2 x K table is nearly saturated and the Wald SE is ~25% too
+						# small there (null size 9.3% at n = 200).
+						reduced = .stereotype_boundary_reduced_information(
+							information, .stereotype_n_alpha(information, length(fit$b)), length(fit$b))
+						if (reduced$n_flat > 0L) {
+							if (length(fit$b) < 2L) return(FALSE)
+							information_free = reduced$information
+						}
+					}
 					is_positive_definite = !is.null(tryCatch(chol(information_free), error = function(e) NULL))
 					reciprocal_condition = tryCatch(rcond(information_free), error = function(e) NA_real_)
 					if (!is_positive_definite || !is.finite(reciprocal_condition) || reciprocal_condition <= sqrt(.Machine$double.eps)) {
@@ -362,8 +448,10 @@ OrdinalStereotypeLikelihoodSource = list(
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
+			private$cached_values$generate_mod_nonestimable_reason = NULL
+			boundary_rejected = FALSE
 			X_full = private$build_design_matrix()
-			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE, 
+			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE,
 				X_full = X_full,
 				required_cols = 1L,
 				fit_fun = function(X_fit){
@@ -394,7 +482,7 @@ OrdinalStereotypeLikelihoodSource = list(
 							)
 							neg_loglik = lik_fit$neg_loglik
 						}
-						res$ssq_b_j = res$ssq_b_1
+						res$ssq_b_j = .stereotype_boundary_ssq_b_1(res, K - 1L, ncol(X_fit))
 						res$neg_loglik = neg_loglik
 					}
 					.stereotype_full_data_multistart(
@@ -406,7 +494,9 @@ OrdinalStereotypeLikelihoodSource = list(
 					)
 				},
 				fit_ok = function(mod, X_fit, keep){
-					private$stereotype_fit_is_usable(mod, require_standard_error = !estimate_only)
+					ok = private$stereotype_fit_is_usable(mod, require_standard_error = !estimate_only)
+					if (!ok && .stereotype_treatment_only_fit_at_boundary(mod)) boundary_rejected <<- TRUE
+					ok
 				}
 			)
 			# fit_with_hardened_qr_column_dropping() falls back to its best/last
@@ -417,6 +507,7 @@ OrdinalStereotypeLikelihoodSource = list(
 			# (the |beta| <= 10 divergence ceiling, an unfinished info matrix,
 			# etc.) is never silently accepted as the point estimate.
 			if (!is.null(attempt$fit) && !private$stereotype_fit_is_usable(attempt$fit, require_standard_error = !estimate_only)) {
+				if (.stereotype_treatment_only_fit_at_boundary(attempt$fit)) boundary_rejected = TRUE
 				attempt$fit = NULL
 			}
 			if (!is.null(attempt$fit)){
@@ -443,6 +534,9 @@ OrdinalStereotypeLikelihoodSource = list(
 				)
 			} else {
 				private$cached_values$likelihood_test_context = NULL
+				if (boundary_rejected) {
+					private$cached_values$generate_mod_nonestimable_reason = "stereotype_treatment_only_fit_at_loading_boundary"
+				}
 				NULL
 			}
 		},
@@ -675,8 +769,26 @@ OrdinalStereotypeLikelihoodSource = list(
 #' \eqn{n = 50} with 3 categories. In those runs 30-38\% of fits were
 #' reported non-estimable by the fit-usability check, and in roughly 10-12\%
 #' of the reported results the rank-deficiency fallback had dropped the
-#' covariate, leaving a treatment-only model; both behaviors are scheduled
-#' for revision in EDI 1.1.0.
+#' covariate, leaving a treatment-only model. Both came from the category
+#' loadings: the ordered-score MLE is often on the boundary (a loading merged
+#' with a neighbouring category), where the information has a flat loading
+#' direction, and the cold start (at \eqn{\beta = 0}, where the loadings
+#' carry no information) usually stopped at such a point short of the MLE.
+#' Since EDI 1.0.5 the full-data fit also starts from the adjacent-category
+#' fit (all loadings equally spaced, then released), and a covariate-adjusted
+#' fit whose loadings are on the boundary is accepted, with the treatment
+#' standard error taken from the information with the flat loading
+#' directions held at the boundary. Covariates are then dropped only for real
+#' rank deficiency. In a null study (\eqn{n = 200}, 4 categories, two
+#' covariates) this kept both covariates in 40 of 40 fits (5 before) with no
+#' non-estimable fits, and gave 5.8\% Wald Type-I error over 400 datasets.
+#' A treatment-only fit (formula \code{~ 1}, or every covariate dropped) on
+#' the boundary is instead reported non-estimable (reason
+#' \code{stereotype_treatment_only_fit_at_loading_boundary}): its
+#' \eqn{2 \times K} table is nearly saturated and the Wald standard error is
+#' about 25\% too small there (9.3\% Type-I error), so no estimate is
+#' reported. With no covariates this is the common case (35 of 40 null fits
+#' in the study above); prefer a covariate-adjusted formula.
 #' For small samples,
 #' prefer the better-calibrated alternatives on this class:
 #' \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap

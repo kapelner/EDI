@@ -255,7 +255,31 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 					-get_identity_binomial_regression_hessian_cpp(X_fit, y, as.numeric(fit$b))
 				},
 				score = function(fit){
-					as.numeric(get_identity_binomial_regression_score_cpp(X_fit, y, as.numeric(fit$b)))
+					# TODO-181 (c) (owner decision 2026-10-31, as for TODO-176): a
+					# null-restricted MLE with a fitted probability on the
+					# boundary (mu within 1e-6 of the kernel's 1e-8 / 1 - 1e-8
+					# bounds, the kernel's own active-bound margin) has no
+					# defined score: the log-likelihood is not differentiable
+					# there, and the finite-difference score / information either
+					# cross the barrier (Inf / NaN) or are dominated by the
+					# 1 / mu term. The score and gradient tests are therefore NA
+					# with a recorded reason (quoted by the lik-test-unavailable
+					# warning), not a boundary score. The LR test is unaffected.
+					b = as.numeric(fit$b)
+					mu = as.numeric(X_fit %*% b)
+					edge = 1e-8 + 1e-6
+					n_on_boundary = sum(mu <= edge | mu >= 1 - edge)
+					if (n_on_boundary > 0L) {
+						reason = paste0(
+							"the null-restricted MLE is on the boundary of the parameter space (",
+							n_on_boundary, " subject(s) with fitted probability 0 or 1), where the score is undefined; ",
+							"the score and gradient tests are not computed there (the likelihood-ratio test is)"
+						)
+						edi_note_lik_test_failure(private, "score", reason)
+						edi_note_lik_test_failure(private, "gradient", reason)
+						return(rep(NA_real_, length(b)))
+					}
+					as.numeric(get_identity_binomial_regression_score_cpp(X_fit, y, b))
 				},
 				neg_loglik = function(fit){
 					mu = as.numeric(X_fit %*% as.numeric(fit$b))

@@ -437,16 +437,47 @@ SurvivalDepCensTransformSource = list(
 			list(
 				X = X_fit, y = y, dead = dead, j = j_treat,
 				full_fit = private$cached_mod,
+				# TODO-180: `start` (the previous delta's null fit, carried by the
+				# warm wrapper during CI inversion / repeated p-values) is ignored.
+				# Warm-starting from it can converge to a different constrained
+				# optimum, so p(delta) depended on what the object computed before
+				# (rep 9 `~.`: score p at the upper score-CI endpoint 0.050 on the
+				# same object vs 0.771 fresh). Deterministic starts instead: (1) the
+				# call a fresh object makes (start = NULL -> the object's own warm
+				# start and warm Fisher; bit-identical to the old fresh-object
+				# path), (2) the full fit with beta_T = delta and no warm Fisher,
+				# (3) a cold start. A later start replaces the first only on a
+				# neg-loglik gain > 1e-6 and only if it converged.
 				fit_null = function(delta, start = NULL){
-					warm_start_params = start %||% private$get_fit_warm_start_for_length("params", n_params)
-					warm_fisher = private$get_fit_warm_start_fisher(n_params)
-					tryCatch(fast_dep_cens_transform_optim_cpp(
+					fit_from = function(warm_start_params, warm_fisher) tryCatch(fast_dep_cens_transform_optim_cpp(
 						y = y, dead = dead, X = X_fit, warm_start_params = warm_start_params,
 						warm_start_fisher_info = warm_fisher,
 						estimate_only = TRUE,
 						smart_cold_start = private$smart_cold_start_default,
 						fixed_idx = j_treat, fixed_values = delta
 					), error = function(e) NULL)
+					nll_of = function(f){
+						if (is.null(f) || length(f$b) != n_params || any(!is.finite(f$b))) return(NA_real_)
+						v = as.numeric(f$neg_loglik)
+						if (length(v) == 1L && is.finite(v)) v else NA_real_
+					}
+					best = fit_from(private$get_fit_warm_start_for_length("params", n_params),
+						private$get_fit_warm_start_fisher(n_params))
+					best_nll = nll_of(best)
+					full_b = as.numeric(private$cached_mod$b)
+					full_start = if (length(full_b) == n_params && all(is.finite(full_b))) replace(full_b, j_treat, delta) else NULL
+					alt_starts = list(full_start, NULL)
+					if (is.null(full_start)) alt_starts = list(NULL)
+					for (ws in alt_starts){
+						cand = fit_from(ws, NULL)
+						cand_nll = nll_of(cand)
+						if (!is.finite(cand_nll) || isFALSE(cand$converged)) next
+						if (!is.finite(best_nll) || cand_nll < best_nll - 1e-6){
+							best = cand
+							best_nll = cand_nll
+						}
+					}
+					best
 				},
 				extract_start = function(fit){
 					as.numeric(fit$b)

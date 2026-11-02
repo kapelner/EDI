@@ -367,6 +367,15 @@ methods.
   over-cover (about 0.98 on matching designs) and Wald p-values are too large.
   Design-aware variances are planned for 1.1.0.
 
+* `InferenceSurvivalKKStratCoxPHOneLik` with covariates (`~ .`) is biased
+  toward zero at small n (about 75 matched pairs). In the comprehensive
+  tests its confidence intervals under-cover (0.29-0.85 at nominal 0.95), and
+  likelihood-ratio bootstrap, Bartlett and parametric-bootstrap p-values
+  reject 16-38% of true nulls at nominal 5%. Without covariates
+  (`~ 1`) the class behaves normally. `InferenceSurvivalKKLWACoxPHOneLik`
+  is a better choice when adjusting for covariates. A fix (Firth bias
+  reduction) is planned for 1.1.0.
+
 * Jackknife standard errors, intervals and p-values on
   `DesignSeqOneByOneSPBR` and `DesignFixedBlocking` leave out one stratum at a
   time. With only a few strata the standard error is noisy, and the

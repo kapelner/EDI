@@ -663,20 +663,60 @@ InferenceCountHurdleNegBin = define_inference_class(
 					y = y,
 					j = j_treat,
 					full_fit = full_fit,
+				# TODO-180: `start` (the previous delta's null fit, carried by the
+				# warm wrapper during CI inversion / repeated p-values) is ignored.
+				# Warm-starting from it can converge to a different constrained
+				# optimum, so p(delta) depended on what the object computed before
+				# (rep 3 `~1`: score p at the upper score-CI endpoint 0.049 on the
+				# same object vs 0.147 fresh). Deterministic starts instead: (1) the
+				# call a fresh object makes (start = NULL -> the object's own warm
+				# start and warm Fisher; bit-identical to the old fresh-object
+				# path), (2) the full fit with beta_T = delta and no warm Fisher,
+				# (3) a cold start. A later start replaces the first only on a
+				# neg-loglik gain > 1e-6 and only if it converged.
 				fit_null = function(delta, start = NULL){
-					warm_start_params = start %||% private$get_fit_warm_start_for_length("params", n_params)
-					warm_fisher = private$get_fit_warm_start_fisher(n_params)
-					fast_truncated_negbin_count_cpp(
-						X = X_pos,
-						y = y_pos,
-						warm_start_params = warm_start_params,
-						warm_start_fisher_info = warm_fisher,
-						smart_cold_start = private$smart_cold_start_default,
-						estimate_only = FALSE,
-						optimization_alg = opt_alg,
-						fixed_idx = j_treat,
-						fixed_values = delta
+					fit_from = function(warm_start_params, warm_fisher, strict = FALSE){
+						call_fit = function() fast_truncated_negbin_count_cpp(
+							X = X_pos,
+							y = y_pos,
+							warm_start_params = warm_start_params,
+							warm_start_fisher_info = warm_fisher,
+							smart_cold_start = private$smart_cold_start_default,
+							estimate_only = FALSE,
+							optimization_alg = opt_alg,
+							fixed_idx = j_treat,
+							fixed_values = delta
+						)
+						# The first (old) call keeps its old error behaviour.
+						if (strict) call_fit() else tryCatch(call_fit(), error = function(e) NULL)
+					}
+					nll_of = function(f){
+						if (is.null(f)) return(NA_real_)
+						v = as.numeric(f$neg_loglik %||% f$neg_ll)
+						if (length(v) == 1L && is.finite(v)) v else NA_real_
+					}
+					best = tryCatch(
+						fit_from(private$get_fit_warm_start_for_length("params", n_params),
+							private$get_fit_warm_start_fisher(n_params), strict = TRUE),
+						error = function(e) e
 					)
+					first_error = if (inherits(best, "error")) best else NULL
+					if (!is.null(first_error)) best = NULL
+					best_nll = nll_of(best)
+					full_params = as.numeric(full_fit$params %||% c(as.numeric(full_fit$b), log(as.numeric(full_fit$theta_hat))))
+					full_start = if (length(full_params) == n_params && all(is.finite(full_params))) replace(full_params, j_treat, delta) else NULL
+					alt_starts = if (is.null(full_start)) list(NULL) else list(full_start, NULL)
+					for (ws in alt_starts){
+						cand = fit_from(ws, NULL)
+						cand_nll = nll_of(cand)
+						if (!is.finite(cand_nll) || isFALSE(cand$converged)) next
+						if (!is.finite(best_nll) || cand_nll < best_nll - 1e-6){
+							best = cand
+							best_nll = cand_nll
+						}
+					}
+					if (is.null(best) && !is.null(first_error)) stop(first_error)
+					best
 				},
 				extract_start = function(fit){
 					as.numeric(fit$params %||% c(as.numeric(fit$b), log(as.numeric(fit$theta_hat))))

@@ -2,5 +2,3 @@
 "incidence","InferenceIncidKKCondLogitGLMMOneLik","lik_ratio","~1","endpoint","null rep 1: p at ci_b = 1.101 is 0.003709, expected ~0.05"
 "incidence","InferenceIncidKKCondLogitGLMMOneLik","lik_ratio","~.","agreement","rep 2: p = 0.0243 but CI [-1.642, 0.2667] contains null 0"
 "incidence","InferenceIncidKKCondLogitGLMMOneLik","lik_ratio","~.","endpoint","null rep 2: p at ci_a = -1.642 is 0.008576, expected ~0.05"
-"ordinal","InferenceOrdinalStereotypeLogitRegr","score","~1","endpoint","null rep 1: p at ci_a = -0.239 is 0.03369, expected ~0.05"
-"ordinal","InferenceOrdinalStereotypeLogitRegr","score","~.","endpoint","null rep 1: p at ci_a = -0.239 is 0.03369, expected ~0.05"

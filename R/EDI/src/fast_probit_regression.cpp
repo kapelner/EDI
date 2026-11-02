@@ -245,7 +245,35 @@ ModelResult fast_probit_regression_internal(
     }
 
     res.b = expand_free_params(beta_free, beta_start, fixed_spec);
-    
+
+    // TODO-181 (a) (v1.0.5, 2026-10-31): a fit is converged only if it is
+    // finite and not saturated against the data. pnorm_fast() is clamped at
+    // |eta| >= 8 (and dnorm_fast underflows to 0 for |eta| > ~38), so past
+    // that point the computed likelihood is flat and the score is exactly 0:
+    // an IRLS overshoot (or an absurd warm start, e.g. intercept 460900 stored
+    // by an earlier InferenceIncidProbitRegr null refit) "converged" there with
+    // gradient_norm = 0. A row whose observed outcome has fitted probability
+    // inside the clamp (y = 1 with eta <= -8, y = 0 with eta >= 8) cannot sit
+    // at a genuine maximum, so such a fit now reports converged = FALSE.
+    // Rows saturated in the direction of their own outcome (separation) are
+    // not affected, and neither is any fit with all |eta| < 8.
+    if (res.converged) {
+        constexpr double kProbitClampEta = 8.0;  // pnorm_fast()'s clamp
+        bool saturated = !res.b.allFinite() || !std::isfinite(res.neg_ll);
+        if (!saturated) {
+            const Eigen::VectorXd eta_chk = X_eigen * res.b;
+            for (int i = 0; i < n && !saturated; ++i) {
+                if (use_weights && !(weights_eigen[i] > 0.0)) continue;
+                const double ei = eta_chk[i];
+                if (!std::isfinite(ei) ||
+                    (y_eigen[i] > 0.5 ? ei <= -kProbitClampEta : ei >= kProbitClampEta)) {
+                    saturated = true;
+                }
+            }
+        }
+        if (saturated) res.converged = false;
+    }
+
     if (!estimate_only) {
         const Eigen::VectorXd eta = X_eigen * res.b;
         if (res.mu.size() == 0) {
