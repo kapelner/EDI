@@ -2,14 +2,18 @@
 #'
 #' Fits a non-parametric treatment-effect estimator for censored survival
 #' responses: the difference in Kaplan-Meier \strong{median} survival times
-#' between the treated and control arms, \eqn{\hat m_T - \hat m_C}. Standard
-#' errors are obtained by \strong{back-calculating} from each arm's separate
-#' Brookmeyer-Crowley confidence interval for its own median (via
-#' \code{survival::survfit}'s default log-log-transformed interval):
-#' \eqn{\hat\sigma_i = (\mathrm{upper}_i - \mathrm{lower}_i) / (2 z_{\alpha/2})},
-#' combined (the two arms are independent by design) as \eqn{\sqrt{\hat\sigma_T^2 +
-#' \hat\sigma_C^2}}. When either arm's median is inestimable (its Kaplan-Meier
-#' curve never reaches 0.5) or the back-calculated bounds are non-finite, the
+#' between the treated and control arms, \eqn{d = \hat m_T - \hat m_C}. The
+#' confidence interval combines each arm's own Brookmeyer-Crowley confidence
+#' interval \eqn{[l_i, u_i]} for its median (via \code{survival::survfit}'s
+#' default log-transformed interval) by the method of variance estimates
+#' recovery (MOVER; Zou and Donner, 2008), keeping each side's half-width
+#' separately because a median's interval is often lopsided (a flat
+#' Kaplan-Meier curve near 0.5 with few events gives a long upper tail):
+#' \deqn{\left[d - \sqrt{(\hat m_T - l_T)^2 + (u_C - \hat m_C)^2},
+#' d + \sqrt{(u_T - \hat m_T)^2 + (\hat m_C - l_C)^2}\right].}
+#' The two arms are independent by design. When either arm's median is
+#' inestimable (its Kaplan-Meier curve never reaches 0.5) or a bound is
+#' non-finite, the
 #' Wald-style confidence interval and p-value methods
 #' (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
 #' silently fall back to a nonparametric bootstrap instead of returning
@@ -32,8 +36,12 @@
 #'   Kaplan-Meier survival curve estimator each arm's median is read from.
 #'   Brookmeyer, R., and Crowley, J. (1982). "A Confidence Interval for the
 #'   Median Survival Time." \emph{Biometrics}, 38(1), 29-41,
-#'   \doi{10.2307/2530286}, for the per-arm median confidence interval this
-#'   class's standard error is back-calculated from. Turnbull, B. W. (1976).
+#'   \doi{10.2307/2530286}, for each arm's median confidence interval.
+#'   Zou, G. Y., and Donner, A. (2008). "Construction of Confidence Limits
+#'   About Effect Measures: A General Approach." \emph{Statistics in
+#'   Medicine}, 27(10), 1693-1702, \doi{10.1002/sim.3095}, for the MOVER
+#'   combination of the two arms' intervals into one for the difference
+#'   (see \code{[ZouDonner2008]} in REFERENCES.md). Turnbull, B. W. (1976).
 #'   "The Empirical Distribution Function with Arbitrarily Grouped, Censored
 #'   and Truncated Data." \emph{Journal of the Royal Statistical Society,
 #'   Series B}, 38(3), 290-295, \doi{10.1111/j.2517-6161.1976.tb01597.x}, for
@@ -163,14 +171,15 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' @description Computes a (1 - alpha)-level confidence interval for the difference in Kaplan-Meier
 		#' median survival times (treatment minus control).
 		#'
-		#' The Brookmeyer-Crowley confidence interval is obtained for each group's median
-		#' separately via \code{survival::survfit} (using a log-log transformation of the
-		#' survival function by default). The per-group SE is back-calculated from the CI
-		#' half-width as \eqn{\hat\sigma_i = (\text{upper}_i - \text{lower}_i) / (2 z_{\alpha/2})}.
-		#' The two groups are independent by design, so the SE of the difference is
-		#' \eqn{\sqrt{\hat\sigma_T^2 + \hat\sigma_C^2}}, and the CI is
-		#' \eqn{(\hat{m}_T - \hat{m}_C) \pm z_{\alpha/2} \cdot \sqrt{\hat\sigma_T^2 +
-		#' \hat\sigma_C^2}}.
+		#' The Brookmeyer-Crowley confidence interval \eqn{[l_i, u_i]} at level
+		#' \code{1 - alpha} is obtained for each group's median separately via
+		#' \code{survival::survfit} (log-transformed, survfit's default). The two
+		#' groups are independent by design, and the intervals are combined by MOVER
+		#' (Zou and Donner, 2008), which keeps each side's half-width rather than
+		#' forcing a symmetric interval:
+		#' \eqn{[d - \sqrt{(\hat m_T - l_T)^2 + (u_C - \hat m_C)^2},
+		#' d + \sqrt{(u_T - \hat m_T)^2 + (\hat m_C - l_C)^2}]} with
+		#' \eqn{d = \hat m_T - \hat m_C}.
 		#'
 		#' Falls back to \code{compute_bootstrap_confidence_interval} when either group's
 		#' median is not estimable (i.e., the Kaplan-Meier curve does not reach 0.5) or
@@ -189,10 +198,24 @@ InferenceSurvivalKMDiff = define_inference_class(
 			if (is.na(private$cached_values$s_beta_hat_T)) {
 				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
 			}
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			arms = private$km_median_arm_bounds(alpha)
+			if (is.null(arms)) {
+				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
+			}
+			hw = private$mover_half_widths(arms)
+			d = private$cached_values$beta_hat_T
+			ci = c(d - hw[["lower"]], d + hw[["upper"]])
+			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+			ci
 		},
 		#' @description Computes a Wald-style 2-sided p-value based on the median difference
-		#' and its back-calculated standard error.
+		#' and the side-specific standard error of the MOVER interval: the 95\% MOVER
+		#' half-width on the side of the estimate that \code{delta} lies on, divided by
+		#' \eqn{z_{0.975}}. The test therefore agrees exactly with
+		#' \code{$compute_asymp_confidence_interval(alpha = 0.05)} (its p-value is 0.05
+		#' at either bound); at other levels the two are close but not exact inverses,
+		#' because each arm's interval changes shape with its level. Falls back to the
+		#' bootstrap under the same conditions as the confidence interval.
 		#'
 		#' @param delta The null difference to test against. Default is 0.
 		#'
@@ -205,7 +228,14 @@ InferenceSurvivalKMDiff = define_inference_class(
 			if (is.na(private$cached_values$s_beta_hat_T)) {
 				return(self$compute_bootstrap_two_sided_pval(delta = delta))
 			}
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			edi_warn_cluster_independence_once(self, private, "wald")
+			d = private$cached_values$beta_hat_T
+			# Side-specific SE from the 95% MOVER half-widths: the side of the
+			# estimate that delta lies on is the side whose bound it is tested against.
+			hw = private$mover_half_widths(private$cached_values$km_median_arms_95)
+			se = (if (delta <= d) hw[["lower"]] else hw[["upper"]]) / stats::qnorm(0.975)
+			if (!is.finite(d) || !is.finite(se) || se <= 0) return(NA_real_)
+			2 * stats::pnorm(-abs(d - delta) / se)
 		},
 		#' @description Computes a 2-sided p-value via the log rank test
 		#'
@@ -331,7 +361,59 @@ InferenceSurvivalKMDiff = define_inference_class(
 			}
 			
 			z = stats::qnorm(1 - alpha / 2)
+			arms_95 = c(
+				m_T = as.numeric(q$quantile[idx_T, 1]), l_T = lo_T, u_T = hi_T,
+				m_C = as.numeric(q$quantile[idx_C, 1]), l_C = lo_C, u_C = hi_C
+			)
+			if (!all(is.finite(arms_95))) {
+				private$cached_values$s_beta_hat_T = NA_real_
+				return(invisible(NULL))
+			}
+			private$cached_values$km_median_arms_95 = arms_95
+			# Symmetric summary SE (average of each arm's two half-widths). It is not
+			# what the CI or p-value use (they keep each side's half-width, see
+			# mover_half_widths()); it marks the analytic path as available.
 			private$cached_values$s_beta_hat_T = sqrt(((hi_T - lo_T) / (2 * z))^2 + ((hi_C - lo_C) / (2 * z))^2)
+		},
+		# Each arm's Kaplan-Meier median and its Brookmeyer-Crowley bounds at level
+		# 1 - alpha (named m_T, l_T, u_T, m_C, l_C, u_C), or NULL when survfit fails
+		# or a bound is non-finite at that level. alpha = 0.05 reuses shared()'s fit.
+		km_median_arm_bounds = function(alpha){
+			if (isTRUE(all.equal(alpha, 0.05))) return(private$cached_values$km_median_arms_95)
+			key = format(alpha, digits = 15L)
+			memo = private$cached_values$km_median_arms_by_alpha %||% list()
+			if (!is.null(memo[[key]])) return(if (isFALSE(memo[[key]])) NULL else memo[[key]])
+			y = private$y
+			dead = private$dead
+			w = private$w
+			fit = tryCatch(survival::survfit(survival::Surv(y, dead) ~ w, conf.int = 1 - alpha), error = function(e) NULL)
+			out = NULL
+			if (!is.null(fit)) {
+				q = stats::quantile(fit, 0.5)
+				strata = rownames(q$lower)
+				idx_T = which(strata == "w=1")
+				idx_C = which(strata == "w=0")
+				if (length(idx_T) == 1L && length(idx_C) == 1L) {
+					out = c(
+						m_T = as.numeric(q$quantile[idx_T, 1]), l_T = as.numeric(q$lower[idx_T, 1]), u_T = as.numeric(q$upper[idx_T, 1]),
+						m_C = as.numeric(q$quantile[idx_C, 1]), l_C = as.numeric(q$lower[idx_C, 1]), u_C = as.numeric(q$upper[idx_C, 1])
+					)
+					if (!all(is.finite(out))) out = NULL
+				}
+			}
+			memo[[key]] = if (is.null(out)) FALSE else out
+			private$cached_values$km_median_arms_by_alpha = memo
+			out
+		},
+		# MOVER (Zou and Donner 2008) half-widths for m_T - m_C from each arm's own
+		# asymmetric median CI: the lower side combines the treated arm's lower
+		# half-width with the control arm's upper one, and vice versa.
+		mover_half_widths = function(arms){
+			if (is.null(arms)) return(c(lower = NA_real_, upper = NA_real_))
+			c(
+				lower = sqrt(max(arms[["m_T"]] - arms[["l_T"]], 0)^2 + max(arms[["u_C"]] - arms[["m_C"]], 0)^2),
+				upper = sqrt(max(arms[["u_T"]] - arms[["m_T"]], 0)^2 + max(arms[["m_C"]] - arms[["l_C"]], 0)^2)
+			)
 		},
 		weighted_survival_stat_for_group = function(y, dead, row_weights, requested_stat = c("median", "restricted_mean")){
 			requested_stat = match.arg(requested_stat)

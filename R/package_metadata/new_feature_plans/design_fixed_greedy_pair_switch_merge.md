@@ -1,6 +1,6 @@
 # Merge `DesignFixedGreedy` into `DesignFixedGreedyDOptimal` as `DesignFixedGreedyPairSwitch`
 
-> **Status 2026-11-03 (`release_v1_0_5.md → TODO-184`): the unequal-arm math is
+> **Status 2026-11-03 (`release_v1_0_5.md → TODO-186`): the unequal-arm math is
 > DONE and the rederivation below was UNNECESSARY.** `DesignFixedGreedy` now supports any `prob_T` and odd `n`
 > with the swap update unchanged. The kernel centres `X` before building `M`,
 > so `M * 1 = 0` and `M(2w - 1) = 2Mw`: a fixed positive multiple of the

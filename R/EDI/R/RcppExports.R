@@ -4621,6 +4621,10 @@ neg_loglik_nb_cpp <- function(theta, beta, X, y) {
 #' @param tol_p         P-value convergence tolerance (default 1e-7)
 #' @param tol_bracket   Bracket-width convergence tolerance (default 1e-8)
 #'
+#' @details When the loop ends without meeting \code{tol_p} or \code{tol_bracket}, the
+#' iterate whose p-value is closest to \code{alpha} is returned if it is within
+#' \code{1e-4} of it; otherwise that bound is \code{NA}.
+#'
 #' @return Unnamed numeric vector of length 2: \code{[lower_bound, upper_bound]}
 #' @keywords internal
 #'

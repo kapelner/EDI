@@ -43,7 +43,7 @@ KK14 matching design, replacing O(t·p²) recomputation.
 - `design_fixed_greedy_pair_switch_merge.md` — merge `DesignFixedGreedy`
   + `DesignFixedGreedyDOptimal` into `DesignFixedGreedyPairSwitch` (class
   consolidation only: `DesignFixedGreedy`'s unequal-arm support shipped in
-  `release_v1_0_5.md → TODO-184`, and the planned swap-delta rederivation
+  `release_v1_0_5.md → TODO-186`, and the planned swap-delta rederivation
   proved unnecessary); **soft-deprecation only**
   (aliases + warnings for the two old names); the hard deletion is
   `release_v2_0_0.md → TODO-7`. This is the engine that 1.3.0's unequal-

@@ -309,6 +309,14 @@ files' `@references`) if/when it becomes available.
   Modelling*, 7(9-12), 1393-1512. doi:10.1016/0270-0255(86)90088-6. — Used
   by: `InferenceIncidKKGCompRiskDiff`, `InferenceIncidKKGCompRiskRatio`
   (g-computation/standardization estimand).
+- **[Robins1988]** Robins, J. M. (1988). "Confidence Intervals for Causal
+  Parameters." *Statistics in Medicine*, 7(7), 773-785. — Used by:
+  `InferenceIncidExtendedRobins` (the per-block Robins variance bound that
+  its block-stratified standard error extends).
+- **[AzrielKriegerKapelner2026]** Azriel, D., Krieger, A. M., and Kapelner,
+  A. (2026). "Optimal Designs with Robust Inference for Binary Treatment
+  Effects." arXiv:2607.05768. — Used by: `InferenceIncidExtendedRobins`
+  (extended Robins variance estimator, Equations 12-13).
 - **[McCullaghNelder1989]** McCullagh, P., and Nelder, J. A. (1989).
   *Generalized Linear Models* (2nd ed.). Chapman and Hall/CRC. — Used by:
   `InferenceIncidLogRegr` (logistic regression model and maximum-likelihood
@@ -446,7 +454,13 @@ files' `@references`) if/when it becomes available.
 - **[BrookmeyerCrowley1982]** Brookmeyer, R., and Crowley, J. (1982). "A
   Confidence Interval for the Median Survival Time." *Biometrics*, 38(1),
   29-41. doi:10.2307/2530286. — Used by: `InferenceSurvivalKMDiff` (each
-  arm's median CI, back-calculated into an SE for the difference).
+  arm's median CI, combined into a CI for the difference by `[ZouDonner2008]`).
+- **[ZouDonner2008]** Zou, G. Y., and Donner, A. (2008). "Construction of
+  Confidence Limits About Effect Measures: A General Approach." *Statistics
+  in Medicine*, 27(10), 1693-1702. doi:10.1002/sim.3095. — Used by:
+  `InferenceSurvivalKMDiff` (MOVER: the Wald CI and p-value for the median
+  difference keep each arm's asymmetric Brookmeyer-Crowley half-widths
+  instead of a symmetric back-calculated SE).
 - **[Turnbull1976]** Turnbull, B. W. (1976). "The Empirical Distribution
   Function with Arbitrarily Grouped, Censored and Truncated Data."
   *Journal of the Royal Statistical Society, Series B*, 38(3), 290-295.

@@ -1,8 +1,24 @@
 #' Abstract Conditional Logistic GLMM Inference
 #'
-#' Fits one likelihood with a conditional-logistic contribution from discordant
-#' matched pairs and a random-intercept logistic GLMM contribution from concordant
-#' matched pairs and reservoir subjects.
+#' Shared base of the KK conditional-logit classes. The model depends on the
+#' response type:
+#' \itemize{
+#'   \item \strong{Incidence}
+#'     (\code{\link[EDI:InferenceIncidKKCondLogitGLMMOneLik]{InferenceIncidKKCondLogitGLMMOneLik}},
+#'     \code{\link[EDI:InferenceIncidKKCondLogitGLMMIVWC]{InferenceIncidKKCondLogitGLMMIVWC}};
+#'     since v1.0.5): conditional logit on the discordant matched pairs plus,
+#'     for OneLik, an ordinary logistic regression on the reservoir subjects,
+#'     sharing the treatment and covariate coefficients. Concordant pairs are
+#'     not used. See \code{InferenceIncidKKCondLogitGLMMOneLik} for the model
+#'     and its caveat about pooling a pair-conditional and a covariate-conditional
+#'     odds ratio.
+#'   \item \strong{Proportion}
+#'     (\code{\link[EDI:InferencePropKKGLMM]{InferencePropKKGLMM}}): one
+#'     likelihood with a conditional-logistic contribution from discordant
+#'     matched pairs and a random-intercept logistic GLMM contribution from
+#'     concordant matched pairs and reservoir subjects. A proportion pair is
+#'     never exactly discordant, so in practice every subject enters the GLMM.
+#' }
 #'
 #' \strong{Known estimability limitation at high covariate counts.} The
 #' treatment effect is identified from the discordant-pair conditional-logit
@@ -13,12 +29,16 @@
 #' \eqn{n}. With \code{model_formula = ~.} on a dataset with many covariates,
 #' the number of free parameters the discordant term must help identify can
 #' approach or exceed the number of discordant pairs, and the joint fit then
-#' frequently converges to an out-of-bounds coefficient or random-effect
-#' log-variance and is correctly reported as nonestimable rather than
-#' returned. This was measured directly (\code{comprehensive_tests.R} repro,
-#' 2026-10): the identical design/response/n was estimable in 39 of 40 null
-#' replicates with one covariate, but only 22 of 40 with ten covariates under
-#' \code{model_formula = ~.}. This is treated as an accepted property of this
+#' frequently converges to an out-of-bounds coefficient (or, for the
+#' proportion GLMM, random-effect log-variance) and is correctly reported as
+#' nonestimable rather than returned. This was measured directly
+#' (\code{comprehensive_tests.R} repro, 2026-10, with the pre-v1.0.5 GLMM
+#' model for incidence): the identical design/response/n was estimable in 39
+#' of 40 null replicates with one covariate, but only 22 of 40 with ten
+#' covariates under \code{model_formula = ~.}. A covariate the design matched
+#' exactly (zero within-pair differences) is not identified by conditional
+#' logit; for incidence it is dropped from the fit rather than making the fit
+#' fail. This is treated as an accepted property of this
 #' estimator in this regime, not a defect to be patched; when the cause is
 #' specifically this parameter-to-discordant-pair imbalance, the cached
 #' nonestimability reason names it explicitly
@@ -70,9 +90,10 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 		# supported for incidence. Use Zhang method." on incidence designs
 		# where the legacy class succeeded with a real Zhang p-value.
 		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval,
-		#' @description Initialize KK conditional-logit GLMM incidence
-		#'   inference, validate the binary response, and prepare the matched-pair
-		#'   conditional likelihood and reservoir mixed-model components. See
+		#' @description Initialize KK conditional-logit inference for an incidence
+		#'   or proportion response and validate the design; the model (conditional
+		#'   logit plus reservoir logistic regression for incidence, conditional
+		#'   logit plus random-intercept GLMM for proportions) is fit on first use. See
 		#'   \code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}.
 		#' @param des_obj A completed \code{Design} object with an incidence or proportion response.
 		#' @param model_formula Optional formula for covariate adjustment.
@@ -116,6 +137,9 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 					private$cached_values$s_beta_hat_T = NA_real_
 					return(private$cached_values$beta_hat_T)
 				}
+			}
+			if (private$uses_reservoir_logit()) {
+				return(private$compute_clogit_reservoir_logit_weighted_estimate(row_weights))
 			}
 			# Preserve the reported estimand in every nonconstant bootstrap draw:
 			# the observed fit is the 20-node joint conditional-logit + random-
@@ -251,7 +275,8 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			private$clear_nonestimable_state()
 			private$cached_mod = NULL
 			private$cached_values$likelihood_test_context = NULL
-			
+			if (private$uses_reservoir_logit()) return(private$shared_clogit_reservoir_logit(estimate_only))
+
 			d = private$prepare_clogit_plus_glmm_data()
 			if (!d$has_discordant && !d$has_concordant) {
 				private$cache_nonestimable_estimate("no_data_for_clogit_plus_glmm")
@@ -347,6 +372,7 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			private$shared(estimate_only = FALSE)
 			ctx = private$cached_values$likelihood_test_context
 			if (is.null(ctx) || is.null(private$cached_mod)) return(NULL)
+			if (private$uses_reservoir_logit()) return(private$get_clogit_reservoir_logit_spec(ctx))
 			d = ctx$d
 			j_treat = as.integer(ctx$j_T)
 			list(
@@ -433,16 +459,31 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			i_res = which(is.na(m_vec) | m_vec == 0L)
 			
 			i_glmm = if (private$combine_reservoir_into_glmm()) c(i_conc_pair, i_res) else i_conc_pair
-			
-			X_glmm_cov = private$get_X()[i_glmm, , drop = FALSE]
-			y_glmm = private$y[i_glmm]
-			w_glmm = private$w[i_glmm]
+
 			group_glmm = m_vec[i_glmm]
 			i_glmm_res = which(is.na(group_glmm) | group_glmm == 0L)
 			if (length(i_glmm_res) > 0L) {
 				group_glmm[i_glmm_res] = max(c(0L, m_vec), na.rm = TRUE) + seq_along(i_glmm_res)
 			}
-			
+			# 2026-11-03 (v1.0.5 TODO-173): fast_clogit_plus_glmm_cpp() builds its
+			# random-intercept groups from RUNS of equal group_conc
+			# (build_contiguous_group_layout), unlike the sibling GLMM kernels, which
+			# sort internally. i_conc_pair is in subject order, so a pair's two rows
+			# were usually not adjacent and each became its own one-row group: the
+			# kernel fitted a per-observation random intercept instead of a per-pair
+			# one (rep-2 calibration data: nll 92.04 vs 70.06 with true pairs; LR
+			# p-values depended on the optimizer's start). Order rows by group so the
+			# layout sees each pair as one group. Every consumer indexes through
+			# d$i_glmm (bootstrap weights) or uses the returned columns together, so
+			# reordering here keeps them aligned.
+			ord_glmm = order(group_glmm, method = "radix")
+			i_glmm = i_glmm[ord_glmm]
+			group_glmm = group_glmm[ord_glmm]
+
+			X_glmm_cov = private$get_X()[i_glmm, , drop = FALSE]
+			y_glmm = private$y[i_glmm]
+			w_glmm = private$w[i_glmm]
+
 			X_glmm = if (length(i_glmm) > 0L) {
 				cbind(`(Intercept)` = 1, treatment = w_glmm, X_glmm_cov)
 			} else {
@@ -462,6 +503,214 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 			)
 		},
 		combine_reservoir_into_glmm = function() stop("must implement combine_reservoir_into_glmm()"),
+		# ---- Conditional logit + reservoir logistic regression (incidence leaves) ----
+		# 2026-11-03 (v1.0.5 TODO-173): the incidence leaves no longer fit the
+		# random-intercept GLMM on concordant pairs. With pairs grouped correctly,
+		# concordant pairs agree within the pair by definition, so they look like
+		# an intra-pair correlation of 1: sigma_hat -> Inf, the GLMM term stops
+		# depending on beta, and the joint fit collapsed to conditional logit
+		# anyway (often past max_abs_log_sigma, i.e. reported nonestimable). The
+		# discordant pairs alone already carry all of the pairs' information under
+		# a free pair effect (a concordant pair's conditional likelihood is 1).
+		# The likelihood is now
+		#   l(beta) = sum over discordant pairs of log logistic(+-(beta_T + beta_x'(x_T - x_C)))
+		#           + sum over reservoir subjects of the ordinary logistic log-likelihood
+		#             with intercept alpha and the SAME beta_T, beta_x,
+		# which is one logistic regression on stacked rows: a discordant pair is a
+		# row (intercept 0, treatment 1, covariate differences) whose response is
+		# "the treated member is the success"; a reservoir subject is a row
+		# (1, w, x) with response y. combine_reservoir_into_glmm() (kept for the
+		# proportion class's GLMM) decides whether reservoir rows enter: TRUE for
+		# OneLik, FALSE for IVWC (pure conditional logit). The proportion class
+		# keeps the GLMM: a proportion pair is never exactly discordant.
+		uses_reservoir_logit = function() FALSE,
+		prepare_clogit_reservoir_logit_data = function(){
+			private$compute_basic_match_data()
+			KKstats = private$cached_values$KKstats
+			y_m = as.numeric(KKstats$yTs_matched) - as.numeric(KKstats$yCs_matched)
+			i_m_disc = which(abs(y_m) == 1)
+			X_diff = as.matrix(KKstats$X_matched_diffs_full[i_m_disc, , drop = FALSE])
+			X_all = as.matrix(private$get_X())
+			if (ncol(X_diff) == ncol(X_all)) colnames(X_diff) = colnames(X_all)
+			X_disc = cbind(treatment = rep(1, length(i_m_disc)), X_diff)
+			m_vec = private$m
+			i_res = if (isTRUE(private$combine_reservoir_into_glmm())) which(is.na(m_vec) | m_vec == 0L) else integer(0)
+			list(
+				X_disc = X_disc,
+				y_disc = (y_m[i_m_disc] + 1) / 2,
+				i_m_disc = as.integer(i_m_disc),
+				X_res = X_all[i_res, , drop = FALSE],
+				w_res = as.numeric(private$w[i_res]),
+				y_res = as.numeric(private$y[i_res]),
+				i_res = as.integer(i_res),
+				has_discordant = length(i_m_disc) > 0L
+			)
+		},
+		# Builds the stacked design for the given (optional) pair and reservoir
+		# weights. Reservoir rows enter only when their positive-weight outcomes
+		# vary: with all-0 or all-1 reservoir outcomes the intercept MLE is at
+		# -Inf/+Inf and the reservoir then contributes nothing about beta, so
+		# leaving it out is that likelihood's limit (and keeps the information
+		# matrix nonsingular).
+		assemble_clogit_reservoir_logit = function(dat, w_disc = NULL, w_res = NULL){
+			n_disc = nrow(dat$X_disc)
+			n_res = length(dat$y_res)
+			if (is.null(w_disc)) w_disc = rep(1, n_disc)
+			if (is.null(w_res)) w_res = rep(1, n_res)
+			kd = is.finite(w_disc) & w_disc > 0
+			kr = is.finite(w_res) & w_res > 0 & is.finite(dat$y_res)
+			use_res = sum(kr) > 0L && length(unique(dat$y_res[kr])) > 1L
+			Z_disc = dat$X_disc[kd, , drop = FALSE]
+			if (use_res) {
+				Z_res = cbind(1, dat$w_res[kr], dat$X_res[kr, , drop = FALSE])
+				Z = rbind(cbind(0, Z_disc), Z_res)
+				colnames(Z) = c("(Intercept)", colnames(dat$X_disc))
+				y = c(dat$y_disc[kd], dat$y_res[kr])
+				wt = c(w_disc[kd], w_res[kr])
+			} else {
+				Z = Z_disc
+				y = dat$y_disc[kd]
+				wt = w_disc[kd]
+			}
+			if (nrow(Z) == 0L) return(NULL)
+			# Drop aliased columns (e.g. a covariate the design matched exactly, whose
+			# within-pair differences are all 0: under a free pair effect its
+			# coefficient is absorbed into the pair intercepts and is not identified
+			# without a usable reservoir). Pivoted QR keeps the column order of the
+			# identified columns; the treatment column must survive.
+			qr_Z = qr(Z * sqrt(wt), tol = 1e-7)
+			keep = sort(qr_Z$pivot[seq_len(qr_Z$rank)])
+			if (!(which(colnames(Z) == "treatment")[1L] %in% keep)) return(NULL)
+			Z = Z[, keep, drop = FALSE]
+			list(Z = Z, y = as.numeric(y), wt = as.numeric(wt), j = which(colnames(Z) == "treatment")[1L],
+				use_res = use_res, n_disc = sum(kd), n_res = if (use_res) sum(kr) else 0L)
+		},
+		# Logistic MLE on the stacked rows; with `delta`, beta_T is fixed at delta
+		# (an offset) and the remaining parameters are refit. Returns NULL when the
+		# fit fails outright.
+		fit_clogit_reservoir_logit = function(a, delta = NULL, start = NULL){
+			Z = a$Z
+			j = a$j
+			fixed = !is.null(delta)
+			Z_free = if (fixed) Z[, -j, drop = FALSE] else Z
+			offset = if (fixed) delta * Z[, j] else rep(0, nrow(Z))
+			start_free = NULL
+			if (!is.null(start) && length(start) == ncol(Z) && all(is.finite(start))) {
+				start_free = if (fixed) start[-j] else start
+			}
+			coef_free = numeric(0)
+			converged = TRUE
+			if (ncol(Z_free) > 0L) {
+				g = tryCatch(suppressWarnings(stats::glm.fit(
+					x = Z_free, y = a$y, weights = a$wt, start = start_free, offset = offset,
+					family = stats::binomial(), control = stats::glm.control(maxit = 100L)
+				)), error = function(e) NULL)
+				if (is.null(g) && !is.null(start_free)) {
+					g = tryCatch(suppressWarnings(stats::glm.fit(
+						x = Z_free, y = a$y, weights = a$wt, offset = offset,
+						family = stats::binomial(), control = stats::glm.control(maxit = 100L)
+					)), error = function(e) NULL)
+				}
+				if (is.null(g)) return(NULL)
+				coef_free = as.numeric(g$coefficients)
+				converged = isTRUE(g$converged)
+			}
+			params = if (fixed) append(coef_free, delta, after = j - 1L) else coef_free
+			names(params) = colnames(Z)
+			if (any(!is.finite(params))) {
+				return(list(params = params, neg_loglik = NA_real_, converged = FALSE))
+			}
+			eta = as.numeric(Z %*% params)
+			neg_loglik = -sum(a$wt * (a$y * eta - private$log1pexp(eta)))
+			info = private$clogit_reservoir_logit_information(a, params)
+			list(params = params, neg_loglik = neg_loglik, converged = converged && is.finite(neg_loglik),
+				fisher_information = info, information = info, observed_information = info)
+		},
+		clogit_reservoir_logit_score = function(a, params){
+			eta = as.numeric(a$Z %*% params)
+			as.numeric(crossprod(a$Z, a$wt * (a$y - stats::plogis(eta))))
+		},
+		# Canonical link: observed and expected information coincide.
+		clogit_reservoir_logit_information = function(a, params){
+			mu = stats::plogis(as.numeric(a$Z %*% params))
+			info = crossprod(a$Z * sqrt(a$wt * mu * (1 - mu)))
+			dimnames(info) = list(colnames(a$Z), colnames(a$Z))
+			info
+		},
+		# Coefficients checked against max_abs_reasonable_coef: all but the
+		# reservoir intercept, a nuisance parameter that can legitimately be large.
+		clogit_reservoir_logit_coefs_out_of_bounds = function(a, params){
+			coefs = params[colnames(a$Z) != "(Intercept)"]
+			any(!is.finite(coefs)) || any(abs(coefs) > private$max_abs_reasonable_coef)
+		},
+		shared_clogit_reservoir_logit = function(estimate_only){
+			dat = private$prepare_clogit_reservoir_logit_data()
+			a = private$assemble_clogit_reservoir_logit(dat)
+			if (is.null(a)) {
+				private$cache_nonestimable_estimate("no_data_for_clogit_plus_reservoir_logit")
+				return(invisible(NULL))
+			}
+			fit = private$fit_clogit_reservoir_logit(a, start = private$get_fit_warm_start_for_length("params", ncol(a$Z)))
+			if (is.null(fit) || !isTRUE(fit$converged)) {
+				private$cache_nonestimable_estimate("joint_likelihood_failed_to_converge")
+				return(invisible(NULL))
+			}
+			params = as.numeric(fit$params)
+			if (private$clogit_reservoir_logit_coefs_out_of_bounds(a, params)) {
+				private$cache_nonestimable_estimate(private$joint_likelihood_nonestimable_reason(dat))
+				return(invisible(NULL))
+			}
+			private$cached_mod = fit
+			private$set_fit_warm_start(params, "params", fisher = fit$fisher_information)
+			private$cached_values$likelihood_test_context = list(a = a, j_T = a$j, start = params)
+			private$cached_values$beta_hat_T = params[a$j]
+			private$cached_values$df = Inf
+			if (estimate_only) return(invisible(NULL))
+			vcov = tryCatch(solve(fit$fisher_information), error = function(e) NULL)
+			se = if (!is.null(vcov) && is.finite(vcov[a$j, a$j]) && vcov[a$j, a$j] > 0) sqrt(vcov[a$j, a$j]) else NA_real_
+			if (!is.finite(se) || se <= 0 || se > private$max_abs_reasonable_se) {
+				private$cache_nonestimable_se("joint_likelihood_standard_error_unavailable")
+				return(invisible(NULL))
+			}
+			private$cached_values$s_beta_hat_T = se
+		},
+		# Bootstrap refit of the same likelihood: a discordant pair is one row and
+		# gets the mean of its members' weights (as kk_pair_and_reservoir_bootstrap_weights()
+		# does); reservoir rows keep their own weights; zero-weight rows drop out.
+		compute_clogit_reservoir_logit_weighted_estimate = function(row_weights){
+			dat = private$prepare_clogit_reservoir_logit_data()
+			m_vec = private$m
+			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
+			w_disc = vapply(dat$i_m_disc, function(pair_id) mean(row_weights[m_vec == pair_id], na.rm = TRUE), numeric(1))
+			w_res = as.numeric(row_weights[dat$i_res])
+			a = private$assemble_clogit_reservoir_logit(dat, w_disc, w_res)
+			fit = if (is.null(a)) NULL else private$fit_clogit_reservoir_logit(a, start = private$get_fit_warm_start_for_length("params", ncol(a$Z)))
+			beta = if (!is.null(fit) && isTRUE(fit$converged)) as.numeric(fit$params[a$j]) else NA_real_
+			max_abs_boot_coef = min(private$max_abs_reasonable_coef, private$bootstrap_extreme_estimate_threshold)
+			if (!is.finite(beta) || abs(beta) > max_abs_boot_coef) beta = NA_real_
+			private$cached_values$beta_hat_T = beta
+			private$cached_values$s_beta_hat_T = NA_real_
+			beta
+		},
+		get_clogit_reservoir_logit_spec = function(ctx){
+			a = ctx$a
+			list(
+				X = a$Z,
+				j = as.integer(ctx$j_T),
+				full_fit = private$cached_mod,
+				fit_null = function(delta, start = NULL){
+					fit = private$fit_clogit_reservoir_logit(a, delta = delta, start = start %||% ctx$start)
+					if (is.null(fit) || !is.finite(fit$neg_loglik)) return(NULL)
+					fit
+				},
+				extract_start = function(fit){ as.numeric(fit$params) },
+				score = function(fit){ private$clogit_reservoir_logit_score(a, as.numeric(fit$params)) },
+				observed_information = function(fit){ private$clogit_reservoir_logit_information(a, as.numeric(fit$params)) },
+				fisher_information = function(fit){ private$clogit_reservoir_logit_information(a, as.numeric(fit$params)) },
+				information = function(fit){ private$clogit_reservoir_logit_information(a, as.numeric(fit$params)) },
+				neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
+			)
+		},
 		log_sum_exp = function(x){
 			m = max(x)
 			if (!is.finite(m)) return(m)

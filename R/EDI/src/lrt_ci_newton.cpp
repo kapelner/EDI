@@ -95,7 +95,7 @@ static LrtEval eval_lrt(
 //' @param tol_p         P-value convergence tolerance (default 1e-7)
 //' @param tol_bracket   Bracket-width convergence tolerance (default 1e-8)
 //'
-//' When the loop ends without meeting \code{tol_p} or \code{tol_bracket}, the
+//' @details When the loop ends without meeting \code{tol_p} or \code{tol_bracket}, the
 //' iterate whose p-value is closest to \code{alpha} is returned if it is within
 //' \code{1e-4} of it; otherwise that bound is \code{NA}.
 //'

@@ -60,4 +60,9 @@ back into R only for \code{fit_null_fn}, \code{neg_loglik_fn}, and
 \code{score_fn}. The derivative \eqn{dp/d\delta = 2 f_{\chi^2}(T) \cdot
 \mathrm{score}[j]} follows from the envelope theorem.
 }
+\details{
+When the loop ends without meeting \code{tol_p} or \code{tol_bracket}, the
+iterate whose p-value is closest to \code{alpha} is returned if it is within
+\code{1e-4} of it; otherwise that bound is \code{NA}.
+}
 \keyword{internal}

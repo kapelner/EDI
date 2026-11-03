@@ -475,6 +475,13 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		}
 		paste(sort(unique(c(x, add))), collapse = "|")
 	}, character(1L))
+	# 2026-11-03: InferenceSurvivalKMDiff's Wald CI/p-value moved to MOVER (Zou and
+	# Donner 2008), adding the private helpers km_median_arm_bounds and
+	# mover_half_widths on its own host (no subclasses). Reviewed additive delta.
+	km_row <- which(baseline$class == "InferenceSurvivalKMDiff")
+	km_methods <- strsplit(baseline$private_methods[[km_row]], "|", fixed = TRUE)[[1L]]
+	baseline$private_methods[[km_row]] <- paste(sort(unique(c(km_methods,
+		paste0(c("km_median_arm_bounds", "mover_half_widths"), "@InferenceSurvivalKMDiff")))), collapse = "|")
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

@@ -33,11 +33,15 @@ discordant_only_fixture <- function(seed, n_pairs = 25L, beta_T_true = 0.8, beta
 	des$add_all_subject_responses(rbinom(20L, 1, 0.4))
 	inf <- InferenceIncidKKCondLogitGLMMIVWC$new(des, verbose = FALSE)
 	priv <- inf$.__enclos_env__$private
-	unlockBinding("prepare_clogit_plus_glmm_data", priv)
-	priv$prepare_clogit_plus_glmm_data <- function(...) list(
-		has_discordant = TRUE, has_concordant = FALSE,
-		X_disc = X_disc, y_disc = y_disc,
-		X_conc = matrix(numeric(0), nrow = 0L, ncol = 2L), y_conc = numeric(0), group_conc = integer(0)
+	# 2026-11-03 (v1.0.5 TODO-173): incidence leaves fit conditional logit (+ a
+	# reservoir logistic term for OneLik); the discordant-only block now enters
+	# through prepare_clogit_reservoir_logit_data(), and with no reservoir rows
+	# the stacked design has no intercept column, so j_T = 1L.
+	unlockBinding("prepare_clogit_reservoir_logit_data", priv)
+	priv$prepare_clogit_reservoir_logit_data <- function(...) list(
+		X_disc = X_disc, y_disc = y_disc, i_m_disc = seq_along(y_disc),
+		X_res = matrix(numeric(0), 0L, 1L), w_res = numeric(0), y_res = numeric(0), i_res = integer(0),
+		has_discordant = TRUE
 	)
 	list(inf = inf, priv = priv, x_diff = x_diff, y_disc = y_disc)
 }

@@ -41,6 +41,11 @@ ref_split <- function(priv, f, combine_reservoir) {
 	rows <- if (combine_reservoir) c(rows_conc_pair, rows_res) else rows_conc_pair
 	group <- m[rows]
 	group[m[rows] == 0L] <- max(m) + seq_len(sum(m[rows] == 0L))
+	# Rows ordered by group (2026-11-03, TODO-173): the joint kernel needs each
+	# pair's rows adjacent, so the class sorts them; reservoir singletons follow.
+	ord <- order(group, method = "radix")
+	rows <- rows[ord]
+	group <- group[ord]
 	list(
 		y_disc = (yT[disc] - yC[disc] + 1) / 2,
 		x_disc = xdiff[disc, , drop = FALSE],

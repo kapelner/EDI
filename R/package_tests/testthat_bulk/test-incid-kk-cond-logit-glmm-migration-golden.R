@@ -30,9 +30,34 @@ library(EDI)
 # tests for the numeric-drift bug this avoids) -- sourced into a child
 # environment of the EDI namespace (not the namespace itself, which is
 # locked against new top-level bindings).
+# 2026-11-03 (v1.0.5 TODO-173): deliberate deviation from the verbatim
+# pre-migration snapshot. After the migration the incidence leaves' model was
+# replaced (conditional logit on discordant pairs + logistic regression on the
+# reservoir, instead of a random-intercept GLMM on concordant pairs), so the
+# live methods implementing it are grafted onto the frozen classes here. This
+# keeps the golden doing its job -- comparing the old inheritance ladder with
+# the new composition for every inherited driver (bootstrap, randomization,
+# jackknife, likelihood tests) -- rather than comparing two different models.
+kk_cond_logit_reservoir_logit_private_methods = c(
+	"uses_reservoir_logit", "prepare_clogit_reservoir_logit_data", "assemble_clogit_reservoir_logit",
+	"fit_clogit_reservoir_logit", "clogit_reservoir_logit_score", "clogit_reservoir_logit_information",
+	"clogit_reservoir_logit_coefs_out_of_bounds", "shared_clogit_reservoir_logit",
+	"compute_clogit_reservoir_logit_weighted_estimate", "get_clogit_reservoir_logit_spec",
+	"shared", "get_likelihood_test_spec"
+)
 make_kk_cond_logit_glmm_legacy_env = function() {
 	env = new.env(parent = asNamespace("EDI"))
 	sys.source(testthat::test_path("fixtures", "legacy_kk_cond_logit_glmm.R"), envir = env)
+	live = EDI:::InferenceAbstractKKCondLogitGLMM
+	legacy_base = get("InferenceAbstractKKCondLogitGLMMLegacyOrig", envir = env)
+	for (nm in kk_cond_logit_reservoir_logit_private_methods) {
+		legacy_base$set("private", nm, live$private_methods[[nm]], overwrite = TRUE)
+	}
+	legacy_base$set("public", "compute_estimate_with_bootstrap_weights",
+		live$public_methods$compute_estimate_with_bootstrap_weights, overwrite = TRUE)
+	for (leaf in c("InferenceIncidKKCondLogitGLMMIVWCLegacyOrig", "InferenceIncidKKCondLogitGLMMOneLikLegacyOrig")) {
+		get(leaf, envir = env)$set("private", "uses_reservoir_logit", function() TRUE, overwrite = TRUE)
+	}
 	env
 }
 

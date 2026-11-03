@@ -5,9 +5,25 @@
 \alias{InferenceAbstractKKCondLogitGLMM}
 \title{Abstract Conditional Logistic GLMM Inference}
 \description{
-Fits one likelihood with a conditional-logistic contribution from discordant
-matched pairs and a random-intercept logistic GLMM contribution from concordant
-matched pairs and reservoir subjects.
+Shared base of the KK conditional-logit classes. The model depends on the
+response type:
+\itemize{
+  \item \strong{Incidence}
+    (\code{\link[EDI:InferenceIncidKKCondLogitGLMMOneLik]{InferenceIncidKKCondLogitGLMMOneLik}},
+    \code{\link[EDI:InferenceIncidKKCondLogitGLMMIVWC]{InferenceIncidKKCondLogitGLMMIVWC}};
+    since v1.0.5): conditional logit on the discordant matched pairs plus,
+    for OneLik, an ordinary logistic regression on the reservoir subjects,
+    sharing the treatment and covariate coefficients. Concordant pairs are
+    not used. See \code{InferenceIncidKKCondLogitGLMMOneLik} for the model
+    and its caveat about pooling a pair-conditional and a covariate-conditional
+    odds ratio.
+  \item \strong{Proportion}
+    (\code{\link[EDI:InferencePropKKGLMM]{InferencePropKKGLMM}}): one
+    likelihood with a conditional-logistic contribution from discordant
+    matched pairs and a random-intercept logistic GLMM contribution from
+    concordant matched pairs and reservoir subjects. A proportion pair is
+    never exactly discordant, so in practice every subject enters the GLMM.
+}
 
 \strong{Known estimability limitation at high covariate counts.} The
 treatment effect is identified from the discordant-pair conditional-logit
@@ -18,12 +34,16 @@ discordant for a given incidence response, typically a modest fraction of
 \eqn{n}. With \code{model_formula = ~.} on a dataset with many covariates,
 the number of free parameters the discordant term must help identify can
 approach or exceed the number of discordant pairs, and the joint fit then
-frequently converges to an out-of-bounds coefficient or random-effect
-log-variance and is correctly reported as nonestimable rather than
-returned. This was measured directly (\code{comprehensive_tests.R} repro,
-2026-10): the identical design/response/n was estimable in 39 of 40 null
-replicates with one covariate, but only 22 of 40 with ten covariates under
-\code{model_formula = ~.}. This is treated as an accepted property of this
+frequently converges to an out-of-bounds coefficient (or, for the
+proportion GLMM, random-effect log-variance) and is correctly reported as
+nonestimable rather than returned. This was measured directly
+(\code{comprehensive_tests.R} repro, 2026-10, with the pre-v1.0.5 GLMM
+model for incidence): the identical design/response/n was estimable in 39
+of 40 null replicates with one covariate, but only 22 of 40 with ten
+covariates under \code{model_formula = ~.}. A covariate the design matched
+exactly (zero within-pair differences) is not identified by conditional
+logit; for incidence it is dropped from the fit rather than making the fit
+fail. This is treated as an accepted property of this
 estimator in this regime, not a defect to be patched; when the cause is
 specifically this parameter-to-discordant-pair imbalance, the cached
 nonestimability reason names it explicitly
@@ -75,9 +95,10 @@ same two bound checks.
 \if{html}{\out{<a id="method-InferenceAbstractKKCondLogitGLMM-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceAbstractKKCondLogitGLMM-initialize}{}}}
 \subsection{\code{InferenceAbstractKKCondLogitGLMM$new()}}{
-  Initialize KK conditional-logit GLMM incidence
-  inference, validate the binary response, and prepare the matched-pair
-  conditional likelihood and reservoir mixed-model components. See
+  Initialize KK conditional-logit inference for an incidence
+  or proportion response and validate the design; the model (conditional
+  logit plus reservoir logistic regression for incidence, conditional
+  logit plus random-intercept GLMM for proportions) is fit on first use. See
   \code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}

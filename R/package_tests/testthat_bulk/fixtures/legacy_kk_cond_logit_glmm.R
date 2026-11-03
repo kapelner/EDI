@@ -286,14 +286,22 @@ InferenceAbstractKKCondLogitGLMMLegacyOrig = define_inference_class(
 			
 			i_glmm = if (private$combine_reservoir_into_glmm()) c(i_conc_pair, i_res) else i_conc_pair
 			
-			X_glmm_cov = private$get_X()[i_glmm, , drop = FALSE]
-			y_glmm = private$y[i_glmm]
-			w_glmm = private$w[i_glmm]
 			group_glmm = m_vec[i_glmm]
 			i_glmm_res = which(is.na(group_glmm) | group_glmm == 0L)
 			if (length(i_glmm_res) > 0L) {
 				group_glmm[i_glmm_res] = max(c(0L, m_vec), na.rm = TRUE) + seq_along(i_glmm_res)
 			}
+			# 2026-11-03: deliberate deviation from the verbatim pre-migration snapshot.
+			# Mirrors the live class's v1.0.5 TODO-173 fix (order GLMM rows by group:
+			# fast_clogit_plus_glmm_cpp() groups by runs of equal group_conc) so this
+			# golden compares hierarchies, not later statistical fixes.
+			ord_glmm = order(group_glmm, method = "radix")
+			i_glmm = i_glmm[ord_glmm]
+			group_glmm = group_glmm[ord_glmm]
+			
+			X_glmm_cov = private$get_X()[i_glmm, , drop = FALSE]
+			y_glmm = private$y[i_glmm]
+			w_glmm = private$w[i_glmm]
 			
 			X_glmm = if (length(i_glmm) > 0L) {
 				cbind(`(Intercept)` = 1, treatment = w_glmm, X_glmm_cov)

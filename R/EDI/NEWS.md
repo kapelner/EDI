@@ -7,6 +7,25 @@ methods.
 
 ## Breaking changes
 
+* `InferenceIncidKKCondLogitGLMMOneLik` and `InferenceIncidKKCondLogitGLMMIVWC`
+  fit a new model. Up to 1.0.4 their concordant pairs (and, for OneLik, the
+  reservoir) entered a random-intercept logistic GLMM, and the GLMM's rows were
+  passed in subject order to a kernel that groups consecutive rows, so most
+  pairs were split into one-row groups (a per-observation random intercept).
+  Grouped correctly, concordant pairs agree on outcome by definition, the
+  random-effect variance estimate diverges, and the fit reduces to conditional
+  logit (often reported nonestimable at the variance bound). The classes now
+  fit conditional logit on the discordant pairs plus, for OneLik, an ordinary
+  logistic regression on the reservoir subjects with the same coefficients
+  (IVWC is conditional logit alone). Concordant pairs carry no information
+  under a free pair effect and are no longer used. Estimates, standard errors,
+  intervals and p-values change. Caveat (documented in the class): OneLik pools
+  a pair-conditional log odds ratio with the reservoir's covariate-conditional
+  one, which coincide only when the logistic model in the covariates is
+  correct; the test of no effect is valid either way. A covariate the design
+  matched exactly is now dropped instead of making the fit fail. Class names
+  are unchanged; `max_abs_log_sigma` is accepted but unused.
+  `InferencePropKKGLMM` keeps its GLMM (its rows are now grouped correctly).
 * GitHub source installs build the portable CRAN configuration by default;
   `EDI_PORTABLE=0` restores the machine-tuned build.
 * Seed-pinned draws change once: a portable Fisher-Yates shuffle replaces
@@ -164,6 +183,14 @@ methods.
 
 ## Bug fixes
 
+* `InferenceSurvivalKMDiff`'s Wald confidence interval and p-value keep each
+  arm's asymmetric Brookmeyer-Crowley median interval (MOVER, Zou and Donner
+  2008) instead of turning it into one symmetric standard error. A small arm
+  with a lopsided interval used to widen both sides: with 56 treated subjects
+  at `prob_T = 0.2`, a clear effect (log-rank p = 0.0005) got the CI
+  [-0.23, 1.01]; it is now [0.13, 1.38]. In simulation (n = 100,
+  `prob_T = 0.2`) coverage rises from 92.5% to 96.4%. Results change for
+  every dataset. The p-value equals 0.05 exactly at the 95% bounds.
 * Likelihood-ratio confidence intervals (every class that inverts the LR test
   by Newton steps) no longer return a point halfway inside the search bracket
   when the root search stops on its iteration limit. The search usually stops

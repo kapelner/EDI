@@ -2,28 +2,33 @@
 % Please edit documentation in R/inference_incidence_KK_cond_logit_glmm.R
 \name{InferenceIncidKKCondLogitGLMMIVWC}
 \alias{InferenceIncidKKCondLogitGLMMIVWC}
-\title{Conditional Logistic Plus GLMM IVWC Inference for KK Designs}
+\title{Conditional Logistic Regression Inference for KK Designs (IVWC Variant)}
 \description{
-Fits a combined conditional-logit-plus-random-intercept-GLMM likelihood for
-incidence responses under a KK matching-on-the-fly design, where
-\strong{reservoir (unmatched) subjects are excluded from the GLMM
-component} (\code{private$combine_reservoir_into_glmm() == FALSE}): only
-concordant matched pairs contribute their random-intercept GLMM likelihood
-alongside the discordant-pair conditional-logit term, both sharing a single
-treatment coefficient \eqn{\beta_T}. See
-\code{\link[EDI:InferencePropKKGLMM]{InferencePropKKGLMM}} for the full
-model form (conditional-logit-on-discordant plus random-intercept-GLMM,
-jointly maximized) and
-\code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}
-for the shared fitting/caching contract. Contrast with the sibling
+Fits a conditional logistic regression to the \strong{discordant matched
+pairs} of an incidence response under a KK matching-on-the-fly design: for a
+pair whose two outcomes differ, the likelihood is
+\eqn{P(\mathrm{treated\ member\ is\ the\ success}) =
+\mathrm{logistic}(\beta_T + \beta_x^\top(x_T - x_C))}. The pair's own
+intercept cancels, so no assumption is made about how outcomes vary between
+pairs. Concordant pairs carry no information under this model and reservoir
+(unmatched) subjects are not used (\code{private$combine_reservoir_into_glmm()
+== FALSE}). The returned estimate is the conditional log odds ratio
+\eqn{\beta_T}. Contrast with
 \code{\link[EDI:InferenceIncidKKCondLogitGLMMOneLik]{InferenceIncidKKCondLogitGLMMOneLik}},
-which instead includes reservoir subjects in the GLMM component
-(\code{combine_reservoir_into_glmm() == TRUE}) — this class's naming
-("IVWC") reflects that reservoir information, when used, is intended to be
-combined with this fit's estimate via inverse-variance weighting rather
-than folded into the same likelihood.
+which adds the reservoir subjects through a logistic regression term sharing
+the same coefficients.
 }
 \details{
+Up to v1.0.4 the concordant pairs (and, for the OneLik variant, the
+reservoir) entered a random-intercept logistic GLMM. Concordant pairs agree
+on outcome by definition, so with pairs grouped correctly the
+random-intercept variance estimate diverges, the GLMM term stops depending
+on the coefficients, and the fit reduces to conditional logit (it was often
+reported nonestimable at the variance bound). Under a free pair effect a
+concordant pair's conditional likelihood is 1, so dropping them loses no
+information. The class name is kept for compatibility; \code{max_abs_log_sigma}
+is accepted but unused.
+
 \strong{Legacy class.} Not fully tested in \code{comprehensive_tests.R}.
 See \code{\link[EDI:InferenceAbstractKKCondLogitGLMM]{InferenceAbstractKKCondLogitGLMM}}'s
 known estimability limitation at high covariate counts, which applies here

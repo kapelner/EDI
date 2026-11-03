@@ -6,14 +6,18 @@
 \description{
 Fits a non-parametric treatment-effect estimator for censored survival
 responses: the difference in Kaplan-Meier \strong{median} survival times
-between the treated and control arms, \eqn{\hat m_T - \hat m_C}. Standard
-errors are obtained by \strong{back-calculating} from each arm's separate
-Brookmeyer-Crowley confidence interval for its own median (via
-\code{survival::survfit}'s default log-log-transformed interval):
-\eqn{\hat\sigma_i = (\mathrm{upper}_i - \mathrm{lower}_i) / (2 z_{\alpha/2})},
-combined (the two arms are independent by design) as \eqn{\sqrt{\hat\sigma_T^2 +
-\hat\sigma_C^2}}. When either arm's median is inestimable (its Kaplan-Meier
-curve never reaches 0.5) or the back-calculated bounds are non-finite, the
+between the treated and control arms, \eqn{d = \hat m_T - \hat m_C}. The
+confidence interval combines each arm's own Brookmeyer-Crowley confidence
+interval \eqn{[l_i, u_i]} for its median (via \code{survival::survfit}'s
+default log-transformed interval) by the method of variance estimates
+recovery (MOVER; Zou and Donner, 2008), keeping each side's half-width
+separately because a median's interval is often lopsided (a flat
+Kaplan-Meier curve near 0.5 with few events gives a long upper tail):
+\deqn{\left[d - \sqrt{(\hat m_T - l_T)^2 + (u_C - \hat m_C)^2},
+d + \sqrt{(u_T - \hat m_T)^2 + (\hat m_C - l_C)^2}\right].}
+The two arms are independent by design. When either arm's median is
+inestimable (its Kaplan-Meier curve never reaches 0.5) or a bound is
+non-finite, the
 Wald-style confidence interval and p-value methods
 (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
 silently fall back to a nonparametric bootstrap instead of returning
@@ -69,8 +73,12 @@ Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
   Kaplan-Meier survival curve estimator each arm's median is read from.
   Brookmeyer, R., and Crowley, J. (1982). "A Confidence Interval for the
   Median Survival Time." \emph{Biometrics}, 38(1), 29-41,
-  \doi{10.2307/2530286}, for the per-arm median confidence interval this
-  class's standard error is back-calculated from. Turnbull, B. W. (1976).
+  \doi{10.2307/2530286}, for each arm's median confidence interval.
+  Zou, G. Y., and Donner, A. (2008). "Construction of Confidence Limits
+  About Effect Measures: A General Approach." \emph{Statistics in
+  Medicine}, 27(10), 1693-1702, \doi{10.1002/sim.3095}, for the MOVER
+  combination of the two arms' intervals into one for the difference
+  (see \code{[ZouDonner2008]} in REFERENCES.md). Turnbull, B. W. (1976).
   "The Empirical Distribution Function with Arbitrarily Grouped, Censored
   and Truncated Data." \emph{Journal of the Royal Statistical Society,
   Series B}, 38(3), 290-295, \doi{10.1111/j.2517-6161.1976.tb01597.x}, for
@@ -278,14 +286,15 @@ scheme.}
   Computes a (1 - alpha)-level confidence interval for the difference in Kaplan-Meier
 median survival times (treatment minus control).
 
-The Brookmeyer-Crowley confidence interval is obtained for each group's median
-separately via \code{survival::survfit} (using a log-log transformation of the
-survival function by default). The per-group SE is back-calculated from the CI
-half-width as \eqn{\hat\sigma_i = (\text{upper}_i - \text{lower}_i) / (2 z_{\alpha/2})}.
-The two groups are independent by design, so the SE of the difference is
-\eqn{\sqrt{\hat\sigma_T^2 + \hat\sigma_C^2}}, and the CI is
-\eqn{(\hat{m}_T - \hat{m}_C) \pm z_{\alpha/2} \cdot \sqrt{\hat\sigma_T^2 +
-\hat\sigma_C^2}}.
+The Brookmeyer-Crowley confidence interval \eqn{[l_i, u_i]} at level
+\code{1 - alpha} is obtained for each group's median separately via
+\code{survival::survfit} (log-transformed, survfit's default). The two
+groups are independent by design, and the intervals are combined by MOVER
+(Zou and Donner, 2008), which keeps each side's half-width rather than
+forcing a symmetric interval:
+\eqn{[d - \sqrt{(\hat m_T - l_T)^2 + (u_C - \hat m_C)^2},
+d + \sqrt{(u_T - \hat m_T)^2 + (\hat m_C - l_C)^2}]} with
+\eqn{d = \hat m_T - \hat m_C}.
 
 Falls back to \code{compute_bootstrap_confidence_interval} when either group's
 median is not estimable (i.e., the Kaplan-Meier curve does not reach 0.5) or
@@ -314,7 +323,13 @@ Default is 0.05.}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalKMDiff-compute_asymp_two_sided_pval}{}}}
 \subsection{\code{InferenceSurvivalKMDiff$compute_asymp_two_sided_pval()}}{
   Computes a Wald-style 2-sided p-value based on the median difference
-and its back-calculated standard error.
+and the side-specific standard error of the MOVER interval: the 95\% MOVER
+half-width on the side of the estimate that \code{delta} lies on, divided by
+\eqn{z_{0.975}}. The test therefore agrees exactly with
+\code{$compute_asymp_confidence_interval(alpha = 0.05)} (its p-value is 0.05
+at either bound); at other levels the two are close but not exact inverses,
+because each arm's interval changes shape with its level. Falls back to the
+bootstrap under the same conditions as the confidence interval.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalKMDiff$compute_asymp_two_sided_pval(delta = 0)}

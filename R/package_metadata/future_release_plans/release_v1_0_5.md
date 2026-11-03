@@ -14079,7 +14079,13 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     Check: how often it fails across classes (calibration fast tier endpoint p), tol_p vs fit precision, fallback.
 
 - [ ] TODO-173 (added 2026-10-28, owner; found by the calibration pre-push check reseed): **`InferenceIncidKKCondLogitGLMMOneLik`
-  lik_ratio CI is not the inversion of its own LR test.** Current state: PARTLY RESOLVED 2026-11-03 (agent).
+  lik_ratio CI is not the inversion of its own LR test.** Current state: ROOT-CAUSED 2026-11-03/04 (agent); fixed by
+  TODO-172 + TODO-187 in source (uncommitted). Remaining: after the user's rebuild, confirm the 3 rows no longer
+  reproduce in the pre-push check and delete them from the known-failures CSV; canonical CSV rows (G4).
+  - Under TODO-187 (load_all, TODO-172 fix compiled in): all 3 rows pass. rep 1 `~1` CI [-0.237, 0.848]; rep 2 `~.`
+    [-1.272, -0.087] with p = 0.0236 (agrees); rep 3 fine; every endpoint p = 0.0500.
+  - The "path dependence" below was not quadrature: the GLMM rows were in subject order and the kernel groups
+    consecutive rows, so pairs were split into one-row groups (see TODO-187). The notes below are kept as found.
   - The 3 known-failure rows are TODO-172, not the null fit: in all three the solver's last iterate had p = 0.0500,
     and the reported bounds (1.101, -1.642, 0.267) were bracket midpoints. With the TODO-172 fix: rep 1 `~1` CI
     [-0.238, 0.831], rep 2 `~.` [-1.443, -0.012] (excludes 0, agrees with p = 0.024), all endpoint p = 0.0500.
@@ -14099,6 +14105,39 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     TODO-172 (`lrt_ci_nr_cpp` midpoint on non-convergence) first: check whether the search converged on these reps.
   - Done when: the 3 rows reproduce no longer and are deleted from the known-failures CSV; the class's tests pass;
     delta = 0 LR p unchanged. If the CI changes, NEWS (documented default change) and canonical CSV rows (G4).
+
+- [x] TODO-187 (added 2026-11-04, owner; follow-up of TODO-173): **Replace the incidence KK conditional-logit GLMM
+  model.** Current state: DONE in source and tested (uncommitted when ticked). Rd regenerated with fast_roxygenize.R.
+  Remaining: the user's rebuild, then G4 canonical CSV rows for `InferenceIncidKKCondLogitGLMMOneLik` / `...IVWC`
+  (default-output change) and the TODO-173 known-failure rows.
+  - Why: `prepare_clogit_plus_glmm_data()` passed GLMM rows in subject order and `fast_clogit_plus_glmm_cpp()` builds
+    random-intercept groups from runs of equal group id (it does not sort, unlike every other GLMM kernel), so most
+    pairs became one-row groups (kernel nll 92.04 = an R evaluation with run groups; 70.06 with true pairs). With
+    the rows sorted, concordant pairs (equal outcomes by definition) drive sigma_hat to infinity: the profile nll is
+    flat past log sigma ~ 6 and the fit equals conditional logit on the discordant pairs exactly (beta_T 0.630, beta_x
+    -13.066 on the data-assembly fixture, seed 907), often past `max_abs_log_sigma` and so NA. Also found:
+    `ClogitPlusGLMMObjective::operator()` (the value+gradient L-BFGS uses) does not enforce `max_abs_log_sigma`
+    (only `value()`/`hessian()` do), so the optimizer walked to log sigma 14.88 and reported convergence.
+  - New model (incidence leaves only; `inference_incidence_KK_cond_logit_glmm_abstract.R`, private switch
+    `uses_reservoir_logit()`): conditional logit on discordant pairs + ordinary logistic regression on the reservoir
+    (OneLik; IVWC = conditional logit alone), shared beta_T and beta_x, fitted as one logistic regression on stacked
+    rows with `stats::glm.fit` (no C++). Reservoir rows enter only when their outcomes vary; aliased columns (a
+    covariate the design matched exactly) are dropped. Wald/score/gradient/LR use the ordinary information; Bayesian
+    bootstrap refits the same weighted likelihood. `InferencePropKKGLMM` keeps the GLMM (its rows are now sorted).
+    Class names kept (CRAN); `max_abs_log_sigma` accepted but unused for incidence.
+  - Caveat documented in the OneLik class: the two parts estimate a pair-conditional and a covariate-conditional log
+    odds ratio, equal only if the logistic model in x is correct (attenuation ~ 1/sqrt(1 + 0.35 sigma^2), Zeger,
+    Liang & Albert 1988); the null test is valid either way.
+  - Tests (load_all compile = FALSE): IVWC = survival's exact conditional logit to 1e-6 (estimate and SE);
+    OneLik = a from-scratch optim() of the joint likelihood and an independent stacked glm() (estimate, SE, weighted
+    bootstrap draws); score/information = numerical derivatives (~1e-9); LR CI endpoint p = 0.0500. Rewrote
+    `test-incidence-kk-cond-logit-glmm-class-data-assembly-matches-joint-kernel-reference.R` for the new model;
+    GLMM guard tests moved to `InferencePropKKGLMM`, new-path guard + aliased-covariate tests added; the incidence
+    migration golden grafts the live new-model methods onto the frozen classes (still compares all labels). 21 of
+    the 22 test files touching these classes pass; the 22nd, `test-prop-kk-glmm-weighted-refit-reference.R`,
+    fails on a separate, still-open issue: the proportion GLMM stalls at log sigma -3.8 when the MLE is sigma = 0
+    (glmmTMB nll 93.2709 vs EDI 93.2794), exposed once its rows were sorted.
+  - Open, not done here: the `operator()` bound bug (C++); the proportion boundary stall above.
 
 - [ ] TODO-174 (added 2026-10-28, owner; found investigating the 2 Stereotype rows in
   `prepush_calibration_known_failures.csv`): **`pval_invert_ci_cpp` returns its Wald seed as a CI endpoint when the
@@ -14487,7 +14526,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - **Verified** 2026-11-03 against the owner's fresh rebuild via `load_all(compile = FALSE)`. New `test-design-supports-unequal-allocation-registry-capability.R` passes 67 tests. It covers the registry values; that the eight have no `prob_T` formal, give "unused argument" and have `get_prob_T() == 0.5`; exact counts for iBCRD, RandomBlockSize and SPBR at `prob_T = 0.3` (12 of 40) and the Bernoulli redraw mean; the backstop with asserts off; user subclasses; and the validator. All 51 test files that use the eight classes with `prob_T`, or mention `prob_T` at all, pass with 0 failures (16 + 35), along with the registry and metadata-validator files. Updated tests: calls that passed `prob_T = 0.5` to the eight now omit it, refusal tests expect "unused argument", and stale Greedy expectations (odd n, `prob_T = 0.4`/`0.6`) now assert acceptance.
   - **NEWS.** Two bullets under `# EDI 1.0.5 → ## Breaking changes` in `R/EDI/NEWS.md`: the `prob_T` removal, and the `supports_unequal_allocation` registry capability.
   - **Not done when ticked.** Full test suite.
-- [x] TODO-184 (added 2026-11-03, owner): **`DesignFixedGreedy` unequal arms and odd `n`.** Current state: DONE in source (uncommitted when ticked). `DesignFixedGreedy` used to refuse any `prob_T` other than 0.5 and any odd `n`, because `src/design_fixed_greedy.cpp` hardcoded `nt = n / 2`. It now takes any `prob_T` in (0, 1), for both objectives (`"mahal_dist"`, `"abs_sum_diff"`) and both search modes (exhaustive, finite `n_iter`), with the treated count fixed at `round(n * prob_T)`.
+- [x] TODO-186 (added 2026-11-03 as a second TODO-184, renumbered 2026-11-04 to remove the duplicate; owner): **`DesignFixedGreedy` unequal arms and odd `n`.** Current state: DONE in source (uncommitted when ticked). `DesignFixedGreedy` used to refuse any `prob_T` other than 0.5 and any odd `n`, because `src/design_fixed_greedy.cpp` hardcoded `nt = n / 2`. It now takes any `prob_T` in (0, 1), for both objectives (`"mahal_dist"`, `"abs_sum_diff"`) and both search modes (exhaustive, finite `n_iter`), with the treated count fixed at `round(n * prob_T)`.
   - **No rederivation was needed.** The kernel centres `X` before building `M`, so `M * 1 = 0` and `M(2w - 1) = 2Mw`. That is a fixed positive multiple of the general-`n_T` half mean difference, and every accept/reject is a strict comparison, so the existing `2.0` swap update ranks allocations correctly at any `n_T`. The swap-delta rederivation in `../new_feature_plans/design_fixed_greedy_pair_switch_merge.md` is marked unnecessary there, and its TODO-2 to TODO-6 are ticked.
   - **Kernel.** New argument `n_T` (default `-1`, meaning `n / 2`), which sets the starting allocation and the no-covariate branch. The control buffer is sized `n - n_T`, and stochastic mode draws the control index from `[0, n_C)`; the old `[0, n / 2)` would read out of bounds when `n_T > n_C`. Pair mode stays 1:1 and errors if `n_T` is not the number of pairs. `RcppExports` regenerated.
   - **R.** The `prob_T == 0.5` stop and the even-`n` check in `R/EDI/R/design_fixed_greedy.R` are replaced by the checks `DesignFixedGreedyDOptimal` uses: `prob_T` in (0, 1), and `round(n * prob_T)` in [1, n - 1]. The registry (TODO-183) keeps `DesignFixedGreedy` at `supports_unequal_allocation = TRUE`.
