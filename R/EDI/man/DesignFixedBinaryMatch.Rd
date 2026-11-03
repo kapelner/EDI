@@ -40,7 +40,7 @@ explicitly reset via \code{set_m()}) and is not recomputed per draw.
 which of its two members is treated (an independent fair coin flip per pair per
 replicate, using a splitmix64-seeded Mersenne Twister per replicate column for
 reproducible parallel draws); this guarantees exactly \eqn{n/2} treated subjects
-overall (only \code{prob_T = 0.5} is supported; the constructor errors otherwise).
+overall (allocation is always 1:1; there is no \code{prob_T} argument).
 Passing a pre-computed \code{m} to the constructor supplies the matched-pair structure
 directly (each pair ID occurring in exactly 2 rows), bypassing the matching
 computation entirely while keeping the same within-pair randomization.
@@ -190,11 +190,12 @@ Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P. (2004). "Optimal
   experimental design. Matching itself is deferred until the first draw (see
   class documentation); this constructor only records configuration and,
   if \code{m} is supplied, installs the explicit pairing immediately.
+  There is no \code{prob_T} argument: allocation is always 1:1
+  (\code{prob_T = 0.5}) because each matched pair gets one treated and one control subject.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedBinaryMatch$new(
   response_type,
-  prob_T = 0.5,
   mahal_match = TRUE,
   match_objective = c("distance", "squared_distance"),
   include_is_missing_as_a_new_feature = TRUE,
@@ -211,9 +212,6 @@ Greevy, R., Lu, B., Silber, J. H., and Rosenbaum, P. (2004). "Optimal
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment. Must be 0.5,
-since within-pair randomization only supports an even 1-treated/1-control
-split per pair.}
       \item{\code{mahal_match}}{Match using Mahalanobis distance (accounting for
 covariate correlation/scale) if \code{TRUE} (default), else
 Euclidean distance on the raw covariate matrix.}

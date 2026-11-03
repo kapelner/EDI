@@ -9,6 +9,9 @@ X = data.table()
 for (result_file in result_files) {
 	X = rbindlist(list(X, fread(result_file)), fill = TRUE, use.names = TRUE)
 }
+# Rows from before the prob_T column ran at equal allocation (release_v1_0_5.md TODO-184).
+if (!("prob_T" %in% names(X))) X[, prob_T := 0.5]
+X[is.na(prob_T), prob_T := 0.5]
 table(X$rep)
 
 
@@ -33,7 +36,7 @@ table(X$function_run)
 
 #check duration time
 D = X[, .(mean_duration = mean(duration_time_sec), n = .N),
-	by = c("inference_class", "design", "function_run")][order(-mean_duration)]
+	by = c("inference_class", "design", "prob_T", "function_run")][order(-mean_duration)]
 D[1:50]
 table(D[1:50]$inference_class)
 
@@ -354,7 +357,7 @@ table(X$beta, useNA = "always")
 #check MSE
 X[function_run == "est", sqerr := (result_1 - beta)^2]
 E = X[function_run == "est", .(mse = mean(sqerr, na.rm = TRUE), n_mse = sum(!is.na(sqerr)), beta = first(beta)),
-	by = c("inference_class", "design", "response_type", "beta_T")][order(-mse)]
+	by = c("inference_class", "design", "prob_T", "response_type", "beta_T")][order(-mse)]
 E = E[!is.nan(mse)]
 E[beta_T != 0][1:100]
 E[beta_T == 0][1:100]
@@ -363,7 +366,7 @@ E[beta_T == 0][1:100]
 X[str_detect(X$function_run, "ci"), ci_correct := ifelse(beta >= result_1 & beta <= result_2, 1, 0)]
 table(X$ci_correct, useNA = "always")
 C = X[str_detect(X$function_run, "ci"), .(coverage = mean(ci_correct, na.rm = TRUE), n_coverage = sum(!is.na(ci_correct))),
-	by = c("inference_class", "design", "function_run", "response_type", "beta_T")][order(coverage)]
+	by = c("inference_class", "design", "prob_T", "function_run", "response_type", "beta_T")][order(coverage)]
 C[beta_T != 0][1:100]
 C[beta_T == 0][1:100]
 
@@ -384,7 +387,7 @@ S = X[beta_T == 0 & str_detect(X$function_run, "pval"), .(
 	size = mean(H0_rejected, na.rm = TRUE),
 	n_size = sum(!is.na(H0_rejected)),
 	size_pval = safe_size_pval(H0_rejected)
-), by = c("inference_class", "design", "response_type", "beta_T", "function_run")][order(-size)]
+), by = c("inference_class", "design", "prob_T", "response_type", "beta_T", "function_run")][order(-size)]
 S[, bonf_size_pval := pmin(1, size_pval * .N)][, size_pval := NULL]
 S[11:160]
 
@@ -404,7 +407,7 @@ table(X[beta_T != 0]$H0_rejected, useNA = "always")
 P = X[beta_T != 0 & str_detect(X$function_run, "pval"), .(
 	power = mean(H0_rejected, na.rm = TRUE),
 	n_power = sum(!is.na(H0_rejected))
-), by = c("inference_class", "design", "response_type", "beta_T", "function_run")][order(-power)]
+), by = c("inference_class", "design", "prob_T", "response_type", "beta_T", "function_run")][order(-power)]
 P[!is.na(power)][1:200]
 
 # 1. The Bootstrapped KK OLS (ContinMultOLSKK)

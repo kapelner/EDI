@@ -166,7 +166,7 @@ runner_path = file.path(here, "comprehensive_tests.R")
 if (!file.exists(runner_path)) parse_exit(paste0("runner not found next to this script: ", runner_path))
 runner_exprs = tryCatch(parse(runner_path, keep.source = FALSE), error = function(e) parse_exit(paste0("cannot parse the runner: ", conditionMessage(e))))
 key_env = new.env(parent = baseenv())
-for (name in c("serialize_beta_T", "build_result_key", "canonicalize_test_family_filter", "sanitize_results_filter")) {
+for (name in c("serialize_beta_T", "normalize_prob_T", "design_key_label", "build_result_key", "canonicalize_test_family_filter", "sanitize_results_filter")) {
 	hits = Filter(function(e) is.call(e) && (identical(e[[1L]], as.name("=")) || identical(e[[1L]], as.name("<-"))) &&
 		identical(e[[2L]], as.name(name)) && is.call(e[[3L]]) && identical(e[[3L]][[1L]], as.name("function")), as.list(runner_exprs))
 	if (length(hits) != 1L) parse_exit(paste0("expected one top-level definition of ", name, "() in ", runner_path))
@@ -174,7 +174,7 @@ for (name in c("serialize_beta_T", "build_result_key", "canonicalize_test_family
 }
 RESPONSE_ERROR_ID_PREFIX = "run_tests_for_response_error||" # response-level error rows: not build_result_key()
 VALUE_COLUMNS = c("status", "result", "result_1", "result_2", "coverage_truth", "beta_T_in_confidence_interval", "error_message", "skip_reason")
-SCOPE_COLUMNS = c("id", "rep", "beta_T", "dataset", "response_type", "design", "inference_class", "method_family")
+SCOPE_COLUMNS = c("id", "rep", "beta_T", "dataset", "response_type", "design", "prob_T", "inference_class", "method_family")
 
 # ---- small helpers ----------------------------------------------------------
 read_lines_raw = function(path) {
@@ -335,7 +335,7 @@ for (sf in slice_files) {
 	if (any(lengths(fields) != ncol(dt))) parse_exit(paste0(base, ": could not split every line into ", ncol(dt), " fields"))
 	header_fields = gsub('^"|"$', "", fields[[1L]])
 	if (!identical(header_fields, names(dt))) parse_exit(paste0(base, ": header split disagrees with fread"))
-	need = c(SCOPE_COLUMNS, "function_run", "status")
+	need = c(setdiff(SCOPE_COLUMNS, "prob_T"), "function_run", "status")   # prob_T is optional: older slices predate it (release_v1_0_5.md TODO-184)
 	if (length(setdiff(need, names(dt)))) parse_exit(paste0(base, ": missing column(s) ", paste(setdiff(need, names(dt)), collapse = ", ")))
 	nc = if (is.na(opts$canonical_nc)) meta$nc else opts$canonical_nc
 	slices[[length(slices) + 1L]] = list(path = sf, base = base, meta = meta, filt = filt, filt_source = filt_source,
@@ -353,7 +353,8 @@ if (nrow(bad_rt)) block(nrow(bad_rt), " slice row(s) whose response_type differs
 for (s in slices) {
 	d = s$dt
 	is_resp_err = startsWith(d$id, RESPONSE_ERROR_ID_PREFIX)
-	rebuilt = key_env$build_result_key(as.integer(d$rep), suppressWarnings(as.numeric(d$beta_T)), d$dataset, d$response_type, d$design, d$inference_class, d$function_run)
+	rebuilt = key_env$build_result_key(as.integer(d$rep), suppressWarnings(as.numeric(d$beta_T)), d$dataset, d$response_type, d$design, d$inference_class, d$function_run,
+		prob_T_val = if ("prob_T" %in% names(d)) d$prob_T else 0.5)
 	bad = which(!is_resp_err & (is.na(d$id) | d$id != rebuilt))
 	if (length(bad)) block(s$base, ": ", length(bad), " row(s) whose id differs from build_result_key(), e.g. '", d$id[bad[1L]], "' vs '", rebuilt[bad[1L]], "'")
 }

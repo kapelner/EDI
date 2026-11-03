@@ -73,12 +73,11 @@ DesignSeqOneByOneKK14 = define_design_class(
 		is_a_kk_matching_capable = function() TRUE,
 		#' @description Initialize a KK14 sequential matching-on-the-fly experimental
 		#'   design (see class documentation for the burn-in and matching-test rules).
+		#'   There is no \code{prob_T} argument: allocation is always 1:1
+		#'   (\code{prob_T = 0.5}) because each matched pair adds one treated and one control subject.
 		#'
 		#' @param response_type   "continuous", "incidence", "proportion", "count", "survival", or
 		#'   "ordinal".
-		#' @param  prob_T  Probability of treatment assignment used for burn-in/
-		#'   unmatched (reservoir) subjects; matched subjects instead always receive
-		#'   the opposite assignment of their match (see class documentation).
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
 		#' @param  n  		The sample size.
 		#' @param verbose A flag for verbosity.
@@ -98,7 +97,6 @@ DesignSeqOneByOneKK14 = define_design_class(
 		#' @return  A new `DesignSeqOneByOneKK14` object
 		initialize = function(
 						response_type,
-						prob_T = 0.5,
 						include_is_missing_as_a_new_feature = TRUE,
 						n = NULL,
 
@@ -111,7 +109,7 @@ DesignSeqOneByOneKK14 = define_design_class(
 						design_formula = ~ .,
 						seed = NULL
 					) {
-			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
+			super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			private$blocking_capable = TRUE
 			private$matching_capable = TRUE
 			private$uses_covariates = TRUE

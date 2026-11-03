@@ -52,10 +52,15 @@ test_that("InferenceIncidCMH: design_compatibility_reason matches real throw beh
 	des_bad$assign_w_to_all_subjects(w_precomputed = w)
 	des_bad$add_all_subject_responses(rbinom(n, 1, 0.4))
 
+	# Even allocation is registry metadata (requires_even_allocation, TODO-183), not a
+	# design-structure reason: the class is filtered out by discovery and refused by
+	# the Inference root, and design_compatibility_reason() no longer reports it.
 	reason_fn = EDI:::infer_inference_design_compatibility_reason_fn(EDI:::InferenceIncidCMH)
-	expect_identical(reason_fn(des_bad), "cmh_requires_even_allocation")
-	expect_error(InferenceIncidCMH$new(des_bad), "even treatment allocation")
+	expect_true(is.na(reason_fn(des_bad)))
+	expect_true(EDI:::get_inference_class_metadata("InferenceIncidCMH")$requires_even_allocation)
+	expect_error(InferenceIncidCMH$new(des_bad), "InferenceIncidCMH requires even treatment allocation \\(prob_T = 0.5\\)")
 	expect_false("InferenceIncidCMH" %in% des_bad$applicable_inference_class_names())
+	expect_null(des_bad$incompatible_inference_classes_due_to_design_structure()[["InferenceIncidCMH"]])
 })
 
 test_that("InferenceIncidExtendedRobins: design_compatibility_reason matches real throw behavior", {

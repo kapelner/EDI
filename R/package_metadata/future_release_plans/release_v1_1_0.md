@@ -1996,6 +1996,14 @@ ticked in their **owning plans**; this list is the release index.
     `work/out/grid_kkcox_regrade_rows.csv`.
   - Pointer: `release_v1_0_5.md` → G4-C R7 notes (2026-10-29 to 31).
 
+- [x] TODO-164 (added 2026-11-03, owner; found by the v1.0.5 TODO-183 allocation audit): **`DesignFixedRerandomization` used two base randomization laws at `prob_T != 0.5`.** Current state: DONE in source (uncommitted when ticked; it will ship with whichever release first includes the commit).
+  - **Problem.** With no covariates, or with `prop_acceptable`, candidates were complete randomizations with a fixed `n_T = round(n * prob_T)`. The default rejection sampler (`generate_rerandomized_w_batch()`, plus the single-draw helper `generate_one_rerandomized_w()`) instead drew independent Bernoulli(`prob_T`) candidates, so the treated count varied. One design thus had a different reference distribution depending on `prop_acceptable` vs `obj_val_cutoff`; the audit's realized treated share was 0.355 at `prob_T = 0.3`. At `prob_T = 0.5` every path already used a fixed count.
+  - **Fix** (`R/EDI/R/design_fixed_rerandomization.R`). Every path now draws complete randomizations with exactly `n_T = round(n * prob_T)` treated. `draw_ws_raw()` computes `n_T` once and errors clearly when it leaves an empty arm, where before the sampler ran until its draw budget was exhausted. The class docs and `@param prob_T` were updated.
+  - **Default change.** Seeded draws change once, only for `prob_T != 0.5` with the rejection sampler. `prob_T = 0.5`, and the `prop_acceptable` and no-covariate paths, are unchanged.
+  - **Verified** 2026-11-03 (`load_all(compile = FALSE)`). New tests in `test-rerandomization-objective-and-draw-paths-reference.R` (76 pass) cover exactly `n_T` treated on the cutoff, `prop_acceptable` and no-covariate paths, `generate_one_rerandomized_w()` and the realized assignment at n = 20 and 21, plus the empty-arm error. All 21 test files using `DesignFixedRerandomization` pass.
+  - **Docs.** `man/DesignFixedRerandomization.Rd` regenerated with `R/fast_roxygenize.R` on 2026-11-03 (exit 0, no warnings).
+  - **Not done when ticked.** `NEWS.md` entry, full test suite.
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update

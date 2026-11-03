@@ -132,11 +132,12 @@ Atkinson, A. C. (1982). "Optimum biased coin designs for sequential
 \subsection{\code{DesignSeqOneByOneAtkinson$new()}}{
   Initialize an Atkinson (1982) biased-coin sequential
   experimental design (see class documentation for the assignment rule).
+  There is no \code{prob_T} argument: allocation is always 1:1
+  (\code{prob_T = 0.5}) because Atkinson's optimal-design rule balances the arms 1:1.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneAtkinson$new(
   response_type,
-  prob_T = 0.5,
   include_is_missing_as_a_new_feature = TRUE,
   n = NULL,
   verbose = FALSE,
@@ -150,10 +151,6 @@ Atkinson, A. C. (1982). "Optimum biased coin designs for sequential
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The nominal probability of treatment assignment; used as
-the fallback coin probability early in the trial and whenever Atkinson's
-rule cannot be computed (see class documentation), and as the reference
-probability the biased coin is skewed away from otherwise.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{A flag for verbosity.}

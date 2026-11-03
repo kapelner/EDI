@@ -20,7 +20,7 @@ test_that("DesignSeqOneByOneBernoulli works", {
 })
 
 test_that("DesignSeqOneByOneEfron works", {
-	des <- DesignSeqOneByOneEfron$new(response_type = "continuous", n = 10, prob_T = 0.5, verbose = FALSE)
+	des <- DesignSeqOneByOneEfron$new(response_type = "continuous", n = 10, verbose = FALSE)
 	expect_true(des$is_fixed_sample_size())
 
 	x_new <- data.frame(x1 = rnorm(1))

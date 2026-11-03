@@ -83,8 +83,30 @@ cal_gen_y <- function(response_type, X, w, effect = 0) {
 	)
 }
 
-cal_new_design <- function(design_name, response_type, n, X) {
-	des <- get(design_name, envir = asNamespace("EDI"))$new(n = n, response_type = response_type)
+# Unequal-arm allocation (release_v1_0_5.md TODO-184): the scheduled fast tier
+# also runs the iid classes under DesignFixedBernoulli at prob_T = CAL_UNEQUAL_PROB_T
+# (Bernoulli has the design registry's supports_unequal_allocation capability). A
+# plan entry named "<Design>@prob_T=<p>" runs that design at <p>; rows record the
+# bare design name plus a prob_T column. Both the fast tier and the pre-push check
+# include the cell.
+CAL_UNEQUAL_PROB_T <- 0.2
+
+# Canonical text form of prob_T for keys ("0.5", "0.2"); NA/missing means 0.5.
+cal_prob_T_label <- function(x) {
+	p <- suppressWarnings(as.numeric(x))
+	if (!length(p)) return(character())
+	p[is.na(p)] <- 0.5
+	format(p, trim = TRUE)
+}
+
+cal_plan_entry <- function(label) {
+	parts <- strsplit(label, "@prob_T=", fixed = TRUE)[[1L]]
+	list(design = parts[[1L]], prob_T = if (length(parts) > 1L) as.numeric(parts[[2L]]) else 0.5)
+}
+
+cal_new_design <- function(design_name, response_type, n, X, prob_T = 0.5) {
+	gen <- get(design_name, envir = asNamespace("EDI"))
+	des <- if (isTRUE(prob_T == 0.5)) gen$new(n = n, response_type = response_type) else gen$new(n = n, response_type = response_type, prob_T = prob_T)
 	des$add_all_subjects_to_experiment(X)
 	des$assign_w_to_all_subjects()
 	des
@@ -93,11 +115,18 @@ cal_new_design <- function(design_name, response_type, n, X) {
 # Which classes run under which design for one response type: iid classes under
 # Bernoulli, matched-pair-only classes under BinaryMatch. Computed from a
 # throwaway design pair so it reflects the installed package's own registry.
-cal_class_plan <- function(response_type, n = 200L) {
+cal_class_plan <- function(response_type, n = 200L, unequal = FALSE) {
 	X <- cal_gen_X(n)
 	iid <- EDI:::applicable_inference_class_names_for_design(cal_new_design("DesignFixedBernoulli", response_type, n, X))
 	paired <- EDI:::applicable_inference_class_names_for_design(cal_new_design("DesignFixedBinaryMatch", response_type, n, X))
-	list(DesignFixedBernoulli = sort(iid), DesignFixedBinaryMatch = sort(setdiff(paired, iid)))
+	plan <- list(DesignFixedBernoulli = sort(iid), DesignFixedBinaryMatch = sort(setdiff(paired, iid)))
+	if (isTRUE(unequal)) {
+		# Discovery at prob_T != 0.5 drops classes with requires_even_allocation.
+		iid_unequal <- EDI:::applicable_inference_class_names_for_design(
+			cal_new_design("DesignFixedBernoulli", response_type, n, X, prob_T = CAL_UNEQUAL_PROB_T))
+		plan[[paste0("DesignFixedBernoulli@prob_T=", CAL_UNEQUAL_PROB_T)]] <- sort(iid_unequal)
+	}
+	plan
 }
 
 cal_null_value <- function(inf_obj) {
@@ -183,18 +212,21 @@ cal_run_tasks <- function(des, classes, alpha = CAL_ALPHA, endpoints = FALSE) {
 # set. The seed covers (response type, n, rep, effect) so shards never collide.
 cal_run_rep <- function(response_type, n, rep, plan, keep = NULL, effect = 0, endpoints = FALSE, alpha = CAL_ALPHA) {
 	out <- list()
-	for (design_name in names(plan)) {
-		classes <- plan[[design_name]]
+	for (plan_label in names(plan)) {
+		entry <- cal_plan_entry(plan_label)
+		design_name <- entry$design
+		classes <- plan[[plan_label]]
 		if (!is.null(keep)) classes <- intersect(classes, keep)
 		if (!length(classes)) next
 		set.seed(1e6 * cal_rt_index(response_type) + 1e4 * (effect != 0) + 7L * n + rep)
 		X <- cal_gen_X(n)
-		des <- cal_new_design(design_name, response_type, n, X)
+		des <- cal_new_design(design_name, response_type, n, X, prob_T = entry$prob_T)
 		do.call(des$add_all_subject_responses, cal_gen_y(response_type, X, des$get_w(), effect))
 		tab <- cal_run_tasks(des, classes, alpha = alpha, endpoints = endpoints)
 		if (is.null(tab)) next
 		tab$response_type <- response_type
 		tab$design <- design_name
+		tab$prob_T <- entry$prob_T
 		tab$n <- n
 		tab$rep <- rep
 		tab$effect <- effect

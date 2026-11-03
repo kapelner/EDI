@@ -18,7 +18,8 @@ normalize_inference_design_metadata = function(des_obj) {
 		is_kk = isTRUE(des_obj$is_a_kk_matching_capable()),
 		is_blocking = isTRUE(des_obj$supports("blocking")),
 		any_censoring = isTRUE(des_obj$any_censoring()),
-		has_general_censoring = isTRUE(des_obj$has_general_censoring())
+		has_general_censoring = isTRUE(des_obj$has_general_censoring()),
+		prob_T = des_obj$get_prob_T()
 	)
 }
 
@@ -38,6 +39,7 @@ inference_class_compatibility_metadata = function(nm) {
 		response_types = metadata$response_types %||% character(),
 		requires_kk = isTRUE(metadata$requires_kk_matching_design),
 		requires_blocking = isTRUE(metadata$requires_blocking_design),
+		requires_even_allocation = isTRUE(metadata$requires_even_allocation),
 		supports_general_censoring = isTRUE(metadata$supports_general_censoring)
 	)
 }
@@ -53,7 +55,8 @@ inference_class_compatibility_metadata = function(nm) {
 #' `InferenceSurvivalGLMMWeibullFrailty*` family) but the design isn't
 #' KK-capable; if its
 #' `requires_blocking_design` metadata is `TRUE` but the design doesn't
-#' support blocking; if the design has any left-/interval-censored
+#' support blocking; if its `requires_even_allocation` metadata is `TRUE` but
+#' the design's `prob_T` is not 0.5; if the design has any left-/interval-censored
 #' subjects (`has_general_censoring`) but the class's
 #' `supports_general_censoring` metadata is `FALSE` -- the latter two mirror
 #' `Inference$initialize()`'s own construction-time gate exactly; or if its
@@ -76,6 +79,7 @@ is_inference_class_compatible_with_design_metadata = function(nm, design_meta) {
 	}
 	if (isTRUE(class_meta$requires_kk) && !isTRUE(design_meta$is_kk)) return(FALSE)
 	if (isTRUE(class_meta$requires_blocking) && !isTRUE(design_meta$is_blocking)) return(FALSE)
+	if (isTRUE(class_meta$requires_even_allocation) && !isTRUE(design_meta$prob_T == 0.5)) return(FALSE)
 	if (isTRUE(design_meta$has_general_censoring) && !isTRUE(class_meta$supports_general_censoring)) {
 		return(FALSE)
 	}

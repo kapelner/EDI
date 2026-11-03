@@ -124,6 +124,12 @@ summarize_type1_rows <- function(rows, alpha = 0.05, conf_level = 0.95, target =
 	out[TYPE1_SUMMARY_COLUMNS]
 }
 
+normalized_prob_T <- function(df) {
+	p <- if ("prob_T" %in% names(df)) suppressWarnings(as.numeric(df$prob_T)) else rep(0.5, nrow(df))
+	p[is.na(p)] <- 0.5
+	p
+}
+
 # Raw comprehensive_tests.R rows -> method/stratum/pval/status rows.
 type1_rows_from_comprehensive <- function(df, map = NULL, beta = 0) {
 	need <- c("function_run", "inference_class", "dataset", "design", "beta_T", "status")
@@ -168,7 +174,9 @@ type1_rows_from_comprehensive <- function(df, map = NULL, beta = 0) {
 	status[status == "ok" & !is.finite(pval)] <- "nonestimable"
 	out <- data.frame(
 		method = method,
-		stratum = paste(df$dataset, df$design, formula_label, sep = "|"),
+		# prob_T joins the stratum (release_v1_0_5.md TODO-184); rows from before the
+		# column ran at equal allocation, and keep their old stratum label.
+		stratum = paste(df$dataset, ifelse(normalized_prob_T(df) == 0.5, df$design, paste0(df$design, "@prob_T=", normalized_prob_T(df))), formula_label, sep = "|"),
 		rep = if ("rep" %in% names(df)) df$rep else NA_integer_,
 		pval = pval,
 		status = status,

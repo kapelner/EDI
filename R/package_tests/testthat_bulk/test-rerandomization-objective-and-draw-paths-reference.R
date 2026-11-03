@@ -120,3 +120,23 @@ test_that("with no usable covariates the design falls back to plain balanced com
 	expect_equal(dim(W), c(20L, 6L))
 	expect_true(all(colSums(W) == 10))
 })
+
+test_that("one base law on every path: exactly round(n * prob_T) treated at unequal prob_T (release_v1_1_0.md TODO-164)", {
+	for (n in c(20L, 21L)) {
+		n_T <- round(n * 0.3)
+		cut <- rerand_design(n = n, prob_T = 0.3, obj_val_cutoff = 1e6)
+		expect_true(all(colSums(cut$priv$draw_ws_raw(r = 50L)) == n_T), info = paste("cutoff n", n))
+		prop <- rerand_design(n = n, prob_T = 0.3, prop_acceptable = 0.2)
+		expect_true(all(colSums(prop$priv$draw_ws_raw(r = 50L)) == n_T), info = paste("prop_acceptable n", n))
+		nox <- rerand_design(n = n, prob_T = 0.3, obj_val_cutoff = 1e6, X = data.frame(row.names = seq_len(n)))
+		expect_true(all(colSums(nox$priv$draw_ws_raw(r = 50L)) == n_T), info = paste("no covariates n", n))
+		expect_equal(sum(cut$priv$generate_one_rerandomized_w()), n_T)
+		cut$des$assign_w_to_all_subjects()
+		expect_equal(sum(cut$des$get_w()), n_T)
+	}
+})
+
+test_that("a prob_T leaving an empty arm errors clearly instead of exhausting the sampler", {
+	f <- rerand_design(n = 4L, prob_T = 0.1, obj_val_cutoff = 1e6)
+	expect_error(f$priv$draw_ws_raw(r = 5L), "treated count of 0; need at least one treated and one control")
+})

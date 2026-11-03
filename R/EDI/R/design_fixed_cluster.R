@@ -82,7 +82,9 @@ DesignFixedCluster = define_design_class(
 		#' @param cluster_col 	The column name in the data that identifies the cluster for each subject.
 		#' @param response_type 	The data type of response values.
 		#' @param prob_T  The target probability that a given cluster is assigned to
-		#'   treatment (subjects inherit their cluster's assignment).
+		#'   treatment (subjects inherit their cluster's assignment). It is the share
+		#'   of \emph{clusters} treated, not of subjects: with unequal cluster sizes
+		#'   the share of subjects treated varies from draw to draw around it.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param verbose  Flag for verbosity.

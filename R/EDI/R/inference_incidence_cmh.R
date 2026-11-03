@@ -110,9 +110,7 @@ InferenceIncidCMH = define_inference_class(
 		#' @return A new \code{InferenceIncidCMH} object.
 		initialize = function(des_obj, model_formula = NULL, se_est_num_vectors = 5000L, verbose = FALSE){
 			stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
-				cmh_requires_even_allocation_for_blocking_design = "InferenceIncidCMH requires even treatment allocation for blocking designs.",
-				cmh_requires_equal_block_sizes = "InferenceIncidCMH requires equal block sizes for blocking designs.",
-				cmh_requires_even_allocation = "InferenceIncidCMH requires even treatment allocation (prob_T = 0.5) for non-blocking designs."
+				cmh_requires_equal_block_sizes = "InferenceIncidCMH requires equal block sizes for blocking designs."
 			))
 			if (should_run_asserts()) {
 				assertResponseType(des_obj$get_response_type(), "incidence")
@@ -126,26 +124,23 @@ InferenceIncidCMH = define_inference_class(
 		}
 	),
 	private = list(
-		# Discovery-time counterpart of initialize()'s design-structure stop()s
-		# above (even allocation; equal block sizes when blocking) -- these are
-		# design-*structure* requirements infer_inference_response_types()/
-		# requires_blocking_design have no vocabulary for (a design can be
-		# blocking with unequal prob_T, or blocking with unequal block sizes,
-		# and still pass both of those). Self/private-free so it's safe to call
+		# Even allocation is declared through the registry (TODO-183): the
+		# Inference root refuses prob_T != 0.5 at construction and discovery
+		# filters on it, so it is not repeated here.
+		requires_even_allocation = function() TRUE,
+		# Discovery-time counterpart of initialize()'s design-structure stop()
+		# above (equal block sizes when blocking) -- a design-*structure*
+		# requirement infer_inference_response_types()/requires_blocking_design/
+		# requires_even_allocation have no vocabulary for. Self/private-free so it's safe to call
 		# unbound against a candidate des_obj before construction. See
 		# infer_inference_design_compatibility_reason_fn() in
 		# inference_class_registry.R.
 		design_compatibility_reason = function(des_obj){
 			if (isTRUE(des_obj$is_blocking_design())) {
-				if (!isTRUE(des_obj$get_prob_T() == 0.5)) {
-					return("cmh_requires_even_allocation_for_blocking_design")
-				}
 				block_sizes = as.integer(table(des_obj$get_block_ids()))
 				if (length(block_sizes) > 1L && any(block_sizes != block_sizes[1L])) {
 					return("cmh_requires_equal_block_sizes")
 				}
-			} else if (!isTRUE(des_obj$get_prob_T() == 0.5)) {
-				return("cmh_requires_even_allocation")
 			}
 			NA_character_
 		},

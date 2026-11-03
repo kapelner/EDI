@@ -34,12 +34,11 @@ DesignSeqOneByOneEfron = define_design_class(
 	public = list(
 		#' @description Initialize an Efron (1971) biased coin sequential experimental
 		#'   design (see class documentation for the exact assignment rule).
+		#'   There is no \code{prob_T} argument: allocation is always 1:1
+		#'   (\code{prob_T = 0.5}) because the biased coin always pushes the treated count toward the control count, a 1:1 target.
 		#'
 		#' @param response_type   "continuous", "incidence", "proportion", "count", "survival", or
 		#'   "ordinal".
-		#' @param  prob_T  Nominal probability of treatment assignment; used only as
-		#'   the fair-coin probability when the running treated/control counts are
-		#'   exactly equal (see \code{assign_wt()}).
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
 		#' @param  n  		The sample size.
 		#' @param verbose A flag for verbosity.
@@ -54,7 +53,6 @@ DesignSeqOneByOneEfron = define_design_class(
 		#' @return  A new `DesignSeqOneByOneEfron` object
 		initialize = function(
 						response_type,
-						prob_T = 0.5,
 						include_is_missing_as_a_new_feature = TRUE,
 						n = NULL,
 
@@ -64,7 +62,7 @@ DesignSeqOneByOneEfron = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 			) {
-			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
+			super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			private$weighted_coin_prob = weighted_coin_prob
 		},
 		#' @description Draw the next subject's treatment assignment via Efron's

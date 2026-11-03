@@ -128,6 +128,8 @@ Pocock, S. J., and Simon, R. (1975). "Sequential treatment assignment
   Initialize a Pocock and Simon (1975) minimization sequential
   experimental design (see class documentation for the exact imbalance
   criterion and assignment rule).
+  There is no \code{prob_T} argument: allocation is always 1:1
+  (\code{prob_T = 0.5}) because the imbalance score targets equal arms.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOnePocockSimon$new(
@@ -135,7 +137,6 @@ Pocock, S. J., and Simon, R. (1975). "Sequential treatment assignment
   weights = NULL,
   p_best = 0.8,
   response_type,
-  prob_T = 0.5,
   include_is_missing_as_a_new_feature = TRUE,
   n = NULL,
   verbose = FALSE,
@@ -160,8 +161,6 @@ assigned with probability \code{1 - p_best}. Defaults to 0.8 (an 80/20
 biased coin favoring the balancing arm, rather than a fully deterministic
 minimization rule).}
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment used only when
-the two arms' imbalance is exactly tied (see class documentation).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{Flag for verbosity.}

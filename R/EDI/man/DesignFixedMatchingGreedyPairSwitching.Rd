@@ -33,7 +33,7 @@ random coin flip per pair (which member starts treated), then in exhaustive mode
 (\code{n_iter = Inf}, default) repeatedly finds and applies the single pair-flip that
 most decreases the imbalance objective, stopping at a strict local optimum (or runs
 exactly \code{n_iter} random-pair stochastic flip-if-improving steps otherwise, with
-patience-based early stopping) — the same two search modes as
+no early stopping) — the same two search modes as
 \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}, but with moves restricted to
 "flip which side of a given pair is treated" rather than "swap any treated/control
 pair of subjects." Random initialization and swap selection are seeded from R's own
@@ -47,8 +47,8 @@ individual subjects, since the greedy search only ever flips which member of a p
 is treated (never crosses pairs), so \eqn{w} always has exactly one treated subject
 per pair — the pair, not the subject, is the exchangeable resampling unit.
 
-\strong{Constraints.} Only \code{prob_T = 0.5} is supported (the constructor errors
-otherwise), and \code{n} must be divisible by 4 (\code{draw_ws_raw()} errors
+\strong{Constraints.} Allocation is always 1:1 (there is no \code{prob_T}
+argument), and \code{n} must be divisible by 4 (\code{draw_ws_raw()} errors
 otherwise); \code{n/2} matched pairs are formed regardless of parity, but the
 additional divisible-by-4 requirement is enforced by this class specifically (unlike
 \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, which only requires
@@ -142,12 +142,13 @@ Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
 \subsection{\code{DesignFixedMatchingGreedyPairSwitching$new()}}{
   Initialize a fixed design that performs binary matching followed
   by greedy which-member-treated optimization (see class documentation).
-  Only \code{prob_T = 0.5} is supported, and \code{n} must be divisible by 4.
+  \code{n} must be divisible by 4.
+  There is no \code{prob_T} argument: allocation is always 1:1
+  (\code{prob_T = 0.5}) because each matched pair gets one treated and one control subject.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedMatchingGreedyPairSwitching$new(
   response_type,
-  prob_T = 0.5,
   include_is_missing_as_a_new_feature = TRUE,
   n,
   verbose = FALSE,
@@ -164,7 +165,6 @@ Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of treatment assignment. Must be \code{0.5}.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size; must be divisible by 4.}
       \item{\code{verbose}}{A flag for verbosity.}
@@ -180,8 +180,8 @@ version 1.0.4. The default changed in 1.0.5 and alters about 22\% of
 matched pairs relative to 1.0.x (measured at n = 1000, p = 4).}
       \item{\code{n_iter}}{Number of swap iterations. \code{Inf} (default) uses exhaustive
 best-improvement search guaranteed to reach a strict local optimum. A positive
-integer runs that many stochastic random-pair iterations with patience-based
-early stopping.}
+integer runs exactly that many stochastic random-pair iterations (no early
+stopping), each accepting the flip only if it improves the objective.}
       \item{\code{missingness_method}}{How to handle missing values in covariates.}
       \item{\code{design_formula}}{A formula object.}
       \item{\code{seed}}{Integer seed for reproducibility.}

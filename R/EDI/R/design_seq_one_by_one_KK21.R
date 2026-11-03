@@ -98,7 +98,9 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#'
 		#' @description Initialize a matching-on-the-fly sequential experimental design which matches based on
 		#' Kapelner and Krieger (2021) with
-		#' option to use matching parameters of Morrison and Owen (2025)
+		#' option to use matching parameters of Morrison and Owen (2025).
+		#'   There is no \code{prob_T} argument: allocation is always 1:1
+		#'   (\code{prob_T = 0.5}) because each matched pair adds one treated and one control subject.
 		#'
 		#' @param  response_type 	The data type of response values which must be one of the following:
 		#' 								"continuous",
@@ -109,7 +111,6 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#'                                                                 This package will enforce
 		#' that all added responses via the \code{add_one_subject_response} method will be
 		#' 								of the appropriate type.
-		#' @param  prob_T  The probability of the treatment assignment. This defaults to \code{0.5}.
 		#' @param include_is_missing_as_a_new_feature     If missing data is present in a variable,
 		#'   should we include another dummy variable for its
 		#'                                                                 missingness in addition to
@@ -174,7 +175,6 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 		#'
 		initialize = function(
 			response_type,
-			prob_T = 0.5,
 			include_is_missing_as_a_new_feature = TRUE,
 			n = NULL,
 
@@ -193,7 +193,7 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 			seed = NULL,
 			...
 		){
-			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, lambda, t_0_pct, morrison, p, missingness_method, design_formula, seed = seed, ...)
+			super$initialize(response_type, include_is_missing_as_a_new_feature, n, verbose, lambda, t_0_pct, morrison, p, missingness_method, design_formula, seed = seed, ...)
 			if (is.null(num_boot)){
 				num_boot = 500
 			} else {

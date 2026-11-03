@@ -759,7 +759,7 @@ if (!is.na(RESPONSE_TYPE_FILTER) && !(RESPONSE_TYPE_FILTER %in% ALL_RESPONSE_TYP
 		paste(ALL_RESPONSE_TYPES, collapse = ", ")
 	)
 }
-ALL_DESIGN_TYPES = c("Bernoulli", "iBCRD", "Efron", "KK14", "KK21", "KK21stepwise", "SPBR", "PocockSimon", "Urn", "RandomBlockSize", "FixedBernoulli", "FixediBCRD", "FixedBlocking", "FixedCluster", "FixedBlockedCluster", "FixedBinaryMatch", "FixedGreedy", "FixedRerandomization", "FixedMatchingGreedy", "FixedDOptimal", "FixedAOptimal")
+ALL_DESIGN_TYPES = c("Bernoulli", "iBCRD", "Efron", "KK14", "KK21", "KK21stepwise", "SPBR", "PocockSimon", "Urn", "RandomBlockSize", "FixedBernoulli", "FixediBCRD", "FixedBlocking", "FixedCluster", "FixedBlockedCluster", "FixedBinaryMatch", "FixedGreedy", "FixedRerandomization", "FixedMatchingGreedy", "FixedGreedyDOptimalD", "FixedGreedyDOptimalA")
 TESTED_DESIGNS = c(
 	"Bernoulli",
 	"KK21stepwise",
@@ -769,6 +769,54 @@ TESTED_DESIGNS = c(
 	"FixedBinaryMatch",
 	"FixedMatchingGreedy"
 )
+# Unequal-arm allocation (release_v1_0_5.md TODO-184): every design type whose
+# EDI class has the registry capability supports_unequal_allocation also runs at
+# prob_T = COMPREHENSIVE_UNEQUAL_PROB_T, recorded in the results' prob_T column.
+# Rows from before the column existed ran at 0.5. Keys and case ids stay
+# unchanged at 0.5 and get a "@prob_T=<p>" design suffix otherwise (see
+# design_key_label()), so old results resume as before. Set
+# COMPREHENSIVE_PROB_T_FILTER=0.5 (or 0.2) to run only one allocation.
+COMPREHENSIVE_UNEQUAL_PROB_T = 0.2
+COMPREHENSIVE_DESIGN_TYPE_CLASS = c(
+	Bernoulli = "DesignSeqOneByOneBernoulli", iBCRD = "DesignSeqOneByOneiBCRD",
+	Efron = "DesignSeqOneByOneEfron", Atkinson = "DesignSeqOneByOneAtkinson",
+	KK14 = "DesignSeqOneByOneKK14", KK21 = "DesignSeqOneByOneKK21",
+	KK21stepwise = "DesignSeqOneByOneKK21stepwise", SPBR = "DesignSeqOneByOneSPBR",
+	PocockSimon = "DesignSeqOneByOnePocockSimon", Urn = "DesignSeqOneByOneUrn",
+	RandomBlockSize = "DesignSeqOneByOneRandomBlockSize",
+	FixedBernoulli = "DesignFixedBernoulli", FixediBCRD = "DesignFixediBCRD",
+	FixedBlocking = "DesignFixedBlocking", FixedCluster = "DesignFixedCluster",
+	FixedBlockedCluster = "DesignFixedBlockedCluster", FixedBinaryMatch = "DesignFixedBinaryMatch",
+	FixedGreedy = "DesignFixedGreedy", FixedRerandomization = "DesignFixedRerandomization",
+	FixedMatchingGreedy = "DesignFixedMatchingGreedyPairSwitching",
+	FixedGreedyDOptimalD = "DesignFixedGreedyDOptimal", FixedGreedyDOptimalA = "DesignFixedGreedyDOptimal"
+)
+COMPREHENSIVE_PROB_T_FILTER = suppressWarnings(as.numeric(Sys.getenv("COMPREHENSIVE_PROB_T_FILTER", unset = NA_character_)))
+design_type_prob_T_values = function(design_type){
+	cls = unname(COMPREHENSIVE_DESIGN_TYPE_CLASS[design_type])
+	capable = !is.na(cls) && isTRUE(tryCatch(
+		EDI:::get_design_class_metadata(cls)$supports_unequal_allocation,
+		error = function(e) FALSE
+	))
+	vals = if (capable) c(0.5, COMPREHENSIVE_UNEQUAL_PROB_T) else 0.5
+	if (is.finite(COMPREHENSIVE_PROB_T_FILTER)) vals = vals[vals == COMPREHENSIVE_PROB_T_FILTER]
+	vals
+}
+# Current allocation of the design being run; read by record_result() and the
+# key builders. Set by the main loop.
+prob_T_curr = 0.5
+normalize_prob_T = function(prob_T_val){
+	p = suppressWarnings(as.numeric(prob_T_val))
+	p[is.na(p)] = 0.5
+	p
+}
+# Design part of every result key / case id: the bare design name at 0.5 (so keys
+# from before the prob_T column are unchanged), "<design>@prob_T=<p>" otherwise.
+design_key_label = function(design_val, prob_T_val = prob_T_curr){
+	d = as.character(design_val)
+	p = normalize_prob_T(prob_T_val)
+	ifelse(is.na(d) | p == 0.5, d, paste0(d, "@prob_T=", format(p)))
+}
 DESIGN_TYPE_FILTER = if (length(args) >= 4 && args[4] != "NA") as.character(args[4]) else NA_character_
 if (!is.na(DESIGN_TYPE_FILTER) && !(DESIGN_TYPE_FILTER %in% ALL_DESIGN_TYPES)) {
 	stop(
@@ -1073,11 +1121,11 @@ sanitize_case_id_part = function(value){
 	ifelse(nzchar(value), value, "NA")
 }
 
-build_comprehensive_case_id = function(dataset_val, response_val, design_val, inference_val, function_run_val){
+build_comprehensive_case_id = function(dataset_val, response_val, design_val, inference_val, function_run_val, prob_T_val = prob_T_curr){
 	signature = paste(
 		as.character(dataset_val),
 		as.character(response_val),
-		as.character(design_val),
+		design_key_label(design_val, prob_T_val),
 		as.character(inference_val),
 		as.character(function_run_val),
 		sep = "||"
@@ -1262,13 +1310,13 @@ design_has_realized_matched_pair = function(des_obj){
 	}, error = function(e) FALSE)
 }
 
-build_result_key = function(rep_val, beta_val, dataset_val, response_val, design_val, inference_val, function_run_val){
+build_result_key = function(rep_val, beta_val, dataset_val, response_val, design_val, inference_val, function_run_val, prob_T_val = prob_T_curr){
 	paste(
 		as.integer(rep_val),
 		serialize_beta_T(beta_val),
 		as.character(dataset_val),
 		as.character(response_val),
-		as.character(design_val),
+		design_key_label(design_val, prob_T_val),
 		as.character(inference_val),
 		as.character(function_run_val),
 		sep = "||"
@@ -1309,6 +1357,7 @@ record_comprehensive_attempt_event = function(
 			dataset = dataset_value,
 			response_type = response_value,
 			design = design_value,
+			prob_T = prob_T_curr,
 			model_formula = model_formula_value,
 			inference_class = inference_value,
 			function_run = function_run
@@ -1387,7 +1436,8 @@ if (nrow(existing_results_dt) > 0L) {
 				rows_to_cache$response_type,
 				rows_to_cache$design,
 				rows_to_cache$inference_class,
-				rows_to_cache$function_run
+				rows_to_cache$function_run,
+				prob_T_val = if ("prob_T" %in% names(rows_to_cache)) rows_to_cache$prob_T else 0.5
 			)
 		}
 		for (key in keys) {
@@ -1401,6 +1451,7 @@ results_dt = data.table(
 	dataset = character(),
 	response_type = character(),
 	design = character(),
+	prob_T = numeric(),
 	inference_class = character(),
 	function_run = character(),
 	id = character(),
@@ -1453,8 +1504,11 @@ ensure_existing_results_schema = function(){
 			existing_results_dt[, (col) := NA_integer_]
 		}
 	}
+	if ("prob_T" %in% names(existing_results_dt)) {
+		existing_results_dt[is.na(prob_T), prob_T := 0.5]
+	}
 	if (all(c("dataset", "response_type", "design", "inference_class", "function_run") %in% names(existing_results_dt))) {
-		existing_results_dt[is.na(case_id) | !nzchar(ifelse(is.na(case_id), "", case_id)), case_id := build_comprehensive_case_id(dataset, response_type, design, inference_class, function_run)]
+		existing_results_dt[is.na(case_id) | !nzchar(ifelse(is.na(case_id), "", case_id)), case_id := build_comprehensive_case_id(dataset, response_type, design, inference_class, function_run, prob_T_val = if ("prob_T" %in% names(existing_results_dt)) prob_T else 0.5)]
 		existing_results_dt[is.na(coverage_scope) | !nzchar(ifelse(is.na(coverage_scope), "", coverage_scope)), coverage_scope := "comprehensive_workflow"]
 		existing_results_dt[is.na(runner) | !nzchar(ifelse(is.na(runner), "", runner)), runner := "comprehensive_tests"]
 		existing_results_dt[is.na(method_family) | !nzchar(ifelse(is.na(method_family), "", method_family)), method_family := vapply(function_run, method_family_for_function_run, character(1))]
@@ -1693,6 +1747,7 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 			dataset = dataset_name,
 			response_type = response_type,
 			design = design_type,
+			prob_T = prob_T_curr,
 			inference_class = inference_class,
 			id = build_result_key(rep_curr, beta_T, dataset_name, response_type, design_type, inference_class, function_run),
 			case_id = build_comprehensive_case_id(dataset_name, response_type, design_type, inference_class, function_run),
@@ -1747,7 +1802,7 @@ record_result = function(dataset_name, dataset_n_rows, dataset_n_cols, response_
 .existing_error_keys_latest = NULL
 get_existing_error_keys_latest = function(){
 	if (is.null(.existing_error_keys_latest)) {
-		key_cols = c("rep", "beta_T", "dataset", "response_type", "design", "inference_class", "function_run")
+		key_cols = c("rep", "beta_T", "dataset", "response_type", "design", "prob_T", "inference_class", "function_run")
 		.existing_error_keys_latest <<- if (nrow(existing_results_dt) > 0L && all(c(key_cols, "status") %in% names(existing_results_dt))) {
 			existing_results_dt[, .SD[.N], by = key_cols]
 		} else {
@@ -1767,6 +1822,7 @@ record_existing_error_keys_as_skipped = function(inference_class, dataset_n_rows
 			dataset == dataset_name &
 			response_type == get("response_type", envir = .GlobalEnv) &
 			design == design_type &
+			normalize_prob_T(prob_T) == prob_T_curr &
 			inference_class == inference_class,
 		unique(function_run)
 	]
@@ -4341,25 +4397,25 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		KK21 =         DesignSeqOneByOneKK21$new(        response_type = response_type, n = n, design_formula = design_formula),
 		KK21stepwise = DesignSeqOneByOneKK21stepwise$new(response_type = response_type, n = n, design_formula = design_formula),
 		KK14 =         DesignSeqOneByOneKK14$new(        response_type = response_type, n = n, design_formula = design_formula),
-		Bernoulli =    DesignSeqOneByOneBernoulli$new(   response_type = response_type, n = n, design_formula = design_formula),
+		Bernoulli =    DesignSeqOneByOneBernoulli$new(   prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
 		Efron =        DesignSeqOneByOneEfron$new(       response_type = response_type, n = n, design_formula = design_formula),
 		Atkinson =     DesignSeqOneByOneAtkinson$new(    response_type = response_type, n = n, design_formula = design_formula),
-		iBCRD =        DesignSeqOneByOneiBCRD$new(       response_type = response_type, n = n, design_formula = design_formula),
+		iBCRD =        DesignSeqOneByOneiBCRD$new(       prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
 		Urn =          DesignSeqOneByOneUrn$new(         response_type = response_type, n = n, design_formula = design_formula),
-		RandomBlockSize = DesignSeqOneByOneRandomBlockSize$new( strata_cols = strata_cols_to_use, response_type = response_type, n = n, design_formula = design_formula),
-		SPBR =         DesignSeqOneByOneSPBR$new(        strata_cols = strata_cols_to_use, block_size = 4, response_type = response_type, n = n, design_formula = design_formula),
+		RandomBlockSize = DesignSeqOneByOneRandomBlockSize$new( strata_cols = strata_cols_to_use, prob_T = prob_T_curr, block_sizes = if (prob_T_curr == 0.5) c(4, 6, 8) else c(5, 10), response_type = response_type, n = n, design_formula = design_formula),
+		SPBR =         DesignSeqOneByOneSPBR$new(        strata_cols = strata_cols_to_use, block_size = if (prob_T_curr == 0.5) 4 else 5, prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
 		PocockSimon =  DesignSeqOneByOnePocockSimon$new( strata_cols = strata_cols_to_use, response_type = response_type, n = n, design_formula = design_formula),
-		FixedBernoulli = DesignFixedBernoulli$new( response_type = response_type, n = n, design_formula = design_formula),
-		FixediBCRD =     DesignFixediBCRD$new(     response_type = response_type, n = n, design_formula = design_formula),
-		FixedBlocking =  DesignFixedBlocking$new(  strata_cols = strata_cols_to_use, response_type = response_type, n = n, design_formula = design_formula),
-		FixedCluster =   DesignFixedCluster$new(   cluster_col = cluster_design_setup$cluster_col, response_type = response_type, n = n, design_formula = design_formula),
-		FixedBlockedCluster = DesignFixedBlockedCluster$new( strata_cols = names(X_design)[2:min(2, ncol(X_design))], cluster_col = cluster_design_setup$cluster_col, response_type = response_type, n = n, design_formula = design_formula),
+		FixedBernoulli = DesignFixedBernoulli$new( prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
+		FixediBCRD =     DesignFixediBCRD$new(     prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
+		FixedBlocking =  DesignFixedBlocking$new(  strata_cols = strata_cols_to_use, prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
+		FixedCluster =   DesignFixedCluster$new(   cluster_col = cluster_design_setup$cluster_col, prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
+		FixedBlockedCluster = DesignFixedBlockedCluster$new( prob_T = prob_T_curr, strata_cols = names(X_design)[2:min(2, ncol(X_design))], cluster_col = cluster_design_setup$cluster_col, response_type = response_type, n = n, design_formula = design_formula),
 		FixedBinaryMatch = DesignFixedBinaryMatch$new( response_type = response_type, n = n, design_formula = design_formula),
-		FixedGreedy =    DesignFixedGreedy$new(    response_type = response_type, n = n, design_formula = design_formula),
-		FixedRerandomization = DesignFixedRerandomization$new( response_type = response_type, n = n, design_formula = design_formula),
+		FixedGreedy =    DesignFixedGreedy$new(    prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
+		FixedRerandomization = DesignFixedRerandomization$new( prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
 		FixedMatchingGreedy = DesignFixedMatchingGreedyPairSwitching$new( response_type = response_type, n = n, design_formula = design_formula),
-		FixedGreedyDOptimalD =  DesignFixedGreedyDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula),
-		FixedGreedyDOptimalA =  DesignFixedGreedyDOptimal$new(  response_type = response_type, n = n, design_formula = design_formula, objective = "A", interest = "all"),
+		FixedGreedyDOptimalD =  DesignFixedGreedyDOptimal$new(  prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula),
+		FixedGreedyDOptimalA =  DesignFixedGreedyDOptimal$new(  prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula, objective = "A", interest = "all"),
 		stop("Unsupported design_type: ", design_type)
 	), error = function(e){
 		record_comprehensive_attempt_event(
@@ -4423,7 +4479,7 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		if (!is.null(setup_err) && identical(design_type, "FixedBlocking") &&
 				grepl("equal_block_sizes = TRUE", conditionMessage(setup_err), fixed = TRUE)) {
 			message("    ", conditionMessage(setup_err), " Retrying FixedBlocking with equal_block_sizes = FALSE.")
-			des_obj = DesignFixedBlocking$new(strata_cols = strata_cols_to_use, equal_block_sizes = FALSE, response_type = response_type, n = n, design_formula = design_formula)
+			des_obj = DesignFixedBlocking$new(strata_cols = strata_cols_to_use, equal_block_sizes = FALSE, prob_T = prob_T_curr, response_type = response_type, n = n, design_formula = design_formula)
 			setup_err = setup_fixed_design(des_obj)
 		}
 		if (!is.null(setup_err)) {
@@ -4705,7 +4761,9 @@ for (dataset_name in names(datasets_and_response_models)){
 						if (!is.na(DESIGN_TYPE_FILTER) && !identical(design_type, DESIGN_TYPE_FILTER)) {
 							next
 						}
-						pending_design_header <<- paste0("        === design: ", design_type, " ===")
+						for (prob_T_loop in design_type_prob_T_values(design_type)) {
+						prob_T_curr <<- prob_T_loop
+						pending_design_header <<- paste0("        === design: ", design_type, if (prob_T_curr != 0.5) paste0(" (prob_T = ", prob_T_curr, ")") else "", " ===")
 						tryCatch(
 							run_tests_for_response(response_type, design_type = design_type, dataset_name = dataset_name, model_formula = model_formula),
 							error = function(e){
@@ -4742,9 +4800,10 @@ for (dataset_name in names(datasets_and_response_models)){
 										dataset = dataset_name,
 										response_type = response_type,
 										design = design_type,
+										prob_T = prob_T_curr,
 										inference_class = NA_character_,
-										id = paste("run_tests_for_response_error", response_type, design_type, dataset_name, format(Sys.time(), "%Y%m%d%H%M%OS3"), sep = "||"),
-										case_id = paste("comprehensive_tests_response_level_error", response_type, design_type, sep = "__"),
+										id = paste("run_tests_for_response_error", response_type, design_key_label(design_type), dataset_name, format(Sys.time(), "%Y%m%d%H%M%OS3"), sep = "||"),
+										case_id = paste("comprehensive_tests_response_level_error", response_type, design_key_label(design_type), sep = "__"),
 										coverage_scope = "comprehensive_workflow",
 										runner = "comprehensive_tests",
 										github_commit_id = GITHUB_COMMIT_ID,
@@ -4780,6 +4839,8 @@ for (dataset_name in names(datasets_and_response_models)){
 						)
 						# Bound crash/interrupt loss to at most one design_type iteration's worth of buffered rows.
 						write_results_if_needed(force = TRUE)
+						}
+						prob_T_curr <<- 0.5
 					}
 				}
 			}

@@ -25,7 +25,9 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 	public = list(
 		#' @description Initialize a sequential one-by-one design.
 		#' @param response_type The data type of response values.
-		#' @param prob_T The probability of the treatment assignment.
+		#' @param prob_T The probability of the treatment assignment. Efron,
+		#'   Atkinson, Pocock-Simon and the KK designs have no \code{prob_T}
+		#'   argument; their allocation is always 1:1.
 		#' @param include_is_missing_as_a_new_feature If missing data is present, include a dummy
 		#'   variable for it.
 		#' @param n The prespecified target sample size for fixed-sample analysis.

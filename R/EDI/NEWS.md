@@ -126,6 +126,21 @@ methods.
   10 distinct values (e.g. a site code 1..4) as categorical, one block per
   value; it used to be quantile-binned (4 sites became 2 blocks), so block
   assignments for such columns change. Other numeric columns are still binned.
+* `prob_T` is removed from the constructors of designs that always assign
+  1:1: `DesignSeqOneByOneEfron`, `DesignSeqOneByOneAtkinson`,
+  `DesignSeqOneByOnePocockSimon`, `DesignSeqOneByOneKK14`,
+  `DesignSeqOneByOneKK21`, `DesignSeqOneByOneKK21stepwise`,
+  `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching`.
+  The six sequential designs used to accept any `prob_T` but still assign
+  about half to treatment, while `get_prob_T()` reported the requested value.
+  Passing `prob_T`, even `prob_T = 0.5`, now gives an "unused argument"
+  error; drop the argument.
+* Unequal-arm support is now a design registry capability,
+  `supports_unequal_allocation`, checked once when any design is
+  constructed; it replaces the separate per-class checks. Designs without it
+  have no `prob_T` argument, or always use 0.5 (`DesignSeqOneByOneUrn`,
+  `DesignFixedFactorial`, observational designs). All other designs honour
+  `prob_T`.
 
 ## New features
 

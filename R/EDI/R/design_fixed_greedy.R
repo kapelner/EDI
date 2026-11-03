@@ -1,7 +1,8 @@
 #' A Fixed, Covariate-Balanced Design via Greedy Pairwise-Swap Search
 #'
 #' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that searches, among
-#' balanced (\eqn{n/2}-treated) allocations, for one that directly minimizes a covariate
+#' allocations with exactly \eqn{n_T = \mathrm{round}(n \cdot \mathrm{prob}_T)} treated
+#' subjects, for one that directly minimizes a covariate
 #' imbalance criterion \eqn{f(d)}, \eqn{d = M(2w - 1)}, via a native C++ (RcppEigen +
 #' OpenMP) greedy pairwise-swap search (\code{greedy_design_search_cpp()}). Unlike
 #' \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}, which optimizes a
@@ -24,19 +25,20 @@
 #' }
 #'
 #' @details
-#' \strong{Search algorithm.} Starting from a random balanced (Fisher-Yates) allocation,
+#' \strong{Search algorithm.} Starting from a random (Fisher-Yates) allocation with \eqn{n_T} treated,
 #' the search runs in one of two modes selected by \code{n_iter}: \code{Inf} (default)
 #' runs \strong{exhaustive best-improvement} search — each round scans every
 #' (treated, control) pair, applies the single globally best improving swap, and repeats
 #' until no swap improves \eqn{f(d)}, guaranteeing convergence to a strict local optimum;
 #' a positive integer instead runs exactly that many \strong{stochastic} steps, each
 #' picking a uniformly random (treated, control) pair and accepting the swap only if it
-#' improves \eqn{f(d)} (with patience-based early stopping). \code{r} independent design
+#' improves \eqn{f(d)}, with no early stopping. \code{r} independent design
 #' searches (one per requested replicate) run in parallel via OpenMP, each with its own
-#' \code{std::mt19937} generator. \strong{This search's
-#' randomization is reproducible via the constructor's \code{seed} argument}: per-thread
-#' RNGs are seeded from R's own RNG state (\code{GetRNGstate()}/\code{unif_rand()})
-#' before the parallel region begins, so \code{private$maybe_set_seed()} does govern the
+#' random-number stream. \strong{This search's
+#' randomization is reproducible via the constructor's \code{seed} argument}: one master
+#' seed is drawn from R's own RNG state (\code{GetRNGstate()}/\code{unif_rand()})
+#' before the parallel region begins, and each replicate's stream is derived from that
+#' seed and the replicate's index, so \code{private$maybe_set_seed()} does govern the
 #' resulting allocation, independent of the number of OpenMP threads used.
 #'
 #' \strong{Same draws as \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}
@@ -53,16 +55,22 @@
 #' derivation is in \code{DesignFixedGreedyDOptimal}'s documentation). The draws differ
 #' when this class uses \code{objective = "abs_sum_diff"}, a finite \code{n_iter}, or the
 #' \code{"abs_sum_diff"} fallback after a failed Cholesky factorization, and when
-#' \code{DesignFixedGreedyDOptimal} uses an unequal \code{prob_T} (which this class
-#' does not support), \code{objective = "A"} with \code{interest = "all"} or a covariate
+#' \code{DesignFixedGreedyDOptimal} uses \code{objective = "A"} with \code{interest = "all"} or a covariate
 #' subset, or a \code{prior_precision}.
 #'
-#' \strong{Constraints and fallbacks.} Only exactly balanced allocation
-#' (\code{prob_T = 0.5}, \eqn{n} even) is supported; the constructor errors otherwise. If
-#' no covariates are available, the search degenerates to pure balanced Fisher-Yates
-#' randomization (no swap search, since there is nothing to balance on).
+#' \strong{Unequal arms.} Any \code{prob_T} in \eqn{(0, 1)} is supported; the search
+#' keeps the treated count fixed at \eqn{n_T = \mathrm{round}(n \cdot \mathrm{prob}_T)},
+#' and drawing errors if that leaves no treated or no control subject. The kernel centres
+#' \eqn{X}, so \eqn{M(2w - 1) = 2Mw}, a fixed positive multiple of the half
+#' treated-minus-control mean difference at every \eqn{n_T}: both objectives keep their
+#' balance meaning without any change to the swap update.
+#'
+#' \strong{Constraints and fallbacks.} If
+#' no covariates are available, the search degenerates to pure Fisher-Yates
+#' randomization with \eqn{n_T} treated (no swap search, since there is nothing to
+#' balance on).
 #' \code{greedy_design_search_cpp()}'s output is trusted unvalidated -- it guarantees
-#' exactly \code{n x r} valid \eqn{\{0,1\}} columns with \eqn{n/2} treated subjects per
+#' exactly \code{n x r} valid \eqn{\{0,1\}} columns with \eqn{n_T} treated subjects per
 #' column by construction (see fix_design_hierarchy.md, "AllocationMatrixValidation").
 #'
 #' @references Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
@@ -81,10 +89,11 @@ DesignFixedGreedy = define_design_class(
 	overrides = list(public = "supports_batch_w_pregeneration"),
 	public = list(
 		#' @description Initialize a greedy pairwise-swap search fixed experimental
-		#'   design. Only \code{prob_T = 0.5} is supported (see class documentation).
+		#'   design. Any \code{prob_T} in \eqn{(0, 1)} is supported (see class documentation).
 		#'
 		#' @param response_type 	The data type of response values.
-		#' @param prob_T  The probability of the treatment assignment. Must be 0.5.
+		#' @param prob_T  The probability of the treatment assignment; the search fixes the
+		#'   treated count at \code{round(n * prob_T)}.
 		#' @param objective 	The covariate-imbalance objective to minimize: either
 		#'   \code{"mahal_dist"} (default, squared Mahalanobis distance between treated
 		#'   and control covariate means) or \code{"abs_sum_diff"} (sum of absolute
@@ -92,8 +101,8 @@ DesignFixedGreedy = define_design_class(
 		#'   criteria.
 		#' @param n_iter Number of swap iterations. \code{Inf} (default) uses exhaustive
 		#'   best-improvement search guaranteed to reach a strict local optimum. A positive
-		#'   integer runs that many stochastic random-pair iterations with patience-based
-		#'   early stopping.
+		#'   integer runs exactly that many stochastic random-pair iterations (no early
+		#'   stopping), each accepting the swap only if it improves the objective.
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param verbose  Flag for verbosity.
@@ -116,12 +125,11 @@ DesignFixedGreedy = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 			) {
-			# Always-on validation (fix_design_hierarchy.md, TODO-33): the kernel
-			# unconditionally hardcodes nt = n / 2 (design_fixed_greedy.cpp), so a
-			# non-0.5 prob_T that slipped past this check with asserts off would
-			# silently draw a different design than get_prob_T() reports.
-			if (!is.numeric(prob_T) || length(prob_T) != 1L || is.na(prob_T) || prob_T != 0.5) {
-				stop("Greedy designs currently only support even treatment allocation (prob_T = 0.5)")
+			# Always-on validation (fix_design_hierarchy.md, TODO-33; same check as
+			# DesignFixedGreedyDOptimal). The treated count round(n * prob_T) is
+			# checked against n in draw_ws_raw(), once n is known.
+			if (!is.numeric(prob_T) || length(prob_T) != 1L || !is.finite(prob_T) || prob_T <= 0 || prob_T >= 1) {
+				stop("prob_T must be a single number strictly between 0 and 1.")
 			}
 			# GED availability is checked lazily in draw_ws_according_to_design so
 			# that workers using pre-computed w vectors never trigger a JVM load.
@@ -156,13 +164,14 @@ DesignFixedGreedy = define_design_class(
 			}
 			n = self$get_n()
 			private$ensure_model_matrix_current()
-			# Always-on validation (fix_design_hierarchy.md, TODO-33): same
-			# nt = n / 2 kernel assumption as the prob_T check in initialize().
-			if (n %% 2 != 0){
-				stop("DesignFixedGreedy requires an even number of subjects.")
+			# Always-on validation (fix_design_hierarchy.md, TODO-33): the kernel
+			# draws exactly n_T treated, the same count DesignFixedGreedyDOptimal uses.
+			n_T = as.integer(round(n * private$prob_T))
+			if (n_T < 1L || n_T > n - 1L) {
+				stop(sprintf("prob_T = %g with n = %d yields a treated count of %d; need at least one treated and one control subject.", private$prob_T, n, n_T))
 			}
 			if (is.null(private$X) || ncol(private$X) == 0){
-				return(replicate(r, sample(c(rep(1, n / 2), rep(0, n / 2)))))
+				return(replicate(r, sample(c(rep(1, n_T), rep(0, n - n_T)))))
 			}
 			X          = private$X[1:n, , drop = FALSE]
 			cpp_n_iter = if (is.infinite(private$n_iter)) -1L else as.integer(private$n_iter)
@@ -174,7 +183,8 @@ DesignFixedGreedy = define_design_class(
 				X_raw     = X,
 				r         = as.integer(r),
 				objective = private$objective,
-				n_iter    = cpp_n_iter
+				n_iter    = cpp_n_iter,
+				n_T       = n_T
 			)
 		}
 	)

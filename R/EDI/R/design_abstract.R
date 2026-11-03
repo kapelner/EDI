@@ -213,6 +213,13 @@ Design = R6::R6Class("Design",
 				private$fixed_sample = TRUE
 			}
 			private$prob_T = prob_T
+			# Single source of truth for unequal-allocation support (release_v1_0_5.md
+			# TODO-183): the registry's supports_unequal_allocation, read via the nearest
+			# registered class. Always on, even with asserts disabled, because a refused
+			# class would otherwise silently assign ~1:1 while get_prob_T() reports prob_T.
+			if (!design_supports_unequal_allocation(self)) {
+				self$assert_even_allocation(always = TRUE)
+			}
 			private$response_type = response_type
 			private$response_type_original = response_type
 			private$ordinal_levels = ordinal_levels
@@ -469,10 +476,15 @@ Design = R6::R6Class("Design",
 			}
 		},
 		#' @description Checks if the experiment has a 50-50 allocation.
-		assert_even_allocation = function(){
-			if (should_run_asserts()) {
+		#'   \code{Design$initialize()} calls this for every class whose registry
+		#'   capability \code{supports_unequal_allocation} is \code{FALSE} (Efron,
+		#'   Atkinson, Pocock-Simon, KK, urn, matching, factorial and observational designs).
+		#' @param always If \code{TRUE}, check even when asserts are disabled via
+		#'   \code{options(edi.run_asserts = FALSE)}.
+		assert_even_allocation = function(always = FALSE){
+			if (always || should_run_asserts()) {
 				if (private$prob_T != 0.5){
-					stop("This type of design currently only works with even treatment allocation, i.e. you must set prob_T = 0.5 upon initialization")
+					stop(class(self)[1L], " currently only works with even treatment allocation, i.e. you must set prob_T = 0.5 upon initialization", call. = FALSE)
 				}
 			}
 		},

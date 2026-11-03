@@ -34,13 +34,18 @@ zinb_no_excess_zeros_fixture <- function(seed = 4L, n = 200L) {
 	inf
 }
 
-test_that("with no genuine excess zeros, the point estimate is finite and stable even though the asymptotic CI is not", {
+# 2026-11-03: the "separate, narrower SE-specific gap" above is closed. Since the
+# Oct 2026 fast_zinb.cpp boundary fallbacks the asymptotic CI here is finite and
+# brackets the estimate (it equals MASS::glm.nb's Wald CI to ~2e-4; the sibling
+# count-classes reference test asserts that agreement).
+test_that("with no genuine excess zeros, the point estimate and the asymptotic CI are finite and stable", {
 	inf <- zinb_no_excess_zeros_fixture()
 	e1 <- inf$compute_estimate()
 	expect_true(is.finite(e1))
 
 	ci <- suppressWarnings(inf$compute_asymp_confidence_interval())
-	expect_true(all(is.na(ci)))
+	expect_true(all(is.finite(ci)))
+	expect_true(ci[1L] < e1 && e1 < ci[2L])
 
 	e2 <- inf$compute_estimate()
 	expect_true(is.finite(e2))

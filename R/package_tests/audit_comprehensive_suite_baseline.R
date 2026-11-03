@@ -144,7 +144,7 @@ derive_comprehensive_targets = function(results, comprehensive_text) {
 		"Bernoulli", "iBCRD", "Efron", "KK14", "KK21", "KK21stepwise", "SPBR", "PocockSimon", "Urn",
 		"RandomBlockSize", "FixedBernoulli", "FixediBCRD", "FixedBlocking", "FixedCluster",
 		"FixedBlockedCluster", "FixedBinaryMatch", "FixedGreedy", "FixedRerandomization",
-		"FixedMatchingGreedy", "FixedDOptimal", "FixedAOptimal"
+		"FixedMatchingGreedy", "FixedGreedyDOptimalD", "FixedGreedyDOptimalA"
 	)))) {
 		if (!is.na(design_class) && literal_present(comprehensive_text, design_class)) {
 			targets = c(targets, design_class, paste(design_class, "initialize", sep = "::"))

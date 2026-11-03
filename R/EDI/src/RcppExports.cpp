@@ -376,8 +376,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // greedy_design_search_cpp
-Rcpp::NumericMatrix greedy_design_search_cpp(const Eigen::Map<Eigen::MatrixXd> X_raw, const int r, const std::string& objective, const int n_iter, Rcpp::Nullable<Rcpp::IntegerMatrix> indicies_pairs);
-RcppExport SEXP _EDI_greedy_design_search_cpp(SEXP X_rawSEXP, SEXP rSEXP, SEXP objectiveSEXP, SEXP n_iterSEXP, SEXP indicies_pairsSEXP) {
+Rcpp::NumericMatrix greedy_design_search_cpp(const Eigen::Map<Eigen::MatrixXd> X_raw, const int r, const std::string& objective, const int n_iter, Rcpp::Nullable<Rcpp::IntegerMatrix> indicies_pairs, const int n_T);
+RcppExport SEXP _EDI_greedy_design_search_cpp(SEXP X_rawSEXP, SEXP rSEXP, SEXP objectiveSEXP, SEXP n_iterSEXP, SEXP indicies_pairsSEXP, SEXP n_TSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -386,7 +386,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string& >::type objective(objectiveSEXP);
     Rcpp::traits::input_parameter< const int >::type n_iter(n_iterSEXP);
     Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::IntegerMatrix> >::type indicies_pairs(indicies_pairsSEXP);
-    rcpp_result_gen = Rcpp::wrap(greedy_design_search_cpp(X_raw, r, objective, n_iter, indicies_pairs));
+    Rcpp::traits::input_parameter< const int >::type n_T(n_TSEXP);
+    rcpp_result_gen = Rcpp::wrap(greedy_design_search_cpp(X_raw, r, objective, n_iter, indicies_pairs, n_T));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -5194,7 +5195,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_EDI_compute_all_subject_data_cpp", (DL_FUNC) &_EDI_compute_all_subject_data_cpp, 4},
     {"_EDI_compute_proportional_mahal_distances_cpp", (DL_FUNC) &_EDI_compute_proportional_mahal_distances_cpp, 4},
     {"_EDI_compute_weighted_sqd_distances_cpp", (DL_FUNC) &_EDI_compute_weighted_sqd_distances_cpp, 4},
-    {"_EDI_greedy_design_search_cpp", (DL_FUNC) &_EDI_greedy_design_search_cpp, 5},
+    {"_EDI_greedy_design_search_cpp", (DL_FUNC) &_EDI_greedy_design_search_cpp, 6},
     {"_EDI_annealing_design_search_cpp", (DL_FUNC) &_EDI_annealing_design_search_cpp, 9},
     {"_EDI_edi_unlock_binding_cpp", (DL_FUNC) &_EDI_edi_unlock_binding_cpp, 2},
     {"_EDI_exchangeable_resampling_draws_cpp", (DL_FUNC) &_EDI_exchangeable_resampling_draws_cpp, 11},

@@ -5,7 +5,8 @@
 \title{A Fixed, Covariate-Balanced Design via Greedy Pairwise-Swap Search}
 \description{
 A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} that searches, among
-balanced (\eqn{n/2}-treated) allocations, for one that directly minimizes a covariate
+allocations with exactly \eqn{n_T = \mathrm{round}(n \cdot \mathrm{prob}_T)} treated
+subjects, for one that directly minimizes a covariate
 imbalance criterion \eqn{f(d)}, \eqn{d = M(2w - 1)}, via a native C++ (RcppEigen +
 OpenMP) greedy pairwise-swap search (\code{greedy_design_search_cpp()}). Unlike
 \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}, which optimizes a
@@ -28,19 +29,20 @@ supported \code{objective}s are
 }
 
 
-\strong{Search algorithm.} Starting from a random balanced (Fisher-Yates) allocation,
+\strong{Search algorithm.} Starting from a random (Fisher-Yates) allocation with \eqn{n_T} treated,
 the search runs in one of two modes selected by \code{n_iter}: \code{Inf} (default)
 runs \strong{exhaustive best-improvement} search — each round scans every
 (treated, control) pair, applies the single globally best improving swap, and repeats
 until no swap improves \eqn{f(d)}, guaranteeing convergence to a strict local optimum;
 a positive integer instead runs exactly that many \strong{stochastic} steps, each
 picking a uniformly random (treated, control) pair and accepting the swap only if it
-improves \eqn{f(d)} (with patience-based early stopping). \code{r} independent design
+improves \eqn{f(d)}, with no early stopping. \code{r} independent design
 searches (one per requested replicate) run in parallel via OpenMP, each with its own
-\code{std::mt19937} generator. \strong{This search's
-randomization is reproducible via the constructor's \code{seed} argument}: per-thread
-RNGs are seeded from R's own RNG state (\code{GetRNGstate()}/\code{unif_rand()})
-before the parallel region begins, so \code{private$maybe_set_seed()} does govern the
+random-number stream. \strong{This search's
+randomization is reproducible via the constructor's \code{seed} argument}: one master
+seed is drawn from R's own RNG state (\code{GetRNGstate()}/\code{unif_rand()})
+before the parallel region begins, and each replicate's stream is derived from that
+seed and the replicate's index, so \code{private$maybe_set_seed()} does govern the
 resulting allocation, independent of the number of OpenMP threads used.
 
 \strong{Same draws as \code{\link[EDI:DesignFixedGreedyDOptimal]{DesignFixedGreedyDOptimal}}
@@ -57,16 +59,22 @@ same swap search from the same starting allocation reaches the same allocation (
 derivation is in \code{DesignFixedGreedyDOptimal}'s documentation). The draws differ
 when this class uses \code{objective = "abs_sum_diff"}, a finite \code{n_iter}, or the
 \code{"abs_sum_diff"} fallback after a failed Cholesky factorization, and when
-\code{DesignFixedGreedyDOptimal} uses an unequal \code{prob_T} (which this class
-does not support), \code{objective = "A"} with \code{interest = "all"} or a covariate
+\code{DesignFixedGreedyDOptimal} uses \code{objective = "A"} with \code{interest = "all"} or a covariate
 subset, or a \code{prior_precision}.
 
-\strong{Constraints and fallbacks.} Only exactly balanced allocation
-(\code{prob_T = 0.5}, \eqn{n} even) is supported; the constructor errors otherwise. If
-no covariates are available, the search degenerates to pure balanced Fisher-Yates
-randomization (no swap search, since there is nothing to balance on).
+\strong{Unequal arms.} Any \code{prob_T} in \eqn{(0, 1)} is supported; the search
+keeps the treated count fixed at \eqn{n_T = \mathrm{round}(n \cdot \mathrm{prob}_T)},
+and drawing errors if that leaves no treated or no control subject. The kernel centres
+\eqn{X}, so \eqn{M(2w - 1) = 2Mw}, a fixed positive multiple of the half
+treated-minus-control mean difference at every \eqn{n_T}: both objectives keep their
+balance meaning without any change to the swap update.
+
+\strong{Constraints and fallbacks.} If
+no covariates are available, the search degenerates to pure Fisher-Yates
+randomization with \eqn{n_T} treated (no swap search, since there is nothing to
+balance on).
 \code{greedy_design_search_cpp()}'s output is trusted unvalidated -- it guarantees
-exactly \code{n x r} valid \eqn{\{0,1\}} columns with \eqn{n/2} treated subjects per
+exactly \code{n x r} valid \eqn{\{0,1\}} columns with \eqn{n_T} treated subjects per
 column by construction (see fix_design_hierarchy.md, "AllocationMatrixValidation").
 }
 \examples{
@@ -156,7 +164,7 @@ Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
 \if{latex}{\out{\hypertarget{method-DesignFixedGreedy-initialize}{}}}
 \subsection{\code{DesignFixedGreedy$new()}}{
   Initialize a greedy pairwise-swap search fixed experimental
-  design. Only \code{prob_T = 0.5} is supported (see class documentation).
+  design. Any \code{prob_T} in \eqn{(0, 1)} is supported (see class documentation).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignFixedGreedy$new(
@@ -177,7 +185,8 @@ Krieger, A. M., Azriel, D., and Kapelner, A. (2019). "Nearly random
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment. Must be 0.5.}
+      \item{\code{prob_T}}{The probability of the treatment assignment; the search fixes the
+treated count at \code{round(n * prob_T)}.}
       \item{\code{objective}}{The covariate-imbalance objective to minimize: either
 \code{"mahal_dist"} (default, squared Mahalanobis distance between treated
 and control covariate means) or \code{"abs_sum_diff"} (sum of absolute
@@ -185,8 +194,8 @@ standardized mean differences); see class documentation for the exact
 criteria.}
       \item{\code{n_iter}}{Number of swap iterations. \code{Inf} (default) uses exhaustive
 best-improvement search guaranteed to reach a strict local optimum. A positive
-integer runs that many stochastic random-pair iterations with patience-based
-early stopping.}
+integer runs exactly that many stochastic random-pair iterations (no early
+stopping), each accepting the swap only if it improves the objective.}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{Flag for verbosity.}

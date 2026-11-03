@@ -2,9 +2,9 @@
 #'
 #' A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} implementing
 #' rerandomization (Morgan and Rubin, 2012): candidate allocations \eqn{w} are drawn
-#' from the design's base randomization law (balanced complete randomization when
-#' \code{prob_T = 0.5}, i.i.d. \eqn{\mathrm{Bernoulli}(prob\_T)} draws otherwise — see
-#' \code{generate_one_rerandomized_w()}) and only \strong{accepted} if a covariate
+#' from the design's base randomization law, complete randomization with exactly
+#' \eqn{n_T = \mathrm{round}(n \cdot prob\_T)} treated subjects at every
+#' \code{prob_T} and on every draw path, and only \strong{accepted} if a covariate
 #' imbalance criterion \eqn{M(w)} between the treated and control groups falls below a
 #' threshold \code{a} (\code{obj_val_cutoff}), i.e. the accepted allocations are drawn
 #' from the base randomization distribution truncated to \eqn{\{w : M(w) \le a\}}.
@@ -69,9 +69,8 @@
 #' \code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
 #'
 #' \strong{Pure-R fallback (unbalanced or odd \eqn{n}, \code{obj_val_cutoff} mode
-#' only).} Draws candidates in vectorized batches (independent Bernoulli(\code{prob_T})
-#' assignments, or a fixed-size random subset when \code{prob_T = 0.5} with odd \eqn{n}),
-#' scores each batch at once, and keeps the first \eqn{r} candidates with
+#' only).} Draws candidates in vectorized batches (uniformly random subsets of size
+#' \eqn{n_T = \mathrm{round}(n \cdot prob\_T)}), scores each batch at once, and keeps the first \eqn{r} candidates with
 #' \eqn{M(w) \le a}. Candidates with an empty arm are rejected. Like the C++ fast path
 #' it stops with an error after \code{max(1000 r, 1e5)} candidates if fewer than
 #' \eqn{r} are acceptable.
@@ -97,7 +96,9 @@ DesignFixedRerandomization = define_design_class(
 		#'   acceptance semantics of each mode and the covariate-imbalance objective.
 		#'
 		#' @param response_type 	The data type of response values.
-		#' @param prob_T  The probability of the treatment assignment.
+		#' @param prob_T  The probability of the treatment assignment. Every draw has
+		#'   exactly \code{round(n * prob_T)} treated subjects; drawing errors if that
+		#'   leaves no treated or no control subject.
 		#' @param obj_val_cutoff 	The maximum allowable objective value \eqn{a}; a candidate
 		#'   allocation is accepted iff \eqn{M(w) \le a}. Cannot be specified together with prop_acceptable.
 		#' @param prop_acceptable	The proportion of randomizations to accept (draws r/prop_acceptable total, returns r lowest). Cannot be specified together with obj_val_cutoff.
@@ -151,9 +152,14 @@ DesignFixedRerandomization = define_design_class(
 				self$assert_all_subjects_arrived()
 			}
 			n = self$get_n()
+			# One base law on every path: complete randomization with exactly
+			# n_T = round(n * prob_T) treated (release_v1_1_0.md TODO-164).
+			n_T = as.integer(round(n * private$prob_T))
+			if (n_T < 1L || n_T > n - 1L) {
+				stop(sprintf("prob_T = %g with n = %d yields a treated count of %d; need at least one treated and one control subject.", private$prob_T, n, n_T), call. = FALSE)
+			}
 			private$ensure_model_matrix_current()
 			if (is.null(private$X) || ncol(private$X) == 0){
-				n_T = round(n * private$prob_T)
 				return(replicate(r, sample(c(rep(1, n_T), rep(0, n - n_T)))))
 			}
 			# prop_acceptable path: draw r/prop_acceptable randomizations, return r with lowest obj vals
@@ -165,7 +171,6 @@ DesignFixedRerandomization = define_design_class(
 				if (private$prob_T == 0.5) {
 					indicTs = complete_randomization_forced_balanced_cpp(n, n_draw, ext_seed)
 				} else {
-					n_T = round(n * private$prob_T)
 					indicTs = complete_randomization_imbalanced_cpp(n, n_T, n_draw, ext_seed)
 				}
 				obj_vals = compute_objective_vals_cpp(X, indicTs, private$objective, private$S_inv)
@@ -233,8 +238,8 @@ DesignFixedRerandomization = define_design_class(
 			invisible(NULL)
 		},
 		# Batched rejection sampler for the unbalanced / odd-n case (TODO-118). Same
-		# candidate law as generate_one_rerandomized_w() (fixed n_T = round(n * prob_T)
-		# shuffle when prob_T == 0.5, else independent Bernoulli(prob_T)), but candidates
+		# candidate law as every other path and generate_one_rerandomized_w(): a fixed
+		# n_T = round(n * prob_T) shuffle at any prob_T (release_v1_1_0.md TODO-164), but candidates
 		# are drawn and scored in vectorized batches, and the accepted columns are the
 		# first r acceptable candidates in draw order. A candidate with an empty arm has
 		# no defined objective and is rejected. Bounded like the C++ path: errors after
@@ -253,17 +258,13 @@ DesignFixedRerandomization = define_design_class(
 			n_tried = 0
 			while (n_found < r && n_tried < max_cand){
 				B = as.integer(min(batch, ceiling(max_cand - n_tried)))
-				if (p_T == 0.5){
-					# uniformly random subset of size n_T_fixed per column: rank of iid uniforms
-					U = matrix(stats::runif(n * B), n, B)
-					W = matrix(0, n, B)
-					if (n_T_fixed > 0){
-						ord = apply(U, 2L, order)
-						idx = ord[seq_len(n_T_fixed), , drop = FALSE] + rep((seq_len(B) - 1L) * n, each = n_T_fixed)
-						W[idx] = 1
-					}
-				} else {
-					W = matrix(as.numeric(stats::runif(n * B) < p_T), n, B)
+				# uniformly random subset of size n_T_fixed per column: rank of iid uniforms
+				U = matrix(stats::runif(n * B), n, B)
+				W = matrix(0, n, B)
+				if (n_T_fixed > 0){
+					ord = apply(U, 2L, order)
+					idx = ord[seq_len(n_T_fixed), , drop = FALSE] + rep((seq_len(B) - 1L) * n, each = n_T_fixed)
+					W[idx] = 1
 				}
 				n_tried = n_tried + B
 				nT = colSums(W)
@@ -298,11 +299,7 @@ DesignFixedRerandomization = define_design_class(
 			X = private$X[1:n, , drop = FALSE]
 			n_T = round(n * private$prob_T)
 			repeat {
-				if (private$prob_T == 0.5){
-					w_cand = sample(c(rep(1, n_T), rep(0, n - n_T)))
-				} else {
-					w_cand = rbinom(n, 1, private$prob_T)
-				}
+				w_cand = sample(c(rep(1, n_T), rep(0, n - n_T)))
 				obj_val = private$compute_obj(X, w_cand)
 				if (is.null(private$obj_val_cutoff) || obj_val <= private$obj_val_cutoff){
 					return(w_cand)

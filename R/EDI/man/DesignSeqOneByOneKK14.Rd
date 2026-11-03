@@ -156,11 +156,12 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
 \subsection{\code{DesignSeqOneByOneKK14$new()}}{
   Initialize a KK14 sequential matching-on-the-fly experimental
   design (see class documentation for the burn-in and matching-test rules).
+  There is no \code{prob_T} argument: allocation is always 1:1
+  (\code{prob_T = 0.5}) because each matched pair adds one treated and one control subject.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneKK14$new(
   response_type,
-  prob_T = 0.5,
   include_is_missing_as_a_new_feature = TRUE,
   n = NULL,
   verbose = FALSE,
@@ -179,9 +180,6 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
     \describe{
       \item{\code{response_type}}{"continuous", "incidence", "proportion", "count", "survival", or
 "ordinal".}
-      \item{\code{prob_T}}{Probability of treatment assignment used for burn-in/
-unmatched (reservoir) subjects; matched subjects instead always receive
-the opposite assignment of their match (see class documentation).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{A flag for verbosity.}

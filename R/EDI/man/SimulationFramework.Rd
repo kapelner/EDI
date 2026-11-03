@@ -295,6 +295,14 @@ In this case, \code{cov_draw_method} must be \code{NULL}.}
   cores.  Cell state is pushed to the daemons once at \code{run()}
   start rather than re-serialized per dispatch.  If \pkg{mirai} is not
   installed, execution falls back to serial with a warning.
+
+  On \pkg{mirai}, \code{run()} stops the daemons and fails with an error
+  if no work unit or cache job finishes for six hours, because a worker
+  that has stopped responding would otherwise hang it forever.  Healthy
+  work is stopped too if nothing finishes in that time, so if a single
+  unit can run longer, raise the limit first with
+  \code{options(EDI.mirai_stall_timeout_secs = <seconds>)}; \code{Inf}
+  turns it off.  The limit does not apply to the fork cluster.
   Default \code{1}.}
       \item{\code{seed}}{Integer or \code{NULL} (default).  Random seed for the
 entire simulation run.}

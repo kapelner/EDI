@@ -5,7 +5,7 @@ private_env = function(x) x$.__enclos_env__$private
 
 test_that("Efron assignment takes balanced and both imbalanced branches", {
 	des = DesignSeqOneByOneEfron$new(
-		response_type = "continuous", n = 6L, prob_T = 0.5,
+		response_type = "continuous", n = 6L,
 		weighted_coin_prob = 1, seed = 101
 	)
 	p = private_env(des)
@@ -42,7 +42,7 @@ test_that("Wei urn assignment: alpha must be strictly positive; beta may be zero
 
 test_that("Atkinson early assignment uses the configured fallback coin", {
 	des = DesignSeqOneByOneAtkinson$new(
-		response_type = "continuous", n = 5L, prob_T = 0.5, seed = 103
+		response_type = "continuous", n = 5L, seed = 103
 	)
 	p = private_env(des)
 	p$prob_T = 1

@@ -176,7 +176,7 @@ judge <- function(rows) {
 	fails <- list()
 	add <- function(r, check, detail) {
 		fails[[length(fails) + 1L]] <<- data.frame(response_type = r$response_type, design = r$design,
-			inference_class = r$inference_class, method = r$method, formula = r$formula, check = check,
+			prob_T = cal_prob_T_label(r$prob_T), inference_class = r$inference_class, method = r$method, formula = r$formula, check = check,
 			detail = detail, stringsAsFactors = FALSE)
 	}
 	for (i in seq_len(nrow(rows))) {
@@ -213,14 +213,14 @@ judge <- function(rows) {
 	if (!length(fails)) return(NULL)
 	# One line per (cell, check): keep the first detail.
 	f <- do.call(rbind, fails)
-	f[!duplicated(f[, c("response_type", "design", "inference_class", "method", "formula", "check")]), ]
+	f[!duplicated(f[, c("response_type", "design", "prob_T", "inference_class", "method", "formula", "check")]), ]
 }
 
 t_start <- proc.time()[["elapsed"]]
 all_rows <- list()
 n_classes <- 0L
 for (rt in CAL_RESPONSE_TYPES) {
-	plan <- cal_class_plan(rt, PREPUSH_N)
+	plan <- cal_class_plan(rt, PREPUSH_N, unequal = TRUE)
 	plan <- lapply(plan, function(cls) setdiff(cls, PREPUSH_EXCLUDED_CLASSES))
 	keep <- touched_classes(unlist(plan, use.names = FALSE))
 	if (!length(keep)) next
@@ -233,8 +233,16 @@ for (rt in CAL_RESPONSE_TYPES) {
 	for (rep in PREPUSH_NULL_REPS) {
 		all_rows[[length(all_rows) + 1L]] <- cal_run_rep(rt, PREPUSH_N, rep, plan, keep = keep, effect = 0, endpoints = TRUE)
 	}
-	all_rows[[length(all_rows) + 1L]] <- cal_run_rep(rt, PREPUSH_N, 1L, plan, keep = keep,
-		effect = CAL_SIGN_EFFECT[[rt]], endpoints = TRUE)
+	# Large-effect sign check. CAL_SIGN_EFFECT is sized so a 1:1 design rejects with
+	# near-certainty at n = PREPUSH_N. An unequal-allocation cell has less information
+	# (proportional to 4 prob_T (1 - prob_T)), so it runs at the equal-information
+	# sample size instead, e.g. n = 313 at prob_T = 0.2 (release_v1_0_5.md TODO-184).
+	for (plan_label in names(plan)) {
+		p_T <- cal_plan_entry(plan_label)$prob_T
+		n_sign <- as.integer(ceiling(PREPUSH_N / (4 * p_T * (1 - p_T))))
+		all_rows[[length(all_rows) + 1L]] <- cal_run_rep(rt, n_sign, 1L, plan[plan_label], keep = keep,
+			effect = CAL_SIGN_EFFECT[[rt]], endpoints = TRUE)
+	}
 }
 if ("--list-only" %in% args) quit(status = 0L)
 if (!n_classes) {
@@ -246,23 +254,27 @@ fails <- judge(rows)
 cat(sprintf("prepush_calibration: %d class(es), %d task rows, %.0f s\n", n_classes, nrow(rows), proc.time()[["elapsed"]] - t_start))
 
 if (!is.null(write_known)) {
-	out <- if (is.null(fails)) data.frame(response_type = character(), inference_class = character(), method = character(), formula = character(),
+	out <- if (is.null(fails)) data.frame(response_type = character(), prob_T = character(), inference_class = character(), method = character(), formula = character(),
 		check = character(), reason = character()) else
-		data.frame(fails[, c("response_type", "inference_class", "method", "formula", "check")], reason = fails$detail)
+		data.frame(fails[, c("response_type", "prob_T", "inference_class", "method", "formula", "check")], reason = fails$detail)
 	utils::write.csv(unique(out), write_known, row.names = FALSE)
 	cat(sprintf("prepush_calibration: wrote %d known-failure row(s) to %s -- review each before committing.\n", nrow(out), write_known))
 	quit(status = 0L)
 }
 
-key <- function(df) paste(df$response_type, df$inference_class, df$method, df$formula, df$check, sep = " | ")
+# prob_T is part of the key (release_v1_0_5.md TODO-184): a known failure at 0.5 does
+# not excuse the same class failing at the unequal-allocation cell. Known-failure rows
+# without a prob_T column predate it and mean 0.5.
+key <- function(df) paste(df$response_type, cal_prob_T_label(df$prob_T), df$inference_class, df$method, df$formula, df$check, sep = " | ")
 known <- if (file.exists(KNOWN_FAILURES_PATH)) utils::read.csv(KNOWN_FAILURES_PATH, stringsAsFactors = FALSE, colClasses = "character") else NULL
+if (!is.null(known) && !("prob_T" %in% names(known))) known$prob_T <- "0.5"
 known_keys <- if (is.null(known)) character() else key(known)
 fail_keys <- if (is.null(fails)) character() else key(fails)
 new_fail <- if (is.null(fails)) NULL else fails[!fail_keys %in% known_keys, ]
 # A known failure is stale only if its class was actually checked this push.
-checked_keys <- unique(paste(rows$response_type, rows$inference_class, rows$method, rows$formula, sep = " | "))
+checked_keys <- unique(paste(rows$response_type, cal_prob_T_label(rows$prob_T), rows$inference_class, rows$method, rows$formula, sep = " | "))
 stale <- if (is.null(known)) character() else
-	known_keys[paste(known$response_type, known$inference_class, known$method, known$formula, sep = " | ") %in% checked_keys & !known_keys %in% fail_keys]
+	known_keys[paste(known$response_type, cal_prob_T_label(known$prob_T), known$inference_class, known$method, known$formula, sep = " | ") %in% checked_keys & !known_keys %in% fail_keys]
 
 if (length(fail_keys) && any(fail_keys %in% known_keys)) {
 	cat(sprintf("prepush_calibration: %d known failure(s) still present (listed in %s, not blocking).\n",
@@ -273,8 +285,8 @@ if (!is.null(new_fail) && nrow(new_fail)) {
 	cat("\nprepush_calibration: FAILED -- new calibration failure(s):\n", file = stderr())
 	for (i in seq_len(nrow(new_fail))) {
 		f <- new_fail[i, ]
-		cat(sprintf("  [%s] %s %s %s (%s, %s): %s\n", f$check, f$inference_class, f$method, f$formula,
-			f$response_type, sub("^DesignFixed", "", f$design), f$detail), file = stderr())
+		cat(sprintf("  [%s] %s %s %s (%s, %s%s): %s\n", f$check, f$inference_class, f$method, f$formula,
+			f$response_type, sub("^DesignFixed", "", f$design), if (f$prob_T != "0.5") paste0(", prob_T = ", f$prob_T) else "", f$detail), file = stderr())
 	}
 	status <- 1L
 }

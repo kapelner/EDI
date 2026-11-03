@@ -73,8 +73,10 @@ ObservationalDesign = define_design_class(
 		#'   check balance against, so this is a no-op rather than an error (contrast
 		#'   with the inherited \code{Design$assert_even_allocation()}, which errors if
 		#'   the realized allocation deviates from \code{prob_T = 0.5}).
+		#' @param always Ignored; accepted for signature compatibility with
+		#'   \code{Design$assert_even_allocation()}.
 		#' @return \code{invisible(NULL)}, always; never errors.
-		assert_even_allocation = function(){
+		assert_even_allocation = function(always = FALSE){
 			invisible(NULL)
 		},
 		#' @description Characterization: \code{FALSE} -- this design has no

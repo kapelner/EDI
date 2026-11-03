@@ -8,11 +8,9 @@ library(EDI)
 #      B_target, but n = ... is not divisible by B_target = ...". The sibling guards on the
 #      same `if (!is.null(m))` block (n/m-supplied-together, length(m) == n) are already
 #      covered; this third, independent equal_block_sizes branch was not.
-#   2. DesignFixedGreedy$new(prob_T != 0.5): the C++ kernel (design_fixed_greedy.cpp)
-#      unconditionally hardcodes nt = n / 2, so a non-0.5 prob_T must be rejected up front
-#      rather than silently drawing a different design than get_prob_T() reports
-#      (fix_design_hierarchy.md TODO-33) -- "Greedy designs currently only support even
-#      treatment allocation (prob_T = 0.5)".
+#   2. DesignFixedGreedy$new(prob_T != 0.5): originally rejected because the C++ kernel
+#      hardcoded nt = n / 2 (fix_design_hierarchy.md TODO-33). Since 2026-11-03 the kernel
+#      takes n_T = round(n * prob_T), so the test now asserts acceptance.
 #   3. DesignFixedFactorial$new(factors): rejects any `factors` combination that doesn't
 #      imply exactly 2 total combinations (two-arm only) -- "DesignFixedFactorial currently
 #      only supports exactly two total factor-level combinations...".
@@ -30,12 +28,9 @@ test_that("DesignFixedBlocking accepts equal_block_sizes = TRUE when n IS divisi
 	expect_silent(DesignFixedBlocking$new(n = 12L, B_target = 3L, equal_block_sizes = TRUE, response_type = "continuous", verbose = FALSE))
 })
 
-test_that("DesignFixedGreedy rejects a non-0.5 prob_T with the documented even-allocation-only message", {
-	expect_error(
-		DesignFixedGreedy$new(n = 10L, prob_T = 0.6, response_type = "continuous", verbose = FALSE),
-		"Greedy designs currently only support even treatment allocation (prob_T = 0.5)",
-		fixed = TRUE
-	)
+test_that("DesignFixedGreedy accepts a non-0.5 prob_T (unequal-arm support, 2026-11-03; registry supports_unequal_allocation = TRUE)", {
+	des <- DesignFixedGreedy$new(n = 10L, prob_T = 0.6, response_type = "continuous", verbose = FALSE)
+	expect_equal(des$get_prob_T(), 0.6)
 })
 
 test_that("DesignFixedFactorial rejects a factors argument implying more than 2 total combinations", {

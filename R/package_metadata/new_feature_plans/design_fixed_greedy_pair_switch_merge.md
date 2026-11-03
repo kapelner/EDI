@@ -1,5 +1,21 @@
 # Merge `DesignFixedGreedy` into `DesignFixedGreedyDOptimal` as `DesignFixedGreedyPairSwitch`
 
+> **Status 2026-11-03 (`release_v1_0_5.md → TODO-184`): the unequal-arm math is
+> DONE and the rederivation below was UNNECESSARY.** `DesignFixedGreedy` now supports any `prob_T` and odd `n`
+> with the swap update unchanged. The kernel centres `X` before building `M`,
+> so `M * 1 = 0` and `M(2w - 1) = 2Mw`: a fixed positive multiple of the
+> general-`n_T` weighting `c * Mw`, `c = (n/2)(1/n_T + 1/n_C)`, derived below.
+> Every accept/reject is a strict comparison, so the literal `2.0` already
+> ranks allocations correctly at any `n_T`, and draws at `prob_T = 0.5` stay
+> bit-identical. The only kernel changes were the arm sizes: a new `n_T`
+> argument, `control(n_C)` buffers, and drawing the stochastic control index
+> from `[0, n_C)`. Verified by `tests/testthat/test-greedy-unequal-arms.R`
+> (same-seed reproducibility at several `prob_T`; `mahal_dist` draws identical
+> to `DesignFixedGreedyDOptimal`'s at unequal `prob_T`; exhaustive
+> `abs_sum_diff` a brute-force local optimum of the true mean difference).
+> Do **not** implement the formulas in "The rederivation" section. Only the
+> class merge (TODO-7 onward) remains open.
+
 > **Depends on:** `fix_design_hierarchy.md`'s Stage-2 shared greedy-swap
 > engine extraction (still `[ ]` in that plan's Follow-Ups as of 2026-08-16 —
 > see `design_fixed_optimal.md`'s dependency header for the same
@@ -74,6 +90,10 @@ against them:
 
 ## The rederivation (worked out and verified against the kernel's exact scaling convention)
 
+> **UNNECESSARY (2026-11-03):** correct, but it only rescales `f` by a positive
+> constant because `X` is centred. Kept as the record; see the status note at
+> the top.
+
 Generalize the per-subject weight from `v_i(w) = 2w_i - 1` (fixed ±1) to a
 weight that reduces to today's `2w-1` **exactly** at `n_T = n_C = n/2`, and
 gives a genuine (scalar multiple of) `mean_T - mean_C` at every `n_T`:
@@ -143,6 +163,12 @@ subjects, with no dependence on treatment/control split anywhere in its
 construction.
 
 ## What still needs checking (not derived here — flagged honestly)
+
+> **Resolved 2026-11-03:** pair mode stays 1:1 (the kernel errors if `n_T` is
+> not the number of pairs); stochastic mode has no patience or early-stopping
+> logic at all (the roxygen saying so was wrong and is fixed); the
+> `abs_sum_diff` fused expression `(d + delta).lpNorm<1>()` holds no second
+> constant; the R-level validation is replaced; seed reproducibility is tested.
 
 - **Pair-constrained init branch.** The kernel has a `pair_mode`/`pairs`/
   `pair_cur_t` code path (confirmed present, `design_fixed_greedy.cpp`) not
@@ -261,18 +287,18 @@ completed A/D merge; `DesignFixedOptimal`'s five-way `objective` enum).
   Stage-2 shared-engine extraction lands (per the dependency header) —
   re-verify that item's status before starting, since rederiving against a
   kernel about to be rewritten wastes the work.
-- [ ] TODO-2: Investigate the `pair_mode` branch in `design_fixed_greedy.cpp`
+- [x] TODO-2 (2026-11-03: pair mode is DesignFixedMatchingGreedyPairSwitching's, always 1:1; kernel rejects n_T != #pairs): Investigate the `pair_mode` branch in `design_fixed_greedy.cpp`
   and its relationship (if any) to `DesignFixedMatchingGreedyPairSwitching`
   before finalizing the target class name's implied scope.
-- [ ] TODO-3: Rederive/verify the stochastic-mode patience/early-stopping
+- [x] TODO-3 (2026-11-03: moot, no patience logic exists): Rederive/verify the stochastic-mode patience/early-stopping
   threshold's scale-dependence; generalize if needed.
-- [ ] TODO-4: Verify the `abs_sum_diff` "fused expression" optimization has
+- [x] TODO-4 (2026-11-03: no second constant): Verify the `abs_sum_diff` "fused expression" optimization has
   no second hardcoded balance assumption beyond the `delta` site.
-- [ ] TODO-5: Implement the general `delta`/initial-`v(w)` formulas in the
+- [x] TODO-5 (2026-11-03: UNNECESSARY for delta/v(w), see status note; only n_T was passed in): Implement the general `delta`/initial-`v(w)` formulas in the
   kernel (single-line-scale change at `delta`'s computation sites, per the
   worked derivation above); pass `n_T`/`n_C` into the kernel (it currently
   takes none).
-- [ ] TODO-6: Remove the R-level `prob_T = 0.5`/even-`n` validation; replace
+- [x] TODO-6 (2026-11-03): Remove the R-level `prob_T = 0.5`/even-`n` validation; replace
   with the standard `n_T = round(n*prob_T) in (1, n-1)` always-on check.
 - [ ] TODO-7: Implement the class merge: `DesignFixedGreedyPairSwitch` via
   `define_design_class()`, `objective` extended to `c("D","A","mahal_dist",

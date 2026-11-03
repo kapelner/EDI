@@ -29,7 +29,7 @@
 #' (\code{n_iter = Inf}, default) repeatedly finds and applies the single pair-flip that
 #' most decreases the imbalance objective, stopping at a strict local optimum (or runs
 #' exactly \code{n_iter} random-pair stochastic flip-if-improving steps otherwise, with
-#' patience-based early stopping) — the same two search modes as
+#' no early stopping) — the same two search modes as
 #' \code{\link[EDI:DesignFixedGreedy]{DesignFixedGreedy}}, but with moves restricted to
 #' "flip which side of a given pair is treated" rather than "swap any treated/control
 #' pair of subjects." Random initialization and swap selection are seeded from R's own
@@ -43,8 +43,8 @@
 #' is treated (never crosses pairs), so \eqn{w} always has exactly one treated subject
 #' per pair — the pair, not the subject, is the exchangeable resampling unit.
 #'
-#' \strong{Constraints.} Only \code{prob_T = 0.5} is supported (the constructor errors
-#' otherwise), and \code{n} must be divisible by 4 (\code{draw_ws_raw()} errors
+#' \strong{Constraints.} Allocation is always 1:1 (there is no \code{prob_T}
+#' argument), and \code{n} must be divisible by 4 (\code{draw_ws_raw()} errors
 #' otherwise); \code{n/2} matched pairs are formed regardless of parity, but the
 #' additional divisible-by-4 requirement is enforced by this class specifically (unlike
 #' \code{\link[EDI:DesignFixedBinaryMatch]{DesignFixedBinaryMatch}}, which only requires
@@ -70,10 +70,11 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 	public = list(
 		#' @description Initialize a fixed design that performs binary matching followed
 		#'   by greedy which-member-treated optimization (see class documentation).
-		#'   Only \code{prob_T = 0.5} is supported, and \code{n} must be divisible by 4.
+		#'   \code{n} must be divisible by 4.
+		#'   There is no \code{prob_T} argument: allocation is always 1:1
+		#'   (\code{prob_T = 0.5}) because each matched pair gets one treated and one control subject.
 		#'
 		#' @param response_type The data type of response values.
-		#' @param prob_T The probability of treatment assignment. Must be \code{0.5}.
 		#' @param include_is_missing_as_a_new_feature Flag for missingness indicators.
 		#' @param n The sample size; must be divisible by 4.
 		#' @param verbose A flag for verbosity.
@@ -91,14 +92,13 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 		#'   matched pairs relative to 1.0.x (measured at n = 1000, p = 4).
 		#' @param n_iter Number of swap iterations. \code{Inf} (default) uses exhaustive
 		#'   best-improvement search guaranteed to reach a strict local optimum. A positive
-		#'   integer runs that many stochastic random-pair iterations with patience-based
-		#'   early stopping.
+		#'   integer runs exactly that many stochastic random-pair iterations (no early
+		#'   stopping), each accepting the flip only if it improves the objective.
 		#' @param seed Integer seed for reproducibility.
 		#'
 		#' @return A new \code{DesignFixedMatchingGreedyPairSwitching} object.
 		initialize = function(
 				response_type,
-				prob_T = 0.5,
 				include_is_missing_as_a_new_feature = TRUE,
 				n,
 				verbose = FALSE,
@@ -111,15 +111,10 @@ DesignFixedMatchingGreedyPairSwitching = define_design_class(
 			) {
 			match_objective = match.arg(match_objective)
 			if (should_run_asserts()) {
-				if (prob_T != 0.5) {
-					stop("DesignFixedMatchingGreedyPairSwitching only supports balanced designs (prob_T = 0.5).")
-				}
-			}
-			if (should_run_asserts()) {
 				if (!is.infinite(n_iter) && (!is.numeric(n_iter) || length(n_iter) != 1L || n_iter <= 0 || n_iter != floor(n_iter)))
 					stop("n_iter must be Inf or a positive integer")
 			}
-			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
+			super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			private$objective = objective
 			private$match_objective = match_objective
 			private$n_iter    = n_iter

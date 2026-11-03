@@ -468,9 +468,20 @@ interval upper bound.}
 \if{latex}{\out{\hypertarget{method-Design-assert_even_allocation}{}}}
 \subsection{\code{Design$assert_even_allocation()}}{
   Checks if the experiment has a 50-50 allocation.
+  \code{Design$initialize()} calls this for every class whose registry
+  capability \code{supports_unequal_allocation} is \code{FALSE} (Efron,
+  Atkinson, Pocock-Simon, KK, urn, matching, factorial and observational designs).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{Design$assert_even_allocation()}
+    \preformatted{Design$assert_even_allocation(always = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{always}}{If \code{TRUE}, check even when asserts are disabled via
+\code{options(edi.run_asserts = FALSE)}.}
+    }
     \if{html}{\out{</div>}}
   }
 }

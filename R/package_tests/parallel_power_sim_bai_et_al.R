@@ -68,13 +68,13 @@ run_simulation = function(i, beta_T, config, design, morison, n){
 
 
 	if (morison == "_morrison_n") {
-	des_obj = des_class$new(n = n, prob_T = 0.5, p = p,
+	des_obj = des_class$new(n = n, p = p,
 								 response_type = "continuous", verbose = FALSE, morrison = TRUE)
 	} else if (morison == "_morrison") {
-	des_obj = des_class$new(prob_T = 0.5, p = p,
+	des_obj = des_class$new(p = p,
 								 response_type = "continuous", verbose = FALSE, morrison = TRUE)
 	} else {
-	des_obj = des_class$new(n = n, prob_T = 0.5, p = p,
+	des_obj = des_class$new(n = n, p = p,
 								 response_type = "continuous", verbose = FALSE, morrison = FALSE)
 	}
 

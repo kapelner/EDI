@@ -26,7 +26,7 @@ test_that("assign_wt()'s post-warm-up call to atkinson_assign_weight_cpp is wrap
 
 	set.seed(1L)
 	n <- 30L
-	des <- DesignSeqOneByOneAtkinson$new(n = n, response_type = "continuous", verbose = FALSE, prob_T = 0.5)
+	des <- DesignSeqOneByOneAtkinson$new(n = n, response_type = "continuous", verbose = FALSE)
 	X <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
 	ws <- integer(n)
 	for (i in seq_len(n)) {
@@ -43,7 +43,7 @@ test_that("assign_wt()'s post-warm-up call to atkinson_assign_weight_cpp is wrap
 test_that("without the mock, the same fixture completes normally (sanity check that the mocked test above isn't accidentally testing something already broken)", {
 	set.seed(1L)
 	n <- 30L
-	des <- DesignSeqOneByOneAtkinson$new(n = n, response_type = "continuous", verbose = FALSE, prob_T = 0.5)
+	des <- DesignSeqOneByOneAtkinson$new(n = n, response_type = "continuous", verbose = FALSE)
 	X <- data.frame(x1 = rnorm(n), x2 = rnorm(n))
 	for (i in seq_len(n)) {
 		des$add_one_subject_to_experiment_and_assign(X[i, , drop = FALSE])

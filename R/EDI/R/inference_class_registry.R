@@ -1006,6 +1006,24 @@ infer_inference_requires_blocking_design = function(generator) {
 	FALSE
 }
 
+#' Whether a concrete `Inference` class requires even treatment allocation
+#' (`des_obj$get_prob_T() == 0.5`), read from the nearest ancestor's
+#' argument-less `requires_even_allocation()` private method, exactly as
+#' `infer_inference_requires_blocking_design()` above. `InferenceIncidCMH` and
+#' `InferenceIncidExtendedRobins` override the default `FALSE`.
+#'
+#' @keywords internal
+#' @noRd
+infer_inference_requires_even_allocation = function(generator) {
+	current = generator
+	while (!is.null(current)) {
+		fn = current$private_methods$requires_even_allocation
+		if (!is.null(fn)) return(isTRUE(fn()))
+		current = current$get_inherit()
+	}
+	FALSE
+}
+
 #' Whether a concrete `Inference` class requires a KK matched design
 #' (`des_obj$is_a_kk_matching_capable()`). Unlike
 #' `infer_inference_requires_blocking_design()`/
@@ -2193,6 +2211,7 @@ register_inference_class = function(name, parent = NULL, metadata = list(), dire
 			excluded_capabilities = character(),
 			supports_general_censoring = FALSE,
 			requires_blocking_design = FALSE,
+			requires_even_allocation = FALSE,
 			requires_kk_matching_design = FALSE,
 			estimand = NA_character_,
 			adjusts_for_covariates = NA
@@ -3450,6 +3469,7 @@ populate_inference_class_registry = function(ns = environment(populate_inference
 				)),
 				supports_general_censoring = infer_inference_supports_general_censoring(obj),
 				requires_blocking_design = infer_inference_requires_blocking_design(obj),
+				requires_even_allocation = infer_inference_requires_even_allocation(obj),
 				requires_kk_matching_design = infer_inference_requires_kk_matching_design(name),
 				supports_additive_delta_shift = name %in% EDI_INFERENCE_ADDITIVE_DELTA_SHIFT_CLASSES,
 				design_compatibility_reason = infer_inference_design_compatibility_reason_fn(obj),

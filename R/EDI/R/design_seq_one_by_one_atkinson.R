@@ -55,12 +55,10 @@ DesignSeqOneByOneAtkinson = define_design_class(
 	public = list(
 		#' @description Initialize an Atkinson (1982) biased-coin sequential
 		#'   experimental design (see class documentation for the assignment rule).
+		#'   There is no \code{prob_T} argument: allocation is always 1:1
+		#'   (\code{prob_T = 0.5}) because Atkinson's optimal-design rule balances the arms 1:1.
 		#'
 		#' @param  response_type 	The data type of response values.
-		#' @param  prob_T  The nominal probability of treatment assignment; used as
-		#'   the fallback coin probability early in the trial and whenever Atkinson's
-		#'   rule cannot be computed (see class documentation), and as the reference
-		#'   probability the biased coin is skewed away from otherwise.
 		#' @param include_is_missing_as_a_new_feature     Flag for missingness indicators.
 		#' @param  n  		The sample size.
 		#' @param verbose A flag for verbosity.
@@ -72,7 +70,6 @@ DesignSeqOneByOneAtkinson = define_design_class(
 		#'
 		initialize = function(
 						response_type,
-						prob_T = 0.5,
 						include_is_missing_as_a_new_feature = TRUE,
 						n = NULL,
 
@@ -81,7 +78,7 @@ DesignSeqOneByOneAtkinson = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 			) {
-			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
+			super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			private$uses_covariates = TRUE
 		},
 		#' @description Draw the next subject's treatment assignment via Atkinson's

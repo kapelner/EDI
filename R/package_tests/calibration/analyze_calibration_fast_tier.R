@@ -44,8 +44,11 @@ files <- list.files(in_dir, pattern = "^rows\\.csv$", recursive = TRUE, full.nam
 if (!length(files)) stop("no rows.csv under ", in_dir)
 d <- do.call(rbind, lapply(files, utils::read.csv, stringsAsFactors = FALSE, colClasses = c(formula = "character")))
 d$formula[is.na(d$formula)] <- ""
+# Rows from before the prob_T column ran at equal allocation (release_v1_0_5.md TODO-184).
+if (!("prob_T" %in% names(d))) d$prob_T <- 0.5
+d$prob_T[is.na(d$prob_T)] <- 0.5
 
-cell_cols <- c("response_type", "design", "inference_class", "method", "formula", "n")
+cell_cols <- c("response_type", "design", "prob_T", "inference_class", "method", "formula", "n")
 cell_key <- do.call(paste, c(d[cell_cols], sep = "\r"))
 cells <- lapply(split(seq_len(nrow(d)), cell_key), function(idx) {
 	x <- d[idx, ]
@@ -71,9 +74,12 @@ s$accepted <- ""
 if (file.exists(accepted_path)) {
 	acc <- utils::read.csv(accepted_path, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
 	acc$formula[is.na(acc$formula)] <- ""
+	# An accepted deviation without a prob_T column applies to the equal-allocation cell.
+	if (!("prob_T" %in% names(acc))) acc$prob_T <- 0.5
+	acc$prob_T[is.na(acc$prob_T)] <- 0.5
 	for (i in seq_len(nrow(acc))) {
 		a <- acc[i, ]
-		hit <- s$response_type == a$response_type & s$design == a$design & s$inference_class == a$inference_class &
+		hit <- s$response_type == a$response_type & s$design == a$design & s$prob_T == a$prob_T & s$inference_class == a$inference_class &
 			s$method == a$method & s$formula == a$formula & s$n == a$n
 		if (!any(hit)) next
 		if (a$metric == "size") s$size_null[hit] <- a$accepted_level
@@ -100,10 +106,10 @@ md <- c("## Calibration fast tier",
 		nrow(d), nrow(s), K, threshold, nrow(fails)),
 	"")
 if (nrow(fails)) {
-	md <- c(md, "| response | design | class | method | formula | n | size | coverage | finite | p (size) | p (coverage) | accepted |",
-		"|---|---|---|---|---|---|---|---|---|---|---|---|",
-		sprintf("| %s | %s | %s | %s | %s | %d | %s%s | %s%s | %d/%d | %s | %s | %s |",
-			fails$response_type, sub("^DesignFixed", "", fails$design), sub("^Inference", "", fails$inference_class),
+	md <- c(md, "| response | design | prob_T | class | method | formula | n | size | coverage | finite | p (size) | p (coverage) | accepted |",
+		"|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+		sprintf("| %s | %s | %s | %s | %s | %s | %d | %s%s | %s%s | %d/%d | %s | %s | %s |",
+			fails$response_type, sub("^DesignFixed", "", fails$design), format(fails$prob_T), sub("^Inference", "", fails$inference_class),
 			fails$method, fails$formula, fails$n, fmt(fails$size), ifelse(fails$fail_size, " **FAIL**", ""),
 			fmt(fails$coverage), ifelse(fails$fail_coverage, " **FAIL**", ""), pmax(fails$n_p, fails$n_ci), fails$reps,
 			fmt(fails$p_size, 2), fmt(fails$p_coverage, 2), fails$accepted), "")

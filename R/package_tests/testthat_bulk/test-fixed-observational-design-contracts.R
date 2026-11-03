@@ -2,9 +2,9 @@ library(testthat)
 library(EDI)
 
 test_that("fixed design constructors enforce structural allocation constraints", {
-  expect_error(DesignFixedGreedy$new("continuous", prob_T = 0.4, n = 8), "prob_T = 0.5")
+  expect_equal(DesignFixedGreedy$new("continuous", prob_T = 0.4, n = 8)$get_prob_T(), 0.4)   # unequal arms supported since 2026-11-03
   expect_error(DesignFixedGreedy$new("continuous", n_iter = 1.5, n = 8), "positive integer")
-  expect_error(DesignFixedMatchingGreedyPairSwitching$new("continuous", prob_T = 0.4, n = 8), "balanced")
+  expect_error(DesignFixedMatchingGreedyPairSwitching$new("continuous", prob_T = 0.4, n = 8), "unused argument")
   expect_error(DesignFixedMatchingGreedyPairSwitching$new("continuous", n_iter = 0, n = 8), "positive integer")
   expect_error(DesignFixedGreedyDOptimal$new("continuous", prob_T = 0, n = 8), "strictly between")
   expect_error(DesignFixedGreedyDOptimal$new("continuous", n_iter = 10, n = 8), "Finite n_iter")
@@ -53,7 +53,7 @@ test_that("greedy designs expose batching and reject infeasible sample sizes", {
   greedy <- DesignFixedGreedy$new("continuous", n = 7, seed = 94)
   expect_true(greedy$supports_batch_w_pregeneration())
   greedy$add_all_subjects_to_experiment(data.frame(x = seq_len(7)))
-  expect_error(greedy$assign_w_to_all_subjects(), "even number")
+  expect_equal(sum(greedy$assign_w_to_all_subjects()), round(7 * 0.5))   # odd n is fine since 2026-11-03
 
   pair_switch <- DesignFixedMatchingGreedyPairSwitching$new("continuous", n = 6, seed = 95)
   expect_true(pair_switch$supports_batch_w_pregeneration())

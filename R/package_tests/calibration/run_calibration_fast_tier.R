@@ -37,7 +37,7 @@ if (is.null(response_type) || !response_type %in% CAL_RESPONSE_TYPES) stop("--re
 if (is.null(out_dir)) stop("--out-dir is required")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-plan <- cal_class_plan(response_type, n)
+plan <- cal_class_plan(response_type, n, unequal = TRUE)
 plan <- lapply(plan, function(cls) {
 	cls <- setdiff(cls, exclude)
 	if (length(only)) intersect(cls, only) else cls

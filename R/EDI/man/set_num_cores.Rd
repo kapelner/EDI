@@ -34,6 +34,12 @@ intervals, bootstrap for non-regression KK Wilcoxon inference, bootstrap for
 non-KK survival procedures, and bootstrap for incidence procedures. Do not
 expect a universal "more cores is faster" rule.
 
+On the \code{mirai} backend, inference stops the workers and fails with an
+error if no chunk of work finishes for six hours, and so does
+\code{SimulationFramework}, so a worker that has stopped responding cannot
+hang the session forever. Change that limit, in seconds,
+with \code{options(EDI.mirai_stall_timeout_secs = )}.
+
 If you want to change the default policy, use
 \code{set_parallel_dispatch_policy()}.
 

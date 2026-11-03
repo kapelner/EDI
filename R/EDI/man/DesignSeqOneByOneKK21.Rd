@@ -197,12 +197,13 @@ Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
 \subsection{\code{DesignSeqOneByOneKK21$new()}}{
   Initialize a matching-on-the-fly sequential experimental design which matches based on
 Kapelner and Krieger (2021) with
-option to use matching parameters of Morrison and Owen (2025)
+option to use matching parameters of Morrison and Owen (2025).
+  There is no \code{prob_T} argument: allocation is always 1:1
+  (\code{prob_T = 0.5}) because each matched pair adds one treated and one control subject.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneKK21$new(
   response_type,
-  prob_T = 0.5,
   include_is_missing_as_a_new_feature = TRUE,
   n = NULL,
   verbose = FALSE,
@@ -234,7 +235,6 @@ option to use matching parameters of Morrison and Owen (2025)
                                                                 This package will enforce
 that all added responses via the \code{add_one_subject_response} method will be
                                 of the appropriate type.}
-      \item{\code{prob_T}}{The probability of the treatment assignment. This defaults to \code{0.5}.}
       \item{\code{include_is_missing_as_a_new_feature}}{If missing data is present in a variable,
   should we include another dummy variable for its
                                                                 missingness in addition to

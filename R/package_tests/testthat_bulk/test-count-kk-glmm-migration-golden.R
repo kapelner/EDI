@@ -41,6 +41,14 @@ count_kk_glmm_golden_design = function(n = 24L, seed = 20260819L) {
 	})
 }
 
+# v1.0.5 TODO-171 (9c9b2cab, 2026-10-29) deliberately removed the max-with-
+# Wald calibration from compute_lik_ratio_confidence_interval()/
+# compute_lik_ratio_two_sided_pval(): they now return the GLMM's own profile
+# LR result, as in the sibling KK GLMM classes. The frozen legacy fixture
+# still widens against Wald, so these two labels legitimately differ.
+# Re-confirmed locally 2026-11-03: only these two labels differ.
+count_kk_glmm_todo171_changed_labels = c("lik_ratio_ci", "lik_ratio_pval")
+
 test_that("InferenceCountKKGLMM migration produces identical outputs", {
 	Legacy = make_count_kk_glmm_legacy_generator()
 	des = count_kk_glmm_golden_design()
@@ -59,6 +67,12 @@ test_that("InferenceCountKKGLMM migration produces identical outputs", {
 			next
 		}
 		expect_identical(legacy_result$status, migrated_result$status, info = label)
+		if (label %in% count_kk_glmm_todo171_changed_labels) {
+			# Intentional behavior change, not migration drift: only require a
+			# finite migrated result.
+			expect_true(all(is.finite(as.numeric(migrated_result$value))), info = label)
+			next
+		}
 		if (identical(legacy_result$status, "ok")) {
 			expect_equal(migrated_result$value, legacy_result$value, tolerance = 1e-6, info = label)
 		}

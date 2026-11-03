@@ -74,6 +74,7 @@ safe_call_fixture <- function(fork) {
 	e$FUNCTION_TIMEOUT_SEC <- 60
 	e$SAFE_CALL_FORK <- fork
 	e$skip_repeat_after_timeout <- FALSE
+	e$skip_function_labels <- character(0)
 	e$NUM_CORES <- 1L
 	e$WATCHDOG_SUPERVISOR_PID <- NA_integer_
 	e$WATCHDOG_MARKER <- ""

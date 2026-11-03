@@ -1,7 +1,7 @@
 // Greedy experimental design search — native C++ (RcppEigen + OpenMP).
 //
 // Algorithm (per design):
-//   1. Random balanced init: n/2 treated via Fisher-Yates.
+//   1. Random init: n_T treated via Fisher-Yates (n_T defaults to n/2).
 //   2. Criterion vector  d = M * (2w − 1),  M is p×n.
 //   3a. Exhaustive mode (n_iter < 0): each round scans ALL (treated i, control j)
 //       pairs, accepts the globally best improving swap, repeats until no swap
@@ -46,11 +46,21 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
     const int                               r,
     const std::string&                      objective,
     const int                               n_iter,
-    Rcpp::Nullable<Rcpp::IntegerMatrix>     indicies_pairs = R_NilValue
+    Rcpp::Nullable<Rcpp::IntegerMatrix>     indicies_pairs = R_NilValue,
+    const int                               n_T = -1
 ) {
     const int n  = static_cast<int>(X_raw.rows());
     const int p  = static_cast<int>(X_raw.cols());
-    const int nt = n / 2;
+    // Treated count. n_T < 0 means the historical balanced default n / 2.
+    // Unequal arms need no change to the swap update: X is centred below, so
+    // M * 1 = 0 and M * (2w - 1) = 2 * M * w, a fixed positive multiple of the
+    // general-n_T half mean difference (n/2)(1/n_T + 1/n_C) * M * w. Every
+    // accept/reject is a strict comparison, so the constant 2.0 in delta ranks
+    // allocations exactly as the general weighting would, at any n_T.
+    const int nt = (n_T < 0) ? n / 2 : n_T;
+    const int nc = n - nt;
+    if (nt < 1 || nc < 1)
+        Rcpp::stop("greedy_design_search_cpp: n_T must leave at least one treated and one control subject.");
 
     // ── Pair-constrained mode: load pairs (convert 1-based R indices to 0-based) ─
     bool pair_mode = indicies_pairs.isNotNull();
@@ -64,6 +74,9 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
             pairs[static_cast<std::size_t>(k)][0] = pm(k, 0) - 1;
             pairs[static_cast<std::size_t>(k)][1] = pm(k, 1) - 1;
         }
+        // Each pair contributes exactly one treated subject, so pair mode is 1:1.
+        if (n_T >= 0 && n_T != np)
+            Rcpp::stop("greedy_design_search_cpp: pair-constrained mode requires n_T equal to the number of pairs.");
     }
 
     Rcpp::NumericMatrix result(n, r);
@@ -125,7 +138,7 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
 #pragma omp parallel
     {
         // Thread-local working buffers
-        std::vector<int> w(n), treated(nt), control(nt), order(n);
+        std::vector<int> w(n), treated(nt), control(nc), order(n);
         std::vector<int> pair_cur_t(static_cast<std::size_t>(np)); // 0/1: which pair member is T
         VectorXd dbl_w(n), d(p), delta(p);
 
@@ -254,7 +267,7 @@ Rcpp::NumericMatrix greedy_design_search_cpp(
                 } else {
                     for (int it = 0; it < n_iter; it++) {
                         const int ti = static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(nt)));
-                        const int ci = static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(nt)));
+                        const int ci = static_cast<int>(edi_rng::bounded_rand(rng, static_cast<std::uint32_t>(nc)));
                         const int i  = treated[static_cast<std::size_t>(ti)];
                         const int j  = control[static_cast<std::size_t>(ci)];
 

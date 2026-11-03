@@ -8,11 +8,9 @@ library(EDI)
 # normal package-computed matching path is covered extensively elsewhere) had no test calling any of these four
 # argument-validation guards.
 
-test_that("prob_T other than 0.5 is rejected at construction", {
-	expect_error(
-		DesignFixedBinaryMatch$new(response_type = "continuous", prob_T = 0.6, n = 10L),
-		"Binary match designs only support even treatment allocation \\(prob_T = 0.5\\)"
-	)
+test_that("there is no prob_T argument; allocation is always 1:1", {
+	expect_error(DesignFixedBinaryMatch$new(response_type = "continuous", prob_T = 0.6, n = 10L), "unused argument")
+	expect_equal(DesignFixedBinaryMatch$new(response_type = "continuous", n = 10L)$get_prob_T(), 0.5)
 })
 
 test_that("supplying m without n is rejected", {

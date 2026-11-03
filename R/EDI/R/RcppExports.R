@@ -182,8 +182,8 @@ compute_weighted_sqd_distances_cpp <- function(x_new, X_all_scaled_col_subset, r
     .Call(`_EDI_compute_weighted_sqd_distances_cpp`, x_new, X_all_scaled_col_subset, reservoir_indices, covariate_weights)
 }
 
-greedy_design_search_cpp <- function(X_raw, r, objective, n_iter, indicies_pairs = NULL) {
-    .Call(`_EDI_greedy_design_search_cpp`, X_raw, r, objective, n_iter, indicies_pairs)
+greedy_design_search_cpp <- function(X_raw, r, objective, n_iter, indicies_pairs = NULL, n_T = -1L) {
+    .Call(`_EDI_greedy_design_search_cpp`, X_raw, r, objective, n_iter, indicies_pairs, n_T)
 }
 
 annealing_design_search_cpp <- function(objective_kind, M1, M2, n_T, n_chains, max_iter, initial_temp, cooling_rate, custom_objective) {

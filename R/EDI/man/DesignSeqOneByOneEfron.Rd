@@ -111,11 +111,12 @@ Efron, B. (1971). "Forcing a sequential experiment to be balanced."
 \subsection{\code{DesignSeqOneByOneEfron$new()}}{
   Initialize an Efron (1971) biased coin sequential experimental
   design (see class documentation for the exact assignment rule).
+  There is no \code{prob_T} argument: allocation is always 1:1
+  (\code{prob_T = 0.5}) because the biased coin always pushes the treated count toward the control count, a 1:1 target.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{DesignSeqOneByOneEfron$new(
   response_type,
-  prob_T = 0.5,
   include_is_missing_as_a_new_feature = TRUE,
   n = NULL,
   verbose = FALSE,
@@ -131,9 +132,6 @@ Efron, B. (1971). "Forcing a sequential experiment to be balanced."
     \describe{
       \item{\code{response_type}}{"continuous", "incidence", "proportion", "count", "survival", or
 "ordinal".}
-      \item{\code{prob_T}}{Nominal probability of treatment assignment; used only as
-the fair-coin probability when the running treated/control counts are
-exactly equal (see \code{assign_wt()}).}
       \item{\code{include_is_missing_as_a_new_feature}}{Flag for missingness indicators.}
       \item{\code{n}}{The sample size.}
       \item{\code{verbose}}{A flag for verbosity.}

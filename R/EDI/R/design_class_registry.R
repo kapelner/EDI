@@ -106,6 +106,28 @@ EDI_DESIGN_BATCH_W_PREGENERATION_CLASS_NAMES = c(
 	"DesignFixedMatchingGreedyPairSwitching", "DesignFixedOptimalBlocks"
 )
 
+# supports_unequal_allocation (release_v1_0_5.md TODO-183): whether the design's
+# assignment mechanism honours prob_T != 0.5. A class without it is refused at
+# construction by Design$initialize() via assert_even_allocation(). This is the
+# single source of truth for the capability; do not add per-class prob_T checks.
+# Owner ruling 2026-11-03: the sequential designs listed here refuse because their
+# balancing rule targets nT == nC regardless of prob_T, so they assigned ~1:1 while
+# get_prob_T() reported the requested value (Efron's biased coin, Atkinson's
+# D_A-optimal weight, Pocock-Simon's imbalance score, KK matched pairs which add one
+# treated and one control each). Sequential Bernoulli, iBCRD, RandomBlockSize and
+# SPBR do honour prob_T and stay supported. The fixed classes either pair subjects
+# 1:1 by construction (matching) or hardcode 0.5 (factorial, observational), as
+# does the urn. Subclasses inherit their nearest registered ancestor's value, so
+# KK21/KK21stepwise would refuse even if unlisted (both inherit KK14).
+EDI_DESIGN_EVEN_ALLOCATION_ONLY_CLASS_NAMES = c(
+	"DesignSeqOneByOneEfron", "DesignSeqOneByOneAtkinson", "DesignSeqOneByOnePocockSimon",
+	"DesignSeqOneByOneKK14", "DesignSeqOneByOneKK21", "DesignSeqOneByOneKK21stepwise",
+	"DesignSeqOneByOneUrn",
+	"DesignFixedBinaryMatch",
+	"DesignFixedMatchingGreedyPairSwitching", "DesignFixedFactorial",
+	"ObservationalDesign", "ObservationalDesignBlocks", "ObservationalDesignMatching"
+)
+
 EDI_DESIGN_REQUIRED_PACKAGES_BY_NAME = list(
 	DesignFixedBinaryMatch = "nbpMatching",
 	DesignFixedMatchingGreedyPairSwitching = "nbpMatching",
@@ -186,6 +208,22 @@ infer_design_supports_batch_w_pregeneration = function(name) {
 	name %in% EDI_DESIGN_BATCH_W_PREGENERATION_CLASS_NAMES
 }
 
+infer_design_supports_unequal_allocation = function(name) {
+	!(name %in% EDI_DESIGN_EVEN_ALLOCATION_ONLY_CLASS_NAMES)
+}
+
+# Instance-level read used by Design$initialize(). Walks class(obj) to the
+# nearest registered class, so a user-defined subclass (never scanned by
+# populate_design_class_registry()) inherits its EDI ancestor's capability.
+design_supports_unequal_allocation = function(obj) {
+	for (cls in class(obj)) {
+		if (exists(cls, envir = EDI_DESIGN_CLASS_REGISTRY, inherits = FALSE)) {
+			return(isTRUE(get(cls, envir = EDI_DESIGN_CLASS_REGISTRY, inherits = FALSE)$supports_unequal_allocation))
+		}
+	}
+	TRUE
+}
+
 infer_design_required_packages = function(name) {
 	pkgs = EDI_DESIGN_REQUIRED_PACKAGES_BY_NAME[[name]]
 	if (is.null(pkgs)) character() else pkgs
@@ -196,7 +234,7 @@ validate_design_class_metadata = function(metadata) {
 		"name", "parent", "abstract", "exported", "timing_family",
 		"randomization_family", "seed_reproducible_draw",
 		"seed_reproducible_draw_requires_single_thread", "direct_components",
-		"supports_batch_w_pregeneration", "required_packages"
+		"supports_batch_w_pregeneration", "supports_unequal_allocation", "required_packages"
 	)
 	missing = setdiff(required, names(metadata))
 	if (length(missing) > 0L) {
@@ -285,6 +323,9 @@ validate_design_class_metadata = function(metadata) {
 	if (!is.logical(metadata$supports_batch_w_pregeneration) || length(metadata$supports_batch_w_pregeneration) != 1L || is.na(metadata$supports_batch_w_pregeneration)) {
 		stop(sprintf("Design metadata for %s has invalid `supports_batch_w_pregeneration`.", metadata$name), call. = FALSE)
 	}
+	if (!is.logical(metadata$supports_unequal_allocation) || length(metadata$supports_unequal_allocation) != 1L || is.na(metadata$supports_unequal_allocation)) {
+		stop(sprintf("Design metadata for %s has invalid `supports_unequal_allocation`.", metadata$name), call. = FALSE)
+	}
 	if (!is.character(metadata$required_packages)) {
 		stop(sprintf("Design metadata for %s has invalid `required_packages`.", metadata$name), call. = FALSE)
 	}
@@ -304,6 +345,7 @@ register_design_class = function(name, parent = NULL, metadata = list(), direct_
 			seed_reproducible_draw_requires_single_thread = FALSE,
 			direct_components = direct_components,
 			supports_batch_w_pregeneration = FALSE,
+			supports_unequal_allocation = TRUE,
 			required_packages = character()
 		),
 		metadata
@@ -474,6 +516,7 @@ populate_design_class_registry = function(ns = environment(populate_design_class
 				seed_reproducible_draw = infer_design_seed_reproducible_draw(name),
 				seed_reproducible_draw_requires_single_thread = infer_design_seed_reproducible_draw_requires_single_thread(name),
 				supports_batch_w_pregeneration = infer_design_supports_batch_w_pregeneration(name),
+				supports_unequal_allocation = infer_design_supports_unequal_allocation(name),
 				required_packages = infer_design_required_packages(name)
 			),
 			direct_components = infer_design_direct_components(obj)

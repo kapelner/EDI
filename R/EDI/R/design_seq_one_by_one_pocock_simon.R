@@ -51,6 +51,8 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 		#' @description Initialize a Pocock and Simon (1975) minimization sequential
 		#'   experimental design (see class documentation for the exact imbalance
 		#'   criterion and assignment rule).
+		#'   There is no \code{prob_T} argument: allocation is always 1:1
+		#'   (\code{prob_T = 0.5}) because the imbalance score targets equal arms.
 		#'
 		#' @param strata_cols     The names of the covariates to be used for minimization. These
 		#'   must be factor or categorical variables.
@@ -64,8 +66,6 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 		#'   biased coin favoring the balancing arm, rather than a fully deterministic
 		#'   minimization rule).
 		#' @param response_type 	The data type of response values.
-		#' @param prob_T  The probability of the treatment assignment used only when
-		#'   the two arms' imbalance is exactly tied (see class documentation).
 		#' @param include_is_missing_as_a_new_feature  Flag for missingness indicators.
 		#' @param n  		The sample size.
 		#' @param verbose  Flag for verbosity.
@@ -80,7 +80,6 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				weights = NULL,
 				p_best = 0.8,
 				response_type,
-				prob_T = 0.5,
 				include_is_missing_as_a_new_feature = TRUE,
 				n = NULL,
 
@@ -93,7 +92,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				assertCharacter(strata_cols, min.len = 1)
 				assertNumeric(p_best, lower = 0.5, upper = 1)
 			}
-			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
+			super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 			
 			private$strata_cols = strata_cols
 			private$p_best = p_best

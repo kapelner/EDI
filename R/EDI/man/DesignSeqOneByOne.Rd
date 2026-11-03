@@ -118,7 +118,9 @@ seq_des$add_one_subject_to_experiment_and_assign(data.frame(x1 = rnorm(1)))
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment.}
+      \item{\code{prob_T}}{The probability of the treatment assignment. Efron,
+Atkinson, Pocock-Simon and the KK designs have no \code{prob_T}
+argument; their allocation is always 1:1.}
       \item{\code{include_is_missing_as_a_new_feature}}{If missing data is present, include a dummy
 variable for it.}
       \item{\code{n}}{The prespecified target sample size for fixed-sample analysis.

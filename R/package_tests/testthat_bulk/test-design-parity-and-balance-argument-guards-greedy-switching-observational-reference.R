@@ -17,10 +17,10 @@ test_that("ObservationalDesignMatching rejects an odd n at construction", {
 	expect_no_error(ObservationalDesignMatching$new(response_type = "continuous", n = 8L, verbose = FALSE))
 })
 
-test_that("DesignFixedMatchingGreedyPairSwitching rejects prob_T != 0.5 at construction", {
+test_that("DesignFixedMatchingGreedyPairSwitching has no prob_T argument", {
 	expect_error(
 		DesignFixedMatchingGreedyPairSwitching$new(response_type = "continuous", prob_T = 0.4, n = 8L, verbose = FALSE),
-		"DesignFixedMatchingGreedyPairSwitching only supports balanced designs \\(prob_T = 0.5\\)\\."
+		"unused argument"
 	)
 })
 
@@ -38,13 +38,12 @@ test_that("DesignFixedMatchingGreedyPairSwitching rejects n not divisible by 4, 
 	expect_length(w2, 8L)
 })
 
-test_that("DesignFixedGreedy rejects an odd n, only once assignment is actually requested (construction itself accepts any n)", {
+test_that("DesignFixedGreedy accepts an odd n with round(n * prob_T) treated (unequal-arm support, 2026-11-03)", {
 	des <- DesignFixedGreedy$new(response_type = "continuous", n = 7L, verbose = FALSE)
 	des$add_all_subjects_to_experiment(data.frame(x1 = rnorm(7)))
-	expect_error(
-		des$assign_w_to_all_subjects(),
-		"DesignFixedGreedy requires an even number of subjects\\."
-	)
+	w <- des$assign_w_to_all_subjects()
+	expect_length(w, 7L)
+	expect_equal(sum(w == 1), as.integer(round(7 * 0.5)))
 
 	des2 <- DesignFixedGreedy$new(response_type = "continuous", n = 8L, verbose = FALSE)
 	des2$add_all_subjects_to_experiment(data.frame(x1 = rnorm(8)))

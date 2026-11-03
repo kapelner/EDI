@@ -443,6 +443,24 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 	expect_false("weighted_restricted_mean_se_diff@InferenceSurvivalRestrictedMeanDiff" %in% rmst_methods)
 	baseline$private_methods[[rmst_row]] <- paste(sort(unique(c(rmst_methods,
 		"weighted_restricted_mean_se_diff@InferenceSurvivalRestrictedMeanDiff"))), collapse = "|")
+	# eb6f4408 (2026-10-27) added the private helper bca_midrank_cdf (mid-rank
+	# bootstrap CDF for the BCa z0) to InferenceExtBcaBootstrapCI, bound on the
+	# same host as its caller bca_ci_core. Reviewed additive delta, anchored on
+	# bca_ci_core so only classes that already had BCa gain it.
+	baseline$private_methods <- vapply(baseline$private_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		anchor <- grep("^bca_ci_core@", x, value = TRUE)
+		if (!length(anchor)) return(s)
+		host <- sub("^[^@]*@", "", anchor[1L])
+		paste(sort(unique(c(x, paste0("bca_midrank_cdf@", host)))), collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
+	# 06d8f2f9 (2026-11-03, mirai lifecycle / TLC spec) replaced the private
+	# Inference method ensure_mirai_daemons() with the package-level function
+	# of the same name in globals.R. Reviewed removal delta on every class.
+	baseline$private_methods <- vapply(baseline$private_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		paste(x[x != "ensure_mirai_daemons@Inference"], collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

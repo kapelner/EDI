@@ -305,6 +305,19 @@ InferenceContinKKGLMMLegacyOrig = define_inference_class("InferenceContinKKGLMM"
 			y = as.numeric(ctx$y)
 			group_id = as.integer(ctx$group_id)
 			j_treat = as.integer(ctx$j_treat)
+			# 2026-11-03: mirrors the live class's TODO-167 block-diagonal expected
+			# information (beta x variance-parameter cross terms zeroed); see the
+			# fit_null note below.
+			block_diag_information = function(fit){
+				info = as.matrix(get_gaussian_lmm_fisher_cpp(X_fit, y, group_id, as.numeric(fit$b)))
+				k = ncol(X_fit)
+				if (nrow(info) > k) {
+					vc_idx = (k + 1L):nrow(info)
+					info[seq_len(k), vc_idx] = 0
+					info[vc_idx, seq_len(k)] = 0
+				}
+				info
+			}
 			list(
 				X = X_fit,
 				y = y,
@@ -312,19 +325,32 @@ InferenceContinKKGLMMLegacyOrig = define_inference_class("InferenceContinKKGLMM"
 				j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
-					warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$start)) %||% ctx$start
-					fast_gaussian_lmm_cpp(
-						X = X_fit,
-						y = y,
-						group_id = group_id,
-						warm_start_params = warm_start_params,
-						estimate_only = FALSE,
-						maxit = 300L,
-						eps_g = 1e-6,
-						fixed_idx = j_treat,
-						fixed_values = delta,
-						optimization_alg = private$optimization_alg
-					)
+					# 2026-11-03: deliberate deviation from the verbatim pre-migration
+					# snapshot. Mirrors the live class's post-migration TODO-167 fix
+					# (dual-start null fit, keep the lower nll) so this golden compares
+					# hierarchies, not later statistical fixes. Keep in sync with
+					# R/inference_continuous_KK_glmm.R get_likelihood_test_spec().
+					run_fit = function(warm_start_params){
+						fast_gaussian_lmm_cpp(
+							X = X_fit,
+							y = y,
+							group_id = group_id,
+							warm_start_params = warm_start_params,
+							estimate_only = FALSE,
+							maxit = 300L,
+							eps_g = 1e-6,
+							fixed_idx = j_treat,
+							fixed_values = delta,
+							optimization_alg = private$optimization_alg
+						)
+					}
+					fit = run_fit(start %||% private$get_fit_warm_start_for_length("params", length(ctx$start)) %||% ctx$start)
+					if (is.null(start)) return(fit)
+					full_start = as.numeric(ctx$start)
+					full_start[j_treat] = delta
+					fit2 = tryCatch(run_fit(full_start), error = function(e) NULL)
+					nll = function(f) if (is.null(f)) Inf else as.numeric(f$neg_loglik %||% f$neg_ll %||% Inf)[1L]
+					if (isTRUE(nll(fit2) < nll(fit) - 1e-4)) fit2 else fit
 				},
 				extract_start = function(fit){
 					as.numeric(fit$b)
@@ -333,13 +359,13 @@ InferenceContinKKGLMMLegacyOrig = define_inference_class("InferenceContinKKGLMM"
 					as.numeric(get_gaussian_lmm_score_cpp(X_fit, y, group_id, as.numeric(fit$b)))
 				},
 				observed_information = function(fit){
-					as.matrix(get_gaussian_lmm_fisher_cpp(X_fit, y, group_id, as.numeric(fit$b)))
+					block_diag_information(fit)
 				},
 				fisher_information = function(fit){
-					as.matrix(get_gaussian_lmm_fisher_cpp(X_fit, y, group_id, as.numeric(fit$b)))
+					block_diag_information(fit)
 				},
 				information = function(fit){
-					as.matrix(get_gaussian_lmm_fisher_cpp(X_fit, y, group_id, as.numeric(fit$b)))
+					block_diag_information(fit)
 				},
 				neg_loglik = function(fit){
 					as.numeric(fit$neg_loglik %||% fit$neg_ll)

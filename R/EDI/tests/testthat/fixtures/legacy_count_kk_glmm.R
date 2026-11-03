@@ -85,21 +85,21 @@ InferenceCountKKGLMMLegacyOrig = define_inference_class("InferenceCountKKGLMM",
 			private$shared(estimate_only = FALSE)
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
 		},
-		#' @description Computes a likelihood-ratio confidence interval, conservatively
-		#'   widened against the design-aware Wald interval.
+		# 2026-11-03: deliberate deviation from the verbatim pre-migration snapshot,
+		# which clamped both LR methods to max(model, design Wald) via
+		# .conservative_kk_onelik_ci()/_pval(). Mirrors the live class's
+		# post-migration v1.0.5 TODO-171 owner decision (2026-10-28: drop the clamp,
+		# return the model LR test, matching the sibling KK GLMM classes) so this
+		# golden compares hierarchies, not later statistical fixes.
+		#' @description Computes a likelihood-ratio confidence interval.
 		#' @param alpha Significance level.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
-			ci_model = super$compute_lik_ratio_confidence_interval(alpha = alpha)
-			ci_design = self$compute_wald_confidence_interval(alpha = alpha)
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha = alpha)
+			super$compute_lik_ratio_confidence_interval(alpha = alpha)
 		},
-		#' @description Computes a likelihood-ratio two-sided p-value, conservatively
-		#'   calibrated against the design-aware Wald p-value.
+		#' @description Computes a likelihood-ratio two-sided p-value.
 		#' @param delta Null treatment effect value.
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
-			p_model = super$compute_lik_ratio_two_sided_pval(delta = delta)
-			p_design = self$compute_wald_two_sided_pval(delta = delta)
-			.conservative_kk_onelik_pval(p_model, p_design)
+			super$compute_lik_ratio_two_sided_pval(delta = delta)
 		},
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
@@ -332,7 +332,7 @@ InferenceCountKKGLMMLegacyOrig = define_inference_class("InferenceCountKKGLMM",
 						smart_cold_start = private$smart_cold_start_default,
 						j_T = j_treat - 1L,
 						estimate_only = FALSE,
-						n_gh = 20L,
+						n_gh = 60L, # 2026-11-03: mirrors the live null fit; was 20L in the verbatim snapshot
 						maxit = 300L,
 						eps_g = 1e-6,
 						fixed_idx = j_treat,
@@ -348,16 +348,20 @@ InferenceCountKKGLMMLegacyOrig = define_inference_class("InferenceCountKKGLMM",
 					as.numeric(get_poisson_glmm_score_cpp(X_fit, y, group_id, params))
 				},
 				observed_information = function(fit){
+					# 2026-11-03: the three information functions are negated to mirror the
+					# live class's v1.0.5 TODO-121 sign fix (the kernel returns the
+					# log-likelihood Hessian, which is negative definite); the verbatim
+					# snapshot used it un-negated, so its score test was NA/garbage.
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				fisher_information = function(fit){
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				information = function(fit){
 					params = as.numeric(c(fit$b, fit$log_sigma))
-					as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
+					-as.matrix(get_poisson_glmm_hessian_cpp(X_fit, y, group_id, params))
 				},
 				neg_loglik = function(fit){
 					as.numeric(fit$neg_loglik %||% fit$neg_ll)

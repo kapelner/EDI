@@ -2,7 +2,7 @@ library(testthat)
 library(EDI)
 
 test_that("binary-match constructor validates explicit pairing metadata", {
-  expect_error(DesignFixedBinaryMatch$new("continuous", prob_T = 0.4, n = 4), "prob_T = 0.5")
+  expect_error(DesignFixedBinaryMatch$new("continuous", prob_T = 0.4, n = 4), "unused argument")
   expect_error(DesignFixedBinaryMatch$new("continuous", m = c(1, 1)), "n must also be supplied")
   expect_error(DesignFixedBinaryMatch$new("continuous", n = 4, m = c(1, 1)), "length\\(m\\) must equal n")
   expect_error(DesignFixedBinaryMatch$new("continuous", n = 4, m = c(1, 1, 1, 2)), "exactly twice")

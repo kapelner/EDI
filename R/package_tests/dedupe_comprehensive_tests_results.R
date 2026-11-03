@@ -20,6 +20,7 @@ key_cols = c(
 	"dataset",
 	"response_type",
 	"design",
+	"prob_T",
 	"inference_class",
 	"function_run"
 )
@@ -36,6 +37,9 @@ for (file in files) {
 		next
 	}
 
+	# Rows from before the prob_T column ran at equal allocation (release_v1_0_5.md TODO-184).
+	if (!("prob_T" %in% names(dt))) dt[, prob_T := 0.5]
+	dt[is.na(prob_T), prob_T := 0.5]
 	missing_cols = setdiff(key_cols, names(dt))
 	if (length(missing_cols) > 0L) {
 		stop("File ", file, " is missing required columns: ", paste(missing_cols, collapse = ", "))

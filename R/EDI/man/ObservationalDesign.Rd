@@ -162,7 +162,15 @@ treatment assignment (e.g. imputation, bootstrap resampling).}
   the realized allocation deviates from \code{prob_T = 0.5}).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{ObservationalDesign$assert_even_allocation()}
+    \preformatted{ObservationalDesign$assert_even_allocation(always = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{always}}{Ignored; accepted for signature compatibility with
+\code{Design$assert_even_allocation()}.}
+    }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{

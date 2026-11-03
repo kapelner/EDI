@@ -36,7 +36,7 @@
 #' which of its two members is treated (an independent fair coin flip per pair per
 #' replicate, using a splitmix64-seeded Mersenne Twister per replicate column for
 #' reproducible parallel draws); this guarantees exactly \eqn{n/2} treated subjects
-#' overall (only \code{prob_T = 0.5} is supported; the constructor errors otherwise).
+#' overall (allocation is always 1:1; there is no \code{prob_T} argument).
 #' Passing a pre-computed \code{m} to the constructor supplies the matched-pair structure
 #' directly (each pair ID occurring in exactly 2 rows), bypassing the matching
 #' computation entirely while keeping the same within-pair randomization.
@@ -99,11 +99,10 @@ DesignFixedBinaryMatch = define_design_class(
 		#'   experimental design. Matching itself is deferred until the first draw (see
 		#'   class documentation); this constructor only records configuration and,
 		#'   if \code{m} is supplied, installs the explicit pairing immediately.
+		#'   There is no \code{prob_T} argument: allocation is always 1:1
+		#'   (\code{prob_T = 0.5}) because each matched pair gets one treated and one control subject.
 		#'
 		#' @param response_type 	The data type of response values.
-		#' @param prob_T  The probability of the treatment assignment. Must be 0.5,
-		#'   since within-pair randomization only supports an even 1-treated/1-control
-		#'   split per pair.
 		#' @param mahal_match 	Match using Mahalanobis distance (accounting for
 		#'   covariate correlation/scale) if \code{TRUE} (default), else
 		#'   Euclidean distance on the raw covariate matrix.
@@ -128,7 +127,6 @@ DesignFixedBinaryMatch = define_design_class(
 		#'
 		initialize = function(
 				response_type,
-				prob_T = 0.5,
 				mahal_match = TRUE,
 				match_objective = c("distance", "squared_distance"),
 				include_is_missing_as_a_new_feature = TRUE,
@@ -141,9 +139,6 @@ DesignFixedBinaryMatch = define_design_class(
 				) {
 				match_objective = match.arg(match_objective)
 				if (should_run_asserts()) {
-					if (prob_T != 0.5){
-						stop("Binary match designs only support even treatment allocation (prob_T = 0.5)")
-					}
 					if (!is.null(m)) {
 						if (is.null(n)) {
 							stop("When supplying m to DesignFixedBinaryMatch$new(), n must also be supplied.")
@@ -155,7 +150,7 @@ DesignFixedBinaryMatch = define_design_class(
 					# nbpMatching availability is checked lazily in ensure_matching_structure_computed
 					# so that workers using pre-computed w vectors never load it unnecessarily.
 				}
-				super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
+				super$initialize(response_type, 0.5, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
 				private$blocking_capable = TRUE
 				private$matching_capable = TRUE
 				private$mahal_match = mahal_match

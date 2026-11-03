@@ -6,9 +6,9 @@
 \description{
 A fixed-sample-size \code{\link[EDI:DesignFixed]{DesignFixed}} implementing
 rerandomization (Morgan and Rubin, 2012): candidate allocations \eqn{w} are drawn
-from the design's base randomization law (balanced complete randomization when
-\code{prob_T = 0.5}, i.i.d. \eqn{\mathrm{Bernoulli}(prob\_T)} draws otherwise — see
-\code{generate_one_rerandomized_w()}) and only \strong{accepted} if a covariate
+from the design's base randomization law, complete randomization with exactly
+\eqn{n_T = \mathrm{round}(n \cdot prob\_T)} treated subjects at every
+\code{prob_T} and on every draw path, and only \strong{accepted} if a covariate
 imbalance criterion \eqn{M(w)} between the treated and control groups falls below a
 threshold \code{a} (\code{obj_val_cutoff}), i.e. the accepted allocations are drawn
 from the base randomization distribution truncated to \eqn{\{w : M(w) \le a\}}.
@@ -73,9 +73,8 @@ in one batched call, computes \eqn{M(w)} for all of them via
 \code{compute_objective_vals_cpp()}, and keeps the \eqn{r} with smallest \eqn{M(w)}.
 
 \strong{Pure-R fallback (unbalanced or odd \eqn{n}, \code{obj_val_cutoff} mode
-only).} Draws candidates in vectorized batches (independent Bernoulli(\code{prob_T})
-assignments, or a fixed-size random subset when \code{prob_T = 0.5} with odd \eqn{n}),
-scores each batch at once, and keeps the first \eqn{r} candidates with
+only).} Draws candidates in vectorized batches (uniformly random subsets of size
+\eqn{n_T = \mathrm{round}(n \cdot prob\_T)}), scores each batch at once, and keeps the first \eqn{r} candidates with
 \eqn{M(w) \le a}. Candidates with an empty arm are rejected. Like the C++ fast path
 it stops with an error after \code{max(1000 r, 1e5)} candidates if fewer than
 \eqn{r} are acceptable.
@@ -191,7 +190,9 @@ Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
     \if{html}{\out{<div class="arguments">}}
     \describe{
       \item{\code{response_type}}{The data type of response values.}
-      \item{\code{prob_T}}{The probability of the treatment assignment.}
+      \item{\code{prob_T}}{The probability of the treatment assignment. Every draw has
+exactly \code{round(n * prob_T)} treated subjects; drawing errors if that
+leaves no treated or no control subject.}
       \item{\code{obj_val_cutoff}}{The maximum allowable objective value \eqn{a}; a candidate
 allocation is accepted iff \eqn{M(w) \le a}. Cannot be specified together with prop_acceptable.}
       \item{\code{prop_acceptable}}{The proportion of randomizations to accept (draws r/prop_acceptable total, returns r lowest). Cannot be specified together with obj_val_cutoff.}

@@ -72,6 +72,14 @@ Inference = R6::R6Class("Inference",
 					)
 				}
 			}
+			# Single construction-time gate for the even-allocation requirement
+			# (release_v1_0_5.md TODO-183): the registry's requires_even_allocation,
+			# read from private$requires_even_allocation(), which discovery
+			# (is_inference_class_compatible_with_design_metadata()) also filters on.
+			# Always on, like Design$initialize()'s supports_unequal_allocation check.
+			if (isTRUE(private$requires_even_allocation()) && !isTRUE(des_obj$get_prob_T() == 0.5)) {
+				stop(class(self)[1L], " requires even treatment allocation (prob_T = 0.5).", call. = FALSE)
+			}
 			private$harden = harden
 			private$smart_cold_start_default = smart_cold_start_default
 			private$cached_values = list()
@@ -533,6 +541,17 @@ Inference = R6::R6Class("Inference",
 		# generator's own private_methods list, without constructing an
 		# instance, to populate InferenceSuite discovery metadata.
 		requires_blocking_design = function(){
+			FALSE
+		},
+		# Capability check: does this concrete Inference class require even
+		# treatment allocation (des_obj$get_prob_T() == 0.5)? Default FALSE; a
+		# class whose estimator or SE assumes 1:1 arms (InferenceIncidCMH,
+		# InferenceIncidExtendedRobins) overrides this to TRUE. Same
+		# argument-less literal pattern as requires_blocking_design() above, read
+		# by infer_inference_requires_even_allocation() for the registry. The
+		# inference-side counterpart of the design registry's
+		# supports_unequal_allocation (release_v1_0_5.md TODO-183).
+		requires_even_allocation = function(){
 			FALSE
 		},
 		# Declares what treatment-effect quantity this class's compute_estimate()

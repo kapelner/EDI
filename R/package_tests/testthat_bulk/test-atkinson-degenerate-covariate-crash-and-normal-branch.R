@@ -9,7 +9,7 @@ library(EDI)
 
 test_that("assign_wt()'s normal branch (t past the early-fallback threshold) runs via real add_one_subject calls", {
 	set.seed(11)
-	des <- DesignSeqOneByOneAtkinson$new(response_type = "continuous", n = 15L, prob_T = 0.5, seed = 11)
+	des <- DesignSeqOneByOneAtkinson$new(response_type = "continuous", n = 15L, seed = 11)
 	priv <- des$.__enclos_env__$private
 	ws <- integer(8L)
 	for (i in 1:8) {
@@ -30,7 +30,7 @@ test_that("a genuinely singular/all-constant covariate history no longer crashes
 	# compute_all_subject_data() inside the same tryCatch, so any error from
 	# either call now falls back to the documented unbiased Bernoulli(prob_T)
 	# draw, same as a failure inside atkinson_assign_weight_cpp() itself.
-	des <- DesignSeqOneByOneAtkinson$new(response_type = "continuous", n = 15L, prob_T = 0.5, seed = 12)
+	des <- DesignSeqOneByOneAtkinson$new(response_type = "continuous", n = 15L, seed = 12)
 	priv <- des$.__enclos_env__$private
 	n_before_threshold <- 5L # ncol(Xraw)=2 -> threshold t <= 2+3=5 uses fallback
 	for (i in seq_len(n_before_threshold)) {

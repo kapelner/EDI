@@ -87,7 +87,6 @@ InferenceIncidExtendedRobins = define_inference_class(
 		initialize = function(des_obj, model_formula = NULL, verbose = FALSE){
 			stop_if_design_incompatible(private$design_compatibility_reason, des_obj, list(
 				extended_robins_requires_blocking_design = "InferenceIncidExtendedRobins requires a blocking design with equal block sizes and even allocation.",
-				extended_robins_requires_even_allocation = "InferenceIncidExtendedRobins requires a blocking design with even allocation.",
 				extended_robins_requires_equal_block_sizes = "InferenceIncidExtendedRobins requires a blocking design with equal block sizes."
 			))
 
@@ -102,11 +101,13 @@ InferenceIncidExtendedRobins = define_inference_class(
 	),
 	private = list(
 		requires_blocking_design = function() TRUE,
+		# Even allocation is declared through the registry (TODO-183), enforced
+		# by the Inference root and filtered on by discovery.
+		requires_even_allocation = function() TRUE,
 		# Discovery-time counterpart of initialize()'s design-structure stop()s
-		# above (even allocation; equal block sizes) -- requires_blocking_design
-		# = TRUE above already covers "blocking or not" generically, but even
-		# allocation and equal block sizes are structure requirements neither
-		# that flag nor infer_inference_response_types() has vocabulary for.
+		# above (blocking; equal block sizes) -- requires_blocking_design = TRUE
+		# already covers "blocking or not" generically, but equal block sizes is
+		# a structure requirement no registry flag has vocabulary for.
 		# Self/private-free so it's safe to call unbound against a candidate
 		# des_obj before construction (a non-blocking des_obj is already
 		# filtered out by requires_blocking_design before this would run, but
@@ -116,9 +117,6 @@ InferenceIncidExtendedRobins = define_inference_class(
 		design_compatibility_reason = function(des_obj){
 			if (!isTRUE(des_obj$is_blocking_design())) {
 				return("extended_robins_requires_blocking_design")
-			}
-			if (!isTRUE(des_obj$get_prob_T() == 0.5)) {
-				return("extended_robins_requires_even_allocation")
 			}
 			block_sizes = as.integer(table(des_obj$get_block_ids()))
 			if (length(block_sizes) > 1L && any(block_sizes != block_sizes[1L])) {

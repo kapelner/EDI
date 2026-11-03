@@ -62,9 +62,9 @@ for (nsim in 1 : Nsim){
 			for (d in c("KK14", "KK21", "KK21stepwise")){
 			des = paste0("DesignSeqOneByOne", d)
 			des_class = get(des)
-			des_obj_morrison_n = des_class$new(n = n, prob_T = 0.5, p = p, response_type = "continuous", verbose = FALSE, morrison = TRUE)
-			des_obj_morrison = des_class$new(prob_T = 0.5, p = p, response_type = "continuous", verbose = FALSE, morrison = TRUE)
-			des_obj = des_class$new(n = n, prob_T = 0.5, p = p, response_type = "continuous", verbose = FALSE, morrison = FALSE)
+			des_obj_morrison_n = des_class$new(n = n, p = p, response_type = "continuous", verbose = FALSE, morrison = TRUE)
+			des_obj_morrison = des_class$new(p = p, response_type = "continuous", verbose = FALSE, morrison = TRUE)
+			des_obj = des_class$new(n = n, p = p, response_type = "continuous", verbose = FALSE, morrison = FALSE)
 			for(mor in c("_morrison_n", "_morrison", "")){
 				#cat(d, mor, '\n')
 

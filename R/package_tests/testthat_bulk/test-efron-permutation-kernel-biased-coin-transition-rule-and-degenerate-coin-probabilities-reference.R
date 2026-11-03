@@ -62,13 +62,13 @@ test_that("interior rule: P(T | nT > nC) = 1 - p, P(T | nT < nC) = p and P(T | t
 test_that("for prob_T != 0.5 the kernel follows the sequential design's raw-count assignment rule (interior and forced corners)", {
 	set.seed(8); W <- K(31L, 300L, 0.25, 1)$w_mat                       # forced coin: |nT - nC| <= 1 needs the raw-count state
 	expect_true(all(abs(trans(W, 0.25)$nd) <= 1L))
-	des <- DesignSeqOneByOneEfron$new(response_type = "continuous", n = 12L, prob_T = 0.25, weighted_coin_prob = 1, verbose = FALSE)
-	p <- des$.__enclos_env__$private
-	expect_true(all(abs(trans(p$draw_ws_raw(r = 100L), 0.25)$nd) <= 1L))
+	# The design class has no prob_T argument (always 1:1, release_v1_0_5.md TODO-183); only the kernel is exercised here.
+	expect_error(DesignSeqOneByOneEfron$new(response_type = "continuous", n = 12L, prob_T = 0.25, weighted_coin_prob = 1, verbose = FALSE),
+		"unused argument")
 })
 
 test_that("DesignSeqOneByOneEfron$draw_ws_raw draws with the design's own coin probabilities", {
-	des <- DesignSeqOneByOneEfron$new(response_type = "continuous", n = 30L, weighted_coin_prob = 1, prob_T = 0.5, verbose = FALSE)
+	des <- DesignSeqOneByOneEfron$new(response_type = "continuous", n = 30L, weighted_coin_prob = 1, verbose = FALSE)
 	p <- des$.__enclos_env__$private
 	set.seed(7); W <- p$draw_ws_raw(r = 60L)
 	expect_equal(dim(W), c(30L, 60L))
