@@ -38,7 +38,8 @@ On the \code{mirai} backend, inference stops the workers and fails with an
 error if no chunk of work finishes for six hours, and so does
 \code{SimulationFramework}, so a worker that has stopped responding cannot
 hang the session forever. Change that limit, in seconds,
-with \code{options(EDI.mirai_stall_timeout_secs = )}.
+with \code{options(EDI.mirai_stall_timeout_secs = )}, or, when the option is
+unset, with the \code{EDI_MIRAI_STALL_TIMEOUT_SECS} environment variable.
 
 If you want to change the default policy, use
 \code{set_parallel_dispatch_policy()}.

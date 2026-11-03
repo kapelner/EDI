@@ -7,6 +7,9 @@
 
 using namespace Rcpp;
 
+// TODO-172: largest |p - alpha| accepted for a non-converged bound (see lrt_ci_nr_cpp).
+static const double LRT_CI_TOL_P_ACCEPT = 1e-4;
+
 // Internal result of evaluating p and dp/d(delta) at a single point.
 struct LrtEval {
 	double p;
@@ -92,6 +95,10 @@ static LrtEval eval_lrt(
 //' @param tol_p         P-value convergence tolerance (default 1e-7)
 //' @param tol_bracket   Bracket-width convergence tolerance (default 1e-8)
 //'
+//' When the loop ends without meeting \code{tol_p} or \code{tol_bracket}, the
+//' iterate whose p-value is closest to \code{alpha} is returned if it is within
+//' \code{1e-4} of it; otherwise that bound is \code{NA}.
+//'
 //' @return Unnamed numeric vector of length 2: \code{[lower_bound, upper_bound]}
 //' @keywords internal
 //'
@@ -149,6 +156,16 @@ NumericVector lrt_ci_nr_cpp(
 		LrtEval ev = ev_outer;
 
 		bool converged_p = false;
+		bool bracket_collapsed = false;
+		// TODO-172: the iterate whose p is closest to alpha. tol_p (1e-7) is
+		// tighter than the null fits' own precision (p jitters ~1e-6 near the
+		// root), so the loop often reaches max_nr_iter while already sitting on
+		// the root. Newton steps that approach from one side only move that side
+		// of the bracket, leaving the other end at `est`, so the old fallback
+		// (a + b) / 2 could return a point halfway between the estimate and the
+		// true bound (e.g. upper 1.10 where p = 0.0037; true root 0.83).
+		double best_delta = delta;
+		double best_gap = (ev.valid && R_finite(ev.p)) ? std::abs(ev.p - alpha) : R_PosInf;
 		for (int k = 0; k < max_nr_iter; ++k) {
 			if (ev.valid && std::abs(ev.p - alpha) < tol_p) {
 				converged_p = true;
@@ -156,7 +173,10 @@ NumericVector lrt_ci_nr_cpp(
 			}
 			double lo = std::min(a, b);
 			double hi = std::max(a, b);
-			if (hi - lo < tol_bracket) break;
+			if (hi - lo < tol_bracket) {
+				bracket_collapsed = true;
+				break;
+			}
 
 			// Newton step; fall back to bisection if dp is zero/NA or step exits bracket
 			double delta_nr = R_NaReal;
@@ -181,9 +201,27 @@ NumericVector lrt_ci_nr_cpp(
 			if (ev_new.p > alpha) a = delta_new; else b = delta_new;
 			delta = delta_new;
 			ev = ev_new;
+			double gap = std::abs(ev_new.p - alpha);
+			if (gap < best_gap) {
+				best_gap = gap;
+				best_delta = delta_new;
+			}
 		}
+		// The loop can also exit at max_nr_iter right after an iterate that meets tol_p.
+		if (!converged_p && ev.valid && std::abs(ev.p - alpha) < tol_p) converged_p = true;
 
-		ci[dir_idx] = converged_p ? delta : (a + b) / 2.0;
+		if (converged_p) {
+			ci[dir_idx] = delta;
+		} else if (bracket_collapsed) {
+			ci[dir_idx] = (a + b) / 2.0;
+		} else if (best_gap <= LRT_CI_TOL_P_ACCEPT) {
+			ci[dir_idx] = best_delta;
+		} else {
+			// Not converged and no iterate near the root: report NA so the caller's
+			// finalize_inverted_ci() falls back (with a warning) instead of returning
+			// an arbitrary point inside a wide bracket.
+			ci[dir_idx] = R_NaReal;
+		}
 	}
 
 	return ci;

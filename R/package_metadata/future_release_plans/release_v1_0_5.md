@@ -14056,7 +14056,22 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - Not a calibration failure (synthetic size 0.067), but the LR path likely falls back to Wald silently. Find
     whether the fallback is intended, and if so whether it's reported.
 - [ ] TODO-172 (added 2026-10-28, found by the TODO-167 agent): **`lrt_ci_nr_cpp` returns a bracket midpoint
-  when it fails to converge.** Current state: OPEN, not investigated.
+  when it fails to converge.** Current state: FIXED 2026-11-03 (agent, uncommitted; needs a rebuild to take effect
+  in the installed package). Remaining: the user's rebuild, then delete the 3 TODO-173 rows from
+  `prepush_calibration_known_failures.csv` once they no longer reproduce; canonical CSV rows (G4) for the classes below.
+  - Cause (confirmed with an instrumented R replica swapped into the namespace): on every non-converged bound the last
+    Newton iterate already had p within 1.6e-6 of alpha. tol_p = 1e-7 is below the null fits' precision, so the loop
+    hit max_nr_iter, and the fallback `(a + b) / 2` returned the midpoint of a bracket whose inner end was still `est`
+    (Newton steps from one side never move the other end). Bracket widths 0.4-0.56 on the cond-logit GLMM rows.
+  - Fix (`src/lrt_ci_newton.cpp`): track the iterate with the smallest |p - alpha|; on non-convergence return it if
+    within `LRT_CI_TOL_P_ACCEPT` = 1e-4, keep the midpoint only when the bracket collapsed (< tol_bracket), else NA
+    (finalize_inverted_ci() then applies the warned Wald fallback). tol_p and the R signature are unchanged (no
+    RcppExports change). NEWS entry added under 1.0.5 Bug fixes.
+  - Scope (calibration pre-push harness, n = 200, null reps 1-3, every class reaching the solver: 32 classes, 378
+    bound searches): midpoint path hit 8 times (~2%), in `InferenceIncidKKCondLogitGLMMOneLik` (shift up to 0.28),
+    `InferencePropKKGLMM` (0.005) and `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` (0.002). With the fix
+    compiled (sourceCpp of this file only, swapped into the namespace) exactly those 6 task rows change, every endpoint
+    p is 0.0500, no bound becomes NA, all other CIs unchanged to 1e-4. The contin rep-145 case above was not rerun.
   - `InferenceContinKKGLMM` null rep 145 (seeds 5001-5200, `~.`, BinaryMatch, n = 200): LR lower endpoint -0.363
     where p = 0.0034 (identical before and after the TODO-167 fix). `src/lrt_ci_newton.cpp` takes many tiny Newton
     steps near the root; tol_p = 1e-7 is tighter than the null fit's precision, and on non-convergence it returns
@@ -14064,7 +14079,16 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     Check: how often it fails across classes (calibration fast tier endpoint p), tol_p vs fit precision, fallback.
 
 - [ ] TODO-173 (added 2026-10-28, owner; found by the calibration pre-push check reseed): **`InferenceIncidKKCondLogitGLMMOneLik`
-  lik_ratio CI is not the inversion of its own LR test.** Current state: OPEN, not investigated.
+  lik_ratio CI is not the inversion of its own LR test.** Current state: PARTLY RESOLVED 2026-11-03 (agent).
+  - The 3 known-failure rows are TODO-172, not the null fit: in all three the solver's last iterate had p = 0.0500,
+    and the reported bounds (1.101, -1.642, 0.267) were bracket midpoints. With the TODO-172 fix: rep 1 `~1` CI
+    [-0.238, 0.831], rep 2 `~.` [-1.443, -0.012] (excludes 0, agrees with p = 0.024), all endpoint p = 0.0500.
+    The two-start null fit was NOT applied.
+  - Still open (see the 2026-11-02 trail learning on the 20-node Gauss-Hermite rule): rep 2 `~.` upper side is
+    path-dependent. p(delta) from warm-started refits (as the CI search does) vs fresh objects: delta = 0 gives
+    0.042 vs 0.024; the upper root is -0.012 warm vs about -0.08 cold. Lower side agrees (root -1.443 both ways).
+    Consistent with a spurious likelihood mode at large sigma; a multi-start null fit would not fix that. Candidate:
+    adaptive GHQ in `src/fast_clogit_plus_glmm.cpp`.
   - The 3 rows left for it in `prepush_calibration_known_failures.csv` (n = 200, BinaryMatch, seeds as in the pre-push check):
     `~1` null rep 1: p at the upper endpoint 1.101 is 0.0037 (expected ~0.05); `~.` null rep 2: p = 0.0243 but the CI
     [-1.642, 0.267] contains 0 (agreement), and p at the lower endpoint is 0.0086.

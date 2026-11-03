@@ -274,6 +274,7 @@ R/package_tests/testthat_bulk/test-design-restriction-stubbing-nonparametric-boo
 R/package_tests/testthat_bulk/test-design-seq-one-by-one-assign-wt-must-implement-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-design-seq-one-by-one-covariate-data-type-change-warning-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-design-spbr-block-size-integer-treatment-count-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-design-supports-unequal-allocation-registry-capability.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-design-transform-y-accessors-and-assertions-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-dispatch-policy-resolution-core-count-hierarchy-and-dead-pattern-audit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-drop-highly-correlated-cols-greedy-order-threshold-and-index-mapping-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1312,6 +1313,7 @@ R/EDI/tests/testthat/test-gehan-wilcox-fused-martingale.R,coverage,1,measured_wi
 R/EDI/tests/testthat/test-get-summary-all-classes.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-glmm-cpp-equivalence.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-greedy-d-optimal-merged.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-greedy-unequal-arms.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-group-bootstrap-rcpp.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-negbin-large-mean-likelihood.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-hurdle-negbin-log1p-fast-path.R,coverage,1,measured_with_30_percent_headroom
@@ -1782,6 +1784,7 @@ R/package_tests/testthat_bulk/test-design-restriction-stubbing-nonparametric-boo
 R/package_tests/testthat_bulk/test-design-seq-one-by-one-assign-wt-must-implement-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-design-seq-one-by-one-covariate-data-type-change-warning-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-design-spbr-block-size-integer-treatment-count-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-design-supports-unequal-allocation-registry-capability.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-design-transform-y-accessors-and-assertions-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-dispatch-policy-resolution-core-count-hierarchy-and-dead-pattern-audit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-drop-highly-correlated-cols-greedy-order-threshold-and-index-mapping-reference.R,coverage,240,bootstrap

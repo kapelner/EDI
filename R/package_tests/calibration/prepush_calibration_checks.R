@@ -13,7 +13,8 @@
 #   endpoint   the class's own test re-run at each CI endpoint must give a
 #              p-value in [0.7, 1.4] * alpha -- catches an interval built at the
 #              wrong level (the alpha/2 bug) or not inverted from its own test;
-#              only for p-value methods that accept `delta`;
+#              only for p-value methods that accept `delta`; skipped when the
+#              CI fell back to Wald (cached_values$ci_fallback_reason);
 #   sign       one replicate with a large positive treatment effect: the
 #              estimate must sit on the expected side of the null and the CI
 #              must exclude it (or p < alpha when there is no CI).
@@ -191,7 +192,11 @@ judge <- function(rows) {
 		}
 		endpoint_exempt <- any(PREPUSH_ENDPOINT_EXEMPT$response_type == r$response_type &
 			PREPUSH_ENDPOINT_EXEMPT$inference_class == r$inference_class)
-		for (side in if (endpoint_exempt) character() else c("ci_a", "ci_b")) {
+		# A CI that fell back to Wald (the likelihood-test inversion failed, e.g. the
+		# null-restricted fit hit the parameter boundary) is not inverted from the
+		# method's own test, so its endpoints say nothing about that test's level.
+		ci_fallback <- isTRUE(as.logical(r$ci_fallback))
+		for (side in if (endpoint_exempt || ci_fallback) character() else c("ci_a", "ci_b")) {
 			p_end <- r[[paste0("p_at_", side)]]
 			if (is.finite(p_end) && (p_end < PREPUSH_ENDPOINT_BAND[[1L]] || p_end > PREPUSH_ENDPOINT_BAND[[2L]])) {
 				add(r, "endpoint", sprintf("%s rep %d: p at %s = %.4g is %.4g, expected ~%g",

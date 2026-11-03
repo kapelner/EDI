@@ -15,7 +15,7 @@
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBernoulli","r6_public_method","DesignFixedBernoulli","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -73,7 +73,7 @@
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","assert_blocking_design","DesignFixedBinaryMatch","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","assert_equal_block_sizes","DesignFixedBinaryMatch","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","assert_matching_design","DesignFixedBinaryMatch","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","assign_w_to_all_subjects","DesignFixedBinaryMatch","class_local",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -107,7 +107,7 @@
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","initialize","DesignFixedBinaryMatch","class_local",11,"design_formula;include_is_missing_as_a_new_feature;m;mahal_match;match_objective;missingness_method;n;prob_T;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","initialize","DesignFixedBinaryMatch","class_local",10,"design_formula;include_is_missing_as_a_new_feature;m;mahal_match;match_objective;missingness_method;n;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","inject_cmh_se_w_mat","DesignFixedBinaryMatch","class_local",1,"w_mat",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBinaryMatch","r6_public_method","DesignFixedBinaryMatch","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -140,7 +140,7 @@
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","assert_blocking_design","DesignFixedBlockedCluster","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","assert_equal_block_sizes","DesignFixedBlockedCluster","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlockedCluster","r6_public_method","DesignFixedBlockedCluster","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -204,7 +204,7 @@
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","assert_blocking_design","DesignFixedBlocking","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","assert_equal_block_sizes","DesignFixedBlocking","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedBlocking","r6_public_method","DesignFixedBlocking","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedBlocking","r6_public_method","DesignFixedBlocking","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedBlocking","r6_public_method","DesignFixedBlocking","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -265,7 +265,7 @@
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedCluster","r6_public_method","DesignFixedCluster","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedCluster","r6_public_method","DesignFixedCluster","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedCluster","r6_public_method","DesignFixedCluster","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -320,7 +320,7 @@
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedFactorial","r6_public_method","DesignFixedFactorial","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"DesignFixedFactorial","r6_public_method","DesignFixedFactorial","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedFactorial","r6_public_method","DesignFixedFactorial","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -376,7 +376,7 @@
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedGreedy","r6_public_method","DesignFixedGreedy","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedGreedy","r6_public_method","DesignFixedGreedy","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedy","r6_public_method","DesignFixedGreedy","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -432,7 +432,7 @@
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedGreedyDOptimal","r6_public_method","DesignFixedGreedyDOptimal","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -493,7 +493,7 @@
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","assert_blocking_design","DesignFixediBCRD","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","assert_equal_block_sizes","DesignFixediBCRD","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixediBCRD","r6_public_method","DesignFixediBCRD","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixediBCRD","r6_public_method","DesignFixediBCRD","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixediBCRD","r6_public_method","DesignFixediBCRD","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -557,7 +557,7 @@
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","assert_blocking_design","DesignFixedMatchingGreedyPairSwitching","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","assert_equal_block_sizes","DesignFixedMatchingGreedyPairSwitching","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","assert_matching_design","DesignFixedMatchingGreedyPairSwitching","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -591,7 +591,7 @@
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","initialize","DesignFixedMatchingGreedyPairSwitching","class_local",11,"design_formula;include_is_missing_as_a_new_feature;match_objective;missingness_method;n;n_iter;objective;prob_T;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","initialize","DesignFixedMatchingGreedyPairSwitching","class_local",10,"design_formula;include_is_missing_as_a_new_feature;match_objective;missingness_method;n;n_iter;objective;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","inject_cmh_se_w_mat","DesignFixedMatchingGreedyPairSwitching","class_local",1,"w_mat",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedMatchingGreedyPairSwitching","r6_public_method","DesignFixedMatchingGreedyPairSwitching","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -621,7 +621,7 @@
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedOptimal","r6_public_method","DesignFixedOptimal","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"DesignFixedOptimal","r6_public_method","DesignFixedOptimal","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimal","r6_public_method","DesignFixedOptimal","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -685,7 +685,7 @@
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","assert_blocking_design","DesignFixedOptimalBlocks","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","assert_equal_block_sizes","DesignFixedOptimalBlocks","class_local",0,"",TRUE,FALSE,FALSE,TRUE,"",TRUE
-"DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedOptimalBlocks","r6_public_method","DesignFixedOptimalBlocks","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -747,7 +747,7 @@
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignFixedRerandomization","r6_public_method","DesignFixedRerandomization","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -803,7 +803,7 @@
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","assign_wt","DesignSeqOneByOneAtkinson","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -833,7 +833,7 @@
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","initialize","DesignSeqOneByOneAtkinson","class_local",8,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;prob_T;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","initialize","DesignSeqOneByOneAtkinson","class_local",7,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;response_type;seed;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneAtkinson","r6_public_method","DesignSeqOneByOneAtkinson","is_a_kk_matching_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -860,7 +860,7 @@
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","assign_wt","DesignSeqOneByOneBernoulli","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneBernoulli","r6_public_method","DesignSeqOneByOneBernoulli","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -917,7 +917,7 @@
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","assign_wt","DesignSeqOneByOneEfron","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -947,7 +947,7 @@
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","initialize","DesignSeqOneByOneEfron","class_local",9,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;prob_T;response_type;seed;verbose;weighted_coin_prob",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","initialize","DesignSeqOneByOneEfron","class_local",8,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;response_type;seed;verbose;weighted_coin_prob",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneEfron","r6_public_method","DesignSeqOneByOneEfron","is_a_kk_matching_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -977,7 +977,7 @@
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","assert_blocking_design","DesignSeqOneByOneiBCRD","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","assert_equal_block_sizes","DesignSeqOneByOneiBCRD","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","assign_wt","DesignSeqOneByOneiBCRD","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneiBCRD","r6_public_method","DesignSeqOneByOneiBCRD","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1043,7 +1043,7 @@
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","assert_blocking_design","DesignSeqOneByOneKK14","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","assert_equal_block_sizes","DesignSeqOneByOneKK14","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","assert_matching_design","DesignSeqOneByOneKK14","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","assign_wt","DesignSeqOneByOneKK14","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1077,7 +1077,7 @@
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","initialize","DesignSeqOneByOneKK14","class_local",12,"design_formula;include_is_missing_as_a_new_feature;lambda;missingness_method;morrison;n;p;prob_T;response_type;seed;t_0_pct;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","initialize","DesignSeqOneByOneKK14","class_local",11,"design_formula;include_is_missing_as_a_new_feature;lambda;missingness_method;morrison;n;p;response_type;seed;t_0_pct;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","inject_cmh_se_w_mat","DesignSeqOneByOneKK14","class_local",1,"w_mat",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK14","r6_public_method","DesignSeqOneByOneKK14","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1111,7 +1111,7 @@
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","assert_blocking_design","DesignSeqOneByOneKK14","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","assert_equal_block_sizes","DesignSeqOneByOneKK14","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","assert_matching_design","DesignSeqOneByOneKK14","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","assign_wt","DesignSeqOneByOneKK21","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1147,7 +1147,7 @@
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","initialize","DesignSeqOneByOneKK21","class_local",17,"count_use_speedup;design_formula;include_is_missing_as_a_new_feature;lambda;missingness_method;morrison;n;num_boot;ordinal_use_speedup;p;prob_T;proportion_use_speedup;response_type;seed;survival_use_speedup_for_no_censoring;t_0_pct;verbose",TRUE,TRUE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","initialize","DesignSeqOneByOneKK21","class_local",16,"count_use_speedup;design_formula;include_is_missing_as_a_new_feature;lambda;missingness_method;morrison;n;num_boot;ordinal_use_speedup;p;proportion_use_speedup;response_type;seed;survival_use_speedup_for_no_censoring;t_0_pct;verbose",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","inject_cmh_se_w_mat","DesignSeqOneByOneKK14","inherited",1,"w_mat",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21","r6_public_method","DesignSeqOneByOneKK21","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1181,7 +1181,7 @@
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","assert_blocking_design","DesignSeqOneByOneKK14","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","assert_equal_block_sizes","DesignSeqOneByOneKK14","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","assert_matching_design","DesignSeqOneByOneKK14","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","assign_wt","DesignSeqOneByOneKK21","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1217,7 +1217,7 @@
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","initialize","DesignSeqOneByOneKK21stepwise","class_local",17,"condition_on_ws_for_rand_tests;count_use_speedup;design_formula;include_is_missing_as_a_new_feature;lambda;missingness_method;morrison;n;num_boot;ordinal_use_speedup;p;prob_T;proportion_use_speedup;response_type;survival_use_speedup_for_no_censoring;t_0_pct;verbose",TRUE,TRUE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","initialize","DesignSeqOneByOneKK21stepwise","class_local",16,"condition_on_ws_for_rand_tests;count_use_speedup;design_formula;include_is_missing_as_a_new_feature;lambda;missingness_method;morrison;n;num_boot;ordinal_use_speedup;p;proportion_use_speedup;response_type;survival_use_speedup_for_no_censoring;t_0_pct;verbose",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","inject_cmh_se_w_mat","DesignSeqOneByOneKK14","inherited",1,"w_mat",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneKK21stepwise","r6_public_method","DesignSeqOneByOneKK21stepwise","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1248,7 +1248,7 @@
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","assign_wt","DesignSeqOneByOnePocockSimon","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1278,7 +1278,7 @@
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","get_y_R","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","has_general_censoring","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","incompatible_inference_classes_due_to_design_structure","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","initialize","DesignSeqOneByOnePocockSimon","class_local",11,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;p_best;prob_T;response_type;seed;strata_cols;verbose;weights",TRUE,TRUE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","initialize","DesignSeqOneByOnePocockSimon","class_local",10,"design_formula;include_is_missing_as_a_new_feature;missingness_method;n;p_best;response_type;seed;strata_cols;verbose;weights",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","is_a_bernoulli_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","is_a_cluster_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOnePocockSimon","r6_public_method","DesignSeqOneByOnePocockSimon","is_a_kk_matching_capable","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1308,7 +1308,7 @@
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","assert_blocking_design","DesignSeqOneByOneRandomBlockSize","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","assert_equal_block_sizes","DesignSeqOneByOneRandomBlockSize","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","assign_wt","DesignSeqOneByOneRandomBlockSize","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneRandomBlockSize","r6_public_method","DesignSeqOneByOneRandomBlockSize","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1374,7 +1374,7 @@
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","assert_blocking_design","DesignSeqOneByOneSPBR","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","assert_equal_block_sizes","DesignSeqOneByOneSPBR","class_local",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","assign_wt","DesignSeqOneByOneSPBR","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneSPBR","r6_public_method","DesignSeqOneByOneSPBR","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -1437,7 +1437,7 @@
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","assert_even_allocation","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","assert_even_allocation","Design","inherited",1,"always",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","assign_wt","DesignSeqOneByOneUrn","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "DesignSeqOneByOneUrn","r6_public_method","DesignSeqOneByOneUrn","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -9308,7 +9308,7 @@
 "ObservationalDesign","r6_public_method","ObservationalDesign","applicable_inference_class_names","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","assert_all_responses_recorded","Design","inherited",0,"",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesign","r6_public_method","ObservationalDesign","assert_even_allocation","ObservationalDesign","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"ObservationalDesign","r6_public_method","ObservationalDesign","assert_even_allocation","ObservationalDesign","class_local",1,"always",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesign","r6_public_method","ObservationalDesign","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -9366,7 +9366,7 @@
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","assert_blocking_design","ObservationalDesignBlocks","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","assert_equal_block_sizes","ObservationalDesignBlocks","class_local",0,"",TRUE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","assert_even_allocation","ObservationalDesign","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","assert_even_allocation","ObservationalDesign","inherited",1,"always",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "ObservationalDesignBlocks","r6_public_method","ObservationalDesignBlocks","capabilities","Design","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -9430,7 +9430,7 @@
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","assert_all_subjects_arrived","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","assert_blocking_design","ObservationalDesignMatching","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","assert_equal_block_sizes","ObservationalDesignMatching","class_local",0,"",TRUE,FALSE,FALSE,TRUE,"",TRUE
-"ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","assert_even_allocation","ObservationalDesign","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","assert_even_allocation","ObservationalDesign","inherited",1,"always",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","assert_fixed_sample","Design","inherited",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","assert_matching_design","ObservationalDesignMatching","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
 "ObservationalDesignMatching","r6_public_method","ObservationalDesignMatching","assign_w_to_all_subjects","DesignFixed","inherited",1,"w_precomputed",FALSE,FALSE,TRUE,FALSE,"",TRUE

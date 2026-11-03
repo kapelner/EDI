@@ -301,7 +301,8 @@ In this case, \code{cov_draw_method} must be \code{NULL}.}
   that has stopped responding would otherwise hang it forever.  Healthy
   work is stopped too if nothing finishes in that time, so if a single
   unit can run longer, raise the limit first with
-  \code{options(EDI.mirai_stall_timeout_secs = <seconds>)}; \code{Inf}
+  \code{options(EDI.mirai_stall_timeout_secs = <seconds>)} (or the
+  \code{EDI_MIRAI_STALL_TIMEOUT_SECS} environment variable); \code{Inf}
   turns it off.  The limit does not apply to the fork cluster.
   Default \code{1}.}
       \item{\code{seed}}{Integer or \code{NULL} (default).  Random seed for the

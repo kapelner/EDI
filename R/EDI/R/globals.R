@@ -605,9 +605,16 @@ settle_mirai_tasks = function(tasks, timeout_secs = 60) {
 
 # Seconds run_mirai_window() waits between finished chunks. Chunks of one batch
 # start together and can finish together, so long gaps are normal in a big
-# batch; the default only has to bound a hang, not detect it quickly.
+# batch; the default only has to bound a hang, not detect it quickly. The
+# EDI_MIRAI_STALL_TIMEOUT_SECS environment variable is the fallback when the
+# option is unset, so CI can set it for the child R processes of R CMD check
+# (tests, examples, vignettes), where no options() call reaches.
 mirai_stall_timeout_secs = function() {
-  getOption("EDI.mirai_stall_timeout_secs", default = 21600)
+  opt = getOption("EDI.mirai_stall_timeout_secs")
+  if (!is.null(opt)) return(opt)
+  env = suppressWarnings(as.numeric(Sys.getenv("EDI_MIRAI_STALL_TIMEOUT_SECS", "")))
+  if (length(env) == 1L && !is.na(env) && env > 0) return(env)
+  21600
 }
 
 # TRUE once stall_secs have passed since last_progress. Every loop polling mirai
@@ -790,7 +797,8 @@ ensure_mirai_daemons = function(n, always_configure = FALSE) {
 #' error if no chunk of work finishes for six hours, and so does
 #' \code{SimulationFramework}, so a worker that has stopped responding cannot
 #' hang the session forever. Change that limit, in seconds,
-#' with \code{options(EDI.mirai_stall_timeout_secs = )}.
+#' with \code{options(EDI.mirai_stall_timeout_secs = )}, or, when the option is
+#' unset, with the \code{EDI_MIRAI_STALL_TIMEOUT_SECS} environment variable.
 #'
 #' If you want to change the default policy, use
 #' \code{set_parallel_dispatch_policy()}.

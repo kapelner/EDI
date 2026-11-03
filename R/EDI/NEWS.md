@@ -164,6 +164,17 @@ methods.
 
 ## Bug fixes
 
+* Likelihood-ratio confidence intervals (every class that inverts the LR test
+  by Newton steps) no longer return a point halfway inside the search bracket
+  when the root search stops on its iteration limit. The search usually stops
+  there while already on the root, because its p-value tolerance (1e-7) is
+  tighter than the null fits' precision; the old fallback then reported the
+  midpoint between the estimate side and the root (e.g. an upper bound of 1.10
+  where the LR p-value is 0.004, true bound 0.83). The bound is now the
+  search's closest point to `alpha` when that is within 1e-4, and otherwise
+  missing (so the documented Wald fallback applies, with its warning). Seen in
+  about 2% of LR bounds, mostly `InferenceIncidKKCondLogitGLMMOneLik`, where an
+  interval could contain the null its own LR test rejected.
 * BCa bootstrap intervals and p-values (plain and Bayesian bootstrap) now count
   bootstrap values tied with the estimate as half below it when computing the
   bias correction `z0`. With a discrete bootstrap distribution (counts, ordinal

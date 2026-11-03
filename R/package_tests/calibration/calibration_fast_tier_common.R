@@ -158,6 +158,16 @@ cal_pval_at <- function(inf_obj, method, delta) {
 	if (length(p) == 1L && is.finite(p)) as.numeric(p) else NA_real_
 }
 
+# TRUE when the class's CI for `method` is not the inversion of its own test:
+# finalize_inverted_ci() returned the Wald interval because the inversion failed
+# (recorded in cached_values$ci_fallback_reason, keyed by testing type). The
+# endpoint check must not compare the method's p-value against those endpoints.
+cal_ci_fell_back <- function(inf_obj, method) {
+	if (identical(method, "wald")) return(FALSE)
+	rec <- tryCatch(inf_obj$.__enclos_env__$private$cached_values$ci_fallback_reason, error = function(e) NULL)
+	!is.null(rec) && method %in% names(rec)
+}
+
 cal_clean_msg <- function(x) {
 	if (is.null(x) || !length(x) || is.na(x)) return(NA_character_)
 	substr(gsub("[\r\n\t,]+", " ", x), 1L, 300L)
@@ -176,6 +186,7 @@ cal_run_tasks <- function(des, classes, alpha = CAL_ALPHA, endpoints = FALSE) {
 			formula = if (is.null(task$model_formula)) "" else deparse1(task$model_formula),
 			estimate = NA_real_, ci_a = NA_real_, ci_b = NA_real_, pval = NA_real_, null_value = NA_real_,
 			p_at_ci_a = NA_real_, p_at_ci_b = NA_real_, fit_secs = NA_real_, status = "error", message = NA_character_)
+		if (isTRUE(endpoints)) row$ci_fallback <- FALSE
 		res <- tryCatch(suppressWarnings({
 			params <- if (is.null(task$model_formula)) list() else list(model_formula = task$model_formula)
 			inf_obj <- do.call(get(task$cls_name, envir = asNamespace("EDI"))$new, c(list(des_obj = des), params))
@@ -186,6 +197,7 @@ cal_run_tasks <- function(des, classes, alpha = CAL_ALPHA, endpoints = FALSE) {
 			row$ci_a <- ci$lower
 			row$ci_b <- ci$upper
 			row$pval <- pv$pval
+			if (isTRUE(endpoints)) row$ci_fallback <- cal_ci_fell_back(inf_obj, task$method)
 			if (isTRUE(endpoints) && is.finite(ci$lower) && is.finite(ci$upper)) {
 				row$p_at_ci_a <- cal_pval_at(inf_obj, task$method, ci$lower)
 				row$p_at_ci_b <- cal_pval_at(inf_obj, task$method, ci$upper)

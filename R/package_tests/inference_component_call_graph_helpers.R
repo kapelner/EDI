@@ -461,6 +461,20 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
 		paste(x[x != "ensure_mirai_daemons@Inference"], collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
+	# v1.0.5 TODO-183 (2026-11-03) added the argument-less capability flag
+	# requires_even_allocation() next to requires_blocking_design() on the
+	# Inference root (default FALSE), overridden to TRUE on InferenceIncidCMH and
+	# InferenceIncidExtendedRobins. Reviewed additive delta: every class gains it
+	# on the root host, those two also on their own host, nothing else changes.
+	baseline$private_methods <- vapply(seq_along(baseline$private_methods), function(i) {
+		x <- strsplit(baseline$private_methods[[i]], "|", fixed = TRUE)[[1L]]
+		expect_true("requires_blocking_design@Inference" %in% x, info = baseline$class[[i]])
+		add <- "requires_even_allocation@Inference"
+		if (baseline$class[[i]] %in% c("InferenceIncidCMH", "InferenceIncidExtendedRobins")) {
+			add <- c(add, paste0("requires_even_allocation@", baseline$class[[i]]))
+		}
+		paste(sort(unique(c(x, add))), collapse = "|")
+	}, character(1L))
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

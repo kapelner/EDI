@@ -175,6 +175,13 @@ jobs:
       # on every push (and have never hung), as do ordinary local
       # devtools::test() runs.
       EDI_PREPUSH_NO_PARALLEL: true
+      # A mirai pool where no chunk finishes for 15 minutes is wedged, not
+      # slow: every CI-sized chunk finishes in seconds. The package default
+      # (6h) is longer than this job's 240-minute limit, so without this a
+      # wedged daemon is only ever ended by the job timeout, with no error
+      # naming the stuck call. 15 min fails it with that error and leaves
+      # the rest of the job time to finish.
+      EDI_MIRAI_STALL_TIMEOUT_SECS: 900
 
     steps:
       - uses: actions/checkout@v7
@@ -202,7 +209,7 @@ jobs:
         shell: pwsh
         run: |
           Start-Process -FilePath "pwsh" `
-            -ArgumentList "-NoProfile", "-File", "${{ github.workspace }}\.github\scripts\test-hang-watchdog.ps1" `
+            -ArgumentList "-NoProfile", "-File", "${{ github.workspace }}\scripts\test-hang-watchdog.ps1" `
             -WindowStyle Hidden
 
       # Reference BLAS/LAPACK (Ubuntu's R default) is 10-50x slower than
@@ -496,6 +503,8 @@ jobs:
       EDI_TESTTHAT_PROGRESS: true
       # See the main R-CMD-check job's identical comment (nanonext hang).
       EDI_PREPUSH_NO_PARALLEL: true
+      # See the main R-CMD-check job's identical comment (mirai stall limit).
+      EDI_MIRAI_STALL_TIMEOUT_SECS: 900
 
     steps:
       - uses: actions/checkout@v7
@@ -603,6 +612,8 @@ jobs:
       EDI_TESTTHAT_PROGRESS: true
       # See the main R-CMD-check job's identical comment (nanonext hang).
       EDI_PREPUSH_NO_PARALLEL: true
+      # See the main R-CMD-check job's identical comment (mirai stall limit).
+      EDI_MIRAI_STALL_TIMEOUT_SECS: 900
 
     steps:
       - uses: actions/checkout@v7
