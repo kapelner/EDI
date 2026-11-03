@@ -636,6 +636,7 @@ R/package_tests/testthat_bulk/test-kk21-survival-weight-kernel-ols-fallback-refe
 R/package_tests/testthat_bulk/test-kk21-univariate-weight-kernels-continuous-logistic-ordinal-references-and-ordinal-ssq-key-bug.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-km-diff-bayesian-bootstrap-nonfinite-draw-policy-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-km-diff-general-censoring-bayesian-bootstrap-and-log-rank-convenience-method-rejected-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-km-diff-mover-asymmetric-confidence-interval.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-km-diff-weighted-restricted-mean-stat.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-km-group-and-diff-kernels-restricted-mean-median-and-arm-split-survfit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-km-rmst-general-censoring.R,correctness,7.8,measured_with_30_percent_headroom
@@ -2146,6 +2147,7 @@ R/package_tests/testthat_bulk/test-kk21-survival-weight-kernel-ols-fallback-refe
 R/package_tests/testthat_bulk/test-kk21-univariate-weight-kernels-continuous-logistic-ordinal-references-and-ordinal-ssq-key-bug.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-diff-bayesian-bootstrap-nonfinite-draw-policy-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-diff-general-censoring-bayesian-bootstrap-and-log-rank-convenience-method-rejected-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-km-diff-mover-asymmetric-confidence-interval.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-diff-weighted-restricted-mean-stat.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-group-and-diff-kernels-restricted-mean-median-and-arm-split-survfit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-km-rmst-general-censoring.R,coverage,11.7,measured_with_30_percent_headroom
