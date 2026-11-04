@@ -154,6 +154,17 @@ methods.
   about half to treatment, while `get_prob_T()` reported the requested value.
   Passing `prob_T`, even `prob_T = 0.5`, now gives an "unused argument"
   error; drop the argument.
+* `InferenceCountZeroInflatedPoisson` and `InferenceCountZeroInflatedNegBin`
+  stop with an error when the response has no zeros: the zero-inflation
+  submodel is not identified there (its MLE is a structural-zero
+  probability of 0), as `pscl::zeroinfl()` also refuses. Use
+  `InferenceCountPoisson` / `InferenceCountNegBin`. Inside resampling, a
+  bootstrap replicate or parametric-bootstrap simulation with no zeros now
+  falls back to the non-inflated Poisson / negative binomial fit instead of
+  failing, so such replicates are no longer lost. Hurdle models and
+  `InferencePropZeroOneInflatedBetaRegr` are unaffected (their likelihood
+  factorizes, so a part with no observations does not touch the treatment
+  coefficient).
 * Unequal-arm support is now a design registry capability,
   `supports_unequal_allocation`, checked once when any design is
   constructed; it replaces the separate per-class checks. Designs without it
@@ -182,6 +193,18 @@ methods.
 * `clear_randomization_cache()` on `Inference` (see Breaking changes).
 
 ## Bug fixes
+
+* `InferenceSurvivalDepCensTransformRegr`'s full-data fit now tries a small
+  fixed set of deterministic starts (no random draws) and keeps the one with
+  the highest likelihood. The likelihood can have two modes in the
+  event/censoring correlation rho, and the single default start could stop in
+  the wrong one. In a calibration study (n = 200, 50 fits), 7 of 49 estimates
+  were not the maximum-likelihood estimate (log-likelihood gaps up to 12.3,
+  treatment effect off by up to 0.31), and null fits could land above the
+  "full" likelihood, clamping the LR statistic. One previously non-estimable
+  fit is now estimable; fits already at the maximum are unchanged. Wald,
+  score, LR and bootstrap results change where the fit moves. Fits take about
+  2x as long, and bootstrap replicates about 3.4x.
 
 * `InferenceSurvivalKMDiff`'s Wald confidence interval and p-value keep each
   arm's asymmetric Brookmeyer-Crowley median interval (MOVER, Zou and Donner
@@ -284,8 +307,8 @@ methods.
   (n_C/N) times it); the old SE treated the reference arm as known and gave
   about 19% rejections at a 5% level in a null simulation (now about 6%), and
   p-values now agree with `wilcox.test(correct = FALSE)`. The C++
-  `fast_ridit_analysis_result()` `$se` field (and the Python kernel) still
-  use the old SE.
+  `fast_ridit_analysis_result()` `$se` field and the Python kernel use the
+  DeLong SE too.
 * `compute_rand_confidence_interval()` now refuses proportion responses that
   contain an exact 0 or 1 for classes whose sharp null is a logit shift (for
   example `InferencePropZeroOneInflatedBetaRegr`, `InferencePropBetaRegr`).
@@ -347,8 +370,9 @@ methods.
   Hessian with the wrong sign (garbage p-values) and is fixed; the
   loggamma-frailty null fit has a floor on log-theta, so its LR test is no
   longer `NA` when the null MLE is the no-frailty boundary. The KK
-  Hurdle/Poisson/CountKKGLMM classes still return the larger of the model and
-  Wald p-value by design, so score/LR can equal Wald.
+  Hurdle/Poisson classes still return the larger of the model and Wald
+  p-value by design, so score/LR can equal Wald; `InferenceCountKKGLMM`
+  no longer does.
 * New classed warnings instead of silent substitution:
   `edi_lik_test_unavailable_warning` (score/LR/Bartlett p-value `NA` while
   Wald is finite), `edi_lik_ci_wald_fallback` and `edi_lik_test_wald_fallback`

@@ -535,6 +535,29 @@ ticked in their **owning plans**; this list is the release index.
   `→ TODO-13..16`, `→ TODO-17..18` (which also closes
   `prw_subsampling_implementation_spec.md → TODO-14..17` **[spliced]**),
   plus `prw_subsampling_implementation_spec.md → TODO-20` alongside.
+- [ ] TODO-3a (added 2026-11-04, user decision; **after TODO-3**, it reports
+  through the diagnostics it returns): **Zero-inflated score test on a
+  partly collapsed zero-inflation submodel.** When the data have zeros but
+  no excess zeros for part of the covariate space, the ZIP/ZINB
+  (`InferenceCountZeroInflatedPoisson`/`NegBin`) zero-inflation logits run
+  to +-Inf along a flat ridge: the null refits tie in neg-log-likelihood
+  (to ~1e-6) at very different zi coefficients, the nuisance information
+  block is numerically singular (min eigenvalue ~1e-14 vs max ~300), and
+  `score_test_from_score_information_cpp`'s Schur complement
+  `I_jj - I_jn I_nn^-1 I_nj` loses its precision, so the score p-value
+  depends on where the optimizer stopped (0.00012 vs 0.064 at the same
+  delta; root cause in the 2026-11-03 trail learning). Expected to be rare
+  on real data (the calibration harness hit it only because it fed these
+  classes plain Poisson counts, now fixed), and numerical error there is
+  acceptable for now (user ruling 2026-11-04). Fix: (a) extend the
+  2026-09-07 #18 boundary rule (all fitted pi ~ 0) to saturated zi
+  coefficients; (b) compute the efficient information through an
+  eigen-truncated pseudo-inverse of `I_nn` (relative tolerance ~1e-8),
+  which gave the same p on both ridge points (0.0504/0.0504), replacing
+  `score_test_with_ridge_fallback` on that path; (c) report the collapse
+  through TODO-3's diagnostics instead of silently. The no-zeros case is
+  handled separately (v1.0.5: error on the user's data, non-inflated
+  fallback inside resampling).
 - [ ] ~~TODO-4~~ **→ moved 2026-08-27 to `release_v1_2_0.md → TODO-1..4`** — **Kernel/perf lane** (`_master.md` Phase 4 remainder; parallel
   with TODO-3): `robust_regression_perf_optimization_spec.md → TODO-1..4`
   (profile-first), `quantile_regression_cpp_kernel_spec.md → its TODO list`,

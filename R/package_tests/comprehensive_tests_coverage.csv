@@ -859,7 +859,6 @@ InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~.],FixedBlocking,
 InferenceCountHurdleNegBin [design_formula=~.],FixedBlocking,ci_asymp,count,0,0.81578947368421,38
 InferenceCountQuasiPoisson [design_formula=~.],FixedBinaryMatch,ci_asymp,count,0,0.81578947368421,38
 InferenceCountKKGLMM (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_rand,count,0,0.818181818181818,11
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,ci_asymp,incidence,0.5,0.818181818181818,22
 InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~1],FixedMatchingGreedy,ci_asymp,incidence,0.5,0.818181818181818,22
 InferenceOrdinalStereotypeLogitRegr [design_formula=~1],Bernoulli,ci_asymp,ordinal,0,0.818181818181818,11
 InferenceSurvivalKMDiff [design_formula=~1],FixedMatchingGreedy,ci_asymp,survival,0,0.818181818181818,33
@@ -1193,10 +1192,8 @@ InferenceCountRobustPoisson [design_formula=~.],Bernoulli,ci_asymp,count,0,0.894
 InferenceCountQuasiPoisson (model_formula=~.) [design_formula=~.],SPBR,ci_asymp,count,0,0.894736842105263,38
 InferenceCountQuasiPoisson [design_formula=~.],SPBR,ci_asymp,count,0,0.894736842105263,38
 InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~1],Bernoulli,ci_rand,count,0,0.894736842105263,19
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,ci_asymp,incidence,0,0.894736842105263,19
 InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~.],Bernoulli,ci_bootstrap,incidence,0.5,0.894736842105263,19
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],Bernoulli,ci_bootstrap,incidence,0.5,0.894736842105263,19
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,ci_asymp,incidence,0.5,0.894736842105263,19
 InferenceOrdinalContRatioRegr [design_formula=~1],FixediBCRD,ci_asymp,ordinal,0,0.894736842105263,95
 InferenceOrdinalOrderedProbitRegr [design_formula=~1],FixedMatchingGreedy,ci_bootstrap,ordinal,0,0.894736842105263,38
 InferenceOrdinalRidit [design_formula=~.],Bernoulli,ci_bootstrap,ordinal,0,0.894736842105263,38
@@ -2271,8 +2268,6 @@ InferenceAllSimpleAverageDiff [design_formula=~.],FixedMatchingGreedy,ci_bootstr
 InferenceCountZeroInflatedNegBin (model_formula=~1) [design_formula=~1],FixedMatchingGreedy,ci_asymp,count,0,0.954545454545455,22
 InferenceCountZeroInflatedNegBin [design_formula=~1],FixedMatchingGreedy,ci_asymp,count,0,0.954545454545455,22
 InferenceIncidWald [design_formula=~.],FixediBCRD,ci_bootstrap,incidence,0,0.954545454545455,44
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,ci_asymp,incidence,0.5,0.954545454545455,22
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_asymp,incidence,0.5,0.954545454545455,22
 InferenceOrdinalOrderedProbitRegr [design_formula=~.],FixedMatchingGreedy,ci_bootstrap,ordinal,0,0.954545454545455,22
 InferenceCountKKHurdlePoissonOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,ci_rand,count,0,0.955555555555556,45
 InferenceIncidNewcombeRiskDiff [design_formula=~.],FixediBCRD,ci_bootstrap,incidence,0,0.955555555555556,45
@@ -2455,7 +2450,6 @@ InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~.],Fixed
 InferenceCountKKHurdlePoissonOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_bootstrap,count,0,0.96,50
 InferenceCountKKCondPoissonOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_bootstrap,count,0,0.96,50
 InferenceCountNegBin (model_formula=~1) [design_formula=~.],Bernoulli,ci_rand,count,0,0.96,75
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,ci_asymp,incidence,0,0.96,50
 InferenceIncidGCompRiskDiff (model_formula=~1) [design_formula=~1],Bernoulli,ci_bootstrap,incidence,0,0.96,50
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~1],Bernoulli,ci_bootstrap,incidence,0,0.96,50
 InferenceAllSimpleAverageDiff [design_formula=~1],FixedMatchingGreedy,ci_asymp,incidence,0,0.96,50
@@ -3215,7 +3209,6 @@ InferenceIncidNewcombeRiskDiff [design_formula=~1],FixediBCRD,ci_bootstrap,incid
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],SPBR,ci_asymp,incidence,0,0.98,50
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],FixediBCRD,ci_asymp,incidence,0,0.98,50
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,ci_asymp,incidence,0,0.98,50
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,ci_asymp,incidence,0,0.98,50
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],KK21stepwise,ci_asymp,incidence,0,0.98,50
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],KK21stepwise,ci_asymp,incidence,0,0.98,50
 InferenceIncidKKGEE [design_formula=~.],KK21stepwise,ci_asymp,incidence,0,0.98,50
@@ -4041,25 +4034,18 @@ InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],Fi
 InferenceAllSimpleMeanDiffPooledVar [design_formula=~.],FixedMatchingGreedy,ci_asymp,incidence,0,1,56
 InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_bootstrap,incidence,0.5,1,8
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],Bernoulli,ci_asymp,incidence,0,1,50
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,ci_asymp,incidence,0,1,12
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],FixediBCRD,ci_bootstrap,incidence,0,1,39
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,ci_bootstrap,incidence,0,1,14
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,ci_asymp,incidence,0,1,46
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],FixediBCRD,ci_bootstrap,incidence,0,1,42
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixediBCRD,ci_asymp,incidence,0,1,50
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixediBCRD,ci_bootstrap,incidence,0,1,15
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,ci_bootstrap,incidence,0,1,10
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_asymp,incidence,0,1,47
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_bootstrap,incidence,0,1,30
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],FixedMatchingGreedy,ci_asymp,incidence,0,1,50
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixedMatchingGreedy,ci_asymp,incidence,0,1,50
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixedMatchingGreedy,ci_bootstrap,incidence,0,1,12
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,ci_asymp,incidence,0.5,1,7
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,ci_asymp,incidence,0.5,1,12
 InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],Bernoulli,ci_bootstrap,incidence,0,1,30
 InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~.],Bernoulli,ci_bootstrap,incidence,0,1,33
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],Bernoulli,ci_bootstrap,incidence,0,1,17
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,ci_bootstrap,incidence,0.5,1,7
 InferenceIncidLogRegr (model_formula=~.) [design_formula=~1],Bernoulli,ci_bootstrap,incidence,0.5,1,9
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],Bernoulli,ci_bootstrap,incidence,0.5,1,7
 InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~1],FixedMatchingGreedy,ci_asymp,incidence,0,1,50
@@ -4712,11 +4698,9 @@ InferenceCountHurdlePoisson (model_formula=~.) [design_formula=~1],FixedMatching
 InferenceCountHurdleNegBin (model_formula=~.) [design_formula=~1],Bernoulli,ci_bootstrap,count,0,,0
 InferenceCountPoissonKKGEE (model_formula=~.) [design_formula=~1],KK21stepwise,ci_bootstrap,count,0,,0
 InferenceCountPoissonKKGEE (model_formula=~.) [design_formula=~.],KK21stepwise,ci_bootstrap,count,0,,0
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_bootstrap,incidence,0,,0
 InferenceIncidExactFisher [design_formula=~1],Bernoulli,ci_bootstrap,incidence,0,,0
 InferenceIncidExactBinomial [design_formula=~1],KK21stepwise,ci_bootstrap,incidence,0,,0
 InferenceIncidExactFisher [design_formula=~.],Bernoulli,ci_bootstrap,incidence,0,,0
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,ci_bootstrap,incidence,0.5,,0
 InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~1],KK21stepwise,ci_asymp,ordinal,0,,0
 InferenceOrdinalKKCondAdjCatLogitRegr [design_formula=~1],KK21stepwise,ci_asymp,ordinal,0.5,,0
 InferenceOrdinalContRatioRegr [design_formula=~.],FixediBCRD,ci_bootstrap,ordinal,0.5,,0

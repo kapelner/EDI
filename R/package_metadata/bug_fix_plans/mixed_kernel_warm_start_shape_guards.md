@@ -401,3 +401,5 @@ parameter names, and numerical Hessian likelihood now use both full
   current-source native build/object manifest (with `EDI_UNITY=0`); matching
   DLL hashes and the recorded `EDI_UNITY=1` metadata are insufficient. The
   comprehensive-row reconciliation remains a distinct open gate.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** CI run 41085170825 at e3e165fa (2026-10-30) passed both `R-devel (ASAN/UBSAN)` and `R-devel (valgrind)` at a commit containing `test-kernel-warm-start-length-contracts.R` (committed in db0d284a). Not ticked: the job log was not checked to confirm the file ran, and the comprehensive-CSV reconciliation is still open.

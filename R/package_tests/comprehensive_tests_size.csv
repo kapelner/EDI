@@ -157,7 +157,6 @@ InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~.],Be
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],Bernoulli,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),1,50,5.98744426154525e-200
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),1,36,4.00374975417123e-142
 InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),1,36,4.00374975417123e-142
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),1,1,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),1,36,4.00374975417123e-142
 InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),1,36,4.00374975417123e-142
 InferenceIncidKKGCompRiskDiff (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),1,36,4.00374975417123e-142
@@ -849,7 +848,6 @@ InferenceOrdinalPropOddsRegr [design_formula=~1],Bernoulli,ordinal,0,compute_ran
 InferenceContinLin (model_formula=~.) [design_formula=~1],FixedBlocking,continuous,0,compute_lik_ratio_bootstrap_two_sided_pval,0.392156862745098,51,2.74166499856449e-23
 InferenceContinLin (model_formula=~.) [design_formula=~1],FixedBlocking,continuous,0,compute_param_bootstrap_pval,0.392156862745098,51,2.74166499856449e-23
 InferenceContinQuantileRegr (model_formula=~.) [design_formula=~.],SPBR,continuous,0,compute_rand_bootstrap_two_sided_pval,0.384615384615385,26,3.41576822451338e-09
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_score_two_sided_pval,0.384615384615385,39,6.30710650930995e-16
 InferencePropBetaRegr (model_formula=~1) [design_formula=~.],FixedBlocking,proportion,0,compute_jackknife_wald_two_sided_pval,0.380952380952381,21,2.26620931859208e-06
 InferencePropZeroOneInflatedBetaRegr (model_formula=~1) [design_formula=~.],FixedBlocking,proportion,0,compute_jackknife_wald_two_sided_pval,0.380952380952381,21,2.26620931859208e-06
 InferenceContinQuantileRegr (model_formula=~1) [design_formula=~1],FixedMatchingGreedy,continuous,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),0.38,50,6.38778440795043e-21
@@ -967,7 +965,6 @@ InferenceContinLin (model_formula=~.) [design_formula=~1],Bernoulli,continuous,0
 InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.],FixedBinaryMatch,survival,0,compute_lik_ratio_bootstrap_two_sided_pval,0.292682926829268,41,2.72141423592913e-07
 InferenceContinKKRobustRegrOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,continuous,0,compute_bayesian_bootstrap_two_sided_pval_studentized,0.292035398230089,113,9.97553378122675e-27
 InferenceCountHurdleNegBin [design_formula=~.],FixedBinaryMatch,count,0,compute_score_two_sided_pval,0.291666666666667,24,0.0147651850950963
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_jackknife_wald_two_sided_pval,0.291666666666667,24,0.0147651850950963
 InferencePropQuantileRegr (model_formula=~.) [design_formula=~1],FixedBlocking,proportion,0,compute_rand_bootstrap_two_sided_pval_studentized,0.291666666666667,24,0.0147651850950963
 InferencePropQuantileRegr (model_formula=~.) [design_formula=~1],FixedBlocking,proportion,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.291666666666667,24,0.0147651850950963
 InferencePropBetaRegr (model_formula=~.) [design_formula=~.],FixediBCRD,proportion,0,compute_lik_ratio_two_sided_pval,0.291666666666667,24,0.0147651850950963
@@ -1866,7 +1863,6 @@ InferenceCountKKGLMM (model_formula=~1) [design_formula=~.],KK21stepwise,count,0
 InferenceCountKKGLMM (model_formula=~1) [design_formula=~.],KK21stepwise,count,0,compute_m_out_of_n_bootstrap_two_sided_pval,0.142857142857143,7,1
 InferenceCountKKGLMM (model_formula=~.) [design_formula=~.],KK21stepwise,count,0,compute_bootstrap_two_sided_pval_symmetric,0.142857142857143,7,1
 InferenceCountKKGLMM (model_formula=~.) [design_formula=~.],KK21stepwise,count,0,compute_bootstrap_two_sided_pval_studentized,0.142857142857143,7,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_jackknife_wald_two_sided_pval,0.142857142857143,28,1
 InferenceOrdinalKKCLMMProbit (model_formula=~.) [design_formula=~1],KK21stepwise,ordinal,0,compute_bayesian_bootstrap_two_sided_pval,0.142857142857143,35,1
 InferenceOrdinalKKCLMMCloglog (model_formula=~.) [design_formula=~1],KK21stepwise,ordinal,0,compute_bayesian_bootstrap_two_sided_pval_symmetric,0.142857142857143,35,1
 InferenceOrdinalKKCLMMCloglog (model_formula=~.) [design_formula=~1],KK21stepwise,ordinal,0,compute_bayesian_bootstrap_two_sided_pval_wald,0.142857142857143,35,1
@@ -1917,7 +1913,6 @@ InferenceContinOLS (model_formula=~.) [design_formula=~1],FixedMatchingGreedy,co
 InferenceCountNegBin (model_formula=~.) [design_formula=~.],KK21stepwise,count,0,compute_bayesian_bootstrap_two_sided_pval,0.14,50,1
 InferenceCountNegBin (model_formula=~.) [design_formula=~.],KK21stepwise,count,0,compute_bayesian_bootstrap_two_sided_pval_symmetric,0.14,50,1
 InferenceCountPoisson (model_formula=~1) [design_formula=~.],FixedBlocking,count,0,compute_jackknife_wald_two_sided_pval,0.14,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_score_two_sided_pval,0.14,50,1
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],Bernoulli,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,0.14,50,1
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],Bernoulli,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.14,50,1
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],Bernoulli,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.14,50,1
@@ -2225,8 +2220,6 @@ InferenceCountQuasiPoisson (model_formula=~.) [design_formula=~1],FixediBCRD,cou
 InferenceCountRobustPoisson (model_formula=~.) [design_formula=~1],FixedBlocking,count,0,compute_rand_bootstrap_two_sided_pval_smoothed,0.128205128205128,39,1
 InferenceCountQuasiPoisson (model_formula=~.) [design_formula=~1],FixedBlocking,count,0,compute_rand_bootstrap_two_sided_pval_smoothed,0.128205128205128,39,1
 InferenceCountQuasiPoisson (model_formula=~.) [design_formula=~.],Bernoulli,count,0,compute_rand_bootstrap_two_sided_pval,0.128205128205128,39,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_lik_ratio_two_sided_pval,0.128205128205128,39,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_gradient_two_sided_pval,0.128205128205128,39,1
 InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.],KK21stepwise,survival,0,compute_rand_bootstrap_two_sided_pval_studentized,0.128205128205128,39,1
 InferenceSurvivalKKStratCoxPHOneLik [design_formula=~.],KK21stepwise,survival,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.128205128205128,39,1
 InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~.],FixediBCRD,count,0,pval_rand,0.127659574468085,47,1
@@ -3027,8 +3020,6 @@ InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~1],FixediB
 InferenceCountHurdleNegBin (model_formula=~1) [design_formula=~.],FixediBCRD,count,0,compute_param_bootstrap_pval,0.108108108108108,37,1
 InferenceCountZeroInflatedPoisson (model_formula=~1) [design_formula=~.],FixedMatchingGreedy,count,0,compute_lik_ratio_bootstrap_two_sided_pval,0.108108108108108,37,1
 InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.108108108108108,37,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.108108108108108,37,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.108108108108108,37,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.108108108108108,37,1
 InferenceIncidKKNewcombeRiskDiff [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval,0.108108108108108,37,1
 InferenceIncidKKNewcombeRiskDiff [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.108108108108108,37,1
@@ -3129,8 +3120,6 @@ InferenceIncidRiskDiff (model_formula=~1) [design_formula=~.],FixediBCRD,inciden
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_subsampling_two_sided_pval,0.105263157894737,57,1
 InferenceAllSimpleAverageDiff [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,0.105263157894737,57,1
 InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~.],FixedMatchingGreedy,incidence,0,compute_bootstrap_two_sided_pval_bca,0.105263157894737,38,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,pval_asymp,0.105263157894737,19,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_wald_two_sided_pval,0.105263157894737,19,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,incidence,0,compute_gradient_two_sided_pval,0.105263157894737,19,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_gradient_two_sided_pval,0.105263157894737,19,1
 InferenceOrdinalKKCLMMCloglog (model_formula=~1) [design_formula=~1],KK21stepwise,ordinal,0,compute_jackknife_wald_two_sided_pval,0.105263157894737,57,1
@@ -3408,10 +3397,6 @@ InferenceIncidMiettinenNurminenRiskDiff [design_formula=~.],FixedMatchingGreedy,
 InferenceIncidMiettinenNurminenRiskDiff [design_formula=~.],FixedMatchingGreedy,incidence,0,compute_bootstrap_two_sided_pval_bca,0.1,30,1
 InferenceIncidNewcombeRiskDiff [design_formula=~.],FixedMatchingGreedy,incidence,0,compute_subsampling_two_sided_pval,0.1,50,1
 InferenceIncidGCompRiskDiff (model_formula=~.) [design_formula=~.],FixedMatchingGreedy,incidence,0,compute_subsampling_two_sided_pval,0.1,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_lik_ratio_two_sided_pval,0.1,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_gradient_two_sided_pval,0.1,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,pval_rand,0.1,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,pval_rand,0.1,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,pval_asymp,0.1,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_wald_two_sided_pval,0.1,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_wald,0.1,40,1
@@ -4433,7 +4418,6 @@ InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~.],SPBR,inciden
 InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0833333333333333,36,1
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.0833333333333333,36,1
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0833333333333333,36,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.0833333333333333,36,1
 InferenceIncidRiskDiff (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0.0833333333333333,36,1
 InferenceAllSimpleAverageDiff [design_formula=~.],SPBR,ordinal,0,compute_bayesian_bootstrap_two_sided_pval_studentized,0.0833333333333333,84,1
 InferenceOrdinalPartialProportionalOddsRegr [design_formula=~.],FixedBlocking,ordinal,0,pval_asymp,0.0833333333333333,84,1
@@ -4725,7 +4709,6 @@ InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~.],Fi
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval,0.0810810810810811,37,1
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.0810810810810811,37,1
 InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0.0810810810810811,37,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval,0.0810810810810811,37,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval,0.0810810810810811,37,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.0810810810810811,37,1
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0.0810810810810811,37,1
@@ -6971,8 +6954,6 @@ InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],SPBR,incidence,
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],Bernoulli,incidence,0,pval_asymp,0.06,50,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],Bernoulli,incidence,0,compute_wald_two_sided_pval,0.06,50,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],Bernoulli,incidence,0,compute_rand_bootstrap_two_sided_pval,0.06,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_lik_ratio_two_sided_pval,0.06,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_gradient_two_sided_pval,0.06,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,pval_asymp,0.06,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_wald_two_sided_pval,0.06,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bayesian_bootstrap_two_sided_pval_symmetric,0.06,50,1
@@ -7927,7 +7908,6 @@ InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~.],SPBR,incide
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~.],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0555555555555556,36,1
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~.],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0.0555555555555556,36,1
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval,0.0555555555555556,36,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0555555555555556,36,1
 InferenceIncidRiskDiff (model_formula=~.) [design_formula=~1],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.0555555555555556,36,1
 InferenceIncidRiskDiff (model_formula=~.) [design_formula=~1],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0555555555555556,36,1
 InferenceIncidRiskDiff (model_formula=~.) [design_formula=~1],SPBR,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0.0555555555555556,36,1
@@ -10163,12 +10143,6 @@ InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],Bernoulli,incid
 InferenceIncidLogRegr (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0.04,50,1
 InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0.04,50,1
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],FixediBCRD,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0.04,75,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,pval_asymp,0.04,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_wald_two_sided_pval,0.04,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_score_two_sided_pval,0.04,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_studentized,0.04,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,pval_rand,0.04,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,pval_rand,0.04,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_symmetric,0.04,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_studentized,0.04,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bayesian_bootstrap_two_sided_pval_wald,0.04,50,1
@@ -12317,9 +12291,6 @@ InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],KK21stepw
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.0277777777777778,36,1
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0277777777777778,36,1
 InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0277777777777778,36,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval,0.0277777777777778,36,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.0277777777777778,36,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0277777777777778,36,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval,0.0277777777777778,36,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0.0277777777777778,36,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0.0277777777777778,36,1
@@ -13232,7 +13203,6 @@ InferenceAllSimpleAverageDiff [design_formula=~.],FixediBCRD,count,0,compute_ran
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~.) [design_formula=~1],Bernoulli,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0.0222222222222222,45,1
 InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0.0222222222222222,45,1
 InferenceIncidKKGCompRiskRatio (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_bca,0.0222222222222222,45,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_jackknife_wald_two_sided_pval,0.0222222222222222,45,1
 InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,pval_rand,0.0222222222222222,90,1
 InferenceIncidKKGCompRiskDiff (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,pval_rand,0.0222222222222222,90,1
 InferenceIncidKKGCompRiskDiff (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,pval_rand,0.0222222222222222,90,1
@@ -13289,8 +13259,6 @@ InferenceIncidKKGCompRiskRatio (model_formula=~1) [design_formula=~.],KK21stepwi
 InferenceIncidLogRegr (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0.0212765957446809,47,1
 InferenceAllSimpleAverageDiff [design_formula=~.],SPBR,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0.0212765957446809,47,1
 InferenceIncidGCompRiskRatio (model_formula=~1) [design_formula=~.],FixediBCRD,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0.0212765957446809,47,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_lik_ratio_two_sided_pval,0.0212765957446809,47,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_gradient_two_sided_pval,0.0212765957446809,47,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,incidence,0,compute_lik_ratio_bootstrap_two_sided_pval,0.0212765957446809,47,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_lik_ratio_bootstrap_two_sided_pval,0.0212765957446809,47,1
 InferenceOrdinalKKCLMMProbit (model_formula=~1) [design_formula=~.],KK21stepwise,ordinal,0,pval_asymp,0.0212765957446809,94,1
@@ -13554,13 +13522,6 @@ InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,inci
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,incidence,0,compute_wald_two_sided_pval,0.02,50,1
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~1],FixediBCRD,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0.02,50,1
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0.02,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,pval_asymp,0.02,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_wald_two_sided_pval,0.02,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_score_two_sided_pval,0.02,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_lik_ratio_two_sided_pval,0.02,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_gradient_two_sided_pval,0.02,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,pval_rand,0.02,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,pval_rand,0.02,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,pval_asymp,0.02,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_wald_two_sided_pval,0.02,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_jackknife_wald_two_sided_pval,0.02,50,1
@@ -16720,8 +16681,6 @@ InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],Bernoulli,incid
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],Bernoulli,incidence,0,compute_gradient_two_sided_pval,0,22,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],Bernoulli,incidence,0,compute_lik_ratio_bartlett_two_sided_pval,0,4,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],Bernoulli,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0,4,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,pval_asymp,0,12,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_wald_two_sided_pval,0,12,1
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0,21,1
 InferenceIncidKKModifiedPoisson (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0,50,1
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~1],SPBR,incidence,0,compute_bayesian_bootstrap_two_sided_pval,0,21,1
@@ -16744,12 +16703,6 @@ InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,inci
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,incidence,0,compute_lik_ratio_bartlett_two_sided_pval,0,2,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixediBCRD,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0,2,1
 InferenceIncidLogBinomial (model_formula=~1) [design_formula=~.],Bernoulli,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0,6,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,pval_asymp,0,46,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_wald_two_sided_pval,0,46,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_score_two_sided_pval,0,46,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_lik_ratio_two_sided_pval,0,46,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_gradient_two_sided_pval,0,46,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_jackknife_wald_two_sided_pval,0,31,1
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0,26,1
 InferenceIncidKKModifiedPoisson (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0,50,1
 InferenceIncidKKModifiedPoisson (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0,50,1
@@ -16774,18 +16727,6 @@ InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixediBCRD,inci
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,0,1,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0,75,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0,75,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,pval_bootstrap,0,10,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_symmetric,0,29,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_bca,0,10,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_m_out_of_n_bootstrap_two_sided_pval,0,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_subsampling_two_sided_pval,0,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_jackknife_wald_two_sided_pval,0,38,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,pval_asymp,0,47,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_wald_two_sided_pval,0,47,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_score_two_sided_pval,0,47,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_symmetric,0,40,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_studentized,0,44,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_jackknife_wald_two_sided_pval,0,39,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_subsampling_two_sided_pval,0,50,1
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,pval_bootstrap,0,30,1
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_bca,0,30,1
@@ -16830,14 +16771,11 @@ InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~1],Bernoulli,i
 InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~1],Bernoulli,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0,50,1
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~1],Bernoulli,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0,50,1
 InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval,0,36,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0,4,1
 InferenceIncidLogRegr (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0,69,1
 InferenceIncidLogRegr (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0,69,1
 InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_rand_bootstrap_two_sided_pval,0,76,1
 InferenceIncidProbitRegr (model_formula=~.) [design_formula=~.],FixediBCRD,incidence,0,compute_rand_bootstrap_two_sided_pval_studentized,0,76,1
 InferenceIncidKKCondLogitOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval,0,50,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval,0,36,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0,4,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval,0,50,1
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0,50,1
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval,0,50,1
@@ -17040,12 +16978,6 @@ InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixedMatchingGr
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixedMatchingGreedy,incidence,0,compute_rand_bootstrap_two_sided_pval_symmetric-percentile-t,0,49,1
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~1],FixedMatchingGreedy,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,0,49,1
 InferenceIncidBinomialIdentityRiskDiff (model_formula=~1) [design_formula=~1],FixedMatchingGreedy,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0,39,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval,0,1,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_symmetric,0,1,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_wald,0,1,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,0,1,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_symmetric,0,1,1
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_wald,0,1,1
 InferenceAllSimpleWilcox [design_formula=~1],Bernoulli,ordinal,0,pval_rand,0,41,1
 InferenceOrdinalAdjCatLogitRegr [design_formula=~1],Bernoulli,ordinal,0,compute_lik_ratio_bartlett_two_sided_pval,0,4,1
 InferenceOrdinalOrderedProbitRegr [design_formula=~1],Bernoulli,ordinal,0,compute_lik_ratio_bartlett_two_sided_pval,0,4,1
@@ -20156,10 +20088,6 @@ InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],SPBR,incidence,
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_lik_ratio_bartlett_two_sided_pval,,0,
 InferenceIncidLogBinomial (model_formula=~.) [design_formula=~.],SPBR,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,,0,
 InferenceIncidKKCondLogitOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_lik_ratio_bartlett_approx_two_sided_pval,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,pval_bootstrap,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bootstrap_two_sided_pval_bca,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_m_out_of_n_bootstrap_two_sided_pval,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_subsampling_two_sided_pval,,0,
 InferenceIncidKKGEE (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
 InferenceIncidKKGEE (model_formula=~.) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
 InferenceIncidExactBinomial [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval,,0,
@@ -20167,11 +20095,8 @@ InferenceIncidExactBinomial [design_formula=~1],KK21stepwise,incidence,0,compute
 InferenceIncidExactBinomial [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_wald,,0,
 InferenceIncidExactBinomial [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,,0,
 InferenceIncidExactBinomial [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,,0,
 InferenceIncidKKNewcombeRiskDiff [design_formula=~1],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,,0,
 InferenceIncidKKNewcombeRiskDiff [design_formula=~.],KK21stepwise,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval(delta=0.5),,0,
 InferenceIncidKKNewcombeRiskDiff [design_formula=~.],FixedBinaryMatch,incidence,0,compute_rand_bootstrap_two_sided_pval_smoothed,,0,
 InferenceIncidExactFisher [design_formula=~1],Bernoulli,incidence,0,pval_bootstrap,,0,
 InferenceIncidExactFisher [design_formula=~1],Bernoulli,incidence,0,compute_bootstrap_two_sided_pval_symmetric,,0,
@@ -20217,10 +20142,6 @@ InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~1],FixedMatchin
 InferenceIncidGCompRiskRatio (model_formula=~.) [design_formula=~1],FixedMatchingGreedy,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
 InferenceIncidModifiedPoisson (model_formula=~1) [design_formula=~1],FixedMatchingGreedy,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
 InferenceIncidModifiedPoisson (model_formula=~.) [design_formula=~1],FixedMatchingGreedy,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~1) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_bca,,0,
-InferenceIncidKKCondLogitGLMMOneLik (model_formula=~.) [design_formula=~1],KK21stepwise,incidence,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
 InferenceAllSimpleWilcox [design_formula=~1],Bernoulli,ordinal,0,compute_jackknife_wald_two_sided_pval,,0,
 InferenceOrdinalContRatioRegr [design_formula=~1],Bernoulli,ordinal,0,compute_bayesian_bootstrap_two_sided_pval_studentized,,0,
 InferenceAllSimpleWilcox [design_formula=~1],KK21stepwise,ordinal,0,compute_jackknife_wald_two_sided_pval,,0,

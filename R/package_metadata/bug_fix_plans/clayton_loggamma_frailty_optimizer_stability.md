@@ -216,6 +216,8 @@ does not close the original-seed gate. Keep the historical-replay versus
 owner-approved deterministic-replacement choice open; no benchmark, fit, or
 replacement run was made.
 
+  **Status 2026-11-04 (v1.0.5 release audit):** superseded. Release `release_v1_0_5.md → TODO-6` was closed 2026-10-22 on existing evidence by owner decision G6 #6 (option (a)); the residual `~.` slow tail moved to release TODO-126. Box left unticked as superseded, not done.
+
 - [x] TODO-4: Confirm no golden-test point-estimate drift from the new
   bound. `test-clayton-logtheta-optimizer-bound.R` passed against the
   reinstalled package on 2026-10-14, including the censored fixture's

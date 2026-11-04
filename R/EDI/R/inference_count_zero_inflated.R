@@ -23,6 +23,22 @@
 #' methods report explicit non-estimability rather than attempting
 #' delete-one refits.
 #'
+#' \strong{Data with no zeros.} A zero-inflated mixture needs zero counts:
+#' with none, the maximum-likelihood structural-zero probability is 0 (its
+#' logits diverge to \eqn{-\infty}) and the zero-inflation submodel is not
+#' identified. The constructor therefore stops with an error when the
+#' response has no zeros (as \code{pscl::zeroinfl()} does); use
+#' \code{\link[EDI:InferenceCountPoisson]{InferenceCountPoisson}} instead. \strong{Inside
+#' resampling} -- a nonparametric- or Bayesian-bootstrap replicate, or a
+#' parametric-bootstrap simulation, that happens to contain no zeros (common
+#' when the data have few) -- the replicate is \strong{not} dropped and does
+#' not error: it falls back to the non-inflated Poisson fit of the count
+#' part (the zero-inflation coefficients are fixed so that the structural-zero
+#' probability is effectively 0). That is the boundary value of the
+#' zero-inflated MLE, so the treatment coefficient is the Poisson
+#' regression's; dropping such replicates would bias the resampling
+#' distribution toward replicates that happen to contain zeros.
+#'
 #' \strong{Marginal (unconditional-mean) estimand.} Via
 #' \code{\link[EDI:InferenceMarginalEstimand]{set_estimand()}}, this class
 #' also supports \code{estimand = "marginal_mean_diff"} and
@@ -265,6 +281,22 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 #' numerically unstable, so \code{compute_jackknife_estimate()} and related
 #' methods report explicit non-estimability rather than attempting
 #' delete-one refits.
+#'
+#' \strong{Data with no zeros.} A zero-inflated mixture needs zero counts:
+#' with none, the maximum-likelihood structural-zero probability is 0 (its
+#' logits diverge to \eqn{-\infty}) and the zero-inflation submodel is not
+#' identified. The constructor therefore stops with an error when the
+#' response has no zeros (as \code{pscl::zeroinfl()} does); use
+#' \code{\link[EDI:InferenceCountNegBin]{InferenceCountNegBin}} instead. \strong{Inside
+#' resampling} -- a nonparametric- or Bayesian-bootstrap replicate, or a
+#' parametric-bootstrap simulation, that happens to contain no zeros (common
+#' when the data have few) -- the replicate is \strong{not} dropped and does
+#' not error: it falls back to the non-inflated negative binomial fit of the count
+#' part (the zero-inflation coefficients are fixed so that the structural-zero
+#' probability is effectively 0). That is the boundary value of the
+#' zero-inflated MLE, so the treatment coefficient is the negative binomial
+#' regression's; dropping such replicates would bias the resampling
+#' distribution toward replicates that happen to contain zeros.
 #'
 #' @references Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 #'   Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),

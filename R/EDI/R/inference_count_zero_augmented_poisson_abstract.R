@@ -59,6 +59,17 @@ ZeroAugmentedCountLikelihoodSource = list(
 			
 			private$use_rcpp = use_rcpp
 			private$model_formula_zero = model_formula_zero
+			# 2026-11-04: a zero-inflated mixture needs zeros -- with none, the
+			# structural-zero probability's MLE is pi = 0 (logits at -Inf) and the
+			# zero-inflation submodel is not identified (pscl::zeroinfl() refuses the
+			# same data). Refuse up front on the user's data; resampled data are
+			# handled by zero_inflation_fixed_args() instead (non-inflated fit).
+			if (private$zero_inflation_is_unidentified(private$y)) {
+				stop(class(self)[1L], ": the response has no zeros, so the zero-inflation submodel is not identified ",
+					"(its maximum-likelihood structural-zero probability is 0). Use ",
+					if (grepl("Negative Binomial", private$za_description())) "InferenceCountNegBin" else "InferenceCountPoisson",
+					" instead.", call. = FALSE)
+			}
 		},
 		#' @description Compute the zero-augmented count-model asymptotic confidence
 		#'   interval for the conditional treatment coefficient, with bootstrap
@@ -894,6 +905,34 @@ ZeroAugmentedCountLikelihoodSource = list(
 			}
 		},
 		za_family = function() stop(class(self)[1], " must implement za_family()."),
+		# TRUE for a zero-inflated MIXTURE (not a hurdle: there zeros come only from
+		# the binary part, the likelihood factorizes and the count part keeps a finite
+		# MLE) whose effective response -- rows with positive weight -- has no zeros.
+		zero_inflation_is_unidentified = function(y, weights = NULL){
+			desc = tryCatch(private$za_description(), error = function(e) "")
+			if (!grepl("^Zero-Inflated", desc)) return(FALSE)
+			y = as.numeric(y)
+			keep = is.finite(y)
+			if (!is.null(weights)) keep = keep & is.finite(weights) & weights > 0
+			any(keep) && !any(y[keep] == 0)
+		},
+		# Inside resampling (bootstrap draws, parametric-bootstrap simulations) a
+		# replicate with no zeros gets the non-inflated fit: the zero-inflation
+		# intercept is fixed at -40 (pi ~ 4e-18) and its other coefficients at 0, which
+		# is the boundary MLE and reproduces the Poisson / negative binomial fit of the
+		# count part. Returns list(idx, values) for the C++ fitters' fixed_idx /
+		# fixed_values (NULL when the data have zeros and nothing else is fixed);
+		# `extra_idx` / `extra_values` are parameters the caller already fixes.
+		zero_inflation_fixed_args = function(y, n_cond, n_zi, extra_idx = NULL, extra_values = NULL){
+			if (!private$zero_inflation_is_unidentified(y)) {
+				if (is.null(extra_idx)) return(NULL)
+				return(list(idx = as.integer(extra_idx), values = as.numeric(extra_values)))
+			}
+			list(
+				idx = as.integer(c(extra_idx, n_cond + seq_len(n_zi))),
+				values = as.numeric(c(extra_values, -40, rep(0, n_zi - 1L)))
+			)
+		},
 		za_description = function() stop(class(self)[1], " must implement za_description()."),
 		supports_likelihood_tests = function(){
 			isTRUE(private$use_rcpp) && private$za_description() %in% c(
@@ -1045,6 +1084,13 @@ ZeroAugmentedCountLikelihoodSource = list(
 		fit_zero_augmented_model = function(dat, X_fit, Xzi_fit, weights = NULL){
 			formula_cond = private$build_formula_from_matrix(X_fit)
 			formula_zi = private$build_formula_from_matrix(Xzi_fit, response = NULL)
+			# Resampled data with no zeros (positive weight): glmmTMB's own
+			# non-inflated model (ziformula = ~0), i.e. the Poisson / NB fit -- see
+			# zero_inflation_fixed_args().
+			if (private$zero_inflation_is_unidentified(private$y, weights)) {
+				formula_zi = ~0
+				private$cached_values$zero_inflation_fallback = TRUE
+			}
 			glmm_control = glmmTMB::glmmTMBControl(parallel = self$num_cores)
 			tryCatch(
 				suppressWarnings(suppressMessages(
@@ -1100,6 +1146,9 @@ ZeroAugmentedCountLikelihoodSource = list(
 					Xzi_fit = private$build_component_matrix(private$model_formula_zero, private$best_Xzi_colnames, treatment_name = "w")
 				}
 				out = list()
+				private$cached_values$zero_inflation_fallback = NULL
+				zi_fix = private$zero_inflation_fixed_args(private$y, ncol(X_fit), ncol(Xzi_fit))
+				if (!is.null(zi_fix)) private$cached_values$zero_inflation_fallback = TRUE
 			if (private$use_rcpp && identical(private$za_description(), "Zero-Inflated Negative Binomial")) {
 				n_params = ncol(X_fit) + ncol(Xzi_fit) + 1L
 				ws_args = private$get_backend_warm_start_args(n_params)
@@ -1110,7 +1159,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 						warm_start_params = ws_args$start_params,
 						warm_start_fisher_info = ws_args$warm_start_fisher_info,
 						smart_cold_start = private$smart_cold_start_default,
-						estimate_only = estimate_only, optimization_alg = private$optimization_alg
+						estimate_only = estimate_only, optimization_alg = private$optimization_alg,
+						fixed_idx = zi_fix$idx, fixed_values = zi_fix$values
 					),
 					error = function(e){
 						fit_error <<- conditionMessage(e)
@@ -1175,7 +1225,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 						warm_start_params = ws_args$start_params,
 						warm_start_fisher_info = ws_args$warm_start_fisher_info,
 						smart_cold_start = private$smart_cold_start_default,
-						estimate_only = estimate_only, optimization_alg = private$optimization_alg
+						estimate_only = estimate_only, optimization_alg = private$optimization_alg,
+						fixed_idx = zi_fix$idx, fixed_values = zi_fix$values
 					),
 					error = function(e){
 						fit_error <<- conditionMessage(e)
@@ -1202,7 +1253,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 								warm_start_params = NULL,
 								warm_start_fisher_info = NULL,
 								smart_cold_start = FALSE,
-								estimate_only = estimate_only, optimization_alg = private$optimization_alg
+								estimate_only = estimate_only, optimization_alg = private$optimization_alg,
+								fixed_idx = zi_fix$idx, fixed_values = zi_fix$values
 							),
 							error = function(e) NULL
 						)
@@ -1351,13 +1403,17 @@ ZeroAugmentedCountLikelihoodSource = list(
 				y_sim = as.integer(ifelse(u == 1L, 0L, rpois(n, lambda)))
 			}
 			n_params = if (is_zinb) ncol(X) + ncol(Xzi) + 1L else ncol(X) + ncol(Xzi)
+			# A simulated response with no zeros gets the non-inflated fit (both the
+			# full and the null refit), never a dropped replicate.
+			sim_fix = private$zero_inflation_fixed_args(y_sim, ncol(X), ncol(Xzi))
 			full_res = tryCatch(
 				if (is_zinb) {
 					fast_zinb_cpp(
 						X = X, y = as.numeric(y_sim), Xzi = Xzi,
 						smart_cold_start = private$smart_cold_start_default,
 						estimate_only = FALSE,
-						optimization_alg = private$optimization_alg
+						optimization_alg = private$optimization_alg,
+						fixed_idx = sim_fix$idx, fixed_values = sim_fix$values
 					)
 				} else {
 					fast_zero_augmented_poisson_cpp(
@@ -1365,7 +1421,8 @@ ZeroAugmentedCountLikelihoodSource = list(
 						is_hurdle = is_hurdle,
 						smart_cold_start = private$smart_cold_start_default,
 						estimate_only = FALSE,
-						optimization_alg = private$optimization_alg
+						optimization_alg = private$optimization_alg,
+						fixed_idx = sim_fix$idx, fixed_values = sim_fix$values
 					)
 				},
 				error = function(e) NULL
@@ -1381,6 +1438,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				full_fit = full_res,
 				fit_null = function(d, start = NULL){
 					ws = start %||% private$get_fit_warm_start_for_length("params", n_params)
+					null_fix = private$zero_inflation_fixed_args(y_sim, ncol(X), ncol(Xzi), extra_idx = j, extra_values = d)
 					fit = tryCatch(
 						if (is_zinb) {
 							fast_zinb_cpp(
@@ -1389,7 +1447,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 								smart_cold_start = private$smart_cold_start_default,
 								estimate_only = FALSE,
 								optimization_alg = private$optimization_alg,
-								fixed_idx = j, fixed_values = d
+								fixed_idx = null_fix$idx, fixed_values = null_fix$values
 							)
 						} else {
 							fast_zero_augmented_poisson_cpp(
@@ -1399,7 +1457,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 								smart_cold_start = private$smart_cold_start_default,
 								estimate_only = FALSE,
 								optimization_alg = private$optimization_alg,
-								fixed_idx = j, fixed_values = d
+								fixed_idx = null_fix$idx, fixed_values = null_fix$values
 							)
 						},
 						error = function(e) NULL

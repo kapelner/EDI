@@ -234,7 +234,7 @@ release validation item; it cannot be performed from the source-loaded
 checkout without the maintainer's separately authorized rebuild/install.
 TODO-1's independent Bug 1 true-null checks remain a separate open item below.
 
-- [ ] TODO-1: Verify Bug 1's fix (already applied) actually helps
+- [x] TODO-1: Verify Bug 1's fix (already applied) actually helps
   `compute_lik_ratio_two_sided_pval()`, `compute_lik_ratio_bootstrap_two_sided_pval()`,
   and Bartlett-approx on `InferenceOrdinalCloglogRegr` — not yet checked
   independently of the `compute_param_bootstrap_pval` repro that turned out
@@ -350,6 +350,8 @@ TODO-1's independent Bug 1 true-null checks remain a separate open item below.
   build/install, or canonical result write occurred; TODO-1's acceptance/
   calibration and TODO-6's comprehensive regeneration/reconciliation remain
   open.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** done. Release runbook G4-C R1 (2026-10-25, DLL `c6d59498`, G1-rechecked) PASSED under the owner's `~1` re-scope: direct LR 5.4%, LR-bootstrap 5.2%, Bartlett 5.6%; the runbook names this TODO as what R1 closes. The `~.` strata were re-scoped as non-gating by the owner.
 - [x] TODO-2 (2026-09-23, completed): Read all 6 originally-suspected
   classes' `generate_mod()`/`compute_estimate()` for the same
   `-attempt$fit$b[1]`-style negation Cloglog has, and cross-checked which

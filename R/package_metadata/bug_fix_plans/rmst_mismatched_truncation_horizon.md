@@ -135,7 +135,7 @@ those APIs.
   so all RMST-difference paths now use the same horizon. The shared
   integration helper also correctly returns `tau` for an all-censored
   single group, rather than the previous zero area.
-- [ ] TODO-3: Validate the native changes in `fast_survival_stats.cpp`
+- [x] TODO-3: Validate the native changes in `fast_survival_stats.cpp`
   against an artifact built from the exact source revision. Local compile,
   build, or install requires explicit permission under the current repo
   instructions; any authorized compile must use `EDI_UNITY=0`. The existing
@@ -265,6 +265,8 @@ those APIs.
   this artifact to those exact sources. It therefore adds runtime evidence
   but does not close TODO-3's exact-source/native provenance gate, TODO-5's
   calibration, or TODO-7's regeneration. No build/install or canonical write.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** closed by waiver. Owner decision G6 #36 (ii) waived the targeted-compile criterion; CI run 38808821543 plus the G1 build (passed 2026-10-23/25) stand in (`release_v1_0_5.md`, G4-C R4).
 - [x] TODO-4: Decide the exact shared-τ convention (minimum of both arms'
   max time is the standard literature default; confirm this is what's
   wanted here, or whether a pre-specified fixed horizon parameter should
@@ -288,7 +290,7 @@ those APIs.
   family (120 replicates gives only about +/-4 points). A family passes when
   its exact binomial interval for all-attempts coverage contains 0.95.
 
-- [ ] TODO-5: Re-run the historical-CSV-style coverage check (or a fresh
+- [x] TODO-5: Re-run the historical-CSV-style coverage check (or a fresh
   simulation at this harness's censoring rate) across every affected
   method family and confirm coverage returns to nominal ~95%.
   **Bounded installed-package diagnostic 2026-10-16 (not closure):** against
@@ -393,6 +395,8 @@ those APIs.
   attempt, not empirical calibration or acceptance evidence; the full
   120-rep multi-method study and owner-approved precision/acceptance rule
   remain open. No R process, fit, or output file was created.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** done. Release runbook R4A PASSED 2026-10-26: 14/14 families, 460/460 valid each, coverage 0.941-0.959, every Clopper-Pearson interval contains 0.95.
 - [x] TODO-6: Add a permanent regression test constructing a fixture with
   deliberately mismatched arm-level max follow-up times, asserting the
   point estimate and SE are computed against one shared τ, not two

@@ -236,6 +236,8 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   CSV hashes remain `e07fb683…ddd051` (`n=100`) and
   `5992e43b…7eff4` (`n=50`); provenance and the historical-data gap remain
   unchanged, so TODO-4 is still blocked. No result files were modified.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** G4-C R2 400-dataset study ran 2026-10-25/26 (12.9% Type-I at n = 100, K = 5); the owner deferred the gate and covariate-dropping issues to `release_v1_1_0.md → TODO-160` on 2026-10-26. Ticking this box on that deferral is an owner call; left open.
 - [x] TODO-5: Audit and, where estimates move, re-derive (not just
   re-record) every golden/reference value touching
   `InferenceOrdinalStereotypeLogitRegr` in
@@ -288,7 +290,7 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   regeneration/reconciliation. No compilation or installation occurred;
   TODO-4, TODO-7, and TODO-8 remain open. Captured output is
   `/tmp/todo8-stereotype-multistart-source-20261020.log`.
-- [ ] TODO-7: Update `inference_ordinal_stereotype_logit.R`'s class-level
+- [x] TODO-7: Update `inference_ordinal_stereotype_logit.R`'s class-level
   roxygen (rewritten 2026-09-21 with the post-refit-fix Type-I/coverage
   numbers) with the post-multi-start numbers from TODO-4, and regenerate
   `man/InferenceOrdinalStereotypeLogitRegr.Rd`
@@ -301,6 +303,8 @@ Keep whichever converged fit has the lowest `neg_loglik`. Cache its
   these values cannot yet be replaced safely. Update the source and generated
   Rd together only after TODO-4 is valid; follow the batch documentation
   process rather than roxygenizing ad hoc.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** done. The roxygen and `man/InferenceOrdinalStereotypeLogitRegr.Rd` carry the re-measured R2 numbers (commits 7dc68d41, 22ab41b2); the 2026-10-18 gate note above is superseded.
 - [ ] TODO-8: Regenerate the `comprehensive_tests` CSV rows for this class
   (all `function_run`s, not just the lik-ratio-bootstrap slice already
   regenerated 2026-09-21) once the fix lands and is installed, then re-run

@@ -498,6 +498,68 @@ SurvivalDepCensTransformSource = list(
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
+			# TODO-188 (v1.0.5): the full-data dep-cens likelihood is bimodal in rho.
+			# One start (the object's warm start, else the C++ default with
+			# atanh(rho) = 0) could stop in the wrong mode. Calibration generator
+			# (n = 200, Bernoulli, reps 1-25 x {~1, ~.}): 7 of 49 estimable fits sat
+			# in a rho > 0 mode (or short of the clamp) while the MLE had rho ~ -0.9,
+			# with nll gains up to 12.3 (`~.` rep 15) and beta_T moving up to 0.31
+			# (`~.` rep 9: 0.050 -> -0.262); null fits then landed below the "full"
+			# nll. `~1` rep 8 had no converged fit at all (MLE on the rho clamp).
+			# Deterministic starts, no RNG: (1) the old call (warm start + warm
+			# Fisher, else C++ default), so a fit already at the MLE is
+			# bit-identical; (2) the C++ default, if (1) was a warm start; (3)
+			# start (1)'s fit with the sign of atanh(rho) flipped; (4-7) OLS betas
+			# with atanh(rho) = -2, 2, -3, 3 (+-3 is the C++ clamp; `~1` rep 8's
+			# MLE is on it and only the +3 start reaches it); (8) a restart from the
+			# best so far (resets the LBFGS memory; fixes stopping-tolerance
+			# shortfalls of ~1e-6). In an ablation over those 50 fits, zeros and
+			# atanh(rho) = +-1 found no optimum this set misses. A later start
+			# replaces the incumbent only if it converged and lowers the nll by
+			# > 1e-6. Every start keeps the old call's estimate_only = FALSE (the
+			# Fisher information it returns becomes the warm Fisher of later fits).
+			# Each fit costs ~1-2 ms at n = 200. Returns list(best, first); best is
+			# NULL if no start converged, and dep_cens_fit_retry() then runs on first.
+			# (A local closure, not a private method: the component contract in
+			# contracts_mixins.R lists every private method.)
+			dep_cens_multistart_fit = function(X_fit){
+				n_params = 2L * ncol(X_fit) + 3L
+				p = ncol(X_fit)
+				fit = function(ws, smart = FALSE, fisher = NULL) tryCatch(fast_dep_cens_transform_optim_cpp(
+					y = private$y, dead = private$dead, X = X_fit, warm_start_params = ws,
+					warm_start_fisher_info = fisher, smart_cold_start = smart), error = function(e) NULL)
+				nll_of = function(f){
+					if (is.null(f) || !isTRUE(f$converged) || length(f$b) != n_params || any(!is.finite(f$b))) return(NA_real_)
+					v = as.numeric(f$neg_loglik)
+					if (length(v) == 1L && is.finite(v)) v else NA_real_
+				}
+				best = NULL
+				best_nll = NA_real_
+				consider = function(cand){
+					cand_nll = nll_of(cand)
+					if (!is.finite(cand_nll)) return(invisible(NULL))
+					if (!is.finite(best_nll) || cand_nll < best_nll - 1e-6){
+						best <<- cand
+						best_nll <<- cand_nll
+					}
+					invisible(NULL)
+				}
+				ws1 = private$get_fit_warm_start_for_length("params", n_params)
+				smart1 = isTRUE(private$smart_cold_start_default)
+				first = fit(ws1, smart = smart1, fisher = private$get_fit_warm_start_fisher(n_params))
+				consider(first)
+				if (!is.null(ws1) || !smart1) consider(fit(NULL, smart = TRUE))
+				if (is.finite(nll_of(first))) {
+					flip = as.numeric(first$b)
+					flip[n_params] = -flip[n_params]
+					consider(fit(flip))
+				}
+				b_ols = tryCatch(as.numeric(stats::lm.fit(X_fit, log(as.numeric(private$y)))$coefficients), error = function(e) NULL)
+				if (is.null(b_ols) || length(b_ols) != p || !all(is.finite(b_ols))) b_ols = rep(0, p)
+				for (a in c(-2, 2, -3, 3)) consider(fit(c(b_ols, b_ols, 0, 0, a)))
+				if (!is.null(best)) consider(fit(as.numeric(best$b)))
+				list(best = best, first = first)
+			}
 			X_full = private$build_design_matrix()
 			attempt = private$fit_with_hardened_qr_column_dropping(
 				X_full = X_full,
@@ -517,15 +579,9 @@ SurvivalDepCensTransformSource = list(
 				# SurvivalGLMMWeibullFrailtyNormalOneLikSource.
 				required_cols = c(1L, 2L),
 				fit_fun = function(X_fit){
-					n_params = 2 * ncol(X_fit) + 3L
-					warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
-					warm_fisher = private$get_fit_warm_start_fisher(n_params)
-					res = tryCatch(fast_dep_cens_transform_optim_cpp(
-						y = private$y, dead = private$dead, X = X_fit, warm_start_params = warm_start_params,
-						warm_start_fisher_info = warm_fisher,
-						smart_cold_start = private$smart_cold_start_default
-					), error = function(e) NULL)
-					if (is.null(res) || !isTRUE(res$converged)) {
+					ms = dep_cens_multistart_fit(X_fit)
+					res = ms$best
+					if (is.null(res)) {
 						# TODO-111 (fourth pass): the C++ objective clamps atanh(rho)
 						# to [-3, 3] but its analytic gradient is not zeroed there, so
 						# whenever the MLE sits on the rho boundary (common on
@@ -535,8 +591,8 @@ SurvivalDepCensTransformSource = list(
 						# (1) a cold zero start (can find an interior optimum), then
 						# (2) for estimate-only fits, the smooth constrained problem
 						# with atanh(rho) pinned at the boundary the failed fit drifted to.
-						# Converged first fits never reach this branch (bit-identical).
-						retry = private$dep_cens_fit_retry(X_fit, failed = res, estimate_only = estimate_only)
+						# Reached only when no TODO-188 multistart start converged.
+						retry = private$dep_cens_fit_retry(X_fit, failed = ms$first, estimate_only = estimate_only)
 						if (is.null(retry)) return(NULL)
 						res = retry
 					}

@@ -28,7 +28,7 @@ the smallest verifying set is the files that call `optimize_fixed_likelihood` / 
 `fast_negbin_regression.cpp`, `fast_beta_regression.cpp`, `fast_gaussian_lmm.cpp`, ordinal kernels).
 NOTE: stale per-file `.o` objects sit next to `unity_NN.o` from the user's unity builds, and a unity
 install leaves no per-file objects; if the needed `.o` files are missing, STOP and ask (do not build
-them). Patches 04 (and 05) change an exported signature: after the `.cpp` edit run
+them). Patch 05 changes an exported signature (04 did too; withdrawn 2026-11-04): after the `.cpp` edit run
 `Rcpp::compileAttributes()` (user's tooling) so `src/RcppExports.cpp` and `R/RcppExports.R` regenerate.
 Rd for those functions needs `roxygenize` afterwards (not hand-edited here).
 
@@ -39,7 +39,7 @@ Rd for those functions needs `roxygenize` afterwards (not hand-edited here).
 | 01 | `01-newton-stall.patch` | 123 | `_helper_functions_core.h` |
 | 02 | `02-dep-cens-clamped-gradient.patch` | 111 (4th pass) | `fast_survival_models_optim.cpp` |
 | 03 | `03-clayton-stable-logA.patch` | 121 (3rd batch) | `fast_survival_models_optim.cpp` |
-| 04 | `04-negbin-eps-g.patch` (+ `04b-...REFERENCE-ONLY.patch`) | 116 | `fast_negbin_regression.cpp` (+ generated `R/RcppExports.R`) |
+| 04 | WITHDRAWN 2026-11-04 (patch files 04 + 04b deleted) | 116 | the C++ default stays `eps_g = 1e-6`; the tight 1e-10 is opt-in from R via `negbin_fit_with_eps_fallback()` (owner decision 2026-11-04) |
 | 05 | `05-rmst-tau.patch` | 108 | `fast_survival_stats.cpp` |
 | 06 | `06-ridit-delong-se.patch` | 106 | `fast_ridit_analysis.cpp`, `python/cpp/bindings_ordinal.cpp`, `python/src/edi_kernels/_core.pyi` |
 | 07 | `07-zinb-pseudo-inverse.patch` | 4 (ZINB note) | `fast_zinb.cpp` |
@@ -57,7 +57,7 @@ Rd for those functions needs `roxygenize` afterwards (not hand-edited here).
 
 `*.REFERENCE-ONLY.patch` show what `compileAttributes()` should produce for `R/RcppExports.R`;
 do NOT apply them; regenerate instead (they exist so the regeneration can be diffed).
-`src/RcppExports.cpp` carries no default arguments, so patch 04 changes nothing there.
+`src/RcppExports.cpp` carries no default arguments, so patch 04 (withdrawn) would have changed nothing there.
 TODO-57/3 are NOT in this bundle (not requested; TODO-107 is patch 12; patch 13 for TODO-118 was withdrawn, see below); the CLMM
 `eps_g` change was R-only (`clmm_eps_g`), so no C++ patch is needed.
 
@@ -67,7 +67,7 @@ TODO-57/3 are NOT in this bundle (not requested; TODO-107 is patch 12; patch 13 
 
 | Patch | Decision | Condition |
 |---|---|---|
-| 04 | G6 #40 (c) | apply with its listed tests (see note 04). Only the default in `fast_neg_bin_cpp`/`_with_var_cpp` changes; #40 (a)(b) are deferred to `release_v1_1_0.md → TODO-67` |
+| 04 | G6 #40 (c), REVERSED 2026-11-04 | WITHDRAWN by owner 2026-11-04, do not apply (see note 04). Was: apply with its listed tests. Only the default in `fast_neg_bin_cpp`/`_with_var_cpp` changes; #40 (a)(b) are deferred to `release_v1_1_0.md → TODO-67` |
 | 07 | G6 #26 | ONLY together with companions B07 and B07b, and only after the TODO-4 guard-test review in step 1 below. If that review finds a test the pseudo-inverse legitimately breaks beyond what B07b updates, stop and skip 07 + B07b (B07 alone is harmless: it is inert without the tag) |
 | 08 | G6 #16 | apply. The BRT Cox kernel's literal `20` (~L1220) is NOT changed |
 | 10 + 11 | G6 #27 | apply 11 together with 10 |
@@ -75,7 +75,7 @@ TODO-57/3 are NOT in this bundle (not requested; TODO-107 is patch 12; patch 13 
 
 Not owner-gated (each is already in its TODO's scope, G1 only): 01 (TODO-123), 02 (TODO-111), 03 (TODO-121), 05 (TODO-108,
 with A05), 06 (TODO-106, with C06; the Python `.postN` release is approved by G6 #28, but push/tag need their own go-ahead),
-09 (TODO-121, comment only), 12 (TODO-107), 15 (TODO-131; added 2026-10-23). 13 is withdrawn. Never apply `04b`/`08b` (REFERENCE-ONLY).
+09 (TODO-121, comment only), 12 (TODO-107), 15 (TODO-131; added 2026-10-23). 04 and 13 are withdrawn. Never apply `08b` (REFERENCE-ONLY).
 
 **Exact apply order** (from the repo root; run `git apply --check --directory=. <file>` immediately before each apply,
 because the R tree changes under other agents):
@@ -85,7 +85,7 @@ because the R tree changes under other agents):
    `test-information-inverse-edge-cases.R`, `test-zinb-zero-inflation-boundary.R`, `test-zinb-zi-block-unidentified-count-se.R`.
    Record which assertions patch 07 changes. Only `test-information-inverse-guard.R` L125-129 is expected (B07b).
 2. `companions/B07-zinb-safe-vcov-subblock.patch` (R only; safe before the kernel).
-3. C++ patches, in this order: `01`, `02`, `03`, `04`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `14`, `15`.
+3. C++ patches, in this order: `01`, `02`, `03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `14`, `15`.
    - 02/03 share `fast_survival_models_optim.cpp`. 05/10 share `fast_survival_stats.cpp`. 08/10 share
      `fast_coxph_regression.cpp`. 11/15 share `fast_robust_regression.cpp` (distant hunks; either order composes, see
      note 15).
@@ -97,8 +97,8 @@ because the R tree changes under other agents):
 4. Targeted compile (`EDI_UNITY=0`) of every touched `.cpp`, then relink, as in "Compile / relink pattern". Patch 01 is a
    header change: recompile every file that instantiates `optimize_likelihood_newton`. Patch 12 adds `ordinal_scale_guard.h`
    plus 6 `.cpp`. If the per-file `.o` files are missing, STOP and ask.
-5. `Rcpp::compileAttributes()`. Patches 04, 05 and 08 change exported formals/defaults. Diff the regenerated
-   `R/RcppExports.R` against `04b`/`08b`; do not apply those two.
+5. `Rcpp::compileAttributes()`. Patches 05 and 08 change exported formals/defaults. Diff the regenerated
+   `R/RcppExports.R` against `08b`; do not apply it.
 6. R/Python companions: `companions/A05-rmst-tau-R-callsite.patch`, `companions/B07b-zinb-guard-test-update.patch`,
    `companions/C06-ridit-delong-se-test-constants.patch`.
 7. Copy the six companion tests into `R/EDI/tests/testthat/`:
@@ -108,10 +108,9 @@ because the R tree changes under other agents):
    - `test-ridit-kernel-se-equals-delong.R`
    - `test-zinb-pseudo-inverse-identified-coordinates.R`
    - `test-cox-newton-descent-guard.R`
-8. Run them with `EDI_REQUIRE_CPP_PATCHES=true`, plus each patch's "Verify" list below. That includes patch 04's NegBin
-   tests, 10/11's per-kernel BRT tests plus a new `matrix(0, 0, 0)` noise test, 14's
+8. Run them with `EDI_REQUIRE_CPP_PATCHES=true`, plus each patch's "Verify" list below. That includes 10/11's per-kernel BRT tests plus a new `matrix(0, 0, 0)` noise test, 14's
    `test-log-binomial-jackknife-history-independence.R`, and 15's robust-regression list (note 15).
-9. Because 04/05/08 change exported signatures, re-run G8 (roxygen) and G9 (drift CSVs) afterwards, as
+9. Because 05/08 change exported signatures, re-run G8 (roxygen) and G9 (drift CSVs) afterwards, as
    `release_v1_0_5.md`'s dependency diagram requires.
 
 ## Per-patch notes
@@ -158,7 +157,15 @@ because the R tree changes under other agents):
   (all-matched `~x1`, n = 40, seed 2: null profile should now be finite beyond log-theta -12) and the gsd = 0 seed-2 full fit
   at log-theta -14.9; `/tmp/claude-1000/tsurvey2/run_surv.R` Clayton cell (3/60 NaN at n = 40).
 
-### 04 negbin-eps-g (TODO-116)
+### 04 negbin-eps-g (TODO-116): WITHDRAWN 2026-11-04
+- Withdrawn by owner decision 2026-11-04; both patch files (04, 04b) were deleted. Do not re-create it. Reasons:
+  (1) the class it targeted already gets 1e-10: `InferenceCountNegBin` calls the kernel through
+  `negbin_fit_with_eps_fallback()` (`R/EDI/R/inference_count_negbin.R`), which tries `NEGBIN_FIT_EPS_G = 1e-10` and refits at
+  1e-6 when that fit does not converge; (2) as a C++ *default*, 1e-10 converged 7/40 at n = 20, 15/40 at n = 100 and 22/40
+  at n = 300 versus 40/40 at 1e-6 (measured, `src/fast_negbin_regression.cpp` comment above the roxygen block, 436ca96b), so the
+  default-argument callers in `helper_glm_fit.R` (retry wrappers, no fallback) would report many more unconverged fits;
+  (3) the five NegBin tests used to close TODO-116 do not exercise the C++ default, so they were no evidence for it.
+- Historical text of the note follows.
 - Purpose: default `eps_g` 1e-6 -> 1e-10 in `fast_neg_bin_cpp` and `fast_neg_bin_with_var_cpp` (the R class already passes 1e-10).
   `fast_neg_bin_weighted_cpp` and `fast_neg_bin_internal`'s defaults are deliberately NOT changed (not requested).
 - Regeneration: after applying, run `Rcpp::compileAttributes()`; `R/RcppExports.R` defaults then change to `eps_g = 1e-10`

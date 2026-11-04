@@ -208,6 +208,8 @@ lengths is part of TODO-1).
   library or rebuilt Python extension remains intentionally assigned to
   TODO-4/TODO-5, not this source-audit checkbox.
 
+  **Status 2026-11-04 (v1.0.5 release audit):** the contract test exists in `R/EDI/tests/testthat/` and ran under the green sanitizer/valgrind jobs of CI run 41085170825 (e3e165fa, 2026-10-30). Not ticked: the 2026-10-17 note above left Fisher-wrapper coverage at 19/63, and current coverage was not re-counted.
+
 - [ ] TODO-4: **Verify by targeted compile.** Recompile only the touched
   `.cpp` files with the flags from `src/Makevars`, relink `EDI.so` from
   the existing `.o` files, load the rebuilt package without source-loading,

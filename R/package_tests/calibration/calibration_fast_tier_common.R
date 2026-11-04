@@ -53,10 +53,13 @@ cal_rt_index <- function(response_type) match(response_type, CAL_RESPONSE_TYPES)
 cal_gen_X <- function(n) data.frame(x1 = stats::rnorm(n), x2 = stats::rbinom(n, 1L, 0.5))
 
 # y drawn from the response family's own model, so model-based SEs are not
-# legitimately wrong because of misspecification.
-cal_gen_y <- function(response_type, X, w, effect = 0) {
+# legitimately wrong because of misspecification. `dgp` picks a variant within
+# the response type for classes whose model plain data would put on the edge of
+# its parameter space (see cal_class_dgp()).
+cal_gen_y <- function(response_type, X, w, effect = 0, dgp = "default") {
 	n <- nrow(X)
 	eta <- 0.5 * X$x1 + 0.5 * X$x2 + effect * w
+	if (!identical(dgp, "default")) return(cal_gen_y_variant(dgp, X, eta))
 	switch(response_type,
 		continuous = list(ys = 1 + eta + stats::rnorm(n)),
 		incidence = list(ys = stats::rbinom(n, 1L, stats::plogis(-0.5 + eta))),
@@ -81,6 +84,41 @@ cal_gen_y <- function(response_type, X, w, effect = 0) {
 		},
 		stop("unknown response type: ", response_type, call. = FALSE)
 	)
+}
+
+# Zero-inflated mixture classes (InferenceCountZeroInflatedPoisson/NegBin) fit
+# P(structural zero) = plogis(Xzi gamma) by default with the same formula as the
+# count part. On plain Poisson counts the true pi is 0, i.e. gamma = -Inf: the MLE
+# does not exist, the zi logits drift along a flat ridge and the nuisance
+# information is numerically singular, so the score test depends on where the
+# optimizer stopped (TODO-185, 2026-11-03). That is the boundary case, not the
+# class's intended use, so these classes get data that ARE zero-inflated:
+# structural zeros with pi = plogis(-1 + 0.5 x1) (about 0.28, independent of w,
+# so the sharp null still holds and the count-part treatment effect is the
+# only treatment effect) mixed with the class's own count family (Poisson, or
+# NB with size 2). Hurdle classes are not listed: their zero part is a plain
+# binary model of P(y = 0), which Poisson data identify.
+CAL_DGP_BY_CLASS <- c(
+	InferenceCountZeroInflatedPoisson = "count_zip",
+	InferenceCountZeroInflatedNegBin = "count_zinb"
+)
+
+cal_class_dgp <- function(inference_class) {
+	d <- unname(CAL_DGP_BY_CLASS[inference_class])
+	d[is.na(d)] <- "default"
+	d
+}
+
+cal_gen_y_variant <- function(dgp, X, eta) {
+	n <- nrow(X)
+	mu <- exp(0.5 + 0.6 * eta)
+	structural_zero <- stats::rbinom(n, 1L, stats::plogis(-1 + 0.5 * X$x1)) == 1L
+	counts <- switch(dgp,
+		count_zip = stats::rpois(n, mu),
+		count_zinb = stats::rnbinom(n, size = 2, mu = mu),
+		stop("unknown calibration dgp: ", dgp, call. = FALSE)
+	)
+	list(ys = ifelse(structural_zero, 0L, counts))
 }
 
 # Unequal-arm allocation (release_v1_0_5.md TODO-184): the scheduled fast tier
@@ -230,11 +268,20 @@ cal_run_rep <- function(response_type, n, rep, plan, keep = NULL, effect = 0, en
 		classes <- plan[[plan_label]]
 		if (!is.null(keep)) classes <- intersect(classes, keep)
 		if (!length(classes)) next
-		set.seed(1e6 * cal_rt_index(response_type) + 1e4 * (effect != 0) + 7L * n + rep)
-		X <- cal_gen_X(n)
-		des <- cal_new_design(design_name, response_type, n, X, prob_T = entry$prob_T)
-		do.call(des$add_all_subject_responses, cal_gen_y(response_type, X, des$get_w(), effect))
-		tab <- cal_run_tasks(des, classes, alpha = alpha, endpoints = endpoints)
+		# One design per data-generating process: the same seed rebuilds the same X
+		# and w, so classes with a variant dgp see the same subjects and
+		# assignment, and the default stream is unchanged by their presence.
+		dgps <- cal_class_dgp(classes)
+		tab <- NULL
+		for (dgp in unique(c("default", dgps))) {
+			dgp_classes <- classes[dgps == dgp]
+			if (!length(dgp_classes)) next
+			set.seed(1e6 * cal_rt_index(response_type) + 1e4 * (effect != 0) + 7L * n + rep)
+			X <- cal_gen_X(n)
+			des <- cal_new_design(design_name, response_type, n, X, prob_T = entry$prob_T)
+			do.call(des$add_all_subject_responses, cal_gen_y(response_type, X, des$get_w(), effect, dgp = dgp))
+			tab <- rbind(tab, cal_run_tasks(des, dgp_classes, alpha = alpha, endpoints = endpoints))
+		}
 		if (is.null(tab)) next
 		tab$response_type <- response_type
 		tab$design <- design_name

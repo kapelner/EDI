@@ -192,6 +192,8 @@ this audit.
   (and the derived `comprehensive_tests_size.csv`/`_coverage.csv`/
   `_mse.csv`/`_power.csv` aggregates) so this class's numbers reflect the
   fix rather than the pre-fix behavior.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** the G7 16-key slice was merged 2026-10-24 and the owner closed release `TODO-56` on it (2026-11-04). The derived `comprehensive_tests_{size,coverage,mse,power}.csv` aggregates (last regenerated 2026-10-04, before the fix) regenerate with G4.
 - [x] TODO-7: Record the result-changing correction in `R/EDI/NEWS.md`.
 - [x] TODO-8: Synchronize both generated Rd files with the corrected roxygen
   text without running a package build.

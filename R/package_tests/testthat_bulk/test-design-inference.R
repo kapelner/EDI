@@ -415,7 +415,16 @@ test_that("Inference works for count", {
 	expect_true(is.numeric(est_quasi_pois))
 
 	if (requireNamespace("glmmTMB", quietly = TRUE)) {
-		inf_zinb <- InferenceCountZeroInflatedNegBin$new(des, verbose = FALSE)
+		# rpois(n, 5) here has no zeros: the zero-inflated model refuses such
+		# data (2026-11-04); fit it on a copy with zeros instead.
+		expect_error(InferenceCountZeroInflatedNegBin$new(des, verbose = FALSE), "no zeros")
+		des_zeros <- DesignSeqOneByOneBernoulli$new(n = n, response_type = "count", verbose = FALSE)
+		set.seed(1)
+		for (i in 1:n) {
+		des_zeros$add_one_subject_to_experiment_and_assign(data.frame(x = rnorm(1)))
+		}
+		add_all_subject_responses_seq(des_zeros, replace(rpois(n, 5), c(2L, 7L, 13L), 0L))
+		inf_zinb <- InferenceCountZeroInflatedNegBin$new(des_zeros, verbose = FALSE)
 		est_zinb <- inf_zinb$compute_estimate()
 		expect_true(is.numeric(est_zinb))
 	}

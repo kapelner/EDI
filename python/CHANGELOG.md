@@ -26,8 +26,15 @@ or permutation function is exposed in Python.
 - `fast_ridit_analysis`: a category missing from the reference group now
   scores the cumulative reference mass below it instead of averaging the
   neighbouring ridits. With `reference="treatment"` the estimate is
-  `0.5 - mean_ridit_c` (SE from the control arm), so the estimate keeps the
-  treated-minus-control orientation for every `reference`.
+  `0.5 - mean_ridit_c`, so the estimate keeps the treated-minus-control
+  orientation for every `reference`.
+- `fast_ridit_analysis`: the returned `se` is now the DeLong (1988) standard
+  error of the underlying Mann-Whitney contrast,
+  Var(V10)/n_T + Var(V01)/n_C (times n_C/N for a pooled reference). The old
+  SE treated the reference arm's ridit scores as fixed, ignoring that arm's
+  sampling variability, so it was too small. It now matches the R class
+  `InferenceOrdinalRidit`. Standard errors (and any interval built from them)
+  get larger; the estimate is unchanged.
 - `fast_gee`: the exchangeable correlation estimate matches geepack's
   Pearson dispersion correction, is clamped to +/-0.95, and no longer
   changes when all weights are rescaled together. Estimates move.

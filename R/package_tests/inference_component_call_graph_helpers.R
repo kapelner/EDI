@@ -482,6 +482,17 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 	km_methods <- strsplit(baseline$private_methods[[km_row]], "|", fixed = TRUE)[[1L]]
 	baseline$private_methods[[km_row]] <- paste(sort(unique(c(km_methods,
 		paste0(c("km_median_arm_bounds", "mover_half_widths"), "@InferenceSurvivalKMDiff")))), collapse = "|")
+	# 2026-11-04: the zero-augmented count component (ZIP/ZINB/hurdle) gained the
+	# private helpers zero_inflation_is_unidentified and zero_inflation_fixed_args
+	# (no-zeros error on the user's data, non-inflated fit inside resampling),
+	# bound on the abstract base that declares za_family. Reviewed additive delta:
+	# only classes inheriting za_family from that base gain them.
+	baseline$private_methods <- vapply(baseline$private_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		host <- "InferenceCountZeroAugmentedPoissonAbstract"
+		if (!(paste0("za_family@", host) %in% x)) return(s)
+		paste(sort(unique(c(x, paste0(c("zero_inflation_is_unidentified", "zero_inflation_fixed_args"), "@", host)))), collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

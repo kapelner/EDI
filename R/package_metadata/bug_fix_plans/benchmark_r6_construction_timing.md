@@ -48,6 +48,8 @@ fixes part of the cost itself; this plan fixes the measurement.
   Compute `Speedup` and `Timing Pval` on the procedure column and show the
   total alongside, so neither number is hidden.
 
+  **Status 2026-11-04 (v1.0.5 release audit):** code is done; only the G2 quiet-host regeneration of both report copies (release TODO-62) is left.
+
 - [x] TODO-2: **Decide whether a public cache reset is worth adding.**
   Reusing one object would need a way to clear its result caches; today only
   `clear_likelihood_null_warm_cache()` and
@@ -371,6 +373,8 @@ fixes part of the cost itself; this plan fixes the measurement.
   reproduced successfully; the separate Zhang parity/artifact-sync gates
   remain open. Isolated outputs are under
   `/tmp/edi-todo62-official-designs-lBPkQo/`.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** the `--sections` filter is implemented; only the regeneration run (release TODO-62, G2) is left.
 
 ## Acceptance
 

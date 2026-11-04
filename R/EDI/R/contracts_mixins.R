@@ -1539,6 +1539,8 @@ EDI_COMPONENT_SPECS = list(
 					"fit_hurdle_poisson_components_independently",
 					"compute_treatment_estimate_during_randomization_inference",
 					"za_family",
+					"zero_inflation_is_unidentified",
+					"zero_inflation_fixed_args",
 					"za_description",
 					"supports_likelihood_tests",
 					"get_likelihood_test_spec",

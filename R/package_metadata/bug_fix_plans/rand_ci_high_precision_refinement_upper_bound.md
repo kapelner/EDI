@@ -35,6 +35,8 @@ the branch ignores it.
   but does not demonstrate a trigger from actual permutation-backed real-data
   p-values. The 12 real-data runs below reached only the confirmation helper,
   not its inner refinement loop.
+
+  **Status 2026-11-04 (v1.0.5 release audit):** dropped. Owner decision G6 #23 option (a), 2026-10-22, closed release `TODO-33` on the synthetic trigger/replay evidence without an end-to-end real-data reproduction. Left unticked as superseded, not done.
 - [x] **TODO-2: Fix** by branching on `lower` (mirror the accepted/rejected
   side for the upper bound), and check the sibling refinement or bisection
   helpers for the same one-sided assumption.
