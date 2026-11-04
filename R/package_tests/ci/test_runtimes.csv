@@ -1183,6 +1183,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-poisson-record-fit-summary-bui
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-refit-design-and-fit-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-inflated-negbin-supported-testing-types-override-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zero-inflated-no-zeros-error-and-resampling-fallback.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-asymp-se-fallback-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-glmmtmb-fallback-fit-matches-pscl-weights-and-failure-null-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,correctness,1,measured_with_30_percent_headroom
@@ -1276,6 +1277,7 @@ R/EDI/tests/testthat/test-d-optimal-row-access.R,coverage,1,measured_with_30_per
 R/EDI/tests/testthat/test-degenerate-fit-threshold-calibration.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-dep-cens-bootstrap-default-B.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-dep-cens-transform-fast-pnorm.R,coverage,1.2,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-dep-cens-transform-full-fit-multistart.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-dep-cens-transform-rho-boundary-retry.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-depcens-clayton-kernel-numerics.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-design-abstract-hierarchy.R,coverage,1,measured_with_30_percent_headroom
@@ -2694,6 +2696,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-poisson-record-fit-summary-bui
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-refit-design-and-fit-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-negbin-supported-testing-types-override-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zero-inflated-no-zeros-error-and-resampling-fallback.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-asymp-se-fallback-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-glmmtmb-fallback-fit-matches-pscl-weights-and-failure-null-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-poisson-negbin-glmmtmb-weighted-bootstrap.R,coverage,240,bootstrap
