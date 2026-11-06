@@ -269,10 +269,11 @@ if (!is.null(write_known)) {
 
 # prob_T is part of the key (release_v1_0_5.md TODO-184): a known failure at 0.5 does
 # not excuse the same class failing at the unequal-allocation cell. Known-failure rows
-# without a prob_T column predate it and mean 0.5.
+# without a prob_T column predate it and mean 0.5. rep() keeps that working for a
+# header-only file (no known failures), where a bare "0.5" can't fill 0 rows.
 key <- function(df) paste(df$response_type, cal_prob_T_label(df$prob_T), df$inference_class, df$method, df$formula, df$check, sep = " | ")
 known <- if (file.exists(KNOWN_FAILURES_PATH)) utils::read.csv(KNOWN_FAILURES_PATH, stringsAsFactors = FALSE, colClasses = "character") else NULL
-if (!is.null(known) && !("prob_T" %in% names(known))) known$prob_T <- "0.5"
+if (!is.null(known) && !("prob_T" %in% names(known))) known$prob_T <- rep("0.5", nrow(known))
 known_keys <- if (is.null(known)) character() else key(known)
 fail_keys <- if (is.null(fails)) character() else key(fails)
 new_fail <- if (is.null(fails)) NULL else fails[!fail_keys %in% known_keys, ]
