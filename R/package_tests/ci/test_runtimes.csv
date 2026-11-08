@@ -1374,6 +1374,7 @@ R/EDI/tests/testthat/test-lik-test-procedure-failure-keeps-wald-state.R,coverage
 R/EDI/tests/testthat/test-lik-test-unavailable-warning.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-likelihood-test-memoization.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-local-machine-tuning-correctness.R,coverage,1.2,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-local-machine-tuning-zero-inflated-and-failed-cells.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-local-rng-permutations.R,coverage,1.2,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-local-rng-sample-int.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-log-binomial-jackknife-history-independence.R,coverage,30,bootstrap
