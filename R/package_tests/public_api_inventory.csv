@@ -8694,7 +8694,7 @@
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","set_testing_type","InferenceSurvivalKKRankRegrIVWC","class_local",1,"testing_type",TRUE,FALSE,FALSE,TRUE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","supports","Inference","inherited",1,"capability",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKRankRegrIVWC","r6_public_method","InferenceSurvivalKKRankRegrIVWC","supports_rand_pval_for_incidence","InferenceSurvivalKKRankRegrIVWC","class_local",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
-"InferenceSurvivalKKStratCoxPHIVWC","r6_class","InferenceSurvivalKKStratCoxPHIVWC","","","",0,"",FALSE,FALSE,FALSE,TRUE,"",TRUE
+"InferenceSurvivalKKStratCoxPHIVWC","r6_class","InferenceSurvivalKKStratCoxPHIVWC","","","",0,"",FALSE,FALSE,FALSE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","approximate_bayesian_bootstrap_distribution_beta_hat_T","InferenceSurvivalKKStratCoxPHIVWC","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","approximate_bootstrap_distribution_beta_hat_T","InferenceSurvivalKKStratCoxPHIVWC","class_local",4,"B;bootstrap_type;debug;show_progress",TRUE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceSurvivalKKStratCoxPHIVWC","r6_public_method","InferenceSurvivalKKStratCoxPHIVWC","approximate_jackknife_distribution_beta_hat_T","InferenceSurvivalKKStratCoxPHIVWC","class_local",1,"unit",TRUE,FALSE,TRUE,FALSE,"",TRUE
