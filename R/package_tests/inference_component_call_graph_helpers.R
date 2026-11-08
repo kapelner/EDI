@@ -493,6 +493,25 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		if (!(paste0("za_family@", host) %in% x)) return(s)
 		paste(sort(unique(c(x, paste0(c("zero_inflation_is_unidentified", "zero_inflation_fixed_args"), "@", host)))), collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
+	# v1.0.5 TODO-187 (b1e96231, 2026-11-04): the KK conditional-logit GLMM base
+	# InferenceAbstractKKCondLogitGLMM gained the conditional-logit-plus-reservoir-
+	# logit estimator helpers (off by default via uses_reservoir_logit() FALSE);
+	# InferenceIncidKKCondLogitGLMMIVWC/OneLik override uses_reservoir_logit to
+	# TRUE on their own hosts. Reviewed additive delta (recorded 2026-11-06): only
+	# the classes already hosting methods on that base gain them.
+	reservoir_host <- "InferenceAbstractKKCondLogitGLMM"
+	reservoir_methods <- paste0(c("assemble_clogit_reservoir_logit", "clogit_reservoir_logit_coefs_out_of_bounds",
+		"clogit_reservoir_logit_information", "clogit_reservoir_logit_score",
+		"compute_clogit_reservoir_logit_weighted_estimate", "fit_clogit_reservoir_logit",
+		"get_clogit_reservoir_logit_spec", "prepare_clogit_reservoir_logit_data",
+		"shared_clogit_reservoir_logit", "uses_reservoir_logit"), "@", reservoir_host)
+	reservoir_overriders <- c("InferenceIncidKKCondLogitGLMMIVWC", "InferenceIncidKKCondLogitGLMMOneLik")
+	for (row in which(grepl(paste0("@", reservoir_host), baseline$private_methods, fixed = TRUE))) {
+		x <- strsplit(baseline$private_methods[[row]], "|", fixed = TRUE)[[1L]]
+		add <- reservoir_methods
+		if (baseline$class[[row]] %in% reservoir_overriders) add <- c(add, paste0("uses_reservoir_logit@", baseline$class[[row]]))
+		baseline$private_methods[[row]] <- paste(sort(unique(c(x, add))), collapse = "|")
+	}
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

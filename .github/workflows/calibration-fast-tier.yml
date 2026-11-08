@@ -134,17 +134,27 @@ jobs:
         with:
           pattern: calib-shard-*
           path: calib
-      - name: Size and coverage gate
+      # Report only: the analysis always runs to the end and passes; the gate
+      # is enforced by the last step, after the summary is uploaded.
+      - name: Size and coverage analysis
         run: |
           Rscript R/package_tests/calibration/analyze_calibration_fast_tier.R \
-            --in-dir calib --out-dir calib-summary --summary-md "$GITHUB_STEP_SUMMARY"
+            --in-dir calib --out-dir calib-summary --summary-md "$GITHUB_STEP_SUMMARY" --report-only
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: calibration-summary
           path: calib-summary
       - name: Fail if any shard did not finish
-        if: needs.shards.result != 'success'
+        if: always() && needs.shards.result != 'success'
         run: |
-          echo "shards: ${{ needs.shards.result }} -- the gate above saw only the shards that finished." >> "$GITHUB_STEP_SUMMARY"
+          echo "shards: ${{ needs.shards.result }} -- the analysis above saw only the shards that finished." >> "$GITHUB_STEP_SUMMARY"
           exit 1
+      - name: Size and coverage gate
+        if: always()
+        run: |
+          f=calib-summary/gate_failures.txt
+          if [ ! -f "$f" ]; then echo "analysis did not produce $f"; exit 1; fi
+          n=$(cat "$f")
+          echo "Calibration gate: $n failing cell(s); see the step summary and calibration_summary.csv."
+          [ "$n" -eq 0 ]

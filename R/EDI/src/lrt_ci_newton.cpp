@@ -290,12 +290,14 @@ NumericVector pval_invert_ci_cpp(
 		// Invariant we need: p(a) > alpha (inner), p(b) <= alpha (outer)
 		double a = est;   // always inner (p >= alpha)
 		double b = R_NaReal;
+		double p_b = R_NaReal;
 
 		// Try Wald seed first
 		if (R_finite(seed) && ((direction < 0.0 && seed < est) || (direction > 0.0 && seed > est))) {
 			double p_seed = eval_p(seed);
 			if (R_finite(p_seed) && p_seed <= alpha) {
 				b = seed;
+				p_b = p_seed;
 			}
 		}
 
@@ -306,6 +308,7 @@ NumericVector pval_invert_ci_cpp(
 				double p_d = eval_p(d);
 				if (R_finite(p_d) && p_d <= alpha) {
 					b = d;
+					p_b = p_d;
 					break;
 				}
 			}
@@ -314,17 +317,46 @@ NumericVector pval_invert_ci_cpp(
 
 		// Phase 2: bisection
 		// [a, b] bracket: p(a) > alpha, p(b) <= alpha
-		for (int k = 0; k < max_bisect; ++k) {
-			double lo = std::min(a, b);
-			double hi = std::max(a, b);
-			if (hi - lo < tol) break;
-			double mid = (lo + hi) / 2.0;
-			double p_mid = eval_p(mid);
-			if (!R_finite(p_mid)) break;
-			if (p_mid > alpha) a = mid; else b = mid;
+		//
+		// TODO-174 jump guard: when the bisection never moves the outer end off
+		// its starting point b0 and p jumps there (|p(a) - p(b0)| > 1e-3), b0 is
+		// an isolated low-p point (e.g. a null refit that landed on a worse local
+		// optimum), not a crossing of alpha. Restart the outward exponential
+		// search just past b0, keeping the inner end; after 3 restarts this
+		// side is reported as NA rather than as the isolated point.
+		bool side_ok = false;
+		for (int restart = 0; restart <= 3; ++restart) {
+			double b0 = b;
+			double p_b0 = p_b;
+			double p_a = R_NaReal;
+			for (int k = 0; k < max_bisect; ++k) {
+				double lo = std::min(a, b);
+				double hi = std::max(a, b);
+				if (hi - lo < tol) break;
+				double mid = (lo + hi) / 2.0;
+				double p_mid = eval_p(mid);
+				if (!R_finite(p_mid)) break;
+				if (p_mid > alpha) { a = mid; p_a = p_mid; } else b = mid;
+			}
+			bool collapsed_on_b0 = (b == b0) && R_finite(p_a) && R_finite(p_b0) &&
+				std::abs(p_a - p_b0) > 1e-3;
+			if (!collapsed_on_b0) { side_ok = true; break; }
+			if (restart == 3) break;
+			// restart the outward search from just past the isolated point
+			a = b0 + direction * tol;
+			b = R_NaReal;
+			p_b = R_NaReal;
+			for (int i = 0; i < max_bracket; ++i) {
+				double d = b0 + direction * step * std::pow(2.0, (double)i);
+				double p_d = eval_p(d);
+				if (!R_finite(p_d)) continue;
+				if (p_d <= alpha) { b = d; p_b = p_d; break; }
+				a = d;
+			}
+			if (!R_finite(b)) break;
 		}
 
-		ci[dir_idx] = b;
+		ci[dir_idx] = side_ok ? b : R_NaReal;
 	}
 
 	return ci;

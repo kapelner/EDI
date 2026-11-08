@@ -77,8 +77,12 @@ percent of \eqn{n = 50} fits the reported point estimate sits at a local
 optimum whose likelihood is below that of another optimum, which makes the
 LR statistic at the estimate positive rather than zero. Since 2026-10-08
 the ordinary full-data fit screens deterministic and data-seeded local
-starts and keeps the lowest converged negative log-likelihood; the
-repeated randomization and weighted-bootstrap refits remain single-start.
+starts and keeps the lowest converged negative log-likelihood. Since EDI
+1.0.5 every fit starts only from deterministic, data-only starts (never
+from a previous fit on the object), and randomization and bootstrap draws
+use exactly the same estimator as the reported estimate, so all results
+are functions of the data (and draws) only, not of the order in which
+methods were called.
 Re-measured with that change (EDI 1.0.5 null study, 400 datasets per
 cell, nominal 5\%): 12.9\% Type-I error at \eqn{n = 100} with 5
 categories (11.5\% even with 41 starts and every fit kept, with
@@ -106,7 +110,32 @@ the boundary is instead reported non-estimable (reason
 \eqn{2 \times K} table is nearly saturated and the Wald standard error is
 about 25\% too small there (9.3\% Type-I error), so no estimate is
 reported. With no covariates this is the common case (35 of 40 null fits
-in the study above); prefer a covariate-adjusted formula.
+in the study above); prefer a covariate-adjusted formula. The \code{~ 1} fits
+that are reported are not calibrated either: with a single binary
+regressor the model is saturated (it reproduces the \eqn{2 \times K} table
+whenever the arm contrasts are ordered), so the likelihood-ratio statistic
+at \eqn{\beta_T = 0} is essentially the \eqn{K - 1} degree-of-freedom
+independence statistic, referred here to chi-square(1), and only tables
+with ordered contrasts are reported. In null studies the Wald,
+likelihood-ratio, score and gradient tests had 15-21\% Type-I error at
+\eqn{n = 1000} (allocation 0.5 or 0.2) among the 7-19\% of fits that were
+estimable; more data does not fix this.
+
+The delta-constrained null refits behind the likelihood-ratio, score and
+gradient tests and their confidence intervals also start only from
+deterministic starts: the full fit with \eqn{\beta_T = \delta}, a cold
+start, the adjacent-category two-stage start and fixed offsets of the
+loadings, keeping the lowest negative log-likelihood. Before EDI 1.0.5 they
+started from the previous \eqn{\delta}'s refit, so a p-value could depend on
+which values of \eqn{\delta} had been tested earlier on the same object.
+Two limitations remain. At \eqn{\delta = 0} the loadings are not
+identified, so the score statistic there depends on which of the equally
+good loadings the refit returns. And the constrained optimum can switch
+between branches (one per sign of \eqn{\beta_T}) as \eqn{\delta} moves, so
+the score p-value can jump, the score and likelihood-ratio p-values need not
+be monotone in \eqn{\delta}, and the set of accepted \eqn{\delta} need not be
+an interval. The likelihood-ratio confidence interval is the most reliable
+interval for this class.
 For small samples,
 prefer the better-calibrated alternatives on this class:
 \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap

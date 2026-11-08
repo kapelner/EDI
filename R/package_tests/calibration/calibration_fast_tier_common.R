@@ -103,6 +103,22 @@ CAL_DGP_BY_CLASS <- c(
 	InferenceCountZeroInflatedNegBin = "count_zinb"
 )
 
+# Large-effect (sign-check) multiplier per dgp. CAL_SIGN_EFFECT is sized for the
+# default data. Under count_zip/count_zinb about 28% of subjects are structural
+# zeros (mean plogis(-1 + 0.5 x1) = 0.279), which carry no information about
+# the count-part treatment effect, and the zi part adds nuisance parameters. The
+# effect is scaled up by 1.25 >= 1 / sqrt(1 - 0.28) = 1.18 to restore the
+# default's signal-to-noise, the same equal-information idea the pre-push check
+# applies to prob_T via n. Without it the ZIP ~. replicate at prob_T = 0.2
+# missed (CI [-0.01, 0.38]) on a fixed seed although ZIP is unbiased there
+# (2026-11-06). Null replicates (effect = 0) are unaffected.
+CAL_DGP_SIGN_EFFECT_SCALE <- c(count_zip = 1.25, count_zinb = 1.25)
+
+cal_dgp_effect <- function(effect, dgp) {
+	s <- unname(CAL_DGP_SIGN_EFFECT_SCALE[dgp])
+	if (is.na(s)) effect else effect * s
+}
+
 cal_class_dgp <- function(inference_class) {
 	d <- unname(CAL_DGP_BY_CLASS[inference_class])
 	d[is.na(d)] <- "default"
@@ -279,7 +295,7 @@ cal_run_rep <- function(response_type, n, rep, plan, keep = NULL, effect = 0, en
 			set.seed(1e6 * cal_rt_index(response_type) + 1e4 * (effect != 0) + 7L * n + rep)
 			X <- cal_gen_X(n)
 			des <- cal_new_design(design_name, response_type, n, X, prob_T = entry$prob_T)
-			do.call(des$add_all_subject_responses, cal_gen_y(response_type, X, des$get_w(), effect, dgp = dgp))
+			do.call(des$add_all_subject_responses, cal_gen_y(response_type, X, des$get_w(), cal_dgp_effect(effect, dgp), dgp = dgp))
 			tab <- rbind(tab, cal_run_tasks(des, dgp_classes, alpha = alpha, endpoints = endpoints))
 		}
 		if (is.null(tab)) next

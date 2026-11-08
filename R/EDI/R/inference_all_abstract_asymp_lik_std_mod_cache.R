@@ -123,15 +123,19 @@ StandardModelCacheSource = list(
 				cache_state = if (warm_enabled) private$get_likelihood_null_warm_state(cache_key) else NULL
 				start = if (warm_enabled) last_start else NULL
 				if (warm_enabled && is.null(start) && !is.null(cache_state)) start = cache_state$start
-				fit = tryCatch(
-					if (accepts_start) spec$fit_null(delta, start = start) else spec$fit_null(delta),
-					error = function(e) { edi_note_lik_test_failure(private, edi_lik_test_type_from_cache_key(cache_key), e); NULL }
-				)
+				# TODO-177 (2026-11-07): a failed warm-started refit is retried
+				# from start = NULL (as a fresh object), and a failed refit
+				# (NULL / converged = FALSE) never overwrites the stored start.
+				# Before, a failure stored as.numeric(NULL$b) = numeric(0), which
+				# `start %||% ...` passed on, so every later refit failed too.
+				fit = edi_fit_null_with_warm_retry(private, spec, cache_key, delta, start, accepts_start)
 				extract_start = spec$extract_start %||% function(fit_obj) NULL
-				last_start <<- if (warm_enabled && accepts_start) tryCatch(extract_start(fit), error = function(e) NULL) else NULL
 				last_delta <<- delta
-				if (warm_enabled && accepts_start) {
-					private$set_likelihood_null_warm_state(cache_key, delta = delta, start = last_start)
+				if (warm_enabled && accepts_start && edi_null_refit_usable(fit)) {
+					new_start = tryCatch(extract_start(fit), error = function(e) NULL)
+					if (!edi_warm_start_usable(new_start)) new_start = NULL
+					last_start <<- new_start
+					private$set_likelihood_null_warm_state(cache_key, delta = delta, start = new_start)
 				}
 				fit
 			}

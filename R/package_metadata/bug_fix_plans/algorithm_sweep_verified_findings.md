@@ -330,7 +330,7 @@ are fixed here because they are still exported and registered.
   reconciliation. No build/install or artifact regeneration occurred.
 
   **TODO-76 candidate-key finite-beta guard test, 2026-10-21:** broadened the
-  existing pure-R `test-todo76-result-key-validation-reference.R` fixture to
+  existing pure-R `test-result-key-validation-reference.R` fixture to
   exercise the validator's separate non-finite `beta_T` checks for manifest
   and candidate inputs (`Inf` and `-Inf`, respectively). The focused test
   passed all 79 expectations (0 failures, warnings, or skips). This confirms
@@ -339,7 +339,7 @@ are fixed here because they are still exported and registered.
   reconciliation. No build/install or result generation occurred.
 
   **Candidate-only key-universe check, 2026-10-21:** extended the existing
-  pure-R `test-todo76-result-key-validation-reference.R` with the separately
+  pure-R `test-result-key-validation-reference.R` with the separately
   scoped TODO-77 case (`pima`, incidence, `KK21stepwise`, rep 1, beta 0). Its
   explicit axes produce 80 unique full keys (two affected classes × two model
   formulas × two design formulas × ten Bayesian-bootstrap labels), including
@@ -347,7 +347,7 @@ are fixed here because they are still exported and registered.
   uniqueness and intentionally contains no `status`, `expected_status`, or
   `skip_reason`; the existing generator is a source-potential cross-product,
   not a claim that setup succeeded or every call was attempted. Focused command
-  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo76-result-key-validation-reference.R", reporter="summary")'`
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-result-key-validation-reference.R", reporter="summary")'`
   passed 71 expectations (0 failures, warnings, or skips). This is pure-R
   candidate-key evidence only, not fit execution, current-native provenance,
   or comprehensive result reconciliation. No build/install or artifact

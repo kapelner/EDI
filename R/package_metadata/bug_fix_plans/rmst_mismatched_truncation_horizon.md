@@ -457,8 +457,8 @@ those APIs.
   is one retry attempt, one unclosed/overlapping start, and one terminal/result
   pair; balanced terminal/result counts must not erase the overlap anomaly.
   The focused test
-  `test-todo23-attempt-reconciliation-reference.R` passed all 38 expectations
-  (`Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo23-attempt-reconciliation-reference.R", reporter = "summary")'`).
+  `test-attempt-reconciliation-reference.R` passed all 38 expectations
+  (`Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-attempt-reconciliation-reference.R", reporter = "summary")'`).
   This extends the existing test file and exercises an otherwise unasserted
   lifecycle branch; the bulk manifest already registers the test. The
   reconciliation helper is pure R and this test is not a fit or coverage
@@ -467,8 +467,8 @@ those APIs.
   remains open. No canonical result was read or written.
 
 **Pure-R reconciliation recheck, 2026-10-21:** reran the standalone
-`test-todo23-attempt-reconciliation-reference.R` file with
-`timeout 120s Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo23-attempt-reconciliation-reference.R")'`;
+`test-attempt-reconciliation-reference.R` file with
+`timeout 120s Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-attempt-reconciliation-reference.R")'`;
 it exited 0 with 50 passes, 0 failures, warnings, or skips. The test sources
 `R/package_tests/validate_todo23_attempt_reconciliation.R` directly and its
 fixtures exercise missing/extra/duplicate full keys, completed retries,
@@ -525,8 +525,8 @@ post-fix full-run reconciliation remain open.
 
 **Pure-R validator contract recheck, 2026-10-21:** with no R/Rscript process
 active beforehand and no compile/install, reran
-`test-todo14-attempt-result-provenance-reference.R` (12 expectations) and
-`test-todo23-attempt-reconciliation-reference.R` (50 expectations); both
+`test-attempt-result-provenance-reference.R` (12 expectations) and
+`test-attempt-reconciliation-reference.R` (50 expectations); both
 completed cleanly. These synthetic tests exercise the generic receipt/result
 provenance contract and TODO-23 exact-key/event-lifecycle reconciliation
 mechanics. They do not attest a retained RMST run, resolve its 16-vs-18

@@ -1721,7 +1721,7 @@ range, since the plan files' internal numbering did not change.
   they do not complete affected-class/family/dataset/beta/replicate coverage
   or the baseline re-audit. Canonical outputs were not modified.
   **Survival expected-attempt roster regression, 2026-10-20:**
-  `test-todo10-survival-expected-attempt-roster-reference.R` passed both test
+  `test-survival-expected-attempt-roster-reference.R` passed both test
   blocks, 29 expectations total (0 failures, warnings, or skips; exit 0).
   Its source-derived fixture reconciles a deliberately reduced 272-key roster
   from the runner's survival dispatch, including class availability, the two
@@ -1740,7 +1740,7 @@ range, since the plan files' internal numbering did not change.
   Full affected-row regeneration and baseline re-audit remain open. No build,
   fit, result generation, or canonical output write occurred.
   **Focused source-roster rerun, 2026-10-21:** reran
-  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo10-survival-expected-attempt-roster-reference.R", reporter = "summary")'`;
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-survival-expected-attempt-roster-reference.R", reporter = "summary")'`;
   both test blocks passed (29 expectations, 0 failures, warnings, or skips).
   The test derives its reduced 272 natural keys from parsed runner dispatch,
   source class eligibility/inheritance, and declared function labels rather
@@ -1772,7 +1772,7 @@ range, since the plan files' internal numbering did not change.
   Full affected-row regeneration, exact production-key/status reconciliation,
   and baseline re-audit remain open.
   **Source-derived production case-lattice regression, 2026-10-21:**
-  `test-todo10-survival-expected-attempt-roster-reference.R` passed all 41
+  `test-survival-expected-attempt-roster-reference.R` passed all 41
   expectations (0 failures, warnings, or skips; exit 0). This invocation
   suppressed the test file's `library(EDI)` call and loaded only `testthat`,
   so it parsed source and asserted roster dimensions without loading EDI or
@@ -2904,7 +2904,7 @@ range, since the plan files' internal numbering did not change.
       and deduplicate only after provenance, anti-join, status and value gates
       pass. No canonical CSV write is authorized by this note.
   **Validator-only QA, 2026-10-20:** the synthetic
-  `test-todo14-candidate-validation-reference.R` passed 24 expectations.
+  `test-candidate-validation-reference.R` passed 24 expectations.
   Review found and closed two fail-open cases: fractional replicate values
   could be truncated to integer IDs, and duplicate expected-provenance field
   names were silently resolved by R's named-list lookup. The validator now
@@ -2914,7 +2914,7 @@ range, since the plan files' internal numbering did not change.
   a real post-fix candidate, and the full run's package/DLL provenance,
   8,640-key reconciliation, and any later canonical merge remain open.
   **Validator-only focused rerun, 2026-10-21:** the exact synthetic
-  `test-todo14-candidate-validation-reference.R` passed 37 expectations
+  `test-candidate-validation-reference.R` passed 37 expectations
   against installed EDI 1.0.3, with no failures, warnings, or skips. The
   positive fixture supplies all 8,640 expected rows; deleting the complete
   `FixedBinaryMatch × pte_example × beta_T=0.5 × design_formula=~1` group
@@ -3300,7 +3300,7 @@ range, since the plan files' internal numbering did not change.
   canonical file was changed.
   **Source-derived candidate-roster guard, 2026-10-21:** added
   `todo14_source_candidate_manifest()` and a focused pure-R contract to
-  `test-todo14-candidate-validation-reference.R`. The helper parses the
+  `test-candidate-validation-reference.R`. The helper parses the
   checked-in runner/dataset loader and validates the no-CLI-filter scope
   (40 reps, beta 0/0.5, two target designs/formulas, the selected IVWC class,
   three `rand` operations, and nine survival datasets) before emitting 8,640
@@ -3312,7 +3312,7 @@ range, since the plan files' internal numbering did not change.
   event-output reconciliation, provenance/status/value checks, and any
   canonical merge remain open.
   **Malformed expected-manifest guard regression, 2026-10-21:** extended
-  `test-todo14-candidate-validation-reference.R` to exercise the distinct
+  `test-candidate-validation-reference.R` to exercise the distinct
   `manifest_id_key_mismatch` validator branch, including its missing/extra ID
   report and input-file hash stability. The pure-R test passed 50 assertions
   with `testthat::test_file(..., load_helpers = FALSE)` (no EDI load, native
@@ -3320,7 +3320,7 @@ range, since the plan files' internal numbering did not change.
   does not validate setup or provide the current-source 8,640-key artifact,
   which remains open.
   **Timeout-result validator contract, 2026-10-21:** extended
-  `test-todo14-attempt-result-provenance-reference.R` with the producer-shaped
+  `test-attempt-result-provenance-reference.R` with the producer-shaped
   timeout terminal (`status=ok`, `skip_reason=timeout`, exact timeout message,
   missing numeric result) and verified the artifact validator rejects it.
   The focused test passed 12 expectations against installed EDI 1.0.3, with
@@ -3382,8 +3382,8 @@ range, since the plan files' internal numbering did not change.
         `model_formula`.
       - Approved keys must have no operation events.
       - Any other setup event, or a `setup_failure`, still fails closed.
-    - Tests: `test-todo14-candidate-validation-reference.R` (+28 expectations) and
-      `test-todo14-attempt-result-provenance-reference.R` (+12). All pass with `load_all(compile = FALSE)`.
+    - Tests: `test-candidate-validation-reference.R` (+28 expectations) and
+      `test-attempt-result-provenance-reference.R` (+12). All pass with `load_all(compile = FALSE)`.
     - The runbook's open question is now answered: the predeclared count is 240, not 120.
   - **(audit 2026-11-04)** R5 PASSED 2026-10-25 (`~/edi_regen/r5_rescope_20261025T004722Z/`); provenance accepted 2026-10-26. The owner's R5 decisions supersede the sub-item's criteria: 4,080 approved skips (not 240 or none), approved keys may carry results, two accepted checkout SHAs (`accepted_checkout_shas`). Only the canonical merge into `nc_1_survival.csv` is left (it has no `GLMMWeibullFrailtyLoggammaIVWC` rows yet).
 - [x] TODO-15 (added 2026-09-23, conclusively refuted 2026-10-09; from the same `bad_type1_error` audit wave
@@ -4974,9 +4974,9 @@ range, since the plan files' internal numbering did not change.
   and canonical reconciliation remain open. No fit, simulation, build/install,
   or canonical result access/write occurred.
   **Pure-R reconciliation recheck, 2026-10-21:** the standalone
-  `test-todo23-attempt-reconciliation-reference.R` passed 50 assertions with
+  `test-attempt-reconciliation-reference.R` passed 50 assertions with
   0 failures/warnings/skips under
-  `timeout 120s Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo23-attempt-reconciliation-reference.R")'`.
+  `timeout 120s Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-attempt-reconciliation-reference.R")'`.
   It sources the pure-R reconciler directly; test SHA-256
   `682fb06990de0ab8f1203470d6638d8fb1d2c5b202c24a3c2797f8fa354dc7e2`, helper
   SHA-256 `8529ed5ff430755d7ea0457052864e544ff796a27bbc81c999163ad55171e03d`.
@@ -5018,8 +5018,8 @@ range, since the plan files' internal numbering did not change.
   open; no canonical artifact was read or changed.
   **Pure-R validator contract recheck, 2026-10-21:** with no R/Rscript
   process active beforehand and no compile/install, the parent reran
-  `test-todo14-attempt-result-provenance-reference.R` (12 expectations) and
-  `test-todo23-attempt-reconciliation-reference.R` (50 expectations); both
+  `test-attempt-result-provenance-reference.R` (12 expectations) and
+  `test-attempt-reconciliation-reference.R` (50 expectations); both
   completed cleanly. These synthetic tests cover generic receipt/result
   provenance and TODO-23 exact-key/event-lifecycle mechanics only. They do
   not attest retained RMST outputs, resolve the 16-vs-18 operation/grid
@@ -9625,7 +9625,7 @@ baseline as expected/benign.
   performed no assignment/outcome generation, fit, or canonical write.
 
   **Candidate-key validator unit test, 2026-10-20:**
-  `test-todo76-result-key-validation-reference.R` passed all 62 expectations
+  `test-result-key-validation-reference.R` passed all 62 expectations
   in six test blocks (0 failures, warnings, or skips; exit 0). This standalone
   pure-R check exercises explicit formula-pair scope, full result-key identity
   (including `design_formula` and `beta_T`), delimiter-safe key encoding, and
@@ -9647,7 +9647,7 @@ baseline as expected/benign.
 
   **Installed pure-R validator recheck, 2026-10-21:** after confirming the
   R/Rscript process table was idle, reran
-  `timeout 60s Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo76-result-key-validation-reference.R", reporter="summary")'`.
+  `timeout 60s Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-result-key-validation-reference.R", reporter="summary")'`.
   All 62 expectations passed in six blocks (0 failures, warnings, or skips;
   exit 0). This sources and tests the validator helper only; no fit, native
   call, candidate output, or canonical artifact is involved. It did not
@@ -10842,7 +10842,7 @@ baseline as expected/benign.
     log-odds-scale interval wider than 5 on a binary outcome is still flagged
     (unchanged from 1.0.0).
 
-  - NOTE 2026-10-22 (bootstrap-CI NA follow-up): a BCa boundary NA no longer has its reason overwritten by the generic `bootstrap_standard_error_ci_unavailable` (keep-first per CI call, also for the Bayesian CI), and emits one `edi_bootstrap_bca_boundary_warning` per object; minimum-B (>= 501) guidance added to the roxygen. Guard threshold and default type unchanged (maintainer decision). Test: `test-bootstrap-bca-boundary-reason-and-warning-todo101.R`.
+  - NOTE 2026-10-22 (bootstrap-CI NA follow-up): a BCa boundary NA no longer has its reason overwritten by the generic `bootstrap_standard_error_ci_unavailable` (keep-first per CI call, also for the Bayesian CI), and emits one `edi_bootstrap_bca_boundary_warning` per object; minimum-B (>= 501) guidance added to the roxygen. Guard threshold and default type unchanged (maintainer decision). Test: `test-bootstrap-bca-boundary-reason-and-warning.R`.
   - G6 #12 (document) DONE 2026-10-22 (agent, roxygen only; Rd regen G8): the class-level "Minimum B for BCa" section of `InferenceNonParamBootstrap` now says the guard is deliberate (not relaxed, no silent percentile fallback), the interval is `c(NA, NA)` with the warning when it trips, and an NA counts as invalid under the 5% invalid-interval calibration cap. The Bayesian-bootstrap CI `type` doc got the same minimum-B guidance (reason `bayesian_bootstrap_bca_adjustment_on_boundary`).
 - [x] TODO-102 (added 2026-10-21, user decision; found by the agent harness
   audit, run T15): **`DesignFixedBlocking` silently drops the user's strata
@@ -11461,7 +11461,7 @@ against the source").
       stratum (`max_m + 1L`), as the point estimate does. Repro: before the
       fix the unit-weight refit gave 0.0607 vs point estimate 0.5787; after,
       0.5787.
-    - Tests: `tests/testthat/test-strat-cox-matched-design-todo110.R`
+    - Tests: `tests/testthat/test-strat-cox-matched-design.R`
       (fails 2/4 on HEAD, 4/4 pass now); `test-coxph-hessian-symmetric-writes.R`
       line 152 wraps the intended warning in `suppressWarnings`.
 
@@ -11589,7 +11589,7 @@ against the source").
         "Remove non-finite bootstrap replicates. Default FALSE."; no stated
         rationale); `compute_bootstrap_confidence_interval()` defaults `na.rm = TRUE`.
         Not changed (TODO-116 owner).
-      - Tests: `test-todo111-weibull-cold-retry-and-zero-col-components.R` (Weibull
+      - Tests: `test-weibull-cold-retry-and-zero-col-components.R` (Weibull
         part fails on the pre-fix copy, passes now; the count / ZOIB part passes
         both ways).
     - **Fourth pass 2026-10-22 (R only, uncommitted).**
@@ -11610,7 +11610,7 @@ against the source").
         build): zero the atanh(rho) gradient (and Hessian row/col) when
         |atanh_rho| >= 3 in `DepCensTransformLikelihood::operator()`, as done
         for Clayton log-theta. Test: `test-dep-cens-transform-rho-boundary-retry.R`.
-        `test-bootstrap-nonfinite-na-warning-todo116.R` used this bug as its
+        `test-bootstrap-nonfinite-na-warning.R` used this bug as its
         non-finite fixture and now needs another fixture.
       - `KKStratCoxPHOneLik` seed-2 "estimate NA but bootstrap p finite": NOT
         reproduced (60 seeds, match/KK14, ordering of 9 procedures, after a
@@ -11895,7 +11895,7 @@ against the source").
     documented). The 6-digit agreement in (c) is this identity. The only other
     Gaussian KK likelihood class is the legacy IVWC (not checked; Robust/Quantile/GLMM
     are not this likelihood). Test (new):
-    `R/package_tests/testthat_bulk/test-kk-ols-one-lik-score-lr-gradient-equal-classical-t2-independent-reference-todo115.R`.
+    `R/package_tests/testthat_bulk/test-kk-ols-one-lik-score-lr-gradient-equal-classical-t2-independent-reference.R`.
     It builds the stacked design by hand from the raw data and the pair ids, computes
     the restricted fit with `lm.fit`, does the score and information algebra
     directly, and checks EDI at delta 0, .4 and -.25 on KK14 (pairs + reservoir,
@@ -11987,7 +11987,7 @@ against the source").
       workers, randomization observed statistic, KK Wilcox/Wilcox asymptotic).
       Not converted because ~196 test files assert `get_nonestimable_reason()`
       for those reasons and the lik-test files overlap TODO-115.
-    - Tests: `test-procedure-failure-keeps-wald-state-todo116.R`; updated
+    - Tests: `test-procedure-failure-keeps-wald-state.R`; updated
       assertions in 8 bulk tests that enshrined the SE-wiping behavior.
     - **Bootstrap p-value NA explains itself (2026-10-22, R only, uncommitted):**
       `compute_bootstrap_two_sided_pval` / `compute_bayesian_bootstrap_two_sided_pval`
@@ -11996,7 +11996,7 @@ against the source").
       na.rm = TRUE would drop them"). Evidence: zero-covariate DepCensTransform n = 40,
       B = 101: 49/101 and 46/101 non-finite, p NA vs 0.69 / 0.11 with na.rm = TRUE; CI
       silently drops them. Changing the default is a maintainer decision (not made).
-      Test: `test-bootstrap-nonfinite-na-warning-todo116.R`.
+      Test: `test-bootstrap-nonfinite-na-warning.R`.
   - Progress 2026-10-22 (third agent, uncommitted; box left open):
     - Seven stale bulk tests (plus `test-dep-cens-transform-randomization-methods-
       not-supported-reference.R`, found by grep) updated to the stage-1 contract:
@@ -12011,7 +12011,7 @@ against the source").
       procedures, but `message` now says `unavailable (<reason>)` (from
       `unsupported_procedure_reason` / `procedure_failure_reason`, read via the private
       `cached_values` the suite already reads) when the CI or p-value is NA. No new
-      public method. Test: `test-suite-unsupported-procedure-message-todo116.R`.
+      public method. Test: `test-suite-unsupported-procedure-message.R`.
     - OPEN: `test-simple-estimator-migration-baseline.R` pins public/private counts
       (now +1 public, +6 private per class from concurrent uncommitted work, incl. the
       two TODO-116 private helpers); needs a snapshot refresh by whoever finalizes.
@@ -12036,7 +12036,7 @@ against the source").
       `edi_resampling_procedure_for_reason`, `edi_clear_procedure_failure`,
       `edi_has_procedure_failure`. Stale per-procedure reasons are cleared at the start of the
       nonparametric/Bayesian p-value calls only.
-    - Tests: new `test-bootstrap-family-procedure-failure-keeps-wald-state-todo116.R`
+    - Tests: new `test-bootstrap-family-procedure-failure-keeps-wald-state.R`
       (fails before / passes after); 17 bulk guard tests updated from "wipes SE, sets
       nonestimable" to "Wald intact, reason under procedure_failure_reason".
     - STILL OPEN (left for a later pass): rand_ci_* (`inference_all_abstract_rand_ci.R`),
@@ -12054,7 +12054,7 @@ against the source").
       `edi_resampling_procedure_for_reason` maps `^rand_ci_` to procedure `rand_ci`.
       Wald state and `is_nonestimable()` unchanged on those failures. No existing test
       referenced these reasons. Test added to
-      `test-bootstrap-family-procedure-failure-keeps-wald-state-todo116.R` (file run via
+      `test-bootstrap-family-procedure-failure-keeps-wald-state.R` (file run via
       `pkgload::load_all(compile = FALSE)` with the existing `src/EDI.so`: all pass).
     - Correction 2026-10-23 (agent): one existing bulk test did reference these reasons and was stale. That test is
       `package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-guards-reference.R`, which still
@@ -12114,7 +12114,7 @@ against the source").
       m-out-of-n and prw-subsampling selection-failure guards, m-out-of-n-prw-subsampling,
       rand-two-sided-pval-observed-statistic, randomization-pval-from-t0s-too-few-finite,
       dep-cens-transform-bootstrap-ci-validation, param-bootstrap-estimate-batch-preflight; routing
-      assertions in `test-bootstrap-family-procedure-failure-keeps-wald-state-todo116.R`.
+      assertions in `test-bootstrap-family-procedure-failure-keeps-wald-state.R`.
     - Tests run (load_all compile = FALSE; `library(EDI)` unavailable mid-session because a user
       install held `00LOCK-EDI`, so only load_all was used): all the files above plus the
       dep-cens (7), param-bootstrap-estimate (3), rand-two-sided-pval (3), kk-gee (8), incid-kk-gee,
@@ -12173,7 +12173,7 @@ against the source").
       with testing type wald, model fit / SE reasons. No stale-reason clearing for lik tests (like param
       bootstrap). Roxygen text saying "falls back to a nonestimable result" in log-binomial/dep-cens
       was left (Rd regen is G8).
-    - Tests: new `test-lik-test-procedure-failure-keeps-wald-state-todo116.R`; 12 test files updated from
+    - Tests: new `test-lik-test-procedure-failure-keeps-wald-state.R`; 12 test files updated from
       "nonestimable" to "Wald intact, reason under `procedure_failure_reason`"; reviewed call-graph delta
       added for TODO-128's `logbin_feasible_warm_start_args` (found unrecorded; this stage adds no method).
       Runs (load_all compile = FALSE): 40 lik-test/TODO-121/memoization/migration-baseline/call-graph
@@ -13292,7 +13292,7 @@ against the source").
       bit-identical. Identity link (same loops, bounds 0 and 1): covered; on
       two of three boundary sets patch 14 alone converged with a wrong active
       set (negative multiplier) and the gate returns NA instead.
-    - Tests: `testthat_bulk/test-log-binomial-constrained-mle-nloptr-reference-todo128.R`
+    - Tests: `testthat_bulk/test-log-binomial-constrained-mle-nloptr-reference.R`
       (interior block passes now; boundary block skips naming G1 patch 14
       until the DLL has `kkt_converged`, fails under
       `EDI_REQUIRE_CPP_PATCHES=true`; dry-run with the prototype as the
@@ -13303,7 +13303,7 @@ against the source").
       once per object (`cached_values` ledger), silent inside resampling
       operations, no numeric change. New free function, no private method,
       so no registry/baseline change. Test
-      `testthat_bulk/test-log-binomial-boundary-mle-warning-todo128.R`;
+      `testthat_bulk/test-log-binomial-boundary-mle-warning.R`;
       NEWS line added; one roxygen sentence in each class (Rd regen, G8).
     - Left: G1 apply/build patch 14 + run the companion with
       `EDI_REQUIRE_CPP_PATCHES=true`; NEWS line for the C++ fix after the
@@ -13380,7 +13380,7 @@ against the source").
     once and are now reproducible. The replicates now equal fresh fits on the
     seeded pair draws exactly (max diff 0; before: up to 0.57 off, because
     they came from different draws).
-  - Regression test: `tests/testthat/test-kk-bootstrap-seed-and-bca-boundary-todo129.R`
+  - Regression test: `tests/testthat/test-kk-bootstrap-seed-and-bca-boundary.R`
     (seeded reproducibility with the caller's RNG untouched, for KK OLS OneLik and
     robust IVWC; replicates equal fresh fits on the seeded draws; pins the
     B = 101 BCa NA reason, the single warning and the finite bootstrap
@@ -13440,7 +13440,7 @@ against the source").
       and `InferencePropKKQuantileRegrIVWC`): the Zhang sign-flip/permutation
       draws were unseeded; fixed with `private$seed_global_rng_for_draws()`
       (TODO-112 contract: inference seed, else design seed).
-    - Regression test: new `R/package_tests/testthat_bulk/test-resampling-set-seed-sweep-todo129.R`
+    - Regression test: new `R/package_tests/testthat_bulk/test-resampling-set-seed-sweep.R`
       (6 parametrized cases: KK pass-through bootstrap, PropGComp bootstrap
       and its debug path, calibrated CI, both quantile IVWC rand CIs; seeded
       = reproducible with the caller's RNG untouched; unseeded = still drawn
@@ -13497,7 +13497,7 @@ against the source").
       has no access to it, and a fixed constant makes the fit a function of
       the data only.
       Roxygen of `robust_survreg_with_surv_object` updated (Rd regen: G8).
-      Test: new `tests/testthat/test-robust-survreg-jitter-rng-todo129.R`
+      Test: new `tests/testthat/test-robust-survreg-jitter-rng.R`
       (14 expectations; survreg failures forced by a call-counting
       `local_mocked_bindings(.package = "survival")` mock; class-level case
       `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik$compute_estimate()`
@@ -13549,13 +13549,13 @@ against the source").
         and each randomization / bootstrap refit gets a per-draw seed that is a
         function of that draw's data only (never of the worker or core count).
         Seeded and unseeded results of this class change once.
-      - Tests: `test-robust-survreg-jitter-rng-todo129.R` extended to 47
+      - Tests: `test-robust-survreg-jitter-rng.R` extended to 47
         expectations (recording mock of survreg `init`s: same seed -> identical
         jitter and fit; seed 5 vs 6 -> different jitter, same MLE; unseeded ->
         the old constant; derived seed = seed + offset; frailty loggamma OneLik
         follows `set_seed()`, then the design seed; KK21 and KK21stepwise follow
         the design seed; caller RNG untouched everywhere). New
-        `test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R` (15
+        `test-kk-rank-regr-ivwc-deterministic-aftsrr.R` (15
         expectations: two fresh seeded objects under different caller seeds
         give identical estimate, asymp CI, rand p-value and rand CI on a KK14
         design with reservoir, and identical bootstrap distribution and
@@ -13622,7 +13622,7 @@ against the source").
     `InferenceAllSimpleAverageDiff`, `InferenceOrdinalRidit`, and both KK
     IVWC classes on count responses.
   - Regression test: new
-    `tests/testthat/test-kk-mean-diff-ivwc-binary-match-bootstrap-todo130.R`
+    `tests/testthat/test-kk-mean-diff-ivwc-binary-match-bootstrap.R`
     (10 expectations: continuous and count bootstrap finite, percentile CI
     brackets the estimate, fast vs slow path in distribution; the last is
     `skip_on_cran()`). Installed 1.0.3: 3 errors (the bug); sources: 10/10.
@@ -13920,7 +13920,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
       skipping the KMDiff jobs; resolve the nc_1/nc_8 duplicate keys first; decide on the extra (new) keys; rerun
       KMDiff at SD 0.25; retire the raw-beta KMDiff baseline rows; follow up on ContinKKQuantileRegrOneLik's
       percentile p-value (0.175 at `~1`).
-- [ ] TODO-166 (added 2026-10-28, owner; found by the calibration pre-push check, `calibration_gates.md`):
+- [x] TODO-166 (added 2026-10-28, owner; found by the calibration pre-push check, `calibration_gates.md`):
   **`InferenceBaiAdjustedTKK14` / `InferenceBaiAdjustedTKK21` wald test ignores `delta`.**
   Current state: DONE 2026-10-28 (owner approved; uncommitted). Return replaced by
   `private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)`. Verified (load_all compile = FALSE):
@@ -13941,7 +13941,8 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     `compute_asymp_two_sided_pval_for_treatment_effect(delta = ci_a)` returns the same p as at `delta = 0`
     (e.g. 0.4922 at both CI endpoints), so the CI is not the inversion of the test and any `delta != 0` test is wrong.
   - Both `~1` and `~.`; listed in `prepush_calibration_known_failures.csv` (endpoint rows). Delete those rows once fixed.
-- [ ] TODO-167 (added 2026-10-28, owner; found by the calibration null baseline): **`InferenceContinKKGLMM` score CI
+  - NEWS written 2026-11-06.
+- [x] TODO-167 (added 2026-10-28, owner; found by the calibration null baseline): **`InferenceContinKKGLMM` score CI
   ~20% too narrow.** Current state: DONE 2026-10-28 (owner approved both; uncommitted).
   `inference_continuous_KK_glmm.R`: `block_diag_information()` (L351-366) used by all three information accessors;
   `fit_null` two-start (L373-403; switches only when nll improves by > 1e-4, so optimizer noise doesn't make
@@ -13975,7 +13976,8 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - Null baseline (n = 200, 300 reps, `~.`, DesignFixedBernoulli): score size 0.213, coverage 0.813; the score CI is
     ~20% narrower than wald / LR / gradient from the same fit; p at the CI endpoint 0.007. Pre-push also flags
     agreement on `~.` (p = 0.0004 with a CI containing 0) and the LR endpoint on `~1` (p 0.018 at ci_b, effect rep).
-- [ ] TODO-168 (added 2026-10-28, owner; found by the calibration null baseline): **`InferenceIncidExtendedRobins`
+  - NEWS written 2026-11-06.
+- [x] TODO-168 (added 2026-10-28, owner; found by the calibration null baseline): **`InferenceIncidExtendedRobins`
   wald undercovers on matched pairs.** Current state: INVESTIGATED 2026-10-28 (agent, read-only, installed 1.0.3;
   scratch `todo168/`). Fix not applied, owner decision (changes default output).
   - CHECKED AGAINST THE PAPER 2026-10-28 (Azriel, Krieger, Kapelner, arXiv:2607.05768, Sec. 2.3.2): the kernel is a
@@ -14007,6 +14009,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     Not checked: the CMH kernel's within-block `var_cmh` just above (~L30-65).
   - Null baseline, DesignFixedBinaryMatch, n = 200, 300 reps, `~.`: size 0.140, coverage 0.860. The CI and test
     agree, so the SE itself is too small (does it use an independent-arms variance or ignore the pairing?).
+  - NEWS written 2026-11-06.
 - [ ] TODO-169 (added 2026-10-28, owner; found by the calibration checks): **`InferenceCountZeroInflatedPoisson` /
   `InferenceCountZeroInflatedNegBin` LR (and ZIP score) CIs not inverted from their tests.**
   Current state: DONE 2026-10-28 (owner approved both; uncommitted). `inference_count_zero_augmented_poisson_abstract.R`:
@@ -14045,7 +14048,8 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - ZIP lik_ratio `~1`, null rep 3: p = 0.8865 while the CI [-0.249, -0.0057] excludes 0. ZIP score `~.`: p at ci_b
     0.021. ZINB lik_ratio `~.` null baseline: coverage 0.803 while the test's size is 0.079.
   - Low yield in the same baseline (reported, not gated): ZINB wald/gradient ~15% finite.
-- [ ] TODO-170 (added 2026-10-28, owner; found by the calibration pre-push check): **`InferenceAllSimpleWilcox` CI
+  - NEWS written 2026-11-06.
+- [x] TODO-170 (added 2026-10-28, owner; found by the calibration pre-push check): **`InferenceAllSimpleWilcox` CI
   doesn't match its test.** Current state: DONE 2026-10-28 (owner approved; uncommitted). Line 81 now
   `wilcox.test(yT, yC, mu = delta, exact = FALSE)`; verified with load_all(compile = FALSE): wald-routing test passes,
   endpoint p 0.0499 / 0.0500 (continuous / proportion). Count / ordinal exempted from the pre-push endpoint check
@@ -14069,7 +14073,8 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     ordinal 0.016). The Hodges-Lehmann interval may legitimately come from a different construction than the
     reported p-value (normal-approx rank-sum, ties); decide whether that's a bug or documented behaviour (then the
     endpoint check should skip this class, or the CI should be the test inversion).
-- [ ] TODO-171 (added 2026-10-28, owner; found by the calibration pre-push check): **`InferenceCountKKGLMM` LR
+  - NEWS written 2026-11-06.
+- [x] TODO-171 (added 2026-10-28, owner; found by the calibration pre-push check): **`InferenceCountKKGLMM` LR
   p-value equals its Wald p-value exactly on every replicate.** Current state: INVESTIGATED 2026-10-28 (agent,
   read-only; scratch `todo171/`): was by design. OWNER DECISION 2026-10-28: drop the max(model, Wald) rule to
   match the sibling KK GLMM classes. DONE (uncommitted): `inference_count_KK_combined.R` lik_ratio CI / p-value and
@@ -14093,6 +14098,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - Not a calibration failure (synthetic size 0.067), but the LR path likely falls back to Wald silently. Find
     whether the fallback is intended, and if so whether it's reported.
   - **(audit 2026-11-04)** The stale NEWS sentence that CountKKGLMM still returns "the larger of the model and Wald p-value" is corrected in the audit's NEWS pass; this TODO's own NEWS entry is still to write.
+  - NEWS written 2026-11-06.
 - [ ] TODO-172 (added 2026-10-28, found by the TODO-167 agent): **`lrt_ci_nr_cpp` returns a bracket midpoint
   when it fails to converge.** Current state: FIXED 2026-11-03 (agent, uncommitted; needs a rebuild to take effect
   in the installed package). Remaining: the user's rebuild, then delete the 3 TODO-173 rows from
@@ -14118,8 +14124,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
 
 - [ ] TODO-173 (added 2026-10-28, owner; found by the calibration pre-push check reseed): **`InferenceIncidKKCondLogitGLMMOneLik`
   lik_ratio CI is not the inversion of its own LR test.** Current state: ROOT-CAUSED 2026-11-03/04 (agent); fixed by
-  TODO-172 + TODO-187 in source (uncommitted). Remaining: after the user's rebuild, confirm the 3 rows no longer
-  reproduce in the pre-push check and delete them from the known-failures CSV; canonical CSV rows (G4).
+  TODO-172 + TODO-187. Rows confirmed gone on the 2026-11-06 rebuild (see below). Remaining: canonical CSV rows (G4).
   - Under TODO-187 (load_all, TODO-172 fix compiled in): all 3 rows pass. rep 1 `~1` CI [-0.237, 0.848]; rep 2 `~.`
     [-1.272, -0.087] with p = 0.0236 (agrees); rep 3 fine; every endpoint p = 0.0500.
   - The "path dependence" below was not quadrature: the GLMM rows were in subject order and the kernel groups
@@ -14141,6 +14146,10 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     stuck near the random-effect variance boundary. Candidate fix, as in TODO-167 (`inference_continuous_KK_glmm.R`):
     a second start from the full fit with beta_T = delta, keeping it only when the nll improves by > 1e-4. Rule out
     TODO-172 (`lrt_ci_nr_cpp` midpoint on non-convergence) first: check whether the search converged on these reps.
+  - Checked 2026-11-06 on the owner's rebuild (installed EDI.so 2026-11-06 16:04, after 83f1f3cf): the 3 rows were
+    already deleted from `prepush_calibration_known_failures.csv` (commit 5153c02c) and do not reproduce;
+    `prepush_calibration_checks.R` on the class's file (IncidKKCondLogitGLMMOneLik, PropKKGEE, PropKKGLMM, 72 task
+    rows) prints OK. Left: canonical CSV rows (G4).
   - Done when: the 3 rows reproduce no longer and are deleted from the known-failures CSV; the class's tests pass;
     delta = 0 LR p unchanged. If the CI changes, NEWS (documented default change) and canonical CSV rows (G4).
 
@@ -14182,7 +14191,7 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
 
 - [ ] TODO-174 (added 2026-10-28, owner; found investigating the 2 Stereotype rows in
   `prepush_calibration_known_failures.csv`): **`pval_invert_ci_cpp` returns its Wald seed as a CI endpoint when the
-  bisection never moves.** Current state: OPEN, investigated; fix proposed, not applied.
+  bisection never moves.** Current state: OPEN; Stereotype symptom gone after TODO-175 (2026-11-07); the shared C++ jump guard is prototyped and verified in scratch but NOT applied (shared CI-inversion code; owner call).
   - Example: `InferenceOrdinalStereotypeLogitRegr` score CI, pre-push null rep 1 (n = 200, Bernoulli, ordinal, `~1`):
     lower endpoint = Wald lower exactly (-0.2390472; the upper is a genuine root); the class's own score p there is
     0.034 (pre-push endpoint failure).
@@ -14215,8 +14224,23 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     over 1,576 CI rows: exactly the 2 Stereotype rows change, the rest bit-identical. (b) narrows every CI that now ends
     on an NA midpoint (less conservative). Cost: up to 60 extra p evaluations per restart, 20 per NA midpoint.
     Default-output change: NEWS, canonical CSVs (G4), equivalence note. Assumes p continuous near the root.
+  - **Applied 2026-11-07 (agent): class side only; the C++ guard is NOT applied.** `pval_invert_ci_cpp` is shared
+    CI-inversion code (every score / Bartlett / inverted-p CI), so it was left alone this session. The Stereotype evidence
+    is gone after TODO-175's fix: the bad p(seed) came from the warm-chained null refit, and with data-only starts the
+    seed's p equals its neighbours'. Calibration helpers, n = 200, null reps 1-25 `~.` (`cal_run_rep(endpoints = TRUE)`):
+    CI ends equal to the Wald end bit-for-bit 2/300 -> 0/300 (the 2 were rep 6's LR CI falling back to Wald), CI
+    fallbacks 2 -> 0. (`~1` rep 1 is non-estimable since TODO-176.) Prototype of (a) (jump guard: if the bisection
+    collapses onto the initial outer point and |p(a) - p(b0)| > 1e-3, restart the outward search from b0, NA after 3
+    restarts): `/tmp/claude-1000/t174/todo174_jump_guard.diff`, verified with `Rcpp::sourceCpp` on the extracted
+    function: a smooth p with an isolated dip at the seed (the rep-1 pattern) gives lower -0.2390 before, -0.7609 after
+    (the true root); identical on smooth p. Not run through the full CI suite. (b) (NA-midpoint halving) not
+    prototyped. Note from the main session 2026-11-07: the `InferenceIncidLogBinomial` gradient example above (rep 4 `~.`,
+    upper 6.997) is NOT a bisection bug -- finite-difference score / Hessian crossing the mu = 1 boundary gives
+    non-finite information and an NA p (separate R-only fix being prototyped). NA cliffs there can have p ~0.35 right
+    before the NA, so an NA-halving rule must not treat a cliff edge as a root. Open: owner decision on applying (a)
+    to the shared C++.
 - [ ] TODO-175 (added 2026-10-28, owner; same investigation): **`InferenceOrdinalStereotypeLogitRegr` score / LR
-  p-value depends on evaluation history, not only on delta.** Current state: OPEN, investigated; fix proposed, not applied.
+  p-value depends on evaluation history, not only on delta.** Current state: APPLIED 2026-11-07 (uncommitted), verified; NEWS + G4 pending.
   - Each delta-constrained null refit warm-starts from the previous one (memoized warm cache, `warm_cache_key =
     "likelihood_test:score"` in `invert_test_pval_confidence_interval`, `R/inference_ext_ci_inversion.R`; the class's
     `make_warm_fit_null_wrapper`). Same data, same delta, rep 1: score p(-0.239) = 0.034 after a grid scan vs 0.883 on a
@@ -14254,6 +14278,30 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     the LR is smooth. Same root as TODO-176. Needs a documented limitation: score p at 0 is conditional on the chosen
     phi; non-monotone score and LR p; score CI unreliable on a flat loading ridge; recommend the LR CI for this class.
     Default-output change (score / LR CIs and p-values): NEWS + canonical CSV rows (G4) when applied.
+  - **Applied 2026-11-07 (agent).** `R/EDI/R/inference_ordinal_stereotype_logit.R`: new
+    `.stereotype_null_refit_multistart()`; `get_likelihood_test_spec()$fit_null` and the parametric-bootstrap
+    `simulate_under_lik_null()` (full refit and `fit_null`) ignore `start` and the warm Fisher. Starts, in order: full
+    fit + 1e-3 with beta_T = delta, cold, **an adjacent-category two-stage start** (loadings fixed at gamma = 0 with
+    beta_T = delta, then released -- added beyond the proposal: rep 25 `~.`, full beta_T -0.26, delta 0.375: all
+    full-fit offsets 271.449, cold 271.449, this start 269.740), the observed null fit (bootstrap only), then the 8
+    multistart offsets; later starts win only on > 1e-6. The bootstrap replicate's full fit gets the full-data
+    multistart too. Also needed for consistency (TODO-178 below): `generate_mod`'s estimate and `full_neg_loglik` now
+    come from the same parameters (before, the SE path's neg-loglik came from a further-iterated refit).
+  - Evidence (n = 200, Bernoulli, calibration helpers): rep 1 `~.` grid -1.5..1.5: max |chained - fresh| score p
+    0.067 -> 0, LR p 0.027 -> 0 (score p(-0.7) 0.121 chained / 0.151 fresh before, 0.1207 both after; LR CI lower
+    -0.6946 -> -0.7423); rep 11 0 both. Endpoint check reps 1-25 `~.` (p at CI end within 0.005 of 0.05): LR 23 -> 25/25,
+    gradient 24 -> 25/25, score 24 -> 24/25; Wald fallbacks 2 -> 0. Rep 25's jagged LR / score p (0.31 at 0.375 between
+    0.30 and 0.24) is now smooth. Left: rep 23 score upper (p 0.023): the score p jumps 0.0527 -> 0.0197 at delta
+    1.08 -> 1.09 while LR is smooth (null optimum switches branch) -- inherent, documented. Null size reps 1-200 `~.`
+    (fresh object per method, so history plays no role here): rejections wald 15, LR 16, gradient 16, score 18 out of 200,
+    identical before and after; p moved > 1e-4 in 19-31/200 per likelihood method. Cost per call (median): LR 0.24 ->
+    0.96 s, score 0.54 -> 3.4 s, gradient 0.71 -> 3.7 s.
+  - Class docs: new paragraph (null refits deterministic; score p at 0 depends on the loadings; non-monotone p and
+    non-interval acceptance sets; recommend the LR CI). Roxygen comment changed, Rd not regenerated.
+  - Tests: new `R/package_tests/testthat_bulk/test-stereotype-logit-null-refit-history-independence.R` (7 pass; old
+    code fails the history test); rewrote `test-ordinal-stereotype-logit-lik-test-null-refit-multistart-reference.R` and
+    the Stereotype part of `test-ordinal-cloglog-stereotype-simulate-under-lik-null-fit-null-multistart-reference.R`
+    (they pinned the old two-start / warm-start mechanism).
 - [ ] TODO-176 (added 2026-10-28, owner; same investigation): **`InferenceOrdinalStereotypeLogitRegr` drops the
   covariates in most fits.** Current state: APPLIED 2026-10-31 (committed in a464f68e (audit 2026-11-04); owner chose (ii) for `~1`); NEWS + G4 pending.
   - Rep 1: `~1`, `~.` and `~x1` give the same estimate (0.497038), which is why both known-failure rows are identical.
@@ -14316,10 +14364,11 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     `load_all(compile = FALSE)`): the 2 Stereotype score known-failure rows no longer reproduce (`~1` rep 1 is now
     non-estimable; `~.` endpoint p back in band) -> deleted; rerun OK. TODO-175's score-CI history problem is still
     open; it may resurface on other replicates.
+  - NEWS written 2026-11-06.
 
 - [ ] TODO-177 (added 2026-10-29, owner; found by the TODO-174 agent): **`InferenceIncidBinomialIdentityRiskDiff`: one
-  failed null refit poisons the warm start, so every later p-value on the object is NA.** Current state: OPEN, investigated; fix
-  proposed, not applied.
+  failed null refit poisons the warm start, so every later p-value on the object is NA.** Current state: APPLIED 2026-11-07
+  (agent, R only, uncommitted); "Done when" verified for RiskDiff reps 1-4; NEWS + canonical CSV rows (G4) pending, so not ticked.
   - Score CI, incidence null reps 1-4, `~1`, n = 200, Bernoulli (calibration helpers): the first bisection midpoint
     (0.13364) returns p = NA, so `pval_invert_ci_cpp` stops and returns the outer step point est + step as the upper
     endpoint (p there 0.0476; slightly too wide, conservative). A fresh object gives p(0.13364) = 0.0548. On the same
@@ -14361,9 +14410,42 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     `test-likelihood-test-memoization-null-fit-cache-warm-start-and-lazy-component-evaluation-reference.R` (expected to
     pass, not run), `test-binomial-identity-weighted-refit-hardening-failure-nonestimable-reference.R`,
     `test-log-binomial-jackknife-history-independence.R`.
+  - **Applied 2026-11-07 (agent; R only, no C++; scratch `$TMPDIR/t177/`; uncommitted).** The 2026-10-30 diff was gone;
+    rebuilt from the prose above. (1) `R/helper_robust_sandwich.R` ~L257-313: new `edi_warm_start_usable()` (non-empty,
+    all finite), `edi_null_refit_usable()` (non-NULL, not `converged = FALSE`), `edi_fit_null_with_warm_retry()` (drops an
+    unusable start; a failed warm-started refit is retried once with `start = NULL`, as a fresh object; an error is
+    recorded only if the final attempt has no fit). (2) Both `make_warm_fit_null_wrapper`s
+    (`inference_all_abstract_asymp_lik_std_mod_cache.R` ~L126-141, `inference_ext_likelihood_test_memoization.R` ~L31-49)
+    call it, and update the stored start only after a usable refit (non-finite extracted starts stored as NULL); the
+    second seeding point in `get_memoized_likelihood_test_eval` (~L102) also skips failed refits. (3) RiskDiff
+    (`inference_incidence_binomial_identity.R` ~L232-262) and LogBinomial (`inference_incidence_log_binomial.R`
+    ~L372-401) `fit_null`: the old call first (identical when it converges), then the full fit with beta_T = delta and
+    no warm Fisher, then cold; a wrong-length / non-finite start is dropped.
+    Evidence (`load_all(compile = FALSE)`, old code = shadow package dir with the 5 HEAD files): RiskDiff `~1` reps 1-4
+    score CI upper 0.138049 / 0.142855 / 0.227218 / 0.134554 -> 0.136518 / 0.141283 / 0.225687 / 0.133031 (p there
+    0.0476 -> 0.0500), lower unchanged; same-object NA at 12 probed deltas 10/9/9/10 -> 0, same == fresh to 7e-8;
+    `~.` rep 3 upper 0.220405 -> 0.218996. `cal_run_rep("incidence", 200, 1:3, endpoints = TRUE)`: RiskDiff `~1` score
+    rep 1 pval NA -> 0.96591, p_at_ci_b 0.04758 -> 0.04999. Reps 1-25 x {`~1`, `~.`}: same-object p(0) NA after a score
+    CI RiskDiff 37/50 -> 0, LogBinomial 19/50 -> 5 (the 5 are NA for a fresh object too); fresh p(0) and estimates
+    bit-identical in all 100 rows; same-object vs fresh p(0) within 1e-5; endpoints with fresh |p - 0.05| > 0.002 or
+    NA: RiskDiff 32 -> 1 (rep 23 `~.`, the TODO-181 (c) boundary NA), LogBinomial 16 -> 8 (`~.` reps 2/4/9/10/11/17/19/22:
+    the TODO-174 NA-midpoint / no-CI cases); score CIs moved: RiskDiff 36 upper / 11 lower, LogBinomial 11 / 2; LR CIs
+    2 / 1; score-CI time 22.6 s -> 12.4 s (RiskDiff), 22.4 -> 16.4 (LogBinomial).
+    Shared-wrapper blast radius, old vs new `cal_run_rep(endpoints = TRUE)` (estimate, CI, p(0), p at both endpoints),
+    reps 1-3 incidence / count / ordinal, 1-2 survival / proportion, every class in the plans: bit-identical for all
+    ordinal (276 rows, incl. PropOdds / Cloglog / Cauchit / AdjCat / OrderedProbit / Stereotype / ContRatio / KK) and
+    proportion (88) rows, LogRegr / ModifiedPoisson / KKCondLogitGLMM, Poisson / ZIP / ZINB / Hurdle / KK count,
+    CoxPH / StratCox / Weibull / DepCens. Moved, endpoints still roots: ProbitRegr score CIs <= 3e-10 (3 warm refits
+    flagged non-converged by TODO-181 (a) now retried), KKCondLogitOneLik <= 6e-7 (one NULL warm refit retried),
+    KKLWACoxPHOneLik <= 6e-8, CountNegBin <= 4e-5 (NaN starts no longer reused). Tests: new
+    `R/package_tests/testthat_bulk/test-incid-binomial-risk-diff-failed-null-refit-does-not-poison-warm-start.R`
+    (38 expectations; old code 17 failed + 1 error); 71 existing files mentioning BinomialIdentityRiskDiff /
+    IncidLogBinomial / fit_null / warm-start state (tests/testthat + testthat_bulk, incl. the three named above):
+    0 fail / 2534 pass. Not done: NEWS, canonical CSV rows (G4); LogBinomial `~.` leftovers above (TODO-174 / TODO-181
+    LogBinomial boundary score, which is a different fix); HurdleNegBin / DepCens history dependence (TODO-180).
 - [ ] TODO-178 (added 2026-10-29, owner; found while answering a question about TODO-175):
   **`InferenceOrdinalStereotypeLogitRegr` randomization refits warm-start from the previous permutation and land in
-  wrong optima, changing the randomization p-value.** Current state: OPEN, investigated; the headline below was WRONG (see correction); fix proposed, not applied.
+  wrong optima, changing the randomization p-value.** Current state: APPLIED 2026-11-07 (uncommitted), verified, Done-when met for `~.`; NEWS + G4 pending; the headline below was WRONG (see correction).
   - `compute_treatment_estimate_during_randomization_inference` (`inference_ordinal_stereotype_logit.R` ~:303-338)
     fits each permuted-w dataset single-start from `get_backend_warm_start_args()` and then `set_fit_warm_start()`s its
     own result, so each draw starts from the previous draw (and, in parallel, from whatever that worker did before).
@@ -14410,9 +14492,34 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     rep; `~.` NA draws 37 -> 0, covariate drops 8 -> 0; size unchanged (3/44). Cost: `~1` +0-30%, `~.` often faster
     (fewer column-dropping retries). (3) overlaps TODO-176 A -- apply together. Default-output change: NEWS + G4. Class
     doc "remain single-start" is wrong for the public path.
+  - **Applied 2026-11-07 (agent).** `R/EDI/R/inference_ordinal_stereotype_logit.R`: (1) the hook is
+    `private$shared(estimate_only)` + cached `beta_hat_T` (no warm-start write); (2) `generate_mod`'s primary fit is
+    always cold, its `set_fit_warm_start("params")` write is gone, and the bootstrap-worker `fit_fun` is cold; (3)
+    `.stereotype_structural_starts()` NOT added: measured first, the null-fit (beta_T = 0) start improved the selected
+    nll in 0/120 fits (reps 1-40 x observed + 2 permuted w) after TODO-176's adjacent-category start. **Found and fixed
+    while verifying:** `compute_estimate(estimate_only = TRUE)` (what every randomization / bootstrap draw uses) and
+    `compute_estimate()` were different estimators: the estimate-only path kept a screening fit with no information
+    matrix, so TODO-176's loading-boundary / PD rule never ran (`~1` reps 1-40: 38/40 finite vs 5/40), and the SE path
+    kept the C++ fit's early stop (up to 0.007 in beta_T; rep 26 `~1` 0.2674 vs saturated MLE 0.27395). Now both modes
+    select by nll and then compute the information at the selected parameters (`.stereotype_attach_information()`):
+    reps 1-40 identical in both modes; `~.` estimable 40/40 (unchanged, covariates kept 40/40), estimates move <= 0.0037
+    (3/40 reps); `~1` estimable 5 -> 3 of 40.
+  - Evidence: after a randomization p, Wald CI / estimate / bootstrap draws equal a fresh object's on reps 1, 8, 11, 26,
+    33 x both formulas (before: rep 26 `~1` CI (-0.477, 1.025) vs fresh (-0.517, 1.052); `~1` reps 1/8/11 bootstrap
+    draws differ 19-26/30; `~1` rand p finite (0.24-0.97) on objects whose estimate is NA). Draws identical with 1 vs 3
+    cores after a score CI (reps 1, 11, r = 60). `~.` observed statistic = reported estimate (rep 1: 0.391, was the cold
+    single-start 0.497), so `~.` rand p moves (r = 100: rep 1 0.52 -> 0.42, rep 11 0.36 -> 0.14, rep 26 0.64 -> 0.50).
+    Null size, r = 100, reps 26-125, n = 200: `~.` 4/100 at 0.05. `~1`: rand p finite 1/100 -- the observed estimate is
+    non-estimable in most reps and ~90% of draws are boundary fits (NA) by the TODO-176 rule.
+  - Class docs: "remain single-start" replaced (all fits data-only; draws use the reported estimator). Roxygen changed,
+    Rd not regenerated.
+  - Tests: new `R/package_tests/testthat_bulk/test-stereotype-logit-randomization-estimator-consistency.R` (15 pass;
+    old code fails 8); rewrote `test-ordinal-stereotype-logit-randomization-estimate-refit-reference.R` (pinned the old
+    hook). All 20 Stereotype test files (13 bulk + 7 tests/testthat) pass under `load_all(compile = FALSE)`, plus
+    parametric-bootstrap-LR, warm-start-length, migration-baseline, mixin-contracts.
 - [ ] TODO-179 (added 2026-10-30, owner; found by the first nightly calibration fast tier, run 40833827319,
   commit c85ce459): **two anti-conservative cells that persist at n = 200, so not small-sample.** Current state: OPEN,
-  not investigated. Both are in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` at their observed
+  investigated 2026-11-07 (no bug found; both are honest properties, recommendation below). Both are in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` at their observed
   levels (the gate reopens only if they get significantly worse); remove those rows when fixed.
   - `InferenceIncidLogBinomial` wald `~.`, Bernoulli: size 0.088 (n = 50), 0.090 (n = 200); coverage 0.912 / 0.910.
     Same cell's gradient is at size 0.051 but coverage 0.913 at n = 50 (CI side: see TODO-174's NA-midpoint mechanism).
@@ -14420,6 +14527,64 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     The `~.` and wald cells fail at n = 50 only.
   - Done when: a 1000-rep null study at n = 200 shows size and coverage consistent with 0.05 / 0.95 at the fast tier's
     Bonferroni level, or the residual is documented as honest and the accepted rows' reason is updated to say so.
+  - **Investigated 2026-11-07 (agent, read-only on source; scratch `/tmp/claude-1000/t179/`: `study.R`, `analyze.R`,
+    `*.rds`).** 1000 null reps at n = 200 with the fast tier's own seeds and generator (`cal_gen_X`, `cal_new_design`,
+    `cal_gen_y`), `load_all(compile = FALSE)` at HEAD 749977ab. It reproduces the nightly cells exactly, and the nightly
+    runs 42184383402 / 42350587573 (11-06, 11-07; `calibration_summary.csv` artifact) are already this 1000-rep
+    n = 200 study: both cells still sit at their accepted levels. Exact binomial 95% CIs below.
+    - **LogBinomial wald `~.`: size 0.090 [0.073, 0.109], coverage 0.910 [0.891, 0.927]** (prob_T = 0.2 nightly: 0.093).
+      `~1` is nominal (0.047). Cause: the **MLE sits on the exp(X b) <= 1 boundary** (some fitted mu = 1) in 326/1000
+      reps. Wald size is **0.172 [0.132, 0.217] in those reps and 0.050 [0.035, 0.070] in the 674 interior reps**. In
+      boundary reps the mean model SE is 0.124 while the actual sd of beta_hat_T is 0.155 (interior: 0.154 vs 0.154).
+      The weight mu / (1 - mu) of a boundary row becomes huge, so the inverse Fisher information treats that direction as
+      known. Not EDI-specific: `glm(binomial(link = "log"))` on the same data gives the same estimates (median |diff|
+      3e-5) and SEs (ratio 1.0001), and its Wald size is 0.086 [0.069, 0.106] (boundary 0.155, interior 0.047). An
+      HC0 sandwich does not help (0.097; boundary 0.179). Modified Poisson (Zou 2004; `glm(poisson)` + HC0, which is
+      `InferenceIncidModifiedPoisson`) is nominal: 0.053 [0.040, 0.069]. Misspecification is only part of it: the
+      harness draws logit-linear y, which a log-linear model cannot fit, but with a **correctly specified log-linear
+      DGP** (P = exp(-1.2 + 0.25 x1 + 0.25 x2), true mu well inside (0, 1)) the MLE still hits the boundary in 162/1000
+      reps. There Wald size is 0.072 [0.057, 0.090] (boundary 0.191, interior 0.049), glm 0.067. The other tests
+      at the boundary (harness DGP): LR 0.084, gradient 0.081, score 0.29 (69 finite). This is the known non-regular
+      boundary behaviour of the log-binomial MLE (Blizzard & Hosmer 2006, Biometrical J 48:5-22; Williamson, Eliasziw &
+      Fick 2013, Emerg Themes Epidemiol 10:14). The class already documents it and warns
+      (`edi_binomial_mle_boundary_warning`, `R/EDI/R/helper_robust_sandwich.R:507`, called at
+      `inference_incidence_log_binomial.R:468/527`). Code location of the small SE: `ssq_b_j` =
+      [X'WX]^-1_jj with w = mu / max(1 - mu, 1e-8) (`src/fast_log_binomial_regression.cpp:739` and `:823`). That is
+      textbook model-based information, not a bug. The coverage shortfall of score / LR / gradient `~.` (0.92) is the
+      separate TODO-174 / TODO-181 CI-side mechanism; size is fine (0.057-0.075).
+    - **WeibullFrailtyLoggammaOneLik score `~1` (BinaryMatch): size 0.086 [0.069, 0.105]**. The other `~1` cells are
+      wald 0.079 [0.063, 0.097] (coverage 0.921) and LR 0.074; at `~.`: wald 0.065, score 0.070, LR 0.065. Cause:
+      **misspecification by the harness DGP, `~1` only**. BinaryMatch pairs subjects on (x1, x2), which `~1` omits.
+      The within-pair dependence that induces is not a Clayton copula with Weibull margins (and the margins are a
+      Weibull mixture). The model then claims more paired-design efficiency than it has: mean model SE 0.114 vs
+      sd(beta_hat_T) 0.128 (ratio 1.12). The same data under an independence Weibull `survreg` give SE 0.125 vs sd 0.127
+      and size 0.053, so the pairing gains nothing here. Correctly specified checks (pairs share a Clayton(theta = 1)
+      dependence, Weibull(1.5) margins, harness censoring): with no covariate effect, wald 0.049 [0.036, 0.064] and
+      LR 0.045 at `~1` (SE / sd 1.01). With covariate effects and `~.`, wald 0.057 [0.043, 0.073] and LR 0.052. Leaving
+      out the matched-on covariates (`~1`) brings the inflation back (wald 0.075, score 0.083, SE / sd 1.09), which pins
+      it on the omitted covariates. Under the harness `~.` DGP the true theta is 0 (log theta < -5 in 58% of fits), and
+      the remaining 0.065 is in line with plain `survreg` on the same data (model-SE 0.060), i.e. a small-sample AFT
+      effect. Reference: `parfm` (gamma-frailty Weibull, PH scale, a different but close model), 400 reps `~1`: Wald 0.060
+      [0.039, 0.088] vs EDI wald 0.075 on the same reps (CIs overlap; not decisive). Side finding, not the TODO-179
+      cause: the **score test runs about 1.5 points above wald / LR even when the model is correct** (0.063, 0.061,
+      0.067; pooled 191/3000 = 0.064, roughly [0.055, 0.073]). It uses the observed (finite-difference) information at
+      the null fit (`src/fast_survival_models_optim.cpp:699-710`). Worth a look if the Clayton score test matters,
+      e.g. expected information or a null-fit Hessian check.
+    - **Interactions:** neither cell goes through `make_warm_fit_null_wrapper` / TODO-177 in a way that matters. LogBinomial
+      wald uses only the full fit. The frailty class has its own `.clayton_weibull_null_fit_robust`, and its score / LR
+      inflation tracks wald (which has no null refit), so it is not a null-refit artefact. Not a Stereotype / Hurdle class.
+    - **Proposed fix: none in code for 1.0.5.** For LogBinomial a principled fix at the boundary would mean declaring Wald
+      nonestimable (NA) when `n_active_bounds > 0` / any eta >= -1e-6, or falling back to LR. The size would then be
+      0.050 on the interior reps with yield about 67%. That changes default output and is a design decision, so it is
+      not proposed for 1.0.5. A harness change alone does not fix it (log-linear DGP still 0.072).
+    - **Recommendation: accept both as documented honest properties; do not tick until the accepted rows are reworded.**
+      (1) Change the reason for the LogBinomial wald rows (prob_T 0.5 and 0.2) in `calibration_fast_tier_accepted.csv`
+      to "TODO-179 investigated 2026-11-07: honest, log-binomial MLE on the exp(Xb) = 1 boundary in ~1/3 of reps (Wald
+      size 0.17 there, 0.050 interior; glm(binomial(log)) identical); documented + boundary warning". (2) Frailty
+      score / wald `~1` rows: "TODO-179 investigated 2026-11-07: honest, harness misspecification (BinaryMatch pairs on
+      covariates that ~1 omits; Clayton-copula SE 12% too small); nominal when correctly specified". (3) Optional, for
+      v1.1: make Wald NA at the boundary (with LR suggested) for LogBinomial / RiskDiff, and check the Clayton score
+      information.
 - [ ] TODO-180 (added 2026-10-31, owner; found by the TODO-177 agent): **`InferenceCountHurdleNegBin` and
   `InferenceSurvivalDepCensTransformRegr`: the null refit's warm start lands in a different optimum, so p-values depend
   on what the object computed before.** Current state: APPLIED 2026-10-31 (committed in a464f68e (audit 2026-11-04)), verified; NEWS + G4 pending; DepCens full-fit multimodality found, not fixed (below). Same pattern as TODO-175 (Stereotype),
@@ -14479,8 +14644,9 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     in p; DepCens: occasionally 1e-2); CI endpoints change wherever the old warm chain had drifted (9/99 rows by > 1e-3,
     up to 0.25). Canonical CSV rows for these classes need regenerating.
   - **(audit 2026-11-04)** The DepCens full-fit multistart that this entry says "needs its own TODO" is now filed as TODO-188.
+  - NEWS written 2026-11-06.
 - [ ] TODO-181 (added 2026-10-31, owner; left over from the TODO-177 investigation): **three C++ edge cases in the
-  incidence fits.** Current state: APPLIED 2026-10-31 (committed in a464f68e (audit 2026-11-04)), verified with a targeted compile; NEWS + G4 pending; LogBinomial boundary score (same as (c)) not done.
+  incidence fits.** Current state: APPLIED 2026-10-31 (committed in a464f68e (audit 2026-11-04)), verified with a targeted compile; NEWS written 2026-11-07 (1.0.5 Bug fixes, "Three incidence fitting edge cases"); G4 pending; LogBinomial boundary score (same as (c)) not done.
   - (a) Probit (`src/fast_probit_regression.cpp`): reports `converged = TRUE` at a saturated intercept (absurd finite
     start stored as a warm start in `InferenceIncidProbitRegr`; TODO-177's guard catches the start but not the false
     convergence). Convergence must require a finite, non-saturated fit (or flag it as boundary). Same family of bug as
@@ -14525,9 +14691,9 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     inside the margin would have given a finite but meaningless score. TODO-128: `edi_warn_binomial_mle_boundary_once`
     is full-fit only and does not fire here (the rep 23 full fit is interior). That is deliberate: the null-refit
     boundary is reported by the lik-test reason instead.
-    Tests (new, `R/EDI/tests/testthat/`): `test-probit-saturated-fit-not-converged-todo181-reference.R` (17),
-    `test-binomial-identity-irls-cycle-guard-todo181-reference.R` (23),
-    `test-binomial-identity-null-mle-boundary-score-nonestimable-todo181-reference.R` (17). All pass on the new build.
+    Tests (new, `R/EDI/tests/testthat/`): `test-probit-saturated-fit-not-converged-reference.R` (17),
+    `test-binomial-identity-irls-cycle-guard-reference.R` (23),
+    `test-binomial-identity-null-mle-boundary-score-nonestimable-reference.R` (17). All pass on the new build.
     (a)/(b) fail on the old `.so`, and (c) fails with the HEAD R file. Related suite (39 files: probit / risk-diff /
     log-binomial / binomial-identity / todo128 in tests/testthat + testthat_bulk, incl.
     `test-binomial-identity-weighted-refit-hardening-failure-nonestimable-reference.R`,
@@ -14591,12 +14757,16 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     Recorded here as this TODO's follow-up; commit it with the rest. The ordinal Wilcox recheck result is not recorded.
   - **Known risk.** Coverage truths are computed at 0.5. For estimands that cannot be averaged across subgroups (e.g. a marginal Cox hazard ratio), the target can depend on the allocation ratio, so low coverage on 0.2 rows may be a truth artefact.
   - **Not done.** Full comprehensive and fast-tier runs at 0.2; re-measured timings.
-- [ ] TODO-185 (added 2026-11-03, owner; found by the TODO-184 pre-push 0.2 cell): **`InferenceCountZeroInflatedNegBin` / `InferenceCountZeroInflatedPoisson` score CIs are not inverted from their tests at `prob_T = 0.2`.** The endpoint check, which re-runs the class's own score test at each CI endpoint, gets p far below 0.05 at the upper endpoint:
+- [x] TODO-185 (added 2026-11-03, owner; found by the TODO-184 pre-push 0.2 cell): **`InferenceCountZeroInflatedNegBin` / `InferenceCountZeroInflatedPoisson` score CIs are not inverted from their tests at `prob_T = 0.2`.** Current state: DONE 2026-11-06, confirmed against the installed build (owner rebuild 2026-11-06 16:16). The full pre-push calibration check (`EDI_PREPUSH_CALIBRATION=all`, 166 classes, 2864 task rows) reports `prepush_calibration: OK`, and `prepush_calibration_known_failures.csv` has no ZIP/ZINB rows. The original finding follows. The endpoint check, which re-runs the class's own score test at each CI endpoint, gets p far below 0.05 at the upper endpoint:
   - ZINB score `~1`, null rep 2: p at ci_b = 0.4061 is 0.0016.
   - ZIP score `~.`, null rep 3: p at ci_b = 0.3038 is 0.00012.
   - Setting: synthetic data, `DesignFixedBernoulli`, `prob_T = 0.2`, n = 200 (`cal_run_rep()`, seed `1e6 * cal_rt_index("count") + 7 * 200 + rep`, effect 0). The same classes passed the endpoint check at 0.5 in the same run.
   - Related: TODO-169 fixed LR (and ZIP score) inversion at 0.5 (a warm-start chain stuck at a saturated zero-inflation fit; `lrt_ci_nr_cpp` / `make_warm_fit_null_wrapper` / `fit_null`). First check whether the score-CI search hits the same saturated zero-inflation fits once the treated arm is small (about 40 subjects), and whether the reported endpoint or the test is the one that is off (compare with a fresh-fit grid inversion, as in TODO-169's rep-3 analysis).
   - **Root cause (audit 2026-11-04), from the 2026-11-03 trail learning:** the calibration DGP has no zero inflation, so the zero-inflation logits run off along a flat ridge (zi intercept ~ -29, zi treatment ~ +25); null refits tie in nll to 1e-6 at different ridge points. The nuisance information `I_nn` is then numerically singular (min eig ~1e-14 vs max ~319) and the Schur complement in `score_test_from_score_information_cpp` / `score_test_with_ridge_fallback` cancels catastrophically, so p depends on where the fit stopped (ZIP 0.00012 vs 0.064 at the same delta). An eigen-truncated pseudo-inverse of `I_nn` gives stable answers (ZINB 0.0504/0.0504). Warm start is only the trigger; TODO-169's lower-nll guard cannot help because the nlls tie. The bad evaluations also bias the CI search itself (ZIP upper 0.3038 vs ~0.315). Fix not applied. There are no ZIP/ZINB rows for the 0.2 cell in `prepush_calibration_known_failures.csv`, so the pre-push 0.2 cell keeps failing on them.
+  - **Resolution (2026-11-04..06).** The failure was the boundary case (true pi = 0, so the MLE does not exist), not the intended use of the classes. It was fixed in two parts; the score kernel itself is unchanged:
+    1. **The calibration data are now zero-inflated.** `R/package_tests/calibration/calibration_fast_tier_common.R`: `CAL_DGP_BY_CLASS` / `cal_gen_y_variant()` give ZIP/ZINB structural zeros with pi = plogis(-1 + 0.5 x1) (about 0.28), mixed with the class's own count family. Each dgp gets its own design under the same seed, so the default data stream is unchanged. All 12 ZIP/ZINB null score endpoints are p = 0.05. Because of the lost information, `CAL_DGP_SIGN_EFFECT_SCALE = 1.25` (>= 1/sqrt(0.72)) scales the sign-check effect for these dgps; without it the ZIP `~.` sign replicate at 0.2 missed on a fixed seed (CI [-0.01, 0.38]; the estimate is unbiased over 40 draws).
+    2. **No-zeros error and resampling fallback in the classes (`5153c02c`).** `inference_count_zero_augmented_poisson_abstract.R`: the constructor stops when y has no zeros (as `pscl::zeroinfl` does). Inside resampling, a replicate with no zeros gets the non-inflated Poisson/NB fit (zi intercept fixed at -40, other zi coefficients at 0; `ziformula = ~0` on glmmTMB paths). Replicates are never dropped. Hurdle and ZOIB are unaffected (their likelihood factorizes; endpoints p = 0.05 on data with no zeros). Docs, NEWS and `test-zero-inflated-no-zeros-error-and-resampling-fallback.R` are included.
+    - Not done (owner ruling: rare, numerical error acceptable): the partial-collapse case, where data have zeros but the zi part still sits on a ridge. The eigen-truncated pseudo-inverse score test is deferred to `release_v1_1_0.md` TODO-3a, after the diagnostics-return feature.
   - Repro: `Rscript R/package_tests/calibration/prepush_calibration_checks.R --changed-files <file listing R/EDI/R/inference_count_zero_augmented_poisson_abstract.R>`.
 - [ ] TODO-188 (added 2026-11-04, owner; split out of TODO-180, whose agent found it on 2026-10-31): **`InferenceSurvivalDepCensTransformRegr` full-data fit is start-dependent: 5 of 49 estimable fits are not the MLE.** Current state: APPLIED 2026-11-04 (agent, R-only, uncommitted), verified; G4 pending.
   - Evidence (TODO-180 agent, calibration generator, n = 200, Bernoulli, reps 1-25 x {~1, ~.}): 10 starts (C++ default, zeros, 8 jittered from the MLE) beat the class's own full fit by 8.5 nll (~1 rep 25), 9.5 (~. rep 9; beta_T 0.050 vs -0.262), 12.3 (~. rep 15), 1.57 (~. rep 17) and 0.013 (~. rep 18). In those reps null fits can land below the "full" nll, so the LR statistic clamps and p is non-monotone in delta.
@@ -14605,9 +14775,18 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - Done when: on reps 1-25 x {~1, ~.}, the class's full fit matches the best of a wide multistart (to <= 1e-6 nll); no null fit lands below the full nll; the TODO-180 history-independence test still passes; the focused DepCens test files pass. Default-output change (estimates move in about 10% of reps): NEWS bullet + G4 DepCens rows.
   - **Applied 2026-11-04 (agent; scratch `/tmp/claude-1000/t188/`, uncommitted).** `generate_mod()` in `R/EDI/R/inference_survival_dep_cens_transform.R` now runs a local deterministic multistart. It is a local function, not a private method, because a new private method fails the `contracts_mixins.R` private-method contract. The starts: (1) the old call (warm start + warm Fisher, else the C++ default); (2) the C++ default when (1) was warm; (3) (1)'s fit with the sign of atanh(rho) flipped; (4) OLS betas with atanh(rho) in {-2, +2, -3, +3} (+-3 is the C++ clamp); (5) a polish restart from the best. The fit switches only on an nll gain > 1e-6, and `dep_cens_fit_retry()` is still the fallback. Cause: the likelihood is bimodal in rho; the bad fits sat at rho ~ +0.6..+0.98 while the MLE is at rho ~ -0.9.
   - Results (reps 1-25 x {~1, ~.}): 7 fits moved to the MLE: ~1 25, ~. 8, 9, 15, 17, 18 and 25 (gains 0.013-12.3; beta_T up to 0.31, e.g. ~. 9 0.050 -> -0.262). ~1 rep 8 went from non-estimable to estimable at the rho clamp. 40/50 estimates are bit-identical. The gap to the best of 27+ starts is <= 1e-6 on 48/50 rows; the other two are 1.1e-6 and 1.2e-6, i.e. LBFGS stopping noise at the switching threshold. The worst null-minus-full nll on a 7-point delta grid went from -11.5 to -1.0e-6.
-  - Tests (`load_all(compile = FALSE)`, NOT_CRAN = true): the new `R/EDI/tests/testthat/test-dep-cens-transform-full-fit-multistart.R` passes 18/18 (re-run by the main session), and 12 of its 18 assertions fail on the pre-fix code. The TODO-180 history-independence test passes 30/30. The 9 testthat files mentioning the class: 119 pass, 0 fail. The 15 bulk files: 3201 pass, 1 skip, and 1 error that also occurs on the pre-fix code (`test-todo10-survival-expected-attempt-roster-reference.R`, `design_key_label` not found).
+  - Tests (`load_all(compile = FALSE)`, NOT_CRAN = true): the new `R/EDI/tests/testthat/test-dep-cens-transform-full-fit-multistart.R` passes 18/18 (re-run by the main session), and 12 of its 18 assertions fail on the pre-fix code. The TODO-180 history-independence test passes 30/30. The 9 testthat files mentioning the class: 119 pass, 0 fail. The 15 bulk files: 3201 pass, 1 skip, and 1 error that also occurs on the pre-fix code (`test-survival-expected-attempt-roster-reference.R`, `design_key_label` not found).
   - Timing: full fit 6.9 -> 15.3 ms; score CI 0.153 -> 0.207 s; nonparametric bootstrap (B = 201) 0.73 -> 2.46 s. Bootstrap distributions change because replicates no longer stop in the wrong mode. NEWS bullet added under 1.0.5 Bug fixes.
   - Left: G4 regeneration of this class's canonical rows. Not in scope (possible follow-up): `simulate_under_lik_null` (the parametric-bootstrap LR) still refits each simulated dataset from one start.
+
+- [ ] TODO-189 (added 2026-11-08, owner; side finding of the TODO-179 investigation): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik` (Clayton / loggamma-frailty Weibull) score test runs about 1.5 points high even when the model is correct.** Current state: OPEN, agent assigned 2026-11-08.
+  - Evidence (TODO-179 agent, 2026-11-07, scratch `/tmp/claude-1000/t179/`): correctly specified pairs (Clayton theta = 1, Weibull(1.5) margins, harness censoring), score size 0.063, 0.061, 0.067 over three cells; pooled 191/3000 = 0.064 (about [0.055, 0.073]), while wald 0.049 and LR 0.045 on the same data.
+  - Suspect: the score test uses the observed, finite-difference information at the null fit (`src/fast_survival_models_optim.cpp:699-710`). Candidates: expected information, an analytic or better-conditioned null-fit Hessian, or a check of the information at the null fit.
+  - Done when: the cause is pinned; if it is fixable, score size on the correctly specified DGP is within the binomial band of 0.05 at n = 200, and wald / LR are unchanged. A C++ change is verified by a targeted `sourceCpp` swap only (no relink, no full build; see CLAUDE.md).
+- [ ] TODO-190 (added 2026-11-08, owner): **`InferenceIncidLogBinomial$compute_gradient_confidence_interval()` silently returns the likelihood-ratio interval when its own gradient inversion fails.** Current state: OPEN, agent assigned 2026-11-08.
+  - Where: `compute_gradient_confidence_interval_impl()` in `R/EDI/R/inference_incidence_log_binomial.R` (about line 305). When `invert_gradient_ci_uniroot()` gives a non-finite side, it returns `invert_lik_ratio_ci_newton()` with gradient-style names and no warning or recorded reason. The other likelihood classes use the classed `edi_lik_ci_wald_fallback` warning when they substitute.
+  - Scope: on the 8 LogBinomial `~.` calibration reps (n = 200) the gradient CI is its own after the TODO-181 KKT fix, so the fallback now fires only where gradient inversion genuinely fails. Count how often that is (calibration reps, n = 50 / 200, prob_T 0.5 / 0.2) and why.
+  - Done when: either the gradient inversion is fixed so the fallback is not needed, or the substitution is made visible (a classed warning and a recorded reason, consistent with the other `*_fallback` warnings). A test pins the behaviour, and NEWS is written if user-visible.
 
 ## Standing constraints
 
@@ -14728,8 +14907,8 @@ box: G6 #17 (registry-baseline fixture), see "Closing audit 2026-10-23". **DECID
 **Current (v1.0.5 TODO audit 2026-11-04; supersedes the counts above, which stay as history).** Recounted from the boxes.
 Of TODO-1..131: DONE 94, open 37. Newly DONE since 2026-10-23: 4, 116, 123 (checked 2026-10-31) and 56, 66, 107, 108,
 111, 121, 106 (checked 2026-11-04). Open 37 = GATED 36 + NEEDS-DECISION 1 (18: C2/N5 R3 failures). Lists: DONE 2-7 11 15 17 20-22 24 25 27-30 32-37 39-49 51-54 56 61 64-66 69-75 78-98 100-108 110 111 113-118 121-124 126; open 1 8-10 12-14 16 18 19 23 26 31 38 50 55 57-60 62 63 67 68 76 77 99 109 112
-119 120 125 127-131. The later TODO-161..187 (TODO-132..160 are unused here): DONE 8 (161-164 checked 2026-11-04, 182,
-183, 186 = the renumbered second TODO-184, 187), open 20 (165-181, 184, 185, 188). All 159 entries: DONE 102, open 57; the
+119 120 125 127-131. The later TODO-161..187 (TODO-132..160 are unused here): DONE 14 (161-164 checked 2026-11-04, 182,
+183, 186 = the renumbered second TODO-184, 187; 166-168, 170, 171, 185 checked 2026-11-06), open 14 (165, 169, 172-181, 184, 188). All 159 entries: DONE 108, open 51; the
 open ones are in "Per-TODO status".
 
 ### Uncommitted state (historical, 2026-10-22, HEAD `478104b0`; current state and commit groups: "Closing audit 2026-10-23")
@@ -14767,7 +14946,7 @@ a separate go-ahead):
 
 Rd/man regeneration (G8) should be its own commit after commit group 1-7.
 
-### Per-TODO status (the 57 open TODOs, incl. 188 added and 106 closed 2026-11-04; rebuilt by the v1.0.5 TODO audit 2026-11-04, was the closing audit 2026-10-23's 47)
+### Per-TODO status (the 52 open TODOs, incl. 188 added and 106 closed 2026-11-04, 166-168, 170, 171 closed 2026-11-06; rebuilt by the v1.0.5 TODO audit 2026-11-04, was the closing audit 2026-10-23's 47)
 
 Gate key: G1 build (+ patch bundle), G2 quiet-host timing, G3 1.0.2 parity, G4 CSV regen/audit (G4-C = calibration
 runbook R1-R7), G5 commit/push/CI, G7 TODO-56 slice, G8 Rd (roxygenized 2026-10-23, 0 warnings; only the commit is
@@ -14811,30 +14990,26 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 120 | gated | G5 | CI on the commit (#29 accepted) |
 | 125 | gated | G5 | Full bulk suite on the commit |
 | 127 | gated | G4 | Duration fields regenerate with the next baseline run |
-| 128 | gated | G4 (+ NEWS) | G1 part done (patch 14 code in the tree). Left: NEWS line for the C++ KKT/active-set fix (agent); boundary-case rows |
+| 128 | gated | G4 | G1 part done (patch 14 code in the tree); NEWS bullet written 2026-11-07. Left: boundary-case rows |
 | 129 | gated | G4, G5 | G8 (Rd `jitter_seed`) and G9 (suite coverage CSV row, 5 args) done. Left: seeded-result harness/benchmark rows; CI on a commit |
 | 130 | gated | G5 | CI on the commit |
 | 131 | gated | G4, G5 | G1 part done: patch 15 in the tree and in the README apply order; R3 C1 smoke exit 0. Left: BRT rows on the 5 fixed designs (OptimalBlocks re-solve per replay draw); CI |
 | 165 | gated | G4 merge | mid-rank z0 BCa fix + percentile overrides in source, NEWS done. Left: KMDiff rerun at SD 0.25 and the owner-gated G4 merge |
-| 166 | open | agent | Fix in source, known-failure rows removed. Left: NEWS entry |
-| 167 | open | agent | Block-diagonal information + two-start rule in source. Left: NEWS entry |
-| 168 | open | agent | Roxygen/Rd/REFERENCES done; accepted-deviation rows already in `calibration_fast_tier_accepted.csv`. Left: NEWS Known limitation |
-| 169 | open | agent, G4 | vcov whitelist + two-start null fit in source. Left: NEWS, G4 |
-| 170 | open | agent | `mu = delta` fix, pre-push exemptions and tie docs in source. Left: 1.0.5 NEWS entry |
-| 171 | open | agent | Conservative-max wrapper removed. Left: NEWS entry (the stale NEWS sentence calling CountKKGLMM conservative is corrected by the audit's NEWS pass) |
-| 172 | gated | user rebuild | C++ fix committed 83f1f3cf, NEWS present; roxygen/Rd uncommitted. Left: a rebuild that includes 83f1f3cf (installed EDI.so 2026-11-03 12:02 predates it) |
-| 173 | gated | user rebuild, G4 | Fixed by TODO-172 + TODO-187 in source (see entry). Left: confirm the 3 known-failure rows stop reproducing and delete them; G4 rows |
-| 174 | open-source | — | Fix proposed (jump guard / re-evaluate p(b)), not applied |
-| 175 | open-source | — | Deterministic multistart `fit_null` not applied |
-| 176 | open | agent, G4 | Code committed a464f68e. Left: NEWS, G4 |
-| 177 | open-source | — | Warm-start guard in `make_warm_fit_null_wrapper` not applied |
-| 178 | open-source | — | Structural starts for the Stereotype rand warm start not applied |
-| 179 | open-source | — | Accepted rows cite it; not investigated |
-| 180 | open | agent, G4 | Code committed a464f68e, test exists. Left: NEWS, G4. The DepCens full-fit multistart has no TODO yet |
-| 181 | open | agent, G4 | Code committed a464f68e, 3 tests exist. Left: NEWS, G4, the LogBinomial boundary score |
+| 169 | open | agent, G4 | vcov whitelist + two-start null fit in source; NEWS written 2026-11-06. Left: G4 |
+| 172 | gated | G4 | C++ fix committed 83f1f3cf, NEWS present. The owner rebuild of 2026-11-06 (EDI.so 16:04) includes it; the TODO-173 rows no longer reproduce there and the full pre-push calibration check passes (2026-11-06). Left: tick after G4 rows |
+| 173 | gated | G4 | Fixed by TODO-172 + TODO-187; known-failure rows deleted (5153c02c) and confirmed not reproducing on the 2026-11-06 rebuild. Left: G4 rows |
+| 174 | APPLIED (needs rebuild) | owner rebuild, G4 | 2026-11-07: jump guard applied in `pval_invert_ci_cpp` (`src/lrt_ci_newton.cpp`; signature unchanged, no RcppExports change). Verified by sourceCpp swap (no relink): isolated-dip case now finds the true root (-0.7609 vs old -0.2390), smooth and cliff cases unchanged; 827 LogBinomial/RiskDiff/Stereotype/CI-inversion checks pass. NEWS written. Left: owner rebuild, G4 |
+| 175 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): deterministic multistart null refits (+ parametric bootstrap); same-object = fresh p; NEWS written 2026-11-07. Left: G4 rows, Rd regen |
+| 176 | open | agent, G4 | Code committed a464f68e; NEWS written 2026-11-06. Left: G4 |
+| 177 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): shared warm-start guard in both `make_warm_fit_null_wrapper`s + retrying `fit_null` for RiskDiff/LogBinomial; new test 38/38; NEWS written 2026-11-07. Left: G4 rows (RiskDiff/LogBinomial score + LR CIs moved) |
+| 178 | gated | G4 + owner (`~1`) | APPLIED 2026-11-07 (R only, uncommitted): cold primary fit, no warm-start write from the rand hook, estimate_only = full estimator; NEWS written 2026-11-07. Left: G4 rows, Rd regen, owner decision on `~1` (saturated loadings, mostly non-estimable, LR referred to chi2(1) is ~0.25-0.29 size) |
+| 179 | needs-decision | owner | Investigated 2026-11-07 (1000-rep null study, n = 200): both cells real but not bugs. LogBinomial wald `~.` 0.090: boundary MLE (mu = 1) in 33% of reps, inverse information too small there; matches glm(log link); documented + warned. Frailty Loggamma OneLik score `~1` 0.086: harness `~1` omits the matched-on covariates; nominal when correctly specified. Left: owner accepts; reword the accepted-row reasons; v1.1 ideas (NA Wald at boundary; Clayton score information) |
+| 180 | open | agent, G4 | Code committed a464f68e, test exists; NEWS written 2026-11-06. Left: G4. The DepCens full-fit multistart is TODO-188 |
+| 181 | open | agent, G4 | Code committed a464f68e, 3 tests exist; NEWS bullet written 2026-11-07. LogBinomial boundary score APPLIED 2026-11-07 (KKT/profile score + cold refit of non-KKT null fits in `inference_incidence_log_binomial.R`; test `test-log-binomial-null-mle-boundary-kkt-score-reference.R`, 34 pass): all 8 `~.` calibration reps now give finite score/LR/gradient CIs at roots, no Wald fallback. NEWS written. KKT ported to RiskDiff 2026-11-08 (owner; reverses the 181(c) NA ruling): shared `edi_binomial_bound_kkt_core()` with two-sided constraint signs, cold refit of non-KKT null fits; 181(c) test rewritten as `test-binomial-identity-null-mle-boundary-kkt-score-reference.R`; rep 23 score CI upper 0.2199 (not a root) -> 0.2170 (root); 25 `~.` reps x score/gradient/LR: 0 of 75 CIs with NA, fallback or non-root endpoints. NEWS updated. Left: G4 |
 | 184 | gated | full runs | Harness/calibration plumbing in source. Left: full comprehensive + calibration runs at `prob_T = 0.2`; the KMDiff MOVER CI follow-up (uncommitted, see entry) |
-| 185 | open-source | — | Root cause known (near-singular nuisance information on the zero-inflation ridge; eigen-truncated pseudo-inverse fixes it); fix not applied; no known-failure rows for the 0.2 cell |
 | 188 | gated | G4 | APPLIED 2026-11-04 (R-only DepCens full-fit multistart, uncommitted; NEWS bullet written). Left: G4 regeneration of the DepCensTransform rows |
+| 189 | open | agent | Frailty Loggamma OneLik (Clayton) score size ~0.064 on correctly specified data; agent investigating 2026-11-08 |
+| 190 | open | agent | LogBinomial gradient CI silently substitutes the LR interval when its inversion fails; agent investigating 2026-11-08 |
 
 ### G1. Native build of the current checkout, with provenance (+ the uncompiled C++ patch bundle)
 
@@ -14868,11 +15043,11 @@ Order and what each verifies (tests named in the README; run them in step 4):
 | 05 | RMST `rmst_tau` arg (`compileAttributes()`) | 108 | `test-rmst-user-settable-tau.R`, `test-brt-smoothed-survival-stat-diff-kernel.R`; then `git apply companions/A05-rmst-tau-R-callsite.patch` and companion `test-rmst-tau-fast-kernel.R` |
 | 06 | ridit DeLong SE (+ Python binding/pyi) | 106 | `test-ordinal-ridit-delong-se.R`; then `git apply companions/C06-ridit-delong-se-test-constants.patch` and companion `test-ridit-kernel-se-equals-delong.R`; Python `test_fast_ridit_analysis.py` |
 | 07 | ZINB pseudo-inverse (highest design risk) | 4 | `test-zinb-zi-block-unidentified-count-se.R`, `test-information-inverse-guard.R`, `test-information-inverse-edge-cases.R`, `test-information-inverse-inference-typed-guards.R`, `test-zinb-zero-inflation-boundary.R`; companions: `git apply companions/B07-zinb-safe-vcov-subblock.patch` (R only, safe BEFORE the build), after the build `B07b-zinb-guard-test-update.patch` and `test-zinb-pseudo-inverse-identified-coordinates.R` |
-| 08 | Cox Newton descent guard, `maxit` 20 -> 100 (+`RcppExports.R`) | 123 | `test-coxph-robust-vcov.R`, `test-coxph-hessian-symmetric-writes.R`, `test-cox-risk-set-cache-invalidation.R`, `test-strat-cox-matched-design-todo110.R`, `test-brt-smoothed-coxph-kernel.R`; companion `test-cox-newton-descent-guard.R` |
+| 08 | Cox Newton descent guard, `maxit` 20 -> 100 (+`RcppExports.R`) | 123 | `test-coxph-robust-vcov.R`, `test-coxph-hessian-symmetric-writes.R`, `test-cox-risk-set-cache-invalidation.R`, `test-strat-cox-matched-design.R`, `test-brt-smoothed-coxph-kernel.R`; companion `test-cox-newton-descent-guard.R` |
 | 09 | `get_poisson_glmm_hessian_cpp` comment only | 121 | none beyond compiling |
 | 10 | `noise_mat` empty-matrix hardening, 4 survival kernels | add-on | `test-brt-smoothed-noise-mat-plumbing.R` and the per-kernel `test-brt-smoothed-*-kernel.R`; add a `matrix(0, 0, 0)` test |
 | 11 | same, 4 other kernels (optional) | add-on | same family |
-| 14 | log-binomial/identity-binomial active-set step + KKT convergence gate (`fast_log_binomial_regression.cpp` only; no `compileAttributes()`); DECIDED 2026-10-22 (G6 #46): apply. Check with `git apply --check $P/14-log-binomial-active-set-step.patch` (the loop above stops at 10) | 128 | `test-log-binomial-jackknife-history-independence.R`, `test-logbin-var-reuses-fisher.R`, `test-log-and-identity-binomial-kernels-glm-fixed-coefficients-working-weights-and-iteration-cap-reference.R`, `test-binomial-link-score-hessian-and-identity-fit-kernels-reference.R`, `test-log-binomial-boundary-mle-warning-todo128.R`; companion (already in `testthat_bulk/`) `test-log-binomial-constrained-mle-nloptr-reference-todo128.R` (boundary block keys on the new `kkt_converged` field) |
+| 14 | log-binomial/identity-binomial active-set step + KKT convergence gate (`fast_log_binomial_regression.cpp` only; no `compileAttributes()`); DECIDED 2026-10-22 (G6 #46): apply. Check with `git apply --check $P/14-log-binomial-active-set-step.patch` (the loop above stops at 10) | 128 | `test-log-binomial-jackknife-history-independence.R`, `test-logbin-var-reuses-fisher.R`, `test-log-and-identity-binomial-kernels-glm-fixed-coefficients-working-weights-and-iteration-cap-reference.R`, `test-binomial-link-score-hessian-and-identity-fit-kernels-reference.R`, `test-log-binomial-boundary-mle-warning.R`; companion (already in `testthat_bulk/`) `test-log-binomial-constrained-mle-nloptr-reference.R` (boundary block keys on the new `kkt_converged` field) |
 
 README's overall order: B07 (R only) -> apply patches and build -> `Rcpp::compileAttributes()`
 for 04/05/08 -> A05, B07b, C06 -> copy the companion test files into the live test
@@ -14941,10 +15116,10 @@ do not push or tag without a separate go-ahead.
 | `test-zip-newton-stall-cold-retry.R` | 1 / 8 | 0 / 0 / 0 |
 | `test-rmst-user-settable-tau.R` | 7 / 26 | 0 / 0 / 0 |
 | `test-ordinal-ridit-delong-se.R` | 3 / 28 | 0 / 0 / 0 |
-| `test-bootstrap-family-procedure-failure-keeps-wald-state-todo116.R` | 13 / 107 | 0 / 0 / 0 |
-| `test-bootstrap-nonfinite-na-warning-todo116.R` | 5 / 23 | 0 / 0 / 0 |
-| `test-procedure-failure-keeps-wald-state-todo116.R` | 4 / 34 | 0 / 0 / 0 |
-| `test-suite-unsupported-procedure-message-todo116.R` | 1 / 5 | 0 / 0 / 0 |
+| `test-bootstrap-family-procedure-failure-keeps-wald-state.R` | 13 / 107 | 0 / 0 / 0 |
+| `test-bootstrap-nonfinite-na-warning.R` | 5 / 23 | 0 / 0 / 0 |
+| `test-procedure-failure-keeps-wald-state.R` | 4 / 34 | 0 / 0 / 0 |
+| `test-suite-unsupported-procedure-message.R` | 1 / 5 | 0 / 0 / 0 |
 | `testthat_bulk/test-ordinal-fast-solver-uncentred-covariates-reference.R` | 6 / 21 | 0 / 0 / 0 |
 | `testthat_bulk/test-ordinal-adjcat-contratio-uncentred-covariates-reference.R` | 4 / 26 | 0 / 0 / 0 |
 | `testthat_bulk/test-non-param-boot-statistics-cache-and-seed-reference.R` (TODO-57 slice, guessed by name) | 4 / 15 | 0 / 0 / 0 |
@@ -14986,7 +15161,7 @@ Proposed C++ diffs (NOT applied; `git apply --check` OK; `src/` untouched) are i
 | `test-information-inverse-guard.R` (4 fail) | (i) NB (3): needs the post-build R change `negbin_fit_cpp()` eps fallback (`inference_count_negbin.R` 13:03, after the build). (ii) ZINB (1): B07b expected a finite zi block, but this Poisson fixture is at the ZI boundary (`zero_inflation_at_boundary = TRUE`, zi intercept -10). `zinb_zi_information_spec()` conditions on the zi coordinates, so they are NaN, as on the existing boundary path. Patch 07 is correct; only the duplicated columns are on the null eigenvector | (i) (b); (ii) (a) B07b expectation wrong | Test edited (dated comment): zi coordinates expected NaN when at the boundary. library: 3 NB fails (stale installed R, expected); load_all: 37/37 pass |
 | `testthat_bulk/test-ordinal-adjcat-contratio-uncentred-covariates-reference.R` (1 error) | **Patch 12 regression.** `ordinal_covariates_badly_scaled()` checks every column, including the binary treatment (R's `ordinal_center_scale_plan()` skips column 1). A 0/1 column with mean > 0.5 has \|mean\| > sd, so the Newton-decrement certificate (<= 1e-6) runs on ordinary data and downgrades LBFGS fits that stop at decrement ~1e-5 (params ~3e-4 off). The CR kernel checks augmented rows (treatment mean 0.523 here). Measured on well-scaled data, 52% treated, n = 200: non-converged PO 92/100, Cauchit 91, Cloglog 85, Probit 68, CR 10, AdjCat 8 (0/100 at exactly 50%, except CR 8). Class level, Bernoulli designs, 20 seeds: NA estimate/SE PropOdds 7, Cloglog 7, Cauchit 8, OrderedProbit 4 | (c) C++ regression, **release-blocking** | NOT FIXED. `proposed-12b-ordinal-scale-guard-skip-binary.patch` (skip 0/1 columns; CR checks subject-level `X`). Needs a rebuild of the 6 ordinal `.cpp` |
 | `test-rmst-tau-fast-kernel.R` (1 skip) | needs A05 (R side, applied after the build) | (b) | No change. load_all: 8/8 pass |
-| `test-strat-cox-matched-design-todo110.R` (1 error) | runner artifact: `local_mocked_bindings()` without `.package` needs `testing_package()`, which `test_file()` without `package =` does not set (`test_check` does) | runner | No change. 4/4 pass in both modes with `package = "EDI"` |
+| `test-strat-cox-matched-design.R` (1 error) | runner artifact: `local_mocked_bindings()` without `.package` needs `testing_package()`, which `test_file()` without `package =` does not set (`test_check` does) | runner | No change. 4/4 pass in both modes with `package = "EDI"` |
 | `test-weibull-frailty-loggamma-null-boundary.R` (1 fail) | Wald p 0.50572 -> 0.51851. The fit sits at log(theta) = -8.92, inside patch 03's gate. The old logA noise swamped I_tt (~1.7e-7), so the FD Hessian dropped the beta_T/log-theta coupling (old SE 0.3165, which is survreg's conditional SE 0.31683). The new SE 0.32638 matches an R central-difference Hessian of the score (0.32655, stable for h = 1e-2..1e-5). Score/LR/gradient unchanged | (a) patch 03, intended | Fixture constant updated (dated comment). 19/19 pass in both modes |
 
 R/test edits: `test-information-inverse-guard.R` and `test-weibull-frailty-loggamma-null-boundary.R` only. No R source fixes
@@ -15043,8 +15218,8 @@ still NOT in the repo tree.
 `e3e165fa`, dirty tree).** Provenance: installed `EDI.so` = `R/EDI/src/EDI.so` = `7607b692de79...`. The 56 patch-verification files with
 `EDI_REQUIRE_CPP_PATCHES=true`: 2,766 expectations, 0 failed, 0 skipped, 0 errors (the patch-04 tests pass on this DLL). R3 C1 smoke:
 exit 0 (p-values not compared). Hook-style suite: **exit 1**, 9,093 pass, 44 fail, 41 warn, 18 skip, 4 min 49 s. All 44 failures are in six
-files, all tied to uncommitted work newer than the build: `test-binomial-identity-irls-cycle-guard-todo181-reference.R` (11),
-`test-binomial-identity-null-mle-boundary-score-nonestimable-todo181-reference.R` (4), `test-probit-saturated-fit-not-converged-todo181-reference.R` (10)
+files, all tied to uncommitted work newer than the build: `test-binomial-identity-irls-cycle-guard-reference.R` (11),
+`test-binomial-identity-null-mle-boundary-score-nonestimable-reference.R` (4), `test-probit-saturated-fit-not-converged-reference.R` (10)
 (new untracked TODO-181 tests, 2026-10-31 18:36-18:38), `test-null-refit-history-independence-hurdle-negbin-dep-cens.R` (12),
 `test-stereotype-logit-full-fit-multistart.R` (2, modified) and `test-stereotype-logit-loading-boundary.R` (5). The working tree
 has unbuilt edits to `fast_log_binomial_regression.cpp`, `fast_probit_regression.cpp` and five R files, so the installed package is not the
@@ -15517,7 +15692,7 @@ Common rules (R1-R7):
   separately.
 - Validator change, **TO WRITE** (test infrastructure, not package source): add an `approved_skips` argument (a key table)
   to `validate_todo14_candidate()` and `validate_todo14_attempt_result_artifact()`. Those keys must be skipped and others
-  must not be. Extend `test-todo14-candidate-validation-reference.R`.
+  must not be. Extend `test-candidate-validation-reference.R`.
 - Pass: the entry's gate. Zero missing or unexpected keys outside the approved skip; 8,640 rows; unique IDs; reps 1:40;
   status/value checks; provenance matches G1. The skip count must equal the predeclared count.
 - Closes: TODO-14's "Regenerate the complete eligible ..." sub-item, after the separately approved canonical merge.
@@ -15969,7 +16144,7 @@ smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to reru
   that setup on all nine datasets ("no covariates provided to run the binary matching algorithm"), so 1,920 keys
   would have failed as missing; (b) `compute_rand_confidence_interval` x `~.` x {fuel, ionosphere, diamonds, cars} x
   both designs, 640. The two rand p-values stay gated everywhere else. Test added to
-  `test-todo14-candidate-validation-reference.R`. Not resumed: the old rows span commits `a3b253f9` (KK21) and
+  `test-candidate-validation-reference.R`. Not resumed: the old rows span commits `a3b253f9` (KK21) and
   `61d4dc0a` (FBM) and older DLLs, and the validator requires one checkout sha. Fresh run: 18 design x dataset jobs,
   6 parallel x 2 cores, `COMPREHENSIVE_FUNCTION_TIMEOUT_SEC=600`, `COMPREHENSIVE_SKIP_REPEAT_AFTER_TIMEOUT=1`, launched
   2026-10-25 00:47 UTC on HEAD `436ca96b` (dirty tree) and installed DLL `e15007df...` (built 00:40 UTC). Launcher and
@@ -15993,7 +16168,7 @@ smoothing (TODO-18) is again not implicated. R1 `bartlett` and R4B still to reru
   `accepted_checkout_shas` argument: rows may carry either listed commit and the checkout may move between them;
   every other provenance field must stay fixed (`r5_validate.R` also asserts identical payload/runner/DLL sha across
   jobs). Not rerun: the existing rows were re-validated. Result: 0 issues, 5,391 rows, 3,249 approved keys absent,
-  16 present as skip rows. Tests updated (`test-todo14-candidate-validation-reference.R` 116 pass; the two other
+  16 present as skip rows. Tests updated (`test-candidate-validation-reference.R` 116 pass; the two other
   validator callers 33 and 22 pass). Provenance is DLL `e15007df...`, which the owner replaced at 07:10 UTC with `c6d59498...`. Checked 2026-10-25: no file under `R/EDI/{R,src,inst}`, DESCRIPTION or NAMESPACE changed between the two builds (00:40-07:10 UTC) except the generated `src/Makevars{,.win}` (build config; the current build is unity), so both builds compile the same source. The two DLL hashes differ only through the build mode. Later edits are roxygen comments only (`helper_glm_fit.R` usage `maxit`, not ours; Cloglog Details, ours).
 - **R5 provenance ACCEPTED 2026-10-26 (owner): "same source, different compile."** R5's rows (DLL `e15007df...`, 00:40 UTC
   build) are accepted as equivalent to the installed `c6d59498...` (07:10 UTC unity build) without a rerun. Basis: no file
@@ -16617,7 +16792,7 @@ except where a DECIDED note gives more. #45 (TODO-31 CLMM) was added to G6 after
     convergence script (runbook R7; still to write); ~~document the ionosphere PropBeta/FractionalLogit limitation~~ (roxygen
     done 2026-10-23; Rd in G8).
   - ~~#33 TODO-14: add `approved_skips` to `validate_todo14_candidate()` / `validate_todo14_attempt_result_artifact()` and extend
-    `test-todo14-candidate-validation-reference.R` (runbook R5).~~ Done 2026-10-23: both validators and both tests; the
+    `test-candidate-validation-reference.R` (runbook R5).~~ Done 2026-10-23: both validators and both tests; the
     predeclared count is 240.
   - ~~Calibration scripts (none exist yet; runbook R1-R6): `R/package_tests/calibration/summarize_type1_calibration.R` (+
     reference test), `todo8_stereotype_null_study.R`, `todo18_smoothed_brt_null.R`, `todo23_rmst_coverage.R`,
@@ -16684,7 +16859,7 @@ runbook and commit groups below:
 - TODO-129 owner override (G6 #50 DECIDED by owner): survreg jitter seeded from the object/design seed
   (`jitter_seed`), `InferenceSurvivalKKRankRegrIVWC` made deterministic (`.kk_rank_regr_aftsrr_seeded()`), and the
   zero-event start fix in `.extract_lognormal_start()` / `.extract_survreg_start()`. New tests
-  `test-robust-survreg-jitter-rng-todo129.R` (47) and `test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R` (15).
+  `test-robust-survreg-jitter-rng.R` (47) and `test-kk-rank-regr-ivwc-deterministic-aftsrr.R` (15).
 - TODO-131 (G6 #51 DECIDED by owner): re-solve the optimal blocking on every replay draw, all methods; option (c) for
   `ompr`: keep re-solving, document the cost (roxygen + NEWS only).
 - Call graph: `weighted_restricted_mean_se_diff@InferenceSurvivalRestrictedMeanDiff` recorded as a TODO-23 reviewed
@@ -16812,8 +16987,8 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
      - patch 15: `test-robust-regression-nonfinite-input-nonestimable.R`,
        `test-brt-matched-pair-replay-uses-resampled-pairs.R`, `test-kk-robust-regr-use-rcpp.R`,
        `test-robust-regression-mad.R`, `test-robust-regression-xtx-cache.R`, `test-brt-smoothed-robust-regr-kernel.R`;
-     - TODO-129 (owner overrides): `test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R` and
-       `test-robust-survreg-jitter-rng-todo129.R` (sources only so far; confirm on the built package);
+     - TODO-129 (owner overrides): `test-kk-rank-regr-ivwc-deterministic-aftsrr.R` and
+       `test-robust-survreg-jitter-rng.R` (sources only so far; confirm on the built package);
      - TODO-67: `testthat_bulk/test-kk21-stepwise-survival-weibull-mle-score-reference.R`;
      - TODO-21 follow-up (added 2026-10-23): the 2026-10-20 scalar singleton-index resampling fix's native-provenance
        recheck, `testthat_bulk/test-matching-bootstrap-draw-grouping-and-match-stats-kernels-reference.R` (1,216
@@ -17059,7 +17234,7 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
 **Uncommitted state and proposed commit groups** (`git status --porcelain --untracked-files=all` on 2026-10-23 at
 `fa42bc65`: 117 entries, 86 modified and 31 untracked; nothing staged; do not commit until asked). **Re-audit late
 2026-10-23:** 135 entries; most are now staged (81 `M `, 30 `A `), 23 have unstaged changes (13 ` M`, 8 `MM`, 2 `AM`)
-and 1 is untracked (`test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R`). Re-stage the `MM`/`AM`/` M` files
+and 1 is untracked (`test-kk-rank-regr-ivwc-deterministic-aftsrr.R`). Re-stage the `MM`/`AM`/` M` files
 (including `release_v1_0_5.md` itself) before committing their group. Groups updated for today's later work:
 1. Design BRT-replay fix (TODO-131/18): `design_fixed_{binary_match,greedy_d_optimal,matching_greedy_pair_switching,optimal_blocks,rerandomization}.R`,
    `inference_continuous_robust_regr.R`, `inference_continuous_KK_robust_regr_{ivwc,one_lik}.R`, new bulk tests
@@ -17068,12 +17243,12 @@ and 1 is untracked (`test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R`). Re
    roxygen paragraph (unstaged hunks: re-stage).
 2. Seed/RNG (TODO-129/130/112): `helper_robust_regression.R`, `inference_all_abstract_non_param_boot.R`,
    `inference_mixin_kk_passthrough.R`, `inference_proportion_gcomp.R`, `inference_ext_quantile_rand_ci.R`,
-   `inference_all_KK_mean_diff_IVWC.R`, new `R/EDI/tests/testthat/test-{kk-bootstrap-seed-and-bca-boundary-todo129,kk-mean-diff-ivwc-binary-match-bootstrap-todo130,resampling-set-seed-sweep-todo129,robust-survreg-jitter-rng-todo129}.R`.
+   `inference_all_KK_mean_diff_IVWC.R`, new `R/EDI/tests/testthat/test-{kk-bootstrap-seed-and-bca-boundary,kk-mean-diff-ivwc-binary-match-bootstrap,resampling-set-seed-sweep,robust-survreg-jitter-rng}.R`.
    Plus the TODO-129 owner overrides (G6 #50): `helper_survival_fits.R` (jitter_seed threading + zero-event starts),
    `helper_robust_regression.R` (`jitter_seed`; unstaged hunks), `inference_survival_GLMM_weibull_frailty_{loggamma,normal}.R`,
    the KK21 survival weight files `design_seq_one_by_one_KK21{,_stepwise}.R`,
    `inference_survival_KK_rank_regr_ivwc_abstract.R`, and the new (untracked)
-   `test-kk-rank-regr-ivwc-deterministic-aftsrr-todo129.R`; the extended `test-robust-survreg-jitter-rng-todo129.R`
+   `test-kk-rank-regr-ivwc-deterministic-aftsrr.R`; the extended `test-robust-survreg-jitter-rng.R`
    (re-stage).
 3. Rand-CI capability (TODO-119): `inference_all_abstract_rand_ci.R`, `inference_class_registry.R`,
    `R/package_tests/capability_matrix.R`, `test-rand-ci-capability-response-type-aware.R`.

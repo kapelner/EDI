@@ -28,25 +28,23 @@ InferenceExtLikelihoodTestMemoization = list(
 				cache_state = if (warm_enabled) private$get_likelihood_null_warm_state(cache_key) else NULL
 				start = if (warm_enabled) last_start else NULL
 				if (warm_enabled && is.null(start) && !is.null(cache_state)) start = cache_state$start
-				if (!is.null(start) && length(start) == 0L) start = NULL
-				fit = tryCatch(
-					if (accepts_start) spec$fit_null(delta, start = start) else spec$fit_null(delta),
-					error = function(e) { edi_note_lik_test_failure(private, edi_lik_test_type_from_cache_key(cache_key), e); NULL }
-				)
+				# TODO-177 (2026-11-07): an empty / non-finite start is dropped, a
+				# failed warm-started refit is retried from start = NULL (as a
+				# fresh object), and a failed refit (NULL / converged = FALSE)
+				# never overwrites the stored start.
+				fit = edi_fit_null_with_warm_retry(private, spec, cache_key, delta, start, accepts_start)
 				extract_start = spec$extract_start %||% function(fit_obj) {
 					fit_obj$params %||% fit_obj$b %||% {
 						co = fit_obj$coefficients
 						if (is.numeric(co)) as.numeric(co) else NULL
 					}
 				}
-				last_start_val = if (warm_enabled && accepts_start && !is.null(fit)) {
-					tryCatch(extract_start(fit), error = function(e) NULL)
-				} else NULL
-				if (!is.null(last_start_val) && length(last_start_val) == 0L) last_start_val = NULL
-				last_start <<- last_start_val
 				last_delta <<- delta
-				if (warm_enabled && accepts_start) {
-					private$set_likelihood_null_warm_state(cache_key, delta = delta, start = last_start)
+				if (warm_enabled && accepts_start && edi_null_refit_usable(fit)) {
+					last_start_val = tryCatch(extract_start(fit), error = function(e) NULL)
+					if (!edi_warm_start_usable(last_start_val)) last_start_val = NULL
+					last_start <<- last_start_val
+					private$set_likelihood_null_warm_state(cache_key, delta = delta, start = last_start_val)
 				}
 				fit
 			}
@@ -101,7 +99,9 @@ InferenceExtLikelihoodTestMemoization = list(
 			}
 			if (isTRUE(include_null_fit) && !is.null(warm_cache_key) && !is.null(entry$null_params)) {
 				cache_state = private$get_likelihood_null_warm_state(warm_cache_key)
-				if (is.null(cache_state) || is.null(cache_state$start)) {
+				# TODO-177: never seed the warm start from a failed refit.
+				if ((is.null(cache_state) || is.null(cache_state$start)) &&
+						edi_null_refit_usable(entry$null_fit) && edi_warm_start_usable(as.numeric(entry$null_params))) {
 					private$set_likelihood_null_warm_state(warm_cache_key, delta = delta, start = as.numeric(entry$null_params))
 				}
 			}

@@ -370,35 +370,67 @@ IncidenceLogBinomialLikelihoodSource = list(
 				X = X_fit, y = y, j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
+					# TODO-177 (2026-11-07): a start of the wrong length is dropped.
+					if (!is.null(start) && (length(start) != ncol(X_fit) || !all(is.finite(start)))) start = NULL
+					try_fit = function(beta0, fisher0) {
+						res = tryCatch(
+							fast_log_binomial_regression_cpp(
+								X_fit, y,
+								warm_start_beta = beta0,
+								warm_start_fisher_info = fisher0,
+								fixed_idx = j_treat, fixed_values = delta,
+								smart_cold_start = private$smart_cold_start_default
+							),
+							error = function(e) NULL
+						)
+						if (!isTRUE(private$is_log_binomial_fit_reasonable(res, X_fit, j_treat))) NULL else res
+					}
+					# The original call first: identical result whenever it succeeds.
 					ws_args = private$get_backend_warm_start_args(ncol(X_fit))
-					res = tryCatch(
-						fast_log_binomial_regression_cpp(
-							X_fit, y,
-							warm_start_beta = start %||% ws_args$warm_start_beta,
-							warm_start_fisher_info = ws_args$warm_start_fisher_info,
-							fixed_idx = j_treat, fixed_values = delta,
-							smart_cold_start = private$smart_cold_start_default
-						),
-						error = function(e) NULL
-					)
-
-					if (!isTRUE(private$is_log_binomial_fit_reasonable(res, X_fit, j_treat))) return(NULL)
-					res
+					res = try_fit(start %||% ws_args$warm_start_beta, ws_args$warm_start_fisher_info)
+					if (!is.null(res)) {
+						# TODO-181 LogBinomial leftover: where the set of rows at
+						# exp(X b) = 1 changes with delta, a warm-started fit can stop
+						# with a row held at the bound that the optimum frees (KKT
+						# multiplier < 0; one calibration replicate: 1.6e-4 above the
+						# constrained minimum). Such a fit is refitted from a cold
+						# start and the lower negative log-likelihood is kept.
+						kkt = edi_log_binomial_kkt_terms(X_fit, y, as.numeric(res$b), j_treat)
+						if (isTRUE(kkt$not_kkt)) {
+							cold = try_fit(NULL, NULL)
+							if (!is.null(cold) &&
+							    edi_log_binomial_neg_loglik(X_fit, y, cold$b) < edi_log_binomial_neg_loglik(X_fit, y, res$b)) res = cold
+						}
+						return(res)
+					}
+					# TODO-177: retry from the full fit with beta_T = delta and no
+					# warm Fisher (a stale one can stall iteration 0), then cold.
+					b_full = as.numeric(private$cached_mod$b)
+					if (length(b_full) == ncol(X_fit) && all(is.finite(b_full))) {
+						b_full[j_treat] = delta
+						res = try_fit(b_full, NULL)
+						if (!is.null(res)) return(res)
+					}
+					try_fit(NULL, NULL)
 				},
 				extract_start = function(fit){
 					as.numeric(fit$b)
 				},
+				# TODO-181 LogBinomial leftover: at a null fit on (or within the
+				# finite-difference stencil's reach of) the exp(X b) <= 1 boundary,
+				# the score and information come from edi_log_binomial_kkt_terms();
+				# every other fit keeps the finite-difference values unchanged.
 				score = function(fit){
-					get_log_binomial_regression_score_cpp(X_fit, y, as.numeric(fit$b))
+					edi_log_binomial_lik_test_score(X_fit, y, as.numeric(fit$b), j_treat, private)
 				},
 				observed_information = function(fit){
-					-get_log_binomial_regression_hessian_cpp(X_fit, y, as.numeric(fit$b))
+					edi_log_binomial_lik_test_information(X_fit, y, as.numeric(fit$b), j_treat)
 				},
 				fisher_information = function(fit){
-					-get_log_binomial_regression_hessian_cpp(X_fit, y, as.numeric(fit$b))
+					edi_log_binomial_lik_test_information(X_fit, y, as.numeric(fit$b), j_treat)
 				},
 				information = function(fit){
-					-get_log_binomial_regression_hessian_cpp(X_fit, y, as.numeric(fit$b))
+					edi_log_binomial_lik_test_information(X_fit, y, as.numeric(fit$b), j_treat)
 				},
 				neg_loglik = function(fit){
 					eta = as.numeric(X_fit %*% as.numeric(fit$b))
@@ -644,3 +676,116 @@ NULL
 #' @R6method InferenceIncidLogBinomial$supports_rand_pval_for_incidence
 #' @template rand-supports-pval-incidence
 NULL
+
+
+# TODO-181 LogBinomial leftover (v1.0.5): score and information for the score /
+# gradient tests at a null-restricted fit on the exp(X b) <= 1 boundary.
+#
+# Only y = 1 rows can sit at mu = 1 (a y = 0 row there has log-likelihood
+# -Inf). Their contribution y * eta is linear, so the analytic score
+# X'(y - (1 - y) mu / (1 - mu)) and observed information
+# X' diag((1 - y) mu / (1 - mu)^2) X are finite; the finite-difference ones
+# (h = 1e-6 / 1e-4) step past the kernel's -1e-8 barrier for any row with
+# eta >= -1e-4 and return -Inf / NaN.
+#
+# At a boundary point the nuisance score is not zero: it is the Kuhn-Tucker
+# multiplier, s_n = X_{A,n}' lambda, lambda >= 0, over the binding rows A.
+# lambda is fitted by nonnegative least squares over the rows within 1e-4 of
+# the bound; rows with lambda > 0 are A. With A empty the point is interior
+# and the analytic values are used as they are. Otherwise the score is the
+# Lagrangian score g = s - X_A' lambda (nuisance part 0; tested part = the
+# derivative of the profile log-likelihood, by the envelope theorem), and the
+# information carries the face-restricted efficient information
+# f = 1 / (c' (B' I B)^{-1} c) (B a basis of {d : X_A d = 0}, c = B' e_j) in
+# the tested position with no cross terms. The generic
+# score_j^2 / (I_jj - I_jn I_nn^{-1} I_nj) is then the Rao score test of the
+# model with the binding constraints held as equalities, which equals the
+# profile score test l_p'(delta)^2 / (-l_p''(delta)) (the interior statistic's
+# continuous extension), and the gradient statistic g_j (beta_hat_j - delta)
+# equals g' (beta_hat - beta_tilde). Returns NULL for a fit with no row within
+# 1e-4 of the bound: the caller keeps the finite-difference values.
+edi_log_binomial_kkt_terms = function(X, y, b, j){
+	eta = as.numeric(X %*% b)
+	if (any(!is.finite(eta))) return(NULL)
+	C = which(eta >= -1e-4)
+	if (!length(C)) return(NULL)
+	undefined = function(why) list(reason = paste0(
+		"the null-restricted MLE is on the boundary of the parameter space (fitted probability exp(X b) = 1) and ",
+		why, "; the score and gradient tests are not computed there (the likelihood-ratio test is)"))
+	eta0 = pmin(eta, 0)
+	mu = exp(eta0)
+	one_minus = -expm1(eta0)
+	y0 = y < 0.5
+	if (any(y0 & one_minus <= 0)) return(undefined("a subject with y = 0 is on it (log-likelihood -Inf)"))
+	s = as.numeric(crossprod(X, ifelse(y0, -mu / one_minus, 1)))
+	I = unname(crossprod(X, X * ifelse(y0, mu / one_minus^2, 0)))
+	# constraint eta_i <= 0: outward normal +x_i
+	edi_binomial_bound_kkt_core(X, b, j, s, I, C, rep(1, length(C)), undefined)
+}
+
+# Shared by InferenceIncidLogBinomial and InferenceIncidBinomialIdentityRiskDiff
+# (TODO-181 leftover, v1.0.5). Given the analytic score s and information I at
+# b, the candidate rows C near a bound and the sign of each row's outward
+# constraint normal (g_i(b) = sgn_i x_i' b - const <= 0), returns the
+# Lagrangian score and face-restricted information described above, the
+# plain analytic s / I when no candidate row binds, or list(reason = ...)
+# (with not_kkt = TRUE when b is not a Kuhn-Tucker point).
+edi_binomial_bound_kkt_core = function(X, b, j, s, I, C, sgn, undefined){
+	nj = setdiff(seq_along(b), j)
+	S = X[C, , drop = FALSE] * sgn
+	# nonnegative least squares s_n ~ S_{C,n}' lambda (small active-set loop)
+	keep = seq_along(C)
+	lambda = numeric(0)
+	for (it in seq_len(length(C) + 1L)) {
+		if (!length(keep)) break
+		lam = tryCatch(qr.solve(t(S[keep, nj, drop = FALSE]), s[nj]), error = function(e) NULL)
+		if (is.null(lam) || any(!is.finite(lam))) return(undefined("its Kuhn-Tucker multipliers are not identified"))
+		tol = 1e-8 * max(1, abs(s))
+		if (all(lam > tol)) { lambda = lam; break }
+		keep = keep[lam > tol]
+	}
+	A = if (length(lambda)) keep else integer(0)
+	if (!length(A)) return(list(score = s, info = I, boundary = FALSE))
+	SA = S[A, , drop = FALSE]
+	resid = s[nj] - as.numeric(crossprod(SA[, nj, drop = FALSE], lambda))
+	if (sqrt(sum(resid^2)) > 1e-3 * (1 + sqrt(sum(s[nj]^2)))) return(c(undefined("it is not a Kuhn-Tucker point"), list(not_kkt = TRUE)))
+	g = s - as.numeric(crossprod(SA, lambda))
+	g[nj] = 0
+	B = tryCatch(MASS::Null(t(SA)), error = function(e) NULL)
+	if (is.null(B) || !ncol(B)) return(undefined("the binding constraints fix every coefficient"))
+	cc = B[j, ]
+	v = tryCatch(solve(crossprod(B, I %*% B), cc), error = function(e) NULL)
+	f = if (is.null(v)) NA_real_ else 1 / sum(cc * v)
+	if (!is.finite(f) || f <= 0) return(undefined("the information on the binding face is singular"))
+	J = I
+	J[j, ] = 0
+	J[, j] = 0
+	J[j, j] = f
+	list(score = g, info = J, boundary = TRUE, n_binding = length(A))
+}
+
+edi_log_binomial_neg_loglik = function(X, y, b){
+	eta = as.numeric(X %*% as.numeric(b))
+	if (any(!is.finite(eta)) || any(eta > 0)) return(Inf)
+	-sum(y * eta + (1 - y) * log1p(-exp(eta)))
+}
+
+edi_log_binomial_lik_test_score = function(X, y, b, j, private){
+	s = get_log_binomial_regression_score_cpp(X, y, b)
+	kkt = edi_log_binomial_kkt_terms(X, y, b, j)
+	if (is.null(kkt) || (!isTRUE(kkt$boundary) && is.null(kkt$reason) && all(is.finite(s)))) return(s)
+	if (!is.null(kkt$reason)) {
+		edi_note_lik_test_failure(private, "score", kkt$reason)
+		edi_note_lik_test_failure(private, "gradient", kkt$reason)
+		return(rep(NA_real_, length(b)))
+	}
+	kkt$score
+}
+
+edi_log_binomial_lik_test_information = function(X, y, b, j){
+	info = -get_log_binomial_regression_hessian_cpp(X, y, b)
+	kkt = edi_log_binomial_kkt_terms(X, y, b, j)
+	if (is.null(kkt) || (!isTRUE(kkt$boundary) && is.null(kkt$reason) && all(is.finite(info)))) return(info)
+	if (!is.null(kkt$reason)) return(matrix(NA_real_, length(b), length(b)))
+	kkt$info
+}

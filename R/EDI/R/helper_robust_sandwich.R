@@ -254,6 +254,61 @@ edi_lik_test_type_from_cache_key = function(cache_key) {
 	sub("_ci$", "", sub("^likelihood_test:", "", as.character(cache_key)[1L]))
 }
 
+#' TODO-177 (2026-11-07): TRUE when a null-refit warm start can be reused:
+#' a non-empty numeric vector with every element finite. An empty vector
+#' (\code{as.numeric(NULL$b)} from a failed refit) or a NaN / Inf start is
+#' never stored and never passed on.
+#'
+#' @keywords internal
+#' @noRd
+edi_warm_start_usable = function(start) {
+	is.numeric(start) && length(start) > 0L && all(is.finite(start))
+}
+
+#' TODO-177 (2026-11-07): TRUE when a null refit may seed the next warm
+#' start: non-NULL and not reporting \code{converged = FALSE}.
+#'
+#' @keywords internal
+#' @noRd
+edi_null_refit_usable = function(fit) {
+	if (is.null(fit)) return(FALSE)
+	conv = tryCatch(fit[["converged"]], error = function(e) NULL)
+	!isFALSE(conv)
+}
+
+#' TODO-177 (2026-11-07): one null-restricted refit for the warm-start
+#' wrappers (\code{make_warm_fit_null_wrapper}). An unusable start (see
+#' \code{edi_warm_start_usable}) is dropped. If a warm-started refit fails
+#' (error, NULL or \code{converged = FALSE}) it is retried once with
+#' \code{start = NULL}, which is what a fresh object does, so a failed or
+#' stale warm start cannot make \code{p(delta)} depend on the call history.
+#' When the first attempt succeeds the result is exactly the old one-attempt
+#' result. An error is recorded only when the final attempt has no fit.
+#'
+#' @keywords internal
+#' @noRd
+edi_fit_null_with_warm_retry = function(private, spec, cache_key, delta, start, accepts_start) {
+	attempt = function(st) {
+		err = NULL
+		fit = tryCatch(
+			if (accepts_start) spec$fit_null(delta, start = st) else spec$fit_null(delta),
+			error = function(e) { err <<- e; NULL }
+		)
+		list(fit = fit, err = err)
+	}
+	if (!isTRUE(accepts_start) || !edi_warm_start_usable(start)) start = NULL
+	res = attempt(start)
+	first_err = res$err
+	if (!is.null(start) && !edi_null_refit_usable(res$fit)) {
+		res = attempt(NULL)
+	}
+	if (is.null(res$fit)) {
+		err = res$err %||% first_err
+		if (!is.null(err)) edi_note_lik_test_failure(private, edi_lik_test_type_from_cache_key(cache_key), err)
+	}
+	res$fit
+}
+
 #' General guard (TODO-115): a likelihood test (score / gradient / LR /
 #' Bartlett) came back NA although the Wald result for the same estimate is
 #' finite. Emits a classed warning \code{edi_lik_test_unavailable_warning}

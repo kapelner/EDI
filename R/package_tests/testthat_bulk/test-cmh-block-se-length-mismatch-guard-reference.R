@@ -5,7 +5,7 @@ library(EDI)
 # length before doing any block-accumulation work: "compute_cmh_block_se_cpp: y and m_vec must have
 # the same length." A codebase-wide grep confirmed this exact message had zero test references
 # anywhere, despite the function itself being extensively tested elsewhere (test-cmh-flat-vector.R,
-# test-todo98-new-kernel-smoke.R) -- every existing reference supplies correctly length-matched y/m_vec
+# test-new-kernel-smoke.R) -- every existing reference supplies correctly length-matched y/m_vec
 # pairs and covers the separate n_total <= 0 -> NA branch, but never this length-mismatch guard.
 
 test_that("compute_cmh_block_se_cpp() rejects y and m_vec of different lengths", {

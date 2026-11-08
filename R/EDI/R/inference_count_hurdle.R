@@ -14,7 +14,7 @@
 #' probability, under the default \code{estimand = "conditional"}.
 #' \code{likelihood_tier = "full"}: Wald, gradient, and (bootstrap-calibrated)
 #' likelihood-ratio tests are available for the count submodel's treatment
-#' coefficient under that estimand; a plain score test is not exposed.
+#' coefficient under that estimand, and so is a score test.
 #' \strong{Jackknife inference is not supported}: delete-one refits of this
 #' two-part model are numerically unstable, so
 #' \code{compute_jackknife_estimate()} and related methods report explicit
@@ -242,8 +242,8 @@ InferenceCountHurdlePoisson = define_inference_class(
 #' is not yet implemented for this class (see
 #' \code{marginal_estimand_report.md}). \code{likelihood_tier = "full"}:
 #' Wald, gradient, and (bootstrap-calibrated) likelihood-ratio tests are
-#' available for the count submodel's treatment coefficient; a plain score
-#' test is not exposed. \strong{Jackknife inference is not supported}:
+#' available for the count submodel's treatment coefficient, and so is a
+#' score test. \strong{Jackknife inference is not supported}:
 #' delete-one refits of this two-part model with a jointly-estimated
 #' dispersion parameter are numerically unstable, so
 #' \code{compute_jackknife_estimate()} and related methods report explicit

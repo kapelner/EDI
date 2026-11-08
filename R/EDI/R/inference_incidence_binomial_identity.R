@@ -230,56 +230,71 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 				X = X_fit, y = y, j = j_treat,
 				full_fit = private$cached_mod,
 				fit_null = function(delta, start = NULL){
-					res = tryCatch(
-						fast_identity_binomial_regression_cpp(
-							X = X_fit, y = y,
-							warm_start_beta = start %||% private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X_fit)),
-							fixed_idx = j_treat, fixed_values = delta
-						),
-						error = function(e) NULL
-					)
-					if (is.null(res) || !isTRUE(res$converged)) return(NULL)
-					res
+					# TODO-177 (2026-11-07): a start of the wrong length is dropped.
+					if (!is.null(start) && (length(start) != ncol(X_fit) || !all(is.finite(start)))) start = NULL
+					try_fit = function(beta0, fisher0) {
+						res = tryCatch(
+							fast_identity_binomial_regression_cpp(
+								X = X_fit, y = y,
+								warm_start_beta = beta0,
+								warm_start_fisher_info = fisher0,
+								fixed_idx = j_treat, fixed_values = delta
+							),
+							error = function(e) NULL
+						)
+						if (is.null(res) || !isTRUE(res$converged)) NULL else res
+					}
+					# The original call first: identical result whenever it converges.
+					res = try_fit(start %||% private$get_fit_warm_start_for_length("beta", ncol(X_fit)),
+						private$get_fit_warm_start_fisher(ncol(X_fit)))
+					if (!is.null(res)) {
+						# TODO-181 leftover (as for InferenceIncidLogBinomial): a
+						# warm-started fit that is not a Kuhn-Tucker point (a row
+						# held at a bound that the optimum frees) is refitted from a
+						# cold start; the lower negative log-likelihood is kept.
+						kkt = edi_binomial_identity_kkt_terms(X_fit, y, as.numeric(res$b), j_treat)
+						if (isTRUE(kkt$not_kkt)) {
+							cold = try_fit(NULL, NULL)
+							if (!is.null(cold) &&
+							    edi_binomial_identity_neg_loglik(X_fit, y, cold$b) < edi_binomial_identity_neg_loglik(X_fit, y, res$b)) res = cold
+						}
+						return(res)
+					}
+					# TODO-177: the full fit's warm Fisher is used as X'WX on iteration
+					# 0; for the identity link it can be stale enough that every
+					# line-search step is rejected. Retry from the full fit with
+					# beta_T = delta and no warm Fisher, then from a cold start.
+					b_full = as.numeric(private$cached_mod$b)
+					if (length(b_full) == ncol(X_fit) && all(is.finite(b_full))) {
+						b_full[j_treat] = delta
+						res = try_fit(b_full, NULL)
+						if (!is.null(res)) return(res)
+					}
+					try_fit(NULL, NULL)
 				},
 				extract_start = function(fit){
 					as.numeric(fit$b)
 				},
 				observed_information = function(fit){
-					-get_identity_binomial_regression_hessian_cpp(X_fit, y, as.numeric(fit$b))
+					edi_binomial_identity_lik_test_information(X_fit, y, as.numeric(fit$b), j_treat)
 				},
 				fisher_information = function(fit){
-					-get_identity_binomial_regression_hessian_cpp(X_fit, y, as.numeric(fit$b))
+					edi_binomial_identity_lik_test_information(X_fit, y, as.numeric(fit$b), j_treat)
 				},
 				information = function(fit){
-					-get_identity_binomial_regression_hessian_cpp(X_fit, y, as.numeric(fit$b))
+					edi_binomial_identity_lik_test_information(X_fit, y, as.numeric(fit$b), j_treat)
 				},
 				score = function(fit){
-					# TODO-181 (c) (owner decision 2026-10-31, as for TODO-176): a
-					# null-restricted MLE with a fitted probability on the
-					# boundary (mu within 1e-6 of the kernel's 1e-8 / 1 - 1e-8
-					# bounds, the kernel's own active-bound margin) has no
-					# defined score: the log-likelihood is not differentiable
-					# there, and the finite-difference score / information either
-					# cross the barrier (Inf / NaN) or are dominated by the
-					# 1 / mu term. The score and gradient tests are therefore NA
-					# with a recorded reason (quoted by the lik-test-unavailable
-					# warning), not a boundary score. The LR test is unaffected.
-					b = as.numeric(fit$b)
-					mu = as.numeric(X_fit %*% b)
-					edge = 1e-8 + 1e-6
-					n_on_boundary = sum(mu <= edge | mu >= 1 - edge)
-					if (n_on_boundary > 0L) {
-						reason = paste0(
-							"the null-restricted MLE is on the boundary of the parameter space (",
-							n_on_boundary, " subject(s) with fitted probability 0 or 1), where the score is undefined; ",
-							"the score and gradient tests are not computed there (the likelihood-ratio test is)"
-						)
-						edi_note_lik_test_failure(private, "score", reason)
-						edi_note_lik_test_failure(private, "gradient", reason)
-						return(rep(NA_real_, length(b)))
-					}
-					as.numeric(get_identity_binomial_regression_score_cpp(X_fit, y, b))
+					# TODO-181 (c), revised 2026-11-08 (owner): at a
+					# null-restricted MLE with a fitted probability at 0 or 1 the
+					# score and information come from the Kuhn-Tucker terms
+					# (edi_binomial_identity_kkt_terms(), the profile score test,
+					# as for InferenceIncidLogBinomial) instead of being NA. They
+					# are NA with a recorded reason only where those terms are
+					# undefined (a y = 1 subject at 0, a y = 0 subject at 1, or
+					# not a Kuhn-Tucker point). Interior fits keep the
+					# finite-difference values.
+					edi_binomial_identity_lik_test_score(X_fit, y, as.numeric(fit$b), j_treat, private)
 				},
 				neg_loglik = function(fit){
 					mu = as.numeric(X_fit %*% as.numeric(fit$b))
@@ -657,3 +672,68 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		}
 	)
 )
+
+
+# TODO-181 (c) revised 2026-11-08 (owner): score and information for the
+# score / gradient tests of InferenceIncidBinomialIdentityRiskDiff at a
+# null-restricted fit with a fitted probability mu = X b at 0 or 1 (the
+# kernel keeps mu in [1e-8, 1 - 1e-8]). A y = 1 row can only bind at mu = 1
+# (constraint x' b <= 1, outward normal +x) and a y = 0 row only at mu = 0
+# (x' b >= 0, normal -x); a y = 1 row at 0 or a y = 0 row at 1 has
+# log-likelihood -Inf. With the analytic score X'(y / mu - (1 - y) / (1 - mu))
+# and information X' diag(y / mu^2 + (1 - y) / (1 - mu)^2) X, evaluated at the
+# bound itself for the bound rows, the Kuhn-Tucker terms are those of
+# edi_binomial_bound_kkt_core() (see edi_log_binomial_kkt_terms()): the
+# profile score test. Returns NULL when no row is within 1e-4 of a bound (the
+# caller keeps the finite-difference values).
+edi_binomial_identity_kkt_terms = function(X, y, b, j){
+	mu = as.numeric(X %*% b)
+	if (any(!is.finite(mu))) return(NULL)
+	up = mu >= 1 - 1e-4
+	lo = mu <= 1e-4
+	C = which(up | lo)
+	if (!length(C)) return(NULL)
+	undefined = function(why) list(reason = paste0(
+		"the null-restricted MLE is on the boundary of the parameter space (fitted probability 0 or 1) and ",
+		why, "; the score and gradient tests are not computed there (the likelihood-ratio test is)"))
+	y1 = y > 0.5
+	edge = 1e-8 + 1e-6
+	if (any(y1 & mu <= edge)) return(undefined("a subject with y = 1 has fitted probability 0 (log-likelihood -Inf)"))
+	if (any(!y1 & mu >= 1 - edge)) return(undefined("a subject with y = 0 has fitted probability 1 (log-likelihood -Inf)"))
+	mu0 = mu
+	mu0[y1 & up] = 1
+	mu0[!y1 & lo] = 0
+	if (any(y1 & mu0 <= 0) || any(!y1 & mu0 >= 1)) return(undefined("a fitted probability is outside [0, 1]"))
+	r = ifelse(y1, 1 / mu0, -1 / (1 - mu0))
+	w = ifelse(y1, 1 / mu0^2, 1 / (1 - mu0)^2)
+	s = as.numeric(crossprod(X, r))
+	I = unname(crossprod(X, X * w))
+	sgn = ifelse(up[C], 1, -1)
+	edi_binomial_bound_kkt_core(X, b, j, s, I, C, sgn, undefined)
+}
+
+edi_binomial_identity_neg_loglik = function(X, y, b){
+	mu = as.numeric(X %*% as.numeric(b))
+	if (any(!is.finite(mu)) || any(mu < 0 | mu > 1)) return(Inf)
+	-sum(ifelse(y > 0.5, log(mu), log1p(-mu)))
+}
+
+edi_binomial_identity_lik_test_score = function(X, y, b, j, private){
+	s = as.numeric(get_identity_binomial_regression_score_cpp(X, y, b))
+	kkt = edi_binomial_identity_kkt_terms(X, y, b, j)
+	if (is.null(kkt) || (!isTRUE(kkt$boundary) && is.null(kkt$reason) && all(is.finite(s)))) return(s)
+	if (!is.null(kkt$reason)) {
+		edi_note_lik_test_failure(private, "score", kkt$reason)
+		edi_note_lik_test_failure(private, "gradient", kkt$reason)
+		return(rep(NA_real_, length(b)))
+	}
+	kkt$score
+}
+
+edi_binomial_identity_lik_test_information = function(X, y, b, j){
+	info = -get_identity_binomial_regression_hessian_cpp(X, y, b)
+	kkt = edi_binomial_identity_kkt_terms(X, y, b, j)
+	if (is.null(kkt) || (!isTRUE(kkt$boundary) && is.null(kkt$reason) && all(is.finite(info)))) return(info)
+	if (!is.null(kkt$reason)) return(matrix(NA_real_, length(b), length(b)))
+	kkt$info
+}

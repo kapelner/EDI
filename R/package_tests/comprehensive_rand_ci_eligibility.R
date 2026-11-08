@@ -277,7 +277,7 @@ comprehensive_rand_ci_dispatch_roster <- function(script_path, response_type, is
 		}
 		if (identical(call_name, "for") && length(expr) >= 4L && is.call(expr[[3L]])) {
 			selector_name <- as.character(expr[[3L]][[1L]])
-			if (selector_name %in% c("select_kk_incidence_glmm_ivwc_generator", "select_kk_survival_class_generators")) {
+			if (selector_name %in% c("select_kk_incidence_glmm_onelik_generator", "select_kk_survival_class_generators")) {
 				roster <<- c(roster, extract_selector_classes(selector_name))
 			}
 		}

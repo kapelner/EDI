@@ -63,6 +63,13 @@ pattern.
 When in doubt about whether an action counts as "a full rebuild," treat it as
 one and ask first.
 
+**Whitelisted (owner, 2026-11-07):** the benchmark utility wrapper compile,
+`Rcpp::sourceCpp("benchmark/fast_math_utils_bench.cpp", cacheDir = ...)`, run
+by `R/benchmark/benchmark_model_fits.R` (utility section, e.g. in the full G2
+run). It compiles one small standalone file against the installed EDI, not
+`R/EDI` itself, so agents may run it without asking. Nothing else in this
+section is relaxed.
+
 ## Agents compile with `EDI_UNITY=0`; the user's default build is unity
 
 The user's own installs use the default unity build (`EDI_UNITY=1`, merged
@@ -90,3 +97,14 @@ under it is tracked; learnings written by `trail note` stay on the owner's machi
   `EDI/private/`), which tracks its own `.trail/learnings/`.
 - `trail check` still reads local learnings, so keep writing them with
   `trail note`; they simply are not shared through git.
+
+## Test file names never carry a TODO number
+
+Name test files for the behavior they check, never for the plan item that
+prompted them: no `todoNNN`, `todo-NNN` or `todoNNN-` anywhere in a test
+filename (`test-strat-cox-matched-design.R`, not
+`test-strat-cox-matched-design-todo110.R`). TODO numbers are per-release and
+get renumbered or closed, so they stop meaning anything; the 27 files that had
+one were renamed on 2026-11-07. Cite the TODO in a comment at the top of the
+file instead (e.g. `# v1.0.5 TODO-110: ...`). A descriptive "todo" that is not
+a plan reference (e.g. `...-todo-stub-guards-reference.R`) is fine.

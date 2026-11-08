@@ -156,7 +156,28 @@ jobs:
           extra-packages: any::jsonlite, any::covr
       - name: Run coverage shard
         timeout-minutes: 75
-        run: Rscript R/package_tests/ci/run_shard.R "$GITHUB_WORKSPACE" "shard-plan/shard-${{ matrix.shard }}.json" coverage "shard-results/${{ matrix.shard }}"
+        # 2026-11-07: shard 102 lost its runner ("received a shutdown signal")
+        # ~10 min into its tests on two runs of 749977ab, leaving no artifact,
+        # and covr hides per-test output. This logger prints free memory, disk,
+        # the largest processes and the test file now running (the "running"
+        # row run_selected_tests() writes before each file) every 30 s, so the
+        # job log shows what the shard was doing when a runner dies.
+        run: |
+          results="shard-results/${{ matrix.shard }}"
+          mkdir -p "$results"
+          (
+            set +e
+            while sleep 30; do
+              mem=$(free -m | awk '/^Mem:/ {printf "used %d / %d MB, avail %d MB", $3, $2, $7} /^Swap:/ {printf ", swap used %d MB", $3}')
+              disk=$(df -m --output=avail / | tail -1 | tr -d ' ')
+              running=$(grep '"running"' "$results/timings.csv" 2>/dev/null | tail -1 | cut -d, -f1 | tr -d '"')
+              top=$(ps -eo rss=,comm= --sort=-rss | head -3 | awk '{printf "%s %dMB; ", $2, $1/1024}')
+              echo "[shard-monitor $(date -u +%H:%M:%S)] $mem; disk avail ${disk} MB; top: ${top}running: ${running:-<none>}"
+            done
+          ) &
+          monitor=$!
+          trap 'kill $monitor 2>/dev/null' EXIT
+          Rscript R/package_tests/ci/run_shard.R "$GITHUB_WORKSPACE" "shard-plan/shard-${{ matrix.shard }}.json" coverage "$results"
       - name: Upload timings and reports
         if: always()
         uses: actions/upload-artifact@v7

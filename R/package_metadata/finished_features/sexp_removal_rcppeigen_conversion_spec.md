@@ -888,7 +888,7 @@ based on.
       `test-logrank-gehan-wilcox-general-censoring.R`,
       `test-partial-likelihood-migration-baseline.R`,
       `test-rcpp-fitting-equivalence.R`, `test-rcpp-fitting-real-data.R`,
-      `test-todo98-new-kernel-smoke.R`, plus `test-bayesian-bootstrap.R`,
+      `test-new-kernel-smoke.R`, plus `test-bayesian-bootstrap.R`,
       `test-custom-implementation-canonical-reductions.R`,
       `test-design-inference.R` for broader regression coverage) all pass
       with 0 failures, **except** one pre-existing, unrelated failure in

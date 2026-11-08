@@ -3452,13 +3452,16 @@ instantiate_inference_generator = function(class_gen, des_obj, model_formula = N
 
 is_skipped_inference_label = function(class_names){
 	class_names %in% c("InferenceIncidCMH", "InferenceIncidExtendedRobins") |
-		(grepl("IVWC", class_names, fixed = TRUE) &
-			class_names != "InferenceIncidKKCondLogitGLMMIVWC")
+		grepl("IVWC", class_names, fixed = TRUE)
 }
 
-select_kk_incidence_glmm_ivwc_generator = function(should_run = function(class_name) TRUE){
+# The KK incidence cond-logit model is run as its OneLik class (one fused
+# likelihood: conditional logit on the discordant pairs plus ordinary logistic
+# regression on the reservoir). IVWC is legacy and stays out of the canonical
+# results; the selector ran IVWC from 2026-10-16 until 2026-11-07.
+select_kk_incidence_glmm_onelik_generator = function(should_run = function(class_name) TRUE){
 	Filter(function(class_gen) should_run(class_gen$classname), list(
-		InferenceIncidKKCondLogitGLMMIVWC
+		InferenceIncidKKCondLogitGLMMOneLik
 	))
 }
 
@@ -4565,7 +4568,7 @@ run_tests_for_response = function(response_type, design_type, dataset_name, mode
 		run_inference_checks(InferenceIncidWald$new(des_obj, model_formula = model_formula), response_type, design_type, dataset_name, n_X, p_X)
 		if (is_kk_design){
 			run_inference_checks_both_paths(InferenceIncidKKCondLogitOneLik, "InferenceIncidKKCondLogitOneLik", des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
-			for (kk_glmm_class in select_kk_incidence_glmm_ivwc_generator(should_run_inference_label)){
+			for (kk_glmm_class in select_kk_incidence_glmm_onelik_generator(should_run_inference_label)){
 				class_name = kk_glmm_class$classname
 				run_inference_checks_both_paths(kk_glmm_class, class_name, des_obj, response_type, design_type, dataset_name, n_X, p_X, model_formula = model_formula)
 			}

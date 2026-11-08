@@ -346,7 +346,7 @@ documented default change under the standing constraint.
   `validate_parity_provenance()` checks the recorded package version against
   the referenced `DESCRIPTION` and recomputes the DLL SHA-256 when those
   referenced files still exist. The focused
-  `test-todo58-parity-provenance-guard-reference.R` passed 8 assertions using
+  `test-parity-provenance-guard-reference.R` passed 8 assertions using
   temporary synthetic package/DLL artifacts: a matching pair is accepted,
   while changed DLL bytes and a changed package version are rejected. This
   verifies the comparator's local tamper-detection path only; it does not

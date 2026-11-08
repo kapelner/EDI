@@ -321,7 +321,7 @@ remains open under release TODO-14.
   it has not been run and does not authorize regeneration or canonical writes.
 
   **Candidate-validator QA (2026-10-20, synthetic inputs only):**
-  `R/package_tests/testthat_bulk/test-todo14-candidate-validation-reference.R`
+  `R/package_tests/testthat_bulk/test-candidate-validation-reference.R`
   passed 24 expectations. It exercises the read-only candidate reconciliation
   contract and file-hash checks, including two fail-open edges found during
   review: fractional `rep` values were truncated while IDs were serialized,
@@ -556,7 +556,7 @@ remains open under release TODO-14.
   `candidate_status=candidate_only_requires_setup_and_runtime_eligibility`
   and `scope_source=checked_in_runner_defaults_without_cli_filters`.
   The focused synthetic test passed 71 expectations with
-  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-todo14-candidate-validation-reference.R", reporter="summary")'`.
+  `Rscript -e 'testthat::test_file("R/package_tests/testthat_bulk/test-candidate-validation-reference.R", reporter="summary")'`.
   It checks the key axes against the fixed-scope grid and rejects a changed
   replicate count or formula source. The test did not invoke the runner,
   construct designs/models, or emit candidate rows; its assertions are
@@ -568,7 +568,7 @@ remains open under release TODO-14.
   reconciliation remains open; no canonical artifact was written or changed.
 
   **Timeout-result validator contract, 2026-10-21:** extended
-  `test-todo14-attempt-result-provenance-reference.R` with a synthetic row
+  `test-attempt-result-provenance-reference.R` with a synthetic row
   matching the runner's timeout representation (`status=ok`,
   `skip_reason=timeout`, exact timeout message, missing numeric result) and a
   matching terminal event. The TODO-14 artifact validator rejects it, as

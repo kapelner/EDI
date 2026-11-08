@@ -14,18 +14,20 @@ comprehensive_assignment <- function(name) {
 	stop("Missing comprehensive assignment: ", name)
 }
 
-test_that("the KK incidence IVWC GLMM class is explicitly selected", {
+test_that("the KK incidence OneLik GLMM class is explicitly selected", {
 	e <- new.env(parent = globalenv())
-	eval(comprehensive_assignment("select_kk_incidence_glmm_ivwc_generator"), envir = e)
+	eval(comprehensive_assignment("select_kk_incidence_glmm_onelik_generator"), envir = e)
 	eval(comprehensive_assignment("is_skipped_inference_label"), envir = e)
 
-	wanted <- "InferenceIncidKKCondLogitGLMMIVWC"
-	selected <- e$select_kk_incidence_glmm_ivwc_generator(function(class_name) identical(class_name, wanted))
+	wanted <- "InferenceIncidKKCondLogitGLMMOneLik"
+	selected <- e$select_kk_incidence_glmm_onelik_generator(function(class_name) identical(class_name, wanted))
 	expect_identical(vapply(selected, `[[`, character(1), "classname"), wanted)
 
-	# Keep the exhaustive namespace exclusion for unrelated IVWC classes.
-	expect_false(e$is_skipped_inference_label("InferenceIncidKKCondLogitGLMMIVWC"))
+	# Every IVWC class, including the legacy KK incidence one, stays out of
+	# the exhaustive namespace sweep.
+	expect_true(e$is_skipped_inference_label("InferenceIncidKKCondLogitGLMMIVWC"))
 	expect_true(e$is_skipped_inference_label("InferenceIncidOtherIVWC"))
+	expect_false(e$is_skipped_inference_label(wanted))
 })
 
 test_that("Bayesian-bootstrap skipping depends on its own capability, not nonparametric bootstrap", {
@@ -43,5 +45,5 @@ test_that("Bayesian-bootstrap skipping depends on its own capability, not nonpar
 	runner <- paste(deparse(comprehensive_assignment("run_inference_checks_impl")), collapse = "\n")
 	response_runner <- paste(deparse(comprehensive_assignment("run_tests_for_response")), collapse = "\n")
 	expect_match(runner, "should_skip_bayesian_bootstrap\\(")
-	expect_match(response_runner, "select_kk_incidence_glmm_ivwc_generator\\(should_run_inference_label\\)")
+	expect_match(response_runner, "select_kk_incidence_glmm_onelik_generator\\(should_run_inference_label\\)")
 })

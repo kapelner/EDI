@@ -131,6 +131,28 @@
 	chol2inv(ch)[n_alpha + 1L, n_alpha + 1L]
 }
 
+# Information and (with_se) the variance of beta_T at a fit's own parameters,
+# without re-optimizing: fisher_information = observed information (minus the
+# log-likelihood Hessian, as the C++ *_with_var fit reports it); ssq_b_j from
+# its inverse, with flat loading directions held at the boundary (TODO-176);
+# NA when that is not positive definite / well conditioned.
+.stereotype_attach_information = function(fit, X, y, n_alpha, with_se = TRUE){
+	if (is.null(fit) || is.null(fit$params) || any(!is.finite(fit$params))) return(fit)
+	information = tryCatch(-get_stereotype_logit_hessian_cpp(X, as.numeric(y), as.numeric(fit$params)), error = function(e) NULL)
+	if (is.null(information)) return(fit)
+	fit$fisher_information = information
+	fit$ssq_b_j = NA_real_
+	if (with_se && all(is.finite(information))) {
+		red = .stereotype_boundary_reduced_information(information, n_alpha, ncol(X))
+		ch = tryCatch(chol(red$information), error = function(e) NULL)
+		rc = tryCatch(rcond(red$information), error = function(e) NA_real_)
+		if (!is.null(ch) && is.finite(rc) && rc > sqrt(.Machine$double.eps)) {
+			fit$ssq_b_j = chol2inv(ch)[n_alpha + 1L, n_alpha + 1L]
+		}
+	}
+	fit
+}
+
 .stereotype_full_data_multistart = function(
 	X, y, primary_fit, estimate_only, fit_is_usable,
 	fit_cpp = fast_stereotype_logit_cpp,
@@ -230,6 +252,61 @@
 	selected$multistart_primary_neg_loglik = primary_nll
 	selected$multistart_improvement = max(0, primary_nll - .stereotype_multistart_nll(selected))
 	selected
+}
+
+# Delta-constrained null refit from deterministic, data-only starts (TODO-175).
+# The constrained profile has a branch per sign of beta_T (the loadings saturate
+# at gamma ~ -13 for beta_T > 0 and ~ +13 for beta_T < 0), plus occasional extra
+# optima, so a single start -- in particular the previous delta's null fit,
+# which the warm-start chain used to pass in -- can land on the wrong branch and
+# make p(delta) depend on which deltas were evaluated before. Starts, in order:
+# the full fit with the treatment coordinate at delta (nudged by 1e-3: started
+# exactly at an optimum the C++ takes no step and reports converged = FALSE),
+# a cold start, an adjacent-category two-stage start, then the full-data
+# multistart offsets of the first start. A
+# later start wins only on a neg-loglik improvement > improvement_tol, so ties
+# (e.g. at delta = 0, where the loadings are not identified) keep the full fit's
+# loadings. `fit_one(start)` returns a usable fit with $neg_loglik or NULL;
+# start = NULL means a cold start. `extra_starts` (data-only, e.g. the observed
+# null fit for a parametric-bootstrap replicate) go after the cold start. The
+# caller's warm start is never used.
+.stereotype_null_refit_multistart = function(fit_one, full_params, j, delta, X, y, extra_starts = list(),
+	improvement_tol = 1e-6, fit_cpp = fast_stereotype_logit_cpp){
+	full_start = as.numeric(full_params) + 1e-3
+	full_start[j] = delta
+	extra_starts = lapply(extra_starts, function(st){ st = as.numeric(st); st[j] = delta; st })
+	# Adjacent-category start (TODO-176's two-stage start, constrained): the
+	# null fit with the loadings fixed at gamma = 0 (equally spaced phi), then
+	# released. Offsets of the full fit stay on the full fit's beta_T-sign
+	# branch and the cold start does not always leave it: n = 200 null rep 25,
+	# full beta_T -0.26, delta = 0.375: full-fit offsets 271.449, cold 271.449,
+	# this start 269.740.
+	K = length(sort(unique(y)))
+	n_alpha = K - 1L
+	adjcat = NULL
+	if (K >= 3L && length(full_start) == n_alpha + ncol(X) + (K - 2L)) {
+		gamma_idx = n_alpha + ncol(X) + seq_len(K - 2L)
+		adjcat = tryCatch(
+			fit_cpp(X, y, fixed_idx = c(j, gamma_idx), fixed_values = c(delta, rep(0, K - 2L)), estimate_only = TRUE),
+			error = function(e) NULL
+		)
+		adjcat = if (!is.null(adjcat) && all(is.finite(adjcat$params))) list(adjcat_two_stage = as.numeric(adjcat$params)) else NULL
+	}
+	starts = c(list(full = full_start, cold = NULL), adjcat, extra_starts,
+		lapply(.stereotype_multistart_candidates(full_start, X, y), function(st){ st[j] = delta; st }))
+	best = NULL
+	best_nll = Inf
+	for (k in seq_along(starts)) {
+		fit = fit_one(starts[[k]])
+		if (is.null(fit)) next
+		nll = .stereotype_multistart_nll(fit)
+		if (!is.finite(nll)) next
+		if (is.null(best) || nll < best_nll - improvement_tol) {
+			best = fit
+			best_nll = nll
+		}
+	}
+	best
 }
 
 OrdinalStereotypeLikelihoodSource = list(
@@ -386,42 +463,18 @@ OrdinalStereotypeLikelihoodSource = list(
 			}
 			TRUE
 		},
+		# The observed randomization statistic is the class's own estimate: the
+		# workers compute every draw with compute_estimate() (full generate_mod(),
+		# column selection and multistart), so t must be the same estimator.
+		# Before TODO-178 this hook refit single-start from the object's warm
+		# start and then wrote its "params" result back as the warm start; later
+		# fits on the object (the SE fit, bootstrap draws, likelihood null refits)
+		# then started from it and could land in another optimum or fail
+		# (compute_estimate(estimate_only = FALSE) NA after a randomization p).
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
-			if (is.null(private$best_Xmm_colnames)){
-				private$shared(estimate_only = TRUE)
-			}
-			if (is.null(private$best_Xmm_colnames)){
-				return(self$compute_estimate(estimate_only = estimate_only))
-			}
-			X_cols = private$best_Xmm_colnames
-			X_data = private$get_X()
-			if (length(X_cols) == 0L){
-				X = as.matrix(private$w)
-				colnames(X) = "treatment"
-			} else {
-				X_cov = X_data[, intersect(X_cols, colnames(X_data)), drop = FALSE]
-				X = cbind(treatment = private$w, X_cov)
-			}
-
-			n_params = (length(sort(unique(private$y))) - 1L) + ncol(X)
-			if (length(sort(unique(private$y))) >= 3) n_params = n_params + (length(sort(unique(private$y))) - 2L)
-			
-			ws_args = private$get_backend_warm_start_args(n_params)
-			ws_fisher = ws_args$warm_start_fisher_info
-			res = tryCatch(
-				fast_stereotype_logit_cpp(
-					X = X, y = as.numeric(private$y),
-					warm_start_params = ws_args$start_params,
-					warm_start_fisher_info = ws_fisher,
-					estimate_only = TRUE
-				),
-				error = function(e) NULL
-			)
-			if (!private$stereotype_fit_is_usable(res)){
-				return(NA_real_)
-			}
-			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = ws_fisher)
-			as.numeric(res$b[1])
+			private$shared(estimate_only = estimate_only)
+			beta = private$cached_values$beta_hat_T
+			if (is.null(beta)) NA_real_ else as.numeric(beta)[1L]
 		},
 		supports_reusable_bootstrap_worker = function(){
 			TRUE
@@ -435,11 +488,12 @@ OrdinalStereotypeLikelihoodSource = list(
 					K = length(sort(unique(private$y)))
 					n_params = (K - 1L) + ncol(X_fit)
 					if (K >= 3) n_params = n_params + (K - 2L)
-					ws_args = private$get_backend_warm_start_args(n_params)
+					# Cold start (TODO-178): a draw's fit is a function of the
+					# draw only, never of a warm start another procedure wrote.
 					res = fast_stereotype_logit_cpp(
 						X_fit, private$y,
-						warm_start_params = ws_args$start_params,
-						warm_start_fisher_info = ws_args$warm_start_fisher_info
+						warm_start_params = NULL,
+						warm_start_fisher_info = NULL
 					)
 					res$ssq_b_j = NA_real_
 					if (!private$stereotype_fit_is_usable(res)) return(NULL)
@@ -456,42 +510,33 @@ OrdinalStereotypeLikelihoodSource = list(
 				required_cols = 1L,
 				fit_fun = function(X_fit){
 					K = length(sort(unique(private$y)))
-					n_params = (K - 1L) + ncol(X_fit)
-					if (K >= 3) n_params = n_params + (K - 2L)
-					ws_args = private$get_backend_warm_start_args(n_params)
-					if (estimate_only) {
-						res = fast_stereotype_logit_cpp(
-							X_fit, private$y,
-							warm_start_params = ws_args$start_params,
-							warm_start_fisher_info = ws_args$warm_start_fisher_info
-						)
-						res$ssq_b_j = NA_real_
-					} else {
-						res = fast_stereotype_logit_with_var_cpp(
-							X_fit, private$y,
-							warm_start_params = ws_args$start_params,
-							warm_start_fisher_info = ws_args$warm_start_fisher_info
-						)
-						neg_loglik = res$neg_loglik
-						if (is.null(neg_loglik) || length(neg_loglik) != 1L || !is.finite(neg_loglik)) {
-							lik_fit = fast_stereotype_logit_cpp(
-								X_fit, private$y,
-								warm_start_params = res$params,
-								warm_start_fisher_info = res$fisher_information,
-								estimate_only = TRUE
-							)
-							neg_loglik = lik_fit$neg_loglik
-						}
-						res$ssq_b_j = .stereotype_boundary_ssq_b_1(res, K - 1L, ncol(X_fit))
-						res$neg_loglik = neg_loglik
-					}
-					.stereotype_full_data_multistart(
+					# One estimator for both modes (TODO-178): a cold primary fit,
+					# the deterministic multistart, the lowest neg-loglik wins, and
+					# only then the information at the selected parameters. The
+					# primary fit always starts cold, so the estimate is a function
+					# of the data only, whatever warm start earlier procedures left
+					# on the object. Before, estimate_only = TRUE kept a screening
+					# fit without an information matrix (so the loading-boundary
+					# and PD checks never ran: 38/40 `~ 1` null fits finite vs 5/40
+					# with estimate_only = FALSE), and estimate_only = FALSE kept
+					# the C++ fit's early stop (up to 0.007 off in beta_T) because
+					# its neg-loglik came from a further-iterated refit. Workers
+					# (randomization, bootstrap) use estimate_only = TRUE, so the
+					# draws and the reported estimate now agree.
+					res = fast_stereotype_logit_cpp(
+						X_fit, private$y,
+						warm_start_params = NULL,
+						warm_start_fisher_info = NULL,
+						estimate_only = TRUE
+					)
+					sel = .stereotype_full_data_multistart(
 						X = X_fit,
 						y = private$y,
 						primary_fit = res,
-						estimate_only = estimate_only,
+						estimate_only = TRUE,
 						fit_is_usable = private$stereotype_fit_is_usable
 					)
+					.stereotype_attach_information(sel, X_fit, private$y, K - 1L, with_se = !estimate_only)
 				},
 				fit_ok = function(mod, X_fit, keep){
 					ok = private$stereotype_fit_is_usable(mod, require_standard_error = !estimate_only)
@@ -511,7 +556,8 @@ OrdinalStereotypeLikelihoodSource = list(
 				attempt$fit = NULL
 			}
 			if (!is.null(attempt$fit)){
-				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$fisher_information)
+				# No "params" warm start is written: nothing in this class reads one
+				# (every fit starts from data-only starts, TODO-175/178).
 				private$best_Xmm_colnames = setdiff(colnames(attempt$X), "treatment")
 				if (!estimate_only) {
 					n_alpha = length(sort(unique(private$y))) - 1L
@@ -553,14 +599,17 @@ OrdinalStereotypeLikelihoodSource = list(
 				K = length(sort(unique(y))),
 				full_fit = full_fit,
 				fit_null = function(delta, start = NULL){
-					n_params = length(ctx$full_params)
+					# `start` (the warm-start chain's previous null fit) and the
+					# object's warm Fisher are ignored on purpose: the refit must
+					# be a function of (data, delta) only (TODO-175). See
+					# .stereotype_null_refit_multistart() for the starts.
 					fit_from = function(st){
 						res = tryCatch(
 							fast_stereotype_logit_cpp(
 								X_fit, y,
 								fixed_idx = j_treat, fixed_values = delta,
 								warm_start_params = st,
-								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+								warm_start_fisher_info = NULL,
 								smart_cold_start = private$smart_cold_start_default
 							),
 							error = function(e) NULL
@@ -585,22 +634,8 @@ OrdinalStereotypeLikelihoodSource = list(
 					# delta = the MLE itself -- which inflates the LR statistic at the
 					# point estimate, drives the bootstrap p-value there below alpha,
 					# and makes compute_lik_ratio_bootstrap_confidence_interval()
-					# collapse to the zero-width c(est, est). Also start from the
-					# full-fit parameters with the treatment coordinate set to delta,
-					# and keep whichever refit reaches the lower neg_loglik.
-					# The 1e-3 nudge is deliberate: started at exactly the optimum
-					# (delta == the MLE), fast_stereotype_logit_cpp() takes no
-					# improving step, reports converged = FALSE despite a ~1e-8
-					# gradient norm, and stereotype_fit_is_usable() would discard it.
-					full_start = as.numeric(ctx$full_params) + 1e-3
-					full_start[j_treat] = delta
-					fits = list(
-						fit_from(start %||% private$get_fit_warm_start_for_length("params", n_params)),
-						fit_from(full_start)
-					)
-					fits = Filter(Negate(is.null), fits)
-					if (length(fits) == 0L) return(NULL)
-					fits[[which.min(vapply(fits, function(f) f$neg_loglik, numeric(1)))]]
+					# collapse to the zero-width c(est, est).
+					.stereotype_null_refit_multistart(fit_from, ctx$full_params, j_treat, delta, X_fit, y)
 				},
 				extract_start = function(fit){ as.numeric(fit$params) },
 				score = function(fit){
@@ -650,13 +685,18 @@ OrdinalStereotypeLikelihoodSource = list(
 			}
 			if (length(unique(y_sim)) < K) return(NULL)
 
-			ws   = private$get_fit_warm_start_for_length("params", n_params) %||% params_null
+			# Data-only starts (TODO-175): the replicate's fits never read the
+			# object's warm start, which other procedures (randomization,
+			# earlier refits) may have written.
+			replicate_usable = function(f, require_standard_error = FALSE){
+				private$stereotype_fit_is_usable(f, require_information_pd = FALSE)
+			}
 			full = tryCatch(
 				fast_stereotype_logit_cpp(
 					X = X_fit, y = y_sim,
 					estimate_only = FALSE,
-					warm_start_params = ws,
-					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params)
+					warm_start_params = params_null,
+					warm_start_fisher_info = NULL
 				),
 				error = function(e) NULL
 			)
@@ -666,7 +706,14 @@ OrdinalStereotypeLikelihoodSource = list(
 			# this flag for why the gamma-direction near-singularity expected
 			# here (data simulated under H0: beta = 0) doesn't invalidate the
 			# refit.
-			if (!private$stereotype_fit_is_usable(full, require_information_pd = FALSE)) return(NULL)
+			if (!replicate_usable(full)) return(NULL)
+			# The replicate's unconstrained fit gets the same multistart as the
+			# observed full fit, so its LR statistic is not deflated by a full
+			# fit that stopped short of the optimum its null refit can reach.
+			full = .stereotype_full_data_multistart(
+				X = X_fit, y = y_sim, primary_fit = full,
+				estimate_only = TRUE, fit_is_usable = replicate_usable
+			)
 			list(
 				full_fit = full,
 				fit_null = function(d, start = NULL){
@@ -676,7 +723,7 @@ OrdinalStereotypeLikelihoodSource = list(
 								X = X_fit, y = y_sim,
 								estimate_only = FALSE,
 								warm_start_params = ws2,
-								warm_start_fisher_info = private$get_fit_warm_start_fisher(n_params),
+								warm_start_fisher_info = NULL,
 								fixed_idx = j, fixed_values = d
 							),
 							error = function(e) NULL
@@ -684,21 +731,12 @@ OrdinalStereotypeLikelihoodSource = list(
 						if (!private$stereotype_fit_is_usable(f2, check_treatment = FALSE, fixed_idx = j, require_information_pd = FALSE)) return(NULL)
 						f2
 					}
-					# Multi-start, same reason as get_likelihood_test_spec()'s
-					# fit_null(): also start from this replicate's own full fit
-					# (treatment coordinate set to d) and keep the lower neg_loglik,
-					# so a stalled constrained refit can't inflate the replicate's
-					# LR statistic.
-					# 1e-3 nudge: see get_likelihood_test_spec()'s fit_null().
-					full_start = as.numeric(full$params) + 1e-3
-					full_start[j] = d
-					fits = list(
-						fit_from(start %||% private$get_fit_warm_start_for_length("params", n_params) %||% params_null),
-						fit_from(full_start)
-					)
-					fits = Filter(Negate(is.null), fits)
-					if (length(fits) == 0L) return(NULL)
-					fits[[which.min(vapply(fits, function(f) as.numeric(f$neg_loglik %||% f$neg_ll), numeric(1)))]]
+					# Same deterministic multistart as get_likelihood_test_spec()'s
+					# fit_null(), from this replicate's own full fit, plus the
+					# observed null fit the replicate was simulated from; `start`
+					# is ignored.
+					.stereotype_null_refit_multistart(fit_from, full$params, j, d, X_fit, y_sim,
+						extra_starts = list(observed_null = params_null))
 				},
 				neg_loglik = function(fit) as.numeric(fit$neg_loglik %||% fit$neg_ll)
 			)
@@ -759,8 +797,12 @@ OrdinalStereotypeLikelihoodSource = list(
 #' optimum whose likelihood is below that of another optimum, which makes the
 #' LR statistic at the estimate positive rather than zero. Since 2026-10-08
 #' the ordinary full-data fit screens deterministic and data-seeded local
-#' starts and keeps the lowest converged negative log-likelihood; the
-#' repeated randomization and weighted-bootstrap refits remain single-start.
+#' starts and keeps the lowest converged negative log-likelihood. Since EDI
+#' 1.0.5 every fit starts only from deterministic, data-only starts (never
+#' from a previous fit on the object), and randomization and bootstrap draws
+#' use exactly the same estimator as the reported estimate, so all results
+#' are functions of the data (and draws) only, not of the order in which
+#' methods were called.
 #' Re-measured with that change (EDI 1.0.5 null study, 400 datasets per
 #' cell, nominal 5\%): 12.9\% Type-I error at \eqn{n = 100} with 5
 #' categories (11.5\% even with 41 starts and every fit kept, with
@@ -788,7 +830,32 @@ OrdinalStereotypeLikelihoodSource = list(
 #' \eqn{2 \times K} table is nearly saturated and the Wald standard error is
 #' about 25\% too small there (9.3\% Type-I error), so no estimate is
 #' reported. With no covariates this is the common case (35 of 40 null fits
-#' in the study above); prefer a covariate-adjusted formula.
+#' in the study above); prefer a covariate-adjusted formula. The \code{~ 1} fits
+#' that are reported are not calibrated either: with a single binary
+#' regressor the model is saturated (it reproduces the \eqn{2 \times K} table
+#' whenever the arm contrasts are ordered), so the likelihood-ratio statistic
+#' at \eqn{\beta_T = 0} is essentially the \eqn{K - 1} degree-of-freedom
+#' independence statistic, referred here to chi-square(1), and only tables
+#' with ordered contrasts are reported. In null studies the Wald,
+#' likelihood-ratio, score and gradient tests had 15-21\% Type-I error at
+#' \eqn{n = 1000} (allocation 0.5 or 0.2) among the 7-19\% of fits that were
+#' estimable; more data does not fix this.
+#'
+#' The delta-constrained null refits behind the likelihood-ratio, score and
+#' gradient tests and their confidence intervals also start only from
+#' deterministic starts: the full fit with \eqn{\beta_T = \delta}, a cold
+#' start, the adjacent-category two-stage start and fixed offsets of the
+#' loadings, keeping the lowest negative log-likelihood. Before EDI 1.0.5 they
+#' started from the previous \eqn{\delta}'s refit, so a p-value could depend on
+#' which values of \eqn{\delta} had been tested earlier on the same object.
+#' Two limitations remain. At \eqn{\delta = 0} the loadings are not
+#' identified, so the score statistic there depends on which of the equally
+#' good loadings the refit returns. And the constrained optimum can switch
+#' between branches (one per sign of \eqn{\beta_T}) as \eqn{\delta} moves, so
+#' the score p-value can jump, the score and likelihood-ratio p-values need not
+#' be monotone in \eqn{\delta}, and the set of accepted \eqn{\delta} need not be
+#' an interval. The likelihood-ratio confidence interval is the most reliable
+#' interval for this class.
 #' For small samples,
 #' prefer the better-calibrated alternatives on this class:
 #' \code{compute_lik_ratio_bootstrap_two_sided_pval()} (parametric-bootstrap

@@ -23,8 +23,11 @@
 # yield (share of replicates with a finite result).
 #
 # Usage: Rscript R/package_tests/calibration/analyze_calibration_fast_tier.R \
-#          --in-dir DIR --out-dir DIR [--accepted FILE] [--summary-md FILE]
-# Exits 1 when any test fails.
+#          --in-dir DIR --out-dir DIR [--accepted FILE] [--summary-md FILE] [--report-only]
+# Always finishes the whole report and writes the number of failing cells to
+# OUT_DIR/gate_failures.txt. Exits 1 when any test fails, unless --report-only:
+# CI passes that and enforces the gate in a later step, so the analysis step
+# itself never looks like it stopped partway.
 
 script_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L])))
 args <- commandArgs(TRUE)
@@ -36,6 +39,7 @@ in_dir <- arg_value("--in-dir")
 out_dir <- arg_value("--out-dir")
 accepted_path <- arg_value("--accepted", file.path(script_dir, "calibration_fast_tier_accepted.csv"))
 summary_md <- arg_value("--summary-md")
+report_only <- "--report-only" %in% args
 FAMILY_ALPHA <- 0.01
 MIN_FINITE <- 30L
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -116,12 +120,16 @@ if (nrow(fails)) {
 }
 low_yield <- s[s$yield < 0.8, ]
 if (nrow(low_yield)) {
-	md <- c(md, sprintf("Low yield (< 80%% finite, reported only): %s", paste(sprintf("%s %s %s %s n=%d (%.0f%%)",
-		low_yield$response_type, sub("^Inference", "", low_yield$inference_class), low_yield$method, low_yield$formula,
+	md <- c(md, sprintf("Low yield (< 80%% finite, reported only): %s", paste(sprintf("%s %s %s %s %s n=%d (%.0f%%)",
+		low_yield$response_type, paste0(sub("^DesignFixed", "", low_yield$design), ifelse(low_yield$prob_T != 0.5, paste0("@", low_yield$prob_T), "")),
+		sub("^Inference", "", low_yield$inference_class), low_yield$method, low_yield$formula,
 		low_yield$n, 100 * low_yield$yield), collapse = "; ")), "")
 }
-md <- c(md, "Full table: `calibration_summary.csv` in this run's artifacts.")
+md <- c(md, "Full table: `calibration_summary.csv` in this run's artifacts.", "",
+	if (nrow(fails)) sprintf("**Gate: FAIL** -- %d cell(s) significantly worse than nominal or their accepted level. Triage each: fix it, or add a reasoned row to `calibration_fast_tier_accepted.csv`.", nrow(fails))
+	else "**Gate: pass**")
+writeLines(as.character(nrow(fails)), file.path(out_dir, "gate_failures.txt"))
 writeLines(md, file.path(out_dir, "calibration_summary.md"))
 if (!is.null(summary_md)) cat(md, sep = "\n", file = summary_md, append = TRUE)
 cat(md, sep = "\n")
-quit(status = if (nrow(fails)) 1L else 0L)
+quit(status = if (nrow(fails) && !report_only) 1L else 0L)

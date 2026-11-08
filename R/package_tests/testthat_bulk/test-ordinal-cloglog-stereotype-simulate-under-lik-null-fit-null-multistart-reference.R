@@ -97,32 +97,38 @@ test_that("InferenceOrdinalCloglogRegr: simulate_under_lik_null() succeeds and i
 	expect_null(f$sim$fit_null(0.3))
 })
 
-test_that("InferenceOrdinalStereotypeLogitRegr: simulate_under_lik_null() succeeds and its own fit_null() picks the lower-neg_loglik start, falls back on failure, and returns NULL if both fail", {
+test_that("InferenceOrdinalStereotypeLogitRegr: simulate_under_lik_null() succeeds and its own fit_null() picks the lower-neg_loglik start, falls back on failure, and returns NULL if all fail", {
 	f <- stereotype_sim()
 	expect_false(is.null(f$sim))
 
-	call_n <- 0L
-	local_mocked_bindings(
-		fast_stereotype_logit_cpp = function(X, y, estimate_only = FALSE, warm_start_params = NULL, warm_start_fisher_info = NULL, fixed_idx = NULL, fixed_values = NULL) {
-			call_n <<- call_n + 1L
-			if (call_n == 1L) list(converged = TRUE, params = rep(9, length(warm_start_params)), neg_loglik = 10) else list(converged = TRUE, params = rep(1, length(warm_start_params)), neg_loglik = 999)
-		},
-		.package = "EDI"
-	)
+	# TODO-175 (2026-11-07): the replicate's fit_null() uses the same
+	# deterministic multistart as get_likelihood_test_spec()'s (nudged replicate
+	# full fit, cold, adjacent-category two-stage start, the observed null fit,
+	# then offsets) and ignores `start` / the object's warm start. Calls with
+	# length(fixed_idx) > 1 are the two-stage start's first stage.
+	null_mock <- function(nll_for_call) {
+		k <- 0L
+		function(X, y, estimate_only = FALSE, warm_start_params = NULL, warm_start_fisher_info = NULL, fixed_idx = NULL, fixed_values = NULL, ...) {
+			if (length(fixed_idx) > 1L) return(list(converged = TRUE, params = rep(0.5, 6L), neg_loglik = 1e6))
+			k <<- k + 1L
+			nll <- nll_for_call(k)
+			if (is.na(nll)) list(converged = FALSE) else list(converged = TRUE, params = rep(k, 6L), neg_loglik = nll)
+		}
+	}
+	local_mocked_bindings(fast_stereotype_logit_cpp = null_mock(function(k) if (k == 1L) 10 else 999), .package = "EDI")
 	expect_equal(f$sim$fit_null(0.3)$neg_loglik, 10)
 
-	call_n2 <- 0L
-	local_mocked_bindings(
-		fast_stereotype_logit_cpp = function(X, y, estimate_only = FALSE, warm_start_params = NULL, warm_start_fisher_info = NULL, fixed_idx = NULL, fixed_values = NULL) {
-			call_n2 <<- call_n2 + 1L
-			if (call_n2 == 1L) list(converged = FALSE) else list(converged = TRUE, params = rep(2, length(warm_start_params)), neg_loglik = 77)
-		},
-		.package = "EDI"
-	)
+	local_mocked_bindings(fast_stereotype_logit_cpp = null_mock(function(k) if (k == 1L) 999 else if (k == 4L) 5 else 500), .package = "EDI")
+	expect_equal(f$sim$fit_null(0.3)$neg_loglik, 5)
+
+	local_mocked_bindings(fast_stereotype_logit_cpp = null_mock(function(k) if (k == 1L) NA else 77), .package = "EDI")
 	expect_equal(f$sim$fit_null(0.3)$neg_loglik, 77)
 
+	local_mocked_bindings(fast_stereotype_logit_cpp = null_mock(function(k) if (k == 2L) 3 else 50), .package = "EDI")
+	expect_equal(f$sim$fit_null(0.3, start = rep(9, 6L))$neg_loglik, 3)
+
 	local_mocked_bindings(
-		fast_stereotype_logit_cpp = function(X, y, estimate_only = FALSE, warm_start_params = NULL, warm_start_fisher_info = NULL, fixed_idx = NULL, fixed_values = NULL) list(converged = FALSE),
+		fast_stereotype_logit_cpp = function(X, y, estimate_only = FALSE, warm_start_params = NULL, warm_start_fisher_info = NULL, fixed_idx = NULL, fixed_values = NULL, ...) list(converged = FALSE),
 		.package = "EDI"
 	)
 	expect_null(f$sim$fit_null(0.3))

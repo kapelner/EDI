@@ -1,10 +1,10 @@
 library(testthat)
 library(EDI)
 
-# InferenceOrdinalStereotypeLogitRegr's get_likelihood_test_spec()$fit_null(delta) (inference_ordinal_
-# stereotype_logit.R:286-335) tries TWO starting points for the delta-constrained null refit -- the
-# caller-supplied/warm-started point and a nudged version of the full unconstrained fit -- and keeps
-# whichever converges to the lower neg_loglik. This is the ORIGINAL multi-start fix this session's
+# InferenceOrdinalStereotypeLogitRegr's get_likelihood_test_spec()$fit_null(delta) tries several
+# starting points for the delta-constrained null refit and keeps whichever converges to the lower
+# neg_loglik (originally two: the caller-supplied/warm-started point and a nudged full fit; since
+# TODO-175 only deterministic data-only starts -- see the tests below). This is the ORIGINAL multi-start fix this session's
 # InferenceOrdinalCloglogRegr fix explicitly cites as its own precedent ("same mechanism, same fix, as
 # InferenceOrdinalStereotypeLogitRegr's null-refit"), and per its own comment is high-impact: a
 # single-start constrained refit spuriously marked the null refit unusable and returned NA for
@@ -41,50 +41,68 @@ fx <- function(seed = 1L, n = 200L) {
 	inf$.__enclos_env__$private$get_likelihood_test_spec()
 }
 
-test_that("when the second (nudged-full-fit) start converges to the lower neg_loglik, its fit is returned, not the first start's", {
+# TODO-175 (2026-11-07): fit_null() ignores `start` (the warm-start chain's
+# previous null fit) and the object's warm Fisher; it tries deterministic,
+# data-only starts in a fixed order -- the nudged full fit with beta_T = delta,
+# a cold start, the adjacent-category two-stage start, then the full-data
+# multistart offsets -- and a later start wins only on a neg_loglik improvement
+# > 1e-6. The mock records each constrained refit's start; the two-stage
+# start's first stage (loadings fixed too, length(fixed_idx) > 1) is answered
+# separately.
+mock_null_kernel <- function(nll_for_call, log_env) {
+	function(X, y, fixed_idx = NULL, fixed_values = NULL, warm_start_params = NULL, warm_start_fisher_info = NULL, smart_cold_start = TRUE, estimate_only = FALSE, ...) {
+		if (length(fixed_idx) > 1L) return(list(converged = TRUE, params = rep(0.5, 6L), neg_loglik = 1e6))
+		log_env$n <- log_env$n + 1L
+		log_env$starts[[log_env$n]] <- warm_start_params
+		log_env$fishers[[log_env$n]] <- warm_start_fisher_info
+		nll <- nll_for_call(log_env$n)
+		if (is.na(nll)) return(list(converged = FALSE))
+		list(converged = TRUE, params = rep(log_env$n, 6L), neg_loglik = nll)
+	}
+}
+
+test_that("all deterministic starts are tried in order and the lowest neg_loglik wins", {
 	spec <- fx()
-	call_n <- 0L
-	local_mocked_bindings(
-		fast_stereotype_logit_cpp = function(X, y, fixed_idx, fixed_values, warm_start_params, warm_start_fisher_info = NULL, smart_cold_start = TRUE) {
-			call_n <<- call_n + 1L
-			if (call_n == 1L) list(converged = TRUE, params = rep(0, length(warm_start_params)), neg_loglik = 100) else list(converged = TRUE, params = rep(1, length(warm_start_params)), neg_loglik = 50)
-		},
-		.package = "EDI"
-	)
+	log_env <- new.env(); log_env$n <- 0L; log_env$starts <- list(); log_env$fishers <- list()
+	local_mocked_bindings(fast_stereotype_logit_cpp = mock_null_kernel(function(k) if (k == 4L) 50 else 100, log_env), .package = "EDI")
 	res <- spec$fit_null(0.3)
 	expect_equal(res$neg_loglik, 50)
-	expect_equal(call_n, 2L)  # both starts are always tried
+	expect_equal(res$params, rep(4, 6L))
+	expect_gte(log_env$n, 4L)
+	full_start <- as.numeric(spec$full_fit$params) + 1e-3
+	full_start[spec$j] <- 0.3
+	expect_equal(log_env$starts[[1L]], full_start)  # first: the nudged full fit at delta
+	expect_null(log_env$starts[[2L]])              # second: cold
+	expect_true(all(vapply(log_env$fishers, is.null, logical(1))))
 })
 
-test_that("when the first (caller-supplied/warm-started) start converges to the lower neg_loglik, its fit is returned instead", {
+test_that("ties keep the first start (improvement must exceed 1e-6)", {
 	spec <- fx()
-	call_n <- 0L
-	local_mocked_bindings(
-		fast_stereotype_logit_cpp = function(X, y, fixed_idx, fixed_values, warm_start_params, warm_start_fisher_info = NULL, smart_cold_start = TRUE) {
-			call_n <<- call_n + 1L
-			if (call_n == 1L) list(converged = TRUE, params = rep(9, length(warm_start_params)), neg_loglik = 10) else list(converged = TRUE, params = rep(1, length(warm_start_params)), neg_loglik = 999)
-		},
-		.package = "EDI"
-	)
-	res <- spec$fit_null(0.3)
-	expect_equal(res$neg_loglik, 10)
+	log_env <- new.env(); log_env$n <- 0L; log_env$starts <- list(); log_env$fishers <- list()
+	local_mocked_bindings(fast_stereotype_logit_cpp = mock_null_kernel(function(k) if (k == 1L) 10 else 10 - 5e-7, log_env), .package = "EDI")
+	expect_equal(spec$fit_null(0.3)$params, rep(1, 6L))
 })
 
-test_that("when one start doesn't converge, the other's (successful) fit is used", {
+test_that("`start` and the object's warm start are ignored (no history dependence)", {
+	f_spec <- fx()
+	log_env <- new.env(); log_env$n <- 0L; log_env$starts <- list(); log_env$fishers <- list()
+	local_mocked_bindings(fast_stereotype_logit_cpp = mock_null_kernel(function(k) 100 - k, log_env), .package = "EDI")
+	a <- f_spec$fit_null(0.3)
+	starts_a <- log_env$starts
+	log_env$n <- 0L; log_env$starts <- list()
+	b <- f_spec$fit_null(0.3, start = rep(7, length(f_spec$full_fit$params)))
+	expect_identical(a, b)
+	expect_identical(log_env$starts, starts_a)
+})
+
+test_that("when some starts don't converge, the best successful fit is used", {
 	spec <- fx()
-	call_n <- 0L
-	local_mocked_bindings(
-		fast_stereotype_logit_cpp = function(X, y, fixed_idx, fixed_values, warm_start_params, warm_start_fisher_info = NULL, smart_cold_start = TRUE) {
-			call_n <<- call_n + 1L
-			if (call_n == 1L) list(converged = FALSE) else list(converged = TRUE, params = rep(2, length(warm_start_params)), neg_loglik = 77)
-		},
-		.package = "EDI"
-	)
-	res <- spec$fit_null(0.3)
-	expect_equal(res$neg_loglik, 77)
+	log_env <- new.env(); log_env$n <- 0L; log_env$starts <- list(); log_env$fishers <- list()
+	local_mocked_bindings(fast_stereotype_logit_cpp = mock_null_kernel(function(k) if (k == 3L) 77 else NA, log_env), .package = "EDI")
+	expect_equal(spec$fit_null(0.3)$neg_loglik, 77)
 })
 
-test_that("when neither start converges, fit_null returns NULL", {
+test_that("when no start converges, fit_null returns NULL", {
 	spec <- fx()
 	local_mocked_bindings(fast_stereotype_logit_cpp = function(...) list(converged = FALSE), .package = "EDI")
 	expect_null(spec$fit_null(0.3))

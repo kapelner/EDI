@@ -1564,7 +1564,7 @@ wrapping the same base engine).
   `test-partial-likelihood-migration-baseline.R`,
   `test-rcpp-fitting-equivalence.R`, `test-rcpp-fitting-real-data.R`,
   `test-simulation-framework-extended.R`, `test-smart-start-helpers.R`,
-  `test-static-cleanup-guardrails.R`, `test-todo98-new-kernel-smoke.R`),
+  `test-static-cleanup-guardrails.R`, `test-new-kernel-smoke.R`),
   via a clean `library(EDI)` install (the environment had in fact stabilized
   by the time this ran, contrary to the initial deferral recommendation).
 

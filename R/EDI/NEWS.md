@@ -8,169 +8,83 @@ methods.
 ## Breaking changes
 
 * `InferenceIncidKKCondLogitGLMMOneLik` and `InferenceIncidKKCondLogitGLMMIVWC`
-  fit a new model. Up to 1.0.4 their concordant pairs (and, for OneLik, the
-  reservoir) entered a random-intercept logistic GLMM, and the GLMM's rows were
-  passed in subject order to a kernel that groups consecutive rows, so most
-  pairs were split into one-row groups (a per-observation random intercept).
-  Grouped correctly, concordant pairs agree on outcome by definition, the
-  random-effect variance estimate diverges, and the fit reduces to conditional
-  logit (often reported nonestimable at the variance bound). The classes now
-  fit conditional logit on the discordant pairs plus, for OneLik, an ordinary
-  logistic regression on the reservoir subjects with the same coefficients
-  (IVWC is conditional logit alone). Concordant pairs carry no information
-  under a free pair effect and are no longer used. Estimates, standard errors,
-  intervals and p-values change. Caveat (documented in the class): OneLik pools
-  a pair-conditional log odds ratio with the reservoir's covariate-conditional
-  one, which coincide only when the logistic model in the covariates is
-  correct; the test of no effect is valid either way. A covariate the design
-  matched exactly is now dropped instead of making the fit fail. Class names
-  are unchanged; `max_abs_log_sigma` is accepted but unused.
-  `InferencePropKKGLMM` keeps its GLMM (its rows are now grouped correctly).
+  fit a new model: conditional logit on the discordant pairs, plus (OneLik
+  only) a logistic regression on the reservoir with shared coefficients. The
+  old GLMM split most pairs into one-row groups. All results change; class
+  names are unchanged and `max_abs_log_sigma` is ignored. OneLik's pooled
+  estimand caveat is documented in the class. `InferencePropKKGLMM` keeps its
+  GLMM, now grouped correctly.
 * GitHub source installs build the portable CRAN configuration by default;
   `EDI_PORTABLE=0` restores the machine-tuned build.
-* Seed-pinned draws change once: a portable Fisher-Yates shuffle replaces
-  `std::shuffle`, and the greedy, D-optimal, pair-switching and
-  rerandomization designs no longer depend on the thread count.
-* Seed-pinned draws also change once for `DesignFixedBlocking`,
-  `DesignFixedOptimalBlocks`, `DesignFixedCluster` and
-  `DesignFixedBlockedCluster`: null assignment draws are now generated in one
-  vectorized pass (same distribution as `randomizr::block_ra` /
-  `cluster_ra`, including random rounding; about 15x faster at `r = 2000`),
-  no longer need `randomizr`, and a singleton block is now treated as
-  Bernoulli(`prob_T`). The draws depend only on the seed, not on
-  `set_num_cores()`. `DesignFixedRerandomization` with `prob_T != 0.5` or odd
-  `n` still draws one at a time in R.
-* The nonparametric bootstrap's studentized statistics (`studentized`,
-  `bootstrap-t`, `symmetric-percentile-t`, `smoothed`) are now cached per
-  object by `B` and `smooth`, and use `set_seed()` (global RNG state saved and
-  restored). A studentized CI followed by a studentized p-value now share one
-  set of resamples, and seeded objects give reproducible results; callers who
-  ran several of these types on one object, or set a seed, see different
-  (previously unseeded, recomputed) values.
-* Seeded randomization p-values and intervals now use the seed. Draws come
-  from `set_seed()` on the inference object, else the design seed (global RNG
-  state is saved and restored); the permutation cache key includes that seed,
-  so changing the seed changes the draws. Seeded designs and `set_seed()`
-  users therefore get different (now reproducible) randomization p-values and
-  CIs than before; unseeded behaviour is unchanged. New
-  `clear_randomization_cache()` on `Inference` drops the cached draws (the
-  unseeded cache is still shared by all inference objects on a design).
-* More resampling paths now use `set_seed()` (global RNG state saved and
-  restored): the KK matched-pair bootstrap (every KK class on a matching
-  design), `InferencePropGCompMeanDiff`'s bootstrap, the `"calibrated"`,
-  `"double-bootstrap"` and `"prepivoted"` bootstrap CIs, and the randomization
-  CI of `InferenceContinKKQuantileRegrIVWC` / `InferencePropKKQuantileRegrIVWC`
-  (inference seed, else design seed). Before, these drew from, and advanced,
-  the caller's RNG stream even on a seeded object. Seeded results change once
-  and are now reproducible; unseeded behaviour is unchanged.
-* `compute_rand_confidence_interval()` now errors, instead of returning bounds
-  on the wrong scale, for classes whose estimate is a raw-scale mean difference
-  or rank effect on proportion, count and ordinal responses
-  (`InferenceAllSimpleAverageDiff` on proportions/counts,
-  `InferencePropGCompMeanDiff`, `InferenceOrdinalRidit`,
-  `InferenceOrdinalJonckheereTerpstraTest`, `InferenceOrdinalGCompMeanDiff`,
-  `InferenceOrdinalPairedSignTest`). The randomization p-value and
-  randomization-bootstrap CI are unchanged.
-* `capabilities()` / `supports()` no longer advertise `randomization_ci` for a
-  (class, response type) pair whose randomization CI is refused (for example
-  `InferenceAllSimpleAverageDiff` on proportions, counts or survival, and
-  incidence responses), so `InferenceSuite`, `SimulationFramework` and other
-  capability-driven callers no longer attempt it. The survival-only classes
-  `InferenceSurvivalLogRank`, `InferenceSurvivalGehanWilcox`,
-  `InferenceSurvivalRestrictedMeanDiff`, `InferenceSurvivalKMDiff` and
-  `InferenceSurvivalDepCensTransformRegr`, whose randomization CI always
-  refuses, no longer advertise it at all.
-* On cluster designs `InferenceContinOLS` and `InferenceContinLin` Wald
-  inference uses a CR2 cluster-robust SE with Bell-McCaffrey (Satterthwaite)
-  degrees of freedom instead of G - 1 (matches
-  `clubSandwich::coef_test(vcov = "CR2", test = "Satterthwaite")`), so p-values
-  and CIs change; a `model_formula` that uses the cluster column now warns
-  (`edi_cluster_col_in_model_formula_warning`). The design's `cluster_col` no
-  longer enters the default `~ .` covariates (it used to add school dummies
-  collinear with treatment). With fewer than 3 clusters the old SE is kept.
-  Other regression classes are not yet cluster-robust: on cluster designs
-  their Wald and likelihood-based (score, LR, gradient, Bartlett, parametric
-  bootstrap) inference warns once per object
-  (`edi_cluster_independence_warning`); this also covers OLS/Lin likelihood
-  tests. Classes with custom Wald or likelihood paths may not warn. Use
-  randomization, `compute_bootstrap_*` or `compute_jackknife_wald_*(unit =
-  "cluster")` for cluster-aware inference.
+* Seed-pinned draws change once: a portable shuffle replaces
+  `std::shuffle`, and greedy, D-optimal, pair-switching and rerandomization
+  designs no longer depend on the thread count.
+* `DesignFixedBlocking`, `DesignFixedOptimalBlocks`, `DesignFixedCluster` and
+  `DesignFixedBlockedCluster` draw null assignments in one vectorized pass
+  (about 15x faster, no `randomizr` needed, independent of
+  `set_num_cores()`), so seeded draws change once. Singleton blocks are
+  Bernoulli(`prob_T`).
+* Studentized bootstrap statistics are cached per object by `B` and
+  `smooth` and use `set_seed()`, so a studentized CI and p-value share
+  resamples. Seeded results change once.
+* Randomization p-values and intervals use `set_seed()`, else the design
+  seed, and the permutation cache is keyed on that seed. Seeded results
+  change once; unseeded behaviour is unchanged. New
+  `clear_randomization_cache()`.
+* The KK matched-pair bootstrap, `InferencePropGCompMeanDiff`'s bootstrap,
+  the `"calibrated"`, `"double-bootstrap"` and `"prepivoted"` bootstrap CIs and
+  the KK quantile-regression IVWC randomization CI now use the object's seed
+  instead of the caller's RNG stream. Seeded results change once.
+* `compute_rand_confidence_interval()` errors instead of returning wrong-scale
+  bounds for raw-scale mean-difference and rank classes on proportion, count
+  and ordinal responses (e.g. `InferenceAllSimpleAverageDiff`,
+  `InferenceOrdinalRidit`).
+* `capabilities()` / `supports()` no longer advertise `randomization_ci`
+  where it is refused, so `InferenceSuite` and `SimulationFramework` skip it.
+* On cluster designs `InferenceContinOLS` and `InferenceContinLin` use a CR2
+  cluster-robust SE with Satterthwaite degrees of freedom (as
+  `clubSandwich`), and `cluster_col` no longer enters `~ .`. Other
+  regression classes warn once (`edi_cluster_independence_warning`); use
+  randomization, bootstrap or cluster jackknife inference there.
 * Randomization intervals invert at `alpha`, not `alpha / 2` (they were too
   wide); the default `pval_epsilon` drops from 0.005 to 1e-6.
-* Binary matching minimizes plain distance, as `nbpMatching` does;
-  `match_objective = "squared_distance"` restores the old pairs. This is the
-  new default (`match_objective = "distance"`) and changes about 22% of
-  matched pairs versus 1.0.x (measured at n = 1000, p = 4).
+* Binary matching minimizes plain distance by default, as `nbpMatching`
+  does (about 22% of pairs change); `match_objective = "squared_distance"`
+  restores the old pairs.
 * KK21 survival weights come from a correct Weibull AFT fit.
-* `InferenceSurvivalRestrictedMeanDiff` truncates both arms at one horizon.
-  On the interval-censored (Turnbull) path exact events are now used (they
-  were dropped, so RMST and KM-median differences ignored their times),
-  excluded rows warn, and an all-censored arm's RMST is the horizon, not `NA`.
-* Bootstrap confidence intervals are no longer set to `NA` just because they
-  are wider than 5 outcome units: the width guard is now `5 * max(1, sd(y))`.
-  Outcomes with `sd(y) <= 1` behave as before; intervals on larger-scale
-  outcomes that used to come back `NA` (non-estimable) are now returned.
-* `get_summary()` moved to the `Inference` base class. It now works for every
-  class, always returns its table invisibly (Estimate / Std. Error / z or t /
-  p), and falls back to a one-row `treatment` summary when no coefficient
-  table is available. Previously 57 of 65 classes printed "No model
-  available" or a raw internal list, and it returned `NULL`.
-* `Design$any_censoring()` is `FALSE` before responses are recorded (it
-  counted unrecorded `NA` responses as censored), so
-  `applicable_inference_class_names()` no longer drops classes (e.g. pooled
-  variance, Wilcoxon) before `add_all_subject_responses()`.
-* `DesignFixedOptimal` bootstrap replays reuse the observed solver
-  (`brt_solver` overrides).
+* `InferenceSurvivalRestrictedMeanDiff` truncates both arms at one horizon;
+  the interval-censored path now uses exact events, and an all-censored
+  arm's RMST is the horizon, not `NA`.
+* The bootstrap CI width guard is `5 * max(1, sd(y))`, so wide intervals on
+  large-scale outcomes are no longer returned as `NA`.
+* `get_summary()` works for every class and returns its table invisibly.
+* `Design$any_censoring()` is `FALSE` before responses are recorded, so
+  `applicable_inference_class_names()` no longer drops classes early.
+* `DesignFixedOptimal` bootstrap replays reuse the observed solver.
 * Jackknife inference is centred on the jackknife estimate.
-* `compute_rand_two_sided_pval()` always uses randomization draws of `w`. For
-  incidence responses on matched-pair and Bernoulli designs it used to return
-  the Zhang exact combined test, which ignored the draws and was much more
-  conservative (200 simulated nulls: 1% vs 3% rejections at 0.05). The Zhang
-  test remains available through `type = "Zhang"`; a nonzero `delta` is
-  refused for incidence.
+* `compute_rand_two_sided_pval()` always uses randomization draws; for
+  incidence it no longer silently returns the more conservative Zhang test
+  (still available as `type = "Zhang"`).
 * Methods that cannot give a valid answer now error: KK modified Poisson is
   Wald-only, smoothed randomization bootstrap is refused for categorical and
   bounded refits, exact tests refuse bootstrap weights, and
   `InferenceOrdinalKKCondAdjCatLogitRegr` drops the Bayesian bootstrap.
 * `InferenceSurvivalDepCensTransformRegr`'s bootstrap intervals default to
-  `B = 501`, like every other bootstrap method (they used 1000), so with
-  defaults its interval and p-value now share one bootstrap distribution.
-  Pass `B = 1000` for the old intervals.
-* `DesignFixedBlocking`: naming `strata_cols` without `B_target` now uses all
-  named strata (as `B_target = NULL`); the default sqrt/divisor cap used to
-  drop them silently (e.g. at prime `n`). With `equal_block_sizes = TRUE` this
-  errors when the cells are unequal; set `equal_block_sizes = FALSE`.
-  `strata_cols = NULL` keeps the capped default.
-* Blocking designs treat an integer-valued numeric strata column with at most
-  10 distinct values (e.g. a site code 1..4) as categorical, one block per
-  value; it used to be quantile-binned (4 sites became 2 blocks), so block
-  assignments for such columns change. Other numeric columns are still binned.
+  `B = 501` like every other bootstrap; pass `B = 1000` for the old ones.
+* `DesignFixedBlocking`: `strata_cols` without `B_target` uses all named
+  strata (the default cap dropped them silently).
+* Blocking designs treat an integer-valued strata column with at most 10
+  distinct values as categorical instead of binning it.
 * `prob_T` is removed from the constructors of designs that always assign
-  1:1: `DesignSeqOneByOneEfron`, `DesignSeqOneByOneAtkinson`,
-  `DesignSeqOneByOnePocockSimon`, `DesignSeqOneByOneKK14`,
-  `DesignSeqOneByOneKK21`, `DesignSeqOneByOneKK21stepwise`,
-  `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching`.
-  The six sequential designs used to accept any `prob_T` but still assign
-  about half to treatment, while `get_prob_T()` reported the requested value.
-  Passing `prob_T`, even `prob_T = 0.5`, now gives an "unused argument"
-  error; drop the argument.
+  1:1 (Efron, Atkinson, Pocock-Simon, the KK sequential designs,
+  `DesignFixedBinaryMatch`, `DesignFixedMatchingGreedyPairSwitching`);
+  passing it is now an error.
 * `InferenceCountZeroInflatedPoisson` and `InferenceCountZeroInflatedNegBin`
-  stop with an error when the response has no zeros: the zero-inflation
-  submodel is not identified there (its MLE is a structural-zero
-  probability of 0), as `pscl::zeroinfl()` also refuses. Use
-  `InferenceCountPoisson` / `InferenceCountNegBin`. Inside resampling, a
-  bootstrap replicate or parametric-bootstrap simulation with no zeros now
-  falls back to the non-inflated Poisson / negative binomial fit instead of
-  failing, so such replicates are no longer lost. Hurdle models and
-  `InferencePropZeroOneInflatedBetaRegr` are unaffected (their likelihood
-  factorizes, so a part with no observations does not touch the treatment
-  coefficient).
-* Unequal-arm support is now a design registry capability,
-  `supports_unequal_allocation`, checked once when any design is
-  constructed; it replaces the separate per-class checks. Designs without it
-  have no `prob_T` argument, or always use 0.5 (`DesignSeqOneByOneUrn`,
-  `DesignFixedFactorial`, observational designs). All other designs honour
-  `prob_T`.
+  error when the response has no zeros (not identified, as in
+  `pscl::zeroinfl()`); resampling replicates with no zeros fall back to the
+  non-inflated fit.
+* Unequal-arm support is a design registry capability,
+  `supports_unequal_allocation`, checked at construction.
 
 ## New features
 
@@ -180,221 +94,93 @@ methods.
 * Studentized Bayesian-bootstrap intervals for the Weibull and
   modified-Poisson classes.
 * `na.rm` for the KMDiff Bayesian-bootstrap p-value.
-* `InferenceSurvivalRestrictedMeanDiff$new(..., tau = NULL)`: a user-settable
-  RMST horizon (single positive number, at most the smaller arm's maximum
-  follow-up); `NULL` keeps the default. With a user `tau`, the native
-  randomization kernel is skipped in favour of the slower generic loop.
-* `alternative = c("two.sided", "greater", "less")` (last argument) on
-  `compute_rand_two_sided_pval()`, for non-negative custom statistics where
-  doubling the smaller tail is wrong. The default is unchanged; single tails
-  are `max(1/B, P)`. Confidence-interval inversion still uses the two-sided
-  p-value, and classes that override the method with their own signature do
-  not take `alternative`.
-* `clear_randomization_cache()` on `Inference` (see Breaking changes).
+* `InferenceSurvivalRestrictedMeanDiff$new(..., tau = NULL)`: a user-set
+  RMST horizon.
+* `alternative = c("two.sided", "greater", "less")` on
+  `compute_rand_two_sided_pval()`, for non-negative custom statistics.
+* `clear_randomization_cache()` on `Inference`.
 
 ## Bug fixes
 
-* `InferenceSurvivalDepCensTransformRegr`'s full-data fit now tries a small
-  fixed set of deterministic starts (no random draws) and keeps the one with
-  the highest likelihood. The likelihood can have two modes in the
-  event/censoring correlation rho, and the single default start could stop in
-  the wrong one. In a calibration study (n = 200, 50 fits), 7 of 49 estimates
-  were not the maximum-likelihood estimate (log-likelihood gaps up to 12.3,
-  treatment effect off by up to 0.31), and null fits could land above the
-  "full" likelihood, clamping the LR statistic. One previously non-estimable
-  fit is now estimable; fits already at the maximum are unchanged. Wald,
-  score, LR and bootstrap results change where the fit moves. Fits take about
-  2x as long, and bootstrap replicates about 3.4x.
-
-* `InferenceSurvivalKMDiff`'s Wald confidence interval and p-value keep each
-  arm's asymmetric Brookmeyer-Crowley median interval (MOVER, Zou and Donner
-  2008) instead of turning it into one symmetric standard error. A small arm
-  with a lopsided interval used to widen both sides: with 56 treated subjects
-  at `prob_T = 0.2`, a clear effect (log-rank p = 0.0005) got the CI
-  [-0.23, 1.01]; it is now [0.13, 1.38]. In simulation (n = 100,
-  `prob_T = 0.2`) coverage rises from 92.5% to 96.4%. Results change for
-  every dataset. The p-value equals 0.05 exactly at the 95% bounds.
-* Likelihood-ratio confidence intervals (every class that inverts the LR test
-  by Newton steps) no longer return a point halfway inside the search bracket
-  when the root search stops on its iteration limit. The search usually stops
-  there while already on the root, because its p-value tolerance (1e-7) is
-  tighter than the null fits' precision; the old fallback then reported the
-  midpoint between the estimate side and the root (e.g. an upper bound of 1.10
-  where the LR p-value is 0.004, true bound 0.83). The bound is now the
-  search's closest point to `alpha` when that is within 1e-4, and otherwise
-  missing (so the documented Wald fallback applies, with its warning). Seen in
-  about 2% of LR bounds, mostly `InferenceIncidKKCondLogitGLMMOneLik`, where an
-  interval could contain the null its own LR test rejected.
-* BCa bootstrap intervals and p-values (plain and Bayesian bootstrap) now count
-  bootstrap values tied with the estimate as half below it when computing the
-  bias correction `z0`. With a discrete bootstrap distribution (counts, ordinal
-  outcomes, medians) the old strict `P(boot < est)` pushed `z0` away from 0 and
-  the interval was usually refused (`InferenceAllSimpleWilcox` on count and
-  ordinal data: 97-98% NA). Continuous bootstrap distributions are unaffected.
-
-* `InferenceSurvivalKMDiff` and the quantile-regression classes
-  (`InferenceContinQuantileRegr`, `InferencePropQuantileRegr` and their KK
-  variants) now default to the percentile bootstrap instead of BCa. Their
-  bootstrap distributions sit on a few observed values, so the BCa bias
-  correction is mostly noise: `InferenceSurvivalKMDiff` BCa intervals were NA
-  on 54% of datasets at `B = 151`. Percentile intervals cover at the nominal
-  level (0.96 in simulation). `type = "bca"` is still available.
-
-* `InferenceSurvivalRestrictedMeanDiff$compute_rand_bootstrap_confidence_interval()`
-  (every `type`) now stops with class `edi_rand_bootstrap_ci_scale_mismatch_refused`,
-  and the class no longer advertises `randomization_bootstrap_ci`. The interval
-  inverted a multiplicative time shift, so its bounds were for a log-time ratio,
-  not the RMST difference (coverage 77-92% in the TODO-23 study). The plain
-  randomization CI was already refused for this reason. The randomization and
-  randomization-bootstrap p-values are unchanged.
-
-* Randomization-bootstrap tests and intervals redrew each resample's assignment
-  from the original sample's cached design structure instead of the resample's.
-  On `DesignFixedBinaryMatch` and `DesignFixedMatchingGreedyPairSwitching` the
-  resampled pairs could get 0 or 2 treated subjects (for
-  `InferenceContinKKRobustRegrOneLik` the null distribution was identically 0
-  and the p-value always 2/(B+1); `InferenceContinKKOLSOneLik` returned `NA`).
-  On `DesignFixedOptimalBlocks` assignments were balanced within blocks of the
-  original rows; the replay now re-solves the optimal blocking on each
-  resample's covariates (same `method`, `B`, `dist` and `roi_solver`) and
-  draws the assignment within the new blocks, so every replay draw pays one
-  block solve (a draw whose solve fails is recorded as `NA`). That adds
-  roughly 6-35 ms per draw for `method = "K-way"` or `"greedy"`, but seconds
-  to minutes per draw for the exact `method = "ompr"` (about 1.7 s at
-  `n = 12`, about 79 s at `n = 16`), so randomization-bootstrap replays with
-  `ompr` are very slow; use a heuristic method or a small number of bootstrap
-  replicates there (see `?DesignFixedOptimalBlocks`).
-  `DesignFixedGreedyDOptimal` and
-  `DesignFixedRerandomization` (`prop_acceptable`, or `prob_T != 0.5` / odd
-  `n`) reused the original sample's criterion matrix / covariance on the
-  resample. Randomization-bootstrap results on these designs change.
-* `DesignFixedOptimalBlocks(method = "greedy")` could stop with "replacement
-  has length zero" when `blockTools` listed its incomplete block before a
-  complete one (seen on bootstrap resamples with duplicated rows). Complete
-  blocks are now numbered consecutively; blockings that previously succeeded
-  are unchanged.
-* `InferenceSurvivalRestrictedMeanDiff`'s Bayesian-bootstrap studentized and
-  bootstrap-t intervals and p-values were always `NA` (no weighted SE); they
-  now use a frequency-weighted Greenwood-type SE, which equals the Wald SE at
-  unit weights.
-* `InferenceContinRobustRegr`, `InferenceContinKKRobustRegrOneLik` and
-  `InferenceContinKKRobustRegrIVWC` returned a treatment estimate of 0 when a
-  fit (including a resampled or randomization-bootstrap fit) received a
-  non-finite response or covariate; such fits are now non-estimable (`NA`).
-* `robust_survreg()` / `robust_survreg_with_surv_object()` restart jitter (used
-  when `survreg` fails from its first start, e.g. inside the GLMM Weibull
-  frailty classes and the KK21 survival designs) now draws from its own seeded
-  stream and restores the caller's RNG state. The stream is seeded from the
-  calling object's seed (`set_seed()`, else the design seed) plus a fixed
-  offset, so the same seed gives the same fit, or from a fixed internal seed
-  when no seed is set; new argument `jitter_seed` of
-  `robust_survreg_with_surv_object()`. Before, it drew from and advanced the
-  caller's RNG stream, so such fits depended on the caller's seed. Fits that
-  need no restart are unchanged.
-* `InferenceSurvivalKKRankRegrIVWC` (legacy IVWC) results did not duplicate:
-  its IVWC weights come from `aftgee::aftsrr(se = "ISMB")`, a multiplier
-  bootstrap that drew from and advanced the caller's RNG, so the estimate, SE,
-  randomization and bootstrap results changed from call to call. Each `aftsrr`
-  fit now runs under a deterministic seed derived from the object's seed
-  (`set_seed()`, else the design seed, else a fixed constant) and the fitted
-  data, with the caller's RNG state restored; results now duplicate across
-  calls and fresh objects and do not depend on the core count. Seeded and
-  unseeded results of this class change once.
-* `InferenceAllKKMeanDiffIVWC`'s bootstrap errored "Wrong R type for mapped
-  matrix" on `DesignFixedBinaryMatch` (double-stored assignments); fixed.
+* `InferenceSurvivalDepCensTransformRegr` fits from several deterministic
+  starts and keeps the best, since the single start could miss the MLE
+  (about 1 fit in 7). Fits take about 2x as long.
+* `InferenceSurvivalKMDiff`'s Wald CI and p-value keep each arm's asymmetric
+  median interval (MOVER); coverage with small arms improves. Results change
+  for every dataset.
+* Likelihood-ratio CIs no longer return a bracket midpoint when the root
+  search hits its iteration limit.
+* BCa bootstrap intervals count ties with the estimate as half, so discrete
+  bootstrap distributions no longer make them mostly `NA`.
+* `InferenceSurvivalKMDiff` and the quantile-regression classes default to
+  the percentile bootstrap; `type = "bca"` is still available.
+* `InferenceSurvivalRestrictedMeanDiff`'s randomization-bootstrap CI is
+  refused: its bounds were on the wrong scale.
+* Randomization-bootstrap replays redraw each resample's assignment from the
+  resample's own design structure (pairs, optimal blocks, D-optimal and
+  rerandomization criteria). Results on these designs change, and replays
+  with `DesignFixedOptimalBlocks(method = "ompr")` are very slow.
+* `DesignFixedOptimalBlocks(method = "greedy")` no longer fails on some
+  resamples with duplicated rows.
+* `InferenceSurvivalRestrictedMeanDiff`'s Bayesian-bootstrap studentized
+  intervals are no longer always `NA`.
+* Robust regression classes return `NA`, not 0, for fits with non-finite
+  data.
+* `robust_survreg()` restart jitter uses its own seeded stream (new
+  `jitter_seed` argument) and leaves the caller's RNG alone.
+* `InferenceSurvivalKKRankRegrIVWC` results are now reproducible across calls.
+* `InferenceAllKKMeanDiffIVWC`'s bootstrap no longer errors on
+  `DesignFixedBinaryMatch`.
 * Ridit `reference = "treatment"` always returned 0; interior levels misscored.
-* `InferenceOrdinalRidit` SE is now the DeLong variance (pooled reference:
-  (n_C/N) times it); the old SE treated the reference arm as known and gave
-  about 19% rejections at a 5% level in a null simulation (now about 6%), and
-  p-values now agree with `wilcox.test(correct = FALSE)`. The C++
-  `fast_ridit_analysis_result()` `$se` field and the Python kernel use the
-  DeLong SE too.
-* `compute_rand_confidence_interval()` now refuses proportion responses that
-  contain an exact 0 or 1 for classes whose sharp null is a logit shift (for
-  example `InferencePropZeroOneInflatedBetaRegr`, `InferencePropBetaRegr`).
-  Exact 0/1 cannot be shifted on the logit scale, so the p-value was flat and
-  the CI hit its search boundary or excluded the estimate. The error names the
-  likelihood-based, asymptotic and bootstrap CIs; interior data is unaffected.
-  The Zhang-combined quantile CI (`InferencePropKKQuantileRegrIVWC`) refuses
-  the same way.
-* `compute_rand_confidence_interval()` now refuses survival responses for
-  classes whose estimate is a raw-scale mean difference or Hodges-Lehmann
-  shift (e.g. `InferenceAllSimpleAverageDiff`, `InferenceAllSimpleWilcox`).
-  The search inverts a log-time shift, so these intervals were on a different
-  scale from the estimate (in one test, asymptotic CI [-3.3, 2.7] vs
-  randomization CI [-0.38, 0.93]). Model-scale survival classes (log time
-  ratio) are unaffected; the randomization p-value is unchanged.
-* The jackknife block-size guard no longer swallows interrupts and timeouts
-  raised while reading block ids: a duplicate copy that caught every error
-  was removed, leaving one implementation that re-raises EDI control
-  conditions and treats only other errors as "no block ids".
-* `InferenceRandCustom` randomization CIs are searched on the effect scale
-  (delta), not on the statistic's scale, so a Welch-t or rescaled statistic
-  gives the same CI as the mean difference and covers 0 when the p-value does.
-  The search checks that its seed is accepted and errors if no delta is.
-* `InferenceOrdinalPartialProportionalOddsRegr` (VGAM backend) reported the
-  treatment coefficient with the wrong sign, and `nonparallel = ` gave a
-  degenerate fit (NaN log-likelihood, near-zero SE) when `nonparallel` was
-  set; both fixed (`nonparallel = "treatment"` now warns and is dropped).
-* Ordinal fast solvers were inaccurate when covariates were far from zero
-  (in a test, a covariate shift of 1e4 moved the Cloglog treatment estimate
-  from 0.805 to 0.000, now 0.806): `InferenceOrdinalPropOddsRegr`, `Cauchit`,
-  `Cloglog`, `OrderedProbit`, `AdjCatLogit` and `ContRatio` now centre and scale the
-  covariates internally and map results back exactly; well-scaled data are
-  unchanged. The C++ solvers still report `converged = TRUE` on such data.
-* `InferenceContinLin` reused the first model formula's centred covariates for
-  later Lin objects on the same design (the cache ignored `model_formula`),
-  returning the wrong estimate.
-* `InferenceSurvivalKKStratCoxPHOneLik`: the Bayesian-bootstrap refit now
-  uses the same single reservoir stratum as the point estimate.
-  `InferenceSurvivalStratCoxPHRegr` warns on matched designs (it stratifies on
-  covariates, not pairs; use `InferenceSurvivalKKStratCoxPHOneLik`).
-* The KK and frailty survival classes (`InferenceSurvivalKKStratCoxPHOneLik`,
-  `KKLWACoxPHOneLik`, `GLMMWeibullFrailtyNormalOneLik`,
-  `GLMMWeibullFrailtyLoggammaOneLik`) no longer fail with "X row count must
-  match w size." when the covariate frame has zero columns; `get_X()` is
-  `n x 0`. `InferenceSurvivalDepCensTransformRegr` gives finite estimates and
-  Wald, score and LR tests there; its bootstrap no longer loses replicates
-  whose dependence-parameter MLE sits on the boundary (it retries those fits).
-* Score / LR / gradient tests of the KK OneLik and GLMM classes
-  (`InferenceIncidKKCondLogitOneLik`, `InferenceContinKKOLSOneLik`,
-  `InferenceSurvivalKKStratCoxPHOneLik`, `InferenceSurvivalKKLWACoxPHOneLik`,
-  `InferenceCountKKCondPoissonOneLik`) returned `NA` or the Wald value when
-  `beta_T` was the only parameter (e.g. `~1` on an all-matched design); they
-  now give real values that match `survival::clogit`/`coxph`. Several classes
-  (`InferenceSurvivalKKLWACoxPHOneLik`, `InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`,
-  `InferenceContinKKGLMM`, `InferenceIncidKKCondLogitGLMMOneLik`,
-  `InferencePropKKGLMM`, `InferenceCountKKGLMM`) ignored the requested
-  testing type and returned Wald p-values and CIs; they now dispatch to the
-  score / LR / gradient methods. `InferenceCountKKGLMM`'s score test used the
-  Hessian with the wrong sign (garbage p-values) and is fixed; the
-  loggamma-frailty null fit has a floor on log-theta, so its LR test is no
-  longer `NA` when the null MLE is the no-frailty boundary. The KK
-  Hurdle/Poisson classes still return the larger of the model and Wald
-  p-value by design, so score/LR can equal Wald; `InferenceCountKKGLMM`
-  no longer does.
-* New classed warnings instead of silent substitution:
-  `edi_lik_test_unavailable_warning` (score/LR/Bartlett p-value `NA` while
-  Wald is finite), `edi_lik_ci_wald_fallback` and `edi_lik_test_wald_fallback`
-  (a likelihood CI or p-value was replaced by the Wald one), and
-  `edi_unsupported_procedure` (documented unsupported procedures, e.g. the
-  `InferenceCountNegBin` jackknife, return `NA` with a warning and no longer
-  clear the valid cached estimate and SE). Returned values are unchanged.
-* A failed resampling or likelihood-test procedure (bootstrap, Bayesian or
-  parametric bootstrap, jackknife, m-out-of-n, subsampling, randomization CI,
-  score/LR/gradient p-values and intervals) still returns `NA`, but no longer
-  marks the whole object non-estimable: the failure is recorded for that
-  procedure only, and the Wald estimate, SE and `is_nonestimable()` are kept
-  (unless the Wald fit itself is unusable).
+* `InferenceOrdinalRidit` uses the DeLong SE; the old one was
+  anti-conservative.
+* `compute_rand_confidence_interval()` refuses proportions with exact 0 or 1
+  for logit-shift classes, and survival responses for raw-scale classes.
+* The jackknife block-size guard no longer swallows interrupts and timeouts.
+* `InferenceRandCustom` randomization CIs are searched on the effect scale.
+* `InferenceOrdinalPartialProportionalOddsRegr` (VGAM) had the wrong
+  treatment sign, and `nonparallel` gave degenerate fits.
+* Ordinal fast solvers centre and scale covariates, fixing wrong estimates
+  for covariates far from zero.
+* `InferenceContinLin` no longer reuses another formula's centred covariates.
+* `InferenceSurvivalKKStratCoxPHOneLik`'s Bayesian-bootstrap refit uses the
+  same reservoir stratum; `InferenceSurvivalStratCoxPHRegr` warns on matched
+  designs.
+* KK and frailty survival classes work with zero covariate columns.
+* Score / LR / gradient tests of the KK OneLik and GLMM classes work when
+  `beta_T` is the only parameter, and several classes that silently returned
+  Wald results now run the requested test. `InferenceCountKKGLMM`'s score
+  test sign is fixed.
+* New classed warnings when a likelihood test is unavailable or replaced by
+  Wald (`edi_lik_test_unavailable_warning`, `edi_lik_ci_wald_fallback`,
+  `edi_lik_test_wald_fallback`, `edi_unsupported_procedure`).
+* A failed resampling or likelihood-test procedure returns `NA` for that
+  procedure only, without marking the object non-estimable.
 * `InferenceIncidLogBinomial` and `InferenceIncidBinomialIdentityRiskDiff`
-  warn once per object (`edi_binomial_mle_boundary_warning`) when the
-  full-data MLE is on the parameter-space boundary (a fitted probability at
-  1, or at 0 or 1 for the identity link), where Wald and score SEs and
-  intervals may be unreliable; bootstrap or likelihood-ratio intervals are
-  suggested. Returned values are unchanged.
-* `InferenceCountNegBin` fit stopped short of the MLE (-0.2129 vs `MASS::glm.nb`
-  -0.2111); the tolerance is tightened and now matches to about 1e-6.
-  Hurdle/ZAP NB fits are not tightened.
+  warn once (`edi_binomial_mle_boundary_warning`) when the MLE is on the
+  boundary.
+* `InferenceIncidLogBinomial` and `InferenceIncidBinomialIdentityRiskDiff`
+  fits no longer stop short of the MLE at a boundary, which also made the
+  jackknife depend on call order.
+* `InferenceIncidProbitRegr` no longer reports convergence at a saturated
+  fit.
+* `InferenceIncidBinomialIdentityRiskDiff` no longer cycles until the
+  iteration cap on some interior fits.
+* `InferenceIncidBinomialIdentityRiskDiff` and `InferenceIncidLogBinomial`:
+  one failed null refit no longer makes every later likelihood test on the
+  object `NA`. The retry is shared by all likelihood-test classes.
+* `InferenceIncidLogBinomial` and `InferenceIncidBinomialIdentityRiskDiff`:
+  score and gradient tests at a null MLE with a fitted probability of 0 or 1
+  were `NA` or wrong; they now use the profile (Kuhn-Tucker) score, so their
+  intervals end at true roots.
+* Likelihood CI inversion no longer returns an isolated low-p point as an
+  endpoint.
+* `InferenceOrdinalStereotypeLogitRegr`: likelihood-test p-values no longer
+  depend on which nulls were tested earlier on the object (now 3-6x slower).
+* `InferenceOrdinalStereotypeLogitRegr`: the randomization and bootstrap
+  estimator now matches `compute_estimate()`; `~ 1` randomization p-values
+  are now mostly `NA` (loading boundary).
+* `InferenceCountNegBin` fits now match `MASS::glm.nb`.
 * Modified Poisson Wald SE is the robust sandwich.
 * Randomization intervals reused a shifted null that is exact only for
   mean-difference and OLS estimators, and refined the wrong endpoint.
@@ -417,84 +203,54 @@ methods.
   capped at 1e6 cells.
 * Crashes: GC faults in the KK21 ordinal and match kernels;
   `InferenceRandCustom` compile cache.
-* `InferenceOrdinalKKCLMMCloglog`: the weighted Bayesian-bootstrap refits and
-  `use_rcpp = FALSE` fitted the log-log model, because `ordinal::clmm()`
-  swaps the `"cloglog"` and `"loglog"` link names (seen in ordinal
-  2026.7.26; `clm()` is correct). EDI now probes the mapping once per session
-  and asks `clmm()` for the name that fits the cloglog model, so these paths
-  match the native estimate (example: 0.208 before, 0.087 now, native 0.087).
-  If the probe cannot decide, the `clmm()` fit is skipped with warning class
-  `edi_clmm_link_unverified`. The native cloglog fit was already correct; when
-  it reports a random-intercept SD near 0, that is the maximum-likelihood
-  estimate.
-* KK CLMM classes (all four links) reported `converged = TRUE` for fits that
-  had not reached a stationary point (gradient norm around 1e-2), because the
-  optimizer's relative-change stop counted as convergence. The optimizer
-  tolerance is now 1e-12 (was 1e-6). A fit is accepted only if its gradient
-  norm is at most 1e-4; otherwise it is retried once with Newton-Raphson, and
-  if that fails too, the result is `NA` with the new nonestimable reason
-  `kk_clmm_rcpp_not_stationary`. Estimates move by up to about 6e-3 (median
-  about 2e-4).
+* `InferenceOrdinalKKCLMMCloglog`'s `ordinal::clmm()` paths fitted the
+  log-log model (a `clmm()` link-name swap); EDI now detects the mapping.
+* KK CLMM classes no longer report convergence at non-stationary fits;
+  such fits are retried, else `NA`.
+* `InferenceBaiAdjustedTKK14` / `KK21`: the asymptotic p-value now tests
+  `delta` (it ignored it).
+* `InferenceContinKKGLMM`'s score intervals were about 20% too narrow; fixed.
+* `InferenceCountZeroInflatedPoisson` / `ZeroInflatedNegBin`: LR and score
+  intervals no longer contradict their tests, and the ZINB Wald SE is no
+  longer `NA` at a boundary.
+* `InferenceAllSimpleWilcox`'s asymptotic p-value at nonzero `delta` tested
+  `-delta`; it now matches `wilcox.test(mu = delta)`.
+* `InferenceCountKKGLMM` reports the model-based likelihood tests instead of
+  the larger of model and Wald p-values.
+* `InferenceOrdinalStereotypeLogitRegr` no longer drops covariates in most
+  fits; a treatment-only fit at the loading boundary is non-estimable.
+* `InferenceCountHurdleNegBin` and `InferenceSurvivalDepCensTransformRegr`
+  likelihood-test p-values no longer depend on call history.
 
 ## Known limitations
 
-* `InferenceSurvivalRestrictedMeanDiff`'s standard error treats the two arms
-  as independent. It is correct under Bernoulli assignment and complete
-  randomization, and conservative under every other design: Wald intervals
-  over-cover (about 0.98 on matching designs) and Wald p-values are too large.
-  Design-aware variances are planned for 1.1.0.
-
-* `InferenceSurvivalKKStratCoxPHOneLik` with covariates (`~ .`) is biased
-  toward zero at small n (about 75 matched pairs). In the comprehensive
-  tests its confidence intervals under-cover (0.29-0.85 at nominal 0.95), and
-  likelihood-ratio bootstrap, Bartlett and parametric-bootstrap p-values
-  reject 16-38% of true nulls at nominal 5%. Without covariates
-  (`~ 1`) the class behaves normally. `InferenceSurvivalKKLWACoxPHOneLik`
-  is a better choice when adjusting for covariates. A fix (Firth bias
-  reduction) is planned for 1.1.0.
-
-* Jackknife standard errors, intervals and p-values on
-  `DesignSeqOneByOneSPBR` and `DesignFixedBlocking` leave out one stratum at a
-  time. With only a few strata the standard error is noisy, and the
-  intervals use normal quantiles, so they under-cover (about 0.84 and 0.86 at
-  nominal 0.95 in the comprehensive tests). 1.1.0 will leave out SPBR's
-  permuted blocks instead.
-
-* `InferenceOrdinalCloglogRegr` null calibration (500 null datasets per cell,
-  `diamonds`, nominal 5%). With covariates (`~ .`) at small n, the
-  likelihood-based tests reject too often: the direct likelihood-ratio
-  p-value rejects 12.0%, the Bartlett-corrected one 10.8% and the
-  likelihood-ratio bootstrap one 8.2%. Without covariates (`~ 1`) all three
-  are calibrated (5.4%, 5.6% and 5.2%). The
-  parametric-bootstrap p-value (`compute_param_bootstrap_pval()`) is
-  conservative: 2.8% at `~ 1` and 0.6% at `~ .`. It does not inflate false
-  positives but loses power. Both are under review for 1.1.0.
+* `InferenceSurvivalRestrictedMeanDiff`'s SE assumes independent arms, so it
+  is conservative on designs other than Bernoulli and complete
+  randomization. Design-aware variances are planned for 1.1.0.
+* `InferenceSurvivalKKStratCoxPHOneLik` with covariates is biased toward zero
+  at small n, so its intervals under-cover; use
+  `InferenceSurvivalKKLWACoxPHOneLik`. A fix is planned for 1.1.0.
+* Jackknife inference on `DesignSeqOneByOneSPBR` and `DesignFixedBlocking`
+  with few strata under-covers (about 0.85); a fix is planned for 1.1.0.
+* `InferenceOrdinalCloglogRegr` with covariates at small n: likelihood-based
+  tests reject 8-12% at nominal 5%, and the parametric bootstrap is
+  conservative. Under review for 1.1.0.
+* `InferenceIncidExtendedRobins`'s Wald test is anti-conservative on small
+  blocks and matched pairs; use `InferenceIncidCMH` there.
 
 ## Performance
 
-* The tighter KK CLMM tolerance makes these fits slower. A full fit takes
-  about 1.5x as long (n = 200: about 44 ms before, 64 ms now). Randomization
-  refits take about 2.8x as long (n = 200, r = 200: 3.7 s before, 10.1 s now,
-  measured on a loaded machine). The first cloglog `ordinal::clmm()` refit in
-  a session also runs a one-time probe of about 2 s.
-
+* The tighter KK CLMM tolerance makes full fits about 1.5x and randomization
+  refits about 2.8x slower.
 * Cached per-permutation slopes, a C++ OLS randomization kernel, batched
   Bayesian-bootstrap weights, lazy model matrices; OpenMP kernels respect the
   package thread maximum.
-* The unused internal C++ kernel `generate_permutations_blocking_cpp()` was
-  removed; blocked designs draw assignments with the batched R helper.
-* Seven unused internal C++ kernels were removed (the rank-mean Wilcoxon,
-  legacy bootstrap-loop, match-index fill-in and single-bound bisection
-  wrappers); no inference path called them.
+* Eight unused internal C++ kernels were removed.
 
 ## Internal
 
-* Inference components now declare only the components they call. Shared
-  resampling helpers (the resampling-distribution cache, jackknife-unit
-  checks, the extreme-estimate guard) moved unchanged into a new internal
-  `ResamplingCore` component, which removes a dependency cycle between the
-  jackknife and bootstrap components. Every class keeps the same public
-  methods and results.
+* Inference components declare only the components they call; shared
+  resampling helpers moved into a new internal `ResamplingCore` component.
 
 # EDI 1.0.2
 
