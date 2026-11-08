@@ -2027,6 +2027,17 @@ ticked in their **owning plans**; this list is the release index.
   - **Docs.** `man/DesignFixedRerandomization.Rd` regenerated with `R/fast_roxygenize.R` on 2026-11-03 (exit 0, no warnings).
   - **Not done when ticked.** `NEWS.md` entry, full test suite.
 
+- [ ] TODO-165 (added 2026-11-08, owner; follow-up of v1.0.5 TODO-190): **`InferenceIncidLogBinomial`: tighten the full-data fit when a subject sits at fitted probability exp(X b) = 1.**
+  - Found by: the v1.0.5 TODO-190 agent (2026-11-08). In 4 of 1600 calibration fits (all n = 50, `~.`), the C++ fit (`src/fast_log_binomial_regression.cpp`, TODO-128 active-set / KKT gate) stops with the nuisance score off zero: rep 31 at prob_T 0.5 has x2 score 0.037, and Nelder-Mead reaches the same log-likelihood at x2 = 0.46476 vs the kernel's 0.46442. The KKT check in `edi_log_binomial_kkt_terms()` then rejects the null fit near the estimate, the gradient p-value there is `NA`, gradient CI inversion cannot start, and v1.0.5 substitutes the LR interval (with the `edi_lik_ci_lik_ratio_fallback` warning).
+  - Related: the same KKT gate also passed a non-optimal warm-started null fit where the binding set changes (v1.0.5 TODO-181 leftover, worked around by a cold refit in `fit_null`).
+  - Fix: tighter boundary convergence in the kernel (for example a KKT-residual stopping rule in the free directions), verified per-file (no full build). Then drop or keep the v1.0.5 LR substitution in `compute_gradient_confidence_interval_impl()`.
+  - Done when: on the TODO-190 study grid (200 reps x n 50 / 200 x prob_T 0.5 / 0.2 x `~1` / `~.`), no LR substitution fires and the full fit's nuisance score is 0 to 1e-6 at boundary MLEs.
+
+- [ ] TODO-166 (added 2026-11-09, owner; follow-up of v1.0.5 TODO-189): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`: parametric-bootstrap-calibrated score p-value.**
+  - Why: the asymptotic score test runs high at moderate n on correctly specified matched-pair data (n = 200: 0.063 vs Wald 0.049 / LR 0.045; n = 400: 0.060; n = 800: 0.069 vs Wald 0.065). The null fit's log-theta drops when the data show an effect, so the null information is small exactly when the score is large (v1.0.5 TODO-189 entry; scripts in `/tmp/claude-1000/t189/`). v1.0.5 documents it and recommends Wald / LR.
+  - Fix: refer the score statistic to its parametric-bootstrap distribution under the null fit, reusing the class's `simulate_under_lik_null` (already used by its LR bootstrap).
+  - Done when: score size within the binomial band of 0.05 at n = 200 on the TODO-189 DGP; runtime cost documented.
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update

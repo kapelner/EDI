@@ -270,7 +270,16 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 						res = try_fit(b_full, NULL)
 						if (!is.null(res)) return(res)
 					}
-					try_fit(NULL, NULL)
+					res = try_fit(NULL, NULL)
+					if (!is.null(res)) return(res)
+					# The kernel stops after one iteration when its start has a fitted
+					# probability outside [0, 1], even when the null MLE is interior
+					# (a calibration replicate at delta = 0.49: both starts above
+					# had max mu 1.08-1.09, the MLE 0.993). Last start: covariates
+					# at 0, beta_T = delta and the intercept inside the feasible
+					# range, so every fitted probability is in [0, 1].
+					b_safe = edi_binomial_identity_feasible_start(X_fit, y, j_treat, delta)
+					if (is.null(b_safe)) NULL else try_fit(b_safe, NULL)
 				},
 				extract_start = function(fit){
 					as.numeric(fit$b)
@@ -736,4 +745,23 @@ edi_binomial_identity_lik_test_information = function(X, y, b, j){
 	if (is.null(kkt) || (!isTRUE(kkt$boundary) && is.null(kkt$reason) && all(is.finite(info)))) return(info)
 	if (!is.null(kkt$reason)) return(matrix(NA_real_, length(b), length(b)))
 	kkt$info
+}
+
+# A start for the identity-link fit with beta_T = delta that keeps every fitted
+# probability inside [eps, 1 - eps]: the other coefficients at 0 and the
+# intercept at the empirical rate, clamped to the feasible range. NULL when
+# the design has no intercept column or no feasible intercept exists.
+edi_binomial_identity_feasible_start = function(X, y, j, delta, eps = 1e-3){
+	int_col = which(apply(X, 2L, function(col) all(col == 1)))
+	int_col = setdiff(int_col, j)
+	if (!length(int_col)) return(NULL)
+	int_col = int_col[1L]
+	shift = range(delta * X[, j])
+	lo = eps - shift[1L]
+	hi = 1 - eps - shift[2L]
+	if (!is.finite(lo) || !is.finite(hi) || lo > hi) return(NULL)
+	b = numeric(ncol(X))
+	b[j] = delta
+	b[int_col] = min(max(mean(y) - delta * mean(X[, j]), lo), hi)
+	b
 }

@@ -66,6 +66,14 @@ likelihood bootstrap (\code{simulate_under_lik_null}, which draws new
 pair times from the fitted Clayton copula and new singleton times from
 the marginal Weibull) is available alongside Wald inference.
 
+\strong{Score test at small n.} The score test rejects somewhat too often
+in moderate samples, even when the model is correct (about 6.3\% at a
+nominal 5\% with n = 200 on matched pairs, against about 5\% for Wald and
+likelihood-ratio). Forcing \eqn{\beta_T = \delta} lowers the fitted
+within-pair dependence, and with it the information used to scale the
+score, exactly when the data show an effect. The excess shrinks as n
+grows. Prefer the Wald (default) or likelihood-ratio test and intervals.
+
 \strong{Assumptions.} Weibull AFT margin correctly specified; Clayton
 copula correctly captures within-pair dependence (a positive-dependence,
 single-parameter Archimedean copula); independent censoring given

@@ -505,6 +505,18 @@ OrdinalStereotypeLikelihoodSource = list(
 			private$cached_values$generate_mod_nonestimable_reason = NULL
 			boundary_rejected = FALSE
 			X_full = private$build_design_matrix()
+			# Owner ruling 2026-11-08: with 3+ categories a treatment-only fit
+			# (`~ 1`, or every covariate dropped) is always non-estimable. The
+			# model is then saturated in the 2 x K table and the loadings are not
+			# identified at beta_T = 0, so the tests are not chi-square(1)
+			# (15-21% Type-I error even at n = 1000).
+			K_levels = length(unique(private$y))
+			treatment_only_not_identified = function(){
+				private$cached_values$likelihood_test_context = NULL
+				private$cached_values$generate_mod_nonestimable_reason = "stereotype_treatment_only_fit_not_identified"
+				NULL
+			}
+			if (K_levels >= 3L && ncol(X_full) <= 1L) return(treatment_only_not_identified())
 			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE,
 				X_full = X_full,
 				required_cols = 1L,
@@ -555,6 +567,7 @@ OrdinalStereotypeLikelihoodSource = list(
 				if (.stereotype_treatment_only_fit_at_boundary(attempt$fit)) boundary_rejected = TRUE
 				attempt$fit = NULL
 			}
+			if (!is.null(attempt$fit) && K_levels >= 3L && length(attempt$fit$b) <= 1L) return(treatment_only_not_identified())
 			if (!is.null(attempt$fit)){
 				# No "params" warm start is written: nothing in this class reads one
 				# (every fit starts from data-only starts, TODO-175/178).
@@ -824,22 +837,15 @@ OrdinalStereotypeLikelihoodSource = list(
 #' rank deficiency. In a null study (\eqn{n = 200}, 4 categories, two
 #' covariates) this kept both covariates in 40 of 40 fits (5 before) with no
 #' non-estimable fits, and gave 5.8\% Wald Type-I error over 400 datasets.
-#' A treatment-only fit (formula \code{~ 1}, or every covariate dropped) on
-#' the boundary is instead reported non-estimable (reason
-#' \code{stereotype_treatment_only_fit_at_loading_boundary}): its
-#' \eqn{2 \times K} table is nearly saturated and the Wald standard error is
-#' about 25\% too small there (9.3\% Type-I error), so no estimate is
-#' reported. With no covariates this is the common case (35 of 40 null fits
-#' in the study above); prefer a covariate-adjusted formula. The \code{~ 1} fits
-#' that are reported are not calibrated either: with a single binary
-#' regressor the model is saturated (it reproduces the \eqn{2 \times K} table
-#' whenever the arm contrasts are ordered), so the likelihood-ratio statistic
-#' at \eqn{\beta_T = 0} is essentially the \eqn{K - 1} degree-of-freedom
-#' independence statistic, referred here to chi-square(1), and only tables
-#' with ordered contrasts are reported. In null studies the Wald,
-#' likelihood-ratio, score and gradient tests had 15-21\% Type-I error at
-#' \eqn{n = 1000} (allocation 0.5 or 0.2) among the 7-19\% of fits that were
-#' estimable; more data does not fix this.
+#' With 3 or more response categories, a treatment-only fit (formula
+#' \code{~ 1}, or every covariate dropped) is always reported non-estimable
+#' (reason \code{stereotype_treatment_only_fit_not_identified}). With a single
+#' binary regressor the model is saturated in the \eqn{2 \times K} table and
+#' the loadings are not identified at \eqn{\beta_T = 0}, so its Wald,
+#' likelihood-ratio, score and gradient tests are not calibrated (15-21\%
+#' Type-I error even at \eqn{n = 1000}). Use a covariate-adjusted formula,
+#' or a class such as \code{InferenceOrdinalPropOddsRegr} for an unadjusted
+#' analysis.
 #'
 #' The delta-constrained null refits behind the likelihood-ratio, score and
 #' gradient tests and their confidence intervals also start only from

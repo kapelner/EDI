@@ -27,13 +27,17 @@ test_that("covariate-adjusted stereotype fit keeps its covariates at a boundary 
 	expect_true(is.finite(priv$cached_values$s_beta_hat_T) && priv$cached_values$s_beta_hat_T > 0)
 })
 
-test_that("treatment-only stereotype fit at the loading boundary is non-estimable", {
+test_that("treatment-only stereotype fit with 3+ categories is always non-estimable", {
 	skip_on_cran()
 	des = stereotype_boundary_rep1()
 	inf = InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~ 1)
 	expect_true(is.na(inf$compute_estimate()))
+	expect_true(inf$is_nonestimable())
 	expect_identical(inf$.__enclos_env__$private$cached_values$nonestimable_reason,
-		"stereotype_treatment_only_fit_at_loading_boundary")
+		"stereotype_treatment_only_fit_not_identified")
+	expect_true(is.na(suppressWarnings(inf$compute_lik_ratio_two_sided_pval())))
+	# the covariate-adjusted fit on the same data is estimable
+	expect_true(is.finite(InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~ .)$compute_estimate()))
 })
 
 test_that("boundary-reduced information leaves a fit without flat loadings unchanged", {

@@ -40,8 +40,8 @@ test_that("estimate_only = TRUE and FALSE give the same estimate (and the same n
 		b <- suppressWarnings(stereotype_null_rep(rep, model_formula = f)$compute_estimate(estimate_only = FALSE))
 		expect_identical(a, b, info = paste(rep, deparse(f)))
 	}
-	# rep 26 `~ 1`: the interior saturated MLE is the log odds ratio of category 4 vs 1.
-	expect_equal(suppressWarnings(stereotype_null_rep(26L, model_formula = ~ 1)$compute_estimate()), 0.27395, tolerance = 1e-3)
+	# `~ 1` with 4 categories is always non-estimable (owner ruling 2026-11-08), in both modes.
+	expect_true(is.na(suppressWarnings(stereotype_null_rep(26L, model_formula = ~ 1)$compute_estimate())))
 })
 
 test_that("the observed randomization statistic is the reported estimate", {

@@ -120,7 +120,7 @@ test_that("generate_mod wires the full-data multistart selector into ordinary fi
 	w <- des$get_w()
 	y <- as.integer(cut(0.9 * w + rlogis(n), c(-Inf, -1, 0.4, 1.5, Inf)))
 	des$add_all_subject_responses(y)
-	inf <- InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~1, verbose = FALSE)
+	inf <- InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~x, verbose = FALSE)
 	set.seed(9124L)
 	rng_before <- .Random.seed
 	mod <- inf$.__enclos_env__$private$generate_mod()

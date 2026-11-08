@@ -35,7 +35,11 @@ Score confidence interval for \eqn{\beta_T} by test inversion
 Gradient confidence interval for \eqn{\beta_T} by test
   inversion of the gradient test; see
   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} for the shared
-  inversion contract. If the underlying root-finding fails or
+  inversion contract. If gradient inversion gives no usable interval
+  (e.g. the gradient test is undefined at a null fit on the
+  \eqn{\exp(X\beta) \le 1} boundary), the likelihood-ratio interval is
+  returned instead, with a warning of class
+  \code{edi_lik_ci_lik_ratio_fallback}. If that also fails or
   degenerates, returns \code{NA} bounds and records a gradient procedure
   failure; the Wald estimate, standard error and \code{is_nonestimable()}
   are kept (unless the Wald fit itself is unusable).

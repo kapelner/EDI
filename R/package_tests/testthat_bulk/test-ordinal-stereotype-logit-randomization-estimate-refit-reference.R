@@ -25,8 +25,9 @@ library(EDI)
 # at n=50)") and, empirically, organic (unmocked) convergence fails outright
 # (stereotype_fit_is_usable() correctly rejects every multistart candidate:
 # NaN min_eigenvalue_information) for roughly 3 of 20 arbitrary seeds even
-# with no covariates (model_formula = ~1) -- seed 4 happened to be one of
-# them. seed 1 converges cleanly for both the unpermuted and a permuted w on
+# with no covariates -- seed 4 happened to be one of them. Since 2026-11-08
+# a `~ 1` fit with 3+ categories is always non-estimable, so the fixture
+# uses `~ x`. seed 1 converges cleanly for both the unpermuted and a permuted w on
 # this exact fixture; this is an existing, accepted optimizer limitation
 # (not something this test is meant to exercise), not a regression to chase
 # here.
@@ -39,7 +40,7 @@ stereotype_fixture <- function(seed = 1L, n = 200L) {
 	w <- des$get_w()
 	y <- as.integer(cut(0.9 * w + rlogis(n), c(-Inf, -1, 0.4, 1.5, Inf)))
 	des$add_all_subject_responses(y)
-	inf <- InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~1, verbose = FALSE)
+	inf <- InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~x, verbose = FALSE)
 	inf$num_cores <- 1L
 	list(inf = inf, priv = inf$.__enclos_env__$private, w = w)
 }
@@ -55,7 +56,7 @@ test_that("on the same w it returns compute_estimate()'s own value; on a permute
 	f <- stereotype_fixture()
 	main_est <- f$inf$compute_estimate()
 	expect_true(is.finite(main_est))
-	expect_equal(f$priv$best_Xmm_colnames, character(0))
+	expect_equal(f$priv$best_Xmm_colnames, "x")
 
 	same_w_est <- f$priv$compute_treatment_estimate_during_randomization_inference()
 	expect_identical(same_w_est, main_est)

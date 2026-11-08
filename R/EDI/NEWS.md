@@ -102,6 +102,9 @@ methods.
 
 ## Bug fixes
 
+* `InferenceIncidLogBinomial`'s gradient CI now warns (class
+  `edi_lik_ci_lik_ratio_fallback`) and records why when it returns the
+  likelihood-ratio interval because gradient inversion failed; this was silent.
 * `InferenceSurvivalDepCensTransformRegr` fits from several deterministic
   starts and keeps the best, since the single start could miss the MLE
   (about 1 fit in 7). Fits take about 2x as long.
@@ -173,13 +176,15 @@ methods.
   score and gradient tests at a null MLE with a fitted probability of 0 or 1
   were `NA` or wrong; they now use the profile (Kuhn-Tucker) score, so their
   intervals end at true roots.
+* `InferenceIncidBinomialIdentityRiskDiff`'s null refit no longer fails when
+  every start has a fitted probability outside [0, 1]; such CI endpoints
+  stopped short of the root.
 * Likelihood CI inversion no longer returns an isolated low-p point as an
   endpoint.
 * `InferenceOrdinalStereotypeLogitRegr`: likelihood-test p-values no longer
   depend on which nulls were tested earlier on the object (now 3-6x slower).
 * `InferenceOrdinalStereotypeLogitRegr`: the randomization and bootstrap
-  estimator now matches `compute_estimate()`; `~ 1` randomization p-values
-  are now mostly `NA` (loading boundary).
+  estimator now matches `compute_estimate()`.
 * `InferenceCountNegBin` fits now match `MASS::glm.nb`.
 * Modified Poisson Wald SE is the robust sandwich.
 * Randomization intervals reused a shifted null that is exact only for
@@ -218,7 +223,8 @@ methods.
 * `InferenceCountKKGLMM` reports the model-based likelihood tests instead of
   the larger of model and Wald p-values.
 * `InferenceOrdinalStereotypeLogitRegr` no longer drops covariates in most
-  fits; a treatment-only fit at the loading boundary is non-estimable.
+  fits. With 3+ categories a treatment-only fit (`~ 1`) is non-estimable:
+  the model is saturated there and its tests are not calibrated.
 * `InferenceCountHurdleNegBin` and `InferenceSurvivalDepCensTransformRegr`
   likelihood-test p-values no longer depend on call history.
 

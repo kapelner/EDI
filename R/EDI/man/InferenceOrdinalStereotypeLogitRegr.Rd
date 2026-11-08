@@ -104,22 +104,15 @@ directions held at the boundary. Covariates are then dropped only for real
 rank deficiency. In a null study (\eqn{n = 200}, 4 categories, two
 covariates) this kept both covariates in 40 of 40 fits (5 before) with no
 non-estimable fits, and gave 5.8\% Wald Type-I error over 400 datasets.
-A treatment-only fit (formula \code{~ 1}, or every covariate dropped) on
-the boundary is instead reported non-estimable (reason
-\code{stereotype_treatment_only_fit_at_loading_boundary}): its
-\eqn{2 \times K} table is nearly saturated and the Wald standard error is
-about 25\% too small there (9.3\% Type-I error), so no estimate is
-reported. With no covariates this is the common case (35 of 40 null fits
-in the study above); prefer a covariate-adjusted formula. The \code{~ 1} fits
-that are reported are not calibrated either: with a single binary
-regressor the model is saturated (it reproduces the \eqn{2 \times K} table
-whenever the arm contrasts are ordered), so the likelihood-ratio statistic
-at \eqn{\beta_T = 0} is essentially the \eqn{K - 1} degree-of-freedom
-independence statistic, referred here to chi-square(1), and only tables
-with ordered contrasts are reported. In null studies the Wald,
-likelihood-ratio, score and gradient tests had 15-21\% Type-I error at
-\eqn{n = 1000} (allocation 0.5 or 0.2) among the 7-19\% of fits that were
-estimable; more data does not fix this.
+With 3 or more response categories, a treatment-only fit (formula
+\code{~ 1}, or every covariate dropped) is always reported non-estimable
+(reason \code{stereotype_treatment_only_fit_not_identified}). With a single
+binary regressor the model is saturated in the \eqn{2 \times K} table and
+the loadings are not identified at \eqn{\beta_T = 0}, so its Wald,
+likelihood-ratio, score and gradient tests are not calibrated (15-21\%
+Type-I error even at \eqn{n = 1000}). Use a covariate-adjusted formula,
+or a class such as \code{InferenceOrdinalPropOddsRegr} for an unadjusted
+analysis.
 
 The delta-constrained null refits behind the likelihood-ratio, score and
 gradient tests and their confidence intervals also start only from

@@ -36,7 +36,7 @@ fx <- function(seed = 1L, n = 200L) {
 	w <- des$get_w()
 	y <- as.integer(cut(0.9 * w + rlogis(n), c(-Inf, -1, 0.4, 1.5, Inf)))
 	des$add_all_subject_responses(y)
-	inf <- InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~1, verbose = FALSE)
+	inf <- InferenceOrdinalStereotypeLogitRegr$new(des, model_formula = ~x, verbose = FALSE)
 	inf$compute_estimate()
 	inf$.__enclos_env__$private$get_likelihood_test_spec()
 }

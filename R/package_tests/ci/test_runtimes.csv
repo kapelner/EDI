@@ -62,6 +62,7 @@ R/package_tests/testthat_bulk/test-binomial-identity-intercept-only-resampling-b
 R/package_tests/testthat_bulk/test-binomial-identity-lik-ratio-ci-root-finding-failure-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-likelihood-spec-and-fit-predicate-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-marginal-functional-and-failure-branches-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-binomial-identity-null-fit-infeasible-start-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-failure-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-failure-nonestimable-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -668,6 +669,7 @@ R/package_tests/testthat_bulk/test-log-binomial-boundary-mle-warning.R,correctne
 R/package_tests/testthat_bulk/test-log-binomial-constrained-mle-nloptr-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-fit-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-error-catching-wrapper-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-lik-ratio-substitution-warning.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-null-mle-boundary-kkt-score-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1156,6 +1158,7 @@ R/package_tests/testthat_bulk/test-weibull-bootstrap-surrogate-fit-shared-helper
 R/package_tests/testthat_bulk/test-weibull-frailty-and-stratified-cox-simulation-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weibull-frailty-empty-and-censored-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weibull-frailty-kernel-marginal-likelihood-and-cold-start-robustness-reference.R,correctness,19.2,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-weibull-frailty-loggamma-onelik-score-test-null-information-accuracy.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-weibull-frailty-normal-ivwc-shared-matched-reservoir-combination-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weibull-general-censoring-unsupported-operations-rejected-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weibull-kernel-dispatch-fit-score-hessian-references.R,correctness,1,measured_with_30_percent_headroom
@@ -1579,6 +1582,7 @@ R/package_tests/testthat_bulk/test-binomial-identity-intercept-only-resampling-b
 R/package_tests/testthat_bulk/test-binomial-identity-lik-ratio-ci-root-finding-failure-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-likelihood-spec-and-fit-predicate-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-marginal-functional-and-failure-branches-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-binomial-identity-null-fit-infeasible-start-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-randomization-estimate-refit-no-covariates-and-fit-failure-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-failure-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-binomial-identity-weighted-refit-hardening-failure-nonestimable-reference.R,coverage,240,bootstrap
@@ -2185,6 +2189,7 @@ R/package_tests/testthat_bulk/test-log-binomial-boundary-mle-warning.R,coverage,
 R/package_tests/testthat_bulk/test-log-binomial-constrained-mle-nloptr-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-fit-unavailable-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-lik-ratio-substitution-warning.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-null-mle-boundary-kkt-score-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
@@ -2673,6 +2678,7 @@ R/package_tests/testthat_bulk/test-weibull-bootstrap-surrogate-fit-shared-helper
 R/package_tests/testthat_bulk/test-weibull-frailty-and-stratified-cox-simulation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-frailty-empty-and-censored-reference.R,coverage,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-weibull-frailty-kernel-marginal-likelihood-and-cold-start-robustness-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-weibull-frailty-loggamma-onelik-score-test-null-information-accuracy.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-frailty-normal-ivwc-shared-matched-reservoir-combination-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-general-censoring-unsupported-operations-rejected-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-weibull-kernel-dispatch-fit-score-hessian-references.R,coverage,240,bootstrap

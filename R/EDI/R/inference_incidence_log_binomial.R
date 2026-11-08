@@ -141,7 +141,11 @@ IncidenceLogBinomialLikelihoodSource = list(
 		#' @description Gradient confidence interval for \eqn{\beta_T} by test
 		#'   inversion of the gradient test; see
 		#'   \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}} for the shared
-		#'   inversion contract. If the underlying root-finding fails or
+		#'   inversion contract. If gradient inversion gives no usable interval
+		#'   (e.g. the gradient test is undefined at a null fit on the
+		#'   \eqn{\exp(X\beta) \le 1} boundary), the likelihood-ratio interval is
+		#'   returned instead, with a warning of class
+		#'   \code{edi_lik_ci_lik_ratio_fallback}. If that also fails or
 		#'   degenerates, returns \code{NA} bounds and records a gradient procedure
 		#'   failure; the Wald estimate, standard error and \code{is_nonestimable()}
 		#'   are kept (unless the Wald fit itself is unusable).
@@ -303,17 +307,37 @@ IncidenceLogBinomialLikelihoodSource = list(
 			TRUE
 		},
 		compute_gradient_confidence_interval_impl = function(alpha){
-			ci = private$invert_gradient_ci_uniroot(alpha)
-			if (length(ci) >= 2L && all(is.finite(ci[1:2]))) return(ci)
+			# TODO-190 (v1.0.5): hold the inner "gradient test unavailable (NA is
+			# returned)" warning until we know whether an interval is substituted;
+			# if one is, that warning would be wrong and the substitution warning
+			# below (which carries the same reason) replaces it.
+			held = list()
+			ci = withCallingHandlers(
+				private$invert_gradient_ci_uniroot(alpha),
+				edi_lik_test_unavailable_warning = function(w){
+					held[[length(held) + 1L]] <<- w
+					invokeRestart("muffleWarning")
+				}
+			)
+			release_held = function() for (w in held) warning(w)
+			if (length(ci) >= 2L && all(is.finite(ci[1:2]))) { release_held(); return(ci) }
 
 			# Log-binomial fixed-effect profiles can be infeasible on one side of
-			# the treatment coefficient.  Use the finite likelihood-ratio profile
-			# interval rather than returning an NA gradient CI.
+			# the treatment coefficient, and the score at a boundary null fit can be
+			# undefined (edi_log_binomial_kkt_terms()).  Use the finite
+			# likelihood-ratio profile interval rather than returning an NA gradient
+			# CI -- visibly (TODO-190): classed warning + recorded reason.
 			ci_fallback = tryCatch(private$invert_lik_ratio_ci_newton(alpha), error = function(e) c(NA_real_, NA_real_))
 			if (length(ci_fallback) >= 2L && all(is.finite(ci_fallback[1:2]))) {
 				names(ci_fallback) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+				if (length(held)) {
+					# the NA warning was never shown: let a later NA gradient p-value warn
+					private$cached_values$lik_test_unavailable_warned = setdiff(private$cached_values$lik_test_unavailable_warned %||% character(), "gradient")
+				}
+				edi_warn_log_binomial_gradient_ci_lik_ratio_substitution_once(self, private)
 				return(ci_fallback)
 			}
+			release_held()
 			ci
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
@@ -762,6 +786,50 @@ edi_binomial_bound_kkt_core = function(X, b, j, s, I, C, sgn, undefined){
 	J[, j] = 0
 	J[j, j] = f
 	list(score = g, info = J, boundary = TRUE, n_binding = length(A))
+}
+
+# TODO-190 (v1.0.5): InferenceIncidLogBinomial's gradient CI returns the
+# likelihood-ratio interval when gradient inversion yields no usable interval
+# (in calibration: n = 50 `~.` fits whose MLE has a y = 1 row at exp(X b) = 1,
+# where the gradient test at delta = estimate is undefined). Records the reason
+# in cached_values$ci_fallback_reason["gradient"] (first reason wins, as for the
+# Wald fallback) and warns once per object with class
+# edi_lik_ci_lik_ratio_fallback (fields testing_type = "gradient", substitute,
+# reason); never inside a resampling worker. The interval is not changed.
+edi_warn_log_binomial_gradient_ci_lik_ratio_substitution_once = function(self, private){
+	cv = private$cached_values
+	if (is.null(cv)) return(invisible(FALSE))
+	fail = unname((cv$likelihood_test_failure_reason %||% character())["gradient"])
+	proc = cv$procedure_failure_reason[["gradient"]] %||% NA_character_
+	why = if (length(fail) == 1L && !is.na(fail) && nzchar(fail)) fail else if (!is.na(proc)) proc else "the root search returned no usable bounds"
+	lr_wald = unname((cv$ci_fallback_reason %||% character())["lik_ratio"])
+	substitute = if (length(lr_wald) == 1L && !is.na(lr_wald)) "wald" else "lik_ratio"
+	reason = paste0("gradient test inversion gave no usable interval (", why, "), so the likelihood-ratio interval was returned",
+		if (identical(substitute, "wald")) paste0(", which is itself the Wald interval (", lr_wald, ")") else "")
+	rec = cv$ci_fallback_reason %||% character()
+	if (!("gradient" %in% names(rec))) {
+		rec["gradient"] = reason
+		private$cached_values$ci_fallback_reason = rec
+	}
+	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+	if (isTRUE(cv$lik_ci_lik_ratio_fallback_warned)) return(invisible(FALSE))
+	private$cached_values$lik_ci_lik_ratio_fallback_warned = TRUE
+	warning(structure(
+		class = c("edi_lik_ci_lik_ratio_fallback", "warning", "condition"),
+		list(
+			message = paste0(
+				class(self)[1L], ": the gradient confidence interval could not be obtained by test inversion (", why, "), ",
+				"so the returned interval is the ", if (identical(substitute, "wald")) "Wald interval (the likelihood-ratio inversion also fell back)" else "likelihood-ratio interval",
+				", NOT a gradient interval. Use compute_lik_ratio_confidence_interval() explicitly if that is what you want. ",
+				"Suppress with suppressWarnings(expr, classes = \"edi_lik_ci_lik_ratio_fallback\")."
+			),
+			call = NULL,
+			testing_type = "gradient",
+			substitute = substitute,
+			reason = reason
+		)
+	))
+	invisible(TRUE)
 }
 
 edi_log_binomial_neg_loglik = function(X, y, b){
