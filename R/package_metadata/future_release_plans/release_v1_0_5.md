@@ -8089,7 +8089,7 @@ baseline as expected/benign.
   design now state that `"distance"` (unsquared, as `nbpMatching`) is the default and
   changes about 22% of matched pairs vs 1.0.x (n = 1000, p = 4); NEWS says the same.
   - **DECIDED 2026-10-22 (G6 #42):** confirmed explicitly: `match_objective = "distance"` stays the shipped default.
-- [ ] TODO-62 (added 2026-10-07, user decision): **Benchmark harness: R6
+- [x] TODO-62 (added 2026-10-07, user decision; CLOSED 2026-11-09 by owner, see the closing note below): **Benchmark harness: R6
   construction inside the timed region misreads sub-10 ms rows** —
   `../bug_fix_plans/benchmark_r6_construction_timing.md → TODO-1..4`.
 
@@ -8187,6 +8187,11 @@ baseline as expected/benign.
     under that tolerance and confirm both parity and report rows.
     Only then regenerate and synchronize all four tracked reports from the
     harness (never by hand-editing generated artifacts).
+  - Closed 2026-11-09 (owner): Zhang 0.00441 <= 0.01 (G6 #21) on the canonical fixture; full
+    `benchmark_model_fits.R` run 2026-11-08 (HEAD 7fda7491, EDI.so c1f95c54) passed the regression check with the six
+    owner-approved `--allow` rows (runbook 6a, Closing audit 2026-10-23); all four reports regenerated from the harness
+    (G6 #39). The reports are uncommitted at closing; the owner commits them. Speed target deferred to
+    `release_v1_1_0.md` TODO-68 (G6 #39).
   **Owner-criteria provenance check, 2026-10-21:** the project already has an
   owner-approved numeric speed target in `release_v1_2_0.md → TODO-29` and
   `canonical_parity_resampling_rows.md → TODO-3`: existing-object EDI CI
@@ -14923,10 +14928,10 @@ carry unchecked sub-items that are explicitly marked superseded. Release-level o
 box: G6 #17 (registry-baseline fixture), see "Closing audit 2026-10-23". **DECIDED 2026-10-23: accept.**
 
 **Current (v1.0.5 TODO audit 2026-11-04; supersedes the counts above, which stay as history).** Recounted from the boxes.
-Of TODO-1..131: DONE 94, open 37. Newly DONE since 2026-10-23: 4, 116, 123 (checked 2026-10-31) and 56, 66, 107, 108,
-111, 121, 106 (checked 2026-11-04). Open 37 = GATED 36 + NEEDS-DECISION 1 (18: C2/N5 R3 failures). Lists: DONE 2-7 11 15 17 20-22 24 25 27-30 32-37 39-49 51-54 56 61 64-66 69-75 78-98 100-108 110 111 113-118 121-124 126; open 1 8-10 12-14 16 18 19 23 26 31 38 50 55 57-60 62 63 67 68 76 77 99 109 112
-119 120 125 127-131. The later TODO-161..187 (TODO-132..160 are unused here): DONE 14 (161-164 checked 2026-11-04, 182,
-183, 186 = the renumbered second TODO-184, 187; 166-168, 170, 171, 185 checked 2026-11-06), open 14 (165, 169, 172-181, 184, 188). All 159 entries: DONE 108, open 51; the
+Of TODO-1..131: DONE 95, open 36. Newly DONE since 2026-10-23: 4, 116, 123 (checked 2026-10-31) and 56, 66, 107, 108,
+111, 121, 106 (checked 2026-11-04), 62 (2026-11-09). Open 36 = GATED 35 + NEEDS-DECISION 1 (18: C2/N5 R3 failures). Lists: DONE 2-7 11 15 17 20-22 24 25 27-30 32-37 39-49 51-54 56 61 64-66 69-75 78-98 100-108 110 111 113-118 121-124 126, 62; open 1 8-10 12-14 16 18 19 23 26 31 38 50 55 57-60 63 67 68 76 77 99 109 112
+119 120 125 127-131. The later TODO-161..191 (TODO-132..160 are unused here): DONE 16 (161-164 checked 2026-11-04, 182,
+183, 186 = the renumbered second TODO-184, 187; 166-168, 170, 171, 185 checked 2026-11-06; 189, 190), open 15 (165, 169, 172-181, 184, 188, 191). All 162 entries: DONE 111, open 51 (recounted 2026-11-09); the
 open ones are in "Per-TODO status".
 
 ### Uncommitted state (historical, 2026-10-22, HEAD `478104b0`; current state and commit groups: "Closing audit 2026-10-23")
@@ -14995,7 +15000,6 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 58 | gated | G2, G3 | Original-B timing recorded (no >= 1x requirement, #38) + `benchmark_todo58_public_bootstrap_ci.R` 1.0.2 parity |
 | 59 | gated | G2, G3 | iBCRD <= 1.5 ms, blocking <= 2.5 ms at n = 1000 (quiet host = load1 < 1.0, #43); `w`-draw parity vs 1.0.2 |
 | 60 | gated | G2, G3 | Pocock-Simon <= 0.5 ms/arrival at t = 10/100/500/1000 (TODO-56 now closed, so the precondition is met); `w`-draw parity |
-| 62 | gated | G2 | `benchmark_model_fits.R --sections=procedures,designs`; Zhang <= 0.01 max abs log-bound difference (#21); regenerate both report copies (#39); the Zhang tolerance is DECIDED (G6 #21), only the canonical rerun + report regeneration are left |
 | 63 | gated | G5 recheck | G1 `EDI_UNITY=0` build 2026-10-23 and CI 41085170825 (e3e165fa, 2026-10-30) ASAN/UBSAN + valgrind green. Left: recheck at current HEAD (src changed since e3e165fa) and save per-wrapper results |
 | 67 | gated | G4-C R6, benchmark rows | DECIDED 2026-10-23: R6 pass rules (`--margin 0.01`, `--fraction-guard 0.02`, no more nonestimable cases than old). G1 done. Left: R6 run, benchmark rows |
 | 68 | gated | G4 | `rand`/`rand_bootstrap` CI rows (candidate manifest of 668,320 keys prepared); then docs from reconciled output |
@@ -17210,6 +17214,22 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
          `inference_count_KK_combined.R`) and in the Python binding (`bindings_glmm.cpp`). Measured single-fit cost
          about 2.3-2.8x (n = 120/200/1000: 14->35, 24->69, 126->295 ms). Any row that calls `fast_poisson_glmm_cpp`
          (or the Python `fast_poisson_glmm`) with the default, and `InferenceCountKKGLMM` in procedures, may get slower: allow them.
+       - TODO-31 (e706c6f6) GLMM/CLMM multistart: `fast_logistic_glmm_cpp` and `fast_ordinal_clmm_cpp` screen 5
+         log-sigma starts, `fast_poisson_glmm_cpp` 5 sigma x 2 beta starts. Cold fits cost about 5x (Poisson also 2.8x
+         from `n_gh` 60, above). On the pairs fixtures the old logistic and CLMM fits were the collapsed log sigma ~ -3
+         solution; the new ones match glmer / clmm (nll 241.908 vs old 241.940; 265.8045 vs old 265.949). Allowed
+         2026-11-09 (owner): `--allow '^InferenceCountGLMM \(pairs\)$' --allow '^fast_logistic_glmm_cpp \(pairs, kernel
+         only\)$' --allow '^InferenceOrdinalCLMM \(pairs\)$'`. The warm-start cost is `release_v1_1_0.md` TODO-167.
+       - TODO-90 (c189e94f) JT exact-enumeration preflight: about +0.06 ms at n = 1600 (0.07 -> 0.13 ms). Allowed
+         2026-11-09 (owner): `--allow '^InferenceOrdinalJonckheereTerpstraTest$'`.
+       - Host/build noise, allowed 2026-11-09 (owner): `InferenceAllSimpleWilcox` HL (models, 0.16 -> 0.18 ms; kernel
+         unchanged) and `InferenceSurvivalGLMMWeibullFrailtyNormalOneLik` (wald, 1.13 -> 1.13 ms raw), flagged only after
+         the 0.80 host normalization and the `EDI_PORTABLE` 0 -> 1 switch: `--allow '^R \| models \|
+         InferenceAllSimpleWilcox \|' --allow '^R \| wald \| InferenceSurvivalGLMMWeibullFrailtyNormalOneLik \|'`.
+       - Result 2026-11-09: full run 2026-11-08 05:18-06:32 (HEAD 7fda7491, installed EDI.so sha c1f95c54, unchanged
+         during the run) vs the committed 2026-10-07 reports: PASS (0 unexplained, 13 explained, 21 removed = the old
+         unsplit procedures/designs rows). Build-flag WARNING (EDI_PORTABLE 0 -> 1), host factor 0.80. Both
+         `R/benchmark/` copies regenerated from the `R/package_metadata/` reports. Log `/tmp/edi-g2-6l90xZ/cmp_R5.log`.
        - Patch 01 (TODO-123): one extra Hessian per previously-unconverged Newton fit. Patch 12 (TODO-107): no cost
          on well-scaled covariates; the benchmark covariates are N(0, 1). Patch 15: a read-only finite-input scan
          (bit-identical). None of these is expected to flag.

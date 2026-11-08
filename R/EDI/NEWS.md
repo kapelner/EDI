@@ -102,6 +102,12 @@ methods.
 
 ## Bug fixes
 
+* `tune_EDI_for_this_machine()` no longer aborts partway through (it stopped
+  at cell 57 of 1065 under `effort = "standard"`). Its synthetic count data had
+  no zeros, which the zero-inflated classes now reject. Zero-inflated and
+  hurdle classes are now benchmarked on counts that include structural zeros.
+  A benchmark cell that still errors is skipped with a warning and keeps the
+  shipped default; skipped cells are listed in `attr(x, "failed_cells")`.
 * `InferenceIncidLogBinomial`'s gradient CI now warns (class
   `edi_lik_ci_lik_ratio_fallback`) and records why when it returns the
   likelihood-ratio interval because gradient inversion failed; this was silent.

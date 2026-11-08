@@ -267,7 +267,11 @@ edi_tuning_machine_looks_busy = function(load_ratio_threshold = 0.5, calib_cv_th
 #'   diffs (\code{policy_diffs}), the raw per-axis deviations
 #'   (\code{raw_deviations}), the hardware fingerprint, the effort/grid/reps
 #'   used, timing, and the config file path -- printable via
-#'   \code{print()}.
+#'   \code{print()}. A benchmark cell that errors (a class that cannot fit
+#'   its synthetic data) does not abort the run: it is skipped with a
+#'   \code{warning()}, contributes no deviation (the shipped default stays in
+#'   force there), and is listed in \code{attr(x, "failed_cells")} (counted
+#'   in \code{n_failed_cells}).
 #' @seealso \code{\link{get_local_EDI_optimization}} to see what is saved,
 #'   \code{\link{clear_local_EDI_optimization}} to return to shipped
 #'   defaults; the underlying tables:
@@ -408,25 +412,38 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 	if (!quiet) cat(run_all_inference_progress_bar_line(0L, n_total, bar$elapsed, label = "Cells"))
 
 	# ---- Run axes ----
+	# A benchmark cell that errors (e.g. a class that cannot fit the synthetic
+	# data) is skipped by the axis engine, not fatal: it yields no deviation, so
+	# the shipped default stays in force there, and is collected here (engines
+	# return it as attr(, "failed_cells")) for the result object.
+	failed_cells = list()
+	take_failed = function(devs, axis, operation = NULL) {
+		for (f in attr(devs, "failed_cells")) {
+			failed_cells[[length(failed_cells) + 1L]] <<- c(list(axis = axis), if (!is.null(operation) && is.null(f$operation)) list(operation = operation), f)
+		}
+		attr(devs, "failed_cells") = NULL
+		devs
+	}
 	raw = list()
 	if (!is.null(plan$cold_start)) {
 		raw$cold_start = list(
-			deviations = edi_tuning_tune_cold_start(n_grid = n_grid, reps = reps, families = plan$cold_start$families, on_cell_done = on_cell_done),
+			deviations = take_failed(edi_tuning_tune_cold_start(n_grid = n_grid, reps = reps, families = plan$cold_start$families, on_cell_done = on_cell_done), "cold_start"),
 			n_grid = n_grid
 		)
 	}
 	if (!is.null(plan$warm_start)) {
 		devs = list()
 		for (op in names(plan$warm_start$families_by_operation)) {
-			devs[[op]] = edi_tuning_tune_warm_start(operation = op, n_grid = n_grid, reps = reps,
-			                                        families = plan$warm_start$families_by_operation[[op]], on_cell_done = on_cell_done)
+			devs[[op]] = take_failed(edi_tuning_tune_warm_start(operation = op, n_grid = n_grid, reps = reps,
+			                                                    families = plan$warm_start$families_by_operation[[op]], on_cell_done = on_cell_done),
+			                         "warm_start", op)
 		}
 		raw$warm_start = list(deviations = devs, n_grid = n_grid)
 	}
 	if (!is.null(plan$optimizer)) {
 		raw$optimizer = list(
-			deviations = edi_tuning_tune_optimizer_algorithm(converged_fn = converged_fn, n_grid = n_grid, reps = reps,
-			                                                families = plan$optimizer$families, on_cell_done = on_cell_done),
+			deviations = take_failed(edi_tuning_tune_optimizer_algorithm(converged_fn = converged_fn, n_grid = n_grid, reps = reps,
+			                                                            families = plan$optimizer$families, on_cell_done = on_cell_done), "optimizer"),
 			n_grid = n_grid
 		)
 	}
@@ -434,8 +451,9 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 		devs = list()
 		for (op in names(plan$parallel$families_by_operation)) {
 			for (k in plan$parallel$num_cores_grid) {
-				devs = c(devs, edi_tuning_tune_parallel_crossover(operation = op, num_cores = k, n_grid = n_grid, reps = reps,
-				                                                  families = plan$parallel$families_by_operation[[op]], on_cell_done = on_cell_done))
+				devs = c(devs, take_failed(edi_tuning_tune_parallel_crossover(operation = op, num_cores = k, n_grid = n_grid, reps = reps,
+				                                                              families = plan$parallel$families_by_operation[[op]], on_cell_done = on_cell_done),
+				                           "parallel"))
 			}
 		}
 		raw$parallel = list(deviations = devs)
@@ -444,6 +462,14 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 	if (!quiet) {
 		cat("\r\033[K")
 		cat(sprintf("Status: Completed in %s.\n", run_all_inference_fmt_completed_secs(elapsed_total)))
+	}
+	if (length(failed_cells) > 0L) {
+		failed_classes = unique(vapply(failed_cells, function(f) as.character(f$class), character(1)))
+		warning(sprintf(
+			"tune_EDI_for_this_machine(): %d benchmark cell%s failed and %s skipped (shipped defaults kept there) for: %s. First error: %s See attr(x, \"failed_cells\").",
+			length(failed_cells), if (length(failed_cells) == 1L) "" else "s", if (length(failed_cells) == 1L) "was" else "were",
+			paste(failed_classes, collapse = ", "), failed_cells[[1]]$error
+		), call. = FALSE, immediate. = TRUE)
 	}
 
 	# ---- Correctness gate (TODO-8): re-fit every accepted deviation once under
@@ -494,7 +520,8 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 		elapsed_secs_total = elapsed_total,
 		dry_run = dry_run,
 		config_path = edi_tuning_config_path(),
-		n_discarded_by_correctness_gate = length(unlist(discarded, recursive = FALSE))
+		n_discarded_by_correctness_gate = length(unlist(discarded, recursive = FALSE)),
+		n_failed_cells = length(failed_cells)
 	)
 	class(result) = "EDILocalMachineTuning"
 	# The raw deviations and the correctness-gate's discards travel on the
@@ -503,6 +530,7 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 	# there, since they were rejected specifically so they would not be applied.
 	attr(result, "raw_deviations") = raw
 	attr(result, "discarded_by_correctness_gate") = discarded
+	attr(result, "failed_cells") = failed_cells
 
 	if (!dry_run) {
 		to_save = unclass(result)
@@ -560,6 +588,11 @@ print.EDILocalMachineTuning = function(x, ...) {
 	if (n_disc > 0L) {
 		cat(sprintf("  (%d timing win%s discarded by the correctness gate -- see attr(x, \"discarded_by_correctness_gate\"))\n",
 		            n_disc, if (n_disc == 1L) "" else "s"))
+	}
+	n_failed = x$n_failed_cells %||% 0L
+	if (n_failed > 0L) {
+		cat(sprintf("  (%d benchmark cell%s failed and %s skipped, shipped defaults kept -- see attr(x, \"failed_cells\"))\n",
+		            n_failed, if (n_failed == 1L) "" else "s", if (n_failed == 1L) "was" else "were"))
 	}
 	invisible(x)
 }

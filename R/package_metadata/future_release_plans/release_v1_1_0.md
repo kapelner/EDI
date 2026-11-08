@@ -2038,6 +2038,11 @@ ticked in their **owning plans**; this list is the release index.
   - Fix: refer the score statistic to its parametric-bootstrap distribution under the null fit, reusing the class's `simulate_under_lik_null` (already used by its LR bootstrap).
   - Done when: score size within the binomial band of 0.05 at n = 200 on the TODO-189 DGP; runtime cost documented.
 
+- [ ] TODO-167 (added 2026-11-09, owner; found by the v1.0.5 TODO-62 benchmark regression check): **GLMM / CLMM kernels run the full log-sigma multistart even when given `warm_start_params`.**
+  - Why: v1.0.5 TODO-31 (e706c6f6) made `fast_logistic_glmm_cpp` (`src/fast_logistic_glmm.cpp` ~L521-565) and `fast_ordinal_clmm_cpp` (`src/fast_ordinal_clmm.cpp` ~L107-144) screen 5 log-sigma starts, and `fast_poisson_glmm_cpp` (`src/fast_poisson_glmm.cpp` ~L414-472) 5 sigma starts x 2 beta starts, keeping the best objective. The screening also runs when the caller passes a warm start, so warm starts save nothing: on the benchmark pairs fixture, warm-started at the optimum, logistic 46 ms vs 47 ms cold, CLMM 88 ms vs 79 ms cold (2026-11-09 probe, installed EDI). Bootstrap, randomization and CI-search refits that warm-start therefore pay about 5x per refit.
+  - Fix: when `warm_start_params` is supplied (and finite, length-checked), start from it alone, optionally plus one cold start, and keep the better objective; keep the full screen for cold fits. Verify per file (no full build).
+  - Done when: warm-started refits at the optimum cost about one single-start fit; cold-fit results unchanged bit for bit; resampling results unchanged or with the change explained (a warm start can land in a different mode than the screen, so check on the TODO-31 sigma-collapse datasets).
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update

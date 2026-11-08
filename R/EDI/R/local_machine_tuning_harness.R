@@ -106,11 +106,51 @@ edi_tuning_live_families = function() {
 #' @param n Sample size for this benchmark cell.
 #' @param seed RNG seed; held fixed across the A/B pair of a single cell so
 #'   both settings see identical data.
+#' @param class Optional inference class name the experiment is built for.
+#'   For a zero-augmented count class (see
+#'   \code{\link{edi_tuning_class_needs_zero_counts}}) the count response
+#'   gets ~25\% structural zeros: the shared count recipe has none, and since
+#'   2026-11-04 a zero-inflated class's constructor stops on zero-free data
+#'   (aborting a whole \code{tune_EDI_for_this_machine(effort = "standard")}
+#'   run at cell 57 of 1065). \code{NULL} (default) and every other class
+#'   get the unchanged recipe.
 #' @return A completed \code{DesignSeqOneByOneBernoulli}.
 #' @keywords internal
 #' @noRd
-edi_tuning_synthetic_experiment = function(response_type, n, seed = 20260821L) {
-	inference_migration_complete_design(response_type = response_type, n = n, seed = seed)
+edi_tuning_synthetic_experiment = function(response_type, n, seed = 20260821L, class = NULL) {
+	zero_prob = if (identical(response_type, "count") && edi_tuning_class_needs_zero_counts(class)) 0.25 else 0
+	inference_migration_complete_design(response_type = response_type, n = n, seed = seed,
+	                                    structural_zero_prob = zero_prob)
+}
+
+#' Is \code{class} a zero-augmented count model (zero-inflated or hurdle)?
+#'
+#' Read off the class's own \code{za_description()} private method (walking
+#' the R6 inheritance chain), so new zero-augmented classes are picked up
+#' without a list to maintain; classes implemented without that shared source
+#' (e.g. \code{InferenceCountHurdleNegBin}) are caught by name
+#' (\code{InferenceCountZeroInflated*} / \code{InferenceCountHurdle*}). Zero-inflated mixtures need zeros to be
+#' identified (their constructor stops otherwise); a hurdle's binary part is
+#' degenerate without them -- benchmarking either on zero-free data measures
+#' an unrepresentative fit.
+#'
+#' @param class Inference class name, or \code{NULL}.
+#' @return \code{TRUE}/\code{FALSE}.
+#' @keywords internal
+#' @noRd
+edi_tuning_class_needs_zero_counts = function(class) {
+	if (is.null(class) || !is.character(class) || length(class) != 1L) return(FALSE)
+	if (grepl("^InferenceCount(ZeroInflated|Hurdle)", class)) return(TRUE)
+	gen = get0(class, envir = asNamespace("EDI"), inherits = FALSE)
+	while (inherits(gen, "R6ClassGenerator")) {
+		f = gen$private_methods$za_description
+		if (is.function(f)) {
+			desc = tryCatch(as.character(f()), error = function(e) "")
+			return(isTRUE(grepl("^(Zero-Inflated|Hurdle)", desc)))
+		}
+		gen = gen$get_inherit()
+	}
+	FALSE
 }
 
 #' Time two candidate settings interleaved (A/B/A/B/...), not blocked (A...A/B...B)

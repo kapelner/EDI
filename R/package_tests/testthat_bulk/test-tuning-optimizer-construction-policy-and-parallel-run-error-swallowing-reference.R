@@ -20,9 +20,9 @@ test_that("the requested algorithm is in force while the experiment is built and
 	before <- env$optimization_dispatch_policy_config
 	seen <- NULL
 	orig <- Z("edi_tuning_synthetic_experiment")
-	restore <- replace_in_ns("edi_tuning_synthetic_experiment", function(response_type, n, seed) {
+	restore <- replace_in_ns("edi_tuning_synthetic_experiment", function(response_type, n, seed, ...) {
 		seen <<- c(seen, Z("edi_optimization_dispatch_policy")("InferenceCountPoisson"), Z("edi_optimization_dispatch_policy")("InferenceCountNegBin"))
-		orig(response_type, n = n, seed = seed)
+		orig(response_type, n = n, seed = seed, ...)
 	})
 	on.exit({ restore(); lockBinding("edi_tuning_synthetic_experiment", ns) }, add = TRUE)
 	inf <- Z("edi_tuning_construct_under_optimizer")("InferenceCountPoisson", "count", 40L, "lbfgs", 1L)

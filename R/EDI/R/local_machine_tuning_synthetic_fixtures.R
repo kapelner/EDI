@@ -57,11 +57,19 @@ inference_migration_add_subjects = function(des, x) {
 #'   `"proportion"`, `"ordinal"`, `"survival"`.
 #' @param n Number of subjects.
 #' @param seed RNG seed (restored on exit; does not leak into caller state).
+#' @param structural_zero_prob Count response only: probability that a
+#'   subject's count is replaced by a structural zero (drawn after the
+#'   assignment, so `w` is unchanged). The default count recipe has no zeros
+#'   at all (its smallest mean rounds to 1), which zero-inflated mixtures
+#'   reject; the tuner passes a positive value for zero-augmented (ZI /
+#'   hurdle) classes. At least one zero is guaranteed when positive. The
+#'   default 0 leaves the recipe -- and the migration golden values --
+#'   untouched.
 #' @return A completed `DesignSeqOneByOneBernoulli` with every subject
 #'   assigned and responded.
 #' @keywords internal
 #' @noRd
-inference_migration_complete_design = function(response_type, n = 12L, seed = 20260728L) {
+inference_migration_complete_design = function(response_type, n = 12L, seed = 20260728L, structural_zero_prob = 0) {
 	inference_migration_with_seed(seed, {
 		x = data.frame(
 			x = seq(-1.1, 1.1, length.out = n),
@@ -84,6 +92,11 @@ inference_migration_complete_design = function(response_type, n = 12L, seed = 20
 			add_all_subject_responses_seq(des, y)
 		} else if (identical(response_type, "count")) {
 			y = as.integer(pmax(0L, round(exp(0.6 + 0.35 * w01 + 0.2 * x$x))))
+			if (structural_zero_prob > 0) {
+				u = stats::runif(n)
+				y[u < structural_zero_prob] = 0L
+				if (!any(y == 0L)) y[which.min(u)] = 0L
+			}
 			add_all_subject_responses_seq(des, y)
 		} else if (identical(response_type, "proportion")) {
 			y = pmin(0.95, pmax(0.05, stats::plogis(linpred)))

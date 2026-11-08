@@ -142,8 +142,8 @@ edi_tuning_verify_warm_start_deviation = function(dev, operation, tol = EDI_TUNI
 #' @noRd
 edi_tuning_verify_parallel_deviation = function(dev, tol = EDI_TUNING_CORRECTNESS_DEFAULT_TOLERANCE) {
 	seed = edi_tuning_default_seed(dev$class, dev$crossover_n)
-	des_a = edi_tuning_synthetic_experiment(dev$response_type, n = dev$crossover_n, seed = seed)
-	des_b = edi_tuning_synthetic_experiment(dev$response_type, n = dev$crossover_n, seed = seed)
+	des_a = edi_tuning_synthetic_experiment(dev$response_type, n = dev$crossover_n, seed = seed, class = dev$class)
+	des_b = edi_tuning_synthetic_experiment(dev$response_type, n = dev$crossover_n, seed = seed, class = dev$class)
 	generator = get(dev$class, envir = asNamespace("EDI"), inherits = FALSE)
 	a = edi_tuning_safe_point_estimate(generator$new(des_a))
 	b = edi_tuning_safe_point_estimate(generator$new(des_b))

@@ -20,6 +20,43 @@
 #' @noRd
 NULL
 
+#' Run one benchmark cell, turning an error into a recorded failure
+#'
+#' One (family, n) cell of any axis engine runs real fits on synthetic data;
+#' a class that cannot fit that data (e.g. a new identification
+#' \code{stop()} in its constructor) must not abort the whole
+#' \code{tune_EDI_for_this_machine()} run. \code{cell_fn()}'s value is
+#' returned on success; on error the failure (\code{class},
+#' \code{response_type}, \code{n}, \code{error}, plus any \code{extra}
+#' fields) is appended to the caller's \code{failures} environment and
+#' \code{NULL} is returned, so the cell contributes no deviation and the
+#' shipped default stays in force for it. Interrupts are not caught.
+#'
+#' @keywords internal
+#' @noRd
+edi_tuning_run_cell = function(cell_fn, failures, class, response_type, n, extra = list()) {
+	tryCatch(cell_fn(), error = function(e) {
+		failures$cells[[length(failures$cells) + 1L]] = c(
+			list(class = class, response_type = response_type, n = as.integer(n)),
+			extra,
+			list(error = conditionMessage(e))
+		)
+		NULL
+	})
+}
+
+#' Attach recorded cell failures to an engine's deviation list
+#'
+#' Only when there are any, so a clean run's result is unchanged (still a
+#' bare \code{list()} when nothing was accepted).
+#'
+#' @keywords internal
+#' @noRd
+edi_tuning_attach_failed_cells = function(deviations, failures) {
+	if (length(failures$cells) > 0L) attr(deviations, "failed_cells") = failures$cells
+	deviations
+}
+
 #' Shared engine: find binary-setting deviations via interleaved timing
 #'
 #' Axis-agnostic driver for any TRUE/FALSE performance setting that varies
@@ -55,7 +92,10 @@ NULL
 #' @return A list of accepted deviations, each
 #'   \code{list(class, response_type, n, from, to, rel_improvement,
 #'   median_baseline, median_candidate)}. Empty list if nothing beat the
-#'   noise margin anywhere.
+#'   noise margin anywhere. A cell that errors is skipped (no deviation)
+#'   and recorded in \code{attr(result, "failed_cells")} (see
+#'   \code{\link{edi_tuning_run_cell}}); the attribute is absent when no
+#'   cell failed.
 #' @keywords internal
 #' @noRd
 edi_tuning_tune_binary_axis = function(families, n_grid, reps,
@@ -75,6 +115,8 @@ edi_tuning_tune_binary_axis = function(families, n_grid, reps,
 	}
 
 	deviations = list()
+	failures = new.env(parent = emptyenv())
+	failures$cells = list()
 	for (i in seq_len(nrow(families))) {
 		cl = families$class[[i]]
 		rt = families$response_type[[i]]
@@ -83,14 +125,16 @@ edi_tuning_tune_binary_axis = function(families, n_grid, reps,
 			current = isTRUE(get_current_setting(cl, n))
 			candidate = !current
 			seed = seed_fn(cl, n)
-			ab = edi_tuning_interleaved_ab(
-				fn_a = function() run_setting(cl, rt, n, current, seed),
-				fn_b = function() run_setting(cl, rt, n, candidate, seed),
-				reps = reps
-			)
-			acc = edi_tuning_accept_candidate(ab$times_a, ab$times_b, min_rel_improvement, iqr_multiplier)
+			acc = edi_tuning_run_cell(function() {
+				ab = edi_tuning_interleaved_ab(
+					fn_a = function() run_setting(cl, rt, n, current, seed),
+					fn_b = function() run_setting(cl, rt, n, candidate, seed),
+					reps = reps
+				)
+				edi_tuning_accept_candidate(ab$times_a, ab$times_b, min_rel_improvement, iqr_multiplier)
+			}, failures, cl, rt, n)
 			if (!is.null(on_cell_done)) on_cell_done(proc.time()[["elapsed"]] - t_cell)
-			if (acc$accept) {
+			if (!is.null(acc) && acc$accept) {
 				deviations[[length(deviations) + 1L]] = list(
 					class = cl, response_type = rt, n = n,
 					from = current, to = candidate,
@@ -101,7 +145,7 @@ edi_tuning_tune_binary_axis = function(families, n_grid, reps,
 			}
 		}
 	}
-	deviations
+	edi_tuning_attach_failed_cells(deviations, failures)
 }
 
 #' Which live families the cold-start axis is meaningful for
@@ -146,7 +190,7 @@ edi_tuning_cold_start_run_setting = function(class, response_type, n, setting, s
 	set_cold_start_dispatch_policy(list(
 		inference_class_overrides = stats::setNames(setting, paste0("^", class, "$"))
 	))
-	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed)
+	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed, class = class)
 	generator = get(class, envir = asNamespace("EDI"), inherits = FALSE)
 	invisible(generator$new(des))
 }
@@ -336,7 +380,7 @@ edi_tuning_warm_start_run_setting = function(class, response_type, n, setting, s
 		list(list(inference_class_overrides = stats::setNames(setting, paste0("^", class, "$")))),
 		operation
 	))
-	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed)
+	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed, class = class)
 	generator = get(class, envir = asNamespace("EDI"), inherits = FALSE)
 	inf = generator$new(des)
 	# Returns the operation's own result (a CI, a point estimate, ...) rather than
@@ -424,7 +468,8 @@ edi_tuning_tune_warm_start = function(operation, n_grid = c(50L, 500L), reps = 5
 #'   timed).
 #' @return A list of accepted deviations, each \code{list(class,
 #'   response_type, n, from, to, rel_improvement, median_baseline,
-#'   median_candidate)}.
+#'   median_candidate)}. A candidate whose A/B pair errors is skipped and
+#'   recorded in \code{attr(result, "failed_cells")} (absent when none).
 #' @keywords internal
 #' @noRd
 edi_tuning_tune_categorical_axis = function(families, n_grid, reps, candidates,
@@ -445,6 +490,8 @@ edi_tuning_tune_categorical_axis = function(families, n_grid, reps, candidates,
 	}
 
 	deviations = list()
+	failures = new.env(parent = emptyenv())
+	failures$cells = list()
 	for (i in seq_len(nrow(families))) {
 		cl = families$class[[i]]
 		rt = families$response_type[[i]]
@@ -458,11 +505,16 @@ edi_tuning_tune_categorical_axis = function(families, n_grid, reps, candidates,
 			seed = seed_fn(cl, n)
 			best = NULL
 			for (candidate in setdiff(candidates, current)) {
-				ab = edi_tuning_interleaved_ab(
-					fn_a = function() run_setting(cl, rt, n, current, seed),
-					fn_b = function() run_setting(cl, rt, n, candidate, seed),
-					reps = reps
-				)
+				# An erroring A/B pair is recorded and that candidate skipped (as if
+				# it had not converged); the other candidates still get timed.
+				ab = edi_tuning_run_cell(function() {
+					edi_tuning_interleaved_ab(
+						fn_a = function() run_setting(cl, rt, n, current, seed),
+						fn_b = function() run_setting(cl, rt, n, candidate, seed),
+						reps = reps
+					)
+				}, failures, cl, rt, n, extra = list(from = current, to = candidate))
+				if (is.null(ab)) next
 				candidate_converged_every_rep = all(vapply(ab$results_b, isTRUE, logical(1)))
 				if (!candidate_converged_every_rep) next
 				acc = edi_tuning_accept_candidate(ab$times_a, ab$times_b, min_rel_improvement, iqr_multiplier)
@@ -480,7 +532,7 @@ edi_tuning_tune_categorical_axis = function(families, n_grid, reps, candidates,
 			if (!is.null(best)) deviations[[length(deviations) + 1L]] = best
 		}
 	}
-	deviations
+	edi_tuning_attach_failed_cells(deviations, failures)
 }
 
 #' Every algorithm the optimizer axis may choose among
@@ -552,7 +604,7 @@ edi_tuning_construct_under_optimizer = function(class, response_type, n, algorit
 	set_optimization_dispatch_policy(list(
 		inference_class_overrides = stats::setNames(algorithm, paste0("^", class, "$"))
 	))
-	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed)
+	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed, class = class)
 	generator = get(class, envir = asNamespace("EDI"), inherits = FALSE)
 	generator$new(des)
 }
@@ -665,7 +717,7 @@ edi_tuning_parallel_families = function(operation) {
 edi_tuning_parallel_run_setting = function(class, response_type, n, seed, operation) {
 	ws_operation = EDI_TUNING_PARALLEL_OPERATION_TO_WARM_START_OPERATION[[operation]]
 	spec = EDI_TUNING_WARM_START_OPERATION_CALLS[[ws_operation]]
-	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed)
+	des = edi_tuning_synthetic_experiment(response_type, n = n, seed = seed, class = class)
 	generator = get(class, envir = asNamespace("EDI"), inherits = FALSE)
 	inf = generator$new(des)
 	# 2026-08-27: a class passing edi_tuning_parallel_families()'s method-
@@ -725,7 +777,9 @@ edi_tuning_parallel_run_setting = function(class, response_type, n, seed, operat
 #'   crossover_n, rel_improvement)}. Families with no crossover in
 #'   \code{n_grid} are omitted (not reported with \code{NA}) -- \code{NULL}
 #'   deviations carry no persistable information, matching every other
-#'   axis's "only store real deviations" convention.
+#'   axis's "only store real deviations" convention. A cell that errors is
+#'   recorded in \code{attr(result, "failed_cells")} (absent when none) and
+#'   that family gets no crossover.
 #' @keywords internal
 #' @noRd
 edi_tuning_tune_parallel_crossover = function(operation, num_cores, n_grid = c(200L, 1000L, 5000L), reps = 5L,
@@ -745,6 +799,8 @@ edi_tuning_tune_parallel_crossover = function(operation, num_cores, n_grid = c(2
 	on.exit(set_num_cores(prior_cores), add = TRUE)
 
 	deviations = list()
+	failures = new.env(parent = emptyenv())
+	failures$cells = list()
 	for (i in seq_len(nrow(families))) {
 		cl = families$class[[i]]
 		rt = families$response_type[[i]]
@@ -754,16 +810,28 @@ edi_tuning_tune_parallel_crossover = function(operation, num_cores, n_grid = c(2
 			a_first = ((i + j) %% 2L) == 0L
 			t_cell = proc.time()[["elapsed"]]
 
-			ab = edi_tuning_blocked_ab(
-				fn_a = function() edi_tuning_parallel_run_setting(cl, rt, n, seed, operation),
-				fn_b = function() edi_tuning_parallel_run_setting(cl, rt, n, seed, operation),
-				reps = reps,
-				a_first = a_first,
-				setup_a = function() set_num_cores(1L),
-				setup_b = function() set_num_cores(num_cores)
-			)
-			acc = edi_tuning_accept_candidate(ab$times_a, ab$times_b, min_rel_improvement, iqr_multiplier)
+			acc = edi_tuning_run_cell(function() {
+				ab = edi_tuning_blocked_ab(
+					fn_a = function() edi_tuning_parallel_run_setting(cl, rt, n, seed, operation),
+					fn_b = function() edi_tuning_parallel_run_setting(cl, rt, n, seed, operation),
+					reps = reps,
+					a_first = a_first,
+					setup_a = function() set_num_cores(1L),
+					setup_b = function() set_num_cores(num_cores)
+				)
+				edi_tuning_accept_candidate(ab$times_a, ab$times_b, min_rel_improvement, iqr_multiplier)
+			}, failures, cl, rt, n, extra = list(operation = operation, num_cores = as.integer(num_cores)))
 			if (!is.null(on_cell_done)) on_cell_done(proc.time()[["elapsed"]] - t_cell)
+			if (is.null(acc)) {
+				# A failed cell leaves this family's crossover unknown: a win at a
+				# larger n would not mean "parallel wins from there on", so the
+				# family records no crossover and its remaining grid points are
+				# skipped (NA callbacks, as below).
+				if (!is.null(on_cell_done) && j < length(n_grid)) {
+					for (k in seq_len(length(n_grid) - j)) on_cell_done(NA_real_)
+				}
+				break
+			}
 			if (acc$accept) {
 				deviations[[length(deviations) + 1L]] = list(
 					class = cl, response_type = rt, operation = operation,
@@ -783,5 +851,5 @@ edi_tuning_tune_parallel_crossover = function(operation, num_cores, n_grid = c(2
 			}
 		}
 	}
-	deviations
+	edi_tuning_attach_failed_cells(deviations, failures)
 }
