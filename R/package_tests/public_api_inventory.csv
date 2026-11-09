@@ -5119,8 +5119,8 @@
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","capabilities","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","clear_randomization_cache","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","clone","InferenceIncidLogBinomial","class_local",1,"deep",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_asymp_confidence_interval","InferenceIncidLogBinomial","class_local",1,"alpha",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_asymp_two_sided_pval","InferenceIncidLogBinomial","class_local",1,"delta",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_asymp_confidence_interval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_asymp_two_sided_pval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_bayesian_bootstrap_confidence_interval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_bayesian_bootstrap_two_sided_pval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_bootstrap_confidence_interval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
@@ -5160,8 +5160,8 @@
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_subsampling_confidence_interval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_subsampling_sensitivity","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_subsampling_two_sided_pval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_wald_confidence_interval","InferenceIncidLogBinomial","class_local",1,"alpha",TRUE,FALSE,TRUE,FALSE,"",TRUE
-"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_wald_two_sided_pval","InferenceIncidLogBinomial","class_local",1,"delta",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_wald_confidence_interval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
+"InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","compute_wald_two_sided_pval","InferenceIncidLogBinomial","class_local",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","duplicate","Inference","inherited",2,"make_fork_cluster;verbose",FALSE,TRUE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","get_analysis_data","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
 "InferenceIncidLogBinomial","r6_public_method","InferenceIncidLogBinomial","get_covariates","Inference","inherited",0,"",FALSE,FALSE,TRUE,FALSE,"",TRUE
