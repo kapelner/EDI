@@ -1,0 +1,322 @@
+name: calibration-study
+
+# Published monthly calibration study (release_v1_2_0.md TODO-36; scripts in
+# R/package_tests/calibration/*calibration_study*). Size, coverage, null bias and
+# power for every inference class on every applicable design, published to the
+# public `calibration-results` branch (README + figures + tables) after every wave.
+#
+# A campaign is pinned to the commit it started on and runs in WAVES: each run of
+# this workflow plans the next --wave-size unfinished shards from the campaign's
+# ledger on the results branch, runs them, publishes, and dispatches the next run
+# until nothing is left. Why waves: the campaign is thousands of ~25-minute shards
+# and a matrix holds at most 256 jobs.
+#
+# Sharing GitHub's 20 concurrent jobs with push CI (free GitHub-hosted runners
+# only, owner ruling 2026-11-09): `max-parallel: 16` keeps 4 slots free, and every
+# shard is time-boxed to ~25 min of work (run_calibration_study.R
+# --deadline-minutes), so a push's jobs never wait more than one shard.
+#
+# Never a required check. A campaign goes red only when it completes with a cell
+# significantly worse than nominal (or than its row in
+# calibration_study_accepted.csv); interim waves only publish.
+on:
+  schedule:
+    - cron: '17 3 1 * *'   # 1st of every month, 03:17 UTC: start a campaign
+  workflow_dispatch:
+    inputs:
+      campaign:
+        description: 'Campaign id to continue (blank = start a new campaign at this commit)'
+        default: ''
+      ns:
+        description: 'Sample sizes (new campaign only)'
+        default: '50,200,1000'
+      power_ns:
+        description: 'Sample sizes that also get the power effects (new campaign only)'
+        default: '50,200'
+      effects:
+        description: 'Effects (new campaign only): null,power20,power50,power80'
+        default: 'null,power20,power50,power80'
+      designs:
+        description: 'Designs, comma-separated, or all (new campaign only)'
+        default: 'all'
+      response_types:
+        description: 'Response types, comma-separated, or all (new campaign only)'
+        default: 'all'
+      null_reps:
+        description: 'Replicates per null cell (new campaign only)'
+        default: '1000'
+      power_reps:
+        description: 'Replicates per power cell (new campaign only)'
+        default: '500'
+
+concurrency:
+  group: calibration-study
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RESULTS_BRANCH: calibration-results
+  WAVE_SIZE: 64
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      campaign: ${{ steps.campaign.outputs.campaign }}
+      sha: ${{ steps.campaign.outputs.sha }}
+      new: ${{ steps.campaign.outputs.new }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      wave: ${{ steps.plan.outputs.wave }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: r-lib/actions/setup-r@v2
+      - name: Load the results branch
+        run: |
+          git clone --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results \
+            || mkdir -p results
+      - name: Start or continue a campaign
+        id: campaign
+        run: |
+          c="${{ inputs.campaign }}"
+          if [ -z "$c" ]; then
+            sha="$GITHUB_SHA"
+            c="$(date -u +%Y-%m-%d)-${sha::8}"
+            new=true
+            mkdir -p "results/campaigns/$c"
+            {
+              echo "SHA=$sha"
+              echo "STARTED=$(date -u +%Y-%m-%dT%H:%MZ)"
+              echo "NS=${{ inputs.ns || '50,200,1000' }}"
+              echo "POWER_NS=${{ inputs.power_ns || '50,200' }}"
+              echo "EFFECTS=${{ inputs.effects || 'null,power20,power50,power80' }}"
+              echo "DESIGNS=${{ inputs.designs || 'all' }}"
+              echo "RESPONSE_TYPES=${{ inputs.response_types || 'all' }}"
+              echo "NULL_REPS=${{ inputs.null_reps || '1000' }}"
+              echo "POWER_REPS=${{ inputs.power_reps || '500' }}"
+            } > "results/campaigns/$c/campaign.env"
+          else
+            f="results/campaigns/$c/campaign.env"
+            if [ ! -f "$f" ]; then echo "unknown campaign $c (no $f on $RESULTS_BRANCH)"; exit 1; fi
+            sha="$(grep '^SHA=' "$f" | cut -d= -f2)"
+            new=false
+          fi
+          echo "campaign=$c" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+          cp "results/campaigns/$c/campaign.env" campaign.env
+      # The planner (and every later step) comes from the campaign's own commit.
+      - name: Plan the next wave
+        id: plan
+        run: |
+          git checkout -q "${{ steps.campaign.outputs.sha }}"
+          set -a; . ./campaign.env; set +a
+          matrix="$(Rscript R/package_tests/calibration/plan_calibration_study.R \
+            --campaign-dir "results/campaigns/${{ steps.campaign.outputs.campaign }}" \
+            --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
+            --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
+            --wave-size "$WAVE_SIZE" --meta-out meta.txt)"
+          cat meta.txt
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          grep '^wave=' meta.txt >> "$GITHUB_OUTPUT"
+          { echo "### Calibration study ${{ steps.campaign.outputs.campaign }}"; echo '```'; cat meta.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: study-campaign
+          path: campaign.env
+          retention-days: 7
+
+  # Compile EDI once per commit and share it with every shard and every wave of the
+  # campaign (cache keyed by the pinned commit; same EDI_PORTABLE rationale as
+  # test-bulk-non-cran.yml's build job).
+  build:
+    needs: plan
+    if: needs.plan.outputs.wave != '0'
+    runs-on: ubuntu-latest
+    env:
+      EDI_PORTABLE: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - id: cache
+        uses: actions/cache@v5
+        with:
+          path: .edi-install-scratch
+          key: calibration-study-edi-${{ needs.plan.outputs.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+      - name: Install the campaign's commit into an isolated library
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.edi-install-scratch"
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
+      - run: tar -czf edi-build.tar.gz .edi-install-scratch
+      - uses: actions/upload-artifact@v7
+        with:
+          name: study-edi-build
+          path: edi-build.tar.gz
+          retention-days: 3
+
+  shards:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    # ~25 min of replicates (the deadline) + setup + the replicates in flight.
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      EDI_PORTABLE: 1
+      NOT_CRAN: true
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          dependencies: '"all"'
+      - uses: actions/download-artifact@v8
+        with:
+          name: study-edi-build
+          path: .
+      - name: Restore the pre-built library
+        run: |
+          tar -xzf edi-build.tar.gz
+          echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+      # `nproc --all`, not `nproc`: GNU nproc honours OMP_NUM_THREADS=1 (see
+      # calibration-fast-tier.yml). The deadline starts when R does, after setup.
+      - name: Run shard ${{ matrix.id }}
+        run: |
+          Rscript R/package_tests/calibration/run_calibration_study.R \
+            --response-type "${{ matrix.response_type }}" --design "${{ matrix.design }}" --n "${{ matrix.n }}" \
+            --effect "${{ matrix.effect }}" --reps "${{ matrix.reps }}" --cores "$(nproc --all)" \
+            --deadline-minutes 25 --secs-per-rep "${{ matrix.secs_per_rep }}" --out-dir "out/${{ matrix.id }}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: study-shard-${{ matrix.id }}
+          path: out/${{ matrix.id }}
+          if-no-files-found: warn
+          retention-days: 3
+
+  publish:
+    needs: [plan, shards]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.wave != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push to the calibration-results branch
+      actions: write    # dispatch the next wave
+    env:
+      GH_TOKEN: ${{ github.token }}
+      C: ${{ needs.plan.outputs.campaign }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - name: Install ggplot2 (the only package the publish scripts need)
+        run: Rscript -e 'install.packages("ggplot2")'
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: study-campaign
+          path: .
+      - name: Load the results branch
+        run: |
+          git clone --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results \
+            || mkdir -p results
+          mkdir -p "results/campaigns/$C"
+          cp campaign.env "results/campaigns/$C/campaign.env"
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: study-shard-*
+          path: wave
+      - name: Add this wave to the campaign
+        run: |
+          d="results/campaigns/$C"
+          wave_no=$(( $(wc -l < "$d/runs.txt" 2>/dev/null || echo 0) + 1 ))
+          Rscript R/package_tests/calibration/merge_calibration_study_wave.R --campaign-dir "$d" --wave-dir wave
+          # Every planned shard, finished or not: the planner abandons a unit after
+          # repeated shards that never wrote shard.csv (died or timed out).
+          [ -f "$d/planned.csv" ] || echo "id,response_type,design,n,effect,wave,run_id" > "$d/planned.csv"
+          echo '${{ needs.plan.outputs.matrix }}' | jq -r --arg w "$wave_no" --arg r "${{ github.run_id }}" \
+            '.include[] | [.id, .response_type, .design, (.n|tostring), .effect, $w, $r] | @csv' >> "$d/planned.csv"
+          echo "${{ github.run_id }}" >> "$d/runs.txt"
+          echo "wave_no=$wave_no" >> "$GITHUB_ENV"
+          # This wave's raw rows, for deep dives (90 days; the campaign's totals never need them).
+          mkdir -p rows
+          for s in wave/study-shard-*; do
+            [ -f "$s/rows.csv.gz" ] && mkdir -p "rows/${s#wave/study-shard-}" && cp "$s/rows.csv.gz" "rows/${s#wave/study-shard-}/"
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: study-rows
+          path: rows
+          retention-days: 90
+          if-no-files-found: ignore
+      - name: Re-plan (progress, and whether another wave is needed)
+        run: |
+          set -a; . ./campaign.env; set +a
+          Rscript R/package_tests/calibration/plan_calibration_study.R --campaign-dir "results/campaigns/$C" \
+            --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
+            --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
+            --wave-size "$WAVE_SIZE" --meta-out after.txt > /dev/null
+          cat after.txt
+          . ./after.txt
+          pct=$(( 100 * reps_done / reps_total ))
+          echo "PROGRESS=Progress: ${reps_done} of ${reps_total} replicates (${pct}%) after wave ${wave_no}; ${units_done} of ${units} cells complete, ${units_abandoned} abandoned." >> "$GITHUB_ENV"
+          if [ "$wave" -eq 0 ]; then echo "complete" > "results/campaigns/$C/status.txt"; echo "COMPLETE=true" >> "$GITHUB_ENV";
+          else echo "running" > "results/campaigns/$C/status.txt"; echo "COMPLETE=false" >> "$GITHUB_ENV"; fi
+      - name: Analyze, plot and write the READMEs
+        run: |
+          d="results/campaigns/$C"
+          Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" \
+            --title "EDI calibration study, campaign $C" --note "$PROGRESS" --summary-md "$GITHUB_STEP_SUMMARY"
+          Rscript R/package_tests/calibration/plot_calibration_study.R --summary-dir "$d/summary" \
+            --out-dir "$d/figures" --fragment "$d/figures.md" --fig-prefix figures/
+          Rscript R/package_tests/calibration/render_calibration_study_readme.R --results-dir results --campaign "$C" \
+            --repo "${{ github.repository }}" --progress "$PROGRESS"
+      # The branch is always ONE commit (rebuilt and force-pushed): every wave
+      # rewrites figures and totals, and keeping each version would grow the history
+      # by megabytes per wave. Campaigns stay side by side as directories. Pushes made
+      # with GITHUB_TOKEN start no workflows, so this never triggers CI.
+      - name: Publish to the results branch
+        run: |
+          cd results
+          rm -rf .git
+          git init -q -b "$RESULTS_BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "EDI calibration study: campaign $C, wave $wave_no"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$RESULTS_BRANCH"
+      - name: Dispatch the next wave
+        if: env.COMPLETE != 'true'
+        run: gh workflow run calibration-study.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f campaign="$C"
+      - name: Gate (complete campaigns only)
+        if: env.COMPLETE == 'true'
+        run: |
+          n=$(cat "results/campaigns/$C/summary/gate_failures.txt")
+          echo "Calibration study $C complete: $n failing cell(s)."
+          [ "$n" -eq 0 ]

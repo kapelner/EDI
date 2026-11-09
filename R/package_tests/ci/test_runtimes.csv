@@ -928,6 +928,7 @@ R/package_tests/testthat_bulk/test-rand-bootstrap-two-sided-pval-observed-statis
 R/package_tests/testthat_bulk/test-rand-bootstrap.R,correctness,16.7,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-bisection-and-high-precision-refinement-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-bound-expansion-and-search-bounds-construction-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-rand-ci-estimand-scale-mismatch-refused.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-incidence-only-args-on-non-incidence-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-ordinal-model-coefficient-and-log-hazard-ratio-unsupported-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-guards-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1188,6 +1189,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-functional-an
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-mean-sandwich-vcov-and-se-match-pscl-and-sandwich-references.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-record-fit-summary-builder-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-refit-design-and-fit-unavailable-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zero-covariate-kk-survival.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-inflated-negbin-supported-testing-types-override-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-inflated-no-zeros-error-and-resampling-fallback.R,correctness,120,bootstrap
@@ -1442,7 +1444,6 @@ R/EDI/tests/testthat/test-probit-saturated-fit-not-converged-reference.R,coverag
 R/EDI/tests/testthat/test-procedure-failure-keeps-wald-state.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-qr-reduce-preserve-cols.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rand-ci-capability-response-type-aware.R,coverage,30,bootstrap
-R/EDI/tests/testthat/test-rand-ci-estimand-scale-mismatch-refused.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-ci-model-scale-classification.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-rand-custom-delta-shift.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-rand-null-construction.R,coverage,1.1,measured_with_30_percent_headroom
@@ -1508,7 +1509,6 @@ R/EDI/tests/testthat/test-weibull-marginal.R,coverage,1,measured_with_30_percent
 R/EDI/tests/testthat/test-wilcox-regr-bootstrap-fast-path.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-augmented-poisson-hessian-workspace.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zero-augmented-poisson-log1m.R,coverage,1,measured_with_30_percent_headroom
-R/EDI/tests/testthat/test-zero-covariate-kk-survival.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-zero-one-inflated-beta-fast-math.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zhang-fisher-std-lgamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-zinb-operator-workspace.R,coverage,1,measured_with_30_percent_headroom
@@ -2449,6 +2449,7 @@ R/package_tests/testthat_bulk/test-rand-bootstrap-two-sided-pval-observed-statis
 R/package_tests/testthat_bulk/test-rand-bootstrap.R,coverage,17.7,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-rand-ci-bisection-and-high-precision-refinement-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-bound-expansion-and-search-bounds-construction-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-rand-ci-estimand-scale-mismatch-refused.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-incidence-only-args-on-non-incidence-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-ordinal-model-coefficient-and-log-hazard-ratio-unsupported-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-rand-ci-search-bounds-and-bisection-failed-guards-reference.R,coverage,240,bootstrap
@@ -2709,6 +2710,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-poisson-marginal-functional-an
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-mean-sandwich-vcov-and-se-match-pscl-and-sandwich-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-record-fit-summary-builder-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-weighted-refit-design-and-fit-unavailable-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zero-covariate-kk-survival.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-count-family-descriptors-and-bootstrap-fallback-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-negbin-supported-testing-types-override-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-inflated-no-zeros-error-and-resampling-fallback.R,coverage,240,bootstrap

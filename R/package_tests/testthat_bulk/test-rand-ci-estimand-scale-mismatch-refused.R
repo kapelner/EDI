@@ -1,3 +1,6 @@
+library(testthat)
+library(EDI)
+
 # TODO-119 regression: the generic randomization CI inverts a logit (proportion),
 # log (count) or integer-level additive (ordinal) shift. For a class whose
 # estimate is a raw-scale mean difference / rank effect that returned delta

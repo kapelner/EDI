@@ -56,9 +56,11 @@ cal_gen_X <- function(n) data.frame(x1 = stats::rnorm(n), x2 = stats::rbinom(n, 
 # legitimately wrong because of misspecification. `dgp` picks a variant within
 # the response type for classes whose model plain data would put on the edge of
 # its parameter space (see cal_class_dgp()).
-cal_gen_y <- function(response_type, X, w, effect = 0, dgp = "default") {
+# `base_eta` (optional) replaces the p = 2 linear predictor 0.5 x1 + 0.5 x2; the
+# published calibration study (calibration_study_common.R) passes its own p = 5 one.
+cal_gen_y <- function(response_type, X, w, effect = 0, dgp = "default", base_eta = NULL) {
 	n <- nrow(X)
-	eta <- 0.5 * X$x1 + 0.5 * X$x2 + effect * w
+	eta <- (if (is.null(base_eta)) 0.5 * X$x1 + 0.5 * X$x2 else base_eta) + effect * w
 	if (!identical(dgp, "default")) return(cal_gen_y_variant(dgp, X, eta))
 	switch(response_type,
 		continuous = list(ys = 1 + eta + stats::rnorm(n)),
@@ -230,9 +232,12 @@ cal_clean_msg <- function(x) {
 # Runs every (class, formula, method) task for `classes` on one design. Returns
 # one row per task. `endpoints = TRUE` adds the p-values of the same test at the
 # two CI endpoints (pre-push only; the CI tier does not need them).
-cal_run_tasks <- function(des, classes, alpha = CAL_ALPHA, endpoints = FALSE) {
+# `methods` defaults to the four fast analytic procedures; methods listed in
+# `pval_only` get a p-value but no CI (the published study runs the randomization
+# p-value in its monthly tier and the randomization CI in a slower one).
+cal_run_tasks <- function(des, classes, alpha = CAL_ALPHA, endpoints = FALSE, methods = CAL_METHODS, pval_only = character()) {
 	if (!length(classes)) return(NULL)
-	tasks <- EDI:::run_all_inference_build_tasks(classes, CAL_FORMULAS, CAL_METHODS, des_obj = des)
+	tasks <- EDI:::run_all_inference_build_tasks(classes, CAL_FORMULAS, methods, des_obj = des)
 	rows <- lapply(tasks, function(task) {
 		if (is.na(task$method)) return(NULL)
 		t0 <- proc.time()[["elapsed"]]
@@ -246,7 +251,8 @@ cal_run_tasks <- function(des, classes, alpha = CAL_ALPHA, endpoints = FALSE) {
 			inf_obj <- do.call(get(task$cls_name, envir = asNamespace("EDI"))$new, c(list(des_obj = des), params))
 			row$estimate <- as.numeric(inf_obj$compute_estimate())[1L]
 			row$null_value <- cal_null_value(inf_obj)
-			ci <- EDI:::run_all_inference_call_ci_for_method(inf_obj, alpha, task$method)
+			ci <- if (task$method %in% pval_only) list(lower = NA_real_, upper = NA_real_, error = NULL)
+				else EDI:::run_all_inference_call_ci_for_method(inf_obj, alpha, task$method)
 			pv <- EDI:::run_all_inference_call_pval_for_method(inf_obj, task$method)
 			row$ci_a <- ci$lower
 			row$ci_b <- ci$upper

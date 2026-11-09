@@ -1,0 +1,7 @@
+"response_type","baseline_class","slope","se_sqrt_n","calibrated"
+"continuous","InferenceContinOLS",1,2.005,"n = 1000, 300 null reps, 2026-11-09"
+"incidence","InferenceIncidLogRegr",1,4.343,"n = 1000, 300 null reps, 2026-11-09"
+"proportion","InferencePropBetaRegr",1,1.278,"n = 1000, 300 null reps, 2026-11-09"
+"count","InferenceCountPoisson",0.6,1.185,"n = 1000, 300 null reps, 2026-11-09"
+"ordinal","InferenceOrdinalPropOddsRegr",1,3.783,"n = 1000, 300 null reps, 2026-11-09"
+"survival","InferenceSurvivalCoxPHRegr",1,2.579,"n = 1000, 300 null reps, 2026-11-09"

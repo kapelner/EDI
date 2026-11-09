@@ -1,3 +1,6 @@
+library(testthat)
+library(EDI)
+
 # TODO-111: a covariate frame with zero columns must give an n x 0 get_X()
 # (not 0 x 0), so the KK / frailty survival classes do not crash in
 # compute_zhang_match_data_cpp() with "X row count must match w size.".

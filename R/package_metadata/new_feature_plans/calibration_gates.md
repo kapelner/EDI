@@ -99,6 +99,23 @@ worse than the accepted level.
   Measured single-core s/rep at n = 1000: KKGLMM 360-560 (table: 1750), count 44 on reps 1:333 but > 61 on
   334:1000 (table: 165). Tighten the table only after a 4-core run's timing.csv files are in.
 
+## Published monthly study (`.github/workflows/calibration-study.yml`, release_v1_2_0.md TODO-36)
+
+Since 2026-11-09 the scheduled run is a monthly, published study; the fast tier above keeps its scripts and
+accepted rows but no schedule (dispatch only; the pre-push check still uses its p = 2 data). Differences from the
+fast tier:
+
+* p = 5 data (x1-x3 normal, x4-x5 two-level factors), potential outcomes drawn before assignment so sequential
+  designs that use earlier responses work and all designs share a replicate's subjects; 21 designs
+  (`CAL_STUDY_DESIGNS`); the randomization p-value and exact tests join the four analytic procedures
+  (`calibration_study_common.R`).
+* Power at three local alternatives per response type (`calibration_study_effects.csv`, from
+  `calibrate_study_effects.R`; verified 2026-11-09 at n = 200: realized baseline power within Monte Carlo error of
+  20 / 50 / 80% for all six response types). Null bias reported and flagged, never gated.
+* Waves of time-boxed ~25-minute shards, `max-parallel: 16`, a per-campaign ledger and mergeable statistics on the
+  public `calibration-results` branch; the gate applies when a campaign completes, against
+  `calibration_study_accepted.csv` (empty at start: the fast tier's accepted levels were measured on different data).
+
 ## Findings at build time (2026-10-26)
 
 Null baseline, n = 200, 300 replicates (`~ .` only), Bonferroni K = 429:

@@ -31,8 +31,8 @@ stopifnot(is.finite(n), n >= 2L, is.finite(reps), reps >= 1L,
 script_arg = grep("^--file=", commandArgs(), value = TRUE)
 script_path = normalizePath(sub("^--file=", "", script_arg[[1L]]))
 repo_root = normalizePath(file.path(dirname(script_path), "..", ".."))
-benchmark = file.path(repo_root, "marketing_plans", "bb_bench2.R")
-if (!file.exists(benchmark)) stop("Could not find marketing_plans/bb_bench2.R")
+benchmark = file.path(repo_root, "R", "benchmark", "benchmark_bayesian_bootstrap_child.R")
+if (!file.exists(benchmark)) stop("Could not find R/benchmark/benchmark_bayesian_bootstrap_child.R")
 rscript = Sys.which("Rscript")
 if (!nzchar(rscript)) stop("Rscript is not on PATH")
 

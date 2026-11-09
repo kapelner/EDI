@@ -603,6 +603,87 @@ Ticked in owning plans; this list is the index.
 
 - [ ] ~~TODO-35~~ **→ moved 2026-10-20 to `release_v1_3_0.md → TODO-5..6`** (user decision; split into a contract item and a single Incidence GLM pilot item, the other eight families going to v2.0.0): `ModelDiagnostics` — declaration contract + pilot batteries.
 
+- [ ] TODO-36 (added 2026-11-09, user decisions throughout): **Published monthly calibration study: size,
+  coverage, null bias and power, every inference class on every applicable design.** Replaces the nightly +
+  Saturday `.github/workflows/calibration-fast-tier.yml` monitor (design: `../new_feature_plans/calibration_gates.md
+  → CI fast tier`); results are published for anyone to inspect, as evidence that EDI's inference performs to spec.
+  - **Data:** synthetic, p = 5 (x1-x3 N(0, 1), x4-x5 two-level factors; the linear predictor explains about half
+    the outcome variance), each response type's own model; formulas `~ 1` (w only) and `~ .` (w + all covariates).
+    Outcomes are drawn as potential outcomes y(0), y(1) before assignment, so sequential designs that use earlier
+    responses (KK21) see the same data as fixed designs, and every design in a replicate shares the same subjects.
+    The pre-push check keeps its own p = 2 data (its known-failures CSV is pinned to those seeds).
+  - **Designs (21):** every exported design except the cluster and factorial ones. Fixed: Bernoulli (also at prob_T
+    = 0.2), iBCRD, Blocking, Rerandomization, MatchingGreedyPairSwitching (n = 52 instead of 50: needs n divisible
+    by 4), Optimal, BinaryMatch, Greedy, GreedyDOptimal, OptimalBlocks. Sequential: Bernoulli, iBCRD, Efron,
+    Atkinson, PocockSimon, RandomBlockSize, SPBR, Urn, KK14, KK21, KK21stepwise. Each runs every class applicable
+    to it (88 classes in all; no legacy IVWC class is applicable, so none is published).
+  - **Effects:** the null (size, coverage, null bias) plus three local alternatives beta_T = h / sqrt(n), with h per
+    response type set so the Bernoulli `~ .` baseline class has about 20 / 50 / 80% power, giving power curves
+    comparable across n and a design comparison under identical data. Non-null coverage and bias need per-estimand
+    truths and are a later item.
+  - **n:** 50, 200, 1000 under the null (1000 replicates per cell); power at n = 50 and 200 only (500 replicates
+    per cell; `--power-ns`): the effects are local alternatives, so power at n = 1000 is asymptotically what n = 200
+    shows, and it would be a third of the campaign's compute. Cells still significantly off nominal at
+    n = 1000 get a targeted n = 5000 follow-up after the campaign, and a convergence plot (deviation vs 1/n)
+    separates small-sample behaviour (heads to 0) from inconsistency (nonzero intercept = bug).
+  - **Procedures, by tier** (columns as in `R/package_tests/path_audits.html`, regression table):
+
+    | Procedure | p-value | CI |
+    |---|---|---|
+    | wald, score, LR, gradient, exact (Fisher/Zhang); est → null bias | 1 | 1 |
+    | other (likelihood test) | 1 | -- |
+    | randomization (vanilla) | 1 | 2 |
+    | LR-Bartlett-approx (measured 2026-11-09: 60-90% of a tier-1 replicate, not analytic-cheap), LR-Bartlett-exact, jackknife Wald, param boot, param-boot LR, boot-rand pctile, bayes-pctile, bayes-wald | 2 | 2 |
+    | nonparametric bootstrap, at each class's default flavor (`edi_bootstrap_dispatch_policy`) | 2 | 2 |
+    | nonparametric bootstrap, non-default flavors (incl. prepivoted / double / calibrated at n = 50 only), m-out-of-n, PRW subsampling, other Bayesian-bootstrap flavors, boot-rand stud / symm-t / smooth | 3 | 3 |
+    | randomization custom | dropped | dropped |
+
+    Tier 1: monthly, all designs, all n, null + power. Tier 2: monthly, Bernoulli / BinaryMatch / KK21, n = 50 and
+    200, 500 replicates, package-default B and r. Tier 3: rotating, one response type per month (each pair refreshed
+    twice a year), n = 50 (+ 200 for cheap classes); the report shows each cell's last-measured date. A
+    (class, procedure) pair moves down a tier when its measured cost per replicate exceeds the tier's budget
+    (~10 core-s for tier 2); a one-time CI timing pilot writes that cost table. Randomization redraws are cached
+    per design object, so the p-value's cost is paid once per replicate and shared by every class and formula on
+    it: measured 2026-11-09 at n = 1000, 0.2-0.3 s on KK21 / pair-switching / rerandomization and ~10 s on
+    Atkinson (first class), ~0.1 s for each later class. `DesignFixedOptimal` has no randomization mechanism
+    (deterministic solve), so its randomization cells are not applicable.
+  - **Running:** free GitHub-hosted runners only (owner ruling: no self-hosted or paid runners). One campaign per
+    month (plus `workflow_dispatch`), pinned to the commit it started on. ~25-30-minute time-boxed shards and
+    `max-parallel: 16`, so push CI keeps 4 of the 20 job slots and never waits more than one shard behind. GitHub's
+    256-job matrix limit is handled by waves: each wave runs the next unfinished shards, publishes, then dispatches
+    the next wave.
+  - **Null bias:** per estimand cell, mean of estimate − null value, SD, bias / SD, share of non-finite estimates,
+    and the share of estimates below the null value with an exact sign test (a median-unbiasedness check; the median
+    itself is not mergeable across waves). Flagged (Bonferroni z-test + |bias| / SD > 0.1), never gated: an honest estimator has O(1/n) null
+    bias on ratio scales and under unequal allocation.
+  - **Publication:** every wave refreshes the summary CSVs, plots and `README.md` on the public
+    `calibration-results` branch (`campaigns/<id>/`). Shards reduce their rows to mergeable per-cell counts and sums
+    (`calibration_study_stats.R`); each wave adds them to the campaign's totals on the branch, so no step re-reads
+    the ~40M result rows. The branch is rebuilt as one commit per publish (force-pushed by GITHUB_TOKEN, which
+    starts no workflows), so rewritten figures never accumulate in git history. Plots: overview heatmap,
+    size / coverage / null-bias dot plots, p-value calibration curves, power curves by design, design ranking,
+    convergence plots, month-to-month history. Raw per-replicate rows (~100 MB per campaign) go to 90-day Actions
+    artifacts, not git, and not GitHub Releases (the repo's Zenodo link would archive each release). The
+    size/coverage gate is enforced only when a campaign completes; interim summaries are marked provisional.
+  - **Found while planning:** `path_audits.html` (v1.0.3, 2026-10-08) has no columns for 5 of the 10 bootstrap CI
+    flavors now in `bootstrap_ci_types` (symmetric-percentile-t, prepivoted, double-bootstrap, calibrated,
+    smoothed); add them when the audit is regenerated.
+  - **Built 2026-11-09 (uncommitted at the time):** `.github/workflows/calibration-study.yml`;
+    `R/package_tests/calibration/` `calibration_study_common.R`, `calibration_study_stats.R`,
+    `run_calibration_study.R`, `plan_calibration_study.R`, `merge_calibration_study_wave.R`,
+    `analyze_calibration_study.R`, `plot_calibration_study.R`, `render_calibration_study_readme.R`,
+    `calibrate_study_effects.R` (+ `calibration_study_effects.csv`, `calibration_study_costs.csv`,
+    `calibration_study_accepted.csv`). The fast tier's schedule is removed (it stays dispatchable; the pre-push check
+    keeps its p = 2 data). Tested locally end to end on a two-wave mini campaign; the workflow itself has not run yet.
+    Measured cost: ~11,500 core-hours per campaign, ~7.5 days of 16 jobs x 4 vCPUs (plus per-shard setup), so
+    roughly the first 9-10 days of each month.
+  - **After the first wave publishes:** add the README links. They are held back until then because
+    `scripts/check_doc_links.py` (pre-push) fetches external links and would block a push on the 404:
+    a badge `[![Calibration study](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml/badge.svg)](https://github.com/kapelner/EDI/tree/calibration-results)`
+    after the R coverage badge, and a Highlights bullet "Published monthly calibration study" linking the branch.
+  - **Done when:** one full campaign has completed and published from `main`'s workflow, the README links are in,
+    and `calibration_gates.md` describes the study.
+
 ## Standing constraints
 
 **Documented default changes carried here from v1.1.0 (2026-10-22, when TODO-24, -25 and -29 moved):** TODO-24's exact-null default switch (its plan's TODO-7) and TODO-25's small-n exact default (its plan's TODO-6) are decision-gated and off until the user accepts them; TODO-29's precomputed hypergeometric log-densities in the Zhang exact kernel (its plan's TODO-3) are tolerance-equal to 1e-12. TODO-34's `mc_method` default flip, if it clears its gate, is a documented default change under the equivalence tiers.

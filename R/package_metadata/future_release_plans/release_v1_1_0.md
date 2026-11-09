@@ -1668,6 +1668,10 @@ ticked in their **owning plans**; this list is the release index.
     example plan TODO-11's statistics cache and seed). Option (b) of G6 #37
     moved the rest here because it is large and needs a build plus
     owner-authorized fork/mirai runs.
+  - Baseline: the 1.0.5 G2 run (2026-11-09, `release_v1_0_5.md → TODO-57`)
+    fails all three acceptance checks. Some rows are slower on 3 cores, Cox
+    reaches only 1.72x with the blocklist overridden, and EDI is slower than
+    `bayesboot` on difference in means, median regression and Weibull AFT.
   - Scope (`../bug_fix_plans/bayesian_bootstrap_performance.md`):
     - TODO-2: ship each worker only its slice of draws.
     - TODO-3: a cost-model gate that can say no.

@@ -22,8 +22,30 @@
 # Also reported, never gated: size at alpha = 0.10 (from the same p-values) and
 # yield (share of replicates with a finite result).
 #
+# Null bias (reported and flagged, never gated): per estimand cell -- the cell
+# above without `method`, since every method of a (class, formula) fit shares
+# one point estimate -- the mean of estimate - null_value over the replicates
+# with a finite estimate. Under the sharp null that is the estimator's bias.
+# Also: median bias, SD, SE, bias / SD, share of non-finite estimates. A cell
+# is FLAGGED when the two-sided z-test of zero bias is significant at
+# 0.01 / K_bias (K_bias = number of estimand cells tested) AND |bias| / SD >
+# NULL_BIAS_STD_FLAG. Not gated because an honest estimator can carry a real
+# O(1/n) null bias: ratio-scale estimates (Jensen) and unequal allocation
+# (prob_T != 0.5 breaks the label-swap symmetry that zeroes it otherwise).
+# Writes OUT_DIR/null_bias_summary.csv.
+#
+# Power (published calibration study, release_v1_2_0.md TODO-36): rows with an
+# effect_label other than "null" are never mixed into size / coverage / null
+# bias; per cell and effect they give power = share of finite p-values below 0.05
+# (the test of the class's null value), with its binomial SE. Writes
+# OUT_DIR/power_summary.csv. Reported, never gated.
+#
 # Usage: Rscript R/package_tests/calibration/analyze_calibration_fast_tier.R \
-#          --in-dir DIR --out-dir DIR [--accepted FILE] [--summary-md FILE] [--report-only]
+#          --in-dir DIR --out-dir DIR [--accepted FILE] [--summary-md FILE] [--report-only] \
+#          [--title TEXT] [--note TEXT]
+# Reads every rows.csv / rows.csv.gz under --in-dir (fast-tier shards and study
+# shards alike). --title heads the markdown summary; --note (e.g. a campaign's
+# progress) is printed under it.
 # Always finishes the whole report and writes the number of failing cells to
 # OUT_DIR/gate_failures.txt. Exits 1 when any test fails, unless --report-only:
 # CI passes that and enforces the gate in a later step, so the analysis step
@@ -40,18 +62,32 @@ out_dir <- arg_value("--out-dir")
 accepted_path <- arg_value("--accepted", file.path(script_dir, "calibration_fast_tier_accepted.csv"))
 summary_md <- arg_value("--summary-md")
 report_only <- "--report-only" %in% args
+title <- arg_value("--title", "Calibration fast tier")
+note <- arg_value("--note", "")
 FAMILY_ALPHA <- 0.01
 MIN_FINITE <- 30L
+NULL_BIAS_STD_FLAG <- 0.1
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-files <- list.files(in_dir, pattern = "^rows\\.csv$", recursive = TRUE, full.names = TRUE)
+files <- list.files(in_dir, pattern = "^rows\\.csv(\\.gz)?$", recursive = TRUE, full.names = TRUE)
 if (!length(files)) stop("no rows.csv under ", in_dir)
-d <- do.call(rbind, lapply(files, utils::read.csv, stringsAsFactors = FALSE, colClasses = c(formula = "character")))
+read_rows <- function(f) {
+	x <- utils::read.csv(f, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+	if (!("effect_label" %in% names(x))) x$effect_label <- "null"
+	if (!("effect" %in% names(x))) x$effect <- 0
+	if (!("n_nominal" %in% names(x))) x$n_nominal <- x$n
+	x
+}
+d <- do.call(rbind, lapply(files, read_rows))
 d$formula[is.na(d$formula)] <- ""
 # Rows from before the prob_T column ran at equal allocation (release_v1_0_5.md TODO-184).
 if (!("prob_T" %in% names(d))) d$prob_T <- 0.5
 d$prob_T[is.na(d$prob_T)] <- 0.5
 
+# Power rows: summarized separately, below; everything else sees the null only.
+dp <- d[d$effect_label != "null", ]
+d <- d[d$effect_label == "null", ]
+if (!nrow(d)) stop("no null rows under ", in_dir)
 cell_cols <- c("response_type", "design", "prob_T", "inference_class", "method", "formula", "n")
 cell_key <- do.call(paste, c(d[cell_cols], sep = "\r"))
 cells <- lapply(split(seq_len(nrow(d)), cell_key), function(idx) {
@@ -102,10 +138,56 @@ s$fail_coverage <- !is.na(s$p_coverage) & s$p_coverage < threshold
 s <- s[order(!(s$fail_size | s$fail_coverage), s$response_type, s$inference_class, s$method, s$formula, s$n), ]
 utils::write.csv(s, file.path(out_dir, "calibration_summary.csv"), row.names = FALSE)
 
+# Null bias, one row per estimand cell; one estimate per replicate (the first
+# finite one across that fit's methods).
+est_cols <- setdiff(cell_cols, "method")
+if (!("rep" %in% names(d))) d$rep <- seq_len(nrow(d))
+est_key <- do.call(paste, c(d[est_cols], sep = "\r"))
+b <- do.call(rbind, lapply(split(seq_len(nrow(d)), est_key), function(idx) {
+	x <- d[idx, ]
+	x <- x[order(!is.finite(x$estimate)), ]
+	x <- x[!duplicated(x$rep), ]
+	dev <- x$estimate - x$null_value
+	fin <- is.finite(dev)
+	m <- sum(fin)
+	sdv <- if (m > 1L) stats::sd(dev[fin]) else NA_real_
+	data.frame(x[1L, est_cols], reps = nrow(x), n_est = m, nonfinite_share = 1 - m / nrow(x),
+		null_value = x$null_value[which(is.finite(x$null_value))[1L]],
+		null_bias = if (m) mean(dev[fin]) else NA_real_,
+		null_bias_median = if (m) stats::median(dev[fin]) else NA_real_,
+		null_bias_sd = sdv, null_bias_se = sdv / sqrt(m), stringsAsFactors = FALSE)
+}))
+rownames(b) <- NULL
+b$null_bias_std <- ifelse(is.finite(b$null_bias_sd) & b$null_bias_sd > 0, b$null_bias / b$null_bias_sd, NA_real_)
+b$p_null_bias <- ifelse(b$n_est >= MIN_FINITE & is.finite(b$null_bias_se) & b$null_bias_se > 0,
+	2 * stats::pnorm(-abs(b$null_bias / b$null_bias_se)), NA_real_)
+K_bias <- sum(!is.na(b$p_null_bias))
+threshold_bias <- FAMILY_ALPHA / max(K_bias, 1L)
+b$flag_null_bias <- !is.na(b$p_null_bias) & b$p_null_bias < threshold_bias & abs(b$null_bias_std) > NULL_BIAS_STD_FLAG
+b <- b[order(!b$flag_null_bias, -abs(ifelse(is.na(b$null_bias_std), 0, b$null_bias_std))), ]
+utils::write.csv(b, file.path(out_dir, "null_bias_summary.csv"), row.names = FALSE)
+
+# Power per (cell, effect).
+if (nrow(dp)) {
+	pkey <- do.call(paste, c(dp[c(cell_cols, "effect_label")], sep = "\r"))
+	pw <- do.call(rbind, lapply(split(seq_len(nrow(dp)), pkey), function(idx) {
+		x <- dp[idx, ]
+		fin <- is.finite(x$pval)
+		data.frame(x[1L, c(cell_cols, "n_nominal", "effect_label")], effect = x$effect[[1L]], reps = nrow(x),
+			n_p = sum(fin), rej = sum(x$pval[fin] < 0.05), stringsAsFactors = FALSE)
+	}))
+	rownames(pw) <- NULL
+	pw$power <- ifelse(pw$n_p > 0, pw$rej / pw$n_p, NA_real_)
+	pw$power_se <- sqrt(pw$power * (1 - pw$power) / pmax(pw$n_p, 1L))
+	pw <- pw[order(pw$response_type, pw$inference_class, pw$method, pw$formula, pw$n, pw$effect_label, pw$design), ]
+	utils::write.csv(pw, file.path(out_dir, "power_summary.csv"), row.names = FALSE)
+}
+
 fails <- s[s$fail_size | s$fail_coverage, ]
 fmt <- function(x, d = 3) ifelse(is.na(x), "", formatC(x, digits = d, format = "fg"))
-md <- c("## Calibration fast tier",
+md <- c(paste("##", title),
 	"",
+	if (nzchar(note)) c(note, "") else NULL,
 	sprintf("%d rows, %d cells, K = %d tests, per-test alpha = 0.01 / K = %.2g. Failures: **%d**.",
 		nrow(d), nrow(s), K, threshold, nrow(fails)),
 	"")
@@ -125,7 +207,23 @@ if (nrow(low_yield)) {
 		sub("^Inference", "", low_yield$inference_class), low_yield$method, low_yield$formula,
 		low_yield$n, 100 * low_yield$yield), collapse = "; ")), "")
 }
-md <- c(md, "Full table: `calibration_summary.csv` in this run's artifacts.", "",
+flagged <- b[b$flag_null_bias, ]
+md <- c(md, sprintf("### Null bias (reported, not gated)"), "",
+	sprintf("%d estimand cells, K_bias = %d tests at 0.01 / K_bias = %.2g; flagged when also |bias| / SD > %g: **%d**.",
+		nrow(b), K_bias, threshold_bias, NULL_BIAS_STD_FLAG, nrow(flagged)), "")
+if (nrow(flagged)) {
+	md <- c(md, "| response | design | prob_T | class | formula | n | null value | null bias | median | bias / SD | non-finite | p |",
+		"|---|---|---|---|---|---|---|---|---|---|---|---|",
+		sprintf("| %s | %s | %s | %s | %s | %d | %s | %s | %s | %s | %s | %s |",
+			flagged$response_type, sub("^DesignFixed", "", flagged$design), format(flagged$prob_T),
+			sub("^Inference", "", flagged$inference_class), flagged$formula, flagged$n, fmt(flagged$null_value),
+			fmt(flagged$null_bias), fmt(flagged$null_bias_median), fmt(flagged$null_bias_std, 2),
+			sprintf("%.1f%%", 100 * flagged$nonfinite_share), fmt(flagged$p_null_bias, 2)), "")
+}
+if (nrow(dp)) md <- c(md, sprintf("### Power (reported, not gated)"), "",
+	sprintf("%d power cells over %d effect size(s); see `power_summary.csv`.", nrow(pw), length(unique(pw$effect_label))), "")
+md <- c(md, sprintf("Full tables: `calibration_summary.csv` (size, coverage), `null_bias_summary.csv`%s.",
+	if (nrow(dp)) ", `power_summary.csv`" else ""), "",
 	if (nrow(fails)) sprintf("**Gate: FAIL** -- %d cell(s) significantly worse than nominal or their accepted level. Triage each: fix it, or add a reasoned row to `calibration_fast_tier_accepted.csv`.", nrow(fails))
 	else "**Gate: pass**")
 writeLines(as.character(nrow(fails)), file.path(out_dir, "gate_failures.txt"))

@@ -7210,10 +7210,27 @@ baseline as expected/benign.
   outside-sandbox rerun was authorized. Those gates remain open.
 
   **Acceptance (reconciled to linked-plan TODO-9, 2026-10-20):**
-  `marketing_plans/bb_bench2.R` must show no row slower on 3 cores than on
+  `R/benchmark/benchmark_bayesian_bootstrap_child.R` (moved from `marketing_plans/bb_bench2.R` 2026-11-09) must show no row slower on 3 cores than on
   1; Cox and Weibull must each scale at least 1.8x on 3 cores; and EDI must
   be at least 1x vs. `bayesboot` on every row at both core counts. This is a
   documentation reconciliation only; no benchmark result is asserted here.
+  **G2 run with provenance, 2026-11-09 (the 1.0.5 deliverable; row 57):**
+  `benchmark_bayesian_bootstrap_performance.R 500 3 3 1000,5000`, started on
+  a quiet host (load 0.21/0.86) 06:15, ended 07:34, rc 0. HEAD 9929841c (dirty
+  worktree); installed EDI 1.0.4, EDI.so built 2026-11-09 00:59, sha256
+  07ea6f33..., unchanged across the run; bayesboot 0.2.3. CSV (44 rows) at
+  `/tmp/edi-g2-6l90xZ/bb4.csv`. The acceptance above is **not met**; it now
+  belongs to `release_v1_1_0.md → TODO-63`:
+  - EDI is slower on 3 cores than on 1 on several rows (default policy, B =
+    1000: OLS 0.28 → 0.48 s, difference in means 0.19 → 0.49, Poisson
+    0.55 → 0.84).
+  - Cox does not scale: 1.0x under the default blocklist, 1.72x at B = 5000
+    with the blocklist overridden. Weibull is 1.0x by default and 2.09x
+    overridden.
+  - EDI is slower than `bayesboot` on difference in means (0.53–0.57x on 1
+    core), median regression (0.75–0.81x) and Weibull AFT (0.84–0.87x on 1
+    core, 0.40x on 3 cores by default). It is 2.6–25x faster on the other 8
+    estimators.
   **Post-reinstall non-reusable-worker regression, 2026-10-21:**
   `test-bayesian-bootstrap-non-reusable-worker-debug-path.R` passed against
   installed EDI 1.0.3 with no failures, warnings, or skips. For the seeded
@@ -11515,7 +11532,7 @@ against the source").
       `InferenceSurvivalKKWeibullMarginal`, `InferenceSurvivalKKRankRegrIVWC`
       and `InferenceSurvivalCoxPHRegr` (checked with zero columns and with one
       constant column).
-    - Regression test: `tests/testthat/test-zero-covariate-kk-survival.R`
+    - Regression test: `package_tests/testthat_bulk/test-zero-covariate-kk-survival.R`
       (fails on HEAD, passes now).
     - **Procedure sweep 2026-10-22 (second pass).** Scratch survey
       (n = 40, r = 21, B = 101; zero columns / one constant column / one
@@ -14807,9 +14824,15 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
   - Fix not taken: the gradient statistic is exactly 0 at delta = estimate, so p = 1 there. Forcing that and searching anyway gives genuine gradient roots (p = 0.05 at both ends) on 3 of the 4 reps (rep 31: [-1.395, -0.100] against LR [-1.324, -0.130]). But on rep 81 the p-value is still NA inside the interval, and on rep 30 the whole upper side is NA. It would also mean editing the shared `invert_gradient_ci_uniroot()` gate or copying it, and the real cause is the full-fit convergence in the C++ kernel. That is an owner decision (see the report). So the change is visibility only.
   - Done: `compute_gradient_confidence_interval_impl()` now warns once per object with class `edi_lik_ci_lik_ratio_fallback` (fields testing_type, substitute = "lik_ratio", or "wald" when the LR inversion itself fell back, and reason). It records the reason in `cached_values$ci_fallback_reason["gradient"]`, so `cal_ci_fell_back()` and the pre-push endpoint check see it. It holds back the inner "gradient test unavailable, NA returned" warning when an interval is substituted, since that warning would be wrong. The returned values are unchanged. Test: `R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-lik-ratio-substitution-warning.R` (4 tests, 21 expectations). All LogBinomial test files pass (172 expectations, 0 failures; the nloptr file skipped on `skip_on_cran`). NEWS bullet added. The roxygen text was updated but the Rd has not been regenerated.
 
-- [ ] TODO-191 (added 2026-11-09, owner; side finding of TODO-189): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`: Wald and LR run high at n = 800 on correctly specified matched-pair data.** Current state: OPEN, agent investigating 2026-11-09.
+- [ ] TODO-191 (added 2026-11-09, owner; side finding of TODO-189): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`: Wald and LR run high at n = 800 on correctly specified matched-pair data.** Current state: INVESTIGATED 2026-11-09 (agent): not real. On independent seeds, Wald and LR are nominal at n = 800, and the SE matches sd(beta_hat). No code change. Needs-decision (owner): close as a false alarm.
   - Evidence (TODO-189 agent, 2000 reps at n = 800, `~1`, Clayton theta = 1, Weibull(1.5) margins): Wald 0.065 [0.055, 0.077], LR 0.063; the model SE is about 7% below the spread of beta_hat over 600 reps. At n = 200 / 400 Wald is 0.049 / 0.054. Ruled out by that agent: inexact fits (Newton polish moves beta_hat < 1e-6), pair mismatch, misspecification (var(score) / E[I] 0.96-1.01 at the truth). A bare-kernel run on fresh seeds gave Wald 0.054 [0.045, 0.065] at n = 800, so it may be run-to-run spread. Scripts: `/tmp/claude-1000/t189/` (`estse.R`, `kern.R`).
   - Done when: a study large enough to separate 0.05 from 0.065 (several thousand reps on independent seeds, n = 200 / 800 / 1600) says whether the elevation is real; if real, the cause is pinned (for example the reservoir/pair split, the IVW / one-likelihood combination, censoring rate, or the information at large n).
+  - **Findings 2026-11-09 (agent).** Same DGP as TODO-189 (`~1`, `DesignFixedBinaryMatch` on `cal_gen_X`, Clayton theta = 1 through the shared gamma frailty, Weibull(1.5) margins, Exp(0.3) censoring, about 77.5% events). Fresh seeds `set.seed(191e6 + 1e5 * (n %/% 100) + rep)`, which do not overlap the calibration formula `1e6 * k + 7n + rep`. Class p-values from `compute_asymp_two_sided_pval()` / `compute_lik_ratio_two_sided_pval()` under `load_all(compile = FALSE)`. Scratch: `/tmp/claude-1000/t191/` (`run.R`, `an.R`). Exact binomial CIs:
+    - n = 800, 5000 reps: Wald 252/5000 = 0.0504 [0.0445, 0.0568], LR 0.0502 [0.0443, 0.0566]. sd(beta_hat) / rms(SE) = 1.006, bootstrap 95% CI [0.985, 1.025], so the SE is not 7% low. Mean z^2 is 1.023 +- 0.020. Kurtosis of beta_hat is 2.94 (z 2.97), so there are no heavy tails or outlier reps. P(|z| > 2.576) = 0.012, P(|z| > 1.645) = 0.101. By 1000-rep block, Wald is 0.047 / 0.057 / 0.056 / 0.048 / 0.044.
+    - n = 200, 4000 reps: Wald 0.0580 [0.0510, 0.0657], LR 0.0530 [0.0463, 0.0604], SE ratio 1.009 [0.987, 1.030]. This is a small finite-sample Wald excess (normal rather than t reference, SE spread sd(se) / mean(se) = 0.13 against 0.06 at n = 800). It is gone by n = 800, and LR is nominal. n = 1600 was skipped (coordinator: n = 800 is unambiguous).
+  - **Why the TODO-189 run read 0.065 (point 2).** No seed artefact. Its seeds `1e6 * k + 5600 + rep`, rep 1-2000, are distinct, the block rates were 0.062 / 0.074 / 0.066 / 0.058, and rejections were uncorrelated between consecutive reps (lag-1 correlation 0.02). It was an unlucky draw that got noticed because it was the high one among several cells run (n = 200 / 400 / 800, plus the kernel run). Against the new 5000 reps the two-sample p is 0.018, which is not alarming given that selection. Pooled old + new at n = 800: 382/7000 = 0.0546 [0.0494, 0.0602]. The "SE about 7% low" figure (`es800.rds`, 600 reps) was not independent evidence: it reused seeds of reps 1-600 of the same Wald run (its Wald decisions agree with that run 600/600), and its own bootstrap CI was [1.007, 1.127].
+  - Not applicable at this DGP: the reservoir split. At even n every subject is paired (0 singletons at n = 200 and 800), so the one-likelihood's reservoir term is empty here. Theta (median log-theta about 0) is far from the boundary.
+  - Recommendation: close TODO-191 with no code change. Default-output Wald size is nominal at large n. A mild Wald excess at n = 200 (0.058) is the usual finite-sample effect, and LR is the better choice there; nothing new to document beyond TODO-189's small-n note.
 
 ## Standing constraints
 
@@ -14996,7 +15019,7 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 38 | gated | G4 (+ CI log check) | Sanitizer/Valgrind: CI run 41085170825 (e3e165fa, 2026-10-30) green on ASAN/UBSAN and valgrind at a commit containing the malformed-start tests (confirm the file ran in the job log). Left: plan TODO-5 `EDI_UNITY=0` equivalence (with TODO-63); row reconciliation |
 | 50 | gated | G4 | R8 PASS 2026-10-24 (same grid as 31). Left: CountKKGLMM/OrdinalKKCLMM rows; confirm the umbrella findings stay dispositioned in the baseline audit |
 | 55 | gated | G4 | Four proportion classes, 140,960 rows; local date >= 2026-10-22, record the timezone |
-| 57 | gated | G2 | Run `R/benchmark/benchmark_bayesian_bootstrap_performance.R` (plan TODO-1 harness) with provenance; the rest is in `release_v1_1_0.md → TODO-63` |
+| 57 | gated | G2 | Harness run with provenance done 2026-11-09 (build 07ea6f33, rc 0); acceptance not met, recorded and carried to `release_v1_1_0.md → TODO-63`. Left: owner tick |
 | 58 | gated | G2, G3 | Original-B timing recorded (no >= 1x requirement, #38) + `benchmark_todo58_public_bootstrap_ci.R` 1.0.2 parity |
 | 59 | gated | G2, G3 | iBCRD <= 1.5 ms, blocking <= 2.5 ms at n = 1000 (quiet host = load1 < 1.0, #43); `w`-draw parity vs 1.0.2 |
 | 60 | gated | G2, G3 | Pocock-Simon <= 0.5 ms/arrival at t = 10/100/500/1000 (TODO-56 now closed, so the precondition is met); `w`-draw parity |
@@ -15032,7 +15055,7 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 188 | gated | G4 | APPLIED 2026-11-04 (R-only DepCens full-fit multistart, uncommitted; NEWS bullet written). Left: G4 regeneration of the DepCensTransform rows |
 | 189 | DONE | - | Accepted 2026-11-09 as a documented finite-sample property (class roxygen note, Rd regenerated); test `test-weibull-frailty-loggamma-onelik-score-test-null-information-accuracy.R` pins the information checks; v1.1 follow-up TODO-166 |
 | 190 | done | agent | LogBinomial gradient CI LR substitution now warns (`edi_lik_ci_lik_ratio_fallback`) + records reason; fires 4/1600 calibration fits (n = 50 `~.`, boundary MLE); 2026-11-08 |
-| 191 | open | agent | Frailty Loggamma OneLik Wald/LR size ~0.065 at n = 800 (SE ~7% low); agent investigating 2026-11-09 |
+| 191 | needs-decision | owner | Investigated 2026-11-09: not real. Independent seeds, n = 800 x 5000 reps: Wald 0.0504 [0.0445, 0.0568], LR 0.0502, SE/sd 1.006 [0.985, 1.025]. n = 200 x 4000: Wald 0.058, LR 0.053. The old 0.065 was a noticed high draw, and its 7%-low SE reused the same seeds. No code change. Left: owner closes |
 
 ### G1. Native build of the current checkout, with provenance (+ the uncompiled C++ patch bundle)
 

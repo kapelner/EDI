@@ -35,7 +35,7 @@ in means (0.35x). When both packages get 3 cores, `bayesboot` speeds up
 2–2.5x, while EDI stays flat or gets *slower*. Every lead shrinks, and OLS
 goes from 2.2x to 1.0x. The raw numbers are in
 `marketing_plans/bb_bench2_results.txt`, produced by
-`marketing_plans/bb_bench2.R`.
+`marketing_plans/bb_bench2.R` (now `R/benchmark/benchmark_bayesian_bootstrap_child.R`, moved 2026-11-09).
 
 The Bayesian bootstrap path does have a parallel branch, so this is not
 "missing parallelism". It is parallelism that is either switched off or
@@ -582,7 +582,7 @@ benchmark was run.
   leaves R overhead dominant.
 
 - [ ] TODO-9: **Re-run the comparison and update the claims.**
-  1. Re-run `marketing_plans/bb_bench2.R` against the new build.
+  1. Re-run `R/benchmark/benchmark_bayesian_bootstrap_child.R` (via `benchmark_bayesian_bootstrap_performance.R`) against the new build.
   2. Acceptance:
      - no row slower on 3 cores than on 1;
      - Cox and Weibull scale at least 1.8x on 3 cores;
