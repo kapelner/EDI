@@ -85,7 +85,10 @@ res <- rbindlist(list(paired, unpaired), use.names = TRUE)
 setnames(res, "design_label", "design")
 res[, baseline := baseline]
 res[, q_bh := p.adjust(p_value, method = "BH")]
-setorderv(res, c("response_type", "inf_class", "inf_procedure", "formula", "n_nominal", "effect_label", "design"))
+# Response types in the published display order (CAL_STUDY_RT_DISPLAY_ORDER).
+res[, rt_rank := match(response_type, c("continuous", "incidence", "count", "proportion", "survival", "ordinal"))]
+setorderv(res, c("rt_rank", "response_type", "inf_class", "inf_procedure", "formula", "n_nominal", "effect_label", "design"))
+res[, rt_rank := NULL]
 fwrite(res, out_path)
 cat(sprintf("compare designs: %d comparison(s) (%d paired), %d with q < 0.05; wrote %s\n", nrow(res), sum(res$paired),
 	sum(res$q_bh < 0.05), out_path))

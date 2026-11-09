@@ -173,6 +173,10 @@ parse_benchmark_report = function(lines, source_name = "report") {
 			hdr = tab$header
 			if (is.null(hdr)) next
 			edi_col = match("EDI Time (ms)", hdr)
+			# The procedures and designs tables split EDI time into Total /
+			# Construction / Procedure; their Speedup and Timing Pval use the
+			# Procedure column, so the regression check compares that one too.
+			if (is.na(edi_col)) edi_col = match("EDI Procedure (ms)", hdr)
 			if (is.na(edi_col)) next
 			can_col = match("Canonical Time (ms)", hdr)
 			resp_col = match("Response", hdr)

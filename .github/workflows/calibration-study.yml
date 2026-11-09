@@ -160,13 +160,10 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p "$GITHUB_WORKSPACE/.edi-install-scratch"
-          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
-      - run: tar -czf edi-build.tar.gz .edi-install-scratch
-      - uses: actions/upload-artifact@v7
-        with:
-          name: study-edi-build
-          path: edi-build.tar.gz
-          retention-days: 3
+          # --strip: debug symbols are most of the shared object's size and the study
+          # never needs them. The actions/cache entry above (saved when this job ends)
+          # is how the shards get this library: no artifact copy.
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
 
   shards:
     needs: [plan, build]
@@ -197,13 +194,15 @@ jobs:
         with:
           working-directory: R/EDI
           dependencies: '"all"'
-      - uses: actions/download-artifact@v8
+      # The build job's cache entry (same key); it saved when that job ended, which
+      # was before any shard started.
+      - uses: actions/cache/restore@v5
         with:
-          name: study-edi-build
-          path: .
-      - name: Restore the pre-built library
+          path: .edi-install-scratch
+          key: calibration-study-edi-${{ needs.plan.outputs.sha }}
+          fail-on-cache-miss: true
+      - name: Use the pre-built library
         run: |
-          tar -xzf edi-build.tar.gz
           echo "R_LIBS=$GITHUB_WORKSPACE/.edi-install-scratch${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
       # `nproc --all`, not `nproc`: GNU nproc honours OMP_NUM_THREADS=1 (see
       # calibration-fast-tier.yml). The deadline starts when R does, after setup.

@@ -1832,7 +1832,11 @@ EDI_COMPONENT_SPECS = list(
 						"initialize",
 						"compute_estimate_with_bootstrap_weights",
 						"compute_score_confidence_interval",
-						"compute_gradient_confidence_interval"
+						"compute_gradient_confidence_interval",
+						"compute_asymp_confidence_interval",
+						"compute_asymp_two_sided_pval",
+						"compute_wald_confidence_interval",
+						"compute_wald_two_sided_pval"
 					),
 					provides_private_methods = c(
 						"is_log_binomial_fit_reasonable",

@@ -12,6 +12,21 @@ rand_pval_from_tail_counts = function(n_ge, n_le, n, alternative = "two.sided"){
 	)
 }
 
+# Tail counts of a randomization distribution, with draws within 1e-8
+# (relative to |t|) of the observed statistic counted as ties in BOTH tails.
+# A redraw that reproduces the observed allocation (or its mirror) yields the
+# observed statistic up to rounding (~1e-15 relative), and an exact >= / <=
+# then counted it or not depending on the build's floating-point path: seeded
+# 1-core and 2-core sessions disagreed by 2/r on Linux CI (TODO-112 test,
+# bulk run 42638595069). Counting ties in both tails is the conservative
+# convention and makes the p-value deterministic.
+RAND_PVAL_TIE_REL_TOL = 1e-8
+rand_tail_counts = function(t0s, t){
+	t0s = t0s[is.finite(t0s)]
+	tol = RAND_PVAL_TIE_REL_TOL * abs(t)
+	c(ge = sum(t0s >= t - tol), le = sum(t0s <= t + tol))
+}
+
 #' Randomization-based Inference
 #'
 #' Abstract class for randomization-based inference.
@@ -378,7 +393,8 @@ InferenceRand = R6::R6Class("InferenceRand",
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_too_few_finite_estimates", "estimate")
 					return(NA_real_)
 				}
-				return(rand_pval_from_tail_counts(sum(t0s >= t, na.rm = TRUE), sum(t0s <= t, na.rm = TRUE), nsim_adj, alternative))
+				tails = rand_tail_counts(t0s, t)
+				return(rand_pval_from_tail_counts(tails[["ge"]], tails[["le"]], nsim_adj, alternative))
 			}
 			private$ensure_resampling_distribution_cache("rand")
 			t = private$compute_treatment_estimate_during_randomization_inference()
@@ -790,14 +806,16 @@ InferenceRand = R6::R6Class("InferenceRand",
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_too_few_finite_estimates", "estimate")
 				return(NA_real_)
 			}
-			rand_pval_from_tail_counts(sum(t0s >= t, na.rm = TRUE), sum(t0s <= t, na.rm = TRUE), nsim_adj, alternative)
+			tails = rand_tail_counts(t0s, t)
+			rand_pval_from_tail_counts(tails[["ge"]], tails[["le"]], nsim_adj, alternative)
 		},
 		compute_two_sided_randomization_pval_band = function(t0s, t, conf_level){
 			valid = is.finite(t0s)
 			n = sum(valid)
 			if (n == 0L) return(c(NA_real_, NA_real_))
-			x_ge = sum(t0s[valid] >= t)
-			x_le = sum(t0s[valid] <= t)
+			tails = rand_tail_counts(t0s, t)
+			x_ge = tails[["ge"]]
+			x_le = tails[["le"]]
 			binom_band = function(x){
 				alpha_band = 1 - conf_level
 				lower = if (x <= 0L) 0 else stats::qbeta(alpha_band / 2, x, n - x + 1)

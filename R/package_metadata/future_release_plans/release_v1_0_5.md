@@ -14541,7 +14541,9 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
     parametric-bootstrap-LR, warm-start-length, migration-baseline, mixin-contracts.
 - [ ] TODO-179 (added 2026-10-30, owner; found by the first nightly calibration fast tier, run 40833827319,
   commit c85ce459): **two anti-conservative cells that persist at n = 200, so not small-sample.** Current state: OPEN,
-  investigated 2026-11-07 (no bug found; both are honest properties, recommendation below). Both are in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` at their observed
+  investigated 2026-11-07 (no bug found; both are honest properties, recommendation below). **LogBinomial half APPLIED
+  2026-11-09 (owner decision; R only, uncommitted): Wald is NA at a boundary MLE, see "Applied 2026-11-09" below.**
+  Frailty half: unchanged (accepted as documented). Both are in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` at their observed
   levels (the gate reopens only if they get significantly worse); remove those rows when fixed.
   - `InferenceIncidLogBinomial` wald `~.`, Bernoulli: size 0.088 (n = 50), 0.090 (n = 200); coverage 0.912 / 0.910.
     Same cell's gradient is at size 0.051 but coverage 0.913 at n = 50 (CI side: see TODO-174's NA-midpoint mechanism).
@@ -14607,6 +14609,34 @@ The four TODOs below were added 2026-10-27 (owner) from the R4B rerun audit (`~/
       covariates that ~1 omits; Clayton-copula SE 12% too small); nominal when correctly specified". (3) Optional, for
       v1.1: make Wald NA at the boundary (with LR suggested) for LogBinomial / RiskDiff, and check the Clayton score
       information.
+  - **Applied 2026-11-09 (owner decision, agent; R only, uncommitted): LogBinomial Wald is NA at a boundary MLE.**
+    - Criterion: any full-data linear predictor eta >= -(1e-8 + 1e-6), the same rule as the TODO-128 warning (new shared
+      helper `edi_binomial_mle_n_on_boundary()`, `helper_robust_sandwich.R`). `generate_mod()` stores the count in
+      `cached_values$logbin_mle_n_on_boundary`. The class now owns `compute_asymp_confidence_interval()`,
+      `compute_asymp_two_sided_pval()` (wald branch), `compute_wald_confidence_interval()` and
+      `compute_wald_two_sided_pval()`; at a boundary MLE they return NA, record
+      `procedure_failure_reason[["wald"]] = "wald_mle_on_parameter_space_boundary"` (+ `cached_values$wald_unavailable_reason`)
+      and warn once per object (class `edi_wald_mle_boundary_unavailable`, fields testing_type, substitute = "lik_ratio",
+      reason, n_on_boundary; silent in resampling workers). Estimate, SE and `is_nonestimable()` unchanged; the private
+      Wald impls (CI-inversion seeds, Wald fallback of likelihood CIs) unchanged. `~1`: the only boundary MLE is an
+      all-event arm, already non-estimable. Calibration rows get status `nonestimable` and are excluded from size/coverage.
+    - Also: `fit_null` gained a strictly feasible last resort (full fit, beta_T = delta, intercept lowered until all
+      eta <= -0.05), reached only after every earlier start failed. Without it most LR CIs at boundary MLEs were the
+      Wald interval (study cell n = 50: 526 / 1000 LR CIs were Wald fallbacks -> 75; LR coverage 0.879 -> 0.924).
+    - Study cell (calibration_study_common.R generator, Bernoulli, `~.`, p = 5, null, reps 1-1000, `load_all`):
+      n = 50: boundary 68.4%; Wald size over finite 0.041 [0.022, 0.069] (13/316), coverage 0.959 (was 0.139 / 0.861
+      over all reps; 0.184 in boundary reps); LR size 0.073 (boundary 0.085, interior 0.048), LR coverage 0.924.
+      n = 200: boundary 65.6%; Wald 0.047 [0.027, 0.074] (16/344), coverage 0.953 (was 0.118 / 0.882); LR size 0.066
+      (boundary 0.078, interior 0.044), coverage 0.934. Scripts: `/tmp/claude-1000/-home-kapelner-workspace-EDI/25c68ec0-2a53-4469-8db1-445cd9a48ff0/scratchpad/t179/`.
+    - Fast-tier generator (p = 2, 500 reps, `~.`): Wald size / coverage over finite, prob_T 0.5: n = 50 0.042 / 0.958
+      (332 finite), n = 200 0.055 / 0.945 (365); prob_T 0.2: n = 50 0.069 / 0.931 (331), n = 200 0.056 / 0.944 (360).
+      The 8 LogBinomial wald `~.` rows in `calibration_fast_tier_accepted.csv` look prunable (prob_T 0.2 n = 50 is
+      borderline); not deleted, confirm on the next nightly first.
+    - Tests: new `test-log-binomial-wald-na-at-boundary-mle.R`; `test-log-binomial-boundary-mle-warning.R` muffles the new
+      class; `test-log-binomial-gradient-ci-lik-ratio-substitution-warning.R` rep 30 @ 0.2 now gets a real LR interval
+      (the "substitute = wald" branch is checked directly). Roxygen + NEWS written; Rd not regenerated.
+    - Not changed: `InferenceIncidBinomialIdentityRiskDiff` (needs its own decision) and LR oversize at boundary MLEs:
+      v1.1 TODO-189.
 - [ ] TODO-180 (added 2026-10-31, owner; found by the TODO-177 agent): **`InferenceCountHurdleNegBin` and
   `InferenceSurvivalDepCensTransformRegr`: the null refit's warm start lands in a different optimum, so p-values depend
   on what the object computed before.** Current state: APPLIED 2026-10-31 (committed in a464f68e (audit 2026-11-04)), verified; NEWS + G4 pending; DepCens full-fit multimodality found, not fixed (below). Same pattern as TODO-175 (Stereotype),
@@ -15048,7 +15078,7 @@ left), G9 drift CSVs, G10 manifest. Every G6 question is answered (the last four
 | 176 | open | agent, G4 | Code committed a464f68e; NEWS written 2026-11-06. Left: G4 |
 | 177 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): shared warm-start guard in both `make_warm_fit_null_wrapper`s + retrying `fit_null` for RiskDiff/LogBinomial; new test 38/38; NEWS written 2026-11-07. Left: G4 rows (RiskDiff/LogBinomial score + LR CIs moved) |
 | 178 | gated | G4 | APPLIED 2026-11-07 (R only, uncommitted): cold primary fit, no warm-start write from the rand hook, estimate_only = full estimator; NEWS written 2026-11-07. Owner ruling 2026-11-08: `~1` (treatment-only, K >= 3) is always non-estimable, reason `stereotype_treatment_only_fit_not_identified` (applied in `generate_mod()`; 5 tests moved to `~x` or the new rule; 302 Stereotype checks pass with NOT_CRAN; roxygen + NEWS updated). Left: Rd regen, owner rebuild, Stereotype calibration re-run (`~1` cells now all NA; check the analysis and accepted rows), G4 rows |
-| 179 | needs-decision | owner | Investigated 2026-11-07 (1000-rep null study, n = 200): both cells real but not bugs. LogBinomial wald `~.` 0.090: boundary MLE (mu = 1) in 33% of reps, inverse information too small there; matches glm(log link); documented + warned. Frailty Loggamma OneLik score `~1` 0.086: harness `~1` omits the matched-on covariates; nominal when correctly specified. Left: owner accepts; reword the accepted-row reasons; v1.1 ideas (NA Wald at boundary; Clayton score information) |
+| 179 | APPLIED (LogBinomial) | owner, G4 | LogBinomial half APPLIED 2026-11-09 (owner decision, R only, uncommitted): Wald p-value/CI NA at a boundary MLE (eta >= -(1e-8 + 1e-6)), warning `edi_wald_mle_boundary_unavailable`, reason in procedure_failure_reason[["wald"]]; plus a feasible last-resort null start so LR CIs stop falling back to Wald. Study cell n = 50: Wald NA 68%, size over finite 0.041 (was 0.139); n = 200: 66%, 0.047 (was 0.118). New test + 2 tests updated; NEWS + roxygen done, Rd pending. Left: owner review, Rd regen, G4 rows, prune the LogBinomial wald accepted rows after a nightly; leftovers v1.1 TODO-189. Earlier: Investigated 2026-11-07 (1000-rep null study, n = 200): both cells real but not bugs. LogBinomial wald `~.` 0.090: boundary MLE (mu = 1) in 33% of reps, inverse information too small there; matches glm(log link); documented + warned. Frailty Loggamma OneLik score `~1` 0.086: harness `~1` omits the matched-on covariates; nominal when correctly specified. Frailty left: owner accepts; reword its accepted-row reasons; Clayton score information |
 | 180 | open | agent, G4 | Code committed a464f68e, test exists; NEWS written 2026-11-06. Left: G4. The DepCens full-fit multistart is TODO-188 |
 | 181 | open | agent, G4 | Code committed a464f68e, 3 tests exist; NEWS bullet written 2026-11-07. LogBinomial boundary score APPLIED 2026-11-07 (KKT/profile score + cold refit of non-KKT null fits in `inference_incidence_log_binomial.R`; test `test-log-binomial-null-mle-boundary-kkt-score-reference.R`, 34 pass): all 8 `~.` calibration reps now give finite score/LR/gradient CIs at roots, no Wald fallback. NEWS written. KKT ported to RiskDiff 2026-11-08 (owner; reverses the 181(c) NA ruling): shared `edi_binomial_bound_kkt_core()` with two-sided constraint signs, cold refit of non-KKT null fits; 181(c) test rewritten as `test-binomial-identity-null-mle-boundary-kkt-score-reference.R`; rep 23 score CI upper 0.2199 (not a root) -> 0.2170 (root); 25 `~.` reps x score/gradient/LR: 0 of 75 CIs with NA, fallback or non-root endpoints. NEWS updated. Left: G4 |
 | 184 | gated | full runs | Harness/calibration plumbing in source. Left: full comprehensive + calibration runs at `prob_T = 0.2`; the KMDiff MOVER CI follow-up (uncommitted, see entry) |

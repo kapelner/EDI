@@ -158,7 +158,7 @@ pw$fail_coverage <- fkey(pw, rep("coverage", nrow(pw))) %in% fails_k
 s$q_size <- gate$q[match(fkey(s, rep("size", nrow(s))), fkey(gate, gate$metric))]
 s$q_coverage <- gate$q[match(fkey(s, rep("coverage", nrow(s))), fkey(gate, gate$metric))]
 pw$q_coverage <- gate$q[match(fkey(pw, rep("coverage", nrow(pw))), fkey(gate, gate$metric))]
-s <- s[order(!(s$fail_size | s$fail_coverage), s$response_type, s$inf_class, s$inf_procedure, s$formula, s$n, s$design), ]
+s <- s[order(!(s$fail_size | s$fail_coverage), cal_rt_rank(s$response_type), s$inf_class, s$inf_procedure, s$formula, s$n, s$design), ]
 ucols <- cal_stats_u_cols()
 utils::write.csv(s[setdiff(names(s), ucols)], file.path(out_dir, "calibration_summary.csv"), row.names = FALSE)
 
@@ -208,7 +208,7 @@ nb_est <- nb_est[order(!nb_est$flag_bias, -abs(ifelse(is.na(nb_est$bias_std), 0,
 utils::write.csv(nb_est, file.path(out_dir, "nonnull_bias_summary.csv"), row.names = FALSE)
 
 # Power.
-pw <- pw[order(!pw$fail_coverage, pw$response_type, pw$inf_class, pw$inf_procedure, pw$formula, pw$n, pw$effect_label,
+pw <- pw[order(!pw$fail_coverage, cal_rt_rank(pw$response_type), pw$inf_class, pw$inf_procedure, pw$formula, pw$n, pw$effect_label,
 	pw$design), c(cell_cols, "effect_label", "reps", "n_p", "rej", "power", "power_se", "n_ci", "cov", "coverage",
 	"truth_available", "p_coverage", "q_coverage", "fail_coverage")]
 utils::write.csv(pw, file.path(out_dir, "power_summary.csv"), row.names = FALSE)
@@ -276,7 +276,9 @@ if (nrow(pw)) {
 	md <- c(md, "### Power (reported, not gated)", "",
 		sprintf("%d power cells; see `power_summary.csv`, `design_comparison.csv` (paired tests between designs, when the campaign is complete) and the power figures.", nrow(pw)), "")
 }
-writeLines(as.character(nrow(failing_tests)), file.path(out_dir, "gate_failures.txt"))
+# Failing cells, not tests: a cell failing both size and coverage counts once
+# (the workflow's gate and the results index both read this as a cell count).
+writeLines(as.character(nrow(fails) + sum(pw$fail_coverage, na.rm = TRUE)), file.path(out_dir, "gate_failures.txt"))
 writeLines(md, file.path(out_dir, "calibration_summary.md"))
 if (!is.null(summary_md)) cat(md, sep = "\n", file = summary_md, append = TRUE)
 cat(md, sep = "\n")

@@ -461,13 +461,16 @@ comprehensive_proportion_rand_candidate_manifest <- function(
 	# Evaluate only the runner's two pure key functions in a base-only sandbox;
 	# never source or execute the comprehensive runner itself.
 	key_env <- new.env(parent = baseenv())
-	for (name in c("serialize_beta_T", "build_result_key")) {
+	for (name in c("serialize_beta_T", "normalize_prob_T", "design_key_label", "build_result_key")) {
 		expr <- assignment(name)
 		if (!is.call(expr) || !identical(expr[[1L]], as.name("function"))) {
 			stop("runner key helper is no longer a function: ", name, call. = FALSE)
 		}
 		assign(name, eval(expr, envir = key_env), envir = key_env)
 	}
+	# build_result_key() defaults prob_T_val to the runner's prob_T_curr; these
+	# candidates are the default 1:1 allocation, so use the runner's own default.
+	assign("prob_T_curr", eval(assignment("prob_T_curr"), envir = key_env), envir = key_env)
 	manifest$id <- mapply(
 		key_env$build_result_key, manifest$rep, manifest$beta_T, manifest$dataset,
 		manifest$response_type, manifest$design, manifest$inference_class,

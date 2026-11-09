@@ -36,6 +36,8 @@ truth_fixture <- function() {
 	e$compute_mc_coverage_truth_simframe <- function(...) stop("MC truth was not stubbed by this test")
 	eval_comprehensive_assignments(c(
 		"serialize_beta_T",
+		# record_result() keys rows by design_key_label(), which reads prob_T_curr.
+		"prob_T_curr", "normalize_prob_T", "design_key_label",
 		"SD_NOISE_BY_RESPONSE_TYPE",
 		"sd_noise_for",
 		"prop_logistic_normal_mean",

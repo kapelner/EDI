@@ -280,8 +280,9 @@ test_that("plain-rand p-value and CI attempts project to runner result IDs", {
 		matches[[1L]]
 	}
 	key_env <- new.env(parent = baseenv())
-	eval(top_level_assignment("serialize_beta_T"), envir = key_env)
-	eval(top_level_assignment("build_result_key"), envir = key_env)
+	for (name in c("serialize_beta_T", "prob_T_curr", "normalize_prob_T", "design_key_label", "build_result_key")) {
+		eval(top_level_assignment(name), envir = key_env)
+	}
 	combined$id <- with(combined, key_env$build_result_key(
 		rep, beta_T, dataset, response_type, design, inference_class, function_run
 	))
@@ -358,7 +359,7 @@ test_that("reduced source-derived proportion case lattice has exact rand attempt
 	# these assignments cannot enter the harness or invoke inference.
 	runner_source <- parse(runner_path)
 	key_env <- new.env(parent = baseenv())
-	for (name in c("serialize_beta_T", "build_result_key", "screen_estimate_theta_key")) {
+	for (name in c("serialize_beta_T", "prob_T_curr", "normalize_prob_T", "design_key_label", "build_result_key", "screen_estimate_theta_key")) {
 		matches <- Filter(function(expr) {
 			is.call(expr) && length(expr) >= 3L &&
 				(identical(expr[[1L]], as.name("=")) ||
@@ -556,7 +557,7 @@ test_that("full proportion rand candidate inventory has source-derived count and
 	# were emitted by a completed post-fix run.
 	runner_source <- parse(runner_path)
 	key_env <- new.env(parent = baseenv())
-	for (name in c("serialize_beta_T", "build_result_key", "screen_estimate_theta_key")) {
+	for (name in c("serialize_beta_T", "prob_T_curr", "normalize_prob_T", "design_key_label", "build_result_key", "screen_estimate_theta_key")) {
 		matches <- Filter(function(expr) {
 			is.call(expr) && length(expr) >= 3L &&
 				(identical(expr[[1L]], as.name("=")) ||

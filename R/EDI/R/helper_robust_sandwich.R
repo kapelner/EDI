@@ -487,6 +487,26 @@ edi_warn_bca_boundary_once = function(self, private, B, type = "bca", reason, al
 	invisible(TRUE)
 }
 
+#' Number of subjects whose fitted constrained-binomial MLE sits on the
+#' parameter-space boundary (TODO-128 / TODO-179, v1.0.5)
+#'
+#' Log link: \eqn{\eta = X\beta \ge -(10^{-8} + margin)} (fitted probability
+#' \eqn{\exp(\eta) = 1}); identity link: \eqn{\mu \ge 1 - (10^{-8} + margin)}
+#' or \eqn{\mu \le 10^{-8} + margin}. The fitting kernels stop \code{1e-8}
+#' short of the bound. Returns \code{NA_integer_} when the linear predictor
+#' cannot be formed.
+#'
+#' @keywords internal
+#' @noRd
+edi_binomial_mle_n_on_boundary = function(X_fit, b, link = c("log", "identity"), margin = 1e-6) {
+	link = match.arg(link)
+	if (is.null(X_fit) || is.null(b)) return(NA_integer_)
+	eta = tryCatch(as.numeric(as.matrix(X_fit) %*% as.numeric(b)), error = function(e) NULL)
+	if (!length(eta) || anyNA(eta)) return(NA_integer_)
+	edge = 1e-8 + margin
+	as.integer(if (link == "log") sum(eta >= -edge) else sum(eta >= 1 - edge) + sum(eta <= edge))
+}
+
 #' Warn once per object when a constrained-binomial MLE sits on the
 #' parameter-space boundary (TODO-128, v1.0.5)
 #'
@@ -507,19 +527,23 @@ edi_warn_bca_boundary_once = function(self, private, B, type = "bca", reason, al
 edi_warn_binomial_mle_boundary_once = function(self, private, X_fit, b, link = c("log", "identity"), margin = 1e-6) {
 	if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
 	if (isTRUE(private$cached_values$binomial_mle_boundary_warned)) return(invisible(FALSE))
-	if (is.null(X_fit) || is.null(b)) return(invisible(FALSE))
 	link = match.arg(link)
-	eta = tryCatch(as.numeric(as.matrix(X_fit) %*% as.numeric(b)), error = function(e) NULL)
-	if (!length(eta) || anyNA(eta)) return(invisible(FALSE))
-	edge = 1e-8 + margin
-	n_on_boundary = if (link == "log") sum(eta >= -edge) else sum(eta >= 1 - edge) + sum(eta <= edge)
-	if (n_on_boundary == 0L) return(invisible(FALSE))
+	n_on_boundary = edi_binomial_mle_n_on_boundary(X_fit, b, link, margin)
+	if (is.na(n_on_boundary) || n_on_boundary == 0L) return(invisible(FALSE))
 	private$cached_values$binomial_mle_boundary_warned = TRUE
 	bound_txt = if (link == "log") "fitted probability exp(X b) = 1" else "fitted probability 0 or 1"
+	# v1.0.5 TODO-179 (owner decision 2026-11-09): the log-link class returns NA
+	# for its Wald p-value and interval at a boundary MLE (see
+	# edi_log_binomial_wald_unavailable_at_boundary()).
+	wald_txt = if (link == "log") {
+		"The Wald p-value and confidence interval are NA here (the inverse information is too small at the boundary); score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. "
+	} else {
+		"Wald and score standard errors, p-values and confidence intervals assume an interior maximum and may be unreliable. "
+	}
 	msg = paste0(
 		class(self)[1L], ": the maximum-likelihood estimate is on the boundary of the parameter space (",
-		n_on_boundary, " subject(s) at ", bound_txt, "). Wald and score standard errors, p-values and ",
-		"confidence intervals assume an interior maximum and may be unreliable. Consider bootstrap ",
+		n_on_boundary, " subject(s) at ", bound_txt, "). ", wald_txt,
+		"Consider bootstrap ",
 		"(compute_bootstrap_confidence_interval()) or likelihood-ratio (set_testing_type(\"lik_ratio\")) intervals. ",
 		"Suppress with suppressWarnings(expr, classes = \"edi_binomial_mle_boundary_warning\")."
 	)

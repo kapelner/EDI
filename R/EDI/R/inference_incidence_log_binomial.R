@@ -100,6 +100,82 @@ IncidenceLogBinomialLikelihoodSource = list(
 			private$cached_values$df = NA_real_
 			private$cached_values$beta_hat_T
 		},
+		#' @description Asymptotic confidence interval for \eqn{\beta_T} under the
+		#'   current testing type. For \code{testing_type = "wald"} this is the Wald
+		#'   interval, EXCEPT when the full-data MLE is on the boundary of the
+		#'   parameter space (some fitted probability \eqn{\exp(X\hat\beta) = 1}):
+		#'   the inverse Fisher information is then too small and the interval too
+		#'   narrow, so \code{NA} bounds are returned with a classed warning
+		#'   \code{edi_wald_mle_boundary_unavailable} pointing to the
+		#'   likelihood-ratio interval (v1.0.5 TODO-179). Other testing types are
+		#'   unchanged.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
+		compute_asymp_confidence_interval = function(alpha = 0.05){
+			if (private$testing_type == "wald") {
+				if (edi_log_binomial_wald_unavailable_at_boundary(self, private)) return(edi_log_binomial_na_ci(alpha))
+				private$shared(estimate_only = FALSE)
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+				}
+			}
+			# Same dispatch as StandardModelCache's compute_asymp_confidence_interval().
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_confidence_interval_impl(alpha),
+				score = private$compute_score_confidence_interval_impl(alpha),
+				gradient = private$compute_gradient_confidence_interval_impl(alpha),
+				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
+			)
+		},
+		#' @description Asymptotic two-sided p-value for \eqn{H_0: \beta_T =
+		#'   \delta} under the current testing type. For \code{testing_type =
+		#'   "wald"} this is \code{NA} (with the
+		#'   \code{edi_wald_mle_boundary_unavailable} warning) when the full-data MLE
+		#'   is on the \eqn{\exp(X\beta) \le 1} boundary; see
+		#'   \code{compute_asymp_confidence_interval()}.
+		#' @param delta Null value of \eqn{\beta_T} (log risk ratio). Default 0.
+		compute_asymp_two_sided_pval = function(delta = 0){
+			if (private$testing_type == "wald") {
+				if (edi_log_binomial_wald_unavailable_at_boundary(self, private)) return(NA_real_)
+				private$shared(estimate_only = FALSE)
+				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+				}
+			}
+			switch(
+				private$testing_type,
+				wald = private$compute_wald_two_sided_pval_impl(delta),
+				score = private$compute_score_two_sided_pval_impl(delta),
+				gradient = private$compute_gradient_two_sided_pval_impl(delta),
+				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
+			)
+		},
+		#' @description Wald confidence interval for \eqn{\beta_T}; \code{NA}
+		#'   bounds (with the \code{edi_wald_mle_boundary_unavailable} warning)
+		#'   when the full-data MLE is on the \eqn{\exp(X\beta) \le 1} boundary.
+		#'   Use \code{compute_lik_ratio_confidence_interval()} there.
+		#' @param alpha Two-sided miscoverage rate; the returned interval targets
+		#'   \code{1 - alpha} coverage.
+		compute_wald_confidence_interval = function(alpha = 0.05){
+			if (should_run_asserts()) {
+				assertNumeric(alpha, lower = .Machine$double.xmin, upper = 1 - .Machine$double.xmin)
+			}
+			if (edi_log_binomial_wald_unavailable_at_boundary(self, private)) return(edi_log_binomial_na_ci(alpha))
+			private$compute_wald_confidence_interval_impl(alpha)
+		},
+		#' @description Wald two-sided p-value for \eqn{H_0: \beta_T = \delta};
+		#'   \code{NA} (with the \code{edi_wald_mle_boundary_unavailable} warning)
+		#'   when the full-data MLE is on the \eqn{\exp(X\beta) \le 1} boundary.
+		#' @param delta Null value of \eqn{\beta_T} (log risk ratio). Default 0.
+		compute_wald_two_sided_pval = function(delta = 0){
+			if (edi_log_binomial_wald_unavailable_at_boundary(self, private)) return(NA_real_)
+			private$compute_wald_two_sided_pval_impl(delta)
+		},
 		#' @description Score confidence interval for \eqn{\beta_T} by test inversion
 		#'   of the score test (find the set of \code{delta} not rejected at level
 		#'   \code{alpha}); see \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}
@@ -435,7 +511,25 @@ IncidenceLogBinomialLikelihoodSource = list(
 						res = try_fit(b_full, NULL)
 						if (!is.null(res)) return(res)
 					}
-					try_fit(NULL, NULL)
+					res = try_fit(NULL, NULL)
+					if (!is.null(res)) return(res)
+					# TODO-179 (2026-11-09): when the full-data MLE is on the
+					# exp(X b) <= 1 boundary, every start above can be infeasible at a
+					# delta beyond the estimate (the kernel's cold start and the full
+					# fit with beta_T = delta both put treated rows at eta > 0, and the
+					# kernel stops there unconverged), so the LR interval fell back to
+					# the Wald interval. Last resort: the full fit with beta_T = delta
+					# and the intercept lowered until every eta <= -0.05 (strictly
+					# feasible). Only reached when every earlier start failed.
+					j_int = match("(Intercept)", colnames(X_fit))
+					if (!is.na(j_int) && j_int != j_treat && length(b_full) == ncol(X_fit) && all(is.finite(b_full))) {
+						eta_max = max(as.numeric(X_fit %*% b_full))
+						if (is.finite(eta_max)) {
+							b_full[j_int] = b_full[j_int] - max(0, eta_max + 0.05)
+							res = try_fit(b_full, NULL)
+						}
+					}
+					res
 				},
 				extract_start = function(fit){
 					as.numeric(fit$b)
@@ -513,6 +607,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 				if (!isTRUE(private$is_log_binomial_fit_reasonable(res, X_full, 2L))) {
 					private$cache_nonestimable_estimate("log_binomial_fit_unavailable")
 					private$cached_values$likelihood_test_context = NULL
+					private$cached_values$logbin_mle_n_on_boundary = NULL
 					return(NULL)
 				}
 				private$best_X_colnames = setdiff(colnames(X_full), c("(Intercept)", "treatment"))
@@ -521,6 +616,8 @@ IncidenceLogBinomialLikelihoodSource = list(
 					j_treat = 2L,
 					full_neg_loglik = res$neg_ll
 				)
+				# TODO-179: the Wald p-value / CI read this (NA at a boundary MLE)
+				private$cached_values$logbin_mle_n_on_boundary = edi_binomial_mle_n_on_boundary(X_full, res$b, "log")
 				edi_warn_binomial_mle_boundary_once(self, private, X_full, res$b, "log") # TODO-128: warning only, no numeric change
 				return(res)
 			}
@@ -571,6 +668,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 			if (!isTRUE(private$is_log_binomial_fit_reasonable(attempt$fit, attempt$X, attempt$fit$j_treat %||% match(2L, attempt$keep)))) {
 				private$cache_nonestimable_estimate("log_binomial_fit_unavailable")
 				private$cached_values$likelihood_test_context = NULL
+				private$cached_values$logbin_mle_n_on_boundary = NULL
 				return(NULL)
 			}
 			if (!is.null(attempt$fit)){
@@ -580,9 +678,12 @@ IncidenceLogBinomialLikelihoodSource = list(
 					j_treat = attempt$fit$j_treat,
 					full_neg_loglik = attempt$fit$neg_ll
 				)
+				# TODO-179: the Wald p-value / CI read this (NA at a boundary MLE)
+				private$cached_values$logbin_mle_n_on_boundary = edi_binomial_mle_n_on_boundary(attempt$X, attempt$fit$b, "log")
 				edi_warn_binomial_mle_boundary_once(self, private, attempt$X, attempt$fit$b, "log") # TODO-128: warning only, no numeric change
 			} else {
 				private$cached_values$likelihood_test_context = NULL
+				private$cached_values$logbin_mle_n_on_boundary = NULL
 			}
 			attempt$fit
 		},
@@ -620,10 +721,31 @@ IncidenceLogBinomialLikelihoodSource = list(
 #' InferenceIncidBinomialIdentityRiskDiff}}, here applying to the upper rather
 #' than both tails of the probability scale. When the full-data MLE is on
 #' that boundary (some fitted probability equal to 1), the object warns once
-#' (\code{edi_binomial_mle_boundary_warning}) that Wald and score standard
-#' errors and intervals may be unreliable. Validity requires the
-#' multiplicative log-linear risk model to be correctly specified over the
-#' covariate range observed.
+#' (\code{edi_binomial_mle_boundary_warning}) that score standard errors and
+#' intervals may be unreliable. Validity requires the multiplicative
+#' log-linear risk model to be correctly specified over the covariate range
+#' observed.
+#'
+#' \strong{Wald at a boundary MLE.} When the full-data MLE has a subject at
+#' fitted probability \eqn{\exp(X\hat\beta) = 1} (a linear predictor within
+#' \eqn{10^{-6}} of 0), the Wald p-value and Wald confidence interval
+#' (\code{compute_asymp_two_sided_pval()} /
+#' \code{compute_asymp_confidence_interval()} with \code{testing_type = "wald"},
+#' and \code{compute_wald_two_sided_pval()} /
+#' \code{compute_wald_confidence_interval()}) are \code{NA}. There the weight of
+#' the boundary subject is unbounded and the inverse Fisher information treats
+#' that direction as known, so the Wald standard error is too small (null
+#' simulations with five covariates: Wald size about 0.17 in boundary fits and
+#' 0.05 in interior ones; \code{glm(family = binomial(link = "log"))} behaves
+#' the same). The object warns once (\code{edi_wald_mle_boundary_unavailable},
+#' fields \code{testing_type}, \code{substitute = "lik_ratio"}, \code{reason},
+#' \code{n_on_boundary}) and points to the likelihood-ratio test and interval
+#' (\code{set_testing_type("lik_ratio")}). The estimate, its standard error and
+#' \code{is_nonestimable()} are unchanged, and the reason is recorded under
+#' \code{"wald"} in the object's procedure-failure reasons. Boundary MLEs are
+#' common with several covariates at small n (most \code{~ .} fits with five
+#' covariates at n = 50). With \code{~ 1} the only boundary MLE is an arm in
+#' which every subject has the event, which is already non-estimable.
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
 #' 10 treated subjects at n = 50) and covariate adjustment, the score,
@@ -676,7 +798,8 @@ InferenceIncidLogBinomial = define_inference_class(
 			"compute_estimate", "compute_rand_two_sided_pval",
 			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
 			"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights",
-			"compute_score_confidence_interval", "compute_gradient_confidence_interval"
+			"compute_score_confidence_interval", "compute_gradient_confidence_interval",
+			"compute_wald_confidence_interval", "compute_wald_two_sided_pval"
 		),
 		private = c(
 			"compute_treatment_estimate_during_randomization_inference",
@@ -837,6 +960,58 @@ edi_warn_log_binomial_gradient_ci_lik_ratio_substitution_once = function(self, p
 		)
 	))
 	invisible(TRUE)
+}
+
+edi_log_binomial_na_ci = function(alpha) {
+	ci = c(NA_real_, NA_real_)
+	names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+	ci
+}
+
+# v1.0.5 TODO-179 (owner decision 2026-11-09): InferenceIncidLogBinomial's Wald
+# p-value and interval are NA when the full-data MLE is on the exp(X b) <= 1
+# boundary (some linear predictor within 1e-8 + 1e-6 of 0, the same criterion
+# as edi_warn_binomial_mle_boundary_once()). There the weight mu / (1 - mu) of a
+# boundary row is huge and the inverse Fisher information treats that direction
+# as known: Wald size was 0.17 in boundary reps vs 0.050 in interior ones
+# (1000 null reps, n = 200, `~.`). Returns TRUE when the Wald result must be NA,
+# after recording procedure_failure_reason[["wald"]] (the estimate, SE and
+# is_nonestimable() are unchanged; score / LR / gradient, the CI-inversion seeds
+# and resampling are not affected) and warning once per object with class
+# edi_wald_mle_boundary_unavailable (fields testing_type = "wald",
+# substitute = "lik_ratio", reason, n_on_boundary); never inside a resampling
+# worker.
+edi_log_binomial_wald_unavailable_at_boundary = function(self, private) {
+	private$shared(estimate_only = FALSE)
+	cv = private$cached_values
+	n_on = cv$logbin_mle_n_on_boundary
+	if (is.null(n_on) || length(n_on) != 1L || is.na(n_on) || n_on <= 0L) return(FALSE)
+	if (!is.finite(cv$beta_hat_T %||% NA_real_)) return(FALSE)
+	reason = paste0("the maximum-likelihood estimate is on the boundary of the parameter space (", n_on,
+		" subject(s) at fitted probability exp(X b) = 1), where the Wald standard error is too small; ",
+		"use the likelihood-ratio test / interval (testing_type = \"lik_ratio\")")
+	private$cache_procedure_failure("wald", "wald_mle_on_parameter_space_boundary")
+	private$cached_values$wald_unavailable_reason = reason
+	if (!is.null(private$active_resampling_operation)) return(TRUE)
+	if (isTRUE(private$cached_values$wald_mle_boundary_warned)) return(TRUE)
+	private$cached_values$wald_mle_boundary_warned = TRUE
+	warning(structure(
+		class = c("edi_wald_mle_boundary_unavailable", "warning", "condition"),
+		list(
+			message = paste0(
+				class(self)[1L], ": the Wald p-value and confidence interval are NA because ", reason, ". ",
+				"Use set_testing_type(\"lik_ratio\") or compute_lik_ratio_confidence_interval() / ",
+				"compute_lik_ratio_two_sided_pval(). ",
+				"Suppress with suppressWarnings(expr, classes = \"edi_wald_mle_boundary_unavailable\")."
+			),
+			call = NULL,
+			testing_type = "wald",
+			substitute = "lik_ratio",
+			reason = reason,
+			n_on_boundary = as.integer(n_on)
+		)
+	))
+	TRUE
 }
 
 edi_log_binomial_neg_loglik = function(X, y, b){

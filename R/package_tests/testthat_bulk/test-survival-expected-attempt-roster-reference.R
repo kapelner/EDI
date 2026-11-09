@@ -468,6 +468,10 @@ test_that("TODO-10 runner event keys separate started attempts from candidates a
 	runner_path = testthat::test_path("..", "comprehensive_tests.R")
 	key_env = new.env(parent = environment())
 	key_env$serialize_beta_T = eval(todo10_find_function_rhs("serialize_beta_T"), envir = key_env)
+	# build_result_key() labels the design via design_key_label(), which reads prob_T_curr.
+	key_env$prob_T_curr = eval(todo10_top_rhs("prob_T_curr"), envir = key_env)
+	key_env$normalize_prob_T = eval(todo10_find_function_rhs("normalize_prob_T"), envir = key_env)
+	key_env$design_key_label = eval(todo10_find_function_rhs("design_key_label"), envir = key_env)
 	key_env$build_result_key = eval(todo10_find_function_rhs("build_result_key"), envir = key_env)
 	source(testthat::test_path("..", "comprehensive_results_path.R"), local = key_env)
 	key_env$attempt_manifest_writer = key_env$new_comprehensive_attempt_manifest_writer(

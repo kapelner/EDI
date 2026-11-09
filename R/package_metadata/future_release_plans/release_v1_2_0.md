@@ -726,9 +726,15 @@ Ticked in owning plans; this list is the index.
     `rep` = same subjects); a design at another n (pair-switching's 52) gets an unpaired z-test. BH q-values;
     reported, not gated (`design_comparison.csv`).
   - **README links (added 2026-11-09):** the badge and the Highlights bullet link the workflow's Actions page,
-    which exists already. Switch the bullet to the `calibration-results` branch once the first wave has
-    published it. Until then that link would 404, and `scripts/check_doc_links.py` (pre-push) blocks a push on
-    an external 404.
+    which exists already. The bullet was switched to the `calibration-results` branch on 2026-11-09, after the
+    debug campaign's first wave published it (before that the link would 404, and `scripts/check_doc_links.py`
+    in pre-push blocks a push on an external 404). The badge still links the workflow page.
+  - **Debug campaign (2026-11-09):** `2026-11-09-f56e6e97` (ns=50, Bernoulli + KK21, 40 null / 20 power
+    replicates) ran end to end in three waves: 64 shards, then the 4 left over (`WAVE_SIZE` 64), then
+    confirmation. The screen flagged `InferenceIncidLogBinomial` Wald `~.` at n = 50 (TODO-179), and 5,000
+    confirmation replicates confirmed it (size 0.134, coverage 0.866). The publish job then failed at the
+    gate, as designed. Delete `campaigns/2026-11-09-f56e6e97` from `calibration-results` before the first
+    real campaign.
   - **Done when:** one full campaign has completed and published from `main`'s workflow, the README links are in,
     and `calibration_gates.md` describes the study.
 

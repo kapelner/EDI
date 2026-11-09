@@ -99,3 +99,12 @@ cal_stats_write <- function(x, path) {
 	on.exit(close(con))
 	utils::write.csv(x, con, row.names = FALSE)
 }
+
+# Display order of response types in the published tables and figures (owner,
+# 2026-11-09). Not CAL_RESPONSE_TYPES: its order sets cal_study_rt_index() and
+# so the seeds. Unknown types sort last, alphabetically.
+CAL_STUDY_RT_DISPLAY_ORDER <- c("continuous", "incidence", "count", "proportion", "survival", "ordinal")
+cal_rt_rank <- function(rt) {
+	r <- match(rt, CAL_STUDY_RT_DISPLAY_ORDER)
+	ifelse(is.na(r), length(CAL_STUDY_RT_DISPLAY_ORDER) + rank(rt, ties.method = "min"), r)
+}

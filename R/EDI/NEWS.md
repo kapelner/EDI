@@ -16,6 +16,12 @@ methods.
   GLMM, now grouped correctly.
 * GitHub source installs build the portable CRAN configuration by default;
   `EDI_PORTABLE=0` restores the machine-tuned build.
+* Randomization p-values (and their Monte Carlo bands) count a redrawn
+  statistic within 1e-8 (relative) of the observed one as a tie in both
+  tails. A redraw that reproduces the observed allocation gives the observed
+  statistic only up to rounding, so before it could be counted or not
+  depending on the build and core count (seeded 1-core and 2-core sessions
+  could differ by 2/r). P-values with such ties can rise by up to 2/r.
 * Seed-pinned draws change once: a portable shuffle replaces
   `std::shuffle`, and greedy, D-optimal, pair-switching and rerandomization
   designs no longer depend on the thread count.
@@ -173,6 +179,15 @@ methods.
 * `InferenceIncidLogBinomial` and `InferenceIncidBinomialIdentityRiskDiff`
   warn once (`edi_binomial_mle_boundary_warning`) when the MLE is on the
   boundary.
+* `InferenceIncidLogBinomial`'s Wald p-value and CI are now `NA` when the MLE
+  is on the boundary (a fitted probability of 1), with a warning (class
+  `edi_wald_mle_boundary_unavailable`) pointing to the likelihood-ratio test.
+  The Wald standard error is too small there: null size was 0.14 at n = 50
+  with five covariates, and is 0.04-0.05 over the fits that remain. With
+  several covariates most fits are on the boundary, so Wald is often `NA`.
+  The likelihood-ratio interval at such fits no longer falls back to the Wald
+  interval when the null refit had no feasible start (526 to 75 of 1000 fits
+  at n = 50).
 * `InferenceIncidLogBinomial` and `InferenceIncidBinomialIdentityRiskDiff`
   fits no longer stop short of the MLE at a boundary, which also made the
   jackknife depend on call order.

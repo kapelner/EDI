@@ -73,9 +73,10 @@ and benchmark results.
   [Why `EDI` targets the CPU](#why-edi-targets-the-cpu-and-not-gpus-tpus-or-quantum-hardware).
 - **Published monthly calibration study.** Every inference class is tested on
   every design it applies to, each month, on GitHub's runners: size,
-  confidence-interval coverage and null bias under the null, and power on
+  confidence-interval coverage and null bias under the null, coverage and bias
+  against each estimator's true value away from the null, and power on
   identical data across designs. All results, failures included, are public:
-  see the [calibration study workflow](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml).
+  see the [calibration study results](https://github.com/kapelner/EDI/tree/calibration-results).
 - **Design bakeoffs.** A `SimulationFramework` for comparing designs and
   inference procedures on power, coverage, and bias before you run the trial.
 

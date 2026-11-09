@@ -93,8 +93,10 @@ test_that("a y = 0 subject at mu = 1 is genuinely undefined: NA with a recorded 
 
 test_that("interior control (rep 1 `~.`, no row near the bound): values unchanged", {
 	o <- new_logbin(1L)
-	expect_equal(o$compute_estimate(), -0.004658453139, tolerance = 1e-9)
-	expect_equal(o$compute_score_two_sided_pval(0), 0.975450830601, tolerance = 1e-9)
-	expect_equal(o$compute_gradient_two_sided_pval(0), 0.975452687456, tolerance = 1e-9)
-	expect_equal(unname(o$compute_score_confidence_interval()), c(-0.2957914445, 0.2845605486), tolerance = 1e-8)
+	# 1e-7, not 1e-9: Linux CI's BLAS/compiler moves these by ~2e-9 (bulk run
+	# 42638595069); a real change to the interior path moves them far more.
+	expect_equal(o$compute_estimate(), -0.004658453139, tolerance = 1e-7)
+	expect_equal(o$compute_score_two_sided_pval(0), 0.975450830601, tolerance = 1e-7)
+	expect_equal(o$compute_gradient_two_sided_pval(0), 0.975452687456, tolerance = 1e-7)
+	expect_equal(unname(o$compute_score_confidence_interval()), c(-0.2957914445, 0.2845605486), tolerance = 1e-7)
 })

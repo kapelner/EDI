@@ -60,7 +60,7 @@ new_comprehensive_attempt_manifest_writer <- function(
   header <- data.frame(
     event_seq = integer(), event_type = character(), id = character(), rep = integer(),
     beta_T = numeric(), dataset = character(), response_type = character(), design = character(),
-    model_formula = character(), inference_class = character(), function_run = character(), status = character(),
+    prob_T = numeric(), model_formula = character(), inference_class = character(), function_run = character(), status = character(),
     skip_reason = character(), error_message = character(), event_epoch = numeric(),
     stringsAsFactors = FALSE
   )
@@ -72,6 +72,11 @@ new_comprehensive_attempt_manifest_writer <- function(
       stop("refusing to overwrite an existing attempt manifest: ", path, call. = FALSE)
     }
     existing <- utils::read.csv(path, stringsAsFactors = FALSE, na.strings = "")
+    # Manifests written before the prob_T column (v1.0.5 unequal allocation)
+    # stay resumable; rows appended to them keep the old layout.
+    if (identical(names(existing), setdiff(names(header), "prob_T"))) {
+      header <- header[setdiff(names(header), "prob_T")]
+    }
     if (!identical(names(existing), names(header))) {
       stop("cannot resume an attempt manifest with a different header: ", path, call. = FALSE)
     }
@@ -93,10 +98,10 @@ new_comprehensive_attempt_manifest_writer <- function(
       stop("unknown comprehensive attempt event type.", call. = FALSE)
     }
     if (!is.list(key) || (length(key) && (is.null(names(key)) || any(!nzchar(names(key))))) ||
-        any(!names(key) %in% c("id", "rep", "beta_T", "dataset", "response_type", "design", "model_formula", "inference_class", "function_run"))) {
+        any(!names(key) %in% c("id", "rep", "beta_T", "dataset", "response_type", "design", "prob_T", "model_formula", "inference_class", "function_run"))) {
       stop("attempt manifest key must be a named list of supported key fields.", call. = FALSE)
     }
-    key_fields <- c("id", "rep", "beta_T", "dataset", "response_type", "design", "model_formula", "inference_class", "function_run")
+    key_fields <- c("id", "rep", "beta_T", "dataset", "response_type", "design", "prob_T", "model_formula", "inference_class", "function_run")
     values <- lapply(key_fields, function(name) if (name %in% names(key)) key[[name]] else NA)
     names(values) <- key_fields
     event_seq <<- event_seq + 1L
@@ -109,6 +114,8 @@ new_comprehensive_attempt_manifest_writer <- function(
       dataset = as.character(values$dataset),
       response_type = as.character(values$response_type),
       design = as.character(values$design),
+      # NA (key without prob_T) means the default 1:1 allocation.
+      prob_T = if (is.na(suppressWarnings(as.numeric(values$prob_T)))) 0.5 else as.numeric(values$prob_T),
       model_formula = as.character(values$model_formula),
       inference_class = as.character(values$inference_class),
       function_run = as.character(values$function_run),
@@ -118,6 +125,7 @@ new_comprehensive_attempt_manifest_writer <- function(
       event_epoch = as.numeric(Sys.time()),
       stringsAsFactors = FALSE
     )
+    row <- row[names(header)]
     utils::write.table(
       row,
       file = path,

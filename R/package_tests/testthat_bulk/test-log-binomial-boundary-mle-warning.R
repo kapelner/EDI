@@ -30,7 +30,10 @@ count_boundary_warnings = function(expr){
 		edi_binomial_mle_boundary_warning = function(w){
 			n_warn <<- n_warn + 1L
 			invokeRestart("muffleWarning")
-		}
+		},
+		# v1.0.5 TODO-179: the Wald CI at a boundary MLE is NA with its own
+		# warning (test-log-binomial-wald-na-at-boundary-mle.R); not counted here.
+		edi_wald_mle_boundary_unavailable = function(w) invokeRestart("muffleWarning")
 	)
 	n_warn
 }

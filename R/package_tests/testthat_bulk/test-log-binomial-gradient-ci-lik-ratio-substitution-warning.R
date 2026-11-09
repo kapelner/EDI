@@ -59,16 +59,34 @@ test_that("the substitution warns once per object, and the held NA warning is no
 	expect_true(all(is.finite(ci2)))
 })
 
-test_that("when the LR inversion itself fell back to Wald, the substitute is reported as Wald", {
+test_that("n = 50 rep 30 @ prob_T 0.2: the substituted LR interval is a real LR interval (TODO-179 feasible null start)", {
+	# Until 2026-11-09 the LR inversion here also failed (every null-refit start
+	# was infeasible beyond the estimate) and fell back to the Wald interval.
+	# v1.0.5 TODO-179 added a strictly feasible last-resort start to fit_null.
 	o <- cal_incidence_rep(50L, 30L, prob_T = 0.2)
 	w <- NULL
 	ci <- withCallingHandlers(quiet_boundary(o$compute_gradient_confidence_interval()),
-		edi_lik_ci_lik_ratio_fallback = function(cnd) { w <<- cnd; invokeRestart("muffleWarning") },
-		edi_lik_ci_wald_fallback = function(cnd) invokeRestart("muffleWarning"))
+		edi_lik_ci_lik_ratio_fallback = function(cnd) { w <<- cnd; invokeRestart("muffleWarning") })
+	expect_s3_class(w, "edi_lik_ci_lik_ratio_fallback")
+	expect_identical(w$substitute, "lik_ratio")
+	lr <- quiet_boundary(o$compute_lik_ratio_confidence_interval())
+	expect_equal(unname(ci), unname(lr), tolerance = 1e-8)
+	expect_false("lik_ratio" %in% names(cv(o)$ci_fallback_reason))
+	spec <- o$.__enclos_env__$private$get_likelihood_test_spec()
+	lr_at <- function(d) 2 * (spec$neg_loglik(spec$fit_null(d)) - spec$neg_loglik(spec$full_fit))
+	expect_equal(c(lr_at(ci[[1L]]), lr_at(ci[[2L]])), rep(stats::qchisq(0.95, 1), 2L), tolerance = 1e-3)
+})
+
+test_that("when the LR inversion itself fell back to Wald, the substitute is reported as Wald", {
+	o <- cal_incidence_rep(50L, 30L, prob_T = 0.2)
+	quiet_boundary(o$compute_estimate())
+	priv <- o$.__enclos_env__$private
+	priv$cached_values$ci_fallback_reason <- c(lik_ratio = "the root search returned no finite bounds")
+	w <- NULL
+	withCallingHandlers(edi_warn_log_binomial_gradient_ci_lik_ratio_substitution_once(o, priv),
+		edi_lik_ci_lik_ratio_fallback = function(cnd) { w <<- cnd; invokeRestart("muffleWarning") })
 	expect_s3_class(w, "edi_lik_ci_lik_ratio_fallback")
 	expect_identical(w$substitute, "wald")
-	wald <- o$compute_wald_confidence_interval()
-	expect_equal(unname(ci), unname(wald), tolerance = 1e-8)
 	expect_match(cv(o)$ci_fallback_reason[["gradient"]], "itself the Wald interval", fixed = TRUE)
 })
 

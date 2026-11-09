@@ -121,7 +121,7 @@ test_that("the opt-in attempt event ledger preserves operation and setup outcome
 	expect_identical(events$model_formula[11L], "~1")
 	expect_identical(names(events), c(
 		"event_seq", "event_type", "id", "rep", "beta_T", "dataset", "response_type",
-		"design", "model_formula", "inference_class", "function_run", "status", "skip_reason",
+		"design", "prob_T", "model_formula", "inference_class", "function_run", "status", "skip_reason",
 		"error_message", "event_epoch"
 	))
 

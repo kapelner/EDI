@@ -78,7 +78,8 @@ summary_md <- gsub("`(calibration_summary|confirmation_summary|null_bias_summary
 run_links <- if (length(runs)) paste(sprintf("[%s](https://github.com/%s/actions/runs/%s)", runs, repo, runs), collapse = ", ") else ""
 crd <- c(sprintf("# EDI calibration study: campaign %s", campaign), "",
 	if (complete) "**Complete.**" else "**In progress: provisional.** Cells fill in as waves finish; the size / coverage gate is applied when the campaign completes.",
-	"", if (nzchar(progress)) c(progress, "") else NULL,
+	# The analysis's summary already carries the progress line when it has one.
+	"", if (nzchar(progress) && !any(summary_md == progress)) c(progress, "") else NULL,
 	sprintf("EDI commit: [`%s`](https://github.com/%s/commit/%s). Started %s.",
 		substr(env$SHA %||% "", 1L, 8L), repo, env$SHA %||% "", env$STARTED %||% "?"), "",
 	summary_md, "",
