@@ -673,6 +673,7 @@ R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-lik-ratio-substituti
 R/package_tests/testthat_bulk/test-log-binomial-null-mle-boundary-kkt-score-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-log-binomial-wald-na-at-boundary-mle.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-identity-binomial-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-log-identity-binomial-weighted-kernel-warm-start-weights-wrong-length-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -2194,6 +2195,7 @@ R/package_tests/testthat_bulk/test-log-binomial-gradient-ci-lik-ratio-substituti
 R/package_tests/testthat_bulk/test-log-binomial-null-mle-boundary-kkt-score-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-score-ci-and-binomial-identity-lik-ratio-ci-error-catching-wrapper-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-log-binomial-wald-na-at-boundary-mle.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-binomial-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-identity-binomial-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-log-identity-binomial-weighted-kernel-warm-start-weights-wrong-length-guard-reference.R,coverage,240,bootstrap
