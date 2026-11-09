@@ -224,7 +224,7 @@ if (nrow(dp)) md <- c(md, sprintf("### Power (reported, not gated)"), "",
 	sprintf("%d power cells over %d effect size(s); see `power_summary.csv`.", nrow(pw), length(unique(pw$effect_label))), "")
 md <- c(md, sprintf("Full tables: `calibration_summary.csv` (size, coverage), `null_bias_summary.csv`%s.",
 	if (nrow(dp)) ", `power_summary.csv`" else ""), "",
-	if (nrow(fails)) sprintf("**Gate: FAIL** -- %d cell(s) significantly worse than nominal or their accepted level. Triage each: fix it, or add a reasoned row to `calibration_fast_tier_accepted.csv`.", nrow(fails))
+	if (nrow(fails)) sprintf("**Gate: FAIL** -- %d cell(s) significantly worse than nominal or their accepted level. Triage each: fix it, or add a reasoned row to `calibration_fast_tier_accepted.csv` that cites an open TODO to investigate it (open one if none exists).", nrow(fails))
 	else "**Gate: pass**")
 writeLines(as.character(nrow(fails)), file.path(out_dir, "gate_failures.txt"))
 writeLines(md, file.path(out_dir, "calibration_summary.md"))

@@ -81,6 +81,29 @@ cal_study_effects_table <- function() {
 	utils::read.csv(file.path(script_dir_study, "calibration_study_effects.csv"), stringsAsFactors = FALSE)
 }
 
+# True values of each class's own estimand at the power effects
+# (calibrate_study_truths.R); NULL when the file is absent.
+cal_study_truths_table <- function() {
+	f <- file.path(script_dir_study, "calibration_study_truths.csv")
+	if (!file.exists(f)) return(NULL)
+	utils::read.csv(f, stringsAsFactors = FALSE, colClasses = c(formula = "character"))
+}
+
+# estimand_true for rows of one replicate: the null value under the null (every
+# class's estimand is then known), else the truth table's value for (response
+# type, n_nominal, effect, prob_T, class, formula), NA where it has none.
+cal_study_estimand_true <- function(tab, response_type, n_nominal, effect_label, prob_T, truths) {
+	if (identical(effect_label, "null")) return(tab$null_value)
+	if (is.null(truths)) return(rep(NA_real_, nrow(tab)))
+	# A truth counts only when at least 75% of its large-sample fits were finite: a
+	# class that mostly fails at large n gets none rather than one from a lucky fit.
+	t <- truths[truths$response_type == response_type & truths$n_nominal == n_nominal &
+		truths$effect_label == effect_label & abs(truths$prob_T - prob_T) < 1e-9 &
+		is.finite(truths$estimand_true) & truths$k_ok >= 0.75 * truths$k, ]
+	unname(setNames(t$estimand_true, paste(t$inf_class, t$formula, sep = "\r"))[
+		paste(tab$inference_class, tab$formula, sep = "\r")])
+}
+
 cal_study_effect <- function(response_type, n, effect_label, effects = cal_study_effects_table()) {
 	ncp <- CAL_STUDY_EFFECT_NCP[[effect_label]]
 	if (ncp == 0) return(0)
@@ -145,16 +168,27 @@ cal_study_rt_index <- function(response_type) match(response_type, CAL_RESPONSE_
 
 # Seed for a replicate's subjects and potential outcomes: depends on (response
 # type, n, rep) only, so every design and every effect size of a replicate share
-# them. Unique for n < 20000 and rep < 10000.
+# them. Screening replicates are 1..9999; confirmation replicates (the gate's
+# second stage, CAL_STUDY_CONFIRM_REP0 + 1 on) are 10001..19999. n * 1e4 + rep is
+# then unique as long as the study's n values differ by at least 2 (they are 50,
+# 52, 200, 1000): n = 50's confirmation range 510001..519999 ends below n = 52's
+# 520001.
+CAL_STUDY_CONFIRM_REP0 <- 10000L
 cal_study_seed <- function(response_type, n, rep) {
+	if (rep < 1L || rep >= 2L * CAL_STUDY_CONFIRM_REP0) stop("cal_study_seed: rep must be in 1..19999")
 	as.integer(cal_study_rt_index(response_type) * 2e8 + n * 1e4 + rep)
 }
+cal_study_stage <- function(rep) if (rep > CAL_STUDY_CONFIRM_REP0) "confirm" else "screen"
 
 # One replicate of one (response type, design, n, effect) unit. `classes`: the
-# classes to run (cal_study_classes()). Returns rows in cal_run_tasks()' shape plus
-# the unit's columns.
+# classes to run (cal_study_classes()). Returns rows in cal_run_tasks()' shape, with
+# inference_class / method / estimate / ci_a / ci_b renamed inf_class / inf_procedure /
+# beta_T_hat / ci_beta_T_a / ci_beta_T_b, plus the unit's columns (beta_T is the true
+# treatment effect, 0 under the null; estimand_true the true value of the class's
+# own estimand, which coverage and bias are measured against).
 cal_study_run_rep <- function(response_type, design_label, n_nominal, effect_label, rep, classes,
-		methods = CAL_STUDY_TIER1_METHODS, pval_only = CAL_STUDY_TIER1_PVAL_ONLY, effects = cal_study_effects_table()) {
+		methods = CAL_STUDY_TIER1_METHODS, pval_only = CAL_STUDY_TIER1_PVAL_ONLY, effects = cal_study_effects_table(),
+		truths = cal_study_truths_table()) {
 	n <- cal_study_effective_n(design_label, n_nominal)
 	effect <- cal_study_effect(response_type, n_nominal, effect_label, effects)
 	dgps <- cal_class_dgp(classes)
@@ -176,7 +210,16 @@ cal_study_run_rep <- function(response_type, design_label, n_nominal, effect_lab
 	tab$p <- CAL_STUDY_P
 	tab$rep <- rep
 	tab$effect_label <- effect_label
-	tab$effect <- effect
+	tab$beta_T <- effect
+	tab$stage <- cal_study_stage(rep)
+	tab$estimand_true <- cal_study_estimand_true(tab, response_type, as.integer(n_nominal), effect_label, entry$prob_T, truths)
+	# The study's column names (user decision 2026-11-09); the fast tier keeps
+	# cal_run_tasks()' own names.
+	names(tab)[names(tab) == "inference_class"] <- "inf_class"
+	names(tab)[names(tab) == "method"] <- "inf_procedure"
+	names(tab)[names(tab) == "estimate"] <- "beta_T_hat"
+	names(tab)[names(tab) == "ci_a"] <- "ci_beta_T_a"
+	names(tab)[names(tab) == "ci_b"] <- "ci_beta_T_b"
 	tab
 }
 

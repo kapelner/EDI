@@ -102,6 +102,11 @@ methods.
 
 ## Bug fixes
 
+* `tune_EDI_for_this_machine()` no longer refuses to run on an idle machine
+  with "calibration timings are noisy". Its idle check timed a single ~1 ms
+  operation with a 1 ms clock, so the measured spread was mostly the clock's
+  rounding. Each calibration sample now times a batch of 50 runs.
+
 * `tune_EDI_for_this_machine()` no longer aborts partway through (it stopped
   at cell 57 of 1065 under `effort = "standard"`). Its synthetic count data had
   no zeros, which the zero-inflated classes now reject. Zero-inflated and
@@ -249,6 +254,10 @@ methods.
   conservative. Under review for 1.1.0.
 * `InferenceIncidExtendedRobins`'s Wald test is anti-conservative on small
   blocks and matched pairs; use `InferenceIncidCMH` there.
+* Some asymptotic tests reject up to 8-13% at nominal 5% at n = 50, or with
+  about 10 treated subjects; they are close to nominal by n = 200. Each
+  affected class's help page has a "Small samples" note naming the tests
+  and a better-calibrated alternative. Under review for 1.1.0.
 
 ## Performance
 

@@ -26,6 +26,12 @@ run_selected_tests = function(root, shard_file, tier, timing_file) {
 			row$status <<- "error"
 		})
 		row$elapsed_seconds = proc.time()[["elapsed"]] - start
+		# A num_cores > 1 call with no cluster set up forks one and caches it for the
+		# session (edi_env$global_fork_cluster). Every file in a shard shares one R
+		# process, so a leaked pool outlives its test: under covr each fork is a copy
+		# of a ~3 GB parent, and coverage shard 3 (run 42595736082) was OOM-killed
+		# when the next file grew the parent. Stop any leftover workers between files.
+		try(EDI::unset_num_cores(), silent = TRUE)
 		timings = rbind(timings, row)
 		write.csv(timings, timing_file, row.names = FALSE)
 	}

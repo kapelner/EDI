@@ -57,6 +57,14 @@ Whether \code{compute_rand_two_sided_pval()} is actually
   \code{compute_rand_two_sided_pval()}'s own guard, so the two can
   never drift apart.
 }
+\details{
+\strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+10 treated subjects at n = 50) and covariate adjustment, the score,
+gradient and likelihood-ratio tests and intervals can be miscalibrated,
+rejecting a true null more often than the nominal level. The excess shrinks
+as n grows and is close to nominal by n = 200. With so few subjects in one
+arm, use a larger or more balanced sample, or a randomization test.
+}
 \section{Blocking designs}{
 
 On a blocking design

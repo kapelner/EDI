@@ -50,6 +50,15 @@ Whether \code{compute_rand_two_sided_pval()} is actually
   \code{compute_rand_two_sided_pval()}'s own guard, so the two can
   never drift apart.
 }
+\details{
+\strong{Small samples.} The score test can reject a true null too often in
+small samples: up to about 9.5\% at a nominal 5\% level for a
+treatment-only fit at n = 50, and, with unequal allocation (\code{prob_T =
+0.2}, about 10 treated subjects at n = 50), up to about 9.5\% with
+covariate adjustment and about 11\% treatment-only. The excess shrinks as n
+grows and is close to nominal by n = 200. With samples this small, use a
+larger sample or a randomization or bootstrap test.
+}
 \section{Blocking designs}{
 
 On a blocking design

@@ -2047,6 +2047,131 @@ ticked in their **owning plans**; this list is the release index.
   - Fix: when `warm_start_params` is supplied (and finite, length-checked), start from it alone, optionally plus one cold start, and keep the better objective; keep the full screen for cold fits. Verify per file (no full build).
   - Done when: warm-started refits at the optimum cost about one single-start fit; cold-fit results unchanged bit for bit; resampling results unchanged or with the change explained (a warm start can land in a different mode than the screen, so check on the TODO-31 sigma-collapse datasets).
 
+- [ ] TODO-168 (added 2026-11-09, owner; opened with the accepted calibration rows it covers): **`InferenceOrdinalStereotypeLogitRegr`: score test oversized at small n with unequal allocation.**
+  - Why: the v1.0.5 fast-tier re-run after TODO-175/176/178 and the `~1` non-estimable rule (2026-11-09, 1000 reps, installed EDI) gives `~.` score at n = 50, prob_T = 0.2 (about 10 treated) size 0.107 and coverage 0.905, with 982/1000 finite. Wald in the same cell is nominal (0.048); at n = 200 the score size is 0.062. The prob_T = 0.5 cell is also high (0.105). The likelihood is multimodal and the loadings are weakly identified near beta_T = 0, so the null information is unreliable at small n. Accepted rows (size 0.13, coverage 0.89) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` cite this TODO. v1.0.5 docs recommend Wald or LR at small n.
+  - Investigate first: confirm it is a finite-sample property, not a null-refit bug (score size by n = 50/100/200/400; compare expected vs observed information at the null fit).
+  - Fix: refer the score statistic to its parametric-bootstrap distribution under the null fit, reusing the class's `simulate_under_lik_null` (same approach as TODO-166).
+  - Done when: score size within the binomial band of 0.05 at n = 50 for both prob_T values, and the TODO-168 accepted rows are pruned.
+
+- [ ] TODO-169 (added 2026-11-09, owner; found computing the v1.2.0 TODO-36 calibration-study truths): **`InferenceIncidModifiedPoisson` with `~1` returns NA at large n.**
+  - Why: on the study's incidence generator (5 covariates, beta_T at the n = 200 power50 effect, `DesignFixedBernoulli`, prob_T 0.5, seed 4242) `compute_estimate()` gives 0.249 / 0.257 / 0.256 at n = 200 / 2000 / 5000, then NA at n = 10000 and 20000 with non-estimable reason `model_fit_unavailable`: no error, no warning. `~.` on the same data is fine at n = 20000 (0.206). In `calibrate_study_truths.R` (8 fits of n = 20000 per cell) `~1` failed in 9 of 12 cells, so those power cells have no true value and their non-null coverage goes untested.
+  - Investigate first: which fit step reports `model_fit_unavailable` above ~10^4 rows for the treatment-only model (an iteration cap, a convergence tolerance that does not scale with n, or a sandwich-variance step); whether `InferenceIncidKKModifiedPoisson` shares it.
+  - Done when: `~1` returns a finite estimate at n = 10000 / 20000 / 50000 on that generator, agreeing with `glm(..., family = poisson)` plus sandwich SEs to 1e-6; a regression test at n = 20000; the truths re-run with the ModifiedPoisson `~1` cells usable.
+
+- [ ] TODO-170 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceOrdinalStereotypeLogitRegr`: Stereotype LR / gradient / Wald accepted rows predate TODO-175/176/178: re-verify, especially n = 1000.**
+  - Why: 16 accepted rows cite v1.0.5 TODO-175/176/178, which are now applied: n = 50 gradient / LR (size up to 0.135) and n = 1000 all four methods (size 0.165-0.21, yield 33-36%, 2026-10-31 run). The 2026-11-09 local re-run at n = 50 / 200 gives yield >= 99% and n = 50 sizes about 0.085, so these rows are stale; n = 1000 was not re-run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: re-run the fast tier at n = 50 / 200 / 1000 on the installed build; if n = 1000 is still above nominal it is not a small-sample effect (look at the null refit's mode choice and the loading-boundary information).
+  - Fix (candidates): depends on the re-run: prune rows that pass; for any large-n excess, fix the refit or information; score is TODO-168.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-170`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-171 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceContinKKGLMM`: KK GLMM continuous: Wald oversized at n = 50.**
+  - Why: accepted rows wald ~. n = 50 prob_T 0.5 (size 0.085, coverage 0.915); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run 40833827319. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: compare the Wald SE with sd(estimate) at n = 50; check whether the random-effect variance is underestimated (REML vs ML) or collapses to 0.
+  - Fix (candidates): small-sample correction (REML variance, Kenward-Roger or Satterthwaite-type df, or t reference).
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-171`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-172 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceContinKKRobustRegrOneLik`: KK robust regression OneLik: Wald oversized at n = 50.**
+  - Why: accepted rows wald ~. n = 50 prob_T 0.5 (size 0.09, coverage 0.91); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: SE vs sd(estimate) at n = 50; whether the sandwich / scale estimate is biased low at small n.
+  - Fix (candidates): small-sample sandwich correction (HC2/HC3-type) or t reference.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-172`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-173 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceContinLin`: Lin (2013) estimator: Wald oversized at prob_T = 0.2, n = 50.**
+  - Why: accepted rows wald ~. n = 50 prob_T 0.2 (size 0.105, coverage 0.895); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run 42184383402. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: which HC variant is used; HC0/HC1 is known to be anti-conservative with about 10 treated and interacted covariates.
+  - Fix (candidates): HC2 / HC3 default or a t reference with residual df.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-173`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-174 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceCountHurdlePoisson`: Hurdle Poisson: model-based likelihood tests anti-conservative when covariates are omitted.**
+  - Why: 12 accepted rows: score / gradient / LR, ~1, n = 1000, prob_T 0.2 and 0.5 (size 0.085, coverage 0.915). Model misspecification, not small-sample: ~1 omits the DGP covariates, so the truncated-Poisson count part is overdispersed (0.064 at prob_T 0.5); the sandwich Wald and HurdleNegBin are calibrated; 2026-11-07 run 42366610368. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: confirm with a correctly specified ~. run at n = 1000 (should be nominal) and quantify overdispersion.
+  - Fix (candidates): robust (sandwich-information) score / LR variants, or document only and keep the sandwich Wald as the default.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-174`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-175 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidBinomialIdentityRiskDiff`: Binomial identity risk difference: Wald / LR oversized at prob_T = 0.2, n = 50.**
+  - Why: accepted rows wald ~. (size 0.135, coverage 0.865), wald ~1 (size 0.085), lik_ratio ~. coverage 0.88, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: share of fits at the [0,1] boundary in the treated arm; Wald SE at a boundary fit; relation to v1.0.5 TODO-181 (KKT score) and the feasible-start null refit.
+  - Fix (candidates): boundary-aware SE or a Newcombe / Miettinen-Nurminen-type interval for small arms.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-175`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-176 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidGCompRiskDiff`: G-computation risk difference: Wald oversized at prob_T = 0.2, n = 50.**
+  - Why: accepted rows wald ~. (size 0.10) and ~1 (size 0.09), n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: delta-method SE vs sd(estimate); separation in the 10-subject arm.
+  - Fix (candidates): small-sample variance (bias-reduced logistic fit or bootstrap SE).
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-176`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-177 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidKKCondLogitOneLik`: KK conditional logit OneLik: gradient test oversized at n = 50.**
+  - Why: accepted rows gradient ~. n = 50 prob_T 0.5 (size 0.09, coverage 0.925); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: compare with score / Wald / LR in the same cell; few discordant pairs at n = 50.
+  - Fix (candidates): exact conditional test for small discordant counts, or document.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-177`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-178 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidLogBinomial`: Log-binomial: score / gradient / LR miscalibrated at prob_T = 0.2, n = 50.**
+  - Why: accepted rows score ~. size 0.255, gradient ~. coverage 0.88, lik_ratio ~. coverage 0.895, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run (before the v1.0.5 TODO-181 KKT boundary score). The score row is very large. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: re-run on the build with the KKT score (v1.0.5 TODO-181); share of fits at exp(Xb) = 1; overlap with v1.0.5 TODO-179 (Wald) and v1.1 TODO-165 (boundary full fit).
+  - Fix (candidates): likely covered by TODO-165 / TODO-181; otherwise a boundary-aware reference distribution.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-178`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-179 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidRiskDiff`: Risk difference: Wald oversized at prob_T = 0.2, n = 50.**
+  - Why: accepted rows wald ~. (size 0.095) and ~1 (size 0.09), n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: unpooled Wald SE with about 10 treated (known anti-conservative); zero-event arms.
+  - Fix (candidates): Agresti-Caffo adjustment or Newcombe / Miettinen-Nurminen interval for small arms.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-179`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-180 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidWald`: Incidence Wald: oversized at prob_T = 0.2, n = 50.**
+  - Why: accepted rows wald ~. and ~1, n = 50 prob_T 0.2 (size 0.09, coverage 0.91); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: same mechanism as TODO-179 (unpooled SE in a small arm).
+  - Fix (candidates): adjusted Wald (Agresti-Caffo) or document.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-180`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-181 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceOrdinalCauchitRegr`: Ordinal cauchit: likelihood tests oversized at n = 50.**
+  - Why: accepted rows gradient / LR / score ~. n = 50 prob_T 0.5 (size 0.09-0.095) and score ~. / ~1 n = 50 prob_T 0.2 (size 0.125 / 0.10); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-10-30 and 2026-11-06 runs. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: heavy-tailed link: information accuracy at small n; separation / extreme cutpoints.
+  - Fix (candidates): bootstrap-calibrated p-values or document; compare with OrdinalPropOddsRegr.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-181`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-182 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceOrdinalGCompMeanDiff`: Ordinal G-computation mean difference: Wald oversized at prob_T = 0.2, n = 50.**
+  - Why: accepted rows wald ~. n = 50 prob_T 0.2 (size 0.085, coverage 0.915); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: delta-method SE vs sd(estimate) in the 10-subject arm.
+  - Fix (candidates): small-sample variance correction or bootstrap SE.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-182`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-183 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalDepCensTransformRegr`: Dependent-censoring transform regression: score / LR oversized at n = 50.**
+  - Why: accepted rows lik_ratio ~. and score ~. / ~1 n = 50 prob_T 0.5 (size 0.085-0.09), score ~. coverage 0.915 at prob_T 0.2; small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-10-30 and 2026-11-06 runs. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: few events at n = 50; information accuracy of the copula / transform parameters.
+  - Fix (candidates): bootstrap-calibrated p-values or document.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-183`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-184 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik`: Weibull frailty (log-gamma) OneLik: Wald oversized at n = 50.**
+  - Why: accepted rows wald ~. and ~1 n = 50 prob_T 0.5 (size 0.09, coverage 0.91); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. The score excess at moderate n is TODO-166. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: frailty variance collapsing to the boundary at n = 50; SE vs sd(estimate).
+  - Fix (candidates): boundary-aware SE or bootstrap SE; may share TODO-166's bootstrap.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-184`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-185 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalGLMMWeibullFrailtyNormalOneLik`: Weibull frailty (normal) OneLik: score oversized at n = 50.**
+  - Why: accepted rows score ~. and ~1 n = 50 prob_T 0.5 (size 0.085-0.09); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: check whether TODO-166's mechanism (null fit lowers the frailty variance, shrinking the null information) applies.
+  - Fix (candidates): bootstrap-calibrated score p-value (as TODO-166).
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-185`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-186 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalKKWeibullMarginal`: KK Weibull marginal: Wald oversized at n = 50.**
+  - Why: accepted rows wald ~. n = 50 prob_T 0.5 (size 0.085, coverage 0.915); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); 2026-10-30 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: SE vs sd(estimate); robust variance with few pairs.
+  - Fix (candidates): small-sample sandwich correction or document.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-186`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-187 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalLogRank`: Log-rank Wald (HR) CI: oversized at prob_T = 0.2, n = 50.**
+  - Why: accepted rows wald ~. and ~1 n = 50 prob_T 0.2 (size 0.095, coverage 0.905); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: which variance the HR Wald uses (O-E / V vs Cox); log-rank test p-value itself vs the Wald CI.
+  - Fix (candidates): use the log-rank score variance for the CI, or document.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-187`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
+- [ ] TODO-188 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceSurvivalWeibullRegr`: Weibull regression: score oversized at n = 50.**
+  - Why: accepted rows score ~1 n = 50 prob_T 0.5 (size 0.095) and score ~. / ~1 n = 50 prob_T 0.2 (size 0.095 / 0.11); small-sample (n = 50 only) asymptotic anti-conservatism, shrinking with n (the n = 200 cell passes); unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-10-30 and 2026-11-06 runs. Documented in the class's roxygen ("Small samples") for now.
+  - Investigate first: expected vs observed information at the null fit with few events.
+  - Fix (candidates): observed-information score or bootstrap calibration.
+  - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.1 TODO-188`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update

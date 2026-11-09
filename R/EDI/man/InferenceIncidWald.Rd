@@ -18,6 +18,13 @@ exposed; the reservoir/covariate structure is ignored, unlike
 \code{\link[EDI:InferenceIncidRiskDiff]{InferenceIncidRiskDiff}}'s covariate-
 adjusted linear-probability model. Non-estimable if either arm has zero
 subjects.
+
+\strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+10 treated subjects at n = 50), the Wald test can reject a true null up to
+about 9\% of the time at a nominal 5\% level (intervals can cover as little
+as about 91\%). The excess shrinks as n grows and is close to nominal by n
+= 200. With so few subjects in one arm, use a larger or more balanced
+sample, or a randomization or bootstrap test.
 }
 \examples{
 \donttest{

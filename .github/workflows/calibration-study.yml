@@ -171,8 +171,11 @@ jobs:
   shards:
     needs: [plan, build]
     runs-on: ubuntu-latest
-    # ~25 min of replicates (the deadline) + setup + the replicates in flight.
-    timeout-minutes: 55
+    # ~25 min of replicates (the deadline) + setup + the replicates in flight. Most
+    # shards end near 30 min; a slow-class shard whose single replicate outlasts the
+    # deadline (InferenceCountKKGLMM at n = 1000: ~37 single-core min measured
+    # locally) needs the headroom on a slower runner.
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       max-parallel: 16
@@ -209,7 +212,8 @@ jobs:
           Rscript R/package_tests/calibration/run_calibration_study.R \
             --response-type "${{ matrix.response_type }}" --design "${{ matrix.design }}" --n "${{ matrix.n }}" \
             --effect "${{ matrix.effect }}" --reps "${{ matrix.reps }}" --cores "$(nproc --all)" \
-            --deadline-minutes 25 --secs-per-rep "${{ matrix.secs_per_rep }}" --out-dir "out/${{ matrix.id }}"
+            --deadline-minutes 25 --secs-per-rep "${{ matrix.secs_per_rep }}" \
+            --only "${{ matrix.only }}" --exclude "${{ matrix.exclude }}" --out-dir "out/${{ matrix.id }}"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -235,8 +239,8 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
-      - name: Install ggplot2 (the only package the publish scripts need)
-        run: Rscript -e 'install.packages("ggplot2")'
+      - name: Install ggplot2 and data.table (the only packages the publish scripts need)
+        run: Rscript -e 'install.packages(c("ggplot2", "data.table"))'
 
       - uses: actions/download-artifact@v8
         with:
@@ -259,25 +263,42 @@ jobs:
           Rscript R/package_tests/calibration/merge_calibration_study_wave.R --campaign-dir "$d" --wave-dir wave
           # Every planned shard, finished or not: the planner abandons a unit after
           # repeated shards that never wrote shard.csv (died or timed out).
-          [ -f "$d/planned.csv" ] || echo "id,response_type,design,n,effect,wave,run_id" > "$d/planned.csv"
+          [ -f "$d/planned.csv" ] || echo "id,response_type,design,n,effect,group,wave,run_id" > "$d/planned.csv"
           echo '${{ needs.plan.outputs.matrix }}' | jq -r --arg w "$wave_no" --arg r "${{ github.run_id }}" \
-            '.include[] | [.id, .response_type, .design, (.n|tostring), .effect, $w, $r] | @csv' >> "$d/planned.csv"
+            '.include[] | [.id, .response_type, .design, (.n|tostring), .effect, .group, $w, $r] | @csv' >> "$d/planned.csv"
           echo "${{ github.run_id }}" >> "$d/runs.txt"
           echo "wave_no=$wave_no" >> "$GITHUB_ENV"
-          # This wave's raw rows, for deep dives (90 days; the campaign's totals never need them).
+          # This wave's raw rows, for deep dives (60 days, so the last two campaigns, ~0.3 GB each, are kept at a
+          # time; the campaign's totals never need them). One CSV per wave, xz -9e: half
+          # gzip's size on real rows (measured 2026-11-09), because class / design / method
+          # strings repeat across shards. A shard whose header differs (should not happen)
+          # keeps its own file rather than being mangled into the wave's CSV.
           mkdir -p rows
+          header=""
           for s in wave/study-shard-*; do
-            [ -f "$s/rows.csv.gz" ] && mkdir -p "rows/${s#wave/study-shard-}" && cp "$s/rows.csv.gz" "rows/${s#wave/study-shard-}/"
+            f="$s/rows.csv.gz"
+            [ -f "$f" ] || continue
+            h="$(zcat "$f" | head -n 1)"
+            [ -n "$header" ] || { header="$h"; printf '%s\n' "$header" > rows/rows.csv; }
+            if [ "$h" = "$header" ]; then zcat "$f" | tail -n +2 >> rows/rows.csv
+            else cp "$f" "rows/${s#wave/study-shard-}.rows.csv.gz"; fi
           done
+          [ -f rows/rows.csv ] && xz -9e -T0 rows/rows.csv
+          ls -la rows
       - uses: actions/upload-artifact@v7
         with:
           name: study-rows
           path: rows
-          retention-days: 90
+          retention-days: 60
           if-no-files-found: ignore
+      # The analysis runs first so summary/confirm_cells.csv (the cells the gate's
+      # screen flagged) is current: once screening is done, the planner turns it
+      # into the confirmation units of the gate's second stage.
       - name: Re-plan (progress, and whether another wave is needed)
         run: |
           set -a; . ./campaign.env; set +a
+          Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "results/campaigns/$C/stats" \
+            --out-dir "results/campaigns/$C/summary" > /dev/null
           Rscript R/package_tests/calibration/plan_calibration_study.R --campaign-dir "results/campaigns/$C" \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
@@ -288,11 +309,30 @@ jobs:
           echo "PROGRESS=Progress: ${reps_done} of ${reps_total} replicates (${pct}%) after wave ${wave_no}; ${units_done} of ${units} cells complete, ${units_abandoned} abandoned." >> "$GITHUB_ENV"
           if [ "$wave" -eq 0 ]; then echo "complete" > "results/campaigns/$C/status.txt"; echo "COMPLETE=true" >> "$GITHUB_ENV";
           else echo "running" > "results/campaigns/$C/status.txt"; echo "COMPLETE=false" >> "$GITHUB_ENV"; fi
+      # Once per campaign, at completion: paired power comparisons between designs
+      # need each replicate's result on every design, which only the raw rows have
+      # (the totals are per cell). Every earlier wave's study-rows artifact is
+      # fetched (a campaign takes ~10 days; they are kept 60), plus this wave's.
+      - name: Compare designs (complete campaigns only)
+        if: env.COMPLETE == 'true'
+        run: |
+          d="results/campaigns/$C"
+          mkdir -p allrows
+          cp -r rows allrows/this-wave
+          while read -r id; do
+            [ "$id" = "${{ github.run_id }}" ] && continue
+            gh run download "$id" -R "${{ github.repository }}" -n study-rows -D "allrows/$id" \
+              || echo "::warning::no study-rows artifact for run $id"
+          done < "$d/runs.txt"
+          du -sh allrows
+          Rscript R/package_tests/calibration/compare_designs_calibration_study.R --rows-dir allrows \
+            --out "$d/summary/design_comparison.csv"
       - name: Analyze, plot and write the READMEs
         run: |
           d="results/campaigns/$C"
           Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" \
-            --title "EDI calibration study, campaign $C" --note "$PROGRESS" --summary-md "$GITHUB_STEP_SUMMARY"
+            --title "EDI calibration study, campaign $C" --note "$PROGRESS" --summary-md "$GITHUB_STEP_SUMMARY" \
+            $([ "$COMPLETE" = true ] && echo --final)
           Rscript R/package_tests/calibration/plot_calibration_study.R --summary-dir "$d/summary" \
             --out-dir "$d/figures" --fragment "$d/figures.md" --fig-prefix figures/
           Rscript R/package_tests/calibration/render_calibration_study_readme.R --results-dir results --campaign "$C" \

@@ -486,6 +486,14 @@ SurvivalWeibullLikelihoodSource = list(
 #' Weibull shape assumption for the (log-)survival-time distribution and,
 #' when interpreted causally, the usual design-based/model-based assumptions.
 #'
+#' \strong{Small samples.} The score test can reject a true null too often in
+#' small samples: up to about 9.5\% at a nominal 5\% level for a
+#' treatment-only fit at n = 50, and, with unequal allocation (\code{prob_T =
+#' 0.2}, about 10 treated subjects at n = 50), up to about 9.5\% with
+#' covariate adjustment and about 11\% treatment-only. The excess shrinks as n
+#' grows and is close to nominal by n = 200. With samples this small, use a
+#' larger sample or a randomization or bootstrap test.
+#'
 #' @references Kalbfleisch, J. D., and Prentice, R. L. (2002). \emph{The
 #'   Statistical Analysis of Failure Time Data} (2nd ed.). Wiley, for the
 #'   Weibull AFT model and its equivalence to a proportional-hazards model.

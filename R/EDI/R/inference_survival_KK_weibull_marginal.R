@@ -19,6 +19,14 @@
 #' \code{survival::survreg(..., cluster = ..., robust = TRUE)} (retained as a
 #' fallback if the C++ fit fails to converge).
 #'
+#' \strong{Small samples.} With covariate adjustment at n = 50, the
+#' cluster-robust Wald test can reject a true null up to about 8.5\% of the
+#' time at a nominal 5\% level (intervals can cover as little as about
+#' 91.5\%), since its normal reference is only an asymptotic approximation.
+#' The excess shrinks as n grows and is close to nominal by n = 200. With
+#' samples this small, use a larger sample or a randomization or bootstrap
+#' test.
+#'
 #' @examples
 #' \donttest{
 #' des = DesignSeqOneByOneKK14$new(n = 20, response_type = 'survival')

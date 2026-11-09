@@ -276,6 +276,14 @@ OrdinalCauchitLikelihoodSource = inference_component_source_parts(InferenceOrdin
 #' score, gradient, and parametric-likelihood-bootstrap inference in addition to
 #' the Wald/asymptotic and Bayesian-bootstrap paths.
 #'
+#' \strong{Small samples.} With covariate adjustment at n = 50, the gradient,
+#' likelihood-ratio and score tests can reject a true null up to about 9.5\%
+#' of the time at a nominal 5\% level. With unequal allocation (\code{prob_T =
+#' 0.2}, about 10 treated subjects at n = 50), the score test does worse: up to
+#' about 12.5\% with covariate adjustment and about 10\% treatment-only. The
+#' excess shrinks as n grows and is close to nominal by n = 200. With samples
+#' this small, use a larger sample or a randomization or bootstrap test.
+#'
 #' @references Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
 #'   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models).
 #' @seealso \url{https://en.wikipedia.org/wiki/Ordinal_regression},

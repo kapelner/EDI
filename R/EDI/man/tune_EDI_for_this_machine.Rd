@@ -62,7 +62,11 @@ Invisibly, an \code{EDILocalMachineTuning} object: the policy
   diffs (\code{policy_diffs}), the raw per-axis deviations
   (\code{raw_deviations}), the hardware fingerprint, the effort/grid/reps
   used, timing, and the config file path -- printable via
-  \code{print()}.
+  \code{print()}. A benchmark cell that errors (a class that cannot fit
+  its synthetic data) does not abort the run: it is skipped with a
+  \code{warning()}, contributes no deviation (the shipped default stays in
+  force there), and is listed in \code{attr(x, "failed_cells")} (counted
+  in \code{n_failed_cells}).
 }
 \description{
 Every performance-policy default shipped in EDI (whether an inference

@@ -18,6 +18,13 @@
 #' usual linear mixed model assumptions (conditional normality of responses
 #' and pair effects, correctly specified fixed-effects formula).
 #'
+#' \strong{Small samples.} With covariate adjustment at n = 50, the Wald test
+#' can reject a true null up to about 8.5\% of the time at a nominal 5\% level
+#' (intervals can cover as little as about 91.5\%), since its normal reference
+#' is only an asymptotic approximation. The excess shrinks as n grows and is
+#' close to nominal by n = 200. With samples this small, use a larger sample
+#' or a randomization or bootstrap test.
+#'
 #' @seealso Comparable Python API: \href{https://www.statsmodels.org/stable/mixed_linear.html}{statsmodels MixedLM}.
 #'   See also: \href{https://en.wikipedia.org/wiki/Mixed_model}{Mixed model} (Wikipedia).
 #'

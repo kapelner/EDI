@@ -42,6 +42,9 @@ kk_rank_regr_run = function(des, seed, caller_seed, calls, cores = 1L){
 	inf = InferenceSurvivalKKRankRegrIVWC$new(des, verbose = FALSE)
 	if (!is.null(seed)) inf$set_seed(seed)
 	inf$num_cores = cores
+	# cores > 1 forks a worker pool that EDI caches for the whole session; stop
+	# it here so it does not hold memory through the rest of the test run.
+	if (cores > 1L) on.exit(unset_num_cores(), add = TRUE)
 	set.seed(caller_seed)
 	before = .Random.seed
 	out = suppressWarnings(suppressMessages(lapply(calls, function(f) f(inf))))

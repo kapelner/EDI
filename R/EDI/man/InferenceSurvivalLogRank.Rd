@@ -12,6 +12,14 @@ log-rank score statistic with its hypergeometric tie-adjusted variance. For
 left- or interval-censored data, this class dispatches instead to
 \code{interval::ictest(..., scores = "logrank1")} (Sun's-scores interval-censored
 generalization of the log-rank test) for both the point estimate and testing.
+
+\strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+10 treated subjects at n = 50), the Wald test and interval for the
+martingale-residual difference can reject a true null up to about 9.5\% of
+the time at a nominal 5\% level (coverage as low as about 90.5\%), with or
+without covariates. The excess shrinks as n grows and is close to nominal
+by n = 200. With so few subjects in one arm, use a larger or more balanced
+sample, or a randomization test.
 }
 \examples{
 set.seed(1)

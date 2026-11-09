@@ -42,6 +42,14 @@ Whether \code{compute_rand_two_sided_pval()} is actually
 
 Computes a randomization-based p-value.
 }
+\details{
+\strong{Small samples.} At n = 50, the score test (with or without
+covariates) can reject a true null up to about 9\% of the time at a nominal
+5\% level, since its chi-squared reference is only an asymptotic
+approximation. The excess shrinks as n grows and is close to nominal by n =
+200. With samples this small, use a larger sample or a randomization or
+bootstrap test.
+}
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceSurvivalGLMMWeibullFrailtyNormalOneLik}
 }

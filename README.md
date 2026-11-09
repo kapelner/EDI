@@ -2,7 +2,8 @@
 
 [![CRAN](https://img.shields.io/cran/v/EDI.svg)](https://CRAN.R-project.org/package=EDI)
 [![R-CMD-check](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml)
-[![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://app.codecov.io/gh/kapelner/EDI/flags/r)\
+[![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://app.codecov.io/gh/kapelner/EDI/flags/r)
+[![Calibration study](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml)\
 [![PyPI](https://img.shields.io/pypi/v/edi_kernels.svg)](https://pypi.org/project/edi_kernels/)
 [![Python tests](https://github.com/kapelner/EDI/actions/workflows/test-coverage-python.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/test-coverage-python.yml)
 [![Python coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=python)](https://app.codecov.io/gh/kapelner/EDI/flags/python)\
@@ -70,6 +71,11 @@ and benchmark results.
   built with machine-specific flags, and runtime-tuned to your hardware — see
   [Tuning Local Builds](#tuning-local-builds) and
   [Why `EDI` targets the CPU](#why-edi-targets-the-cpu-and-not-gpus-tpus-or-quantum-hardware).
+- **Published monthly calibration study.** Every inference class is tested on
+  every design it applies to, each month, on GitHub's runners: size,
+  confidence-interval coverage and null bias under the null, and power on
+  identical data across designs. All results, failures included, are public:
+  see the [calibration study workflow](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml).
 - **Design bakeoffs.** A `SimulationFramework` for comparing designs and
   inference procedures on power, coverage, and bias before you run the trial.
 

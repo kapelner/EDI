@@ -847,6 +847,13 @@ OrdinalStereotypeLikelihoodSource = list(
 #' or a class such as \code{InferenceOrdinalPropOddsRegr} for an unadjusted
 #' analysis.
 #'
+#' \strong{Score test at small n.} With a covariate-adjusted formula the
+#' score test rejects too often in small samples (about 10.5\% at a nominal
+#' 5\% with n = 50, against about 5-8\% for Wald), because the loadings are
+#' weakly identified near \eqn{\beta_T = 0} and the null information is
+#' unreliable. The excess shrinks with n (about 6-7\% at n = 200). Prefer the
+#' Wald (default) or likelihood-ratio test and intervals at small n.
+#'
 #' The delta-constrained null refits behind the likelihood-ratio, score and
 #' gradient tests and their confidence intervals also start only from
 #' deterministic starts: the full fit with \eqn{\beta_T = \delta}, a cold

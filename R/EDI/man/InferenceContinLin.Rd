@@ -29,6 +29,14 @@ HC2-Wald and randomization paths. Validity of \eqn{\hat\beta_T} as an
 average-treatment-effect estimator relies on randomization (of \eqn{W}),
 not on any particular outcome model; the working linear model need not be
 correctly specified.
+
+\strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+10 treated subjects at n = 50) and covariate adjustment, the HC2 Wald test
+can reject a true null up to about 10.5\% of the time at a nominal 5\%
+level (intervals can cover as little as about 89.5\%). The excess shrinks
+as n grows and is close to nominal by n = 200. With so few subjects in one
+arm, use a larger or more balanced sample, or a randomization or bootstrap
+test.
 }
 \section{Blocking designs}{
 

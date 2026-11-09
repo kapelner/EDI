@@ -433,6 +433,40 @@ test_that("edi_tuning_machine_load() is numeric-or-NA and edi_tuning_machine_loo
 	expect_true(trip$busy || (!is.finite(trip$load_ratio) && !is.finite(trip$calib_cv)))
 })
 
+test_that("the calibration guard is not fooled by a 1 ms clock: batched samples of a constant-cost op read as quiet", {
+	# Regression for 2026-11-09: single-run samples of a ~0.5-2 ms op, timed
+	# with proc.time()'s 1 ms resolution, gave IQR/median 1.50 on an idle
+	# machine, so tune_EDI_for_this_machine() always refused. Here time is
+	# virtual: every op costs exactly 0.7 ms and the clock truncates to 1 ms,
+	# so any spread in the samples comes only from the timer's resolution.
+	virtual = new.env()
+	virtual$t = 0
+	op = function() virtual$t = virtual$t + 0.0007
+	coarse_clock = function() floor(virtual$t * 1000 + 1e-9) / 1000
+	no_load = Inf
+	single = edi_tuning_machine_looks_busy(load_ratio_threshold = no_load, calib_reps = 15L,
+		calib_batch = 1L, calib_op = op, clock = coarse_clock)
+	expect_gt(single$calib_cv, 0.5)
+	expect_true(single$busy)
+	batched = edi_tuning_machine_looks_busy(load_ratio_threshold = no_load, calib_reps = 15L,
+		calib_op = op, clock = coarse_clock)
+	expect_lt(batched$calib_cv, 0.05)
+	expect_false(batched$busy)
+	# Each sample is the per-op time, not the batch total.
+	virtual$t = 0
+	exact = edi_tuning_machine_looks_busy(load_ratio_threshold = no_load, calib_reps = 3L,
+		calib_batch = 10L, calib_op = op, clock = function() virtual$t)
+	expect_equal(exact$calib_cv, 0)
+	# Real contention still trips the guard: alternate cheap and 3x-cost samples.
+	virtual$t = 0
+	k = new.env(); k$i = 0L
+	noisy_op = function() { k$i = k$i + 1L; virtual$t = virtual$t + if (((k$i - 1L) %/% 50L) %% 2L == 0L) 0.0007 else 0.0021 }
+	noisy = edi_tuning_machine_looks_busy(load_ratio_threshold = no_load, calib_reps = 15L,
+		calib_op = noisy_op, clock = coarse_clock)
+	expect_gt(noisy$calib_cv, 0.5)
+	expect_true(noisy$busy)
+})
+
 test_that("tune_EDI_for_this_machine() refuses a busy machine non-interactively unless force = TRUE (and the gate applies to dry_run)", {
 	busy_now = function(...) list(busy = TRUE, load_1min = 99, cores = 2L, load_ratio = 49.5, calib_cv = 0.1, reasons = "1-minute load average 99.00 on 2 cores (ratio 49.50 > 0.50)")
 	idle_now = function(...) list(busy = FALSE, load_1min = 0.1, cores = 2L, load_ratio = 0.05, calib_cv = 0.1, reasons = character(0))

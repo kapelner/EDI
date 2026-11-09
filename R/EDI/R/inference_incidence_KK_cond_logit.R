@@ -647,6 +647,13 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 #' No response censoring is supported (checked at construction via
 #' \code{assertNoCensoring()}).
 #'
+#' \strong{Small samples.} With covariate adjustment at n = 50, the gradient
+#' test can reject a true null up to about 9\% of the time at a nominal 5\%
+#' level, since its chi-squared reference is only an asymptotic approximation.
+#' The excess shrinks as n grows and is close to nominal by n = 200. With
+#' samples this small, use a larger sample or a randomization or bootstrap
+#' test.
+#'
 #' @references
 #' Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
 #' allocation with higher power and efficiency." \emph{Biometrics}, 70(2),

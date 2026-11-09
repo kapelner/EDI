@@ -1,8 +1,9 @@
 #!/usr/bin/env Rscript
 # One shard of the published monthly calibration study (release_v1_2_0.md
 # TODO-36; .github/workflows/calibration-study.yml). Runs replicates of one unit
-# = (response type, design, n, effect) and writes one row per (replicate, class,
-# formula, method) to <out-dir>/rows.csv.gz (kept as a 90-day artifact for deep
+# = (response type, design, n, effect) and writes one row per (replicate, inf_class,
+# formula, inf_procedure) to <out-dir>/rows.csv.gz (the publish step merges a wave's into one
+# xz-compressed CSV, kept as a 60-day artifact for deep
 # dives), the shard's mergeable statistics to <out-dir>/tests.csv.gz and
 # est.csv.gz (calibration_study_stats.R; what the publish step adds to the
 # campaign's totals), and <out-dir>/shard.csv with the replicates actually
@@ -59,6 +60,7 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 classes <- setdiff(cal_study_classes(response_type, design_label, n_nominal), exclude)
 if (length(only)) classes <- intersect(classes, only)
 effects <- cal_study_effects_table()
+truths <- cal_study_truths_table()
 cat(sprintf("calibration study: %s %s n=%d %s, %d rep(s), %d class(es), %d core(s)\n", response_type, design_label,
 	n_nominal, effect_label, length(reps), length(classes), cores))
 
@@ -67,7 +69,8 @@ run_one <- function(r) {
 	now <- Sys.time()
 	first_round <- as.numeric(difftime(now, loop_start, units = "secs")) < 30
 	if (!first_round && now + secs_per_rep > deadline) return("skipped")
-	tryCatch(cal_study_run_rep(response_type, design_label, n_nominal, effect_label, r, classes, effects = effects),
+	tryCatch(cal_study_run_rep(response_type, design_label, n_nominal, effect_label, r, classes,
+		effects = effects, truths = truths),
 		error = function(e) {
 			message(sprintf("rep %d failed: %s", r, conditionMessage(e)))
 			"failed"
@@ -82,7 +85,17 @@ skipped <- vapply(res, identical, logical(1L), "skipped")
 failed <- vapply(res, function(x) identical(x, "failed") || inherits(x, "try-error"), logical(1L))
 rows <- do.call(rbind, Filter(function(x) is.data.frame(x) && nrow(x), res))
 if (!is.null(rows)) {
-	cal_stats_write(rows, file.path(out_dir, "rows.csv.gz"))
+	# The raw-row file (a deep-dive artifact only) rounds the result columns to 7
+	# significant digits: full-precision doubles were most of its bytes, and rounding
+	# cut the publish step's xz -9e output by a third (measured 2026-11-09). The
+	# shard's statistics below use the unrounded rows, so nothing published changes.
+	# p_at_ci_a / p_at_ci_b (and ci_fallback) are the fast tier's CI-endpoint check,
+	# which the study does not run (cal_run_tasks(endpoints = FALSE)): always NA, so
+	# they are dropped from the file.
+	raw <- rows[setdiff(names(rows), c("p_at_ci_a", "p_at_ci_b", "ci_fallback"))]
+	round_cols <- intersect(c("beta_T_hat", "ci_beta_T_a", "ci_beta_T_b", "pval", "fit_secs", "estimand_true"), names(raw))
+	raw[round_cols] <- lapply(raw[round_cols], function(v) if (is.double(v)) signif(v, 7) else v)
+	cal_stats_write(raw, file.path(out_dir, "rows.csv.gz"))
 	st <- cal_stats_from_rows(rows)
 	cal_stats_write(st$tests, file.path(out_dir, "tests.csv.gz"))
 	cal_stats_write(st$est, file.path(out_dir, "est.csv.gz"))

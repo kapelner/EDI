@@ -70,14 +70,20 @@ s <- rd("calibration_summary.csv")
 b <- rd("null_bias_summary.csv")
 pw <- rd("power_summary.csv")
 pc <- rd("pvalue_curves.csv")
-if (is.null(s)) stop("no calibration_summary.csv in ", summary_dir)
+if (is.null(s)) {
+	# No results yet (the analysis wrote only its "No results yet" markdown): an
+	# empty fragment, so the README renders and the publish step goes on.
+	dir.create(dirname(fragment), recursive = TRUE, showWarnings = FALSE)
+	writeLines(c("No figures yet.", ""), fragment)
+	quit(save = "no", status = 0L)
+}
 for (x in list("s", "b", "pw", "pc")) if (!is.null(get(x))) {
 	v <- get(x)
 	v$formula[is.na(v$formula)] <- ""
 	v$design_label <- paste0(sub("^Design(Fixed|SeqOneByOne)", "\\1:", v$design), ifelse(v$prob_T != 0.5, paste0(" @", v$prob_T), ""))
 	v$design_label <- sub("^SeqOneByOne:", "Seq:", v$design_label)
 	if (!("n_nominal" %in% names(v))) v$n_nominal <- v$n
-	v$cls <- sub("^Inference", "", v$inference_class)
+	v$cls <- sub("^Inference", "", v$inf_class)
 	assign(x, v)
 }
 s$status <- ifelse(s$fail_size | s$fail_coverage, "fail", ifelse(is.na(s$p_size) & is.na(s$p_coverage), "too few results",
@@ -104,7 +110,7 @@ for (rt in sort(unique(s$response_type))) {
 
 	xb <- x[x$design_label == baseline_design & is.finite(x$size), ]
 	if (nrow(xb)) {
-		xb$row <- paste(xb$cls, xb$method, xb$formula)
+		xb$row <- paste(xb$cls, xb$inf_procedure, xb$formula)
 		xb$nf <- n_fac(xb$n_nominal)
 		xb$se <- sqrt(xb$size * (1 - xb$size) / pmax(xb$n_p, 1))
 		save_both(function(th) ggplot(xb, aes(size, row, colour = nf, shape = nf)) +
@@ -119,7 +125,7 @@ for (rt in sort(unique(s$response_type))) {
 	}
 	xc <- x[x$design_label == baseline_design & is.finite(x$coverage), ]
 	if (nrow(xc)) {
-		xc$row <- paste(xc$cls, xc$method, xc$formula)
+		xc$row <- paste(xc$cls, xc$inf_procedure, xc$formula)
 		xc$nf <- n_fac(xc$n_nominal)
 		xc$se <- sqrt(xc$coverage * (1 - xc$coverage) / pmax(xc$n_ci, 1))
 		save_both(function(th) ggplot(xc, aes(coverage, row, colour = nf, shape = nf)) +
@@ -152,7 +158,7 @@ for (rt in sort(unique(s$response_type))) {
 		base <- utils::read.csv(file.path(dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L]))),
 			"calibration_study_effects.csv"), stringsAsFactors = FALSE)
 		bc <- sub("^Inference", "", base$baseline_class[base$response_type == rt])
-		pp <- pw[pw$response_type == rt & pw$cls %in% bc & pw$formula == "~." & pw$method == "wald" & pw$effect_label == "power50", ]
+		pp <- pw[pw$response_type == rt & pw$cls %in% bc & pw$formula == "~." & pw$inf_procedure == "wald" & pw$effect_label == "power50", ]
 		if (nrow(pp)) {
 			pp$nf <- n_fac(pp$n_nominal)
 			pp$design_label <- stats::reorder(pp$design_label, pp$power, mean)
@@ -172,12 +178,12 @@ for (rt in sort(unique(s$response_type))) {
 		r <- pc[pc$response_type == rt & pc$design == "DesignFixedBernoulli" & pc$prob_T == 0.5 & pc$n_nominal == 200 &
 			pc$formula == "~." & pc$n_p >= 30, ]
 		if (nrow(r)) {
-			r$cls <- sub("^Inference", "", r$inference_class)
-			r$method <- factor(r$method, levels = c("wald", "score", "lik_ratio", "gradient", "exact", "rand"))
-			r <- rbind(r, transform(r[!duplicated(r[c("cls", "method")]), ], u = 0, dev = 0),
-				transform(r[!duplicated(r[c("cls", "method")]), ], u = 1, dev = 0))
-			r <- r[order(r$cls, r$method, r$u), ]
-			save_both(function(th) ggplot(r, aes(u, dev, colour = method)) +
+			r$cls <- sub("^Inference", "", r$inf_class)
+			r$inf_procedure <- factor(r$inf_procedure, levels = c("wald", "score", "lik_ratio", "gradient", "exact", "rand"))
+			r <- rbind(r, transform(r[!duplicated(r[c("cls", "inf_procedure")]), ], u = 0, dev = 0),
+				transform(r[!duplicated(r[c("cls", "inf_procedure")]), ], u = 1, dev = 0))
+			r <- r[order(r$cls, r$inf_procedure, r$u), ]
+			save_both(function(th) ggplot(r, aes(u, dev, colour = inf_procedure)) +
 				geom_hline(yintercept = 0, colour = th$ink2, linewidth = 0.4) +
 				geom_vline(xintercept = 0.05, colour = th$muted, linewidth = 0.3, linetype = "dashed") +
 				geom_line(linewidth = 0.6) + geom_point(size = 1) + facet_wrap(~ cls) +

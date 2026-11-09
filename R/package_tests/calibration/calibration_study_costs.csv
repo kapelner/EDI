@@ -1,37 +1,52 @@
-response_type,family,n,secs_per_rep,source
-continuous,iid,50,8,0.6 x n = 200
-continuous,iid,200,12,measured 2026-11-09 (DesignFixedBernoulli)
-continuous,iid,1000,15,measured 2026-11-09 (DesignFixedBernoulli)
-continuous,matched,50,19,0.6 x n = 200
-continuous,matched,200,32,measured 2026-11-09 (DesignSeqOneByOneKK21)
-continuous,matched,1000,45,measured 2026-11-09 (DesignSeqOneByOneKK21)
-incidence,iid,50,4,0.6 x n = 200
-incidence,iid,200,7,measured 2026-11-09 (DesignFixedBernoulli)
-incidence,iid,1000,10,measured 2026-11-09 (DesignFixedBernoulli)
-incidence,matched,50,6,0.6 x n = 200
-incidence,matched,200,9,measured 2026-11-09 (DesignSeqOneByOneKK21)
-incidence,matched,1000,18,measured 2026-11-09 (DesignSeqOneByOneKK21)
-proportion,iid,50,14,0.6 x n = 200
-proportion,iid,200,22,measured 2026-11-09 (DesignFixedBernoulli)
-proportion,iid,1000,34,measured 2026-11-09 (DesignFixedBernoulli)
-proportion,matched,50,29,0.6 x n = 200
-proportion,matched,200,47,measured 2026-11-09 (DesignSeqOneByOneKK21)
-proportion,matched,1000,110,measured 2026-11-09 (DesignSeqOneByOneKK21)
-count,iid,50,46,0.6 x n = 200
-count,iid,200,77,measured 2026-11-09 (DesignFixedBernoulli)
-count,iid,1000,130,measured 2026-11-09 (DesignFixedBernoulli)
-count,matched,50,250,0.6 x n = 200
-count,matched,200,418,measured 2026-11-09 (DesignSeqOneByOneKK21)
-count,matched,1000,2489,measured 2026-11-09 (DesignSeqOneByOneKK21; CountKKGLMM 2221 s)
-ordinal,iid,50,42,0.6 x n = 200
-ordinal,iid,200,70,measured 2026-11-09 (DesignFixedBernoulli)
-ordinal,iid,1000,153,measured 2026-11-09 (DesignFixedBernoulli)
-ordinal,matched,50,530,0.6 x n = 200
-ordinal,matched,200,885,measured 2026-11-09 (DesignSeqOneByOneKK21)
-ordinal,matched,1000,3449,measured 2026-11-09 (DesignSeqOneByOneKK21; KK CLMM links ~800 s each)
-survival,iid,50,12,0.6 x n = 200
-survival,iid,200,20,measured 2026-11-09 (DesignFixedBernoulli)
-survival,iid,1000,27,measured 2026-11-09 (DesignFixedBernoulli)
-survival,matched,50,22,0.6 x n = 200
-survival,matched,200,36,measured 2026-11-09 (DesignSeqOneByOneKK21)
-survival,matched,1000,39,measured 2026-11-09 (DesignSeqOneByOneKK21)
+response_type,family,n,group,secs_per_rep,source
+continuous,iid,50,rest,8,0.6 x n = 200
+continuous,iid,200,rest,12,measured 2026-11-09 (DesignFixedBernoulli)
+continuous,iid,1000,rest,15,measured 2026-11-09 (DesignFixedBernoulli)
+continuous,matched,50,rest,19,0.6 x n = 200
+continuous,matched,200,rest,32,measured 2026-11-09 (DesignSeqOneByOneKK21)
+continuous,matched,1000,rest,45,measured 2026-11-09 (DesignSeqOneByOneKK21)
+incidence,iid,50,rest,4,0.6 x n = 200
+incidence,iid,200,rest,7,measured 2026-11-09 (DesignFixedBernoulli)
+incidence,iid,1000,rest,10,measured 2026-11-09 (DesignFixedBernoulli)
+incidence,matched,50,rest,6,0.6 x n = 200
+incidence,matched,200,rest,9,measured 2026-11-09 (DesignSeqOneByOneKK21)
+incidence,matched,1000,rest,18,measured 2026-11-09 (DesignSeqOneByOneKK21)
+proportion,iid,50,rest,14,0.6 x n = 200
+proportion,iid,200,rest,22,measured 2026-11-09 (DesignFixedBernoulli)
+proportion,iid,1000,rest,34,measured 2026-11-09 (DesignFixedBernoulli)
+proportion,matched,50,rest,29,0.6 x n = 200
+proportion,matched,200,rest,47,measured 2026-11-09 (DesignSeqOneByOneKK21)
+proportion,matched,1000,rest,110,measured 2026-11-09 (DesignSeqOneByOneKK21)
+count,iid,50,rest,46,0.6 x n = 200
+count,iid,200,rest,77,measured 2026-11-09 (DesignFixedBernoulli)
+count,iid,1000,rest,130,measured 2026-11-09 (DesignFixedBernoulli)
+count,matched,50,rest,59,measured 2026-11-09 per class (DesignSeqOneByOneKK21); rest = replicate total minus the slow classes
+count,matched,50,InferenceCountKKGLMM,39,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+count,matched,200,rest,85,measured 2026-11-09 per class (DesignSeqOneByOneKK21); rest = replicate total minus the slow classes
+count,matched,200,InferenceCountKKGLMM,190,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+count,matched,1000,rest,305,measured 2026-11-09 per class (DesignSeqOneByOneKK21); rest = replicate total minus the slow classes
+count,matched,1000,InferenceCountKKGLMM,1986,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,iid,50,rest,42,0.6 x n = 200
+ordinal,iid,200,rest,70,measured 2026-11-09 (DesignFixedBernoulli)
+ordinal,iid,1000,rest,153,measured 2026-11-09 (DesignFixedBernoulli)
+ordinal,matched,50,rest,87,measured 2026-11-09 per class (DesignSeqOneByOneKK21); rest = replicate total minus the slow classes
+ordinal,matched,50,InferenceOrdinalKKCLMMCloglog,73,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,50,InferenceOrdinalKKCLMMProbit,61,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,50,InferenceOrdinalKKCLMMCauchit,66,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,50,InferenceOrdinalKKCLMM,61,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,200,rest,218,measured 2026-11-09 per class (DesignSeqOneByOneKK21); rest = replicate total minus the slow classes
+ordinal,matched,200,InferenceOrdinalKKCLMMCloglog,113,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,200,InferenceOrdinalKKCLMMProbit,90,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,200,InferenceOrdinalKKCLMMCauchit,95,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,200,InferenceOrdinalKKCLMM,87,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,1000,rest,679,measured 2026-11-09 per class (DesignSeqOneByOneKK21); rest = replicate total minus the slow classes
+ordinal,matched,1000,InferenceOrdinalKKCLMMCloglog,1064,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,1000,InferenceOrdinalKKCLMMProbit,919,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,1000,InferenceOrdinalKKCLMMCauchit,978,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+ordinal,matched,1000,InferenceOrdinalKKCLMM,855,measured 2026-11-09 per class (DesignSeqOneByOneKK21)
+survival,iid,50,rest,12,0.6 x n = 200
+survival,iid,200,rest,20,measured 2026-11-09 (DesignFixedBernoulli)
+survival,iid,1000,rest,27,measured 2026-11-09 (DesignFixedBernoulli)
+survival,matched,50,rest,22,0.6 x n = 200
+survival,matched,200,rest,36,measured 2026-11-09 (DesignSeqOneByOneKK21)
+survival,matched,1000,rest,39,measured 2026-11-09 (DesignSeqOneByOneKK21)

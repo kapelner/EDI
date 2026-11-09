@@ -208,6 +208,14 @@ incidence_gcomp_overrides = list(
 #' does not provide likelihood-ratio or score tests; it does not preclude its
 #' Wald inference.
 #'
+#' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+#' 10 treated subjects at n = 50), the Wald test can reject a true null up to
+#' about 10\% of the time at a nominal 5\% level with covariate adjustment
+#' (about 9\% treatment-only), with matching undercoverage of the intervals.
+#' The excess shrinks as n grows and is close to nominal by n = 200. With so
+#' few subjects in one arm, use a larger or more balanced sample, or a
+#' randomization or bootstrap test.
+#'
 #' @seealso \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}
 #'   for the risk-ratio version of this same standardized logistic working model.
 #'

@@ -662,7 +662,7 @@ Ticked in owning plans; this list is the index.
     the ~40M result rows. The branch is rebuilt as one commit per publish (force-pushed by GITHUB_TOKEN, which
     starts no workflows), so rewritten figures never accumulate in git history. Plots: overview heatmap,
     size / coverage / null-bias dot plots, p-value calibration curves, power curves by design, design ranking,
-    convergence plots, month-to-month history. Raw per-replicate rows (~100 MB per campaign) go to 90-day Actions
+    convergence plots, month-to-month history. Raw per-replicate rows (~0.3 GB per campaign as 7-significant-digit CSV + xz -9e, estimated 2026-11-09 from measured bytes per replicate) go to 60-day Actions
     artifacts, not git, and not GitHub Releases (the repo's Zenodo link would archive each release). The
     size/coverage gate is enforced only when a campaign completes; interim summaries are marked provisional.
   - **Found while planning:** `path_audits.html` (v1.0.3, 2026-10-08) has no columns for 5 of the 10 bootstrap CI
@@ -675,12 +675,60 @@ Ticked in owning plans; this list is the index.
     `calibrate_study_effects.R` (+ `calibration_study_effects.csv`, `calibration_study_costs.csv`,
     `calibration_study_accepted.csv`). The fast tier's schedule is removed (it stays dispatchable; the pre-push check
     keeps its p = 2 data). Tested locally end to end on a two-wave mini campaign; the workflow itself has not run yet.
-    Measured cost: ~11,500 core-hours per campaign, ~7.5 days of 16 jobs x 4 vCPUs (plus per-shard setup), so
-    roughly the first 9-10 days of each month.
-  - **After the first wave publishes:** add the README links. They are held back until then because
-    `scripts/check_doc_links.py` (pre-push) fetches external links and would block a push on the 404:
-    a badge `[![Calibration study](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml/badge.svg)](https://github.com/kapelner/EDI/tree/calibration-results)`
-    after the R coverage badge, and a Highlights bullet "Published monthly calibration study" linking the branch.
+    Measured cost (all 22 designs, n = 50/200/1000 at KK21's measured per-class costs, 2026-11-09): ~19,200
+    core-hours at full replicates, two-thirds of it the KK random-effects classes for count and ordinal on the
+    four matched designs (one KK21 ordinal replicate at n = 1000 with every class is 57 single-core minutes, past
+    the 55-minute shard timeout). **User decision 2026-11-09 (option B):** those classes (`InferenceCountKKGLMM`,
+    `InferenceOrdinalKKCLMM{,Cauchit,Cloglog,Probit}`) run in their own shards (planner class groups, `--only` /
+    `--exclude`; group "rest" is every other class) with 500 null replicates at n = 1000 (1,000 below) and power
+    at n = 50 only. Result (per-class costs measured on KK21 at n = 50/200/1000, six probes sharing 12 cores, so
+    slightly high): ~13,800 core-hours, ~9 days of 16 jobs x 4 vCPUs plus per-shard setup, so roughly the first
+    10-11 days of each month. Longest single replicate: InferenceCountKKGLMM at n = 1000, ~33 single-core min. The first campaign's ledger
+    replaces these estimates with measured per-unit costs anyway. Rejected: everything at full replicates (~15 days), and moving the slow
+    classes to tier 2 (~6 days, but no matched-design coverage of them at n = 1000 monthly).
+  - **Raw-row columns (user decisions 2026-11-09):** `inf_class`, `inf_procedure`, `formula`, `beta_T_hat`,
+    `ci_beta_T_a`, `ci_beta_T_b`, `pval`, `null_value`, `fit_secs`, `status`, `message`, then the cell (`response_type`,
+    `design`, `prob_T`, `n`, `n_nominal`, `p`, `rep`, `effect_label`, `beta_T`). The study renames them from
+    `cal_run_tasks()`' names in `cal_study_run_rep()`; the fast tier keeps the old names. Result columns are
+    rounded to 7 significant digits in the raw file only; the fast tier's `p_at_ci_a/b` endpoint check is not run
+    and not written. **Tier 2 must add `inf_subprocedure`:** its bootstrap and Bayesian-bootstrap procedures
+    (`bootstrap`, `bayes_boot`) run each class's default flavor (`type = NULL`, resolved per class), so the column
+    records the resolved flavor (e.g. `percentile`), and it becomes part of the stats cell key. Tier 1's six
+    procedures have no flavor, so the column is not written yet.
+  - **Away from the null (user decision 2026-11-09):** coverage at every power effect is gated like the null
+    coverage (same Bonferroni family, `analyze_calibration_study.R`), and bias at the power effects is reported
+    and flagged like the null bias (`nonnull_bias_summary.csv`), both against `estimand_true`: the true value
+    of each class's own estimand, from `calibrate_study_truths.R` -> `calibration_study_truths.csv` (the class's
+    estimate on 8 Bernoulli samples of 20,000 from the study's generator at that effect and allocation; median,
+    with its SD; counted only when >= 75% of the fits are finite). Same idea as `comprehensive_tests.R`'s
+    `get_coverage_truth()` MC specs, rebuilt on the study's data generator. KK classes (matched-design only)
+    have no truth: their estimand depends on the pairing. Under the null `estimand_true` = `null_value`, so the
+    null results are unchanged. Re-run the truth script whenever `calibration_study_effects.csv`, a response
+    model, the covariates or an estimator changes (~16 min on 10 cores).
+    **Cells without a usable truth (2026-11-09, k = 8; 1,500 of 1,536 usable):** two are by design.
+    `InferenceOrdinalStereotypeLogitRegr` `~1` is non-estimable with 3+ categories (owner ruling 2026-11-08), and
+    `InferenceIncidCMH` refuses prob_T != 0.5. One is a defect: `InferenceIncidModifiedPoisson` `~1` gives NA
+    (`model_fit_unavailable`) from n of about 10,000 (9 of 12 cells; v1.1.0 TODO-169). Also 1-2 cells each of
+    `InferenceCountHurdlePoisson` `~1` and `InferenceCountZeroInflatedNegBin` `~.` (not yet examined).
+  - **Two-stage gate (user decision 2026-11-09):** Bonferroni over the campaign's ~10^5 tests only failed a cell
+    at size >= 0.10 or coverage <= 0.90 (1,000 replicates; 0.12 / 0.88 at 500). Now: (1) screen, BH q < 0.05 over
+    every size / coverage test (null, and non-null coverage) on the screening replicates, written to
+    `summary/confirm_cells.csv`; (2) confirm, once screening is done the planner gives each flagged cell 5,000
+    fresh replicates (`--confirm-reps`; `--slow-confirm-reps` 1,000 for the slow KK classes), numbered 10001 on
+    (`CAL_STUDY_CONFIRM_REP0`; rows and stats carry `stage`), running only the flagged classes. A cell fails only
+    if the confirmation replicates alone reject at 0.01 / (flagged tests); fewer than 500 confirmation results
+    (`--confirm-min-n`) counts as failing, never as cleared. `confirmation_summary.csv` gives each flagged test's
+    verdict; `analyze_calibration_study.R --final` (campaign complete) turns pending into verdicts. Tested locally
+    end to end on a 60-replicate incidence campaign (7 flags -> 1 confirmation unit -> verdicts).
+  - **Paired design comparison (user decision 2026-11-09):** `compare_designs_calibration_study.R` runs once
+    per campaign, at completion (the workflow fetches every wave's `study-rows` artifact): for each power cell
+    and design, an exact McNemar test of its power against Bernoulli's on the replicates they share (same
+    `rep` = same subjects); a design at another n (pair-switching's 52) gets an unpaired z-test. BH q-values;
+    reported, not gated (`design_comparison.csv`).
+  - **README links (added 2026-11-09):** the badge and the Highlights bullet link the workflow's Actions page,
+    which exists already. Switch the bullet to the `calibration-results` branch once the first wave has
+    published it. Until then that link would 404, and `scripts/check_doc_links.py` (pre-push) blocks a push on
+    an external 404.
   - **Done when:** one full campaign has completed and published from `main`'s workflow, the README links are in,
     and `calibration_gates.md` describes the study.
 

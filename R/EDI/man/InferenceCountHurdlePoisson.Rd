@@ -43,6 +43,17 @@ maximum-likelihood fit (no refit), with a delta-method standard error
 against the sandwich-robust covariance matrix already used for this
 class's conditional Wald inference. Only \code{"wald"}-type inference is
 available under a marginal estimand.
+
+\strong{Omitted covariates.} When covariates that drive the outcome are
+left out of the formula (for example \code{~ 1}), the zero-truncated
+Poisson count part is overdispersed, so the model-based score, gradient and
+likelihood-ratio tests can reject a true null up to about 8.5\% of the time
+at a nominal 5\% level, even at n = 1000. This is model misspecification,
+so it does not go away with more data. The Wald test, which uses a sandwich
+covariance, stays calibrated in this setting: prefer it, adjust for the
+prognostic covariates, or use
+\code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
+which models the overdispersion.
 }
 \section{Blocking designs}{
 

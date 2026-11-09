@@ -170,11 +170,17 @@ jobs:
       # builders closely enough to catch peak compiler-memory regressions that
       # the much larger GitHub runner previously masked.
       # --no-binary remains scoped to edi_kernels itself.
+      # --cpus=3 leaves one of the runner's 4 vCPUs to the Actions agent: the
+      # QEMU-emulated compile otherwise saturates every core for 1.5-2 h, and
+      # run 42595736209's trixie leg died with "The hosted runner lost
+      # communication with the server" after 2 h 9 min (the same leg had
+      # passed in 1 h 35 min three days earlier with no source change).
       - name: Build and install sdist (piwheels-like ${{ matrix.codename }}, python${{ matrix.python }})
         run: |
           set -e
           docker run --rm \
             --platform linux/arm/v7 \
+            --cpus=3 \
             --memory=4g \
             --memory-swap=4g \
             -v "${{ github.workspace }}/dist:/dist:ro" \

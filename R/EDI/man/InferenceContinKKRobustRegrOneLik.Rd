@@ -59,6 +59,13 @@ types, unlike the OLS one-likelihood sibling.
 independent reservoir subjects; no censoring; a KK matching-on-the-fly
 design. Robust regression trades some efficiency under exactly-Gaussian
 errors for resistance to outliers and heavy tails.
+
+\strong{Small samples.} With covariate adjustment at n = 50, the Wald test
+can reject a true null up to about 9\% of the time at a nominal 5\% level
+(intervals can cover as little as about 91\%), since its normal reference
+is only an asymptotic approximation. The excess shrinks as n grows and is
+close to nominal by n = 200. With samples this small, use a larger sample
+or a randomization or bootstrap test.
 }
 \references{
 Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential

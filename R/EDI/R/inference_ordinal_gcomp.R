@@ -17,6 +17,14 @@
 #' all silently fall back to a nonparametric bootstrap interval/p-value instead
 #' (with a warning), rather than returning \code{NA}.
 #'
+#' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+#' 10 treated subjects at n = 50) and covariate adjustment, the delta-method
+#' Wald test can reject a true null up to about 8.5\% of the time at a nominal
+#' 5\% level (intervals can cover as little as about 91.5\%). The excess
+#' shrinks as n grows and is close to nominal by n = 200. With so few subjects
+#' in one arm, use a larger or more balanced sample, or a randomization or
+#' bootstrap test.
+#'
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')

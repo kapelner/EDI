@@ -1081,13 +1081,18 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 #' pair times from the fitted Clayton copula and new singleton times from
 #' the marginal Weibull) is available alongside Wald inference.
 #'
-#' \strong{Score test at small n.} The score test rejects somewhat too often
+#' \strong{Small samples.} The score test rejects somewhat too often
 #' in moderate samples, even when the model is correct (about 6.3\% at a
 #' nominal 5\% with n = 200 on matched pairs, against about 5\% for Wald and
 #' likelihood-ratio). Forcing \eqn{\beta_T = \delta} lowers the fitted
 #' within-pair dependence, and with it the information used to scale the
 #' score, exactly when the data show an effect. The excess shrinks as n
-#' grows. Prefer the Wald (default) or likelihood-ratio test and intervals.
+#' grows. From about n = 200, prefer the Wald (default) or likelihood-ratio
+#' test and intervals. At n = 50 the Wald test also rejects too often, with or
+#' without covariates: up to about 9\% at a nominal 5\% level, with intervals
+#' covering as little as about 91\%; it is close to nominal by n = 200. With
+#' samples this small, use a larger sample or a randomization or bootstrap
+#' test.
 #'
 #' \strong{Assumptions.} Weibull AFT margin correctly specified; Clayton
 #' copula correctly captures within-pair dependence (a positive-dependence,

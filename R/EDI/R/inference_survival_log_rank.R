@@ -9,6 +9,14 @@
 #' \code{interval::ictest(..., scores = "logrank1")} (Sun's-scores interval-censored
 #' generalization of the log-rank test) for both the point estimate and testing.
 #'
+#' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+#' 10 treated subjects at n = 50), the Wald test and interval for the
+#' martingale-residual difference can reject a true null up to about 9.5\% of
+#' the time at a nominal 5\% level (coverage as low as about 90.5\%), with or
+#' without covariates. The excess shrinks as n grows and is close to nominal
+#' by n = 200. With so few subjects in one arm, use a larger or more balanced
+#' sample, or a randomization test.
+#'
 #' @references Mantel, N. (1966). "Evaluation of survival data and two new
 #'   rank order statistics arising in its consideration." \emph{Cancer
 #'   Chemotherapy Reports}, 50(3), 163-170, for the log-rank test. Peto, R.,

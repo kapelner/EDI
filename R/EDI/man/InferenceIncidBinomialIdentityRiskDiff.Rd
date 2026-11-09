@@ -56,6 +56,14 @@ marginal path uses the delta method against the model's coefficient
 covariance; the conditional path uses the model information matrix), so
 while the two point estimates coincide exactly, their standard errors may
 differ slightly by construction even though both are asymptotically valid.
+
+\strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+10 treated subjects at n = 50), the Wald test can reject a true null up to
+about 13.5\% of the time at a nominal 5\% level with covariate adjustment
+(about 8.5\% treatment-only), and covariate-adjusted likelihood-ratio
+intervals can cover as little as about 88\%. The excess shrinks as n grows
+and is close to nominal by n = 200. With so few subjects in one arm, use a
+larger or more balanced sample, or a randomization or bootstrap test.
 }
 \section{Blocking designs}{
 

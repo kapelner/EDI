@@ -130,21 +130,36 @@ edi_tuning_machine_load = function() {
 #' defaults measured on a busy box -- so the caller refuses to run unless
 #' \code{force = TRUE}.
 #'
+#' Each calibration sample times \code{calib_batch} back-to-back runs of the
+#' operation and divides by \code{calib_batch}. One run takes about 0.5-2 ms,
+#' and \code{proc.time()} resolves only 1 ms, so single-run samples are
+#' quantised to 0/1/2 ms and their IQR / median is 0.5-1.5 even on an idle
+#' machine (found 2026-11-09: the guard refused every run, IQR/median 1.50,
+#' at a load of 0.69 on 12 cores). A batch of 50 makes each sample about
+#' 25-100 ms, so the timer's resolution is a few percent of it.
+#' \code{calib_op} and \code{clock} exist only so tests can supply a
+#' deterministic operation and a coarse clock.
+#'
 #' @return A list: \code{busy} (logical), \code{load_1min}, \code{cores},
 #'   \code{load_ratio}, \code{calib_cv}, and \code{reasons} (character,
 #'   empty when not busy).
 #' @keywords internal
 #' @noRd
-edi_tuning_machine_looks_busy = function(load_ratio_threshold = 0.5, calib_cv_threshold = 0.5, calib_reps = 15L) {
+edi_tuning_machine_looks_busy = function(load_ratio_threshold = 0.5, calib_cv_threshold = 0.5, calib_reps = 15L,
+		calib_batch = 50L, calib_op = NULL, clock = function() proc.time()[["elapsed"]]) {
 	cores = tryCatch(as.integer(parallel::detectCores()), error = function(e) NA_integer_)
 	load_1min = edi_tuning_machine_load()
 	load_ratio = if (is.finite(load_1min) && is.finite(cores) && cores > 0L) load_1min / cores else NA_real_
 
-	calib_times = vapply(seq_len(calib_reps), function(i) {
-		t0 = proc.time()[["elapsed"]]
+	if (is.null(calib_op)) calib_op = function() {
 		x = matrix(seq_len(40000L) %% 97L, 200L, 200L) / 97
 		invisible(sum(crossprod(x)))
-		proc.time()[["elapsed"]] - t0
+	}
+	calib_batch = max(1L, as.integer(calib_batch))
+	calib_times = vapply(seq_len(calib_reps), function(i) {
+		t0 = clock()
+		for (j in seq_len(calib_batch)) calib_op()
+		(clock() - t0) / calib_batch
 	}, numeric(1))
 	med = stats::median(calib_times)
 	calib_cv = if (is.finite(med) && med > 0) stats::IQR(calib_times) / med else NA_real_

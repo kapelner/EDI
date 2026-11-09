@@ -18,6 +18,14 @@
 #' homoskedastic OLS variance and not a binomial likelihood, and no
 #' likelihood-ratio or parametric-bootstrap methods are exposed.
 #'
+#' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
+#' 10 treated subjects at n = 50), the HC0 Wald test can reject a true null up
+#' to about 9.5\% of the time at a nominal 5\% level with covariate adjustment
+#' (about 9\% treatment-only), with matching undercoverage of the intervals.
+#' The excess shrinks as n grows and is close to nominal by n = 200. With so
+#' few subjects in one arm, use a larger or more balanced sample, or a
+#' randomization or bootstrap test.
+#'
 #' @examples
 #' \donttest{
 #' seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'incidence')
