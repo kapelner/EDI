@@ -250,7 +250,9 @@ test_that("SimulationFramework handles Friedman nonlinear model", {
 		stop_on_error = FALSE
 	)
 	
-	sim$run()
+	# The default design list includes cluster designs, where the simple
+	# estimators' Wald results carry the cluster-independence advisory.
+	suppressWarnings(sim$run(), classes = "edi_cluster_independence_warning")
 	results <- SimulationFrameworkReport$new(sim)$get_results()
 	expect_equal(results$cond_exp_func_model[1], "nonlinear")
 })

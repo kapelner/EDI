@@ -718,6 +718,13 @@ if (identical(mode, "benchmark")) {
   written_sidecar <- write_todo58_benchmark_sidecar(output_path, benchmark_sidecar)
   cat("Wrote benchmark provenance sidecar:", written_sidecar, "\n")
 }
-if (any(!is.finite(summary$speedup)) || any(summary$speedup < 1)) {
-  stop("TODO-6 current-speed acceptance failed: at least one row is below 1x boot.", call. = FALSE)
+# No speed threshold here: G6 #38 (a), 2026-10-22, made the >= 1x-vs-boot target
+# workload-specific and moved speed acceptance to release_v1_1_0.md TODO-68. This
+# run only records timings (G2). A non-finite ratio still means a broken run.
+if (any(!is.finite(summary$speedup))) {
+  stop("benchmark failed: a median speed ratio is not finite.", call. = FALSE)
+}
+if (any(summary$speedup < 1)) {
+  cat("Note: cases below 1x boot (recorded, not a failure):",
+    paste(summary$case[summary$speedup < 1], collapse = ", "), "\n")
 }

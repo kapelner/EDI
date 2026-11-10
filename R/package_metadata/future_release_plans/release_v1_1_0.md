@@ -2186,6 +2186,12 @@ ticked in their **owning plans**; this list is the release index.
   - Fix (candidates): gate `converged` on the gradient norm; when log sigma runs toward `-max_abs_log_sigma`, refit with sigma fixed at 0 (the plain GLM) and keep the better likelihood; or profile sigma out at the boundary.
   - Done when: on that fixture the weighted estimate matches the weighted `glm()` / `glmer(nAGQ = 20)` value to 1e-4 relative, `converged` is FALSE whenever the gradient norm is above tolerance, and the test's tolerance is back at 1e-3.
 
+- [ ] TODO-191 (added 2026-11-10, owner; moved from v1.0.5 TODO-1 / `bug_fix_plans/reusable_bootstrap.md` TODO-3): **ZOIB jackknife speed target: "low hundreds of ms" for 50 folds.**
+  - State at the move: `InferencePropZeroOneInflatedBetaRegr`'s jackknife reuses one bootstrap worker (v1.0.5 TODO-1). On the diagnosed fixture (proportion, n = 50, `edi_tuning_default_seed(cls, 50L)`), the last timing was 5.84 s reusable vs 7.85 s legacy (an earlier run: 11.05 vs 6.62 s). It is now faster than legacy but well above the target.
+  - Where the time goes: in 8 of the 50 folds the direct estimate-only fit returns a non-finite treatment coefficient, and the fallback then runs 3 ordinary full fits (two non-finite p = 4 fits, one finite p = 3 fit). Details: the "Exact-seed fallback observer, 2026-10-21" note in `reusable_bootstrap.md` TODO-3.
+  - Candidates: a column-selection cache keyed on the fold (the follow-up that plan names); or go straight to the reduced column set when the direct fit is non-finite, skipping the two p = 4 refits. Keep the fallback results and the TODO-4 golden parity (`test-zoib-jackknife-reusable-worker-migration-golden.R`) unchanged.
+  - Done when: the 50-fold jackknife on that fixture runs in low hundreds of ms on a quiet host, the golden test still passes, and `tune_EDI_for_this_machine()` still completes the ZOIB jackknife axis.
+
 ## Standing constraints
 
 All of `_master.md`'s standing constraints apply unchanged (update

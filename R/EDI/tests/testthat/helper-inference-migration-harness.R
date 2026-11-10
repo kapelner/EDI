@@ -185,13 +185,24 @@ inference_migration_unsupported_error = function(err) {
 	grepl("not implemented|not supported|only supported|does not support|does not expose|Must be implemented|temporarily disabled", msg)
 }
 
+# Advisory warnings the golden comparisons trigger on purpose by calling every
+# method on small fixtures: likelihood tests on classes with no likelihood
+# (Wald fallback / NA), and BCa at the harness's tiny B. Legacy and migrated
+# sides both raise them, so they say nothing about the migration; any other
+# warning still surfaces.
+inference_migration_expected_warning_classes = c(
+	"edi_lik_test_wald_fallback",
+	"edi_lik_test_unavailable_warning",
+	"edi_bootstrap_bca_boundary_warning"
+)
+
 inference_migration_call_optional_method = function(obj, method_name, args) {
 	method = obj[[method_name]]
 	if (!is.function(method)) {
 		return(list(status = "absent", value = NULL))
 	}
 	tryCatch(
-		list(status = "ok", value = do.call(method, args)),
+		list(status = "ok", value = suppressWarnings(do.call(method, args), classes = inference_migration_expected_warning_classes)),
 		error = function(e) {
 			if (inference_migration_unsupported_error(e)) {
 				return(list(status = "unsupported", value = NULL, message = conditionMessage(e)))

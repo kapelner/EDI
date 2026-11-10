@@ -128,6 +128,9 @@ methods.
 * `tune_EDI_for_this_machine()` no longer loses a finished run when it cannot
   write its config file (for example a read-only home directory). It now warns,
   applies the tuning to the current session, and returns the result.
+* `tune_EDI_for_this_machine()`'s summary now gives the right number of timing
+  wins discarded by the correctness gate. It counted warm-start operations
+  instead (5 printed for 19 discards).
 
 * `tune_EDI_for_this_machine()` no longer aborts partway through (it stopped
   at cell 57 of 1065 under `effort = "standard"`). Its synthetic count data had

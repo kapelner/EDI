@@ -13,6 +13,13 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
+# Every Rscript below loads EDI, and each load prints this machine's saved
+# tune_EDI_for_this_machine() notice ("...fastest at N cores ... call
+# set_num_cores(N) to opt in"). Skipping the saved tuning silences it and runs
+# the hook on shipped defaults, the same as CI, which has no saved tuning.
+# Tests of the tuning import set this variable themselves (withr::local_envvar).
+export EDI_SKIP_LOCAL_TUNING=1
+
 zero_sha="0000000000000000000000000000000000000000"
 empty_tree_sha="4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # git's canonical empty-tree object, always valid
 changed_files_file="$(mktemp)"

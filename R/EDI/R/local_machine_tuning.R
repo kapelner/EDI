@@ -85,6 +85,24 @@ edi_tuning_count_cells = function(plan) {
 	as.integer(total)
 }
 
+#' Number of timing wins the correctness gate discarded
+#'
+#' \code{discarded} holds one list of discarded deviations per axis, except
+#' \code{warm_start}, which holds one such list per operation. Flattening one
+#' level (the old count) counted warm-start operations, not deviations: a 2026-11-10
+#' run printed 5 for 19 discards.
+#'
+#' @keywords internal
+#' @noRd
+edi_tuning_count_discarded = function(discarded) {
+	n = 0L
+	for (axis in names(discarded)) {
+		entries = discarded[[axis]]
+		n = n + if (identical(axis, "warm_start")) sum(lengths(entries)) else length(entries)
+	}
+	as.integer(n)
+}
+
 #' Nominal wall-time range per effort tier, for the up-front message
 #'
 #' @keywords internal
@@ -535,7 +553,7 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 		elapsed_secs_total = elapsed_total,
 		dry_run = dry_run,
 		config_path = edi_tuning_config_path(),
-		n_discarded_by_correctness_gate = length(unlist(discarded, recursive = FALSE)),
+		n_discarded_by_correctness_gate = edi_tuning_count_discarded(discarded),
 		n_failed_cells = length(failed_cells)
 	)
 	class(result) = "EDILocalMachineTuning"

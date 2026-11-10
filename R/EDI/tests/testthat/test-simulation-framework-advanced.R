@@ -183,7 +183,8 @@ test_that("SimulationFramework respects clamping parameters", {
 		continue_from_last_result_row = FALSE
 	)
 	
-	sim$run()
+	# n = 10 with a huge effect: the default bootstrap's BCa sits on its boundary.
+	suppressWarnings(sim$run(), classes = "edi_bootstrap_bca_boundary_warning")
 	res <- SimulationFrameworkReport$new(sim)$get_results()
 	
 	# true_estimand should be mean(clamped_p_t - clamped_p_c) <= 0.99 - 0.01 = 0.98

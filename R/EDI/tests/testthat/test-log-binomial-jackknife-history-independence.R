@@ -27,7 +27,9 @@ make_todo128_design = function(seed = 20261022L, n = 120L){
 new_todo128_inf = function(des, fml){
 	inf = InferenceIncidLogBinomial$new(des, model_formula = fml, verbose = FALSE)
 	inf$num_cores = 1L
-	inf$compute_estimate()
+	# With ~. the full-data fit is on the exp(X b) = 1 boundary by design (see
+	# the TODO-128 test below), so the class's boundary advisory is expected.
+	suppressWarnings(inf$compute_estimate(), classes = "edi_binomial_mle_boundary_warning")
 	inf
 }
 

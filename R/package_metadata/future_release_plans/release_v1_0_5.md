@@ -235,13 +235,18 @@ range, since the plan files' internal numbering did not change.
   - **G2 / plan TODO-6 end-to-end tuning run, 2026-11-10 (agent, owner request).** `tune_EDI_for_this_machine(effort =
     "standard")` under `pkgload::load_all("R/EDI", compile = FALSE)` (to pick up the two R fixes below), start load1 0.97,
     checkout `src/EDI.so` = installed EDI.so (md5 `945a5490…1229`), EDI 1.0.4. 1,065 cells in 219 min 15 s, 0 failed
-    cells; profile written to `~/.config/R/EDI/machine_policies.rds` (result copy `/tmp/edi-g2-WLu1GY/tune_result.rds`).
+    cells; profile written to `~/.config/R/EDI/machine_policies.rds` (result copy `scratch/v1_0_5_g2_outputs/tune_result.rds`).
     ZOIB `jackknife` was in the warm-start families (exclusion list empty) and all its cells completed. It gave no
     jackknife deviation (no timing win, shipped default kept) and no correctness-gate discard. Other ZOIB axes: parallel
     bootstrap, 2 cores beat serial from n = 1000 (84% faster); its `non_param_boot` warm-start wins at n = 200 and
     n = 1000 were discarded by the correctness gate. Overall: 32 warm-start and 4 parallel deviations, 19 wins discarded
-    by the gate. **The end-to-end tuning gate is done.** Left for this box: `reusable_bootstrap.md` TODO-2 and TODO-3,
-    or an owner waiver (audit 2026-11-04 line above).
+    by the gate. **Owner call needed:** the axis completed (not excluded), but plan TODO-6 asks for "a real (not
+    excluded) policy diff" and the run kept the shipped default, i.e. no diff; per-cell pace was not recorded. Accept
+    "completed, default kept" as meeting it, or not. Also left for this box: none (see below).
+  - **DECIDED 2026-11-10 (owner):** waive `reusable_bootstrap.md` TODO-2 (the invariant holds on every tested fixture;
+    no proof for every formula and design needed) and TODO-3 for v1.0.5. The TODO-3 speed target ("low hundreds of
+    ms" for 50 folds; now 5.84 s vs 7.85 s legacy) moves to `release_v1_1_0.md` TODO-191. Only the TODO-6 question
+    above keeps this box open.
   - **Found by the tuning runs, 2026-11-09/10.** Fixed (agent, R only, uncommitted, NEWS bullets, tests in
     `test-local-machine-tuning-assembly.R`): (1) the idle check timed one ~1 ms operation with a 1 ms clock, so it always
     reported "calibration timings are noisy" (IQR/median 1.50 on an idle host); each sample now times a batch of 50.
@@ -7441,7 +7446,7 @@ baseline as expected/benign.
     (harness) was not named and stays here. Its script exists (`R/benchmark/benchmark_bayesian_bootstrap_performance.R`);
     only its owner-authorized baseline run is left (G2). Box left open for that run and for confirming that plan
     TODO-4/10 are done (their plan boxes are unchecked).
-  - **G2 baseline run recorded, 2026-11-09** (G2 chain `/tmp/edi-g2-WLu1GY/run_g2.sh`, each step started only at 1-min load < 1.0; HEAD `af6a86f0`, installed EDI 1.0.4, EDI.so mtime 2026-11-09 00:19, worktree dirty; outputs in `/tmp/edi-g2-WLu1GY/`): `benchmark_bayesian_bootstrap_performance.R 500 3 3 1000,5000`,
+  - **G2 baseline run recorded, 2026-11-09** (G2 chain `scratch/v1_0_5_g2_outputs/run_g2.sh`, each step started only at 1-min load < 1.0; HEAD `af6a86f0`, installed EDI 1.0.4, EDI.so mtime 2026-11-09 00:19, worktree dirty; outputs copied to `scratch/v1_0_5_g2_outputs/` (gitignored, local only; written to `/tmp/edi-g2-WLu1GY/`)): `benchmark_bayesian_bootstrap_performance.R 500 3 3 1000,5000`,
     03:16-04:36, rc 0, `bb.csv` with in-row provenance (44 rows: 11 estimators x B in 1000/5000 x dispatch default /
     `blocklist_override`, 1 vs 3 cores; DLL md5 `6ca9be41…`). The CSV's `source_commit` field reads `9929841c` with
     `source_worktree_dirty = TRUE`, not the chain's HEAD; check before citing it as a commit-pinned baseline. 1-core
@@ -7680,7 +7685,7 @@ baseline as expected/benign.
   - **DECIDED 2026-10-22 (G6 #38):** (a) the >= 1x-vs-`boot` target is restated as workload-specific. Speed acceptance
     moves to `release_v1_1_0.md → TODO-68`. This TODO closes on the G3 parity run [(audit 2026-11-04): plus the G2 original-B run
     recorded with provenance, as the sub-item above and the Per-TODO row say: G2 + G3].
-  - **G2 original-B run recorded, 2026-11-09** (G2 chain `/tmp/edi-g2-WLu1GY/run_g2.sh`, each step started only at 1-min load < 1.0; HEAD `af6a86f0`, installed EDI 1.0.4, EDI.so mtime 2026-11-09 00:19, worktree dirty; outputs in `/tmp/edi-g2-WLu1GY/`): `benchmark_todo58_public_bootstrap_ci.R benchmark`, `todo58.csv`
+  - **G2 original-B run recorded, 2026-11-09** (G2 chain `scratch/v1_0_5_g2_outputs/run_g2.sh`, each step started only at 1-min load < 1.0; HEAD `af6a86f0`, installed EDI 1.0.4, EDI.so mtime 2026-11-09 00:19, worktree dirty; outputs copied to `scratch/v1_0_5_g2_outputs/` (gitignored, local only; written to `/tmp/edi-g2-WLu1GY/`)): `benchmark_todo58_public_bootstrap_ci.R benchmark`, `todo58.csv`
     + `todo58.csv.provenance.rds`. Median `boot` / EDI public R6 speed ratio: logistic 1.09x, Cox 0.44x, OLS 0.10x. The
     script exited 1 on its own "TODO-6 current-speed acceptance: at least one row is below 1x boot" check; G6 #38 (a)
     moved speed acceptance to `release_v1_1_0.md` TODO-68, so that check is stale (update the script). G2 half done;
@@ -7891,7 +7896,7 @@ baseline as expected/benign.
     60/60 ok, `--self-test` compare 60/60 exact, exit 0; a tampered must-match
     case made it exit 1. Not yet run against 1.0.2 (not installed).
   - **DECIDED 2026-10-22 (G6 #43):** the G2 quiet-host cutoff is a 1-minute load average < 1.0 with nothing else running.
-  - **G2 timing PASS, 2026-11-09** (G2 chain `/tmp/edi-g2-WLu1GY/run_g2.sh`, each step started only at 1-min load < 1.0; HEAD `af6a86f0`, installed EDI 1.0.4, EDI.so mtime 2026-11-09 00:19, worktree dirty; outputs in `/tmp/edi-g2-WLu1GY/`): `benchmark_design_construction.R 1000 100 7` (seed 5901, start load1 0.94).
+  - **G2 timing PASS, 2026-11-09** (G2 chain `scratch/v1_0_5_g2_outputs/run_g2.sh`, each step started only at 1-min load < 1.0; HEAD `af6a86f0`, installed EDI 1.0.4, EDI.so mtime 2026-11-09 00:19, worktree dirty; outputs copied to `scratch/v1_0_5_g2_outputs/` (gitignored, local only; written to `/tmp/edi-g2-WLu1GY/`)): `benchmark_design_construction.R 1000 100 7` (seed 5901, start load1 0.94).
     iBCRD construction + registration + assignment median 0.76 ms (<= 1.5 ms); blocking 1.47 ms (<= 2.5 ms).
     `$new()` alone: iBCRD 0.47-0.51 ms, blocking 0.55-0.56 ms; first `get_X()` 1.56 ms. Timing half done; G3 parity
     against EDI 1.0.2 left.
@@ -8099,7 +8104,7 @@ baseline as expected/benign.
   Commands are in the G3 runbook. Self-tested against installed EDI 1.0.3 only
   (60/60 exact); not yet run against 1.0.2.
 
-  - **G2 timing PASS, 2026-11-09** (G2 chain `/tmp/edi-g2-WLu1GY/run_g2.sh`, each step started only at 1-min load < 1.0; HEAD `af6a86f0`, installed EDI 1.0.4, EDI.so mtime 2026-11-09 00:19, worktree dirty; outputs in `/tmp/edi-g2-WLu1GY/`): `benchmark_pocock_simon_arrivals.R 1000 20 5` (seeds 6001/6002, start
+  - **G2 timing PASS, 2026-11-09** (G2 chain `scratch/v1_0_5_g2_outputs/run_g2.sh`, each step started only at 1-min load < 1.0; HEAD `af6a86f0`, installed EDI 1.0.4, EDI.so mtime 2026-11-09 00:19, worktree dirty; outputs copied to `scratch/v1_0_5_g2_outputs/` (gitignored, local only; written to `/tmp/edi-g2-WLu1GY/`)): `benchmark_pocock_simon_arrivals.R 1000 20 5` (seeds 6001/6002, start
     load1 0.98). Per-arrival median 0.35 ms at t = 10, 100, 500 and 1000 (flat in t, <= 0.5 ms); whole-sequence median
     346.9 ms. Timing half done; G3 parity against EDI 1.0.2 left.
 - [x] TODO-61 (added 2026-10-07, user decision): **Binary matching hands
@@ -17259,7 +17264,7 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
      - 58 and 57: recorded with a sidecar (no speed threshold);
      - 1: the ZOIB jackknife axis completes and yields a policy.
    - Closes: 1, 57 and 62; the timing half of 58, 59 and 60.
-   - **Run 2026-11-09/10 (`/tmp/edi-g2-WLu1GY/`, HEAD `af6a86f0`).** 59 PASS (0.76 / 1.47 ms), 60 PASS (0.35 ms flat),
+   - **Run 2026-11-09/10 (`scratch/v1_0_5_g2_outputs/`, HEAD `af6a86f0`).** 59 PASS (0.76 / 1.47 ms), 60 PASS (0.35 ms flat),
      58 and 57 recorded with provenance, 1: tuning completed with the ZOIB jackknife axis (details under each TODO).
      62 was closed by the owner. The tuning step inside the chain errored ("noisy" idle-check bug) and was re-run
      separately after the fix. The ZOIB tuning run used `load_all(compile = FALSE)` because the fix is not installed yet.
@@ -17350,7 +17355,9 @@ maintainer's to run. "Unverified" marks anything that was not executed or checke
          0 flagged, host factor 1.02. Python 05:52-06:11 vs the 2026-09-24 HTML: 3 flagged `wald` rows (Ridit, ContinOLS,
          ContinLin; raw 0.13->0.14, 0.16->0.15, 0.24->0.21 ms, flagged only by normalization), but host factor 0.60 is
          outside 0.8-1.25, so the Python comparison is not like-for-like; re-baseline Python rather than allow rows.
-         Logs `/tmp/edi-g2-WLu1GY/cmp_{R,py}.log`. The three regenerated reports are uncommitted (owner: keep or revert).
+         Logs `scratch/v1_0_5_g2_outputs/cmp_{R,py}.log`. The three regenerated reports were committed in `edd40b27`; copies in `scratch/v1_0_5_g2_outputs/reports_regenerated_2026-11-09/`.
+         **DECIDED 2026-11-10 (owner):** keep them as the interim reports; regenerate the R and Python benchmark reports
+         at the final release gate, on the final build.
        - Patch 01 (TODO-123): one extra Hessian per previously-unconverged Newton fit. Patch 12 (TODO-107): no cost
          on well-scaled covariates; the benchmark covariates are N(0, 1). Patch 15: a read-only finite-input scan
          (bit-identical). None of these is expected to flag.

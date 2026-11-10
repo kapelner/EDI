@@ -229,6 +229,17 @@ test_that("tune_EDI_for_this_machine() writes the file, applies diffs in-session
 	})))
 })
 
+test_that("the correctness-gate discard count counts warm-start wins, not operations", {
+	# 2026-11-10: a standard run printed 5 for 19 discards (it flattened one level,
+	# counting the 5 warm-start operations).
+	d = list(cold_start = list(list(), list()), optimizer = list(),
+		warm_start = list(jackknife = list(list(), list(), list()), rand = list(list())),
+		parallel = list(list()))
+	expect_identical(edi_tuning_count_discarded(d), 7L)
+	expect_identical(edi_tuning_count_discarded(list()), 0L)
+	expect_identical(edi_tuning_count_discarded(list(warm_start = list())), 0L)
+})
+
 test_that("an unwritable config dir warns but still returns the result and applies it in-session", {
 	# 2026-11-09: a 4-hour standard run died in saveRDS() on an unwritable config
 	# dir and returned nothing; the save failure must not discard the run.

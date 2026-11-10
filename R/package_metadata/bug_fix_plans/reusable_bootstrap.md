@@ -349,7 +349,7 @@ TODO-1 acceptance gate was changed.
       above). This closes the source-contract item only; TODO-2's broader
       matrix invariant, TODO-3 performance, and TODO-5/6 tuning acceptance
       remain open.
-- [ ] TODO-2: Verify empirically (don't assume) that the full-sample fit's
+- [x] TODO-2 (WAIVED for v1.0.5 by owner, 2026-11-10; see the note at the end of this item): Verify empirically (don't assume) that the full-sample fit's
       frozen `best_X_colnames`/`best_X_zero_one_colnames`
       (`create_bootstrap_worker_state()`) always include the treatment
       column -- `fit_with_hardened_qr_column_dropping()`'s `required_cols`
@@ -404,7 +404,11 @@ TODO-1 acceptance gate was changed.
       It does not measure speed, justify removing the tuning exclusion, run
       end-to-end tuning, or establish CI/coverage confirmation; TODO-2 and
       TODO-3/5/6 remain open.
-- [ ] TODO-3: Re-profile `compute_jackknife_estimate()` on the exact
+      **WAIVED 2026-11-10 (owner):** accepted on the evidence above. The invariant holds on every fixture
+      tested (full, permuted, duplicated/rank-deficient and wrapped draws; treatment at column 2 in both matrices),
+      and a leave-one-out fold removes rows only, never columns. No proof for every formula and design is required
+      for v1.0.5.
+- [x] TODO-3 (WAIVED for v1.0.5 by owner, 2026-11-10; speed target moved to `release_v1_1_0.md` TODO-191): Re-profile `compute_jackknife_estimate()` on the exact
       diagnosed case (n=50, `edi_tuning_default_seed(cls, 50L)` synthetic
       data, no `y=0`/`y=1` boundary mass) before/after. Confirm the fix
       actually closes the gap (target: comparable per-fold cost to the
@@ -445,6 +449,9 @@ TODO-1 acceptance gate was changed.
       the historical reusable-vs-legacy 68/60 total-call comparison. It
       localizes the direct-fit fallback trigger but does not justify changing
       its guards or close TODO-3's performance target.
+      **WAIVED 2026-11-10 (owner):** v1.0.5 ships the reusable worker at its measured speed (5.84 s vs 7.85 s
+      legacy, 50 folds). The "low hundreds of ms" target moved to `release_v1_1_0.md` TODO-191, which also holds
+      the column-selection-cache follow-up.
 - [x] TODO-4: Golden-value regression test: `compute_jackknife_estimate()`
       (and `compute_jackknife_std_error()`/`compute_jackknife_wald_two_sided_pval()`)
       must return **bit-identical** results before and after this change, on
@@ -499,6 +506,9 @@ TODO-1 acceptance gate was changed.
       end once this lands, to confirm the jackknife warm-start axis for this
       class now completes at a normal pace and produces a real (not
       excluded) policy diff for it.
+      **Run 2026-11-10 (G2, see `release_v1_0_5.md` TODO-1):** standard effort, 1,065 cells, 0 failed; the ZOIB
+      jackknife cells completed, with no deviation from the shipped default and no correctness-gate discard.
+      Box left open for the owner: "completed, default kept" vs the "real policy diff" wording above.
 
 ## Standing constraints
 
