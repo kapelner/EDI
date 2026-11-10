@@ -665,6 +665,10 @@ Ticked in owning plans; this list is the index.
     convergence plots, month-to-month history. Raw per-replicate rows (~0.3 GB per campaign as 7-significant-digit CSV + xz -9e, estimated 2026-11-09 from measured bytes per replicate) go to 60-day Actions
     artifacts, not git, and not GitHub Releases (the repo's Zenodo link would archive each release). The
     size/coverage gate is enforced only when a campaign completes; interim summaries are marked provisional.
+  - **Convergence slopes (v1.0.5 TODO-199, 2026-11-10):** `convergence_calibration_study.R` fits each asymptotic cell's size / coverage /
+    bias error against n_eff (noise-aware power law + log-log regression) and compares the order with the registry's; a non-failing publish step,
+    figures and a README section report it, never gated (plan `../new_feature_plans/calibration_convergence_slopes.md`).
+  - **Rate-derived gate and `analyze` job (v1.0.5 TODO-200 / TODO-201, 2026-11-10):** the step schedule is replaced by min(0.10, 0.05 + c n_eff^-a) from the registry's order; analysis is its own job between `shards` and `publish` (analysis scripts from the run's commit, both commits recorded; only `Gate verdict` is a statistical red, all other failures are annotated "Calibration CI bug"); each campaign README is a master plus generated sub-pages (plan `../new_feature_plans/calibration_rate_derived_gate.md`).
   - **Found while planning:** `path_audits.html` (v1.0.3, 2026-10-08) has no columns for 5 of the 10 bootstrap CI
     flavors now in `bootstrap_ci_types` (symmetric-percentile-t, prepivoted, double-bootstrap, calibrated,
     smoothed); add them when the audit is regenerated.

@@ -421,6 +421,7 @@ SurvivalKKWeibullMarginalSource = list(
 	)
 )
 
+#' @eval rd_small_sample_section("InferenceSurvivalKKWeibullMarginal")
 #' @export
 InferenceSurvivalKKWeibullMarginal = define_inference_class(
 	classname = "InferenceSurvivalKKWeibullMarginal",

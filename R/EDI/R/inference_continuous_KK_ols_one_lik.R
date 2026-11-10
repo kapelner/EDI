@@ -630,6 +630,7 @@ ContinKKOLSOneLikLikelihoodSource = list(
 #' inf = InferenceContinKKOLSOneLik$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceContinKKOLSOneLik")
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see

@@ -780,13 +780,15 @@ SurvivalDepCensTransformSource = list(
 #' uses a fast Cox-model surrogate fit (\code{weighted_cox_bootstrap_surrogate_fit()})
 #' as an approximation rather than a full weighted joint-likelihood refit.
 #'
-#' \strong{Small samples.} At n = 50, the covariate-adjusted likelihood-ratio
-#' test and the score test (with or without covariates) can reject a true null
-#' up to about 9\% of the time at a nominal 5\% level. With unequal allocation
-#' (\code{prob_T = 0.2}, about 10 treated subjects at n = 50),
-#' covariate-adjusted score intervals can cover as little as about 91.5\%. The
-#' excess shrinks as n grows and is close to nominal by n = 200. With samples
-#' this small, use a larger sample or a bootstrap test.
+#' \strong{Small samples.} With covariate adjustment at n = 50, the score test
+#' rejected a true null up to 11\% of the time at a nominal 5\% level (intervals
+#' covered as little as 88.8\%), the Wald test up to 10\% and the
+#' likelihood-ratio test up to 9\%; treatment-only, the score test rejected up
+#' to 8\%. The excess is expected to shrink as n grows. With samples this small,
+#' use a larger sample or a bootstrap test. Source: the first calibration
+#' campaign (2026-11-09-8c32d060; provisional, 1000 screening replicates per
+#' cell, Monte Carlo standard error about 0.007; measured at n = 50 only),
+#' \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @seealso \code{\link[EDI:InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik]{InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik}}
 #'   for a different (Clayton-copula, KK-design) approach to dependence
@@ -806,6 +808,7 @@ SurvivalDepCensTransformSource = list(
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceSurvivalDepCensTransformRegr")
 #' @export
 InferenceSurvivalDepCensTransformRegr = define_inference_class(
 	classname = "InferenceSurvivalDepCensTransformRegr",

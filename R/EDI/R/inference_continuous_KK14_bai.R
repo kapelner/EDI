@@ -30,6 +30,7 @@
 #' inf$compute_estimate()
 #' }
 #' }
+#' @eval rd_small_sample_section("InferenceBaiAdjustedTKK14")
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "KK And IVWC Estimators"):
 # formerly a thin R6 leaf on the abstract base `InferenceBaiAdjustedT`; the

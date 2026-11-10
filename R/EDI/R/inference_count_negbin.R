@@ -43,6 +43,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceCountNegBin")
 #' @export
 InferenceCountNegBin = define_inference_class(
 	classname = "InferenceCountNegBin",

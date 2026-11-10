@@ -38,6 +38,7 @@
 #' inf = InferenceContinKKGLMM$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceContinKKGLMM")
 #' @export
 InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 	inherit = Inference,

@@ -40,6 +40,7 @@
 #' @seealso \href{https://en.wikipedia.org/wiki/Sign_test}{Sign test}
 #'   (Wikipedia).
 #'
+#' @eval rd_small_sample_section("InferenceOrdinalPairedSignTest")
 #' @export
 #' @examples
 #' set.seed(1)

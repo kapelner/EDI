@@ -33,6 +33,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceContinRobustRegr")
 #' @export
 InferenceContinRobustRegr = define_inference_class(
 	classname = "InferenceContinRobustRegr",

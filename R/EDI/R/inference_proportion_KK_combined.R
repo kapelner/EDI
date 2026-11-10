@@ -29,6 +29,7 @@
 #' inf = InferencePropKKGEE$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferencePropKKGEE")
 #' @export
 InferencePropKKGEE = define_inference_class(
 	classname = "InferencePropKKGEE",
@@ -124,6 +125,7 @@ InferencePropKKGEE = define_inference_class(
 #'   \doi{10.2307/2290687}, for the GLMM likelihood framework combined with the
 #'   conditional-logit term here.
 #'
+#' @eval rd_small_sample_section("InferencePropKKGLMM")
 #' @export
 InferencePropKKGLMM = R6::R6Class("InferencePropKKGLMM",
 	lock_objects = FALSE,

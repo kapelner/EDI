@@ -330,6 +330,7 @@ InferenceAbstractKKModifiedPoisson = R6::R6Class("InferenceAbstractKKModifiedPoi
 #' inf = InferenceIncidKKGCompRiskDiff$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceIncidKKGCompRiskDiff")
 #' @export
 InferenceIncidKKGCompRiskDiff = define_inference_class(
 	classname = "InferenceIncidKKGCompRiskDiff",
@@ -421,6 +422,7 @@ NULL
 #' inf = InferenceIncidKKGCompRiskRatio$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceIncidKKGCompRiskRatio")
 #' @export
 InferenceIncidKKGCompRiskRatio = define_inference_class(
 	classname = "InferenceIncidKKGCompRiskRatio",
@@ -521,6 +523,7 @@ NULL
 #' inf = InferenceIncidKKModifiedPoisson$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceIncidKKModifiedPoisson")
 #' @export
 InferenceIncidKKModifiedPoisson = R6::R6Class("InferenceIncidKKModifiedPoisson",
 	lock_objects = FALSE,

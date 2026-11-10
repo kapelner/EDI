@@ -474,6 +474,7 @@ IncidenceLogisticLikelihoodSource = list(
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceIncidLogRegr")
 #' @export
 InferenceIncidLogRegr = define_inference_class(
 	classname = "InferenceIncidLogRegr",

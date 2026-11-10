@@ -698,6 +698,7 @@ SurvivalKKStratCoxOneLikPartialLikelihoodSource = list(
 #' Analysis for Large Numbers of Small Groups of Correlated Failure Time
 #' Observations." In Survival Analysis: State of the Art, 237-247. Springer.
 #' \doi{10.1007/978-94-015-7983-4_14}
+#' @eval rd_small_sample_section("InferenceSurvivalKKStratCoxPHOneLik")
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "Partial-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see

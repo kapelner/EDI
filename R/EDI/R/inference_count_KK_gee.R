@@ -29,6 +29,7 @@
 #' inf = InferenceCountPoissonKKGEE$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceCountPoissonKKGEE")
 #' @export
 InferenceCountPoissonKKGEE = define_inference_class(
 	classname = "InferenceCountPoissonKKGEE",

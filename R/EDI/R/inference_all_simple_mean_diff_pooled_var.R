@@ -228,6 +228,7 @@ SimpleMeanDifferencePooledVarSource = list(
 #' inf$compute_estimate()
 #' }
 #' @name InferenceAllSimpleMeanDiffPooledVar
+#' @eval rd_small_sample_section("InferenceAllSimpleMeanDiffPooledVar")
 #' @export
 InferenceAllSimpleMeanDiffPooledVar = define_inference_class(
 	classname = "InferenceAllSimpleMeanDiffPooledVar",

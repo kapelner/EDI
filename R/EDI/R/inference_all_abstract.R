@@ -439,6 +439,24 @@ Inference = R6::R6Class("Inference",
 		get_response_type = function(){
 			private$des_obj$get_response_type()
 		},
+		#' @description Look up what EDI's validity registry says about the inference
+		#'   procedures this object supports by default (or a chosen subset): the
+		#'   regime (\code{"asymptotic"} or \code{"finite_sample"}), the expected
+		#'   order of the size error, the effective-sample-size rule together with
+		#'   its realised value for this object's data, the regularity of the
+		#'   problem, and the basis and reference of each claim. Nothing is fitted.
+		#'   The same lookup without data is
+		#'   \code{\link{get_inference_procedure_validity}()}.
+		#' @param procedure \code{NULL} (default) for every supported procedure, or
+		#'   procedure labels as used in the \code{method} column of
+		#'   \code{\link{run_all_inference}()} results (e.g. \code{"wald"}).
+		#' @return A list with \code{expectation} (a data frame, one row per
+		#'   procedure, see \code{\link{get_inference_procedure_validity}()}),
+		#'   \code{measured} (\code{NULL}: no measured calibration values are
+		#'   shipped yet) and \code{measured_note}.
+		get_procedure_validity = function(procedure = NULL){
+			edi_procedure_validity_for_object(self, procedure)
+		},
 		#' @description Return the model formula used for covariate adjustment.
 		#' @return A formula object or \code{NULL}.
 		get_model_formula = function(){

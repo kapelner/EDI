@@ -37,6 +37,7 @@ articles:
   - reproducibility
   - backend-contracts
   - validation-evidence
+  - procedure-trust
   - extending-edi
 - title: Cookbooks
   navbar: Cookbooks

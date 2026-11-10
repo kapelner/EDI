@@ -106,6 +106,20 @@ design_label_to_class = function(x) {
 
 read_comprehensive_results = function() {
 	files = list.files(file.path(repo_root, "package_tests"), pattern = "^comprehensive_tests_results.*[.]csv$", full.names = TRUE)
+	# comprehensive_tests_results_nc_*.csv are local run outputs (gitignored,
+	# .gitignore:87). When drift_artifacts.sh regenerates the committed audit
+	# it sets EDI_DRIFT_TRACKED_INPUTS_ONLY=1, and only tracked files count:
+	# otherwise a pusher's local runs land in the committed CSVs and CI's clean
+	# checkout, which has none of them, reports drift (runs 42595735892 and
+	# 42717613506, InferenceIncidKKCondLogitGLMMIVWC "multiple_sources" vs
+	# "focused_testthat"). A manual run still reads every local results file.
+	if (identical(Sys.getenv("EDI_DRIFT_TRACKED_INPUTS_ONLY"), "1") && length(files)) {
+		tracked = tryCatch(
+			suppressWarnings(system2("git", c("-C", shQuote(repo_root), "ls-files", "--", "package_tests"), stdout = TRUE, stderr = FALSE)),
+			error = function(e) character()
+		)
+		files = files[basename(files) %in% basename(tracked)]
+	}
 	rows = lapply(files, function(path) {
 		if (!file.exists(path) || isTRUE(file.info(path)$size == 0)) return(NULL)
 		df = if (requireNamespace("data.table", quietly = TRUE)) {

@@ -18,12 +18,14 @@
 #' (with a warning), rather than returning \code{NA}.
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
-#' 10 treated subjects at n = 50) and covariate adjustment, the delta-method
-#' Wald test can reject a true null up to about 8.5\% of the time at a nominal
-#' 5\% level (intervals can cover as little as about 91.5\%). The excess
-#' shrinks as n grows and is close to nominal by n = 200. With so few subjects
-#' in one arm, use a larger or more balanced sample, or a randomization or
-#' bootstrap test.
+#' 10 treated subjects at n = 50), the delta-method Wald test rejected a true
+#' null 10.2\% of the time at a nominal 5\% level with covariate adjustment
+#' (intervals covered 89.8\%) and 8.6\% treatment-only. The excess is expected
+#' to shrink as n grows. With so few subjects in one arm, use a larger or more
+#' balanced sample, or a randomization or bootstrap test. Source: the first
+#' calibration campaign (2026-11-09-8c32d060; provisional, 1000 screening
+#' replicates per cell, Monte Carlo standard error about 0.007; measured at n =
+#' 50 only), \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @examples
 #' \donttest{
@@ -36,6 +38,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceOrdinalGCompMeanDiff")
 #' @export
 InferenceOrdinalGCompMeanDiff = define_inference_class(
 	classname = "InferenceOrdinalGCompMeanDiff",

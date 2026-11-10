@@ -229,6 +229,22 @@ test_that("tune_EDI_for_this_machine() writes the file, applies diffs in-session
 	})))
 })
 
+test_that("an unwritable config dir warns but still returns the result and applies it in-session", {
+	# 2026-11-09: a 4-hour standard run died in saveRDS() on an unwritable config
+	# dir and returned nothing; the save failure must not discard the run.
+	with_tuning_sandbox(with_stub("edi_tuning_tune_cold_start", stub_cold, with_stub("edi_tuning_tune_optimizer_algorithm", stub_opt,
+		with_stub("edi_tuning_write_config", function(config) stop("cannot open the connection"), {
+		res = NULL
+		expect_warning(res <- tune_EDI_for_this_machine(effort = "quick", axes = c("cold_start", "optimizer"),
+			families = "InferenceCountPoisson", n_grid = c(50L, 500L), reps = 2L,
+			converged_fn = function(inf) TRUE, quiet = TRUE), "could not save the tuning")
+		expect_s3_class(res, "EDILocalMachineTuning")
+		expect_false(attr(res, "saved"))
+		expect_false(file.exists(edi_tuning_config_path()))
+		expect_true(edi_cold_start_dispatch_policy("InferenceCountPoisson"))
+	}))))
+})
+
 test_that("tune_EDI_for_this_machine() shows the InferenceSuite-style progress bar with 'Cells' and a completion line", {
 	with_tuning_sandbox(with_stub("edi_tuning_tune_cold_start", stub_cold, {
 		out = capture.output(tune_EDI_for_this_machine(effort = "quick", axes = "cold_start",

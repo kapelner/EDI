@@ -28,11 +28,13 @@
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
 #' 10 treated subjects at n = 50) and covariate adjustment, the HC2 Wald test
-#' can reject a true null up to about 10.5\% of the time at a nominal 5\%
-#' level (intervals can cover as little as about 89.5\%). The excess shrinks
-#' as n grows and is close to nominal by n = 200. With so few subjects in one
-#' arm, use a larger or more balanced sample, or a randomization or bootstrap
-#' test.
+#' rejected a true null 17\% of the time at a nominal 5\% level (intervals
+#' covered 83\%); treatment-only it rejected 6.4\%. The excess is expected to
+#' shrink as n grows. With so few subjects in one arm, use a larger or more
+#' balanced sample, or a randomization or bootstrap test. Source: the first
+#' calibration campaign (2026-11-09-8c32d060; provisional, 1000 screening
+#' replicates per cell, Monte Carlo standard error about 0.007; measured at n =
+#' 50 only), \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @inheritSection InferenceContinOLS Blocking designs
 #'
@@ -53,6 +55,7 @@
 #' inf = InferenceContinLin$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceContinLin")
 #' @export
 InferenceContinLin = define_inference_class(
 	classname = "InferenceContinLin",

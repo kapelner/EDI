@@ -22,6 +22,7 @@
 #'   Normality and Consistency of Kendall's Test Against Trend, When Ties Are
 #'   Present in One Ranking." \emph{Indagationes Mathematicae}, 14, 327-333.
 #'
+#' @eval rd_small_sample_section("InferenceOrdinalJonckheereTerpstraTest")
 #' @export
 #' @examples
 #' set.seed(1)

@@ -100,6 +100,64 @@ cal_stats_write <- function(x, path) {
 	utils::write.csv(x, con, row.names = FALSE)
 }
 
+# Rate-derived level of the gate (v1.0.5 TODO-200, new_feature_plans/
+# calibration_rate_derived_gate.md; replaces TODO-192's step schedule). The level a
+# cell is tested against comes from the procedure's regime (inference_procedure_regime.R)
+# and the registry's expected order a of its size error (inference_convergence_expectation()):
+#   finite-sample procedures (exact, rand): size 0.05, coverage 0.95 at every n_eff.
+#   asymptotic, known order a > 0: size min(CAL_GATE_CAP, 0.05 + c_a * n_eff^-a), coverage
+#     1 - that, with c_a = (CAP - 0.05) * N_CAP^a, i.e. the level is the cap up to
+#     n_eff = N_CAP and 0.05 + (CAP - 0.05) * (N_CAP / n_eff)^a beyond.
+#   unknown order (NA or basis "unknown"): the cap at every n below the campaign's largest n,
+#     the a = 1 level at it ("rate unknown: open a TODO to establish it").
+#   expected order 0 (O(1) design mismatch): the a = 1 level, one-sided: only the
+#     anticonservative side can fail (the size and coverage tests already are one-sided);
+#     conservative results are reported, never failed.
+# CAL_GATE_CAP and CAL_GATE_N_CAP are the only two constants (owner, 2026-11-10).
+CAL_GATE_CAP <- 0.10
+CAL_GATE_N_CAP <- 50
+CAL_GATE_NOMINAL <- c(size = 0.05, coverage = 0.95)
+# Bias is reported, not gated: flagged when |bias| / SD exceeds this at the campaign's largest n.
+CAL_GATE_BIAS_SD_FLAG <- 0.1
+
+# Size level for effective n `n_eff` and order `a` (vectorised); the coverage level is 1 minus it.
+cal_gate_size_level <- function(n_eff, a) {
+	pmin(CAL_GATE_CAP, CAL_GATE_NOMINAL[["size"]] + (CAL_GATE_CAP - CAL_GATE_NOMINAL[["size"]]) * (CAL_GATE_N_CAP / n_eff)^a)
+}
+
+# Regime of each procedure label, from the registry (EDI_INFERENCE_PROCEDURE_REGIME,
+# sourced from the checkout by the scripts that gate). A label it does not know stops
+# the gate: never silently strict or lax.
+cal_gate_regime <- function(procedure, regimes = EDI_INFERENCE_PROCEDURE_REGIME) {
+	procedure <- as.character(procedure)
+	regime <- unname(regimes[procedure])
+	unknown <- unique(procedure[is.na(regime)])
+	if (length(unknown)) stop(sprintf(
+		"calibration gate: procedure(s) [%s] have no regime in inference_procedure_regime.R; add them to EDI_INFERENCE_PROCEDURE_REGIME",
+		paste(unknown, collapse = ", ")), call. = FALSE)
+	regime
+}
+
+# Levels the gate tests each element against: a data.frame(regime, rule, size, coverage).
+# `order` is the registry's expected order of the size error (NA when unknown), `basis` its
+# basis, `n_eff` the nominal effective n, `at_largest_n` whether the element sits at the
+# campaign's largest n (only the unknown rule looks at it). `rule` says which branch set
+# the level: finite, rate (level below the cap), cap (level at the cap), unknown, mismatch.
+cal_gate_levels <- function(regime, order, basis, n_eff, at_largest_n) {
+	order <- as.numeric(order)
+	unk <- regime != "finite_sample" & (is.na(order) | basis %in% "unknown")
+	mism <- regime != "finite_sample" & !unk & order == 0
+	a <- ifelse(unk, ifelse(at_largest_n, 1, 0), ifelse(mism, 1, order))
+	size <- cal_gate_size_level(n_eff, a)
+	rule <- ifelse(unk, "unknown", ifelse(mism, "mismatch", ifelse(size >= CAL_GATE_CAP, "cap", "rate")))
+	fin <- regime == "finite_sample"
+	cov <- 1 - size
+	size[fin] <- CAL_GATE_NOMINAL[["size"]]
+	cov[fin] <- CAL_GATE_NOMINAL[["coverage"]]
+	rule[fin] <- "finite"
+	data.frame(regime = regime, rule = rule, size = size, coverage = cov, stringsAsFactors = FALSE)
+}
+
 # Display order of response types in the published tables and figures (owner,
 # 2026-11-09). Not CAL_RESPONSE_TYPES: its order sets cal_study_rt_index() and
 # so the seeds. Unknown types sort last, alphabetically.

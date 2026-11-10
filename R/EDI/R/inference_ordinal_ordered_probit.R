@@ -307,6 +307,7 @@ OrdinalOrderedProbitLikelihoodSource = list(
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceOrdinalOrderedProbitRegr")
 #' @export
 InferenceOrdinalOrderedProbitRegr = define_inference_class(
 	classname = "InferenceOrdinalOrderedProbitRegr",

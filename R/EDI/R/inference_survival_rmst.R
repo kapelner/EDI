@@ -67,6 +67,7 @@
 #' }
 #' @concept restricted mean survival time
 #' @concept RMST
+#' @eval rd_small_sample_section("InferenceSurvivalRestrictedMeanDiff")
 #' @export
 InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 	classname = "InferenceSurvivalRestrictedMeanDiff",

@@ -538,6 +538,7 @@ InferenceAbstractKKOrdinalCLMM = define_inference_class(
 #' inf = InferenceOrdinalKKCLMM$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceOrdinalKKCLMM")
 #' @export
 InferenceOrdinalKKCLMM = R6::R6Class("InferenceOrdinalKKCLMM",
 	lock_objects = FALSE,
@@ -583,6 +584,7 @@ InferenceOrdinalKKCLMM = R6::R6Class("InferenceOrdinalKKCLMM",
 #' inf = InferenceOrdinalKKCLMMProbit$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceOrdinalKKCLMMProbit")
 #' @export
 InferenceOrdinalKKCLMMProbit = R6::R6Class("InferenceOrdinalKKCLMMProbit",
 	lock_objects = FALSE,
@@ -628,6 +630,7 @@ InferenceOrdinalKKCLMMProbit = R6::R6Class("InferenceOrdinalKKCLMMProbit",
 #' inf = InferenceOrdinalKKCLMMCauchit$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceOrdinalKKCLMMCauchit")
 #' @export
 InferenceOrdinalKKCLMMCauchit = R6::R6Class("InferenceOrdinalKKCLMMCauchit",
 	lock_objects = FALSE,
@@ -673,6 +676,7 @@ InferenceOrdinalKKCLMMCauchit = R6::R6Class("InferenceOrdinalKKCLMMCauchit",
 #' inf = InferenceOrdinalKKCLMMCloglog$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceOrdinalKKCLMMCloglog")
 #' @export
 InferenceOrdinalKKCLMMCloglog = R6::R6Class("InferenceOrdinalKKCLMMCloglog",
 	lock_objects = FALSE,

@@ -16,11 +16,13 @@
 #' subjects.
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
-#' 10 treated subjects at n = 50), the Wald test can reject a true null up to
-#' about 9\% of the time at a nominal 5\% level (intervals can cover as little
-#' as about 91\%). The excess shrinks as n grows and is close to nominal by n
-#' = 200. With so few subjects in one arm, use a larger or more balanced
-#' sample, or a randomization or bootstrap test.
+#' 10 treated subjects at n = 50), the Wald test rejected a true null 10.2\% of
+#' the time at a nominal 5\% level (intervals covered 89.8\%). The excess is
+#' expected to shrink as n grows. With so few subjects in one arm, use a larger
+#' or more balanced sample, or a randomization or bootstrap test. Source: the
+#' first calibration campaign (2026-11-09-8c32d060; provisional, 1000 screening
+#' replicates per cell, Monte Carlo standard error about 0.007; measured at n =
+#' 50 only), \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @examples
 #' \donttest{
@@ -32,6 +34,7 @@
 #' inf = InferenceIncidWald$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceIncidWald")
 #' @export
 InferenceIncidWald = define_inference_class(
 	classname = "InferenceIncidWald",

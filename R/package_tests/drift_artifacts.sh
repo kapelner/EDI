@@ -86,6 +86,10 @@ artifacts=(
 case "${1:-}" in
 	regenerate)
 		cd "$r_dir"
+		# Generators read only git-tracked inputs, so a local regenerate matches
+		# CI's clean checkout (see read_comprehensive_results() in
+		# audit_comprehensive_suite_baseline.R).
+		export EDI_DRIFT_TRACKED_INPUTS_ONLY=1
 		for g in "${generators[@]}"; do
 			echo ">>> Rscript package_tests/$g"
 			# shellcheck disable=SC2086  # intentional word-splitting: "<script> <arg>"

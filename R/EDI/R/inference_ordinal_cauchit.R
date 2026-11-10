@@ -276,13 +276,17 @@ OrdinalCauchitLikelihoodSource = inference_component_source_parts(InferenceOrdin
 #' score, gradient, and parametric-likelihood-bootstrap inference in addition to
 #' the Wald/asymptotic and Bayesian-bootstrap paths.
 #'
-#' \strong{Small samples.} With covariate adjustment at n = 50, the gradient,
-#' likelihood-ratio and score tests can reject a true null up to about 9.5\%
-#' of the time at a nominal 5\% level. With unequal allocation (\code{prob_T =
-#' 0.2}, about 10 treated subjects at n = 50), the score test does worse: up to
-#' about 12.5\% with covariate adjustment and about 10\% treatment-only. The
-#' excess shrinks as n grows and is close to nominal by n = 200. With samples
-#' this small, use a larger sample or a randomization or bootstrap test.
+#' \strong{Small samples.} With covariate adjustment at n = 50, the score test
+#' rejected a true null up to 17\% of the time at a nominal 5\% level (intervals
+#' covered as little as 84\%) and the gradient and likelihood-ratio tests up to
+#' 13\%, while the Wald test stayed at 6\% to 7\%; treatment-only, the score
+#' test rejected up to 8\%. The worst cells were with unequal allocation
+#' (\code{prob_T = 0.2}, about 10 treated subjects). The excess is expected to
+#' shrink as n grows. With samples this small, use the Wald test, a larger
+#' sample, or a randomization or bootstrap test. Source: the first calibration
+#' campaign (2026-11-09-8c32d060; provisional, 1000 screening replicates per
+#' cell, Monte Carlo standard error about 0.007; measured at n = 50 only),
+#' \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @references Agresti, A. (2010). \emph{Analysis of Ordinal Categorical Data}
 #'   (2nd ed.). Wiley. Ch. 3-4 (cumulative link models).
@@ -290,6 +294,7 @@ OrdinalCauchitLikelihoodSource = inference_component_source_parts(InferenceOrdin
 #'   \url{https://www.statsmodels.org/stable/discretemod.html} for an analogous
 #'   Python cumulative-link API.
 #'
+#' @eval rd_small_sample_section("InferenceOrdinalCauchitRegr")
 #' @export
 InferenceOrdinalCauchitRegr = define_inference_class(
 	classname = "InferenceOrdinalCauchitRegr",

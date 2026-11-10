@@ -71,6 +71,7 @@ nonparametric_bootstrap, except DesignSeqOneByOneBernoulli).
 - [Reproducibility: RNG and seed conventions](https://kapelner.github.io/EDI/articles/reproducibility.html)
 - [Backend contracts: fast_* C++ kernels](https://kapelner.github.io/EDI/articles/backend-contracts.html)
 - [Validation evidence](https://kapelner.github.io/EDI/articles/validation-evidence.html)
+- [Which procedure can I trust at my sample size?](https://kapelner.github.io/EDI/articles/procedure-trust.html)
 - [Extending EDI with your own inference and design classes](https://kapelner.github.io/EDI/articles/extending-edi.html)
 
 ## Source and packages

@@ -900,6 +900,7 @@ SurvivalGLMMWeibullFrailtyNormalOneLikLeafSource = list(
 #' approximation. The excess shrinks as n grows and is close to nominal by n =
 #' 200. With samples this small, use a larger sample or a randomization or
 #' bootstrap test.
+#' @eval rd_small_sample_section("InferenceSurvivalGLMMWeibullFrailtyNormalOneLik")
 #' @export
 # Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see

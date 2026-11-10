@@ -80,6 +80,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceCountZeroInflatedPoisson")
 #' @export
 InferenceCountZeroInflatedPoisson = define_inference_class(
 	classname = "InferenceCountZeroInflatedPoisson",
@@ -320,6 +321,7 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceCountZeroInflatedNegBin")
 #' @export
 InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin",
 	lock_objects = FALSE,

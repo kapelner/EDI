@@ -250,9 +250,16 @@ expect_no_silently_masked_capability = function(des, label, methods = c("wald", 
 	# convention reports the sentinel label in those columns even when the
 	# call itself failed, so a label-based filter misses exactly these rows
 	# (it missed Zhang's, which said ci_method = "exact" with NA bounds).
+	# A row whose NA carries a reason the class recorded itself (TODO-116:
+	# the suite appends "unavailable (<reason>)" to `message`, e.g.
+	# InferenceIncidLogBinomial's "wald_mle_on_parameter_space_boundary"
+	# when one subject is fitted at exp(X b) = 1) is a declared refusal, not
+	# a silent one. A swallowed stop() leaves no such reason (Zhang's row
+	# only said "CI (exact) failed: ..."), so it is still flagged.
+	declared = !is.na(tbl$message) & grepl("unavailable (", tbl$message, fixed = TRUE)
 	suspicious = tbl[
 		!is.na(tbl$method) & tbl$status == "ok" & is.finite(tbl$estimate) &
-			!is.finite(tbl$ci_a) & !is.finite(tbl$ci_b) & !is.finite(tbl$pval),
+			!is.finite(tbl$ci_a) & !is.finite(tbl$ci_b) & !is.finite(tbl$pval) & !declared,
 		, drop = FALSE
 	]
 	expect_identical(

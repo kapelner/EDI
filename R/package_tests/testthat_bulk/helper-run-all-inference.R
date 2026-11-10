@@ -38,7 +38,9 @@ expect_valid_run_all_inference_report = function(des_obj, expected_design_family
 		c("inference_class", "method", "type", "cov_model", "response_type", "design_family", "likelihood_tier",
 		  "estimate", "se", "ci_a", "ci_b", "ci_method",
 		  "pval", "pval_method", "estimand", "tau", "fit_secs", "warnings",
-		  "status", "message", "weight")
+		  "status", "message", "weight",
+		  # v1.0.5 TODO-194: appended validity columns.
+		  "regime", "n_eff", "size_order", "rate_basis")
 	)
 	# `methods = NULL` (default) now fans out to one row per applicable
 	# method sentinel per class, so row/result count is >= the class count,

@@ -123,3 +123,12 @@ utils::write.csv(data.frame(response_type = response_type, design = design_label
 	file.path(out_dir, "shard.csv"), row.names = FALSE)
 cat(sprintf("calibration study: %d done (%d failed), %d skipped by the deadline, %.0f s\n",
 	length(done), sum(failed), sum(skipped), elapsed))
+# Failure contract (v1.0.5 TODO-200): only the analyze job's Gate verdict fails for a
+# statistical reason. A failed replicate errored outside the per-fit tryCatch (data
+# generation, the harness), so it is a bug in the check: fail the shard, after the rows,
+# stats and shard.csv above are written (the workflow uploads them with if: always()).
+if (any(failed)) {
+	cat(sprintf("::error title=Calibration CI bug::%d of %d replicates failed outside the per-fit error handling (see 'rep N failed' messages above): a bug in the calibration harness, not a calibration result.\n",
+		sum(failed), length(done)))
+	quit(status = 1L, save = "no")
+}

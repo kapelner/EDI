@@ -35,6 +35,7 @@
 #' }
 #' @concept Gehan-Wilcoxon test
 #' @concept Peto-Prentice test
+#' @eval rd_small_sample_section("InferenceSurvivalGehanWilcox")
 #' @export
 InferenceSurvivalGehanWilcox = define_inference_class(
 	classname = "InferenceSurvivalGehanWilcox",

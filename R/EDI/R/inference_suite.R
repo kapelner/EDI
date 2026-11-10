@@ -336,6 +336,33 @@ EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY = run_all_inference_derive_method_prior
 	list(capability = "nonparametric_bootstrap", method = "compute_bootstrap_two_sided_pval", label = "bootstrap")
 ))
 
+# v1.0.5 TODO-192: every sentinel label must have a regime in
+# inference_procedure_regime.R (and no stale regime entry may remain), so a new
+# procedure cannot be added without deciding how the calibration gate treats it.
+local({
+	labels = union(
+		vapply(EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY, `[[`, character(1L), "label"),
+		vapply(EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY, `[[`, character(1L), "label")
+	)
+	registered = names(EDI_INFERENCE_PROCEDURE_REGIME)
+	if (!setequal(labels, registered)) {
+		stop(sprintf(
+			"inference_procedure_regime.R is out of sync with the run_all_inference() sentinels: missing a regime for [%s]; stale regime entries for [%s]. Update EDI_INFERENCE_PROCEDURE_REGIME.",
+			paste(setdiff(labels, registered), collapse = ", "), paste(setdiff(registered, labels), collapse = ", ")
+		), call. = FALSE)
+	}
+	if (anyDuplicated(registered) || !all(EDI_INFERENCE_PROCEDURE_REGIME %in% EDI_INFERENCE_PROCEDURE_REGIMES)) {
+		stop("EDI_INFERENCE_PROCEDURE_REGIME has duplicate labels or a value outside EDI_INFERENCE_PROCEDURE_REGIMES.", call. = FALSE)
+	}
+	# v1.0.5 TODO-193: the convergence-rate registry (same file) must be internally
+	# consistent. Class / design names are checked in the test suite, not here: the
+	# R6 generators do not exist yet when this file is collated.
+	problems = inference_convergence_validate()
+	if (length(problems)) {
+		stop("inference_procedure_regime.R convergence registry is inconsistent: ", paste(problems, collapse = "; "), call. = FALSE)
+	}
+})
+
 #' The full set of method sentinel strings `run_all_inference()`'s `methods`
 #' argument accepts -- the union of every `label` appearing in
 #' `EDI_INFERENCE_SUITE_CI_METHOD_PRIORITY`/`EDI_INFERENCE_SUITE_PVAL_METHOD_PRIORITY`
@@ -4795,7 +4822,21 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   sorted/grouped by \code{estimand} -- \code{NA_character_} last -- with a
 		#'   secondary sort by \code{inference_class}; includes the \code{weight}
 		#'   column driven by \code{combined_evidence_weighting}/
-		#'   \code{combined_evidence_estimands}), \code{combined_evidence}
+		#'   \code{combined_evidence_estimands}; followed by four procedure-validity
+		#'   columns read from the package's procedure-regime / convergence-rate
+		#'   registry: \code{regime} (\code{"asymptotic"} or \code{"finite_sample"}
+		#'   -- valid only as the effective sample size grows, or valid at every
+		#'   sample size by construction), \code{n_eff} (the effective-sample-size
+		#'   rule for this class, design and procedure and its realised value on
+		#'   this design's data, e.g. \code{"n_pairs = 25"}; \code{NA} for the value
+		#'   when the rule does not apply to the data), \code{size_order} (the
+		#'   expected order of the size / coverage error in \code{n_eff}, e.g.
+		#'   \code{"O(n_eff^-1)"}; \code{"exact"} for finite-sample procedures,
+		#'   \code{"O(1)"} when the error does not vanish, \code{"unknown"} when no
+		#'   rate is known) and \code{rate_basis} (why that order is believed:
+		#'   \code{"theory"}, \code{"literature"}, \code{"empirical"},
+		#'   \code{"assumed_default"} or \code{"unknown"}); all four are \code{NA}
+		#'   for a row with no registered procedure), \code{combined_evidence}
 		#'   (\code{list(pval, stat, method = "cauchy_combination", n_classes_used,
 		#'   n_estimand_groups, estimands_used, weighting, weights_used,
 		#'   classes_used)} -- the Cauchy-combination-test p-value/statistic
@@ -5135,6 +5176,14 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				results_table, combined_evidence_weighting,
 				estimands = combined_evidence_estimands, custom_weights = combined_evidence_weights
 			)
+			# v1.0.5 TODO-194: procedure-validity columns, appended after `weight` so
+			# every earlier column keeps its position and value. Read from the
+			# registry (inference_procedure_regime.R) on this design's realised data.
+			validity = edi_inference_validity_columns(des_obj, results_table$inference_class, results_table$method)
+			results_table$regime = validity$regime
+			results_table$n_eff = validity$n_eff
+			results_table$size_order = validity$size_order
+			results_table$rate_basis = validity$rate_basis
 			# `row_ids` (== `names(results)`) rather than `results_table$inference_class`
 			# because `formulas` can produce more than one row per class --
 			# `results`'s own "<class>[<formula>]" disambiguation is the only

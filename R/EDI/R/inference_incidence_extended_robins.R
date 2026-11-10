@@ -37,6 +37,7 @@
 #' seq_des$add_all_subject_responses(rbinom(20, 1, 0.5))
 #' inf = InferenceIncidExtendedRobins$new(seq_des)
 #' inf$compute_estimate()
+#' @eval rd_small_sample_section("InferenceIncidExtendedRobins")
 #' @export
 InferenceIncidExtendedRobins = define_inference_class(
 	classname = "InferenceIncidExtendedRobins",

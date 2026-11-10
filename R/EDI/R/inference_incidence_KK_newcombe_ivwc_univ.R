@@ -167,6 +167,7 @@ KKNewcombeRiskDiffIVWCSource = list(
 	)
 )
 
+#' @eval rd_small_sample_section("InferenceIncidKKNewcombeRiskDiff")
 #' @export
 InferenceIncidKKNewcombeRiskDiff = define_inference_class(
 	classname = "InferenceIncidKKNewcombeRiskDiff",

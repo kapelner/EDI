@@ -49,6 +49,7 @@
 #' inf = InferenceCountKKGLMM$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceCountKKGLMM")
 #' @export
 InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 	inherit = Inference,

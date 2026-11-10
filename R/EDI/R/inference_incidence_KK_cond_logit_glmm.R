@@ -121,6 +121,7 @@ InferenceIncidKKCondLogitGLMMIVWC = R6::R6Class("InferenceIncidKKCondLogitGLMMIV
 #' inf = InferenceIncidKKCondLogitGLMMOneLik$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceIncidKKCondLogitGLMMOneLik")
 #' @export
 InferenceIncidKKCondLogitGLMMOneLik = R6::R6Class("InferenceIncidKKCondLogitGLMMOneLik",
 	lock_objects = FALSE,

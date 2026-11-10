@@ -1116,6 +1116,7 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 #'   WeibullAFTFitter}, \href{https://sdv.dev/Copulas/}{copulas}.
 #'   \href{https://en.wikipedia.org/wiki/Copula_(probability_theory)}{Copula
 #'   (probability theory)} (orientation).
+#' @eval rd_small_sample_section("InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik")
 #' @export
 # Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see

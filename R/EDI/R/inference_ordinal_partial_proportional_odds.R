@@ -30,6 +30,7 @@
 #'   model this generalizes (see
 #'   \code{\link[EDI:InferenceOrdinalPropOddsRegr]{InferenceOrdinalPropOddsRegr}}).
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceOrdinalPartialProportionalOddsRegr")
 #' @export
 InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 	classname = "InferenceOrdinalPartialProportionalOddsRegr",

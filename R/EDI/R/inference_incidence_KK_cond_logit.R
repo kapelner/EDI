@@ -648,11 +648,14 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 #' \code{assertNoCensoring()}).
 #'
 #' \strong{Small samples.} With covariate adjustment at n = 50, the gradient
-#' test can reject a true null up to about 9\% of the time at a nominal 5\%
-#' level, since its chi-squared reference is only an asymptotic approximation.
-#' The excess shrinks as n grows and is close to nominal by n = 200. With
-#' samples this small, use a larger sample or a randomization or bootstrap
-#' test.
+#' test rejected a true null 14.5\% of the time at a nominal 5\% level on a
+#' binary-match design (likelihood-ratio 9.3\%, score 7.4\%), since its
+#' chi-squared reference is only an asymptotic approximation. The excess is
+#' expected to shrink as n grows. With samples this small, use a larger sample
+#' or a randomization or bootstrap test. Source: the first calibration campaign
+#' (2026-11-09-8c32d060; provisional, 1000 screening replicates per cell, Monte
+#' Carlo standard error about 0.007; measured at n = 50 only),
+#' \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @references
 #' Kapelner, A., and Krieger, A. M. (2014). "Matching on-the-fly: Sequential
@@ -664,6 +667,7 @@ IncidKKCondLogitOneLikLikelihoodSource = list(
 #'   discrete models} (\code{ConditionalLogit}).
 #'   \href{https://en.wikipedia.org/wiki/Logistic_regression}{Logistic
 #'   regression} (orientation).
+#' @eval rd_small_sample_section("InferenceIncidKKCondLogitOneLik")
 #' @export
 # Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see

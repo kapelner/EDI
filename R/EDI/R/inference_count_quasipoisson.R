@@ -45,6 +45,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceCountQuasiPoisson")
 #' @export
 InferenceCountQuasiPoisson = define_inference_class(
 	classname = "InferenceCountQuasiPoisson",

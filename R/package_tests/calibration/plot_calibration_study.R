@@ -16,6 +16,11 @@
 #   coverage-nonnull-<rt>.png  coverage of the true estimand, Bernoulli, by effect and n
 #   bias-nonnull-<rt>.png      bias / SD against the true estimand, Bernoulli, by effect and n
 #   power-designs-<rt>.png     power of the baseline class at the 50% local alternative, by design and n
+# and, in both sections, when convergence_summary.csv exists (convergence_calibration_study.R,
+# v1.0.5 TODO-199; absent or empty -> skipped):
+#   convergence-<rt>.png / convergence-nonnull-<rt>.png          |error| vs n_eff, log-log, asymptotic cells,
+#                                                                  expected slope as reference lines
+#   convergence-grid-<rt>.png / convergence-grid-nonnull-<rt>.png  class x design grid of verdicts per procedure
 #
 # Usage: Rscript R/package_tests/calibration/plot_calibration_study.R --summary-dir DIR \
 #          --out-dir DIR [--fragment FILE] [--fig-prefix figures/]
@@ -75,6 +80,8 @@ wrap_sub <- function(x, width = 82) paste(strwrap(x, width), collapse = "\n")
 regime_title <- function(txt, null) {
 	if (null) bquote(.(txt) ~ "(" * beta[T] == 0 * ")") else bquote(.(txt) ~ "(" * beta[T] != 0 * ")")
 }
+# Note: theme_cal() is added after the figure is built and replaces any theme(axis.text.x = ...) set
+# inside it, so angled categorical x labels use scale_x_discrete(guide = guide_axis(angle = 45)), which it keeps.
 save_both <- function(build, name, width, height, alt) {
 	for (mode in names(THEMES)) {
 		p <- build(THEMES[[mode]]) + theme_cal(THEMES[[mode]])
@@ -94,6 +101,8 @@ b <- rd("null_bias_summary.csv")
 nb <- rd("nonnull_bias_summary.csv")
 pw <- rd("power_summary.csv")
 pc <- rd("pvalue_curves.csv")
+cv <- rd("convergence_summary.csv")
+cvp <- rd("convergence_points.csv")
 if (is.null(s)) {
 	# No results yet (the analysis wrote only its "No results yet" markdown): an
 	# empty fragment, so the README renders and the publish step goes on.
@@ -118,8 +127,93 @@ n_fac <- function(x) factor(x, levels = n_levels, labels = paste0("n = ", n_leve
 baseline_design <- "Fixed:Bernoulli"
 
 # Response-type order of the figures (same as CAL_STUDY_RT_DISPLAY_ORDER in
-# calibration_study_stats.R; this script sources nothing).
+# calibration_study_stats.R; this script sources only the registry below).
 RT_ORDER <- c("continuous", "incidence", "count", "proportion", "survival", "ordinal")
+# Procedure labels (inference_procedure_regime.R, read from the checkout: no EDI installed in the
+# publish job). Display order: the monthly tier-1 procedures first, then the rest in registry order.
+source(file.path(dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1L]))),
+	"..", "..", "EDI", "R", "inference_procedure_regime.R"))
+PROC_ORDER <- c("wald", "score", "lik_ratio", "gradient", "exact", "rand")
+PROC_ORDER <- c(PROC_ORDER, setdiff(names(EDI_INFERENCE_PROCEDURE_REGIME), PROC_ORDER))
+
+# ---- Convergence (v1.0.5 TODO-199) --------------------------------------------------------
+# Verdict colours: slower is the warning (status red); the others are neutral or benign.
+CONV_VERDICT <- c(slower = "#d03b3b", faster = "#2a78d6", consistent = "#0ca30c", undetermined = "#898781", not_applicable = "#dcdbd5")
+conv_ok <- !is.null(cv) && !is.null(cvp) && nrow(cv) > 0L
+if (conv_ok) {
+	for (x in list("cv", "cvp")) {
+		v <- get(x)
+		v$formula[is.na(v$formula)] <- ""
+		v$design_label <- paste0(sub("^Design(Fixed|SeqOneByOne)", "\\1:", v$design), ifelse(v$prob_T != 0.5, paste0(" @", v$prob_T), ""))
+		v$design_label <- sub("^SeqOneByOne:", "Seq:", v$design_label)
+		v$cls <- sub("^Inference", "", v$inf_class)
+		assign(x, v)
+	}
+	cvp$verdict <- cv$verdict[match(cvp$cell_id, cv$cell_id)]
+	cvp$expected_order <- cv$expected_order[match(cvp$cell_id, cv$cell_id)]
+	cvp$regime <- cv$regime[match(cvp$cell_id, cv$cell_id)]
+}
+conv_metric_label <- function(m) factor(m, levels = c("size", "coverage", "bias"),
+	labels = c("size error (size - 0.05)", "coverage error (0.95 - coverage)", "bias"))
+# The two convergence figures of one response type and one section (null = beta_T = 0).
+conv_figures <- function(rt, null) {
+	if (!conv_ok) return(invisible(NULL))
+	sec <- if (null) cv$effect_label == "null" else cv$effect_label != "null"
+	x <- cv[sec & cv$response_type == rt, ]
+	if (!nrow(x)) return(invisible(NULL))
+	sfx <- if (null) "" else "-nonnull"
+	md <<- c(md, "##### Convergence of the error with n", "",
+		sprintf("%d of %d cells ran at two or more sample sizes; the others, and every cell whose error is below 2 Monte Carlo SE at fewer than two sizes, are `undetermined`.", sum(x$n_points >= 2L), nrow(x)),
+		"The verdict is the noise-aware power-law fit (binomial / normal likelihood) against the registry's expected order; reported, not gated. See `summary/convergence_summary.csv` (also the log-log regression slope, biased toward 0 where |error| is Monte Carlo noise).", "")
+	# Figure 1: |error| vs n_eff for the asymptotic cells with a finite positive expected order,
+	# baseline design, formula ~. (the Bernoulli design and ~ . are the figures' usual cut), cells with >= 2 sizes.
+	pts <- cvp[cvp$cell_id %in% x$cell_id[x$n_points >= 2L & is.finite(x$expected_order) & x$expected_order > 0 & x$regime %in% "asymptotic"] &
+		cvp$design_label == baseline_design & cvp$formula == "~." & is.finite(cvp$err) & cvp$err != 0, ]
+	if (nrow(pts)) {
+		pts$metric_f <- conv_metric_label(pts$metric)
+		pts$verdict <- factor(pts$verdict, levels = names(CONV_VERDICT))
+		pts$line <- paste(pts$cell_id)
+		pts$above <- ifelse(pts$err > 0, "error above 0", "error below 0")
+		pts$ae <- abs(pts$err)
+		orders <- sort(unique(pts$expected_order))
+		# Reference lines: slope -a through the median |error| at the smallest n_eff, per facet and order.
+		refs <- do.call(rbind, lapply(split(pts, pts$metric_f), function(d) {
+			d0 <- d[d$n_eff == min(d$n_eff), ]
+			do.call(rbind, lapply(orders, function(a) data.frame(metric_f = d$metric_f[1L], a = a,
+				icpt = log10(stats::median(d0$ae)) + a * log10(min(d$n_eff)))))
+		}))
+		refs$lab <- factor(sprintf("expected slope -%s", signif(refs$a, 3)), levels = sprintf("expected slope -%s", signif(orders, 3)))
+		save_both(function(th) ggplot(pts, aes(n_eff, ae, group = line, colour = verdict)) +
+			geom_abline(data = refs, aes(slope = -a, intercept = icpt, linetype = lab), colour = th$ink2, linewidth = 0.4, inherit.aes = FALSE) +
+			geom_line(linewidth = 0.4, alpha = 0.7) + geom_point(aes(shape = above), size = 1.4) + facet_wrap(~ metric_f, scales = "free_y", nrow = 1) +
+			scale_x_log10() + scale_y_log10() +
+			scale_colour_manual(values = CONV_VERDICT, drop = TRUE, name = "verdict") + scale_shape_manual(values = c(16, 1), name = NULL) +
+			scale_linetype_manual(values = c("dashed", "dotted", "dotdash", "longdash")[seq_along(levels(refs$lab))], name = NULL) +
+			labs(title = regime_title(sprintf("%s: how the error shrinks with n (Bernoulli design, ~ .)", tools::toTitleCase(rt)), null),
+				subtitle = wrap_sub("One line per class x procedure; absolute error on log-log axes, so a line parallel to a reference line converges at that order. Open circles: error below 0 (conservative size, over-coverage, negative bias). Points near the Monte Carlo noise floor (size SE about 0.007 at 1,000 replicates) are noise, not signal.", 110),
+				x = "effective n (log scale)", y = "|error| (log scale)"),
+			paste0("convergence", sfx, "-", rt), 11, 4.5, sprintf("%s convergence of the error with n", rt))
+	}
+	# Figure 2: verdict grid, class x design per procedure (bias: its own panel).
+	asy <- x[x$regime %in% "asymptotic" | x$metric == "bias", ]
+	if (nrow(asy)) {
+		asy$panel <- ifelse(asy$metric == "bias", "bias (estimator)", asy$inf_procedure)
+		rank <- c(slower = 4L, faster = 3L, consistent = 2L, undetermined = 1L, not_applicable = 0L)
+		ov <- aggregate(verdict ~ cls + design_label + panel, asy, function(v) v[[which.max(rank[v])]])
+		ov$verdict <- factor(ov$verdict, levels = names(CONV_VERDICT))
+		save_both(function(th) ggplot(ov, aes(design_label, cls, fill = verdict)) +
+			geom_tile(colour = th$surface, linewidth = 0.5, show.legend = TRUE) + facet_wrap(~ panel) +
+			scale_fill_manual(values = CONV_VERDICT, drop = FALSE, name = "verdict",
+				guide = guide_legend(override.aes = list(colour = "#898781", linewidth = 0.5))) +
+			labs(title = regime_title(sprintf("%s: convergence verdicts, every class on every design", tools::toTitleCase(rt)), null),
+				subtitle = wrap_sub("Worst verdict over formulas, effects and the size / coverage metrics (slower > faster > consistent > undetermined > not applicable), by procedure; bias is a property of the estimator", 110),
+				x = NULL, y = NULL) +
+			scale_x_discrete(guide = guide_axis(angle = 45)),
+			paste0("convergence-grid", sfx, "-", rt), 11, 3.9 + 0.2 * length(unique(ov$cls)) * ceiling(length(unique(ov$panel)) / 3), sprintf("%s convergence verdicts", rt))
+	}
+	invisible(NULL)
+}
+
 rts <- unique(s$response_type)
 md <- c(md, "### Null treatment effect (beta_T = 0)", "")
 for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
@@ -139,8 +233,8 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 			guide = guide_legend(override.aes = list(colour = "#898781", linewidth = 0.5))) +
 		labs(title = regime_title(sprintf("%s: size and coverage, every class on every design", tools::toTitleCase(rt)), TRUE),
 			subtitle = wrap_sub("Worst status over the fast procedures, both formulas and all n"), x = NULL, y = NULL) +
-		theme(axis.text.x = element_text(angle = 45, hjust = 1)),
-		paste0("overview-", rt), 9, 2 + 0.22 * length(unique(ov$cls)), sprintf("%s overview", rt))
+		scale_x_discrete(guide = guide_axis(angle = 45)),
+		paste0("overview-", rt), 9, 2.9 + 0.22 * length(unique(ov$cls)), sprintf("%s overview", rt))
 
 	xb <- x[x$design_label == baseline_design & is.finite(x$size), ]
 	if (nrow(xb)) {
@@ -202,7 +296,7 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 			pc$formula == "~." & pc$n_p >= 30, ]
 		if (nrow(r)) {
 			r$cls <- sub("^Inference", "", r$inf_class)
-			r$inf_procedure <- factor(r$inf_procedure, levels = c("wald", "score", "lik_ratio", "gradient", "exact", "rand"))
+			r$inf_procedure <- factor(r$inf_procedure, levels = PROC_ORDER)
 			r <- rbind(r, transform(r[!duplicated(r[c("cls", "inf_procedure")]), ], u = 0, dev = 0),
 				transform(r[!duplicated(r[c("cls", "inf_procedure")]), ], u = 1, dev = 0))
 			r <- r[order(r$cls, r$inf_procedure, r$u), ]
@@ -218,6 +312,7 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 				paste0("pvalue-curves-", rt), 9, 2 + 2 * ceiling(length(unique(r$cls)) / 4), sprintf("%s p-value curves", rt))
 		}
 	}
+	conv_figures(rt, TRUE)
 }
 
 # Non-null treatment effect: coverage and bias against each class's true estimand
@@ -243,8 +338,8 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 					guide = guide_legend(override.aes = list(colour = "#898781", linewidth = 0.5))) +
 				labs(title = regime_title(sprintf("%s: coverage of the true estimand, every class on every design", tools::toTitleCase(rt)), FALSE),
 					subtitle = wrap_sub("Worst status over the fast procedures, both formulas, all n and the three effects"), x = NULL, y = NULL) +
-				theme(axis.text.x = element_text(angle = 45, hjust = 1)),
-				paste0("overview-nonnull-", rt), 9, 2 + 0.22 * length(unique(ov$cls)), sprintf("%s non-null overview", rt))
+				scale_x_discrete(guide = guide_axis(angle = 45)),
+				paste0("overview-nonnull-", rt), 9, 2.9 + 0.22 * length(unique(ov$cls)), sprintf("%s non-null overview", rt))
 		}
 		xc <- x[x$design_label == baseline_design & x$truth_available & is.finite(x$coverage) & x$n_ci > 0, ]
 		if (nrow(xc)) {
@@ -308,5 +403,6 @@ for (rt in c(intersect(RT_ORDER, rts), sort(setdiff(rts, RT_ORDER)))) {
 				paste0("power-designs-", rt), 8, 2 + 0.22 * length(unique(pp$design_label)), sprintf("%s power by design", rt))
 		}
 	}
+	conv_figures(rt, FALSE)
 }
 writeLines(md, fragment)

@@ -549,7 +549,16 @@ tune_EDI_for_this_machine = function(effort = c("standard", "quick", "thorough")
 
 	if (!dry_run) {
 		to_save = unclass(result)
-		edi_tuning_write_config(to_save)
+		# A failed write (unwritable config dir) must not discard a run that can
+		# take hours: warn, still apply the policies to this session, and return
+		# the result so the caller can keep it.
+		saved = tryCatch({ edi_tuning_write_config(to_save); TRUE }, error = function(e) {
+			warning("tune_EDI_for_this_machine(): could not save the tuning to '", edi_tuning_config_path(),
+				"' (", conditionMessage(e), "). The tuned policies apply to this R session only; ",
+				"the returned result is unaffected.", call. = FALSE)
+			FALSE
+		})
+		attr(result, "saved") = saved
 		edi_tuning_apply_policy_diffs(diffs)
 	}
 	if (!quiet) print(result)

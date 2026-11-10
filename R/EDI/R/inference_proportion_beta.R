@@ -79,6 +79,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferencePropBetaRegr")
 #' @export
 InferencePropBetaRegr = define_inference_class(
 	classname = "InferencePropBetaRegr",

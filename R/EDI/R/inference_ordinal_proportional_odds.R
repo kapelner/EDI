@@ -339,6 +339,7 @@ OrdinalProportionalOddsLikelihoodSource = inference_component_source_parts(Infer
 #' @concept proportional odds
 #' @concept ordinal logistic regression
 #' @concept cumulative logit model
+#' @eval rd_small_sample_section("InferenceOrdinalPropOddsRegr")
 #' @export
 InferenceOrdinalPropOddsRegr = define_inference_class(
 	classname = "InferenceOrdinalPropOddsRegr",

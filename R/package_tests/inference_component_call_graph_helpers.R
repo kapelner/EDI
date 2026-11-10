@@ -512,6 +512,14 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		if (baseline$class[[row]] %in% reservoir_overriders) add <- c(add, paste0("uses_reservoir_logit@", baseline$class[[row]]))
 		baseline$private_methods[[row]] <- paste(sort(unique(c(x, add))), collapse = "|")
 	}
+	# v1.0.5 TODO-197 (2026-11-10) added the public method get_procedure_validity()
+	# (registry-backed validity lookup) on the Inference root. Reviewed additive
+	# delta: every class gains it on the root host, nothing else changes.
+	baseline$public_methods <- vapply(baseline$public_methods, function(s) {
+		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
+		expect_false("get_procedure_validity@Inference" %in% x)
+		paste(sort(unique(c(x, "get_procedure_validity@Inference"))), collapse = "|")
+	}, character(1L), USE.NAMES = FALSE)
 	rownames(actual) <- rownames(baseline) <- NULL
 	expect_identical(nrow(actual), 106L)
 	expect_identical(actual$class, baseline$class)

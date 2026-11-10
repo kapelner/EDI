@@ -386,6 +386,7 @@ OrdinalCloglogLikelihoodSource = inference_component_source_parts(InferenceOrdin
 #'   "Regression Models for Ordinal Data." \emph{JRSS-B}, 42(2), 109-142.
 #' @seealso \url{https://en.wikipedia.org/wiki/Ordinal_regression}
 #'
+#' @eval rd_small_sample_section("InferenceOrdinalCloglogRegr")
 #' @export
 InferenceOrdinalCloglogRegr = define_inference_class(
 	classname = "InferenceOrdinalCloglogRegr",

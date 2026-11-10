@@ -64,6 +64,7 @@ newcombe_independent_ci_stable_r = function(x_t, n_t, x_c, n_c, alpha) {
 #' }
 #' @concept risk difference
 #' @concept Wilson score interval
+#' @eval rd_small_sample_section("InferenceIncidNewcombeRiskDiff")
 #' @export
 InferenceIncidNewcombeRiskDiff = define_inference_class(
 	classname = "InferenceIncidNewcombeRiskDiff",

@@ -59,6 +59,7 @@
 #' inf = InferenceContinOLS$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceContinOLS")
 #' @export
 InferenceContinOLS = define_inference_class(
 	classname = "InferenceContinOLS",

@@ -44,6 +44,7 @@
 #' @concept quantile regression
 #' @concept median regression
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceContinQuantileRegr")
 #' @export
 InferenceContinQuantileRegr = define_inference_class(
 	classname = "InferenceContinQuantileRegr",

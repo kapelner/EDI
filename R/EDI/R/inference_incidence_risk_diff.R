@@ -19,12 +19,14 @@
 #' likelihood-ratio or parametric-bootstrap methods are exposed.
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
-#' 10 treated subjects at n = 50), the HC0 Wald test can reject a true null up
-#' to about 9.5\% of the time at a nominal 5\% level with covariate adjustment
-#' (about 9\% treatment-only), with matching undercoverage of the intervals.
-#' The excess shrinks as n grows and is close to nominal by n = 200. With so
-#' few subjects in one arm, use a larger or more balanced sample, or a
-#' randomization or bootstrap test.
+#' 10 treated subjects at n = 50), the HC0 Wald test rejected a true null 11\%
+#' of the time at a nominal 5\% level with covariate adjustment (intervals
+#' covered 89\%) and 10.2\% treatment-only. The excess is expected to shrink as
+#' n grows. With so few subjects in one arm, use a larger or more balanced
+#' sample, or a randomization or bootstrap test. Source: the first calibration
+#' campaign (2026-11-09-8c32d060; provisional, 1000 screening replicates per
+#' cell, Monte Carlo standard error about 0.007; measured at n = 50 only),
+#' \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @examples
 #' \donttest{
@@ -37,6 +39,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceIncidRiskDiff")
 #' @export
 InferenceIncidRiskDiff = define_inference_class(
 	classname = "InferenceIncidRiskDiff",

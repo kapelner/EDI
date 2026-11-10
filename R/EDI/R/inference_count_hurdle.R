@@ -74,6 +74,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceCountHurdlePoisson")
 #' @export
 InferenceCountHurdlePoisson = define_inference_class(
 	classname = "InferenceCountHurdlePoisson",
@@ -280,6 +281,7 @@ InferenceCountHurdlePoisson = define_inference_class(
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceCountHurdleNegBin")
 #' @export
 InferenceCountHurdleNegBin = define_inference_class(
 	classname = "InferenceCountHurdleNegBin",

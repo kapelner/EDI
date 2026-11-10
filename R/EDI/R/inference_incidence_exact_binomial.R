@@ -214,6 +214,7 @@ ExactBinomialIncidenceSource = list(
 #' inf$compute_estimate()
 #' }
 #' @name InferenceIncidExactBinomial
+#' @eval rd_small_sample_section("InferenceIncidExactBinomial")
 #' @export
 InferenceIncidExactBinomial = define_inference_class(
 	classname = "InferenceIncidExactBinomial",

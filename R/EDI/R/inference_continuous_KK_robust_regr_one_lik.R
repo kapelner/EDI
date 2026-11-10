@@ -603,6 +603,7 @@ ContinKKRobustRegrOneLikSource = list(
 #'   one-likelihood combined-fit approach. Analogous Python API:
 #'   \href{https://www.statsmodels.org/stable/rlm.html}{statsmodels RLM}.
 #'
+#' @eval rd_small_sample_section("InferenceContinKKRobustRegrOneLik")
 #' @export
 # Migrated 2026-08-18 (fix_inference_hierarchy.md "Quasi And Robust
 # Estimators" / "KK And IVWC Estimators"): see

@@ -44,6 +44,7 @@
 #' inf$compute_estimate()
 #' }
 #' }
+#' @eval rd_small_sample_section("InferenceOrdinalKKGEE")
 #' @export
 InferenceOrdinalKKGEE = define_inference_class(
 	classname = "InferenceOrdinalKKGEE",
@@ -349,6 +350,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 #' inf = InferenceOrdinalKKGLMM$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceOrdinalKKGLMM")
 #' @export
 InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 	inherit = Inference,

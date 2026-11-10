@@ -259,6 +259,7 @@ CoxPartialLikelihoodSource = list(
 #' @concept Cox proportional hazards
 #' @concept proportional hazards regression
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceSurvivalCoxPHRegr")
 #' @export
 InferenceSurvivalCoxPHRegr = define_inference_class(
 	classname = "InferenceSurvivalCoxPHRegr",

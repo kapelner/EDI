@@ -1553,6 +1553,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 #'   discrete models} (\code{HurdleCountModel}).
 #'   \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
 #'   regression} (orientation).
+#' @eval rd_small_sample_section("InferenceCountKKHurdlePoissonOneLik")
 #' @export
 # Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see
@@ -2384,6 +2385,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 #'   discrete models} (\code{ConditionalPoisson}, \code{Poisson}).
 #'   \href{https://en.wikipedia.org/wiki/Poisson_regression}{Poisson
 #'   regression} (orientation).
+#' @eval rd_small_sample_section("InferenceCountKKCondPoissonOneLik")
 #' @export
 # Migrated 2026-08-19 (fix_inference_hierarchy.md "Full-Likelihood
 # Estimators" / "KK And IVWC Estimators"): see

@@ -61,6 +61,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferencePropFractionalLogit")
 #' @export
 InferencePropFractionalLogit = define_inference_class(
 	classname = "InferencePropFractionalLogit",

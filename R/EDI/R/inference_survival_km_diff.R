@@ -58,6 +58,7 @@
 #' }
 #' @concept Kaplan-Meier
 #' @concept median survival time
+#' @eval rd_small_sample_section("InferenceSurvivalKMDiff")
 #' @export
 InferenceSurvivalKMDiff = define_inference_class(
 	classname = "InferenceSurvivalKMDiff",

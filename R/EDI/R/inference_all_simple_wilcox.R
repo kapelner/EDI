@@ -446,6 +446,7 @@ SimpleWilcoxSource = list(
 #' seq_des_inf = InferenceAllSimpleWilcox$new(seq_des)
 #' seq_des_inf$compute_estimate()
 #' @name InferenceAllSimpleWilcox
+#' @eval rd_small_sample_section("InferenceAllSimpleWilcox")
 #' @export
 InferenceAllSimpleWilcox = define_inference_class(
 	classname = "InferenceAllSimpleWilcox",

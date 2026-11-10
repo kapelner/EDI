@@ -332,6 +332,7 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 #' inf = InferenceOrdinalAdjCatLogitRegr$new(seq_des)
 #' inf$compute_estimate()
 #' }
+#' @eval rd_small_sample_section("InferenceOrdinalAdjCatLogitRegr")
 #' @export
 	InferenceOrdinalAdjCatLogitRegr = define_inference_class(
 		classname = "InferenceOrdinalAdjCatLogitRegr",

@@ -29,6 +29,7 @@
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceCountRobustPoisson")
 #' @export
 InferenceCountRobustPoisson = define_inference_class(
 	classname = "InferenceCountRobustPoisson",

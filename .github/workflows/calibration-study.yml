@@ -17,8 +17,12 @@ name: calibration-study
 # --deadline-minutes), so a push's jobs never wait more than one shard.
 #
 # Never a required check. A campaign goes red only when it completes with a cell
-# significantly worse than nominal (or than its row in
-# calibration_study_accepted.csv); interim waves only publish.
+# significantly worse than its rate-derived level (or than its row in
+# calibration_study_accepted.csv): the `analyze` job's last step, `Gate verdict`
+# (annotation "Calibration gate"). Any other red X is a bug in the check, annotated
+# "Calibration CI bug". Interim waves only publish.
+#
+# Job graph: plan -> build -> shards -> analyze -> publish (v1.0.5 TODO-200).
 on:
   schedule:
     - cron: '17 3 1 * *'   # 1st of every month, 03:17 UTC: start a campaign
@@ -128,6 +132,10 @@ jobs:
           name: study-campaign
           path: campaign.env
           retention-days: 7
+      - name: Flag a bug in the check
+        if: failure()
+        run: |
+          echo "::error title=Calibration CI bug::Planning the wave failed: a bug in the check (or an unknown campaign id), not a calibration result."
 
   # Compile EDI once per commit and share it with every shard and every wave of the
   # campaign (cache keyed by the pinned commit; same EDI_PORTABLE rationale as
@@ -164,6 +172,10 @@ jobs:
           # never needs them. The actions/cache entry above (saved when this job ends)
           # is how the shards get this library: no artifact copy.
           MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-install-scratch" R/EDI
+      - name: Flag a bug in the check
+        if: failure()
+        run: |
+          echo "::error title=Calibration CI bug::Building EDI at the campaign's commit failed: a bug in the check or the commit, not a calibration result."
 
   shards:
     needs: [plan, build]
@@ -220,37 +232,75 @@ jobs:
           path: out/${{ matrix.id }}
           if-no-files-found: warn
           retention-days: 3
+      # A replicate's fit error is a row status, never a failed shard; a failing shard step is a script error
+      # (or the 75-minute timeout, which cancels the job before any step can annotate it).
+      - name: Flag a bug in the check
+        if: failure()
+        run: |
+          echo "::error title=Calibration CI bug::Shard ${{ matrix.id }} failed: a bug in the check, not a calibration result."
 
-  publish:
+  # The analysis (v1.0.5 TODO-200): its own check job between the shards and publish. It
+  # merges the wave's statistics into the campaign's totals, runs the gate and the
+  # convergence study, the design comparison at completion, the figures and the READMEs,
+  # and hands the finished results tree to `publish` as the `study-results` artifact.
+  #
+  # Scripts come from two commits, both recorded (campaign.env ANALYSIS_SHA, README, job
+  # summary): the campaign's pinned commit supplies the planner and the merge (they must match
+  # the shards that ran), the workflow run's own commit (github.sha, `main` at dispatch)
+  # supplies the analysis, so a campaign is gated by the current rules at completion.
+  #
+  # Failure contract (owner, 2026-11-10). The ONLY red X that means "the calibration failed" is
+  # this job's last step, `Gate verdict`, and only for a completed campaign with confirmed
+  # failing cells (annotation title "Calibration gate"). Every other failure, in any job, is a
+  # bug in the check itself, annotated "Calibration CI bug". Statistical outcomes never fail
+  # an earlier step: a replicate whose fit errors is a row status (run_calibration_study.R
+  # tryCatch), a cell with no finite results has NA statistics and an empty gate
+  # (analyze_calibration_study.R), a cell whose power-law fit fails is `undetermined`
+  # (convergence_calibration_study.R). The step that can fail is therefore always the last one.
+  analyze:
     needs: [plan, shards]
     if: always() && needs.plan.result == 'success' && needs.plan.outputs.wave != '0'
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # push to the calibration-results branch
-      actions: write    # dispatch the next wave
+      contents: read
+      actions: read     # gh run download of the earlier waves' raw rows
+    outputs:
+      ready: ${{ steps.handoff.outputs.ready }}
+      complete: ${{ steps.replan.outputs.complete }}
     env:
       GH_TOKEN: ${{ github.token }}
       C: ${{ needs.plan.outputs.campaign }}
+      SIM_SHA: ${{ needs.plan.outputs.sha }}
     steps:
+      # Analysis scripts and the registry: this run's own commit.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      # Planner and merge: the campaign's pinned commit.
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.plan.outputs.sha }}
+          path: pinned
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
-      - name: Install ggplot2 and data.table (the only packages the publish scripts need)
+      - name: Install ggplot2 and data.table (the only packages the analysis scripts need)
         run: Rscript -e 'install.packages(c("ggplot2", "data.table"))'
-
       - uses: actions/download-artifact@v8
         with:
           name: study-campaign
           path: .
-      - name: Load the results branch
+      - name: Load the results branch and record both commits
         run: |
           git clone --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results \
             || mkdir -p results
           mkdir -p "results/campaigns/$C"
           cp campaign.env "results/campaigns/$C/campaign.env"
+          # SHA= is the commit the campaign simulates at; ANALYSIS_SHA= the commit whose scripts analyse it
+          # (rewritten by every wave).
+          sed -i '/^ANALYSIS_SHA=/d' "results/campaigns/$C/campaign.env"
+          echo "ANALYSIS_SHA=$GITHUB_SHA" >> "results/campaigns/$C/campaign.env"
+          echo "Simulated at ${SIM_SHA}, analysed at ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/download-artifact@v8
         with:
           pattern: study-shard-*
@@ -259,7 +309,7 @@ jobs:
         run: |
           d="results/campaigns/$C"
           wave_no=$(( $(wc -l < "$d/runs.txt" 2>/dev/null || echo 0) + 1 ))
-          Rscript R/package_tests/calibration/merge_calibration_study_wave.R --campaign-dir "$d" --wave-dir wave
+          Rscript pinned/R/package_tests/calibration/merge_calibration_study_wave.R --campaign-dir "$d" --wave-dir wave
           # Every planned shard, finished or not: the planner abandons a unit after
           # repeated shards that never wrote shard.csv (died or timed out).
           [ -f "$d/planned.csv" ] || echo "id,response_type,design,n,effect,group,wave,run_id" > "$d/planned.csv"
@@ -291,23 +341,29 @@ jobs:
           retention-days: 60
           if-no-files-found: ignore
       # The analysis runs first so summary/confirm_cells.csv (the cells the gate's
-      # screen flagged) is current: once screening is done, the planner turns it
-      # into the confirmation units of the gate's second stage.
+      # screen flagged, including the rate check's, which needs the convergence verdicts) is
+      # current: once screening is done, the planner turns it into the confirmation units of
+      # the gate's second stage. Quiet here; the steps below write the published outputs.
       - name: Re-plan (progress, and whether another wave is needed)
+        id: replan
         run: |
           set -a; . ./campaign.env; set +a
-          Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "results/campaigns/$C/stats" \
-            --out-dir "results/campaigns/$C/summary" > /dev/null
-          Rscript R/package_tests/calibration/plan_calibration_study.R --campaign-dir "results/campaigns/$C" \
+          d="results/campaigns/$C"
+          Rscript R/package_tests/calibration/convergence_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" > /dev/null
+          Rscript R/package_tests/calibration/analyze_calibration_study.R --stats-dir "$d/stats" \
+            --out-dir "$d/summary" > /dev/null
+          Rscript pinned/R/package_tests/calibration/plan_calibration_study.R --campaign-dir "$d" \
             --ns "$NS" --power-ns "$POWER_NS" --effects "$EFFECTS" --designs "$DESIGNS" --response-types "$RESPONSE_TYPES" \
             --null-reps "$NULL_REPS" --power-reps "$POWER_REPS" --cores 4 --target-minutes 25 \
             --wave-size "$WAVE_SIZE" --meta-out after.txt > /dev/null
           cat after.txt
           . ./after.txt
-          pct=$(( 100 * reps_done / reps_total ))
+          pct=0
+          [ "$reps_total" -gt 0 ] && pct=$(( 100 * reps_done / reps_total ))
           echo "PROGRESS=Progress: ${reps_done} of ${reps_total} replicates (${pct}%) after wave ${wave_no}; ${units_done} of ${units} cells complete, ${units_abandoned} abandoned." >> "$GITHUB_ENV"
-          if [ "$wave" -eq 0 ]; then echo "complete" > "results/campaigns/$C/status.txt"; echo "COMPLETE=true" >> "$GITHUB_ENV";
-          else echo "running" > "results/campaigns/$C/status.txt"; echo "COMPLETE=false" >> "$GITHUB_ENV"; fi
+          if [ "$wave" -eq 0 ]; then echo "complete" > "$d/status.txt"; complete=true; else echo "running" > "$d/status.txt"; complete=false; fi
+          echo "COMPLETE=$complete" >> "$GITHUB_ENV"
+          echo "complete=$complete" >> "$GITHUB_OUTPUT"
       # Once per campaign, at completion: paired power comparisons between designs
       # need each replicate's result on every design, which only the raw rows have
       # (the totals are per cell). Every earlier wave's study-rows artifact is
@@ -326,6 +382,15 @@ jobs:
           du -sh allrows
           Rscript R/package_tests/calibration/compare_designs_calibration_study.R --rows-dir allrows \
             --out "$d/summary/design_comparison.csv"
+      # Convergence of size / coverage / bias error with n against the registry's expected
+      # order (v1.0.5 TODO-199). Its `slower` verdicts feed the gate's rate check (TODO-200), so it
+      # runs before the gate. A cell whose fit fails is `undetermined`; a script error stops the step
+      # (a bug in the check). Cells with a single n are undetermined, so early waves are provisional.
+      - name: Convergence slopes
+        run: |
+          d="results/campaigns/$C"
+          Rscript R/package_tests/calibration/convergence_calibration_study.R --stats-dir "$d/stats" --out-dir "$d/summary" \
+            $([ "$COMPLETE" = true ] && echo --final)
       - name: Analyze, plot and write the READMEs
         run: |
           d="results/campaigns/$C"
@@ -336,12 +401,78 @@ jobs:
             --out-dir "$d/figures" --fragment "$d/figures.md" --fig-prefix figures/
           Rscript R/package_tests/calibration/render_calibration_study_readme.R --results-dir results --campaign "$C" \
             --repo "${{ github.repository }}" --progress "$PROGRESS"
+      # Everything `publish` pushes: this campaign's directory and the branch's top-level README.
+      # `ready` is set only when every step above succeeded, so publish never pushes a half-analysed wave.
+      - name: Stage the results for publish
+        run: |
+          mkdir -p handoff/campaigns
+          cp -r "results/campaigns/$C" handoff/campaigns/
+          cp results/README.md handoff/README.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: study-results
+          path: handoff
+          retention-days: 7
+          if-no-files-found: error
+      - name: Mark the results ready
+        id: handoff
+        run: echo "ready=true" >> "$GITHUB_OUTPUT"
+      # Placed before the gate so it sees only failures of the steps above: those are bugs in the check.
+      - name: Flag a bug in the check
+        if: failure()
+        run: |
+          echo "::error title=Calibration CI bug::The analyze job failed before reaching its gate verdict: this is a bug in the check (a script or workflow error), not a calibration result. This wave was not published."
+      # The only step allowed to fail for a statistical reason: a completed campaign with confirmed failing cells.
+      - name: Gate verdict
+        if: success() && env.COMPLETE == 'true'
+        run: |
+          f="results/campaigns/$C/summary/gate_failures.txt"
+          n="$(cat "$f" 2>/dev/null || true)"
+          case "$n" in
+            ''|*[!0-9]*) echo "::error title=Calibration CI bug::$f is missing or not a number: a bug in the check, not a calibration result."; exit 1;;
+          esac
+          echo "Calibration study $C complete: $n failing cell(s)."
+          if [ "$n" -gt 0 ]; then
+            echo "::error title=Calibration gate::Campaign $C is complete with $n confirmed failing cell(s). Summary: https://github.com/${{ github.repository }}/blob/$RESULTS_BRANCH/campaigns/$C/README.md"
+            exit 1
+          fi
+
+  # Publishes whatever analyze produced, whatever its gate verdict (a red campaign is still
+  # published), and dispatches the next wave. It does NOT run when analyze never reached the
+  # handoff (a bug in the check): the wave is then not merged into the campaign, and the
+  # shard artifacts (kept 3 days) are still on this run for a manual re-run of the failed jobs.
+  publish:
+    needs: [plan, analyze]
+    if: >-
+      !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.wave != '0' &&
+      contains(fromJSON('["success","failure"]'), needs.analyze.result) && needs.analyze.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push to the calibration-results branch
+      actions: write    # dispatch the next wave
+    env:
+      GH_TOKEN: ${{ github.token }}
+      C: ${{ needs.plan.outputs.campaign }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: study-results
+          path: handoff
+      - name: Load the results branch and overlay the new results
+        run: |
+          git clone --depth 1 --branch "$RESULTS_BRANCH" "https://github.com/${{ github.repository }}.git" results \
+            || mkdir -p results
+          mkdir -p results/campaigns
+          rm -rf "results/campaigns/$C"
+          cp -r "handoff/campaigns/$C" results/campaigns/
+          cp handoff/README.md results/README.md
       # The branch is always ONE commit (rebuilt and force-pushed): every wave
       # rewrites figures and totals, and keeping each version would grow the history
       # by megabytes per wave. Campaigns stay side by side as directories. Pushes made
       # with GITHUB_TOKEN start no workflows, so this never triggers CI.
       - name: Publish to the results branch
         run: |
+          wave_no=$(wc -l < "results/campaigns/$C/runs.txt")
           cd results
           rm -rf .git
           git init -q -b "$RESULTS_BRANCH"
@@ -351,11 +482,9 @@ jobs:
           git commit -q -m "EDI calibration study: campaign $C, wave $wave_no"
           git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:$RESULTS_BRANCH"
       - name: Dispatch the next wave
-        if: env.COMPLETE != 'true'
+        if: needs.analyze.outputs.complete != 'true'
         run: gh workflow run calibration-study.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f campaign="$C"
-      - name: Gate (complete campaigns only)
-        if: env.COMPLETE == 'true'
+      - name: Flag a bug in the check
+        if: failure()
         run: |
-          n=$(cat "results/campaigns/$C/summary/gate_failures.txt")
-          echo "Calibration study $C complete: $n failing cell(s)."
-          [ "$n" -eq 0 ]
+          echo "::error title=Calibration CI bug::Publishing the results (push to the results branch or dispatch of the next wave) failed: a bug in the check or the environment, not a calibration result."

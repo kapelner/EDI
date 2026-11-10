@@ -209,12 +209,15 @@ incidence_gcomp_overrides = list(
 #' Wald inference.
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
-#' 10 treated subjects at n = 50), the Wald test can reject a true null up to
-#' about 10\% of the time at a nominal 5\% level with covariate adjustment
-#' (about 9\% treatment-only), with matching undercoverage of the intervals.
-#' The excess shrinks as n grows and is close to nominal by n = 200. With so
-#' few subjects in one arm, use a larger or more balanced sample, or a
-#' randomization or bootstrap test.
+#' 10 treated subjects at n = 50), the Wald test of the risk difference rejected
+#' a true null 12.3\% of the time at a nominal 5\% level with covariate
+#' adjustment (intervals covered 87.7\%) and 10.2\% treatment-only; for the risk
+#' ratio the figures were 9.6\% and 6.0\%. The excess is expected to shrink as n
+#' grows. With so few subjects in one arm, use a larger or more balanced sample,
+#' or a randomization or bootstrap test. Source: the first calibration campaign
+#' (2026-11-09-8c32d060; provisional, 1000 screening replicates per cell, Monte
+#' Carlo standard error about 0.007; measured at n = 50 only),
+#' \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @seealso \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}
 #'   for the risk-ratio version of this same standardized logistic working model.
@@ -230,6 +233,7 @@ incidence_gcomp_overrides = list(
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceIncidGCompRiskDiff")
 #' @export
 InferenceIncidGCompRiskDiff = define_inference_class(
 	classname = "InferenceIncidGCompRiskDiff",
@@ -339,6 +343,7 @@ NULL
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceIncidGCompRiskRatio")
 #' @export
 InferenceIncidGCompRiskRatio = define_inference_class(
 	classname = "InferenceIncidGCompRiskRatio",

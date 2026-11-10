@@ -373,6 +373,7 @@ SimpleMeanDifferenceSource = list(
 #' seq_des_inf$compute_asymp_confidence_interval()
 #' seq_des_inf$compute_asymp_two_sided_pval()
 #' @name InferenceAllSimpleAverageDiff
+#' @eval rd_small_sample_section("InferenceAllSimpleAverageDiff")
 #' @export
 InferenceAllSimpleAverageDiff = define_inference_class(
 	classname = "InferenceAllSimpleAverageDiff",

@@ -33,6 +33,7 @@
 #' inf$compute_estimate()
 #' }
 #' }
+#' @eval rd_small_sample_section("InferenceBaiAdjustedTKK21")
 #' @export
 # Migrated 2026-08-18: same shape as InferenceBaiAdjustedTKK14 (see that
 # file); the covariate-weighted `distance` private is this leaf's only own

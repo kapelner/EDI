@@ -48,6 +48,7 @@
 #' }
 #' @concept quantile regression
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferencePropQuantileRegr")
 #' @export
 InferencePropQuantileRegr = define_inference_class(
 	classname = "InferencePropQuantileRegr",

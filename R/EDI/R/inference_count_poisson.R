@@ -97,6 +97,7 @@
 #' inf$compute_lik_ratio_bootstrap_two_sided_pval(delta = 0, B = 9, show_progress = FALSE)
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceCountPoisson")
 #' @export
 InferenceCountPoisson = define_inference_class(
 	classname = "InferenceCountPoisson",

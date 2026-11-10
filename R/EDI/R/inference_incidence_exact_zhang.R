@@ -145,6 +145,7 @@ ExactZhangIncidenceSource = list(
 #' inf$compute_estimate()
 #' inf$compute_exact_two_sided_pval_for_treatment_effect()
 #' @name InferenceIncidExactZhang
+#' @eval rd_small_sample_section("InferenceIncidExactZhang")
 #' @export
 InferenceIncidExactZhang = define_inference_class(
 	classname = "InferenceIncidExactZhang",

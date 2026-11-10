@@ -115,6 +115,9 @@ fast tier:
 * Waves of time-boxed ~25-minute shards, `max-parallel: 16`, a per-campaign ledger and mergeable statistics on the
   public `calibration-results` branch; the gate applies when a campaign completes, against
   `calibration_study_accepted.csv` (empty at start: the fast tier's accepted levels were measured on different data).
+* Convergence slopes (v1.0.5 TODO-199, `convergence_calibration_study.R`, plan `calibration_convergence_slopes.md`): the error of every
+  asymptotic cell vs n_eff against the registry's expected order (noise-aware power-law fit + log-log regression); reported, never gated.
+* Rate-derived gate (v1.0.5 TODO-200, plan `calibration_rate_derived_gate.md`, replaces TODO-192's step schedule): size min(0.10, 0.05 + c n_eff^-a) with the registry's order a (cap reached at n_eff = 50), strict for finite-sample procedures, cap / regular level for unknown rates, one-sided for design mismatch, a gated rate check on `slower` cells; runs in the `analyze` job (the only red is its `Gate verdict` step); each campaign's README is a master page plus sub-pages (TODO-201).
 
 ## Findings at build time (2026-10-26)
 

@@ -535,6 +535,123 @@ files' `@references`) if/when it becomes available.
   Used by: `InferencePropFractionalLogit` (the fractional logistic
   quasi-likelihood model this class fits).
 
+### Convergence rates and small-sample behaviour
+
+Primary works behind the orders in the convergence-rate registry
+(`inference_procedure_regime.R`), rendered into each inference class's
+"Small-sample behaviour" help section. Registry entries carry these keys in
+their `reference_key` field.
+
+- **[LehmannRomano2005]** Lehmann, E. L., and Romano, J. P. (2005). *Testing
+  Statistical Hypotheses* (3rd ed.). Springer. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section` (exact and
+  randomization tests are valid at every n).
+- **[Hall1992]** Hall, P. (1992). *The Bootstrap and Edgeworth Expansion*.
+  Springer. — Used by: `inference_convergence_expectation`,
+  `rd_small_sample_section` (Edgeworth orders of Wald and bootstrap
+  intervals).
+- **[CoxSnell1968]** Cox, D. R., and Snell, E. J. (1968). "A General
+  Definition of Residuals." *Journal of the Royal Statistical Society:
+  Series B*, 30(2), 248-265 (discussion 265-275). — Used by:
+  `inference_convergence_expectation`,
+  `rd_small_sample_section` (O(n^-1) bias of a maximum-likelihood estimate).
+- **[ShaoTu1995]** Shao, J., and Tu, D. (1995). *The Jackknife and
+  Bootstrap*. Springer. — Used by: `inference_convergence_expectation`,
+  `rd_small_sample_section` (jackknife-variance Wald interval).
+- **[BarndorffNielsenCox1994]** Barndorff-Nielsen, O. E., and Cox, D. R.
+  (1994). *Inference and Asymptotics*. Chapman and Hall. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section` (chi-square
+  approximation error of score and likelihood-ratio tests).
+- **[Terrell2002]** Terrell, G. R. (2002). "The gradient statistic."
+  *Computing Science and Statistics*, 34, 206-215. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section` (gradient
+  test).
+- **[Lemonte2016]** Lemonte, A. J. (2016). *The Gradient Test: Another
+  Likelihood-Based Test*. Academic Press. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section` (gradient
+  test).
+- **[Lawley1956]** Lawley, D. N. (1956). "A General Method for Approximating
+  to the Distribution of Likelihood Ratio Criteria." *Biometrika*, 43(3-4),
+  295-303. — Used by: `inference_convergence_expectation`,
+  `rd_small_sample_section` (Bartlett correction).
+- **[BarndorffNielsenHall1988]** Barndorff-Nielsen, O. E., and Hall, P.
+  (1988). "On the Level-Error after Bartlett Adjustment of the Likelihood
+  Ratio Statistic." *Biometrika*, 75(2), 374-378. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section` (O(n^-2)
+  level error of the Bartlett-corrected LR test).
+- **[Beran1988]** Beran, R. (1988). "Prepivoting Test Statistics: A
+  Bootstrap View of Asymptotic Refinements." *Journal of the American
+  Statistical Association*, 83(403), 687-697. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section`
+  (parametric-bootstrap calibration of a pivotal statistic).
+- **[DiCiccioMartinStern2001]** DiCiccio, T. J., Martin, M. A., and Stern,
+  S. E. (2001). "Simple and Accurate One-Sided Inference from Signed Roots
+  of Likelihood Ratios." *Canadian Journal of Statistics*, 29(1), 67-76. —
+  Used by: `inference_convergence_expectation`, `rd_small_sample_section`
+  (parametric-bootstrap calibration of likelihood-ratio roots; one-sided
+  result).
+- **[Rubin1981]** Rubin, D. B. (1981). "The Bayesian Bootstrap." *The Annals
+  of Statistics*, 9(1), 130-134. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section`
+  (Bayesian-bootstrap interval).
+- **[Lo1987]** Lo, A. Y. (1987). "A Large Sample Study of the Bayesian
+  Bootstrap." *The Annals of Statistics*, 15(1), 360-375. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section`
+  (Bayesian-bootstrap interval).
+- **[SelfLiang1987]** Self, S. G., and Liang, K.-Y. (1987). "Asymptotic
+  Properties of Maximum Likelihood Estimators and Likelihood Ratio Tests
+  under Nonstandard Conditions." *Journal of the American Statistical
+  Association*, 82(398), 605-610. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section` (boundary
+  and variance-component limits).
+- **[StramLee1994]** Stram, D. O., and Lee, J. W. (1994). "Variance
+  Components Testing in the Longitudinal Mixed Effects Model." *Biometrics*,
+  50(4), 1171-1177. — Used by: `inference_convergence_expectation`,
+  `rd_small_sample_section` (variance-component tests).
+- **[Davies1977]** Davies, R. B. (1977). "Hypothesis Testing When a Nuisance
+  Parameter Is Present Only under the Alternative." *Biometrika*, 64(2),
+  247-254. — Used by: `inference_convergence_expectation`,
+  `rd_small_sample_section` (non-standard limit of the stereotype-logit
+  tests).
+- **[HallSheather1988]** Hall, P., and Sheather, S. J. (1988). "On the
+  Distribution of a Studentized Quantile." *Journal of the Royal Statistical
+  Society: Series B*, 50(3), 381-391. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section` (O(n^-2/3)
+  coverage error of a quantile interval with estimated sparsity).
+- **[Koenker1994]** Koenker, R. (1994). "Confidence Intervals for Regression
+  Quantiles." In P. Mandl and M. Huskova (eds.), *Asymptotic Statistics:
+  Proceedings of the Fifth Prague Symposium on Asymptotic Statistics*,
+  349-359. Physica-Verlag. — Used by: `inference_convergence_expectation`,
+  `rd_small_sample_section` (sparsity-based regression-quantile intervals).
+- **[Huber1981]** Huber, P. J. (1981). *Robust Statistics*. Wiley. — Used
+  by: `inference_convergence_expectation`, `rd_small_sample_section`
+  (first-order limit of M-estimators).
+- **[ImbensRubin2015]** Imbens, G. W., and Rubin, D. B. (2015). *Causal
+  Inference for Statistics, Social, and Biomedical Sciences*. Cambridge
+  University Press. — Used by: `inference_convergence_expectation`,
+  `rd_small_sample_section` (unbiasedness of the difference in means under
+  randomization).
+- **[BaiRomanoShaikh2021]** Bai, Y., Romano, J. P., and Shaikh, A. M. (2021;
+  in print 2022). "Inference in Experiments with Matched Pairs." *Journal of
+  the American Statistical Association*, 117(540), 1726-1737. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section`
+  (conservative unpaired variance under matched pairs).
+- **[BugniCanayShaikh2018]** Bugni, F. A., Canay, I. A., and Shaikh, A. M.
+  (2018). "Inference under Covariate-Adaptive Randomization." *Journal of
+  the American Statistical Association*, 113(524), 1784-1796. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section`
+  (conservative two-sample variance under covariate-adaptive randomization).
+- **[MaHuZhang2015]** Ma, W., Hu, F., and Zhang, L. (2015). "Testing
+  Hypotheses of Covariate-Adaptive Randomized Clinical Trials." *Journal of
+  the American Statistical Association*, 110(510), 669-680. — Used by:
+  `inference_convergence_expectation`, `rd_small_sample_section`
+  (conservative two-sample tests under covariate-adaptive randomization).
+- **[LiDingRubin2018]** Li, X., Ding, P., and Rubin, D. B. (2018).
+  "Asymptotic Theory of Rerandomization in Treatment-Control Experiments."
+  *Proceedings of the National Academy of Sciences*, 115(37), 9157-9162. —
+  Used by: `inference_convergence_expectation`, `rd_small_sample_section`
+  (conservative unadjusted variance under rerandomization).
+
 ## Numerical/backend utilities
 
 - **[AbramowitzStegun1972]** Abramowitz, M., and Stegun, I. A. (1972).

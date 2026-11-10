@@ -105,6 +105,19 @@ methods.
 * `alternative = c("two.sided", "greater", "less")` on
   `compute_rand_two_sided_pval()`, for non-negative custom statistics.
 * `clear_randomization_cache()` on `Inference`.
+* `run_all_inference()` results gain four columns after `weight`: `regime`
+  (asymptotic or finite-sample), `n_eff` (the effective-sample-size rule for
+  the class, design and procedure with its value on your data, e.g.
+  `n_pairs = 25`), `size_order` (expected order of the size / coverage error,
+  e.g. `O(n_eff^-1)`, `exact`, `O(1)` or `unknown`) and `rate_basis` (theory,
+  literature, assumed default or unknown). Existing columns are unchanged.
+* `get_inference_procedure_validity(design, inference_class, procedure = NULL)`
+  and the inference method `get_procedure_validity(procedure = NULL)` look up,
+  without fitting, what the validity registry says about each procedure a class
+  supports: regime, expected order of the size error, effective-n rule (with
+  its value on the object's data for the method), regularity, basis and
+  reference. Measured calibration values are not shipped yet (`measured` is
+  `NULL`).
 
 ## Bug fixes
 
@@ -112,6 +125,9 @@ methods.
   with "calibration timings are noisy". Its idle check timed a single ~1 ms
   operation with a 1 ms clock, so the measured spread was mostly the clock's
   rounding. Each calibration sample now times a batch of 50 runs.
+* `tune_EDI_for_this_machine()` no longer loses a finished run when it cannot
+  write its config file (for example a read-only home directory). It now warns,
+  applies the tuning to the current session, and returns the result.
 
 * `tune_EDI_for_this_machine()` no longer aborts partway through (it stopped
   at cell 57 of 1065 under `effort = "standard"`). Its synthetic count data had
@@ -283,10 +299,47 @@ methods.
   package thread maximum.
 * Eight unused internal C++ kernels were removed.
 
+## Documentation
+
+* New vignette "Which procedure can I trust at my sample size?"
+  (`vignette("procedure-trust")`). It explains the split between
+  finite-sample procedures (exact tests and the randomization test) and
+  asymptotic ones, the order of the size error and the effective-n rule of each
+  procedure, the classes where the rate is unknown and why (boundary,
+  variance components, zero inflation, quantile-regression sparsity, design
+  mismatch), and how many design x class x procedure cells rest on theory, an
+  assumed default, or nothing. Its tables are rendered from the internal
+  registry, and a test fails if they drift from it. It links the published
+  calibration results.
+* Every public inference class's help page has a new "Small-sample behaviour"
+  section generated from the same registry: for each procedure the class
+  supports it gives the regime (exact or asymptotic), the order of the size
+  error, the effective-n rule, the regularity and the references, with
+  design-specific differences (unequal allocation, cluster designs, designs
+  that make an unadjusted variance conservative). A rate that is only the
+  procedure's regular-model default is labelled "assumed default", and an
+  unknown rate says so rather than guessing. The new citations are in
+  `REFERENCES.md`. The hand-written small-sample paragraphs now quote the first
+  calibration campaign: for example the `InferenceContinLin` Wald test at
+  `prob_T = 0.2`, n = 50 with covariates rejected 17% of the time, not the
+  "about 10.5%" stated before.
+
 ## Internal
 
 * Inference components declare only the components they call; shared
   resampling helpers moved into a new internal `ResamplingCore` component.
+* New internal registry `inference_procedure_regime.R` classifies each
+  `run_all_inference()` procedure as asymptotic or finite-sample (exact and
+  randomization); package load fails if a procedure has no entry. The
+  published calibration study uses it to hold asymptotic procedures to a
+  looser size and coverage tolerance at small n.
+* The same file now holds an internal convergence-rate registry: for each
+  design, inference class and procedure it records the order of the
+  size / coverage error and of the bias, the effective sample size (pairs,
+  smaller arm, events, nonzero counts, ...), the regularity of the model, and
+  whether the answer comes from theory, the literature, or is only a default
+  or unknown. Rates not known are recorded as unknown, never guessed. Nothing
+  in the calibration gate reads it yet.
 
 # EDI 1.0.2
 

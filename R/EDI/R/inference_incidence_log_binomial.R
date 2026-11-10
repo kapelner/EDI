@@ -748,11 +748,15 @@ IncidenceLogBinomialLikelihoodSource = list(
 #' which every subject has the event, which is already non-estimable.
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
-#' 10 treated subjects at n = 50) and covariate adjustment, the score,
-#' gradient and likelihood-ratio tests and intervals can be miscalibrated,
-#' rejecting a true null more often than the nominal level. The excess shrinks
-#' as n grows and is close to nominal by n = 200. With so few subjects in one
-#' arm, use a larger or more balanced sample, or a randomization test.
+#' 10 treated subjects at n = 50) and covariate adjustment, the score test
+#' rejected a true null 14\% of the time at a nominal 5\% level (intervals
+#' covered 87.7\%), the Wald test 7.5\%, and the likelihood-ratio and gradient
+#' tests 5.8\% and 5.5\%; treatment-only, every test was at or below 6.8\%. The
+#' excess is expected to shrink as n grows. With so few subjects in one arm, use
+#' a larger or more balanced sample, or a randomization test. Source: the first
+#' calibration campaign (2026-11-09-8c32d060; provisional, 1000 screening
+#' replicates per cell, Monte Carlo standard error about 0.007; measured at n =
+#' 50 only), \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @references McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
 #'   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the binomial GLM
@@ -780,6 +784,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 #' inf$compute_estimate()
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
+#' @eval rd_small_sample_section("InferenceIncidLogBinomial")
 #' @export
 InferenceIncidLogBinomial = define_inference_class(
 	classname = "InferenceIncidLogBinomial",

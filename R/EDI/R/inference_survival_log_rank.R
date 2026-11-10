@@ -11,11 +11,13 @@
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
 #' 10 treated subjects at n = 50), the Wald test and interval for the
-#' martingale-residual difference can reject a true null up to about 9.5\% of
-#' the time at a nominal 5\% level (coverage as low as about 90.5\%), with or
-#' without covariates. The excess shrinks as n grows and is close to nominal
-#' by n = 200. With so few subjects in one arm, use a larger or more balanced
-#' sample, or a randomization test.
+#' martingale-residual difference rejected a true null 7.1\% of the time at a
+#' nominal 5\% level (intervals covered 92.9\%), with or without covariates. The
+#' excess is expected to shrink as n grows. With so few subjects in one arm, use
+#' a larger or more balanced sample, or a randomization test. Source: the first
+#' calibration campaign (2026-11-09-8c32d060; provisional, 1000 screening
+#' replicates per cell, Monte Carlo standard error about 0.007; measured at n =
+#' 50 only), \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 #'
 #' @references Mantel, N. (1966). "Evaluation of survival data and two new
 #'   rank order statistics arising in its consideration." \emph{Cancer
@@ -33,6 +35,7 @@
 #'   left-/interval-censored path.
 #' @concept log-rank test
 #' @concept survival analysis
+#' @eval rd_small_sample_section("InferenceSurvivalLogRank")
 #' @export
 #' @examples
 #' set.seed(1)

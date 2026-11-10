@@ -57,6 +57,7 @@ ridit_delong_se = function(y, w, reference = "control"){
 #'   transformation and its interpretation used here.
 #'
 #' @concept ridit analysis
+#' @eval rd_small_sample_section("InferenceOrdinalRidit")
 #' @export
 #' @examples
 #' set.seed(1)

@@ -42,6 +42,7 @@
 #' }
 #' @concept risk difference
 #' @concept Miettinen-Nurminen
+#' @eval rd_small_sample_section("InferenceIncidMiettinenNurminenRiskDiff")
 #' @export
 InferenceIncidMiettinenNurminenRiskDiff = define_inference_class(
 	classname = "InferenceIncidMiettinenNurminenRiskDiff",
