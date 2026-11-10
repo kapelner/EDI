@@ -84,7 +84,7 @@ The procedure list is by declared capability; an object can still report a proce
 
 Design-specific differences from the table:
 \itemize{
-\item On \code{DesignFixedBernoulli (prob_T = 0.2)}, for \code{wald}, \code{jackknife}, \code{score}, \code{lik_ratio}, \code{gradient}, \code{lik_ratio_bartlett_approx}, \code{lik_ratio_bartlett_exact}, \code{param_boot}, \code{param_boot_direct}, \code{bootstrap}, \code{rand_bootstrap}: the effective n is the size of the smaller arm.
+\item On any design with unequal allocation (\code{prob_T} not 0.5), for \code{wald}, \code{jackknife}, \code{score}, \code{lik_ratio}, \code{gradient}, \code{lik_ratio_bartlett_approx}, \code{lik_ratio_bartlett_exact}, \code{param_boot}, \code{param_boot_direct}, \code{bootstrap}, \code{rand_bootstrap}: the effective n is the size of the smaller arm.
 \item On \code{DesignFixedBlockedCluster}, \code{DesignFixedCluster}, for \code{wald}, \code{jackknife}, \code{score}, \code{lik_ratio}, \code{gradient}, \code{lik_ratio_bartlett_approx}, \code{lik_ratio_bartlett_exact}, \code{param_boot}, \code{param_boot_direct}, \code{bootstrap}, \code{rand_bootstrap}: the effective n is the number of clusters.
 }
 }

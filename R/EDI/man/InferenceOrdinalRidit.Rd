@@ -58,7 +58,7 @@ derived it for this class.
 
 Design-specific differences from the table:
 \itemize{
-\item On \code{DesignFixedBernoulli (prob_T = 0.2)}, for \code{wald}, \code{jackknife}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the size of the smaller arm.
+\item On any design with unequal allocation (\code{prob_T} not 0.5), for \code{wald}, \code{jackknife}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the size of the smaller arm.
 \item On \code{DesignFixedBlockedCluster}, \code{DesignFixedCluster}, for \code{wald}, \code{jackknife}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the number of clusters.
 }
 }

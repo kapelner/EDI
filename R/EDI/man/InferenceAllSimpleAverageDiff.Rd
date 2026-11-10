@@ -98,7 +98,7 @@ derived it for this class.
 
 Design-specific differences from the table:
 \itemize{
-\item On \code{DesignFixedBernoulli (prob_T = 0.2)}, for \code{wald}, \code{jackknife}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the size of the smaller arm.
+\item On any design with unequal allocation (\code{prob_T} not 0.5), for \code{wald}, \code{jackknife}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the size of the smaller arm.
 \item On \code{DesignFixedBinaryMatch}, \code{DesignFixedBlocking}, \code{DesignFixedGreedy}, \code{DesignFixedGreedyDOptimal}, \code{DesignFixedMatchingGreedyPairSwitching}, \code{DesignFixedOptimal}, \code{DesignFixedOptimalBlocks}, \code{DesignFixedRerandomization}, \code{DesignSeqOneByOneKK14}, \code{DesignSeqOneByOneKK21}, \code{DesignSeqOneByOneKK21stepwise}, \code{DesignSeqOneByOnePocockSimon}, \code{DesignSeqOneByOneSPBR}, for \code{wald}: the error order is \eqn{O(1)}{O(1)} (design mismatch; [BaiRomanoShaikh2021], [BugniCanayShaikh2018], [MaHuZhang2015], [LiDingRubin2018]).
 \item On \code{DesignFixedBlockedCluster}, \code{DesignFixedCluster}, for \code{wald}, \code{jackknife}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the number of clusters.
 }

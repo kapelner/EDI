@@ -237,6 +237,11 @@ v1.0.5 or v1.1.0 numbers, as the text says); new references here name the file.
 
 - [ ] TODO-8 (moved 2026-11-10 from `release_v1_1_0.md → TODO-170`, owner approval of the v1.0.6 triage; originally added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceOrdinalStereotypeLogitRegr`: Stereotype LR / gradient / Wald accepted rows predate TODO-175/176/178: re-verify, especially n = 1000.**
   - Why: 16 accepted rows cite v1.0.5 TODO-175/176/178, which are now applied: n = 50 gradient / LR (size up to 0.135) and n = 1000 all four methods (size 0.165-0.21, yield 33-36%, 2026-10-31 run). The 2026-11-09 local re-run at n = 50 / 200 gives yield >= 99% and n = 50 sizes about 0.085, so these rows are stale; n = 1000 was not re-run. Documented in the class's roxygen ("Small samples") for now.
+  - Re-run 2026-11-11 (installed build, 1000 reps, n = 1000, both prob_T): all four `~.` tests nominal (size 0.051-0.060,
+    coverage 0.940-0.949, yield 100%); `~1` all non-estimable, as designed. The 8 n = 1000 rows were pruned, so the
+    large-n excess is gone. The 6 remaining rows are n = 50 gradient / LR (2026-11-09 local run: size 0.084-0.090,
+    yield >= 99%), tightened from 0.105-0.135 to 0.105-0.11. What is left is a small-sample excess at n = 50,
+    which by the entry rule belongs in v1.1.0 next to TODO-168, unless a bug is found behind it.
   - Investigate first: re-run the fast tier at n = 50 / 200 / 1000 on the installed build (n = 1000 started 2026-11-10). Also covers wald ~. n = 50 prob_T 0.5: 2026-11-09 local run size 0.077, coverage 0.923, p = 1.5e-4; it fails the local K = 32 cutoff but not the nightly's, so it has no accepted row; if the nightly flags it, add one citing this TODO; if n = 1000 is still above nominal it is not a small-sample effect (look at the null refit's mode choice and the loading-boundary information).
   - Fix (candidates): depends on the re-run: prune rows that pass; for any large-n excess, fix the refit or information; score is v1.1 TODO-168.
   - Done when: the cell passes the fast-tier gate at nominal and its accepted rows (reason starting `v1.0.6 TODO-8`) in `R/package_tests/calibration/calibration_fast_tier_accepted.csv` are pruned; or, if it is an inherent property, the owner rules so and the rows stay with a reason saying why.
