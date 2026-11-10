@@ -102,6 +102,7 @@ REFERENCES.md keys.
 * `inference_suite.R`: `run_all_inference()` appends `regime`, `n_eff` ("n_pairs = 25"), `size_order`, `rate_basis` after `weight` (existing columns, order and values unchanged); a row whose `method` is `NA` or unregistered gets `NA` in all four. Roxygen `@return` updated. Registry file untouched.
 * Count definitions (decisions): `n` = subjects with a response; `n_pairs` = matched pairs, `n_pairs_plus_reservoir` = pairs + singleton reservoir (from `get_matching_cluster_ids()`); `n_min_arm` = smaller arm among responders; `n_events` = observed events for survival, the rarer of 0/1 for incidence; `n_nonzero` = responses > 0; `n_strata` = distinct block ids; `n_clusters` = distinct values of the cluster column (read from the design's private `cluster_col`, no public accessor).
 * Test: `R/package_tests/testthat_bulk/test-run-all-inference-validity-columns.R` (presence, types, additivity, vocabulary, matched design `n_pairs = 15`, unequal allocation `n_min_arm`, finite-sample rows exact, helper edge cases).
+* Existing-test change: `testthat_bulk/helper-run-all-inference.R` hard-coded the exact `results_table` column names; it now expects the four new names appended after `weight` (the only change to an existing test).
 * Known gap: the registry's unequal-allocation entry is keyed `DesignFixedBernoulli@prob_T=0.2` only, so a Bernoulli design with another unequal `prob_T` (e.g. 0.3) resolves to `n_eff = n`. Extending the registry key is TODO-193's file; not done here.
 
 ### Section 2 (TODO-195), implemented 2026-11-10

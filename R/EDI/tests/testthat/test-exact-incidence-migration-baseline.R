@@ -44,6 +44,7 @@ exact_incidence_baseline_public_methods = c(
 	"get_nonestimable_reason",
 	"get_nonestimable_stage",
 	"get_optimization_alg",
+	"get_procedure_validity",
 	"get_response",
 	"get_response_type",
 	# 2026-10-22: get_summary() (TODO-114) and clear_randomization_cache() now
@@ -116,6 +117,7 @@ exact_binomial_migrated_public_methods = c(
 	"get_nonestimable_reason",
 	"get_nonestimable_stage",
 	"get_optimization_alg",
+	"get_procedure_validity",
 	"get_response",
 	"get_response_type",
 	"get_summary",

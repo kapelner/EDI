@@ -43,8 +43,14 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 	# `#'` line additions/removals are roxygen doc-comment edits; an
 	# `[[Rcpp::export]]` tag change affects Rcpp::compileAttributes()'s output
 	# (also run by fast_roxygenize.R), so it counts too.
-	if git diff -U0 "$base" "$local_sha" -- 'R/EDI/R/*.R' 'R/EDI/src/*.cpp' 2>/dev/null \
-		| grep -qE "^[+-]#'|^[+-].*\[\[Rcpp::export"; then
+	# Not `| grep -q`: under `set -o pipefail`, grep -q exits at the first match,
+	# git diff then dies of SIGPIPE (status 141) on any diff larger than the pipe
+	# buffer, and the failed pipeline reads as "no roxygen change". That silently
+	# skipped fast_roxygenize.R on a 495-line roxygen diff (2026-11-10). Count
+	# instead, so grep reads all of its input.
+	roxy_lines="$(git diff -U0 "$base" "$local_sha" -- 'R/EDI/R/*.R' 'R/EDI/src/*.cpp' 2>/dev/null \
+		| grep -cE "^[+-]#'|^[+-].*\[\[Rcpp::export" || true)"
+	if [ "${roxy_lines:-0}" -gt 0 ]; then
 		roxygen_touched=1
 	fi
 done
