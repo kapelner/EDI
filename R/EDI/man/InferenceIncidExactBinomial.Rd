@@ -36,6 +36,20 @@ Computes the Haldane-Anscombe continuity-corrected
   from the discordant matched-pair counts (see class documentation for
   the full model). \code{NA} if there are no matched pairs.
 }
+\section{Small-sample behaviour}{
+
+How fast the size (and coverage) error of each procedure is expected to vanish as the
+effective sample size \eqn{n_{eff}}{n_eff} grows, from EDI's convergence-rate registry
+(\code{inference_convergence_expectation()}). \emph{Exact} procedures are valid at every
+n by construction; the others are asymptotic, so a small-sample excess is expected, and
+its constant is not given by an order. The table is the expectation for a balanced
+complete-randomization design; it is not a measured size. Reference keys are explained
+under References.
+
+\tabular{lllllll}{\strong{Procedure} \tab \strong{Regime} \tab \strong{Error order} \tab \strong{Effective n} \tab \strong{Regularity} \tab \strong{Basis} \tab \strong{References} \cr
+\code{exact} \tab finite sample \tab exact \tab events \tab regular \tab theory \tab [LehmannRomano2005]}
+}
+
 \examples{
 \donttest{
 seq_des = DesignSeqOneByOneKK14$new(n = 10, response_type = 'incidence')
@@ -46,6 +60,9 @@ seq_des$add_all_subject_responses(rbinom(10, 1, 0.5))
 inf = InferenceIncidExactBinomial$new(seq_des)
 inf$compute_estimate()
 }
+}
+\references{
+[LehmannRomano2005] Lehmann, E. L., and Romano, J. P. (2005). \emph{Testing Statistical Hypotheses} (3rd ed.). Springer.
 }
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidExactBinomial}
@@ -74,6 +91,7 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_procedure_validity'><code>Inference$get_procedure_validity()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>

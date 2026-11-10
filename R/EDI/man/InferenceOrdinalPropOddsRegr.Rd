@@ -43,6 +43,47 @@ Whether \code{compute_rand_two_sided_pval()} is actually
 
 Computes a randomization-based p-value.
 }
+\section{Small-sample behaviour}{
+
+How fast the size (and coverage) error of each procedure is expected to vanish as the
+effective sample size \eqn{n_{eff}}{n_eff} grows, from EDI's convergence-rate registry
+(\code{inference_convergence_expectation()}). \emph{Exact} procedures are valid at every
+n by construction; the others are asymptotic, so a small-sample excess is expected, and
+its constant is not given by an order. The table is the expectation for a balanced
+complete-randomization design; it is not a measured size. Reference keys are explained
+under References.
+
+\tabular{lllllll}{\strong{Procedure} \tab \strong{Regime} \tab \strong{Error order} \tab \strong{Effective n} \tab \strong{Regularity} \tab \strong{Basis} \tab \strong{References} \cr
+\code{rand} \tab finite sample \tab exact \tab subjects \tab regular \tab theory \tab [Fisher1935], [LehmannRomano2005] \cr
+\code{wald} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Hall1992] \cr
+\code{jackknife} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [ShaoTu1995] \cr
+\code{score} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [BarndorffNielsenCox1994] \cr
+\code{lik_ratio} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [BarndorffNielsenCox1994] \cr
+\code{gradient} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Terrell2002], [Lemonte2016] \cr
+\code{lik_ratio_bartlett_approx} \tab asymptotic \tab \eqn{O(n_{eff}^{-2})}{O(n_eff^-2)} \tab subjects \tab regular \tab assumed default \tab [Lawley1956], [BarndorffNielsenHall1988] \cr
+\code{lik_ratio_bartlett_exact} \tab asymptotic \tab \eqn{O(n_{eff}^{-2})}{O(n_eff^-2)} \tab subjects \tab regular \tab assumed default \tab [Lawley1956], [BarndorffNielsenHall1988] \cr
+\code{param_boot} \tab asymptotic \tab \eqn{O(n_{eff}^{-2})}{O(n_eff^-2)} \tab subjects \tab regular \tab assumed default \tab [Beran1988], [DiCiccioMartinStern2001], [Hall1992] \cr
+\code{param_boot_direct} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Hall1992] \cr
+\code{bootstrap} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Hall1992] \cr
+\code{bayes_boot} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Rubin1981], [Lo1987] \cr
+\code{rand_bootstrap} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Hall1992], [Kallus2018]}
+
+The point estimate's bias is of order \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} (assumed default: [CoxSnell1968]).
+
+Rows with basis \emph{assumed default}: the order shown is the procedure's rate in a
+regular parametric model, and the cited works establish it for that case only. EDI has not
+derived it for this class.
+
+The procedure list is by declared capability; an object can still report a procedure
+(for example a Bartlett correction) as unavailable through \code{get_supported_testing_types()}.
+
+Design-specific differences from the table:
+\itemize{
+\item On \code{DesignFixedBernoulli (prob_T = 0.2)}, for \code{wald}, \code{jackknife}, \code{score}, \code{lik_ratio}, \code{gradient}, \code{lik_ratio_bartlett_approx}, \code{lik_ratio_bartlett_exact}, \code{param_boot}, \code{param_boot_direct}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the size of the smaller arm.
+\item On \code{DesignFixedBlockedCluster}, \code{DesignFixedCluster}, for \code{wald}, \code{jackknife}, \code{score}, \code{lik_ratio}, \code{gradient}, \code{lik_ratio_bartlett_approx}, \code{lik_ratio_bartlett_exact}, \code{param_boot}, \code{param_boot_direct}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the number of clusters.
+}
+}
+
 \examples{
 \donttest{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'ordinal')
@@ -63,6 +104,36 @@ McCullagh, P. (1980). "Regression Models for Ordinal Data."
   \emph{Journal of the Royal Statistical Society, Series B}, 42(2),
   109-142, \doi{10.1111/j.2517-6161.1980.tb01109.x}, for the
   proportional-odds cumulative-logit model fit here.
+
+[Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
+
+[LehmannRomano2005] Lehmann, E. L., and Romano, J. P. (2005). \emph{Testing Statistical Hypotheses} (3rd ed.). Springer.
+
+[Hall1992] Hall, P. (1992). \emph{The Bootstrap and Edgeworth Expansion}. Springer.
+
+[ShaoTu1995] Shao, J., and Tu, D. (1995). \emph{The Jackknife and Bootstrap}. Springer.
+
+[BarndorffNielsenCox1994] Barndorff-Nielsen, O. E., and Cox, D. R. (1994). \emph{Inference and Asymptotics}. Chapman and Hall.
+
+[Terrell2002] Terrell, G. R. (2002). "The gradient statistic." \emph{Computing Science and Statistics}, 34, 206-215.
+
+[Lemonte2016] Lemonte, A. J. (2016). \emph{The Gradient Test: Another Likelihood-Based Test}. Academic Press.
+
+[Lawley1956] Lawley, D. N. (1956). "A General Method for Approximating to the Distribution of Likelihood Ratio Criteria." \emph{Biometrika}, 43(3-4), 295-303.
+
+[BarndorffNielsenHall1988] Barndorff-Nielsen, O. E., and Hall, P. (1988). "On the Level-Error after Bartlett Adjustment of the Likelihood Ratio Statistic." \emph{Biometrika}, 75(2), 374-378.
+
+[Beran1988] Beran, R. (1988). "Prepivoting Test Statistics: A Bootstrap View of Asymptotic Refinements." \emph{Journal of the American Statistical Association}, 83(403), 687-697.
+
+[DiCiccioMartinStern2001] DiCiccio, T. J., Martin, M. A., and Stern, S. E. (2001). "Simple and Accurate One-Sided Inference from Signed Roots of Likelihood Ratios." \emph{Canadian Journal of Statistics}, 29(1), 67-76.
+
+[Rubin1981] Rubin, D. B. (1981). "The Bayesian Bootstrap." \emph{The Annals of Statistics}, 9(1), 130-134.
+
+[Lo1987] Lo, A. Y. (1987). "A Large Sample Study of the Bayesian Bootstrap." \emph{The Annals of Statistics}, 15(1), 360-375.
+
+[Kallus2018] Kallus, N. (2018). "Optimal a priori balance in the design of controlled experiments." \emph{Journal of the Royal Statistical Society: Series B}, 80(1), 85-112. Section 5 ("Algorithms for inference"), Algorithm 4.
+
+[CoxSnell1968] Cox, D. R., and Snell, E. J. (1968). "A General Definition of Residuals." \emph{Journal of the Royal Statistical Society: Series B}, 30(2), 248-265 (discussion 265-275).
 }
 \concept{cumulative logit model}
 \concept{ordinal logistic regression}
@@ -96,6 +167,7 @@ McCullagh, P. (1980). "Regression Models for Ordinal Data."
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_procedure_validity'><code>Inference$get_procedure_validity()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>

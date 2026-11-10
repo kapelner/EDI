@@ -600,7 +600,21 @@ weight \code{0} (excluded). Need not pre-sum to 1.}
   sorted/grouped by \code{estimand} -- \code{NA_character_} last -- with a
   secondary sort by \code{inference_class}; includes the \code{weight}
   column driven by \code{combined_evidence_weighting}/
-  \code{combined_evidence_estimands}), \code{combined_evidence}
+  \code{combined_evidence_estimands}; followed by four procedure-validity
+  columns read from the package's procedure-regime / convergence-rate
+  registry: \code{regime} (\code{"asymptotic"} or \code{"finite_sample"}
+  -- valid only as the effective sample size grows, or valid at every
+  sample size by construction), \code{n_eff} (the effective-sample-size
+  rule for this class, design and procedure and its realised value on
+  this design's data, e.g. \code{"n_pairs = 25"}; \code{NA} for the value
+  when the rule does not apply to the data), \code{size_order} (the
+  expected order of the size / coverage error in \code{n_eff}, e.g.
+  \code{"O(n_eff^-1)"}; \code{"exact"} for finite-sample procedures,
+  \code{"O(1)"} when the error does not vanish, \code{"unknown"} when no
+  rate is known) and \code{rate_basis} (why that order is believed:
+  \code{"theory"}, \code{"literature"}, \code{"empirical"},
+  \code{"assumed_default"} or \code{"unknown"}); all four are \code{NA}
+  for a row with no registered procedure), \code{combined_evidence}
   (\code{list(pval, stat, method = "cauchy_combination", n_classes_used,
   n_estimand_groups, estimands_used, weighting, weights_used,
   classes_used)} -- the Cauchy-combination-test p-value/statistic

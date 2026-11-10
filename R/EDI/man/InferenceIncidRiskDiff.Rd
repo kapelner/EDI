@@ -23,13 +23,40 @@ homoskedastic OLS variance and not a binomial likelihood, and no
 likelihood-ratio or parametric-bootstrap methods are exposed.
 
 \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
-10 treated subjects at n = 50), the HC0 Wald test can reject a true null up
-to about 9.5\% of the time at a nominal 5\% level with covariate adjustment
-(about 9\% treatment-only), with matching undercoverage of the intervals.
-The excess shrinks as n grows and is close to nominal by n = 200. With so
-few subjects in one arm, use a larger or more balanced sample, or a
-randomization or bootstrap test.
+10 treated subjects at n = 50), the HC0 Wald test rejected a true null 11\%
+of the time at a nominal 5\% level with covariate adjustment (intervals
+covered 89\%) and 10.2\% treatment-only. The excess is expected to shrink as
+n grows. With so few subjects in one arm, use a larger or more balanced
+sample, or a randomization or bootstrap test. Source: the first calibration
+campaign (2026-11-09-8c32d060; provisional, 1000 screening replicates per
+cell, Monte Carlo standard error about 0.007; measured at n = 50 only),
+\url{https://github.com/kapelner/EDI/tree/calibration-results}.
 }
+\section{Small-sample behaviour}{
+
+How fast the size (and coverage) error of each procedure is expected to vanish as the
+effective sample size \eqn{n_{eff}}{n_eff} grows, from EDI's convergence-rate registry
+(\code{inference_convergence_expectation()}). \emph{Exact} procedures are valid at every
+n by construction; the others are asymptotic, so a small-sample excess is expected, and
+its constant is not given by an order. The table is the expectation for a balanced
+complete-randomization design; it is not a measured size. Reference keys are explained
+under References.
+
+\tabular{lllllll}{\strong{Procedure} \tab \strong{Regime} \tab \strong{Error order} \tab \strong{Effective n} \tab \strong{Regularity} \tab \strong{Basis} \tab \strong{References} \cr
+\code{rand} \tab finite sample \tab exact \tab events \tab regular \tab theory \tab [Fisher1935], [LehmannRomano2005] \cr
+\code{wald} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab events \tab regular \tab assumed default \tab [Hall1992] \cr
+\code{jackknife} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab events \tab regular \tab assumed default \tab [ShaoTu1995] \cr
+\code{bootstrap} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab events \tab regular \tab assumed default \tab [Hall1992] \cr
+\code{bayes_boot} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab events \tab regular \tab assumed default \tab [Rubin1981], [Lo1987] \cr
+\code{rand_bootstrap} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab events \tab regular \tab assumed default \tab [Hall1992], [Kallus2018]}
+
+The point estimate's bias is of order \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} (assumed default: [CoxSnell1968]).
+
+Rows with basis \emph{assumed default}: the order shown is the procedure's rate in a
+regular parametric model, and the cited works establish it for that case only. EDI has not
+derived it for this class.
+}
+
 \section{Blocking designs}{
 
 On a blocking design
@@ -67,6 +94,23 @@ inf = InferenceIncidRiskDiff$new(seq_des)
 inf$compute_estimate()
 }
 }
+\references{
+[Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
+
+[LehmannRomano2005] Lehmann, E. L., and Romano, J. P. (2005). \emph{Testing Statistical Hypotheses} (3rd ed.). Springer.
+
+[Hall1992] Hall, P. (1992). \emph{The Bootstrap and Edgeworth Expansion}. Springer.
+
+[ShaoTu1995] Shao, J., and Tu, D. (1995). \emph{The Jackknife and Bootstrap}. Springer.
+
+[Rubin1981] Rubin, D. B. (1981). "The Bayesian Bootstrap." \emph{The Annals of Statistics}, 9(1), 130-134.
+
+[Lo1987] Lo, A. Y. (1987). "A Large Sample Study of the Bayesian Bootstrap." \emph{The Annals of Statistics}, 15(1), 360-375.
+
+[Kallus2018] Kallus, N. (2018). "Optimal a priori balance in the design of controlled experiments." \emph{Journal of the Royal Statistical Society: Series B}, 80(1), 85-112. Section 5 ("Algorithms for inference"), Algorithm 4.
+
+[CoxSnell1968] Cox, D. R., and Snell, E. J. (1968). "A General Definition of Residuals." \emph{Journal of the Royal Statistical Society: Series B}, 30(2), 248-265 (discussion 265-275).
+}
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceIncidRiskDiff}
 }
@@ -95,6 +139,7 @@ inf$compute_estimate()
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_procedure_validity'><code>Inference$get_procedure_validity()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>

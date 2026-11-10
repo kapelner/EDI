@@ -23,6 +23,32 @@ Refits the log-binomial model with subject/block-level weights
   \code{compute_estimate()}; a hardened-but-still-unreasonable fit is
   cached as nonestimable and returns \code{NA}.
 
+Asymptotic confidence interval for \eqn{\beta_T} under the
+  current testing type. For \code{testing_type = "wald"} this is the Wald
+  interval, EXCEPT when the full-data MLE is on the boundary of the
+  parameter space (some fitted probability \eqn{\exp(X\hat\beta) = 1}):
+  the inverse Fisher information is then too small and the interval too
+  narrow, so \code{NA} bounds are returned with a classed warning
+  \code{edi_wald_mle_boundary_unavailable} pointing to the
+  likelihood-ratio interval (v1.0.5 TODO-179). Other testing types are
+  unchanged.
+
+Asymptotic two-sided p-value for \eqn{H_0: \beta_T =
+  \delta} under the current testing type. For \code{testing_type =
+  "wald"} this is \code{NA} (with the
+  \code{edi_wald_mle_boundary_unavailable} warning) when the full-data MLE
+  is on the \eqn{\exp(X\beta) \le 1} boundary; see
+  \code{compute_asymp_confidence_interval()}.
+
+Wald confidence interval for \eqn{\beta_T}; \code{NA}
+  bounds (with the \code{edi_wald_mle_boundary_unavailable} warning)
+  when the full-data MLE is on the \eqn{\exp(X\beta) \le 1} boundary.
+  Use \code{compute_lik_ratio_confidence_interval()} there.
+
+Wald two-sided p-value for \eqn{H_0: \beta_T = \delta};
+  \code{NA} (with the \code{edi_wald_mle_boundary_unavailable} warning)
+  when the full-data MLE is on the \eqn{\exp(X\beta) \le 1} boundary.
+
 Score confidence interval for \eqn{\beta_T} by test inversion
   of the score test (find the set of \code{delta} not rejected at level
   \code{alpha}); see \code{\link[EDI:InferenceAsympLik]{InferenceAsympLik}}

@@ -35,10 +35,10 @@ sibling \code{\link[EDI:InferenceIncidBinomialIdentityRiskDiff]{
 InferenceIncidBinomialIdentityRiskDiff}}, here applying to the upper rather
 than both tails of the probability scale. When the full-data MLE is on
 that boundary (some fitted probability equal to 1), the object warns once
-(\code{edi_binomial_mle_boundary_warning}) that Wald and score standard
-errors and intervals may be unreliable. Validity requires the
-multiplicative log-linear risk model to be correctly specified over the
-covariate range observed.
+(\code{edi_binomial_mle_boundary_warning}) that score standard errors and
+intervals may be unreliable. Validity requires the multiplicative
+log-linear risk model to be correctly specified over the covariate range
+observed.
 
 Computes the randomization distribution of the treatment effect estimate under the sharp null.
 
@@ -58,13 +58,75 @@ Whether \code{compute_rand_two_sided_pval()} is actually
   never drift apart.
 }
 \details{
+\strong{Wald at a boundary MLE.} When the full-data MLE has a subject at
+fitted probability \eqn{\exp(X\hat\beta) = 1} (a linear predictor within
+\eqn{10^{-6}} of 0), the Wald p-value and Wald confidence interval
+(\code{compute_asymp_two_sided_pval()} /
+\code{compute_asymp_confidence_interval()} with \code{testing_type = "wald"},
+and \code{compute_wald_two_sided_pval()} /
+\code{compute_wald_confidence_interval()}) are \code{NA}. There the weight of
+the boundary subject is unbounded and the inverse Fisher information treats
+that direction as known, so the Wald standard error is too small (null
+simulations with five covariates: Wald size about 0.17 in boundary fits and
+0.05 in interior ones; \code{glm(family = binomial(link = "log"))} behaves
+the same). The object warns once (\code{edi_wald_mle_boundary_unavailable},
+fields \code{testing_type}, \code{substitute = "lik_ratio"}, \code{reason},
+\code{n_on_boundary}) and points to the likelihood-ratio test and interval
+(\code{set_testing_type("lik_ratio")}). The estimate, its standard error and
+\code{is_nonestimable()} are unchanged, and the reason is recorded under
+\code{"wald"} in the object's procedure-failure reasons. Boundary MLEs are
+common with several covariates at small n (most \code{~ .} fits with five
+covariates at n = 50). With \code{~ 1} the only boundary MLE is an arm in
+which every subject has the event, which is already non-estimable.
+
 \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
-10 treated subjects at n = 50) and covariate adjustment, the score,
-gradient and likelihood-ratio tests and intervals can be miscalibrated,
-rejecting a true null more often than the nominal level. The excess shrinks
-as n grows and is close to nominal by n = 200. With so few subjects in one
-arm, use a larger or more balanced sample, or a randomization test.
+10 treated subjects at n = 50) and covariate adjustment, the score test
+rejected a true null 14\% of the time at a nominal 5\% level (intervals
+covered 87.7\%), the Wald test 7.5\%, and the likelihood-ratio and gradient
+tests 5.8\% and 5.5\%; treatment-only, every test was at or below 6.8\%. The
+excess is expected to shrink as n grows. With so few subjects in one arm, use
+a larger or more balanced sample, or a randomization test. Source: the first
+calibration campaign (2026-11-09-8c32d060; provisional, 1000 screening
+replicates per cell, Monte Carlo standard error about 0.007; measured at n =
+50 only), \url{https://github.com/kapelner/EDI/tree/calibration-results}.
 }
+\section{Small-sample behaviour}{
+
+How fast the size (and coverage) error of each procedure is expected to vanish as the
+effective sample size \eqn{n_{eff}}{n_eff} grows, from EDI's convergence-rate registry
+(\code{inference_convergence_expectation()}). \emph{Exact} procedures are valid at every
+n by construction; the others are asymptotic, so a small-sample excess is expected, and
+its constant is not given by an order. The table is the expectation for a balanced
+complete-randomization design; it is not a measured size. Reference keys are explained
+under References.
+
+\tabular{lllllll}{\strong{Procedure} \tab \strong{Regime} \tab \strong{Error order} \tab \strong{Effective n} \tab \strong{Regularity} \tab \strong{Basis} \tab \strong{References} \cr
+\code{rand} \tab finite sample \tab exact \tab events \tab regular \tab theory \tab [Fisher1935], [LehmannRomano2005] \cr
+\code{wald} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{jackknife} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{score} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{lik_ratio} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{gradient} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{lik_ratio_bartlett_approx} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{lik_ratio_bartlett_exact} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{param_boot} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{param_boot_direct} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{bootstrap} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{bayes_boot} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987] \cr
+\code{rand_bootstrap} \tab asymptotic \tab unknown \tab events \tab boundary \tab unknown \tab [SelfLiang1987]}
+
+The point estimate's bias is of order \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} (assumed default: [CoxSnell1968]).
+
+Rows with order \emph{unknown}: no rate is known for this class and procedure, so none is
+claimed; the cited works describe the non-standard limit, not a rate. Expect a small-sample
+excess of unquantified size.
+
+Regularity \emph{boundary}: the maximum-likelihood estimate can sit on the boundary of the parameter space, where the usual chi-square and normal limits fail.
+
+The procedure list is by declared capability; an object can still report a procedure
+(for example a Bartlett correction) as unavailable through \code{get_supported_testing_types()}.
+}
+
 \section{Blocking designs}{
 
 On a blocking design
@@ -106,6 +168,14 @@ inf$compute_estimate()
 McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
   Linear Models} (2nd ed.). Chapman and Hall/CRC, for the binomial GLM
   family and log-link relative-risk parameterization.
+
+[Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
+
+[LehmannRomano2005] Lehmann, E. L., and Romano, J. P. (2005). \emph{Testing Statistical Hypotheses} (3rd ed.). Springer.
+
+[SelfLiang1987] Self, S. G., and Liang, K.-Y. (1987). "Asymptotic Properties of Maximum Likelihood Estimators and Likelihood Ratio Tests under Nonstandard Conditions." \emph{Journal of the American Statistical Association}, 82(398), 605-610.
+
+[CoxSnell1968] Cox, D. R., and Snell, E. J. (1968). "A General Definition of Residuals." \emph{Journal of the Royal Statistical Society: Series B}, 30(2), 248-265 (discussion 265-275).
 }
 \seealso{
 \code{\link[EDI:InferenceIncidLogRegr]{InferenceIncidLogRegr}}
@@ -147,6 +217,7 @@ McCullagh, P., and Nelder, J. A. (1989). \emph{Generalized
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_procedure_validity'><code>Inference$get_procedure_validity()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>

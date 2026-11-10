@@ -98,6 +98,7 @@ Lee, E. W., Wei, L. J., and Amato, D. A. (1992). "Cox-Type
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_procedure_validity'><code>Inference$get_procedure_validity()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>

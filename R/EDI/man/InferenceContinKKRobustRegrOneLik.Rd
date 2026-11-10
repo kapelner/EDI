@@ -67,10 +67,45 @@ is only an asymptotic approximation. The excess shrinks as n grows and is
 close to nominal by n = 200. With samples this small, use a larger sample
 or a randomization or bootstrap test.
 }
+\section{Small-sample behaviour}{
+
+How fast the size (and coverage) error of each procedure is expected to vanish as the
+effective sample size \eqn{n_{eff}}{n_eff} grows, from EDI's convergence-rate registry
+(\code{inference_convergence_expectation()}). \emph{Exact} procedures are valid at every
+n by construction; the others are asymptotic, so a small-sample excess is expected, and
+its constant is not given by an order. The table is the expectation for a balanced
+complete-randomization design; it is not a measured size. Reference keys are explained
+under References.
+
+\tabular{lllllll}{\strong{Procedure} \tab \strong{Regime} \tab \strong{Error order} \tab \strong{Effective n} \tab \strong{Regularity} \tab \strong{Basis} \tab \strong{References} \cr
+\code{rand} \tab finite sample \tab exact \tab pairs + reservoir \tab regular \tab theory \tab [Fisher1935], [LehmannRomano2005] \cr
+\code{wald} \tab asymptotic \tab unknown \tab pairs + reservoir \tab other \tab unknown \tab [Huber1981] \cr
+\code{jackknife} \tab asymptotic \tab unknown \tab pairs + reservoir \tab other \tab unknown \tab [Huber1981] \cr
+\code{bootstrap} \tab asymptotic \tab unknown \tab pairs + reservoir \tab other \tab unknown \tab [Huber1981] \cr
+\code{bayes_boot} \tab asymptotic \tab unknown \tab pairs + reservoir \tab other \tab unknown \tab [Huber1981] \cr
+\code{rand_bootstrap} \tab asymptotic \tab unknown \tab pairs + reservoir \tab other \tab unknown \tab [Huber1981]}
+
+The point estimate's bias is of order \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} (assumed default: [CoxSnell1968]).
+
+Rows with order \emph{unknown}: no rate is known for this class and procedure, so none is
+claimed; the cited works describe the non-standard limit, not a rate. Expect a small-sample
+excess of unquantified size.
+
+Regularity \emph{other}: a non-standard limit or an estimated scale, so the regular-model rate is not established.
+}
+
 \references{
 Kapelner, A. and Krieger, A. M. (2014). Matching on-the-fly: Sequential
 allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
 378-388. \doi{10.1111/biom.12148}. (KK14 in \code{REFERENCES.md}.)
+
+[Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
+
+[LehmannRomano2005] Lehmann, E. L., and Romano, J. P. (2005). \emph{Testing Statistical Hypotheses} (3rd ed.). Springer.
+
+[Huber1981] Huber, P. J. (1981). \emph{Robust Statistics}. Wiley.
+
+[CoxSnell1968] Cox, D. R., and Snell, E. J. (1968). "A General Definition of Residuals." \emph{Journal of the Royal Statistical Society: Series B}, 30(2), 248-265 (discussion 265-275).
 }
 \seealso{
 \code{\link[EDI:InferenceContinKKRobustRegrIVWC]{InferenceContinKKRobustRegrIVWC}}
@@ -107,6 +142,7 @@ allocation with higher power and efficiency. \emph{Biometrics}, 70(2),
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_procedure_validity'><code>Inference$get_procedure_validity()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>

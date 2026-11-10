@@ -41,6 +41,7 @@ Defaults to the global budget unless overridden on the object.}
     \item \href{#method-Inference-get_analysis_data}{\code{Inference$get_analysis_data()}}
     \item \href{#method-Inference-get_design_object}{\code{Inference$get_design_object()}}
     \item \href{#method-Inference-get_response_type}{\code{Inference$get_response_type()}}
+    \item \href{#method-Inference-get_procedure_validity}{\code{Inference$get_procedure_validity()}}
     \item \href{#method-Inference-get_model_formula}{\code{Inference$get_model_formula()}}
     \item \href{#method-Inference-set_optimization_alg}{\code{Inference$set_optimization_alg()}}
     \item \href{#method-Inference-get_optimization_alg}{\code{Inference$get_optimization_alg()}}
@@ -448,6 +449,40 @@ classes should use this method instead of \code{private$des_obj}.
     A character scalar such as \code{"continuous"},
   \code{"incidence"}, \code{"proportion"}, \code{"count"},
   \code{"survival"}, or \code{"ordinal"}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Inference-get_procedure_validity"></a>}}
+\if{latex}{\out{\hypertarget{method-Inference-get_procedure_validity}{}}}
+\subsection{\code{Inference$get_procedure_validity()}}{
+  Look up what EDI's validity registry says about the inference
+  procedures this object supports by default (or a chosen subset): the
+  regime (\code{"asymptotic"} or \code{"finite_sample"}), the expected
+  order of the size error, the effective-sample-size rule together with
+  its realised value for this object's data, the regularity of the
+  problem, and the basis and reference of each claim. Nothing is fitted.
+  The same lookup without data is
+  \code{\link{get_inference_procedure_validity}()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{Inference$get_procedure_validity(procedure = NULL)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{procedure}}{\code{NULL} (default) for every supported procedure, or
+procedure labels as used in the \code{method} column of
+\code{\link{run_all_inference}()} results (e.g. \code{"wald"}).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A list with \code{expectation} (a data frame, one row per
+  procedure, see \code{\link{get_inference_procedure_validity}()}),
+  \code{measured} (\code{NULL}: no measured calibration values are
+  shipped yet) and \code{measured_note}.
   }
 }
 

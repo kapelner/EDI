@@ -60,6 +60,38 @@ Computes a two-sided pooled-variance Student's t-test
   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}} for the shared
   asymptotic two-sided p-value contract this participates in.
 }
+\section{Small-sample behaviour}{
+
+How fast the size (and coverage) error of each procedure is expected to vanish as the
+effective sample size \eqn{n_{eff}}{n_eff} grows, from EDI's convergence-rate registry
+(\code{inference_convergence_expectation()}). \emph{Exact} procedures are valid at every
+n by construction; the others are asymptotic, so a small-sample excess is expected, and
+its constant is not given by an order. The table is the expectation for a balanced
+complete-randomization design; it is not a measured size. Reference keys are explained
+under References.
+
+\tabular{lllllll}{\strong{Procedure} \tab \strong{Regime} \tab \strong{Error order} \tab \strong{Effective n} \tab \strong{Regularity} \tab \strong{Basis} \tab \strong{References} \cr
+\code{rand} \tab finite sample \tab exact \tab subjects \tab regular \tab theory \tab [Fisher1935], [LehmannRomano2005] \cr
+\code{wald} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Hall1992] \cr
+\code{jackknife} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [ShaoTu1995] \cr
+\code{bootstrap} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Hall1992] \cr
+\code{bayes_boot} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Rubin1981], [Lo1987] \cr
+\code{rand_bootstrap} \tab asymptotic \tab \eqn{O(n_{eff}^{-1})}{O(n_eff^-1)} \tab subjects \tab regular \tab assumed default \tab [Hall1992], [Kallus2018]}
+
+The point estimate is unbiased under randomization (theory: [Neyman1923], [ImbensRubin2015]).
+
+Rows with basis \emph{assumed default}: the order shown is the procedure's rate in a
+regular parametric model, and the cited works establish it for that case only. EDI has not
+derived it for this class.
+
+Design-specific differences from the table:
+\itemize{
+\item On \code{DesignFixedBernoulli (prob_T = 0.2)}, for \code{wald}, \code{jackknife}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the size of the smaller arm.
+\item On \code{DesignFixedBinaryMatch}, \code{DesignFixedBlocking}, \code{DesignFixedGreedy}, \code{DesignFixedGreedyDOptimal}, \code{DesignFixedMatchingGreedyPairSwitching}, \code{DesignFixedOptimal}, \code{DesignFixedOptimalBlocks}, \code{DesignFixedRerandomization}, \code{DesignSeqOneByOneKK14}, \code{DesignSeqOneByOneKK21}, \code{DesignSeqOneByOneKK21stepwise}, \code{DesignSeqOneByOnePocockSimon}, \code{DesignSeqOneByOneSPBR}, for \code{wald}: the error order is \eqn{O(1)}{O(1)} (design mismatch; [BaiRomanoShaikh2021], [BugniCanayShaikh2018], [MaHuZhang2015], [LiDingRubin2018]).
+\item On \code{DesignFixedBlockedCluster}, \code{DesignFixedCluster}, for \code{wald}, \code{jackknife}, \code{bootstrap}, \code{bayes_boot}, \code{rand_bootstrap}: the effective n is the number of clusters.
+}
+}
+
 \examples{
 \donttest{
 seq_des = DesignSeqOneByOneBernoulli$new(n = 10, response_type = 'continuous')
@@ -75,6 +107,32 @@ inf$compute_estimate()
 Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
   \emph{Biometrika}, 6(1), 1-25, \doi{10.1093/biomet/6.1.1}, for the
   pooled-variance two-sample t-test used here.
+
+[Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
+
+[LehmannRomano2005] Lehmann, E. L., and Romano, J. P. (2005). \emph{Testing Statistical Hypotheses} (3rd ed.). Springer.
+
+[Hall1992] Hall, P. (1992). \emph{The Bootstrap and Edgeworth Expansion}. Springer.
+
+[ShaoTu1995] Shao, J., and Tu, D. (1995). \emph{The Jackknife and Bootstrap}. Springer.
+
+[Rubin1981] Rubin, D. B. (1981). "The Bayesian Bootstrap." \emph{The Annals of Statistics}, 9(1), 130-134.
+
+[Lo1987] Lo, A. Y. (1987). "A Large Sample Study of the Bayesian Bootstrap." \emph{The Annals of Statistics}, 15(1), 360-375.
+
+[Kallus2018] Kallus, N. (2018). "Optimal a priori balance in the design of controlled experiments." \emph{Journal of the Royal Statistical Society: Series B}, 80(1), 85-112. Section 5 ("Algorithms for inference"), Algorithm 4.
+
+[BaiRomanoShaikh2021] Bai, Y., Romano, J. P., and Shaikh, A. M. (2021; in print 2022). "Inference in Experiments with Matched Pairs." \emph{Journal of the American Statistical Association}, 117(540), 1726-1737.
+
+[BugniCanayShaikh2018] Bugni, F. A., Canay, I. A., and Shaikh, A. M. (2018). "Inference under Covariate-Adaptive Randomization." \emph{Journal of the American Statistical Association}, 113(524), 1784-1796.
+
+[MaHuZhang2015] Ma, W., Hu, F., and Zhang, L. (2015). "Testing Hypotheses of Covariate-Adaptive Randomized Clinical Trials." \emph{Journal of the American Statistical Association}, 110(510), 669-680.
+
+[LiDingRubin2018] Li, X., Ding, P., and Rubin, D. B. (2018). "Asymptotic Theory of Rerandomization in Treatment-Control Experiments." \emph{Proceedings of the National Academy of Sciences}, 115(37), 9157-9162.
+
+[Neyman1923] Neyman, J. (1923, transl. 1990). "On the Application of Probability Theory to Agricultural Experiments." \emph{Statistical Science}, 5(4), 465-472.
+
+[ImbensRubin2015] Imbens, G. W., and Rubin, D. B. (2015). \emph{Causal Inference for Statistics, Social, and Biomedical Sciences}. Cambridge University Press.
 }
 \section{Super class}{
 \code{\link[EDI:Inference]{Inference}} -> \code{InferenceAllSimpleMeanDiffPooledVar}
@@ -104,6 +162,7 @@ Student [Gosset, W. S.] (1908). "The Probable Error of a Mean."
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_reason'><code>Inference$get_nonestimable_reason()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_nonestimable_stage'><code>Inference$get_nonestimable_stage()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_optimization_alg'><code>Inference$get_optimization_alg()</code></a></li>
+  <li><a href='../../EDI/html/Inference.html#method-Inference-get_procedure_validity'><code>Inference$get_procedure_validity()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response'><code>Inference$get_response()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_response_type'><code>Inference$get_response_type()</code></a></li>
   <li><a href='../../EDI/html/Inference.html#method-Inference-get_summary'><code>Inference$get_summary()</code></a></li>
