@@ -93,6 +93,9 @@ R/package_tests/testthat_bulk/test-build-optimal-design-p-h-null-prior-rank-defi
 R/package_tests/testthat_bulk/test-build-optimal-design-p-h-scalar-tau-exact-value-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-build-partial-and-full-likelihood-behavior-record-not-registered-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-calibrated-and-smoothed-bootstrap-ci-too-few-draws-guards-reference.R,correctness,410.1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-calibration-convergence-slopes.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-calibration-readme-pages.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-candidate-validation-reference.R,correctness,30,bootstrap
 R/package_tests/testthat_bulk/test-ci-rand.R,correctness,9.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-clayton-weibull-aft-dependent-censoring-reference.R,correctness,2.1,measured_with_30_percent_headroom
@@ -418,12 +421,15 @@ R/package_tests/testthat_bulk/test-inference-component-call-graph-acceptance-ref
 R/package_tests/testthat_bulk/test-inference-component-registry-clear-register-dependency-propagation-and-idempotence-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-component-source-parts-branches-and-error-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-component-validator-remaining-guards-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-inference-convergence-rate-registry.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-core-cache-and-matrix-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-hardened-qr-column-dropping-retry-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-hierarchy-migration-manifest-cache-populate-clear-lookup-and-registry-parity-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-hierarchy-migration-order-depth-sort-tie-break-and-statuses-filter-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-interval-censored-not-supported-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-nonestimable-state-thread-policy-and-par-lapply-serial-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-inference-procedure-regime-registry.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-inference-procedure-validity-lookup.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-public-method-names-generator-lookup-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-rand-custom-bare-external-pointer-no-recorded-signature-guard-reference.R,correctness,6.2,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-rand-custom-install-stat-cpp-type-and-arity-guards-reference.R,correctness,4.6,measured_with_30_percent_headroom
@@ -432,6 +438,7 @@ R/package_tests/testthat_bulk/test-inference-rand-generate-permutations-numeric-
 R/package_tests/testthat_bulk/test-inference-registry-capability-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-registry-migration-record-classifiers-counts-and-behavior-record-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-registry-quasi-robust-and-custom-randomization-behavior-records-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-inference-small-sample-section-references.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-inference-suite-bootstrap-helper-contracts.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-class-predicates-acronym-split-priority-derivation-and-zero-augmented-mle-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-display-label-helpers-sigfig-method-estimand-wrap-timestamp-and-escape-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -884,6 +891,7 @@ R/package_tests/testthat_bulk/test-print-progress-non-null-progress-bar-update-r
 R/package_tests/testthat_bulk/test-probit-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-probit-regression-kernel-optimizers-fixed-coefficients-and-output-fields-glm-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-probit-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-procedure-trust-vignette-tables.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-prop-fractional-logit-quasibinomial-dispersion-and-weighted-refit-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-prop-gcomp-mean-diff-randomization-worker-estimate-not-all-na-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-prop-kk-glmm-migration-golden.R,correctness,6.6,measured_with_30_percent_headroom
@@ -1013,6 +1021,7 @@ R/package_tests/testthat_bulk/test-run-all-inference-print-live-cov-key-referenc
 R/package_tests/testthat_bulk/test-run-all-inference-print-row-value-formatting-ci-method-blanking-and-single-line-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-run-all-inference-static-row-fields-precomputed-before-fitting-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-run-all-inference-typed-task-type-fanout-union-basic-only-and-requested-subset-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-run-all-inference-validity-columns.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-sample-int-replace-kernel-contract-and-uniformity-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-sample-mode-kernel-first-occurrence-tie-break-and-na-handling-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-sandwich-hc2-qr-reduction-pval-inversion-and-small-utility-kernels-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1615,6 +1624,9 @@ R/package_tests/testthat_bulk/test-build-optimal-design-p-h-null-prior-rank-defi
 R/package_tests/testthat_bulk/test-build-optimal-design-p-h-scalar-tau-exact-value-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-build-partial-and-full-likelihood-behavior-record-not-registered-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibrated-and-smoothed-bootstrap-ci-too-few-draws-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-calibration-convergence-slopes.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-calibration-readme-pages.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-candidate-validation-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-ci-rand.R,coverage,9.8,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-clayton-weibull-aft-dependent-censoring-reference.R,coverage,240,bootstrap
@@ -1940,12 +1952,15 @@ R/package_tests/testthat_bulk/test-inference-component-call-graph-acceptance-ref
 R/package_tests/testthat_bulk/test-inference-component-registry-clear-register-dependency-propagation-and-idempotence-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-component-source-parts-branches-and-error-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-component-validator-remaining-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-inference-convergence-rate-registry.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-core-cache-and-matrix-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-hardened-qr-column-dropping-retry-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-hierarchy-migration-manifest-cache-populate-clear-lookup-and-registry-parity-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-hierarchy-migration-order-depth-sort-tie-break-and-statuses-filter-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-interval-censored-not-supported-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-nonestimable-state-thread-policy-and-par-lapply-serial-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-inference-procedure-regime-registry.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-inference-procedure-validity-lookup.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-public-method-names-generator-lookup-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-rand-custom-bare-external-pointer-no-recorded-signature-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-rand-custom-install-stat-cpp-type-and-arity-guards-reference.R,coverage,240,bootstrap
@@ -1954,6 +1969,7 @@ R/package_tests/testthat_bulk/test-inference-rand-generate-permutations-numeric-
 R/package_tests/testthat_bulk/test-inference-registry-capability-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-registry-migration-record-classifiers-counts-and-behavior-record-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-registry-quasi-robust-and-custom-randomization-behavior-records-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-inference-small-sample-section-references.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-suite-bootstrap-helper-contracts.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-inference-suite-class-predicates-acronym-split-priority-derivation-and-zero-augmented-mle-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-inference-suite-display-label-helpers-sigfig-method-estimand-wrap-timestamp-and-escape-reference.R,coverage,240,bootstrap
@@ -2406,6 +2422,7 @@ R/package_tests/testthat_bulk/test-print-progress-non-null-progress-bar-update-r
 R/package_tests/testthat_bulk/test-probit-randomization-estimate-refit-no-covariates-and-unreasonable-fit-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-probit-regression-kernel-optimizers-fixed-coefficients-and-output-fields-glm-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-probit-regression-kernel-warm-start-beta-wrong-length-guard-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-procedure-trust-vignette-tables.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prop-fractional-logit-quasibinomial-dispersion-and-weighted-refit-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prop-gcomp-mean-diff-randomization-worker-estimate-not-all-na-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-prop-kk-glmm-migration-golden.R,coverage,1.2,measured_with_30_percent_headroom
@@ -2535,6 +2552,7 @@ R/package_tests/testthat_bulk/test-run-all-inference-print-live-cov-key-referenc
 R/package_tests/testthat_bulk/test-run-all-inference-print-row-value-formatting-ci-method-blanking-and-single-line-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-static-row-fields-precomputed-before-fitting-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-run-all-inference-typed-task-type-fanout-union-basic-only-and-requested-subset-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-run-all-inference-validity-columns.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-sample-int-replace-kernel-contract-and-uniformity-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-sample-mode-kernel-first-occurrence-tie-break-and-na-handling-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-sandwich-hc2-qr-reduction-pval-inversion-and-small-utility-kernels-reference.R,coverage,240,bootstrap
