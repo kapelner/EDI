@@ -80,6 +80,7 @@
 "get_identity_binomial_regression_score_cpp","function","","","","",3,"beta;X;y_r",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "get_identity_binomial_regression_weighted_hessian_cpp","function","","","","",4,"beta;weights_r;X;y_r",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "get_identity_binomial_regression_weighted_score_cpp","function","","","","",4,"beta;weights_r;X;y_r",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
+"get_inference_procedure_validity","function","","","","",3,"design;inference_class;procedure",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "get_log_binomial_regression_hessian_cpp","function","","","","",3,"beta;X;y_r",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "get_log_binomial_regression_score_cpp","function","","","","",3,"beta;X;y_r",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
 "get_log_binomial_regression_weighted_hessian_cpp","function","","","","",4,"beta;weights_r;X;y_r",FALSE,FALSE,FALSE,FALSE,"multiple_configurable_args_without_detected_assertion_contract",""
