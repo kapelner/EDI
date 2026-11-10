@@ -93,6 +93,7 @@ R/package_tests/testthat_bulk/test-build-optimal-design-p-h-null-prior-rank-defi
 R/package_tests/testthat_bulk/test-build-optimal-design-p-h-scalar-tau-exact-value-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-build-partial-and-full-likelihood-behavior-record-not-registered-guards-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-calibrated-and-smoothed-bootstrap-ci-too-few-draws-guards-reference.R,correctness,410.1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-calibration-class-major-order.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-convergence-slopes.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-calibration-readme-pages.R,correctness,120,bootstrap
@@ -1624,6 +1625,7 @@ R/package_tests/testthat_bulk/test-build-optimal-design-p-h-null-prior-rank-defi
 R/package_tests/testthat_bulk/test-build-optimal-design-p-h-scalar-tau-exact-value-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-build-partial-and-full-likelihood-behavior-record-not-registered-guards-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibrated-and-smoothed-bootstrap-ci-too-few-draws-guards-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-calibration-class-major-order.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-convergence-slopes.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-gate-regime-levels.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-calibration-readme-pages.R,coverage,240,bootstrap
